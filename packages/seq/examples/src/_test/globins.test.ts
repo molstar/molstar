@@ -111,7 +111,7 @@ describe('the Globins views against their data', () => {
     const f0 = await frame({ size: { width: 900, height: 600 }, dpr: 1, settled: true });
     const l0 = rowsOf(f0);
     // the band's display row of data row 1,020, at the band's top, at letters
-    const top = l0.display.displayRow(1020) * 20;
+    const top = l0.display.displayRow(1020);
     const f = await frame({
       size: { width: 900, height: 600 },
       dpr: 1,
@@ -138,7 +138,7 @@ describe('the Globins views against their data', () => {
         '/views/main/rows': {
           start: 0,
           end: 40,
-          bands: { '/views/main/rows/rows': { bandTop: 20 * 5_000_000, rowScale: 20 } },
+          bands: { '/views/main/rows/rows': { bandTop: 5_000_000, rowScale: 20 } },
         },
       },
     });

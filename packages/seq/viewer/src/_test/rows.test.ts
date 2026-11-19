@@ -10,11 +10,13 @@
 // the selection is by data rows and a fold keeps it, the wheel scrolls the rows, `]` and `[` zoom them, the export draws
 // the viewer's folds, and the keys check reports one key event two commands' chords match.
 
+import { patchToNode } from '@molstar/core/repr/patch';
 import type { Node } from '@molstar/core/repr/tree';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { rangesLocation } from '@molstar/seqx-core/query';
 import type { RowsLay } from '@molstar/seqx-core/render';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { headlessAnimation } from '../animation.js';
 import { keyConflicts } from '../bindings.js';
 import { viewerItem } from '../config.js';
 import { DefaultSeqViewerSpec } from '../default-spec.js';
@@ -131,7 +133,8 @@ describe('an alignment’s rows in the viewer', () => {
     v.input.move(x, y);
     expect(v.input.wheel(x, y, { deltaX: 0, deltaY: 30, deltaMode: 0 })).toBe(true);
     frames!.flush();
-    expect(v.view.band(Track)?.bandTop).toBe(30);
+    // 30 px of wheel at 20 px a row: a row and a half
+    expect(v.view.band(Track)?.bandTop).toBe(1.5);
     expect(lay(v).first).toBe(1);
     expect(v.input.key({ key: ']' })).toBe(true);
     frames!.flush();
@@ -149,5 +152,188 @@ describe('an alignment’s rows in the viewer', () => {
     expect(keyConflicts({ 'view.zoom-in': ['=', '+'], 'rows.zoom-in': [']'], 'rows.zoom-out': ['['] })).toEqual([]);
     const issues = keyConflicts({ 'view.zoom-in': ['+'], 'rows.zoom-in': ['Shift+='] });
     expect(issues.map((i) => i.code)).toEqual(['seq.viewer.binding.conflict']);
+  });
+});
+
+const Rows = '/data/aln/(rows)';
+const layer = (v: SeqViewer) => v.spec.root.value.children![1].children![0].children![0].children![0].children![0];
+
+describe('the rows’ band in display rows, kept by key', () => {
+  it('a fold above the window keeps the window’s top row', async () => {
+    const v = await make();
+    v.view.setBand(Track, { bandTop: 3 });
+    frames!.flush();
+    expect(lay(v).keyAt(lay(v).top)?.key).toBe('GLB');
+    await v.execute('clades.toggle', { track: Track, clade: 'hb' });
+    frames!.flush();
+    expect(v.view.band(Track)?.bandTop).toBe(2);
+    expect(lay(v).keyAt(lay(v).top)?.key).toBe('GLB');
+  });
+
+  it('back lands on the same top row by its key, though a row above it was hidden since', async () => {
+    const v = await make();
+    v.view.setBand(Track, { bandTop: 3 });
+    frames!.flush();
+    await v.execute('clades.collapseAll', { track: Track });
+    frames!.flush();
+    await v.execute('rows.hide', { track: Track, rows: [0] });
+    await v.settle();
+    frames!.flush();
+    expect(v.view.back()).toBe(true);
+    frames!.flush();
+    // GLB is the third row shown now (HBA hidden): its top 2, where a kept px would show CYG
+    expect(v.view.band(Track)?.folds).toBeUndefined();
+    expect(v.view.band(Track)?.bandTop).toBe(2);
+    expect(lay(v).keyAt(lay(v).top)?.key).toBe('GLB');
+  });
+
+  it('`]` and `[` zoom about the band’s middle row', async () => {
+    const v = await make();
+    v.view.setBand(Track, { bandTop: 1, rowScale: 10 });
+    frames!.flush();
+    const l = lay(v);
+    const area = l.box.height - l.pinnedHeight;
+    const mid = l.top + area / 2 / l.rowScale;
+    expect(v.input.key({ key: ']' })).toBe(true);
+    frames!.flush();
+    const z = lay(v);
+    expect(z.rowScale).toBe(20);
+    expect(z.top + area / 2 / z.rowScale).toBeCloseTo(mid, 9);
+  });
+
+  it('a step’s motion over a folded band keeps the session’s folds, the frame’s top and zoom over them', async () => {
+    const { port, clock } = headlessAnimation();
+    vi.useFakeTimers({ toFake: ['Date', 'performance'] });
+    frames = installFrames();
+    const v = createSeqViewer({ ...DefaultSeqViewerSpec(), ui: undefined, animation: port });
+    viewer = v;
+    const base = spec();
+    const down = { sections: { '/views/v/s': { start: 0, end: 6, bands: { [Track]: { bandTop: 2, rowScale: 20 } } } } };
+    await v.load({
+      ...base,
+      children: [
+        ...(base.children ?? []),
+        {
+          kind: 'snapshots',
+          id: 'snapshots',
+          children: [
+            {
+              kind: 'snapshot',
+              id: 'down',
+              params: { patch: patchToNode({ ops: [] }), view: down, duration: 400, easing: 'linear' },
+            },
+          ],
+        },
+      ],
+    });
+    v.resize(400);
+    await v.settle();
+    v.draw();
+    v.view.setBand(Track, { folds: ['hb'] });
+    v.draw();
+    expect(lay(v).display.count).toBe(5);
+    const { plan } = v.playStep('down');
+    expect(plan).toBeDefined();
+    clock.tick(200);
+    v.draw();
+    const mid = lay(v);
+    expect(mid.folds).toEqual(['hb']);
+    expect(mid.display.count).toBe(5);
+    expect(mid.top).toBeGreaterThan(0);
+    expect(mid.top).toBeLessThan(2);
+    clock.runAll(16);
+    v.draw();
+    expect(lay(v).folds).toEqual(['hb']);
+  });
+});
+
+describe('the rows’ commands and gestures', () => {
+  it('pins toggle; hidden rows merge and show again; an order; a collapse to a depth', async () => {
+    const v = await make();
+    await v.execute('rows.pin', { track: Track, rows: [2] });
+    await v.settle();
+    expect(layer(v).params?.pinned).toEqual(['MYG']);
+    await v.execute('rows.pin', { track: Track, rows: [2] });
+    await v.settle();
+    expect(layer(v).params?.pinned).toEqual([]);
+    await v.execute('rows.hide', { track: Track, rows: [0] });
+    await v.settle();
+    await v.execute('rows.hide', { track: Track, rows: [0, 1] });
+    await v.settle();
+    expect(layer(v).params?.hidden_rows).toEqual(['HBA', 'HBB']);
+    frames!.flush();
+    expect(lay(v).display.count).toBe(4);
+    await v.execute('rows.show', { track: Track });
+    await v.settle();
+    expect(layer(v).params?.hidden_rows).toBeUndefined();
+    await v.execute('rows.order', { track: Track, order: { field: 'label', direction: 'ascending' } });
+    await v.settle();
+    frames!.flush();
+    const shown = (l: RowsLay) => Array.from({ length: l.display.count }, (_, i) => l.label(l.display.rowAt(i)));
+    expect(shown(lay(v))).toEqual(['CYG', 'GLB', 'HBA', 'HBB', 'MYG', 'NGB']);
+    await v.execute('rows.order', { track: Track, order: 'tree' });
+    await v.settle();
+    frames!.flush();
+    await v.execute('clades.collapseTo', { track: Track, depth: 1 });
+    frames!.flush();
+    expect(v.view.band(Track)?.folds).toEqual(['hb', 'rest']);
+    expect(lay(v).display.count).toBe(2);
+  });
+
+  it('Shift+click on a row header extends in display order, not data order', async () => {
+    const v = await make();
+    await v.execute('rows.order', { track: Track, order: { field: 'label', direction: 'ascending' } });
+    await v.settle();
+    frames!.flush();
+    const l = lay(v);
+    // CYG GLB HBA HBB MYG NGB: CYG, then Shift+HBA selects CYG, GLB and HBA (data rows 4, 3, 0)
+    expect(v.input.click(l.labelX + 2, l.rowY(0) + 5)).toBe(true);
+    expect(v.input.click(l.labelX + 2, l.rowY(2) + 5, { shiftKey: true })).toBe(true);
+    const part = v.selection.value.value.shown.parts.find((p) => p.system === Rows)!;
+    expect(Array.from(part.ranges)).toEqual([0, 1, 3, 5]);
+  });
+
+  it('a double-click on a summary row opens its clade', async () => {
+    const v = await make(['hb']);
+    const l = lay(v);
+    expect(l.display.rowAt(0)).toBeLessThan(0);
+    expect(v.input.doubleClick(l.box.x + 3, l.rowY(0) + 5)).toBe(true);
+    await v.settle();
+    frames!.flush();
+    expect(lay(v).display.count).toBe(6);
+  });
+
+  it('the wheel over another layer’s `row` hit pans as any, never taken by the rows', async () => {
+    const v = await make();
+    const l = lay(v);
+    const x = l.box.x + 5;
+    const y = l.rowY(1) + 3;
+    const input = v.input as unknown as { _hitAt: (x: number, y: number) => unknown; _hit: Record<string, unknown> };
+    const own = input._hitAt.bind(input);
+    vi.spyOn(input, '_hitAt').mockImplementation((px: number, py: number) => {
+      own(px, py);
+      Object.assign(input._hit, { layer: '/views/v/s/other/l', target: 'row', ySystem: undefined });
+      return input._hit;
+    });
+    const before = v.view.get('/views/v/s')!.start;
+    expect(v.input.wheel(x, y, { deltaX: 0, deltaY: 30, deltaMode: 0 })).toBe(true);
+    expect(v.view.band(Track)?.bandTop ?? 0).toBe(0);
+    void before;
+  });
+
+  it('the bindings: the matrix’s cells', async () => {
+    const v = await make();
+    const b = v.bindings;
+    const none = {};
+    expect(b.resolve('click', none, 'tree-node')).toBe('clades.toggle');
+    expect(b.resolve('click', { mod: true }, 'tree-node')).toBe('selection.toggle');
+    expect(b.resolve('double-click', none, 'summary-row')).toBe('clades.toggle');
+    expect(b.resolve('click', none, 'summary-row')).toBe('selection.set');
+    expect(b.resolve('click', { shift: true }, 'row')).toBe('selection.extend');
+    expect(b.resolve('click', { mod: true }, 'row')).toBe('selection.toggle');
+    expect(b.resolve('click', none, 'cell')).toBe('selection.set');
+    expect(b.resolve('wheel', none, 'row')).toBe('pan');
+    expect(v.config.view.keys['rows.zoom-in']).toEqual([']']);
+    expect(v.config.view.keys['rows.zoom-out']).toEqual(['[']);
   });
 });

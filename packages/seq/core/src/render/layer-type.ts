@@ -68,7 +68,7 @@ export interface LayoutContext {
   readonly place?: Placement;
   /** Item labels drawn `inside` marks, or a sink a layout collects them into (rings: placed outside). */
   readonly labels?: 'inside' | LabelSink;
-  /** A band's own vertical scroll and row zoom (px a row), when it scrolls its rows. */
+  /** A band's own scroll (display rows below its pinned band) and row zoom (px a row), when it scrolls its rows. */
   readonly bandTop?: number;
   readonly rowScale?: number;
   /** The clades a rows layer folds (session state, by name), when the band says; its `collapsed` when absent. */

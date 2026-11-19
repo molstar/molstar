@@ -29,7 +29,12 @@ function exact(base: Uint8Array, columns: number, r0: number, r1: number, c0: nu
       counts.set(v, (counts.get(v) ?? 0) + 1);
     }
   const sorted = [...counts].sort((a, b) => b[1] - a[1] || a[0] - b[0]);
-  return { letter: sorted[0][0], share: sorted[0][1] / n, lead: (sorted[0][1] - (sorted[1]?.[1] ?? 0)) / n };
+  return {
+    letter: sorted[0][0],
+    share: sorted[0][1] / n,
+    lead: (sorted[0][1] - (sorted[1]?.[1] ?? 0)) / n,
+    shareOf: (v: number) => (counts.get(v) ?? 0) / n,
+  };
 }
 
 describe('the shared reduction (pyramid)', () => {
@@ -46,12 +51,14 @@ describe('the shared reduction (pyramid)', () => {
     expect(p.level(9, 9).columns).toBe(1);
   });
 
-  it('a majority of majorities is the exact majority within its tolerance: the letter where the winner leads by more than 0.25, the share within 0.1 on average and 0.3 at worst', () => {
-    // a majority is not mergeable: pointwise, a close block's share can be off by more than 0.1 (the design's tolerance
-    // holds on average; the worst case is bounded here)
+  it('a majority of majorities is the exact majority within its tolerance: the letter where the winner leads by more than 0.25, the share within 0.05 on average and 0.3 at worst', () => {
+    // a majority is not mergeable: pointwise, a close block's share can be off by more than 0.1; the measured bounds
+    // (the author's to decide against the design's 0.1 pointwise): 0.05 on average, 0.3 at worst, the letter exact
+    // where the winner leads by more than 0.25
     const rng = new PCG(7);
     let sum = 0;
     let count = 0;
+    let worst = 0;
     for (let t = 0; t < 20; t++) {
       const rows = 16 + (rng.int() % 200);
       const columns = 8 + (rng.int() % 60);
@@ -80,8 +87,9 @@ describe('the shared reduction (pyramid)', () => {
             );
             const o = i * l.columns + j;
             if (e.lead > 0.25) expect(l.classes[o]).toBe(e.letter);
-            if (l.classes[o] !== e.letter) continue;
-            const d = Math.abs(l.shares[o] / 255 - e.share);
+            // the share against its letter's exact share, a wrong letter's too
+            const d = Math.abs(l.shares[o] / 255 - e.shareOf(l.classes[o]));
+            worst = Math.max(worst, d);
             expect(d).toBeLessThanOrEqual(0.3);
             sum += d;
             count++;
@@ -89,6 +97,7 @@ describe('the shared reduction (pyramid)', () => {
       }
     }
     expect(sum / count).toBeLessThanOrEqual(0.05);
+    expect(worst).toBeLessThanOrEqual(0.3);
   });
 
   it('square levels of numbers reduce by mean, max and min, NaN not counted', () => {

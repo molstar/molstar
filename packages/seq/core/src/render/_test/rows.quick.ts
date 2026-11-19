@@ -34,6 +34,12 @@ const LayoutOptions = {
   why: 'a layout allocates kilobytes: they hide the control',
 } as const;
 
+/**
+ * Bytes a hit may allocate: no hit object (one is over 100 B); a cell's hit measures 16 B, a number boxed on the way
+ * from the point to its column through the section's axis (shared by every layer's hit), the labels' and the tree's 0.
+ */
+const HitBound = 16;
+
 /** Bytes a pan frame of the rows may allocate: what a layout makes once and its labels and tiles in view. */
 const LayoutBound = 120_000;
 
@@ -47,7 +53,7 @@ function rowsLay(f: {
 
 describe('the rows draw and hover with nothing allocated once warm; a layout a bounded size', () => {
   for (const [name, input] of [
-    ['letters', at(20 * 4000, 20, 100, 160)],
+    ['letters', at(4000, 20, 100, 160)],
     ['the fit (image tiles)', at(0, 0.06)],
   ] as const)
     it(`10,000 × 300 at ${name}: draw`, async ({ task }) => {
@@ -62,7 +68,7 @@ describe('the rows draw and hover with nothing allocated once warm; a layout a b
     task,
   }) => {
     const s = await settle(rowsSpec(10_000, true), [Synthetic]);
-    const input = at(20 * 4000, 20, 100, 160);
+    const input = at(4000, 20, 100, 160);
     const f = await s.frame(input);
     const lay = rowsLay(f);
     const hits: Hit[] = [];
@@ -104,10 +110,46 @@ describe('the rows draw and hover with nothing allocated once warm; a layout a b
     expect(c.r.bytesPerStep, c.r.note).toBeLessThanOrEqual(inject('perfThreshold'));
   });
 
+  it('10,000 × 300 at letters: a hit test over cells, rows and the tree allocates nothing', async ({ task }) => {
+    const s = await settle(rowsSpec(10_000, true), [Synthetic]);
+    const f = await s.frame(at(4000, 20, 100, 160));
+    const lay = rowsLay(f);
+    const points: [number, number][] = [];
+    for (let i = lay.first; i < lay.last; i += 3) {
+      points.push([lay.box.x + 30, lay.rowY(i) + 5]);
+      points.push([lay.labelX + 4, lay.rowY(i) + 5]);
+      points.push([(lay.treeX0 + lay.treeX1) / 2, lay.rowY(i) + 5]);
+    }
+    for (const kind of [0, 1, 2]) {
+      const mine = points.filter((_, k) => k % 3 === kind);
+      const { r } = quickCase(
+        task,
+        `rows hit ${['cells', 'labels', 'tree'][kind]}`,
+        (i) => void hitView(f.layout, ...mine[i % mine.length]),
+        {},
+      );
+      console.info(
+        `rows hit (${['cells', 'labels', 'tree'][kind]}): ${r.bytesPerStep.toFixed(0)} bytes a hit (${r.note})`,
+      );
+      expect(r.bytesPerStep, r.note).toBeLessThanOrEqual(HitBound);
+    }
+  });
+
+  it('10,000 × 300 in tree order: a pan frame bounded (the tree’s geometry kept, nothing sized by the nodes)', async ({
+    task,
+  }) => {
+    const s = await settle(rowsSpec(10_000, true), [Synthetic]);
+    const inputs = [0, 1, 2, 3].map((k) => at(4000 + 0.35 * k, 20, 100, 160));
+    for (const i of inputs) await s.frame(i);
+    const { r } = quickCase(task, 'rows pan tree', (i) => void s.renderer.frame(inputs[i & 3]), LayoutOptions);
+    console.info(`rows pan in tree order: ${r.bytesPerStep.toFixed(0)} bytes a frame (${r.note})`);
+    expect(r.bytesPerStep, r.note).toBeLessThan(LayoutBound);
+  });
+
   for (const n of [100_000, 1_000_000])
     it(`${n.toLocaleString('en-US')} lazy rows: a pan frame at letters, bounded`, async ({ task }) => {
       const s = await settle(rowsSpec(n, false), [Synthetic]);
-      const inputs = [0, 1, 2, 3].map((k) => at(20 * (n / 2) + 7 * k, 20, 100, 160));
+      const inputs = [0, 1, 2, 3].map((k) => at(n / 2 + 0.35 * k, 20, 100, 160));
       for (const i of inputs) await s.frame(i);
       const { r } = quickCase(task, `rows pan ${n}`, (i) => void s.renderer.frame(inputs[i & 3]), LayoutOptions);
       console.info(`rows pan, ${n} lazy rows: ${r.bytesPerStep.toFixed(0)} bytes a frame (${r.note})`);

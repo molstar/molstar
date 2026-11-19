@@ -7,7 +7,7 @@
 import { issueOf } from '@molstar/core/repr/tree';
 import { DefaultMaxBlockValues } from '@molstar/seqx-core/data';
 import type { StaticModel } from '@molstar/seqx-core/resolve';
-import { type Channel, lettersDefault, type ThemeBody } from '@molstar/seqx-core/theme/index';
+import type { Channel } from '@molstar/seqx-core/theme/index';
 import type { ResolvedLayer } from '@molstar/seqx-core/view';
 import type { AxisTransform } from './axis.js';
 import { channelForms, type LayerChannels, PlainDatum } from './channels.js';
@@ -24,6 +24,7 @@ import {
   sectionId,
   type StoreReader,
 } from './layer-type.js';
+import { type Alphabet, LettersColorFallback } from './letters.js';
 import { hoverCell } from './marks.js';
 import { Pyramid, pyramidLevelFor } from './pyramid.js';
 import { readHeld, rowsSource } from './rows.js';
@@ -36,13 +37,7 @@ import type { SeqTokens } from './tokens.js';
 // Its profile is computed from the held cells (`gaps`), kept by their version. Below 2 device px a column, one bar a
 // device column, the tallest stack there (the shared reduction's one-axis max), in its top letter's color.
 
-type Alphabet = 'protein' | 'dna' | 'rna';
-
-const ColorFallback: Record<Alphabet, ThemeBody> = {
-  protein: { kind: 'scheme', params: { name: lettersDefault('protein') } },
-  dna: { kind: 'scheme', params: { name: lettersDefault('dna') } },
-  rna: { kind: 'scheme', params: { name: lettersDefault('rna') } },
-};
+const ColorFallback = LettersColorFallback;
 const Env: Record<Alphabet, { alphabet: Alphabet }> = {
   protein: { alphabet: 'protein' },
   dna: { alphabet: 'dna' },

@@ -42,9 +42,10 @@ export interface AxisShapeOptions {
 }
 
 /**
- * A band's own viewport (by track address): its rows' scroll (`bandTop`, px), row zoom (`rowScale`, px a row) and the
- * clades its rows layer folds (`folds`, by name: session state, compared by identity; the layer's `collapsed` when
- * absent).
+ * A band's own viewport (by track address): its rows' scroll (`bandTop`: the band's top in display rows below its
+ * pinned band, fractional, as a step's view declares it; the layout turns it into px), row zoom (`rowScale`, px a row)
+ * and the clades its rows layer folds (`folds`, by name: session state, compared by identity; the layer's `collapsed`
+ * when absent).
  */
 export interface BandViewport {
   readonly bandTop: number;

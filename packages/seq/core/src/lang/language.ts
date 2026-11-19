@@ -664,8 +664,8 @@ export const SeqLanguage = defineLanguage({
         },
         summary: {
           type: 'string',
-          enum: ['consensus', 'logo', 'bar'],
-          doc: 'For `rows`: a folded clade’s cells: `consensus` (when absent: the majority letter, opaque by its share), `logo`, or `bar` (the non-gap share).',
+          enum: ['consensus', 'bar'],
+          doc: 'For `rows`: a folded clade’s cells: `consensus` (when absent: the majority letter, opaque by its share) or `bar` (the non-gap share).',
         },
         numbers: {
           type: 'string',
@@ -675,7 +675,7 @@ export const SeqLanguage = defineLanguage({
         tree_width: {
           type: 'number',
           min: 0,
-          doc: 'For `rows`: the tree’s width in px (120 when absent, within the label column; 0 hides it).',
+          doc: 'For `rows`: the tree’s width in px (120 when absent: the view’s label column widens by it; 0 hides it).',
         },
         logo_scale: {
           type: 'string',
@@ -691,11 +691,6 @@ export const SeqLanguage = defineLanguage({
           type: 'string',
           enum: ['ignore', 'count'],
           doc: 'For `logo`: gaps left out of the frequencies (`ignore`, when absent) or counted.',
-        },
-        rows: {
-          type: 'string',
-          enum: ['all', 'shown'],
-          doc: 'For `logo`: the frequencies of every row (`all`, when absent: the alignment’s logo) or the rows shown.',
         },
         code: {
           type: 'string',

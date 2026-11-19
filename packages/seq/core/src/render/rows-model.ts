@@ -13,6 +13,12 @@ import type { MeasureEntry, ThemeDatum } from '@molstar/seqx-core/theme/index';
 // the column measures registered for themes, a clade's summary and the profile. Pure; arrays sized by the row count are
 // made when the order, the folds or the data change, never a frame.
 
+/** A row's height when its band gives none (px: a letter row). Fixed: the letters' step needs 20 px. */
+export const RowHeight = 20;
+
+/** How near a tree's branch a point hits its node (px; decided). */
+export const TreeHitPx = 6;
+
 /** A gap byte: `-` or `.`. */
 export function isGap(code: number): boolean {
   return code === 45 || code === 46 || code === 0;
@@ -139,6 +145,12 @@ export class DisplayRows {
   hidden = 0;
   entry: Int32Array = new Int32Array(0);
   displayOf: Int32Array = new Int32Array(0);
+  /** Each data row's place in the order (a pinned row's in-place row, else its display row): the tree's, the emphasis'. */
+  placeOf: Int32Array = new Int32Array(0);
+  /** The rows in the order the display was built in (data rows; undefined: data order): a hidden row's neighbours. */
+  ordered: Int32Array | undefined;
+  /** Data rows in the order. */
+  rows = 0;
   /** Each folded clade shown (by display row of its summary): its shown rows, in display order. */
   readonly members = new Map<number, Int32Array>();
   /** Moves with every rebuild: what a layer's kept marks (summaries, the pyramid in display order) are keyed by. */
@@ -154,9 +166,41 @@ export class DisplayRows {
     return this.identity ? row : (this.displayOf[row] ?? -1);
   }
 
+  /**
+   * Where a data row is in the order: a pinned row kept in place at its in-place row (its band's copy is `displayRow`),
+   * else as `displayRow`. What the tree, the hover and the selection read.
+   */
+  placeRow(row: number): number {
+    return this.identity ? row : (this.placeOf[row] ?? -1);
+  }
+
+  /**
+   * The display row a data row stands at, clamped (a kept window's top row): its own place, its folded clade's summary
+   * row, else (hidden) the nearest row shown in the order (the one after it on a tie); -1 when nothing is shown.
+   */
+  nearestRow(row: number): number {
+    if (this.identity) return this.count ? Math.max(0, Math.min(this.count - 1, row)) : -1;
+    if (row < 0 || row >= this.rows) return -1;
+    const own = this.placeOf[row];
+    if (own >= 0) return own;
+    const order = this.ordered;
+    let at = row;
+    if (order) for (let i = 0; i < this.rows; i++) if (order[i] === row) at = i;
+    const placeAt = (i: number) => this.placeOf[order ? order[i] : i];
+    for (let d = 1; d < this.rows; d++) {
+      const a = at + d < this.rows ? placeAt(at + d) : -1;
+      if (a >= 0) return a;
+      const b = at - d >= 0 ? placeAt(at - d) : -1;
+      if (b >= 0) return b;
+    }
+    return -1;
+  }
+
   /** Data order over `n` rows: no arrays. */
   setIdentity(n: number): void {
     this.identity = true;
+    this.ordered = undefined;
+    this.rows = n;
     this.count = n;
     this.pinned = 0;
     this.hidden = 0;
@@ -182,8 +226,14 @@ export class DisplayRows {
     this.members.clear();
     this.version++;
     if (this.entry.length < n + pinned.length) this.entry = new Int32Array(n + pinned.length);
-    if (this.displayOf.length < n) this.displayOf = new Int32Array(n);
+    if (this.displayOf.length < n) {
+      this.displayOf = new Int32Array(n);
+      this.placeOf = new Int32Array(n);
+    }
     this.displayOf.fill(-1, 0, n);
+    this.placeOf.fill(-1, 0, n);
+    this.rows = n;
+    const place = this.placeOf;
     const entry = this.entry;
     let at = 0;
     const pin = new Set<number>();
@@ -191,6 +241,7 @@ export class DisplayRows {
     for (const r of pin) {
       entry[at] = r;
       this.displayOf[r] = at;
+      if (!inPlace) place[r] = at;
       at++;
     }
     this.pinned = at;
@@ -205,6 +256,7 @@ export class DisplayRows {
       }
     }
     const rows = order ?? clades?.order;
+    this.ordered = rows;
     let hiddenCount = 0;
     for (let i = 0; i < n; i++) {
       const r = rows ? rows[i] : i;
@@ -218,12 +270,14 @@ export class DisplayRows {
         if (pin.has(r) && !inPlace) continue;
         entry[at] = r;
         if (!pin.has(r)) this.displayOf[r] = at;
+        place[r] = at;
         at++;
         continue;
       }
       // a folded clade: its shown rows (pinned ones count too) as one display row, once
       if (at > 0 && entry[at - 1] === -1 - c) {
         if (!pin.has(r)) this.displayOf[r] = at - 1;
+        place[r] = at - 1;
         continue;
       }
       const shown: number[] = [];
@@ -234,13 +288,17 @@ export class DisplayRows {
       if (shown.length === 1) {
         entry[at] = shown[0];
         if (!pin.has(shown[0])) this.displayOf[shown[0]] = at;
+        place[shown[0]] = at;
         at++;
         continue;
       }
       if (!shown.length) continue;
       entry[at] = -1 - c;
       this.members.set(at, Int32Array.from(shown));
-      for (const rr of shown) if (!pin.has(rr)) this.displayOf[rr] = at;
+      for (const rr of shown) {
+        if (!pin.has(rr)) this.displayOf[rr] = at;
+        place[rr] = at;
+      }
       at++;
     }
     this.count = at;

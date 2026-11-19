@@ -103,7 +103,7 @@ describe('the rows layer', () => {
       size: Size,
       dpr: 1,
       settled: true,
-      viewports: { '/views/v/s': { start: 0, end: 6, bands: { '/views/v/s/rows': { bandTop: 20, rowScale: 20 } } } },
+      viewports: { '/views/v/s': { start: 0, end: 6, bands: { '/views/v/s/rows': { bandTop: 1, rowScale: 20 } } } },
     });
     const lay = rowsLay(f as never);
     expect([lay.first, lay.last]).toEqual([1, 3]);
@@ -115,7 +115,7 @@ describe('the rows layer', () => {
       settled: true,
       viewports: { '/views/v/s': { start: 0, end: 6, bands: { '/views/v/s/rows': { bandTop: 999, rowScale: 20 } } } },
     });
-    expect(rowsLay(g as never).bandTop).toBe(60);
+    expect([rowsLay(g as never).top, rowsLay(g as never).bandTop]).toEqual([3, 60]);
     const h = await s.frame({
       size: Size,
       dpr: 1,

@@ -93,6 +93,38 @@ describe('the rows’ model', () => {
     expect(d.displayRow(9)).toBe(9);
   });
 
+  it('`collapseTo { height }` folds the largest clades within it: a clade whose parent is within it is not one', () => {
+    // heights: ab 1, c..d 2, c..e 3, root 4; within 3: ab and c..e, never c..d (its parent c..e is within 3 too)
+    expect(cladesWithin(clades, 3).map((c) => clades.name[c])).toEqual(['ab', 'c..e']);
+    expect(cladesWithin(clades, 4).map((c) => clades.name[c])).toEqual(['root']);
+  });
+
+  it('a pinned row inside a folded clade: in the pinned band, counted in the clade’s summary row (its place)', () => {
+    const d = new DisplayRows();
+    const cd = cladeNamed(clades, 'c..d');
+    d.set(5, undefined, clades, [cd], [2], new Set(), true);
+    expect(Array.from(d.entry.subarray(0, d.count))).toEqual([2, 0, 1, -1 - cd, 4]);
+    expect(Array.from(d.members.get(3)!)).toEqual([2, 3]);
+    expect([d.displayRow(2), d.placeRow(2), d.displayRow(3), d.placeRow(3)]).toEqual([0, 3, 3, 3]);
+    // without `inPlace` the pinned row is in the band only, its place there
+    d.set(5, undefined, clades, [], [2], new Set(), false);
+    expect(Array.from(d.entry.subarray(0, d.count))).toEqual([2, 0, 1, 3, 4]);
+    expect(d.placeRow(2)).toBe(0);
+  });
+
+  it('a kept row’s place: its own, its summary row, else the nearest shown in the order (after it on a tie)', () => {
+    const d = new DisplayRows();
+    // hidden c and d (the order a b c d e): d's nearest is e, after it; c's is b, one before (e is two after)
+    d.set(5, undefined, clades, [], [], new Set([2, 3]), true);
+    expect(d.nearestRow(3)).toBe(d.placeRow(4));
+    expect(d.nearestRow(2)).toBe(d.placeRow(1));
+    d.set(5, undefined, clades, [], [], new Set([2, 3, 4]), true);
+    expect(d.nearestRow(3)).toBe(d.placeRow(1));
+    d.set(5, undefined, clades, [cladeNamed(clades, 'ab')], [], new Set(), true);
+    expect(d.nearestRow(1)).toBe(0);
+    expect(d.nearestRow(9)).toBe(-1);
+  });
+
   it('property: over random trees and folds, every shown row is placed once and found where it is drawn', () => {
     const rng = new PCG(21);
     const d = new DisplayRows();
@@ -131,6 +163,8 @@ describe('the rows’ model', () => {
     const h = held(['ACD-', 'ACE-', 'GCDA', 'ACDA']);
     const m = columnMeasures(h, 0);
     expect(Array.from(m.share)).toEqual([0.75, 1, 0.75, 1]);
+    // identity leaves gaps out of the rows counted: a column A, -, A, C against A is 2 of 3
+    expect(columnMeasures(held(['A', '-', 'A', 'C']), 0).identity[0]).toBeCloseTo(2 / 3, 6);
     expect(m.identity[0]).toBe(0.75);
     expect(Number.isNaN(m.identity[3])).toBe(true);
     expect(m.rowsValue[1]).toBeCloseTo(2 / 3);

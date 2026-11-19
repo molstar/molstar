@@ -72,8 +72,8 @@ describe('the rows’ time over 10,000 × 300', () => {
   itWithin('a pan frame at the fit (image tiles), at letters and between two level pairs', async (within) => {
     const s = await settle(spec(10_000, true), [Synthetic]);
     const fit = [0, 1, 2, 3].map((k) => at(k, 0.06));
-    const letters = [0, 20, 40, 60].map((k) => at(20 * 4000 + k, 20, 100, 160));
-    const pairs = [0, 4, 8, 12].map((k) => at(k * 10, 0.5, 0, Columns));
+    const letters = [0, 20, 40, 60].map((k) => at(4000 + k / 20, 20, 100, 160));
+    const pairs = [0, 4, 8, 12].map((k) => at(k * 20, 0.5, 0, Columns));
     for (const inputs of [fit, letters, pairs]) for (const i of inputs) await s.frame(i);
     const f = await s.frame(fit[0]);
     expect(rowsLay(f).images.length).toBeGreaterThan(0);
@@ -129,8 +129,8 @@ describe('the rows’ time over 10,000 × 300', () => {
   it('a frame of 10,000,000 lazy rows at letters within 1.2× of 10,000 held', { tags: ['heavy'] }, async () => {
     const held = await settle(spec(10_000, false), [Synthetic]);
     const lazy = await settle(spec(10_000_000, false), [Synthetic]);
-    const hi = [0, 20, 40, 60].map((k) => at(20 * 4000 + k, 20, 100, 160));
-    const li = [0, 20, 40, 60].map((k) => at(20 * 5_000_000 + k, 20, 100, 160));
+    const hi = [0, 20, 40, 60].map((k) => at(4000 + k / 20, 20, 100, 160));
+    const li = [0, 20, 40, 60].map((k) => at(5_000_000 + k / 20, 20, 100, 160));
     for (const i of hi) await held.frame(i);
     for (const i of li) await lazy.frame(i);
     let best = Infinity;

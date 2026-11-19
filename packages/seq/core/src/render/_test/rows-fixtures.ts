@@ -54,7 +54,7 @@ function balanced(n: number): string {
   return `${out.join('')};`;
 }
 
-export function rowsSpec(rows: number, tree: boolean): Node {
+export function rowsSpec(rows: number, tree: boolean, params: Record<string, unknown> = {}): Node {
   const b = createSeqSpec();
   const src = b.data.source('src', { format: 'synthetic', value: { rows } });
   const aln = b.data.alignment('aln', { alphabet: 'protein', source: src });
@@ -63,7 +63,7 @@ export function rowsSpec(rows: number, tree: boolean): Node {
     v
       .section('s', { of: aln })
       .track('rows', { label: '', height: 600 })
-      .layer('r', { type: 'rows', data: aln, ...(t ? { tree: t, order: 'tree' } : {}) } as never),
+      .layer('r', { type: 'rows', data: aln, ...(t ? { tree: t, order: 'tree' } : {}), ...params } as never),
   );
   return b.build();
 }

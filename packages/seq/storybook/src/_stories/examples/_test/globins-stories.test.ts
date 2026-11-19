@@ -41,4 +41,26 @@ describe('Globins stories, headless', () => {
       expect(r.issues.filter((i) => i.severity === 'error')).toEqual([]);
       expect(r.svg.length).toBeGreaterThan(1000);
     });
+
+  it('scale at the fit: the rows are image tiles with their pixels drawn, and the export carries them as images', async () => {
+    viewer = await openExample(GlobinsViews.find((v) => v.id === 'scale')!, { gene: '' });
+    // every row in the band: 10,000 rows in 240 px
+    const key = rowsLay(viewer)!.key;
+    viewer.view.setBand(key.slice(0, key.lastIndexOf('/')), { bandTop: 0, rowScale: 240 / 10_000 });
+    await vi.advanceTimersByTimeAsync(50);
+    viewer.draw();
+    const lay = rowsLay(viewer)!;
+    expect(lay.display.count * lay.rowScale).toBeLessThanOrEqual(lay.box.height + 1e-6);
+    expect(lay.images.length).toBeGreaterThan(0);
+    // every tile has opaque pixels (the base level holds no shares: a sample there is whole)
+    for (const img of lay.images) {
+      let alpha = 0;
+      for (let i = 3; i < img.data.length; i += 4) alpha += img.data[i];
+      expect(alpha).toBeGreaterThan(0);
+    }
+    const p = viewer.renderSvg({ idPrefix: 's-' });
+    await vi.advanceTimersByTimeAsync(400);
+    const svg = (await p).svg;
+    expect(svg.match(/<image [^>]*href="data:image\/png;base64,/g)?.length).toBe(lay.images.length);
+  });
 });

@@ -134,11 +134,19 @@ nothing and tells nothing.
   arguments moves and detaches nothing. Focus and reveal by address move the leading sections as before, and the cursor
   on a follower reveals nothing unless it may detach (`reveal.cursor`).
 - **Bands** (`bands`, `band(track)`, `setBand(track, band)`, `bandsOf(section)`): a band's own viewport by its track's
-  address, a rows band's scroll (`bandTop`, px), row zoom (`rowScale`, px a row) and folded clades (`folds`, by name:
-  session state, the layer's `collapsed` when absent; `folds: undefined` drops them). One map, replaced on each change
-  (compared by identity: a frame's key), read into each leading section's frame viewport (`viewports[s].bands`), so the
-  export draws the viewer's folds and scroll. A step of the history keeps the bands with the windows (`Kept.bands`), so
-  back after a fold or a bulk fold lands on the same rows. The scroll is kept in px, not as a row key (a followup).
+  address, a rows band's scroll (`bandTop`, the band's top in display rows below its pinned band, fractional, as a
+  step's view declares it; the layout turns it into px), row zoom (`rowScale`, px a row) and folded clades (`folds`, by
+  name: session state, the layer's `collapsed` when absent; `folds: undefined` drops them). One map, replaced on each
+  change (compared by identity: a frame's key), read into each leading section's frame viewport (`viewports[s].bands`),
+  so the export draws the viewer's folds and scroll. **During a story's motion** the shown frame's `bandTop` and
+  `rowScale` are merged over the model's bands, the session's folds kept (`_bandsFor`); a step's bands are placed in the
+  model when it is entered (top and zoom; never its folds), and the model's are where a step's motion starts. A step of
+  the history keeps each band by its top row's key (`KeptBand`: the key and the fraction past it, with its zoom and
+  folds), the snapshot's own field beside the groups, restored under its folds and zoom and clamped (a folded key at its
+  summary row, a hidden one at the nearest row shown) through `BandRows`, what names the rows (the `rows` behavior gives
+  it, `setBandRows`); with none, a band is kept as its `bandTop`. Why keys: a step back after rows were hidden, folded
+  or reordered lands on the same rows. `rowsAxis(system)`: a rows system as an axis in its layer's display order
+  (Shift+click extends along it).
 - **History** (`jump`, `back`, `forward`, `history`): a jump (a focus, a fit, a reveal, a bookmark's or a link's move,
   the cursor's Enter) runs through `jump(move)`, which pushes the viewports it left (every group's range, a detached
   follower's among them) when it moved the view, and drops the steps forward; `same` when the view already showed it,
@@ -647,7 +655,8 @@ rows' commands) reads the last frame's rows layers through the behavior context'
   `genome-browser` (a drag on data pans instead; the selection's clicks kept, its drags dropped).
 - **A tree's nodes** (`CladeBindings`, in `default`): a click on a `tree-node` toggles its clade's fold
   (`clades.toggle`: decided, a node is chrome, as a group's chevron; a preset may bind it to select), Cmd/Ctrl+click
-  toggles its rows in the selection; a `summary-row` is an element (a click selects the clade's rows).
+  toggles its rows in the selection; a `summary-row` is an element (a click selects the clade's rows, Shift+click on a
+  row extends in display order), its double-click opens the clade (`clades.toggle`, again folds it).
 - `bindingTable(preset, overrides, { actions, kinds, keys })`: each override layer replaces bindings of the same
   gesture, modifiers and target (`action: null` removes one); two of one key within a layer conflict. Resolving is map
   lookups, no allocation. **The keys check** (`keyConflicts`, the viewer passes `view.keys`): two commands whose chords
@@ -685,10 +694,12 @@ selection's gestures and the cursor's moves are session state; the cursor's focu
   together; `clades.keep` writes the folds shown into the layer's `collapsed` (one patch); `rows.pin` (toggles: a pinned
   row is unpinned), `rows.hide`, `rows.show` (the hidden-rows chip's) and `rows.order` are patches of the layer's
   params, read from the spec as it is now; `rows.zoom-in` and `rows.zoom-out` (`]`, `[` in `view.keys`) double and halve
-  `rowScale` (1/64 to 40 px a row) about the band's middle row. **An edit of `collapsed`** (a patch, an undo) resets the
-  session's folds to it; other edits keep them. The wheel's vertical delta over a rows band (its cells, its header)
-  scrolls its rows (`bandTop`, clamped), its horizontal pans the columns. Clades fold only in tree order (`when` says).
-  `rows.filter` waits for a `filter` param of the rows layer.
+  `rowScale` (1/64 to 40 px a row, fixed: 1/64 shows 10,000 rows in about 160 px, 40 is twice a letter row) about the
+  band's middle row. A fold keeps the row at the band's top there (a fold above the window moves it up, never off). **An
+  edit of `collapsed`** (a patch, an undo) resets the session's folds to it; other edits keep them. The wheel's vertical
+  delta over a rows layer's own band (its cells, its header) scrolls its rows (`bandTop`, px over the row height,
+  clamped), its horizontal pans the columns; over another layer's `row` hit it pans as any. Clades fold only in tree
+  order (`when` says). `rows.filter` waits for a `filter` param of the rows layer.
 
 ## Legends
 

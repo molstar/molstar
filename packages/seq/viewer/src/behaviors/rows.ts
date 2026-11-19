@@ -8,7 +8,9 @@
 // state (the band's `folds` in the view model: no undo step); a toggle is a hand's move, the bulk folds and a reveal are
 // jumps (back restores the folds and the rows' window together); `clades.keep` writes the folds shown into the layer's
 // `collapsed` (one patch), and a patch or an undo that changes `collapsed` resets the session's folds to it. Pins,
-// hidden rows and the order are spec edits. The rows' scroll and zoom are the band's (`bandTop`, `rowScale`).
+// hidden rows and the order are spec edits. The rows' scroll and zoom are the band's (`bandTop` in display rows,
+// `rowScale` px a row); a fold keeps the row at the band's top there (the rows under the eye do not jump), and the
+// view's history keeps a band by its top row's key (`BandRows`).
 
 import type { Op } from '@molstar/core/repr/patch';
 import type { Node, Value } from '@molstar/core/repr/tree';
@@ -58,7 +60,10 @@ export const RowsCommandIds = {
 /** The actions a binding may name when the viewer has the behavior (a tree node's click). */
 export const RowsActions: readonly string[] = CladeActions;
 
-/** The rows' zoom steps a key takes (×2) and its bounds, px a row. */
+/**
+ * The rows' zoom steps a key takes (×2) and its bounds, px a row (fixed: 1/64 shows 10,000 rows in about 160 px, a
+ * band's whole family; 40 is twice a letter row, past which a row reads no better).
+ */
 const ZoomStep = 2;
 const MinRowScale = 1 / 64;
 const MaxRowScale = 40;
@@ -105,7 +110,13 @@ export function rowsBehavior(spec: SpecModel, view: ViewModel, layout: () => Vie
       if (tree && !(l.clades && l.foldsApply)) return 'The rows are not in tree order';
       return true;
     };
-  const setFolds = (track: string, names: readonly string[]) => view.setBand(track, { folds: names });
+  /** New folds, the row at the band's top kept there (a fold above it moves it up, never off). */
+  const setFolds = (track: string, names: readonly string[]) => {
+    const l = lay(track);
+    const at = l?.keyAt(l.top);
+    const top = l && at ? l.topOf(at.key, at.offset, names) : undefined;
+    view.setBand(track, top === undefined ? { folds: names } : { folds: names, bandTop: top });
+  };
   const namesOf = (l: RowsLay, ids: readonly number[]) => ids.map((c) => l.clades!.name[c]);
   const folded = (track: string, l: RowsLay): readonly string[] => view.band(track)?.folds ?? l.folds;
   /** A bulk fold: a jump (back restores the folds and the rows' window together). */
@@ -146,8 +157,10 @@ export function rowsBehavior(spec: SpecModel, view: ViewModel, layout: () => Vie
     const scale = Math.max(MinRowScale, Math.min(MaxRowScale, l.rowScale * factor));
     if (scale === l.rowScale) return { message: 'Already so' };
     const area = Math.max(0, l.box.height - l.pinnedHeight);
-    const mid = (l.bandTop + area / 2) / l.rowScale;
-    view.setBand(track, { rowScale: scale, bandTop: Math.max(0, mid * scale - area / 2) });
+    // the middle row in display rows below the pinned band, at the band's middle before and after
+    const mid = l.top + area / 2 / l.rowScale;
+    const top = Math.max(0, Math.min(mid - area / 2 / scale, l.maxTop(scale, l.display.count)));
+    view.setBand(track, { rowScale: scale, bandTop: top });
     return { message: factor > 1 ? 'Zoomed in' : 'Zoomed out' };
   };
 
@@ -347,22 +360,40 @@ export function rowsBehavior(spec: SpecModel, view: ViewModel, layout: () => Vie
   scan(spec.model.value.spec, false);
   const stop = spec.model.listen((model) => scan(model.spec, true));
 
+  // the history keeps a band by its top row's key; restored under the step's folds and zoom, clamped
+  view.setBandRows({
+    keyAt(track, band) {
+      const l = lay(track);
+      if (!l) return undefined;
+      const rs = band.rowScale ?? l.rowScale;
+      return l.keyAt(Math.min(band.bandTop, l.maxTop(rs, l.display.count)));
+    },
+    topOf(track, band, key, offset) {
+      // a band with no folds of its own shows its layer's `collapsed`
+      const l = lay(track);
+      return l?.topOf(key, offset, band.folds ?? l.collapsed, band.rowScale);
+    },
+    axisOf(system) {
+      for (const l of lays().values()) if (l.rowsSystem === system) return l.rowsAxis();
+      return undefined;
+    },
+  });
+
   return {
     commands,
     wheel(track, dy) {
       const l = lay(track);
       if (!l || disposed) return false;
-      const area = Math.max(0, l.box.height - l.pinnedHeight);
-      const content = (l.display.count - l.display.pinned) * l.rowScale;
-      const max = Math.max(0, content - area);
-      const top = Math.max(0, Math.min(max, l.bandTop + dy));
-      if (top === l.bandTop) return false;
+      // the wheel's px as display rows at the band's zoom
+      const top = Math.max(0, Math.min(l.maxTop(l.rowScale, l.display.count), l.top + dy / l.rowScale));
+      if (top === l.top) return false;
       view.setBand(track, { bandTop: top });
       return true;
     },
     lay,
     dispose() {
       disposed = true;
+      view.setBandRows(undefined);
       stop();
     },
   };

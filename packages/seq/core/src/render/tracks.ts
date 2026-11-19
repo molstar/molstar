@@ -59,6 +59,7 @@ import { VariantsType } from './variants.js';
 import { FrameType } from './frames.js';
 import { LogoType } from './logo.js';
 import { RowsType } from './rows.js';
+import { RowHeight } from './rows-model.js';
 import type { ImageCache } from './images.js';
 
 // The tracks layout (_spec/README.md "Render", Tracks layout): sections stacked, each with its axis transform from its
@@ -677,8 +678,48 @@ function pendingPlacement(top: number, box: Box, heights: readonly number[], con
   return p;
 }
 
+/**
+ * The rows' header in the view's one label column (_spec/README.md "Render", The rows layer): a rows layer's tree in
+ * tree order widens the label column by its width (the labels keep theirs), its residue numbers take a right gutter
+ * (the last number a row). The widest of a view's tracks sections, so every section's data starts at one x.
+ */
+function rowsHeader(view: ResolvedView): { readonly tree: number; readonly numbers: boolean } {
+  let tree = 0;
+  let numbers = false;
+  for (const s of view.sections) {
+    if (sectionLayoutName(s, view) !== 'tracks') continue;
+    for (const t of s.tracks)
+      for (const l of t.layers) {
+        if (l.type !== 'rows' || !l.placed || l.params.hidden === true) continue;
+        if (l.params.numbers !== 'none') numbers = true;
+        const w = l.params.tree_width;
+        if (l.params.order === 'tree' && l.params.tree !== undefined)
+          tree = Math.max(tree, typeof w === 'number' ? w : 120);
+      }
+  }
+  return { tree, numbers };
+}
+
+/** A config with its label column widened by `extra` px, one a base and width. */
+const Widened = new WeakMap<RenderConfig, Map<number, RenderConfig>>();
+function widened(base: RenderConfig, extra: number): RenderConfig {
+  if (!extra) return base;
+  let m = Widened.get(base);
+  if (!m) Widened.set(base, (m = new Map()));
+  let c = m.get(extra);
+  if (!c) m.set(extra, (c = { ...base, labelWidth: base.labelWidth + extra }));
+  return c;
+}
+
+/** The right gutter's width when a rows layer draws residue numbers: five digits and a gap. */
+function numbersGutter(text: TextMetrics, config: RenderConfig): number {
+  return text.measure(config.itemFont, '00000') + config.labelGap;
+}
+
 export function layoutView(input: LayoutInput, state = new LayoutState(), again = false): ViewLayout {
-  const config = input.config ?? DefaultRenderConfig;
+  const header = rowsHeader(input.view);
+  const config = widened(input.config ?? DefaultRenderConfig, header.tree);
+  const right = header.numbers ? numbersGutter(input.text, config) : 0;
   const extents = new Map<string, [number, number]>();
   const theme: ThemeContext = {
     schemes: input.theme?.schemes ?? DefaultThemeContext.schemes,
@@ -709,7 +750,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     issues.push(i);
   };
   const dataX = config.inset + config.labelWidth + config.labelGap;
-  const dataW = Math.max(1, width - dataX - config.inset);
+  const dataW = Math.max(1, width - dataX - config.inset - right);
   // axes first, leaders before their followers (a follower may come first in the view)
   const bySection = new Map(input.view.sections.map((s) => [s.address, s]));
   const layouts = input.layouts ?? BuiltInLayouts;
@@ -908,6 +949,12 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     };
     /** A band's own scroll and row zoom (the viewport's `bands`, by track address). */
     const bandOf = (track: ResolvedTrack) => viewport?.bands?.[track.address];
+    // one rows layer a section (the cursor has one row order): the first shown, a second said and not drawn
+    let firstRows: string | undefined;
+    for (const t of shown)
+      for (const l of t.layers)
+        if (firstRows === undefined && l.type === 'rows' && l.placed && l.params.hidden !== true)
+          firstRows = layerKey(t, l);
     // the lays of a strip's bands (_spec/README.md "Render", Section layouts: the lay cache bounded by the strips in view);
     // a `section` layer is laid out once a section, after
     const layStrip = (placement: Placement, i: number, labels?: LabelSink) => {
@@ -934,6 +981,15 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
           const key = layerKey(track, layer);
           const type = typeOf(layer, key);
           if (!type || type.scope === 'section') continue;
+          if (type.name === 'rows' && key !== firstRows) {
+            sectionReport(
+              issueOf(RenderIssues, 'seq.render.rows.second', 'A section draws one rows layer', {
+                address: key,
+                hint: RenderIssues.codes['seq.render.rows.second'].hint,
+              }),
+            );
+            continue;
+          }
           const ctx: LayoutContext = {
             box,
             axis: a,
@@ -1003,7 +1059,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     const sectionBox: Box = {
       x: dataX,
       y: top,
-      width: Math.max(1, width - dataX - config.inset),
+      width: Math.max(1, width - dataX - config.inset - right),
       height: Math.max(0, height - top),
     };
     let placement: Placement;
@@ -1235,7 +1291,7 @@ function rowsCount(track: ResolvedTrack, model: StaticModel): number | undefined
 function trackHeight(track: ResolvedTrack, config: RenderConfig, heights: RenderConfig['heights']): number {
   if (track.height !== undefined) return track.height;
   const rows = rowsFill(track);
-  if (typeof rows === 'number') return rows * config.rows.rowHeight;
+  if (typeof rows === 'number') return rows * RowHeight;
   let h = 0;
   for (const l of track.layers) h = Math.max(h, heights[l.type as keyof RenderConfig['heights']] ?? 0);
   return h || heights.ranges;

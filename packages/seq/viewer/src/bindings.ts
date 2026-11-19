@@ -166,7 +166,12 @@ export const NavigationBindings: readonly GestureBinding[] = [
   { gesture: 'wheel', modifiers: ['shift'], target: 'any', action: 'pan' },
   { gesture: 'wheel', modifiers: ['mod'], target: 'any', action: 'zoom' },
   { gesture: 'pinch', target: 'any', action: 'zoom' },
-  ...each(ElementTargets, 'double-click', 'view.focus'),
+  // a summary row's double-click opens it (the clades' bindings)
+  ...each(
+    ElementTargets.filter((t) => t !== 'summary-row'),
+    'double-click',
+    'view.focus',
+  ),
   { gesture: 'double-click', target: 'empty', action: 'view.fit' },
   { gesture: 'double-click', modifiers: ['shift'], target: 'any', action: 'view.zoom-out' },
   { gesture: 'back-button', modifiers: '*', target: 'any', action: 'view.back' },
@@ -175,11 +180,13 @@ export const NavigationBindings: readonly GestureBinding[] = [
 
 /**
  * A tree's nodes (an alignment's rows): a click toggles the clade's fold (decided: a node is chrome, as a group's
- * chevron; a preset may bind it to select), Cmd/Ctrl+click toggles its rows in the selection.
+ * chevron; a preset may bind it to select), Cmd/Ctrl+click toggles its rows in the selection; a summary row's
+ * double-click opens its clade, its rows shown (again: folded).
  */
 export const CladeBindings: readonly GestureBinding[] = [
   { gesture: 'click', target: 'tree-node', action: 'clades.toggle' },
   { gesture: 'click', modifiers: ['mod'], target: 'tree-node', action: 'selection.toggle' },
+  { gesture: 'double-click', target: 'summary-row', action: 'clades.toggle' },
 ];
 
 /** The default grammar: the hover, navigation, the selection (a drag on data selects) and a tree's nodes. */

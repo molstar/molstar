@@ -579,11 +579,19 @@ export class SeqViewer extends ReactiveModel {
       if (this.view.isFollowing(s.address)) continue;
       const v = this.view.get(s.address);
       if (!v || v.pending) continue;
+      // the bands' top and zoom (display rows, px a row): what a step tweens; the folds are the session's, never a step's
+      const own = this.view.bandsOf(s.address);
+      let bands: Record<string, { bandTop: number; rowScale?: number }> | undefined;
+      for (const track in own ?? {}) {
+        const b = own![track];
+        (bands ??= {})[track] = { bandTop: b.bandTop, ...(b.rowScale !== undefined ? { rowScale: b.rowScale } : {}) };
+      }
       sections[s.address] = {
         start: v.start,
         end: v.end,
         ...(v.top ? { top: v.top } : {}),
         ...(v.scale !== undefined ? { scale: v.scale } : {}),
+        ...(bands ? { bands } : {}),
       };
     }
     return { sections };
@@ -740,6 +748,14 @@ export class SeqViewer extends ReactiveModel {
           ...(v.top !== undefined ? { top: v.top } : {}),
           ...(v.scale !== undefined ? { scale: v.scale } : {}),
         });
+        // a step's bands: their top and zoom placed in the view model, the session's folds kept
+        for (const track in v.bands ?? {}) {
+          const b = v.bands![track];
+          this.view.setBand(track, {
+            ...(b.bandTop !== undefined ? { bandTop: b.bandTop } : {}),
+            ...(b.rowScale !== undefined ? { rowScale: b.rowScale } : {}),
+          });
+        }
       }
     }
     const to = { root: this.spec.shown.value, view: { ...this._modelViews(), ...this._viewAddress() } };

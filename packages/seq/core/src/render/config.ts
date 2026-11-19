@@ -157,18 +157,13 @@ export interface RenderConfig {
    */
   readonly imageBytes: number;
   /**
-   * The rows layer (_spec/README.md "Render", The rows layer): a row's height when the band gives none (`rowHeight`, 20:
-   * a letter row), the least row height a label, a number and an icon are drawn at (`labelMinPx`, 8: a label needs a
-   * row), a pinned row kept in its place in the order too (`pinInPlace`, true: the tree stays a tree), what a reduced
-   * sample is colored by (`reduce`: `theme`, the theme's color classes; `letter`, the letters'), and the nearest a
-   * point is to a tree's branch to hit its node (`treeHitPx`, 6).
+   * The rows layer (_spec/README.md "Render", The rows layer): the least row height a label, a number and an icon are
+   * drawn at (`labelMinPx`, 8: a label needs a row), and a pinned row kept in its place in the order too (`pinInPlace`,
+   * true: the tree stays a tree). A row's height (`RowHeight`, 20) and a tree hit's reach (`TreeHitPx`, 6) are fixed.
    */
   readonly rows: {
-    readonly rowHeight: number;
     readonly labelMinPx: number;
     readonly pinInPlace: boolean;
-    readonly reduce: 'theme' | 'letter';
-    readonly treeHitPx: number;
   };
   /**
    * The text layout (_spec/README.md "Render", Text layout): its letter size (`scale`, px a position: the zoom), the gap
@@ -251,7 +246,7 @@ export const DefaultRenderConfig: RenderConfig = {
   },
   internedStrings: DefaultMaxStrings,
   imageBytes: 64 * 1024 * 1024,
-  rows: { rowHeight: 20, labelMinPx: 8, pinInPlace: true, reduce: 'theme', treeHitPx: 6 },
+  rows: { labelMinPx: 8, pinInPlace: true },
   text: {
     scale: 12,
     groupGap: 0.5,

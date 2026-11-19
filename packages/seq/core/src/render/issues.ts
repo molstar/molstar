@@ -35,6 +35,22 @@ export const RenderIssues = defineIssues('seq.render', {
     description: 'A lazy alignment ordered by a field or a tree its source does not serve: drawn in data order',
     hint: 'Order a lazy alignment by `data`, or hold it',
   },
+  'seq.render.rows.lazy': {
+    severity: 'info',
+    description:
+      'A lazy alignment’s pinned and hidden rows are not applied: rows are pinned and hidden by key, and a lazy row’s key is read with its tile',
+    hint: 'Hold the alignment to pin or hide its rows',
+  },
+  'seq.render.rows.layout': {
+    severity: 'warning',
+    description: 'A rows layer draws in tracks and text sections only: in another layout it is not drawn',
+    hint: 'Show the alignment’s rows in a tracks section',
+  },
+  'seq.render.rows.second': {
+    severity: 'warning',
+    description: 'A section draws one rows layer (the cursor has one row order): a second one is not drawn',
+    hint: 'Show the second alignment’s rows in a section of its own',
+  },
   'seq.render.color': {
     severity: 'warning',
     description: 'A layer’s color names a token the token table lacks',

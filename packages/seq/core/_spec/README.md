@@ -28,8 +28,8 @@ is added in the change that builds what it describes.
   under a section, a section's `of` optional when it has blocks, the view's `export.window`, the layer type `frame` and
   its `across`, the kinds `alignment` and `tree`, a section `of` an alignment, the layer types `rows` and `logo` and
   their params `tree`, `order`, `collapsed`, `pinned`, `hidden_rows`, `height`, `summary`, `numbers`, `tree_width`,
-  `logo_scale`, `correction`, `gaps`, `rows`). A spec in an earlier `0.x` reads as one in this one, and is reported
-  where it no longer fits.
+  `logo_scale`, `correction`, `gaps`). A spec in an earlier `0.x` reads as one in this one, and is reported where it no
+  longer fits.
 
 ## Language
 
@@ -1364,47 +1364,66 @@ measures, consensus, the profile). An alignment's rows over its columns, its own
   10,000 × 300 alignment is held): every tile wanted at level 1 and joined once (kept by the entries' versions); larger
   ones are lazy: the rows in view only, in data order (another order is `seq.render.rows.order`, info: ordering needs
   every row's field), a row not held labeled `row 5,124` and drawn pending; below a device pixel a row, a lazy source
-  with no row bins draws pending (`seq.render.rows.reduced`, info).
+  with no row bins draws a neutral fill (`seq.render.rows.reduced`, info; never a pending stripe that never resolves).
+  Pins and hidden rows are by key, and a lazy row's key comes with its tile: on a lazy alignment neither applies
+  (`seq.render.rows.lazy`, info).
 - **Order** (`order`): `data`, `tree` (the tree's leaf order, rows no leaf names after them in data order), or a field
   of the rows table (`label`, `first`; missing last, ties in data order). Clades fold only in tree order.
 - **Display rows** (`DisplayRows`): what each display row shows (a data row, or `-1 − clade` for a folded clade's
   summary row) and where each data row is shown; pinned rows (`pinned`, by label) first in a band of their own and kept
-  in their place too (`rows.pinInPlace`, marked `·`); hidden rows (`hidden_rows`) out, counted in a chip ("3 hidden") at
-  the header's foot; a clade's "+n" counts its shown rows, one with none goes, one with one folds to that row. Data
-  order with nothing pinned, hidden or folded is arithmetic (no arrays): a million lazy rows cost what ten do. Held by
-  property tests over random trees and folds (every shown row placed once, found where it is drawn).
+  in their place too (`rows.pinInPlace`, marked `·`; `placeRow` its place in the order: the tree's leaf, the hover and
+  the selection are there too); hidden rows (`hidden_rows`) out, counted in a chip ("3 hidden") at the header's foot; a
+  clade's "+n" counts its shown rows, one with none goes, one with one folds to that row. Data order with nothing
+  pinned, hidden or folded is arithmetic (no arrays): a million lazy rows cost what ten do. Held by property tests over
+  random trees and folds (every shown row placed once, found where it is drawn).
 - **Clades** (`buildClades`): a tree's nodes over the rows, each a run of its leaf order; named by the node's label,
   else `first..last` (its first and last leaves' labels), so a name survives a reorder; `allClades`, `cladesAtDepth`,
   `cladesWithin(height)` (every largest clade whose leaves lie within `height` of its node by branch length) and
   `cladesHolding(row)` are what the clade commands fold and open.
 - **Folds** are the band's (`Viewport.bands[track].folds`, by name: session state, compared by identity and part of the
   section's key), else the layer's `collapsed` (the opening state).
-- **The transform**: `rowScale` (px a row; `rows.rowHeight`, 20, when the band gives none) and `bandTop` (the scroll,
-  clamped to the rows) from the band; the pinned band fixed at the top, the rest scrolled under it; display rows in view
-  by arithmetic. The band's height: `height` a number of rows, else `fill` (the section's room left on the page, at
-  least `heights.rows`, 240; a figure takes the default).
+- **The transform**: `rowScale` (px a row; `RowHeight`, 20, fixed, when the band gives none) and `bandTop` (the band's
+  top in display rows below the pinned band, fractional, as a step's view declares it; the layout turns it into px,
+  clamped so the last rows fill the band) from the band; the pinned band fixed at the top, the rest scrolled under it;
+  display rows in view by arithmetic. The band's height: `height` a number of rows, else `fill` (the section's room left
+  on the page, at least `heights.rows`, 240; a figure takes the default).
+- **A kept window** (`keyAt`, `topOf`): the row at a band's top by its key (a held row's label, a lazy row's `#n`) and
+  the fraction scrolled past it; back to a top under any folds and zoom, clamped: a folded row at its summary row, a
+  hidden one at the nearest row shown in the order (`DisplayRows.nearestRow`). What the viewer's history keeps, and what
+  keeps the window's top row across a fold. `rowsAxis()`: the rows system as an axis in display order (Shift+click
+  extends along it).
 - **Drawing**: from 3 device px a cell on both axes, a rect a cell (a run of one fill on a row merged at the cells
   step), letters from `density.letters` (10 px) on both axes, ink by the fill; a cell's fill is the `color` channel at
   its letter and column (the alphabet's scheme by default; the column measures registered for its themes), a gap none. A
   summary row's cells are its clade's consensus (`summary: consensus`, the majority letter opaque by its share; `bar`,
   the non-gap share), computed exactly from the cells when first drawn and kept by the display's version. Below 3 device
-  px the shared reduction over the display rows' theme classes (`rows.reduce`: a class a distinct fill; factor 4, row
-  and column levels apart) at the level pair whose sample is at least a device pixel, drawn as image tiles (256 × 256
-  samples, opaque by the majority's share) in the shared image cache.
-- **The header**, in the label column: the tree (`tree_width`, 120, within 45% of the column; branch lengths, else
-  depth; a folded clade a wedge at its summary row), labels (from `rows.labelMinPx`, 8 px a row; faded past their room;
-  a summary row "first +n"), the first residue numbers right-aligned before the data box (`numbers: gutters`).
-- **Hits** (the header's through the band's gutter: a layer of two axes is asked there): a cell is `cell` with its
-  column (`position`) and row (`ySystem`, `yPosition`); a header's label is `row` (its `position` the data row on the
-  rows system); a summary row `summary-row` and a tree node within `rows.treeHitPx` (6) of its branch, a wedge included,
-  `tree-node`, each its element `{ owner: <alignment>, key: <clade name> }` and its extent the clade's rows.
-- **In a layout whose bands do not scroll** (text: the ESPript figure's lines repeat the rows): the band is every row
-  (its height the rows times the layout's `heights.rows`), every clade unfolded (`seq.render.rows.text.unfolded`, info,
-  when some are folded), no tree, no scroll; a lazy alignment there is drawn pending. Why: a fold would differ per line.
-- **Emphasis along y**: the hover tints its row's band and its column within the band and outlines the cell; the
-  selection's parts on the rows system as row bands (a folded row lights its summary row), its rects of rows × columns
-  as their cells; the cursor with a row (`Emphasis.cursor.ySystem`) outlines its cell (the strip draws a cursor without
-  one).
+  px the shared reduction over the scrolled display rows' theme classes (a class a distinct fill; factor 4, row and
+  column levels apart) at the level pair whose sample is at least a device pixel, drawn as image tiles (256 × 256
+  samples, opaque by the majority's share; the base level holds none: whole) in the shared image cache, offset from the
+  pinned band. The pinned rows are drawn on their own over a band that does not scroll (rects past `pinnedFrom`), the
+  scrolled rows clipped below it. A letter-class reduction (`rows.reduce: letter`) is not built (the package's TODO).
+- **The header**, in the label column: the tree (`tree_width`, 120: the view's label column widens by the widest tree of
+  its tracks sections, so every section's data starts at one x and the labels keep their own width; branch lengths, else
+  depth; a folded clade a wedge at its summary row; its geometry in display rows kept by the display's version, so a pan
+  makes nothing sized by the nodes), labels (from `rows.labelMinPx`, 8 px a row; cut with an ellipsis past their room; a
+  summary row "first +n"), the first residue numbers right-aligned before the data box and the last after it, in a right
+  gutter the view keeps when a rows layer draws numbers (`numbers: gutters`; a row of gaps has none).
+- **Hits** (the header's through the band's gutter: a layer of two axes is asked there), written into one scratch hit (a
+  hover allocates no hit object; a clade's element and extent made once a display): a cell is `cell` with its column
+  (`position`) and row (`ySystem`, `yPosition`); a header's label is `row` (its `position` the data row on the rows
+  system); a summary row `summary-row`, and `tree-node` the inner node whose branch segment is nearest within
+  `TreeHitPx` (6, fixed: decided) by distance to the segment, a wedge included (a leaf's branch hits none), each its
+  element `{ owner: <alignment>, key: <clade name> }` and its extent the clade's rows.
+- **One rows layer a section** (`seq.render.rows.second`, warning: the cursor has one row order); a rows layer draws in
+  tracks and text sections only (`seq.render.rows.layout`, warning, elsewhere).
+- **In a text section** (the ESPript figure's lines repeat the rows): the band is every shown row (its height the
+  display rows times the layout's `heights.rows`), every clade unfolded (`seq.render.rows.text.unfolded`, info, when
+  some are folded), no tree, no scroll; a lazy alignment there is drawn pending. Why: a fold would differ per line.
+- **Emphasis along y**: the hover tints its row's band (a pinned row's at both its places) and its column within the
+  band and outlines the cell; the selection's parts on the rows system as row bands, its rects of rows × columns as
+  their cells, read over the display rows in view only (a binary search a row: a selection of any size costs the rows in
+  view); a summary row draws the partial mark (the tint over the share of its rows selected, the outline when all are);
+  the cursor with a row (`Emphasis.cursor.ySystem`) outlines its cell (the strip draws a cursor without one).
 
 ### The logo
 
@@ -1417,7 +1436,7 @@ held cells, joined once and shared with the rows layer on one store (`readHeld`)
 alignment it is a source's to serve, and none is read yet (`seq.render.logo.profile`, info). Below 2 device px a column,
 one bar a device column, the tallest stack there (the shared reduction's one-axis max, factor 2), in its top letter's
 color. Its color is the alphabet's scheme by default. Hit: the column, the letter under the point as the hit's `state`.
-`rows: shown` waits (the logo reads every row).
+It reads every row (a logo of the rows shown is not built: the package's TODO).
 
 ### The key
 
@@ -1452,11 +1471,12 @@ color. Its color is the alphabet's scheme by default. Hit: the column, the lette
 - **Recording** (`recordDrawLists`): a line a primitive, pass by pass, numbers to two decimals, colors `#rrggbbaa`
   (`none` for no color): the committed records' format.
 - **SVG** (`drawListsToSvg`): a string, no DOM; passes as groups, clips as clip paths, squircles as the core's path,
-  images as runs of rects, fades as gradient masks, metadata as `data-*` attributes. Every text and attribute from a
-  spec or data is escaped; a character XML forbids (a control but tab, newline and return, U+FFFE and U+FFFF, a lone
-  surrogate) becomes U+FFFD, one for one, so a glyph run stays aligned with its x list. Ids take a prefix (`idPrefix`,
-  name characters only), a metadata key is written only as a plain name. Held by hostile labels, ids, titles, fonts and
-  metadata parsed back as XML (`_test/svg-escaping.test.ts`).
+  images as `<image>`s of a PNG data URL (`render/png.ts`: stored deflate blocks, synchronous, no DOM), fades as
+  gradient masks, metadata as `data-*` attributes. Every text and attribute from a spec or data is escaped; a character
+  XML forbids (a control but tab, newline and return, U+FFFE and U+FFFF, a lone surrogate) becomes U+FFFD, one for one,
+  so a glyph run stays aligned with its x list. Ids take a prefix (`idPrefix`, name characters only), a metadata key is
+  written only as a plain name. Held by hostile labels, ids, titles, fonts and metadata parsed back as XML
+  (`_test/svg-escaping.test.ts`).
 
 ### Export
 
@@ -1494,10 +1514,10 @@ color. Its color is the alphabet's scheme by default. Hit: the column, the lette
 ### Issues
 
 - `seq.render.*` (`RenderIssues`): `rows.reduced` (info), `rows.text.unfolded` (info), `logo.profile` (info),
-  `rows.order` (info), `view`, `color`, `theme.channel`, `theme.scheme`, `theme.measure`, `theme.color`, `scale.log`
-  (info), `legend.unlisted` (info), `filter`, `line-style` (info), `numbering`, `layer.type`, `layer.letters`,
-  `axis.pending` (info), `text.lines`, `follow.leader`, `follow.blocks`, `ring.image`, `follow.cycle`, `source`,
-  `template.limit`, `unsettled`; a test checks the catalog.
+  `rows.order` (info), `rows.lazy` (info), `rows.layout`, `rows.second`, `view`, `color`, `theme.channel`,
+  `theme.scheme`, `theme.measure`, `theme.color`, `scale.log` (info), `legend.unlisted` (info), `filter`, `line-style`
+  (info), `numbering`, `layer.type`, `layer.letters`, `axis.pending` (info), `text.lines`, `follow.leader`,
+  `follow.blocks`, `ring.image`, `follow.cycle`, `source`, `template.limit`, `unsettled`; a test checks the catalog.
 
 ## Stories
 

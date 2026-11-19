@@ -8,6 +8,7 @@ import { type Placement, PlacePoint, type Hit as RenderHit, RingPlacement } from
 import { cancelFrameCallback, DomHost, requestFrameCallback } from '@molstar/ui/dom';
 import type { Axis } from '@molstar/seqx-core/view';
 import {
+  CladeActions,
   type KeyChord,
   matchesChord,
   type ModifierState,
@@ -497,7 +498,9 @@ export class ViewerInput {
     const rowsHit =
       this._hit.ySystem !== undefined || target === 'row' || target === 'summary-row' || target === 'tree-node';
     const rows = rowsHit && !mods.mod && !mods.shift ? this.viewer.behavior(RowsProvider) : undefined;
-    if (rows && this._hit.layer !== undefined && Math.abs(dy) >= Math.abs(dx)) {
+    // only over a rows layer's own band: a `row` hit of another layer (a gutter's) pans as any
+    const over = rows && this._hit.layer !== undefined ? rows.lay(trackOfLayer(this._hit.layer)) : undefined;
+    if (rows && over?.key === this._hit.layer && this._hit.layer !== undefined && Math.abs(dy) >= Math.abs(dx)) {
       const scrolled = rows.wheel(trackOfLayer(this._hit.layer), dy);
       this.viewer.schedule();
       return scrolled;
@@ -521,6 +524,11 @@ export class ViewerInput {
     const hit = this._hitAt(x, y);
     const action = this.viewer.bindings.resolve('double-click', mods, hitTarget(hit));
     if (action === undefined) return false;
+    // a clade's command on a summary row (its element the clade): the clade it names
+    if (hit?.target === 'summary-row' && hit.element && hit.layer !== undefined && CladeActions.includes(action)) {
+      void this.viewer.execute(action, { track: trackOfLayer(hit.layer), clade: hit.element.key });
+      return true;
+    }
     const focus = hit ? this._focusOf(section, hit) : undefined;
     // a step zoom is about the pointer (the unit the placement has under it), by the double-click's own factor
     const p = this.viewer.placementOf(section);
