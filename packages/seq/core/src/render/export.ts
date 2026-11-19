@@ -47,9 +47,10 @@ import type { ThemeContext } from './channels.js';
 import type { Emphasis } from './layer-type.js';
 import { LegendBand, layoutLegends, legendsHeight, viewLegends } from './legends.js';
 import { OverlaySources } from './overlay-sources.js';
+import { type NavigatorFrame, NavigatorRenderer, navigatorBox, railSections, windowText } from './navigator.js';
 import { Renderer } from './renderer.js';
 import type { ViewLayout } from './tracks.js';
-import { drawListsToSvg } from './svg.js';
+import { drawListsToSvg, escapeXml, type SvgOptions } from './svg.js';
 import { bundledTextMetrics, type TextMetrics } from './text.js';
 import { builtInTokens, type SeqTokens } from './tokens.js';
 
@@ -202,6 +203,12 @@ export interface RenderSvgOptions {
   readonly folds?: Readonly<Record<string, readonly string[]>>;
   /** The schemes and measures the themes read (the built-ins by default). */
   readonly registry?: Partial<Pick<ThemeContext, 'schemes' | 'measures'>>;
+  /**
+   * The view's navigators (_spec/README.md "Render", Export): `omit`ted (a window is session, not a figure), or
+   * `include`d, stacked by `place` around the view, their windows as outlines and wash, the rails idle. The view's
+   * `export.navigators` when absent, else `omit`.
+   */
+  readonly navigators?: 'omit' | 'include';
 }
 
 /** The provisional height a layout for a height `auto` is measured at. */
@@ -318,6 +325,27 @@ export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<
     const given = options.viewport;
     const auto = options.size.height === 'auto';
     const windows = options.window ?? view.export?.window === true;
+    // the navigators an export includes (shown ones), drawn as outlines; the rails idle
+    const included = (options.navigators ?? view.export?.navigators ?? 'omit') === 'include';
+    const navs = included
+      ? view.navigators
+          .filter((n) => !n.hidden)
+          .map(
+            (navigator) =>
+              new NavigatorRenderer({
+                model,
+                view,
+                navigator,
+                data: store,
+                tokens,
+                text: options.text ?? bundledTextMetrics(),
+                config,
+                ...(options.registry ? { theme: options.registry } : {}),
+                images: renderer.images,
+              }),
+          )
+      : [];
+    const rails = included ? Object.fromEntries(railSections(view).map((a) => [a, true])) : undefined;
     const frameInput = {
       // a height `auto` is measured from a first layout (`fitHeight`)
       size: { width: options.size.width, height: auto ? AutoHeight : (options.size.height as number) },
@@ -334,7 +362,20 @@ export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<
       ...(options.emphasis ? { emphasis: options.emphasis } : {}),
       ...(options.cvdSafe ? { cvdSafe: true } : {}),
       ...(options.folds ? { folds: options.folds } : {}),
+      ...(rails ? { rails, railsActive: {} } : {}),
     };
+    /** Each navigator's frame over the view's layout, at its box around the view. */
+    const navFrames = (layout: ViewLayout, settled: boolean) =>
+      navs.map((n) =>
+        n.frame({
+          size: navigatorBox(n.navigator, layout.width, layout.height),
+          dpr: options.dpr ?? 1,
+          settled,
+          overlay: overlays.of(model, store),
+          view: layout,
+          ...(options.cvdSafe ? { cvdSafe: true } : {}),
+        }),
+      );
     let last = '';
     // what a layout wants can follow from what arrived (a length, a follower's range): ask until it holds; the
     // export waits for its view alone, never its margins
@@ -348,7 +389,10 @@ export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<
       }
       // what the layout shows stays while the export waits
       nested.hold(f.layout.shown);
-      const wants = f.wants.filter((w) => w.priority !== 'margin');
+      const wants = [
+        ...f.wants.filter((w) => w.priority !== 'margin'),
+        ...navFrames(f.layout, false).flatMap((n) => n.wants),
+      ];
       const key = `${wantsKey(wants)}#${store.nodeVersion.value}`;
       if (key === last) break;
       last = key;
@@ -451,7 +495,7 @@ export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<
       if (lists.height > h0 && place === 'right') bg.fill(0, h0, w0, lists.height - h0, tokens.colors['msui-bg']);
       layoutLegends(legends, band, tokens, text, lists.writer('labels'));
     }
-    const svg = drawListsToSvg(frame.lists, {
+    let svg = drawListsToSvg(frame.lists, {
       fonts: tokens.fonts,
       fade: config.fade,
       idPrefix: options.idPrefix ?? `s${(hashString(model.hash) >>> 0).toString(36)}-`,
@@ -468,6 +512,15 @@ export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<
         height: s.height,
       })),
     });
+    if (navs.length) {
+      const drawn = navFrames(frame.layout, true);
+      for (const n of navs) issues.push(...n.allIssues);
+      svg = withNavigators(svg, frame.lists, model, navs, drawn, {
+        fonts: tokens.fonts,
+        fade: config.fade,
+        idPrefix: options.idPrefix ?? `s${(hashString(model.hash) >>> 0).toString(36)}-`,
+      });
+    }
     return { svg, settled, issues, lists: frame.lists, ...(selection ? { selection } : {}) };
   } finally {
     nested.dispose();
@@ -475,4 +528,51 @@ export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<
     controller.abort();
     if (own) store.retire();
   }
+}
+
+/**
+ * The view's SVG with its navigators stacked by `place` around it (top and bottom across its width, left and right
+ * along its height, a miniature at its own size): each a group with its windows' `<title>` and `data-navigator` its
+ * id; the view's metadata on the outer root.
+ */
+function withNavigators(
+  view: string,
+  lists: DrawLists,
+  model: StaticModel,
+  navs: readonly NavigatorRenderer[],
+  frames: readonly NavigatorFrame[],
+  svg: Pick<SvgOptions, 'fonts' | 'fade' | 'idPrefix'>,
+): string {
+  const vw = lists.width;
+  const vh = lists.height;
+  const boxes = navs.map((n) => navigatorBox(n.navigator, vw, vh));
+  const sum = (p: string, k: 'width' | 'height') =>
+    boxes.reduce((t, b, i) => t + (navs[i].navigator.place === p ? b[k] : 0), 0);
+  const top = sum('top', 'height');
+  const left = sum('left', 'width');
+  const width = left + vw + sum('right', 'width');
+  const height = top + vh + sum('bottom', 'height');
+  const at = { top: 0, bottom: top + vh, left: 0, right: left + vw };
+  const nest = (inner: string, x: number, y: number) => inner.replace(/^<svg /, `<svg x="${x}" y="${y}" `);
+  const meta = /^<svg [^>]*?viewBox="[^"]*"([^>]*)>/.exec(view)?.[1] ?? '';
+  const parts = [nest(view, left, top)];
+  navs.forEach((n, i) => {
+    const b = boxes[i];
+    const place = n.navigator.place;
+    const x = place === 'left' ? at.left : place === 'right' ? at.right : left;
+    const y = place === 'top' ? at.top : place === 'bottom' ? at.bottom : top;
+    if (place === 'top') at.top += b.height;
+    else if (place === 'bottom') at.bottom += b.height;
+    else if (place === 'left') at.left += b.width;
+    else at.right += b.width;
+    const titles = frames[i].windows
+      .filter((w) => w.shown)
+      .map((w) => `Window: ${windowText(model, n.navigator, w)}`)
+      .join('; ');
+    const inner = drawListsToSvg(frames[i].lists, { ...svg, idPrefix: `${svg.idPrefix ?? ''}n${i}-` });
+    parts.push(
+      `<g data-navigator="${escapeXml(n.navigator.id)}"><title>${escapeXml(titles || n.navigator.id)}</title>${nest(inner, x, y)}</g>`,
+    );
+  });
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"${meta}>${parts.join('')}</svg>`;
 }

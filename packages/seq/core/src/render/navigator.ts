@@ -37,7 +37,7 @@ import { Renderer } from './renderer.js';
 import { RowsLay } from './rows.js';
 import type { TextMetrics } from './text.js';
 import type { SeqTokens } from './tokens.js';
-import { hitView, type SectionLayout, type ViewLayout } from './tracks.js';
+import { hitView, type SectionLayout, sectionLayoutName, type ViewLayout } from './tracks.js';
 import { drawNavigatorWindow, floorExtent, NavWindow, NavWindowFlags, navigatorPart } from './window.js';
 
 // A navigator (_spec/README.md "Render", Navigators): one part over a section's axis, its rows or both, drawing its
@@ -204,6 +204,35 @@ export class NavigatorWindow {
   hy = 0;
   /** The axes it is drawn over (`NavWindowFlags.x`, `.y`). */
   axes = 0;
+  /** Its ends as positions of the navigator's system, and as display rows (what its title and slider say). */
+  p0 = 0;
+  p1 = 0;
+  r0 = 0;
+  r1 = 0;
+  rows = 0;
+}
+
+/**
+ * The sections that draw a ruler rail by default (_spec/README.md "Render", Navigators): every linear section (tracks)
+ * that no shown navigator of the view binds along its positions (a declared navigator replaces it).
+ */
+export function railSections(view: ResolvedView): string[] {
+  const bound = new Set<string>();
+  for (const n of view.navigators) if (!n.hidden && n.axes !== 'rows') for (const a of n.of) bound.add(a);
+  return view.sections
+    .filter((s) => sectionLayoutName(s, view) === 'tracks' && !bound.has(s.address))
+    .map((s) => s.address);
+}
+
+/** What a window says (an export's title, a slider's value): its positions on the navigator's system, its rows. */
+export function windowText(model: StaticModel, nav: ResolvedNavigator, w: NavigatorWindow): string {
+  const name = (nav.system && model.systems.get(nav.system)?.name) ?? '';
+  const f = (n: number) => Math.round(n).toLocaleString('en-US');
+  const parts: string[] = [];
+  if (w.axes & NavWindowFlags.x)
+    parts.push(`${name}:${f(Math.min(w.p0, w.p1) + 1)}–${f(Math.max(w.p0, w.p1))} of ${name}`);
+  if (w.axes & NavWindowFlags.y) parts.push(`rows ${f(w.r0 + 1)}–${f(w.r1)} of ${f(w.rows)}`);
+  return parts.join(', ');
 }
 
 /** A point on a navigator: the window part under it, its section and axis, the position, row and band there. */
@@ -529,6 +558,9 @@ export class NavigatorRenderer {
           w.hy = top + Math.max(0, nr.display.count - nr.display.pinned) * nr.rowScale;
           w.y0 = top + vr.top * nr.rowScale;
           w.y1 = top + Math.min(rows, vr.top + vis) * nr.rowScale;
+          w.r0 = vr.top;
+          w.r1 = Math.min(rows, vr.top + vis);
+          w.rows = rows;
           w.axes |= NavWindowFlags.y;
         }
       }
@@ -556,6 +588,8 @@ export class NavigatorRenderer {
       p1 = projectEnd(path.to, p1);
       if (p0 === undefined || p1 === undefined) return false;
     }
+    w.p0 = p0;
+    w.p1 = p1;
     const u0 = offsetOf(axis, p0) ?? nearestOffsetOf(axis, p0);
     const u1 = offsetOf(axis, p1) ?? nearestOffsetOf(axis, p1);
     if (u0 === undefined || u1 === undefined) return false;

@@ -67,6 +67,12 @@ export interface FrameInput {
    * the key by identity. A renderer keeps them for its life (an export's are one set).
    */
   readonly folds?: Readonly<Record<string, readonly string[]>>;
+  /**
+   * The sections that draw a ruler rail, by address, and which of them can move (_spec/README.md "Render",
+   * Navigators): both part of the key by identity (a caller keeps each record while it holds).
+   */
+  readonly rails?: Readonly<Record<string, unknown>>;
+  readonly railsActive?: Readonly<Record<string, boolean>>;
 }
 
 /**
@@ -108,6 +114,8 @@ class KeyParts {
   figure = false;
   windows = false;
   folds: FrameInput['folds'] = undefined;
+  rails: FrameInput['rails'] = undefined;
+  railsActive: FrameInput['railsActive'] = undefined;
 
   // the parts are read from their objects here, never passed as numbers (a call boxes the numbers it is passed)
 
@@ -130,7 +138,9 @@ class KeyParts {
       this.cvdSafe === (input.cvdSafe ?? false) &&
       this.figure === (input.figure ?? false) &&
       this.windows === (input.windows ?? false) &&
-      this.folds === input.folds
+      this.folds === input.folds &&
+      this.rails === input.rails &&
+      this.railsActive === input.railsActive
     );
   }
 
@@ -152,6 +162,8 @@ class KeyParts {
     this.folds = input.folds;
     this.figure = input.figure ?? false;
     this.windows = input.windows ?? false;
+    this.rails = input.rails;
+    this.railsActive = input.railsActive;
   }
 
   /** The key's text (the store's reads appended by the caller). */
@@ -172,6 +184,7 @@ class KeyParts {
       this.cvdSafe ? 'cvd' : '',
       this.figure ? 'figure' : '',
       this.windows ? 'windows' : '',
+      this.rails ? `rails:${Object.keys(this.rails).sort().join(',')}` : '',
       configKey,
     ].join('|');
   }
@@ -324,6 +337,8 @@ export class Renderer {
         ...(input.figure ? { figure: true } : {}),
         ...(input.windows ? { windows: true } : {}),
         ...(input.folds ? { folds: input.folds } : {}),
+        ...(input.rails ? { rails: input.rails } : {}),
+        ...(input.railsActive ? { railsActive: input.railsActive } : {}),
         images: this.images,
       },
       this.state,
