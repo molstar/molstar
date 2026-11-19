@@ -64,17 +64,18 @@ checks it cannot express.
   included), `collapsed` (the form `section.collapse` switches to; absent: `coding`) and `pad` (positions kept each side
   of a piece; absent: 0); a layer's `complement` (`auto`, `always`, `never`; absent: `auto`) and `code` (`auto`, `one`,
   `three`; absent: `auto`), read by `letters`; a layer's `numbering` (a numbering id; absent: the section's default,
-  `ordinal`), read by `ruler`, `encoding` (`bars`, `line`, `area`; absent: `bars`) by `values`, `style` (`blocks`) by
-  `secondary`, `line` (`solid`, `dashed`, `dotted`, `wavy`, `double`, `box`, `highlight`; absent: blocks) and `arrow`
-  (`none`, `end`, `start`, `both`; absent: `none`) by `ranges`; a grid section's `of_y` (absent: `of`), `follow_y` (`x`,
-  `none` or a section; absent: `x`) and `aspect` (a number or `none`; absent: 1); by `pairs` its `side` (`above`,
-  `below`; absent: `above`), `reach` (absent: 0.25), `height` (`span`; absent: `span`), `crossing` (`same`, `split`;
-  absent: `same`), `across_lines` (absent: false) and `mirror` (absent: false: a pair drawn where its data puts it,
-  never read off whether the two axes are one system; the tRNA's builder sets it); by `grid` its `aggregate` (`mean`,
-  `max`, `min`; absent: `mean`); by both in a grid `triangle` (`both`, `upper`, `lower`; absent: `both`). Why: the
-  figure's form is the writer's, never the host's or the data's: one spec draws the same in the canvas, the SVG and
-  another viewer. The refs inside `direction` and `pieces` are checked by kind as top-level refs are, and a change's
-  check reaches them (its reverse index walks a union's record member). Why: the composition is the application's.
+  `ordinal`) and `units` (`none`, `bases`; absent: `none`), read by `ruler`, `encoding` (`bars`, `line`, `area`; absent:
+  `bars`) by `values`, `style` (`blocks`) by `secondary`, `line` (`solid`, `dashed`, `dotted`, `wavy`, `double`, `box`,
+  `highlight`; absent: blocks) and `arrow` (`none`, `end`, `start`, `both`; absent: `none`) by `ranges`; a grid
+  section's `of_y` (absent: `of`), `follow_y` (`x`, `none` or a section; absent: `x`) and `aspect` (a number or `none`;
+  absent: 1); by `pairs` its `side` (`above`, `below`; absent: `above`), `reach` (absent: 0.25), `height` (`span`;
+  absent: `span`), `crossing` (`same`, `split`; absent: `same`), `across_lines` (absent: false) and `mirror` (absent:
+  false: a pair drawn where its data puts it, never read off whether the two axes are one system; the tRNA's builder
+  sets it); by `grid` its `aggregate` (`mean`, `max`, `min`; absent: `mean`); by both in a grid `triangle` (`both`,
+  `upper`, `lower`; absent: `both`). Why: the figure's form is the writer's, never the host's or the data's: one spec
+  draws the same in the canvas, the SVG and another viewer. The refs inside `direction` and `pieces` are checked by kind
+  as top-level refs are, and a change's check reaches them (its reverse index walks a union's record member). Why: the
+  composition is the application's.
 - **Numberings** (`<sequence>/<id>`, a `numbering` child of a sequence): a label a position of its sequence, its id the
   name the forms read (`:numbering kabat`, Queries, Numberings and labels). `method` is `labels` (the one built: an
   offset and segments wait for the examples that need them); `labels` inline, a category column one a position in index
@@ -1394,8 +1395,12 @@ the y path in Emphasis).
   down, a collapsed one labels its pieces. Where a text section prints a group's end number (`group_labels` not `none`)
   the ruler draws the tick without its label: a position carries one label, the group's (only where the ruler's
   numbering is the one the group labels print). Over a piece of more than 4,096 positions, or on a built-in numbering,
-  the labels are looked up by number (a tick a step), not a position at a time. A hit is the position under the pointer.
-  Fallback: none (omitted).
+  the labels are looked up by number (a tick a step), not a position at a time. **Units** (`units`): `none` labels the
+  number as its numbering does; `bases` labels an `ordinal` ruler in bp, kb or Mb chosen by the step
+  (`@molstar/core/util/number`'s `formatGenomic`: 7,668,402 at a base step, 7,668 kb at a kilobase one, 7.67 Mb from 10
+  kb), one unit and one count of decimals a step; another numbering keeps its own labels. Why: the writer of a
+  chromosome view says so, never inferred from the alphabet. A hit is the position under the pointer. Fallback: none
+  (omitted).
 - `secondary`: the items of a `ranges` layer (the class from the `kind` field, else `category`: DSSP codes or words:
   helix, strand, UniProt's `Helix`, `Beta strand` and `Turn`, anything else a turn), in one band: a helix a block, a
   strand a block with an arrowhead on its C-terminal end, a turn a thin bar. **The arrowhead** is on the piece holding

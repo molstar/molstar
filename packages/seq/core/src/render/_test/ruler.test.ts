@@ -6,8 +6,10 @@
 
 // The ruler layer (_spec/README.md "Render", Layer types): labels at steps of 1, 2, 5 × 10ⁿ that never overlap and are
 // each a position of the numbering, insertion labels as minor ticks with room only, a reversed axis counting down, the
-// numbering a spec param, the unknown one reported and the ordinal one used.
+// numbering a spec param, the unknown one reported and the ordinal one used; `units: bases` in bp, kb or Mb by the step,
+// the canvas's labels the export's.
 
+import { SeqRuntime, seqToValue } from '@molstar/seqx-core/data';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import type { Numbering } from '@molstar/seqx-core/query';
 import { describe, expect, it } from 'vitest';
@@ -21,6 +23,7 @@ import {
   type RulerLay,
   RulerType,
   renderConfig,
+  renderSvg,
 } from '../index.js';
 import { GENE_EXONS, GENE_LENGTH, geneLetters, P53 } from './fixtures.js';
 import { settle } from './helpers.js';
@@ -122,6 +125,59 @@ describe('the ruler: labels', () => {
     const x = lay.x[0];
     const h = RulerType.hit(lay, Float64Array.of(x, lay.box.y + 2));
     expect(h?.position).toBe(lay.axis.positionAt(x));
+  });
+});
+
+/** A chromosome-long DNA system (its length a `seq` source's coverage, no letters) under a ruler. */
+function chromosomeRuler(params: Record<string, unknown>) {
+  const b = createSeqSpec({ title: 'ruler' });
+  const value = seqToValue({
+    coverage: { systems: [{ name: 'chr', length: 83_257_441 }], shapes: [], levels: [1] },
+    pairs: [],
+  });
+  const source = b.data.source('chr-source', { format: 'seq', value: value as never });
+  const chr = b.data.sequence('chr', { alphabet: 'dna', source, name: 'chr' });
+  b.views.view('main', (v) => {
+    v.section('chr', { of: chr })
+      .track('r')
+      .layer('r', { type: 'ruler', ...params });
+  });
+  return b.build();
+}
+
+describe('the ruler: units', () => {
+  const size = { width: 700, height: 60 };
+  const labelsAt = async (params: Record<string, unknown>, viewport: { start: number; end: number }) => {
+    const spec = chromosomeRuler(params);
+    const s = await settle(spec, [SeqRuntime]);
+    const canvas = shown(layerLay<RulerLay>(await s.frame({ size, viewport }), 0)).map((l) => l.label);
+    // the export's SVG, a second consumer of the same spec: its text the canvas's labels
+    const r = await renderSvg(spec, { size, viewport, runtimes: [SeqRuntime], legend: 'none' });
+    const texts = [...r.svg.matchAll(/<text[^>]*>([^<]*)<\/text>/g)].map((m) => m[1]);
+    for (const l of canvas) expect(texts).toContain(l);
+    return canvas;
+  };
+
+  it('`bases` labels an ordinal ruler in bp, kb or Mb by its step; the canvas’s labels are the SVG’s', async () => {
+    const fit = await labelsAt({ units: 'bases' }, { start: 0, end: 83_257_441 });
+    expect(fit.slice(0, 2)).toEqual(['10 Mb', '20 Mb']);
+    const mb = await labelsAt({ units: 'bases' }, { start: 7_600_000, end: 7_700_000 });
+    expect(mb.length).toBeGreaterThan(2);
+    for (const l of mb) expect(l).toMatch(/^7\.\d\d Mb$/);
+    const kb = await labelsAt({ units: 'bases' }, { start: 7_668_000, end: 7_678_000 });
+    for (const l of kb) expect(l).toMatch(/^7,6\d\d kb$/);
+    const bp = await labelsAt({ units: 'bases' }, { start: 7_668_400, end: 7_668_500 });
+    expect(bp.length).toBeGreaterThan(2);
+    for (const l of bp) expect(l).toMatch(/^7,668,4\d\d$/);
+  });
+
+  it('`none` (and absent) labels the number; another numbering than ordinal ignores `bases`', async () => {
+    const at = { start: 7_600_000, end: 7_700_000 };
+    const plain = await labelsAt({}, at);
+    expect(plain[0]).toMatch(/^76\d0000$/);
+    expect(await labelsAt({ units: 'none' }, at)).toEqual(plain);
+    const index = await labelsAt({ units: 'bases', numbering: 'index' }, at);
+    for (const l of index) expect(l).toMatch(/^\d+$/);
   });
 });
 

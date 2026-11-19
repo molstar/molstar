@@ -843,6 +843,11 @@ export const SeqLanguage = defineLanguage({
           type: 'string',
           doc: 'For `ruler`: the numbering it labels by (`ordinal`, `index`, or one the system declares); the section’s default numbering (`ordinal`) when absent.',
         },
+        units: {
+          type: 'string',
+          enum: ['none', 'bases'],
+          doc: 'For `ruler`: `none` (when absent: the number as its numbering labels it) or `bases` (bp, kb, Mb, chosen by the tick step: 7,668,402 at a base tick, 7.67 Mb at a megabase one); a numbering other than `ordinal` keeps its own labels.',
+        },
         encoding: {
           type: 'string',
           enum: ['bars', 'line', 'area'],
