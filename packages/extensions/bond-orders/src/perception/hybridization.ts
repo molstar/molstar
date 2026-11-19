@@ -26,15 +26,7 @@ import { Elements } from '@molstar/model/model/structure/model/properties/atomic
 import type { UnitIndex } from '@molstar/model/model/structure/structure/element/util';
 import { AtomGeometry } from '@molstar/model/props/computed/chemistry/geometry';
 import { atomId } from '@molstar/model/props/computed/chemistry/util';
-import {
-  Ambiguity,
-  isAssignedBond,
-  isBondFromMainAltLoc,
-  isHydrogenElement,
-  pos,
-  type State,
-  setAssignedBond,
-} from './common.js';
+import { Ambiguity, isAssignedBond, isHydrogenElement, pos, type State, setAssignedBond } from './common.js';
 import { exceedsMaxDoubleLength, hasPlanarDihedral } from './thresholds.js';
 
 // Per-atom dimensionality: threshold from which the principal component of the coordinates of
@@ -208,7 +200,6 @@ function applyRingPlanarity(state: State) {
 function assignLongOrNonPlanarBond(state: State, u: UnitIndex, v: UnitIndex, seen: Set<UnitIndex>) {
   if (seen.has(v)) return;
   if (isAssignedBond(state, u, v)) return;
-  if (!isBondFromMainAltLoc(state, u, v)) return;
 
   if (exceedsMaxDoubleLength(state, u, v)) {
     setAssignedBond(state, u, v);

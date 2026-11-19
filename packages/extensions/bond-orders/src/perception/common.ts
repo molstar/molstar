@@ -380,16 +380,6 @@ export function distSq(state: State, i: number, j: number) {
   return Vec3.squaredDistance(tmpVecA, tmpVecB);
 }
 
-export function isBondFromMainAltLoc(state: State, u: UnitIndex, v: UnitIndex) {
-  const { firstAltLoc, unit } = state;
-  if (!firstAltLoc) return true;
-  const uAlt = altLoc(unit, u);
-  if (uAlt && uAlt !== firstAltLoc) return false;
-  const vAlt = altLoc(unit, v);
-  if (vAlt && vAlt !== firstAltLoc) return false;
-  return true;
-}
-
 /** Set the order (and optionally OR-in flags) of the undirected bond u-v in both directed slots. */
 export function setBond(
   bonds: IntraUnitBonds,
