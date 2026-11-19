@@ -102,30 +102,22 @@ function domainsData(id: string, format: string): SeqData {
   };
 }
 
-/**
- * A gene's exons as a ranges node on `target` (a row an exon, each with the gene's id and strand), through a codon map
- * when `map` says so: what a by-region answer brings for each gene or transcript it overlaps.
- */
-export function exonsNode(
-  target: string,
-  id: string,
-  strand: '+' | '-',
-  exons: readonly (readonly [number, number])[],
-  map?: 'codon',
-): Node {
-  const rows = {
-    start: exons.map((e) => e[0]),
-    end: exons.map((e) => e[1]),
-    id: exons.map(() => id),
-    strand: exons.map(() => strand),
-  };
-  return { kind: 'ranges', params: { target, ...(map ? { map } : {}), rows } };
-}
-
 /** The nodes a transcript brings: its coding ranges node and, for TP53's, the nested source of its domains. */
 function transcriptNodes(id: string, format: string): DynamicNode[] {
   const t = Transcripts[id];
-  const node = exonsNode(RegionSequence, id, t.strand, t.exons, 'codon');
+  const node: Node = {
+    kind: 'ranges',
+    params: {
+      target: RegionSequence,
+      map: 'codon',
+      rows: {
+        start: t.exons.map((e) => e[0]),
+        end: t.exons.map((e) => e[1]),
+        id: t.exons.map(() => id),
+        strand: t.exons.map(() => t.strand),
+      },
+    },
+  };
   const out: DynamicNode[] = [{ key: id, node }];
   if (t.domains)
     out.push({

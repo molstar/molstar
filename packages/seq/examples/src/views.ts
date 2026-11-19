@@ -137,7 +137,7 @@ export const P53Views: readonly ExampleView[] = [
     id: 'chromosome',
     title: 'p53’s chromosome',
     summary:
-      'Chromosome 17 at its GRCh38 length (83 Mb), generated region by region and never stored, opened fit to the whole: the genes (TP53 in its place, minus strand), a GC-like signal by levels, the letters when they fit, the ideogram above showing the window. Double-click TP53 to focus it, zoom on to its letters; hover a gene for its name, strand and span.',
+      'Chromosome 17 at its GRCh38 length (83 Mb), generated region by region and never stored, opened fit to the whole: the genes (TP53 in its place, minus strand), a GC-like signal by levels, the letters when they fit, the ideogram above showing the window. Double-click TP53 to focus it, zoom on to its letters; hover a gene for its name and span.',
     build: chromosome.build,
     registry: chromosome.registry,
   },

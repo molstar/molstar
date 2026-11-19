@@ -11,12 +11,12 @@
 import { DataStore, SeqRuntime } from '@molstar/seqx-core/data';
 import { bundledTextMetrics, type FrameInput, LightTokens, openModel, Renderer } from '@molstar/seqx-core/render';
 import { P53Views } from '@molstar/seqx-examples';
-import { chromosomeRuntime } from '@molstar/seqx-examples/p53/chromosome-data';
+import { chromosomeRuntime, DefaultChromosome } from '@molstar/seqx-examples/p53/chromosome-data';
 import { quickCase } from '@molstar/test-harness/quick';
 import { describe, expect, it } from 'vitest';
 
 const view = P53Views.find((v) => v.id === 'chromosome')!;
-const Length = 83_257_441;
+const Length = DefaultChromosome.length;
 const Size = { width: 1440, height: 400 };
 const Steps = 64;
 
@@ -33,10 +33,10 @@ const LayoutOptions = {
 
 /**
  * Bytes a pan frame may allocate, measured (2026-11-19, M-series, Node 26) with half again as headroom: at the fit
- * 348 KB, the genes' 1,177 rows read again each frame (their keys and items: the ranges layout walks every row it
- * reads, core's, a size that follows the data, not the screen); between levels 41 KB, the signal's tiles and keys.
+ * 36 KB (the genes a density, a count a bin: 348 KB when they came as 1,177 rows), between levels 37 KB, the signal's
+ * tiles and their keys.
  */
-const LayoutBound: Record<string, number> = { fit: 520_000, 'between two levels': 62_000 };
+const LayoutBound: Record<string, number> = { fit: 54_000, 'between two levels': 56_000 };
 
 /** The view settled over a pan of `span` positions from `start`: the inputs of its walk (a pan out and back). */
 async function pan(start: number, span: number): Promise<{ renderer: Renderer; inputs: FrameInput[] }> {

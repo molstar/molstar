@@ -4,21 +4,23 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { RangesLay } from '@molstar/seqx-core/render';
+import { type RangesLay, recordDrawLists } from '@molstar/seqx-core/render';
 import { P53Views } from '@molstar/seqx-examples';
-import { Tp53 } from '@molstar/seqx-examples/p53/chromosome-data';
+import { DefaultChromosome, Tp53 } from '@molstar/seqx-examples/p53/chromosome-data';
 import { HoverCardProvider } from '@molstar/seqx-viewer/behaviors';
 import { DefaultSeqViewerSpec } from '@molstar/seqx-viewer/default-spec';
 import { createSeqViewer, type SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { DomHost } from '@molstar/ui/dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { clickAt } from '../../features/selection/compose.js';
 import { type FollowedSvg, followSvg } from '../../follow-svg.js';
 
 // The Chromosome story, headless on a fake clock, composed as `example-root.ts` composes it: the viewer with the
 // chromosome's delayed runtime, and its SVG twin exporting through the viewer's store each time the view rests (two
-// consumers of one store). The twin is the export of what the canvas shows at the fit and at TP53; TP53's exons, a
-// node its region brought, stay drawn on the canvas once the exports that read them have ended; a double-click on
-// TP53 focuses its span; the hover card names the gene and its span.
+// consumers of one store). The twin is the export of what the canvas shows at the fit and at TP53, and the export's
+// draw lists the canvas's; TP53's exons, a node its region brought, stay drawn on the canvas once the exports that
+// read them have ended; a double-click on TP53 focuses its span; the hover card names the gene and its span; a click
+// selects it, 0 fits again; a drag on the ideogram's window pans the view.
 
 const DelayMs = 150;
 const view = P53Views.find((v) => v.id === 'chromosome')!;
@@ -67,7 +69,13 @@ async function open() {
         ])
       )[0].svg,
     );
-  return { v, host, fresh };
+  // the export's draw lists against the canvas's, the data pass (the navigators are the export's alone)
+  const lists = async () => {
+    const r = (await Promise.all([v.renderSvg(), vi.advanceTimersByTimeAsync(10 * DelayMs)]))[0];
+    v.draw();
+    return { canvas: recordDrawLists(v.frame!.lists, ['data']), svg: recordDrawLists(r.lists, ['data']) };
+  };
+  return { v, host, fresh, lists };
 }
 
 /** A track's first layer as laid out on the canvas, by its label. */
@@ -88,11 +96,14 @@ const Around = { start: Tp53.start - 8000, end: Tp53.end + 8000 };
 
 describe('p53’s chromosome, the story headless', () => {
   it('the canvas and its SVG twin show the same view at the fit and at TP53; its exons stay once the exports end', async () => {
-    const { v, host, fresh } = await open();
+    const { v, host, fresh, lists } = await open();
     const r = v.view.get(Section)!;
-    expect([r.start, r.end]).toEqual([0, 83_257_441]);
-    expect(layerOf(v, 'Genes')!.items).toBeGreaterThan(1100);
+    expect([r.start, r.end]).toEqual([0, DefaultChromosome.length]);
+    expect(layerOf(v, 'Genes')!.mode).toBe('density');
     expect(strip(host.innerHTML)).toBe(await fresh());
+    const fit = await lists();
+    expect(fit.canvas.length).toBeGreaterThan(0);
+    expect(fit.svg).toBe(fit.canvas);
 
     v.view.setRange(Section, Around.start, Around.end);
     // the region answers, TP53's exons arrive as a node; the view rests and the twin exports through the same store
@@ -102,6 +113,8 @@ describe('p53’s chromosome, the story headless', () => {
     expect(exons.m).toBeGreaterThan(0);
     expect(strip(host.innerHTML)).toBe(await fresh());
     expect(strip(host.innerHTML)).toContain('TP53');
+    const at = await lists();
+    expect(at.svg).toBe(at.canvas);
     // every export has ended: the canvas still draws TP53's exons, nothing pending
     await vi.advanceTimersByTimeAsync(5000);
     v.draw();
@@ -128,5 +141,37 @@ describe('p53’s chromosome, the story headless', () => {
     const r = v.view.get(Section)!;
     expect(r.start).toBeCloseTo(Tp53.start, 0);
     expect(r.end).toBeCloseTo(Tp53.end, 0);
+  });
+
+  it('a click selects a gene; 0 fits the chromosome again', async () => {
+    const { v } = await open();
+    v.view.setRange(Section, Around.start, Around.end);
+    await vi.advanceTimersByTimeAsync(3000);
+    v.draw();
+    clickAt(v, tp53Point(v));
+    expect(v.selection.value.value.elements.keys.map((k) => k.key)).toEqual(['TP53']);
+    expect(v.input.key({ key: '0' })).toBe(true);
+    await vi.advanceTimersByTimeAsync(1000);
+    const r = v.view.get(Section)!;
+    expect([r.start, r.end]).toEqual([0, DefaultChromosome.length]);
+  });
+
+  it('a drag on the ideogram’s window pans the view by as much of the chromosome', async () => {
+    const { v } = await open();
+    const span = 4_000_000;
+    v.view.setRange(Section, 20_000_000, 20_000_000 + span);
+    await vi.advanceTimersByTimeAsync(3000);
+    v.draw();
+    const nav = v.navigatorModel('chr17')!;
+    const w = nav.draw()!.windows[0];
+    expect(w.p0).toBeCloseTo(20_000_000, -3);
+    const mid = (w.dx0 + w.dx1) / 2;
+    const dx = 0.1 * (w.hi - w.lo);
+    expect(nav.down(mid, 12)).toBe(true);
+    nav.move(mid + dx, 12);
+    nav.up();
+    const r = v.view.get(Section)!;
+    expect(r.start).toBeCloseTo(20_000_000 + 0.1 * DefaultChromosome.length, -5);
+    expect(r.end - r.start).toBeCloseTo(span, -2);
   });
 });
