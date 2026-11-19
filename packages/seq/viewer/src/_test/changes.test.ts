@@ -263,9 +263,8 @@ const Cases: Record<string, { ctx: unknown; before?: (v: SeqViewer) => unknown }
 };
 
 describe('every change has a kind', () => {
-  it('each command of the default viewer changes exactly what its kind says', async () => {
-    const ids = (await make()).commands.map((c) => c.id);
-    expect(Object.keys(Cases).sort()).toEqual([...ids].sort());
+  /** Each of `ids` on a viewer of its own: the change it makes is its kind's. */
+  async function eachChangesWhatItsKindSays(ids: readonly string[]) {
     for (const id of ids) {
       const v = await make();
       const c = Cases[id];
@@ -278,6 +277,22 @@ describe('every change has a kind', () => {
       expect(changed(before, look(v)), `${id}: ${message}`).toEqual(kind === 'none' ? [] : [kind]);
       if (kind === 'patch') expect(stackOf(v).steps.value.length, id).toBe(Number(before.patch.split(' ')[1]) + 1);
     }
+  }
+
+  it('every command of the default viewer has a case', async () => {
+    const ids = (await make()).commands.map((c) => c.id);
+    expect(Object.keys(Cases).sort()).toEqual([...ids].sort());
+  });
+
+  // the quick representative: the first command of each kind (the sweep over every command is the medium lane's)
+  it('a command of each kind changes exactly what its kind says', async () => {
+    const first = new Map<string, string>();
+    for (const c of (await make()).commands) if (!first.has(changeKindOf(c.id))) first.set(changeKindOf(c.id), c.id);
+    await eachChangesWhatItsKindSays([...first.values()]);
+  });
+
+  it('each command of the default viewer changes exactly what its kind says', { tags: ['medium'] }, async () => {
+    await eachChangesWhatItsKindSays((await make()).commands.map((c) => c.id));
   });
 
   it('commands issued together, without waiting, each apply: one step each, in order', async () => {
