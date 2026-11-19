@@ -277,3 +277,5 @@ None.
   top-level field offered, unanswered); the default adapter through the default spec, an ownership flag. A ruler in
   its own numbering has no label (ux-foundations §9; the examples' "Position" dropped in HC's round). RK (the cursor's
   rows) after HC ("Yes, after HC").
+- The author (2026-11-19): "let's pause the loop after this task finishes": HC's fix round is merged and recorded, then
+  the loop pauses; RK (briefed) waits for the author's restart.
