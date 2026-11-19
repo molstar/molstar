@@ -323,7 +323,7 @@ and dark before the merge.
       `padding` inside its well and squircle wells with the data clipped to them, `trackShape` to keep square; and every emphasis a squircle as the selection is (hover, projected hover,
       highlights, a cell's and a chip's hover outline)
       (ux-foundations §3, §5; brief `briefs/tw-track-wells.md`).
-- [ ] CY (strong, after DT's fix round: both touch an axis whose sequence comes from a source; found by DP and DT,
+- [x] CY (strong, after DT's fix round: both touch an axis whose sequence comes from a source; found by DP and DT,
       2026-11-19) the cyclic and source-axis gaps, each designed already: (1) a sequence whose letters come from a source
       has its length from coverage wherever an axis is read (resolve's static model, the ring, a detail across the
       origin, the GFF3 wrap, pairs: DT fixes pairs, CY the rest), so a cyclic `seq` file works as inline letters do;
