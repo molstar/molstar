@@ -5,7 +5,7 @@
  */
 
 import { CategoryColumn, isColumn, isNode, type Node, type Value } from '@molstar/core/repr/tree';
-import { isColorSpelling } from '@molstar/seqx-core/theme/colors';
+import { isColorSpelling } from '@molstar/seqx-core/theme/spelling';
 import { ChannelWords, ClauseKinds, PaletteKinds, ThemeChannels, ThemeForms } from '@molstar/seqx-core/theme/forms';
 
 // The checks of a layer's channel slots the description cannot make (_spec/README.md "Themes", Forms; the

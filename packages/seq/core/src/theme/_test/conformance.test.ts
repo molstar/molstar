@@ -13,6 +13,7 @@ import { checkColorVision } from '@molstar/core/util/color/cvd';
 import { Oklab } from '@molstar/core/util/color/spaces/oklab';
 import { DarkTokens, inkOn, LightTokens, type SeqTokens } from '@molstar/seqx-core/render';
 import { describe, expect, it } from 'vitest';
+import { schemeProvenance } from '../provenance.js';
 import { BuiltInSchemes, compileChannel, contrastRgba, namedList, type SchemeEntry, toRgb } from '../index.js';
 import { builtInSchemes } from '../schemes.js';
 
@@ -54,7 +55,7 @@ function drawn(e: SchemeEntry, tokens: SeqTokens): number[] {
 describe('the built-in schemes in both tables', () => {
   for (const e of BuiltInSchemes)
     it(`${e.name}: colors in each table, ink at 4.5:1 on each, a provenance`, () => {
-      expect(e.provenance.length).toBeGreaterThan(10);
+      expect(schemeProvenance(e.name)?.length ?? 0).toBeGreaterThan(10);
       for (const tokens of Tables) {
         const colors = drawn(e, tokens);
         expect(colors.length, `${e.name} draws in ${tokens.theme}`).toBeGreaterThan(0);

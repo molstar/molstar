@@ -31,7 +31,6 @@ export interface SchemeEntry {
   readonly cvdSafe: boolean;
   /** The scheme a reader's color-blind substitution draws instead (`theme.cvdSafe`). */
   readonly substitute?: string;
-  readonly provenance: string;
   /**
    * The form it expands to, given the form's params (overrides, ESPript's `gaps`, `similarity`, `mode`). Literal colors
    * are the light theme's; `dark` derives (or gives) the dark theme's.
@@ -135,7 +134,6 @@ const residue = (name: keyof typeof ResidueSchemes, extra: Partial<SchemeEntry> 
     cvdSafe: s.cvdSafe,
     ...(s.alphabet === 'protein' && !s.cvdSafe ? { substitute: 'classes' } : {}),
     ...(s.alphabet === 'nucleotide' && !s.cvdSafe ? { substitute: 'nucleotide-cb' } : {}),
-    provenance: s.provenance,
     // a safe scheme's colors were chosen apart: a derived variant would bring them together, so it keeps them
     dark: s.cvdSafe ? 'same' : 'derive',
     expand: letters(
@@ -146,19 +144,12 @@ const residue = (name: keyof typeof ResidueSchemes, extra: Partial<SchemeEntry> 
   };
 };
 
-const list = (
-  name: string,
-  label: string,
-  subject: SchemeSubject,
-  cvdSafe: boolean,
-  provenance: string,
-): SchemeEntry => ({
+const list = (name: string, label: string, subject: SchemeSubject, cvdSafe: boolean): SchemeEntry => ({
   name,
   label,
   subject,
   cvdSafe,
   ...(cvdSafe ? {} : { substitute: subject === 'categories' ? 'okabe-ito' : 'viridis' }),
-  provenance,
   dark: 'same',
   expand: (params) =>
     subject === 'categories'
@@ -172,16 +163,13 @@ const list = (
       : { kind: 'field', params: { name: (params.field as string) ?? 'value', palette: continuous(name) } },
 });
 
-const ColumnMeasureNote = 'needs the rows layer’s column measures';
-
-/** The built-in schemes (provenance per entry: published colors and rules, never GPL code). */
+/** The built-in schemes (published colors and rules, never GPL code; their provenance is `schemeProvenance`'s). */
 export const BuiltInSchemes: readonly SchemeEntry[] = [
   {
     name: 'classes',
     label: 'Residue classes',
     subject: 'protein',
     cvdSafe: false,
-    provenance: 'Seq*’s residue class tokens (`seq-aa-*`)',
     dark: 'same',
     expand: letters({}, [
       group('AVLIMC', 'token:aa-hydrophobic', 'hydrophobic'),
@@ -194,7 +182,6 @@ export const BuiltInSchemes: readonly SchemeEntry[] = [
   },
   residue('clustal-x', {
     needs: ['share'],
-    provenance: `${ResidueSchemes['clustal-x'].provenance}; ${ColumnMeasureNote}`,
   }),
   residue('zappo'),
   residue('taylor'),
@@ -204,7 +191,6 @@ export const BuiltInSchemes: readonly SchemeEntry[] = [
     subject: 'protein',
     cvdSafe: false,
     substitute: 'classes',
-    provenance: 'Wimley and White 1996 (doi:10.1038/nsb1096-842), Mol*’s `ResidueHydrophobicity`, red to blue',
     dark: 'derive',
     expand: (p) => letters(hydrophobicityColors())(p),
   },
@@ -218,7 +204,6 @@ export const BuiltInSchemes: readonly SchemeEntry[] = [
     subject: 'protein',
     needs: ['identity'],
     cvdSafe: true,
-    provenance: `Jalview’s percentage identity, blue shades by the column’s identity; ${ColumnMeasureNote}`,
     dark: 'same',
     expand: () => ({
       kind: 'rules',
@@ -236,7 +221,6 @@ export const BuiltInSchemes: readonly SchemeEntry[] = [
     subject: 'protein',
     needs: ['matches-reference'],
     cvdSafe: true,
-    provenance: `Jalview’s BLOSUM62 score against the column’s consensus; ${ColumnMeasureNote}`,
     dark: 'same',
     expand: () => ({
       kind: 'rules',
@@ -259,7 +243,6 @@ export const BuiltInSchemes: readonly SchemeEntry[] = [
     subject: 'protein',
     needs: ['share'],
     cvdSafe: true,
-    provenance: `ESPript (Robert and Gouet 2014): identical columns filled, similar residues by groups (an approximation of its score); ${ColumnMeasureNote}`,
     dark: 'same',
     expand: (p) => {
       const bw = p.mode === 'bw';
@@ -292,7 +275,6 @@ export const BuiltInSchemes: readonly SchemeEntry[] = [
     subject: 'nucleotide',
     cvdSafe: false,
     substitute: 'nucleotide-cb',
-    provenance: 'Seq*’s nucleotide tokens (`seq-nt-*`)',
     dark: 'same',
     expand: (p) => ({
       kind: 'letters',
@@ -319,7 +301,6 @@ export const BuiltInSchemes: readonly SchemeEntry[] = [
     label: 'Ramp',
     subject: 'numbers',
     cvdSafe: true,
-    provenance: 'Seq*’s ramp tokens (`seq-ramp-*`), monotone in lightness',
     dark: 'same',
     expand: (p) => ({ kind: 'field', params: { name: (p.field as string) ?? 'value', palette: continuous('ramp') } }),
   },
@@ -328,7 +309,6 @@ export const BuiltInSchemes: readonly SchemeEntry[] = [
     label: 'Diverging',
     subject: 'numbers',
     cvdSafe: true,
-    provenance: 'Seq*’s diverging tokens (`seq-div-*`), centered on 0 unless the form says `mid`',
     dark: 'same',
     expand: (p) => ({
       kind: 'field',
@@ -338,17 +318,16 @@ export const BuiltInSchemes: readonly SchemeEntry[] = [
       },
     }),
   },
-  list('viridis', 'Viridis', 'numbers', true, 'Matplotlib’s viridis (van der Walt and Smith), Mol*’s `ColorLists`'),
-  list('cividis', 'Cividis', 'numbers', true, 'Nuñez, Anderton and Renslow 2018, Mol*’s `ColorLists`'),
-  list('magma', 'Magma', 'numbers', true, 'Matplotlib’s magma, Mol*’s `ColorLists`'),
-  list('blues', 'Blues', 'numbers', true, 'ColorBrewer Blues (Brewer), Mol*’s `ColorLists`'),
-  list('rd-bu', 'Red–blue', 'numbers', true, 'ColorBrewer RdBu (Brewer), Mol*’s `ColorLists`'),
+  list('viridis', 'Viridis', 'numbers', true),
+  list('cividis', 'Cividis', 'numbers', true),
+  list('magma', 'Magma', 'numbers', true),
+  list('blues', 'Blues', 'numbers', true),
+  list('rd-bu', 'Red–blue', 'numbers', true),
   {
     name: 'plddt',
     label: 'pLDDT',
     subject: 'numbers',
     cvdSafe: true,
-    provenance: 'AlphaFold DB’s model confidence bands (Jumper et al. 2021): <50, 50–70, 70–90, ≥90',
     dark: 'same',
     expand: (p) => ({
       kind: 'field',
@@ -366,7 +345,6 @@ export const BuiltInSchemes: readonly SchemeEntry[] = [
     label: 'Categories',
     subject: 'categories',
     cvdSafe: true,
-    provenance: 'Seq*’s category tokens (`seq-cat-*`), checked for color-vision deficiencies',
     dark: 'same',
     expand: (p) => ({
       kind: 'field',
@@ -376,15 +354,14 @@ export const BuiltInSchemes: readonly SchemeEntry[] = [
       },
     }),
   },
-  list('okabe-ito', 'Okabe–Ito', 'categories', true, 'Okabe and Ito 2008, Mol*’s `ColorLists`'),
-  list('tableau10', 'Tableau 10', 'categories', false, 'Tableau 10, Mol*’s `ColorLists`'),
-  list('category10', 'Category 10', 'categories', false, 'D3’s category10, Mol*’s `ColorLists`'),
+  list('okabe-ito', 'Okabe–Ito', 'categories', true),
+  list('tableau10', 'Tableau 10', 'categories', false),
+  list('category10', 'Category 10', 'categories', false),
   {
     name: 'secondary',
     label: 'Secondary structure',
     subject: 'secondary',
     cvdSafe: true,
-    provenance: 'Seq*’s secondary-structure tokens (`seq-ss-*`)',
     dark: 'same',
     expand: field('kind', {
       kind: 'categorical',
@@ -399,8 +376,6 @@ export const BuiltInSchemes: readonly SchemeEntry[] = [
     label: 'Giemsa stain',
     subject: 'bands',
     cvdSafe: true,
-    provenance:
-      'UCSC’s cytoband stains as greys (darker for stronger stain, flipped in the dark theme); `acen` in `seq-centromere`',
     dark: 'same',
     expand: field('stain', {
       kind: 'categorical',
