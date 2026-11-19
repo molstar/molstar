@@ -6,9 +6,11 @@
 
 // The grid layout (_spec/README.md "Render", The grid layout): a section of two axes, one strip, the plot, whose
 // transform is x and which carries a second transform `strip.y` down its frame (read by a layer as `ctx.axisY`). Its
-// tracks' bands overlay the plot (later tracks over earlier, the last one's layers hit first). Its height is the data
-// box's width over `aspect` (1: square cells), capped by the view's room below it less a tenth (never below
-// `heights.grid`), at least two rows; `aspect: none` leaves it to the tracks' heights. Its viewport is the tracks' window plus `y` when y has a window of its own.
+// tracks' bands overlay the plot (later tracks over earlier, the last one's layers hit first). Its cells are `aspect`
+// times as wide as tall (1: square), as large as the data box's width and the view's room below it less a tenth allow
+// (that room never below `heights.grid`): the room the bound, the plot narrower than the data box; at least two rows;
+// `aspect: none` leaves the height to the tracks' and x the data box. Its viewport is the tracks' window plus `y` when
+// y has a window of its own.
 
 import { AxisTransform, type Viewport } from '../axis.js';
 import { Anchor, type PassName, type PassWriter } from '../draw-lists.js';
@@ -34,6 +36,14 @@ export class GridPlacement extends StripPlacement {
   yLast = '';
   // overlaid bands: `at` gives the last with height (the topmost track)
   override readonly overlay = true;
+}
+
+/** The units a window shows of pieces `[start, end, …]`: the viewport's, else every piece's. */
+function windowOf(pieces: readonly number[], v: Viewport | undefined): number {
+  if (v) return Math.max(1, v.end - v.start);
+  let n = 0;
+  for (let k = 0; k + 1 < pieces.length; k += 2) n += Math.abs(pieces[k + 1] - pieces[k]);
+  return Math.max(1, n);
 }
 
 /** A grid's y window: its own, clamped within its units and at least a unit. */
@@ -99,22 +109,30 @@ export const GridLayout: SectionLayoutType<GridPlacement> = {
     const width = ctx.axis.width;
     const aspect = section.params.aspect;
     let h: number;
+    let x = ctx.axis;
+    const y = ctx.y;
     if (aspect === 'none') {
       h = 0;
-      for (const x of ctx.heights) h = Math.max(h, x);
+      for (const t of ctx.heights) h = Math.max(h, t);
     } else {
       const a = typeof aspect === 'number' && aspect > 0 ? aspect : 1;
       // the room below the section's top less a tenth, never below a grid track's default height: a view sized to its
       // content (whose height follows the plot's) keeps a stable plot
       const room = Math.max(config.heights.grid, (ctx.height - top) * RoomShare);
-      h = Math.max(MinHeight, Math.min(width / a, room));
+      // a cell `a` times as wide as tall: px a y unit the most both the width and the room allow; the plot as wide as
+      // that leaves x (narrower than the data box when the room is the bound)
+      const xu = x.u1 - x.u0;
+      const yu = y?.pieces.length ? windowOf(y.pieces, y.viewport) : xu;
+      const sy = Math.min(width / (a * xu), room / yu);
+      h = Math.max(MinHeight, sy * yu);
+      const w = Math.min(width, a * sy * xu);
+      if (w < width - 0.5) x = AxisTransform.on(x, x.pieces, x.x0, w, ctx.dpr, { start: x.u0, end: x.u1 });
     }
-    const i = strips.add(ctx.axis, 0, 0, 0, ctx.axis.u0);
+    const i = strips.add(x, 0, 0, 0, x.u0);
     for (let j = 0; j < ctx.bands.length; j++) {
       strips.bandY[i * strips.bands + j] = top;
       strips.bandH[i * strips.bands + j] = h;
     }
-    const y = ctx.y;
     p.yFirst = p.yLast = '';
     if (y?.pieces.length) {
       const ya = AxisTransform.on(y.axis, y.pieces, top, h, ctx.dpr, y.viewport);

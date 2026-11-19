@@ -143,6 +143,14 @@ describe('tRNA: the dot plot, headless', () => {
     expect(v.frame!.lists.passes.hover.paths.n).toBe(lit);
   });
 
+  it('the plot’s cells are square (aspect 1): as many px a position across as down, the plot within the view', async () => {
+    viewer = await openExample(trna('dot-plot'), { gene: '' });
+    const v = viewer;
+    const st = v.frame!.layout.sections[1].placement.strips;
+    expect(st.axes[0].scale).toBeCloseTo(st.ys[0]!.scale, 6);
+    expect(st.height[0]).toBeGreaterThan(100);
+  });
+
   it('a cell: click a one-cell rect, Shift+click the rect from it, Cmd/Ctrl+click toggles a cell out', async () => {
     viewer = await openExample(trna('dot-plot'), { gene: '' });
     const v = viewer;
@@ -250,6 +258,23 @@ describe('Complex: PAE and contacts, headless', () => {
     const svg = v.renderSvg({ idPrefix: 'pae-' });
     await vi.advanceTimersByTimeAsync(400);
     expect((await svg).issues).toEqual([]);
+  });
+
+  it('the PAE’s cells are square whatever the two windows: px a residue across as down', async () => {
+    viewer = await openExample(complex('pae'), { gene: '' });
+    const v = viewer;
+    for (const [c, y] of [
+      [80, 40],
+      [40, 120],
+    ]) {
+      v.view.setRange('/views/main/cdk2', 0, c);
+      v.view.setRange('/views/main/cyclin', 0, y);
+      await vi.advanceTimersByTimeAsync(500);
+      v.draw();
+      const st = v.frame!.layout.sections[2].placement.strips;
+      expect(st.axes[0].u1 - st.axes[0].u0).toBe(c);
+      expect(st.axes[0].scale).toBeCloseTo(st.ys[0]!.scale, 6);
+    }
   });
 
   it('a zoom on the plot moves both leaders about the pointer; a vertical wheel pans y’s leader (cyclin A)', async () => {

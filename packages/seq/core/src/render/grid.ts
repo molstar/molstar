@@ -530,15 +530,17 @@ function rect(out: PassWriter) {
  */
 function paintRows(lay: GridLay, out: PassWriter, ranges: Int32Array) {
   const ay = lay.axisY!;
+  const a = lay.axis!;
   const b = lay.box;
   for (let r = 0; r + 1 < ranges.length; r += 2) {
     if (!span(ay, ranges[r], ranges[r + 1], 2)) continue;
     const top = Math.max(b.y, Box4[2]);
     const bottom = Math.min(b.y + b.height, Box4[3]);
     if (bottom <= top) continue;
-    R[0] = b.x;
+    // across the plot: x's extent (the plot may be narrower than its band)
+    R[0] = a.x0;
     R[1] = top;
-    R[2] = b.width;
+    R[2] = a.width;
     R[3] = bottom - top;
     rect(out);
   }
