@@ -365,7 +365,7 @@ and dark before the merge.
 
 ### Stage 6: output, accessibility and use
 
-- [ ] SW (fast, an extra light lane by the author's exception, 2026-11-19: "run all three now as an exception") today's
+- [x] SW (merged; fast, an extra light lane by the author's exception, 2026-11-19: "run all three now as an exception") today's
       small follow-ups: a pan about the pointer, a ring chip's label once, a minimal viewer's size measured.
 - [ ] OP (fast; started early, by the author's exception, 2026-11-19) PNG headless (the picture SVG draws, rasterized as Gate 0 decides) and the render CLI (`cli/`) under
       the headless asset policy (EC-126), with its cold-start target.
@@ -382,6 +382,11 @@ and dark before the merge.
       think a minimal one could be smaller"): a `viewer, minimal` row in `packages/seq/_measure/sizes.mjs` (tracks,
       letters and ranges; no navigators, stories, editing, records runtime), what keeps it from shaking out found and
       fixed; the guides stay guides for the default composition (the author: "i guess that's fine").
+      Measured by SW (2026-11-19): viewer, minimal 959.2 kB against the default's 1023.1 kB: unused parts stay in through
+      `BuiltInLayerTypes` and the layouts table (`Renderer`'s default), `render/navigator.ts` via the `render` barrel and
+      `export.ts`, and the viewer's static imports of history, story, navigator and rows. The fix (registries injectable
+      or lazy by default, those pieces imported lazily, `sideEffects: false`) changes defaults or public API: the
+      author's call before the lane.
 - [ ] GATE: the author confirms or moves the targets the slice touched.
 
 ### Finalize

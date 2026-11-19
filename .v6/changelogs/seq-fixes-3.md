@@ -19,3 +19,4 @@
   channels with their colors, each removable.
 - A drag in the viewer or a navigator ends wherever the button is released (outside the canvas, the iframe or the
   browser window) and when the window loses focus.
+- A wheel pan of a row of blocks keeps the content under the pointer; a ring chip's label is drawn once, in its pill.

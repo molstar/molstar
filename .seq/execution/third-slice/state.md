@@ -205,3 +205,5 @@ None.
 - DT merged after its review round (pairs over a source's letters, the rows legend by alphabet, the tertiary column,
   generated data formatted); record.ts conflicts with DP resolved (both recorders, one dispatch table). Quick 1989,
   medium 9. CY gains the grid-from-a-source gap. Running: DG, DC, OP, AY, SW; queued: NB (next strong slot), DA, CY.
+- SW merged (a pan about the pointer, a ring chip's label once, the minimal viewer measured at 959 kB: what keeps it
+  large in plan stage 7). Quick 1990.
