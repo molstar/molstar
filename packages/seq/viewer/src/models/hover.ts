@@ -20,7 +20,7 @@ import type { SpecModel } from './spec.js';
 import type { ViewModel } from './view.js';
 
 /** What a hit's target is, for the gesture bindings (_spec/README.md "Bindings"): the granularity comes from the hit. */
-export type HitTarget = 'cell' | 'item' | 'row' | 'column' | 'track' | 'empty' | 'axis' | 'break';
+export type HitTarget = 'cell' | 'item' | 'row' | 'column' | 'track' | 'empty' | 'axis' | 'break' | 'filter';
 
 /**
  * What the pointer is over, as the layout's hit test gives it: the layer, an element key and its extent, or a

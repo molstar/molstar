@@ -237,6 +237,12 @@ export class ViewerInput {
     const select = this.selectBehavior;
     if (!select) return false;
     const section = this.sectionAt(y);
+    // the track's "n filtered" chip: its click clears the layer's filter (one patch)
+    const chip = this.viewer.hit(x, y);
+    if (chip?.target === 'filter') {
+      void this.viewer.execute('layer.filter', { address: chip.layer });
+      return true;
+    }
     const hit = this._hitAt(x, y);
     const sel = this.viewer.selection;
     const before = sel.value.value;

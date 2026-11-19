@@ -523,6 +523,8 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
     return itemHit(base, lay, lay.keys[item], lay.starts[item], lay.ends[item]);
   },
 
+  filtered: (lay) => lay.rows.filtered,
+
   legend(lay, options) {
     // the density strip is a count, not a theme: its key is the strip itself
     if (lay.mode === 'density') return [];

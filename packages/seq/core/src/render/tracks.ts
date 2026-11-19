@@ -84,6 +84,17 @@ export interface TrackLayout {
   readonly labelWidth: number;
   readonly labelY: number;
   readonly layers: readonly LayerLayout[];
+  /**
+   * The "n filtered" chip: the rows a layer's filter left out (the first layer with some), its text and its box at the
+   * label column's right end; a click on it clears the filter (`target: 'filter'`).
+   */
+  readonly filter?: {
+    readonly layer: string;
+    readonly count: number;
+    readonly text: string;
+    readonly x: number;
+    readonly width: number;
+  };
 }
 
 export interface SectionLayout {
@@ -379,12 +390,22 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
           for (const e of layer.path?.edges ?? []) showing.add(e.from).add(e.to);
           layers.push({ key, layer, type, lay });
         }
+      let filter: TrackLayout['filter'];
+      for (const l of layers) {
+        const count = l.type.filtered?.(l.lay) ?? 0;
+        if (!count) continue;
+        const text = `${count} filtered`;
+        const width = input.text.measure(config.labelFont, text);
+        filter = { layer: l.key, count, text, x: config.inset + config.labelWidth - width, width };
+        break;
+      }
       tracks.push({
         track,
         box,
         labelWidth: input.text.measure(config.labelFont, track.label),
         labelY: box.y + box.height / 2 + labelSize * 0.35,
         layers,
+        ...(filter ? { filter } : {}),
       });
       y += h;
     }
@@ -673,9 +694,18 @@ function drawLabel(out: PassWriter, t: TrackLayout, tokens: SeqTokens, config: R
   g[0] = config.inset;
   g[1] = t.labelY;
   g[2] = t.labelWidth;
-  g[3] = config.labelWidth;
+  const f = t.filter;
+  // the label fades before the chip
+  g[3] = f ? Math.max(0, f.x - config.inset - 6) : config.labelWidth;
   g[4] = tokens.colors['msui-text-muted'];
   out.textArgs(t.track.label, AnchorStart, config.labelFont);
+  if (!f) return;
+  g[0] = f.x;
+  g[1] = t.labelY;
+  g[2] = f.width;
+  g[3] = f.width;
+  g[4] = tokens.colors['msui-accent'];
+  out.textArgs(f.text, AnchorStart, config.labelFont);
 }
 
 /** The keyboard cursor: a thin outline of its cell over the box, in a neutral ink (`emphasis.cursorInk`). */
@@ -909,6 +939,10 @@ export function hitView(layout: ViewLayout, x: number, y: number): Hit | undefin
     if (notch) return notch;
     for (const t of s.tracks) {
       const { box } = t;
+      // the "n filtered" chip in the label column: a click clears the filter
+      const f = t.filter;
+      if (f && x >= f.x - 2 && x < f.x + f.width + 2 && y >= box.y && y < box.y + box.height)
+        return { layer: f.layer, section: s.id, system: '', target: 'filter', count: f.count };
       if (y < box.y || y >= box.y + box.height || x < box.x || x >= box.x + box.width) continue;
       // the topmost layer with an element under the point, else the topmost with a position
       let position: Hit | undefined;

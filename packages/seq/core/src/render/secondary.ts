@@ -222,6 +222,8 @@ export const SecondaryType: LayerType<SecondaryPrep, SecondaryLay> = {
     return itemHit(base, lay, lay.rows.keys[i], lay.rows.starts[i], lay.rows.ends[i]);
   },
 
+  filtered: (lay) => lay.rows.filtered,
+
   legend(lay, options) {
     if (lay.density) return [];
     const painted = new Set<string>();

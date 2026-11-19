@@ -87,6 +87,7 @@ export const CommandChangeKinds: Readonly<Record<string, ChangeKind>> = {
   'layer.channel': 'patch',
   'scale.set': 'patch',
   'theme.value-color': 'patch',
+  'layer.filter': 'patch',
   'legend.select': 'session',
   'legend.hover': 'session',
   'theme.cvd-safe': 'session',

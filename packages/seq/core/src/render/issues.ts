@@ -58,6 +58,11 @@ export const RenderIssues = defineIssues('seq.render', {
     description: 'A ranges layer’s `line` is not a style this version draws: its items are drawn solid',
     hint: 'Use `solid`, `dashed`, `dotted`, `wavy`, `double`, `box` or `highlight`',
   },
+  'seq.render.filter': {
+    severity: 'warning',
+    description: 'A layer’s data query is not a filter its rows can be read by: every row is drawn',
+    hint: 'Filter an annotation’s items by `(item :<field> v)`, `(not :of …)`, `(and :of […])` or `(or :of […])`',
+  },
   'seq.render.numbering': {
     severity: 'warning',
     description: 'A ruler’s `numbering` is not one its system has: it labels by `ordinal`',

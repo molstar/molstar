@@ -43,8 +43,10 @@ export interface VariantsPrep extends ItemsPrep {
 }
 
 export interface VariantsLay extends ItemsBase {
-  /** The color channel read, each row's fill and the value of its legend's field, the datum it reads rows through. */
+  /** The color and size channels read, each row's fill, size and value of its legend's field, the datum it reads through. */
   color?: Channel;
+  size?: Channel;
+  sizes: Float32Array;
   fills: Uint32Array;
   painted: (string | undefined)[];
   datum: RowDatum;
@@ -54,6 +56,8 @@ export interface VariantsLay extends ItemsBase {
   my: Float32Array;
   mrow: Int32Array;
   mfill: Uint32Array;
+  /** Each mark's head radius: `Radius` times its size channel (a radius: `sqrt` unless the form says); its hit box stays. */
+  mr: Float32Array;
   /** Marks by row in the order they were made (sorted into the above). */
   px: Float64Array;
   prow: Int32Array;
@@ -101,6 +105,8 @@ export const VariantsType: LayerType<VariantsPrep, VariantsLay> = {
       my: new Float32Array(64),
       mrow: new Int32Array(64),
       mfill: new Uint32Array(64),
+      mr: new Float32Array(64),
+      sizes: new Float32Array(64),
       px: new Float64Array(64),
       prow: new Int32Array(64),
       pn: 0,
@@ -182,6 +188,8 @@ export const VariantsType: LayerType<VariantsPrep, VariantsLay> = {
     return itemHit(base, lay, lay.rows.keys[i], lay.rows.starts[i], lay.rows.ends[i]);
   },
 
+  filtered: (lay) => lay.rows.filtered,
+
   legend(lay, options) {
     if (lay.density) return [];
     const painted = new Set<string>();
@@ -190,7 +198,7 @@ export const VariantsType: LayerType<VariantsPrep, VariantsLay> = {
         const v = lay.painted[i];
         if (v !== undefined) painted.add(v);
       }
-    return channelLegends([lay.color], { ...options, layer: lay.key, painted });
+    return channelLegends([lay.color, lay.size], { ...options, layer: lay.key, painted });
   },
 };
 
@@ -199,11 +207,15 @@ function colorRows(lay: VariantsLay, prep: VariantsPrep, ctx: LayoutContext) {
   const rows = lay.rows;
   const datum = lay.datum;
   datum.bind(rows.n ? rows.fields[0] : undefined);
-  const color = prep.channels.get('color', 'token:variant', ctx, { numeric: (n: string) => datum.numeric(n) });
+  const numeric = (n: string) => datum.numeric(n);
+  const color = prep.channels.get('color', 'token:variant', ctx, { numeric });
+  const size = prep.channels.get('size', 1, ctx, { numeric, radius: true });
   lay.color = color;
+  lay.size = size;
   const painted = color.legend?.kind === 'palette' ? color.legend.field : undefined;
   const missing = ctx.tokens.colors['seq-missing'];
   if (lay.fills.length < rows.n) lay.fills = new Uint32Array(Math.max(rows.n, 2 * lay.fills.length));
+  if (lay.sizes.length < rows.n) lay.sizes = new Float32Array(Math.max(rows.n, 2 * lay.sizes.length));
   for (let i = 0; i < rows.n; i++) {
     datum.bind(rows.fields[i]);
     datum.row = rows.row[i];
@@ -211,6 +223,8 @@ function colorRows(lay: VariantsLay, prep: VariantsPrep, ctx: LayoutContext) {
     datum.end = rows.ends[i];
     const c = color.constant ?? color.at(datum);
     lay.fills[i] = typeof c === 'number' ? c : missing;
+    const z = size.constant ?? size.at(datum);
+    lay.sizes[i] = typeof z === 'number' ? Math.max(0.2, Math.min(1, z)) : 1;
     if (painted !== undefined) {
       const v = datum.field(painted);
       lay.painted[i] = typeof v === 'string' ? v : undefined;
@@ -235,6 +249,7 @@ function stack(lay: VariantsLay) {
     lay.my = new Float32Array(size);
     lay.mrow = new Int32Array(size);
     lay.mfill = new Uint32Array(size);
+    lay.mr = new Float32Array(size);
   }
   const { box } = lay;
   const floor = box.y + box.height - 1;
@@ -249,6 +264,7 @@ function stack(lay: VariantsLay) {
       lay.my[k] = floor - Stem - Radius - (k - s) * gap;
       lay.mrow[k] = prow[o];
       lay.mfill[k] = lay.fills[prow[o]];
+      lay.mr[k] = Radius * lay.sizes[prow[o]];
     }
     s = e;
   }
@@ -295,7 +311,7 @@ function drawVariants(lay: VariantsLay, out: PassWriter, _emphasis: Emphasis | u
     out.rectArgs();
   }
   for (let j = 0; j < lay.m; j++) {
-    head(lay.mx[j], lay.my[j], Radius);
+    head(lay.mx[j], lay.my[j], lay.mr[j]);
     a[4] = lay.mfill[j];
     a[5] = NoColor;
     a[6] = 0;
@@ -308,11 +324,11 @@ function drawVariants(lay: VariantsLay, out: PassWriter, _emphasis: Emphasis | u
 function drawHover(lay: VariantsLay, out: PassWriter, emphasis: Emphasis | undefined) {
   const h = emphasis?.hover;
   if (!h || h.layer !== lay.key || !h.element) return;
-  const r = Radius + lay.hoverWidth / 2 + lay.hoverOffset;
+  const pad = lay.hoverWidth / 2 + lay.hoverOffset;
   const a = out.args;
   for (let j = 0; j < lay.m; j++) {
     if (lay.rows.keys[lay.mrow[j]] !== h.element.key) continue;
-    head(lay.mx[j], lay.my[j], r);
+    head(lay.mx[j], lay.my[j], lay.mr[j] + pad);
     a[4] = NoColor;
     a[5] = lay.tokens.colors['seq-hover'];
     a[6] = lay.hoverWidth;

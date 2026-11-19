@@ -107,6 +107,11 @@ export interface LayerData {
   /** A dynamic node's access plan and its system's length (a template's instance: the overlay's, not the model's). */
   readonly access?: AccessPlan;
   readonly length?: number;
+  /**
+   * A query's form after its annotation (`<annotation>/(not :of (item :consequence missense))`): the filter its rows
+   * pass, read row by row by the layers (_spec/README.md "Themes", Filters).
+   */
+  readonly filter?: Node;
 }
 
 export interface ResolvedLayer {
@@ -633,7 +638,9 @@ function dataOf(model: StaticModel, value: Value | undefined, type: string, sect
   if (model.systems.has(prefix))
     return { kind, address, system: prefix, ...(kind === 'address' ? { shape: 'letters' as const } : {}) };
   const a = model.annotations.get(prefix);
-  return a ? { kind, address, system: a.target, shape: a.shape } : undefined;
+  const rest = parsed.segments.slice(ids.length);
+  const filter = kind === 'query' && rest.length === 1 && typeof rest[0] !== 'string' ? rest[0] : undefined;
+  return a ? { kind, address, system: a.target, shape: a.shape, ...(filter ? { filter } : {}) } : undefined;
 }
 
 /**

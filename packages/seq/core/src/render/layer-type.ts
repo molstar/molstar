@@ -82,7 +82,7 @@ export interface Hit {
    * section's position at its edge (the last shown before it in display order), `extent` the hidden stretch on the
    * section's system, `layer` the section's address, `count` the hidden items a tick stands for.
    */
-  readonly target?: 'break';
+  readonly target?: 'break' | 'filter';
   readonly count?: number;
 }
 
@@ -143,4 +143,6 @@ export interface LayerType<Prep = unknown, Lay = unknown> {
   legend?(lay: Lay, options: { readonly title: string }): readonly Legend[];
   /** The y domain it drew (a values layer's), recorded by an export. */
   domain?(lay: Lay): readonly [number, number] | undefined;
+  /** The rows its data's filter left out of what it read (the track's "n filtered" chip). */
+  filtered?(lay: Lay): number;
 }

@@ -9,6 +9,7 @@ import { type DataEntry, fitLevel, type Shape } from '@molstar/seqx-core/data';
 import { inversePath, type Path, projectRanges, type StaticModel } from '@molstar/seqx-core/resolve';
 import type { ResolvedLayer } from '@molstar/seqx-core/view';
 import type { AxisTransform } from './axis.js';
+import { compileRowFilter, type RowFilter } from './filter.js';
 import type { LayoutContext, StoreReader } from './layer-type.js';
 
 // How a layer reads its data (_spec/README.md "Render", Data): the access plan of its data's node names the store's
@@ -31,6 +32,9 @@ export interface LayerSource {
   readonly back?: Path;
   /** Data positions per section position along the path: 1/3 from residues onto nucleotides, 3 back, else 1. */
   readonly ratio: number;
+  /** The filter the layer's query puts on its rows (an item layer's), compiled once; `unread`: a form it cannot read. */
+  readonly filter?: RowFilter;
+  readonly unreadFilter?: boolean;
 }
 
 /** The store's source of a placed layer's data; undefined when its node has no access plan. */
@@ -41,7 +45,7 @@ export function layerSource(model: StaticModel, layer: ResolvedLayer): LayerSour
   let access = data.access ?? model.systems.get(data.address)?.access;
   if (!access) {
     let a = model.annotations.get(data.address);
-    // a query reads the annotation it starts at (its filter is a later slice's)
+    // a query reads the annotation it starts at; its form after it filters the rows (`filter`)
     if (!a) for (const [address, entry] of model.annotations) if (data.address.startsWith(`${address}/`)) a = entry;
     access = a?.access;
   }
@@ -51,6 +55,7 @@ export function layerSource(model: StaticModel, layer: ResolvedLayer): LayerSour
       ? { source: access.source.address, system: access.system, shape: access.shape }
       : { source: access.source, system: access.system, shape: access.shape };
   const path = layer.path;
+  const filter = data.filter ? compileRowFilter(data.filter) : undefined;
   const length = data.length ?? model.systems.get(data.system)?.length;
   return {
     ...plan,
@@ -58,6 +63,8 @@ export function layerSource(model: StaticModel, layer: ResolvedLayer): LayerSour
     ...(length !== undefined ? { length } : {}),
     ...(path ? { path, back: inversePath(path) } : {}),
     ratio: path?.step === 1 ? 1 / 3 : path?.step === -1 ? 3 : 1,
+    ...(filter ? { filter } : {}),
+    ...(data.filter && !filter ? { unreadFilter: true } : {}),
   };
 }
 

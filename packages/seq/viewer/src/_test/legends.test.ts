@@ -140,6 +140,35 @@ describe('theme commands', () => {
     );
   });
 
+  it('one value’s color is refused on a scheme or rules color, never replacing it', async () => {
+    const v = await make();
+    await v.execute('layer.channel', { address: Layer, value: { kind: 'scheme', params: { name: 'okabe-ito' } } });
+    const before = layerParams(v, Layer).color;
+    const msg = await v.execute('theme.value-color', { address: Layer, entry: 'linker', color: '#123456' });
+    expect(msg).toMatch(/not by a field/);
+    expect(layerParams(v, Layer).color).toEqual(before);
+  });
+
+  it('hides a value’s items in one patch of the layer’s data, the track counting them; the chip’s click clears it', async () => {
+    const v = await make();
+    const steps = () => v.spec.revision.value;
+    const r0 = steps();
+    await v.execute('layer.filter', { address: Layer, entry: 'binding' });
+    expect(layerParams(v, Layer).data).toBe('/data/domains/(not :of (item :category binding))');
+    expect(steps()).not.toBe(r0);
+    await v.execute('layer.filter', { address: Layer, entry: 'linker' });
+    expect(layerParams(v, Layer).data).toBe('/data/domains/(not :of (item :category [binding linker]))');
+    await v.execute('layer.filter', { address: Layer, entry: 'linker' });
+    await v.settle();
+    frames!.flush();
+    const track = v.frame!.layout.sections[0].tracks.find((t) => t.track.label === 'Domains')!;
+    expect(track.filter?.count).toBe(2);
+    // the chip's click: the input clears the filter
+    v.input.click(track.filter!.x + 1, track.box.y + 2);
+    await v.settle();
+    expect(layerParams(v, Layer).data).toBe('/data/domains');
+  });
+
   it('offers the schemes that fit a layer', async () => {
     const v = await make();
     const t = v.behaviors.get('legend') as ThemingBehavior;

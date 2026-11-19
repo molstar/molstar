@@ -8,10 +8,26 @@
 // hovered in a menu), and the legend's gestures as commands: a layer's channel (`layer.channel`, several layers in one
 // patch), a scale node's params (`scale.set`: every layer naming it follows), one value's color (`theme.value-color`),
 // a legend entry's items selected or highlighted (`legend.select`, `legend.hover`), and the reader's color-blind
-// substitution (`theme.cvd-safe`, session state, never the spec).
+// substitution (`theme.cvd-safe`, session state, never the spec); a value's items hidden (`layer.filter`: a patch of the
+// layer's `data`, a query that leaves them out; a theme never hides).
+
+/** A layer's data split: the annotation it reads, and the values of `field` its filter leaves out. */
+export function dataFilter(data: string, field: string): { readonly base: string; readonly hidden: readonly string[] } {
+  const p = parseAddress(data).pattern;
+  const segs = p?.segments ?? [];
+  const ids = segs.filter((s): s is string => typeof s === 'string');
+  const base = ids.length ? printAddress(ids) : data;
+  const last = segs[segs.length - 1];
+  if (!p || ids.length !== segs.length - 1 || typeof last === 'string' || last.kind !== 'not')
+    return { base, hidden: [] };
+  const of = last.params?.of;
+  const v = isNode(of) && of.kind === 'item' ? of.params?.[field] : undefined;
+  const hidden = v === undefined ? [] : (Array.isArray(v) ? v : [v]).map(String);
+  return { base, hidden };
+}
 
 import type { Op } from '@molstar/core/repr/patch';
-import { isNode, type Node, resolveAddress, type Value } from '@molstar/core/repr/tree';
+import { isNode, type Node, parseAddress, printAddress, resolveAddress, type Value } from '@molstar/core/repr/tree';
 import {
   builtInSchemes,
   colorHex,
@@ -54,6 +70,7 @@ export const ThemingCommandIds = {
   select: 'legend.select',
   hover: 'legend.hover',
   cvdSafe: 'theme.cvd-safe',
+  filter: 'layer.filter',
 } as const;
 
 export interface ThemingBehavior {
@@ -120,7 +137,7 @@ export function themingBehavior(
     const data = n?.params?.data;
     const field = n && legendField(n);
     if (typeof data !== 'string' || !field) return undefined;
-    return `${data}/(item :${field} ${quote(value)})`;
+    return `${dataFilter(data, field).base}/(item :${field} ${quote(value)})`;
   };
 
   /** A layer's color with one value's color set (or removed): a dictionary entry of its palette, or of its scale's. */
@@ -128,8 +145,11 @@ export function themingBehavior(
     const n = node(layer, 'layer');
     if (!n) return 'No layer there';
     const c = n.params?.color;
-    // the default: the layer's theme written out over the field it reads by default (its category), others kept
-    const field: Node = isNode(c) && c.kind === 'field' ? c : { kind: 'field', params: { name: 'category' } };
+    // a field form's palette, or none (the layer's default over its category, written out); a scheme, rules or any
+    // other form is not one value's color to set: refused, never replaced
+    if (c !== undefined && !(isNode(c) && c.kind === 'field'))
+      return 'The layer’s color is not by a field: a value’s color is set on a field’s palette only';
+    const field: Node = isNode(c) ? c : { kind: 'field', params: { name: 'category' } };
     const scale = field.params?.scale;
     if (typeof scale === 'string') {
       const s = node(scale, 'scale');
@@ -150,6 +170,24 @@ export function themingBehavior(
       params: { ...field.params, palette: withEntry(isNode(palette) ? palette : undefined, value, color) },
     };
     return [{ op: 'set', at: ids(layer), key: 'color', value: next as unknown as Value }];
+  };
+
+  /** A layer's data with a value's items hidden or shown again (`value` absent: every filter cleared). */
+  const filterOps = (layer: string, value: string | undefined): Op[] | string => {
+    const n = node(layer, 'layer');
+    const data = n?.params?.data;
+    if (!n || typeof data !== 'string') return 'No layer with data there';
+    const field = legendField(n) ?? 'category';
+    const { base, hidden } = dataFilter(data, field);
+    if (value === undefined) {
+      if (base === data) return 'Not filtered';
+      return [{ op: 'set', at: ids(layer), key: 'data', value: base }];
+    }
+    const next = hidden.includes(value) ? hidden.filter((h) => h !== value) : [...hidden, value];
+    const to = next.length
+      ? `${base}/${printAddress([{ kind: 'not', params: { of: { kind: 'item', params: { [field]: next.length === 1 ? next[0] : next } } } }]).slice(1)}`
+      : base;
+    return [{ op: 'set', at: ids(layer), key: 'data', value: to }];
   };
 
   const cancelPreview = () => {
@@ -199,6 +237,22 @@ export function themingBehavior(
         const ops = valueColorOps(ctx.address!, ctx.entry!, ctx.color);
         if (typeof ops === 'string') return { message: ops };
         return edit('Color one value', () => ops, ctx, ctx.color === undefined ? 'Default color' : 'Colored');
+      },
+    },
+    {
+      id: ThemingCommandIds.filter,
+      title: 'Hide a value’s items',
+      category: 'Legend',
+      when: live((ctx) => (node(ctx.address, 'layer') ? true : 'No layer there')),
+      run: (_, ctx) => {
+        const ops = filterOps(ctx.address!, ctx.entry);
+        if (typeof ops === 'string') return { message: ops };
+        return edit(
+          ctx.entry === undefined ? 'Clear a filter' : 'Filter a layer',
+          () => ops,
+          ctx,
+          ctx.entry === undefined ? 'Filter cleared' : 'Filtered',
+        );
       },
     },
     {
