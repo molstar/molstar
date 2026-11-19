@@ -13,7 +13,7 @@ import { hitView, type LettersLay, recordDrawLists } from '@molstar/seqx-core/re
 import { positionAt } from '@molstar/seqx-core/view';
 import { P53Views } from '@molstar/seqx-examples';
 import { nodeFixtureAssets } from '@molstar/seqx-examples/node-assets';
-import { GeneFile } from '@molstar/seqx-examples/p53/data';
+import { GeneFile, GeneVariant } from '@molstar/seqx-examples/p53/data';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { openExample } from './draw-checks.js';
@@ -73,6 +73,24 @@ describe('Protein and gene on one axis, headless', () => {
     v.draw();
     const selected = await svgOf(v);
     expect(recordDrawLists(selected.lists, ['selection'])).toBe(recordDrawLists(v.frame!.lists, ['selection']));
+  });
+});
+
+describe('Protein and gene on one axis: the gene encodes p53 but for R175H', () => {
+  it('only the variant’s residue is marked in conflict; the others keep their fills unmarked', async () => {
+    const v = await open('one-axis');
+    // residues 160 to 190, three units each
+    v.view.setRange(Gene, 480, 570);
+    v.draw();
+    // the gene's letters read (the source answers after its delay), then a frame with each codon's status
+    await vi.advanceTimersByTimeAsync(400);
+    v.draw();
+    const lay = v.frame!.layout.sections[0].tracks[0].layers[0].lay as LettersLay;
+    expect(lay.n).toBeGreaterThan(20);
+    const marked = new Set<number>();
+    for (let i = 0; i + 1 < lay.conflicts.length; i += 2)
+      for (let j = 0; j < lay.n; j++) if (lay.x0[j] === lay.conflicts[i]) marked.add(lay.pos[j]);
+    expect([...marked]).toEqual([GeneVariant.residue]);
   });
 });
 

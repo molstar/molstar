@@ -99,6 +99,11 @@ export interface LettersLay {
   gaps: number[];
   /** A caret's x a letter with no position (an insertion, one to one). */
   carets: number[];
+  /**
+   * `x0, x1` pairs: the parts of residues their codon does not translate to (EC-16), marked under the cell in the
+   * conflict ink; the cell keeps its residue's fill, so a lone conflict reads as a mark, never a bar.
+   */
+  conflicts: number[];
   tokens: SeqTokens;
   hoverWidth: number;
   hoverOffset: number;
@@ -242,6 +247,7 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
       failed: [],
       gaps: [],
       carets: [],
+      conflicts: [],
       tokens,
       hoverWidth: config.outline.hover,
       hoverOffset: config.emphasis.hoverOffset,
@@ -264,6 +270,7 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
     lay.failed.length = 0;
     lay.gaps.length = 0;
     lay.carets.length = 0;
+    lay.conflicts.length = 0;
     const src = prep.src;
     if (!src) return lay;
     if (prep.through === 'refused') {
@@ -314,7 +321,6 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
     lay.show = grown(lay.show, count);
     const nucleotides = prep.alphabet !== 'protein';
     const rna = prep.alphabet === 'rna';
-    const conflict = tokens.colors['seq-conflict'];
     const onOwn = prep.through === 'own';
     const parts = onOwn ? OwnCell : Parts;
     const dpr = axis.dpr;
@@ -335,9 +341,9 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
           if (prep.complement === 'always' || axis.dir * run === -1) code = complementCode(code, rna);
         }
         const ch = String.fromCharCode(code);
-        let fill = fixed ?? tokens.colors[letterToken(ch, prep.alphabet)];
-        // a residue its codon does not translate to, once the section's letters are held (EC-16)
-        if (own?.length && prep.through === 'codon' && !codonOk(src, own, p, ch, prep.genetic)) fill = conflict;
+        const fill = fixed ?? tokens.colors[letterToken(ch, prep.alphabet)];
+        // a residue its codon does not translate to, once the section's letters are held (EC-16): marked
+        const bad = !!own?.length && prep.through === 'codon' && !codonOk(src, own, p, ch, prep.genetic);
         const ink = inkOn(fill, tokens);
         for (let k = 0; k + 1 < parts.length; k += 2) {
           axis.piecesIn(parts[k], parts[k + 1]);
@@ -362,6 +368,7 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
             // snapped here, not by a call: a number passed to a call that is not inlined is boxed
             lay.x0[j] = Math.round(axis.sx0 * dpr) / dpr;
             lay.x1[j] = Math.round(axis.sx1 * dpr) / dpr;
+            if (bad) lay.conflicts.push(lay.x0[j], lay.x1[j]);
           }
         }
       }
@@ -533,6 +540,7 @@ function drawCells(lay: LettersLay, out: PassWriter, _emphasis: Emphasis | undef
     g[8] = 0;
     out.rectArgs();
   }
+  if (lay.conflicts.length) drawConflicts(lay, out);
   if (lay.step !== 'letters' || !(lay.fontSize > 0) || !lay.n) return;
   if (lay.three) {
     drawThree(lay, out);
@@ -570,6 +578,26 @@ function drawPathMarks(lay: LettersLay, out: PassWriter) {
       g[8] = 0;
       out.rectArgs();
     }
+  }
+}
+
+/** A conflict's mark: a bar along the bottom of the cell, a fifth of its height (at least 2 px), in the conflict ink. */
+function drawConflicts(lay: LettersLay, out: PassWriter) {
+  const { box, tokens } = lay;
+  const h = Math.max(2, Math.round(box.height * 0.2));
+  const g = out.args;
+  const c = lay.conflicts;
+  for (let i = 0; i + 1 < c.length; i += 2) {
+    g[0] = c[i];
+    g[1] = box.y + box.height - h;
+    g[2] = Math.max(c[i + 1] - c[i], 1);
+    g[3] = h;
+    g[4] = tokens.colors['seq-conflict'];
+    g[5] = NoColor;
+    g[6] = 0;
+    g[7] = 0;
+    g[8] = 0;
+    out.rectArgs();
   }
 }
 

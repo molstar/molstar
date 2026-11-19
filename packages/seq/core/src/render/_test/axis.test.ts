@@ -14,7 +14,15 @@ import { describe, expect, it } from 'vitest';
 import { AxisTransform, Cut } from '../axis.js';
 import { rangesLocation } from '@molstar/seqx-core/query';
 import { Round } from '../draw-lists.js';
-import { hitView, type LettersLay, LightTokens, type RangesLay, recordDrawLists, renderSvg } from '../index.js';
+import {
+  colorHex,
+  hitView,
+  type LettersLay,
+  LightTokens,
+  type RangesLay,
+  recordDrawLists,
+  renderSvg,
+} from '../index.js';
 import { settle } from './helpers.js';
 
 const Size = { width: 640, height: 200 };
@@ -118,13 +126,21 @@ describe('letters through a codon path', () => {
     expect(f.layout.issues[0].message).toContain('a third of a residue');
   });
 
-  it('draws the conflict ink on a residue its codon does not translate to, once the gene’s letters are held', async () => {
+  it('marks a residue its codon does not translate to under its cell, once the gene’s letters are held', async () => {
     const s = await settle(spec({ pieces: 'coding' }, '+'));
     const f = await s.frame({ size: Size });
     const lay = f.layout.sections[0].tracks[0].layers[0].lay as LettersLay;
     const conflict = LightTokens.colors['seq-conflict'];
-    // the toy gene translates to none of MEEP: every residue is in conflict
-    for (let j = 0; j < lay.n; j++) expect(lay.fill[j]).toBe(conflict);
+    // the toy gene translates to none of MEEP: every part is marked; the cells keep their residues' fills
+    expect(lay.conflicts.length).toBe(2 * lay.n);
+    for (let j = 0; j < lay.n; j++) expect(lay.fill[j]).not.toBe(conflict);
+    // the mark: a bar along the bottom of each cell, a fifth of its height, in the conflict ink
+    const h = Math.max(2, Math.round(lay.box.height * 0.2));
+    const data = recordDrawLists(f.lists, ['data']);
+    const ink = colorHex(conflict);
+    const bars = data.split('\n').filter((l) => l.startsWith('rect ') && l.includes(ink));
+    expect(bars.length).toBe(lay.n);
+    expect(bars[0]).toContain(` ${lay.box.y + lay.box.height - h} `);
   });
 
   it('three-letter codes where the narrowest part in view has room (`code: auto`), or as written', async () => {

@@ -62,7 +62,7 @@ export const Views: StoryObj = {
     h.textContent = 'p53';
     const intro = document.createElement('p');
     intro.textContent =
-      'Human TP53: its protein with domains and conservation, and a toy gene it is placed on. Each view is one spec over this data.';
+      'Human TP53: its protein with domains and conservation, and a toy gene it is placed on, which encodes it but for one variant (R175H). Each view is one spec over this data.';
     const list = document.createElement('ul');
     for (const v of P53Views) {
       const li = document.createElement('li');

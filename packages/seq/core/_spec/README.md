@@ -874,15 +874,16 @@ settled, `want` and `report`. A layer draws the first type of its fallback chain
   room, EC-117; `code`: `auto` three-letter codes where the narrowest part in view has room, `one`, `three`); any other
   path is `seq.render.layer.letters` with its reason (a nucleotide on a protein's axis is a third of a residue and an
   intron or UTR nucleotide has no place there; a many-to-one path gives a cell several letters). The density step
-  follows the layer's own cell (a residue three positions wide). A residue its codon does not translate to is drawn in
-  the conflict ink once the section's letters are held (`codonPairs` with the map's genetic code, EC-16); nothing is
-  said before. **Complement** (`complement`): `auto` draws a nucleotide as its complement where it is read against its
-  strand on screen (the axis's direction times its run's is −1: a reversed DNA axis shows the other strand read 5′ to
-  3′), `always`, `never` (EC-233's rule, changed); a protein never; letters shown never change data (model, status and
-  search read the stored ones; colors by letter read the shown one). A cell a position (a part) colored by class,
-  letters on them, a tick a position at `dots`, one bar a piece in view at `bars` and `density` (presence needs no
-  data). A hit through a path carries the data's element as `extent` (the residue on its protein) and its parts on the
-  section's system as `hull` (its codon); its hover outlines each part.
+  follows the layer's own cell (a residue three positions wide). A residue its codon does not translate to is marked by
+  a bar along the bottom of its cell in the conflict ink (its cell keeps the residue's fill: a lone conflict reads as a
+  mark, never a bar of conflict at the fit view) once the section's letters are held (`codonPairs` with the map's
+  genetic code, EC-16); nothing is said before. **Complement** (`complement`): `auto` draws a nucleotide as its
+  complement where it is read against its strand on screen (the axis's direction times its run's is −1: a reversed DNA
+  axis shows the other strand read 5′ to 3′), `always`, `never` (EC-233's rule, changed); a protein never; letters shown
+  never change data (model, status and search read the stored ones; colors by letter read the shown one). A cell a
+  position (a part) colored by class, letters on them, a tick a position at `dots`, one bar a piece in view at `bars`
+  and `density` (presence needs no data). A hit through a path carries the data's element as `extent` (the residue on
+  its protein) and its parts on the section's system as `hull` (its codon); its hover outlines each part.
 - `ranges`: items in sticky lanes, carried onto the section along the layer's path (a domain on its gene: a piece an
   exon); labels inside marks 24 px or wider, drawn in the `labels` pass. At `bars` a lane's marks touching within a
   device pixel merge into a run; at `density`, or a density table, one heat strip, a device column a pixel. Items past

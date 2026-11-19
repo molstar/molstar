@@ -23,37 +23,37 @@ clip 128 32 504 36
 rect 128 45 504 10 #7aa3a6ff
 unclip
 clip 128 76 504 20
-rect 313 76 17 20 #cdebd6ff
-rect 296 76 17 20 #cdebd6ff
-rect 279 76 17 20 #cdebd6ff
+rect 313 76 17 20 #cfe0f5ff
+rect 296 76 17 20 #f6e2b6ff
+rect 279 76 17 20 #f6e2b6ff
 rect 262 76 17 20 #cfe0f5ff
-rect 246 76 16 20 #cdebd6ff
-rect 229 76 17 20 #f5cfcfff
-rect 212 76 17 20 #cdebd6ff
-rect 195 76 17 20 #f5cfcfff
+rect 246 76 16 20 #cfe0f5ff
+rect 229 76 17 20 #cfe0f5ff
+rect 212 76 17 20 #cfe0f5ff
+rect 195 76 17 20 #cfe0f5ff
 rect 178 76 17 20 #cfe0f5ff
-rect 162 76 16 20 #f6e2b6ff
-rect 145 76 17 20 #f5cfcfff
-rect 128 76 17 20 #cdebd6ff
-rect 615 76 17 20 #cdebd6ff
-rect 598 76 17 20 #f6e2b6ff
-rect 582 76 16 20 #f6e2b6ff
-rect 565 76 17 20 #cdebd6ff
-rect 548 76 17 20 #cdebd6ff
+rect 162 76 16 20 #cfe0f5ff
+rect 145 76 17 20 #cfe0f5ff
+rect 128 76 17 20 #cfe0f5ff
+rect 615 76 17 20 #f6e2b6ff
+rect 598 76 17 20 #f5cfcfff
+rect 582 76 16 20 #cdebd6ff
+rect 565 76 17 20 #cfe0f5ff
+rect 548 76 17 20 #cfe0f5ff
 rect 531 76 17 20 #f6e2b6ff
-rect 514 76 17 20 #cfe0f5ff
-rect 498 76 16 20 #cdebd6ff
-rect 481 76 17 20 #f6e2b6ff
-rect 464 76 17 20 #cfe0f5ff
+rect 514 76 17 20 #f6e2b6ff
+rect 498 76 16 20 #f6e2b6ff
+rect 481 76 17 20 #cfe0f5ff
+rect 464 76 17 20 #f6e2b6ff
 rect 447 76 17 20 #f5cfcfff
-rect 430 76 17 20 #f5cfcfff
-rect 414 76 16 20 #f5cfcfff
+rect 430 76 17 20 #f6e2b6ff
+rect 414 76 16 20 #f6e2b6ff
 rect 397 76 17 20 #f6e2b6ff
-rect 380 76 17 20 #f5cfcfff
-rect 363 76 17 20 #f6e2b6ff
+rect 380 76 17 20 #cfe0f5ff
+rect 363 76 17 20 #cfe0f5ff
 rect 346 76 17 20 #cfe0f5ff
-rect 330 76 16 20 #cfe0f5ff
-glyphs "14px mono" 90.9 per A 321.5 #2d271eff, A 304.5 #2d271eff, A 287.5 #2d271eff, C 270.5 #2d271eff, A 254 #2d271eff, T 237.5 #2d271eff, A 220.5 #2d271eff, T 203.5 #2d271eff, C 186.5 #2d271eff, G 170 #2d271eff, T 153.5 #2d271eff, A 136.5 #2d271eff, A 623.5 #2d271eff, G 606.5 #2d271eff, G 590 #2d271eff, A 573.5 #2d271eff, A 556.5 #2d271eff, G 539.5 #2d271eff, C 522.5 #2d271eff, A 506 #2d271eff, G 489.5 #2d271eff, C 472.5 #2d271eff, T 455.5 #2d271eff, T 438.5 #2d271eff, T 422 #2d271eff, G 405.5 #2d271eff, T 388.5 #2d271eff, G 371.5 #2d271eff, C 354.5 #2d271eff, C 338 #2d271eff
+rect 330 76 16 20 #cdebd6ff
+glyphs "14px mono" 90.9 per C 321.5 #2d271eff, G 304.5 #2d271eff, G 287.5 #2d271eff, C 270.5 #2d271eff, C 254 #2d271eff, C 237.5 #2d271eff, C 220.5 #2d271eff, C 203.5 #2d271eff, C 186.5 #2d271eff, C 170 #2d271eff, C 153.5 #2d271eff, C 136.5 #2d271eff, G 623.5 #2d271eff, T 606.5 #2d271eff, A 590 #2d271eff, C 573.5 #2d271eff, C 556.5 #2d271eff, G 539.5 #2d271eff, G 522.5 #2d271eff, G 506 #2d271eff, C 489.5 #2d271eff, G 472.5 #2d271eff, T 455.5 #2d271eff, G 438.5 #2d271eff, G 422 #2d271eff, G 405.5 #2d271eff, C 388.5 #2d271eff, C 371.5 #2d271eff, C 354.5 #2d271eff, A 338 #2d271eff
 unclip
 clip 128 100 504 36
 rect 128 113 202 10 #7aa3a6ff

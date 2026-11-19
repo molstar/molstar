@@ -51,7 +51,7 @@ export const P53Views: readonly ExampleView[] = [
     id: 'one-axis',
     title: 'Protein and gene on one axis',
     summary:
-      'One gene section with the protein’s letters a codon wide, its domains and the gene’s letters: it reads along the protein (`{ along: p53 }`) on its coding pieces; a codon split by an intron is drawn in each part.',
+      'One gene section with the protein’s letters a codon wide, its domains and the gene’s letters: it reads along the protein (`{ along: p53 }`) on its coding pieces; a codon split by an intron is drawn in each part; R175H, the gene’s one variant, is marked as a conflict.',
     build: axis.oneAxis,
   },
   {
