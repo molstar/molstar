@@ -5,7 +5,6 @@
  */
 
 import { HalfOpenRanges } from '@molstar/core/data/int/half-open-ranges';
-import { sortArrayRange } from '@molstar/core/data/util/sort';
 import { type Issue, issueOf } from '@molstar/core/repr/tree';
 import { type Coverage, fitLevel, type Want } from '@molstar/seqx-core/data';
 import type { Location, LocationPart } from '@molstar/seqx-core/query';
@@ -1968,8 +1967,6 @@ let HLit = new Uint8Array(8);
 let HStart = new Int32Array(8);
 let HSlot = new Int32Array(8);
 let HStripes = new Int32Array(8);
-/** The positions where the channels lighting a stretch can change (reused). */
-let HBreaks = new Int32Array(32);
 
 /**
  * The highlight channels on a box, in order (_spec/README.md "Render", Emphasis): where one channel alone lights a
@@ -2009,31 +2006,30 @@ function drawStripes(
     HSlot = new Int32Array(n * 2);
     HStripes = new Int32Array(n * 2);
   }
-  let m = 0;
+  // a merge of the channels' sorted boundaries (no sort: nothing allocated): `HCursor[c]` is the next boundary of
+  // channel `c`; after consuming a range's start (an even index) the channel lights, after its end it does not
   for (let c = 0; c < n; c++) {
-    const r = HParts[c]!.ranges;
-    if (HBreaks.length < m + r.length) {
-      const grown = new Int32Array((m + r.length) * 2);
-      grown.set(HBreaks.subarray(0, m));
-      HBreaks = grown;
-    }
-    for (let k = 0; k < r.length; k++) HBreaks[m++] = r[k];
     HCursor[c] = 0;
     HSlot[c] = -1;
   }
-  sortArrayRange(HBreaks, 0, m);
   const max = Math.max(1, Math.floor(config.emphasis.highlightStripes));
-  for (let j = 0; j < m; j++) {
-    const at = HBreaks[j];
-    if (j > 0 && at === HBreaks[j - 1]) continue;
+  for (;;) {
+    let at = 0x7fffffff;
+    let any = false;
+    for (let c = 0; c < n; c++) {
+      const r = HParts[c]!.ranges;
+      if (HCursor[c] < r.length && r[HCursor[c]] <= at) {
+        at = r[HCursor[c]];
+        any = true;
+      }
+    }
+    if (!any) break;
     // who lights [at, next)
     let present = 0;
     for (let c = 0; c < n; c++) {
       const r = HParts[c]!.ranges;
-      let k = HCursor[c];
-      while (k < r.length && r[k + 1] <= at) k += 2;
-      HCursor[c] = k;
-      const lit = k < r.length && r[k] <= at;
+      while (HCursor[c] < r.length && r[HCursor[c]] === at) HCursor[c]++;
+      const lit = (HCursor[c] & 1) === 1;
       HLit[c] = lit ? 1 : 0;
       if (lit) present++;
     }
