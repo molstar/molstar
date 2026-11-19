@@ -321,3 +321,5 @@ None.
 - Decided (the author, 2026-11-19): a ruler's `units: none | bases` (axis.md); template instances hold their node only
   while in view (dynamic-nodes.md); both Design pages. CF (strong) briefed for them and inline data's tiles; it starts
   when RK or CS merges. EO (fast, read-only) started.
+- EO reported (`ec-outcomes-draft.md`): of 56 rows, kept 45, changed 2 (EC-92, EC-138), not met 9; three
+  contradictions in `drift/ec-contradictions.md`. AT (fast) running; ET (fast) starts for the ECs built but untested.
