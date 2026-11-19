@@ -443,10 +443,13 @@ links that carry addresses. Forms and addresses are one language, so this sits w
   `maxDepth` (64), `refDepth` (8); a signal and a deadline as a selection takes them.
 - **As positions** (`locationOfResult`): a Location itself; elements by their items' extents; a system's node whole; an
   annotation's by all its items; a section (and what is under it) by the region it shows. What focus and reveal read.
-- **The overlay's query model** (`overlayQueryModel(model, overlay)`, `resolve/query-model.ts`): the static model's
-  systems and annotations, then the overlay's (item systems, dynamic annotations), and `(node :key k)` naming a node the
-  store holds (a string key: `1` is not `"1"`); one per model and overlay. Why: a ref to a dynamic node resolves when
-  its node arrives, through the same forms.
+- **The overlay's query model** (`overlayQueryModel(model, overlay, rows?)`, `resolve/query-model.ts`): the static
+  model's systems and annotations, then the overlay's (item systems, dynamic annotations), and `(node :key k)` naming a
+  node the store holds (a string key: `1` is not `"1"`); one per model, overlay and reader. With the store as `rows`
+  (`RowsReader`: the viewer's and an export's), `(row :key k)` on an alignment read from a source names the first row of
+  the label in the tiles of its rows the store has loaded (what a rows layer read); before they are held the key is
+  unknown (`seq.query.row.unknown`). Why: a ref to a dynamic node, or to a source's row, resolves when its data arrives,
+  through the same forms.
 
 ### Back
 
@@ -1353,7 +1356,9 @@ the y path in Emphasis).
   of the styles is drawn solid and said once a layout (`seq.render.line-style`). With `arrow`, a block is an arrow, a
   line gets a triangle, at the end (the start) of the item on the piece that holds it, by the rule of the strand's
   arrowhead, never on a cut end (nor where the item's rows are not all known); a line's label has the page's color under
-  it, so the line stops at it; the hit boxes are the marks' lanes all the same.
+  it, so the line stops at it; the hit boxes are the marks' lanes all the same. Whether an item has its arrowhead is its
+  own mark's width, at the items and the bars steps alike: 4 px or wider, fixed (narrower, the head would be all of the
+  mark); an arrow is never merged into a run of bars, and the density step has none.
 
 - **`bands`** (`render/bands.ts`, fallback `ranges`): a chromosome's stained bands in one band, an ideogram: each item a
   block colored by its `stain` through the `giemsa` scheme (grays from the text ink; `acen` in `seq-centromere`), the
@@ -1611,7 +1616,10 @@ numbers): a window move allocates nothing once warm.
   the origin (unchanged when the range is in the window across the origin), steps wrapping, clamps by `clampWindow` (a
   cyclic window wraps, never clamped at the total; one as wide as the axis is the fit, from 0: a whole turn from
   elsewhere would put the origin mid-window).
-- **An image is refused** on a ring (the warp counts it; `seq.render.ring.image`, said once a section by the frame).
+- **A one-row image is a ring band**: a density strip (a ranges layer past its lanes, its overflow row, a variants
+  count) is drawn radially, each run of one color an annular sector through the warp, so a ring never refuses its
+  density. Why: the strip's columns are the frame's, so the band is exactly what a track shows. **A taller image is
+  refused** (a matrix: the warp counts it; `seq.render.ring.image`, said once a section by the frame).
 - `at` is `atan2` and the radius through the warp's inverse (a label before the rings; the rim `window` while active;
   the hole and outside `empty`; between blocks `gap`); `offsetAt` the nearest block's edge in a gap; both monotone in
   angle from the origin. Held by property tests over rotations.

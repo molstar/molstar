@@ -205,7 +205,8 @@ export const RenderIssues = defineIssues('seq.render', {
   },
   'seq.render.ring.image': {
     severity: 'warning',
-    description: 'A layer draws an image (a dense matrix) on a ring: images are not drawn on rings',
+    description:
+      'A layer draws an image of more than one row (a dense matrix) on a ring: such images are not drawn on rings',
     hint: 'Show the layer in a tracks section',
   },
   'seq.render.follow.cycle': {

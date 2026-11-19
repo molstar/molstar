@@ -639,9 +639,9 @@ export const TextLayout: SectionLayoutType<TextPlacement> = {
     return h;
   },
   chrome(s, pass, out, _emphasis, strip, band) {
-    if (pass !== 'labels' || band !== 0) return;
-    const p = s.placement as TextPlacement;
-    const marks = p.marks;
+    // a section whose axis is pending (an alignment's source not open) has no text placement: nothing to draw
+    if (pass !== 'labels' || band !== 0 || !(s.placement instanceof TextPlacement)) return;
+    const marks = s.placement.marks;
     const g = out.args;
     const color = s.tokens.colors['msui-text-muted'];
     for (let i = 0; i < marks.length; i++) {

@@ -203,6 +203,24 @@ describe('ranges: arrowheads', () => {
     }
   });
 
+  it('is decided per item by its width, not by the layer’s step: at the bars step a wide item keeps its arrowhead', async () => {
+    // 8,000 positions over 800 px: a tenth of a pixel a position, the bars step
+    const rows: Rows = {
+      start: [500, 3000, 3020, 6000],
+      end: [2500, 3010, 3030, 7000],
+      id: ['wide', 'n1', 'n2', 'w2'],
+    };
+    const s = await settle(spec(rows, { arrow: 'end' }, { length: 8000 }));
+    const lay = layerLay<RangesLay>(await s.frame({ size: SIZE }), 0);
+    expect(lay.mode).toBe('bars');
+    const tips = new Map(marks(lay).map((x) => [x.key, x.tips]));
+    expect(tips.get('wide')).toBe(2);
+    expect(tips.get('w2')).toBe(2);
+    // a narrow item has none; narrow ones close together still merge into one run
+    expect([...tips.keys()].filter((k) => k !== 'wide' && k !== 'w2').every((k) => !tips.get(k))).toBe(true);
+    expect(lay.m).toBe(3);
+  });
+
   it('a line gets a triangle at its end and stops where it begins; hits are the same', async () => {
     const s = await settle(spec(ONE, { line: 'solid', arrow: 'end' }));
     const f = await s.frame({ size: SIZE });

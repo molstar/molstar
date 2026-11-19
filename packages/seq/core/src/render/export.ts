@@ -469,7 +469,7 @@ export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<
     // the selection as an address: resolved over what the export holds now, as a viewer resolves it over its own
     let selection: Location | undefined;
     if (options.selection !== undefined) {
-      const q = overlayQueryModel(model, overlays.of(model, store));
+      const q = overlayQueryModel(model, overlays.of(model, store), store);
       const r = resolveAddressIn(spec, q, options.selection);
       if (r.result) selection = locationOfResult(spec, q, r.result).location;
       else issues.push(...r.issues);

@@ -233,10 +233,10 @@ export class AddressModel extends ReactiveModel {
 
   // ---- resolving ----
 
-  /** The query model addresses resolve over: the static model of what is shown and the store's nodes now. */
+  /** The query model addresses resolve over: the static model of what is shown, the store's nodes and held rows now. */
   queryModel(): QueryModel {
     const model = this.spec.model.value;
-    return overlayQueryModel(model, this.store.currentOverlay(model));
+    return overlayQueryModel(model, this.store.currentOverlay(model), this.store.store);
   }
 
   /** What an address names in the spec shown (_spec/README.md "AddressModel"; the core's `resolveAddressIn`). */

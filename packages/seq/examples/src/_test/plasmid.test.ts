@@ -299,17 +299,13 @@ function tips(lay: RangesLay) {
 describe('the Plasmid views drawn against the data', () => {
   const size = { width: 720, height: 900 };
 
-  it('every view renders settled in both themes with no unexpected issue; dark is not light', async () => {
+  it('every view renders settled in both themes with no issue; dark is not light', async () => {
     for (const v of PlasmidViews) {
       const ctx = context();
       const out: string[] = [];
       for (const theme of ['light', 'dark'] as const) {
         const r = await ctx.renderSvg(v.build(), { size, tokens: theme === 'dark' ? DarkTokens : LightTokens });
-        const known = v.id === 'scale' ? ['seq.render.ring.image'] : [];
-        expect(
-          r.issues.filter((i) => !known.includes(i.code)),
-          `${v.id} ${theme}`,
-        ).toEqual([]);
+        expect(r.issues, `${v.id} ${theme}`).toEqual([]);
         expect(r.settled).toBe(true);
         out.push(r.svg);
       }

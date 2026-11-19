@@ -50,13 +50,8 @@ describe('the fixtures', () => {
   });
 });
 
-/**
- * The issues a view is known to report (the code is the one allowed): the Plasmid's ring at scale has 200 features
- * across the origin, all in one place, more than any ring's lanes: the rest collapses into a density row, an image,
- * which a ring does not draw (`seq.render.ring.image`). A gap of the ring, scheduled as lane CY: this allowance goes
- * when the ring draws it.
- */
-const Known: Readonly<Record<string, readonly string[]>> = { 'plasmid/scale': ['seq.render.ring.image'] };
+/** The issues a view is known to report (the code is the one allowed), by `dataset/id`: none today. */
+const Known: Readonly<Record<string, readonly string[]>> = {};
 
 describe.each(ExampleViews.map((v) => [`${v.dataset}/${v.id}`, v] as const))('%s', (_, view) => {
   const allowed = Known[`${view.dataset}/${view.id}`] ?? [];

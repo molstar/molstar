@@ -77,6 +77,8 @@ const Dot = 2;
 const WaveStep = 3;
 const WaveAmplitude = 2;
 const LineWidth = 2;
+/** A mark this wide (CSS px) or wider draws its item's arrowhead, at any step: narrower, the head would be all of it. */
+const ArrowMinPx = 4;
 /** A highlight's alpha: 0.35 of 255, the channel's default. */
 const HighlightAlpha = 89;
 
@@ -168,6 +170,7 @@ export interface RangesLay extends ItemsBase {
     item: Int32Array;
     round: Uint8Array;
     radius: Float64Array;
+    tip: Uint8Array;
   };
   /** The heat strip's band: the whole box, or the bottom row past the lanes. */
   densityY: number;
@@ -247,6 +250,7 @@ function newLay(ctx: LayoutContext, prep: RangesPrep): RangesLay {
       item: new Int32Array(0),
       round: new Uint8Array(0),
       radius: new Float64Array(0),
+      tip: new Uint8Array(0),
     },
     densityY: 0,
     densityH: 0,
@@ -444,7 +448,8 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
       step === 'density' || densities.length || (lay.overflow && !row) ? 'density' : step === 'bars' ? 'bars' : 'items';
     // below a position a pixel a run has no ends, no dash and no wave: a plain line or block
     if (lay.mode !== 'items' && lay.style >= 2 && lay.style <= 5) lay.style = Solid;
-    if (lay.mode !== 'items') lay.arrow = 0;
+    // an arrowhead is an item's, by its own width (below): a run of bars keeps the arrows of the items wide enough
+    if (lay.mode === 'density') lay.arrow = 0;
     if (lay.style === 4) wave = grown(wave, 2 * Math.ceil(box.width / WaveStep + 8));
 
     if (lay.mode === 'density') {
@@ -502,7 +507,7 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
           lay.mitem[j] = i;
           lay.mround[j] = round;
           if (lay.style > 0) lay.manchor[j] = anchorOf(axis, a, pieces[k], pieces[k + 1]);
-          if (atEnd || atStart) {
+          if ((atEnd || atStart) && lay.mx1[j] - x0 >= ArrowMinPx) {
             let tips = 0;
             const pa = Math.max(pieces[k], axis.pieces[2 * a]);
             const pb = Math.min(pieces[k + 1], axis.pieces[2 * a + 1]);
@@ -939,12 +944,13 @@ function mergeRuns(lay: RangesLay, px: number) {
     s.item = new Int32Array(n);
     s.round = new Uint8Array(n);
     s.radius = new Float64Array(n);
+    s.tip = new Uint8Array(n);
   }
   const order = s.order;
   for (let j = 0; j < m; j++) order[j] = j;
   const { mlane, mx0 } = lay;
   sortArrayRange(order, 0, m, (o, i, j) => mlane[o[i]] - mlane[o[j]] || mx0[o[i]] - mx0[o[j]] || o[i] - o[j]);
-  const { x0, x1, lane, item, round } = s;
+  const { x0, x1, lane, item, round, tip } = s;
   for (let k = 0; k < m; k++) {
     const j = order[k];
     x0[k] = lay.mx0[j];
@@ -952,6 +958,7 @@ function mergeRuns(lay: RangesLay, px: number) {
     lane[k] = lay.mlane[j];
     item[k] = lay.mitem[j];
     round[k] = lay.mround[j];
+    tip[k] = lay.mtip[j];
   }
   // the item's own marks stay in the scratch: the hit marks (`hn`)
   lay.hn = m;
@@ -961,7 +968,8 @@ function mergeRuns(lay: RangesLay, px: number) {
     let it = item[k];
     let r = round[k];
     let e = k + 1;
-    while (e < m && lane[e] === lane[k] && x0[e] <= end + px) {
+    // an arrow is its item's alone: never merged into a run
+    while (!tip[k] && e < m && !tip[e] && lane[e] === lane[k] && x0[e] <= end + px) {
       end = Math.max(end, x1[e]);
       if (item[e] !== it) it = -1;
       r = (r & Round.left) | (round[e] & Round.right);
@@ -973,6 +981,7 @@ function mergeRuns(lay: RangesLay, px: number) {
     lay.mlane[j] = lane[k];
     lay.mitem[j] = it;
     lay.mround[j] = r;
+    lay.mtip[j] = tip[k];
     k = e;
   }
 }
