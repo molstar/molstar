@@ -836,7 +836,9 @@ export class SeqViewer extends ReactiveModel {
     let n = 0;
     let same = kept !== undefined;
     for (const s of resolved.sections) {
-      if (this.view.isFollowing(s.address)) continue;
+      // a grid's own y window: its entry even when x follows (the frame reads its `y`)
+      const y = this.view.get(s.address)?.y;
+      if (this.view.isFollowing(s.address) && !y) continue;
       const w = this._shownViewport(s.address, eye);
       if (!w) continue;
       const k = kept?.[s.address];
@@ -846,6 +848,7 @@ export class SeqViewer extends ReactiveModel {
         k.end !== w.end ||
         k.scale !== w.scale ||
         k.top !== (w.top || undefined) ||
+        k.y !== y ||
         k.bands !== this._bandsFor(s.address, w)
       )
         same = false;
@@ -855,7 +858,8 @@ export class SeqViewer extends ReactiveModel {
     if (same && Object.keys(kept!).length === n) return kept;
     const out: Record<string, RenderViewport> = {};
     for (const s of resolved.sections) {
-      if (this.view.isFollowing(s.address)) continue;
+      const y = this.view.get(s.address)?.y;
+      if (this.view.isFollowing(s.address) && !y) continue;
       const w = this._shownViewport(s.address, eye);
       if (!w) continue;
       const bands = this._bandsFor(s.address, w);
@@ -867,6 +871,7 @@ export class SeqViewer extends ReactiveModel {
         ...(w.top ? { top: w.top } : {}),
         // `bands`: the ViewModel's (scroll, row zoom, folds), a shown frame's `bandTop` and `rowScale` over them
         ...(bands ? { bands } : {}),
+        ...(y ? { y } : {}),
       };
     }
     this._viewportsKept = out;

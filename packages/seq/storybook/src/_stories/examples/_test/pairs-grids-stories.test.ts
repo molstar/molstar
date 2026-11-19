@@ -252,6 +252,38 @@ describe('Complex: PAE and contacts, headless', () => {
     expect((await svg).issues).toEqual([]);
   });
 
+  it('a zoom on the plot moves both leaders about the pointer; a vertical wheel pans y’s leader (cyclin A)', async () => {
+    viewer = await openExample(complex('pae'), { gene: '' });
+    const v = viewer;
+    v.view.setRange('/views/main/cdk2', 40, 120);
+    v.view.setRange('/views/main/cyclin', 100, 180);
+    await vi.advanceTimersByTimeAsync(500);
+    v.draw();
+    const range = (s: string) => {
+      const r = v.view.get(`/views/main/${s}`)!;
+      return [r.start, r.end];
+    };
+    const g = gridOf(v, 2);
+    const [x, y] = cellCentre(g, 60, 150);
+    // a pinch (Ctrl+wheel) in: both windows narrower, each about the pointer's position on it
+    v.input.wheel(x, y, { deltaX: 0, deltaY: -40, ctrlKey: true, deltaMode: 0 });
+    await vi.advanceTimersByTimeAsync(100);
+    const [c0, c1] = range('cdk2');
+    const [y0, y1] = range('cyclin');
+    expect(c1 - c0).toBeLessThan(80);
+    expect(y1 - y0).toBeLessThan(80);
+    expect(c0 < 60.5 && 60.5 < c1).toBe(true);
+    expect(y0 < 150.5 && 150.5 < y1).toBe(true);
+    // the anchor stays where it was: the pointer's fraction of each window
+    expect((150.5 - y0) / (y1 - y0)).toBeCloseTo((150.5 - 100) / 80, 1);
+    v.draw();
+    // a vertical wheel pans cyclin A, x stays
+    v.input.wheel(x, y, { deltaX: 0, deltaY: 60, deltaMode: 0 });
+    await vi.advanceTimersByTimeAsync(100);
+    expect(range('cdk2')).toEqual([c0, c1]);
+    expect(range('cyclin')[0]).toBeGreaterThan(y0);
+  });
+
   it('the contacts as arcs between the chains’ blocks: a hover lights both ends', async () => {
     viewer = await openExample(complex('contacts'), { gene: '' });
     const v = viewer;

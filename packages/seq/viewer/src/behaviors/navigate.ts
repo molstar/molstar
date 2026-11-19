@@ -49,9 +49,18 @@ export interface NavigateBehavior {
     modifiers: ModifierState,
     target: HitTarget,
     at?: number,
+    atY?: number,
   ): void;
-  /** A pinch scaling by `scale` about `x` (or the unit `at`). */
-  pinch(section: string, scale: number, x: number, modifiers: ModifierState, target: HitTarget, at?: number): boolean;
+  /** A pinch scaling by `scale` about `x` (or the unit `at`; on a grid's y, `atY`). */
+  pinch(
+    section: string,
+    scale: number,
+    x: number,
+    modifiers: ModifierState,
+    target: HitTarget,
+    at?: number,
+    atY?: number,
+  ): boolean;
   /** The view's moves as commands (keys through the keymap; every move reachable by a command). */
   readonly commands: readonly CommandDefinition<NavigateContext>[];
   /** Drops pending wheel deltas; later frames do nothing. */
@@ -60,9 +69,12 @@ export interface NavigateBehavior {
 
 interface Pending {
   pan: number;
+  /** A grid's vertical pan (its y moves apart from x). */
+  panY: number;
   zoom: number;
   x: number;
   at: number | undefined;
+  atY: number | undefined;
   /** The frame callback asked for, until it runs. */
   frame: number | undefined;
 }
@@ -94,9 +106,9 @@ export function navigateBehavior(
       pending.delete(section);
       return;
     }
-    if (p.pan) view.panPx(section, p.pan);
-    if (p.zoom) view.zoom(section, wheelZoomStep ** p.zoom, p.at ?? offsetAt(section, p.x));
-    p.pan = p.zoom = 0;
+    if (p.pan || p.panY) view.panPx(section, p.pan, p.panY);
+    if (p.zoom) view.zoom(section, wheelZoomStep ** p.zoom, p.at ?? offsetAt(section, p.x), p.atY);
+    p.pan = p.panY = p.zoom = 0;
   };
 
   const movable = (ctx: NavigateContext): true | string =>
@@ -206,27 +218,31 @@ export function navigateBehavior(
       // what is left of (above) it
       return units !== undefined ? view.pan(section, units) : view.panPx(section, -dx, -dy);
     },
-    wheel(section, dx, dy, x, modifiers, target, at) {
+    wheel(section, dx, dy, x, modifiers, target, at, atY) {
       if (disposed) return;
       const action = bindings.resolve('wheel', modifiers, target);
       if (action !== 'pan' && action !== 'zoom') return;
       let p = pending.get(section);
-      if (!p) pending.set(section, (p = { pan: 0, zoom: 0, x, at, frame: undefined }));
-      // the larger delta pans; with Shift a vertical wheel pans sideways too
-      if (action === 'pan') p.pan += Math.abs(dx) > Math.abs(dy) ? dx : dy;
+      if (!p) pending.set(section, (p = { pan: 0, panY: 0, zoom: 0, x, at, atY, frame: undefined }));
+      // the larger delta pans; with Shift a vertical wheel pans sideways too; a grid's y takes the vertical delta
+      if (action === 'pan' && view.movesY(section) && !modifiers.shift) {
+        p.pan += dx;
+        p.panY += dy;
+      } else if (action === 'pan') p.pan += Math.abs(dx) > Math.abs(dy) ? dx : dy;
       else {
         p.zoom += -dy / 100;
         p.x = x;
         p.at = at;
+        p.atY = atY;
       }
       if (!coalesceWheel) apply(section);
       else if (p.frame === undefined) p.frame = requestFrameCallback(() => apply(section));
     },
-    pinch(section, scale, x, modifiers, target, at) {
+    pinch(section, scale, x, modifiers, target, at, atY) {
       return (
         !disposed &&
         bindings.resolve('pinch', modifiers, target) === 'zoom' &&
-        view.zoom(section, scale, at ?? offsetAt(section, x))
+        view.zoom(section, scale, at ?? offsetAt(section, x), atY)
       );
     },
     dispose() {
