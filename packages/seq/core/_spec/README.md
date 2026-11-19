@@ -27,8 +27,9 @@ is added in the change that builds what it describes.
   `max_width`, `height`, its rings params `rotation`, `labels`, its blocks params `arrange`, `copies`, the `block` kind
   under a section, a section's `of` optional when it has blocks, the view's `export.window`, the layer type `frame` and
   its `across`, the kinds `alignment` and `tree`, a section `of` an alignment, the layer types `rows` and `logo` and
-their params `tree`, `order`, `collapsed`, `pinned`, `hidden_rows`, `height`, `summary`, `numbers`, `tree_width`,
-`logo_scale`, `correction`, `gaps`, `rows`). A spec in an earlier `0.x` reads as one in this one, and is reported where it no longer fits.
+  their params `tree`, `order`, `collapsed`, `pinned`, `hidden_rows`, `height`, `summary`, `numbers`, `tree_width`,
+  `logo_scale`, `correction`, `gaps`, `rows`). A spec in an earlier `0.x` reads as one in this one, and is reported
+  where it no longer fits.
 
 ## Language
 
@@ -38,15 +39,15 @@ checks it cannot express.
 - **Kinds**: `spec` (root: `version`, `title`); the containers `data`, `views`, `refs` and `snapshots` (reserved ids of
   the same name); under `data`: `source`, `sequence`, `ranges`, `values`, `map`, `alignment` (rows over columns: its
   `rows` inline, a `label` and aligned `letters` a row, every row as wide, or a `source`; its `reference` row by label;
-  the columns system its address, the rows system `rowsSystemOf(address)`, `<address>/(rows)`: rows are a system, EC-35),
-  `tree` (`of` an alignment, `newick` its text; leaves matched to rows when drawn); under `views`: `view`, then `section`,
-  `block` (a piece of a section on a system of its own: `of`, `range`, `label`), `track` (`hidden`, default false: kept
-  in the spec, its row collapsed; its layers keep their own), `layer` (`hidden`, default false: kept in the spec and not
-  drawn, so hiding is a one-key `set`). A `ranges` node's `map: 'codon'` makes each item (its rows by `id`) a coding
-  sequence of its own (Overlay); a track's `for_each` makes it a template (Resolved view, Templates; its kind param is
-  `node_kind`, since `kind` is reserved, and is `ranges` or `values`: what a layer draws). Reference params (`target`,
-  `of`, `from`, `to`, `follow`, `source`, `data`) are `ref` params naming the kinds they take; a reference is an
-  address.
+  the columns system its address, the rows system `rowsSystemOf(address)`, `<address>/(rows)`: rows are a system,
+  EC-35), `tree` (`of` an alignment, `newick` its text; leaves matched to rows when drawn); under `views`: `view`, then
+  `section`, `block` (a piece of a section on a system of its own: `of`, `range`, `label`), `track` (`hidden`, default
+  false: kept in the spec, its row collapsed; its layers keep their own), `layer` (`hidden`, default false: kept in the
+  spec and not drawn, so hiding is a one-key `set`). A `ranges` node's `map: 'codon'` makes each item (its rows by `id`)
+  a coding sequence of its own (Overlay); a track's `for_each` makes it a template (Resolved view, Templates; its kind
+  param is `node_kind`, since `kind` is reserved, and is `ranges` or `values`: what a layer draws). Reference params
+  (`target`, `of`, `from`, `to`, `follow`, `source`, `data`) are `ref` params naming the kinds they take; a reference is
+  an address.
 - **The axis's params** (the writer's: what the figure is; never inferred from what a section draws, so adding a layer
   never turns a section over): a section's `direction` (`genomic`, `reversed`, `follow`, or
   `{ along: <sequence or map> }`; absent: `follow` for a section with `follow`, else `genomic`), `pieces` (`whole`,
@@ -523,15 +524,15 @@ over 20 runs; the heavy lane bounds one sample at 40 ms (`resolve/_test/addressi
 - **`cells`** (an alignment's rows on 1D tiles of its rows system, columns whole): at level 1 `codes` (`start` the first
   row, `columns`, a byte a cell row-major: the letter's ASCII, gaps `-` and `.`) with the rows table (`label` a
   category, a row's key; `first`, its first residue's number, EC-39); above it `majority` (a row bin per column: its
-  majority letter byte, 255 none, and that letter's share, 0–255), aligned to the level. Why columns whole: an
-  alignment is hundreds to a few thousand columns wide, so a tile of 1,024 rows stays within `maxBlockValues` up to
-  16,384 columns (wider is `too-large`), and the store's keys and tiles stay one-dimensional. Cut and joined by rows
-  (`sliceTable`, `joinTables`); not written in the `seq` format yet (no reader needs it).
+  majority letter byte, 255 none, and that letter's share, 0–255), aligned to the level. Why columns whole: an alignment
+  is hundreds to a few thousand columns wide, so a tile of 1,024 rows stays within `maxBlockValues` up to 16,384 columns
+  (wider is `too-large`), and the store's keys and tiles stay one-dimensional. Cut and joined by rows (`sliceTable`,
+  `joinTables`); not written in the `seq` format yet (no reader needs it).
 - **An alignment source** (`openAlignment`, `cellsSource`): two systems, `rows` (a position a row, data order) and
   `columns`; `cells` served on `rows` at level 1, a tile a view of the bytes made once. Inline rows read through the
   `alignment` runtime (`AlignmentRuntime`, which resolve binds to an inline `alignment` node); files through
-  `AlignmentFileRuntime` (`aligned-fasta`, `stockholm`; the readers' entry). `cellsSource(rows, columns, rowsOf)` makes a
-  tile's rows on demand (a generated alignment: no row held before it is asked for, EC-41).
+  `AlignmentFileRuntime` (`aligned-fasta`, `stockholm`; the readers' entry). `cellsSource(rows, columns, rowsOf)` makes
+  a tile's rows on demand (a generated alignment: no row held before it is asked for, EC-41).
 
 ### Alignment readers
 
@@ -542,9 +543,9 @@ by fuzz tests (mutated text read without a throw).
 - **Aligned FASTA** (`readAlignedFasta`) and **Stockholm** (`readStockholm`: a row's letters joined across blocks,
   `#=GF`, `#=GS`, `#=GR` read past, the first alignment of a file): rows of the first row's width, another width or a
   character that is no letter or gap said and left out; gaps `-`, `.` (`~` read as `-`). A row's first residue number
-  from its label (`NAME/27-137`, EC-39), else 1. **Insert columns** (EC-38): `#=GC RF`'s `.` and `-`, else a column whose
-  letters are all lowercase (A3M's lowercase is on no column). **Pairs**: `#=GC SS_cons` as column pairs, each bracket
-  kind (`<>`, `()`, `[]`, `{}`) a nesting of its own and a pseudoknot an uppercase letter with its lowercase.
+  from its label (`NAME/27-137`, EC-39), else 1. **Insert columns** (EC-38): `#=GC RF`'s `.` and `-`, else a column
+  whose letters are all lowercase (A3M's lowercase is on no column). **Pairs**: `#=GC SS_cons` as column pairs, each
+  bracket kind (`<>`, `()`, `[]`, `{}`) a nesting of its own and a pseudoknot an uppercase letter with its lowercase.
 - **Newick** (`readNewick`): nodes in pre-order (parent, branch length, label, children), leaves in tree order; labels
   bare or quoted (`''` a quote), `[comments]` read past, underscores kept (a label is matched against row names);
   iterative (a deep tree costs no stack), at most `MaxTreeNodes` (1,000,000) nodes; what does not parse leaves the tree
@@ -1330,14 +1331,13 @@ target. A floor of 16 px (a narrower window grows about its middle); its parts h
   is in its strip's frame, so every drawn mark keeps its hit box through the warp. `system` is the strip's; `block` its
   index in the section when the section has blocks; `target` `window` (with its `part`) or `row` (a gutter's row) for a
   layout's marks.
-- **Hits** are `{ layer, section, element?, extent?, hull?, position?, system, ySystem?, yPosition?, target? }` (flat:
-  a hit of two axes, a rows cell or a grid cell, is the target `cell` with `ySystem` and `yPosition` set, so it
-  allocates nothing; `row` a rows header, `tree-node` a tree's node and `summary-row` a folded clade's row, their
-  element the clade): `layer` the layer's key (its address,
-  else its track's and `:index`), `section` the section's id, `element` an item's `{ owner, key }` with its `extent` (a
-  Location on the data's system), `position` on the section's system. Cells by arithmetic on the axis; items by
-  `LaneIndex` (a lane's marks by left edge with a running maximum of right edges). In a track, the topmost layer with an
-  element under the point wins, else the topmost with a position.
+- **Hits** are `{ layer, section, element?, extent?, hull?, position?, system, ySystem?, yPosition?, target? }` (flat: a
+  hit of two axes, a rows cell or a grid cell, is the target `cell` with `ySystem` and `yPosition` set, so it allocates
+  nothing; `row` a rows header, `tree-node` a tree's node and `summary-row` a folded clade's row, their element the
+  clade): `layer` the layer's key (its address, else its track's and `:index`), `section` the section's id, `element` an
+  item's `{ owner, key }` with its `extent` (a Location on the data's system), `position` on the section's system. Cells
+  by arithmetic on the axis; items by `LaneIndex` (a lane's marks by left edge with a running maximum of right edges).
+  In a track, the topmost layer with an element under the point wins, else the topmost with a position.
 - **What a break hides is not dropped** (fixed): a `ranges` layer reads the stretches its breaks in view hide too
   (`dataRegions(src, axis, true)`), and its items wholly in one draw one tick on the break a lane in the break ink,
   whatever their number (`ticks`: x, lane, count, the hidden stretch), hit as the break (its `count`); a Location there
@@ -1367,9 +1367,9 @@ measures, consensus, the profile). An alignment's rows over its columns, its own
   with no row bins draws pending (`seq.render.rows.reduced`, info).
 - **Order** (`order`): `data`, `tree` (the tree's leaf order, rows no leaf names after them in data order), or a field
   of the rows table (`label`, `first`; missing last, ties in data order). Clades fold only in tree order.
-- **Display rows** (`DisplayRows`): what each display row shows (a data row, or `-1 − clade` for a folded clade's summary
-  row) and where each data row is shown; pinned rows (`pinned`, by label) first in a band of their own and kept in
-  their place too (`rows.pinInPlace`, marked `·`); hidden rows (`hidden_rows`) out, counted in a chip ("3 hidden") at
+- **Display rows** (`DisplayRows`): what each display row shows (a data row, or `-1 − clade` for a folded clade's
+  summary row) and where each data row is shown; pinned rows (`pinned`, by label) first in a band of their own and kept
+  in their place too (`rows.pinInPlace`, marked `·`); hidden rows (`hidden_rows`) out, counted in a chip ("3 hidden") at
   the header's foot; a clade's "+n" counts its shown rows, one with none goes, one with one folds to that row. Data
   order with nothing pinned, hidden or folded is arithmetic (no arrays): a million lazy rows cost what ten do. Held by
   property tests over random trees and folds (every shown row placed once, found where it is drawn).
@@ -1380,24 +1380,24 @@ measures, consensus, the profile). An alignment's rows over its columns, its own
 - **Folds** are the band's (`Viewport.bands[track].folds`, by name: session state, compared by identity and part of the
   section's key), else the layer's `collapsed` (the opening state).
 - **The transform**: `rowScale` (px a row; `rows.rowHeight`, 20, when the band gives none) and `bandTop` (the scroll,
-  clamped to the rows) from the band; the pinned band fixed at the top, the rest scrolled under it; display rows in
-  view by arithmetic. The band's height: `height` a number of rows, else `fill` (the section's room left on the page, at
+  clamped to the rows) from the band; the pinned band fixed at the top, the rest scrolled under it; display rows in view
+  by arithmetic. The band's height: `height` a number of rows, else `fill` (the section's room left on the page, at
   least `heights.rows`, 240; a figure takes the default).
 - **Drawing**: from 3 device px a cell on both axes, a rect a cell (a run of one fill on a row merged at the cells
   step), letters from `density.letters` (10 px) on both axes, ink by the fill; a cell's fill is the `color` channel at
-  its letter and column (the alphabet's scheme by default; the column measures registered for its themes), a gap none.
-  A summary row's cells are its clade's consensus (`summary: consensus`, the majority letter opaque by its share;
-  `bar`, the non-gap share), computed exactly from the cells when first drawn and kept by the display's version. Below
-  3 device px the shared reduction over the display rows' theme classes (`rows.reduce`: a class a distinct fill; factor
-  4, row and column levels apart) at the level pair whose sample is at least a device pixel, drawn as image tiles
-  (256 × 256 samples, opaque by the majority's share) in the shared image cache.
+  its letter and column (the alphabet's scheme by default; the column measures registered for its themes), a gap none. A
+  summary row's cells are its clade's consensus (`summary: consensus`, the majority letter opaque by its share; `bar`,
+  the non-gap share), computed exactly from the cells when first drawn and kept by the display's version. Below 3 device
+  px the shared reduction over the display rows' theme classes (`rows.reduce`: a class a distinct fill; factor 4, row
+  and column levels apart) at the level pair whose sample is at least a device pixel, drawn as image tiles (256 × 256
+  samples, opaque by the majority's share) in the shared image cache.
 - **The header**, in the label column: the tree (`tree_width`, 120, within 45% of the column; branch lengths, else
   depth; a folded clade a wedge at its summary row), labels (from `rows.labelMinPx`, 8 px a row; faded past their room;
   a summary row "first +n"), the first residue numbers right-aligned before the data box (`numbers: gutters`).
 - **Hits** (the header's through the band's gutter: a layer of two axes is asked there): a cell is `cell` with its
   column (`position`) and row (`ySystem`, `yPosition`); a header's label is `row` (its `position` the data row on the
-  rows system); a summary row `summary-row` and a tree node within `rows.treeHitPx` (6) of its branch, a wedge
-  included, `tree-node`, each its element `{ owner: <alignment>, key: <clade name> }` and its extent the clade's rows.
+  rows system); a summary row `summary-row` and a tree node within `rows.treeHitPx` (6) of its branch, a wedge included,
+  `tree-node`, each its element `{ owner: <alignment>, key: <clade name> }` and its extent the clade's rows.
 - **In a layout whose bands do not scroll** (text: the ESPript figure's lines repeat the rows): the band is every row
   (its height the rows times the layout's `heights.rows`), every clade unfolded (`seq.render.rows.text.unfolded`, info,
   when some are folded), no tree, no scroll; a lazy alignment there is drawn pending. Why: a fold would differ per line.
@@ -1409,15 +1409,15 @@ measures, consensus, the profile). An alignment's rows over its columns, its own
 ### The logo
 
 `render/logo.ts`: a conservation logo over an alignment's columns, a fixed track (`heights.logo`, 48) above its rows.
-Each column's letters stacked lowest first by `logo_scale` (`bits`: log2(k) − H, k 20 for protein and 4 for
-nucleotides, less the small-sample correction `(k − 1) / (2 ln 2 n)` with `correction: small-sample`; or
-`probability`), the band's height the full scale; each letter placed and stretched with the glyph runs' per-letter y
-and vertical scale (its cap height, 0.72 of its size). Its profile (letter frequencies a column, `gaps: ignore` or
-`count`) is computed from the held cells, joined once and shared with the rows layer on one store (`readHeld`), kept by
-their version; over a lazy alignment it is a source's to serve, and none is read yet (`seq.render.logo.profile`,
-info). Below 2 device px a column, one bar a device column, the tallest stack there (the shared reduction's one-axis
-max, factor 2), in its top letter's color. Its color is the alphabet's scheme by default. Hit: the column, the letter
-under the point as the hit's `state`. `rows: shown` waits (the logo reads every row).
+Each column's letters stacked lowest first by `logo_scale` (`bits`: log2(k) − H, k 20 for protein and 4 for nucleotides,
+less the small-sample correction `(k − 1) / (2 ln 2 n)` with `correction: small-sample`; or `probability`), the band's
+height the full scale; each letter placed and stretched with the glyph runs' per-letter y and vertical scale (its cap
+height, 0.72 of its size). Its profile (letter frequencies a column, `gaps: ignore` or `count`) is computed from the
+held cells, joined once and shared with the rows layer on one store (`readHeld`), kept by their version; over a lazy
+alignment it is a source's to serve, and none is read yet (`seq.render.logo.profile`, info). Below 2 device px a column,
+one bar a device column, the tallest stack there (the shared reduction's one-axis max, factor 2), in its top letter's
+color. Its color is the alphabet's scheme by default. Hit: the column, the letter under the point as the hit's `state`.
+`rows: shown` waits (the logo reads every row).
 
 ### The key
 
@@ -1493,10 +1493,11 @@ under the point as the hit's `state`. `rows: shown` waits (the logo reads every 
 
 ### Issues
 
-- `seq.render.*` (`RenderIssues`): `rows.reduced` (info), `rows.text.unfolded` (info), `logo.profile` (info), `rows.order` (info), `view`, `color`, `theme.channel`, `theme.scheme`, `theme.measure`, `theme.color`,
-  `scale.log` (info), `legend.unlisted` (info), `filter`, `line-style` (info), `numbering`, `layer.type`,
-  `layer.letters`, `axis.pending` (info), `text.lines`, `follow.leader`, `follow.blocks`, `ring.image`, `follow.cycle`,
-  `source`, `template.limit`, `unsettled`; a test checks the catalog.
+- `seq.render.*` (`RenderIssues`): `rows.reduced` (info), `rows.text.unfolded` (info), `logo.profile` (info),
+  `rows.order` (info), `view`, `color`, `theme.channel`, `theme.scheme`, `theme.measure`, `theme.color`, `scale.log`
+  (info), `legend.unlisted` (info), `filter`, `line-style` (info), `numbering`, `layer.type`, `layer.letters`,
+  `axis.pending` (info), `text.lines`, `follow.leader`, `follow.blocks`, `ring.image`, `follow.cycle`, `source`,
+  `template.limit`, `unsettled`; a test checks the catalog.
 
 ## Stories
 
