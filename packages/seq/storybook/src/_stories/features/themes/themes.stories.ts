@@ -22,9 +22,9 @@ import { Button } from '@molstar/ui/components/button/button';
 import { defineElements, onCleanup } from '@molstar/ui/dom';
 import { UiElement } from '@molstar/ui/elements/ui-element';
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
-import { type EditingSession, composeEditing } from '../../features/editing/compose.js';
+import { type EditingSession, composeEditing } from '../editing/compose.js';
 import { followSvg } from '../../follow-svg.js';
-import { exampleStory } from '../example-root.js';
+import { exampleStory } from '../../examples/example-root.js';
 import { cancelScheme, pickerSchemes, pickScheme, previewScheme, setSignalDomain } from './themes-compose.js';
 
 // p53's themes: the view with every scheme that fits its letters, its legends and their export; the view edited (a scheme
@@ -221,7 +221,7 @@ export class SchemesGalleryRoot extends UiElement<readonly SchemeEntry[]> {
 
 defineElements([ThemesEditingRoot, SchemesGalleryRoot]);
 
-const meta: Meta = { title: 'Examples/p53/Themes' };
+const meta: Meta = { title: 'Features/Themes' };
 export default meta;
 
 /** p53 under every theme form: schemes on the letters, categories with their legend, pLDDT bands and a ramp, a shared scale, a log-sized variant track; the export draws the legends below. */

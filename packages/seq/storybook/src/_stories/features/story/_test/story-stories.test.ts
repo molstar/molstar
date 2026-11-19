@@ -11,7 +11,7 @@ import type { RangesLay } from '@molstar/seqx-core/render';
 import { frameView, sample, stateOf, stripStory } from '@molstar/seqx-core/story';
 import { hashNode, resolveAddress } from '@molstar/core/repr/tree';
 import { afterEach, describe, expect, it } from 'vitest';
-import { checkMarks } from './draw-checks.js';
+import { checkMarks } from '../../../examples/_test/draw-checks.js';
 import {
   composeStory,
   endScrub,
@@ -23,7 +23,7 @@ import {
   scrubTo,
   type StorySession,
   storyRows,
-} from '../p53/story-compose.js';
+} from '../story-compose.js';
 
 // The p53 story, headless on the animation port's fake clock, composed as the story composes it: each step played to
 // its end shows its state and view, drawn against the data (every domain in the window has its marks, every mark is

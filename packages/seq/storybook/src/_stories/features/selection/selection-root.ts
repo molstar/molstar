@@ -11,7 +11,7 @@ import { UiElement } from '@molstar/ui/elements/ui-element';
 import { followSvg } from '../../follow-svg.js';
 import { composeViewer, describeSelection } from './compose.js';
 
-// The selection story's root, shared by the Features story and the p53 example (each gives its own hint): the default
+// The selection story's root, a story of the gene-and-protein pair gives its own hint: the default
 // grammar on a view (the interaction grammar). Click a residue or a domain to select it (again to clear), Shift+click or
 // Shift+drag to extend the range the anchor is in (the others kept), Cmd/Ctrl+click to toggle, drag on the letters to
 // select a range, Cmd/Ctrl+drag to add one, Alt/Option+drag to remove one, click empty space or press Esc to clear (Esc

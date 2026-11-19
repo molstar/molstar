@@ -15,7 +15,7 @@ import { P53Views } from '@molstar/seqx-examples';
 import { P53 } from '@molstar/seqx-examples/p53/data';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { openExample } from './draw-checks.js';
+import { openExample } from '../../../examples/_test/draw-checks.js';
 
 let viewer: SeqViewer | undefined;
 

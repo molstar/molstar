@@ -14,10 +14,16 @@ import { selectionStory } from './selection-root.js';
 const meta: Meta = { title: 'Features/Selection' };
 export default meta;
 
-const story = (id: string) => selectionStory(P53Views.find((v) => v.id === id)!);
+const story = (id: string, hint?: string) => selectionStory(P53Views.find((v) => v.id === id)!, hint);
+
+const PairHint =
+  'Drag across the gene’s letters (the lower section) to select nucleotides, Cmd/Ctrl+drag to add another stretch, Alt/Option+drag to cut one out: the protein above shows the codons they fall in, lighter, and the SVG beside the canvas draws the same selection. Pan or zoom on either section (its ruler, the wheel, a pinch): both move. Esc clears.';
 
 /** p53's tracks: select residues, domains and ranges; the cursor; the SVG beside it draws the same selection. */
 export const Tracks: StoryObj = { render: () => story('tracks') };
 
-/** The protein on its gene: what is selected or hovered on one section shows on the other, lighter. */
-export const ProteinOnItsGene: StoryObj = { render: () => story('protein-on-gene') };
+/**
+ * The protein on its gene: a drag on the gene's letters selects nucleotides, and the protein shows the codons they fall
+ * in, lighter, in the canvas and in the SVG beside it; what is hovered or selected on one section shows on the other.
+ */
+export const ProteinOnItsGene: StoryObj = { render: () => story('protein-on-gene', PairHint) };

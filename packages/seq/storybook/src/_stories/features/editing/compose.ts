@@ -159,3 +159,32 @@ export function printedSpec(root: Node): string {
   const kept = (root.children ?? []).filter((c) => c.id !== 'data');
   return printSexpr({ ...root, children: kept });
 }
+
+/** The id of the track `addTrack` adds. */
+export const AddedTrack = 'domains-2';
+
+/**
+ * Adds a second domains track after the first, a copy of it with its own id and label, through `track.add`: one patch,
+ * so one step of the host's stack. A second call finds the id taken and says so.
+ */
+export async function addTrack(s: EditingSession): Promise<string> {
+  const section = proteinSection(s);
+  const domains = section?.children?.find((c) => c.id === 'domains');
+  if (!section || !domains) return 'No domains track to copy';
+  if (section.children?.some((c) => c.id === AddedTrack)) return 'Already added';
+  const node: Node = { ...domains, id: AddedTrack, params: { ...domains.params, label: 'Domains (added)' } };
+  return Promise.resolve(s.viewer.execute('track.add', { address: Section, node, after: 'domains' }));
+}
+
+/** The track ids of the protein section, in order. */
+export function trackOrder(s: EditingSession): string[] {
+  return (proteinSection(s)?.children ?? []).map((c) => c.id as string);
+}
+
+/** A track's height as the spec shown says (a preview included), else as laid out; undefined before a layout. */
+export function trackHeight(s: EditingSession, id: string): number | undefined {
+  const set = proteinSection(s, true)?.children?.find((c) => c.id === id)?.params?.height;
+  if (typeof set === 'number') return set;
+  const laid = s.viewer.frame?.layout.sections.flatMap((x) => x.tracks).find((t) => t.track.address === track(id));
+  return laid?.box.height;
+}

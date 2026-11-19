@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { FeatureViews, P53Views } from '@molstar/seqx-examples';
+import { FeatureViews } from '@molstar/seqx-examples';
 import { regionSeqText } from '@molstar/seqx-examples/p53/region';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { DomHost } from '@molstar/ui/dom';
@@ -12,34 +12,20 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   bookmarkRows,
   bookmarkView,
-  composeViewer as composeAddressing,
+  composeViewer,
   describeRun,
   followLink,
   LinkStatus,
-} from '../../features/addressing/compose.js';
-import {
-  cancelDrag,
-  composeEditing,
-  dragHeight,
-  type EditingSession,
-  endDrag,
-  historyRows,
-  proteinSection,
-  setDomainsColor,
-  toggleTrack,
-} from '../../features/editing/compose.js';
-import { addTrack, AddedTrack, RegionText, trackHeight, trackOrder } from '../p53/compose.js';
+  RegionText,
+} from '../compose.js';
 
-// The p53 example stories, headless on a fake clock, each composed as its story composes it: the editing story's host
-// stack, viewer and SVG export; the bookmarks story's delayed region and its text's links. The selection example is the
-// Features story's root with a hint: its drag on the gene is the Features twin's.
+// The Bookmarks story's text, headless on a fake clock, composed as the story composes it: the delayed region and the
+// text's links (a transcript's waits for its data, then moves the view; "Bookmark this view" adds a ref).
 
-const tracks = P53Views.find((v) => v.id === 'tracks')!;
 const bookmarks = FeatureViews.find((v) => v.id === 'bookmarks')!;
 const DelayMs = 300;
 
 let viewer: SeqViewer | undefined;
-let session: EditingSession | undefined;
 
 // a frame tick asked for by an earlier file on timers since dropped would never run: this file's own host function
 const raf = DomHost.requestAnimationFrame;
@@ -54,84 +40,13 @@ afterEach(() => {
   DomHost.requestAnimationFrame = raf;
   viewer?.retire();
   viewer = undefined;
-  session?.dispose();
-  session = undefined;
   vi.useRealTimers();
 });
 
-/** The viewer's SVG export, its asynchronous work let go on the fake clock. */
-async function svgOf(v: SeqViewer, idPrefix: string): Promise<string> {
-  const p = v.renderSvg({ idPrefix });
-  await vi.advanceTimersByTimeAsync(300);
-  return (await p).svg;
-}
-
-describe('p53 Edit and undo, headless', () => {
-  async function make() {
-    const s = composeEditing(tracks);
-    session = s;
-    s.viewer.resize(720);
-    await s.viewer.load(tracks.build());
-    await vi.advanceTimersByTimeAsync(400);
-    return s;
-  }
-
-  it('add a track, hide one, set a theme: three steps, undone and redone, the SVG following', async () => {
-    const s = await make();
-    const svg0 = await svgOf(s.viewer, 'e-');
-    expect(trackOrder(s)).toEqual(['letters', 'domains', 'conservation']);
-
-    expect(await addTrack(s)).toBe('Added');
-    expect(await addTrack(s)).toBe('Already added');
-    expect(await toggleTrack(s, 'conservation')).toBe('Hidden');
-    expect(await setDomainsColor(s, '#d62728')).toBe('Colored');
-    expect(trackOrder(s)).toEqual(['letters', 'domains', AddedTrack, 'conservation']);
-    expect(historyRows(s).done).toEqual(['Color a layer', 'Hide a track', 'Add a track']);
-    await vi.advanceTimersByTimeAsync(400);
-    const svg1 = await svgOf(s.viewer, 'e-');
-    expect(svg1).not.toBe(svg0);
-    expect(svg1).toContain('Domains (added)');
-    expect(svg1.toLowerCase()).toContain('#d62728');
-
-    for (let i = 0; i < 3; i++) await s.stack.undo();
-    await vi.advanceTimersByTimeAsync(400);
-    expect(trackOrder(s)).toEqual(['letters', 'domains', 'conservation']);
-    expect(await svgOf(s.viewer, 'e-')).toBe(svg0);
-    await s.stack.redo();
-    expect(trackOrder(s)).toContain(AddedTrack);
-  });
-
-  it('a drag previews a height in the spec shown, Esc ends it in nothing, a release in one step', async () => {
-    const s = await make();
-    const heightOf = (shown: boolean) =>
-      proteinSection(s, shown)?.children?.find((c) => c.id === 'domains')?.params?.height;
-    const original = heightOf(true);
-    expect(original).toBeUndefined();
-    // the slider follows the spec: the laid-out height while nothing is set
-    expect(trackHeight(s, 'domains')).toBeGreaterThan(0);
-    expect(dragHeight(s, 'domains', 40)).toBe(true);
-    expect(dragHeight(s, 'domains', 52)).toBe(true);
-    expect(heightOf(true)).toBe(52);
-    expect(trackHeight(s, 'domains')).toBe(52);
-    expect(heightOf(false)).toBe(original);
-    expect(cancelDrag(s)).toBe('Cancelled');
-    expect(heightOf(true)).toBe(original);
-    expect(historyRows(s).done).toEqual([]);
-
-    dragHeight(s, 'domains', 52);
-    await endDrag(s);
-    expect(heightOf(false)).toBe(52);
-    expect(heightOf(true)).toBe(52);
-    expect(historyRows(s).done).toEqual(['Resize a track']);
-    await s.stack.undo();
-    expect(heightOf(true)).toBe(original);
-  });
-});
-
-describe('p53 Bookmarks and links, headless', () => {
+describe('Bookmarks: the text’s links, headless', () => {
   async function make() {
     const text = regionSeqText();
-    const v = composeAddressing(bookmarks, {
+    const v = composeViewer(bookmarks, {
       delayMs: DelayMs,
       ports: { assets: () => ({ reader: { readText: async () => text } }) },
     });
@@ -180,7 +95,7 @@ describe('p53 Bookmarks and links, headless', () => {
 
   it('a link followed before the view is loaded is kept by the viewer, and runs once it is', async () => {
     const text = regionSeqText();
-    const v = composeAddressing(bookmarks, {
+    const v = composeViewer(bookmarks, {
       delayMs: DelayMs,
       ports: { assets: () => ({ reader: { readText: async () => text } }) },
     });

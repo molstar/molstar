@@ -14,7 +14,7 @@ import { GlobinsViews, P53Views, PlasmidViews } from '@molstar/seqx-examples';
 import { regionSeqText } from '@molstar/seqx-examples/p53/region';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { openExample } from './draw-checks.js';
+import { openExample } from '../../../examples/_test/draw-checks.js';
 
 let viewer: SeqViewer | undefined;
 
