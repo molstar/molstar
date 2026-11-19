@@ -93,6 +93,17 @@ export const RenderIssues = defineIssues('seq.render', {
     description: 'A section follows one that is not in its view: it shows its own range',
     hint: 'Follow a section of the same view',
   },
+  'seq.render.follow.blocks': {
+    severity: 'warning',
+    description:
+      'A section with blocks on more than one system follows or is followed: which block’s map a follow would carry is undecided, so it shows its own range',
+    hint: 'Follow one block’s section of its own, or put the blocks on one system',
+  },
+  'seq.render.ring.image': {
+    severity: 'warning',
+    description: 'A layer draws an image (a dense matrix) on a ring: images are not drawn on rings',
+    hint: 'Show the layer in a tracks section',
+  },
   'seq.render.follow.cycle': {
     severity: 'warning',
     description: 'Sections follow each other in a cycle: the first one met shows its own range',
