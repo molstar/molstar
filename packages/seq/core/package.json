@@ -64,6 +64,11 @@
       "types": "./lib/render/index.d.ts",
       "import": "./lib/render/index.js"
     },
+    "./story": {
+      "molstar-src": "./src/story/index.ts",
+      "types": "./lib/story/index.d.ts",
+      "import": "./lib/story/index.js"
+    },
     "./_test/*": null,
     "./lang/_test/*": null,
     "./query/_test/*": null,
@@ -72,7 +77,8 @@
     "./view/_test/*": null,
     "./render/_test/*": null,
     "./theme/_test/*": null,
-    "./context/_test/*": null
+    "./context/_test/*": null,
+    "./story/_test/*": null
   },
   "files": [
     "lib",
