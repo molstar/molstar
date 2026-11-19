@@ -39,13 +39,27 @@ export interface ItemRows {
   occ: number[];
   /** The rows the layer's filter left out of the tiles read (the track's "n filtered"). */
   filtered: number;
+  /** The rows that ran past the end of their linear system and were clipped (said once, `seq.render.item.range`). */
+  clipped: number;
   /** Each row's table fields and its row in that table: what a theme's channels read (a field, a measure). */
   fields: (RangesList['fields'] | undefined)[];
   row: number[];
 }
 
 export function newItemRows(): ItemRows {
-  return { n: 0, filtered: 0, keys: [], starts: [], ends: [], values: [], labels: [], occ: [], fields: [], row: [] };
+  return {
+    n: 0,
+    filtered: 0,
+    clipped: 0,
+    keys: [],
+    starts: [],
+    ends: [],
+    values: [],
+    labels: [],
+    occ: [],
+    fields: [],
+    row: [],
+  };
 }
 
 /** A table's field by name. */
@@ -96,9 +110,12 @@ export function collectItems(
   entries: readonly Extract<DataEntry, { status: 'loaded' }>[],
   fields: readonly string[],
   filter?: RowFilter,
+  base?: RowFilter,
+  wrap?: { readonly length: number; readonly cyclic: boolean },
 ): DensityTile[] {
   rows.n = 0;
   rows.filtered = 0;
+  rows.clipped = 0;
   const densities: DensityTile[] = [];
   const earlier = new Map<string | number, number[]>();
   const occurrences = new Map<string | number, number>();
@@ -113,16 +130,23 @@ export function collectItems(
     let col: Column | undefined;
     for (let f = 0; f < fields.length && !col; f++) col = fieldOf(t.fields, fields[f]);
     const labels = fieldOf(t.fields, 'label');
-    if (filter) filterRow.bind(t.fields);
+    if (filter || base) filterRow.bind(t.fields);
     for (let i = 0; i < t.start.length; i++) {
       const id = t.id?.get(i);
       const key: string | number =
         id !== null && id !== undefined ? id : t.row ? t.row[i] : `${e.region.level}/${e.region.tile}:${i}`;
       if (earlier.get(key)?.includes(t.start[i])) continue;
-      if (filter) {
+      if (filter || base) {
         filterRow.key = key;
         filterRow.i = i;
-        if (!filter(filterRow)) {
+        // the track's own rows: left out and not counted, as the user's filter's are
+        if (base && !base(filterRow)) {
+          const starts = earlier.get(key);
+          if (starts) starts.push(t.start[i]);
+          else earlier.set(key, [t.start[i]]);
+          continue;
+        }
+        if (filter && !filter(filterRow)) {
           // left out, and its repeat in a later tile with it
           rows.filtered++;
           const starts = earlier.get(key);
@@ -131,17 +155,32 @@ export function collectItems(
           continue;
         }
       }
+      // a row ending past the system's length (a feature across a ring's origin, as GFF3 writes it): two rows of one
+      // item on a cyclic system, clipped on a linear one (the language's wrapped range, EC-9)
+      let end = t.end[i];
+      let tail = 0;
+      if (wrap !== undefined && end > wrap.length) {
+        if (t.start[i] >= wrap.length) {
+          rows.clipped++;
+          continue;
+        }
+        if (wrap.cyclic) tail = end - wrap.length;
+        else rows.clipped++;
+        end = wrap.length;
+      }
       const k = occurrences.get(key) ?? 0;
-      occurrences.set(key, k + 1);
-      const j = rows.n++;
-      rows.keys[j] = key;
-      rows.starts[j] = t.start[i];
-      rows.ends[j] = t.end[i];
-      rows.values[j] = textAt(col, i);
-      rows.labels[j] = textAt(labels, i) ?? id ?? undefined;
-      rows.occ[j] = k;
-      rows.fields[j] = t.fields;
-      rows.row[j] = i;
+      occurrences.set(key, k + (tail > 0 ? 2 : 1));
+      for (let piece = 0; piece <= (tail > 0 ? 1 : 0); piece++) {
+        const j = rows.n++;
+        rows.keys[j] = key;
+        rows.starts[j] = piece ? 0 : t.start[i];
+        rows.ends[j] = piece ? tail : end;
+        rows.values[j] = textAt(col, i);
+        rows.labels[j] = textAt(labels, i) ?? id ?? undefined;
+        rows.occ[j] = k + piece;
+        rows.fields[j] = t.fields;
+        rows.row[j] = i;
+      }
     }
     for (let j = from; j < rows.n; j++) {
       const starts = earlier.get(rows.keys[j]);
@@ -282,10 +321,24 @@ export function readItems(
         hint: RenderIssues.codes['seq.render.filter'].hint,
       }),
     );
-  const read = readTiles(ctx, data, src, dataRegions(src, axis, true), layerLevel(src, data, axis));
+  const regions = dataRegions(src, axis, true);
+  // a row of a cyclic system that runs past its end also overlaps the last position: its tile gives the origin's piece
+  const wrap = src.length !== undefined && src.wraps ? { length: src.length, cyclic: src.cyclic === true } : undefined;
+  if (wrap?.cyclic) regions.push(wrap.length - 1, wrap.length);
+  const read = readTiles(ctx, data, src, regions, layerLevel(src, data, axis));
   placeholderSpans(src, axis, read.pending, lay.pending);
   placeholderSpans(src, axis, read.failed, lay.failed);
-  return collectItems(lay.rows, read.entries, fields, src.filter);
+  const densities = collectItems(lay.rows, read.entries, fields, src.filter, src.base, wrap);
+  if (lay.rows.clipped)
+    ctx.report(
+      issueOf(
+        RenderIssues,
+        'seq.render.item.range',
+        `${lay.rows.clipped} ${lay.rows.clipped === 1 ? 'row runs' : 'rows run'} past the end of ${src.dataSystem}: clipped`,
+        { address: ctx.key, hint: RenderIssues.codes['seq.render.item.range'].hint },
+      ),
+    );
+  return densities;
 }
 
 /** The tick of a hidden item at section position `p` in `lane`: one a break and lane, its count kept. */

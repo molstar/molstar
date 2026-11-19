@@ -817,7 +817,10 @@ settle: a legend that changes during a pan reads as noise, and its cost stays of
   or form set or unset, on one layer or several in one patch), `scale.set` (a scale's params; `null` reopens a domain's
   end), `theme.value-color` (one value's color in a field form's palette, the listed values keeping theirs; refused on a
   scheme, rules or any other form: never replaced), `layer.filter` (a value's items hidden or shown again: one patch of
-  the layer's `data`, a `not` of the values hidden; no value: cleared, as a click on the track's "n filtered" chip),
+  the layer's `data`, a trailing `(not …)` of the values hidden; no value: cleared, as a click on the track's "n
+  filtered" chip). The user's filter is only that trailing `(not …)` (`dataFilter`): what leads it, the annotation and a
+  leading item form (`<annotation>/(item :category Domain)`, a layer a feature type), is the layer's base, kept when the
+  filter is set, toggled or cleared, and its rejected rows are not counted as filtered (core's Render, Filters),
   `legend.select` (session: the items whose field has the value; Cmd/Ctrl toggles), `legend.hover` (session: a highlight
   named `legend`), `theme.cvd-safe` (session). `fittingSchemes(layer)` is what a menu offers (the schemes whose subject
   and measures fit the layer); `preview(layer, channel, value)` shows one hovered (a preview, ended by `layer.channel`

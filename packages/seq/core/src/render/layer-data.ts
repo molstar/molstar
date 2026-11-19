@@ -27,6 +27,9 @@ export interface LayerSource {
   readonly shape: Shape;
   /** The data's system's length, when known. */
   readonly length?: number;
+  /** Whether the data's system wraps, and whether a source's rows may run past its length (then wrapped or clipped). */
+  readonly cyclic?: boolean;
+  readonly wraps?: boolean;
   /** The path from the data's system to the section's (none: the same) and back. */
   readonly path?: Path;
   readonly back?: Path;
@@ -34,6 +37,8 @@ export interface LayerSource {
   readonly ratio: number;
   /** The filter the layer's query puts on its rows (an item layer's), compiled once; `unread`: a form it cannot read. */
   readonly filter?: RowFilter;
+  /** A leading item form's predicate: its rejected rows are left out and not counted as filtered. */
+  readonly base?: RowFilter;
   readonly unreadFilter?: boolean;
 }
 
@@ -56,15 +61,20 @@ export function layerSource(model: StaticModel, layer: ResolvedLayer): LayerSour
       : { source: access.source, system: access.system, shape: access.shape };
   const path = layer.path;
   const filter = data.filter ? compileRowFilter(data.filter) : undefined;
+  const base = data.base ? compileRowFilter(data.base) : undefined;
   const length = data.length ?? model.systems.get(data.system)?.length;
   return {
     ...plan,
     dataSystem: data.system,
     ...(length !== undefined ? { length } : {}),
+    ...(model.systems.get(data.system)?.cyclic ? { cyclic: true } : {}),
+    // a source's rows past the system's length are the reader's to wrap or clip; inline rows were wrapped by the model
+    ...(length !== undefined && access.kind !== 'inline' ? { wraps: true } : {}),
     ...(path ? { path, back: inversePath(path) } : {}),
     ratio: path?.step === 1 ? 1 / 3 : path?.step === -1 ? 3 : 1,
     ...(filter ? { filter } : {}),
-    ...(data.filter && !filter ? { unreadFilter: true } : {}),
+    ...(base ? { base } : {}),
+    ...((data.filter && !filter) || (data.base && !base) ? { unreadFilter: true } : {}),
   };
 }
 

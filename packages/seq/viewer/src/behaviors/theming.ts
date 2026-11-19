@@ -11,15 +11,22 @@
 // substitution (`theme.cvd-safe`, session state, never the spec); a value's items hidden (`layer.filter`: a patch of the
 // layer's `data`, a query that leaves them out; a theme never hides).
 
-/** A layer's data split: the annotation it reads, and the values of `field` its filter leaves out. */
+/**
+ * A layer's data split: what the track is (the annotation and a leading item form: its base) and the values of `field`
+ * the user's filter, a trailing `(not …)`, leaves out (_spec/README.md "Themes", Filters).
+ */
 export function dataFilter(data: string, field: string): { readonly base: string; readonly hidden: readonly string[] } {
   const p = parseAddress(data).pattern;
   const segs = p?.segments ?? [];
-  const ids = segs.filter((s): s is string => typeof s === 'string');
-  const base = ids.length ? printAddress(ids) : data;
   const last = segs[segs.length - 1];
-  if (!p || ids.length !== segs.length - 1 || typeof last === 'string' || last.kind !== 'not')
-    return { base, hidden: [] };
+  if (!p || typeof last === 'string' || last === undefined || last.kind !== 'not') return { base: data, hidden: [] };
+  const lead = segs.slice(0, -1);
+  // the base is what leads the trailing form: ids, then a leading item form
+  const base =
+    lead.length && lead.every((s, i) => typeof s === 'string' || (i > 0 && s.kind === 'item'))
+      ? printAddress(lead)
+      : undefined;
+  if (base === undefined) return { base: data, hidden: [] };
   const of = last.params?.of;
   const v = isNode(of) && of.kind === 'item' ? of.params?.[field] : undefined;
   const hidden = v === undefined ? [] : (Array.isArray(v) ? v : [v]).map(String);

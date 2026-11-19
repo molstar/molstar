@@ -190,6 +190,11 @@ export const SeqLanguage = defineLanguage({
           type: 'string',
           doc: 'The dotted path from the document’s root to its records (JSON, MessagePack): an array of records or an object of columns. Absent: the root.',
         },
+        shape: {
+          type: 'string',
+          enum: ['records', 'matrix'],
+          doc: 'What the source serves: `records` (absent), or a `matrix`, an array of arrays (JSON, MessagePack) found by `records` that a grid reads whole as its values, `null` missing.',
+        },
         letters: {
           type: 'string',
           doc: 'The dotted path from the document’s root to the letters (a string) of the source’s own system. Absent: the source serves no letters.',

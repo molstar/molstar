@@ -23,6 +23,11 @@ import * as story from './p53/story.js';
 import * as themes from './p53/themes.js';
 import * as text from './p53/text.js';
 import * as tracks from './p53/tracks.js';
+import { RecordsRuntime } from '@molstar/seqx-core/data/records';
+import { type DomainFile, PlasmidGffFile } from './files/data.js';
+import * as p53Entry from './files/p53-entry.js';
+import * as plasmidGff from './files/plasmid-gff.js';
+import * as tables from './files/tables.js';
 
 // The examples' views by dataset: what a dataset's index lists and a test walks.
 
@@ -393,8 +398,54 @@ export const TrnaViews: readonly ExampleView[] = [
   },
 ];
 
+/** What the Files views need besides the default registry: the records runtime (the default viewer spec has it). */
+const records = (): SeqRegistryEntry[] => [{ kind: 'format-runtime', runtime: RecordsRuntime }];
+
+/** The table files, each drawing the same six domains: the file, its title and what is special about its form. */
+export const TableFiles: readonly (readonly [file: DomainFile, id: string, title: string, form: string])[] = [
+  ['domains.tsv', 'table-tsv', 'TSV', 'tab-separated text, a header row'],
+  ['domains.csv', 'table-csv', 'CSV', 'comma-separated text, a header row (RFC 4180)'],
+  ['domains-aos.json', 'table-json-aos', 'JSON, records', 'an array of objects, a row each'],
+  ['domains-soa.json', 'table-json-soa', 'JSON, columns', 'an object of columns, one array a field'],
+  ['domains-aos.msgpack', 'table-msgpack-aos', 'MessagePack, records', 'an array of maps, a row each'],
+  ['domains-soa.msgpack', 'table-msgpack-soa', 'MessagePack, columns', 'a map of columns, one array a field'],
+];
+
+/** Views made for the Files stories (`Features/Files`): sources read from files. */
+export const FilesViews: readonly ExampleView[] = [
+  {
+    dataset: 'files',
+    id: 'uniprot',
+    title: 'UniProt’s entry',
+    summary:
+      'p53 from UniProt’s own JSON (the REST entry of P04637, trimmed): the letters and the features read by the records runtime through the source’s transform, a track a feature type; R175, R248 and R273 lie inside the DNA-binding domain.',
+    build: () => p53Entry.build(),
+    registry: records,
+  },
+  ...TableFiles.map(
+    ([file, id, title, form]): ExampleView => ({
+      dataset: 'files',
+      id,
+      title: `Domains from ${title}`,
+      summary: `p53’s six domains from a table file: ${form}. Every form of the table draws the same.`,
+      build: () => tables.build(file),
+      registry: records,
+    }),
+  ),
+  {
+    dataset: 'files',
+    id: 'plasmid-gff3',
+    title: 'Plasmid features from GFF3',
+    summary:
+      'The plasmid’s features as GFF3 (nine columns, a region row saying it is circular), as a ring and its detail: bla and a primer site end past the length in the file and are drawn as one item across the origin.',
+    build: () => plasmidGff.build(PlasmidGffFile),
+    registry: records,
+  },
+];
+
 export const ExampleViews: readonly ExampleView[] = [
   ...P53Views,
+  ...FilesViews,
   ...FeatureViews,
   ...LayerViews,
   ...PlasmidViews,

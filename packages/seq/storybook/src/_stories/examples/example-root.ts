@@ -12,6 +12,7 @@ import { mountToolbar } from '@molstar/seqx-viewer/mount-toolbar';
 import { createSeqViewer } from '@molstar/seqx-viewer/viewer';
 import { defineElements, onCleanup } from '@molstar/ui/dom';
 import { UiElement } from '@molstar/ui/elements/ui-element';
+import { filesOf, fileHead, printSources } from '../features/files/file-head.js';
 
 // A story of an example view (examples-and-stories.md): the view's `build()` shown by a viewer composed from the default
 // spec, the canvas and the SVG of the same view side by side, and the spec as it prints, beside them (the SVG with the
@@ -19,7 +20,7 @@ import { UiElement } from '@molstar/ui/elements/ui-element';
 // when Storybook removes the story.
 
 /** A story's view, and whether its SVG draws the view's navigators (`renderSvg`'s `navigators`). */
-type ExampleModel = ExampleView & { readonly navigators?: 'omit' | 'include' };
+type ExampleModel = ExampleView & { readonly navigators?: 'omit' | 'include'; readonly files?: boolean };
 
 /** The stories made in this page: the prefix of each one's SVG ids. */
 let instances = 0;
@@ -65,7 +66,9 @@ class ExampleRoot extends UiElement<ExampleModel> {
     pair.style.cssText =
       'display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: var(--msui-space-5);';
     pair.append(section('Canvas', canvasHost), section('SVG', svgHost));
-    root.append(summary, pair, status, section('Spec', printed));
+    root.append(summary, pair, status);
+    if (view.files) root.append(...fileSections(view.build()));
+    root.append(section('Spec', printed));
 
     // the same spec the view builds, composed from the default spec: the fixtures are read relative to the page
     const base = DefaultSeqViewerSpec();
@@ -112,14 +115,43 @@ class ExampleRoot extends UiElement<ExampleModel> {
   }
 }
 
+/** What a Files story prints beside the view: the source nodes (the transform) and the head of each file they name. */
+function fileSections(spec: Parameters<typeof printSources>[0]): HTMLElement[] {
+  const pre = (text: string) => {
+    const el = document.createElement('pre');
+    el.style.cssText =
+      'margin: 0; padding: var(--msui-space-3); overflow: auto; max-height: 280px; font: var(--msui-text-xs) / var(--msui-leading-xs) var(--msui-font-mono); background: var(--msui-surface, transparent); border: 1px solid var(--msui-line);';
+    el.textContent = text;
+    return el;
+  };
+  const out = [section('Source node', pre(printSources(spec)))];
+  for (const file of filesOf(spec)) {
+    const head = pre('Reading…');
+    out.push(section(`File: ${file.uri}`, head));
+    // read the way the viewer reads it: relative to the page, which serves the examples' fixtures
+    void fetch(file.uri)
+      .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(`${r.status}`))))
+      .then((b) => {
+        head.textContent = fileHead(new Uint8Array(b), file.format);
+      })
+      .catch((e) => {
+        head.textContent = `The file could not be read: ${e instanceof Error ? e.message : e}`;
+      });
+  }
+  return out;
+}
+
 defineElements([ExampleRoot]);
 
-/** A Storybook `render` result for an example view (`navigators`: its SVG draws the view's navigators). */
+/**
+ * A Storybook `render` result for an example view (`navigators`: its SVG draws the view's navigators; `files`: the view's
+ * source nodes and the head of each file they name are printed beside it).
+ */
 export function exampleStory(
   view: ExampleView,
-  options: { readonly navigators?: 'omit' | 'include' } = {},
+  options: { readonly navigators?: 'omit' | 'include'; readonly files?: boolean } = {},
 ): HTMLElement {
   const el = document.createElement(ExampleRoot.tag) as ExampleRoot;
-  el.model = options.navigators ? { ...view, navigators: options.navigators } : view;
+  el.model = options.navigators || options.files ? { ...view, ...options } : view;
   return el;
 }

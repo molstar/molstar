@@ -119,9 +119,12 @@ export interface LayerData {
   readonly length?: number;
   /**
    * A query's form after its annotation (`<annotation>/(not :of (item :consequence missense))`): the filter its rows
-   * pass, read row by row by the layers (_spec/README.md "Themes", Filters).
+   * pass, read row by row by the layers (_spec/README.md "Themes", Filters): the user's, a trailing `(not …)` or any
+   * lone form but an item form; counted ("n filtered").
    */
   readonly filter?: Node;
+  /** A leading item form (`<annotation>/(item :category Domain)/(not …)`): what the track is, its rejected rows not counted. */
+  readonly base?: Node;
 }
 
 export interface ResolvedLayer {
@@ -999,8 +1002,27 @@ function dataOf(model: StaticModel, value: Value | undefined, type: string, sect
   if (model.systems.has(prefix))
     return { kind, address, system: prefix, ...(kind === 'address' ? { shape: 'letters' as const } : {}) };
   const rest = parsed.segments.slice(ids.length);
-  const filter = kind === 'query' && rest.length === 1 && typeof rest[0] !== 'string' ? rest[0] : undefined;
-  return a ? { kind, address, system: a.target, shape: a.shape, ...(filter ? { filter } : {}) } : undefined;
+  // the forms after the annotation: a leading item form is the layer's base, a trailing `(not …)` (or a lone other
+  // form) the user's filter (_spec/README.md "Themes", Filters)
+  const forms = rest.filter((f): f is Node => typeof f !== 'string');
+  let base: Node | undefined;
+  let filter: Node | undefined;
+  if (kind === 'query' && forms.length === rest.length) {
+    if (forms.length === 1) {
+      if (forms[0].kind === 'item') base = forms[0];
+      else filter = forms[0];
+    } else if (forms.length === 2 && forms[0].kind === 'item' && forms[1].kind === 'not') [base, filter] = forms;
+  }
+  return a
+    ? {
+        kind,
+        address,
+        system: a.target,
+        shape: a.shape,
+        ...(base ? { base } : {}),
+        ...(filter ? { filter } : {}),
+      }
+    : undefined;
 }
 
 /**

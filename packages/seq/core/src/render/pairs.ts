@@ -199,12 +199,15 @@ function prepare(layer: ResolvedLayer, model: StaticModel): PairsPrep {
   // the layer's data filter, read pair by pair once (_spec/README.md "Themes", Filters)
   const form = layer.data?.filter;
   const filter = form ? compileRowFilter(form) : undefined;
+  const baseForm = layer.data?.base;
+  const base = baseForm ? compileRowFilter(baseForm) : undefined;
   const datum = data ? new PairDatum(data) : undefined;
   const shown = new Uint8Array(data?.n ?? 0).fill(1);
   let filtered = 0;
-  if (filter && datum)
+  if ((filter || base) && datum)
     for (let k = 0; k < shown.length; k++)
-      if (!filter(datum.set(k))) {
+      if (base && !base(datum.set(k))) shown[k] = 0;
+      else if (filter && !filter(datum.set(k))) {
         shown[k] = 0;
         filtered++;
       }
@@ -215,7 +218,7 @@ function prepare(layer: ResolvedLayer, model: StaticModel): PairsPrep {
     channels: channelForms(layer.theme),
     shown,
     filtered,
-    unreadFilter: form !== undefined && !filter,
+    unreadFilter: (form !== undefined && !filter) || (baseForm !== undefined && !base),
     aSystem: a?.target ?? '',
     bSystem: a?.ySystem ?? '',
     side: p.side === 'below' ? 'below' : 'above',
