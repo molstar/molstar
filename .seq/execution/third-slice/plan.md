@@ -242,7 +242,7 @@ and dark before the merge.
       `packages/seq/examples/scripts/record.ts` (moved from DG).
 - [ ] FS-B (conditional): trees and pairs held from a file, only if DG's tree must be read from one this slice; else
       deferred, the Newick inline.
-- [ ] LG (fast, now; the author, 2026-11-19: "this letter coloring doesn't really work for the logo plot") the logo's
+- [x] LG (merged; fast, now; the author, 2026-11-19: "this letter coloring doesn't really work for the logo plot") the logo's
       letters and bars in their class color moved to 3:1 against the track's surface in each theme (grids-and-rows,
       The logo; themes.md's `ink` rule with the surface as the fill); tested over every built-in scheme in both themes;
       the Globins logo looked at in light and dark.
