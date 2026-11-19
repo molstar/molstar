@@ -235,7 +235,13 @@ and dark before the merge.
       the sources design lists but no runtime reads yet (TSV and CSV; GFF3 and BED considered there), and the
       description of the transforms a file's annotation needs, written in the spec beside its source: which columns
       are the target, start and end; a 1- or 0-based start, an inclusive or exclusive end; a numbering the positions
-      are in; renamed and typed columns; a filter; the base's `fields` remap and `from_source` read first. Built as a
+      are in; renamed and typed columns; a filter; the base's `fields` remap and `from_source` read first. **JSON sources** too (the author, 2026-11-19:
+      "Also json sources so we can import uniprot stuff directly? And possibly other well formatted json?"): a JSON
+      file read through the same transforms, its records found by a path (UniProt's REST entry JSON: `features[]`,
+      `location.start.value`, `location.end.value`, `type`, `description`; EBI Proteins API's `features[]`; any array of
+      records), each column a path into a record; a UniProt entry's sequence and features read from one file. Fixtures
+      are saved responses (UniProt CC BY 4.0, recorded by hand), never fetched by a test; fetching from a service stays
+      the showcases' registry entry (ports.md). Built as a
       runtime and its conformance suite, then stories that load the datasets from their fixtures (FASTA, Stockholm,
       Newick, the tables with their transforms, the `seq` format), each with its headless twin reading the same
       files through the Node assets reader.
