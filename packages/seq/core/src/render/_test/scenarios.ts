@@ -15,6 +15,7 @@ import {
   BIG,
   BigRuntime,
   bigSpec,
+  holeySpec,
   p53GeneSpec,
   p53TextSpec,
   p53TracksSpec,
@@ -47,6 +48,8 @@ export const Scenarios: readonly Scenario[] = [
   // a reversed axis of 150,000 single-position pieces (EC-33): a pan over 1,000 of them, their breaks in view. First:
   // what it leaves compiled must not make the others' warm draws allocate
   { name: 'reversed, 150,000 pieces', spec: piecesSpec, runtimes: [], width: 1000, center: PIECES / 2, panStep: 2 },
+  // a light chain's rulers over a numbering that stops at 107 of 207: the unnumbered tail marked, and labelled by ordinals
+  { name: 'holey rulers', spec: holeySpec, runtimes: [], width: 207, center: 103.5, panStep: 0.5 },
   { name: 'p53 tracks, letters', spec: p53TracksSpec, runtimes: [], width: 100, center: 196, panStep: 0.3 },
   { name: 'p53 tracks, whole protein', spec: p53TracksSpec, runtimes: [], width: 393, center: 196, panStep: 0.5 },
   // the small layers: a ruler, secondary structure, variants, a line, an area, ranges dashed with arrows and highlighted

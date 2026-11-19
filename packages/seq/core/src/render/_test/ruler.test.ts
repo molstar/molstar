@@ -27,6 +27,7 @@ import {
   renderConfig,
 } from '../index.js';
 import { renderSvg } from '../render-svg.js';
+import { noteStart } from '../ruler.js';
 import { GENE_EXONS, GENE_LENGTH, geneLetters, P53 } from './fixtures.js';
 import { settle } from './helpers.js';
 import { layerLay, readPaths, rng } from './small-helpers.js';
@@ -441,5 +442,116 @@ describe('the ruler: where a numbering does not reach', () => {
     });
     expect(fb.svg).not.toContain('not numbered');
     expect(fb.svg).not.toContain('stroke-dasharray');
+  });
+});
+
+/** A sequence of `length` positions numbered `1…` where `has(i)`, a ruler by that numbering (`reversed`: the section's). */
+function holeyChain(
+  length: number,
+  has: (i: number) => boolean,
+  params: Record<string, unknown> = {},
+  reversed = false,
+) {
+  const b = createSeqSpec({ title: 'holey' });
+  const labels = Array.from({ length }, (_, i) => (has(i) ? String(i + 1) : null));
+  const sq = b.data.sequence('sq', { alphabet: 'protein', letters: 'A'.repeat(length) }, (s) => {
+    s.numbering('own', { method: 'labels', labels, scheme: 'own' });
+  });
+  b.views.view('main', (v) => {
+    v.section('sq', { of: sq, ...(reversed ? { direction: 'reversed' } : {}) })
+      .track('r', { label: 'Ruler' })
+      .layer('r', { type: 'ruler', numbering: 'own', ...params });
+  });
+  return b.build();
+}
+
+describe('the ruler: only the head and the tail are unnumbered', () => {
+  const size = { width: 1000, height: 60 };
+  const frameOf = async (spec: ReturnType<typeof holeyChain>, end: number) =>
+    (await settle(spec)).frame({ size, viewport: { start: 0, end } });
+
+  it('a piece past 4,096 positions in view keeps the mark (the line, the note) and the fallback labels', async () => {
+    const f = await frameOf(
+      holeyChain(20_000, (i) => i < 9000),
+      20_000,
+    );
+    const lay = layerLay<RulerLay>(f, 0);
+    expect(lay.nruns).toBe(1);
+    expect(lay.runs[0]).toBeCloseTo(lay.axis.x(9000), 0);
+    expect(readPaths(f.lists)).toHaveLength(1);
+    expect(Number.isNaN(lay.noteX[0])).toBe(false);
+    for (let j = 0; j < lay.n; j++) expect(lay.axis.positionAt(lay.x[j])).toBeLessThan(9000);
+    const fb = await frameOf(
+      holeyChain(20_000, (i) => i < 9000, { unnumbered: 'fallback' }),
+      20_000,
+    );
+    const flay = layerLay<RulerLay>(fb, 0);
+    const past = Array.from({ length: flay.n }, (_, j) => j).filter((j) => flay.shown[j] && flay.muted[j]);
+    expect(past.length).toBeGreaterThan(2);
+    for (const j of past) expect(flay.axis.positionAt(flay.x[j])).toBeGreaterThanOrEqual(9000);
+  });
+
+  it('a label missing between labelled positions stays blank: no run, no note, no line; a head is a run', async () => {
+    const f = await frameOf(
+      holeyChain(300, (i) => i < 100 || i >= 150),
+      300,
+    );
+    expect(layerLay<RulerLay>(f, 0).nruns).toBe(0);
+    expect(readPaths(f.lists)).toHaveLength(0);
+    const lay = layerLay<RulerLay>(
+      await frameOf(
+        holeyChain(300, (i) => i >= 40),
+        300,
+      ),
+      0,
+    );
+    expect(lay.nruns).toBe(1);
+    expect(lay.runs[1]).toBeCloseTo(lay.axis.x(40), 0);
+    // nothing labelled at all: the whole system is one run
+    expect(
+      layerLay<RulerLay>(
+        await frameOf(
+          holeyChain(300, () => false),
+          300,
+        ),
+        0,
+      ).nruns,
+    ).toBe(1);
+  });
+
+  it('a reversed axis marks the same run, on the left, its note clear of every label', async () => {
+    const lay = layerLay<RulerLay>(
+      await frameOf(
+        holeyChain(300, (i) => i < 100, {}, true),
+        300,
+      ),
+      0,
+    );
+    expect(lay.nruns).toBe(1);
+    expect(lay.runs[0]).toBeCloseTo(lay.box.x, 0);
+    const x = lay.noteX[0];
+    expect(Number.isNaN(x)).toBe(false);
+    for (let j = 0; j < lay.n; j++) {
+      if (!lay.shown[j]) continue;
+      const clear = x + lay.noteWidth <= lay.x[j] - lay.widths[j] / 2 || x >= lay.x[j] + lay.widths[j] / 2;
+      expect(clear).toBe(true);
+    }
+  });
+
+  it('the note moves past labels in any order of x, never onto one it passed', () => {
+    // descending (a reversed axis): labels [80, 92] then [60, 72]; passing the second lands on the first
+    const x = noteStart([80, 92, 60, 72], 60, 400, 10);
+    expect(x).toBe(96);
+    expect(noteStart([60, 72, 80, 92], 60, 400, 10)).toBe(x);
+    // a label that leaves no room: no note
+    expect(Number.isNaN(noteStart([60, 390], 60, 400, 10))).toBe(true);
+  });
+
+  it('an unknown `fallbackNumbering` is reported only under `fallback`', async () => {
+    const mark = await frameOf(
+      holeyChain(300, (i) => i < 100, { fallbackNumbering: 'nope' }),
+      300,
+    );
+    expect(mark.layout.issues).toEqual([]);
   });
 });

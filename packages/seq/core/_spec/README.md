@@ -1411,16 +1411,16 @@ the y path in Emphasis).
   kb), one unit and one count of decimals a step; another numbering keeps its own labels. Why: the writer of a
   chromosome view says so, never inferred from the alphabet. **Where the numbering does not reach** (`unnumbered`;
   decided, the author, 2026-11-19, the Antibody's light chain: Kabat and IMGT number only the variable domain): a
-  position with no label (past the numbering's coverage, a source's row missing) is in an unnumbered run, over the
-  pieces in view of at most 4,096 positions (a longer one is labelled by number). `mark` (the default): the ruler's line
-  over the run is muted and dashed, one muted note at its start (`not numbered`, ` by <numbering>` added where the
-  ruler's track label does not name the numbering) where it fits clear of the labels, no ticks. `fallback`: the run is
-  labelled by `fallbackNumbering` (`ordinal` when absent; a numbering the system declares, built in or inline) in the
-  muted style (ticks and labels at a lower opacity), no line and no note. A `fallbackNumbering` the system lacks is
-  `seq.render.numbering.fallback` and `mark` is used. Why: a blank reads as a bug, and a fallback numbering is the
-  writer's choice, never a silent default (its numbers are not the scheme's). Canvas and SVG alike (one draw list). A
-  hit is the position under the pointer; the hover card and the live region say its position and `not numbered by <id>`
-  there. Fallback: none (omitted).
+  position past the numbering's labelled extent (before its first label or after its last, found once a numbering, of
+  any length of piece) is in an unnumbered run; a position with no label between two labelled ones stays blank. `mark`
+  (the default): the ruler's line over the run is muted and dashed, one muted note at its start (`not numbered`,
+  ` by <numbering>` added where the ruler's track label does not name the numbering) where it fits clear of the labels,
+  no ticks. `fallback`: the run is labelled by `fallbackNumbering` (`ordinal` when absent; a numbering the system
+  declares, built in or inline) in the muted style (ticks and labels at a lower opacity), no line and no note. Under
+  `fallback`, a `fallbackNumbering` the system lacks is `seq.render.numbering.fallback` and `mark` is used. Why: a blank
+  reads as a bug, and a fallback numbering is the writer's choice, never a silent default (its numbers are not the
+  scheme's). Canvas and SVG alike (one draw list). A hit is the position under the pointer; the hover card and the live
+  region say its position and `not numbered by <id>` there. Fallback: none (omitted).
 - `secondary`: the items of a `ranges` layer (the class from the `kind` field, else `category`: DSSP codes or words:
   helix, strand, UniProt's `Helix`, `Beta strand` and `Turn`, anything else a turn), in one band: a helix a block, a
   strand a block with an arrowhead on its C-terminal end, a turn a thin bar. **The arrowhead** is on the piece holding
