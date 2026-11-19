@@ -38,7 +38,8 @@ export function hoverCell(lay: CellLay & { readonly key: string }, out: PassWrit
   if (!h || h.layer !== lay.key || h.position === undefined) return;
   const { axis, box } = lay;
   const width = lay.hoverWidth;
-  if (!axis.cell(h.position)) return;
+  // a block's strip has its own system: the position is another system's on any other
+  if (h.system !== axis.system || !axis.cell(h.position)) return;
   // `snap` inline, the rect through `args`: a hover allocates nothing once warm (this function is compiled while it
   // returns early, in the full draws, and a call left out of it then would box its numbers)
   const dpr = axis.dpr;
