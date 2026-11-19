@@ -179,7 +179,7 @@ and dark before the merge.
       of ten, lanes, inline labels, numbers per row, frames; reflow on resize within its target.
 - [x] RB (strong, after TX's interface change) blocks and rings, as [layouts](../../design/layouts.md): labels with leaders, a window a linear detail follows (EC-108, EC-114), a feature
       across the origin by its shortest arc.
-- [ ] GATE: merged, reviewed, the checks green, sizes, gaps, matrix cells (the ring's window).
+- [x] GATE: merged, reviewed, the checks green, sizes, gaps, matrix cells (the ring's window).
 
 ### Stage 3: pairs, grids and rows (strong, after stage 2; as [grids-and-rows](../../design/grids-and-rows.md))
 

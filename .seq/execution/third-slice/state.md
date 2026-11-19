@@ -34,14 +34,20 @@ Work id `third-slice`. Plan: `plan.md`; loop: `loop.md`.
 - RB merged (`4e9a5ded6`): the review's findings, Part B's (a wide window flipping; a test changed to fit the code,
   restored to the design: tracks wrap on a cyclic axis) and the look's three (a loud window, stacked rows empty, a blank
   view after zooming out past the fit) fixed; rechecked in the browser.
+- Stage 2's gate on `4e9a5ded6`: quick 1,228, typechecks, lint, format, `pnpm build`, `check:workspace`, the
+  allocation tier 88/88; heavy: one max bound (`frame-time`, 150k pieces) failed under load beside the build and passed
+  3/3 alone (to G2: best of three). Sizes against the guides: 173.2 / 468.8 / 744.1 kB. The look's two text findings
+  (gutter labels overlapping; the domains count strip a heavy rule) to G2; the canvas/SVG spacing matched.
 
 ## In progress
 
-- Stage 2's gate on `4e9a5ded6`.
+- G2 (fast): stage 2's gate findings (`briefs/g2-gate-fixes.md`).
+- RW (strong) and SY (strong): stage 3's rows and stage 4's stories (`briefs/rw-rows.md`, `sy-stories.md`), base
+  `43beaa3e3`; started before G2 merges (three small fixes), rebased on it.
 
 ## Next
 
-Stage 2's gate after TV and RB. The early use gate is deferred.
+After RW: PG and NV. The early use gate is deferred.
 
 ## Decided
 
@@ -59,6 +65,7 @@ Stage 2's gate after TV and RB. The early use gate is deferred.
 |---|---|---|---|
 | stage 2, TV (review and look) | 5 (groups out of phase; end numbers untested; text allocation; a cyclic window drag; the copy message) + 1 found (an item from an earlier tile lost) | 0 | 2 (the export cut short; no domains band) |
 | stage 2, RB (review and look) | 9 (an empty ring throws; >24 blocks; blocks on several systems select wrongly; label hits; overlapping label boxes; the start grip across the origin; a wide window flipping; tracks not wrapping, a test changed to fit; a blank view past the fit) | 0 | 2 (a whole-ring window loud; stacked rows empty) |
+| stage 2's gate (look, heavy) | 1 (a max bound flaking under load) | 0 | 2 (gutter labels overlap; a heavy count strip) |
 | stage 2, TA (review) | 0 (a test gap) | 0 | 0 |
 | stage 2, TX's interface (review) | 5 (rings drew no emphasis; contract parts unwired; place not inverse of at; stale glyph values; a `.seq/` edit) | 0 | 0 |
 | stage 1, TH (review and look) | 8 (log binned; clamp unapplied; the MolViewSpec round trip; mid not diverging; value-color overwriting; two legends off their scale; layer.filter called blocked) | 1 (a safe substitute that is not safe) | 3 (two stories empty; the view not on SL's layers; dark letters dim) |
