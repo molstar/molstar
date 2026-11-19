@@ -20,4 +20,19 @@ describe('the size script', () => {
     });
     expect(out).toMatch(/reading a spec[\s\S]*\n {2}files:\n( {4}\d+\.\d kB\s+\S+\n){3}/);
   }, 60_000);
+
+  // the minimal viewer (viewer-composition "Injected, opt in"): what its composition does not list is not in its bundle;
+  // a bundle of a megabyte, so medium
+  it(
+    'the minimal viewer holds none of the modules it does not list',
+    { tags: ['medium'] },
+    () => {
+      const out = execFileSync('node', [script, '--only', 'viewer-minimal.ts', '--top', '1'], {
+        encoding: 'utf8',
+        timeout: 120_000,
+      });
+      expect(out).toMatch(/viewer, minimal: unlisted modules none\n/);
+    },
+    120_000,
+  );
 });

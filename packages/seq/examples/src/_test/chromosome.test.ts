@@ -10,6 +10,7 @@
 // against the data at the fit, across tile edges, at TP53 and at its letters, every drawn gene hit, and shows its
 // window on the ideogram. The frame at 83 Mb against the gene view's (the Performance page's flat frame time) is heavy.
 
+import { BuiltInLayerTypes, BuiltInLayouts } from '@molstar/seqx-core/render/built-ins';
 import { readFileSync } from 'node:fs';
 import { DataStore, decodeSeq, type FormatRuntime, type RegionRequest, SeqRuntime } from '@molstar/seqx-core/data';
 import {
@@ -18,7 +19,6 @@ import {
   type FrameInput,
   hitView,
   LightTokens,
-  NavigatorRenderer,
   NoAssets,
   OverlaySources,
   openModel,
@@ -27,6 +27,7 @@ import {
   recordDrawLists,
   type ViewLayout,
 } from '@molstar/seqx-core/render';
+import { NavigatorRenderer } from '@molstar/seqx-core/render/navigator';
 import { OverlayBuilder } from '@molstar/seqx-core/resolve';
 import { itWithin, ratioWithin } from '@molstar/test-harness/timing';
 import { describe, expect, it } from 'vitest';
@@ -147,7 +148,15 @@ async function open(settings: { maxBytes?: number } = {}) {
   const view = opened.view!;
   const overlays = new OverlayBuilder({ runtimes });
   const sources = new OverlaySources(store, NoAssets);
-  const common = { model, view, data: store, tokens: LightTokens, text: bundledTextMetrics() };
+  const common = {
+    types: BuiltInLayerTypes,
+    layouts: BuiltInLayouts,
+    model,
+    view,
+    data: store,
+    tokens: LightTokens,
+    text: bundledTextMetrics(),
+  };
   const renderer = new Renderer(common);
   const nav = new NavigatorRenderer({ ...common, navigator: view.navigators[0] });
   const input = (viewport?: { start: number; end: number }): FrameInput => ({
@@ -432,6 +441,8 @@ async function openGene() {
   const store = new DataStore();
   const opened = await openModel(view.build(), store, { runtimes: [SeqRuntime], assets: nodeFixtureAssets().reader });
   const renderer = new Renderer({
+    types: BuiltInLayerTypes,
+    layouts: BuiltInLayouts,
     model: opened.model,
     view: opened.view!,
     data: store,

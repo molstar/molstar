@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { BuiltInLayerTypes, BuiltInLayouts } from '@molstar/seqx-core/render/built-ins';
 import { readFileSync } from 'node:fs';
 import { DataStore } from '@molstar/seqx-core/data';
 import {
@@ -48,7 +49,15 @@ async function settled() {
   const view = resolveViews(model)[0];
   const store = new DataStore();
   await attachSources(model, store, { assets });
-  const renderer = new Renderer({ model, view, data: store, tokens: LightTokens, text: bundledTextMetrics() });
+  const renderer = new Renderer({
+    types: BuiltInLayerTypes,
+    layouts: BuiltInLayouts,
+    model,
+    view,
+    data: store,
+    tokens: LightTokens,
+    text: bundledTextMetrics(),
+  });
   const frame = async (input: FrameInput) => {
     let f = renderer.frame(input);
     for (let i = 0; i < 8; i++) {
@@ -87,6 +96,8 @@ describe('the Globins scale view’s time', () => {
     await s.frame(fit);
     const first = () => {
       const r = new Renderer({
+        types: BuiltInLayerTypes,
+        layouts: BuiltInLayouts,
         model: s.model,
         view: s.view,
         data: s.store,

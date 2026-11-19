@@ -12,7 +12,8 @@
 import type { Node } from '@molstar/core/repr/tree';
 import { createSeqSpec, stripNavigator } from '@molstar/seqx-core/lang';
 import { describe, expect, it } from 'vitest';
-import { type FrameInput, hitView, LightTokens, railUnitAt, renderSvg } from '../index.js';
+import { type FrameInput, hitView, LightTokens, railUnitAt } from '../index.js';
+import { renderSvg } from '../render-svg.js';
 import { P53 } from './fixtures.js';
 import { settle } from './helpers.js';
 import { ideogramSpec } from './navigator-fixtures.js';

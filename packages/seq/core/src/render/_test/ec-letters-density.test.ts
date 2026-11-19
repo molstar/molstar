@@ -11,7 +11,8 @@
 import type { Node } from '@molstar/core/repr/tree';
 import type { FormatRuntime } from '@molstar/seqx-core/data';
 import { describe, expect, it } from 'vitest';
-import { type DensityStep, DefaultRenderConfig, densityStep, renderSvg } from '../index.js';
+import { type DensityStep, DefaultRenderConfig, densityStep } from '../index.js';
+import { renderSvg } from '../render-svg.js';
 import { BIG, BigRuntime, bigSpec, p53TracksSpec } from './fixtures.js';
 import { blocks } from './helpers.js';
 

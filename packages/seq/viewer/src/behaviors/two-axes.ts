@@ -5,7 +5,11 @@
  */
 
 import type { GridLay, LayerLayout, RowsLay, SectionLayout, ViewLayout } from '@molstar/seqx-core/render';
-import { trackOfLayer } from './rows.js';
+
+/** A layer's track: its address less its last step. */
+export function trackOfLayer(layer: string): string {
+  return layer.slice(0, layer.lastIndexOf('/'));
+}
 
 // A section's layer of two axes (_spec/README.md "Behaviors", Cursor): its rows layer or its grid, which the keyboard
 // cursor's row is on. Internal: not in the behaviors' entry.

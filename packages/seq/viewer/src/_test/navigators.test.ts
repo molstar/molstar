@@ -22,7 +22,8 @@ import {
   overviewNavigator,
   stripNavigator,
 } from '@molstar/seqx-core/lang';
-import type { DrawLists, NavigatorRenderer } from '@molstar/seqx-core/render';
+import type { DrawLists } from '@molstar/seqx-core/render';
+import type { NavigatorRenderer } from '@molstar/seqx-core/render/navigator';
 import { afterEach, describe, expect, it } from 'vitest';
 import { viewerItem } from '../config.js';
 import { DefaultSeqViewerSpec } from '../default-spec.js';
@@ -354,7 +355,7 @@ describe('a strip and the view it moves', () => {
 
   it('a host’s navigator, never saved: the same model', async () => {
     const v = await make(spec({ strip: false }));
-    const m = v.navigator({ id: 'host', of: P, content: 'axis' });
+    const m = v.navigator({ id: 'host', of: P, content: 'axis' })!;
     v.view.setRange(P, 10, 30);
     v.draw();
     m.draw();

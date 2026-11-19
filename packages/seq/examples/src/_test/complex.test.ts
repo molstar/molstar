@@ -4,10 +4,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { BuiltInLayerTypes, BuiltInLayouts } from '@molstar/seqx-core/render/built-ins';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Node } from '@molstar/core/repr/tree';
-import { createSeqContext } from '@molstar/seqx-core/context';
+import { createSeqContext } from '@molstar/seqx-core/context/default';
 import { DataStore, decodeSeq, type RangesList, SeqRuntime } from '@molstar/seqx-core/data';
 import { RecordsRuntime } from '@molstar/seqx-core/data/records';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
@@ -203,7 +204,17 @@ async function laid(spec: Node, size = { width: 720, height: 900 }) {
   });
   const { model } = opened;
   const v = opened.view!;
-  const input = { model, view: v, size, viewports: {}, tokens: LightTokens, text: bundledTextMetrics(), data: store };
+  const input = {
+    types: BuiltInLayerTypes,
+    layouts: BuiltInLayouts,
+    model,
+    view: v,
+    size,
+    viewports: {},
+    tokens: LightTokens,
+    text: bundledTextMetrics(),
+    data: store,
+  };
   for (let i = 0; i < 3; i++) {
     store.want(layoutView(input).wants);
     await store.whenSettled();

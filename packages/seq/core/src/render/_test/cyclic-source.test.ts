@@ -15,7 +15,8 @@ import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { FakeClock } from '../../data/_test/synthetic.js';
 import { resolveSpec, sourceLengths } from '@molstar/seqx-core/resolve';
 import { describe, expect, it } from 'vitest';
-import { type RangesLay, recordDrawLists, renderSvg } from '../index.js';
+import { type RangesLay, recordDrawLists } from '../index.js';
+import { renderSvg } from '../render-svg.js';
 import { settle } from './helpers.js';
 
 const N = 120;

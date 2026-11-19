@@ -6,7 +6,7 @@
 
 import { applyPatch } from '@molstar/core/repr/patch';
 import type { Node } from '@molstar/core/repr/tree';
-import { createSeqContext } from '@molstar/seqx-core/context';
+import { createSeqContext } from '@molstar/seqx-core/context/default';
 import { SeqRuntime } from '@molstar/seqx-core/data';
 import { createSeqSpec, SeqLanguage } from '@molstar/seqx-core/lang';
 import { locationOfResult, locationsEqual, rangesLocation, resolveAddressIn } from '@molstar/seqx-core/query';

@@ -13,7 +13,6 @@ import { resolveSpec } from '@molstar/seqx-core/resolve';
 import { resolveViews } from '@molstar/seqx-core/view';
 import {
   attachSources,
-  BuiltInLayerTypes,
   bundledTextMetrics,
   type DrawLists,
   type Frame,
@@ -25,6 +24,7 @@ import {
   Renderer,
   renderConfig,
 } from '../index.js';
+import { BuiltInLayerTypes, BuiltInLayouts } from '../built-ins.js';
 
 /** The layout of the layer `index` of track `track` of section `section` of a frame. */
 export function layerLay<T = any>(f: Frame, track: number, index = 0, section = 0): T {
@@ -106,6 +106,7 @@ export async function frameWithout(
   await attachSources(model, store);
   const types = Object.fromEntries(Object.entries(BuiltInLayerTypes).filter(([name]) => !drop.includes(name)));
   const renderer = new Renderer({
+    layouts: BuiltInLayouts,
     model,
     view,
     data: store,

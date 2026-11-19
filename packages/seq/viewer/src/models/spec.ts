@@ -26,7 +26,8 @@ import { checkSpecBounds, SeqLanguage, SeqValidateOptions } from '@molstar/seqx-
 // the change validators are their own entry: reading a spec carries no editing (core _spec, "Checks of a change")
 import { SeqPatchValidator, seqBoundsValidator, seqPatchValidator } from '@molstar/seqx-core/lang/changes';
 import { createResolver, type Lengths, type ResolveOptions, type StaticModel } from '@molstar/seqx-core/resolve';
-import { createStoryCache, type StepState, stateOf, stepPatchOf } from '@molstar/seqx-core/story';
+import type { StepState } from '@molstar/seqx-core/story';
+import type { SeqStorySteps } from '@molstar/seqx-viewer/story';
 import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
 import { ViewerIssues } from '@molstar/seqx-viewer/issues';
 import type {
@@ -186,7 +187,9 @@ export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
   private _history: SeqHistory | undefined;
   private _contexts = 0;
   /** The steps' states, by the revision shown under them and the step (_spec/README.md "SpecModel", Story steps). */
-  private readonly _stories = createStoryCache();
+  /** The story steps' reading and its cache (the `story` option): none, no step is entered (`seq.viewer.step.none`). */
+  private readonly _stories: ReturnType<SeqStorySteps['createStoryCache']> | undefined;
+  private readonly _story: SeqStorySteps | undefined;
   /** What `_compose` showed: the frame slot shows over it, and leaves back to it. */
   private _composed: Node;
   private _frame: Node | undefined;
@@ -225,7 +228,8 @@ export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
 
   /**
    * `lengths`: the lengths the opened sources' coverages give source-backed systems (the viewer's, from its store): the
-   * model is resolved again with them (_spec/README.md "SpecModel").
+   * model is resolved again with them (_spec/README.md "SpecModel"). `parts.story`: how story steps are read (the
+   * viewer's story part, `StoryPart`); none, no step is entered, so a viewer that lists no story bundles none of it.
    */
   constructor(
     root: Node,
@@ -233,8 +237,11 @@ export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
     config: ViewerConfig = DefaultViewerConfig,
     loaded = true,
     lengths: ReadonlyState<Lengths> = NoLengths,
+    parts: { readonly story?: SeqStorySteps } = {},
   ) {
     super();
+    this._story = parts.story;
+    this._stories = parts.story?.createStoryCache();
     this.config = config;
     this._loaded = new State(loaded);
     this.loaded = this._loaded.asReadonly;
@@ -671,7 +678,7 @@ export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
   /** The stored patch of a step, by id; undefined when the spec has none such. */
   private _stepPatch(id: string): Patch | undefined {
     const node = resolveAddress(this._head.value.root, ['snapshots', id]);
-    return node?.kind === 'snapshot' ? stepPatchOf(node) : undefined;
+    return node?.kind === 'snapshot' ? this._story?.stepPatchOf(node) : undefined;
   }
 
   /**
@@ -679,6 +686,10 @@ export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
    * entered (whether it applies is `step.applies`), else the issue why not.
    */
   enterStep(id: string): Issue | undefined {
+    if (!this._story)
+      return issueOf(ViewerIssues, 'seq.viewer.step.none', `This viewer enters no story step (${id})`, {
+        hint: ViewerIssues.codes['seq.viewer.step.none'].hint,
+      });
     const node = resolveAddress(this._head.value.root, ['snapshots', id]);
     if (node?.kind !== 'snapshot')
       return issueOf(ViewerIssues, 'seq.viewer.step.unknown', `No story step ${id}`, {
@@ -734,11 +745,11 @@ export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
     const id = this._stepId.value;
     if (id !== undefined) {
       const node = resolveAddress(root, ['snapshots', id]);
-      if (node?.kind !== 'snapshot') this._stepId.set(undefined);
+      if (node?.kind !== 'snapshot' || !this._story) this._stepId.set(undefined);
       else {
         // the core's state of the step over the edited root: a full state, the patch over it, or a delta (the ops that
         // still apply, flagged)
-        const st = stateOf(edited, id, { cache: this._stories, apply: this._stepOptions() })!;
+        const st = this._story.stateOf(edited, id, { cache: this._stories!, apply: this._stepOptions() })!;
         shown = st.root;
         for (const i of st.issues) if (StepIssueCodes.has(i.code)) issues.push(i);
         if (!st.applies)

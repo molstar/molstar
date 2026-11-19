@@ -32,7 +32,7 @@ import {
   TranslateWarp,
   windowPart,
 } from '../index.js';
-import { BuiltInLayerTypes } from '../tracks.js';
+import { BuiltInLayerTypes, BuiltInLayouts } from '../built-ins.js';
 import { P53, p53TracksSpec } from './fixtures.js';
 import { settle } from './helpers.js';
 import { rng } from './small-helpers.js';
@@ -168,6 +168,7 @@ describe('the tracks layout on the interface', () => {
     const s = await settle(spec);
     const { Renderer, bundledTextMetrics, renderConfig } = await import('../index.js');
     const r = new Renderer({
+      layouts: BuiltInLayouts,
       model: s.model,
       view: s.view,
       data: s.store,

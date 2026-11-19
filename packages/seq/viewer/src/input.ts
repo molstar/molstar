@@ -16,7 +16,7 @@ import {
   RingPlacement,
   type WindowPart,
 } from '@molstar/seqx-core/render';
-import { type PartCursor, partCursor } from './navigator.js';
+import { type PartCursor, partCursor } from './part-cursor.js';
 import { cancelFrameCallback, DomHost, requestFrameCallback } from '@molstar/ui/dom';
 import type { Axis } from '@molstar/seqx-core/view';
 import {
@@ -28,25 +28,20 @@ import {
   parseChord,
 } from '@molstar/seqx-viewer/bindings';
 import { changeKindOf } from './commands.js';
-import {
-  type HoverBehavior,
-  type HoverCardBehavior,
-  HoverProvider,
-  type KeysPanelBehavior,
-  isDragSelect,
-  type NavigateBehavior,
-  type NavigatorBehavior,
-  NavigatorProvider,
-  NavigateProvider,
-  RowsProvider,
+import type {
+  HoverBehavior,
+  HoverCardBehavior,
+  KeysPanelBehavior,
+  NavigateBehavior,
+  NavigatorBehavior,
+  RowsBehavior,
   RowsRailGesture,
-  type RowsRailWindow,
-  type SelectBehavior,
-  SelectProvider,
-  trackOfLayer,
-  type WindowBehavior,
-  WindowProvider,
+  RowsRailWindow,
+  SelectBehavior,
+  WindowBehavior,
 } from '@molstar/seqx-viewer/behaviors';
+import { isDragSelect } from '@molstar/seqx-viewer/behaviors/select';
+import { trackOfLayer } from '@molstar/seqx-viewer/behaviors/two-axes';
 import {
   type Anchor,
   axisTotal,
@@ -146,8 +141,9 @@ export class ViewerInput {
   private _rowsRailClick: { track: string; at: number; part: WindowPart; window: RowsRailWindow } | undefined;
   /** The rows rails' gestures (a rows band's scroll and zoom by its rail). */
   private _rowsRailGesture: RowsRailGesture | undefined;
-  private get rowsRailGesture(): RowsRailGesture {
-    this._rowsRailGesture ??= new RowsRailGesture(this.viewer.view, this.viewer.config);
+  /** The rows rail's gesture: the `rows` behavior's (none without it: a rows rail then does not move). */
+  private get rowsRailGesture(): RowsRailGesture | undefined {
+    this._rowsRailGesture ??= this.viewer.behavior<RowsBehavior>('rows')?.railGesture();
     return this._rowsRailGesture;
   }
   /** A rail's press that never moved: its click (the platform's, after the button went up) centres or not. */
@@ -187,23 +183,23 @@ export class ViewerInput {
   private readonly _pointerAt = new Float64Array(2);
 
   private get hoverBehavior(): HoverBehavior | undefined {
-    return this.viewer.behavior(HoverProvider);
+    return this.viewer.behavior<HoverBehavior>('hover');
   }
 
   private get navigateBehavior(): NavigateBehavior | undefined {
-    return this.viewer.behavior(NavigateProvider);
+    return this.viewer.behavior<NavigateBehavior>('navigate');
   }
 
   private get selectBehavior(): SelectBehavior | undefined {
-    return this.viewer.behavior(SelectProvider);
+    return this.viewer.behavior<SelectBehavior>('select');
   }
 
   private get windowBehavior(): WindowBehavior | undefined {
-    return this.viewer.behavior(WindowProvider);
+    return this.viewer.behavior<WindowBehavior>('window');
   }
 
   private get navigatorBehavior(): NavigatorBehavior | undefined {
-    return this.viewer.behavior(NavigatorProvider);
+    return this.viewer.behavior<NavigatorBehavior>('navigator');
   }
 
   /**
@@ -422,7 +418,7 @@ export class ViewerInput {
       if (d.rowsRail) {
         d.x = x;
         d.y = y;
-        if (d.moved) this.rowsRailGesture.dragTo(railUnitAt(d.rowsRail, y));
+        if (d.moved) this.rowsRailGesture?.dragTo(railUnitAt(d.rowsRail, y));
       } else if (d.rail) {
         d.x = x;
         d.y = y;
@@ -501,7 +497,7 @@ export class ViewerInput {
         ? this._rowsRailOf(hit.layer)
         : undefined;
     if (rowsRail && hit?.part) {
-      if (!this.rowsRailGesture.press(rowsRail.key, hit.part, railUnitAt(rowsRail, y), rowsRail)) return false;
+      if (!this.rowsRailGesture?.press(rowsRail.key, hit.part, railUnitAt(rowsRail, y), rowsRail)) return false;
       this._drag = {
         x,
         y,
@@ -582,14 +578,14 @@ export class ViewerInput {
       const r = d.rowsRail;
       // a press that never moved waits for its click: outside the window it centres the rows there
       if (!d.moved) {
-        g.cancel();
+        g?.cancel();
         this._rowsRailClick = {
           track: r.key,
           at: railUnitAt(r, d.y0),
           part: d.part ?? 'body',
           window: { start: r.start, end: r.end, total: r.total, width: r.width },
         };
-      } else g.release();
+      } else g?.release();
       this._suppressClick = true;
       this._drag = undefined;
       return;
@@ -627,7 +623,7 @@ export class ViewerInput {
     if (rr) {
       this._rowsRailClick = undefined;
       this._suppressClick = false;
-      this.rowsRailGesture.click(rr.track, rr.part, rr.at, rr.window, e.detail ?? 1);
+      this.rowsRailGesture?.click(rr.track, rr.part, rr.at, rr.window, e.detail ?? 1);
       return true;
     }
     const rc = this._railClick;
@@ -768,7 +764,7 @@ export class ViewerInput {
     // over a rows band (its cells, its header) the wheel's vertical delta scrolls its rows, the rest pans the columns
     const rowsHit =
       this._hit.ySystem !== undefined || target === 'row' || target === 'summary-row' || target === 'tree-node';
-    const rows = rowsHit && !mods.mod && !mods.shift ? this.viewer.behavior(RowsProvider) : undefined;
+    const rows = rowsHit && !mods.mod && !mods.shift ? this.viewer.behavior<RowsBehavior>('rows') : undefined;
     // only over a rows layer's own band: a `row` hit of another layer (a gutter's) pans as any
     const over = rows && this._hit.layer !== undefined ? rows.lay(trackOfLayer(this._hit.layer)) : undefined;
     if (rows && over?.key === this._hit.layer && this._hit.layer !== undefined && Math.abs(dy) >= Math.abs(dx)) {
@@ -928,7 +924,7 @@ export class ViewerInput {
     // Esc during a drag-select cancels it: the selection before it comes back, and the click after it is none
     // Esc during a window's drag puts the view back where the press found it
     if (e.key === 'Escape' && this._drag?.window) {
-      if (this._drag.rowsRail) this.rowsRailGesture.cancel();
+      if (this._drag.rowsRail) this.rowsRailGesture?.cancel();
       else if (this._drag.rail) this.navigatorBehavior?.cancel();
       else this.windowBehavior?.cancel();
       this._dragHit = undefined;

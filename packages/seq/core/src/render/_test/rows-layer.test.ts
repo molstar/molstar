@@ -232,7 +232,10 @@ describe('the colors and the header', () => {
     const custom = { name: 'custom', read: () => 1 };
     const s = await settle(spec().build());
     await s.frame(at({ rowScale: 20 }));
-    const r = new Renderer({ ...s.renderer.options, theme: { measures: new Map([['custom', custom]]) } });
+    const r = new Renderer({
+      ...s.renderer.options,
+      theme: { measures: new Map([['custom', custom]]) },
+    });
     const lay = rowsLay(r.frame(at({ rowScale: 20 })));
     expect([...lay.measureEnv!.measures.keys()].sort()).toEqual(['custom', 'identity', 'matches-reference', 'share']);
   });

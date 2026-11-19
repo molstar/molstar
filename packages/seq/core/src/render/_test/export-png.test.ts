@@ -8,7 +8,8 @@
 // size returned; the render's issues kept. (The pixels against the SVG's picture: the render CLI's tests, over resvg.)
 
 import { describe, expect, it } from 'vitest';
-import { type RasterizeRequest, renderPng, renderSvg, svgSize } from '../index.js';
+import { type RasterizeRequest, renderPng, svgSize } from '../export-png.js';
+import { renderSvg } from '../render-svg.js';
 import { p53TracksSpec } from './fixtures.js';
 
 describe('renderPng', () => {

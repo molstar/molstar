@@ -13,7 +13,7 @@ import { createSeqSpec, miniatureNavigator, overviewNavigator, stripNavigator } 
 import { afterEach, describe, expect, it } from 'vitest';
 import { viewerItem } from '../config.js';
 import { DefaultSeqViewerSpec } from '../default-spec.js';
-import { partCursor } from '../navigator.js';
+import { partCursor } from '../part-cursor.js';
 import { createSeqViewer, type SeqViewer } from '../viewer.js';
 import { installFrames, type Frames } from './frames.js';
 

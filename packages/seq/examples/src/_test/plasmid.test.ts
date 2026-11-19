@@ -16,7 +16,7 @@ import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { applyPatch } from '@molstar/core/repr/patch';
 import { printAddress } from '@molstar/core/repr/tree';
-import { createSeqContext } from '@molstar/seqx-core/context';
+import { createSeqContext } from '@molstar/seqx-core/context/default';
 import { encodeSeq, inlineSeq, SeqRuntime } from '@molstar/seqx-core/data';
 import { RecordsRuntime } from '@molstar/seqx-core/data/records';
 import {

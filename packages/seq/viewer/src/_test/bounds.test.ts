@@ -7,6 +7,7 @@
 // The bounds as the viewer's composition holds them (_spec/README.md "Configuration"): items with the security
 // table's defaults, the patch's nesting check and the store's table bounds reading them.
 
+import { StoryPart } from '../story.js';
 import { applyPatch, type Patch, patchToNode } from '@molstar/core/repr/patch';
 import type { Node } from '@molstar/core/repr/tree';
 import { describe, expect, it } from 'vitest';
@@ -176,11 +177,14 @@ describe('previews and story steps under the bounds', () => {
       stepRoot(),
       {},
       viewerConfig({ bounds: { ...DefaultViewerConfig.bounds, maxDepth: 4 } }),
+      true,
+      undefined,
+      { story: StoryPart },
     );
     expect(tight.enterStep('deep')).toBeUndefined();
     expect(tight.step.value).toMatchObject({ id: 'deep', applies: false });
     expect(tight.issues.value.map((i) => i.code)).toEqual(['seq.viewer.step.stale']);
-    const loose = new SpecModel(stepRoot());
+    const loose = new SpecModel(stepRoot(), {}, DefaultViewerConfig, true, undefined, { story: StoryPart });
     expect(loose.enterStep('deep')).toBeUndefined();
     expect(loose.step.value).toMatchObject({ id: 'deep', applies: true });
   });

@@ -10,6 +10,8 @@ import type { BindingTable, GestureBinding } from '@molstar/seqx-viewer/bindings
 import type { ViewerConfig } from '@molstar/seqx-viewer/config';
 import type { SeqAnimationPort, SeqHistoryPort } from '@molstar/seqx-viewer/ports';
 import type { LegendModel } from './legends.js';
+import type { SeqNavigatorsPart } from './navigators.js';
+import type { SeqStoryPart } from './story.js';
 import type { SeqViewer } from './viewer.js';
 import type {
   AddressModel,
@@ -86,10 +88,11 @@ export interface SeqViewerUI {
    */
   readonly toolbar?: ToolbarMount;
   /**
-   * A mounted viewer with no `history` given gets a `@molstar/ui/history` stack of its own (`uiHistory()`): the
-   * standalone viewer's Undo. A headless viewer never does.
+   * A mounted viewer with no `history` given gets a stack of its own from this factory (`uiHistory` of
+   * `@molstar/seqx-viewer/ui-history`, a `@molstar/ui/history` stack): the standalone viewer's Undo. A headless viewer
+   * never does. Not listed, not in the bundle.
    */
-  readonly history?: true;
+  readonly history?: () => SeqHistoryPort;
   /**
    * The legends, a part the host places (`mountLegend` of `@molstar/seqx-viewer/mount-legend`, or its own): mounted
    * after the canvas in the standalone viewer. Seq* never draws a legend on its canvas.
@@ -129,6 +132,18 @@ export interface SeqViewerSpec {
    * (`headlessAnimation`).
    */
   readonly animation?: SeqAnimationPort;
+  /**
+   * Stories and transitions (_spec/README.md "Composition", Stories and Motion): story steps, a jump's motion and a
+   * step's (`StoryPart` of `@molstar/seqx-viewer/story`). None: every jump is a cut, no plan is made, and no story step
+   * can be entered (`seq.viewer.step.none`).
+   */
+  readonly story?: SeqStoryPart;
+  /**
+   * The navigators (_spec/README.md "Composition", Navigators): their models and their export (`NavigatorsPart` of
+   * `@molstar/seqx-viewer/navigators`). None: a declared navigator is not drawn, the ruler rail it would replace stays,
+   * and one issue says so (`seq.viewer.navigators.none`). Their gestures are the `navigator` behavior's.
+   */
+  readonly navigators?: SeqNavigatorsPart;
   /** The UI's parts; none for a headless viewer (a target given without it is left empty). */
   readonly ui?: SeqViewerUI;
 }

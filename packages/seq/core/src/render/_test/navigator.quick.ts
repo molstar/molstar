@@ -11,7 +11,8 @@
 import { stripNavigator } from '@molstar/seqx-core/lang';
 import { quickCase } from '@molstar/test-harness/quick';
 import { describe, expect, inject, it } from 'vitest';
-import { type FrameInput, hitView, type NavigatorFrameInput, type ViewLayout } from '../index.js';
+import { type FrameInput, hitView, type ViewLayout } from '../index.js';
+import { type NavigatorFrameInput } from '../navigator.js';
 import { p53TracksSpec } from './fixtures.js';
 import { settle } from './helpers.js';
 import { bandsSpec, settleNavigator, withNavigator } from './navigator-fixtures.js';

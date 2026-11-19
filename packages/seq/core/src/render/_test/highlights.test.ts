@@ -11,7 +11,8 @@
 
 import { rangesLocation } from '@molstar/seqx-core/query';
 import { describe, expect, it } from 'vitest';
-import { type EmphasisHighlight, recordDrawLists, renderSvg } from '../index.js';
+import { type EmphasisHighlight, recordDrawLists } from '../index.js';
+import { renderSvg } from '../render-svg.js';
 import { p53TextSpec, p53TracksSpec } from './fixtures.js';
 import { ringSpec } from './rings-fixtures.js';
 

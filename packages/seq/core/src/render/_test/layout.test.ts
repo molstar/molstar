@@ -13,7 +13,8 @@ import type { FormatRuntime } from '@molstar/seqx-core/data';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { describe, expect, it } from 'vitest';
 import { FakeClock } from '../../data/_test/synthetic.js';
-import { hitView, type RangesLay, recordDrawLists, renderSvg } from '../index.js';
+import { hitView, type RangesLay, recordDrawLists } from '../index.js';
+import { renderSvg } from '../render-svg.js';
 import { bigSpec, p53GeneSpec } from './fixtures.js';
 import { blocks, settle } from './helpers.js';
 

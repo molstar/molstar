@@ -17,9 +17,9 @@ import {
   drawView,
   type GridLay,
   recordDrawLists,
-  renderSvg,
   type ViewLayout,
 } from '../index.js';
+import { renderSvg } from '../render-svg.js';
 import { p53GeneSpec, p53TracksSpec } from './fixtures.js';
 import { settle } from './helpers.js';
 import { gridSpec } from './pairs-fixtures.js';

@@ -12,7 +12,8 @@
 
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { describe, expect, it } from 'vitest';
-import { type Frame, type ItemDescription, PairsType, renderSvg, RowsType } from '../index.js';
+import { type Frame, type ItemDescription, PairsType, RowsType } from '../index.js';
+import { renderSvg } from '../render-svg.js';
 import { settle } from './helpers.js';
 import { arcsSpec, gridSpec } from './pairs-fixtures.js';
 

@@ -5,6 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { uiHistory } from '../ui-history.js';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { RecordingContext } from '../canvas/_test/recording.js';
 import { DefaultSeqViewerSpec } from '../default-spec.js';
@@ -17,7 +18,7 @@ import { proteinOnGene } from './fixture.js';
 // retired viewer in the document, its listeners and its observers.
 
 // the canvas stack alone: the toolbar's own mount is `toolbar.test.ts`'s
-const canvasOnly = () => ({ ...DefaultSeqViewerSpec(), ui: { canvas: true as const, history: true as const } });
+const canvasOnly = () => ({ ...DefaultSeqViewerSpec(), ui: { canvas: true as const, history: uiHistory } });
 
 let frames: Frames;
 let viewer: SeqViewer | undefined;

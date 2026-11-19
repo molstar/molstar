@@ -21,6 +21,13 @@ import type { SeqTokens } from './tokens.js';
 type WindowConfig = RenderConfig['navigator']['window'];
 
 /**
+ * The zoom strip (_spec/README.md "Render", Navigators, The zoom strip): a reachable span narrower than `minPx` on the
+ * navigator gets a zoom strip under it, `heightPx` more (its connectors' gap, `ZoomGapPx`, within it). The viewer's
+ * `navigator.zoomStrip` sets them; these are the defaults (an export's).
+ */
+export const DefaultZoomStrip = { minPx: 48, heightPx: 16 } as const;
+
+/**
  * The window's look, fixed as other marks' are (a look, not a reader's choice): its body's fill opacity, and lit
  * (hovered or dragged); an idle outline's opacity; a grip's share of the window's thickness.
  */

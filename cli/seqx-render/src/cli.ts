@@ -16,7 +16,8 @@ import { setFSModule } from '@molstar/core/util/data-source';
 import { AlignmentRuntime, FastaRuntime, type FormatRuntime, SeqRuntime } from '@molstar/seqx-core/data';
 import { AlignmentFileRuntime } from '@molstar/seqx-core/data/alignment-readers';
 import { RecordsRuntime } from '@molstar/seqx-core/data/records';
-import { type Rasterizer, renderPng, renderSvg } from '@molstar/seqx-core/render';
+import { type Rasterizer, renderPng } from '@molstar/seqx-core/render/export-png';
+import { renderSvg } from '@molstar/seqx-core/render/render-svg';
 import { cliAssets } from './assets.js';
 import { resvgRasterizer } from './rasterize.js';
 

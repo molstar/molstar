@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { createSeqContext } from '@molstar/seqx-core/context';
+import { createSeqContext } from '@molstar/seqx-core/context/default';
 import { SeqRuntime } from '@molstar/seqx-core/data';
 import { AlignmentFileRuntime } from '@molstar/seqx-core/data/alignment-readers';
 import { theme } from '@molstar/seqx-core/lang';

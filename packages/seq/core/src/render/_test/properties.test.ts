@@ -24,9 +24,9 @@ import {
   type LettersLay,
   type RangesLay,
   recordDrawLists,
-  renderSvg,
   type SeqTokenName,
 } from '../index.js';
+import { renderSvg } from '../render-svg.js';
 import { rangesLocation } from '@molstar/seqx-core/query';
 import { BIG, BigRuntime, bigSpec, P53, p53TracksSpec } from './fixtures.js';
 import { blocks, settle } from './helpers.js';

@@ -6,7 +6,7 @@
 
 import { FeatureViews, P53Views } from '@molstar/seqx-examples';
 import { regionSeqText } from '@molstar/seqx-examples/p53/region';
-import { createSeqContext } from '@molstar/seqx-core/context';
+import { createSeqContext } from '@molstar/seqx-core/context/default';
 import { SeqRuntime } from '@molstar/seqx-core/data';
 import { locationsEqual } from '@molstar/seqx-core/query';
 import { recordDrawLists } from '@molstar/seqx-core/render';

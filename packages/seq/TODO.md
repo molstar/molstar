@@ -210,6 +210,14 @@ links, selection, the security bounds, MessagePack). Next, version 1's second mi
 
 ## `@molstar/seqx-viewer`
 
+- **The minimal viewer, what still holds it** (viewer-composition "Injected, opt in"): the tracks layout reads the rows
+  layer (`RowsLay`, the row columns of `rows-model`), the text layout (`TextLayout` by identity) and the grid's
+  `GridPlacement` and `rectOver` itself, so those stay in a viewer that lists none (about 30 kB minified of the rows
+  layer); a layout's name or a layer type's hook in its place drops them. The input's `RingPlacement` check keeps part
+  of the rings layout. The minimal viewer's check assumes `sideEffects: false` in the core's and the viewer's
+  `package.json` (set at the lane's merge): without it the bundler keeps module-level statements of unlisted modules
+  (the navigator's scratch arrays, the story's issue codes, the rows' zoom bounds); the story config's defaults stay
+  (the viewer's config reads them).
 - **A records source's row issues** (`RecordsSource.issues`: rows left out, clipped, ragged) are not reported: the store
   model keeps one issue a source address, its opening's refusal; the opened source's warnings to join `issues`.
 - Layouts: a leader's cyclic window wraps only where its layout `wraps` (a ring); a tracks leader over the origin (two

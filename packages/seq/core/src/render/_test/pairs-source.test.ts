@@ -7,7 +7,8 @@
 import { inlineSeq, SeqRuntime, seqToValue } from '@molstar/seqx-core/data';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { describe, expect, it } from 'vitest';
-import { type PairsLay, recordDrawLists, renderSvg, viewLegends } from '../index.js';
+import { type PairsLay, recordDrawLists, viewLegends } from '../index.js';
+import { renderSvg } from '../render-svg.js';
 import { settle } from './helpers.js';
 import { letters, pairRows } from './pairs-fixtures.js';
 

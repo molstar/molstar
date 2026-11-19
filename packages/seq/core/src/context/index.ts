@@ -21,8 +21,8 @@ export {
 export {
   type AssetsPort,
   configItem,
+  composeSeqContext,
   configValue,
-  createSeqContext,
   defaultAssetsPort,
   type ManagedAssetsPort,
   type PortResult,

@@ -9,7 +9,8 @@
 
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { rangesLocation } from '@molstar/seqx-core/query';
-import { drawListsToSvg, type Emphasis, type PassName, recordDrawLists, renderSvg } from '@molstar/seqx-core/render';
+import { drawListsToSvg, type Emphasis, type PassName, recordDrawLists } from '@molstar/seqx-core/render';
+import { renderSvg } from '@molstar/seqx-core/render/render-svg';
 import { describe, expect, it } from 'vitest';
 import { CanvasBackend } from '../backend.js';
 import { FakeCanvas } from './recording.js';

@@ -13,15 +13,8 @@ import { createSeqSpec, miniatureNavigator, overviewNavigator, stripNavigator, t
 import { resolveSpec } from '@molstar/seqx-core/resolve';
 import { resolveViews } from '@molstar/seqx-core/view';
 import { describe, expect, it } from 'vitest';
-import {
-  type BandsLay,
-  NavWindowFlags,
-  navigatorBox,
-  navigatorPart,
-  renderConfig,
-  RowsLay,
-  type ValuesLay,
-} from '../index.js';
+import { type BandsLay, NavWindowFlags, navigatorPart, renderConfig, RowsLay, type ValuesLay } from '../index.js';
+import { navigatorBox } from '../navigator.js';
 import { P53, p53GeneSpec } from './fixtures.js';
 import { Bands, ideogramSpec, settleNavigator } from './navigator-fixtures.js';
 import { rowsSpec, Synthetic } from './rows-fixtures.js';

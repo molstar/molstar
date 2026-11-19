@@ -24,8 +24,8 @@ import {
   recordDrawLists,
   drawListsToSvg,
   hitView,
-  renderSvg,
 } from '../index.js';
+import { renderSvg } from '../render-svg.js';
 import type { FormatRuntime } from '@molstar/seqx-core/data';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { FakeClock } from '../../data/_test/synthetic.js';

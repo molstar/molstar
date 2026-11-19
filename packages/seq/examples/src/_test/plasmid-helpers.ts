@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { BuiltInLayerTypes, BuiltInLayouts } from '@molstar/seqx-core/render/built-ins';
 import { readFileSync } from 'node:fs';
 import type { Node } from '@molstar/core/repr/tree';
 import { DataStore, SeqRuntime } from '@molstar/seqx-core/data';
@@ -42,7 +43,15 @@ export async function settled(spec: Node): Promise<Settled> {
     runtimes: [SeqRuntime, RecordsRuntime],
     assets: nodeFixtureAssets().reader,
   });
-  const renderer = new Renderer({ model, view: view!, data: store, tokens: LightTokens, text: bundledTextMetrics() });
+  const renderer = new Renderer({
+    types: BuiltInLayerTypes,
+    layouts: BuiltInLayouts,
+    model,
+    view: view!,
+    data: store,
+    tokens: LightTokens,
+    text: bundledTextMetrics(),
+  });
   return {
     renderer,
     async frame(input) {

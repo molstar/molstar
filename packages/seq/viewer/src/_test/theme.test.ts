@@ -5,6 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { uiHistory } from '../ui-history.js';
 import { DarkTokens, LightTokens } from '@molstar/seqx-core/render';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { RecordingContext } from '../canvas/_test/recording.js';
@@ -19,7 +20,7 @@ import { type Frames, installFrames } from './frames.js';
 // style), and a theme switch through the attribute.
 
 // the observers counted here are the canvas mount's: the toolbar's are `toolbar.test.ts`'s
-const canvasOnly = () => ({ ...DefaultSeqViewerSpec(), ui: { canvas: true as const, history: true as const } });
+const canvasOnly = () => ({ ...DefaultSeqViewerSpec(), ui: { canvas: true as const, history: uiHistory } });
 
 let frames: Frames;
 let viewer: SeqViewer | undefined;

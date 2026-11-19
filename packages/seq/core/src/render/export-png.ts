@@ -5,7 +5,8 @@
  */
 
 import type { Node } from '@molstar/core/repr/tree';
-import { type RenderSvgOptions, type RenderSvgResult, renderSvg } from './export.js';
+import type { RenderSvgOptions, RenderSvgResult } from './export.js';
+import { renderSvg } from './render-svg.js';
 
 // Headless PNG (_spec/README.md "Render", Backends): the SVG export rasterized, so a PNG is the SVG's picture. The
 // rasterizer is a port (`Rasterizer`): this package stays free of native code, the application composes one (the

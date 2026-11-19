@@ -92,5 +92,5 @@ export const LegendProvider: BehaviorProvider<undefined, ThemingBehavior> = {
 /** An alignment's rows bands: folds, pins, hidden rows, order, the rows' zoom and scroll (_spec/README.md "Behaviors"). */
 export const RowsProvider: BehaviorProvider<undefined, RowsBehavior> = {
   name: 'rows',
-  create: ({ spec, view, layout }) => rowsBehavior(spec, view, layout),
+  create: ({ spec, view, layout, config }) => rowsBehavior(spec, view, layout, config),
 };

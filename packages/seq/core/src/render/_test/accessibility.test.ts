@@ -12,7 +12,8 @@
 import { rangesLocation } from '@molstar/seqx-core/query';
 import { describe, expect, it } from 'vitest';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
-import { rangesText, renderSvg, spanText } from '../index.js';
+import { rangesText, spanText } from '../index.js';
+import { renderSvg } from '../render-svg.js';
 import { p53TracksSpec } from './fixtures.js';
 
 const parse = (svg: string) => new DOMParser().parseFromString(svg, 'image/svg+xml');

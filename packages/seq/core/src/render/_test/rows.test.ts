@@ -6,7 +6,8 @@
 
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { describe, expect, it } from 'vitest';
-import { hitView, type LogoLay, recordDrawLists, renderSvg } from '../index.js';
+import { hitView, type LogoLay, recordDrawLists } from '../index.js';
+import { renderSvg } from '../render-svg.js';
 import type { RowsLay } from '../rows.js';
 import { settle } from './helpers.js';
 

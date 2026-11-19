@@ -13,13 +13,8 @@
 
 import { createSeqSpec, stripNavigator } from '@molstar/seqx-core/lang';
 import { describe, expect, it } from 'vitest';
-import {
-  DarkTokens,
-  DefaultRenderConfig,
-  NavWindowFlags,
-  type NavigatorRendererOptions,
-  type ViewLayout,
-} from '../index.js';
+import { DarkTokens, DefaultRenderConfig, NavWindowFlags, type ViewLayout } from '../index.js';
+import { type NavigatorRendererOptions } from '../navigator.js';
 import { regionSpec, settleNavigator } from './navigator-fixtures.js';
 
 const R = '/views/v/region';

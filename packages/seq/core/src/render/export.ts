@@ -49,17 +49,12 @@ import type { ThemeContext } from './channels.js';
 import type { Emphasis } from './layer-type.js';
 import { LegendBand, layoutLegends, legendsHeight, viewLegends } from './legends.js';
 import { OverlaySources } from './overlay-sources.js';
-import {
-  type NavigatorFrame,
-  NavigatorRenderer,
-  type NavigatorRendererOptions,
-  navigatorBox,
-  railSections,
-  windowText,
-} from './navigator.js';
-import { Renderer } from './renderer.js';
+import type { NavigatorRendererOptions } from './navigator.js';
+import type { NavigatorExport } from './navigator-export.js';
+import { railSections } from './rail.js';
+import { Renderer, type RendererOptions } from './renderer.js';
 import type { ViewLayout } from './tracks.js';
-import { drawListsToSvg, escapeXml, type SvgOptions } from './svg.js';
+import { drawListsToSvg } from './svg.js';
 import { bundledTextMetrics, type TextMetrics } from './text.js';
 import { builtInTokens, type SeqTokens } from './tokens.js';
 
@@ -327,6 +322,18 @@ export interface RenderSvgOptions {
    * export is what its parts show): `DefaultZoomStrip` and the display order when absent.
    */
   readonly navigator?: Pick<NavigatorRendererOptions, 'zoomStrip' | 'direction'>;
+  /**
+   * The layer types drawn (_spec/README.md "Context", Registry entries): the composition's registry. `exportSvg` draws
+   * none when absent (each layer said); `renderSvg` draws the built-ins.
+   */
+  readonly types?: RendererOptions['types'];
+  /** The section layouts (the composition's registry): tracks for every section in `exportSvg` when absent. */
+  readonly layouts?: RendererOptions['layouts'];
+  /**
+   * How included navigators are drawn (`NavigatorSvgExport` of `render/navigator-export`): `renderSvg`'s default; none
+   * in `exportSvg` when absent (an export asked to include navigators then says it left them out).
+   */
+  readonly navigatorExport?: NavigatorExport;
 }
 
 /** The provisional height a layout for a height `auto` is measured at. */
@@ -366,8 +373,11 @@ function wantsKey(wants: readonly Want[]): string {
   return wants.map((w) => `${w.source}|${w.system}|${w.start}|${w.end}|${w.level}|${w.priority}`).join(';');
 }
 
-/** A spec drawn to an SVG string once the data its view needs has settled (or the timeout passed). */
-export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<RenderSvgResult> {
+/**
+ * A spec drawn to an SVG string once the data its view needs has settled (or the timeout passed), with what the options
+ * give and nothing else: the layer types, layouts and navigators of its composition (`renderSvg` gives the built-ins).
+ */
+export async function exportSvg(spec: Node, options: RenderSvgOptions): Promise<RenderSvgResult> {
   const issues: Issue[] = [...checkSeqSpec(spec, options.bounds)];
   const blank = (settled: boolean): RenderSvgResult => {
     const lists = new DrawLists();
@@ -448,6 +458,9 @@ export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<
       tokens,
       text: options.text ?? bundledTextMetrics(),
       config,
+      // none of a kind not given (each layer said, each section laid out as tracks)
+      types: options.types ?? {},
+      layouts: options.layouts ?? {},
       ...(options.registry ? { theme: options.registry } : {}),
     });
     const given = options.viewport;
@@ -455,29 +468,37 @@ export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<
     const windows = options.window ?? view.export?.window === true;
     // the navigators an export includes (shown ones), drawn as outlines; the rails plain (a figure's)
     const included = (options.navigators ?? view.export?.navigators ?? 'omit') === 'include';
-    const navs = included
-      ? view.navigators
-          .filter((n) => !n.hidden)
-          .map(
-            (navigator) =>
-              new NavigatorRenderer({
-                model,
-                view,
-                navigator,
-                data: store,
-                tokens,
-                text: options.text ?? bundledTextMetrics(),
-                config,
-                ...(options.registry ? { theme: options.registry } : {}),
-                images: renderer.images,
-                domains: renderer.layoutState,
-                storeSettings: store.settings,
-                ...(options.navigator?.zoomStrip ? { zoomStrip: options.navigator.zoomStrip } : {}),
-                ...(options.navigator?.direction ? { direction: options.navigator.direction } : {}),
-              }),
-          )
-      : [];
-    const rails = included ? Object.fromEntries(railSections(view).map((a) => [a, true])) : undefined;
+    const navs =
+      included && options.navigatorExport
+        ? options.navigatorExport({
+            model,
+            view,
+            data: store,
+            tokens,
+            text: options.text ?? bundledTextMetrics(),
+            config,
+            types: renderer.options.types,
+            layouts: renderer.options.layouts,
+            ...(options.registry ? { theme: options.registry } : {}),
+            images: renderer.images,
+            domains: renderer.layoutState,
+            storeSettings: store.settings,
+            ...(options.navigator?.zoomStrip ? { zoomStrip: options.navigator.zoomStrip } : {}),
+            ...(options.navigator?.direction ? { direction: options.navigator.direction } : {}),
+            dpr: options.dpr ?? 1,
+            cvdSafe: options.cvdSafe ?? false,
+            overlay: () => overlays.of(model, store),
+          })
+        : undefined;
+    if (included && !navs && view.navigators.some((n) => !n.hidden))
+      issues.push(
+        issueOf(RenderIssues, 'seq.render.navigator.export', 'This export draws no navigators: they are left out', {
+          hint: RenderIssues.codes['seq.render.navigator.export'].hint,
+        }),
+      );
+    // the rails plain; a navigator this export cannot draw replaces none (its section keeps its rail)
+    const railed = navs ? view : { ...view, navigators: [] };
+    const rails = included ? Object.fromEntries(railSections(railed).map((a) => [a, true])) : undefined;
     const frameInput = {
       // a height `auto` is measured from a first layout (`fitHeight`)
       size: { width: options.size.width, height: auto ? AutoHeight : (options.size.height as number) },
@@ -496,18 +517,6 @@ export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<
       ...(options.folds ? { folds: options.folds } : {}),
       ...(rails ? { rails } : {}),
     };
-    /** Each navigator's frame over the view's layout, at its box around the view. */
-    const navFrames = (layout: ViewLayout, settled: boolean) =>
-      navs.map((n) =>
-        n.frame({
-          size: navigatorBox(n.navigator, layout.width, layout.height),
-          dpr: options.dpr ?? 1,
-          settled,
-          overlay: overlays.of(model, store),
-          view: layout,
-          ...(options.cvdSafe ? { cvdSafe: true } : {}),
-        }),
-      );
     let last = '';
     // what a layout wants can follow from what arrived (a length, a follower's range): ask until it holds; the
     // export waits for its view alone, never its margins
@@ -521,10 +530,7 @@ export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<
       }
       // what the layout shows stays while the export waits
       nested.hold(f.layout.shown);
-      const wants = [
-        ...f.wants.filter((w) => w.priority !== 'margin'),
-        ...navFrames(f.layout, false).flatMap((n) => n.wants),
-      ];
+      const wants = [...f.wants.filter((w) => w.priority !== 'margin'), ...(navs?.frames(f.layout, false).wants ?? [])];
       const key = `${wantsKey(wants)}#${store.nodeVersion.value}`;
       if (key === last) break;
       last = key;
@@ -665,14 +671,10 @@ export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<
         height: s.height,
       })),
     });
-    if (navs.length) {
-      const drawn = navFrames(frame.layout, true);
-      for (const n of navs) issues.push(...n.allIssues);
-      svg = withNavigators(svg, frame.lists, model, navs, drawn, {
-        fonts: tokens.fonts,
-        fade: config.fade,
-        idPrefix,
-      });
+    if (navs?.count) {
+      const drawn = navs.frames(frame.layout, true).frames;
+      issues.push(...navs.issues());
+      svg = navs.wrap(svg, frame.lists, model, drawn, { fonts: tokens.fonts, fade: config.fade, idPrefix });
     }
     return { svg, settled, issues, lists: frame.lists, ...(selection ? { selection } : {}) };
   } finally {
@@ -681,55 +683,4 @@ export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<
     controller.abort();
     if (own) store.retire();
   }
-}
-
-/**
- * The view's SVG with its navigators stacked by `place` around it (top and bottom across its width, left and right
- * along its height, a miniature at its own size): each a group with its windows' `<title>` and `data-navigator` its
- * id; the view's metadata on the outer root.
- */
-function withNavigators(
-  view: string,
-  lists: DrawLists,
-  model: StaticModel,
-  navs: readonly NavigatorRenderer[],
-  frames: readonly NavigatorFrame[],
-  svg: Pick<SvgOptions, 'fonts' | 'fade' | 'idPrefix'>,
-): string {
-  const vw = lists.width;
-  const vh = lists.height;
-  // each navigator's box, a zoom strip's height below it
-  const boxes = navs.map((n) => {
-    const b = navigatorBox(n.navigator, vw, vh);
-    return { width: b.width, height: b.height + n.zoomHeight };
-  });
-  const sum = (p: string, k: 'width' | 'height') =>
-    boxes.reduce((t, b, i) => t + (navs[i].navigator.place === p ? b[k] : 0), 0);
-  const top = sum('top', 'height');
-  const left = sum('left', 'width');
-  const width = left + vw + sum('right', 'width');
-  const height = top + vh + sum('bottom', 'height');
-  const at = { top: 0, bottom: top + vh, left: 0, right: left + vw };
-  const nest = (inner: string, x: number, y: number) => inner.replace(/^<svg /, `<svg x="${x}" y="${y}" `);
-  const meta = /^<svg [^>]*?viewBox="[^"]*"([^>]*)>/.exec(view)?.[1] ?? '';
-  const parts = [nest(view, left, top)];
-  navs.forEach((n, i) => {
-    const b = boxes[i];
-    const place = n.navigator.place;
-    const x = place === 'left' ? at.left : place === 'right' ? at.right : left;
-    const y = place === 'top' ? at.top : place === 'bottom' ? at.bottom : top;
-    if (place === 'top') at.top += b.height;
-    else if (place === 'bottom') at.bottom += b.height;
-    else if (place === 'left') at.left += b.width;
-    else at.right += b.width;
-    const titles = frames[i].windows
-      .filter((w) => w.shown)
-      .map((w) => `Window: ${windowText(model, n.navigator, w)}`)
-      .join('; ');
-    const inner = drawListsToSvg(frames[i].lists, { ...svg, idPrefix: `${svg.idPrefix ?? ''}n${i}-` });
-    parts.push(
-      `<g data-navigator="${escapeXml(n.navigator.id)}"><title>${escapeXml(titles || n.navigator.id)}</title>${nest(inner, x, y)}</g>`,
-    );
-  });
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"${meta}>${parts.join('')}</svg>`;
 }

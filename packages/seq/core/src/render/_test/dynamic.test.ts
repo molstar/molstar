@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { BuiltInLayerTypes, BuiltInLayouts } from '../built-ins.js';
 import { DataStore, SeqRuntime, type StoreSettings } from '@molstar/seqx-core/data';
 import { itemAddress, nodeAddress, OverlayBuilder, resolveSpec } from '@molstar/seqx-core/resolve';
 import { resolveView, resolveViews } from '@molstar/seqx-core/view';
@@ -18,8 +19,8 @@ import {
   type RenderConfig,
   Renderer,
   renderConfig,
-  renderSvg,
 } from '../index.js';
+import { renderSvg } from '../render-svg.js';
 import { Genes, transcriptsSpec } from './transcripts.js';
 
 // Dynamic nodes drawn: transcripts arriving with the gene's regions, one track each from a template; their domains
@@ -40,6 +41,8 @@ async function live(
   const overlays = new OverlayBuilder({ runtimes: [SeqRuntime] });
   const sources = new OverlaySources(store, NoAssets);
   const renderer = new Renderer({
+    types: BuiltInLayerTypes,
+    layouts: BuiltInLayouts,
     model,
     view,
     data: store,
@@ -152,6 +155,8 @@ describe('dynamic nodes through templates', () => {
     // the tracks go (a spec without templates over the same store): nothing shows it any more, and it goes
     const bare = resolveSpec(transcriptsSpec({ templates: false }), { runtimes: [SeqRuntime] });
     const plain = new Renderer({
+      types: BuiltInLayerTypes,
+      layouts: BuiltInLayouts,
       model: bare,
       view: resolveViews(bare)[0],
       data: run.store,
