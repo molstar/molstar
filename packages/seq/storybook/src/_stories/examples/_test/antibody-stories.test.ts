@@ -145,6 +145,34 @@ describe('Antibody: the rulers against the data', () => {
       },
     );
 
+  it('past the variable domain a ruler is marked, not blank: no tick, one note, a dashed line; canvas and SVG alike', async () => {
+    const s = await open('schemes', 2400);
+    for (const c of ['light', 'heavy']) s.viewer.view.setRange(`/views/main/${c}`, 0, 240);
+    await settle(s);
+    const f = s.viewer.draw() ?? s.viewer.frame!;
+    const r = await s.viewer.renderSvg({ tokens: LightTokens });
+    const wt = wildType();
+    for (const [k, c] of (['light', 'heavy'] as const).entries()) {
+      const covered = wt[c].kabat.findIndex((l) => l === null);
+      expect(covered).toBeGreaterThan(90);
+      for (const track of f.layout.sections[k].tracks) {
+        const lay = track.layers[0].lay as RulerLay;
+        if (track.layers[0].type.name !== 'ruler') continue;
+        expect(lay.nruns, track.track.address).toBe(1);
+        for (let j = 0; j < lay.n; j++) expect(lay.axis.positionAt(lay.x[j])).toBeLessThan(wt[c].kabat.length);
+        // no tick past the last labelled position
+        const last = wt[c].kabat.length - 1 - [...wt[c].kabat].reverse().findIndex((l) => l !== null);
+        for (let j = 0; j < lay.n; j++) expect(lay.axis.positionAt(lay.x[j])).toBeLessThanOrEqual(last);
+        expect(lay.note).toBe('not numbered');
+      }
+    }
+    const texts = [...r.svg.matchAll(/<text[^>]*>([^<]*)<\/text>/g)].map((m) => m[1]);
+    // a note for each of the four rulers, a muted dashed line for each
+    expect(texts.filter((t) => t === 'not numbered')).toHaveLength(4);
+    expect(r.svg.match(/stroke-dasharray="3"/g)?.length).toBeGreaterThanOrEqual(4);
+    expect(f.layout.issues).toEqual([]);
+  });
+
   it('the design’s IMGT ruler ticks 111.1 and 112.1 before 112 (inline labels, EC-7); Kabat’s 100D and 100E drawn', async () => {
     const r = await drawn('schemes-design', [100, 116]);
     expect(r.issues).toEqual([]);

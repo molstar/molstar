@@ -21,13 +21,16 @@ import {
   type LayoutContext,
   labelStep,
   type RulerLay,
+  type RulerPrep,
   RulerType,
+  recordDrawLists,
   renderConfig,
 } from '../index.js';
 import { renderSvg } from '../render-svg.js';
+import { noteStart } from '../ruler.js';
 import { GENE_EXONS, GENE_LENGTH, geneLetters, P53 } from './fixtures.js';
 import { settle } from './helpers.js';
-import { layerLay, rng } from './small-helpers.js';
+import { layerLay, readPaths, rng } from './small-helpers.js';
 
 const GAP = DefaultRenderConfig.ruler.labelGap;
 
@@ -236,13 +239,22 @@ function kabat(): Numbering {
 }
 
 /** The ruler over `kabat` laid out by hand (the language declares no numbering yet), the view `[start, end)` of 700 px. */
-function kabatRuler(start: number, end: number, width = 700, numbering: Numbering = kabat()) {
-  const axis = new AxisTransform('chain', [0, numbering.length], 0, width, 1, { start, end });
+function kabatRuler(
+  start: number,
+  end: number,
+  width = 700,
+  numbering: Numbering = kabat(),
+  more: { length?: number; prep?: Partial<RulerPrep>; label?: string } = {},
+) {
+  const axis = new AxisTransform('chain', [0, more.length ?? numbering.length], 0, width, 1, { start, end });
   const reports: string[] = [];
   const ctx = {
     box: { x: 0, y: 0, width, height: 22 },
     axis,
-    section: { address: '/views/main/chain' },
+    section: {
+      address: '/views/main/chain',
+      tracks: more.label === undefined ? [] : [{ label: more.label, layers: [{ address: 'k' }] }],
+    },
     key: 'k',
     dpr: 1,
     config: renderConfig(),
@@ -253,12 +265,12 @@ function kabatRuler(start: number, end: number, width = 700, numbering: Numberin
     report: (i: { code: string }) => reports.push(i.code),
   } as unknown as LayoutContext;
   const lay = RulerType.layout(
-    { id: 'kabat', numbering: { numbering, shift: 0 } },
+    { id: 'kabat', numbering: { numbering, shift: 0 }, unnumbered: 'mark', ...more.prep },
     ctx,
     { coverage: () => undefined, keysOf: () => [], get: () => undefined },
     undefined as never,
   );
-  return { lay, numbering, reports };
+  return { lay, numbering, reports, ctx };
 }
 
 describe('the ruler: insertion labels', () => {
@@ -314,5 +326,232 @@ describe('the ruler: insertion labels', () => {
         if (k) expect(out[k].x - out[k].w / 2 - (out[k - 1].x + out[k - 1].w / 2)).toBeGreaterThanOrEqual(4);
       }
     }
+  });
+});
+
+/**
+ * A light chain's shape: 107 positions numbered 1 to 107 (Kabat's variable domain), then 100 of the constant domain
+ * with no label; a numbering `count` names every position, for the fallback test.
+ */
+function lightChain(params: Record<string, unknown> = {}, label = 'Light chain') {
+  const b = createSeqSpec({ title: 'unnumbered' });
+  const labels: (string | null)[] = Array.from({ length: 207 }, (_, i) => (i < 107 ? String(i + 1) : null));
+  const letters = 'A'.repeat(207);
+  const light = b.data.sequence('light', { alphabet: 'protein', letters }, (s) => {
+    s.numbering('kabat', { method: 'labels', labels, scheme: 'kabat' });
+    s.numbering('count', { method: 'labels', labels: Array.from({ length: 207 }, (_, i) => `c${i + 1}`) });
+  });
+  b.views.view('main', (v) => {
+    v.section('light', { of: light })
+      .track('r', { label })
+      .layer('r', { type: 'ruler', numbering: 'kabat', ...params });
+  });
+  return b.build();
+}
+
+describe('the ruler: where a numbering does not reach', () => {
+  const size = { width: 1000, height: 60 };
+  const view = { size, viewport: { start: 0, end: 207 } };
+  const position = (lay: RulerLay, j: number) => lay.axis.positionAt(lay.x[j]);
+
+  it('`mark` (the default): no tick past the coverage, one muted note, the line muted and dashed', async () => {
+    const s = await settle(lightChain());
+    const f = await s.frame(view);
+    const lay = layerLay<RulerLay>(f, 0);
+    expect(lay.n).toBeGreaterThan(3);
+    for (let j = 0; j < lay.n; j++) expect(position(lay, j)).toBeLessThan(107);
+    expect(lay.nruns).toBe(1);
+    // the run from position 107 to the end
+    expect(lay.runs[0]).toBeCloseTo(lay.axis.x(107), 0);
+    expect(lay.runs[1]).toBeCloseTo(lay.box.x + lay.box.width, 0);
+    // the track's label does not name Kabat: the note does
+    expect(lay.note).toBe('not numbered by kabat');
+    const notes = recordDrawLists(f.lists, ['labels'])
+      .split('\n')
+      .filter((l) => l.includes('not numbered'));
+    expect(notes).toHaveLength(1);
+    const paths = readPaths(f.lists);
+    expect(paths).toHaveLength(1);
+    expect(paths[0].dash).toBeGreaterThan(0);
+    expect(paths[0].xy[0]).toBeCloseTo(lay.runs[0], 3);
+    // muted: the ruler's color at a lower alpha
+    expect(paths[0].stroke & 0xff).toBeLessThan(0xff);
+    expect(f.layout.issues).toEqual([]);
+  });
+
+  it('the note leaves out the numbering where the track’s label names it', async () => {
+    const s = await settle(lightChain({}, 'Light chain, Kabat'));
+    const f = await s.frame(view);
+    expect(layerLay<RulerLay>(f, 0).note).toBe('not numbered');
+  });
+
+  it('a run too narrow for the note gets the line alone; a view inside the coverage has neither', async () => {
+    const s = await settle(lightChain());
+    const tight = { size: { width: 100, height: 60 }, viewport: { start: 100, end: 207 } };
+    const narrow = layerLay<RulerLay>(await s.frame(tight), 0);
+    expect(narrow.nruns).toBe(1);
+    expect(Number.isNaN(narrow.noteX[0])).toBe(true);
+    const inside = await s.frame({ size, viewport: { start: 0, end: 100 } });
+    expect(layerLay<RulerLay>(inside, 0).nruns).toBe(0);
+    expect(readPaths(inside.lists)).toHaveLength(0);
+  });
+
+  it('`fallback`: the run is labelled by the ordinal, muted; no note, no line', async () => {
+    const s = await settle(lightChain({ unnumbered: 'fallback' }));
+    const f = await s.frame(view);
+    const lay = layerLay<RulerLay>(f, 0);
+    expect(lay.nruns).toBe(0);
+    expect(readPaths(f.lists)).toHaveLength(0);
+    let muted = 0;
+    let plain = 0;
+    for (let j = 0; j < lay.n; j++) {
+      if (!lay.shown[j]) continue;
+      const p = position(lay, j);
+      // the ordinal's label of the position past the coverage, Kabat's before it
+      expect(lay.muted[j]).toBe(p >= 107 ? 1 : 0);
+      expect(lay.labels[j]).toBe(String(p + 1));
+      if (p >= 107) muted++;
+      else plain++;
+    }
+    expect(muted).toBeGreaterThan(1);
+    expect(plain).toBeGreaterThan(1);
+    expect(f.layout.issues).toEqual([]);
+  });
+
+  it('`fallbackNumbering` names the numbering of the run; an unknown one is one issue and `mark` is used', async () => {
+    const named = await (await settle(lightChain({ unnumbered: 'fallback', fallbackNumbering: 'count' }))).frame(view);
+    const lay = layerLay<RulerLay>(named, 0);
+    const past: string[] = [];
+    for (let j = 0; j < lay.n; j++) if (lay.shown[j] && position(lay, j) >= 107) past.push(lay.labels[j]);
+    expect(past.length).toBeGreaterThan(1);
+    for (const l of past) expect(l).toMatch(/^c\d+$/);
+    const unknown = await (await settle(lightChain({ unnumbered: 'fallback', fallbackNumbering: 'nope' }))).frame(view);
+    expect(unknown.layout.issues.map((i) => i.code)).toEqual(['seq.render.numbering.fallback']);
+    expect(layerLay<RulerLay>(unknown, 0).nruns).toBe(1);
+  });
+
+  it('the SVG export draws the same: the note once, a dashed line, none of it under `fallback`', async () => {
+    const r = await renderSvg(lightChain(), { size, viewport: view.viewport, legend: 'none' });
+    const texts = [...r.svg.matchAll(/<text[^>]*>([^<]*)<\/text>/g)].map((m) => m[1]);
+    expect(texts.filter((t) => t.startsWith('not numbered'))).toHaveLength(1);
+    expect(r.svg).toMatch(/stroke-dasharray="3"/);
+    const fb = await renderSvg(lightChain({ unnumbered: 'fallback' }), {
+      size,
+      viewport: view.viewport,
+      legend: 'none',
+    });
+    expect(fb.svg).not.toContain('not numbered');
+    expect(fb.svg).not.toContain('stroke-dasharray');
+  });
+});
+
+/** A sequence of `length` positions numbered `1…` where `has(i)`, a ruler by that numbering (`reversed`: the section's). */
+function holeyChain(
+  length: number,
+  has: (i: number) => boolean,
+  params: Record<string, unknown> = {},
+  reversed = false,
+) {
+  const b = createSeqSpec({ title: 'holey' });
+  const labels = Array.from({ length }, (_, i) => (has(i) ? String(i + 1) : null));
+  const sq = b.data.sequence('sq', { alphabet: 'protein', letters: 'A'.repeat(length) }, (s) => {
+    s.numbering('own', { method: 'labels', labels, scheme: 'own' });
+  });
+  b.views.view('main', (v) => {
+    v.section('sq', { of: sq, ...(reversed ? { direction: 'reversed' } : {}) })
+      .track('r', { label: 'Ruler' })
+      .layer('r', { type: 'ruler', numbering: 'own', ...params });
+  });
+  return b.build();
+}
+
+describe('the ruler: only the head and the tail are unnumbered', () => {
+  const size = { width: 1000, height: 60 };
+  const frameOf = async (spec: ReturnType<typeof holeyChain>, end: number) =>
+    (await settle(spec)).frame({ size, viewport: { start: 0, end } });
+
+  it('a piece past 4,096 positions in view keeps the mark (the line, the note) and the fallback labels', async () => {
+    const f = await frameOf(
+      holeyChain(20_000, (i) => i < 9000),
+      20_000,
+    );
+    const lay = layerLay<RulerLay>(f, 0);
+    expect(lay.nruns).toBe(1);
+    expect(lay.runs[0]).toBeCloseTo(lay.axis.x(9000), 0);
+    expect(readPaths(f.lists)).toHaveLength(1);
+    expect(Number.isNaN(lay.noteX[0])).toBe(false);
+    for (let j = 0; j < lay.n; j++) expect(lay.axis.positionAt(lay.x[j])).toBeLessThan(9000);
+    const fb = await frameOf(
+      holeyChain(20_000, (i) => i < 9000, { unnumbered: 'fallback' }),
+      20_000,
+    );
+    const flay = layerLay<RulerLay>(fb, 0);
+    const past = Array.from({ length: flay.n }, (_, j) => j).filter((j) => flay.shown[j] && flay.muted[j]);
+    expect(past.length).toBeGreaterThan(2);
+    for (const j of past) expect(flay.axis.positionAt(flay.x[j])).toBeGreaterThanOrEqual(9000);
+  });
+
+  it('a label missing between labelled positions stays blank: no run, no note, no line; a head is a run', async () => {
+    const f = await frameOf(
+      holeyChain(300, (i) => i < 100 || i >= 150),
+      300,
+    );
+    expect(layerLay<RulerLay>(f, 0).nruns).toBe(0);
+    expect(readPaths(f.lists)).toHaveLength(0);
+    const lay = layerLay<RulerLay>(
+      await frameOf(
+        holeyChain(300, (i) => i >= 40),
+        300,
+      ),
+      0,
+    );
+    expect(lay.nruns).toBe(1);
+    expect(lay.runs[1]).toBeCloseTo(lay.axis.x(40), 0);
+    // nothing labelled at all: the whole system is one run
+    expect(
+      layerLay<RulerLay>(
+        await frameOf(
+          holeyChain(300, () => false),
+          300,
+        ),
+        0,
+      ).nruns,
+    ).toBe(1);
+  });
+
+  it('a reversed axis marks the same run, on the left, its note clear of every label', async () => {
+    const lay = layerLay<RulerLay>(
+      await frameOf(
+        holeyChain(300, (i) => i < 100, {}, true),
+        300,
+      ),
+      0,
+    );
+    expect(lay.nruns).toBe(1);
+    expect(lay.runs[0]).toBeCloseTo(lay.box.x, 0);
+    const x = lay.noteX[0];
+    expect(Number.isNaN(x)).toBe(false);
+    for (let j = 0; j < lay.n; j++) {
+      if (!lay.shown[j]) continue;
+      const clear = x + lay.noteWidth <= lay.x[j] - lay.widths[j] / 2 || x >= lay.x[j] + lay.widths[j] / 2;
+      expect(clear).toBe(true);
+    }
+  });
+
+  it('the note moves past labels in any order of x, never onto one it passed', () => {
+    // descending (a reversed axis): labels [80, 92] then [60, 72]; passing the second lands on the first
+    const x = noteStart([80, 92, 60, 72], 60, 400, 10);
+    expect(x).toBe(96);
+    expect(noteStart([60, 72, 80, 92], 60, 400, 10)).toBe(x);
+    // a label that leaves no room: no note
+    expect(Number.isNaN(noteStart([60, 390], 60, 400, 10))).toBe(true);
+  });
+
+  it('an unknown `fallbackNumbering` is reported only under `fallback`', async () => {
+    const mark = await frameOf(
+      holeyChain(300, (i) => i < 100, { fallbackNumbering: 'nope' }),
+      300,
+    );
+    expect(mark.layout.issues).toEqual([]);
   });
 });

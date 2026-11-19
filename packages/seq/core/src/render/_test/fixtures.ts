@@ -59,6 +59,29 @@ function domains(b: ReturnType<typeof createSeqSpec>, p53: Parameters<typeof b.d
   });
 }
 
+/**
+ * A light chain's rulers: 107 positions numbered by Kabat, 100 of the constant domain not, under a ruler marking them
+ * and one labelling them by the ordinal (`unnumbered: fallback`).
+ */
+export function holeySpec(): Node {
+  const b = createSeqSpec({ title: 'holey rulers' });
+  const labels = Array.from({ length: 207 }, (_, i) => (i < 107 ? String(i + 1) : null));
+  const light = b.data.sequence('light', { alphabet: 'protein', letters: 'A'.repeat(207) }, (s) => {
+    s.numbering('kabat', { method: 'labels', labels, scheme: 'kabat' });
+  });
+  b.views.view('main', (v) => {
+    const s = v.section('light', { of: light });
+    s.track('mark', { label: 'Light' }).layer('r', { type: 'ruler', numbering: 'kabat' });
+    s.track('fallback', { label: 'Light, ordinal' }).layer('r', {
+      type: 'ruler',
+      numbering: 'kabat',
+      unnumbered: 'fallback',
+    });
+    s.track('letters', { label: 'Sequence' }).layer('letters', { type: 'letters' });
+  });
+  return b.build();
+}
+
 /** p53 as tracks: its letters, its domains (in lanes), its conservation. */
 export function p53TracksSpec(): Node {
   const b = createSeqSpec({ title: 'p53 tracks' });

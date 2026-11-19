@@ -172,6 +172,12 @@ export const RenderIssues = defineIssues('seq.render', {
     description: 'A ruler’s `numbering` is not one its system has: it labels by `ordinal`',
     hint: 'Name `index`, `ordinal` or a numbering the system declares',
   },
+  'seq.render.numbering.fallback': {
+    severity: 'warning',
+    description:
+      'A ruler’s `fallbackNumbering` is not one its system has: its unnumbered positions are marked (`unnumbered: mark`)',
+    hint: 'Name `index`, `ordinal` or a numbering the system declares',
+  },
   'seq.render.numbering.limit': {
     severity: 'warning',
     description:

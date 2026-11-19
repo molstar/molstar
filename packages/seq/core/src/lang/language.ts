@@ -848,6 +848,15 @@ export const SeqLanguage = defineLanguage({
           enum: ['none', 'bases'],
           doc: 'For `ruler`: `none` (when absent: the number as its numbering labels it) or `bases` (bp, kb, Mb, chosen by the tick step: 7,668,402 at a base tick, 7.67 Mb at a megabase one); a numbering other than `ordinal` keeps its own labels.',
         },
+        unnumbered: {
+          type: 'string',
+          enum: ['mark', 'fallback'],
+          doc: 'For `ruler`: what stands where its numbering has no label (past its coverage: the constant domain under Kabat): `mark` (when absent) a muted dashed line, one muted “not numbered” note at the start of each run and no ticks; `fallback` the run labelled by `fallbackNumbering`, muted.',
+        },
+        fallbackNumbering: {
+          type: 'string',
+          doc: 'For `ruler` with `unnumbered: fallback`: the numbering that labels the unnumbered positions (`ordinal`, `index`, or one the system declares); `ordinal` when absent. One the system lacks is `seq.render.numbering.fallback` and `mark` is used.',
+        },
         encoding: {
           type: 'string',
           enum: ['bars', 'line', 'area'],
