@@ -285,25 +285,40 @@ describe('hidden layers', () => {
 });
 
 describe('a leader', () => {
-  it('starts at its item’s lane, not at the first lane’s top', async () => {
-    // A in lane 0, its label inside; C over B's start (the longer, placed first), B in lane 1 moved past C's label
+  it('starts at its item’s mark, moved clear of the label before it, crossing nothing', async () => {
+    // C's label ends just right of B's start: B's label moves a few px right of it, its leader from B's mark
     const rows: Rows = {
-      start: [0, 10, 10],
-      end: [100, 12, 11],
-      id: ['a', 'c', 'b'],
-      label: ['Long domain', 'Cc', 'Bb'],
+      start: [10, 14],
+      end: [12, 15],
+      id: ['c', 'b'],
+      label: ['Cc', 'Bb'],
     };
     const s = await settle(tracks([rows], undefined));
     const f = await s.frame({ size: Size, settled: true });
     const l = lay(f);
     const b = Array.from({ length: l.items }, (_, i) => i).find((i) => l.keys[i] === 'b')!;
     const lane = l.lanes[b];
-    expect(lane).toBeGreaterThan(0);
     const paths = recordDrawLists(f.lists, ['labels'])
       .split('\n')
       .filter((x) => x.startsWith('path '));
     expect(paths.length).toBe(1);
     const y0 = Number(paths[0].replace(/[ML]/g, ' ').split(/\s+/).filter(Boolean)[2]);
     expect(y0).toBeCloseTo(l.laneY + lane * l.laneHeight + l.gap / 2, 6);
+  });
+
+  it('a label under another lane’s mark has no leader up through it: dropped', async () => {
+    // A in lane 0 over B's start, C before B: B (lane 1) would need a leader through A's mark
+    const rows: Rows = {
+      start: [0, 10, 14],
+      end: [100, 12, 15],
+      id: ['a', 'c', 'b'],
+      label: ['Long domain', 'Cc', 'Bb'],
+    };
+    const s = await settle(tracks([rows], undefined));
+    const f = await s.frame({ size: Size, settled: true });
+    const l = lay(f);
+    expect(l.lanes[Array.from({ length: l.items }, (_, i) => i).find((i) => l.keys[i] === 'b')!]).toBeGreaterThan(0);
+    const placed = Array.from({ length: l.ln }, (_, k) => l.keys[l.litem[k]]);
+    expect(placed).toEqual(['c']);
   });
 });
