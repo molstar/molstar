@@ -144,7 +144,11 @@ limits (they were sort of self-imposed and estimate), but obviously try to minim
   cap (then lanes compact, as now); its marks centred in the band. Tracks of one kind in a section share the tallest
   height among them (two CDR tracks are equal), so neighbours do not vary lane by lane. A track's `height` overrides.
   Why: a default fills its space and reads as designed; heights decided by the whole data stay put as the view moves.
-  The numbers (the lane, the padding, the cap) come from the defaults audit (`drafts/defaults-audit.md`).
+  The numbers (the lane, the padding, the cap) come from the defaults audit (`drafts/defaults-audit.md`). **The
+  algorithm is the spec's** (the author, 2026-11-19: "configurable in the spec … something like 'layout algorithm'"):
+  the section's `heights` param names the sizing, `content` (the default, above), `uniform` (every track the tallest
+  content height in the section), `fixed` (each track its layer type's fixed default, the second slice's look); an
+  extension may register more (`ext:` names, as layouts are registry entries); a track's `height` overrides any.
 - **A band may scroll inside its section** (asked by [grids-and-rows.md](grids-and-rows.md)): a band has its own vertical scroll
   (`bandTop`, clamped to its content's height) and row zoom (`rowScale`, px a row), both in the section's viewport by
   band (below), beside the section's `top`. The band's layer reads them (`ctx.bandTop`, `ctx.rowScale`) and owns its y
@@ -530,6 +534,7 @@ registry entry, an option of a call, or fixed with its reason).
 | `align`, `max_width` (text) | spec param | `start`, none | the whole width | `center`; a px cap (EC-98) |
 | `height` (text) | spec param | none (the content, to `text.maxHeight`) | the writer may fix a box | px |
 | `rotation` (rings) | spec param | 0 (origin at the top) | the plasmid maps' convention | any angle |
+| `heights` (section) | spec param | `content` | tracks fit their data in steps, one kind one height (decided); `uniform`, `fixed`, `ext:` sizings; `track.height` overrides |
 | `labels` (rings) | spec param | `outside` | EC-108 | `none` |
 | `arrange` (blocks) | spec param | `row` | one axis, one scroll | `stack` |
 | `copies` | spec param | `merge` | a copy group's sequence said once, its cost one block's (EC-65, EC-67) | `each` |
