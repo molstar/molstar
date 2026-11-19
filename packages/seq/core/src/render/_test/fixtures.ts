@@ -129,7 +129,10 @@ const BigCoverage: Coverage = {
 
 const hash = (p: number) => (Math.imul(p ^ 0x9e3779b9, 0x85ebca6b) >>> 13) & 0xffff;
 
-/** Items every 50 positions, 70 long (two lanes), each `r<start>`; a level above 1 answers their density. */
+/**
+ * Items every 50 positions, 70 long (two lanes), each `r<start>`; a region's answer holds the items overlapping it
+ * (the contract), so one starting in the tile before is in it too; a level above 1 answers their density.
+ */
 function bigAnswer(r: RegionRequest): RegionAnswer {
   const tables: { letters?: unknown; ranges?: unknown; values?: unknown } = {};
   const L = r.level;
@@ -141,7 +144,7 @@ function bigAnswer(r: RegionRequest): RegionAnswer {
   if (r.shapes.includes('ranges')) {
     if (L === 1) {
       const starts: number[] = [];
-      for (let p = Math.ceil(r.start / 50) * 50; p < r.end; p += 50) starts.push(p);
+      for (let p = Math.max(0, Math.ceil((r.start - 69) / 50) * 50); p < r.end; p += 50) starts.push(p);
       tables.ranges = {
         form: 'list',
         start: Int32Array.from(starts),

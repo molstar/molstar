@@ -115,7 +115,8 @@ export class SyntheticSource implements OpenedSource {
 
 export function rangesAnswer(r: RegionRequest): RegionAnswer {
   const starts: number[] = [];
-  for (let p = Math.ceil(r.start / 100) * 100; p < r.end; p += 100) starts.push(p);
+  // the items overlapping the region (10 long), as the protocol's answer holds them
+  for (let p = Math.max(0, Math.ceil((r.start - 9) / 100) * 100); p < r.end; p += 100) starts.push(p);
   return {
     ok: true,
     tables: {
