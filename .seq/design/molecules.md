@@ -121,7 +121,11 @@ sequence's table of its non-standard positions; `residues` is a molecule's list 
   figures where a dot is too small), or `none`. A modification's color is never the residue scheme's (the scheme
   colors the parent letter); a writer who wants modifications by kind adds the feature row, a `ranges` layer over
   the sites, colored by type like any range. Where a cell has room for three letters (`code: three`, or
-  `auto` with room, EC-117) the position shows its component's code (`MSE`) instead of the parent's (`Met`). Why a
+  `auto` with room, EC-117) the position shows its component's code (`MSE`) instead of the parent's (`Met`).
+  **Compact by default** (the author, 2026-11-19: "I would still like the (default) representation to be compact for
+  the modified residues"): no value of `modified` changes a cell's width, the letters' spacing or a line's length; the
+  default `mark` adds only the corner dot inside the cell, and `code` prints the code only where the cell already has
+  room for it (the dot otherwise), never widening a cell to fit it. Why a
   mark by default: a PSU drawn as a bare `U` says something false by omission, and the writer turns it off.
 - **Hover** shows the letter, the component code and its name: `U · PSU (pseudouridine)`.
 - **Names**: a component's name comes from the spec's `compound` node, else the host's `componentNames` registry entry
