@@ -835,8 +835,11 @@ export class SeqViewer extends ReactiveModel {
         start: w.start,
         end: w.end,
         ...(w.scale !== undefined ? { scale: w.scale } : {}),
-        // a frame's top and bands (a story's); the model's are the layout's own
+        // `top`: the frame's during a motion, else the model's (when set)
         ...(w.top ? { top: w.top } : {}),
+        // `bands`: only a shown frame's, a pass-through of a step's view (`bandTop`, `rowScale` in display rows; each
+        // record copied with those two set, its other fields kept). The ViewModel holds no bands here: the rows
+        // layer's state is to merge under them (the package's TODO, Stories)
         ...(this._shownFrame && w.bands !== undefined ? { bands: w.bands as RenderViewport['bands'] } : {}),
       };
     }

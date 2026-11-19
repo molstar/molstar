@@ -400,6 +400,20 @@ describe('the review’s fixes', () => {
     expect(resolveAddress(stateOf(s, 's4', { config, cache })!.root, Letters)?.params?.height).toBe(25);
   });
 
+  it('a band record in motion is a copy with only `bandTop` and `rowScale` set: its other fields kept', () => {
+    // a field the rows layer keeps on a band (a fold, say) that no channel tweens
+    const band = { bandTop: 0, rowScale: 10, folds: 'kept' } as { bandTop: number; rowScale: number };
+    const a = { start: 0, end: 10, bands: { t: band } };
+    const b = { start: 0, end: 10, bands: { t: { bandTop: 8, rowScale: 20 } } };
+    const p = plan({ root: spec, view: { sections: { s: a } } }, { root: spec, view: { sections: { s: b } } });
+    const mid = frameView(p, sample(p, 0.5))!.sections.s.bands!.t;
+    expect(mid).toMatchObject({ folds: 'kept' });
+    expect(mid.bandTop).toBeCloseTo(4);
+    expect(mid.rowScale).toBeCloseTo(Math.sqrt(200));
+    // the state's own record is never written
+    expect(band).toEqual({ bandTop: 0, rowScale: 10, folds: 'kept' });
+  });
+
   it('a view field only the start holds is kept mid-transition', () => {
     const p = plan(
       { root: spec, view: { sections: { s: { start: 0, end: 10, scale: 12 } } } },

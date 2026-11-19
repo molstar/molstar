@@ -89,14 +89,14 @@ links, selection, the security bounds, MessagePack). Next, version 1's second mi
   the p53 story): `order` switches at the cut (each child moving to its new place needs a y offset a track the layout
   does not have); a change of the view shown is a cut at the start, not a crossfade; a step whose state changes an axis
   (a collapse, a reverse) is placed on the step's axis while the frame shows the start's, so a section's viewport goes
-  through the update rule (EC-111) on the way; **the bands' seam for the rows layer**: a band's `bandTop` and `rowScale`
-  animate in the core (the view channel's `bands.<track>.*` fields, a frame's viewport `bands`), but the viewer's
-  `ViewModel` holds no bands (its `Viewport` and `setViewport` take none, `_modelViews` copies none), so a step's or a
-  jump's bands reach the frame only from the step's view: the rows layer adds `bands` to the viewport record and
-  `setViewport`, and `bandTop` as its top row's key (display rows today); the story's own UI (steps listed, edit this
-  step, store the view as a step) and the render CLI's video and frame-sequence outputs; an op that no longer applies
-  has no issue in `repr/patch`, so Seq reports it on the step; a host's move can leave a step's later refs dangling in
-  the step's own coordinates (refused unless `allowDangling`): watched for in the editing UI.
+  through the update rule (EC-111) on the way; **the bands' seam for the rows layer**: the shown frame's bands are
+  merged over the ViewModel's bands (RW), keeping the session's folds. Today the frame's `bands` are a pass-through of a
+  step's view (`bandTop` and `rowScale`, in display rows as the language declares; the layout converts to px), each
+  record copied with those two set and its other fields kept; the ViewModel holds no bands, so a jump tweens none; the
+  story's own UI (steps listed, edit this step, store the view as a step) and the render CLI's video and frame-sequence
+  outputs; an op that no longer applies has no issue in `repr/patch`, so Seq reports it on the step; a host's move can
+  leave a step's later refs dangling in the step's own coordinates (refused unless `allowDangling`): watched for in the
+  editing UI.
 - **Bounds**: regular expressions in search and archives get theirs with those features; nested-source breadth (a
   fan-out of W^depth) and joins allocating before `checkAnswer` (at most the file's size) are recorded, not bounded.
 - **Overlay and templates**: re-expand only the template an arrival touches, keep instance layers across overlay
