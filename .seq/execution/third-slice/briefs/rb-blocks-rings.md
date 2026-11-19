@@ -23,6 +23,10 @@ Not in scope: the text layout (TX, beside you: do not edit its files; where you 
 keep your edits to rings and blocks, and the orchestrator merges TX before you, so rebase onto `packages-seq` when told),
 navigators (NV), the rows layer.
 
+**The language version stays 0.4.0** for the whole slice (one bump, unreleased): add `block`, `arrange`, `copies` and
+the rings' params under 0.4.0. **The allocation tier**: "p53 on its gene, whole protein" is over its 64 KB bound at the
+base already (a stage 1 regression being traced): do not move that bound; report against the base's numbers.
+
 **Read first**: [layouts](../../../design/layouts.md) whole; [axis](../../../design/axis.md);
 [navigators](../../../design/navigators.md) (the window's shared rules: grips, floor, idle, hidden);
 [viewer-models](../../../design/viewer-models.md); [ux-foundations](../../../design/ux-foundations.md) section 8;
@@ -32,8 +36,8 @@ and viewer `_spec`s; `packages/seq/core/src/render/layout/` (the interface).
 
 **Model**: strong (opus).
 
-**Base**: `packages-seq` at `<set at start>`. Your worktree may be cut from master: with a clean tree, first
-`git checkout -B seq/rb-blocks-rings <base>`, and check `git merge-base --is-ancestor <base> HEAD`.
+**Base**: `packages-seq` at `9cfc6801f`. Your worktree may be cut from master: with a clean tree, first
+`git checkout -B seq/rb-blocks-rings 9cfc6801f`, and check `git merge-base --is-ancestor 9cfc6801f HEAD`.
 
 **Touches**: `packages/seq/{core,viewer,examples}/src/**` (rings and blocks), `packages/seq/storybook/src/_stories/**`
 (not the Design pages), the `_spec`s, `packages/seq/TODO.md`.

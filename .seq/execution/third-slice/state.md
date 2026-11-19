@@ -21,14 +21,19 @@ Work id `third-slice`. Plan: `plan.md`; loop: `loop.md`.
   look's two empty stories fixed. Sizes against the guides: reading 170.1, headless 409.4, viewer 668.7 kB.
 - Stage 1's gate passed: quick 2,745 (core color, model, mvs, seq), heavy 65, typechecks, lint, format, `pnpm build`,
   `check:workspace`; sizes over the guides (reset at the close; the core split, a gap, saves ~17 kB); no medium tests.
+- TX's interface merged (`c6282f553`, with the section-cache fix `9cfc6801f`): its review's seven findings fixed. TX
+  then built the text layout, its targets and the p53 text figure (branch `seq/tx-text`), leaving the viewer work:
+  that is lane TV. An allocation regression found (drift/allocation-stage1.md).
 
 ## In progress
 
-- TX (strong): `briefs/tx-text.md`, branch `seq/tx-text`.
+- RB (strong): `briefs/rb-blocks-rings.md`, base `9cfc6801f`.
+- TV (strong): `briefs/tv-text-viewer.md`, base `9cfc6801f`: TX's text layout rebased, the text viewer, the rest of
+  text; merges before RB.
 
 ## Next
 
-Stage 2: RB on TX's interface commit once it merges. The early use gate is deferred.
+Stage 2's gate after TV and RB. The early use gate is deferred.
 
 ## Decided
 
@@ -44,6 +49,7 @@ Stage 2: RB on TX's interface commit once it merges. The early use gate is defer
 
 | Gate | Bug | Missing design | Look |
 |---|---|---|---|
+| stage 2, TX's interface (review) | 5 (rings drew no emphasis; contract parts unwired; place not inverse of at; stale glyph values; a `.seq/` edit) | 0 | 0 |
 | stage 1, TH (review and look) | 8 (log binned; clamp unapplied; the MolViewSpec round trip; mid not diverging; value-color overwriting; two legends off their scale; layer.filter called blocked) | 1 (a safe substitute that is not safe) | 3 (two stories empty; the view not on SL's layers; dark letters dim) |
 | stage 1, SL (review and look) | 4 (heads on the wrong piece off-tile; hidden items untick'd, a design departure; secondary codes misread; an untested stem hit) | 0 | 1 (labels struck through) |
 | stage 1, AX (review and look) | 6 (Shift+C on a lone gene; focus outside a range; pieces outside a range; a deopt hidden by scenario order; the history key's size; a reversed cyclic follower) | 0 | 1 (the protein row solid conflict ink) |
