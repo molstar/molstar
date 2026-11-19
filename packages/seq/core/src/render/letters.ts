@@ -5,7 +5,7 @@
  */
 
 import { issueOf } from '@molstar/core/repr/tree';
-import type { LettersTable } from '@molstar/seqx-core/data';
+import type { LettersTable, Want } from '@molstar/seqx-core/data';
 import { rangesLocation } from '@molstar/seqx-core/query';
 import {
   codonPairs,
@@ -490,6 +490,64 @@ function caretsAt(src: LayerSource, axis: AxisTransform, regions: readonly numbe
     const x = axis.x(b);
     if (x >= box.x && x <= box.x + box.width && !out.includes(x)) out.push(x);
   }
+}
+
+/**
+ * The letters a letters layer shows at section positions, in the order given (_spec/README.md "Render", Layer types:
+ * what the viewer's `selection.copyLetters` copies): complemented as drawn on an axis of direction `dir`, or with
+ * `stored` the letters as stored. A position no letter lands on (a gap through a path) gives none; letters across a
+ * codon step are not read (none). What is not held yet is in `wants`: the text is then empty (load it and ask again).
+ */
+export function shownLetters(
+  prep: LettersPrep,
+  dir: 1 | -1,
+  data: StoreReader,
+  positions: readonly number[],
+  stored = false,
+): { readonly text: string; readonly wants: readonly Want[] } {
+  const src = prep.src;
+  if (!src || (prep.through !== 'own' && prep.through !== 'one') || !positions.length) return { text: '', wants: [] };
+  // each section position's data position (one to one through the path read back), −1 for none
+  const at = new Float64Array(positions.length);
+  let lo = Infinity;
+  let hi = -Infinity;
+  for (let i = 0; i < positions.length; i++) {
+    let d = positions[i];
+    if (prep.through === 'one') {
+      const r = src.back ? projectRanges(src.back, OnePosition(d), Parts) : [];
+      d = r.length ? r[0] : -1;
+    }
+    at[i] = d;
+    if (d < 0) continue;
+    if (d < lo) lo = d;
+    if (d > hi) hi = d;
+  }
+  if (lo > hi) return { text: '', wants: [] };
+  const want: Want = { source: src.source, system: src.system, start: lo, end: hi + 1, level: 1, priority: 'view' };
+  if (data.coverage(src.source) === undefined) return { text: '', wants: [want] };
+  const tables: LettersTable[] = [];
+  for (const key of data.keysOf(want)) {
+    const e = data.get(key);
+    if (e?.status === 'loaded') {
+      if (e.tables.letters) tables.push(e.tables.letters);
+    } else if (e?.status !== 'empty' && e?.status !== 'failed') return { text: '', wants: [want] };
+  }
+  tables.sort((a, b) => a.start - b.start);
+  const nucleotides = prep.alphabet !== 'protein';
+  const rna = prep.alphabet === 'rna';
+  let text = '';
+  for (let i = 0; i < at.length; i++) {
+    const d = at[i];
+    let code = d < 0 ? 0 : letterIn(tables, d);
+    if (!code) continue;
+    // a nucleotide read against its strand on screen shows its complement, as the layout draws it
+    if (!stored && nucleotides && prep.complement !== 'never') {
+      const run = prep.through === 'one' ? runDir(src, d) : 1;
+      if (prep.complement === 'always' || dir * run === -1) code = complementCode(code, rna);
+    }
+    text += String.fromCharCode(code);
+  }
+  return { text, wants: [] };
 }
 
 /** The direction of the run a one-to-one path carries a position along. */

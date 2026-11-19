@@ -43,6 +43,8 @@ export interface SelectContext {
   readonly hit?: Hit;
   readonly range?: SelectRange;
   readonly address?: string;
+  /** `selection.copyLetters`: the stored letters of the selection's span, not what is shown. */
+  readonly stored?: boolean;
 }
 
 /** The binding actions that drag-select, and what each does to the selection (the model's `DragMode`). */

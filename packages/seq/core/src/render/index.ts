@@ -111,7 +111,7 @@ export type {
 } from './layout/types.js';
 export { PolarWarp, TranslateWarp } from './layout/warp.js';
 export { drawWindow, WindowMetrics, windowExtent, windowPart } from './window.js';
-export { type LettersLay, type LettersPrep, LettersType } from './letters.js';
+export { type LettersLay, type LettersPrep, LettersType, shownLetters } from './letters.js';
 export { type RangesLay, type RangesPrep, RangesType } from './ranges.js';
 export { fmt, recordDrawLists } from './record.js';
 export { labelStep, type RulerLay, type RulerPrep, RulerType } from './ruler.js';

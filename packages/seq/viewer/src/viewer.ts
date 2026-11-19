@@ -42,6 +42,7 @@ import {
   HighlightModel,
   HoverModel,
   isNothing,
+  nearestOffsetOf,
   Projector,
   SelectionModel,
   SpecModel,
@@ -258,6 +259,7 @@ export class SeqViewer extends ReactiveModel {
     this.listenPermanently(this.hover.version, () => this.schedule());
     this.listenPermanently(this.selection.value, () => {
       this._holdSelection();
+      this._revealLinked();
       this.schedule();
     });
     this.listenPermanently(this.selection.cursor, () => this.schedule());
@@ -798,6 +800,40 @@ export class SeqViewer extends ReactiveModel {
   }
 
   /** The selection's dynamic nodes held while it is selected (`selection.holdNodes`). */
+  /**
+   * A selection made elsewhere (another section, a link, a structure) scrolls each section that shows none of it to its
+   * first part (_spec/README.md "Composition", `reveal.linked`): text sections by default, as a move by hand (no
+   * step of the history). Not the section the selection is being made in (a drag's, the cursor's): it shows it already.
+   */
+  private _revealLinked(): void {
+    const mode = this.config.reveal.linked;
+    const resolved = this.view.resolved.value;
+    const shown = this.selection.value.value.shown;
+    if (mode === 'none' || !resolved || this._retired || !shown.parts.length) return;
+    const own = this.input.selectingIn ?? this.selection.cursor.value?.section;
+    let loc: Location | undefined;
+    for (const s of resolved.sections) {
+      if (s.address === own || (mode === 'text' && s.layout !== 'text')) continue;
+      const v = this.view.get(s.address);
+      if (!v || v.pending) continue;
+      loc ??= this._projector.of(shown, { own: true }) ?? shown;
+      const r = loc.parts.find((p) => p.system === s.axis.system)?.ranges;
+      if (!r?.length) continue;
+      let first = Number.POSITIVE_INFINITY;
+      let shownNow = false;
+      for (let i = 0; i + 1 < r.length && !shownNow; i += 2) {
+        const a = nearestOffsetOf(s.axis, r[i]);
+        const b = nearestOffsetOf(s.axis, r[i + 1]);
+        if (a === undefined || b === undefined) continue;
+        const lo = Math.min(a, b);
+        const hi = Math.max(a, b);
+        if (hi > v.start && lo < v.end) shownNow = true;
+        first = Math.min(first, lo);
+      }
+      if (!shownNow && Number.isFinite(first)) this.view.reveal(s.address, first, first + 1);
+    }
+  }
+
   private _holdSelection(): void {
     if (!this.config.selection.holdNodes || this._retired) return;
     const sel = this.selection.value.value;

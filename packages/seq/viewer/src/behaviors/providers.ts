@@ -7,6 +7,7 @@
 import { cellOffset } from '@molstar/seqx-viewer/models';
 import type { BehaviorProvider } from '@molstar/seqx-viewer/viewer-spec';
 import { type AddressingBehavior, addressingBehavior } from './addressing.js';
+import { type CopyWrite, copyLettersCommand } from './copy.js';
 import { type CursorBehavior, cursorBehavior } from './cursor.js';
 import { type EditingBehavior, editingBehavior } from './editing.js';
 import { type HoverBehavior, hoverBehavior } from './hover.js';
@@ -39,9 +40,18 @@ export const NavigateProvider: BehaviorProvider<undefined, NavigateBehavior> = {
     }),
 };
 
-export const SelectProvider: BehaviorProvider<undefined, SelectBehavior> = {
+/** The select behavior's params: where `selection.copyLetters` writes (the platform's clipboard by default). */
+export interface SelectParams {
+  readonly write?: CopyWrite;
+}
+
+export const SelectProvider: BehaviorProvider<SelectParams | undefined, SelectBehavior> = {
   name: 'select',
-  create: ({ selection, view, bindings, addresses }) => selectBehavior(selection, view, bindings, addresses),
+  // the selection's gestures, and copying its letters (_spec/README.md "Behaviors", Copy)
+  create: (ctx, params) => {
+    const b = selectBehavior(ctx.selection, ctx.view, ctx.bindings, ctx.addresses);
+    return { ...b, commands: [...b.commands, copyLettersCommand(ctx, params?.write)] };
+  },
 };
 
 export const CursorProvider: BehaviorProvider<undefined, CursorBehavior> = {

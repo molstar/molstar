@@ -351,11 +351,17 @@ export class ViewerInput {
     const before = sel.value.value;
     const anchor = sel.anchor;
     // the behavior keeps nothing of the reused record but what it copies
-    const taken = select.click(
-      section,
-      hit ? { ...hit, ...(section !== undefined ? { section } : {}) } : undefined,
-      this._modifiers(e),
-    );
+    this._clicking = section;
+    let taken: boolean;
+    try {
+      taken = select.click(
+        section,
+        hit ? { ...hit, ...(section !== undefined ? { section } : {}) } : undefined,
+        this._modifiers(e),
+      );
+    } finally {
+      this._clicking = undefined;
+    }
     // a click that cleared the selection may be a double-click's first: kept until the next click says; so is a
     // Shift+click's extend (a Shift+double-click zooms out and selects nothing)
     const after = sel.value.value;
@@ -380,6 +386,13 @@ export class ViewerInput {
   get dragging(): boolean {
     return this._drag !== undefined;
   }
+
+  /** The section a drag-select or a click is selecting in, while it does (a linked reveal leaves it be). */
+  get selectingIn(): string | undefined {
+    return this._drag?.select ? this._drag.section : this._clicking;
+  }
+
+  private _clicking: string | undefined;
 
   /**
    * A wheel at (x, y). A trackpad's pinch arrives as a wheel with Ctrl held and small pixel deltas: it is the `pinch`
