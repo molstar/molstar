@@ -339,3 +339,5 @@ None.
 - CF, MV (strong) and SC (fast) started from `6883ee3c7`. Decided (the author, 2026-11-19: "Fix PCG in core"): a real
   PCG32 in `@molstar/core`, Mol*'s distinct colors and every seeded Seq* fixture regenerated once (base-library.md);
   lane PG (strong) after CF.
+- SC merged (reviewed by the orchestrator; an inline numeric strand added): the hover card and announcer say a range's
+  strand. Quick 2310 (+1 expected fail) on its branch.

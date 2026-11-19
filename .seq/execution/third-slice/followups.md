@@ -64,3 +64,7 @@
   open another view); a double-click in a density strip (no item) jumps from the whole chromosome to letters: a zoom
   step may serve better (the double-click design's question); `values.coarser` 1 in core against performance.md's 2
   (the remaining frame ratio); once CF fixes the nested want, the exons' level 1 again.
+- SC's leftovers: the strand read from the store beside the layer, not from the item's own description (core's
+  `ItemDescription` could carry it); an inline `strand` of null breaks core's model (`strand.get is not a function`);
+  a section over a source sequence needs the sequence named after the source's system, else its length is unknown and
+  nothing lays out (said nowhere).
