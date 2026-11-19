@@ -16,7 +16,7 @@ import { ScaleParamsDescription, ThemeLanguage, ThemeLanguageId } from './theme-
  * The version of the language this description is (the package's `LanguageVersion` is the same). Pre-release (`0.x`):
  * a change moves it with no migration (_spec/README.md, Versions).
  */
-export const SeqLanguageVersion = '0.5.0';
+export const SeqLanguageVersion = '0.4.0';
 
 /**
  * A channel slot (_spec/README.md "Themes", Forms): a string (the `uniform` form: a color, a token, a word), a number
