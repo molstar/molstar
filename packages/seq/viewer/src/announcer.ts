@@ -38,7 +38,7 @@ export interface Said {
 export type AnnouncePriority = 'hover' | 'cursor' | 'selection';
 const Rank: Readonly<Record<AnnouncePriority, number>> = { hover: 1, cursor: 2, selection: 3 };
 
-const CursorKeys = /^cursor\.(prev|next|up|down|extend-.+|add-.+)$/;
+const CursorKeys = /^cursor\.(prev|next|up|down|page-up|page-down|first-row|last-row|extend-.+|add-.+)$/;
 
 export const DefaultAnnouncerOptions = { restMs: 500, minGapMs: 700 } as const;
 
@@ -179,9 +179,10 @@ export class Announcer {
     return this._words.text({ section, system, position });
   }
 
+  /** The cursor's place: its cell, with its row on a section of two axes, or its row's header. */
   cursorText(): string {
     const c = this._viewer.selection.cursor.value;
-    return c ? this.placeText(c.section, c.system, c.position) : '';
+    return c ? this._words.text({ cursor: c }) : '';
   }
 
   hoverText(): string {

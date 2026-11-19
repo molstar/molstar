@@ -21,6 +21,7 @@ import {
   type AddressModel,
   axisTotal,
   type DragMode,
+  elementAt,
   type Emphasized,
   type GridCell,
   type Hit,
@@ -126,11 +127,38 @@ export function selectBehavior(
       ? { system: hit.system, position: hit.position, ySystem: hit.ySystem, yPosition: hit.yPosition }
       : undefined;
 
-  /** A click with a position moves the cursor to it, on the section clicked. */
+  /**
+   * A click with a position moves the cursor to it, on the section clicked: a cell of two axes with its row (a rows
+   * cell, a grid's; a summary row's cell its first row), a row's label or a summary row's to its header (the column the
+   * cursor was on kept, else the first shown).
+   */
   const follow = (ctx: SelectContext) => {
     const h = ctx.hit;
-    if (!h || ctx.section === undefined || h.position === undefined || Number.isNaN(h.position)) return;
-    selection.setCursor({ section: ctx.section, system: h.system, position: Math.floor(h.position) });
+    const section = ctx.section;
+    if (!h || section === undefined) return;
+    // a summary row's hit names its clade: the cursor stands on one of its rows (the row shows them all)
+    const summary = h.target === 'summary-row' ? h.extent?.parts[0] : undefined;
+    const ySystem = summary ? summary.system : h.ySystem;
+    const yPosition = summary ? summary.ranges[0] : h.yPosition;
+    const y = ySystem !== undefined && yPosition !== undefined ? Math.floor(yPosition) : undefined;
+    const header = h.target === 'row' || (summary !== undefined && h.position === undefined);
+    if (header && y !== undefined) {
+      const s = view.resolved.value?.sections.find((x) => x.address === section);
+      const now = selection.cursor.value;
+      const v = view.get(section);
+      const first = s && v && !v.pending ? elementAt(s.axis, Math.ceil(v.start)) : undefined;
+      const position = now?.section === section && now.system === s?.axis.system ? now.position : first;
+      if (!s || position === undefined) return;
+      selection.setCursor({ section, system: s.axis.system, position, ySystem, yPosition: y, part: 'header' });
+      return;
+    }
+    if (h.position === undefined || Number.isNaN(h.position)) return;
+    selection.setCursor({
+      section,
+      system: h.system,
+      position: Math.floor(h.position),
+      ...(y !== undefined ? { ySystem, yPosition: y } : {}),
+    });
   };
 
   const gesture = (

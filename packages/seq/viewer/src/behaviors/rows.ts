@@ -26,6 +26,7 @@ import type { CommandDefinition, CommandResult } from '@molstar/ui/commands/type
 import type { EditOutcome, SpecModel, ViewModel } from '@molstar/seqx-viewer/models';
 import type { EditOrigin } from '@molstar/seqx-viewer/ports';
 import { CladeActions } from '@molstar/seqx-viewer/bindings';
+import { bandFolds, pagedTop, setBandFolds } from './rows-band.js';
 
 /** What a rows command is given: the rows layer's track (the first rows band when absent) and what each needs. */
 export interface RowsContext {
@@ -71,15 +72,6 @@ const ZoomStep = 2;
 export const MinRowScale = 1 / 64;
 export const MaxRowScale = 40;
 
-/**
- * The band's top (display rows) a page on: the scrolled rows in its window (the pinned band's rows are not scrolled)
- * less one, clamped to the band's ends.
- */
-function pagedTop(l: RowsLay, top: number, dir: 1 | -1): number {
-  const page = Math.max(1, Math.floor((l.box.height - l.display.pinned * l.rowScale) / l.rowScale) - 1);
-  return Math.max(0, Math.min(l.maxTop(l.rowScale, l.display.count), top + dir * page));
-}
-
 export interface RowsBehavior {
   readonly commands: readonly CommandDefinition<RowsContext>[];
   /** The wheel's vertical delta over a rows band scrolls its rows (px); false when there is none to scroll. */
@@ -122,15 +114,9 @@ export function rowsBehavior(spec: SpecModel, view: ViewModel, layout: () => Vie
       if (tree && !(l.clades && l.foldsApply)) return 'The rows are not in tree order';
       return true;
     };
-  /** New folds, the row at the band's top kept there (a fold above it moves it up, never off). */
-  const setFolds = (track: string, names: readonly string[]) => {
-    const l = lay(track);
-    const at = l?.keyAt(l.top);
-    const top = l && at ? l.topOf(at.key, at.offset, names) : undefined;
-    view.setBand(track, top === undefined ? { folds: names } : { folds: names, bandTop: top });
-  };
+  const setFolds = (track: string, names: readonly string[]) => setBandFolds(view, lay(track), track, names);
   const namesOf = (l: RowsLay, ids: readonly number[]) => ids.map((c) => l.clades!.name[c]);
-  const folded = (track: string, l: RowsLay): readonly string[] => view.band(track)?.folds ?? l.folds;
+  const folded = (track: string, l: RowsLay): readonly string[] => bandFolds(view, track, l);
   /** A bulk fold: a jump (back restores the folds and the rows' window together). */
   const jumpFolds = (track: string, names: readonly string[], done: string): CommandResult => {
     const o = view.jump(() => {

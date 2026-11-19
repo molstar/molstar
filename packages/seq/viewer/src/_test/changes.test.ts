@@ -134,6 +134,17 @@ const cell = (position: number) => ({ section: Protein, hit: { layer: LettersLay
 const cursorAt = (section: string) => (v: SeqViewer) =>
   v.selection.setCursor({ section, system: '/data/p', position: 5 });
 
+/** The cursor shown on the alignment's rows, on data row `row`. */
+const cursorOnRow = (row: number) => (v: SeqViewer) =>
+  v.selection.setCursor({
+    section: '/views/main/aln',
+    system: '/data/aln',
+    position: 1,
+    ySystem: '/data/aln/(rows)',
+    yPosition: row,
+    keyboard: true,
+  });
+
 const cursorAtText = (position: number) => (v: SeqViewer) =>
   v.selection.setCursor({ section: Text, system: '/data/p', position });
 
@@ -232,6 +243,12 @@ const Cases: Record<string, { ctx: unknown; before?: (v: SeqViewer) => unknown }
   'cursor.extend-down': { ctx: { section: Text }, before: cursorAtText(5) },
   'cursor.add-prev': { ctx: { section: Protein }, before: cursorAt(Protein) },
   'cursor.add-next': { ctx: { section: Protein }, before: cursorAt(Protein) },
+  'cursor.add-up': { ctx: { section: Text }, before: cursorAtText(15) },
+  'cursor.add-down': { ctx: { section: Text }, before: cursorAtText(5) },
+  'cursor.page-down': { ctx: {}, before: cursorOnRow(0) },
+  'cursor.page-up': { ctx: {}, before: cursorOnRow(3) },
+  'cursor.first-row': { ctx: {}, before: cursorOnRow(3) },
+  'cursor.last-row': { ctx: {}, before: cursorOnRow(0) },
   'cursor.toggle': { ctx: { section: Protein }, before: cursorAt(Protein) },
   'cursor.focus': { ctx: { section: Protein }, before: cursorAt(Protein) },
   'clades.toggle': { ctx: { track: RowsTrack, clade: 'ab' } },

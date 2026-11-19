@@ -200,12 +200,17 @@ export interface Emphasis {
    * hairline, EC-127).
    */
   readonly elements?: Elements;
-  /** The keyboard cursor; on a cell of two axes (a rows cell) its row too, drawn by the layer of two axes. */
+  /**
+   * The keyboard cursor; on a cell of two axes (a rows cell, a grid's) its row too, drawn by the layer of two axes on
+   * its own section (`section`, its address: the others mark its column); on rows its `part`, a cell or the header.
+   */
   readonly cursor?: {
     readonly system: string;
     readonly position: number;
+    readonly section?: string;
     readonly ySystem?: string;
     readonly yPosition?: number;
+    readonly part?: 'cell' | 'header';
   };
   /** The highlight channels in the order they were set: each a tint of its color (the `highlight` pass). */
   readonly highlights?: readonly EmphasisHighlight[];

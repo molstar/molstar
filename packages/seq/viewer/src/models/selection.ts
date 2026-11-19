@@ -69,11 +69,19 @@ export interface Anchor {
   readonly end: number;
 }
 
-/** The keyboard cursor: a position on a section's system (drawn on every section of that system). */
+/**
+ * The keyboard cursor: a position on a section's system (drawn on every section of that system); on a section of two
+ * axes (an alignment's rows, a grid) its row too: `yPosition` on `ySystem` (a data row, a grid's y position), and on
+ * rows its `part`, the row's cell or its header (_spec/README.md "SelectionModel and HighlightModel", The cursor).
+ */
 export interface Cursor {
   readonly section: string;
   readonly system: string;
   readonly position: number;
+  readonly ySystem?: string;
+  readonly yPosition?: number;
+  /** `cell` when absent; `header`: the row's header (its label, its clade), the column it left kept in `position`. */
+  readonly part?: 'cell' | 'header';
   /** The keyboard moved it: drawn (focus-visible); a click places it unseen. */
   readonly keyboard?: boolean;
 }
@@ -85,6 +93,9 @@ const sameCursor = (a: Cursor | undefined, b: Cursor | undefined) =>
     a.section === b.section &&
     a.system === b.system &&
     a.position === b.position &&
+    a.ySystem === b.ySystem &&
+    a.yPosition === b.yPosition &&
+    (a.part ?? 'cell') === (b.part ?? 'cell') &&
     !!a.keyboard === !!b.keyboard);
 
 const keyId = (k: ElementKey) => `${typeof k.key === 'number' ? 'n' : 's'}${k.key}\u0000${k.owner}`;

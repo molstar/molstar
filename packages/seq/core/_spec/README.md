@@ -2087,7 +2087,13 @@ measures, consensus, the profile). An alignment's rows over its columns, its own
   the rows system as row bands, its rects of rows × columns as their cells, read over the display rows in view only (a
   binary search a row: a selection of any size costs the rows in view); a summary row draws the partial mark (the tint
   over the share of its rows selected, the outline when all are); the cursor with a row (`Emphasis.cursor.ySystem`)
-  outlines its cell (the strip draws a cursor without one).
+  outlines its cell, or on its `part` `header` the row's label column (`labelX` to `numberX`), a squircle as the strip's
+  (`squircleRadius`), on its own section only (`Emphasis.cursor.section`: another section of the system marks its
+  column, as the strip draws a cursor without a row, and nothing while it is on a header); on the row it stands on
+  (`cursorRow`: its own, a folded row's summary row, a hidden or filtered row's nearest shown), a pinned row's in the
+  band and in its place. `displayLabel` is a display row's label whole (a summary row's `first +n`, `summaryMore` its
+  count, which the header elides apart); `hitRow` the display row of the last hit (which copy of a pinned row a click
+  was on).
 
 ### The logo
 

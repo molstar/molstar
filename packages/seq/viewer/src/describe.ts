@@ -7,6 +7,7 @@
 import type { ElementKey, Location } from '@molstar/seqx-core/query';
 import { DefaultNumbering, findNumbering, numberingIds } from '@molstar/seqx-core/query';
 import {
+  type GridLay,
   itemText,
   type ItemDescription,
   type LayerLayout,
@@ -20,7 +21,7 @@ import {
   type ViewLayout,
 } from '@molstar/seqx-core/render';
 import type { StaticModel } from '@molstar/seqx-core/resolve';
-import type { AddressModel, SpecModel, StoreModel, ViewModel } from '@molstar/seqx-viewer/models';
+import type { AddressModel, Cursor, SpecModel, StoreModel, ViewModel } from '@molstar/seqx-viewer/models';
 import type { HoverCard, HoverCardRow } from './hover-card.js';
 
 // What a place is, in words (_spec/README.md "Input", Announcements; "Hover card"): one description that the live
@@ -44,6 +45,14 @@ export interface DescribeSource {
 /** A rectangle dragged on a grid: its summary is described. */
 export interface RectPlace {
   readonly rect: Location;
+}
+
+/**
+ * The keyboard cursor's place (_spec/README.md "Input", Announcements): its cell, on a section of two axes with its row
+ * (the row's label, a grid cell's two positions), or its row's header (the row alone).
+ */
+export interface CursorPlace {
+  readonly cursor: Cursor;
 }
 
 /** A place to describe: the hover's record (`HoverRecord`) or a cell (the keyboard cursor's). */
@@ -194,10 +203,16 @@ const RowSection: CardSection = {
     const lay = l.lay as RowsLay;
     const e = at.place.target === 'row' ? at.position : at.place.ySystem === lay.rowsSystem ? at.yPosition : Number.NaN;
     if (Number.isNaN(e)) return;
-    const label = lay.label(e);
+    // the row the keyboard cursor stands on: a folded row's summary row, labeled as drawn (`first +n`), a hidden one's
+    // nearest shown (`cursorRow`)
+    const i = lay.cursorRow(e);
+    const label = i >= 0 ? lay.displayLabel(i) : lay.label(e);
+    const shown = i >= 0 ? lay.display.rowAt(i) : e;
     out.title = label;
     out.row('Row', label);
-    out.words.push(`row ${label}`);
+    // a lazy row whose tile has not come yet: said pending (its label is its number until it does)
+    const pending = !lay.held && shown >= 0 && !lay.lazyLabels.has(shown);
+    out.words.push(`row ${label}${pending ? ', pending' : ''}`);
     const state = at.place.state;
     const colon = state ? state.indexOf(': ') : -1;
     if (state && colon > 0) {
@@ -340,6 +355,20 @@ class Words {
     for (const s of Sections) s.describe(at, out);
     if (!out.words.length) return undefined;
     return { title: out.title || out.words[0], rows: out.rows, text: out.words.join(', ') };
+  }
+
+  /** The cursor as a place: on a section of two axes its row's layer and row, its header the row alone. */
+  cursorPlace(c: Cursor): Place {
+    const cell: Place = { section: c.section, system: c.system, position: c.position };
+    const layout = this._src.layout();
+    if (c.ySystem === undefined || c.yPosition === undefined || !layout) return cell;
+    const s = layout.sections.find((x) => x.section.address === c.section);
+    const l = s && twoAxesOf(s, c.ySystem);
+    if (!l) return cell;
+    const y = { layer: l.key, ySystem: c.ySystem, yPosition: c.yPosition };
+    if (c.part === 'header')
+      return { section: c.section, system: c.ySystem, position: c.yPosition, ...y, target: 'row' };
+    return { ...cell, ...y, target: 'cell' };
   }
 
   /** A rectangle on a grid: its cells counted, their mean, least and greatest value (`gridSummary`). */
@@ -508,13 +537,17 @@ export class Describer {
     this._words = new Words(src);
   }
 
-  /** The description of a place (or a rectangle's summary) in the last frame; undefined when there is none. */
-  describe(place: Place | RectPlace): HoverCard | undefined {
-    return 'rect' in place ? this._words.rect(place.rect) : this._words.describe(place);
+  /**
+   * The description of a place, a rectangle's summary or the keyboard cursor's place in the last frame; undefined when
+   * there is none.
+   */
+  describe(place: Place | RectPlace | CursorPlace): HoverCard | undefined {
+    if ('rect' in place) return this._words.rect(place.rect);
+    return this._words.describe('cursor' in place ? this._words.cursorPlace(place.cursor) : place);
   }
 
   /** The text of a place ('' when there is none). */
-  text(place: Place | RectPlace): string {
+  text(place: Place | RectPlace | CursorPlace): string {
     return this.describe(place)?.text ?? '';
   }
 }
@@ -526,6 +559,17 @@ export function describerFor(src: DescribeSource): Describer {
   let d = Describers.get(src.spec);
   if (!d) Describers.set(src.spec, (d = new Describer(src)));
   return d;
+}
+
+/** The layer of two axes a section shows `ySystem` with (its rows layer, its grid): the cursor's row's. */
+function twoAxesOf(section: SectionLayout, ySystem: string): LayerLayout | undefined {
+  const is = (l: LayerLayout) =>
+    (l.type.name === 'rows' && (l.lay as RowsLay).rowsSystem === ySystem) ||
+    (l.type.name === 'grid' && (l.lay as GridLay).ySystem === ySystem);
+  for (const t of section.tracks) for (const l of t.layers) if (is(l)) return l;
+  for (const ls of section.lays) for (const l of ls) if (is(l)) return l;
+  for (const l of section.sectionLays) if (is(l)) return l;
+  return undefined;
 }
 
 /** A layer of a section by its key: its tracks', its strips' (a section of blocks), its section layers'. */

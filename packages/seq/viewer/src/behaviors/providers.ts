@@ -8,7 +8,8 @@ import { cellOffset } from '@molstar/seqx-viewer/models';
 import type { BehaviorProvider } from '@molstar/seqx-viewer/viewer-spec';
 import { type AddressingBehavior, addressingBehavior } from './addressing.js';
 import { type CopyWrite, copyLettersCommand } from './copy.js';
-import { type CursorBehavior, cursorBehavior } from './cursor.js';
+import type { CursorBehavior } from './cursor.js';
+import { createCursor } from './cursor-moves.js';
 import { type EditingBehavior, editingBehavior } from './editing.js';
 import { type HoverBehavior, hoverBehavior } from './hover.js';
 import { type NavigateBehavior, navigateBehavior } from './navigate.js';
@@ -59,7 +60,8 @@ export const SelectProvider: BehaviorProvider<SelectParams | undefined, SelectBe
 
 export const CursorProvider: BehaviorProvider<undefined, CursorBehavior> = {
   name: 'cursor',
-  create: ({ addresses, selection, view, spec, config }) => cursorBehavior(addresses, selection, view, spec, config),
+  create: ({ addresses, selection, view, spec, config, layout }) =>
+    createCursor(addresses, selection, view, spec, config, layout),
 };
 
 export const EditingProvider: BehaviorProvider<undefined, EditingBehavior> = {

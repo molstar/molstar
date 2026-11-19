@@ -31,6 +31,7 @@ import {
   type PassName,
   type PassWriter,
   passDraws,
+  Round,
 } from './draw-lists.js';
 import { ImageCache, ImageTile } from './images.js';
 import { type Alphabet, cellEdge, LettersColorFallback } from './letters.js';
@@ -78,6 +79,7 @@ import {
   TreeHitPx,
   upper,
 } from './rows-model.js';
+import { squircleRadius } from './squircle.js';
 import { inkOn, type SeqTokens } from './tokens.js';
 
 // The `rows` layer type (_spec/README.md "Render", The rows layer): an alignment's rows over its columns, in data,
@@ -468,6 +470,32 @@ export class RowsLay {
   label(row: number): string {
     return this.held?.labels[row] ?? this.lazyLabels.get(row) ?? `row ${(row + 1).toLocaleString('en-US')}`;
   }
+
+  /** A summary row's count as its label ends (` +n`: its shown rows past the first); '' for a row of its own. */
+  summaryMore(i: number): string {
+    const m = this.display.members.get(i);
+    return m ? ` +${m.length - 1}` : '';
+  }
+
+  /** A display row's label whole: a summary row's first row's and its count (`HBA +1`), else its row's. */
+  displayLabel(i: number): string {
+    const e = this.display.rowAt(i);
+    if (e >= 0) return this.label(e);
+    const m = this.display.members.get(i);
+    return m ? `${this.label(m[0])}${this.summaryMore(i)}` : '';
+  }
+
+  /**
+   * The display row the keyboard cursor stands on for a data row: its own (a folded row's summary row; a pinned row's
+   * in the band), else, hidden or filtered, the nearest row shown; -1 when none is.
+   */
+  cursorRow(row: number): number {
+    const i = this.display.displayRow(row);
+    return i >= 0 ? i : this.display.nearestRow(row);
+  }
+
+  /** The display row of the last hit on the rows (a cell's, a row's): which copy of a pinned row a click was on. */
+  hitRow = -1;
 
   /** Labels and first numbers of lazy rows read from their tiles this frame (cleared each layout). */
   readonly lazyLabels = new Map<number, string>();
@@ -1054,6 +1082,7 @@ export const RowsType: LayerType<Prep, RowsLay> = {
 
 /** A hit on display row `i`: a summary row's (its clade), else its data row's, a cell where `position` is given. */
 function rowHit(lay: RowsLay, i: number, position: number | undefined): Hit {
+  lay.hitRow = i;
   const e = lay.display.rowAt(i);
   if (e < 0 && lay.clades) {
     const c = -1 - e;
@@ -1472,7 +1501,7 @@ function layoutHeader(lay: RowsLay, prep: Prep, ctx: LayoutContext) {
     if (e < 0) {
       // a summary's count is what it says (EC-100): the first label is cut, never ` +n`
       const m = lay.display.members.get(i);
-      const more = m ? ` +${m.length - 1}` : '';
+      const more = lay.summaryMore(i);
       const head = m
         ? elide(text, lay.labelFont, lay.label(m[0]), lay.labelMax - text.measure(lay.labelFont, more))
         : '';
@@ -2241,31 +2270,60 @@ function paintRow(lay: RowsLay, out: PassWriter, i: number, ranges: ArrayLike<nu
   out.rectArgs();
 }
 
-/** The keyboard cursor on a cell of two axes: its cell outlined in the neutral ink. */
+/**
+ * The keyboard cursor on a cell of two axes (_spec/README.md "Render", The rows layer), on its own section: its cell, or
+ * its row's header (the label column, `labelX` to `numberX`), outlined in the neutral ink, a squircle by the cell (every
+ * emphasis a squircle) inside it by half its width, square on a side the view or the band cuts and below the minimum. A
+ * folded row's at its summary row, a hidden one's at the nearest row shown (`cursorRow`); a pinned row's in the band and
+ * in its place too (by data row, as the selection).
+ */
 function drawCursor(lay: RowsLay, out: PassWriter, emphasis: Emphasis | undefined) {
   const c = emphasis?.cursor;
   if (!c || c.ySystem !== lay.rowsSystem || c.yPosition === undefined) return;
-  const i = lay.display.displayRow(c.yPosition);
+  // the layer's address is its section's and more: `startsWith` and a code read allocate nothing
+  const s = c.section;
+  if (s !== undefined && !(lay.key.startsWith(s) && lay.key.charCodeAt(s.length) === 47)) return;
+  const i = lay.cursorRow(c.yPosition);
   if (i < 0) return;
-  const { box, tokens, config } = lay;
-  const y = lay.rowY(i);
-  const g = out.args;
-  const w = config.outline.cursor;
-  let x0 = box.x - (lay.treeX1 > 0 ? box.x - lay.labelX : 0);
-  let x1 = box.x;
-  if (c.system === lay.system && lay.axis.cell(c.position)) {
-    x0 = lay.axis.sx0;
-    x1 = lay.axis.sx1;
+  const header = c.part === 'header';
+  if (header) {
+    CellX[0] = lay.labelX;
+    CellX[1] = lay.numberX;
+  } else {
+    if (c.system !== lay.system || !lay.axis.cell(c.position)) return;
+    CellX[0] = Math.min(lay.axis.sx0, lay.axis.sx1);
+    CellX[1] = Math.max(lay.axis.sx0, lay.axis.sx1);
   }
-  g[0] = x0 + w / 2;
+  cursorCell(lay, out, i, header);
+  const own = lay.display.placeRow(c.yPosition);
+  if (own >= 0 && own !== i) cursorCell(lay, out, own, header);
+}
+
+/** The cursor's outline at display row `i` between `CellX[0]` and `CellX[1]` (`drawCursor`). */
+function cursorCell(lay: RowsLay, out: PassWriter, i: number, header: boolean) {
+  const { box, tokens, config } = lay;
+  const a = CellX[0];
+  const b = CellX[1];
+  const y = lay.rowY(i);
+  const rh = lay.rowScale;
+  if (y + rh <= box.y || y >= box.y + box.height || !(b > a)) return;
+  const w = config.outline.cursor;
+  const cw = b - a;
+  const r = squircleRadius(cw, rh, config.squircleRatio, config.squircleMax, config.squircleMin);
+  // cut: past the data box's sides (the view; the header is whole), above or below the band (its rows scroll in it)
+  let round = header ? Round.both : (a >= box.x ? Round.left : 0) | (b <= box.x + box.width ? Round.right : 0);
+  if (y < box.y) round |= Round.cutTop;
+  if (y + rh > box.y + box.height) round |= Round.cutBottom;
+  const g = out.args;
+  g[0] = a + w / 2;
   g[1] = y + w / 2;
-  g[2] = Math.max(x1 - x0 - w, 0.5);
-  g[3] = lay.rowScale - w;
+  g[2] = Math.max(cw - w, 0.5);
+  g[3] = Math.max(rh - w, 0.5);
   g[4] = NoColor;
   g[5] = tokens.colors[config.emphasis.cursorInk];
   g[6] = w;
-  g[7] = 0;
-  g[8] = 0;
+  g[7] = r > 0 && (round & Round.both) !== 0 ? Math.max(r - w / 2, 0) : 0;
+  g[8] = round;
   out.rectArgs();
 }
 

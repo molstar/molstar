@@ -1963,8 +1963,13 @@ function drawSectionEmphasis(
         drawProjectedHover(out, axis, box, emphasis.projected.hover, tokens, config);
       break;
     case 'cursor':
-      // a cursor on a cell of two axes is its layer's (it alone knows its y)
-      if (emphasis.cursor?.system === axis.system && emphasis.cursor.ySystem === undefined)
+      // a cursor on a cell of two axes is its layer's on its own section (it alone knows its y); the others mark its
+      // column, unless it stands on a row's header (the column it left is no place of it)
+      if (
+        emphasis.cursor?.system === axis.system &&
+        emphasis.cursor.part !== 'header' &&
+        (emphasis.cursor.ySystem === undefined || emphasis.cursor.section !== s.section.address)
+      )
         drawCursor(out, axis, box, emphasis.cursor, tokens, config);
       break;
   }
