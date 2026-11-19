@@ -412,8 +412,7 @@ reorder keeps it and it projects like any part; a block is a rect (`Location.rec
   ruler's upper part (above `navigator.rail.grabShare`, 0.4 of its height, from the bottom) selects a run of columns,
   a drag in its lower part is the ruler rail's and pans ([navigators.md](navigators.md)); a grid's rulers are its axes and pan.
 
-**The keyboard cursor** (EC-154; built: its columns; its rows not yet, found by NP 2026-11-19: Page Up and Page
-Down scroll the band a page, the cursor stays): `{ section, system, position, ySystem, yPosition, part }`, `part` `cell` or `header`.
+**The keyboard cursor** (EC-154; built, columns and rows (RK, 2026-11-19); text's line blocks not): `{ section, system, position, ySystem, yPosition, part }`, `part` `cell` or `header`.
 ← from the first column onto the header, → back; ← → step columns; ↑ ↓ step display rows (pinned band to scrolled
 rows, a summary row one stop); Page Up and Page Down a window of rows; Cmd/Ctrl+↑ ↓ the first and last row;
 Shift+arrows extend the block; Enter focuses the row or cell, or opens a summary row; Space (on key-up, and only when
@@ -421,7 +420,13 @@ no drag happened while it was held, so Space+drag pans without toggling) toggles
 selection, and on the header the row's clade (its node's, or the summary row's). Moves are arithmetic on display
 offsets, so a million lazy rows cost what ten do; a cell whose tile is pending is outlined and announced pending. On a
 relayout the cursor stays on its row; a folded row puts it on the summary row, a filtered one on the nearest shown.
-Space and Enter stay the cursor's keys, acting by its part. **In text** (the ESPript figure) ↑ ↓ step rows within a
+Space and Enter stay the cursor's keys, acting by its part. ↓ from the pinned band's last row lands on the first scrolled row shown and the band keeps its
+scroll (decided 2026-11-19); ↓ from a section's other tracks (its ruler, its logo) enters its rows. Cmd/Ctrl+Shift+
+arrows start a new block, the others kept (`cursor.add-up`, `cursor.add-down` for ↑ ↓). The cursor stands on a pinned
+row's copy it was moved or clicked to, drawn on both copies. Page Up and Page Down belong to `cursor.page-up` and
+`cursor.page-down` (in `view.keys`), which move the cursor a page with the band, or scroll the band when no cursor is
+shown; Enter on a header focuses the row's extent (its letters once its tile is held). On a grid ↑ ↓ step its y and
+reveal it, as x is. **In text** (the ESPript figure) ↑ ↓ step rows within a
 line block and, past its last row, cross to the first row of the next block (the previous block's last row going up).
 
 **Drag past a scrolling box's edge** (the rows band, a text section): a drag-select whose pointer leaves the box

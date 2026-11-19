@@ -60,3 +60,7 @@
   `--files` crash.
 - SF's leftover: look at a disabled toolbar button in `@molstar/ui`'s Storybook and in Prism, light and dark (the
   dimming computed at 1.7–1.9:1, not seen).
+- CS's leftovers: the strand in the hover card (viewer); the link from TP53 to the p53 gene view (a spec ref cannot
+  open another view); a double-click in a density strip (no item) jumps from the whole chromosome to letters: a zoom
+  step may serve better (the double-click design's question); `values.coarser` 1 in core against performance.md's 2
+  (the remaining frame ratio); once CF fixes the nested want, the exons' level 1 again.

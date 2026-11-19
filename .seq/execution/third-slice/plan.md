@@ -387,9 +387,9 @@ and dark before the merge.
 - [x] NP (fast, 2026-11-19) the novice pass's bugs, stories and looks (`briefs/np-novice-fixes.md`).
 - [x] HC (strong; the author, 2026-11-19: "Yes, lane HC now") the hover card and the keys panel (ux-foundations §9;
       `briefs/hc-hover-card.md`).
-- [ ] RK (strong, after HC; the author, 2026-11-19: "Yes, after HC") the keyboard cursor's rows (grids-and-rows,
+- [x] RK (merged `e76bbf40f`; strong, after HC; the author, 2026-11-19: "Yes, after HC") the keyboard cursor's rows (grids-and-rows,
       The keyboard cursor; `briefs/rk-cursor-rows.md`).
-- [ ] CS (strong, beside RK; the author, 2026-11-19: "we should also add a "genome-level" example(s)", "let's do
+- [x] CS (merged `ce6566143`; strong, beside RK; the author, 2026-11-19: "we should also add a "genome-level" example(s)", "let's do
       chromosome scale this slice") p53's chromosome: chromosome 17 by region, generated, TP53 in place
       ([examples](../../design/examples.md), p53's chromosome; `briefs/cs-chromosome.md`).
 - [x] SF (fast, beside RK and CS; merged `2afa74936`; the author, 2026-11-19: "Small fixes") the size script's `--files`, `@molstar/ui`'s
@@ -400,7 +400,7 @@ and dark before the merge.
       show this is "easy"") a view like rondo.app's against what is built (`briefs/gr-genome-ring-research.md`).
 - [x] EO (fast, read-only; reported: `ec-outcomes-draft.md`, `drift/ec-contradictions.md`) the third slice's edge-case outcomes drafted (`briefs/eo-ec-outcomes.md`).
 - [x] AT (fast; merged `f88979d0c`; the arcs' naming bug to CF) the rows and pairs layers' accessible items tested (`briefs/at-accessible-items-tests.md`).
-- [ ] ET (fast) tests for the edge cases built but untested (`briefs/et-ec-tests.md`).
+- [x] ET (fast; merged `50956fce0`; EC-135 to CF) tests for the edge cases built but untested (`briefs/et-ec-tests.md`).
 - [ ] CF (strong, after a strong slot frees) CS's core findings: a ruler's units (decided), inline data's tiles, shown
       means in view (decided) (`briefs/cf-chromosome-core.md`).
 - [ ] USE GATE (the author's use so far counts, 2026-11-19; at finalize only a look at what changed since) (deferred: the loop does not wait; finalize does): the author uses the views; findings fixed or placed,

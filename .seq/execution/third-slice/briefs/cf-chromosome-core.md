@@ -29,6 +29,15 @@ on its parent:
    the `.fails` from `render/_test/accessible-items.test.ts` "names each arc in the exported SVG, on a track and on a
    ring".
 
+5. **EC-135 not wired** (found by ET): the ESPript scheme's `gaps` reaches the `share` clause but the measure ignores
+   it: `render/rows-model.ts:520` registers `share` with no `params`, and `render/rows.ts:536` always calls
+   `columnMeasures(held, ref)` with gaps ignored, though `columnMeasures` handles `'count'`. Read a share per `gaps`
+   (only when a theme asks for `count`), and test a column `A, A, -`: `count` 2/3, `ignore` 1.
+6. **A whole-system level-1 want from layers over nested sources** (found by CS): an exons layer over a nested
+   source asked for its whole system at level 1 each frame (81,307 tiles), not through `readTiles` (CS guessed
+   `render/numberings.ts`). Find it and bound it with the rest of item 2. CS's view now serves one coarse level to
+   avoid it: once fixed, say whether CS's nested source can serve level 1 again.
+
 **Not in scope**: the hover card's strand (viewer, after RK); the ranges layout walking every row (core TODO; CS
 answers density instead). RK (keyboard cursor) works in `packages/seq/viewer` and in `core/src/render/{rows,tracks,
 grid,layer-type}.ts`: keep your `tracks.ts` change to the held-nodes hunk; CS works in `packages/seq/examples` and

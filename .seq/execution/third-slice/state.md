@@ -327,3 +327,12 @@ None.
   folded clade's summary row unnamed (drift/ec-contradictions.md 4). ET (fast) started.
 - **Lanes at once** (the author, 2026-11-19: "let's keep 1heavy+2 light or heavy active after current stuff
   finishes"): three lanes, one strong and two of either kind, in place of loop.md's two strong and two fast.
+- RK merged (`e76bbf40f`) after its fix round; its API accepted by the author ("Accept all"); looked at (Rows › Folded
+  light, Family dark). ET merged (`50956fce0`): six ECs tested; EC-135 not wired (to CF). CS merged (`ce6566143`)
+  after its fix round (frames at the fit 0.40 ms after browsing, from about 460 ms); looked at (fit and letters, light
+  and dark). On the merged tree: quick 2308 (+1 expected fail), medium 108, tsc, storybook typecheck, lint, format
+  green. grids-and-rows.md and its Design page say the cursor's rows are built; changelogs `seq-cursor-rows.md`,
+  `seq-chromosome.md`.
+- CS's PCG finding: core's `PCG` (`@molstar/core/data/util/hash-functions.ts:588`) is a 32-bit-state variant with a
+  64-bit output step, biased (CS: G 33%, C 20% over 1 Mb); fixing it changes Mol*'s distinct colors and every seeded
+  Seq* fixture: the author's call.

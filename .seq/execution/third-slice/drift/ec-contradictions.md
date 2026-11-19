@@ -14,3 +14,8 @@ Found by EO (`ec-outcomes-draft.md`). For the author at the next gate, each with
 4. **A folded clade's summary row is not named** to assistive technology (`core/src/render/rows.ts` `rowItems` skips
    it on purpose; AT's test records it): a screen reader cannot reach a folded clade. Recommend: name it by its summary
    label ("HBA +12"), as the announcer and the hover card already say it.
+5. **EC-138's hover outline** holds 3:1 against the page, tracks and residue fills in both themes, not against the
+   saturated data fills (dark `seq-value` 2.18:1; `seq-cat-*`, `seq-ramp-*`, `seq-ss-*` about 1.4–3.4:1; light
+   `seq-ramp-4` 1.76) (ET's `core/src/render/_test/ec-hover-contrast.test.ts`). Recommend: the EC asks 3:1 against
+   the track (what the outline sits on), not every fill; a fill it fails gets the double outline (light and dark)
+   ux-foundations already uses for the selection.
