@@ -7,6 +7,8 @@
 import type { Node } from '@molstar/core/repr/tree';
 import type { SeqRegistryEntry } from '@molstar/seqx-core/context';
 import * as complexBlocks from './complex/blocks.js';
+import { generatedRegistry } from './globins/data.js';
+import * as globins from './globins/family.js';
 import * as plasmidRing from './plasmid/ring.js';
 import * as addressing from './p53/addressing.js';
 import * as axis from './p53/axis.js';
@@ -218,6 +220,51 @@ export const PlasmidViews: readonly ExampleView[] = [
   },
 ];
 
+/** The Globins (a generated family until the Pfam seed and its tree are recorded): rows, trees, folds and scale. */
+export const GlobinsViews: readonly ExampleView[] = [
+  {
+    dataset: 'globins',
+    id: 'family',
+    title: 'Family, logo and tree',
+    summary:
+      'The family’s rows by its tree beside them, its conservation logo above: hover a cell and its column lights in every row; click a tree node to fold its clade (session state); Cmd/Ctrl+click a node selects its rows; the wheel scrolls the rows, `]` and `[` zoom them.',
+    build: () => globins.build(),
+  },
+  {
+    dataset: 'globins',
+    id: 'folded',
+    title: 'Folded clades',
+    summary:
+      'Two clades folded when the view opens (the layer’s `collapsed`): each one summary row, its consensus opaque by its share, labeled “first +n”, a wedge in the tree. Click a node to unfold it; `clades.keep` writes the folds shown back.',
+    build: globins.folded,
+  },
+  {
+    dataset: 'globins',
+    id: 'figure',
+    title: 'Alignment figure',
+    summary: 'The family as an ESPript-style text figure: groups of ten, every row on every line, a ruler above.',
+    build: globins.figure,
+  },
+  {
+    dataset: 'globins',
+    id: 'scale',
+    title: '10,000 rows',
+    summary:
+      'A generated variant of 10,000 rows × 300 columns, held, by a balanced tree: zoomed out the rows draw from the shared reduction as image tiles; `]` and `[` zoom the rows, the wheel scrolls them.',
+    build: () => globins.scale(),
+    registry: generatedRegistry,
+  },
+  {
+    dataset: 'globins',
+    id: 'lazy',
+    title: '10,000,000 rows, lazy',
+    summary:
+      'A generated variant of ten million rows in data order: only the rows in view are ever made, a row not yet read labeled by its number until its tile arrives.',
+    build: () => globins.lazy(),
+    registry: generatedRegistry,
+  },
+];
+
 /** The Complex (a stand-in until its dataset is recorded): its chains and ligands as blocks, three ways. */
 export const ComplexViews: readonly ExampleView[] = [
   {
@@ -257,4 +304,5 @@ export const ExampleViews: readonly ExampleView[] = [
   ...LayerViews,
   ...PlasmidViews,
   ...ComplexViews,
+  ...GlobinsViews,
 ];

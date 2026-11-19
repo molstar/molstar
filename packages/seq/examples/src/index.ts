@@ -13,6 +13,7 @@ export {
   ExampleViews,
   type ExampleView,
   FeatureViews,
+  GlobinsViews,
   LayerViews,
   P53Views,
   PlasmidViews,

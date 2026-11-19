@@ -12,6 +12,7 @@ import { type CursorBehavior, cursorBehavior } from './cursor.js';
 import { type EditingBehavior, editingBehavior } from './editing.js';
 import { type HoverBehavior, hoverBehavior } from './hover.js';
 import { type NavigateBehavior, navigateBehavior } from './navigate.js';
+import { type RowsBehavior, rowsBehavior } from './rows.js';
 import { type SelectBehavior, selectBehavior } from './select.js';
 import { type ThemingBehavior, themingBehavior } from './theming.js';
 import { type WindowBehavior, windowBehavior } from './window.js';
@@ -74,4 +75,10 @@ export const WindowProvider: BehaviorProvider<undefined, WindowBehavior> = {
 export const LegendProvider: BehaviorProvider<undefined, ThemingBehavior> = {
   name: 'legend',
   create: ({ spec, addresses, legends }) => themingBehavior(spec, addresses, legends),
+};
+
+/** An alignment's rows bands: folds, pins, hidden rows, order, the rows' zoom and scroll (_spec/README.md "Behaviors"). */
+export const RowsProvider: BehaviorProvider<undefined, RowsBehavior> = {
+  name: 'rows',
+  create: ({ spec, view, layout }) => rowsBehavior(spec, view, layout),
 };

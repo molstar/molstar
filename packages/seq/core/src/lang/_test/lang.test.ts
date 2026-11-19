@@ -138,6 +138,16 @@ const Misuses: Record<keyof typeof LangIssues.codes, () => Node> = {
     b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT', source: '/data/x' });
     return b.build();
   },
+  'seq.lang.alignment.content': () => {
+    const b = createSeqSpec();
+    b.data.alignment('a', { alphabet: 'protein' });
+    return b.build();
+  },
+  'seq.lang.alignment.width': () => {
+    const b = createSeqSpec();
+    b.data.alignment('a', { alphabet: 'protein', rows: { label: ['x', 'y'], letters: ['AC-D', 'ACD'] } });
+    return b.build();
+  },
   'seq.lang.sequence.letters': () => {
     const b = createSeqSpec();
     b.data.sequence('s', { alphabet: 'dna', letters: 'ACGU' });

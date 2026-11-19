@@ -119,7 +119,7 @@ export function matchesChord(
 }
 
 const DataTargets: readonly HitTarget[] = ['cell', 'item'];
-const ElementTargets: readonly HitTarget[] = ['cell', 'item', 'row', 'column', 'track'];
+const ElementTargets: readonly HitTarget[] = ['cell', 'item', 'row', 'column', 'track', 'summary-row'];
 
 const each = (
   targets: readonly HitTarget[],
@@ -166,15 +166,35 @@ export const NavigationBindings: readonly GestureBinding[] = [
   { gesture: 'wheel', modifiers: ['shift'], target: 'any', action: 'pan' },
   { gesture: 'wheel', modifiers: ['mod'], target: 'any', action: 'zoom' },
   { gesture: 'pinch', target: 'any', action: 'zoom' },
-  ...each(ElementTargets, 'double-click', 'view.focus'),
+  // a summary row's double-click opens it (the clades' bindings)
+  ...each(
+    ElementTargets.filter((t) => t !== 'summary-row'),
+    'double-click',
+    'view.focus',
+  ),
   { gesture: 'double-click', target: 'empty', action: 'view.fit' },
   { gesture: 'double-click', modifiers: ['shift'], target: 'any', action: 'view.zoom-out' },
   { gesture: 'back-button', modifiers: '*', target: 'any', action: 'view.back' },
   { gesture: 'forward-button', modifiers: '*', target: 'any', action: 'view.forward' },
 ];
 
-/** The default grammar: the hover, navigation and the selection (a drag on data selects). */
-export const DefaultBindings: readonly GestureBinding[] = [...NavigationBindings, ...SelectionBindings];
+/**
+ * A tree's nodes (an alignment's rows): a click toggles the clade's fold (decided: a node is chrome, as a group's
+ * chevron; a preset may bind it to select), Cmd/Ctrl+click toggles its rows in the selection; a summary row's
+ * double-click opens its clade, its rows shown (again: folded).
+ */
+export const CladeBindings: readonly GestureBinding[] = [
+  { gesture: 'click', target: 'tree-node', action: 'clades.toggle' },
+  { gesture: 'click', modifiers: ['mod'], target: 'tree-node', action: 'selection.toggle' },
+  { gesture: 'double-click', target: 'summary-row', action: 'clades.toggle' },
+];
+
+/** The default grammar: the hover, navigation, the selection (a drag on data selects) and a tree's nodes. */
+export const DefaultBindings: readonly GestureBinding[] = [
+  ...NavigationBindings,
+  ...SelectionBindings,
+  ...CladeBindings,
+];
 
 /** As genome browsers do: a drag on data pans; the selection's clicks are kept, its drags dropped. */
 export const GenomeBrowserBindings: readonly GestureBinding[] = [
@@ -217,6 +237,9 @@ export const SelectActions: readonly string[] = [
   'selection.clear',
 ];
 
+/** The `rows` behavior's actions: a tree node's click. */
+export const CladeActions: readonly string[] = ['clades.toggle'];
+
 export interface BindingTable {
   readonly bindings: readonly GestureBinding[];
   /** Conflicts, actions that do not exist, key gestures: found when the table is built. */
@@ -252,6 +275,63 @@ export interface BindingTableOptions {
   readonly actions?: readonly string[];
   /** Change kinds of commands the kind table lacks (an extension's). */
   readonly kinds?: Readonly<Record<string, ChangeKind>>;
+  /** The commands' configured keys (`view.keys`): two commands whose chords one key event matches conflict. */
+  readonly keys?: Readonly<Record<string, readonly string[]>>;
+}
+
+/** What Shift types on the common layouts: a shifted printable chord is matched by its shifted key. */
+const Shifted: Readonly<Record<string, string>> = {
+  '=': '+',
+  '-': '_',
+  '0': ')',
+  '1': '!',
+  '2': '@',
+  '3': '#',
+  '4': '$',
+  '5': '%',
+  '6': '^',
+  '7': '&',
+  '8': '*',
+  '9': '(',
+  '[': '{',
+  ']': '}',
+  ';': ':',
+  "'": '"',
+  ',': '<',
+  '.': '>',
+  '/': '?',
+  '`': '~',
+  '\\': '|',
+};
+
+/**
+ * Pairs of commands whose chords one key event matches (_spec/README.md "Bindings"): a printable chord without Shift
+ * matches whatever Shift types it, so `+` (Shift+=) and a `Shift+=` chord are one event.
+ */
+export function keyConflicts(keys: Readonly<Record<string, readonly string[]>>): Issue[] {
+  const events: { id: string; key: string; shift: boolean | undefined; alt: boolean; mod: boolean; text: string }[] =
+    [];
+  for (const [id, chords] of Object.entries(keys))
+    for (const text of chords) {
+      const c = parseChord(text);
+      if (!c) continue;
+      const printable = c.key.length === 1 && c.key !== ' ';
+      // the key the event carries: a shifted printable chord's is what Shift types
+      const key = printable && c.shift ? (Shifted[c.key] ?? c.key.toUpperCase()) : c.key;
+      events.push({ id, key, shift: printable ? undefined : !!c.shift, alt: !!c.alt, mod: !!c.mod, text });
+    }
+  const out: Issue[] = [];
+  for (let i = 0; i < events.length; i++)
+    for (let j = i + 1; j < events.length; j++) {
+      const a = events[i];
+      const b = events[j];
+      if (a.id === b.id || a.key !== b.key || a.alt !== b.alt || a.mod !== b.mod) continue;
+      if (a.shift !== undefined && b.shift !== undefined && a.shift !== b.shift) continue;
+      out.push(
+        issueOf(ViewerIssues, 'seq.viewer.binding.conflict', `${a.id}'s ${a.text} and ${b.id}'s ${b.text} are one key`),
+      );
+    }
+  return out;
 }
 
 /**
@@ -264,8 +344,8 @@ export function bindingTable(
   overrides: readonly (readonly GestureBinding[])[] = [],
   options: BindingTableOptions = {},
 ): BindingTable {
-  const actions = new Set(options.actions ?? [...DefaultActions, ...SelectActions]);
-  const issues: Issue[] = [];
+  const actions = new Set(options.actions ?? [...DefaultActions, ...SelectActions, ...CladeActions]);
+  const issues: Issue[] = options.keys ? keyConflicts(options.keys) : [];
   const table = new Map<string, GestureBinding>();
   for (const layer of [preset, ...overrides]) {
     const seen = new Set<string>();

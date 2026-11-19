@@ -252,6 +252,55 @@ export const SeqLanguage = defineLanguage({
         },
       },
     },
+    alignment: {
+      doc: 'An alignment: rows (a coordinate system of its own, in data order) over columns (the section’s system), inline or from a source.',
+      parents: ['data'],
+      ids: 'required',
+      params: {
+        alphabet: {
+          type: 'string',
+          enum: ['protein', 'dna', 'rna'],
+          required: true,
+          doc: 'The alphabet of its letters.',
+        },
+        rows: {
+          type: 'table',
+          columns: {
+            label: {
+              type: 'list',
+              of: { type: 'string', doc: 'A label.' },
+              required: true,
+              doc: 'Each row’s label (its key): `NAME/27-137` numbers its first residue 27 (EC-39).',
+            },
+            letters: {
+              type: 'list',
+              of: { type: 'string', doc: 'A row’s aligned letters.' },
+              required: true,
+              doc: 'Each row’s aligned letters, every row as wide; gaps `-` and `.`.',
+            },
+          },
+          doc: 'The rows inline (instead of `source`).',
+        },
+        source: {
+          type: 'ref',
+          kinds: ['source'],
+          doc: 'The source that holds the alignment (an aligned FASTA or Stockholm file, or one serving rows by region), instead of `rows`.',
+        },
+        reference: {
+          type: 'string',
+          doc: 'The reference row’s label: what `identity` and `matches-reference` compare with (none when absent).',
+        },
+      },
+    },
+    tree: {
+      doc: 'A tree over an alignment’s rows (Newick): its leaves match rows by label, else by the label before its last `/` (EC-43).',
+      parents: ['data'],
+      ids: 'required',
+      params: {
+        of: { type: 'ref', kinds: ['alignment'], required: true, doc: 'The alignment whose rows it orders.' },
+        newick: { type: 'string', required: true, doc: 'The tree as Newick text.' },
+      },
+    },
     map: {
       doc: 'A map from the positions of one sequence to those of another, so data on one shows on the other.',
       parents: ['data'],
@@ -323,8 +372,8 @@ export const SeqLanguage = defineLanguage({
       params: {
         of: {
           type: 'ref',
-          kinds: ['sequence'],
-          doc: 'The coordinate system the section shows; required unless the section has `block` children.',
+          kinds: ['sequence', 'alignment'],
+          doc: 'The coordinate system the section shows (an alignment: its columns); required unless the section has `block` children.',
         },
         range: {
           type: 'list',
@@ -512,13 +561,13 @@ export const SeqLanguage = defineLanguage({
       params: {
         type: {
           type: 'string',
-          enum: ['letters', 'ranges', 'values', 'ruler', 'secondary', 'variants', 'frame'],
+          enum: ['letters', 'ranges', 'values', 'ruler', 'secondary', 'variants', 'frame', 'rows', 'logo'],
           required: true,
-          doc: 'What it draws: the letters of the system, ranges, values, the ruler of the section’s axis, secondary structure (ranges whose `kind` field says helix, strand or turn), variants (ranges of one position each) or frames (ranges outlined across the tracks `across` names, titled by their labels); `secondary` and `variants` draw `ranges` where a reader lacks them.',
+          doc: 'What it draws: the letters of the system, ranges, values, the ruler of the section’s axis, secondary structure (ranges whose `kind` field says helix, strand or turn), variants (ranges of one position each), frames (ranges outlined across the tracks `across` names, titled by their labels), an alignment’s rows (`rows`) or its conservation logo (`logo`); `secondary` and `variants` draw `ranges` where a reader lacks them.',
         },
         data: {
           type: 'ref',
-          kinds: ['sequence', 'ranges', 'values'],
+          kinds: ['sequence', 'ranges', 'values', 'alignment'],
           doc: 'The data it draws (the letters of the section for `letters`, its axis for `ruler`).',
         },
         color: channel('The marks’ color: a color, a token, `light-dark(a, b)`, or a theme form.'),
@@ -570,6 +619,78 @@ export const SeqLanguage = defineLanguage({
           type: 'string',
           enum: ['blocks'],
           doc: 'For `secondary`: the figure’s form; `blocks` (when absent): helices and strands as blocks, a strand ending in an arrowhead.',
+        },
+        tree: {
+          type: 'ref',
+          kinds: ['tree'],
+          doc: 'For `rows`: the tree drawn beside the rows and read by `order: tree`.',
+        },
+        order: {
+          type: 'union',
+          of: [
+            { type: 'string', enum: ['data', 'tree'] },
+            {
+              type: 'record',
+              fields: {
+                field: { type: 'string', required: true, doc: 'A field of the rows table (`label`, `first`).' },
+                direction: { type: 'string', enum: ['ascending', 'descending'], doc: '`ascending` when absent.' },
+              },
+            },
+          ],
+          doc: 'For `rows`: the rows’ order: `data` (when absent), `tree` (the tree’s leaf order; clades fold only there), or a field of the rows table (missing last, ties in data order).',
+        },
+        collapsed: {
+          type: 'list',
+          of: { type: 'string', doc: 'A clade: its node’s label, else `first..last` (its first and last leaves).' },
+          doc: 'For `rows`: the clades folded when the view opens (session state after: `clades.keep` writes the folds shown here).',
+        },
+        pinned: {
+          type: 'list',
+          of: { type: 'string', doc: 'A row’s label.' },
+          doc: 'For `rows`: rows drawn in a band at the top (and kept in their place in the order, marked).',
+        },
+        hidden_rows: {
+          type: 'list',
+          of: { type: 'string', doc: 'A row’s label.' },
+          doc: 'For `rows`: rows not shown (a count chip at the header’s foot shows them again).',
+        },
+        height: {
+          type: 'union',
+          of: [
+            { type: 'string', enum: ['fill'] },
+            { type: 'integer', min: 1 },
+          ],
+          doc: 'For `rows`: the band’s height, `fill` (when absent: the section’s room left) or a number of rows.',
+        },
+        summary: {
+          type: 'string',
+          enum: ['consensus', 'bar'],
+          doc: 'For `rows`: a folded clade’s cells: `consensus` (when absent: the majority letter, opaque by its share) or `bar` (the non-gap share).',
+        },
+        numbers: {
+          type: 'string',
+          enum: ['gutters', 'none'],
+          doc: 'For `rows`: each row’s first and last residue numbers in gutters (`gutters`, when absent) or none.',
+        },
+        tree_width: {
+          type: 'number',
+          min: 0,
+          doc: 'For `rows`: the tree’s width in px (120 when absent: the view’s label column widens by it; 0 hides it).',
+        },
+        logo_scale: {
+          type: 'string',
+          enum: ['bits', 'probability'],
+          doc: 'For `logo`: letter heights by information (`bits`, when absent: log2(k) − H) or by `probability`.',
+        },
+        correction: {
+          type: 'string',
+          enum: ['none', 'small-sample'],
+          doc: 'For `logo` in `bits`: the small-sample correction (`none` when absent: exact for given frequencies).',
+        },
+        gaps: {
+          type: 'string',
+          enum: ['ignore', 'count'],
+          doc: 'For `logo`: gaps left out of the frequencies (`ignore`, when absent) or counted.',
         },
         code: {
           type: 'string',

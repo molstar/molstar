@@ -8,7 +8,7 @@
 // section layouts (strips, warps, placements, navigation) and the tracks layout, the window mark, draw lists in passes, hit-testing, the token table, the text metrics port, the recording and SVG
 // backends, and `renderSvg`. Named re-exports only.
 
-export { AxisTransform, Cut, type Viewport } from './axis.js';
+export { AxisTransform, type BandViewport, Cut, type Viewport } from './axis.js';
 export {
   DefaultRenderConfig,
   type DensityStep,
@@ -79,6 +79,7 @@ export {
   type EmphasisHighlight,
   EmptyOverlay,
   type Hit,
+  type HitTarget,
   type LabelSink,
   type LayerType,
   type LayoutContext,
@@ -169,3 +170,23 @@ export {
 export { type ValuesLay, type ValuesPrep, ValuesType } from './values.js';
 export { type VariantsLay, type VariantsPrep, VariantsType } from './variants.js';
 export { type FrameLay, type FramePrep, FrameType } from './frames.js';
+export { LogoLay, type LogoPrep, LogoType } from './logo.js';
+export { readHeld, RowsLay, type RowsOrder, type RowsPrep, RowsType, rowsSource } from './rows.js';
+export {
+  allClades,
+  buildClades,
+  type Clades,
+  cladeNamed,
+  cladesAtDepth,
+  cladesHolding,
+  cladesWithin,
+  type ColumnMeasures,
+  columnMeasures,
+  consensus,
+  DisplayRows,
+  type HeldCells,
+  logoHeights,
+  measureEntries,
+  type Profile,
+  profileOf,
+} from './rows-model.js';

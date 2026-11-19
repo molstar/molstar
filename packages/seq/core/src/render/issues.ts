@@ -14,6 +14,43 @@ export const RenderIssues = defineIssues('seq.render', {
     description: 'The spec has no view at the address asked for (or no view at all): nothing is drawn',
     hint: 'Name a view of the spec, or add one under `views`',
   },
+  'seq.render.rows.reduced': {
+    severity: 'info',
+    description:
+      'An alignment’s rows are below a pixel and its source serves no coarse row bins: the rows in view are drawn pending',
+    hint: 'Zoom in on the rows (`]`), or serve the alignment with row levels',
+  },
+  'seq.render.logo.profile': {
+    severity: 'info',
+    description: 'A logo over a lazy alignment: its profile is a source’s to serve, and none is read yet',
+    hint: 'Hold the alignment, or draw the logo over a held one',
+  },
+  'seq.render.rows.text.unfolded': {
+    severity: 'info',
+    description: 'A rows layer in a text figure draws every clade unfolded: a figure’s lines repeat the rows',
+    hint: 'Fold clades in a tracks view; a text figure shows every row',
+  },
+  'seq.render.rows.order': {
+    severity: 'info',
+    description: 'A lazy alignment ordered by a field or a tree its source does not serve: drawn in data order',
+    hint: 'Order a lazy alignment by `data`, or hold it',
+  },
+  'seq.render.rows.lazy': {
+    severity: 'info',
+    description:
+      'A lazy alignment’s pinned and hidden rows are not applied: rows are pinned and hidden by key, and a lazy row’s key is read with its tile',
+    hint: 'Hold the alignment to pin or hide its rows',
+  },
+  'seq.render.rows.layout': {
+    severity: 'warning',
+    description: 'A rows layer draws in tracks and text sections only: in another layout it is not drawn',
+    hint: 'Show the alignment’s rows in a tracks section',
+  },
+  'seq.render.rows.second': {
+    severity: 'warning',
+    description: 'A section draws one rows layer (the cursor has one row order): a second one is not drawn',
+    hint: 'Show the second alignment’s rows in a section of its own',
+  },
   'seq.render.color': {
     severity: 'warning',
     description: 'A layer’s color names a token the token table lacks',

@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import type { ViewLayout } from '@molstar/seqx-core/render';
 import type { SeqConfigItem, SeqPorts, SeqRegistryEntry } from '@molstar/seqx-core/context';
 import type { BindingTable, GestureBinding } from '@molstar/seqx-viewer/bindings';
 import type { ViewerConfig } from '@molstar/seqx-viewer/config';
@@ -38,6 +39,8 @@ export interface BehaviorContext {
   readonly bindings: BindingTable;
   /** The legends as derived, the hovered entry, the reader's color-blind substitution. */
   readonly legends: LegendModel;
+  /** The last frame's layout (a rows band's state: its clades, its rows in view), undefined before the first. */
+  layout(): ViewLayout | undefined;
 }
 
 /** A behavior's provider: creates the policy over the models; what it makes is its handle (`dispose` ends it). */

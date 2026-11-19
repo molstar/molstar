@@ -195,6 +195,11 @@ export interface RenderSvgOptions {
   readonly legend?: 'none' | 'below' | 'right';
   /** A reader's color-blind substitution (off: an export draws the figure's colors unless asked). */
   readonly cvdSafe?: boolean;
+  /**
+   * The clades each rows layer folds, by its track's address (a viewer passes its own, as it passes the selection);
+   * the layer's `collapsed` when absent.
+   */
+  readonly folds?: Readonly<Record<string, readonly string[]>>;
   /** The schemes and measures the themes read (the built-ins by default). */
   readonly registry?: Partial<Pick<ThemeContext, 'schemes' | 'measures'>>;
 }
@@ -328,6 +333,7 @@ export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<
       dpr: options.dpr ?? 1,
       ...(options.emphasis ? { emphasis: options.emphasis } : {}),
       ...(options.cvdSafe ? { cvdSafe: true } : {}),
+      ...(options.folds ? { folds: options.folds } : {}),
     };
     let last = '';
     // what a layout wants can follow from what arrived (a length, a follower's range): ask until it holds; the

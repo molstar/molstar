@@ -46,6 +46,16 @@ export const LangIssues = defineIssues('seq.lang', {
     description: 'A sequence has both `letters` and a `source`, or neither',
     hint: 'Give one of `letters` and `source`',
   },
+  'seq.lang.alignment.content': {
+    severity: 'error',
+    description: 'An alignment has both inline `rows` and a `source`, or neither',
+    hint: 'Give one of `rows` and `source`',
+  },
+  'seq.lang.alignment.width': {
+    severity: 'error',
+    description: 'An inline alignment’s rows are not all as wide, or its labels are not one a row',
+    hint: 'Pad every row with gaps to the alignment’s width; give a label a row',
+  },
   'seq.lang.sequence.letters': {
     severity: 'error',
     description: 'Inline letters of a sequence are not letters of its alphabet',

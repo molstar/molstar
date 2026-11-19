@@ -89,10 +89,8 @@ links, selection, the security bounds, MessagePack). Next, version 1's second mi
   the p53 story): `order` switches at the cut (each child moving to its new place needs a y offset a track the layout
   does not have); a change of the view shown is a cut at the start, not a crossfade; a step whose state changes an axis
   (a collapse, a reverse) is placed on the step's axis while the frame shows the start's, so a section's viewport goes
-  through the update rule (EC-111) on the way; **the bands' seam for the rows layer**: the shown frame's bands are
-  merged over the ViewModel's bands (RW), keeping the session's folds. Today the frame's `bands` are a pass-through of a
-  step's view (`bandTop` and `rowScale`, in display rows as the language declares; the layout converts to px), each
-  record copied with those two set and its other fields kept; the ViewModel holds no bands, so a jump tweens none; the
+  through the update rule (EC-111) on the way; a jump's motion tweens no band (a step's does: the model's bands are its
+  start); story steps that fold clades (a step's view holds no folds: grids-and-rows, "Opening and closing clades"); the
   story's own UI (steps listed, edit this step, store the view as a step) and the render CLI's video and frame-sequence
   outputs; an op that no longer applies has no issue in `repr/patch`, so Seq reports it on the step; a host's move can
   leave a step's later refs dangling in the step's own coordinates (refused unless `allowDangling`): watched for in the
@@ -116,6 +114,27 @@ links, selection, the security bounds, MessagePack). Next, version 1's second mi
   with a hidden layer reads nothing for it); the ranges layout walks every row of the entries it reads (a 150,000-row
   inline annotation: about 114 ms a frame); a letter through a codon path allocates its parts (`projectRanges` sets its
   buffer's length to 0, which lets the storage go: 161 KB a pan frame on the coding gene).
+- **The rows layer** (built: the rows half of grids-and-rows; each item here with its design section):
+  - the cursor's `part` and `y`, ↑↓ over rows (a summary row one stop), Space and Enter at the cursor on a node or a
+    summary row, text crossing line blocks ("Selection", "Opening and closing clades");
+  - block drag-select (rects) and Shift extension over rows by drag ("Selection");
+  - a bound row's projection from its sequence; `(row :key k)` and `(clade :of [a b])` as query forms ("The rows axis",
+    "Selection");
+  - `filter` and `rows.filter` (by a field's values or range: "Order");
+  - the logo of the rows shown (`rows: shown`, taken out of the language until built: "The logo"); a small logo as a
+    summary row (`summary: logo`, taken out likewise: "Opening and closing clades");
+  - a letter-class reduction (`rows.reduce: letter`, taken out of the config: "Drawing by density") and a lazy source's
+    served row bins, coarse levels drawn for 10M rows at the fit (a neutral fill today: "Lazy rows");
+  - `reveal.opensClades` (a focus or a reveal opening the clades holding a row) and `rows.clades.cutLine` (the distance
+    cut dragged across the tree), each with its `ViewerConfig` item ("Opening and closing clades");
+  - a toggle's motion (the rows' heights animated as a jump's: `view.motion`, `view.jumpMs`); the drag past the band's
+    edge scrolling the rows ("Opening and closing clades", "Lazy rows");
+  - accessibility: a tree node announced with its state through the canvas's accessible layer ("Opening and closing
+    clades");
+  - icons in the header's fixed slots (pin, a bound row's link) and the rows table's data columns ("The rows axis");
+  - the renderer's section cache keyed by the export's `folds`; the cell hit's 16 B (a number boxed from the point to
+    its column through the axis, every layer's hit) measured by the allocation tier;
+  - the Pfam globin seed and its tree recorded as the fixture (a generated stand-in today); a Design page.
 - **Rings and blocks** (built: the rings layout with labels, the title and the window; blocks in tracks and on rings):
   - blocks in the text layout (a block starting a line, its label inline on its first line; one-position blocks as chips
     flowing after the chains, EC-99): waits for the text layout on this branch;

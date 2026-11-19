@@ -11,6 +11,7 @@ import type { Overlay, StaticModel } from '@molstar/seqx-core/resolve';
 import type { Legend } from '@molstar/seqx-core/theme/index';
 import type { ResolvedLayer, ResolvedSection } from '@molstar/seqx-core/view';
 import type { AxisTransform } from './axis.js';
+import type { ImageCache } from './images.js';
 import type { ThemeContext } from './channels.js';
 import type { RenderConfig } from './config.js';
 import type { PassName, PassWriter } from './draw-lists.js';
@@ -67,9 +68,13 @@ export interface LayoutContext {
   readonly place?: Placement;
   /** Item labels drawn `inside` marks, or a sink a layout collects them into (rings: placed outside). */
   readonly labels?: 'inside' | LabelSink;
-  /** A band's own vertical scroll and row zoom (px a row), when it scrolls its rows. */
+  /** A band's own scroll (display rows below its pinned band) and row zoom (px a row), when it scrolls its rows. */
   readonly bandTop?: number;
   readonly rowScale?: number;
+  /** The clades a rows layer folds (session state, by name), when the band says; its `collapsed` when absent. */
+  readonly folds?: readonly string[];
+  /** The shared image cache a layer keeps its image tiles in (the renderer's). */
+  readonly images?: ImageCache;
 }
 
 /** Where a layer gives its items' labels when its layout places them (rings: outside, with leaders). */
@@ -100,17 +105,33 @@ export interface Hit {
   readonly position?: number;
   readonly system: string;
   /**
+   * A position on the second axis (_spec/README.md "Render", Lanes and Hits): a row of the rows system, a grid's y.
+   * Flat, beside `position`, so a hit of two axes allocates nothing.
+   */
+  readonly ySystem?: string;
+  readonly yPosition?: number;
+  /**
    * `break`: a collapsed break (within 3 CSS px of its notch, or on a tick of the items it hides): `position` the
    * section's position at its edge (the last shown before it in display order), `extent` the hidden stretch on the
    * section's system, `layer` the section's address, `count` the hidden items a tick stands for.
    */
-  readonly target?: 'break' | 'filter' | 'window' | 'row';
+  readonly target?: HitTarget;
   readonly count?: number;
   /** A `window` hit's part: its body (dragged: pans) or an end (dragged: resizes about the other end). */
   readonly part?: WindowPart;
   /** The block (its index in the section) when the section has blocks. */
   readonly block?: number;
+  /** What is under the point within the position, when a layer says (a logo's letter). */
+  readonly state?: string;
 }
+
+/**
+ * What a hit is, when it is more than an element or a position (_spec/README.md "Render", Lanes and Hits): `break`,
+ * `filter` (a track's chip), `window` (a ring's), `row` (a gutter's row, a rows header), `cell` (a cell of two axes:
+ * `ySystem` and `yPosition` set), `tree-node` (a tree's node: its element the clade), `summary-row` (a folded
+ * clade's row: its element the clade, `position` the column).
+ */
+export type HitTarget = 'break' | 'filter' | 'window' | 'row' | 'cell' | 'tree-node' | 'summary-row';
 
 /** A section's id: the last step of its address. */
 export function sectionId(section: { readonly address: string }): string {
@@ -137,7 +158,13 @@ export interface Emphasis {
    * hairline, EC-127).
    */
   readonly elements?: Elements;
-  readonly cursor?: { readonly system: string; readonly position: number };
+  /** The keyboard cursor; on a cell of two axes (a rows cell) its row too, drawn by the layer of two axes. */
+  readonly cursor?: {
+    readonly system: string;
+    readonly position: number;
+    readonly ySystem?: string;
+    readonly yPosition?: number;
+  };
   /** The highlight channels in the order they were set: each a tint of its color (the `highlight` pass). */
   readonly highlights?: readonly EmphasisHighlight[];
   /**

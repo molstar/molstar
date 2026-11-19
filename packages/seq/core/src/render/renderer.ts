@@ -14,6 +14,7 @@ import type { Viewport } from './axis.js';
 import type { ThemeContext } from './channels.js';
 import { DefaultRenderConfig, type RenderConfig } from './config.js';
 import { DrawLists, EmphasisPasses, type PassName } from './draw-lists.js';
+import { ImageCache } from './images.js';
 import { EmptyOverlay, type Emphasis, type LayerType, type Overlay, type StoreReader } from './layer-type.js';
 import type { SectionLayoutType } from './layout/types.js';
 import type { TextMetrics } from './text.js';
@@ -59,6 +60,11 @@ export interface FrameInput {
   readonly figure?: boolean;
   /** Draws the windows a figure leaves out by default (a ring's, in an export: `export.window`). */
   readonly windows?: boolean;
+  /**
+   * The clades each rows layer folds, by its track's address, where its band gives none (an export's `folds`): part of
+   * the key by identity. A renderer keeps them for its life (an export's are one set).
+   */
+  readonly folds?: Readonly<Record<string, readonly string[]>>;
 }
 
 /**
@@ -99,6 +105,7 @@ class KeyParts {
   cvdSafe = false;
   figure = false;
   windows = false;
+  folds: FrameInput['folds'] = undefined;
 
   // the parts are read from their objects here, never passed as numbers (a call boxes the numbers it is passed)
 
@@ -120,7 +127,8 @@ class KeyParts {
       this.settled === (input.settled ?? false) &&
       this.cvdSafe === (input.cvdSafe ?? false) &&
       this.figure === (input.figure ?? false) &&
-      this.windows === (input.windows ?? false)
+      this.windows === (input.windows ?? false) &&
+      this.folds === input.folds
     );
   }
 
@@ -139,6 +147,7 @@ class KeyParts {
     this.overlay = (input.overlay ?? EmptyOverlay).version;
     this.settled = input.settled ?? false;
     this.cvdSafe = input.cvdSafe ?? false;
+    this.folds = input.folds;
     this.figure = input.figure ?? false;
     this.windows = input.windows ?? false;
   }
@@ -199,6 +208,8 @@ export class Renderer {
   readonly lists: DrawLists;
   private readonly state = new LayoutState();
   private readonly config: RenderConfig;
+  /** The shared image cache of its frames (every layer's image tiles, one budget). */
+  readonly images: ImageCache;
   private readonly configKey: string;
   private layout: ViewLayout | undefined;
   private readonly parts = new KeyParts();
@@ -219,6 +230,7 @@ export class Renderer {
   constructor(readonly options: RendererOptions) {
     this.tokens = options.tokens;
     this.config = options.config ?? DefaultRenderConfig;
+    this.images = new ImageCache(this.config.imageBytes);
     this.lists = new DrawLists(this.config.internedStrings);
     this.configKey = (hashString(JSON.stringify(this.config)) >>> 0).toString(16);
     const data = options.data;
@@ -309,6 +321,8 @@ export class Renderer {
         theme: { ...this.options.theme, cvdSafe: input.cvdSafe ?? false },
         ...(input.figure ? { figure: true } : {}),
         ...(input.windows ? { windows: true } : {}),
+        ...(input.folds ? { folds: input.folds } : {}),
+        images: this.images,
       },
       this.state,
     );

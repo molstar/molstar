@@ -91,7 +91,7 @@ export function sameBands(a: Viewport['bands'], b: Viewport['bands']): boolean {
   for (const k of ka) {
     const x = a![k];
     const y = b?.[k];
-    if (!y || x.bandTop !== y.bandTop || x.rowScale !== y.rowScale) return false;
+    if (!y || x.bandTop !== y.bandTop || x.rowScale !== y.rowScale || x.folds !== y.folds) return false;
   }
   return true;
 }

@@ -13,6 +13,7 @@ import {
   LegendProvider,
   NavigateProvider,
   SelectProvider,
+  RowsProvider,
   WindowProvider,
 } from '@molstar/seqx-viewer/behaviors';
 import { defaultPorts } from '@molstar/seqx-viewer/ports';
@@ -39,6 +40,7 @@ export function DefaultSeqViewerSpec(): SeqViewerSpec {
       { provider: EditingProvider },
       { provider: LegendProvider },
       { provider: WindowProvider },
+      { provider: RowsProvider },
     ],
     bindings: {},
     config: [],

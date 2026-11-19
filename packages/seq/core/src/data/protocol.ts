@@ -9,10 +9,13 @@ import type { CategoryColumn, Column, ColumnType, Issue, Node, Value } from '@mo
 // The source protocol (_spec/README.md "Data", Protocol): what a format runtime opens, what an opened source covers,
 // and the request and answer of one region. Types only, but for the abort error.
 
-/** The table shapes of the first slice; `pairs`, `matrix`, `grid` and `rows` come later. */
-export type Shape = 'letters' | 'ranges' | 'values';
+/**
+ * The table shapes: `cells` an alignment's rows on 1D tiles of its rows system, columns whole (_spec/README.md "Data",
+ * Cells); `pairs`, `matrix` and `grid` by region come later.
+ */
+export type Shape = 'letters' | 'ranges' | 'values' | 'cells';
 
-export const Shapes: readonly Shape[] = ['letters', 'ranges', 'values'];
+export const Shapes: readonly Shape[] = ['letters', 'ranges', 'values', 'cells'];
 
 /** A field a source's ranges carry besides `start`, `end`, `strand` and `id`. */
 export interface FieldInfo {
@@ -121,16 +124,43 @@ export interface ValuesBins {
   readonly count: Float32Array;
 }
 
+/**
+ * `cells` at level 1: a tile's rows from `start` × every column (`columns`), row-major letter bytes (ASCII: gaps `-`
+ * and `.`), with the rows table: each row's `label` (its key) and its first residue's number (`first`, EC-39).
+ */
+export interface CellsCodes {
+  readonly form: 'codes';
+  readonly start: number;
+  readonly columns: number;
+  readonly codes: Uint8Array;
+  readonly label?: CategoryColumn;
+  readonly first?: Int32Array;
+}
+
+/**
+ * `cells` at a coarser level: a row bin (from `start`, aligned to the level) per column, its majority letter byte
+ * (`classes`, 255 none) and that letter's share (`shares`, 0 to 255), row-major.
+ */
+export interface CellsMajority {
+  readonly form: 'majority';
+  readonly start: number;
+  readonly columns: number;
+  readonly classes: Uint8Array;
+  readonly shares: Uint8Array;
+}
+
 export type RangesTable = RangesList | RangesDensity;
+export type CellsTable = CellsCodes | CellsMajority;
 export type ValuesTable = ValuesPositions | ValuesBins;
 
 export interface Tables {
   readonly letters?: LettersTable;
   readonly ranges?: RangesTable;
   readonly values?: ValuesTable;
+  readonly cells?: CellsTable;
 }
 
-export type Table = LettersTable | RangesTable | ValuesTable;
+export type Table = LettersTable | RangesTable | ValuesTable | CellsTable;
 
 /**
  * Why a region was not answered: `failed` is retried with backoff then a cooldown, `malformed` fails at once with a

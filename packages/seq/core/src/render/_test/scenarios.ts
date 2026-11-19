@@ -223,6 +223,9 @@ export function reusedHover(hits: readonly Hit[]): { emphasis: Emphasis; set(i: 
   hit.element = undefined;
   hit.extent = undefined;
   hit.block = undefined;
+  hit.ySystem = undefined;
+  hit.yPosition = undefined;
+  hit.target = undefined;
   return {
     emphasis: { hover: hit },
     set(i) {
@@ -234,6 +237,9 @@ export function reusedHover(hits: readonly Hit[]): { emphasis: Emphasis; set(i: 
       hit.element = h.element;
       hit.extent = h.extent;
       hit.block = h.block;
+      hit.ySystem = h.ySystem;
+      hit.yPosition = h.yPosition;
+      hit.target = h.target;
     },
   };
 }

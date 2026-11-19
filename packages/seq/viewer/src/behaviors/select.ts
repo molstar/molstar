@@ -106,7 +106,9 @@ export function selectBehavior(
     const b = hit?.block !== undefined && s.axis.system !== hit.system ? s.blocks?.[hit.block] : undefined;
     return b ? { axis: b.axis, offset: b.offset ?? 0, block: true } : { axis: s.axis, offset: 0, block: false };
   };
-  const axisOf = (section: string | undefined, hit?: Hit): Axis | undefined => placeOf(section, hit)?.axis;
+  // a rows hit's positions are rows, along the rows layer's display order (Shift+click extends in it)
+  const axisOf = (section: string | undefined, hit?: Hit): Axis | undefined =>
+    (hit ? view.rowsAxis(hit.system) : undefined) ?? placeOf(section, hit)?.axis;
 
   /** A click with a position moves the cursor to it, on the section clicked. */
   const follow = (ctx: SelectContext) => {

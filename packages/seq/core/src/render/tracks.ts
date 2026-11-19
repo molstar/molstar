@@ -57,6 +57,10 @@ import { SecondaryType } from './secondary.js';
 import { ValuesType } from './values.js';
 import { VariantsType } from './variants.js';
 import { FrameType } from './frames.js';
+import { LogoType } from './logo.js';
+import { RowsType } from './rows.js';
+import { RowHeight } from './rows-model.js';
+import type { ImageCache } from './images.js';
 
 // The tracks layout (_spec/README.md "Render", Tracks layout): sections stacked, each with its axis transform from its
 // system and range (a follower's from its leader's view), tracks with heights in px under one label column, each
@@ -72,6 +76,8 @@ export const BuiltInLayerTypes: Readonly<Record<string, LayerType<any, any>>> = 
   secondary: SecondaryType,
   variants: VariantsType,
   frame: FrameType,
+  rows: RowsType,
+  logo: LogoType,
 };
 
 export interface LayerLayout {
@@ -187,6 +193,10 @@ export interface LayoutInput {
   readonly figure?: boolean;
   /** Draws the windows a figure leaves out by default (a ring's in an export). */
   readonly windows?: boolean;
+  /** The clades a rows layer folds by its track's address, where its band gives none (an export's `folds`). */
+  readonly folds?: Readonly<Record<string, readonly string[]>>;
+  /** The shared image cache (_spec/README.md "Render", The shared reduction): the renderer's. */
+  readonly images?: ImageCache;
 }
 
 /** What a layout keeps between frames: each layer's prepared form (per resolved layer) and its last layout. */
@@ -668,8 +678,51 @@ function pendingPlacement(top: number, box: Box, heights: readonly number[], con
   return p;
 }
 
+/**
+ * The rows' header in the view's one label column (_spec/README.md "Render", The rows layer): a rows layer's tree in
+ * tree order and its first residue numbers widen the label column by their width (the labels keep theirs), its last
+ * numbers take a right gutter. The widest of a view's tracks sections, so every section's data starts at one x.
+ */
+function rowsHeader(view: ResolvedView): { readonly tree: number; readonly numbers: boolean } {
+  let tree = 0;
+  let numbers = false;
+  for (const s of view.sections) {
+    if (sectionLayoutName(s, view) !== 'tracks') continue;
+    for (const t of s.tracks)
+      for (const l of t.layers) {
+        if (l.type !== 'rows' || !l.placed || l.params.hidden === true) continue;
+        if (l.params.numbers !== 'none') numbers = true;
+        const w = l.params.tree_width;
+        if (l.params.order === 'tree' && l.params.tree !== undefined)
+          tree = Math.max(tree, typeof w === 'number' ? w : 120);
+      }
+  }
+  return { tree, numbers };
+}
+
+/** A config with its label column widened by `extra` px, one a base and width. */
+const Widened = new WeakMap<RenderConfig, Map<number, RenderConfig>>();
+function widened(base: RenderConfig, extra: number): RenderConfig {
+  if (!extra) return base;
+  let m = Widened.get(base);
+  if (!m) Widened.set(base, (m = new Map()));
+  let c = m.get(extra);
+  if (!c) m.set(extra, (c = { ...base, labelWidth: base.labelWidth + extra }));
+  return c;
+}
+
+/** The right gutter's width when a rows layer draws residue numbers: five digits and a gap. */
+function numbersGutter(text: TextMetrics, config: RenderConfig): number {
+  return text.measure(config.itemFont, '00000') + config.labelGap;
+}
+
 export function layoutView(input: LayoutInput, state = new LayoutState(), again = false): ViewLayout {
-  const config = input.config ?? DefaultRenderConfig;
+  const header = rowsHeader(input.view);
+  const base = input.config ?? DefaultRenderConfig;
+  // the first numbers take their own room in the label column, the labels keep theirs
+  const first = header.numbers ? Math.ceil(input.text.measure(base.itemFont, '00000')) + 4 : 0;
+  const config = widened(base, header.tree + first);
+  const right = header.numbers ? numbersGutter(input.text, config) : 0;
   const extents = new Map<string, [number, number]>();
   const theme: ThemeContext = {
     schemes: input.theme?.schemes ?? DefaultThemeContext.schemes,
@@ -700,7 +753,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     issues.push(i);
   };
   const dataX = config.inset + config.labelWidth + config.labelGap;
-  const dataW = Math.max(1, width - dataX - config.inset);
+  const dataW = Math.max(1, width - dataX - config.inset - right);
   // axes first, leaders before their followers (a follower may come first in the view)
   const bySection = new Map(input.view.sections.map((s) => [s.address, s]));
   const layouts = input.layouts ?? BuiltInLayouts;
@@ -847,6 +900,21 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     }
     const byType = layout.heights?.(config) ?? config.heights;
     const heights = shown.map((t) => trackHeight(t, config, byType));
+    // a rows band that fills (_spec/README.md "Render", The rows layer): the section's room left on the page, at least
+    // its default height (a figure, laid out for its content, takes the default)
+    // a band of every row in a layout whose bands do not scroll (text: an alignment figure's lines repeat its rows)
+    if (layout !== TracksLayout)
+      for (let j = 0; j < shown.length; j++) {
+        if (shown[j].height !== undefined || rowsFill(shown[j]) === undefined) continue;
+        const rows = rowsCount(shown[j], input.model);
+        if (rows !== undefined) heights[j] = rows * byType.rows;
+      }
+    const fill = shown.findIndex((t) => t.height === undefined && rowsFill(t) === 'fill');
+    if (fill >= 0 && !input.figure && layout === TracksLayout) {
+      let used = 0;
+      for (let j = 0; j < heights.length; j++) if (j !== fill) used += heights[j] + config.trackGap;
+      heights[fill] = Math.max(heights[fill], Math.floor(height - top - used - config.inset));
+    }
     const nb = shown.length;
     const lays: LayerLayout[][] = [];
     const stripBreaks: number[][] = [];
@@ -884,6 +952,12 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     };
     /** A band's own scroll and row zoom (the viewport's `bands`, by track address). */
     const bandOf = (track: ResolvedTrack) => viewport?.bands?.[track.address];
+    // one rows layer a section (the cursor has one row order): the first shown, a second said and not drawn
+    let firstRows: string | undefined;
+    for (const t of shown)
+      for (const l of t.layers)
+        if (firstRows === undefined && l.type === 'rows' && l.placed && l.params.hidden !== true)
+          firstRows = layerKey(t, l);
     // the lays of a strip's bands (_spec/README.md "Render", Section layouts: the lay cache bounded by the strips in view);
     // a `section` layer is laid out once a section, after
     const layStrip = (placement: Placement, i: number, labels?: LabelSink) => {
@@ -910,6 +984,15 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
           const key = layerKey(track, layer);
           const type = typeOf(layer, key);
           if (!type || type.scope === 'section') continue;
+          if (type.name === 'rows' && key !== firstRows) {
+            sectionReport(
+              issueOf(RenderIssues, 'seq.render.rows.second', 'A section draws one rows layer', {
+                address: key,
+                hint: RenderIssues.codes['seq.render.rows.second'].hint,
+              }),
+            );
+            continue;
+          }
           const ctx: LayoutContext = {
             box,
             axis: a,
@@ -929,6 +1012,12 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
             labels: labels ?? 'inside',
             ...(band ? { bandTop: band.bandTop } : {}),
             ...(band?.rowScale !== undefined ? { rowScale: band.rowScale } : {}),
+            ...(band?.folds !== undefined
+              ? { folds: band.folds }
+              : input.folds?.[track.address]
+                ? { folds: input.folds[track.address] }
+                : {}),
+            ...(input.images ? { images: input.images } : {}),
           };
           // kept by the strip's first unit, and its block's (a stack's blocks all start at 0)
           const at = block ? `${key}#${strips.block[i]}@${strips.first[i]}` : `${key}@${strips.first[i]}`;
@@ -973,7 +1062,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     const sectionBox: Box = {
       x: dataX,
       y: top,
-      width: Math.max(1, width - dataX - config.inset),
+      width: Math.max(1, width - dataX - config.inset - right),
       height: Math.max(0, height - top),
     };
     let placement: Placement;
@@ -1182,8 +1271,30 @@ function wantTemplate(
   }
 }
 
-function trackHeight(track: ResolvedTrack, _config: RenderConfig, heights: RenderConfig['heights']): number {
+/** How a track's rows layer takes its height: `fill`, a number of rows, or none (no rows layer). */
+function rowsFill(track: ResolvedTrack): 'fill' | number | undefined {
+  for (const l of track.layers) {
+    if (l.type !== 'rows') continue;
+    const h = l.params.height;
+    return typeof h === 'number' ? h : 'fill';
+  }
+  return undefined;
+}
+
+/** The rows a track's rows layer shows, when its alignment's length is known (an inline one's). */
+function rowsCount(track: ResolvedTrack, model: StaticModel): number | undefined {
+  for (const l of track.layers) {
+    if (l.type !== 'rows' || !l.data) continue;
+    const rows = model.annotations.get(l.data.address)?.rows;
+    return rows === undefined ? undefined : model.systems.get(rows)?.length;
+  }
+  return undefined;
+}
+
+function trackHeight(track: ResolvedTrack, config: RenderConfig, heights: RenderConfig['heights']): number {
   if (track.height !== undefined) return track.height;
+  const rows = rowsFill(track);
+  if (typeof rows === 'number') return rows * RowHeight;
   let h = 0;
   for (const l of track.layers) h = Math.max(h, heights[l.type as keyof RenderConfig['heights']] ?? 0);
   return h || heights.ranges;
@@ -1446,7 +1557,9 @@ function drawSectionEmphasis(
         drawProjectedHover(out, axis, box, emphasis.projected.hover, tokens, config);
       break;
     case 'cursor':
-      if (emphasis.cursor?.system === axis.system) drawCursor(out, axis, box, emphasis.cursor, tokens, config);
+      // a cursor on a cell of two axes is its layer's (it alone knows its y)
+      if (emphasis.cursor?.system === axis.system && emphasis.cursor.ySystem === undefined)
+        drawCursor(out, axis, box, emphasis.cursor, tokens, config);
       break;
   }
 }
@@ -1704,7 +1817,17 @@ export function hitView(layout: ViewLayout, x: number, y: number): Hit | undefin
       const h = l.type.hit(l.lay, x, y);
       if (h?.element) return h;
     }
-    if (!s.placement.at(x, y, Point) || Point.kind !== 'data') continue;
+    if (!s.placement.at(x, y, Point)) continue;
+    // a band's header in the label column (a rows layer's tree and labels): its layers of two axes hit it
+    if (Point.kind === 'gutter' && Point.band >= 0) {
+      const lays = s.lays[Point.strip * strips.bands + Point.band];
+      for (let i = lays ? lays.length - 1 : -1; i >= 0; i--) {
+        if (lays![i].type.axes !== 2) continue;
+        const h = lays![i].type.hit(lays![i].lay, Point.x, Point.y);
+        if (h) return withBlock(s, Point.strip, h);
+      }
+    }
+    if (Point.kind !== 'data') continue;
     // a layer drawn across other bands of its strip (a frame's outline, `across`) is hit there, over their layers
     for (let j = 0; j < strips.bands; j++) {
       const own = s.lays[Point.strip * strips.bands + j];

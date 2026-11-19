@@ -22,6 +22,7 @@ import {
   type SectionNav,
   type StepDir,
 } from '@molstar/seqx-core/render';
+import type { BandViewport } from '@molstar/seqx-core/render';
 import { inversePath, type Path, projectEnd, projectPoint } from '@molstar/seqx-core/resolve';
 import {
   type Axis,
@@ -111,8 +112,52 @@ interface Kept {
   readonly scale?: number;
 }
 
-/** The leading viewports at one time: each group's range by key (a detached follower's among them). */
-type Snapshot = ReadonlyMap<string, Kept>;
+/**
+ * Every band's own viewport by its track's address (_spec/README.md "ViewModel", Bands): a rows band's scroll
+ * (`bandTop`, display rows below its pinned band, fractional), row zoom (`rowScale`, px a row) and folded clades
+ * (`folds`, session state). One object, replaced on each change.
+ */
+export type Bands = ReadonlyMap<string, BandViewport>;
+
+const NoBands: Bands = new Map();
+
+/**
+ * A band as a step of the history keeps it (_spec/README.md "ViewModel", History): its top row by key (a row's key, and
+ * the fraction of it scrolled past) with its row zoom and folds, so a step back lands on the same rows whatever was
+ * folded, hidden or reordered since; `bandTop` as it was, where no layout names the rows (`BandRows`).
+ */
+export interface KeptBand {
+  readonly band: BandViewport;
+  readonly key?: string;
+  readonly offset?: number;
+}
+
+/**
+ * What names a band's rows (the rows layer's last layout, given by the viewer): the key of the row at a band's top
+ * and the fraction into it, and the top (display rows) a key stands at under a band's folds and row zoom, clamped (a
+ * folded key at its summary row, a hidden one at the nearest row shown).
+ */
+export interface BandRows {
+  keyAt(track: string, band: BandViewport): { readonly key: string; readonly offset: number } | undefined;
+  topOf(track: string, band: BandViewport, key: string, offset: number): number | undefined;
+  /** A rows system as an axis in its rows layer's display order (what Shift+click extends along). */
+  axisOf(system: string): Axis | undefined;
+}
+
+/** The leading viewports at one time: each group's range by key (a detached follower's among them), and the bands. */
+interface Snapshot {
+  readonly groups: ReadonlyMap<string, Kept>;
+  readonly bands: ReadonlyMap<string, KeptBand>;
+}
+
+const sameBand = (a: KeptBand | undefined, b: KeptBand | undefined) =>
+  !!a &&
+  !!b &&
+  a.band.rowScale === b.band.rowScale &&
+  a.band.folds === b.band.folds &&
+  (a.key !== undefined && b.key !== undefined
+    ? a.key === b.key && a.offset === b.offset
+    : a.band.bandTop === b.band.bandTop);
 
 /** What a jump did: moved the view, found it already there, or could not move. */
 export type JumpOutcome = 'moved' | 'same' | 'none';
@@ -125,12 +170,13 @@ export interface ViewHistory {
 
 /** Two steps are the same view: the same groups at the same offsets, compared only on equal axes. */
 function snapshotsEqual(a: Snapshot, b: Snapshot): boolean {
-  if (a.size !== b.size) return false;
-  for (const [k, v] of a) {
-    const w = b.get(k);
+  if (a.groups.size !== b.groups.size || a.bands.size !== b.bands.size) return false;
+  for (const [k, v] of a.groups) {
+    const w = b.groups.get(k);
     if (!w || w.sig !== v.sig || w.start !== v.start || w.end !== v.end || w.fitted !== v.fitted || w.scale !== v.scale)
       return false;
   }
+  for (const [k, v] of a.bands) if (!sameBand(v, b.bands.get(k))) return false;
   return true;
 }
 
@@ -156,6 +202,9 @@ export class ViewModel extends ReactiveModel {
     (a, b) => a.back === b.back && a.forward === b.forward,
   );
   private readonly _jumps = new State(0);
+  private readonly _bands = new State<Bands>(NoBands);
+  /** Every band's own viewport by its track's address: a rows band's scroll, row zoom and folds. */
+  readonly bands: ReadonlyState<Bands> = this._bands.asReadonly;
   /** How many steps back and forward the view's history holds. */
   readonly history: ReadonlyState<ViewHistory> = this._history.asReadonly;
   /** Moves on each jump, back and forward (and each step zoom): what a viewer animates; a move by hand does not. */
@@ -482,6 +531,61 @@ export class ViewModel extends ReactiveModel {
     return 'moved';
   }
 
+  /** What names the bands' rows for the history (the viewer's rows layers); none: a band kept as its `bandTop`. */
+  private _bandRows: BandRows | undefined;
+
+  setBandRows(rows: BandRows | undefined): void {
+    this._bandRows = rows;
+  }
+
+  /** A rows system as an axis in display order, when a rows layer shows it; undefined else. */
+  rowsAxis(system: string): Axis | undefined {
+    return this._bandRows?.axisOf(system);
+  }
+
+  /** A band's own viewport (its track's address), undefined when it has none yet. */
+  band(track: string): BandViewport | undefined {
+    return this._bands.value.get(track);
+  }
+
+  /**
+   * Sets a band's own viewport (a rows band's scroll, row zoom, folds), merged over what it holds; undefined fields are
+   * left out (`folds: undefined` drops the session's folds: the layer's `collapsed` shows). Not a jump: a hand's move,
+   * kept by the next jump's step (a bulk fold runs through `jump`).
+   */
+  setBand(track: string, band: Partial<BandViewport>): void {
+    const prev = this._bands.value.get(track);
+    const next: { bandTop: number; rowScale?: number; folds?: readonly string[] } = {
+      bandTop: Math.max(0, band.bandTop ?? prev?.bandTop ?? 0),
+    };
+    const scale = 'rowScale' in band ? band.rowScale : prev?.rowScale;
+    const folds = 'folds' in band ? band.folds : prev?.folds;
+    if (scale !== undefined) next.rowScale = scale;
+    if (folds !== undefined) next.folds = folds;
+    if (prev && prev.bandTop === next.bandTop && prev.rowScale === next.rowScale && prev.folds === next.folds) return;
+    const map = new Map(this._bands.value);
+    map.set(track, next);
+    this._bands.set(map);
+  }
+
+  /** The bands of a section's tracks (by track address), as a frame reads them; undefined when none has one. */
+  bandsOf(section: string): Readonly<Record<string, BandViewport>> | undefined {
+    const all = this._bands.value;
+    if (!all.size) return undefined;
+    const kept = this._bandsKept.get(section);
+    if (kept && kept[0] === all) return kept[1];
+    let out: Record<string, BandViewport> | undefined;
+    for (const [track, b] of all)
+      if (track.startsWith(`${section}/`)) {
+        out ??= {};
+        out[track] = b;
+      }
+    this._bandsKept.set(section, [all, out]);
+    return out;
+  }
+
+  private readonly _bandsKept = new Map<string, [Bands, Readonly<Record<string, BandViewport>> | undefined]>();
+
   /** Whether there is a step back or forward. */
   get canBack(): boolean {
     return this._back.length > 0;
@@ -549,7 +653,13 @@ export class ViewModel extends ReactiveModel {
         ...(g.scale !== undefined ? { scale: g.scale } : {}),
       });
     }
-    return out;
+    // the bands with the windows, by their top rows' keys: back after a fold or a scroll lands on the same rows
+    const bands = new Map<string, KeptBand>();
+    for (const [track, band] of this._bands.value) {
+      const at = this._bandRows?.keyAt(track, band);
+      bands.set(track, at ? { band, key: at.key, offset: at.offset } : { band });
+    }
+    return { groups: out, bands };
   }
 
   /**
@@ -558,9 +668,9 @@ export class ViewModel extends ReactiveModel {
    * centre now hidden goes to its break). Undefined when the step has none of it.
    */
   private _keptOf(snap: Snapshot, g: Group): Kept | undefined {
-    let v = snap.get(g.key);
+    let v = snap.groups.get(g.key);
     if (!v)
-      for (const w of snap.values())
+      for (const w of snap.groups.values())
         if (w.members?.some((m) => g.members.includes(m))) {
           v = w;
           break;
@@ -597,9 +707,9 @@ export class ViewModel extends ReactiveModel {
           ...(g.scale !== undefined ? { scale: g.scale } : {}),
         });
     }
-    for (const [key, v] of snap)
+    for (const [key, v] of snap.groups)
       if (key.startsWith(DetachedPrefix) && !out.has(key) && this._detachable(key)) out.set(key, v);
-    return out;
+    return { groups: out, bands: snap.bands };
   }
 
   /** The follower a detached group's key names, when it is in the view and follows. */
@@ -610,6 +720,13 @@ export class ViewModel extends ReactiveModel {
 
   /** The groups take the snapshot's ranges in one publish; a follower detached since it was taken is attached again. */
   private _restore(snap: Snapshot): void {
+    // each band at its kept top row's place under its kept folds and zoom, clamped; a band it had none of has none
+    const map = new Map<string, BandViewport>();
+    for (const [track, k] of snap.bands) {
+      const top = k.key !== undefined ? this._bandRows?.topOf(track, k.band, k.key, k.offset ?? 0) : undefined;
+      map.set(track, top === undefined ? k.band : { ...k.band, bandTop: top });
+    }
+    if (map.size || this._bands.value.size) this._bands.set(map.size ? map : NoBands);
     for (const [key, g] of [...this._groups]) {
       const v = this._keptOf(snap, g);
       if (v) {
@@ -624,7 +741,7 @@ export class ViewModel extends ReactiveModel {
       }
     }
     // a follower detached when the snapshot was taken is detached again, at its range then
-    for (const [key, v] of snap) {
+    for (const [key, v] of snap.groups) {
       const s = !this._groups.has(key) && key.startsWith(DetachedPrefix) ? this._detachable(key) : undefined;
       if (!s) continue;
       this._groups.set(key, {

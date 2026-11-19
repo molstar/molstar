@@ -38,7 +38,7 @@ import { followRef } from '@molstar/seqx-core/lang';
 import { type AxisShape, axisTotal, nearestOffsetOf, positionAt, wholePieces } from './axis.js';
 import { ViewIssues } from './issues.js';
 
-type Shape = 'letters' | 'ranges' | 'values';
+type Shape = 'letters' | 'ranges' | 'values' | 'cells';
 
 /** A layer type: what it draws and the simpler type a reader that lacks it draws instead. */
 export interface LayerType {
@@ -59,6 +59,9 @@ export const LayerTypes: Readonly<Record<string, LayerType>> = {
   variants: { shape: 'ranges', fallback: 'ranges' },
   // regions outlined across tracks: a reader without frames draws none (an outline drawn as bars would read as data)
   frame: { shape: 'ranges' },
+  // an alignment's rows and its logo: no fallback (a reader without them draws none)
+  rows: { shape: 'cells' },
+  logo: { shape: 'cells' },
 };
 
 /**
@@ -823,9 +826,11 @@ function dataOf(model: StaticModel, value: Value | undefined, type: string, sect
   const prefix = printAddress(ids);
   const kind = exact === undefined ? 'query' : 'address';
   const address = exact ?? printAddress(parsed.segments);
+  const a = model.annotations.get(prefix);
+  // an alignment is its columns system too: a layer naming it reads its cells
+  if (a?.shape === 'cells') return { kind, address, system: a.target, shape: 'cells' };
   if (model.systems.has(prefix))
     return { kind, address, system: prefix, ...(kind === 'address' ? { shape: 'letters' as const } : {}) };
-  const a = model.annotations.get(prefix);
   const rest = parsed.segments.slice(ids.length);
   const filter = kind === 'query' && rest.length === 1 && typeof rest[0] !== 'string' ? rest[0] : undefined;
   return a ? { kind, address, system: a.target, shape: a.shape, ...(filter ? { filter } : {}) } : undefined;
