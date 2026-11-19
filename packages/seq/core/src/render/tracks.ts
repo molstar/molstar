@@ -45,6 +45,10 @@ import type { TextMetrics } from './text.js';
 import type { SeqTokens } from './tokens.js';
 import { ValuesType } from './values.js';
 
+// the anchor a number read once: a draw reads no property of an imported object (that site's feedback, cleared, made
+// a warm draw deoptimize and allocate without end once the 150,000-piece scenario had run first)
+const AnchorStart: number = Anchor.start;
+
 // The tracks layout (_spec/README.md "Render", Tracks layout): sections stacked, each with its axis transform from its
 // system and range (a follower's from its leader's view), tracks with heights in px under one label column, each
 // track's layers in order over its box. Tracks below the page are not laid out: the draw lists are bounded by the
@@ -581,7 +585,7 @@ function drawMark(out: PassWriter, s: SectionLayout, t: TrackLayout, tokens: Seq
   g[2] = m.width;
   g[3] = Math.max(0, config.inset + config.labelWidth - m.x);
   g[4] = tokens.colors['msui-text-muted'];
-  out.textArgs(m.text, Anchor.start, config.labelFont);
+  out.textArgs(m.text, AnchorStart, config.labelFont);
 }
 
 /**
@@ -626,7 +630,7 @@ function drawLabel(out: PassWriter, t: TrackLayout, tokens: SeqTokens, config: R
   g[2] = t.labelWidth;
   g[3] = config.labelWidth;
   g[4] = tokens.colors['msui-text-muted'];
-  out.textArgs(t.track.label, Anchor.start, config.labelFont);
+  out.textArgs(t.track.label, AnchorStart, config.labelFont);
 }
 
 /** The keyboard cursor: a thin outline of its cell over the box, in a neutral ink (`emphasis.cursorInk`). */

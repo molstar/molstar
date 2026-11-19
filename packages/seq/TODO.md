@@ -95,9 +95,7 @@ links, selection, the security bounds, MessagePack). Next, version 1's second mi
   (bounded by tiles in view); `render/export.ts` still requests data for hidden layers (done when an export of a spec
   with a hidden layer reads nothing for it); the ranges layout walks every row of the entries it reads (a 150,000-row
   inline annotation: about 114 ms a frame); a letter through a codon path allocates its parts (`projectRanges` sets its
-  buffer's length to 0, which lets the storage go: 161 KB a pan frame on the coding gene); in the allocation tier the
-  150,000-piece scenario run before the others leaves their warm draws recompiling without end (a deopt loop,
-  insufficient feedback in `drawTracks` and the label draws), so it runs last.
+  buffer's length to 0, which lets the storage go: 161 KB a pan frame on the coding gene).
 - **Emphasis**: projected selection bands on a whole axis are rounded at intron edges, where the frame rule wants the
   ends a projection cut square (a projection-aware cut flag; on a collapsed axis an end at a break is square); the
   keyboard cursor reads as a full-height hairline below 1 px a cell (a minimum width or a caret).

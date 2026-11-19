@@ -34,6 +34,10 @@ import {
 import { drawFailed, drawSpans, hoverCell } from './marks.js';
 import { inkOn, letterToken, resolveColor, type SeqTokens } from './tokens.js';
 
+// the anchor a number read once: a draw reads no property of an imported object (that site's feedback, cleared, made
+// a warm draw deoptimize and allocate without end once the 150,000-piece scenario had run first)
+const AnchorMiddle: number = Anchor.middle;
+
 // The `letters` layer type (_spec/README.md "Render", Layer types): a system's letters, a cell a position. By density
 // step: letters on their colored cells, cells only, a tick a position, then one bar a piece in view (presence needs no
 // data). Letters are centered in their cells, one size a row, ink by the fill. Another system's letters are drawn
@@ -579,7 +583,7 @@ function drawThree(lay: LettersLay, out: PassWriter) {
     g[2] = 0;
     g[3] = lay.x1[j] - lay.x0[j];
     g[4] = lay.ink[j];
-    out.textArgs(ThreeByCode[lay.code[j] & 127], Anchor.middle, lay.font);
+    out.textArgs(ThreeByCode[lay.code[j] & 127], AnchorMiddle, lay.font);
   }
 }
 

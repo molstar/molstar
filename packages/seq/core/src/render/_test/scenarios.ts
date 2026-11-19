@@ -34,6 +34,9 @@ export interface Scenario {
 
 // the data box is 1304 CSS px: letters need 10 px a position (130 positions), cells 1.5 px, bars down to 1/128 px
 export const Scenarios: readonly Scenario[] = [
+  // a reversed axis of 150,000 single-position pieces (EC-33): a pan over 1,000 of them, their breaks in view. First:
+  // what it leaves compiled must not make the others' warm draws allocate
+  { name: 'reversed, 150,000 pieces', spec: piecesSpec, runtimes: [], width: 1000, center: PIECES / 2, panStep: 2 },
   { name: 'p53 tracks, letters', spec: p53TracksSpec, runtimes: [], width: 100, center: 196, panStep: 0.3 },
   { name: 'p53 tracks, whole protein', spec: p53TracksSpec, runtimes: [], width: 393, center: 196, panStep: 0.5 },
   { name: 'p53 on its gene, letters', spec: p53GeneSpec, runtimes: [], width: 100, center: 196, panStep: 0.3 },
@@ -92,9 +95,6 @@ export const Scenarios: readonly Scenario[] = [
     center: BIG / 2,
     panStep: 200,
   },
-  // a reversed axis of 150,000 single-position pieces (EC-33): a pan over 1,000 of them, their breaks in view. Last:
-  // run before the others in one process, their warm draws recompile without end (a deopt loop, TODO)
-  { name: 'reversed, 150,000 pieces', spec: piecesSpec, runtimes: [], width: 1000, center: PIECES / 2, panStep: 2 },
 ];
 
 /** A triangle wave of `STEPS` samples: 0 up to 1 and back. */

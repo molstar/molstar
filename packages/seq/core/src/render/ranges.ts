@@ -49,6 +49,10 @@ import { breakHit, drawFailed, drawSpans } from './marks.js';
 import { squircleRadius } from './squircle.js';
 import { categoryToken, inkOn, mixColors, resolveColor, type SeqTokens } from './tokens.js';
 
+// the anchor a number read once: a draw reads no property of an imported object (that site's feedback, cleared, made
+// a warm draw deoptimize and allocate without end once the 150,000-piece scenario had run first)
+const AnchorStart: number = Anchor.start;
+
 // The `ranges` layer type (_spec/README.md "Render", Layer types): items in sticky lanes. Each item is carried onto
 // the section along the layer's path (a domain on its gene: a piece an exon) and drawn as a squircle where it is big
 // enough, square below, with square ends where the view or a piece's edge cuts it (the frame rule). Below a device
@@ -648,7 +652,7 @@ function drawLabels(lay: RangesLay, out: PassWriter, _emphasis: Emphasis | undef
     g[2] = lay.mlabel[j];
     g[3] = lay.mx1[j] - lay.mx0[j] - 6;
     g[4] = lay.mink[j];
-    out.textArgs(lay.labels[lay.mitem[j]] as string, Anchor.start, lay.font);
+    out.textArgs(lay.labels[lay.mitem[j]] as string, AnchorStart, lay.font);
   }
 }
 
