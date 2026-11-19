@@ -247,9 +247,9 @@ function tickRange(lay: RulerLay, of: NumberingOf | undefined, a: number, b: num
     }
     return;
   }
-  // an insertion code (100A, 111.1) only at a step of 1 (or finer), as a minor tick: past it the step's round values alone, so the
-  // step holds across insertions and an insertion never stands in for a round value the numbering lacks (an IMGT gap)
-  const minors = step <= 1 && lay.axis.scale >= MinorScale;
+  // an insertion code (100A, 111.1) a minor tick from MinorScale, never in the step's count: the step holds across
+  // insertions, and an insertion never stands in for a round value the numbering lacks (an IMGT gap)
+  const minors = lay.axis.scale >= MinorScale;
   for (let p = a; p < b; p++) {
     const label = numbering.labelAt(p - shift);
     if (label === undefined) continue;
@@ -261,7 +261,10 @@ function tickRange(lay: RulerLay, of: NumberingOf | undefined, a: number, b: num
   }
 }
 
-/** Which labels are drawn: majors first, then minors, each only where it clears every one drawn and the data box. */
+/**
+ * Which labels are drawn: majors first, then minors (each only within its own position's width), each only where it
+ * clears every one drawn and the data box.
+ */
 function fit(lay: RulerLay, ctx: LayoutContext) {
   const { box } = lay;
   const gap = Math.max(4, ctx.config.ruler.labelGap / 8);
@@ -274,6 +277,9 @@ function fit(lay: RulerLay, ctx: LayoutContext) {
       const a = lay.x[j] - w / 2;
       const b = lay.x[j] + w / 2;
       if (a < box.x || b > box.x + box.width) continue;
+      // an insertion's label only where it fits its own position (labelled with room beside its neighbours': never
+      // crowding a round value at a zoom where a position is narrower than its label)
+      if (pass === 0 && w > lay.axis.scale) continue;
       let free = true;
       for (let k = 0; k + 1 < taken.length && free; k += 2) free = b + gap <= taken[k] || a >= taken[k + 1] + gap;
       if (!free) continue;

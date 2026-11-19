@@ -108,51 +108,52 @@ async function drawn(id: string, window: [number, number], tokens = LightTokens)
 }
 
 describe('Antibody: the rulers against the data', () => {
-  // the ruler ticks the step's round values alone: at the closest zoom (32 px a residue, a step of 2) no insertion code
-  // is ticked (they are at a step of 1), so the step holds across CDR-H2's 52A, FR3's 82A–C and CDR-H3's 100A–E
+  // the ruler ticks the step's round values, and an insertion code's label where it has room: at the closest zoom
+  // (32 px a residue) CDR-H2's 52A, FR3's 82A–C and CDR-H3's 100A–C show beside the round values; at the fit none
   for (const t of ['light', 'dark'] as const)
     it(
-      `${t}: the wild type’s Kabat ruler holds its step across the heavy chain’s insertions, read from the file; no issue`,
+      `${t}: the wild type’s Kabat ruler labels the heavy chain’s insertions at the closest zoom, read from the file; no issue`,
       t === 'dark' ? { tags: ['medium'] } : {},
       async () => {
         const tokens = t === 'dark' ? DarkTokens : LightTokens;
+        const has = (r: { texts: string[] }, l: string) => r.texts.some((x) => x.includes(`"${l}"`));
         for (const [window, round, insertions] of [
-          [[46, 60], ['50', '52', '54'], ['52A']],
+          [[46, 60], ['50', '52'], ['52A']],
           [
             [78, 92],
-            ['80', '82', '84'],
+            ['80', '82'],
             ['82A', '82B', '82C'],
           ],
           [
             [98, 112],
-            ['98', '100', '102'],
+            ['98', '100'],
             ['100A', '100B', '100C'],
           ],
         ] as const) {
           const r = await drawn('schemes', [...window], tokens);
           expect(r.issues).toEqual([]);
-          for (const l of round)
-            expect(
-              r.texts.some((x) => x.includes(`"${l}"`)),
-              l,
-            ).toBe(true);
-          for (const l of insertions) expect(r.svg).not.toContain(l);
+          for (const l of [...round, ...insertions]) expect(has(r, l), l).toBe(true);
+          for (const l of insertions) expect(r.svg).toContain(l);
         }
+        // at the fit the round values alone: no insertion crowds them
+        const fit = await drawn('schemes', [0, 220], tokens);
+        for (const l of ['52A', '82A', '82B', '82C', '100A', '100B', '100C']) expect(has(fit, l), l).toBe(false);
+        expect(has(fit, '100')).toBe(true);
         const one = await drawn('schemes', [98, 112], tokens);
         const other = await drawn('schemes', [98, 112], t === 'dark' ? LightTokens : DarkTokens);
         expect(other.raw).not.toBe(one.raw);
       },
     );
 
-  it('the design’s IMGT ruler at the closest zoom: the step’s round values, 112 after 110, no 111.1 or 112.1 (EC-7)', async () => {
+  it('the design’s IMGT ruler ticks 111.1 and 112.1 before 112 (inline labels, EC-7); Kabat’s 100D and 100E drawn', async () => {
     const r = await drawn('schemes-design', [100, 116]);
     expect(r.issues).toEqual([]);
-    const labels = r.ticks.map((t) => t.label);
-    for (const l of ['111.1', '112.1']) expect(labels).not.toContain(l);
+    for (const l of ['111.1', '100D', '100E']) expect(r.svg).toContain(l);
     const x = (l: string) => r.ticks.find((t) => t.label === l)!.x;
-    expect(x('110')).toBeLessThan(x('112'));
-    // the step held across the insertions: 110 and 112 two steps of the residues' x apart and more (two inserted)
-    expect(x('112') - x('110')).toBeGreaterThan(x('110') - x('108'));
+    expect(x('111.1')).toBeLessThan(x('112.1'));
+    expect(x('112.1')).toBeLessThan(x('112'));
+    // at the closest zoom (32 px a residue) three labels a residue apart do not clear: 112.1 yields to its neighbours
+    expect(r.ticks.find((t) => t.label === '112.1')!.shown).toBe(false);
   });
 
   it('the design against the wild type: two rows a chain, as wide as their alignment', async () => {
