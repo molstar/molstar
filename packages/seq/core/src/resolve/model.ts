@@ -477,11 +477,17 @@ function alignmentEntry(
   const reference = p(at.node, 'reference');
   const letters = Array.isArray(rows?.letters) ? (rows.letters as string[]) : undefined;
   const label = Array.isArray(rows?.label) ? (rows.label as string[]) : undefined;
+  // the table's other columns are the rows' own fields (_spec/README.md "Render", The rows layer, Row columns)
+  const fields = rowsFields(rows as Record<string, Value> | undefined);
   const access: AccessPlan =
     letters && label
       ? {
           kind: 'inline',
-          source: { address: at.address, format: 'alignment', value: { label, letters } as unknown as Value },
+          source: {
+            address: at.address,
+            format: 'alignment',
+            value: { label, letters, ...(fields ? { fields } : {}) } as unknown as Value,
+          },
           runtime: AlignmentRuntime,
           system: AlignmentSystems.rows,
           shape: 'cells',
@@ -506,12 +512,31 @@ function alignmentEntry(
       address: at.address,
       shape: 'cells',
       target: at.address,
-      fields: ['label', 'first'],
+      fields: ['label', 'first', ...Object.keys(fields ?? {})],
       access,
       rows: rowsAddress,
       ...(typeof reference === 'string' ? { reference } : {}),
     },
   };
+}
+
+/** An inline rows table's columns past `label` and `letters`, a plain list each; undefined when there are none. */
+function rowsFields(rows: Record<string, Value> | undefined): Record<string, unknown[]> | undefined {
+  let out: Record<string, unknown[]> | undefined;
+  for (const key of Object.keys(rows ?? {})) {
+    if (key === 'label' || key === 'letters') continue;
+    const v = rows![key];
+    const list =
+      v instanceof CategoryColumn
+        ? Array.from(v.codes, (k) => (k < 0 ? null : v.dict[k]))
+        : isColumn(v)
+          ? Array.from(v as ArrayLike<number>)
+          : Array.isArray(v)
+            ? v
+            : undefined;
+    if (list) (out ??= Object.create(null) as Record<string, unknown[]>)[key] = list;
+  }
+  return out;
 }
 
 type MapCode =

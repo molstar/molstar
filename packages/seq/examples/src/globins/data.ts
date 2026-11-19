@@ -20,12 +20,26 @@ export const HbbHuman =
 
 const Residues = 'ACDEFGHIKLMNPQRSTVWY';
 
-/** A generated family: its rows (labels, aligned letters, first residue numbers) and its tree. */
+/** A generated family: its rows (labels, aligned letters, first residue numbers), each row's species and its tree. */
 export interface Family {
   readonly label: readonly string[];
   readonly letters: readonly string[];
+  /** Each row's species (Stockholm's `OS`): the ancestor's human, then a species a run of six neighbours in the tree. */
+  readonly species: readonly string[];
   readonly newick: string;
 }
+
+/** The species the family's rows are given, in turn (a stand-in: the seed's own `#=GS OS` lines replace them). */
+export const FamilySpecies = [
+  'Homo sapiens',
+  'Pan troglodytes',
+  'Mus musculus',
+  'Bos taurus',
+  'Gallus gallus',
+  'Xenopus laevis',
+  'Danio rerio',
+  'Physeter catodon',
+] as const;
 
 /**
  * The family of `n` rows (48 by default): a random binary tree over `n` leaves, each branch a number of substitutions
@@ -72,7 +86,9 @@ export function globinFamily(n = 48, seed = 147): Family {
     return `${parts[k]}/1-${residues}`;
   });
   newick = newick.replace(/#(\d+)/g, (_, k) => label[Number(k)]);
-  return { label, letters: rows, newick };
+  // rows are in the tree's leaf order: neighbours share a species (the random stream is not read, the rows stay)
+  const species = rows.map((_, k) => FamilySpecies[Math.floor(k / 6) % FamilySpecies.length]);
+  return { label, letters: rows, species, newick };
 }
 
 /** Each column's residue frequencies and gap rate over a family's rows: what the scale variant samples. */

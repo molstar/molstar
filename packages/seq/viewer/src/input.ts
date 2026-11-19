@@ -623,6 +623,19 @@ export class ViewerInput {
       void this.viewer.execute('layer.filter', { address: chip.layer });
       return true;
     }
+    // a rows layer's column title: the rows ordered by its field (one patch), a second click the other direction
+    if (chip?.target === 'column-title' && chip.state !== undefined) {
+      const track = trackOfLayer(chip.layer);
+      const now = this.viewer.behavior(RowsProvider)?.lay(track)?.params.order as
+        | { field?: unknown; direction?: unknown }
+        | undefined;
+      const flip = typeof now === 'object' && now?.field === chip.state && now.direction !== 'descending';
+      void this.viewer.execute('rows.order', {
+        track,
+        order: { field: chip.state, direction: flip ? 'descending' : 'ascending' },
+      });
+      return true;
+    }
     // a tree node's click: its bound command (toggles the clade's fold by default), unless it is a selection's
     if (chip?.target === 'tree-node' && chip.element) {
       const action = this.viewer.bindings.resolve('click', this._modifiers(e), 'tree-node');

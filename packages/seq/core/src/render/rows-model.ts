@@ -38,6 +38,8 @@ export interface HeldCells {
   readonly first: Int32Array;
   /** Moves with the data it was joined from: what the measures, the summaries and the pyramid are kept by. */
   readonly version: number;
+  /** The rows' own fields (Stockholm's `#=GS` tags, an inline table's other columns): a value a row, `null` missing. */
+  readonly fields?: ReadonlyMap<string, readonly (string | number | null)[]>;
 }
 
 /** A tree's nodes over the rows: each node's leaves a run of the tree's leaf order (`lo`, `hi`). */
@@ -411,6 +413,14 @@ export interface ColumnMeasures {
   readonly identity: Float32Array;
   /** One value a row: identity to the reference row, else its non-gap share (what a navigator draws, `rowsValue`). */
   readonly rowsValue: Float32Array;
+  /**
+   * The per-row measures a row column reads (_spec/README.md "Render", Row columns): each row's residues (`length`),
+   * gaps (`gaps`), and identity to the reference row (`identity`: the share of the columns where both have a residue
+   * that hold the same letter; NaN without a reference or with no such column).
+   */
+  readonly rowLength: Int32Array;
+  readonly rowGaps: Int32Array;
+  readonly rowIdentity: Float32Array;
   /** The reference row, -1 for none. */
   readonly reference: number;
 }
@@ -452,6 +462,9 @@ export function columnMeasures(
     }
   }
   const rowsValue = new Float32Array(R);
+  const rowLength = new Int32Array(R);
+  const rowGaps = new Int32Array(R);
+  const rowIdentity = new Float32Array(R).fill(Number.NaN);
   for (let i = 0; i < R; i++) {
     let same = 0;
     let filled = 0;
@@ -467,8 +480,11 @@ export function columnMeasures(
       if (ref === c) same++;
     }
     rowsValue[i] = reference >= 0 ? (both ? same / both : 0) : C ? filled / C : 0;
+    rowLength[i] = filled;
+    rowGaps[i] = C - filled;
+    if (reference >= 0 && both) rowIdentity[i] = same / both;
   }
-  return { share, identity, rowsValue, reference };
+  return { share, identity, rowsValue, reference, rowLength, rowGaps, rowIdentity };
 }
 
 /**
@@ -562,4 +578,93 @@ export function logoHeights(
   const info = Math.max(0, Math.log2(alphabetSize) - h - e);
   for (let k = 0; k < K; k++) out[k] = p.freq[column * K + k] * info;
   return out;
+}
+
+// ---- row columns (_spec/README.md "Render", The rows layer, Row columns) ----
+
+/** How a row column draws its value. */
+export type RowColumnAs = 'text' | 'number' | 'bar' | 'chip';
+
+/** A row column: a field of the rows table, its side of the data, how it draws, its width (px) and its title. */
+export interface RowColumn {
+  readonly field: string;
+  readonly side: 'left' | 'right';
+  readonly as: RowColumnAs;
+  readonly width: number;
+  readonly title: string;
+}
+
+/** The measures a row column reads by name, computed from the held cells. */
+export const RowMeasureFields: readonly string[] = ['length', 'gaps', 'identity'];
+
+/** A column's width when the layer gives none (px), by how it draws. */
+const DefaultColumnWidth: Readonly<Record<RowColumnAs, number>> = { text: 96, number: 44, bar: 56, chip: 56 };
+
+/**
+ * The layer's `columns` as written, read: an entry without a field is left out; `side` `left` unless `right`; `as`
+ * `text` unless a known one; `width` its kind's default unless a positive number; `title` the field's name.
+ */
+export function rowColumnsOf(v: unknown): RowColumn[] {
+  if (!Array.isArray(v)) return [];
+  const out: RowColumn[] = [];
+  for (const c of v) {
+    if (!c || typeof c !== 'object' || typeof (c as { field?: unknown }).field !== 'string') continue;
+    const r = c as { field: string; side?: unknown; as?: unknown; width?: unknown; title?: unknown };
+    const as: RowColumnAs = r.as === 'number' || r.as === 'bar' || r.as === 'chip' ? r.as : 'text';
+    out.push({
+      field: r.field,
+      side: r.side === 'right' ? 'right' : 'left',
+      as,
+      width: typeof r.width === 'number' && r.width > 0 ? r.width : DefaultColumnWidth[as],
+      title: typeof r.title === 'string' ? r.title : r.field,
+    });
+  }
+  return out;
+}
+
+/**
+ * The columns' widths when the view is `over` px short of room (EC-107): the right ones yield first, then the left,
+ * each from the one nearest the data's far side (the last written), down to `floor` and then hidden (0), until the
+ * room is made. Into `out` (one width a column, in the order written).
+ */
+export function fitRowColumns(columns: readonly RowColumn[], over: number, floor: number, gap: number, out: number[]) {
+  out.length = columns.length;
+  for (let k = 0; k < columns.length; k++) out[k] = columns[k].width;
+  let left = over;
+  for (const side of ['right', 'left'] as const)
+    for (let k = columns.length - 1; k >= 0 && left > 0; k--) {
+      if (columns[k].side !== side) continue;
+      const w = out[k];
+      const shrink = Math.min(left, Math.max(0, w - floor));
+      out[k] = w - shrink;
+      left -= shrink;
+      if (left > 0) {
+        // hidden: its floor and its gap made room
+        left -= out[k] + gap;
+        out[k] = 0;
+      }
+    }
+  return out;
+}
+
+/** The room a side's columns take at their widths: each width and its gap (a hidden one none). */
+export function columnsRoom(
+  columns: readonly RowColumn[],
+  widths: readonly number[],
+  side: 'left' | 'right',
+  gap: number,
+) {
+  let w = 0;
+  for (let k = 0; k < columns.length; k++) if (columns[k].side === side && widths[k] > 0) w += widths[k] + gap;
+  return w;
+}
+
+/** A row column's value as text: a number by its field (identity as a percent), text as it is; `''` when missing. */
+export function formatColumnValue(field: string, v: string | number | undefined): string {
+  if (v === undefined) return '';
+  if (typeof v === 'string') return v;
+  if (Number.isNaN(v)) return '';
+  if (field === 'identity') return `${Math.round(v * 1000) / 10}%`;
+  if (Number.isInteger(v)) return String(v);
+  return String(Math.round(v * 100) / 100);
 }

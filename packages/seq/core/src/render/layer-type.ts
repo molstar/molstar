@@ -78,6 +78,11 @@ export interface LayoutContext {
   /** The shared image cache a layer keeps its image tiles in (the renderer's). */
   readonly images?: ImageCache;
   /**
+   * A rows layer's row columns as the view grants them (_spec/README.md "Render", Row columns): each column's width
+   * after its yielding to a narrow view (0: hidden), in the order written, and the x its right columns start at.
+   */
+  readonly rowColumns?: { readonly widths: readonly number[]; readonly rightX: number };
+  /**
    * The strip's second transform (`strip.y`: a grid's y, down the strip's frame), on a strip that has one
    * (_spec/README.md "Render", The grid layout).
    */
@@ -143,9 +148,10 @@ export interface Hit {
  * What a hit is, when it is more than an element or a position (_spec/README.md "Render", Lanes and Hits): `break`,
  * `filter` (a track's chip), `window` (a ring's), `row` (a gutter's row, a rows header), `cell` (a cell of two axes:
  * `ySystem` and `yPosition` set), `tree-node` (a tree's node: its element the clade), `summary-row` (a folded
- * clade's row: its element the clade, `position` the column).
+ * clade's row: its element the clade, `position` the column), `column-title` (a rows layer's column title: `state`
+ * its field; a click orders the rows by it).
  */
-export type HitTarget = 'break' | 'filter' | 'window' | 'row' | 'cell' | 'tree-node' | 'summary-row';
+export type HitTarget = 'break' | 'filter' | 'window' | 'row' | 'cell' | 'tree-node' | 'summary-row' | 'column-title';
 
 /** A section's id: the last step of its address. */
 export function sectionId(section: { readonly address: string }): string {
@@ -212,6 +218,11 @@ export interface LayerType<Prep = unknown, Lay = unknown> {
    * in an array: two fractional numbers passed to a call that is not inlined are boxed, and a hit allocates nothing.
    */
   hit(lay: Lay, at: Float64Array): Hit | undefined;
+  /**
+   * What it draws outside its band that a point hits (a rows layer's column titles, in the band above the rows), on the
+   * page; asked before the bands' layers, so it is quick to refuse a point not on it.
+   */
+  hitOutside?(lay: Lay, at: Float64Array): Hit | undefined;
   /** The legends of its themed channels as last laid out (_spec/README.md "Themes", Legends), titled by its track. */
   legend?(lay: Lay, options: { readonly title: string }): readonly Legend[];
   /** The y domain it drew (a values layer's), recorded by an export. */

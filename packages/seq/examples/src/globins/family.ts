@@ -11,24 +11,34 @@ import { buildClades, cladesAtDepth } from '@molstar/seqx-core/render';
 import { balancedNewick, GeneratedFormat, globinFamily } from './data.js';
 
 // The Globins views (EC-38 to EC-44, EC-97, EC-100, EC-103, EC-106, EC-154): the family with its conservation logo and
-// its rows by tree; its clades folded to summary rows; the ESPript-style figure of its rows in text; the 10,000-row
+// its rows by tree, each row's species on the left and its identity to the ancestor on the right; its clades folded to summary rows; the ESPript-style figure of its rows in text; the 10,000-row
 // variant (held, by tree) and a lazy one of 10,000,000 rows (data order, its rows made on demand).
 
 export const title = 'Globins';
 
-/** The family's alignment and tree, inline. */
+/** The family's alignment and tree, inline: its rows table's `OS` column the rows' species (Stockholm's `#=GS OS`). */
 function familyData(b: ReturnType<typeof createSeqSpec>) {
   const f = globinFamily();
   const aln = b.data.alignment('globins', {
     alphabet: 'protein',
-    rows: { label: [...f.label], letters: [...f.letters] },
+    // an inline table's other columns are the rows' own fields
+    rows: { label: [...f.label], letters: [...f.letters], OS: [...f.species] } as {
+      label: string[];
+      letters: string[];
+    },
     reference: f.label[0],
   });
   const tree = b.data.tree('tree', { of: aln, newick: f.newick });
   return { aln, tree, family: f };
 }
 
-/** The family: a ruler, its conservation logo, its rows by tree beside the tree. */
+/** The family's row columns: the species on the left, the identity to the ancestor on the right. */
+export const FamilyColumns = [
+  { field: 'OS', title: 'Species', width: 104 },
+  { field: 'identity', side: 'right', as: 'number', title: 'Identity' },
+] as const;
+
+/** The family: a ruler, its conservation logo, its rows by tree beside the tree, species and identity beside them. */
 export function build(options: { readonly collapsed?: readonly string[] } = {}): Node {
   const b = createSeqSpec({ title: 'Globins: the family' });
   const { aln, tree } = familyData(b);
@@ -41,6 +51,7 @@ export function build(options: { readonly collapsed?: readonly string[] } = {}):
       data: aln,
       tree,
       order: 'tree',
+      columns: FamilyColumns.map((c) => ({ ...c })),
       ...(options.collapsed ? { collapsed: [...options.collapsed] } : {}),
     });
   });

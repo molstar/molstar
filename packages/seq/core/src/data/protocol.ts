@@ -126,7 +126,8 @@ export interface ValuesBins {
 
 /**
  * `cells` at level 1: a tile's rows from `start` × every column (`columns`), row-major letter bytes (ASCII: gaps `-`
- * and `.`), with the rows table: each row's `label` (its key) and its first residue's number (`first`, EC-39).
+ * and `.`), with the rows table: each row's `label` (its key), its first residue's number (`first`, EC-39) and its own
+ * fields (`fields`: Stockholm's `#=GS` tags, an inline table's other columns), a column each over the tile's rows.
  */
 export interface CellsCodes {
   readonly form: 'codes';
@@ -135,6 +136,7 @@ export interface CellsCodes {
   readonly codes: Uint8Array;
   readonly label?: CategoryColumn;
   readonly first?: Int32Array;
+  readonly fields?: readonly RangesField[];
 }
 
 /**

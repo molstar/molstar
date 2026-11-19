@@ -4,13 +4,14 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { categoryColumn, issueOf } from '@molstar/core/repr/tree';
+import { type Column, categoryColumn, issueOf } from '@molstar/core/repr/tree';
 import { SourceIssues } from './issues.js';
 import {
   abortError,
   type Coverage,
   type FormatRuntime,
   type OpenedSource,
+  type RangesField,
   type RegionAnswer,
   type SourceEntry,
 } from './protocol.js';
@@ -30,6 +31,11 @@ export interface AlignmentRows {
   readonly letters: readonly string[];
   /** Each row's first residue's number (EC-39); from its label (`NAME/27-137`) when absent. */
   readonly first?: ArrayLike<number>;
+  /**
+   * The rows' own fields (Stockholm's `#=GS` tags, an inline table's other columns): a value a row each, `null` (or a
+   * missing value) where a row has none; numbers when every value is one, else text.
+   */
+  readonly fields?: Readonly<Record<string, readonly unknown[]>>;
 }
 
 const RangeLabel = /\/(-?\d+)-(-?\d+)$/;
@@ -69,11 +75,43 @@ export function openAlignment(rows: AlignmentRows, source: SourceEntry = { addre
     const f = rows.first?.[i];
     first[i] = f !== undefined ? f : firstNumberOf(rows.label[i]);
   }
+  const fields = fieldColumns(rows.fields, n, source);
   return cellsSource(n, columns, (start, end) => ({
     codes: codes.subarray(start * columns, end * columns),
     label: rows.label.slice(start, end),
     first: first.subarray(start, end),
+    ...(fields.length
+      ? { fields: fields.map((f) => ({ name: f.name, column: sliceColumn(f.column, start, end) })) }
+      : {}),
   }));
+}
+
+/** The rows' own fields as columns: numbers (NaN missing) when every value is one, else text (`null` missing). */
+function fieldColumns(
+  fields: AlignmentRows['fields'],
+  n: number,
+  source: SourceEntry,
+): { name: string; column: Column }[] {
+  const out: { name: string; column: Column }[] = [];
+  if (!fields || typeof fields !== 'object') return out;
+  for (const name of Object.keys(fields)) {
+    const v = fields[name];
+    if (!Array.isArray(v) || v.length !== n) throw malformed(source, `the field ${name} is not one value a row`);
+    const numeric = v.every((x) => x === null || x === undefined || typeof x === 'number');
+    out.push({
+      name,
+      column: numeric
+        ? Float32Array.from(v, (x) => (typeof x === 'number' ? x : Number.NaN))
+        : categoryColumn(v.map((x) => (x === null || x === undefined ? null : String(x)))),
+    });
+  }
+  return out;
+}
+
+function sliceColumn(c: Column, start: number, end: number): Column {
+  if (c instanceof Float32Array) return c.subarray(start, end);
+  const cat = c as ReturnType<typeof categoryColumn>;
+  return categoryColumn(Array.from(cat.codes.subarray(start, end), (k) => (k < 0 ? null : cat.dict[k])));
 }
 
 /**
@@ -86,7 +124,12 @@ export function cellsSource(
   rowsOf: (
     start: number,
     end: number,
-  ) => { readonly codes: Uint8Array; readonly label: readonly string[]; readonly first: Int32Array },
+  ) => {
+    readonly codes: Uint8Array;
+    readonly label: readonly string[];
+    readonly first: Int32Array;
+    readonly fields?: readonly RangesField[];
+  },
 ): OpenedSource {
   const coverage: Coverage = {
     systems: [
@@ -112,7 +155,15 @@ export function cellsSource(
       return Promise.resolve({
         ok: true,
         tables: {
-          cells: { form: 'codes', start, columns, codes: r.codes, label: categoryColumn(r.label), first: r.first },
+          cells: {
+            form: 'codes',
+            start,
+            columns,
+            codes: r.codes,
+            label: categoryColumn(r.label),
+            first: r.first,
+            ...(r.fields ? { fields: r.fields } : {}),
+          },
         },
       });
     },

@@ -95,6 +95,12 @@ export const RenderIssues = defineIssues('seq.render', {
     description: 'A rows layer draws in tracks and text sections only: in another layout it is not drawn',
     hint: 'Show the alignment’s rows in a tracks section',
   },
+  'seq.render.rows.column': {
+    severity: 'info',
+    description:
+      'A rows layer’s column names a field no row has (not the alignment’s own, not a measure, not a joined source’s): its cells are empty',
+    hint: 'Name a `#=GS` tag, an inline table’s column, `length`, `gaps`, `identity` (with a reference row), or a joined field',
+  },
   'seq.render.rows.second': {
     severity: 'warning',
     description: 'A section draws one rows layer (the cursor has one row order): a second one is not drawn',

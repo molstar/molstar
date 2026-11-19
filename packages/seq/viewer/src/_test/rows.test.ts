@@ -390,3 +390,41 @@ describe('the rows’ commands and gestures', () => {
     expect(v.config.view.keys['rows.zoom-out']).toEqual(['[']);
   });
 });
+
+describe('the rows’ columns in the viewer', () => {
+  it('a click on a column’s title orders the rows by its field (one patch), a second click the other way', async () => {
+    vi.useFakeTimers({ toFake: ['Date', 'performance'] });
+    frames = installFrames();
+    const b = createSeqSpec({ title: 'columns' });
+    const aln = b.data.alignment('aln', { alphabet: 'protein', rows: { label: Labels, letters: Letters } });
+    b.views.view('v', (vw) =>
+      vw.section('s', { of: aln }, (s) => {
+        s.track('ruler', { label: '' }, (t) => t.layer('ruler', { type: 'ruler' }));
+        s.track('rows', { label: '', height: 140 }, (t) =>
+          t.layer('r', { type: 'rows', data: aln, columns: [{ field: 'label', side: 'right' }] } as never),
+        );
+      }),
+    );
+    const v = createSeqViewer({ ...DefaultSeqViewerSpec(), ui: undefined, config: [[viewerItem('view.jumpMs'), 0]] });
+    viewer = v;
+    await v.load(b.build());
+    v.resize(900);
+    await v.settle();
+    frames.flush();
+    const shown = (l: RowsLay) => Array.from({ length: l.display.count }, (_, i) => l.label(l.display.rowAt(i)));
+    const click = async () => {
+      const l = lay(v);
+      expect(v.input.click(l.titleX[0] + 2, l.titleY - 3)).toBe(true);
+      await v.settle();
+      frames!.flush();
+    };
+    const rows = () => v.spec.root.value.children![1].children![0].children![0].children![1].children![0];
+    await click();
+    expect(rows().params?.order).toEqual({ field: 'label', direction: 'ascending' });
+    expect(shown(lay(v))).toEqual(['CYG', 'GLB', 'HBA', 'HBB', 'MYG', 'NGB']);
+    expect(lay(v).titleText[0]).toBe('label ↑');
+    await click();
+    expect(rows().params?.order).toEqual({ field: 'label', direction: 'descending' });
+    expect(shown(lay(v))).toEqual(['NGB', 'MYG', 'HBB', 'HBA', 'GLB', 'CYG']);
+  });
+});

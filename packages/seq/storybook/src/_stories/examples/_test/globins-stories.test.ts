@@ -45,6 +45,20 @@ describe('Globins stories, headless', () => {
       expect(r.svg.length).toBeGreaterThan(1000);
     });
 
+  it('family: each row’s species on the left of its numbers, its identity to the ancestor on the right', async () => {
+    viewer = await openExample(GlobinsViews.find((v) => v.id === 'family')!, { gene: '' });
+    const fam = rowsLay(viewer)!;
+    expect(fam.titleText).toEqual(['Species', 'Identity']);
+    expect(fam.colW.every((w) => w > 0)).toBe(true);
+    const row0 = fam.display.displayRow(0);
+    const cell = (k: number) => fam.cellText[fam.cellRow.findIndex((r, q) => r === row0 && fam.cellCol[q] === k)];
+    expect(cell(0)).toBe('Homo sapiens');
+    expect(cell(1)).toBe('100%');
+    // left between the label and the first numbers, right past the data
+    expect(fam.colX[0]).toBeGreaterThan(fam.labelX);
+    expect(fam.colX[1]).toBeGreaterThan(fam.box.x + fam.box.width);
+  });
+
   it('family and folded: labels read whole beside the tree (its own width), and the wedges stop before them', async () => {
     viewer = await openExample(GlobinsViews.find((v) => v.id === 'family')!, { gene: '' });
     const fam = rowsLay(viewer)!;
