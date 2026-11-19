@@ -13,7 +13,7 @@ const meta: Meta = { title: 'Examples/Complex/Index' };
 export default meta;
 
 /** Where each Complex view's story is. */
-export const ComplexStories: Readonly<Record<string, readonly [title: string, name: string]>> = {
+const ComplexStories: Readonly<Record<string, readonly [title: string, name: string]>> = {
   blocks: ['Examples/Complex/Blocks', 'Row'],
   'blocks-split': ['Examples/Complex/Blocks', 'Split'],
   'blocks-stacked': ['Examples/Complex/Blocks', 'Stacked'],

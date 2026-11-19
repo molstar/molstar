@@ -12,7 +12,7 @@ const meta: Meta = { title: 'Examples/Antibody/Index' };
 export default meta;
 
 /** Where each Antibody view's story is. */
-export const AntibodyStories: Readonly<Record<string, string>> = {
+const AntibodyStories: Readonly<Record<string, string>> = {
   schemes: 'Schemes',
   'schemes-design': 'DesignNumberings',
   against: 'DesignAgainstWildType',
