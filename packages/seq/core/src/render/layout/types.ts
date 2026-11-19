@@ -13,7 +13,7 @@ import type { ResolvedSection, ResolvedTrack } from '@molstar/seqx-core/view';
 import type { AxisTransform, Viewport } from '../axis.js';
 import type { RenderConfig } from '../config.js';
 import type { PassName, PassWriter } from '../draw-lists.js';
-import type { Box, Emphasis, Hit } from '../layer-type.js';
+import type { Box, Emphasis, Hit, LabelSink } from '../layer-type.js';
 import type { TextMetrics } from '../text.js';
 import type { SeqTokens } from '../tokens.js';
 import type { SectionLayout } from '../tracks.js';
@@ -84,7 +84,7 @@ export interface PlaceContext {
    * Lays out the layers of a strip's bands (each in its box in the strip's frame) and records what each band used
    * (`strips.used`): what a layout that collapses empty bands reads before it fixes the strip's height.
    */
-  layStrip(placement: Placement, strip: number): void;
+  layStrip(placement: Placement, strip: number, labels?: LabelSink): void;
 }
 
 /** The pure arithmetic of a section's viewport (_spec/README.md "Render", Section layouts, Navigation). */
@@ -128,6 +128,21 @@ export interface SectionLayoutType<Kept = unknown> {
   /** Whether two viewports place alike: the part of the section's key this layout reads. */
   sameKey(a: Viewport | undefined, b: Viewport | undefined): boolean;
   readonly nav: SectionNav;
+  /**
+   * What a follower of a section in this layout follows when it is not the transform's window (a ring: its window,
+   * past the total when it wraps the origin; text: its lines in view). The layout then places over the whole axis.
+   */
+  followWindow?(
+    section: ResolvedSection,
+    axis: AxisTransform,
+    viewport: Viewport | undefined,
+    ctx: {
+      readonly width: number;
+      readonly config: RenderConfig;
+      readonly text: TextMetrics;
+      readonly heights: readonly number[];
+    },
+  ): Viewport;
   /**
    * The layout's own marks of a pass (label column, gutters, numbers, a ring's guides and labels, a window): once a
    * section with `band` −1 before its strips, then once a band before its layers (`strip`, `band`), in the strip's frame.

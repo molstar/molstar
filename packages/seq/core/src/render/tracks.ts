@@ -35,7 +35,7 @@ import {
   Round,
 } from './draw-lists.js';
 import { RenderIssues } from './issues.js';
-import type { Box, Emphasis, Hit, LayerType, LayoutContext, Overlay, StoreReader } from './layer-type.js';
+import type { Box, Emphasis, Hit, LabelSink, LayerType, LayoutContext, Overlay, StoreReader } from './layer-type.js';
 import { EmptyOverlay, sectionId } from './layer-type.js';
 import { LettersType } from './letters.js';
 import { breakHit } from './marks.js';
@@ -119,6 +119,8 @@ export interface SectionLayout {
   readonly lays: readonly (readonly LayerLayout[])[];
   /** Each strip's breaks in view (its frame), as `breaks`. */
   readonly stripBreaks: readonly (readonly number[])[];
+  /** Its `section` layers' lays: laid out once a section, drawn in page coordinates. */
+  readonly sectionLays: readonly LayerLayout[];
   /** Each band's box a strip (`strip * bands + band`, its frame) and each strip's band column (none when empty). */
   readonly boxes: readonly Box[];
   readonly columns: readonly (Box | undefined)[];
@@ -232,15 +234,33 @@ function followAxis(
   section: ResolvedSection,
   own: readonly number[] | undefined,
   leader: AxisTransform,
+  window: Viewport,
   config: RenderConfig,
 ) {
   const axis = { ...section.axis, ...(own ? { ranges: own } : {}) };
-  if (own) {
-    const w = followWindow(section, leader, axis, leader.u0, leader.u1, config.followArc);
+  if (own && window.end <= leader.total) {
+    const w = followWindow(section, leader, axis, window.start, window.end, config.followArc);
     if (w && !w.wraps) return { pieces: own, viewport: { start: w.start, end: w.end } };
   }
-  const pieces = followRange(section, leader.visible([]), { arc: config.followArc });
+  const pieces = followRange(section, windowPositions(leader, window), { arc: config.followArc });
   return pieces ? { pieces } : undefined;
+}
+
+/**
+ * The positions a window of a leader's display units shows, `[start, end, …]`: the transform's own window as it is; a
+ * cyclic window past the total wraps (two runs, the second from the origin).
+ */
+function windowPositions(leader: AxisTransform, w: Viewport): number[] {
+  if (w.start === leader.u0 && w.end === leader.u1) return leader.visible([]);
+  const out: number[] = [];
+  const at = (start: number, end: number) =>
+    new AxisTransform(leader.system, leader.pieces, 0, 1, 1, { start, end }, { dir: leader.dir }).visible(out);
+  const total = leader.total;
+  if (leader.cyclic && w.end > total) {
+    at(w.start, total);
+    at(0, Math.min(w.end - total, w.start));
+  } else at(w.start, w.end);
+  return out;
 }
 
 /** The layouts this target places sections with, by name (_spec/README.md "Render", Section layouts). */
@@ -254,6 +274,7 @@ export function sectionLayoutName(section: ResolvedSection, view: ResolvedView):
 }
 
 const NoLays: readonly LayerLayout[] = [];
+const NoSectionLays: LayerLayout[] = [];
 
 /**
  * A section's reads of the store (_spec/README.md "Render", The key: per section): the entries and coverages its
@@ -474,6 +495,19 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
   const dataW = Math.max(1, width - dataX - config.inset);
   // axes first, leaders before their followers (a follower may come first in the view)
   const bySection = new Map(input.view.sections.map((s) => [s.address, s]));
+  const layouts = input.layouts ?? BuiltInLayouts;
+  const layoutOf = (section: ResolvedSection) => layouts[sectionLayoutName(section, input.view)] ?? TracksLayout;
+  /**
+   * What a follower reads of its leader (_spec/README.md "Render", Section layouts): the leader's viewport as its layout
+   * reads it (`followWindow`: a ring's window, a text's lines in view), else its transform's window (tracks).
+   */
+  const leaderWindow = (section: ResolvedSection, axis: AxisTransform): Viewport => {
+    const layout = layoutOf(section);
+    if (!layout.followWindow) return { start: axis.u0, end: axis.u1 };
+    const viewport = input.viewports?.[section.address] ?? input.viewport;
+    const heights = section.tracks.map((t) => trackHeight(t, config));
+    return layout.followWindow(section, axis, viewport, { width, config, text: input.text, heights });
+  };
   const axes = new Map<string, AxisTransform | undefined>();
   const visiting = new Set<string>();
   const axisOf = (section: ResolvedSection): AxisTransform | undefined => {
@@ -500,12 +534,20 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         visiting.add(at);
         const leader = axisOf(leaderSection);
         visiting.delete(at);
-        if (leader) made = followAxis(section, ownPieces(section, input.model, input.data), leader, config);
+        if (leader)
+          made = followAxis(
+            section,
+            ownPieces(section, input.model, input.data),
+            leader,
+            leaderWindow(leaderSection, leader),
+            config,
+          );
       }
     }
     if (!made) {
       const own = ownPieces(section, input.model, input.data);
-      const viewport = input.viewports?.[at] ?? input.viewport;
+      // a layout that reads its viewport its own way (text: an anchor; a ring: its window) places over the whole axis
+      const viewport = layoutOf(section).followWindow ? undefined : (input.viewports?.[at] ?? input.viewport);
       if (own) made = { pieces: own, ...(viewport ? { viewport } : {}) };
     }
     const { dir, length, cyclic } = section.axis;
@@ -524,7 +566,6 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
   const sections: SectionLayout[] = [];
   const used = new Set<string>();
   const showing = new Set<string>();
-  const layouts = input.layouts ?? BuiltInLayouts;
   // what a section's reuse compares besides its own viewport and reads (_spec/README.md "Render", The key)
   const stamp = viewStamp(input, config, dpr, overlay, state);
   let y = config.inset;
@@ -538,7 +579,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
           hint: RenderIssues.codes['seq.render.axis.pending'].hint,
         }),
       );
-    const layout = layouts[sectionLayoutName(section, input.view)] ?? TracksLayout;
+    const layout = layoutOf(section);
     const viewport = input.viewports?.[section.address] ?? input.viewport;
     // an unchanged section is not laid out again: its placement and lays are drawn again (_spec/README.md "Render",
     // The key: per section)
@@ -604,8 +645,49 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     const lays: LayerLayout[][] = [];
     const stripBreaks: number[][] = [];
     const prevPlacement = kept?.layout.layout === layout ? kept.layout.placement : undefined;
-    // the lays of a strip's bands (_spec/README.md "Render", Section layouts: the lay cache bounded by the strips in view)
-    const layStrip = (placement: Placement, i: number) => {
+    // one layer's layout into its kept lay (its cache key: the layer's, by strip where a layout has several)
+    const layOne = (
+      track: ResolvedTrack,
+      layer: ResolvedLayer,
+      type: LayerType<any, any>,
+      cacheKey: string,
+      ctx: LayoutContext,
+    ): LayerLayout => {
+      let prep = state.preps.get(layer);
+      if (prep === undefined) state.preps.set(layer, (prep = type.prepare(layer, input.model)));
+      const keptLay = state.lays.get(cacheKey);
+      const lay = type.layout(prep, ctx, mine, overlay, keptLay?.type === type ? keptLay.lay : undefined);
+      state.lays.set(cacheKey, { type, lay });
+      used.add(cacheKey);
+      sectionUsed.push(cacheKey);
+      // what a shown layer draws and goes through (a node, an item system)
+      if (layer.data) {
+        showing.add(layer.data.address).add(layer.data.system);
+        sectionShowing.push(layer.data.address, layer.data.system);
+      }
+      for (const e of layer.path?.edges ?? []) {
+        showing.add(e.from).add(e.to);
+        sectionShowing.push(e.from, e.to);
+      }
+      return { key: ctx.key, layer, type, lay };
+    };
+    /** A layer's type: the first of its fallbacks drawn here; none is said. */
+    const typeOf = (layer: ResolvedLayer, key: string): LayerType<any, any> | undefined => {
+      const type = layer.fallbacks.map((t) => types[t]).find((t) => t !== undefined);
+      if (!type)
+        sectionReport(
+          issueOf(RenderIssues, 'seq.render.layer.type', 'No type of the layer’s fallbacks is drawn here', {
+            address: key,
+            hint: RenderIssues.codes['seq.render.layer.type'].hint,
+          }),
+        );
+      return type;
+    };
+    /** A band's own scroll and row zoom (the viewport's `bands`, by track address). */
+    const bandOf = (track: ResolvedTrack) => viewport?.bands?.[track.address];
+    // the lays of a strip's bands (_spec/README.md "Render", Section layouts: the lay cache bounded by the strips in view);
+    // a `section` layer is laid out once a section, after
+    const layStrip = (placement: Placement, i: number, labels?: LabelSink) => {
       const strips = placement.strips;
       const a = strips.axes[i];
       const keyed = layout !== TracksLayout || strips.n > 1;
@@ -619,24 +701,13 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         // a band below the page is not laid out: nothing of it is drawn or asked for
         if (!(strips.bandY[k] + strips.dy[i] < height) || (h <= 0 && layout !== TracksLayout)) continue;
         const track = shown[j];
+        const band = bandOf(track);
         const box: Box = { x: a.x0, y: strips.bandY[k], width: a.width, height: h };
         for (const layer of track.layers) {
           if (!layer.placed || layer.params.hidden === true) continue; // a hidden layer is not drawn
           const key = layerKey(track, layer);
-          const type = layer.fallbacks.map((t) => types[t]).find((t) => t !== undefined);
-          if (!type) {
-            sectionReport(
-              issueOf(RenderIssues, 'seq.render.layer.type', 'No type of the layer’s fallbacks is drawn here', {
-                address: key,
-                hint: RenderIssues.codes['seq.render.layer.type'].hint,
-              }),
-            );
-            continue;
-          }
-          let prep = state.preps.get(layer);
-          if (prep === undefined) state.preps.set(layer, (prep = type.prepare(layer, input.model)));
-          const cacheKey = keyed ? `${key}@${strips.first[i]}` : key;
-          const keptLay = state.lays.get(cacheKey);
+          const type = typeOf(layer, key);
+          if (!type || type.scope === 'section') continue;
           const ctx: LayoutContext = {
             box,
             axis: a,
@@ -653,26 +724,46 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
             strip: i,
             span,
             place: placement,
-            labels: 'inside',
+            labels: labels ?? 'inside',
+            ...(band ? { bandTop: band.bandTop } : {}),
+            ...(band?.rowScale !== undefined ? { rowScale: band.rowScale } : {}),
           };
-          const lay = type.layout(prep, ctx, mine, overlay, keptLay?.type === type ? keptLay.lay : undefined);
-          state.lays.set(cacheKey, { type, lay });
-          used.add(cacheKey);
-          sectionUsed.push(cacheKey);
-          const u = type.used ? type.used(lay) : h;
+          const l = layOne(track, layer, type, keyed ? `${key}@${strips.first[i]}` : key, ctx);
+          const u = type.used ? type.used(l.lay) : h;
           if (u > strips.used[k]) strips.used[k] = u;
-          // what a shown layer draws and goes through (a node, an item system)
-          if (layer.data) {
-            showing.add(layer.data.address).add(layer.data.system);
-            sectionShowing.push(layer.data.address, layer.data.system);
-          }
-          for (const e of layer.path?.edges ?? []) {
-            showing.add(e.from).add(e.to);
-            sectionShowing.push(e.from, e.to);
-          }
-          out.push({ key, layer, type, lay });
+          out.push(l);
         }
       }
+    };
+    /** The `section` layers: once a section, over its box on the page, the placement their reader. */
+    const laySection = (placement: Placement, a: AxisTransform): LayerLayout[] => {
+      const out: LayerLayout[] = [];
+      for (const track of shown)
+        for (const layer of track.layers) {
+          if (!layer.placed || layer.params.hidden === true) continue;
+          const key = layerKey(track, layer);
+          const type = layer.fallbacks.map((t) => types[t]).find((t) => t !== undefined);
+          if (type?.scope !== 'section') continue;
+          const ctx: LayoutContext = {
+            box: placement.box,
+            axis: a,
+            section,
+            key,
+            dpr,
+            config,
+            tokens: input.tokens,
+            text: input.text,
+            settled: input.settled ?? false,
+            theme: sectionTheme,
+            want,
+            report: sectionReport,
+            span: placement.box,
+            place: placement,
+            labels: 'inside',
+          };
+          out.push(layOne(track, layer, type, `${key}@section`, ctx));
+        }
+      return out;
     };
     const sectionBox: Box = {
       x: dataX,
@@ -681,6 +772,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       height: Math.max(0, height - top),
     };
     let placement: Placement;
+    let sectionLays: LayerLayout[] = NoSectionLays;
     if (axis) {
       const ctx: PlaceContext = {
         width,
@@ -697,6 +789,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       };
       placement = layout.place(section, ctx, viewport, prevPlacement);
       for (let i = 0; i < placement.strips.n; i++) stripBreaks.push(placement.strips.axes[i].breaks([]));
+      sectionLays = laySection(placement, axis);
     } else placement = pendingPlacement(top, sectionBox, heights, config);
     // the section's tracks as bands of its first strip (on the page: tracks)
     const tracks: TrackLayout[] = [];
@@ -780,6 +873,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       stripBreaks,
       boxes,
       columns,
+      sectionLays,
       pageHeight: height,
       tokens: input.tokens,
       config,
@@ -1039,6 +1133,9 @@ function drawTracks(layout: ViewLayout, out: PassWriter, emphasis: Emphasis | un
       if (pass === 'data' && col && breaks.length) drawBreaks(w, breaks, a, col, tokens);
       closeStrip(s, i, out);
     }
+    // what crosses strips, on the page
+    const sl = s.sectionLays;
+    for (let li = 0; li < sl.length; li++) sl[li].type.draw(sl[li].lay, pass, out, emphasis);
   }
 }
 
@@ -1349,6 +1446,12 @@ export function hitView(layout: ViewLayout, x: number, y: number): Hit | undefin
     }
     const own = s.layout.hitChrome?.(s, x, y);
     if (own) return own;
+    // a `section` layer's marks, on the page, over the strips'
+    for (let i = s.sectionLays.length - 1; i >= 0; i--) {
+      const l = s.sectionLays[i];
+      const h = l.type.hit(l.lay, x, y);
+      if (h?.element) return h;
+    }
     if (!s.placement.at(x, y, Point) || Point.kind !== 'data') continue;
     const lays = s.lays[Point.strip * strips.bands + Point.band];
     if (!lays) return undefined;

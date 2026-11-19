@@ -1066,6 +1066,14 @@ straight axis and a box, in every layout; a layout knows strips, bands and warps
 - **Chrome**: a layout's own marks a pass (`chrome`: once a section, then once a band before its layers) and their hits
   (`hitChrome`, before the bands' layers): tracks its label column, text its gutters, rings their guides, labels and a
   window.
+- **A follower reads its leader's viewport** as the leader's layout reads it (`followWindow`: a ring's window, past the
+  total when it wraps the origin; text its lines in view), else the leader's transform's window (tracks); a window over
+  a cyclic origin is carried as two runs. A layout with `followWindow` places over the whole axis.
+- **Layers a strip or a section**: a strip layer is laid out a strip at a time
+  (`PlaceContext.layStrip(placement, strip, labels?)`, the layout's label sink reaching `ctx.labels`), a `section` layer
+  once a section after the strips, over the placement's box on the page with the placement as its reader, drawn after
+  the strips outside their warps and hit before them. A band's own scroll and row zoom (`viewport.bands`, by track
+  address) reach its layers as `ctx.bandTop` and `ctx.rowScale`, and the key compares them by value.
 - **The lay cache is bounded by the strips in view**: a layer's lay is kept per strip by its first display unit (tracks
   without blocks: by the layer's key alone), and a strip that leaves the view lets its lays go.
 

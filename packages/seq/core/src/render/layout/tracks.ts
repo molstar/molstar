@@ -69,11 +69,25 @@ export const TracksNav: SectionNav = {
   clamp: clampWindow,
 };
 
-/** Two windows place alike: the same start and end, scroll and bands. */
+/** Two windows place alike: the same start and end, scroll and bands (by value). */
 export function sameWindow(a: Viewport | undefined, b: Viewport | undefined): boolean {
   if (a === b) return true;
   if (!a || !b) return false;
-  return a.start === b.start && a.end === b.end && (a.top ?? 0) === (b.top ?? 0) && a.bands === b.bands;
+  return a.start === b.start && a.end === b.end && (a.top ?? 0) === (b.top ?? 0) && sameBands(a.bands, b.bands);
+}
+
+/** Two viewports' bands alike: each band's scroll and row zoom. */
+export function sameBands(a: Viewport['bands'], b: Viewport['bands']): boolean {
+  if (a === b) return true;
+  const ka = a ? Object.keys(a) : [];
+  const kb = b ? Object.keys(b) : [];
+  if (ka.length !== kb.length) return false;
+  for (const k of ka) {
+    const x = a![k];
+    const y = b?.[k];
+    if (!y || x.bandTop !== y.bandTop || x.rowScale !== y.rowScale) return false;
+  }
+  return true;
 }
 
 export const TracksLayout: SectionLayoutType<StripPlacement> = {
