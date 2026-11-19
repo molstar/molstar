@@ -286,8 +286,11 @@ describe('every change has a kind', () => {
 
   // the quick representative: the first command of each kind (the sweep over every command is the medium lane's)
   it('a command of each kind changes exactly what its kind says', async () => {
-    const first = new Map<string, string>();
-    for (const c of (await make()).commands) if (!first.has(changeKindOf(c.id))) first.set(changeKindOf(c.id), c.id);
+    const first = new Map<ChangeKind | undefined, string>();
+    for (const c of (await make()).commands) {
+      const kind = changeKindOf(c.id);
+      if (!first.has(kind)) first.set(kind, c.id);
+    }
     await eachChangesWhatItsKindSays([...first.values()]);
   });
 

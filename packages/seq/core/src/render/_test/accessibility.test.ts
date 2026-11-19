@@ -170,7 +170,9 @@ describe.each([
     return b.build();
   }
 
-  it('names at most a share of items a track and a figure’s worth in all, and says how many more', { tags }, async () => {
+  it('names at most a share of items a track and a figure’s worth in all, and says how many more', {
+    tags,
+  }, async () => {
     const r = await renderSvg(manySpec(), { size: { width: 4000, height: 600 } });
     const doc = parse(r.svg);
     const tracks = [...doc.querySelectorAll('[data-seq-track]')];
