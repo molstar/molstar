@@ -92,7 +92,9 @@ describe('the navigators’ examples, headless', () => {
     expect(v.view.get('/views/main/protein')!.start).toBeGreaterThan(110);
   });
 
-  it('the Globins’ 10,000 rows: a drag on the overview’s window moves the rows; the miniature covers both axes', async () => {
+  it('the Globins’ 10,000 rows: a drag on the overview’s window moves the rows; the miniature covers both axes', {
+    tags: ['medium'],
+  }, async () => {
     viewer = await openExample(GlobinsViews.find((v) => v.id === 'scale-navigators')!, { gene: '' });
     const v = viewer;
     const { nav, f } = await navigator(v, 'overview');
