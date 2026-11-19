@@ -5,8 +5,8 @@ finalize). Gate 0 below is for the author; nothing here is decided until they an
 slice changes" is provisional until the third slice's `foldback.md` is decided, and is rewritten from it then.
 
 Work id `fourth-slice`. Version 1's third milestone, **integration** ([version-1](../../design/version-1.md)): structure
-maps and the structure showcase (on a fake 3D viewer, decided), services, bigWig and range reads, the Nightingale
-reference, archives. With it, what the third slice and the author carried here: the molecules design built
+maps and the structure showcase (on a fake 3D viewer, decided), services, bigWig and range reads, the resolved view's test consumer (Nightingale
+dropped), archives. With it, what the third slice and the author carried here: the molecules design built
 ([molecules](../../design/molecules.md): units, copies, the 0.5.0 bump), copy ends on units (CE's parked branch), the
 two drafts revised (DR) and built (structure syncing, track header parts), the seq data ports design, and `ext:` layer
 kinds if Gate 0 places them here.
@@ -18,7 +18,7 @@ kinds if Gate 0 places them here.
 | first (closed) | the end-to-end slice | the tree core, the language, resolve, draw lists, Canvas2D and SVG, the viewer's models, data by region, measured |
 | second (closed) | 1, core editing and addressing | patches, history, previews, addresses, refs and links, selection, security bounds, MessagePack, navigation |
 | third (closing) | 2, figures | the axis, text, ring and block layouts, alignments, dot plots, arcs and logos, themes and legends, stories, navigators, PNG and the CLI, the datasets |
-| **fourth (this plan)** | 3, integration | molecules and units, structure maps and syncing on a fake 3D viewer, track header parts, seq data ports, services, bigWig with range reads, Nightingale, archives, `ext:` kinds |
+| **fourth (this plan)** | 3, integration | molecules and units, structure maps and syncing on a fake 3D viewer, track header parts, seq data ports, services, bigWig with range reads, the resolved view's test consumer, archives, `ext:` kinds |
 | fifth | 4, Genomes | layers across sections, synteny, contact maps, MAF, two assemblies on one axis, the genome formats, the Rondo-like ring as an extension package |
 
 **No Mol\* adapters, no live 3D view** (decided, the author, 2026-11-19: "let's only do a demo with fake 3D viewer ...
@@ -73,8 +73,8 @@ Provisional, from the third slice's `state.md`; replaced by its decided fold-bac
   gene's region); services (UniProt, PDBe SIFTS, AlphaFold DB) composed in Storybook from recorded fixtures with a live
   switch; archives read and written over the assets port with EC-91's bounds; the predictions-onto-a-structure and
   addressing showcases ([examples](../../design/examples.md), Showcases).
-- **Nightingale reference**: a subset of the resolved view drawn by Nightingale beside Seq\*'s picture, and a test that
-  the adapter reads every field it needs from the resolved view alone (EC-183).
+- **The resolved view's second consumer**: a test-only plain-SVG consumer draws a subset from the resolved view and
+  the store alone (EC-183); Nightingale dropped (decided, the author, 2026-11-19).
 - **`ext:` layer kinds** (if Gate 0 says here): an extension's layer named in a spec, drawn, its fallback when absent
   (EC-235), registered atomically through a descriptor.
 - Measured: a hover message for 2OCJ, `maxUnits`-scale hover, a bigWig region decoded, a header pointer move over 200
@@ -88,8 +88,8 @@ Each with a recommendation.
    designs before, since they write only this folder. DR copies the two drafts into `fourth-slice/drafts/` and revises
    them there (the third slice's folder is closed after its record). Recommend **yes**.
 2. **Scope under the one-lane limit.** About 25 lanes at one at a time is long. Keep milestone 3 and the carried items,
-   and if usage runs short cut in this order: custom navigators (CN), legends' surface (LE), the Nightingale reference
-   (NG), archives' writer (AR's write half). Recommend **this order**.
+   and if usage runs short cut in this order: custom navigators (CN), legends' surface (LE), the resolved view's test
+   consumer (NG), archives' writer (AR's write half). Recommend **this order**.
 3. **`ext:` layer kinds here** (version-1: "`ext:` layer kinds ... land before" Genomes' ring; GR's question 3): an
    extension descriptor and `ext:` layer kinds with their fallback, as lane EX near the end, so the fifth slice opens on
    its datasets. Recommend **yes, here**.
@@ -103,9 +103,7 @@ Each with a recommendation.
 6. **Services' home.** In the Storybook as application-layer runtimes (features.md: "the storybook package first"),
    SIFTS read there; base-library's `@molstar/io` SIFTS row stays planned until a second host. Tests read recorded
    fixtures only; the live switch is the Storybook's, through the asset policy's allowed hosts. Recommend **yes**.
-7. **Nightingale**: a pinned dev dependency of the Storybook (a hot `package.json`), a subset (sequence, track, line
-   graph, variants); if it does not load in the Storybook's ESM build, the adapter's field test lands and the story is
-   reported as blocked. Recommend **yes**.
+7. **Nightingale**: decided (the author, 2026-11-19): dropped; the check is our own test consumer (NG).
 8. **Copy ends**: rewritten on units (lane CU) with `seq/ce-copy-ends`'s tests and its review's six findings as the
    cases, the branch deleted after, rather than rebasing it. Recommend **rewrite**.
 9. **Seq data ports, how far**: the design (SP) and a fake host's adapter in Storybook (reading the fake viewer's chain
@@ -234,8 +232,9 @@ tests, read-only).
       user's own file (Gate 0, 12) (`briefs/sv-services.md`).
 - [ ] AR (fast) archives over the assets port: read and write zip with `@molstar/core/util/zip`, entries resolved as
       assets, EC-91's bounds; every dataset saved and opened (`briefs/ar-archives.md`).
-- [ ] NG (fast) the Nightingale reference: a private adapter from the resolved view, the side-by-side story, the field
-      test (EC-183) (`briefs/ng-nightingale.md`).
+- [ ] NG (fast) the resolved view's second consumer (the author, 2026-11-19: Nightingale dropped, "our own test
+      consumer only"): a test-only plain-SVG consumer of letters, ranges, values and variants from the resolved view and
+      the store alone; the field test (EC-183) (`briefs/ng-test-consumer.md`).
 - [ ] GATE: merged, reviewed, checks green, `pnpm build` and `check:workspace` (core changed), sizes, gaps.
 
 ### Stage 4: extension points (after XD's design and HP2's registry kind)
@@ -290,7 +289,6 @@ Never two lanes on the language at once (ML1, AC and MK's params go through the 
   lane builds past the surface.
 - **Designing for the fake viewer**: the port is plain data and minimal, so the new mol viewer can implement it; the
   fake viewer imports nothing of Seq\* and holds its own chain table, so the mapping crosses two representations.
-- **Nightingale in the Storybook build**: web components, its own ESM; a blocked story is reported, not worked around.
 - **Length**: about 25 lanes at one a time; Gate 0's cut order decides what goes first.
 - **The third slice's tail**: DB, DS, PZ and M3 may move the files stage 1 touches (layout heights, labels); the first
   briefs take their base after the third slice's close.

@@ -10,7 +10,6 @@ the viewer needs).
 |---|---|---|---|
 | `packages/seq/core` | `@molstar/seqx-core` | the language (description, validation, builder, printing, patches), the coordinate model and maps, the source protocol and the core runtimes, queries, the pure passes (resolve, layout, draw lists), the SVG and recording backends, `renderSvg` and the render CLI ([rendering.md](rendering.md)) | `@molstar/core`, and an allowlist of other Mol\* entries |
 | `packages/seq/viewer` | `@molstar/seqx-viewer` | DOM-free models (viewer, viewport, hover, selection, behaviors, commands, editing), the Canvas2D backend, the default UI | `@molstar/seqx-core`, `@molstar/core`, `@molstar/ui` |
-| `packages/seq/nightingale` (later) | `@molstar/seqx-nightingale` (private) | the reference adapter: a subset of the resolved view drawn by Nightingale, a check that the resolved view is general ([rendering.md](rendering.md)) | `@molstar/seqx-core`, Nightingale |
 | `packages/seq/examples` | `@molstar/seqx-examples` (private) | the datasets' fixtures and one builder module per view ([examples-and-stories.md](examples-and-stories.md)) | `@molstar/seqx-core` |
 | `packages/seq/storybook` | `@molstar/seqx-storybook` (private) | docs pages, examples that run, stories of the viewer and its parts; the application-layer showcases (services, structure files and the Mol\* link, addressing) | all of the above, and Mol\*'s packages for the showcases |
 

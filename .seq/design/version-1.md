@@ -97,7 +97,7 @@ Version 1's planned features ([features.md](features.md)) come in milestones, ea
    bookmarks, addresses and links, selection and the grammar's defaults, the security bounds, the MessagePack codec.
 2. **Figures**: the text layout, alignment figures, rings, dot plots, the remaining layers and themes, the UX
    foundations' stories and presets, SVG and PNG export, the render CLI.
-3. **Integration**: structure maps and the Mol\* showcase, services, bigWig and range reads, the Nightingale reference,
+3. **Integration**: structure maps and the Mol\* showcase, services, bigWig and range reads, a second consumer of the resolved view (tests only),
    archives.
 4. **Genomes** (the fifth slice): the deferred list above. Its showcase: a genome ring like Rondo's, bundled and count-weighted, as an
    extension package (the author, 2026-11-19), so `ext:` layer kinds (extensibility.md) land before it.

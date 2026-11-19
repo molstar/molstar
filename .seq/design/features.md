@@ -138,7 +138,7 @@ what undo does to each.
 | Rows layer | rows in tree or data order, filters, data columns | planned: the third slice | [grids-and-rows](grids-and-rows.md) | 106, 107 | Globins: family |
 | Collapsed clades | a clade folded to a summary row (session state), bulk commands, reveal opens folds, `clades.keep` writes the opening set | planned: the third slice | [grids-and-rows](grids-and-rows.md) | 100, 103 | Globins: collapsed clades |
 | Lazy rows | 10,000 held and 10M lazy rows at one frame time; reductions by the theme's classes; the cursor over rows never held | planned: the third slice | [grids-and-rows](grids-and-rows.md) | 41, 44, 154 | Globins: 10,000 rows |
-| Fallbacks | every layer type declares one; readers degrade predictably | planned | [extensibility](extensibility.md) | 74, 238–244 | Nightingale reference |
+| Fallbacks | every layer type declares one; readers degrade predictably | planned | [extensibility](extensibility.md) | 74, 238–244 | the test consumer |
 | Themes | uniform, field palettes (binned, continuous, log), rules, schemes | building: tokens, categorical palette; the theme sublanguage (field palettes, rules, schemes, scales) planned: the third slice | [themes](themes.md) | 133–137, 203–205, 215 | p53: themes |
 | Residue schemes | Clustal X, Zappo, Taylor, hydrophobicity, nucleotides, ESPript | planned: the third slice | [themes](themes.md) | 135 | Globins: family |
 | Shared domains | domain groups across layers | planned: the third slice (`scale` nodes) | [themes](themes.md) | 56 | p53: tracks |
@@ -188,7 +188,7 @@ what undo does to each.
 
 | Feature | What | Status | Design | Cases | View |
 |---|---|---|---|---|---|
-| Resolved view and draw lists | public forms other renderers read | building: public forms; the Nightingale reference not | [rendering](rendering.md) | 238–244 | Nightingale reference |
+| Resolved view and draw lists | public forms other renderers read | building: public forms; the test consumer not | [rendering](rendering.md) | 238–244 | the test consumer |
 | Canvas2D backend | glyph atlas, hiDPI, band copy | building: hiDPI, three stacked canvases; glyph atlas and band copy not | [rendering](rendering.md) | 120–123, 140 | every view |
 | SVG and PNG | headless, same picture as the canvas | building: SVG; PNG not | [rendering](rendering.md) | 124, 125 | every view (side by side) |
 | Render CLI | a spec file to SVG or PNG | planned | [rendering](rendering.md) | 126 | — |
@@ -214,7 +214,7 @@ what undo does to each.
 
 | Feature | What | Status | Design | Cases | View |
 |---|---|---|---|---|---|
-| Nightingale reference | a subset drawn by Nightingale from the resolved view | planned | [rendering](rendering.md) | 183 | Nightingale reference |
+| A second consumer of the resolved view | a subset drawn by a test-only consumer from the resolved view alone (Nightingale dropped, 2026-11-19) | planned | [rendering](rendering.md) | 183 | — |
 | Mol\* structure link, as a showcase | translations between a sequence's own system (often position-indexed: a lab's predictions per letter) and mmCIF `label` and `auth` numbering, insertion codes and unobserved residues; hover and selection both ways; per-position values colored in 3D. The structure runtime is application-layer code (the storybook package first; a package of its own when another host needs it) | planned | [maps](maps.md) | 3–5, 25, 118, 167, 181 | Storybook: predictions onto a structure |
 | Addressing | local, hierarchical ids; addresses as `path/(query :key value)` (meso\*'s grammar) for nodes, locations in labels, elements and rects; commands take addresses; copy link | building: addresses and queries, refs, links, copy link (p53: Bookmarks and links); rects not | [addressing](addressing.md) | 1–8, 182 | Storybook: addressing |
 | Markdown links | links in Mol\*'s grammar driving the view; one href for Mol\* and Seq\* | building: links in Mol\*'s grammar driving focus, reveal, select, highlight and hover (Storybook: links); one href driving Mol\* too not | [addressing](addressing.md) | 182 | Storybook: addressing |

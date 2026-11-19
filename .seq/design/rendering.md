@@ -54,11 +54,13 @@ Four forms, each public, documented in the core's `_spec`, and each a stable pla
   its source's coverage gives once attached, else the export reports `seq.render.axis.pending` and waits.
 - **Light to depend on**: the resolved view and draw lists are importable without the viewer, the UI or any format
   runtime; reading a spec needs only the core's language entry.
-- **A reference renderer that is not ours**: a subset of the resolved view (letters, ranges, values, variants) is also
-  drawn by Nightingale, through a small private adapter, beside Seq\*'s own picture in Storybook and in a test that
-  checks the adapter reads every field it needs from the resolved view alone. Why: it keeps the resolved view general,
-  a form another renderer can draw without Seq\*'s layout (the author, 2026-11-17: "we could also still keep the
-  reference nightingale rendering of a subset as a sanity check for the renderer being general").
+- **A second consumer, in tests only**: a subset of the resolved view (letters, ranges, values, variants) is also
+  drawn by a test-only consumer, plain SVG with no dependency, that reads every field it needs from the resolved view
+  and the data store alone; its test fails if it needs anything private. Why: it keeps the resolved view general, a
+  form another renderer (JBrowse, Nightingale) can draw without Seq\*'s layout (the author, 2026-11-17: "a sanity check
+  for the renderer being general"); Nightingale itself dropped (the author, 2026-11-19: "drop it as the public
+  feature … only keep it as test/demonstration", "our own test consumer only"): a pinned outside renderer tests the
+  translation more than the form.
 
 ## Rejected alternatives
 

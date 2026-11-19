@@ -26,7 +26,7 @@ by fewer, more generic mechanisms.
 | Edge cases | each kept item a named test in its area's folder; the area's plan lists them, its record says each outcome ([edge-cases.md](edge-cases.md)) |
 | Examples | every view: it validates, resolves and lays out with no unexpected issues and renders to SVG (quick); it opens in Storybook (medium); about six representative views keep a committed draw-list record and printed spec, compared as text |
 | Rendering | the draw lists through the recording backend (quick); the Canvas2D and SVG backends' pixels compared (heavy) |
-| The resolved view is general | the Nightingale reference adapter draws its subset from the resolved view and the data store alone |
+| The resolved view is general | the test-only second consumer draws its subset from the resolved view and the data store alone ([rendering.md](rendering.md)) |
 | Performance | time bounds (`itWithin`), scaling ratios (cost follows pixels: ten times the data at most 1.2 times the frame; twice the pixels at most twice), allocation in the hot loops, heap growth on retire ([performance.md](performance.md)) |
 | Size | a check on the built entries against the size targets |
 | Parsers and readers | fuzzed (formats, addresses, CIGAR, the S-expression reader): never a throw, always issues |
