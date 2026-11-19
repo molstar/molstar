@@ -228,9 +228,9 @@ export const SeqLanguage = defineLanguage({
       params: {
         layout: {
           type: 'string',
-          enum: ['tracks', 'text'],
+          enum: ['tracks', 'text', 'rings'],
           default: 'tracks',
-          doc: 'How the sections are laid out (a section’s own `layout` before it): `tracks` (rows along one axis) or `text` (lines of letters).',
+          doc: 'How the sections are laid out (a section’s own `layout` before it): `tracks` (rows along one axis), `text` (lines of letters) or `rings` (concentric rings, the first track outermost).',
         },
         export: {
           type: 'record',
@@ -256,11 +256,15 @@ export const SeqLanguage = defineLanguage({
       params: ScaleParamsDescription,
     },
     section: {
-      doc: 'A section of a view: a region of one coordinate system, with its tracks.',
+      doc: 'A section of a view: a region of one coordinate system (or its `block` children), with its tracks.',
       parents: ['view'],
       ids: 'required',
       params: {
-        of: { type: 'ref', kinds: ['sequence'], required: true, doc: 'The coordinate system the section shows.' },
+        of: {
+          type: 'ref',
+          kinds: ['sequence'],
+          doc: 'The coordinate system the section shows; required unless the section has `block` children.',
+        },
         range: {
           type: 'list',
           of: { type: 'integer', min: 0, doc: 'A position.' },
@@ -327,8 +331,8 @@ export const SeqLanguage = defineLanguage({
         },
         layout: {
           type: 'string',
-          enum: ['tracks', 'text'],
-          doc: 'How the section is laid out: `tracks` or `text` (lines of letters, wrapped to the width); the view’s `layout` when absent.',
+          enum: ['tracks', 'text', 'rings'],
+          doc: 'How the section is laid out: `tracks`, `text` (lines of letters, wrapped to the width) or `rings` (its tracks as concentric rings round its whole axis); the view’s `layout` when absent.',
         },
         group: {
           type: 'integer',
@@ -354,8 +358,43 @@ export const SeqLanguage = defineLanguage({
         height: {
           type: 'number',
           min: 0,
-          doc: 'Text: the section’s height in px (it scrolls inside); its content’s, up to the render config’s `text.maxHeight`, when absent.',
+          doc: 'Text: the section’s height in px (it scrolls inside); its content’s, up to the render config’s `text.maxHeight`, when absent. Rings: the rings’ diameter in px; the width’s, up to `rings.maxDiameter`, when absent.',
         },
+        rotation: {
+          type: 'number',
+          doc: 'Rings: where the origin is, degrees clockwise from the top; 0 when absent.',
+        },
+        labels: {
+          type: 'string',
+          enum: ['outside', 'none'],
+          doc: 'Rings: the items’ labels placed outside the rings with leaders (`outside`, when absent), or none.',
+        },
+        arrange: {
+          type: 'string',
+          enum: ['row', 'stack'],
+          doc: 'Blocks in tracks: side by side along one axis (`row`, when absent) or a row of tracks each, aligned at their first position (`stack`).',
+        },
+        copies: {
+          type: 'string',
+          enum: ['merge', 'each'],
+          doc: 'Blocks that are copies (the same system and range): one block labeled `×N` (`merge`, when absent) or a block each.',
+        },
+      },
+    },
+    block: {
+      doc: 'A block of a section: a piece of it on a system of its own (a chain of a complex, a ligand); blocks follow one another in order.',
+      parents: ['section'],
+      ids: 'required',
+      params: {
+        of: { type: 'ref', kinds: ['sequence'], required: true, doc: 'The coordinate system the block shows.' },
+        range: {
+          type: 'list',
+          of: { type: 'integer', min: 0, doc: 'A position.' },
+          'min-length': 2,
+          'max-length': 2,
+          doc: 'The region shown, `[start, end)` (over a cyclic origin when start is past end); all of the system when absent.',
+        },
+        label: { type: 'string', doc: 'The block’s label (its id when absent).' },
       },
     },
     track: {

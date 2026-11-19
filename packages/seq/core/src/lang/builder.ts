@@ -64,6 +64,8 @@ export interface ViewBuilder extends Addressed<'view'> {
 
 export interface SectionBuilder extends Addressed<'section'> {
   track(id: string, params?: Params<'track'>, body?: (track: TrackBuilder) => void): TrackBuilder;
+  /** A block: a piece of the section on a system of its own (a chain, a ligand), after the blocks before it. */
+  block(id: string, params: Params<'block'>): Address<'block'>;
 }
 
 export interface TrackBuilder extends Addressed<'track'> {
@@ -204,6 +206,7 @@ export function createSeqSpec(options: SeqSpecOptions = {}): SeqSpecBuilder {
         body?.(t);
         return t;
       },
+      block: (id, params) => add(rec, 'block', id, params).address as Address<'block'>,
       toString: () => rec.address,
     };
   }
