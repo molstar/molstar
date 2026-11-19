@@ -45,10 +45,9 @@ export function windowExtent(x0: number, x1: number, out: Float64Array): void {
 
 const Extent = new Float64Array(2);
 
-/** A color at an opacity, inline (`withAlpha` would box its result). */
-function alpha(c: number, a: number): number {
-  return ((c & 0xffffff00) | Math.round(Math.max(0, Math.min(1, a)) * 255)) >>> 0;
-}
+// the metrics a draw reads, as numbers read once: a draw reads no property of an imported object
+const Grip: number = WindowMetrics.grip;
+const GripShare: number = WindowMetrics.gripShare;
 
 /**
  * Draws a window over `[x0, x1)` across `y`, `h` (a strip's frame): idle a quiet outline; active its body tinted and
@@ -64,27 +63,49 @@ export function drawWindow(
   lit: WindowPart | undefined,
   tokens: SeqTokens,
 ): void {
-  windowExtent(x0, x1, Extent);
-  const a = Extent[0];
-  const b = Extent[1];
-  const ink = tokens.colors['seq-window'];
   const g = out.args;
+  g[0] = x0;
+  g[1] = x1;
+  g[2] = y;
+  g[3] = h;
+  drawWindowArgs(out, active, lit, tokens);
+}
+
+/**
+ * `drawWindow` with its ends and band in `out.args` (x0, x1, y, h): what an emphasis pass calls, since a number passed
+ * to a call that is not inlined is boxed (nothing allocated once warm).
+ */
+export function drawWindowArgs(out: PassWriter, active: boolean, lit: WindowPart | undefined, tokens: SeqTokens): void {
+  const g = out.args;
+  const y = g[2];
+  const h = g[3];
+  // `windowExtent` inline: its numbers stay unboxed
+  let a = g[0];
+  let b = g[1];
+  if (b - a < WindowMetrics.floor) {
+    const c = (a + b) / 2;
+    a = c - WindowMetrics.floor / 2;
+    b = c + WindowMetrics.floor / 2;
+  }
+  const ink = tokens.colors['seq-window'];
   g[0] = a;
   g[1] = y;
   g[2] = b - a;
   g[3] = h;
-  g[4] = active ? alpha(ink, lit === 'body' ? WindowMetrics.litFill : WindowMetrics.fill) : NoColor;
-  g[5] = active ? ink : alpha(ink, 0.4);
+  // the inks at their opacities inline: a color passed to a call is boxed (nothing allocated once warm)
+  const fill = lit === 'body' ? WindowMetrics.litFill : WindowMetrics.fill;
+  g[4] = active ? ((ink & 0xffffff00) | Math.round(fill * 255)) >>> 0 : NoColor;
+  g[5] = active ? ink : ((ink & 0xffffff00) | Math.round(0.4 * 255)) >>> 0;
   g[6] = active && lit !== undefined ? 2 : 1;
   g[7] = 0;
   g[8] = 0;
   out.rectArgs();
   if (!active) return;
   const grip = tokens.colors['seq-grip'];
-  const gh = h * WindowMetrics.gripShare;
+  const gh = h * GripShare;
   for (let k = 0; k < 2; k++) {
-    const grown = (k === 0 && lit === 'start') || (k === 1 && lit === 'end');
-    const gw = grown ? WindowMetrics.grip + 2 : WindowMetrics.grip;
+    const lit1 = (k === 0 && lit === 'start') || (k === 1 && lit === 'end');
+    const gw = lit1 ? Grip + 2 : Grip;
     g[0] = k === 0 ? a - gw : b;
     g[1] = y + (h - gh) / 2;
     g[2] = gw;

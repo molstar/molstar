@@ -14,7 +14,7 @@
 
 import { grown, NoColor, Op, PassList, Passes, PassWriter, PathCommand, type PathList } from '../draw-lists.js';
 import { fontSize } from '../config.js';
-import { squirclePath } from '../squircle.js';
+import { squirclePathArgs } from '../squircle.js';
 
 /** What a translation moves: the counts of a pass's lists when a strip began to draw. */
 export class TranslateWarp {
@@ -108,15 +108,37 @@ export class PolarWarp {
   /** The clip rects open in the strip's frame (x, y, w, h each). */
   private clipStack = new Float64Array(16);
   private clipDepth = 0;
-  /** The square's outline a rect is traced through. */
+  /** The square's outline a rect is traced through, and the rect's numbers. */
   private readonly square = new PassList('data');
+  private readonly rectArgs = new Float64Array(6);
 
   /** The page point of a frame point: into `px`, `py`. */
   px = 0;
   py = 0;
   map(x: number, y: number): void {
-    const t = this.a0 + ((x - this.x0) / this.width) * this.sweep;
-    const r = this.r0 - y;
+    this.qx = x;
+    this.qy = y;
+    this.mapQ();
+  }
+
+  /** Appends (`px`, `py`) to a path's points: no number passed (a call that is not inlined boxes its numbers). */
+  private put(o: PathList): void {
+    const k = o.pointCount;
+    o.points = grown(o.points, 2 * k + 2);
+    o.points[2 * k] = this.px;
+    o.points[2 * k + 1] = this.py;
+    o.pointCount = k + 1;
+  }
+
+  /** The frame point the draw loops map, set as fields: a number passed to a call that is not inlined is boxed. */
+  private qx = 0;
+  private qy = 0;
+  /** `(qx, qy)` to the page, into `px`, `py`, and its angle into `qt`. */
+  private qt = 0;
+  private mapQ(): void {
+    const t = this.a0 + ((this.qx - this.x0) / this.width) * this.sweep;
+    const r = this.r0 - this.qy;
+    this.qt = t;
     this.px = this.cx + r * Math.sin(t);
     this.py = this.cy - r * Math.cos(t);
   }
@@ -179,12 +201,10 @@ export class PolarWarp {
           im++;
           this.refused++;
           break;
-        case Op.clip: {
-          const l = p.clips;
-          this.pushClip(l.x[c], l.y[c], l.w[c], l.h[c]);
-          c++;
+        case Op.clip:
+          // the clip by its index: a number passed to a call that is not inlined is boxed
+          this.pushClip(p, c++);
           break;
-        }
         case Op.unclip:
           if (this.clipDepth > 0) this.clipDepth--;
           break;
@@ -193,11 +213,12 @@ export class PolarWarp {
     p.reset();
   }
 
-  private pushClip(x: number, y: number, w: number, h: number) {
-    let x0 = x;
-    let y0 = y;
-    let x1 = x + w;
-    let y1 = y + h;
+  private pushClip(p: PassList, c: number) {
+    const l = p.clips;
+    let x0 = l.x[c];
+    let y0 = l.y[c];
+    let x1 = x0 + l.w[c];
+    let y1 = y0 + l.h[c];
     if (this.clipDepth > 0) {
       const s = this.clipStack;
       const b = 4 * (this.clipDepth - 1);
@@ -234,9 +255,44 @@ export class PolarWarp {
     }
     const q = this.square;
     q.reset();
-    q.paths.begin();
-    squirclePath(q.paths, x, y, w, h, l.radius[i], l.round[i]);
-    q.paths.end(l.fill[i], l.stroke[i], l.strokeWidth[i], 0);
+    const qp = q.paths;
+    qp.begin();
+    if (l.round[i] === 0 || l.radius[i] <= 0) {
+      // a square rect (most marks at a ring's density) traced here, its corners through `px`, `py`: nothing boxed
+      qp.command(PathCommand.move);
+      this.px = x;
+      this.py = y;
+      this.put(qp);
+      qp.command(PathCommand.line);
+      this.px = x + w;
+      this.put(qp);
+      qp.command(PathCommand.line);
+      this.py = y + h;
+      this.put(qp);
+      qp.command(PathCommand.line);
+      this.px = x;
+      this.put(qp);
+      // back to the start as a line (so it bends), then closed: the squircle's outline with no corners
+      qp.command(PathCommand.line);
+      this.py = y;
+      this.put(qp);
+      qp.command(PathCommand.close);
+    } else {
+      // through an array: a number passed to a call that is not inlined is boxed (nothing allocated once warm)
+      const a = this.rectArgs;
+      a[0] = x;
+      a[1] = y;
+      a[2] = w;
+      a[3] = h;
+      a[4] = l.radius[i];
+      a[5] = l.round[i];
+      squirclePathArgs(qp, a);
+    }
+    // the style written in place: a color passed to a call is boxed
+    const qk = q.paths.end(NoColor);
+    q.paths.fill[qk] = l.fill[i];
+    q.paths.stroke[qk] = l.stroke[i];
+    q.paths.strokeWidth[qk] = l.strokeWidth[i];
     this.path(out, q.paths, 0);
   }
 
@@ -254,9 +310,11 @@ export class PolarWarp {
         lx = l.points[2 * pt];
         ly = l.points[2 * pt + 1];
         pt++;
-        this.map(lx, ly);
+        this.qx = lx;
+        this.qy = ly;
+        this.mapQ();
         o.command(PathCommand.move);
-        o.point(this.px, this.py);
+        this.put(o);
       } else if (cmd === PathCommand.line) {
         const x = l.points[2 * pt];
         const y = l.points[2 * pt + 1];
@@ -266,23 +324,31 @@ export class PolarWarp {
         const arc = Math.abs(((x - lx) / this.width) * this.sweep) * r;
         const n = Math.max(1, Math.min(512, Math.ceil(arc / this.step)));
         for (let k = 1; k <= n; k++) {
-          this.map(lx + ((x - lx) * k) / n, ly + ((y - ly) * k) / n);
+          this.qx = lx + ((x - lx) * k) / n;
+          this.qy = ly + ((y - ly) * k) / n;
+          this.mapQ();
           o.command(PathCommand.line);
-          o.point(this.px, this.py);
+          this.put(o);
         }
         lx = x;
         ly = y;
       } else if (cmd === PathCommand.cubic) {
         o.command(PathCommand.cubic);
         for (let k = 0; k < 3; k++, pt++) {
-          this.map(l.points[2 * pt], l.points[2 * pt + 1]);
-          o.point(this.px, this.py);
+          this.qx = l.points[2 * pt];
+          this.qy = l.points[2 * pt + 1];
+          this.mapQ();
+          this.put(o);
         }
         lx = l.points[2 * pt - 2];
         ly = l.points[2 * pt - 1];
       } else o.command(PathCommand.close);
     }
-    o.end(l.fill[i], l.stroke[i], l.strokeWidth[i], l.dash[i]);
+    const k = o.end(NoColor);
+    o.fill[k] = l.fill[i];
+    o.stroke[k] = l.stroke[i];
+    o.strokeWidth[k] = l.strokeWidth[i];
+    o.dash[k] = l.dash[i];
   }
 
   /** A glyph run placed letter by letter: each at its point, upright or along the ring. */
@@ -304,12 +370,14 @@ export class PolarWarp {
       if (cs >= 0 && (x + half <= this.clipStack[cs] || x - half >= this.clipStack[cs] + this.clipStack[cs + 2]))
         continue;
       const y = placed ? l.ly[j] : l.y[i];
-      this.map(x, y);
+      this.qx = x;
+      this.qy = y;
+      this.mapQ();
       const m = o.nextLetter();
       o.codes[m] = l.codes[j];
       o.x[m] = this.px;
       o.ly[m] = this.py;
-      o.angle[m] = (this.tangent ? this.angleAt(x) : 0) + (placed ? l.angle[j] : 0);
+      o.angle[m] = (this.tangent ? this.qt : 0) + (placed ? l.angle[j] : 0);
       o.vs[m] = placed ? l.vs[j] : 1;
       o.colors[m] = l.color[i] !== NoColor ? NoColor : l.colors[j];
     }
@@ -327,7 +395,9 @@ export class PolarWarp {
   /** A text at its anchor's place, upright. */
   private text(out: PassWriter, p: PassList, i: number) {
     const l = p.texts;
-    this.map(l.x[i], l.y[i]);
+    this.qx = l.x[i];
+    this.qy = l.y[i];
+    this.mapQ();
     out.pass.op(Op.text);
     const o = out.pass.texts;
     const k = o.next();

@@ -25,7 +25,7 @@ import { sectionId } from '../layer-type.js';
 import type { TextMetrics } from '../text.js';
 import type { SeqTokens } from '../tokens.js';
 import type { SectionLayout } from '../tracks.js';
-import { drawWindow, WindowMetrics, windowPart } from '../window.js';
+import { drawWindowArgs, WindowMetrics, windowPart } from '../window.js';
 import { PlacePoint, Strips, WarpKind } from './strips.js';
 import { clampWindow, TracksNav } from './tracks.js';
 import type { NavContext, Placement, PlaceContext, SectionLayoutType, SectionNav } from './types.js';
@@ -152,13 +152,28 @@ export class RingPlacement implements Placement {
     return -1;
   }
 
-  /** Frame x of a section unit (past the circle for a unit past the total). */
-  frameX(u: number): number {
+  /** The last `toFrame`'s frame x. */
+  fx = 0;
+
+  /**
+   * Frame x of a section unit into `fx` (past the circle for a unit past the total): a field, not a return (a number
+   * returned from a call that is not inlined is boxed; the window's draw calls it).
+   */
+  toFrame(u: number): void {
+    this.fu = u;
+    this.toFrameU();
+  }
+
+  /** The unit `toFrameU` reads. */
+  private fu = 0;
+  /** `toFrame` of `fu`: what the window's draw calls (no number passed: a call that is not inlined boxes it). */
+  private toFrameU(): void {
     const s = this.strips;
-    if (!s.n) return 0;
+    this.fx = 0;
+    if (!s.n) return;
     const t = this.total;
     let turns = 0;
-    let v = u;
+    let v = this.fu;
     if (t > 0 && (v >= t || v < 0)) {
       turns = Math.floor(v / t);
       v -= turns * t;
@@ -166,13 +181,37 @@ export class RingPlacement implements Placement {
     let i = s.n - 1;
     while (i > 0 && s.first[i] > v) i--;
     const a = s.axes[i];
-    return a.xOfUnit(Math.min(v - s.first[i], a.total)) + turns * this.circumference;
+    // `xOfUnit` inline (a ring has no groups): a number passed to a call that is not inlined is boxed
+    this.fx = a.x0 + (Math.min(v - s.first[i], a.total) - a.u0) * a.scale + turns * this.circumference;
   }
+
+  /** The window's ends in the frame (`wx1` past the circle over the origin), into `wx0`, `wx1`. */
+  wx0 = 0;
+  wx1 = 0;
+  windowFrame(): void {
+    this.fu = this.windowStart;
+    this.toFrameU();
+    this.wx0 = this.fx;
+    this.fu = this.windowEnd;
+    this.toFrameU();
+    this.wx1 = this.fx <= this.wx0 ? this.fx + this.circumference : this.fx;
+  }
+
+  /** Frame x of a section unit. */
+  frameX(u: number): number {
+    this.toFrame(u);
+    return this.fx;
+  }
+
+  /** The item labels' font size, px. */
+  labelSize = 10;
+  /** The title's font size, px. */
+  titleSize = 12;
 
   /** The label under a page point, or −1. */
   labelAt(x: number, y: number): number {
     const l = this.labels;
-    const size = fontSize(this.labelFont);
+    const size = this.labelSize;
     for (let k = 0; k < l.m; k++) {
       const x0 = l.right[k] ? l.x[k] : l.x[k] - l.width[k];
       if (x >= x0 - 2 && x < x0 + l.width[k] + 2 && y >= l.y[k] - size && y < l.y[k] + 0.35 * size) return k;
@@ -317,6 +356,8 @@ export const RingsLayout: SectionLayoutType<RingPlacement> = {
     p.labels.reset();
     p.labelFont = config.itemFont;
     const size = fontSize(config.itemFont);
+    p.labelSize = size;
+    p.titleSize = fontSize(config.labelFont);
     // the diameter fits the box's width (its labels' room aside), capped
     const side = outside ? rc.labelGap + rc.leaderBend + RingMetrics.labelRoom : RingMetrics.margin + RingMetrics.rim;
     const written = section.params.height;
@@ -424,15 +465,25 @@ export const RingsLayout: SectionLayoutType<RingPlacement> = {
     p.windowStart = viewport ? viewport.start : 0;
     p.windowEnd = viewport ? viewport.end : p.total;
   },
-  chrome(s, pass, out, emphasis, _strip, band) {
+  chrome(s, pass, out, emphasis, strip, band) {
     const p = s.placement as RingPlacement;
     const { tokens, config } = s;
     if (band >= 0) {
-      // each ring's own ground under its layers, a sector a strip
+      // each ring's own ground under its layers, a sector a strip (through `args`: nothing boxed)
       if (pass !== 'data') return;
-      const a = p.strips.axes[_strip];
-      const k = _strip * p.strips.bands + band;
-      out.fill(a.x0, p.strips.bandY[k], a.width, p.strips.bandH[k], tokens.colors['seq-track']);
+      const a = p.strips.axes[strip];
+      const k = strip * p.strips.bands + band;
+      const g = out.args;
+      g[0] = a.x0;
+      g[1] = p.strips.bandY[k];
+      g[2] = a.width;
+      g[3] = p.strips.bandH[k];
+      g[4] = tokens.colors['seq-track'];
+      g[5] = NoColor;
+      g[6] = 0;
+      g[7] = 0;
+      g[8] = 0;
+      out.rectArgs();
       return;
     }
     if (pass === 'data') p.warp.refused = 0;
@@ -568,7 +619,7 @@ function drawRingLabels(p: RingPlacement, out: PassWriter, tokens: SeqTokens, co
     out.textArgs(l.text[l.placed[k]], l.right[k] ? AnchorStart : AnchorEnd, config.itemFont);
   }
   if (!p.title) return;
-  const size = fontSize(config.labelFont);
+  const size = p.titleSize;
   const hole = Math.max(0, p.r - p.depth);
   g[0] = p.cx;
   g[1] = p.cy - 2;
@@ -596,9 +647,9 @@ function drawRingWindow(
   tokens: SeqTokens,
 ) {
   if (!p.windowShown || !p.strips.n) return;
-  const x0 = p.frameX(p.windowStart);
-  let x1 = p.frameX(p.windowEnd);
-  if (x1 <= x0) x1 += p.circumference;
+  p.windowFrame();
+  const x0 = p.wx0;
+  const x1 = p.wx1;
   const h = emphasis?.hover;
   const lit = h?.target === 'window' && h.section === s.id ? h.part : undefined;
   const w = p.warp.writer(out);
@@ -616,7 +667,12 @@ function drawRingWindow(
     g[8] = 0;
     w.rectArgs();
   }
-  drawWindow(w, x0, x1, -RingMetrics.rim, RingMetrics.rim, p.windowActive, lit, tokens);
+  const g = w.args;
+  g[0] = x0;
+  g[1] = x1;
+  g[2] = -RingMetrics.rim;
+  g[3] = RingMetrics.rim;
+  drawWindowArgs(w, p.windowActive, lit, tokens);
   p.warp.close(out);
 }
 
