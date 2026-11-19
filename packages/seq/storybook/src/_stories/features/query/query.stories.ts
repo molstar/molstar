@@ -19,7 +19,9 @@ import {
   type QueryExample,
   QueryExamples,
   type QueryReport,
+  readableRanges,
   runQuery,
+  statusLine,
 } from './compose.js';
 
 // Query (Features): the address language over p53's data and the globins family. Whatever is typed is parsed, checked and
@@ -42,7 +44,8 @@ const viewOf = (id: string) => FeatureViews.find((v) => v.id === id)!;
 /** The queries the free story offers: the first of each example on p53's view. */
 const FreeQueries = QueryExamples.filter((e) => e.view === 'query').flatMap((e) => e.queries);
 
-const ranges = (r: readonly (readonly [number, number])[]) => r.map(([a, b]) => `[${a}, ${b})`).join(' ');
+/** How long typing rests before the query runs. */
+const DebounceMs = 100;
 
 class QueryRoot extends UiElement<QueryModel> {
   static readonly tag = 'seqx-query-root';
@@ -68,7 +71,7 @@ class QueryRoot extends UiElement<QueryModel> {
       'aria-label': 'Query',
       onInput: (v) => {
         text.set(v);
-        run();
+        runSoon();
       },
     }) as HTMLElement;
     input.style.cssText += ' flex: 1 1 28em; min-width: 16em; font-family: var(--msui-font-mono);';
@@ -82,7 +85,7 @@ class QueryRoot extends UiElement<QueryModel> {
       'aria-label': 'What the result does in the view',
       onChange: (v) => {
         emphasis = v;
-        run();
+        runNow();
       },
     }) as HTMLElement;
     box.append(input, mode);
@@ -97,7 +100,7 @@ class QueryRoot extends UiElement<QueryModel> {
           title: q.query,
           onClick: () => {
             text.set(q.query);
-            run();
+            runNow();
           },
         }) as HTMLElement,
       );
@@ -105,13 +108,29 @@ class QueryRoot extends UiElement<QueryModel> {
 
     const canvasHost = document.createElement('div');
     canvasHost.style.cssText = 'min-width: 0;';
+    // told to a screen reader as one line, whole (`aria-atomic`); the report below it is read on demand, not announced
+    const status = document.createElement('p');
+    status.style.cssText = 'margin: 0; font-weight: 600;';
+    status.setAttribute('role', 'status');
+    status.setAttribute('aria-live', 'polite');
+    status.setAttribute('aria-atomic', 'true');
     const out = document.createElement('div');
     out.style.cssText = 'display: grid; gap: var(--msui-space-1); max-width: 96ch;';
-    out.setAttribute('aria-live', 'polite');
-    root.append(about, box, chips, canvasHost, out);
+    root.append(about, box, chips, canvasHost, status, out);
 
     const viewer = composeViewer(view, { target: canvasHost });
-    onCleanup(() => viewer.retire());
+    // no run after the story is gone (a debounce, a load still pending); the query's marks go before the viewer does
+    let disposed = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    onCleanup(() => {
+      disposed = true;
+      clearTimeout(timer);
+      try {
+        clearQuery(viewer);
+      } finally {
+        viewer.retire();
+      }
+    });
 
     const line = (label: string, value: string, mono = true) => {
       const row = document.createElement('div');
@@ -127,34 +146,19 @@ class QueryRoot extends UiElement<QueryModel> {
     };
 
     const draw = (r: QueryReport) => {
+      status.textContent = statusLine(r);
       const rows: HTMLElement[] = [];
-      if (r.status === 'empty') {
-        rows.push(line('Result', 'Nothing typed', false));
-      } else {
+      if (r.status !== 'empty') {
         rows.push(line('Printed', r.printed ?? 'It does not parse'));
-        rows.push(
-          line(
-            'Result',
-            r.status === 'resolved'
-              ? `${r.kind}: ${r.size}`
-              : r.status === 'waiting'
-                ? 'It waits for its data'
-                : r.status === 'missing'
-                  ? 'It names nothing'
-                  : 'It does not resolve',
-            false,
-          ),
-        );
-        for (const s of r.systems) rows.push(line('On', `${s.system}  ${ranges(s.ranges)}`));
+        for (const s of r.systems) rows.push(line('On', `${s.system}  ${readableRanges(s.ranges)}`));
         for (const x of r.rects)
-          rows.push(line('Rect', `${x.a.system} ${ranges(x.a.ranges)}  ×  ${x.b.system} ${ranges(x.b.ranges)}`));
+          rows.push(
+            line('Rect', `${x.a.system} ${readableRanges(x.a.ranges)}  ×  ${x.b.system} ${readableRanges(x.b.ranges)}`),
+          );
         for (const i of r.issues) {
           const at = i.offset !== undefined ? ` (at character ${i.offset + 1})` : '';
           const row = line(i.severity, `${i.message}${at}`, false);
-          row.lastElementChild!.setAttribute(
-            'style',
-            i.severity === 'error' ? 'color: var(--msui-danger, #c0392b);' : '',
-          );
+          if (i.severity === 'error') (row.lastElementChild as HTMLElement).style.color = 'var(--msui-danger)';
           rows.push(row);
           if (i.hint) rows.push(line('Hint', i.hint, false));
           rows.push(line('Code', i.code));
@@ -163,9 +167,25 @@ class QueryRoot extends UiElement<QueryModel> {
       out.replaceChildren(...rows);
     };
 
-    const run = () => draw(runQuery(viewer, text.value, emphasis));
-    onCleanup(() => clearQuery(viewer));
-    void viewer.load(view.build()).then(run);
+    const runNow = () => {
+      clearTimeout(timer);
+      if (disposed) return;
+      draw(runQuery(viewer, text.value, emphasis));
+    };
+    const runSoon = () => {
+      clearTimeout(timer);
+      timer = setTimeout(runNow, DebounceMs);
+    };
+    viewer.load(view.build()).then(runNow, (e: unknown) => {
+      if (disposed) return;
+      draw({
+        text: text.value,
+        status: 'failed',
+        systems: [],
+        rects: [],
+        issues: [{ code: 'story.query.load', severity: 'error', message: e instanceof Error ? e.message : String(e) }],
+      });
+    });
     return root;
   }
 }

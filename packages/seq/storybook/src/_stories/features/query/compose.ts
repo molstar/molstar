@@ -75,26 +75,59 @@ const pairs = (flat: Int32Array): (readonly [number, number])[] =>
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
 /**
- * Parses, checks and resolves a query as typed, and selects or highlights its result in the view (what it named
- * before is cleared first, so the view never shows an older query). The library's own paths: `parseAddress`,
- * `printAddress`, `AddressModel.locate` and `AddressModel.select` or `highlightAddress`.
+ * Parses, checks and resolves a query as typed, and selects or highlights its result in the view. The library's own
+ * paths: `parseAddress`, `printAddress`, `AddressModel.locate` and `AddressModel.select` or `highlightAddress`. What the
+ * view shows is replaced only when it differs from the result (one change a keystroke, none when the query still names
+ * the same thing); a failure shows nothing. A throw is a failed report with its message, never a stale one.
  */
 export function runQuery(viewer: SeqViewer, text: string, emphasis: Emphasis): QueryReport {
-  clearQuery(viewer);
+  try {
+    return resolveQuery(viewer, text, emphasis);
+  } catch (e) {
+    try {
+      clearQuery(viewer);
+    } catch {
+      // a viewer that cannot even clear is the report's own failure
+    }
+    const issue: Issue = {
+      code: 'story.query.error',
+      severity: 'error',
+      message: e instanceof Error ? e.message : String(e),
+    };
+    return { text, status: 'failed', systems: [], rects: [], issues: [issue] };
+  }
+}
+
+/** Whether the view shows exactly `address` in this way (and the other way not at all). */
+function shows(viewer: SeqViewer, address: string, emphasis: Emphasis): boolean {
+  const selected = viewer.addresses.selectionAddress();
+  const lit = viewer.highlight.get(QueryChannel)?.address;
+  return emphasis === 'select' ? selected === address && lit === undefined : lit === address && selected === undefined;
+}
+
+function resolveQuery(viewer: SeqViewer, text: string, emphasis: Emphasis): QueryReport {
   const trimmed = text.trim();
-  if (!trimmed) return { text, status: 'empty', systems: [], rects: [], issues: [] };
+  if (!trimmed) {
+    clearQuery(viewer);
+    return { text, status: 'empty', systems: [], rects: [], issues: [] };
+  }
+  // issue offsets are into the trimmed text: counted from the text as typed
+  const lead = text.length - text.trimStart().length;
+  const asTyped = (issues: readonly Issue[]): readonly Issue[] =>
+    lead ? issues.map((i) => (i.offset !== undefined ? { ...i, offset: i.offset + lead } : i)) : issues;
   const parsed = parseAddress(trimmed);
   const printed = parsed.pattern ? printAddress(parsed.pattern.segments, parsed.pattern.subtree) : undefined;
   const { resolution, location } = viewer.addresses.locate(trimmed);
   const r = resolution.result;
   if (!r) {
+    clearQuery(viewer);
     return {
       text,
       status: resolution.status === 'resolved' ? 'failed' : resolution.status,
       ...(printed !== undefined ? { printed } : {}),
       systems: [],
       rects: [],
-      issues: resolution.issues,
+      issues: asTyped(resolution.issues),
     };
   }
   const systems = location.parts.map((p) => ({ system: p.system, ranges: pairs(p.ranges) }));
@@ -117,8 +150,11 @@ export function runQuery(viewer: SeqViewer, text: string, emphasis: Emphasis): Q
             .join(', ');
   // the canonical form is what the view holds: the same query typed another way is the same address
   const address = printed ?? trimmed;
-  if (emphasis === 'select') viewer.addresses.select(address);
-  else viewer.addresses.highlightAddress(address, QueryChannel);
+  if (!shows(viewer, address, emphasis)) {
+    clearQuery(viewer);
+    if (emphasis === 'select') viewer.addresses.select(address);
+    else viewer.addresses.highlightAddress(address, QueryChannel);
+  }
   return {
     text,
     status: 'resolved',
@@ -127,8 +163,22 @@ export function runQuery(viewer: SeqViewer, text: string, emphasis: Emphasis): Q
     size,
     systems,
     rects,
-    issues: resolution.issues,
+    issues: asTyped(resolution.issues),
   };
+}
+
+/** Half-open index ranges as a reader writes them: 1-based and inclusive (`94–292`, one position `175`). */
+export function readableRanges(r: readonly (readonly [number, number])[]): string {
+  return r.map(([a, b]) => (b - a === 1 ? `${a + 1}` : `${a + 1}–${b}`)).join(', ');
+}
+
+/** The one line a screen reader is told of a report: the result's kind and size, or the first issue. */
+export function statusLine(r: QueryReport): string {
+  if (r.status === 'empty') return 'Nothing typed';
+  if (r.status === 'resolved') return `${r.kind}: ${r.size}`;
+  const first = r.issues[0]?.message;
+  if (first) return first;
+  return r.status === 'waiting' ? 'It waits for its data' : 'It names nothing';
 }
 
 /** Clears what the query box set: its selection and its highlight channel. */
@@ -145,7 +195,7 @@ export interface QueryExample {
   readonly view: string;
   /** What it shows, a sentence or two. */
   readonly about: string;
-  readonly queries: readonly { readonly label: string; readonly query: string }[];
+  readonly queries: readonly { readonly label: string; readonly query: string; readonly issue?: true }[];
   readonly emphasis: Emphasis;
 }
 
@@ -204,7 +254,11 @@ export const QueryExamples: readonly QueryExample[] = [
       },
       { label: 'Two ranges', query: '/data/p53/(or :of [(range :from 1 :to 40) (range :from 320 :to 360)])' },
       { label: 'Where two overlap', query: '/data/p53/(and :of [(range :from 94 :to 292) (range :from 250 :to 360)])' },
-      { label: 'Mixed types (an issue)', query: '/data/domains/(or :of [(item :id TET) (extent :of (item :id TET))])' },
+      {
+        label: 'Mixed types (an issue)',
+        query: '/data/domains/(or :of [(item :id TET) (extent :of (item :id TET))])',
+        issue: true,
+      },
     ],
   },
   {
