@@ -547,3 +547,33 @@ export function inkAgainst(ink: number, fill: number): number {
   }
   return dir < 0 ? 0x000000ff : 0xffffffff;
 }
+
+/** A color whose Oklab chroma is below this is a grey (a gap, `missing`, a neutral): `glyphAgainst` keeps it grey. */
+export const GreyChroma = 0.02;
+
+/**
+ * A color made to read as a glyph on a surface (_spec/README.md "Render", The logo): its Oklab chroma raised to
+ * `chroma`, hue kept, clipped to the sRGB gamut at its lightness, then its lightness moved away from the fill's until
+ * 3:1 (`inkAgainst`'s rule; pure black or white at the end). A color above the floor keeps its chroma; a grey
+ * (chroma below `GreyChroma`) stays grey, so only its lightness moves.
+ */
+export function glyphAgainst(ink: number, fill: number, chroma: number): number {
+  const lab = Oklab.fromColor(Oklab.zero(), toRgb(ink));
+  const c = Math.hypot(lab[1], lab[2]);
+  if (c < GreyChroma || c >= chroma) return inkAgainst(ink, fill);
+  const k = chroma / c;
+  const fl = Oklab.lightness(toRgb(fill));
+  const dir = fl > 0.6 ? -1 : 1;
+  const l0 = lab[0];
+  const out = Oklab.zero();
+  for (let i = 0; i < 40; i++) {
+    const l = l0 + dir * 0.025 * i;
+    if (l <= 0 || l >= 1) break;
+    out[0] = l;
+    out[1] = lab[1] * k;
+    out[2] = lab[2] * k;
+    const col = fromRgb(Oklab.toColor(Oklab.clampChroma(out, out)));
+    if (contrastRgba(col, fill) >= 3) return col;
+  }
+  return dir < 0 ? 0x000000ff : 0xffffffff;
+}

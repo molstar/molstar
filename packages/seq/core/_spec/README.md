@@ -960,8 +960,9 @@ the UX foundations' numbers, CSS px, settled by the foundation stories; where no
   break ink (`seq-break`), residue and nucleotide classes, eight categories (chosen apart under the three color-vision
   deficiencies in both tables), the density ramp, a five-stop ramp and a diverging triple, secondary structure
   (`seq-ss-helix`, `-strand`, `-turn`), `seq-variant`, `seq-ruler`, the navigator's window, grip and wash, the
-  centromere, a letter cell's edge), as `0xRRGGBBAA`, and the font stacks of the two family roles. Node has a light and
-  a dark table (`LightTokens`, `DarkTokens`); the viewer reads its own from CSS.
+  centromere, a letter cell's edge), as `0xRRGGBBAA`, the logo's chroma floor (`seq-logo-chroma`, a number) and the font
+  stacks of the two family roles. Node has a light and a dark table (`LightTokens`, `DarkTokens`); the viewer reads its
+  own from CSS.
 - **A letter cell's edge** (`seq-cell-edge`): in the dark table a hairline, 1 device px, around each cell drawn with its
   letter (the letters layer's `letters` step, a rows layer's letter cells), at 3:1 against the page; none (transparent)
   in the light table. Why: the dark scheme colors sit at 1.4–1.7:1 against the dark page and cannot go lighter without
@@ -1688,10 +1689,14 @@ height, 0.72 of its size). Its profile (letter frequencies a column, `gaps: igno
 held cells, joined once and shared with the rows layer on one store (`readHeld`), kept by their version; over a lazy
 alignment it is a source's to serve, and none is read yet (`seq.render.logo.profile`, info). Below 2 device px a column,
 one bar a device column, the tallest stack there (the shared reduction's one-axis max, factor 2), in its top letter's
-color. Its color is the alphabet's scheme by default, each letter's (and bar's) color moved in oklab lightness to 3:1
-against the track's surface (`seq-track`) by the `ink` rule (`inkAgainst`, hue kept; a scheme's pale cell fill reads as
-a glyph), once per color and token table (the table's version keys the memo). Hit: the column, the letter under the
-point as the hit's `state`. It reads every row (a logo of the rows shown is not built: the package's TODO).
+color. Its color is the alphabet's scheme by default, each letter's (and bar's) color made a glyph (`glyphAgainst`): its
+oklab chroma raised, hue kept, to the floor `seq-logo-chroma` (a number token, `SeqTokens.logoChroma`: 0.12 in light,
+0.10 in dark, `--seq-logo-chroma` in CSS) clipped to the sRGB gamut at its lightness, then moved in lightness to 3:1
+against the track's surface (`seq-track`) by the `ink` rule; a color above the floor keeps its chroma, a grey (chroma
+under 0.02: a gap, `missing`, a neutral) stays grey and only moves in lightness. Why a floor and not a second strong
+color a class: a scheme names one color a class, and a pale cell fill has little chroma, so lightness alone is muddy.
+Once per color and token table (the table's version, which hashes the floor, keys the memo). Hit: the column, the letter
+under the point as the hit's `state`. It reads every row (a logo of the rows shown is not built: the package's TODO).
 
 ### The key
 
