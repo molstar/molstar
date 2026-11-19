@@ -10,6 +10,7 @@ import * as addressing from './p53/addressing.js';
 import * as axis from './p53/axis.js';
 import * as bookmarks from './p53/bookmarks.js';
 import * as geneByRegion from './p53/gene-by-region.js';
+import * as layers from './p53/layers.js';
 import * as proteinOnGene from './p53/protein-on-gene.js';
 import * as tracks from './p53/tracks.js';
 
@@ -100,4 +101,48 @@ export const FeatureViews: readonly ExampleView[] = [
   },
 ];
 
-export const ExampleViews: readonly ExampleView[] = [...P53Views, ...FeatureViews];
+/** Views made for the small layers' stories (`Features/Layers`), over p53. */
+export const LayerViews: readonly ExampleView[] = [
+  {
+    dataset: 'p53',
+    id: 'ruler',
+    title: 'Ruler',
+    summary:
+      'The ruler on the protein and, reversed on its coding pieces, on its gene: the labels are steps of 1, 2 or 5 × 10ⁿ that never overlap, and the gene’s count down.',
+    build: layers.ruler,
+  },
+  {
+    dataset: 'p53',
+    id: 'secondary',
+    title: 'Secondary structure',
+    summary:
+      'Helices and strands as blocks, a turn thin; each strand ends in an arrowhead on the piece holding its C-terminal end, on the protein and through the codon map on the gene reading along it.',
+    build: layers.secondary,
+  },
+  {
+    dataset: 'p53',
+    id: 'variants',
+    title: 'Variants',
+    summary:
+      'A stem and a head a site, the heads of one site stacked (R248Q and R248W, R273H and R273C), on the protein and on the gene; zoom out and they become a count strip.',
+    build: layers.variants,
+  },
+  {
+    dataset: 'p53',
+    id: 'values-line',
+    title: 'Values as a line and an area',
+    summary:
+      'The conservation as bars, a line (held over half cells at its ends and at the two missing residues, broken there) and an area under it.',
+    build: layers.valuesLine,
+  },
+  {
+    dataset: 'p53',
+    id: 'ranges-lines',
+    title: 'Ranges as lines and arrows',
+    summary:
+      'The domains in each line style (the dash and the wave run from each domain’s start, so they move with it as you pan) and with arrowheads on their ends.',
+    build: layers.rangesLines,
+  },
+];
+
+export const ExampleViews: readonly ExampleView[] = [...P53Views, ...FeatureViews, ...LayerViews];

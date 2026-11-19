@@ -46,7 +46,67 @@ export const Domains = {
   category: ['activation', 'linker', 'binding', 'signal', 'oligomer', 'regulatory'],
 };
 
+/**
+ * p53's secondary structure: helices and strands of the core domain and the tetramerization helix (bounds illustrative,
+ * as the domains'), the `category` the class.
+ */
+export const Secondary = {
+  start: new Int32Array([16, 100, 111, 124, 135, 146, 156, 171, 203, 213, 227, 233, 251, 264, 277, 334]),
+  end: new Int32Array([25, 110, 120, 133, 141, 152, 166, 178, 210, 224, 232, 240, 260, 273, 287, 343]),
+  id: ['H1', 'S1', 'S2', 'S3', 'H2', 'S4', 'S5', 'H3', 'S6', 'S7', 'S8', 'S9', 'S10', 'S11', 'H4', 'H5'],
+  category: [
+    'helix',
+    'strand',
+    'strand',
+    'strand',
+    'helix',
+    'strand',
+    'strand',
+    'helix',
+    'strand',
+    'strand',
+    'strand',
+    'strand',
+    'strand',
+    'strand',
+    'helix',
+    'helix',
+  ],
+};
+
+/** p53's well-known variants (position, change, consequence), two or three at the hot spots R248 and R273. */
+export const Variants = {
+  start: new Int32Array([174, 195, 212, 219, 244, 247, 247, 248, 272, 272, 281, 305]),
+  end: new Int32Array([175, 196, 213, 220, 245, 248, 248, 249, 273, 273, 282, 306]),
+  id: ['R175H', 'R196*', 'R213*', 'Y220C', 'G245S', 'R248Q', 'R248W', 'R249S', 'R273H', 'R273C', 'R282W', 'R306*'],
+  label: ['R175H', 'R196*', 'R213*', 'Y220C', 'G245S', 'R248Q', 'R248W', 'R249S', 'R273H', 'R273C', 'R282W', 'R306*'],
+  category: [
+    'missense',
+    'nonsense',
+    'nonsense',
+    'missense',
+    'missense',
+    'missense',
+    'missense',
+    'missense',
+    'missense',
+    'missense',
+    'missense',
+    'nonsense',
+  ],
+};
+
 type SpecBuilder = ReturnType<typeof createSeqSpec>;
+
+/** The secondary structure as an annotation of the protein. */
+export function addSecondary(b: SpecBuilder, protein: Parameters<SpecBuilder['data']['ranges']>[1]['target']) {
+  return b.data.ranges('secondary', { target: protein, rows: Secondary });
+}
+
+/** The variants as an annotation of the protein. */
+export function addVariants(b: SpecBuilder, protein: Parameters<SpecBuilder['data']['ranges']>[1]['target']) {
+  return b.data.ranges('variants', { target: protein, rows: Variants });
+}
 
 /** The domains as an annotation of the protein (what a view places on a track). */
 export function addDomains(b: SpecBuilder, protein: Parameters<SpecBuilder['data']['ranges']>[1]['target']) {
