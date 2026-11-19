@@ -7,6 +7,7 @@
 import type { ElementKey, Location } from '@molstar/seqx-core/query';
 import { DefaultNumbering, findNumbering, numberingIds } from '@molstar/seqx-core/query';
 import {
+  type GridLay,
   itemText,
   type ItemDescription,
   type LayerLayout,
@@ -20,7 +21,7 @@ import {
   type ViewLayout,
 } from '@molstar/seqx-core/render';
 import type { StaticModel } from '@molstar/seqx-core/resolve';
-import type { AddressModel, SpecModel, StoreModel, ViewModel } from '@molstar/seqx-viewer/models';
+import type { AddressModel, Cursor, SpecModel, StoreModel, ViewModel } from '@molstar/seqx-viewer/models';
 import type { HoverCard, HoverCardRow } from './hover-card.js';
 
 // What a place is, in words (_spec/README.md "Input", Announcements; "Hover card"): one description that the live
@@ -194,10 +195,16 @@ const RowSection: CardSection = {
     const lay = l.lay as RowsLay;
     const e = at.place.target === 'row' ? at.position : at.place.ySystem === lay.rowsSystem ? at.yPosition : Number.NaN;
     if (Number.isNaN(e)) return;
-    const label = lay.label(e);
+    // a folded row is its summary row's, labeled as drawn (`first +n`: the keyboard cursor stands there)
+    const d = lay.display;
+    const i = d.displayRow(e);
+    const members = i >= 0 && d.rowAt(i) < 0 ? d.members.get(i) : undefined;
+    const label = members ? `${lay.label(members[0])} +${members.length - 1}` : lay.label(e);
     out.title = label;
     out.row('Row', label);
-    out.words.push(`row ${label}`);
+    // a lazy row whose tile has not come yet: said pending (its label is its number until it does)
+    const pending = !lay.held && !members && !lay.lazyLabels.has(e);
+    out.words.push(`row ${label}${pending ? ', pending' : ''}`);
     const state = at.place.state;
     const colon = state ? state.indexOf(': ') : -1;
     if (state && colon > 0) {
@@ -526,6 +533,35 @@ export function describerFor(src: DescribeSource): Describer {
   let d = Describers.get(src.spec);
   if (!d) Describers.set(src.spec, (d = new Describer(src)));
   return d;
+}
+
+/**
+ * The layer of two axes a section shows `ySystem` with (its rows layer, its grid), from the last frame; undefined when
+ * it has none. The keyboard cursor's row is that layer's.
+ */
+export function twoAxesLayer(section: SectionLayout, ySystem: string): LayerLayout | undefined {
+  const is = (l: LayerLayout) =>
+    (l.type.name === 'rows' && (l.lay as RowsLay).rowsSystem === ySystem) ||
+    (l.type.name === 'grid' && (l.lay as GridLay).ySystem === ySystem);
+  for (const t of section.tracks) for (const l of t.layers) if (is(l)) return l;
+  for (const ls of section.lays) for (const l of ls ?? []) if (is(l)) return l;
+  for (const l of section.sectionLays) if (is(l)) return l;
+  return undefined;
+}
+
+/**
+ * The keyboard cursor's place to describe (grids-and-rows, The keyboard cursor): its cell, on a section of two axes with
+ * its row (the row's label, a grid cell's two positions), or its row's header (the row alone).
+ */
+export function cursorPlace(c: Cursor, layout: ViewLayout | undefined): Place {
+  const cell: Place = { section: c.section, system: c.system, position: c.position };
+  if (c.ySystem === undefined || c.yPosition === undefined || !layout) return cell;
+  const s = layout.sections.find((x) => x.section.address === c.section);
+  const l = s && twoAxesLayer(s, c.ySystem);
+  if (!l) return cell;
+  const y = { layer: l.key, ySystem: c.ySystem, yPosition: c.yPosition };
+  if (c.part === 'header') return { section: c.section, system: c.ySystem, position: c.yPosition, ...y, target: 'row' };
+  return { ...cell, ...y, target: 'cell' };
 }
 
 /** A layer of a section by its key: its tracks', its strips' (a section of blocks), its section layers'. */

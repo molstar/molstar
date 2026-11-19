@@ -59,7 +59,8 @@ export const SelectProvider: BehaviorProvider<SelectParams | undefined, SelectBe
 
 export const CursorProvider: BehaviorProvider<undefined, CursorBehavior> = {
   name: 'cursor',
-  create: ({ addresses, selection, view, spec, config }) => cursorBehavior(addresses, selection, view, spec, config),
+  create: ({ addresses, selection, view, spec, config, layout }) =>
+    cursorBehavior(addresses, selection, view, spec, config, layout),
 };
 
 export const EditingProvider: BehaviorProvider<undefined, EditingBehavior> = {

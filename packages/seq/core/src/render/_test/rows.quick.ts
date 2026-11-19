@@ -5,8 +5,8 @@
  */
 
 // The rows' allocation targets (the design's "Performance and size"): a warm draw at letters and at the fit (image
-// tiles) and a warm hover over the cells allocate nothing; the selection's rows and the cursor on a cell nothing; a
-// layout a bounded size a pan frame, the same at 100,000 and 1,000,000 lazy rows. By hand, never in CI:
+// tiles) and a warm hover over the cells allocate nothing; the selection's rows and the cursor on a cell or a header
+// nothing; a layout a bounded size a pan frame, the same at 100,000 and 1,000,000 lazy rows. By hand, never in CI:
 // `pnpm -C packages/seq/core test:perf`.
 
 import { rangesLocation } from '@molstar/seqx-core/query';
@@ -102,7 +102,21 @@ describe('the rows draw and hover with nothing allocated once warm; a layout a b
     expect(h.r.bytesPerStep, h.r.note).toBeLessThanOrEqual(inject('perfThreshold'));
     const rows = lay.rowsSystem;
     const selections = [0, 1, 2, 3].map((k) => rangesLocation(rows, [lay.first + k, lay.first + k + 3]));
-    const cursor = { system: lay.system, position: 100, ySystem: rows, yPosition: lay.first };
+    // the cursor on its own section, on a cell and on the row's header by turns
+    const cursor: {
+      system: string;
+      position: number;
+      section: string;
+      ySystem: string;
+      yPosition: number;
+      part?: 'cell' | 'header';
+    } = {
+      system: lay.system,
+      position: 100,
+      section: Section,
+      ySystem: rows,
+      yPosition: lay.first,
+    };
     const emphasis: { selection?: (typeof selections)[number]; cursor?: typeof cursor } = { cursor };
     const selAt = { ...input, emphasis };
     const c = quickCase(
@@ -111,6 +125,7 @@ describe('the rows draw and hover with nothing allocated once warm; a layout a b
       (i) => {
         emphasis.selection = selections[i & 3];
         cursor.position = 100 + (i % 50);
+        cursor.part = i & 4 ? 'header' : 'cell';
         s.renderer.frame(selAt);
       },
       {},

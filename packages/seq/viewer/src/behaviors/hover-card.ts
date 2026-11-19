@@ -5,10 +5,11 @@
  */
 
 import { type ReadonlyState, State } from '@molstar/core/reactive';
-import type { RowsLay, SectionLayout, ViewLayout } from '@molstar/seqx-core/render';
+import type { GridLay, RowsLay, SectionLayout, ViewLayout } from '@molstar/seqx-core/render';
 import { DomHost } from '@molstar/ui/dom';
 import { DefaultAnnouncerOptions } from '@molstar/seqx-viewer/announcer';
-import { describerFor, type Place } from '@molstar/seqx-viewer/describe';
+import { cursorPlace, describerFor, type Place, twoAxesLayer } from '@molstar/seqx-viewer/describe';
+import type { Cursor } from '@molstar/seqx-viewer/models';
 import {
   type CardBox,
   CardEstimate,
@@ -129,12 +130,36 @@ function anchorOf(layout: ViewLayout, place: Place, pointer: { readonly x: numbe
   return holds ? box : around(px, py, cell, cell);
 }
 
-/** The box of a section's cell: the keyboard cursor's (its first track, the cell's columns). */
-function cellBox(section: SectionLayout, position: number): CardBox | undefined {
+/**
+ * The box of the keyboard cursor's cell: the cell's columns over the section's tracks; on a section of two axes its
+ * row's cell (a rows cell, a grid's), or its row's header (the label column to the data).
+ */
+function cellBox(section: SectionLayout, c: Cursor): CardBox | undefined {
+  const l = c.ySystem !== undefined && c.yPosition !== undefined ? twoAxesLayer(section, c.ySystem) : undefined;
+  if (l?.type.name === 'rows' && c.yPosition !== undefined) {
+    const lay = l.lay as RowsLay;
+    const i = lay.display.displayRow(c.yPosition);
+    if (i < 0) return undefined;
+    const y = lay.rowY(i);
+    const x0 = c.part === 'header' ? (lay.treeX1 > lay.treeX0 ? lay.treeX1 + 4 : lay.treeX0) : lay.axis.x(c.position);
+    const x1 = c.part === 'header' ? lay.box.x : lay.axis.x(c.position + 1);
+    if (!Number.isFinite(x0) || !Number.isFinite(x1)) return undefined;
+    return { x: Math.min(x0, x1), y, width: Math.abs(x1 - x0), height: lay.rowScale };
+  }
+  if (l?.type.name === 'grid' && c.yPosition !== undefined) {
+    const lay = l.lay as GridLay;
+    const ax = lay.axis;
+    const ay = lay.axisY;
+    if (!ax || !ay || !ax.cell(c.position)) return undefined;
+    const x = Math.min(ax.sx0, ax.sx1);
+    const width = Math.abs(ax.sx1 - ax.sx0);
+    if (!ay.cell(c.yPosition)) return undefined;
+    return { x, y: Math.min(ay.sx0, ay.sx1), width, height: Math.abs(ay.sx1 - ay.sx0) };
+  }
   const t = section.tracks[0];
   if (!section.axis || !t) return undefined;
-  const a = section.axis.x(position);
-  const b = section.axis.x(position + 1);
+  const a = section.axis.x(c.position);
+  const b = section.axis.x(c.position + 1);
   if (!Number.isFinite(a) || !Number.isFinite(b)) return undefined;
   const top = section.tracks[0].box.y;
   const last = section.tracks[section.tracks.length - 1].box;
@@ -232,8 +257,8 @@ function hoverCardBehavior(context: BehaviorContext, params: HoverCardParams = {
     const layout = context.layout();
     const section = c && layout?.sections.find((s) => s.section.address === c.section);
     if (!c || !section) return hide();
-    const card = words.describe({ section: c.section, system: c.system, position: c.position });
-    const box = card && cellBox(section, c.position);
+    const card = words.describe(cursorPlace(c, layout));
+    const box = card && cellBox(section, c);
     if (!card || !box) return hide();
     show(card, box, { x: box.x + box.width / 2, y: box.y + box.height / 2 }, 'cursor');
   };

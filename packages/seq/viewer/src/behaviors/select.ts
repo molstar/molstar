@@ -21,6 +21,7 @@ import {
   type AddressModel,
   axisTotal,
   type DragMode,
+  elementAt,
   type Emphasized,
   type GridCell,
   type Hit,
@@ -126,11 +127,38 @@ export function selectBehavior(
       ? { system: hit.system, position: hit.position, ySystem: hit.ySystem, yPosition: hit.yPosition }
       : undefined;
 
-  /** A click with a position moves the cursor to it, on the section clicked. */
+  /**
+   * A click with a position moves the cursor to it, on the section clicked: a cell of two axes with its row (a rows
+   * cell, a grid's), a row's label to its header (the column the cursor was on kept, else the first shown).
+   */
   const follow = (ctx: SelectContext) => {
     const h = ctx.hit;
-    if (!h || ctx.section === undefined || h.position === undefined || Number.isNaN(h.position)) return;
-    selection.setCursor({ section: ctx.section, system: h.system, position: Math.floor(h.position) });
+    const section = ctx.section;
+    if (!h || section === undefined || h.position === undefined || Number.isNaN(h.position)) return;
+    const y = h.ySystem !== undefined && h.yPosition !== undefined ? Math.floor(h.yPosition) : undefined;
+    if (h.target === 'row' && y !== undefined) {
+      const s = view.resolved.value?.sections.find((x) => x.address === section);
+      const now = selection.cursor.value;
+      const v = view.get(section);
+      const first = s && v && !v.pending ? elementAt(s.axis, Math.ceil(v.start)) : undefined;
+      const position = now?.section === section && now.system === s?.axis.system ? now.position : first;
+      if (!s || position === undefined) return;
+      selection.setCursor({
+        section,
+        system: s.axis.system,
+        position,
+        ySystem: h.ySystem,
+        yPosition: y,
+        part: 'header',
+      });
+      return;
+    }
+    selection.setCursor({
+      section,
+      system: h.system,
+      position: Math.floor(h.position),
+      ...(y !== undefined ? { ySystem: h.ySystem, yPosition: y } : {}),
+    });
   };
 
   const gesture = (

@@ -978,8 +978,16 @@ export class ViewerInput {
   }
 }
 
-/** Commands whose keys and buttons are the page's when they cannot run: the view's history (the browser's Back). */
-const YieldWhenIdle: ReadonlySet<string> = new Set(['view.back', 'view.forward']);
+/**
+ * Commands whose keys and buttons are the page's when they cannot run: the view's history (the browser's Back), the
+ * cursor's first and last row with no cursor on rows (Cmd+↑ ↓ scroll the page to its ends).
+ */
+const YieldWhenIdle: ReadonlySet<string> = new Set([
+  'view.back',
+  'view.forward',
+  'cursor.first-row',
+  'cursor.last-row',
+]);
 
 /** Whether a key event is a command's shortcut exactly (its key and every modifier). */
 function shortcutIs(k: KeyChord, e: KeyState & { readonly key: string }, mac: boolean): boolean {

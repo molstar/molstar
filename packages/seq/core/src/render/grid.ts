@@ -846,6 +846,8 @@ function drawEmphasis(lay: GridLay, pass: PassName, out: PassWriter, e: Emphasis
     case 'cursor': {
       const c = e.cursor;
       if (!c || c.ySystem !== lay.ySystem || c.yPosition === undefined || c.system !== lay.system) return;
+      // on its own section (another of these systems marks its column)
+      if (c.section !== undefined && c.section !== lay.sectionAddress) return;
       Src[0] = 0;
       Src[1] = 0;
       Src[2] = tokens.colors[em.cursorInk];
