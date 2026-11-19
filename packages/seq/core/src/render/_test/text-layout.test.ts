@@ -294,7 +294,7 @@ describe('the text layout', () => {
     const t = text(sec);
     const nb = t.strips.bands;
     // the synthetic source's letters (fixtures.ts, `bigAnswer`)
-    const oracle = (p: number) => 'ACGT'[((Math.imul(p ^ 0x9e3779b9, 0x85ebca6b) >>> 13) & 0xffff) & 3];
+    const oracle = (p: number) => 'ACGT'[(Math.imul(p ^ 0x9e3779b9, 0x85ebca6b) >>> 13) & 0xffff & 3];
     let crossed = 0;
     let laid = 0;
     for (let i = 0; i < t.strips.n; i++) {

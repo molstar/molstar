@@ -168,7 +168,7 @@ export function windowBehavior(view: ViewModel, config: ViewerConfig = DefaultVi
         // (a unit after the last is the first), so the window keeps going past it
         if (d.total !== undefined) {
           const t = d.total;
-          const step = (((at - d.last + t / 2) % t) + t) % t - t / 2;
+          const step = ((((at - d.last + t / 2) % t) + t) % t) - t / 2;
           d.last = at;
           d.moved += step;
         } else d.moved = at - d.at0;

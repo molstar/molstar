@@ -1051,9 +1051,9 @@ coordinates: what crosses strips), `axes` (2: a second axis of its own, the y pa
 
 ### Section layouts
 
-`render/layout/`: a layout (`SectionLayoutType`: `place`, `sameKey`, `nav`, `wraps?`, `chrome`, `hitChrome?`) cuts a section's
-display units into **strips** and places each on the page with a **warp**. Why: a layer type then draws one way, over a
-straight axis and a box, in every layout; a layout knows strips, bands and warps, never layer kinds.
+`render/layout/`: a layout (`SectionLayoutType`: `place`, `sameKey`, `nav`, `wraps?`, `chrome`, `hitChrome?`) cuts a
+section's display units into **strips** and places each on the page with a **warp**. Why: a layer type then draws one
+way, over a straight axis and a box, in every layout; a layout knows strips, bands and warps, never layer kinds.
 
 - **A strip** is one `AxisTransform` (its pieces, its window, x across a width; groups when the layout has them; its
   system the strip's), a stack of **bands** (a track a band, its top and height in the strip's frame, 0 collapsed) and a

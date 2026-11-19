@@ -86,13 +86,13 @@ nothing and tells nothing.
 - **Layouts** (the core's "Section layouts", Navigation): each move asked of a section is its layout's arithmetic
   (`SectionNav`: `pan` by a scroll's px deltas, `zoom` about a unit, `fit`, `reveal` the least move, `focus`, `step`,
   `clamp`) over its placement in the last frame (`setLayoutSource`: the viewer's frames, and the one map of layouts the
-  frames draw with, so a layout navigates as it is drawn; `placed()` after each frame reads its estimates again). The record is read the layout's way: tracks a window; text `start` its anchor (the unit at
-  the box's top, fractional within its line), `scale` its letter size (none: the preset's), `end` the lines in view's
-  estimate; `setRange` is a focus (a text brings the range's first line to the top, its size kept). Before a width or a
-  length a move is the intent, a window of offsets. Why the layout's: the viewer's own arithmetic was the tracks
-  layout's, wrong in text and on rings. A leader's window passes a cyclic origin only where its layout `wraps` (draws a
-  window there: a ring's; `NavContext.cyclic`); tracks and text keep it within the axis (their transform ends at the
-  total).
+  frames draw with, so a layout navigates as it is drawn; `placed()` after each frame reads its estimates again). The
+  record is read the layout's way: tracks a window; text `start` its anchor (the unit at the box's top, fractional
+  within its line), `scale` its letter size (none: the preset's), `end` the lines in view's estimate; `setRange` is a
+  focus (a text brings the range's first line to the top, its size kept). Before a width or a length a move is the
+  intent, a window of offsets. Why the layout's: the viewer's own arithmetic was the tracks layout's, wrong in text and
+  on rings. A leader's window passes a cyclic origin only where its layout `wraps` (draws a window there: a ring's;
+  `NavContext.cyclic`); tracks and text keep it within the axis (their transform ends at the total).
 - **Scroll groups** (EC-113): sections on equal axes (system, length, pieces, direction) of one layout share one range;
   each keeps its own `top` and width (`viewport.groupEqualAxes`, true). Why one layout: a range is read its layout's way
   (a window, an anchor); across layouts, follow. An axis whose length is pending has no pieces: its group key holds the
@@ -507,8 +507,8 @@ Small policies over the models (`behaviors/`), each reading the bindings.
   as FASTA lines (`>label`, then the row's letters); `stored: true` copies the stored letters of the selection's span on
   that system instead. Letters not held are loaded first (three rounds at most). The text goes through the behavior's
   `write` (`SelectProvider`'s param; the platform's clipboard when there is one); the message is a count ("Copied 393
-  letters"): a message is shown and announced, never a sequence. Why what is
-  shown: what a reader selected is what they saw (the author's decision).
+  letters"): a message is shown and announced, never a sequence. Why what is shown: what a reader selected is what they
+  saw (the author's decision).
 - `cursor`: the keyboard cursor's commands, on the cursor's section (else the context's, else the first; the first key
   places the cursor at the section's first position shown): `cursor.prev`, `cursor.next` (a cell in display order,
   whatever the direction, clamped to the axis, across breaks: a step over one says what it crossed, "crossed a break,
