@@ -224,6 +224,9 @@ molecule; a per-unit map beside a map onto the molecule) make every path through
 search finds equal-length candidates that compose differently and takes none. Several maps of one entry that join
 different pairs (one per chain) already resolve.
 
+Decided, the author, 2026-11-19: "priority + via", both in the 0.5.0 bump; if usage runs short, `priority` in MK and
+`via` later.
+
 - **A map's `priority`** (an integer param of every map node, default 0). In `findPath`, after equal compositions are
   merged, distinct shortest candidates are ranked by their weakest map (the lowest priority among the maps they step
   through; unit steps have none); the top rank wins when it holds one composition; a tie stays ambiguous. Why:
@@ -331,7 +334,7 @@ On the `structure` behavior (params, `ViewerConfig` items) unless the table says
   identifier the translation needs, and the fake's adapter is the reference. Standing.
 - **`priority` global, against `via` per use.** A global rank is one answer everywhere; `via` lets two sections differ,
   so a hover on one lights another position on the other, which is the point of a comparison and a surprise elsewhere.
-  Recommended: both, `priority` first (the gap). Open.
+  Decided: both. Standing.
 - **A tie stays ambiguous.** A writer who adds a second map of equal rank loses the first path. Recommended: kept; the
   issue names the fix. Standing.
 - **A snapshot, against Jalview's live colors.** A snapshot goes stale when the theme is edited; live reloads a state per
@@ -416,14 +419,11 @@ The fourth slice builds it after ML2 (units) and MK (the map choice), beside the
   [maps.md](maps.md) (the `structure` kind kept onto a unit or molecule, unobserved from the unit, `priority` and
   `via`); [viewer-composition.md](viewer-composition.md) (`Ports.structure` removed, "Inside a Mol\* plugin" naming the
   behavior's port and the host's adapter); [molecules.md](molecules.md) Tensions ("a unit and maps.md's structure
-  system": the structure map kept). The edge-case catalog's EC-24 wording ("unless ranked or named") is the author's.
+  system": the structure map kept). The edge-case catalog's EC-24 wording ("unless ranked or named") is left for finalize.
 
 ## Gaps for the author
 
-1. **Two maps of one pair.** Should every map carry an integer `priority` (default 0), so that among distinct shortest
-   candidates the one whose weakest map ranks highest is taken (ties still ambiguous, shortest still first), and should
-   a section and a structure binding name `via` (a map, or a list) to take a lower-ranked one for that use?
-   Recommended **yes, both**; if usage runs short, `priority` alone in MK and `via` later.
+None open. For finalize: the edge-case catalog's EC-24 wording ("unless ranked or named").
 
 ## Decided by the author (2026-11-19), folded in
 
@@ -432,4 +432,5 @@ The fourth slice builds it after ML2 (units) and MK (the map choice), beside the
    fake's in the Storybook): Who is who, the fake host's adapter, "Color by this track".
 3. Structure hover as the hover: The paths. 4. Reveal on select: The paths. 5. Snapshot colors. 6. The fake's own chain
    table.
-7. **No**: the `structure` kind kept (Datasets); two maps of one pair: the new section and gap 1.
+7. **No**: the `structure` kind kept (Datasets); two maps of one pair: "Choosing between two maps".
+8. Two maps of one pair: "priority + via", both in 0.5.0 (`via` later if usage runs short).

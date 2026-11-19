@@ -43,6 +43,8 @@ is the agreed direction with its details still open; it says what would settle t
 | [viewer-composition.md](viewer-composition.md) | the viewer composed from an explicit spec, as Mol\*'s plugins are: registry entries, behaviors, bindings, config, port factories with ownership; defaults as a spec; inside a Mol\* plugin |
 | [ports.md](ports.md) | one per viewer is a port (assets, text metrics, structure), named providers are registry entries; defaults out of the box |
 | [extensibility.md](extensibility.md) | what can be configurable is (the spec, the viewer configuration, user settings, layered); every registry open to extensions, passed at composition |
+| [structure-syncing.md](structure-syncing.md) | a sequence view and a structure viewer through one port on the `structure` behavior: Seq\*'s Locations on units, the host's adapter translating (no MolViewSpec types in Seq\*), hover, selection and focus both ways, "color by this track" as runs, choosing between two maps of one pair (`priority`, `via`), the fake structure viewer |
+| [track-header-parts.md](track-header-parts.md) | track and section headers: actions as `headerActions` registry entries in fixed slots, count chips, the menu behind its port, drawn on the canvas or a host's DOM parts over the published geometry, the secondary click a `headers` param |
 | [addressing.md](addressing.md) | everything in a view has an address (nodes, locations in labels, elements); commands and Mol\*-grammar links act on addresses |
 | [performance.md](performance.md) | time, memory, size and scale targets, and how each is held by a test (provisional) |
 | [testing.md](testing.md) | what holds each promise (properties, conformance suites, records, scaling ratios), in which lane, and how tests are written |

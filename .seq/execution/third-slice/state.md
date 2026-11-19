@@ -459,3 +459,7 @@ None.
 - The author (2026-11-19): DR starts now as an exception (design only, `.seq/` only): the two drafts copied to
   `fourth-slice/drafts/` and revised there; promoted to `.seq/design/` with their Design pages on the author's OK. The
   defaults audit stays a record (its decisions are in the designs). Nightingale kept in the fourth slice.
+- DR done: the two drafts revised, the author's answers folded ("priority + via", the secondary click "Everywhere",
+  `headerPartsDom()` shipped) and promoted (the author: "Yes, after folding") to `.seq/design/structure-syncing.md`
+  and `track-header-parts.md` with their Design pages; maps.md, ports.md, viewer-composition.md, ux-foundations.md,
+  features.md updated. SP and XD drafting.

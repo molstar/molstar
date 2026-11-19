@@ -1,0 +1,37 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Design/Structure syncing" />
+
+# Structure syncing
+
+A sequence view beside a structure viewer: hover, selection and focus cross both ways, and a track's colors can be
+painted onto the structure. Seq\* imports nothing of the structure viewer and the structure viewer nothing of Seq\*; the
+application that composes both connects them through one port.
+
+## Words that cross
+
+Seq\* speaks its own locations: positions on the **units** of a complex (a chain instance, a ligand). The application's
+adapter translates them into its viewer's words (MolViewSpec selectors, Mol\*'s loci) and back, with the unit facts
+Seq\* gives it: chain, operator, observed residues and author numbering. Unobserved residues are never sent, and a
+selection too large to send residue by residue becomes whole units.
+
+## The paths
+
+- **Hover** lights the same residues in both views. Hovering one copy in 3D lights that chain and its reference
+  sequence, never the sibling copies.
+- **Selection** made in 3D replaces the sequence selection and pans to it, keeping the zoom.
+- **Focus**: a double-click moves the camera, and back and forward bring it along, on the same clock as the sequence
+  view's own motion.
+- **Color by this track** is an action a host adds to a track's header: Seq\* returns the track's colors as runs on the
+  units, and the host builds its viewer's state from them. It is a snapshot; clicking again restores the colors.
+
+## Two maps of one chain
+
+A reference sequence can reach a chain through SIFTS and through an alignment at once. Each map may carry a
+**priority**: the higher-ranked one is taken everywhere. A section may name the map it goes **via**, so a figure can
+compare both side by side. Equal priorities stay ambiguous and are reported, never chosen silently.
+
+## In the Storybook
+
+The structure viewer here is a small fake: chains as rows of residue cells, taking the same messages a real viewer
+would, with an optional latency. A real 3D viewer will use the same port and the same tests.

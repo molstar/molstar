@@ -43,8 +43,18 @@ to structural data .. basically SIFTS, but in abstract form."
   - A chain may map to several sequences (a chimera, a fusion), and a sequence to many chains (copies, entries); each
     chain instance stays apart by the copy rule.
   - Sourcing as for any map: inline (small, for tests and examples), a source (a SIFTS-style residue table), or
-    computed (a runtime that looks SIFTS up or aligns the chain); the binding to atoms is the structure runtime's (Mol\*'s
-    adapter), so the core reads no structure file.
+    computed (a runtime that looks SIFTS up or aligns the chain); the binding to atoms is the host's adapter
+    ([structure-syncing](structure-syncing.md)), so the core reads no structure file.
+  - The `structure` kind is kept (decided, the author, 2026-11-19), onto a unit or onto the entity's molecule;
+    unobserved is the unit's `observed`, and a map's unobserved status that disagrees is reported, the unit winning.
+- **Two maps of one pair of systems** (SIFTS and an alignment of one chain; decided, the author, 2026-11-19: "priority
+  + via", language 0.5.0):
+  - a map's `priority` (an integer, default 0): among distinct shortest candidates the one whose weakest map ranks
+    highest is taken; a tie stays ambiguous (EC-23, EC-24); shortest still first (EC-22). Why: one answer for every
+    use, and the path cache stays keyed by its pair (the param is in the map entry's hash);
+  - a use's `via` (a section's, a structure binding's: a map or a list): for that use the search leaves out the named
+    maps' rivals (other maps of the same pair). Why: a figure comparing two maps shows both, a section each;
+  - no silent rule ranks kinds or specific over general maps: a wrong map taken quietly is worse than the issue.
 
 ## Consequences
 

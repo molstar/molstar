@@ -244,6 +244,11 @@ to its summary row), never silently dropped.
 - Built from `@molstar/ui` components and tokens only: track headers, legends, the hover card, menus, toolbars,
   navigators' frames. Section headers are `@molstar/ui` headers (32px); track header rows are rows (24px).
 - A track header names its data and shows its state (hidden layers, filters, a pending load) as icons in fixed slots.
+  Its actions are registry entries, drawn on the canvas or placed by a host as DOM parts over the header geometry; a
+  section header is a 20 px line drawn when it has something to say (`section.header: auto`), replacing the 32 px
+  header above; a secondary click opens Seq\*'s menu as the `headers` behavior's `contextClick` says (`everywhere` in
+  the default spec), Shift+secondary click the browser's ([track-header-parts](track-header-parts.md); decided, the
+  author, 2026-11-19).
 - **A ruler in its sequence's own numbering has no label** (the author, 2026-11-19: "we dont need 'position'
   header on the track"): its numbers say what it is; a ruler in a declared numbering is named by it (Kabat, IMGT).
 - Legends sit with their track or in one legend panel, never over data.

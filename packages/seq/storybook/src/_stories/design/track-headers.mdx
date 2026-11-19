@@ -1,0 +1,31 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Design/Track headers" />
+
+# Track headers
+
+A track's header is its line in the label column: its name, its states and its actions. A section's header is a line
+above its first track, drawn only when it has something to say, such as hidden tracks.
+
+## Actions are entries
+
+Every action (hide, color, layers, move) is a registry entry that names a command, the built-ins included. A host adds
+its own (such as "color by this track" for a structure viewer) or leaves a built-in out. Actions show in fixed slots
+while the pointer or the keyboard cursor is on the track; every entry is also in the track's menu.
+
+## States are chips
+
+What is not shown is a count chip: "12 filtered", "1 layer hidden", "2 hidden". A click undoes it in one step; its menu
+brings back one thing at a time. A section whose tracks are all hidden keeps its header, so nothing goes out of reach.
+
+## Drawn or the host's own
+
+By default the slots and chips are drawn on the canvas, so they scroll and export with the picture. A host may instead
+place its own DOM parts over the same header geometry, which the viewer publishes; Seq\* ships a reference set built on
+`@molstar/ui`. Exported figures look the same either way.
+
+## The menu
+
+The "⋯" slot, the menu key or a secondary click open the menu for what is under the pointer: an item's entries first,
+then its track's and its section's. Where a secondary click opens it is the composing application's choice; with Shift
+it is always the browser's own menu.

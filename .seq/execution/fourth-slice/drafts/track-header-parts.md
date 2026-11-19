@@ -225,8 +225,8 @@ It does not cover:
   text, enabled or why not, checked): the same items `headerMenu` builds. A press calls `parts.run(name, target)`, the
   slot click's path (`viewer.execute` with the entry's args). The port places parts at the boxes in the canvas's CSS
   px; it mounts actions only for headers whose actions show, so a 200-track view holds a few buttons, not 600.
-- **`headerPartsDom()`** (`seqx-viewer`, on `@molstar/ui` buttons and icons): the reference parts; a host passes its
-  own. Why ship one: the Storybook and the twins need it, and `@molstar/ui` is already the menu's dependency.
+- **`headerPartsDom()`** (`seqx-viewer`, on `@molstar/ui` buttons and icons): the reference parts, shipped (decided,
+  the author, 2026-11-19: "Ship it"); a host passes its own. Why ship one: the Storybook and the twins need it, and `@molstar/ui` is already the menu's dependency.
 - **Keyboard with DOM parts**: the cursor on a header moves DOM focus into its parts (one tab stop, roving: ← and →
   between them, Enter or Space runs, Esc back to the canvas with the cursor where it was); Tab is never captured
   (EC-155). Hits on the parts are the DOM's; the canvas sees no `header-slot` or `header-state` there.
@@ -278,7 +278,8 @@ It does not cover:
     the label column only; `none`, the browser's everywhere;
   - the menu key or Shift+F10 at the keyboard cursor, once per ask (EC-156).
 
-  **Shift+secondary click is always the browser's**, whatever the param. Why `everywhere` in the default spec: IGV and
+  **Shift+secondary click is always the browser's**, whatever the param. `everywhere` in the default spec is decided
+  (the author, 2026-11-19: "Everywhere"). Why: IGV and
   JBrowse open a track's menu on a right-click over its data, and the canvas's browser menu ("save image") offers
   nothing a reader needs that Shift does not still reach.
 - **Keyboard in the menu** is `@molstar/ui`'s (focus on the first item, arrows, Enter, Esc, a press outside). Closed, it
@@ -400,7 +401,7 @@ Items are `ViewerConfig` unless the table says otherwise.
 - **A chip click shows all, against picking one.** A user who hid three tracks and wants one back clicks twice
   (show all, hide two) or opens the menu. All, for one rule across chips (decided); the menu shows one. Standing.
 - **The secondary click is Seq\*'s in the default spec.** Decided: the `headers` behavior's param, Shift+secondary click
-  always the browser's. Open: `everywhere` as the default spec's value (gap 1).
+  always the browser's; `everywhere` in the default spec (decided). Standing: a page's own menu needs Shift there.
 - **The section header line moves content.** Hiding a section's first hidden track removes its row and adds a 20 px
   line, so the section shrinks by less than the track. Accepted: `auto` keeps the line absent in every view that hides
   nothing. Standing.
@@ -531,10 +532,7 @@ The fourth slice builds it, beside the structure lanes. ST3's "color by this tra
 
 ## Gaps for the author
 
-1. Should the default spec set `headers.contextClick: everywhere` (Seq\*'s menu over the whole canvas, Shift for the
-   browser's), leaving `header` and `none` to a host? Recommended **yes**.
-2. Should `seqx-viewer` ship `headerPartsDom()` on `@molstar/ui` as the reference DOM parts, rather than only the port?
-   Recommended **yes**.
+None open.
 
 ## Decided by the author (2026-11-19), folded in
 
@@ -544,3 +542,4 @@ The fourth slice builds it, beside the structure lanes. ST3's "color by this tra
    all. 6. Pure functions over `HeaderFacts`. 7. The cursor onto headers. 8. The geometry now, a widget's slot later.
 5. **Changed**: the secondary click a `headers` behavior param, Shift+secondary click the browser's: The menu, and gap 1
    for the default spec's value.
+9. The default spec's `headers.contextClick: everywhere` ("Everywhere"). 10. `headerPartsDom()` shipped ("Ship it").

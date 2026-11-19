@@ -46,14 +46,14 @@ interface SeqViewerSpec {
   no functions run at registration. Kinds in this version: node kinds, layer types, themes and palettes, residue
   schemes, numbering schemes and codon tables, format readers and writers, map runtimes, backends, query functions,
   commands. Layer types and section layouts are registry entries (`layer-type`, `layout`; MV, 2026-11-19): the canvas and `renderSvg`/`exportSvg` draw the composition's own, so a layer type the canvas draws the export draws too, and one neither has is said (`seq.render.layout`); tracks is the one fixed fallback layout. Keys are names; extension names are namespaced ([extensibility.md](extensibility.md)). Chrome parts
-  are internal interfaces until an outside user needs them.
+  are internal interfaces until an outside user needs them; track header actions are the first opened (`headerActions`,
+  [track-header-parts](track-header-parts.md)).
 - **Ports are factories with ownership**, as `PluginSpec.assetManager`:
 
   ```ts
   interface Ports {
     assets?: () => ({ manager: AssetManager } | { reader: AssetReader }) & { disposeWithViewer?: boolean };
     textMetrics?: () => { measure: (font: string, text: string) => number; disposeWithViewer?: boolean };
-    structure?: () => { runtime: StructureRuntime; disposeWithViewer?: boolean };
   }
   ```
 
@@ -112,7 +112,8 @@ interface SeqViewerSpec {
 
 - A Mol\* plugin composes a Seq\* viewer with its own adapters: the plugin's asset manager (downloads shared), its
   host and frames, its command manager (Seq\* commands in the plugin's palette), its settings (config items in the
-  plugin's), and the Mol\* structure runtime (structure systems bound to the plugin's structures). The Mol\* side is a
+  plugin's), and its structure adapter as the `structure` behavior's `port` (Seq\*'s Locations on units translated to
+  the plugin's words, [structure-syncing](structure-syncing.md)). The Mol\* side is a
   plugin behavior that builds the Seq\* spec from the plugin's context; Seq\* imports nothing of the plugin.
 
 ## Consequences
