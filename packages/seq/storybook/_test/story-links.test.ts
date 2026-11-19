@@ -9,6 +9,11 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { FeatureStories, FeatureTries, Figures, idOf } from '../src/_stories/examples/p53/where.js';
+import {
+  Figures as PlasmidFigures,
+  idOf as plasmidId,
+  Tries as PlasmidTries,
+} from '../src/_stories/examples/plasmid/where.js';
 import { sanitize, storyId, storyNameFromExport } from '../src/_stories/story-id.js';
 
 // A moved story must not leave a dead link: every `?path=/story/seq-next-…` in the seq packages (the docs pages, the
@@ -79,6 +84,13 @@ describe('the links to stories', () => {
   it('the p53 index’s stories exist', () => {
     const missing = [...Object.values(Figures), ...Object.values(FeatureStories), ...FeatureTries.map((t) => t.where)]
       .map(idOf)
+      .filter((id) => !ids.has(id));
+    expect(missing).toEqual([]);
+  });
+
+  it('the Plasmid index’s stories exist', () => {
+    const missing = [...Object.values(PlasmidFigures), ...PlasmidTries.map((t) => t.where)]
+      .map(plasmidId)
       .filter((id) => !ids.has(id));
     expect(missing).toEqual([]);
   });

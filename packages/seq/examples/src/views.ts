@@ -259,23 +259,46 @@ export const LayerViews: readonly ExampleView[] = [
   },
 ];
 
-/** The Plasmid (a stand-in until its dataset is recorded): the ring with its linear detail, the rotated linear view. */
+/**
+ * The Plasmid: pUC19c (INSDC L09137.2), its features derived in code from the sequence and read as GFF3. The ring and
+ * the crossing run over the rotated variant, where bla and a primer site cross the origin; the rotated linear view
+ * over the published record; the scale view over a generated 200 kb construct.
+ */
 export const PlasmidViews: readonly ExampleView[] = [
   {
     dataset: 'plasmid',
     id: 'ring',
     title: 'Ring with a linear detail',
     summary:
-      'The construct as rings (each strand’s features, the sites, a ruler; labels outside, the name in the hole) and a linear detail following the ring’s window; bla and a primer site cross the origin, each one arc. Drag the window, or pan the detail: the other follows.',
+      'pUC19c as rings (each strand’s features as arrows, the restriction sites, a ruler; labels outside, the name in the hole) and a linear detail following the ring’s window; bla and a primer site cross the origin, each one arc. Drag the window, or pan the detail: the other follows.',
     build: () => plasmidRing.build(),
+    registry: () => records(),
+  },
+  {
+    dataset: 'plasmid',
+    id: 'crossing',
+    title: 'Features across the origin',
+    summary:
+      'The same, with bookmarks on bla and the primer site, the two features across the origin: click one and it is one item in two runs, on the ring and in the detail; focusing a bookmark moves the view to it, but over the hull of its runs (the whole ring for these two), not yet the shortest arc; a Shift+drag selection across the origin is not yet checked to extend the short way.',
+    build: plasmidRing.crossing,
+    registry: () => records(),
   },
   {
     dataset: 'plasmid',
     id: 'rotated-linear',
     title: 'Rotated linear view',
     summary:
-      'The construct in tracks from inside bla over the origin to past lacZα: a `range` past the origin, two pieces meeting at the seam with no break.',
-    build: plasmidRing.rotatedLinear,
+      'The published record in tracks from inside bla over the origin to past lacZα: a `range` past the origin, two pieces meeting at the seam with no break; the range’s start is the one param to set.',
+    build: () => plasmidRing.rotatedLinear(),
+    registry: () => records(),
+  },
+  {
+    dataset: 'plasmid',
+    id: 'scale',
+    title: 'Ring at scale',
+    summary:
+      'A generated 200 kb construct with 2,000 features on both strands, a tenth across the origin. The features show in the linear detail (a density strip at this size); the ring draws nothing for them yet and says so, as a ring does not draw a density row.',
+    build: plasmidRing.scale,
   },
   {
     dataset: 'plasmid',
@@ -284,6 +307,7 @@ export const PlasmidViews: readonly ExampleView[] = [
     summary:
       'The ring and its linear detail with a strip of the whole construct over the detail: drag the ring’s window over the origin and the strip’s window wraps in two pieces.',
     build: navigators.plasmidStrip,
+    registry: () => records(),
   },
 ];
 

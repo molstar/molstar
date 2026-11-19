@@ -6,7 +6,8 @@
 
 import { type Node, printAddress } from '@molstar/core/repr/tree';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
-import { plasmidLetters, RotatedOrigin } from '../plasmid/data.js';
+import { rotateLetters, RotatedOrigin } from '../plasmid/derive.js';
+import { PublishedLetters } from '../plasmid/record.js';
 import { PlasmidGffFile, PlasmidSeqId } from './data.js';
 
 // The plasmid's features from a GFF3 file, as a ring with a linear detail following it: the file's `region` row says the
@@ -27,16 +28,16 @@ export const GffTracks: readonly (readonly [type: string, label: string])[] = [
 /** The ring and its detail; `uri` the file's location. */
 export function build(uri: string = PlasmidGffFile): Node {
   const b = createSeqSpec({ title });
-  const letters = plasmidLetters();
+  // the letters inline: a cyclic sequence read from a source has no length yet when its rows are read, so no row wraps
   const seq = b.data.sequence('plasmid', {
     alphabet: 'dna',
-    letters: letters.slice(RotatedOrigin) + letters.slice(0, RotatedOrigin),
+    letters: rotateLetters(PublishedLetters, RotatedOrigin),
     cyclic: true,
     name: PlasmidSeqId,
   });
   // GFF3 is a preset: nine columns, from 1, the last position named; the type is the category, `Name` the label
-  const file = b.data.source('features-file', { format: 'gff3', uri, fields: { category: 'type', label: 'Name' } });
-  const features = b.data.ranges('features', { target: seq, source: file });
+  const gff = b.data.source('features-file', { format: 'gff3', uri, fields: { category: 'type', label: 'Name' } });
+  const features = b.data.ranges('features', { target: seq, source: gff });
   const data = (type: string) => `${features}${printAddress([{ kind: 'item', params: { category: type } }])}`;
   b.views.view('main', (v) => {
     const ring = v.section('ring', { of: seq, layout: 'rings' });

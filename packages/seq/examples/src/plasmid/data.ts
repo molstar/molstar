@@ -5,97 +5,140 @@
  */
 
 import { PCG } from '@molstar/core/data/util/hash-functions';
+import { printAddress } from '@molstar/core/repr/tree';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
+import { deriveFeatures, findSites, PlasmidName, rotatedAnnotations, rotateLetters, RotatedOrigin } from './derive.js';
+import { PublishedLetters } from './record.js';
 
-// The Plasmid dataset, a stand-in until its dataset is recorded: a cyclic construct of pUC19's length (2,686 nt) whose
-// letters are generated from a seed (never stored), and features laid out as a cloning vector's (bla on the minus
-// strand, lacZα and its multiple cloning site, the origin), with restriction sites. Stand-in facts, not pUC19's: the
-// recorded entry replaces the letters and derives the features from them. `rotation` moves the origin (the rotated
-// variant: inside bla, so the CDS crosses it, with a plus-strand primer site across the same origin, EC-11).
+export { PlasmidFiles, PlasmidLength, PlasmidName, RotatedOrigin } from './derive.js';
 
-/** The construct's length, pUC19's. */
-export const PlasmidLength = 2686;
+// The Plasmid dataset (examples.md, Plasmid): pUC19c, INSDC L09137.2 (recorded as a `seq` file, its letters also a
+// module: `record.ts`), its features found in the sequence and its restriction sites computed on it, in code
+// (`derive.ts`), the rows written inline. Two instances: the published one, and the rotated one whose origin is inside
+// bla, so bla and a generated primer site cross it. The ring's scale variant is generated here, from a seed. The
+// rotated variant's features are also served as GFF3 (`fixtures/plasmid/`, the Files dataset's view reads it).
 
-/** The stand-in's letters: generated from a seed. */
-export function plasmidLetters(): string {
-  const r = new PCG(19);
-  let s = '';
-  for (let i = 0; i < PlasmidLength; i++) s += 'ACGT'[r.int() & 3];
-  return s;
-}
+export type PlasmidVariant = 'published' | 'rotated';
 
-/** A feature on the published origin: its start, end (exclusive), id, label and strand. */
-interface Feature {
-  readonly start: number;
-  readonly end: number;
-  readonly id: string;
-  readonly label: string;
-  readonly strand: '+' | '-';
-  readonly category: string;
-}
+type Builder = ReturnType<typeof createSeqSpec>;
 
-/** The features on the published origin (stand-in places, a cloning vector's layout). */
-export const PlasmidFeatures: readonly Feature[] = [
-  { start: 146, end: 470, id: 'lacZa', label: 'lacZα', strand: '-', category: 'CDS' },
-  { start: 396, end: 454, id: 'mcs', label: 'MCS', strand: '+', category: 'misc' },
-  { start: 1153, end: 1742, id: 'ori', label: 'ori', strand: '+', category: 'origin' },
-  { start: 1625, end: 2486, id: 'bla', label: 'bla (AmpR)', strand: '-', category: 'CDS' },
-  { start: 2486, end: 2591, id: 'bla-promoter', label: 'AmpR promoter', strand: '-', category: 'promoter' },
-  { start: 514, end: 545, id: 'lac-promoter', label: 'lac promoter', strand: '+', category: 'promoter' },
-  { start: 570, end: 587, id: 'cap', label: 'CAP site', strand: '+', category: 'misc' },
-];
+/** A feature or a site as a ranges row: a feature across the origin ends before it starts (it wraps). */
+const endOf = (f: { start: number; length: number }, length: number) => {
+  const end = f.start + f.length;
+  return end > length ? end - length : end;
+};
 
-/** Restriction sites (stand-in places): the cloning site's enzymes and a few unique cutters. */
-export const PlasmidSites: readonly { readonly at: number; readonly name: string }[] = [
-  { at: 396, name: 'EcoRI' },
-  { at: 402, name: 'SacI' },
-  { at: 408, name: 'KpnI' },
-  { at: 414, name: 'SmaI' },
-  { at: 420, name: 'BamHI' },
-  { at: 426, name: 'XbaI' },
-  { at: 432, name: 'SalI' },
-  { at: 438, name: 'PstI' },
-  { at: 448, name: 'HindIII' },
-  { at: 683, name: 'NdeI' },
-  { at: 2617, name: 'AatII' },
-  { at: 1924, name: 'ScaI' },
-];
-
-/** Where the rotated variant's origin is on the published one: inside bla. */
-export const RotatedOrigin = 2000;
-
-/** A position on the published origin, on a construct whose origin is at `origin`. */
-export const rotate = (p: number, origin: number) => (((p - origin) % PlasmidLength) + PlasmidLength) % PlasmidLength;
-
-/** The data and its handles, on a construct whose origin is at `origin` of the published one. */
-export function plasmidData(b: ReturnType<typeof createSeqSpec>, origin = 0) {
-  const letters = plasmidLetters();
-  const turned = origin ? letters.slice(origin) + letters.slice(0, origin) : letters;
-  const seq = b.data.sequence('plasmid', { alphabet: 'dna', letters: turned, cyclic: true, name: 'pUC19 (stand-in)' });
-  const rows = (strand: '+' | '-') => {
-    const f = PlasmidFeatures.filter((x) => x.strand === strand);
-    // the rotated variant's primer site across the origin, on the plus strand (generated, EC-11)
-    const extra =
-      origin && strand === '+' ? [{ start: origin - 30, end: origin + 25, id: 'primer', label: 'primer site' }] : [];
-    const all = [...f, ...extra];
-    return {
-      start: all.map((x) => rotate(x.start, origin)),
-      end: all.map((x) => rotate(x.end, origin)),
-      id: all.map((x) => x.id),
-      label: all.map((x) => x.label),
-      strand: all.map(() => strand),
-    };
+/**
+ * The sequence and the ranges of an instance: each strand's features, the sites, and the sites' address (all of them,
+ * or the enzymes named). Everything is derived from the record's letters here, at once (the instance of `letters`
+ * given, the fixture's by default): the features are found in the sequence, the sites computed on it, never read.
+ */
+export function plasmidData(b: Builder, variant: PlasmidVariant = 'rotated', letters: string = PublishedLetters) {
+  const rotated = variant === 'rotated';
+  const turned = rotated ? rotateLetters(letters, RotatedOrigin) : letters;
+  const { features, sites } = rotated
+    ? rotatedAnnotations(letters)
+    : { features: deriveFeatures(letters), sites: findSites(letters) };
+  const length = turned.length;
+  const seq = b.data.sequence('plasmid', { alphabet: 'dna', letters: turned, cyclic: true, name: PlasmidName });
+  const strand = (s: '+' | '-') => {
+    const f = features.filter((x) => x.strand === s);
+    return b.data.ranges(s === '+' ? 'plus' : 'minus', {
+      target: seq,
+      rows: {
+        start: f.map((x) => x.start),
+        end: f.map((x) => endOf(x, length)),
+        id: f.map((x) => x.id),
+        label: f.map((x) => x.label),
+        category: f.map((x) => x.type),
+        strand: f.map(() => s),
+      },
+    });
   };
-  const plus = b.data.ranges('plus', { target: seq, rows: rows('+') });
-  const minus = b.data.ranges('minus', { target: seq, rows: rows('-') });
-  const sites = b.data.ranges('sites', {
+  const siteRanges = b.data.ranges('sites', {
     target: seq,
     rows: {
-      start: PlasmidSites.map((s) => rotate(s.at, origin)),
-      end: PlasmidSites.map((s) => rotate(s.at + 6, origin)),
-      id: PlasmidSites.map((s) => s.name),
-      label: PlasmidSites.map((s) => s.name),
+      // a site is drawn where its enzyme cuts, one position (the recognition sequences of two enzymes can overlap)
+      start: sites.map((x) => x.cut),
+      end: sites.map((x) => x.cut + 1),
+      id: sites.map((x) => x.enzyme),
+      label: sites.map((x) => x.enzyme),
     },
   });
-  return { seq, plus, minus, sites };
+  return {
+    seq,
+    plus: strand('+'),
+    minus: strand('-'),
+    /** The sites' address, those of the enzymes named only (a filter on the layer's data) or all. */
+    sites: (enzymes?: readonly string[]) =>
+      enzymes ? `${siteRanges}${printAddress([{ kind: 'item', params: { id: [...enzymes] } }])}` : siteRanges,
+    /** The enzymes with a site on the instance. */
+    enzymes: [...new Set(sites.map((x) => x.enzyme))],
+  };
+}
+
+/** The ring's scale variant: 200 kb cyclic, 2,000 features on both strands, a tenth across the origin. */
+export const ScaleLength = 200_000;
+export const ScaleFeatures = 2000;
+
+export interface ScaleData {
+  readonly letters: string;
+  readonly features: {
+    readonly start: number[];
+    readonly end: number[];
+    readonly id: string[];
+    readonly label: string[];
+    readonly category: string[];
+    readonly strand: ('+' | '-')[];
+  };
+}
+
+/** Generated from a seed on core's `PCG`, never stored: the letters and the features (a ring's rows, `end` past `start`). */
+export function scaleData(seed = 200): ScaleData {
+  const r = new PCG(seed);
+  let letters = '';
+  for (let i = 0; i < ScaleLength; i++) letters += 'ACGT'[r.int() & 3];
+  const f: { -readonly [K in keyof ScaleData['features']]: ScaleData['features'][K] } = {
+    start: [],
+    end: [],
+    id: [],
+    label: [],
+    category: [],
+    strand: [],
+  };
+  const types = ['CDS', 'misc_feature', 'rep_origin', 'primer_bind'];
+  const crossing = ScaleFeatures / 10;
+  for (let i = 0; i < ScaleFeatures; i++) {
+    const length = 100 + Math.floor(r.float() * 1400);
+    // a tenth of them start before the origin and end after it (a range that starts after it ends wraps)
+    const start =
+      i < crossing
+        ? ScaleLength - 1 - Math.floor(r.float() * (length - 1))
+        : Math.floor(r.float() * (ScaleLength - length));
+    const end = i < crossing ? (start + length) % ScaleLength : start + length;
+    f.start.push(start);
+    f.end.push(end);
+    f.id.push(`f${i}`);
+    f.label.push(`feature ${i}`);
+    f.category.push(types[i % types.length]);
+    f.strand.push(r.int() & 1 ? '+' : '-');
+  }
+  return { letters, features: f };
+}
+
+/** The scale variant's ranges of one strand, inline. */
+export function scaleStrand(b: Builder, seq: string, data: ScaleData, strand: '+' | '-', id: string) {
+  const k = data.features.strand.map((s, i) => (s === strand ? i : -1)).filter((i) => i >= 0);
+  const pick = <T>(a: readonly T[]) => k.map((i) => a[i]);
+  return b.data.ranges(id, {
+    target: seq,
+    rows: {
+      start: pick(data.features.start),
+      end: pick(data.features.end),
+      id: pick(data.features.id),
+      label: pick(data.features.label),
+      category: pick(data.features.category),
+      strand: pick(data.features.strand),
+    },
+  });
 }
