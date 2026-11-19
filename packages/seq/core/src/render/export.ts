@@ -214,15 +214,10 @@ export interface RenderSvgOptions {
   readonly registry?: Partial<Pick<ThemeContext, 'schemes' | 'measures'>>;
   /**
    * The view's navigators (_spec/README.md "Render", Export): `omit`ted (a window is session, not a figure), or
-   * `include`d, stacked by `place` around the view, their windows as outlines and wash, the rails idle. The view's
-   * `export.navigators` when absent, else `omit`.
+   * `include`d, stacked by `place` around the view, their windows as outlines and wash, and the ruler rails as plain
+   * windows (no grips, no idle state). The view's `export.navigators` when absent, else `omit`.
    */
   readonly navigators?: 'omit' | 'include';
-  /**
-   * Draws the ruler rails, idle (no navigator around the view): what a viewer's picture shows where its rails are on,
-   * so its export has the canvas's geometry. With `navigators: include`, always.
-   */
-  readonly rails?: boolean;
 }
 
 /** The provisional height a layout for a height `auto` is measured at. */
@@ -339,7 +334,7 @@ export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<
     const given = options.viewport;
     const auto = options.size.height === 'auto';
     const windows = options.window ?? view.export?.window === true;
-    // the navigators an export includes (shown ones), drawn as outlines; the rails idle
+    // the navigators an export includes (shown ones), drawn as outlines; the rails plain (a figure's)
     const included = (options.navigators ?? view.export?.navigators ?? 'omit') === 'include';
     const navs = included
       ? view.navigators
@@ -356,10 +351,12 @@ export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<
                 config,
                 ...(options.registry ? { theme: options.registry } : {}),
                 images: renderer.images,
+                domains: renderer.layoutState,
+                storeSettings: store.settings,
               }),
           )
       : [];
-    const rails = included || options.rails ? Object.fromEntries(railSections(view).map((a) => [a, true])) : undefined;
+    const rails = included ? Object.fromEntries(railSections(view).map((a) => [a, true])) : undefined;
     const frameInput = {
       // a height `auto` is measured from a first layout (`fitHeight`)
       size: { width: options.size.width, height: auto ? AutoHeight : (options.size.height as number) },
@@ -376,7 +373,7 @@ export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<
       ...(options.emphasis ? { emphasis: options.emphasis } : {}),
       ...(options.cvdSafe ? { cvdSafe: true } : {}),
       ...(options.folds ? { folds: options.folds } : {}),
-      ...(rails ? { rails, railsActive: {} } : {}),
+      ...(rails ? { rails } : {}),
     };
     /** Each navigator's frame over the view's layout, at its box around the view. */
     const navFrames = (layout: ViewLayout, settled: boolean) =>

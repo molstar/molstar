@@ -7,6 +7,7 @@
 import { SeqCoreConfig, type SeqPorts } from '@molstar/seqx-core/context';
 import type { RenderSvgResult } from '@molstar/seqx-core/render';
 import type { ExampleView } from '@molstar/seqx-examples';
+import { viewerItem } from '@molstar/seqx-viewer/config';
 import { DefaultSeqViewerSpec } from '@molstar/seqx-viewer/default-spec';
 import { mountToolbar } from '@molstar/seqx-viewer/mount-toolbar';
 import { createSeqViewer, type SeqViewer } from '@molstar/seqx-viewer/viewer';
@@ -27,7 +28,14 @@ export interface SelectionLook {
  */
 export function composeViewer(
   view: ExampleView,
-  options: { target?: HTMLElement; delayMs?: number; ports?: SeqPorts; look?: SelectionLook } = {},
+  options: {
+    target?: HTMLElement;
+    delayMs?: number;
+    ports?: SeqPorts;
+    look?: SelectionLook;
+    /** No ruler rails (`navigator.form: none`): a canvas compared with its export, which has none. */
+    noRails?: boolean;
+  } = {},
 ): SeqViewer {
   const base = DefaultSeqViewerSpec();
   const extra = view.registry?.(options.delayMs !== undefined ? { delayMs: options.delayMs } : {}) ?? [];
@@ -42,7 +50,10 @@ export function composeViewer(
       ui: options.target ? { ...base.ui, toolbar: mountToolbar } : undefined,
       registry: [...(base.registry ?? []), ...extra],
       ...(options.ports ? { ports: options.ports } : {}),
-      ...(Object.keys(emphasis).length ? { config: [[SeqCoreConfig.render, { emphasis }]] } : {}),
+      config: [
+        ...(Object.keys(emphasis).length ? [[SeqCoreConfig.render, { emphasis }] as const] : []),
+        ...(options.noRails ? [[viewerItem('navigator.form'), 'none'] as const] : []),
+      ],
     },
     options.target,
   );

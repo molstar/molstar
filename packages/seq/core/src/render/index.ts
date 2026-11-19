@@ -125,15 +125,13 @@ export type {
 export { PolarWarp, TranslateWarp } from './layout/warp.js';
 export {
   drawNavigatorWindow,
-  drawWindow,
   drawWindowArgs,
   floorExtent,
   NavWin,
   NavWindow,
   NavWindowFlags,
   navigatorPart,
-  WindowMetrics,
-  windowExtent,
+  WindowFill,
   windowPart,
 } from './window.js';
 export {
@@ -181,6 +179,7 @@ export {
   BuiltInLayerTypes,
   BuiltInLayouts,
   drawView,
+  type HeldDomains,
   hitView,
   type LayerLayout,
   type LayoutInput,

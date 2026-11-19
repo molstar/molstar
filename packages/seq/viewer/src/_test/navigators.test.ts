@@ -5,16 +5,18 @@
  */
 
 // Navigators in the viewer (_spec/README.md "Models", NavigatorModel; "Behaviors", Navigator): two consumers, a
-// navigator and the view it moves, headless on a fake clock: drag the window and the view moves, move the view and the
-// window follows; a click centres (Alt+Left returns), a sweep zooms, a double-click fits or zooms, Esc cancels; a far
-// drag pushes one step, a nudge none; a follower's window leads; a scroll group's one window; two independent leaders'
-// windows on one strip; idle on and off with no relayout; keys only; a removed bound section; the ruler rail on the
-// canvas (dragged at its scale, grown, a click outside centres, idle no target); the export with `navigators`.
+// navigator and the view it moves, headless on a fake clock, in the platform's event order (a click after a press that
+// never moved, a double-click's second click before its `dblclick`): drag the window and the view moves, move the view
+// and the window follows; a click centres (Alt+Left returns), a sweep zooms, a double-click fits or zooms in one step,
+// Esc cancels; a far drag pushes one step, a nudge none; a follower's window leads; a scroll group's one window; two
+// independent leaders' windows on one strip, the press focusing its slider; idle on and off; keys only; a removed
+// bound section; the overview and the miniature over an alignment's rows (drags, keys, clicks, a far rows drag's
+// step); the ruler rail on the canvas (dragged at its scale, grown, a click outside centres, a grip's click does not,
+// a double-click fits, idle no target, touch, the grab-zone split on an alignment's ruler); the export.
 
 import type { Node } from '@molstar/core/repr/tree';
-import { SeqRuntime } from '@molstar/seqx-core/data';
-import { createSeqSpec, stripNavigator } from '@molstar/seqx-core/lang';
-import { railUnitAt } from '@molstar/seqx-core/render';
+import { createSeqSpec, miniatureNavigator, overviewNavigator, stripNavigator } from '@molstar/seqx-core/lang';
+import type { DrawLists, NavigatorRenderer } from '@molstar/seqx-core/render';
 import { afterEach, describe, expect, it } from 'vitest';
 import { viewerItem } from '../config.js';
 import { DefaultSeqViewerSpec } from '../default-spec.js';
@@ -126,12 +128,11 @@ describe('a strip and the view it moves', () => {
     expect(nav.hit(x, 10)?.part).toBe('outside');
     expect(nav.down(x, 10)).toBe(true);
     nav.up();
+    // the platform's click after the press: a jump, its own step
+    expect(nav.click(x, 10, 1)).toBe(true);
     const [s, e] = range(v);
     expect((s + e) / 2).toBeCloseTo(300, 6);
-    // the click's step waits for a double-click: its time runs out, the step is pushed
-    expect(v.view.canBack).toBe(false);
-    frames!.timers.fire();
-    expect(v.view.canBack).toBe(true);
+    expect(v.view.history.value.back).toBe(1);
     expect(nav.key('ArrowLeft', { altKey: true })).toBe(true);
     expect(range(v)).toEqual([0, 40]);
   });
@@ -142,14 +143,24 @@ describe('a strip and the view it moves', () => {
     v.draw();
     const { nav } = await drawNav(v);
     const x = (300 / 393) * nav.width;
-    nav.down(x, 10);
-    nav.up();
-    nav.doubleClick(x, 10);
+    // the platform's order: down, up, click, down, up, its second click, dblclick
+    const double = () => {
+      for (const detail of [1, 2]) {
+        nav.down(x, 10);
+        nav.up();
+        nav.click(x, 10, detail);
+      }
+      nav.doubleClick(x, 10);
+    };
+    double();
     expect(range(v)).toEqual([0, 393]);
     expect(v.view.history.value.back).toBe(1);
+    v.view.back();
+    expect(range(v)).toEqual([0, 40]);
+    v.view.forward();
     v.draw();
     nav.draw();
-    nav.doubleClick(x, 10);
+    double();
     const [s, e] = range(v);
     expect(e - s).toBeCloseTo((48 / nav.width) * 393, 6);
     expect((s + e) / 2).toBeCloseTo(300, 0);
@@ -227,6 +238,10 @@ describe('a strip and the view it moves', () => {
     v.resize(200);
     v.draw();
     nav.resize(200, 20);
+    nav.draw();
+    // the sliders say it when the view rests
+    frames!.timers.fire();
+    frames!.flush();
     const g = nav.draw()!;
     expect(nav.values.value[0].disabled).toBe(false);
     expect(g.windows[0].shown).toBe(true);
@@ -359,6 +374,214 @@ describe('a strip and the view it moves', () => {
   });
 });
 
+describe('a strip’s sliders and keys', () => {
+  it('a press on a window focuses its slider; PageDown and PageUp rove; the keys act on the focused window', async () => {
+    const v = await make(spec({ twin: true, same: true }), [[viewerItem('viewport.groupEqualAxes'), false]]);
+    v.view.setRange(P, 0, 50);
+    v.view.setRange(Twin, 200, 260);
+    v.draw();
+    const { nav, f } = await drawNav(v);
+    expect(nav.focused.value).toBe(0);
+    const tw = f.windows[1];
+    const mid = (tw.dx0 + tw.dx1) / 2;
+    nav.down(mid, 10);
+    nav.up();
+    nav.click(mid, 10, 1);
+    expect(nav.focused.value).toBe(1);
+    // the keys move the twin, the protein stays
+    expect(nav.key('ArrowRight')).toBe(true);
+    expect(range(v, Twin)[0]).toBeGreaterThan(200);
+    expect(range(v)).toEqual([0, 50]);
+    expect(nav.key('PageDown')).toBe(true);
+    expect(nav.focused.value).toBe(0);
+    expect(nav.key('PageUp')).toBe(true);
+    expect(nav.focused.value).toBe(1);
+  });
+
+  it('Alt+Left and Alt+Right walk the history while the window is idle', async () => {
+    const short = createSeqSpec();
+    const p = short.data.sequence('p', { alphabet: 'protein', letters: 'MEEPQSDPSV' });
+    const q = short.data.sequence('q', { alphabet: 'protein', letters: Letters });
+    short.views.view('v', (vv) => {
+      const s = vv.section('protein', { of: p });
+      s.track('letters').layer('letters', { type: 'letters' });
+      vv.section('other', { of: q }).track('letters').layer('letters', { type: 'letters' });
+      vv.navigator('strip', stripNavigator(s));
+    });
+    const v = await make(short.build(), [[viewerItem('view.jumpMs'), 0]]);
+    const O = '/views/v/other';
+    // a step of the view's history, made on the other section
+    v.view.jump(() => {
+      v.view.setRange(O, 100, 140);
+      return true;
+    });
+    v.draw();
+    const { nav } = await drawNav(v);
+    expect(nav.values.value[0].disabled).toBe(true);
+    expect(nav.key('ArrowLeft', { altKey: true })).toBe(true);
+    expect(range(v, O)).not.toEqual([100, 140]);
+    expect(nav.key('ArrowRight', { altKey: true })).toBe(true);
+    expect(range(v, O)).toEqual([100, 140]);
+    // the window's own keys do nothing while it is idle
+    expect(nav.key('ArrowRight')).toBe(false);
+  });
+
+  it('the picture shares the view’s image cache', async () => {
+    const v = await make(spec());
+    const { nav } = await drawNav(v);
+    const r = (nav as unknown as { renderer: NavigatorRenderer }).renderer;
+    expect(r.options.images).toBe(v.renderer!.images);
+    expect(r.options.domains).toBe(v.renderer!.layoutState);
+  });
+
+  it('a drag across a cyclic origin: the view follows over it', async () => {
+    const b = createSeqSpec();
+    const p = b.data.sequence('p', { alphabet: 'protein', letters: Letters, cyclic: true });
+    b.views.view('v', (vv) => {
+      const s = vv.section('protein', { of: p });
+      s.track('letters').layer('letters', { type: 'letters' });
+      vv.navigator('strip', stripNavigator(s));
+    });
+    const v = await make(b.build());
+    v.view.setRange(P, 360, 380);
+    v.draw();
+    const { nav, f } = await drawNav(v);
+    const w = f.windows[0];
+    const mid = (w.dx0 + w.dx1) / 2;
+    const px = nav.width / 393;
+    nav.down(mid, 10);
+    nav.move(mid + 10 * px, 10);
+    nav.move(mid + 25 * px, 10);
+    nav.up();
+    const [s, e] = range(v);
+    // over the origin: its end past the axis's length
+    expect(s).toBeCloseTo(385, 6);
+    expect(e).toBeGreaterThan(393);
+    v.draw();
+    const g = nav.draw()!.windows[0];
+    expect(g.wrap).toBe(true);
+  });
+});
+
+/** An alignment of `n` rows 40 columns wide in a short band, an overview or a miniature over it. */
+function rowsSpec(n: number, form: 'overview' | 'miniature') {
+  const b = createSeqSpec({ title: 'rows' });
+  const label = Array.from({ length: n }, (_, i) => `r${i}`);
+  const letters = Array.from({ length: n }, (_, i) => Letters.slice(i % 40, (i % 40) + 40));
+  const aln = b.data.alignment('aln', { alphabet: 'protein', rows: { label, letters } });
+  b.views.view('v', (v) => {
+    const s = v.section('s', { of: aln });
+    s.track('ruler').layer('ruler', { type: 'ruler' });
+    s.track('rows', { label: '', height: 60 }).layer('r', { type: 'rows', data: aln });
+    v.navigator('nav', form === 'overview' ? overviewNavigator(s) : miniatureNavigator(s));
+  });
+  return b.build();
+}
+
+const S = '/views/v/s';
+const RowsTrack = '/views/v/s/rows';
+const top = (v: SeqViewer) => v.view.band(RowsTrack)?.bandTop ?? 0;
+
+describe('an overview and a miniature over an alignment’s rows', () => {
+  it('the overview: a drag moves the rows, clamped at the last; a far drag is one step; keys; a click centres', async () => {
+    const v = await make(rowsSpec(60, 'overview'), [[viewerItem('view.jumpMs'), 0]]);
+    v.view.setBand(RowsTrack, { bandTop: 30 });
+    v.draw();
+    const { nav, f } = await drawNav(v, 'nav');
+    const w = f.windows[0];
+    const shown = w.r1 - w.r0;
+    expect(shown).toBeGreaterThan(0);
+    expect(shown).toBeLessThan(30);
+    // the rows fill the column
+    expect(w.hy - w.ly).toBeCloseTo(nav.height, 0);
+    const x = (w.dx0 + w.dx1) / 2;
+    const y = (w.dy0 + w.dy1) / 2;
+    expect(nav.down(x, y)).toBe(true);
+    // far past the end: the rows stop at the last ones
+    nav.move(x, nav.height + 400);
+    expect(top(v)).toBeCloseTo(60 - shown, 6);
+    nav.up();
+    // farther than the rows in view: one step, back to where the press found them
+    expect(v.view.history.value.back).toBe(1);
+    v.view.back();
+    expect(top(v)).toBe(30);
+    v.draw();
+    nav.draw();
+    // keys: Down scrolls, clamped at the end
+    expect(nav.key('ArrowDown')).toBe(true);
+    expect(top(v)).toBeGreaterThan(0);
+    for (let i = 0; i < 100; i++) nav.key('ArrowDown');
+    expect(top(v)).toBeCloseTo(60 - shown, 6);
+    // a click below the window centres the rows there (a jump), clamped
+    v.view.setBand(RowsTrack, { bandTop: 0 });
+    v.draw();
+    const g = nav.draw()!.windows[0];
+    const yy = g.hy - 2;
+    nav.down(x, yy);
+    nav.up();
+    nav.click(x, yy, 1);
+    expect(top(v)).toBeCloseTo(60 - shown, 0);
+  });
+
+  it('the miniature: its body drags both axes; a click outside centres both', async () => {
+    const v = await make(rowsSpec(60, 'miniature'), [[viewerItem('view.jumpMs'), 0]]);
+    v.view.setRange(S, 0, 10);
+    v.draw();
+    const { nav, f } = await drawNav(v, 'nav');
+    const w = f.windows[0];
+    expect(w.axes).toBe(3);
+    const x = (w.dx0 + w.dx1) / 2;
+    const y = (w.dy0 + w.dy1) / 2;
+    expect(nav.hit(x, y)?.part).toBe('body');
+    expect(nav.down(x, y)).toBe(true);
+    const cols = nav.width / 40;
+    const rows = (w.hy - w.ly) / 60;
+    nav.move(x + 10 * cols, y + 10 * rows);
+    nav.up();
+    expect(range(v, S)[0]).toBeCloseTo(10, 0);
+    expect(top(v)).toBeCloseTo(10, 0);
+    v.draw();
+    const g = nav.draw()!.windows[0];
+    // a click outside both: the columns and the rows centre there
+    const cx = g.lo + 2;
+    const cy = g.hy - 2;
+    nav.down(cx, cy);
+    nav.up();
+    nav.click(cx, cy, 1);
+    expect(range(v, S)[0]).toBeCloseTo(0, 0);
+    expect(top(v)).toBeGreaterThan(10);
+  });
+
+  it('on an alignment’s ruler the rail takes the lower share; a drag above it selects columns', async () => {
+    const b = createSeqSpec({ title: 'aln ruler' });
+    const label = Array.from({ length: 6 }, (_, i) => `r${i}`);
+    const letters = label.map(() => Letters.slice(0, 393));
+    const aln = b.data.alignment('aln', { alphabet: 'protein', rows: { label, letters } });
+    b.views.view('v', (vv) => {
+      const s = vv.section('s', { of: aln });
+      s.track('ruler').layer('ruler', { type: 'ruler' });
+      s.track('rows', { label: '', height: 60 }).layer('r', { type: 'rows', data: aln });
+    });
+    const v = await make(b.build());
+    v.view.setRange(S, 100, 150);
+    v.draw();
+    const sec = v.frame!.layout.sections[0];
+    const r = sec.rail!;
+    const ruler = sec.tracks[0].box;
+    const share = v.context.renderConfig.navigator.rail.grabShare;
+    expect(r.top).toBeCloseTo(ruler.y + ruler.height * (1 - share), 6);
+    const x = r.x + railFraction(r, 125);
+    expect(v.hit(x, r.bottom - 1)?.navigator).toBe('rail');
+    expect(v.hit(x, ruler.y + 1)?.navigator).toBeUndefined();
+    // above the grab zone a drag selects columns, the view stays
+    expect(v.input.down(x, ruler.y + 1)).toBe(true);
+    v.input.move(x + railFraction(r, 5), ruler.y + 1);
+    v.input.up();
+    expect(range(v, S)).toEqual([100, 150]);
+    expect(v.selection.value.value.shown.parts.length).toBeGreaterThan(0);
+  });
+});
+
 describe('the ruler rail on the canvas', () => {
   async function rail() {
     const v = await make(spec({ ruler: true, strip: false }));
@@ -376,7 +599,6 @@ describe('the ruler rail on the canvas', () => {
     const y = r.bottom - 2;
     expect(v.hit(mid, y)?.navigator).toBe('rail');
     expect(v.input.down(mid, y)).toBe(true);
-    // grown while its drag runs
     v.input.move(mid + 30 * k, y + 80);
     expect(v.input.dragHit?.navigator).toBe('rail');
     v.input.up();
@@ -384,16 +606,82 @@ describe('the ruler rail on the canvas', () => {
     expect(v.input.cursor).toBeUndefined();
   });
 
-  it('a click outside the window centres there; idle no target', async () => {
+  it('a click outside the window centres there (the click is the rail’s: no selection); idle no target', async () => {
     const { v, rail: r } = await rail();
     const x = r.x + railFraction(r, 300);
     v.input.down(x, r.bottom - 2);
     v.input.up();
+    v.input.click(x, r.bottom - 2, { detail: 1 });
     const [s, e] = range(v);
     expect((s + e) / 2).toBeCloseTo(300, 0);
-    // the click after the press is the rail's: no selection
-    v.input.click(x, r.bottom - 2);
     expect(v.selection.value.value.shown.parts.length).toBe(0);
+    // idle: the whole axis at the zoom limit; the ruler's own hit under the pointer, no window
+    const short = createSeqSpec();
+    const p = short.data.sequence('p', { alphabet: 'protein', letters: 'MEEPQSDPSV' });
+    short.views.view('v', (vv) => {
+      const sec = vv.section('protein', { of: p });
+      sec.track('ruler').layer('ruler', { type: 'ruler' });
+      sec.track('letters').layer('letters', { type: 'letters' });
+    });
+    const w = await make(short.build());
+    const idle = w.frame!.layout.sections[0].rail!;
+    expect(idle.active).toBe(false);
+    expect(w.hit(idle.x + idle.width / 2, idle.bottom - 2)?.target).not.toBe('window');
+    // the press falls through to the ruler: no rail drag
+    w.input.down(idle.x + idle.width / 2, idle.bottom - 2);
+    expect(w.input.dragHit).toBeUndefined();
+    w.input.up();
+  });
+
+  it('a click on a grip’s tab, not moved, does not centre: only a press outside the window does', async () => {
+    const { v, rail: r } = await rail();
+    const start = r.x + railFraction(r, 100);
+    const y = r.bottom - 2;
+    expect(v.hit(start - 3, y)?.part).toBe('start');
+    v.input.down(start - 3, y);
+    v.input.up();
+    v.input.click(start - 3, y, { detail: 1 });
+    expect(range(v)).toEqual([100, 150]);
+  });
+
+  it('a double-click outside the window: one step (down, up, click, down, up, its second click, dblclick)', async () => {
+    const { v, rail: r } = await rail();
+    const x = r.x + railFraction(r, 300);
+    const y = r.bottom - 2;
+    for (const detail of [1, 2]) {
+      v.input.down(x, y);
+      v.input.up();
+      v.input.click(x, y, { detail });
+    }
+    // not fitted: the double-click fits (`navigator.doubleClick: toggle-fit`)
+    expect(v.input.doubleClick(x, y)).toBe(true);
+    expect(range(v)).toEqual([0, 393]);
+    expect(v.view.history.value.back).toBe(1);
+    v.view.back();
+    expect(range(v)).toEqual([100, 150]);
+  });
+
+  it('grown while its drag runs (drawn so); by touch its grips hit wider; the cursor says grab', async () => {
+    const { v, rail: r } = await rail();
+    const k = r.width / r.total;
+    const y = r.bottom - 2;
+    const start = r.x + 100 * k;
+    // a finger's hit: 12 px outside the start is its grip, a mouse's is outside
+    v.input.move(start - 10, y, { pointerType: 'mouse' });
+    expect(v.input.windowHit?.part).toBe('outside');
+    v.input.move(start - 10, y, { pointerType: 'touch' });
+    expect(v.input.windowHit?.part).toBe('start');
+    expect(v.input.cursor).toBe('grab');
+    const mid = r.x + 125 * k;
+    v.input.down(mid, y, { pointerType: 'mouse' });
+    v.input.move(mid + 30 * k, y + 80);
+    expect(v.input.cursor).toBe('grabbing');
+    v.draw();
+    const grown = v.context.renderConfig.navigator.rail.grownPx;
+    expect(readRects(v.frame!.lists, 'window').some((x) => x.h === grown)).toBe(true);
+    v.input.up();
+    v.draw();
+    expect(readRects(v.frame!.lists, 'window').some((x) => x.h === grown)).toBe(false);
   });
 
   it('hidden by the host (`navigator.form: none`) or the reader (the corner button)', async () => {
@@ -406,16 +694,32 @@ describe('the ruler rail on the canvas', () => {
     expect(w.frame!.layout.sections[0].rail).toBeUndefined();
   });
 
-  it('a declared navigator over the section replaces its rail', async () => {
+  it('a declared navigator over the section replaces its rail, and a host’s does; hidden, the rail is back', async () => {
     const v = await make(spec({ ruler: true }));
     expect(v.frame!.layout.sections[0].rail).toBeUndefined();
+    const w = await make(spec({ ruler: true, strip: false }));
+    expect(w.frame!.layout.sections[0].rail).toBeDefined();
+    w.navigator({ id: 'host', of: P });
+    frames!.flush();
+    expect(w.frame!.layout.sections[0].rail).toBeUndefined();
+    const root = v.spec.shown.value;
+    const hidden = JSON.parse(JSON.stringify(root).replace('"axes":"positions"', '"axes":"positions","hidden":true'));
+    await v.load(hidden);
+    await v.settle();
+    frames!.flush();
+    v.draw();
+    expect(v.frame!.layout.sections[0].rail).toBeDefined();
   });
 
-  it('the viewer’s export draws the rail idle (the canvas’s geometry); with `navigators: include` the strip too', async () => {
-    const v = await make(spec({ ruler: true }));
+  it('the viewer’s export leaves the rails out; with `navigators: include` the strip and the rails, plain', async () => {
+    const v = await make(spec({ ruler: true, strip: false }));
     const plain = await v.renderSvg();
     expect(plain.svg).not.toContain('data-navigator');
-    const p = v.renderSvg({ navigators: 'include' });
+    expect(plain.lists.passes.window.rects.n).toBe(0);
+    const w = await make(spec({ ruler: true }));
+    const none = await w.renderSvg();
+    expect(none.svg).not.toContain('data-navigator');
+    const p = w.renderSvg({ navigators: 'include' });
     frames!.flush();
     const withNav = await p;
     expect(withNav.svg).toContain('data-navigator="strip"');
@@ -423,10 +727,12 @@ describe('the ruler rail on the canvas', () => {
   });
 });
 
+/** The window pass's rects as drawn (x, height). */
+function readRects(lists: DrawLists, pass: 'window') {
+  const r = lists.passes[pass].rects;
+  return Array.from({ length: r.n }, (_, i) => ({ x: r.x[i], h: r.h[i] }));
+}
+
 function railFraction(r: { width: number; total: number }, u: number) {
   return (u / r.total) * r.width;
 }
-
-// a unit at the rail's scale: what the input reads
-void railUnitAt;
-void SeqRuntime;

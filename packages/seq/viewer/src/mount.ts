@@ -55,6 +55,10 @@ export function mountCanvas(viewer: SeqViewer, target: HTMLElement): () => void 
   viewer.useBackend(backend);
 
   const input = viewer.input;
+  // the cursor over a window (a rail's grab zone, a ring's window): `grab`, `grabbing` while dragged
+  const cursor = () => {
+    container.style.cursor = input.cursor ?? '';
+  };
   const local = (e: MouseEvent) => {
     const r = container.getBoundingClientRect();
     return [e.clientX - r.left, e.clientY - r.top] as const;
@@ -65,6 +69,7 @@ export function mountCanvas(viewer: SeqViewer, target: HTMLElement): () => void 
       (e: PointerEvent) => {
         const [x, y] = local(e);
         input.move(x, y, e);
+        cursor();
       },
       undefined,
     ],
@@ -81,6 +86,7 @@ export function mountCanvas(viewer: SeqViewer, target: HTMLElement): () => void 
         if (e.button !== 0) return;
         const [x, y] = local(e);
         if (input.down(x, y, e)) container.setPointerCapture?.(e.pointerId);
+        cursor();
         container.focus({ preventScroll: true });
       },
       undefined,
@@ -89,6 +95,7 @@ export function mountCanvas(viewer: SeqViewer, target: HTMLElement): () => void 
       'pointerup',
       (e: PointerEvent) => {
         input.up();
+        cursor();
         if (container.hasPointerCapture?.(e.pointerId)) container.releasePointerCapture(e.pointerId);
       },
       undefined,

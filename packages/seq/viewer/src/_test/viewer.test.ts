@@ -133,11 +133,9 @@ describe('createSeqViewer', () => {
     const { viewer } = await make();
     const mine = await viewer.renderSvg();
     const ctx = createSeqContext({ registry: [{ kind: 'format-runtime', runtime: SeqRuntime }] });
-    // the viewer's picture has its rails (idle in an export): the context's export is asked for them
     const theirs = await ctx.renderSvg(proteinOnGene(), {
       size: { width: viewer.width, height: viewer.height },
       ...(viewer.viewport ? { viewport: viewer.viewport } : {}),
-      rails: true,
     });
     expect(mine.settled).toBe(true);
     expect(mine.svg).toBe(theirs.svg);

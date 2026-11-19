@@ -525,21 +525,14 @@ export class ViewModel extends ReactiveModel {
     const before = this._snapshot();
     if (!move()) return 'none';
     if (snapshotsEqual(before, this._snapshot())) return 'same';
-    if (record) {
-      this._back.push(before);
-      const limit = Math.max(0, this.config.view.historyLimit);
-      if (this._back.length > limit) this._back.splice(0, this._back.length - limit);
-      this._forward.length = 0;
-      this._tellHistory();
-    }
+    if (record) this.record(before as unknown as ViewSnapshot);
     this._jumps.set(this._jumps.value + 1);
     return 'moved';
   }
 
   /**
    * Every group's range and every band's scroll now, as `jump` keeps them (_spec/README.md "ViewModel", History): what
-   * a gesture that moves by hand reads at its press, to `record` on its release when it went far (a navigator's drag),
-   * or a deferred step (a double-click's first click).
+   * a gesture that moves by hand reads at its press, to `record` on its release when it went far (a navigator's drag).
    */
   snapshot(): ViewSnapshot {
     return this._snapshot() as ViewSnapshot;

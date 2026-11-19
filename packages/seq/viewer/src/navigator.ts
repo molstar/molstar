@@ -16,7 +16,7 @@ import {
   type WindowPart,
   windowText,
 } from '@molstar/seqx-core/render';
-import { type ResolvedNavigator, type ResolvedView, resolveNavigatorNode } from '@molstar/seqx-core/view';
+import { axisTotal, type ResolvedNavigator, type ResolvedView, resolveNavigatorNode } from '@molstar/seqx-core/view';
 import {
   NavigateProvider,
   type NavigatorBehavior,
@@ -24,14 +24,17 @@ import {
   windowIdle,
 } from '@molstar/seqx-viewer/behaviors';
 import type { ModifierState } from '@molstar/seqx-viewer/bindings';
+import type { ViewSnapshot } from '@molstar/seqx-viewer/models';
+import { DragSlop } from './input.js';
 import type { SeqViewer } from './viewer.js';
 
 // The navigator's model (_spec/README.md "Models", NavigatorModel): DOM-free, one a navigator a viewer shows (a
 // declared node of the view by its id, or a host's definition, `viewer.navigator(def)`). It holds the navigator's
-// picture (its own renderer over the viewer's store and theme), the bound windows' frames as the viewer's last frame
-// placed them, the lit part, idle per window and axis, the gesture in progress and the readout; the canvas view and an
-// export read it. Its pointer and keys are in its own px, carried to the bound section's display units through the
-// picture, and run through the `navigator` behavior. A hover stays here (a readout, never the viewer's hover).
+// picture (its own renderer over the viewer's store, theme, image cache and held domains), the bound windows' frames as
+// the viewer's last frame placed them, the lit part, idle per window and axis, the gesture in progress, the focused
+// slider and the readout; the canvas view and an export read it. Its pointer and keys are in its own px, carried to the
+// bound section's display units through the picture, and run through the `navigator` behavior. A hover stays here (a
+// readout, never the viewer's hover).
 
 /** A host's navigator: the params of a `navigator` node with its id, not saved in the spec. */
 export interface NavigatorDef {
@@ -46,7 +49,7 @@ export interface NavigatorDef {
   readonly size?: number | readonly [number, number];
 }
 
-/** A window as its slider says it (its `aria-valuetext`), set when the viewport settles, never a frame. */
+/** A window as its slider says it (its `aria-valuetext`): set when the view settles, never a frame. */
 export interface NavigatorValue {
   readonly section: string;
   readonly text: string;
@@ -58,8 +61,17 @@ export interface NavigatorPointer {
   readonly touch?: boolean;
 }
 
-/** The drag slop, CSS px: a press that moves less is a click. */
-const Slop = 3;
+/** A press in progress: where, what it hit, whether it moved past the slop; a rows press's band and its step. */
+interface Press {
+  readonly x0: number;
+  readonly y0: number;
+  readonly hit: NavigatorHit;
+  moved: boolean;
+  /** The press drags the positions (through the `navigator` behavior). */
+  readonly positions: boolean;
+  /** The press drags the rows: their band's track, its scroll at the press, the viewports then (a far drag's step). */
+  readonly rows?: { readonly track: string; readonly top: number; readonly before: ViewSnapshot };
+}
 
 export class NavigatorModel extends ReactiveModel {
   /** Bumped when what the navigator draws changes (hover, a gesture, its size): its view redraws. */
@@ -68,18 +80,19 @@ export class NavigatorModel extends ReactiveModel {
   /** The readout under the pointer (a position, a row, a band's name), or none. */
   private readonly _readout = new State<string | undefined>(undefined);
   readonly readout: ReadonlyState<string | undefined> = this._readout.asReadonly;
-  /** Each window's slider value, set on settle. */
+  /** Each window's slider value, set when the view settles. */
   private readonly _values = new State<readonly NavigatorValue[]>([]);
   readonly values: ReadonlyState<readonly NavigatorValue[]> = this._values.asReadonly;
-  /** The slider that has the focus (roving), by its window's index. */
-  focused = 0;
+  /** The slider that has the focus (roving), by its window's index; a press on a window focuses its slider. */
+  private readonly _focused = new State(0);
+  readonly focused: ReadonlyState<number> = this._focused.asReadonly;
   /** Its size, CSS px: the host's (`resize`), each the form's box for the view where the host gives none. */
   width = 0;
   height = 0;
   private hostWidth = 0;
   private hostHeight = 0;
   private renderer: NavigatorRenderer | undefined;
-  private rendererFor: [unknown, unknown, unknown] = [undefined, undefined, undefined];
+  private rendererFor: unknown[] = [];
   private readonly wanter;
   private lastFrame: NavigatorFrame | undefined;
   private lit: { section: string; part: WindowPart } | undefined;
@@ -88,9 +101,12 @@ export class NavigatorModel extends ReactiveModel {
   /** The section the pointer last acted on: its window on top. */
   private top: string | undefined;
   private readonly moves: Record<string, number> = {};
-  private drag:
-    | { x0: number; y0: number; hit: NavigatorHit; moved: boolean; rows?: { track: string; top: number } }
-    | undefined;
+  private press: Press | undefined;
+  /** The part has the keyboard focus (the host says: `setFocus`): a move made elsewhere then announces nothing. */
+  private hasFocus = false;
+  /** The view rested since the last draw; this part's own gesture or key moved it. */
+  private restDue = false;
+  private ownMove = false;
 
   constructor(
     readonly viewer: SeqViewer,
@@ -101,6 +117,10 @@ export class NavigatorModel extends ReactiveModel {
     this.wanter = viewer.store.store.wanter();
     this.registerPermanentDispose(() => this.wanter.dispose());
     this.listenPermanently(viewer.drawn, () => this.changed());
+    this.listenPermanently(viewer.rested, () => {
+      this.restDue = true;
+      this.changed();
+    });
     this.listenPermanently(viewer.tokensVersion, () => this.renderer?.setTokens(viewer.tokens));
   }
 
@@ -128,6 +148,11 @@ export class NavigatorModel extends ReactiveModel {
     return n;
   }
 
+  /** Whether this is a host's navigator (`viewer.navigator(def)`, never saved). */
+  get isHosted(): boolean {
+    return this.def !== undefined;
+  }
+
   /** Sets its size (a host's element): a side of 0 is the form's box's for the viewer's width and height. */
   resize(width: number, height = 0): void {
     if (width === this.hostWidth && height === this.hostHeight) return;
@@ -153,8 +178,9 @@ export class NavigatorModel extends ReactiveModel {
   private rendererOf(nav: ResolvedNavigator): NavigatorRenderer {
     const model = this.viewer.spec.model.value;
     const view = this.viewer.view.resolved.value!;
+    const viewRenderer = this.viewer.renderer;
     const f = this.rendererFor;
-    if (!this.renderer || f[0] !== model || f[1] !== view || f[2] !== nav) {
+    if (!this.renderer || f[0] !== model || f[1] !== view || f[2] !== nav || f[3] !== viewRenderer) {
       this.renderer = new NavigatorRenderer({
         model,
         view,
@@ -164,8 +190,11 @@ export class NavigatorModel extends ReactiveModel {
         text: this.viewer.context.text,
         config: this.viewer.context.renderConfig,
         direction: this.viewer.config.navigator.direction,
+        storeSettings: this.viewer.store.store.settings,
+        // the view's image budget and held domains: a value has one color in both
+        ...(viewRenderer ? { images: viewRenderer.images, domains: viewRenderer.layoutState } : {}),
       });
-      this.rendererFor = [model, view, nav];
+      this.rendererFor = [model, view, nav, viewRenderer];
     }
     return this.renderer;
   }
@@ -217,11 +246,20 @@ export class NavigatorModel extends ReactiveModel {
       pointerY: this.pointerY,
       emphasis: this.viewer.emphasis,
       cvdSafe: this.viewer.legends.cvdSafe.value,
-      ...(sweep && this.drag ? { sweep: this.sweepPx(sweep) } : {}),
+      ...(sweep && this.press ? { sweep: this.sweepPx(sweep) } : {}),
     });
     if (f.rebuilt) this.wanter.want(f.wants as Want[]);
     this.lastFrame = f;
-    if (!this.drag) this.settle(nav, f);
+    // the sliders' values: first drawn, and when the view rested (a move made elsewhere while the part has the focus
+    // announces nothing: its value waits for the focus to leave)
+    if (
+      !this.press &&
+      (this._values.value.length !== f.windows.length || (this.restDue && (this.ownMove || !this.hasFocus)))
+    ) {
+      this.settle(nav, f);
+      this.ownMove = false;
+    }
+    this.restDue = false;
     return f;
   }
 
@@ -235,7 +273,15 @@ export class NavigatorModel extends ReactiveModel {
     return this.renderer?.allIssues ?? [];
   }
 
-  /** The sliders' values, said when the windows settle (never a frame): compared, set only when they change. */
+  /** The part took or lost the keyboard focus (its host's element): losing it, its sliders say where the view is. */
+  setFocus(focused: boolean): void {
+    if (this.hasFocus === focused) return;
+    this.hasFocus = focused;
+    const nav = this.navigator;
+    if (!focused && nav && this.lastFrame) this.settle(nav, this.lastFrame);
+  }
+
+  /** The sliders' values (never a frame): compared, set only when they change. */
   private settle(nav: ResolvedNavigator, f: NavigatorFrame): void {
     const model = this.viewer.spec.model.value;
     const prev = this._values.value;
@@ -262,7 +308,8 @@ export class NavigatorModel extends ReactiveModel {
   /** A display unit range of the bound section as x on the navigator (a sweep's). */
   private sweepPx(s: readonly [number, number]): { x0: number; x1: number } {
     const r = this.renderer!;
-    return { x0: r.xOfSectionUnit(this.drag!.hit.section, s[0]), x1: r.xOfSectionUnit(this.drag!.hit.section, s[1]) };
+    const section = this.press!.hit.section;
+    return { x0: r.xOfSectionUnit(section, s[0]), x1: r.xOfSectionUnit(section, s[1]) };
   }
 
   /** What is under a point, idle windows' parts read as `outside` (an idle window is no target). */
@@ -278,7 +325,7 @@ export class NavigatorModel extends ReactiveModel {
 
   /** The cursor over the navigator: `grab` over a window that can move, `grabbing` during a drag. */
   get cursor(): 'grab' | 'grabbing' | 'default' | 'pointer' {
-    if (this.drag) return this.drag.hit.part === 'outside' ? 'default' : 'grabbing';
+    if (this.press) return this.press.hit.part === 'outside' ? 'default' : 'grabbing';
     const l = this.lit;
     if (!l) return 'default';
     return l.part === 'outside' ? 'pointer' : 'grab';
@@ -288,16 +335,15 @@ export class NavigatorModel extends ReactiveModel {
   move(x: number, y: number, p: NavigatorPointer = {}): void {
     this.pointerX = x;
     this.pointerY = y;
-    const d = this.drag;
+    const d = this.press;
     if (d) {
-      if (!d.moved && Math.max(Math.abs(x - d.x0), Math.abs(y - d.y0)) >= Slop) d.moved = true;
-      if (d.moved) this.dragTo(x, y);
+      if (!d.moved && Math.max(Math.abs(x - d.x0), Math.abs(y - d.y0)) >= DragSlop) d.moved = true;
+      if (d.moved) this.dragTo(d, x, y);
       this.changed();
       return;
     }
     const h = this.hit(x, y, p.touch);
-    const lit = h && (this.moves[h.section] ?? 0) ? { section: h.section, part: h.part } : undefined;
-    if (lit?.section !== this.lit?.section || lit?.part !== this.lit?.part) this.lit = lit;
+    this.lit = h && (this.moves[h.section] ?? 0) ? { section: h.section, part: h.part } : undefined;
     this._readout.set(h ? this.readoutOf(h) : undefined);
     this.changed();
   }
@@ -326,35 +372,45 @@ export class NavigatorModel extends ReactiveModel {
     return s?.tracks.find((t) => t.layers.some((l) => l.type === 'rows'))?.address;
   }
 
-  /** The primary button went down: true when a gesture began (the host captures the pointer). */
+  /** The window of a bound section in the last frame. */
+  private windowOf(section: string) {
+    return this.lastFrame?.windows.find((v) => v.section === section);
+  }
+
+  /** The rows band's scroll clamped to what it can show (its rows less those in view). */
+  private clampTop(section: string, top: number): number {
+    const w = this.windowOf(section);
+    const most = w ? Math.max(0, w.rows - (w.r1 - w.r0)) : Number.POSITIVE_INFINITY;
+    return Math.max(0, Math.min(most, top));
+  }
+
+  /**
+   * The primary button went down: true when a gesture began (the host captures the pointer). A press on a window
+   * focuses its slider. A miniature's body drags both axes; elsewhere the axis of the part hit.
+   */
   down(x: number, y: number, p: NavigatorPointer = {}): boolean {
     const b = this.behavior;
+    const nav = this.navigator;
     const h = this.hit(x, y, p.touch);
-    if (!b || !h || !(this.moves[h.section] ?? 0)) return false;
+    if (!b || !nav || !h || !(this.moves[h.section] ?? 0)) return false;
     this.top = h.section;
-    const r = this.renderer!;
-    if (h.axis === 'rows' && h.part !== 'outside') {
+    const i = nav.of.indexOf(h.section);
+    if (i >= 0 && i !== this._focused.value) this._focused.set(i);
+    const m = this.moves[h.section] ?? 0;
+    const inside = h.part !== 'outside';
+    // what the press drags: a rows part its rows, a positions part its positions, a miniature's body both; outside the
+    // window a positions press (a click or a sweep), and on rows a press for its click
+    const both = nav.axes === 'both' && h.part === 'body';
+    let rows: Press['rows'];
+    if (inside && (h.axis === 'rows' || both) && m & NavWindowFlags.y) {
       const track = this.rowsTrack(h.section);
-      if (!track) return false;
-      this.drag = {
-        x0: x,
-        y0: y,
-        hit: h,
-        moved: false,
-        rows: { track, top: this.viewer.view.band(track)?.bandTop ?? 0 },
-      };
-      // a miniature's body pans both axes: the positions through the window behavior too
-      if (this.navigator?.axes === 'both' && h.part === 'body') this.pressPositions(b, h, x);
-      this.changed();
-      return true;
+      if (track) rows = { track, top: this.viewer.view.band(track)?.bandTop ?? 0, before: this.viewer.view.snapshot() };
     }
-    if (this.navigator?.axes === 'rows') {
-      this.drag = { x0: x, y0: y, hit: h, moved: false };
-      return true;
-    }
-    if (!this.pressPositions(b, h, x)) return false;
-    this.drag = { x0: x, y0: y, hit: h, moved: false };
-    void r;
+    const dragPositions =
+      nav.axes !== 'rows' && !!(m & NavWindowFlags.x) && (!inside || h.axis === 'positions' || both);
+    const positions = dragPositions && this.pressPositions(b, h, x);
+    if (!positions && !rows && (inside || nav.axes === 'positions')) return false;
+    this.press = { x0: x, y0: y, hit: h, moved: false, positions, ...(rows ? { rows } : {}) };
     this.changed();
     return true;
   }
@@ -363,7 +419,7 @@ export class NavigatorModel extends ReactiveModel {
     const r = this.renderer!;
     const at = r.sectionUnitAt(h.section, x);
     if (at === undefined) return false;
-    const w = this.lastFrame?.windows.find((v) => v.section === h.section);
+    const w = this.windowOf(h.section);
     const drawn =
       w && w.dx1 - w.dx0 > w.x1 - w.x0 + 1e-9
         ? ([r.sectionUnitAt(h.section, w.dx0) ?? at, r.sectionUnitAt(h.section, w.dx1) ?? at] as const)
@@ -371,59 +427,87 @@ export class NavigatorModel extends ReactiveModel {
     return b.press(h.section, h.part, at, drawn && drawn[0] <= drawn[1] ? drawn : undefined);
   }
 
-  private dragTo(x: number, y: number): void {
-    const d = this.drag!;
+  private dragTo(d: Press, x: number, y: number): void {
     const r = this.renderer!;
-    if (d.rows) {
+    if (d.rows && d.hit.part !== 'outside') {
       const row = r.rowAt(y);
       const row0 = r.rowAt(d.y0);
       if (row !== undefined && row0 !== undefined)
-        this.viewer.view.setBand(d.rows.track, { bandTop: Math.max(0, d.rows.top + row - row0) });
+        this.viewer.view.setBand(d.rows.track, { bandTop: this.clampTop(d.hit.section, d.rows.top + row - row0) });
     }
-    if (this.navigator?.axes === 'rows') return;
-    if (d.rows && !(this.navigator?.axes === 'both' && d.hit.part === 'body')) return;
+    if (!d.positions) return;
     const at = r.sectionUnitAt(d.hit.section, x);
     if (at !== undefined) this.behavior?.dragTo(at);
   }
 
-  /** The button went up: a drag ends (a sweep zooms, a far drag pushes its step); a press that never moved is a click. */
+  /**
+   * The button went up: a drag ends (a sweep zooms, a far drag pushes its step: a rows drag farther than the rows in
+   * view pushes the viewports at its press); a press that never moved waits for its click (`click`).
+   */
   up(): void {
-    const d = this.drag;
+    const d = this.press;
     if (!d) return;
-    this.drag = undefined;
+    this.press = undefined;
     const b = this.behavior;
     if (!d.moved) {
-      // a click outside the window centres there; on the window it is a press for a drag: nothing
-      if (this.navigator?.axes !== 'rows') b?.cancel();
-      if (d.hit.part === 'outside') this.clickAt(d.hit, d.x0, d.y0);
-    } else if (!d.rows || (this.navigator?.axes === 'both' && d.hit.part === 'body')) b?.release();
+      if (d.positions) b?.cancel();
+    } else {
+      if (d.positions) b?.release();
+      if (d.rows) {
+        const w = this.windowOf(d.hit.section);
+        const now = this.viewer.view.band(d.rows.track)?.bandTop ?? d.rows.top;
+        const step = this.viewer.config.navigator.dragStep;
+        const far = w !== undefined && Math.abs(now - d.rows.top) > w.r1 - w.r0;
+        if (step === 'always' || (step === 'far' && far)) this.viewer.view.record(d.rows.before);
+      }
+      this.ownMove = true;
+    }
+    this.lastPress = d;
     this.changed();
   }
 
-  private clickAt(h: NavigatorHit, x: number, y: number): void {
+  /** The last press that ended: its click (the platform's, after the button went up) reads it. */
+  private lastPress: Press | undefined;
+
+  /**
+   * A click (the platform's, after a press that never moved; `detail` its count): outside the window it centres
+   * there, both axes on a miniature (a jump, its own step); on the window nothing. A second click is a
+   * double-click's: nothing (`doubleClick` follows).
+   */
+  click(x: number, y: number, detail = 1): boolean {
+    const d = this.lastPress;
+    this.lastPress = undefined;
     const b = this.behavior;
-    if (!b) return;
-    if (h.axis === 'rows' || this.navigator?.axes === 'rows') {
-      const track = this.rowsTrack(h.section);
-      const w = this.lastFrame?.windows.find((v) => v.section === h.section);
+    const nav = this.navigator;
+    if (!d || d.moved || !b || !nav || detail > 1) return false;
+    if (d.hit.part !== 'outside') {
+      b.click(d.hit.section, undefined);
+      return false;
+    }
+    this.ownMove = true;
+    let moved = false;
+    if (nav.axes !== 'positions') {
+      const track = this.rowsTrack(d.hit.section);
+      const w = this.windowOf(d.hit.section);
       const row = this.renderer?.rowAt(y);
       if (track && w && row !== undefined)
-        this.viewer.view.jump(() => {
-          const before = this.viewer.view.band(track)?.bandTop;
-          this.viewer.view.setBand(track, { bandTop: Math.max(0, row - (w.r1 - w.r0) / 2) });
-          return this.viewer.view.band(track)?.bandTop !== before;
-        });
-      if (this.navigator?.axes === 'rows') return;
+        moved =
+          this.viewer.view.jump(() => {
+            const before = this.viewer.view.band(track)?.bandTop;
+            this.viewer.view.setBand(track, { bandTop: this.clampTop(d.hit.section, row - (w.r1 - w.r0) / 2) });
+            return this.viewer.view.band(track)?.bandTop !== before;
+          }) === 'moved';
+      if (nav.axes === 'rows') return moved;
     }
-    const at = this.renderer?.sectionUnitAt(h.section, x);
-    if (at !== undefined) b.click(h.section, at);
+    const at = this.renderer?.sectionUnitAt(d.hit.section, x);
+    return (at !== undefined && b.click(d.hit.section, at, detail)) || moved;
   }
 
   /** A double-click at a point: fit, or fitted, a window `navigator.zoomPx` navigator px wide there. */
-  doubleClick(x: number, _y: number): boolean {
+  doubleClick(x: number, y: number): boolean {
     const b = this.behavior;
     const nav = this.navigator;
-    const h = this.hit(x, _y);
+    const h = this.hit(x, y);
     if (!b || !nav || !h || nav.axes === 'rows' || !(this.moves[h.section] ?? 0)) return false;
     const r = this.renderer!;
     const at = r.sectionUnitAt(h.section, x);
@@ -431,6 +515,7 @@ export class NavigatorModel extends ReactiveModel {
     const a = r.sectionUnitAt(h.section, x - half);
     const c = r.sectionUnitAt(h.section, x + half);
     if (at === undefined || a === undefined || c === undefined) return false;
+    this.ownMove = true;
     return b.doubleClick(h.section, at, Math.abs(c - a));
   }
 
@@ -446,58 +531,63 @@ export class NavigatorModel extends ReactiveModel {
     const navigate = this.viewer.behavior(NavigateProvider);
     if (!section || !v || !navigate) return false;
     navigate.wheel(section, dx, dy, v.width / 2, modifiers, undefined as never, (v.start + v.end) / 2);
+    this.ownMove = true;
     return true;
   }
 
   /** Esc during a drag or a sweep: cancelled, the view back where the press found it. */
   cancel(): boolean {
-    const d = this.drag;
+    const d = this.press;
     if (!d) return false;
-    this.drag = undefined;
+    this.press = undefined;
     if (d.rows) this.viewer.view.setBand(d.rows.track, { bandTop: d.rows.top });
-    this.behavior?.cancel();
+    if (d.positions) this.behavior?.cancel();
     this.changed();
     return true;
   }
 
   /**
-   * A key while the part has the focus (its window slider, roving): arrows pan (Up and Down on rows), Shift+arrows
-   * resize about the centre, Home and End go to the ends (jumps), Enter centres on the readout's position, Esc cancels;
-   * the view's keys act on the focused window's section. True when taken.
+   * A key while the part has the focus (its window sliders, roving: PageDown and PageUp move the focus to the next
+   * and the previous window): arrows pan (Up and Down on rows), Shift+arrows resize about the centre, Home and End go
+   * to the ends (jumps), Enter centres on the readout's position, Esc cancels; the view's keys act on the focused
+   * window's section (Alt+Left and Alt+Right whether it can move or not: they walk the history). True when taken.
    */
   key(key: string, modifiers: { readonly shiftKey?: boolean; readonly altKey?: boolean } = {}): boolean {
     const nav = this.navigator;
-    const section = nav?.of[this.focused] ?? nav?.of[0];
+    const section = nav?.of[this._focused.value] ?? nav?.of[0];
     if (!nav || !section) return false;
     if (key === 'Escape') return this.cancel();
-    if (!(this.moves[section] ?? 0)) return false;
+    if (key === 'PageDown' || key === 'PageUp') return this.focusNext(key === 'PageDown' ? 1 : -1);
     const view = this.viewer.view;
+    if (modifiers.altKey && (key === 'ArrowLeft' || key === 'ArrowRight'))
+      return key === 'ArrowLeft' ? view.back() : view.forward();
+    if (!(this.moves[section] ?? 0)) return false;
     const b = this.behavior;
     const run = (id: string) => this.viewer.runCommand(id, { section }) !== '';
     const v = view.get(section);
     if (!v || !b) return false;
-    if (nav.axes === 'rows' && (key === 'ArrowUp' || key === 'ArrowDown')) {
+    this.ownMove = true;
+    if (nav.axes !== 'positions' && (key === 'ArrowUp' || key === 'ArrowDown')) {
       const track = this.rowsTrack(section);
-      const w = this.lastFrame?.windows[this.focused];
+      const w = this.windowOf(section);
       if (!track || !w) return false;
       const step = Math.max(1, (w.r1 - w.r0) * this.viewer.config.navigate.keyPanFraction);
-      view.setBand(track, {
-        bandTop: Math.max(0, (view.band(track)?.bandTop ?? 0) + (key === 'ArrowUp' ? -step : step)),
-      });
+      const top = (view.band(track)?.bandTop ?? 0) + (key === 'ArrowUp' ? -step : step);
+      view.setBand(track, { bandTop: this.clampTop(section, top) });
       return true;
     }
     switch (key) {
       case 'ArrowLeft':
       case 'ArrowRight': {
         const back = key === 'ArrowLeft';
-        if (modifiers.altKey) return back ? view.back() : view.forward();
         if (modifiers.shiftKey) return run(back ? 'window.shrink' : 'window.grow');
         return run(back ? 'window.pan-back' : 'window.pan-on');
       }
       case 'Home':
       case 'End': {
         const w = v.end - v.start;
-        const total = this.total(section);
+        const axis = view.resolved.value?.sections.find((s) => s.address === section)?.axis;
+        const total = axis && axisTotal(axis);
         if (total === undefined) return false;
         return b.zoomTo(section, key === 'Home' ? 0 : total - w, key === 'Home' ? w : total);
       }
@@ -512,24 +602,19 @@ export class NavigatorModel extends ReactiveModel {
         return view.jump(() => view.zoom(section, 1 / this.viewer.config.navigate.doubleClickZoomStep)) === 'moved';
       case '0':
         return view.jump(() => view.fit(section)) === 'moved';
-      case 'Tab':
-        return false;
       default:
         return false;
     }
   }
 
-  private total(section: string): number | undefined {
-    const r = this.viewer.view.resolved.value?.sections.find((s) => s.address === section)?.axis.ranges;
-    if (!r) return undefined;
-    let t = 0;
-    for (let k = 0; k + 1 < r.length; k += 2) t += r[k + 1] - r[k];
-    return t;
-  }
-
-  /** Moves the slider focus to the next or previous window (roving: one tab stop for the part). */
-  focusNext(step = 1): void {
+  /** Moves the slider focus to the next or previous window (roving: one tab stop for the part); true when it moved. */
+  focusNext(step = 1): boolean {
     const n = this.navigator?.of.length ?? 0;
-    if (n) this.focused = (((this.focused + step) % n) + n) % n;
+    if (n < 2) return false;
+    this._focused.set((((this._focused.value + step) % n) + n) % n);
+    // the newly focused slider says its value
+    const nav = this.navigator;
+    if (nav && this.lastFrame) this.settle(nav, this.lastFrame);
+    return true;
   }
 }

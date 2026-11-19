@@ -60,12 +60,16 @@ afterEach(() => {
   frames = undefined;
 });
 
-async function make() {
+async function make(rails = true) {
   frames = installFrames();
   const viewer = createSeqViewer({
     ...DefaultSeqViewerSpec(),
     ui: undefined,
-    config: [[viewerItem('viewport.maxPxPerPosition'), 1000]],
+    config: [
+      [viewerItem('viewport.maxPxPerPosition'), 1000],
+      // a slim rail row is the canvas's, never a figure's: compared with an export, none
+      ...(rails ? [] : [[viewerItem('navigator.form'), 'none'] as const]),
+    ],
   });
   viewers.push(viewer);
   await viewer.load(spec());
@@ -284,7 +288,7 @@ describe('the session follows the spec', () => {
 
 describe('two consumers of one address', () => {
   it('the viewer’s selection and an export of the spec resolve it to the same Location, drawn alike', async () => {
-    const v = await make();
+    const v = await make(false);
     v.addresses.select('/refs/b');
     frames!.flush();
     const root = spec();
@@ -299,8 +303,6 @@ describe('two consumers of one address', () => {
       size: { width: v.width, height: v.height },
       ...(v.viewport ? { viewport: v.viewport } : {}),
       emphasis: { selection: exported },
-      // the viewer's picture has its rails (idle in an export)
-      rails: true,
     });
     ctx.retire();
     expect(mine.svg).toBe(theirs.svg);

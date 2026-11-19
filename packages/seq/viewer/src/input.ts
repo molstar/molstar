@@ -12,6 +12,7 @@ import {
   railUnitAt,
   type Hit as RenderHit,
   RingPlacement,
+  type WindowPart,
 } from '@molstar/seqx-core/render';
 import { cancelFrameCallback, DomHost, requestFrameCallback } from '@molstar/ui/dom';
 import type { Axis } from '@molstar/seqx-core/view';
@@ -64,6 +65,8 @@ export interface KeyState {
   readonly metaKey?: boolean;
   readonly ctrlKey?: boolean;
   readonly altKey?: boolean;
+  /** The pointer's kind (a pointer event's): `touch` widens a window's hit. */
+  readonly pointerType?: string;
 }
 
 /** A click's state: its count (`detail`: 2 for the second click of a double-click). */
@@ -72,7 +75,7 @@ export interface ClickState extends KeyState {
 }
 
 /** How far a pointer moves before a press is a drag, not a click (CSS px). */
-const DragSlop = 3;
+export const DragSlop = 3;
 
 /**
  * A drag-select held past a scrolling box's edge scrolls it toward the pointer at this many px a second for each px
@@ -120,8 +123,13 @@ export class ViewerInput {
         moved: boolean;
         /** A ruler rail's press (its part, outside it a click or a sweep): the `navigator` behavior's. */
         rail?: Rail;
+        part?: WindowPart;
       }
     | undefined;
+  /** A rail's press that never moved: its click (the platform's, after the button went up) centres or not. */
+  private _railClick: { section: string; at: number; part: WindowPart } | undefined;
+  /** The pointer is a finger (the last pointer event's kind): a window's hit is wider. */
+  private _touch = false;
   /** The window part under the pointer (a rail's, a ring's): it lights; copied, kept while it holds. */
   private _windowHit: RenderHit | undefined;
   /** The window being dragged: its rail is drawn grown wherever the pointer goes. */
@@ -181,7 +189,7 @@ export class ViewerInput {
   /** The cursor over the canvas: `grab` over a rail's grab zone or a window, `grabbing` while one is dragged. */
   get cursor(): 'grab' | 'grabbing' | undefined {
     if (this._dragHit) return 'grabbing';
-    return this._windowHit && this._windowHit.part !== 'outside' ? 'grab' : this._windowHit ? 'grab' : undefined;
+    return this._windowHit ? 'grab' : undefined;
   }
 
   /** The window under the pointer as lit: copied when it changes (its section, part or navigator), a frame asked. */
@@ -307,7 +315,7 @@ export class ViewerInput {
 
   /** The hit under a point as the hover model takes it (the section is read from the layer), in the reused record. */
   private _hitAt(x: number, y: number): Hit | undefined {
-    const h: RenderHit | undefined = this.viewer.hit(x, y);
+    const h: RenderHit | undefined = this.viewer.hit(x, y, this._touch);
     this._renderHit = h;
     if (!h) return undefined;
     const out = this._hit as Record<string, unknown>;
@@ -338,6 +346,7 @@ export class ViewerInput {
     if (this.viewer.retired) return;
     this._x = x;
     this._y = y;
+    this._touch = e.pointerType === 'touch';
     const mods = this._modifiers(e);
     const d = this._drag;
     const hit = this._hitAt(x, y);
@@ -397,6 +406,8 @@ export class ViewerInput {
     this.viewer.stopMotion();
     // a new press: a click after it is its own
     this._suppressClick = false;
+    this._railClick = undefined;
+    this._touch = e.pointerType === 'touch';
     const section = this.sectionAt(y);
     if (section === undefined) return false;
     const mods = this._modifiers(e);
@@ -409,7 +420,19 @@ export class ViewerInput {
       const nav = this.navigatorBehavior;
       const at = railUnitAt(rail, x);
       if (!nav || !nav.press(section, hit.part, at, railDrawn(rail, this.viewer))) return false;
-      this._drag = { x, y, x0: x, y0: y, section, target, select: false, window: true, moved: false, rail };
+      this._drag = {
+        x,
+        y,
+        x0: x,
+        y0: y,
+        section,
+        target,
+        select: false,
+        window: true,
+        moved: false,
+        rail,
+        part: hit.part,
+      };
       this._dragHit = this._renderHit && { ...this._renderHit };
       this.viewer.schedule();
       return true;
@@ -449,11 +472,10 @@ export class ViewerInput {
     }
     if (d.rail) {
       const nav = this.navigatorBehavior;
-      // a press that never moved: outside the window a click centres there (its step deferred for a double-click)
+      // a press that never moved waits for its click (the platform's, with its count): outside the window it centres
       if (!d.moved) {
         nav?.cancel();
-        if (this._windowHit?.part === 'outside' || hitPartOutside(d.rail, d.x0, this.viewer))
-          nav?.click(d.section, railUnitAt(d.rail, d.x0));
+        this._railClick = { section: d.section, at: railUnitAt(d.rail, d.x0), part: d.part ?? 'body' };
       } else nav?.release();
       // the click the platform sends after it is the rail's
       this._suppressClick = true;
@@ -474,6 +496,14 @@ export class ViewerInput {
     if (this.viewer.retired) return false;
     // a jump's motion stops where it is drawn: the input reads one picture
     this.viewer.stopMotion();
+    // a rail's click: outside its window it centres there (a jump, its own step); its second a double-click's
+    const rc = this._railClick;
+    if (rc) {
+      this._railClick = undefined;
+      this._suppressClick = false;
+      this.navigatorBehavior?.click(rc.section, rc.part === 'outside' ? rc.at : undefined, e.detail ?? 1);
+      return true;
+    }
     if (this._suppressClick) {
       this._suppressClick = false;
       return false;
@@ -614,6 +644,15 @@ export class ViewerInput {
     if (section === undefined) return false;
     const mods = this._modifiers(e);
     const hit = this._hitAt(x, y);
+    // on a ruler rail: the navigator's double-click (fit, or fitted a window `navigator.zoomPx` px wide there)
+    const rail = hit?.target === 'window' && hit.navigator === 'rail' ? this._railOf(section) : undefined;
+    const nav = this.navigatorBehavior;
+    if (rail && nav)
+      return nav.doubleClick(
+        section,
+        railUnitAt(rail, x),
+        (this.viewer.config.navigator.zoomPx / Math.max(1e-9, rail.width)) * rail.total,
+      );
     const action = this.viewer.bindings.resolve('double-click', mods, hitTarget(hit));
     if (action === undefined) return false;
     // a clade's command on a summary row (its element the clade): the clade it names
@@ -843,11 +882,3 @@ function railDrawn(rail: Rail, viewer: SeqViewer): readonly [number, number] | u
 }
 
 const RailEnds = new Float64Array(4);
-
-/** Whether a press at x on a rail was outside its window (a click there centres). */
-function hitPartOutside(rail: Rail, x: number, viewer: SeqViewer): boolean {
-  const u = railUnitAt(rail, x);
-  const drawn = railDrawn(rail, viewer);
-  const [a, b] = drawn ?? [rail.start, rail.end];
-  return u < a || u > b;
-}

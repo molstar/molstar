@@ -12,7 +12,7 @@
 import type { Node } from '@molstar/core/repr/tree';
 import { createSeqSpec, stripNavigator } from '@molstar/seqx-core/lang';
 import { describe, expect, it } from 'vitest';
-import { hitView, type FrameInput, railUnitAt, renderSvg } from '../index.js';
+import { type FrameInput, hitView, LightTokens, railUnitAt, renderSvg } from '../index.js';
 import { P53 } from './fixtures.js';
 import { settle } from './helpers.js';
 import { ideogramSpec } from './navigator-fixtures.js';
@@ -59,14 +59,56 @@ describe('the ruler rail', () => {
     expect(readRects(f.lists, 'window').length).toBe(4);
   });
 
-  it('idle: a quiet segment, no grips and no target (a press falls through to the ruler), with no relayout', async () => {
+  it('idle: a quiet hairline, no grips and no target (a press falls through to the ruler), with no relayout', async () => {
     const s = await settle(p53());
     const busy = await s.frame({ size: Size, rails, railsActive: active });
+    const key = busy.key;
+    // idle and live again: the window pass alone is drawn again, the layout kept
     const n = s.renderer.frame({ size: Size, rails, railsActive: idle });
-    expect(n.layout.sections[0]).toBe(busy.layout.sections[0]);
+    expect(n.rebuilt).toBe(false);
+    expect(n.key).toBe(key);
+    expect(n.layout.sections[0].rail!.active).toBe(false);
     const ruler = n.layout.sections[0].tracks[0].box;
     expect(hitView(n.layout, 400, ruler.y + 2)?.target).not.toBe('window');
-    expect(readRects(n.lists, 'window').length).toBe(2);
+    // at the fit the window is the whole axis: a hairline at a quiet opacity over the line, never a heavy rule
+    const rects = readRects(n.lists, 'window');
+    expect(rects.length).toBe(2);
+    expect(rects.every((r) => r.h <= 1)).toBe(true);
+    expect(rects[1].fill & 0xff).toBeLessThan(0xff);
+    const again = s.renderer.frame({ size: Size, rails, railsActive: active });
+    expect(again.rebuilt).toBe(false);
+    expect(again.layout.sections[0].rail!.active).toBe(true);
+    expect(readRects(again.lists, 'window').length).toBe(4);
+  });
+
+  it('collapsed breaks are a notch each on the rail', async () => {
+    const b = createSeqSpec();
+    const p = b.data.sequence('p53', { alphabet: 'protein', letters: P53 });
+    const pieces = b.data.ranges('pieces', { target: p, rows: { start: [0, 200], end: [100, 300] } });
+    b.views.view('v', (v) => {
+      const s = v.section('protein', { of: p, pieces });
+      s.track('ruler').layer('ruler', { type: 'ruler' });
+      s.track('letters').layer('letters', { type: 'letters' });
+    });
+    const s = await settle(b.build());
+    const f = await s.frame({ size: Size, viewport: { start: 0, end: 100 }, rails, railsActive: active });
+    const rail = f.layout.sections[0].rail!;
+    expect(rail.total).toBe(200);
+    expect(rail.breaks).toEqual([100]);
+    // the notch: 1 px wide, 4 px tall, at the break's x on the rail
+    const x = rail.x + (100 / 200) * rail.width - 0.5;
+    const notch = readRects(f.lists, 'window').filter((r) => r.w === 1 && r.h === 4);
+    expect(notch.map((r) => r.x)).toEqual([x]);
+  });
+
+  it('by touch its grips hit wider', async () => {
+    const s = await settle(p53());
+    const f = await s.frame({ size: Size, viewport: { start: 100, end: 200 }, rails, railsActive: active });
+    const rail = f.layout.sections[0].rail!;
+    const ruler = f.layout.sections[0].tracks[0].box;
+    const x = rail.x + (100 / 393) * rail.width - 10;
+    expect(hitView(f.layout, x, ruler.y + 2)?.part).toBe('outside');
+    expect(hitView(f.layout, x, ruler.y + 2, true)?.part).toBe('start');
   });
 
   it('a section with no ruler gets a slim row under its tracks; a hidden ruler falls back to it', async () => {
@@ -93,13 +135,26 @@ describe('the ruler rail', () => {
     expect(readRects(f.lists, 'window').length).toBe(0);
   });
 
-  it('a window over a cyclic origin is drawn in two pieces', async () => {
+  it('a window over a cyclic origin is drawn in two pieces, a grip at each true end; the axis’s ends are body', async () => {
     const s = await settle(p53({ cyclic: true }));
     const f = await s.frame({ size: Size, viewport: { start: 380, end: 410 }, rails, railsActive: active });
     const rail = f.layout.sections[0].rail!;
     expect(rail.end).toBeGreaterThan(rail.total);
     const segs = readRects(f.lists, 'window').filter((r) => r.h === 2);
     expect(segs.length).toBe(2);
+    const k = rail.width / rail.total;
+    const start = rail.x + 380 * k;
+    const end = rail.x + 17 * k;
+    const grips = readRects(f.lists, 'window').filter((r) => r.w === 2);
+    const xs = grips.map((r) => r.x).sort((a, b) => a - b);
+    expect(xs.length).toBe(2);
+    expect(xs[0]).toBeCloseTo(end, 3);
+    expect(xs[1]).toBeCloseTo(start - 2, 3);
+    const y = f.layout.sections[0].tracks[0].box.y + 2;
+    expect(hitView(f.layout, rail.x + rail.width - 1, y)?.part).toBe('body');
+    expect(hitView(f.layout, rail.x + 1, y)?.part).toBe('body');
+    expect(hitView(f.layout, start - 1, y)?.part).toBe('start');
+    expect(hitView(f.layout, end + 1, y)?.part).toBe('end');
   });
 
   it('grows while the pointer is over its grab zone, and while its drag runs', async () => {
@@ -142,9 +197,12 @@ describe('navigators in an export', () => {
     );
   });
 
-  it('included, a section no navigator binds draws its rail idle', async () => {
+  it('included, a section no navigator binds draws its rail as a plain window: no grips, no idle state', async () => {
     const r = await renderSvg(p53(), { size: { width: 600, height: 120 }, navigators: 'include' });
-    const pass = r.lists.passes.window;
-    expect(pass.rects.n).toBe(2);
+    const rects = readRects(r.lists, 'window');
+    expect(rects.length).toBe(2);
+    expect(rects[1]).toMatchObject({ h: 2, fill: LightTokens.colors['seq-window'] });
+    // omitted (the default), no rail at all
+    expect(readRects((await renderSvg(p53(), { size: { width: 600, height: 120 } })).lists, 'window').length).toBe(0);
   });
 });

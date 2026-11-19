@@ -19,7 +19,7 @@ import { EmptyOverlay, type Emphasis, type LayerType, type Overlay, type StoreRe
 import type { SectionLayoutType } from './layout/types.js';
 import type { TextMetrics } from './text.js';
 import type { SeqTokens } from './tokens.js';
-import { BuiltInLayerTypes, drawView, LayoutState, layoutView, type ViewLayout } from './tracks.js';
+import { BuiltInLayerTypes, drawView, type HeldDomains, LayoutState, layoutView, type ViewLayout } from './tracks.js';
 
 // Frames keyed by what they read (_spec/README.md "Render", The key): the model's hash, the view, the size, the
 // viewport, the device pixel ratio, the token table's version, the text metrics' version, the overlay's version, whether
@@ -45,6 +45,11 @@ export interface RendererOptions {
   readonly theme?: Partial<Pick<ThemeContext, 'schemes' | 'measures'>>;
   /** The shared image cache (_spec/README.md "Render", The shared reduction): another renderer's (a navigator's view). */
   readonly images?: ImageCache;
+  /**
+   * Another renderer's held domains (its `layoutState`, keys mapped): a navigator's picture colors by its view's
+   * (_spec/README.md "Render", Navigators). Their version is part of the key.
+   */
+  readonly domains?: HeldDomains;
 }
 
 export interface FrameInput {
@@ -68,8 +73,9 @@ export interface FrameInput {
    */
   readonly folds?: Readonly<Record<string, readonly string[]>>;
   /**
-   * The sections that draw a ruler rail, by address, and which of them can move (_spec/README.md "Render",
-   * Navigators): both part of the key by identity (a caller keeps each record while it holds).
+   * The sections that draw a ruler rail, by address (_spec/README.md "Render", Navigators): part of the key by
+   * identity (a caller keeps the record while it holds). Which of them can move (`railsActive`) is not: it is set on
+   * the rails each frame, an emphasis redraw included, so idle wakes with no relayout.
    */
   readonly rails?: Readonly<Record<string, unknown>>;
   readonly railsActive?: Readonly<Record<string, boolean>>;
@@ -115,7 +121,7 @@ class KeyParts {
   windows = false;
   folds: FrameInput['folds'] = undefined;
   rails: FrameInput['rails'] = undefined;
-  railsActive: FrameInput['railsActive'] = undefined;
+  domains = Number.NaN;
 
   // the parts are read from their objects here, never passed as numbers (a call boxes the numbers it is passed)
 
@@ -140,7 +146,7 @@ class KeyParts {
       this.windows === (input.windows ?? false) &&
       this.folds === input.folds &&
       this.rails === input.rails &&
-      this.railsActive === input.railsActive
+      this.domains === (r.options.domains?.state.domainsVersion ?? 0)
     );
   }
 
@@ -163,7 +169,7 @@ class KeyParts {
     this.figure = input.figure ?? false;
     this.windows = input.windows ?? false;
     this.rails = input.rails;
-    this.railsActive = input.railsActive;
+    this.domains = r.options.domains?.state.domainsVersion ?? 0;
   }
 
   /** The key's text (the store's reads appended by the caller). */
@@ -187,6 +193,15 @@ class KeyParts {
       this.rails ? `rails:${Object.keys(this.rails).sort().join(',')}` : '',
       configKey,
     ].join('|');
+  }
+}
+
+/** Sets which rails can move (outside the key: an idle flip redraws the window pass alone). */
+function railsActive(layout: ViewLayout, active: FrameInput['railsActive']): void {
+  const s = layout.sections;
+  for (let i = 0; i < s.length; i++) {
+    const r = s[i].rail;
+    if (r) r.active = active?.[s[i].section.address] === true;
   }
 }
 
@@ -222,6 +237,11 @@ export class Renderer {
   tokens: SeqTokens;
   readonly lists: DrawLists;
   private readonly state = new LayoutState();
+
+  /** What the layouts keep between frames (its held domains: a navigator over this view reads them). */
+  get layoutState(): LayoutState {
+    return this.state;
+  }
   private readonly config: RenderConfig;
   /** The shared image cache of its frames (every layer's image tiles, one budget). */
   readonly images: ImageCache;
@@ -298,6 +318,7 @@ export class Renderer {
         this.baseProjected = e?.projected?.selection;
         this.baseHighlights = e?.highlights;
       }
+      railsActive(this.layout, input.railsActive);
       drawView(this.layout, this.lists, e, base ? BaseAndEmphasisPasses : EmphasisPasses);
       let f = this.emphasisFrame;
       if (!f)
@@ -338,13 +359,14 @@ export class Renderer {
         ...(input.windows ? { windows: true } : {}),
         ...(input.folds ? { folds: input.folds } : {}),
         ...(input.rails ? { rails: input.rails } : {}),
-        ...(input.railsActive ? { railsActive: input.railsActive } : {}),
+        ...(this.options.domains ? { domains: this.options.domains } : {}),
         images: this.images,
       },
       this.state,
     );
     this.layout = layout;
     parts.set(this, input);
+    railsActive(layout, input.railsActive);
     drawView(layout, this.lists, input.emphasis);
     refusedImages(layout);
     this.baseSelection = input.emphasis?.selection;

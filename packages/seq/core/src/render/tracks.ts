@@ -58,7 +58,7 @@ import { ValuesType } from './values.js';
 import { VariantsType } from './variants.js';
 import { FrameType } from './frames.js';
 import { BandsType } from './bands.js';
-import { drawRail, hitRail, placeRail, Rail } from './rail.js';
+import { drawRail, hitRail, placeRail, Rail, SlimRailPx } from './rail.js';
 import { LogoType } from './logo.js';
 import { RowsType } from './rows.js';
 import { RowHeight } from './rows-model.js';
@@ -204,11 +204,21 @@ export interface LayoutInput {
   readonly images?: ImageCache;
   /**
    * The sections that draw a ruler rail, by address (_spec/README.md "Render", Navigators): part of each section's key
-   * by identity (a slim rail takes a row); `railsActive` says which can move (out of the key: idle wakes with no
-   * relayout).
+   * by identity (a slim rail takes a row). Which can move is set on the rails each frame by the renderer, out of the
+   * key: idle wakes with no relayout.
    */
   readonly rails?: Readonly<Record<string, unknown>>;
-  readonly railsActive?: Readonly<Record<string, boolean>>;
+  /**
+   * Another layout's held domains (_spec/README.md "Render", Navigators: a navigator's picture colors by its view's,
+   * never by a domain of its own over the whole axis): looked up by `map(key)`; this layout then holds none.
+   */
+  readonly domains?: HeldDomains;
+}
+
+/** A layout's held domains as another reads them: its state, and a key here to a key there. */
+export interface HeldDomains {
+  readonly state: LayoutState;
+  map(key: string): string;
 }
 
 /** What a layout keeps between frames: each layer's prepared form (per resolved layer) and its last layout. */
@@ -554,7 +564,7 @@ function viewStamp(
     schemes: input.theme?.schemes,
     measures: input.theme?.measures,
     cvdSafe: input.theme?.cvdSafe ?? false,
-    domains: state.domainsVersion,
+    domains: input.domains ? input.domains.state.domainsVersion : state.domainsVersion,
     figure: input.figure ?? false,
     windows: input.windows ?? false,
     rails: input.rails,
@@ -744,7 +754,9 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     ...(input.theme?.measures ? { measures: input.theme.measures } : {}),
     cvdSafe: input.theme?.cvdSafe ?? false,
     scale: (a) => input.view.scales?.[a] as ScaleParams | undefined,
-    domain: (key) => state.domains.get(key),
+    domain: input.domains
+      ? (key) => input.domains!.state.domains.get(input.domains!.map(key))
+      : (key) => state.domains.get(key),
     extent: (key, lo, hi) => {
       const e = extents.get(key);
       if (!e) extents.set(key, [lo, hi]);
@@ -869,7 +881,6 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     if (kept && reusable(kept, section, layout, stamp, y, axis, viewport, input.data)) {
       kept.replay(sinks);
       if (layout.window) setWindow(layout, kept.layout.placement, section.address, viewport, followed, input, config);
-      if (kept.layout.rail) kept.layout.rail.active = input.railsActive?.[section.address] === true;
       sections.push(kept.layout);
       y += kept.layout.height;
       continue;
@@ -1149,7 +1160,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     y = top + placement.box.height;
     // the slim rail's row, under the tracks
     const slimTop = y;
-    if (railOn && ruler < 0) y += config.navigator.rail.slimPx;
+    if (railOn && ruler < 0) y += SlimRailPx;
     // the column the emphasis spans with `emphasis.selectionShape: 'column'`: the tracks laid out on the page and the
     // gaps between them
     let bandEnd = -1;
@@ -1196,8 +1207,8 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         slimTop,
         viewport,
         config,
+        input.figure === true,
       );
-      rail.active = input.railsActive?.[section.address] === true;
     }
     const sectionLayout: SectionLayout = {
       section,
@@ -1240,7 +1251,9 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
   for (const key of [...state.lays.keys()]) if (!used.has(key)) state.lays.delete(key);
   // open scales: settled, the union of this layout's extents is held (laid out once more with it where it moved);
   // moving, a scale seen for the first time takes this layout's extent for the next frame
-  if (input.settled) {
+  if (input.domains) {
+    // the domains are another layout's: none held here
+  } else if (input.settled) {
     let moved = extents.size !== state.domains.size;
     for (const [k, e] of extents) {
       const h = state.domains.get(k);
@@ -1315,7 +1328,6 @@ function wantTemplate(
   }
 }
 
-/** How a track's rows layer takes its height: `fill`, a number of rows, or none (no rows layer). */
 /** The first shown track drawing a ruler (with height: a hidden ruler is no rail's), or −1. */
 function rulerTrack(shown: readonly ResolvedTrack[], heights: readonly number[]): number {
   for (let j = 0; j < shown.length; j++)
@@ -1324,6 +1336,7 @@ function rulerTrack(shown: readonly ResolvedTrack[], heights: readonly number[])
   return -1;
 }
 
+/** How a track's rows layer takes its height: `fill`, a number of rows, or none (no rows layer). */
 function rowsFill(track: ResolvedTrack): 'fill' | number | undefined {
   for (const l of track.layers) {
     if (l.type !== 'rows') continue;
@@ -1851,7 +1864,7 @@ const Point = new PlacePoint();
  * point placed (`Placement.at`: its strip, band and the point in the strip's frame) and the topmost layer's hit in that
  * band. On data the cells and items beside a break win: the hairline has no width of its own.
  */
-export function hitView(layout: ViewLayout, x: number, y: number): Hit | undefined {
+export function hitView(layout: ViewLayout, x: number, y: number, touch = false): Hit | undefined {
   for (const s of layout.sections) {
     const strips = s.placement.strips;
     for (let i = 0; i < strips.n; i++) {
@@ -1863,7 +1876,7 @@ export function hitView(layout: ViewLayout, x: number, y: number): Hit | undefin
       if (notch) return notch;
     }
     // the ruler rail's grab zone, over the ruler (an idle rail is no target: a press falls through)
-    const rail = s.rail ? hitRail(s.rail, x, y, s.config) : undefined;
+    const rail = s.rail ? hitRail(s.rail, x, y, s.config, touch) : undefined;
     if (rail) return rail;
     const own = s.layout.hitChrome?.(s, x, y);
     if (own) return own;

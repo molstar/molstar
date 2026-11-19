@@ -18,6 +18,7 @@ import {
   type NavigatorFrame,
   type NavigatorFrameInput,
   NavigatorRenderer,
+  type NavigatorRendererOptions,
   type RenderConfigOverrides,
   renderConfig,
 } from '../index.js';
@@ -34,6 +35,7 @@ export async function settleNavigator(
   navigator = 0,
   runtimes: readonly FormatRuntime[] = [],
   config: RenderConfigOverrides = {},
+  options: (s: Settled) => Partial<NavigatorRendererOptions> = () => ({}),
 ): Promise<SettledNavigator> {
   const s = await settle(spec, runtimes, config);
   const nav = new NavigatorRenderer({
@@ -44,6 +46,7 @@ export async function settleNavigator(
     tokens: LightTokens,
     text: bundledTextMetrics(),
     config: renderConfig(config),
+    ...options(s),
   });
   return {
     ...s,

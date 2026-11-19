@@ -13,7 +13,8 @@ import type { SeqViewer } from './viewer.js';
 // The navigator part (_spec/README.md "Composition", Navigators): a part the host places, like a legend. `mountNavigator`
 // draws one navigator (a declared node's id, or a host's `viewer.navigator(def)`) into an element the host owns: its
 // own base and overlay canvases sized by the element, its listeners on it alone, one tab stop whose windows are sliders
-// (roving: a press on a window focuses its slider; `aria-valuetext` set when the window settles). `navigatorsMount`, the
+// (roving: a press on a window focuses its slider, PageDown and PageUp move the focus; `aria-valuetext` set when the
+// view settles after this part's own gesture or key, never a frame, never for a move made elsewhere). `navigatorsMount`, the
 // default `ui.navigators`, places the view's declared navigators by their `place` around the canvas through the same
 // call; `railToggleMount`, `ui.railToggle`, a button in the canvas's corner that hides and shows the ruler rails (the
 // reader's session). Everything each adds is taken away by the function it returns.
@@ -64,18 +65,27 @@ function mountModel(element: HTMLElement, viewer: SeqViewer, model: NavigatorMod
     if (!f) return;
     const dirty = backend.resize(model.width, model.height, viewer.dpr);
     backend.draw(f.lists, f.rebuilt || f.base || dirty);
-    const v = model.values.value[model.focused];
-    container.setAttribute('aria-valuetext', v?.text ?? '');
-    container.setAttribute('aria-label', `Navigator ${model.id}`);
-    if (!v || v.disabled) container.setAttribute('aria-disabled', 'true');
-    else container.removeAttribute('aria-disabled');
     readout.textContent = model.readout.value ?? '';
     container.style.cursor = model.cursor;
   };
   const schedule = () => {
     if (frame === undefined) frame = requestFrameCallback(draw);
   };
-  const unsubscribe = [model.version.listen(schedule), viewer.drawn.listen(schedule)];
+  // the focused slider's value, as the model says it (on settle, never a frame)
+  container.setAttribute('aria-label', `Navigator ${model.id}`);
+  const say = () => {
+    const v = model.values.value[model.focused.value];
+    container.setAttribute('aria-valuetext', v?.text ?? '');
+    if (!v || v.disabled) container.setAttribute('aria-disabled', 'true');
+    else container.removeAttribute('aria-disabled');
+  };
+  say();
+  const unsubscribe = [
+    model.version.listen(schedule),
+    viewer.drawn.listen(schedule),
+    model.values.listen(say),
+    model.focused.listen(say),
+  ];
 
   const local = (e: MouseEvent) => {
     const r = container.getBoundingClientRect();
@@ -104,7 +114,10 @@ function mountModel(element: HTMLElement, viewer: SeqViewer, model: NavigatorMod
       undefined,
     ],
     ['pointercancel', () => model.cancel(), undefined],
+    ['click', (e: MouseEvent) => e.button === 0 && model.click(...local(e), e.detail), undefined],
     ['dblclick', (e: MouseEvent) => model.doubleClick(...local(e)), undefined],
+    ['focus', () => model.setFocus(true), undefined],
+    ['blur', () => model.setFocus(false), undefined],
     [
       'wheel',
       (e: WheelEvent) => {

@@ -58,6 +58,9 @@ afterEach(() => {
   frames = undefined;
 });
 
+/** The viewer with no ruler rails: what a canvas and its export are compared without (a slim rail row is chrome). */
+const NoRails = [[viewerItem('navigator.form'), 'none']] as const;
+
 async function make(root: Node = spec(), config: readonly (readonly [any, unknown])[] = []) {
   frames = installFrames();
   const viewer = createSeqViewer({
@@ -512,7 +515,8 @@ function band(v: SeqViewer, pass: PassName, section: number): string[] {
 
 describe('drawn, projected onto linked sections', () => {
   it('a selection on the protein shows on the gene, lighter; the SVG export draws it alike', async () => {
-    const v = await make();
+    // no ruler rails: their slim rows are the canvas's, never a figure's
+    const v = await make(spec(), NoRails);
     click(v, at(v, 0, 0, 2));
     frames!.flush();
     const protein = band(v, 'selection', 0);
@@ -535,7 +539,7 @@ describe('drawn, projected onto linked sections', () => {
   });
 
   it('highlight channels are drawn as tints in their colors, projected, in the canvas and the export', async () => {
-    const v = await make();
+    const v = await make(spec(), NoRails);
     v.addresses.highlightAddress('/data/p/(range :from 2 :to 3)');
     frames!.flush();
     // `link`: the default color, `token:cat-5` (#d86c17) at 0.3

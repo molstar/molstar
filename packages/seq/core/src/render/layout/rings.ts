@@ -25,7 +25,7 @@ import { sectionId } from '../layer-type.js';
 import type { TextMetrics } from '../text.js';
 import type { SeqTokens } from '../tokens.js';
 import type { SectionLayout } from '../tracks.js';
-import { drawWindowArgs, WindowMetrics, windowPart } from '../window.js';
+import { drawWindowArgs, floorExtent, WindowFill, windowPart } from '../window.js';
 import { PlacePoint, Strips, WarpKind } from './strips.js';
 import { clampWindow, TracksNav } from './tracks.js';
 import type { NavContext, Placement, PlaceContext, SectionLayoutType, SectionNav } from './types.js';
@@ -469,10 +469,11 @@ export const RingsLayout: SectionLayoutType<RingPlacement> = {
     p.windowFrame();
     const c = p.circumference;
     // the pointer's frame x a turn either way too: a grip reaches across the origin from either side
+    const wc = s.config.navigator.window;
     const part =
-      windowPart(fx, fy, p.wx0, p.wx1, -RingMetrics.rim, RingMetrics.rim) ??
-      windowPart(fx + c, fy, p.wx0, p.wx1, -RingMetrics.rim, RingMetrics.rim) ??
-      windowPart(fx - c, fy, p.wx0, p.wx1, -RingMetrics.rim, RingMetrics.rim);
+      windowPart(fx, fy, p.wx0, p.wx1, -RingMetrics.rim, RingMetrics.rim, false, wc) ??
+      windowPart(fx + c, fy, p.wx0, p.wx1, -RingMetrics.rim, RingMetrics.rim, false, wc) ??
+      windowPart(fx - c, fy, p.wx0, p.wx1, -RingMetrics.rim, RingMetrics.rim, false, wc);
     if (!part) return undefined;
     return { layer: s.section.address, section: s.id, system: s.section.axis.system, target: 'window', part };
   },
@@ -604,6 +605,8 @@ function drawRingLabels(p: RingPlacement, out: PassWriter, tokens: SeqTokens, co
   out.textArgs(p.subtitle, AnchorMiddle, config.labelFont);
 }
 
+const RingExtent = new Float64Array(4);
+
 /**
  * The window (`render/window.ts`) through the warp: a faint sector over the rings, and on the rim its body and its
  * grips, lit by the hovered part; idle (nothing follows) a quiet outline.
@@ -625,13 +628,18 @@ function drawRingWindow(
   if (p.windowActive) {
     const g = w.args;
     const ink = tokens.colors['seq-window'];
-    // a narrow window grows about its middle (`windowExtent`'s rule, the rim's)
-    const wide = x1 - x0 >= WindowMetrics.floor;
-    g[0] = wide ? x0 : (x0 + x1) / 2 - WindowMetrics.floor / 2;
+    // a narrow window grows about its middle (the window's floor, the rim's: no span on a ring's frame)
+    const e = RingExtent;
+    e[0] = x0;
+    e[1] = x1;
+    e[2] = Number.NEGATIVE_INFINITY;
+    e[3] = Number.POSITIVE_INFINITY;
+    floorExtent(e, 0, s.config.navigator.window);
+    g[0] = e[0];
     g[1] = 0;
-    g[2] = wide ? x1 - x0 : WindowMetrics.floor;
+    g[2] = e[1] - e[0];
     g[3] = p.depth;
-    g[4] = ((ink & 0xffffff00) | Math.round(WindowMetrics.fill * 0.5 * 255)) >>> 0;
+    g[4] = ((ink & 0xffffff00) | Math.round(WindowFill * 0.5 * 255)) >>> 0;
     g[5] = NoColor;
     g[6] = 0;
     g[7] = 0;
@@ -643,7 +651,7 @@ function drawRingWindow(
   g[1] = x1;
   g[2] = -RingMetrics.rim;
   g[3] = RingMetrics.rim;
-  drawWindowArgs(w, p.windowActive, lit, tokens);
+  drawWindowArgs(w, p.windowActive, lit, tokens, s.config.navigator.window);
   p.warp.close(out);
 }
 

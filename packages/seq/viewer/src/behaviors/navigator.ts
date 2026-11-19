@@ -10,16 +10,16 @@
 // (`navigator.center`, a jump: animated) or, dragged, sweeps a new window and zooms to it on release
 // (`navigator.zoom-to`, a jump; `navigator.dragOutside: pan` centres there and then pans); a double-click fits, or
 // fitted zooms so the window is `navigator.zoomPx` navigator px wide; Esc puts the view back where the press found it.
-// One gesture is one step of the view's history: a click centres at once and keeps the viewports it left until a
-// double-click in time pushes them as its own step (or the time runs out); a drag pushes the viewports at its press
-// on release only when the view went farther than one window width (`navigator.dragStep: far`).
+// One gesture is one step of the view's history: a click centres with its own step, and the double-click it begins
+// (the platform's, by the click's count) moves within that step; a drag pushes the viewports at its press on release
+// only when the view went farther than one window width (`navigator.dragStep: far`).
 
 import { State, type ReadonlyState } from '@molstar/core/reactive';
 import type { CommandDefinition, CommandResult } from '@molstar/ui/commands/types';
 import type { WindowPart } from '@molstar/seqx-core/render';
+import { axisTotal } from '@molstar/seqx-core/view';
 import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
 import type { ViewModel, ViewSnapshot } from '@molstar/seqx-viewer/models';
-import { DomHost } from '@molstar/ui/dom';
 import { windowBehavior, type WindowBehavior } from './window.js';
 
 /** What the navigator's commands act on: the section, and the display units it centres on or zooms to. */
@@ -29,9 +29,6 @@ export interface NavigatorContext {
   readonly start?: number;
   readonly end?: number;
 }
-
-/** How long a click waits for a second click before its step is pushed, ms (a double-click's time). */
-export const DoubleClickMs = 400;
 
 export interface NavigatorBehavior {
   /** The window drags (its own: a navigator's drag is not the canvas's). */
@@ -51,9 +48,16 @@ export interface NavigatorBehavior {
   release(): void;
   /** Esc: the gesture is cancelled, the view back where the press found it. */
   cancel(): void;
-  /** A click outside the window at `at`: the view centres there, its step deferred for a double-click. */
-  click(section: string, at: number): boolean;
-  /** A double-click at `at`: fit, or fitted, a window `units` wide centred there; one step with its first click's. */
+  /**
+   * A click (a press that never moved; `detail` its count, the platform's): outside the window (`at` given) the view
+   * centres there, a jump with its own step; on the window (`at` undefined) nothing. A second click (`detail` 2) is a
+   * double-click's: nothing, the double-click follows.
+   */
+  click(section: string, at: number | undefined, detail?: number): boolean;
+  /**
+   * A double-click at `at`: fit, or fitted, a window `units` wide centred there; within its first click's step when
+   * that click centred the view (one gesture, one step), else a step of its own.
+   */
   doubleClick(section: string, at: number, units: number): boolean;
   /** The swept region while a sweep runs (display units, ordered). */
   readonly sweep: ReadonlyState<readonly [number, number] | undefined>;
@@ -77,16 +81,8 @@ export function navigatorBehavior(view: ViewModel, config: ViewerConfig = Defaul
         sweeping: boolean;
       }
     | undefined;
-  /** A click's step, deferred until a double-click or its time. */
-  let deferred: { snapshot: ViewSnapshot; timer: unknown } | undefined;
-
-  const flush = () => {
-    const d = deferred;
-    deferred = undefined;
-    if (!d) return;
-    DomHost.clearTimeout(d.timer as never);
-    view.record(d.snapshot);
-  };
+  /** The section the last click centred with a step of its own: a double-click it begins moves within that step. */
+  let clicked: string | undefined;
 
   const width = (section: string) => {
     const v = view.get(section);
@@ -147,8 +143,6 @@ export function navigatorBehavior(view: ViewModel, config: ViewerConfig = Defaul
     press(section, part, at, drawn) {
       const v = view.get(section);
       if (!v || v.pending || !view.canMove(section) || !Number.isFinite(at)) return false;
-      // a gesture after a click: the click's step is its own
-      flush();
       const before = view.snapshot();
       if (part === 'outside') {
         press = {
@@ -177,6 +171,8 @@ export function navigatorBehavior(view: ViewModel, config: ViewerConfig = Defaul
     dragTo(at) {
       const p = press;
       if (!p || !Number.isFinite(at)) return false;
+      // a drag is a gesture of its own: a double-click no longer folds into the click before it
+      clicked = undefined;
       if (p.part !== 'outside') return win.dragTo(at);
       if (config.navigator.dragOutside === 'pan') {
         // jump there, then the drag pans the window as its body
@@ -223,32 +219,26 @@ export function navigatorBehavior(view: ViewModel, config: ViewerConfig = Defaul
         view.setRange(p.section, p.center - p.width / 2, p.center + p.width / 2);
       }
     },
-    click(section, at) {
-      // the click's step waits: a double-click in time pushes it as its own
-      const snapshot = deferred?.snapshot ?? view.snapshot();
-      if (deferred) DomHost.clearTimeout(deferred.timer as never);
-      const moved = center(section, at, false);
-      deferred = { snapshot, timer: DomHost.setTimeout(flush, DoubleClickMs) };
+    click(section, at, detail = 1) {
+      if (detail > 1) return false;
+      clicked = undefined;
+      if (at === undefined) return false;
+      const moved = center(section, at);
+      if (moved) clicked = section;
       return moved;
     },
     doubleClick(section, at, units) {
       const mode = config.navigator.doubleClick;
+      const folded = clicked === section;
+      clicked = undefined;
       if (mode === 'none') return false;
-      const snapshot = deferred?.snapshot ?? view.snapshot();
-      if (deferred) DomHost.clearTimeout(deferred.timer as never);
-      deferred = undefined;
-      const v = view.get(section);
-      const axisFitted = v !== undefined && isFitted(view, section);
-      const moved =
-        mode === 'fit' || !axisFitted
-          ? view.jump(() => view.fit(section), false) === 'moved'
-          : zoomTo(section, at - units / 2, at + units / 2, false);
-      view.record(snapshot);
-      return moved;
+      const fitted = mode !== 'fit' && isFitted(view, section);
+      return fitted
+        ? zoomTo(section, at - units / 2, at + units / 2, !folded)
+        : view.jump(() => view.fit(section), !folded) === 'moved';
     },
     dispose() {
-      if (deferred) DomHost.clearTimeout(deferred.timer as never);
-      deferred = undefined;
+      clicked = undefined;
     },
   };
 }
@@ -257,9 +247,6 @@ export function navigatorBehavior(view: ViewModel, config: ViewerConfig = Defaul
 function isFitted(view: ViewModel, section: string): boolean {
   const v = view.get(section);
   const axis = view.resolved.value?.sections.find((s) => s.address === section)?.axis;
-  const r = axis?.ranges;
-  if (!v || !r) return false;
-  let total = 0;
-  for (let k = 0; k + 1 < r.length; k += 2) total += r[k + 1] - r[k];
-  return v.start <= 1e-9 && v.end >= total - 1e-9;
+  const total = axis && axisTotal(axis);
+  return v !== undefined && total !== undefined && v.start <= 1e-9 && v.end >= total - 1e-9;
 }

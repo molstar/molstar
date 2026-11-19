@@ -9,11 +9,19 @@
 // (and back within a device pixel), the floor, the parts, the reachable span, the wrap over a cyclic origin.
 
 import type { Node } from '@molstar/core/repr/tree';
-import { createSeqSpec, miniatureNavigator, overviewNavigator, stripNavigator } from '@molstar/seqx-core/lang';
+import { createSeqSpec, miniatureNavigator, overviewNavigator, stripNavigator, theme } from '@molstar/seqx-core/lang';
 import { resolveSpec } from '@molstar/seqx-core/resolve';
 import { resolveViews } from '@molstar/seqx-core/view';
 import { describe, expect, it } from 'vitest';
-import { type BandsLay, NavWindowFlags, navigatorBox, navigatorPart, renderConfig, RowsLay } from '../index.js';
+import {
+  type BandsLay,
+  NavWindowFlags,
+  navigatorBox,
+  navigatorPart,
+  renderConfig,
+  RowsLay,
+  type ValuesLay,
+} from '../index.js';
 import { P53, p53GeneSpec } from './fixtures.js';
 import { Bands, ideogramSpec, settleNavigator } from './navigator-fixtures.js';
 import { rowsSpec, Synthetic } from './rows-fixtures.js';
@@ -22,13 +30,20 @@ import { readRects } from './small-helpers.js';
 const Size = { width: 800, height: 200 };
 const NavSize = { width: 800, height: 48 };
 
-/** p53 as tracks with a navigator made by `form`. */
-function p53Strip(form: (of: string) => Record<string, unknown>): Node {
+/** p53 as tracks with a navigator made by `form` (a cyclic system, a reversed section, as asked). */
+function p53Strip(
+  form: (of: string) => Record<string, unknown>,
+  options: { cyclic?: boolean; reversed?: boolean } = {},
+): Node {
   const b = createSeqSpec({ title: 'p53 strip' });
-  const p53 = b.data.sequence('p53', { alphabet: 'protein', letters: P53 });
+  const p53 = b.data.sequence('p53', {
+    alphabet: 'protein',
+    letters: P53,
+    ...(options.cyclic ? { cyclic: true } : {}),
+  });
   const d = b.data.ranges('domains', { target: p53, rows: { start: [0, 100, 300], end: [60, 290, 393] } });
   b.views.view('v', (v) => {
-    const s = v.section('protein', { of: p53 });
+    const s = v.section('protein', { of: p53, ...(options.reversed ? { direction: 'reversed' as const } : {}) });
     s.track('ruler').layer('ruler', { type: 'ruler' });
     s.track('letters').layer('letters', { type: 'letters' });
     s.track('domains').layer('ranges', { type: 'ranges', data: d });
@@ -152,9 +167,10 @@ describe('the window’s parts', () => {
     expect(navigatorPart(900, 100, 200, 0, 800, c)).toBeUndefined();
     // a 16 px window: its middle still pans
     expect(navigatorPart(108, 100, 116, 0, 800, c)).toBe('body');
-    // by touch the grips are wider
-    expect(navigatorPart(94.5, 100, 200, 0, 800, c, true)).toBe('start');
-    expect(navigatorPart(94.5, 100, 200, 0, 800, c)).toBe('outside');
+    // a grip hits over half the hit width outside its end (the ring's window alike), by touch half the touch hit
+    expect(navigatorPart(94, 100, 200, 0, 800, c)).toBe('start');
+    expect(navigatorPart(93.5, 100, 200, 0, 800, c)).toBe('outside');
+    expect(navigatorPart(88.5, 100, 200, 0, 800, c, true)).toBe('start');
   });
 
   it('a hit on the navigator names its section, part and position', async () => {
@@ -217,6 +233,81 @@ describe('an ideogram', () => {
   });
 });
 
+describe('a window over a cyclic origin', () => {
+  const P = '/views/v/protein';
+  it('two pieces, a grip at each true end; where a piece meets the axis’s end it is body; a drag maps across it', async () => {
+    const s = await settleNavigator(p53Strip((of) => stripNavigator(of), { cyclic: true }));
+    const { nav } = await s.frames(
+      { size: Size, viewport: { start: 380, end: 410 } },
+      { size: NavSize, moves: { [P]: NavWindowFlags.x } },
+    );
+    const w = nav.windows[0];
+    const axis = s.nav.pictureSection!.axis!;
+    expect(w.wrap).toBe(true);
+    const right = axis.x0 + axis.width;
+    expect(w.x0).toBeCloseTo(axis.xOfUnit(380), 6);
+    expect(w.w1).toBeCloseTo(axis.xOfUnit(17), 6);
+    // the parts: at the axis's two ends body, the grips at the window's true ends
+    expect(s.nav.hit(right - 2, 10)?.part).toBe('body');
+    expect(s.nav.hit(axis.x0 + 1, 10)?.part).toBe('body');
+    expect(s.nav.hit(w.x0 - 1, 10)?.part).toBe('start');
+    expect(s.nav.hit(w.w1 + 1, 10)?.part).toBe('end');
+    // the grips drawn: one before the start, one after the true end, none at the axis's ends
+    const c = renderConfig().navigator.window;
+    const grips = readRects(nav.lists, 'window').filter((r) => Math.abs(r.w - c.handlePx) < 1e-6);
+    expect(grips.map((r) => r.x).sort((a, b) => a - b)).toEqual(
+      [w.w1, w.x0 - c.handlePx].map((x) => expect.closeTo(x, 3)),
+    );
+    // a drag across the origin: past the axis's end the section's units keep going
+    expect(s.nav.sectionUnitAt(P, axis.xOfUnit(390))).toBeCloseTo(390, 0);
+    expect(s.nav.sectionUnitAt(P, axis.xOfUnit(5))).toBeCloseTo(5, 0);
+  });
+
+  it('`direction: genomic` on a reversed cyclic section: a window not over the origin is one piece', async () => {
+    const s = await settleNavigator(
+      p53Strip((of) => stripNavigator(of), { cyclic: true, reversed: true }),
+      0,
+      [],
+      {},
+      () => ({ direction: 'genomic' }),
+    );
+    const { nav } = await s.frames(
+      { size: Size, viewport: { start: 100, end: 150 } },
+      { size: NavSize, moves: { [P]: NavWindowFlags.x } },
+    );
+    const w = nav.windows[0];
+    const axis = s.nav.pictureSection!.axis!;
+    expect(axis.dir).toBe(1);
+    expect(w.wrap).toBe(false);
+    expect((w.x1 - w.x0) / axis.scale).toBeCloseTo(50, 0);
+  });
+});
+
+describe('the picture’s colors', () => {
+  it('are the view’s: an open scale’s held domain, never one of its own over the whole axis', async () => {
+    const b = createSeqSpec();
+    const seq = b.data.sequence('s', { alphabet: 'protein', letters: 'M'.repeat(100) });
+    const values = b.data.values('a', { target: seq, values: Float32Array.from({ length: 100 }, (_, i) => i) });
+    const sc = b.views.scale('cons', { label: 'Conservation' });
+    b.views.view('v', (v) => {
+      const sec = v.section('p', { of: seq });
+      sec
+        .track('a')
+        .layer('a', { type: 'values', data: values, scale: sc, color: theme.field('value', { scale: sc }) });
+      v.navigator('strip', stripNavigator(sec, { content: 'tracks' }));
+    });
+    const s = await settleNavigator(b.build(), 0, [], {}, (v) => ({ domains: v.renderer.layoutState }));
+    const { view } = await s.frames(
+      { size: Size, viewport: { start: 0, end: 20 }, settled: true },
+      { size: NavSize, settled: true },
+    );
+    const viewLay = view.layout.sections[0].tracks[0].layers[0].lay as ValuesLay;
+    const picLay = s.nav.pictureSection!.tracks[0].layers[0].lay as ValuesLay;
+    expect(viewLay.domain).toEqual([0, 19]);
+    expect(picLay.domain).toEqual(viewLay.domain);
+  });
+});
+
 describe('a follower’s window', () => {
   it('a protein’s strip draws its gene follower’s window, carried along the codon path', async () => {
     const spec = p53GeneSpec();
@@ -239,6 +330,12 @@ describe('a follower’s window', () => {
     const px = 800 / 393;
     expect(Math.abs(g.x0 - p.x0)).toBeLessThan(px + 1e-6);
     expect(Math.abs(g.x1 - p.x1)).toBeLessThan(px + 1e-6);
+    // past the picture's end a drag keeps going as the path carries the edge: a protein position three nucleotides
+    const axis = s.nav.pictureSection!.axis!;
+    const end = axis.x0 + axis.width;
+    const at = s.nav.sectionUnitAt('/views/main/gene', end - 1e-6)!;
+    const past = s.nav.sectionUnitAt('/views/main/gene', end + 10 * axis.scale)!;
+    expect(Math.abs(past - at)).toBeCloseTo(30, 0);
   });
 });
 
@@ -268,7 +365,7 @@ describe('a vertical overview and a miniature', () => {
     expect(s.nav.rowAt(w.y0)).toBeCloseTo(vr.top, 6);
   });
 
-  it('a lazy alignment draws its rows’ structure only, said', async () => {
+  it('a lazy alignment’s rows are left out, said', async () => {
     const spec = rowsSpec(200_000, false);
     (spec.children![1].children![0].children as Node[]).push({
       kind: 'navigators',

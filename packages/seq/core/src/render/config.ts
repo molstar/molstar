@@ -170,8 +170,8 @@ export interface RenderConfig {
    * width (`minPx`, at most half the span), its least hit width by pointer and by touch, its grips' width (tabs just
    * outside each end, at most a quarter of the window inside it); a floored window drawn `centred` on the truth or as a
    * scrollbar's `thumb`; a miniature's tracks at `trackScale` of their height, at least `trackMinPx`; the marks drawn over
-   * the picture; a navigator with every window idle drawn `quiet` or `hidden`; the ruler rail grown to `grownPx` while
-   * used, its grab zone on an alignment's ruler its lower `grabShare`, a slim rail row `slimPx` high.
+   * the picture; the ruler rail grown to `grownPx` while used, its grab zone on an alignment's ruler its lower
+   * `grabShare`.
    */
   readonly navigator: {
     readonly window: {
@@ -184,8 +184,7 @@ export interface RenderConfig {
     readonly trackScale: number;
     readonly trackMinPx: number;
     readonly marks: readonly ('selection' | 'highlights' | 'cursor')[];
-    readonly idle: 'quiet' | 'hidden';
-    readonly rail: { readonly grownPx: number; readonly grabShare: number; readonly slimPx: number };
+    readonly rail: { readonly grownPx: number; readonly grabShare: number };
   };
   /**
    * The text layout (_spec/README.md "Render", Text layout): its letter size (`scale`, px a position: the zoom), the gap
@@ -274,8 +273,7 @@ export const DefaultRenderConfig: RenderConfig = {
     trackScale: 0.25,
     trackMinPx: 2,
     marks: ['selection', 'highlights', 'cursor'],
-    idle: 'quiet',
-    rail: { grownPx: 6, grabShare: 0.4, slimPx: 12 },
+    rail: { grownPx: 6, grabShare: 0.4 },
   },
   text: {
     scale: 12,
