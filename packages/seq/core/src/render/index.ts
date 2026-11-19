@@ -86,6 +86,7 @@ export {
   type StoreReader,
   sectionId,
 } from './layer-type.js';
+export { BlockMetrics, BlockPlacement } from './layout/blocks.js';
 export {
   RingMetrics,
   type RingParams,
