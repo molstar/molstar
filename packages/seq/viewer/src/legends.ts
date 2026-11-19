@@ -185,3 +185,14 @@ export function highlightColorOf(
     viewer.tokens.colors['seq-cat-5']
   );
 }
+
+export type LegendChannels = 'reserve' | 'collapse';
+export const LegendChannelsModes: readonly LegendChannels[] = ['reserve', 'collapse'];
+/**
+ * The highlight channels' row of the Legend part (DOM-free): whether it is there, for a mode and the number of active
+ * channels. `reserve` has it with or without a channel (empty, it holds the line a channel's row takes: the part draws a
+ * hidden copy, so the height is the real one at any text size); `collapse` only with one.
+ */
+export function channelsRow(mode: LegendChannels, active: number): { present: boolean } {
+  return { present: mode === 'reserve' || active > 0 };
+}

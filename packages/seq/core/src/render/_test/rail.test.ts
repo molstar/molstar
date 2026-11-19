@@ -170,7 +170,7 @@ describe('the ruler rail', () => {
     const f = await s.frame({ size: Size, viewport: { start: 380, end: 410 }, rails, railsActive: active });
     const rail = f.layout.sections[0].rail!;
     expect(rail.end).toBeGreaterThan(rail.total);
-    const segs = readRects(f.lists, 'window').filter((r) => r.h === 2);
+    const segs = readRects(f.lists, 'window').filter((r) => r.h === 1 && r.w !== rail.width);
     expect(segs.length).toBe(2);
     const k = rail.width / rail.total;
     const start = rail.x + 380 * k;
@@ -202,6 +202,26 @@ describe('the ruler rail', () => {
       expect(marks.length).toBe(4);
       for (const r of marks) expect(r.y).toBeGreaterThanOrEqual(lowest);
     }
+  });
+
+  it('at rest is 1 px and muted (the grip’s token), the accent only while hovered or dragged', async () => {
+    const s = await settle(p53());
+    const input: FrameInput = { size: Size, viewport: { start: 100, end: 200 }, rails, railsActive: active };
+    const f = await s.frame(input);
+    const rail = f.layout.sections[0].rail!;
+    const win = (lists: typeof f.lists) =>
+      readRects(lists, 'window').filter((r) => r.h <= 6 && r.w !== 2 && r.w !== rail.width);
+    const rest = win(f.lists);
+    expect(rest.length).toBe(1);
+    expect(rest[0]).toMatchObject({ h: 1, fill: LightTokens.colors['seq-grip'] });
+    expect(readRects(f.lists, 'window').some((r) => r.fill === LightTokens.colors['seq-window'])).toBe(false);
+    const h = { ...hitView(f.layout, 400, rail.y)! };
+    for (const emphasis of [{ hover: h }, { drag: h }]) {
+      const lit = win(s.renderer.frame({ ...input, emphasis }).lists);
+      expect(lit[0]).toMatchObject({ h: 6, fill: LightTokens.colors['seq-window'] });
+    }
+    // the grab zone is the same at rest
+    expect(hitView(f.layout, 400, rail.y)?.navigator).toBe('rail');
   });
 
   it('grows while the pointer is over its grab zone, and while its drag runs', async () => {

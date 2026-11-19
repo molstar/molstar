@@ -2165,7 +2165,7 @@ function drawTracks(layout: ViewLayout, out: PassWriter, emphasis: Emphasis | un
   for (let si = 0; si < layout.sections.length; si++) {
     const s = layout.sections[si];
     // the tip is a rows layer's (a hovered cell read whole): a section with none has nothing to walk, as the window pass
-    if (pass === 'tip' && !hasRows(s)) continue;
+    if (pass === 'tip' && !hasRows(s) && s.layout.name !== 'rings') continue;
     s.layout.chrome(s, pass, out, emphasis, -1, -1);
     if (pass === 'window' && s.rail) drawRail(s.rail, out, emphasis, s.tokens, s.config);
     if (pass === 'window' && s.rowsRails)
@@ -2745,7 +2745,7 @@ function pointAt(): Float64Array {
   return HitAt;
 }
 
-export function hitView(layout: ViewLayout, x: number, y: number, touch = false): Hit | undefined {
+export function hitView(layout: ViewLayout, x: number, y: number, touch = false, hover?: Hit): Hit | undefined {
   for (const s of layout.sections) {
     const strips = s.placement.strips;
     for (let i = 0; i < strips.n; i++) {
@@ -2778,7 +2778,7 @@ export function hitView(layout: ViewLayout, x: number, y: number, touch = false)
         if (h) return h;
       }
     }
-    const own = s.layout.hitChrome?.(s, x, y);
+    const own = s.layout.hitChrome?.(s, x, y, hover);
     if (own) return own;
     // a `section` layer's marks, on the page, over the strips'
     for (let i = s.sectionLays.length - 1; i >= 0; i--) {

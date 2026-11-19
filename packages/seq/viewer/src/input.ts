@@ -401,7 +401,8 @@ export class ViewerInput {
     // tip reads whole; a title's field; the hidden-columns chip): another's (a logo's letter) would make each move within
     // its position a new hover (the card re-armed, the announcer speaking again)
     const t = h.target;
-    out.state = t === 'row' || t === 'column-title' || t === 'columns-hidden' ? h.state : undefined;
+    out.state = t === 'row' || t === 'column-title' || t === 'columns-hidden' || t === 'group' ? h.state : undefined;
+    out.members = h.members;
     return this._hit;
   }
 

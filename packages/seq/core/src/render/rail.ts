@@ -104,7 +104,7 @@ export class Rail {
   };
 }
 
-/** The rail's thickness at rest: a line a hint, the window a segment twice it. */
+/** The rail's thickness: a line a hint, a figure's window a segment twice it (a usable rail's at rest is a line too). */
 const Line = 1;
 const Rest = 2;
 /** A grip's height over the segment's. */
@@ -297,9 +297,15 @@ export function drawRail(
   const dragged = d !== undefined && d.navigator === own && d.layer === rail.key;
   const plain = rail.active || rail.figure;
   const grown = rail.active && (lit !== undefined || dragged);
-  const t = grown ? config.navigator.rail.grownPx : plain ? Rest : Line;
+  // at rest (usable, not hovered or dragged, not in a figure): 1 px and muted, the accent only while used
+  const rest = rail.active && !rail.figure && !grown;
+  const t = grown ? config.navigator.rail.grownPx : rest ? Line : plain ? Rest : Line;
   const ink = tokens.colors['seq-window'];
-  const color = plain ? ink : ((ink & 0xffffff00) | Math.round(IdleAlpha * 255)) >>> 0;
+  const color = rest
+    ? tokens.colors['seq-grip']
+    : plain
+      ? ink
+      : ((ink & 0xffffff00) | Math.round(IdleAlpha * 255)) >>> 0;
   windowEnds(rail, config);
   const wraps = rail.end > rail.total;
   // over a cyclic origin the second piece from the axis's start to the window's true end

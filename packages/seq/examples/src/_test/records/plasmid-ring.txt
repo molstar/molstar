@@ -170,24 +170,24 @@ path M 132.52 226.85 L 126.98 229.15 L 114.07 229.15 none stroke #6b655cff 1
 text "ori" 111.07 232.65 end "10px sans" #2d271eff width 11.11 max 96
 text "pUC19c" 260 172 middle "12px sans" #2d271eff width 0 max 85.68
 text "2,686 bp" 260 188 middle "12px sans" #6b655cff width 0 max 85.68
-text "200" 285.47 123.45 middle "10px mono" #8a847aff width 18
-text "400" 305.52 140.37 middle "10px mono" #8a847aff width 18
-text "600" 315.8 164.51 middle "10px mono" #8a847aff width 18
-text "800" 314.08 190.7 middle "10px mono" #8a847aff width 18
-text "1000" 300.74 213.29 middle "10px mono" #8a847aff width 24
-text "1200" 278.64 227.44 middle "10px mono" #8a847aff width 24
-text "1400" 252.54 230.11 middle "10px mono" #8a847aff width 24
-text "1600" 228.04 220.71 middle "10px mono" #8a847aff width 24
-text "1800" 210.41 201.28 middle "10px mono" #8a847aff width 24
-text "2000" 203.43 175.99 middle "10px mono" #8a847aff width 24
-text "2200" 208.62 150.26 middle "10px mono" #8a847aff width 24
-text "2400" 224.84 129.64 middle "10px mono" #8a847aff width 24
-text "2600" 248.63 118.55 middle "10px mono" #8a847aff width 24
+text "200" 285.47 123.45 middle "10px mono" #5c574fff width 18
+text "400" 305.52 140.37 middle "10px mono" #5c574fff width 18
+text "600" 315.8 164.51 middle "10px mono" #5c574fff width 18
+text "800" 314.08 190.7 middle "10px mono" #5c574fff width 18
+text "1000" 300.74 213.29 middle "10px mono" #5c574fff width 24
+text "1200" 278.64 227.44 middle "10px mono" #5c574fff width 24
+text "1400" 252.54 230.11 middle "10px mono" #5c574fff width 24
+text "1600" 228.04 220.71 middle "10px mono" #5c574fff width 24
+text "1800" 210.41 201.28 middle "10px mono" #5c574fff width 24
+text "2000" 203.43 175.99 middle "10px mono" #5c574fff width 24
+text "2200" 208.62 150.26 middle "10px mono" #5c574fff width 24
+text "2400" 224.84 129.64 middle "10px mono" #5c574fff width 24
+text "2600" 248.63 118.55 middle "10px mono" #5c574fff width 24
 text "Forward strand" 8 382.2 start "12px sans" #6b655cff width 80.69 max 82
 text "primer site" 230 388.5 start "10px sans" #2d271eff width 46.67 max 46.67
 text "Reverse strand" 8 422.2 start "12px sans" #6b655cff width 81.36 max 82
 text "bla (AmpR)" 299 428.5 start "10px sans" #000000ff width 50.56 max 50.56
 text "pUC19c" 8 454.2 start "12px sans" #6b655cff width 43.34 max 82
 text "" 8 479.2 start "12px sans" #6b655cff width 0 max 82
-text "2650" 211.85 477 middle "10px mono" #8a847aff width 24
-text "50" 409.65 477 middle "10px mono" #8a847aff width 12
+text "2650" 211.85 477 middle "10px mono" #5c574fff width 24
+text "50" 409.65 477 middle "10px mono" #5c574fff width 12

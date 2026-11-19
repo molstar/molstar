@@ -24,6 +24,7 @@ import {
   recordDrawLists,
   drawListsToSvg,
   hitView,
+  openGroupOf,
 } from '../index.js';
 import { renderSvg } from '../render-svg.js';
 import type { FormatRuntime } from '@molstar/seqx-core/data';
@@ -378,6 +379,156 @@ describe('a plasmid’s labels', () => {
       }
     }
     expect(overlaps).toBe(0);
+  });
+});
+
+describe('a dense fan of labels', () => {
+  /** A 2,686 bp ring: `dense` sites 4 bp apart (a 2° fan at most), and three features across the ring. */
+  function denseSpec(dense: number) {
+    const n = 2686;
+    const sites = { start: [] as number[], end: [] as number[], id: [] as string[], label: [] as string[] };
+    for (let k = 0; k < dense; k++) {
+      sites.start.push(1081 + 4 * k);
+      sites.end.push(1085 + 4 * k);
+      sites.id.push(`s${k}`);
+      sites.label.push(`Site${k}`);
+    }
+    const far = { start: [100, 700, 2000], end: [180, 780, 2080], id: ['a', 'b', 'c'], label: ['a', 'b', 'c'] };
+    const b = createSeqSpec({ title: 'dense ring' });
+    const c = b.data.sequence('plasmid', { alphabet: 'dna', letters: 'A'.repeat(n), cyclic: true });
+    const fs = b.data.ranges('sites', { target: c, rows: sites });
+    const ff = b.data.ranges('far', { target: c, rows: far });
+    b.views.view('v', (v) => {
+      const ring = v.section('ring', { of: c, layout: 'rings' });
+      ring.track('sites').layer('sites', { type: 'ranges', data: fs });
+      ring.track('far').layer('far', { type: 'ranges', data: ff });
+    });
+    return b.build();
+  }
+  const placed = async (dense: number, config = {}) => {
+    const s = await settle(denseSpec(dense), [], config);
+    const p = ringOf(await s.frame({ size: Size })).placement as RingPlacement;
+    return Array.from({ length: p.labels.m }, (_, k) => p.labels.text[p.labels.placed[k]]).sort();
+  };
+
+  it('more than six labels within 12 degrees are one grouped label with the count', async () => {
+    const texts = await placed(13);
+    expect(texts).toEqual(['13 items', 'a', 'b', 'c']);
+  });
+
+  it('six or fewer keep their own labels; a fan wider than the span splits into groups of its own', async () => {
+    expect((await placed(6)).filter((t) => t.startsWith('Site')).length).toBe(6);
+    // 4 bp apart is 0.54° a site: 13 sites span 6.5°; a 5° span groups the first 10 (over 6) and leaves the last 3 apart
+    const texts = await placed(13, { rings: { cluster: { over: 6, degrees: 5 } } });
+    expect(texts.filter((t) => t.endsWith('items')).length).toBe(1);
+  });
+
+  it('degrees 0 never groups', async () => {
+    expect(
+      (await placed(13, { rings: { cluster: { over: 6, degrees: 0 } } })).filter((t) => t.startsWith('Site')).length,
+    ).toBe(13);
+  });
+
+  /** The label at the placed slot `k` of a set: a page point inside its box. */
+  const labelPoint = (p: RingPlacement, set: RingPlacement['labels'], k: number) => ({
+    x: set.right[k] ? set.x[k] + 3 : set.x[k] - 3,
+    y: set.y[k] - 0.35 * p.labelSize,
+  });
+  const groupSlot = (p: RingPlacement) => {
+    for (let k = 0; k < p.labels.m; k++) if (p.labels.of[p.labels.placed[k]] >= 0) return k;
+    return -1;
+  };
+
+  it('both forms are placed with the layout: the grouped label and the fan of its members, nothing laid out on a hover', async () => {
+    const s = await settle(denseSpec(13));
+    const f = await s.frame({ size: Size });
+    const p = ringOf(f).placement as RingPlacement;
+    expect(p.fan.ng).toBe(1);
+    expect(p.fan.groupSize[0]).toBe(13);
+    const members = Array.from(p.fan.members.subarray(0, 13), (i) => p.fan.text[i]).sort();
+    expect(members).toEqual(Array.from({ length: 13 }, (_, k) => `Site${k}`).sort());
+    for (let q = 0; q < 13; q++) expect(p.fan.slot[p.fan.members[q]]).toBeGreaterThanOrEqual(0);
+    const k = groupSlot(p);
+    const hit = p.labels.hits[p.labels.placed[k]]!;
+    expect(hit).toMatchObject({ target: 'group', count: 13 });
+    expect(hit.members!.map((m) => m.element!.key).sort()).toEqual(
+      Array.from({ length: 13 }, (_, q) => `s${q}`).sort(),
+    );
+    // a hover redraws the emphasis passes alone: the same layout, no rebuild
+    const over = hitAtPage(f, labelPoint(p, p.labels, k).x, labelPoint(p, p.labels, k).y)!;
+    expect(over.target).toBe('group');
+    const hovered = s.renderer.frame({ size: Size, emphasis: { hover: { ...over } } });
+    expect(hovered.rebuilt).toBe(false);
+    expect(ringOf(hovered).placement).toBe(p);
+  });
+
+  it('a hover on the group draws the fan (the grouped form at rest), and its labels are hit as their items', async () => {
+    const s = await settle(denseSpec(13));
+    const f = await s.frame({ size: Size });
+    const p = ringOf(f).placement as RingPlacement;
+    const rest = recordDrawLists(f.lists);
+    expect(rest).toContain('13 items');
+    expect(rest).not.toContain('Site3');
+    const k = groupSlot(p);
+    const at = labelPoint(p, p.labels, k);
+    const over = hitAtPage(f, at.x, at.y)!;
+    const hovered = s.renderer.frame({ size: Size, emphasis: { hover: { ...over } } });
+    const lists = recordDrawLists(hovered.lists);
+    for (let q = 0; q < 13; q++) expect(lists).toContain(`Site${q}`);
+    expect(openGroupOf(p, over)).toBe(0);
+    // a fan label is hit as its item, while the group is open
+    const i = p.fan.members[3];
+    const slot = p.fan.slot[i];
+    const pt = labelPoint(p, p.fan, slot);
+    // the hit reads the hover it is given, as the draw does: no draw between (`f` was never drawn with the hover)
+    const member = hitView(f.layout, pt.x, pt.y, false, { ...over })!;
+    expect(member.element?.key).toBe(p.fan.hits[i]!.element!.key);
+    expect(hitView(f.layout, pt.x, pt.y)?.element?.key).not.toBe(p.fan.hits[i]!.element!.key);
+    // the member's own hover keeps its group open
+    expect(openGroupOf(p, { ...member })).toBe(0);
+    // a hover on that item keeps the fan open; off the group the grouped form is drawn again
+    const again = s.renderer.frame({ size: Size, emphasis: { hover: { ...member } } });
+    expect(recordDrawLists(again.lists)).toContain('Site12');
+    const off = s.renderer.frame({ size: Size, emphasis: {} });
+    expect(recordDrawLists(off.lists)).not.toContain('Site3');
+    expect(openGroupOf(p, undefined)).toBe(-1);
+    // closed, the fan's place is the grouped labels' again
+    expect(hitAtPage(off, pt.x, pt.y)?.target).not.toBe('group');
+  });
+
+  it('an export draws the grouped form alone', async () => {
+    const out = await renderSvg(denseSpec(13), { size: Size });
+    const texts = [...out.svg.matchAll(/<text[^>]*>([^<]*)<\/text>/g)].map((m) => m[1]);
+    expect(texts).toContain('13 items');
+    expect(texts.some((t) => t.startsWith('Site'))).toBe(false);
+  });
+
+  it('a fan across the origin (355° to 5°) is one group, its label at the origin', async () => {
+    const n = 2686;
+    const sites = { start: [] as number[], end: [] as number[], id: [] as string[], label: [] as string[] };
+    // 13 sites 3 bp apart from 2650 (355°) through the origin to 33 bp (4.4°)
+    for (let k = 0; k < 13; k++) {
+      const st = (2650 + 6 * k) % n;
+      sites.start.push(st);
+      sites.end.push(st + 3 > n ? n : st + 3);
+      sites.id.push(`w${k}`);
+      sites.label.push(`Wrap${k}`);
+    }
+    const b = createSeqSpec({ title: 'seam ring' });
+    const c = b.data.sequence('plasmid', { alphabet: 'dna', letters: 'A'.repeat(n), cyclic: true });
+    const fs = b.data.ranges('sites', { target: c, rows: sites });
+    b.views.view('v', (v) => {
+      v.section('ring', { of: c, layout: 'rings' }).track('sites').layer('sites', { type: 'ranges', data: fs });
+    });
+    const s = await settle(b.build());
+    const p = ringOf(await s.frame({ size: Size })).placement as RingPlacement;
+    expect(p.fan.ng).toBe(1);
+    expect(p.fan.groupSize[0]).toBe(13);
+    expect(p.labels.m).toBe(1);
+    const a = p.fan.groupAngle[0];
+    // the middle of 355° and about 4°: within a few degrees of the top, not the bottom (180°)
+    const off = Math.min(a, 2 * Math.PI - a);
+    expect(off).toBeLessThan((6 * Math.PI) / 180);
   });
 });
 

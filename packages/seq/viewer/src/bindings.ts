@@ -136,6 +136,8 @@ export const SelectionClicks: readonly GestureBinding[] = [
   ...each(ElementTargets, 'click', 'selection.set'),
   ...each(ElementTargets, 'click', 'selection.extend', ['shift']),
   ...each(ElementTargets, 'click', 'selection.toggle', ['mod']),
+  // a ring's grouped label: its items, all
+  { gesture: 'click', target: 'group', action: 'selection.set' },
   { gesture: 'click', target: 'empty', action: 'selection.clear' },
 ];
 

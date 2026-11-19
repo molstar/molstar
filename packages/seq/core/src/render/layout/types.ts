@@ -225,7 +225,7 @@ export interface SectionLayoutType<Kept = unknown> {
     band: number,
   ): void;
   /** What its own marks hit (a filter chip, a gutter's row, a window), before the bands' layers. */
-  hitChrome?(section: SectionLayout, x: number, y: number): Hit | undefined;
+  hitChrome?(section: SectionLayout, x: number, y: number, hover?: Hit): Hit | undefined;
   /**
    * Its strips carry a second transform (`strip.y`, a grid's): every layer is laid out a strip at a time with it
    * (`ctx.axisY`), a `section` layer too (pairs as dots), and its bands overlay the strip.

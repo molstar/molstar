@@ -332,6 +332,8 @@ export class SelectionModel extends ReactiveModel {
    */
   select(hit: Hit | undefined, axis?: Axis): boolean {
     const before = this._value.value;
+    // a ring's grouped label: every item it stands for
+    if (hit?.members?.length) return this._selectGroup(hit.members);
     const range = hit ? hitRange(hit, axis, this._extentOfHit(hit)) : undefined;
     if (!hit || (!hit.element && !range)) {
       this.clear();
@@ -342,6 +344,26 @@ export class SelectionModel extends ReactiveModel {
     if (elementsEqual(next.elements, before.elements) && locationsEqual(next.location, before.location)) this.clear();
     else {
       this._anchor = range;
+      this._rest = NoRest;
+      this._value.set(next);
+    }
+    return before !== this._value.value;
+  }
+
+  /** A group's click: its members' elements, all (the same again clears, as a click on one item does). */
+  private _selectGroup(members: readonly Hit[]): boolean {
+    const before = this._value.value;
+    const keys: ElementKey[] = [];
+    for (const m of members) {
+      if (!m.element) continue;
+      this._extentOfHit(m);
+      keys.push(m.element);
+    }
+    if (!keys.length) return false;
+    const next = this._compose(elements(keys), EmptyLocation);
+    if (elementsEqual(next.elements, before.elements) && locationsEqual(next.location, before.location)) this.clear();
+    else {
+      this._anchor = undefined;
       this._rest = NoRest;
       this._value.set(next);
     }

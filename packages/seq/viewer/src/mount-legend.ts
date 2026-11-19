@@ -5,7 +5,12 @@
  */
 
 import { colorHex } from '@molstar/seqx-core/theme/index';
-import { highlightColorOf, legendRows } from './legends.js';
+import { type LegendChannels, LegendChannelsModes, channelsRow, highlightColorOf, legendRows } from './legends.js';
+
+export type { LegendChannels };
+
+/** The channels the row names before "+n": it is one line, so its height holds whatever the channels or the text size. */
+const MaxChannelsShown = 2;
 import type { SeqViewer } from './viewer.js';
 
 // The `Legend` part (_spec/README.md "Legends"): a part the host places (beside a track header, in a panel, in a Mol*
@@ -19,19 +24,33 @@ export interface LegendPartOptions {
   readonly of?: string;
   /** Entries a legend lists before "+n more" (12). */
   readonly maxItems?: number;
+  /**
+   * The highlight channels' row (_spec/README.md "Legends"): `reserve` (the default) holds its height whenever the part
+   * is mounted, empty with no channel, so a highlight moves nothing below; `collapse` has the row only while a channel
+   * is active.
+   */
+  readonly channels?: LegendChannels;
 }
 
 /** Mounts the legends of a viewer into `element` (`ToolbarMount`'s shape with options). */
 export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: LegendPartOptions = {}): () => void {
+  const channels = options.channels ?? 'reserve';
+  if (!LegendChannelsModes.includes(channels))
+    throw new RangeError(`legend part: channels must be one of ${LegendChannelsModes.join(', ')}, not "${channels}"`);
   const doc = element.ownerDocument;
+  // the part's root holds the legends' listbox and, outside it (a listbox holds options, not buttons), the channels row
+  const root = doc.createElement('div');
+  root.className = 'seqx-legend';
+  root.style.cssText =
+    'font: 12px var(--msui-font-sans, sans-serif); color: var(--msui-text, inherit); display: flex; flex-direction: column; align-items: flex-start; gap: 12px; padding: 12px 0 0;';
   const host = doc.createElement('div');
-  host.className = 'seqx-legend';
   host.tabIndex = 0;
   host.setAttribute('role', 'listbox');
   host.setAttribute('aria-label', 'Legend');
-  host.style.cssText =
-    'font: 12px var(--msui-font-sans, sans-serif); color: var(--msui-text, inherit); display: flex; flex-wrap: wrap; gap: 4px 12px; padding: 4px 0;';
-  element.append(host);
+  host.style.cssText = 'display: flex; flex-direction: column; align-items: flex-start; gap: 12px;';
+  const channelsEl = doc.createElement('div');
+  root.append(host);
+  element.append(root);
   let focus = 0;
   let items: HTMLElement[] = [];
 
@@ -45,7 +64,7 @@ export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: Le
   const draw = () => {
     // a Clear button that has the focus keeps it across the redraw (its channel's new button, else the part itself)
     const active = doc.activeElement;
-    const focusedClear = active instanceof HTMLElement && host.contains(active) ? active.dataset.clear : undefined;
+    const focusedClear = active instanceof HTMLElement && root.contains(active) ? active.dataset.clear : undefined;
     shownKey = highlightKey();
     host.replaceChildren();
     items = [];
@@ -57,7 +76,8 @@ export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: Le
       group.style.cssText = 'display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px;';
       const title = doc.createElement('span');
       title.textContent = row.title + (row.note ? ` (${row.note})` : '');
-      title.style.color = 'var(--msui-text-muted, gray)';
+      // a group's title: muted, 600, 11 px (_spec/README.md "Legends")
+      title.style.cssText = 'color: var(--msui-text-muted, gray); font-weight: 600; font-size: 11px;';
       group.append(title);
       for (const e of row.entries) {
         const item = doc.createElement('span');
@@ -98,11 +118,22 @@ export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: Le
       host.append(group);
     }
     // the active highlight channels: their color (as the canvas draws it, by the channel's style) and a clear
-    for (const h of viewer.highlight.names.value) {
+    const names = viewer.highlight.names.value;
+    const slot = channelsRow(channels, names.length);
+    channelsEl.replaceChildren();
+    channelsEl.dataset.channels = channels;
+    // one line whatever the channels or the text size: the first `MaxChannelsShown`, the rest a "+n" chip; under `reserve`
+    // with none, a hidden copy of a channel's row holds the line's real height
+    channelsEl.style.cssText =
+      'display: flex; flex-wrap: nowrap; align-items: center; gap: 12px; overflow: hidden; white-space: nowrap; max-width: 100%;';
+    const channelItem = (h: string, hidden: boolean) => {
       const style = viewer.highlight.get(h)?.style ?? 'tint';
       const row = doc.createElement('span');
-      row.dataset.highlight = h;
       row.style.cssText = 'display: inline-flex; align-items: center; gap: 4px;';
+      if (hidden) {
+        row.setAttribute('aria-hidden', 'true');
+        row.style.visibility = 'hidden';
+      } else row.dataset.highlight = h;
       const color = colorHex(highlightColorOf(viewer, h));
       const swatch = doc.createElement('span');
       swatch.setAttribute('aria-hidden', 'true');
@@ -119,14 +150,30 @@ export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: Le
       const clear = doc.createElement('button');
       clear.type = 'button';
       clear.textContent = 'Clear';
-      clear.setAttribute('aria-label', `Clear the ${h} highlight`);
-      clear.dataset.clear = h;
-      clear.addEventListener('click', () => void viewer.execute('highlight.clear', { channel: h }));
+      if (hidden) clear.tabIndex = -1;
+      else {
+        clear.setAttribute('aria-label', `Clear the ${h} highlight`);
+        clear.dataset.clear = h;
+        clear.addEventListener('click', () => void viewer.execute('highlight.clear', { channel: h }));
+      }
       row.append(clear);
-      host.append(row);
-    }
+      return row;
+    };
+    if (slot.present) {
+      if (names.length) {
+        for (const h of names.slice(0, MaxChannelsShown)) channelsEl.append(channelItem(h, false));
+        if (names.length > MaxChannelsShown) {
+          const more = doc.createElement('span');
+          more.dataset.more = String(names.length - MaxChannelsShown);
+          more.textContent = `+${names.length - MaxChannelsShown}`;
+          more.title = names.slice(MaxChannelsShown).join(', ');
+          channelsEl.append(more);
+        }
+      } else channelsEl.append(channelItem('legend', true));
+      if (channelsEl.parentNode !== root) root.append(channelsEl);
+    } else channelsEl.remove();
     if (focusedClear !== undefined) {
-      const again = [...host.querySelectorAll<HTMLElement>('button[data-clear]')].find(
+      const again = [...root.querySelectorAll<HTMLElement>('button[data-clear]')].find(
         (b) => b.dataset.clear === focusedClear,
       );
       (again ?? host).focus();
@@ -171,7 +218,7 @@ export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: Le
   draw();
   return () => {
     for (const u of unlisten) u();
-    host.remove();
+    root.remove();
   };
 }
 

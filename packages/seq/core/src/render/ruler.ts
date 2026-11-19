@@ -21,7 +21,7 @@ import { Anchor, drawPass, grown, NoColor, type PassName, type PassWriter, passD
 import { RenderIssues } from './issues.js';
 import { type Box, type Emphasis, type Hit, type LayerType, type LayoutContext, sectionId } from './layer-type.js';
 import { readSourceNumbering } from './numberings.js';
-import { type SeqTokens, withAlpha } from './tokens.js';
+import { mutedInk, type SeqTokens, withAlpha } from './tokens.js';
 
 // the anchor a number read once (see ranges.ts)
 const AnchorMiddle: number = Anchor.middle;
@@ -45,9 +45,18 @@ const MinorScale = 4;
 const RulerFont = '10px mono';
 const MajorHeight = 6;
 const MinorHeight = 3;
+/** The ruler's text ink per token table: computed once a table, never per layout. */
+const RulerInks = new WeakMap<SeqTokens, number>();
+function rulerInk(tokens: SeqTokens): number {
+  let ink = RulerInks.get(tokens);
+  if (ink === undefined) {
+    ink = mutedInk(tokens, tokens.colors['seq-ruler'], [tokens.colors['seq-track'], tokens.colors['msui-bg']]);
+    RulerInks.set(tokens, ink);
+  }
+  return ink;
+}
 /** The muted style of an unnumbered run: its line and fallback ticks, its note and fallback labels (alpha of the ruler's). */
 const MutedLine = 0.55;
-const MutedInk = 0.8;
 const Dash = 3;
 /** The note over an unnumbered run, its inset from the run's start and the least gap to a label. */
 const Note = 'not numbered';
@@ -176,8 +185,10 @@ export const RulerType: LayerType<RulerPrep, RulerLay> = {
     lay.nruns = 0;
     lay.tickColors[0] = tokens.colors['seq-ruler'];
     lay.tickColors[1] = withAlpha(tokens.colors['seq-ruler'], MutedLine);
-    lay.inkColors[0] = tokens.colors['seq-ruler'];
-    lay.inkColors[1] = withAlpha(tokens.colors['seq-ruler'], MutedInk);
+    // tick labels and the note hold 4.5:1 on the ruler's well and the page (`mutedInk`); a quieter label is the same ink
+    const ink = rulerInk(tokens);
+    lay.inkColors[0] = ink;
+    lay.inkColors[1] = ink;
     lay.note = Note;
     const gl = axis.gsize > 0 ? ctx.section.params.group_labels : undefined;
     lay.grouped = axis.gsize > 0 && gl !== 'none' ? (gl === 'inline' ? 'inline' : 'above') : '';

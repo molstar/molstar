@@ -74,6 +74,8 @@ export interface Place {
   readonly yBlock?: number | undefined;
   /** What a layer named within the position (a rows column cell: `title: value`). */
   readonly state?: string | undefined;
+  /** A ring's grouped label: the hits of the items it stands for (`target` `group`). */
+  readonly members?: readonly { readonly element?: ElementKey | undefined }[] | undefined;
 }
 
 /** The parts a description collects. */
@@ -175,6 +177,33 @@ const PairSection: CardSection = {
     out.whole = true;
   },
 };
+
+/** A ring's grouped label (a dense fan as one): its members, each with its extent. */
+const GroupSection: CardSection = {
+  name: 'group',
+  describe(at, out) {
+    const l = at.layer;
+    const members = at.place.members;
+    if (out.whole || at.place.target !== 'group' || !members?.length || !l?.type.items) return;
+    const items = at.words.itemsOf(l);
+    const system = at.words.systemName(l.layer.data?.system ?? at.section.section.axis.system);
+    out.title = `${members.length} items`;
+    const shown = members.slice(0, GroupRows);
+    const said: string[] = [];
+    for (const m of shown) {
+      const it = m.element ? items.find((d) => d.key === m.element!.key) : undefined;
+      if (!it) continue;
+      out.row(it.label, `${system} ${extentText(it)}`);
+      said.push(it.label);
+    }
+    if (members.length > shown.length) out.row('More', `${members.length - shown.length} more`);
+    out.words.push(`${members.length} items: ${said.join(', ')}${members.length > shown.length ? ' and more' : ''}`);
+    out.whole = true;
+  },
+};
+
+/** The rows a group's card lists before "n more". */
+const GroupRows = 12;
 
 /** An item (a range, a feature): its label, its extent, its category. */
 const ItemSection: CardSection = {
@@ -328,6 +357,7 @@ const PlaceSection: CardSection = {
 // the block last: what is in it is said first, then its chain
 const Sections: readonly CardSection[] = [
   PairSection,
+  GroupSection,
   ItemSection,
   ColumnsHiddenSection,
   RowSection,

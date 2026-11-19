@@ -48,6 +48,11 @@ const Env: Record<Alphabet, { alphabet: Alphabet }> = {
 
 /** A letter's cap height as a share of its font size: what a placed letter's vertical scale stretches. */
 const CapHeight = 0.72;
+/**
+ * The least glyph height (px) a stacked letter is drawn as a letter: below it the bottom of a stack is an unreadable
+ * pile, so the letter is a flat block of its color, its column wide and its height tall (the defaults audit).
+ */
+export const MinLogoGlyphPx = 9;
 
 export interface LogoPrep {
   readonly src?: LayerSource;
@@ -79,6 +84,10 @@ export class LogoLay {
   vs = new Float32Array(64);
   color = new Uint32Array(64);
   code = new Uint8Array(64);
+  /** Placed letters under `MinLogoGlyphPx` tall: drawn as a flat block `cellW` wide (kept for the hit); `flatN` of them. */
+  flat = new Uint8Array(64);
+  flatN = 0;
+  cellW = 0;
   font = '20px mono';
   fontSize = 20;
   /** Bars (below 2 device px a column): x, y, w, h, color; `m` of them. */
@@ -128,6 +137,7 @@ export const LogoType: LayerType<LogoPrep, LogoLay> = {
     lay.hoverOffset = config.emphasis.hoverOffset;
     lay.config = config;
     lay.n = 0;
+    lay.flatN = 0;
     lay.m = 0;
     lay.pending = false;
     if (!prep.src) return lay;
@@ -227,6 +237,7 @@ export const LogoType: LayerType<LogoPrep, LogoLay> = {
       }
       return lay;
     }
+    lay.cellW = axis.scale;
     lay.fontSize = Math.max(8, Math.min(64, Math.floor(axis.scale / config.monoAdvance)));
     lay.font = `${lay.fontSize}px mono`;
     const K = profile.letters.length;
@@ -251,10 +262,13 @@ export const LogoType: LayerType<LogoPrep, LogoLay> = {
           lay.vs = grown(lay.vs, i + 1);
           lay.color = grown(lay.color, i + 1);
           lay.code = grown(lay.code, i + 1);
+          lay.flat = grown(lay.flat, i + 1);
         }
         lay.lx[i] = x;
         lay.ly[i] = y;
         lay.vs[i] = h / (lay.fontSize * CapHeight);
+        lay.flat[i] = h < MinLogoGlyphPx ? 1 : 0;
+        lay.flatN += lay.flat[i];
         lay.code[i] = profile.letters[k];
         lay.color[i] = fillOf(profile.letters[k], j);
         y -= h;
@@ -316,9 +330,26 @@ function drawLogo(lay: LogoLay, out: PassWriter) {
     out.rectArgs();
   }
   if (!lay.n) return;
+  // the stack's small letters, flat blocks of their color (never a pile of glyphs)
+  for (let i = 0; i < lay.n; i++) {
+    if (!lay.flat[i]) continue;
+    const h = lay.vs[i] * lay.fontSize * CapHeight;
+    g[0] = lay.lx[i] - lay.cellW / 2;
+    g[1] = lay.ly[i] - h;
+    g[2] = lay.cellW;
+    g[3] = h;
+    g[4] = lay.color[i];
+    g[5] = NoColor;
+    g[6] = 0;
+    g[7] = 0;
+    g[8] = 0;
+    out.rectArgs();
+  }
+  if (lay.flatN === lay.n) return;
   g[1] = lay.box.y + lay.box.height;
   out.beginGlyphsArgs(lay.font, NoColor);
   for (let i = 0; i < lay.n; i++) {
+    if (lay.flat[i]) continue;
     g[0] = lay.lx[i];
     g[1] = lay.ly[i];
     g[2] = 0;
