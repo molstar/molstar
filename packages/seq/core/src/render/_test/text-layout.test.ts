@@ -14,11 +14,14 @@ import { rangesLocation } from '@molstar/seqx-core/query';
 import { describe, expect, it } from 'vitest';
 import {
   Cut,
+  DarkTokens,
   type FrameLay,
   type LettersLay,
   hitView,
   lineOf,
+  LightTokens,
   lineStart,
+  mixColors,
   type NavContext,
   type RangesLay,
   PlacePoint,
@@ -28,6 +31,7 @@ import {
   TextNav,
   type TextPlacement,
 } from '../index.js';
+import { paintStrip, resetStrip, type StripBuffers, ThinStripShare } from '../ranges.js';
 import { BigRuntime, P53, p53TextSpec } from './fixtures.js';
 import { settle } from './helpers.js';
 import { rng } from './small-helpers.js';
@@ -353,6 +357,82 @@ describe('the text layout', () => {
       .split('\n')
       .filter((l) => l.startsWith('image ')).length;
     expect(images).toBe(kept);
+  });
+
+  it('the track labels of thin bands in the gutter never overlap, drawn and exported', async () => {
+    const b = createSeqSpec({ title: 'labels' });
+    const p53 = b.data.sequence('p53', { alphabet: 'protein', letters: P53 });
+    const d = b.data.ranges('domains', { target: p53, rows: { start: [0, 94], end: [61, 292] } });
+    b.views.view('main', { layout: 'text' }, (v) => {
+      const s = v.section('protein', { of: p53 });
+      s.track('letters', { label: 'p53' }).layer('letters', { type: 'letters' });
+      s.track('domains', { label: 'Domains' }).layer('ranges', { type: 'ranges', data: d });
+      s.track('regions', { label: 'Regions' }).layer('ranges', { type: 'ranges', data: d });
+      s.track('motifs', { label: 'Motifs' }).layer('ranges', { type: 'ranges', data: d });
+    });
+    const spec = b.build();
+    const fontSize = 12;
+    // the label boxes, a font size tall above their baseline, in the order drawn: each below the one before
+    const check = (ys: number[]) => {
+      expect(ys.length).toBe(4);
+      for (let i = 1; i < ys.length; i++) expect(ys[i] - ys[i - 1], `label ${i}`).toBeGreaterThanOrEqual(fontSize);
+    };
+    const s = await settle(spec);
+    const f = await s.frame({ size: Size });
+    const names = ['p53', 'Domains', 'Regions', 'Motifs'];
+    const drawn = recordDrawLists(f.lists, ['labels'])
+      .split('\n')
+      .map((l) => /^text "([^"]*)" 8 ([\d.]+) start/.exec(l))
+      .filter((m) => m && names.includes(m[1]))
+      .map((m) => Number(m![2]));
+    check(drawn);
+    const svg = (await renderSvg(spec, { size: { width: Size.width, height: 'auto' }, dpr: 1 })).svg;
+    const exported = [...svg.matchAll(/<text x="8" y="([\d.]+)" text-anchor="start"[^>]*>([^<]*)<\/text>/g)]
+      .filter((m) => names.includes(m[2]))
+      .map((m) => Number(m[1]));
+    check(exported);
+    expect(exported).toEqual(drawn);
+  });
+
+  it('a thin band’s density strip stays in the density tokens’ light end, in both themes', async () => {
+    const b = createSeqSpec({ title: 'overlaps' });
+    const p53 = b.data.sequence('p53', { alphabet: 'protein', letters: P53 });
+    const d = b.data.ranges('domains', { target: p53, rows: { start: [0, 50], end: [61, 94] } });
+    b.views.view('main', { layout: 'text' }, (v) => {
+      const s = v.section('protein', { of: p53 });
+      s.track('letters').layer('letters', { type: 'letters' });
+      s.track('domains').layer('ranges', { type: 'ranges', data: d });
+    });
+    const s = await settle(b.build(), [], { text: { maxHeight: 4000 } });
+    const f = await s.frame({ size: Size });
+    const sec = f.layout.sections[0];
+    const nb = text(sec).strips.bands;
+    const px = (data: Uint8Array, c: number) =>
+      ((data[4 * c] << 24) | (data[4 * c + 1] << 16) | (data[4 * c + 2] << 8) | data[4 * c + 3]) >>> 0;
+    // the layer's strip: every painted column is a color of the ramp's light share, the busiest one exactly its end
+    const low = LightTokens.colors['seq-density-low'];
+    const high = LightTokens.colors['seq-density-high'];
+    const colors = new Set<number>();
+    for (let i = 0; i < text(sec).strips.n; i++) {
+      const lay = sec.lays[i * nb + 1][0]?.lay as RangesLay | undefined;
+      if (lay?.mode !== 'density') continue;
+      for (let c = 0; c < lay.density!.width; c++)
+        if (px(lay.density!.data, c) !== 0) colors.add(px(lay.density!.data, c));
+    }
+    expect(colors.size).toBeGreaterThan(0);
+    expect(colors.has(mixColors(low, high, ThinStripShare))).toBe(true);
+    expect(colors.has(high)).toBe(false);
+    // in both themes: the busiest column is the share of the ramp, a column of half its count half of that
+    for (const tokens of [LightTokens, DarkTokens]) {
+      const lo = tokens.colors['seq-density-low'];
+      const hi = tokens.colors['seq-density-high'];
+      const strip = { diff: new Float64Array(0), counts: new Float64Array(0), v: 1 } as unknown as StripBuffers;
+      resetStrip(strip, 3);
+      strip.diff.set([1, 1, 0, -2]);
+      const data = paintStrip(strip, 3, tokens, ThinStripShare).data;
+      expect(px(data, 0)).toBe(mixColors(lo, hi, ThinStripShare / 2));
+      expect(px(data, 1)).toBe(mixColors(lo, hi, ThinStripShare));
+    }
   });
 
   it('too many lines are said, and the lines past the bound are not laid out', async () => {

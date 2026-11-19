@@ -50,7 +50,7 @@ clip 156.02 42 498 6
 rect 354 43 114 4 #d9536fff
 unclip
 clip 156.02 50 498 4
-image 156.02 50 498 4 498x1 daded475
+image 156.02 50 498 4 498x1 b6d08055
 unclip
 unclip
 clip 8 8 704 524
@@ -98,7 +98,7 @@ rect 642 76 12 18 #efe8b8ff
 glyphs "13px mono" 89.55 per D 162 #2d271eff, D 174 #2d271eff, L 186 #2d271eff, M 198 #2d271eff, L 210 #2d271eff, S 222 #2d271eff, P 234 #2d271eff, D 246 #2d271eff, D 258 #2d271eff, I 270 #2d271eff, E 288 #2d271eff, Q 300 #2d271eff, W 312 #2d271eff, F 324 #2d271eff, T 336 #2d271eff, E 348 #2d271eff, D 360 #2d271eff, P 372 #2d271eff, G 384 #2d271eff, P 396 #2d271eff, D 414 #2d271eff, E 426 #2d271eff, A 438 #2d271eff, P 450 #2d271eff, R 462 #2d271eff, M 474 #2d271eff, P 486 #2d271eff, E 498 #2d271eff, A 510 #2d271eff, A 522 #2d271eff, P 540 #2d271eff, P 552 #2d271eff, V 564 #2d271eff, A 576 #2d271eff, P 588 #2d271eff, A 600 #2d271eff, P 612 #2d271eff, A 624 #2d271eff, A 636 #2d271eff, P 648 #2d271eff
 unclip
 clip 156.02 96 498 4
-image 156.02 96 498 4 498x1 429cc335
+image 156.02 96 498 4 498x1 740e8f95
 unclip
 unclip
 clip 8 8 704 524
@@ -150,7 +150,7 @@ path M 408 143.8 L 524.4 143.8 L 524.4 143 L 528 145 L 524.4 147 L 524.4 146.2 L
 rect 546 143.8 108 2.4 #e8a33dff
 unclip
 clip 156.02 150 498 4
-image 156.02 150 498 4 498x1 14af7bac
+image 156.02 150 498 4 498x1 b79723a3
 unclip
 unclip
 clip 8 8 704 524
@@ -204,7 +204,7 @@ path M 480 197.8 L 554.4 197.8 L 554.4 197 L 558 199 L 554.4 201 L 554.4 200.2 L
 rect 606 197.8 48 2.4 #e8a33dff
 unclip
 clip 156.02 204 498 4
-image 156.02 204 498 4 498x1 daded475
+image 156.02 204 498 4 498x1 b6d08055
 unclip
 unclip
 clip 8 8 704 524
@@ -256,7 +256,7 @@ path M 156 251.8 L 224.4 251.8 L 224.4 251 L 228 253 L 224.4 255 L 224.4 254.2 L
 rect 294 251 84 4 #d9536fff
 unclip
 clip 156.02 258 498 4
-image 156.02 258 498 4 498x1 daded475
+image 156.02 258 498 4 498x1 b6d08055
 unclip
 unclip
 clip 8 8 704 524
@@ -310,7 +310,7 @@ path M 492 305.8 L 554.4 305.8 L 554.4 305 L 558 307 L 554.4 309 L 554.4 308.2 L
 rect 570 305.8 84 2.4 #e8a33dff
 unclip
 clip 156.02 312 498 4
-image 156.02 312 498 4 498x1 daded475
+image 156.02 312 498 4 498x1 b6d08055
 unclip
 unclip
 clip 8 8 704 524
@@ -363,7 +363,7 @@ path M 456 359.8 L 566.4 359.8 L 566.4 359 L 570 361 L 566.4 363 L 566.4 362.2 L
 rect 618 359 36 4 #d9536fff
 unclip
 clip 156.02 366 498 4
-image 156.02 366 498 4 498x1 daded475
+image 156.02 366 498 4 498x1 b6d08055
 unclip
 unclip
 clip 8 8 704 524
@@ -414,7 +414,7 @@ clip 156.02 412 498 6
 rect 156 413 84 4 #d9536fff
 unclip
 clip 156.02 420 498 4
-image 156.02 420 498 4 498x1 2289b195
+image 156.02 420 498 4 498x1 84dc8775
 unclip
 unclip
 clip 8 8 704 524
@@ -465,7 +465,7 @@ clip 156.02 466 498 6
 rect 330 467 114 4 #d9536fff
 unclip
 clip 156.02 474 498 4
-image 156.02 474 498 4 498x1 cc382ef5
+image 156.02 474 498 4 498x1 cb7ed5d5
 unclip
 unclip
 clip 8 8 704 524
@@ -506,7 +506,7 @@ rect 558 500 12 18 #f6d9beff
 glyphs "13px mono" 513.55 per G 162 #2d271eff, S 174 #2d271eff, R 186 #2d271eff, A 198 #2d271eff, H 210 #2d271eff, S 222 #2d271eff, S 234 #2d271eff, H 246 #2d271eff, L 258 #2d271eff, K 270 #2d271eff, S 288 #2d271eff, K 300 #2d271eff, K 312 #2d271eff, G 324 #2d271eff, Q 336 #2d271eff, S 348 #2d271eff, T 360 #2d271eff, S 372 #2d271eff, R 384 #2d271eff, H 396 #2d271eff, K 414 #2d271eff, K 426 #2d271eff, L 438 #2d271eff, M 450 #2d271eff, F 462 #2d271eff, K 474 #2d271eff, T 486 #2d271eff, E 498 #2d271eff, G 510 #2d271eff, P 522 #2d271eff, D 540 #2d271eff, S 552 #2d271eff, D 564 #2d271eff
 unclip
 clip 156.02 520 414 4
-image 156.02 520 414 4 414x1 ebfb75f5
+image 156.02 520 414 4 414x1 45610255
 unclip
 unclip
 pass window
@@ -616,14 +616,14 @@ clip 8 8 704 524
 unclip
 pass labels
 clip 8 8 704 524
+text "p53" 8 35.2 start "12px sans" #6b655cff width 20.02 max 112
+text "Secondary structure" 8 49.2 start "12px sans" #6b655cff width 107.38 max 112
+text "Domains" 8 61.2 start "12px sans" #6b655cff width 47.34 max 112
 text "1" 148.02 35.2 end "12px sans" #6b655cff width 6.67
 text "10" 270.02 20 middle "10px sans" #6b655cff width 11.12
 text "20" 396.02 20 middle "10px sans" #6b655cff width 11.12
 text "30" 522.02 20 middle "10px sans" #6b655cff width 11.12
 text "40" 648.02 20 middle "10px sans" #6b655cff width 11.12
-text "p53" 8 35.2 start "12px sans" #6b655cff width 20.02 max 112
-text "Secondary structure" 8 49.2 start "12px sans" #6b655cff width 107.38 max 112
-text "Domains" 8 56.2 start "12px sans" #6b655cff width 47.34 max 112
 unclip
 clip 8 8 704 524
 text "41" 148.02 89.2 end "12px sans" #6b655cff width 13.34

@@ -91,6 +91,12 @@ export interface RangesPrep extends ItemsPrep {
   readonly channels: LayerChannels;
 }
 
+/**
+ * The part of the density ramp a strip in a band under a lane's height reaches: a thin band (a text line's underline)
+ * reads as a band in the light end, not as a dark rule under the line.
+ */
+export const ThinStripShare = 0.3;
+
 type Mode = 'items' | 'bars' | 'density';
 
 export interface RangesLay extends ItemsBase {
@@ -443,13 +449,13 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
     if (lay.mode === 'density') {
       lay.densityY = box.y;
       lay.densityH = box.height;
-      densityStrip(lay, src, axis, densities, tokens, false);
+      densityStrip(lay, src, axis, densities, tokens, false, box.height < config.laneHeight ? ThinStripShare : 1);
       return lay;
     }
     if (row) {
       lay.densityY = box.y + (maxLanes - 1) * lay.laneHeight;
       lay.densityH = lay.laneHeight;
-      densityStrip(lay, src, axis, [], tokens, true);
+      densityStrip(lay, src, axis, [], tokens, true, 1);
     }
 
     // marks: each item's pieces on the section, square where cut, round where the item really ends (on its own
@@ -977,6 +983,7 @@ function densityStrip(
   densities: readonly { table: RangesDensity; level: number }[],
   tokens: SeqTokens,
   overflowOnly: boolean,
+  share: number,
 ) {
   const strip = lay.strip;
   resetStrip(strip, axis.columns);
@@ -991,7 +998,7 @@ function densityStrip(
       addToStrip(strip, src, axis, table.bin[i] * level, (table.bin[i] + 1) * level);
     }
   }
-  lay.density = paintStrip(strip, axis.columns, tokens);
+  lay.density = paintStrip(strip, axis.columns, tokens, share);
 }
 
 /** A heat strip's buffers: counts by difference over the device columns, and the image they are painted into. */
@@ -1013,8 +1020,11 @@ export function resetStrip(strip: StripBuffers, cols: number) {
   else strip.image.data.fill(0);
 }
 
-/** The strip's counts (`addToStrip` made them) painted low to high in the density tokens: its image. */
-export function paintStrip(strip: StripBuffers, cols: number, tokens: SeqTokens): ImageData {
+/**
+ * The strip's counts (`addToStrip` made them) painted low to high in the density tokens: its image. `share` is the part
+ * of the ramp the busiest column reaches (1: the whole ramp; a thin band uses the light end, `ThinStripShare`).
+ */
+export function paintStrip(strip: StripBuffers, cols: number, tokens: SeqTokens, share = 1): ImageData {
   const { diff, counts } = strip;
   const data = strip.image!.data;
   let max = 0;
@@ -1028,7 +1038,7 @@ export function paintStrip(strip: StripBuffers, cols: number, tokens: SeqTokens)
   const high = tokens.colors['seq-density-high'];
   for (let c = 0; c < cols; c++) {
     if (counts[c] <= 0) continue;
-    const color = mixColors(low, high, max > 0 ? counts[c] / max : 0);
+    const color = mixColors(low, high, max > 0 ? (share * counts[c]) / max : 0);
     data[4 * c] = color >>> 24;
     data[4 * c + 1] = (color >>> 16) & 0xff;
     data[4 * c + 2] = (color >>> 8) & 0xff;
