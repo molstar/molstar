@@ -465,60 +465,122 @@ function partOn(loc: Location | undefined, system: string): LocationPart | undef
   return undefined;
 }
 
-/** A color at an opacity (0 to 1), made inline. */
-function alpha(c: number, a: number): number {
-  return ((c & 0xffffff00) | Math.round(Math.max(0, Math.min(1, a)) * (c & 0xff))) >>> 0;
+/**
+ * What the emphasis paints with: the fill, the stroke and its width (`Ink[0..2]`), set before each paint. The colors
+ * (above 2^30, no small integers) and the widths go through a typed array: a number passed to a call that is not
+ * inlined is boxed, and an emphasis redraw allocates nothing once warm.
+ */
+const Ink = new Float64Array(3);
+
+/**
+ * Sets `Ink` from `Src` (a fill color and its opacity, a stroke color and its opacity, a width): a color at an opacity
+ * (0 to 1), none at 0. The colors are read from an array, never passed (a color above 2^30 passed to a call is boxed).
+ */
+const Src = new Float64Array(5);
+
+function ink() {
+  const f = Src[0];
+  const s = Src[2];
+  Ink[0] = Src[1] > 0 ? ((f & 0xffffff00) | Math.round(Math.min(1, Src[1]) * (f & 0xff))) >>> 0 : NoColor;
+  Ink[1] = Src[3] > 0 ? ((s & 0xffffff00) | Math.round(Math.min(1, Src[3]) * (s & 0xff))) >>> 0 : NoColor;
+  Ink[2] = Src[4];
+}
+
+/** A range's extent on an axis, its first cell to its last, into `Box[o]` (low) and `Box[o + 1]` (high); false: hidden. */
+const Box4 = new Float64Array(4);
+
+function span(a: AxisTransform, s: number, e: number, o: number): boolean {
+  if (!a.cell(s)) return false;
+  let lo = a.sx0 < a.sx1 ? a.sx0 : a.sx1;
+  let hi = a.sx0 < a.sx1 ? a.sx1 : a.sx0;
+  if (!a.cell(e - 1)) return false;
+  if (a.sx0 < lo) lo = a.sx0;
+  if (a.sx1 < lo) lo = a.sx1;
+  if (a.sx0 > hi) hi = a.sx0;
+  if (a.sx1 > hi) hi = a.sx1;
+  Box4[o] = lo;
+  Box4[o + 1] = hi;
+  return true;
+}
+
+/** The rect `Box4` holds (x from 0 to 1, y from 2 to 3) in `Ink`. */
+function rectInk(out: PassWriter) {
+  const g = out.args;
+  g[0] = Box4[0];
+  g[1] = Box4[2];
+  g[2] = Box4[1] - Box4[0];
+  g[3] = Box4[3] - Box4[2];
+  g[4] = Ink[0];
+  g[5] = Ink[1];
+  g[6] = Ink[2];
+  g[7] = 0;
+  g[8] = 0;
+  out.rectArgs();
 }
 
 /**
- * Rows across the plot at a part's ranges on y (each range's span down the plot), filled and outlined: the y half of
- * the crosshair, a selection's, a highlight's (_spec/README.md "Render", The grid layer).
+ * Rows across the plot at a part's ranges on y (each range's span down the plot), in `Ink`: the y half of the
+ * crosshair, a selection's, a highlight's (_spec/README.md "Render", The grid layer).
  */
-function paintRows(lay: GridLay, out: PassWriter, ranges: Int32Array, fill: number, stroke: number, width: number) {
+function paintRows(lay: GridLay, out: PassWriter, ranges: Int32Array) {
   const ay = lay.axisY!;
   const b = lay.box;
   const g = out.args;
   for (let r = 0; r + 1 < ranges.length; r += 2) {
-    const y0 = ay.x(ranges[r]);
-    const y1 = ay.x(ranges[r + 1]);
-    if (!(y0 === y0 && y1 === y1)) continue;
-    const top = Math.max(b.y, Math.min(y0, y1));
-    const bottom = Math.min(b.y + b.height, Math.max(y0, y1));
+    // the range's first and last cells (`cell` returns no number: a returned double is boxed)
+    if (!ay.cell(ranges[r])) continue;
+    let lo = ay.sx0 < ay.sx1 ? ay.sx0 : ay.sx1;
+    let hi = ay.sx0 < ay.sx1 ? ay.sx1 : ay.sx0;
+    if (!ay.cell(ranges[r + 1] - 1)) continue;
+    if (ay.sx0 < lo) lo = ay.sx0;
+    if (ay.sx1 < lo) lo = ay.sx1;
+    if (ay.sx0 > hi) hi = ay.sx0;
+    if (ay.sx1 > hi) hi = ay.sx1;
+    const top = Math.max(b.y, lo);
+    const bottom = Math.min(b.y + b.height, hi);
     if (bottom <= top) continue;
     g[0] = b.x;
     g[1] = top;
     g[2] = b.width;
     g[3] = bottom - top;
-    g[4] = fill;
-    g[5] = stroke;
-    g[6] = width;
+    g[4] = Ink[0];
+    g[5] = Ink[1];
+    g[6] = Ink[2];
     g[7] = 0;
     g[8] = 0;
     out.rectArgs();
   }
 }
 
-/** A cell's box (x position `i`, y position `j`) filled and outlined; false when it is not shown. */
-function paintCell(lay: GridLay, out: PassWriter, i: number, j: number, fill: number, stroke: number, width: number) {
+/**
+ * A cell's box (x position `Pos[0]`, y position `Pos[1]`) in `Ink`; nothing when it is not shown. The positions through
+ * an array: a hover's may be held as doubles, and a double passed to a call is boxed.
+ */
+const Pos = new Float64Array(2);
+
+function paintCell(lay: GridLay, out: PassWriter) {
   const a = lay.axis!;
   const ay = lay.axisY!;
+  const i = Pos[0];
+  const j = Pos[1];
   if (!a.cell(i) || !ay.cell(j)) return;
   const g = out.args;
   g[0] = Math.min(a.sx0, a.sx1);
   g[1] = Math.min(ay.sx0, ay.sx1);
   g[2] = Math.abs(a.sx1 - a.sx0);
   g[3] = Math.abs(ay.sx1 - ay.sx0);
-  g[4] = fill;
-  g[5] = stroke;
-  g[6] = width;
+  g[4] = Ink[0];
+  g[5] = Ink[1];
+  g[6] = Ink[2];
   g[7] = 0;
   g[8] = 0;
   out.rectArgs();
 }
 
-/** A column down the plot at x position `i` (the crosshair's x half, on the hover's own section). */
-function paintColumn(lay: GridLay, out: PassWriter, i: number, fill: number) {
+/** A column down the plot at x position `Pos[0]` in `Ink` (the crosshair's x half, on the hover's own section). */
+function paintColumn(lay: GridLay, out: PassWriter) {
   const a = lay.axis!;
+  const i = Pos[0];
   if (!a.cell(i)) return;
   const b = lay.box;
   const g = out.args;
@@ -526,39 +588,25 @@ function paintColumn(lay: GridLay, out: PassWriter, i: number, fill: number) {
   g[1] = b.y;
   g[2] = Math.abs(a.sx1 - a.sx0);
   g[3] = b.height;
-  g[4] = fill;
-  g[5] = NoColor;
-  g[6] = 0;
+  g[4] = Ink[0];
+  g[5] = Ink[1];
+  g[6] = Ink[2];
   g[7] = 0;
   g[8] = 0;
   out.rectArgs();
 }
 
-/** Each rect over the plot's two systems, filled and outlined (a selected rectangle). */
-function paintRects(lay: GridLay, out: PassWriter, loc: Location, fill: number, stroke: number, width: number) {
+/** Each rect over the plot's two systems in `Ink` (a selected rectangle). */
+function paintRects(lay: GridLay, out: PassWriter, loc: Location) {
   const a = lay.axis!;
   const ay = lay.axisY!;
-  const g = out.args;
   for (let k = 0; k < loc.rects.length; k++) {
     const r = loc.rects[k];
     if (r.a.system !== lay.system || r.b.system !== lay.ySystem) continue;
     for (let p = 0; p + 1 < r.a.ranges.length; p += 2)
       for (let q = 0; q + 1 < r.b.ranges.length; q += 2) {
-        const x0 = a.x(r.a.ranges[p]);
-        const x1 = a.x(r.a.ranges[p + 1]);
-        const y0 = ay.x(r.b.ranges[q]);
-        const y1 = ay.x(r.b.ranges[q + 1]);
-        if (!(x0 === x0 && x1 === x1 && y0 === y0 && y1 === y1)) continue;
-        g[0] = Math.min(x0, x1);
-        g[1] = Math.min(y0, y1);
-        g[2] = Math.abs(x1 - x0);
-        g[3] = Math.abs(y1 - y0);
-        g[4] = fill;
-        g[5] = stroke;
-        g[6] = width;
-        g[7] = 0;
-        g[8] = 0;
-        out.rectArgs();
+        if (!span(a, r.a.ranges[p], r.a.ranges[p + 1], 0) || !span(ay, r.b.ranges[q], r.b.ranges[q + 1], 2)) continue;
+        rectInk(out);
       }
   }
 }
@@ -578,7 +626,14 @@ function drawEmphasis(lay: GridLay, pass: PassName, out: PassWriter, e: Emphasis
       if (!hs || em.selectionPlace !== 'over') return;
       for (let i = 0; i < hs.length; i++) {
         const part = partOn(hs[i].location, lay.ySystem);
-        if (part) paintRows(lay, out, part.ranges, alpha(hs[i].color, em.highlightTint), NoColor, 0);
+        if (!part) continue;
+        Src[0] = hs[i].color;
+        Src[1] = em.highlightTint;
+        Src[2] = 0;
+        Src[3] = 0;
+        Src[4] = 0;
+        ink();
+        paintRows(lay, out, part.ranges);
       }
       return;
     }
@@ -587,15 +642,28 @@ function drawEmphasis(lay: GridLay, pass: PassName, out: PassWriter, e: Emphasis
       const own = partOn(e.selection, lay.ySystem);
       const part = own ?? partOn(e.projected?.selection, lay.ySystem);
       const k = own ? 1 : em.projected;
-      const fill = em.selectionPlace === 'over' ? alpha(accent, em.selectionTint * k) : NoColor;
-      const stroke = alpha(accent, em.selectionOutline * k);
-      if (part) paintRows(lay, out, part.ranges, fill, stroke, config.outline.selection);
-      if (e.selection?.rects.length)
-        paintRects(lay, out, e.selection, alpha(accent, em.selectionTint), alpha(accent, em.selectionOutline), 1);
+      if (part) {
+        Src[0] = accent;
+        Src[1] = em.selectionPlace === 'over' ? em.selectionTint * k : 0;
+        Src[2] = accent;
+        Src[3] = em.selectionOutline * k;
+        Src[4] = config.outline.selection;
+        ink();
+        paintRows(lay, out, part.ranges);
+      }
+      if (e.selection?.rects.length) {
+        Src[0] = accent;
+        Src[1] = em.selectionTint;
+        Src[2] = accent;
+        Src[3] = em.selectionOutline;
+        Src[4] = config.outline.selection;
+        ink();
+        paintRects(lay, out, e.selection);
+      }
       return;
     }
     case 'hover': {
-      const ink = tokens.colors['seq-hover'];
+      const hover = tokens.colors['seq-hover'];
       const h = e.hover;
       if (
         h &&
@@ -605,26 +673,53 @@ function drawEmphasis(lay: GridLay, pass: PassName, out: PassWriter, e: Emphasis
         h.position !== undefined &&
         h.element === undefined
       ) {
-        const tint = alpha(ink, CrossTint);
-        paintColumn(lay, out, h.position, tint);
-        const j = h.yPosition;
-        Cell[0] = j;
-        Cell[1] = j + 1;
-        paintRows(lay, out, Cell, tint, NoColor, 0);
-        paintCell(lay, out, h.position, j, NoColor, ink, config.outline.hover);
+        Src[0] = hover;
+        Src[1] = CrossTint;
+        Src[2] = 0;
+        Src[3] = 0;
+        Src[4] = 0;
+        ink();
+        Pos[0] = h.position;
+        Pos[1] = h.yPosition;
+        paintColumn(lay, out);
+        Cell[0] = h.yPosition;
+        Cell[1] = h.yPosition + 1;
+        paintRows(lay, out, Cell);
+        Src[0] = 0;
+        Src[1] = 0;
+        Src[2] = hover;
+        Src[3] = 1;
+        Src[4] = config.outline.hover;
+        ink();
+        paintCell(lay, out);
         return;
       }
       const p = e.projected;
       if (p?.hover && p.hoverSection !== lay.sectionAddress) {
         const part = partOn(p.hover, lay.ySystem);
-        if (part) paintRows(lay, out, part.ranges, NoColor, alpha(ink, em.projected), config.outline.hover);
+        if (!part) return;
+        Src[0] = 0;
+        Src[1] = 0;
+        Src[2] = hover;
+        Src[3] = em.projected;
+        Src[4] = config.outline.hover;
+        ink();
+        paintRows(lay, out, part.ranges);
       }
       return;
     }
     case 'cursor': {
       const c = e.cursor;
       if (!c || c.ySystem !== lay.ySystem || c.yPosition === undefined || c.system !== lay.system) return;
-      paintCell(lay, out, c.position, c.yPosition, NoColor, tokens.colors[em.cursorInk], config.outline.cursor);
+      Src[0] = 0;
+      Src[1] = 0;
+      Src[2] = tokens.colors[em.cursorInk];
+      Src[3] = 1;
+      Src[4] = config.outline.cursor;
+      ink();
+      Pos[0] = c.position;
+      Pos[1] = c.yPosition;
+      paintCell(lay, out);
       return;
     }
   }

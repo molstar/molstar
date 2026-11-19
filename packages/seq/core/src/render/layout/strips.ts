@@ -165,6 +165,8 @@ export class StripPlacement implements Placement {
   box: Box = { x: 0, y: 0, width: 0, height: 0 };
   contentHeight = 0;
   readonly strips = new Strips();
+  /** Its bands overlay one another (a grid's plot): `at` gives the last band holding the point, the topmost. */
+  readonly overlay: boolean = false;
 
   /** The strip at page y, or the one above it (−1 above every strip). */
   private stripAt(y: number): number {
@@ -201,7 +203,7 @@ export class StripPlacement implements Placement {
       const k = i * s.bands + j;
       if (s.bandH[k] > 0 && fy >= s.bandY[k] && fy < s.bandY[k] + s.bandH[k]) {
         out.band = j;
-        break;
+        if (!this.overlay) break;
       }
     }
     const a = s.axes[i];

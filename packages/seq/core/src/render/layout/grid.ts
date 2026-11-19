@@ -13,7 +13,7 @@
 import { AxisTransform, type Viewport } from '../axis.js';
 import { Anchor, type PassName, type PassWriter } from '../draw-lists.js';
 import type { SectionLayout } from '../tracks.js';
-import { PlacePoint, StripPlacement } from './strips.js';
+import { StripPlacement } from './strips.js';
 import { clampWindow, sameWindow, TracksNav } from './tracks.js';
 import type { NavContext, PlaceContext, SectionLayoutType, SectionNav } from './types.js';
 
@@ -29,18 +29,11 @@ const RoomShare = 0.9;
 
 /** The grid's placement: its strips', its bands all the plot (`at` gives the last band: the topmost track). */
 export class GridPlacement extends StripPlacement {
-  override at(x: number, y: number, out: PlacePoint): boolean {
-    if (!super.at(x, y, out)) return false;
-    // overlaid bands: the last with height is on top
-    const s = this.strips;
-    if (out.strip >= 0 && out.band >= 0)
-      for (let j = s.bands - 1; j > out.band; j--)
-        if (s.bandH[out.strip * s.bands + j] > 0) {
-          out.band = j;
-          break;
-        }
-    return true;
-  }
+  /** The y axis's first and last positions in view, 1-based, as drawn at the plot's top and bottom (made at place). */
+  yFirst = '';
+  yLast = '';
+  // overlaid bands: `at` gives the last with height (the topmost track)
+  override readonly overlay = true;
 }
 
 /** A grid's y window: its own, clamped within its units and at least a unit. */
@@ -122,7 +115,15 @@ export const GridLayout: SectionLayoutType<GridPlacement> = {
       strips.bandH[i * strips.bands + j] = h;
     }
     const y = ctx.y;
-    if (y?.pieces.length) strips.ys[i] = AxisTransform.on(y.axis, y.pieces, top, h, ctx.dpr, y.viewport);
+    p.yFirst = p.yLast = '';
+    if (y?.pieces.length) {
+      const ya = AxisTransform.on(y.axis, y.pieces, top, h, ctx.dpr, y.viewport);
+      strips.ys[i] = ya;
+      const first = ya.elementAtUnit(ya.u0);
+      const last = ya.elementAtUnit(Math.max(ya.u0, ya.u1 - 1e-6));
+      if (first >= 0) p.yFirst = String(first + 1);
+      if (last >= 0) p.yLast = String(last + 1);
+    }
     strips.top[i] = top;
     strips.height[i] = h;
     p.contentHeight = h;
@@ -157,17 +158,17 @@ function drawChrome(s: SectionLayout, _pass: PassName, out: PassWriter) {
     g[4] = tokens.colors['msui-text-muted'];
     out.textArgs(t.track.label, AnchorStart, config.labelFont);
   }
-  const ya = strips.ys[0];
-  if (!ya) return;
+  const p = s.placement;
+  if (!(p instanceof GridPlacement)) return;
   const right = s.axis ? s.axis.x0 - config.labelGap / 2 : config.inset + config.labelWidth;
   for (let k = 0; k < 2; k++) {
-    const p = ya.elementAtUnit(k === 0 ? ya.u0 : Math.max(ya.u0, ya.u1 - 1e-6));
-    if (p < 0) continue;
+    const text = k === 0 ? p.yFirst : p.yLast;
+    if (!text) continue;
     g[0] = right;
     g[1] = k === 0 ? top + 28 : top + strips.height[0] - 4;
     g[2] = 0;
     g[3] = config.labelWidth;
     g[4] = tokens.colors['msui-text-muted'];
-    out.textArgs(String(p + 1), AnchorEnd, config.itemFont);
+    out.textArgs(text, AnchorEnd, config.itemFont);
   }
 }

@@ -298,6 +298,9 @@ function pairColor(prep: PairsPrep, tokens: SeqTokens, k: number): number {
   return tokens.colors[CategoryTokens[kind % CategoryTokens.length]];
 }
 
+/** The point a hit tests (x, y). */
+const Pt = new Float64Array(2);
+
 const PA = new PlacePoint();
 const PB = new PlacePoint();
 const PM = new PlacePoint();
@@ -341,8 +344,11 @@ export const PairsType: LayerType<PairsPrep, PairsLay> = {
   },
 
   hit(lay, x, y) {
-    if (lay.mode === 'arcs') return hitArcs(lay, x, y);
-    if (lay.mode === 'dots') return hitDots(lay, x, y);
+    // the point through a scratch: a fractional number passed to a call that is not inlined is boxed
+    Pt[0] = x;
+    Pt[1] = y;
+    if (lay.mode === 'arcs') return hitArcs(lay);
+    if (lay.mode === 'dots') return hitDots(lay);
     return undefined;
   },
 };
@@ -651,8 +657,15 @@ function drawArcs(lay: PairsLay, out: PassWriter) {
   if (lay.clip) out.unclip();
 }
 
-/** The squared distance from a point to a curve, sampled. */
-function curveDistance(c: Float64Array, o: number, x: number, y: number): number {
+/**
+ * The squared distance from a point to a curve, sampled, into `Dist[0]`: no number returned (a double returned from a
+ * call that is not inlined is boxed: a hover over many arcs would allocate a number an arc).
+ */
+const Dist = new Float64Array(1);
+
+function curveDistance(c: Float64Array, o: number): void {
+  const x = Pt[0];
+  const y = Pt[1];
   let best = Number.POSITIVE_INFINITY;
   let px = c[o];
   let py = c[o + 1];
@@ -674,11 +687,13 @@ function curveDistance(c: Float64Array, o: number, x: number, y: number): number
     px = qx;
     py = qy;
   }
-  return best;
+  Dist[0] = best;
 }
 
 /** The arc nearest a page point within `pairs.hitPx` (a tie: the later, drawn on top). */
-function hitArcs(lay: PairsLay, x: number, y: number): Hit | undefined {
+function hitArcs(lay: PairsLay): Hit | undefined {
+  const x = Pt[0];
+  const y = Pt[1];
   const r = lay.config!.pairs.hitPx;
   const c = lay.curve;
   if (lay.clip) {
@@ -689,20 +704,28 @@ function hitArcs(lay: PairsLay, x: number, y: number): Hit | undefined {
   let bestD = r * r;
   for (let i = 0; i < lay.n; i++) {
     const o = 8 * i;
-    // the hull of its four points
-    const lo = Math.min(c[o], c[o + 2], c[o + 4], c[o + 6]);
-    const hi = Math.max(c[o], c[o + 2], c[o + 4], c[o + 6]);
-    if (x < lo - r || x > hi + r) continue;
-    const ylo = Math.min(c[o + 1], c[o + 3], c[o + 5], c[o + 7]);
-    const yhi = Math.max(c[o + 1], c[o + 3], c[o + 5], c[o + 7]);
-    if (y < ylo - r || y > yhi + r) continue;
-    const d = curveDistance(c, o, x, y);
+    // the hull of its four points (the curve lies in it): x, then y
+    if (outside(c, o, x, r) || outside(c, o + 1, y, r)) continue;
+    curveDistance(c, o);
+    const d = Dist[0];
     if (d <= bestD) {
       bestD = d;
       best = i;
     }
   }
   return best < 0 ? undefined : pairHit(lay, lay.pair[best]);
+}
+
+/** Whether `v` is more than `r` outside the range of a curve's four points' coordinates at `o`, `o + 2`, … */
+function outside(c: Float64Array, o: number, v: number, r: number): boolean {
+  let lo = c[o];
+  let hi = lo;
+  for (let k = 2; k < 8; k += 2) {
+    const w = c[o + k];
+    if (w < lo) lo = w;
+    if (w > hi) hi = w;
+  }
+  return v < lo - r || v > hi + r;
 }
 
 /** A pair's hit: its element and its extent, both ends (made once a pair). */
@@ -888,7 +911,9 @@ function drawDots(lay: PairsLay, out: PassWriter) {
 }
 
 /** The dot under a point (its box), else the diagonal within `pairs.hitPx` of it. */
-function hitDots(lay: PairsLay, x: number, y: number): Hit | undefined {
+function hitDots(lay: PairsLay): Hit | undefined {
+  const x = Pt[0];
+  const y = Pt[1];
   const d = lay.dots;
   for (let i = lay.nd - 1; i >= 0; i--)
     if (x >= d[4 * i] && x < d[4 * i] + d[4 * i + 2] && y >= d[4 * i + 1] && y < d[4 * i + 1] + d[4 * i + 3])
