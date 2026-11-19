@@ -218,7 +218,7 @@ function prepare(layer: ResolvedLayer, model: StaticModel): PairsPrep {
     channels: channelForms(layer.theme),
     shown,
     filtered,
-    unreadFilter: (form !== undefined && !filter) || (baseForm !== undefined && !base),
+    unreadFilter: (form !== undefined && !filter) || (baseForm !== undefined && !base) || layer.data?.unread === true,
     aSystem: a?.target ?? '',
     bSystem: a?.ySystem ?? '',
     side: p.side === 'below' ? 'below' : 'above',

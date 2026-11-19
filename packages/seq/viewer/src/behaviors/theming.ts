@@ -12,29 +12,50 @@
 // layer's `data`, a query that leaves them out; a theme never hides).
 
 /**
- * A layer's data split: what the track is (the annotation and a leading item form: its base) and the values of `field`
- * the user's filter, a trailing `(not …)`, leaves out (_spec/README.md "Themes", Filters).
+ * A layer's data split: what the track is (the annotation and a leading run of item forms: its base) and the values of
+ * `field` the user's filter, a trailing `(not …)`, leaves out (_spec/README.md "Themes", Filters; core's `splitDataForms`
+ * is the one parser, so what the viewer calls the base is what the layers read as it).
  */
 export function dataFilter(data: string, field: string): { readonly base: string; readonly hidden: readonly string[] } {
   const p = parseAddress(data).pattern;
   const segs = p?.segments ?? [];
-  const last = segs[segs.length - 1];
-  if (!p || typeof last === 'string' || last === undefined || last.kind !== 'not') return { base: data, hidden: [] };
-  const lead = segs.slice(0, -1);
-  // the base is what leads the trailing form: ids, then a leading item form
-  const base =
-    lead.length && lead.every((s, i) => typeof s === 'string' || (i > 0 && s.kind === 'item'))
-      ? printAddress(lead)
-      : undefined;
-  if (base === undefined) return { base: data, hidden: [] };
-  const of = last.params?.of;
+  const ids: string[] = [];
+  for (const s of segs) {
+    if (typeof s !== 'string') break;
+    ids.push(s);
+  }
+  const split = splitDataForms(segs.slice(ids.length));
+  if (!p || !ids.length || split.unread) return { base: data, hidden: [] };
+  const base = printAddress([...ids, ...split.lead]);
+  const of = split.filter?.params?.of;
   const v = isNode(of) && of.kind === 'item' ? of.params?.[field] : undefined;
   const hidden = v === undefined ? [] : (Array.isArray(v) ? v : [v]).map(String);
   return { base, hidden };
 }
 
+/** The address of a value's items on a layer's data: the base's forms and `(item :<field> v)`, one query. */
+export function itemsAddress(data: string, field: string, value: string | readonly string[]): string | undefined {
+  const p = parseAddress(data).pattern;
+  const segs = p?.segments ?? [];
+  const ids: string[] = [];
+  for (const s of segs) {
+    if (typeof s !== 'string') break;
+    ids.push(s);
+  }
+  const split = splitDataForms(segs.slice(ids.length));
+  if (!p || !ids.length || split.unread) return undefined;
+  const one: Node = { kind: 'item', params: { [field]: typeof value === 'string' ? value : [...value] } };
+  // item forms alone: one item holding every param (they are and-ed); an `and` or `or` in the base: an `and` of all
+  const plain = split.lead.every((f) => f.kind === 'item');
+  const form: Node = plain
+    ? { kind: 'item', params: Object.assign({}, ...split.lead.map((f) => f.params ?? {}), one.params) }
+    : { kind: 'and', params: { of: [...split.lead, one] } };
+  return printAddress([...ids, form]);
+}
+
 import type { Op } from '@molstar/core/repr/patch';
 import { isNode, type Node, parseAddress, printAddress, resolveAddress, type Value } from '@molstar/core/repr/tree';
+import { splitDataForms } from '@molstar/seqx-core/view';
 import {
   builtInSchemes,
   colorHex,
@@ -91,7 +112,6 @@ export interface ThemingBehavior {
 }
 
 const ids = (address: string) => address.split('/').filter(Boolean);
-const quote = (v: string) => (/^[A-Za-z_][A-Za-z0-9_.-]*$/.test(v) ? v : JSON.stringify(v));
 
 /** The field a layer's color reads (its legend's): a `field` form's name, a scheme's `field`, else none. */
 export function legendField(layer: Node): string | undefined {
@@ -138,13 +158,13 @@ export function themingBehavior(
   const live = (f: (ctx: ThemingContext) => true | string) => (ctx: ThemingContext) =>
     disposed ? 'The viewer is retired' : f(ctx);
 
-  /** The address of a value's items on a layer's data: `<data>/(item :<field> v)`. */
+  /** The address of a value's items on a layer's data: its base's forms and `(item :<field> v)` in one query. */
   const itemsOf = (layer: string, value: string): string | undefined => {
     const n = node(layer, 'layer');
     const data = n?.params?.data;
     const field = n && legendField(n);
     if (typeof data !== 'string' || !field) return undefined;
-    return `${dataFilter(data, field).base}/(item :${field} ${quote(value)})`;
+    return itemsAddress(data, field, value);
   };
 
   /** A layer's color with one value's color set (or removed): a dictionary entry of its palette, or of its scale's. */
@@ -284,11 +304,13 @@ export function themingBehavior(
           addresses.setSelection(undefined);
           return { message: 'Cleared' };
         }
-        const one = itemsOf(layer, values[0])!;
+        const n = node(layer, 'layer')!;
+        const data = n.params?.data;
         const address =
-          values.length === 1
-            ? one
-            : `${one.slice(0, one.lastIndexOf('/('))}/(or :of [${values.map((v) => `(item :${legendField(node(layer, 'layer')!)} ${quote(v)})`).join(' ')}])`;
+          typeof data === 'string'
+            ? itemsAddress(data, legendField(n)!, values.length === 1 ? values[0] : values)
+            : undefined;
+        if (!address) return { message: 'No entry there' };
         return { message: addresses.select(address).message };
       },
     },

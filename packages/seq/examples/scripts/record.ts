@@ -19,9 +19,15 @@ import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-
-type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
-type Obj = { [key: string]: Json };
+import {
+  EntryDroppedTypes,
+  EntryMembers,
+  FeatureDropped,
+  KeptSources,
+  trimEntry,
+  trimVariation,
+  VariantMembers,
+} from '../src/files/record-trim.ts';
 
 const Folder = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -32,71 +38,6 @@ export const AllowedLicences = [
   'LicenseRef-NCBI-public-data',
   'LicenseRef-seqx-generated',
 ] as const;
-
-/** The entry's members the views read; every other (comments, references, cross references…) is removed. */
-const EntryMembers = ['entryType', 'primaryAccession', 'uniProtkbId', 'organism', 'sequence', 'features'];
-/** A feature's members that are evidence, not what a view reads. */
-const FeatureDropped = ['evidences', 'featureCrossReferences', 'ligand'];
-/** Natural variants are the variants fixture's (a thousand rows); every other feature type stays. */
-const EntryDroppedTypes = ['Natural variant'];
-
-export function trimEntry(entry: Obj): Obj {
-  const out: Obj = {};
-  for (const k of EntryMembers) if (k in entry) out[k] = entry[k];
-  out.features = (entry.features as Obj[])
-    .filter((f) => !EntryDroppedTypes.includes(f.type as string))
-    .map((f) => Object.fromEntries(Object.entries(f).filter(([k]) => !FeatureDropped.includes(k))));
-  return out;
-}
-
-/** The sources of the variants kept: UniProt's own (CC-BY-4.0) and ClinVar's (no restriction). */
-const KeptSources = ['UniProt', 'ClinVar'];
-const VariantMembers = [
-  'type',
-  'alternativeSequence',
-  'begin',
-  'end',
-  'xrefs',
-  'consequenceType',
-  'wildType',
-  'mutatedType',
-  'sourceType',
-  'clinicalSignificances',
-];
-const ResponseMembers = [
-  'accession',
-  'entryName',
-  'proteinName',
-  'geneName',
-  'organismName',
-  'taxid',
-  'sequence',
-  'features',
-];
-
-export function trimVariation(response: Obj): Obj {
-  const out: Obj = {};
-  for (const k of ResponseMembers) if (k in response) out[k] = response[k];
-  const features: Obj[] = [];
-  // the canonical sequence's positions: the response also holds the changes of other transcripts' proteins
-  const length = (response.sequence as string).length;
-  for (const f of response.features as Obj[]) {
-    const xrefs = ((f.xrefs ?? []) as Obj[]).filter((x) => KeptSources.includes(x.name as string));
-    // the views read single-residue changes of a source of known licence
-    const at = Number(f.begin);
-    if (!xrefs.length || f.begin !== f.end || !f.wildType || !f.mutatedType || at < 1 || at > length) continue;
-    const kept: Obj = {};
-    for (const k of VariantMembers) if (k in f) kept[k] = f[k];
-    // one xref a source, its name and id (the links are not data the views read)
-    const first = new Map<string, Obj>();
-    for (const x of xrefs)
-      if (!first.has(x.name as string)) first.set(x.name as string, { name: x.name as string, id: x.id as string });
-    kept.xrefs = [...first.values()];
-    features.push(kept);
-  }
-  out.features = features;
-  return out;
-}
 
 const sha256 = (b: Uint8Array | string) => createHash('sha256').update(b).digest('hex');
 
@@ -168,9 +109,10 @@ async function p53(): Promise<Row[]> {
       entry: 'Proteins API variation, P04637',
       url: variationUrl,
       recorded: day,
-      licence: ['CC-BY-4.0 (UniProt’s records)', 'LicenseRef-NCBI-public-data (ClinVar’s records)'],
-      attribution: 'UniProt Consortium, Proteins API, CC BY 4.0; NCBI ClinVar, no restriction on use',
-      trimmed: `single-residue changes inside the canonical sequence (begin equal to end, from 1 to its length, with their wild type and mutated type) with an xref of ${KeptSources.join(' or ')}, one xref a source (name and id) of those two only; members kept: ${VariantMembers.join(', ')}; COSMIC, TCGA, gnomAD, dbSNP, Ensembl and ClinGen records and xrefs dropped`,
+      licence: ['CC-BY-4.0'],
+      attribution:
+        'UniProt Consortium, Proteins API, CC BY 4.0 (the variants are UniProt’s: sourceType uniprot or mixed); the xrefs to ClinVar are names only',
+      trimmed: `single-residue changes of UniProt’s own (sourceType uniprot or mixed, not those only large-scale studies report) inside the canonical sequence (begin equal to end, from 1 to its length, with their wild type and mutated type) with an xref of ${KeptSources.join(' or ')}, one xref a source by its name, of those two only; each significance by its type; members kept: ${VariantMembers.join(', ')}; records only large-scale studies report and every other source’s xrefs dropped`,
       derived: 'none',
       bytesDownloaded: bytes(variationText),
       bytesFixture: bytes(written[1]),

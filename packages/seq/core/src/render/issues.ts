@@ -152,7 +152,7 @@ export const RenderIssues = defineIssues('seq.render', {
   'seq.render.item.range': {
     severity: 'warning',
     description:
-      'A row of a source ends past the length of its linear system (or starts past it): it is clipped to the system, or left out',
+      'A row of a source runs past the length of its system: clipped on a linear one (left out when it starts past the end), clamped to one lap on a cyclic one that is longer than it',
     hint: 'A system that wraps is `cyclic`; else check the file’s `base` and `ends`',
   },
   'seq.render.numbering': {

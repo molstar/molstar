@@ -74,7 +74,7 @@ export function layerSource(model: StaticModel, layer: ResolvedLayer): LayerSour
     ratio: path?.step === 1 ? 1 / 3 : path?.step === -1 ? 3 : 1,
     ...(filter ? { filter } : {}),
     ...(base ? { base } : {}),
-    ...((data.filter && !filter) || (data.base && !base) ? { unreadFilter: true } : {}),
+    ...((data.filter && !filter) || (data.base && !base) || data.unread ? { unreadFilter: true } : {}),
   };
 }
 

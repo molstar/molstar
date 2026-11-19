@@ -128,6 +128,87 @@ describe('the GFF3 preset', () => {
   });
 });
 
+describe('the GFF3 preset, the format’s own cases', () => {
+  it('a CDS over rows sharing an ID is one item, its rows its pieces; a strand `?` is read as 0', () => {
+    const r = gff(
+      [
+        'ring\tt\tCDS\t11\t20\t.\t-\t0\tID=cds1;Name=a',
+        'ring\tt\tCDS\t41\t50\t.\t-\t1\tID=cds1;Name=a',
+        'ring\tt\tgene\t1\t5\t.\t?\t.\tID=g',
+      ].join('\n'),
+    );
+    expect(r.issues).toEqual([]);
+    const t = ranges(r);
+    expect(plain(t.id)).toEqual(['g', 'cds1', 'cds1']);
+    expect([...t.start]).toEqual([0, 10, 40]);
+    expect([...t.end]).toEqual([5, 20, 50]);
+    expect(plain(t.strand)).toEqual([0, -1, -1]);
+    // each row keeps its place in the file
+    expect(plain(t.row)).toEqual([2, 0, 1]);
+  });
+
+  it('a repeated attribute key keeps the last, and an attribute named as a column leaves the column its own: each said once, info', () => {
+    const r = gff(
+      [
+        'ring\tt\tCDS\t1\t5\t.\t+\t.\tID=a;Name=x;Name=y;type=other',
+        'ring\tt\tCDS\t6\t9\t.\t+\t.\tID=b;Name=p;Name=q;type=more',
+      ].join('\n'),
+    );
+    const t = ranges(r);
+    expect(field(t, 'Name')).toEqual(['y', 'q']);
+    expect(field(t, 'type')).toEqual(['CDS', 'CDS']);
+    expect(r.issues.map((i) => [i.code, i.severity])).toEqual([
+      ['seq.source.records.cell', 'info'],
+      ['seq.source.records.cell', 'info'],
+    ]);
+    expect(r.issues.map((i) => i.message).join(' ')).toMatch(/2 rows/);
+  });
+});
+
+describe('the matrix read, as a source holds it', () => {
+  it('parses once at open and checks the size on each call; its issues carry the source’s address', async () => {
+    let reads = 0;
+    const context: OpenContext = {
+      signal,
+      limits,
+      assets: {
+        readText: async () => '',
+        readBytes: async () => {
+          reads++;
+          return new TextEncoder().encode('{"m":[[1,2],[3,4]]}');
+        },
+      },
+    };
+    const opened = (await RecordsRuntime.open(
+      { address: '/data/pae', format: 'json', uri: 'm.json', shape: 'matrix', records: 'm' },
+      context,
+    )) as RecordsSource;
+    expect(reads).toBe(1);
+    const a = opened.matrix!({ rows: 2, cols: 2 });
+    const b = opened.matrix!({ rows: 3, cols: 3 });
+    expect(a.matrix!.values.length).toBe(4);
+    expect(b.issues.map((i) => [i.code, i.address])).toEqual([['seq.source.records.size', '/data/pae']]);
+    expect(reads).toBe(1);
+    // a path that reaches nothing: the same issue on every call, with the address
+    const lost = (await RecordsRuntime.open(
+      { address: '/data/pae', format: 'json', uri: 'm.json', shape: 'matrix', records: 'none' },
+      context,
+    )) as RecordsSource;
+    expect(lost.matrix!().issues.map((i) => [i.code, i.address])).toEqual([['seq.source.records.field', '/data/pae']]);
+  });
+
+  it('is flat only as a typed array or an array of numbers and nulls', () => {
+    const flat = readMatrix({ value: [null, 1, 2, 3] as unknown as Value }, {}, { limits });
+    expect([flat.matrix!.rows, flat.matrix!.cols]).toEqual([2, 2]);
+    // a column of one-element rows is rows, not a flat array
+    const column = readMatrix({ value: [[1], [2], [3]] as unknown as Value }, {}, { limits });
+    expect([column.matrix!.rows, column.matrix!.cols]).toEqual([3, 1]);
+    // a mix is no flat array and no array of arrays
+    const mixed = readMatrix({ value: [1, [2]] as unknown as Value }, {}, { limits });
+    expect(mixed.issues.map((i) => i.code)).toEqual(['seq.source.records.size']);
+  });
+});
+
 describe('the matrix read', () => {
   const aoa = [
     [0, 1, 2],

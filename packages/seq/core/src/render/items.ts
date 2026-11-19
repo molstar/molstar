@@ -39,8 +39,10 @@ export interface ItemRows {
   occ: number[];
   /** The rows the layer's filter left out of the tiles read (the track's "n filtered"). */
   filtered: number;
-  /** The rows that ran past the end of their linear system and were clipped (said once, `seq.render.item.range`). */
+  /** Rows past the end of their system (said once, `seq.render.item.range`): clipped, left out, or longer than a lap. */
   clipped: number;
+  leftOut: number;
+  clamped: number;
   /** Each row's table fields and its row in that table: what a theme's channels read (a field, a measure). */
   fields: (RangesList['fields'] | undefined)[];
   row: number[];
@@ -51,6 +53,8 @@ export function newItemRows(): ItemRows {
     n: 0,
     filtered: 0,
     clipped: 0,
+    leftOut: 0,
+    clamped: 0,
     keys: [],
     starts: [],
     ends: [],
@@ -116,6 +120,8 @@ export function collectItems(
   rows.n = 0;
   rows.filtered = 0;
   rows.clipped = 0;
+  rows.leftOut = 0;
+  rows.clamped = 0;
   const densities: DensityTile[] = [];
   const earlier = new Map<string | number, number[]>();
   const occurrences = new Map<string | number, number>();
@@ -155,25 +161,44 @@ export function collectItems(
           continue;
         }
       }
-      // a row ending past the system's length (a feature across a ring's origin, as GFF3 writes it): two rows of one
-      // item on a cyclic system, clipped on a linear one (the language's wrapped range, EC-9)
+      // a row past the system's length (a feature across a ring's origin, as GFF3 writes it): on a cyclic system a row
+      // starting past it is moved back by laps, one longer than a lap is one lap, and one ending past it is two rows of
+      // one item; on a linear system it is clipped, or left out when it starts past the end (EC-9)
+      let start = t.start[i];
       let end = t.end[i];
       let tail = 0;
       if (wrap !== undefined && end > wrap.length) {
-        if (t.start[i] >= wrap.length) {
+        if (!wrap.cyclic) {
+          if (start >= wrap.length) {
+            rows.leftOut++;
+            continue;
+          }
           rows.clipped++;
-          continue;
+          end = wrap.length;
+        } else {
+          if (end - start > wrap.length) {
+            rows.clamped++;
+            end = start + wrap.length;
+          }
+          if (start >= wrap.length) {
+            const back = Math.floor(start / wrap.length) * wrap.length;
+            // its repeat in another tile, by the start as read
+            const starts = earlier.get(key);
+            if (starts) starts.push(start);
+            else earlier.set(key, [start]);
+            start -= back;
+            end -= back;
+          }
+          if (end > wrap.length) tail = end - wrap.length;
+          end = Math.min(end, wrap.length);
         }
-        if (wrap.cyclic) tail = end - wrap.length;
-        else rows.clipped++;
-        end = wrap.length;
       }
       const k = occurrences.get(key) ?? 0;
       occurrences.set(key, k + (tail > 0 ? 2 : 1));
       for (let piece = 0; piece <= (tail > 0 ? 1 : 0); piece++) {
         const j = rows.n++;
         rows.keys[j] = key;
-        rows.starts[j] = piece ? 0 : t.start[i];
+        rows.starts[j] = piece ? 0 : start;
         rows.ends[j] = piece ? tail : end;
         rows.values[j] = textAt(col, i);
         rows.labels[j] = textAt(labels, i) ?? id ?? undefined;
@@ -329,15 +354,20 @@ export function readItems(
   placeholderSpans(src, axis, read.pending, lay.pending);
   placeholderSpans(src, axis, read.failed, lay.failed);
   const densities = collectItems(lay.rows, read.entries, fields, src.filter, src.base, wrap);
-  if (lay.rows.clipped)
+  const { clipped, leftOut, clamped } = lay.rows;
+  if (clipped || leftOut || clamped) {
+    const said = [
+      clipped && `${clipped} clipped to its end`,
+      leftOut && `${leftOut} left out (starting past its end)`,
+      clamped && `${clamped} longer than one lap, clamped to one`,
+    ].filter(Boolean);
     ctx.report(
-      issueOf(
-        RenderIssues,
-        'seq.render.item.range',
-        `${lay.rows.clipped} ${lay.rows.clipped === 1 ? 'row runs' : 'rows run'} past the end of ${src.dataSystem}: clipped`,
-        { address: ctx.key, hint: RenderIssues.codes['seq.render.item.range'].hint },
-      ),
+      issueOf(RenderIssues, 'seq.render.item.range', `Rows past the end of ${src.dataSystem}: ${said.join(', ')}`, {
+        address: ctx.key,
+        hint: RenderIssues.codes['seq.render.item.range'].hint,
+      }),
     );
+  }
   return densities;
 }
 

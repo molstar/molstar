@@ -82,7 +82,7 @@ describe('a row past the end of its system', () => {
     expect(pieces(lay)).toEqual(['across:90-100', 'inside:20-30', 'misc:50-60', 'prom:40-50']);
     const issues = f.layout.issues.filter((i) => i.code === 'seq.render.item.range');
     expect(issues.length).toBe(1);
-    expect(issues[0].message).toContain('1 row runs past the end');
+    expect(issues[0].message).toContain('1 clipped');
   });
 });
 

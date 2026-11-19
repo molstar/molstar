@@ -272,12 +272,14 @@ layout per token table, held domains and the reader's substitution (`LayerChanne
   (`<annotation>/(not :of (item :<field> v))`) leaves out the rows its form rejects as the shared item reader reads them
   (`item` by `:id` or a field, a list param any of its values; `not`, `and`, `or`), compiled once a prepare
   (`compileRowFilter`); the track's label column shows "n filtered" (`TrackLayout.filter`), a hit on it
-  `target: 'filter'`. A form not read row by row filters nothing and is `seq.render.filter`. **A leading item form is
-  the track's base** (`<annotation>/(item :category Domain)`, alone or before a trailing `(not …)`:
-  `ResolvedLayer.data.base`, `LayerSource.base`): its rejected rows are left out and not counted as filtered, the
-  trailing `(not …)` is the user's (`data.filter`) and counted. Why: one read of a file serves a layer a feature type,
-  and the chip counts what the user hid, not what the track is. Any other lone form is the user's, as before; two forms
-  that are not an item form and a `not` are read as neither.
+  `target: 'filter'`. A form not read row by row filters nothing and is `seq.render.filter`. **One rule for the base and
+  the filter** (`splitDataForms`, read by the layers and the viewer's `dataFilter` alike): a leading run of item forms
+  (`and` and `or` of them too) is the track's base (`<annotation>/(item :category Domain)`; `ResolvedLayer.data.base`,
+  `LayerSource.base`): its rejected rows are left out and not counted as filtered; a trailing `(not …)` is the user's
+  (`data.filter`) and counted. Why: one read of a file serves a layer a feature type, and the chip counts what the user
+  hid, not what the track is. A lone form of another kind stays the filter (and is `seq.render.filter` when no row reads
+  it); any other mix of forms is `seq.render.filter` too (`data.unread`), every row drawn. Density tables take neither
+  the base nor the wrap: they are counts of what a source served.
 
 ## Issues
 
@@ -640,26 +642,35 @@ by fuzz tests (mutated text read without a throw).
   `strand`, `phase`, `attributes`), headerless; blank lines, `#` lines and `##` directives are read past and everything
   after `##FASTA` is ignored; `.` is missing (a `null` cell); `key=value;…` attributes become fields by their key, their
   values percent-decoded (a malformed escape left as written), a multi-valued one as its text, `ID` the `id`; `Parent`
-  stays a field, no hierarchy is assembled. A row with another count of cells than nine is read with the missing ones
-  empty (`.cells`). `fields` maps as for any source (`{ category: 'type', label: 'Name' }`); `seqid` and `ID` are the
-  roles, not fields under their names. Why a preset: NCBI serves an INSDC record's features as GFF3, read as published.
+  stays a field, no hierarchy is assembled (rows sharing an `ID` are pieces of one item). A key written twice in a row
+  keeps the last, and an attribute named as a column (`type`) leaves the column its own: each said once, `.cell` (info).
+  A row with another count of cells than nine is read with the missing ones empty (`.cells`). `fields` maps as for any
+  source (`{ category: 'type', label: 'Name' }`); `seqid` and `ID` are the roles, not fields under their names. Why a
+  preset: NCBI serves an INSDC record's features as GFF3, read as published.
 - **A row past the system's end is the row reader's** (`collectItems`, `wrap`; render, items): a source's row ending
   past its target's length becomes two rows of one item (`[s, L)` and `[0, e − L)`, one key, one occurrence each) on a
-  cyclic system, and is clipped on a linear one (`seq.render.item.range`, warning, once a layout with the count); a row
-  starting at or past the end is left out the same way. Why there, not in the runtime: without letters the runtime knows
-  neither the length nor that the system is cyclic. A layer of a cyclic system whose source is not inline also wants the
+  cyclic system; a row longer than one lap is one lap (counted); a start at or past the end moves back by laps
+  (`[s − L, e − L)`); on a linear system a row is clipped, and one starting at or past the end left out, both counted
+  (`seq.render.item.range`, warning, once a layout). Why there, not in the runtime: without letters the runtime knows
+  neither the length nor that the system is cyclic; a source that holds its own letters is clipped by the runtime
+  (EC-51, `.range`) before the reader sees a row. A layer of a cyclic system whose source is not inline also wants the
   system's last position (`LayerSource.wraps`, `cyclic`): any row that runs past the end overlaps it, so its tile brings
-  the origin's piece though the view is elsewhere; inline rows were wrapped by the model (EC-9).
+  the origin's piece though the view is elsewhere. Cost: one more tile a layer read, whose rows enter the layer's rows
+  as any tile's do; it is not gated (a coverage does not say whether a source has rows past the length), and a row
+  starting past the end is in no tile (a want is clipped to the length), so that rule is for a source that serves one.
+  Inline rows were wrapped by the model (EC-9).
 - **A matrix** (`shape: matrix` on the source, `readMatrix`, `RecordsSource.matrix(expected?)`): an array of arrays
   (JSON, MessagePack, an inline value) found by `records`, served as a grid's values, row-major as `Float32Array`
   (`null` and any cell that is no number NaN, said once); the source serves no region (an empty coverage). Its size is
   checked against the axes' total the grid passes (`expected`, `rows × cols`): a mismatch, or rows of unequal lengths,
   is `seq.source.records.size` (error, the matrix not served; the issue names both sizes). A typed flat array (a
   MessagePack `Float32Array`, an inline one) is kept as it is when it is a `Float32Array`, its dimensions the expected
-  size's (a square when none is given: a flat array that is not one is `.size`); any other flat array is copied. More
-  than 2^24 values is refused (`seq.source.too_large`). A table format is no matrix (`seq.source.no_data`). Why a param
-  and not the format: a document is a document; whether it is records or a matrix is the spec's to say, and the grid
-  reading it in the fourth slice's complex PAE is the one reader.
+  size's (a square when none is given: a flat array that is not one is `.size`); any other flat array is copied. A flat
+  array is a typed array or one of numbers and nulls. The document is parsed once at open and the source keeps the array
+  the path reaches, not the text or bytes; the size is checked on each call, and every issue carries the source's
+  address. More than `DefaultMaxBlockValues` (2^24) values is refused (`seq.source.too_large`). A table format is no
+  matrix (`seq.source.no_data`). Why a param and not the format: a document is a document; whether it is records or a
+  matrix is the spec's to say, and the grid reading it in the fourth slice's complex PAE is the one reader.
 - **Records and columns**: `records` is a dotted path from the root (a member, or an index when all digits; at most 32
   segments); what it reaches is an array of records (AoS: each an object) or an object of columns (SoA: each member a
   list or a typed column, all of one length, checked before any is read); a table file is AoS. Read the same.

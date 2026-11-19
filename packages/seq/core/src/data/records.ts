@@ -38,7 +38,7 @@ import type {
 import { isAbortError } from './protocol.js';
 import type { SeqData, SeqPair } from './seq-format.js';
 import { openSeq, SourceOpenError } from './seq-runtime.js';
-import { DefaultMaxColumnLength } from './tables.js';
+import { DefaultMaxBlockValues, DefaultMaxColumnLength } from './tables.js';
 
 // The records runtime (_spec/README.md "Data", Records): a file of records (TSV, CSV, JSON, MessagePack) or an inline
 // value, read whole at open, its conventions undone by the source's transform (`fields`, `records`, `letters`,
@@ -297,6 +297,21 @@ function gff3Records(text: string, causes: Causes): Records {
         if (eq <= 0) continue;
         const key = part.slice(0, eq).trim();
         if (!key) continue;
+        // an attribute named as a column leaves the column its own; a key written twice keeps the last
+        if ((Gff3Columns as readonly string[]).includes(key)) {
+          causes.add(
+            'seq.source.records.cell',
+            'An attribute is named as a column of the format: the column is the field, the attribute left out',
+            `line ${line}`,
+          );
+          continue;
+        }
+        if (key in a)
+          causes.add(
+            'seq.source.records.cell',
+            'An attribute key is written twice in a row: the last kept',
+            `line ${line}`,
+          );
         a[key] = gffDecode(part.slice(eq + 1));
         keys.add(key);
       }
@@ -304,7 +319,7 @@ function gff3Records(text: string, causes: Causes): Records {
     attrs.push(a);
     lines.push(line);
   }
-  const attributeNames = [...keys].filter((k) => !(Gff3Columns as readonly string[]).includes(k));
+  const attributeNames = [...keys];
   const names = [...Gff3Columns, ...attributeNames];
   const aliases: Readonly<Record<string, string>> = { target: 'seqid', id: 'ID' };
   return {
@@ -1008,9 +1023,6 @@ export interface MatrixSize {
   readonly cols: number;
 }
 
-/** The most values a matrix may hold: the bound the store checks a block against (`DefaultMaxBlockValues`). */
-const MaxMatrixValues = 2 ** 24;
-
 /**
  * An array of arrays (JSON or MessagePack, found by the transform's `records` path) as a grid's values, row-major;
  * `null` and cells that are no number are NaN. A typed flat array (a MessagePack `Float32Array`) is kept as it is when it
@@ -1022,16 +1034,46 @@ export function readMatrix(
   transform: RecordsTransform,
   options: { readonly expected?: MatrixSize; readonly limits: OpenLimits },
 ): { matrix?: Matrix; issues: Issue[] } {
-  const causes = new Causes();
+  const found = findMatrix(input, transform);
+  return found.issues.length ? { issues: found.issues } : matrixOf(found.at, transform.records, options.expected);
+}
+
+/** The value a matrix source's `records` path reaches, parsed once (a source keeps it, not the text it came from). */
+export function findMatrix(input: RecordsInput, transform: RecordsTransform): { at?: unknown; issues: Issue[] } {
   try {
     const root = parseDocument(input);
     const path = transform.records;
     const at = path === undefined || path === '' ? root : walk(root, segments(path));
     if (at === undefined) refuse('seq.source.records.field', `The matrix’s path “${path}” reaches nothing`);
-    const expected = options.expected;
+    return { at, issues: [] };
+  } catch (e) {
+    if (e instanceof Refused) return { issues: [e.issue] };
+    throw e;
+  }
+}
+
+/** Whether a value is a flat matrix: a typed array, or an array of numbers and nulls. */
+function isFlat(at: unknown): boolean {
+  if (ArrayBuffer.isView(at)) return true;
+  if (!Array.isArray(at) || at.length === 0) return false;
+  for (const v of at) if (v !== null && typeof v !== 'number') return false;
+  return true;
+}
+
+/** A parsed value as a matrix of the expected size (the size checked on every call: a grid asks with its axes'). */
+export function matrixOf(
+  at: unknown,
+  path: string | undefined,
+  expected?: MatrixSize,
+): { matrix?: Matrix; issues: Issue[] } {
+  const causes = new Causes();
+  try {
     const check = (rows: number, cols: number): void => {
-      if (rows * cols > MaxMatrixValues)
-        tooLarge(`The matrix holds ${rows * cols} values, more than ${MaxMatrixValues}`, 'Use a format read by region');
+      if (rows * cols > DefaultMaxBlockValues)
+        tooLarge(
+          `The matrix holds ${rows * cols} values, more than ${DefaultMaxBlockValues}`,
+          'Use a format read by region',
+        );
       if (expected && (rows !== expected.rows || cols !== expected.cols))
         refuse(
           'seq.source.records.size',
@@ -1040,10 +1082,7 @@ export function readMatrix(
         );
     };
     // a flat array: its dimensions the expected size's, else a square
-    if (
-      ArrayBuffer.isView(at) ||
-      (Array.isArray(at) && at.length > 0 && !Array.isArray(at[0]) && !ArrayBuffer.isView(at[0]))
-    ) {
+    if (isFlat(at)) {
       const flat = at as ArrayLike<unknown>;
       const side = Math.round(Math.sqrt(flat.length));
       const rows = expected?.rows ?? side;
@@ -1164,12 +1203,19 @@ async function open(source: SourceEntry, ctx: OpenContext): Promise<RecordsSourc
       return fail(
         issueOf(SourceIssues, 'seq.source.no_data', `A matrix is read from JSON or MessagePack, not ${format}`),
       );
+    // parsed once, here: the source keeps the array it reaches, not the file's text or bytes
     const transform = transformOf(source);
+    const found = findMatrix(input, transform);
+    const at = found.at;
     const empty = openSeq({ coverage: { systems: [], shapes: [], levels: [1] }, pairs: [] });
+    const placed = (issues: Issue[]) => issues.map((i) => ({ ...i, address: i.address ?? source.address }));
     return {
       ...empty,
       issues: [],
-      matrix: (expected) => readMatrix(input, transform, { limits: ctx.limits, ...(expected ? { expected } : {}) }),
+      matrix: (expected) => {
+        const r = found.issues.length ? { issues: found.issues } : matrixOf(at, transform.records, expected);
+        return { ...r, issues: placed(r.issues) };
+      },
     };
   }
   const id = source.address.slice(source.address.lastIndexOf('/') + 1);
