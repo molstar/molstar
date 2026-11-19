@@ -23,7 +23,8 @@ placement's inverse, so every drawn mark is hit where it is drawn. A selection l
 line of text, a sector across every ring.
 
 A track without a `height` is as tall as its content needs (the lanes of its whole data), in steps of a lane, its marks
-centred; tracks of one kind in a section share one height, so they read as a set and never resize on a pan.
+centred; tracks of one kind in a section share one height, so they read as a set and never resize on a pan. The sizing
+is the section's `heights` param: `content` (this, the default), `uniform`, `fixed`, or an extension's.
 
 ## Text
 
