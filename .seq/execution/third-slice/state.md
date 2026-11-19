@@ -31,11 +31,13 @@ Work id `third-slice`. Plan: `plan.md`; loop: `loop.md`.
 - TE merged (`78f20c5fd`): the item lost past a tile edge was the test sources' contract, not the product's (the reader
   keeps an item by its anchor); fixtures fixed, a tile-edge test, the contract in the core `_spec`. Rings to check
   after RB.
+- RB merged (`4e9a5ded6`): the review's findings, Part B's (a wide window flipping; a test changed to fit the code,
+  restored to the design: tracks wrap on a cyclic axis) and the look's three (a loud window, stacked rows empty, a blank
+  view after zooming out past the fit) fixed; rechecked in the browser.
 
 ## In progress
 
-- RB (strong): `briefs/rb-blocks-rings.md`: its fix round's Part A done; Part B rebases onto `be56ae0be` and adopts
-  TV's mechanisms.
+- Stage 2's gate on `4e9a5ded6`.
 
 ## Next
 
@@ -56,7 +58,7 @@ Stage 2's gate after TV and RB. The early use gate is deferred.
 | Gate | Bug | Missing design | Look |
 |---|---|---|---|
 | stage 2, TV (review and look) | 5 (groups out of phase; end numbers untested; text allocation; a cyclic window drag; the copy message) + 1 found (an item from an earlier tile lost) | 0 | 2 (the export cut short; no domains band) |
-| stage 2, RB (review and look) | 6 (an empty ring throws; >24 blocks; blocks on several systems select wrongly; label hits; overlapping label boxes; the start grip across the origin) | 0 | 2 (a whole-ring window loud; stacked rows empty) |
+| stage 2, RB (review and look) | 9 (an empty ring throws; >24 blocks; blocks on several systems select wrongly; label hits; overlapping label boxes; the start grip across the origin; a wide window flipping; tracks not wrapping, a test changed to fit; a blank view past the fit) | 0 | 2 (a whole-ring window loud; stacked rows empty) |
 | stage 2, TA (review) | 0 (a test gap) | 0 | 0 |
 | stage 2, TX's interface (review) | 5 (rings drew no emphasis; contract parts unwired; place not inverse of at; stale glyph values; a `.seq/` edit) | 0 | 0 |
 | stage 1, TH (review and look) | 8 (log binned; clamp unapplied; the MolViewSpec round trip; mid not diverging; value-color overwriting; two legends off their scale; layer.filter called blocked) | 1 (a safe substitute that is not safe) | 3 (two stories empty; the view not on SL's layers; dark letters dim) |

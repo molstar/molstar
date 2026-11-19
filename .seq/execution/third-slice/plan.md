@@ -177,7 +177,7 @@ and dark before the merge.
 - [x] TX (strong) the text layout and alignment figures, as [layouts](../../design/layouts.md) (it restates tracks on
       the extended interface first, then RB builds on it; it owns the viewport record): groups
       of ten, lanes, inline labels, numbers per row, frames; reflow on resize within its target.
-- [ ] RB (strong, after TX's interface change) blocks and rings, as [layouts](../../design/layouts.md): labels with leaders, a window a linear detail follows (EC-108, EC-114), a feature
+- [x] RB (strong, after TX's interface change) blocks and rings, as [layouts](../../design/layouts.md): labels with leaders, a window a linear detail follows (EC-108, EC-114), a feature
       across the origin by its shortest arc.
 - [ ] GATE: merged, reviewed, the checks green, sizes, gaps, matrix cells (the ring's window).
 
