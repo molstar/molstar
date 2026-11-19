@@ -1688,8 +1688,10 @@ height, 0.72 of its size). Its profile (letter frequencies a column, `gaps: igno
 held cells, joined once and shared with the rows layer on one store (`readHeld`), kept by their version; over a lazy
 alignment it is a source's to serve, and none is read yet (`seq.render.logo.profile`, info). Below 2 device px a column,
 one bar a device column, the tallest stack there (the shared reduction's one-axis max, factor 2), in its top letter's
-color. Its color is the alphabet's scheme by default. Hit: the column, the letter under the point as the hit's `state`.
-It reads every row (a logo of the rows shown is not built: the package's TODO).
+color. Its color is the alphabet's scheme by default, each letter's (and bar's) color moved in oklab lightness to 3:1
+against the track's surface (`seq-track`) by the `ink` rule (`inkAgainst`, hue kept; a scheme's pale cell fill reads as
+a glyph), once per color and token table (the table's version keys the memo). Hit: the column, the letter under the
+point as the hit's `state`. It reads every row (a logo of the rows shown is not built: the package's TODO).
 
 ### The key
 
