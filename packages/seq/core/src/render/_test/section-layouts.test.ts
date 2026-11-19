@@ -265,6 +265,13 @@ describe('warps', () => {
     }
   });
 
+  it('a polar strip draws into a scratch pass named as the pass it warps (the emphasis reads the name)', () => {
+    const lists = new DrawLists();
+    const p = new PolarWarp();
+    for (const name of ['data', 'highlight', 'selection', 'hover', 'cursor', 'labels'] as const)
+      expect(p.writer(lists.writer(name)).pass.name).toBe(name);
+  });
+
   it('a placed glyph run in the record and the SVG: each letter its place, angle and vertical scale', () => {
     const lists = new DrawLists();
     const out = lists.writer('data');

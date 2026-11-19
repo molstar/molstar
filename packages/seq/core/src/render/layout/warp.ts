@@ -12,7 +12,7 @@
 // their angles, an image refused (its layout says so), a clip applied in the strip's frame before warping. Buffers are
 // kept: nothing allocated once warm.
 
-import { grown, NoColor, Op, PassList, PassWriter, PathCommand, type PathList } from '../draw-lists.js';
+import { grown, NoColor, Op, PassList, Passes, PassWriter, PathCommand, type PathList } from '../draw-lists.js';
 import { squirclePath } from '../squircle.js';
 
 /** What a translation moves: the counts of a pass's lists when a strip began to draw. */
@@ -95,8 +95,10 @@ export class PolarWarp {
   step = 4;
   /** Primitives refused (an image): its layout reports them. */
   refused = 0;
-  private readonly scratch = new PassList('data');
-  private writer_: PassWriter | undefined;
+  /** A scratch pass a pass, named as it (what a strip draws reads its pass's name: the emphasis does). */
+  private readonly scratches = Passes.map((name) => new PassList(name));
+  private readonly writers: (PassWriter | undefined)[] = [];
+  private scratch = this.scratches[0];
   /** The clip rects open in the strip's frame (x, y, w, h each). */
   private clipStack = new Float64Array(16);
   private clipDepth = 0;
@@ -135,10 +137,12 @@ export class PolarWarp {
 
   /** The writer a strip draws into for `out`'s pass. */
   writer(out: PassWriter): PassWriter {
+    const k = out.pass.index;
+    this.scratch = this.scratches[k];
     this.scratch.reset();
     this.clipDepth = 0;
-    let w = this.writer_;
-    if (!w || w.lists !== out.lists) w = this.writer_ = new PassWriter(out.lists, this.scratch);
+    let w = this.writers[k];
+    if (!w || w.lists !== out.lists) w = this.writers[k] = new PassWriter(out.lists, this.scratch);
     return w;
   }
 
