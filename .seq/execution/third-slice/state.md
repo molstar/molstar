@@ -38,12 +38,12 @@ Work id `third-slice`. Plan: `plan.md`; loop: `loop.md`.
   allocation tier 88/88; heavy: one max bound (`frame-time`, 150k pieces) failed under load beside the build and passed
   3/3 alone (to G2: best of three). Sizes against the guides: 173.2 / 468.8 / 744.1 kB. The look's two text findings
   (gutter labels overlapping; the domains count strip a heavy rule) to G2; the canvas/SVG spacing matched.
+- G2 merged (`e2aac7989`): the three gate findings fixed, looked at in light and dark. Stage 2 closed.
 
 ## In progress
 
-- G2 (fast): stage 2's gate findings (`briefs/g2-gate-fixes.md`).
 - RW (strong) and SY (strong): stage 3's rows and stage 4's stories (`briefs/rw-rows.md`, `sy-stories.md`), base
-  `43beaa3e3`; started before G2 merges (three small fixes), rebased on it.
+  `43beaa3e3`; rebasing onto G2's merge `e2aac7989`.
 
 ## Next
 
