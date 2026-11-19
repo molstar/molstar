@@ -8,8 +8,8 @@
 // transform's), translated by nothing. `row` (the default): the blocks side by side along one axis, one viewport over
 // them laid end to end, a gap between two (shrinking when zoomed out so positions keep three quarters of the width,
 // the gaps in view sharing the rest, EC-102); `stack`: a block a row of the section's tracks, aligned at their first
-// position, one zoom (EC-102, EC-115). Each block's label in a row above its tracks. Its lays are kept by the block's
-// first unit, so a pan keeps them.
+// position, one zoom (EC-102, EC-115). Each block's label in a row above its tracks. Its lays are kept by the block
+// and its first unit, so a pan keeps them.
 
 import { piecesTotal, type ResolvedSection } from '@molstar/seqx-core/view';
 import { AxisTransform } from '../axis.js';

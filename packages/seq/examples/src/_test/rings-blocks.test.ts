@@ -144,8 +144,15 @@ describe('the Complex stand-in’s blocks', () => {
 
   it('split: a block a chain and a ligand; stacked: a row each; on a ring: an arc each', async () => {
     expect((await laid(view('blocks-split').build())).sections[0].section.blocks!.length).toBe(6);
-    const stacked = (await laid(view('blocks-stacked').build())).sections[0].placement as BlockPlacement;
+    const stackedLayout = await laid(view('blocks-stacked').build());
+    const stacked = stackedLayout.sections[0].placement as BlockPlacement;
     expect([stacked.stacked, stacked.strips.n]).toEqual([true, 3]);
+    // each row's Sequence its own block's letters, in its own row
+    const st = stacked.strips;
+    for (let i = 0; i < st.n; i++) {
+      const y = st.bandY[i * st.bands + 1] + 2;
+      expect(hitView(stackedLayout, st.axes[i].xOfUnit(0.5), y)).toMatchObject({ block: i, system: st.axes[i].system });
+    }
     const ring = (await laid(view('blocks-ring').build())).sections[0].placement as RingPlacement;
     expect(ring.strips.n).toBe(3);
   });

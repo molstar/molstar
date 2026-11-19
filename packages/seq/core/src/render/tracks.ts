@@ -912,7 +912,9 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
             ...(band ? { bandTop: band.bandTop } : {}),
             ...(band?.rowScale !== undefined ? { rowScale: band.rowScale } : {}),
           };
-          const l = layOne(track, layer, type, keyed ? `${key}@${strips.first[i]}` : key, ctx);
+          // kept by the strip's first unit, and its block's (a stack's blocks all start at 0)
+          const at = block ? `${key}#${strips.block[i]}@${strips.first[i]}` : `${key}@${strips.first[i]}`;
+          const l = layOne(track, layer, type, keyed ? at : key, ctx);
           const u = type.used ? type.used(l.lay) : h;
           if (u > strips.used[k]) strips.used[k] = u;
           out.push(l);

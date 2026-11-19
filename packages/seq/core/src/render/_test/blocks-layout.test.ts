@@ -149,6 +149,12 @@ describe('blocks in the tracks layout', () => {
     const y = p.strips.bandY[p.strips.bands] + 2;
     expect(p.at(p.strips.axes[1].xOfUnit(30.5), y, pt) && pt.strip).toBe(1);
     expect(keysAt(f, p, 1, 30)).toEqual(['box']);
+    // each row draws its own letters (a layer of the same key on every block: its lays kept a block each)
+    for (let i = 0; i < p.strips.n; i++) {
+      const k = i * p.strips.bands + 1;
+      const h = hitView(f.layout, p.strips.axes[i].xOfUnit(0.5), p.strips.bandY[k] + 2);
+      expect(h).toMatchObject({ block: i, position: 0, system: p.strips.axes[i].system });
+    }
   });
 });
 

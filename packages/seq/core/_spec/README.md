@@ -1227,8 +1227,8 @@ target. A floor of 16 px (a narrower window grows about its middle); its parts h
 - **Tracks** (`layout/blocks.ts`, `BlockPlacement`): `arrange: 'row'` (the default) lays the blocks end to end along one
   viewport with a gap between two (at most 12 px, the gaps inside the window sharing at most a quarter of the width,
   however many: EC-102); `stack` a block a row of the section's tracks, aligned at their first position, one zoom
-  (EC-102, EC-115). Each block's label in a row above its tracks, faded at its strip's width. Lays are kept by the
-  block's first unit, so a pan keeps them.
+  (EC-102, EC-115). Each block's label in a row above its tracks, faded at its strip's width. Lays are kept by the block
+  and its first unit, so a pan keeps them (by the block too: a stack's blocks all start at 0).
 - **Rings**: a block an arc (above).
 - **Follow across systems** is refused: a section of blocks on more than one system neither follows nor is followed
   (`seq.render.follow.blocks`, it shows its own range). Why: which block's map a follow would carry is undecided. Blocks
