@@ -82,7 +82,10 @@ describe('a numbering from a records source', () => {
     // its tiles are wanted (the whole system at level 1)
     expect(first.wants.some((w) => w.source === '/data/kabat-table' && w.end === H.length)).toBe(true);
     const q = withSourceNumberings(overlayQueryModel(s.model, EmptyOverlay), s.model, s.store);
-    expect(resolveAddressIn(s.model.spec, q, '/data/h/(at :label 82B :numbering kabat)').status).toBe('failed');
+    // a form naming it waits for its labels, never says it is unknown
+    const waiting = resolveAddressIn(s.model.spec, q, '/data/h/(at :label 82B :numbering kabat)');
+    expect(waiting.status).toBe('waiting');
+    expect(waiting.issues.map((i) => i.code)).toEqual(['seq.query.numbering.pending', 'seq.address.waiting']);
 
     const f = await s.frame({ size: Size, viewport: { start: 0, end: H.length } });
     expect(f.layout.issues).toEqual([]);

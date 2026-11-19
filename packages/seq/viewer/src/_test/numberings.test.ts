@@ -111,6 +111,36 @@ describe('declared numberings in the viewer', () => {
   });
 });
 
+describe('a numbering from a source, with no ruler showing it', () => {
+  it('a link naming it waits, asks for its labels, and resolves when they arrive', async () => {
+    const b = createSeqSpec({ title: 'no ruler' });
+    const t = b.data.source('kabat-table', {
+      format: 'json',
+      system: 'h',
+      value: Kabat.map((label, position) => ({ position, label })),
+    });
+    const h = b.data.sequence('h', { alphabet: 'protein', letters: H }, (s) =>
+      s.numbering('kabat', { method: 'labels', source: t, scheme: 'kabat' }),
+    );
+    b.views.view('v', (v) => v.section('s', { of: h }).track('l').layer('l', { type: 'letters' }));
+    const v = createSeqViewer({ ...DefaultSeqViewerSpec(), ui: undefined });
+    viewers.push(v);
+    await v.load(b.build());
+    v.resize(900);
+    await v.settle();
+    const address = '/data/h/(range :from 82 :to 83 :numbering kabat)';
+    const first = v.addresses.resolve(address);
+    expect(first.status).toBe('waiting');
+    expect(first.issues.map((i) => i.code)).toEqual(['seq.query.numbering.pending', 'seq.address.waiting']);
+    // the address model asked for the labels (no layer did)
+    await Promise.resolve();
+    await v.store.store.whenSettled();
+    const r = v.addresses.resolve(address);
+    expect(r.status).toBe('resolved');
+    expect(r.result?.type === 'location' && Array.from(r.result.location.parts[0].ranges)).toEqual([10, 15]);
+  });
+});
+
 describe('the ruler in a declared numbering: canvas and SVG', () => {
   it('draws the same labels', async () => {
     const r = await renderSvg(spec(), {

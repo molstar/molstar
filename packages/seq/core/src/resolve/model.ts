@@ -234,6 +234,8 @@ export interface StaticModel extends QueryModel {
   readonly annotations: ReadonlyMap<string, AnnotationEntry>;
   /** The declared numberings, by the numbering node's address. */
   readonly numberings: ReadonlyMap<string, NumberingEntry>;
+  /** Whether a declared numbering's labels are a source's (read by tier 2): what wraps a query model checks first. */
+  readonly hasSourceNumberings: boolean;
   readonly issues: readonly Issue[];
   /** A system's declared numbering by its id (`kabat`), or undefined: never a built-in (`index`, `ordinal`). */
   numberingOf(system: string, id: string): NumberingEntry | undefined;
@@ -860,6 +862,7 @@ class Model implements StaticModel {
   private readonly querySystems = new Map<string, QuerySystem>();
   private readonly queryAnnotations = new Map<string, QueryAnnotation | undefined>();
   private readonly numberingsBySystem = new Map<string, Map<string, NumberingEntry>>();
+  readonly hasSourceNumberings: boolean;
 
   constructor(
     readonly spec: Node,
@@ -873,11 +876,14 @@ class Model implements StaticModel {
     private readonly carried?: ReadonlyMap<string, PathEntry>,
   ) {
     this.hash = hashNode(spec);
+    let fromSource = false;
     for (const n of numberings.values()) {
+      if (n.source) fromSource = true;
       let of = this.numberingsBySystem.get(n.system);
       if (!of) this.numberingsBySystem.set(n.system, (of = new Map()));
       of.set(n.id, n);
     }
+    this.hasSourceNumberings = fromSource;
     for (const m of maps.values()) {
       const fwd: Edge = { map: m.address, from: m.from, to: m.to, backward: false, step: m.step, linear: m.linear };
       const back: Edge = {
@@ -1002,7 +1008,7 @@ class Model implements StaticModel {
     if (s) return s;
     const e = this.systems.get(address);
     if (!e) return undefined;
-    // its declared numberings: the inline ones answer here; a source's labels are tier 2's (`sourceNumberings`)
+    // its declared numberings: the inline ones answer here; a source's labels are tier 2's (`withSourceNumberings`)
     const own = this.numberingsBySystem.get(address);
     const ids = own ? [...own.keys()] : [];
     s = {
@@ -1011,6 +1017,8 @@ class Model implements StaticModel {
       cyclic: e.cyclic,
       numbering: (id) => own?.get(id)?.numbering,
       numberingIds: () => ids,
+      // a source's labels are tier 2's: here they never arrive, so a form naming them waits
+      numberingPending: (id) => own?.get(id)?.source !== undefined,
     };
     this.querySystems.set(address, s);
     return s;

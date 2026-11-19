@@ -148,3 +148,59 @@ describe('declared numberings: the language', () => {
     ]);
   });
 });
+
+describe('declared numberings: changes', () => {
+  const change = (ops: unknown[]) => {
+    const r = applyPatch(root, { ops } as never, { language: SeqLanguage, validate: SeqValidateOptions });
+    if (!r.ok) throw new Error(r.issues.map((i) => i.code).join());
+    return checkSeqChanges(root, r.root, r.changes).map((i) => [i.code, i.address]);
+  };
+
+  it('a numbering added is checked', () => {
+    const node = { kind: 'numbering', id: 'chothia', params: { method: 'labels', labels: ['1', '2'] } };
+    expect(change([{ op: 'insert', parent: ['data', 'h'], place: { last: true }, node }])).toEqual([
+      ['seq.lang.numbering.length', '/data/h/chothia'],
+    ]);
+  });
+
+  it('a numbering renamed to a built-in’s id is refused', () => {
+    expect(
+      change([
+        { op: 'move', at: ['data', 'h', 'kabat'], parent: ['data', 'h'], place: { last: true }, rename: 'index' },
+      ]),
+    ).toEqual([['seq.lang.numbering.id', '/data/h/index']]);
+  });
+});
+
+describe('declared numberings: label rules', () => {
+  const b = createSeqSpec();
+  b.data.sequence('s', { alphabet: 'protein', letters: 'MEEPQSD' }, (s) => {
+    // a hole at 2, 4 twice, a lowercase insertion code at 6
+    s.numbering('n', { method: 'labels', labels: ['1', '2', null, '4', '4', '5', '5a'] });
+  });
+  const r2 = b.build();
+  const m2 = resolveSpec(r2);
+  const ranges = (address: string) => {
+    const r = resolveAddressIn(r2, m2, address);
+    return r.result?.type === 'location' ? Array.from(r.result.location.parts[0].ranges) : r.issues.map((i) => i.code);
+  };
+
+  it('a duplicate label names its first position', () => {
+    expect(ranges('/data/s/(at :label 4 :numbering n)')).toEqual([3, 4]);
+    expect(ranges('/data/s/(range :from 4 :to 5 :numbering n)')).toEqual([3, 6]);
+  });
+
+  it('a range spans a position with no label; a missing end never snaps onto one', () => {
+    expect(ranges('/data/s/(range :from 2 :to 4 :numbering n)')).toEqual([1, 4]);
+    // 3 is no label: the end snaps to the last labelled position at or before it, 2 (index 1), not the hole
+    expect(ranges('/data/s/(range :from 1 :to 3 :numbering n)')).toEqual([0, 2]);
+    expect(ranges('/data/s/(range :from 3 :to 4 :numbering n)')).toEqual([3, 4]);
+  });
+
+  it('a label is found by its spelling, else ignoring case', () => {
+    expect(ranges('/data/s/(at :label 5a :numbering n)')).toEqual([6, 7]);
+    expect(ranges('/data/s/(at :label 5A :numbering n)')).toEqual([6, 7]);
+    expect(ranges('/data/s/(at :label 5 :ins A :numbering n)')).toEqual([6, 7]);
+    expect(m2.system('/data/s')?.numbering('n')?.indexOf('5A')).toBe(6);
+  });
+});

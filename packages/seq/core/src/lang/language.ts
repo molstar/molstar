@@ -272,7 +272,7 @@ export const SeqLanguage = defineLanguage({
         scheme: {
           type: 'string',
           pattern: '^[a-z][a-z0-9_-]*$',
-          doc: 'The numbering scheme the labels follow, an open word (`kabat`, `imgt`, `chothia`, `uniprot`, `auth`): what a reader says it is; it does not change the labels.',
+          doc: 'The numbering scheme the labels follow, an open lowercase word (`^[a-z][a-z0-9_-]*$`: `kabat`, `imgt`, `chothia`, `uniprot`, `auth`, a lab’s own): what a reader says it is; it does not change the labels.',
         },
       },
     },

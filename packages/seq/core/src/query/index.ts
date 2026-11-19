@@ -91,6 +91,7 @@ export {
   type NumberingOf,
   nearestLabels,
   numberingIds,
+  numberingPending,
   sequentialNumbering,
   snapLabel,
   type Tick,

@@ -323,7 +323,10 @@ the region (a press there says it too, a tap's hover).
 `models/address.ts` (`viewer.addresses`): addresses in the spec shown and the store's nodes now (the core's Addressing
 over `overlayQueryModel` of the static model and `StoreModel.currentOverlay`, the last frame's builder's overlay without
 syncing sources, with the labels of the numberings read from sources that the store holds: the core's
-`withSourceNumberings`), with the `address.*` settings as bounds.
+`withSourceNumberings`), with the `address.*` settings as bounds. The query model is kept while the model, the overlay
+and the store's version are the same. A form naming a source's numbering whose labels are not in asks for its tiles
+through the model's own wanter (after the resolve, never inside it), so a link in a numbering no ruler shows waits and
+then resolves.
 
 - **Actions**: `focus` (each leading, movable section whose system the address has positions on, or reaches by a static
   path, shows their hull in display offsets, hidden stretches taking no width; one move a scroll group; followers

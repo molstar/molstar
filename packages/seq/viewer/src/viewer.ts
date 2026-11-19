@@ -286,6 +286,7 @@ export class SeqViewer extends ReactiveModel {
       this.selection,
       this.highlight,
       this.config,
+      this.context.renderConfig.maxNumberingPositions,
     );
     for (const m of [this.addresses, this.highlight, this.selection, this.store, this.hover, this.view, this.spec])
       this.registerPermanentDispose(() => m.retire());

@@ -76,9 +76,8 @@ links, selection, the security bounds, MessagePack). Next, version 1's second mi
     contiguous).
 
 - **Addressing**: an item's coordinate system (`<node>/(item :id k)`) as a prefix of location forms (the `item` form
-  gives Elements today, so `/refs/t1/(item :id T1)/(range …)` fails); a form naming a source's numbering before its
-  labels are in is `seq.query.numbering.unknown` (a waiting status would say they come), and only a layer showing it
-  asks for its tiles; rects projected for a focus; a whole Location's size bound.
+  gives Elements today, so `/refs/t1/(item :id T1)/(range …)` fails); rects projected for a focus; a whole Location's
+  size bound.
 
 - **Language**: a numbering's other methods (`offset`, `segments`, the design's) and a source's labels keyed by
   something other than a position; a union of a ref and a query slot for `layer.data` (loose today); a strand column

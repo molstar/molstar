@@ -76,11 +76,12 @@ checks it cannot express.
   name the forms read (`:numbering kabat`, Queries, Numberings and labels). `method` is `labels` (the one built: an
   offset and segments wait for the examples that need them); `labels` inline, a category column one a position in index
   order, `null` no label there; or `source` and `field` (absent: `label`): a source's rows, a row a position (its
-  `position`, or its `start`), on the sequence by its name (Render, Numberings from a source); `scheme` an open word
-  (`kabat`, `imgt`, `chothia`, `uniprot`, `auth`) that says what the labels follow and changes none of them. Labels need
-  no order (IMGT, EC-7) and carry insertion codes (`100A`, `111.1`). Checks: one of `labels` and `source`, `field` with
-  a source only (`seq.lang.numbering.content`); an id no built-in has (`seq.lang.numbering.id`: the forms read `index`
-  and `ordinal` as theirs, so one declared so would never be read); inline labels one a position of inline letters
+  `position`, or its `start`), on the sequence by its name (Render, Numberings from a source); `scheme` an open word,
+  lowercase (`^[a-z][a-z0-9_-]*$`: `kabat`, `imgt`, `chothia`, `uniprot`, `auth`), that says what the labels follow and
+  changes none of them; any such word is accepted (a lab's own scheme too). Labels need no order (IMGT, EC-7) and carry
+  insertion codes (`100A`, `111.1`). Checks: one of `labels` and `source`, `field` with a source only
+  (`seq.lang.numbering.content`); an id no built-in has (`seq.lang.numbering.id`: the forms read `index` and `ordinal`
+  as theirs, so one declared so would never be read); inline labels one a position of inline letters
   (`seq.lang.numbering.length`, error); a label at two positions said once (`seq.lang.numbering.duplicate`, warning: it
   names the first, the queries' rule). A change to a sequence checks its numberings again (Checks of a change). Why a
   child of the sequence: a numbering is the sequence's, and moving or removing the sequence takes its numberings with
@@ -350,9 +351,10 @@ is a segment of an address, `/data/p53/(range :from 94 :to 292)`.
   read.
 - **Built-ins**: `index` (0-based) and `ordinal` (1-based), on every system; without `:numbering` a form reads
   `ordinal`. A declared numbering (a sequence's `numbering` child, Language, Numberings; `labelsNumbering`: an index of
-  its labels built on first use, no `snap`, so its positions are scanned) is looked up on the system, then on its
-  molecule (`parent`, shifted by the unit's start, clipped to the unit): a unit's own beats its molecule's of the same
-  id. Why: the author's numbering of a chain wins over the entity's. Not across a codon step: that waits for paths.
+  its labels built on first use, a label found by its spelling, else ignoring case, as the order of labels ignores it;
+  no `snap`, so its positions are scanned) is looked up on the system, then on its molecule (`parent`, shifted by the
+  unit's start, clipped to the unit): a unit's own beats its molecule's of the same id. Why: the author's numbering of a
+  chain wins over the entity's. Not across a codon step: that waits for paths.
 - **A label** is an integer with an optional suffix, letters (`94A`) or `.n` (`"100.1"`), or else a name. One total
   order: by integer; no suffix, then letters (shorter first, then alphabetic ignoring case), then `.n` by n; names after
   every number; spelling breaks the last ties. A `.n` label is written quoted: bare, `100.1` is the number 100.1 (the
@@ -420,10 +422,10 @@ is a segment of an address, `/data/p53/(range :from 94 :to 292)`.
 ### Issues
 
 - `seq.query.*` (`QueryIssues`): `form.prefix`, `form.param`, `form.type`, `form.unsupported`, `numbering.unknown`,
-  `label.syntax`, `label.int32`, `label.unknown` (with the nearest labels), `label.insertion`, `label.snapped` (info),
-  `range.backwards`, `range.lap`, `range.wrap`, `range.empty` (warning), `position.invalid`, `location.unreachable`
-  (warning), `ref.unresolved`, `node.missing` (warning). A resolver's errors fail the selection; its warnings and infos
-  are carried. A test checks the catalog against the codes the sources use.
+  `numbering.pending` (info), `label.syntax`, `label.int32`, `label.unknown` (with the nearest labels),
+  `label.insertion`, `label.snapped` (info), `range.backwards`, `range.lap`, `range.wrap`, `range.empty` (warning),
+  `position.invalid`, `location.unreachable` (warning), `ref.unresolved`, `node.missing` (warning). A resolver's errors
+  fail the selection; its warnings and infos are carried. A test checks the catalog against the codes the sources use.
 
 ### Examples
 
@@ -1081,6 +1083,7 @@ the UX foundations' numbers, CSS px, settled by the foundation stories; where no
 | `margin`                                                       | 0.5                                                                                                 | what a want adds on each side, a fraction of the view (the store's `margin` priority)                                                                                           |
 | `followArc`                                                    | `shortest`                                                                                          | a cyclic follower takes the shortest arc holding the image (EC-12); `hull`                                                                                                      |
 | `maxTemplateTracks`                                            | 200                                                                                                 | the tracks one template makes; past it `seq.render.template.limit`: a source's nodes are untrusted                                                                              |
+| `maxNumberingPositions`                                        | 2^18                                                                                                | the positions a numbering from a source covers at most; past it `seq.render.numbering.limit` and nothing asked for: its labels are held whole                                   |
 | `nodes.holdShown`                                              | true                                                                                                | a layout lists the nodes it shows, for its owner to hold in the store; false: nothing held by showing                                                                           |
 | `ranges.overflow`                                              | `extra-lanes`                                                                                       | only the items past the lanes collapse into a density row; `layer`, the whole layer                                                                                             |
 | `values.aggregate`                                             | `minmax`                                                                                            | below a device pixel a position, each column's extent, so negative extremes show; `max`                                                                                         |
@@ -1382,16 +1385,29 @@ the y path in Emphasis).
 
 `render/numberings.ts`: a declared numbering whose labels are a source's rows (Language, Numberings).
 
-- **Read whole**: the sequence's every position at level 1 (`sourceNumbering`), a row a position (its `start`: a
-  `position` row is `[p, p + 1)`), the label its `field` (a category's text, a number's spelling; `id` the row's id);
-  the first row of a position keeps it. Held once every tile is in, never in part. Why whole: labels need no order, so a
-  part would snap and print other positions than the whole does.
-- **Who reads it**: a layer that shows the numbering wants its tiles (the ruler, at layout: no ticks while they come,
-  pending, never ordinals in their place); the query model reads what the store holds without asking
-  (`withSourceNumberings(base, model, store)`: the viewer's addresses, links and copied addresses). Before the labels
-  are in, a form naming it is `seq.query.numbering.unknown`. A text's numbers read inline numberings only (a section
-  layout reads no store).
-- Kept per numbering while its tiles are the same entries.
+- **Read whole**: the sequence's every position at level 1 (`readSourceNumbering`, internal), a row a position (its
+  `start`: a `position` row is `[p, p + 1)`), the label its `field` (a category's text, a number's spelling; `id` the
+  row's id; a row with no label is a position with none); the first row of a position keeps it. Held once every tile is
+  in, never in part. Why whole: labels need no order, so a part would snap and print other positions than the whole
+  does.
+- **Bounded**: a sequence longer than `maxNumberingPositions` (2^18) is `seq.render.numbering.limit`, and its tiles are
+  never asked for nor its labels held. Why: the labels are held whole, a string a position.
+- **Kept**: held labels stay while the source's coverage is the same, whatever becomes of their tiles: an evicted tile
+  is never asked for again for them, so a ruler does not ask for every tile each frame. Before they are held, a read is
+  kept while its tiles are the same entries.
+- **Blank, said**: a tile that failed, or a source whose coverage has no system of the sequence's name (or no length for
+  it), is `seq.render.numbering.source`; held labels with rows past the sequence's end (left out) or rows for another
+  count of positions than the sequence has are `seq.render.numbering.rows`, each once a read (the ruler reports them at
+  layout). A blank ruler labels by `ordinal`, as for an unknown numbering.
+- **Pending is waiting**: the query model (`withSourceNumberings(base, model, store, { maxPositions, want })`) answers a
+  held numbering, says one not in yet is pending (`QuerySystem.numberingPending`: a form naming it gives nothing, the
+  whole system pending, `seq.query.numbering.pending`, so the address is `waiting`, never unknown), and leaves a blank
+  one out of the ids an unknown numbering lists. `want` asks for the tiles of what a form named: whoever resolves asks
+  (the viewer's addresses), so a link in a numbering no ruler shows resolves. A unit's molecule is wrapped too, so a
+  molecule's source numbering numbers its units. The static model alone says a source's numbering is pending: nothing
+  there brings it.
+- **Who asks**: the ruler at layout (no ticks while they come, never ordinals in their place) and the viewer's
+  addresses; a text's numbers read inline numberings only (a section layout reads no store).
 
 ### Section layouts
 
@@ -2111,10 +2127,10 @@ under the point as the hit's `state`. It reads every row (a logo of the rows sho
 - `seq.render.*` (`RenderIssues`): `rows.reduced` (info), `rows.clade` (info), `rows.text.unfolded` (info),
   `logo.profile` (info), `rows.order` (info), `rows.lazy` (info), `pairs.limit` (info), `pairs.systems`, `grid.systems`,
   `layer.axes`, `rows.layout`, `rows.second`, `view`, `color`, `theme.channel`, `theme.scheme`, `theme.measure`,
-  `theme.color`, `scale.log` (info), `legend.unlisted` (info), `filter`, `line-style` (info), `numbering`, `layer.type`,
-  `layer.letters`, `axis.pending` (info), `text.lines`, `follow.leader`, `follow.blocks`, `ring.image`, `follow.cycle`,
-  `source`, `template.limit`, `unsettled`, `navigator.of`, `navigator.path`, `navigator.rows` (info), `navigator.layer`
-  (info); a test checks the catalog.
+  `theme.color`, `scale.log` (info), `legend.unlisted` (info), `filter`, `line-style` (info), `numbering`,
+  `numbering.limit`, `numbering.source`, `numbering.rows`, `layer.type`, `layer.letters`, `axis.pending` (info),
+  `text.lines`, `follow.leader`, `follow.blocks`, `ring.image`, `follow.cycle`, `source`, `template.limit`, `unsettled`,
+  `navigator.of`, `navigator.path`, `navigator.rows` (info), `navigator.layer` (info); a test checks the catalog.
 
 ## Stories
 

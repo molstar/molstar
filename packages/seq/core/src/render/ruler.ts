@@ -13,7 +13,7 @@ import { fontSize } from './config.js';
 import { Anchor, drawPass, grown, NoColor, type PassName, type PassWriter, passDraws } from './draw-lists.js';
 import { RenderIssues } from './issues.js';
 import { type Box, type Emphasis, type Hit, type LayerType, type LayoutContext, sectionId } from './layer-type.js';
-import { sourceNumbering } from './numberings.js';
+import { readSourceNumbering } from './numberings.js';
 import type { SeqTokens } from './tokens.js';
 
 // the anchor a number read once (see ranges.ts)
@@ -114,22 +114,28 @@ export const RulerType: LayerType<RulerPrep, RulerLay> = {
     lay.n = 0;
     const gl = axis.gsize > 0 ? ctx.section.params.group_labels : undefined;
     lay.grouped = axis.gsize > 0 && gl !== 'none' ? (gl === 'inline' ? 'inline' : 'above') : '';
-    // a source's labels, once every tile of its system is in: no ticks while they come (pending, never ordinals)
-    const fromSource = prep.source
-      ? sourceNumbering(prep.source.model, prep.source.entry, data, (w) => ctx.want(w))
+    // a source's labels, once every tile of its system is in: no ticks while they come (pending, never ordinals); a
+    // blank one is reported and labels by ordinals, as an unknown one does
+    const read = prep.source
+      ? readSourceNumbering(prep.source.model, prep.source.entry, data, {
+          maxPositions: config.maxNumberingPositions,
+          want: (w) => ctx.want(w),
+        })
       : undefined;
+    const fromSource = read?.status === 'held' ? read.numbering : undefined;
     // only where the group labels print this ruler's numbering (the text's: its first layer naming one, else ordinals)
     if (
       lay.grouped &&
       (prep.numbering || fromSource ? prep.id : 'ordinal') !== textNumberingId(ctx.section, prep.system)
     )
       lay.grouped = '';
-    if (prep.source) {
-      if (!fromSource) {
-        fit(lay, ctx);
-        return lay;
-      }
-    } else if (!prep.numbering && prep.id !== 'ordinal' && prep.id !== 'index')
+    if (read?.status === 'pending') {
+      fit(lay, ctx);
+      return lay;
+    }
+    if (read?.status === 'held') for (const i of read.issues) ctx.report(i);
+    else if (read?.status === 'blank') ctx.report(read.issue);
+    else if (!prep.numbering && prep.id !== 'ordinal' && prep.id !== 'index')
       ctx.report(
         issueOf(RenderIssues, 'seq.render.numbering', `The system has no numbering ${prep.id}`, {
           address: ctx.key,
