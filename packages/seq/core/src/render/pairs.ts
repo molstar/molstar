@@ -41,6 +41,9 @@ export const SplitExact = 2000;
 /** An arc's least height, px: never flat. */
 const MinArc = 3;
 
+/** The feet's inset from the band's edge, px: the stroke's half and a hair, so an arc is drawn within its band. */
+const Inset = 1;
+
 /** The points a curve is sampled at for a hit. */
 const HitSamples = 16;
 
@@ -596,14 +599,26 @@ function layoutArcs(lay: PairsLay, prep: PairsPrep, ctx: LayoutContext, place: P
     const top = s.bandY[kb];
     const h = s.bandH[kb];
     const polar = s.warp[sa] === WarpKind.polar;
-    const base = side === 'above' ? top + h : top;
+    // the feet on the band's edge toward the sequence (`above`: its bottom, the arcs rising; `below`: its top), inset
+    // so the stroke stays in the band; split, on its middle, each side half the band (a ring: its edges, as drawn)
+    const split = prep.other !== undefined && !polar;
+    const base = split
+      ? top + h / 2
+      : polar
+        ? side === 'above'
+          ? top + h
+          : top
+        : side === 'above'
+          ? top + h - Inset
+          : top + Inset;
+    const room = split ? h / 2 - Inset : h - 2 * Inset;
     const frac = widest > 0 ? Spans[i] / widest : 1;
     // the control's offset from the base: twice the apex's height (a curve's apex is halfway to its control); on a
     // ring below, toward the centre by the span (a chord through the hole)
     const depth =
       polar && side === 'below'
         ? (place.warpOf!(sa).r0 - base) * Math.min(1, frac) * 1.5
-        : 2 * Math.max(MinArc, (h - 2) * frac);
+        : 2 * Math.min(Math.max(0, room), Math.max(MinArc, room * frac));
     const cy = side === 'above' ? base - depth : base + depth;
     lay.pair = grown(lay.pair, lay.n + 1);
     lay.color = grown(lay.color, lay.n + 1);

@@ -87,7 +87,8 @@ export type LegendSource =
     }
   | {
       readonly kind: 'swatches';
-      readonly items: readonly { readonly label: string; readonly value: number | string }[];
+      /** Each swatch; a letters form's names the letters it colors (the legend lists those the layer drew). */
+      readonly items: readonly { readonly label: string; readonly value: number | string; readonly letters?: string }[];
     }
   | {
       readonly kind: 'sizes';
@@ -427,31 +428,26 @@ export function compileChannel(
       if (u < 128 && table[u] === undefined) table[u] = v;
       if (lo < 128 && table[lo] === undefined) table[lo] = v;
     };
-    const items: { label: string; value: number | string }[] = [];
+    const items: { label: string; value: number | string; letters: string }[] = [];
     const colors = param(b, 'colors');
     if (colors && typeof colors === 'object')
       for (const [l, c] of Object.entries(colors)) {
         const v = literal(c);
         set(l, v);
-        if (v !== undefined) items.push({ label: l, value: v });
+        if (v !== undefined) items.push({ label: l, value: v, letters: l });
       }
     for (const g of (param(b, 'groups') as unknown[] | undefined) ?? []) {
       if (!isThemeNode(g)) continue;
       const v = literal(param(g, 'value'));
-      for (const l of String(param(g, 'letters') ?? '')) set(l, v);
-      if (v !== undefined) items.push({ label: String(param(g, 'label') ?? param(g, 'letters')), value: v });
+      const ls = String(param(g, 'letters') ?? '');
+      for (const l of ls) set(l, v);
+      if (v !== undefined) items.push({ label: String(param(g, 'label') ?? ls), value: v, letters: ls });
     }
     const dflt = param(b, 'default') !== undefined ? literal(param(b, 'default')) : undefined;
     const rest =
       dflt === undefined && param(b, 'default') === undefined ? compile(fallback, MaxDepth, false) : undefined;
-    if (top && kind === 'color') {
-      // a group's label once; letters sharing a color with a group are not listed again
-      const seen = new Set<number | string>();
-      legend = {
-        kind: 'swatches',
-        items: items.filter((i) => (seen.has(i.value) ? false : (seen.add(i.value), true))),
-      };
-    }
+    // every letter and group with its letters: the legend keeps those drawn, then one a color (`legendOf`)
+    if (top && kind === 'color') legend = { kind: 'swatches', items };
     return {
       at: (d) => {
         const code = d.letter.charCodeAt(0);

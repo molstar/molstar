@@ -100,6 +100,8 @@ export interface LettersLay {
   n: number;
   pos: Int32Array;
   code: Uint16Array;
+  /** The letter codes laid out (ASCII), 1 where one was: what its legend lists. */
+  seen: Uint8Array;
   fill: Uint32Array;
   ink: Uint32Array;
   x0: Float32Array;
@@ -256,6 +258,7 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
       n: 0,
       pos: new Int32Array(64),
       code: new Uint16Array(64),
+      seen: new Uint8Array(128),
       fill: new Uint32Array(64),
       ink: new Uint32Array(64),
       x0: new Float32Array(64),
@@ -289,6 +292,7 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
     lay.axis = axis;
     lay.tokens = tokens;
     lay.n = 0;
+    lay.seen.fill(0);
     lay.three = false;
     lay.bars.length = 0;
     lay.pending.length = 0;
@@ -367,6 +371,7 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
           const run = prep.through === 'one' ? runDir(src, p) : 1;
           if (prep.complement === 'always' || axis.dir * run === -1) code = complementCode(code, rna);
         }
+        if (code < 128) lay.seen[code] = 1;
         const ch = String.fromCharCode(code);
         datum.letter = ch;
         datum.start = p;
@@ -441,7 +446,14 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
   },
 
   legend(lay, options) {
-    return channelLegends([lay.color], { ...options, layer: lay.key });
+    // the letters drawn in view: the key lists only what the data holds (all of its letters before any is drawn)
+    let painted = '';
+    for (let c = 0; c < lay.seen.length; c++) if (lay.seen[c]) painted += String.fromCharCode(c);
+    return channelLegends([lay.color], {
+      ...options,
+      layer: lay.key,
+      ...(painted ? { painted: painted.toUpperCase() } : {}),
+    });
   },
 
   hit(lay, at): Hit | undefined {

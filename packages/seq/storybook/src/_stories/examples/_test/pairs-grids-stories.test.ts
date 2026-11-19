@@ -67,7 +67,7 @@ describe('tRNA: arcs, headless', () => {
     expect(r.issues).toEqual([]);
     expect(paths(r.lists)).toEqual(paths(v.frame!.lists));
     // hover the letters at position 9 (1-based 10): the arc 10–25 lights
-    const letters = v.frame!.layout.sections[0].tracks[1].box;
+    const letters = v.frame!.layout.sections[0].tracks.find((t) => t.track.address.endsWith('/letters'))!.box;
     const a = v.frame!.layout.sections[0].axis!;
     a.cell(9);
     v.input.move((a.sx0 + a.sx1) / 2, letters.y + letters.height / 2);

@@ -27,6 +27,7 @@ import {
   type SectionLayout,
   splitCrossing,
   type ViewLayout,
+  viewLegends,
 } from '../index.js';
 import { ImageTile } from '../images.js';
 import { settle } from './helpers.js';
@@ -408,9 +409,14 @@ describe('the pairs layer: arcs', () => {
     const bottom = top + strips.bandH[1];
     for (let i = 0; i < lay.n; i++) {
       const [x, y] = at(lay.curve, 8 * i, 0.5);
-      expect(y).toBeGreaterThanOrEqual(top - 1e-6);
-      expect(y).toBeLessThan(bottom);
-      expect(lay.curve[8 * i + 1]).toBeCloseTo(bottom);
+      // the whole curve in the band, its feet on the band's bottom edge (inset by the stroke), its apex above them
+      for (let t = 0; t <= 1; t += 0.125) {
+        const q = at(lay.curve, 8 * i, t)[1];
+        expect(q).toBeGreaterThanOrEqual(top);
+        expect(q).toBeLessThanOrEqual(bottom - 1 + 1e-6);
+      }
+      expect(lay.curve[8 * i + 1]).toBeCloseTo(bottom - 1);
+      expect(y).toBeLessThan(bottom - 1);
       const h = hitView(f.layout, x, y);
       expect(h?.element?.key).toBe(`${lay.prep!.data!.aStart[lay.pair[i]]}-${lay.prep!.data!.bStart[lay.pair[i]]}`);
       expect(h?.extent?.parts[0].ranges.length).toBe(4);
@@ -586,14 +592,21 @@ describe('the pairs layer: arcs', () => {
     }
   });
 
-  it('`split` draws the crossing pairs below the band’s top', async () => {
+  it('`split`: the feet on the band’s middle, the nested set above it, the crossing pairs below, all in the band', async () => {
     const s = await settle(arcsSpec({ pairs: [...Stems, ...Crossing], crossing: 'split' }));
     const f = await s.renderer.frame({ size: Size, settled: true });
     const sec = f.layout.sections[0];
     const lay = arcsLay(sec);
     const top = sec.placement.strips.bandY[1];
+    const h = sec.placement.strips.bandH[1];
     let below = 0;
-    for (let i = 0; i < lay.n; i++) if (Math.abs(lay.curve[8 * i + 1] - top) < 1e-6) below++;
+    for (let i = 0; i < lay.n; i++) {
+      expect(lay.curve[8 * i + 1]).toBeCloseTo(top + h / 2);
+      const apex = at(lay.curve, 8 * i, 0.5)[1];
+      expect(apex).toBeGreaterThanOrEqual(top);
+      expect(apex).toBeLessThanOrEqual(top + h);
+      if (apex > top + h / 2) below++;
+    }
     // the tertiary pairs that cross the stems: at least one each crossing group, never a stem
     expect(below).toBeGreaterThan(0);
     expect(below).toBeLessThanOrEqual(Crossing.length);
@@ -662,6 +675,16 @@ describe('the pairs layer: arcs', () => {
     expect(c.curve[6]).toBeGreaterThan(sec.placement.strips.axes[1].x0);
     expect(d.n).toBe(0);
     expect(d.carets.length).toBe(4);
+  });
+});
+
+describe('an RNA’s letters legend', () => {
+  it('lists the nucleotides drawn: U, never T; no gap where there is none', async () => {
+    const st = await settle(arcsSpec({ n: 24, pairs: [[0, 20]] }));
+    const f = await st.frame({ size: Size, settled: true });
+    const legend = viewLegends(f.layout).legends.find((l) => l.layers.some((k) => k.endsWith('/letters/letters')))!;
+    const labels = legend.entries.kind === 'swatches' ? legend.entries.items.map((i) => i.label) : [];
+    expect(labels.sort()).toEqual(['A', 'C', 'G', 'U']);
   });
 });
 

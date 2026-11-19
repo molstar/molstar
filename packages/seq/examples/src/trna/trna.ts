@@ -113,14 +113,18 @@ export function build(options: TrnaOptions = {}): Node {
   const probability = b.data.grid('probability', { x: trna, values: trnaProbabilities() });
   b.views.view('main', (v) => {
     const s = v.section('trna', { of: trna, ...(options.layout ? { layout: options.layout } : {}) });
+    const ring = options.layout === 'rings';
+    const letters = () => s.track('letters', { label: 'tRNA-Phe' }).layer('letters', { type: 'letters' });
     s.track('ruler', { label: 'Position' }).layer('ruler', { type: 'ruler' });
-    s.track('letters', { label: 'tRNA-Phe' }).layer('letters', { type: 'letters' });
+    // the arcs over the letters, their feet on them (on a ring, inside: chords through the hole)
+    if (ring) letters();
     s.track('pairs', { label: 'Base pairs' }).layer('arcs', {
       type: 'pairs',
       data: pairs,
       ...(options.crossing ? { crossing: options.crossing } : {}),
-      ...(options.layout === 'rings' ? { side: 'below' } : {}),
+      ...(ring ? { side: 'below' } : {}),
     });
+    if (!ring) letters();
     if (!options.dotPlot) return;
     // the dot plot: x and y the tRNA's, y following x; the probabilities above the diagonal, the structure's pairs
     // below it (mirrored: the builder sets `mirror`, a plain `false` otherwise)

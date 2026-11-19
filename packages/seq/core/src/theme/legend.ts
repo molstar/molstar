@@ -99,7 +99,18 @@ export function legendOf(channel: Channel, options: LegendOptions): Legend | und
   let scale: string | undefined;
   let field: string | undefined;
   if (src.kind === 'swatches') {
-    const items = src.items.filter((i) => typeof i.value === 'number');
+    // a letters form's swatches: the letters drawn (`painted`) when given (an RNA's U, never its T; a gap only where
+    // there are gaps), then a color once (a group's label, not its letters again)
+    const drawn = options.painted ? new Set(options.painted) : undefined;
+    const seen = new Set<number | string>();
+    const items = src.items.filter((i) => {
+      if (typeof i.value !== 'number') return false;
+      if (drawn && i.letters !== undefined && ![...i.letters].some((l) => drawn.has(l) || drawn.has(l.toUpperCase())))
+        return false;
+      if (seen.has(i.value)) return false;
+      seen.add(i.value);
+      return true;
+    });
     more = Math.max(0, items.length - maxItems);
     entries = {
       kind: 'swatches',
