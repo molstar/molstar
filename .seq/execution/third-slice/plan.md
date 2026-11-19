@@ -382,7 +382,9 @@ and dark before the merge.
 - [x] OP (fast; started early, by the author's exception, 2026-11-19) PNG headless (the picture SVG draws, rasterized as Gate 0 decides) and the render CLI (`cli/`) under
       the headless asset policy (EC-126), with its cold-start target.
 - [x] AY (fast; started early, by the author's exception, 2026-11-19) titles in exported SVG, the cursor and hover announced, forced colors.
-- [ ] NOVICE PASS (running, 2026-11-19, brief `briefs/novice-pass.md`): a light agent plays a user in a visible browser with a task script per view; friction reported.
+- [x] NOVICE PASS (2026-11-19, brief `briefs/novice-pass.md`; findings in `novice-findings.md`: bug 5, missing design 8,
+      look 8): a light agent plays a user in a visible browser with a task script per view; friction reported.
+- [ ] NP (fast, 2026-11-19) the novice pass's bugs, stories and looks (`briefs/np-novice-fixes.md`).
 - [ ] USE GATE (the author's use so far counts, 2026-11-19; at finalize only a look at what changed since) (deferred: the loop does not wait; finalize does): the author uses the views; findings fixed or placed,
       counted by kind.
 
