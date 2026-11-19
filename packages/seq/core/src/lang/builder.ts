@@ -16,6 +16,7 @@ import { type Patch, patchToNode } from '@molstar/core/repr/patch';
 import { IdHint, IdPattern, type Issue, type Node, printAddress } from '@molstar/core/repr/tree';
 import { checkSeqSpec } from './check.js';
 import { type SeqKinds, SeqLanguage, SeqLanguageVersion, seqLanguages } from './language.js';
+import { writeLayerTheme } from './theme-builder.js';
 
 declare const KindBrand: unique symbol;
 
@@ -53,6 +54,8 @@ export interface DataBuilder {
 export interface ViewsBuilder {
   view(id: string, body?: (view: ViewBuilder) => void): Address<'view'>;
   view(id: string, params: Params<'view'>, body?: (view: ViewBuilder) => void): Address<'view'>;
+  /** A shared scale (`/views/<id>`): layers whose themes name it share its domain and palette. */
+  scale(id: string, params?: Params<'scale'>): Address<'scale'>;
 }
 
 export interface ViewBuilder extends Addressed<'view'> {
@@ -174,12 +177,21 @@ export function createSeqSpec(options: SeqSpecOptions = {}): SeqSpecBuilder {
     map: dataKind('map'),
   } as unknown as DataBuilder;
 
+  /** The inline rows of the data node an address names (a ranges node's), for the layer's theme. */
+  const rowsOf = (handle: unknown): Readonly<Record<string, unknown>> | undefined => {
+    if (handle === undefined) return undefined;
+    const a = addressOfHandle(handle);
+    const rows = data.children.find((r) => r.address === a)?.params?.rows;
+    return rows && typeof rows === 'object' ? (rows as Record<string, unknown>) : undefined;
+  };
+
   function trackBuilder(rec: Rec): TrackBuilder {
     return {
       address: rec.address as Address<'track'>,
       layer(id: string, params: unknown) {
         if (typeof id !== 'string') throw new Error('A layer needs an id');
-        return add(rec, 'layer', id, params).address;
+        const p = params as Record<string, unknown>;
+        return add(rec, 'layer', id, writeLayerTheme(p, rowsOf(p?.data))).address;
       },
       toString: () => rec.address,
     } as TrackBuilder;
@@ -212,6 +224,9 @@ export function createSeqSpec(options: SeqSpecOptions = {}): SeqSpecBuilder {
       const rec = add(views, 'view', id, params);
       (body as ((v: ViewBuilder) => void) | undefined)?.(viewBuilder(rec));
       return rec.address;
+    },
+    scale(id: string, params?: unknown) {
+      return add(views, 'scale', id, params ?? {}).address;
     },
   } as unknown as ViewsBuilder;
 

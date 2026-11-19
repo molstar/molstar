@@ -31,8 +31,10 @@ import {
   sectionId,
   type StoreReader,
 } from './layer-type.js';
+import { type Channel, inkAgainst, lettersDefault } from '@molstar/seqx-core/theme/index';
+import { channelForms, channelLegends, type LayerChannels, PlainDatum } from './channels.js';
 import { drawFailed, drawSpans, hoverCell } from './marks.js';
-import { inkOn, letterToken, resolveColor, type SeqTokens } from './tokens.js';
+import { inkOn, type SeqTokens } from './tokens.js';
 
 // the anchor a number read once: a draw reads no property of an imported object (that site's feedback, cleared, made
 // a warm draw deoptimize and allocate without end once the 150,000-piece scenario had run first)
@@ -44,7 +46,9 @@ const AnchorMiddle: number = Anchor.middle;
 // through a path that pairs positions one to one (a letter its image's cell; a position with no letter a gap mark, a
 // letter with no position a caret) or a residue to a codon (its fine places as parts, the letter in each part with
 // room, three-letter codes where the narrowest part in view has room, `code`); any other path is refused. A nucleotide
-// read against its strand on screen shows its complement (`complement: auto`).
+// read against its strand on screen shows its complement (`complement: auto`). A cell's fill is its `color` channel
+// (the alphabet's token scheme by default: `classes`, `nucleotide-classes`), its letter's ink the `ink` channel (`auto`:
+// follows its fill at 4.5:1; a themed ink held at 3:1 against its fill).
 
 /** How a letters layer reaches its section: its own letters, a one-to-one path, a codon step, or none drawn. */
 type Through = 'own' | 'one' | 'codon' | 'refused';
@@ -52,8 +56,8 @@ type Through = 'own' | 'one' | 'codon' | 'refused';
 export interface LettersPrep {
   readonly src?: LayerSource;
   readonly alphabet: 'protein' | 'dna' | 'rna';
-  /** A color the spec gives every cell, as written (resolved per token table at layout). */
-  readonly color?: unknown;
+  /** Its channels: `color` (cells) and `ink` (letters). */
+  readonly channels: LayerChannels;
   readonly through: Through;
   readonly complement: 'auto' | 'always' | 'never';
   readonly code: 'auto' | 'one' | 'three';
@@ -107,6 +111,10 @@ export interface LettersLay {
   tokens: SeqTokens;
   hoverWidth: number;
   hoverOffset: number;
+  /** The color channel this layout read (its legend), the datum it read a cell through, a themed ink by fill. */
+  color?: Channel;
+  datum: PlainDatum;
+  inks: Map<number, number>;
 }
 
 /** The letter code at a position of a table, or 0. */
@@ -210,7 +218,7 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
     return {
       ...(src ? { src } : {}),
       alphabet: system?.alphabet ?? 'protein',
-      ...(layer.theme.color !== undefined ? { color: layer.theme.color } : {}),
+      channels: channelForms(layer.theme),
       through,
       complement: complement === 'always' || complement === 'never' ? complement : 'auto',
       code: code === 'one' || code === 'three' ? code : 'auto',
@@ -251,6 +259,8 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
       tokens,
       hoverWidth: config.outline.hover,
       hoverOffset: config.emphasis.hoverOffset,
+      datum: new PlainDatum(),
+      inks: new Map(),
     };
     lay.key = ctx.key;
     lay.system = axis.system;
@@ -295,11 +305,15 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
       return lay;
     }
 
-    let fixed: number | undefined;
-    if (prep.color !== undefined) {
-      fixed = resolveColor(prep.color, tokens);
-      if (fixed === undefined) reportColor(ctx);
-    }
+    const color = prep.channels.get('color', { kind: 'scheme', params: { name: lettersDefault(prep.alphabet) } }, ctx, {
+      alphabet: prep.alphabet,
+    });
+    lay.color = color;
+    const inkForm = prep.channels.forms.ink;
+    const inkChannel = inkForm === undefined || inkForm === 'auto' ? undefined : prep.channels.get('ink', 'auto', ctx);
+    if (lay.inks.size > 4096) lay.inks.clear();
+    const datum = lay.datum;
+    const missing = tokens.colors['seq-missing'];
     const read = readTiles(ctx, data, src, mergeNear(regions), 1);
     const tables = read.entries.map((e) => e.tables.letters).filter((t): t is LettersTable => !!t);
     tables.sort((a, b) => a.start - b.start);
@@ -341,10 +355,14 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
           if (prep.complement === 'always' || axis.dir * run === -1) code = complementCode(code, rna);
         }
         const ch = String.fromCharCode(code);
-        const fill = fixed ?? tokens.colors[letterToken(ch, prep.alphabet)];
+        datum.letter = ch;
+        datum.start = p;
+        datum.end = p + 1;
+        const c = color.constant ?? color.at(datum);
+        const fill = typeof c === 'number' ? c : missing;
         // a residue its codon does not translate to, once the section's letters are held (EC-16): marked
         const bad = !!own?.length && prep.through === 'codon' && !codonOk(src, own, p, ch, prep.genetic);
-        const ink = inkOn(fill, tokens);
+        const ink = inkOf(inkChannel, datum, fill, tokens, lay.inks);
         for (let k = 0; k + 1 < parts.length; k += 2) {
           axis.piecesIn(parts[k], parts[k + 1]);
           const ka = axis.ka;
@@ -407,6 +425,10 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
 
   draw(lay, pass: PassName, out: PassWriter, emphasis?: Emphasis) {
     drawPass(LettersDraws, lay, out, emphasis);
+  },
+
+  legend(lay, options) {
+    return channelLegends([lay.color], { ...options, layer: lay.key });
   },
 
   hit(lay, x, y): Hit | undefined {
@@ -648,11 +670,23 @@ function drawHover(lay: LettersLay, out: PassWriter, emphasis: Emphasis | undefi
 
 const LettersDraws = passDraws<LettersLay, Emphasis | undefined>({ data: drawCells, hover: drawHover });
 
-export function reportColor(ctx: LayoutContext): void {
-  ctx.report(
-    issueOf(RenderIssues, 'seq.render.color', 'The layer’s color is neither a hex color nor a token', {
-      address: ctx.key,
-      hint: RenderIssues.codes['seq.render.color'].hint,
-    }),
-  );
+/**
+ * A letter's ink: `auto` follows its fill (the table's inks at 4.5:1); a themed ink is held at 3:1 against its fill,
+ * memoized by the pair (a fill's ink is the same every cell).
+ */
+function inkOf(
+  channel: Channel | undefined,
+  d: PlainDatum,
+  fill: number,
+  tokens: SeqTokens,
+  memo: Map<number, number>,
+): number {
+  if (!channel) return inkOn(fill, tokens);
+  const c = channel.constant ?? channel.at(d);
+  if (typeof c !== 'number') return inkOn(fill, tokens);
+  // the pair as one key: a fill's RGB and an ink's RGB fit 48 bits
+  const key = (fill >>> 8) * 0x1000000 + (c >>> 8);
+  let ink = memo.get(key);
+  if (ink === undefined) memo.set(key, (ink = inkAgainst(c, fill)));
+  return ink;
 }

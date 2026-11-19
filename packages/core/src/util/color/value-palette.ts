@@ -14,6 +14,7 @@
  * No param definitions here, so a consumer that only evaluates palettes (Seq*'s core) loads no `ParamDefinition`.
  */
 
+import { hashFnv32a } from '../../data/util/hash-functions.js';
 import { Color } from './color.js';
 import { ColorLists } from './lists.js';
 import { type OptionalSplitColorProp, SplitColor, type SplitColorProp, SplitColorValue } from './split-color.js';
@@ -29,16 +30,40 @@ export interface CategoricalValuePaletteProps {
   sortDirection: 'ascending' | 'descending';
   caseInsensitive: boolean;
   missingColor: OptionalSplitColorProp;
+  /**
+   * A value the palette does not list: `missing` (its `missingColor`, the default) or `hash`, the color at the 32-bit
+   * FNV-1a hash of the value's UTF-8 bytes modulo `others` (a list palette: its own list), so it takes one color
+   * everywhere and another reader can reproduce it.
+   */
+  unlisted?: 'missing' | 'hash';
+  /** The colors an unlisted value hashes into (a dictionary's); a list palette hashes into its list when absent. */
+  others?: { color: SplitColorProp }[];
 }
 
-export interface DiscreteValuePaletteProps {
+/** How a numeric palette reads values: as they are, by their logarithm (base 10), or by their square root. */
+export type ValuePaletteScale = 'linear' | 'log' | 'sqrt';
+
+/** Optional fields of the numeric palettes (absent: a linear scale, no center). */
+export interface ValuePaletteScaleProps {
+  /** `linear` when absent. */
+  scale?: ValuePaletteScale;
+  /** On a log scale, a value at or below zero: `missing` (when absent) or `clamp`ed to the domain's low end. */
+  nonPositive?: 'missing' | 'clamp';
+  /**
+   * A diverging center (a value, read through the scale): a normalized palette puts it at 0.5, the domain's low end at
+   * 0 and its high end at 1, each half scaled on its own.
+   */
+  mid?: number | null;
+}
+
+export interface DiscreteValuePaletteProps extends ValuePaletteScaleProps {
   colors: { color: OptionalSplitColorProp; fromValue: number; toValue: number }[];
   mode: 'normalized' | 'absolute';
   xMin: number | null;
   xMax: number | null;
 }
 
-export interface ContinuousValuePaletteProps {
+export interface ContinuousValuePaletteProps extends ValuePaletteScaleProps {
   colors: { color: SplitColorProp; checkpoint: number }[];
   mode: 'normalized' | 'absolute';
   xMin: number | null;
@@ -68,9 +93,20 @@ export interface CategoricalValuePaletteSpec {
   readonly sort_direction?: 'ascending' | 'descending';
   readonly case_insensitive?: boolean;
   readonly missing_color?: string | null;
+  /** A value not listed: `missing` (`missing_color`, the default) or `hash` (FNV-1a over UTF-8 into `others`). */
+  readonly unlisted?: 'missing' | 'hash';
+  /** A list name or colors that an unlisted value hashes into; a list palette's own list when absent. */
+  readonly others?: string | readonly ValuePaletteColor[];
 }
 
-export interface DiscreteValuePaletteSpec {
+/** The optional scale fields of the numeric palettes' spec. */
+export interface ValuePaletteScaleSpec {
+  readonly scale?: ValuePaletteScale;
+  readonly non_positive?: 'missing' | 'clamp';
+  readonly mid?: number | null;
+}
+
+export interface DiscreteValuePaletteSpec extends ValuePaletteScaleSpec {
   readonly kind: 'discrete';
   /** A list name, colors, `[Color, checkpoint]` pairs, or `[Color | null, from | null, to | null]` ranges. */
   readonly colors?:
@@ -83,7 +119,7 @@ export interface DiscreteValuePaletteSpec {
   readonly value_domain?: readonly [number | null, number | null];
 }
 
-export interface ContinuousValuePaletteSpec {
+export interface ContinuousValuePaletteSpec extends ValuePaletteScaleSpec {
   readonly kind: 'continuous';
   /** A list name, colors, or `[Color, checkpoint]` pairs. */
   readonly colors?: string | readonly ValuePaletteColor[] | readonly (readonly [ValuePaletteColor, number])[];
@@ -98,9 +134,10 @@ export type ValuePaletteSpec = CategoricalValuePaletteSpec | DiscreteValuePalett
 
 /** Every field of every kind: MVS's defaults (`CategoricalPaletteDefaults`, ...) or SVS's (`PaletteDefaults`). */
 export interface ValuePaletteSpecDefaults {
-  readonly categorical: Required<CategoricalValuePaletteSpec>;
-  readonly discrete: Required<DiscreteValuePaletteSpec>;
-  readonly continuous: Required<ContinuousValuePaletteSpec>;
+  readonly categorical: Required<Omit<CategoricalValuePaletteSpec, 'unlisted' | 'others'>> &
+    Pick<CategoricalValuePaletteSpec, 'unlisted' | 'others'>;
+  readonly discrete: Required<Omit<DiscreteValuePaletteSpec, keyof ValuePaletteScaleSpec>> & ValuePaletteScaleSpec;
+  readonly continuous: Required<Omit<ContinuousValuePaletteSpec, keyof ValuePaletteScaleSpec>> & ValuePaletteScaleSpec;
 }
 
 /** MVS's color list names (`ColorListNameT`) and the lists of `ColorLists` they name, in MVS's order. */
@@ -172,10 +209,19 @@ const ListNames = {
 
 export type ValuePaletteListName = keyof typeof ListNames;
 
-/** The named color lists a palette's `colors` may name (MVS's `ColorListNameT`), as colors. */
-export const ValuePaletteLists = Object.fromEntries(
-  Object.entries(ListNames).map(([name, list]) => [name, ColorLists[list].list.map(Color.fromColorListEntry)]),
-) as unknown as Readonly<Record<ValuePaletteListName, readonly Color[]>>;
+const _lists: Partial<Record<ValuePaletteListName, readonly Color[]>> = {};
+
+/**
+ * The named color lists a palette's `colors` may name (MVS's `ColorListNameT`), as colors. Each list is converted when
+ * first read (a getter per name), so loading the module converts none.
+ */
+export const ValuePaletteLists = {} as Readonly<Record<ValuePaletteListName, readonly Color[]>>;
+for (const name of Object.keys(ListNames) as ValuePaletteListName[]) {
+  Object.defineProperty(ValuePaletteLists, name, {
+    enumerable: true,
+    get: () => (_lists[name] ??= ColorLists[ListNames[name]].list.map(Color.fromColorListEntry)),
+  });
+}
 
 /** Named color dictionaries (MVS's `ColorDictNameT`): their tables live with their users (MVS's from Mol*'s themes). */
 export type ValuePaletteDictionaries = Readonly<Record<string, Readonly<Record<string, ValuePaletteColor>>>>;
@@ -207,6 +253,8 @@ export function valuePalettePropsFromSpec(
         sortDirection: full.sort_direction,
         caseInsensitive: full.case_insensitive,
         missingColor: SplitColorValue.fromString(full.missing_color),
+        ...(full.unlisted ? { unlisted: full.unlisted } : {}),
+        ...(full.others !== undefined ? { others: otherColors(full.others, options) } : {}),
       },
     };
   }
@@ -219,6 +267,7 @@ export function valuePalettePropsFromSpec(
         mode: full.mode,
         xMin: full.value_domain[0],
         xMax: full.value_domain[1],
+        ...scaleProps(full),
       },
     };
   }
@@ -232,6 +281,7 @@ export function valuePalettePropsFromSpec(
         mode: full.mode,
         xMin: full.value_domain[0],
         xMax: full.value_domain[1],
+        ...scaleProps(full),
         underflowColor:
           full.underflow_color === 'auto'
             ? extremeColor(colors, (a, b) => a < b)
@@ -246,6 +296,26 @@ export function valuePalettePropsFromSpec(
   throw new Error(
     `NotImplementedError: valuePalettePropsFromSpec is not implemented for palette kind "${(palette as any).kind}"`,
   );
+}
+
+function scaleProps(full: ValuePaletteScaleSpec): ValuePaletteScaleProps {
+  return {
+    ...(full.scale && full.scale !== 'linear' ? { scale: full.scale } : {}),
+    ...(full.non_positive ? { nonPositive: full.non_positive } : {}),
+    ...(typeof full.mid === 'number' ? { mid: full.mid } : {}),
+  };
+}
+
+function otherColors(
+  others: string | readonly ValuePaletteColor[],
+  options: ValuePalettePropsOptions,
+): { color: SplitColorProp }[] {
+  let list: readonly ValuePaletteColor[] | undefined;
+  if (typeof others === 'string') {
+    list = namedList(others);
+    if (!list) options.onUnknownName?.(others);
+  } else list = others;
+  return (list ?? []).map((c) => ({ color: splitColor(c) }));
 }
 
 /** Properties of `second` over `first`'s: `undefined` is a missing property, `null` a value. */
@@ -505,17 +575,52 @@ function categorical(
     }
   }
   const missing = SplitColorValue.toTuple(p.missingColor);
+  const unlisted = p.unlisted === 'hash' ? hashedColors(p) : undefined;
   const f = (value: ValuePaletteValue, isSecondary?: boolean) => {
     // A missing value takes `missingColor` too: a kernel fallback draws "no category".
     if (isMissing(value, cifMissing)) return missing[isSecondary ? 1 : 0];
     const key = upper ? `${value}`.toUpperCase() : `${value}`;
-    return (map.get(key) ?? missing)[isSecondary ? 1 : 0];
+    return (map.get(key) ?? unlisted?.(key) ?? missing)[isSecondary ? 1 : 0];
   };
   const listed = () => getSortedKeys().filter((k) => map.has(k));
   if (!lazy) return Object.assign(f, { keys: listed() });
   // Lazy values: a dictionary reads them for its `keys` alone, so only when they are read.
   let keys: string[] | undefined;
   return Object.defineProperty(f, 'keys', { get: () => (keys ??= listed()), enumerable: true }) as ValuePaletteFunction;
+}
+
+const _utf8 = new TextEncoder();
+
+/** The 32-bit FNV-1a hash of a string's UTF-8 bytes: how an unlisted value picks its color. */
+export function hashValueUtf8(value: string): number {
+  return hashFnv32a(_utf8.encode(value));
+}
+
+/** An unlisted value's color: `others` (else the list) at its hash; memoized per value, at most 4096 values. */
+function hashedColors(p: CategoricalValuePaletteProps) {
+  const source = p.others ?? (p.colors.name === 'list' ? p.colors.params : []);
+  const list = source.map((x) => SplitColorValue.toTuple(x.color));
+  if (list.length === 0) return undefined;
+  const memo = new Map<string, readonly [Color | undefined, Color | undefined]>();
+  return (key: string) => {
+    let c = memo.get(key);
+    if (c) return c;
+    c = list[hashValueUtf8(key) % list.length];
+    if (memo.size < 4096) memo.set(key, c);
+    return c;
+  };
+}
+
+/** The scale's transform kind: 0 linear, 1 log, 2 sqrt (a number, so the hot path branches without a call). */
+function scaleKind(p: ValuePaletteScaleProps): number {
+  return p.scale === 'log' ? 1 : p.scale === 'sqrt' ? 2 : 0;
+}
+
+/** A value through the scale (log10, sqrt; NaN outside its domain). At setup only, never per value. */
+function scaled(kind: number, x: number): number {
+  if (kind === 1) return x > 0 ? Math.log10(x) : Number.NaN;
+  if (kind === 2) return x >= 0 ? Math.sqrt(x) : Number.NaN;
+  return x;
 }
 
 function discrete(p: DiscreteValuePaletteProps, values: Values, cifMissing: boolean): ValuePaletteFunction {
@@ -529,8 +634,21 @@ function discrete(p: DiscreteValuePaletteProps, values: Values, cifMissing: bool
   const colors2 = bins.map((x) => SplitColorValue.toTuple(x.color)[1]);
   const range = numericRange(p, values, cifMissing);
   const held = new Float64Array(1);
+  const kind = scaleKind(p);
+  const clamp = p.nonPositive === 'clamp';
+  const mid = typeof p.mid === 'number' ? scaled(kind, p.mid) : Number.NaN;
+  const hasMid = !Number.isNaN(mid);
+  if (kind !== 0 && Number.isNaN(range[0])) {
+    // absolute edges are values: read through the scale as the values are
+    for (let i = 0; i < from.length; i++) {
+      if (Number.isFinite(from[i])) from[i] = scaled(kind, from[i]);
+      if (Number.isFinite(to[i])) to[i] = scaled(kind, to[i]);
+    }
+  }
   const core = (isSecondary: boolean): Color | undefined => {
-    const xAbs = held[0];
+    let xAbs = held[0];
+    if (kind === 1) xAbs = xAbs > 0 ? Math.log10(xAbs) : clamp ? range[2] : Number.NaN;
+    else if (kind === 2) xAbs = xAbs >= 0 ? Math.sqrt(xAbs) : Number.NaN;
     if (Number.isNaN(xAbs)) return undefined;
     const lo = range[0];
     const hi = range[1];
@@ -542,7 +660,17 @@ function discrete(p: DiscreteValuePaletteProps, values: Values, cifMissing: bool
           : xAbs === lo
             ? 0.5
             : 1.5
-        : (xAbs - lo) / (hi - lo);
+        : hasMid
+          ? xAbs < mid
+            ? mid === lo
+              ? -0.5
+              : (0.5 * (xAbs - lo)) / (mid - lo)
+            : hi === mid
+              ? xAbs === mid
+                ? 0.5
+                : 1.5
+              : 0.5 + (0.5 * (xAbs - mid)) / (hi - mid)
+          : (xAbs - lo) / (hi - lo);
     for (let i = from.length - 1; i >= 0; i--) {
       if (from[i] <= x && x <= to[i]) return isSecondary ? colors2[i] : colors1[i];
     }
@@ -574,8 +702,16 @@ function continuous(p: ContinuousValuePaletteProps, values: Values, cifMissing: 
   // `Color.interpolate`. The value is read from `held`: `at`'s loads see only its callers' locations (a load
   // polymorphic over a double field boxes it).
   const held = new Float64Array(1);
+  const kind = scaleKind(p);
+  const clamp = p.nonPositive === 'clamp';
+  const mid = typeof p.mid === 'number' ? scaled(kind, p.mid) : Number.NaN;
+  const hasMid = !Number.isNaN(mid);
+  // absolute checkpoints are values: read through the scale as the values are
+  if (kind !== 0 && Number.isNaN(range[0])) for (let i = 0; i < cps.length; i++) cps[i] = scaled(kind, cps[i]);
   const core = (isSecondary: boolean): Color | undefined => {
-    const xAbs = held[0];
+    let xAbs = held[0];
+    if (kind === 1) xAbs = xAbs > 0 ? Math.log10(xAbs) : clamp ? range[2] : Number.NaN;
+    else if (kind === 2) xAbs = xAbs >= 0 ? Math.sqrt(xAbs) : Number.NaN;
     if (Number.isNaN(xAbs)) return undefined;
     const lo = range[0];
     const hi = range[1];
@@ -587,7 +723,17 @@ function continuous(p: ContinuousValuePaletteProps, values: Values, cifMissing: 
           : xAbs === lo
             ? 0.5
             : 1.5
-        : (xAbs - lo) / (hi - lo);
+        : hasMid
+          ? xAbs < mid
+            ? mid === lo
+              ? -0.5
+              : (0.5 * (xAbs - lo)) / (mid - lo)
+            : hi === mid
+              ? xAbs === mid
+                ? 0.5
+                : 1.5
+              : 0.5 + (0.5 * (xAbs - mid)) / (hi - mid)
+          : (xAbs - lo) / (hi - lo);
     const colorsAt = isSecondary ? colors2 : colors1;
     const n = cps.length;
     let i = 0;
@@ -627,16 +773,21 @@ function continuous(p: ContinuousValuePaletteProps, values: Values, cifMissing: 
 
 /**
  * A `normalized` palette's [min, max] over `xMin`, `xMax`, their `null`s from the values (0..1 without any), the value
- * scaled `(x - min) / (max - min)`; [NaN, NaN]: absolute.
+ * scaled `(x - min) / (max - min)`; [NaN, NaN]: absolute. Through the palette's scale (log, sqrt): the ends and the
+ * values are read through it, a value outside its domain skipped. The third number is what a clamped non-positive
+ * value reads as: the low end (absolute: −Infinity, under the first checkpoint).
  */
 function numericRange(
   p: DiscreteValuePaletteProps | ContinuousValuePaletteProps,
   values: Values,
   cifMissing: boolean,
 ): Float64Array {
-  if (p.mode !== 'normalized') return Float64Array.of(Number.NaN, Number.NaN);
-  let xMin = p.xMin;
-  let xMax = p.xMax;
+  if (p.mode !== 'normalized') return Float64Array.of(Number.NaN, Number.NaN, Number.NEGATIVE_INFINITY);
+  const kind = scaleKind(p);
+  let xMin = p.xMin === null ? null : scaled(kind, p.xMin);
+  let xMax = p.xMax === null ? null : scaled(kind, p.xMax);
+  if (Number.isNaN(xMin)) xMin = null;
+  if (Number.isNaN(xMax)) xMax = null;
   if (xMin === null || xMax === null) {
     // one pass over the values, no distinct strings (91 MB per 1.1M values, perf-audit-3 01/P14): `parseFloat` of a
     // number's string is the number, except −0, which its string makes +0
@@ -644,7 +795,7 @@ function numericRange(
     let max = Number.NEGATIVE_INFINITY;
     let any = false;
     for (const value of values()) {
-      const x = toNumber(value, cifMissing);
+      const x = scaled(kind, toNumber(value, cifMissing));
       if (Number.isNaN(x)) continue;
       const v = x === 0 ? 0 : x;
       if (v < min) min = v;
@@ -659,5 +810,5 @@ function numericRange(
       xMax ??= 1;
     }
   }
-  return Float64Array.of(xMin, xMax);
+  return Float64Array.of(xMin, xMax, xMin);
 }

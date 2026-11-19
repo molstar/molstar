@@ -36,6 +36,7 @@ describe('the defaults', () => {
       maxColumnLength: 2 ** 31 - 1,
       maxNodeIssues: 100,
       maxPlaces: 10,
+      themeDepth: 4,
     });
     expect(specBounds({ maxDepth: 4 }).maxDepth).toBe(4);
     expect(specBounds({ maxDepth: 4 }).maxBytes).toBe(64 * 1024 * 1024);

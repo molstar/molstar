@@ -19,7 +19,6 @@ import {
   escapeXml,
   inkOn,
   LightTokens,
-  luminance,
   PassWriter,
   parseColor,
   Round,
@@ -145,7 +144,8 @@ describe('tokens, text and shapes', () => {
     expect(resolveColor('token:nope', LightTokens)).toBeUndefined();
     expect(inkOn(0xffffffff, LightTokens)).toBe(LightTokens.colors['seq-ink-dark']);
     expect(inkOn(0x000000ff, LightTokens)).toBe(LightTokens.colors['seq-ink-light']);
-    expect(luminance(0xffffffff)).toBeCloseTo(1);
+    // a mid-tone fill where neither table ink reaches 4.5:1: pure black or white, whichever is higher
+    expect([0x000000ff, 0xffffffff]).toContain(inkOn(0x7f7f7fff, LightTokens));
   });
 
   it('measures with the bundled table: an Arial-compatible sans, a fixed-advance mono', () => {

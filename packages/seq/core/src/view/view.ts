@@ -107,6 +107,11 @@ export interface LayerData {
   /** A dynamic node's access plan and its system's length (a template's instance: the overlay's, not the model's). */
   readonly access?: AccessPlan;
   readonly length?: number;
+  /**
+   * A query's form after its annotation (`<annotation>/(not :of (item :consequence missense))`): the filter its rows
+   * pass, read row by row by the layers (_spec/README.md "Themes", Filters).
+   */
+  readonly filter?: Node;
 }
 
 export interface ResolvedLayer {
@@ -121,8 +126,11 @@ export interface ResolvedLayer {
   readonly fallbacks: readonly string[];
   /** Its params other than `type` and `data`, as written. */
   readonly params: Readonly<Record<string, Value>>;
-  /** Themes as values (the theme language comes later): the channel's value as written. */
-  readonly theme: { readonly color?: Value };
+  /**
+   * Its channels' theme forms as written (_spec/README.md "Resolved view"; "Themes"): a slot's body is read by the
+   * render's channels, renderer-independent (another reader evaluates it with `@molstar/seqx-core/theme`).
+   */
+  readonly theme: Readonly<Partial<Record<(typeof ThemeChannelNames)[number], Value>>>;
   readonly data?: LayerData;
   /** The static path from the data's system to the section's; undefined when the same system or none. */
   readonly path?: Path;
@@ -167,9 +175,16 @@ export interface ViewLink {
   readonly path: Path;
 }
 
+/** The channel slots a layer has (`color`, `ink`, `size`, `opacity`, `line`, `arrow`, `shape`). */
+export const ThemeChannelNames = ['color', 'ink', 'size', 'opacity', 'line', 'arrow', 'shape'] as const;
+
 export interface ResolvedView {
   readonly address: string;
   readonly layout: string;
+  /** The spec's scale nodes by address (`/views/<id>`): their params as written, a theme's `scale` names one. */
+  readonly scales: Readonly<Record<string, Readonly<Record<string, Value>>>>;
+  /** The view's export params (`export`: `legend`), as written. */
+  readonly export?: Readonly<Record<string, Value>>;
   readonly sections: readonly ResolvedSection[];
   /** Every ordered pair of its sections a static path joins (the same system: the identity). */
   readonly links: readonly ViewLink[];
@@ -312,7 +327,21 @@ function build(model: StaticModel, view: Node, address: string): ResolvedView {
       if (path) links.push({ from: a.address, to: b.address, path });
     }
   const layout = param(view, 'layout');
-  return { address, layout: typeof layout === 'string' ? layout : 'tracks', sections, links, issues };
+  const scales: Record<string, Readonly<Record<string, Value>>> = {};
+  for (const c of model.spec.children ?? [])
+    if (c.kind === 'views' && c.id !== undefined)
+      for (const n of c.children ?? [])
+        if (n.kind === 'scale' && n.id !== undefined) scales[`/${c.id}/${n.id}`] = n.params ?? {};
+  const ex = param(view, 'export');
+  return {
+    address,
+    layout: typeof layout === 'string' ? layout : 'tracks',
+    scales,
+    ...(ex && typeof ex === 'object' && !Array.isArray(ex) ? { export: ex as Record<string, Value> } : {}),
+    sections,
+    links,
+    issues,
+  };
 }
 
 function followOf(leader: string, leaderAxis: Axis, path: Path): Follow {
@@ -538,14 +567,15 @@ function layerOf(
     fallbacks.push(t);
   const params: Record<string, Value> = {};
   for (const [k, v] of Object.entries(l.params ?? {})) if (k !== 'type' && k !== 'data') params[k] = v;
-  const color = param(l, 'color');
+  const theme: Record<string, Value> = {};
+  for (const c of ThemeChannelNames) if (param(l, c) !== undefined) theme[c] = param(l, c)!;
   const base = {
     ...(address ? { address } : {}),
     index,
     type,
     fallbacks,
     params,
-    theme: color === undefined ? {} : { color },
+    theme,
   };
   const layerType = LayerTypes[type];
   if (!layerType) {
@@ -608,7 +638,9 @@ function dataOf(model: StaticModel, value: Value | undefined, type: string, sect
   if (model.systems.has(prefix))
     return { kind, address, system: prefix, ...(kind === 'address' ? { shape: 'letters' as const } : {}) };
   const a = model.annotations.get(prefix);
-  return a ? { kind, address, system: a.target, shape: a.shape } : undefined;
+  const rest = parsed.segments.slice(ids.length);
+  const filter = kind === 'query' && rest.length === 1 && typeof rest[0] !== 'string' ? rest[0] : undefined;
+  return a ? { kind, address, system: a.target, shape: a.shape, ...(filter ? { filter } : {}) } : undefined;
 }
 
 /**

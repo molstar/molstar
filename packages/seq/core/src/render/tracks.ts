@@ -40,6 +40,8 @@ import type { Box, Emphasis, Hit, LayerType, LayoutContext, Overlay, StoreReader
 import { EmptyOverlay, sectionId } from './layer-type.js';
 import { LettersType } from './letters.js';
 import { breakHit } from './marks.js';
+import type { ScaleParams } from '@molstar/seqx-core/theme/index';
+import { DefaultThemeContext, type ThemeContext } from './channels.js';
 import { RangesType } from './ranges.js';
 import type { TextMetrics } from './text.js';
 import type { SeqTokens } from './tokens.js';
@@ -82,6 +84,17 @@ export interface TrackLayout {
   readonly labelWidth: number;
   readonly labelY: number;
   readonly layers: readonly LayerLayout[];
+  /**
+   * The "n filtered" chip: the rows a layer's filter left out (the first layer with some), its text and its box at the
+   * label column's right end; a click on it clears the filter (`target: 'filter'`).
+   */
+  readonly filter?: {
+    readonly layer: string;
+    readonly count: number;
+    readonly text: string;
+    readonly x: number;
+    readonly width: number;
+  };
 }
 
 export interface SectionLayout {
@@ -144,12 +157,19 @@ export interface LayoutInput {
   readonly overlay?: Overlay;
   readonly settled?: boolean;
   readonly types?: Readonly<Record<string, LayerType<any, any>>>;
+  /** The schemes and measures themes read (the built-ins by default) and the reader's color-blind substitution. */
+  readonly theme?: Partial<Pick<ThemeContext, 'schemes' | 'measures' | 'cvdSafe'>>;
 }
 
 /** What a layout keeps between frames: each layer's prepared form (per resolved layer) and its last layout. */
 export class LayoutState {
   readonly preps = new WeakMap<ResolvedLayer, unknown>();
   readonly lays = new Map<string, { type: LayerType<any, any>; lay: unknown }>();
+  /**
+   * Open scales' domains (_spec/README.md "Themes", Palettes and scales): the union over the layers naming each, of their
+   * values in view, computed when the view settles and held while it moves.
+   */
+  domains = new Map<string, readonly [number, number]>();
 }
 
 /** A layer's key: its address, else its track's and its index. */
@@ -203,8 +223,24 @@ function followAxis(
   return pieces ? { pieces } : undefined;
 }
 
-export function layoutView(input: LayoutInput, state = new LayoutState()): ViewLayout {
+export function layoutView(input: LayoutInput, state = new LayoutState(), again = false): ViewLayout {
   const config = input.config ?? DefaultRenderConfig;
+  const extents = new Map<string, [number, number]>();
+  const theme: ThemeContext = {
+    schemes: input.theme?.schemes ?? DefaultThemeContext.schemes,
+    ...(input.theme?.measures ? { measures: input.theme.measures } : {}),
+    cvdSafe: input.theme?.cvdSafe ?? false,
+    scale: (a) => input.view.scales?.[a] as ScaleParams | undefined,
+    domain: (key) => state.domains.get(key),
+    extent: (key, lo, hi) => {
+      const e = extents.get(key);
+      if (!e) extents.set(key, [lo, hi]);
+      else {
+        if (lo < e[0]) e[0] = lo;
+        if (hi > e[1]) e[1] = hi;
+      }
+    },
+  };
   const dpr = input.dpr ?? 1;
   const types = input.types ?? BuiltInLayerTypes;
   const overlay = input.overlay ?? EmptyOverlay;
@@ -342,6 +378,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState()): ViewL
             tokens: input.tokens,
             text: input.text,
             settled: input.settled ?? false,
+            theme,
             want: (w) => wants.push(w),
             report,
           };
@@ -353,12 +390,22 @@ export function layoutView(input: LayoutInput, state = new LayoutState()): ViewL
           for (const e of layer.path?.edges ?? []) showing.add(e.from).add(e.to);
           layers.push({ key, layer, type, lay });
         }
+      let filter: TrackLayout['filter'];
+      for (const l of layers) {
+        const count = l.type.filtered?.(l.lay) ?? 0;
+        if (!count) continue;
+        const text = `${count} filtered`;
+        const width = input.text.measure(config.labelFont, text);
+        filter = { layer: l.key, count, text, x: config.inset + config.labelWidth - width, width };
+        break;
+      }
       tracks.push({
         track,
         box,
         labelWidth: input.text.measure(config.labelFont, track.label),
         labelY: box.y + box.height / 2 + labelSize * 0.35,
         layers,
+        ...(filter ? { filter } : {}),
       });
       y += h;
     }
@@ -393,6 +440,19 @@ export function layoutView(input: LayoutInput, state = new LayoutState()): ViewL
   }
   // a layer gone from the view lets its last layout go
   for (const key of [...state.lays.keys()]) if (!used.has(key)) state.lays.delete(key);
+  // open scales: settled, the union of this layout's extents is held (laid out once more with it where it moved);
+  // moving, a scale seen for the first time takes this layout's extent for the next frame
+  if (input.settled) {
+    let moved = extents.size !== state.domains.size;
+    for (const [k, e] of extents) {
+      const h = state.domains.get(k);
+      if (!h || h[0] !== e[0] || h[1] !== e[1]) moved = true;
+    }
+    if (moved) {
+      state.domains = extents;
+      if (!again) return layoutView(input, state, true);
+    }
+  } else for (const [k, e] of extents) if (!state.domains.has(k)) state.domains.set(k, e);
   for (const i of overlay.issues) report(i);
   const shownNodes = config.nodes.holdShown && overlay.nodes.length ? overlay.holds(showing) : [];
   return { width, height, dpr, tokens: input.tokens, config, sections, wants, issues, shown: shownNodes };
@@ -634,9 +694,18 @@ function drawLabel(out: PassWriter, t: TrackLayout, tokens: SeqTokens, config: R
   g[0] = config.inset;
   g[1] = t.labelY;
   g[2] = t.labelWidth;
-  g[3] = config.labelWidth;
+  const f = t.filter;
+  // the label fades before the chip
+  g[3] = f ? Math.max(0, f.x - config.inset - 6) : config.labelWidth;
   g[4] = tokens.colors['msui-text-muted'];
   out.textArgs(t.track.label, AnchorStart, config.labelFont);
+  if (!f) return;
+  g[0] = f.x;
+  g[1] = t.labelY;
+  g[2] = f.width;
+  g[3] = f.width;
+  g[4] = tokens.colors['msui-accent'];
+  out.textArgs(f.text, AnchorStart, config.labelFont);
 }
 
 /** The keyboard cursor: a thin outline of its cell over the box, in a neutral ink (`emphasis.cursorInk`). */
@@ -870,6 +939,10 @@ export function hitView(layout: ViewLayout, x: number, y: number): Hit | undefin
     if (notch) return notch;
     for (const t of s.tracks) {
       const { box } = t;
+      // the "n filtered" chip in the label column: a click clears the filter
+      const f = t.filter;
+      if (f && x >= f.x - 2 && x < f.x + f.width + 2 && y >= box.y && y < box.y + box.height)
+        return { layer: f.layer, section: s.id, system: '', target: 'filter', count: f.count };
       if (y < box.y || y >= box.y + box.height || x < box.x || x >= box.x + box.width) continue;
       // the topmost layer with an element under the point, else the topmost with a position
       let position: Hit | undefined;

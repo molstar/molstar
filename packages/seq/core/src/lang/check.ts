@@ -26,6 +26,7 @@ import { checkSpecBounds, DefaultSpecBounds, IssueCaps, type SpecBounds } from '
 import { LangIssues } from './issues.js';
 import { SeqLanguage, SeqLanguageVersion, SeqValidateOptions } from './language.js';
 import { followRef, refAddresses } from './refs.js';
+import { checkLayerThemes, rowTypes } from './theme-check.js';
 
 export type Code = keyof typeof LangIssues.codes;
 
@@ -82,7 +83,7 @@ export function checkSeqLang(spec: Node, bounds: SpecBounds = DefaultSpecBounds)
   // the root is `/`: its children are addressed by their ids alone
   all.push({ node: spec, path: [], address: '/' });
   spec.children?.forEach((c, i) => visit(c, ['children', i], [], spec));
-  const look: SeqLookup = { spec, get: (a) => byAddress.get(a) };
+  const look: SeqLookup = { spec, get: (a) => byAddress.get(a), themeDepth: bounds.themeDepth };
   const report = reporter(issues, caps);
   for (const at of all) checkPlaced(at, look, report);
   for (const at of all) checkFollow(at, look, report);
@@ -102,6 +103,8 @@ export interface Placed {
 export interface SeqLookup {
   readonly spec: Node;
   get(address: string): Placed | undefined;
+  /** The theme forms' nesting bound (`SpecBounds.themeDepth`; the default when absent). */
+  readonly themeDepth?: number;
 }
 
 /** Takes one issue of a node: `tail` is where in the node, a param and below it a column and a row index. */
@@ -228,6 +231,18 @@ export function checkPlaced(at: Placed, look: SeqLookup, report: Report): void {
       break;
     case 'layer': {
       const type = p(n, 'type');
+      // the channel slots (_spec/README.md "Themes", Forms): what the description cannot say of a slot's body
+      const data = target(n, 'data')?.node;
+      const fields = data?.kind === 'ranges' ? rowTypes(p(data, 'rows')) : () => undefined;
+      checkLayerThemes(
+        n,
+        {
+          isScale: (a) => look.get(a)?.node.kind === 'scale',
+          fieldType: (f) => (f === 'value' && type === 'values' ? 'number' : f === 'letter' ? 'text' : fields(f)),
+          depth: look.themeDepth ?? DefaultSpecBounds.themeDepth,
+        },
+        (code, message, ...tail) => report(code, message, at, ...tail),
+      );
       if (p(n, 'data') === undefined) {
         // a template's layer without data draws each instance's node
         const template = at.parent?.kind === 'track' && p(at.parent, 'for_each') !== undefined;

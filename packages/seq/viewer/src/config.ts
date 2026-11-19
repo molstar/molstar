@@ -127,6 +127,12 @@ export interface ViewerConfig {
      * the `theme` item (`config`). A headless viewer always uses the config.
      */
     readonly source: 'root' | 'config';
+    /**
+     * The reader's color-blind substitution, at start (off): each scheme that is not safe drawn as its declared
+     * substitute, a categorical palette as Okabe–Ito; the legend says so. A reader's setting, never the spec's
+     * (`theme.cvd-safe` toggles it).
+     */
+    readonly cvdSafe: boolean;
   };
   readonly canvas: {
     /**
@@ -247,7 +253,7 @@ export const DefaultViewerConfig: ViewerConfig = {
     },
   },
   navigate: { wheelZoomStep: 1.25, doubleClickZoomStep: 2, keyPanFraction: 0.1, coalesceWheel: true },
-  theme: { source: 'root' },
+  theme: { source: 'root', cvdSafe: false },
   canvas: { height: 'content', maxHeight: 2048, dpr: 'device', settleMs: 150 },
   pointer: { rehit: true, pinchFromCtrlWheel: true, pinchSpeed: 0.01, pinchMaxDelta: 50, lineHeight: 16 },
   address: { limit: 10_000, maxDepth: 64, refDepth: 8 },

@@ -8,7 +8,6 @@ The first slice built the tree core, the language's first kinds, resolve, draw l
 viewer's models and data by region; the second, editing and addressing (patches, history, previews, story steps, refs,
 links, selection, the security bounds, MessagePack). Next, version 1's second milestone, figures, in this order:
 
-- **Themes**: the theme sublanguage, residue schemes, legends, shared domains, the channels the small layers read.
 - **Layouts**: text and alignment figures, blocks and rings, navigators; then pairs, grids and dot plots, the logo, the
   rows layer.
 - **The other datasets** and their views, each with an editing view; PNG and the render CLI.
@@ -56,11 +55,9 @@ links, selection, the security bounds, MessagePack). Next, version 1's second mi
 ## `@molstar/seqx-core`
 
 - **The small layers** (built: ruler, secondary, variants, values' line and area, ranges' line styles and arrowheads):
-  - their channels wait for the theme work: the `seq-ruler`, `seq-ss-*` and `seq-variant` tokens (stand-ins today:
-    `msui-text-muted`, `seq-cat-0` to `seq-cat-2`, `seq-conflict`), `color` by a field (a values line's color per
-    position: `ValuesLay.col` is its place), `size` (a variant's radius, a line's thickness, a band's share), `opacity`
-    (the area's 0.35, a highlight's), `shape` (variants' glyph: circle only), `line` and `arrow` as channels (layer
-    params today);
+  - channels they do not read yet: `size` (a variant's radius, a line's thickness, a band's share), `opacity` (the
+    area's 0.35, a highlight's, a variant's), `shape` (variants' glyph: circle only), `line` and `arrow` by a form (the
+    slots take forms; the layers read a word); a values color by a field other than its value;
   - `secondary`'s `style: cartoon` (with the text figure, layouts); a declared numbering for the ruler (the language
     declares none: only `index` and `ordinal` can be asked for, the insertion labels are tested through a numbering
     handed to the layer);
@@ -77,12 +74,11 @@ links, selection, the security bounds, MessagePack). Next, version 1's second mi
   gives Elements today, so `/refs/t1/(item :id T1)/(range …)` fails); declared numberings (built-ins only, so the way
   back prints `ordinal` or `index`); rects projected for a focus; a whole Location's size bound.
 
-- **Language**: the theme sublanguage slot for `layer.color` and a union of a ref and a query slot for `layer.data`
-  (both loose today); a strand column check; codon exons checked against the protein's length (stop codons); a section's
-  `range` as a Location; refs followed in data nodes' params and a section's `of` and `follow` (a layer's `data` follows
-  them); a `label` param on nodes (an instance's label is the template's plus its top ancestor's key);
-  `seq.lang.ref.target` overlaps what resolve reports: keep one; the package index re-exports `SeqLanguageVersion` as
-  `LanguageVersion`: one definition.
+- **Language**: a union of a ref and a query slot for `layer.data` (loose today); a strand column check; codon exons
+  checked against the protein's length (stop codons); a section's `range` as a Location; refs followed in data nodes'
+  params and a section's `of` and `follow` (a layer's `data` follows them); a `label` param on nodes (an instance's
+  label is the template's plus its top ancestor's key); `seq.lang.ref.target` overlaps what resolve reports: keep one;
+  the package index re-exports `SeqLanguageVersion` as `LanguageVersion`: one definition.
 - **Queries**: dynamic nodes in `not`'s universe; open or streamed systems in `(all)` and `not` (a pending length on
   `QuerySystem` instead of `openQueryLength`); a Location limit (what it counts); a label lookup across a codon step (a
   unit's numbering does not cross one).
@@ -120,7 +116,23 @@ links, selection, the security bounds, MessagePack). Next, version 1's second mi
   against 16): best of three, or a percentile instead of the max. The p53 fixtures round-tripped JSON ↔ MessagePack in a
   test here (io cannot import them).
 
+- **Themes**: a filter by a value's range (steps, a ramp: `(item :<field>)` compares atoms only) and filters through a
+  tiled source's server; the legend's menu entry for `layer.filter` (the command and the chip are built); the pLDDT
+  view's data is a seeded stand-in (a model's confidence from a real fixture); a hover halo on the legend's entry in the
+  canvas (EC-138: the legend highlights, the marks do not ring); a values layer's y on a `log` scale (its color reads
+  one, its bars are linear); a `field` form's `:data` (a field of another annotation); forced colors
+  (`forced-colors: active`: the system's palette); the column measures (`share`, `identity`, `matches-reference`)
+  registered by an alignment's layers; `classes` (the default protein scheme) is not safe under the three deficiencies
+  (its substitute is drawn under `theme.cvdSafe`): a safe default, a design decision; the dark band (L 0.30–0.62) reads
+  dim against the dark page (fills 1.4–1.7:1 against it at the low end) and cannot rise without giving up 4.5:1 ink: an
+  outline or a lighter page, a design decision; an inline table's column named `kind` is refused by the s-expression
+  codec (a reserved key), so `secondary` reads `category` in the examples; the `theme/` entry is reached through the
+  `./*` export (`theme/index`): its own `./theme` export.
+
 ## `@molstar/seqx-viewer`
+
+- Legends: the Legend part's place in the default chrome (the host mounts it today); a legend entry's color picker
+  (`theme.value-color` has no UI); the scheme picker as a menu (the stories' buttons stand in).
 
 - Addressing: copy link from a context menu (and its key).
 - Selection: drag snapping to whole codons over nucleotides (EC-149); rects (dot plots) projected and drag-selected;

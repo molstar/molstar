@@ -132,7 +132,11 @@ describe('resolved view: layers on other systems, queries, themes', () => {
     });
     b.views.view('v', (v) => {
       const g = v.section('gene', { of: gene, range: [90, 200] });
-      g.track('t').layer('d', { type: 'ranges', data: domains, color: { kind: 'uniform', value: 'red' } });
+      g.track('t').layer('d', {
+        type: 'ranges',
+        data: domains,
+        color: { kind: 'uniform', params: { value: '#ff0000' } },
+      });
       g.track('q').layer('ranges', {
         type: 'ranges',
         data: '/data/domains/(items :overlapping /data/p53/(range :from 1 :to 5))',
@@ -149,8 +153,8 @@ describe('resolved view: layers on other systems, queries, themes', () => {
   it('carries a layer’s data along the static path to its section, with its theme as a value', () => {
     const d = v.sections[0].tracks[0].layers[0];
     expect([d.address, d.placed, d.path?.step, d.fallbacks]).toEqual(['/views/v/gene/t/d', true, 1, ['ranges']]);
-    expect(d.theme).toEqual({ color: { kind: 'uniform', value: 'red' } });
-    expect(d.params).toEqual({ color: { kind: 'uniform', value: 'red' } });
+    expect(d.theme).toEqual({ color: { kind: 'uniform', params: { value: '#ff0000' } } });
+    expect(d.params).toEqual({ color: { kind: 'uniform', params: { value: '#ff0000' } } });
   });
 
   it('keeps a query as a query, on the system its first node is on', () => {
@@ -160,6 +164,8 @@ describe('resolved view: layers on other systems, queries, themes', () => {
       address: '/data/domains/(items :overlapping /data/p53/(range :from 1 :to 5))',
       system: '/data/p53',
       shape: 'ranges',
+      // its form after the annotation: what the layer's rows are filtered by
+      filter: { kind: 'items', params: { overlapping: '/data/p53/(range :from 1 :to 5)' } },
     });
     expect(q.placed && q.path?.to).toBe('/data/tp53');
   });

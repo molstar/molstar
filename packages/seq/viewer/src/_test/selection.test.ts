@@ -538,9 +538,9 @@ describe('drawn, projected onto linked sections', () => {
     const v = await make();
     v.addresses.highlightAddress('/data/p/(range :from 2 :to 3)');
     frames!.flush();
-    // `link`: the default color, `token:cat-5` (#7aa3a6) at 0.3
-    expect(band(v, 'highlight', 0).some((l) => l.includes('#7aa3a64d'))).toBe(true);
-    expect(band(v, 'highlight', 1).some((l) => l.includes('#7aa3a64d'))).toBe(true);
+    // `link`: the default color, `token:cat-5` (#d86c17) at 0.3
+    expect(band(v, 'highlight', 0).some((l) => l.includes('#d86c174d'))).toBe(true);
+    expect(band(v, 'highlight', 1).some((l) => l.includes('#d86c174d'))).toBe(true);
     const svg = await v.renderSvg();
     expect(recordDrawLists(svg.lists, ['highlight'])).toBe(recordDrawLists(v.frame!.lists, ['highlight']));
     v.addresses.unhover();

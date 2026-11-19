@@ -23,9 +23,9 @@ import {
 } from './items.js';
 import { layerSource, toSection } from './layer-data.js';
 import type { Emphasis, Hit, LayerType, LayoutContext, Overlay, StoreReader } from './layer-type.js';
-import { reportColor } from './letters.js';
 import { drawFailed, drawSpans } from './marks.js';
-import { categoryToken, resolveColor } from './tokens.js';
+import type { Channel } from '@molstar/seqx-core/theme/index';
+import { channelForms, channelLegends, type LayerChannels, RowDatum } from './channels.js';
 
 // The `variants` layer type (_spec/README.md "Render", Layer types): a site a stem from the track's floor and a round
 // head, the heads of one site stacked up the stem (squeezed together when they do not fit). At the `bars` and `density`
@@ -38,17 +38,26 @@ const Stem = 6;
 const Sides = 16;
 
 export interface VariantsPrep extends ItemsPrep {
-  readonly color?: unknown;
+  /** Its `color` channel (`seq-variant` when the layer has none; the builder writes a consequence's field form). */
+  readonly channels: LayerChannels;
 }
 
 export interface VariantsLay extends ItemsBase {
-  fixed: number | undefined;
+  /** The color and size channels read, each row's fill, size and value of its legend's field, the datum it reads through. */
+  color?: Channel;
+  size?: Channel;
+  sizes: Float32Array;
+  fills: Uint32Array;
+  painted: (string | undefined)[];
+  datum: RowDatum;
   /** Marks in x order: the head's center x and y, the row, the fill. */
   m: number;
   mx: Float32Array;
   my: Float32Array;
   mrow: Int32Array;
   mfill: Uint32Array;
+  /** Each mark's head radius: `Radius` times its size channel (a radius: `sqrt` unless the form says); its hit box stays. */
+  mr: Float32Array;
   /** Marks by row in the order they were made (sorted into the above). */
   px: Float64Array;
   prow: Int32Array;
@@ -80,7 +89,7 @@ export const VariantsType: LayerType<VariantsPrep, VariantsLay> = {
     return {
       ...(src ? { src } : {}),
       owner: layer.data?.address ?? '',
-      ...(layer.theme.color !== undefined ? { color: layer.theme.color } : {}),
+      channels: channelForms(layer.theme),
     };
   },
 
@@ -88,12 +97,16 @@ export const VariantsType: LayerType<VariantsPrep, VariantsLay> = {
     const { axis, tokens } = ctx;
     const lay: VariantsLay = prev ?? {
       ...newItemsBase(ctx, prep),
-      fixed: undefined,
+      fills: new Uint32Array(64),
+      painted: [],
+      datum: new RowDatum(),
       m: 0,
       mx: new Float32Array(64),
       my: new Float32Array(64),
       mrow: new Int32Array(64),
       mfill: new Uint32Array(64),
+      mr: new Float32Array(64),
+      sizes: new Float32Array(64),
       px: new Float64Array(64),
       prow: new Int32Array(64),
       pn: 0,
@@ -104,17 +117,13 @@ export const VariantsType: LayerType<VariantsPrep, VariantsLay> = {
     lay.pn = 0;
     const src = prep.src;
     if (!src) return lay;
-    lay.fixed = undefined;
-    if (prep.color !== undefined) {
-      lay.fixed = resolveColor(prep.color, tokens);
-      if (lay.fixed === undefined) reportColor(ctx);
-    }
     const densities = readItems(lay, ctx, data, src, ['consequence', 'category']);
     const rows = lay.rows;
     if (!perPosition(lay.step) || densities.length) {
       lay.density = countStrip(lay.strip, src, axis, rows, densities, tokens);
       return lay;
     }
+    colorRows(lay, prep, ctx);
     // a head at the center of each piece of a site in view
     for (let i = 0; i < rows.n; i++) {
       let pieces = itemPiece;
@@ -178,7 +187,50 @@ export const VariantsType: LayerType<VariantsPrep, VariantsLay> = {
     const i = lay.mrow[best];
     return itemHit(base, lay, lay.rows.keys[i], lay.rows.starts[i], lay.rows.ends[i]);
   },
+
+  filtered: (lay) => lay.rows.filtered,
+
+  legend(lay, options) {
+    if (lay.density) return [];
+    const painted = new Set<string>();
+    if (lay.color?.legend?.kind === 'palette')
+      for (let i = 0; i < lay.rows.n; i++) {
+        const v = lay.painted[i];
+        if (v !== undefined) painted.add(v);
+      }
+    return channelLegends([lay.color, lay.size], { ...options, layer: lay.key, painted });
+  },
 };
+
+/** Each row's fill through the color channel (_spec/README.md "Themes"), and its value of the legend's field. */
+function colorRows(lay: VariantsLay, prep: VariantsPrep, ctx: LayoutContext) {
+  const rows = lay.rows;
+  const datum = lay.datum;
+  datum.bind(rows.n ? rows.fields[0] : undefined);
+  const numeric = (n: string) => datum.numeric(n);
+  const color = prep.channels.get('color', 'token:variant', ctx, { numeric });
+  const size = prep.channels.get('size', 1, ctx, { numeric, radius: true });
+  lay.color = color;
+  lay.size = size;
+  const painted = color.legend?.kind === 'palette' ? color.legend.field : undefined;
+  const missing = ctx.tokens.colors['seq-missing'];
+  if (lay.fills.length < rows.n) lay.fills = new Uint32Array(Math.max(rows.n, 2 * lay.fills.length));
+  if (lay.sizes.length < rows.n) lay.sizes = new Float32Array(Math.max(rows.n, 2 * lay.sizes.length));
+  for (let i = 0; i < rows.n; i++) {
+    datum.bind(rows.fields[i]);
+    datum.row = rows.row[i];
+    datum.start = rows.starts[i];
+    datum.end = rows.ends[i];
+    const c = color.constant ?? color.at(datum);
+    lay.fills[i] = typeof c === 'number' ? c : missing;
+    const z = size.constant ?? size.at(datum);
+    lay.sizes[i] = typeof z === 'number' ? Math.max(0.2, Math.min(1, z)) : 1;
+    if (painted !== undefined) {
+      const v = datum.field(painted);
+      lay.painted[i] = typeof v === 'string' ? v : undefined;
+    }
+  }
+}
 
 /**
  * The marks in x order, the heads of one site stacked up its stem: a head's center y, the spacing squeezed so the
@@ -197,8 +249,9 @@ function stack(lay: VariantsLay) {
     lay.my = new Float32Array(size);
     lay.mrow = new Int32Array(size);
     lay.mfill = new Uint32Array(size);
+    lay.mr = new Float32Array(size);
   }
-  const { box, tokens } = lay;
+  const { box } = lay;
   const floor = box.y + box.height - 1;
   const room = box.height - 1 - Stem - 2 * Radius;
   for (let s = 0; s < n; ) {
@@ -210,8 +263,8 @@ function stack(lay: VariantsLay) {
       lay.mx[k] = px[o];
       lay.my[k] = floor - Stem - Radius - (k - s) * gap;
       lay.mrow[k] = prow[o];
-      const v = lay.rows.values[prow[o]];
-      lay.mfill[k] = lay.fixed ?? tokens.colors[v === undefined ? 'seq-conflict' : categoryToken(v)];
+      lay.mfill[k] = lay.fills[prow[o]];
+      lay.mr[k] = Radius * lay.sizes[prow[o]];
     }
     s = e;
   }
@@ -258,7 +311,7 @@ function drawVariants(lay: VariantsLay, out: PassWriter, _emphasis: Emphasis | u
     out.rectArgs();
   }
   for (let j = 0; j < lay.m; j++) {
-    head(lay.mx[j], lay.my[j], Radius);
+    head(lay.mx[j], lay.my[j], lay.mr[j]);
     a[4] = lay.mfill[j];
     a[5] = NoColor;
     a[6] = 0;
@@ -271,11 +324,11 @@ function drawVariants(lay: VariantsLay, out: PassWriter, _emphasis: Emphasis | u
 function drawHover(lay: VariantsLay, out: PassWriter, emphasis: Emphasis | undefined) {
   const h = emphasis?.hover;
   if (!h || h.layer !== lay.key || !h.element) return;
-  const r = Radius + lay.hoverWidth / 2 + lay.hoverOffset;
+  const pad = lay.hoverWidth / 2 + lay.hoverOffset;
   const a = out.args;
   for (let j = 0; j < lay.m; j++) {
     if (lay.rows.keys[lay.mrow[j]] !== h.element.key) continue;
-    head(lay.mx[j], lay.my[j], r);
+    head(lay.mx[j], lay.my[j], lay.mr[j] + pad);
     a[4] = NoColor;
     a[5] = lay.tokens.colors['seq-hover'];
     a[6] = lay.hoverWidth;

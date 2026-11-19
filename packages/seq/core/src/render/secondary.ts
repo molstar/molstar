@@ -28,10 +28,11 @@ import {
 import { LaneIndex } from './lanes.js';
 import { type LayerSource, layerSource, toSection } from './layer-data.js';
 import type { Emphasis, Hit, LayerType, LayoutContext, Overlay, StoreReader } from './layer-type.js';
-import { reportColor } from './letters.js';
 import { ArrowBody, arrowArgs, drawFailed, drawSpans } from './marks.js';
 import { squircleRadius } from './squircle.js';
-import { resolveColor, type SeqTokenName } from './tokens.js';
+import type { SeqTokenName } from './tokens.js';
+import type { Channel, ThemeNode } from '@molstar/seqx-core/theme/index';
+import { channelForms, channelLegends, type LayerChannels, RowDatum } from './channels.js';
 
 // The `secondary` layer type (_spec/README.md "Render", Layer types): helices and strands as blocks in one band, a turn
 // a thin bar. The strand's arrowhead is on the piece holding its C-terminal end (the end of the item's last row in
@@ -46,8 +47,20 @@ export const Strand = 1;
 export const Turn = 2;
 type Kind = typeof Helix | typeof Strand | typeof Turn;
 
-/** The colors of the classes (a stand-in for the `seq-ss-*` tokens the theme work adds). */
-const KindTokens: readonly SeqTokenName[] = ['seq-cat-1', 'seq-cat-0', 'seq-sequence'];
+/** The colors of the classes: the `secondary` scheme's tokens, drawn directly when the layer has no color of its own. */
+const KindTokens: readonly SeqTokenName[] = ['seq-ss-helix', 'seq-ss-strand', 'seq-ss-turn'];
+/** The classes as the `kind` field reads to a theme (_spec/README.md "Themes"): whatever the data's spelling. */
+const KindWords = ['helix', 'strand', 'turn'] as const;
+/** The color's default: the `secondary` scheme, so its legend keys the classes. */
+const SecondaryScheme: ThemeNode = { kind: 'scheme', params: { name: 'secondary' } };
+
+/** A row's datum: its table's fields, `kind` read as its class's word (a DSSP code, an mmCIF one or a word alike). */
+class KindDatum extends RowDatum {
+  kind = 'turn';
+  override field(name: string): string | number | undefined {
+    return name === 'kind' ? this.kind : super.field(name);
+  }
+}
 
 // whole codes and words: DSSP (H G I, E B, T S), mmCIF (HELX_*, STRN, TURN_*), helix, strand, turn
 const HelixKind = /^(h|g|i|helix|helx(_\w+)?)$/i;
@@ -63,7 +76,9 @@ export interface SecondaryPrep extends ItemsPrep {
   readonly cyclic: boolean;
   /** The rows of every item when the data is inline (an item's end is known), else undefined: no head. */
   readonly extents?: ItemExtents;
-  readonly color?: unknown;
+  /** Its `color` channel; `themed`: the layer has a color of its own (else the class tokens, directly). */
+  readonly channels: LayerChannels;
+  readonly themed: boolean;
 }
 
 export interface SecondaryLay extends ItemsBase {
@@ -73,6 +88,9 @@ export interface SecondaryLay extends ItemsBase {
   last: Uint8Array;
   shown: Uint8Array;
   fills: Uint32Array;
+  /** The color channel read, and the datum it reads each row through. */
+  color?: Channel;
+  datum: KindDatum;
   /** Marks: extents, row, round ends, the arrowhead's side (0 none, 1 right, 2 left). */
   m: number;
   mx0: Float32Array;
@@ -127,7 +145,8 @@ export const SecondaryType: LayerType<SecondaryPrep, SecondaryLay> = {
       owner: layer.data?.address ?? '',
       cyclic: model.systems.get(layer.data?.system ?? '')?.cyclic ?? false,
       ...(itemExtents(model, layer) ? { extents: itemExtents(model, layer) } : {}),
-      ...(layer.theme.color !== undefined ? { color: layer.theme.color } : {}),
+      channels: channelForms(layer.theme),
+      themed: layer.theme.color !== undefined,
     };
   },
 
@@ -140,6 +159,7 @@ export const SecondaryType: LayerType<SecondaryPrep, SecondaryLay> = {
       last: new Uint8Array(64),
       shown: new Uint8Array(64),
       fills: new Uint32Array(64),
+      datum: new KindDatum(),
       m: 0,
       mx0: new Float32Array(64),
       mx1: new Float32Array(64),
@@ -158,11 +178,6 @@ export const SecondaryType: LayerType<SecondaryPrep, SecondaryLay> = {
     lay.m = 0;
     const src = prep.src;
     if (!src) return lay;
-    let fixed: number | undefined;
-    if (prep.color !== undefined) {
-      fixed = resolveColor(prep.color, tokens);
-      if (fixed === undefined) reportColor(ctx);
-    }
     const densities = readItems(lay, ctx, data, src, ['kind', 'category']);
     const rows = lay.rows;
     const n = rows.n;
@@ -181,7 +196,7 @@ export const SecondaryType: LayerType<SecondaryPrep, SecondaryLay> = {
       lay.index.build(0, lay.lane, lay.mx0, lay.mx1, 1);
       return lay;
     }
-    classify(lay, prep, fixed);
+    classify(lay, prep, ctx);
     marks(lay, src, axis, config.squircleRatio, config.squircleMax, config.squircleMin);
     lay.lane = grown(lay.lane, lay.m);
     lay.lane.fill(0, 0, lay.m);
@@ -206,18 +221,43 @@ export const SecondaryType: LayerType<SecondaryPrep, SecondaryLay> = {
     const i = lay.mitem[j];
     return itemHit(base, lay, lay.rows.keys[i], lay.rows.starts[i], lay.rows.ends[i]);
   },
+
+  filtered: (lay) => lay.rows.filtered,
+
+  legend(lay, options) {
+    if (lay.density) return [];
+    const painted = new Set<string>();
+    for (let i = 0; i < lay.rows.n; i++) painted.add(KindWords[lay.kind[i]]);
+    return channelLegends([lay.color], { ...options, layer: lay.key, painted });
+  },
 };
 
 /**
  * Each row's class, fill, whether it is drawn once (the copies of a chain are rows of one extent and class: only the
  * first is) and whether it is the last of its item in reading order (the one holding the C-terminal end).
  */
-function classify(lay: SecondaryLay, prep: SecondaryPrep, fixed: number | undefined) {
+function classify(lay: SecondaryLay, prep: SecondaryPrep, ctx: LayoutContext) {
   const { rows, tokens } = lay;
   const n = rows.n;
+  const datum = lay.datum;
+  datum.bind(n ? rows.fields[0] : undefined);
+  const color = prep.channels.get('color', SecondaryScheme, ctx);
+  lay.color = color;
+  const fixed = typeof color.constant === 'number' ? color.constant : undefined;
+  const missing = tokens.colors['seq-missing'];
   for (let i = 0; i < n; i++) {
     const k = (lay.kind[i] = secondaryKind(rows.values[i]));
-    lay.fills[i] = fixed ?? tokens.colors[KindTokens[k]];
+    if (fixed !== undefined) lay.fills[i] = fixed;
+    else if (!prep.themed) lay.fills[i] = tokens.colors[KindTokens[k]];
+    else {
+      datum.bind(rows.fields[i]);
+      datum.row = rows.row[i];
+      datum.start = rows.starts[i];
+      datum.end = rows.ends[i];
+      datum.kind = KindWords[k];
+      const c = color.at(datum);
+      lay.fills[i] = typeof c === 'number' ? c : missing;
+    }
   }
   markEnds(rows, prep.extents, prep.cyclic, lay.src?.length ?? Number.POSITIVE_INFINITY, lay.first, lay.last);
   // copies: one row of each extent and class is drawn (the first), the order by extent then class

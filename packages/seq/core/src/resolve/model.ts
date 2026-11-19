@@ -13,6 +13,7 @@
 import type { ParamsFor } from '@molstar/core/repr/builder';
 import {
   type Atom,
+  CategoryColumn,
   categoryColumn,
   exactAddress,
   hashNode,
@@ -526,6 +527,9 @@ function annotationEntry(
  * Inline rows as items and a ranges table: a row that wraps a cyclic origin is two rows of one item (EC-9, EC-10); on
  * a sequence of unknown length it is left out, and said.
  */
+/** The columns of inline ranges the format reads itself; the others are a table's custom columns. */
+const KnownColumns = new Set(['start', 'end', 'id', 'label', 'category', 'strand']);
+
 function inlineRanges(rows: Record<string, Value>, target: SystemEntry) {
   const start = rows.start as Int32Array;
   const end = rows.end as Int32Array;
@@ -568,6 +572,20 @@ function inlineRanges(rows: Record<string, Value>, target: SystemEntry) {
   const columns: RangesField[] = [];
   if (label) columns.push({ name: 'label', column: categoryColumn(pick((i) => label[i] ?? null)) });
   if (category) columns.push({ name: 'category', column: categoryColumn(pick((i) => category.get(i))) });
+  // a table's custom columns ride along (a theme reads them by name: a score, a consequence), in their types
+  for (const [name, c] of Object.entries(rows)) {
+    if (KnownColumns.has(name)) continue;
+    if (c instanceof CategoryColumn) columns.push({ name, column: categoryColumn(pick((i) => c.get(i))) });
+    else if (Array.isArray(c))
+      columns.push({
+        name,
+        column: categoryColumn(pick((i) => (c[i] === null || c[i] === undefined ? null : String(c[i])))),
+      });
+    else if (ArrayBuffer.isView(c)) {
+      const typed = c as unknown as Float64Array;
+      columns.push({ name, column: new (typed.constructor as Float64ArrayConstructor)(pick((i) => typed[i])) });
+    }
+  }
   const table: RangesList = {
     form: 'list',
     start: Int32Array.from(s),

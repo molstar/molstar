@@ -25,22 +25,24 @@ import {
   type Hit,
   type LayerType,
   type LayoutContext,
-  type LegendSpec,
   type Overlay,
   type StoreReader,
   sectionId,
 } from './layer-type.js';
-import { reportColor } from './letters.js';
 import { drawFailed, drawSpans, hoverCell } from './marks.js';
-import { resolveColor, type SeqTokens } from './tokens.js';
+import type { SeqTokens } from './tokens.js';
 import { sortArrayRange } from '@molstar/core/data/util/sort';
+import type { Channel } from '@molstar/seqx-core/theme/index';
+import { channelForms, channelLegends, Extents, type LayerChannels, PlainDatum } from './channels.js';
 
 // The `values` layer type (_spec/README.md "Render", Layer types): a bar a value, square (continuous data). Where a
 // position is a device pixel or more, a bar a position; below, a bar a device column over the column's extent from
 // the baseline (`values.aggregate`: `minmax`, so negative extremes show, or `max`), from per-position values or a
 // coarser level's bins. Missing (NaN) is a thin neutral mark at the baseline,
 // never a zero. The domain is the layer's `domain` param, else open: computed from the values in view when the view
-// settles, held while it does not, so heights do not shimmer during a pan.
+// settles, held while it does not, so heights do not shimmer during a pan. Its `scale` names a scale node: its y domain
+// is the scale's (an open end the union over the layers naming it, held from the last settle). Its color is its
+// `color` channel: uniform (one fill), or by `value` (a bar's color its value's, `col`; a line's color changes with it).
 //
 // `encoding` `line` and `area` (EC-57) draw the same bars as a line through the cells' centers: held flat over the half
 // cells at its ends and at gaps (a hole in the data, a break of the axis), broken by a missing value (which keeps its
@@ -58,8 +60,10 @@ const AreaAlpha = 89;
 export interface ValuesPrep {
   readonly encoding: ValuesEncoding;
   readonly src?: LayerSource;
-  readonly color?: unknown;
+  readonly channels: LayerChannels;
   readonly domain?: readonly [number, number];
+  /** The scale node its y reads, by address. */
+  readonly scale?: string;
 }
 
 export interface ValuesLay {
@@ -72,9 +76,14 @@ export interface ValuesLay {
   tokens: SeqTokens;
   fill: number;
   encoding: ValuesEncoding;
-  /** A line's points in x order (`ord`: indices of the bars) and the color of each bar (the fill; a field's later). */
+  /** A line's points in x order (`ord`: indices of the bars) and the color of each bar (the fill, or its value's). */
   ord: Int32Array;
   col: Uint32Array;
+  /** The color channel; `col` holds a bar's color where it is not uniform. */
+  color?: Channel;
+  perBar: boolean;
+  datum: PlainDatum;
+  extents: Extents;
   /** Bars followed on the screen by a break of the axis (a line does not cross it: it is held, as at a gap). */
   cut: Uint8Array;
   domain: [number, number] | undefined;
@@ -116,11 +125,13 @@ export const ValuesType: LayerType<ValuesPrep, ValuesLay> = {
         ? ([d[0], d[1]] as const)
         : undefined;
     const e = layer.params.encoding;
+    const scale = typeof layer.params.scale === 'string' ? layer.params.scale : undefined;
     return {
       encoding: e === 'line' || e === 'area' ? e : 'bars',
       ...(src ? { src } : {}),
-      ...(layer.theme.color !== undefined ? { color: layer.theme.color } : {}),
+      channels: channelForms(layer.theme),
       ...(domain ? { domain } : {}),
+      ...(scale ? { scale } : {}),
     };
   },
 
@@ -138,6 +149,9 @@ export const ValuesType: LayerType<ValuesPrep, ValuesLay> = {
       encoding: prep.encoding,
       ord: new Int32Array(0),
       col: new Uint32Array(0),
+      perBar: false,
+      datum: new PlainDatum(),
+      extents: new Extents(),
       cut: new Uint8Array(0),
       domain: undefined,
       n: 0,
@@ -163,13 +177,10 @@ export const ValuesType: LayerType<ValuesPrep, ValuesLay> = {
     lay.n = 0;
     lay.pending.length = 0;
     lay.failed.length = 0;
-    let fill = tokens.colors['seq-value'];
-    if (prep.color !== undefined) {
-      const c = resolveColor(prep.color, tokens);
-      if (c === undefined) reportColor(ctx);
-      else fill = c;
-    }
-    lay.fill = fill;
+    const color = prep.channels.get('color', 'token:value', ctx, { numeric: (n) => n === 'value' });
+    lay.color = color;
+    lay.perBar = color.constant === undefined;
+    lay.fill = typeof color.constant === 'number' ? color.constant : tokens.colors['seq-value'];
     lay.encoding = prep.encoding;
     const src = prep.src;
     if (!src) return lay;
@@ -238,8 +249,8 @@ export const ValuesType: LayerType<ValuesPrep, ValuesLay> = {
         lay.lo[j] = minmax ? colLo[c] : colHi[c];
         lay.v[j] = colHi[c];
       }
-    if (prep.domain) lay.domain = [prep.domain[0], prep.domain[1]];
-    else if (ctx.settled || !lay.domain) lay.domain = openDomain(lay);
+    if (lay.perBar) colorBars(lay, color);
+    lay.domain = yDomain(prep, ctx, lay);
     if (lay.encoding !== 'bars') orderLine(lay);
     return lay;
   },
@@ -256,8 +267,12 @@ export const ValuesType: LayerType<ValuesPrep, ValuesLay> = {
     return { layer: lay.key, section: lay.section, position, system: lay.system };
   },
 
-  legend(lay): LegendSpec | undefined {
-    return lay.domain ? { kind: 'ramp', domain: lay.domain, colors: [lay.fill] } : undefined;
+  legend(lay, options) {
+    return channelLegends([lay.color], { ...options, layer: lay.key });
+  },
+
+  domain(lay) {
+    return lay.domain;
   },
 };
 
@@ -296,7 +311,7 @@ function drawBars(lay: ValuesLay, out: PassWriter, _emphasis: Emphasis | undefin
       // the extent from the baseline: a column's low below it shows (negative extremes)
       top = y1 - ((Math.max(lo, Math.min(hi, Math.max(v, base))) - lo) / span) * bh;
       h = y1 - ((Math.max(lo, Math.min(hi, Math.min(lay.lo[j], base))) - lo) / span) * bh - top;
-      fill = lay.fill;
+      fill = lay.perBar ? lay.col[j] : lay.fill;
     }
     out.fill(lay.x0[j], top, lay.x1[j] - lay.x0[j], h, fill);
   }
@@ -418,10 +433,12 @@ function orderLine(lay: ValuesLay) {
   const n = lay.n;
   if (lay.ord.length < n) {
     lay.ord = new Int32Array(Math.max(n, 2 * lay.ord.length));
-    lay.col = new Uint32Array(lay.ord.length);
     lay.cut = new Uint8Array(lay.ord.length);
   }
-  lay.col.fill(lay.fill, 0, n);
+  if (!lay.perBar) {
+    if (lay.col.length < n) lay.col = new Uint32Array(lay.ord.length);
+    lay.col.fill(lay.fill, 0, n);
+  }
   lay.cut.fill(0, 0, n);
   const ord = lay.ord.subarray(0, n);
   for (let i = 0; i < n; i++) ord[i] = i;
@@ -570,4 +587,34 @@ function flush(
   a[6] = LineWidth;
   a[7] = 0;
   out.pathArgs(pts, count, false);
+}
+
+/** Each bar's color by its value (missing: the missing token) into `col`, the open extents of the color's domain folded. */
+function colorBars(lay: ValuesLay, color: Channel) {
+  const d = lay.datum;
+  const missing = lay.tokens.colors['seq-missing'];
+  if (lay.col.length < lay.n) lay.col = new Uint32Array(Math.max(lay.n, 2 * lay.col.length));
+  lay.extents.reset([color]);
+  for (let j = 0; j < lay.n; j++) {
+    d.value = lay.v[j];
+    const c = color.at(d);
+    lay.col[j] = typeof c === 'number' ? c : missing;
+    if (lay.extents.any) lay.extents.add(d);
+  }
+}
+
+/**
+ * The y domain: the layer's own `domain`, else its scale's (an explicit end wins; an open one the union held over the
+ * layers naming the scale, the layer's own values in view until the view first settles), else open over its values.
+ */
+function yDomain(prep: ValuesPrep, ctx: LayoutContext, lay: ValuesLay): [number, number] {
+  if (prep.domain) return [prep.domain[0], prep.domain[1]];
+  const own = ctx.settled || !lay.domain ? openDomain(lay) : lay.domain;
+  if (!prep.scale) return own;
+  if (lay.n) ctx.theme.extent(prep.scale, own[0], own[1]);
+  const d = ctx.theme.scale(prep.scale)?.domain;
+  const held = ctx.theme.domain(prep.scale) ?? own;
+  const lo = typeof d?.[0] === 'number' ? d[0] : held[0];
+  const hi = typeof d?.[1] === 'number' ? d[1] : held[1];
+  return lo < hi ? [lo, hi] : own;
 }

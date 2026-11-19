@@ -4,7 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { CategoryColumn, type Column } from '@molstar/core/repr/tree';
+import { CategoryColumn, type Column, issueOf } from '@molstar/core/repr/tree';
+import { RenderIssues } from './issues.js';
 import type { DataEntry, RangesDensity, RangesList } from '@molstar/seqx-core/data';
 import { type QueryItem, rangesLocation } from '@molstar/seqx-core/query';
 import type { StaticModel } from '@molstar/seqx-core/resolve';
@@ -13,6 +14,7 @@ import type { AxisTransform } from './axis.js';
 import { type DensityStep, densityStep } from './config.js';
 import { NoColor, type PassWriter } from './draw-lists.js';
 import { dataRegions, type LayerSource, layerLevel, placeholderSpans, readTiles, toSection } from './layer-data.js';
+import type { FilterRow, RowFilter } from './filter.js';
 import type { Box, Hit, LayoutContext, StoreReader } from './layer-type.js';
 import { breakHit } from './marks.js';
 import { addToStrip, paintStrip, resetStrip, type StripBuffers } from './ranges.js';
@@ -35,10 +37,15 @@ export interface ItemRows {
   labels: (string | undefined)[];
   /** Which occurrence of its key (a piece of the item) each row is in the order read. */
   occ: number[];
+  /** The rows the layer's filter left out of the tiles read (the track's "n filtered"). */
+  filtered: number;
+  /** Each row's table fields and its row in that table: what a theme's channels read (a field, a measure). */
+  fields: (RangesList['fields'] | undefined)[];
+  row: number[];
 }
 
 export function newItemRows(): ItemRows {
-  return { n: 0, keys: [], starts: [], ends: [], values: [], labels: [], occ: [] };
+  return { n: 0, filtered: 0, keys: [], starts: [], ends: [], values: [], labels: [], occ: [], fields: [], row: [] };
 }
 
 /** A table's field by name. */
@@ -54,6 +61,27 @@ function textAt(c: Column | undefined, i: number): string | undefined {
   return v === null || v === undefined ? undefined : String(v);
 }
 
+/** A row as the filter reads it: its key and its table's fields, a column looked up once a table. */
+class TableRow implements FilterRow {
+  key: string | number = '';
+  i = 0;
+  private fields: RangesList['fields'];
+  private readonly cols = new Map<string, Column | undefined>();
+  bind(fields: RangesList['fields']) {
+    if (fields === this.fields) return;
+    this.fields = fields;
+    this.cols.clear();
+  }
+  field(name: string): string | number | undefined {
+    let c = this.cols.get(name);
+    if (c === undefined && !this.cols.has(name)) this.cols.set(name, (c = fieldOf(this.fields, name)));
+    if (!c) return undefined;
+    const v = c instanceof CategoryColumn ? c.get(this.i) : (c as ArrayLike<unknown>)[this.i];
+    return typeof v === 'number' || typeof v === 'string' ? v : v === null || v === undefined ? undefined : String(v);
+  }
+}
+const filterRow = new TableRow();
+
 export interface DensityTile {
   readonly table: RangesDensity;
   readonly level: number;
@@ -67,8 +95,10 @@ export function collectItems(
   rows: ItemRows,
   entries: readonly Extract<DataEntry, { status: 'loaded' }>[],
   fields: readonly string[],
+  filter?: RowFilter,
 ): DensityTile[] {
   rows.n = 0;
+  rows.filtered = 0;
   const densities: DensityTile[] = [];
   const earlier = new Map<string | number, number[]>();
   const occurrences = new Map<string | number, number>();
@@ -83,11 +113,24 @@ export function collectItems(
     let col: Column | undefined;
     for (let f = 0; f < fields.length && !col; f++) col = fieldOf(t.fields, fields[f]);
     const labels = fieldOf(t.fields, 'label');
+    if (filter) filterRow.bind(t.fields);
     for (let i = 0; i < t.start.length; i++) {
       const id = t.id?.get(i);
       const key: string | number =
         id !== null && id !== undefined ? id : t.row ? t.row[i] : `${e.region.level}/${e.region.tile}:${i}`;
       if (earlier.get(key)?.includes(t.start[i])) continue;
+      if (filter) {
+        filterRow.key = key;
+        filterRow.i = i;
+        if (!filter(filterRow)) {
+          // left out, and its repeat in a later tile with it
+          rows.filtered++;
+          const starts = earlier.get(key);
+          if (starts) starts.push(t.start[i]);
+          else earlier.set(key, [t.start[i]]);
+          continue;
+        }
+      }
       const k = occurrences.get(key) ?? 0;
       occurrences.set(key, k + 1);
       const j = rows.n++;
@@ -97,6 +140,8 @@ export function collectItems(
       rows.values[j] = textAt(col, i);
       rows.labels[j] = textAt(labels, i) ?? id ?? undefined;
       rows.occ[j] = k;
+      rows.fields[j] = t.fields;
+      rows.row[j] = i;
     }
     for (let j = from; j < rows.n; j++) {
       const starts = earlier.get(rows.keys[j]);
@@ -209,10 +254,17 @@ export function readItems(
 ): DensityTile[] {
   const axis = ctx.axis;
   lay.step = densityStep(axis.scale, axis.dpr, ctx.config);
+  if (src.unreadFilter)
+    ctx.report(
+      issueOf(RenderIssues, 'seq.render.filter', 'The layer’s data query is not read row by row: no row is left out', {
+        address: ctx.key,
+        hint: RenderIssues.codes['seq.render.filter'].hint,
+      }),
+    );
   const read = readTiles(ctx, data, src, dataRegions(src, axis, true), layerLevel(src, data, axis));
   placeholderSpans(src, axis, read.pending, lay.pending);
   placeholderSpans(src, axis, read.failed, lay.failed);
-  return collectItems(lay.rows, read.entries, fields);
+  return collectItems(lay.rows, read.entries, fields, src.filter);
 }
 
 /** The tick of a hidden item at section position `p` in `lane`: one a break and lane, its count kept. */

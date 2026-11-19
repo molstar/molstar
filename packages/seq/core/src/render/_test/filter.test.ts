@@ -1,0 +1,72 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+// A layer's data filter (_spec/README.md "Themes", Filters): the query after its annotation leaves rows out as the
+// shared item reader reads them (ranges, secondary, variants alike), the track shows how many in its "n filtered" chip
+// and a hit on the chip names the layer; a query form not read row by row filters nothing and says so.
+
+import type { Node } from '@molstar/core/repr/tree';
+import { createSeqSpec } from '@molstar/seqx-core/lang';
+import { describe, expect, it } from 'vitest';
+import { hitView, type RangesLay, type VariantsLay } from '../index.js';
+import { P53 } from './fixtures.js';
+import { settle } from './helpers.js';
+
+const Size = { width: 800, height: 120 };
+const rows = {
+  start: [0, 63, 93, 318, 323],
+  end: [61, 94, 292, 360, 355],
+  id: ['a', 'b', 'c', 'd', 'e'],
+  category: ['activation', 'linker', 'binding', 'linker', 'oligomer'],
+};
+
+function spec(type: 'ranges' | 'variants', query: string): Node {
+  const b = createSeqSpec();
+  const p = b.data.sequence('p', { alphabet: 'protein', letters: P53 });
+  const d = b.data.ranges('d', { target: p, rows });
+  b.views.view('main', (v) =>
+    v
+      .section('p', { of: p })
+      .track('t', { label: 'Domains' })
+      .layer('l', { type, data: `${d}${query}` }),
+  );
+  return b.build();
+}
+
+async function layout(type: 'ranges' | 'variants', query: string) {
+  const s = await settle(spec(type, query));
+  const f = await s.frame({ size: Size, settled: true });
+  return f;
+}
+
+describe('a layer’s data filter', () => {
+  it('leaves the rows out as the items are read, and the track counts them', async () => {
+    const f = await layout('ranges', '/(not :of (item :category linker))');
+    const t = f.layout.sections[0].tracks[0];
+    const lay = t.layers[0].lay as RangesLay;
+    expect(lay.keys.slice(0, lay.items).sort()).toEqual(['a', 'c', 'e']);
+    expect(t.filter).toMatchObject({ count: 2, text: '2 filtered', layer: '/views/main/p/t/l' });
+    const hit = hitView(f.layout, t.filter!.x + 1, t.box.y + 2);
+    expect(hit).toMatchObject({ target: 'filter', layer: '/views/main/p/t/l', count: 2 });
+  });
+
+  it('reads `item` by a list, `or` and `and`, in the other item layers too', async () => {
+    const a = await layout('ranges', '/(item :category [linker oligomer])');
+    expect((a.layout.sections[0].tracks[0].layers[0].lay as RangesLay).items).toBe(3);
+    const b = await layout('variants', '/(or :of [(item :id a) (item :id e)])');
+    const v = b.layout.sections[0].tracks[0].layers[0].lay as VariantsLay;
+    expect([...v.rows.keys.slice(0, v.rows.n)].sort()).toEqual(['a', 'e']);
+    expect(b.layout.sections[0].tracks[0].filter?.count).toBe(3);
+  });
+
+  it('no filter: no chip; a form not read row by row: every row, and said', async () => {
+    const plain = await layout('ranges', '');
+    expect(plain.layout.sections[0].tracks[0].filter).toBeUndefined();
+    const range = await layout('ranges', '/(range :from 1 :to 100)');
+    expect((range.layout.sections[0].tracks[0].layers[0].lay as RangesLay).items).toBe(5);
+    expect(range.layout.issues.map((i) => i.code)).toContain('seq.render.filter');
+  });
+});

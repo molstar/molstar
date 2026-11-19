@@ -12,6 +12,7 @@ import * as bookmarks from './p53/bookmarks.js';
 import * as geneByRegion from './p53/gene-by-region.js';
 import * as layers from './p53/layers.js';
 import * as proteinOnGene from './p53/protein-on-gene.js';
+import * as themes from './p53/themes.js';
 import * as tracks from './p53/tracks.js';
 
 // The examples' views by dataset: what a dataset's index lists and a test walks.
@@ -80,6 +81,14 @@ export const P53Views: readonly ExampleView[] = [
     build: geneByRegion.build,
     registry: geneByRegion.registry,
   },
+  {
+    dataset: 'p53',
+    id: 'themes',
+    title: 'Themes',
+    summary:
+      'The protein’s letters under each scheme that fits it; domains by category with their legend; a confidence as pLDDT’s four bands and as a ramp; two signals on one shared scale; variants by consequence, sized by a log-scaled frequency; secondary structure. Its export draws the legends below.',
+    build: themes.build,
+  },
 ];
 
 /** Views made for a feature's stories (`Features/…`), over the same datasets. */
@@ -98,6 +107,14 @@ export const FeatureViews: readonly ExampleView[] = [
     summary: 'Gene by region with bookmarks: refs on a range and on transcripts that arrive with their region.',
     build: bookmarks.build,
     registry: bookmarks.registry,
+  },
+  {
+    dataset: 'p53',
+    id: 'themes-editing',
+    title: 'Editing themes',
+    summary:
+      'The themes view edited: a scheme previewed while hovered and picked in one patch; the shared scale’s domain set for both signals in one step and undone in one.',
+    build: themes.build,
   },
 ];
 

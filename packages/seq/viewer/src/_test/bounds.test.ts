@@ -31,6 +31,7 @@ describe('the bounds items', () => {
       maxColumnLength: 2 ** 31 - 1,
       maxNodeIssues: 100,
       maxPlaces: 10,
+      themeDepth: 4,
       maxBlockValues: 2 ** 24,
     });
   });

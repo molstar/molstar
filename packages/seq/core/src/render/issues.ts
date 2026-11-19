@@ -16,13 +16,52 @@ export const RenderIssues = defineIssues('seq.render', {
   },
   'seq.render.color': {
     severity: 'warning',
-    description: 'A layer’s color is neither a hex color (`#rrggbb`, `#rrggbbaa`) nor a token (`token:accent`)',
-    hint: 'Write a hex color or a token name; the layer’s default color is used meanwhile',
+    description: 'A layer’s color names a token the token table lacks',
+    hint: 'Name a token of the table (`token:range`), or set it as `--seq-<name>`; the layer’s default color is used meanwhile',
+  },
+  'seq.render.theme.channel': {
+    severity: 'warning',
+    description:
+      'A theme on a channel the layer type does not read, a value not of the channel’s kind, or a form or palette it cannot read: drawn without it',
+    hint: 'Theme a channel the layer reads (its type’s description lists them), with a value of its kind',
+  },
+  'seq.render.theme.scheme': {
+    severity: 'warning',
+    description:
+      'A scheme that does not fit the layer (another alphabet, a measure not available) or no scheme of the name: the layer’s default is drawn',
+    hint: 'Pick a scheme the layer’s menu offers; column schemes need the rows layer’s measures',
+  },
+  'seq.render.theme.measure': {
+    severity: 'warning',
+    description: 'A rule reads a measure or a location this layer cannot: its clause does not hold',
+    hint: 'Read a field of the layer’s data, `value` or `letter`; a location must resolve on the data’s system',
+  },
+  'seq.render.theme.color': {
+    severity: 'warning',
+    description:
+      'A color in a theme (a `direct` field’s value, a palette’s color) does not read: it is drawn as missing',
+    hint: 'Write colors as `#rrggbb`, a token or `light-dark(a, b)`',
+  },
+  'seq.render.scale.log': {
+    severity: 'info',
+    description: 'A value at or below zero on a log scale: drawn as missing (or clamped, with `non_positive: clamp`)',
+    hint: 'Set the scale’s `non_positive` to `clamp` to draw them at the low end',
+  },
+  'seq.render.legend.unlisted': {
+    severity: 'info',
+    description:
+      'A legend cannot list hashed values it has not painted: the values in view are listed, the others take their hashed colors',
+    hint: 'List the values in the palette’s `values` (the builder does for inline data) for a complete key',
   },
   'seq.render.line-style': {
     severity: 'info',
     description: 'A ranges layer’s `line` is not a style this version draws: its items are drawn solid',
     hint: 'Use `solid`, `dashed`, `dotted`, `wavy`, `double`, `box` or `highlight`',
+  },
+  'seq.render.filter': {
+    severity: 'warning',
+    description: 'A layer’s data query is not a filter its rows can be read by: every row is drawn',
+    hint: 'Filter an annotation’s items by `(item :<field> v)`, `(not :of …)`, `(and :of […])` or `(or :of […])`',
   },
   'seq.render.numbering': {
     severity: 'warning',
