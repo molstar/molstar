@@ -234,10 +234,12 @@ layout per token table, held domains and the reader's substitution (`LayerChanne
   hydrophobicity, helix, strand, turn, buried), nucleotide ones, ramps and categories (viridis, cividis, magma, blues,
   rd-bu, pLDDT's bands, Okabe–Ito, Tableau 10), secondary structure, Giemsa; each says its subject, the measures it
   needs, whether it is safe under the three color-vision deficiencies (checked: 0.06 Oklab apart under Machado 2009) and
-  the safe one a reader's substitution draws instead (`theme.cvdSafe`). A scheme's literal colors are the light table's;
-  the dark table's are derived (lightness mapped into the dark band, Oklab L 0.30–0.62, hue kept) unless it is safe as
-  it is. The band is bounded by the ink: above about 0.62 neither ink reaches 4.5:1. Provenance is `theme/provenance`'s
-  (`schemeProvenance`), read by a picker, never by drawing.
+  the safe one a reader's substitution draws instead (`theme.cvdSafe`). Every substitute is itself safe (a test over the
+  registry): an unsafe protein scheme (`classes`, the default, included) substitutes to `classes-safe`, `classes`'
+  groups on Okabe–Ito hues, the same in both tables. Why: the substitution must never draw an unsafe scheme. A scheme's
+  literal colors are the light table's; the dark table's are derived (lightness mapped into the dark band, Oklab L
+  0.30–0.62, hue kept) unless it is safe as it is. The band is bounded by the ink: above about 0.62 neither ink reaches
+  4.5:1. Provenance is `theme/provenance`'s (`schemeProvenance`), read by a picker, never by drawing.
 - **Colors as spelled** (`theme/spelling`: `parseColor`, `isColorSpelling`, `resolveColor`) need no color space: the
   spec reader's checks import them alone.
 - **Legends** are data (`Legend`: swatches, a ramp with ticks placed by its scale (a log scale's decades, a center at
