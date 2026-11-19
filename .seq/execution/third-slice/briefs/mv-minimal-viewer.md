@@ -26,7 +26,7 @@ minimal registry.
 **Sizes**: `pnpm -C packages/seq/core size` before and after, every entry; the minimal viewer's drop the measure of
 success (SW: 959 against 1023 kB; after HC 1010.9 against 1085.5 kB).
 
-**Model**: strong (opus). **Base**: `packages-seq` after RK merges (the orchestrator gives the commit). Storybook port
+**Model**: strong (opus). **Base**: `packages-seq` at `<base>` (after RK). CF works beside you in `packages/seq/core` (the store, the ruler, templates and held nodes in `render/tracks.ts`, accessibility, rows-model): keep your `tracks.ts` change to the built-in tables; SC in the viewer's `describe.ts` and hover card. Storybook port
 6021 (your own; stop it after).
 
 **Checks**: as [hc-hover-card.md](hc-hover-card.md)'s, with `pnpm build` and `pnpm check:workspace` at the end (the

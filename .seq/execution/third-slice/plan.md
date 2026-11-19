@@ -403,6 +403,7 @@ and dark before the merge.
 - [x] ET (fast; merged `50956fce0`; EC-135 to CF) tests for the edge cases built but untested (`briefs/et-ec-tests.md`).
 - [ ] CF (strong, after a strong slot frees) CS's core findings: a ruler's units (decided), inline data's tiles, shown
       means in view (decided) (`briefs/cf-chromosome-core.md`).
+- [ ] SC (fast) a range's strand in the hover card (`briefs/sc-card-strand.md`).
 - [ ] USE GATE (the author's use so far counts, 2026-11-19; at finalize only a look at what changed since) (deferred: the loop does not wait; finalize does): the author uses the views; findings fixed or placed,
       counted by kind.
 

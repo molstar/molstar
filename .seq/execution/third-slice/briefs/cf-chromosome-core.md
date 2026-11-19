@@ -47,7 +47,7 @@ grid,layer-type}.ts`: keep your `tracks.ts` change to the held-nodes hunk; CS wo
 `itWithin` with a quick representative (bounded keys a frame); `pnpm -C packages/seq/core test:perf` unchanged or
 better.
 
-**Model**: strong (opus). **Base**: `packages-seq` at the commit the orchestrator gives. Storybook port 6022.
+**Model**: strong (opus). **Base**: `packages-seq` at `<base>`. MV works beside you (core's renderer tables, `render/tracks.ts`'s built-in layer types, the viewer's composition): keep your `tracks.ts` change to the held-nodes hunk; SC in the viewer's `describe.ts` and hover card. Storybook port 6022.
 
 **Checks**: as [hc-hover-card.md](hc-hover-card.md)'s, plus `pnpm test:unit packages/core/src/util` and `npx tsc -b
 packages/core` for the base-library addition, and at the end `pnpm build` and `pnpm check:workspace` (the known
