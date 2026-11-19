@@ -32,8 +32,8 @@ existing `ranges`, `values`, `letters` layers as models).
 
 **Model**: fast (sonnet).
 
-**Base**: `packages-seq` at `<set at start>`. Your worktree may be cut from master: with a clean tree, first
-`git checkout -B seq/sl-small-layers <base>`, and check `git merge-base --is-ancestor <base> HEAD`.
+**Base**: `packages-seq` at `1e7e87870`. Your worktree may be cut from master: with a clean tree, first
+`git checkout -B seq/sl-small-layers 1e7e87870`, and check `git merge-base --is-ancestor 1e7e87870 HEAD`.
 
 **Touches**: `packages/seq/core/src/{lang,render}/**` (the new kinds and layers; not the theme files or tokens),
 `packages/seq/examples/src/**` (the p53 views gain a ruler, secondary structure and variants where examples.md says),

@@ -151,7 +151,7 @@ and dark before the merge.
 
 ### Stage 1: the axis, then themes and the small layers (after Gate 0)
 
-- [ ] AX (strong) the axis, as [axis](../../design/axis.md), first in the stage:
+- [x] AX (strong) the axis, as [axis](../../design/axis.md), first in the stage:
   - a section's direction `genomic`, `reversed`, `follow` on reversed pieces; a follower defaults to `follow`; a
     reversed axis counts down and says so; reversed DNA letters as their complement (on by default);
   - letters through a one-to-one or codon path (a residue a codon wide, a codon split by an intron in each piece),

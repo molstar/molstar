@@ -41,8 +41,8 @@ the core and viewer `_spec`s; `packages/core/src/util/color/`, `util/legend.ts`;
 
 **Model**: strong (opus).
 
-**Base**: `packages-seq` at `<set at start>`. Your worktree may be cut from master: with a clean tree, first
-`git checkout -B seq/th-themes <base>`, and check `git merge-base --is-ancestor <base> HEAD`.
+**Base**: `packages-seq` at `1e7e87870`. Your worktree may be cut from master: with a clean tree, first
+`git checkout -B seq/th-themes 1e7e87870`, and check `git merge-base --is-ancestor 1e7e87870 HEAD`.
 
 **Touches**: `packages/core/src/util/color/**` (and the hydrophobicity move in `packages/model`, its re-export only),
 `packages/seq/{core,viewer,examples}/src/**`, `packages/seq/storybook/src/_stories/**` (not the Design pages), the
