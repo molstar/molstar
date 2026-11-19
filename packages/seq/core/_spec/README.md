@@ -1213,7 +1213,8 @@ target. A floor of 16 px (a narrower window grows about its middle); its parts h
   follower lays out the follower alone and draws the ring from its kept lays; its labels are not placed again.
 - **Its viewport** is the window: `RingsNav` pans it by px of the box's width, zooms about a unit, reveals a range round
   the origin (unchanged when the range is in the window across the origin), steps wrapping, clamps by `clampWindow` (a
-  cyclic window wraps, never clamped at the total).
+  cyclic window wraps, never clamped at the total; one as wide as the axis is the fit, from 0: a whole turn from
+  elsewhere would put the origin mid-window).
 - **An image is refused** on a ring (the warp counts it; `seq.render.ring.image`, said once a section by the frame).
 - `at` is `atan2` and the radius through the warp's inverse (a label before the rings; the rim `window` while active;
   the hole and outside `empty`; between blocks `gap`); `offsetAt` the nearest block's edge in a gap; both monotone in

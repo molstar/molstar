@@ -27,6 +27,8 @@ export function clampWindow(c: NavContext, v: Viewport): Viewport {
   const total = c.total;
   const w = Math.min(Math.max(v.end - v.start, Math.min(c.width / c.maxScale, total)), total);
   if (c.cyclic) {
+    // as wide as the axis: the fit (a whole turn from elsewhere would show the origin mid-window, a follower over it)
+    if (w >= total) return v.start === 0 && v.end === total ? v : { ...v, start: 0, end: total };
     const s = ((v.start % total) + total) % total;
     return s === v.start && w === v.end - v.start ? v : { ...v, start: s, end: s + w };
   }

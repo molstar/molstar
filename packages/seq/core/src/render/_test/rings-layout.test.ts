@@ -474,7 +474,9 @@ describe('a ring with no strips', () => {
     const f = await s.frame({ size: Size, windows: true });
     const p = ringOf(f).placement as RingPlacement;
     expect(p.strips.n).toBe(0);
-    expect(drawListsToSvg(f.lists, Size)).toContain('<svg');
+    // its frame drawn: the title in the hole, the lists written as SVG
+    expect(f.lists.passes.labels.texts.n).toBeGreaterThan(0);
+    expect(drawListsToSvg(f.lists)).toContain('<svg');
     expect(hitView(f.layout, p.cx, p.cy - p.r + 2)).toBeUndefined();
   });
 });

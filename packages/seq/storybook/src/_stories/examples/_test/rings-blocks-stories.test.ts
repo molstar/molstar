@@ -52,6 +52,40 @@ describe('Plasmid ring, headless', () => {
   });
 });
 
+describe('Plasmid ring, zoomed out past its fit', () => {
+  it('a zoom out over the ring at its fit stays the fit; then `=` three times on the detail: both drawn', async () => {
+    viewer = await openExample(PlasmidViews.find((v) => v.id === 'ring')!, { gene: '' });
+    const v = viewer;
+    v.input.mac = false;
+    const [ring, detail] = v.frame!.layout.sections;
+    const p = ring.placement as RingPlacement;
+    p.warp.map(p.frameX(500), p.strips.bandY[0] + 3);
+    v.input.wheel(p.warp.px, p.warp.py, { deltaX: 0, deltaY: 300, ctrlKey: true, deltaMode: 0 });
+    await vi.advanceTimersByTimeAsync(50);
+    v.draw();
+    // a window as wide as the ring is the fit, never a whole turn from elsewhere
+    expect(v.view.get('/views/main/ring')).toMatchObject({ start: 0, end: 2686 });
+    v.input.click(v.dataX + 100, detail.y + detail.height / 2);
+    for (let k = 0; k < 3; k++) {
+      expect(v.input.key({ key: '=' })).toBe(true);
+      await vi.advanceTimersByTimeAsync(400);
+      v.draw();
+      for (const id of ['/views/main/ring', '/views/main/detail']) {
+        const w = v.view.get(id)!;
+        expect(Number.isFinite(w.start) && w.end > w.start && w.end - w.start <= 2686).toBe(true);
+      }
+      const f = v.frame!;
+      expect(f.layout.sections.every((s) => s.placement.strips.n > 0)).toBe(true);
+      expect(f.lists.passes.data.opCount).toBeGreaterThan(40);
+    }
+    const svg = v.renderSvg({ idPrefix: 'z-' });
+    await vi.advanceTimersByTimeAsync(400);
+    const r = await svg;
+    expect(r.issues).toEqual([]);
+    expect(r.lists.passes.data.opCount).toBeGreaterThan(40);
+  });
+});
+
 describe('Complex blocks, headless', () => {
   it('the row: a strip a block on its own system, the copies merged ×2', async () => {
     viewer = await openExample(ComplexViews.find((v) => v.id === 'blocks')!, { gene: '' });
