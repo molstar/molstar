@@ -142,8 +142,9 @@ describe('the text layout', () => {
 
 describe('the text layout’s navigation', () => {
   it('a pan scrolls lines, a step goes a line up and down, a reveal brings a line to the top, clamp holds the end', async () => {
-    const s = await settle(p53TextSpec());
-    const f = await s.frame({ size: { width: 720, height: 120 }, viewport: { start: 0, end: 393 } });
+    // a box of 120 px: the text scrolls inside it
+    const s = await settle(p53TextSpec(), [], { text: { maxHeight: 120 } });
+    const f = await s.frame({ size: { width: 720, height: 400 }, viewport: { start: 0, end: 393 } });
     const p = text(f.layout.sections[0]);
     const g = p.geometry!;
     const c: NavContext = {

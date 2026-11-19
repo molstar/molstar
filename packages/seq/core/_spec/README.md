@@ -1116,8 +1116,9 @@ straight axis and a box, in every layout; a layout knows strips, bands and warps
   1-based on the section's system; group labels (`above`: the group's last position over its last cell; `inline`: in the
   gap after it; `none`). The first line's bands carry their tracks' labels in the label column (faded past it).
   Numbering by a layer's `numbering` waits (TODO).
-- **The box**: its `height`, else its content's up to `text.maxHeight` (600 px) and the page's bottom, past which it
-  scrolls inside, its strips clipped to it; an export lays out every line (`figure`) and its box is its content.
+- **The box**: its `height`, else its content's up to `text.maxHeight` (600 px; a host sizing its canvas to the content
+  reads it), past which it scrolls inside, its strips clipped to it; an export lays out every line (`figure`) and its
+  box is its content.
 - **A bound**: at most `text.maxLines` lines (100,000) are laid out; more is `seq.render.text.lines` (give a `range`).
   Why: a chromosome as text is no figure, and the line heights are kept for the whole section.
 - **Navigation** (`TextNav`): a pan scrolls lines (vertical: px to the anchor through the line heights); a zoom steps

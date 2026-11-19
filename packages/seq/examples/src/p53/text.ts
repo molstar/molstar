@@ -36,7 +36,13 @@ export function centered(): Node {
   const p53 = b.data.sequence('p53', { alphabet: 'protein', letters: P53 });
   const domains = addDomains(b, p53);
   b.views.view('main', { layout: 'text' }, (v) => {
-    const s = v.section('protein', { of: p53, align: 'center', max_width: 640, numbers: 'both', group_labels: 'inline' });
+    const s = v.section('protein', {
+      of: p53,
+      align: 'center',
+      max_width: 640,
+      numbers: 'both',
+      group_labels: 'inline',
+    });
     s.track('letters', { label: 'p53' }).layer('letters', { type: 'letters' });
     s.track('domains', { label: 'Domains' }).layer('ranges', { type: 'ranges', data: domains });
   });

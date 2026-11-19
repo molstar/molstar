@@ -61,7 +61,8 @@ export const P53Views: readonly ExampleView[] = [
     dataset: 'p53',
     id: 'text-under-tracks',
     title: 'Text under its tracks',
-    summary: 'A tracks overview of the domains and the protein as text under it, in one view: the text section’s own layout.',
+    summary:
+      'A tracks overview of the domains and the protein as text under it, in one view: the text section’s own layout.',
     build: text.underTracks,
   },
   {
