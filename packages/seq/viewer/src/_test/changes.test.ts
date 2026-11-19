@@ -31,6 +31,7 @@ function spec(): Node {
     rows: { start: new Int32Array([0, 15]), end: new Int32Array([10, 25]), id: ['A', 'B'] },
   });
   b.refs.ref('b', { to: `${domains}/(item :id B)`, label: 'Domain B' });
+  b.views.scale('s');
   b.views.view('main', (v) => {
     const s = v.section('protein', { of: p });
     s.track('letters').layer('l', { type: 'letters' });
@@ -84,6 +85,8 @@ function look(v: SeqViewer) {
       v.selection.value.value,
       v.selection.cursor.value,
       ...v.highlight.names.value.map((n) => v.highlight.get(n)),
+      // the reader's color-blind substitution
+      v.legends.cvdSafe.value,
     ],
     navigate: `${vp?.start} ${vp?.end} ${v.spec.step.value?.id}`,
   };
@@ -103,6 +106,10 @@ const run = (v: SeqViewer, id: string, ctx: unknown) => Promise.resolve(v.execut
 const cell = (position: number) => ({ section: Protein, hit: { layer: LettersLayer, system: '/data/p', position } });
 const cursorAt = (section: string) => (v: SeqViewer) =>
   v.selection.setCursor({ section, system: '/data/p', position: 5 });
+
+/** The domains colored by their id: a legend whose entries select items. */
+const colorById = (v: SeqViewer) =>
+  run(v, 'layer.channel', { address: `${DomainsTrack}/d`, value: { kind: 'field', params: { name: 'id' } } });
 
 /** Each command's context, and what makes it change something first (a show needs a hide). */
 const Cases: Record<string, { ctx: unknown; before?: (v: SeqViewer) => unknown }> = {
@@ -146,6 +153,12 @@ const Cases: Record<string, { ctx: unknown; before?: (v: SeqViewer) => unknown }
   'layer.hide': { ctx: { address: LettersLayer } },
   'layer.show': { ctx: { address: LettersLayer }, before: (v) => run(v, 'layer.hide', { address: LettersLayer }) },
   'layer.color': { ctx: { address: `${DomainsTrack}/d`, color: '#d62728' } },
+  'layer.channel': { ctx: { address: `${DomainsTrack}/d`, channel: 'opacity', value: 0.5 } },
+  'scale.set': { ctx: { address: '/views/s', scale: { domain: [0, 1] } } },
+  'theme.value-color': { ctx: { address: `${DomainsTrack}/d`, entry: 'A', color: '#123456' } },
+  'legend.select': { ctx: { address: `${DomainsTrack}/d`, entry: 'B' }, before: colorById },
+  'legend.hover': { ctx: { address: `${DomainsTrack}/d`, entry: 'B' }, before: colorById },
+  'theme.cvd-safe': { ctx: { on: true } },
   'track.hide': { ctx: { address: DomainsTrack } },
   'track.show': { ctx: { address: DomainsTrack }, before: (v) => run(v, 'track.hide', { address: DomainsTrack }) },
   'track.move': { ctx: { address: DomainsTrack, after: null } },

@@ -12,6 +12,7 @@ import { type EditingBehavior, editingBehavior } from './editing.js';
 import { type HoverBehavior, hoverBehavior } from './hover.js';
 import { type NavigateBehavior, navigateBehavior } from './navigate.js';
 import { type SelectBehavior, selectBehavior } from './select.js';
+import { type ThemingBehavior, themingBehavior } from './theming.js';
 
 // The behaviors' providers (_spec/README.md "Composition"): what a viewer spec lists, by name.
 
@@ -51,4 +52,9 @@ export const CursorProvider: BehaviorProvider<undefined, CursorBehavior> = {
 export const EditingProvider: BehaviorProvider<undefined, EditingBehavior> = {
   name: 'editing',
   create: ({ spec, view, selection }) => editingBehavior(spec, { view, selection }),
+};
+
+export const LegendProvider: BehaviorProvider<undefined, ThemingBehavior> = {
+  name: 'legend',
+  create: ({ spec, addresses, legends }) => themingBehavior(spec, addresses, legends),
 };

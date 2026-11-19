@@ -8,6 +8,7 @@ import type { SeqConfigItem, SeqPorts, SeqRegistryEntry } from '@molstar/seqx-co
 import type { BindingTable, GestureBinding } from '@molstar/seqx-viewer/bindings';
 import type { ViewerConfig } from '@molstar/seqx-viewer/config';
 import type { SeqHistoryPort } from '@molstar/seqx-viewer/ports';
+import type { LegendModel } from './legends.js';
 import type { SeqViewer } from './viewer.js';
 import type {
   AddressModel,
@@ -35,6 +36,8 @@ export interface BehaviorContext {
   readonly addresses: AddressModel;
   readonly config: ViewerConfig;
   readonly bindings: BindingTable;
+  /** The legends as derived, the hovered entry, the reader's color-blind substitution. */
+  readonly legends: LegendModel;
 }
 
 /** A behavior's provider: creates the policy over the models; what it makes is its handle (`dispose` ends it). */
@@ -74,6 +77,11 @@ export interface SeqViewerUI {
    * standalone viewer's Undo. A headless viewer never does.
    */
   readonly history?: true;
+  /**
+   * The legends, a part the host places (`mountLegend` of `@molstar/seqx-viewer/mount-legend`, or its own): mounted
+   * after the canvas in the standalone viewer. Seq* never draws a legend on its canvas.
+   */
+  readonly legends?: ToolbarMount;
 }
 
 export interface SeqViewerSpec {

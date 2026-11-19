@@ -48,6 +48,7 @@ import {
 } from '@molstar/seqx-viewer/models';
 import { AddressingProvider, type LinkRun, SelectProvider } from '@molstar/seqx-viewer/behaviors';
 import { ViewerInput } from './input.js';
+import { LegendModel } from './legends.js';
 import { uiHistory } from './ui-history.js';
 import { ViewerIssues } from './issues.js';
 import type { BehaviorContext, BehaviorProvider, SeqViewerSpec } from './viewer-spec.js';
@@ -76,6 +77,8 @@ export class SeqViewer extends ReactiveModel {
   readonly selection: SelectionModel;
   /** Named highlight channels (session state). */
   readonly highlight: HighlightModel;
+  /** The legends (derived on settle), the hovered entry and the reader's color-blind substitution. */
+  readonly legends: LegendModel;
   /** Addresses in the spec shown: resolved, acted on, linked; the refs; the selection and the focus as addresses. */
   readonly addresses: AddressModel;
   readonly bindings: BindingTable;
@@ -190,6 +193,7 @@ export class SeqViewer extends ReactiveModel {
     );
     this._projector = new Projector(this.spec, this.view);
     this.highlight = new HighlightModel();
+    this.legends = new LegendModel(this.config.theme.cvdSafe);
     this.addresses = new AddressModel(
       this.spec,
       this.view,
@@ -224,6 +228,7 @@ export class SeqViewer extends ReactiveModel {
       addresses: this.addresses,
       config: this.config,
       bindings: this.bindings,
+      legends: this.legends,
     };
     try {
       for (const b of viewerSpec.behaviors) {
@@ -250,6 +255,9 @@ export class SeqViewer extends ReactiveModel {
     });
     this.listenPermanently(this.selection.cursor, () => this.schedule());
     this.listenPermanently(this.highlight.version, () => this.schedule());
+    // the reader's substitution redraws (its frames are keyed by it); the hover moves the legend's entry
+    this.listenPermanently(this.legends.cvdSafe, () => this.schedule());
+    this.listenPermanently(this.hover.version, () => this.legends.updateHover(this._frame?.layout, this.hover.current));
     // a source-backed system's length arrives with its source's coverage: the view's axes are placed then
     this.view.setLengthSource((system) => {
       const s = this.spec.model.value.systems.get(system);
@@ -274,6 +282,7 @@ export class SeqViewer extends ReactiveModel {
     this._followViewports();
     if (target && viewerSpec.ui?.toolbar) this.registerPermanentDispose(viewerSpec.ui.toolbar(this, target));
     if (target && viewerSpec.ui?.canvas) this.registerPermanentDispose(mountCanvas(this, target));
+    if (target && viewerSpec.ui?.legends) this.registerPermanentDispose(viewerSpec.ui.legends(this, target));
     // registered last, so it runs first: everything after it (the UI's teardown, the behaviors, the models) is disposed
     // while the viewer is retired, and none of it asks for a frame
     this.registerPermanentDispose(() => {
@@ -636,6 +645,7 @@ export class SeqViewer extends ReactiveModel {
     input.dpr = dpr;
     input.settled = this._quiet && this.store.store.settled.value;
     input.emphasis = this._emphasis;
+    input.cvdSafe = this.legends.cvdSafe.value;
     // tier 2: the store's dynamic nodes (its version is part of the frame's key)
     input.overlay = this.store.overlay(model, resolved, this.context);
 
@@ -657,6 +667,8 @@ export class SeqViewer extends ReactiveModel {
       if (!this._restDue) this._changed();
       this._wanter?.want(frame.wants);
       this._issues.set(frame.layout.issues);
+      // legends on settle only (a pan's frames derive none), compared structurally
+      if (input.settled) this.legends.update(frame.layout);
       this.store.holdShown(frame.layout.shown);
     }
     this._frame = frame;

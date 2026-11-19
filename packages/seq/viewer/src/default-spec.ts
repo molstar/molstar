@@ -10,10 +10,12 @@ import {
   CursorProvider,
   EditingProvider,
   HoverProvider,
+  LegendProvider,
   NavigateProvider,
   SelectProvider,
 } from '@molstar/seqx-viewer/behaviors';
 import { defaultPorts } from '@molstar/seqx-viewer/ports';
+import { legendsMount } from './mount-legend.js';
 import type { SeqViewerSpec } from './viewer-spec.js';
 
 // The default spec (_spec/README.md "Composition"): the built-in entries, behaviors, ports and UI, as data. An
@@ -32,10 +34,11 @@ export function DefaultSeqViewerSpec(): SeqViewerSpec {
       { provider: CursorProvider },
       { provider: AddressingProvider },
       { provider: EditingProvider },
+      { provider: LegendProvider },
     ],
     bindings: {},
     config: [],
     ports: defaultPorts(),
-    ui: { canvas: true, history: true },
+    ui: { canvas: true, history: true, legends: legendsMount },
   };
 }
