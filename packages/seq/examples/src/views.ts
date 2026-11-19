@@ -14,6 +14,7 @@ import * as bookmarks from './p53/bookmarks.js';
 import * as geneByRegion from './p53/gene-by-region.js';
 import * as layers from './p53/layers.js';
 import * as proteinOnGene from './p53/protein-on-gene.js';
+import * as story from './p53/story.js';
 import * as themes from './p53/themes.js';
 import * as text from './p53/text.js';
 import * as tracks from './p53/tracks.js';
@@ -115,6 +116,14 @@ export const P53Views: readonly ExampleView[] = [
     summary:
       'The protein’s letters under each scheme that fits it; domains by category with their legend; a confidence as pLDDT’s four bands and as a ramp; two signals on one shared scale; variants by consequence, sized by a log-scaled frequency; secondary structure. Its export draws the legends below.',
     build: themes.build,
+  },
+  {
+    dataset: 'p53',
+    id: 'story',
+    title: 'A story',
+    summary:
+      'The tracks as a story of four steps: the whole protein, its DNA-binding domain (the conservation taller), the R175H hotspot (the domains recolored) and the tetramerization domain (the conservation gone); each a view and a patch over the spec.',
+    build: story.build,
   },
 ];
 

@@ -83,7 +83,9 @@ export function sample(plan: TransitionPlan, t: number, out?: Frame): Frame {
         const w1 = e1 - s1;
         let w: number;
         if (c.path === 'out-across-in') {
-          const span = Math.max(e0, e1) - Math.min(s0, s1);
+          // at the middle the window is centred between the two and holds both
+          const mid = (s0 + e0 + s1 + e1) / 4;
+          const span = 2 * Math.max(mid - Math.min(s0, s1), Math.max(e0, e1) - mid);
           w =
             w0 > 0 && w1 > 0 && span > 0
               ? e < 0.5

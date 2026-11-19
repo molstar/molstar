@@ -1418,8 +1418,8 @@ DOM-free; Seq* runs no clock (the viewer's animation port is the application's).
   makes every window `[1, 1]`: each channel a cut at the end. `pending(section)` marks a view channel that waits on
   data: it holds its start and the frame counts it (`waiting`). A view's window **pans** (width geometric, centre
   linear: the content under the eye moves evenly) when the windows overlap or touch, else goes **out, across and in**
-  (the width through the span holding both at the middle); `cyclic` totals move the end's centre by a turn for the
-  shortest arc. Sizes (`scale`, `rowScale`) move geometrically.
+  (at the middle the window centred between the two and holding both); `cyclic` totals move the end's centre by a turn
+  for the shortest arc. Sizes (`scale`, `rowScale`) move geometrically.
 - **Sampling** (`sample(plan, t, out?)`): every channel at `t` eased, into `out` or the plan's own frame (kept by plan):
   deterministic and allocation-free warm. `sample(plan, 0)` is the start and `sample(plan, 1)` the end exactly (an angle
   ends its short way round, the same angle). Numbers, each color component, a pan's centre and width are monotone.
