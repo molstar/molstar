@@ -2000,6 +2000,19 @@ under the point as the hit's `state`. It reads every row (a logo of the rows sho
   so a glyph run stays aligned with its x list. Ids take a prefix (`idPrefix`, name characters only), a metadata key is
   written only as a plain name. Held by hostile labels, ids, titles, fonts and metadata parsed back as XML
   (`_test/svg-escaping.test.ts`).
+- **PNG** (`renderPng`, `export-png.ts`): the SVG export rasterized, so a PNG is the SVG's picture (the same options,
+  the same figure); the rasterizer is a port (`Rasterizer`: the SVG string and its size and `scale` × `dpr` to PNG
+  bytes) so the core carries no native code, and the application composes one (the render CLI's, `cli/seqx-render`, over
+  resvg). The SVG paints its own background, so the pixels are opaque. A rasterizer loads no system fonts: the text is
+  drawn with fonts bundled for the metrics the layouts measure with (Liberation Sans and Mono for the bundled table's
+  Arial and 600-advance mono), so the same SVG draws the same on every machine. Why rasterize the SVG and not draw the
+  lists again: one picture, one set of tests; a second renderer would drift. Held by the render CLI's probe pixels per
+  track in both themes (`cli/seqx-render/src/_test/png.test.ts`).
+- **The render CLI** (`seqx-render`, `cli/seqx-render`): a spec file (JSON, S-expression or MessagePack, by content) to
+  an SVG or a PNG, its assets read under `headlessAssetPolicy` (files under the spec's folder, no network unless
+  `--allow-host`; a spec's `uri` is untrusted), its issues printed one a line to stderr, exit codes 0 done, 1 spec, 2
+  usage, 3 unsettled, 4 file. Cold start, process start to a written file for p53's tracks, under 1 s (about 0.12 s),
+  held in the heavy lane.
 
 ### Export
 
