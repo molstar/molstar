@@ -276,11 +276,8 @@ describe('the grid over the complex', () => {
     for (let i = 0; i < 4; i++) {
       const drawn = g.lays[i].filter((l) => (l.lay as GridLay).grid);
       expect(drawn.length, systems(i)).toBe(1);
-      // on the device grid (a pixel here): each edge within half of one of the blocks' above
-      const a = st.axes[i];
-      const t = top.axes[i >> 1];
-      expect(Math.abs(a.x0 - t.x0)).toBeLessThanOrEqual(0.5);
-      expect(Math.abs(a.x0 + a.width - (t.x0 + t.width))).toBeLessThanOrEqual(0.5);
+      // both rows on the device grid: the columns above and the plot's align exactly
+      expect([st.axes[i].x0, st.axes[i].width]).toEqual([top.axes[i >> 1].x0, top.axes[i >> 1].width]);
     }
   });
 

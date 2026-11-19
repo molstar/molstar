@@ -102,4 +102,31 @@ describe('a grid’s own y window', () => {
     expect(view.back()).toBe(true);
     expect(view.get(Plot)!.y).toEqual({ start: 10, end: 30 });
   });
+
+  it('the wheel over the plot’s data box is the plot’s (taken even with no wheel bound); over the label column, not', async () => {
+    frames = installFrames();
+    const viewer = createSeqViewer({
+      ...DefaultSeqViewerSpec(),
+      ui: undefined,
+      // no wheel bound: what is taken is the plot's own
+      bindings: { overrides: [[{ gesture: 'wheel', target: 'any', action: null }]] },
+    });
+    viewers.push(viewer);
+    await viewer.load(spec());
+    viewer.resize(800);
+    await viewer.settle();
+    frames.flush();
+    viewer.draw();
+    const p = viewer.placementOf(Plot)!;
+    const a = p.strips.axes[0];
+    const y = p.box.y + p.box.height / 2;
+    const wheel = (x: number) => viewer.input.wheel(x, y, { deltaX: 0, deltaY: 120, deltaMode: 0 });
+    expect(wheel(a.x0 + a.width / 2)).toBe(true);
+    expect(wheel(a.x0 + 1)).toBe(true);
+    // the label column beside the plot (its y labels), and past the data box's right edge: the page's
+    expect(a.x0).toBeGreaterThan(p.box.x + 10);
+    expect(wheel(p.box.x + 4)).toBe(false);
+    expect(wheel(a.x0 - 2)).toBe(false);
+    expect(wheel(a.x0 + a.width + 1)).toBe(false);
+  });
 });

@@ -10,7 +10,15 @@ import { location } from '@molstar/seqx-core/query';
 import { resolveSpec } from '@molstar/seqx-core/resolve';
 import { resolveViews } from '@molstar/seqx-core/view';
 import { describe, expect, it } from 'vitest';
-import { type GridLay, GridPlacement, gridSummary, recordDrawLists } from '../index.js';
+import {
+  type GridLay,
+  GridPlacement,
+  gridSummary,
+  hitView,
+  PlacePoint,
+  recordDrawLists,
+  type Viewport,
+} from '../index.js';
 import { settle } from './helpers.js';
 import { gridSpec, letters } from './pairs-fixtures.js';
 
@@ -145,6 +153,50 @@ describe('a grid over blocks: layout', () => {
     expect(hair.filter(([, , w]) => w === 1).length).toBe(1);
     expect(hair.filter(([, , , h]) => h === 1).length).toBe(1);
     expectClipped(f.lists, plot, 1, false);
+  });
+});
+
+describe('a grid over blocks under its tracks section', () => {
+  it('the columns above align with the grid’s on the device grid (dpr 1 and 2), at the fit and zoomed', async () => {
+    const st = await settle(blocksSpec([10, 20, 15]));
+    for (const dpr of [1, 2])
+      for (const viewports of [{}, { '/views/v/chains': { start: 7.3, end: 33.1 } }] as Record<string, Viewport>[]) {
+        const f = await st.frame({ size: Size, settled: true, dpr, viewports });
+        const top = f.layout.sections[0].placement.strips;
+        const plot = f.layout.sections[1].placement.strips;
+        const edges = (s: typeof top, i: number) => [s.axes[i].x0, s.axes[i].x0 + s.axes[i].width];
+        for (let i = 0; i < plot.n; i++) {
+          const k = [...Array(top.n).keys()].find((j) => top.block[j] === plot.block[i])!;
+          expect(edges(plot, i), `dpr ${dpr} strip ${i}`).toEqual(edges(top, k));
+          for (const e of edges(plot, i)) expect(Number.isInteger(e * dpr)).toBe(true);
+        }
+      }
+  });
+
+  it('a block in view none wide once snapped has no strip: hits beside it name the next block, nothing NaN', async () => {
+    const st = await settle(blocksSpec([10, 20, 15]));
+    // block 0 shows a ten-thousandth of a position: under half a pixel
+    const f = await st.frame({
+      size: Size,
+      settled: true,
+      viewports: { '/views/v/chains': { start: 9.9999, end: 45 } },
+    });
+    const top = f.layout.sections[0].placement;
+    const plot = f.layout.sections[1].placement as GridPlacement;
+    expect([...Array(top.strips.n).keys()].map((i) => top.strips.block[i])).toEqual([1, 2]);
+    expect(plot.strips.n).toBe(4);
+    const pt = new PlacePoint();
+    const x0 = top.strips.axes[0].x0;
+    for (const dx of [-2, -0.5, 0, 0.5, 2]) {
+      for (const p of [top, plot]) {
+        const y = p === top ? top.strips.bandY[0] + 2 : plot.plotTop + 4;
+        if (!p.at([x0 + dx, y], pt) || pt.offset < 0) continue;
+        expect(Number.isFinite(pt.offset)).toBe(true);
+        expect(pt.offset).toBeGreaterThanOrEqual(10);
+      }
+      const h = hitView(f.layout, x0 + dx, plot.plotTop + 4);
+      if (h?.position !== undefined) expect(Number.isFinite(h.position)).toBe(true);
+    }
   });
 });
 

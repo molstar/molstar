@@ -128,7 +128,8 @@ describe('blocks in the tracks layout', () => {
       let gaps = 0;
       for (let i = 1; i < n; i++) gaps += p.strips.axes[i].x0 - (p.strips.axes[i - 1].x0 + p.strips.axes[i - 1].width);
       expect(gaps).toBeGreaterThan(0);
-      expect(gaps).toBeLessThanOrEqual(0.25 * axis.width + 1e-6);
+      // a quarter, each gap within a pixel of its share (the blocks' edges on the device grid)
+      expect(gaps).toBeLessThanOrEqual(0.25 * axis.width + (n - 1));
       const last = p.strips.axes[n - 1];
       expect(last.x0 + last.width).toBeCloseTo(axis.x0 + axis.width, 6);
     }

@@ -1777,14 +1777,17 @@ numbers): a window move allocates nothing once warm.
   ATP) and the floor (a 2 px mark, unlabeled) says nothing. **A floor**: the chips take at most half the width
   (`chipShare`; a ring: half its circle) together; past it they shrink by one factor, never below `chipMin` (16 px, less
   only when even that would pass the half), their labels elided; the polymers keep the rest.
-- **A row** (`BlockRow`): a chip stands where its block does (a ligand after the chains). The chips in view take their
-  px from the width as the gaps do, so the row's x is not linear over a chip (EC-102); the window, the rail and the
-  navigators read the section's units, a chip one unit, as across a gap. The row is continuous in its window: a chip
-  partly in view takes px by the part of it in view, a gap by its boundary's distance to the nearer edge (none at the
-  edge, whole 12 px in), so a pan moves nothing by a jump. **Pan and zoom go through the row's inverse** (`rowPan`,
-  `rowZoom`, by bisection on the window's start): a pan brings the unit `dx` px from a reference point (the middle less
-  half the move, moved past a gap) to it, so what is under the pointer moves with it while nothing enters or leaves; a
-  zoom keeps its anchor's px as chips and gaps enter or leave. Why: a linear `dx · span / width` jumps over a chip.
+- **A row** (`BlockRow`): each block's edges in view on the device grid (`snap`, a chip's kept: its slot is its label's
+  width), as a grid's row under it, so the two align at any dpr; a block left none wide has no strip (nothing of it
+  drawn or hit; a hit beside it names the block next to it). A chip stands where its block does (a ligand after the
+  chains). The chips in view take their px from the width as the gaps do, so the row's x is not linear over a chip
+  (EC-102); the window, the rail and the navigators read the section's units, a chip one unit, as across a gap. The row
+  is continuous in its window: a chip partly in view takes px by the part of it in view, a gap by its boundary's
+  distance to the nearer edge (none at the edge, whole 12 px in), so a pan moves nothing by a jump. **Pan and zoom go
+  through the row's inverse** (`rowPan`, `rowZoom`, by bisection on the window's start): a pan brings the unit `dx` px
+  from a reference point (the middle less half the move, moved past a gap) to it, so what is under the pointer moves
+  with it while nothing enters or leaves; a zoom keeps its anchor's px as chips and gaps enter or leave. Why: a linear
+  `dx · span / width` jumps over a chip.
 - **A stack**: the chips share one row after the other blocks', side by side from the first position's x, whatever the
   window. A row's ground and its track labels are drawn once, at its first strip (a later chip's would paint over the
   pill before it).
@@ -1935,13 +1938,14 @@ numbers): a window move allocates nothing once warm.
   that pair's cell; `at` finds the strip by x and y. Its follow is the identity on the leader's units (the tracks
   layout's "several systems cannot follow" does not apply; a follower that is no grid still is refused). The y blocks'
   transforms are made once a place and shared by the x blocks' strips. A hit on it carries its x block (`Hit.block`) and
-  its y block (`Hit.yBlock`). Each block's edges are on the device grid (its strip's x and width, its y block's top and
-  height), so the cells' clip and the tiles' edges meet exactly: no cell past its block's edge, no gap's ink inside it;
-  a cell's rect is cut at its axes' edges. A chain boundary is the blocks' gap with no line in it (decided: the gap and
-  an off-centre hairline together read wrong); a `seq-break` hairline a device pixel wide only where two blocks in view
-  touch with less than a device pixel between them (down the plot at an x boundary, across it at a y one). Chrome: the
-  first track's label at the plot's top, each y block's label at the label column's right edge at its top (below the
-  track's label when it starts there).
+  its y block (`Hit.yBlock`). Each block's edges are on the device grid (`BlockRow.snap`: its strip's x and width, its y
+  block's top and height), as the tracks section's row above is, so the columns above and the plot's align and the
+  cells' clip and the tiles' edges meet exactly: no cell past its block's edge, no gap's ink inside it; a cell's rect is
+  cut at its axes' edges. A chain boundary is the blocks' gap with no line in it (decided: the gap and an off-centre
+  hairline together read wrong); a `seq-break` hairline a device pixel wide only where two blocks in view touch with
+  less than a device pixel between them (down the plot at an x boundary, across it at a y one). Chrome: the first
+  track's label at the plot's top, each y block's label at the label column's right edge at its top (below the track's
+  label when it starts there).
 
 ### Lanes and Hits
 

@@ -232,7 +232,8 @@ describe('a zoom about a point in a row with a chip first', () => {
       p = placementOf(f);
       const pt = new PlacePoint();
       expect(p.place(at, pt)).toBe(true);
-      expect(pt.x).toBeCloseTo(px, 1);
+      // within the device grid's half pixel (the blocks' edges are snapped to it)
+      expect(Math.abs(pt.x - px)).toBeLessThanOrEqual(0.5);
     }
     // the chip left the view
     expect(chipsOf(p)).toEqual([]);
