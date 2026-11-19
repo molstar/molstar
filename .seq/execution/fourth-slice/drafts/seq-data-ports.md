@@ -259,3 +259,13 @@ changes".
    `withAdapter` to replace a default? Recommended **yes**.
 6. **No package.** `io/structure` an entry of `seqx-core`, a Mol\* adapter in a package of its own only when built,
    rather than a `seqx-io` package now? Recommended **yes**.
+
+## Decided by the author (2026-11-20)
+
+- Gaps 1, 5, 6: "Accept all three": the code keeps `FormatRuntime` (the designs say the default adapter); one adapter
+  per format, `withAdapter` replaces a default; no `seqx-io` package, the structure description in `seqx-core`'s
+  `io/structure`.
+- Gap 2: `source.ref` beside a `uri` or alone, alone flagged as not portable (info issue, EC-185).
+- Gap 3: host updates by `changes` and `reattach`, every tile dropped and read again; region-level invalidation a
+  later refinement (a tension).
+- Gap 4: `values.field`, in the 0.5.0 bump.
