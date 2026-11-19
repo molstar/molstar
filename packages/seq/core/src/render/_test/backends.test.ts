@@ -84,7 +84,7 @@ describe('draw lists', () => {
 });
 
 describe('the SVG backend', () => {
-  it('writes passes as groups, clips, squircles as the core’s path, images as runs, fades past a max width', () => {
+  it('writes passes as groups, clips, squircles as the core’s path, images as PNGs, fades past a max width', () => {
     const svg = drawListsToSvg(sample(), { metadata: { 'seq-settled': 'true', 'Bad Key': 'x' } });
     expect(svg.startsWith('<svg xmlns="http://www.w3.org/2000/svg" width="200" height="40" viewBox="0 0 200 40"')).toBe(
       true,
@@ -96,8 +96,10 @@ describe('the SVG backend', () => {
     // the left end round (a cubic), the right square
     expect(svg).toMatch(/<path d="M 24 4 L 80 4 L 80 16 L 24 16 C [^"]+ Z" fill="#7a8fa6"\/>/);
     expect(svg).toContain('<text x="12.75 18.25" y="15.33" text-anchor="middle"');
-    // the image's two red pixels are one run; the clear one is not drawn
-    expect(svg).toContain('<rect x="10" y="30" width="120" height="4" fill="#ff0000"/>');
+    // the image one `<image>`, its pixels a PNG data URL (the PNG's signature in base64), never smoothed
+    expect(svg).toMatch(
+      /<image x="10" y="30" width="[\d.]+" height="4" preserveAspectRatio="none" style="image-rendering:pixelated" href="data:image\/png;base64,iVBORw0KGgo[A-Za-z0-9+/=]+"\/>/,
+    );
     expect(svg).toContain('mask="url(#f1)"');
     // ids take a prefix, so two documents inlined in one page do not collide
     expect(drawListsToSvg(sample(), { idPrefix: 'a-' })).toContain('clip-path="url(#a-c0)"');

@@ -14,12 +14,13 @@ import {
   walkPass,
 } from './draw-lists.js';
 import { fmt } from './record.js';
+import { pngDataUrl } from './png.js';
 import { squirclePath } from './squircle.js';
 import { DefaultFonts, type FontStacks } from './tokens.js';
 
 // The SVG backend (_spec/README.md "Render", Backends): draw lists as an SVG string, no DOM. Passes are groups in
-// order; a clip is a group with a clip path; squircles are the core's curve as a path; an image is its pixels as runs
-// of rects (bounded by its width, a device column each); a text past its max width fades through a gradient mask.
+// order; a clip is a group with a clip path; squircles are the core's curve as a path; an image is an `<image>` of its
+// pixels as a PNG data URL; a text past its max width fades through a gradient mask.
 // Every string from data or a spec is escaped (security: labels from data never become markup).
 
 const XmlEscapes: Readonly<Record<string, string>> = {
@@ -193,32 +194,11 @@ export function drawListsToSvg(lists: DrawLists, options: SvgOptions = {}): stri
       );
     },
     image(l, i) {
+      // one `<image>` a tile, its pixels a PNG data URL, never smoothed (a sample a device pixel or more)
       const img = l.images[i];
-      const pw = l.w[i] / img.width;
-      const ph = l.h[i] / img.height;
-      body.push('<g shape-rendering="crispEdges">');
-      for (let r = 0; r < img.height; r++) {
-        let c = 0;
-        while (c < img.width) {
-          const at = 4 * (r * img.width + c);
-          const color =
-            ((img.data[at] << 24) | (img.data[at + 1] << 16) | (img.data[at + 2] << 8) | img.data[at + 3]) >>> 0;
-          let e = c + 1;
-          while (e < img.width) {
-            const k = 4 * (r * img.width + e);
-            const next =
-              ((img.data[k] << 24) | (img.data[k + 1] << 16) | (img.data[k + 2] << 8) | img.data[k + 3]) >>> 0;
-            if (next !== color) break;
-            e++;
-          }
-          if ((color & 0xff) > 0)
-            body.push(
-              `<rect x="${fmt(l.x[i] + c * pw)}" y="${fmt(l.y[i] + r * ph)}" width="${fmt((e - c) * pw)}" height="${fmt(ph)}" ${paint('fill', color)}/>`,
-            );
-          c = e;
-        }
-      }
-      body.push('</g>');
+      body.push(
+        `<image x="${fmt(l.x[i])}" y="${fmt(l.y[i])}" width="${fmt(l.w[i])}" height="${fmt(l.h[i])}" preserveAspectRatio="none" style="image-rendering:pixelated" href="${pngDataUrl(img.width, img.height, img.data)}"/>`,
+      );
     },
     clip(l, i) {
       const id = `${prefix}c${ids++}`;
