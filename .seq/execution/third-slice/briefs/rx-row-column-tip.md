@@ -20,6 +20,13 @@ row high with softened corners (the shape rule, ux-foundations §5), its fill a 
 toggle's 6 px rule) unchanged. Tests: every branch rect's edges on device pixels at dpr 1 and 2; a wedge's far x the
 deepest leaf's; the SVG alike. Look: Globins › Rows › Folded, light and dark, dpr 2.
 
+**And the hidden columns' chip** (the author, 2026-11-19: "the 2 columns hidden is very misleading, because it doesn't
+show what columns where are when you hover it"; grids-and-rows.md, Row columns, Narrow): the chip names the hidden row
+columns ("Species, Identity hidden"; "Species +1 hidden" when short of room), sits in the title band on the side those
+columns live (never over the alignment's data), and its hover card lists each hidden column and why ("no room at this
+width"); announced the same. Tests: at a width that hides both, the chip's text and its card's rows; the SVG's text
+alike. Look: Globins › Rows › Family at a narrow width.
+
 **Not in scope**: anything else. CF works in core (store, ruler, templates, accessibility, rows-model's measures), MV
 in core's renderer tables and the viewer's composition: keep to the rows layer's tip.
 

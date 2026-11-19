@@ -363,3 +363,6 @@ None.
 - Decided (the author, 2026-11-19: the clade visuals "quite ugly", the line widths uneven; "Light wedge"): branches
   snapped to device pixels, the wedge a light outlined triangle to the deepest leaf (grids-and-rows.md, the Design
   page); folded into RX (now strong: the rows layer's look). Use findings: bug 2, missing design 4, look 3.
+- The author (2026-11-19): "2 columns hidden" misleading (reads as alignment columns; does not say which): the chip
+  names them, its card lists them, on their side of the title band (decided as recommended; grids-and-rows.md, the
+  Design page); folded into RX. Use findings: bug 2, missing design 5, look 3.

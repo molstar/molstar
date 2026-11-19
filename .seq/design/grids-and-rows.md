@@ -326,8 +326,11 @@ position it say to the right of the sequence data"; the base's data columns, Jal
   elsewhere on the row (its data, its label) tints the row and leaves its columns cut; the keyboard cursor on the
   row's header draws them whole, as the pointer on them would. Why: the expanded text covered the row's own residues
   while the user read them.
-- **Narrow**: columns yield before the label, right ones first, each down to a floor and then hidden (EC-107), a hidden
-  count chip in the title band; the SVG and text figures draw the same columns.
+- **Narrow**: columns yield before the label, right ones first, each down to a floor and then hidden (EC-107), a chip
+  in the title band naming what it hides, on the side those columns live, never over the data ("Species, Identity
+  hidden", "Species +1 hidden" when short of room; decided 2026-11-19, the author: "the 2 columns hidden is very
+  misleading, because it doesn't show what columns … when you hover it": beside an alignment a count of "columns"
+  read as alignment columns), its hover card listing each hidden column and why ("no room at this width"); the SVG and text figures draw the same columns.
 
 **Opening and closing clades** (the author, 2026-11-18: "we should not forget about closing and opening clades too"):
 
