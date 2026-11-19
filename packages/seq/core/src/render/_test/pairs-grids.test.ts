@@ -212,6 +212,51 @@ describe('the grid layer', () => {
     expect(((img.data[q] << 24) | (img.data[q + 1] << 16) | (img.data[q + 2] << 8) | img.data[q + 3]) >>> 0).toBe(want);
   });
 
+  it('a triangle reduces its own cells alone: coarse samples on the diagonal drawn, none mixing in the other half', async () => {
+    const n = 1024;
+    const values = (own: number, other: number, upper: boolean) => {
+      const v = new Float32Array(n * n);
+      for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) v[i * n + j] = (upper ? j < i : j > i) ? own : other;
+      return v;
+    };
+    const b = createSeqSpec();
+    const sq = b.data.sequence('s', { alphabet: 'rna', letters: letters(n) });
+    const ga = b.data.grid('a', { x: sq, values: values(1, 100, true) });
+    const gb = b.data.grid('b', { x: sq, values: values(2, 200, false) });
+    b.views.view('v', (v) => {
+      v.section('plot', { layout: 'grid', of: sq }).track('plot', {}, (t) => {
+        t.layer('upper', { type: 'grid', data: ga, triangle: 'upper', aggregate: 'mean' });
+        t.layer('lower', { type: 'grid', data: gb, triangle: 'lower', aggregate: 'mean' });
+      });
+    });
+    const s = await settle(b.build());
+    const f = await s.renderer.frame({ size: Size, settled: true });
+    for (const k of [0, 1]) {
+      const lay = gridLay(f.layout, 0, k);
+      expect(lay.level).toBeGreaterThan(0);
+      let first = -1;
+      let diagonal = 0;
+      for (let t = 0; t < lay.images.length; t++) {
+        const img = lay.images[t];
+        // a tile on the diagonal: as far right of the plot's left as down from its top
+        const onDiagonal = Math.abs(lay.ib[4 * t] - lay.box.x - (lay.ib[4 * t + 1] - lay.box.y)) < 1;
+        for (let r = 0; r < img.height; r++)
+          for (let c = 0; c < img.width; c++) {
+            const q = 4 * (r * img.width + c);
+            if (img.data[q + 3] === 0) continue;
+            const rgba =
+              ((img.data[q] << 24) | (img.data[q + 1] << 16) | (img.data[q + 2] << 8) | img.data[q + 3]) >>> 0;
+            // every sample its own half's one value: one color
+            if (first < 0) first = rgba;
+            expect(rgba).toBe(first);
+            if (onDiagonal && r === c) diagonal++;
+          }
+      }
+      // the diagonal's samples hold cells of both halves: each layer draws them
+      expect(diagonal).toBeGreaterThan(0);
+    }
+  });
+
   it('builds at most `grid.buildBudget` samples a frame while moving (a coarser tile meanwhile, never empty); the rest when settled', async () => {
     const n = 1200;
     const s = await settle(gridSpec({ n }));
@@ -290,6 +335,30 @@ describe('the emphasis along y', () => {
     for (let k = 0; k < rows.n; k++)
       if (Math.abs(rows.y[k] - ay.x(3)) < 1e-3 && Math.abs(rows.w[k] - box.width) < 1e-3) row = true;
     expect(row).toBe(true);
+  });
+
+  it('a selected cell is drawn on the plot as its rect alone: its sides, projected onto the sections of its systems, are not painted back onto it', async () => {
+    const s = await settle(gridSpec({ n: 60 }));
+    const f = await s.renderer.frame({ size: Size, settled: true });
+    const lay = gridLay(f.layout);
+    const b = lay.box;
+    const selection = location({
+      rects: [{ a: { system: '/data/s', ranges: [10, 11] }, b: { system: '/data/s', ranges: [40, 41] } }],
+    });
+    // what the viewer passes: the rect's sides projected (the tracks section lights 10 and 40)
+    const projected = { selection: rangesLocation('/data/s', [10, 11, 40, 41]) };
+    const lists = new DrawLists();
+    drawView(f.layout, lists, { selection, projected }, ['selection']);
+    const r = lists.passes.selection.rects;
+    let onPlot = 0;
+    let onTracks = 0;
+    for (let k = 0; k < r.n; k++) {
+      const inside = r.y[k] >= b.y - 1e-3 && r.y[k] + r.h[k] <= b.y + b.height + 1e-3;
+      if (inside) onPlot++;
+      else onTracks++;
+    }
+    expect(onPlot).toBe(1);
+    expect(onTracks).toBeGreaterThan(0);
   });
 });
 
@@ -419,6 +488,42 @@ describe('the pairs layer: arcs', () => {
     }
   });
 
+  it('`split` keeps self-pairs and equal or end-sharing pairs on their side (they cross nothing): exact against a brute force', () => {
+    let seed = 7;
+    const next = () => {
+      seed = (Math.imul(seed, 1103515245) + 12345) >>> 0;
+      return seed >>> 16;
+    };
+    for (let round = 0; round < 40; round++) {
+      // few positions, so self-pairs, duplicates and shared ends are common
+      const pairs: [number, number][] = [];
+      for (let k = 0; k < 9; k++) {
+        const a = next() % 8;
+        pairs.push([a, k % 3 === 0 ? a : next() % 8]);
+      }
+      const d = {
+        n: pairs.length,
+        aStart: Int32Array.from(pairs.map((p) => p[0])),
+        aEnd: Int32Array.from(pairs.map((p) => p[0] + 1)),
+        bStart: Int32Array.from(pairs.map((p) => p[1])),
+        bEnd: Int32Array.from(pairs.map((p) => p[1] + 1)),
+      } as never;
+      const other = splitCrossing(d);
+      const span = (p: [number, number]) => [Math.min(p[0], p[1]), Math.max(p[0], p[1])] as const;
+      const free = (set: [number, number][]) =>
+        set.every((p) => set.every((q) => !crosses(span(p)[0], span(p)[1], span(q)[0], span(q)[1])));
+      const kept = pairs.filter((_, k) => !other[k]);
+      expect(free(kept)).toBe(true);
+      for (let k = 0; k < pairs.length; k++) if (pairs[k][0] === pairs[k][1]) expect(other[k]).toBe(0);
+      let best = 0;
+      for (let mask = 0; mask < 1 << pairs.length; mask++) {
+        const set = pairs.filter((_, k) => mask & (1 << k));
+        if (set.length > best && free(set)) best = set.length;
+      }
+      expect(kept.length).toBe(best);
+    }
+  });
+
   it('`split` draws the crossing pairs below the band’s top', async () => {
     const s = await settle(arcsSpec({ pairs: [...Stems, ...Crossing], crossing: 'split' }));
     const f = await s.renderer.frame({ size: Size, settled: true });
@@ -526,5 +631,29 @@ describe('the pairs layer: dots on a grid', () => {
     const s = await settle(gridSpec({ n: 20, pairs, mirror: true, triangle: 'lower' }));
     const f = await s.renderer.frame({ size: Size, settled: true });
     expect((gridLay(f.layout, 1, 1) as unknown as PairsLay).nd).toBe(3);
+  });
+
+  it('a self-pair mirrored on its own grid is one dot, the cell whole', async () => {
+    const s = await settle(gridSpec({ n: 20, pairs: [[5, 5]], mirror: true }));
+    const f = await s.renderer.frame({ size: Size, settled: true });
+    const lay = gridLay(f.layout, 1, 1) as unknown as PairsLay;
+    const a = gridLay(f.layout).axis!;
+    expect(lay.nd).toBe(1);
+    a.cell(5);
+    expect(lay.dots[2]).toBeCloseTo(Math.max(Math.abs(a.sx1 - a.sx0), 2 / a.dpr));
+  });
+
+  it('a stretch runs with its partner when both ends are on one strand, against it otherwise', async () => {
+    for (const strand of ['+', '-']) {
+      const rows = { a_start: [2], a_end: [6], b_start: [10], b_end: [14], a_strand: ['+'], b_strand: [strand] };
+      const s = await settle(gridSpec({ n: 20, rows }));
+      const f = await s.renderer.frame({ size: Size, settled: true });
+      const lay = gridLay(f.layout, 1, 1) as unknown as PairsLay;
+      const ay = gridLay(f.layout).axisY!;
+      expect(lay.ns).toBe(1);
+      // from x's first: y's first (parallel) or y's last (antiparallel)
+      ay.cell(strand === '+' ? 10 : 13);
+      expect(lay.segs[1]).toBeCloseTo((ay.sx0 + ay.sx1) / 2);
+    }
   });
 });

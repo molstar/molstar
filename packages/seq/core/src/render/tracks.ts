@@ -60,7 +60,7 @@ import { VariantsType } from './variants.js';
 import { FrameType } from './frames.js';
 import { LogoType } from './logo.js';
 import { RowsType } from './rows.js';
-import { GridType } from './grid.js';
+import { GridType, rectOver } from './grid.js';
 import { PairsType } from './pairs.js';
 import { RowHeight } from './rows-model.js';
 import type { ImageCache } from './images.js';
@@ -1398,9 +1398,9 @@ function drawBackground(layout: ViewLayout, out: PassWriter, emphasis: Emphasis 
         const { box } = t;
         if (box.y >= layout.height) continue;
         out.fill(box.x, box.y, box.width, box.height, tokens.colors['seq-track']);
-        if (under && !column && s.axis) drawTints(out, s.axis, box, emphasis!, tokens, config);
+        if (under && !column && s.axis) drawTints(out, s, s.axis, box, emphasis!, tokens, config);
       }
-      if (under && column && s.axis && s.band) drawTints(out, s.axis, s.band, emphasis!, tokens, config);
+      if (under && column && s.axis && s.band) drawTints(out, s, s.axis, s.band, emphasis!, tokens, config);
       continue;
     }
     if (!under) continue;
@@ -1411,11 +1411,11 @@ function drawBackground(layout: ViewLayout, out: PassWriter, emphasis: Emphasis 
       const w = openStrip(s, i, out);
       const a = strips.axes[i];
       const col = s.columns[i];
-      if (column && col) drawTints(w, a, col, emphasis!, tokens, config);
+      if (column && col) drawTints(w, s, a, col, emphasis!, tokens, config);
       else if (!column)
         for (let j = 0; j < strips.bands; j++) {
           const box = s.boxes[i * strips.bands + j];
-          if (box.height > 0) drawTints(w, a, box, emphasis!, tokens, config);
+          if (box.height > 0) drawTints(w, s, a, box, emphasis!, tokens, config);
         }
       closeStrip(s, i, out);
     }
@@ -1426,6 +1426,7 @@ function drawBackground(layout: ViewLayout, out: PassWriter, emphasis: Emphasis 
 /** The tints under the data: the highlight channels', then the selection's. */
 function drawTints(
   out: PassWriter,
+  s: SectionLayout,
   axis: AxisTransform,
   box: Box,
   emphasis: Emphasis,
@@ -1433,7 +1434,12 @@ function drawTints(
   config: RenderConfig,
 ) {
   if (emphasis.highlights) drawHighlights(out, axis, box, emphasis, config);
-  drawSelectionTint(out, axis, box, emphasis, tokens, config);
+  drawSelectionTint(out, axis, box, emphasis, tokens, config, projectedSides(s, axis, emphasis));
+}
+
+/** Whether a section draws the selection's projected parts: not a selected rect's sides where it shows both systems. */
+function projectedSides(s: SectionLayout, axis: AxisTransform, emphasis: Emphasis): boolean {
+  return !rectOver(emphasis.selection, axis.system, s.section.y?.axis.system);
 }
 
 /** The strips' translation (one at a time: drawing is not reentrant). */
@@ -1597,10 +1603,12 @@ function drawSectionEmphasis(
       // over the data, below the selection's pass; under it, in the background pass
       if (over && emphasis.highlights) drawHighlights(out, axis, box, emphasis, config);
       break;
-    case 'selection':
-      if (over) drawSelectionTint(out, axis, box, emphasis, tokens, config);
-      drawSelectionOutline(out, axis, box, emphasis, tokens, config);
+    case 'selection': {
+      const sides = projectedSides(s, axis, emphasis);
+      if (over) drawSelectionTint(out, axis, box, emphasis, tokens, config, sides);
+      drawSelectionOutline(out, axis, box, emphasis, tokens, config, sides);
       break;
+    }
     case 'hover':
       if (emphasis.projected?.hover && emphasis.projected.hoverSection !== s.section.address)
         drawProjectedHover(out, axis, box, emphasis.projected.hover, tokens, config);
@@ -1757,9 +1765,10 @@ function drawSelectionTint(
   emphasis: Emphasis,
   tokens: SeqTokens,
   config: RenderConfig,
+  projected: boolean,
 ) {
   const own = partOn(emphasis.selection, axis.system);
-  const part = own ?? partOn(emphasis.projected?.selection, axis.system);
+  const part = own ?? (projected ? partOn(emphasis.projected?.selection, axis.system) : undefined);
   if (!part) return;
   const accent = tokens.colors['msui-accent'];
   const a = config.emphasis.selectionTint * (own ? 1 : config.emphasis.projected);
@@ -1782,9 +1791,10 @@ function drawSelectionOutline(
   emphasis: Emphasis,
   tokens: SeqTokens,
   config: RenderConfig,
+  projected: boolean,
 ) {
   const own = partOn(emphasis.selection, axis.system);
-  const part = own ?? partOn(emphasis.projected?.selection, axis.system);
+  const part = own ?? (projected ? partOn(emphasis.projected?.selection, axis.system) : undefined);
   if (!part) return;
   const accent = tokens.colors['msui-accent'];
   const a = ((accent & 0xff) / 255) * config.emphasis.selectionOutline * (own ? 1 : config.emphasis.projected);

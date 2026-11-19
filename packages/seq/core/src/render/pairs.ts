@@ -169,23 +169,28 @@ export function crosses(alo: number, ahi: number, blo: number, bhi: number): boo
 /**
  * The largest set of non-crossing intervals (nested or apart): over the 2n ends in order, F(i, j) the most held within
  * ends i..j, F(i, j) = max(F(i + 1, j), 1 + F(i + 1, k − 1) + F(k + 1, j)) where k is i's partner in (i, j]. At one
- * place closing ends come first and a wider interval outside a narrower one, as `crosses` reads them. O(n²) time, a
- * triangle of int16.
+ * place closing ends come first, then each self-pair's two ends, then opening ends; a wider interval outside a narrower
+ * one and equal ones nested, as `crosses` reads them (touching ends do not cross). O(n²) time, a triangle of int16.
  */
 function nestedExact(n: number, lo: Float64Array, hi: Float64Array, keep: Uint8Array) {
   const m = 2 * n;
   const ends = new Int32Array(m);
   for (let i = 0; i < m; i++) ends[i] = i;
   const at = (e: number) => (e < n ? lo[e] : hi[e - n]);
+  // at one place: the others' closing ends, each self-pair's two ends together (it crosses nothing), the others'
+  // opening ends; equal intervals nest (opened in order, closed in reverse)
+  const rank = (e: number) => (lo[e % n] === hi[e % n] ? 1 : e < n ? 2 : 0);
   ends.sort((x, y) => {
     const d = at(x) - at(y);
     if (d) return d;
-    const xo = x < n;
-    const yo = y < n;
-    if (xo !== yo) return xo ? 1 : -1;
-    const wx = hi[x % n] - lo[x % n];
-    const wy = hi[y % n] - lo[y % n];
-    return xo ? wy - wx : wx - wy;
+    const r = rank(x) - rank(y);
+    if (r) return r;
+    const px = x % n;
+    const py = y % n;
+    if (r === 0 && rank(x) === 1) return px !== py ? px - py : x < n ? -1 : 1;
+    const w = hi[px] - lo[px] - (hi[py] - lo[py]);
+    if (w) return x < n ? -w : w;
+    return x < n ? px - py : py - px;
   });
   const pos = new Int32Array(m);
   for (let i = 0; i < m; i++) pos[ends[i]] = i;
@@ -761,13 +766,21 @@ function layoutDots(lay: PairsLay, prep: PairsPrep, ctx: LayoutContext, a: AxisT
     return;
   }
   for (let k = 0; k < d.n; k++) {
-    if (forward) dot(lay, prep, a, ay, k, d.aStart[k], d.aEnd[k], d.bStart[k], d.bEnd[k]);
-    if (prep.mirror && back) dot(lay, prep, a, ay, k, d.bStart[k], d.bEnd[k], d.aStart[k], d.aEnd[k]);
+    // a stretch runs with its partner when both ends are on the same strand, against it otherwise (EC-206)
+    const parallel = d.aStrand[k] === d.bStrand[k];
+    if (forward) dot(lay, prep, a, ay, k, d.aStart[k], d.aEnd[k], d.bStart[k], d.bEnd[k], parallel);
+    // a self-pair on a self grid is its own mirror: one dot
+    const self = forward && d.aStart[k] === d.bStart[k] && d.aEnd[k] === d.bEnd[k];
+    if (prep.mirror && back && !self)
+      dot(lay, prep, a, ay, k, d.bStart[k], d.bEnd[k], d.aStart[k], d.aEnd[k], parallel);
   }
   sideBySide(lay);
 }
 
-/** A pair's dot (single positions) or diagonal (a stretch, antiparallel: x's first with y's last), kept by the triangle. */
+/**
+ * A pair's dot (single positions) or diagonal (a stretch: x's first with y's first when `parallel`, else with y's last),
+ * kept by the triangle.
+ */
 function dot(
   lay: PairsLay,
   prep: PairsPrep,
@@ -778,6 +791,7 @@ function dot(
   xe: number,
   ys: number,
   ye: number,
+  parallel: boolean,
 ) {
   const t = prep.triangle;
   const cx = (xs + xe - 1) / 2;
@@ -805,14 +819,14 @@ function dot(
     lay.dotColor[i] = color;
     return;
   }
-  // a stretch: from (x's first, y's last) to (x's last, y's first), through the cells' centres
+  // a stretch: from x's first to x's last, y's first to last (parallel) or last to first, through the cells' centres
   if (!a.cell(xs)) return;
   const x0 = (a.sx0 + a.sx1) / 2;
   if (!a.cell(xe - 1)) return;
   const x1 = (a.sx0 + a.sx1) / 2;
-  if (!ay.cell(ye - 1)) return;
+  if (!ay.cell(parallel ? ys : ye - 1)) return;
   const y0 = (ay.sx0 + ay.sx1) / 2;
-  if (!ay.cell(ys)) return;
+  if (!ay.cell(parallel ? ye - 1 : ys)) return;
   const y1 = (ay.sx0 + ay.sx1) / 2;
   const i = lay.ns++;
   lay.segs = grown(lay.segs, 5 * i + 5);

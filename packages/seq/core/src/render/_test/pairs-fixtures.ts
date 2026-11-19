@@ -80,6 +80,8 @@ export interface GridOptions {
   readonly n: number;
   readonly values?: Float32Array;
   readonly pairs?: readonly (readonly [number, number])[];
+  /** The pairs' rows as given (stretches, strands, kinds), in place of `pairs`. */
+  readonly rows?: Readonly<Record<string, readonly (string | number)[]>>;
   readonly mirror?: boolean;
   readonly triangle?: 'both' | 'upper' | 'lower';
   readonly aggregate?: 'mean' | 'max' | 'min';
@@ -100,7 +102,8 @@ export function gridSpec(o: GridOptions): Node {
   const s = b.data.sequence('s', { alphabet: 'rna', letters: letters(o.n) });
   const y = o.ny ? b.data.sequence('y', { alphabet: 'rna', letters: letters(o.ny, 9) }) : undefined;
   const g = b.data.grid('g', { x: s, ...(y ? { y } : {}), values: o.values ?? cellValues(o.n, o.ny ?? o.n) });
-  const p = o.pairs ? b.data.pairs('p', { a: s, rows: pairRows(o.pairs) }) : undefined;
+  const rows = o.rows ?? (o.pairs ? pairRows(o.pairs) : undefined);
+  const p = rows ? b.data.pairs('p', { a: s, rows: rows as ReturnType<typeof pairRows> }) : undefined;
   b.views.view('v', (v) => {
     const top = v.section('s', { of: s });
     top.track('letters').layer('letters', { type: 'letters' });

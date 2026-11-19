@@ -110,8 +110,15 @@ function prepare(layer: ResolvedLayer, model: StaticModel): GridPrep {
       if (Number.isNaN(lo) || x < lo) lo = x;
       if (Number.isNaN(hi) || x > hi) hi = x;
     }
+    // a triangle reduces its own cells alone: the others missing, so a coarse sample on the diagonal keeps its half
+    let kept = v;
+    if (triangle !== 'both') {
+      kept = Float32Array.from(v);
+      for (let i = 0; i < grid.nx; i++)
+        for (let j = 0; j < grid.ny; j++) if (!keeps(triangle, i, j)) kept[i * grid.ny + j] = Number.NaN;
+    }
     pyramid = new Pyramid({ factor: 2, pairing: 'square', reducer });
-    pyramid.setValues(grid.nx, grid.ny, v);
+    pyramid.setValues(grid.nx, grid.ny, kept);
   }
   return {
     owner,
@@ -131,7 +138,7 @@ function say(ctx: LayoutContext, code: 'seq.render.layer.axes' | 'seq.render.gri
 }
 
 /** Whether cell (i, j) is kept by the triangle (`upper`: y before x, `lower`: y after x). */
-function kept(t: Triangle, i: number, j: number): boolean {
+function keeps(t: Triangle, i: number, j: number): boolean {
   return t === 'both' || (t === 'upper' ? j < i : j > i);
 }
 
@@ -256,7 +263,7 @@ function layoutRects(lay: GridLay, prep: GridPrep, a: AxisTransform, ay: AxisTra
     const w = Math.abs(a.sx1 - a.sx0);
     for (let uj = j0; uj < j1; uj++) {
       const j = ay.elementAtUnit(uj + 0.5);
-      if (j < 0 || j >= g.ny || !kept(prep.triangle, i, j) || !ay.cell(j)) continue;
+      if (j < 0 || j >= g.ny || !keeps(prep.triangle, i, j) || !ay.cell(j)) continue;
       const c = colorOf(lay, g.values[i * g.ny + j]);
       if (c === NoColor) continue;
       const k = lay.n++;
@@ -375,7 +382,6 @@ function buildTile(
   if (w <= 0 || h <= 0) return undefined;
   const img = cache.slot(w, h);
   const d = img.data;
-  const f = 2 ** level;
   const flipX = lay.axis!.dir === -1;
   const flipY = lay.axisY!.dir === -1;
   for (let r = 0; r < h; r++) {
@@ -384,10 +390,8 @@ function buildTile(
     for (let c = 0; c < w; c++) {
       const sx = ti * ImageTile + c;
       const q = 4 * (row * w + (flipX ? w - 1 - c : c));
-      // a sample kept by the triangle when its centre is
-      const ci = (sx + 0.5) * f;
-      const cj = (sy + 0.5) * f;
-      const fill = kept(prep.triangle, ci, cj) ? colorOf(lay, lv.values[sx * lv.columns + sy]) : NoColor;
+      // the pyramid of a triangle holds its own cells alone (a sample of none of them is missing)
+      const fill = colorOf(lay, lv.values[sx * lv.columns + sy]);
       if (fill === NoColor) {
         d[q] = d[q + 1] = d[q + 2] = d[q + 3] = 0;
         continue;
@@ -448,6 +452,17 @@ function drawData(lay: GridLay, out: PassWriter) {
     Ink[0] = lay.rc[k];
     rect(out);
   }
+}
+
+/**
+ * Whether a selection holds a rect over a section's two systems: such a section draws the rect itself, never its sides
+ * projected (they light the sections of one of its systems).
+ */
+export function rectOver(loc: Location | undefined, x: string, y: string | undefined): boolean {
+  if (!loc || y === undefined) return false;
+  for (let i = 0; i < loc.rects.length; i++)
+    if (loc.rects[i].a.system === x && loc.rects[i].b.system === y) return true;
+  return false;
 }
 
 /** A Location's part on a system. */
@@ -610,7 +625,9 @@ function drawEmphasis(lay: GridLay, pass: PassName, out: PassWriter, e: Emphasis
     case 'selection': {
       const accent = tokens.colors['msui-accent'];
       const own = partOn(e.selection, lay.ySystem);
-      const part = own ?? partOn(e.projected?.selection, lay.ySystem);
+      const part =
+        own ??
+        (rectOver(e.selection, lay.system, lay.ySystem) ? undefined : partOn(e.projected?.selection, lay.ySystem));
       const k = own ? 1 : em.projected;
       if (part) {
         Src[0] = accent;

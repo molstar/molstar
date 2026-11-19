@@ -54,7 +54,7 @@ export function projectOntoView(
     if (!options.own && own.has(system)) continue;
     for (const part of src.parts) {
       if (part.system === system) {
-        if (options.own || !own.has(system)) parts.push(part);
+        parts.push(part);
         continue;
       }
       if (options.linked === false) continue;
