@@ -13,3 +13,6 @@
   actions keep it. Only a trailing `(not …)` is the user's filter.
 - `Features/Files` stories: UniProt's P04637 entry read as published, the same table as TSV, CSV, JSON and MessagePack,
   a plasmid's GFF3.
+- `Features/Query`: a query box (an address typed is parsed, checked and resolved, its result selected or
+  highlighted, with its printed form, kind, size and issues with hints) and worked examples (items by category, ranges
+  and slices, a result on the gene, `and`/`or`/`not`, an alignment's rows and columns), each with a headless twin.

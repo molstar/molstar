@@ -193,3 +193,5 @@ None.
   Quick lane 1847 passed. Running: RC, LB; QS next.
 - The examples' JSON fixtures stored compact (the author, 2026-11-19: "Yes, add the ignore"; `01063c2cd`). RC, LB and QS
   in fix rounds after their reviews.
+- QS merged after its review round (looked at: Residue 175 → `/data/p53 175`); the Files stories' head indents compact
+  JSON (the fixtures are compact now). Quick lane 1866 passed. RC and LB in fix rounds.

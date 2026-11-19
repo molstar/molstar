@@ -288,7 +288,7 @@ and dark before the merge.
       overlapping highlight channels as stripes, a channel's `style` (`tint`, `band`, `outline`), the legend part's
       active channels (ux-foundations section 6); `Features/Highlights` with its twin (several overlapping channels in
       tracks, text and rings, canvas and SVG, both themes).
-- [ ] QS (fast, after FS-A2; the author, 2026-11-19: "do we have storybook stories planned to showcase SeqQL
+- [x] QS (merged after review; fast, after FS-A2; the author, 2026-11-19: "do we have storybook stories planned to showcase SeqQL
       functionality? Perhaps Features section?", then "ok as recommended") `Features/Query` (examples-and-stories,
       The query language in Features): a query box (parse, check, run; the result selected or highlighted; the printed
       form; issues with hints) and worked examples as stories, each with a headless twin.
