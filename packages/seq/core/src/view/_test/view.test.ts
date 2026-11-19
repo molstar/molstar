@@ -164,6 +164,8 @@ describe('resolved view: layers on other systems, queries, themes', () => {
       address: '/data/domains/(items :overlapping /data/p53/(range :from 1 :to 5))',
       system: '/data/p53',
       shape: 'ranges',
+      // its form after the annotation: what the layer's rows are filtered by
+      filter: { kind: 'items', params: { overlapping: '/data/p53/(range :from 1 :to 5)' } },
     });
     expect(q.placed && q.path?.to).toBe('/data/tp53');
   });

@@ -159,6 +159,7 @@ const Cases: Record<string, { ctx: unknown; before?: (v: SeqViewer) => unknown }
   'legend.select': { ctx: { address: `${DomainsTrack}/d`, entry: 'B' }, before: colorById },
   'legend.hover': { ctx: { address: `${DomainsTrack}/d`, entry: 'B' }, before: colorById },
   'theme.cvd-safe': { ctx: { on: true } },
+  'layer.filter': { ctx: { address: `${DomainsTrack}/d`, entry: 'B' }, before: colorById },
   'track.hide': { ctx: { address: DomainsTrack } },
   'track.show': { ctx: { address: DomainsTrack }, before: (v) => run(v, 'track.hide', { address: DomainsTrack }) },
   'track.move': { ctx: { address: DomainsTrack, after: null } },

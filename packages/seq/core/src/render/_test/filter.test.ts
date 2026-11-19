@@ -23,7 +23,7 @@ const rows = {
   category: ['activation', 'linker', 'binding', 'linker', 'oligomer'],
 };
 
-function spec(type: string, query: string): Node {
+function spec(type: 'ranges' | 'variants', query: string): Node {
   const b = createSeqSpec();
   const p = b.data.sequence('p', { alphabet: 'protein', letters: P53 });
   const d = b.data.ranges('d', { target: p, rows });
@@ -36,7 +36,7 @@ function spec(type: string, query: string): Node {
   return b.build();
 }
 
-async function layout(type: string, query: string) {
+async function layout(type: 'ranges' | 'variants', query: string) {
   const s = await settle(spec(type, query));
   const f = await s.frame({ size: Size, settled: true });
   return f;
