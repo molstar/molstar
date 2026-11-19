@@ -197,11 +197,12 @@ nothing and tells nothing.
   told for the same hit. An element is the same hover by its key, whatever extent object comes with it. One owner at a
   time: another owner's `set` takes it; `clear(owner)` by a stale owner does nothing (EC-141); an undefined owner is
   refused.
-- **Projection** is lazy: `location()` (the extent, else the position) and `projected(section)` are computed when asked
-  and kept for the version (and the view and model). The location is closed first (`hover.closeCodons`: a nucleotide
-  gains its residue and lifts to its codon, every piece over an intron, EC-30, EC-144), then each part is carried to the
-  section's system along the view's link (paths found under the copy rule, EC-25); `hover.projectLinked` false keeps
-  only the parts on the section's own system. `projectedAll()` is the same for every section at once (the core's
+- **Projection** is lazy: `location()` (the extent, else the position, with the cell's y part when the hit has one: a
+  grid cell is two positions, so linked sections light both) and `projected(section)` are computed when asked and kept
+  for the version (and the view and model). The location is closed first (`hover.closeCodons`: a nucleotide gains its
+  residue and lifts to its codon, every piece over an intron, EC-30, EC-144), then each part is carried to the section's
+  system along the view's link (paths found under the copy rule, EC-25); `hover.projectLinked` false keeps only the
+  parts on the section's own system. `projectedAll()` is the same for every section at once (the core's
   `projectOntoView`, one Location keyed by system), what the frame draws (Emphasis).
 
 ### SelectionModel and HighlightModel
@@ -230,6 +231,13 @@ nothing and tells nothing.
   its direction: across a collapsed break, the positions shown between the ends (`selection.acrossBreaks`: `shown`;
   `span` adds the hidden stretches, the hull). Why methods: a binding, a key and a test act alike, and a drag step is a
   call, not a command.
+- **A cell of two axes** (a grid cell: `GridCell`, its x and y systems and positions) selects a rect
+  (`(rect :a <x range> :b <y range>)`, core's Location): `selectCell(cell, mode)` sets a one-cell rect (`replace`; a
+  click on exactly that rect clears it), the rect from the cell anchor (`extend`), or toggles the cell's rect (`toggle`:
+  subtracted when inside the selection, else added); `beginRectDrag(cell, mode)`, `rectDragTo(cell)`,
+  `endRectDrag(cancel?)` drag a rect in `replace`, `add`, `subtract` (rects subtract exactly: core's Location) or
+  `extend` (from the cell anchor); a cancel gives back the selection. Why rects, not two ranges: a range of each axis is
+  every row and column, not the block between them.
 - **The anchor** is the range of the last element or cell set, toggled, added or dragged from, on its system (an item's
   extent there, else its cell); `set(value, anchor?)` replaces it; `clear()` drops it. With it the model keeps what an
   extend keeps: the selection less the anchor's range when the anchor was set (none after a click or a plain drag; all
@@ -252,7 +260,9 @@ nothing and tells nothing.
 - **The selection** (its `shown`) and **its projection** onto the linked sections (`Projector.of`: the core's
   `projectOntoView`, only the systems it has no part on), **the cursor**, **the highlight channels** in the order first
   set (each its Location with its projection, `own` kept; its color `highlight.colors[name]`, else `highlight.color`, a
-  hex literal or `token:<name>`), and **the hover** with its projection (`HoverModel.projectedAll`).
+  hex literal or `token:<name>`), and **the hover** with its projection (`HoverModel.projectedAll`), its `ySystem` and
+  `yPosition` copied with the rest (a grid's crosshair reads the cell's row; a pairs layer lights the pairs at a hovered
+  position only when the hover has no y).
 - **Projections are cached** per Location by identity while the view and the model hold (`Projector`, at most 64); the
   highlights' list is made again only when a channel, the tokens, the view or the model changed: a redraw projects
   nothing and allocates nothing in the renderer (held by the allocation tier).
@@ -574,6 +584,9 @@ rows' commands) reads the last frame's rows layers through the behavior context'
   the keyboard cursor's cell on that section when in view, else the centre, by the context's `step` or
   `navigate.wheelZoomStep`.
 
+- `select` on a grid: a hit with a `ySystem` that is no rows axis and no element is a cell of two axes, and the same
+  commands and drag modes act on its rect (`selectCell`, the rect drag): click a one-cell rect, Shift+click the rect
+  from the anchor, Cmd/Ctrl+click toggles, a drag the rect, Cmd/Ctrl+drag adds, Alt+drag subtracts.
 - `select`: clicks and drags to the selection through the bindings (`selection.set`, `selection.extend`,
   `selection.toggle` with the context's `hit`, `selection.clear` with Esc; a drag bound to `drag-select`, `drag-add`,
   `drag-subtract` or `drag-extend` drags in that mode), so a key, a menu and a test select alike; `selection.add` and
