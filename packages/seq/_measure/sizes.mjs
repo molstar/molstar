@@ -38,6 +38,7 @@ const AllCases = [
 ];
 
 const Cases = only ? AllCases.filter((c) => c.entry === only) : AllCases;
+if (!Cases.length) throw new Error(`--only ${only}: no such entry (${AllCases.map((c) => c.entry).join(', ')})`);
 
 const resolveWorkspace = {
   name: 'resolve-workspace',
