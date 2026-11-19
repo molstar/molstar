@@ -405,7 +405,8 @@ describe('the tracks layout’s navigation', () => {
     expect(TracksNav.zoom(c, v, 1_000, 150).end - TracksNav.zoom(c, v, 1_000, 150).start).toBeCloseTo(400 / 32);
     expect(TracksNav.fit(c, v)).toMatchObject({ start: 0, end: 400 });
     expect(TracksNav.reveal(c, v, 120, 130)).toBe(v);
-    expect(TracksNav.reveal(c, v, 300, 310)).toMatchObject({ start: 255, end: 355 });
+    expect(TracksNav.reveal(c, v, 300, 310)).toMatchObject({ start: 210, end: 310 });
+    expect(TracksNav.reveal(c, v, 50, 60)).toMatchObject({ start: 50, end: 150 });
     expect(TracksNav.clamp(c, { start: -50, end: 50 })).toMatchObject({ start: 0, end: 100 });
   });
 
@@ -413,6 +414,9 @@ describe('the tracks layout’s navigation', () => {
     expect(TracksNav.step(c, 10, 'right')).toBe(11);
     expect(TracksNav.step(c, 0, 'left')).toBe(-1);
     expect(TracksNav.step(c, 10, 'home')).toBe(0);
+    // one line: up and down leave it (the cursor crosses to the section above or below)
+    expect(TracksNav.step(c, 10, 'up')).toBe(-1);
+    expect(TracksNav.step(c, 10, 'down')).toBe(-1);
     expect(TracksNav.step(c, 10, 'end')).toBe(399);
     expect(TracksNav.step({ ...c, cyclic: true }, 399, 'right')).toBe(0);
     expect(TracksNav.clamp({ ...c, cyclic: true }, { start: 390, end: 420 })).toMatchObject({ start: 390, end: 420 });

@@ -14,12 +14,14 @@ import {
   type Frame,
   type FrameInput,
   type Hit as RenderHit,
+  type Placement,
   Renderer,
   type RenderSvgOptions,
   type RenderSvgResult,
   type Viewport as RenderViewport,
   hitView,
   resolveColor,
+  textMinScale,
 } from '@molstar/seqx-core/render';
 import { type Location, locationOfResult } from '@molstar/seqx-core/query';
 import type { SeqTokens } from '@molstar/seqx-core/render';
@@ -182,6 +184,11 @@ export class SeqViewer extends ReactiveModel {
       false,
     );
     this.view = new ViewModel(this.spec, this.config);
+    // a section's moves are its layout's arithmetic over its placement in the last frame (_spec/README.md "ViewModel")
+    this.view.setLayoutSource({
+      placement: (section) => this.placementOf(section),
+      minScale: textMinScale(this.context.renderConfig),
+    });
     this.hover = new HoverModel(this.spec, this.view, this.config);
     this.store = new StoreModel(this.config);
     // an element selected by an address and then toggled is drawn by its extent, resolved over what is shown
@@ -544,43 +551,50 @@ export class SeqViewer extends ReactiveModel {
   }
 
   /**
-   * The windows of the leading sections after the first (`viewports` of the frame: each its own), kept while they are
-   * equal so the frame's key holds; undefined when one section leads.
+   * Every leading section's viewport (the frame's `viewports`, by address), as its layout reads it (a window; a text's
+   * anchor and letter size): the first's during a jump's motion the window `_viewport` eases (`at` the time). Kept while
+   * equal, so the frame's key holds; undefined when no section is placed.
    */
-  private _windows(resolved: ResolvedView): Readonly<Record<string, RenderViewport>> | undefined {
-    let first = true;
+  private _viewports(resolved: ResolvedView, at?: number): Readonly<Record<string, RenderViewport>> | undefined {
+    const kept = this._viewportsKept;
     let n = 0;
-    let same = this._windowsKept !== undefined;
+    let same = kept !== undefined;
+    let first = true;
     for (const s of resolved.sections) {
       if (this.view.isFollowing(s.address)) continue;
-      if (first) {
-        first = false;
-        continue;
-      }
       const v = this.view.get(s.address);
-      if (!v || v.pending) continue;
-      const k = this._windowsKept?.[s.address];
-      if (!k || k.start !== v.start || k.end !== v.end) same = false;
+      const w = first ? this._viewport(resolved, at) : v && !v.pending ? v : undefined;
+      first = false;
+      if (!v || !w) continue;
+      const k = kept?.[s.address];
+      if (!k || k.start !== w.start || k.end !== w.end || k.scale !== v.scale) same = false;
       n++;
     }
-    if (!n) return (this._windowsKept = undefined);
-    if (same && Object.keys(this._windowsKept!).length === n) return this._windowsKept;
+    if (!n) return (this._viewportsKept = undefined);
+    if (same && Object.keys(kept!).length === n) return kept;
     const out: Record<string, RenderViewport> = {};
     first = true;
     for (const s of resolved.sections) {
       if (this.view.isFollowing(s.address)) continue;
-      if (first) {
-        first = false;
-        continue;
-      }
       const v = this.view.get(s.address);
-      if (v && !v.pending) out[s.address] = { start: v.start, end: v.end };
+      const w = first ? this._viewport(resolved, at) : v && !v.pending ? v : undefined;
+      first = false;
+      if (!v || !w) continue;
+      out[s.address] = { start: w.start, end: w.end, ...(v.scale !== undefined ? { scale: v.scale } : {}) };
     }
-    this._windowsKept = out;
+    this._viewportsKept = out;
     return out;
   }
 
-  private _windowsKept: Readonly<Record<string, RenderViewport>> | undefined;
+  private _viewportsKept: Readonly<Record<string, RenderViewport>> | undefined;
+
+  /** A section's placement in the last frame (its strips, what its layout's arithmetic reads), by address. */
+  placementOf(section: string): Placement | undefined {
+    const sections = this._frame?.layout.sections;
+    if (!sections) return undefined;
+    for (let i = 0; i < sections.length; i++) if (sections[i].section.address === section) return sections[i].placement;
+    return undefined;
+  }
 
   /** The viewport the last frame was drawn with, a copy (for the SVG and tests). */
   get viewport(): RenderViewport | undefined {
@@ -627,12 +641,12 @@ export class SeqViewer extends ReactiveModel {
     size.height = fixed ? h : Math.min(this.config.canvas.maxHeight, Math.max(this._contentHeight, 32));
     this._updateEmphasis();
     const input = this._frameInput;
-    const vp = this._viewport(resolved, DomHost.now());
-    if (vp) input.viewport = vp;
-    else delete input.viewport;
-    const windows = this._windows(resolved);
-    if (windows) input.viewports = windows;
+    const now = DomHost.now();
+    // every leading section its own viewport, read by its layout (_spec/README.md "Composition")
+    const viewports = this._viewports(resolved, now);
+    if (viewports) input.viewports = viewports;
     else delete input.viewports;
+    const vp = this._viewport(resolved, now);
     if (vp) {
       this._drawn.start = vp.start;
       this._drawn.end = vp.end;
@@ -858,12 +872,11 @@ export class SeqViewer extends ReactiveModel {
    */
   renderSvg(options: Partial<RenderSvgOptions> = {}): Promise<RenderSvgResult> {
     const resolved = this.view.resolved.value;
-    const vp = resolved ? this._viewport(resolved) : undefined;
+    const viewports = resolved ? this._viewports(resolved) : undefined;
     return this.context.renderSvg(this.spec.shown.value, {
       size: { width: this.width, height: this.height },
       ...(resolved ? { view: resolved.address } : {}),
-      ...(vp ? { viewport: { start: vp.start, end: vp.end } } : {}),
-      ...(resolved && this._windows(resolved) ? { viewports: this._windows(resolved) } : {}),
+      ...(viewports ? { viewports } : {}),
       store: this.store.store,
       dpr: this.dpr,
       tokens: this.tokens,

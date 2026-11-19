@@ -4,7 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { type Hit as RenderHit, TextNav, TextPlacement, textMinScale } from '@molstar/seqx-core/render';
+import { type Placement, PlacePoint, type Hit as RenderHit } from '@molstar/seqx-core/render';
+import { cancelFrameCallback, DomHost, requestFrameCallback } from '@molstar/ui/dom';
 import {
   type KeyChord,
   matchesChord,
@@ -56,6 +57,14 @@ export interface ClickState extends KeyState {
 /** How far a pointer moves before a press is a drag, not a click (CSS px). */
 const DragSlop = 3;
 
+/**
+ * A drag-select held past a scrolling box's edge scrolls it toward the pointer at this many px a second for each px
+ * past the edge, up to `EdgeScrollMax` (fixed: a reading speed near the edge, a page a second far past it; timed by the
+ * clock, never by the frame count).
+ */
+const EdgeScrollRate = 8;
+const EdgeScrollMax = 1200;
+
 export interface WheelState extends KeyState {
   readonly deltaX: number;
   readonly deltaY: number;
@@ -75,12 +84,25 @@ export class ViewerInput {
   private _space = false;
   private readonly _mods: ModifierState = {};
   private readonly _hit: { -readonly [K in keyof Hit]: Hit[K] } = {} as never;
+  /** A point the placement found, reused. */
+  private readonly _point = new PlacePoint();
   /** The pointer's last place while it rests over the canvas (EC-143's re-hit reads it). */
   private _x = Number.NaN;
   private _y = Number.NaN;
   private _drag:
-    | { x: number; x0: number; section: string; target: HitTarget; select: boolean; moved: boolean }
+    | {
+        x: number;
+        y: number;
+        x0: number;
+        y0: number;
+        section: string;
+        target: HitTarget;
+        select: boolean;
+        moved: boolean;
+      }
     | undefined;
+  /** A drag-select's scroll past its box's edge: its frame callback and the time it last stepped. */
+  private _edge: { frame: number; t: number } | undefined;
   /** A drag moved before the button went up: the click the platform sends after it is not one. */
   private _suppressClick = false;
   /** Space was held while a drag began: its release is no tap (no toggle). */
@@ -124,35 +146,77 @@ export class ViewerInput {
     return undefined;
   }
 
-  /** A text section's placement (_spec/README.md "Input": a text scrolls its lines), else undefined. */
-  private _textPlacement(section: string): TextPlacement | undefined {
-    const s = this.viewer.frame?.layout.sections.find((x) => x.section.address === section);
-    return s?.placement instanceof TextPlacement ? s.placement : undefined;
+  /**
+   * The display unit under a page point on a section, from its placement in the last frame (_spec/README.md "Input":
+   * the layout's inverse, never the input's arithmetic): the nearest when between lines or in a gutter.
+   */
+  offsetAt(section: string, x: number, y: number): number | undefined {
+    const p = this.viewer.placementOf(section);
+    if (!p || !p.strips.n) return undefined;
+    const o = p.offsetAt(x, y);
+    return o >= 0 ? o : undefined;
+  }
+
+  /** Whether a section scrolls inside its box and its content overflows it (a text taller than its box). */
+  private _overflows(p: Placement | undefined): p is Placement {
+    return !!p?.clip && p.contentHeight > p.box.height;
   }
 
   /**
-   * The wheel over a text section (_spec/README.md "Input"): its lines scroll by the wheel's vertical delta through the
-   * text's arithmetic (`TextNav`) while its content overflows its box; at its top or bottom, or with nothing to
-   * scroll, the wheel is given back to the page (false: scroll chaining).
+   * The wheel over a section that scrolls inside its box (_spec/README.md "Input": a text): its content scrolls by the
+   * wheel's vertical delta through its layout's arithmetic while it overflows the box; at its top or bottom, or with
+   * nothing to scroll, the wheel is given back to the page (false: scroll chaining).
    */
-  private _scrollText(section: string, p: TextPlacement, dy: number): boolean {
-    const v = this.viewer.view.get(section);
-    if (!v || !p.geometry || dy === 0 || p.contentHeight <= p.box.height) return false;
-    const config = this.viewer.context.renderConfig;
-    const c = {
-      total: p.geometry.total,
-      width: v.width,
-      height: p.box.height,
-      cyclic: false,
-      maxScale: this.viewer.config.viewport.maxPxPerPosition,
-      minScale: textMinScale(config),
-      placement: p,
-    };
-    const next = TextNav.pan(c, { start: p.anchor, end: p.geometry.total }, 0, dy);
-    if (next.start === p.anchor) return false;
-    this.viewer.view.setRange(section, next.start, p.geometry.total);
+  private _scrollBox(section: string, dy: number): boolean {
+    const view = this.viewer.view;
+    const before = view.get(section)?.start;
+    if (dy === 0 || before === undefined || !view.panPx(section, 0, dy)) return false;
+    if (view.get(section)?.start === before) return false;
     this.viewer.schedule();
     return true;
+  }
+
+  /**
+   * A drag-select's pointer past its scrolling box's top or bottom (_spec/README.md "Input"): the box scrolls toward
+   * it, faster the further past, timed by the clock; the selection extends to what comes under the held pointer.
+   * Stops when the pointer comes back in, the content ends or the drag ends.
+   */
+  private _edgeScroll(): void {
+    const d = this._drag;
+    const p = d?.select ? this.viewer.placementOf(d.section) : undefined;
+    const past = this._overflows(p) && d ? pastEdge(p, d.y) : 0;
+    if (!past) return this._stopEdge();
+    if (this._edge) return;
+    const step = () => {
+      const e = this._edge;
+      const g = this._drag;
+      if (!e || !g?.select || this.viewer.retired) return this._stopEdge();
+      const pl = this.viewer.placementOf(g.section);
+      const by = this._overflows(pl) ? pastEdge(pl, g.y) : 0;
+      const now = DomHost.now();
+      const dt = Math.max(0, now - e.t);
+      e.t = now;
+      if (!by) return this._stopEdge();
+      const speed = Math.sign(by) * Math.min(EdgeScrollMax, EdgeScrollRate * Math.abs(by));
+      const before = this.viewer.view.get(g.section)?.start;
+      this.viewer.view.panPx(g.section, 0, (speed * dt) / 1000);
+      // what the last frame placed under the held pointer joins the drag; the next step reads the frame this one asks
+      this._dragSelect(g.section, g.x, g.y);
+      if (this.viewer.view.get(g.section)?.start === before && dt > 0) return this._stopEdge();
+      this.viewer.schedule();
+      e.frame = requestFrameCallback(step);
+    };
+    this._edge = { frame: requestFrameCallback(step), t: DomHost.now() };
+  }
+
+  private _stopEdge(): void {
+    if (this._edge) cancelFrameCallback(this._edge.frame);
+    this._edge = undefined;
+  }
+
+  /** A drag-select to the pointer: the position under it in reading order (the placement's nearest unit). */
+  private _dragSelect(section: string, x: number, y: number): void {
+    this.selectBehavior?.dragTo(section, x - this.viewer.dataX, this._hitAt(x, y), this.offsetAt(section, x, y));
   }
 
   /** The hit under a point as the hover model takes it (the section is read from the layer), in the reused record. */
@@ -182,14 +246,21 @@ export class ViewerInput {
     const d = this._drag;
     const hit = this._hitAt(x, y);
     if (d) {
-      if (!d.moved && Math.abs(x - d.x0) >= DragSlop) d.moved = true;
+      if (!d.moved && Math.max(Math.abs(x - d.x0), Math.abs(y - d.y0)) >= DragSlop) d.moved = true;
       if (d.select) {
-        // the range from where it began to the pointer, read from the view even past the data
-        if (d.moved) this.selectBehavior?.dragTo(d.section, x - this.viewer.dataX, hit);
+        d.x = x;
+        d.y = y;
+        // the range from where it began to the pointer, in reading order, read from the placement even past the data
+        if (d.moved) {
+          this.selectBehavior?.dragTo(d.section, x - this.viewer.dataX, hit, this.offsetAt(d.section, x, y));
+          this._edgeScroll();
+        }
       } else {
         const dx = x - d.x;
+        const dy = y - d.y;
         d.x = x;
-        this.navigateBehavior?.drag(d.section, dx, mods, d.target);
+        d.y = y;
+        this.navigateBehavior?.drag(d.section, dx, mods, d.target, dy);
       }
     }
     this.hoverBehavior?.move(hit, mods);
@@ -232,7 +303,7 @@ export class ViewerInput {
     const select = selecting && !!this.selectBehavior?.beginDrag(section, hit, mods, target);
     if (selecting && !select) return false;
     if (this._space) this._spaceUsed = true;
-    this._drag = { x, x0: x, section, target, select, moved: false };
+    this._drag = { x, y, x0: x, y0: y, section, target, select, moved: false };
     return true;
   }
 
@@ -243,6 +314,7 @@ export class ViewerInput {
   up(): void {
     const d = this._drag;
     if (!d) return;
+    this._stopEdge();
     if (d.select) this.selectBehavior?.endDrag();
     this._suppressClick = d.moved;
     this._drag = undefined;
@@ -331,22 +403,24 @@ export class ViewerInput {
     // over the label column the zoom is about the section's first visible position, never before it
     const width = this.viewer.view.get(section)?.width ?? 0;
     const local = Math.min(Math.max(x - this.viewer.dataX, 0), width);
+    // the unit under the pointer, from the placement (a text's in reading order): what a zoom keeps where it is
+    const at = this.offsetAt(section, x, y);
     // on macOS Ctrl is no zoom modifier, so a Ctrl+wheel is a pinch whatever its delta; elsewhere a large delta is a mouse
     const pinch =
       e.ctrlKey && pointer.pinchFromCtrlWheel && (this.mac || (!e.deltaMode && Math.abs(dy) <= pointer.pinchMaxDelta));
     if (pinch) {
       // the pinch's own modifiers: none (the Ctrl is the gesture's, not a key held)
       const taken = this.viewer.bindings.resolve('pinch', NoModifiers, target) !== undefined;
-      if (taken) nav.pinch(section, Math.exp(-dy * pointer.pinchSpeed), local, NoModifiers, target);
+      if (taken) nav.pinch(section, Math.exp(-dy * pointer.pinchSpeed), local, NoModifiers, target, at);
       this.viewer.schedule();
       return taken;
     }
     const mods = this._modifiers(e);
-    // a text section takes the wheel only while it overflows its box, and gives it back at its ends
-    const text = this._textPlacement(section);
-    if (text && !e.ctrlKey && !e.metaKey) return this._scrollText(section, text, dy);
+    // a section that scrolls inside its box (a text) takes the wheel only while it overflows, and gives it back at its
+    // ends; Cmd/Ctrl+wheel zooms it as any section
+    if (this.viewer.placementOf(section)?.clip && !e.ctrlKey && !e.metaKey) return this._scrollBox(section, dy);
     const taken = this.viewer.bindings.resolve('wheel', mods, target) !== undefined;
-    if (taken) nav.wheel(section, dx, dy, local, mods, target);
+    if (taken) nav.wheel(section, dx, dy, local, mods, target, at);
     // the frame asked for after the behavior's own, so a wheel's deltas apply in the frame that draws them
     this.viewer.schedule();
     return taken;
@@ -365,15 +439,14 @@ export class ViewerInput {
     const action = this.viewer.bindings.resolve('double-click', mods, hitTarget(hit));
     if (action === undefined) return false;
     const focus = hit ? this._focusOf(section, hit) : undefined;
-    // a step zoom is about the pointer, by the double-click's own factor
-    const v = this.viewer.view.get(section);
-    const local = x - this.viewer.dataX;
-    const at =
-      v && v.width > 0 && local >= 0 && local <= v.width ? v.start + (local * (v.end - v.start)) / v.width : undefined;
+    // a step zoom is about the pointer (the unit the placement has under it), by the double-click's own factor
+    const p = this.viewer.placementOf(section);
+    const pt = this._point;
+    const at = p?.at(x, y, pt) && (pt.kind === 'data' || pt.kind === 'gap') ? p.offsetAt(x, y) : -1;
     this.viewer.runCommand(action, {
       section,
       ...(focus ? { focus } : {}),
-      ...(at !== undefined ? { at } : {}),
+      ...(at >= 0 ? { at } : {}),
       step: this.viewer.config.navigate.doubleClickZoomStep,
     });
     return true;
@@ -464,6 +537,7 @@ export class ViewerInput {
     if (this.viewer.retired) return false;
     // Esc during a drag-select cancels it: the selection before it comes back, and the click after it is none
     if (e.key === 'Escape' && this._drag?.select) {
+      this._stopEdge();
       this.selectBehavior?.cancelDrag();
       this._drag = undefined;
       this._suppressClick = true;
@@ -511,4 +585,10 @@ function shortcutIs(k: KeyChord, e: KeyState & { readonly key: string }, mac: bo
     !!k.shift === !!e.shiftKey &&
     !!k.mod === (mac ? !!e.metaKey : !!e.ctrlKey)
   );
+}
+
+/** How far a point is past a box's top (negative) or bottom (positive), px; 0 within it. */
+function pastEdge(p: Placement, y: number): number {
+  const b = p.box;
+  return y < b.y ? y - b.y : y > b.y + b.height ? y - (b.y + b.height) : 0;
 }

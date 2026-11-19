@@ -123,8 +123,16 @@ export interface SectionNav {
   /** Zooms by `factor` (above 1: in) about display unit `at`, kept where it is. */
   zoom(c: NavContext, v: Viewport, factor: number, at: number): Viewport;
   fit(c: NavContext, v: Viewport): Viewport;
-  /** The viewport showing display units `[start, end)` (a focus, a link, the cursor), unchanged when it does. */
+  /**
+   * The least move that shows display units `[start, end)` (the cursor, a linked selection), unchanged when it does: a
+   * window pans to the nearer edge, a text scrolls the line into view.
+   */
   reveal(c: NavContext, v: Viewport, start: number, end: number): Viewport;
+  /**
+   * The viewport a focus on `[start, end)` gives (a double-click, an address): a window takes the range; a text brings
+   * its first line to the top, its letter size kept. Absent: the range itself, clamped.
+   */
+  focus?(c: NavContext, v: Viewport, start: number, end: number): Viewport;
   /** The display unit a cursor at `offset` steps to, or −1 for none. */
   step(c: NavContext, offset: number, dir: StepDir): number;
   clamp(c: NavContext, v: Viewport): Viewport;

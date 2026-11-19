@@ -32,12 +32,23 @@ export interface NavigateContext {
 export type CursorOffset = (section: string) => number | undefined;
 
 export interface NavigateBehavior {
-  /** A drag by `dx` pixels on a section; true when it moved the viewport. */
-  drag(section: string, dx: number, modifiers: ModifierState, target: HitTarget): boolean;
-  /** A wheel's deltas (pixels) at `x` (pixels from the section's left edge). */
-  wheel(section: string, dx: number, dy: number, x: number, modifiers: ModifierState, target: HitTarget): void;
-  /** A pinch scaling by `scale` about `x`. */
-  pinch(section: string, scale: number, x: number, modifiers: ModifierState, target: HitTarget): boolean;
+  /** A drag by `dx`, `dy` pixels on a section (a window pans across, a text scrolls); true when it could move. */
+  drag(section: string, dx: number, modifiers: ModifierState, target: HitTarget, dy?: number): boolean;
+  /**
+   * A wheel's deltas (pixels) at `x` (pixels from the section's left edge); `at`, the display unit under the pointer
+   * from the placement (what a zoom keeps where it is), else read from the window at `x`.
+   */
+  wheel(
+    section: string,
+    dx: number,
+    dy: number,
+    x: number,
+    modifiers: ModifierState,
+    target: HitTarget,
+    at?: number,
+  ): void;
+  /** A pinch scaling by `scale` about `x` (or the unit `at`). */
+  pinch(section: string, scale: number, x: number, modifiers: ModifierState, target: HitTarget, at?: number): boolean;
   /** The view's moves as commands (keys through the keymap; every move reachable by a command). */
   readonly commands: readonly CommandDefinition<NavigateContext>[];
   /** Drops pending wheel deltas; later frames do nothing. */
@@ -48,6 +59,7 @@ interface Pending {
   pan: number;
   zoom: number;
   x: number;
+  at: number | undefined;
   /** The frame callback asked for, until it runs. */
   frame: number | undefined;
 }
@@ -80,7 +92,7 @@ export function navigateBehavior(
       return;
     }
     if (p.pan) view.panPx(section, p.pan);
-    if (p.zoom) view.zoom(section, wheelZoomStep ** p.zoom, offsetAt(section, p.x));
+    if (p.zoom) view.zoom(section, wheelZoomStep ** p.zoom, p.at ?? offsetAt(section, p.x));
     p.pan = p.zoom = 0;
   };
 
@@ -172,30 +184,31 @@ export function navigateBehavior(
 
   return {
     commands,
-    drag(section, dx, modifiers, target) {
-      // dragging content right shows what is left of it
-      return !disposed && bindings.resolve('drag', modifiers, target) === 'pan' && view.panPx(section, -dx);
+    drag(section, dx, modifiers, target, dy = 0) {
+      // dragging content right (down) shows what is left of (above) it
+      return !disposed && bindings.resolve('drag', modifiers, target) === 'pan' && view.panPx(section, -dx, -dy);
     },
-    wheel(section, dx, dy, x, modifiers, target) {
+    wheel(section, dx, dy, x, modifiers, target, at) {
       if (disposed) return;
       const action = bindings.resolve('wheel', modifiers, target);
       if (action !== 'pan' && action !== 'zoom') return;
       let p = pending.get(section);
-      if (!p) pending.set(section, (p = { pan: 0, zoom: 0, x, frame: undefined }));
+      if (!p) pending.set(section, (p = { pan: 0, zoom: 0, x, at, frame: undefined }));
       // the larger delta pans; with Shift a vertical wheel pans sideways too
       if (action === 'pan') p.pan += Math.abs(dx) > Math.abs(dy) ? dx : dy;
       else {
         p.zoom += -dy / 100;
         p.x = x;
+        p.at = at;
       }
       if (!coalesceWheel) apply(section);
       else if (p.frame === undefined) p.frame = requestFrameCallback(() => apply(section));
     },
-    pinch(section, scale, x, modifiers, target) {
+    pinch(section, scale, x, modifiers, target, at) {
       return (
         !disposed &&
         bindings.resolve('pinch', modifiers, target) === 'zoom' &&
-        view.zoom(section, scale, offsetAt(section, x))
+        view.zoom(section, scale, at ?? offsetAt(section, x))
       );
     },
     dispose() {

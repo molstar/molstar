@@ -54,14 +54,17 @@ export const TracksNav: SectionNav = {
     if (start >= v.start && end <= v.end) return v;
     const w = v.end - v.start;
     if (end - start > w) return clampWindow(c, { ...v, start, end });
-    const s = (start + end) / 2 - w / 2;
-    return clampWindow(c, { ...v, start: s, end: s + w });
+    // the nearer edge: what is left of the window comes in at its left edge, what is right at its right
+    const d = start < v.start ? start - v.start : end - v.end;
+    return clampWindow(c, { ...v, start: v.start + d, end: v.end + d });
   },
   step(c, offset, dir: StepDir) {
     const last = c.total - 1;
     if (dir === 'home') return 0;
     if (dir === 'end') return last;
-    const d = dir === 'left' || dir === 'up' ? -1 : 1;
+    // one line: up and down leave it
+    if (dir === 'up' || dir === 'down') return -1;
+    const d = dir === 'left' ? -1 : 1;
     const next = offset + d;
     if (c.cyclic) return ((next % c.total) + c.total) % c.total;
     return next < 0 || next > last ? -1 : next;

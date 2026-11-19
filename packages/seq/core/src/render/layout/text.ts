@@ -457,14 +457,22 @@ export const TextNav: SectionNav = {
     const p = placed(c);
     if (!p) return v;
     const g = p.geometry!;
-    // in view: from the anchor's top to the box's bottom
+    // in view: from the anchor's top to the box's bottom; the range's lines from its first line's top to its last's
+    // bottom (no more than a box: a long range shows its first lines)
     const top = topOf(p, v.start);
-    const first = Math.floor(start / g.unitsPerLine);
-    const last = Math.floor(Math.max(start, end - 1) / g.unitsPerLine);
+    const first = Math.min(p.heights.length - 1, Math.floor(start / g.unitsPerLine));
+    const last = Math.min(p.heights.length - 1, Math.floor(Math.max(start, end - 1) / g.unitsPerLine));
     const y0 = p.lineTop(first);
-    const y1 = p.lineTop(Math.min(last + 1, p.heights.length));
-    if (y0 >= top && Math.min(y1, y0 + p.box.height) <= top + p.box.height) return v;
-    return TextNav.clamp(c, { ...v, start: first * g.unitsPerLine });
+    const y1 = Math.min(p.lineTop(last) + p.heights[last] - g.lineGap, y0 + p.box.height);
+    if (y0 >= top && y1 <= top + p.box.height) return v;
+    // above: its first line to the top; below: its last line's bottom to the box's bottom
+    const to = y0 < top ? y0 : y1 - p.box.height;
+    return TextNav.clamp(c, { ...v, start: anchorAt(p, Math.max(0, to)) });
+  },
+  focus(c, v, start) {
+    const p = placed(c);
+    const upl = p?.geometry?.unitsPerLine ?? 1;
+    return TextNav.clamp(c, { ...v, start: Math.floor(Math.max(0, start) / upl) * upl });
   },
   step(c, offset, dir: StepDir) {
     const last = c.total - 1;

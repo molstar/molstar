@@ -143,7 +143,7 @@ class KeyParts {
     let vp = this.viewport ? `${this.start}:${this.end}` : 'all';
     if (this.viewports)
       for (const [a, v] of Object.entries(this.viewports).sort(([x], [y]) => (x < y ? -1 : 1)))
-        vp += `|${a}=${v.start}:${v.end}`;
+        vp += `|${a}=${v.start}:${v.end}${v.scale !== undefined ? `@${v.scale}` : ''}${v.top ? `^${v.top}` : ''}`;
     return [
       this.model,
       this.view,

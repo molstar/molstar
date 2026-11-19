@@ -67,10 +67,12 @@ export interface SelectBehavior {
    */
   beginDrag(section: string, hit: Hit | undefined, modifiers: ModifierState, target: HitTarget): boolean;
   /**
-   * The drag moved to `x` (px from the section's data box's left edge; past it, clamped to the axis): the range from
-   * where it began, snapped to whole items when it began on one and `hit` is an item, applied by the drag's mode.
+   * The drag moved to `x` (px from the section's data box's left edge; past it, clamped to the axis), or to the display
+   * unit `offset` the placement has under the pointer (a text's in reading order, the nearest past a line's end): the
+   * range from where it began, snapped to whole items when it began on one and `hit` is an item, applied by the drag's
+   * mode.
    */
-  dragTo(section: string, x: number, hit: Hit | undefined): boolean;
+  dragTo(section: string, x: number, hit: Hit | undefined, offset?: number): boolean;
   endDrag(): void;
   /** Cancels a drag-select: the selection before it comes back. */
   cancelDrag(): void;
@@ -189,13 +191,13 @@ export function selectBehavior(
       drag = { section, system: hit.system };
       return true;
     },
-    dragTo(section, x, hit) {
+    dragTo(section, x, hit, at) {
       const d = drag;
       if (!d || d.section !== section) return false;
       const v = view.get(section);
       const axis = view.resolved.value?.sections.find((s) => s.address === section)?.axis;
       if (!v || v.pending || !axis || v.width <= 0) return false;
-      const offset = v.start + (Math.min(Math.max(x, 0), v.width - 1e-6) * (v.end - v.start)) / v.width;
+      const offset = at ?? v.start + (Math.min(Math.max(x, 0), v.width - 1e-6) * (v.end - v.start)) / v.width;
       // the middle of the cell at the offset: an offset on a piece's end names no position past it
       const position = positionAt(axis, Math.floor(offset) + 0.5);
       if (position === undefined) return false;
