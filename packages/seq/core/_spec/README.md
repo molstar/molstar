@@ -1338,6 +1338,19 @@ numbers): a window move allocates nothing once warm.
   in its section's own display units (`sectionUnitAt`) through the inverse path; past the picture's ends at the rate the
   path carries the edge (a protein position three nucleotides). `moves` says per section which axes can move (0 idle:
   quiet); absent, an export's outlines.
+- **The zoom strip** (`zoomStrip`, `DefaultZoomStrip`: `minPx` 48, `heightPx` 16; the viewer's `navigator.zoomStrip`): a
+  positions navigator whose reachable span (the hull of its bound sections') is narrower than `minPx` on the picture is
+  context and a zoom strip, one navigator (one renderer, hit, frame and draw list set). The picture's view gets a second
+  section, the same form over the same system (an ideogram's bands; else the axis, a ruler), its viewport the span's
+  units, laid out `heightPx` less a fixed gap (`ZoomGapPx`, 6: the connectors') below the box (`zoomHeight`; the frame's
+  `size` is the box, the lists the box and the strip; an export stacks both). The windows, their wash, floor, grips,
+  marks, hits and `sectionUnitAt` are the zoom strip's (a drag moves the view at its scale); the context draws the span
+  as a mark in the `window` pass (an outline at least `window.minPx` wide, centred, its hairline at the truth, no grips,
+  no wash) and two connector hairlines (`seq-window`) from its ends to the strip's; a hit above the strip is `context`
+  (`mark` over it, else `outside`), part `outside`, no target; `markText` names the span. Made again when it comes or
+  goes (the span read each frame: a span not known yet keeps what is drawn); the span moving resets the strip's
+  viewport. Why: a region on its chromosome is a few kb of tens of Mb, a window there can neither show a move nor take a
+  drag; the chromosome's context and a working window are two scales.
 - **Draw lists**: the base (`background`, `data`) is the picture's, keyed as any frame; the `window` pass draws the
   washes, the windows (the one the pointer last acted on on top) and a sweep's outline; then the marks: the selection's
   and the highlights' ticks at the picture's foot (`navigator.marks`), the keyboard cursor's hairline, the pointer's

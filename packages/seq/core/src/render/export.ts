@@ -556,7 +556,11 @@ function withNavigators(
 ): string {
   const vw = lists.width;
   const vh = lists.height;
-  const boxes = navs.map((n) => navigatorBox(n.navigator, vw, vh));
+  // each navigator's box, a zoom strip's height below it
+  const boxes = navs.map((n) => {
+    const b = navigatorBox(n.navigator, vw, vh);
+    return { width: b.width, height: b.height + n.zoomHeight };
+  });
   const sum = (p: string, k: 'width' | 'height') =>
     boxes.reduce((t, b, i) => t + (navs[i].navigator.place === p ? b[k] : 0), 0);
   const top = sum('top', 'height');

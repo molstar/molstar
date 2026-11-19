@@ -142,6 +142,7 @@ export {
   NavigatorRenderer,
   type NavigatorRendererOptions,
   NavigatorSizes,
+  DefaultZoomStrip,
   NavigatorWindow,
   navigatorBox,
   railSections,

@@ -6,7 +6,7 @@
 
 // The navigators' allocation targets (performance.md, Memory): a window move redraws the navigator over its kept
 // picture with nothing allocated once warm (the windows carried from the view's layouts, the marks); a rail drawn with
-// its window lit. By hand, never in CI: `pnpm -C packages/seq/core test:perf`.
+// its window lit; a window move on a zoom strip. By hand, never in CI: `pnpm -C packages/seq/core test:perf`.
 
 import { stripNavigator } from '@molstar/seqx-core/lang';
 import { quickCase } from '@molstar/test-harness/quick';
@@ -14,7 +14,7 @@ import { describe, expect, inject, it } from 'vitest';
 import { type FrameInput, hitView, type NavigatorFrameInput, type ViewLayout } from '../index.js';
 import { p53TracksSpec } from './fixtures.js';
 import { settle } from './helpers.js';
-import { settleNavigator, withNavigator } from './navigator-fixtures.js';
+import { bandsSpec, settleNavigator, withNavigator } from './navigator-fixtures.js';
 
 describe('a navigator redraws with nothing allocated once warm', () => {
   it('a window move over the strip of p53’s tracks', async ({ task }) => {
@@ -38,6 +38,31 @@ describe('a navigator redraws with nothing allocated once warm', () => {
     }));
     const { r } = quickCase(task, 'navigator window move', (i) => s.nav.frame(inputs[i & 3]), {});
     console.info(`navigator window move: ${r.bytesPerStep.toFixed(0)} bytes a frame (${r.note})`);
+    expect(r.bytesPerStep, r.note).toBeLessThanOrEqual(inject('perfThreshold'));
+  });
+
+  it('a window move on a zoom strip (a region a sliver of its chromosome)', async ({ task }) => {
+    const s = await settleNavigator(bandsSpec());
+    const views: ViewLayout[] = [];
+    for (let k = 0; k < 4; k++) {
+      const v = await settle(bandsSpec());
+      views.push(
+        (await v.frame({ size: { width: 1200, height: 300 }, viewport: { start: 100 * k, end: 100 * k + 300 } }))
+          .layout,
+      );
+    }
+    await s.frames({ size: { width: 1200, height: 300 } }, { size: { width: 1200, height: 24 } });
+    expect(s.nav.zoomHeight).toBeGreaterThan(0);
+    const inputs: NavigatorFrameInput[] = views.map((view) => ({
+      size: { width: 1200, height: 24 },
+      view,
+      moves: { '/views/v/region': 1 },
+      lit: { section: '/views/v/region', part: 'body' as const },
+      pointerX: 300,
+      pointerY: 5,
+    }));
+    const { r } = quickCase(task, 'zoom strip window move', (i) => s.nav.frame(inputs[i & 3]), {});
+    console.info(`zoom strip window move: ${r.bytesPerStep.toFixed(0)} bytes a frame (${r.note})`);
     expect(r.bytesPerStep, r.note).toBeLessThanOrEqual(inject('perfThreshold'));
   });
 

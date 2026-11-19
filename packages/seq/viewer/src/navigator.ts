@@ -162,13 +162,17 @@ export class NavigatorModel extends ReactiveModel {
     this.changed();
   }
 
-  /** Its size from the host's and the form's box. */
+  /** The box the picture is drawn in: the host's and the form's (a zoom strip draws below it). */
+  private boxHeight = 0;
+
+  /** Its size from the host's and the form's box, and its zoom strip's height (one navigator: the pair's). */
   private place(): void {
     const nav = this.navigator;
     if (!nav) return;
     const b = navigatorBox(nav, this.hostWidth || this.viewer.width, this.viewer.height);
     this.width = this.hostWidth || b.width;
-    this.height = this.hostHeight || b.height;
+    this.boxHeight = this.hostHeight || b.height;
+    this.height = this.boxHeight + (this.renderer?.zoomHeight ?? 0);
   }
 
   private changed(): void {
@@ -190,6 +194,7 @@ export class NavigatorModel extends ReactiveModel {
         text: this.viewer.context.text,
         config: this.viewer.context.renderConfig,
         direction: this.viewer.config.navigator.direction,
+        zoomStrip: this.viewer.config.navigator.zoomStrip,
         storeSettings: this.viewer.store.store.settings,
         // the view's image budget and held domains: a value has one color in both
         ...(viewRenderer ? { images: viewRenderer.images, domains: viewRenderer.layoutState } : {}),
@@ -230,7 +235,7 @@ export class NavigatorModel extends ReactiveModel {
     this.updateMoves(nav);
     const sweep = this.behavior?.sweep.value;
     const f = r.frame({
-      size: { width: this.width, height: this.height },
+      size: { width: this.width, height: this.boxHeight },
       dpr: this.viewer.dpr,
       settled: this.viewer.store.store.settled.value,
       overlay: this.viewer.store.overlay(
@@ -249,6 +254,8 @@ export class NavigatorModel extends ReactiveModel {
       ...(sweep && this.press ? { sweep: this.sweepPx(sweep) } : {}),
     });
     if (f.rebuilt) this.wanter.want(f.wants as Want[]);
+    // a zoom strip came or went in this frame: the part's height with it
+    this.height = this.boxHeight + r.zoomHeight;
     this.lastFrame = f;
     // the sliders' values: first drawn, and when the view rested (a move made elsewhere while the part has the focus
     // announces nothing: its value waits for the focus to leave)
@@ -315,7 +322,7 @@ export class NavigatorModel extends ReactiveModel {
   /** What is under a point, idle windows' parts read as `outside` (an idle window is no target). */
   hit(x: number, y: number, touch = false): NavigatorHit | undefined {
     const h = this.renderer?.hit(x, y, touch, this.top);
-    if (!h) return undefined;
+    if (!h || h.context) return h;
     const m = this.moves[h.section] ?? 0;
     const along = h.axis === 'rows' ? NavWindowFlags.y : NavWindowFlags.x;
     if (!m) return { ...h, part: 'outside' };
@@ -343,13 +350,18 @@ export class NavigatorModel extends ReactiveModel {
       return;
     }
     const h = this.hit(x, y, p.touch);
-    this.lit = h && (this.moves[h.section] ?? 0) ? { section: h.section, part: h.part } : undefined;
+    // the context of a zoom strip is no target: nothing lit, the default cursor
+    this.lit = h && !h.context && (this.moves[h.section] ?? 0) ? { section: h.section, part: h.part } : undefined;
     this._readout.set(h ? this.readoutOf(h) : undefined);
     this.changed();
   }
 
-  /** Over a window, what it shows (its positions, its rows); elsewhere the position, row and band under the pointer. */
+  /**
+   * Over a window, what it shows (its positions, its rows); over a zoom strip's mark, the region it marks; elsewhere
+   * the position, row and band under the pointer.
+   */
   private readoutOf(h: NavigatorHit): string {
+    if (h.context === 'mark') return this.renderer?.markText() ?? '';
     const nav = this.navigator;
     const w = h.part !== 'outside' ? this.windowOf(h.section) : undefined;
     if (nav && w?.shown) return windowText(this.viewer.spec.model.value, nav, w);
@@ -395,6 +407,12 @@ export class NavigatorModel extends ReactiveModel {
     const b = this.behavior;
     const nav = this.navigator;
     const h = this.hit(x, y, p.touch);
+    // a press on a zoom strip's context is no gesture: it names what is under it, as a hover (a tap's readout)
+    if (h?.context) {
+      this._readout.set(this.readoutOf(h));
+      this.changed();
+      return false;
+    }
     if (!b || !nav || !h || !(this.moves[h.section] ?? 0)) return false;
     this.top = h.section;
     const i = nav.of.indexOf(h.section);
@@ -511,7 +529,7 @@ export class NavigatorModel extends ReactiveModel {
     const b = this.behavior;
     const nav = this.navigator;
     const h = this.hit(x, y);
-    if (!b || !nav || !h || nav.axes === 'rows' || !(this.moves[h.section] ?? 0)) return false;
+    if (!b || !nav || !h || h.context || nav.axes === 'rows' || !(this.moves[h.section] ?? 0)) return false;
     const r = this.renderer!;
     const at = r.sectionUnitAt(h.section, x);
     const half = this.viewer.config.navigator.zoomPx / 2;
