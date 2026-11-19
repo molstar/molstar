@@ -11,7 +11,9 @@
 //
 //   node packages/seq/_measure/sizes.mjs [--top 12] [--files] [--only spec-read.ts]
 //
-// `--files` lists each entry's largest input files too; `--only` measures the one entry (a check runs it so).
+// `--files` lists each entry's largest input files too; `--only` measures the one entry (a check runs it so). An entry
+// with `unlisted` modules is checked to hold none of them (bytes in the chunks loaded first): what its composition does
+// not list is not in its bundle (viewer-composition "Injected, opt in"); the script exits 1 when one is.
 //
 // The entries sit outside any package, so `@molstar/*` is resolved from the viewer's folder (a plugin below).
 
@@ -28,13 +30,31 @@ const top = Number(args[args.indexOf('--top') + 1]) || 12;
 const files = args.includes('--files');
 const only = args.includes('--only') ? args[args.indexOf('--only') + 1] : undefined;
 
+/**
+ * What the minimal viewer does not list, by its modules' paths: the navigators, stories and transitions (the story
+ * config's defaults are the viewer config's, kept), the history, the rows behavior, the records runtime, the built-in
+ * tables. (The core's rows layer is still read by the tracks layout: not listed here.)
+ */
+const Unlisted = [
+  /seq\/core\/src\/render\/navigator(-export)?\.ts$/,
+  /seq\/viewer\/src\/(navigator|mount-navigator|behaviors\/navigator)\.ts$/,
+  /seq\/core\/src\/story\/(?!config\.ts$)/,
+  /seq\/viewer\/src\/story\.ts$/,
+  /ui\/src\/history\//,
+  /seq\/viewer\/src\/ui-history\.ts$/,
+  /seq\/viewer\/src\/behaviors\/rows/,
+  /seq\/core\/src\/data\/records\.ts$/,
+  /seq\/core\/src\/render\/built-ins\.ts$/,
+  /seq\/core\/src\/context\/default-context\.ts$/,
+];
+
 /** Target and entry of each case, bytes (minified). */
 const AllCases = [
   { name: 'reading a spec', entry: 'spec-read.ts', target: 160_000 },
   { name: 'headless rendering', entry: 'headless.ts', target: 300_000 },
   { name: 'the viewer, default', entry: 'viewer.ts', target: 600_000 },
   // no target of its own yet ("a minimal one could be smaller"): the table shows what it weighs
-  { name: 'viewer, minimal', entry: 'viewer-minimal.ts', target: 600_000 },
+  { name: 'viewer, minimal', entry: 'viewer-minimal.ts', target: 600_000, unlisted: Unlisted },
 ];
 
 const Cases = only ? AllCases.filter((c) => c.entry === only) : AllCases;
@@ -107,6 +127,19 @@ for (const r of rows)
     `${pad(r.name, 22)}${pad(kB(r.min), 12)}${pad(kB(r.gzip), 12)}${pad(`< ${kB(r.target)}`, 12)}${r.min < r.target ? 'pass' : 'FAIL'}`,
   );
 
+// each entry's unlisted modules: none may have a byte in what loads first
+let held = 0;
+for (const r of rows) {
+  if (!r.unlisted) continue;
+  const bytes = new Map();
+  for (const [f, v] of loadedInputs(r.meta))
+    if (v.bytesInOutput > 0) bytes.set(f, (bytes.get(f) ?? 0) + v.bytesInOutput);
+  const found = [...bytes].filter(([f]) => r.unlisted.some((p) => p.test(f)));
+  held += found.length;
+  console.log(`\n${r.name}: unlisted modules ${found.length ? 'FOUND' : 'none'}`);
+  for (const [f, n] of found) console.log(`  ${pad(kB(n), 10)}${f}`);
+}
+
 for (const r of rows) {
   console.log(`\n${r.name}: largest contributors (minified bytes in the output)`);
   for (const [k, v] of contributors(r.meta, 4).slice(0, top)) console.log(`  ${pad(kB(v), 10)}${k}`);
@@ -119,3 +152,5 @@ for (const r of rows) {
       console.log(`    ${pad(kB(n), 10)}${relative(root, join(root, f))}`);
   }
 }
+
+if (held) process.exitCode = 1;

@@ -4,7 +4,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { type NavigatorExport, NavigatorSvgExport } from '@molstar/seqx-core/render/navigator-export';
+import { SelectActions } from '@molstar/seqx-viewer/bindings';
 import { cellOffset } from '@molstar/seqx-viewer/models';
+import { type NavigatorDef, NavigatorModel } from '@molstar/seqx-viewer/navigator';
+import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import type { BehaviorProvider } from '@molstar/seqx-viewer/viewer-spec';
 import { type AddressingBehavior, addressingBehavior } from './addressing.js';
 import { type CopyWrite, copyLettersCommand } from './copy.js';
@@ -14,7 +18,8 @@ import { type EditingBehavior, editingBehavior } from './editing.js';
 import { type HoverBehavior, hoverBehavior } from './hover.js';
 import { type NavigateBehavior, navigateBehavior } from './navigate.js';
 import { type NavigatorBehavior, navigatorBehavior } from './navigator.js';
-import { type RowsBehavior, rowsBehavior } from './rows.js';
+import { type RowsBehavior, RowsActions, rowsBehavior } from './rows.js';
+import { RowsRailGesture } from './rows-rail.js';
 import { type SelectBehavior, selectBehavior } from './select.js';
 import { type ThemingBehavior, themingBehavior } from './theming.js';
 import { type WindowBehavior, windowBehavior } from './window.js';
@@ -51,6 +56,8 @@ export interface SelectParams {
 
 export const SelectProvider: BehaviorProvider<SelectParams | undefined, SelectBehavior> = {
   name: 'select',
+  // the selection's actions only with the behavior that runs them: else its bindings are reported, never dead
+  actions: SelectActions,
   // the selection's gestures, and copying its letters (_spec/README.md "Behaviors", Copy)
   create: (ctx, params) => {
     const b = selectBehavior(ctx.selection, ctx.view, ctx.bindings, ctx.addresses);
@@ -79,10 +86,26 @@ export const WindowProvider: BehaviorProvider<undefined, WindowBehavior> = {
  * A navigator's gestures on its own window behavior (_spec/README.md "Behaviors", Navigator): a host may leave it out,
  * and its navigators and rails are then drawn with no targets.
  */
-export const NavigatorProvider: BehaviorProvider<undefined, NavigatorBehavior> = {
+export const NavigatorProvider: BehaviorProvider<undefined, NavigatorHandle> = {
   name: 'navigator',
-  create: ({ view, config }) => navigatorBehavior(view, config),
+  create: ({ view, config }) =>
+    Object.assign(navigatorBehavior(view, config), {
+      model: (viewer: SeqViewer, id: string, def?: NavigatorDef) => new NavigatorModel(viewer, id, def),
+      svgExport: NavigatorSvgExport,
+    }),
 };
+
+/**
+ * The navigator behavior's handle (_spec/README.md "Composition", Navigators): its gestures, and the navigators
+ * themselves, the viewer's models of them and their part of an SVG export: a viewer that lists no `navigator`
+ * behavior has none, and bundles none.
+ */
+export interface NavigatorHandle extends NavigatorBehavior {
+  /** A navigator's model (a declared one by its id, or a host's definition). */
+  model(viewer: SeqViewer, id: string, def?: NavigatorDef): NavigatorModel;
+  /** How an export draws the navigators it includes. */
+  readonly svgExport: NavigatorExport;
+}
 
 export const LegendProvider: BehaviorProvider<undefined, ThemingBehavior> = {
   name: 'legend',
@@ -90,7 +113,17 @@ export const LegendProvider: BehaviorProvider<undefined, ThemingBehavior> = {
 };
 
 /** An alignment's rows bands: folds, pins, hidden rows, order, the rows' zoom and scroll (_spec/README.md "Behaviors"). */
-export const RowsProvider: BehaviorProvider<undefined, RowsBehavior> = {
+export const RowsProvider: BehaviorProvider<undefined, RowsHandle> = {
   name: 'rows',
-  create: ({ spec, view, layout }) => rowsBehavior(spec, view, layout),
+  actions: RowsActions,
+  create: ({ spec, view, layout, config }) =>
+    Object.assign(rowsBehavior(spec, view, layout), {
+      railGesture: () => new RowsRailGesture(view, config),
+    }),
 };
+
+/** The rows behavior's handle: the rows bands' policy, and the rows rail's drags (a viewer with no rows has none). */
+export interface RowsHandle extends RowsBehavior {
+  /** A new gesture on a rows rail (the input keeps one). */
+  railGesture(): RowsRailGesture;
+}

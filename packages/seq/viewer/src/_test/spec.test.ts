@@ -10,6 +10,7 @@
 // a change outside it reported, two participants on one host stack undone in order, and no history at all; a stale
 // agent patch refused, then rebased by the host's opt-in.
 
+import { StoryPart } from '../story.js';
 import { State } from '@molstar/core/reactive';
 import { applyPatch, type Patch, patchToNode } from '@molstar/core/repr/patch';
 import { hashNode, type Node, resolveAddress } from '@molstar/core/repr/tree';
@@ -229,8 +230,15 @@ describe('SpecModel: previews', () => {
 });
 
 describe('SpecModel: story steps', () => {
+  it('are not entered without the story part: the viewer that lists none says so', () => {
+    const spec = new SpecModel(withStep());
+    expect(spec.enterStep('zoom')?.code).toBe('seq.viewer.step.none');
+    expect(spec.step.value).toBeUndefined();
+  });
+
   it('are entered and left as navigation, shown over the root and the preview', () => {
     const spec = new SpecModel(withStep());
+    spec.attachStory(StoryPart);
     const root = spec.root.value;
     expect(spec.enterStep('nothing')?.code).toBe('seq.viewer.step.unknown');
     expect(spec.enterStep('zoom')).toBeUndefined();
@@ -250,6 +258,7 @@ describe('SpecModel: story steps', () => {
 
   it('edits while shown patch the root; the step applies again over it; a masked edit is reported', () => {
     const spec = new SpecModel(withStep());
+    spec.attachStory(StoryPart);
     spec.enterStep('zoom');
     const r = spec.applyPatch(set(['views', 'main', 'gene', 'letters'], 'height', 12));
     expect(r.ok && r.changed).toBe(true);
@@ -268,6 +277,7 @@ describe('SpecModel: story steps', () => {
 
   it('is shown as not applying once an edit of the root breaks it', () => {
     const spec = new SpecModel(withStep());
+    spec.attachStory(StoryPart);
     spec.enterStep('zoom');
     // a removal of what the step names is refused (its addresses are refs of the spec)
     const named = spec.applyPatch({ ops: [{ op: 'remove', at: ['views', 'main', 'gene', 'letters'] }] });
@@ -484,6 +494,7 @@ describe('SpecModel: small contracts', () => {
 
   it('names the step shown in a refusal’s hint only when the step makes the target', () => {
     const spec = new SpecModel(withStep());
+    spec.attachStory(StoryPart);
     spec.enterStep('zoom');
     const none = spec.applyPatch(set(['views', 'main', 'nothing'], 'height', 5));
     expect(none.ok).toBe(false);

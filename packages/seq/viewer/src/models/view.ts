@@ -14,13 +14,13 @@
 import { batch, derive, KeyedState, type ReadonlyState, ReactiveModel, State } from '@molstar/core/reactive';
 import { type Node, parseAddress } from '@molstar/core/repr/tree';
 import {
-  BuiltInLayouts,
   type NavContext,
   type Placement,
   type Viewport as RenderViewport,
   type SectionLayoutType,
   type SectionNav,
   type StepDir,
+  TracksLayout,
 } from '@molstar/seqx-core/render';
 import type { BandViewport } from '@molstar/seqx-core/render';
 import { inversePath, type Path, projectEnd, projectPoint } from '@molstar/seqx-core/resolve';
@@ -806,10 +806,12 @@ export class ViewModel extends ReactiveModel {
     return this._layoutOf(layout).nav;
   }
 
-  /** A layout by name: the layout source's (the frame's), else the built-ins; tracks' when it is unknown, as drawn. */
+  /**
+   * A layout by name: the layout source's (the frame's, the viewer's registry); tracks' when it is unknown or there is
+   * no source, as drawn.
+   */
   private _layoutOf(layout: string): SectionLayoutType<any> {
-    const layouts = this._layouts?.layouts ?? BuiltInLayouts;
-    return layouts[layout] ?? layouts.tracks ?? BuiltInLayouts.tracks;
+    return this._layouts?.layouts?.[layout] ?? TracksLayout;
   }
 
   /**

@@ -23,7 +23,7 @@ import {
   sameWindow,
   TracksLayout,
 } from '../index.js';
-import { BuiltInLayerTypes } from '../tracks.js';
+import { BuiltInLayerTypes } from '../built-ins.js';
 import { P53 } from './fixtures.js';
 import { settle } from './helpers.js';
 

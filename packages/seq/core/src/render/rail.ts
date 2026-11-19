@@ -4,7 +4,15 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { axisBreaks, nearestOffsetOf, piecesTotal, positionAt, type ResolvedSection } from '@molstar/seqx-core/view';
+import {
+  axisBreaks,
+  nearestOffsetOf,
+  piecesTotal,
+  positionAt,
+  type ResolvedNavigator,
+  type ResolvedSection,
+  type ResolvedView,
+} from '@molstar/seqx-core/view';
 import type { AxisTransform, Viewport } from './axis.js';
 import type { RenderConfig } from './config.js';
 import type { PassWriter } from './draw-lists.js';
@@ -330,4 +338,39 @@ export function hitRail(rail: Rail, px: number, py: number, config: RenderConfig
   const u = Math.max(0, Math.min(rail.total - 1e-9, railUnitAt(rail, x)));
   h.position = Math.floor(positionAt(rail.shape, u, 'start') ?? u);
   return h;
+}
+
+// Which sections and tracks draw a rail (here, not with the navigators: a viewer that lists no navigator draws rails)
+// (a section's layout by name: `sectionLayoutName` of the tracks layout, which imports this module).
+
+/**
+ * The sections that draw a ruler rail by default (_spec/README.md "Render", Navigators): every linear section (tracks)
+ * that no shown navigator binds along its positions: the view's declared ones and a host's (`hosted`) replace it; a
+ * hidden one brings it back.
+ */
+export function railSections(view: ResolvedView, hosted: readonly ResolvedNavigator[] = []): string[] {
+  const bound = new Set<string>();
+  for (const list of [view.navigators, hosted])
+    for (const n of list) if (!n.hidden && n.axes !== 'rows') for (const a of n.of) bound.add(a);
+  return view.sections
+    .filter((s) => (s.layout ?? view.layout) === 'tracks' && !bound.has(s.address))
+    .map((s) => s.address);
+}
+
+/**
+ * The rows tracks that draw a rows rail by default (_spec/README.md "Render", Navigators, The rows rail): each linear
+ * section's tracks with a rows layer shown, unless a shown navigator binds the section along its rows (an overview, a
+ * miniature): it replaces the rail on the rows it binds; a hidden one brings it back.
+ */
+export function rowsRailTracks(view: ResolvedView, hosted: readonly ResolvedNavigator[] = []): string[] {
+  const bound = new Set<string>();
+  for (const list of [view.navigators, hosted])
+    for (const n of list) if (!n.hidden && n.axes !== 'positions') for (const a of n.of) bound.add(a);
+  const out: string[] = [];
+  for (const s of view.sections) {
+    if ((s.layout ?? view.layout) !== 'tracks' || bound.has(s.address)) continue;
+    for (const t of s.tracks)
+      if (t.layers.some((l) => l.type === 'rows' && l.placed && l.params.hidden !== true)) out.push(t.address);
+  }
+  return out;
 }

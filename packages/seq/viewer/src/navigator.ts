@@ -17,15 +17,11 @@ import {
   windowText,
 } from '@molstar/seqx-core/render';
 import { axisTotal, type ResolvedNavigator, type ResolvedView, resolveNavigatorNode } from '@molstar/seqx-core/view';
-import {
-  NavigateProvider,
-  type NavigatorBehavior,
-  NavigatorProvider,
-  windowIdle,
-} from '@molstar/seqx-viewer/behaviors';
+import { type NavigateBehavior, type NavigatorBehavior, windowIdle } from '@molstar/seqx-viewer/behaviors';
 import type { ModifierState } from '@molstar/seqx-viewer/bindings';
 import type { ViewSnapshot } from '@molstar/seqx-viewer/models';
 import { DragSlop } from './input.js';
+import { type PartCursor, partCursor } from './part-cursor.js';
 import type { SeqViewer } from './viewer.js';
 
 // The navigator's model (_spec/README.md "Models", NavigatorModel): DOM-free, one a navigator a viewer shows (a
@@ -36,18 +32,7 @@ import type { SeqViewer } from './viewer.js';
 // bound section's display units through the picture, and run through the `navigator` behavior. A hover stays here (a
 // readout, never the viewer's hover).
 
-export type PartCursor = 'ew-resize' | 'ns-resize' | 'grab' | 'grabbing' | 'pointer' | 'default';
-
-/**
- * The cursor that says the gesture over a window's part: a grip resizes along the axis it moves (`ew-resize` along
- * positions, `ns-resize` along rows), the body grabs (`grabbing` while dragged), outside it a click centres (`pointer`;
- * a press outside keeps the default while it runs).
- */
-export function partCursor(part: WindowPart, axis: 'positions' | 'rows', dragging: boolean): PartCursor {
-  if (part === 'outside') return dragging ? 'default' : 'pointer';
-  if (part === 'body') return dragging ? 'grabbing' : 'grab';
-  return axis === 'rows' ? 'ns-resize' : 'ew-resize';
-}
+export { type PartCursor, partCursor } from './part-cursor.js';
 
 /** A host's navigator: the params of a `navigator` node with its id, not saved in the spec. */
 export interface NavigatorDef {
@@ -210,6 +195,8 @@ export class NavigatorModel extends ReactiveModel {
         tokens: this.viewer.tokens,
         text: this.viewer.context.text,
         config: this.viewer.context.renderConfig,
+        types: this.viewer.context.types,
+        layouts: this.viewer.context.layouts,
         direction: this.viewer.config.navigator.direction,
         zoomStrip: this.viewer.config.navigator.zoomStrip,
         storeSettings: this.viewer.store.store.settings,
@@ -223,7 +210,7 @@ export class NavigatorModel extends ReactiveModel {
 
   /** What a gesture can move: each bound window's axes (`NavWindowFlags`), 0 idle. */
   private updateMoves(nav: ResolvedNavigator): void {
-    const behavior = this.viewer.behaviors.has(NavigatorProvider.name);
+    const behavior = this.viewer.behaviors.has('navigator');
     const view = this.viewer.view;
     for (const a of nav.of) {
       let m = 0;
@@ -339,7 +326,7 @@ export class NavigatorModel extends ReactiveModel {
   }
 
   private get behavior(): NavigatorBehavior | undefined {
-    return this.viewer.behavior(NavigatorProvider);
+    return this.viewer.behavior<NavigatorBehavior>('navigator');
   }
 
   /** A display unit range of the bound section as x on the navigator (a sweep's). */
@@ -579,7 +566,7 @@ export class NavigatorModel extends ReactiveModel {
     const h = this.hit(x, y);
     const section = h?.section ?? nav?.of[0];
     const v = section && this.viewer.view.get(section);
-    const navigate = this.viewer.behavior(NavigateProvider);
+    const navigate = this.viewer.behavior<NavigateBehavior>('navigate');
     if (!section || !v || !navigate) return false;
     navigate.wheel(section, dx, dy, v.width / 2, modifiers, undefined as never, (v.start + v.end) / 2);
     this.ownMove = true;

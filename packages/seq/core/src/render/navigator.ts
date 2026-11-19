@@ -34,12 +34,20 @@ import { RenderIssues } from './issues.js';
 import { layerSource } from './layer-data.js';
 import type { Emphasis, Overlay, StoreReader } from './layer-type.js';
 import type { WindowPart } from './layout/types.js';
-import { Renderer } from './renderer.js';
+import { Renderer, type RendererOptions } from './renderer.js';
 import { RowsLay } from './rows.js';
 import type { TextMetrics } from './text.js';
 import type { SeqTokens } from './tokens.js';
-import { hitView, type LayoutState, type SectionLayout, sectionLayoutName, type ViewLayout } from './tracks.js';
-import { drawNavigatorWindow, floorExtent, NavWindow, NavWindowFlags, navigatorPart } from './window.js';
+import { hitView, type LayoutState, type SectionLayout, type ViewLayout } from './tracks.js';
+export { railSections, rowsRailTracks } from './rail.js';
+import {
+  DefaultZoomStrip,
+  drawNavigatorWindow,
+  floorExtent,
+  NavWindow,
+  NavWindowFlags,
+  navigatorPart,
+} from './window.js';
 
 // A navigator (_spec/README.md "Render", Navigators): one part over a section's axis, its rows or both, drawing its
 // system whole (the fit window, in the bound section's display order) through the layout interface, as a view of its
@@ -53,12 +61,8 @@ import { drawNavigatorWindow, floorExtent, NavWindow, NavWindowFlags, navigatorP
 /** A navigator's default thickness by its form (CSS px), and a miniature's box. */
 export const NavigatorSizes = { axis: 20, tracks: 48, bands: 24, rows: 96, both: [160, 96] } as const;
 
-/**
- * The zoom strip (_spec/README.md "Render", Navigators, The zoom strip): a reachable span narrower than `minPx` on the
- * navigator gets a zoom strip under it, `heightPx` more (its connectors' gap, `ZoomGapPx`, within it). The viewer's
- * `navigator.zoomStrip` sets them; these are the defaults (an export's).
- */
-export const DefaultZoomStrip = { minPx: 48, heightPx: 16 } as const;
+// the zoom strip's defaults are with the window marks (the viewer's config reads them, navigators listed or not)
+export { DefaultZoomStrip } from './window.js';
 
 /** The gap between the context and the zoom strip, where the connectors run (CSS px, fixed: a look). */
 const ZoomGapPx = 6;
@@ -294,38 +298,6 @@ export class NavigatorWindow {
   rows = 0;
 }
 
-/**
- * The sections that draw a ruler rail by default (_spec/README.md "Render", Navigators): every linear section (tracks)
- * that no shown navigator binds along its positions: the view's declared ones and a host's (`hosted`) replace it; a
- * hidden one brings it back.
- */
-export function railSections(view: ResolvedView, hosted: readonly ResolvedNavigator[] = []): string[] {
-  const bound = new Set<string>();
-  for (const list of [view.navigators, hosted])
-    for (const n of list) if (!n.hidden && n.axes !== 'rows') for (const a of n.of) bound.add(a);
-  return view.sections
-    .filter((s) => sectionLayoutName(s, view) === 'tracks' && !bound.has(s.address))
-    .map((s) => s.address);
-}
-
-/**
- * The rows tracks that draw a rows rail by default (_spec/README.md "Render", Navigators, The rows rail): each linear
- * section's tracks with a rows layer shown, unless a shown navigator binds the section along its rows (an overview, a
- * miniature): it replaces the rail on the rows it binds; a hidden one brings it back.
- */
-export function rowsRailTracks(view: ResolvedView, hosted: readonly ResolvedNavigator[] = []): string[] {
-  const bound = new Set<string>();
-  for (const list of [view.navigators, hosted])
-    for (const n of list) if (!n.hidden && n.axes !== 'positions') for (const a of n.of) bound.add(a);
-  const out: string[] = [];
-  for (const s of view.sections) {
-    if (sectionLayoutName(s, view) !== 'tracks' || bound.has(s.address)) continue;
-    for (const t of s.tracks)
-      if (t.layers.some((l) => l.type === 'rows' && l.placed && l.params.hidden !== true)) out.push(t.address);
-  }
-  return out;
-}
-
 /** What a window says (an export's title, a slider's value): its positions on the navigator's system, its rows. */
 export function windowText(model: StaticModel, nav: ResolvedNavigator, w: NavigatorWindow): string {
   const name = (nav.system && model.systems.get(nav.system)?.name) ?? '';
@@ -375,6 +347,9 @@ export interface NavigatorRendererOptions {
   readonly tokens: SeqTokens;
   readonly text: TextMetrics;
   readonly config?: RenderConfig;
+  /** The layer types and section layouts its picture draws with: the view's renderer's (the composition's registry). */
+  readonly types: RendererOptions['types'];
+  readonly layouts: RendererOptions['layouts'];
   readonly theme?: Partial<Pick<ThemeContext, 'schemes' | 'measures'>>;
   /** The shared image cache (the view's renderer's): a navigator's image tiles take the view's budget. */
   readonly images?: ImageCache;
@@ -437,12 +412,14 @@ export interface NavigatorFrame {
 /** The passes the navigator draws itself over its picture's. */
 const OwnPasses: readonly PassName[] = ['window', 'highlight', 'selection', 'hover', 'cursor'];
 
-const Ext = new Float64Array(8);
+// pure: a composition that lists no navigator bundles none of this module, whatever its bundler knows of side effects
+const Ext = /* @__PURE__ */ new Float64Array(8);
 /** A connector's two points (x, y pairs). */
-const Line = new Float64Array(4);
-const FlagNoStart: number = NavWindowFlags.noStart;
-const FlagNoEnd: number = NavWindowFlags.noEnd;
-const FlagOutline: number = NavWindowFlags.outline;
+const Line = /* @__PURE__ */ new Float64Array(4);
+// the flags as literals (checked against `NavWindowFlags`): a module-level read of another module's object is kept
+const FlagNoStart: number = 16 satisfies typeof NavWindowFlags.noStart;
+const FlagNoEnd: number = 32 satisfies typeof NavWindowFlags.noEnd;
+const FlagOutline: number = 4 satisfies typeof NavWindowFlags.outline;
 // an imported binding read in a draw is a property read under a module runner
 const None: number = NoColor;
 const Seen: number[] = [];
@@ -600,6 +577,8 @@ export class NavigatorRenderer {
           tokens: this.tokens,
           text: o.text,
           config: this.zoomed ? this.zoomConfig! : this.pictureConfig,
+          types: o.types,
+          layouts: o.layouts,
           ...(o.theme ? { theme: o.theme } : {}),
           ...(o.images ? { images: o.images } : {}),
           ...(o.domains ? { domains: { state: o.domains, map: this.viewKey } } : {}),

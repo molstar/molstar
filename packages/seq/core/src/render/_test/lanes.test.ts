@@ -7,6 +7,7 @@
 // Sticky lanes while data streams: an item keeps its lane when a neighboring tile arrives, though a fresh packing
 // would move it; lanes are repacked only once the view has settled and a packing needs fewer lanes.
 
+import { BuiltInRender } from '../built-ins.js';
 import { categoryColumn } from '@molstar/core/repr/tree';
 import { DataStore, type OpenedSource, type RegionAnswer, type RegionRequest } from '@molstar/seqx-core/data';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
@@ -82,7 +83,14 @@ describe('sticky lanes', () => {
     const store = new DataStore();
     const source = new Deferred({ 0: tile0, 1024: tile1 });
     store.attach('/data/src', source);
-    const renderer = new Renderer({ model, view, data: store, tokens: LightTokens, text: bundledTextMetrics() });
+    const renderer = new Renderer({
+      ...BuiltInRender,
+      model,
+      view,
+      data: store,
+      tokens: LightTokens,
+      text: bundledTextMetrics(),
+    });
     const input = { size: { width: 800, height: 80 }, viewport: { start: 900, end: 1200 } };
     store.want(renderer.frame(input).wants);
     await flush();
@@ -102,7 +110,14 @@ describe('sticky lanes', () => {
     expect(lanesOf(lay)).toEqual({ a: 0, long: 1, b: 0, c: 0 });
 
     // a renderer with no history packs them fresh: `long` first
-    const fresh = new Renderer({ model, view, data: store, tokens: LightTokens, text: bundledTextMetrics() });
+    const fresh = new Renderer({
+      ...BuiltInRender,
+      model,
+      view,
+      data: store,
+      tokens: LightTokens,
+      text: bundledTextMetrics(),
+    });
     const f = fresh.frame(input);
     expect(lanesOf(f.layout.sections[0].tracks[0].layers[0].lay as RangesLay)).toEqual({ a: 0, long: 0, b: 1, c: 0 });
     store.retire();

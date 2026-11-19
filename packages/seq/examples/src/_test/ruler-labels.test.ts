@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { BuiltInRender } from '@molstar/seqx-core/render/built-ins';
 import type { Node } from '@molstar/core/repr/tree';
 import { DataStore } from '@molstar/seqx-core/data';
 import { AlignmentFileRuntime } from '@molstar/seqx-core/data/alignment-readers';
@@ -23,7 +24,14 @@ async function drawn(width: number, spec: Node = globins.figure()) {
   const view = resolveViews(model)[0];
   const store = new DataStore();
   await attachSources(model, store, { assets: nodeFixtureAssets().reader });
-  const renderer = new Renderer({ model, view, data: store, tokens: LightTokens, text: bundledTextMetrics() });
+  const renderer = new Renderer({
+    ...BuiltInRender,
+    model,
+    view,
+    data: store,
+    tokens: LightTokens,
+    text: bundledTextMetrics(),
+  });
   const input = { size: { width, height: 1200 }, dpr: 1, settled: true, figure: true };
   let f = renderer.frame(input);
   for (let i = 0; i < 6; i++) {

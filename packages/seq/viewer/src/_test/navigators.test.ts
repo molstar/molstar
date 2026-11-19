@@ -354,7 +354,7 @@ describe('a strip and the view it moves', () => {
 
   it('a host’s navigator, never saved: the same model', async () => {
     const v = await make(spec({ strip: false }));
-    const m = v.navigator({ id: 'host', of: P, content: 'axis' });
+    const m = v.navigator({ id: 'host', of: P, content: 'axis' })!;
     v.view.setRange(P, 10, 30);
     v.draw();
     m.draw();

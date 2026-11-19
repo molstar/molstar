@@ -308,7 +308,9 @@ function nextMark(lay: RangesLay): number {
   return j;
 }
 
-const images = new RowImages();
+// made at first use: `items.js` and this module import each other, and a composition may load either first (a registry
+// that lists bands before ranges), so nothing of `items.js` is read while the modules load
+let rowImages: RowImages | undefined;
 
 /** A wave's scratch points (x, y pairs), kept and grown at layout. */
 let wave = new Float64Array(64);
@@ -504,6 +506,7 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
       // the arrowheads go on the piece holding the end (the start) the item really has, in reading order
       const atEnd = (lay.arrow & 1) !== 0 && lay.last[i] === 1;
       const atStart = (lay.arrow & 2) !== 0 && lay.first[i] === 1;
+      const images = (rowImages ??= new RowImages());
       if (atEnd || atStart) images.set(src, lay.starts[i], lay.ends[i]);
       for (let k = 0; k + 1 < pieces.length; k += 2) {
         axis.piecesIn(pieces[k], pieces[k + 1]);

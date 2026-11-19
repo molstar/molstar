@@ -7,6 +7,7 @@
 // Navigator fixtures: a view settled with a navigator of its own (the navigator's wants answered by the same store),
 // a chromosome with its stained bands and a section on a region of it.
 
+import { BuiltInRender } from '../built-ins.js';
 import type { Node } from '@molstar/core/repr/tree';
 import type { FormatRuntime } from '@molstar/seqx-core/data';
 import { createSeqSpec, ideogramNavigator, stripNavigator } from '@molstar/seqx-core/lang';
@@ -39,6 +40,7 @@ export async function settleNavigator(
 ): Promise<SettledNavigator> {
   const s = await settle(spec, runtimes, config);
   const nav = new NavigatorRenderer({
+    ...BuiltInRender,
     model: s.model,
     view: s.view,
     navigator: s.view.navigators[navigator],

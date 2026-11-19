@@ -5,6 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { uiHistory } from '../ui-history.js';
 import { KeyPlatform } from '@molstar/ui/commands/keys';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { RecordingContext } from '../canvas/_test/recording.js';
@@ -64,7 +65,7 @@ async function make(mounted = false) {
   viewer = createSeqViewer(
     {
       ...DefaultSeqViewerSpec(),
-      ui: { canvas: true, history: true, toolbar: mountToolbar },
+      ui: { canvas: true, history: uiHistory, toolbar: mountToolbar },
       config: [[viewerItem('viewport.maxPxPerPosition'), 1000]],
     },
     mounted ? target : undefined,

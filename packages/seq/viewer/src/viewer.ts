@@ -7,9 +7,8 @@
 import { ReactiveModel, type ReadonlyState, State } from '@molstar/core/reactive';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { type Issue, issueOf, type Node } from '@molstar/core/repr/tree';
-import { createSeqContext, type SeqContext } from '@molstar/seqx-core/context';
+import { composeSeqContext, type SeqContext } from '@molstar/seqx-core/context';
 import {
-  BuiltInLayouts,
   type Emphasis,
   type EmphasisHighlight,
   type BandViewport,
@@ -18,6 +17,7 @@ import {
   type Hit as RenderHit,
   type Placement,
   Renderer,
+  type RendererOptions,
   type RenderSvgOptions,
   type RenderSvgResult,
   type Viewport as RenderViewport,
@@ -32,28 +32,18 @@ import { type Location, locationOfResult } from '@molstar/seqx-core/query';
 import { type Lengths, sourceLengths } from '@molstar/seqx-core/resolve';
 import { mapsEqual } from '@molstar/core/util/map';
 import type { SeqTokens } from '@molstar/seqx-core/render';
-import {
-  type Frame as StoryFrame,
-  frameRoot,
-  frameView,
-  plan as planTransition,
-  type PlanOptions,
-  sample,
-  type StoryState,
-  type StepViewport,
-  type TransitionPlan,
-  type ViewState,
+import type {
+  Frame as StoryFrame,
+  PlanOptions,
+  StoryState,
+  StepViewport,
+  TransitionPlan,
+  ViewState,
 } from '@molstar/seqx-core/story';
 import type { ResolvedNavigator, ResolvedView } from '@molstar/seqx-core/view';
 import type { CommandDefinition, CommandResult } from '@molstar/ui/commands/types';
 import { cancelFrameCallback, DomHost, requestFrameCallback } from '@molstar/ui/dom';
-import {
-  bindingTable,
-  DefaultActions,
-  type BindingTable,
-  BindingPresets,
-  SelectActions,
-} from '@molstar/seqx-viewer/bindings';
+import { bindingTable, DefaultActions, type BindingTable, BindingPresets } from '@molstar/seqx-viewer/bindings';
 import type { CanvasBackend } from '@molstar/seqx-viewer/canvas';
 import { type ViewerConfig, viewerConfigOf } from '@molstar/seqx-viewer/config';
 import {
@@ -69,25 +59,17 @@ import {
   StoreModel,
   ViewModel,
 } from '@molstar/seqx-viewer/models';
-import {
-  AddressingProvider,
-  type HoverCardBehavior,
-  type LinkRun,
-  NavigatorProvider,
-  windowIdle,
-  RowsActions,
-  RowsProvider,
-  SelectProvider,
-} from '@molstar/seqx-viewer/behaviors';
+import type { AddressingBehavior, HoverCardBehavior, LinkRun, NavigatorHandle } from '@molstar/seqx-viewer/behaviors';
+import { windowIdle } from '@molstar/seqx-viewer/behaviors/window';
 import type { AnimationRequest, SeqAnimation, SeqAnimationParticipant } from '@molstar/seqx-viewer/ports';
 import { frameAnimation } from './animation.js';
 import { ViewerInput } from './input.js';
 import { highlightColorOf, LegendModel } from './legends.js';
-import { uiHistory } from './ui-history.js';
 import { ViewerIssues } from './issues.js';
 import type { BehaviorContext, BehaviorProvider, SeqViewerSpec } from './viewer-spec.js';
 import { mountCanvas } from './mount.js';
-import { type NavigatorDef, NavigatorModel } from './navigator.js';
+import type { SeqStoryPart } from './story.js';
+import type { NavigatorDef, NavigatorModel } from './navigator.js';
 
 // The viewer (_spec/README.md "Composition"): composed from a spec by `createSeqViewer`, as a Mol* plugin is: the
 // context (registry, configuration, ports) first, then the models, the bindings and the behaviors, then the UI. Frames
@@ -148,8 +130,11 @@ export class SeqViewer extends ReactiveModel {
   height = 0;
   /** The device pixel ratio of the last frame. */
   dpr = 1;
-  /** The section layouts by name: one map the frames draw with and the view's moves navigate by. */
-  readonly layouts = BuiltInLayouts;
+  /**
+   * The section layouts by name, the spec's registry's: one map the frames draw with and the view's moves navigate by
+   * (a section naming another is laid out as tracks, and said).
+   */
+  readonly layouts: RendererOptions['layouts'];
   /** Frames drawn and layouts made: what a test or a profile reads. */
   readonly counts = { frames: 0, layouts: 0 };
 
@@ -241,6 +226,13 @@ export class SeqViewer extends ReactiveModel {
   private _baseDirty = true;
   private _hoverVersion = -1;
   private _retired = false;
+  /** The stories and transitions the spec lists (`story`): none, every jump a cut and no step entered. */
+  private readonly _motion: SeqStoryPart | undefined;
+
+  /** The `navigator` behavior's handle, when listed: the navigators' models and their export are its. */
+  private get _navigatorHandle(): NavigatorHandle | undefined {
+    return this.behaviors.get('navigator') as NavigatorHandle | undefined;
+  }
 
   constructor(
     viewerSpec: SeqViewerSpec,
@@ -250,12 +242,15 @@ export class SeqViewer extends ReactiveModel {
     super();
     this.config = viewerConfig(viewerSpec);
     // the headless pieces first: the registry, the configuration and the ports
-    this.context = createSeqContext({
+    // the registry as listed: what the canvas and the SVG draw (_spec/README.md "Composition", Injected, opt in)
+    this.context = composeSeqContext({
       ...(viewerSpec.registry ? { registry: viewerSpec.registry } : {}),
       ...(viewerSpec.config ? { config: viewerSpec.config } : {}),
       ...(viewerSpec.ports ? { ports: viewerSpec.ports } : {}),
     });
     this.registerPermanentDispose(() => this.context.retire());
+    this.layouts = this.context.layouts;
+    this._motion = viewerSpec.story;
     this.layoutIssues = this._issues.asReadonly;
     this.behaviorIssues = this._behaviorIssues.asReadonly;
     this.rested = this._rested.asReadonly;
@@ -270,6 +265,7 @@ export class SeqViewer extends ReactiveModel {
       false,
       this._lengths.asReadonly,
     );
+    if (viewerSpec.story) this.spec.attachStory(viewerSpec.story);
     this.view = new ViewModel(this.spec, this.config);
     // a section's moves are its layout's arithmetic over its placement in the last frame (_spec/README.md "ViewModel")
     this.view.setLayoutSource({
@@ -302,16 +298,16 @@ export class SeqViewer extends ReactiveModel {
     for (const m of [this.addresses, this.highlight, this.selection, this.store, this.hover, this.view, this.spec])
       this.registerPermanentDispose(() => m.retire());
     // the host's history, through Seq*'s port: the spec takes part in it (none headless unless the spec gives one)
-    const history = viewerSpec.history ?? (target && viewerSpec.ui?.history ? uiHistory() : undefined);
+    const history = viewerSpec.history ?? (target && viewerSpec.ui?.history ? viewerSpec.ui.history() : undefined);
     if (history) this.spec.attachHistory(history);
 
     const preset = viewerSpec.bindings?.preset ?? BindingPresets[this.config.bindings.preset];
     const extraActions = viewerSpec.bindings?.actions ?? [];
-    // the selection's actions only with the behavior that runs them: else its bindings are reported, never dead
-    const select = viewerSpec.behaviors.some((b) => b.provider === SelectProvider) ? SelectActions : [];
-    const rows = viewerSpec.behaviors.some((b) => b.provider === RowsProvider) ? RowsActions : [];
+    // a behavior's actions only with the behavior that runs them (the selection's, the rows'): else its bindings are
+    // reported, never dead
+    const listed = viewerSpec.behaviors.flatMap((b) => b.provider.actions ?? []);
     this.bindings = bindingTable(preset, viewerSpec.bindings?.overrides ?? [], {
-      actions: [...DefaultActions, ...select, ...rows, ...extraActions],
+      actions: [...DefaultActions, ...listed, ...extraActions],
       keys: this.config.view.keys,
     });
 
@@ -371,7 +367,9 @@ export class SeqViewer extends ReactiveModel {
     this.listenPermanently(this.store.store.settled, () => this.schedule());
     // the animation port (_spec/README.md "Ports", Animation): the application's clock, the page's frames by default
     this.animation = {
-      progress: (plan, t) => this._showFrame(plan, sample(plan, t)),
+      progress: (plan, t) => {
+        if (this._motion) this._showFrame(plan, this._motion.sample(plan, t));
+      },
       show: (plan, frame) => this._showFrame(plan, frame),
       clear: () => this._clearFrame(),
       draw: () => {
@@ -428,16 +426,18 @@ export class SeqViewer extends ReactiveModel {
    * The handle of a behavior by its provider (what the input calls). One the spec does not list is reported once as an
    * issue (`behaviorIssues`) and the gesture does nothing.
    */
-  behavior<H>(provider: BehaviorProvider<any, H>): H | undefined {
-    if (this._handles.has(provider)) return this._handles.get(provider) as H;
-    if (!this._behaviorIssues.value.some((i) => i.address === provider.name))
+  behavior<H>(provider: BehaviorProvider<any, H> | string): H | undefined {
+    const name = typeof provider === 'string' ? provider : provider.name;
+    // by name: what the input asks for names no provider object, so a viewer bundles only the behaviors it lists
+    if (this.behaviors.has(name)) return this.behaviors.get(name) as H;
+    if (!this._behaviorIssues.value.some((i) => i.address === name))
       this._behaviorIssues.set([
         ...this._behaviorIssues.value,
         issueOf(
           ViewerIssues,
           'seq.viewer.behavior.missing',
-          `The viewer has no ${provider.name} behavior: its gestures do nothing`,
-          { address: provider.name, hint: ViewerIssues.codes['seq.viewer.behavior.missing'].hint },
+          `The viewer has no ${name} behavior: its gestures do nothing`,
+          { address: name, hint: ViewerIssues.codes['seq.viewer.behavior.missing'].hint },
         ),
       ]);
     return undefined;
@@ -678,10 +678,11 @@ export class SeqViewer extends ReactiveModel {
   private _startMotion(jumps: number): void {
     const { jumpMs } = this.config.view;
     this._endMotion();
-    if (this._retired || this._cut || !(jumpMs > 0) || !this._drawnViews.size) return;
+    const motion = this._motion;
+    if (!motion || this._retired || this._cut || !(jumpMs > 0) || !this._drawnViews.size) return;
     const from: ViewState = { sections: Object.fromEntries(this._drawnViews) };
     const shown = this.spec.shown.value;
-    const p = planTransition(
+    const p = motion.plan(
       { root: shown, view: from },
       { root: shown, view: this._modelViews() },
       { ...this._planOptions(), duration: jumpMs },
@@ -692,7 +693,8 @@ export class SeqViewer extends ReactiveModel {
   /** Runs a plan on the application's clock, shown from its start now; the frame left at its end. */
   private _run(plan: TransitionPlan, jumps?: number): void {
     this._request?.request.cancel();
-    this._showFrame(plan, sample(plan, 0));
+    if (!this._motion) return;
+    this._showFrame(plan, this._motion.sample(plan, 0));
     const request = this._animation.request(plan, {
       duration: plan.duration,
       done: () => {
@@ -714,10 +716,11 @@ export class SeqViewer extends ReactiveModel {
 
   /** Shows a frame over the state (the frame slot): its spec when the plan changes the spec, its viewports. */
   private _showFrame(plan: TransitionPlan, frame: StoryFrame): void {
-    if (this._retired) return;
+    const motion = this._motion;
+    if (this._retired || !motion) return;
     // a plan between two equal roots (a jump's) shows the state itself
-    this.spec.setFrame(plan.from.root === plan.to.root ? undefined : frameRoot(plan, frame));
-    const views = frameView(plan, frame);
+    this.spec.setFrame(plan.from.root === plan.to.root ? undefined : motion.frameRoot(plan, frame));
+    const views = motion.frameView(plan, frame);
     this._shownFrame = { plan, frame, ...(views ? { views } : {}) };
     this._moved();
     this.schedule();
@@ -753,7 +756,8 @@ export class SeqViewer extends ReactiveModel {
    * Stories): navigation, no commit, no history step. The step's state is shown, its view's sections placed (positions
    * to offsets, exactly), and a plan from what was drawn to it is made, timed by the step. `run` (true): the plan runs
    * on the animation port; false: its start is shown and the application drives it (`animation.progress`, then
-   * `animation.clear()`). A cut under reduced motion. The issue when the step is unknown.
+   * `animation.clear()`). A cut under reduced motion. The issue when the step
+   * is unknown.
    */
   playStep(id: string | undefined, options: { readonly run?: boolean } = {}): { plan?: TransitionPlan; issue?: Issue } {
     this._endMotion();
@@ -787,8 +791,8 @@ export class SeqViewer extends ReactiveModel {
     this._toStep(this._fromState(this._drawnRoot ?? this.spec.shown.value), true);
   }
 
-  /** The step shown (its view placed) and the plan to it from `from`, run or shown at its start. */
-  private _toStep(from: StoryState, run: boolean): TransitionPlan {
+  /** The step shown (its view placed) and the plan to it from `from`, run or shown at its start (none: no motion). */
+  private _toStep(from: StoryState, run: boolean): TransitionPlan | undefined {
     const st = this.spec.step.value?.state;
     if (st?.view) {
       if (st.view.view !== undefined) this.view.show(st.view.view);
@@ -814,9 +818,14 @@ export class SeqViewer extends ReactiveModel {
         }
       }
     }
+    const motion = this._motion;
+    if (!motion) {
+      this.schedule();
+      return undefined;
+    }
     const to = { root: this.spec.shown.value, view: { ...this._modelViews(), ...this._viewAddress() } };
     const timing = st?.timing;
-    const p = planTransition(from, to, {
+    const p = motion.plan(from, to, {
       ...this._planOptions(),
       reducedMotion: this._cut,
       ...(timing ? { duration: timing.duration, easing: timing.easing } : {}),
@@ -826,7 +835,7 @@ export class SeqViewer extends ReactiveModel {
       return p;
     }
     if (run) this._run(p);
-    else this._showFrame(p, sample(p, 0));
+    else this._showFrame(p, motion.sample(p, 0));
     return p;
   }
 
@@ -1002,6 +1011,7 @@ export class SeqViewer extends ReactiveModel {
         tokens: this.tokens,
         text: this.context.text,
         config: this.context.renderConfig,
+        types: this.context.types,
         layouts: this.layouts,
       });
       rr[0] = model;
@@ -1152,7 +1162,7 @@ export class SeqViewer extends ReactiveModel {
     }
     const rails = this._rails;
     if (!rails) return;
-    const behavior = this._handles.has(NavigatorProvider);
+    const behavior = this.behaviors.has('navigator');
     let changed = false;
     // a rows rail can move while the behavior is there (idle while every row shows: the layout knows, `whole`)
     const can = (a: string) => behavior && (this._rowsRails.has(a) || !windowIdle(this.view, a, this.config));
@@ -1184,7 +1194,8 @@ export class SeqViewer extends ReactiveModel {
     if (kept) return kept;
     const view = this.view.resolved.value;
     if (!view?.navigators.some((n) => n.id === id || n.address === id)) return undefined;
-    const m = new NavigatorModel(this, id);
+    const m = this._navigatorHandle?.model(this, id);
+    if (!m) return undefined;
     this._navigators.set(id, m);
     this.registerPermanentDispose(() => m.retire());
     return m;
@@ -1194,9 +1205,11 @@ export class SeqViewer extends ReactiveModel {
    * A host's navigator (_spec/README.md "Composition", Navigators): a definition of the `navigator` node's shape, never
    * saved in the spec (a Mol* plugin's strip over a user's spec); mounted by its id like a declared one.
    */
-  navigator(def: NavigatorDef): NavigatorModel {
+  navigator(def: NavigatorDef): NavigatorModel | undefined {
+    const handle = this.behavior<NavigatorHandle>('navigator');
+    if (!handle) return undefined;
     this._navigators.get(def.id)?.retire();
-    const m = new NavigatorModel(this, def.id, def);
+    const m = handle.model(this, def.id, def);
     this._navigators.set(def.id, m);
     this._hostedVersion++;
     this.registerPermanentDispose(() => m.retire());
@@ -1386,7 +1399,7 @@ export class SeqViewer extends ReactiveModel {
    */
   runLink(text: string): LinkRun | undefined {
     if (this._retired) return undefined;
-    return this.behavior(AddressingProvider)?.runLink(text);
+    return this.behavior<AddressingBehavior>('addressing')?.runLink(text);
   }
 
   // ---- export ----
@@ -1424,6 +1437,8 @@ export class SeqViewer extends ReactiveModel {
       tokens: this.tokens,
       // the navigators as the parts draw them (an included one's zoom strip, its direction)
       navigator: { zoomStrip: this.config.navigator.zoomStrip, direction: this.config.navigator.direction },
+      // the navigators are the `navigator` behavior's: a viewer that lists none exports none (and says so when asked)
+      ...(this._navigatorHandle ? { navigatorExport: this._navigatorHandle.svgExport } : {}),
       // what the canvas shows of the session: the selection, as its address when it has one (the export resolves it
       // over what it holds, and projects it onto the linked sections), else as its Location; the highlight channels
       ...this._svgEmphasis(),

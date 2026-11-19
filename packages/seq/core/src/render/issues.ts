@@ -195,6 +195,16 @@ export const RenderIssues = defineIssues('seq.render', {
     description: 'No type in a layer’s fallback chain is one this target draws: the layer is not drawn',
     hint: 'Give the layer a fallback this target draws',
   },
+  'seq.render.layout': {
+    severity: 'warning',
+    description: 'A section names a layout this target does not draw: it is laid out as tracks',
+    hint: 'Register the layout in the composition (a `layout` registry entry), or name one it draws',
+  },
+  'seq.render.navigator.export': {
+    severity: 'warning',
+    description: 'An export asked to include the view’s navigators, and its composition draws none: they are left out',
+    hint: 'Export through a composition that lists navigators (`renderSvg`, a viewer with the `navigator` behavior)',
+  },
   'seq.render.layer.letters': {
     severity: 'warning',
     description: 'A letters layer shows another system’s letters through a path: letters are drawn on their own system',

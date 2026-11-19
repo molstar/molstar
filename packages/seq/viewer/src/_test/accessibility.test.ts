@@ -9,6 +9,7 @@
 // keyboard cursor's place, a hover that rests and a selection's change, one text at a time within a rate limit; forced
 // colors read the system colors into the tokens; the rows' order is reachable from the keyboard.
 
+import { uiHistory } from '../ui-history.js';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { builtInTokens, colorHex } from '@molstar/seqx-core/render';
 import { rangesLocation } from '@molstar/seqx-core/query';
@@ -246,10 +247,7 @@ describe('the mounted live region', () => {
     });
     const target = document.createElement('div');
     document.body.appendChild(target);
-    const v = createSeqViewer(
-      { ...DefaultSeqViewerSpec(), ui: { canvas: true as const, history: true as const } },
-      target,
-    );
+    const v = createSeqViewer({ ...DefaultSeqViewerSpec(), ui: { canvas: true as const, history: uiHistory } }, target);
     viewers.push(v);
     await v.load(domainsSpec());
     await v.settle();
@@ -307,7 +305,7 @@ describe('forced colors, whatever the theme source', () => {
     const v = createSeqViewer(
       {
         ...DefaultSeqViewerSpec(),
-        ui: { canvas: true as const, history: true as const },
+        ui: { canvas: true as const, history: uiHistory },
         config: [[viewerItem('theme.source'), 'config']] as never,
       },
       target,

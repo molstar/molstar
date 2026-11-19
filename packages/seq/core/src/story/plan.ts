@@ -164,7 +164,8 @@ function colorOf(hex: string): Color {
   return Color.fromHexStyle(h);
 }
 
-const _lab = Oklab.zero();
+// pure: a composition with no story part bundles none of this module
+const _lab = /* @__PURE__ */ Oklab.zero();
 function components(hex: string, space: 'oklab' | 'srgb'): [number, number, number] {
   const c = colorOf(hex);
   if (space === 'srgb') return [(c >> 16) & 255, (c >> 8) & 255, c & 255];

@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { BuiltInRender } from '../built-ins.js';
 import { DataStore, SeqRuntime, type StoreSettings } from '@molstar/seqx-core/data';
 import { itemAddress, nodeAddress, OverlayBuilder, resolveSpec } from '@molstar/seqx-core/resolve';
 import { resolveView, resolveViews } from '@molstar/seqx-core/view';
@@ -40,6 +41,7 @@ async function live(
   const overlays = new OverlayBuilder({ runtimes: [SeqRuntime] });
   const sources = new OverlaySources(store, NoAssets);
   const renderer = new Renderer({
+    ...BuiltInRender,
     model,
     view,
     data: store,
@@ -152,6 +154,7 @@ describe('dynamic nodes through templates', () => {
     // the tracks go (a spec without templates over the same store): nothing shows it any more, and it goes
     const bare = resolveSpec(transcriptsSpec({ templates: false }), { runtimes: [SeqRuntime] });
     const plain = new Renderer({
+      ...BuiltInRender,
       model: bare,
       view: resolveViews(bare)[0],
       data: run.store,

@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { BuiltInRenderRegistry } from '@molstar/seqx-core/context';
 import { SeqRuntime } from '@molstar/seqx-core/data';
 import { RecordsRuntime } from '@molstar/seqx-core/data/records';
 import {
@@ -25,6 +26,8 @@ import { frameAnimation } from './animation.js';
 import { hoverCardOverlay } from './mount-hover-card.js';
 import { legendsMount } from './mount-legend.js';
 import { navigatorsMount } from './mount-navigator.js';
+import { StoryPart } from './story.js';
+import { uiHistory } from './ui-history.js';
 import type { SeqViewerSpec } from './viewer-spec.js';
 
 // The default spec (_spec/README.md "Composition"): the built-in entries, behaviors, ports and UI, as data. An
@@ -39,6 +42,8 @@ export function DefaultSeqViewerSpec(): SeqViewerSpec {
     registry: [
       { kind: 'format-runtime', runtime: SeqRuntime },
       { kind: 'format-runtime', runtime: RecordsRuntime },
+      // the core's layer types and layouts: what the canvas and the SVG draw
+      ...BuiltInRenderRegistry,
     ],
     behaviors: [
       { provider: HoverProvider },
@@ -59,6 +64,7 @@ export function DefaultSeqViewerSpec(): SeqViewerSpec {
     config: [],
     ports: defaultPorts(),
     animation: frameAnimation(),
-    ui: { canvas: true, history: true, legends: legendsMount, navigators: navigatorsMount },
+    story: StoryPart,
+    ui: { canvas: true, history: uiHistory, legends: legendsMount, navigators: navigatorsMount },
   };
 }

@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { BuiltInRender } from '@molstar/seqx-core/render/built-ins';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Node } from '@molstar/core/repr/tree';
@@ -203,7 +204,16 @@ async function laid(spec: Node, size = { width: 720, height: 900 }) {
   });
   const { model } = opened;
   const v = opened.view!;
-  const input = { model, view: v, size, viewports: {}, tokens: LightTokens, text: bundledTextMetrics(), data: store };
+  const input = {
+    ...BuiltInRender,
+    model,
+    view: v,
+    size,
+    viewports: {},
+    tokens: LightTokens,
+    text: bundledTextMetrics(),
+    data: store,
+  };
   for (let i = 0; i < 3; i++) {
     store.want(layoutView(input).wants);
     await store.whenSettled();

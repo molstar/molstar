@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { BuiltInRender } from '@molstar/seqx-core/render/built-ins';
 import { DataStore } from '@molstar/seqx-core/data';
 import {
   attachSources,
@@ -32,6 +33,7 @@ async function canvasPath(dpr: number): Promise<string> {
   const view = resolveViews(model)[0];
   const store = new DataStore();
   const renderer = new Renderer({
+    ...BuiltInRender,
     model,
     view,
     data: store,

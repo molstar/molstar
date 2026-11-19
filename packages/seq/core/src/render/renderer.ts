@@ -19,7 +19,7 @@ import { EmptyOverlay, type Emphasis, type LayerType, type Overlay, type StoreRe
 import type { SectionLayoutType } from './layout/types.js';
 import type { TextMetrics } from './text.js';
 import type { SeqTokens } from './tokens.js';
-import { BuiltInLayerTypes, drawView, type HeldDomains, LayoutState, layoutView, type ViewLayout } from './tracks.js';
+import { drawView, type HeldDomains, LayoutState, layoutView, type ViewLayout } from './tracks.js';
 
 // Frames keyed by what they read (_spec/README.md "Render", The key): the model's hash, the view, the size, the
 // viewport, the device pixel ratio, the token table's version, the text metrics' version, the overlay's version, whether
@@ -38,9 +38,16 @@ export interface RendererOptions {
   readonly tokens: SeqTokens;
   readonly text: TextMetrics;
   readonly config?: RenderConfig;
-  readonly types?: Readonly<Record<string, LayerType<any, any>>>;
-  /** The section layouts by name (the built-ins by default): the viewer's navigation reads the same (`LayoutSource`). */
-  readonly layouts?: Readonly<Record<string, SectionLayoutType<any>>>;
+  /**
+   * The layer types it draws, by name: the composition's registry (_spec/README.md "Context"), never a built-in table
+   * (`BuiltInLayerTypes` of `render/built-ins` is the default compositions' list). A layer of no type here is said.
+   */
+  readonly types: Readonly<Record<string, LayerType<any, any>>>;
+  /**
+   * The section layouts by name, the composition's registry (`BuiltInLayouts` the default list): the viewer's navigation
+   * reads the same (`LayoutSource`). A layout not here is said; its section is laid out as tracks.
+   */
+  readonly layouts: Readonly<Record<string, SectionLayoutType<any>>>;
   /** The schemes and measures the themes read (the built-ins by default): the composition's registry entries. */
   readonly theme?: Partial<Pick<ThemeContext, 'schemes' | 'measures'>>;
   /** The shared image cache (_spec/README.md "Render", The shared reduction): another renderer's (a navigator's view). */
@@ -356,8 +363,8 @@ export class Renderer {
         data: this.reader,
         overlay,
         settled: input.settled ?? false,
-        types: this.options.types ?? BuiltInLayerTypes,
-        ...(this.options.layouts ? { layouts: this.options.layouts } : {}),
+        types: this.options.types,
+        layouts: this.options.layouts,
         theme: { ...this.options.theme, cvdSafe: input.cvdSafe ?? false },
         ...(input.figure ? { figure: true } : {}),
         ...(input.windows ? { windows: true } : {}),

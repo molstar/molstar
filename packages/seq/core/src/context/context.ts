@@ -11,10 +11,12 @@ import { checkSeqSpec, type SpecBounds, specBounds } from '@molstar/seqx-core/la
 import {
   type RenderConfig,
   type RenderConfigOverrides,
+  exportSvg,
+  type LayerType,
   type RenderSvgOptions,
   type RenderSvgResult,
   renderConfig,
-  renderSvg,
+  type SectionLayoutType,
   type SeqTokens,
   type TextMetrics,
   builtInTokens,
@@ -30,8 +32,15 @@ import { type AssetPolicy, HeadlessAssetPolicy, policyAssets } from './assets.js
 // format runtimes a spec's sources are read with), the configuration and the ports. No global registry, nothing
 // registered on import; the viewer composes the same pieces.
 
-/** What a registry holds in this version: a format runtime, read by the sources whose `format` it names. */
-export type SeqRegistryEntry = { readonly kind: 'format-runtime'; readonly runtime: FormatRuntime };
+/**
+ * What a registry holds in this version (_spec/README.md "Context", Registry entries): a format runtime, read by the
+ * sources whose `format` it names; a layer type, drawn for the layers of its name (the canvas and the SVG alike); a
+ * section layout, placing the sections that name it.
+ */
+export type SeqRegistryEntry =
+  | { readonly kind: 'format-runtime'; readonly runtime: FormatRuntime }
+  | { readonly kind: 'layer-type'; readonly type: LayerType<any, any> }
+  | { readonly kind: 'layout'; readonly layout: SectionLayoutType<any> };
 
 /** A setting: its key, and the type of its value. Items are pairs `[item, value]` in a spec's `config`. */
 export interface SeqConfigItem<T = unknown> {
@@ -105,17 +114,37 @@ export interface SeqContextSpec {
 
 /** The registered runtimes by name: the same object again is no change, another under one name is an error (all listed). */
 export function runtimesOf(registry: readonly SeqRegistryEntry[]): FormatRuntime[] {
-  const byName = new Map<string, FormatRuntime>();
+  return [...byName(registry, 'format-runtime', 'format runtimes', (e) => e.runtime).values()];
+}
+
+/** The registered layer types by name, as `runtimesOf`: the same object again is no change, another an error. */
+export function layerTypesOf(registry: readonly SeqRegistryEntry[]): Readonly<Record<string, LayerType<any, any>>> {
+  return Object.fromEntries(byName(registry, 'layer-type', 'layer types', (e) => e.type));
+}
+
+/** The registered section layouts by name, as `runtimesOf`. */
+export function layoutsOf(registry: readonly SeqRegistryEntry[]): Readonly<Record<string, SectionLayoutType<any>>> {
+  return Object.fromEntries(byName(registry, 'layout', 'layouts', (e) => e.layout));
+}
+
+/** One kind's entries by their provider's name; every conflict listed in one error. */
+function byName<K extends SeqRegistryEntry['kind'], T extends { readonly name: string }>(
+  registry: readonly SeqRegistryEntry[],
+  kind: K,
+  what: string,
+  of: (e: Extract<SeqRegistryEntry, { kind: K }>) => T,
+): Map<string, T> {
+  const out = new Map<string, T>();
   const conflicts: string[] = [];
   for (const e of registry) {
-    if (e.kind !== 'format-runtime') continue;
-    const had = byName.get(e.runtime.name);
-    if (had && had !== e.runtime) conflicts.push(e.runtime.name);
-    else byName.set(e.runtime.name, e.runtime);
+    if (e.kind !== kind) continue;
+    const p = of(e as Extract<SeqRegistryEntry, { kind: K }>);
+    const had = out.get(p.name);
+    if (had && had !== p) conflicts.push(p.name);
+    else out.set(p.name, p);
   }
-  if (conflicts.length)
-    throw new Error(`The registry holds different format runtimes under one name: ${conflicts.join(', ')}`);
-  return [...byName.values()];
+  if (conflicts.length) throw new Error(`The registry holds different ${what} under one name: ${conflicts.join(', ')}`);
+  return out;
 }
 
 /** The value of a config item in the pairs (the last), else `undefined`. */
@@ -130,6 +159,10 @@ export function configValue<T>(
 
 export interface SeqContext {
   readonly runtimes: readonly FormatRuntime[];
+  /** The registered layer types by name: what the canvas and `renderSvg` draw (a layer of another type is said). */
+  readonly types: Readonly<Record<string, LayerType<any, any>>>;
+  /** The registered section layouts by name (a section naming another is said, and laid out as tracks). */
+  readonly layouts: Readonly<Record<string, SectionLayoutType<any>>>;
   readonly renderConfig: RenderConfig;
   readonly resolveConfig: Partial<ResolveConfig>;
   /** The bounds the spec's check holds (`SeqCoreConfig.bounds` over the defaults). */
@@ -154,12 +187,16 @@ export interface SeqContext {
 }
 
 /**
- * The headless context of a composition: the registry, the configuration and the ports a render needs, and the resolve
- * passes and `renderSvg` through them. Ports unset take their defaults (no reads, the bundled text metrics), owned and
- * disposed by `retire`.
+ * The headless context of a composition as listed (_spec/README.md "Context"): the registry, the configuration and the
+ * ports a render needs, and the resolve passes and `renderSvg` through them, with nothing the registry does not list (no
+ * layer type, no layout, no navigators: `createSeqContext` lists the built-ins). Ports unset take their defaults (no
+ * reads, the bundled text metrics), owned and disposed by `retire`.
  */
-export function createSeqContext(spec: SeqContextSpec = {}): SeqContext {
-  const runtimes = runtimesOf(spec.registry ?? []);
+export function composeSeqContext(spec: SeqContextSpec = {}): SeqContext {
+  const registry = spec.registry ?? [];
+  const runtimes = runtimesOf(registry);
+  const types = layerTypesOf(registry);
+  const layouts = layoutsOf(registry);
   const theme = configValue(spec.config, SeqCoreConfig.theme) ?? 'light';
   const renderCfg = renderConfig(configValue(spec.config, SeqCoreConfig.render));
   const resolveCfg = configValue(spec.config, SeqCoreConfig.resolve) ?? {};
@@ -208,6 +245,8 @@ export function createSeqContext(spec: SeqContextSpec = {}): SeqContext {
   let retired = false;
   const context: SeqContext = {
     runtimes,
+    types,
+    layouts,
     renderConfig: renderCfg,
     resolveConfig: resolveCfg,
     bounds,
@@ -219,8 +258,10 @@ export function createSeqContext(spec: SeqContextSpec = {}): SeqContext {
     resolve: (s) => resolveSpec(s, { runtimes, config: resolveCfg }),
     view: (model, address) => (address ? resolveView(model, address) : resolveViews(model)[0]),
     renderSvg: (s, options) =>
-      renderSvg(s, {
+      exportSvg(s, {
         runtimes,
+        types,
+        layouts,
         theme,
         tokens,
         bounds,

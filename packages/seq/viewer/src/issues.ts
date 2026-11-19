@@ -56,6 +56,11 @@ export const ViewerIssues = defineIssues('seq.viewer', {
     description: 'No story step has that id: nothing was entered',
     hint: 'Name a step of the spec (`/snapshots/<id>`)',
   },
+  'seq.viewer.step.none': {
+    severity: 'error',
+    description: 'The viewer lists no story part: it enters no story step',
+    hint: 'List `StoryPart` of `@molstar/seqx-viewer/story` in the viewer spec (`story`), as the default spec does',
+  },
   'seq.viewer.edit.masked': {
     severity: 'info',
     description:

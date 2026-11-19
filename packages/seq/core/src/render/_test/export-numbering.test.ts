@@ -15,7 +15,8 @@ import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { describe, expect, it } from 'vitest';
 import { resolveSpec } from '@molstar/seqx-core/resolve';
 import { resolveViews } from '@molstar/seqx-core/view';
-import { renderSvg, viewSources } from '../export.js';
+import { viewSources } from '../export.js';
+import { renderSvg } from '../render-svg.js';
 
 const Letters = 'EVQLVESGGGLVQPGGSLRL';
 // biome-ignore format: a label a position, in index order

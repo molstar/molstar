@@ -21,9 +21,11 @@ export {
 export {
   type AssetsPort,
   configItem,
+  composeSeqContext,
   configValue,
-  createSeqContext,
   defaultAssetsPort,
+  layerTypesOf,
+  layoutsOf,
   type ManagedAssetsPort,
   type PortResult,
   type ReaderAssetsPort,
@@ -37,3 +39,4 @@ export {
   type StructurePort,
   type TextMetricsPort,
 } from './context.js';
+export { BuiltInRenderRegistry, createSeqContext } from './default-context.js';

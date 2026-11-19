@@ -10,6 +10,7 @@
 // row and draws them as the shared reduction's image over its column; the plasmid's strip wraps the origin. Each
 // exported with `navigators: include`, titled, settled, with no issue.
 
+import { BuiltInRender } from '@molstar/seqx-core/render/built-ins';
 import { createSeqContext } from '@molstar/seqx-core/context';
 import { DataStore, DefaultStoreSettings, SeqRuntime } from '@molstar/seqx-core/data';
 import { RecordsRuntime } from '@molstar/seqx-core/data/records';
@@ -49,7 +50,7 @@ async function settled(
   expect(opened.issues).toEqual([]);
   const { model } = opened;
   const view = opened.view!;
-  const common = { model, view, data: store, tokens: LightTokens, text: bundledTextMetrics() };
+  const common = { ...BuiltInRender, model, view, data: store, tokens: LightTokens, text: bundledTextMetrics() };
   const renderer = new Renderer(common);
   const n = new NavigatorRenderer({ ...common, navigator: view.navigators[nav] });
   const draw = () => {

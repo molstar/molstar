@@ -50,32 +50,22 @@ import type {
 } from './layer-type.js';
 import { walkStripes } from './highlight-stripes.js';
 import { EmptyOverlay, sectionId } from './layer-type.js';
-import { type LettersLay, LettersType } from './letters.js';
+import type { LettersLay } from './letters.js';
 import { breakHit } from './marks.js';
 import type { ScaleParams } from '@molstar/seqx-core/theme/index';
 import { DefaultThemeContext, type ThemeContext } from './channels.js';
-import { RangesType } from './ranges.js';
 import type { TextMetrics } from './text.js';
 import type { SeqTokens } from './tokens.js';
-import { RulerType } from './ruler.js';
 import { PlacePoint, StripPlacement, type Strips, WarpKind } from './layout/strips.js';
 import { TranslateWarp } from './layout/warp.js';
 import { chipText } from './layout/blocks.js';
 import { TextLayout } from './layout/text.js';
-import { RingsLayout } from './layout/rings.js';
 import { TracksLayout } from './layout/tracks.js';
-import { GridLayout, GridPlacement } from './layout/grid.js';
+import { GridPlacement } from './layout/grid.js';
 import type { PlaceContext, Placement, SectionLayoutType } from './layout/types.js';
-import { SecondaryType } from './secondary.js';
-import { ValuesType } from './values.js';
-import { VariantsType } from './variants.js';
-import { FrameType } from './frames.js';
-import { BandsType } from './bands.js';
 import { drawRail, hitRail, placeRail, placeRowsRail, Rail, SlimRailPx } from './rail.js';
-import { LogoType } from './logo.js';
-import { RowsLay, RowsType } from './rows.js';
-import { GridType, rectOver } from './grid.js';
-import { PairsType } from './pairs.js';
+import { RowsLay } from './rows.js';
+import { rectOver } from './grid.js';
 import { columnsRoom, fitRowColumns, RowHeight, type RowColumn, rowColumnsOf } from './rows-model.js';
 import type { ImageCache } from './images.js';
 import { wellClipArgs, wellCorners } from './wells.js';
@@ -85,21 +75,9 @@ import { wellClipArgs, wellCorners } from './wells.js';
 // track's layers in order over its box. Tracks below the page are not laid out: the draw lists are bounded by the
 // screen. The layout keeps each layer's last layout, so buffers and lanes carry over frame to frame.
 
-/** The layer types this target draws, by name: a layer draws the first of its fallback chain found here. */
-export const BuiltInLayerTypes: Readonly<Record<string, LayerType<any, any>>> = {
-  letters: LettersType,
-  ranges: RangesType,
-  values: ValuesType,
-  ruler: RulerType,
-  secondary: SecondaryType,
-  variants: VariantsType,
-  frame: FrameType,
-  rows: RowsType,
-  logo: LogoType,
-  bands: BandsType,
-  pairs: PairsType,
-  grid: GridType,
-};
+/** No layer types, no layouts: what a layout is given when its input names none (it draws nothing and says so). */
+const NoTypes: Readonly<Record<string, LayerType<any, any>>> = {};
+const NoLayouts: Readonly<Record<string, SectionLayoutType<any>>> = {};
 
 export interface LayerLayout {
   readonly key: string;
@@ -213,10 +191,11 @@ export interface LayoutInput {
   readonly data: StoreReader;
   readonly overlay?: Overlay;
   readonly settled?: boolean;
+  /** The layer types drawn, by name (the composition's registry): none when absent (every layer is said, not drawn). */
   readonly types?: Readonly<Record<string, LayerType<any, any>>>;
   /** The schemes and measures themes read (the built-ins by default) and the reader's color-blind substitution. */
   readonly theme?: Partial<Pick<ThemeContext, 'schemes' | 'measures' | 'cvdSafe'>>;
-  /** The section layouts by name (the built-ins by default). */
+  /** The section layouts by name (the composition's registry): tracks for every section when absent. */
   readonly layouts?: Readonly<Record<string, SectionLayoutType<any>>>;
   /** Lays out every line of a text section, its box its content (an export: the figure). */
   readonly figure?: boolean;
@@ -368,14 +347,6 @@ function followedWindow(
   const start = offsetOf(shape, section.axis.dir === -1 ? p[1] : p[0]) ?? 0;
   return { start, end: start + len };
 }
-
-/** The layouts this target places sections with, by name (_spec/README.md "Render", Section layouts). */
-export const BuiltInLayouts: Readonly<Record<string, SectionLayoutType<any>>> = {
-  tracks: TracksLayout,
-  text: TextLayout,
-  rings: RingsLayout,
-  grid: GridLayout,
-};
 
 /** A section's layout: its own `layout`, else its view's. */
 export function sectionLayoutName(section: ResolvedSection, view: ResolvedView): string {
@@ -915,7 +886,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     },
   };
   const dpr = input.dpr ?? 1;
-  const types = input.types ?? BuiltInLayerTypes;
+  const types = input.types ?? NoTypes;
   const overlay = input.overlay ?? EmptyOverlay;
   const { width, height } = input.size;
   const wants: Want[] = [];
@@ -931,8 +902,26 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
   const dataW = Math.max(1, width - dataX - config.inset - right);
   // axes first, leaders before their followers (a follower may come first in the view)
   const bySection = new Map(input.view.sections.map((s) => [s.address, s]));
-  const layouts = input.layouts ?? BuiltInLayouts;
-  const layoutOf = (section: ResolvedSection) => layouts[sectionLayoutName(section, input.view)] ?? TracksLayout;
+  const layouts = input.layouts ?? NoLayouts;
+  /** A section's layout: its name's in the layouts given, else tracks (a layout not given is said, once). */
+  const layoutOf = (section: ResolvedSection) => {
+    const name = sectionLayoutName(section, input.view);
+    const layout = layouts[name];
+    if (layout) return layout;
+    if (name !== TracksLayout.name)
+      report(
+        issueOf(
+          RenderIssues,
+          'seq.render.layout',
+          `The layout ${name} is not drawn here: the section is laid out as tracks`,
+          {
+            address: section.address,
+            hint: RenderIssues.codes['seq.render.layout'].hint,
+          },
+        ),
+      );
+    return TracksLayout;
+  };
   /**
    * What a follower reads of its leader (_spec/README.md "Render", Section layouts): the leader's viewport as its layout
    * reads it (`followWindow`: a ring's window, a text's lines in view), else its transform's window (tracks).

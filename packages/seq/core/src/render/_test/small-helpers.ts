@@ -7,6 +7,7 @@
 // Helpers of the small layers' tests: a layer's layout out of a frame, a pass's paths and rects read back, a hit at a
 // point of a track.
 
+import { BuiltInRender } from '../built-ins.js';
 import type { Node } from '@molstar/core/repr/tree';
 import { DataStore, type FormatRuntime } from '@molstar/seqx-core/data';
 import { resolveSpec } from '@molstar/seqx-core/resolve';
@@ -106,6 +107,7 @@ export async function frameWithout(
   await attachSources(model, store);
   const types = Object.fromEntries(Object.entries(BuiltInLayerTypes).filter(([name]) => !drop.includes(name)));
   const renderer = new Renderer({
+    ...BuiltInRender,
     model,
     view,
     data: store,

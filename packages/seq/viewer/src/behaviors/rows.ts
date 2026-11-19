@@ -27,6 +27,9 @@ import type { EditOutcome, SpecModel, ViewModel } from '@molstar/seqx-viewer/mod
 import type { EditOrigin } from '@molstar/seqx-viewer/ports';
 import { CladeActions } from '@molstar/seqx-viewer/bindings';
 import { bandFolds, pagedTop, setBandFolds } from './rows-band.js';
+import { trackOfLayer } from './two-axes.js';
+
+export { trackOfLayer };
 
 /** What a rows command is given: the rows layer's track (the first rows band when absent) and what each needs. */
 export interface RowsContext {
@@ -69,7 +72,8 @@ export const RowsActions: readonly string[] = CladeActions;
  * band's whole family; 40 is twice a letter row, past which a row reads no better).
  */
 const ZoomStep = 2;
-export const MinRowScale = 1 / 64;
+// a literal (1 / 64): a module-level expression a bundler keeps would keep this module in a viewer without rows
+export const MinRowScale = 0.015625;
 export const MaxRowScale = 40;
 
 export interface RowsBehavior {
@@ -79,11 +83,6 @@ export interface RowsBehavior {
   /** The rows layer's last layout of a track (what the commands read). */
   lay(track?: string): RowsLay | undefined;
   dispose(): void;
-}
-
-/** A layer's track: its address less its last step. */
-export function trackOfLayer(layer: string): string {
-  return layer.slice(0, layer.lastIndexOf('/'));
 }
 
 export function rowsBehavior(spec: SpecModel, view: ViewModel, layout: () => ViewLayout | undefined): RowsBehavior {

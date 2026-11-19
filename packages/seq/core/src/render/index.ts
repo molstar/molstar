@@ -60,9 +60,17 @@ export {
   type PositionsViewport,
   type RenderSvgOptions,
   type RenderSvgResult,
-  renderSvg,
+  exportSvg,
   viewSources,
 } from './export.js';
+export { renderSvg } from './render-svg.js';
+export { BuiltInLayerTypes, BuiltInLayouts, BuiltInRender } from './built-ins.js';
+export {
+  type ExportedNavigators,
+  type NavigatorExport,
+  type NavigatorExportInput,
+  NavigatorSvgExport,
+} from './navigator-export.js';
 export {
   type RasterizeRequest,
   type Rasterizer,
@@ -159,12 +167,21 @@ export {
   DefaultZoomStrip,
   NavigatorWindow,
   navigatorBox,
-  railSections,
-  rowsRailTracks,
   windowText,
 } from './navigator.js';
 export { type SourceLabelsOptions, withSourceNumberings } from './numberings.js';
-export { drawRail, hitRail, placeRail, placeRowsRail, Rail, RowsRail, railUnitAt, SlimRailPx } from './rail.js';
+export {
+  drawRail,
+  hitRail,
+  placeRail,
+  placeRowsRail,
+  Rail,
+  RowsRail,
+  railSections,
+  railUnitAt,
+  rowsRailTracks,
+  SlimRailPx,
+} from './rail.js';
 export { type BandsLay, type BandsPrep, BandsType } from './bands.js';
 export { type LettersLay, type LettersPrep, LettersType, shownLetters } from './letters.js';
 export { type RangesLay, type RangesPrep, RangesType } from './ranges.js';
@@ -203,8 +220,6 @@ export {
   withAlpha,
 } from './tokens.js';
 export {
-  BuiltInLayerTypes,
-  BuiltInLayouts,
   drawView,
   type HeldDomains,
   hitView,

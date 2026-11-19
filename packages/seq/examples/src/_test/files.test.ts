@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { BuiltInRender } from '@molstar/seqx-core/render/built-ins';
 import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { createSeqContext } from '@molstar/seqx-core/context';
@@ -304,6 +305,7 @@ describe('the plasmid’s GFF3', () => {
     expect(model.systems.get('/data/plasmid')?.length).toBe(PlasmidLength);
     const view = opened.view!;
     const input = {
+      ...BuiltInRender,
       model,
       view,
       size: { width: 720, height: 900 },
