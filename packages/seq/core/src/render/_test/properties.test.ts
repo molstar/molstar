@@ -291,7 +291,10 @@ describe('draw lists: emphasis', () => {
     // three tracks, two ranges each: a tint and an outline
     expect(f.lists.passes.selection.rects.n).toBe(12);
     expect(f.lists.passes.cursor.rects.n).toBe(3);
-    expect(recordDrawLists(f.lists, ['selection']).split('\n')[2]).toBe('rect 188 8 60 20 #8f4c062e squircle 6.67');
+    // each track's tints inside its well's clip: the well's shape (_spec/README.md "Render", Shapes)
+    const lines = recordDrawLists(f.lists, ['selection']).split('\n');
+    expect(lines[2]).toBe('clip 128 8 600 20 squircle 6.67');
+    expect(lines[3]).toBe('rect 188 8 60 20 #8f4c062e squircle 6.67');
   });
 });
 

@@ -7,7 +7,8 @@
 import { rangesLocation } from '@molstar/seqx-core/query';
 import type { ResolvedSection } from '@molstar/seqx-core/view';
 import type { AxisTransform } from './axis.js';
-import { NoColor, type PassWriter } from './draw-lists.js';
+import type { RenderConfig } from './config.js';
+import { NoColor, type PassWriter, Round } from './draw-lists.js';
 import type { Box, Emphasis, Hit } from './layer-type.js';
 import { type SeqTokens, withAlpha } from './tokens.js';
 
@@ -26,12 +27,16 @@ export interface CellLay {
   readonly hoverWidth: number;
   /** How far the hover's outline stands outside the cell (`emphasis.hoverOffset`). */
   readonly hoverOffset: number;
+  /** The squircle rule the outline takes (`squircleRatio`, `squircleMax`, `squircleMin`). */
+  readonly config: RenderConfig;
 }
 
 /**
  * The hover pass of a layer of cells: the outline of the hovered position's cell, outside it by `hoverOffset`, when the hover is on
- * the layer and the cell in view. It reads its numbers itself (the layout's, the hit's position): a number passed to a
- * call that is not inlined is boxed (nothing allocated once warm).
+ * the layer and the cell in view; a squircle by the cell's size (_spec/README.md "Render", Shapes: every emphasis a
+ * squircle), square below `squircleMin` and on a side the view cuts, its radius the cell's plus the offset
+ * (concentric). It reads its numbers itself (the layout's, the hit's position): a number passed to a call that is not
+ * inlined is boxed (nothing allocated once warm).
  */
 export function hoverCell(lay: CellLay & { readonly key: string }, out: PassWriter, emphasis: Emphasis | undefined) {
   const h = emphasis?.hover;
@@ -51,21 +56,29 @@ export function hoverCell(lay: CellLay & { readonly key: string }, out: PassWrit
     a = Math.floor(((axis.sx0 + axis.sx1) / 2) * dpr) / dpr;
     b = a + 1 / dpr;
   }
+  // a side the view's edge cuts is square (the frame rule)
+  const round = (a >= box.x ? Round.left : 0) | (b <= box.x + box.width ? Round.right : 0);
   a = Math.max(a, box.x);
   b = Math.min(b, box.x + box.width);
   if (b <= a) return;
   // outside the cell by the offset, concentric: it never touches the selection's outline drawn on the cell
   const d = width / 2 + lay.hoverOffset;
+  // the cell's squircle (`squircleRadius` inline: a number returned from a call is boxed), the outline's its plus `d`
+  const c = lay.config;
+  const cw = b - a;
+  const bh = box.height;
+  const r =
+    cw < c.squircleMin || bh < c.squircleMin ? 0 : Math.min(bh * c.squircleRatio, c.squircleMax, cw / 2, bh / 2);
   const g = out.args;
   g[0] = a - d;
   g[1] = box.y - d;
-  g[2] = b - a + 2 * d;
-  g[3] = box.height + 2 * d;
+  g[2] = cw + 2 * d;
+  g[3] = bh + 2 * d;
   g[4] = NoColor;
   g[5] = lay.tokens.colors['seq-hover'];
   g[6] = width;
-  g[7] = 0;
-  g[8] = 0;
+  g[7] = r > 0 && round !== 0 ? r + d : 0;
+  g[8] = round;
   out.rectArgs();
 }
 

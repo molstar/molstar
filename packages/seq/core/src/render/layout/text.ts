@@ -25,7 +25,7 @@ import type { TextMetrics } from '../text.js';
 import type { SectionLayout } from '../tracks.js';
 import type { Hit } from '../layer-type.js';
 import { chipWidth, isChip, type ResolvedBlock } from './blocks.js';
-import { PlacePoint, StripPlacement } from './strips.js';
+import { PlacePoint, StripPlacement, type Strips } from './strips.js';
 import type { NavContext, PlaceContext, SectionLayoutType, SectionNav, StepDir } from './types.js';
 
 // anchors read once: a draw reads no property of an imported object (_spec/README.md "Render", Draw lists)
@@ -92,6 +92,8 @@ export interface TextGeometry {
   readonly labelRow: number;
   readonly bandTops: Float64Array;
   readonly bandHeights: readonly number[];
+  /** Each band's padding inside its well, `[top, bottom]` a band (_spec/README.md "Render", Tracks layout). */
+  readonly bandPads: Float64Array;
   readonly lineHeight: number;
   readonly lineGap: number;
   readonly numberFont: string;
@@ -237,6 +239,7 @@ export function textGeometry(
   text: TextMetrics,
   pieces?: ArrayLike<number>,
   blocks?: readonly ResolvedBlock[],
+  pads?: readonly number[],
 ): TextGeometry {
   const t = config.text;
   const cell = Math.max(textMinScale(config), scale ?? t.scale);
@@ -264,11 +267,14 @@ export function textGeometry(
   const lines = starts ? Math.max(1, starts.length) : Math.max(1, Math.ceil(total / unitsPerLine));
   const labelRow = params.groupLabels === 'above' && group > 0 ? fontSize(numberFont) + 2 : 0;
   const bandTops = new Float64Array(heights.length);
+  const bandPads = new Float64Array(2 * heights.length);
+  if (pads) bandPads.set(pads.slice(0, bandPads.length));
   let y = labelRow;
   for (let j = 0; j < heights.length; j++) {
     if (j) y += t.bandGap;
-    bandTops[j] = y;
-    y += heights[j];
+    // a band inside its well: its padding above and below
+    bandTops[j] = y + bandPads[2 * j];
+    y += bandPads[2 * j] + heights[j] + bandPads[2 * j + 1];
   }
   return {
     total,
@@ -287,11 +293,23 @@ export function textGeometry(
     labelRow,
     bandTops,
     bandHeights: heights,
+    bandPads,
     lineHeight: y,
     lineGap: t.lineGap,
     numberFont,
     params,
   };
+}
+
+/** A line's bands at their full tops and heights, each inside its well (its padding). */
+function setBands(strips: Strips, i: number, nb: number, g: TextGeometry): void {
+  for (let j = 0; j < nb; j++) {
+    const k = i * nb + j;
+    strips.bandY[k] = g.bandTops[j];
+    strips.bandH[k] = g.bandHeights[j];
+    strips.padT[k] = g.bandPads[2 * j];
+    strips.padB[k] = g.bandPads[2 * j + 1];
+  }
 }
 
 /** A number, a group label or a track's label: what the text layout's chrome draws, in a strip's frame. */
@@ -412,10 +430,7 @@ function chipLine(
     const a = AxisTransform.on(block.axis, block.axis.ranges, x, tb.slots[k], ctx.dpr, { start: 0, end: 1 });
     const i = strips.add(a, k, 0, y, tb.offsets[k]);
     strips.chip[i] = 1;
-    for (let j = 0; j < nb; j++) {
-      strips.bandY[i * nb + j] = g.bandTops[j];
-      strips.bandH[i * nb + j] = g.bandHeights[j];
-    }
+    setBands(strips, i, nb, g);
     strips.height[i] = g.lineHeight;
     ctx.layStrip(p, i);
     x += tb.slots[k] + tb.gap * g.cell;
@@ -463,6 +478,7 @@ export const TextLayout: SectionLayoutType<TextPlacement> = {
       ctx.text,
       ctx.axis.offsets,
       section.blocks,
+      ctx.pads,
     );
     p.geometry = g;
     p.lineBlocks = g.blocks !== undefined;
@@ -515,10 +531,7 @@ export const TextLayout: SectionLayoutType<TextPlacement> = {
       const du = a.u0 - u0;
       const i = strips.add(a, b, 0, y, u0);
       const k0 = i * nb;
-      for (let j = 0; j < nb; j++) {
-        strips.bandY[k0 + j] = g.bandTops[j];
-        strips.bandH[k0 + j] = g.bandHeights[j];
-      }
+      setBands(strips, i, nb, g);
       ctx.layStrip(p, i);
       // a band no layer used on this line collapses (EC-96): the bands below move up and are laid out there
       let h = g.lineHeight;
@@ -530,11 +543,16 @@ export const TextLayout: SectionLayoutType<TextPlacement> = {
           const k = k0 + j;
           const keep = strips.used[k] > 0;
           if (keep && any) by += config.text.bandGap;
-          if (strips.bandY[k] !== by || (!keep && strips.bandH[k] > 0)) moved = true;
-          strips.bandY[k] = by;
+          // a kept band keeps its well (its padding); a collapsed one has none
+          const pt = keep ? g.bandPads[2 * j] : 0;
+          const pb = keep ? g.bandPads[2 * j + 1] : 0;
+          if (strips.bandY[k] !== by + pt || (!keep && strips.bandH[k] > 0)) moved = true;
+          strips.bandY[k] = by + pt;
           strips.bandH[k] = keep ? g.bandHeights[j] : 0;
+          strips.padT[k] = pt;
+          strips.padB[k] = pb;
           if (keep) {
-            by += g.bandHeights[j];
+            by += pt + g.bandHeights[j] + pb;
             any = true;
           }
         }
@@ -608,6 +626,7 @@ export const TextLayout: SectionLayoutType<TextPlacement> = {
       ctx.text,
       axis.offsets,
       section.blocks,
+      ctx.pads,
     );
     const pitch = g.lineHeight + g.lineGap;
     const boxH = params.height ?? Math.min(g.laid * pitch, ctx.config.text.maxHeight);

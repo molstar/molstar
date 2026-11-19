@@ -38,6 +38,16 @@ export interface RenderConfig {
   /** Gaps between the tracks of a section (a group) and between sections. */
   readonly trackGap: number;
   readonly sectionGap: number;
+  /**
+   * A track's padding when its spec gives none (_spec/README.md "Render", Configuration): px inside its well above and
+   * below its data (0, 0). The well is the track's height plus its padding; its data's band is inset by it.
+   */
+  readonly trackPadding: { readonly top: number; readonly bottom: number };
+  /**
+   * A track's well (_spec/README.md "Render", Shapes): a squircle by the squircle rule over the well's height, its data
+   * clipped to it (`squircle`, the default), or a square box (`square`).
+   */
+  readonly trackShape: 'squircle' | 'square';
   /** A track's height when the spec gives none: the largest of its layers' types'. */
   readonly heights: {
     readonly letters: number;
@@ -250,6 +260,8 @@ export const DefaultRenderConfig: RenderConfig = {
   labelGap: 8,
   trackGap: 4,
   sectionGap: 8,
+  trackPadding: { top: 0, bottom: 0 },
+  trackShape: 'squircle',
   heights: {
     letters: 20,
     ranges: 36,
@@ -361,6 +373,7 @@ export function renderConfig(over: RenderConfigOverrides = {}): RenderConfig {
     ...(over as Partial<RenderConfig>),
     nodes: { ...DefaultRenderConfig.nodes, ...over.nodes },
     axis: { ...DefaultRenderConfig.axis, ...over.axis },
+    trackPadding: { ...DefaultRenderConfig.trackPadding, ...over.trackPadding },
     heights: { ...DefaultRenderConfig.heights, ...over.heights },
     density: { ...DefaultRenderConfig.density, ...over.density },
     densityUnits: { ...DefaultRenderConfig.densityUnits, ...over.densityUnits },

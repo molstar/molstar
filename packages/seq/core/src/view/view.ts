@@ -204,6 +204,8 @@ export interface ResolvedTrack {
   readonly address: string;
   readonly label: string;
   readonly height?: number;
+  /** Px inside its well above and below its data, as written (_spec/README.md "Render", Tracks layout). */
+  readonly padding?: { readonly top: number; readonly bottom: number };
   /** Its layers; a template's layers without data are not placed here: each instance places them on its node. */
   readonly layers: readonly ResolvedLayer[];
   readonly template?: TrackTemplate;
@@ -372,6 +374,18 @@ function nodeAt(root: Node, address: string): Node | undefined {
 
 const param = (n: Node, key: string): Value | undefined => n.params?.[key];
 
+/**
+ * A track's `padding` as its two sides: a number is both, a record one or both (a side absent is 0); none when absent
+ * or not of the language's form (its validation says so). Negative or non-finite sides are 0.
+ */
+function paddingOf(v: Value | undefined): { top: number; bottom: number } | undefined {
+  const side = (x: Value | undefined) => (typeof x === 'number' && Number.isFinite(x) && x > 0 ? x : 0);
+  if (typeof v === 'number') return { top: side(v), bottom: side(v) };
+  if (v === null || typeof v !== 'object' || Array.isArray(v)) return undefined;
+  const r = v as Readonly<Record<string, Value>>;
+  return { top: side(r.top), bottom: side(r.bottom) };
+}
+
 type Report = (code: keyof typeof ViewIssues.codes, message: string, at: string, cause?: Issue) => void;
 
 function build(model: StaticModel, view: Node, address: string): ResolvedView {
@@ -514,10 +528,12 @@ function build(model: StaticModel, view: Node, address: string): ResolvedView {
       for (let k = 0; k < perBlock.length; k++) blockLayers[k].push(perBlock[k]);
       const label = param(t, 'label');
       const height = param(t, 'height');
+      const padding = paddingOf(param(t, 'padding'));
       tracks.push({
         address: ta,
         label: typeof label === 'string' ? label : t.id,
         ...(typeof height === 'number' ? { height } : {}),
+        ...(padding ? { padding } : {}),
         layers,
         ...(template ? { template } : {}),
       });

@@ -44,19 +44,26 @@ function listRects(lists: Parameters<typeof recordDrawLists>[0]): R[] {
     });
 }
 
-/** The same rects from the SVG: the fill and its opacity. */
+/**
+ * The same rects from the SVG: the fill and its opacity; a squircle (a path, every emphasis a squircle) by its
+ * outline's bounds.
+ */
 function svgRects(svg: string): R[] {
   const out: R[] = [];
-  for (const m of svg.matchAll(/<rect ([^>]*)\/>/g)) {
-    const a = Object.fromEntries([...m[1].matchAll(/([\w-]+)="([^"]*)"/g)].map((x) => [x[1], x[2]]));
+  for (const m of svg.matchAll(/<(rect|path) ([^>]*)\/>/g)) {
+    const a = Object.fromEntries([...m[2].matchAll(/([\w-]+)="([^"]*)"/g)].map((x) => [x[1], x[2]]));
     if (a['fill-opacity'] !== '0.3') continue;
-    out.push({
-      x: Number(a.x),
-      y: Number(a.y),
-      w: Number(a.width),
-      h: Number(a.height),
-      paint: `${a.fill} ${a['fill-opacity']}`,
-    });
+    const paint = `${a.fill} ${a['fill-opacity']}`;
+    if (m[1] === 'rect') {
+      out.push({ x: Number(a.x), y: Number(a.y), w: Number(a.width), h: Number(a.height), paint });
+      continue;
+    }
+    const n = (a.d.match(/-?[\d.]+/g) ?? []).map(Number);
+    const xs = n.filter((_, k) => k % 2 === 0);
+    const ys = n.filter((_, k) => k % 2 === 1);
+    const x = Math.min(...xs);
+    const y = Math.min(...ys);
+    out.push({ x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y, paint });
   }
   return out;
 }
@@ -126,11 +133,13 @@ describe('the styles', () => {
     ]);
     expect(rects.length).toBe(3);
     const [tint, band, outline] = rects;
-    expect(tint.paint).toBe('#ff00004d');
+    // every style a squircle where its span really ends (_spec/README.md "Render", Shapes); the band's bar below the
+    // minimum stays square
+    expect(tint.paint).toBe('#ff00004d squircle 8');
     expect(band.paint).toBe('#00ff00ff');
     expect(band.h).toBe(3);
     expect(band.y + band.h).toBe(tint.y + tint.h);
-    expect(outline.paint).toBe('none stroke #0000ffff 1');
+    expect(outline.paint).toMatch(/^none stroke #0000ffff 1 squircle 7\.5$/);
   });
 
   it('overlapping channels of different styles each draw in their own stripe', async () => {
@@ -169,7 +178,8 @@ describe('text lines and rings', () => {
       '#00ff004d',
       '#00ff004d',
     ]);
+    // the ring's paths, then the linear section's squircles (paths too)
     const fills = [...r.svg.matchAll(/<path [^>]*fill="(#[0-9a-f]{6})" fill-opacity="0.3"\/>/g)].map((m) => m[1]);
-    expect(fills).toEqual(['#ff0000', '#ff0000', '#00ff00', '#00ff00']);
+    expect(fills).toEqual(['#ff0000', '#ff0000', '#00ff00', '#00ff00', '#ff0000', '#ff0000', '#00ff00', '#00ff00']);
   });
 });

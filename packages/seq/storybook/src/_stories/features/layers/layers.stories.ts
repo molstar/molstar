@@ -49,3 +49,10 @@ export const ValuesAsALineAndAnArea: StoryObj = story('values-line');
  * dashed domain: the dashes travel with it.
  */
 export const RangesAsLinesAndArrows: StoryObj = story('ranges-lines');
+
+/**
+ * Tracks in their wells: each well a squircle (a third of its height, capped), its data clipped to it, so the letters'
+ * cells lose a sliver at the corners. The letters are padded on top, the domains top and bottom: the data sits inside
+ * the padding, and a hover or a hit there finds nothing. Hover a cell: its outline is a squircle too.
+ */
+export const TracksInTheirWells: StoryObj = story('wells');

@@ -15,9 +15,10 @@
 import { piecesTotal, type ResolvedSection } from '@molstar/seqx-core/view';
 import { AxisTransform, type Viewport } from '../axis.js';
 import { fontSize, type RenderConfig } from '../config.js';
-import { Anchor, grown, type PassName, type PassWriter } from '../draw-lists.js';
+import { Anchor, grown, NoColor, type PassName, type PassWriter } from '../draw-lists.js';
 import type { LettersLay } from '../letters.js';
 import { elide, type TextMetrics } from '../text.js';
+import { wellCorners } from '../wells.js';
 import type { SectionLayout } from '../tracks.js';
 import { PlacePoint, StripPlacement } from './strips.js';
 import type { NavContext, PlaceContext } from './types.js';
@@ -397,7 +398,9 @@ export function placeBlocks(section: ResolvedSection, ctx: PlaceContext, prev?: 
   const scale = Math.max(width, 1e-9) / (u1 - u0);
   // the rows' height: the label row, then the tracks
   let rows = p.labelRow;
-  for (let j = 0; j < nb; j++) rows += (j ? config.trackGap : 0) + ctx.heights[j];
+  const pads = ctx.pads;
+  for (let j = 0; j < nb; j++)
+    rows += (j ? config.trackGap : 0) + ctx.heights[j] + (pads ? pads[2 * j] + pads[2 * j + 1] : 0);
   let y = top;
   // a stack: the other blocks a row each, then the chips' one row, side by side from the first position's x
   let stackRows = 0;
@@ -450,9 +453,14 @@ export function placeBlocks(section: ResolvedSection, ctx: PlaceContext, prev?: 
       let by = rowTop + p.labelRow;
       for (let j = 0; j < nb; j++) {
         if (j) by += config.trackGap;
-        strips.bandY[i * nb + j] = by;
+        // a band inside its well (_spec/README.md "Render", Tracks layout)
+        const pt = pads ? pads[2 * j] : 0;
+        const pb = pads ? pads[2 * j + 1] : 0;
+        strips.padT[i * nb + j] = pt;
+        strips.padB[i * nb + j] = pb;
+        strips.bandY[i * nb + j] = by + pt;
         strips.bandH[i * nb + j] = ctx.heights[j];
-        by += ctx.heights[j];
+        by += pt + ctx.heights[j] + pb;
       }
     }
   const height = p.stacked ? y - top : rows;
@@ -476,13 +484,18 @@ export function blockChrome(
     // a row's ground once, before its first strip's layers: never over a strip drawn before it (a chip's pill)
     if (!p.rowStart(strip)) return;
     const k = strip * strips.bands + band;
-    out.fill(
-      s.tracks[band]?.box.x ?? 0,
-      strips.bandY[k],
-      s.tracks[band]?.box.width ?? 0,
-      strips.bandH[k],
-      s.tokens.colors['seq-track'],
-    );
+    const well = s.tracks[band]?.well;
+    // its well, as the first row's (_spec/README.md "Render", Shapes): through `args`, nothing boxed
+    const g = out.args;
+    g[0] = well?.x ?? 0;
+    g[1] = strips.bandY[k] - strips.padT[k];
+    g[2] = well?.width ?? 0;
+    g[3] = strips.bandH[k] + strips.padT[k] + strips.padB[k];
+    wellCorners(g, 7, s.config);
+    g[4] = s.tokens.colors['seq-track'];
+    g[5] = NoColor;
+    g[6] = 0;
+    out.rectArgs();
     return;
   }
   if (pass !== 'labels' || band >= 0) return;

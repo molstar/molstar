@@ -9,7 +9,8 @@ import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { addDomains, addSecondary, addVariants, conservation, GeneExons, geneLetters, P53 } from './data.js';
 
 // The small layers' views (the Features stories of the layers): the ruler, secondary structure, variants, values as a
-// line and an area, ranges drawn as lines and with arrowheads, each on p53 and, where the axis matters, on its gene.
+// line and an area, ranges drawn as lines and with arrowheads, each on p53 and, where the axis matters, on its gene;
+// and the tracks' wells (their padding and their squircle).
 
 type Builder = ReturnType<typeof createSeqSpec>;
 
@@ -78,6 +79,24 @@ export function valuesLine(): Node {
     s.track('bars', { label: 'Bars' }).layer('bars', { type: 'values', data: c });
     s.track('line', { label: 'Line' }).layer('line', { type: 'values', data: c, encoding: 'line' });
     s.track('area', { label: 'Area' }).layer('area', { type: 'values', data: c, encoding: 'area' });
+  });
+  return b.build();
+}
+
+/**
+ * The tracks' wells: each a squircle with its data clipped to it; the letters padded on top (their well 8 px taller),
+ * the domains top and bottom, the conservation not at all. The cells start below the padding, the well's top stays.
+ */
+export function wells(): Node {
+  const b = createSeqSpec({ title: 'p53 tracks in their wells' });
+  const { p53 } = data(b);
+  const domains = addDomains(b, p53);
+  const c = b.data.values('conservation', { target: p53, values: conservation() });
+  b.views.view('main', (v) => {
+    const s = v.section('protein', { of: p53 });
+    s.track('letters', { label: 'Padded on top', padding: { top: 8 } }).layer('letters', { type: 'letters' });
+    s.track('domains', { label: 'Padded 6', padding: 6 }).layer('ranges', { type: 'ranges', data: domains });
+    s.track('conservation', { label: 'No padding' }).layer('values', { type: 'values', data: c });
   });
   return b.build();
 }

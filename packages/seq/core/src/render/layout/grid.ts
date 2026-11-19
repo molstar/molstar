@@ -45,6 +45,9 @@ export class GridPlacement extends StripPlacement {
   yRow: BlockRow | null = null;
   /** Each y block's transform down the plot (made once a place, reused by every x block's strips). */
   readonly yAxes: (AxisTransform | undefined)[] = [];
+  /** The plot's top and height on the page: its well's less the padding (_spec/README.md "Render", Tracks layout). */
+  plotTop = 0;
+  plotHeight = 0;
 
   override at(p: ArrayLike<number>, out: PlacePoint): boolean {
     if (!this.xRow) return super.at(p, out);
@@ -217,7 +220,15 @@ export const GridLayout: SectionLayoutType<GridPlacement> = {
     const strips = p.strips;
     const { config } = ctx;
     strips.reset(ctx.bands.length);
-    const top = ctx.box.y;
+    // the plot inside its well: the bands' largest padding above and below (they share the plot)
+    let pt = 0;
+    let pb = 0;
+    for (let j = 0; ctx.pads && j < ctx.bands.length; j++) {
+      pt = Math.max(pt, ctx.pads[2 * j]);
+      pb = Math.max(pb, ctx.pads[2 * j + 1]);
+    }
+    const well = ctx.box.y;
+    const top = well + pt;
     const width = ctx.axis.width;
     const aspect = section.params.aspect;
     let h: number;
@@ -238,10 +249,12 @@ export const GridLayout: SectionLayoutType<GridPlacement> = {
       h = Math.max(MinHeight, Math.min((width / (a * xu)) * yu, room));
     }
     p.yFirst = p.yLast = '';
+    p.plotTop = top;
+    p.plotHeight = h;
     if (section.blocks) {
       placeBlocksGrid(section, ctx, p, top, h);
-      p.contentHeight = h;
-      p.box = { x: config.inset, y: top, width: ctx.width - 2 * config.inset, height: h };
+      p.contentHeight = h + pt + pb;
+      p.box = { x: config.inset, y: well, width: ctx.width - 2 * config.inset, height: h + pt + pb };
       for (let k = 0; k < strips.n; k++) ctx.layStrip(p, k);
       return p;
     }
@@ -250,6 +263,8 @@ export const GridLayout: SectionLayoutType<GridPlacement> = {
     for (let j = 0; j < ctx.bands.length; j++) {
       strips.bandY[i * strips.bands + j] = top;
       strips.bandH[i * strips.bands + j] = h;
+      strips.padT[i * strips.bands + j] = pt;
+      strips.padB[i * strips.bands + j] = pb;
     }
     if (y?.pieces.length) {
       const ya = AxisTransform.on(y.axis, y.pieces, top, h, ctx.dpr, y.viewport);
@@ -259,10 +274,10 @@ export const GridLayout: SectionLayoutType<GridPlacement> = {
       if (first >= 0) p.yFirst = String(first + 1);
       if (last >= 0) p.yLast = String(last + 1);
     }
-    strips.top[i] = top;
-    strips.height[i] = h;
-    p.contentHeight = h;
-    p.box = { x: config.inset, y: top, width: ctx.width - 2 * config.inset, height: h };
+    strips.top[i] = well;
+    strips.height[i] = h + pt + pb;
+    p.contentHeight = h + pt + pb;
+    p.box = { x: config.inset, y: well, width: ctx.width - 2 * config.inset, height: h + pt + pb };
     ctx.layStrip(p, i);
     return p;
   },
@@ -289,7 +304,7 @@ function drawChrome(s: SectionLayout, _pass: PassName, out: PassWriter) {
     drawBlocksChrome(s, p, out);
     return;
   }
-  const top = strips.top[0];
+  const top = p instanceof GridPlacement ? p.plotTop : strips.top[0];
   if (t) {
     g[0] = config.inset;
     g[1] = top + 12;
@@ -304,7 +319,7 @@ function drawChrome(s: SectionLayout, _pass: PassName, out: PassWriter) {
     const text = k === 0 ? p.yFirst : p.yLast;
     if (!text) continue;
     g[0] = right;
-    g[1] = k === 0 ? top + 28 : top + strips.height[0] - 4;
+    g[1] = k === 0 ? top + 28 : top + p.plotHeight - 4;
     g[2] = 0;
     g[3] = config.labelWidth;
     g[4] = tokens.colors['msui-text-muted'];
@@ -325,8 +340,8 @@ function drawBlocksChrome(s: SectionLayout, p: GridPlacement, out: PassWriter) {
   const blocks = s.section.blocks!;
   const xr = p.xRow!;
   const yr = p.yRow!;
-  const top = p.box.y;
-  const h = p.contentHeight;
+  const top = p.plotTop;
+  const h = p.plotHeight;
   const ink = tokens.colors['seq-break'];
   const muted = tokens.colors['msui-text-muted'];
   const right = s.axis ? s.axis.x0 - config.labelGap / 2 : config.inset + config.labelWidth;

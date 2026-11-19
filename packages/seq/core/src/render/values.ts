@@ -8,7 +8,7 @@ import type { ValuesTable } from '@molstar/seqx-core/data';
 import type { StaticModel } from '@molstar/seqx-core/resolve';
 import type { ResolvedLayer } from '@molstar/seqx-core/view';
 import type { AxisTransform } from './axis.js';
-import { type DensityStep, densityStep, perPosition } from './config.js';
+import { type DensityStep, densityStep, perPosition, type RenderConfig } from './config.js';
 import { drawPass, grown, NoColor, type PassName, type PassWriter, passDraws } from './draw-lists.js';
 import {
   dataRegions,
@@ -103,6 +103,8 @@ export interface ValuesLay {
   colHi: Float32Array;
   hoverWidth: number;
   hoverOffset: number;
+  /** What the hover's squircle reads (its rule). */
+  config: RenderConfig;
 }
 
 /** The next bar's index, the bars' arrays grown to hold it (the caller writes its numbers: nothing passed is boxed). */
@@ -168,6 +170,7 @@ export const ValuesType: LayerType<ValuesPrep, ValuesLay> = {
       colHi: new Float32Array(0),
       hoverWidth: config.outline.hover,
       hoverOffset: config.emphasis.hoverOffset,
+      config,
     };
     lay.key = ctx.key;
     lay.system = axis.system;
@@ -177,6 +180,7 @@ export const ValuesType: LayerType<ValuesPrep, ValuesLay> = {
     lay.tokens = tokens;
     lay.hoverWidth = config.outline.hover;
     lay.hoverOffset = config.emphasis.hoverOffset;
+    lay.config = config;
     lay.n = 0;
     lay.pending.length = 0;
     lay.failed.length = 0;

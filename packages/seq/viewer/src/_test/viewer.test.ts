@@ -169,7 +169,8 @@ describe('the Canvas2D drawing', () => {
     expect(base.context.take()).toEqual([]);
     expect(labels.context.take()).toEqual([]);
     expect(overlay.context.calls('clearRect').length).toBe(1);
-    expect(overlay.context.calls('strokeRect').length).toBeGreaterThan(0);
+    // the cell's outline, a squircle: the core's curve stroked
+    expect(overlay.context.calls('stroke').length).toBeGreaterThan(0);
     // no layout was made for it: only the emphasis passes
     expect(viewer.counts.layouts).toBe(layouts);
     // it moves to the next cell: the overlay again, still no base
@@ -177,7 +178,7 @@ describe('the Canvas2D drawing', () => {
     viewer.input.move(cellX(2), ProteinY);
     frames.flush();
     expect(base.context.take()).toEqual([]);
-    expect(overlay.context.calls('strokeRect').length).toBeGreaterThan(0);
+    expect(overlay.context.calls('stroke').length).toBeGreaterThan(0);
     // it leaves: the overlay is cleared
     overlay.context.take();
     viewer.input.leave();

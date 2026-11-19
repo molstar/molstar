@@ -539,8 +539,9 @@ the passes.
 - A placed glyph run draws each letter at its place, turned and scaled about it, through the context's transform (the
   base transform composed with the letter's, then set back).
 - A rect with a radius is the core's `squirclePath` replayed; a path is replayed from its commands; a clip is `save` +
-  `clip`, a pass left open is closed; a text past its max width fades through a gradient clip (never ellipsized); an
-  image goes through one pixel buffer a size, copied at each draw.
+  `clip` (a squircle clip, a track's well, the core's `squirclePath` traced first), a pass left open is closed; a text
+  past its max width fades through a gradient clip (never ellipsized); an image goes through one pixel buffer a size,
+  copied at each draw.
 - **Reused**: colors are strings kept per value, fonts per shorthand (`FontCache`, a role written as the token table's
   stack, written again when the tokens' stacks change), glyphs per code; nothing is allocated per frame once warm (a
   faded text makes a gradient; a dashed path an array).

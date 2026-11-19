@@ -106,7 +106,13 @@ export function recordDrawLists(lists: DrawLists, passes: readonly PassName[] = 
       );
     },
     clip(l, i) {
-      lines.push(`clip ${fmt(l.x[i])} ${fmt(l.y[i])} ${fmt(l.w[i])} ${fmt(l.h[i])}`);
+      let s = `clip ${fmt(l.x[i])} ${fmt(l.y[i])} ${fmt(l.w[i])} ${fmt(l.h[i])}`;
+      if (l.radius[i] > 0) {
+        s += ` squircle ${fmt(l.radius[i])}`;
+        if (l.round[i] === 1) s += ' left';
+        else if (l.round[i] === 2) s += ' right';
+      }
+      lines.push(s);
     },
     unclip() {
       lines.push('unclip');

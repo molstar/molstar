@@ -367,26 +367,35 @@ export class ImageList {
   }
 }
 
-/** `clip` pushes a rect (intersected with the clip around it); `unclip` pops it. */
+/**
+ * `clip` pushes a rect (intersected with the clip around it), a squircle where it has a radius (a track's well: its
+ * round ends `round` names, the others square); `unclip` pops it.
+ */
 export class ClipList {
   n = 0;
   x = new Float32Array(16);
   y = new Float32Array(16);
   w = new Float32Array(16);
   h = new Float32Array(16);
+  radius = new Float32Array(16);
+  round = new Uint8Array(16);
 
-  push(x: number, y: number, w: number, h: number) {
+  push(x: number, y: number, w: number, h: number, radius = 0, round: number = Round.both) {
     const i = this.n++;
     if (i >= this.x.length) {
       this.x = grown(this.x, i + 1);
       this.y = grown(this.y, i + 1);
       this.w = grown(this.w, i + 1);
       this.h = grown(this.h, i + 1);
+      this.radius = grown(this.radius, i + 1);
+      this.round = grown(this.round, i + 1);
     }
     this.x[i] = x;
     this.y[i] = y;
     this.w[i] = w;
     this.h[i] = h;
+    this.radius[i] = radius > 0 && round !== 0 ? radius : 0;
+    this.round[i] = radius > 0 ? round : 0;
     return i;
   }
 }
@@ -813,9 +822,9 @@ export class PassWriter {
     this.pass.images.push(x, y, w, h, image);
   }
 
-  clip(x: number, y: number, w: number, h: number) {
+  clip(x: number, y: number, w: number, h: number, radius = 0, round: number = Round.both) {
     this.pass.op(Op.clip);
-    this.pass.clips.push(x, y, w, h);
+    this.pass.clips.push(x, y, w, h, radius, round);
     this.pass.depth++;
   }
 
@@ -831,6 +840,30 @@ export class PassWriter {
       l.y[i] = a[1];
       l.w[i] = a[2];
       l.h[i] = a[3];
+      l.radius[i] = 0;
+      l.round[i] = 0;
+    }
+    this.pass.depth++;
+  }
+
+  /**
+   * A clip to the squircle `args` holds (x, y, w, h, its radius, its round ends: a track's well), a rect where the
+   * radius is 0 or no end is round.
+   */
+  clipSquircleArgs() {
+    const a = this.args;
+    this.pass.op(Op.clip);
+    const l = this.pass.clips;
+    if (l.n >= l.x.length) l.push(a[0], a[1], a[2], a[3], a[4], a[5]);
+    else {
+      const i = l.n++;
+      l.x[i] = a[0];
+      l.y[i] = a[1];
+      l.w[i] = a[2];
+      l.h[i] = a[3];
+      const r = a[4] > 0 && a[5] !== 0 ? a[4] : 0;
+      l.radius[i] = r;
+      l.round[i] = r > 0 ? a[5] : 0;
     }
     this.pass.depth++;
   }

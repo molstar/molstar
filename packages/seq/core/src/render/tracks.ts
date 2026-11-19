@@ -78,6 +78,7 @@ import { GridType, rectOver } from './grid.js';
 import { PairsType } from './pairs.js';
 import { columnsRoom, fitRowColumns, RowHeight, type RowColumn, rowColumnsOf } from './rows-model.js';
 import type { ImageCache } from './images.js';
+import { wellClipArgs, wellCorners } from './wells.js';
 
 // The tracks layout (_spec/README.md "Render", Tracks layout): sections stacked, each with its axis transform from its
 // system and range (a follower's from its leader's view), tracks with heights in px under one label column, each
@@ -109,8 +110,10 @@ export interface LayerLayout {
 
 export interface TrackLayout {
   readonly track: ResolvedTrack;
-  /** The data box. */
+  /** The data box: its band, inside its well by its padding (what its layers lay out, hit and emphasize in). */
   readonly box: Box;
+  /** Its well: the data box grown by its padding (_spec/README.md "Render", Tracks layout), filled in the background. */
+  readonly well: Box;
   /** The label's measured width and its baseline (drawing never measures). */
   readonly labelWidth: number;
   readonly labelY: number;
@@ -731,10 +734,16 @@ function stripColumn(strips: Strips, i: number, pageHeight: number): Box | undef
 }
 
 /** A pending section (no axis yet): no strips, its tracks' height kept. */
-function pendingPlacement(top: number, box: Box, heights: readonly number[], config: RenderConfig): Placement {
+function pendingPlacement(
+  top: number,
+  box: Box,
+  heights: readonly number[],
+  pads: readonly number[],
+  config: RenderConfig,
+): Placement {
   const p = new StripPlacement();
   let h = 0;
-  for (let j = 0; j < heights.length; j++) h += (j ? config.trackGap : 0) + heights[j];
+  for (let j = 0; j < heights.length; j++) h += (j ? config.trackGap : 0) + pads[2 * j] + heights[j] + pads[2 * j + 1];
   p.strips.reset(heights.length);
   p.contentHeight = h;
   p.box = { x: config.inset, y: top, width: box.width, height: h };
@@ -933,11 +942,16 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     if (!layout.followWindow) return { start: axis.u0, end: axis.u1 };
     const viewport = input.viewports?.[section.address] ?? input.viewport;
     const heights = section.tracks.map((t) => trackHeight(t, config, layout.heights?.(config) ?? config.heights));
+    const pads = section.tracks.flatMap((t) => {
+      const p = t.padding ?? config.trackPadding;
+      return [p.top, p.bottom];
+    });
     return layout.followWindow(section, axis, viewport, {
       width: layout === TextLayout ? textWidth : width,
       config,
       text: input.text,
       heights,
+      pads,
     });
   };
   const axes = new Map<string, AxisTransform | undefined>();
@@ -1106,6 +1120,15 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     }
     const byType = layout.heights?.(config) ?? config.heights;
     const heights = shown.map((t) => trackHeight(t, config, byType));
+    // each track's padding inside its well, `[top, bottom]` a track: its own, else the config's (_spec/README.md
+    // "Render", Tracks layout)
+    const pads: number[] = [];
+    let padded = false;
+    for (const t of shown) {
+      const p = t.padding ?? config.trackPadding;
+      pads.push(p.top, p.bottom);
+      if (p.top > 0 || p.bottom > 0) padded = true;
+    }
     const ruler = railOn ? rulerTrack(shown, heights) : -1;
     // a rows band that fills (_spec/README.md "Render", The rows layer): the section's room left on the page, at least
     // its default height (a figure, laid out for its content, takes the default)
@@ -1119,7 +1142,8 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     const fill = shown.findIndex((t) => t.height === undefined && rowsFill(t) === 'fill');
     if (fill >= 0 && !input.figure && layout === TracksLayout) {
       let used = 0;
-      for (let j = 0; j < heights.length; j++) if (j !== fill) used += heights[j] + config.trackGap;
+      for (let j = 0; j < heights.length; j++)
+        used += (j !== fill ? heights[j] + config.trackGap : 0) + pads[2 * j] + pads[2 * j + 1];
       heights[fill] = Math.max(heights[fill], Math.floor(height - top - used - config.inset));
     }
     const nb = shown.length;
@@ -1303,6 +1327,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         axis,
         bands: shown,
         heights,
+        ...(padded ? { pads } : {}),
         layStrip,
         report: sectionReport,
         ...(input.figure ? { figure: true } : {}),
@@ -1313,7 +1338,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       if (layout.window) setWindow(layout, placement, section.address, viewport, followed, input, config);
       for (let i = 0; i < placement.strips.n; i++) stripBreaks.push(placement.strips.axes[i].breaks([]));
       sectionLays = laySection(placement, axis);
-    } else placement = pendingPlacement(top, sectionBox, heights, config);
+    } else placement = pendingPlacement(top, sectionBox, heights, pads, config);
     // the section's tracks as bands of its first strip (on the page: tracks)
     const tracks: TrackLayout[] = [];
     const strips = placement.strips;
@@ -1321,14 +1346,18 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     for (let j = 0; j < nb; j++) {
       if (j) by += config.trackGap;
       const track = shown[j];
+      const pt = strips.n ? strips.padT[j] : pads[2 * j];
+      const pb = strips.n ? strips.padB[j] : pads[2 * j + 1];
       const box: Box = {
         x: dataX,
-        y: strips.n ? strips.bandY[j] + strips.dy[0] : by,
+        y: strips.n ? strips.bandY[j] + strips.dy[0] : by + pt,
         width: sectionBox.width,
         // a layout of two axes overlays its bands on the plot
         height: layout.axesY && strips.n ? strips.bandH[j] : heights[j],
       };
-      by += heights[j];
+      const well: Box =
+        pt > 0 || pb > 0 ? { x: box.x, y: box.y - pt, width: box.width, height: box.height + pt + pb } : box;
+      by += pt + heights[j] + pb;
       const layers = lays[j] ?? NoLays;
       let filter: TrackLayout['filter'];
       // its layers', then its `section` layers' (pairs: laid out once a section)
@@ -1352,6 +1381,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       tracks.push({
         track,
         box,
+        well,
         labelWidth: input.text.measure(config.labelFont, track.label),
         labelY: box.y + box.height / 2 + labelSize * 0.35,
         layers,
@@ -1620,9 +1650,10 @@ const ViewDraws = passDraws<ViewLayout, Emphasis | undefined>({
 });
 
 /**
- * The background pass: the page, each track's box (a layout that fills its bands), and with the tints under the data
- * (`emphasis.selectionPlace: 'under'`) the highlight channels' tints and then the selection's above them, a band a
- * section or a box a track (`emphasis.selectionShape`), a strip at a time through its warp.
+ * The background pass: the page, each track's well (a layout that fills its bands: a squircle by the squircle rule,
+ * `trackShape`), and with the tints under the data (`emphasis.selectionPlace: 'under'`) the highlight channels' tints
+ * and then the selection's above them, a band a section or a box a track (`emphasis.selectionShape`: inside the well's
+ * clip), a strip at a time through its warp.
  */
 function drawBackground(layout: ViewLayout, out: PassWriter, emphasis: Emphasis | undefined) {
   const { tokens, config } = layout;
@@ -1634,10 +1665,28 @@ function drawBackground(layout: ViewLayout, out: PassWriter, emphasis: Emphasis 
     if (s.layout.fillBands) {
       for (let ti = 0; ti < s.tracks.length; ti++) {
         const t = s.tracks[ti];
-        const { box } = t;
+        const { box, well } = t;
         if (box.y >= layout.height) continue;
-        out.fill(box.x, box.y, box.width, box.height, tokens.colors['seq-track']);
-        if (under && !column && s.axis) drawTints(out, s, s.axis, box, emphasis!, tokens, config);
+        // the well through `args` (nothing boxed): its squircle by its height
+        const g = out.args;
+        g[0] = well.x;
+        g[1] = well.y;
+        g[2] = well.width;
+        g[3] = well.height;
+        wellCorners(g, 7, config);
+        g[4] = tokens.colors['seq-track'];
+        g[5] = NoColor;
+        g[6] = 0;
+        out.rectArgs();
+        if (under && !column && s.axis) {
+          const strips = s.placement.strips;
+          if (strips.n) {
+            wellClipArgs(out.args, s, 0, ti, box);
+            out.clipSquircleArgs();
+          }
+          drawTints(out, s, s.axis, box, emphasis!, tokens, config);
+          if (strips.n) out.unclip();
+        }
       }
       if (under && column && s.axis && s.band) drawTints(out, s, s.axis, s.band, emphasis!, tokens, config);
       continue;
@@ -1778,12 +1827,29 @@ function drawStrips(
         if (box.y + dy >= layout.height) continue;
         if (box.height <= 0 && !s.layout.fillBands) continue;
         s.layout.chrome(s, pass, w, emphasis, i, j);
-        if (pass !== 'labels' && !column && emphasis) drawSectionEmphasis(w, s, a, box, emphasis, layout);
+        if (pass !== 'labels' && !column && emphasis) {
+          // a box a track: its tints inside its well (the well's shape), the outlines around marks unclipped
+          const tint =
+            s.layout.fillBands &&
+            ((pass === 'highlight' && emphasis.highlights !== undefined) ||
+              (pass === 'selection' &&
+                (emphasis.selection !== undefined || emphasis.projected?.selection !== undefined)));
+          if (tint) {
+            wellClipArgs(w.args, s, i, j, box);
+            w.clipSquircleArgs();
+          }
+          drawSectionEmphasis(w, s, a, box, emphasis, layout);
+          if (tint) w.unclip();
+        }
         const lays = s.lays[k];
         // the window pass is the layouts' own (their chrome): no layer draws there, so a hover's redraw walks none
         if (!lays || !lays.length || pass === 'window') continue;
+        // the data clipped to its well: one clip a track (its squircle in a layout that fills its bands)
         const clip = pass === 'data';
-        if (clip) clipTo(w, box);
+        if (clip) {
+          wellClipArgs(w.args, s, i, j, box);
+          w.clipSquircleArgs();
+        }
         for (let li = 0; li < lays.length; li++) {
           const l = lays[li];
           l.type.draw(l.lay, pass, w, emphasis);
@@ -1898,9 +1964,10 @@ function drawCursor(
 
 /**
  * What `paintRanges` draws with: the fill, the stroke and its width, whether the ends are squircles where they really
- * end (1) or square (0), and how far the stroke stands outside the range (0: inside it, concentric with the fill).
+ * end (1) or square (0), how far the stroke stands outside the range (0: inside it, concentric with the fill), and
+ * which of the range's ends are no real end (a highlight's run cut where the stripes change: 1 its start, 2 its end).
  */
-const Paint = new Float64Array(5);
+const Paint = new Float64Array(6);
 /** Whether a range wholly in a hidden stretch lights its break (a highlight's later runs of it do not: once). */
 let LitBreaks = true;
 
@@ -1929,7 +1996,11 @@ function paintRanges(out: PassWriter, axis: AxisTransform, box: Box, part: Locat
       drew = true;
       const x0 = Math.round(axis.sx0 * dpr) / dpr;
       const x1 = Math.max(Math.round(axis.sx1 * dpr) / dpr, x0 + 1 / dpr);
-      const cut = axis.scut;
+      // a run's ends that are no real end are cut (on the screen's sides: a reversed axis's start on the right)
+      const open = Paint[5];
+      let cut = axis.scut;
+      if ((open & 1) !== 0) cut |= axis.dir === -1 ? Cut.right : Cut.left;
+      if ((open & 2) !== 0) cut |= axis.dir === -1 ? Cut.left : Cut.right;
       const bw = x1 - x0;
       // `squircleRadius` inline (a number returned from a call is boxed)
       const r =
@@ -2021,6 +2092,7 @@ function drawSelectionTint(
   Paint[2] = 0;
   Paint[3] = 1;
   Paint[4] = 0;
+  Paint[5] = 0;
   paintRanges(out, axis, box, part, config);
 }
 
@@ -2047,6 +2119,7 @@ function drawSelectionOutline(
   Paint[2] = config.outline.selection;
   Paint[3] = 1;
   Paint[4] = 0;
+  Paint[5] = 0;
   paintRanges(out, axis, box, part, config);
 }
 
@@ -2069,8 +2142,10 @@ function drawProjectedHover(
   Paint[0] = NoColor;
   Paint[1] = ((hover & 0xffffff00) | Math.round(Math.max(0, Math.min(1, a)) * 255)) >>> 0;
   Paint[2] = config.outline.hover;
-  Paint[3] = 0;
+  // every emphasis a squircle (_spec/README.md "Render", Shapes): round where it really ends
+  Paint[3] = 1;
   Paint[4] = config.emphasis.hoverOffset;
+  Paint[5] = 0;
   paintRanges(out, axis, box, part, config);
 }
 
@@ -2134,12 +2209,26 @@ function drawHighlights(out: PassWriter, axis: AxisTransform, box: Box, emphasis
   for (let c = 0; c < n; c++) HParts[c] = undefined;
 }
 
+/** The ends of the run `emitRun` paints that are no real ends (`Paint[5]`); 0 for a channel's whole ranges. */
+let RunOpen = 0;
+
 /** `walkStripes`' run: a channel's `[start, end)` in its stripe. A hidden range lights its break once, at its first run. */
-function emitRun(channel: number, start: number, end: number, slot: number, count: number, first: number) {
+function emitRun(
+  channel: number,
+  start: number,
+  end: number,
+  slot: number,
+  count: number,
+  first: number,
+  last: number,
+) {
   RunRanges[0] = start;
   RunRanges[1] = end;
   LitBreaks = first === 1;
+  // a run's ends where the stripes change are no real ends: square there
+  RunOpen = (first === 1 ? 0 : 1) | (last === 1 ? 0 : 2);
   paintHighlight(HOut, HAxis, HBox, HList[HIndex[channel]], RunPart, slot, count, HConfig);
+  RunOpen = 0;
   LitBreaks = true;
 }
 
@@ -2191,8 +2280,10 @@ function paintHighlight(
     Paint[1] = NoColor;
     Paint[2] = 0;
   }
-  Paint[3] = 0;
+  // every style a squircle by its stripe's height (a `band` bar below the minimum: square), round where it really ends
+  Paint[3] = 1;
   Paint[4] = 0;
+  Paint[5] = RunOpen;
   paintRanges(out, axis, Stripe, part, config);
 }
 

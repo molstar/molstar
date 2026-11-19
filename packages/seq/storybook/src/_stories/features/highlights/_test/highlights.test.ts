@@ -110,7 +110,7 @@ describe('Highlights, headless', () => {
     await setChannel(v, Host, 'outline');
     await redraw(v);
     const lists = rects(v.frame!.lists);
-    expect(lists.some((r) => r.paint.length === 9 && r.paint.endsWith('4d'))).toBe(true);
+    expect(lists.some((r) => /^#[0-9a-f]{6}4d( squircle [\d.]+)?$/.test(r.paint))).toBe(true);
     expect(lists.some((r) => r.paint.startsWith('none stroke'))).toBe(true);
     await cycleStyle(v, Host);
     await redraw(v);
