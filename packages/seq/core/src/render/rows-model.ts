@@ -322,7 +322,11 @@ export interface ColumnMeasures {
 }
 
 /** The measures of `held` against its reference row (by label; -1 none). */
-export function columnMeasures(held: HeldCells, reference: number, gaps: 'ignore' | 'count' = 'ignore'): ColumnMeasures {
+export function columnMeasures(
+  held: HeldCells,
+  reference: number,
+  gaps: 'ignore' | 'count' = 'ignore',
+): ColumnMeasures {
   const { rows: R, columns: C, codes } = held;
   const share = new Float32Array(C);
   const identity = new Float32Array(C).fill(Number.NaN);

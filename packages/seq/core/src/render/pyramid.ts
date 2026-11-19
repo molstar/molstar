@@ -144,7 +144,16 @@ export class Pyramid {
     const key = r * 65536 + c;
     let l = this._levels.get(key);
     if (!l) {
-      l = { rowLevel: r, columnLevel: c, rows: 0, columns: 0, values: Empty32, classes: Empty8, shares: Empty8, built: -1 };
+      l = {
+        rowLevel: r,
+        columnLevel: c,
+        rows: 0,
+        columns: 0,
+        values: Empty32,
+        classes: Empty8,
+        shares: Empty8,
+        built: -1,
+      };
       this._levels.set(key, l);
     }
     if (l.built === this._version) return l;
@@ -191,7 +200,17 @@ export class Pyramid {
         to.shares = new Uint8Array(n);
       }
       const f = this.options.factor;
-      reduceMajority(from, to, fr, fc, this._votes, f ** from.rowLevel, f ** from.columnLevel, this._rows, this._columns);
+      reduceMajority(
+        from,
+        to,
+        fr,
+        fc,
+        this._votes,
+        f ** from.rowLevel,
+        f ** from.columnLevel,
+        this._rows,
+        this._columns,
+      );
     } else {
       if (to.values.length < n) to.values = new Float32Array(n);
       reduceNumbers(from, to, fr, fc, this.options.reducer);
@@ -215,7 +234,7 @@ function reduceNumbers(from: PyramidLevel, to: MutableLevel, fr: number, fc: num
       for (let r = r0; r < r1; r++)
         for (let c = c0; c < c1; c++) {
           const v = src[r * W + c];
-          if (v !== v) continue; // NaN: missing, not counted
+          if (Number.isNaN(v)) continue; // missing, not counted
           n++;
           if (reducer === 'mean') acc += v;
           else if (reducer === 'max') {

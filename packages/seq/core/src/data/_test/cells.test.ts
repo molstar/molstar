@@ -46,10 +46,13 @@ describe('the cells shape (an alignment’s rows on row tiles, columns whole)', 
 
   it('rows of another width are refused when opened; a file reader opens the same source', async () => {
     await expect(
-      AlignmentRuntime.open({ address: '/data/a', format: 'alignment', value: { label: ['a'], letters: ['AC', 'A'] } as never }, {
-        assets: { readText: () => Promise.reject(new Error('no')) },
-        signal,
-      }),
+      AlignmentRuntime.open(
+        { address: '/data/a', format: 'alignment', value: { label: ['a'], letters: ['AC', 'A'] } as never },
+        {
+          assets: { readText: () => Promise.reject(new Error('no')) },
+          signal,
+        },
+      ),
     ).rejects.toThrow();
     const s = await AlignmentFileRuntime.open(
       { address: '/data/a', format: 'aligned-fasta', value: '>a/3-6\nAC-D\n>b\nACCD\n' },
@@ -61,14 +64,20 @@ describe('the cells shape (an alignment’s rows on row tiles, columns whole)', 
   it('an alignment resolves to two systems, its cells an annotation on its columns; a rows layer reads it', () => {
     const b = createSeqSpec();
     const aln = b.data.alignment('aln', { alphabet: 'protein', rows });
-    b.views.view('v', (v) => v.section('s', { of: aln }, (s) => s.track('t', {}, (t) => t.layer('r', { type: 'rows', data: aln }))));
+    b.views.view('v', (v) =>
+      v.section('s', { of: aln }, (s) => s.track('t', {}, (t) => t.layer('r', { type: 'rows', data: aln }))),
+    );
     const spec = b.build();
     expect(b.check()).toEqual([]);
     const model = resolveSpec(spec);
     expect(model.systems.get('/data/aln')?.length).toBe(4);
     expect(model.systems.get(rowsSystemOf('/data/aln'))?.length).toBe(3);
-    expect(model.annotations.get('/data/aln')).toMatchObject({ shape: 'cells', target: '/data/aln', rows: '/data/aln/(rows)' });
-    const view = resolveView(model, "/views/v")!;
+    expect(model.annotations.get('/data/aln')).toMatchObject({
+      shape: 'cells',
+      target: '/data/aln',
+      rows: '/data/aln/(rows)',
+    });
+    const view = resolveView(model, '/views/v')!;
     const layer = view.sections[0].tracks[0].layers[0];
     expect(layer).toMatchObject({ placed: true, data: { shape: 'cells', system: '/data/aln' } });
   });

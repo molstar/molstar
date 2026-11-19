@@ -14,6 +14,17 @@ export const RenderIssues = defineIssues('seq.render', {
     description: 'The spec has no view at the address asked for (or no view at all): nothing is drawn',
     hint: 'Name a view of the spec, or add one under `views`',
   },
+  'seq.render.rows.reduced': {
+    severity: 'info',
+    description:
+      'An alignment’s rows are below a pixel and its source serves no coarse row bins: the rows in view are drawn pending',
+    hint: 'Zoom in on the rows (`]`), or serve the alignment with row levels',
+  },
+  'seq.render.rows.order': {
+    severity: 'info',
+    description: 'A lazy alignment ordered by a field or a tree its source does not serve: drawn in data order',
+    hint: 'Order a lazy alignment by `data`, or hold it',
+  },
   'seq.render.color': {
     severity: 'warning',
     description: 'A layer’s color names a token the token table lacks',

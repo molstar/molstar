@@ -48,6 +48,9 @@ export interface RenderConfig {
     readonly variants: number;
     /** A frame's title row (its outline covers the tracks it names). */
     readonly frame: number;
+    /** An alignment's rows band when it gives no height (its rows scroll inside), and a logo. */
+    readonly rows: number;
+    readonly logo: number;
   };
   /** A lane of ranges, and the gap within it. */
   readonly laneHeight: number;
@@ -154,6 +157,20 @@ export interface RenderConfig {
    */
   readonly imageBytes: number;
   /**
+   * The rows layer (_spec/README.md "Render", The rows layer): a row's height when the band gives none (`rowHeight`, 20:
+   * a letter row), the least row height a label, a number and an icon are drawn at (`labelMinPx`, 8: a label needs a
+   * row), a pinned row kept in its place in the order too (`pinInPlace`, true: the tree stays a tree), what a reduced
+   * sample is colored by (`reduce`: `theme`, the theme's color classes; `letter`, the letters'), and the nearest a
+   * point is to a tree's branch to hit its node (`treeHitPx`, 6).
+   */
+  readonly rows: {
+    readonly rowHeight: number;
+    readonly labelMinPx: number;
+    readonly pinInPlace: boolean;
+    readonly reduce: 'theme' | 'letter';
+    readonly treeHitPx: number;
+  };
+  /**
    * The text layout (_spec/README.md "Render", Text layout): its letter size (`scale`, px a position: the zoom), the gap
    * between groups (a share of a cell), between lines and between a line's bands (px), whether a band no layer used on
    * a line collapses there, the most lines a section lays out, the most px a section in a page takes before it scrolls
@@ -180,7 +197,17 @@ export const DefaultRenderConfig: RenderConfig = {
   labelGap: 8,
   trackGap: 4,
   sectionGap: 8,
-  heights: { letters: 20, ranges: 36, values: 32, ruler: 22, secondary: 16, variants: 32, frame: 16 },
+  heights: {
+    letters: 20,
+    ranges: 36,
+    values: 32,
+    ruler: 22,
+    secondary: 16,
+    variants: 32,
+    frame: 16,
+    rows: 240,
+    logo: 48,
+  },
   laneHeight: 12,
   laneGap: 2,
   density: { letters: 10, cells: 3, dots: 1, bars: 1 / 64 },
@@ -224,6 +251,7 @@ export const DefaultRenderConfig: RenderConfig = {
   },
   internedStrings: DefaultMaxStrings,
   imageBytes: 64 * 1024 * 1024,
+  rows: { rowHeight: 20, labelMinPx: 8, pinInPlace: true, reduce: 'theme', treeHitPx: 6 },
   text: {
     scale: 12,
     groupGap: 0.5,
@@ -234,7 +262,17 @@ export const DefaultRenderConfig: RenderConfig = {
     maxHeight: 600,
     pieceBreak: 'none',
     numberGap: 8,
-    heights: { letters: 18, ranges: 4, values: 3, ruler: 14, secondary: 6, variants: 10, frame: 14 },
+    heights: {
+      letters: 18,
+      ranges: 4,
+      values: 3,
+      ruler: 14,
+      secondary: 6,
+      variants: 10,
+      frame: 14,
+      rows: 18,
+      logo: 24,
+    },
   },
 };
 
@@ -264,6 +302,7 @@ export function renderConfig(over: RenderConfigOverrides = {}): RenderConfig {
     outline: { ...DefaultRenderConfig.outline, ...over.outline },
     emphasis: { ...DefaultRenderConfig.emphasis, ...over.emphasis },
     text: { ...DefaultRenderConfig.text, ...over.text },
+    rows: { ...DefaultRenderConfig.rows, ...over.rows },
   };
 }
 

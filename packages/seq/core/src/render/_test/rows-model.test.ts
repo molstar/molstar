@@ -50,7 +50,14 @@ function randomTree(rng: PCG, n: number): string {
 describe('the rows’ model', () => {
   const labels = ['a', 'b', 'c', 'd', 'e'];
   const tree = readNewick('((a:1,b:1)ab:1,((c:1,d:2):1,e:1):1)root;');
-  const clades = buildClades(tree, matchLeaves(tree, labels.map((label) => ({ label }))), 5)!;
+  const clades = buildClades(
+    tree,
+    matchLeaves(
+      tree,
+      labels.map((label) => ({ label })),
+    ),
+    5,
+  )!;
 
   it('clades: named by their label, else first..last; runs of leaves; heights by branch length', () => {
     expect(clades.name[0]).toBe('root');
@@ -92,7 +99,14 @@ describe('the rows’ model', () => {
     for (let t = 0; t < 60; t++) {
       const n = 2 + (rng.int() % 40);
       const tr = readNewick(randomTree(rng, n));
-      const c = buildClades(tr, matchLeaves(tr, Array.from({ length: n }, (_, i) => ({ label: `r${i}` }))), n)!;
+      const c = buildClades(
+        tr,
+        matchLeaves(
+          tr,
+          Array.from({ length: n }, (_, i) => ({ label: `r${i}` })),
+        ),
+        n,
+      )!;
       const folds = allClades(c).filter(() => rng.float() < 0.3);
       const hidden = new Set(Array.from({ length: n }, (_, i) => i).filter(() => rng.float() < 0.1));
       d.set(n, undefined, c, folds, [], hidden, true);

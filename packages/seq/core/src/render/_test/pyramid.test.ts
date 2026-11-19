@@ -70,7 +70,14 @@ describe('the shared reduction (pyramid)', () => {
         const fc = 4 ** l.columnLevel;
         for (let i = 0; i < l.rows; i++)
           for (let j = 0; j < l.columns; j++) {
-            const e = exact(base, columns, i * fr, Math.min(rows, (i + 1) * fr), j * fc, Math.min(columns, (j + 1) * fc));
+            const e = exact(
+              base,
+              columns,
+              i * fr,
+              Math.min(rows, (i + 1) * fr),
+              j * fc,
+              Math.min(columns, (j + 1) * fc),
+            );
             const o = i * l.columns + j;
             if (e.lead > 0.25) expect(l.classes[o]).toBe(e.letter);
             if (l.classes[o] !== e.letter) continue;

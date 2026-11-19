@@ -57,6 +57,7 @@ import { SecondaryType } from './secondary.js';
 import { ValuesType } from './values.js';
 import { VariantsType } from './variants.js';
 import { FrameType } from './frames.js';
+import { RowsType } from './rows.js';
 
 // The tracks layout (_spec/README.md "Render", Tracks layout): sections stacked, each with its axis transform from its
 // system and range (a follower's from its leader's view), tracks with heights in px under one label column, each
@@ -72,6 +73,7 @@ export const BuiltInLayerTypes: Readonly<Record<string, LayerType<any, any>>> = 
   secondary: SecondaryType,
   variants: VariantsType,
   frame: FrameType,
+  rows: RowsType,
 };
 
 export interface LayerLayout {
@@ -847,6 +849,14 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     }
     const byType = layout.heights?.(config) ?? config.heights;
     const heights = shown.map((t) => trackHeight(t, config, byType));
+    // a rows band that fills (_spec/README.md "Render", The rows layer): the section's room left on the page, at least
+    // its default height (a figure, laid out for its content, takes the default)
+    const fill = shown.findIndex((t) => t.height === undefined && rowsFill(t) === 'fill');
+    if (fill >= 0 && !input.figure && layout === TracksLayout) {
+      let used = 0;
+      for (let j = 0; j < heights.length; j++) if (j !== fill) used += heights[j] + config.trackGap;
+      heights[fill] = Math.max(heights[fill], Math.floor(height - top - used - config.inset));
+    }
     const nb = shown.length;
     const lays: LayerLayout[][] = [];
     const stripBreaks: number[][] = [];
@@ -929,6 +939,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
             labels: labels ?? 'inside',
             ...(band ? { bandTop: band.bandTop } : {}),
             ...(band?.rowScale !== undefined ? { rowScale: band.rowScale } : {}),
+            ...(band?.folds !== undefined ? { folds: band.folds } : {}),
           };
           // kept by the strip's first unit, and its block's (a stack's blocks all start at 0)
           const at = block ? `${key}#${strips.block[i]}@${strips.first[i]}` : `${key}@${strips.first[i]}`;
@@ -1182,8 +1193,20 @@ function wantTemplate(
   }
 }
 
-function trackHeight(track: ResolvedTrack, _config: RenderConfig, heights: RenderConfig['heights']): number {
+/** How a track's rows layer takes its height: `fill`, a number of rows, or none (no rows layer). */
+function rowsFill(track: ResolvedTrack): 'fill' | number | undefined {
+  for (const l of track.layers) {
+    if (l.type !== 'rows') continue;
+    const h = l.params.height;
+    return typeof h === 'number' ? h : 'fill';
+  }
+  return undefined;
+}
+
+function trackHeight(track: ResolvedTrack, config: RenderConfig, heights: RenderConfig['heights']): number {
   if (track.height !== undefined) return track.height;
+  const rows = rowsFill(track);
+  if (typeof rows === 'number') return rows * config.rows.rowHeight;
   let h = 0;
   for (const l of track.layers) h = Math.max(h, heights[l.type as keyof RenderConfig['heights']] ?? 0);
   return h || heights.ranges;
@@ -1446,7 +1469,9 @@ function drawSectionEmphasis(
         drawProjectedHover(out, axis, box, emphasis.projected.hover, tokens, config);
       break;
     case 'cursor':
-      if (emphasis.cursor?.system === axis.system) drawCursor(out, axis, box, emphasis.cursor, tokens, config);
+      // a cursor on a cell of two axes is its layer's (it alone knows its y)
+      if (emphasis.cursor?.system === axis.system && emphasis.cursor.ySystem === undefined)
+        drawCursor(out, axis, box, emphasis.cursor, tokens, config);
       break;
   }
 }
@@ -1704,7 +1729,17 @@ export function hitView(layout: ViewLayout, x: number, y: number): Hit | undefin
       const h = l.type.hit(l.lay, x, y);
       if (h?.element) return h;
     }
-    if (!s.placement.at(x, y, Point) || Point.kind !== 'data') continue;
+    if (!s.placement.at(x, y, Point)) continue;
+    // a band's header in the label column (a rows layer's tree and labels): its layers of two axes hit it
+    if (Point.kind === 'gutter' && Point.band >= 0) {
+      const lays = s.lays[Point.strip * strips.bands + Point.band];
+      for (let i = lays ? lays.length - 1 : -1; i >= 0; i--) {
+        if (lays![i].type.axes !== 2) continue;
+        const h = lays![i].type.hit(lays![i].lay, Point.x, Point.y);
+        if (h) return withBlock(s, Point.strip, h);
+      }
+    }
+    if (Point.kind !== 'data') continue;
     // a layer drawn across other bands of its strip (a frame's outline, `across`) is hit there, over their layers
     for (let j = 0; j < strips.bands; j++) {
       const own = s.lays[Point.strip * strips.bands + j];

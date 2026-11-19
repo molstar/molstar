@@ -25,7 +25,7 @@ export interface Viewport {
   readonly end: number;
   readonly top?: number;
   readonly scale?: number;
-  readonly bands?: Readonly<Record<string, { readonly bandTop: number; readonly rowScale?: number }>>;
+  readonly bands?: Readonly<Record<string, BandViewport>>;
   readonly y?: { readonly start: number; readonly end: number };
 }
 
@@ -39,6 +39,17 @@ export interface AxisShapeOptions {
   readonly cyclic?: boolean;
   /** A gap of `gap` px after every `size` display units (text's groups of ten); none by default. */
   readonly groups?: { readonly size: number; readonly gap: number; readonly origin?: number };
+}
+
+/**
+ * A band's own viewport (by track address): its rows' scroll (`bandTop`, px), row zoom (`rowScale`, px a row) and the
+ * clades its rows layer folds (`folds`, by name: session state, compared by identity; the layer's `collapsed` when
+ * absent).
+ */
+export interface BandViewport {
+  readonly bandTop: number;
+  readonly rowScale?: number;
+  readonly folds?: readonly string[];
 }
 
 export class AxisTransform {

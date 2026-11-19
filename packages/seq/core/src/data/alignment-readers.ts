@@ -175,7 +175,8 @@ export function readAlignedFasta(text: string): AlignmentRead {
  */
 export function readStockholm(text: string): AlignmentRead {
   const issues: ReadIssue[] = [];
-  if (typeof text !== 'string') return { rows: [], columns: 0, issues: [{ line: 0, message: 'the text is not a string' }] };
+  if (typeof text !== 'string')
+    return { rows: [], columns: 0, issues: [{ line: 0, message: 'the text is not a string' }] };
   const lines = text.split(/\r?\n/);
   let i = 0;
   while (i < lines.length && !lines[i].trim()) i++;

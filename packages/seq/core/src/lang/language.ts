@@ -620,7 +620,11 @@ export const SeqLanguage = defineLanguage({
           enum: ['blocks'],
           doc: 'For `secondary`: the figure’s form; `blocks` (when absent): helices and strands as blocks, a strand ending in an arrowhead.',
         },
-        tree: { type: 'ref', kinds: ['tree'], doc: 'For `rows`: the tree drawn beside the rows and read by `order: tree`.' },
+        tree: {
+          type: 'ref',
+          kinds: ['tree'],
+          doc: 'For `rows`: the tree drawn beside the rows and read by `order: tree`.',
+        },
         order: {
           type: 'union',
           of: [
@@ -652,7 +656,10 @@ export const SeqLanguage = defineLanguage({
         },
         height: {
           type: 'union',
-          of: [{ type: 'string', enum: ['fill'] }, { type: 'integer', min: 1 }],
+          of: [
+            { type: 'string', enum: ['fill'] },
+            { type: 'integer', min: 1 },
+          ],
           doc: 'For `rows`: the band’s height, `fill` (when absent: the section’s room left) or a number of rows.',
         },
         summary: {

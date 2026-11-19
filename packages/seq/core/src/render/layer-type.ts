@@ -70,6 +70,8 @@ export interface LayoutContext {
   /** A band's own vertical scroll and row zoom (px a row), when it scrolls its rows. */
   readonly bandTop?: number;
   readonly rowScale?: number;
+  /** The clades a rows layer folds (session state, by name), when the band says; its `collapsed` when absent. */
+  readonly folds?: readonly string[];
 }
 
 /** Where a layer gives its items' labels when its layout places them (rings: outside, with leaders). */
@@ -151,7 +153,13 @@ export interface Emphasis {
    * hairline, EC-127).
    */
   readonly elements?: Elements;
-  readonly cursor?: { readonly system: string; readonly position: number };
+  /** The keyboard cursor; on a cell of two axes (a rows cell) its row too, drawn by the layer of two axes. */
+  readonly cursor?: {
+    readonly system: string;
+    readonly position: number;
+    readonly ySystem?: string;
+    readonly yPosition?: number;
+  };
   /** The highlight channels in the order they were set: each a tint of its color (the `highlight` pass). */
   readonly highlights?: readonly EmphasisHighlight[];
   /**
