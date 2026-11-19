@@ -59,6 +59,9 @@ describe('the small layers’ stories, headless', () => {
     it(`${view.title}: the canvas and the SVG draw the same lists, in the light and the dark theme`, async () => {
       const v = await open(view.id);
       expect(v.layoutIssues.value).toEqual([]);
+      // the rails off: an export has none, nor their row under the ruler
+      v.setRailsShown(false);
+      v.draw();
       const light = await svgOf(v);
       expect(light.issues).toEqual([]);
       for (const pass of ['data', 'labels'] as const)

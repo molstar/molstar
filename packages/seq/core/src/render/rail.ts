@@ -141,8 +141,10 @@ export function placeRail(
     // zone the ruler's height as before, down to that row's foot
     const columns = section.tracks.some((t) => t.layers.some((l) => l.type === 'rows' || l.type === 'logo'));
     const border = ruler.y + ruler.height;
-    rail.y = border + SlimRailPx / 2;
-    rail.bottom = border + SlimRailPx;
+    // a figure (an export that includes its rails) has no row for it: on the border
+    const row = figure ? 0 : SlimRailPx;
+    rail.y = border + row / 2;
+    rail.bottom = border + row;
     rail.top = rail.bottom - (columns ? ruler.height * config.navigator.rail.grabShare : ruler.height);
   } else {
     rail.top = slimTop;

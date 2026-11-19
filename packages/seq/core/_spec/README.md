@@ -1665,19 +1665,20 @@ numbers): a window move allocates nothing once warm.
   display row, a band's name (the `bands` layer's hit `state`). A navigator's hover is its own: a readout.
 - **The ruler rail** (`Rail`, `FrameInput.rails` and `railsActive`, by section address, `key`; the viewer's): drawn just
   below the first shown ruler's bottom border, in a row of its own (`SlimRailPx`) its well grows by, never over the
-  ruler's ticks or labels (decided, the author, 2026-11-19: "Below the border"; the row is kept in an export, a figure,
-  so the canvas and the export lay out alike), else in a slim row of its own under the section's tracks (`SlimRailPx`,
-  12, fixed: the form's size, the least a rail and its grips need; a hidden ruler too; under, not above: the tracks keep
-  their place); the whole axis across the data box, the window a segment with a grip each end (over a cyclic origin two
-  pieces, a grip at each true end, the axis's ends body), collapsed breaks a notch; its grab zone the ruler's height, up
-  from the rail row's foot (on an alignment's columns its lower `grabShare`: above it a drag selects columns), the slim
-  row whole; grown (`grownPx`) while hovered or dragged (`Emphasis.drag`); idle (not active) a quiet hairline with no
-  grips and no target (at the fit it reads as the line); in a figure (an export) a plain segment, no grips, no idle
-  state. Its hit is the `window` target with `navigator: 'rail'` (touch the wider hit: `hitView`'s `touch`), its unit
-  `railUnitAt`. Rails are part of a section's key by identity (a slim row takes room); which can move is not: the
-  renderer sets it on the rails each frame, an emphasis redraw too (an idle flip redraws the window pass alone).
-  `railSections(view, hosted)`: every tracks section no shown navigator binds along its positions: a declared navigator
-  and a host's replace its rail, a hidden one brings it back.
+  ruler's ticks or labels (decided, the author, 2026-11-19: "Below the border"); the row only where a rail is drawn live
+  (the canvas with rails on; with the rail toggle off none), never in an export ("Leave it out of exports": a figure has
+  no empty strip, and its included rails lie on the border), else in a slim row of its own under the section's tracks
+  (`SlimRailPx`, 12, fixed: the form's size, the least a rail and its grips need; a hidden ruler too; under, not above:
+  the tracks keep their place); the whole axis across the data box, the window a segment with a grip each end (over a
+  cyclic origin two pieces, a grip at each true end, the axis's ends body), collapsed breaks a notch; its grab zone the
+  ruler's height, up from the rail row's foot (on an alignment's columns its lower `grabShare`: above it a drag selects
+  columns), the slim row whole; grown (`grownPx`) while hovered or dragged (`Emphasis.drag`); idle (not active) a quiet
+  hairline with no grips and no target (at the fit it reads as the line); in a figure (an export) a plain segment, no
+  grips, no idle state. Its hit is the `window` target with `navigator: 'rail'` (touch the wider hit: `hitView`'s
+  `touch`), its unit `railUnitAt`. Rails are part of a section's key by identity (a slim row takes room); which can move
+  is not: the renderer sets it on the rails each frame, an emphasis redraw too (an idle flip redraws the window pass
+  alone). `railSections(view, hosted)`: every tracks section no shown navigator binds along its positions: a declared
+  navigator and a host's replace its rail, a hidden one brings it back.
 - **The rows rail** (`placeRowsRail`, `SectionLayout.rowsRails`; `FrameInput.rails` by the rows track's address): the
   same `Rail` upright (`vertical`: along the page's y, its line and grab zone across on x; one geometry, drawn and hit
   by the same code, the coordinates turned at the rect and at the hit), `SlimRailPx` wide at the right edge (right of

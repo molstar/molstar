@@ -1124,12 +1124,11 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       pads.push(p.top, p.bottom);
       if (p.top > 0 || p.bottom > 0) padded = true;
     }
-    // the row is the canvas's with rails and an export's (a figure): the two lay out alike; a navigator's picture none
-    const ruler = railable && (input.rails !== undefined || input.figure === true) ? rulerTrack(shown, heights) : -1;
+    const ruler = railOn ? rulerTrack(shown, heights) : -1;
     // the rail draws just below the ruler's bottom border: the ruler's well grows by the rail's row, so it never covers
-    // the ticks or labels; an export keeps the row whether it draws the rail or not, so the canvas and its export lay
-    // out alike (_spec/README.md "Render", Navigators)
-    if (ruler >= 0) {
+    // the ticks or labels; only where a rail is drawn live (the canvas with rails on): an export has no row, a figure's
+    // rails (navigators included) lie on the border (_spec/README.md "Render", Navigators)
+    if (ruler >= 0 && input.figure !== true) {
       pads[2 * ruler + 1] += SlimRailPx;
       padded = true;
     }

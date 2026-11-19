@@ -12,7 +12,7 @@
 import type { Node } from '@molstar/core/repr/tree';
 import { createSeqSpec, stripNavigator } from '@molstar/seqx-core/lang';
 import { describe, expect, it } from 'vitest';
-import { type FrameInput, hitView, LightTokens, railUnitAt, SlimRailPx } from '../index.js';
+import { type FrameInput, hitView, LightTokens, railUnitAt, recordDrawLists, SlimRailPx } from '../index.js';
 import { renderSvg } from '../render-svg.js';
 import { P53 } from './fixtures.js';
 import { settle } from './helpers.js';
@@ -137,6 +137,32 @@ describe('the ruler rail', () => {
     const f = await s.frame({ size: Size });
     expect(f.layout.sections[0].rail).toBeUndefined();
     expect(readRects(f.lists, 'window').length).toBe(0);
+  });
+
+  it('the rail’s row only on the canvas with rails on: an export is as tall as without rails, rails included or not', async () => {
+    const s = await settle(p53());
+    const first = await s.frame({ size: Size });
+    const plain = first.layout;
+    // a frame is valid until the next: what is kept is read now
+    const plainData = recordDrawLists(first.lists, ['data']);
+    const plainSection = { height: plain.sections[0].height, y1: plain.sections[0].tracks[1].box.y };
+    const live = (await s.frame({ size: Size, rails, railsActive: active })).layout;
+    // the canvas with rails: 12 px more under the first ruler, the tracks below it moved by as much
+    expect(live.sections[0].height - plainSection.height).toBe(SlimRailPx);
+    expect(live.sections[0].tracks[1].box.y - plainSection.y1).toBe(SlimRailPx);
+    // an export (a figure): no row, with its navigators (and rails) left out or included
+    const auto = { width: Size.width, height: 'auto' as const };
+    const heights: number[] = [];
+    for (const navigators of ['omit', 'include'] as const) {
+      const r = await renderSvg(p53(), { size: Size, navigators });
+      expect(recordDrawLists(r.lists, ['data']), navigators).toBe(plainData);
+      heights.push((await renderSvg(p53(), { size: auto, navigators })).lists.height);
+    }
+    expect(heights[1]).toBe(heights[0]);
+    // included, its rail lies on the ruler's border
+    const ruler = live.sections[0].tracks[0].box;
+    const fig = await s.frame({ size: Size, rails, railsActive: active, figure: true });
+    expect(fig.layout.sections[0].rail!.y).toBe(fig.layout.sections[0].tracks[0].box.y + ruler.height);
   });
 
   it('a window over a cyclic origin is drawn in two pieces, a grip at each true end; the axis’s ends are body', async () => {

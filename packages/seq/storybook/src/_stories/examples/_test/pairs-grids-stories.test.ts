@@ -74,6 +74,9 @@ describe('tRNA: arcs, headless', () => {
   it('every pair has its arc; the export draws the canvas’s arcs; a base hovered lights its partner’s arc', async () => {
     viewer = await openExample(trna('arcs'), { gene: '' });
     const v = viewer;
+    // the rails off: an export has none, nor their row under the ruler
+    v.setRailsShown(false);
+    v.draw();
     const lay = arcsOf(v);
     expect(lay.n).toBe(27);
     const svg = v.renderSvg({ idPrefix: 't-' });

@@ -182,8 +182,7 @@ describe('row columns', () => {
     for (const tokens of [undefined, DarkTokens] as const) {
       const s = await settle(b.build());
       if (tokens) s.renderer.tokens = tokens;
-      // laid out as the export is (a figure: the ruler rail's row kept, _spec "Render", Navigators)
-      const g = await s.frame({ size: Size, dpr: 1, settled: true, figure: true });
+      const g = await s.frame({ size: Size, dpr: 1, settled: true });
       const svg = await renderSvg(b.build(), { size: Size, ...(tokens ? { tokens } : {}) });
       expect(svg.issues).toEqual([]);
       expect(recordDrawLists(svg.lists, ['data', 'labels'])).toBe(recordDrawLists(g.lists, ['data', 'labels']));
