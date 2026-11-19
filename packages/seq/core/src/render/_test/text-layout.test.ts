@@ -359,6 +359,41 @@ describe('the text layout', () => {
     expect(images).toBe(kept);
   });
 
+  it('the track labels of thin bands in the gutter never overlap, drawn and exported', async () => {
+    const b = createSeqSpec({ title: 'labels' });
+    const p53 = b.data.sequence('p53', { alphabet: 'protein', letters: P53 });
+    const d = b.data.ranges('domains', { target: p53, rows: { start: [0, 94], end: [61, 292] } });
+    b.views.view('main', { layout: 'text' }, (v) => {
+      const s = v.section('protein', { of: p53 });
+      s.track('letters', { label: 'p53' }).layer('letters', { type: 'letters' });
+      s.track('domains', { label: 'Domains' }).layer('ranges', { type: 'ranges', data: d });
+      s.track('regions', { label: 'Regions' }).layer('ranges', { type: 'ranges', data: d });
+      s.track('motifs', { label: 'Motifs' }).layer('ranges', { type: 'ranges', data: d });
+    });
+    const spec = b.build();
+    const fontSize = 12;
+    // the label boxes, a font size tall above their baseline, in the order drawn: each below the one before
+    const check = (ys: number[]) => {
+      expect(ys.length).toBe(4);
+      for (let i = 1; i < ys.length; i++) expect(ys[i] - ys[i - 1], `label ${i}`).toBeGreaterThanOrEqual(fontSize);
+    };
+    const s = await settle(spec);
+    const f = await s.frame({ size: Size });
+    const names = ['p53', 'Domains', 'Regions', 'Motifs'];
+    const drawn = recordDrawLists(f.lists, ['labels'])
+      .split('\n')
+      .map((l) => /^text "([^"]*)" 8 ([\d.]+) start/.exec(l))
+      .filter((m) => m && names.includes(m[1]))
+      .map((m) => Number(m![2]));
+    check(drawn);
+    const svg = (await renderSvg(spec, { size: { width: Size.width, height: 'auto' }, dpr: 1 })).svg;
+    const exported = [...svg.matchAll(/<text x="8" y="([\d.]+)" text-anchor="start"[^>]*>([^<]*)<\/text>/g)]
+      .filter((m) => names.includes(m[2]))
+      .map((m) => Number(m[1]));
+    check(exported);
+    expect(exported).toEqual(drawn);
+  });
+
   it('a thin band’s density strip stays in the density tokens’ light end, in both themes', async () => {
     const b = createSeqSpec({ title: 'overlaps' });
     const p53 = b.data.sequence('p53', { alphabet: 'protein', letters: P53 });

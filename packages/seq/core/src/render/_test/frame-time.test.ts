@@ -40,7 +40,10 @@ for (const s of Scenarios) {
     }, 60_000);
 
     for (const kind of ['pan', 'zoom'] as const) {
-      it(`${kind} frame: median under ${PAN_MS} ms, never over ${FRAME_MAX_MS} ms`, { tags: ['heavy'], retry: Retry }, () => {
+      it(`${kind} frame: median under ${PAN_MS} ms, never over ${FRAME_MAX_MS} ms`, {
+        tags: ['heavy'],
+        retry: Retry,
+      }, () => {
         const inputs = walk(s, kind);
         const t = time((i) => void settled.renderer.frame(inputs[i % STEPS]));
         const r = report(`${s.name} ${kind}`, t);

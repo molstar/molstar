@@ -1012,7 +1012,8 @@ coordinates: what crosses strips), `axes` (2: a second axis of its own, the y pa
   exon); labels inside marks 24 px or wider, drawn in the `labels` pass. At `bars` a lane's marks touching within a
   device pixel merge into a run; at `density`, or a density table, one heat strip, a device column a pixel. Items past
   the lanes collapse into a density row in the last lane, the rest drawn as items (`ranges.overflow: 'extra-lanes'`), or
-  the whole layer becomes the strip (`'layer'`).
+  the whole layer becomes the strip (`'layer'`). In a band under a lane's height (a text line's underline) the strip
+  uses only the light `ThinStripShare` (0.3) of the density ramp, so it reads as a band, not as a dark rule.
 - `values`: a bar a position, or at `bars` and `density` a bar a device column over the column's extent from the
   baseline (`values.aggregate: 'minmax'`, so negative extremes show; `'max'` the maximum alone), from positions or bins.
   Missing (NaN) is a 2 px neutral mark at the baseline. The domain is the layer's `domain` param where given, else open:
@@ -1155,8 +1156,10 @@ way, over a straight axis and a box, in every layout; a layout knows strips, ban
 - **Numbers** (`numbers`: `start`, `end`, `both`, `none`): a line's first (left gutter) or last (right gutter) position,
   in the numbering of the first of its layers that names one (`numbering`, as a ruler's), else 1-based on the section's
   system; group labels (`above`: the group's last position over its last cell; `inline`: in the gap after it; `none`).
-  The first line's bands carry their tracks' labels in the label column (faded past it). A line's gutter (a band's
-  label, its numbers) hits as the band's row (`target: 'row'`, the track's address as its layer).
+  The first line's bands carry their tracks' labels in the label column (faded past it), each at its band's middle but
+  never closer than a font size to the label above (thin bands would stack them: the labels flow down, the next line's
+  label column is empty). A line's gutter (a band's label, its numbers) hits as the band's row (`target: 'row'`, the
+  track's address as its layer).
 - **The box**: its `height`, else its content's up to `text.maxHeight` (600 px; a host sizing its canvas to the content
   reads it), past which it scrolls inside, its strips clipped to it; an export lays out every line (`figure`) and its
   box is its content.

@@ -399,6 +399,18 @@ export const TextLayout: SectionLayoutType<TextPlacement> = {
         h = by;
         if (moved) ctx.layStrip(p, i);
       }
+      // the first line's bands carry their tracks' labels: each at its band's middle, pushed down to a label's own line
+      // height below the one before when a thin band (a few px) would put them on top of each other
+      if (l === 0) {
+        let prev = Number.NEGATIVE_INFINITY;
+        for (let j = 0; j < nb; j++) {
+          if (strips.bandH[k0 + j] <= 0) continue;
+          const by = Math.max(strips.bandY[k0 + j] + strips.bandH[k0 + j] / 2 + labelSize * 0.35, prev + labelSize);
+          prev = by;
+          const m = mark(i, ctx.bands[j].label, config.inset, by, AnchorStart, config.labelFont, ctx.text);
+          marks.push({ ...m, maxWidth: config.labelWidth });
+        }
+      }
       strips.height[i] = h;
       p.heights[l] = h + g.lineGap;
       // the chrome's marks: the numbers, the group labels, the tracks' labels on the first line
@@ -420,13 +432,6 @@ export const TextLayout: SectionLayoutType<TextPlacement> = {
           if (params.groupLabels === 'above')
             marks.push(mark(i, s, (a.sx0 + a.sx1) / 2, g.labelRow - 2, AnchorMiddle, config.itemFont, ctx.text));
           else if (e < u1) marks.push(mark(i, s, a.sx1 + g.gap / 2, baseline, AnchorMiddle, config.itemFont, ctx.text));
-        }
-      if (l === 0)
-        for (let j = 0; j < nb; j++) {
-          if (strips.bandH[k0 + j] <= 0) continue;
-          const by = strips.bandY[k0 + j] + strips.bandH[k0 + j] / 2 + labelSize * 0.35;
-          const m = mark(i, ctx.bands[j].label, config.inset, by, AnchorStart, config.labelFont, ctx.text);
-          marks.push({ ...m, maxWidth: config.labelWidth });
         }
       y += p.heights[l];
     }
