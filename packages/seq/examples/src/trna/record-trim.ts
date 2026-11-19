@@ -73,7 +73,11 @@ function tokenize(line: string): string[] {
   return out;
 }
 
-/** The six tertiary pairs of the structure (1-based): the pairs that cross the cloverleaf's four stems (Kim et al. 1974). */
+/**
+ * The six tertiary pairs of the structure (1-based): those outside the cloverleaf's four stems that hold the L-shape
+ * (Kim et al. 1974). Four of them cross the stems' pairs, 26–44 crosses none (it encloses the anticodon stem), 54–58
+ * crosses only tertiary pairs.
+ */
 export const TertiaryPairs: readonly (readonly [number, number])[] = [
   [8, 14],
   [15, 48],

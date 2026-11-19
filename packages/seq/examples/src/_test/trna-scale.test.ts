@@ -70,7 +70,8 @@ function panFrame(n: number) {
     let k = 0;
     const pan = () => {
       const f = s.renderer.frame(inputs[++k % inputs.length]);
-      if (!f.rebuilt) throw new Error('a pan frame lays out again');
+      if (!f.rebuilt)
+        throw new Error('a pan frame must lay out again, and did not: the bound would time a cached frame');
     };
     for (let i = 0; i < 8; i++) pan();
     within(8, pan);

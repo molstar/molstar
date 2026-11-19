@@ -57,8 +57,10 @@ export const Pairs: readonly (readonly [i: number, j: number, kind: 'C' | 'W' | 
 ];
 
 /** A `pairs` node's rows over a list of pairs, 0-based, an id `i-j` 1-based. */
-export function pairRows(pairs: readonly (readonly [number, number, Kind])[]) {
+export function pairRows(pairs: readonly (readonly [number, number, Kind, boolean?])[]) {
   return {
+    // `tertiary` rides along as a column of the rows (a filter reads it: `(item :tertiary yes)`)
+    ...(pairs.some((p) => p[3] !== undefined) ? { tertiary: pairs.map((p) => (p[3] ? 'yes' : 'no')) } : {}),
     a_start: pairs.map((p) => p[0]),
     a_end: pairs.map((p) => p[0] + 1),
     b_start: pairs.map((p) => p[1]),
@@ -69,7 +71,7 @@ export function pairRows(pairs: readonly (readonly [number, number, Kind])[]) {
 }
 
 /** 1EHZ's base pairs as a pairs table. */
-export const ehzPairs = () => pairRows(Pairs.map(([i, j, k]) => [i, j, KindOf[k]]));
+export const ehzPairs = () => pairRows(Pairs.map(([i, j, k, t]) => [i, j, KindOf[k], t === 1]));
 
 /** The seed row 1EHZ is placed on (computed): its `SS_cons` pairs, nested only. */
 export const seedRowPairs = () => pairRows(DerivedData.rowPairs.map(([i, j]) => [i, j, 'canonical']));

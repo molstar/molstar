@@ -98,7 +98,7 @@ class PairDatum implements ThemeDatum {
       case 'b_end':
         return d.bEnd[k];
       default:
-        return undefined;
+        return d.extra?.[name]?.[k] ?? undefined;
     }
   }
 }
@@ -131,7 +131,10 @@ export interface PairsPrep {
   readonly elements: (ElementKey | undefined)[];
   readonly extents: (Location | undefined)[];
   /** Each pair's two ends' centres as display units of a section (NaN: not on it), by section. */
-  readonly units: WeakMap<ResolvedSection, Float64Array>;
+  readonly units: WeakMap<
+    ResolvedSection,
+    { readonly pieces: readonly number[] | undefined; readonly u: Float64Array }
+  >;
 }
 
 type ScratchHit = { -readonly [K in keyof Hit]: Hit[K] };
@@ -356,17 +359,22 @@ function centreOf(axis: Parameters<typeof cellOffset>[0], start: number, end: nu
  * Each pair's ends' centres as the section's display units (NaN: not on it): on the section's axis, or on the first
  * block on the end's system (merged copies are one block: one arc a copy group).
  */
-function unitsOn(prep: PairsPrep, section: ResolvedSection): Float64Array {
-  let u = prep.units.get(section);
-  if (u) return u;
+function unitsOn(prep: PairsPrep, section: ResolvedSection, layout: AxisTransform): Float64Array {
+  // the pieces the layout placed the axis on: the resolved axis has none while its letters come from a source (the
+  // layout fills them from the source's coverage), so the units are kept by them too
+  const own = section.axis.ranges ?? layout.pieces;
+  const kept = prep.units.get(section);
+  if (kept && kept.pieces === own) return kept.u;
   const d = prep.data!;
-  u = new Float64Array(2 * d.n).fill(Number.NaN);
+  const u = new Float64Array(2 * d.n).fill(Number.NaN);
+  const shape = (axis: typeof section.axis) =>
+    axis.ranges || axis.system !== layout.system ? axis : { ...axis, ranges: layout.pieces };
   const on = (system: string, s: number, e: number): number => {
     const blocks = section.blocks;
-    if (!blocks) return section.axis.system === system ? centreOf(section.axis, s, e) : Number.NaN;
+    if (!blocks) return section.axis.system === system ? centreOf(shape(section.axis), s, e) : Number.NaN;
     for (const b of blocks)
       if (b.axis.system === system && b.offset !== undefined) {
-        const c = centreOf(b.axis, s, e);
+        const c = centreOf(shape(b.axis), s, e);
         if (!Number.isNaN(c)) return b.offset + c;
       }
     return Number.NaN;
@@ -375,7 +383,7 @@ function unitsOn(prep: PairsPrep, section: ResolvedSection): Float64Array {
     u[2 * k] = on(prep.aSystem, d.aStart[k], d.aEnd[k]);
     u[2 * k + 1] = on(prep.bSystem, d.bStart[k], d.bEnd[k]);
   }
-  prep.units.set(section, u);
+  prep.units.set(section, { pieces: own, u });
   return u;
 }
 
@@ -493,7 +501,7 @@ function layoutArcs(lay: PairsLay, prep: PairsPrep, ctx: LayoutContext, place: P
   if (!s.n) return;
   lay.mode = 'arcs';
   const band = ctx.band ?? 0;
-  const units = unitsOn(prep, ctx.section);
+  const units = unitsOn(prep, ctx.section, ctx.axis);
   const nb = s.bands;
   const one = s.n === 1 && s.warp[0] === WarpKind.translate;
   const a0 = s.axes[0];

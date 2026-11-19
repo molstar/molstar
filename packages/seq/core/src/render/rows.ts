@@ -732,7 +732,23 @@ export const RowsType: LayerType<Prep, RowsLay> = {
   },
 
   legend(lay, options) {
-    return lay.channel ? channelLegends([lay.channel], { ...options, layer: lay.key }) : [];
+    if (!lay.channel) return [];
+    // the letters drawn as cells; zoomed out (image tiles) the alphabet's own (an RNA's U, never its T)
+    let painted = '';
+    const seen = new Set<number>();
+    for (let k = 0; k < lay.n; k++) if (lay.code[k] > 32) seen.add(lay.code[k]);
+    for (const c of seen) painted += String.fromCharCode(c);
+    const alphabet = lay.measureEnv?.alphabet;
+    if (lay.images.length || !painted) {
+      if (alphabet === 'rna') painted += 'ACGU';
+      else if (alphabet === 'dna') painted += 'ACGT';
+      else if (lay.images.length) painted = '';
+    }
+    return channelLegends([lay.channel], {
+      ...options,
+      layer: lay.key,
+      ...(painted ? { painted: painted.toUpperCase() } : {}),
+    });
   },
 
   hit(lay, at): Hit | undefined {

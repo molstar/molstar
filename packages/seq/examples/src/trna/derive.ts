@@ -39,7 +39,11 @@ export const MinRows = 30;
 export const MinBits = 0.05;
 export const Decimals = 3;
 
-function mutualInformation(a: Uint8Array, b: Uint8Array): number {
+/**
+ * The mutual information (bits) of two columns of codes (A, C, G, U below 4; other codes left out) with the
+ * Miller–Madow correction, `NaN` under `MinRows` rows, kept in `[0, min(H(a), H(b))]` (the correction can pass the entropy).
+ */
+export function mutualInformation(a: Uint8Array, b: Uint8Array): number {
   const joint = new Float64Array(16);
   let n = 0;
   for (let k = 0; k < a.length; k++) {
@@ -65,7 +69,8 @@ function mutualInformation(a: Uint8Array, b: Uint8Array): number {
   const used = (v: Float64Array) => v.reduce((s, x) => s + (x > 0 ? 1 : 0), 0);
   const cells = joint.reduce((s, x) => s + (x > 0 ? 1 : 0), 0);
   const bias = (cells - used(pa) - used(pb) + 1) / (2 * n * Math.LN2);
-  return Math.max(0, mi - bias);
+  const entropy = (v: Float64Array) => v.reduce((h, c) => (c > 0 ? h - (c / n) * Math.log2(c / n) : h), 0);
+  return Math.max(0, Math.min(mi - bias, entropy(pa), entropy(pb)));
 }
 
 /** The place, the best row, the covariation: from the seed's text and 1EHZ's letters. */

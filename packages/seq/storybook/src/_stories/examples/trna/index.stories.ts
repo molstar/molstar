@@ -30,7 +30,7 @@ const Features: readonly (readonly [title: string, summary: string])[] = [
   ['Rows and the logo', 'the seed’s 954 rows under their conservation logo.'],
   [
     'Editing',
-    'a kind of pairs hidden by a filter in the arcs’ `data`; the covariation’s palette changed; each a patch, undone.',
+    'the tertiary pairs hidden by a filter in the arcs’ `data`; the covariation’s palette changed; each a patch, undone.',
   ],
 ];
 
@@ -53,7 +53,7 @@ export const Views: StoryObj = {
     h.textContent = 'tRNA';
     const intro = document.createElement('p');
     intro.textContent =
-      'Yeast tRNA-Phe (PDB 1EHZ, chain A: 76 nucleotides, 14 modified residues, 27 base pairs of the entry’s own table) and the Rfam RF00005 seed (954 rows). Each view is one spec over this data; what is computed from the two (1EHZ’s place in the seed, the covariation of its positions) is code in the dataset.';
+      'Yeast tRNA-Phe (PDB 1EHZ, chain A: 76 nucleotides, 14 modified residues, 27 base pairs of the entry’s own table) and the Rfam RF00005 seed (954 rows). Each view is one spec over this data; 1EHZ’s place in the seed and the covariation of its positions are computed from the two recorded files by code in the dataset (`derive.ts`) and committed as generated data (`derived-data.ts`, regenerated and checked by a test), so a view builds without reading the seed.';
     const ul = document.createElement('ul');
     ul.append(...[...TrnaViews, TrnaScaleView].map((v) => item(v.id, v.title, v.summary)));
     const h2 = document.createElement('h3');

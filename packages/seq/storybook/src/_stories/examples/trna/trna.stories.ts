@@ -15,10 +15,10 @@ export default meta;
 
 /**
  * tRNA-Phe (PDB 1EHZ, chain A): its 27 base pairs as arcs over the letters, the four stems nested and the six tertiary
- * pairs crossing them, colored by kind (canonical, wobble, non-canonical); its 14 modified residues as their parent
+ * pairs among them (four cross the stems' pairs), colored by kind (canonical, wobble, non-canonical); its 14 modified residues as their parent
  * letters with their codes in a track. Hover a base: the arc to its partner lights. Click an arc: both bases are
- * selected. Pan: an arc whose end leaves the window moves continuously. Editing: hide a kind of pairs (a filter in the
- * arcs' `data`, a patch).
+ * selected. Pan: an arc whose end leaves the window moves continuously. Editing: hide the tertiary pairs (a filter by
+ * that field in the arcs' `data`, a patch).
  */
 export const Arcs: StoryObj = { render: () => exampleStory(view('arcs')) };
 

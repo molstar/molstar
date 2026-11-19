@@ -5,14 +5,15 @@
  */
 
 import { createHash } from 'node:crypto';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { decodeSeq } from '@molstar/seqx-core/data';
 import { readStockholm } from '@molstar/seqx-core/data/alignment-readers';
 import { describe, expect, it } from 'vitest';
 import { PackageFolder } from '../node-assets.js';
 import { DerivedData } from '../trna/derived-data.js';
-import { derive, derivedModule } from '../trna/derive.js';
+import { derive, mutualInformation } from '../trna/derive.js';
+import { writeDerived } from '../trna/generated.js';
 import {
   covariationGrid,
   MoleculeFile,
@@ -90,30 +91,42 @@ describe('the tRNA fixtures', () => {
     expect(read.issues).toEqual([]);
   });
 
-  it('sources.json: every file’s bytes and checksum are the file’s', () => {
+  it('sources.json: every file’s bytes and checksum are the file’s, the licences as the section says', () => {
     const rows = JSON.parse(text('fixtures/trna/sources.json')) as {
       file: string;
+      entry: string;
       bytesFixture: number;
       sha256Fixture: string;
       licence: string[];
     }[];
-    expect(rows.map((r) => r.file)).toEqual(['trna/1EHZ.seq', 'trna/1EHZ-pairs.seq', 'trna/RF00005.sto']);
+    expect(rows.map((r) => r.file).sort()).toEqual([
+      'src/trna/data.ts#scaleGrid',
+      'src/trna/derived-data.ts',
+      'trna/1EHZ-pairs.seq',
+      'trna/1EHZ.seq',
+      'trna/RF00005.sto',
+    ]);
     for (const r of rows) {
-      const t = text(`fixtures/${r.file}`);
+      expect(r.licence).toEqual([r.file.startsWith('src/') ? 'LicenseRef-seqx-generated' : 'CC0-1.0']);
+      if (!r.bytesFixture) continue;
+      const t = text(r.file.startsWith('src/') ? r.file : `fixtures/${r.file}`);
       expect(new TextEncoder().encode(t).byteLength).toBe(r.bytesFixture);
       expect(createHash('sha256').update(t).digest('hex')).toBe(r.sha256Fixture);
-      expect(r.licence).toEqual(['CC0-1.0']);
     }
+    // the release is read from Rfam's README, not written in the script
+    expect(rows.find((r) => r.file === 'trna/RF00005.sto')!.entry).toMatch(/release \d+\.\d+/);
   });
 });
 
 describe('what is computed from them', () => {
   const letters = ranges(MoleculeFile).tables.letters.letters as string;
+  // computed once for the file, not once a test: 954 alignments and 2,850 pairs of columns, measured at 150 ms
   const derived = derive(text(SeedFile), letters);
 
   it('is what is committed', () => {
+    // written as the formatter does: a regeneration leaves `format:check` clean
     if (update)
-      writeFileSync(fileURLToPath(new URL('../trna/derived-data.ts', import.meta.url)), derivedModule(derived));
+      writeDerived(fileURLToPath(new URL('../trna/derived-data.ts', import.meta.url)), text(SeedFile), letters);
     expect(JSON.parse(JSON.stringify(DerivedData))).toEqual(JSON.parse(JSON.stringify(derived)));
   });
 
@@ -131,21 +144,86 @@ describe('what is computed from them', () => {
     expect(projected.filter((p) => entry.has(p)).length / projected.length).toBeGreaterThan(0.85);
   });
 
-  it('covaries across the stems more than elsewhere', () => {
-    const stems = new Set(Pairs.filter((p) => !p[3]).map(([i, j]) => `${i}-${j}`));
-    const on = derived.covariation.filter(([i, j]) => stems.has(`${i}-${j}`));
-    const off = derived.covariation.filter(([i, j]) => !stems.has(`${i}-${j}`));
-    const mean = (v: typeof on) => v.reduce((s, e) => s + e[2], 0) / v.length;
-    expect(on.length).toBeGreaterThan(10);
-    expect(mean(on)).toBeGreaterThan(mean(off) * 2);
+  it('covaries across the stems more than elsewhere: the grid’s exact cells', () => {
     const g = covariationGrid();
-    expect(g[0 * TrnaLength + 71]).toBe(g[71 * TrnaLength + 0]);
+    const at = (i: number, j: number) => g[i * TrnaLength + j];
+    const stems = Pairs.filter((p) => !p[3] && p[2] !== 'N');
+    // a stem pair's cell holds its value, symmetric, and the entries are the upper triangle's (i < j)
+    for (const [i, j] of stems) expect(at(i, j)).toBe(at(j, i));
+    expect(derived.covariation.every(([i, j]) => i < j)).toBe(true);
+    // the cells of the stems above the rest: the lowest of those with evidence beats the median of the others
+    const onStem = new Set(stems.map(([i, j]) => `${i}-${j}`));
+    const withValue = stems.map(([i, j]) => at(i, j)).filter((v) => !Number.isNaN(v));
+    expect(withValue.length).toBeGreaterThanOrEqual(15);
+    const others = derived.covariation
+      .filter(([i, j]) => !onStem.has(`${i}-${j}`))
+      .map((e) => e[2])
+      .sort((a, b) => a - b);
+    expect(withValue.sort((a, b) => a - b)[Math.floor(withValue.length / 4)]).toBeGreaterThan(
+      others[Math.floor(others.length / 2)],
+    );
+    // the best cell of the grid is a stem’s
+    let best = [0, 0];
+    for (const [i, j, v] of derived.covariation)
+      if (v > at(best[0], best[1]) || Number.isNaN(at(best[0], best[1]))) best = [i, j];
+    expect(onStem.has(`${best[0]}-${best[1]}`)).toBe(true);
   });
 
   it('the scale grid is symmetric and from a seed', () => {
     const g = scaleGrid(64);
     expect(g[3 * 64 + 40]).toBe(g[40 * 64 + 3]);
     expect(Array.from(scaleGrid(64))).toEqual(Array.from(g));
+  });
+});
+
+describe('mutual information', () => {
+  const n = 100;
+  const column = (f: (k: number) => number) => Uint8Array.from({ length: n }, (_, k) => f(k));
+
+  it('a perfectly covarying pair is 2 bits (never past the columns’ entropy); independent columns 0', () => {
+    const a = column((k) => k % 4);
+    expect(
+      mutualInformation(
+        a,
+        column((k) => ((k % 4) + 1) % 4),
+      ),
+    ).toBeCloseTo(2, 10);
+    // each letter of a meets each letter of b equally: no information, and the correction takes it below zero
+    expect(
+      mutualInformation(
+        a,
+        column((k) => Math.floor(k / 4) % 4),
+      ),
+    ).toBe(0);
+  });
+
+  it('a pair that agrees for three rows in four: the plug-in value less the Miller–Madow bias', () => {
+    const a = column((k) => k % 4);
+    const b = column((k) => (k % 4 === 0 && Math.floor(k / 4) % 4 === 0 ? 1 : k % 4));
+    // joint: 100 rows, the diagonal 25 each but one row in four of letter 0 moved: counts by hand
+    const joint = new Map<number, number>();
+    for (let k = 0; k < n; k++) joint.set(a[k] * 4 + b[k], (joint.get(a[k] * 4 + b[k]) ?? 0) + 1);
+    const pa = [0, 1, 2, 3].map((x) =>
+      [...joint].filter(([c]) => Math.floor(c / 4) === x).reduce((s, [, v]) => s + v, 0),
+    );
+    const pb = [0, 1, 2, 3].map((y) => [...joint].filter(([c]) => c % 4 === y).reduce((s, [, v]) => s + v, 0));
+    let mi = 0;
+    for (const [c, v] of joint) mi += (v / n) * Math.log2((v * n) / (pa[Math.floor(c / 4)] * pb[c % 4]));
+    const used = (v: number[]) => v.filter((x) => x > 0).length;
+    const bias = (joint.size - used(pa) - used(pb) + 1) / (2 * n * Math.LN2);
+    expect(mutualInformation(a, b)).toBeCloseTo(Math.max(0, mi - bias), 10);
+    expect(mutualInformation(a, b)).toBeLessThan(2);
+  });
+
+  it('under 30 rows with both letters is NaN; a gap or another letter leaves the row out', () => {
+    expect(mutualInformation(new Uint8Array(29), new Uint8Array(29))).toBeNaN();
+    const a = column((k) => (k < 40 ? 4 : k % 4));
+    expect(
+      mutualInformation(
+        a,
+        column((k) => ((k % 4) + 1) % 4),
+      ),
+    ).toBeCloseTo(2, 10);
   });
 });
 

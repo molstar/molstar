@@ -365,7 +365,7 @@ export const SeqLanguage = defineLanguage({
             b_strand: { type: 'column', of: 'category', doc: 'The strand of each second end: `+` or `-`.' },
           },
           required: true,
-          doc: 'The pairs inline, a column for each field; an end never wraps.',
+          doc: 'The pairs inline, a column for each field; an end never wraps. Any other category column rides along as a field of the pairs a data filter reads (`(item :tertiary yes)`).',
         },
       },
     },

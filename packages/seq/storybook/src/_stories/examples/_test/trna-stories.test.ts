@@ -15,10 +15,13 @@ import {
   type PairsLay,
   type RangesLay,
   recordDrawLists,
+  type RowsLay,
+  viewLegends,
 } from '@molstar/seqx-core/render';
 import { TrnaViews } from '@molstar/seqx-examples';
 import { nodeFixtureAssets } from '@molstar/seqx-examples/node-assets';
-import { withoutKind } from '@molstar/seqx-examples/trna/trna';
+import { DerivedData } from '@molstar/seqx-examples/trna/derived-data';
+import { without } from '@molstar/seqx-examples/trna/trna';
 import type { UiHistory } from '@molstar/seqx-viewer/ui-history';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -47,7 +50,23 @@ const keysOf = (lay: PairsLay) => {
 const ids = (pairs: readonly (readonly [number, number])[]) => pairs.map(([i, j]) => `${i}-${j}`);
 
 describe('tRNA: 1EHZ’s arcs against its anchors', () => {
-  it('the four stems nested, the six tertiary pairs crossing them, every pair drawn once', async () => {
+  it('the stems nest (none crosses another); of the tertiary pairs four cross the stems, 26–44 crosses nothing, 54–58 only tertiary pairs', async () => {
+    viewer = await openExample(trna('arcs'), { gene: '' });
+    const keys = keysOf(arcsOf(viewer));
+    const pairs = keys.map((k) => k.split('-').map(Number) as [number, number]);
+    const cross = (p: number[], q: number[]) =>
+      (p[0] < q[0] && q[0] < p[1] && p[1] < q[1]) || (q[0] < p[0] && p[0] < q[1] && q[1] < p[1]);
+    const tertiary = new Set(['8-14', '15-48', '18-55', '19-56', '26-44', '54-58']);
+    const crossing = (k: string) => pairs.filter((q) => cross(k.split('-').map(Number), q)).map((q) => q.join('-'));
+    // stems (and the loop’s 32–38) cross no stem: they cross only the tertiary pairs
+    for (const k of keys.filter((k) => !tertiary.has(k)))
+      for (const c of crossing(k)) expect(tertiary.has(c)).toBe(true);
+    expect(crossing('26-44')).toEqual([]);
+    expect(crossing('54-58').sort()).toEqual(['18-55', '19-56']);
+    for (const k of ['8-14', '15-48', '18-55', '19-56']) expect(crossing(k).some((c) => !tertiary.has(c))).toBe(true);
+  });
+
+  it('the four stems nested, the six tertiary pairs among them, every pair drawn once', async () => {
     viewer = await openExample(trna('arcs'), { gene: '' });
     const keys = keysOf(arcsOf(viewer));
     expect(keys).toHaveLength(27);
@@ -121,12 +140,21 @@ describe('tRNA: 1EHZ’s arcs against its anchors', () => {
 });
 
 describe('tRNA: the dot plot’s two triangles', () => {
-  it('the covariation above the diagonal (stems brighter), the structure’s 27 pairs below', async () => {
+  it('the covariation only above the diagonal, exactly the cells computed; the structure’s 27 pairs below', async () => {
     viewer = await openExample(trna('dot-plot'), { gene: '' });
     const section = viewer.frame!.layout.sections[1];
     expect(viewer.frame!.layout.issues).toEqual([]);
     const grid = section.lays[0][0].lay as GridLay;
-    expect(grid.images.length).toBeGreaterThan(0);
+    // 76 positions a side: one tile, a pixel a cell; a cell has a color where the covariation was computed
+    expect(grid.images).toHaveLength(1);
+    const im = grid.images[0];
+    expect([im.width, im.height]).toEqual([76, 76]);
+    const cells = new Set<string>();
+    for (let y = 0; y < 76; y++)
+      for (let x = 0; x < 76; x++) if (im.data[4 * (y * 76 + x) + 3] > 0) cells.add(`${y}-${x}`);
+    // `upper`: y before x, and exactly the entries computed (their first position down, their second across)
+    expect([...cells].every((c) => Number(c.split('-')[0]) < Number(c.split('-')[1]))).toBe(true);
+    expect(cells).toEqual(new Set(DerivedData.covariation.map(([i, j]) => `${i}-${j}`)));
     const dots = section.lays[0][1].lay as PairsLay;
     // a dot a pair, the structure’s below the diagonal
     expect(dots.mode).toBe('dots');
@@ -143,7 +171,7 @@ describe('tRNA: the seed row and the seed', () => {
     expect(viewer.frame!.layout.issues).toEqual([]);
   });
 
-  it('the seed: 954 rows over 118 columns, drawn with no issue in both themes', async () => {
+  it('the seed draws in both themes, settled, with no issue', async () => {
     for (const t of ['light', 'dark'] as const) {
       const ctx = createSeqContext({
         registry: [
@@ -161,24 +189,36 @@ describe('tRNA: the seed row and the seed', () => {
       ctx.retire();
     }
   });
+
+  it('the seed viewer: the rows layer holds 954 rows over 118 columns; its legend lists A, C, G, U', async () => {
+    viewer = await openExample(trna('seed'), { gene: '' });
+    const lay = viewer.frame!.layout.sections[0].tracks.flatMap((t) => t.layers).find((l) => l.type.name === 'rows')!
+      .lay as RowsLay;
+    expect(lay.total).toBe(954);
+    expect(lay.columns).toBe(118);
+    const legend = viewLegends(viewer.frame!.layout).legends.find((l) => l.entries.kind === 'swatches')!;
+    const items = legend.entries.kind === 'swatches' ? legend.entries.items.map((i) => i.label) : [];
+    expect(items).toContain('U');
+    expect(items).not.toContain('T');
+  });
 });
 
 describe('tRNA: the editing views, each a patch undone', () => {
   const arcs = ['views', 'main', 'trna', 'pairs', 'arcs'];
 
-  it('hide a kind of pairs: a filter in the arcs’ `data`, one patch; undo shows them again', async () => {
+  it('hide the tertiary pairs: a filter by that field in the arcs’ `data`, one patch; undo shows them again', async () => {
     viewer = await openExample(trna('arcs'), { gene: '', history: true });
     const v = viewer;
     expect(arcsOf(v).n).toBe(27);
-    const o = await v.spec.patch('Hide the non-canonical pairs', {
-      ops: [{ op: 'set', at: arcs, key: 'data', value: withoutKind('/data/pairs', 'non-canonical') }],
+    const o = await v.spec.patch('Hide the tertiary pairs', {
+      ops: [{ op: 'set', at: arcs, key: 'data', value: without('/data/pairs', 'tertiary', 'yes') }],
     });
     expect(o.ok).toBe(true);
     await vi.advanceTimersByTimeAsync(1000);
     v.draw();
     expect(keysOf(arcsOf(v))).toHaveLength(21);
-    expect(keysOf(arcsOf(v))).not.toContain('15-48');
-    expect(keysOf(arcsOf(v))).toContain('19-56');
+    for (const k of ['8-14', '15-48', '18-55', '19-56', '26-44', '54-58']) expect(keysOf(arcsOf(v))).not.toContain(k);
+    expect(keysOf(arcsOf(v))).toContain('32-38');
     expect((await (v.spec.history as UiHistory).stack.undo()).ok).toBe(true);
     await vi.advanceTimersByTimeAsync(1000);
     v.draw();
@@ -195,6 +235,17 @@ describe('tRNA: the editing views, each a patch undone', () => {
       return JSON.stringify(n.params?.color);
     };
     const before = param();
+    // the cells' colors as drawn: the tile's opaque pixels
+    const fills = () => {
+      const im = (v.frame!.layout.sections[1].lays[0][0].lay as GridLay).images[0];
+      const out: number[] = [];
+      for (let k = 0; k < im.data.length && out.length < 40; k += 4)
+        if (im.data[k + 3] > 0) out.push(im.data[k], im.data[k + 1], im.data[k + 2]);
+      return out;
+    };
+    const drawn = fills();
+    const key = JSON.stringify(viewLegends(v.frame!.layout).legends.map((l) => l.entries));
+    expect(drawn.length).toBeGreaterThan(0);
     const o = await v.spec.patch('Recolor the covariation', {
       ops: [
         {
@@ -207,7 +258,15 @@ describe('tRNA: the editing views, each a patch undone', () => {
     });
     expect(o.ok).toBe(true);
     expect(param()).not.toBe(before);
+    // it redraws: the same cells in other colors, the legend’s ramp too
+    await vi.advanceTimersByTimeAsync(1000);
+    v.draw();
+    expect(fills()).not.toEqual(drawn);
+    expect(JSON.stringify(viewLegends(v.frame!.layout).legends.map((l) => l.entries))).not.toBe(key);
     expect((await (v.spec.history as UiHistory).stack.undo()).ok).toBe(true);
     expect(param()).toBe(before);
+    await vi.advanceTimersByTimeAsync(1000);
+    v.draw();
+    expect(fills()).toEqual(drawn);
   });
 });

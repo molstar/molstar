@@ -21,7 +21,7 @@ import {
 import { DerivedData } from './derived-data.js';
 
 // The tRNA views (examples.md, tRNA): PDB 1EHZ's chain A with its modified residues and 27 base pairs, the four stems
-// nested and the tertiary pairs crossing them; the pairs as arcs, split by crossing, as chords on a ring and as a dot
+// nested and the six tertiary pairs among them (four cross the stems' pairs); the pairs as arcs, split by crossing, as chords on a ring and as a dot
 // plot (the family's covariation, computed on 1EHZ's positions, above the diagonal, the structure's pairs below); the
 // seed row 1EHZ is placed on with its `SS_cons` pairs; the seed's rows with their logo; and the dot plot at 4,000 ×
 // 4,000. A modified residue is drawn as its parent letter, its code in a track of ranges (the mark is later).
@@ -30,12 +30,17 @@ export const title = 'tRNA-Phe';
 
 type Builder = ReturnType<typeof createSeqSpec>;
 
-/** 1EHZ: its letters, its modified residues from the committed file, its base pairs. */
-function molecule(b: Builder) {
+/** 1EHZ: its letters and modified residues from the committed file, its base pairs. */
+function molecule(b: Builder, inline = false) {
   const file = b.data.source('ehz', { format: 'seq', uri: MoleculeFile });
-  // the letters inline (compared with the file's by the fixtures test): pairs on a sequence whose letters come from a
-  // source are not placed (the section's units are cached before the source opens)
-  const trna = b.data.sequence('trna', { alphabet: 'rna', letters: TrnaLetters, name: SystemName });
+  // a grid is read at resolve against its axes' lengths, which a source gives only once open: the dot plot's sequence
+  // carries its letters inline (the fixtures test compares them with the file's)
+  const trna = b.data.sequence(
+    'trna',
+    inline
+      ? { alphabet: 'rna', letters: TrnaLetters, name: SystemName }
+      : { alphabet: 'rna', source: file, name: SystemName },
+  );
   const modified = b.data.ranges('modified', { target: trna, source: file });
   const pairs = b.data.pairs('pairs', { a: trna, rows: ehzPairs() });
   return { trna, modified, pairs };
@@ -50,7 +55,7 @@ export interface TrnaOptions {
 /** 1EHZ's letters, its modified residues, its pairs, and a view of them. */
 export function build(options: TrnaOptions = {}): Node {
   const b = createSeqSpec({ title });
-  const { trna, modified, pairs } = molecule(b);
+  const { trna, modified, pairs } = molecule(b, options.dotPlot);
   const covariation = options.dotPlot ? b.data.grid('covariation', { x: trna, values: covariationGrid() }) : undefined;
   b.views.view('main', (v) => {
     const s = v.section('trna', { of: trna, ...(options.layout ? { layout: options.layout } : {}) });
@@ -99,8 +104,9 @@ export const ring = () => build({ layout: 'rings' });
 /** The arcs over the letters, and the base-pair dot plot under them following their window. */
 export const dotPlot = () => build({ dotPlot: true });
 
-/** The arcs' data with the pairs of a kind left out: what a patch of the layer's `data` writes (the editing view). */
-export const withoutKind = (pairs: string, kind: string) => `${pairs}/(not :of (item :type ${kind}))`;
+/** The arcs' data with the pairs a field has a value on left out: what a patch of the layer's `data` writes (the editing view). */
+export const without = (pairs: string, field: 'type' | 'tertiary', value: string) =>
+  `${pairs}/(not :of (item :${field} ${value}))`;
 
 /**
  * The seed row 1EHZ is placed on (the row of highest identity, computed: `DerivedData.row`): its letters and the pairs
