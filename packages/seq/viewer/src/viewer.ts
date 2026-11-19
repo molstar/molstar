@@ -81,6 +81,20 @@ const NeverAborted = new AbortController().signal;
 
 type Mutable<T> = { -readonly [K in keyof T]: T[K] };
 
+/**
+ * The methods the viewer and its input call on a built-in behavior's handle, by the behavior's name: a handle listed
+ * under that name without one of them is refused (`seq.viewer.behavior.shape`), never called.
+ */
+const BehaviorShapes: Readonly<Record<string, readonly string[]>> = {
+  hover: ['move', 'leave'],
+  navigate: ['drag', 'wheel', 'pinch'],
+  select: ['click', 'beginDrag', 'dragTo', 'endDrag', 'cancelDrag'],
+  window: ['begin', 'dragTo', 'end', 'cancel'],
+  navigator: ['center', 'zoomTo', 'press', 'dragTo', 'release', 'cancel', 'click', 'doubleClick'],
+  rows: ['wheel', 'lay', 'railGesture'],
+  addressing: ['runLink'],
+};
+
 /** A command a behavior provides, with the context it runs in. */
 export type ViewerCommand = CommandDefinition<any>;
 
@@ -421,24 +435,43 @@ export class SeqViewer extends ReactiveModel {
   }
 
   /**
-   * The handle of a behavior by its provider (what the input calls). One the spec does not list is reported once as an
-   * issue (`behaviorIssues`) and the gesture does nothing.
+   * The handle of a behavior by its provider or its name (what the input calls). One the spec does not list, or one of a
+   * built-in's name whose handle lacks a method the viewer calls (`BehaviorShapes`: a host's provider under that name
+   * with another shape), is reported once as an issue (`behaviorIssues`) and the gesture does nothing.
    */
   behavior<H>(provider: BehaviorProvider<any, H> | string): H | undefined {
     const name = typeof provider === 'string' ? provider : provider.name;
     // by name: what the input asks for names no provider object, so a viewer bundles only the behaviors it lists
-    if (this.behaviors.has(name)) return this.behaviors.get(name) as H;
-    if (!this._behaviorIssues.value.some((i) => i.address === name))
-      this._behaviorIssues.set([
-        ...this._behaviorIssues.value,
-        issueOf(
-          ViewerIssues,
-          'seq.viewer.behavior.missing',
-          `The viewer has no ${name} behavior: its gestures do nothing`,
-          { address: name, hint: ViewerIssues.codes['seq.viewer.behavior.missing'].hint },
-        ),
-      ]);
+    const handle = this.behaviors.get(name);
+    if (handle !== undefined) {
+      const lacks = BehaviorShapes[name]?.find((m) => typeof handle[m] !== 'function');
+      if (lacks === undefined) return handle as H;
+      this._behaviorIssue(
+        name,
+        'seq.viewer.behavior.shape',
+        `The viewer's ${name} behavior has no ${lacks}: its gestures do nothing`,
+      );
+      return undefined;
+    }
+    this._behaviorIssue(
+      name,
+      'seq.viewer.behavior.missing',
+      `The viewer has no ${name} behavior: its gestures do nothing`,
+    );
     return undefined;
+  }
+
+  /** A behavior's issue, once by its name. */
+  private _behaviorIssue(
+    name: string,
+    code: 'seq.viewer.behavior.missing' | 'seq.viewer.behavior.shape',
+    message: string,
+  ): void {
+    if (this._behaviorIssues.value.some((i) => i.address === name)) return;
+    this._behaviorIssues.set([
+      ...this._behaviorIssues.value,
+      issueOf(ViewerIssues, code, message, { address: name, hint: ViewerIssues.codes[code].hint }),
+    ]);
   }
 
   /** Whether `retire` has run: a frame asked for before it does nothing. */

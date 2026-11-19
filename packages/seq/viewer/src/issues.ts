@@ -56,6 +56,11 @@ export const ViewerIssues = defineIssues('seq.viewer', {
     description: 'No story step has that id: nothing was entered',
     hint: 'Name a step of the spec (`/snapshots/<id>`)',
   },
+  'seq.viewer.behavior.shape': {
+    severity: 'warning',
+    description: 'A behavior listed under a built-in’s name lacks a method the viewer calls: its gestures do nothing',
+    hint: 'Give the provider a name of its own, or a handle with the built-in behavior’s methods',
+  },
   'seq.viewer.navigators.none': {
     severity: 'warning',
     description: 'The view declares navigators and the viewer lists none: they are not drawn, the ruler rails stay',

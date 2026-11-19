@@ -34,7 +34,7 @@ import type {
   KeysPanelBehavior,
   NavigateBehavior,
   NavigatorBehavior,
-  RowsHandle,
+  RowsBehavior,
   RowsRailGesture,
   RowsRailWindow,
   SelectBehavior,
@@ -143,7 +143,7 @@ export class ViewerInput {
   private _rowsRailGesture: RowsRailGesture | undefined;
   /** The rows rail's gesture: the `rows` behavior's (none without it: a rows rail then does not move). */
   private get rowsRailGesture(): RowsRailGesture | undefined {
-    this._rowsRailGesture ??= this.viewer.behavior<RowsHandle>('rows')?.railGesture();
+    this._rowsRailGesture ??= this.viewer.behavior<RowsBehavior>('rows')?.railGesture();
     return this._rowsRailGesture;
   }
   /** A rail's press that never moved: its click (the platform's, after the button went up) centres or not. */
@@ -764,7 +764,7 @@ export class ViewerInput {
     // over a rows band (its cells, its header) the wheel's vertical delta scrolls its rows, the rest pans the columns
     const rowsHit =
       this._hit.ySystem !== undefined || target === 'row' || target === 'summary-row' || target === 'tree-node';
-    const rows = rowsHit && !mods.mod && !mods.shift ? this.viewer.behavior<RowsHandle>('rows') : undefined;
+    const rows = rowsHit && !mods.mod && !mods.shift ? this.viewer.behavior<RowsBehavior>('rows') : undefined;
     // only over a rows layer's own band: a `row` hit of another layer (a gutter's) pans as any
     const over = rows && this._hit.layer !== undefined ? rows.lay(trackOfLayer(this._hit.layer)) : undefined;
     if (rows && over?.key === this._hit.layer && this._hit.layer !== undefined && Math.abs(dy) >= Math.abs(dx)) {

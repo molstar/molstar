@@ -16,7 +16,6 @@ import { type HoverBehavior, hoverBehavior } from './hover.js';
 import { type NavigateBehavior, navigateBehavior } from './navigate.js';
 import { type NavigatorBehavior, navigatorBehavior } from './navigator.js';
 import { type RowsBehavior, RowsActions, rowsBehavior } from './rows.js';
-import { RowsRailGesture } from './rows-rail.js';
 import { type SelectBehavior, selectBehavior } from './select.js';
 import { type ThemingBehavior, themingBehavior } from './theming.js';
 import { type WindowBehavior, windowBehavior } from './window.js';
@@ -94,17 +93,8 @@ export const LegendProvider: BehaviorProvider<undefined, ThemingBehavior> = {
 };
 
 /** An alignment's rows bands: folds, pins, hidden rows, order, the rows' zoom and scroll (_spec/README.md "Behaviors"). */
-export const RowsProvider: BehaviorProvider<undefined, RowsHandle> = {
+export const RowsProvider: BehaviorProvider<undefined, RowsBehavior> = {
   name: 'rows',
   actions: RowsActions,
-  create: ({ spec, view, layout, config }) =>
-    Object.assign(rowsBehavior(spec, view, layout), {
-      railGesture: () => new RowsRailGesture(view, config),
-    }),
+  create: ({ spec, view, layout, config }) => rowsBehavior(spec, view, layout, config),
 };
-
-/** The rows behavior's handle: the rows bands' policy, and the rows rail's drags (a viewer with no rows has none). */
-export interface RowsHandle extends RowsBehavior {
-  /** A new gesture on a rows rail (the input keeps one). */
-  railGesture(): RowsRailGesture;
-}

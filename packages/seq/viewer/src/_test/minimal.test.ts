@@ -14,8 +14,11 @@ import { createSeqSpec, stripNavigator } from '@molstar/seqx-core/lang';
 import { type DrawLists, LettersType, TracksLayout } from '@molstar/seqx-core/render';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { HoverProvider, NavigateProvider } from '../behaviors/providers.js';
+import type { RowsBehavior } from '../behaviors/rows.js';
+import { RowsRailGesture } from '../behaviors/rows-rail.js';
 import { DefaultSeqViewerSpec } from '../default-spec.js';
-import type { SeqViewerSpec } from '../viewer-spec.js';
+import { uiHistory } from '../ui-history.js';
+import type { BehaviorProvider, SeqViewerSpec } from '../viewer-spec.js';
 import { createSeqViewer, type SeqViewer } from '../viewer.js';
 import { type Frames, installFrames } from './frames.js';
 
@@ -151,5 +154,45 @@ describe('a viewer composed from a smaller registry', () => {
     expect(v.navigatorModel('nav')).toBeDefined();
     const svg = await v.renderSvg({ navigators: 'include' });
     expect(svg.svg).toContain('data-navigator="nav"');
+  });
+
+  it('a host provider under a built-in name with another shape: the input calls none of it, and says so once', async () => {
+    const base = DefaultSeqViewerSpec();
+    const own: BehaviorProvider<undefined, { dispose(): void }> = { name: 'hover', create: () => ({ dispose() {} }) };
+    const v = await make({
+      ...base,
+      behaviors: base.behaviors.map((b) => (b.provider.name === 'hover' ? { provider: own } : b)),
+    });
+    const box = v.frame!.layout.sections[0].tracks[0].box;
+    expect(() => v.input.move(box.x + 10, box.y + 2)).not.toThrow();
+    v.input.move(box.x + 20, box.y + 2);
+    expect(v.behaviorIssues.value.map((i) => [i.code, i.address])).toEqual([['seq.viewer.behavior.shape', 'hover']]);
+    expect(v.behavior('hover')).toBeUndefined();
+  });
+
+  it('the rows rail’s gesture is the rows behavior’s: a new one each time asked, none without the behavior', async () => {
+    const v = await make(DefaultSeqViewerSpec());
+    const rows = v.behavior<RowsBehavior>('rows')!;
+    const g = rows.railGesture();
+    expect(g).toBeInstanceOf(RowsRailGesture);
+    expect(rows.railGesture()).not.toBe(g);
+    expect(g.pressed).toBe(false);
+    const none = await make(minimal([{ kind: 'format-runtime', runtime: SeqRuntime }]));
+    expect(none.behavior<RowsBehavior>('rows')).toBeUndefined();
+  });
+
+  it('ui.history is a factory: called once for a mounted viewer, never for a headless one', () => {
+    const port = uiHistory();
+    const factory = vi.fn(() => port);
+    const base = DefaultSeqViewerSpec();
+    // a target with no canvas part: only the history is mounted
+    const mounted = createSeqViewer({ ...base, ui: { history: factory } }, {} as HTMLElement);
+    viewers.push(mounted);
+    expect(factory).toHaveBeenCalledTimes(1);
+    expect(mounted.spec.history).toBeDefined();
+    const headless = createSeqViewer({ ...base, ui: { history: factory } });
+    viewers.push(headless);
+    expect(factory).toHaveBeenCalledTimes(1);
+    expect(headless.spec.history).toBeUndefined();
   });
 });

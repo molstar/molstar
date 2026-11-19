@@ -23,10 +23,12 @@ import {
   type ViewLayout,
 } from '@molstar/seqx-core/render';
 import type { CommandDefinition, CommandResult } from '@molstar/ui/commands/types';
+import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
 import type { EditOutcome, SpecModel, ViewModel } from '@molstar/seqx-viewer/models';
 import type { EditOrigin } from '@molstar/seqx-viewer/ports';
 import { CladeActions } from '@molstar/seqx-viewer/bindings';
 import { bandFolds, pagedTop, setBandFolds } from './rows-band.js';
+import { MaxRowScale, MinRowScale, RowsRailGesture } from './rows-rail.js';
 import { trackOfLayer } from './two-axes.js';
 
 export { trackOfLayer };
@@ -72,9 +74,6 @@ export const RowsActions: readonly string[] = CladeActions;
  * band's whole family; 40 is twice a letter row, past which a row reads no better).
  */
 const ZoomStep = 2;
-// a literal (1 / 64): a module-level expression a bundler keeps would keep this module in a viewer without rows
-export const MinRowScale = 0.015625;
-export const MaxRowScale = 40;
 
 export interface RowsBehavior {
   readonly commands: readonly CommandDefinition<RowsContext>[];
@@ -82,10 +81,17 @@ export interface RowsBehavior {
   wheel(track: string, dy: number): boolean;
   /** The rows layer's last layout of a track (what the commands read). */
   lay(track?: string): RowsLay | undefined;
+  /** A new gesture on a rows rail (the input keeps one): its drags scroll and zoom the rows. */
+  railGesture(): RowsRailGesture;
   dispose(): void;
 }
 
-export function rowsBehavior(spec: SpecModel, view: ViewModel, layout: () => ViewLayout | undefined): RowsBehavior {
+export function rowsBehavior(
+  spec: SpecModel,
+  view: ViewModel,
+  layout: () => ViewLayout | undefined,
+  config: ViewerConfig = DefaultViewerConfig,
+): RowsBehavior {
   let disposed = false;
   /** The rows layers' laid out state by track, from the last frame. */
   const lays = (): Map<string, RowsLay> => {
@@ -123,7 +129,9 @@ export function rowsBehavior(spec: SpecModel, view: ViewModel, layout: () => Vie
       setFolds(track, names);
       return view.band(track) !== before;
     });
-    return { message: o === 'none' || o === 'same' ? 'Already so' : done };
+    return {
+        message: o === 'none' || o === 'same' ? 'Already so' : done,
+    };
   };
   const said =
     (done: string) =>
@@ -437,6 +445,7 @@ export function rowsBehavior(spec: SpecModel, view: ViewModel, layout: () => Vie
   });
 
   return {
+    railGesture: () => new RowsRailGesture(view, config),
     commands,
     wheel(track, dy) {
       const l = lay(track);

@@ -435,7 +435,7 @@ owner, the store with it.
   (`NavigatorsPart`: without it a declared navigator is not drawn, the ruler rail it would replace stays, and one issue
   says so, `seq.viewer.navigators.none`; `navigator(def)` throws; an export asked to include them says so,
   `seq.render.navigator.export`, and keeps the rails), their gestures the `navigator` behavior's; the rows rail's drags
-  are the `rows` behavior's (`RowsHandle.railGesture`); story steps and transitions are the `story` part (none: jumps
+  are the `rows` behavior's (`RowsBehavior.railGesture`); story steps and transitions are the `story` part (none: jumps
   and steps are cuts, `spec.enterStep` refuses, `seq.viewer.step.none`); the mounted history is `ui.history`, a factory.
   Why: one rule for every part, listed or absent, no lazy chunk a host's bundler must split, and the size a host pays
   follows what it lists; the size script's minimal entry checks it (none of the unlisted modules in its bundle).
@@ -499,7 +499,10 @@ owner, the store with it.
   is ignored. A spec that fails to compose (a behavior listed twice) retires what it made.
 - **Behaviors by name**: the input finds a behavior by its provider's name (`viewer.behavior<HoverBehavior>('hover')`,
   or a provider), so it imports no provider; one the spec does not list is a `seq.viewer.behavior.missing` issue
-  (`behaviorIssues`), once, and the gesture does nothing.
+  (`behaviorIssues`), once, and the gesture does nothing. A handle under a built-in's name is checked for the methods
+  the viewer calls on it (`BehaviorShapes`) before it is handed out: a host's provider of that name with another shape
+  is a `seq.viewer.behavior.shape` issue, once, and the gesture does nothing. Why: the name is the only link, so the
+  shape is what the viewer can check.
 - `rested` moves once each time the picture comes to rest: when the frame laid out settled is drawn, `canvas.settleMs`
   after the view's last move; or `canvas.settleMs` after the last layout that changed what is drawn while the view was
   still (data arriving, the content's height). A move before the settled frame is drawn cancels that rest. What follows

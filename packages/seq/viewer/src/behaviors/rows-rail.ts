@@ -13,7 +13,10 @@
 import type { WindowPart } from '@molstar/seqx-core/render';
 import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
 import type { ViewModel, ViewSnapshot } from '@molstar/seqx-viewer/models';
-import { MaxRowScale, MinRowScale } from './rows.js';
+
+/** The rows' zoom bounds (px a row over the band's base). */
+export const MinRowScale = 1 / 64;
+export const MaxRowScale = 40;
 
 /** A rows rail's window as the last frame drew it: display rows below the pinned band, and the rail's length in px. */
 export interface RowsRailWindow {
