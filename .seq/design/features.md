@@ -182,7 +182,7 @@ what undo does to each.
 | User-defined refs | named addresses in a `refs` container; bookmarks and location sets are refs; rewritten on move | building: refs, bookmarks and sets, rewritten on move, dangling refused (p53: Bookmarks and links); refs in data params and a section's `of` and `follow`, the Antibody view not | [addressing](addressing.md) | 162 | Antibody: CDR bookmarks |
 | Track and group editing | hide, reorder, collapse, theme changes | building: hide (tracks, layers), reorder, theme changes as patches (p53: Edit and undo); collapse and groups not | [ux-foundations](ux-foundations.md) | — | every dataset's editing view |
 | Copy the selection's letters | what is shown, in reading order, rows as FASTA lines (`selection.copyLetters`, Cmd/Ctrl+C) | planned: the third slice | [layouts](layouts.md) | — | p53: text figure; Globins: family |
-| Hover card and context menu | actions on the element; keyboard menu | planned | [ux-foundations](ux-foundations.md) | 156, 166 | p53: tracks |
+| Hover card and context menu | the place in words (every numbering, the item, a value, a grid cell, a rectangle's summary), a keys panel; actions on the element, a keyboard menu | building: the hover card and keys panel (HC, the third slice); the context menu planned | [ux-foundations](ux-foundations.md) | 156, 166 | p53: tracks |
 
 ## Rendering and output
 

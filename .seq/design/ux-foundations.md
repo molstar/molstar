@@ -246,3 +246,18 @@ to its summary row), never silently dropped.
 - A track header names its data and shows its state (hidden layers, filters, a pending load) as icons in fixed slots.
 - Legends sit with their track or in one legend panel, never over data.
 - Loading regions show a placeholder in place (`@molstar/ui`'s rule), never as empty data (EC-169).
+- **The hover card** (the author, 2026-11-19: "Yes, lane HC now", the novice pass's first finding): a `@molstar/ui`
+  surface (a squircle, its tokens) that says what the pointer rests on, in words, after the hover rests (the
+  announcer's rest); one card, never stacked. Its text is the announcer's description of the place, never a second
+  wording (the viewer `_spec`, Announcements): the system's label and the position in each of its numberings (ordinal,
+  index, the declared ones: `heavy 97 · Kabat 93 · IMGT 105`), the letter, the item (its label, its extent, its
+  category), a value track's value, a pair's two ends, a row's label, a grid cell's two positions and its value, a
+  block's chain and copy. A dragged rectangle on a grid shows its summary while it is dragged (`gridSummary`: count,
+  mean, min, max). Placed beside the pointer, never over the hovered cell or item (above it, else below), kept inside
+  the view; hidden while a drag pans or zooms, on leave, on Esc; at the keyboard cursor when the cursor moves. Not in
+  the draw lists, not in an export: DOM over the canvas. A host turns it off (config) or adds sections behind its
+  internal interface (extensibility.md); context menus stay later.
+- **The keys panel**: `?` (and a toolbar button) opens a panel listing what the view answers to, generated from the
+  keymap's commands and the gesture bindings (never hand-written), grouped (move, zoom, select, edit, view), each with
+  its key or gesture and its name; Esc closes it. A view says once, quietly, where to find it (the toolbar button's
+  title: "Keys and gestures (?)").

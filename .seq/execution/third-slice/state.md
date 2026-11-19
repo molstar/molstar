@@ -261,3 +261,5 @@ None.
   2568, medium 105. Core, viewer and storybook sit near the guide. **Stage 5's gate passed.** The novice pass runs.
 - The NOVICE PASS reported (`novice-findings.md`): 21 findings, bug 5, missing design 8, look 8 (2 good). Placed: NP
   (fast) the bugs, the stories and the looks; the hover card and a keys hint asked of the author.
+- Decided (the author, 2026-11-19, "Yes, lane HC now"): the hover card and the keys panel this slice (ux-foundations
+  §9, viewer-models, features; the Design pages). HC (strong) starts; NP runs beside it.
