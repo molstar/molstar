@@ -270,7 +270,7 @@ function extensionDecoder(made: WeakSet<object>) {
     }
     const value = columnExtension(type, data);
     if (value === undefined) return new Malformed(`an unknown extension (${type})`);
-    if (typeof value === 'object' && !(value instanceof Malformed)) made.add(value);
+    if (typeof value === 'object' && value !== null && !(value instanceof Malformed)) made.add(value);
     return value;
   };
 }
