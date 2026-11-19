@@ -266,3 +266,6 @@ None.
 - Decided (the author, 2026-11-19: "implement the hover card via a port too … so apps can easily provide their own
   styles"): the hover card's content and place computed headless, drawn through a `hoverCard` port (ports.md); the
   keys' list as data (`describeKeys`). HC's brief updated before it started.
+- The author's finding (2026-11-19, Globins › Family): a row column's expanded label drawn under the next column; long
+  labels: grow to the view's edge, ellipsis past it, the full text in the hover card (recommended). Given to NP.
+  HC started (strong).
