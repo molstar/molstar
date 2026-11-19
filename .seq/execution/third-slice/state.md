@@ -239,3 +239,7 @@ None.
 - Decided (the author, 2026-11-19, "Yes, accept it"): CY's lengths through resolve (`sourceLengths`,
   `ResolveOptions.lengths`, `Resolver.resolve(spec, lengths?)`, `StaticModel.lengths`, `SpecModel.setLengths` replacing
   `ViewModel.setLengthSource`/`refreshLengths`, `overlayQueryModel`'s `RowsReader`), subject to its review.
+- TW merged after its review round (a grid over blocks rounds only its plot's outer corners and takes its padding,
+  outlines drawn after the well's clip, the secondary, bands, rows, cursor and grid cell hovers squircles, labels
+  centred on the well). Quick 2206, medium 9, perf 120. CY in its fix round (will meet TW's layout hunks at merge);
+  DA starts in TW's slot.

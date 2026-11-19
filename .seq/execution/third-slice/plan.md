@@ -319,7 +319,7 @@ and dark before the merge.
       (an open word: `kabat`, `imgt`, `chothia`, …); resolve wires it into the model's numberings so `(at :label "100A"
       :numbering kabat)`, the ruler's `numbering` and hover read it, with the label rules EC-1 to EC-8; 0.4.0 (unreleased).
       Then DA builds the Antibody views on it; the fourth slice's ML1 reuses the kind.
-- [ ] TW (strong, after CY in the strong queue; the author, 2026-11-19: "Yes, as proposed") a track's vertical
+- [x] TW (strong, after CY in the strong queue; the author, 2026-11-19: "Yes, as proposed") a track's vertical
       `padding` inside its well and squircle wells with the data clipped to them, `trackShape` to keep square; and every emphasis a squircle as the selection is (hover, projected hover,
       highlights, a cell's and a chip's hover outline)
       (ux-foundations §3, §5; brief `briefs/tw-track-wells.md`).
