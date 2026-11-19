@@ -61,9 +61,18 @@ import { builtInTokens, type SeqTokens } from './tokens.js';
 // band outside the data box only when asked (`legend`, else the view's `export.legend`, else none), and each shared
 // scale's domain as drawn is recorded (`data-seq-scale-<id>`): an open end unioned over what the export draws.
 
-/** The store's sources a view reads: its placed layers' data, and its sections' systems' sources (for a length). */
+/**
+ * The store's sources a view reads: its placed layers' data, its sections' systems' sources (for a length), and its
+ * navigators' systems' and bands' (_spec/README.md "Render", Navigators: a chromosome under a region).
+ */
 export function viewSources(model: StaticModel, view: ResolvedView): Set<string> {
   const out = new Set<string>();
+  for (const n of view.navigators) {
+    const source = n.system ? model.systems.get(n.system)?.source : undefined;
+    if (source) out.add(source);
+    const a = n.bands ? model.annotations.get(n.bands)?.access : undefined;
+    if (a) out.add(a.kind === 'inline' ? a.source.address : a.source);
+  }
   for (const s of view.sections) {
     const source = model.systems.get(s.axis.system)?.source;
     if (source) out.add(source);

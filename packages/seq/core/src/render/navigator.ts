@@ -9,6 +9,7 @@ import { DefaultStoreSettings, type Want } from '@molstar/seqx-core/data';
 import {
   inversePath,
   type Path,
+  pathDir,
   projectEnd,
   projectPoint,
   projectRanges,
@@ -615,7 +616,7 @@ export class NavigatorRenderer {
     let x0 = axis.xOfUnit(u0);
     let x1 = axis.xOfUnit(u1);
     // a window over a cyclic origin: two pieces, from its start to the end and from the start to its end
-    if (x1 < x0 && axis.cyclic && (p1 - p0) * axis.dir > 0) {
+    if (x1 < x0 && axis.cyclic && (!path.to || pathDir(path.to) === 1)) {
       w.wrap = true;
       w.w0 = axis.x0;
       w.w1 = x1;
@@ -625,7 +626,8 @@ export class NavigatorRenderer {
     w.x1 = x1;
     // what the section can reach: its own extent here (a region within its chromosome), the rest washed
     if (path.to || !this.navigator.sectionAxis) {
-      const own = s.section.axis.ranges ?? [];
+      // its own pieces (the layout's, once a source gave the length; a follower's own, never the image it shows)
+      const own = s.section.axis.ranges ?? (s.section.follow ? [] : va.pieces);
       const r = path.to ? projectRanges(path.to, own, this.scratch) : own;
       let lo = Number.POSITIVE_INFINITY;
       let hi = Number.NEGATIVE_INFINITY;

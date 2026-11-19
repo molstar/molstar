@@ -7,6 +7,7 @@
 import type { Node } from '@molstar/core/repr/tree';
 import type { SeqRegistryEntry } from '@molstar/seqx-core/context';
 import * as complexBlocks from './complex/blocks.js';
+import * as navigators from './navigators.js';
 import { generatedRegistry } from './globins/data.js';
 import * as globins from './globins/family.js';
 import * as plasmidRing from './plasmid/ring.js';
@@ -110,6 +111,31 @@ export const P53Views: readonly ExampleView[] = [
       'The gene’s region read region by region: transcripts arrive as dynamic nodes, a track each, and TP53’s bring their domains, shown through each transcript’s codon map.',
     build: geneByRegion.build,
     registry: geneByRegion.registry,
+  },
+  {
+    dataset: 'p53',
+    id: 'gene-region-ideogram',
+    title: 'Gene region on chr17’s ideogram',
+    summary:
+      'The gene’s region with chromosome 17’s ideogram above it (GRCh38’s bands, the centromere two triangles): the region’s window on the chromosome, the rest washed. Hover a band for its name.',
+    build: navigators.geneRegionIdeogram,
+    registry: geneByRegion.registry,
+  },
+  {
+    dataset: 'p53',
+    id: 'tracks-strip',
+    title: 'Tracks with a strip',
+    summary:
+      'p53’s tracks with a strip of them small above: drag the window to pan, its grips to zoom, click outside it to centre there, drag outside it to sweep a region; Alt+Left goes back.',
+    build: navigators.tracksStrip,
+  },
+  {
+    dataset: 'p53',
+    id: 'protein-gene-strip',
+    title: 'Protein strip with its gene’s window',
+    summary:
+      'The protein on its gene with a strip of the protein: its window and its gene follower’s, carried along the codon map; a drag on the gene’s window moves the protein, which leads.',
+    build: navigators.proteinGeneStrip,
   },
   {
     dataset: 'p53',
@@ -218,6 +244,14 @@ export const PlasmidViews: readonly ExampleView[] = [
       'The construct in tracks from inside bla over the origin to past lacZα: a `range` past the origin, two pieces meeting at the seam with no break.',
     build: plasmidRing.rotatedLinear,
   },
+  {
+    dataset: 'plasmid',
+    id: 'detail-strip',
+    title: 'Linear detail with a strip',
+    summary:
+      'The ring and its linear detail with a strip of the whole construct over the detail: drag the ring’s window over the origin and the strip’s window wraps in two pieces.',
+    build: navigators.plasmidStrip,
+  },
 ];
 
 /** The Globins (a generated family until the Pfam seed and its tree are recorded): rows, trees, folds and scale. */
@@ -252,6 +286,15 @@ export const GlobinsViews: readonly ExampleView[] = [
     summary:
       'A generated variant of 10,000 rows × 300 columns, held, by a balanced tree: zoomed out the rows draw from the shared reduction as image tiles; `]` and `[` zoom the rows, the wheel scrolls them.',
     build: () => globins.scale(),
+    registry: generatedRegistry,
+  },
+  {
+    dataset: 'globins',
+    id: 'scale-navigators',
+    title: '10,000 rows with an overview',
+    summary:
+      'The 10,000 rows with a vertical overview of every row at the right (summarized by the shared reduction) and a miniature of the columns and rows above: drag either window to move the rows.',
+    build: navigators.globinsNavigators,
     registry: generatedRegistry,
   },
   {
