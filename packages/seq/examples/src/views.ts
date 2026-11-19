@@ -6,6 +6,8 @@
 
 import type { Node } from '@molstar/core/repr/tree';
 import type { SeqRegistryEntry } from '@molstar/seqx-core/context';
+import * as complexBlocks from './complex/blocks.js';
+import * as plasmidRing from './plasmid/ring.js';
 import * as addressing from './p53/addressing.js';
 import * as axis from './p53/axis.js';
 import * as bookmarks from './p53/bookmarks.js';
@@ -187,4 +189,63 @@ export const LayerViews: readonly ExampleView[] = [
   },
 ];
 
-export const ExampleViews: readonly ExampleView[] = [...P53Views, ...FeatureViews, ...LayerViews];
+/** The Plasmid (a stand-in until its dataset is recorded): the ring with its linear detail, the rotated linear view. */
+export const PlasmidViews: readonly ExampleView[] = [
+  {
+    dataset: 'plasmid',
+    id: 'ring',
+    title: 'Ring with a linear detail',
+    summary:
+      'The construct as rings (each strand’s features, the sites, a ruler; labels outside, the name in the hole) and a linear detail following the ring’s window; bla and a primer site cross the origin, each one arc. Drag the window, or pan the detail: the other follows.',
+    build: () => plasmidRing.build(),
+  },
+  {
+    dataset: 'plasmid',
+    id: 'rotated-linear',
+    title: 'Rotated linear view',
+    summary:
+      'The construct in tracks from inside bla over the origin to past lacZα: a `range` past the origin, two pieces meeting at the seam with no break.',
+    build: plasmidRing.rotatedLinear,
+  },
+];
+
+/** The Complex (a stand-in until its dataset is recorded): its chains and ligands as blocks, three ways. */
+export const ComplexViews: readonly ExampleView[] = [
+  {
+    dataset: 'complex',
+    id: 'blocks',
+    title: 'Chains as blocks',
+    summary:
+      'CDK2 and cyclin A in a row of blocks, polymers first, then ATP as a one-position block; the two copies of the complex merged, each block labeled ×2.',
+    build: () => complexBlocks.build(),
+  },
+  {
+    dataset: 'complex',
+    id: 'blocks-split',
+    title: 'Copies split',
+    summary: 'The same blocks with the copies split (`copies: each`): a block a chain and a ligand.',
+    build: complexBlocks.split,
+  },
+  {
+    dataset: 'complex',
+    id: 'blocks-stacked',
+    title: 'Chains stacked',
+    summary: 'A block a row of the tracks, aligned at their first residue, one zoom (`arrange: stack`).',
+    build: complexBlocks.stacked,
+  },
+  {
+    dataset: 'complex',
+    id: 'blocks-ring',
+    title: 'Chains on a ring',
+    summary: 'The blocks on a ring, a block an arc with a gap between, their labels outside with the features’.',
+    build: complexBlocks.ring,
+  },
+];
+
+export const ExampleViews: readonly ExampleView[] = [
+  ...P53Views,
+  ...FeatureViews,
+  ...LayerViews,
+  ...PlasmidViews,
+  ...ComplexViews,
+];

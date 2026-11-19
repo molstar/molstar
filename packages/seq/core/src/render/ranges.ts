@@ -514,7 +514,7 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
     // a layout's label sink (rings: placed outside with leaders) takes every shown item's label, an item once, with its
     // hit; else labels inside marks wide enough, faded past their width (drawn in the labels pass)
     const sink = ctx.labels !== undefined && ctx.labels !== 'inside' ? ctx.labels : undefined;
-    if (sink && lay.mode === 'items') sinkLabels(lay, src, sink, box.y);
+    if (sink) sinkLabels(lay, src, sink, box.y);
     else if (lay.mode === 'items' && lay.laneHeight >= 10)
       for (let j = 0; j < lay.m; j++) {
         const label = lay.mitem[j] >= 0 ? lay.labels[lay.mitem[j]] : undefined;
