@@ -129,13 +129,13 @@ links, selection, the security bounds, MessagePack). Next, version 1's second mi
   codec (a reserved key), so `secondary` reads `category` in the examples; the `theme/` entry is reached through the
   `./*` export (`theme/index`): its own `./theme` export.
 
-- Layouts (text): chips (one-position blocks: with blocks; the line loop is their seam), the `figure` preset's
-  spacing, inline group labels before a line's first group; the line heights are kept full until laid out (the text's
-  `end` an estimate); the number gutter is measured from the total's digits, not the widest label of a numbering; a
-  frame's title row stays on every line its region is on (a band collapsed is not laid out, so its outline would go:
-  the design's "a title row only where a region starts" waits for an outline drawn in the bands it covers); the
-  zoom's new breaking under `pieceBreak: 'line'` reads the pieces kept in the geometry, and collapsed lines' heights
-  make its "same line" an estimate.
+- Layouts (text): chips (one-position blocks: with blocks; the line loop is their seam), the `figure` preset's spacing,
+  inline group labels before a line's first group; the line heights are kept full until laid out (the text's `end` an
+  estimate); the number gutter is measured from the total's digits, not the widest label of a numbering; a frame's title
+  row stays on every line its region is on (a band collapsed is not laid out, so its outline would go: the design's "a
+  title row only where a region starts" waits for an outline drawn in the bands it covers); the zoom's new breaking
+  under `pieceBreak: 'line'` reads the pieces kept in the geometry, and collapsed lines' heights make its "same line" an
+  estimate.
 - Layouts (interface): `FrameInput.viewport` is still the default for sections without an entry (the core's tests and
   exports use it); the viewer passes every leading section in `viewports`. Its removal is a mechanical change of the
   tests (one commit, after the layout lanes merge).
