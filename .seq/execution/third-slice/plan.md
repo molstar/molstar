@@ -292,7 +292,7 @@ and dark before the merge.
       functionality? Perhaps Features section?", then "ok as recommended") `Features/Query` (examples-and-stories,
       The query language in Features): a query box (parse, check, run; the result selected or highlighted; the printed
       form; issues with hints) and worked examples as stories, each with a headless twin.
-- [ ] PR (fast, after IZ: both touch `mount-navigator.ts`; the author, 2026-11-19: "when dragging the slider, if you
+- [x] PR (merged; fast, after IZ: both touch `mount-navigator.ts`; the author, 2026-11-19: "when dragging the slider, if you
       release outside the canvas, it doesn't release the event… other controls prolly have the same issue") a drag ends
       wherever the button is released (navigators.md, "A drag ends wherever the button is released"): window-level
       `pointerup`/`pointercancel` for the drag's life, `lostpointercapture`, a buttonless move, window `blur` and a

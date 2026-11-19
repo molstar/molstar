@@ -189,3 +189,5 @@ None.
   matrix parsed once, the variants fixture UniProt's own records at 392 KB as Biome formats it, 281 KB compact: the
   `biome.json` ignore for `packages/seq/examples/fixtures/**/*.json` left for the author's call). A spec conflict with
   HL resolved keeping both. Quick lane 1827 passed. QS can start.
+- PR merged (`drag-session.ts`: window listeners for a drag's life, a buttonless move, blur, a hidden document).
+  Quick lane 1847 passed. Running: RC, LB; QS next.

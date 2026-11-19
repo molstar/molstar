@@ -17,3 +17,5 @@
   rings and grids; a channel can be a `tint`, a `band` or an `outline` (set with `address.highlight`'s `style` or
   `highlight.set`'s value, kept when carried onto linked sections). The Legend part lists the active highlight
   channels with their colors, each removable.
+- A drag in the viewer or a navigator ends wherever the button is released (outside the canvas, the iframe or the
+  browser window) and when the window loses focus.
