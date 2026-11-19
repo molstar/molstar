@@ -10,8 +10,7 @@
 
 import type { Op } from '@molstar/core/repr/patch';
 import type { Node } from '@molstar/core/repr/tree';
-import { ease } from './config.js';
-import { type Channel, colorFrom, type StoryState, type TransitionPlan, type ViewState } from './plan.js';
+import { colorFrom, type StoryState, type TransitionPlan, type ViewState } from './plan.js';
 import { applyLoose, type StepViewport } from './state.js';
 
 /** Where a channel is at a frame's time. */
@@ -34,13 +33,6 @@ export function createFrame(plan: TransitionPlan): Frame {
 
 const Frames = new WeakMap<TransitionPlan, Frame>();
 
-/** A channel's own time, [0, 1]: where `t` is in its window (a window of no length: 0 before its end, 1 at it). */
-function localTime(c: Channel, t: number): number {
-  if (c.t1 <= c.t0) return t >= c.t1 ? 1 : 0;
-  const u = (t - c.t0) / (c.t1 - c.t0);
-  return u <= 0 ? 0 : u >= 1 ? 1 : u;
-}
-
 /**
  * The plan at `t` (clamped to [0, 1]), each channel eased: written into `out`, else the plan's own frame (kept, so a
  * warm call allocates nothing). `sample(plan, 0)` is the start, `sample(plan, 1)` the end, exactly.
@@ -58,12 +50,24 @@ export function sample(plan: TransitionPlan, t: number, out?: Frame): Frame {
   const cs = plan.channels;
   for (let i = 0; i < cs.length; i++) {
     const c = cs[i];
-    let u = localTime(c, tt);
+    // the channel's own time and its easing, inlined on purpose: a double a call returns from a site of many channel
+    // shapes is boxed, and this loop must allocate nothing
+    let u: number;
     if (c.pending) {
       u = 0;
       f.waiting++;
+    } else if (c.t1 <= c.t0) u = tt >= c.t1 ? 1 : 0;
+    else {
+      u = (tt - c.t0) / (c.t1 - c.t0);
+      u = u <= 0 ? 0 : u >= 1 ? 1 : u;
     }
-    const e = ease(c.easing, u);
+    let e: number;
+    if (u <= 0) e = 0;
+    else if (u >= 1) e = 1;
+    else if (c.easing === 'linear') e = u;
+    else if (c.easing === 'ease-in') e = u * u * u;
+    else if (c.easing === 'ease-out') e = 1 - (1 - u) * (1 - u) * (1 - u);
+    else e = u < 0.5 ? 4 * u * u * u : 1 - ((2 - 2 * u) * (2 - 2 * u) * (2 - 2 * u)) / 2;
     f.phase[i] = u <= 0 ? ChannelPhase.before : u >= 1 ? ChannelPhase.done : ChannelPhase.moving;
     const s = c.slot;
     switch (c.kind) {
@@ -106,7 +110,9 @@ export function sample(plan: TransitionPlan, t: number, out?: Frame): Frame {
       }
       case 'number':
         // an angle ends where its short way round does (the same angle as `to`, so it never jumps back a turn)
-        v[s] = e >= 1 && c.hold === undefined ? c.to : c.from + c.delta * e;
+        // two stores, not one of a conditional: a value merged from a field and a sum is boxed
+        if (e >= 1 && c.hold === undefined) v[s] = c.to;
+        else v[s] = c.from + c.delta * e;
         break;
       case 'color':
         if (e >= 1) {
