@@ -212,7 +212,7 @@ describe('the examples’ navigators', () => {
     expect(Math.abs(g.x0 - p.x0)).toBeLessThan(800 / 393 + 1e-6);
   });
 
-  it('the Globins’ overview has every row, its window the rows in view', async () => {
+  it('the Globins’ overview has every row, its window the rows in view', { tags: ['medium'] }, async () => {
     const r = await settled(
       navigators.globinsNavigators(),
       generatedRegistry({ delayMs: 0 }).map((e) => (e as { runtime: unknown }).runtime),
@@ -248,13 +248,7 @@ describe('the examples’ navigators', () => {
     expect(r.nav.windows[0].wrap).toBe(true);
   });
 
-  it.each([
-    ['gene-region-ideogram', 'chr17'],
-    ['tracks-strip', 'strip'],
-    ['protein-gene-strip', 'strip'],
-    ['detail-strip', 'strip'],
-    ['scale-navigators', 'overview'],
-  ])('%s exports with its navigators, titled', async (id, nav) => {
+  const exportsWithNavigators = async (id: string, nav: string) => {
     const view = ExampleViews.find((v) => v.id === id)!;
     const ctx = createSeqContext({
       registry: [{ kind: 'format-runtime', runtime: SeqRuntime }, ...(view.registry?.({ delayMs: 0 }) ?? [])],
@@ -266,5 +260,17 @@ describe('the examples’ navigators', () => {
     expect(r.svg).toContain(`data-navigator="${nav}"`);
     expect(r.svg).toContain('<title>Window: ');
     ctx.retire();
-  });
+  };
+
+  it.each([
+    ['gene-region-ideogram', 'chr17'],
+    ['tracks-strip', 'strip'],
+    ['protein-gene-strip', 'strip'],
+    ['detail-strip', 'strip'],
+  ])('%s exports with its navigators, titled', exportsWithNavigators);
+
+  // 10,000 rows: the medium lane's, the others above its quick representatives
+  it('scale-navigators exports with its navigators, titled', { tags: ['medium'] }, () =>
+    exportsWithNavigators('scale-navigators', 'overview'),
+  );
 });

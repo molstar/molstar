@@ -28,7 +28,7 @@ import {
   type RingPlacement,
   recordDrawLists,
 } from '@molstar/seqx-core/render';
-import { itWithin } from '@molstar/test-harness/timing';
+import { BoundedTries, itWithin, type Within } from '@molstar/test-harness/timing';
 import { describe, expect, it } from 'vitest';
 import { nodeFixtureAssets, PackageFolder } from '../node-assets.js';
 import { ScaleFeatures, ScaleLength, scaleData } from '../plasmid/data.js';
@@ -307,8 +307,8 @@ function tips(lay: RangesLay) {
 describe('the Plasmid views drawn against the data', () => {
   const size = { width: 720, height: 900 };
 
-  it('every view renders settled in both themes with no issue; dark is not light', async () => {
-    for (const v of PlasmidViews) {
+  const rendersInBothThemes = async (views: typeof PlasmidViews) => {
+    for (const v of views) {
       const ctx = context();
       const out: string[] = [];
       for (const theme of ['light', 'dark'] as const) {
@@ -320,7 +320,15 @@ describe('the Plasmid views drawn against the data', () => {
       expect(out[1], v.id).not.toBe(out[0]);
       ctx.retire();
     }
-  });
+  };
+
+  // the ring view is the quick representative of the views, every one is the medium lane's
+  it('the ring view renders settled in both themes with no issue; dark is not light', () =>
+    rendersInBothThemes(PlasmidViews.filter((v) => v.id === 'ring')));
+
+  it('every view renders settled in both themes with no issue; dark is not light', { tags: ['medium'] }, () =>
+    rendersInBothThemes(PlasmidViews),
+  );
 
   /** The ring's keys under a position of a track (a hit through the warp). */
   function keysAt(
@@ -555,7 +563,8 @@ describe('the Plasmid at scale', () => {
 
   const Size = { width: 1200, height: 1200 };
 
-  itWithin('a pan of the detail at scale: the ring drawn from its kept lays', async (within) => {
+  // the pan's quick half would take a fifth of a second, so its unbounded run is the medium lane's (itWithin's quick half)
+  const panAtScale = async (within: Within) => {
     const s = await settled(view('scale').build());
     const inputs: FrameInput[] = [];
     for (let k = 0; k < 8; k++) {
@@ -578,7 +587,23 @@ describe('the Plasmid at scale', () => {
     time();
     const median = within(8 * 40, time);
     console.info(`plasmid ring at scale, a pan of its detail: median ${median.toFixed(3)} ms`);
-  });
+  };
+
+  it('a pan of the detail at scale: the ring drawn from its kept lays', { tags: ['medium'] }, () =>
+    panAtScale((_, f) => f()),
+  );
+
+  it(
+    'a pan of the detail at scale: the ring drawn from its kept lays: within its time bounds',
+    { tags: ['heavy'], retry: BoundedTries - 1 },
+    () =>
+      panAtScale((ms, f) => {
+        const t0 = performance.now();
+        const r = f();
+        expect(performance.now() - t0, `under ${ms} ms`).toBeLessThan(ms);
+        return r;
+      }),
+  );
 
   itWithin('a hover over the ring at scale: the placement through the warp, the hit', async (within) => {
     const s = await settled(view('scale').build());

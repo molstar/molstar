@@ -115,7 +115,9 @@ describe('the grid over the complex, headless', () => {
     expect(shapes.filter((r) => !r.inPlot).length).toBe(2);
   });
 
-  it('a rect dragged across the chain boundary is split at it: a rect a pair of chains, its summary in the panel', async () => {
+  it('a rect dragged across the chain boundary is split at it: a rect a pair of chains, its summary in the panel', {
+    tags: ['medium'],
+  }, async () => {
     const s = await open(view('complex-grid'));
     const v = s.viewer;
     const st = v.frame!.layout.sections[1].placement.strips;
@@ -146,7 +148,9 @@ describe('the grid over the complex, headless', () => {
     expect(v.frame!.lists.passes.selection.rects.n).toBeGreaterThanOrEqual(4);
   });
 
-  it('every strip’s grid drawn in both themes, canvas and SVG alike; the boundaries hairlines', async () => {
+  it('every strip’s grid drawn in both themes, canvas and SVG alike; the boundaries hairlines', {
+    tags: ['medium'],
+  }, async () => {
     const s = await open(view('complex-grid'));
     const v = s.viewer;
     for (const dark of [false, true]) {
@@ -299,18 +303,25 @@ describe('the Complex editing views, headless', () => {
   });
 });
 
+// the views that take long to draw are the medium lane's; the others stay in the quick lane as its representatives
+const SlowViews = new Set(['pae', 'complex-grid', 'blocks-stacked', 'blocks-stacked-split', 'blocks-ring']);
+
 describe('every Complex view in both themes, headless', () => {
   for (const ex of ComplexViews)
-    it(`${ex.id}: laid out and exported with no issue, light and dark`, async () => {
-      const s = await open(ex);
-      for (const dark of [false, true]) {
-        if (dark) s.viewer.setTokens(DarkTokens);
-        await vi.advanceTimersByTimeAsync(100);
-        s.viewer.draw();
-        expect(s.viewer.frame!.layout.issues).toEqual([]);
-        const r = await svgOf(s.viewer);
-        expect(r.issues).toEqual([]);
-        expect(r.settled).toBe(true);
-      }
-    });
+    it(
+      `${ex.id}: laid out and exported with no issue, light and dark`,
+      SlowViews.has(ex.id) ? { tags: ['medium'] } : {},
+      async () => {
+        const s = await open(ex);
+        for (const dark of [false, true]) {
+          if (dark) s.viewer.setTokens(DarkTokens);
+          await vi.advanceTimersByTimeAsync(100);
+          s.viewer.draw();
+          expect(s.viewer.frame!.layout.issues).toEqual([]);
+          const r = await svgOf(s.viewer);
+          expect(r.issues).toEqual([]);
+          expect(r.settled).toBe(true);
+        }
+      },
+    );
 });

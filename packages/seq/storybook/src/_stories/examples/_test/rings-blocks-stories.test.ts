@@ -113,40 +113,44 @@ describe('Complex blocks, headless', () => {
   ] as const;
   for (const c of chips)
     for (const dark of [false, true])
-      it(`${c.id} (${dark ? 'dark' : 'light'}): the ATP chips at their label’s width, never clipped`, async () => {
-        viewer = await openExample(ComplexViews.find((v) => v.id === c.id)!, { fixtures: true });
-        const v = viewer;
-        if (dark) v.setTokens(DarkTokens);
-        const text = bundledTextMetrics();
-        const windows = 'zoom' in c ? [undefined, c.zoom] : [undefined];
-        for (const w of windows) {
-          if (w) v.view.setRange('/views/main/complex', w[0], w[1]);
-          await vi.advanceTimersByTimeAsync(50);
-          v.draw();
-          const sec = v.frame!.layout.sections[0];
-          const p = sec.placement as BlockPlacement | RingPlacement;
-          const shown = p.strips.axes.map((_, i) => i).filter((i) => p.strips.chip[i]);
-          expect(shown.map((i) => p.strips.axes[i].system)).toEqual(c.labels.map(() => '/data/atp'));
-          if (p instanceof BlockPlacement) expect(shown.map((i) => p.labels[i])).toEqual([...c.labels]);
-          for (const i of shown)
-            expect(p.strips.axes[i].width).toBeCloseTo(text.measure('12px sans', c.labels[0]) + 10, 6);
-          if (!(p instanceof BlockPlacement)) continue;
-          // the rail skips the chips as it skips the gaps: the section's units across it, its window the view's
-          const rail = sec.rail;
-          if (rail && w) expect([rail.total, rail.start, rail.end]).toEqual([sec.axis!.total, w[0], w[1]]);
-          if (c.id === 'blocks') expect(rail).toBeDefined();
-          // each chip's label drawn in its pill, its width within the chip's
-          const texts = recordDrawLists(v.frame!.lists, ['data'])
-            .split('\n')
-            .filter((l) => l.startsWith(`text "${c.labels[0]}"`));
-          expect(texts.length).toBe(shown.length);
-          for (const l of texts)
-            expect(Number(/ width ([\d.]+)/.exec(l)![1])).toBeLessThanOrEqual(Number(/ max ([\d.]+)/.exec(l)![1]));
-        }
-        const svg = v.renderSvg({ idPrefix: 'c-' });
-        await vi.advanceTimersByTimeAsync(400);
-        const r = await svg;
-        expect(r.issues).toEqual([]);
-        expect(r.svg).toContain(`>${c.labels[0]}<`);
-      });
+      it(
+        `${c.id} (${dark ? 'dark' : 'light'}): the ATP chips at their label’s width, never clipped`,
+        dark ? { tags: ['medium'] } : {},
+        async () => {
+          viewer = await openExample(ComplexViews.find((v) => v.id === c.id)!, { fixtures: true });
+          const v = viewer;
+          if (dark) v.setTokens(DarkTokens);
+          const text = bundledTextMetrics();
+          const windows = 'zoom' in c ? [undefined, c.zoom] : [undefined];
+          for (const w of windows) {
+            if (w) v.view.setRange('/views/main/complex', w[0], w[1]);
+            await vi.advanceTimersByTimeAsync(50);
+            v.draw();
+            const sec = v.frame!.layout.sections[0];
+            const p = sec.placement as BlockPlacement | RingPlacement;
+            const shown = p.strips.axes.map((_, i) => i).filter((i) => p.strips.chip[i]);
+            expect(shown.map((i) => p.strips.axes[i].system)).toEqual(c.labels.map(() => '/data/atp'));
+            if (p instanceof BlockPlacement) expect(shown.map((i) => p.labels[i])).toEqual([...c.labels]);
+            for (const i of shown)
+              expect(p.strips.axes[i].width).toBeCloseTo(text.measure('12px sans', c.labels[0]) + 10, 6);
+            if (!(p instanceof BlockPlacement)) continue;
+            // the rail skips the chips as it skips the gaps: the section's units across it, its window the view's
+            const rail = sec.rail;
+            if (rail && w) expect([rail.total, rail.start, rail.end]).toEqual([sec.axis!.total, w[0], w[1]]);
+            if (c.id === 'blocks') expect(rail).toBeDefined();
+            // each chip's label drawn in its pill, its width within the chip's
+            const texts = recordDrawLists(v.frame!.lists, ['data'])
+              .split('\n')
+              .filter((l) => l.startsWith(`text "${c.labels[0]}"`));
+            expect(texts.length).toBe(shown.length);
+            for (const l of texts)
+              expect(Number(/ width ([\d.]+)/.exec(l)![1])).toBeLessThanOrEqual(Number(/ max ([\d.]+)/.exec(l)![1]));
+          }
+          const svg = v.renderSvg({ idPrefix: 'c-' });
+          await vi.advanceTimersByTimeAsync(400);
+          const r = await svg;
+          expect(r.issues).toEqual([]);
+          expect(r.svg).toContain(`>${c.labels[0]}<`);
+        },
+      );
 });

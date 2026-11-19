@@ -53,6 +53,16 @@ describe('the fixtures', () => {
 /** The issues a view is known to report (the code is the one allowed), by `dataset/id`: none today. */
 const Known: Readonly<Record<string, readonly string[]>> = {};
 
+/** The views whose drawing takes over 40 ms: `dataset/id`. */
+const SlowToRender = new Set([
+  'globins/scale',
+  'globins/scale-navigators',
+  'plasmid/scale',
+  'p53/tracks',
+  'complex/pae',
+  'complex/complex-grid',
+]);
+
 describe.each(ExampleViews.map((v) => [`${v.dataset}/${v.id}`, v] as const))('%s', (_, view) => {
   const allowed = Known[`${view.dataset}/${view.id}`] ?? [];
   const unexpected = <T extends { code: string }>(issues: readonly T[]) =>
@@ -82,14 +92,25 @@ describe.each(ExampleViews.map((v) => [`${v.dataset}/${v.id}`, v] as const))('%s
     ctx.retire();
   });
 
-  it('renders to SVG settled, with no issue', async () => {
+  // the views that take long to draw run in the medium lane (the others, and the p53 and plasmid ones, are the quick
+  // representatives of a view drawn); what a second render adds, the same spec rendering the same, is medium for all
+  it(
+    'renders to SVG settled, with no issue',
+    SlowToRender.has(`${view.dataset}/${view.id}`) ? { tags: ['medium'] } : {},
+    async () => {
+      const ctx = context(view);
+      const r = await ctx.renderSvg(view.build(), { size: { width: 720, height: 320 } });
+      expect(unexpected(r.issues)).toEqual([]);
+      expect(r.settled).toBe(true);
+      expect(r.svg.startsWith('<svg ')).toBe(true);
+      expect(r.svg.endsWith('</svg>')).toBe(true);
+      ctx.retire();
+    },
+  );
+
+  it('renders the same twice: no clock, no random', { tags: ['medium'] }, async () => {
     const ctx = context(view);
     const r = await ctx.renderSvg(view.build(), { size: { width: 720, height: 320 } });
-    expect(unexpected(r.issues)).toEqual([]);
-    expect(r.settled).toBe(true);
-    expect(r.svg.startsWith('<svg ')).toBe(true);
-    expect(r.svg.endsWith('</svg>')).toBe(true);
-    // the same spec renders the same: no clock, no random
     const again = await ctx.renderSvg(view.build(), { size: { width: 720, height: 320 } });
     expect(again.svg).toBe(r.svg);
     ctx.retire();

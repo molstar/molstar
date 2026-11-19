@@ -154,7 +154,9 @@ describe('the p53 story, headless', () => {
     expect(mid.end).toBeGreaterThanOrEqual(363);
   });
 
-  it('the export draws an SVG per step: the picture a viewer shows at each step’s end', async () => {
+  it('the export draws an SVG per step: the picture a viewer shows at each step’s end', {
+    tags: ['medium'],
+  }, async () => {
     const svgs = await exportSteps(view);
     expect(svgs.map((x) => x.id)).toEqual(['whole', 'dna-binding', 'r175h', 'tetramer']);
     expect(new Set(svgs.map((x) => x.svg)).size).toBe(4);
