@@ -474,6 +474,11 @@ over 20 runs; the heavy lane bounds one sample at 40 ms (`resolve/_test/addressi
 
 ### Asynchronous sources
 
+- **A region's answer holds the items overlapping it**, not only those starting in it: the store reads whole tiles, and
+  a view wholly past a tile's edge reads that tile alone, so an item from the tile before would have no mark. An item in
+  two tiles is in both answers, one range (`id` or `row`); the layout keeps it once (key and start). `sliceTable` and
+  the test sources follow it; a tiled reader answers a tile with the rows overlapping it.
+
 - `delayedSource(inner, { clock, delayMs })` answers as `inner` does, each answer after a delay (a number, or by the
   request) on a `StoreClock`; an abort rejects at once and clears the timer; 0 is no timer. `asyncSeqSource(data)` is
   the synthetic by-region source (`seq` data answered so); `delayedRuntime(runtime, { formats })` gives it a format of
