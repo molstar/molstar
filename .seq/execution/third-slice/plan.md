@@ -244,11 +244,18 @@ and dark before the merge.
       small molecule by a chemical component id or a SMILES, a branched entity with its linkages, a conjugate: a drug
       on a residue, a glycan on an Asn), the complex kind the layouts design waits for (units, copies, a ligand's
       forms: one position or its atoms), and the maps between them and the polymers (a link's residue, a contact, a
-      per-atom system), read from mmCIF (`pdbx_entity_branch*`, `chem_comp`) through `@molstar/io`. The base's
+      per-atom system), read from mmCIF (`pdbx_entity_branch*`, `chem_comp`) through `@molstar/io`. **Non-standard
+      residues in polymers** (the author, 2026-11-19: "do we support non-standard residues in our sequence nodes? if
+      not, should include this"): today a `sequence` is one letter a position from a fixed alphabet, with no component
+      per position, so MSE, SEP, TPO, PTR and modified nucleotides (1EHZ's PSU, 2MG, H2U, OMC, OMG, YYG, 5MC, 7MG, 5MU,
+      1MA) are flattened to a letter or lost; the design gives a position its chemical component (and its parent's
+      letter for drawing, search and alignment), how a track shows it (a mark on the letter, its code on hover), how a
+      query finds it, and how it maps to the structure; the base's per-position component codes read first. The base's
       `ligand` node and `ligand_form` read first. Drafted, reviewed and self-checked as the slice's designs were
       (`briefs/design-drafts.md`), with its Storybook Design page; decided by the author at this stage's gate.
       **Built in the fourth slice** (a language change past 0.4.0, which stays this slice's: one bump, unreleased);
-      this slice's DG and DC write their ligands as one-position sequences drawn as chips, changed once then.
+      this slice's DG and DC write their ligands as one-position sequences drawn as chips, and DT its tRNA's modified
+      nucleotides as their parents' letters (the components kept in the fixture for the fourth slice), changed once then.
 - [ ] GATE: merged, reviewed, the checks green, sizes, gaps; MD's design decided.
 
 ### Stage 6: output, accessibility and use
