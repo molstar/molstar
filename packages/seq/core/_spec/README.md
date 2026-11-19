@@ -898,8 +898,7 @@ the UX foundations' numbers, CSS px, settled by the foundation stories; where no
 | `navigator.window.floor`                                       | `centred`                                                                       | the drawn window says where; `thumb` (a scrollbar's mapping)                                                                                                                    |
 | `navigator.trackScale`, `navigator.trackMinPx`                 | 0.25, 2 px                                                                      | a miniature reads as the view; a thinner track is not seen at dpr 1                                                                                                             |
 | `navigator.marks`                                              | selection, highlights, cursor                                                   | where is what I picked; any subset                                                                                                                                              |
-| `navigator.idle`                                               | `quiet`                                                                         | a part that vanishes moves the host's layout; `hidden`                                                                                                                          |
-| `navigator.rail.grownPx`, `.grabShare`, `.slimPx`              | 6 px, 0.4, 12 px                                                                | a target in use; an alignment ruler's labels select columns, its bottom pans; a rail with no ruler at a row's least cost                                                        |
+| `navigator.rail.grownPx`, `.grabShare`                         | 6 px, 0.4                                                                       | a target in use; an alignment ruler's labels select columns, its bottom pans                                                                                                    |
 | `internedStrings`                                              | 4,096                                                                           | strings draw lists keep interned across frames, so a frame drawn again interns nothing; past it a full redraw starts the table again                                            |
 
 - **A values layer's level** (`values.coarser`, k): the coarsest of the source's levels whose bin is no wider than k
@@ -1248,15 +1247,18 @@ way, over a straight axis and a box, in every layout; a layout knows strips, ban
 
 `render/window.ts`: the window mark (a ring's window over a linear detail, a navigator's, a ruler rail's), drawn in the
 `window` pass: a ring's by its layout's chrome in a strip's frame through its warp, a navigator's and a rail's on the
-page. Its body in `seq-window` (tinted and outlined), a grip as a tab just outside each end in `seq-grip` (5 px); the
-lit part drawn grown; idle (nothing can move) a quiet outline, not a target. A floor of 16 px (a narrower window grows
-about its middle); its parts hit (`windowPart`) within at least 12 px (24 by touch), an end winning over the body near
-it, as the `window` target with its `part` (`body`, `start`, `end`; a navigator's `outside` too). A navigator's window
-(`floorExtent`, `navigatorPart`, `drawNavigatorWindow`) reads `navigator.window`: its floor at most half the span and
-`centred` on the truth (or a `thumb`), clamped inside the span, with a hairline at the true extent where the floor drew
-it wider (at least a device pixel); its grips at most a quarter of the window inside it, so a press in the middle pans;
-the wash (`seq-wash`) over the span outside it; an export's an outline with its wash and no grips. Its numbers reach the
-pass through arrays (`NavWindow`, `args`): a window move allocates nothing once warm.
+page. One geometry for all, on `navigator.window` (the navigators design: one geometry, extended): its floor
+(`floorExtent`: at least `minPx`, at most half the span, `centred` on the truth or a `thumb`, clamped inside the span; a
+ring's frame has no span: it only grows about its middle), its parts (`navigatorPart`; a ring's `windowPart` the same
+with no span, no `outside`): a grip as a tab just outside each end, hit over half `hitPx` there (half `touchHitPx` by
+touch, at least `handlePx`) and at most a quarter of the window inside it, so a press in the middle pans; the body hit
+over at least `hitPx`, centred and inside the span; `outside` the rest of the span. The `window` target with its `part`.
+Its drawing (`drawNavigatorWindow`, a ring's `drawWindowArgs`): the body in `seq-window` (tinted, outlined), the grips
+in `seq-grip` (`handlePx`; lit per part: an end's grip, the body both), a hairline at the true extent where the floor
+drew it wider (at least a device pixel), the wash (`seq-wash`) over the span outside it (a ring: none); idle (nothing
+can move) a quiet outline, not a target; an export's an outline with its wash, no grips. Its look (fill opacities, a
+grip's share of the thickness) is fixed. Its numbers reach the pass through arrays (`NavWindow`, `args`,
+`NavWindowFlags` read once as numbers): a window move allocates nothing once warm.
 
 ### Navigators
 
@@ -1265,21 +1267,27 @@ pass through arrays (`NavWindow`, `args`): a window move allocates nothing once 
 - **The picture**: a navigator lays its system whole out (the fit window, in the bound section's display order;
   `direction: genomic` up whatever the section's) as a view of its own over the spec's data, resolved like any
   (`resolveViewNode`), through the tracks layout with its own renderer and lists (no inset, label column or direction
-  mark; the shared image cache): `axis` no track, `tracks` the section's tracks (`tracks`, else all but rulers) at
-  `navigator.trackScale` of their height (at least `trackMinPx`) with no labels, `bands` one `bands` track filling it,
-  `rows` the section's first rows track with no header, its rows fitted to the band (`rowScale` the band's height over
-  the rows shown, the view's folds). The same system with no `system` param: the bound section's own axis. Why the
-  layout interface: a miniature drawn by other code drifts from the view it summarizes.
-- **What no summary serves is left out, said once**: a lazy alignment's rows (`seq.render.navigator.rows`: its rows'
-  structure only), a ranges layer on a source with no coarse level whose whole axis passes the store's tile bound
-  (`seq.render.navigator.layer`); a ranges layer reads its coarse level when the source serves one. Its wants are `view`
-  priority only (an export waits for them).
+  mark; the view's image cache, `images`): `axis` no track, `tracks` the section's tracks (`tracks`, else all but
+  rulers) at `navigator.trackScale` of their height and lanes (at least `trackMinPx`) with no labels, `bands` one
+  `bands` track filling it, `rows` the section's first rows track with no header filling what the other tracks leave (an
+  overview's whole column), its rows fitted to the band (`rowScale` the band's height over the rows shown, the view's
+  folds); a picture that fills is made again for another height. The same system with no `system` param: the bound
+  section's own axis. Colors are the view's: the picture reads the view's renderer's held domains (`domains`, its
+  `layoutState`, a picture key mapped to the view's), never a domain of its own over the whole axis, so a value has one
+  color in both. Why the layout interface: a miniature drawn by other code drifts from the view it summarizes.
+- **What no summary serves is left out, said once**: a lazy alignment's rows (`seq.render.navigator.rows`: left out), a
+  ranges layer on a source with no coarse level whose whole axis passes the store's tile bound (the store's settings,
+  `storeSettings`; `seq.render.navigator.layer`); a ranges layer reads its coarse level when the source serves one. Its
+  wants are `view` priority only (an export waits for them).
 - **The windows**: each bound section's viewport as the view's last layout placed it, carried as positions along the
   path to the navigator's system and placed on the picture (a follower's is its own shown range, so a leader's and its
-  followers' windows are drawn together; a scroll group's sections share one); over a cyclic origin two pieces; what the
-  section cannot reach (a region within its chromosome) washed, fixed. Rows: the band's rows in view on the picture's
-  rows. A window's ends back in its section's own display units (`sectionUnitAt`) through the inverse path. `moves` says
-  per section which axes can move (0 idle: quiet); absent, an export's outlines.
+  followers' windows are drawn together; a scroll group's sections share one), in the picture's display order (a section
+  whose order the path turns against the picture's: its start is the picture's right end); over a cyclic origin two
+  pieces, a grip at each true end (where a piece meets the axis's end it is body); what the section cannot reach (a
+  region within its chromosome) washed, fixed. Rows: the band's rows in view on the picture's rows. A window's ends back
+  in its section's own display units (`sectionUnitAt`) through the inverse path; past the picture's ends at the rate the
+  path carries the edge (a protein position three nucleotides). `moves` says per section which axes can move (0 idle:
+  quiet); absent, an export's outlines.
 - **Draw lists**: the base (`background`, `data`) is the picture's, keyed as any frame; the `window` pass draws the
   washes, the windows (the one the pointer last acted on on top) and a sweep's outline; then the marks: the selection's
   and the highlights' ticks at the picture's foot (`navigator.marks`), the keyboard cursor's hairline, the pointer's
@@ -1287,13 +1295,18 @@ pass through arrays (`NavWindow`, `args`): a window move allocates nothing once 
 - **Hits** (`hit`): the window part under a point, its section and axis, the position on the navigator's system, the
   display row, a band's name (the `bands` layer's hit `state`). A navigator's hover is its own: a readout.
 - **The ruler rail** (`Rail`, `FrameInput.rails` and `railsActive`, by section address; the viewer's): drawn on the
-  first shown ruler's bottom border, else in a slim row of its own under the tracks (`navigator.rail.slimPx`, a hidden
-  ruler too); the whole axis across the data box, the window a segment with a grip each end, collapsed breaks a notch, a
-  wrap two pieces; its grab zone the ruler's row (on an alignment's columns its lower `grabShare`: above it a drag
-  selects columns), the slim row whole; grown (`grownPx`) while hovered or dragged (`Emphasis.drag`); idle (not active)
-  quiet with no grips and no target. Its hit is the `window` target with `navigator: 'rail'`, its unit `railUnitAt`.
-  Rails are part of a section's key by identity (a slim row takes room); which can move is not (no relayout).
-  `railSections`: every tracks section no shown navigator binds along its positions (a declared navigator replaces it).
+  first shown ruler's bottom border, else in a slim row of its own under the section's tracks (`SlimRailPx`, 12, fixed:
+  the form's size, the least a rail and its grips need; a hidden ruler too; under, not above: the tracks keep their
+  place); the whole axis across the data box, the window a segment with a grip each end (over a cyclic origin two
+  pieces, a grip at each true end, the axis's ends body), collapsed breaks a notch; its grab zone the ruler's row (on an
+  alignment's columns its lower `grabShare`: above it a drag selects columns), the slim row whole; grown (`grownPx`)
+  while hovered or dragged (`Emphasis.drag`); idle (not active) a quiet hairline with no grips and no target (at the fit
+  it reads as the line); in a figure (an export) a plain segment, no grips, no idle state. Its hit is the `window`
+  target with `navigator: 'rail'` (touch the wider hit: `hitView`'s `touch`), its unit `railUnitAt`. Rails are part of a
+  section's key by identity (a slim row takes room); which can move is not: the renderer sets it on the rails each
+  frame, an emphasis redraw too (an idle flip redraws the window pass alone). `railSections(view, hosted)`: every tracks
+  section no shown navigator binds along its positions: a declared navigator and a host's replace its rail, a hidden one
+  brings it back.
 
 ### Rings layout
 
@@ -1553,9 +1566,10 @@ It reads every row (a logo of the rows shown is not built: the package's TODO).
 - **Navigators** (`navigators`, else the view's `export.navigators`, else `omit`): included, each shown navigator is
   stacked by `place` around the view (top and bottom across it, left and right along it, a miniature at its size) as a
   group with its windows' `<title>` (`Window: chr17:7,666,403–7,672,402 of chr17`) and `data-navigator` its id, its
-  windows outlines and wash, no handles, hover or idle state; the rails drawn idle; the export opens the navigators'
-  sources and waits for their wants. `rails`: the rails idle with no navigator (a viewer's picture, so its export has
-  the canvas's geometry). Why omitted by default: a window is session, not a figure.
+  windows outlines and wash, no handles, hover or idle state; the rails drawn as plain windows (no grips, no idle
+  state); the export opens the navigators' sources and waits for their wants, colors by the view's held domains.
+  Omitted, no rail either (no slim row: a viewer's export is its picture without its chrome). Why omitted by default: a
+  window is session, not a figure.
 - **What the layouts place** (`figure`): a text section draws every line, its box its content; `size.height: 'auto'` is
   the sections' content's height (measured from a first layout); a ring's window only with `window` (the view's
   `export.window` when absent, false: an exported map is a figure).

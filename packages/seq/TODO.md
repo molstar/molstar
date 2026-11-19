@@ -205,11 +205,10 @@ links, selection, the security bounds, MessagePack). Next, version 1's second mi
   `DomHost.requestAnimationFrame` swap.
 - Scroll groups across viewers and views (EC-113).
 - Navigators, after the first build: a row zoom dragged on an overview's ends (the rows axis's ends only pan); the rows'
-  one-value-a-row fallback (`rowsValue`) where a source serves no row summary (a lazy alignment draws its rows'
-  structure only); a navigator over a text section (the positions on its lines in view); the window's hover readout as
-  an ARIA live region; a slider per covered axis (one now, roving over the windows); the ring's window grips on the
-  `navigator.window` config (fixed `WindowMetrics` now, the same numbers); a grid's own y window (open until a Hi-C
-  view); a stories' page per form (the stories lane).
+  one-value-a-row fallback (`rowsValue`) and then the rows' structure where a source serves no row summary (a lazy
+  alignment's rows are left out now); a navigator over a text section (the positions on its lines in view); the window's
+  hover readout as an ARIA live region; a slider per covered axis (one per window now, roving by PageDown and PageUp: to
+  be confirmed); a grid's own y window (open until a Hi-C view).
 - Rings in the viewer: the matrix cells of a ring section and a block as binding tests; a drag-select longer than half
   the ring selects the other side (the shorter arc is taken: the drag's swept direction would say which); a reversed
   ring's arcs (`selection.ts` reads an arc on a forward axis only, `dir === 1`).

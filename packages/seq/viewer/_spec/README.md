@@ -164,7 +164,7 @@ nothing and tells nothing.
   Session state: never the spec's history (view state is not history), so undo leaves it. `jumps` moves on each jump,
   back and forward. `snapshot()` gives every group's range and band now, as a jump keeps them, and `record(snapshot)`
   pushes one taken earlier as a step (unless the view is there now): a gesture's one step, pushed when it ends (a
-  navigator's far drag, a double-click's first click deferred).
+  navigator's far drag, of its window or its rows); `jump` pushes through it.
 - **A source-backed system's length** is fed in when its source's coverage gives it (`setLengthSource`, `refreshLengths`
   on each store change): the resolved view's axes (and the follows' leader axes) get their pieces, so a section on a
   streamed sequence is placed and its kept intent applies.
@@ -190,18 +190,26 @@ nothing and tells nothing.
 
 `navigator.ts` (`NavigatorModel`, `viewer.navigatorModel(id)`, `viewer.navigator(def)`): DOM-free, one a navigator (a
 declared node by its id or address, or a host's definition of the same shape, never saved). It holds its picture (a core
-`NavigatorRenderer` over the viewer's store, theme and image budget), draws it over the viewer's last frame (`draw`,
-after each frame the viewer draws: `viewer.drawn`), wants what it reads through a want set of its own, and holds the lit
-part, idle per window and axis (`windowIdle`: the whole axis at the zoom limit, or the section cannot move; rows: every
-row shown), the gesture in progress and the readout (`readout`: the position, the row, a band's name; never the viewer's
-hover). Its size is the host's (`resize`), each side the form's box for the view where the host gives none. Its pointer
-(`move`, `down`, `up`, `doubleClick`, `wheel`, `cancel`) and keys (`key`) are in its own px, carried to the bound
-section's display units through the picture and run through the `navigator` behavior; its sliders' values (`values`,
-`aria-valuetext` as positions on the navigator's system and rows, `disabled` when idle) are set when the windows settle,
-never during a drag. Keys while focused (one tab stop, the windows a roving slider): arrows pan (Up and Down on rows),
-Shift+arrows resize about the centre, Home and End go to the ends (jumps), Enter centres on the readout's position, `=`,
-`-`, `0`, Alt+Left and Alt+Right act on the focused window's section, Esc cancels a gesture. The wheel acts as over the
-bound section, zooming about the window's centre, never the pointer.
+`NavigatorRenderer` over the viewer's store, theme, image cache and held domains: the view renderer's,
+`viewer.renderer`), draws it over the viewer's last frame (`draw`, after each frame the viewer draws: `viewer.drawn`),
+wants what it reads through a want set of its own, and holds the lit part, idle per window and axis (`windowIdle`: the
+whole axis at the zoom limit, or the section cannot move; rows: every row shown), the gesture in progress, the focused
+slider (`focused`) and the readout (`readout`: the position, the row, a band's name; never the viewer's hover). Its size
+is the host's (`resize`), each side the form's box for the view where the host gives none. Its pointer (`move`, `down`,
+`up`, `click` with the platform's count, `doubleClick`, `wheel`, `cancel`) and keys (`key`) are in its own px, carried
+to the bound section's display units through the picture and run through the `navigator` behavior. A press on a window
+focuses its slider; a press that never moves acts at its click (outside the window it centres there, a miniature's both
+axes); a miniature's body drags both axes; a rows drag is clamped to the rows less those in view, and pushes the rows at
+its press when it went farther than the rows in view (`navigator.dragStep`). Its sliders' values (`values`,
+`aria-valuetext` as positions on the navigator's system and rows, `disabled` when idle) are set when the view rests
+(`viewer.rested`) after this part's own gesture or key, or while the part has no focus (`setFocus`, the host's): a move
+made elsewhere announces nothing (the design: noise), its value said when the focus leaves; never during a drag, never a
+frame. Keys while focused (one tab stop, the windows a roving slider: PageDown and PageUp move the focus to the next and
+the previous window; why those: arrows, Home and End are the slider's own, Tab the page's): arrows pan (Up and Down on
+rows, clamped), Shift+arrows resize about the centre, Home and End go to the ends (jumps), Enter centres on the
+readout's position, `=`, `-`, `0` act on the focused window's section; Alt+Left and Alt+Right walk the history even
+while the window is idle; Esc cancels a gesture. The wheel acts as over the bound section, zooming about the window's
+centre, never the pointer.
 
 ### HoverModel
 
@@ -345,14 +353,18 @@ refuses (its own report), is forgotten so the next sync tries again. Retired wit
 - **Navigators** (`mount-navigator.ts`): parts the host places, like the legends. `mountNavigator(element, viewer, id)`
   draws one navigator (a declared node's id, or a host's `viewer.navigator(def)`) into an element the host owns: its own
   canvases sized by the element (its form's thickness where the element has no height), its listeners on it alone, one
-  tab stop (`role="slider"`, its focused window's `aria-valuetext`, `aria-disabled` when idle), its readout; its
-  disposer takes it away. `ui.navigators` (`navigatorsMount`, on in the default spec) places the view's shown navigators
-  by `place` around the canvas (top before it, bottom after it, left and right beside it in a row) through the same
-  call, again when they change. `ui.railToggle` (`railToggleMount`; for a viewer embedded in a host's cell) puts a
-  button in the canvas's corner that hides and shows the ruler rails (`setRailsShown`, `railsShown`: the reader's
-  session, never the spec). The rails (`navigator.form: rail`, the default): every linear section no shown navigator
-  binds along its positions (`railSections`), each active while the `navigator` behavior is listed and its window is not
-  idle; the viewer's export draws them idle (`rails`), so its SVG has the canvas's geometry.
+  tab stop (`role="slider"`, its focused window's `aria-valuetext` and `aria-disabled` as the model says them, never a
+  frame; its focus told to the model), its readout, its clicks with their count; its disposer takes it away.
+  `ui.navigators` (`navigatorsMount`, on in the default spec) places the view's shown navigators by `place` around the
+  canvas (top before it, bottom after it, left and right beside it in a row) through the same call, again when they
+  change. `ui.railToggle` (`railToggleMount`; for a viewer embedded in a host's cell) puts a button in the canvas's
+  corner that hides and shows the ruler rails (`setRailsShown`, `railsShown`: the reader's session, never the spec). The
+  rails (`navigator.form: rail`, the default): every linear section no shown navigator binds along its positions, the
+  view's declared ones and a host's (`viewer.navigator(def)`) alike, a hidden one bringing the rail back
+  (`railSections`); each active while the `navigator` behavior is listed and its window is not idle, found again after
+  the layout placed the view (an idle flip drawn in the same frame, the window pass alone). The viewer's export leaves
+  the rails out with its navigators (its picture without its chrome: no slim row); with `navigators: include` they are
+  drawn plain.
 - `SeqViewerSpec`: `registry` (the core's entries), `behaviors` (a provider and its params), `bindings` (a preset,
   override layers, extra action ids), `config` (`[item, value]` pairs), `ports` (factories with ownership), `ui` (the
   parts; none for a headless viewer), `history` (the history port). `DefaultSeqViewerSpec()`
@@ -520,11 +532,14 @@ binding table; per move one hit record and one modifiers record are reused.
 
 - **A window's part under the pointer** (a ring's, a rail's) is lit (`windowHit`, drawn as the emphasis's hover), and
   the window being dragged grows its rail wherever the pointer goes (`dragHit`, `Emphasis.drag`); the cursor is `grab`
-  there, `grabbing` during a drag (`cursor`).
+  there, `grabbing` during a drag (`cursor`, set by the mounted canvas). A finger's pointer (`pointerType: touch`) hits
+  a window wider (`navigator.window.touchHitPx`).
 - **A ruler rail** (Composition, Navigators): a press on its grab zone goes to the `navigator` behavior at the rail's
-  scale (`railUnitAt`): its body pans, its grips zoom, outside it a click centres there and a drag sweeps; the click the
-  platform sends after it is the rail's (no selection). An idle rail is no target: the press falls through to the ruler
-  (on an alignment's columns, a column pick above the grab zone).
+  scale (`railUnitAt`): its body pans, its grips zoom, outside it a drag sweeps; a press that never moved acts at the
+  click the platform sends after it (the rail's: no selection): outside the window it centres there, on a grip or the
+  body nothing; a double-click on the rail is the navigator's (`toggle-fit`, `navigator.zoomPx` at the rail's scale). An
+  idle rail is no target: the press falls through to the ruler (on an alignment's columns, a column pick above the grab
+  zone).
 
 - **Round a ring** (a section whose window `wraps`), the placement read by angle: a zoom keeps the unit under the
   pointer's angle (the turn nearest the window, `RingsNav.zoom`); a pan drag (Space+drag) moves the window by the units
@@ -656,8 +671,9 @@ rows' commands) reads the last frame's rows layers through the behavior context'
   that centres there (`navigator.center`, a jump: animated), dragged it sweeps a region and zooms to it on release
   (`navigator.zoom-to`; `navigator.dragOutside: pan` centres and then pans); a double-click fits, or fitted zooms so the
   window is `navigator.zoomPx` navigator px wide (`navigator.doubleClick`); Esc cancels, the view back where the press
-  found it. One gesture is one step: a click centres at once and keeps the viewports it left until a double-click in
-  time (`DoubleClickMs`, 400) pushes them as its own step, or the time runs out; a drag pushes the viewports at its
+  found it. One gesture is one step: a click centres with its own step (a jump), and the double-click it begins (the
+  platform's, by the click's count: its second click does nothing, its `dblclick` follows) moves within that step, as
+  input's first click defers a clear (no timer: the platform knows a double-click); a drag pushes the viewports at its
   press on release when the view went farther than one window width (`navigator.dragStep: far`; `never`, `always`). A
   window bound to a follower moves its leader (`follow.followerMoves`). The ruler rails take the same gestures at the
   rail's scale (Input).
