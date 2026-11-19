@@ -65,6 +65,7 @@ RW's fixes was checked in light only (Scale's tiles in canvas and SVG, labels wh
 
 ## In progress
 
+- MD (strong, design only) started 2026-11-19: `briefs/md-molecules.md`, draft to `drafts/molecules.md`.
 - NV in its third round (2026-11-19): the look found the ideogram and the plasmid strip blank in the browser
   (twins pass) and the parts mounted over the toolbar and the alignment; merging packages-seq (PG's hit signature).
 - PG and NV reported (branches `seq/pg-pairs-grids`, `seq/nv-navigators`, base `51787bb2b`); checks rerun by the
