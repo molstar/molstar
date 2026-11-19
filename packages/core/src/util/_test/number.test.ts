@@ -33,5 +33,9 @@ describe('formatGenomic', () => {
   it('a negative number keeps its sign', () => {
     expect(formatGenomic(-1500, 1)).toBe('-1,500');
     expect(formatGenomic(-2_000_000, 1_000_000)).toBe('-2 Mb');
+    // a value that rounds to zero is unsigned
+    expect(formatGenomic(-0.3, 1)).toBe('0');
+    expect(formatGenomic(-400, 1000)).toBe('0 kb');
+    expect(formatGenomic(-1000, 10_000)).toBe('0.00 Mb');
   });
 });

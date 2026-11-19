@@ -5,6 +5,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { formatValue } from './string-format.js';
+
 /**
  * Determine the number of digits in a floating point number
  * Find a number M such that round(M * v) - M * v <= delta.
@@ -75,16 +77,6 @@ export function toFixed(v: number, fractionDigits: number) {
   return parseFloat(v.toFixed(fractionDigits));
 }
 
-/** A string of digits grouped by thousands with commas (`7668402` → `7,668,402`), whatever the locale. */
-function groupThousands(digits: string): string {
-  let out = '';
-  for (let i = 0; i < digits.length; i++) {
-    if (i > 0 && (digits.length - i) % 3 === 0) out += ',';
-    out += digits[i];
-  }
-  return out;
-}
-
 /**
  * A genomic position or length in bases, in the unit a ruler's tick step chooses: bases below a step of 1,000 (the
  * number grouped, `7,668,402`), kilobases below a step of 10,000 (`7,668 kb`), else megabases with the decimals the
@@ -93,11 +85,10 @@ function groupThousands(digits: string): string {
  */
 export function formatGenomic(n: number, step: number): string {
   const s = Math.abs(step);
-  const sign = n < 0 ? '-' : '';
-  const a = Math.abs(n);
-  if (s < 1e3) return sign + groupThousands(String(Math.round(a)));
-  if (s < 1e4) return `${sign}${groupThousands(String(Math.round(a / 1e3)))} kb`;
-  const decimals = Math.max(0, 6 - Math.floor(Math.log10(s) + 1e-9));
-  const [int, frac] = (a / 1e6).toFixed(decimals).split('.');
-  return `${sign}${groupThousands(int)}${frac ? `.${frac}` : ''} Mb`;
+  const unit = s < 1e3 ? 1 : s < 1e4 ? 1e3 : 1e6;
+  const decimals = unit === 1e6 ? Math.max(0, 6 - Math.floor(Math.log10(s) + 1e-9)) : 0;
+  const v = n / unit;
+  // a value that rounds to zero prints unsigned (never `-0`)
+  const shown = Number(v.toFixed(decimals)) === 0 ? 0 : v;
+  return formatValue(String(shown), `,.${decimals}f`) + (unit === 1 ? '' : unit === 1e3 ? ' kb' : ' Mb');
 }
