@@ -23,6 +23,11 @@ lives in them, never in the spec or its history. Time and frames are `@molstar/u
 `shown` and `model`, the static model of what is shown, by a resolver that keeps its entries by node hash, so a patch
 recompiles the entries whose nodes (or the nodes they read) it changed and a view edit keeps every data entry.
 
+- **A source-backed system's length** (`setLengths`, the viewer's `sourceLengths` on each store change): the model is
+  resolved again with the lengths the opened sources' coverages give, so such a system is laid out, its rows wrapped
+  over a cyclic origin and its grids read as over inline letters (the core's `ResolveOptions.lengths`). Why the model,
+  not the view: what reads a length (an item across the origin, a codon map, a grid, a block) is the model's.
+
 - **Patches** (`applyPatch(patch, options)`): `repr/patch`'s `applyPatch` with `SeqLanguage`, its slots
   (`SeqValidateOptions`) and the checks of a change (`SeqPatchValidator`, the core's `seq.lang` checks of what the
   patch's `Changes` reach): all or nothing, one commit when it changed something (its parent the old head), nothing for
@@ -174,9 +179,8 @@ nothing and tells nothing.
   back and forward. `snapshot()` gives every group's range and band now, as a jump keeps them, and `record(snapshot)`
   pushes one taken earlier as a step (unless the view is there now): a gesture's one step, pushed when it ends (a
   navigator's far drag, of its window or its rows); `jump` pushes through it.
-- **A source-backed system's length** is fed in when its source's coverage gives it (`setLengthSource`, `refreshLengths`
-  on each store change): the resolved view's axes (and the follows' leader axes) get their pieces, so a section on a
-  streamed sequence is placed and its kept intent applies.
+- **A source-backed system's length** is the model's once its source opened (`SpecModel.setLengths`): the resolved
+  view's axes get their pieces then, so a section on a streamed sequence is placed and its kept intent applies.
 - **Placed** only with a width and a known axis length, else `pending`: a move then is kept as the intent and placed
   when it can be (EC-112). Placing clamps the range within the axis and at most `viewport.maxPxPerPosition` px a
   position. A viewport that shows the whole axis is fitted and stays so across resizes and updates. **A cyclic axis's
@@ -325,7 +329,8 @@ over `overlayQueryModel` of the static model and `StoreModel.currentOverlay`, th
 syncing sources), with the `address.*` settings as bounds.
 
 - **Actions**: `focus` (each leading, movable section whose system the address has positions on, or reaches by a static
-  path, shows their hull in display offsets, hidden stretches taking no width; one move a scroll group; followers
+  path, shows their hull in display offsets, hidden stretches taking no width; on a cyclic axis over its whole system
+  the shortest arc holding them, over the origin when that is shorter (EC-12); one move a scroll group; followers
   follow; what lies wholly in a hidden stretch moves the section to its break, centered, the zoom kept, and the outcome
   says so and names `section.collapse`: `movedToBreak`), `reveal` (nothing when shown; a pan to its center when it fits;
   else a focus), `select`, `highlightAddress` (a channel, `links.highlightChannel` by default), `hoverAddress` (the

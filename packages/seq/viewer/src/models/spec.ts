@@ -25,7 +25,13 @@ import { hashNode, type Issue, issueOf, type Node, printAddress, resolveAddress 
 import { checkSpecBounds, SeqLanguage, SeqValidateOptions } from '@molstar/seqx-core/lang';
 // the change validators are their own entry: reading a spec carries no editing (core _spec, "Checks of a change")
 import { SeqPatchValidator, seqBoundsValidator, seqPatchValidator } from '@molstar/seqx-core/lang/changes';
-import { createResolver, type ResolveOptions, type StaticModel } from '@molstar/seqx-core/resolve';
+import {
+  createResolver,
+  type Lengths,
+  lengthsEqual,
+  type ResolveOptions,
+  type StaticModel,
+} from '@molstar/seqx-core/resolve';
 import { createStoryCache, type StepState, stateOf, stepPatchOf } from '@molstar/seqx-core/story';
 import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
 import { ViewerIssues } from '@molstar/seqx-viewer/issues';
@@ -243,7 +249,19 @@ export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
     this.changed = this._changed.asReadonly;
     this.boundsIssues = this._boundsIssues.asReadonly;
     const resolver = createResolver(options);
-    this.model = derive(this.shown, (s) => resolver.resolve(s));
+    this.model = derive([this.shown, this._lengths], (s, lengths) => resolver.resolve(s, lengths));
+  }
+
+  /** The source-backed systems' lengths the model is resolved with (`setLengths`). */
+  private readonly _lengths = new State<Lengths>(new Map(), lengthsEqual);
+
+  /**
+   * The lengths the opened sources' coverages give source-backed systems (`sourceLengths`, the viewer's on each store
+   * change): the model is resolved again with them, so such a system is laid out, wrapped and queried as one with
+   * inline letters (_spec/README.md "SpecModel").
+   */
+  setLengths(lengths: Lengths): void {
+    this._lengths.set(lengths);
   }
 
   // ---- revisions ----

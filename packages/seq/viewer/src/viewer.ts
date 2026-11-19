@@ -29,6 +29,7 @@ import {
   textMinScale,
 } from '@molstar/seqx-core/render';
 import { type Location, locationOfResult } from '@molstar/seqx-core/query';
+import { sourceLengths } from '@molstar/seqx-core/resolve';
 import type { SeqTokens } from '@molstar/seqx-core/render';
 import {
   type Frame as StoryFrame,
@@ -348,17 +349,9 @@ export class SeqViewer extends ReactiveModel {
     // a band's own scroll, row zoom and folds (a rows band's)
     this.listenPermanently(this.view.bands, () => this.schedule());
     this.listenPermanently(this.hover.version, () => this.legends.updateHover(this._frame?.layout, this.hover.current));
-    // a source-backed system's length arrives with its source's coverage: the view's axes are placed then
-    this.view.setLengthSource((system) => {
-      const s = this.spec.model.value.systems.get(system);
-      if (!s?.source) return undefined;
-      const info = this.store.store
-        .coverage(s.source)
-        ?.systems.find((x) => x.name === s.name || x.aliases?.includes(s.name));
-      return info?.length;
-    });
+    // a source-backed system's length arrives with its source's coverage: the model is resolved again with it
     this.listenPermanently(this.store.store.version, () => {
-      this.view.refreshLengths();
+      this.spec.setLengths(sourceLengths(this.spec.model.value, (s) => this.store.store.coverage(s)));
       this.schedule();
     });
     this.listenPermanently(this.store.store.settled, () => this.schedule());

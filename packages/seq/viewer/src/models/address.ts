@@ -37,6 +37,7 @@ import {
 import { type HighlightStyle, HighlightStyles } from '@molstar/seqx-core/render';
 import { ViewerIssues } from '../issues.js';
 import { overlayQueryModel } from '@molstar/seqx-core/resolve';
+import type { Axis } from '@molstar/seqx-core/view';
 import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
 import { breakHolding, nearestOffsetOf, positionAt } from './axis.js';
 import type { HoverModel } from './hover.js';
@@ -44,6 +45,27 @@ import { type Emphasized, type HighlightModel, isNothing, type SelectionModel } 
 import type { EditOptions, EditOutcome, SpecModel } from './spec.js';
 import type { StoreModel } from './store.js';
 import type { ViewModel } from './view.js';
+
+/**
+ * On a cyclic axis over its whole system (offsets the positions), the shortest arc holding sorted, merged ranges: the
+ * circle less its widest gap (EC-12), `[start, end]` in offsets with `end` past the length when it wraps the origin;
+ * undefined elsewhere (the hull is then the focus).
+ */
+function shortestArc(axis: Axis, ranges: ArrayLike<number>): [number, number] | undefined {
+  const n = axis.length;
+  const r = axis.ranges;
+  const k = ranges.length;
+  if (!axis.cyclic || n === undefined || axis.dir === -1 || r?.length !== 2 || r[0] !== 0 || r[1] !== n || k < 4)
+    return undefined;
+  let gap = n - ranges[k - 1] + ranges[0];
+  let arc: [number, number] | undefined;
+  for (let i = 2; i < k; i += 2)
+    if (ranges[i] - ranges[i - 1] > gap) {
+      gap = ranges[i] - ranges[i - 1];
+      arc = [ranges[i], ranges[i - 1] + n];
+    }
+  return arc;
+}
 
 /** A user-defined ref of the spec shown, with what it names now. */
 export interface RefEntry {
@@ -465,6 +487,9 @@ export class AddressModel extends ReactiveModel {
         b = Math.max(b, x + base, y + base);
         if (x !== y) wide = true;
       }
+      // on a ring's whole system, an item across the origin is its shortest arc, not the hull of its runs (EC-12)
+      const arc = base === 0 ? shortestArc(axis, part.ranges) : undefined;
+      if (arc) [a, b] = arc;
       const v = this.view.get(s.address);
       // wholly hidden by a break: to its break, centered, the zoom kept; outside the section's range is not hidden by a
       // break (the focus as before: what the view can show of it)

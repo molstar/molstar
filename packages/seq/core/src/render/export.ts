@@ -30,6 +30,7 @@ import {
   type ResolveConfig,
   resolveSpec,
   type StaticModel,
+  sourceLengths,
 } from '@molstar/seqx-core/resolve';
 import {
   nearestOffsetOf,
@@ -295,13 +296,15 @@ export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<
     return { svg: drawListsToSvg(lists), settled, issues, lists };
   };
   if (hasErrors(issues)) return blank(true);
-  const model = resolveSpec(spec, {
+  const resolveOptions = {
     ...(options.runtimes ? { runtimes: options.runtimes } : {}),
     config: options.resolve ?? {},
-  });
-  issues.push(...model.issues);
-  const view = options.view ? resolveView(model, options.view) : resolveViews(model)[0];
-  if (!view) {
+  };
+  let model = resolveSpec(spec, resolveOptions);
+  const viewOf = (m: StaticModel) => (options.view ? resolveView(m, options.view) : resolveViews(m)[0]);
+  const firstView = viewOf(model);
+  if (!firstView) {
+    issues.push(...model.issues);
     issues.push(
       issueOf(RenderIssues, 'seq.render.view', 'The spec has no such view', {
         ...(options.view ? { address: options.view } : {}),
@@ -310,7 +313,7 @@ export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<
     );
     return blank(true);
   }
-  issues.push(...view.issues);
+  let view: ResolvedView = firstView;
   const own = !options.store;
   const clock = options.clock ?? options.store?.clock ?? RealClock;
   const store = options.store ?? new DataStore({ clock });
@@ -333,16 +336,36 @@ export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<
     const expired = new Promise<undefined>((resolve) => {
       timer = clock.setTimeout(() => resolve(undefined), timeout);
     });
-    const opened = await Promise.race([
-      attachSources(model, store, {
+    const attach = (m: StaticModel, only: Set<string>) =>
+      attachSources(m, store, {
         ...(options.assets ? { assets: options.assets } : {}),
         signal: controller.signal,
-        only: viewSources(model, view),
+        only,
         attached,
-      }),
+      });
+    const opened = await Promise.race([
+      (async () => {
+        // the sources that give a shown system its length first: the model is resolved again with their lengths
+        // (_spec/README.md "Resolve", Systems), then the rest of what the view reads is opened over it
+        const shown = viewSources(model, view);
+        const first = new Set(
+          [...model.systems.values()].flatMap((s) => (s.source && shown.has(s.source) ? [s.source] : [])),
+        );
+        const said = first.size ? await attach(model, first) : [];
+        const lengths = sourceLengths(model, (source) => store.coverage(source));
+        if (lengths.size) {
+          model = resolveSpec(spec, { ...resolveOptions, lengths });
+          view = viewOf(model) ?? view;
+        }
+        // each opened once: one that failed is not tried again
+        const rest = viewSources(model, view);
+        for (const s of first) rest.delete(s);
+        return [...said, ...(await attach(model, rest))];
+      })(),
       expired,
     ]);
     clock.clearTimeout(timer);
+    issues.push(...model.issues, ...view.issues);
     if (opened) issues.push(...opened);
     else {
       settled = false;

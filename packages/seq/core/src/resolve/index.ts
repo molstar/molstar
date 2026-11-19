@@ -51,6 +51,8 @@ export {
   type BoundSourceEntry,
   createResolver,
   DefaultResolveConfig,
+  type Lengths,
+  lengthsEqual,
   type MapEntry,
   OpenLength,
   type PathResult,
@@ -64,6 +66,7 @@ export {
   type SourceParams,
   type StaticModel,
   type SystemEntry,
+  sourceLengths,
 } from './model.js';
 export {
   buildOverlay,

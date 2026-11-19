@@ -16,7 +16,7 @@ import {
   LightTokens,
   Renderer,
 } from '@molstar/seqx-core/render';
-import { resolveSpec } from '@molstar/seqx-core/resolve';
+import { resolveSpec, sourceLengths } from '@molstar/seqx-core/resolve';
 import { resolveViews } from '@molstar/seqx-core/view';
 import { nodeFixtureAssets, PackageFolder } from '../node-assets.js';
 import { PlasmidFiles } from '../plasmid/derive.js';
@@ -39,10 +39,17 @@ export interface Settled {
 
 /** A spec resolved and its sources opened against the fixtures; `frame` runs until the data has arrived. */
 export async function settled(spec: Node): Promise<Settled> {
-  const model = resolveSpec(spec, { runtimes: [SeqRuntime, RecordsRuntime] });
-  const view = resolveViews(model)[0];
+  const runtimes = [SeqRuntime, RecordsRuntime];
+  const assets = nodeFixtureAssets().reader;
   const store = new DataStore();
-  await attachSources(model, store, { assets: nodeFixtureAssets().reader });
+  // the sources that give a system its length first, then the model resolved again with their lengths
+  let model = resolveSpec(spec, { runtimes });
+  const sources = new Set([...model.systems.values()].flatMap((s) => (s.source ? [s.source] : [])));
+  if (sources.size) await attachSources(model, store, { assets, only: sources });
+  const lengths = sourceLengths(model, (s) => store.coverage(s));
+  if (lengths.size) model = resolveSpec(spec, { runtimes, lengths });
+  const view = resolveViews(model)[0];
+  await attachSources(model, store, { assets });
   const renderer = new Renderer({ model, view, data: store, tokens: LightTokens, text: bundledTextMetrics() });
   return {
     renderer,

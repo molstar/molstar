@@ -804,6 +804,14 @@ store. `resolveSpec(spec, { runtimes, config })`, or `createResolver` to keep en
   (the record its source knows it by: the param, else its id), and its length when its letters are inline; else the
   length is unknown, pending until the source is opened, never a guess. Why: nothing in tier 1 waits, and nothing lays
   out on a made-up length.
+- **A length from coverage**: once a source is open, the length its coverage gives a system (by name or alias, an
+  alignment's columns and rows too) is passed to the next resolve (`sourceLengths(model, coverage)`,
+  `ResolveOptions.lengths`, `Resolver.resolve(spec, lengths)`), and the system resolves as one with inline letters of
+  that length: its rows wrap the origin, its codon maps and grids are read, its sections and blocks get their pieces.
+  The lengths are part of the model's hash and of every entry's key over the system. Why again through resolve: what
+  reads a length is the model's, so a cyclic `seq` file works as inline letters do. A headless render (`renderSvg`)
+  opens the sources that hold a shown system first, then resolves again; the viewer on each store change
+  (`SpecModel.setLengths`).
 - **Sources**: each `source` node bound to a `SourceEntry` made from its params (`SourceParams`, the description's: one
   definition) and to the first runtime of the caller's registry whose `formats` holds its `format`. No format is
   `seq.resolve.source.format`, no runtime `seq.resolve.source.runtime`; either way the source is unavailable.
