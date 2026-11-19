@@ -129,7 +129,19 @@ links, selection, the security bounds, MessagePack). Next, version 1's second mi
   codec (a reserved key), so `secondary` reads `category` in the examples; the `theme/` entry is reached through the
   `./*` export (`theme/index`): its own `./theme` export.
 
+- Layouts (text): frames across tracks (the frame layer, `across`), chips (one-position blocks: with blocks),
+  `text.pieceBreak: 'line'`, numbers by a layer's numbering (ordinal today), the `figure` preset's spacing, inline group
+  labels before a line's first group; the line heights are kept full until laid out (the text's `end` an estimate).
+- Layouts (interface): a section's relayout still allocates more than before the per-section cache (closures and
+  contexts a section; p53 on its gene pan 75 KB a step against 70.5 KB at the base, its 64 KB bound already passed at
+  the base on this Node): an engine object a section would take the closures away.
+
 ## `@molstar/seqx-viewer`
+
+- Text (layouts): the `ViewModel` through each section's `SectionNav` (pan, zoom, reveal, steps, clamp per layout),
+  `input` reading the placement (`offsetAt` for drags, the section under a point), ↑↓ by a line, a drag in reading order
+  and past a box's edge (clock-timed), the `window` behavior provider, the `reveal` group (`reveal.linked`),
+  `selection.copyLetters`, history restored by position across a layout change; the wheel over a text is built.
 
 - Legends: the Legend part's place in the default chrome (the host mounts it today); a legend entry's color picker
   (`theme.value-color` has no UI); the scheme picker as a menu (the stories' buttons stand in).
