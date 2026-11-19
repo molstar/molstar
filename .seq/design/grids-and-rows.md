@@ -304,7 +304,8 @@ Rows in view are found by arithmetic, O(1) a row, never a scan.
   pan and a zoom (decided, the author, 2026-11-19: "the offsets at the end of the sequences don't update"; Jalview's
   and ESPript's per-line numbers), equal to the row's own at the fit view; a residue is counted, a gap never; a row
   with no residue in view shows none. Labels,
-  numbers and icons only at `rows.labelMinPx` (8) and more; a header hover lights the row band (drawing only, EC-146,
+  numbers and icons only at `rows.labelMinPx` (8) and more, the label column empty below it (confirmed, the author,
+  2026-11-19: "Yes, leave it empty"; a dark slab was drawn there); a header hover lights the row band (drawing only, EC-146,
   EC-147). Hidden rows are a count chip ("3 hidden") at the header's foot; its click shows them (one patch).
 
 **Row columns** (the author, 2026-11-19: "an extra column with some annotation next to each header… and being able to

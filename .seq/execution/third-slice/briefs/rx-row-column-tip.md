@@ -39,6 +39,12 @@ rows rail and check the ruler rail too (whole at the fit view but able to zoom i
 inward). Tests (fail on the parent): drag the rows rail's grip to the band's end, then drag it back: the window
 shrinks; a rail whole at its zoom-in limit is idle. Look: Rows › Scale, light and dark.
 
+**And the label column below `rows.labelMinPx`** (the author, 2026-11-19: "Yes, leave it empty"): zoomed out on Rows ›
+Scale (10,000 rows, under a pixel a row) the label column draws a solid dark slab; the design draws labels, numbers and
+icons only at 8 px a row and more: below it the column is empty (the tree still drawn). Find what draws the slab (a
+label, a chip or an icon per row past the threshold) and stop it. Test: at the band's whole zoom on 10,000 rows, no
+draw item in the label column; at 8 px, the labels.
+
 **Not in scope**: anything else. CF works in core (store, ruler, templates, accessibility, rows-model's measures), MV
 in core's renderer tables and the viewer's composition: keep to the rows layer's tip.
 
