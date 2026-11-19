@@ -208,14 +208,21 @@ export class RingPlacement implements Placement {
   /** The title's font size, px. */
   titleSize = 12;
 
+  /**
+   * Whether a page point is in placed label `k`'s hit box: its line (`labelLine` tall, centred where it was placed), so
+   * two labels' boxes never overlap (their lines are a line apart at least).
+   */
+  inLabel(k: number, x: number, y: number): boolean {
+    const l = this.labels;
+    const x0 = l.right[k] ? l.x[k] : l.x[k] - l.width[k];
+    const cy = l.y[k] - 0.35 * this.labelSize;
+    const h = labelLine(this.labelSize) / 2;
+    return x >= x0 - 2 && x < x0 + l.width[k] + 2 && y >= cy - h && y < cy + h;
+  }
+
   /** The label under a page point, or −1. */
   labelAt(x: number, y: number): number {
-    const l = this.labels;
-    const size = this.labelSize;
-    for (let k = 0; k < l.m; k++) {
-      const x0 = l.right[k] ? l.x[k] : l.x[k] - l.width[k];
-      if (x >= x0 - 2 && x < x0 + l.width[k] + 2 && y >= l.y[k] - size && y < l.y[k] + 0.35 * size) return k;
-    }
+    for (let k = 0; k < this.labels.m; k++) if (this.inLabel(k, x, y)) return k;
     return -1;
   }
 
@@ -512,6 +519,11 @@ export const RingsLayout: SectionLayoutType<RingPlacement> = {
   },
 };
 
+/** A ring label's line: what two labels on a side are spaced by, and each one's hit box's height. */
+function labelLine(size: number): number {
+  return size + 2;
+}
+
 /** The sum of pieces' lengths. */
 function sumPieces(r: readonly number[]): number {
   let t = 0;
@@ -555,7 +567,7 @@ const Sink = new RingSink();
 function placeLabels(p: RingPlacement, config: RenderConfig, size: number, text: TextMetrics) {
   const l = p.labels;
   const rc = config.rings;
-  const line = size + 2;
+  const line = labelLine(size);
   const r1 = p.r + 2;
   const rb = p.r + rc.labelGap;
   const rl = p.r + rc.labelGap + rc.leaderBend;

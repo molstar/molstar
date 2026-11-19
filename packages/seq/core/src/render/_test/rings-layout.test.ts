@@ -28,7 +28,7 @@ import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { FakeClock } from '../../data/_test/synthetic.js';
 import { rangesLocation } from '@molstar/seqx-core/query';
 import { settle } from './helpers.js';
-import { RingFeatures, RingLength, ringLetters, ringSpec } from './rings-fixtures.js';
+import { plasmidRingSpec, RingFeatures, RingLength, ringLetters, ringSpec } from './rings-fixtures.js';
 import { type ReadPath, readPaths, rng } from './small-helpers.js';
 
 const Size = { width: 640, height: 900 };
@@ -273,6 +273,41 @@ describe('the rings layout’s navigation', () => {
     expect(RingsNav.reveal(c, v, 300, 310)).toMatchObject({ start: 285, end: 325 });
     expect(RingsNav.fit(c, v)).toMatchObject({ start: 0, end: 600 });
     expect(RingsNav.step(c, 599, 'right')).toBe(0);
+  });
+});
+
+describe('a plasmid’s labels', () => {
+  /** The item id a plasmid label names (`feature 3` → `f3`, `Site3` → `s3`; `ori`, `bla` their own). */
+  const idOf = (text: string) =>
+    text.startsWith('feature ') ? `f${text.slice(8)}` : text.startsWith('Site') ? `s${text.slice(4)}` : text;
+
+  it('each placed label hits its own item (about 30 labels)', async () => {
+    const s = await settle(plasmidRingSpec());
+    const f = await s.frame({ size: Size });
+    const p = ringOf(f).placement as RingPlacement;
+    const l = p.labels;
+    expect(l.m).toBeGreaterThanOrEqual(25);
+    for (let k = 0; k < l.m; k++) {
+      const x0 = l.right[k] ? l.x[k] : l.x[k] - l.width[k];
+      const h = hitAtPage(f, x0 + l.width[k] / 2, l.y[k] - 0.35 * p.labelSize);
+      expect(String(h?.element?.key)).toBe(idOf(l.text[l.placed[k]]));
+    }
+  });
+
+  it('no two labels’ hit boxes overlap', async () => {
+    const s = await settle(plasmidRingSpec());
+    const f = await s.frame({ size: Size });
+    const p = ringOf(f).placement as RingPlacement;
+    const l = p.labels;
+    let overlaps = 0;
+    for (let y = Math.floor(p.box.y); y < p.box.y + p.box.height; y += 0.5) {
+      for (let x = 0; x < Size.width; x += 2) {
+        let n = 0;
+        for (let k = 0; k < l.m; k++) if (p.inLabel(k, x, y)) n++;
+        if (n > 1) overlaps++;
+      }
+    }
+    expect(overlaps).toBe(0);
   });
 });
 
