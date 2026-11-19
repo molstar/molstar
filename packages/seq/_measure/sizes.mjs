@@ -9,7 +9,9 @@
 // from the sources (the `molstar-src` condition), and the table of their sizes, minified and gzipped, against the
 // targets, with each entry's largest contributors (by folder, from esbuild's metafile).
 //
-//   node packages/seq/_measure/sizes.mjs [--top 12] [--files]
+//   node packages/seq/_measure/sizes.mjs [--top 12] [--files] [--only spec-read.ts]
+//
+// `--files` lists each entry's largest input files too; `--only` measures the one entry (a check runs it so).
 //
 // The entries sit outside any package, so `@molstar/*` is resolved from the viewer's folder (a plugin below).
 
@@ -24,15 +26,19 @@ const viewerDir = join(here, '../viewer');
 const args = process.argv.slice(2);
 const top = Number(args[args.indexOf('--top') + 1]) || 12;
 const files = args.includes('--files');
+const only = args.includes('--only') ? args[args.indexOf('--only') + 1] : undefined;
 
 /** Target and entry of each case, bytes (minified). */
-const Cases = [
+const AllCases = [
   { name: 'reading a spec', entry: 'spec-read.ts', target: 160_000 },
   { name: 'headless rendering', entry: 'headless.ts', target: 300_000 },
   { name: 'the viewer, default', entry: 'viewer.ts', target: 600_000 },
   // no target of its own yet ("a minimal one could be smaller"): the table shows what it weighs
   { name: 'viewer, minimal', entry: 'viewer-minimal.ts', target: 600_000 },
 ];
+
+const Cases = only ? AllCases.filter((c) => c.entry === only) : AllCases;
+if (!Cases.length) throw new Error(`--only ${only}: no such entry (${AllCases.map((c) => c.entry).join(', ')})`);
 
 const resolveWorkspace = {
   name: 'resolve-workspace',
@@ -105,11 +111,11 @@ for (const r of rows) {
   console.log(`\n${r.name}: largest contributors (minified bytes in the output)`);
   for (const [k, v] of contributors(r.meta, 4).slice(0, top)) console.log(`  ${pad(kB(v), 10)}${k}`);
   if (files) {
-    const out = r.meta.outputs[entryOutput(r.meta)];
+    // the files of every chunk loaded first (a file can be in several chunks: its bytes add up)
+    const bytes = new Map();
+    for (const [f, v] of loadedInputs(r.meta)) bytes.set(f, (bytes.get(f) ?? 0) + v.bytesInOutput);
     console.log('  files:');
-    for (const [f, v] of Object.entries(out.inputs)
-      .sort((a, b) => b[1].bytesInOutput - a[1].bytesInOutput)
-      .slice(0, top))
-      console.log(`    ${pad(kB(v.bytesInOutput), 10)}${relative(root, join(root, f))}`);
+    for (const [f, n] of [...bytes].sort((a, b) => b[1] - a[1]).slice(0, top))
+      console.log(`    ${pad(kB(n), 10)}${relative(root, join(root, f))}`);
   }
 }
