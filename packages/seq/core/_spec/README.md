@@ -15,12 +15,13 @@ is added in the change that builds what it describes.
 
 ## Versions
 
-- The language has one version, `LanguageVersion` (`0.4.0`). Why: one language, one description, one number for readers
+- The language has one version, `LanguageVersion` (`0.5.0`). Why: one language, one description, one number for readers
   to check.
 - **Pre-release** (`0.x`): a change to the language moves the version with no migration (`0.1.0`: every child of the
   spec has an id, `layer` included; `0.2.0`: the `refs` container and the `ref` kind; `0.3.0`: the `snapshots` container
   and the `snapshot` kind; `0.4.0`: a section's `direction`, `pieces`, `collapsed`, `pad` and a layer's `complement`,
-  `code`). A spec in an earlier `0.x` reads as one in this one, and is reported where it no longer fits.
+  `code`; `0.5.0`: the layer types `ruler`, `secondary`, `variants` and the layer params `numbering`, `encoding`, `style`,
+  `line`, `arrow`). A spec in an earlier `0.x` reads as one in this one, and is reported where it no longer fits.
 
 ## Language
 

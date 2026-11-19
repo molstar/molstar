@@ -9,7 +9,7 @@ import type { StaticModel } from '@molstar/seqx-core/resolve';
 import type { ResolvedLayer } from '@molstar/seqx-core/view';
 import type { AxisTransform } from './axis.js';
 import { type DensityStep, densityStep, perPosition } from './config.js';
-import { drawPass, grown, type PassName, type PassWriter, passDraws } from './draw-lists.js';
+import { drawPass, grown, NoColor, type PassName, type PassWriter, passDraws } from './draw-lists.js';
 import {
   dataRegions,
   type LayerSource,
@@ -33,6 +33,7 @@ import {
 import { reportColor } from './letters.js';
 import { drawFailed, drawSpans, hoverCell } from './marks.js';
 import { resolveColor, type SeqTokens } from './tokens.js';
+import { sortArrayRange } from '@molstar/core/data/util/sort';
 
 // The `values` layer type (_spec/README.md "Render", Layer types): a bar a value, square (continuous data). Where a
 // position is a device pixel or more, a bar a position; below, a bar a device column over the column's extent from
@@ -40,8 +41,22 @@ import { resolveColor, type SeqTokens } from './tokens.js';
 // coarser level's bins. Missing (NaN) is a thin neutral mark at the baseline,
 // never a zero. The domain is the layer's `domain` param, else open: computed from the values in view when the view
 // settles, held while it does not, so heights do not shimmer during a pan.
+//
+// `encoding` `line` and `area` (EC-57) draw the same bars as a line through the cells' centers: held flat over the half
+// cells at its ends and at gaps (a hole in the data, a break of the axis), broken by a missing value (which keeps its
+// mark at the baseline), its color changing halfway between two positions; `area` fills under it at `AreaAlpha`. At
+// the bars and density steps the line follows each device column's maximum, the column's extent still drawn.
+
+/** How a values layer draws: bars (default), a line, or a line over the area under it. */
+export type ValuesEncoding = 'bars' | 'line' | 'area';
+
+/** The line's thickness, CSS px, and the area's opacity (the channels' defaults). */
+const LineWidth = 1.5;
+/** The area's alpha: 0.35 of 255. */
+const AreaAlpha = 89;
 
 export interface ValuesPrep {
+  readonly encoding: ValuesEncoding;
   readonly src?: LayerSource;
   readonly color?: unknown;
   readonly domain?: readonly [number, number];
@@ -56,6 +71,10 @@ export interface ValuesLay {
   step: DensityStep;
   tokens: SeqTokens;
   fill: number;
+  encoding: ValuesEncoding;
+  /** A line's points in x order (`ord`: indices of the bars) and the color of each bar (the fill; a field's later). */
+  ord: Int32Array;
+  col: Uint32Array;
   domain: [number, number] | undefined;
   /** Bars: snapped x extents and the low and high value of each (equal for a position; NaN: missing). */
   n: number;
@@ -94,7 +113,9 @@ export const ValuesType: LayerType<ValuesPrep, ValuesLay> = {
       Array.isArray(d) && d.length === 2 && typeof d[0] === 'number' && typeof d[1] === 'number' && d[0] < d[1]
         ? ([d[0], d[1]] as const)
         : undefined;
+    const e = layer.params.encoding;
     return {
+      encoding: e === 'line' || e === 'area' ? e : 'bars',
       ...(src ? { src } : {}),
       ...(layer.theme.color !== undefined ? { color: layer.theme.color } : {}),
       ...(domain ? { domain } : {}),
@@ -112,6 +133,9 @@ export const ValuesType: LayerType<ValuesPrep, ValuesLay> = {
       step: 'cells',
       tokens,
       fill: 0,
+      encoding: prep.encoding,
+      ord: new Int32Array(0),
+      col: new Uint32Array(0),
       domain: undefined,
       n: 0,
       x0: new Float32Array(64),
@@ -143,6 +167,7 @@ export const ValuesType: LayerType<ValuesPrep, ValuesLay> = {
       else fill = c;
     }
     lay.fill = fill;
+    lay.encoding = prep.encoding;
     const src = prep.src;
     if (!src) return lay;
     const step = densityStep(axis.scale, axis.dpr, config);
@@ -212,6 +237,7 @@ export const ValuesType: LayerType<ValuesPrep, ValuesLay> = {
       }
     if (prep.domain) lay.domain = [prep.domain[0], prep.domain[1]];
     else if (ctx.settled || !lay.domain) lay.domain = openDomain(lay);
+    if (lay.encoding !== 'bars') orderLine(lay);
     return lay;
   },
 
@@ -234,7 +260,13 @@ export const ValuesType: LayerType<ValuesPrep, ValuesLay> = {
 
 // Each pass draws in a function of its own, called through a table (`drawPass`: nothing allocated once warm).
 
-/** The data pass: placeholders, and a bar a value from the baseline (missing: a mark at it). */
+/** The data pass: bars, or the line (and area) through the same marks. */
+function drawData(lay: ValuesLay, out: PassWriter, emphasis: Emphasis | undefined) {
+  if (lay.encoding === 'bars') drawBars(lay, out, emphasis);
+  else drawLine(lay, out);
+}
+
+/** The data pass of bars: placeholders, and a bar a value from the baseline (missing: a mark at it). */
 function drawBars(lay: ValuesLay, out: PassWriter, _emphasis: Emphasis | undefined) {
   const { box, tokens } = lay;
   drawSpans(out, lay.pending, box.y, box.height, tokens.colors['seq-pending']);
@@ -267,7 +299,7 @@ function drawBars(lay: ValuesLay, out: PassWriter, _emphasis: Emphasis | undefin
   }
 }
 
-const ValuesDraws = passDraws<ValuesLay, Emphasis | undefined>({ data: drawBars, hover: hoverCell });
+const ValuesDraws = passDraws<ValuesLay, Emphasis | undefined>({ data: drawData, hover: hoverCell });
 
 /** A layout's placement state: one, reused (a layout runs to its end), so placing a value allocates nothing. */
 interface Placer {
@@ -373,4 +405,143 @@ function openDomain(lay: ValuesLay): [number, number] {
   if (lo > hi) return [0, 1];
   if (lo === hi) return lo >= 0 ? [0, hi || 1] : [lo, 0];
   return [Math.min(lo, 0), hi];
+}
+
+/** A line's scratch points (x, y pairs), kept and grown at layout. */
+let linePoints = new Float64Array(256);
+
+/** The bars in x order and each one's color: the line's points. */
+function orderLine(lay: ValuesLay) {
+  const n = lay.n;
+  if (lay.ord.length < n) {
+    lay.ord = new Int32Array(Math.max(n, 2 * lay.ord.length));
+    lay.col = new Uint32Array(lay.ord.length);
+  }
+  lay.col.fill(lay.fill, 0, n);
+  const ord = lay.ord.subarray(0, n);
+  for (let i = 0; i < n; i++) ord[i] = i;
+  const x0 = lay.x0;
+  sortArrayRange(ord, 0, n, (o, a, b) => x0[o[a]] - x0[o[b]] || o[a] - o[b]);
+  linePoints = grown(linePoints, 2 * n + 16);
+}
+
+/**
+ * The line's data pass: placeholders, the missing marks and the columns' extents, then each run of consecutive values as
+ * paths, one a color: the first cell held flat over its first half, the centers, the last held over its second half;
+ * a color changes at the boundary between two cells, where the line is halfway between their centers. The area is a
+ * polygon under each path, down to the baseline. No closure, no destructuring: nothing allocated once warm.
+ */
+function drawLine(lay: ValuesLay, out: PassWriter) {
+  const { box, tokens } = lay;
+  drawSpans(out, lay.pending, box.y, box.height, tokens.colors['seq-pending']);
+  drawFailed(out, lay.failed, box.y, box.height, tokens);
+  const lo = lay.domain ? lay.domain[0] : 0;
+  const hi = lay.domain ? lay.domain[1] : 1;
+  const base = lo <= 0 && hi >= 0 ? 0 : lo;
+  const span = hi - lo || 1;
+  const y1 = box.y + box.height;
+  const bh = box.height;
+  const yBase = y1 - ((Math.max(lo, Math.min(hi, base)) - lo) / span) * bh;
+  const each = perPosition(lay.step);
+  const px = 1 / lay.axis.dpr;
+  const a = out.args;
+  const pts = linePoints;
+  const area = lay.encoding === 'area';
+  const n = lay.n;
+  const ord = lay.ord;
+  let count = 0;
+  let color = 0;
+  for (let k = 0; k < n; k++) {
+    const j = ord[k];
+    const v = lay.v[j];
+    if (Number.isNaN(v)) {
+      // a missing value breaks the line and keeps its mark at the baseline (a column with nothing breaks it, unmarked)
+      if (each) out.fill(lay.x0[j], yBase - 2, lay.x1[j] - lay.x0[j], 2, tokens.colors['seq-missing']);
+      continue;
+    }
+    // the extent a column holds below its maximum, as a bar over it
+    if (!each && lay.lo[j] < v) {
+      const top = y1 - ((Math.max(lo, Math.min(hi, Math.max(v, base))) - lo) / span) * bh;
+      const h = y1 - ((Math.max(lo, Math.min(hi, Math.min(lay.lo[j], base))) - lo) / span) * bh - top;
+      out.fill(lay.x0[j], top, lay.x1[j] - lay.x0[j], h, lay.col[j]);
+    }
+  }
+  // the runs: walk the ordered bars once more, drawing a path where the run or its color ends
+  let prev = -1;
+  for (let k = 0; k <= n; k++) {
+    const j = k < n ? ord[k] : -1;
+    const valid = j >= 0 && !Number.isNaN(lay.v[j]);
+    const joins = valid && prev >= 0 && lay.x0[j] - lay.x1[prev] <= px * 1.01 && lay.x0[j] >= lay.x1[prev] - px * 1.01;
+    if (count > 0 && (!joins || (valid && lay.col[j] !== color))) {
+      const last = prev;
+      const yl = y1 - ((Math.max(lo, Math.min(hi, lay.v[last])) - lo) / span) * bh;
+      if (joins) {
+        // the color changes at the boundary: the line goes on to it, halfway to the next center
+        const yn = y1 - ((Math.max(lo, Math.min(hi, lay.v[j])) - lo) / span) * bh;
+        pts[2 * count] = lay.x1[last];
+        pts[2 * count + 1] = (yl + yn) / 2;
+        count++;
+      } else {
+        pts[2 * count] = lay.x1[last];
+        pts[2 * count + 1] = yl;
+        count++;
+      }
+      flush(out, a, pts, count, color, area, yBase);
+      count = 0;
+    }
+    if (!valid) {
+      prev = -1;
+      continue;
+    }
+    const v = lay.v[j];
+    const y = y1 - ((Math.max(lo, Math.min(hi, v)) - lo) / span) * bh;
+    if (count === 0) {
+      color = lay.col[j];
+      if (joins && prev >= 0) {
+        // a run starting at a color change: from the boundary, halfway between the centers
+        const yp = y1 - ((Math.max(lo, Math.min(hi, lay.v[prev])) - lo) / span) * bh;
+        pts[0] = lay.x0[j];
+        pts[1] = (yp + y) / 2;
+        count = 1;
+      } else {
+        // the first cell held flat over its first half
+        pts[0] = lay.x0[j];
+        pts[1] = y;
+        count = 1;
+      }
+    }
+    pts[2 * count] = (lay.x0[j] + lay.x1[j]) / 2;
+    pts[2 * count + 1] = y;
+    count++;
+    prev = j;
+  }
+}
+
+/** One path of the line (and the polygon under it, behind): its points `pts` (`count` of them) in `color`. */
+function flush(
+  out: PassWriter,
+  a: Float64Array,
+  pts: Float64Array,
+  count: number,
+  color: number,
+  area: boolean,
+  yBase: number,
+) {
+  if (area) {
+    // the polygon: the line, down to the baseline at its last x, back along it to its first x
+    pts[2 * count] = pts[2 * count - 2];
+    pts[2 * count + 1] = yBase;
+    pts[2 * count + 2] = pts[0];
+    pts[2 * count + 3] = yBase;
+    a[4] = ((color & 0xffffff00) | AreaAlpha) >>> 0;
+    a[5] = NoColor;
+    a[6] = 0;
+    a[7] = 0;
+    out.pathArgs(pts, count + 2, true);
+  }
+  a[4] = NoColor;
+  a[5] = color;
+  a[6] = LineWidth;
+  a[7] = 0;
+  out.pathArgs(pts, count, false);
 }

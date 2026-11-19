@@ -23,6 +23,7 @@ import {
   passDraws,
   Round,
 } from './draw-lists.js';
+import { markEnds, RowImages } from './items.js';
 import { LaneIndex, StickyLanes } from './lanes.js';
 import {
   dataRegions,
@@ -45,7 +46,9 @@ import {
   sectionId,
 } from './layer-type.js';
 import { reportColor } from './letters.js';
-import { breakHit, drawFailed, drawSpans } from './marks.js';
+import { arrowArgs, breakHit, drawFailed, drawSpans } from './marks.js';
+import { RenderIssues } from './issues.js';
+import { issueOf } from '@molstar/core/repr/tree';
 import { squircleRadius } from './squircle.js';
 import { categoryToken, inkOn, mixColors, resolveColor, type SeqTokens } from './tokens.js';
 
@@ -62,7 +65,29 @@ const AnchorStart: number = Anchor.start;
 // index; a key and start seen in an earlier tile is not drawn again (a range repeated in the tiles it touches), and a
 // key repeated with another start is another piece of one item (a wrapped row, the exons of a transcript).
 
+/**
+ * How an item is drawn: a block (0, the default), or a line (`line` param): solid, dashed, dotted, wavy, double, a box
+ * or a highlight. The dash and the wave are anchored to the content: they start at the item's own start (a piece's),
+ * so they move with it when the view pans. A style that is none of these is drawn solid and said once.
+ */
+export const LineStyles = ['blocks', 'solid', 'dashed', 'dotted', 'wavy', 'double', 'box', 'highlight'] as const;
+const Solid = 1;
+
+/** The dash of a dashed and a dotted line (on, then as long off), the wave's half period and amplitude, CSS px. */
+const Dash = 6;
+const Dot = 2;
+const WaveStep = 3;
+const WaveAmplitude = 2;
+const LineWidth = 2;
+/** A highlight's alpha: 0.35 of 255, the channel's default. */
+const HighlightAlpha = 89;
+
 export interface RangesPrep {
+  /** The style asked for, as written: undefined for blocks. */
+  readonly line?: string;
+  /** An arrowhead on the item's `end`, `start`, or both: bits 1 and 2 (none: 0). */
+  readonly arrow: number;
+  readonly cyclic: boolean;
   readonly src?: LayerSource;
   /** The annotation's address: the owner of its items' element keys. */
   readonly owner: string;
@@ -87,6 +112,12 @@ export interface RangesLay {
   step: DensityStep;
   mode: Mode;
   tokens: SeqTokens;
+  /** The style a mark is drawn in (an index of `LineStyles`; in `bars` a run is a plain line or block) and the arrows. */
+  style: number;
+  arrow: number;
+  /** The items holding the end and the start of their item in reading order (what an arrowhead goes on). */
+  first: Uint8Array;
+  last: Uint8Array;
   /**
    * The items in view (`items` of them; the arrays are kept longer, written over frame to frame): element key, lane id,
    * extent on the data's system, label, fill.
@@ -114,6 +145,9 @@ export interface RangesLay {
   /** Each mark's squircle radius (0: square) and its label's ink, made at layout: the draw computes no number. */
   mradius: Float64Array;
   mink: Uint32Array;
+  /** Each mark's arrowheads (1: tip on the left, 2: on the right) and, for a line, where its content starts, px. */
+  mtip: Uint8Array;
+  manchor: Float32Array;
   /** The gap between lanes, px. */
   gap: number;
   /**
@@ -152,7 +186,7 @@ export interface RangesLay {
   densityY: number;
   densityH: number;
   /** The strip's buffers, kept while the box's columns do not change. */
-  strip: { image?: ImageData; diff: Float64Array; counts: Float64Array; v: number };
+  strip: StripBuffers;
   pending: number[];
   failed: number[];
   sticky: StickyLanes;
@@ -222,6 +256,12 @@ function newLay(ctx: LayoutContext, prep: RangesPrep): RangesLay {
     mlabel: new Float32Array(64),
     mradius: new Float64Array(64),
     mink: new Uint32Array(64),
+    mtip: new Uint8Array(64),
+    manchor: new Float32Array(64),
+    style: 0,
+    arrow: 0,
+    first: new Uint8Array(64),
+    last: new Uint8Array(64),
     gap: 0,
     hn: 0,
     hx0: new Float32Array(0),
@@ -275,11 +315,44 @@ function nextMark(lay: RangesLay): number {
     lay.mlabel = grown(lay.mlabel, j + 1);
     lay.mradius = grown(lay.mradius, j + 1);
     lay.mink = grown(lay.mink, j + 1);
+    lay.mtip = grown(lay.mtip, j + 1);
+    lay.manchor = grown(lay.manchor, j + 1);
   }
   lay.mlabel[j] = 0;
   lay.mradius[j] = 0;
   lay.mink[j] = 0;
+  lay.mtip[j] = 0;
   return j;
+}
+
+const images = new RowImages();
+
+/** A wave's scratch points (x, y pairs), kept and grown at layout. */
+let wave = new Float64Array(64);
+const segment = new Float64Array(4);
+
+/** The style `line` names (an index of `LineStyles`; 0: blocks); another value is solid, said once. */
+function lineStyle(line: string | undefined, ctx: LayoutContext): number {
+  if (line === undefined) return 0;
+  const i = LineStyles.indexOf(line as (typeof LineStyles)[number]);
+  if (i > 0) return i;
+  ctx.report(
+    issueOf(RenderIssues, 'seq.render.line-style', `The line style ${JSON.stringify(line)} is not drawn`, {
+      address: ctx.key,
+      hint: RenderIssues.codes['seq.render.line-style'].hint,
+    }),
+  );
+  return Solid;
+}
+
+/**
+ * Where the content of piece `a` of the axis starts on the screen, unclipped: the left edge of its low boundary on a
+ * forward axis, the right edge on a reversed one (the dash and the wave run from it).
+ */
+function anchorOf(axis: AxisTransform, a: number, s: number, e: number): number {
+  const ua = axis.xOfUnit(axis.unitOf(a, Math.max(s, axis.pieces[2 * a])));
+  const ub = axis.xOfUnit(axis.unitOf(a, Math.min(e, axis.pieces[2 * a + 1])));
+  return axis.dir === 1 ? Math.min(ua, ub) : Math.max(ua, ub);
 }
 
 export const RangesType: LayerType<RangesPrep, RangesLay> = {
@@ -287,7 +360,12 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
 
   prepare(layer: ResolvedLayer, model: StaticModel): RangesPrep {
     const src = layerSource(model, layer);
+    const line = layer.params.line;
+    const arrow = layer.params.arrow;
     return {
+      ...(typeof line === 'string' ? { line } : {}),
+      arrow: arrow === 'end' ? 1 : arrow === 'start' ? 2 : arrow === 'both' ? 3 : 0,
+      cyclic: model.systems.get(layer.data?.system ?? '')?.cyclic ?? false,
       ...(src ? { src } : {}),
       owner: layer.data?.address ?? '',
       ...(layer.theme.color !== undefined ? { color: layer.theme.color } : {}),
@@ -332,6 +410,8 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
     }
     const step = densityStep(axis.scale, axis.dpr, config);
     lay.step = step;
+    lay.style = lineStyle(prep.line, ctx);
+    lay.arrow = prep.arrow;
     // the regions in view, and the stretches its breaks in view hide: an item there is drawn as its break's tick
     const regions = dataRegions(src, axis, true);
     const level = layerLevel(src, data, axis);
@@ -382,6 +462,22 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
     }
     const n = lay.items;
     if (lay.idCache.size > 4 * n + 4096) lay.idCache.clear();
+    if (lay.arrow) {
+      if (lay.first.length < n) {
+        lay.first = new Uint8Array(Math.max(n, 2 * lay.first.length));
+        lay.last = new Uint8Array(lay.first.length);
+      }
+      markEnds(
+        lay.keys,
+        lay.starts,
+        lay.ends,
+        n,
+        prep.cyclic,
+        src.length ?? Number.POSITIVE_INFINITY,
+        lay.first,
+        lay.last,
+      );
+    }
     const maxLanes = Math.max(1, Math.floor(box.height / config.laneHeight));
     lay.laneHeight = box.height / maxLanes;
     let row = false;
@@ -407,6 +503,10 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
     }
     lay.mode =
       step === 'density' || densities.length || (lay.overflow && !row) ? 'density' : step === 'bars' ? 'bars' : 'items';
+    // below a position a pixel a run has no ends, no dash and no wave: a plain line or block
+    if (lay.mode !== 'items' && lay.style >= 2 && lay.style <= 5) lay.style = Solid;
+    if (lay.mode !== 'items') lay.arrow = 0;
+    if (lay.style === 4) wave = grown(wave, 2 * Math.ceil(box.width / WaveStep + 8));
 
     if (lay.mode === 'density') {
       lay.densityY = box.y;
@@ -439,6 +539,10 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
         hi = Math.max(hi, pieces[k + 1]);
       }
       const marks = lay.m;
+      // the arrowheads go on the piece holding the end (the start) the item really has, in reading order
+      const atEnd = (lay.arrow & 1) !== 0 && lay.last[i] === 1;
+      const atStart = (lay.arrow & 2) !== 0 && lay.first[i] === 1;
+      if (atEnd || atStart) images.set(src, lay.starts[i], lay.ends[i]);
       for (let k = 0; k + 1 < pieces.length; k += 2) {
         axis.piecesIn(pieces[k], pieces[k + 1]);
         const ka = axis.ka;
@@ -458,6 +562,15 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
           lay.mlane[j] = lane;
           lay.mitem[j] = i;
           lay.mround[j] = round;
+          if (lay.style > 0) lay.manchor[j] = anchorOf(axis, a, pieces[k], pieces[k + 1]);
+          if (atEnd || atStart) {
+            let tips = 0;
+            const t = atEnd ? images.tip(axis, box, pieces[k], pieces[k + 1], true) : 0;
+            const u = atStart ? images.tip(axis, box, pieces[k], pieces[k + 1], false) : 0;
+            if (t) tips |= t === 1 ? 2 : 1;
+            if (u) tips |= u === 1 ? 2 : 1;
+            lay.mtip[j] = tips;
+          }
         }
       }
       // an item wholly in a hidden stretch: its break's tick in its lane
@@ -621,6 +734,10 @@ function drawMarks(lay: RangesLay, out: PassWriter, _emphasis: Emphasis | undefi
     out.imageArgs(lay.density);
   }
   if (lay.mode === 'density') return;
+  if (lay.style !== 0 || lay.arrow) {
+    drawStyled(lay, out);
+    return;
+  }
   // items and merged runs alike are discrete marks: squircles where big enough, round only where a run really ends,
   // so the base mark has the shape its emphasis outlines (_spec/README.md "Render", Shapes)
   for (let j = 0; j < lay.m; j++) {
@@ -636,6 +753,146 @@ function drawMarks(lay: RangesLay, out: PassWriter, _emphasis: Emphasis | undefi
     a[8] = lay.mround[j];
     out.rectArgs();
   }
+}
+
+/**
+ * The marks of a layer with a line style or arrowheads: a block with a pointed end where it holds an end the item really
+ * has, or the line (its end shortened to where its triangle begins). The dash and the wave run from the content's start
+ * (`manchor`), so a pan moves them with the data. No closure, nothing made per mark: the numbers go through `args`.
+ */
+function drawStyled(lay: RangesLay, out: PassWriter) {
+  const { box, tokens } = lay;
+  const gap = lay.gap;
+  const a = out.args;
+  const style = lay.style;
+  const forward = lay.axis.dir === 1;
+  for (let j = 0; j < lay.m; j++) {
+    const item = lay.mitem[j];
+    const fill = item >= 0 ? lay.fills[item] : tokens.colors['seq-range'];
+    const y = box.y + lay.mlane[j] * lay.laneHeight + gap / 2;
+    const h = lay.laneHeight - gap;
+    const cy = y + h / 2;
+    const x0 = lay.mx0[j];
+    const x1 = lay.mx1[j];
+    const tips = lay.mtip[j];
+    const head = Math.min(h * 0.9, x1 - x0);
+    if (style === 0 || style === 7) {
+      // a block (a highlight is a translucent one); a tip makes it an arrow, both tips two overlapping ones
+      const color = style === 0 ? fill : ((fill & 0xffffff00) | HighlightAlpha) >>> 0;
+      a[0] = x0;
+      a[1] = y;
+      a[2] = x1 - x0;
+      a[3] = h;
+      a[4] = color;
+      a[5] = NoColor;
+      a[6] = 0;
+      if (!tips) {
+        a[7] = lay.mradius[j];
+        a[8] = lay.mround[j];
+        out.rectArgs();
+        continue;
+      }
+      if (tips & 2) {
+        a[7] = head;
+        a[8] = 1;
+        arrowArgs(out);
+        a[0] = x0;
+        a[2] = x1 - x0;
+        a[4] = color;
+        a[5] = NoColor;
+        a[6] = 0;
+      }
+      if (tips & 1) {
+        a[7] = head;
+        a[8] = -1;
+        arrowArgs(out);
+      }
+      continue;
+    }
+    // a line: from where the content starts, over what is in view, ending where a triangle begins
+    const l0 = tips & 1 ? x0 + head : x0;
+    const l1 = tips & 2 ? x1 - head : x1;
+    if (style === Solid) lineRect(out, l0, cy - LineWidth / 2, l1 - l0, LineWidth, fill);
+    else if (style === 2 || style === 3) {
+      const dash = style === 2 ? Dash : Dot;
+      const period = 2 * dash;
+      const anchor = lay.manchor[j];
+      const m = Math.max(0, Math.floor((forward ? l0 - anchor : anchor - l1) / period));
+      segment[0] = forward ? anchor + m * period : anchor - m * period;
+      segment[1] = cy;
+      segment[2] = forward ? l1 : l0;
+      segment[3] = cy;
+      a[4] = NoColor;
+      a[5] = fill;
+      a[6] = LineWidth;
+      a[7] = dash;
+      out.pathArgs(segment, 2, false);
+    } else if (style === 4) {
+      // the wave from the content's start, a corner every half period, phase kept when it starts before the view
+      const period = 2 * WaveStep;
+      const anchor = lay.manchor[j];
+      const m = Math.max(0, Math.floor((forward ? l0 - anchor : anchor - l1) / period));
+      const xs = forward ? anchor + m * period : anchor - m * period;
+      const xe = forward ? l1 : l0;
+      const cap = wave.length / 2;
+      const count = Math.min(cap, Math.floor(Math.abs(xe - xs) / WaveStep) + 2);
+      for (let i = 0; i < count; i++) {
+        const x = forward ? xs + i * WaveStep : xs - i * WaveStep;
+        wave[2 * i] = forward ? Math.min(x, xe) : Math.max(x, xe);
+        wave[2 * i + 1] = cy + (i & 1 ? WaveAmplitude : -WaveAmplitude);
+      }
+      a[4] = NoColor;
+      a[5] = fill;
+      a[6] = 1;
+      a[7] = 0;
+      out.pathArgs(wave, count, false);
+    } else if (style === 5) {
+      lineRect(out, l0, cy - LineWidth, l1 - l0, 1, fill);
+      lineRect(out, l0, cy + LineWidth - 1, l1 - l0, 1, fill);
+    } else {
+      // a box: the lane's outline, inside the mark
+      a[0] = x0 + 0.5;
+      a[1] = y + 0.5;
+      a[2] = x1 - x0 - 1;
+      a[3] = h - 1;
+      a[4] = NoColor;
+      a[5] = fill;
+      a[6] = 1;
+      a[7] = 0;
+      a[8] = 0;
+      out.rectArgs();
+    }
+    if (tips) {
+      // the triangle: a head with no body, over the line's end
+      a[1] = y;
+      a[3] = h;
+      a[4] = fill;
+      a[5] = NoColor;
+      a[6] = 0;
+      if (tips & 2) {
+        a[0] = x1 - head;
+        a[2] = head;
+        a[7] = head;
+        a[8] = 1;
+        arrowArgs(out);
+      }
+      if (tips & 1) {
+        a[0] = x0;
+        a[2] = head;
+        a[4] = fill;
+        a[5] = NoColor;
+        a[6] = 0;
+        a[7] = head;
+        a[8] = -1;
+        arrowArgs(out);
+      }
+    }
+  }
+}
+
+/** A square rect through `args` (a number passed to a call that is not inlined is boxed). */
+function lineRect(out: PassWriter, x: number, y: number, w: number, h: number, fill: number) {
+  out.fill(x, y, w, h, fill);
 }
 
 /** The labels pass: the labels inside the marks wide enough, faded past their width. */
@@ -729,7 +986,7 @@ const RangesDraws = passDraws<RangesLay, Emphasis | undefined>({
  * count in the strip, `column` inlined (a number made and passed to a call that is not inlined is boxed: an allocation
  * a bin).
  */
-function addToStrip(strip: RangesLay['strip'], src: LayerSource, axis: AxisTransform, s: number, e: number) {
+export function addToStrip(strip: StripBuffers, src: LayerSource, axis: AxisTransform, s: number, e: number) {
   let pieces = itemPiece;
   if (src.path) pieces = toSection(src, s, e, mappedPieces);
   else {
@@ -826,17 +1083,8 @@ function densityStrip(
   tokens: SeqTokens,
   overflowOnly: boolean,
 ) {
-  const cols = axis.columns;
   const strip = lay.strip;
-  if (strip.diff.length !== cols + 1) {
-    strip.diff = new Float64Array(cols + 1);
-    strip.counts = new Float64Array(cols);
-  } else strip.diff.fill(0);
-  if (!strip.image || strip.image.width !== cols)
-    strip.image = { width: cols, height: 1, data: new Uint8Array(4 * cols) };
-  else strip.image.data.fill(0);
-  const { diff, counts } = strip;
-  const data = strip.image.data;
+  resetStrip(strip, axis.columns);
   strip.v = 1;
   for (let i = 0; i < lay.items; i++)
     if (!overflowOnly || lay.lanes[i] < 0)
@@ -848,6 +1096,32 @@ function densityStrip(
       addToStrip(strip, src, axis, table.bin[i] * level, (table.bin[i] + 1) * level);
     }
   }
+  lay.density = paintStrip(strip, axis.columns, tokens);
+}
+
+/** A heat strip's buffers: counts by difference over the device columns, and the image they are painted into. */
+export interface StripBuffers {
+  image?: ImageData;
+  diff: Float64Array;
+  counts: Float64Array;
+  v: number;
+}
+
+/** The strip emptied for `cols` device columns (its buffers kept while their number does not change). */
+export function resetStrip(strip: StripBuffers, cols: number) {
+  if (strip.diff.length !== cols + 1) {
+    strip.diff = new Float64Array(cols + 1);
+    strip.counts = new Float64Array(cols);
+  } else strip.diff.fill(0);
+  if (!strip.image || strip.image.width !== cols)
+    strip.image = { width: cols, height: 1, data: new Uint8Array(4 * cols) };
+  else strip.image.data.fill(0);
+}
+
+/** The strip's counts (`addToStrip` made them) painted low to high in the density tokens: its image. */
+export function paintStrip(strip: StripBuffers, cols: number, tokens: SeqTokens): ImageData {
+  const { diff, counts } = strip;
+  const data = strip.image!.data;
   let max = 0;
   let run = 0;
   for (let c = 0; c < cols; c++) {
@@ -865,5 +1139,5 @@ function densityStrip(
     data[4 * c + 2] = (color >>> 8) & 0xff;
     data[4 * c + 3] = color & 0xff;
   }
-  lay.density = strip.image;
+  return strip.image!;
 }

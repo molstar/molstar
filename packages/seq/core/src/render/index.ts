@@ -80,7 +80,9 @@ export {
 export { type LettersLay, type LettersPrep, LettersType } from './letters.js';
 export { type RangesLay, type RangesPrep, RangesType } from './ranges.js';
 export { fmt, recordDrawLists } from './record.js';
+export { labelStep, type RulerLay, type RulerPrep, RulerType } from './ruler.js';
 export { type Frame, type FrameInput, Renderer, type RendererOptions } from './renderer.js';
+export { type SecondaryLay, type SecondaryPrep, SecondaryType, secondaryKind } from './secondary.js';
 export { SquircleHandle, squirclePath, squircleRadius } from './squircle.js';
 export { drawListsToSvg, escapeXml, type SvgOptions } from './svg.js';
 export { bundledTextMetrics, bundledWidth, createTextMetrics, parseFont, type TextMetrics } from './text.js';
@@ -119,3 +121,4 @@ export {
   type ViewLayout,
 } from './tracks.js';
 export { type ValuesLay, type ValuesPrep, ValuesType } from './values.js';
+export { type VariantsLay, type VariantsPrep, VariantsType } from './variants.js';

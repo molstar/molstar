@@ -96,7 +96,7 @@ describe('seq.render: issue codes', () => {
     const used = new Set<string>();
     for (const name of readdirSync(dir)) {
       if (!name.endsWith('.ts') || name === 'issues.ts') continue;
-      for (const m of readFileSync(join(dir, name), 'utf8').matchAll(/'(seq\.render\.[a-z_.]*[a-z_])'/g))
+      for (const m of readFileSync(join(dir, name), 'utf8').matchAll(/'(seq\.render\.[a-z_.-]*[a-z_])'/g))
         used.add(m[1]);
     }
     expect([...used].filter((c) => !known.has(c))).toEqual([]);

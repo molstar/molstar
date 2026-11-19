@@ -39,7 +39,14 @@ export interface RenderConfig {
   readonly trackGap: number;
   readonly sectionGap: number;
   /** A track's height when the spec gives none: the largest of its layers' types'. */
-  readonly heights: { readonly letters: number; readonly ranges: number; readonly values: number };
+  readonly heights: {
+    readonly letters: number;
+    readonly ranges: number;
+    readonly values: number;
+    readonly ruler: number;
+    readonly secondary: number;
+    readonly variants: number;
+  };
   /** A lane of ranges, and the gap within it. */
   readonly laneHeight: number;
   readonly laneGap: number;
@@ -112,6 +119,12 @@ export interface RenderConfig {
    */
   readonly values: { readonly aggregate: 'minmax' | 'max'; readonly coarser: number; readonly direct: boolean };
   /**
+   * The ruler: the smallest gap between two labels' edges and the least between their centers' steps (`labelGap`,
+   * 48 px: the foundations' number; a label that does not fit is skipped, never shrunk), and its label font (`mono`:
+   * tabular figures).
+   */
+  readonly ruler: { readonly labelGap: number; readonly font: string };
+  /**
    * The strings (texts and fonts) a renderer's draw lists keep interned across frames: a frame drawn again interns
    * nothing new; past this many, a full redraw starts the table again.
    */
@@ -124,7 +137,7 @@ export const DefaultRenderConfig: RenderConfig = {
   labelGap: 8,
   trackGap: 4,
   sectionGap: 8,
-  heights: { letters: 20, ranges: 36, values: 32 },
+  heights: { letters: 20, ranges: 36, values: 32, ruler: 22, secondary: 16, variants: 32 },
   laneHeight: 12,
   laneGap: 2,
   density: { letters: 10, cells: 3, dots: 1, bars: 1 / 64 },
@@ -155,6 +168,7 @@ export const DefaultRenderConfig: RenderConfig = {
   nodes: { holdShown: true },
   ranges: { overflow: 'extra-lanes' },
   values: { aggregate: 'minmax', coarser: 1, direct: true },
+  ruler: { labelGap: 48, font: '10px mono' },
   internedStrings: DefaultMaxStrings,
 };
 
@@ -179,6 +193,7 @@ export function renderConfig(over: RenderConfigOverrides = {}): RenderConfig {
     densityUnits: { ...DefaultRenderConfig.densityUnits, ...over.densityUnits },
     ranges: { ...DefaultRenderConfig.ranges, ...over.ranges },
     values: { ...DefaultRenderConfig.values, ...over.values },
+    ruler: { ...DefaultRenderConfig.ruler, ...over.ruler },
     outline: { ...DefaultRenderConfig.outline, ...over.outline },
     emphasis: { ...DefaultRenderConfig.emphasis, ...over.emphasis },
   };
