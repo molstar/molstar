@@ -413,7 +413,8 @@ builder writes the `field` form into the spec instead.
   The split alone saved about 1 kB, since Seq\* still names eight lists through the one `ColorLists` object; so
   (decided, the author, 2026-11-19: "Yeah let's export these individually") `@molstar/core`'s `lists.ts` also exports
   each list as a named constant, `ColorLists` built from them unchanged, and Seq\* imports only the lists it names
-  (about 17 kB off headless rendering and the viewer).
+  (measured at the merge: 13.4 kB off headless rendering and the viewer; `lists.ts` 16.6 → 2.7 kB, its
+  constructions marked pure so a bundler drops the unnamed lists).
 
 ## The interaction matrix's cells
 
