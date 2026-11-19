@@ -25,8 +25,8 @@ at the top of `src/perception/perceive.ts` and in each step's module.
    ones, computed once per model (`sharedInterUnitBonds`, the provider's `inter`): the model structure and a structure
    of the same units (ids, elements, traits, operator matrices; the operator keys for a bond table listed per operator)
    and the same props (no `dynamicBonds`, no unit filters), such as an assembly of one identity operator, share them.
-   Why: otherwise the viewer's structure computes them again (`forceCompute`, shown structure: 21nr 50 → 44 ms, a
-   63k-atom MD frame 68 → 56 ms).
+   Why: otherwise the viewer's structure computes them again (`forceCompute`, assembly 1, median in Node on the built
+   libraries: 21nr 46.0 → 43.5 ms, 7qpd 39.1 → 36.4 ms, a 63k-atom MD frame 64.2 → 59.1 ms).
 4. **Canonical residues are known** (`perception/known-components.ts`): the 20 standard amino acids and the standard
    nucleotides, whose orders the built-in bonds always give (core order table, backbone C=O and P=O rules). `auto` skips
    them. Why not `AminoAcidNames`: it holds modified residues (PTR, SEP, PCA, the D-forms) whose side-chain orders the

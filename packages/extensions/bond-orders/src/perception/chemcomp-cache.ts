@@ -26,16 +26,47 @@ function getModelCache(model: Model) {
   return c;
 }
 
+/** A residue already hashed: its atom names as read (file order, altloc duplicates included) and its key. */
+interface HashedResidue {
+  readonly names: readonly string[];
+  readonly hash: string;
+}
+
+/** Model-wide, by mode prefix, component id and atom count. */
+const HashedResidues = new WeakMap<Model, Map<string, HashedResidue[]>>();
+
 /**
  * The key of a residue's pattern (_spec §1.5): the mode prefix, the component id and its sorted unique atom names (an
- * incomplete residue gets its own key).
+ * incomplete residue gets its own key). A residue whose atom names, in order, are those of one already hashed gets
+ * its key without sorting: same names in the same order, same unique names.
  */
 export function chemCompHash(unit: Unit.Atomic, start: UnitIndex, end: UnitIndex, prefix: string) {
-  const { elements } = unit;
-  const { label_atom_id, label_comp_id } = unit.model.atomicHierarchy.atoms;
-  const names = new Set<string>();
-  for (let u = start; u < end; u++) names.add(label_atom_id.value(elements[u]));
-  return `${prefix}${label_comp_id.value(elements[start])}|${[...names].sort().join(',')}`;
+  const { elements, model } = unit;
+  const { label_atom_id, label_comp_id } = model.atomicHierarchy.atoms;
+  let byKey = HashedResidues.get(model);
+  if (!byKey) {
+    byKey = new Map();
+    HashedResidues.set(model, byKey);
+  }
+  const compId = label_comp_id.value(elements[start]);
+  const key = `${prefix}${compId}|${end - start}`;
+  let hashed = byKey.get(key);
+  if (!hashed) {
+    hashed = [];
+    byKey.set(key, hashed);
+  }
+  search: for (const { names, hash } of hashed) {
+    for (let u = start, k = 0; u < end; u++, k++) {
+      if (label_atom_id.value(elements[u]) !== names[k]) continue search;
+    }
+    return hash;
+  }
+
+  const names: string[] = [];
+  for (let u = start; u < end; u++) names.push(label_atom_id.value(elements[u]));
+  const hash = `${prefix}${compId}|${[...new Set(names)].sort().join(',')}`;
+  hashed.push({ names, hash });
+  return hash;
 }
 
 function extractPattern(state: State): BondingPattern {
