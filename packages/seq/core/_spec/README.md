@@ -1820,11 +1820,13 @@ numbers): a window move allocates nothing once warm.
 - **Shown nodes** (`nodes.holdShown`, true): the layout lists the nodes it shows (`ViewLayout.shown`: the data and the
   path systems of each laid-out layer, through `overlay.holds`), for its owner to hold in the store; with `false`, none.
   Why: a node stays while it is shown, not only while the region that brought it is cached. **Shown means in view**: a
-  template's instance holds its node (and the path systems it goes through) only while the node, or the node it came
-  under (one listed up front in its source's coverage lives with its source), is carried by a loaded tile of the
-  template's source over the view and its margin at the level the template wants; out of it the node goes as any other
-  once its tiles are evicted, and its track with it. Why: an instance held its node, so every place browsed left its
-  tracks (29 empty after five places on a chromosome); a track whose node's region is on screen never vanishes.
+  template's instance is laid out only while its node's region is in view: the node's top node (the one of the
+  template's source it came under) is listed up front in that source's coverage, or is carried by a loaded tile of that
+  source over the view at any level whose tiles there are within the store's bound; while the template's tiles over the
+  view are pending (a zoom's new level), an instance shown last stays. Out of view its track goes and its hold with it;
+  the node is evicted as any other when the store needs room. Why: an instance held its node, so every place browsed
+  left its track (29 empty after five places on a chromosome); a track whose node's region is on screen never vanishes,
+  a zoom included.
 - Cell edges snap to the device grid (`snap`). One label column for every track of a view; a track's label is centred on
   its well (its padding with it), in tracks and on a text's first line.
 - **A track's padding** (its `padding`, else `trackPadding`): px inside its well above and below its data, never left or

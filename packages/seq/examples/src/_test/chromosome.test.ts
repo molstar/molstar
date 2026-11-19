@@ -323,17 +323,6 @@ describe('p53’s chromosome, headless', () => {
         .filter(([s, e]) => s < view.end && e > view.start)
         .map(([s, e], i) => ({ ...Tp53, name: `TP53 exon ${i}`, start: s, end: e }));
       expect(exons.length).toBeGreaterThan(0);
-      {
-        const el = layerOf(layout, 'Exons TP53').lay as RangesLay;
-        console.log(
-          'DBG',
-          el.m,
-          el.items,
-          JSON.stringify(el.pending),
-          JSON.stringify(layout.issues),
-          JSON.stringify(v.store.issues.value).slice(0, 600),
-        );
-      }
       expect(rangesAgainst(layout, 'Exons TP53', exons, view)).toEqual([]);
     }
   });
@@ -435,13 +424,12 @@ describe('a nested source over the chromosome', () => {
 });
 
 describe('shown means in view', () => {
-  // a template's instance holds its gene only while the gene's region is in view: browsing five places shows each
-  // place's exons, and back at the fit, their regions out of view and evicted, no exons track is left
-  it('each place shows its genes’ exons; back at the fit, evicted, none remains', async () => {
-    // a byte bound nothing unwanted fits under: what leaves the view is evicted at once
-    const v = await open({ maxBytes: 1 });
-    const exonTracks = (layout: ViewLayout) =>
-      layout.sections[0].tracks.map((t) => t.track.label).filter((l) => l.startsWith('Exons '));
+  // a template's instance is laid out only while its gene's region is in view: browsing five places shows each place's
+  // exons, and back at the fit (the store's default bound: nothing evicted) no exons track is left, none held
+  const exonTracks = (layout: ViewLayout) =>
+    layout.sections[0].tracks.map((t) => t.track.label).filter((l) => l.startsWith('Exons '));
+  it('each place shows its genes’ exons; back at the fit none remains', async () => {
+    const v = await open();
     for (const view of Browsed) {
       const shown = exonTracks((await v.settle(view)).f.layout);
       // the place's exons are shown, TP53's at its own (a track whose gene is on screen does not vanish)
@@ -451,6 +439,24 @@ describe('shown means in view', () => {
     const fit = await v.settle();
     expect(exonTracks(fit.f.layout)).toEqual([]);
     expect(fit.f.layout.shown).toEqual([]);
+  });
+
+  it('a track whose gene is on screen stays while a zoom’s new level is pending', async () => {
+    // a byte bound nothing unwanted fits under: TP53's region read at one level, then zoomed to its letters, where its
+    // tiles at level 1 are not yet answered (the tile that brought TP53 evicted at once)
+    const v = await open({ maxBytes: 1 });
+    expect(exonTracks((await v.settle(AtTp53)).f.layout)).toContain('Exons TP53');
+    // the letters' wants applied: the tiles TP53's view read let go (evicted at once), the new ones not yet answered
+    const asked = v.draw(AtLetters);
+    v.store.want([...asked.f.wants, ...asked.g.wants]);
+    const between = v.draw(AtLetters);
+    const pendingTiles = between.f.wants
+      .filter((w) => w.source === '/data/chr17-generated' && w.priority === 'view')
+      .flatMap((w) => v.store.keysOf(w))
+      .filter((k) => v.store.get(k)?.status === 'pending');
+    expect(pendingTiles.length).toBeGreaterThan(0);
+    expect(exonTracks(between.f.layout)).toContain('Exons TP53');
+    expect(exonTracks((await v.settle(AtLetters)).f.layout)).toContain('Exons TP53');
   });
 });
 
@@ -464,8 +470,8 @@ describe('back at the fit after TP53 and its neighbours', () => {
     for (const view of Browsed) await v.settle(view);
     const views = pan(0, Length * 0.97, Length * 0.003);
     const d = await v.settle(views[0]);
-    const exons = d.f.layout.sections[0].tracks.filter((t) => t.track.label.startsWith('Exons '));
-    expect(exons.length).toBeGreaterThan(3);
+    // the places' exons out of view: their tracks gone
+    expect(d.f.layout.sections[0].tracks.filter((t) => t.track.label.startsWith('Exons '))).toEqual([]);
     // the genes, the signal and each gene's exons: a tile or a few each (the view and its margin)
     expect(Math.max(...d.f.wants.map((w) => v.store.keysOf(w).length))).toBeLessThanOrEqual(8);
     expect(v.store.issues.value).toEqual([]);

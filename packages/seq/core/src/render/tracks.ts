@@ -241,6 +241,8 @@ export class LayoutState {
   readonly sections = new Map<string, SectionCache>();
   /** The row columns' fit, kept while what it read is the same. */
   columnsFit: unknown;
+  /** The template instances shown last (their tracks' addresses): kept while a zoom's new level is pending. */
+  readonly instancesShown = new Set<string>();
 }
 
 /** A layer's key: its address, else its track's and its index. */
@@ -1081,8 +1083,6 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     // a template is expanded here, over the overlay, into a track per node it selects; its source's region in view is
     // wanted, so the nodes it brings arrive
     const shown: ResolvedTrack[] = [];
-    // a template's instances whose node is out of view: shown, but holding nothing (Shown nodes)
-    let away: Set<ResolvedTrack> | undefined;
     // each shown track's index in the section's (a template's instance: −1), what a block's layers are kept by
     const trackOf: number[] = [];
     for (let ti = 0; ti < section.tracks.length; ti++) {
@@ -1106,9 +1106,9 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
             },
           ),
         );
-      if (axis && config.nodes.holdShown && instances.length)
-        away = instancesAway(input, mine, section, track.template, axis, overlay, instances, config.margin, away);
       for (const t of instances) {
+        // an instance whose node's region is out of view is not laid out: its track goes, its hold with it
+        if (axis && !instanceInView(input, mine, section, track.template, axis, overlay, t, state)) continue;
         trackOf[shown.length] = -1;
         shown.push(t);
       }
@@ -1166,10 +1166,9 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       const lay = type.layout(prep, ctx, mine, overlay, keptLay?.type === type ? keptLay.lay : undefined);
       state.lays.set(cacheKey, { type, lay });
       cache.addUsed(cacheKey);
-      // what a shown layer draws and goes through (a node, an item system); a template's instance out of view none
-      const holds = !away?.has(track);
-      if (layer.data && holds) cache.addShowing(layer.data.address, layer.data.system);
-      const edges = holds ? layer.path?.edges : undefined;
+      // what a shown layer draws and goes through (a node, an item system)
+      if (layer.data) cache.addShowing(layer.data.address, layer.data.system);
+      const edges = layer.path?.edges;
       if (edges) for (let e = 0; e < edges.length; e++) cache.addShowing(edges[e].from, edges[e].to);
       return { key: ctx.key, layer, type, lay };
     };
@@ -1551,20 +1550,16 @@ function wantTemplate(
   out: (w: Want) => void,
 ) {
   const pieces = axis.visible([]);
-  const coverage = data.coverage(template.source);
-  const name = input.model.systems.get(section.axis.system)?.name;
-  const info = coverage?.systems.find((s) => s.name === name || (name !== undefined && s.aliases?.includes(name)));
-  if (coverage && info) {
-    const level = boundedLevel(coverage.levels, 1 / axis.devicePx, axis.u1 - axis.u0, data);
+  const at = templateSource(input, data, section, template, axis);
+  if (at)
     for (let i = 0; i + 1 < pieces.length; i += 2)
       out({
         source: template.source,
-        system: info.name,
+        system: at.system,
         start: Math.floor(pieces[i]),
         end: Math.ceil(pieces[i + 1]),
-        level,
+        level: at.level,
       });
-  }
   if (template.depth < 1) return;
   for (const nested of overlay.nested(new Map([[template.source, template.depth]]))) {
     const cov = data.coverage(nested.address);
@@ -1591,53 +1586,82 @@ function wantTemplate(
 }
 
 /**
- * A template's instances whose node is out of view (_spec/README.md "Render", Shown nodes), added to `into`: neither
- * the node nor a node it came under is carried by a loaded tile of the template's source over the view and its margin,
- * at the level the template wants (a node listed up front in its source's coverage lives with its source: the one it
- * came under decides). Such an instance holds nothing: its node goes as any other once its tiles are evicted.
+ * A template source's system as it names the section's, its coverage, and the level the template wants of it: the one
+ * that fits a device pixel, coarser while the view would want more than the store's tiles a want (`boundedLevel`).
  */
-function instancesAway(
+function templateSource(
+  input: LayoutInput,
+  data: StoreReader,
+  section: ResolvedSection,
+  template: TrackTemplate,
+  axis: AxisTransform,
+): { readonly coverage: Coverage; readonly system: string; readonly level: number } | undefined {
+  const coverage = data.coverage(template.source);
+  const name = input.model.systems.get(section.axis.system)?.name;
+  const info = coverage?.systems.find((s) => s.name === name || (name !== undefined && s.aliases?.includes(name)));
+  if (!coverage || !info) return undefined;
+  return {
+    coverage,
+    system: info.name,
+    level: boundedLevel(coverage.levels, 1 / axis.devicePx, axis.u1 - axis.u0, data),
+  };
+}
+
+/**
+ * Whether a template's instance is in view (_spec/README.md "Render", Shown nodes): its node's top node (the one of
+ * the template's source it came under) is listed up front in that source's coverage, or carried by a loaded tile of it
+ * over the view at any level whose tiles there are within the store's bound; while the template's tiles over the view
+ * are pending (a zoom's new level), an instance shown last time stays. Out of view it is not laid out: its track goes
+ * and its hold with it, and its node is evicted as any other once the store needs room. Where the template's source
+ * does not name the section's system it cannot be told: shown.
+ */
+function instanceInView(
   input: LayoutInput,
   data: StoreReader,
   section: ResolvedSection,
   template: TrackTemplate,
   axis: AxisTransform,
   overlay: Overlay,
-  instances: readonly ResolvedTrack[],
-  margin: number,
-  into: Set<ResolvedTrack> | undefined,
-): Set<ResolvedTrack> | undefined {
-  const coverage = data.coverage(template.source);
-  const name = input.model.systems.get(section.axis.system)?.name;
-  const info = coverage?.systems.find((s) => s.name === name || (name !== undefined && s.aliases?.includes(name)));
-  // where the source's tiles are not the section's, it cannot be told: every instance holds, as before
-  if (!coverage || !info) return into;
-  const level = boundedLevel(coverage.levels, 1 / axis.devicePx, axis.u1 - axis.u0, data);
-  const carried = new Set<string>();
+  instance: ResolvedTrack,
+  state: LayoutState,
+): boolean {
+  const at = templateSource(input, data, section, template, axis);
+  let address: string | undefined;
+  for (const l of instance.layers) if (l.data && !address) address = l.data.address;
+  let root = address ? overlay.node(address) : undefined;
+  while (root && root.depth > 0) root = overlay.node(root.source);
+  if (!at || !root) return true;
+  const top = root;
+  if (at.coverage.nodes?.some((x) => x.key === top.key)) return true;
+  const key = nodeKey(top.source, top.key);
   const pieces = axis.visible([]);
-  for (let i = 0; i + 1 < pieces.length; i += 2) {
-    const m = Math.ceil((pieces[i + 1] - pieces[i]) * margin);
-    const start = Math.max(0, Math.floor(pieces[i]) - m);
-    const end = Math.ceil(pieces[i + 1]) + m;
-    for (const k of data.keysOf({ source: template.source, system: info.name, start, end, level })) {
-      const e = data.get(k);
-      if (e?.status === 'loaded') for (const n of e.nodes) carried.add(n);
+  let pending = false;
+  for (const level of at.coverage.levels)
+    for (let i = 0; i + 1 < pieces.length; i += 2) {
+      const want = {
+        source: template.source,
+        system: at.system,
+        start: Math.floor(pieces[i]),
+        end: Math.ceil(pieces[i + 1]),
+        level,
+      };
+      // bounded by what it reads: a level whose tiles over the view pass the store's bound is not read
+      if (data.tooMany?.(want)) continue;
+      for (const k of data.keysOf(want)) {
+        const e = data.get(k);
+        if (e?.status === 'loaded') {
+          if (e.nodes.includes(key)) return remember(state, instance.address, true);
+        } else if (level === at.level && e?.status !== 'empty' && e?.status !== 'failed') pending = true;
+      }
     }
-  }
-  const inView = (address: string | undefined): boolean => {
-    for (let n = address ? overlay.node(address) : undefined; n; n = overlay.node(n.source)) {
-      if (carried.has(nodeKey(n.source, n.key))) return true;
-      const key = n.key;
-      if (!data.coverage(n.source)?.nodes?.some((x) => x.key === key)) return false;
-    }
-    return true;
-  };
-  for (const t of instances) {
-    let address: string | undefined;
-    for (const l of t.layers) if (l.data && !address) address = l.data.address;
-    if (!inView(address)) (into ??= new Set()).add(t);
-  }
-  return into;
+  return remember(state, instance.address, pending && state.instancesShown.has(instance.address));
+}
+
+/** Records whether an instance was shown, for the next frame's pending rule; returns it. */
+function remember(state: LayoutState, address: string, shown: boolean): boolean {
+  if (shown) state.instancesShown.add(address);
+  else state.instancesShown.delete(address);
+  return shown;
 }
 
 /** The first shown track drawing a ruler (with height: a hidden ruler is no rail's), or −1. */
