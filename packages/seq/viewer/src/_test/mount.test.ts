@@ -147,7 +147,7 @@ describe('the mounted canvas stack', () => {
     // a drag from the label column
     const start = viewer.view.get('/views/main/protein')!.start;
     container.dispatchEvent(at('pointerdown', 40, 18, { button: 0 }));
-    container.dispatchEvent(at('pointermove', 100, 18));
+    container.dispatchEvent(at('pointermove', 100, 18, { buttons: 1 }));
     container.dispatchEvent(at('pointerup', 100, 18));
     frames.flush();
     expect(viewer.view.get('/views/main/protein')!.start).toBeLessThan(start);
@@ -186,7 +186,7 @@ describe('the mounted canvas stack', () => {
       ['pointerup', 420],
       ['lostpointercapture', 420],
     ] as const)
-      container.dispatchEvent(at(type, x, 18, { button: 0 }));
+      container.dispatchEvent(at(type, x, 18, { button: 0, buttons: type === 'pointermove' ? 1 : 0 }));
     const dragged = [...viewer.selection.value.value.shown.parts[0].ranges];
     expect(dragged[1] - dragged[0]).toBeGreaterThan(1);
     container.dispatchEvent(at('click', 420, 18, { button: 0, detail: 1 }));
@@ -341,7 +341,7 @@ describe('the mounted canvas stack', () => {
     expect(frames.timers.live).toBe(0);
     // an event on the removed container does nothing
     const version = viewer.hover.version.value;
-    container.dispatchEvent(at('pointermove', 100, 18));
+    container.dispatchEvent(at('pointermove', 100, 18, { buttons: 1 }));
     expect(viewer.hover.version.value).toBe(version);
   });
 

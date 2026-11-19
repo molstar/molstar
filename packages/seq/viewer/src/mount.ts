@@ -5,6 +5,7 @@
  */
 
 import { CanvasBackend, type CanvasLike, FontCache, readCssTokens, ThemeAttribute } from '@molstar/seqx-viewer/canvas';
+import { createDragSession } from './drag-session.js';
 import type { SeqViewer } from './viewer.js';
 
 // The mounted UI (_spec/README.md "Input"): the canvas stack (the base canvas, the overlay above it and the labels above
@@ -59,6 +60,11 @@ export function mountCanvas(viewer: SeqViewer, target: HTMLElement): () => void 
   const cursor = () => {
     container.style.cursor = input.cursor ?? '';
   };
+  // a drag ends wherever the button is released: the window's own listeners while it runs (drag-session.ts)
+  const drag = createDragSession(container, () => {
+    input.up();
+    cursor();
+  });
   const local = (e: MouseEvent) => {
     const r = container.getBoundingClientRect();
     return [e.clientX - r.left, e.clientY - r.top] as const;
@@ -84,8 +90,13 @@ export function mountCanvas(viewer: SeqViewer, target: HTMLElement): () => void 
           return;
         }
         if (e.button !== 0) return;
+        // a release that never arrived: the earlier drag ends before this press begins
+        drag.end();
         const [x, y] = local(e);
-        if (input.down(x, y, e)) container.setPointerCapture?.(e.pointerId);
+        if (input.down(x, y, e)) {
+          container.setPointerCapture?.(e.pointerId);
+          drag.start();
+        }
         cursor();
         container.focus({ preventScroll: true });
       },
@@ -94,6 +105,7 @@ export function mountCanvas(viewer: SeqViewer, target: HTMLElement): () => void 
     [
       'pointerup',
       (e: PointerEvent) => {
+        drag.end();
         input.up();
         cursor();
         if (container.hasPointerCapture?.(e.pointerId)) container.releasePointerCapture(e.pointerId);
@@ -110,8 +122,8 @@ export function mountCanvas(viewer: SeqViewer, target: HTMLElement): () => void 
       undefined,
     ],
     // a drag ends however the pointer is lost: cancelled by the platform, or its capture taken away
-    ['pointercancel', () => input.up(), undefined],
-    ['lostpointercapture', () => input.up(), undefined],
+    ['pointercancel', () => (drag.end(), input.up()), undefined],
+    ['lostpointercapture', () => (drag.end(), input.up()), undefined],
     [
       'wheel',
       (e: WheelEvent) => {
@@ -193,6 +205,7 @@ export function mountCanvas(viewer: SeqViewer, target: HTMLElement): () => void 
 
   return () => {
     for (const [type, fn, options] of listeners) container.removeEventListener(type, fn, options);
+    drag.dispose();
     observer?.disconnect();
     themeObserver?.disconnect();
     query?.removeEventListener('change', onRatio);
