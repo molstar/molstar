@@ -223,12 +223,13 @@ layout per token table, held domains and the reader's substitution (`LayerChanne
   domain's low end) (`seq.render.scale.log`). A center (`mid`) makes a number's default palette the diverging one. A
   `scale` node (`/views/<id>`) is shared: every layer and channel naming it reads one domain, its open ends the union
   over them at settle (one relayout).
-- **Palettes are Mol\*'s value palettes** (`@molstar/core/util/color/value-palette`: lists, scale, mid, unlisted hash),
-  converted both ways with MolViewSpec's palettes, their scale with them (`toMvsPalette`; `fromMvsPalette` and
-  `fromMvsScale`: type, domain, center, `non_positive`, the colors past the ends). Why: one palette model across Mol\*.
-  A named list is one the schemes use (`NamedLists`: viridis, cividis, magma, blues, rd-bu, okabe-ito, tableau10,
-  category10) or a token list (ramp, diverging, categories); no other of Mol\*'s lists. Why: a spec reads the same
-  wherever Seq\* runs, and a list added to Mol\* is not one here until named.
+- **Palettes are Mol\*'s value palettes**, evaluated by `@molstar/core/util/color/value-palette-eval` (scale, mid,
+  unlisted hash; the module without Mol\*'s named lists, which `value-palette` re-exports with them), converted both
+  ways with MolViewSpec's palettes, their scale with them (`toMvsPalette`; `fromMvsPalette` and `fromMvsScale`: type,
+  domain, center, `non_positive`, the colors past the ends). Why: one palette model across Mol\*. A named list is one
+  the schemes use (`NamedLists`: viridis, cividis, magma, blues, rd-bu, okabe-ito, tableau10, category10) or a token
+  list (ramp, diverging, categories); no other of Mol\*'s lists. Why: a spec reads the same wherever Seq\* runs, and a
+  list added to Mol\* is not one here until named.
 - **Schemes** (`SchemeRegistry`, `builtInSchemes()`): residue schemes as data from core (Clustal X, Zappo, Taylor,
   hydrophobicity, helix, strand, turn, buried), nucleotide ones, ramps and categories (viridis, cividis, magma, blues,
   rd-bu, pLDDT's bands, Okabe–Ito, Tableau 10), secondary structure, Giemsa; each says its subject, the measures it

@@ -13,14 +13,15 @@ import {
   type ValuePaletteSpec,
   type ValuePaletteSpecDefaults,
   valuePalettePropsFromSpec,
-} from '@molstar/core/util/color/value-palette';
+} from '@molstar/core/util/color/value-palette-eval';
 import { fromRgb, resolveColor, type TokenTable, toRgb } from './colors.js';
 import { isThemeNode, type PaletteKind, param, type ScaleParams, type ThemeNode } from './forms.js';
 
 // Palettes (_spec/README.md "Themes", Palettes and scales): spelled in this language's words, evaluated by Mol*'s value
-// palettes (`@molstar/core/util/color/value-palette`), so a value has one color in MolViewSpec and here. A continuous
-// palette is interpolated in Oklab (fixed) into a lookup table of 256 colors, rebuilt only when the tokens' version or
-// the domain changes; a categorical value's color is memoized per value.
+// palettes (`@molstar/core/util/color/value-palette-eval`, the evaluation without Mol*'s named lists), so a value has
+// one color in MolViewSpec and here. A continuous palette is interpolated in Oklab (fixed) into a lookup table of 256
+// colors, rebuilt only when the tokens' version or the domain changes; a categorical value's color is memoized per
+// value.
 
 /** The lookup table's size (fixed: indistinguishable steps at any width). */
 export const LutSize = 256;
