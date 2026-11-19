@@ -77,6 +77,14 @@ describe('a ring and its linear detail in the ViewModel', () => {
     expect(view.get(Ring)).toMatchObject({ start: 560, end: 600 });
   });
 
+  it('a window wider than half the ring is kept as set, never flipped to the other side', () => {
+    const view = setup();
+    view.setRange(Ring, 100, 450);
+    expect(view.get(Ring)).toMatchObject({ start: 100, end: 450 });
+    view.setRange(Ring, 500, 950);
+    expect(view.get(Ring)).toMatchObject({ start: 500, end: 950 });
+  });
+
   it('fit shows the whole ring; the detail with it', () => {
     const view = setup();
     view.setRange(Ring, 580, 640);

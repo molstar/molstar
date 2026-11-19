@@ -426,8 +426,9 @@ binding table; per move one hit record and one modifiers record are reused.
 - **Round a ring** (a section whose window `wraps`), the placement read by angle: a zoom keeps the unit under the
   pointer's angle (the turn nearest the window, `RingsNav.zoom`); a pan drag (Space+drag) moves the window by the units
   the pointer swept round the ring, the shorter way; a drag-select takes the shorter arc between its ends (over the
-  origin, two runs); a double-click focuses an item by the arc its pieces cover (the circle less their widest gap), a
-  range by the shorter arc (`RingsNav.focus`).
+  origin, two runs); a double-click focuses an item by the arc its pieces cover (the circle less their widest gap; its
+  whole extent from `selection.extentOfHit`, a layer's hit being the piece hit). Only these read two ends as an arc: a
+  range set (`setRange`, a grip, a step back) is kept as given, wider than half the ring too.
 - **Pointer**: a move drags when a drag is begun (`down` on a target whose `drag` binding exists) and always hovers
   through the hover behavior. `leave` clears what this pointer owns. A drag bound to a drag-select (`drag-select`,
   `drag-add`, `drag-subtract`, `drag-extend`) begins on what was hit (nothing selectable: no drag) and selects once the

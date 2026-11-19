@@ -287,13 +287,6 @@ export const RingsNav: SectionNav = {
     return TracksNav.zoom(c, v, factor, a);
   },
   fit: TracksNav.fit,
-  focus(c, v, start, end) {
-    // two ends on the circle: the shorter arc between them (an item over the origin, not the rest of the ring)
-    const t = c.total;
-    if (c.cyclic && t > 0 && end - start > t / 2 && end <= t)
-      return clampWindow(c, { ...v, start: end, end: start + t });
-    return clampWindow(c, { ...v, start, end });
-  },
   reveal(c, v, start, end) {
     const t = c.total;
     const w = v.end - v.start;
