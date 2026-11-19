@@ -46,6 +46,7 @@ import {
   type Overlay,
   sectionId,
   type StoreReader,
+  type ItemDescription,
 } from './layer-type.js';
 import { NoClass, Pyramid, pyramidLevelFor } from './pyramid.js';
 import {
@@ -1022,6 +1023,8 @@ export const RowsType: LayerType<Prep, RowsLay> = {
     lay.scratch.state = lay.cols.columns[lay.cols.titleCol[t]].field;
     return h;
   },
+
+  items: rowItems,
 
   hit(lay, at): Hit | undefined {
     const x = at[0];
@@ -2251,3 +2254,36 @@ const RowsDraws = passDraws<RowsLay, Emphasis | undefined>({
   selection: drawSelection,
   cursor: drawCursor,
 });
+
+/**
+ * The data rows in view as items (a row an item: its label, its place among the rows), the summary rows of folded clades
+ * left out; none until the rows are placed.
+ */
+function rowItems(lay: RowsLay): ItemDescription[] {
+  const out: ItemDescription[] = [];
+  const d = lay.display;
+  const box = lay.box;
+  if (!lay.axis || !(lay.rowScale > 0)) return out;
+  const first = d.pinned + Math.max(0, Math.floor(lay.top));
+  for (let i = 0; i < d.count; i++) {
+    // the pinned band, then the scrolled rows from the band's top
+    if (i === d.pinned) i = first;
+    if (i >= d.count) break;
+    const y = lay.rowY(i);
+    if (y >= box.y + box.height) break;
+    const e = d.rowAt(i);
+    if (e < 0 || y + lay.rowScale <= box.y) continue;
+    out.push({
+      key: e,
+      label: lay.label(e),
+      start: e,
+      end: e + 1,
+      x0: box.x,
+      x1: box.x + box.width,
+      y: Math.max(y, box.y),
+      height: Math.min(y + lay.rowScale, box.y + box.height) - Math.max(y, box.y),
+      system: lay.rowsSystem,
+    });
+  }
+  return out;
+}

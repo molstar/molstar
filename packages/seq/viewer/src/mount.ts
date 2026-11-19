@@ -4,7 +4,17 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { CanvasBackend, type CanvasLike, FontCache, readCssTokens, ThemeAttribute } from '@molstar/seqx-viewer/canvas';
+import {
+  CanvasBackend,
+  type CanvasLike,
+  FontCache,
+  forcedColorsActive,
+  forcedColorTokens,
+  readCssTokens,
+  readSystemColors,
+  ThemeAttribute,
+} from '@molstar/seqx-viewer/canvas';
+import { Announcer } from './announcer.js';
 import { createDragSession } from './drag-session.js';
 import type { SeqViewer } from './viewer.js';
 
@@ -27,8 +37,28 @@ export function mountCanvas(viewer: SeqViewer, target: HTMLElement): () => void 
   Object.assign(base.style, { display: 'block' });
   for (const c of [overlay, labels])
     Object.assign(c.style, { position: 'absolute', left: '0', top: '0', pointerEvents: 'none' });
-  container.append(base, overlay, labels);
+  // the one polite live region the mount owns: what the announcer says, visually hidden (`announcer.ts`)
+  const live = doc.createElement('div');
+  live.setAttribute('role', 'status');
+  live.setAttribute('aria-live', 'polite');
+  live.setAttribute('aria-atomic', 'true');
+  Object.assign(live.style, {
+    position: 'absolute',
+    width: '1px',
+    height: '1px',
+    overflow: 'hidden',
+    clip: 'rect(0 0 0 0)',
+    whiteSpace: 'nowrap',
+    pointerEvents: 'none',
+  });
+  container.append(base, overlay, labels, live);
   target.appendChild(container);
+  const announcer = new Announcer(viewer);
+  // cleared, then set: the same words twice are heard twice
+  const stopSaying = announcer.message.listen((said) => {
+    live.textContent = '';
+    live.textContent = said.text;
+  });
 
   // the token table: the root's computed style (`theme.source: 'root'`) read before the first frame, and again when
   // `data-msui-theme` changes on the document element or the nearest ancestor that has it; else the config's
@@ -198,6 +228,22 @@ export function mountCanvas(viewer: SeqViewer, target: HTMLElement): () => void 
   onReduced();
   reduced?.addEventListener?.('change', onReduced);
 
+  // forced colors begin or end (the reader's platform setting): the table is read again, from the system colors or not
+  // whatever the theme source: the root's CSS (read again, forced inside `readCssTokens`) or the configured theme's
+  // table under the system colors
+  const forced = win?.matchMedia?.('(forced-colors: active)');
+  const configured = viewer.tokens;
+  const onForced = () =>
+    viewer.setTokens(
+      viewer.config.theme.source === 'root'
+        ? readCssTokens(container)
+        : forcedColorsActive(win)
+          ? forcedColorTokens(configured, readSystemColors(container))
+          : configured,
+    );
+  if (viewer.config.theme.source !== 'root' && forcedColorsActive(win)) onForced();
+  forced?.addEventListener?.('change', onForced);
+
   // a web font arrived: what was measured is measured again
   const fontFaces = doc.fonts;
   const onFonts = () => viewer.invalidateText();
@@ -210,6 +256,9 @@ export function mountCanvas(viewer: SeqViewer, target: HTMLElement): () => void 
     themeObserver?.disconnect();
     query?.removeEventListener('change', onRatio);
     reduced?.removeEventListener?.('change', onReduced);
+    forced?.removeEventListener?.('change', onForced);
+    stopSaying();
+    announcer.dispose();
     fontFaces?.removeEventListener?.('loadingdone', onFonts);
     viewer.useBackend(undefined);
     container.remove();

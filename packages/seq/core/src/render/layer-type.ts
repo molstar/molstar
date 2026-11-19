@@ -216,10 +216,29 @@ export interface Emphasis {
   };
 }
 
+/** An item a layer shows, as an export names it and the viewer announces it (`LayerType.items`). */
+export interface ItemDescription {
+  readonly key: string | number;
+  /** Its label (its key when it has none). */
+  readonly label: string;
+  /** Its extent on its data's system, `[start, end)`. */
+  readonly start: number;
+  readonly end: number;
+  /** Where it is drawn, in the section's x (clamped to the data box) and the layer's band. */
+  readonly x0: number;
+  readonly x1: number;
+  /** Its band on the page when it is not the track's whole (a rows layer's row): top and height. */
+  readonly y?: number;
+  readonly height?: number;
+  /** The system its extent is on, when it is not the layer's data's (a rows layer's rows system). */
+  readonly system?: string;
+}
+
 /**
  * A layer type: `prepare` is tier 1 (cached per resolved layer), `layout` per viewport (given its last layout to reuse
  * its buffers and keep its lanes), `draw` one pass into the lists, `hit` from the same layout.
  */
+
 export interface LayerType<Prep = unknown, Lay = unknown> {
   readonly name: string;
   /** The layer type a target without this one draws. */
@@ -241,6 +260,11 @@ export interface LayerType<Prep = unknown, Lay = unknown> {
   legend?(lay: Lay, options: { readonly title: string }): readonly Legend[];
   /** The y domain it drew (a values layer's), recorded by an export. */
   domain?(lay: Lay): readonly [number, number] | undefined;
+  /**
+   * The items it shows, as the accessible layer of an export and the viewer's announcements name them (`ItemDescription`):
+   * each item once, its pieces' hull. Absent: the layer has no items to name (letters, values).
+   */
+  items?(lay: Lay): readonly ItemDescription[];
   /** The rows its data's filter left out of what it read (the track's "n filtered" chip). */
   filtered?(lay: Lay): number;
   /**

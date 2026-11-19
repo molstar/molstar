@@ -83,6 +83,7 @@ export {
   type Hit,
   type HitTarget,
   type LabelSink,
+  type ItemDescription,
   type LayerType,
   type LayoutContext,
   type Overlay,
@@ -160,7 +161,16 @@ export { labelStep, type RulerLay, type RulerPrep, RulerType } from './ruler.js'
 export { type Frame, type FrameInput, Renderer, type RendererOptions } from './renderer.js';
 export { type SecondaryLay, type SecondaryPrep, SecondaryType, secondaryKind } from './secondary.js';
 export { SquircleHandle, squirclePath, squirclePathArgs, squircleRadius } from './squircle.js';
-export { drawListsToSvg, escapeXml, type SvgOptions } from './svg.js';
+export { drawListsToSvg, escapeXml, type SvgAccessible, type SvgOptions } from './svg.js';
+export {
+  accessibleOf,
+  itemText,
+  locationText,
+  MaxNamedItems,
+  MaxNamedItemsPerTrack,
+  rangesText,
+  spanText,
+} from './accessibility.js';
 export { bundledTextMetrics, bundledWidth, createTextMetrics, parseFont, type TextMetrics } from './text.js';
 export {
   builtInTokens,

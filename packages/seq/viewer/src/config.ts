@@ -300,6 +300,8 @@ export const DefaultViewerConfig: ViewerConfig = {
       // each matches only its own `e.key`: typed alone on the common layouts, never a browser's zoom key (EC-155)
       'rows.zoom-in': [']'],
       'rows.zoom-out': ['['],
+      // the keyboard's way to the column titles' click: the next column, ascending then descending
+      'rows.order-next': ['Shift+O'],
     },
   },
   navigate: { wheelZoomStep: 1.25, doubleClickZoomStep: 2, keyPanFraction: 0.1, coalesceWheel: true },

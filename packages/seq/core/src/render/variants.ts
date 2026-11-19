@@ -21,6 +21,7 @@ import {
   tickHit,
   tickOn,
   itemsUsed,
+  describeItems,
 } from './items.js';
 import { layerSource, toSection } from './layer-data.js';
 import type { Emphasis, Hit, LayerType, LayoutContext, Overlay, StoreReader } from './layer-type.js';
@@ -155,6 +156,8 @@ export const VariantsType: LayerType<VariantsPrep, VariantsLay> = {
   draw(lay, _pass: PassName, out: PassWriter, emphasis?: Emphasis) {
     drawPass(VariantsDraws, lay, out, emphasis);
   },
+
+  items: describeItems,
 
   hit(lay, at): Hit | undefined {
     const x = at[0];

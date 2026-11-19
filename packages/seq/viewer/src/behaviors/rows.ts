@@ -53,6 +53,7 @@ export const RowsCommandIds = {
   hide: 'rows.hide',
   show: 'rows.show',
   order: 'rows.order',
+  orderNext: 'rows.order-next',
   zoomIn: 'rows.zoom-in',
   zoomOut: 'rows.zoom-out',
 } as const;
@@ -319,6 +320,39 @@ export function rowsBehavior(spec: SpecModel, view: ViewModel, layout: () => Vie
       run: (_, ctx) => {
         const l = lay(trackOf(ctx))!;
         return edit('Order the rows', l, [{ op: 'set', at: at(l), key: 'order', value: ctx.order! }], ctx, 'Ordered');
+      },
+    },
+    {
+      // the keyboard's way to the column titles' click: each press takes the next step of ascending and descending
+      // down the columns, in the order they are drawn, round to the first again
+      id: RowsCommandIds.orderNext,
+      title: 'Order the rows by the next column',
+      category: 'Rows',
+      shortcut: { key: 'O', shift: true },
+      scope: 'canvas',
+      when: (ctx) => {
+        const ok = needs(false)(ctx);
+        if (ok !== true) return ok;
+        return lay(trackOf(ctx))!.cols.columns.length ? true : 'The rows have no columns';
+      },
+      run: (_, ctx) => {
+        const l = lay(trackOf(ctx))!;
+        const columns = l.cols.columns;
+        let n: Node | undefined = spec.root.value;
+        for (const id of at(l)) n = n?.children?.find((c) => c.id === id);
+        const now = (n?.params?.order ?? l.params?.order) as { field?: unknown; direction?: unknown } | undefined;
+        const k = typeof now === 'object' && now ? columns.findIndex((c) => c.field === now.field) : -1;
+        // ascending then descending by a column, then the next column; a column not ordered by starts the sequence
+        const descending = k >= 0 && now!.direction !== 'descending';
+        const column = columns[k < 0 ? 0 : descending ? k : (k + 1) % columns.length];
+        const direction = descending ? 'descending' : 'ascending';
+        return edit(
+          'Order the rows',
+          l,
+          [{ op: 'set', at: at(l), key: 'order', value: { field: column.field, direction } }],
+          ctx,
+          `Ordered by ${column.title}, ${direction}`,
+        );
       },
     },
     {

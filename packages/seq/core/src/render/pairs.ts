@@ -30,7 +30,15 @@ import type { RenderConfig } from './config.js';
 import { grown, NoColor, type PassName, type PassWriter } from './draw-lists.js';
 import { compileRowFilter } from './filter.js';
 import { RenderIssues } from './issues.js';
-import { type Box, type Emphasis, type Hit, type LayerType, type LayoutContext, sectionId } from './layer-type.js';
+import {
+  type Box,
+  type Emphasis,
+  type Hit,
+  type ItemDescription,
+  type LayerType,
+  type LayoutContext,
+  sectionId,
+} from './layer-type.js';
 import { WarpKind } from './layout/strips.js';
 import { PlacePoint, type Placement } from './layout/types.js';
 import type { SeqTokens } from './tokens.js';
@@ -456,6 +464,8 @@ export const PairsType: LayerType<PairsPrep, PairsLay> = {
     }
     if (emphasis && (pass === 'hover' || pass === 'selection')) drawEmphasis(lay, pass, out, emphasis);
   },
+
+  items: pairItems,
 
   hit(lay, at) {
     if (lay.mode === 'arcs') return hitArcs(lay, at);
@@ -1164,4 +1174,26 @@ function drawEmphasis(lay: PairsLay, pass: PassName, out: PassWriter, e: Emphasi
     g[7] = 0;
     out.pathArgs(p, 2, false);
   }
+}
+
+/** The pairs drawn (the arcs, the dots) as items: a pair's label (else its key) and its first end's extent. */
+function pairItems(lay: PairsLay): ItemDescription[] {
+  const d = lay.prep?.data;
+  if (!d) return [];
+  const out: ItemDescription[] = [];
+  const add = (k: number, x0: number, x1: number) => {
+    const key = d.keys[k];
+    out.push({
+      key,
+      label: d.labels?.[k] || String(key),
+      start: d.aStart[k],
+      end: d.aEnd[k],
+      x0: Math.min(x0, x1),
+      x1: Math.max(x0, x1),
+    });
+  };
+  if (lay.mode === 'arcs') for (let i = 0; i < lay.n; i++) add(lay.pair[i], lay.curve[8 * i], lay.curve[8 * i + 6]);
+  else if (lay.mode === 'dots')
+    for (let i = 0; i < lay.nd; i++) add(lay.dotPair[i], lay.dots[4 * i], lay.dots[4 * i] + lay.dots[4 * i + 2]);
+  return out;
 }

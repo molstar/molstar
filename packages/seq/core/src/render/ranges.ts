@@ -38,6 +38,7 @@ import {
   tickHit,
   tickOn,
   itemsUsed,
+  describeItems,
 } from './items.js';
 import { RenderIssues } from './issues.js';
 import type { Channel } from '@molstar/seqx-core/theme/index';
@@ -566,6 +567,8 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
   draw(lay, pass: PassName, out: PassWriter, emphasis?: Emphasis) {
     drawPass(RangesDraws, lay, out, emphasis);
   },
+
+  items: describeItems,
 
   hit(lay, at): Hit | undefined {
     const x = at[0];
