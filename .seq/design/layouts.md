@@ -478,7 +478,8 @@ interface Placement {
   (`ctx.labels`): every labeled item's text, extent and element key; placed when the ring or the strip is laid out
   (never on a window move or a hover), sorted by angle or position, spread a line apart, upright; those a side or lane
   cannot hold are dropped by the same priority in both (the layer's order, then the longer item). The same text style
-  (size, weight, colour) in both, inside or beside. A placed label's hit is its item's. Why: one feature read two ways
+  (size, weight) in both; the ink is the contrast colour against the mark's fill inside, the text colour beside
+  (decided, the author, 2026-11-19: "contrast inside, text beside"). A placed label's hit is its item's. Why: one feature read two ways
   in two views of one map is two rules to learn; inside first keeps the label on its mark where there is room.
 - **The hole holds the title**: the section's label and the system's length (`rings.center: 'title'`).
 - **A feature across the origin** is drawn as one arc (two pieces meeting at the seam), selected as two runs (EC-9),

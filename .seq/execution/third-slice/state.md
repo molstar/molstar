@@ -446,3 +446,5 @@ None.
   before it reported), its fix round, the author's acceptance of DB's public API (sizings, the `trackSizing` port,
   `ItemDescription.runs`, config keys) and its open question (label ink beside vs inside a mark), then merge with its
   changelog. DS and the rest stay queued in plan.md.
+- Resumed (2026-11-19). The author accepted DB's public API ("Accept, review trims": helpers internal unless a host
+  needs them) and its label ink ("contrast inside, text beside"; layouts.md). DB's review rerun.
