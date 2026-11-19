@@ -28,8 +28,9 @@ Work id `third-slice`. Plan: `plan.md`; loop: `loop.md`.
   gene, whole protein" back to 49.9 KB against 64; the review found no correctness bug, its test gap fixed.
 - TV merged (`be56ae0be`): the text layout and its viewer; the review's findings and the look's two fixed (the export
   cut at the canvas height; the domains band); quick 1,155, the allocation tier 84/84 on the merged tree.
-- Found by TV: a range starting in an earlier tile is not drawn when the view lies wholly past the tile edge (the
-  synthetic source answers only items starting in a region): a lost item, to fix test-first after RB.
+- TE merged (`78f20c5fd`): the item lost past a tile edge was the test sources' contract, not the product's (the reader
+  keeps an item by its anchor); fixtures fixed, a tile-edge test, the contract in the core `_spec`. Rings to check
+  after RB.
 
 ## In progress
 
