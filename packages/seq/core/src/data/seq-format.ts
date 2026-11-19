@@ -18,6 +18,7 @@ import {
   type ValueRecord,
 } from '@molstar/core/repr/tree';
 import { SourceIssues } from './issues.js';
+import { DefaultTileBins } from './keys.js';
 import type {
   Coverage,
   DynamicNode,
@@ -263,9 +264,24 @@ function shapesOf(tables: Tables): Shape[] {
   return Shapes.filter((s) => tables[s] !== undefined);
 }
 
+/** Levels between an inline list's level 1 and its whole level grow by this factor (the summaries' too). */
+const WholeFactor = 16;
+
+/**
+ * The level whose one tile (`tileBins` bins) covers `length` positions: the least power of 16 that does, 1 for a
+ * system within a tile at level 1.
+ */
+function wholeLevel(length: number, tileBins = DefaultTileBins): number {
+  let level = 1;
+  while (level * tileBins < length) level *= WholeFactor;
+  return level;
+}
+
 /**
  * Inline data as `seq` data: one system, one region over all of it at level 1 (its length the system's, else the
- * tables' extent). The fields of a ranges table are listed in the coverage.
+ * tables' extent). The fields of a ranges table are listed in the coverage. Ranges alone as a list over a system
+ * longer than a tile are served at the level whose one tile covers the system too (`wholeLevel`, the same rows): a
+ * reader of the whole system reads that tile, never the system a tile at level 1 (81,307 keys at 83 Mb).
  */
 export function inlineSeq(system: SystemInfo, tables: Tables, nodes?: readonly DynamicNode[]): SeqData {
   const shapes = shapesOf(tables);
@@ -276,10 +292,19 @@ export function inlineSeq(system: SystemInfo, tables: Tables, nodes?: readonly D
     const fields = r.fields.map((f) => ({ name: f.name, type: columnType(f.column) ?? 'float64' }));
     return { system: system.name, shape, fields };
   });
-  const answer: RegionAnswer = nodes ? { ok: true, tables, nodes } : { ok: true, tables };
+  const list = shapes.length === 1 && tables.ranges?.form === 'list' ? tables.ranges : undefined;
+  const whole = list ? wholeLevel(length) : 1;
+  const levels = whole > 1 ? [1, whole] : [1];
+  // the same rows at both levels: an explicit row each (else a file's numbering, rows after the pairs before, would
+  // name them again at the second level), so a selection made at one zoom names the same item at another
+  const served =
+    whole > 1 && list && !list.id && !list.row
+      ? { ...tables, ranges: { ...list, row: Int32Array.from({ length: list.start.length }, (_, i) => i) } }
+      : tables;
+  const answer: RegionAnswer = nodes ? { ok: true, tables: served, nodes } : { ok: true, tables: served };
   return {
-    coverage: { systems: [{ ...system, length }], shapes: shapeInfo, levels: [1] },
-    pairs: [{ request: { system: system.name, start: 0, end: length, level: 1, shapes }, answer }],
+    coverage: { systems: [{ ...system, length }], shapes: shapeInfo, levels },
+    pairs: levels.map((level) => ({ request: { system: system.name, start: 0, end: length, level, shapes }, answer })),
   };
 }
 

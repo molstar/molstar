@@ -1,9 +1,11 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
+
+import { formatValue } from './string-format.js';
 
 /**
  * Determine the number of digits in a floating point number
@@ -73,4 +75,20 @@ export function toPrecision(v: number, precision: number) {
 
 export function toFixed(v: number, fractionDigits: number) {
   return parseFloat(v.toFixed(fractionDigits));
+}
+
+/**
+ * A genomic position or length in bases, in the unit a ruler's tick step chooses: bases below a step of 1,000 (the
+ * number grouped, `7,668,402`), kilobases below a step of 10,000 (`7,668 kb`), else megabases with the decimals the
+ * step needs (`7.67 Mb` at a step of 10,000, `7.5 Mb` at 500,000, `8 Mb` at 1,000,000). The labels of one step share
+ * one unit and one count of decimals, so a ruler reads evenly.
+ */
+export function formatGenomic(n: number, step: number): string {
+  const s = Math.abs(step);
+  const unit = s < 1e3 ? 1 : s < 1e4 ? 1e3 : 1e6;
+  const decimals = unit === 1e6 ? Math.max(0, 6 - Math.floor(Math.log10(s) + 1e-9)) : 0;
+  const v = n / unit;
+  // a value that rounds to zero prints unsigned (never `-0`)
+  const shown = Number(v.toFixed(decimals)) === 0 ? 0 : v;
+  return formatValue(String(shown), `,.${decimals}f`) + (unit === 1 ? '' : unit === 1e3 ? ' kb' : ' Mb');
 }

@@ -38,7 +38,7 @@ export function build(): Node {
   const bands = b.data.ranges('chr17-bands', { target: chr, source: chr17BandsSource(b) });
   b.views.view('main', (v) => {
     const s = v.section('chr17', { of: chr });
-    s.track('ruler', { label: '' }).layer('ruler', { type: 'ruler' });
+    s.track('ruler', { label: '' }).layer('ruler', { type: 'ruler', units: 'bases' });
     s.track('genes', { label: 'Genes' }).layer('ranges', { type: 'ranges', data: genes });
     s.track('exons', { label: 'Exons', for_each: { source, node_kind: 'ranges', depth: 1 } }).layer('ranges', {
       type: 'ranges',

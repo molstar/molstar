@@ -6,7 +6,7 @@
 
 import { HalfOpenRanges } from '@molstar/core/data/int/half-open-ranges';
 import { type Issue, issueOf } from '@molstar/core/repr/tree';
-import { type Coverage, fitLevel, type Want } from '@molstar/seqx-core/data';
+import { type Coverage, nodeKey, type Want } from '@molstar/seqx-core/data';
 import type { Location, LocationPart } from '@molstar/seqx-core/query';
 import { type OverlayNode, projectRanges, type StaticModel } from '@molstar/seqx-core/resolve';
 import {
@@ -49,6 +49,7 @@ import type {
   StoreReader,
 } from './layer-type.js';
 import { walkStripes } from './highlight-stripes.js';
+import { boundedLevel } from './layer-data.js';
 import { EmptyOverlay, sectionId } from './layer-type.js';
 import type { LettersLay } from './letters.js';
 import { breakHit } from './marks.js';
@@ -240,6 +241,8 @@ export class LayoutState {
   readonly sections = new Map<string, SectionCache>();
   /** The row columns' fit, kept while what it read is the same. */
   columnsFit: unknown;
+  /** The template instances shown last (their tracks' addresses): kept while a zoom's new level is pending. */
+  readonly instancesShown = new Set<string>();
 }
 
 /** A layer's key: its address, else its track's and its index. */
@@ -403,6 +406,9 @@ class SectionReads implements StoreReader {
   }
   keysOf(w: Want) {
     return this.data.keysOf(w);
+  }
+  tooMany(w: Want) {
+    return this.data.tooMany?.(w) ?? false;
   }
   get settings() {
     return this.data.settings;
@@ -1071,10 +1077,8 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     const want = cache.want;
     const sectionTop = y;
     // a ruler rail on a linear section (tracks, not a stack of blocks); a slim row of its own when no ruler is shown
-    const railOn =
-      input.rails?.[section.address] !== undefined &&
-      layout === TracksLayout &&
-      !(section.blocks && section.params.arrange === 'stack');
+    const railable = layout === TracksLayout && !(section.blocks && section.params.arrange === 'stack');
+    const railOn = input.rails?.[section.address] !== undefined && railable;
     const top = y;
     // a template is expanded here, over the overlay, into a track per node it selects; its source's region in view is
     // wanted, so the nodes it brings arrive
@@ -1103,6 +1107,8 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
           ),
         );
       for (const t of instances) {
+        // an instance whose node's region is out of view is not laid out: its track goes, its hold with it
+        if (axis && !instanceInView(input, mine, section, track.template, axis, overlay, t, state)) continue;
         trackOf[shown.length] = -1;
         shown.push(t);
       }
@@ -1119,6 +1125,13 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       if (p.top > 0 || p.bottom > 0) padded = true;
     }
     const ruler = railOn ? rulerTrack(shown, heights) : -1;
+    // the rail draws just below the ruler's bottom border: the ruler's well grows by the rail's row, so it never covers
+    // the ticks or labels; only where a rail is drawn live (the canvas with rails on): an export has no row, a figure's
+    // rails (navigators included) lie on the border (_spec/README.md "Render", Navigators)
+    if (ruler >= 0 && input.figure !== true) {
+      pads[2 * ruler + 1] += SlimRailPx;
+      padded = true;
+    }
     // a rows band that fills (_spec/README.md "Render", The rows layer): the section's room left on the page, at least
     // its default height (a figure, laid out for its content, takes the default)
     // a band of every row in a layout whose bands do not scroll (text: an alignment figure's lines repeat its rows)
@@ -1536,20 +1549,16 @@ function wantTemplate(
   out: (w: Want) => void,
 ) {
   const pieces = axis.visible([]);
-  const coverage = data.coverage(template.source);
-  const name = input.model.systems.get(section.axis.system)?.name;
-  const info = coverage?.systems.find((s) => s.name === name || (name !== undefined && s.aliases?.includes(name)));
-  if (coverage && info) {
-    const level = fitLevel(coverage.levels, 1 / axis.devicePx);
+  const at = templateSource(input, data, section, template, axis);
+  if (at)
     for (let i = 0; i + 1 < pieces.length; i += 2)
       out({
         source: template.source,
-        system: info.name,
+        system: at.system,
         start: Math.floor(pieces[i]),
         end: Math.ceil(pieces[i + 1]),
-        level,
+        level: at.level,
       });
-  }
   if (template.depth < 1) return;
   for (const nested of overlay.nested(new Map([[template.source, template.depth]]))) {
     const cov = data.coverage(nested.address);
@@ -1561,7 +1570,8 @@ function wantTemplate(
       if (!path && target.address !== section.axis.system) continue;
       const ranges = HalfOpenRanges.normalize(path ? projectRanges(path, pieces) : pieces);
       const ratio = path?.step === 1 ? 3 : path?.step === -1 ? 1 / 3 : 1;
-      const level = fitLevel(cov!.levels, ratio / axis.devicePx);
+      // bounded as a layer's level is: a long nested system at the fit is one coarse tile, never 81,307 at level 1
+      const level = boundedLevel(cov!.levels, ratio / axis.devicePx, (axis.u1 - axis.u0) * ratio, data);
       for (let i = 0; i + 1 < ranges.length; i += 2)
         out({
           source: nested.address,
@@ -1572,6 +1582,85 @@ function wantTemplate(
         });
     }
   }
+}
+
+/**
+ * A template source's system as it names the section's, its coverage, and the level the template wants of it: the one
+ * that fits a device pixel, coarser while the view would want more than the store's tiles a want (`boundedLevel`).
+ */
+function templateSource(
+  input: LayoutInput,
+  data: StoreReader,
+  section: ResolvedSection,
+  template: TrackTemplate,
+  axis: AxisTransform,
+): { readonly coverage: Coverage; readonly system: string; readonly level: number } | undefined {
+  const coverage = data.coverage(template.source);
+  const name = input.model.systems.get(section.axis.system)?.name;
+  const info = coverage?.systems.find((s) => s.name === name || (name !== undefined && s.aliases?.includes(name)));
+  if (!coverage || !info) return undefined;
+  return {
+    coverage,
+    system: info.name,
+    level: boundedLevel(coverage.levels, 1 / axis.devicePx, axis.u1 - axis.u0, data),
+  };
+}
+
+/**
+ * Whether a template's instance is in view (_spec/README.md "Render", Shown nodes): its node's top node (the one of
+ * the template's source it came under) is listed up front in that source's coverage, or carried by a loaded tile of it
+ * over the view at any level whose tiles there are within the store's bound; while the template's tiles over the view
+ * are pending (a zoom's new level), an instance shown last time stays. Out of view it is not laid out: its track goes
+ * and its hold with it, and its node is evicted as any other once the store needs room. Where the template's source
+ * does not name the section's system it cannot be told: shown.
+ */
+function instanceInView(
+  input: LayoutInput,
+  data: StoreReader,
+  section: ResolvedSection,
+  template: TrackTemplate,
+  axis: AxisTransform,
+  overlay: Overlay,
+  instance: ResolvedTrack,
+  state: LayoutState,
+): boolean {
+  const at = templateSource(input, data, section, template, axis);
+  let address: string | undefined;
+  for (const l of instance.layers) if (l.data && !address) address = l.data.address;
+  let root = address ? overlay.node(address) : undefined;
+  while (root && root.depth > 0) root = overlay.node(root.source);
+  if (!at || !root) return true;
+  const top = root;
+  if (at.coverage.nodes?.some((x) => x.key === top.key)) return true;
+  const key = nodeKey(top.source, top.key);
+  const pieces = axis.visible([]);
+  let pending = false;
+  for (const level of at.coverage.levels)
+    for (let i = 0; i + 1 < pieces.length; i += 2) {
+      const want = {
+        source: template.source,
+        system: at.system,
+        start: Math.floor(pieces[i]),
+        end: Math.ceil(pieces[i + 1]),
+        level,
+      };
+      // bounded by what it reads: a level whose tiles over the view pass the store's bound is not read
+      if (data.tooMany?.(want)) continue;
+      for (const k of data.keysOf(want)) {
+        const e = data.get(k);
+        if (e?.status === 'loaded') {
+          if (e.nodes.includes(key)) return remember(state, instance.address, true);
+        } else if (level === at.level && e?.status !== 'empty' && e?.status !== 'failed') pending = true;
+      }
+    }
+  return remember(state, instance.address, pending && state.instancesShown.has(instance.address));
+}
+
+/** Records whether an instance was shown, for the next frame's pending rule; returns it. */
+function remember(state: LayoutState, address: string, shown: boolean): boolean {
+  if (shown) state.instancesShown.add(address);
+  else state.instancesShown.delete(address);
+  return shown;
 }
 
 /** The first shown track drawing a ruler (with height: a hidden ruler is no rail's), or −1. */

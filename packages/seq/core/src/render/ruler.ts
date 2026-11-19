@@ -5,6 +5,7 @@
  */
 
 import { issueOf } from '@molstar/core/repr/tree';
+import { formatGenomic } from '@molstar/core/util/number';
 import { findNumbering, type NumberingOf, parseLabel, type QuerySystem } from '@molstar/seqx-core/query';
 import type { NumberingEntry, StaticModel } from '@molstar/seqx-core/resolve';
 import type { ResolvedLayer } from '@molstar/seqx-core/view';
@@ -44,6 +45,8 @@ export interface RulerPrep {
   /** A numbering the system declares whose labels are a source's rows: read from the store at layout. */
   readonly source?: { readonly model: StaticModel; readonly entry: NumberingEntry };
   readonly system?: QuerySystem;
+  /** `units: bases`: an `ordinal` ruler labels in bp, kb or Mb by its step (_spec/README.md "Render", Layer types). */
+  readonly bases?: boolean;
 }
 
 export interface RulerLay {
@@ -81,6 +84,7 @@ export const RulerType: LayerType<RulerPrep, RulerLay> = {
       ...(numbering ? { numbering } : {}),
       ...(entry?.source ? { source: { model, entry } } : {}),
       ...(system ? { system } : {}),
+      bases: layer.params.units === 'bases',
     };
   },
 
@@ -148,7 +152,8 @@ export const RulerType: LayerType<RulerPrep, RulerLay> = {
       (prep.system ? findNumbering(prep.system, 'ordinal') : undefined);
     const step = labelStep(axis.scale, config.ruler.labelGap);
     const ranges = axis.visible([]);
-    for (let r = 0; r + 1 < ranges.length; r += 2) tickRange(lay, numbering, ranges[r], ranges[r + 1], step);
+    for (let r = 0; r + 1 < ranges.length; r += 2)
+      tickRange(lay, numbering, ranges[r], ranges[r + 1], step, prep.bases === true);
     fit(lay, ctx);
     return lay;
   },
@@ -217,8 +222,11 @@ function tickAt(lay: RulerLay, p: number, label: string, major: boolean) {
   lay.labels[j] = lay.grouped && axis.endsGroup(axis.unitAt(x), lay.grouped === 'inline') ? '' : label;
 }
 
-/** The ticks of the positions `[a, b)` in view (one piece): the labels that are multiples of the step, the insertions. */
-function tickRange(lay: RulerLay, of: NumberingOf | undefined, a: number, b: number, step: number) {
+/**
+ * The ticks of the positions `[a, b)` in view (one piece): the labels that are multiples of the step, the insertions;
+ * with `bases`, an `ordinal` ruler's labels in bp, kb or Mb by the step (another numbering keeps its own labels).
+ */
+function tickRange(lay: RulerLay, of: NumberingOf | undefined, a: number, b: number, step: number, bases: boolean) {
   if (!of || b <= a) return;
   const { numbering, shift } = of;
   const builtIn = numbering.id === 'ordinal' || numbering.id === 'index';
@@ -230,14 +238,17 @@ function tickRange(lay: RulerLay, of: NumberingOf | undefined, a: number, b: num
     const lo = Math.min(l0, l1);
     const hi = Math.max(l0, l1);
     if ((hi - lo) / step > 4 * LoopLimit) return;
+    const genomic = bases && numbering.id === 'ordinal';
     for (let n = Math.ceil(lo / step) * step; n <= hi; n += step) {
-      const label = String(n);
+      const label = genomic ? formatGenomic(n, step) : String(n);
       const i = builtIn ? n - (numbering.id === 'index' ? 0 : 1) : numbering.indexOf(label);
       const p = i + shift;
       if (i >= 0 && p >= a && p < b) tickAt(lay, p, label, true);
     }
     return;
   }
+  // an insertion code (100A, 111.1) a minor tick from MinorScale, never in the step's count: the step holds across
+  // insertions, and an insertion never stands in for a round value the numbering lacks (an IMGT gap)
   const minors = lay.axis.scale >= MinorScale;
   for (let p = a; p < b; p++) {
     const label = numbering.labelAt(p - shift);
@@ -250,7 +261,10 @@ function tickRange(lay: RulerLay, of: NumberingOf | undefined, a: number, b: num
   }
 }
 
-/** Which labels are drawn: majors first, then minors, each only where it clears every one drawn and the data box. */
+/**
+ * Which labels are drawn: majors first, then minors (each only within its own position's width), each only where it
+ * clears every one drawn and the data box.
+ */
 function fit(lay: RulerLay, ctx: LayoutContext) {
   const { box } = lay;
   const gap = Math.max(4, ctx.config.ruler.labelGap / 8);
@@ -263,6 +277,9 @@ function fit(lay: RulerLay, ctx: LayoutContext) {
       const a = lay.x[j] - w / 2;
       const b = lay.x[j] + w / 2;
       if (a < box.x || b > box.x + box.width) continue;
+      // an insertion's label only where it fits its own position (labelled with room beside its neighbours': never
+      // crowding a round value at a zoom where a position is narrower than its label)
+      if (pass === 0 && w > lay.axis.scale) continue;
       let free = true;
       for (let k = 0; k + 1 < taken.length && free; k += 2) free = b + gap <= taken[k] || a >= taken[k + 1] + gap;
       if (!free) continue;

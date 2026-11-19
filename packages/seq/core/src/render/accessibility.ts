@@ -74,7 +74,8 @@ export function accessibleOf(
     for (const t of s.tracks) {
       const items: SvgAccessible['tracks'][number]['items'][number][] = [];
       let total = 0;
-      for (const l of t.layers) {
+      // its own layers, then its `section` layers (pairs: laid out once a section, their arcs named on their track)
+      for (const l of [...t.layers, ...s.sectionLays.filter((x) => t.track.layers.includes(x.layer))]) {
         const described = l.type.items?.(l.lay);
         if (!described) continue;
         const dataSystem = (l.layer.data?.system && model.systems.get(l.layer.data.system)?.name) || system;

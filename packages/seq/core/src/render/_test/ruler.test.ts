@@ -6,8 +6,10 @@
 
 // The ruler layer (_spec/README.md "Render", Layer types): labels at steps of 1, 2, 5 × 10ⁿ that never overlap and are
 // each a position of the numbering, insertion labels as minor ticks with room only, a reversed axis counting down, the
-// numbering a spec param, the unknown one reported and the ordinal one used.
+// numbering a spec param, the unknown one reported and the ordinal one used; `units: bases` in bp, kb or Mb by the step,
+// the canvas's labels the export's.
 
+import { SeqRuntime, seqToValue } from '@molstar/seqx-core/data';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import type { Numbering } from '@molstar/seqx-core/query';
 import { describe, expect, it } from 'vitest';
@@ -22,6 +24,7 @@ import {
   RulerType,
   renderConfig,
 } from '../index.js';
+import { renderSvg } from '../render-svg.js';
 import { GENE_EXONS, GENE_LENGTH, geneLetters, P53 } from './fixtures.js';
 import { settle } from './helpers.js';
 import { layerLay, rng } from './small-helpers.js';
@@ -125,6 +128,59 @@ describe('the ruler: labels', () => {
   });
 });
 
+/** A chromosome-long DNA system (its length a `seq` source's coverage, no letters) under a ruler. */
+function chromosomeRuler(params: Record<string, unknown>) {
+  const b = createSeqSpec({ title: 'ruler' });
+  const value = seqToValue({
+    coverage: { systems: [{ name: 'chr', length: 83_257_441 }], shapes: [], levels: [1] },
+    pairs: [],
+  });
+  const source = b.data.source('chr-source', { format: 'seq', value: value as never });
+  const chr = b.data.sequence('chr', { alphabet: 'dna', source, name: 'chr' });
+  b.views.view('main', (v) => {
+    v.section('chr', { of: chr })
+      .track('r')
+      .layer('r', { type: 'ruler', ...params });
+  });
+  return b.build();
+}
+
+describe('the ruler: units', () => {
+  const size = { width: 700, height: 60 };
+  const labelsAt = async (params: Record<string, unknown>, viewport: { start: number; end: number }) => {
+    const spec = chromosomeRuler(params);
+    const s = await settle(spec, [SeqRuntime]);
+    const canvas = shown(layerLay<RulerLay>(await s.frame({ size, viewport }), 0)).map((l) => l.label);
+    // the export's SVG, a second consumer of the same spec: its text the canvas's labels
+    const r = await renderSvg(spec, { size, viewport, runtimes: [SeqRuntime], legend: 'none' });
+    const texts = [...r.svg.matchAll(/<text[^>]*>([^<]*)<\/text>/g)].map((m) => m[1]);
+    for (const l of canvas) expect(texts).toContain(l);
+    return canvas;
+  };
+
+  it('`bases` labels an ordinal ruler in bp, kb or Mb by its step; the canvas’s labels are the SVG’s', async () => {
+    const fit = await labelsAt({ units: 'bases' }, { start: 0, end: 83_257_441 });
+    expect(fit.slice(0, 2)).toEqual(['10 Mb', '20 Mb']);
+    const mb = await labelsAt({ units: 'bases' }, { start: 7_600_000, end: 7_700_000 });
+    expect(mb.length).toBeGreaterThan(2);
+    for (const l of mb) expect(l).toMatch(/^7\.\d\d Mb$/);
+    const kb = await labelsAt({ units: 'bases' }, { start: 7_668_000, end: 7_678_000 });
+    for (const l of kb) expect(l).toMatch(/^7,6\d\d kb$/);
+    const bp = await labelsAt({ units: 'bases' }, { start: 7_668_400, end: 7_668_500 });
+    expect(bp.length).toBeGreaterThan(2);
+    for (const l of bp) expect(l).toMatch(/^7,668,4\d\d$/);
+  });
+
+  it('`none` (and absent) labels the number; another numbering than ordinal ignores `bases`', async () => {
+    const at = { start: 7_600_000, end: 7_700_000 };
+    const plain = await labelsAt({}, at);
+    expect(plain[0]).toMatch(/^76\d0000$/);
+    expect(await labelsAt({ units: 'none' }, at)).toEqual(plain);
+    const index = await labelsAt({ units: 'bases', numbering: 'index' }, at);
+    for (const l of index) expect(l).toMatch(/^\d+$/);
+  });
+});
+
 describe('the ruler: a reversed, collapsed axis', () => {
   function gene() {
     const b = createSeqSpec({ title: 'reversed ruler' });
@@ -180,8 +236,7 @@ function kabat(): Numbering {
 }
 
 /** The ruler over `kabat` laid out by hand (the language declares no numbering yet), the view `[start, end)` of 700 px. */
-function kabatRuler(start: number, end: number, width = 700) {
-  const numbering = kabat();
+function kabatRuler(start: number, end: number, width = 700, numbering: Numbering = kabat()) {
   const axis = new AxisTransform('chain', [0, numbering.length], 0, width, 1, { start, end });
   const reports: string[] = [];
   const ctx = {
@@ -207,20 +262,43 @@ function kabatRuler(start: number, end: number, width = 700) {
 }
 
 describe('the ruler: insertion labels', () => {
-  it('are minor ticks, labeled only where there is room, never overlapping the majors', () => {
+  it('are minor ticks from 4 px a position, labeled only within their position and with room, the step held', () => {
     // 7 positions across 700 px: room for every label
     const near = shown(kabatRuler(98, 105).lay).map((l) => l.label);
     expect(near).toEqual(expect.arrayContaining(['100', '100A', '100B']));
-    // 30 positions: the minors are ticks, their labels do not fit beside 100
+    // in the numbering's order: 111, 111.1, 111.2, 112 (EC-7)
+    const order = shown(kabatRuler(109, 116).lay).map((l) => l.label);
+    expect(order.filter((l) => l.startsWith('11'))).toEqual(['110', '111', '111.1', '111.2', '112']);
+    // 30 positions (23 px each): the insertions are minor ticks, unlabelled (a label wider than its position); the
+    // majors the step's round values alone, the step held across the insertions
     const far = kabatRuler(90, 120).lay;
     const labels = shown(far).map((l) => l.label);
     expect(labels).toContain('100');
-    expect(labels).not.toContain('100A');
+    expect(labels.filter((l) => !/^\d+$/.test(l))).toEqual([]);
     const minors = Array.from({ length: far.n }, (_, j) => far.major[j] === 0 && far.labels[j]).filter(Boolean);
     expect(minors).toEqual(expect.arrayContaining(['100A', '100B', '111.1', '111.2']));
+    const step = labelStep(far.axis.scale, GAP);
+    for (let j = 0; j < far.n; j++) if (far.major[j]) expect(Number(far.labels[j]) % step).toBe(0);
     // beyond the minors' scale: no minor ticks at all
     const wide = kabatRuler(0, 126, 400).lay;
     expect(Array.from({ length: wide.n }, (_, j) => wide.major[j])).not.toContain(0);
+  });
+
+  it('a round value the numbering lacks (a gap) gets no tick; no insertion stands in for it', () => {
+    // a numbering with 30 missing (as IMGT's gaps) and insertions before it: 29, 29A, 29B, 31
+    const labels = Array.from({ length: 60 }, (_, i) => String(i + 1)).filter((l) => l !== '30');
+    labels.splice(labels.indexOf('31'), 0, '29A', '29B');
+    const numbering: Numbering = {
+      id: 'imgt',
+      length: labels.length,
+      labelAt: (i) => labels[i],
+      indexOf: (l) => labels.indexOf(l),
+    };
+    const { lay } = kabatRuler(0, labels.length, 700, numbering);
+    const majors = Array.from({ length: lay.n }, (_, j) => lay.major[j] === 1 && lay.labels[j]).filter(Boolean);
+    expect(majors).not.toContain('30');
+    expect(majors).toContain('40');
+    expect(shown(lay).filter((l) => /[A-Z.]/.test(l.label))).toEqual([]);
   });
 
   it('every label shown, of any view, is a label of the numbering at its tick, and none overlap', () => {

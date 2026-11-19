@@ -115,9 +115,8 @@ describe('the pairs layer’s items', () => {
     for (const i of items) expect(i.x1).toBeGreaterThan(i.x0);
   });
 
-  // BUG (reported, not fixed): `accessibleOf` (accessibility.ts) reads `TrackLayout.layers` only, and the arcs are a
-  // `section` layer (`SectionLayout.sectionLays`), so the exported SVG names none of them. Remove `.fails` with the fix.
-  it.fails('names each arc in the exported SVG, on a track and on a ring', async () => {
+  // the arcs are a `section` layer (`SectionLayout.sectionLays`): the export names them on their track
+  it('names each arc in the exported SVG, on a track and on a ring', async () => {
     for (const layout of [undefined, 'rings' as const]) {
       const t = await titles(arcsSpec({ pairs: Pairs, ...(layout ? { layout } : {}) }), {
         width: 720,

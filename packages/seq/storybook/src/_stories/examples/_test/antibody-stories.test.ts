@@ -108,31 +108,37 @@ async function drawn(id: string, window: [number, number], tokens = LightTokens)
 }
 
 describe('Antibody: the rulers against the data', () => {
+  // the ruler ticks the step's round values, and an insertion code's label where it has room: at the closest zoom
+  // (32 px a residue) CDR-H2's 52A, FR3's 82A–C and CDR-H3's 100A–C show beside the round values; at the fit none
   for (const t of ['light', 'dark'] as const)
     it(
-      `${t}: the wild type’s Kabat ruler draws the heavy chain’s insertions, read from the file; no issue`,
+      `${t}: the wild type’s Kabat ruler labels the heavy chain’s insertions at the closest zoom, read from the file; no issue`,
       t === 'dark' ? { tags: ['medium'] } : {},
       async () => {
         const tokens = t === 'dark' ? DarkTokens : LightTokens;
-        // CDR-H2 to FR3's 82A–C, then CDR-H3: wide enough for a label a residue
-        for (const [window, labels] of [
-          [[46, 60], ['52A']],
+        const has = (r: { texts: string[] }, l: string) => r.texts.some((x) => x.includes(`"${l}"`));
+        for (const [window, round, insertions] of [
+          [[46, 60], ['50', '52'], ['52A']],
           [
             [78, 92],
+            ['80', '82'],
             ['82A', '82B', '82C'],
           ],
           [
             [98, 112],
+            ['98', '100'],
             ['100A', '100B', '100C'],
           ],
         ] as const) {
           const r = await drawn('schemes', [...window], tokens);
           expect(r.issues).toEqual([]);
-          for (const l of labels) {
-            expect(r.svg).toContain(l);
-            expect(r.texts.some((x) => x.includes(`"${l}"`))).toBe(true);
-          }
+          for (const l of [...round, ...insertions]) expect(has(r, l), l).toBe(true);
+          for (const l of insertions) expect(r.svg).toContain(l);
         }
+        // at the fit the round values alone: no insertion crowds them
+        const fit = await drawn('schemes', [0, 220], tokens);
+        for (const l of ['52A', '82A', '82B', '82C', '100A', '100B', '100C']) expect(has(fit, l), l).toBe(false);
+        expect(has(fit, '100')).toBe(true);
         const one = await drawn('schemes', [98, 112], tokens);
         const other = await drawn('schemes', [98, 112], t === 'dark' ? LightTokens : DarkTokens);
         expect(other.raw).not.toBe(one.raw);

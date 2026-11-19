@@ -64,17 +64,18 @@ checks it cannot express.
   included), `collapsed` (the form `section.collapse` switches to; absent: `coding`) and `pad` (positions kept each side
   of a piece; absent: 0); a layer's `complement` (`auto`, `always`, `never`; absent: `auto`) and `code` (`auto`, `one`,
   `three`; absent: `auto`), read by `letters`; a layer's `numbering` (a numbering id; absent: the section's default,
-  `ordinal`), read by `ruler`, `encoding` (`bars`, `line`, `area`; absent: `bars`) by `values`, `style` (`blocks`) by
-  `secondary`, `line` (`solid`, `dashed`, `dotted`, `wavy`, `double`, `box`, `highlight`; absent: blocks) and `arrow`
-  (`none`, `end`, `start`, `both`; absent: `none`) by `ranges`; a grid section's `of_y` (absent: `of`), `follow_y` (`x`,
-  `none` or a section; absent: `x`) and `aspect` (a number or `none`; absent: 1); by `pairs` its `side` (`above`,
-  `below`; absent: `above`), `reach` (absent: 0.25), `height` (`span`; absent: `span`), `crossing` (`same`, `split`;
-  absent: `same`), `across_lines` (absent: false) and `mirror` (absent: false: a pair drawn where its data puts it,
-  never read off whether the two axes are one system; the tRNA's builder sets it); by `grid` its `aggregate` (`mean`,
-  `max`, `min`; absent: `mean`); by both in a grid `triangle` (`both`, `upper`, `lower`; absent: `both`). Why: the
-  figure's form is the writer's, never the host's or the data's: one spec draws the same in the canvas, the SVG and
-  another viewer. The refs inside `direction` and `pieces` are checked by kind as top-level refs are, and a change's
-  check reaches them (its reverse index walks a union's record member). Why: the composition is the application's.
+  `ordinal`) and `units` (`none`, `bases`; absent: `none`), read by `ruler`, `encoding` (`bars`, `line`, `area`; absent:
+  `bars`) by `values`, `style` (`blocks`) by `secondary`, `line` (`solid`, `dashed`, `dotted`, `wavy`, `double`, `box`,
+  `highlight`; absent: blocks) and `arrow` (`none`, `end`, `start`, `both`; absent: `none`) by `ranges`; a grid
+  section's `of_y` (absent: `of`), `follow_y` (`x`, `none` or a section; absent: `x`) and `aspect` (a number or `none`;
+  absent: 1); by `pairs` its `side` (`above`, `below`; absent: `above`), `reach` (absent: 0.25), `height` (`span`;
+  absent: `span`), `crossing` (`same`, `split`; absent: `same`), `across_lines` (absent: false) and `mirror` (absent:
+  false: a pair drawn where its data puts it, never read off whether the two axes are one system; the tRNA's builder
+  sets it); by `grid` its `aggregate` (`mean`, `max`, `min`; absent: `mean`); by both in a grid `triangle` (`both`,
+  `upper`, `lower`; absent: `both`). Why: the figure's form is the writer's, never the host's or the data's: one spec
+  draws the same in the canvas, the SVG and another viewer. The refs inside `direction` and `pieces` are checked by kind
+  as top-level refs are, and a change's check reaches them (its reverse index walks a union's record member). Why: the
+  composition is the application's.
 - **Numberings** (`<sequence>/<id>`, a `numbering` child of a sequence): a label a position of its sequence, its id the
   name the forms read (`:numbering kabat`, Queries, Numberings and labels). `method` is `labels` (the one built: an
   offset and segments wait for the examples that need them); `labels` inline, a category column one a position in index
@@ -587,7 +588,11 @@ over 20 runs; the heavy lane bounds one sample at 40 ms (`resolve/_test/addressi
   position order, each cut to its part; a gap no pair holds is `not-served`, naming its positions (the format is
   explicit: an empty region is a pair with empty tables). A failure among the pairs is the answer; an unlisted system or
   level is not served. A list without ids gets `row` from its place in the file. Inline data (`inlineSeq`) is one pair
-  over the whole system at level 1, its length in the coverage.
+  over the whole system at level 1, its length in the coverage; a ranges list alone over a system longer than a tile is
+  served too at the least power of 16 whose one tile covers the system, the same rows with an explicit `row` each (one
+  identity at both levels). Why: a layer zoomed out on a long system reads that one tile, never the system a tile at
+  level 1 (81,307 at 83 Mb), and a small inline payload needs no level between. Ranges lists only: inline values get
+  their coarse levels from the store's summaries, letters are read where they fit, and other shapes stay at level 1.
 
 ### Asynchronous sources
 
@@ -770,8 +775,9 @@ by fuzz tests (mutated text read without a throw).
 - **Keys**: `<source>|<system>|<level>|<tile>` and `<source>#<key>`; a part holding `|`, `#` or `\` escapes it, so no
   two keys of other parts are equal. A tile is `tileBins` bins (1,024) at the level's width; a want is clipped to the
   system's length when known and snaps to whole tiles; an unlisted level falls back to the coarsest listed no wider
-  (EC-170). A want over `maxTilesPerWant` tiles is `seq.store.too_many_tiles` and not asked: work is bounded before it
-  starts. A tile is asked for every shape its system serves: the key has no shapes.
+  (EC-170). A want over `maxTilesPerWant` tiles is `seq.store.too_many_tiles` and not asked, and `keysOf` lists none of
+  its tiles (a reader reads it as pending, never as empty): work is bounded before it starts, a key a tile included. A
+  tile is asked for every shape its system serves: the key has no shapes.
 - **Sources** are checked on `attach`: a malformed coverage is an issue and the source unavailable. `detach` cancels its
   requests, drops its entries, releases its holds and clears its reports.
 - **Entries** are `pending`, `loaded`, `empty` (no rows, no nodes), `failed` (kind and issue) or `evicted` (wanted,
@@ -1389,13 +1395,21 @@ the y path in Emphasis).
   `seq.render.numbering` and `ordinal` is used; a source's draws no tick until its labels are in, Numberings from a
   source). A tick at each label that is a multiple of a step of 1, 2 or 5 × 10ⁿ, the least whose ticks are
   `ruler.labelGap` px apart; a label that does not fit (between the data box's edges and the labels already drawn, 6 px
-  apart at least, majors first) is skipped, never shrunk. A label with an insertion code (`100A`, `111.1`) is a minor
-  tick from 4 px a position, labeled only where it fits. It labels the positions where they are: a reversed axis counts
+  apart at least, majors first) is skipped, never shrunk. Majors are the step's round values only: the step never counts
+  an insertion, so it holds across them, and a round value the numbering lacks (an IMGT gap) has no tick or label, no
+  insertion standing in for it. A label with an insertion code (`100A`, `111.1`) is a minor tick from 4 px a position
+  (`MinorScale`), labeled where it has room: within its own position's width and clear of the labels drawn (majors
+  first), so at the viewer's closest zoom (32 px) 100A–E show and at the fit none crowds a round value (decided, the
+  author, 2026-11-19: "Label insertions with room"). It labels the positions where they are: a reversed axis counts
   down, a collapsed one labels its pieces. Where a text section prints a group's end number (`group_labels` not `none`)
   the ruler draws the tick without its label: a position carries one label, the group's (only where the ruler's
   numbering is the one the group labels print). Over a piece of more than 4,096 positions, or on a built-in numbering,
-  the labels are looked up by number (a tick a step), not a position at a time. A hit is the position under the pointer.
-  Fallback: none (omitted).
+  the labels are looked up by number (a tick a step), not a position at a time. **Units** (`units`): `none` labels the
+  number as its numbering does; `bases` labels an `ordinal` ruler in bp, kb or Mb chosen by the step
+  (`@molstar/core/util/number`'s `formatGenomic`: 7,668,402 at a base step, 7,668 kb at a kilobase one, 7.67 Mb from 10
+  kb), one unit and one count of decimals a step; another numbering keeps its own labels. Why: the writer of a
+  chromosome view says so, never inferred from the alphabet. A hit is the position under the pointer. Fallback: none
+  (omitted).
 - `secondary`: the items of a `ranges` layer (the class from the `kind` field, else `category`: DSSP codes or words:
   helix, strand, UniProt's `Helix`, `Beta strand` and `Turn`, anything else a turn), in one band: a helix a block, a
   strand a block with an arrowhead on its C-terminal end, a turn a thin bar. **The arrowhead** is on the piece holding
@@ -1649,19 +1663,22 @@ numbers): a window move allocates nothing once warm.
   hairline. A navigator never draws in a section's lists.
 - **Hits** (`hit`): the window part under a point, its section and axis, the position on the navigator's system, the
   display row, a band's name (the `bands` layer's hit `state`). A navigator's hover is its own: a readout.
-- **The ruler rail** (`Rail`, `FrameInput.rails` and `railsActive`, by section address, `key`; the viewer's): drawn on
-  the first shown ruler's bottom border, else in a slim row of its own under the section's tracks (`SlimRailPx`, 12,
-  fixed: the form's size, the least a rail and its grips need; a hidden ruler too; under, not above: the tracks keep
-  their place); the whole axis across the data box, the window a segment with a grip each end (over a cyclic origin two
-  pieces, a grip at each true end, the axis's ends body), collapsed breaks a notch; its grab zone the ruler's row (on an
-  alignment's columns its lower `grabShare`: above it a drag selects columns), the slim row whole; grown (`grownPx`)
-  while hovered or dragged (`Emphasis.drag`); idle (not active) a quiet hairline with no grips and no target (at the fit
-  it reads as the line); in a figure (an export) a plain segment, no grips, no idle state. Its hit is the `window`
-  target with `navigator: 'rail'` (touch the wider hit: `hitView`'s `touch`), its unit `railUnitAt`. Rails are part of a
-  section's key by identity (a slim row takes room); which can move is not: the renderer sets it on the rails each
-  frame, an emphasis redraw too (an idle flip redraws the window pass alone). `railSections(view, hosted)`: every tracks
-  section no shown navigator binds along its positions: a declared navigator and a host's replace its rail, a hidden one
-  brings it back.
+- **The ruler rail** (`Rail`, `FrameInput.rails` and `railsActive`, by section address, `key`; the viewer's): drawn just
+  below the first shown ruler's bottom border, in a row of its own (`SlimRailPx`) its well grows by, never over the
+  ruler's ticks or labels (decided, the author, 2026-11-19: "Below the border"); the row only where a rail is drawn live
+  (the canvas with rails on; with the rail toggle off none), never in an export ("Leave it out of exports": a figure has
+  no empty strip, and its included rails lie on the border), else in a slim row of its own under the section's tracks
+  (`SlimRailPx`, 12, fixed: the form's size, the least a rail and its grips need; a hidden ruler too; under, not above:
+  the tracks keep their place); the whole axis across the data box, the window a segment with a grip each end (over a
+  cyclic origin two pieces, a grip at each true end, the axis's ends body), collapsed breaks a notch; its grab zone the
+  ruler's height, up from the rail row's foot (on an alignment's columns its lower `grabShare`: above it a drag selects
+  columns), the slim row whole; grown (`grownPx`) while hovered or dragged (`Emphasis.drag`); idle (not active) a quiet
+  hairline with no grips and no target (at the fit it reads as the line); in a figure (an export) a plain segment, no
+  grips, no idle state. Its hit is the `window` target with `navigator: 'rail'` (touch the wider hit: `hitView`'s
+  `touch`), its unit `railUnitAt`. Rails are part of a section's key by identity (a slim row takes room); which can move
+  is not: the renderer sets it on the rails each frame, an emphasis redraw too (an idle flip redraws the window pass
+  alone). `railSections(view, hosted)`: every tracks section no shown navigator binds along its positions: a declared
+  navigator and a host's replace its rail, a hidden one brings it back.
 - **The rows rail** (`placeRowsRail`, `SectionLayout.rowsRails`; `FrameInput.rails` by the rows track's address): the
   same `Rail` upright (`vertical`: along the page's y, its line and grab zone across on x; one geometry, drawn and hit
   by the same code, the coordinates turned at the rect and at the hit), `SlimRailPx` wide at the right edge (right of
@@ -1796,12 +1813,21 @@ numbers): a window move allocates nothing once warm.
 - **Templates** are expanded here over the frame's overlay (`expandTemplate`), at most `maxTemplateTracks` instances
   (the first in order; more is `seq.render.template.limit`, so the work is bounded before it starts); a template's
   source region in view, on the section's system as the source names it, is wanted at the level that fits, so the nodes
-  it brings arrive. The overlay's issues are the layout's. A template below its source also wants each nested source's
-  systems (`systemNamed`) in view, carried along the overlay's path from the section, so a nested source that sends its
-  nodes by region is asked for them.
+  it brings arrive; that level and a nested source's (below) are bounded as a layer's is (coarser while the view would
+  want more than `maxTilesPerWant` tiles), so a long nested system at the fit is a coarse tile, never refused. The
+  overlay's issues are the layout's. A template below its source also wants each nested source's systems (`systemNamed`)
+  in view, carried along the overlay's path from the section, so a nested source that sends its nodes by region is asked
+  for them.
 - **Shown nodes** (`nodes.holdShown`, true): the layout lists the nodes it shows (`ViewLayout.shown`: the data and the
   path systems of each laid-out layer, through `overlay.holds`), for its owner to hold in the store; with `false`, none.
-  Why: a node stays while it is shown, not only while the region that brought it is cached.
+  Why: a node stays while it is shown, not only while the region that brought it is cached. **Shown means in view**: a
+  template's instance is laid out only while its node's region is in view: the node's top node (the one of the
+  template's source it came under) is listed up front in that source's coverage, or is carried by a loaded tile of that
+  source over the view at any level whose tiles there are within the store's bound; while the template's tiles over the
+  view are pending (a zoom's new level), an instance shown last stays. Out of view its track goes and its hold with it;
+  the node is evicted as any other when the store needs room. Why: an instance held its node, so every place browsed
+  left its track (29 empty after five places on a chromosome); a track whose node's region is on screen never vanishes,
+  a zoom included.
 - Cell edges snap to the device grid (`snap`). One label column for every track of a view; a track's label is centred on
   its well (its padding with it), in tracks and on a text's first line.
 - **A track's padding** (its `padding`, else `trackPadding`): px inside its well above and below its data, never left or

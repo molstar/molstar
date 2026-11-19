@@ -582,8 +582,11 @@ export function shownLetters(
   if (lo > hi) return { text: '', wants: [] };
   const want: Want = { source: src.source, system: src.system, start: lo, end: hi + 1, level: 1, priority: 'view' };
   if (data.coverage(src.source) === undefined) return { text: '', wants: [want] };
+  const keys = data.keysOf(want);
+  // none listed past the store's bound on a want's tiles: not held, as a tile not loaded
+  if (!keys.length && data.tooMany?.(want)) return { text: '', wants: [want] };
   const tables: LettersTable[] = [];
-  for (const key of data.keysOf(want)) {
+  for (const key of keys) {
     const e = data.get(key);
     if (e?.status === 'loaded') {
       if (e.tables.letters) tables.push(e.tables.letters);

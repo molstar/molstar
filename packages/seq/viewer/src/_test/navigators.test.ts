@@ -22,7 +22,7 @@ import {
   overviewNavigator,
   stripNavigator,
 } from '@molstar/seqx-core/lang';
-import type { DrawLists } from '@molstar/seqx-core/render';
+import { type DrawLists, SlimRailPx } from '@molstar/seqx-core/render';
 import type { NavigatorRenderer } from '@molstar/seqx-core/render/navigator';
 import { afterEach, describe, expect, it } from 'vitest';
 import { viewerItem } from '../config.js';
@@ -576,7 +576,9 @@ describe('an overview and a miniature over an alignment’s rows', () => {
     const r = sec.rail!;
     const ruler = sec.tracks[0].box;
     const share = v.context.renderConfig.navigator.rail.grabShare;
-    expect(r.top).toBeCloseTo(ruler.y + ruler.height * (1 - share), 6);
+    // the rail's row just below the ruler's border, its grab zone the ruler's lower share up from that row's foot
+    expect(r.bottom).toBeCloseTo(ruler.y + ruler.height + SlimRailPx, 6);
+    expect(r.top).toBeCloseTo(r.bottom - ruler.height * share, 6);
     const x = r.x + railFraction(r, 125);
     expect(v.hit(x, r.bottom - 1)?.navigator).toBe('rail');
     expect(v.hit(x, ruler.y + 1)?.navigator).toBeUndefined();

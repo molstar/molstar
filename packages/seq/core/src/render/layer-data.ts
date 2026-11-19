@@ -137,13 +137,25 @@ export function layerLevel(
 ): number {
   const levels = data.coverage(src.source)?.levels ?? [1];
   if (finest) return levels[0];
-  let level = fitLevel(levels, (coarser * src.ratio) / axis.devicePx);
+  return boundedLevel(levels, (coarser * src.ratio) / axis.devicePx, (axis.u1 - axis.u0) * src.ratio, data);
+}
+
+/**
+ * The coarsest of `levels` no wider than `positionsPerPixel`, and coarser still while `span` positions at it would
+ * want more tiles than the store's bound (`maxTilesPerWant`, where the reader says it): what a layer reads and what a
+ * template wants of a nested source, so neither asks for a long system a tile at level 1.
+ */
+export function boundedLevel(
+  levels: readonly number[],
+  positionsPerPixel: number,
+  span: number,
+  data: Pick<StoreReader, 'settings'>,
+): number {
+  let level = fitLevel(levels, positionsPerPixel);
   const s = data.settings;
-  if (s) {
-    const span = (axis.u1 - axis.u0) * src.ratio;
+  if (s)
     for (let i = levels.indexOf(level); i + 1 < levels.length && span / (s.tileBins * level) + 1 > s.maxTilesPerWant; )
       level = levels[++i];
-  }
   return level;
 }
 
@@ -186,7 +198,14 @@ export function readTiles(
       out.pending.push(start, end);
       continue;
     }
-    for (const key of data.keysOf(want)) {
+    const keys = data.keysOf(want);
+    // past the store's bound on a want's tiles none is listed or asked (`seq.store.too_many_tiles`): pending, never
+    // drawn as empty, at the cost of no key a tile (past a source's end none is listed either: nothing there)
+    if (!keys.length && data.tooMany?.(want)) {
+      out.pending.push(start, end);
+      continue;
+    }
+    for (const key of keys) {
       const e = data.get(key);
       if (e?.status === 'loaded') {
         if (!seen.has(key)) out.entries.push(e);
