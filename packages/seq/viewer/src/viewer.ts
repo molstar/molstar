@@ -1354,7 +1354,10 @@ export class SeqViewer extends ReactiveModel {
     e.hover = h;
   }
 
-  /** The highlight channels as drawn: each its Location on every section it shows on, in its channel's color. */
+  /**
+   * The highlight channels as drawn: each its Location on every section it shows on and its element keys, in its
+   * channel's color (the export's too, `_svgEmphasis`).
+   */
   private _updateHighlights(): void {
     const k = this._highlightsFor;
     const version = this.highlight.version.value;
@@ -1373,7 +1376,13 @@ export class SeqViewer extends ReactiveModel {
       const h = this.highlight.get(name);
       if (!h || isNothing(h)) continue;
       const location = this._projector.of(h.shown, { own: true }) ?? h.shown;
-      out.push({ location, color: highlightColorOf(this, name), ...(h.style ? { style: h.style } : {}) });
+      // its element keys too: a layer of keyed items draws those it holds (a pair's arc, EmphasisHighlight.elements)
+      out.push({
+        location,
+        color: highlightColorOf(this, name),
+        ...(h.elements.keys.length ? { elements: h.elements } : {}),
+        ...(h.style ? { style: h.style } : {}),
+      });
     }
     this._highlights = out;
     this._emphasis.highlights = out.length ? out : undefined;

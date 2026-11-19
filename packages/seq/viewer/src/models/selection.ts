@@ -689,7 +689,12 @@ export class HighlightModel extends ReactiveModel {
   private readonly _channels = new KeyedState<string, Emphasized>();
   private readonly _names = new State<readonly string[]>([]);
   private readonly _version = new State(0);
-  /** The channels that hold something, in the order they were first set. */
+  /** Every channel ever set, in the order first set: a channel cleared and set again keeps its place. */
+  private readonly _order: string[] = [];
+  /**
+   * The channels that hold something, in the order they were first set (kept across a clear: a channel set on each
+   * hover, the `linkedPairs` behavior's, never moves above the others, so the draw order and the legend stay put).
+   */
   readonly names: ReadonlyState<readonly string[]> = this._names.asReadonly;
   /** Moves on every change of any channel: what draws them listens to this. */
   readonly version: ReadonlyState<number> = this._version.asReadonly;
@@ -707,7 +712,10 @@ export class HighlightModel extends ReactiveModel {
     const old = this._channels.get(name);
     if (old && same(old, value)) return;
     this._channels.set(name, value);
-    if (!this._names.value.includes(name)) this._names.set([...this._names.value, name]);
+    if (!this._names.value.includes(name)) {
+      if (!this._order.includes(name)) this._order.push(name);
+      this._names.set(this._order.filter((n) => this._channels.get(n) !== undefined));
+    }
     this._version.set(this._version.value + 1);
   }
 

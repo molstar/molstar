@@ -472,6 +472,15 @@ function systemNodes(ctx: Ctx, addresses: readonly string[]): Named {
   return { kind: 'nodes', matches };
 }
 
+/**
+ * The systems an annotation's rows are on: its `systems` when it has them (a property its interface does not name: the
+ * resolver's pairs annotation sets it, its two ends' systems; internal to core), else `[target]`. Why: reach is
+ * decided without reading rows (an empty pairs annotation on two systems reaches both), and no public field is added.
+ */
+function systemsOfAnnotation(a: QueryAnnotation): readonly string[] {
+  return (a as { readonly systems?: readonly string[] }).systems ?? [a.target];
+}
+
 const items: Resolve = (ctx, form, prefix) => {
   checkParams(form, ['overlapping']);
   const anns = annotationsOf(ctx, prefix, 'items');
@@ -484,25 +493,33 @@ const items: Resolve = (ctx, form, prefix) => {
   if (loc?.rects.length)
     fail('seq.query.form.unsupported', 'Items overlap positions, not a rect', { hint: 'one of its sides' });
   // TODO: a location on another system reaches the targets by projection through the maps (the static model's paths);
-  // until then it is reported, never silently read as overlapping nothing
+  // until then it is reported, never silently read as overlapping nothing. Reach is decided per annotation, by its own
+  // systems (a pairs annotation's two, `systemsOfAnnotation`): read with the whole location when a part is on one of
+  // them; a part no annotation reaches is said unreachable.
+  const reach = anns.map(systemsOfAnnotation);
   if (loc)
     for (const p of loc.parts)
-      if (!targets.includes(p.system))
+      if (!reach.some((r) => r.includes(p.system)))
         ctx.issues.push(
           issueOf(QueryIssues, 'seq.query.location.unreachable', 'A location is on a system the items are not on', {
             address: p.system,
           }),
         );
   const out: ElementKey[] = [];
-  for (const a of anns) {
-    const ranges = loc && partOf(loc, a.target)?.ranges;
-    if (loc && !ranges) continue;
-    const length = ctx.model.system(a.target)?.length;
-    const read = a.items(ranges && rangesLocation(a.target, ranges));
+  for (let i = 0; i < anns.length; i++) {
+    const a = anns[i];
+    const systems = reach[i];
+    if (loc && !loc.parts.some((p) => systems.includes(p.system))) continue;
+    // one system (a ranges annotation): its own part alone, as it was always asked; more (a pair's ends): the whole
+    const read = a.items(loc && (systems.length === 1 ? rangesLocation(a.target, partOf(loc, a.target)!.ranges) : loc));
     stage(ctx, read.pending);
     for (const it of read.items) {
       tick(ctx);
-      if (!ranges || overlapsRanges(ranges, it.start, it.end, length)) out.push({ owner: a.address, key: it.key });
+      const system = it.system ?? a.target;
+      const ranges = loc && partOf(loc, system)?.ranges;
+      if (loc && !ranges) continue;
+      if (!ranges || overlapsRanges(ranges, it.start, it.end, ctx.model.system(system)?.length))
+        out.push({ owner: a.address, key: it.key });
     }
   }
   const e = elements(out);
@@ -585,7 +602,8 @@ function extentOf(ctx: Ctx, e: Elements): Location {
     if (!a) return fail('seq.query.form.prefix', 'An element’s owner is not an annotation', { address: owner });
     const read = a.items();
     stage(ctx, read.pending);
-    const ranges: number[] = [];
+    // by system: a pair's two ends may be on two
+    const bySystem = new Map<string, number[]>([[a.target, []]]);
     for (const it of read.items) {
       tick(ctx);
       if (!keys.has(it.key)) continue;
@@ -593,9 +611,12 @@ function extentOf(ctx: Ctx, e: Elements): Location {
         fail('seq.query.position.invalid', 'An item’s extent is not 32-bit positions with start ≤ end', {
           address: owner,
         });
+      const system = it.system ?? a.target;
+      let ranges = bySystem.get(system);
+      if (!ranges) bySystem.set(system, (ranges = []));
       ranges.push(it.start, it.end);
     }
-    parts.push({ system: a.target, ranges });
+    for (const [system, ranges] of bySystem) parts.push({ system, ranges });
   }
   return location({ parts });
 }

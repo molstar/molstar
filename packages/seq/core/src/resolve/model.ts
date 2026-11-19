@@ -1111,7 +1111,12 @@ class Model implements StaticModel {
   annotation(address: string): QueryAnnotation | undefined {
     if (this.queryAnnotations.has(address)) return this.queryAnnotations.get(address);
     const e = this.annotations.get(address);
-    const a = e?.shape === 'ranges' ? queryAnnotation(e, this.systems.get(e.target), this.config) : undefined;
+    const a =
+      e?.shape === 'ranges'
+        ? queryAnnotation(e, this.systems.get(e.target), this.config)
+        : e?.shape === 'pairs'
+          ? pairsQueryAnnotation(e, (s) => this.systems.get(s), this.config)
+          : undefined;
     this.queryAnnotations.set(address, a);
     return a;
   }
@@ -1171,11 +1176,71 @@ export function queryAnnotation(
     target: e.target,
     fields: e.fields,
     items(over?: Location): ItemsRead {
-      if (!e.items) return { items: [], pending: over ?? rangesLocation(e.target, [0, length]) };
       const part = over && partOf(over, e.target);
-      if (!over) return { items: e.items };
-      if (!part) return { items: [] };
+      // a location on none of its system asks nothing of it (no pending on another system)
+      if (over && !part) return { items: [] };
+      if (!e.items)
+        return {
+          items: [],
+          pending: part ? rangesLocation(e.target, part.ranges) : rangesLocation(e.target, [0, length]),
+        };
+      if (!part) return { items: e.items };
       return { items: e.items.filter((it) => overlapsRanges(part.ranges, it.start, it.end, length)) };
     },
   };
+}
+
+/**
+ * @internal A pairs annotation as the query forms read it (_spec/README.md "Queries", Pairs answer `items`): a pair one item, a
+ * row per end on its own system (`QueryItem.system`), so `(items :overlapping <location>)` gives the pairs with an end
+ * in the location, on either system. Its fields: `type`, `label` and the rows' other category columns. Held whole: the
+ * rows are made once, on first read.
+ */
+export function pairsQueryAnnotation(
+  e: AnnotationEntry,
+  systemOf: (address: string) => SystemEntry | undefined,
+  config: ResolveConfig,
+): QueryAnnotation {
+  const a = e.target;
+  const b = e.ySystem ?? e.target;
+  const lengthOf = (s: string) => systemOf(s)?.length ?? config.openQueryLength;
+  let rows: QueryItem[] | undefined;
+  const all = (): QueryItem[] => {
+    if (rows) return rows;
+    rows = [];
+    const d = e.pairs;
+    if (!d) return rows;
+    const extra = Object.entries(d.extra ?? {});
+    for (let k = 0; k < d.n; k++) {
+      const fields: Record<string, Atom> = { type: d.kind[k] < 0 ? null : d.kinds[d.kind[k]] };
+      if (d.labels) fields.label = d.labels[k] ?? null;
+      for (const [name, col] of extra) fields[name] = col[k] ?? null;
+      const key = d.keys[k];
+      rows.push({ key, start: d.aStart[k], end: d.aEnd[k], system: a, fields });
+      rows.push({ key, start: d.bStart[k], end: d.bEnd[k], system: b, fields });
+    }
+    return rows;
+  };
+  const out: QueryAnnotation & { readonly systems: readonly string[] } = {
+    address: e.address,
+    target: a,
+    fields: e.fields,
+    // its ends' systems, read by the query forms (internal: `QueryAnnotation` names no such field)
+    systems: b === a ? [a] : [a, b],
+    items(over?: Location): ItemsRead {
+      if (!over) return { items: all() };
+      const pa = partOf(over, a);
+      const pb = b === a ? pa : partOf(over, b);
+      if (!pa && !pb) return { items: [] };
+      const la = lengthOf(a);
+      const lb = lengthOf(b);
+      return {
+        items: all().filter((it) => {
+          const p = it.system === a ? pa : pb;
+          return !!p && overlapsRanges(p.ranges, it.start, it.end, it.system === a ? la : lb);
+        }),
+      };
+    },
+  };
+  return out;
 }

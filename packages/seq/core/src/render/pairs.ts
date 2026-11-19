@@ -33,6 +33,7 @@ import { RenderIssues } from './issues.js';
 import {
   type Box,
   type Emphasis,
+  type EmphasisHighlight,
   type Hit,
   type ItemDescription,
   type LayerType,
@@ -189,6 +190,17 @@ export class PairsLay {
   /** A path's points for a segment (two). */
   readonly seg = new Float64Array(4);
 }
+
+/** A lay's pairs lit by the highlight channels (module-private): what they were made for, and each pair's channel. */
+interface Lit {
+  /** The highlight channels and the prep `lit` was made for (the viewer keeps the list until a channel changes). */
+  for: readonly EmphasisHighlight[] | undefined;
+  prep: PairsPrep | undefined;
+  /** Each pair's highlight channel (its index + 1; 0 none): the last channel listing its key. */
+  lit: Int32Array;
+}
+
+const LitOf = new WeakMap<PairsLay, Lit>();
 
 /** The annotation a layer's data names: its address, else (a query) the annotation it starts at. */
 function annotationOf(model: StaticModel, address: string) {
@@ -463,6 +475,7 @@ export const PairsType: LayerType<PairsPrep, PairsLay> = {
       return;
     }
     if (emphasis && (pass === 'hover' || pass === 'selection')) drawEmphasis(lay, pass, out, emphasis);
+    else if (pass === 'highlight' && emphasis?.highlights) drawHighlights(lay, out, emphasis.highlights);
   },
 
   items: pairItems,
@@ -1170,6 +1183,89 @@ function drawEmphasis(lay: PairsLay, pass: PassName, out: PassWriter, e: Emphasi
     p[3] = lay.segs[5 * i + 3];
     g[4] = NoColor;
     g[5] = ink;
+    g[6] = lay.segs[5 * i + 4] + 2;
+    g[7] = 0;
+    out.pathArgs(p, 2, false);
+  }
+}
+
+/**
+ * Each pair's highlight channel, made again when the channels change (by identity: the viewer keeps the list): the
+ * last channel whose element keys name the pair (a key names its first pair, as `index` does).
+ */
+function litOf(lay: PairsLay, highlights: readonly EmphasisHighlight[]): Int32Array {
+  const prep = lay.prep!;
+  let l = LitOf.get(lay);
+  if (!l) LitOf.set(lay, (l = { for: undefined, prep: undefined, lit: new Int32Array(0) }));
+  if (l.for === highlights && l.prep === prep) return l.lit;
+  const n = prep.data?.n ?? 0;
+  if (l.lit.length < n) l.lit = new Int32Array(n);
+  const lit = l.lit;
+  lit.fill(0);
+  for (let c = 0; c < highlights.length; c++) {
+    const keys = highlights[c].elements?.keys;
+    if (!keys) continue;
+    for (let i = 0; i < keys.length; i++) {
+      if (keys[i].owner !== prep.owner) continue;
+      const k = prep.index.get(keys[i].key);
+      if (k !== undefined) lit[k] = c + 1;
+    }
+  }
+  l.for = highlights;
+  l.prep = prep;
+  return lit;
+}
+
+/**
+ * The highlight channels' pairs (_spec/README.md "Render", The pairs layer, Highlight): each pair a channel lists by its
+ * key drawn over in the channel's color, as the selection's are in the accent (arcs, chords, dots and stretches).
+ */
+function drawHighlights(lay: PairsLay, out: PassWriter, highlights: readonly EmphasisHighlight[]) {
+  if (!lay.prep?.data) return;
+  let any = false;
+  for (let c = 0; c < highlights.length && !any; c++) any = !!highlights[c].elements?.keys.length;
+  if (!any) return;
+  const lit = litOf(lay, highlights);
+  const width = lay.config!.outline.selection + 1;
+  const g = out.args;
+  if (lay.mode === 'arcs') {
+    if (lay.clip) clipTo(out, lay.clip);
+    for (let i = 0; i < lay.n; i++) {
+      const c = lit[lay.pair[i]];
+      if (!c) continue;
+      g[4] = NoColor;
+      g[5] = highlights[c - 1].color;
+      g[6] = width;
+      g[7] = 0;
+      out.curveArgs(lay.curve, 8 * i);
+    }
+    if (lay.clip) out.unclip();
+    return;
+  }
+  for (let i = 0; i < lay.nd; i++) {
+    const c = lit[lay.dotPair[i]];
+    if (!c) continue;
+    g[0] = lay.dots[4 * i];
+    g[1] = lay.dots[4 * i + 1];
+    g[2] = lay.dots[4 * i + 2];
+    g[3] = lay.dots[4 * i + 3];
+    g[4] = NoColor;
+    g[5] = highlights[c - 1].color;
+    g[6] = width - 1;
+    g[7] = 0;
+    g[8] = 0;
+    out.rectArgs();
+  }
+  const p = lay.seg;
+  for (let i = 0; i < lay.ns; i++) {
+    const c = lit[lay.segPair[i]];
+    if (!c) continue;
+    p[0] = lay.segs[5 * i];
+    p[1] = lay.segs[5 * i + 1];
+    p[2] = lay.segs[5 * i + 2];
+    p[3] = lay.segs[5 * i + 3];
+    g[4] = NoColor;
+    g[5] = highlights[c - 1].color;
     g[6] = lay.segs[5 * i + 4] + 2;
     g[7] = 0;
     out.pathArgs(p, 2, false);

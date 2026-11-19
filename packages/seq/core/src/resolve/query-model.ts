@@ -13,7 +13,7 @@
 import type { Atom, Node } from '@molstar/core/repr/tree';
 import type { CellsTable, DataStore, Want } from '@molstar/seqx-core/data';
 import type { QueryAnnotation, QueryModel, QuerySystem } from '@molstar/seqx-core/query';
-import { queryAnnotation, type StaticModel } from './model.js';
+import { pairsQueryAnnotation, queryAnnotation, type StaticModel } from './model.js';
 import { nodeAddress, type Overlay } from './overlay.js';
 
 /** What a row form reads of an alignment's rows read from a source: the store's loaded tiles, and how to ask for them. */
@@ -65,7 +65,9 @@ export function overlayQueryModel(model: StaticModel, overlay: Overlay, rows?: R
       const out =
         e?.shape === 'ranges'
           ? queryAnnotation(e, model.systems.get(e.target) ?? overlay.system(e.target), model.config)
-          : undefined;
+          : e?.shape === 'pairs'
+            ? pairsQueryAnnotation(e, (s) => model.systems.get(s) ?? overlay.system(s), model.config)
+            : undefined;
       annotations.set(address, out);
       return out;
     },
