@@ -360,3 +360,6 @@ None.
   should only display when you actually hover on the species column"): a row column's cut value whole only under the
   pointer (grids-and-rows.md, the core `_spec`); lane RX (fast) at the next free slot. Use findings so far: bug 2,
   missing design 4, look 1.
+- Decided (the author, 2026-11-19: the clade visuals "quite ugly", the line widths uneven; "Light wedge"): branches
+  snapped to device pixels, the wedge a light outlined triangle to the deepest leaf (grids-and-rows.md, the Design
+  page); folded into RX (now strong: the rows layer's look). Use findings: bug 2, missing design 4, look 3.

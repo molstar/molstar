@@ -355,6 +355,12 @@ position it say to the right of the sequence data"; the base's data columns, Jal
   Bulk commands and reveal are jumps of the view's history, so back restores the set and the rows' window together; a
   single toggle is not (as a hand's move). A toggle by hand animates the rows' heights as a jump does (`view.motion`,
   `view.jumpMs`; a cut under reduced motion).
+- **The tree's look** (decided, the author, 2026-11-19: "the (collapsed) clade visuals are quite ugly. and the different
+  line thickness too"; "Light wedge"): every branch one width, snapped to device pixels (a 1 px line centred on a
+  fractional coordinate smeared over two device pixels, so widths varied); a folded clade's wedge a triangle filled
+  with a light tint of the branch ink and outlined in the branch ink at the branches' width, from the clade's node to
+  its deepest leaf's x (by branch length, as its leaves would sit), its far side about half the row high with softened
+  corners; hovered, its fill a step darker. Why: the solid triangle at the tree's full width read as a heavy blade.
 - **The summary row**: the label "first +n" beside a wedge; its cells the clade's per-column consensus (the layer's `summary`:
   `consensus`, majority letter opaque by share; `logo`, a small logo; `bar`, the non-gap share), **computed exactly
   from the cells when the clade folds** and cached by (clade, entry version, theme): folded clades are disjoint, so
