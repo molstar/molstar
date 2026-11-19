@@ -9,6 +9,7 @@ import {
   type Placement,
   PlacePoint,
   type Rail,
+  RowsRail,
   railUnitAt,
   type Hit as RenderHit,
   RingPlacement,
@@ -34,6 +35,8 @@ import {
   NavigatorProvider,
   NavigateProvider,
   RowsProvider,
+  RowsRailGesture,
+  type RowsRailWindow,
   type SelectBehavior,
   SelectProvider,
   trackOfLayer,
@@ -124,8 +127,18 @@ export class ViewerInput {
         /** A ruler rail's press (its part, outside it a click or a sweep): the `navigator` behavior's. */
         rail?: Rail;
         part?: WindowPart;
+        /** A rows rail's press (upright: along the page's y): the rows rail's gesture. */
+        rowsRail?: Rail;
       }
     | undefined;
+  /** A rows rail's press that never moved: its click centres the rows there (outside the window). */
+  private _rowsRailClick: { track: string; at: number; part: WindowPart; window: RowsRailWindow } | undefined;
+  /** The rows rails' gestures (a rows band's scroll and zoom by its rail). */
+  private _rowsRailGesture: RowsRailGesture | undefined;
+  private get rowsRailGesture(): RowsRailGesture {
+    this._rowsRailGesture ??= new RowsRailGesture(this.viewer.view, this.viewer.config);
+    return this._rowsRailGesture;
+  }
   /** A rail's press that never moved: its click (the platform's, after the button went up) centres or not. */
   private _railClick: { section: string; at: number; part: WindowPart } | undefined;
   /** The pointer is a finger (the last pointer event's kind): a window's hit is wider. */
@@ -192,16 +205,24 @@ export class ViewerInput {
     return this._windowHit ? 'grab' : undefined;
   }
 
-  /** The window under the pointer as lit: copied when it changes (its section, part or navigator), a frame asked. */
+  /** The window under the pointer as lit: copied when it changes (its section, part, navigator or layer), a frame asked. */
   private _windowHover(hit: RenderHit | undefined): void {
     const h = hit?.target === 'window' && hit.part ? hit : undefined;
     const w = this._windowHit;
-    if (h?.section === w?.section && h?.part === w?.part && h?.navigator === w?.navigator) return;
+    if (h?.section === w?.section && h?.part === w?.part && h?.navigator === w?.navigator && h?.layer === w?.layer)
+      return;
     this._windowHit = h && { ...h };
     this.viewer.schedule();
   }
 
   /** A section's rail in the last frame. */
+  /** A rows rail of the last frame, by its track's address. */
+  private _rowsRailOf(track: string): Rail | undefined {
+    for (const s of this.viewer.frame?.layout.sections ?? [])
+      for (const r of s.rowsRails ?? []) if (r.key === track) return r;
+    return undefined;
+  }
+
   private _railOf(section: string): Rail | undefined {
     const sections = this.viewer.frame?.layout.sections;
     if (!sections) return undefined;
@@ -362,7 +383,11 @@ export class ViewerInput {
     this._windowHover(this._renderHit);
     if (d) {
       if (!d.moved && Math.max(Math.abs(x - d.x0), Math.abs(y - d.y0)) >= DragSlop) d.moved = true;
-      if (d.rail) {
+      if (d.rowsRail) {
+        d.x = x;
+        d.y = y;
+        if (d.moved) this.rowsRailGesture.dragTo(railUnitAt(d.rowsRail, y));
+      } else if (d.rail) {
         d.x = x;
         d.y = y;
         if (d.moved) this.navigatorBehavior?.dragTo(railUnitAt(d.rail, x));
@@ -416,12 +441,37 @@ export class ViewerInput {
     // a new press: a click after it is its own
     this._suppressClick = false;
     this._railClick = undefined;
+    this._rowsRailClick = undefined;
     this._touch = e.pointerType === 'touch';
     const section = this.sectionAt(y);
     if (section === undefined) return false;
     const mods = this._modifiers(e);
     const hit = this._hitAt(x, y);
     const target = hitTarget(hit);
+    // a rows rail's part (_spec/README.md "Input", Navigators, The rows rail): its window scrolls, a grip zooms the rows
+    const rowsRail =
+      target === 'window' && hit?.navigator === RowsRail && hit.layer && !this._space
+        ? this._rowsRailOf(hit.layer)
+        : undefined;
+    if (rowsRail && hit?.part) {
+      if (!this.rowsRailGesture.press(rowsRail.key, hit.part, railUnitAt(rowsRail, y), rowsRail)) return false;
+      this._drag = {
+        x,
+        y,
+        x0: x,
+        y0: y,
+        section,
+        target,
+        select: false,
+        window: true,
+        moved: false,
+        rowsRail,
+        part: hit.part,
+      };
+      this._dragHit = this._renderHit && { ...this._renderHit };
+      this.viewer.schedule();
+      return true;
+    }
     // a ruler rail's part (_spec/README.md "Input", Navigators): its window dragged, outside it a click or a sweep, by
     // the navigator behavior at the rail's scale
     const rail = target === 'window' && hit?.navigator === 'rail' && !this._space ? this._railOf(section) : undefined;
@@ -479,6 +529,23 @@ export class ViewerInput {
       this._dragHit = undefined;
       this.viewer.schedule();
     }
+    if (d.rowsRail) {
+      const g = this.rowsRailGesture;
+      const r = d.rowsRail;
+      // a press that never moved waits for its click: outside the window it centres the rows there
+      if (!d.moved) {
+        g.cancel();
+        this._rowsRailClick = {
+          track: r.key,
+          at: railUnitAt(r, d.y0),
+          part: d.part ?? 'body',
+          window: { start: r.start, end: r.end, total: r.total, width: r.width },
+        };
+      } else g.release();
+      this._suppressClick = true;
+      this._drag = undefined;
+      return;
+    }
     if (d.rail) {
       const nav = this.navigatorBehavior;
       // a press that never moved waits for its click (the platform's, with its count): outside the window it centres
@@ -506,6 +573,13 @@ export class ViewerInput {
     // a jump's motion stops where it is drawn: the input reads one picture
     this.viewer.stopMotion();
     // a rail's click: outside its window it centres there (a jump, its own step); its second a double-click's
+    const rr = this._rowsRailClick;
+    if (rr) {
+      this._rowsRailClick = undefined;
+      this._suppressClick = false;
+      this.rowsRailGesture.click(rr.track, rr.part, rr.at, rr.window, e.detail ?? 1);
+      return true;
+    }
     const rc = this._railClick;
     if (rc) {
       this._railClick = undefined;
@@ -654,6 +728,8 @@ export class ViewerInput {
     if (section === undefined) return false;
     const mods = this._modifiers(e);
     const hit = this._hitAt(x, y);
+    // on a rows rail: nothing (its first click centred, or not)
+    if (hit?.target === 'window' && hit.navigator === RowsRail) return true;
     // on a ruler rail: the navigator's double-click (fit, or fitted a window `navigator.zoomPx` px wide there)
     const rail = hit?.target === 'window' && hit.navigator === 'rail' ? this._railOf(section) : undefined;
     const nav = this.navigatorBehavior;
@@ -785,7 +861,8 @@ export class ViewerInput {
     // Esc during a drag-select cancels it: the selection before it comes back, and the click after it is none
     // Esc during a window's drag puts the view back where the press found it
     if (e.key === 'Escape' && this._drag?.window) {
-      if (this._drag.rail) this.navigatorBehavior?.cancel();
+      if (this._drag.rowsRail) this.rowsRailGesture.cancel();
+      else if (this._drag.rail) this.navigatorBehavior?.cancel();
       else this.windowBehavior?.cancel();
       this._dragHit = undefined;
       this._drag = undefined;

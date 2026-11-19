@@ -65,8 +65,8 @@ export const RowsActions: readonly string[] = CladeActions;
  * band's whole family; 40 is twice a letter row, past which a row reads no better).
  */
 const ZoomStep = 2;
-const MinRowScale = 1 / 64;
-const MaxRowScale = 40;
+export const MinRowScale = 1 / 64;
+export const MaxRowScale = 40;
 
 export interface RowsBehavior {
   readonly commands: readonly CommandDefinition<RowsContext>[];

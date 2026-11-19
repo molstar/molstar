@@ -10,6 +10,7 @@ import type { RenderConfig } from './config.js';
 import type { PassWriter } from './draw-lists.js';
 import type { Box, Emphasis, Hit, HitTarget } from './layer-type.js';
 import type { WindowPart } from './layout/types.js';
+import type { RowsLay } from './rows.js';
 import type { SeqTokens } from './tokens.js';
 import { floorExtent, navigatorPart } from './window.js';
 
@@ -21,6 +22,11 @@ import { floorExtent, navigatorPart } from './window.js';
 // drag runs; idle (the view cannot move) a quiet hairline with no grips and no target, so a press falls through to the
 // ruler; in a figure (an export that includes navigators) a plain segment, no grips, no idle state. Collapsed breaks a
 // notch each; a window over a cyclic origin two pieces, a grip at each true end.
+//
+// The rows rail is the same rail turned upright (one geometry: its along axis is the page's y, its line and grab zone
+// across it on x): a rows layer's default navigator, at the right edge of its band beside the right gutter's numbers,
+// `SlimRailPx` wide, the whole of its scrolled rows along the band's scrolled area, its window the rows in view. Idle
+// while every row is shown.
 
 /**
  * The slim rail row's height, CSS px, fixed: the least a 2 px rail and its grips need to be seen and grabbed, at a
@@ -28,13 +34,25 @@ import { floorExtent, navigatorPart } from './window.js';
  */
 export const SlimRailPx = 12;
 
-/** A section's rail: where it is drawn and hit, and the window it shows (in the section's own display units). */
+/**
+ * A section's rail, or a rows band's (upright): where it is drawn and hit, and the window it shows (in the section's
+ * own display units; a rows rail's in display rows below the pinned band).
+ */
 export class Rail {
-  /** The section's address, id and system. */
+  /** The section's address, id and system (a rows rail's: its rows system). */
   section = '';
   id = '';
   system = '';
-  /** The data box's x and width; the rail's line; its grab zone. */
+  /** What says whether it can move (`railsActive`): the section's address, a rows rail's track's. */
+  key = '';
+  /** Upright: a rows rail (its along axis the page's y, its line and grab zone across it on x). */
+  vertical = false;
+  /** Every row is shown (a rows rail): idle whatever the view can do. */
+  whole = false;
+  /**
+   * Along the rail: where its axis starts and its length (a section's data box's x and width; a rows rail's scrolled
+   * area's y and height). Across it: the line, and the grab zone's two sides (a rows rail's: x).
+   */
   x = 0;
   width = 0;
   y = 0;
@@ -74,7 +92,10 @@ const GripRise = 3;
 /** An idle window's opacity: quiet. */
 const IdleAlpha = 0.4;
 
-/** The display unit at x on a rail (the whole axis across the data box): what a drag on it reads. */
+/**
+ * The display unit at a point on a rail (the whole axis along it): what a drag on it reads; `x` along the rail (a rows
+ * rail's: the page's y).
+ */
 export function railUnitAt(rail: Rail, x: number): number {
   return ((x - rail.x) / rail.width) * rail.total;
 }
@@ -96,6 +117,11 @@ export function placeRail(
   figure = false,
 ): void {
   rail.section = section.address;
+  rail.key = section.address;
+  rail.vertical = false;
+  rail.whole = false;
+  rail.hit.layer = section.address;
+  rail.hit.navigator = 'rail';
   rail.figure = figure;
   rail.id = sectionId;
   rail.system = section.axis.system;
@@ -138,6 +164,41 @@ export function placeRail(
   for (let i = 0; i < b.length; i += 3) rail.breaks.push(b[i]);
 }
 
+/**
+ * Places a rows layer's rail (`track` its address): upright at `x` (its left side, `SlimRailPx` wide), along the band's
+ * scrolled area (below the pinned rows), its window the rows in view, in display rows below the pinned band.
+ */
+export function placeRowsRail(rail: Rail, lay: RowsLay, track: string, sectionId: string, x: number, figure = false) {
+  const d = lay.display;
+  const rows = Math.max(0, d.count - d.pinned);
+  const area = Math.max(0, lay.box.height - lay.pinnedHeight);
+  rail.section = lay.section;
+  rail.key = track;
+  rail.vertical = true;
+  rail.hit.layer = track;
+  rail.hit.navigator = RowsRail;
+  rail.figure = figure;
+  rail.id = sectionId;
+  rail.system = lay.rowsSystem;
+  rail.x = lay.box.y + lay.pinnedHeight;
+  rail.width = area;
+  rail.slim = true;
+  rail.top = x;
+  rail.bottom = x + SlimRailPx;
+  rail.y = x + SlimRailPx / 2;
+  rail.total = rows;
+  rail.start = Math.max(0, Math.min(rows, lay.top));
+  rail.end = Math.max(rail.start, Math.min(rows, lay.top + area / Math.max(1e-9, lay.rowScale)));
+  rail.whole = rail.start <= 0 && rail.end >= rows;
+  rail.shape.ranges = [0, rows];
+  rail.shape.dir = 1;
+  rail.shape.cyclic = false;
+  rail.breaks.length = 0;
+}
+
+/** A rows rail's hit's `navigator`. */
+export const RowsRail = 'rows-rail';
+
 const Ends = new Float64Array(4);
 
 /** The window's ends on the rail, px (the first piece over a cyclic origin: from its start to the axis's end). */
@@ -152,10 +213,21 @@ function windowEnds(rail: Rail, config: RenderConfig): void {
   floorExtent(Ends, 0, config.navigator.window);
 }
 
-/** The rect in `out.args` (x, y, width, height, fill), written unless empty (numbers through the array: never boxed). */
-function emit(out: PassWriter): void {
+/**
+ * The rect in `out.args` (along, across, length, thickness, fill; upright: turned to x, y, width, height), written
+ * unless empty (numbers through the array: never boxed).
+ */
+function emit(out: PassWriter, vertical: boolean): void {
   const g = out.args;
   if (!(g[2] > 0) || !(g[3] > 0)) return;
+  if (vertical) {
+    const a = g[0];
+    const l = g[2];
+    g[0] = g[1];
+    g[1] = a;
+    g[2] = g[3];
+    g[3] = l;
+  }
   g[5] = 0;
   g[6] = 0;
   g[7] = 0;
@@ -181,20 +253,21 @@ export function drawRail(
   g[2] = rail.width;
   g[3] = Line;
   g[4] = line;
-  emit(out);
+  emit(out, rail.vertical);
   for (let i = 0; i < rail.breaks.length; i++) {
     g[0] = rail.x + (rail.breaks[i] / rail.total) * rail.width - 0.5;
     g[1] = rail.y - 2;
     g[2] = 1;
     g[3] = 4;
     g[4] = line;
-    emit(out);
+    emit(out, rail.vertical);
   }
   if (!(rail.total > 0)) return;
   const h = emphasis?.hover;
   const d = emphasis?.drag;
-  const lit = h?.target === 'window' && h.navigator === 'rail' && h.section === rail.id ? h.part : undefined;
-  const dragged = d?.navigator === 'rail' && d.section === rail.id;
+  const own = rail.hit.navigator;
+  const lit = h?.target === 'window' && h.navigator === own && h.layer === rail.key ? h.part : undefined;
+  const dragged = d !== undefined && d.navigator === own && d.layer === rail.key;
   const plain = rail.active || rail.figure;
   const grown = rail.active && (lit !== undefined || dragged);
   const t = grown ? config.navigator.rail.grownPx : plain ? Rest : Line;
@@ -210,7 +283,7 @@ export function drawRail(
     g[2] = k === 0 ? Ends[1] - Ends[0] : b - rail.x;
     g[3] = t;
     g[4] = color;
-    emit(out);
+    emit(out, rail.vertical);
   }
   if (!rail.active) return;
   const grip = tokens.colors['seq-grip'];
@@ -223,7 +296,7 @@ export function drawRail(
     g[2] = 2;
     g[3] = gh;
     g[4] = on ? ink : grip;
-    emit(out);
+    emit(out, rail.vertical);
   }
 }
 
@@ -232,7 +305,10 @@ export function drawRail(
  * undefined idle or elsewhere. Over a cyclic origin the window's two pieces meet the axis's ends as body: its grips are
  * at its true ends only.
  */
-export function hitRail(rail: Rail, x: number, y: number, config: RenderConfig, touch = false): Hit | undefined {
+export function hitRail(rail: Rail, px: number, py: number, config: RenderConfig, touch = false): Hit | undefined {
+  // along the rail and across it (upright: the page's y and x)
+  const x = rail.vertical ? py : px;
+  const y = rail.vertical ? px : py;
   if (!rail.active || !(rail.total > 0) || y < rail.top || y >= rail.bottom) return undefined;
   const c = config.navigator.window;
   windowEnds(rail, config);
@@ -248,7 +324,6 @@ export function hitRail(rail: Rail, x: number, y: number, config: RenderConfig, 
   }
   if (!part) return undefined;
   const h = rail.hit;
-  h.layer = rail.section;
   h.section = rail.id;
   h.system = rail.system;
   h.part = part;

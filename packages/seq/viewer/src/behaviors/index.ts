@@ -15,6 +15,7 @@ export * from './navigate.js';
 export * from './navigator.js';
 export * from './providers.js';
 export * from './rows.js';
+export * from './rows-rail.js';
 export * from './select.js';
 export * from './theming.js';
 export * from './window.js';

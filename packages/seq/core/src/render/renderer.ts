@@ -201,7 +201,10 @@ function railsActive(layout: ViewLayout, active: FrameInput['railsActive']): voi
   const s = layout.sections;
   for (let i = 0; i < s.length; i++) {
     const r = s[i].rail;
-    if (r) r.active = active?.[s[i].section.address] === true;
+    if (r) r.active = active?.[r.key] === true;
+    // a rows rail is idle while every row is shown, whatever the view can do
+    const rows = s[i].rowsRails;
+    for (let j = 0; rows && j < rows.length; j++) rows[j].active = active?.[rows[j].key] === true && !rows[j].whole;
   }
 }
 

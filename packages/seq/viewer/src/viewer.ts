@@ -23,6 +23,7 @@ import {
   type Viewport as RenderViewport,
   hitView,
   railSections,
+  rowsRailTracks,
   resolveColor,
   sectionLayoutName,
   textMinScale,
@@ -192,6 +193,8 @@ export class SeqViewer extends ReactiveModel {
   /** Bumped when a host's navigator comes or goes: the rails it replaces are found again. */
   private _hostedVersion = 0;
   private _railsActive: Record<string, boolean> = {};
+  /** The rails' keys that are rows tracks' (a rows rail). */
+  private _rowsRails: ReadonlySet<string> = new Set();
   /** The navigators' models by id: the view's declared ones as asked for, and a host's (`navigator(def)`). */
   private readonly _navigators = new Map<string, NavigatorModel>();
   /** The spec the last frame drew, the step shown, and whether `playStep` is entering one (no second transition). */
@@ -1089,8 +1092,9 @@ export class SeqViewer extends ReactiveModel {
 
   /**
    * The rails this frame draws (_spec/README.md "Composition", Navigators): every linear section no shown navigator
-   * binds, while `navigator.form` is `rail` and the reader shows them; each active when the view can move it (the
-   * `navigator` behavior listed, not idle: idle is the whole axis at the zoom limit, a follower under `ignore`).
+   * binds, and every rows track no navigator binds along its rows (a rows rail), while `navigator.form` is `rail` and
+   * the reader shows them; each active when the view can move it (the `navigator` behavior listed, not idle: idle is
+   * the whole axis at the zoom limit, a follower under `ignore`; a rows rail's every row shown, the layout's).
    */
   private _updateRails(resolved: ResolvedView): void {
     const on = this.config.navigator.form === 'rail' && this._railsShown.value;
@@ -1105,20 +1109,24 @@ export class SeqViewer extends ReactiveModel {
         const n = m.isHosted ? m.navigator : undefined;
         if (n) hosted.push(n);
       }
-      this._rails = on ? Object.fromEntries(railSections(resolved, hosted).map((a) => [a, true as const])) : undefined;
+      // and every rows layer's rows rail, by its track (a navigator over the section's rows replaces it)
+      const rows = on ? rowsRailTracks(resolved, hosted) : [];
+      this._rowsRails = new Set(rows);
+      this._rails = on
+        ? Object.fromEntries([...railSections(resolved, hosted), ...rows].map((a) => [a, true as const]))
+        : undefined;
       this._railsActive = {};
     }
     const rails = this._rails;
     if (!rails) return;
     const behavior = this._handles.has(NavigatorProvider);
     let changed = false;
-    for (const a in rails) {
-      const active = behavior && !windowIdle(this.view, a, this.config);
-      if (this._railsActive[a] !== active) changed = true;
-    }
+    // a rows rail can move while the behavior is there (idle while every row shows: the layout knows, `whole`)
+    const can = (a: string) => behavior && (this._rowsRails.has(a) || !windowIdle(this.view, a, this.config));
+    for (const a in rails) if (this._railsActive[a] !== can(a)) changed = true;
     if (!changed) return;
     const next: Record<string, boolean> = {};
-    for (const a in rails) next[a] = behavior && !windowIdle(this.view, a, this.config);
+    for (const a in rails) next[a] = can(a);
     this._railsActive = next;
   }
 

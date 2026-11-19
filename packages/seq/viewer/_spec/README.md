@@ -382,9 +382,10 @@ refuses (its own report), is forgotten so the next sync tries again. Retired wit
   rails (`navigator.form: rail`, the default): every linear section no shown navigator binds along its positions, the
   view's declared ones and a host's (`viewer.navigator(def)`) alike, a hidden one bringing the rail back
   (`railSections`); each active while the `navigator` behavior is listed and its window is not idle, found again after
-  the layout placed the view (an idle flip drawn in the same frame, the window pass alone). The viewer's export leaves
-  the rails out with its navigators (its picture without its chrome: no slim row); with `navigators: include` they are
-  drawn plain.
+  the layout placed the view (an idle flip drawn in the same frame, the window pass alone). Each rows layer's band has a
+  rows rail (`rowsRailTracks`, by its track: replaced by a shown overview or miniature over its section), live while the
+  behavior is listed, idle while every row shows (the layout's). The viewer's export leaves the rails out with its
+  navigators (its picture without its chrome: no slim row); with `navigators: include` they are drawn plain.
 - `SeqViewerSpec`: `registry` (the core's entries), `behaviors` (a provider and its params), `bindings` (a preset,
   override layers, extra action ids), `config` (`[item, value]` pairs), `ports` (factories with ownership), `ui` (the
   parts; none for a headless viewer), `history` (the history port). `DefaultSeqViewerSpec()`
@@ -560,6 +561,13 @@ binding table; per move one hit record and one modifiers record are reused.
   body nothing; a double-click on the rail is the navigator's (`toggle-fit`, `navigator.zoomPx` at the rail's scale). An
   idle rail is no target: the press falls through to the ruler (on an alignment's columns, a column pick above the grab
   zone).
+- **The rows rail** (`RowsRailGesture`, `behaviors/rows-rail.ts`): a press on its grab zone, in display rows at the
+  rail's scale (`railUnitAt` of the page's y): its body scrolls the rows (`bandTop`, clamped to the last rows), a grip
+  zooms them about the other end, which stays (`rowScale` within the rows behavior's bounds, `MinRowScale` to
+  `MaxRowScale`, never past the rows there are), each by the rows the pointer travelled (a floored window reaches every
+  row); a drag farther than the rows in view, or a zoom, is one step (`navigator.dragStep`); Esc puts the band back. A
+  press that never moved acts at its click: outside the window the rows centre there (a jump), on the window nothing; a
+  double-click nothing more. `]` and `[` (the rows behavior's `rows.zoom-in`, `rows.zoom-out`) zoom the rows.
 
 - **Round a ring** (a section whose window `wraps`), the placement read by angle: a zoom keeps the unit under the
   pointer's angle (the turn nearest the window, `RingsNav.zoom`); a pan drag (Space+drag) moves the window by the units

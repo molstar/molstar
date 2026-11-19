@@ -145,9 +145,10 @@ export {
   NavigatorWindow,
   navigatorBox,
   railSections,
+  rowsRailTracks,
   windowText,
 } from './navigator.js';
-export { drawRail, hitRail, placeRail, Rail, railUnitAt } from './rail.js';
+export { drawRail, hitRail, placeRail, placeRowsRail, Rail, RowsRail, railUnitAt, SlimRailPx } from './rail.js';
 export { type BandsLay, type BandsPrep, BandsType } from './bands.js';
 export { type LettersLay, type LettersPrep, LettersType, shownLetters } from './letters.js';
 export { type RangesLay, type RangesPrep, RangesType } from './ranges.js';

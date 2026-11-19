@@ -1299,7 +1299,8 @@ grip's share of the thickness) is fixed. Its numbers reach the pass through arra
 
 ### Navigators
 
-`render/navigator.ts` (`NavigatorRenderer`, `navigatorBox`, `railSections`, `windowText`) and `render/rail.ts`:
+`render/navigator.ts` (`NavigatorRenderer`, `navigatorBox`, `railSections`, `rowsRailTracks`, `windowText`) and
+`render/rail.ts`:
 
 - **The picture**: a navigator lays its system whole out (the fit window, in the bound section's display order;
   `direction: genomic` up whatever the section's) as a view of its own over the spec's data, resolved like any
@@ -1332,10 +1333,10 @@ grip's share of the thickness) is fixed. Its numbers reach the pass through arra
   hairline. A navigator never draws in a section's lists.
 - **Hits** (`hit`): the window part under a point, its section and axis, the position on the navigator's system, the
   display row, a band's name (the `bands` layer's hit `state`). A navigator's hover is its own: a readout.
-- **The ruler rail** (`Rail`, `FrameInput.rails` and `railsActive`, by section address; the viewer's): drawn on the
-  first shown ruler's bottom border, else in a slim row of its own under the section's tracks (`SlimRailPx`, 12, fixed:
-  the form's size, the least a rail and its grips need; a hidden ruler too; under, not above: the tracks keep their
-  place); the whole axis across the data box, the window a segment with a grip each end (over a cyclic origin two
+- **The ruler rail** (`Rail`, `FrameInput.rails` and `railsActive`, by section address, `key`; the viewer's): drawn on
+  the first shown ruler's bottom border, else in a slim row of its own under the section's tracks (`SlimRailPx`, 12,
+  fixed: the form's size, the least a rail and its grips need; a hidden ruler too; under, not above: the tracks keep
+  their place); the whole axis across the data box, the window a segment with a grip each end (over a cyclic origin two
   pieces, a grip at each true end, the axis's ends body), collapsed breaks a notch; its grab zone the ruler's row (on an
   alignment's columns its lower `grabShare`: above it a drag selects columns), the slim row whole; grown (`grownPx`)
   while hovered or dragged (`Emphasis.drag`); idle (not active) a quiet hairline with no grips and no target (at the fit
@@ -1345,6 +1346,17 @@ grip's share of the thickness) is fixed. Its numbers reach the pass through arra
   frame, an emphasis redraw too (an idle flip redraws the window pass alone). `railSections(view, hosted)`: every tracks
   section no shown navigator binds along its positions: a declared navigator and a host's replace its rail, a hidden one
   brings it back.
+- **The rows rail** (`placeRowsRail`, `SectionLayout.rowsRails`; `FrameInput.rails` by the rows track's address): the
+  same `Rail` upright (`vertical`: along the page's y, its line and grab zone across on x; one geometry, drawn and hit
+  by the same code, the coordinates turned at the rect and at the hit), `SlimRailPx` wide at the right edge (right of
+  the last numbers' gutter: the gutter widened by it while any rows rail is on, so the data keeps its width idle or
+  live), along the band's scrolled area below its pinned rows, in display rows below the pinned band; its window the
+  rows in view. Idle while every row is shown (`whole`, the layout's: the renderer sets `active` only when the viewer
+  says it can move and not `whole`). Its hit is the `window` target with `navigator: 'rows-rail'` (`RowsRail`), its
+  `layer` the track, `position` the display row. `rowsRailTracks(view, hosted)`: each tracks section's tracks with a
+  rows layer shown, unless a shown navigator binds the section along its rows (`rows` or `both`): an overview or a
+  miniature replaces it, a hidden one brings it back. Why: the design's "simple slider navigator for vertical
+  scrolling", the rail a linear section has, so a tall alignment can be scrolled and zoomed with no declared part.
 
 ### Rings layout
 

@@ -216,8 +216,9 @@ links, selection, the security bounds, MessagePack). Next, version 1's second mi
 - Navigators, after the first build: a row zoom dragged on an overview's ends (the rows axis's ends only pan); the rows'
   one-value-a-row fallback (`rowsValue`) and then the rows' structure where a source serves no row summary (a lazy
   alignment's rows are left out now); a navigator over a text section (the positions on its lines in view); the window's
-  hover readout as an ARIA live region; a slider per covered axis (one per window now, roving by PageDown and PageUp: to
-  be confirmed); a grid's own y window (open until a Hi-C view).
+  hover readout as an ARIA live region; a slider per covered axis (one per window, roving by PageDown and PageUp); a
+  grid's own y window drawn on a navigator (the view's history keeps it; open until a Hi-C view); the rows rail as a
+  slider for a screen reader (a canvas mark now: `]`, `[` and the wheel are its keys).
 - Rings in the viewer: the matrix cells of a ring section and a block as binding tests; a drag-select longer than half
   the ring selects the other side (the shorter arc is taken: the drag's swept direction would say which); a reversed
   ring's arcs (`selection.ts` reads an arc on a forward axis only, `dir === 1`).

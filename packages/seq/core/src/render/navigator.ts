@@ -268,6 +268,24 @@ export function railSections(view: ResolvedView, hosted: readonly ResolvedNaviga
     .map((s) => s.address);
 }
 
+/**
+ * The rows tracks that draw a rows rail by default (_spec/README.md "Render", Navigators, The rows rail): each linear
+ * section's tracks with a rows layer shown, unless a shown navigator binds the section along its rows (an overview, a
+ * miniature): it replaces the rail on the rows it binds; a hidden one brings it back.
+ */
+export function rowsRailTracks(view: ResolvedView, hosted: readonly ResolvedNavigator[] = []): string[] {
+  const bound = new Set<string>();
+  for (const list of [view.navigators, hosted])
+    for (const n of list) if (!n.hidden && n.axes !== 'positions') for (const a of n.of) bound.add(a);
+  const out: string[] = [];
+  for (const s of view.sections) {
+    if (sectionLayoutName(s, view) !== 'tracks' || bound.has(s.address)) continue;
+    for (const t of s.tracks)
+      if (t.layers.some((l) => l.type === 'rows' && l.placed && l.params.hidden !== true)) out.push(t.address);
+  }
+  return out;
+}
+
 /** What a window says (an export's title, a slider's value): its positions on the navigator's system, its rows. */
 export function windowText(model: StaticModel, nav: ResolvedNavigator, w: NavigatorWindow): string {
   const name = (nav.system && model.systems.get(nav.system)?.name) ?? '';

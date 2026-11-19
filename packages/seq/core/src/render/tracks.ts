@@ -59,9 +59,9 @@ import { ValuesType } from './values.js';
 import { VariantsType } from './variants.js';
 import { FrameType } from './frames.js';
 import { BandsType } from './bands.js';
-import { drawRail, hitRail, placeRail, Rail, SlimRailPx } from './rail.js';
+import { drawRail, hitRail, placeRail, placeRowsRail, Rail, SlimRailPx } from './rail.js';
 import { LogoType } from './logo.js';
-import { RowsType } from './rows.js';
+import { RowsLay, RowsType } from './rows.js';
 import { GridType, rectOver } from './grid.js';
 import { PairsType } from './pairs.js';
 import { RowHeight } from './rows-model.js';
@@ -135,6 +135,8 @@ export interface SectionLayout {
   readonly breaks: readonly number[];
   /** Its ruler rail, when it draws one (_spec/README.md "Render", Navigators). */
   readonly rail?: Rail;
+  /** Its rows layers' rails (upright, at the right edge of each band), when they draw them. */
+  readonly rowsRails?: readonly Rail[];
   /** The direction mark in the first track's label row (`axis.directionMark`): its text, x and measured width. */
   readonly mark?: { readonly text: string; readonly x: number; readonly width: number };
   /** The layers' lays a strip and band (`strip * bands + band`), in the strip's frame. */
@@ -208,9 +210,10 @@ export interface LayoutInput {
   /** The shared image cache (_spec/README.md "Render", The shared reduction): the renderer's. */
   readonly images?: ImageCache;
   /**
-   * The sections that draw a ruler rail, by address (_spec/README.md "Render", Navigators): part of each section's key
-   * by identity (a slim rail takes a row). Which can move is set on the rails each frame by the renderer, out of the
-   * key: idle wakes with no relayout.
+   * The sections that draw a ruler rail, and the rows tracks that draw a rows rail, by address (_spec/README.md
+   * "Render", Navigators): part of each section's key by identity (a slim rail takes a row, a rows rail a column at the
+   * right edge). Which can move is set on the rails each frame by the renderer, out of the key: idle wakes with no
+   * relayout.
    */
   readonly rails?: Readonly<Record<string, unknown>>;
   /**
@@ -727,21 +730,26 @@ function pendingPlacement(top: number, box: Box, heights: readonly number[], con
  * tree order and its first residue numbers widen the label column by their width (the labels keep theirs), its last
  * numbers take a right gutter. The widest of a view's tracks sections, so every section's data starts at one x.
  */
-function rowsHeader(view: ResolvedView): { readonly tree: number; readonly numbers: boolean } {
+function rowsHeader(
+  view: ResolvedView,
+  rails: LayoutInput['rails'],
+): { readonly tree: number; readonly numbers: boolean; readonly rail: boolean } {
   let tree = 0;
   let numbers = false;
+  let rail = false;
   for (const s of view.sections) {
     if (sectionLayoutName(s, view) !== 'tracks') continue;
     for (const t of s.tracks)
       for (const l of t.layers) {
         if (l.type !== 'rows' || !l.placed || l.params.hidden === true) continue;
         if (l.params.numbers !== 'none') numbers = true;
+        if (rails?.[t.address] !== undefined) rail = true;
         const w = l.params.tree_width;
         if (l.params.order === 'tree' && l.params.tree !== undefined)
           tree = Math.max(tree, typeof w === 'number' ? w : 120);
       }
   }
-  return { tree, numbers };
+  return { tree, numbers, rail };
 }
 
 /** A config with its label column widened by `extra` px, one a base and width. */
@@ -761,12 +769,13 @@ function numbersGutter(text: TextMetrics, config: RenderConfig): number {
 }
 
 export function layoutView(input: LayoutInput, state = new LayoutState(), again = false): ViewLayout {
-  const header = rowsHeader(input.view);
+  const header = rowsHeader(input.view, input.rails);
   const base = input.config ?? DefaultRenderConfig;
   // the first numbers take their own room in the label column, the labels keep theirs
   const first = header.numbers ? Math.ceil(input.text.measure(base.itemFont, '00000')) + 4 : 0;
   const config = widened(base, header.tree + first);
-  const right = header.numbers ? numbersGutter(input.text, config) : 0;
+  // the last numbers' gutter, and beside it a rows rail's column (fixed: a rail idle or live keeps the data's width)
+  const right = (header.numbers ? numbersGutter(input.text, config) : 0) + (header.rail ? SlimRailPx : 0);
   const extents = new Map<string, [number, number]>();
   const theme: ThemeContext = {
     schemes: input.theme?.schemes ?? DefaultThemeContext.schemes,
@@ -1267,6 +1276,26 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         input.figure === true,
       );
     }
+    // each rows layer's rail, upright at the right edge (beside its last numbers), along its band's scrolled rows
+    let rowsRails: Rail[] | undefined;
+    if (input.rails && layout === TracksLayout)
+      for (let j = 0; j < tracks.length; j++) {
+        const t = tracks[j];
+        if (input.rails[t.track.address] === undefined) continue;
+        const l = t.layers.find((x) => x.lay instanceof RowsLay);
+        const lay = l?.lay as RowsLay | undefined;
+        if (!lay || lay.figure || lay.total === undefined) continue;
+        const r = kept?.layout?.rowsRails?.[rowsRails?.length ?? 0] ?? new Rail();
+        placeRowsRail(
+          r,
+          lay,
+          t.track.address,
+          sectionId(section),
+          width - config.inset - SlimRailPx,
+          input.figure === true,
+        );
+        (rowsRails ??= []).push(r);
+      }
     const sectionLayout: SectionLayout = {
       section,
       id: sectionId(section),
@@ -1275,6 +1304,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       ...(axis ? { axis } : {}),
       ...(band ? { band } : {}),
       ...(rail ? { rail } : {}),
+      ...(rowsRails ? { rowsRails } : {}),
       y: sectionTop,
       height: y - sectionTop,
       tracks,
@@ -1557,6 +1587,8 @@ function drawTracks(layout: ViewLayout, out: PassWriter, emphasis: Emphasis | un
     const s = layout.sections[si];
     s.layout.chrome(s, pass, out, emphasis, -1, -1);
     if (pass === 'window' && s.rail) drawRail(s.rail, out, emphasis, s.tokens, s.config);
+    if (pass === 'window' && s.rowsRails)
+      for (let i = 0; i < s.rowsRails.length; i++) drawRail(s.rowsRails[i], out, emphasis, s.tokens, s.config);
     const strips = s.placement.strips;
     if (!strips.n) {
       // pending: its tracks' chrome alone
@@ -1957,6 +1989,11 @@ export function hitView(layout: ViewLayout, x: number, y: number, touch = false)
     // the ruler rail's grab zone, over the ruler (an idle rail is no target: a press falls through)
     const rail = s.rail ? hitRail(s.rail, x, y, s.config, touch) : undefined;
     if (rail) return rail;
+    if (s.rowsRails)
+      for (let i = 0; i < s.rowsRails.length; i++) {
+        const h = hitRail(s.rowsRails[i], x, y, s.config, touch);
+        if (h) return h;
+      }
     const own = s.layout.hitChrome?.(s, x, y);
     if (own) return own;
     // a `section` layer's marks, on the page, over the strips'

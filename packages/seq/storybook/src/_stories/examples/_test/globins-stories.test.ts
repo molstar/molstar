@@ -76,4 +76,32 @@ describe('Globins stories, headless', () => {
     const svg = (await p).svg;
     expect(svg.match(/<image [^>]*href="data:image\/png;base64,/g)?.length).toBe(lay.images.length);
   });
+
+  for (const id of ['family', 'scale'])
+    it(`${id}: the rows rail at the band's right edge, live (its rows scroll), drawn; a drag on it scrolls them`, async () => {
+      viewer = await openExample(GlobinsViews.find((v) => v.id === id)!, { gene: '' });
+      const v = viewer;
+      const s = v.frame!.layout.sections.find((x) => x.rowsRails?.length)!;
+      expect(s, id).toBeDefined();
+      const r = s.rowsRails![0];
+      const lay = rowsLay(v)!;
+      expect(r.vertical).toBe(true);
+      expect(r.active).toBe(true);
+      // beside the rows' last numbers, within the canvas
+      expect(r.top).toBeGreaterThanOrEqual(lay.box.x + lay.box.width);
+      expect(r.bottom).toBeLessThanOrEqual(v.width);
+      // drawn in the window pass: a rect within the rail's column
+      const rects = v.frame!.lists.passes.window.rects;
+      let inside = 0;
+      for (let i = 0; i < rects.n; i++) if (rects.x[i] >= r.top && rects.x[i] + rects.w[i] <= r.bottom) inside++;
+      expect(inside).toBeGreaterThan(1);
+      // a drag on its window scrolls the rows
+      const c = v.context.renderConfig.navigator.window;
+      const y = r.x + Math.max(c.minPx, ((r.end - r.start) / r.total) * r.width) / 2;
+      const x = (r.top + r.bottom) / 2;
+      expect(v.input.down(x, y)).toBe(true);
+      v.input.move(x, y + r.width / 4);
+      v.input.up();
+      expect(v.view.band(lay.key.slice(0, lay.key.lastIndexOf('/')))?.bandTop).toBeGreaterThan(r.total / 8);
+    });
 });
