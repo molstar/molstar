@@ -33,6 +33,16 @@ export const SourceIssues = defineIssues('seq.source', {
     severity: 'error',
     description: 'A source has neither inline data (`value`) nor a location (`uri`) its format reads',
   },
+  'seq.source.rows.field': {
+    severity: 'warning',
+    description:
+      'A field of an alignment’s rows (an inline table’s column) is not one value a row: it is left out, the alignment kept',
+    hint: 'Give the column one value a row, `null` where a row has none',
+  },
+  'seq.source.rows.annotation': {
+    severity: 'info',
+    description: 'A Stockholm `#=GS` line names a sequence the alignment has no row of: not read',
+  },
 });
 
 /** The data store's codes. */

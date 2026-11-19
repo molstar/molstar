@@ -24,6 +24,11 @@ export function isGap(code: number): boolean {
   return code === 45 || code === 46 || code === 0;
 }
 
+/** An insert state byte (Stockholm, A2M): a lowercase letter or a `.`. */
+export function isInsert(code: number): boolean {
+  return code === 46 || (code >= 97 && code <= 122);
+}
+
 /** A letter byte's uppercase (a lowercase insert reads as its letter). */
 export function upper(code: number): number {
   return code >= 97 && code <= 122 ? code - 32 : code;
@@ -414,9 +419,10 @@ export interface ColumnMeasures {
   /** One value a row: identity to the reference row, else its non-gap share (what a navigator draws, `rowsValue`). */
   readonly rowsValue: Float32Array;
   /**
-   * The per-row measures a row column reads (_spec/README.md "Render", Row columns): each row's residues (`length`),
-   * gaps (`gaps`), and identity to the reference row (`identity`: the share of the columns where both have a residue
-   * that hold the same letter; NaN without a reference or with no such column).
+   * The per-row measures a row column reads (_spec/README.md "Render", Row columns): each row's residues (`length`,
+   * inserts counted), gaps (`gaps`: its `-`, an insert column's `.` none), and identity to the reference row
+   * (`identity`: the same residues over the columns where either has one, a gap against a residue a mismatch, gap
+   * against gap and an insert on either side left out; NaN without a reference or with no such column).
    */
   readonly rowLength: Int32Array;
   readonly rowGaps: Int32Array;
@@ -481,8 +487,24 @@ export function columnMeasures(
     }
     rowsValue[i] = reference >= 0 ? (both ? same / both : 0) : C ? filled / C : 0;
     rowLength[i] = filled;
-    rowGaps[i] = C - filled;
-    if (reference >= 0 && both) rowIdentity[i] = same / both;
+    // the row column's measures: an insert (a lowercase letter, a `.`) is neither a gap nor compared
+    let gaps = 0;
+    let id = 0;
+    let over = 0;
+    for (let j = 0; j < C; j++) {
+      const raw = codes[i * C + j];
+      if (raw === 45) gaps++;
+      if (reference < 0) continue;
+      const r = codes[reference * C + j];
+      if (isInsert(raw) || isInsert(r)) continue;
+      const a = isGap(raw);
+      const b = isGap(r);
+      if (a && b) continue;
+      over++;
+      if (!a && !b && raw === r) id++;
+    }
+    rowGaps[i] = gaps;
+    if (reference >= 0 && over) rowIdentity[i] = id / over;
   }
   return { share, identity, rowsValue, reference, rowLength, rowGaps, rowIdentity };
 }
@@ -659,12 +681,36 @@ export function columnsRoom(
   return w;
 }
 
-/** A row column's value as text: a number by its field (identity as a percent), text as it is; `''` when missing. */
-export function formatColumnValue(field: string, v: string | number | undefined): string {
+/**
+ * Values that all read as numbers (a number, or text that parses as a finite one; missing ones `null`) as numbers;
+ * undefined when one does not, or none is given. What a row column treats as a number (a `#=GS` TAXID, an untyped
+ * table's field), its data's own types unchanged.
+ */
+export function numericValues(values: readonly (string | number | null)[]): (number | null)[] | undefined {
+  let any = false;
+  for (const v of values) {
+    if (v === null || typeof v === 'number') {
+      if (v !== null) any = true;
+      continue;
+    }
+    if (!NumberText.test(v)) return undefined;
+    any = true;
+  }
+  if (!any) return undefined;
+  return values.map((v) => (v === null ? null : typeof v === 'number' ? v : Number(v)));
+}
+
+const NumberText = /^\s*[-+]?(\d+\.?\d*|\.\d+)([eE][-+]?\d+)?\s*$/;
+
+/**
+ * A row column's value as text: a number (`measure` the measure's name it is: `identity` a percent), an integer whole,
+ * else to two decimals; text as it is; `''` when missing.
+ */
+export function formatColumnValue(measure: string, v: string | number | undefined): string {
   if (v === undefined) return '';
   if (typeof v === 'string') return v;
   if (Number.isNaN(v)) return '';
-  if (field === 'identity') return `${Math.round(v * 1000) / 10}%`;
+  if (measure === 'identity') return `${Math.round(v * 1000) / 10}%`;
   if (Number.isInteger(v)) return String(v);
   return String(Math.round(v * 100) / 100);
 }

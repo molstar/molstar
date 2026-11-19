@@ -399,6 +399,19 @@ function strandOf(cell: unknown): number | undefined {
 }
 
 /** A cell as text: a scalar's spelling, `null` for none; an object or a list is `false` (said once). */
+/** A rows system's name: an alignment's rows (`/data/aln/(rows)`). */
+const RowsSystemName = /\/\(rows\)$/;
+
+/** Whether every record's system (its `target`, else the source's own) is a rows system. */
+function onRows(target: Cells | undefined, ownSystem: string, count: number): boolean {
+  if (!target) return RowsSystemName.test(ownSystem);
+  for (let i = 0; i < count; i++) {
+    const t = textOf(target.get(i));
+    if (!RowsSystemName.test(t ? t : ownSystem)) return false;
+  }
+  return true;
+}
+
 function textOf(cell: unknown): string | null | false {
   if (cell === null || cell === undefined) return null;
   if (typeof cell === 'string') return cell;
@@ -646,9 +659,15 @@ export function readRecords(
     const hasRanges = roles.start !== undefined || roles.position !== undefined;
     if (roles.start && !roles.end && !roles.position) missingField('end', own(map, 'end') ?? 'end');
     if (roles.end && !roles.start && !roles.position) missingField('start', own(map, 'start') ?? 'start');
-    // keyed records: an `id` and no position, each record one at its place in the file (a rows system's fields, joined
-    // by the row's key: _spec/README.md "Data", Records)
-    const keyed = !hasRanges && !roles.value && letters === undefined && roles.id !== undefined;
+    // keyed records: an `id` and no position, each record one at its place in the file, only on an alignment's rows
+    // system (`…/(rows)`: its fields, joined by the row's key; _spec/README.md "Data", Records); elsewhere a record
+    // needs a position, as before
+    const keyed =
+      !hasRanges &&
+      !roles.value &&
+      letters === undefined &&
+      roles.id !== undefined &&
+      onRows(roles.target, ownSystem, records.count);
     if (!hasRanges && !roles.value && letters === undefined && !keyed)
       refuse(
         'seq.source.records.field',

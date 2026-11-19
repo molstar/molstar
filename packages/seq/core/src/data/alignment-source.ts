@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { type Column, categoryColumn, issueOf } from '@molstar/core/repr/tree';
+import { type Column, categoryColumn, type Issue, issueOf } from '@molstar/core/repr/tree';
 import { SourceIssues } from './issues.js';
 import {
   abortError,
@@ -75,8 +75,9 @@ export function openAlignment(rows: AlignmentRows, source: SourceEntry = { addre
     const f = rows.first?.[i];
     first[i] = f !== undefined ? f : firstNumberOf(rows.label[i]);
   }
-  const fields = fieldColumns(rows.fields, n, source);
-  return cellsSource(n, columns, (start, end) => ({
+  const dropped: Issue[] = [];
+  const fields = fieldColumns(rows.fields, n, source, dropped);
+  const opened = cellsSource(n, columns, (start, end) => ({
     codes: codes.subarray(start * columns, end * columns),
     label: rows.label.slice(start, end),
     first: first.subarray(start, end),
@@ -84,19 +85,32 @@ export function openAlignment(rows: AlignmentRows, source: SourceEntry = { addre
       ? { fields: fields.map((f) => ({ name: f.name, column: sliceColumn(f.column, start, end) })) }
       : {}),
   }));
+  return dropped.length ? { ...opened, issues: dropped } : opened;
 }
 
-/** The rows' own fields as columns: numbers (NaN missing) when every value is one, else text (`null` missing). */
+/**
+ * The rows' own fields as columns: numbers (NaN missing) when every value is one, else text (`null` missing). A field
+ * that is not one value a row is left out and said (`seq.source.rows.field`), the alignment kept.
+ */
 function fieldColumns(
   fields: AlignmentRows['fields'],
   n: number,
   source: SourceEntry,
+  dropped: Issue[],
 ): { name: string; column: Column }[] {
   const out: { name: string; column: Column }[] = [];
   if (!fields || typeof fields !== 'object') return out;
   for (const name of Object.keys(fields)) {
     const v = fields[name];
-    if (!Array.isArray(v) || v.length !== n) throw malformed(source, `the field ${name} is not one value a row`);
+    if (!Array.isArray(v) || v.length !== n) {
+      dropped.push(
+        issueOf(SourceIssues, 'seq.source.rows.field', `The rows’ field ${name} is not one value a row: left out`, {
+          address: source.address,
+          hint: SourceIssues.codes['seq.source.rows.field'].hint,
+        }),
+      );
+      continue;
+    }
     const numeric = v.every((x) => x === null || x === undefined || typeof x === 'number');
     out.push({
       name,

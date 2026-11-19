@@ -755,3 +755,26 @@ describe('the open', () => {
     expect(t.start.length).toBe(n);
   });
 });
+
+describe('keyed records', () => {
+  it('an id and no position is a record at its place, on a rows system only; elsewhere refused as before', () => {
+    const text = 'id\tclade\nA\tprimate\nB\tfish\n';
+    const rows = '/data/aln/(rows)';
+    const r = read({ format: 'tsv', text }, { system: rows });
+    const t = ranges(r, rows);
+    expect(Array.from(t.start)).toEqual([0, 1]);
+    expect([t.id?.get(0), t.id?.get(1)]).toEqual(['A', 'B']);
+    expect(r.data!.coverage.systems).toEqual([{ name: rows, length: 2 }]);
+    // a target naming a rows system for every record: keyed too
+    const targeted = read({ format: 'tsv', text: `id\ttarget\tclade\nA\t${rows}\tx\n` });
+    expect(ranges(targeted, rows).start.length).toBe(1);
+    // on any other system the old refusal
+    for (const other of [
+      read({ format: 'tsv', text }),
+      read({ format: 'tsv', text: 'id\ttarget\tclade\nA\tchr1\tx\n' }),
+    ]) {
+      expect(other.data).toBeUndefined();
+      expect(other.issues[0].code).toBe('seq.source.records.field');
+    }
+  });
+});

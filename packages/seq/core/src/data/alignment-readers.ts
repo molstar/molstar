@@ -42,6 +42,8 @@ export interface AlignmentRead {
   readonly inserts?: Uint8Array;
   /** Base pairs of `#=GC SS_cons` as column pairs `[i, j]` with `i < j` (nested brackets and pseudoknot letters). */
   readonly pairs?: readonly (readonly [number, number])[];
+  /** Stockholm's `#=GS` lines naming a sequence with no row: the names, in the order first named (said once). */
+  readonly unknownAnnotated?: readonly string[];
   readonly issues: readonly ReadIssue[];
 }
 
@@ -255,7 +257,15 @@ export function readStockholm(text: string): AlignmentRead {
     return { label, letters: p.parts.join(''), line: p.line };
   });
   if (!read.length) issues.push({ line: 0, message: 'no rows' });
-  return finish(read, issues, gc.get('RF')?.join(''), gc.get('SS_cons')?.join(''), gs);
+  const done = finish(read, issues, gc.get('RF')?.join(''), gc.get('SS_cons')?.join(''), gs);
+  // a `#=GS` line naming no row is said once, with every name
+  const unknown = [...gs.keys()].filter((name) => !parts.has(name));
+  if (!unknown.length) return done;
+  return {
+    ...done,
+    unknownAnnotated: unknown,
+    issues: [...done.issues, { line: 0, message: `#=GS lines name sequences with no row: ${unknown.join(', ')}` }],
+  };
 }
 
 /** A tree as read: nodes in pre-order (the root 0), each its parent, branch length, label and children. */
@@ -482,7 +492,7 @@ export const AlignmentFileRuntime: FormatRuntime = {
     if (!read.rows.length)
       throw fail('seq.source.malformed', `The alignment has no row: ${read.issues[0]?.message ?? 'empty'}`);
     const rows = read.rows;
-    return openAlignment(
+    const opened = openAlignment(
       {
         label: rows.map((r) => r.label),
         letters: rows.map((r) => r.letters),
@@ -491,5 +501,13 @@ export const AlignmentFileRuntime: FormatRuntime = {
       },
       source,
     );
+    if (!read.unknownAnnotated?.length) return opened;
+    const said = issueOf(
+      SourceIssues,
+      'seq.source.rows.annotation',
+      `#=GS lines name ${read.unknownAnnotated.length} sequence${read.unknownAnnotated.length === 1 ? '' : 's'} with no row: ${read.unknownAnnotated.slice(0, 5).join(', ')}`,
+      { address: source.address },
+    );
+    return { ...opened, issues: [...(opened.issues ?? []), said] };
   },
 };

@@ -242,6 +242,8 @@ export class LayoutState {
   domainsVersion = 0;
   /** Each section's last layout and what it was laid out for (_spec/README.md "Render", The key: per section). */
   readonly sections = new Map<string, SectionCache>();
+  /** The row columns' fit, kept while what it read is the same. */
+  columnsFit: unknown;
 }
 
 /** A layer's key: its address, else its track's and its index. */
@@ -739,11 +741,32 @@ function rowsHeader(
   readonly tree: number;
   readonly numbers: boolean;
   readonly rail: boolean;
-  readonly columns: ReadonlyMap<string, readonly RowColumn[]>;
 } {
   let tree = 0;
   let numbers = false;
   let rail = false;
+  for (const s of view.sections) {
+    if (sectionLayoutName(s, view) !== 'tracks') continue;
+    for (const t of s.tracks)
+      for (const l of t.layers) {
+        if (l.type !== 'rows' || !l.placed || l.params.hidden === true) continue;
+        if (l.params.numbers !== 'none') numbers = true;
+        if (rails?.[t.address] !== undefined) rail = true;
+        const w = l.params.tree_width;
+        if (l.params.order === 'tree' && l.params.tree !== undefined)
+          tree = Math.max(tree, typeof w === 'number' ? w : 120);
+      }
+  }
+  return { tree, numbers, rail };
+}
+
+const NoColumns: ReadonlyMap<string, readonly RowColumn[]> = new Map();
+const ViewColumns = new WeakMap<ResolvedView, ReadonlyMap<string, readonly RowColumn[]>>();
+
+/** The row columns of a view's rows layers (tracks and text sections), by layer: read once a view. */
+function viewColumns(view: ResolvedView): ReadonlyMap<string, readonly RowColumn[]> {
+  let out = ViewColumns.get(view);
+  if (out) return out;
   let columns: Map<string, readonly RowColumn[]> | undefined;
   for (const s of view.sections) {
     const name = sectionLayoutName(s, view);
@@ -753,31 +776,38 @@ function rowsHeader(
         if (l.type !== 'rows' || !l.placed || l.params.hidden === true) continue;
         const cols = l.params.columns === undefined ? undefined : rowColumnsOf(l.params.columns);
         if (cols?.length) (columns ??= new Map()).set(layerKey(t, l), cols);
-        if (name !== 'tracks') continue;
-        if (l.params.numbers !== 'none') numbers = true;
-        if (rails?.[t.address] !== undefined) rail = true;
-        const w = l.params.tree_width;
-        if (l.params.order === 'tree' && l.params.tree !== undefined)
-          tree = Math.max(tree, typeof w === 'number' ? w : 120);
       }
   }
-  return { tree, numbers, rail, columns: columns ?? NoColumns };
+  out = columns ?? NoColumns;
+  ViewColumns.set(view, out);
+  return out;
 }
 
-const NoColumns: ReadonlyMap<string, readonly RowColumn[]> = new Map();
+/** The title row a rows track's layer with columns takes above its rows (_spec/README.md "Render", Row columns). */
+function titleRowOf(track: ResolvedTrack, config: RenderConfig): number {
+  for (const l of track.layers)
+    if (l.type === 'rows' && Array.isArray(l.params.columns) && l.params.columns.length)
+      return config.rows.columns.titlePx;
+  return 0;
+}
 
 /**
  * The row columns' widths a view grants by layer (_spec/README.md "Render", Row columns: EC-107): what the view lacks
  * for the data's least width at every column's own width is taken from the columns, right ones first, each down to a
  * floor and then hidden; and the room the widest layer's left and right columns take.
  */
-function fitColumns(
+function columnsFit(
+  state: LayoutState,
   columns: ReadonlyMap<string, readonly RowColumn[]>,
   width: number,
   fixed: number,
   config: RenderConfig,
-): { widths: Map<string, number[]>; left: number; right: number } | undefined {
+  rail: boolean,
+): ColumnsFit | undefined {
   if (!columns.size) return undefined;
+  const kept = state.columnsFit as ColumnsFit | undefined;
+  if (kept && kept.columns === columns && kept.width === width && kept.fixed === fixed && kept.config === config)
+    return kept;
   const { floorPx, gapPx, dataMinPx } = config.rows.columns;
   const widths = new Map<string, number[]>();
   let left = 0;
@@ -790,7 +820,25 @@ function fitColumns(
     left = Math.max(left, columnsRoom(cols, w, 'left', gapPx));
     right = Math.max(right, columnsRoom(cols, w, 'right', gapPx));
   }
-  return { widths, left, right };
+  // a rows rail keeps the gutter's gap from the last right column
+  if (rail && right) right += gapPx;
+  const rightX = width - config.inset - (rail ? SlimRailPx : 0) - right;
+  const grants = new Map<string, { widths: readonly number[]; rightX: number }>();
+  for (const [key, w] of widths) grants.set(key, { widths: w, rightX });
+  const fit: ColumnsFit = { columns, width, fixed, config, left, right, grants };
+  state.columnsFit = fit;
+  return fit;
+}
+
+/** The row columns' fit a view's layout keeps (what it was made for, the rooms, each layer's grant). */
+interface ColumnsFit {
+  readonly columns: ReadonlyMap<string, readonly RowColumn[]>;
+  readonly width: number;
+  readonly fixed: number;
+  readonly config: RenderConfig;
+  readonly left: number;
+  readonly right: number;
+  readonly grants: ReadonlyMap<string, { readonly widths: readonly number[]; readonly rightX: number }>;
 }
 
 /** A config with its label column widened by `extra` px, one a base and width. */
@@ -816,14 +864,13 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
   const first = header.numbers ? Math.ceil(input.text.measure(base.itemFont, '00000')) + 4 : 0;
   // the last numbers' gutter, and beside it a rows rail's column (fixed: a rail idle or live keeps the data's width)
   const gutter = (header.numbers ? numbersGutter(input.text, base) : 0) + (header.rail ? SlimRailPx : 0);
-  // the row columns: the left ones widen the label column, the right ones the right gutter, yielding to a narrow view
+  // the row columns: the left ones widen the label column, the right ones the right gutter (and a gap before a rows
+  // rail), yielding to a narrow view; kept while the view, the width and the room they read are
   const fixed = 2 * base.inset + base.labelWidth + base.labelGap + header.tree + first + gutter;
-  const fit = fitColumns(header.columns, input.size.width, fixed, base);
+  const fit = columnsFit(state, viewColumns(input.view), input.size.width, fixed, base, header.rail);
   const config = widened(base, header.tree + first + (fit?.left ?? 0));
   const right = gutter + (fit?.right ?? 0);
-  const rightX = input.size.width - base.inset - (header.rail ? SlimRailPx : 0) - (fit?.right ?? 0);
-  let grants: Map<string, { widths: readonly number[]; rightX: number }> | undefined;
-  if (fit) for (const [key, w] of fit.widths) (grants ??= new Map()).set(key, { widths: w, rightX });
+  const grants = fit?.grants;
   // a text section's lines leave the right columns their room
   const textWidth = input.size.width - (fit?.right ?? 0);
   const extents = new Map<string, [number, number]>();
@@ -1049,7 +1096,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       for (let j = 0; j < shown.length; j++) {
         if (shown[j].height !== undefined || rowsFill(shown[j]) === undefined) continue;
         const rows = rowsCount(shown[j], input.model);
-        if (rows !== undefined) heights[j] = rows * byType.rows;
+        if (rows !== undefined) heights[j] = rows * byType.rows + titleRowOf(shown[j], config);
       }
     const fill = shown.findIndex((t) => t.height === undefined && rowsFill(t) === 'fill');
     if (fill >= 0 && !input.figure && layout === TracksLayout) {
@@ -1503,7 +1550,7 @@ function rowsCount(track: ResolvedTrack, model: StaticModel): number | undefined
 function trackHeight(track: ResolvedTrack, config: RenderConfig, heights: RenderConfig['heights']): number {
   if (track.height !== undefined) return track.height;
   const rows = rowsFill(track);
-  if (typeof rows === 'number') return rows * RowHeight;
+  if (typeof rows === 'number') return rows * RowHeight + titleRowOf(track, config);
   let h = 0;
   for (const l of track.layers) h = Math.max(h, heights[l.type as keyof RenderConfig['heights']] ?? 0);
   return h || heights.ranges;
@@ -2052,6 +2099,19 @@ export function hitView(layout: ViewLayout, x: number, y: number, touch = false)
         const h = hitRail(s.rowsRails[i], x, y, s.config, touch);
         if (h) return h;
       }
+    // what a layer draws outside its band (a rows layer's column titles, above the rows), on its first strip
+    for (let j = 0; j < s.tracks.length; j++) {
+      const lays = s.tracks[j].layers;
+      for (let i = 0; i < lays.length; i++) {
+        const t = lays[i].type;
+        if (!t.hitOutside) continue;
+        // in the first strip's frame (a text figure's first line)
+        HitAt[0] = strips.n ? x - strips.dx[0] : x;
+        HitAt[1] = strips.n ? y - strips.dy[0] : y;
+        const h = t.hitOutside(lays[i].lay, HitAt);
+        if (h) return h;
+      }
+    }
     const own = s.layout.hitChrome?.(s, x, y);
     if (own) return own;
     // a `section` layer's marks, on the page, over the strips'
@@ -2061,19 +2121,6 @@ export function hitView(layout: ViewLayout, x: number, y: number, touch = false)
       HitAt[1] = y;
       const h = l.type.hit(l.lay, HitAt);
       if (h?.element) return h;
-    }
-    // what a layer draws outside its band (a rows layer's column titles, above the rows), on its first strip
-    for (let j = 0; j < s.tracks.length; j++) {
-      const own = s.tracks[j].layers;
-      for (let i = 0; i < own.length; i++) {
-        const t = own[i].type;
-        if (!t.hitOutside) continue;
-        // in the first strip's frame (a text figure's first line)
-        HitAt[0] = strips.n ? x - strips.dx[0] : x;
-        HitAt[1] = strips.n ? y - strips.dy[0] : y;
-        const h = t.hitOutside(own[i].lay, HitAt);
-        if (h) return h;
-      }
     }
     PageAt[0] = x;
     PageAt[1] = y;

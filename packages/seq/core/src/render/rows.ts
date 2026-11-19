@@ -4,7 +4,15 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { CategoryColumn, type Column, type Node, exactAddress, issueOf, type Value } from '@molstar/core/repr/tree';
+import {
+  CategoryColumn,
+  type Column,
+  exactAddress,
+  type Issue,
+  issueOf,
+  type Node,
+  type Value,
+} from '@molstar/core/repr/tree';
 import { type CellsCodes, DefaultMaxBlockValues, type RangesList } from '@molstar/seqx-core/data';
 import { matchLeaves, readNewick } from '@molstar/seqx-core/data/alignment-readers';
 import { type ElementKey, type Location, rangesLocation } from '@molstar/seqx-core/query';
@@ -41,6 +49,16 @@ import {
 } from './layer-type.js';
 import { NoClass, Pyramid, pyramidLevelFor } from './pyramid.js';
 import {
+  ColumnsLay,
+  drawColumnCells,
+  drawTitles,
+  elide,
+  hoverColumnCells,
+  layoutRowColumns,
+  setColumns,
+  titleAt,
+} from './rows-columns.js';
+import {
   buildClades,
   type Clades,
   type ColumnMeasures,
@@ -48,13 +66,14 @@ import {
   columnsRoom,
   consensus,
   DisplayRows,
-  formatColumnValue,
   type HeldCells,
   isGap,
   measureEntries,
   RowHeight,
   type RowColumn,
   rowColumnsOf,
+  RowMeasureFields,
+  numericValues,
   TreeHitPx,
   upper,
 } from './rows-model.js';
@@ -105,6 +124,10 @@ export interface RowsPrep {
   readonly columns: readonly RowColumn[];
   /** The sources that may hold the rows' joined fields (a system named as the rows system): every other source. */
   readonly joinSources: readonly string[];
+  /** Of those, the ones that could join before they attach (their `system` the rows system, a runtime bound). */
+  readonly joinCandidates: readonly string[];
+  /** The fields a column or the order names (the only ones joined). */
+  readonly joinFields: readonly string[];
 }
 
 /** What a rows layer keeps frame to frame: the held cells, the order and folds, the marks in view. */
@@ -270,55 +293,25 @@ export class RowsLay {
   /** The joined fields' version an order by a field was built with (-1: not by a field). */
   displayByField = -1;
   /**
-   * Row columns (Row columns): as read, their widths after the view's yielding (0: hidden), their x and the count
-   * hidden; the fields joined from a records source by row key (kept by its entries' versions), `fieldsVersion`
-   * moving with them (an order by a joined field is built again).
+   * Row columns (Row columns, `rows-columns.ts`); the fields joined from a records source by row key (kept by its
+   * entries' versions, the held rows and the prep), `fieldsVersion` moving with them (an order by a joined field, the
+   * columns' values, made again); `joinPending` while a source that could join has not answered.
    */
-  rowColumns: readonly RowColumn[] = [];
-  colW: number[] = [];
-  colX: number[] = [];
-  hiddenColumns = 0;
+  readonly cols = new ColumnsLay();
   joined: Map<string, (string | number | null)[]> | undefined;
-  joinedOf = '';
+  readonly joinedOf: unknown[] = [];
+  /** The layer sources the joined sources are read through, by source. */
+  readonly joinSrc = new Map<string, LayerSource>();
   joinPending = false;
   fieldsVersion = 0;
-  /** Each column's range (a bar's domain), its categories (a chip's color), whether a row has it; kept. */
-  colLo: number[] = [];
-  colHi: number[] = [];
-  colCats: Map<string, number>[] = [];
-  colAny: boolean[] = [];
-  colStatsOf = '';
-  /**
-   * Column cells in view: the column, the display row, the text's baseline and the row's top, the text drawn (elided)
-   * and whole, its measured width, a bar's share (NaN none), a chip's color, and what a hover names (`title: value`).
-   */
-  cellCol: number[] = [];
-  cellRow: number[] = [];
-  cellY: number[] = [];
-  cellTop: number[] = [];
-  cellText: string[] = [];
-  cellFull: string[] = [];
-  cellTextW: number[] = [];
-  cellFullW: number[] = [];
-  cellShare: number[] = [];
-  cellColor: number[] = [];
-  cellName: string[] = [];
-  /** The columns' titles in the band above the rows: text, x, measured width, column; their baseline and font. */
-  titleText: string[] = [];
-  titleX: number[] = [];
-  titleW: number[] = [];
-  titleCol: number[] = [];
-  titleY = 0;
-  /** The hidden-columns chip in the title band: its text, x and width. */
-  colChip = '';
-  colChipX = 0;
-  colChipW = 0;
-  /** Where the right columns end (their clip). */
-  rightEnd = 0;
+  /** What joining said (a field shadowed, a field of two sources), made when the join is: said every frame. */
+  joinIssue: Issue | undefined;
+  /** The rows' band below the layer's title row (its own box, reused). */
+  readonly ownBox = { x: 0, y: 0, width: 0, height: 0 };
 
   /**
    * A field of the rows table at a data row (_spec/README.md "Render", Row columns): `label`, `first`, the rows' own
-   * fields, the joined ones, then the measures (`length`, `gaps`, `identity`); undefined when missing.
+   * fields, the measures (`length`, `gaps`, `identity`), then the joined ones; undefined when missing.
    */
   fieldValue(row: number, field: string): string | number | undefined {
     const held = this.held;
@@ -326,14 +319,15 @@ export class RowsLay {
     if (field === 'first') return held ? held.first[row] : this.lazyFirst.get(row);
     const own = held?.fields?.get(field);
     if (own) return own[row] ?? undefined;
-    const j = this.joined?.get(field);
-    if (j) return j[row] ?? undefined;
     const m = this.measures;
-    if (!m || !held || row >= m.rowLength.length) return undefined;
-    if (field === 'length') return m.rowLength[row];
-    if (field === 'gaps') return m.rowGaps[row];
-    if (field === 'identity') return Number.isNaN(m.rowIdentity[row]) ? undefined : m.rowIdentity[row];
-    return undefined;
+    if (m && held && RowMeasureFields.includes(field)) {
+      if (row >= m.rowLength.length) return undefined;
+      if (field === 'length') return m.rowLength[row];
+      if (field === 'gaps') return m.rowGaps[row];
+      return Number.isNaN(m.rowIdentity[row]) ? undefined : m.rowIdentity[row];
+    }
+    const j = this.joined?.get(field);
+    return j ? (j[row] ?? undefined) : undefined;
   }
 
   /** y of a display row's top in the band (the pinned band fixed, the rest scrolled). */
@@ -599,6 +593,9 @@ function fieldOrder(
   const n = held.rows;
   const values: (string | number | undefined)[] = new Array(n);
   for (let i = 0; i < n; i++) values[i] = lay.fieldValue(i, o.field);
+  // a field whose values all read as numbers orders by value (a `#=GS` TAXID, an untyped table's field)
+  const nums = numericValues(values.map((v) => v ?? null));
+  if (nums) for (let i = 0; i < n; i++) values[i] = nums[i] ?? undefined;
   const idx = Array.from({ length: n }, (_, i) => i);
   const sign = o.direction === 'descending' ? -1 : 1;
   idx.sort((a, b) => {
@@ -627,63 +624,112 @@ function cellOf(c: Column, i: number): string | number | null {
 
 /**
  * The fields of a records source whose system is the rows system, joined by row key (_spec/README.md "Render", Row
- * columns): a record's `id` names its row (a held row's label), else its position is the row; kept by the entries'
- * versions, `fieldsVersion` moved when they change. `joinPending` while a source's tiles are still to come.
+ * columns): a record's `id` names its row (a held row's label), else its position is the row. Only the fields a column
+ * or the order names, and neither an own field nor a measure (those shadow it: said once, as a field two sources
+ * have). Kept by the held rows, the prep and the entries' versions (compared in place: nothing made once warm),
+ * `fieldsVersion` moved when they change. `joinPending` while a source that could join (its `system` the rows system,
+ * a runtime bound) has not attached and the view has not settled: one that failed, or never attaches, holds nothing.
  */
 function readJoined(lay: RowsLay, prep: Prep, ctx: LayoutContext, data: StoreReader) {
   const held = lay.held;
   lay.joinPending = false;
-  if (!held || !prep.joinSources.length) return;
-  let key = '';
-  const entries: RangesList[] = [];
-  for (const source of prep.joinSources) {
+  if (!held || !prep.joinSources.length || !prep.joinFields.length) return;
+  const of = lay.joinedOf;
+  let same = of[0] === held && of[1] === prep;
+  let at = 2;
+  let nt = 0;
+  for (let s = 0; s < prep.joinSources.length; s++) {
+    const source = prep.joinSources[s];
     const coverage = data.coverage(source);
-    // a source not attached yet may be one: its fields are pending (a field no row has is not said yet)
-    if (!coverage) lay.joinPending = true;
-    const sys = coverage?.systems.find((s) => s.name === prep.rowsSystem);
-    if (!sys) continue;
-    const length = sys.length ?? held.rows;
-    const src: LayerSource = {
-      source,
-      system: sys.name,
-      dataSystem: prep.rowsSystem,
-      shape: 'ranges',
-      length,
-      ratio: 1,
-    };
-    const read = readTiles(ctx, data, src, [0, length], 1);
+    if (!coverage) {
+      if (!ctx.settled && prep.joinCandidates.includes(source)) lay.joinPending = true;
+      continue;
+    }
+    let length = -1;
+    for (let k = 0; k < coverage.systems.length; k++)
+      if (coverage.systems[k].name === prep.rowsSystem) length = coverage.systems[k].length ?? held.rows;
+    if (length < 0) continue;
+    JoinRegion[1] = length;
+    const read = readTiles(ctx, data, joinSource(lay, source, prep.rowsSystem, length), JoinRegion, 1);
     if (read.pending.length) lay.joinPending = true;
-    for (const e of read.entries) {
+    for (let k = 0; k < read.entries.length; k++) {
+      const e = read.entries[k];
       const t = e.tables.ranges as RangesList | undefined;
       if (t?.form !== 'list') continue;
-      key += `${source}:${e.version},`;
-      entries.push(t);
+      if (of[at] !== source || of[at + 1] !== t || of[at + 2] !== e.version) same = false;
+      of[at] = source;
+      of[at + 1] = t;
+      of[at + 2] = e.version;
+      at += 3;
+      nt++;
     }
   }
-  if (key === lay.joinedOf) return;
-  lay.joinedOf = key;
+  if (same && of.length === at) return;
+  of[0] = held;
+  of[1] = prep;
+  of.length = at;
   lay.fieldsVersion++;
-  if (!entries.length) {
+  lay.joinIssue = undefined;
+  if (!nt) {
     lay.joined = undefined;
     return;
   }
   const joined = new Map<string, (string | number | null)[]>();
+  const from = new Map<string, string>();
+  const said = new Set<string>();
   const byLabel = new Map<string, number>();
   held.labels.forEach((l, i) => {
     if (!byLabel.has(l)) byLabel.set(l, i);
   });
-  for (const t of entries)
-    for (let k = 0; k < t.start.length; k++) {
-      const id = t.id?.get(k);
-      const row = id != null ? byLabel.get(id) : t.start[k];
-      if (row === undefined || row < 0 || row >= held.rows) continue;
-      for (const f of t.fields ?? []) {
-        let a = joined.get(f.name);
-        if (!a) joined.set(f.name, (a = new Array(held.rows).fill(null)));
+  for (let q = 2; q < at; q += 3) {
+    const source = of[q] as string;
+    const t = of[q + 1] as RangesList;
+    for (const f of t.fields ?? []) {
+      if (!prep.joinFields.includes(f.name)) continue;
+      if (held.fields?.has(f.name) || RowMeasureFields.includes(f.name)) {
+        said.add(`${f.name} of ${source} is the alignment’s own ${held.fields?.has(f.name) ? 'field' : 'measure'}`);
+        continue;
+      }
+      const first = from.get(f.name);
+      if (first !== undefined && first !== source) {
+        said.add(`${f.name} is a field of ${first} and of ${source}: ${first}’s read`);
+        continue;
+      }
+      from.set(f.name, source);
+      let a = joined.get(f.name);
+      if (!a) joined.set(f.name, (a = new Array(held.rows).fill(null)));
+      for (let k = 0; k < t.start.length; k++) {
+        const id = t.id?.get(k);
+        const row = id != null ? byLabel.get(id) : t.start[k];
+        if (row === undefined || row < 0 || row >= held.rows) continue;
         a[row] = cellOf(f.column, k);
       }
     }
+  }
   lay.joined = joined;
+  if (said.size)
+    lay.joinIssue = issueOf(
+      RenderIssues,
+      'seq.render.rows.field',
+      `A joined field is not read: ${[...said].join('; ')}`,
+      {
+        address: ctx.key,
+        hint: RenderIssues.codes['seq.render.rows.field'].hint,
+      },
+    );
+}
+
+/** The region a join reads: the whole rows system (its end set before each read: a frame makes no array). */
+const JoinRegion = [0, 0];
+
+/** The layer source a joined source is read through, kept by the layer (one a source and length). */
+function joinSource(lay: RowsLay, source: string, system: string, length: number): LayerSource {
+  let s = lay.joinSrc.get(source);
+  if (!s || s.length !== length) {
+    s = { source, system, dataSystem: system, shape: 'ranges', length, ratio: 1 };
+    lay.joinSrc.set(source, s);
+  }
+  return s;
 }
 
 const NoFolds: readonly string[] = [];
@@ -720,6 +766,15 @@ function prepareRows(layer: ResolvedLayer, model: StaticModel): RowsPrep {
     columns.length || byField
       ? [...model.sources.keys()].filter((s) => s !== src?.source && s !== system?.source)
       : NoSources;
+  const rowsSystem = a?.rows ?? rowsSystemOf(owner);
+  // the sources that could join (pending until they attach): their own system the rows system, a runtime bound
+  const joinCandidates = joinSources.filter((s) => {
+    const b = model.sources.get(s);
+    return b?.runtime !== undefined && b.entry.system === rowsSystem;
+  });
+  const joinFields = [
+    ...new Set([...columns.map((c) => c.field), ...(byField ? [(order as { field: string }).field] : [])]),
+  ];
   return {
     ...(src ? { src } : {}),
     owner,
@@ -752,6 +807,8 @@ function prepareRows(layer: ResolvedLayer, model: StaticModel): RowsPrep {
     ...(a?.reference !== undefined ? { reference: a.reference } : {}),
     columns,
     joinSources,
+    joinCandidates,
+    joinFields,
   };
 }
 
@@ -769,7 +826,7 @@ export const RowsType: LayerType<Prep, RowsLay> = {
   prepare: prepareRows,
 
   layout(prep, ctx: LayoutContext, data: StoreReader, _overlay: Overlay, prev?: RowsLay): RowsLay {
-    const { axis, box, config, tokens } = ctx;
+    const { axis, config, tokens } = ctx;
     const lay = prev ?? new RowsLay();
     lay.key = ctx.key;
     lay.section = sectionId(ctx.section);
@@ -778,7 +835,7 @@ export const RowsType: LayerType<Prep, RowsLay> = {
     lay.owner = prep.owner;
     lay.params = prep.params;
     lay.collapsed = prep.collapsed;
-    lay.box = box;
+    lay.box = ctx.box;
     lay.axis = axis;
     lay.tokens = tokens;
     lay.config = config;
@@ -810,32 +867,17 @@ export const RowsType: LayerType<Prep, RowsLay> = {
     lay.lazyCodes.clear();
     lay.lazyFirst.clear();
     lay.chip = '';
-    lay.cellCol.length = 0;
-    lay.cellRow.length = 0;
-    lay.cellY.length = 0;
-    lay.cellTop.length = 0;
-    lay.cellText.length = 0;
-    lay.cellFull.length = 0;
-    lay.cellTextW.length = 0;
-    lay.cellFullW.length = 0;
-    lay.cellShare.length = 0;
-    lay.cellColor.length = 0;
-    lay.cellName.length = 0;
-    lay.titleText.length = 0;
-    lay.titleX.length = 0;
-    lay.titleW.length = 0;
-    lay.titleCol.length = 0;
-    lay.colChip = '';
-    lay.rowColumns = prep.columns;
-    // the widths the view grants (its yielding to a narrow width, EC-107), else each its own
-    const granted = ctx.rowColumns?.widths;
-    lay.colW.length = prep.columns.length;
-    lay.colX.length = prep.columns.length;
-    lay.hiddenColumns = 0;
-    for (let k = 0; k < prep.columns.length; k++) {
-      lay.colW[k] = granted && granted.length === prep.columns.length ? granted[k] : prep.columns[k].width;
-      if (lay.colW[k] <= 0) lay.hiddenColumns++;
+    // the row columns as written and granted; a layer with columns keeps a title row above its rows
+    setColumns(lay.cols, prep, ctx);
+    if (lay.cols.titleRow) {
+      const b = lay.ownBox;
+      b.x = ctx.box.x;
+      b.y = ctx.box.y + lay.cols.titleRow;
+      b.width = ctx.box.width;
+      b.height = Math.max(0, ctx.box.height - lay.cols.titleRow);
+      lay.box = b;
     }
+    const box = lay.box;
     if (ctx.images) lay.cache = ctx.images;
     else if (!lay.cache) {
       let own = OwnImages.get(config);
@@ -901,6 +943,7 @@ export const RowsType: LayerType<Prep, RowsLay> = {
     // the fields an order or a column reads: the measures and the joined records, before the order is built
     lay.prepareMeasures(prep);
     readJoined(lay, prep, ctx, data);
+    if (lay.joinIssue) ctx.report(lay.joinIssue);
     lay.prepareRows(prep, ctx);
     // a spec's fold naming no clade of the tree is said, never dropped silently (the session's folds are the tree's)
     const clades = lay.foldsApply ? lay.clades : undefined;
@@ -937,7 +980,7 @@ export const RowsType: LayerType<Prep, RowsLay> = {
     if (!lay.held && heldable) return lay;
     layoutCells(lay, prep, ctx);
     layoutHeader(lay, prep, ctx);
-    if (prep.columns.length) layoutColumns(lay, prep, ctx);
+    if (prep.columns.length) layoutRowColumns(lay, prep, ctx);
     if (display.hidden) {
       lay.chip = `${display.hidden} hidden`;
       lay.chipW = ctx.text.measure(config.itemFont, lay.chip);
@@ -956,22 +999,12 @@ export const RowsType: LayerType<Prep, RowsLay> = {
   },
 
   hitOutside(lay, at): Hit | undefined {
-    // a column's title in the band above the rows: `state` its field (a click orders the rows by it)
-    const n = lay.titleText.length;
-    if (!n) return undefined;
-    const x = at[0];
-    const y = at[1];
-    const size = fontSize(lay.config.itemFont);
-    if (y < lay.titleY - size - 2 || y > lay.titleY + 4) return undefined;
-    for (let t = 0; t < n; t++) {
-      const k = lay.titleCol[t];
-      const x0 = lay.colX[k];
-      if (x < x0 || x >= x0 + lay.colW[k]) continue;
-      const h = writeHit(lay, lay.rowsSystem, undefined, undefined, 'column-title');
-      lay.scratch.state = lay.rowColumns[k].field;
-      return h;
-    }
-    return undefined;
+    // a column's title in the layer's title row: `state` its field (a click orders the rows by it); the chip is none
+    const t = titleAt(lay, at[0], at[1]);
+    if (t < 0) return undefined;
+    const h = writeHit(lay, lay.rowsSystem, undefined, undefined, 'column-title');
+    lay.scratch.state = lay.cols.columns[lay.cols.titleCol[t]].field;
+    return h;
   },
 
   hit(lay, at): Hit | undefined {
@@ -986,12 +1019,12 @@ export const RowsType: LayerType<Prep, RowsLay> = {
       if (node >= 0 && lay.clades)
         return writeHit(lay, lay.rowsSystem, undefined, undefined, 'tree-node', cladeHit(lay, node));
       if (i < 0 || x < lay.treeX1) return undefined;
-      return named(lay, rowHit(lay, i, undefined), cellAt(lay, i, x));
+      return named(lay, rowHit(lay, i, undefined), lay.cols.cellAt(i, x));
     }
     if (i < 0) return undefined;
     // a right column's cell hits as its row's header, naming its value
     if (x >= box.x + box.width) {
-      const q = cellAt(lay, i, x);
+      const q = lay.cols.cellAt(i, x);
       return q < 0 ? undefined : named(lay, rowHit(lay, i, undefined), q);
     }
     const position = lay.axis.positionAt(x);
@@ -1408,7 +1441,7 @@ function layoutHeader(lay: RowsLay, prep: Prep, ctx: LayoutContext) {
   lay.numberX = right;
   lay.numberRightX = box.x + box.width + config.labelGap;
   // the left row columns between the label and the first numbers (the label column was widened by them)
-  const leftRoom = columnsRoom(prep.columns, lay.colW, 'left', config.rows.columns.gapPx);
+  const leftRoom = columnsRoom(prep.columns, lay.cols.width, 'left', config.rows.columns.gapPx);
   lay.labelMax = Math.max(0, right - numberW - 4 - lay.labelX - leftRoom);
   const size = fontSize(config.itemFont);
   const add = (i: number) => {
@@ -1442,186 +1475,6 @@ function layoutHeader(lay: RowsLay, prep: Prep, ctx: LayoutContext) {
   };
   for (let i = 0; i < lay.display.pinned; i++) add(i);
   for (let i = lay.first; i < lay.last; i++) add(i);
-}
-
-/** The order marks a title carries when the rows are ordered by its field. */
-const OrderMark = { ascending: ' ↑', descending: ' ↓' } as const;
-
-/**
- * Each column's range (a bar's domain, from 0 when no value is below it), its categories in code-point order (a
- * chip's color by its index) and whether any row has it: over the held rows, kept by the data and the joined fields.
- */
-function columnStats(lay: RowsLay, cols: readonly RowColumn[]) {
-  const held = lay.held;
-  const key = `${held?.version ?? -1}|${lay.fieldsVersion}|${cols.map((c) => c.field).join('\u0000')}`;
-  if (key === lay.colStatsOf) return;
-  lay.colStatsOf = key;
-  const n = held?.rows ?? 0;
-  for (let k = 0; k < cols.length; k++) {
-    let lo = 0;
-    let hi = Number.NEGATIVE_INFINITY;
-    let any = false;
-    const seen = new Set<string>();
-    for (let r = 0; r < n; r++) {
-      const v = lay.fieldValue(r, cols[k].field);
-      if (v === undefined) continue;
-      any = true;
-      if (typeof v === 'number') {
-        if (v < lo) lo = v;
-        if (v > hi) hi = v;
-      } else seen.add(v);
-    }
-    lay.colLo[k] = lo;
-    lay.colHi[k] = Number.isFinite(hi) ? hi : lo;
-    lay.colAny[k] = any;
-    const cats = new Map<string, number>();
-    for (const c of [...seen].sort()) cats.set(c, cats.size);
-    lay.colCats[k] = cats;
-  }
-  lay.colLo.length = lay.colHi.length = lay.colAny.length = lay.colCats.length = cols.length;
-}
-
-/**
- * The row columns (_spec/README.md "Render", The rows layer, Row columns): the left ones in the header between the
- * label and the first numbers, the right ones after the last numbers (before a rows rail); a cell a row in view (a
- * summary row's empty, a missing value empty): text cut to its width, a number right-aligned, a bar its value's share
- * of the column's range, a chip its category's color; the titles in the band above the rows (a figure's first line
- * only), a chip counting the columns a narrow view hid. A field no row has is said once (`seq.render.rows.column`).
- */
-function layoutColumns(lay: RowsLay, prep: Prep, ctx: LayoutContext) {
-  const { config, box, text, tokens } = ctx;
-  const cols = prep.columns;
-  const gap = config.rows.columns.gapPx;
-  const font = config.itemFont;
-  const numbers = prep.numbers === 'gutters';
-  const numberW = numbers ? text.measure(font, '00000') : 0;
-  // left: ending where the first numbers start
-  let x = box.x - config.labelGap - numberW - 4 - columnsRoom(cols, lay.colW, 'left', gap);
-  for (let k = 0; k < cols.length; k++)
-    if (cols[k].side === 'left' && lay.colW[k] > 0) {
-      lay.colX[k] = x + gap;
-      x += gap + lay.colW[k];
-    }
-  // right: after the last numbers' gutter, where the view puts them (a figure's: after its lines)
-  let r = ctx.rowColumns?.rightX ?? box.x + box.width + (numbers && !lay.figure ? numberW + config.labelGap : 0);
-  for (let k = 0; k < cols.length; k++)
-    if (cols[k].side === 'right' && lay.colW[k] > 0) {
-      lay.colX[k] = r + gap;
-      r += gap + lay.colW[k];
-    }
-  lay.rightEnd = r;
-  columnStats(lay, cols);
-  if (lay.held && !lay.joinPending) {
-    const missing = cols.filter((c, k) => !lay.colAny[k]).map((c) => c.field);
-    if (missing.length)
-      ctx.report(
-        issueOf(RenderIssues, 'seq.render.rows.column', `No row has the field ${missing.join(', ')}`, {
-          address: ctx.key,
-          hint: RenderIssues.codes['seq.render.rows.column'].hint,
-        }),
-      );
-  }
-  const first = ctx.strip === undefined || ctx.strip === 0;
-  const size = fontSize(font);
-  if (first) {
-    // the titles, a line above the rows' band
-    lay.titleY = box.y - 4;
-    // the hidden-columns chip ends where the right columns do (at the view's right edge, before a rows rail): the right
-    // titles before it are cut to make it room
-    let end = Number.POSITIVE_INFINITY;
-    if (lay.hiddenColumns) {
-      lay.colChip = lay.hiddenColumns === 1 ? '1 column hidden' : `${lay.hiddenColumns} columns hidden`;
-      lay.colChipW = text.measure(font, lay.colChip);
-      lay.colChipX = r - lay.colChipW;
-      end = lay.colChipX - gap;
-    }
-    const o = prep.order;
-    for (let k = 0; k < cols.length; k++) {
-      const c = cols[k];
-      const w = c.side === 'right' ? Math.min(lay.colW[k], end - lay.colX[k]) : lay.colW[k];
-      if (w <= 0) continue;
-      const mark = typeof o === 'object' && o.field === c.field ? OrderMark[o.direction] : '';
-      const t = elide(text, font, `${c.title}${mark}`, w);
-      if (!t) continue;
-      const tw = text.measure(font, t);
-      lay.titleText.push(t);
-      lay.titleW.push(tw);
-      lay.titleX.push(c.as === 'number' ? lay.colX[k] + w - tw : lay.colX[k]);
-      lay.titleCol.push(k);
-    }
-  }
-  const rs = lay.rowScale;
-  if (rs < config.rows.labelMinPx) return;
-  const add = (i: number) => {
-    const e = lay.display.rowAt(i);
-    if (e < 0) return;
-    const top = lay.rowY(i);
-    const y = top + rs / 2 + size * 0.35;
-    for (let k = 0; k < cols.length; k++) {
-      const w = lay.colW[k];
-      if (w <= 0) continue;
-      const c = cols[k];
-      const v = lay.fieldValue(e, c.field);
-      if (v === undefined) continue;
-      const full = formatColumnValue(c.field, v);
-      let share = Number.NaN;
-      let color = NoColor;
-      let room = w;
-      if (c.as === 'bar') {
-        const lo = lay.colLo[k];
-        const hi = lay.colHi[k];
-        share = typeof v === 'number' ? (hi > lo ? (v - lo) / (hi - lo) : 1) : Number.NaN;
-        room = 0;
-      } else if (c.as === 'chip') {
-        const at = lay.colCats[k].get(String(v)) ?? 0;
-        color = tokens.colors[CategoryTokens[at % CategoryTokens.length]];
-        room = Math.max(0, w - chipSwatch(rs) - 4);
-      }
-      const t = room > 0 ? elide(text, font, full, room) : '';
-      lay.cellCol.push(k);
-      lay.cellRow.push(i);
-      lay.cellY.push(y);
-      lay.cellTop.push(top);
-      lay.cellText.push(t);
-      lay.cellFull.push(full);
-      const tw = text.measure(font, t);
-      lay.cellTextW.push(tw);
-      lay.cellFullW.push(t === full ? tw : text.measure(font, full));
-      lay.cellShare.push(share);
-      lay.cellColor.push(color);
-      lay.cellName.push(`${c.title}: ${full}`);
-    }
-  };
-  for (let i = 0; i < lay.display.pinned; i++) add(i);
-  for (let i = lay.first; i < lay.last; i++) add(i);
-}
-
-/** The categories' colors a chip takes, by its category's index (the `categories` list). */
-const CategoryTokens = [
-  'seq-cat-0',
-  'seq-cat-1',
-  'seq-cat-2',
-  'seq-cat-3',
-  'seq-cat-4',
-  'seq-cat-5',
-  'seq-cat-6',
-  'seq-cat-7',
-] as const;
-
-/** A chip's swatch, px: a square of the row's middle. */
-function chipSwatch(rs: number): number {
-  return Math.min(10, rs * 0.5);
-}
-
-/** The column cell under (x, display row `i`): its index in the cells, -1 for none. */
-function cellAt(lay: RowsLay, i: number, x: number): number {
-  for (let q = 0; q < lay.cellCol.length; q++) {
-    if (lay.cellRow[q] !== i) continue;
-    const k = lay.cellCol[q];
-    const x0 = lay.colX[k];
-    if (x >= x0 && x < x0 + lay.colW[k]) return q;
-  }
-  return -1;
 }
 
 function isPinned(lay: RowsLay, row: number): boolean {
@@ -1687,20 +1540,6 @@ function firstShown(lay: RowsLay, clades: Clades, k: number): number {
     if (r >= 0 && lay.display.placeRow(r) >= 0) return r;
   }
   return -1;
-}
-
-/** `text` cut to `max` px with an ellipsis, as `font` measures it (whole when it fits). */
-function elide(text: LayoutContext['text'], font: string, t: string, max: number): string {
-  if (text.measure(font, t) <= max) return t;
-  let lo = 0;
-  let hi = t.length;
-  // the longest prefix that fits with its ellipsis
-  while (lo < hi) {
-    const mid = (lo + hi + 1) >> 1;
-    if (text.measure(font, `${t.slice(0, mid)}…`) <= max) lo = mid;
-    else hi = mid - 1;
-  }
-  return lo ? `${t.slice(0, lo)}…` : '';
 }
 
 /**
@@ -1858,7 +1697,10 @@ function writeHit(
 
 /** A header's hit naming the column cell it is on (`title: value`, made at layout: a hover allocates nothing). */
 function named(lay: RowsLay, h: Hit, q: number): Hit {
-  if (q >= 0 && h === lay.scratch) lay.scratch.state = lay.cellName[q];
+  if (q >= 0 && h === lay.scratch) {
+    const c = lay.cols;
+    lay.scratch.state = c.name[c.col[q]][c.row[q]];
+  }
   return h;
 }
 
@@ -2058,19 +1900,19 @@ function drawHeader(lay: RowsLay, out: PassWriter) {
     g[4] = tokens.colors['msui-accent'];
     out.textArgs(lay.chip, AnchorStart, config.itemFont);
   }
-  if (lay.cellCol.length) drawColumnCells(lay, out, 0);
+  if (lay.cols.n) drawColumnCells(lay, out, 0);
   out.unclip();
-  if (lay.cellCol.length) {
+  if (lay.cols.n) {
     // the right columns, clipped to the band as the rows are
     g[0] = box.x + box.width;
     g[1] = box.y;
-    g[2] = Math.max(0, lay.rightEnd - g[0]);
+    g[2] = Math.max(0, lay.cols.rightEnd - g[0]);
     g[3] = box.height;
     out.clipArgs();
     drawColumnCells(lay, out, 1);
     out.unclip();
   }
-  if (lay.titleText.length || lay.colChip) drawTitles(lay, out);
+  if (lay.cols.titleN || lay.cols.chip) drawTitles(lay, out);
   // the last numbers in the right gutter, clipped to the band as its rows are (a partly shown row ends at the foot)
   if (lay.lastText.length) {
     g[0] = box.x + box.width;
@@ -2091,129 +1933,20 @@ function drawHeader(lay: RowsLay, out: PassWriter) {
 }
 
 /**
- * The column cells of one side (0 left, 1 right): text from the column's x (a number's to its right end), a bar its
- * share of the width in the accent, a chip a swatch of its category's color before its text.
- */
-function drawColumnCells(lay: RowsLay, out: PassWriter, side: 0 | 1) {
-  const { config, tokens } = lay;
-  const g = out.args;
-  const font = config.itemFont;
-  const ink = tokens.colors['msui-text'];
-  const rs = lay.rowScale;
-  for (let q = 0; q < lay.cellCol.length; q++) {
-    const k = lay.cellCol[q];
-    const c = lay.rowColumns[k];
-    if ((c.side === 'right' ? 1 : 0) !== side) continue;
-    const x = lay.colX[k];
-    const w = lay.colW[k];
-    if (c.as === 'bar') {
-      const share = lay.cellShare[q];
-      if (Number.isNaN(share)) continue;
-      g[0] = x;
-      g[1] = lay.cellTop[q] + rs * 0.25;
-      g[2] = Math.max(1, w * share);
-      g[3] = rs * 0.5;
-      g[4] = tokens.colors['msui-accent'];
-      g[5] = NoColor;
-      g[6] = 0;
-      g[7] = 0;
-      g[8] = 0;
-      out.rectArgs();
-      continue;
-    }
-    let tx = x;
-    if (c.as === 'chip') {
-      const sw = chipSwatch(rs);
-      g[0] = x;
-      g[1] = lay.cellTop[q] + (rs - sw) / 2;
-      g[2] = sw;
-      g[3] = sw;
-      g[4] = lay.cellColor[q];
-      g[5] = NoColor;
-      g[6] = 0;
-      g[7] = 0;
-      g[8] = 0;
-      out.rectArgs();
-      tx = x + sw + 4;
-    }
-    const t = lay.cellText[q];
-    if (!t) continue;
-    const number = c.as === 'number';
-    g[0] = number ? x + w : tx;
-    g[1] = lay.cellY[q];
-    g[2] = lay.cellTextW[q];
-    g[3] = lay.cellTextW[q];
-    g[4] = ink;
-    out.textArgs(t, number ? AnchorEnd : AnchorStart, font);
-  }
-}
-
-/** The columns' titles in the band above the rows (muted), and the hidden-columns chip (the accent). */
-function drawTitles(lay: RowsLay, out: PassWriter) {
-  const { config, tokens } = lay;
-  const g = out.args;
-  for (let t = 0; t < lay.titleText.length; t++) {
-    g[0] = lay.titleX[t];
-    g[1] = lay.titleY;
-    g[2] = lay.titleW[t];
-    g[3] = lay.titleW[t];
-    g[4] = tokens.colors['msui-text-muted'];
-    out.textArgs(lay.titleText[t], AnchorStart, config.itemFont);
-  }
-  if (lay.colChip) {
-    g[0] = lay.colChipX;
-    g[1] = lay.titleY;
-    g[2] = lay.colChipW;
-    g[3] = lay.colChipW;
-    g[4] = tokens.colors['msui-accent'];
-    out.textArgs(lay.colChip, AnchorStart, config.itemFont);
-  }
-}
-
-/**
- * The hover, then its row's column cells cut short read whole (`hoverColumns`): a function of its own, so the hover's
- * own stays as the compiler had it (a number boxed a frame otherwise, measured).
+ * The hover, then its row's column cells cut short read whole: a function of its own, so the hover's own stays as the
+ * compiler had it (a number boxed a frame otherwise, measured).
  */
 function drawHoverAndColumns(lay: RowsLay, out: PassWriter, emphasis: Emphasis | undefined) {
   drawHover(lay, out, emphasis);
-  if (lay.cellCol.length) hoverColumns(lay, out, emphasis);
+  if (lay.cols.n) hoverColumns(lay, out, emphasis);
 }
 
-/** A hovered row's column cells cut short: their whole text over the page's background, from the cell's x. */
 function hoverColumns(lay: RowsLay, out: PassWriter, emphasis: Emphasis | undefined) {
   const h = emphasis?.hover;
   if (!h || h.layer !== lay.key) return;
   const row = h.yPosition ?? (h.system === lay.rowsSystem ? h.position : undefined);
   const i = row === undefined ? -1 : lay.display.displayRow(row);
-  if (i < 0) return;
-  const { tokens, config } = lay;
-  const g = out.args;
-  for (let q = 0; q < lay.cellCol.length; q++) {
-    if (lay.cellRow[q] !== i || lay.cellText[q] === lay.cellFull[q] || !lay.cellText[q]) continue;
-    const k = lay.cellCol[q];
-    const c = lay.rowColumns[k];
-    const w = lay.cellFullW[q];
-    const x =
-      c.as === 'number'
-        ? lay.colX[k] + lay.colW[k] - w
-        : lay.colX[k] + (c.as === 'chip' ? chipSwatch(lay.rowScale) + 4 : 0);
-    g[0] = x - 2;
-    g[1] = lay.cellTop[q];
-    g[2] = w + 4;
-    g[3] = lay.rowScale;
-    g[4] = tokens.colors['msui-bg'];
-    g[5] = tokens.colors['msui-line'];
-    g[6] = 1;
-    g[7] = 0;
-    g[8] = 0;
-    out.rectArgs();
-    g[0] = x;
-    g[1] = lay.cellY[q];
-    g[2] = w;
-    g[3] = w;
-    g[4] = tokens.colors['msui-text'];
-    out.textArgs(lay.cellFull[q], AnchorStart, config.itemFont);
-  }
+  if (i >= 0) hoverColumnCells(lay, out, i);
 }
 
 /** Tree segment `k` (of `lay.tree`) as a rect of thickness `t` in `ink`. */

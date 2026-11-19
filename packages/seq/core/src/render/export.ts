@@ -81,6 +81,9 @@ export function viewSources(model: StaticModel, view: ResolvedView): Set<string>
       for (const l of t.layers) {
         const src = layerSource(model, l);
         if (src) out.add(src.source);
+        // a rows layer's joined fields: the sources whose own system is its rows system (Render, Row columns)
+        const rows = l.type === 'rows' && l.data ? model.annotations.get(l.data.address)?.rows : undefined;
+        if (rows) for (const b of model.sources.values()) if (b.entry.system === rows) out.add(b.address);
       }
     }
   }

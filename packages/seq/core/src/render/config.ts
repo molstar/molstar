@@ -166,12 +166,19 @@ export interface RenderConfig {
    * true: the tree stays a tree). A row's height (`RowHeight`, 20) and a tree hit's reach (`TreeHitPx`, 6) are fixed.
    * Row columns (Row columns): a column's least width before it is hidden (`columns.floorPx`, 32: a short number or a
    * chip), the gap before each (`columns.gapPx`, 6), and the data's least width they yield to (`columns.dataMinPx`,
-   * 200: the data keeps a third of a 600 px view beside a tree, a label and two columns).
+   * 200: the data keeps a third of a 600 px view beside a tree, a label and two columns), and the title row a rows
+   * layer with columns takes above its rows (`columns.titlePx`, 16: a line of the items' font), so its titles never
+   * reach the track above.
    */
   readonly rows: {
     readonly labelMinPx: number;
     readonly pinInPlace: boolean;
-    readonly columns: { readonly floorPx: number; readonly gapPx: number; readonly dataMinPx: number };
+    readonly columns: {
+      readonly floorPx: number;
+      readonly gapPx: number;
+      readonly dataMinPx: number;
+      readonly titlePx: number;
+    };
   };
   /**
    * Navigators and the window they share with a ring's (_spec/README.md "Render", Navigators): the window's least drawn
@@ -289,7 +296,7 @@ export const DefaultRenderConfig: RenderConfig = {
   },
   internedStrings: DefaultMaxStrings,
   imageBytes: 64 * 1024 * 1024,
-  rows: { labelMinPx: 8, pinInPlace: true, columns: { floorPx: 32, gapPx: 6, dataMinPx: 200 } },
+  rows: { labelMinPx: 8, pinInPlace: true, columns: { floorPx: 32, gapPx: 6, dataMinPx: 200, titlePx: 16 } },
   navigator: {
     window: { minPx: 16, hitPx: 12, touchHitPx: 24, handlePx: 5, floor: 'centred' },
     trackScale: 0.25,

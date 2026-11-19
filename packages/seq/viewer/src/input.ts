@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import type { Node as SpecNode } from '@molstar/core/repr/tree';
 import {
   floorExtent,
   type Placement,
@@ -606,6 +607,21 @@ export class ViewerInput {
       this.navigatorBehavior?.click(rc.section, rc.part === 'outside' ? rc.at : undefined, e.detail ?? 1);
       return true;
     }
+    // a rows layer's column title: the rows ordered by its field (one patch), again the other direction; before the
+    // double-click's drop, so a fast second click flips too (the order read from the spec as it is now)
+    const title = this.viewer.hit(x, y);
+    if (title?.target === 'column-title' && title.state !== undefined) {
+      let n: SpecNode | undefined = this.viewer.spec.root.value;
+      for (const id of title.layer.split('/').filter(Boolean)) n = n?.children?.find((c) => c.id === id);
+      const now = n?.params?.order as { field?: unknown; direction?: unknown } | undefined;
+      const flip = typeof now === 'object' && now?.field === title.state && now.direction !== 'descending';
+      void this.viewer.execute('rows.order', {
+        track: trackOfLayer(title.layer),
+        order: { field: title.state, direction: flip ? 'descending' : 'ascending' },
+      });
+      this._suppressClick = false;
+      return true;
+    }
     if (this._suppressClick) {
       this._suppressClick = false;
       return false;
@@ -621,19 +637,6 @@ export class ViewerInput {
     const chip = this.viewer.hit(x, y);
     if (chip?.target === 'filter') {
       void this.viewer.execute('layer.filter', { address: chip.layer });
-      return true;
-    }
-    // a rows layer's column title: the rows ordered by its field (one patch), a second click the other direction
-    if (chip?.target === 'column-title' && chip.state !== undefined) {
-      const track = trackOfLayer(chip.layer);
-      const now = this.viewer.behavior(RowsProvider)?.lay(track)?.params.order as
-        | { field?: unknown; direction?: unknown }
-        | undefined;
-      const flip = typeof now === 'object' && now?.field === chip.state && now.direction !== 'descending';
-      void this.viewer.execute('rows.order', {
-        track,
-        order: { field: chip.state, direction: flip ? 'descending' : 'ascending' },
-      });
       return true;
     }
     // a tree node's click: its bound command (toggles the clade's fold by default), unless it is a selection's

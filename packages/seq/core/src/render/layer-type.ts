@@ -140,7 +140,10 @@ export interface Hit {
   readonly navigator?: string;
   /** The block (its index in the section) when the section has blocks. */
   readonly block?: number;
-  /** What is under the point within the position, when a layer says (a logo's letter). */
+  /**
+   * What is under the point within the position, when a layer says: a logo's letter; a rows layer's column cell, what
+   * it names (`title: value`, on its row's `row` hit); a column title's field (`column-title`).
+   */
   readonly state?: string;
 }
 

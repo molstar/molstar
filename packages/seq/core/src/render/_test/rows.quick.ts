@@ -12,7 +12,16 @@
 import { rangesLocation } from '@molstar/seqx-core/query';
 import { quickCase } from '@molstar/test-harness/quick';
 import { describe, expect, inject, it } from 'vitest';
-import { drawView, type FrameInput, type Hit, hitView, type RowsLay } from '../index.js';
+import {
+  bundledTextMetrics,
+  drawView,
+  type FrameInput,
+  type Hit,
+  hitView,
+  type LayoutContext,
+  type RowsLay,
+} from '../index.js';
+import { layoutRowColumns } from '../rows-columns.js';
 import { settle } from './helpers.js';
 import { Columns, rowsSpec, Section, Synthetic, Track } from './rows-fixtures.js';
 import { reusedHover } from './scenarios.js';
@@ -181,4 +190,70 @@ describe('the rows draw and hover with nothing allocated once warm; a layout a b
       console.info(`rows pan, ${n} lazy rows: ${r.bytesPerStep.toFixed(0)} bytes a frame (${r.note})`);
       expect(r.bytesPerStep, r.note).toBeLessThan(LayoutBound);
     });
+
+  // the row columns (Render, Row columns): a warm draw and a hover over their cells allocate nothing, and their layout
+  // over rows already shown (a pan once warm: the texts cut and kept by row) nothing
+  const ColumnsParams = {
+    columns: [
+      { field: 'label', title: 'Name' },
+      { field: 'gaps', as: 'number' },
+      { field: 'length', side: 'right', as: 'bar' },
+      { field: 'first', side: 'right', as: 'chip' },
+    ],
+  };
+  it('10,000 × 300 with row columns: draw, a hover over the cells, and the columns’ pan once warm', async ({
+    task,
+  }) => {
+    const s = await settle(rowsSpec(10_000, true, ColumnsParams), [Synthetic]);
+    const input = at(4000, 20, 100, 160);
+    const f = await s.frame(input);
+    const lay = rowsLay(f);
+    expect(lay.cols.n).toBeGreaterThan(0);
+    const d = quickCase(task, 'rows columns draw', () => drawView(f.layout, f.lists), {});
+    console.info(`rows columns draw: ${d.r.bytesPerStep.toFixed(0)} bytes a frame (${d.r.note})`);
+    expect(d.r.bytesPerStep, d.r.note).toBeLessThanOrEqual(inject('perfThreshold'));
+    const hits: Hit[] = [];
+    for (let q = 0; q < lay.cols.n; q += 3) {
+      const k = lay.cols.col[q];
+      const h = hitView(f.layout, lay.cols.x[k] + 2, lay.cols.top[q] + 5);
+      if (h) hits.push(h);
+    }
+    expect(hits.length).toBeGreaterThan(4);
+    const hover = reusedHover(hits);
+    const hoverAt = { ...input, emphasis: hover.emphasis };
+    const h = quickCase(
+      task,
+      'rows columns hover',
+      (i) => {
+        hover.set(i);
+        s.renderer.frame(hoverAt);
+      },
+      {},
+    );
+    console.info(`rows columns hover: ${h.r.bytesPerStep.toFixed(0)} bytes a frame (${h.r.note})`);
+    expect(h.r.bytesPerStep, h.r.note).toBeLessThanOrEqual(inject('perfThreshold'));
+    // the columns' layout as the band scrolls over 200 rows shown once
+    const ctx = {
+      config: lay.config,
+      text: bundledTextMetrics(),
+      tokens: lay.tokens,
+      key: lay.key,
+      report: () => {},
+    } as unknown as LayoutContext;
+    const prep = lay.prepOf!;
+    const top = lay.top;
+    const P = lay.display.pinned;
+    const step = (i: number) => {
+      const t = top + (i % 200);
+      lay.bandTop = t * lay.rowScale;
+      lay.first = P + t;
+      lay.last = P + t + 30;
+      lay.cols.n = 0;
+      layoutRowColumns(lay, prep, ctx);
+    };
+    for (let i = 0; i < 200; i++) step(i);
+    const p = quickCase(task, 'rows columns pan', step, {});
+    console.info(`rows columns pan: ${p.r.bytesPerStep.toFixed(0)} bytes a frame (${p.r.note})`);
+    expect(p.r.bytesPerStep, p.r.note).toBeLessThanOrEqual(inject('perfThreshold'));
+  });
 });

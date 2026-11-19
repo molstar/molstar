@@ -88,6 +88,38 @@ B/2-5 ACCD
     expect(field('AC')).toEqual([null, 'P02088']);
   });
 
+  it('Stockholm: `#=GS` lines across blocks; one naming no row said once with its names, by the runtime', async () => {
+    const text = `# STOCKHOLM 1.0
+#=GS A OS Homo sapiens
+A AC
+B AC
+
+#=GS B OS Mus musculus
+#=GS X OS Nobody
+#=GS Y OS Nobody
+A -D
+B CD
+//
+`;
+    const a = readStockholm(text);
+    expect(a.rows.map((r) => [r.letters, r.fields?.OS])).toEqual([
+      ['AC-D', 'Homo sapiens'],
+      ['ACCD', 'Mus musculus'],
+    ]);
+    expect(a.unknownAnnotated).toEqual(['X', 'Y']);
+    const s = await AlignmentFileRuntime.open(
+      { address: '/data/a', format: 'stockholm', value: text },
+      {
+        assets: { readText: () => Promise.reject(new Error('no')), readBytes: () => Promise.reject(new Error('no')) },
+        signal: new AbortController().signal,
+        limits: DefaultOpenLimits,
+      },
+    );
+    expect(s.issues?.map((i) => [i.code, i.severity, i.message])).toEqual([
+      ['seq.source.rows.annotation', 'info', '#=GS lines name 2 sequences with no row: X, Y'],
+    ]);
+  });
+
   it('aligned FASTA: lowercase-only columns are inserts; a row of another width is said and left out', () => {
     const a = readAlignedFasta('>a/10-14\nAC-gD\nE\n>b\nACcgDE\n>c\nAC\n');
     expect(a.rows.map((r) => r.letters)).toEqual(['AC-gDE', 'ACcgDE']);

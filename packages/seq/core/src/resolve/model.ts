@@ -486,7 +486,12 @@ function alignmentEntry(
           source: {
             address: at.address,
             format: 'alignment',
-            value: { label, letters, ...(fields ? { fields } : {}) } as unknown as Value,
+            value: {
+              label,
+              letters,
+              ...(fields ? { fields } : {}),
+              ...(firstOf(rows as Record<string, Value>, letters.length) ?? {}),
+            } as unknown as Value,
           },
           runtime: AlignmentRuntime,
           system: AlignmentSystems.rows,
@@ -520,11 +525,26 @@ function alignmentEntry(
   };
 }
 
-/** An inline rows table's columns past `label` and `letters`, a plain list each; undefined when there are none. */
+/** An inline rows table's `first` column, as the rows' first residue numbers, when it is one number a row. */
+function firstOf(rows: Record<string, Value> | undefined, n: number): { first: number[] } | undefined {
+  const v = rows?.first;
+  const list =
+    isColumn(v) && !(v instanceof CategoryColumn)
+      ? Array.from(v as ArrayLike<number>)
+      : Array.isArray(v)
+        ? v
+        : undefined;
+  return list && list.length === n && list.every((x) => typeof x === 'number')
+    ? { first: list as number[] }
+    : undefined;
+}
+
+/** An inline rows table's columns past `label`, `letters` and `first`, a plain list each; undefined when none. */
 function rowsFields(rows: Record<string, Value> | undefined): Record<string, unknown[]> | undefined {
   let out: Record<string, unknown[]> | undefined;
   for (const key of Object.keys(rows ?? {})) {
-    if (key === 'label' || key === 'letters') continue;
+    // `first` is the rows' first residue numbers (EC-39), never a field
+    if (key === 'label' || key === 'letters' || key === 'first') continue;
     const v = rows![key];
     const list =
       v instanceof CategoryColumn
