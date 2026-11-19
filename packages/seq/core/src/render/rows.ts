@@ -1587,27 +1587,32 @@ function layoutTree(lay: RowsLay, clades: Clades, x0: number, w: number) {
         // to its deepest leaf's x (a few px at least, so a clade of zero lengths still shows one); the hit's box the
         // row's middle 0.8, the drawn wedge's far side half the row (`drawWedges`)
         const far = Math.min(x0 + w, Math.max(x0 + lay.deepX[k] * w, x + WedgeMinPx));
-        lay.wedges.push(x, yk - rs * 0.4, far, yk + rs * 0.4, k);
+        // a node within `WedgeMinPx` of the tree's edge: the wedge starts that far before it (its hit box too)
+        lay.wedges.push(Math.min(x, far - WedgeMinPx), yk - rs * 0.4, far, yk + rs * 0.4, k);
         lay.nodes.push(k, x, yk);
       }
       continue;
     }
     const kids = clades.children[k];
+    // the vertical spans the node and its drawn children only (none drawn: none; zoomed out, a child too small to
+    // resolve has no branch to meet)
     let lo = yk;
     let hi = yk;
+    let drawn = false;
     for (const c of kids) {
-      if (Number.isNaN(coord[c])) continue;
+      if (Number.isNaN(coord[c]) || span[c] < least) continue;
       const y = y0 + coord[c] * rs;
+      drawn = true;
       if (y < lo) lo = y;
       if (y > hi) hi = y;
       // the child's branch: from this node's x to the child's, at the child's y
-      if (span[c] >= least && y >= top - 1 && y <= bottom + 1) {
+      if (y >= top - 1 && y <= bottom + 1) {
         lay.tree.push(x, y, x0 + nodeX[c] * w, y);
         lay.treeNode.push(inner(c) ? c : -1);
         lay.treeClade.push(c);
       }
     }
-    if (kids.length && hi >= top && lo <= bottom) {
+    if (drawn && hi >= top && lo <= bottom) {
       lay.tree.push(x, Math.max(lo, top), x, Math.min(hi, bottom));
       lay.treeNode.push(inner(k) ? k : -1);
       lay.treeClade.push(k);
@@ -2040,7 +2045,10 @@ function hoverColumns(lay: RowsLay, out: PassWriter, emphasis: Emphasis | undefi
   if (!lay.cols.n) return;
   const h = emphasis?.hover;
   if (h && h.layer === lay.key && h.target === 'row' && h.state !== undefined && h.position !== undefined) {
-    const i = lay.display.displayRow(h.position);
+    // the copy the pointer is on (a pinned row kept in place is shown twice): the last hit's, when it shows that row
+    const r = lay.hitRow;
+    const i =
+      r >= 0 && r < lay.display.count && lay.display.rowAt(r) === h.position ? r : lay.display.displayRow(h.position);
     if (i >= 0) hoverColumnCells(lay, out, i, h.state);
   }
   const c = emphasis?.cursor;
@@ -2048,8 +2056,11 @@ function hoverColumns(lay: RowsLay, out: PassWriter, emphasis: Emphasis | undefi
   // the layer's address is its section's and more: `startsWith` and a code read allocate nothing
   const s = c.section;
   if (s !== undefined && !(lay.key.startsWith(s) && lay.key.charCodeAt(s.length) === 47)) return;
+  // on every copy the cursor is drawn on (as `drawCursor` outlines both of a pinned row's)
   const i = lay.cursorRow(c.yPosition);
   if (i >= 0) hoverColumnCells(lay, out, i, undefined);
+  const own = lay.display.placeRow(c.yPosition);
+  if (own >= 0 && own !== i) hoverColumnCells(lay, out, own, undefined);
 }
 
 /** Sets a branch's width `t` (px) in whole device pixels into `BranchW[0]`, one at least (_spec/README.md "Render", The rows layer, The tree's look). */
@@ -2124,7 +2135,12 @@ function drawWedges(lay: RowsLay, out: PassWriter, ink: number, clade: number, h
     WedgeCorners[3] = yc - half;
     WedgeCorners[4] = x1;
     WedgeCorners[5] = yc + half;
-    const r = squircleRadius(x1 - x0, 2 * half, config.squircleRatio, config.squircleMax, config.squircleMin);
+    // the squircle rule's radius, inline (`squircleRadius` given fractional numbers boxes them)
+    const len = x1 - x0;
+    const r =
+      len < config.squircleMin || 2 * half < config.squircleMin
+        ? 0
+        : Math.min(2 * half * config.squircleRatio, config.squircleMax, len / 2, half);
     BranchW[1] = r;
     const n = softCorners();
     g[4] = fill;
@@ -2154,8 +2170,8 @@ function softCorners(): number {
     const ay = p[2 * ((c + 2) % 3) + 1];
     const bx = p[2 * ((c + 1) % 3)];
     const by = p[2 * ((c + 1) % 3) + 1];
-    const la = Math.hypot(ax - px, ay - py);
-    const lb = Math.hypot(bx - px, by - py);
+    const la = Math.sqrt((ax - px) * (ax - px) + (ay - py) * (ay - py));
+    const lb = Math.sqrt((bx - px) * (bx - px) + (by - py) * (by - py));
     const d = Math.min(r, la / 3, lb / 3);
     const sx = px + ((ax - px) * d) / la;
     const sy = py + ((ay - py) * d) / la;

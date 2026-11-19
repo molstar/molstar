@@ -387,6 +387,21 @@ describe('row columns', () => {
       expect(cut.cols.chipX + cut.cols.chipW).toBeLessThanOrEqual(cut.box.x);
     });
 
+    it('no room for a name in either band: the count alone ("2 hidden"), never no chip', async () => {
+      const columns: Col[] = [
+        { ...Family[0], title: 'Organism of origin by its full taxonomy' },
+        { ...Family[1], title: 'Identity to the reference row' },
+      ];
+      const size = { width: 300, height: 300 };
+      const s = await settle(spec(columns).build(), [], { labelWidth: 16 });
+      const f = await s.frame({ size, dpr: 1, settled: true });
+      const lay = rowsLays(f as never)[0];
+      expect(lay.cols.width).toEqual([0, 0]);
+      expect(lay.cols.chip).toBe('2 hidden');
+      expect(lay.cols.chipCols).toEqual([0, 1]);
+      expect(lay.cols.chipX).toBeGreaterThanOrEqual(0);
+    });
+
     it('the right ones hidden with a right column shown: at the end of the right columns’ band, past the data, the shown title cut for it', async () => {
       const { lay } = await laid(AllKinds, {}, { width: 640, height: 300 });
       const c = lay.cols;
@@ -573,6 +588,38 @@ describe('row columns', () => {
         });
         expect(texts(onCell.lists)).toEqual([]);
       });
+    });
+
+    it('a pinned row kept in place: the tip on the copy under the pointer; the header cursor’s on both copies', async () => {
+      const rows = { OS: ['Homo sapiens (human)', 'Mus musculus (house mouse)', 'Danio rerio (zebrafish)'] };
+      const { s } = await laid(Narrow, { rows, layer: { pinned: ['A/1-5'] } });
+      const first = await s.frame({ size: Size, dpr: 1, settled: true });
+      const l = rowsLays(first as never)[0];
+      // A is shown twice: in the pinned band (display row 0) and in its place in the order
+      const place = l.display.placeRow(0);
+      expect(l.display.displayRow(0)).toBe(0);
+      expect(place).toBeGreaterThan(0);
+      const tipRects = (f: { lists: Parameters<typeof recordDrawLists>[0] }) =>
+        recordDrawLists(f.lists, ['tip'])
+          .split('\n')
+          .filter((x) => x.startsWith('rect '))
+          .map((x) => nums(x)[1]);
+      for (const i of [place, 0]) {
+        const hover = hitView(first.layout, l.cols.x[0] + 4, l.rowY(i) + l.rowScale / 2) as never;
+        expect(hover).toMatchObject({ target: 'row', position: 0, state: 'Species: Homo sapiens (human)' });
+        const f = s.renderer.frame({ size: Size, dpr: 1, settled: true, emphasis: { hover } });
+        expect([...new Set(tipRects(f))]).toEqual([l.rowY(i)]);
+      }
+      const cursor = {
+        section: '/views/v/s',
+        system: l.system,
+        position: 0,
+        ySystem: l.rowsSystem,
+        yPosition: 0,
+        part: 'header',
+      } as never;
+      const c = s.renderer.frame({ size: Size, dpr: 1, settled: true, emphasis: { cursor } });
+      expect([...new Set(tipRects(c))].sort((a, b) => a - b)).toEqual([l.rowY(0), l.rowY(place)]);
     });
 
     it('a label longer than the view ends in an ellipsis at the view’s edge', async () => {

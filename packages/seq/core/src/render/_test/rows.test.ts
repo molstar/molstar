@@ -284,6 +284,27 @@ describe('the rows layer', () => {
     });
   });
 
+  it('a folded clade whose node is at the tree’s right edge: its wedge still 6 px long, ending at the edge, and hit', async () => {
+    const b = createSeqSpec();
+    const aln = b.data.alignment('aln', { alphabet: 'protein', rows: { label: Labels, letters: Letters } });
+    // hb's leaves at zero length below it, as deep as the tree goes: its node sits at the tree's right edge
+    const tree = b.data.tree('tree', { of: aln, newick: '((HBA:0,HBB:0)hb:3,(MYG:1,(GLB:1,CYG:1):1):1)root;' });
+    b.views.view('v', (v) =>
+      v.section('s', { of: aln }, (s) =>
+        s.track('rows', { label: '' }, (t) =>
+          t.layer('r', { type: 'rows', data: aln, tree, order: 'tree', collapsed: ['hb'] } as never),
+        ),
+      ),
+    );
+    const s = await settle(b.build());
+    const f = await s.frame({ size: Size, dpr: 1, settled: true });
+    const lay = rowsLay(f as never);
+    const [x0, y0, x1, y1] = lay.wedges;
+    expect(x1).toBeCloseTo(lay.treeX1, 6);
+    expect(x1 - x0).toBeGreaterThanOrEqual(6 - 1e-9);
+    expect(hitView(f.layout, x0 + 2, (y0 + y1) / 2)).toMatchObject({ target: 'tree-node', element: { key: 'hb' } });
+  });
+
   describe('the header below `rows.labelMinPx`: the label column empty, the tree down to what resolves', () => {
     const Rows = 10_000;
     // the 10,000 rows and their tree settled once for the file's two frames
@@ -320,6 +341,31 @@ describe('the rows layer', () => {
       expect(lay.tree.length).toBeGreaterThan(0);
       expect(lay.tree.length / 4).toBeLessThan(2 * 2 * (600 / 4));
       expect(items.length).toBe(lay.tree.length / 4);
+    });
+
+    it('zoomed out, a node’s vertical spans its drawn branches only: each end meets a branch (none with no child drawn)', async () => {
+      const s = await scaled();
+      const f = await s.frame(at(600 / Rows));
+      const lay = rowsLay(f as never);
+      const t = lay.tree;
+      const top = lay.box.y + lay.pinnedHeight;
+      const bottom = lay.box.y + lay.box.height;
+      // the branches' ys by the x they touch (either end)
+      const meets = new Map<number, Set<number>>();
+      const touching = (x: number) => meets.get(x) ?? meets.set(x, new Set()).get(x)!;
+      for (let k = 0; k + 3 < t.length; k += 4)
+        if (t[k + 1] === t[k + 3]) {
+          touching(t[k]).add(t[k + 1]);
+          touching(t[k + 2]).add(t[k + 1]);
+        }
+      let verticals = 0;
+      for (let k = 0; k + 3 < t.length; k += 4) {
+        if (t[k] !== t[k + 2] || t[k + 1] === t[k + 3]) continue;
+        verticals++;
+        const ys = meets.get(t[k]) ?? new Set();
+        for (const y of [t[k + 1], t[k + 3]]) expect(ys.has(y) || y <= top || y >= bottom, `${t[k]} ${y}`).toBe(true);
+      }
+      expect(verticals).toBeGreaterThan(10);
     });
 
     it('at 8 px a row: the labels, the tree to every leaf', async () => {

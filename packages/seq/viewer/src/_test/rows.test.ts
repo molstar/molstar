@@ -632,4 +632,44 @@ describe('the rows’ columns in the viewer', () => {
       expect(v.spec.revision.value).toBe(revision);
     });
   });
+
+  it('a move within a logo column, from one letter to another, keeps the hover (its letter is no hover state)', async () => {
+    vi.useFakeTimers({ toFake: ['Date', 'performance'] });
+    frames = installFrames();
+    const b = createSeqSpec({ title: 'logo' });
+    // column 0 half M, half A: two letters stacked
+    const letters = ['MVLS', 'MVHL', 'MGLS', 'AKAV', 'AEKV', 'AERP'];
+    const aln = b.data.alignment('aln', { alphabet: 'protein', rows: { label: Labels, letters } });
+    b.views.view('v', (vw) =>
+      vw.section('s', { of: aln }, (s) => {
+        s.track('logo', { label: '', height: 64 }, (t) => t.layer('logo', { type: 'logo', data: aln }));
+        s.track('rows', { label: '', height: 140 }, (t) => t.layer('r', { type: 'rows', data: aln }));
+      }),
+    );
+    const v = createSeqViewer({ ...DefaultSeqViewerSpec(), ui: undefined, config: [[viewerItem('view.jumpMs'), 0]] });
+    viewer = v;
+    await v.load(b.build());
+    v.resize(400);
+    await v.settle();
+    frames.flush();
+    const logo = v.frame!.layout.sections[0].tracks[0].box;
+    const l = lay(v);
+    l.axis.cell(0);
+    const x = (l.axis.sx0 + l.axis.sx1) / 2;
+    // two points in the column over different letters
+    const states = new Map<string, number>();
+    for (let y = logo.y + 1; y < logo.y + logo.height; y += 1) {
+      const s = v.hit(x, y)?.state;
+      if (s && !states.has(s)) states.set(s, y);
+    }
+    expect(states.size).toBe(2);
+    const [y1, y2] = [...states.values()];
+    v.input.move(x, y1);
+    frames!.flush();
+    const version = v.hover.version.value;
+    expect(v.hover.current.position).toBe(0);
+    v.input.move(x, y2);
+    frames!.flush();
+    expect(v.hover.version.value).toBe(version);
+  });
 });

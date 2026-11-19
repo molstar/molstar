@@ -340,16 +340,21 @@ function placeChip(cols: ColumnsLay, ctx: LayoutContext, box: LayoutContext['box
   else if (right && fits(short, r1 - r0)) [s, side] = [short, 'right'];
   else if (fits(short, l1 - l0)) s = short;
   else {
-    // the first name cut, its count and "hidden" kept: the count is what it says
+    // in the roomier band (the right one only when only right columns are hidden): the first name cut, its count and
+    // "hidden" kept (the count is what it says); no room for a name, the count alone ("2 hidden"): a column is never
+    // hidden with no chip
+    if (right && r1 - r0 > l1 - l0) side = 'right';
+    const room = side === 'right' ? r1 - r0 : l1 - l0;
     const tail = names.length > 1 ? ` +${names.length - 1} hidden` : ' hidden';
-    const head = elide(text, font, names[0], l1 - l0 - text.measure(font, tail));
-    s = head ? `${head}${tail}` : '';
+    const head = elide(text, font, names[0], room - text.measure(font, tail));
+    s = head ? `${head}${tail}` : `${names.length} hidden`;
   }
-  if (!s) return;
   cols.chip = s;
   cols.chipW = text.measure(font, s);
   cols.chipSide = side;
-  cols.chipX = (side === 'right' ? r1 : l1) - cols.chipW;
+  // ending at its band's end; past its start only when even the count does not fit (it then starts there)
+  const [b0, b1] = side === 'right' ? [r0, r1] : [l0, l1];
+  cols.chipX = Math.max(b0, b1 - cols.chipW);
 }
 
 /** The titles in the title row and the hidden-columns chip, made again only when what they read changed. */
