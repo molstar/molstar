@@ -257,7 +257,8 @@ and dark before the merge.
       `ligand` node and `ligand_form` read first. Drafted, reviewed and self-checked as the slice's designs were
       (`briefs/design-drafts.md`), with its Storybook Design page; decided by the author at this stage's gate.
       **Built in the fourth slice** (a language change past 0.4.0, which stays this slice's: one bump, unreleased);
-      this slice's DG and DC write their ligands as one-position sequences drawn as chips, and DT its tRNA's modified
+      this slice's DG and DC write their ligands as one-position sequences drawn as chips, and DC writes ATP's two forms (one position, its atoms)
+      without a map (0.4.0 has only offset and codon maps; MD's gap 9), and DT its tRNA's modified
       nucleotides as their parents' letters (the components kept in the fixture for the fourth slice), changed once then.
 - [ ] GATE: merged, reviewed, the checks green, sizes, gaps; MD's design decided.
 
