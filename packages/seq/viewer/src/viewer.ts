@@ -1085,6 +1085,10 @@ export class SeqViewer extends ReactiveModel {
     (h as { position: number | undefined }).position = Number.isNaN(r.position) ? undefined : r.position;
     (h as { element: unknown }).element = r.element;
     (h as { extent: unknown }).extent = r.extent;
+    h.ySystem = r.ySystem;
+    (h as { yPosition: number | undefined }).yPosition = Number.isNaN(r.yPosition) ? undefined : r.yPosition;
+    // the clade hover of a rows layer reads it (_spec/README.md "Render", The rows layer, Hover)
+    (h as { target: unknown }).target = r.target;
     e.hover = h;
   }
 

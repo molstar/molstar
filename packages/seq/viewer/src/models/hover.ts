@@ -67,6 +67,8 @@ export interface HoverRecord {
   /** The position on a second axis (a rows cell's row, a grid's y) and its system: NaN and undefined when none. */
   readonly ySystem: string | undefined;
   readonly yPosition: number;
+  /** What the hit was (a tree node, a summary row: the clade's hover), as the hit said; undefined when it said nothing. */
+  readonly target: HitTarget | undefined;
 }
 
 type MutableRecord = { -readonly [K in keyof HoverRecord]: HoverRecord[K] };
@@ -86,6 +88,7 @@ export class HoverModel extends ReactiveModel {
     extent: undefined,
     ySystem: undefined,
     yPosition: Number.NaN,
+    target: undefined,
   };
   /** The version, the view and the model the caches are for. */
   private _cacheKey: [number, unknown, unknown] = [-1, undefined, undefined];
@@ -137,6 +140,7 @@ export class HoverModel extends ReactiveModel {
       r.section === section &&
       (r.position === position || (Number.isNaN(r.position) && Number.isNaN(position))) &&
       r.ySystem === hit.ySystem &&
+      r.target === hit.target &&
       (r.yPosition === yPosition || (Number.isNaN(r.yPosition) && Number.isNaN(yPosition))) &&
       keysEqual(r.element, hit.element) &&
       (hit.element !== undefined || r.extent === hit.extent)
@@ -151,6 +155,7 @@ export class HoverModel extends ReactiveModel {
     r.extent = hit.extent;
     r.ySystem = hit.ySystem;
     r.yPosition = yPosition;
+    r.target = hit.target;
     this._version.set(this._version.value + 1);
     return true;
   }
@@ -159,7 +164,7 @@ export class HoverModel extends ReactiveModel {
   clear(owner: unknown): boolean {
     const r = this._record;
     if (r.owner === undefined || r.owner !== owner) return false;
-    r.owner = r.layer = r.section = r.system = r.element = r.extent = r.ySystem = undefined;
+    r.owner = r.layer = r.section = r.system = r.element = r.extent = r.ySystem = r.target = undefined;
     r.position = r.yPosition = Number.NaN;
     this._version.set(this._version.value + 1);
     return true;
