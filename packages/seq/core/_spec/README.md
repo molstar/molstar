@@ -959,8 +959,12 @@ the UX foundations' numbers, CSS px, settled by the foundation stories; where no
   break ink (`seq-break`), residue and nucleotide classes, eight categories (chosen apart under the three color-vision
   deficiencies in both tables), the density ramp, a five-stop ramp and a diverging triple, secondary structure
   (`seq-ss-helix`, `-strand`, `-turn`), `seq-variant`, `seq-ruler`, the navigator's window, grip and wash, the
-  centromere), as `0xRRGGBBAA`, and the font stacks of the two family roles. Node has a light and a dark table
-  (`LightTokens`, `DarkTokens`); the viewer reads its own from CSS.
+  centromere, a letter cell's edge), as `0xRRGGBBAA`, and the font stacks of the two family roles. Node has a light and
+  a dark table (`LightTokens`, `DarkTokens`); the viewer reads its own from CSS.
+- **A letter cell's edge** (`seq-cell-edge`): in the dark table a hairline, 1 device px, around each cell drawn with its
+  letter (the letters layer's `letters` step, a rows layer's letter cells), at 3:1 against the page; none (transparent)
+  in the light table. Why: the dark scheme colors sit at 1.4–1.7:1 against the dark page and cannot go lighter without
+  their ink failing 4.5:1; an edge costs no figure's colors, a lighter dark page every figure's.
 - **Its version is a hash of its content**, part of the draw lists' key: a theme switch redraws, an equal table does
   not. Why a hash: pure by contract, so an export from Node and a viewer agree on equal tables.
 - **A spec's color** is a hex literal, `token:<name>` (`seq-<name>`, then `msui-<name>`, then `<name>`) or

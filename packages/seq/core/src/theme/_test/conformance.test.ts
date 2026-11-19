@@ -115,5 +115,12 @@ describe('the token tables', () => {
       }
       expect(contrastRgba(tokens.colors['seq-centromere'], tokens.colors['msui-bg'])).toBeGreaterThanOrEqual(3);
       expect(contrastRgba(tokens.colors['seq-centromere'], tokens.colors['seq-track'])).toBeGreaterThanOrEqual(3);
+      // a letter cell's edge: 3:1 against the page and the track in dark, none in light
+      const edge = tokens.colors['seq-cell-edge'];
+      if (tokens.theme === 'light') expect(edge & 0xff).toBe(0);
+      else {
+        expect(contrastRgba(edge, tokens.colors['msui-bg'])).toBeGreaterThanOrEqual(3);
+        expect(contrastRgba(edge, tokens.colors['seq-track'])).toBeGreaterThanOrEqual(3);
+      }
     });
 });

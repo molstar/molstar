@@ -1471,14 +1471,17 @@ function drawData(lay: RowsLay, out: PassWriter) {
 
 function drawRects(lay: RowsLay, out: PassWriter, from: number, to: number) {
   const g = out.args;
+  // a letter cell's hairline (`seq-cell-edge`: dark only, none in light), as the letters layer's
+  const edge = lay.letters ? lay.tokens.colors['seq-cell-edge'] : NoColor;
+  const px = edge === NoColor ? 0 : 1 / lay.axis.dpr;
   for (let k = from; k < to; k++) {
     g[0] = lay.x0[k];
     g[1] = lay.y[k];
     g[2] = lay.x1[k] - lay.x0[k];
     g[3] = lay.h[k];
     g[4] = lay.fill[k];
-    g[5] = NoColor;
-    g[6] = 0;
+    g[5] = edge;
+    g[6] = px;
     g[7] = 0;
     g[8] = 0;
     out.rectArgs();

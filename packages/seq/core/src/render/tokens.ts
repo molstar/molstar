@@ -70,6 +70,7 @@ export const SeqTokenNames = [
   'seq-grip',
   'seq-wash',
   'seq-centromere',
+  'seq-cell-edge',
 ] as const;
 
 export type SeqTokenName = (typeof SeqTokenNames)[number];
@@ -115,7 +116,9 @@ export function createTokens(theme: string, colors: Record<SeqTokenName, string>
 // 4.5:1 or better in the light theme, and deep fills under light ink in the dark one. The categories are Okabe–Ito's
 // seven hues (mixed a tenth toward the surface) and a red, at least 0.06 apart in Oklab under normal vision and the
 // three simulated deficiencies in both tables (_spec/README.md "Render", Tokens); the ramp is monotone in lightness
-// from near the track's color to strong; `seq-centromere` holds 3:1 against the surface.
+// from near the track's color to strong; `seq-centromere` holds 3:1 against the surface. `seq-cell-edge` is a letter
+// cell's hairline in dark (3:1 against the page: the dark cells sit at 1.4–1.7:1 and cannot go lighter without their
+// ink failing 4.5:1), none (transparent) in light.
 
 export const LightTokens: SeqTokens = createTokens('light', {
   'msui-bg': '#f1efea',
@@ -174,6 +177,7 @@ export const LightTokens: SeqTokens = createTokens('light', {
   'seq-grip': '#6b655c',
   'seq-wash': '#f1efea33',
   'seq-centromere': '#b4306a',
+  'seq-cell-edge': '#00000000',
 });
 
 export const DarkTokens: SeqTokens = createTokens('dark', {
@@ -233,6 +237,7 @@ export const DarkTokens: SeqTokens = createTokens('dark', {
   'seq-grip': '#8d95a1',
   'seq-wash': '#12141933',
   'seq-centromere': '#e86aa0',
+  'seq-cell-edge': '#646b76',
 });
 
 /** The built-in table of a theme (Node, exports): `light` unless `dark`. */

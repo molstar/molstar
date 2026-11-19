@@ -634,6 +634,8 @@ function drawCells(lay: LettersLay, out: PassWriter, _emphasis: Emphasis | undef
   const y = dots ? box.y + (box.height - tick) / 2 : box.y;
   const h = dots ? tick : box.height;
   const px = 1 / lay.axis.dpr;
+  // a letter cell's hairline (`seq-cell-edge`: dark only, none in light), so dim dark cells read apart from the page
+  const edge = lay.step === 'letters' ? tokens.colors['seq-cell-edge'] : NoColor;
   const g = out.args;
   for (let j = 0; j < lay.n; j++) {
     g[0] = lay.x0[j];
@@ -641,8 +643,8 @@ function drawCells(lay: LettersLay, out: PassWriter, _emphasis: Emphasis | undef
     g[2] = Math.max(lay.x1[j] - lay.x0[j], px);
     g[3] = h;
     g[4] = lay.fill[j];
-    g[5] = NoColor;
-    g[6] = 0;
+    g[5] = edge;
+    g[6] = edge === NoColor ? 0 : px;
     g[7] = 0;
     g[8] = 0;
     out.rectArgs();
