@@ -634,14 +634,22 @@ describe('the ruler rail on the canvas', () => {
   });
 
   it('a click on a grip’s tab, not moved, does not centre: only a press outside the window does', async () => {
-    const { v, rail: r } = await rail();
-    const start = r.x + railFraction(r, 100);
+    const v = await make(spec({ ruler: true, strip: false }), [[viewerItem('viewport.maxPxPerPosition'), 1000]]);
+    // a narrow window, floored: its grips' tabs outside its drawn ends
+    v.view.setRange(P, 100, 102);
+    v.draw();
+    const r = v.frame!.layout.sections[0].rail!;
     const y = r.bottom - 2;
-    expect(v.hit(start - 3, y)?.part).toBe('start');
-    v.input.down(start - 3, y);
-    v.input.up();
-    v.input.click(start - 3, y, { detail: 1 });
-    expect(range(v)).toEqual([100, 150]);
+    const c = v.context.renderConfig.navigator.window;
+    const mid = r.x + railFraction(r, 101);
+    for (const x of [mid - c.minPx / 2 - 3, mid + c.minPx / 2 + 3]) {
+      expect(v.hit(x, y)?.part).not.toBe('outside');
+      v.input.down(x, y);
+      v.input.up();
+      expect(range(v)).toEqual([100, 102]);
+      v.input.click(x, y, { detail: 1 });
+      expect(range(v)).toEqual([100, 102]);
+    }
   });
 
   it('a double-click outside the window: one step (down, up, click, down, up, its second click, dblclick)', async () => {
