@@ -254,6 +254,53 @@ describe('1FIN’s blocks', () => {
   });
 });
 
+describe('1FIN’s interface track labels', () => {
+  it('a run of the same label once, no leader through a label or a mark, canvas lists and SVG alike', async () => {
+    for (const build of [blocks.build, blocks.split]) {
+      const ctx = createSeqContext({
+        registry: [
+          { kind: 'format-runtime', runtime: SeqRuntime },
+          { kind: 'format-runtime', runtime: RecordsRuntime },
+        ],
+        ports: { assets: () => nodeFixtureAssets() },
+      });
+      const r = await ctx.renderSvg(build(), { size: { width: 720, height: 900 } });
+      expect(r.issues).toEqual([]);
+      const boxes: number[][] = [];
+      const marks: number[][] = [];
+      const leaders: number[][] = [];
+      const interfaces: number[][] = [];
+      for (const pass of ['data', 'labels'] as const)
+        for (const line of recordDrawLists(r.lists, [pass]).split('\n')) {
+          if (pass === 'data' && line.startsWith('rect ')) {
+            const [x, y, w, h] = line.split(' ').slice(1, 5).map(Number);
+            marks.push([x, y, x + w, y + h]);
+          } else if (pass === 'labels' && line.startsWith('path ')) {
+            leaders.push(line.replace(/[ML]/g, ' ').split(/\s+/).filter(Boolean).slice(1, 7).map(Number));
+          } else if (pass === 'labels' && line.startsWith('text ')) {
+            const m = /^text "(.*)" (\S+) (\S+) \S+ ".*" #\w+ width (\S+)/.exec(line)!;
+            const [x, y, w] = [Number(m[2]), Number(m[3]), Number(m[4])];
+            boxes.push([x, y - 8, x + w, y + 3]);
+            if (m[1] === 'interface') interfaces.push([x, y, w]);
+          }
+        }
+      expect(interfaces.length).toBeGreaterThan(0);
+      // one label a run: two "interface" labels on one line are at least a label's width apart
+      for (const a of interfaces)
+        for (const b of interfaces)
+          if (a !== b && a[1] === b[1]) expect(Math.abs(a[0] - b[0]), `${a} ${b}`).toBeGreaterThanOrEqual(a[2]);
+      const cross = (g: number[], b: number[]) =>
+        Math.min(g[0], g[2]) < b[2] - 0.01 &&
+        Math.max(g[0], g[2]) > b[0] + 0.01 &&
+        Math.min(g[1], g[3]) < b[3] - 0.01 &&
+        Math.max(g[1], g[3]) > b[1] + 0.01;
+      for (const p of leaders)
+        for (const g of [p.slice(0, 4), p.slice(2, 6)])
+          for (const b of [...boxes, ...marks]) expect(cross(g, b), `${g} ${b}`).toBe(false);
+    }
+  });
+});
+
 describe('the grid over the complex', () => {
   const view = ComplexViews.find((v) => v.id === 'complex-grid')!;
 

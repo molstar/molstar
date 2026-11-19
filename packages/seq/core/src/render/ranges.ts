@@ -233,9 +233,12 @@ export interface RangesLay extends ItemsBase {
   litem: Int32Array;
   /** Scratch: an item's leftmost mark's x, the candidates by priority. */
   left: Float32Array;
+  right: Float32Array;
   cand: Int32Array;
   /** Scratch: the keys of the items labeled inside a mark (kept, cleared each layout). */
   labeled: Set<string | number>;
+  /** Scratch: where the last item of a label's run ends, px (kept, cleared each layout). */
+  runEnds: Map<string, number>;
 }
 
 /** An item's lane id: its key and which occurrence of it in a tile, made once and kept. */
@@ -316,8 +319,10 @@ function newLay(ctx: LayoutContext, prep: RangesPrep): RangesLay {
     lwant: new Float32Array(16),
     litem: new Int32Array(16),
     left: new Float32Array(64),
+    right: new Float32Array(64),
     cand: new Int32Array(64),
     labeled: new Set(),
+    runEnds: new Map(),
   };
 }
 
@@ -464,10 +469,14 @@ function placeLabels(lay: RangesLay, ctx: LayoutContext) {
   lay.left = grown(lay.left, n);
   const left = lay.left;
   left.fill(Number.POSITIVE_INFINITY, 0, n);
+  lay.right = grown(lay.right, n);
+  lay.right.fill(Number.NEGATIVE_INFINITY, 0, n);
   const glyph = minGlyphPx(lay.font);
   for (let j = 0; j < lay.hn; j++) {
     const i = lay.hitem[j];
-    if (i >= 0 && lay.hx0[j] < left[i]) left[i] = lay.hx0[j];
+    if (i < 0) continue;
+    if (lay.hx0[j] < left[i]) left[i] = lay.hx0[j];
+    if (lay.hx1[j] > lay.right[i]) lay.right[i] = lay.hx1[j];
   }
   // an item labeled once: in the first of its marks (in reading order on the page) its label fits
   const labeled = lay.labeled;
@@ -490,6 +499,8 @@ function placeLabels(lay: RangesLay, ctx: LayoutContext) {
   if (lay.labelY < 0) return;
   const lane = ctx.labelLane ?? OwnLane;
   if (!ctx.labelLane) lane.reset();
+  // the layer's marks, for the leaders of this and the later layers (a leader never crosses a mark above its item)
+  for (let j = 0; j < lay.hn; j++) if (lay.hitem[j] >= 0) lane.addMark(lay.hx0[j], lay.hx1[j], lay.hlane[j]);
   // the candidates: an item once (its first row in view with a mark), by priority (the longer item first)
   lay.cand = grown(lay.cand, n);
   const cand = lay.cand;
@@ -500,6 +511,8 @@ function placeLabels(lay: RangesLay, ctx: LayoutContext) {
     cand[c++] = i;
   }
   if (!c) return;
+  // a run of one label (neighbours less than the label's width apart) is labeled once, at its start
+  c = firstOfRuns(lay, ctx, c);
   SortStarts = lay.starts;
   SortEnds = lay.ends;
   sortArrayRange(cand, 0, c, longerFirst);
@@ -512,8 +525,10 @@ function placeLabels(lay: RangesLay, ctx: LayoutContext) {
     const want = Math.max(left[i], x0);
     // the first free place from its start rightward, past the labels already placed in the track's lane
     const x = lane.free(want, w, LabelGapPx);
-    // dropped past the box's end, or moved further than its own width (a leader is a short one)
+    // dropped past the box's end, or moved further than its own width (a leader is a short one), or when its leader
+    // would cross a label or a mark
     if (x + w > x1 || x - want > Math.max(w, 24)) continue;
+    if (x - want >= 1 && lane.crosses(want + 0.5, Math.max(0, lay.lanes[i]), x - 2)) continue;
     lane.add(x, w);
     const q = lay.ln++;
     if (q >= lay.lx.length) {
@@ -530,6 +545,42 @@ function placeLabels(lay: RangesLay, ctx: LayoutContext) {
 }
 
 const NoNumbers: readonly number[] = [];
+
+/** The candidates' order by their first mark's x: a comparator of the module, reading this. */
+let SortLeft: ArrayLike<number> = NoNumbers;
+function leftFirst(o: ArrayLike<number>, a: number, b: number): number {
+  return SortLeft[o[a]] - SortLeft[o[b]] || o[a] - o[b];
+}
+
+/**
+ * The candidates `lay.cand[0..c)` without the followers in a run: an item whose label is the one before it in x, less
+ * than a label's width from that item's end, is part of its run and goes unlabeled (its hover still names it). Returns
+ * the count kept (the run's first items, not in order).
+ */
+function firstOfRuns(lay: RangesLay, ctx: LayoutContext, c: number): number {
+  const cand = lay.cand;
+  const left = lay.left;
+  SortLeft = left;
+  sortArrayRange(cand, 0, c, leftFirst);
+  SortLeft = NoNumbers;
+  const ends = lay.runEnds;
+  ends.clear();
+  let k = 0;
+  for (let q = 0; q < c; q++) {
+    const i = cand[q];
+    const label = lay.labels[i] as string;
+    const right = lay.right[i];
+    const prev = ends.get(label);
+    const w = ctx.text.measure(lay.font, label);
+    if (prev !== undefined && left[i] - prev < w) {
+      if (right > prev) ends.set(label, right);
+      continue;
+    }
+    ends.set(label, right);
+    cand[k++] = i;
+  }
+  return k;
+}
 
 /** A filter's row over an inline item: its key and its fields (`base`, the track's own rows). */
 class ItemRow {

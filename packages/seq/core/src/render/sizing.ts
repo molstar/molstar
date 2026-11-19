@@ -113,9 +113,45 @@ export class LabelLane {
   n = 0;
   x0 = new Float64Array(16);
   x1 = new Float64Array(16);
+  /** The marks the band's layers drew (`mk` of them: x0, x1, lane): what a leader up to the label lane must not cross. */
+  mk = 0;
+  mx0 = new Float64Array(16);
+  mx1 = new Float64Array(16);
+  mlane = new Int32Array(16);
 
   reset() {
     this.n = 0;
+    this.mk = 0;
+  }
+
+  /** A mark of a layer's lane `lane`, spanning `x0` to `x1`. */
+  addMark(x0: number, x1: number, lane: number) {
+    const q = this.mk++;
+    if (q >= this.mx0.length) {
+      const m = 2 * this.mx0.length;
+      const a = new Float64Array(m);
+      const b = new Float64Array(m);
+      const c = new Int32Array(m);
+      a.set(this.mx0);
+      b.set(this.mx1);
+      c.set(this.mlane);
+      this.mx0 = a;
+      this.mx1 = b;
+      this.mlane = c;
+    }
+    this.mx0[q] = x0;
+    this.mx1[q] = x1;
+    this.mlane[q] = lane;
+  }
+
+  /**
+   * Whether a leader from `x` up from the top of lane `lane` and right along the label line to `to` crosses a label
+   * placed or a mark in a lane above `lane`.
+   */
+  crosses(x: number, lane: number, to: number): boolean {
+    for (let q = 0; q < this.n; q++) if (this.x0[q] < to && this.x1[q] > x) return true;
+    for (let q = 0; q < this.mk; q++) if (this.mlane[q] < lane && this.mx0[q] <= x && x < this.mx1[q]) return true;
+    return false;
   }
 
   /** The first x from `x` rightward where a label `w` wide stands `gap` clear of every label placed. */

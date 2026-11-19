@@ -1901,9 +1901,13 @@ numbers): a window move allocates nothing once warm.
 
 - One rule in both layouts (rings: the sink, Rings layout). On a linear track an item's label is drawn inside the first
   of its marks it fits whole in (the mark less its arrowheads and a 3 px inset each side), never cut mid-word; else in
-  the track's label lane at its leftmost mark's x, moved right past a label placed before it with a short leader from
-  its own lane (at most its own width, or 24 px); one the lane cannot hold, or a track with no label lane, is dropped
-  (the hover card names it). **One label lane a track**: its layers' labels beside share it, placed by one priority, the
+  the track's label lane at its leftmost mark's x, moved right clear of a label placed before it with a short leader
+  from its own mark (at most its own width, or 24 px); **a leader never crosses another label or a mark above its item**
+  (the label lane's labels, the marks of this and the earlier layers: `LabelLane.crosses`), so a label that would need
+  one is dropped, as is one the lane cannot hold, or a track with no label lane (the hover card names it). **A run is
+  labeled once**: items of one layer with the same label, each less than the label's width from the one before it in x,
+  get one label at the run's start and none of their own (`firstOfRuns`; the label's hit is the run's first item; the
+  hover card names each). **One label lane a track**: its layers' labels beside share it, placed by one priority, the
   layer's order, then the longer item. An item is labeled once. The same font and size inside and beside; the ink is the
   contrast rule's inside a mark, the text color beside it (decided). A placed label's hit is its item's.
 - **Placed per layout** (the layers', in their order, allocation-free once warm): a pan in the same level lays the

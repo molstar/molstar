@@ -151,7 +151,7 @@ const Labeled: Rows = {
 };
 
 describe('labels inside if they fit, else beside', () => {
-  it('a long item’s label inside its mark, a short one’s in the label lane above, the next moved with a leader', async () => {
+  it('a long item’s label inside its mark, a short one’s in the label lane above, the next dropped (no leader through a label)', async () => {
     const node = spec([{ rows: Labeled }]);
     const r = await frameOf(node);
     const svg = await renderSvg(node, { size: Size });
@@ -164,23 +164,21 @@ describe('labels inside if they fit, else beside', () => {
     // inside: the long one, whole
     const inside = Array.from({ length: lay.m }, (_, j) => j).filter((j) => lay.mlabel[j] > 0);
     expect(inside.map((j) => lay.keys[lay.mitem[j]])).toEqual(['long']);
-    // beside: the two short ones, the longer first at its start, the other moved past it
+    // beside: the longer short one at its start; the other would stand behind it, its leader through the label: dropped
     const beside = Array.from({ length: lay.ln }, (_, k) => ({
       key: lay.keys[lay.litem[k]],
       x: lay.lx[k],
       want: lay.lwant[k],
       w: lay.lw[k],
     }));
-    expect(beside.map((b) => b.key).sort()).toEqual(['next', 'short']);
-    const [a, b] = [...beside].sort((p, q) => p.x - q.x);
-    expect(a.x).toBe(a.want);
-    expect(b.x).toBeGreaterThanOrEqual(a.x + a.w);
-    // the canvas's lists and the SVG alike: each label once, whole; a leader for the moved one
-    for (const text of ['Long domain', 'Short motif', 'Next motif'])
-      expect(svg.svg.split(`>${text}<`).length - 1).toBe(1);
+    expect(beside.map((b) => b.key)).toEqual(['short']);
+    expect(beside[0].x).toBe(beside[0].want);
+    // the canvas's lists and the SVG alike: each label once, whole, no leader
+    for (const text of ['Long domain', 'Short motif']) expect(svg.svg.split(`>${text}<`).length - 1).toBe(1);
+    expect(svg.svg).not.toContain('>Next motif<');
     expect(recordDrawLists(svg.lists, ['labels'])).toBe(recordDrawLists(r.f.lists, ['labels']));
     const labels = recordDrawLists(r.f.lists, ['labels']);
-    expect(labels.split('\n').filter((l) => l.startsWith('path ')).length).toBe(1);
+    expect(labels.split('\n').filter((l) => l.startsWith('path ')).length).toBe(0);
     // a placed label's hit is its item's
     for (const p of beside) {
       const hit = hitView(r.layout, p.x + p.w / 2, lay.labelY + 7);
