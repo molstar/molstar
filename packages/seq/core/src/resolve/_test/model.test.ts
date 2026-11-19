@@ -80,7 +80,7 @@ describe('static model: the p53 example', () => {
     // inline data is a seq source of one tile over the whole system
     const domains = model.annotations.get('/data/domains')!;
     expect([domains.shape, domains.target, domains.fields]).toEqual(['ranges', '/data/p53', ['label']]);
-    const plan = domains.access;
+    const plan = domains.access!;
     expect(plan.kind === 'inline' && [plan.runtime, plan.system, plan.shape]).toEqual([
       SeqRuntime,
       '/data/p53',
@@ -89,7 +89,7 @@ describe('static model: the p53 example', () => {
     const read = plan.kind === 'inline' ? readSeq(plan.source.value!) : undefined;
     expect(read?.data?.pairs.map((p) => [p.request.start, p.request.end])).toEqual([[0, 30]]);
     const values = model.annotations.get('/data/conservation')!;
-    expect([values.shape, values.access.kind, values.access.shape]).toEqual(['values', 'inline', 'values']);
+    expect([values.shape, values.access?.kind, values.access?.shape]).toEqual(['values', 'inline', 'values']);
   });
 
   it('reports a source no runtime reads, and keeps it unavailable', () => {

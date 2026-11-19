@@ -106,9 +106,9 @@ function prepare(layer: ResolvedLayer, model: StaticModel): GridPrep {
     const v = grid.values;
     for (let i = 0; i < v.length; i++) {
       const x = v[i];
-      if (x !== x) continue;
-      if (lo !== lo || x < lo) lo = x;
-      if (hi !== hi || x > hi) hi = x;
+      if (Number.isNaN(x)) continue;
+      if (Number.isNaN(lo) || x < lo) lo = x;
+      if (Number.isNaN(hi) || x > hi) hi = x;
     }
     pyramid = new Pyramid({ factor: 2, pairing: 'square', reducer });
     pyramid.setValues(grid.nx, grid.ny, v);
@@ -183,7 +183,7 @@ export const GridType: LayerType<GridPrep, GridLay> = {
     }
     // the color's open domain is the grid's whole range, held: a tile's colors never shimmer with the view
     lay.extents.reset([color]);
-    if (lay.extents.any && prep.lo === prep.lo) {
+    if (lay.extents.any && !Number.isNaN(prep.lo)) {
       lay.datum.value = prep.lo;
       lay.extents.add(lay.datum);
       lay.datum.value = prep.hi;
@@ -236,7 +236,7 @@ export const GridType: LayerType<GridPrep, GridLay> = {
 
 /** The color of a value (missing: none). */
 function colorOf(lay: GridLay, v: number): number {
-  if (v !== v || !lay.color) return NoColor;
+  if (Number.isNaN(v) || !lay.color) return NoColor;
   lay.datum.value = v;
   const c = lay.color.at(lay.datum);
   return typeof c === 'number' ? c : NoColor;
@@ -427,7 +427,7 @@ function placeTile(
   const x1 = a.x(xe);
   const y0 = ay.x(ys);
   const y1 = ay.x(ye);
-  if (!(x0 === x0 && x1 === x1 && y0 === y0 && y1 === y1)) return;
+  if (Number.isNaN(x0) || Number.isNaN(x1) || Number.isNaN(y0) || Number.isNaN(y1)) return;
   lay.images.push(img);
   lay.ib.push(Math.min(x0, x1), Math.min(y0, y1), Math.abs(x1 - x0), Math.abs(y1 - y0));
 }

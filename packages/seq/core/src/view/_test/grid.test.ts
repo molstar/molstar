@@ -24,7 +24,8 @@ function spec(followY?: string, ofY = true) {
       a_end: [1, 5, 3],
       b_start: [2, 0, 1],
       b_end: [3, 1, 2],
-      type: ['contact', null, 'contact'],
+      // a missing kind, as a table's null reads (the builder's types say string)
+      type: ['contact', null as unknown as string, 'contact'],
       a_strand: ['+', '-', '+'],
     },
   });

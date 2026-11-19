@@ -262,7 +262,7 @@ function unitsOn(prep: PairsPrep, section: ResolvedSection): Float64Array {
     for (const b of blocks)
       if (b.axis.system === system && b.offset !== undefined) {
         const c = centreOf(b.axis, s, e);
-        if (c === c) return b.offset + c;
+        if (!Number.isNaN(c)) return b.offset + c;
       }
     return Number.NaN;
   };
@@ -422,18 +422,18 @@ function layoutArcs(lay: PairsLay, prep: PairsPrep, ctx: LayoutContext, place: P
   for (let k = 0; k < d.n; k++) {
     let oa = units[2 * k];
     let ob = units[2 * k + 1];
-    if (oa !== oa && ob !== ob) {
+    if (Number.isNaN(oa) && Number.isNaN(ob)) {
       unplaced = true;
       continue;
     }
-    let xa = oa === oa ? frameX(place, oa, PA) : Number.NaN;
-    let xb = ob === ob ? frameX(place, ob, PB) : Number.NaN;
+    let xa = !Number.isNaN(oa) ? frameX(place, oa, PA) : Number.NaN;
+    let xb = !Number.isNaN(ob) ? frameX(place, ob, PB) : Number.NaN;
     let sa = PA.strip;
     let sb = PB.strip;
     if (one) {
       // one straight strip: an end past the window taken `reach` past its edge
-      const outA = oa === oa && xa !== xa;
-      const outB = ob === ob && xb !== xb;
+      const outA = !Number.isNaN(oa) && Number.isNaN(xa);
+      const outB = !Number.isNaN(ob) && Number.isNaN(xb);
       if (outA && outB && oa < a0.u0 === ob < a0.u0) continue;
       if (outA) {
         oa = Math.max(reachLo, Math.min(reachHi, oa));
@@ -446,12 +446,12 @@ function layoutArcs(lay: PairsLay, prep: PairsPrep, ctx: LayoutContext, place: P
         sb = 0;
       }
     }
-    if (xa !== xa && xb !== xb) continue;
+    if (Number.isNaN(xa) && Number.isNaN(xb)) continue;
     // an end not placed (a chain not shown, another line without `across_lines`): a caret at the placed one
-    const across = xa === xa && xb === xb && s.top[sa] !== s.top[sb] && !prep.acrossLines;
-    if (xa !== xa || xb !== xb || across) {
-      if (xa === xa) caret(lay, prep, place, sa, band, xa, k);
-      if (xb === xb) caret(lay, prep, place, sb, band, xb, k);
+    const across = !Number.isNaN(xa) && !Number.isNaN(xb) && s.top[sa] !== s.top[sb] && !prep.acrossLines;
+    if (Number.isNaN(xa) || Number.isNaN(xb) || across) {
+      if (!Number.isNaN(xa)) caret(lay, prep, place, sa, band, xa, k);
+      if (!Number.isNaN(xb)) caret(lay, prep, place, sb, band, xb, k);
       continue;
     }
     // the span: px on a straight strip, display units round a ring
@@ -540,7 +540,7 @@ function layoutArcs(lay: PairsLay, prep: PairsPrep, ctx: LayoutContext, place: P
       toPage(place, sa, mid, cy, c, o + 2);
     } else {
       const mx = frameX(place, Raw[4 * i + 2], PM);
-      if (mx === mx) toPage(place, PM.strip, mx, cy, c, o + 2);
+      if (!Number.isNaN(mx)) toPage(place, PM.strip, mx, cy, c, o + 2);
       else {
         c[o + 2] = (c[o] + c[o + 6]) / 2;
         c[o + 3] = Math.min(c[o + 1], c[o + 7]) - depth;
