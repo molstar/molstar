@@ -273,3 +273,7 @@ None.
   a tip, the tip walk skipped without a rows layer, the tip clamped to its band, the tree target stopping at the
   labels). Not built: the keyboard cursor's rows (it is column-only; grids-and-rows' cursor designs `ySystem`,
   `yPosition`): the Design page and the design say so; asked of the author. Quick 2585, medium 105, perf 127.
+- Decided (the author, 2026-11-19): HC's port stays the `hoverCard` behavior's param (answered "Accept"; the review's
+  top-level field offered, unanswered); the default adapter through the default spec, an ownership flag. A ruler in
+  its own numbering has no label (ux-foundations §9; the examples' "Position" dropped in HC's round). RK (the cursor's
+  rows) after HC ("Yes, after HC").
