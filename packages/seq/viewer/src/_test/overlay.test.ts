@@ -23,7 +23,10 @@ import { StoreModel } from '../models/store.js';
 // version), opens a dynamic annotation's rows and the nested sources the view's templates reach, and lets them go
 // with their node.
 
-const assets = { readText: () => Promise.reject(new Error('no network in tests')) };
+const assets = {
+  readText: () => Promise.reject(new Error('no network in tests')),
+  readBytes: () => Promise.reject(new Error('no network in tests')),
+};
 const Genes = '/data/genes';
 
 /** A gene region whose one answer brings a transcript and a nested source (whose coverage lists nothing). */

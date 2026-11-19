@@ -60,7 +60,9 @@ async function make(view = tracks, clock = true, look?: SelectionLook, noRails =
     toFake: clock ? ['setTimeout', 'clearTimeout', 'Date', 'performance'] : ['setTimeout', 'clearTimeout'],
   });
   const v = composeViewer(view, {
-    ports: { assets: () => ({ reader: { readText: async () => gene } }) },
+    ports: {
+      assets: () => ({ reader: { readText: async () => gene, readBytes: async () => new TextEncoder().encode(gene) } }),
+    },
     ...(look ? { look } : {}),
     noRails,
   });

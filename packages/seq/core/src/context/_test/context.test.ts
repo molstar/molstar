@@ -343,7 +343,7 @@ describe('createSeqContext', () => {
 
   it('takes a reader as the assets port (a second adapter), disposed with the context unless the host keeps it', async () => {
     const dispose = vi.fn();
-    const reader = { readText: vi.fn(async () => 'text') };
+    const reader = { readText: vi.fn(async () => 'text'), readBytes: vi.fn(async () => new Uint8Array()) };
     const a = createSeqContext({ ports: { assets: () => ({ reader, dispose }) } });
     expect(await a.assets.readText('x', noSignal)).toBe('text');
     const b = createSeqContext({ ports: { assets: () => ({ reader, dispose, disposeWithViewer: false }) } });
@@ -354,7 +354,10 @@ describe('createSeqContext', () => {
 
   it('a factory that throws disposes the ports already made, last first, and a structure port with them', () => {
     const order: string[] = [];
-    const assets = () => ({ reader: { readText: async () => '' }, dispose: () => order.push('assets') });
+    const assets = () => ({
+      reader: { readText: async () => '', readBytes: async () => new Uint8Array() },
+      dispose: () => order.push('assets'),
+    });
     const text = () => ({ measure: () => 1, dispose: () => order.push('text') });
     const structure = () => {
       throw new Error('no structure');

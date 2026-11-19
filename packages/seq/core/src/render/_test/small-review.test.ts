@@ -125,6 +125,10 @@ describe('secondary classes are whole codes and words', () => {
       expect(secondaryKind(k), k).toBe(2);
     expect(secondaryKind(undefined)).toBe(2);
   });
+
+  it('UniProt’s words: Helix, Beta strand, Turn', () => {
+    expect(['Helix', 'Beta strand', 'Turn', 'Beta'].map(secondaryKind)).toEqual([0, 1, 2, 2]);
+  });
 });
 
 describe('variants: a stem is hit', () => {

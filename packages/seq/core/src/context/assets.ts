@@ -211,64 +211,69 @@ function isRefusedRedirect(e: unknown) {
   return false;
 }
 
-/** The manager's text reads under the policy, as the source protocol's reader. It sets no header of its own. */
+/**
+ * The manager's reads under the policy, as the source protocol's reader: text and bytes alike (_spec/README.md
+ * "Data", Protocol). It sets no header of its own.
+ */
 export function policyAssets(manager: AssetManager, policy: AssetPolicy): AssetReader {
+  async function readAs<T extends 'string' | 'binary'>(uri: string, signal: AbortSignal, type: T) {
+    const checked = checkLocation(uri, policy);
+    if ('refused' in checked) throw new AssetRefused(uri, checked.refused);
+    if (signal.aborted) throw signal.reason ?? new Error('aborted');
+    // the manager's signal: the caller's or the timeout's, whichever comes first
+    const stop = new AbortController();
+    const read = manager
+      .resolve(Asset.Url(checked.url), type, {
+        store: false,
+        credentials: policy.credentials ?? 'omit',
+        redirect: policy.redirect ?? 'error',
+        signal: stop.signal,
+        ...(policy.maxBytes !== undefined ? { maxBytes: policy.maxBytes } : {}),
+      })
+      .run();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let onAbort: (() => void) | undefined;
+    const limits = new Promise<never>((_, reject) => {
+      onAbort = () => {
+        stop.abort(signal.reason);
+        reject(signal.reason ?? new Error('aborted'));
+      };
+      signal.addEventListener('abort', onAbort, { once: true });
+      if (policy.timeoutMs !== undefined)
+        timer = setTimeout(() => {
+          const refused = new AssetRefused(uri, 'the read took too long');
+          stop.abort(refused);
+          reject(refused);
+        }, policy.timeoutMs);
+    });
+    let wrapper: Awaited<typeof read>;
+    try {
+      wrapper = await Promise.race([read, limits]);
+    } catch (e) {
+      // a read that lost the race still finishes (a manager that ignores the signal): its result is let go
+      read.then(
+        (w) => w.dispose(),
+        () => {},
+      );
+      if (isSizeLimit(e)) throw new AssetRefused(uri, 'larger than the limit');
+      if ((policy.redirect ?? 'error') === 'error' && isRefusedRedirect(e))
+        throw new AssetRefused(uri, 'a redirect is not followed');
+      throw e;
+    } finally {
+      if (timer !== undefined) clearTimeout(timer);
+      if (onAbort) signal.removeEventListener('abort', onAbort);
+    }
+    try {
+      const data = wrapper.data as string | Uint8Array;
+      const size = typeof data === 'string' ? utf8Length(data) : data.byteLength;
+      if (policy.maxBytes !== undefined && size > policy.maxBytes) throw new AssetRefused(uri, 'larger than the limit');
+      return data as T extends 'string' ? string : Uint8Array;
+    } finally {
+      wrapper.dispose();
+    }
+  }
   return {
-    async readText(uri, signal) {
-      const checked = checkLocation(uri, policy);
-      if ('refused' in checked) throw new AssetRefused(uri, checked.refused);
-      if (signal.aborted) throw signal.reason ?? new Error('aborted');
-      // the manager's signal: the caller's or the timeout's, whichever comes first
-      const stop = new AbortController();
-      const read = manager
-        .resolve(Asset.Url(checked.url), 'string', {
-          store: false,
-          credentials: policy.credentials ?? 'omit',
-          redirect: policy.redirect ?? 'error',
-          signal: stop.signal,
-          ...(policy.maxBytes !== undefined ? { maxBytes: policy.maxBytes } : {}),
-        })
-        .run();
-      let timer: ReturnType<typeof setTimeout> | undefined;
-      let onAbort: (() => void) | undefined;
-      const limits = new Promise<never>((_, reject) => {
-        onAbort = () => {
-          stop.abort(signal.reason);
-          reject(signal.reason ?? new Error('aborted'));
-        };
-        signal.addEventListener('abort', onAbort, { once: true });
-        if (policy.timeoutMs !== undefined)
-          timer = setTimeout(() => {
-            const refused = new AssetRefused(uri, 'the read took too long');
-            stop.abort(refused);
-            reject(refused);
-          }, policy.timeoutMs);
-      });
-      let wrapper: Awaited<typeof read>;
-      try {
-        wrapper = await Promise.race([read, limits]);
-      } catch (e) {
-        // a read that lost the race still finishes (a manager that ignores the signal): its result is let go
-        read.then(
-          (w) => w.dispose(),
-          () => {},
-        );
-        if (isSizeLimit(e)) throw new AssetRefused(uri, 'larger than the limit');
-        if ((policy.redirect ?? 'error') === 'error' && isRefusedRedirect(e))
-          throw new AssetRefused(uri, 'a redirect is not followed');
-        throw e;
-      } finally {
-        if (timer !== undefined) clearTimeout(timer);
-        if (onAbort) signal.removeEventListener('abort', onAbort);
-      }
-      try {
-        const text = wrapper.data as string;
-        if (policy.maxBytes !== undefined && utf8Length(text) > policy.maxBytes)
-          throw new AssetRefused(uri, 'larger than the limit');
-        return text;
-      } finally {
-        wrapper.dispose();
-      }
-    },
+    readText: (uri, signal) => readAs(uri, signal, 'string'),
+    readBytes: (uri, signal) => readAs(uri, signal, 'binary'),
   };
 }

@@ -38,9 +38,9 @@ links, selection, the security bounds, MessagePack). Next, version 1's second mi
 - **Codecs**: `checkCodec`'s trees gain a leading-U+FEFF string, key and category entry; the MessagePack codec's issue
   codes (`syntax`, `duplicate_key`, `key_type`) move into `CodecIssues` beside JSON's and the S-expression's; the
   `Codec` documentation says `encode` throws on a tree no reader would give back (a lone surrogate).
-- **MessagePack** (`common/msgpack`): a duplicate map key keeps the last silently (JSON reports it): an option; payload
-  alignment is by position: encoder padding when zero-copy decoding matters more; a canonical-category fast path;
-  key-order determinism shared with JSON. Each when a measured use asks.
+- **MessagePack** (`@molstar/core/data/msgpack`): a duplicate map key keeps the last silently (JSON reports it): an
+  option; payload alignment is by position: encoder padding when zero-copy decoding matters more; a canonical-category
+  fast path; key-order determinism shared with JSON. Each when a measured use asks.
 - **The asset manager**: range reads (a page cache by asset and page, `Blob.slice` for files), with bigWig. `maxBytes`
   is ignored on `file://` reads in Node (`fetchData`'s file path ignores the four options): done when the file path
   honors them and the conformance suite covers it. The suite sees a manager through `fetch` only; a manager that
@@ -54,6 +54,9 @@ links, selection, the security bounds, MessagePack). Next, version 1's second mi
 
 ## `@molstar/seqx-core`
 
+- **Records** (`data/records.ts`): the GFF3 preset and a row past a cyclic system's length wrapped by the row reader;
+  the delimited tokenizer reads a string whole: a streaming form when a file past `maxBytes` read by region asks; a
+  values file is bounded by `maxRows` positions from its first (a genome's values wait for region reads).
 - **A text section's hit allocates** about 70 B past its caller's call (`render/_test/text.quick.ts` reports it; the
   placement's `at` measures 0 on its grouped axes): its other hit paths (the gutter's `hitChrome`, the layers' hits
   through a grouped axis) to read their numbers from arrays, then a bound in that case.
@@ -195,6 +198,8 @@ links, selection, the security bounds, MessagePack). Next, version 1's second mi
 
 ## `@molstar/seqx-viewer`
 
+- **A records source's row issues** (`RecordsSource.issues`: rows left out, clipped, ragged) are not reported: the store
+  model keeps one issue a source address, its opening's refusal; the opened source's warnings to join `issues`.
 - Layouts: a leader's cyclic window wraps only where its layout `wraps` (a ring); a tracks leader over the origin (two
   runs, as a follower's) is not drawn, so its window stays within the axis; a click on a window is the ring's own (its
   hit must carry the position under it, and the selection's clicks take the `window` target); the window's slider is a

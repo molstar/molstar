@@ -191,7 +191,8 @@ export class StoreModel extends ReactiveModel {
 
   private async _attach(address: string, o: Opening, runtime: FormatRuntime, assets: AssetReader): Promise<void> {
     try {
-      const opened = await runtime.open(o.entry, { assets, signal: o.abort.signal });
+      const { maxRows, maxBytes } = this.store.settings;
+      const opened = await runtime.open(o.entry, { assets, signal: o.abort.signal, limits: { maxRows, maxBytes } });
       if (o.abort.signal.aborted || this._open.get(address) !== o) {
         opened.dispose();
         return;

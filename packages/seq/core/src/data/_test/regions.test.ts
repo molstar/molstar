@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest';
 import { asyncSeqSource, delayedRuntime } from '../async-source.js';
 import { SourceIssues } from '../issues.js';
 import { dataKey } from '../keys.js';
-import type { RegionAnswer, Tables } from '../protocol.js';
+import { DefaultOpenLimits, type RegionAnswer, type Tables } from '../protocol.js';
 import { type SeqData, seqToValue } from '../seq-format.js';
 import { SeqRuntime } from '../seq-runtime.js';
 import { DataStore, type StoreSettings } from '../store.js';
@@ -128,7 +128,14 @@ describe('the synthetic asynchronous source', () => {
     const signal = new AbortController().signal;
     const opened = await runtime.open(
       { address: S, format: 'seq-async', value: seqToValue(genes()) },
-      { assets: { readText: () => Promise.reject(new Error('none')) }, signal },
+      {
+        assets: {
+          readText: () => Promise.reject(new Error('none')),
+          readBytes: () => Promise.reject(new Error('none')),
+        },
+        signal,
+        limits: DefaultOpenLimits,
+      },
     );
     let answered = false;
     const p = opened.read({ system: 'chr1', start: 0, end: 1024, level: 1, shapes: ['ranges'] }, signal);

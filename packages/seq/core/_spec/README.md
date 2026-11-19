@@ -28,8 +28,9 @@ is added in the change that builds what it describes.
   under a section, a section's `of` optional when it has blocks, the view's `export.window`, the layer type `frame` and
   its `across`, the kinds `alignment` and `tree`, a section `of` an alignment, the layer types `rows` and `logo` and
   their params `tree`, `order`, `collapsed`, `pinned`, `hidden_rows`, `height`, `summary`, `numbers`, `tree_width`,
-  `logo_scale`, `correction`, `gaps`). A spec in an earlier `0.x` reads as one in this one, and is reported where it no
-  longer fits.
+  `logo_scale`, `correction`, `gaps`, and a source's transform `records`, `letters`, `system`, `base`, `ends`, `types`,
+  `attribution`, `licence`, with `fields` read). A spec in an earlier `0.x` reads as one in this one, and is reported
+  where it no longer fits.
 
 ## Language
 
@@ -146,6 +147,15 @@ checks it cannot express.
   them (TODO).
 - **The theme slots** are the `seq.theme` sublanguage ("Themes"); a query in a layer's `data` waits for its sublanguage
   (TODO).
+- **A source's transform** (its params besides `format`, `uri`, `index`, `value`, `assembly`): what the file's columns
+  mean, written once beside its location, every one optional (Data, Records): `fields` (a role or any other field of the
+  ranges, by column name or dotted path), `records` (the path to the records), `letters` (the path to the letters of the
+  source's own system), `system` (its name; absent, the source node's id), `base` (`0` or `1`; absent, `1` for a file,
+  `0` inline), `ends` (`inclusive`, `exclusive`; absent, `inclusive` for a file, `exclusive` inline), `types` (a field's
+  type: `int32`, `float32`, `float64`, `category`, `string`), `attribution` and `licence` (carried, not read). Why on
+  the source, not the reading node: the conventions are the file's whoever reads it, the store keys entries by source,
+  and several readers of one file share one open; an edit of the transform is a patch of the source, which reopens it in
+  place (one undo step, no side-by-side preview).
 
 ### Refs
 
@@ -472,10 +482,16 @@ over 20 runs; the heavy lane bounds one sample at 40 ms (`resolve/_test/addressi
 
 ### Protocol
 
-- A **format runtime** (`FormatRuntime`: `name`, `formats`, `open(source, { assets, signal })`) opens a `SourceEntry`
-  (`address`, `format`, `uri` or inline `value`, an `index` for a format read with one) to an `OpenedSource`: its
-  `coverage` and `read(request, signal)`. `assets` is a narrow port (`readText(uri, signal)`). Why: a runtime is tested
-  with a fake, never the network. A file that cannot be read is a `SourceOpenError` with `seq.source.unreadable`.
+- A **format runtime** (`FormatRuntime`: `name`, `formats`, `open(source, { assets, signal, limits })`) opens a
+  `SourceEntry` (`address`, `format`, `uri` or inline `value`, an `index` for a format read with one, and the source's
+  other params, its transform among them) to an `OpenedSource`: its `coverage` and `read(request, signal)`. `assets` is
+  a narrow port (`readText(uri, signal)`, `readBytes(uri, signal)`; both required: every adapter is the package's own,
+  and a runtime does not test for a method). Why: a runtime is tested with a fake, never the network. A file that cannot
+  be read is a `SourceOpenError` with `seq.source.unreadable`.
+- **`limits`** (`maxRows`, `maxBytes`): a parse's bounds, checked before it allocates; whoever opens a source passes the
+  store's settings (`maxRows`, 1,000,000; `maxBytes`, 64 MB: the viewer's source sync, the overlay's sources,
+  `attachSources`), `DefaultOpenLimits` the defaults. Why: `JSON.parse` makes several times a file's bytes, and the
+  assets policy's 256 MB is a download's bound, not a parse's.
 - **Coverage**: systems (unique names, lengths ≥ 0, alphabet, cyclic, aliases), shapes per listed system (with a ranges
   table's fields), integer levels ≥ 1 as bin widths, ascending, at least one (`[1]` without levels), nodes known up
   front (`checkCoverage`).
@@ -512,7 +528,9 @@ over 20 runs; the heavy lane bounds one sample at 40 ms (`resolve/_test/addressi
 - The protocol written down: a coverage and `{ request, answer }` pairs as a tree value. A file is a `seq` node through
   the JSON codec (typed columns tagged, atoms lossless); inline, the same record. A failure's `kind` is written
   `failure` (a record with `kind` reads as a node). Reading reports the first misfit (`seq.source.malformed`, at its
-  path) and never throws. Why a tree value: one lossless encoding, the codec's, and MessagePack with it later.
+  path) and never throws. Why a tree value: one lossless encoding, the codec's. **A file is JSON or MessagePack**, told
+  by its first byte past a BOM and whitespace (`{` JSON, else MessagePack: a map), read through the tree's codec of that
+  encoding (`@molstar/core/repr/codecs/msgpack`); the runtime reads bytes (`readBytes`).
 - **Its runtime** joins the pairs of the request's system (by name or alias) and level that overlap the region, in
   position order, each cut to its part; a gap no pair holds is `not-served`, naming its positions (the format is
   explicit: an empty region is a pair with empty tables). A failure among the pairs is the answer; an unlisted system or
@@ -585,6 +603,63 @@ by fuzz tests (mutated text read without a throw).
   empty with its issue, and the alignment is kept (EC-43).
 - **Leaves to rows** (`matchLeaves`): a leaf names its row by label, else by the label before its last `/`; a row is the
   first leaf's that names it; -1 for none.
+
+### Records
+
+`data/records.ts`, an entry of its own (`@molstar/seqx-core/data/records`: a reader of a spec never pays for it):
+`RecordsRuntime` (formats `tsv`, `csv`, `json`, `msgpack`), registered by the viewer's default spec; `readRecords` the
+reading without the runtime (tests, a preset).
+
+- **Read whole at open**, converted once into `seq` data (a pair a system over the whole system at level 1: its letters'
+  length when the source holds them, else every position a column can, the target's own length standing) and answered by
+  region by the `seq` runtime's join (`openSeq`). Why: these files are small, formats are converted at the edge, and one
+  answering path is tested already. Files read by region (tabix, BGZF) wait for the Genomes milestone.
+- **The syntax**: TSV and CSV are RFC 4180 over the UTF-8 text (`@molstar/core/data/text/delimited`: a BOM skipped, LF,
+  CRLF and CR, quoted cells, empty lines skipped; TSV quoted as CSV is); the first row the header, a name twice
+  malformed; a row with another count of cells read with the missing ones empty and the extra dropped
+  (`seq.source.records.cells`). Cells are text, never trimmed (EC-92 changed: the RFC's rule); a number or position
+  parses past the spaces around it. JSON is `JSON.parse` over the text, a plain value (never the tree's codec: a member
+  `kind` would read as a node); MessagePack is `@molstar/core/data/msgpack`'s decoder with the tree codec's column
+  extensions (`msgPackColumnDecoder`) and nothing else of it. Members are read own only (`__proto__`, `constructor`
+  ordinary names, EC-50). A document that does not parse, or one deeper than the stack (both parsers recurse), is
+  malformed, never a crash (EC-76). Text holding U+FFFD is said once (`seq.source.records.encoding`, info): UTF-8 only.
+- **Records and columns**: `records` is a dotted path from the root (a member, or an index when all digits; at most 32
+  segments); what it reaches is an array of records (AoS: each an object) or an object of columns (SoA: each member a
+  list or a typed column, all of one length, checked before any is read); a table file is AoS. Read the same.
+- **Fields**: without `fields`, each role from the member or column of its name, and every other member whose values are
+  scalars a field under its name (objects and lists are not fields unless a path names one of their scalars). With
+  `fields`, a role or a field from its column or path; a column a mapping reads is not a field again. The roles are the
+  protocol's: `target` (the row's system, empty: the source's own, named `system` or the node's id), `start`, `end`,
+  `position` (a row `[p, p + 1)`), `strand` (`+`, `-`, `.`, `?`, `1`, `-1`, `0`; anything else 0, said once), `id` (a
+  category), `value` (float32). Another field's type is `types`', else its typed column's, else a text cell's or a
+  boolean's `category`, a JSON number's `float64` (`string` held as a category). A path that reaches an object or a list
+  is `null` in that row, said once.
+- **Positions**: `base: 1` subtracts one, an `inclusive` end adds one (the file defaults, as people, UniProt, GFF3 and
+  VCF count; EC-195); an inline `value` defaults to `0` and `exclusive`, as `ranges.rows`. Converted once, at the edge.
+  Rows sorted by start once (stable), each keeping its place in the file as `row`. **Values**: with `position` sparse
+  (NaN between, from the first position named; one named twice keeps the last, said once), without one a value a row
+  from the first position; more positions than `maxRows` refused.
+- **Typed columns kept without a copy**: a column already the protocol's type for its role (`Int32Array` a start or an
+  end, `Float32Array` a value, a category column an id or a category field, any typed field of its declared type), with
+  `base: 0`, `ends: exclusive`, one system, every row kept and already in order, and no end clipped; otherwise one copy.
+  MessagePack's decoder gives a view where the payload is aligned, else its own copy.
+- **Issues** (`RecordsIssues`, `seq.source.records.*`; one a cause with its count and its first ten places, a line or a
+  record, EC-86): what cannot be read as its format is `.malformed` (no header, a document that does not parse, a
+  `records` path to neither form, SoA columns of unequal lengths, a header naming a column twice, too deep) and a field
+  found in no record `.field` (naming the field and listing the columns there are, EC-6): the source unavailable, its
+  `SourceOpenError`'s first issue. A row-level misfit leaves the row out: a position or value not a number (`.value`), a
+  position missing (`.missing`, UniProt's `UNKNOWN`), an end before its start (`.order`), a row starting before the
+  first position or past the letters' end (`.range`; one running past the end is clipped and counted in the same issue,
+  EC-51), hinting the other `base` when a first position 0 meets `base: 1` or every row past the end would fit one
+  lower. The opened source carries them (`RecordsSource.issues`). Why left out, not refused: one bad row in ten thousand
+  should not blank a track.
+- **Bounds**, the context's `limits`: a file over `maxBytes` is refused before it is parsed, rows over `maxRows` before
+  any column is built (`seq.source.too_large`, hinting a format read by region).
+- **Configuration**: the runtime is a registry entry (the default viewer spec registers it; a host leaves it out); the
+  transform is the spec's (Language); quoting, line ends and encoding are fixed (RFC 4180, LF/CRLF/CR, UTF-8); a path's
+  32 segments, ten places an issue and `limits` (the store's settings) bound the work.
+- **Performance**: 100,000 TSV rows read under 300 ms (`records-time.test.ts`, heavy lane, best of three); 10,000 in the
+  quick lane.
 
 ### Store
 
@@ -1144,16 +1219,17 @@ the y path in Emphasis).
   a built-in numbering, the labels are looked up by number (a tick a step), not a position at a time. A hit is the
   position under the pointer. Fallback: none (omitted).
 - `secondary`: the items of a `ranges` layer (the class from the `kind` field, else `category`: DSSP codes or words:
-  helix, strand, anything else a turn), in one band: a helix a block, a strand a block with an arrowhead on its
-  C-terminal end, a turn a thin bar. **The arrowhead** is on the piece holding the C-terminal end of the item, found
-  among all its rows (an inline annotation's; a tiled source's rows may lie outside what was read, so its items have no
-  head: a head on the wrong piece is worse than none) (the end of its last row in reading order: across the origin of a
-  cyclic system, the row that starts at it), at the screen side the residues run to (the axis's direction against the
-  layer's path's), and not where the view clips that end (EC-130: reversed, across the origin, through a minus-strand
-  codon map). An end cut by the view, a piece of the axis or of the item's image is square. The class is the whole code
-  or word (DSSP `H G I`, `E B`, `T S`; mmCIF `HELX_*`, `STRN`, `TURN_*`; helix, strand, turn). **Items in a hidden
-  stretch** are the break's tick, as `ranges`'. **Copies** (rows of one extent and class) are drawn once, the first hit
-  (EC-67). From the coarse level the source's density bins are one strip. Fallback: `ranges`.
+  helix, strand, UniProt's `Helix`, `Beta strand` and `Turn`, anything else a turn), in one band: a helix a block, a
+  strand a block with an arrowhead on its C-terminal end, a turn a thin bar. **The arrowhead** is on the piece holding
+  the C-terminal end of the item, found among all its rows (an inline annotation's; a tiled source's rows may lie
+  outside what was read, so its items have no head: a head on the wrong piece is worse than none) (the end of its last
+  row in reading order: across the origin of a cyclic system, the row that starts at it), at the screen side the
+  residues run to (the axis's direction against the layer's path's), and not where the view clips that end (EC-130:
+  reversed, across the origin, through a minus-strand codon map). An end cut by the view, a piece of the axis or of the
+  item's image is square. The class is the whole code or word (DSSP `H G I`, `E B`, `T S`; mmCIF `HELX_*`, `STRN`,
+  `TURN_*`; helix, strand, turn). **Items in a hidden stretch** are the break's tick, as `ranges`'. **Copies** (rows of
+  one extent and class) are drawn once, the first hit (EC-67). From the coarse level the source's density bins are one
+  strip. Fallback: `ranges`.
 - `variants`: the items of a `ranges` layer as sites: a stem from the track's floor and a round head (radius 4 px); the
   heads of one site stand on one stem, spaced 9 px or squeezed to fit; a head and its stem are hit as the item. At the
   `bars` and `density` steps and from density bins a strip counts the variants a device column in the density tokens.

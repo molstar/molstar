@@ -184,14 +184,29 @@ export interface SourceEntry {
   readonly value?: Value;
 }
 
-/** The asset port as a runtime sees it: bytes by location, never the network in tests. */
+/** The asset port as a runtime sees it: text or bytes by location, never the network in tests. */
 export interface AssetReader {
   readText(uri: string, signal: AbortSignal): Promise<string>;
+  /** The bytes as stored (a MessagePack file; a text read whole whose size is bounded before it is parsed). */
+  readBytes(uri: string, signal: AbortSignal): Promise<Uint8Array>;
 }
+
+/** A parse's bounds, checked before it allocates (_spec/README.md "Data", Records). */
+export interface OpenLimits {
+  /** Rows a source of records may hold. */
+  readonly maxRows: number;
+  /** Bytes a file read whole and parsed may have. */
+  readonly maxBytes: number;
+}
+
+/** The store's default settings' (`maxRows`, `maxBytes`): a million rows, 64 MB. */
+export const DefaultOpenLimits: OpenLimits = { maxRows: 1_000_000, maxBytes: 64 * 1024 * 1024 };
 
 export interface OpenContext {
   readonly assets: AssetReader;
   readonly signal: AbortSignal;
+  /** The store's settings, passed by whoever opens the source. */
+  readonly limits: OpenLimits;
 }
 
 export interface OpenedSource {

@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { MsgPackCodec } from '@molstar/core/repr/codecs/msgpack';
 import { type Issue, issueOf } from '@molstar/core/repr/tree';
 import { SourceIssues } from './issues.js';
 import {
@@ -119,14 +120,26 @@ export function openSeq(data: SeqData): OpenedSource {
   };
 }
 
-/** Reads a `seq` source: its inline `value`, else its file at `uri` (JSON) through the asset port. */
+/**
+ * A `seq` file's bytes: JSON when its first byte past a BOM and whitespace is `{`, else MessagePack (a map, never `{`),
+ * read through the tree's codecs.
+ */
+function decodeSeqBytes(bytes: Uint8Array): { data?: SeqData; issues: readonly Issue[] } {
+  let i = bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf ? 3 : 0;
+  while (i < bytes.length && (bytes[i] === 0x20 || bytes[i] === 0x09 || bytes[i] === 0x0a || bytes[i] === 0x0d)) i++;
+  if (bytes[i] === 0x7b) return decodeSeq(new TextDecoder('utf-8').decode(bytes));
+  const decoded = MsgPackCodec.decode(bytes);
+  return decoded.node ? readSeq(decoded.node) : { issues: decoded.issues };
+}
+
+/** Reads a `seq` source: its inline `value`, else its file at `uri` (JSON or MessagePack) through the asset port. */
 async function open(source: SourceEntry, ctx: OpenContext): Promise<OpenedSource> {
   let read: { data?: SeqData; issues: readonly Issue[] };
   if (source.value !== undefined) read = readSeq(source.value);
   else if (source.uri !== undefined) {
-    let text: string;
+    let bytes: Uint8Array;
     try {
-      text = await ctx.assets.readText(source.uri, ctx.signal);
+      bytes = await ctx.assets.readBytes(source.uri, ctx.signal);
     } catch (e) {
       if (isAbortError(e) || ctx.signal.aborted) throw e;
       const issue = issueOf(SourceIssues, 'seq.source.unreadable', 'The source’s file could not be read', {
@@ -134,7 +147,7 @@ async function open(source: SourceEntry, ctx: OpenContext): Promise<OpenedSource
       });
       throw new SourceOpenError([issue]);
     }
-    read = decodeSeq(text);
+    read = decodeSeqBytes(bytes);
   } else read = { issues: [issueOf(SourceIssues, 'seq.source.no_data', 'A seq source needs a value or a uri')] };
   if (!read.data) throw new SourceOpenError(read.issues.map((i) => ({ ...i, address: i.address ?? source.address })));
   return openSeq(read.data);

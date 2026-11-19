@@ -379,7 +379,20 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
 
 // ---- entries ----
 
-const SourceKeys = ['uri', 'value', 'index', 'fields', 'assembly'] as const;
+// the transform's params (the records runtime's: _spec/README.md "Data", Records) ride on the entry
+const SourceKeys = [
+  'uri',
+  'value',
+  'index',
+  'fields',
+  'assembly',
+  'records',
+  'letters',
+  'system',
+  'base',
+  'ends',
+  'types',
+] as const;
 
 /** A source's entry from its params, bound to the first runtime that reads its format; none is an issue. */
 function bindSource(at: Placed, runtimes: readonly FormatRuntime[]): { binding: SourceBinding; issues: Issue[] } {

@@ -182,10 +182,40 @@ export const SeqLanguage = defineLanguage({
         value: { type: 'any', doc: 'The data inline, for small values (instead of `uri`).' },
         fields: {
           type: 'map',
-          of: { type: 'string', doc: 'The name the source gives the field.' },
-          doc: 'Which of the columns of the source is which field.',
+          of: { type: 'string', doc: 'The column name or the dotted path the source gives the field.' },
+          doc: 'Which of the columns of the source is which field: a role (`target`, `start`, `end`, `position`, `strand`, `id`, `value`) or any other field of the ranges, by its column or its path in a record (`location.start.value`). Absent: each role from the member of its name, other scalar members fields under their names.',
         },
         assembly: { type: 'string', doc: 'The assembly a genomic source is on (`GRCh38`).' },
+        records: {
+          type: 'string',
+          doc: 'The dotted path from the document’s root to its records (JSON, MessagePack): an array of records or an object of columns. Absent: the root.',
+        },
+        letters: {
+          type: 'string',
+          doc: 'The dotted path from the document’s root to the letters (a string) of the source’s own system. Absent: the source serves no letters.',
+        },
+        system: {
+          type: 'string',
+          doc: 'The name of the source’s own system: the rows with no `target`. Absent: the source node’s id.',
+        },
+        base: {
+          type: 'integer',
+          min: 0,
+          max: 1,
+          doc: 'The number of the file’s first position, `1` or `0`. Absent: `1` for a file, `0` for an inline `value`.',
+        },
+        ends: {
+          type: 'string',
+          enum: ['inclusive', 'exclusive'],
+          doc: 'Whether a row’s `end` is its last position or the one after. Absent: `inclusive` for a file, `exclusive` for an inline `value`.',
+        },
+        types: {
+          type: 'map',
+          of: { type: 'string', enum: ['int32', 'float32', 'float64', 'category', 'string'] },
+          doc: 'A type a field that is not a role: absent, a text cell is a `category`, a JSON number `float64`, a boolean a `category`.',
+        },
+        attribution: { type: 'string', doc: 'The data’s attribution line.' },
+        licence: { type: 'string', doc: 'The data’s licence id (`CC-BY-4.0`).' },
       },
     },
     sequence: {

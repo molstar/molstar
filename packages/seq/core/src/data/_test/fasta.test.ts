@@ -6,7 +6,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { checkFai, FastaRuntime, faidx, openFasta, parseFai } from '../fasta.js';
-import type { OpenedSource } from '../protocol.js';
+import { DefaultOpenLimits, type OpenedSource } from '../protocol.js';
 import { SourceOpenError } from '../seq-runtime.js';
 
 // FASTA with its index: the index written from a file is the one samtools writes and reads the records back; a
@@ -97,14 +97,18 @@ describe('FASTA with its index', () => {
     const files: Record<string, string> = { 'g.fa': Fasta, 'g.fa.fai': faidx(Fasta), 'bad.fai': 'x\n' };
     const assets = {
       readText: (uri: string) => (uri in files ? Promise.resolve(files[uri]) : Promise.reject(new Error('no'))),
+      readBytes: (uri: string) =>
+        uri in files ? Promise.resolve(new TextEncoder().encode(files[uri])) : Promise.reject(new Error('no')),
     };
     const entry = { address: '/data/g', format: 'fasta', uri: 'g.fa' };
-    const ok = await FastaRuntime.open({ ...entry, index: 'g.fa.fai' }, { assets, signal });
+    const ok = await FastaRuntime.open({ ...entry, index: 'g.fa.fai' }, { assets, signal, limits: DefaultOpenLimits });
     expect(await letters(ok, 'chr1', 0, 4)).toBe('ACGT');
-    await expect(FastaRuntime.open({ ...entry, index: 'bad.fai' }, { assets, signal })).rejects.toBeInstanceOf(
-      SourceOpenError,
-    );
-    await expect(FastaRuntime.open({ ...entry, uri: 'none.fa' }, { assets, signal })).rejects.toMatchObject({
+    await expect(
+      FastaRuntime.open({ ...entry, index: 'bad.fai' }, { assets, signal, limits: DefaultOpenLimits }),
+    ).rejects.toBeInstanceOf(SourceOpenError);
+    await expect(
+      FastaRuntime.open({ ...entry, uri: 'none.fa' }, { assets, signal, limits: DefaultOpenLimits }),
+    ).rejects.toMatchObject({
       issues: [{ code: 'seq.source.unreadable', address: '/data/g' }],
     });
     const outside = await ok.read({ system: 'chrZ', start: 0, end: 4, level: 1, shapes: ['letters'] }, signal);

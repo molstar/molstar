@@ -139,7 +139,11 @@ describe('Editing, headless', () => {
     const text = regionSeqText();
     const s = composeEditing(region, {
       delayMs: 300,
-      ports: { assets: () => ({ reader: { readText: async () => text } }) },
+      ports: {
+        assets: () => ({
+          reader: { readText: async () => text, readBytes: async () => new TextEncoder().encode(text) },
+        }),
+      },
     });
     session = s;
     s.viewer.resize(720);

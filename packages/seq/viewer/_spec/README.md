@@ -351,10 +351,11 @@ syncing sources), with the `address.*` settings as bounds.
 
 `models/store.ts`: the viewer's one `DataStore`, made with `store.cacheBytes`, `store.inFlight`, `store.tileBins` and
 timed by `DomHost` (`DomHostClock`). `sync(model, assets)` opens the static model's sources (each bound to a runtime,
-and each inline access plan) and attaches them under their addresses; a source whose entry is the object it was opened
-from is kept (the resolver keeps entries by hash), a changed one is opened again, one gone is detached and its issue
-cleared. A source that cannot be opened is an issue at its address (`issues`); a failed opening, or a coverage the store
-refuses (its own report), is forgotten so the next sync tries again. Retired with its owner, the store with it.
+and each inline access plan) with the store's `limits` (its `maxRows` and `maxBytes`) and attaches them under their
+addresses; a source whose entry is the object it was opened from is kept (the resolver keeps entries by hash), a changed
+one is opened again, one gone is detached and its issue cleared. A source that cannot be opened is an issue at its
+address (`issues`); a failed opening, or a coverage the store refuses (its own report), is forgotten so the next sync
+tries again. Retired with its owner, the store with it.
 
 - **Session holds** (`holdSession(name, model, addresses)`): the dynamic nodes a session state names, with what they
   name (`Overlay.holds`), held in the store under the name, those it no longer names let go; retired with the model.
@@ -389,11 +390,11 @@ refuses (its own report), is forgotten so the next sync tries again. Retired wit
 - `SeqViewerSpec`: `registry` (the core's entries), `behaviors` (a provider and its params), `bindings` (a preset,
   override layers, extra action ids), `config` (`[item, value]` pairs), `ports` (factories with ownership), `ui` (the
   parts; none for a headless viewer), `history` (the history port). `DefaultSeqViewerSpec()`
-  (`@molstar/seqx-viewer/default-spec`) lists the `seq` runtime, the `hover`, `navigate`, `select`, `cursor`,
-  `addressing` and `editing` behaviors, the default ports and the UI (`canvas`, and `history`: a mounted viewer with no
-  `history` given gets a `uiHistory()` stack of its own); an application spreads it. A headless spread (`ui: undefined`)
-  has no history, so its edits apply at once (`refs.add` and the editing commands answer at once); a mounted one runs
-  them in turn through its stack (`execute` waits for their message, `runCommand` gives `''`).
+  (`@molstar/seqx-viewer/default-spec`) lists the `seq` and records runtimes, the `hover`, `navigate`, `select`,
+  `cursor`, `addressing` and `editing` behaviors, the default ports and the UI (`canvas`, and `history`: a mounted
+  viewer with no `history` given gets a `uiHistory()` stack of its own); an application spreads it. A headless spread
+  (`ui: undefined`) has no history, so its edits apply at once (`refs.add` and the editing commands answer at once); a
+  mounted one runs them in turn through its stack (`execute` waits for their message, `runCommand` gives `''`).
 - `createSeqViewer(spec, target?)` makes, in this order: the core's context (registry, configuration, ports), the models
   (spec, view, hover, store, selection, highlight, addresses), the history (`spec.history`, else `uiHistory()` when
   mounted with `ui.history`; bound to the spec), the binding table, the behaviors (one of each name; a behavior's

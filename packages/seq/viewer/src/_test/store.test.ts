@@ -14,7 +14,10 @@ import { DomHostClock, StoreModel } from '../models/store.js';
 import { SpecModel } from '../models/spec.js';
 import { Gene, Protein, proteinOnGene } from './fixture.js';
 
-const assets = { readText: () => Promise.reject(new Error('no network in tests')) };
+const assets = {
+  readText: () => Promise.reject(new Error('no network in tests')),
+  readBytes: () => Promise.reject(new Error('no network in tests')),
+};
 
 describe('StoreModel', () => {
   it('owns a store made with the configuration’s bounds, timed by DomHost', () => {

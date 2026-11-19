@@ -24,25 +24,31 @@ export function nodeFixtureAssets(packageFolder: string = PackageFolder): Reader
   const base = pathToFileURL(folder).href;
   const fixtures = pathToFileURL(`${folder}fixtures/`).pathname;
   const policy = { schemes: [], relative: true, confine: true, base } as const;
+  /** The real path of a fixture the location names, or the refusal. */
+  async function locate(uri: string): Promise<string> {
+    const checked = checkLocation(uri, policy);
+    if ('refused' in checked) throw new AssetRefused(uri, checked.refused);
+    const url = new URL(checked.url);
+    if (!url.pathname.startsWith(fixtures)) throw new AssetRefused(uri, 'outside the fixtures folder');
+    let file: string;
+    let root: string;
+    try {
+      file = await realpath(fileURLToPath(url));
+      root = await realpath(fileURLToPath(`file://${fixtures}`));
+    } catch {
+      throw new AssetRefused(uri, 'not a file of the fixtures folder');
+    }
+    // the real path: a link in the folder may lead anywhere
+    if (!file.startsWith(root.endsWith(sep) ? root : `${root}${sep}`))
+      throw new AssetRefused(uri, 'outside the fixtures folder');
+    return file;
+  }
   return {
     reader: {
-      async readText(uri, signal) {
-        const checked = checkLocation(uri, policy);
-        if ('refused' in checked) throw new AssetRefused(uri, checked.refused);
-        const url = new URL(checked.url);
-        if (!url.pathname.startsWith(fixtures)) throw new AssetRefused(uri, 'outside the fixtures folder');
-        let file: string;
-        let root: string;
-        try {
-          file = await realpath(fileURLToPath(url));
-          root = await realpath(fileURLToPath(`file://${fixtures}`));
-        } catch {
-          throw new AssetRefused(uri, 'not a file of the fixtures folder');
-        }
-        // the real path: a link in the folder may lead anywhere
-        if (!file.startsWith(root.endsWith(sep) ? root : `${root}${sep}`))
-          throw new AssetRefused(uri, 'outside the fixtures folder');
-        return readFile(file, { encoding: 'utf8', signal });
+      readText: async (uri, signal) => readFile(await locate(uri), { encoding: 'utf8', signal }),
+      readBytes: async (uri, signal) => {
+        const b = await readFile(await locate(uri), { signal });
+        return new Uint8Array(b.buffer, b.byteOffset, b.byteLength);
       },
     },
   };
