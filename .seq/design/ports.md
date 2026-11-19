@@ -26,7 +26,8 @@ format, a map runtime, a backend) is a registry entry. Each has a default, so th
 - **A UI port a behavior owns lives on that behavior** (the author, 2026-11-19, HC): the hover card's port is the
   `hoverCard` behavior's `port` param, not `spec.ports`, so a viewer without the behavior carries no card; the default
   spec supplies the default adapter, and `disposeWithViewer: false` shares a host's adapter between viewers.
-- **Registry entries, not ports**: format readers and writers (FASTA, alignments, tables, Newick, bigWig, SVG, PNG,
+- **Registry entries, not ports**: the seq data ports (a data adapter per format: the core's runtime by default, a
+  host's adapter wrapping it, `withAdapter` to replace one; [seq-data-ports](seq-data-ports.md)); format readers and writers (FASTA, alignments, tables, Newick, bigWig, SVG, PNG,
   FASTA export), map runtimes, backends (Canvas2D, SVG, recording), services (UniProt, PDBe, AlphaFold DB, in the
   showcases).
 - **Not ports**:

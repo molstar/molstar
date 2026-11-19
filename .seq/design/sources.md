@@ -32,7 +32,8 @@ standardized, and we convert other formats onto it".
   protocol, so there is one path.
 - **Runtimes bind to resolved sources**: a source resolves to an entry of the resolved model (its format, location, coverage), and the
   application's runtime for that format binds to the entry, never to the spec node ([composition.md](composition.md)).
-- **A runtime per format**, provided by the application: a registry entry the viewer's spec lists (§executors-by-composition),
+- **A runtime per format**, the format's default adapter of the seq data ports ([seq-data-ports](seq-data-ports.md)):
+  a host's adapter replaces it for the entries it holds in memory, one adapter a format; provided by the application: a registry entry the viewer's spec lists (§executors-by-composition),
   that turns a format into the protocol. The core ships the protocol, the `seq` format and the small text formats
   (FASTA, alignments, tables, Newick; the tables, JSON, MessagePack and GFF3 through one records runtime whose
   transform is params of the `source` node, [files.md](files.md)); binary and indexed genome formats are runtimes an

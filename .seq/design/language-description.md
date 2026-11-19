@@ -93,6 +93,12 @@ const SeqLanguage = defineLanguage({
 | `ref` | `refs` | **`to`** (an address, or a non-empty list of them: a set), `label`, `color` ([addressing](addressing.md)) |
 | `snapshot` | `snapshots` | `label`, `patch` (a stored patch in `seq.patch`, no `base`: a story step, [stories](stories.md)) |
 
+**0.5.0 additions from the fourth slice's designs** (one bump, unreleased): `spec.extensions` (`{ <id>: '<version>' }`,
+the least version a figure needs) and a layer's `fallback` and `legend` ([extension-openings](extension-openings.md));
+an extension's params plain on its own namespaced type and as `<id>:<name>` keys in another node's `params`, never in
+`custom`; `source.ref` and `values.field` ([seq-data-ports](seq-data-ports.md)); a map's `priority` and a section's
+`via` ([structure-syncing](structure-syncing.md)); the molecules kinds ([molecules](molecules.md)).
+
 The language's version moved with each kind added under `0.x`, with no migration: `0.1.0` every child has an id,
 `0.2.0` `refs` and `ref`, `0.3.0` `snapshots` and `snapshot` (the code's `SeqLanguageVersion`).
 

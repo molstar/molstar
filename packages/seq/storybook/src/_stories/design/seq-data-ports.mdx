@@ -1,0 +1,33 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Design/Seq data ports" />
+
+# Seq data ports
+
+An application that already holds a structure in memory (a 3D viewer's model) can give Seq\* its chains, residues and
+values without downloading or parsing the file again. Seq\*'s own file reading is the default of the same path: the
+application replaces a reader for the data it holds, and nothing else changes.
+
+## One path
+
+Every format has one reader, a data adapter. The core's readers are the defaults; an application's adapter answers from
+memory for the entries it holds and hands the rest to the default. The spec still names the data by its file (`format`,
+`uri`), so the same spec opens with the application and without it. Data with no file (an edited model) may be named by
+a `ref` the application understands, and is said to be not portable.
+
+## A structure, described once
+
+Every reader of a structure fills one neutral description (entities, chain instances, residues, links, named values such
+as B-factors or pLDDT), named in mmCIF's words. One converter turns it into Seq\*'s nodes, with keys taken from the
+data's identifiers, so a selection or a bookmark made with the file holds with the application's data, and the reverse.
+
+## Updates and the way back
+
+When the application edits its structure (a chain removed, a residue mutated), its adapter says so and the source is
+read again in place: nodes keep their identity by key, what was removed is dropped and said once. Annotations go back to
+the application as rows on its units, which it writes in its own terms.
+
+## In the Storybook
+
+The fake structure viewer serves 2OCJ from its own table: a pLDDT track reads from it, and dropping a chain is followed
+by the sequences, with no file read.

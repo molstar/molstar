@@ -142,7 +142,7 @@ what undo does to each.
 | Themes | uniform, field palettes (binned, continuous, log), rules, schemes | building: tokens, categorical palette; the theme sublanguage (field palettes, rules, schemes, scales) planned: the third slice | [themes](themes.md) | 133–137, 203–205, 215 | p53: themes |
 | Residue schemes | Clustal X, Zappo, Taylor, hydrophobicity, nucleotides, ESPript | planned: the third slice | [themes](themes.md) | 135 | Globins: family |
 | Shared domains | domain groups across layers | planned: the third slice (`scale` nodes) | [themes](themes.md) | 56 | p53: tracks |
-| Legends | ramps and steps, merged, painted vs vocabulary | planned: the third slice (data in the core, a part a host places) | [themes](themes.md) | 132, 204 | p53: themes |
+| Legends | ramps and steps, merged, painted vs vocabulary; `omit`, a compact form, `orient`, a layer's `legend: none` | planned: the third slice (data in the core, a part a host places); the surface the fourth (LE) | [themes](themes.md) | 132, 204 | p53: themes |
 | Color-blind substitution | a reader's setting (`theme.cvdSafe`) drawing each unsafe scheme as its safe substitute; never in the spec | planned: the third slice | [themes](themes.md) | 136 | p53: themes |
 | Column measures | share, identity, matches-reference per column, registered for themes (Clustal X, percent identity, ESPript) | planned: the third slice | [grids-and-rows](grids-and-rows.md) | 135 | Globins: family |
 | Size channels | thickness, glyph, radius, width, opacity | planned: the third slice | [themes](themes.md) | 137, 242 | p53: tracks |
@@ -160,7 +160,7 @@ what undo does to each.
 | Blocks | side by side, stacked, many blocks | planned: the third slice | [layouts](layouts.md) | 102, 115 | p53: structure chains |
 | Two assemblies on one axis | blocks of two genomes on one axis or ring | deferred | — | 210 | trigger: the Genomes milestone ([version-1](version-1.md))
 | Rings | tracks as rings, labels with leaders, a window | planned: the third slice | [layouts](layouts.md) | 108, 114 | Plasmid: ring with linear detail |
-| Navigators | strip, miniature, ideogram, vertical overview | planned: the third slice (the ruler rail by default) | [navigators](navigators.md) | 110 | p53: the gene's region; Globins: 10,000 rows |
+| Navigators | strip, miniature, ideogram, vertical overview; custom pictures and a host-drawn navigator (`NavigatorModel`) | planned: the third slice (the ruler rail by default); custom pictures the fourth (CN) | [navigators](navigators.md) | 110 | p53: the gene's region; Globins: 10,000 rows |
 | The ruler rail | every linear section's default navigator, on the ruler's bottom border (a slim rail without one); a drag on a positions ruler pans, on an alignment's ruler the lower 40% | planned: the third slice | [navigators](navigators.md) | 110 | every view; Globins: family |
 | The layout interface | strips, bands and warps behind one internal interface; placement and hit-testing as its inverse; one viewport record | planned: the third slice | [layouts](layouts.md) | 123 | every view |
 | Follow and scroll groups | sections follow through maps (scale 1, 3, 1/3); a move asked of a follower moves its leader (`follow.followerMoves`, the second slice) | done | — | 113, 114, 211 | p53: protein on its gene |
@@ -207,7 +207,8 @@ what undo does to each.
 | Typed configuration | one set of config items at composition (`ParamDefinition`) | building: plain default objects; `ParamDefinition`s not | [extensibility](extensibility.md) | — | Extensibility page |
 | Settings in layers | user settings over the configuration; effective values with origin | deferred | [extensibility](extensibility.md) | — | trigger: the typed configuration has users |
 | Generated settings form | from the config items' `ParamDefinition` | deferred | [extensibility](extensibility.md) | — | trigger: settings in layers |
-| Extension descriptors | passed at composition; conflicts are errors | planned | [extensibility](extensibility.md) | — | Extensibility page |
+| Extension descriptors | passed at composition; conflicts are errors; `<id>:<name>` types with a fallback, the spec's `extensions`, one `extension` entry as the contract | planned: the fourth slice (EX) | [extensibility](extensibility.md), [extension-openings](extension-openings.md) | — | Extensibility page |
+| Host data (seq data ports) | a host's in-memory structure served through the source protocol (a data adapter per format, the core's runtime the default), updates reopened in place by key, annotations given back as the host's | planned: the fourth slice | [seq-data-ports](seq-data-ports.md) | 176, 185 | Storybook: Host data |
 | Node kinds and custom fields | namespaced, carried through untouched | planned | [extensibility](extensibility.md) | 235 | Extensibility page |
 | Registry entries | node kinds, layer types, themes, formats, map runtimes, backends, query functions, commands; layouts and chrome parts internal until an outside user | building: format runtimes only | [extensibility](extensibility.md) | — | Extensibility page |
 

@@ -55,16 +55,21 @@ should be fixed when it can be a setting or an extension.
   | commands, behaviors, bindings | what the viewer can do and what gestures do |
   | backends | where draw lists go ([rendering.md](rendering.md)) |
 
-- **Internal until an outside user**: layouts (tracks, text, rings, dot plots) and chrome parts (track header actions,
-  context menu items, hover card sections, panels) are written behind internal interfaces, opened as extension points
+- **Internal until an outside user**: layouts (tracks, text, rings, dot plots) and chrome parts (context menu items,
+  hover card sections, panels) are written behind internal interfaces (track header actions opened,
+  [track-header-parts](track-header-parts.md); layer types, layouts and navigator pictures opened to extensions,
+  [extension-openings](extension-openings.md)), opened as extension points
   when an application needs one; definitions and uses wait likewise ([composition.md](composition.md)).
 - **An extension is registry entries**, as a Mol\* plugin's ([viewer-composition.md](viewer-composition.md)): a
   namespaced record of providers for each point, listed in the viewer's spec (one composition root) or registered by a
   behavior at run time with its undo; nothing registers itself on import, and there is no global registry.
 - **Built-ins use the same points**: every layer type, theme and runtime the core ships is written as an extension
   would be. Why: a point is real only if its first user is the library itself.
-- **In the spec, extension kinds are namespaced** (`ext:kind`) and declare a fallback to a built-in; a reader without the
-  extension draws the fallback or makes the node unavailable, with an issue, and the rest of the spec opens (EC-235).
+- **In the spec, extension kinds are namespaced** (`<id>:<name>`, the extension descriptor's id; `ext:` a placeholder)
+  and declare a fallback to a built-in; a reader without the extension draws the fallback or makes the node
+  unavailable, with an issue, and the rest of the spec opens (EC-235). An extension's params: plain on its own type,
+  a namespaced key (`'rondo:bundle'`) on another's node, never in `custom` (decided, the author, 2026-11-20;
+  [extension-openings](extension-openings.md)).
 - **Custom fields never break a reader**: a field under a namespace the reader does not know is carried through
   unchanged (a patch, a diff and a print keep it), and a host's own fields go under its namespace, never as new
   top-level params.

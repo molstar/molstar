@@ -1,0 +1,28 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Design/Extension openings" />
+
+# Extension openings
+
+What an outside package may add to Seq\*, how a spec names it, and what a reader without it draws.
+
+## Extensions
+
+An extension is one descriptor (an id, a version, the language versions it targets) carrying layer types, layouts,
+formats, schemes, navigator pictures, header actions, commands and behaviors. Everything it ships is named under its id
+(`rondo:ribbons`), so two extensions never collide and a built-in is never shadowed. It is registered as a whole, or not
+at all, and can be added and removed at run time.
+
+## In a spec
+
+A layer names the extension's type with a fallback (`type: 'rondo:ribbons', fallback: 'pairs'`), and its own options are
+plain params beside the built-in ones. An option an extension reads on someone else's node is a namespaced key
+(`'rondo:bundle': true`). A reader without the extension draws the fallback over the same data and colors, says once
+which extension the figure needs, and opens the rest of the spec. A spec may list the extensions and versions it needs.
+
+## Navigators and legends
+
+A navigator's picture can be an extension's, while the window and its gestures stay the library's; an application can
+also draw a navigator entirely itself on the headless navigator model. Legends stay a part the application places: it
+chooses which to show, in a full or a compact one-line form, across or down; a figure can mark a layer's legend as not
+worth showing.

@@ -93,7 +93,8 @@ Each with a recommendation.
    consumer (NG), archives' writer (AR's write half). Recommend **this order**.
 3. **`ext:` layer kinds here** (version-1: "`ext:` layer kinds ... land before" Genomes' ring; GR's question 3): an
    extension descriptor and `ext:` layer kinds with their fallback, as lane EX near the end, so the fifth slice opens on
-   its datasets. Recommend **yes, here**.
+   its datasets. Recommend **yes, here**. **Answered** by XD's design (2026-11-20): here, as lane EX on
+   [extension-openings](../../design/extension-openings.md) part 1.
 4. **Range reads in `@molstar/core`** (a public API change, [base-library](../../design/base-library.md), ports.md: a
    page cache by asset and page, ref-counted, `Blob.slice` for files; `maxBytes` on `file://` honoured, a TODO item):
    BW drafts the exact surface as its first commit and stops for your acceptance. Recommend **yes**.
@@ -109,7 +110,8 @@ Each with a recommendation.
    cases, the branch deleted after, rather than rebasing it. Recommend **rewrite**.
 9. **Seq data ports, how far**: the design (SP) and a fake host's adapter in Storybook (reading the fake viewer's chain
    table into Seq\*'s nodes); no Mol\* adapter. Whether MC reads through the same converter is SP's decision.
-   Recommend **design and the fake adapter only**.
+   Recommend **design and the fake adapter only**. **Answered** by SP's design (2026-11-20): the design and the fake
+   adapter only; MC reads through the shared `StructureDescription` converter.
 10. **The third slice's not-met edge cases** (`ec-outcomes-draft.md`): EC-115, 116, 135 and 195 (built, untested) to
     lane UT; EC-99 (ligand chips flowing in text) to MR; EC-59 (two grids on one block pair) and EC-209 (ribbons
     between sections) to the fifth slice (contact maps, layers across sections); EC-63 as the third slice's drift note
@@ -164,21 +166,26 @@ tests, read-only).
 
 ### Stage 0: designs and carried tests (before the build; the author decides each design)
 
-- [ ] DR (strong; `briefs/dr-drafts-revision.md`, carried, retargeted to this folder) the two drafts revised by their
+- [x] DR (done 2026-11-20: structure syncing (as a library) and track header parts promoted; strong; `briefs/dr-drafts-revision.md`, carried, retargeted to this folder) the two drafts revised by their
       "Decided by the author" sections: structure syncing without MVS types (the port on Seq\*'s locations, the host's
       adapter translating; the `structure` kind kept; the MVS writer moves out of Seq\* and out of the seq data ports),
       and a design for choosing between two maps of one pair of systems (EC-22 to EC-27) as one new gap; track header
       parts with canvas slots and DOM parts over the geometry, the secondary click a param. Self-checked; agreed into
       `design/` with their Design pages.
-- [ ] SP (strong, design only, after DR; `briefs/sp-seq-data-ports.md`) seq data ports: Seq\*'s nodes read from a
+- [x] SP (strong, design only, after DR; `briefs/sp-seq-data-ports.md`) seq data ports: Seq\*'s nodes read from a
       host's in-memory representation (sequences, entities, components, units) and annotations given back as the
       host's, as registry entries by representation kind (ports.md's rule); the layering against `@molstar/io` and
       `@molstar/model` (a package of its own or not); whether MC's converter is shared; a fake host's adapter.
-      Reads: molecules.md (gap 11, Tensions), the revised structure syncing.
-- [ ] XD (strong, design only; `briefs/xd-extension-drafts.md`) the extension openings, one draft: the extension
+      Reads: molecules.md (gap 11, Tensions), the revised structure syncing. **Done 2026-11-20**: agreed as
+      [seq-data-ports](../../design/seq-data-ports.md) (gaps decided: `FormatRuntime` kept, one adapter a format with
+      `withAdapter`, no package, `source.ref`, `changes` and `reattach`, `values.field`; MC's converter shared).
+- [x] XD (strong, design only; `briefs/xd-extension-drafts.md`) the extension openings, one draft: the extension
       descriptor and `ext:` layer kinds with their fallback (extensibility.md, EC-235; GR's research); a navigator's
       picture as a registry entry with the window public (`render/window.ts`, `NavigatorModel`); legends' library
       surface (placement, hiding, a compact form; editing stays the application's). Each part cut by Gate 0's answer 2.
+      **Done 2026-11-20**: agreed as [extension-openings](../../design/extension-openings.md) (gaps 1, 3–8 yes; 9 no,
+      no extension loading in the CLI; 2 changed: no `custom.<id>`, plain params on an extension's own type and
+      `<id>:<name>` keys on others' nodes).
 - [ ] UT (fast, beside the designs; `briefs/ut-untested-ecs.md`) tests for the built, untested edge cases: EC-115 (a
       stack's zoom about a point), EC-116 (a row's text for all its columns or none), EC-135, EC-195; and the third
       slice's drift left open at its close, if any.

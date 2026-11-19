@@ -308,7 +308,8 @@ and another viewer); a host recolors through `--seq-*` tokens.
   table changes, or the hover moves onto another entry; never per frame, compared structurally.
 - **A part a host places** ([ux-foundations](ux-foundations.md) section 9: "Legends sit with their track or in one legend
   panel, never over data"): `Legend` (`@molstar/ui` components and tokens) takes a list of legends and renders it
-  wherever a host mounts it (`mountLegend(element, viewer, { of })`, `of` a track's or a scale's address to place
+  wherever a host mounts it (`mountLegend(element, viewer, { of })`; `omit`, `form: compact`, `orient` and a layer's
+  `legend: none` as [extension-openings](extension-openings.md) part 3 says; `of` a track's or a scale's address to place
   that one's legend, every legend when absent): beside a track header, in a panel, in a Mol\* plugin's own
   legend control (a Seq\* legend converts to `@molstar/core/util/legend`'s `TableLegend` or `ScaleLegend`). The default
   mount is a `SeqViewerSpec.ui` entry (`ui.legends`, the same call), its gestures a `BehaviorProvider` (`legend`), as

@@ -84,8 +84,10 @@ Pure, tested in Node, over a `StaticModel` (and its overlay).
   (polymer, branched, other), length, `observed` ranges, and its `auth` numbering as a numbering entry
   (`label(position)`, `position(label)`, EC-1 to EC-8). Plain data. Why: an adapter needs no model walk, and every host
   translates from the same facts.
-- **`unitRows(facts, unit)`**: a unit's residues as rows (position, `auth` label and insertion code, observed): the
-  table an adapter joins against its own residue list once, so per message it looks up, never searches.
+- **`structureFacts`' residue rows**: per unit, its residues as rows (position, `auth` label and insertion code,
+  observed): the table an adapter joins against its own residue list once, so per message it looks up, never searches.
+- **`unitRows(model, store, annotation, complexes)`**: an annotation's rows as targets on units with their fields, for a
+  host to write as its own representation ([seq-data-ports.md](seq-data-ports.md)), beside `colorRuns`.
 - **`toUnits(model, loc, complexes, options) → { target, cut }`**: a Location carried onto the units of the bound
   complexes along static or overlay paths, under the copy rule and the use's `via`; unobserved positions cut (no atoms,
   nothing to light); a molecule unit whole (`ligand: whole`); the size gate (EC-167): past `maxRuns` or `maxLength`,
@@ -144,7 +146,7 @@ the layer's changes. Undo is the host's (`hostHistory`).
 
 ### The fake host's adapter (the reference translation)
 
-In the Storybook beside the fake viewer, on `structureFacts` and `unitRows`, as a real host's will be:
+In the Storybook beside the fake viewer, on `structureFacts` and its residue rows, as a real host's will be:
 - a run on a polymer unit is `{ label_asym_id: chain, instance_id: operator, beg_label_seq_id, end_label_seq_id }`;
   `label_seq_id` is the position plus one (a polymer unit's molecule is the entity's whole sequence);
 - a branched unit's residue is `auth_seq_id` (with `pdbx_PDB_ins_code`) through `auth`;
@@ -262,12 +264,12 @@ side" is what the side is told. Nothing here exists without the link.
 
 The claim: **the library covers what a user does with a structure beside a sequence view.**
 1. Assume it holds: every path is a viewer event or command carried onto units by pure functions, wired per link.
-2. Negated: (a) the viewer publishes everything the wiring needs (negated: it does not; the gaps below); (b) one link
+2. Negated: (a) the viewer publishes everything the wiring needs (negated: it did not; the four additions above); (b) one link
    (negated: two structure viewers: two links, each its own echoes); (c) the host keeps the link (negated: the viewer or
    the structure goes first: the disposer, the signal, the retire); (d) one map a pair (negated: `priority`, `via`);
    (e) synchronous messages (negated: a frame, latency, a stale hover: ownership and the fake's `latency`); (f) small
    (negated: the gate, coalescing); (g) headless (the translation alone, no viewer).
-3. Held: (b) to (g) in the Decision; (a) the gaps, each a small public addition to the viewer, built before the wiring.
+3. Held: (b) to (g) in the Decision; (a) the four additions, built before the wiring.
 
 ## Consequences
 
@@ -278,7 +280,7 @@ The claim: **the library covers what a user does with a structure beside a seque
   EC-22 to EC-27 with a ranked pair, a tie and a `via`; EC-25, EC-48, EC-65, EC-118, EC-1 to EC-8; a quick
   representative (one 2OCJ hover carried within a bound); heavy: `maxUnits`-scale hover. `_spec`: Structures, Paths,
   Language.
-- **`seqx-viewer`**: the viewer gaps' additions; `link-structure.ts`. Tests on a recording side: each path both ways,
+- **`seqx-viewer`**: the four additions; `link-structure.ts`. Tests on a recording side: each path both ways,
   echoes never sent back, a stale `null`, one selection message a frame, focus with the jump's duration on a fake clock,
   clearing on each of the three ends. `_spec`: the models' additions, a Structure link section.
 - **`seqx-examples`**: 2OCJ recorded (units, its `structure` map, the fake's chain table, one mmCIF, one script); an
@@ -290,23 +292,20 @@ The claim: **the library covers what a user does with a structure beside a seque
   [viewer-composition.md](viewer-composition.md) (no structure port). EC-24 gains "unless ranked or named" (the
   author's edit).
 
-## Gaps for the author
+## What the viewer publishes for the wiring
 
-What the wiring needs that the viewer does not publish today (`HoverModel`, `SelectionModel`, `HighlightModel`,
-`AddressModel`, `ViewModel` as built):
-1. **A hover from outside.** `HoverModel.set` takes a hit only. Add `HoverModel.setLocation(loc, owner)` (drawn as a
-   projected hover, no card, cleared only by its owner)? Recommended **yes**; without it the link falls back to a
-   highlight channel's tint, which looks like a bookmark.
-2. **Reveal by Location.** `AddressModel` has `focusLocation` but reveals only by address. Add `revealLocation(loc)`?
-   Recommended **yes** (the private move already takes both).
-3. **What a jump was.** `view.jumps` counts jumps but says neither where nor how long. Publish
-   `view.lastJump: { n, kind, location?, durationMs }` (focus, reveal, back, forward, fit), the history step keeping the
-   Location its jump named? Recommended **yes**: the wiring, a story's camera and an analytics host read the same.
-4. **A viewer's end.** `retired` is a getter and the dispose hooks are protected. Add `viewer.retiredSignal`
-   (an `AbortSignal`)? Recommended **yes**: any helper over a viewer needs it.
+Decided, the author, 2026-11-20: four public additions, built in ST2 before `linkStructure`, each useful to any host:
+- **`HoverModel.setLocation(loc, owner)`**: a hover with no hit, drawn as a projected hover (no card), cleared only by
+  its owner. Why: without it a link would fall back to a highlight channel's tint, which reads as a bookmark.
+- **`AddressModel.revealLocation(loc)`**: reveal by Location, beside `focusLocation`.
+- **`view.lastJump: { n, kind, location?, durationMs }`** (`focus`, `reveal`, `back`, `forward`, `fit`), each history
+  step keeping the Location its jump named. Why: `view.jumps` counts but says neither where nor how long; the wiring, a
+  story's camera and an analytics host read the same record.
+- **`viewer.retiredSignal`** (an `AbortSignal`): `retired` is a getter and the dispose hooks are protected; any helper
+  over a viewer needs the end.
 
-Hover, selection and highlight changes are published (`hover.version`, `selection.value`, `highlight.version`); the
-selection's announcement is the viewer's own; frames come from `DomHost`: no gap there.
+Already published: `hover.version`, `selection.value`, `highlight.version`; the selection's announcement is the
+viewer's own; frames come from `DomHost`.
 
 ## Decided by the author
 
@@ -315,4 +314,5 @@ a selection from the structure revealed; "color by this track" a snapshot; the f
 `structure` map kind kept; two maps of one pair by "priority + via" (both in 0.5.0; `via` later if usage runs short).
 2026-11-20: "this is just a wrapper around events the viewer should expose normally. we should just provide a library
 that helps with the coordinate translation and the wiring, and not call it a port": no port, no behavior; translation
-and `linkStructure`.
+and `linkStructure`. The four viewer additions (`HoverModel.setLocation`, `revealLocation`, `view.lastJump`,
+`retiredSignal`) accepted as recommended.

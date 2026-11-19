@@ -81,7 +81,8 @@ limits (they were sort of self-imposed and estimate), but obviously try to minim
 
 - **A navigator is a node of the view** (`navigator`, in `views/<view>/navigators`), beside its sections: `of` (the
   section or sections it binds, refs), `axes` (`positions`, `rows` or `both`), `content` (`axis`, `tracks`, `bands`,
-  `rows`), `tracks` (the tracks drawn in miniature, refs; all by default), `bands` (an annotation, for `content: bands`),
+  `rows`, or a registered picture `<id>:<name>` falling back to `axis`; `NavigatorModel` the contract of a host-drawn
+  navigator, [extension-openings](extension-openings.md)), `tracks` (the tracks drawn in miniature, refs; all by default), `bands` (an annotation, for `content: bands`),
   `system` (the system it draws, when not the section's: a chromosome under a region), `place` (`top`, `bottom`,
   `left`, `right`: a hint to the host and to an export), `size` (its thickness in px), `hidden`. Why a node: a spec file
   carries its navigators to another reader and an export can draw them; why not a section: it has no axis of its own to
