@@ -40,3 +40,6 @@
   a run of equal features) if a host minds.
 - OP's leftovers: verify the bundled Liberation 2.1.5 files against the upstream release archive (they came from a
   LibreOffice runtime); check `image-rendering="optimizeSpeed"` in browsers (nearest-neighbour as resvg).
+- DC's leftovers: `@molstar/io` as a dev dependency of seqx-examples so the record scripts read mmCIF with
+  `parseCifText` (and the recorders out of the published `src/`); a ligand chip coloured on its own (one letters
+  layer draws every block's pill).

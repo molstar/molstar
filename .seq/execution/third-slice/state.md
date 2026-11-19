@@ -226,3 +226,8 @@ None.
   around a chip made concentric (ux-foundations §5). TW's brief gains it.
 - Amended (the author, 2026-11-19, "Yes, round all"): every emphasis is a squircle as the selection already is (the
   earlier "a rect over positions" dropped); TW's item 3.
+- DC merged after its review round (emphasis drawn once a strip, `gridSummary` counting each cell once and keeping the
+  triangle, a grid over stacked or ring blocks refused, the rect over copies by the hit's block, the over-blocks drag
+  kept inside the select behavior; one mmCIF reader for the three recorders; ligand arcs by ligand). Public beyond
+  `gridSummary`: `Hit.yBlock` (a split copy told from its twin), `GridLay.off` and the track layout's `filter.dy`
+  (fields of existing layout types), accepted. Quick 2131, medium 9. CY starts in DC's slot.

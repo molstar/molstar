@@ -16,3 +16,12 @@
   identity) with the logo, species and identity columns, folded clades, a text figure, 10,000 generated rows,
   hemoglobin as blocks with heme chips, helices and contacts, editing views and the dataset's index. A folded clade's
   summary row keeps its `+n` however long the first label.
+- Complex: PDB 1FIN (CDK2–cyclin A–ATP, two copies), six CC0 PDB entries of CDK2 with ligands, UniProt P24941 and
+  P20248 and AlphaFold DB's confidence (CC BY 4.0, changes stated) recorded; the chains as blocks (merged ×2, split, on
+  a ring), contacts as arcs, ligands as chips with their contacts coloured by ligand, ATP per atom, confidence and
+  secondary structure, text, 200 copies, the PAE between the chains and over the whole complex (synthetic), editing
+  views and the dataset's index.
+- A grid section that follows a section of blocks in a row: one strip a pair of chains, chain boundaries drawn, a
+  dragged rect split at them, the crosshair edged in the hover's ink; `gridSummary(view, rect)` (mean, min, max,
+  count, each cell once, a triangle layer's half). A track's "n filtered" chip goes under its label when the track is
+  tall enough.
