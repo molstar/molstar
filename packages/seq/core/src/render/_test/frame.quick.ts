@@ -156,5 +156,35 @@ describe('warm draws and hovers allocate nothing; a layout a bounded size', () =
       console.info(`${s.name} projected: ${r.bytesPerStep.toFixed(0)} bytes a frame (${r.note})`);
       expect(r.bytesPerStep, `${s.name} projected: ${r.note}`).toBeLessThanOrEqual(inject('perfThreshold'));
     });
+
+    it(`${s.name}: overlapping highlight channels`, async ({ task }) => {
+      const settled = await prepare(s);
+      const input = hoverInput(s);
+      const axis = settled.renderer.frame(input).layout.sections[0].axis!;
+      const vis = axis.visible([]);
+      const a = vis[0];
+      const w = Math.max(2, Math.floor((vis[1] - vis[0]) / 8));
+      // four channels overlapping in turn, in each style: stripes, merged runs and the styles' bars and outlines
+      const over = (k: number) => rangesLocation(axis.system, [a + k * w, a + (k + 3) * w]);
+      const made = (k: number) => [
+        { location: over(k), color: 0x7aa3a6ff },
+        { location: over(k + 1), color: 0xd86c17ff, style: 'band' as const },
+        { location: over(k + 2), color: 0x2a9d8fff, style: 'outline' as const },
+        { location: over(k + 3), color: 0xe9c46aff },
+      ];
+      // two sets the step alternates between (made before the walk: a changed list is a redrawn emphasis)
+      const sets = [made(0), made(1)];
+      const emphasis = { highlights: sets[0] };
+      const at = { ...input, emphasis };
+      const step = (i: number) => {
+        emphasis.highlights = sets[i & 1];
+        settled.renderer.frame(at);
+      };
+      const { r } = quickCase(task, `${s.name} overlapping highlights`, step, Options);
+      console.info(`${s.name} overlapping highlights: ${r.bytesPerStep.toFixed(0)} bytes a frame (${r.note})`);
+      expect(r.bytesPerStep, `${s.name} overlapping highlights: ${r.note}`).toBeLessThanOrEqual(
+        inject('perfThreshold'),
+      );
+    });
   }
 });

@@ -27,6 +27,7 @@ import {
   subtractLocations,
   unionLocations,
 } from '@molstar/seqx-core/query';
+import type { HighlightStyle } from '@molstar/seqx-core/render';
 import type { Axis } from '@molstar/seqx-core/view';
 import { axisTotal, cellOffset, positionAt } from './axis.js';
 import type { Hit } from './hover.js';
@@ -39,6 +40,8 @@ export interface Emphasized {
   readonly shown: Location;
   /** The address it was set from, if it was. */
   readonly address?: string;
+  /** A highlight channel's look (`tint` by default); a channel keeps it onto the sections it is carried to. */
+  readonly style?: HighlightStyle;
 }
 
 export const Nothing: Emphasized = Object.freeze({
@@ -50,6 +53,7 @@ export const Nothing: Emphasized = Object.freeze({
 const same = (a: Emphasized, b: Emphasized) =>
   a === b ||
   (a.address === b.address &&
+    (a.style ?? 'tint') === (b.style ?? 'tint') &&
     elementsEqual(a.elements, b.elements) &&
     locationsEqual(a.location, b.location) &&
     locationsEqual(a.shown, b.shown));

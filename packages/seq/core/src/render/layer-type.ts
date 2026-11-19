@@ -158,7 +158,13 @@ export interface EmphasisHighlight {
   readonly location: Location;
   /** `0xRRGGBBAA`: drawn at `emphasis.highlightTint` opacity. */
   readonly color: number;
+  /** How it is drawn in its stripe: a `tint` (the default), a `band` along the foot, an `outline`. */
+  readonly style?: HighlightStyle;
 }
+
+/** A highlight channel's look (_spec/README.md "Render", Emphasis). */
+export const HighlightStyles = ['tint', 'band', 'outline'] as const;
+export type HighlightStyle = (typeof HighlightStyles)[number];
 
 /**
  * What the emphasis passes draw (_spec/README.md "Render", Emphasis): the hover, the selection (a Location), the

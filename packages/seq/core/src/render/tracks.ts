@@ -37,7 +37,18 @@ import {
   Round,
 } from './draw-lists.js';
 import { RenderIssues } from './issues.js';
-import type { Box, Emphasis, Hit, LabelSink, LayerType, LayoutContext, Overlay, StoreReader } from './layer-type.js';
+import type {
+  Box,
+  Emphasis,
+  EmphasisHighlight,
+  Hit,
+  LabelSink,
+  LayerType,
+  LayoutContext,
+  Overlay,
+  StoreReader,
+} from './layer-type.js';
+import { walkStripes } from './highlight-stripes.js';
 import { EmptyOverlay, sectionId } from './layer-type.js';
 import { LettersType } from './letters.js';
 import { breakHit } from './marks.js';
@@ -1766,6 +1777,8 @@ function drawCursor(
  * end (1) or square (0), and how far the stroke stands outside the range (0: inside it, concentric with the fill).
  */
 const Paint = new Float64Array(5);
+/** Whether a range wholly in a hidden stretch lights its break (a highlight's later runs of it do not: once). */
+let LitBreaks = true;
 
 /**
  * A part's ranges on a box: per range and piece of the axis in view, a rect over the box's height snapped to the device
@@ -1828,7 +1841,7 @@ function paintRanges(out: PassWriter, axis: AxisTransform, box: Box, part: Locat
       }
     }
     // a range wholly in a hidden stretch lights its break: what a break hides is not dropped
-    if (!drew) litBreak(out, axis, box, part.ranges[i]);
+    if (!drew && LitBreaks) litBreak(out, axis, box, part.ranges[i]);
   }
 }
 
@@ -1937,22 +1950,126 @@ function drawProjectedHover(
   paintRanges(out, axis, box, part, config);
 }
 
-/** The highlight channels on a box, in order: each a tint of its color at `emphasis.highlightTint`. */
+/** A mutable box: one stripe of a band (reused: a stripe makes no object). */
+class StripeBox implements Box {
+  x = 0;
+  y = 0;
+  width = 0;
+  height = 0;
+}
+const Stripe = new StripeBox();
+/** The one `[start, end)` range of a highlight run, as a part (reused). */
+const RunRanges = new Int32Array(2);
+const RunPart: LocationPart = { system: '', ranges: RunRanges };
+/** The channels with a part on this axis that take a stripe (fills), and those that do not (outlines): by index. */
+const HParts: (LocationPart | undefined)[] = [];
+const HIndex: number[] = [];
+const HOutlines: number[] = [];
+/** What `emitRun` draws on (set before `walkStripes`: it is given no closure). */
+let HOut!: PassWriter;
+let HAxis!: AxisTransform;
+let HBox!: Box;
+let HList!: readonly EmphasisHighlight[];
+let HConfig!: RenderConfig;
+
+/**
+ * The highlight channels on a box, in order (_spec/README.md "Render", Emphasis): where one channel alone lights a
+ * position it takes the whole band; where several do, the band is split into equal stripes, one a channel present, in
+ * channel order, at most `emphasis.highlightStripes` (the rest share the last one). A channel's `style` is drawn in its
+ * stripe: `tint` (its color at `emphasis.highlightTint`) or `band` (a bar along the stripe's foot); an `outline` takes
+ * no stripe (it has no fill): one outline over the channel's own ranges on the whole band, above the fills.
+ */
 function drawHighlights(out: PassWriter, axis: AxisTransform, box: Box, emphasis: Emphasis, config: RenderConfig) {
   const hs = emphasis.highlights;
   if (!hs) return;
+  let n = 0;
+  let o = 0;
   for (let i = 0; i < hs.length; i++) {
     const part = partOn(hs[i].location, axis.system);
     if (!part) continue;
-    const c = hs[i].color;
-    const a = ((c & 0xff) / 255) * config.emphasis.highlightTint;
+    if (hs[i].style === 'outline') HOutlines[o++] = i;
+    else {
+      HParts[n] = part;
+      HIndex[n] = i;
+      n++;
+    }
+  }
+  if (n === 1) paintHighlight(out, axis, box, hs[HIndex[0]], HParts[0]!, 0, 1, config);
+  else if (n > 1) {
+    HOut = out;
+    HAxis = axis;
+    HBox = box;
+    HList = hs;
+    HConfig = config;
+    walkStripes(HParts, n, Math.max(1, config.emphasis.highlightStripes | 0), emitRun);
+  }
+  for (let k = 0; k < o; k++) {
+    const h = hs[HOutlines[k]];
+    paintHighlight(out, axis, box, h, partOn(h.location, axis.system)!, 0, 1, config);
+  }
+  for (let c = 0; c < n; c++) HParts[c] = undefined;
+}
+
+/** `walkStripes`' run: a channel's `[start, end)` in its stripe. A hidden range lights its break once, at its first run. */
+function emitRun(channel: number, start: number, end: number, slot: number, count: number, first: number) {
+  RunRanges[0] = start;
+  RunRanges[1] = end;
+  LitBreaks = first === 1;
+  paintHighlight(HOut, HAxis, HBox, HList[HIndex[channel]], RunPart, slot, count, HConfig);
+  LitBreaks = true;
+}
+
+/** `v` snapped to the device pixels of an axis. */
+const snap = (v: number, dpr: number) => Math.round(v * dpr) / dpr;
+
+/** One channel's part in stripe `slot` of `stripes` of the box, in its style; stripe edges on device pixels. */
+function paintHighlight(
+  out: PassWriter,
+  axis: AxisTransform,
+  box: Box,
+  h: EmphasisHighlight,
+  part: LocationPart,
+  slot: number,
+  stripes: number,
+  config: RenderConfig,
+) {
+  const em = config.emphasis;
+  const dpr = axis.dpr;
+  Stripe.x = box.x;
+  Stripe.width = box.width;
+  Stripe.y = box.y;
+  Stripe.height = box.height;
+  if (stripes > 1) {
+    // one edge between two stripes, so they neither overlap nor leave a seam
+    const y0 = snap(box.y + (slot * box.height) / stripes, dpr);
+    const y1 = snap(box.y + ((slot + 1) * box.height) / stripes, dpr);
+    if (y1 <= y0) return;
+    Stripe.y = y0;
+    Stripe.height = y1 - y0;
+  }
+  const c = h.color;
+  const style = h.style ?? 'tint';
+  if (style === 'band') {
+    const bottom = Stripe.y + Stripe.height;
+    const bh = Math.min(Math.max(snap(em.highlightBand, dpr), 1 / dpr), Stripe.height);
+    Stripe.y = bottom - bh;
+    Stripe.height = bh;
+    Paint[0] = c;
+    Paint[1] = NoColor;
+    Paint[2] = 0;
+  } else if (style === 'outline') {
+    Paint[0] = NoColor;
+    Paint[1] = c;
+    Paint[2] = config.outline.selection;
+  } else {
+    const a = ((c & 0xff) / 255) * em.highlightTint;
     Paint[0] = ((c & 0xffffff00) | Math.round(Math.max(0, Math.min(1, a)) * 255)) >>> 0;
     Paint[1] = NoColor;
     Paint[2] = 0;
-    Paint[3] = 0;
-    Paint[4] = 0;
-    paintRanges(out, axis, box, part, config);
   }
+  Paint[3] = 0;
+  Paint[4] = 0;
+  paintRanges(out, axis, Stripe, part, config);
 }
 
 /** The point `hitView` places (reused: a hover makes no object). */

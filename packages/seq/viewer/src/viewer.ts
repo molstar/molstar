@@ -79,7 +79,7 @@ import {
 import type { AnimationRequest, SeqAnimation, SeqAnimationParticipant } from '@molstar/seqx-viewer/ports';
 import { frameAnimation } from './animation.js';
 import { ViewerInput } from './input.js';
-import { LegendModel } from './legends.js';
+import { highlightColorOf, LegendModel } from './legends.js';
 import { uiHistory } from './ui-history.js';
 import { ViewerIssues } from './issues.js';
 import type { BehaviorContext, BehaviorProvider, SeqViewerSpec } from './viewer-spec.js';
@@ -1253,16 +1253,11 @@ export class SeqViewer extends ReactiveModel {
     k[2] = view;
     k[3] = model;
     const out: EmphasisHighlight[] = [];
-    const { color, colors } = this.config.highlight;
     for (const name of this.highlight.names.value) {
       const h = this.highlight.get(name);
       if (!h || isNothing(h)) continue;
       const location = this._projector.of(h.shown, { own: true }) ?? h.shown;
-      const c =
-        resolveColor(Object.hasOwn(colors, name) ? colors[name] : color, this.tokens) ??
-        resolveColor(color, this.tokens) ??
-        this.tokens.colors['seq-cat-5'];
-      out.push({ location, color: c });
+      out.push({ location, color: highlightColorOf(this, name), ...(h.style ? { style: h.style } : {}) });
     }
     this._highlights = out;
     this._emphasis.highlights = out.length ? out : undefined;

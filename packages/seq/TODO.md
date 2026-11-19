@@ -262,3 +262,5 @@ links, selection, the security bounds, MessagePack). Next, version 1's second mi
 - **The compute port (workers)**: when a profile shows the main thread is the limit.
 - **A JSON Schema** derived from the language description: when an outside reader or an agent tool needs to validate
   without the core.
+- **The grid rows' highlight stripes allocate a few bytes a run** (`grid.ts` `emitRows`, the quick case in
+  `pairs-grids.quick.ts` bounds it at 128 B): find the boxed value; the tracks' stripes allocate nothing.

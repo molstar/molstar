@@ -94,6 +94,10 @@ export interface RenderConfig {
     /** The selection's outline: the accent at this opacity (0.6), `outline.selection` px wide (1). */
     readonly selectionOutline: number;
     readonly highlightTint: number;
+    /** Stripes a band is split into where channels overlap (4); the rest share the last one. */
+    readonly highlightStripes: number;
+    /** The height of a `band`-style channel's bar, px (3). */
+    readonly highlightBand: number;
     readonly projected: number;
     /** How far a hover's outline stands outside its mark (1 px): concentric, never touching what is under it. */
     readonly hoverOffset: number;
@@ -261,6 +265,8 @@ export const DefaultRenderConfig: RenderConfig = {
     selectionTint: 0.18,
     selectionOutline: 0.6,
     highlightTint: 0.3,
+    highlightStripes: 4,
+    highlightBand: 3,
     projected: 0.5,
     hoverOffset: 1,
     cursorInk: 'msui-text',

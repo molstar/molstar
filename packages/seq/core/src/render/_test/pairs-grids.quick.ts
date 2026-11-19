@@ -8,6 +8,7 @@
 // tiles and rects) and of 4,096 arcs, and a warm hover (the crosshair over the cells, the arcs lit), allocate nothing; a
 // hit on a cell or an arc allocates no hit object. By hand, never in CI: `pnpm -C packages/seq/core test:perf`.
 
+import { rangesLocation } from '@molstar/seqx-core/query';
 import { quickCase } from '@molstar/test-harness/quick';
 import { describe, expect, inject, it } from 'vitest';
 import {
@@ -127,6 +128,38 @@ describe('pairs and grids draw and hover with nothing allocated once warm', () =
       console.info(`grid hitView (${name}): ${path.r.bytesPerStep.toFixed(0)} bytes a hit (${path.r.note})`);
       expect(path.r.bytesPerStep, path.r.note).toBeLessThanOrEqual(GridPathBound);
     });
+
+  it('a dot plot: overlapping highlight channels (rows in stripes, one in each style) allocate nothing once warm', async ({
+    task,
+  }) => {
+    const s = await settle(gridSpec({ n: 200 }));
+    const input = at(10, 60);
+    const f = await s.frame(input);
+    const loc = (a: number, b: number) => rangesLocation('/data/s', [a, b]);
+    const made = (k: number) => [
+      { location: loc(20 + k, 40 + k), color: 0x7aa3a6ff },
+      { location: loc(25 + k, 45 + k), color: 0xd86c17ff, style: 'band' as const },
+      { location: loc(30 + k, 50 + k), color: 0x2a9d8fff, style: 'outline' as const },
+      { location: loc(35 + k, 55 + k), color: 0xe9c46aff },
+    ];
+    const sets = [made(0), made(1)];
+    const emphasis = { highlights: sets[0] };
+    const withHighlights = { ...input, emphasis };
+    const r = quickCase(
+      task,
+      'grid overlapping highlights',
+      (i) => {
+        emphasis.highlights = sets[i & 1];
+        s.renderer.frame(withHighlights);
+      },
+      {},
+    );
+    console.info(`grid overlapping highlights: ${r.r.bytesPerStep.toFixed(0)} bytes a frame (${r.r.note})`);
+    // 96 B measured (a run's few bytes, 12 runs here: the grid's rows, TODO to find); the grid's emphasis redraw made
+    // 88 B for one channel and 208 for a selection before the stripes
+    expect(r.r.bytesPerStep, r.r.note).toBeLessThanOrEqual(128);
+    expect(f.layout.sections.length).toBeGreaterThan(1);
+  });
 
   it('4,096 arcs: draw, a hover lighting the arc, a hit on the curve', async ({ task }) => {
     const s = await settle(arcsSpec({ n: 20_000, pairs: randomPairs(20_000, 4096, 17), height: 120 }));

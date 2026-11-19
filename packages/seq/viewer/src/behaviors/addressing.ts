@@ -13,6 +13,7 @@
 import type { Issue } from '@molstar/core/repr/tree';
 import type { RefInput } from '@molstar/seqx-core/lang';
 import type { LinkActionName } from '@molstar/seqx-core/query';
+import type { HighlightStyle } from '@molstar/seqx-core/render';
 import { type KeyChord, parseChord } from '@molstar/seqx-viewer/bindings';
 import type { CommandDefinition, CommandResult } from '@molstar/ui/commands/types';
 import type { AddRefResult, AddressModel, AddressOutcome } from '@molstar/seqx-viewer/models';
@@ -23,6 +24,8 @@ export interface AddressContext {
   readonly address?: string;
   /** The highlight channel (`highlight`): the links' channel when absent. */
   readonly channel?: string;
+  /** The highlight's look (`highlight`): `tint` when absent. */
+  readonly style?: HighlightStyle;
   /** The section a focus moves (each leading section showing it when absent). */
   readonly section?: string;
   /** The ref `refs.add` adds. */
@@ -88,7 +91,9 @@ export function addressingBehavior(addresses: AddressModel): AddressingBehavior 
       addresses.reveal(a, ctx.section !== undefined ? { section: ctx.section } : {}),
     ),
     action(AddressCommandIds.select, 'Select an address', (a) => addresses.select(a)),
-    action(AddressCommandIds.highlight, 'Highlight an address', (a, ctx) => addresses.highlightAddress(a, ctx.channel)),
+    action(AddressCommandIds.highlight, 'Highlight an address', (a, ctx) =>
+      addresses.highlightAddress(a, ctx.channel, ctx.style),
+    ),
     action(AddressCommandIds.hover, 'Hover an address', (a) => addresses.hoverAddress(a)),
     {
       id: 'highlight.clear',
