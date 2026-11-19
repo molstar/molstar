@@ -12,7 +12,7 @@
 import type { Node } from '@molstar/core/repr/tree';
 import { createSeqSpec, stripNavigator } from '@molstar/seqx-core/lang';
 import { describe, expect, it } from 'vitest';
-import { type FrameInput, hitView, LightTokens, railUnitAt } from '../index.js';
+import { type FrameInput, hitView, LightTokens, railUnitAt, SlimRailPx } from '../index.js';
 import { renderSvg } from '../render-svg.js';
 import { P53 } from './fixtures.js';
 import { settle } from './helpers.js';
@@ -40,22 +40,26 @@ const active = { [Section]: true };
 const idle = { [Section]: false };
 
 describe('the ruler rail', () => {
-  it('is drawn on the ruler’s bottom border; the ruler row is its grab zone; a drag there is the window’s', async () => {
+  it('is drawn just below the ruler’s bottom border; its grab zone the ruler’s height; a drag there is the window’s', async () => {
     const s = await settle(p53());
     const input: FrameInput = { size: Size, viewport: { start: 100, end: 200 }, rails, railsActive: active };
     const f = await s.frame(input);
     const sec = f.layout.sections[0];
     const rail = sec.rail!;
     const ruler = sec.tracks[0].box;
-    expect(rail.y).toBe(ruler.y + ruler.height);
-    expect([rail.top, rail.bottom]).toEqual([ruler.y, ruler.y + ruler.height]);
+    const border = ruler.y + ruler.height;
+    // in a row of its own below the border (the ruler's well grown by it), the next track below that row
+    expect(rail.y).toBe(border + SlimRailPx / 2);
+    expect([rail.top, rail.bottom]).toEqual([border + SlimRailPx - ruler.height, border + SlimRailPx]);
+    expect(sec.tracks[0].well.y + sec.tracks[0].well.height).toBe(border + SlimRailPx);
+    expect(sec.tracks[1].box.y).toBeGreaterThanOrEqual(border + SlimRailPx);
     expect([rail.start, rail.end, rail.total]).toEqual([100, 200, 393]);
     const mid = rail.x + (150 / 393) * rail.width;
-    const h = hitView(f.layout, mid, ruler.y + 2)!;
+    const h = hitView(f.layout, mid, rail.y)!;
     expect(h).toMatchObject({ target: 'window', part: 'body', navigator: 'rail', section: 'protein' });
     expect(railUnitAt(rail, mid)).toBeCloseTo(150, 9);
-    expect(hitView(f.layout, rail.x + (100 / 393) * rail.width - 2, ruler.y + 2)?.part).toBe('start');
-    expect(hitView(f.layout, rail.x + 5, ruler.y + 2)?.part).toBe('outside');
+    expect(hitView(f.layout, rail.x + (100 / 393) * rail.width - 2, rail.y)?.part).toBe('start');
+    expect(hitView(f.layout, rail.x + 5, rail.y)?.part).toBe('outside');
     // the rail in the window pass: its line, its segment, its grips
     expect(readRects(f.lists, 'window').length).toBe(4);
   });
@@ -108,8 +112,8 @@ describe('the ruler rail', () => {
     const rail = f.layout.sections[0].rail!;
     const ruler = f.layout.sections[0].tracks[0].box;
     const x = rail.x + (100 / 393) * rail.width - 10;
-    expect(hitView(f.layout, x, ruler.y + 2)?.part).toBe('outside');
-    expect(hitView(f.layout, x, ruler.y + 2, true)?.part).toBe('start');
+    expect(hitView(f.layout, x, rail.y)?.part).toBe('outside');
+    expect(hitView(f.layout, x, rail.y, true)?.part).toBe('start');
   });
 
   it('a section with no ruler gets a slim row under its tracks; a hidden ruler falls back to it', async () => {
@@ -151,19 +155,35 @@ describe('the ruler rail', () => {
     expect(xs.length).toBe(2);
     expect(xs[0]).toBeCloseTo(end, 3);
     expect(xs[1]).toBeCloseTo(start - 2, 3);
-    const y = f.layout.sections[0].tracks[0].box.y + 2;
+    const y = rail.y;
     expect(hitView(f.layout, rail.x + rail.width - 1, y)?.part).toBe('body');
     expect(hitView(f.layout, rail.x + 1, y)?.part).toBe('body');
     expect(hitView(f.layout, start - 1, y)?.part).toBe('start');
     expect(hitView(f.layout, end + 1, y)?.part).toBe('end');
   });
 
+  it('never covers the ruler’s ticks or labels, at rest and grown', async () => {
+    const s = await settle(p53());
+    const input: FrameInput = { size: Size, viewport: { start: 100, end: 200 }, rails, railsActive: active };
+    const f = await s.frame(input);
+    const rail = f.layout.sections[0].rail!;
+    const ruler = f.layout.sections[0].tracks[0].box;
+    const ticks = readRects(f.lists, 'data').filter((r) => r.y >= ruler.y && r.y + r.h <= ruler.y + ruler.height);
+    expect(ticks.length).toBeGreaterThan(0);
+    const lowest = Math.max(...ticks.map((r) => r.y + r.h));
+    const h = { ...hitView(f.layout, 400, rail.y)! };
+    for (const frame of [f, s.renderer.frame({ ...input, emphasis: { hover: h } })]) {
+      const marks = readRects(frame.lists, 'window');
+      expect(marks.length).toBe(4);
+      for (const r of marks) expect(r.y).toBeGreaterThanOrEqual(lowest);
+    }
+  });
+
   it('grows while the pointer is over its grab zone, and while its drag runs', async () => {
     const s = await settle(p53());
     const input: FrameInput = { size: Size, viewport: { start: 100, end: 200 }, rails, railsActive: active };
     const f = await s.frame(input);
-    const ruler = f.layout.sections[0].tracks[0].box;
-    const h = { ...hitView(f.layout, 400, ruler.y + 2)! };
+    const h = { ...hitView(f.layout, 400, f.layout.sections[0].rail!.y)! };
     const grown = s.renderer.frame({ ...input, emphasis: { hover: h } });
     expect(readRects(grown.lists, 'window').some((r) => r.h === 6)).toBe(true);
     const dragged = s.renderer.frame({ ...input, emphasis: { drag: h } });

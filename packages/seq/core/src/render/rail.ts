@@ -22,11 +22,11 @@ import type { RowsLay } from './rows.js';
 import type { SeqTokens } from './tokens.js';
 import { floorExtent, navigatorPart } from './window.js';
 
-// The ruler rail (_spec/README.md "Render", Navigators, The ruler rail): a linear section's default navigator, with no
-// row of its own: drawn on its ruler's bottom border (a slim row of its own, `SlimRailPx`, under the tracks where it
-// has no ruler shown), the whole axis across the data box, the section's window a thicker segment over it with a grip
-// (a tick) at each end. Its grab zone is the ruler's row (on an alignment's columns its lower `grabShare`: above it a
-// drag selects columns), the slim row whole. Drawn grown (`grownPx`) while the pointer is over its grab zone or its
+// The ruler rail (_spec/README.md "Render", Navigators, The ruler rail): a linear section's default navigator, in a
+// row just below its ruler's bottom border (the ruler's well grown by `SlimRailPx`; a slim row of its own under the
+// tracks where it has no ruler shown), the whole axis across the data box, the section's window a thicker segment over
+// it with a grip (a tick) at each end. Its grab zone is the ruler's height up from its row's foot (on an alignment's
+// columns its lower `grabShare`: above it a drag selects columns), the slim row whole. Drawn grown (`grownPx`) while the pointer is over its grab zone or its
 // drag runs; idle (the view cannot move) a quiet hairline with no grips and no target, so a press falls through to the
 // ruler; in a figure (an export that includes navigators) a plain segment, no grips, no idle state. Collapsed breaks a
 // notch each; a window over a cyclic origin two pieces, a grip at each true end.
@@ -137,10 +137,13 @@ export function placeRail(
   rail.width = axis.width;
   rail.slim = !ruler;
   if (ruler) {
+    // in the row just below the ruler's bottom border (its well grown by it), clear of its ticks and labels; the grab
+    // zone the ruler's height as before, down to that row's foot
     const columns = section.tracks.some((t) => t.layers.some((l) => l.type === 'rows' || l.type === 'logo'));
-    rail.y = ruler.y + ruler.height;
-    rail.bottom = ruler.y + ruler.height;
-    rail.top = columns ? rail.bottom - ruler.height * config.navigator.rail.grabShare : ruler.y;
+    const border = ruler.y + ruler.height;
+    rail.y = border + SlimRailPx / 2;
+    rail.bottom = border + SlimRailPx;
+    rail.top = rail.bottom - (columns ? ruler.height * config.navigator.rail.grabShare : ruler.height);
   } else {
     rail.top = slimTop;
     rail.bottom = slimTop + SlimRailPx;

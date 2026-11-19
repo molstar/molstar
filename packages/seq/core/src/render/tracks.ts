@@ -1072,10 +1072,8 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     const want = cache.want;
     const sectionTop = y;
     // a ruler rail on a linear section (tracks, not a stack of blocks); a slim row of its own when no ruler is shown
-    const railOn =
-      input.rails?.[section.address] !== undefined &&
-      layout === TracksLayout &&
-      !(section.blocks && section.params.arrange === 'stack');
+    const railable = layout === TracksLayout && !(section.blocks && section.params.arrange === 'stack');
+    const railOn = input.rails?.[section.address] !== undefined && railable;
     const top = y;
     // a template is expanded here, over the overlay, into a track per node it selects; its source's region in view is
     // wanted, so the nodes it brings arrive
@@ -1123,7 +1121,15 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       pads.push(p.top, p.bottom);
       if (p.top > 0 || p.bottom > 0) padded = true;
     }
-    const ruler = railOn ? rulerTrack(shown, heights) : -1;
+    // the row is the canvas's with rails and an export's (a figure): the two lay out alike; a navigator's picture none
+    const ruler = railable && (input.rails !== undefined || input.figure === true) ? rulerTrack(shown, heights) : -1;
+    // the rail draws just below the ruler's bottom border: the ruler's well grows by the rail's row, so it never covers
+    // the ticks or labels; an export keeps the row whether it draws the rail or not, so the canvas and its export lay
+    // out alike (_spec/README.md "Render", Navigators)
+    if (ruler >= 0) {
+      pads[2 * ruler + 1] += SlimRailPx;
+      padded = true;
+    }
     // a rows band that fills (_spec/README.md "Render", The rows layer): the section's room left on the page, at least
     // its default height (a figure, laid out for its content, takes the default)
     // a band of every row in a layout whose bands do not scroll (text: an alignment figure's lines repeat its rows)
