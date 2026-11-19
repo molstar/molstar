@@ -95,6 +95,18 @@ export const RenderIssues = defineIssues('seq.render', {
     description: 'A rows layer draws in tracks and text sections only: in another layout it is not drawn',
     hint: 'Show the alignment’s rows in a tracks section',
   },
+  'seq.render.rows.column': {
+    severity: 'info',
+    description:
+      'A rows layer’s column names a field no row has (not the alignment’s own, not a measure, not a joined source’s): its cells are empty',
+    hint: 'Name a `#=GS` tag, an inline table’s column, `length`, `gaps`, `identity` (with a reference row), or a joined field',
+  },
+  'seq.render.rows.field': {
+    severity: 'info',
+    description:
+      'A field of a source joined to an alignment’s rows is not read: the alignment’s own field or a measure of that name shadows it, or another joined source has it first',
+    hint: 'Rename the field in the source (its `fields`), or name the alignment’s own',
+  },
   'seq.render.rows.second': {
     severity: 'warning',
     description: 'A section draws one rows layer (the cursor has one row order): a second one is not drawn',

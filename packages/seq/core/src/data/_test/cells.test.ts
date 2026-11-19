@@ -86,4 +86,27 @@ describe('the cells shape (an alignment’s rows on row tiles, columns whole)', 
     const layer = view.sections[0].tracks[0].layers[0];
     expect(layer).toMatchObject({ placed: true, data: { shape: 'cells', system: '/data/aln' } });
   });
+
+  it('an inline table’s other columns are the rows’ fields; one not a value a row is said and left out, the rows kept', async () => {
+    const b = createSeqSpec();
+    b.data.alignment('aln', {
+      alphabet: 'protein',
+      rows: { ...rows, OS: ['a', 'b', null], bad: ['x'], first: [5, 6, 7] },
+    } as never);
+    const model = resolveSpec(b.build());
+    // `first` is the rows' first numbers, never a field twice
+    expect(model.annotations.get('/data/aln')?.fields).toEqual(['label', 'first', 'OS', 'bad']);
+    const access = model.annotations.get('/data/aln')!.access!;
+    if (access.kind !== 'inline') throw new Error('inline');
+    const s = await access.runtime.open(access.source, {
+      assets: { readText: () => Promise.reject(new Error('no')), readBytes: () => Promise.reject(new Error('no')) },
+      signal,
+      limits: DefaultOpenLimits,
+    });
+    expect(s.issues?.map((i) => i.code)).toEqual(['seq.source.rows.field']);
+    const r = await s.read({ system: 'rows', start: 0, end: 3, level: 1, shapes: ['cells'] }, signal);
+    const cells = r.ok ? (r.tables.cells as CellsCodes) : undefined;
+    expect(cells?.fields?.map((f) => f.name)).toEqual(['OS']);
+    expect(Array.from(cells?.first ?? [])).toEqual([5, 6, 7]);
+  });
 });

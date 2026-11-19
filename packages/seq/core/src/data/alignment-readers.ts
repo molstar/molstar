@@ -27,6 +27,8 @@ export interface AlignmentRow {
   readonly letters: string;
   /** The first residue's number from a `NAME/27-137` label (EC-39); 1 when the label says none. */
   readonly first: number;
+  /** Its own fields (Stockholm's `#=GS <name> <tag> <value>`: `OS`, `DE`, `AC`), by tag; absent when none. */
+  readonly fields?: Readonly<Record<string, string>>;
 }
 
 /** An alignment as read: its rows, its width, its insert columns and the pairs a consensus structure names. */
@@ -40,6 +42,8 @@ export interface AlignmentRead {
   readonly inserts?: Uint8Array;
   /** Base pairs of `#=GC SS_cons` as column pairs `[i, j]` with `i < j` (nested brackets and pseudoknot letters). */
   readonly pairs?: readonly (readonly [number, number])[];
+  /** Stockholm's `#=GS` lines naming a sequence with no row: the names, in the order first named (said once). */
+  readonly unknownAnnotated?: readonly string[];
   readonly issues: readonly ReadIssue[];
 }
 
@@ -55,6 +59,7 @@ function finish(
   issues: ReadIssue[],
   rf?: string,
   ss?: string,
+  gs?: ReadonlyMap<string, Readonly<Record<string, string>>>,
 ): AlignmentRead {
   const widths = new Map<number, number>();
   let columns = 0;
@@ -83,7 +88,13 @@ function finish(
       issues.push({ line: r.line, message: `the row ${r.label} holds a character that is no letter or gap: left out` });
       continue;
     }
-    rows.push({ label: r.label, letters: r.letters.replace(/~/g, '-'), first: firstNumberOf(r.label) });
+    const fields = gs?.get(r.label);
+    rows.push({
+      label: r.label,
+      letters: r.letters.replace(/~/g, '-'),
+      first: firstNumberOf(r.label),
+      ...(fields ? { fields } : {}),
+    });
   }
   let inserts: Uint8Array | undefined;
   if (rf !== undefined && rf.length === columns) {
@@ -180,9 +191,9 @@ export function readAlignedFasta(text: string): AlignmentRead {
 }
 
 /**
- * Stockholm 1.0: `# STOCKHOLM 1.0`, `#=GF`/`#=GS`/`#=GR` annotation (read past), `#=GC RF` (insert columns) and
- * `#=GC SS_cons` (pairs), `name letters` lines in blocks (a name's letters joined across them), `//` its end. The first
- * alignment of the file.
+ * Stockholm 1.0: `# STOCKHOLM 1.0`, `#=GS <name> <tag> <value>` (a row's fields, a tag given twice joined by a
+ * space), `#=GF`/`#=GR` annotation (read past), `#=GC RF` (insert columns) and `#=GC SS_cons` (pairs), `name letters`
+ * lines in blocks (a name's letters joined across them), `//` its end. The first alignment of the file.
  */
 export function readStockholm(text: string): AlignmentRead {
   const issues: ReadIssue[] = [];
@@ -196,6 +207,7 @@ export function readStockholm(text: string): AlignmentRead {
   const order: string[] = [];
   const parts = new Map<string, { parts: string[]; line: number }>();
   const gc = new Map<string, string[]>();
+  const gs = new Map<string, Record<string, string>>();
   let ended = false;
   for (; i < lines.length; i++) {
     const line = lines[i];
@@ -212,6 +224,17 @@ export function readStockholm(text: string): AlignmentRead {
         const g = gc.get(m[1]);
         if (g) g.push(m[2]);
         else gc.set(m[1], [m[2]]);
+      }
+      continue;
+    }
+    if (t.startsWith('#=GS')) {
+      const m = /^#=GS\s+(\S+)\s+(\S+)\s+(.*)$/.exec(t);
+      if (!m) issues.push({ line: i + 1, message: 'a #=GS line without a name, a tag and its text' });
+      else {
+        let f = gs.get(m[1]);
+        if (!f) gs.set(m[1], (f = Object.create(null) as Record<string, string>));
+        const v = m[3].trim();
+        f[m[2]] = Object.hasOwn(f, m[2]) ? `${f[m[2]]} ${v}` : v;
       }
       continue;
     }
@@ -234,7 +257,15 @@ export function readStockholm(text: string): AlignmentRead {
     return { label, letters: p.parts.join(''), line: p.line };
   });
   if (!read.length) issues.push({ line: 0, message: 'no rows' });
-  return finish(read, issues, gc.get('RF')?.join(''), gc.get('SS_cons')?.join(''));
+  const done = finish(read, issues, gc.get('RF')?.join(''), gc.get('SS_cons')?.join(''), gs);
+  // a `#=GS` line naming no row is said once, with every name
+  const unknown = [...gs.keys()].filter((name) => !parts.has(name));
+  if (!unknown.length) return done;
+  return {
+    ...done,
+    unknownAnnotated: unknown,
+    issues: [...done.issues, { line: 0, message: `#=GS lines name sequences with no row: ${unknown.join(', ')}` }],
+  };
 }
 
 /** A tree as read: nodes in pre-order (the root 0), each its parent, branch length, label and children. */
@@ -425,6 +456,16 @@ export function matchLeaves(tree: TreeRead, rows: readonly { readonly label: str
   return out;
 }
 
+/** The rows' own fields as columns, a tag a column (a row without the tag missing there); none when no row has one. */
+function rowFields(rows: readonly AlignmentRow[]): { fields?: Record<string, (string | null)[]> } {
+  const tags: string[] = [];
+  for (const r of rows) if (r.fields) for (const t of Object.keys(r.fields)) if (!tags.includes(t)) tags.push(t);
+  if (!tags.length) return {};
+  const fields: Record<string, (string | null)[]> = Object.create(null);
+  for (const t of tags) fields[t] = rows.map((r) => (r.fields && Object.hasOwn(r.fields, t) ? r.fields[t] : null));
+  return { fields };
+}
+
 /**
  * The runtime of alignment files (`aligned-fasta`, `stockholm`): the file read whole through the assets port (or its
  * text inline as `value`) and opened as an alignment source (`openAlignment`); a file that leaves no row is refused
@@ -451,9 +492,22 @@ export const AlignmentFileRuntime: FormatRuntime = {
     if (!read.rows.length)
       throw fail('seq.source.malformed', `The alignment has no row: ${read.issues[0]?.message ?? 'empty'}`);
     const rows = read.rows;
-    return openAlignment(
-      { label: rows.map((r) => r.label), letters: rows.map((r) => r.letters), first: rows.map((r) => r.first) },
+    const opened = openAlignment(
+      {
+        label: rows.map((r) => r.label),
+        letters: rows.map((r) => r.letters),
+        first: rows.map((r) => r.first),
+        ...rowFields(rows),
+      },
       source,
     );
+    if (!read.unknownAnnotated?.length) return opened;
+    const said = issueOf(
+      SourceIssues,
+      'seq.source.rows.annotation',
+      `#=GS lines name ${read.unknownAnnotated.length} sequence${read.unknownAnnotated.length === 1 ? '' : 's'} with no row: ${read.unknownAnnotated.slice(0, 5).join(', ')}`,
+      { address: source.address },
+    );
+    return { ...opened, issues: [...(opened.issues ?? []), said] };
   },
 };

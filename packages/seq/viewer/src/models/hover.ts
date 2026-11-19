@@ -32,7 +32,8 @@ export type HitTarget =
   | 'filter'
   | 'window'
   | 'tree-node'
-  | 'summary-row';
+  | 'summary-row'
+  | 'column-title';
 
 /**
  * What the pointer is over, as the layout's hit test gives it: the layer, an element key and its extent, or a

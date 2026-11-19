@@ -10,6 +10,7 @@ import * as complexBlocks from './complex/blocks.js';
 import * as navigators from './navigators.js';
 import * as complexPae from './complex/pae.js';
 import * as trna from './trna/trna.js';
+import * as globinsColumns from './globins/columns.js';
 import { generatedRegistry } from './globins/data.js';
 import * as globins from './globins/family.js';
 import * as plasmidRing from './plasmid/ring.js';
@@ -202,6 +203,15 @@ export const FeatureViews: readonly ExampleView[] = [
     summary:
       'The themes view edited: a scheme previewed while hovered and picked in one patch; the shared scale’s domain set for both signals in one step and undone in one.',
     build: themes.build,
+  },
+  {
+    dataset: 'globins',
+    id: 'columns',
+    title: 'Row columns',
+    summary:
+      'The Globins family with data columns beside its rows: its species as text and its class as a chip on the left (the class from a file joined by row key), its identity to the ancestor, its residues as a bar and a score on the right. Click a title to order the rows by it, again for the other direction; narrow the view and the right columns yield first, then the left, a chip counting those hidden.',
+    build: globinsColumns.build,
+    registry: globinsColumns.registry,
   },
 ];
 

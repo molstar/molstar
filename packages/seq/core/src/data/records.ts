@@ -504,6 +504,19 @@ function strandOf(cell: unknown): number | undefined {
 }
 
 /** A cell as text: a scalar's spelling, `null` for none; an object or a list is `false` (said once). */
+/** A rows system's name: an alignment's rows (`/data/aln/(rows)`). */
+const RowsSystemName = /\/\(rows\)$/;
+
+/** Whether every record's system (its `target`, else the source's own) is a rows system. */
+function onRows(target: Cells | undefined, ownSystem: string, count: number): boolean {
+  if (!target) return RowsSystemName.test(ownSystem);
+  for (let i = 0; i < count; i++) {
+    const t = textOf(target.get(i));
+    if (!RowsSystemName.test(t ? t : ownSystem)) return false;
+  }
+  return true;
+}
+
 function textOf(cell: unknown): string | null | false {
   if (cell === null || cell === undefined) return null;
   if (typeof cell === 'string') return cell;
@@ -754,7 +767,16 @@ export function readRecords(
     const hasRanges = roles.start !== undefined || roles.position !== undefined;
     if (roles.start && !roles.end && !roles.position) missingField('end', own(map, 'end') ?? 'end');
     if (roles.end && !roles.start && !roles.position) missingField('start', own(map, 'start') ?? 'start');
-    if (!hasRanges && !roles.value && letters === undefined)
+    // keyed records: an `id` and no position, each record one at its place in the file, only on an alignment's rows
+    // system (`…/(rows)`: its fields, joined by the row's key; _spec/README.md "Data", Records); elsewhere a record
+    // needs a position, as before
+    const keyed =
+      !hasRanges &&
+      !roles.value &&
+      letters === undefined &&
+      roles.id !== undefined &&
+      onRows(roles.target, ownSystem, records.count);
+    if (!hasRanges && !roles.value && letters === undefined && !keyed)
       refuse(
         'seq.source.records.field',
         `The records have no \`start\`, \`position\` or \`value\`; there are: ${there()}`,
@@ -792,7 +814,10 @@ export function readRecords(
       let keep = true;
       let s = 0;
       let e = 0;
-      if (hasRanges) {
+      if (keyed) {
+        s = sys.ranges.length;
+        e = s + 1;
+      } else if (hasRanges) {
         const a = positionOf((roles.position ?? roles.start)!.get(i));
         const b = roles.position ? a : positionOf(roles.end!.get(i));
         if (a === undefined || b === undefined) {
@@ -838,7 +863,7 @@ export function readRecords(
       // a row's value without `position` is at its own index: a row left out is NaN there, never a shift
       if (hasValues && !roles.position) sys.values.set(sys.valueRows++, keep ? value : Number.NaN);
       if (!keep) continue;
-      if (hasRanges) {
+      if (hasRanges || keyed) {
         sys.ranges.push(i);
         sys.start.push(s);
         sys.end.push(e);
@@ -871,11 +896,12 @@ export function readRecords(
       const isOwn = sys.name === ownSystem;
       if (isOwn && letters !== undefined)
         tables.letters = { form: 'letters', start: 0, letters } satisfies LettersTable;
-      if (hasRanges)
+      if (hasRanges || keyed)
         tables.ranges = rangesTable(sys, roles, fields, records, causes, single && conventions && !sys.clipped);
       if (hasValues)
         tables.values = valuesTable(sys, records.count, single && !hasRanges ? roles.value : undefined, options.limits);
-      const length = isOwn ? L : undefined;
+      // a keyed system is as long as its records
+      const length = keyed ? sys.ranges.length : isOwn ? L : undefined;
       systemInfo.push(length === undefined ? { name: sys.name } : { name: sys.name, length });
       const ranges = tables.ranges as RangesList | undefined;
       const fieldInfo: FieldInfo[] | undefined = ranges?.fields?.map((f) => ({

@@ -4,8 +4,16 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { type Node, exactAddress, issueOf, type Value } from '@molstar/core/repr/tree';
-import { type CellsCodes, DefaultMaxBlockValues } from '@molstar/seqx-core/data';
+import {
+  CategoryColumn,
+  type Column,
+  exactAddress,
+  type Issue,
+  issueOf,
+  type Node,
+  type Value,
+} from '@molstar/core/repr/tree';
+import { type CellsCodes, DefaultMaxBlockValues, type RangesList } from '@molstar/seqx-core/data';
 import { matchLeaves, readNewick } from '@molstar/seqx-core/data/alignment-readers';
 import { type ElementKey, type Location, rangesLocation } from '@molstar/seqx-core/query';
 import { rowsSystemOf, type StaticModel } from '@molstar/seqx-core/resolve';
@@ -41,16 +49,31 @@ import {
 } from './layer-type.js';
 import { NoClass, Pyramid, pyramidLevelFor } from './pyramid.js';
 import {
+  ColumnsLay,
+  drawColumnCells,
+  drawTitles,
+  elide,
+  hoverColumnCells,
+  layoutRowColumns,
+  setColumns,
+  titleAt,
+} from './rows-columns.js';
+import {
   buildClades,
   type Clades,
   type ColumnMeasures,
   columnMeasures,
+  columnsRoom,
   consensus,
   DisplayRows,
   type HeldCells,
   isGap,
   measureEntries,
   RowHeight,
+  type RowColumn,
+  rowColumnsOf,
+  RowMeasureFields,
+  numericValues,
   TreeHitPx,
   upper,
 } from './rows-model.js';
@@ -58,8 +81,9 @@ import { inkOn, type SeqTokens } from './tokens.js';
 
 // The `rows` layer type (_spec/README.md "Render", The rows layer): an alignment's rows over its columns, in data,
 // tree or a field's order, clades folded to a summary row, rows pinned in a band at the top, hidden rows out; its own
-// y inside its band (`bandTop` the rows' scroll, `rowScale` px a row); its header (the tree, the labels, the first
-// residue numbers, the hidden-rows chip) in the view's label column. Held alignments (rows × columns within
+// y inside its band (`bandTop` the rows' scroll, `rowScale` px a row); its header (the tree, the labels, the left row
+// columns, the first residue numbers, the hidden-rows chip) in the view's label column, its right columns after the
+// last numbers, the columns' titles in the band above the rows. Held alignments (rows × columns within
 // `maxBlockValues`) are read whole once; larger ones lazily, the rows in view only. Below 3 device px a cell on either
 // axis the rows draw from the shared reduction as image tiles in the shared image cache.
 
@@ -96,6 +120,14 @@ export interface RowsPrep {
   readonly params: Readonly<Record<string, Value>>;
   /** The layer's theme slots (its channels are made again with the data's measures). */
   readonly channelsForms: ResolvedLayer['theme'];
+  /** The row columns (Row columns), as read. */
+  readonly columns: readonly RowColumn[];
+  /** The sources that may hold the rows' joined fields (a system named as the rows system): every other source. */
+  readonly joinSources: readonly string[];
+  /** Of those, the ones that could join before they attach (their `system` the rows system, a runtime bound). */
+  readonly joinCandidates: readonly string[];
+  /** The fields a column or the order names (the only ones joined). */
+  readonly joinFields: readonly string[];
 }
 
 /** What a rows layer keeps frame to frame: the held cells, the order and folds, the marks in view. */
@@ -207,6 +239,7 @@ export class RowsLay {
     target: undefined,
     element: undefined,
     extent: undefined,
+    state: undefined,
   };
   /** A clade's element and extent for its hits (a tree node's; a summary row's by display row), kept by the display. */
   readonly cladeHits = new Map<number, { element: ElementKey; extent: Location }>();
@@ -255,6 +288,47 @@ export class RowsLay {
   classTable: Uint8Array | undefined;
   /** The shared image cache (the frame's, else the layer's own). */
   cache: ImageCache | undefined;
+  /** The prep the display was built from: an edit of the order, the pins or the hidden rows builds it again. */
+  prepOf: RowsPrep | undefined;
+  /** The joined fields' version an order by a field was built with (-1: not by a field). */
+  displayByField = -1;
+  /**
+   * Row columns (Row columns, `rows-columns.ts`); the fields joined from a records source by row key (kept by its
+   * entries' versions, the held rows and the prep), `fieldsVersion` moving with them (an order by a joined field, the
+   * columns' values, made again); `joinPending` while a source that could join has not answered.
+   */
+  readonly cols = new ColumnsLay();
+  joined: Map<string, (string | number | null)[]> | undefined;
+  readonly joinedOf: unknown[] = [];
+  /** The layer sources the joined sources are read through, by source. */
+  readonly joinSrc = new Map<string, LayerSource>();
+  joinPending = false;
+  fieldsVersion = 0;
+  /** What joining said (a field shadowed, a field of two sources), made when the join is: said every frame. */
+  joinIssue: Issue | undefined;
+  /** The rows' band below the layer's title row (its own box, reused). */
+  readonly ownBox = { x: 0, y: 0, width: 0, height: 0 };
+
+  /**
+   * A field of the rows table at a data row (_spec/README.md "Render", Row columns): `label`, `first`, the rows' own
+   * fields, the measures (`length`, `gaps`, `identity`), then the joined ones; undefined when missing.
+   */
+  fieldValue(row: number, field: string): string | number | undefined {
+    const held = this.held;
+    if (field === 'label') return this.label(row);
+    if (field === 'first') return held ? held.first[row] : this.lazyFirst.get(row);
+    const own = held?.fields?.get(field);
+    if (own) return own[row] ?? undefined;
+    const m = this.measures;
+    if (m && held && RowMeasureFields.includes(field)) {
+      if (row >= m.rowLength.length) return undefined;
+      if (field === 'length') return m.rowLength[row];
+      if (field === 'gaps') return m.rowGaps[row];
+      return Number.isNaN(m.rowIdentity[row]) ? undefined : m.rowIdentity[row];
+    }
+    const j = this.joined?.get(field);
+    return j ? (j[row] ?? undefined) : undefined;
+  }
 
   /** y of a display row's top in the band (the pinned band fixed, the rest scrolled). */
   rowY(i: number): number {
@@ -408,10 +482,15 @@ export class RowsLay {
       this.clades = buildClades(prep.tree.read, matchLeaves(prep.tree.read, rows), held.rows);
     }
     const folds = this.figure ? NoFolds : (ctx.folds ?? prep.collapsed);
+    // an order by a field is built again when the joined fields come; an edit of the layer (another prep) too
+    const byField = typeof prep.order === 'object' ? this.fieldsVersion : -1;
     const key = `${held?.version ?? -1}|${this.total}|${this.figure}`;
-    if (key === this.displayKey && folds === this.folds) return;
+    if (key === this.displayKey && folds === this.folds && prep === this.prepOf && byField === this.displayByField)
+      return;
     this.displayKey = key;
+    this.displayByField = byField;
     this.folds = folds;
+    this.prepOf = prep;
     if (!held) {
       this.display.setIdentity(this.total ?? 0);
       this.foldIds = [];
@@ -430,7 +509,7 @@ export class RowsLay {
     this.foldsApply = tree !== undefined;
     this.foldIds = tree ? folds.map((f) => tree.byName.get(f) ?? -1).filter((c) => c >= 0) : [];
     let order: Int32Array | undefined;
-    if (typeof prep.order === 'object') order = fieldOrder(held, prep.order);
+    if (typeof prep.order === 'object') order = fieldOrder(this, held, prep.order);
     const plain = !tree && !order && !prep.pinned.length && !prep.hidden.length;
     this.setArgs = undefined;
     if (plain) this.display.setIdentity(held.rows);
@@ -447,8 +526,8 @@ export class RowsLay {
     }
   }
 
-  /** The measures and the color channel (the measures registered for its themes), when the data changed. */
-  prepareColors(prep: RowsPrep, ctx: LayoutContext): Channel {
+  /** The measures of the held data (the columns' and the rows'), when the data changed. */
+  prepareMeasures(prep: RowsPrep): void {
     const held = this.held;
     if (held && this.measuresOf !== held) {
       this.measuresOf = held;
@@ -457,6 +536,12 @@ export class RowsLay {
       // a new channel set: its measures are this data's
       this.channels = channelForms(prep.channelsForms);
     }
+  }
+
+  /** The measures and the color channel (the measures registered for its themes), when the data changed. */
+  prepareColors(prep: RowsPrep, ctx: LayoutContext): Channel {
+    const held = this.held;
+    this.prepareMeasures(prep);
     const channels = this.channels ?? (this.channels = channelForms(prep.channelsForms));
     // the column measures registered over the theme's own (merged, never replacing them), kept while both are
     const theme = ctx.theme.measures;
@@ -496,16 +581,155 @@ export class RowsLay {
   }
 }
 
-/** A permutation of the held rows by a field of the rows table (`label`, `first`): missing last, ties in data order. */
-function fieldOrder(held: HeldCells, o: { readonly field: string; readonly direction: string }): Int32Array {
-  const idx = Array.from({ length: held.rows }, (_, i) => i);
+/**
+ * A permutation of the held rows by a field of the rows table (`label`, `first`, an own field, a joined one, a
+ * measure): numbers by value, text by code points, missing last in either direction, ties in data order.
+ */
+function fieldOrder(
+  lay: RowsLay,
+  held: HeldCells,
+  o: { readonly field: string; readonly direction: string },
+): Int32Array {
+  const n = held.rows;
+  const values: (string | number | undefined)[] = new Array(n);
+  for (let i = 0; i < n; i++) values[i] = lay.fieldValue(i, o.field);
+  // a field whose values all read as numbers orders by value (a `#=GS` TAXID, an untyped table's field)
+  const nums = numericValues(values.map((v) => v ?? null));
+  if (nums) for (let i = 0; i < n; i++) values[i] = nums[i] ?? undefined;
+  const idx = Array.from({ length: n }, (_, i) => i);
   const sign = o.direction === 'descending' ? -1 : 1;
-  if (o.field === 'first') idx.sort((a, b) => sign * (held.first[a] - held.first[b]) || a - b);
-  else
-    idx.sort(
-      (a, b) => sign * (held.labels[a] < held.labels[b] ? -1 : held.labels[a] > held.labels[b] ? 1 : 0) || a - b,
-    );
+  idx.sort((a, b) => {
+    const x = values[a];
+    const y = values[b];
+    if (x === undefined || y === undefined) return x === y ? a - b : x === undefined ? 1 : -1;
+    const c =
+      typeof x === 'number' && typeof y === 'number'
+        ? x - y
+        : String(x) < String(y)
+          ? -1
+          : String(x) > String(y)
+            ? 1
+            : 0;
+    return sign * c || a - b;
+  });
   return Int32Array.from(idx);
+}
+
+/** A column's value at `i` (`null` missing: a missing category, a NaN). */
+function cellOf(c: Column, i: number): string | number | null {
+  if (c instanceof CategoryColumn) return c.get(i);
+  const v = (c as ArrayLike<number>)[i];
+  return v === undefined || Number.isNaN(v) ? null : v;
+}
+
+/**
+ * The fields of a records source whose system is the rows system, joined by row key (_spec/README.md "Render", Row
+ * columns): a record's `id` names its row (a held row's label), else its position is the row. Only the fields a column
+ * or the order names, and neither an own field nor a measure (those shadow it: said once, as a field two sources
+ * have). Kept by the held rows, the prep and the entries' versions (compared in place: nothing made once warm),
+ * `fieldsVersion` moved when they change. `joinPending` while a source that could join (its `system` the rows system,
+ * a runtime bound) has not attached and the view has not settled: one that failed, or never attaches, holds nothing.
+ */
+function readJoined(lay: RowsLay, prep: Prep, ctx: LayoutContext, data: StoreReader) {
+  const held = lay.held;
+  lay.joinPending = false;
+  if (!held || !prep.joinSources.length || !prep.joinFields.length) return;
+  const of = lay.joinedOf;
+  let same = of[0] === held && of[1] === prep;
+  let at = 2;
+  let nt = 0;
+  for (let s = 0; s < prep.joinSources.length; s++) {
+    const source = prep.joinSources[s];
+    const coverage = data.coverage(source);
+    if (!coverage) {
+      if (!ctx.settled && prep.joinCandidates.includes(source)) lay.joinPending = true;
+      continue;
+    }
+    let length = -1;
+    for (let k = 0; k < coverage.systems.length; k++)
+      if (coverage.systems[k].name === prep.rowsSystem) length = coverage.systems[k].length ?? held.rows;
+    if (length < 0) continue;
+    JoinRegion[1] = length;
+    const read = readTiles(ctx, data, joinSource(lay, source, prep.rowsSystem, length), JoinRegion, 1);
+    if (read.pending.length) lay.joinPending = true;
+    for (let k = 0; k < read.entries.length; k++) {
+      const e = read.entries[k];
+      const t = e.tables.ranges as RangesList | undefined;
+      if (t?.form !== 'list') continue;
+      if (of[at] !== source || of[at + 1] !== t || of[at + 2] !== e.version) same = false;
+      of[at] = source;
+      of[at + 1] = t;
+      of[at + 2] = e.version;
+      at += 3;
+      nt++;
+    }
+  }
+  if (same && of.length === at) return;
+  of[0] = held;
+  of[1] = prep;
+  of.length = at;
+  lay.fieldsVersion++;
+  lay.joinIssue = undefined;
+  if (!nt) {
+    lay.joined = undefined;
+    return;
+  }
+  const joined = new Map<string, (string | number | null)[]>();
+  const from = new Map<string, string>();
+  const said = new Set<string>();
+  const byLabel = new Map<string, number>();
+  held.labels.forEach((l, i) => {
+    if (!byLabel.has(l)) byLabel.set(l, i);
+  });
+  for (let q = 2; q < at; q += 3) {
+    const source = of[q] as string;
+    const t = of[q + 1] as RangesList;
+    for (const f of t.fields ?? []) {
+      if (!prep.joinFields.includes(f.name)) continue;
+      if (held.fields?.has(f.name) || RowMeasureFields.includes(f.name)) {
+        said.add(`${f.name} of ${source} is the alignment’s own ${held.fields?.has(f.name) ? 'field' : 'measure'}`);
+        continue;
+      }
+      const first = from.get(f.name);
+      if (first !== undefined && first !== source) {
+        said.add(`${f.name} is a field of ${first} and of ${source}: ${first}’s read`);
+        continue;
+      }
+      from.set(f.name, source);
+      let a = joined.get(f.name);
+      if (!a) joined.set(f.name, (a = new Array(held.rows).fill(null)));
+      for (let k = 0; k < t.start.length; k++) {
+        const id = t.id?.get(k);
+        const row = id != null ? byLabel.get(id) : t.start[k];
+        if (row === undefined || row < 0 || row >= held.rows) continue;
+        a[row] = cellOf(f.column, k);
+      }
+    }
+  }
+  lay.joined = joined;
+  if (said.size)
+    lay.joinIssue = issueOf(
+      RenderIssues,
+      'seq.render.rows.field',
+      `A joined field is not read: ${[...said].join('; ')}`,
+      {
+        address: ctx.key,
+        hint: RenderIssues.codes['seq.render.rows.field'].hint,
+      },
+    );
+}
+
+/** The region a join reads: the whole rows system (its end set before each read: a frame makes no array). */
+const JoinRegion = [0, 0];
+
+/** The layer source a joined source is read through, kept by the layer (one a source and length). */
+function joinSource(lay: RowsLay, source: string, system: string, length: number): LayerSource {
+  let s = lay.joinSrc.get(source);
+  if (!s || s.length !== length) {
+    s = { source, system, dataSystem: system, shape: 'ranges', length, ratio: 1 };
+    lay.joinSrc.set(source, s);
+  }
+  return s;
 }
 
 const NoFolds: readonly string[] = [];
@@ -534,6 +758,23 @@ function prepareRows(layer: ResolvedLayer, model: StaticModel): RowsPrep {
   const newick = treeNode?.params?.newick;
   const summary = p(layer, 'summary');
   const width = p(layer, 'tree_width');
+  const columns = rowColumnsOf(p(layer, 'columns'));
+  // a records source joined by row key: one whose coverage names the rows system (read at layout); none is looked for
+  // unless a column or an order may read one
+  const byField = !!order && typeof order === 'object' && !Array.isArray(order);
+  const joinSources =
+    columns.length || byField
+      ? [...model.sources.keys()].filter((s) => s !== src?.source && s !== system?.source)
+      : NoSources;
+  const rowsSystem = a?.rows ?? rowsSystemOf(owner);
+  // the sources that could join (pending until they attach): their own system the rows system, a runtime bound
+  const joinCandidates = joinSources.filter((s) => {
+    const b = model.sources.get(s);
+    return b?.runtime !== undefined && b.entry.system === rowsSystem;
+  });
+  const joinFields = [
+    ...new Set([...columns.map((c) => c.field), ...(byField ? [(order as { field: string }).field] : [])]),
+  ];
   return {
     ...(src ? { src } : {}),
     owner,
@@ -564,8 +805,14 @@ function prepareRows(layer: ResolvedLayer, model: StaticModel): RowsPrep {
     numbers: p(layer, 'numbers') === 'none' ? 'none' : 'gutters',
     treeWidth: typeof width === 'number' ? width : 120,
     ...(a?.reference !== undefined ? { reference: a.reference } : {}),
+    columns,
+    joinSources,
+    joinCandidates,
+    joinFields,
   };
 }
+
+const NoSources: readonly string[] = [];
 
 type Prep = RowsPrep;
 
@@ -579,7 +826,7 @@ export const RowsType: LayerType<Prep, RowsLay> = {
   prepare: prepareRows,
 
   layout(prep, ctx: LayoutContext, data: StoreReader, _overlay: Overlay, prev?: RowsLay): RowsLay {
-    const { axis, box, config, tokens } = ctx;
+    const { axis, config, tokens } = ctx;
     const lay = prev ?? new RowsLay();
     lay.key = ctx.key;
     lay.section = sectionId(ctx.section);
@@ -588,7 +835,7 @@ export const RowsType: LayerType<Prep, RowsLay> = {
     lay.owner = prep.owner;
     lay.params = prep.params;
     lay.collapsed = prep.collapsed;
-    lay.box = box;
+    lay.box = ctx.box;
     lay.axis = axis;
     lay.tokens = tokens;
     lay.config = config;
@@ -620,6 +867,17 @@ export const RowsType: LayerType<Prep, RowsLay> = {
     lay.lazyCodes.clear();
     lay.lazyFirst.clear();
     lay.chip = '';
+    // the row columns as written and granted; a layer with columns keeps a title row above its rows
+    setColumns(lay.cols, prep, ctx);
+    if (lay.cols.titleRow) {
+      const b = lay.ownBox;
+      b.x = ctx.box.x;
+      b.y = ctx.box.y + lay.cols.titleRow;
+      b.width = ctx.box.width;
+      b.height = Math.max(0, ctx.box.height - lay.cols.titleRow);
+      lay.box = b;
+    }
+    const box = lay.box;
     if (ctx.images) lay.cache = ctx.images;
     else if (!lay.cache) {
       let own = OwnImages.get(config);
@@ -682,6 +940,10 @@ export const RowsType: LayerType<Prep, RowsLay> = {
           }),
         );
     }
+    // the fields an order or a column reads: the measures and the joined records, before the order is built
+    lay.prepareMeasures(prep);
+    readJoined(lay, prep, ctx, data);
+    if (lay.joinIssue) ctx.report(lay.joinIssue);
     lay.prepareRows(prep, ctx);
     // a spec's fold naming no clade of the tree is said, never dropped silently (the session's folds are the tree's)
     const clades = lay.foldsApply ? lay.clades : undefined;
@@ -718,6 +980,7 @@ export const RowsType: LayerType<Prep, RowsLay> = {
     if (!lay.held && heldable) return lay;
     layoutCells(lay, prep, ctx);
     layoutHeader(lay, prep, ctx);
+    if (prep.columns.length) layoutRowColumns(lay, prep, ctx);
     if (display.hidden) {
       lay.chip = `${display.hidden} hidden`;
       lay.chipW = ctx.text.measure(config.itemFont, lay.chip);
@@ -735,6 +998,15 @@ export const RowsType: LayerType<Prep, RowsLay> = {
     return lay.channel ? channelLegends([lay.channel], { ...options, layer: lay.key }) : [];
   },
 
+  hitOutside(lay, at): Hit | undefined {
+    // a column's title in the layer's title row: `state` its field (a click orders the rows by it); the chip is none
+    const t = titleAt(lay, at[0], at[1]);
+    if (t < 0) return undefined;
+    const h = writeHit(lay, lay.rowsSystem, undefined, undefined, 'column-title');
+    lay.scratch.state = lay.cols.columns[lay.cols.titleCol[t]].field;
+    return h;
+  },
+
   hit(lay, at): Hit | undefined {
     const x = at[0];
     const y = at[1];
@@ -747,9 +1019,14 @@ export const RowsType: LayerType<Prep, RowsLay> = {
       if (node >= 0 && lay.clades)
         return writeHit(lay, lay.rowsSystem, undefined, undefined, 'tree-node', cladeHit(lay, node));
       if (i < 0 || x < lay.treeX1) return undefined;
-      return rowHit(lay, i, undefined);
+      return named(lay, rowHit(lay, i, undefined), lay.cols.cellAt(i, x));
     }
     if (i < 0) return undefined;
+    // a right column's cell hits as its row's header, naming its value
+    if (x >= box.x + box.width) {
+      const q = lay.cols.cellAt(i, x);
+      return q < 0 ? undefined : named(lay, rowHit(lay, i, undefined), q);
+    }
     const position = lay.axis.positionAt(x);
     if (position < 0) return undefined;
     return rowHit(lay, i, position);
@@ -827,6 +1104,7 @@ export function readHeld(ctx: LayoutContext, data: StoreReader, src: LayerSource
   const codes = new Uint8Array(rows * C);
   const labels: string[] = new Array(rows).fill('');
   const first = new Int32Array(rows).fill(1);
+  let fields: Map<string, (string | number | null)[]> | undefined;
   for (const e of read.entries) {
     const t = e.tables.cells;
     if (!t || t.form !== 'codes' || t.columns !== C) continue;
@@ -836,8 +1114,23 @@ export function readHeld(ctx: LayoutContext, data: StoreReader, src: LayerSource
       labels[t.start + i] = t.label?.get(i) ?? `row ${t.start + i + 1}`;
       if (t.first) first[t.start + i] = t.first[i];
     }
+    // the rows' own fields (Row columns), a value a row
+    for (const f of t.fields ?? []) {
+      fields ??= new Map();
+      let a = fields.get(f.name);
+      if (!a) fields.set(f.name, (a = new Array(rows).fill(null)));
+      for (let i = 0; i < n && t.start + i < rows; i++) a[t.start + i] = cellOf(f.column, i);
+    }
   }
-  const held: HeldCells = { rows, columns: C, codes, labels, first, version: (kept?.held.version ?? 0) + 1 };
+  const held: HeldCells = {
+    rows,
+    columns: C,
+    codes,
+    labels,
+    first,
+    version: (kept?.held.version ?? 0) + 1,
+    ...(fields ? { fields } : {}),
+  };
   bySource.set(src.source, { key, held });
   return held;
 }
@@ -1147,7 +1440,9 @@ function layoutHeader(lay: RowsLay, prep: Prep, ctx: LayoutContext) {
   const numberW = numbers ? text.measure(config.itemFont, '00000') : 0;
   lay.numberX = right;
   lay.numberRightX = box.x + box.width + config.labelGap;
-  lay.labelMax = Math.max(0, right - numberW - 4 - lay.labelX);
+  // the left row columns between the label and the first numbers (the label column was widened by them)
+  const leftRoom = columnsRoom(prep.columns, lay.cols.width, 'left', config.rows.columns.gapPx);
+  lay.labelMax = Math.max(0, right - numberW - 4 - lay.labelX - leftRoom);
   const size = fontSize(config.itemFont);
   const add = (i: number) => {
     const e = lay.display.rowAt(i);
@@ -1245,20 +1540,6 @@ function firstShown(lay: RowsLay, clades: Clades, k: number): number {
     if (r >= 0 && lay.display.placeRow(r) >= 0) return r;
   }
   return -1;
-}
-
-/** `text` cut to `max` px with an ellipsis, as `font` measures it (whole when it fits). */
-function elide(text: LayoutContext['text'], font: string, t: string, max: number): string {
-  if (text.measure(font, t) <= max) return t;
-  let lo = 0;
-  let hi = t.length;
-  // the longest prefix that fits with its ellipsis
-  while (lo < hi) {
-    const mid = (lo + hi + 1) >> 1;
-    if (text.measure(font, `${t.slice(0, mid)}…`) <= max) lo = mid;
-    else hi = mid - 1;
-  }
-  return lo ? `${t.slice(0, lo)}…` : '';
 }
 
 /**
@@ -1410,6 +1691,16 @@ function writeHit(
   h.target = target;
   h.element = clade?.element;
   h.extent = clade?.extent;
+  h.state = undefined;
+  return h;
+}
+
+/** A header's hit naming the column cell it is on (`title: value`, made at layout: a hover allocates nothing). */
+function named(lay: RowsLay, h: Hit, q: number): Hit {
+  if (q >= 0 && h === lay.scratch) {
+    const c = lay.cols;
+    lay.scratch.state = c.name[c.col[q]][c.row[q]];
+  }
   return h;
 }
 
@@ -1609,7 +1900,19 @@ function drawHeader(lay: RowsLay, out: PassWriter) {
     g[4] = tokens.colors['msui-accent'];
     out.textArgs(lay.chip, AnchorStart, config.itemFont);
   }
+  if (lay.cols.n) drawColumnCells(lay, out, 0);
   out.unclip();
+  if (lay.cols.n) {
+    // the right columns, clipped to the band as the rows are
+    g[0] = box.x + box.width;
+    g[1] = box.y;
+    g[2] = Math.max(0, lay.cols.rightEnd - g[0]);
+    g[3] = box.height;
+    out.clipArgs();
+    drawColumnCells(lay, out, 1);
+    out.unclip();
+  }
+  if (lay.cols.titleN || lay.cols.chip) drawTitles(lay, out);
   // the last numbers in the right gutter, clipped to the band as its rows are (a partly shown row ends at the foot)
   if (lay.lastText.length) {
     g[0] = box.x + box.width;
@@ -1627,6 +1930,23 @@ function drawHeader(lay: RowsLay, out: PassWriter) {
     out.textArgs(lay.lastText[k], AnchorStart, config.itemFont);
   }
   if (lay.lastText.length) out.unclip();
+}
+
+/**
+ * The hover, then its row's column cells cut short read whole: a function of its own, so the hover's own stays as the
+ * compiler had it (a number boxed a frame otherwise, measured).
+ */
+function drawHoverAndColumns(lay: RowsLay, out: PassWriter, emphasis: Emphasis | undefined) {
+  drawHover(lay, out, emphasis);
+  if (lay.cols.n) hoverColumns(lay, out, emphasis);
+}
+
+function hoverColumns(lay: RowsLay, out: PassWriter, emphasis: Emphasis | undefined) {
+  const h = emphasis?.hover;
+  if (!h || h.layer !== lay.key) return;
+  const row = h.yPosition ?? (h.system === lay.rowsSystem ? h.position : undefined);
+  const i = row === undefined ? -1 : lay.display.displayRow(row);
+  if (i >= 0) hoverColumnCells(lay, out, i);
 }
 
 /** Tree segment `k` (of `lay.tree`) as a rect of thickness `t` in `ink`. */
@@ -1911,7 +2231,7 @@ function drawCursor(lay: RowsLay, out: PassWriter, emphasis: Emphasis | undefine
 const RowsDraws = passDraws<RowsLay, Emphasis | undefined>({
   data: drawData,
   labels: drawHeader,
-  hover: drawHover,
+  hover: drawHoverAndColumns,
   selection: drawSelection,
   cursor: drawCursor,
 });

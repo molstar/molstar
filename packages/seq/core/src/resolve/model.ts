@@ -477,11 +477,22 @@ function alignmentEntry(
   const reference = p(at.node, 'reference');
   const letters = Array.isArray(rows?.letters) ? (rows.letters as string[]) : undefined;
   const label = Array.isArray(rows?.label) ? (rows.label as string[]) : undefined;
+  // the table's other columns are the rows' own fields (_spec/README.md "Render", The rows layer, Row columns)
+  const fields = rowsFields(rows as Record<string, Value> | undefined);
   const access: AccessPlan =
     letters && label
       ? {
           kind: 'inline',
-          source: { address: at.address, format: 'alignment', value: { label, letters } as unknown as Value },
+          source: {
+            address: at.address,
+            format: 'alignment',
+            value: {
+              label,
+              letters,
+              ...(fields ? { fields } : {}),
+              ...(firstOf(rows as Record<string, Value>, letters.length) ?? {}),
+            } as unknown as Value,
+          },
           runtime: AlignmentRuntime,
           system: AlignmentSystems.rows,
           shape: 'cells',
@@ -506,12 +517,46 @@ function alignmentEntry(
       address: at.address,
       shape: 'cells',
       target: at.address,
-      fields: ['label', 'first'],
+      fields: ['label', 'first', ...Object.keys(fields ?? {})],
       access,
       rows: rowsAddress,
       ...(typeof reference === 'string' ? { reference } : {}),
     },
   };
+}
+
+/** An inline rows table's `first` column, as the rows' first residue numbers, when it is one number a row. */
+function firstOf(rows: Record<string, Value> | undefined, n: number): { first: number[] } | undefined {
+  const v = rows?.first;
+  const list =
+    isColumn(v) && !(v instanceof CategoryColumn)
+      ? Array.from(v as ArrayLike<number>)
+      : Array.isArray(v)
+        ? v
+        : undefined;
+  return list && list.length === n && list.every((x) => typeof x === 'number')
+    ? { first: list as number[] }
+    : undefined;
+}
+
+/** An inline rows table's columns past `label`, `letters` and `first`, a plain list each; undefined when none. */
+function rowsFields(rows: Record<string, Value> | undefined): Record<string, unknown[]> | undefined {
+  let out: Record<string, unknown[]> | undefined;
+  for (const key of Object.keys(rows ?? {})) {
+    // `first` is the rows' first residue numbers (EC-39), never a field
+    if (key === 'label' || key === 'letters' || key === 'first') continue;
+    const v = rows![key];
+    const list =
+      v instanceof CategoryColumn
+        ? Array.from(v.codes, (k) => (k < 0 ? null : v.dict[k]))
+        : isColumn(v)
+          ? Array.from(v as ArrayLike<number>)
+          : Array.isArray(v)
+            ? v
+            : undefined;
+    if (list) (out ??= Object.create(null) as Record<string, unknown[]>)[key] = list;
+  }
+  return out;
 }
 
 type MapCode =

@@ -78,7 +78,13 @@ describe('seqExampleFixtures', () => {
     seqExampleFixtures().generateBundle.call({ emitFile: (f) => emitted.push(f) });
     const names = emitted.map((e) => e.fileName);
     // every fixture under the folder, the Files dataset's and the recorded entry's too
-    expect(names).toEqual(expect.arrayContaining(['fixtures/p53/gene-region.seq', 'fixtures/p53/tp53-gene.seq']));
+    expect(names).toEqual(
+      expect.arrayContaining([
+        'fixtures/p53/gene-region.seq',
+        'fixtures/p53/tp53-gene.seq',
+        'fixtures/globins/family-columns.tsv',
+      ]),
+    );
     expect(names).toEqual(
       expect.arrayContaining(['fixtures/p53/P04637.json', 'fixtures/files/domains.tsv', 'fixtures/files/plasmid.gff3']),
     );

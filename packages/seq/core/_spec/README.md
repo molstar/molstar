@@ -28,9 +28,9 @@ is added in the change that builds what it describes.
   under a section, a section's `of` optional when it has blocks, the view's `export.window`, the layer type `frame` and
   its `across`, the kinds `alignment` and `tree`, a section `of` an alignment, the layer types `rows` and `logo` and
   their params `tree`, `order`, `collapsed`, `pinned`, `hidden_rows`, `height`, `summary`, `numbers`, `tree_width`,
-  `logo_scale`, `correction`, `gaps`, and a source's transform `records`, `letters`, `system`, `base`, `ends`, `types`,
-  `attribution`, `licence`, with `fields` read). A spec in an earlier `0.x` reads as one in this one, and is reported
-  where it no longer fits.
+  `columns`, `logo_scale`, `correction`, `gaps`, and a source's transform `records`, `letters`, `system`, `base`,
+  `ends`, `types`, `attribution`, `licence`, with `fields` read). A spec in an earlier `0.x` reads as one in this one,
+  and is reported where it no longer fits.
 
 ## Language
 
@@ -597,11 +597,13 @@ over 20 runs; the heavy lane bounds one sample at 40 ms (`resolve/_test/addressi
 
 - **`cells`** (an alignment's rows on 1D tiles of its rows system, columns whole): at level 1 `codes` (`start` the first
   row, `columns`, a byte a cell row-major: the letter's ASCII, gaps `-` and `.`) with the rows table (`label` a
-  category, a row's key; `first`, its first residue's number, EC-39); above it `majority` (a row bin per column: its
-  majority letter byte, 255 none, and that letter's share, 0–255), aligned to the level. Why columns whole: an alignment
-  is hundreds to a few thousand columns wide, so a tile of 1,024 rows stays within `maxBlockValues` up to 16,384 columns
-  (wider is `too-large`), and the store's keys and tiles stay one-dimensional. Cut and joined by rows (`sliceTable`,
-  `joinTables`); not written in the `seq` format yet (no reader needs it).
+  category, a row's key; `first`, its first residue's number, EC-39; `fields`, the rows' own fields, a column each:
+  Stockholm's `#=GS` tags, an inline table's columns past `label`, `letters` and `first`, numbers when every value is
+  one; a column not one value a row left out and said, `seq.source.rows.field`, the alignment kept); above it `majority`
+  (a row bin per column: its majority letter byte, 255 none, and that letter's share, 0–255), aligned to the level. Why
+  columns whole: an alignment is hundreds to a few thousand columns wide, so a tile of 1,024 rows stays within
+  `maxBlockValues` up to 16,384 columns (wider is `too-large`), and the store's keys and tiles stay one-dimensional. Cut
+  and joined by rows (`sliceTable`, `joinTables`); not written in the `seq` format yet (no reader needs it).
 - **An alignment source** (`openAlignment`, `cellsSource`): two systems, `rows` (a position a row, data order) and
   `columns`; `cells` served on `rows` at level 1, a tile a view of the bytes made once. Inline rows read through the
   `alignment` runtime (`AlignmentRuntime`, which resolve binds to an inline `alignment` node); files through
@@ -615,11 +617,14 @@ pays for them). Each reads text into plain data and reports what it cannot read,
 by fuzz tests (mutated text read without a throw).
 
 - **Aligned FASTA** (`readAlignedFasta`) and **Stockholm** (`readStockholm`: a row's letters joined across blocks,
-  `#=GF`, `#=GS`, `#=GR` read past, the first alignment of a file): rows of the first row's width, another width or a
-  character that is no letter or gap said and left out; gaps `-`, `.` (`~` read as `-`). A row's first residue number
-  from its label (`NAME/27-137`, EC-39), else 1. **Insert columns** (EC-38): `#=GC RF`'s `.` and `-`, else a column
-  whose letters are all lowercase (A3M's lowercase is on no column). **Pairs**: `#=GC SS_cons` as column pairs, each
-  bracket kind (`<>`, `()`, `[]`, `{}`) a nesting of its own and a pseudoknot an uppercase letter with its lowercase.
+  `#=GS <name> <tag> <value>` a row's fields by tag (`OS`, `DE`, `AC`; a tag given twice joined by a space, a line
+  without a value said; lines naming a sequence with no row said once with the names, `seq.source.rows.annotation`,
+  info, by the runtime), `#=GF`, `#=GR` read past, the first alignment of a file): rows of the first row's width,
+  another width or a character that is no letter or gap said and left out; gaps `-`, `.` (`~` read as `-`). A row's
+  first residue number from its label (`NAME/27-137`, EC-39), else 1. **Insert columns** (EC-38): `#=GC RF`'s `.` and
+  `-`, else a column whose letters are all lowercase (A3M's lowercase is on no column). **Pairs**: `#=GC SS_cons` as
+  column pairs, each bracket kind (`<>`, `()`, `[]`, `{}`) a nesting of its own and a pseudoknot an uppercase letter
+  with its lowercase.
 - **Newick** (`readNewick`): nodes in pre-order (parent, branch length, label, children), leaves in tree order; labels
   bare or quoted (`''` a quote), `[comments]` read past, underscores kept (a label is matched against row names);
   iterative (a deep tree costs no stack), at most `MaxTreeNodes` (1,000,000) nodes; what does not parse leaves the tree
@@ -700,7 +705,11 @@ by fuzz tests (mutated text read without a throw).
   `position` sparse (NaN between, from the first position named; one named twice keeps the last, said once, `.cell`),
   without one a value a row from the first position, each at its row's own index (a row left out is NaN there, never a
   shift); more positions than `maxRows` refused. With `start` and `end`, `value` is a field of the ranges only, no
-  values table.
+  values table. **Keyed records**: an `id` with no `start`, `position`, `value` or `letters`, on an alignment's rows
+  system (every record's `target`, else the source's own system, ends `/(rows)`), is a record at its place in the file
+  (`[k, k + 1)`, its system as long as its records): a rows system's fields, joined by the row's key (Render, The rows
+  layer, Row columns); on any other system such a file is refused as before (`.field`). Why: a table of row annotations
+  names its rows, never a position, and a sequence's records without a position are a mistake to say.
 - **Typed columns kept without a copy**: a column already the protocol's type for its role (`Int32Array` a start or an
   end, `Float32Array` a value, a category column an id or a category field, any typed field of its declared type), with
   `base: 0`, `ends: exclusive`, one system, every row kept and already in order, and no end clipped; otherwise one copy.
@@ -1711,10 +1720,11 @@ numbers): a window move allocates nothing once warm.
 - **Hits** are `{ layer, section, element?, extent?, hull?, position?, system, ySystem?, yPosition?, target? }` (flat: a
   hit of two axes, a rows cell or a grid cell, is the target `cell` with `ySystem` and `yPosition` set, so it allocates
   nothing; `row` a rows header, `tree-node` a tree's node and `summary-row` a folded clade's row, their element the
-  clade): `layer` the layer's key (its address, else its track's and `:index`), `section` the section's id, `element` an
-  item's `{ owner, key }` with its `extent` (a Location on the data's system), `position` on the section's system. Cells
-  by arithmetic on the axis; items by `LaneIndex` (a lane's marks by left edge with a running maximum of right edges).
-  In a track, the topmost layer with an element under the point wins, else the topmost with a position.
+  clade; `column-title` a rows layer's column title, `state` its field): `layer` the layer's key (its address, else its
+  track's and `:index`), `section` the section's id, `element` an item's `{ owner, key }` with its `extent` (a Location
+  on the data's system), `position` on the section's system. Cells by arithmetic on the axis; items by `LaneIndex` (a
+  lane's marks by left edge with a running maximum of right edges). In a track, the topmost layer with an element under
+  the point wins, else the topmost with a position.
 - **What a break hides is not dropped** (fixed): a `ranges` layer reads the stretches its breaks in view hide too
   (`dataRegions(src, axis, true)`), and its items wholly in one draw one tick on the break a lane in the break ink,
   whatever their number (`ticks`: x, lane, count, the hidden stretch), hit as the break (its `count`); a Location there
@@ -1817,7 +1827,9 @@ measures, consensus, the profile). An alignment's rows over its columns, its own
   Pins and hidden rows are by key, and a lazy row's key comes with its tile: on a lazy alignment neither applies
   (`seq.render.rows.lazy`, info).
 - **Order** (`order`): `data`, `tree` (the tree's leaf order, rows no leaf names after them in data order), or a field
-  of the rows table (`label`, `first`; missing last, ties in data order). Clades fold only in tree order.
+  of the rows table (`label`, `first`, an own field, a joined one, a measure: Row columns; numbers by value, text by
+  code points, missing last in either direction, ties in data order; built again when the joined fields come and on
+  every edit of the layer). Clades fold only in tree order.
 - **Display rows** (`DisplayRows`): what each display row shows (a data row, or `-1 − clade` for a folded clade's
   summary row) and where each data row is shown; pinned rows (`pinned`, by label) first in a band of their own and kept
   in their place too (`rows.pinInPlace`, marked `·`; `placeRow` its place in the order: the tree's leaf, the hover and
@@ -1868,12 +1880,52 @@ measures, consensus, the profile). An alignment's rows over its columns, its own
   counted; a row with no residue in view has none), the row's own at the fit view (kept per data, or per lazy row once).
   The right gutter is clipped to the band vertically, as the labels and cells are: a partly shown last row ends at the
   band's foot on every side.
+- **Row columns** (`columns`: a list of `{ field, side, as, width, title }`, `rowColumnsOf`; `render/rows-columns.ts`):
+  data columns beside each row's header. `left` (the default) in the header between the label and the first numbers, the
+  label column widened by them (a text figure's too); `right` after the last numbers' gutter, the right gutter widened
+  by them and by a gap before a rows rail; a gap (`rows.columns.gapPx`, 6) before each. `as`: `text` (the default, cut
+  with an ellipsis), `number` (right-aligned; an integer whole, else two decimals; the measure `identity` a percent:
+  formatted by the field's origin, never its name), `bar` (the value's share of the column's range from 0, in the
+  accent) or `chip` (a swatch of its category's color, `seq-cat-*` by the category's index in code-point order, and its
+  text); `width` by `as` (text 96, number 44, bar 56, chip 56), `title` the field. A column whose values all read as
+  numbers (numbers, or text that parses as a finite number: a `#=GS` TAXID, an untyped table's field) draws and orders
+  as numbers (`numericValues`); the data's own types are unchanged. Why: a Stockholm or TSV field is text, and a bar or
+  an order over it means its numbers. **Fields** (`RowsLay.fieldValue`, by origin): `label`, `first`, the rows' own
+  (`HeldCells.fields`: `#=GS` tags, an inline table's other columns), the measures (`length` the residues; `gaps` the
+  row's `-`; `identity` to the reference row: the same residues over the columns where either row has one, a gap against
+  a residue a mismatch, gap against gap and an insert on either side, a lowercase letter or a `.`, left out;
+  `ColumnMeasures.row*`), then the fields of a records source whose system is the rows system (its `system` param, or
+  its records' `target`: `/data/aln/(rows)`) joined by row key (a record's `id` names a held row by label, else its
+  position is the row). Why that identity (PID1-like, over aligned positions): it does not inflate a fragment's identity
+  by the columns it lacks, and an insert is no aligned position; the author may choose another. Only the fields a column
+  or the order names are joined; one an own field or a measure shadows, or that a second source has, is not read and
+  said once (`seq.render.rows.field`, info). The join is kept by the held rows, the prep and the entries' versions,
+  compared in place. A missing value is an empty cell, a summary row's cells are empty; a field no held row has is said
+  once (`seq.render.rows.column`, info) once no source that could join (its `system` the rows system, a runtime bound)
+  is still to attach, or the view has settled (a source that failed holds nothing). Columns read held rows only (a lazy
+  alignment's are empty). **The title row**: a rows layer with columns keeps a row of its own above its rows
+  (`rows.columns.titlePx`, 16: its track grows by it; a `fill` band's rows take what is left; a text figure's every
+  line), the titles in it (a figure's first line only), muted, the ordered field's marked `↑` or `↓`. Why its own: the
+  titles never reach the track above, nor leave the page when the rows are a section's first track. A title hits as
+  `column-title` by its drawn text (`state` its field: the viewer orders the rows by it). **Narrow** (EC-107,
+  `fitRowColumns` in the view's layout, kept while the view, the width and the room it read are): what the view lacks
+  for the data's least width (`rows.columns.dataMinPx`, 200) with every column at its own width is taken from the
+  columns, the right ones first and then the left, each from the last written, down to `rows.columns.floorPx` (32) and
+  then hidden; the label keeps its room. A chip in the title row ending where the right columns do (the right titles cut
+  for it) counts those hidden ("2 columns hidden"); it is no target (showing the hidden columns is not designed). The
+  widths reach the layer as `LayoutContext.rowColumns` (with the right columns' x); a text section's lines leave the
+  right columns their room; an export attaches the sources that could join. A cell's text, its cut (kept by the column's
+  room) and its widths are made once a row and kept with the resolved values: a layout once warm, a draw and a hover
+  allocate nothing (`rows.quick.ts`).
 - **Hits** (the header's through the band's gutter: a layer of two axes is asked there), written into one scratch hit (a
   hover allocates no hit object; a clade's element and extent made once a display): a cell is `cell` with its column
   (`position`) and row (`ySystem`, `yPosition`); a header's label is `row` (its `position` the data row on the rows
-  system); a summary row `summary-row`, and `tree-node` the inner node whose branch segment is nearest within
-  `TreeHitPx` (6, fixed: decided) by distance to the segment, a wedge included (a leaf's branch hits none), each its
-  element `{ owner: <alignment>, key: <clade name> }` and its extent the clade's rows.
+  system; on a row column's cell, left or right, the same with `state` naming its value, `Species: Homo sapiens`, made
+  at layout); a column's title `column-title` (`LayerType.hitOutside`: what a layer draws outside its band, asked by
+  `hitView` before a layout's chrome and the bands); a summary row `summary-row`, and `tree-node` the inner node whose
+  branch segment is nearest within `TreeHitPx` (6, fixed: decided) by distance to the segment, a wedge included (a
+  leaf's branch hits none), each its element `{ owner: <alignment>, key: <clade name> }` and its extent the clade's
+  rows.
 - **One rows layer a section** (`seq.render.rows.second`, warning: the cursor has one row order); a rows layer draws in
   tracks and text sections only (`seq.render.rows.layout`, warning, elsewhere).
 - **In a text section** (the ESPript figure's lines repeat the rows): the band is every shown row (its height the
@@ -1884,10 +1936,11 @@ measures, consensus, the profile). An alignment's rows over its columns, its own
   summary row alone; a pinned row's band at both its places, the scrolled rows' bands never over the pinned band). Why:
   the element is hovered, here and on linked sections.
 - **Emphasis along y**: the hover tints its row's band (a pinned row's at both its places) and its column within the
-  band and outlines the cell; the selection's parts on the rows system as row bands, its rects of rows × columns as
-  their cells, read over the display rows in view only (a binary search a row: a selection of any size costs the rows in
-  view); a summary row draws the partial mark (the tint over the share of its rows selected, the outline when all are);
-  the cursor with a row (`Emphasis.cursor.ySystem`) outlines its cell (the strip draws a cursor without one).
+  band and outlines the cell, and draws the row's column cells cut short whole over the page's background; the
+  selection's parts on the rows system as row bands, its rects of rows × columns as their cells, read over the display
+  rows in view only (a binary search a row: a selection of any size costs the rows in view); a summary row draws the
+  partial mark (the tint over the share of its rows selected, the outline when all are); the cursor with a row
+  (`Emphasis.cursor.ySystem`) outlines its cell (the strip draws a cursor without one).
 
 ### The logo
 

@@ -390,3 +390,93 @@ describe('the rows’ commands and gestures', () => {
     expect(v.config.view.keys['rows.zoom-out']).toEqual(['[']);
   });
 });
+
+describe('the rows’ columns in the viewer', () => {
+  it('a click on a column’s title orders the rows by its field (one patch), a second click the other way', async () => {
+    vi.useFakeTimers({ toFake: ['Date', 'performance'] });
+    frames = installFrames();
+    const b = createSeqSpec({ title: 'columns' });
+    const aln = b.data.alignment('aln', { alphabet: 'protein', rows: { label: Labels, letters: Letters } });
+    b.views.view('v', (vw) =>
+      vw.section('s', { of: aln }, (s) => {
+        s.track('ruler', { label: '' }, (t) => t.layer('ruler', { type: 'ruler' }));
+        s.track('rows', { label: '', height: 140 }, (t) =>
+          t.layer('r', { type: 'rows', data: aln, columns: [{ field: 'label', side: 'right' }] } as never),
+        );
+      }),
+    );
+    const v = createSeqViewer({ ...DefaultSeqViewerSpec(), ui: undefined, config: [[viewerItem('view.jumpMs'), 0]] });
+    viewer = v;
+    await v.load(b.build());
+    v.resize(900);
+    await v.settle();
+    frames.flush();
+    const shown = (l: RowsLay) => Array.from({ length: l.display.count }, (_, i) => l.label(l.display.rowAt(i)));
+    const click = async () => {
+      const l = lay(v);
+      expect(v.input.click(l.cols.titleX[0] + 2, l.cols.titleY - 3)).toBe(true);
+      await v.settle();
+      frames!.flush();
+    };
+    const rows = () => v.spec.root.value.children![1].children![0].children![0].children![1].children![0];
+    await click();
+    expect(rows().params?.order).toEqual({ field: 'label', direction: 'ascending' });
+    expect(shown(lay(v))).toEqual(['CYG', 'GLB', 'HBA', 'HBB', 'MYG', 'NGB']);
+    expect(lay(v).cols.titleText[0]).toBe('label ↑');
+    await click();
+    expect(rows().params?.order).toEqual({ field: 'label', direction: 'descending' });
+    expect(shown(lay(v))).toEqual(['NGB', 'MYG', 'HBB', 'HBA', 'GLB', 'CYG']);
+    // a fast second click (the platform's `detail` 2) flips again, read from the spec as it is now (no frame between)
+    const l = lay(v);
+    expect(v.input.click(l.cols.titleX[0] + 2, l.cols.titleY - 3, { detail: 1 })).toBe(true);
+    expect(v.input.click(l.cols.titleX[0] + 2, l.cols.titleY - 3, { detail: 2 })).toBe(true);
+    await v.settle();
+    expect(rows().params?.order).toEqual({ field: 'label', direction: 'descending' });
+  });
+
+  it('the joined fields follow an alignment read again (its rows in another order), never the old rows', async () => {
+    vi.useFakeTimers({ toFake: ['Date', 'performance'] });
+    frames = installFrames();
+    const build = (labels: readonly string[]) => {
+      const b = createSeqSpec({ title: 'joined' });
+      const aln = b.data.alignment('aln', { alphabet: 'protein', rows: { label: [...labels], letters: Letters } });
+      b.data.source('extra', {
+        format: 'tsv',
+        value: 'id\tclade\nHBA\talpha\nNGB\tneuro\n',
+        system: '/data/aln/(rows)',
+      });
+      b.views.view('v', (vw) =>
+        vw.section('s', { of: aln }, (s) =>
+          s.track('rows', { label: '', height: 140 }, (t) =>
+            t.layer('r', { type: 'rows', data: aln, columns: [{ field: 'clade' }] } as never),
+          ),
+        ),
+      );
+      return b.build();
+    };
+    const v = createSeqViewer({ ...DefaultSeqViewerSpec(), ui: undefined, config: [[viewerItem('view.jumpMs'), 0]] });
+    viewer = v;
+    await v.load(build(Labels));
+    v.resize(900);
+    await v.settle();
+    frames.flush();
+    expect(lay(v).fieldValue(0, 'clade')).toBe('alpha');
+    // the alignment's rows read again in reverse (one patch: the joined source untouched, its entries as they were)
+    const o = await v.spec.patch('Reverse the rows', {
+      ops: [
+        {
+          op: 'set',
+          at: ['data', 'aln'],
+          key: 'rows',
+          value: { label: [...Labels].reverse(), letters: [...Letters].reverse() },
+        },
+      ],
+    });
+    expect(o.ok && o.changed).toBe(true);
+    await v.settle();
+    frames.flush();
+    expect(lay(v).label(0)).toBe('NGB');
+    expect(lay(v).fieldValue(0, 'clade')).toBe('neuro');
+    expect(lay(v).fieldValue(5, 'clade')).toBe('alpha');
+  });
+});

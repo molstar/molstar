@@ -5,8 +5,10 @@
  */
 
 import { PCG } from '@molstar/core/data/util/hash-functions';
+import type { CategoryColumn } from '@molstar/core/repr/tree';
 import { describe, expect, it } from 'vitest';
 import {
+  AlignmentFileRuntime,
   firstNumberOf,
   matchLeaves,
   readAlignedFasta,
@@ -14,6 +16,7 @@ import {
   readStockholm,
   structurePairs,
 } from '../alignment-readers.js';
+import { type CellsCodes, DefaultOpenLimits } from '../protocol.js';
 
 const Stockholm = `# STOCKHOLM 1.0
 #=GF ID   test
@@ -43,6 +46,77 @@ describe('the alignment readers (EC-38, EC-39, EC-40)', () => {
     expect(a.pairs).toEqual([
       [0, 5],
       [1, 4],
+    ]);
+  });
+
+  it('Stockholm: `#=GS` lines are a row’s fields by tag (a tag twice joined), served on the cells’ tiles', async () => {
+    const text = `# STOCKHOLM 1.0
+#=GS A/1-4 OS Homo sapiens
+#=GS A/1-4 DE Hemoglobin
+#=GS A/1-4 DE subunit beta
+#=GS B/2-5 AC P02088
+#=GS B/2-5
+A/1-4 AC-D
+B/2-5 ACCD
+//
+`;
+    const a = readStockholm(text);
+    expect(a.rows.map((r) => r.fields)).toEqual([
+      { OS: 'Homo sapiens', DE: 'Hemoglobin subunit beta' },
+      { AC: 'P02088' },
+    ]);
+    expect(a.issues).toEqual([{ line: 6, message: 'a #=GS line without a name, a tag and its text' }]);
+    // the runtime serves them on the rows' tiles, a column a tag, missing where a row has none
+    const s = await AlignmentFileRuntime.open(
+      { address: '/data/a', format: 'stockholm', value: text },
+      {
+        assets: { readText: () => Promise.reject(new Error('no')), readBytes: () => Promise.reject(new Error('no')) },
+        signal: new AbortController().signal,
+        limits: DefaultOpenLimits,
+      },
+    );
+    const r = await s.read(
+      { system: 'rows', start: 0, end: 2, level: 1, shapes: ['cells'] },
+      new AbortController().signal,
+    );
+    const cells = r.ok ? (r.tables.cells as CellsCodes) : undefined;
+    const field = (name: string) => {
+      const c = cells?.fields?.find((f) => f.name === name)?.column as CategoryColumn | undefined;
+      return [c?.get(0), c?.get(1)];
+    };
+    expect(field('OS')).toEqual(['Homo sapiens', null]);
+    expect(field('AC')).toEqual([null, 'P02088']);
+  });
+
+  it('Stockholm: `#=GS` lines across blocks; one naming no row said once with its names, by the runtime', async () => {
+    const text = `# STOCKHOLM 1.0
+#=GS A OS Homo sapiens
+A AC
+B AC
+
+#=GS B OS Mus musculus
+#=GS X OS Nobody
+#=GS Y OS Nobody
+A -D
+B CD
+//
+`;
+    const a = readStockholm(text);
+    expect(a.rows.map((r) => [r.letters, r.fields?.OS])).toEqual([
+      ['AC-D', 'Homo sapiens'],
+      ['ACCD', 'Mus musculus'],
+    ]);
+    expect(a.unknownAnnotated).toEqual(['X', 'Y']);
+    const s = await AlignmentFileRuntime.open(
+      { address: '/data/a', format: 'stockholm', value: text },
+      {
+        assets: { readText: () => Promise.reject(new Error('no')), readBytes: () => Promise.reject(new Error('no')) },
+        signal: new AbortController().signal,
+        limits: DefaultOpenLimits,
+      },
+    );
+    expect(s.issues?.map((i) => [i.code, i.severity, i.message])).toEqual([
+      ['seq.source.rows.annotation', 'info', '#=GS lines name 2 sequences with no row: X, Y'],
     ]);
   });
 

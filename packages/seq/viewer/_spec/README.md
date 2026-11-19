@@ -820,7 +820,11 @@ selection's gestures and the cursor's moves are session state; the cursor's focu
   edit of `collapsed`** (a patch, an undo) resets the session's folds to it; other edits keep them. The wheel's vertical
   delta over a rows layer's own band (its cells, its header) scrolls its rows (`bandTop`, px over the row height,
   clamped), its horizontal pans the columns; over another layer's `row` hit it pans as any. Clades fold only in tree
-  order (`when` says). `rows.filter` waits for a `filter` param of the rows layer.
+  order (`when` says). `rows.filter` waits for a `filter` param of the rows layer. **A row column's title** (a
+  `column-title` hit, its `state` the field): a click runs `rows.order { field, ascending }` (one patch), a click on the
+  title of the field the rows are ordered by ascending runs it `descending` (the order read from the spec as it is now);
+  before the double-click's drop, so a fast second click flips again. Its cells hit as their row's header (select and
+  hover as the label does), naming the value in the hit's `state`.
 
 ## Legends
 

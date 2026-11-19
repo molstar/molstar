@@ -818,7 +818,11 @@ export const SeqLanguage = defineLanguage({
             {
               type: 'record',
               fields: {
-                field: { type: 'string', required: true, doc: 'A field of the rows table (`label`, `first`).' },
+                field: {
+                  type: 'string',
+                  required: true,
+                  doc: 'A field of the rows table (`label`, `first`, an own field, a measure, a joined field).',
+                },
                 direction: { type: 'string', enum: ['ascending', 'descending'], doc: '`ascending` when absent.' },
               },
             },
@@ -893,6 +897,39 @@ export const SeqLanguage = defineLanguage({
           type: 'string',
           enum: ['gutters', 'none'],
           doc: 'For `rows`: each row’s first and last residue numbers in gutters (`gutters`, when absent) or none.',
+        },
+        columns: {
+          type: 'list',
+          of: {
+            type: 'record',
+            fields: {
+              field: {
+                type: 'string',
+                required: true,
+                doc: 'A field of the rows table: the alignment’s own (Stockholm’s `#=GS` tags: `OS`, `DE`, `AC`; an inline table’s other columns), a measure (`length`, `gaps`, `identity` to the reference row), or a field of a records source whose system is the rows system, joined by the row’s key.',
+              },
+              side: {
+                type: 'string',
+                enum: ['left', 'right'],
+                doc: '`left` (when absent: in the header, between the label and the first numbers) or `right` (after the last numbers, before a rows rail).',
+              },
+              as: {
+                type: 'string',
+                enum: ['text', 'number', 'bar', 'chip'],
+                doc: '`text` (when absent), `number` (right-aligned), `bar` (the value’s share of the column’s range) or `chip` (a category’s color).',
+              },
+              width: {
+                type: 'number',
+                min: 1,
+                doc: 'Its width, px (by `as` when absent: text 96, number 44, bar 56, chip 56).',
+              },
+              title: {
+                type: 'string',
+                doc: 'Its title above the rows (the field when absent): a click orders the rows by it.',
+              },
+            },
+          },
+          doc: 'For `rows`: data columns beside each row’s header, their titles above the rows; on a narrow view they yield before the label, right ones first, each down to a floor and then hidden (a count chip says how many).',
         },
         tree_width: {
           type: 'number',
