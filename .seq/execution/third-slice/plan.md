@@ -209,7 +209,7 @@ and dark before the merge.
 - [x] CH (fast, beside PG and NV; the author, 2026-11-19) the author's findings in the Globins views: a hover on a
       tree node or a summary row lights the clade (grids-and-rows, Clades, "Hovered"); the ruler's end number and tick
       label drawn twice at one position (the Figure's "70"), one label a position and none overlapping.
-- [ ] RF (fast, beside NV and MD; the author, 2026-11-19) the rows' numbers in view, an end number past the row's
+- [x] RF (fast, beside NV and MD; the author, 2026-11-19) the rows' numbers in view, an end number past the row's
       range, the last row cut off (`briefs/rf-rows-fixes.md`).
 - [ ] GD (strong, after PG and NV: it touches the viewer's config and the themes' render) the gaps decided as
       recommended (`gaps.md`, 2026-11-19): the lists-free palette module in `@molstar/core` (the agreed surface:

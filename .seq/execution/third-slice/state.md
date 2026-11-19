@@ -63,10 +63,13 @@ RW's fixes was checked in light only (Scale's tiles in canvas and SVG, labels wh
   fixed, a regression from the look's own "square" finding reverted (the grid's x is the view's x); a tile seam fixed.
   Post-merge: unit 150 files / 1465, typechecks, storybook, lint, format, perf 100, the `.seq` checks: exit 0.
 
+- RF merged (`1e0782e9e`): the rows' numbers in view, the generated labels' ranges (the 247), the right gutter
+  clipped at the band's foot. Post-merge: unit 151 / 1469, typechecks, storybook, lint, format: exit 0.
+
 ## In progress
 
 - MD drafted (`drafts/molecules.md`): a `molecule` kind, `sequence.components`, `complex`/`unit`, a `group` map, 0.5.0
-  for the fourth slice (lanes ML, MC, MR, MX); 9 gaps. Under independent design review.
+  for the fourth slice (lanes ML, MC, MR, MX); 9 gaps. Reviewed (8 must-changes, all taken) and revised; 14 gaps for the author.
 - NV in its third round (2026-11-19): the look found the ideogram and the plasmid strip blank in the browser
   (twins pass) and the parts mounted over the toolbar and the alignment; merging packages-seq (PG's hit signature).
 - PG and NV reported (branches `seq/pg-pairs-grids`, `seq/nv-navigators`, base `51787bb2b`); checks rerun by the
