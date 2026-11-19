@@ -30,6 +30,8 @@ function spec() {
       type: ['contact', 'contact', 'hbond', 'contact'],
     },
   });
+  b.data.ranges('yf', { target: y, rows: { start: [2], end: [5], id: ['site'] } });
+  b.data.pairs('none', { a: x, b: y, rows: { a_start: [], a_end: [], b_start: [], b_end: [] } });
   b.data.pairs('stem', {
     a: x,
     rows: { a_start: [0, 1, 2], a_end: [1, 2, 3], b_start: [20, 19, 18], b_end: [21, 20, 19] },
@@ -81,6 +83,22 @@ describe('pairs answer items', () => {
     expect(other.issues.map((i) => i.code)).toEqual(['seq.query.location.unreachable']);
     // pairs on one system: either end
     expect(keys('/data/stem/(items :overlapping /data/x/(range :from 20 :to 21))')).toEqual([0, 1]);
+  });
+
+  it('reach is each annotation’s own: a pair’s far end is read beside another annotation on that system', () => {
+    // the prefix names the pairs (on x and y) and a ranges annotation on y: the pairs are read on y too
+    const both = '/data/(or :of [/data/contacts /data/yf])';
+    expect(keys(`${both}/(items :overlapping /data/y/(range :from 1 :to 8))`)).toEqual(['c1', 'c3', 'site']);
+    // a location on both systems: the pairs read on both
+    expect(
+      keys(`${both}/(items :overlapping (or :of [/data/x/(range :from 19 :to 19) /data/y/(range :from 16 :to 16)]))`),
+    ).toEqual(['c2', 'c4']);
+  });
+
+  it('an empty pairs annotation on two systems reaches both: no unreachable issue', () => {
+    const r = q('/data/none/(items :overlapping /data/y/(all))');
+    expect(r.issues).toEqual([]);
+    expect(r.result?.type === 'elements' && r.result.elements.keys).toEqual([]);
   });
 
   it('item reads a pair’s fields; extent and a result’s location cover both ends', () => {

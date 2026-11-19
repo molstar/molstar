@@ -11,6 +11,7 @@
 
 import type { Node } from '@molstar/core/repr/tree';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
+import { EmptyLocation, elements, type Location } from '@molstar/seqx-core/query';
 import { recordDrawLists } from '@molstar/seqx-core/render';
 import { afterEach, describe, expect, it } from 'vitest';
 import { LinkedPairsChannel, type LinkedPairsParams, LinkedPairsProvider } from '../behaviors/linked-pairs.js';
@@ -127,6 +128,41 @@ describe('linkedPairs', () => {
     const named = await make({ layers: ['/views/v/s/pairs/arcs'] });
     hoverFeature(named, 'stem');
     expect(lit(named)).toEqual([0, 1]);
+  });
+
+  it('a selection of several range elements none of whose extents is known lights each one’s pairs', async () => {
+    const v = await make();
+    v.selection.set({
+      elements: elements([
+        { owner: '/data/f', key: 'loop' },
+        { owner: '/data/f', key: 'stem' },
+      ]),
+      location: EmptyLocation,
+      shown: EmptyLocation,
+    });
+    expect(lit(v)).toEqual([0, 1, 2, 3]);
+  });
+
+  it('an extent with a zero-length range: the range left out, the rest read', async () => {
+    const v = await make();
+    // as a layer may give it, not normalized: a boundary at 9 and the stem's [0, 4)
+    const extent = { parts: [{ system: '/data/s', ranges: Int32Array.of(9, 9, 0, 4) }], rects: [] } as Location;
+    v.hover.set(
+      { layer: '/views/v/s/features/f', system: '/data/s', element: { owner: '/data/f', key: 'stem' }, extent },
+      Owner,
+    );
+    expect(lit(v)).toEqual([0, 1]);
+  });
+
+  it('its channel keeps its place among the channels when cleared and set again (a stable draw order)', async () => {
+    const v = await make();
+    hoverFeature(v, 'stem');
+    v.addresses.highlightAddress('/data/s/(range :from 1 :to 3)', 'a');
+    expect(v.highlight.names.value).toEqual([LinkedPairsChannel, 'a']);
+    v.hover.clear(Owner);
+    expect(v.highlight.names.value).toEqual(['a']);
+    hoverFeature(v, 'stem');
+    expect(v.highlight.names.value).toEqual([LinkedPairsChannel, 'a']);
   });
 
   it('a viewer composed without it lights none (the opt-out)', async () => {

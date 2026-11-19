@@ -306,10 +306,11 @@ the region (a press there says it too, a tap's hover).
 - **Its nodes are held**: the viewer holds the dynamic nodes the selection names (its elements' owners, its systems)
   through `StoreModel.holdSession('selection', …)` while it is selected (`selection.holdNodes`). Why: a selected
   transcript must stay when its region scrolls away.
-- `HighlightModel`: named channels (`set`, `clear`, `channel(name)` a keyed state, `names` in the order first set,
-  `version` moving on every change). Drawn as stripes where channels overlap (Emphasis). A channel's value has an
-  optional `style` (`tint`, `band`, `outline`; `address.highlight`'s `style`), kept when the spec changes and carried
-  with the channel onto every linked section; a changed style is a changed channel.
+- `HighlightModel`: named channels (`set`, `clear`, `channel(name)` a keyed state, `names` in the order first set, a
+  channel cleared and set again keeping its place (a channel set on each hover never moves above the others: the draw
+  order and the legend stay put), `version` moving on every change). Drawn as stripes where channels overlap (Emphasis).
+  A channel's value has an optional `style` (`tint`, `band`, `outline`; `address.highlight`'s `style`), kept when the
+  spec changes and carried with the channel onto every linked section; a changed style is a changed channel.
 
 ### Emphasis
 

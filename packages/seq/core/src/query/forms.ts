@@ -472,6 +472,15 @@ function systemNodes(ctx: Ctx, addresses: readonly string[]): Named {
   return { kind: 'nodes', matches };
 }
 
+/**
+ * The systems an annotation's rows are on: its `systems` when it has them (a property its interface does not name: the
+ * resolver's pairs annotation sets it, its two ends' systems; internal to core), else `[target]`. Why: reach is
+ * decided without reading rows (an empty pairs annotation on two systems reaches both), and no public field is added.
+ */
+function systemsOfAnnotation(a: QueryAnnotation): readonly string[] {
+  return (a as { readonly systems?: readonly string[] }).systems ?? [a.target];
+}
+
 const items: Resolve = (ctx, form, prefix) => {
   checkParams(form, ['overlapping']);
   const anns = annotationsOf(ctx, prefix, 'items');
@@ -484,31 +493,25 @@ const items: Resolve = (ctx, form, prefix) => {
   if (loc?.rects.length)
     fail('seq.query.form.unsupported', 'Items overlap positions, not a rect', { hint: 'one of its sides' });
   // TODO: a location on another system reaches the targets by projection through the maps (the static model's paths);
-  // until then it is reported, never silently read as overlapping nothing. A pairs annotation's rows on its second
-  // system say so (`QueryItem.system`): its rows are read for it only when a part is on none of the targets.
-  const other = new Set<QueryAnnotation>();
+  // until then it is reported, never silently read as overlapping nothing. Reach is decided per annotation, by its own
+  // systems (a pairs annotation's two, `systemsOfAnnotation`): read with the whole location when a part is on one of
+  // them; a part no annotation reaches is said unreachable.
+  const reach = anns.map(systemsOfAnnotation);
   if (loc)
-    for (const p of loc.parts) {
-      if (targets.includes(p.system)) continue;
-      let reached = false;
-      for (const a of anns)
-        if (a.items().items.some((it) => it.system === p.system)) {
-          other.add(a);
-          reached = true;
-        }
-      if (!reached)
+    for (const p of loc.parts)
+      if (!reach.some((r) => r.includes(p.system)))
         ctx.issues.push(
           issueOf(QueryIssues, 'seq.query.location.unreachable', 'A location is on a system the items are not on', {
             address: p.system,
           }),
         );
-    }
   const out: ElementKey[] = [];
-  for (const a of anns) {
-    const own = loc && partOf(loc, a.target)?.ranges;
-    if (loc && !own && !other.has(a)) continue;
-    // a row on its own system (a pair's ends, each on its own) else on the annotation's target
-    const read = a.items(loc && (other.has(a) ? loc : rangesLocation(a.target, own!)));
+  for (let i = 0; i < anns.length; i++) {
+    const a = anns[i];
+    const systems = reach[i];
+    if (loc && !loc.parts.some((p) => systems.includes(p.system))) continue;
+    // one system (a ranges annotation): its own part alone, as it was always asked; more (a pair's ends): the whole
+    const read = a.items(loc && (systems.length === 1 ? rangesLocation(a.target, partOf(loc, a.target)!.ranges) : loc));
     stage(ctx, read.pending);
     for (const it of read.items) {
       tick(ctx);

@@ -1191,7 +1191,7 @@ export function queryAnnotation(
 }
 
 /**
- * A pairs annotation as the query forms read it (_spec/README.md "Queries", Pairs answer `items`): a pair one item, a
+ * @internal A pairs annotation as the query forms read it (_spec/README.md "Queries", Pairs answer `items`): a pair one item, a
  * row per end on its own system (`QueryItem.system`), so `(items :overlapping <location>)` gives the pairs with an end
  * in the location, on either system. Its fields: `type`, `label` and the rows' other category columns. Held whole: the
  * rows are made once, on first read.
@@ -1221,10 +1221,12 @@ export function pairsQueryAnnotation(
     }
     return rows;
   };
-  return {
+  const out: QueryAnnotation & { readonly systems: readonly string[] } = {
     address: e.address,
     target: a,
     fields: e.fields,
+    // its ends' systems, read by the query forms (internal: `QueryAnnotation` names no such field)
+    systems: b === a ? [a] : [a, b],
     items(over?: Location): ItemsRead {
       if (!over) return { items: all() };
       const pa = partOf(over, a);
@@ -1240,4 +1242,5 @@ export function pairsQueryAnnotation(
       };
     },
   };
+  return out;
 }

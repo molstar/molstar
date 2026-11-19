@@ -1962,7 +1962,9 @@ numbers): a window move allocates nothing once warm.
   either position of a cell) or in the hover projected onto the section; as dots, the pair at the hovered cell.
   **Highlight**: the pairs a highlight channel lists by key (`EmphasisHighlight.elements`) drawn over in the channel's
   color in the `highlight` pass, as the selection's in the accent (a pair two channels list: the later's); the pairs
-  each channel lights are made again only when the channels change (by identity), into a reused array.
+  each channel lights are made again only when the channels change (by identity), into a reused array. The pairs pass
+  ignores `EmphasisHighlight.style`: a pair is a stroke over its arc or dot in any style (a tint or a band has no room
+  on a curve).
 
 ### The grid layer
 

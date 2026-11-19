@@ -189,12 +189,18 @@ export class PairsLay {
   readonly scratch: ScratchHit = { layer: '', section: '', system: '' };
   /** A path's points for a segment (two). */
   readonly seg = new Float64Array(4);
-  /** The highlight channels `lit` was made for (the viewer keeps the list until a channel changes). */
-  litFor: readonly EmphasisHighlight[] | undefined = undefined;
-  litPrep: PairsPrep | undefined = undefined;
-  /** Each pair's highlight channel (its index + 1; 0 none): the last channel listing its key. */
-  lit = new Int32Array(0);
 }
+
+/** A lay's pairs lit by the highlight channels (module-private): what they were made for, and each pair's channel. */
+interface Lit {
+  /** The highlight channels and the prep `lit` was made for (the viewer keeps the list until a channel changes). */
+  for: readonly EmphasisHighlight[] | undefined;
+  prep: PairsPrep | undefined;
+  /** Each pair's highlight channel (its index + 1; 0 none): the last channel listing its key. */
+  lit: Int32Array;
+}
+
+const LitOf = new WeakMap<PairsLay, Lit>();
 
 /** The annotation a layer's data names: its address, else (a query) the annotation it starts at. */
 function annotationOf(model: StaticModel, address: string) {
@@ -1189,22 +1195,25 @@ function drawEmphasis(lay: PairsLay, pass: PassName, out: PassWriter, e: Emphasi
  */
 function litOf(lay: PairsLay, highlights: readonly EmphasisHighlight[]): Int32Array {
   const prep = lay.prep!;
-  if (lay.litFor === highlights && lay.litPrep === prep) return lay.lit;
+  let l = LitOf.get(lay);
+  if (!l) LitOf.set(lay, (l = { for: undefined, prep: undefined, lit: new Int32Array(0) }));
+  if (l.for === highlights && l.prep === prep) return l.lit;
   const n = prep.data?.n ?? 0;
-  if (lay.lit.length < n) lay.lit = new Int32Array(n);
-  lay.lit.fill(0);
+  if (l.lit.length < n) l.lit = new Int32Array(n);
+  const lit = l.lit;
+  lit.fill(0);
   for (let c = 0; c < highlights.length; c++) {
     const keys = highlights[c].elements?.keys;
     if (!keys) continue;
     for (let i = 0; i < keys.length; i++) {
       if (keys[i].owner !== prep.owner) continue;
       const k = prep.index.get(keys[i].key);
-      if (k !== undefined) lay.lit[k] = c + 1;
+      if (k !== undefined) lit[k] = c + 1;
     }
   }
-  lay.litFor = highlights;
-  lay.litPrep = prep;
-  return lay.lit;
+  l.for = highlights;
+  l.prep = prep;
+  return lit;
 }
 
 /**

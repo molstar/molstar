@@ -85,15 +85,24 @@ function pairsOf(view: ResolvedView, layers: readonly string[] | undefined): str
 function extentForm(k: ElementKey, extent: Location | undefined): string | undefined {
   if (extent?.parts.length) {
     const ranges: string[] = [];
+    // a zero-length range (a boundary) has no index range: left to the item form, whose extent the forms read
     for (const p of extent.parts)
       for (let i = 0; i + 1 < p.ranges.length; i += 2)
-        ranges.push(`${p.system}/(range :from ${p.ranges[i]} :to ${p.ranges[i + 1] - 1} :numbering index)`);
-    return ranges.length === 1 ? ranges[0] : `(or :of [${ranges.join(' ')}])`;
+        if (p.ranges[i + 1] > p.ranges[i])
+          ranges.push(`${p.system}/(range :from ${p.ranges[i]} :to ${p.ranges[i + 1] - 1} :numbering index)`);
+    if (ranges.length) return ranges.length === 1 ? ranges[0] : `(or :of [${ranges.join(' ')}])`;
   }
   const owner = parseAddress(k.owner).pattern?.segments;
   if (!owner) return undefined;
   const item: Segment = { kind: 'item', params: { id: k.key } };
   return `(extent :of ${printAddress([...owner, item])})`;
+}
+
+/** Whether a location has a range of at least a position (a boundary's has none). */
+function hasRanges(l: Location): boolean {
+  for (const p of l.parts)
+    for (let i = 0; i + 1 < p.ranges.length; i += 2) if (p.ranges[i + 1] > p.ranges[i]) return true;
+  return false;
 }
 
 export function linkedPairsBehavior(ctx: BehaviorContext, params: LinkedPairsParams = {}): LinkedPairsBehavior {
@@ -125,16 +134,16 @@ export function linkedPairsBehavior(ctx: BehaviorContext, params: LinkedPairsPar
   };
 
   /** The pairs with an end in an element's extent, on every pairs annotation drawn; cached by its owner and key. */
-  const litBy = (k: ElementKey, extent?: Location): Elements => {
+  const litBy = (k: ElementKey, extent?: Location): { lit: Elements; waiting: boolean } => {
     let byKey = byElement.get(k.owner);
     const kept = byKey?.get(k.key);
-    if (kept) return kept;
-    const { lit: out, waiting } = query(extentForm(k, extent));
+    if (kept) return { lit: kept, waiting: false };
+    const r = query(extentForm(k, extent));
     // what waits for its data (an item read from a source, named by its address) is asked again next time
-    if (waiting) return out;
+    if (r.waiting) return r;
     if (!byKey) byElement.set(k.owner, (byKey = new Map()));
-    byKey.set(k.key, out);
-    return out;
+    byKey.set(k.key, r.lit);
+    return r;
   };
 
   /** The pairs with an end in a location form, on every pairs annotation drawn, and whether a query waits. */
@@ -182,7 +191,7 @@ export function linkedPairsBehavior(ctx: BehaviorContext, params: LinkedPairsPar
     const r = hover.current;
     const el = r.owner === undefined ? undefined : r.element;
     // a pair hovered is the pairs layer's own (its arc lights); a position is the layer's rule (its partners)
-    hoverLit = el && pairs.length && !owners.has(el.owner) ? litBy(el, r.extent) : EmptyElements;
+    hoverLit = el && pairs.length && !owners.has(el.owner) ? litBy(el, r.extent).lit : EmptyElements;
   };
 
   const readSelection = () => {
@@ -193,14 +202,24 @@ export function linkedPairsBehavior(ctx: BehaviorContext, params: LinkedPairsPar
     let out = EmptyElements;
     if (!pairs.length || !keys.some((k) => !owners.has(k.owner))) out = EmptyElements;
     else if (selectionFor[0] === sel) out = selectionFor[1];
-    else if (!sel.location.parts.length && keys.every((k) => !owners.has(k.owner))) {
-      // range elements alone: what is drawn of them is their extents (a source's items too), one query
-      out = query(extentForm(keys[0], sel.shown.parts.length ? sel.shown : undefined)).lit;
-      selectionFor = [sel, out];
-    } else {
-      // elements beside positions or pairs: each range element by its own extent
-      for (const k of keys) if (!owners.has(k.owner)) out = unionElements(out, litBy(k));
-      selectionFor = [sel, out];
+    else {
+      let waiting = false;
+      if (!sel.location.parts.length && hasRanges(sel.shown) && keys.every((k) => !owners.has(k.owner))) {
+        // range elements alone, drawn: what is drawn of them is their extents (a source's items too), one query
+        const r = query(extentForm(keys[0], sel.shown));
+        out = r.lit;
+        waiting = r.waiting;
+      }
+      // elements beside positions or pairs, or none of their extents known: each range element by its own
+      else
+        for (const k of keys) {
+          if (owners.has(k.owner)) continue;
+          const r = litBy(k);
+          out = unionElements(out, r.lit);
+          waiting ||= r.waiting;
+        }
+      // what waited is asked again on the next change
+      selectionFor = waiting ? [undefined, EmptyElements] : [sel, out];
     }
     selectionLit = out;
   };
