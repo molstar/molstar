@@ -146,6 +146,15 @@ below holds on every navigator form and on the ring's window unless it says rail
 - **Grown**: the rail is drawn thicker (2 to 6 px, `navigator.rail.grownPx`) while its drag runs, wherever the
   pointer goes, and while the pointer is over its grab zone; the cursor is `grab` there and `grabbing` during the drag,
   by the same rule. Why: a 2 px line is a hint at rest and a target in use.
+- **A drag ends wherever the button is released** (the author, 2026-11-19: "when dragging the slider, if you release
+  outside the canvas, it doesn't release the event. this needs to be handled by creating a temporary event handler on
+  the window/document. other controls prolly have the same issue"): every drag a mount starts (a navigator's window,
+  grip or sweep; the view's rails, a drag-select, a height drag) takes pointer capture and also adds temporary
+  `pointerup` and `pointercancel` listeners on the element's window (its `ownerDocument.defaultView`, so an iframe's
+  own), removed when the drag ends; a `pointermove` with no button held, a `lostpointercapture`, the window's `blur`
+  and the document turning hidden end it too. Each path ends the drag once (the input's `up` is idempotent). Why both:
+  capture fails silently where it is refused (an iframe boundary, a pointer already released), and a window listener
+  alone misses a release outside the browser window.
 - **The cursor says the gesture** (the author, 2026-11-19: "when the action is resize on the sliders, it should get an
   appropriate icon"): over a window's grip (`start`, `end`) and while dragging one, a resize cursor along the
   navigator's axis (`ew-resize` on a horizontal one, `ns-resize` on a vertical one: the rows rail, a vertical

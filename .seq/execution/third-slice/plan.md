@@ -292,6 +292,12 @@ and dark before the merge.
       functionality? Perhaps Features section?", then "ok as recommended") `Features/Query` (examples-and-stories,
       The query language in Features): a query box (parse, check, run; the result selected or highlighted; the printed
       form; issues with hints) and worked examples as stories, each with a headless twin.
+- [ ] PR (fast, after IZ: both touch `mount-navigator.ts`; the author, 2026-11-19: "when dragging the slider, if you
+      release outside the canvas, it doesn't release the event… other controls prolly have the same issue") a drag ends
+      wherever the button is released (navigators.md, "A drag ends wherever the button is released"): window-level
+      `pointerup`/`pointercancel` for the drag's life, `lostpointercapture`, a buttonless move, window `blur` and a
+      hidden document end it, once; in `mount.ts`, `mount-navigator.ts` and every storybook drag; tests per mount
+      (jsdom: a release dispatched on the window, on another element, a buttonless move, blur).
 - [ ] RC (strong, after FS-A1, before DG; the author, 2026-11-19: "an extra column with some annotation next to each
       header… to the right of the sequence data", "ok, schedule it like that") row columns: the rows layer's `columns`
       (`field`, `side: left | right`, `as: text | number | bar | chip`, `width`, `title`), fields from `#=GS` lines,
