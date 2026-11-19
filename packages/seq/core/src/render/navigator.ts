@@ -119,12 +119,14 @@ function pictureOf(
   config: RenderConfig,
   left: ReadonlySet<string>,
   height: number,
+  direction: 'display' | 'genomic',
 ): Picture | undefined {
   const bound = view.sections.find((s) => s.address === nav.of[0]);
   if (!bound || nav.system === undefined) return undefined;
   const node = nodeAt(model.spec, bound.address);
   const same = nav.sectionAxis && nav.system === bound.axis.system;
-  const params: Record<string, Value> = { of: nav.system, direction: bound.axis.dir === -1 ? 'reversed' : 'genomic' };
+  const dir = direction === 'genomic' ? 1 : bound.axis.dir;
+  const params: Record<string, Value> = { of: nav.system, direction: dir === -1 ? 'reversed' : 'genomic' };
   const blocks = same ? (node?.children ?? []).filter((c) => c.kind === 'block') : [];
   const tracks: Node[] = [];
   let rows: Picture['rows'];
@@ -157,8 +159,18 @@ function pictureOf(
   let section = resolved.sections[0];
   if (!section) return undefined;
   // the same system: the bound section's own axis (its pieces, collapsed introns and direction), never a guess
-  if (same && !bound.blocks) section = { ...section, axis: bound.axis };
+  if (same && !bound.blocks)
+    section = { ...section, axis: dir === bound.axis.dir ? bound.axis : genomicAxis(bound.axis) };
   return { view: { ...resolved, sections: [section], navigators: [] }, section, ...(rows ? { rows } : {}) };
+}
+
+/** An axis read up left to right (`navigator.direction: genomic`): a reversed axis's pieces in genomic order. */
+function genomicAxis(axis: ResolvedSection['axis']): ResolvedSection['axis'] {
+  const r = axis.ranges;
+  if (!r) return { ...axis, dir: 1 };
+  const out: number[] = [];
+  for (let k = r.length - 2; k >= 0; k -= 2) out.push(r[k], r[k + 1]);
+  return { ...axis, dir: 1, ranges: out };
 }
 
 /** The config a navigator's picture lays out with: no inset, label column or direction mark; its tracks small. */
@@ -260,6 +272,11 @@ export interface NavigatorRendererOptions {
   readonly theme?: Partial<Pick<ThemeContext, 'schemes' | 'measures'>>;
   /** The shared image cache (the view's renderer's): a navigator's image tiles take the view's budget. */
   readonly images?: ImageCache;
+  /**
+   * Which way it runs (`navigator.direction`): the bound section's display order (`display`, the default: a drag right
+   * moves the view right), or `genomic`, positions up left to right whatever the section's direction.
+   */
+  readonly direction?: 'display' | 'genomic';
 }
 
 export interface NavigatorFrameInput {
@@ -283,6 +300,8 @@ export interface NavigatorFrameInput {
   readonly pointerY?: number;
   readonly emphasis?: Emphasis;
   readonly cvdSafe?: boolean;
+  /** A sweep in progress: the region swept, x on the navigator (drawn as a window outline). */
+  readonly sweep?: { readonly x0: number; readonly x1: number };
 }
 
 export interface NavigatorFrame {
@@ -379,7 +398,7 @@ export class NavigatorRenderer {
   private build(height = this.builtHeight): void {
     const o = this.options;
     this.builtHeight = height;
-    this.picture = pictureOf(o.model, o.view, this.navigator, this.config, this.left, height);
+    this.picture = pictureOf(o.model, o.view, this.navigator, this.config, this.left, height, o.direction ?? 'display');
     this.renderer = this.picture
       ? new Renderer({
           model: o.model,
@@ -654,6 +673,18 @@ export class NavigatorRenderer {
         this.drawWindow(out, w, flags, m > 0 ? lit : undefined, dpr, c, tokens);
       }
     void topIndex;
+    // a sweep: the region it would zoom to, an outline over the picture
+    const sw = input.sweep;
+    if (sw) {
+      const W = NavWindow;
+      W[0] = W[4] = Math.min(sw.x0, sw.x1);
+      W[1] = W[5] = Math.max(sw.x0, sw.x1);
+      W[2] = W[6] = W[10] = 0;
+      W[3] = W[7] = W[11] = this.frameInput.size.height;
+      W[8] = W[0];
+      W[9] = W[1];
+      drawNavigatorWindow(out, NavWindowFlags.outline, 'body', dpr, c, tokens);
+    }
     this.drawMarks(lists, input, tokens, dpr);
   }
 
@@ -812,6 +843,20 @@ export class NavigatorRenderer {
     }
     const o = offsetOf(s.axis, p) ?? nearestOffsetOf(s.axis, p);
     return o === undefined ? undefined : o + over;
+  }
+
+  /** x on the navigator of a bound section's display unit (through the path from its system): a sweep's ends. */
+  xOfSectionUnit(section: string, u: number): number {
+    const axis = this.layout?.sections[0]?.axis;
+    const s = this.options.view.sections.find((v) => v.address === section);
+    const path = this.paths.get(section);
+    if (!axis || !s || !path) return Number.NaN;
+    let p = positionAt(s.axis, u);
+    if (p === undefined) return Number.NaN;
+    if (path.to) p = projectPoint(path.to, p);
+    if (p === undefined) return Number.NaN;
+    const o = offsetOf(axis, p) ?? nearestOffsetOf(axis, p);
+    return o === undefined ? Number.NaN : axis.xOfUnit(o);
   }
 
   /** The issues the navigator met: its bindings, its layers left out, its picture's. */

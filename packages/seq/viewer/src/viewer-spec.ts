@@ -85,6 +85,17 @@ export interface SeqViewerUI {
    * after the canvas in the standalone viewer. Seq* never draws a legend on its canvas.
    */
   readonly legends?: ToolbarMount;
+  /**
+   * The navigators, parts the host places (`navigatorsMount` of `@molstar/seqx-viewer/mount-navigator` places the
+   * view's declared navigators by their `place` around the canvas through `mountNavigator`; a host calls
+   * `mountNavigator` itself). On in the standalone viewer.
+   */
+  readonly navigators?: ToolbarMount;
+  /**
+   * A button in the canvas's corner that hides and shows the ruler rails (`railToggleMount`): the reader's session,
+   * never the spec. For a viewer embedded in a host's cell, where its room is the reader's.
+   */
+  readonly railToggle?: ToolbarMount;
 }
 
 export interface SeqViewerSpec {

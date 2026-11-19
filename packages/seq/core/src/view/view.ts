@@ -487,47 +487,58 @@ function navigatorsOf(
   const out: ResolvedNavigator[] = [];
   for (const c of view.children ?? []) {
     if (c.kind !== 'navigators') continue;
-    for (const n of c.children ?? []) {
-      if (n.kind !== 'navigator' || n.id === undefined) continue;
-      const at = `${address}/${c.id}/${n.id}`;
-      const written = param(n, 'of');
-      const named = (Array.isArray(written) ? written : [written])
-        .map((v) => exactAddress(v))
-        .filter((v): v is string => v !== undefined);
-      const of = named.filter((a) => sections.some((s) => s.address === a));
-      const first = sections.find((s) => s.address === of[0]);
-      const system = exactAddress(param(n, 'system')) ?? first?.axis.system;
-      const paths: Record<string, Path> = {};
-      for (const a of of) {
-        const s = sections.find((x) => x.address === a)!;
-        if (system === undefined || !model.systems.has(system) || !model.systems.has(s.axis.system)) continue;
-        const path = s.axis.system === system ? identityPath(system) : model.path(s.axis.system, system).path;
-        if (path) paths[a] = path;
-      }
-      const tracks = param(n, 'tracks');
-      const axes = (param(n, 'axes') as ResolvedNavigator['axes'] | undefined) ?? 'positions';
-      const size = param(n, 'size');
-      out.push({
-        address: at,
-        id: n.id,
-        of,
-        missing: named.filter((a) => !of.includes(a)),
-        axes,
-        content: (param(n, 'content') as ResolvedNavigator['content'] | undefined) ?? 'axis',
-        ...(Array.isArray(tracks)
-          ? { tracks: tracks.map((t) => exactAddress(t)).filter((t): t is string => t !== undefined) }
-          : {}),
-        ...(exactAddress(param(n, 'bands')) !== undefined ? { bands: exactAddress(param(n, 'bands'))! } : {}),
-        ...(system !== undefined ? { system } : {}),
-        sectionAxis: param(n, 'system') === undefined,
-        place: (param(n, 'place') as ResolvedNavigator['place'] | undefined) ?? (axes === 'rows' ? 'right' : 'top'),
-        ...(typeof size === 'number' || Array.isArray(size) ? { size: size as ResolvedNavigator['size'] } : {}),
-        hidden: param(n, 'hidden') === true,
-        paths,
-      });
-    }
+    for (const n of c.children ?? [])
+      if (n.kind === 'navigator' && n.id !== undefined)
+        out.push(resolveNavigatorNode(model, sections, n, `${address}/${c.id}/${n.id}`));
   }
   return out;
+}
+
+/**
+ * A `navigator` node resolved against a view's sections, as if at `at`: a node of the spec, or a host's definition of
+ * the same shape (never saved).
+ */
+export function resolveNavigatorNode(
+  model: StaticModel,
+  sections: readonly ResolvedSection[],
+  n: Node,
+  at: string,
+): ResolvedNavigator {
+  const written = param(n, 'of');
+  const named = (Array.isArray(written) ? written : [written])
+    .map((v) => exactAddress(v))
+    .filter((v): v is string => v !== undefined);
+  const of = named.filter((a) => sections.some((s) => s.address === a));
+  const first = sections.find((s) => s.address === of[0]);
+  const system = exactAddress(param(n, 'system')) ?? first?.axis.system;
+  const paths: Record<string, Path> = {};
+  for (const a of of) {
+    const s = sections.find((x) => x.address === a)!;
+    if (system === undefined || !model.systems.has(system) || !model.systems.has(s.axis.system)) continue;
+    const path = s.axis.system === system ? identityPath(system) : model.path(s.axis.system, system).path;
+    if (path) paths[a] = path;
+  }
+  const tracks = param(n, 'tracks');
+  const axes = (param(n, 'axes') as ResolvedNavigator['axes'] | undefined) ?? 'positions';
+  const size = param(n, 'size');
+  return {
+    address: at,
+    id: n.id ?? at.slice(at.lastIndexOf('/') + 1),
+    of,
+    missing: named.filter((a) => !of.includes(a)),
+    axes,
+    content: (param(n, 'content') as ResolvedNavigator['content'] | undefined) ?? 'axis',
+    ...(Array.isArray(tracks)
+      ? { tracks: tracks.map((t) => exactAddress(t)).filter((t): t is string => t !== undefined) }
+      : {}),
+    ...(exactAddress(param(n, 'bands')) !== undefined ? { bands: exactAddress(param(n, 'bands'))! } : {}),
+    ...(system !== undefined ? { system } : {}),
+    sectionAxis: param(n, 'system') === undefined,
+    place: (param(n, 'place') as ResolvedNavigator['place'] | undefined) ?? (axes === 'rows' ? 'right' : 'top'),
+    ...(typeof size === 'number' || Array.isArray(size) ? { size: size as ResolvedNavigator['size'] } : {}),
+    hidden: param(n, 'hidden') === true,
+    paths,
+  };
 }
 
 function followOf(leader: string, leaderAxis: Axis, path: Path): Follow {

@@ -159,6 +159,11 @@ const sameBand = (a: KeptBand | undefined, b: KeptBand | undefined) =>
     ? a.key === b.key && a.offset === b.offset
     : a.band.bandTop === b.band.bandTop);
 
+/** A step of the view's history as `snapshot` gives it: opaque, only `record` reads it. */
+export interface ViewSnapshot {
+  readonly __viewSnapshot?: never;
+}
+
 /** What a jump did: moved the view, found it already there, or could not move. */
 export type JumpOutcome = 'moved' | 'same' | 'none';
 
@@ -529,6 +534,30 @@ export class ViewModel extends ReactiveModel {
     }
     this._jumps.set(this._jumps.value + 1);
     return 'moved';
+  }
+
+  /**
+   * Every group's range and every band's scroll now, as `jump` keeps them (_spec/README.md "ViewModel", History): what
+   * a gesture that moves by hand reads at its press, to `record` on its release when it went far (a navigator's drag),
+   * or a deferred step (a double-click's first click).
+   */
+  snapshot(): ViewSnapshot {
+    return this._snapshot() as ViewSnapshot;
+  }
+
+  /**
+   * Pushes a snapshot taken earlier as a step back (the forward steps dropped), unless the view is there now: a gesture's
+   * one step, pushed when it ends. False when nothing was pushed.
+   */
+  record(snapshot: ViewSnapshot): boolean {
+    const kept = snapshot as unknown as Snapshot;
+    if (snapshotsEqual(kept, this._snapshot())) return false;
+    this._back.push(kept);
+    const limit = Math.max(0, this.config.view.historyLimit);
+    if (this._back.length > limit) this._back.splice(0, this._back.length - limit);
+    this._forward.length = 0;
+    this._tellHistory();
+    return true;
   }
 
   /** What names the bands' rows for the history (the viewer's rows layers); none: a band kept as its `bandTop`. */

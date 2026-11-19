@@ -299,6 +299,8 @@ describe('two consumers of one address', () => {
       size: { width: v.width, height: v.height },
       ...(v.viewport ? { viewport: v.viewport } : {}),
       emphasis: { selection: exported },
+      // the viewer's picture has its rails (idle in an export)
+      rails: true,
     });
     ctx.retire();
     expect(mine.svg).toBe(theirs.svg);

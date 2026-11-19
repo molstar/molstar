@@ -45,6 +45,7 @@ export {
   type ResolvedView,
   resolveView,
   resolveViewNode,
+  resolveNavigatorNode,
   resolveViews,
   type TrackTemplate,
   type ViewLink,

@@ -888,7 +888,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       input.rails?.[section.address] !== undefined &&
       layout === TracksLayout &&
       !(section.blocks && section.params.arrange === 'stack');
-    let top = y;
+    const top = y;
     // a template is expanded here, over the overlay, into a track per node it selects; its source's region in view is
     // wanted, so the nodes it brings arrive
     const shown: ResolvedTrack[] = [];
@@ -923,7 +923,6 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     const byType = layout.heights?.(config) ?? config.heights;
     const heights = shown.map((t) => trackHeight(t, config, byType));
     const ruler = railOn ? rulerTrack(shown, heights) : -1;
-    if (railOn && ruler < 0) top += config.navigator.rail.slimPx;
     // a rows band that fills (_spec/README.md "Render", The rows layer): the section's room left on the page, at least
     // its default height (a figure, laid out for its content, takes the default)
     // a band of every row in a layout whose bands do not scroll (text: an alignment figure's lines repeat its rows)
@@ -1148,6 +1147,9 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       });
     }
     y = top + placement.box.height;
+    // the slim rail's row, under the tracks
+    const slimTop = y;
+    if (railOn && ruler < 0) y += config.navigator.rail.slimPx;
     // the column the emphasis spans with `emphasis.selectionShape: 'column'`: the tracks laid out on the page and the
     // gaps between them
     let bandEnd = -1;
@@ -1191,7 +1193,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         axis,
         own,
         ruler >= 0 ? tracks[ruler].box : undefined,
-        sectionTop,
+        slimTop,
         viewport,
         config,
       );

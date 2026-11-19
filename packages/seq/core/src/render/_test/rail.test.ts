@@ -69,15 +69,19 @@ describe('the ruler rail', () => {
     expect(readRects(n.lists, 'window').length).toBe(2);
   });
 
-  it('a section with no ruler gets a slim row; a hidden ruler falls back to it', async () => {
+  it('a section with no ruler gets a slim row under its tracks; a hidden ruler falls back to it', async () => {
     const plain = await settle(p53({ ruler: false }));
     // a frame is valid until the next: what is kept is read now
-    const y0 = (await plain.frame({ size: Size })).layout.sections[0].tracks[0].box.y;
+    const before = (await plain.frame({ size: Size })).layout.sections[0];
+    const [y0, h0] = [before.tracks[0].box.y, before.height];
     const withRail = await plain.frame({ size: Size, rails, railsActive: active });
-    expect(withRail.layout.sections[0].tracks[0].box.y - y0).toBe(12);
-    const rail = withRail.layout.sections[0].rail!;
+    const s = withRail.layout.sections[0];
+    expect(s.tracks[0].box.y).toBe(y0);
+    expect(s.height - h0).toBe(12);
+    const rail = s.rail!;
     expect(rail.slim).toBe(true);
     expect(rail.bottom - rail.top).toBe(12);
+    expect(rail.top).toBe(s.y + h0);
     const hidden = await settle(p53({ hiddenRuler: true }));
     expect((await hidden.frame({ size: Size, rails, railsActive: active })).layout.sections[0].rail!.slim).toBe(true);
   });

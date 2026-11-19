@@ -100,6 +100,22 @@ export interface ViewerConfig {
      */
     readonly cyclicArc: 'wrap' | 'hull';
   };
+  /**
+   * Navigators (_spec/README.md "Configuration", Navigators): the default navigator of every linear section (`rail`, a
+   * ruler rail; `none`), what a drag from outside a window does (`sweep` a new window and zoom to it; `pan`: centre
+   * there, then pan), when a drag pushes a step back (`far`: farther than one window width; `never`, `always`), what a
+   * double-click does (`toggle-fit`: fit, or fitted, zoom so the window is `zoomPx` navigator px wide; `fit`, `none`),
+   * and which way a navigator runs (`display`: the bound section's display order, a drag right moves the view right;
+   * `genomic`).
+   */
+  readonly navigator: {
+    readonly form: 'rail' | 'none';
+    readonly dragOutside: 'sweep' | 'pan';
+    readonly dragStep: 'far' | 'never' | 'always';
+    readonly doubleClick: 'toggle-fit' | 'fit' | 'none';
+    readonly zoomPx: number;
+    readonly direction: 'display' | 'genomic';
+  };
   readonly view: {
     /** The steps back the view's history of jumps keeps (50): the oldest goes first. */
     readonly historyLimit: number;
@@ -251,6 +267,14 @@ export const DefaultViewerConfig: ViewerConfig = {
   reveal: { cursor: true, linked: 'text' },
   viewport: { maxPxPerPosition: 32, groupEqualAxes: true, onResize: 'keep-zoom' },
   follow: { followerMoves: 'lead', cyclicArc: 'wrap' },
+  navigator: {
+    form: 'rail',
+    dragOutside: 'sweep',
+    dragStep: 'far',
+    doubleClick: 'toggle-fit',
+    zoomPx: 48,
+    direction: 'display',
+  },
   view: {
     historyLimit: 50,
     backOnFocused: true,

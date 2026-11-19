@@ -4,7 +4,15 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { type Placement, PlacePoint, type Hit as RenderHit, RingPlacement } from '@molstar/seqx-core/render';
+import {
+  floorExtent,
+  type Placement,
+  PlacePoint,
+  type Rail,
+  railUnitAt,
+  type Hit as RenderHit,
+  RingPlacement,
+} from '@molstar/seqx-core/render';
 import { cancelFrameCallback, DomHost, requestFrameCallback } from '@molstar/ui/dom';
 import type { Axis } from '@molstar/seqx-core/view';
 import {
@@ -21,6 +29,8 @@ import {
   HoverProvider,
   isDragSelect,
   type NavigateBehavior,
+  type NavigatorBehavior,
+  NavigatorProvider,
   NavigateProvider,
   RowsProvider,
   type SelectBehavior,
@@ -108,8 +118,16 @@ export class ViewerInput {
         /** A window's drag (its part): the `window` behavior's, before the bindings. */
         window: boolean;
         moved: boolean;
+        /** A ruler rail's press (its part, outside it a click or a sweep): the `navigator` behavior's. */
+        rail?: Rail;
       }
     | undefined;
+  /** The window part under the pointer (a rail's, a ring's): it lights; copied, kept while it holds. */
+  private _windowHit: RenderHit | undefined;
+  /** The window being dragged: its rail is drawn grown wherever the pointer goes. */
+  private _dragHit: RenderHit | undefined;
+  /** What the last hit found, as the render gave it (a window's part lights from it). */
+  private _renderHit: RenderHit | undefined;
   /** A drag-select's scroll past its box's edge: its frame callback and the time it last stepped. */
   private _edge: { frame: number; t: number } | undefined;
   /** A drag moved before the button went up: the click the platform sends after it is not one. */
@@ -144,6 +162,43 @@ export class ViewerInput {
 
   private get windowBehavior(): WindowBehavior | undefined {
     return this.viewer.behavior(WindowProvider);
+  }
+
+  private get navigatorBehavior(): NavigatorBehavior | undefined {
+    return this.viewer.behavior(NavigatorProvider);
+  }
+
+  /** The window part under the pointer, lit (a rail's, a ring's); undefined elsewhere. */
+  get windowHit(): RenderHit | undefined {
+    return this._windowHit;
+  }
+
+  /** The window being dragged (a rail's grows while its drag runs). */
+  get dragHit(): RenderHit | undefined {
+    return this._dragHit;
+  }
+
+  /** The cursor over the canvas: `grab` over a rail's grab zone or a window, `grabbing` while one is dragged. */
+  get cursor(): 'grab' | 'grabbing' | undefined {
+    if (this._dragHit) return 'grabbing';
+    return this._windowHit && this._windowHit.part !== 'outside' ? 'grab' : this._windowHit ? 'grab' : undefined;
+  }
+
+  /** The window under the pointer as lit: copied when it changes (its section, part or navigator), a frame asked. */
+  private _windowHover(hit: RenderHit | undefined): void {
+    const h = hit?.target === 'window' && hit.part ? hit : undefined;
+    const w = this._windowHit;
+    if (h?.section === w?.section && h?.part === w?.part && h?.navigator === w?.navigator) return;
+    this._windowHit = h && { ...h };
+    this.viewer.schedule();
+  }
+
+  /** A section's rail in the last frame. */
+  private _railOf(section: string): Rail | undefined {
+    const sections = this.viewer.frame?.layout.sections;
+    if (!sections) return undefined;
+    for (let i = 0; i < sections.length; i++) if (sections[i].section.address === section) return sections[i].rail;
+    return undefined;
   }
 
   /** Whether the pointer is over the canvas. */
@@ -253,6 +308,7 @@ export class ViewerInput {
   /** The hit under a point as the hover model takes it (the section is read from the layer), in the reused record. */
   private _hitAt(x: number, y: number): Hit | undefined {
     const h: RenderHit | undefined = this.viewer.hit(x, y);
+    this._renderHit = h;
     if (!h) return undefined;
     const out = this._hit as Record<string, unknown>;
     out.layer = h.layer;
@@ -267,6 +323,7 @@ export class ViewerInput {
     // two axes, a tree node, a summary row; the rest read from what was hit
     out.target = h.target === 'break' || h.target === 'filter' ? undefined : h.target;
     out.part = h.part;
+    out.navigator = h.navigator;
     // a block's hit: its positions on the block's own axis (a section of blocks on several systems)
     out.block = h.block;
     return this._hit;
@@ -284,9 +341,14 @@ export class ViewerInput {
     const mods = this._modifiers(e);
     const d = this._drag;
     const hit = this._hitAt(x, y);
+    this._windowHover(this._renderHit);
     if (d) {
       if (!d.moved && Math.max(Math.abs(x - d.x0), Math.abs(y - d.y0)) >= DragSlop) d.moved = true;
-      if (d.window) {
+      if (d.rail) {
+        d.x = x;
+        d.y = y;
+        if (d.moved) this.navigatorBehavior?.dragTo(railUnitAt(d.rail, x));
+      } else if (d.window) {
         d.x = x;
         d.y = y;
         const at = this.offsetAt(d.section, x, y);
@@ -340,12 +402,25 @@ export class ViewerInput {
     const mods = this._modifiers(e);
     const hit = this._hitAt(x, y);
     const target = hitTarget(hit);
+    // a ruler rail's part (_spec/README.md "Input", Navigators): its window dragged, outside it a click or a sweep, by
+    // the navigator behavior at the rail's scale
+    const rail = target === 'window' && hit?.navigator === 'rail' && !this._space ? this._railOf(section) : undefined;
+    if (rail && hit?.part) {
+      const nav = this.navigatorBehavior;
+      const at = railUnitAt(rail, x);
+      if (!nav || !nav.press(section, hit.part, at, railDrawn(rail, this.viewer))) return false;
+      this._drag = { x, y, x0: x, y0: y, section, target, select: false, window: true, moved: false, rail };
+      this._dragHit = this._renderHit && { ...this._renderHit };
+      this.viewer.schedule();
+      return true;
+    }
     // a window's part is dragged by the window behavior (_spec/README.md "Behaviors", Window), Space+drag still pans
     const win = this.windowBehavior;
     if (target === 'window' && hit?.part && win && !this._space) {
       const at = this.offsetAt(section, x, y);
       if (at === undefined || !win.begin(section, hit.part, at)) return false;
       this._drag = { x, y, x0: x, y0: y, section, target, select: false, window: true, moved: false };
+      this._dragHit = this._renderHit && { ...this._renderHit };
       return true;
     }
     const action = this.viewer.bindings.resolve('drag', mods, target);
@@ -368,6 +443,23 @@ export class ViewerInput {
     const d = this._drag;
     if (!d) return;
     this._stopEdge();
+    if (this._dragHit) {
+      this._dragHit = undefined;
+      this.viewer.schedule();
+    }
+    if (d.rail) {
+      const nav = this.navigatorBehavior;
+      // a press that never moved: outside the window a click centres there (its step deferred for a double-click)
+      if (!d.moved) {
+        nav?.cancel();
+        if (this._windowHit?.part === 'outside' || hitPartOutside(d.rail, d.x0, this.viewer))
+          nav?.click(d.section, railUnitAt(d.rail, d.x0));
+      } else nav?.release();
+      // the click the platform sends after it is the rail's
+      this._suppressClick = true;
+      this._drag = undefined;
+      return;
+    }
     if (d.window) this.windowBehavior?.end();
     if (d.select) this.selectBehavior?.endDrag();
     this._suppressClick = d.moved;
@@ -644,7 +736,9 @@ export class ViewerInput {
     // Esc during a drag-select cancels it: the selection before it comes back, and the click after it is none
     // Esc during a window's drag puts the view back where the press found it
     if (e.key === 'Escape' && this._drag?.window) {
-      this.windowBehavior?.cancel();
+      if (this._drag.rail) this.navigatorBehavior?.cancel();
+      else this.windowBehavior?.cancel();
+      this._dragHit = undefined;
       this._drag = undefined;
       this._suppressClick = true;
       return true;
@@ -731,4 +825,25 @@ function coveringArc(axis: Axis, ranges: ArrayLike<number>): { start: number; en
   const start = at + 1 < spans.length ? spans[at + 1][0] : spans[0][0];
   const end = spans[at][1];
   return { start, end: end > start ? end : end + t };
+}
+
+/** A rail's window as drawn, in display units, when the floor drew it wider than the truth (else undefined). */
+function railDrawn(rail: Rail, viewer: SeqViewer): readonly [number, number] | undefined {
+  const k = rail.width / Math.max(1e-9, rail.total);
+  const a = rail.x + rail.start * k;
+  const b = rail.x + Math.min(rail.end, rail.total) * k;
+  const out = RailEnds;
+  floorExtent(a, b, rail.x, rail.x + rail.width, viewer.context.renderConfig.navigator.window, out);
+  if (out[1] - out[0] <= b - a + 1e-9) return undefined;
+  return [railUnitAt(rail, out[0]), railUnitAt(rail, out[1])];
+}
+
+const RailEnds = new Float64Array(2);
+
+/** Whether a press at x on a rail was outside its window (a click there centres). */
+function hitPartOutside(rail: Rail, x: number, viewer: SeqViewer): boolean {
+  const u = railUnitAt(rail, x);
+  const drawn = railDrawn(rail, viewer);
+  const [a, b] = drawn ?? [rail.start, rail.end];
+  return u < a || u > b;
 }

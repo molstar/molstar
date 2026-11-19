@@ -47,7 +47,8 @@ describe('Plasmid ring, headless', () => {
     await vi.advanceTimersByTimeAsync(400);
     const r = await svg;
     expect(r.issues).toEqual([]);
-    expect(r.lists.passes.window.opCount).toBe(0);
+    // the ring's window is paths through the warp; the detail's rail, idle, is rects
+    expect(r.lists.passes.window.paths.n).toBe(0);
     expect(r.lists.passes.labels.texts.n).toBeGreaterThan(10);
   });
 });

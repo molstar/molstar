@@ -209,6 +209,11 @@ export interface RenderSvgOptions {
    * `export.navigators` when absent, else `omit`.
    */
   readonly navigators?: 'omit' | 'include';
+  /**
+   * Draws the ruler rails, idle (no navigator around the view): what a viewer's picture shows where its rails are on,
+   * so its export has the canvas's geometry. With `navigators: include`, always.
+   */
+  readonly rails?: boolean;
 }
 
 /** The provisional height a layout for a height `auto` is measured at. */
@@ -345,7 +350,7 @@ export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<
               }),
           )
       : [];
-    const rails = included ? Object.fromEntries(railSections(view).map((a) => [a, true])) : undefined;
+    const rails = included || options.rails ? Object.fromEntries(railSections(view).map((a) => [a, true])) : undefined;
     const frameInput = {
       // a height `auto` is measured from a first layout (`fitHeight`)
       size: { width: options.size.width, height: auto ? AutoHeight : (options.size.height as number) },

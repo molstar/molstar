@@ -12,6 +12,7 @@ export * from './cursor.js';
 export * from './editing.js';
 export * from './hover.js';
 export * from './navigate.js';
+export * from './navigator.js';
 export * from './providers.js';
 export * from './rows.js';
 export * from './select.js';
