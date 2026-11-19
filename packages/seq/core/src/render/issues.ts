@@ -83,6 +83,11 @@ export const RenderIssues = defineIssues('seq.render', {
     description: 'A section’s system has no known length yet (its source is not open): its tracks wait',
     hint: 'The section draws once its source gives the length',
   },
+  'seq.render.text.lines': {
+    severity: 'warning',
+    description: 'A text section holds more lines than `text.maxLines`: the lines past it are not laid out',
+    hint: 'Give the section a `range`: a text is a figure, not a genome',
+  },
   'seq.render.follow.leader': {
     severity: 'warning',
     description: 'A section follows one that is not in its view: it shows its own range',

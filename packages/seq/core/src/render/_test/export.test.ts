@@ -94,11 +94,13 @@ describe('seq.render: issue codes', () => {
     const known = new Set(Object.keys(RenderIssues.codes));
     const dir = fileURLToPath(new URL('../', import.meta.url));
     const used = new Set<string>();
-    for (const name of readdirSync(dir)) {
-      if (!name.endsWith('.ts') || name === 'issues.ts') continue;
-      for (const m of readFileSync(join(dir, name), 'utf8').matchAll(/'(seq\.render\.[a-z_.-]*[a-z_])'/g))
-        used.add(m[1]);
-    }
+    // the render folder and its layouts'
+    for (const sub of ['', 'layout'])
+      for (const name of readdirSync(join(dir, sub))) {
+        if (!name.endsWith('.ts') || name === 'issues.ts') continue;
+        for (const m of readFileSync(join(dir, sub, name), 'utf8').matchAll(/'(seq\.render\.[a-z_.-]*[a-z_])'/g))
+          used.add(m[1]);
+      }
     expect([...used].filter((c) => !known.has(c))).toEqual([]);
     expect([...known].filter((c) => !used.has(c))).toEqual([]);
   });

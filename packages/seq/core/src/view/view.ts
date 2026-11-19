@@ -166,7 +166,14 @@ export interface ResolvedSection {
   readonly axis: Axis;
   readonly follow?: Follow;
   readonly tracks: readonly ResolvedTrack[];
+  /** Its layout: its own `layout`, else its view's. */
+  readonly layout: string;
+  /** Its layout's params as written (text: `group`, `numbers`, `group_labels`, `align`, `max_width`, `height`). */
+  readonly params: Readonly<Record<string, Value>>;
 }
+
+/** The params a section's layout reads (_spec/README.md "Resolved view"). */
+const LayoutParams = ['group', 'numbers', 'group_labels', 'align', 'max_width', 'height'] as const;
 
 /** A path between two sections of a view, precomposed: hover and selection are projected along it. */
 export interface ViewLink {
@@ -241,6 +248,8 @@ function build(model: StaticModel, view: Node, address: string): ResolvedView {
       }),
     );
   const sectionNodes = (view.children ?? []).filter((c) => c.kind === 'section' && c.id !== undefined);
+  const written = param(view, 'layout');
+  const viewLayout = typeof written === 'string' ? written : 'tracks';
   const byAddress = new Map<string, Node>();
   const systemOf = new Map<string, string>();
   for (const s of sectionNodes) {
@@ -314,7 +323,20 @@ function build(model: StaticModel, view: Node, address: string): ResolvedView {
         ...(template ? { template } : {}),
       });
     }
-    sections.push({ address: at, axis, ...(follow ? { follow } : {}), tracks });
+    const own = param(s, 'layout');
+    const params: Record<string, Value> = {};
+    for (const k of LayoutParams) {
+      const v = param(s, k);
+      if (v !== undefined) params[k] = v;
+    }
+    sections.push({
+      address: at,
+      axis,
+      ...(follow ? { follow } : {}),
+      tracks,
+      layout: typeof own === 'string' ? own : viewLayout,
+      params,
+    });
   }
 
   // every path between the view's sections, composed now so hover never composes

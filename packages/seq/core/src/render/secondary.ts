@@ -24,6 +24,7 @@ import {
   RowImages,
   tickHit,
   tickOn,
+  itemsUsed,
 } from './items.js';
 import { LaneIndex } from './lanes.js';
 import { type LayerSource, layerSource, toSection } from './layer-data.js';
@@ -223,6 +224,7 @@ export const SecondaryType: LayerType<SecondaryPrep, SecondaryLay> = {
   },
 
   filtered: (lay) => lay.rows.filtered,
+  used: itemsUsed,
 
   legend(lay, options) {
     if (lay.density) return [];

@@ -48,6 +48,7 @@ import type { Emphasis } from './layer-type.js';
 import { LegendBand, layoutLegends, legendsHeight, viewLegends } from './legends.js';
 import { OverlaySources } from './overlay-sources.js';
 import { Renderer } from './renderer.js';
+import type { ViewLayout } from './tracks.js';
 import { drawListsToSvg } from './svg.js';
 import { bundledTextMetrics, type TextMetrics } from './text.js';
 import { builtInTokens, type SeqTokens } from './tokens.js';
@@ -152,8 +153,10 @@ export interface PositionsViewport {
 }
 
 export interface RenderSvgOptions {
-  /** CSS px. */
-  readonly size: { readonly width: number; readonly height: number };
+  /** CSS px; a height `auto` is the sections' content's (a text section every line). */
+  readonly size: { readonly width: number; readonly height: number | 'auto' };
+  /** Draws a ring's window (the view's `export.window` when absent; false: an exported map is a figure). */
+  readonly window?: boolean;
   /** The window of display units of every leading section, or positions per section. */
   readonly viewport?: Viewport | PositionsViewport;
   /** A leading section's own window of display units by its address, before `viewport` (a viewer's sections). */
@@ -196,6 +199,15 @@ export interface RenderSvgOptions {
   readonly registry?: Partial<Pick<ThemeContext, 'schemes' | 'measures'>>;
 }
 
+/** The provisional height a layout for a height `auto` is measured at. */
+const AutoHeight = 100_000;
+
+/** The sections' content's height: the last one's bottom and the inset. */
+function contentHeight(layout: ViewLayout): number {
+  const last = layout.sections[layout.sections.length - 1];
+  return Math.ceil(last ? last.y + last.height + layout.config.inset : 2 * layout.config.inset);
+}
+
 /** A positions viewport as each section's window of display units (an axis waiting for its length: from 0). */
 function offsetsOf(view: ResolvedView, v: PositionsViewport): Record<string, Viewport> {
   const out: Record<string, Viewport> = {};
@@ -230,7 +242,7 @@ export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<
   const blank = (settled: boolean): RenderSvgResult => {
     const lists = new DrawLists();
     lists.width = options.size.width;
-    lists.height = options.size.height;
+    lists.height = options.size.height === 'auto' ? 0 : options.size.height;
     return { svg: drawListsToSvg(lists), settled, issues, lists };
   };
   if (hasErrors(issues)) return blank(true);
@@ -299,8 +311,14 @@ export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<
       ...(options.registry ? { theme: options.registry } : {}),
     });
     const given = options.viewport;
+    const auto = options.size.height === 'auto';
+    const windows = options.window ?? view.export?.window === true;
     const frameInput = {
-      size: options.size,
+      // a height `auto` is measured from a first layout (`fitHeight`)
+      size: { width: options.size.width, height: auto ? AutoHeight : (options.size.height as number) },
+      // a text section exports every line (the figure), never only those in view
+      figure: true,
+      ...(windows ? { windows: true } : {}),
       ...(given && 'positions' in given
         ? { viewports: { ...offsetsOf(view, given), ...options.viewports } }
         : {
@@ -317,7 +335,11 @@ export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<
     for (let round = 0; settled && round < 8; round++) {
       const overlay = overlays.of(model, store);
       await nested.sync(overlay, view);
-      const f = renderer.frame({ ...frameInput, overlay: overlays.of(model, store), settled: false });
+      let f = renderer.frame({ ...frameInput, overlay: overlays.of(model, store), settled: false });
+      if (auto) {
+        frameInput.size = { width: options.size.width, height: contentHeight(f.layout) };
+        f = renderer.frame({ ...frameInput, overlay: overlays.of(model, store), settled: false });
+      }
       // what the layout shows stays while the export waits
       nested.hold(f.layout.shown);
       const wants = f.wants.filter((w) => w.priority !== 'margin');
@@ -354,12 +376,21 @@ export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<
             projected: { ...withSelection.projected, selection: projectOntoView(model, view, drawn) },
           }
         : withSelection;
-    const frame = renderer.frame({
+    let frame = renderer.frame({
       ...frameInput,
       ...(emphasis ? { emphasis } : {}),
       overlay: overlays.of(model, store),
       settled: true,
     });
+    if (auto && frame.layout.height !== contentHeight(frame.layout)) {
+      frameInput.size = { width: options.size.width, height: contentHeight(frame.layout) };
+      frame = renderer.frame({
+        ...frameInput,
+        ...(emphasis ? { emphasis } : {}),
+        overlay: overlays.of(model, store),
+        settled: true,
+      });
+    }
     issues.push(...frame.layout.issues);
     // what the overlay's sources could not open, while their nodes are held
     issues.push(...nested.issues);

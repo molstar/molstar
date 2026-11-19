@@ -87,6 +87,17 @@ export {
   sectionId,
 } from './layer-type.js';
 export { PlacePoint, StripPlacement, Strips, WarpKind } from './layout/strips.js';
+export {
+  lineWidthOf,
+  type TextGeometry,
+  TextLayout,
+  TextNav,
+  type TextParams,
+  TextPlacement,
+  textGeometry,
+  textMinScale,
+  textParams,
+} from './layout/text.js';
 export { clampWindow, sameWindow, TracksLayout, TracksNav } from './layout/tracks.js';
 export type {
   NavContext,

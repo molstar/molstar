@@ -153,6 +153,21 @@ export function collectItems(
 }
 
 /** What every items layer's layout holds. */
+/**
+ * What an items layer used on its strip (_spec/README.md "Render", Layer types: `used`): its band's height when it drew
+ * a mark, a hidden items' tick, a pending or failed span or a strip (the coarse steps), else 0 (text collapses it).
+ */
+export function itemsUsed(lay: ItemsBase & { readonly m: number }): number {
+  const any =
+    lay.m > 0 ||
+    lay.tn > 0 ||
+    lay.pending.length > 0 ||
+    lay.failed.length > 0 ||
+    lay.step === 'bars' ||
+    lay.step === 'density';
+  return any ? lay.box.height : 0;
+}
+
 export interface ItemsBase {
   key: string;
   system: string;

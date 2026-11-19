@@ -16,7 +16,7 @@ import { ScaleParamsDescription, ThemeLanguage, ThemeLanguageId } from './theme-
  * The version of the language this description is (the package's `LanguageVersion` is the same). Pre-release (`0.x`):
  * a change moves it with no migration (_spec/README.md, Versions).
  */
-export const SeqLanguageVersion = '0.4.0';
+export const SeqLanguageVersion = '0.5.0';
 
 /**
  * A channel slot (_spec/README.md "Themes", Forms): a string (the `uniform` form: a color, a token, a word), a number
@@ -226,7 +226,12 @@ export const SeqLanguage = defineLanguage({
       parents: ['views'],
       ids: 'required',
       params: {
-        layout: { type: 'string', enum: ['tracks'], default: 'tracks', doc: 'How the sections are laid out.' },
+        layout: {
+          type: 'string',
+          enum: ['tracks', 'text'],
+          default: 'tracks',
+          doc: 'How the sections are laid out (a section’s own `layout` before it): `tracks` (rows along one axis) or `text` (lines of letters).',
+        },
         export: {
           type: 'record',
           fields: {
@@ -234,6 +239,10 @@ export const SeqLanguage = defineLanguage({
               type: 'string',
               enum: ['none', 'below', 'right'],
               doc: 'Legends in an export: `none` (when absent), in a band `below` the data or to its `right`.',
+            },
+            window: {
+              type: 'boolean',
+              doc: 'Whether an export draws a ring’s window (false when absent: an exported map is a figure).',
             },
           },
           doc: 'How the view exports (a figure says how it exports); an export call’s options override it.',
@@ -315,6 +324,37 @@ export const SeqLanguage = defineLanguage({
           type: 'integer',
           min: 0,
           doc: 'Positions kept each side of every piece (splice sites); overlapping pads merge. 0 when absent.',
+        },
+        layout: {
+          type: 'string',
+          enum: ['tracks', 'text'],
+          doc: 'How the section is laid out: `tracks` or `text` (lines of letters, wrapped to the width); the view’s `layout` when absent.',
+        },
+        group: {
+          type: 'integer',
+          min: 0,
+          doc: 'Text: positions a group (a gap between groups; a line holds whole groups); 10 when absent, 0 for none.',
+        },
+        numbers: {
+          type: 'string',
+          enum: ['start', 'end', 'both', 'none'],
+          doc: 'Text: each line’s first (`start`, left) or last (`end`, right) position’s number, or both, or none; `start` when absent.',
+        },
+        group_labels: {
+          type: 'string',
+          enum: ['above', 'inline', 'none'],
+          doc: 'Text: a number a group, above its last position (`above`, when absent), before the group on its line (`inline`), or none.',
+        },
+        align: {
+          type: 'string',
+          enum: ['start', 'center'],
+          doc: 'Text: lines at the start of the width (when absent) or centered in it.',
+        },
+        max_width: { type: 'number', min: 0, doc: 'Text: the most px a line takes; the whole width when absent.' },
+        height: {
+          type: 'number',
+          min: 0,
+          doc: 'Text: the section’s height in px (it scrolls inside); its content’s, up to the render config’s `text.maxHeight`, when absent.',
         },
       },
     },

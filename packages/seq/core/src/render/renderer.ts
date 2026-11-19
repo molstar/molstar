@@ -50,6 +50,10 @@ export interface FrameInput {
   readonly emphasis?: Emphasis;
   /** The reader's color-blind substitution (`theme.cvdSafe`): part of the key, never the spec. */
   readonly cvdSafe?: boolean;
+  /** Lays out a text section's every line, its box its content (an export: the figure). */
+  readonly figure?: boolean;
+  /** Draws the windows a figure leaves out by default (a ring's, in an export: `export.window`). */
+  readonly windows?: boolean;
 }
 
 /**
@@ -88,6 +92,8 @@ class KeyParts {
   overlay = Number.NaN;
   settled = false;
   cvdSafe = false;
+  figure = false;
+  windows = false;
 
   // the parts are read from their objects here, never passed as numbers (a call boxes the numbers it is passed)
 
@@ -107,7 +113,9 @@ class KeyParts {
       this.text === r.options.text.version &&
       this.overlay === (input.overlay ?? EmptyOverlay).version &&
       this.settled === (input.settled ?? false) &&
-      this.cvdSafe === (input.cvdSafe ?? false)
+      this.cvdSafe === (input.cvdSafe ?? false) &&
+      this.figure === (input.figure ?? false) &&
+      this.windows === (input.windows ?? false)
     );
   }
 
@@ -126,6 +134,8 @@ class KeyParts {
     this.overlay = (input.overlay ?? EmptyOverlay).version;
     this.settled = input.settled ?? false;
     this.cvdSafe = input.cvdSafe ?? false;
+    this.figure = input.figure ?? false;
+    this.windows = input.windows ?? false;
   }
 
   /** The key's text (the store's reads appended by the caller). */
@@ -144,6 +154,8 @@ class KeyParts {
       this.overlay,
       this.settled ? 's' : 'm',
       this.cvdSafe ? 'cvd' : '',
+      this.figure ? 'figure' : '',
+      this.windows ? 'windows' : '',
       configKey,
     ].join('|');
   }
@@ -271,6 +283,8 @@ export class Renderer {
         settled: input.settled ?? false,
         types: this.options.types ?? BuiltInLayerTypes,
         theme: { ...this.options.theme, cvdSafe: input.cvdSafe ?? false },
+        ...(input.figure ? { figure: true } : {}),
+        ...(input.windows ? { windows: true } : {}),
       },
       this.state,
     );

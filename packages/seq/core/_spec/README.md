@@ -15,15 +15,17 @@ is added in the change that builds what it describes.
 
 ## Versions
 
-- The language has one version, `LanguageVersion` (`0.4.0`). Why: one language, one description, one number for readers
+- The language has one version, `LanguageVersion` (`0.5.0`). Why: one language, one description, one number for readers
   to check.
 - **Pre-release** (`0.x`): a change to the language moves the version with no migration (`0.1.0`: every child of the
   spec has an id, `layer` included; `0.2.0`: the `refs` container and the `ref` kind; `0.3.0`: the `snapshots` container
   and the `snapshot` kind; `0.4.0`: a section's `direction`, `pieces`, `collapsed`, `pad` and a layer's `complement`,
   `code`, the layer types `ruler`, `secondary`, `variants` and the layer params `numbering`, `encoding`, `style`,
   `line`, `arrow`, and the themes: the layer's channel slots `color`, `ink`, `size`, `opacity`, `line`, `arrow`, `shape`
-  taking a value or a `seq.theme` form, its `scale`, the `scale` kind under `views`, a view's `export`). A spec in an
-  earlier `0.x` reads as one in this one, and is reported where it no longer fits.
+  taking a value or a `seq.theme` form, its `scale`, the `scale` kind under `views`, a view's `export`; `0.5.0`: a
+  view's `layout` `text`, a section's `layout` and its text params `group`, `numbers`, `group_labels`, `align`,
+  `max_width`, `height`, the view's `export.window`). A spec in an earlier `0.x` reads as one in this one, and is
+  reported where it no longer fits.
 
 ## Language
 
@@ -687,6 +689,10 @@ of it (`buildOverlay(model, reader)`; `OverlayBuilder` keeps one a node version 
 no target.
 
 - **A view**: its address, its `layout`, its sections in order, its links, its issues.
+- **A section's layout**: its own `layout`, else its view's (`tracks`, `text`), with its layout's params as written
+  (`params`: `group`, `numbers`, `group_labels`, `align`, `max_width`, `height`); the layout reads them with its
+  defaults. Why on the section: a view mixes layouts (a ring and its linear detail; a text figure under a tracks
+  overview). What the figure means (group size, numbers) is the spec's; spacing is the render config's.
 - **A section**: an axis, its tracks, and its follow. A section whose `of` names no system is `seq.view.section.system`;
   its layers are not placed.
 - **An axis**: its system, its length unless unknown, cyclic, and the positions shown as `[start, end, …]` pieces in
@@ -797,6 +803,12 @@ the UX foundations' numbers, CSS px, settled by the foundation stories; where no
 | `values.coarser`                                      | 1                                                                     | the coarsest level whose bin is no wider than k device pixels' positions (below)                                                                                                |
 | `values.direct`                                       | true                                                                  | data on the section's own system placed with no mapping (below); false: the general mapping, the same lists                                                                     |
 | `ruler.labelGap`                                      | 48 px                                                                 | the least between two ticks (the foundations' number); labels clear each other by an eighth of it                                                                               |
+| `text.scale`, `text.groupGap`                         | 12 px a position, half a cell                                         | the letter size a text opens at (its zoom); a space between words                                                                                                               |
+| `text.lineGap`, `text.bandGap`                        | 8, 2                                                                  | a line block reads as one when the line gap is the larger                                                                                                                       |
+| `text.collapseEmpty`                                  | true                                                                  | an empty band separates what belongs together (EC-96); false: uniform lines                                                                                                     |
+| `text.maxLines`, `text.maxHeight`                     | 100,000; 600 px                                                       | a figure, not a genome; a text in a host page scrolls inside its box past it                                                                                                    |
+| `text.pieceBreak`, `text.numberGap`                   | `none`; 8                                                             | lines stay aligned, the boundary marks the edge; the gap between a line and its numbers                                                                                         |
+| `text.heights`                                        | letters 18, ranges 4, values 3, ruler 14, secondary 6, variants 10    | a text's tracks thin: a ranges track reads as underlines, a values track as a strip                                                                                             |
 | `internedStrings`                                     | 4,096                                                                 | strings draw lists keep interned across frames, so a frame drawn again interns nothing; past it a full redraw starts the table again                                            |
 
 - **A values layer's level** (`values.coarser`, k): the coarsest of the source's levels whose bin is no wider than k
@@ -1077,6 +1089,44 @@ straight axis and a box, in every layout; a layout knows strips, bands and warps
 - **The lay cache is bounded by the strips in view**: a layer's lay is kept per strip by its first display unit (tracks
   without blocks: by the layer's key alone), and a strip that leaves the view lets its lays go.
 
+### Text layout
+
+`layout/text.ts` (`TextLayout`, `TextNav`, `textGeometry`):
+
+- **Lines of whole groups** (EC-94): positions in groups of `group` (10; 0 none) with `text.groupGap` (half a cell)
+  between them; a line holds as many whole groups as fit the width (less the label column and the number gutters, at
+  most `max_width`); the last group goes on the last line, short. Breaking is arithmetic on cell widths and gaps (an
+  inline group label widens the gap it sits in, so it takes part in breaking). Groups are the axis's (`groups`: a cell
+  skips the gaps, a span bridges them), counted from the section's first display unit, so lines stay aligned across
+  piece edges; a piece edge does not start a line (`text.pieceBreak: 'none'`; `line` is not built yet). Groups are
+  bridged, fixed: an item or a selection is cut by a line break only (no second use for cutting at every group).
+- **A strip a line in view**, translated down the page; its bands the section's tracks (in track order, their heights
+  their own, else `text.heights`: thin, a ranges track 4 px reads as underlines, a values track 3 px as a strip) under a
+  row of group labels (`group_labels: 'above'`), `text.bandGap` between bands, `text.lineGap` after a line.
+- **Collapse** (`text.collapseEmpty`, EC-96): a band no layer used on a line (`used`) is 0 high there and the bands
+  below move up (laid out again there). The lines are laid out lazily, only those in view; each line's height is kept
+  per section, full until it is laid out (the text's `end` and a follower's window are estimates: a tension), and the
+  anchor holds the reader's place as heights land.
+- **Its viewport**: `start` the anchor (the display unit at the box's top, fractional within its line), `scale` px a
+  position (the letter size, `text.scale` 12 by default, never below the letters' threshold, EC-116); `top` derived;
+  `end` derived (what a follower reads: the lines in view at full heights, `followWindow`). The layout places over the
+  whole axis, its viewport its own. Its key (`sameKey`): the anchor, the scale, top; a reflow (the width) is the view's
+  part of the key, and starts the kept heights again.
+- **Numbers** (`numbers`: `start`, `end`, `both`, `none`): a line's first (left gutter) or last (right gutter) position,
+  1-based on the section's system; group labels (`above`: the group's last position over its last cell; `inline`: in the
+  gap after it; `none`). The first line's bands carry their tracks' labels in the label column (faded past it).
+  Numbering by a layer's `numbering` waits (TODO).
+- **The box**: its `height`, else its content's up to `text.maxHeight` (600 px) and the page's bottom, past which it
+  scrolls inside, its strips clipped to it; an export lays out every line (`figure`) and its box is its content.
+- **A bound**: at most `text.maxLines` lines (100,000) are laid out; more is `seq.render.text.lines` (give a `range`).
+  Why: a chromosome as text is no figure, and the line heights are kept for the whole section.
+- **Navigation** (`TextNav`): a pan scrolls lines (vertical: px to the anchor through the line heights); a zoom steps
+  the letter size about a unit kept at its line's place; `fit` the preset's size from the first line; a reveal brings a
+  range's first line to the top when it is not in view; `up` and `down` step a line; the anchor is clamped where the
+  last line meets the box's bottom, the scale to the letters' threshold and `maxScale`.
+- Not built yet: chips (one-position blocks, with blocks), frames across tracks (the frame layer), `pieceBreak: 'line'`,
+  numbers by numbering (TODO).
+
 ### Window
 
 `render/window.ts`: the window mark (a ring's window over a linear detail, the navigators' windows), drawn by a layout's
@@ -1192,6 +1242,9 @@ target. A floor of 16 px (a narrower window grows about its middle); its parts h
 
 ### Export
 
+- **What the layouts place** (`figure`): a text section draws every line, its box its content; `size.height: 'auto'` is
+  the sections' content's height (measured from a first layout); a ring's window only with `window` (the view's
+  `export.window` when absent, false: an exported map is a figure).
 - `renderSvg(spec, { size, viewport?, runtimes, … })`: checks and resolves the spec, opens the sources its view reads
   (`attachSources`: inline data through `seq`, a source node through its runtime, a template's source; assets refused
   unless a reader is given, `NoAssets`), wants through a want set of its own (EC-125), each round reads the overlay and
@@ -1220,8 +1273,8 @@ target. A floor of 16 px (a narrower window grows about its middle); its parts h
 
 - `seq.render.*` (`RenderIssues`): `view`, `color`, `theme.channel`, `theme.scheme`, `theme.measure`, `theme.color`,
   `scale.log` (info), `legend.unlisted` (info), `filter`, `line-style` (info), `numbering`, `layer.type`,
-  `layer.letters`, `axis.pending` (info), `follow.leader`, `follow.cycle`, `source`, `template.limit`, `unsettled`; a
-  test checks the catalog.
+  `layer.letters`, `axis.pending` (info), `text.lines`, `follow.leader`, `follow.cycle`, `source`, `template.limit`,
+  `unsettled`; a test checks the catalog.
 
 ## Context
 

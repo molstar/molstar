@@ -47,6 +47,7 @@ import type { SeqTokens } from './tokens.js';
 import { RulerType } from './ruler.js';
 import { PlacePoint, StripPlacement, type Strips, WarpKind } from './layout/strips.js';
 import { TranslateWarp } from './layout/warp.js';
+import { TextLayout } from './layout/text.js';
 import { TracksLayout } from './layout/tracks.js';
 import type { PlaceContext, Placement, SectionLayoutType } from './layout/types.js';
 import { SecondaryType } from './secondary.js';
@@ -177,6 +178,10 @@ export interface LayoutInput {
   readonly theme?: Partial<Pick<ThemeContext, 'schemes' | 'measures' | 'cvdSafe'>>;
   /** The section layouts by name (the built-ins by default). */
   readonly layouts?: Readonly<Record<string, SectionLayoutType<any>>>;
+  /** Lays out every line of a text section, its box its content (an export: the figure). */
+  readonly figure?: boolean;
+  /** Draws the windows a figure leaves out by default (a ring's in an export). */
+  readonly windows?: boolean;
 }
 
 /** What a layout keeps between frames: each layer's prepared form (per resolved layer) and its last layout. */
@@ -266,11 +271,12 @@ function windowPositions(leader: AxisTransform, w: Viewport): number[] {
 /** The layouts this target places sections with, by name (_spec/README.md "Render", Section layouts). */
 export const BuiltInLayouts: Readonly<Record<string, SectionLayoutType<any>>> = {
   tracks: TracksLayout,
+  text: TextLayout,
 };
 
 /** A section's layout: its own `layout`, else its view's. */
 export function sectionLayoutName(section: ResolvedSection, view: ResolvedView): string {
-  return (section as { readonly layout?: string }).layout ?? view.layout;
+  return section.layout ?? view.layout;
 }
 
 const NoLays: readonly LayerLayout[] = [];
@@ -449,6 +455,8 @@ interface ViewStamp {
   readonly measures: unknown;
   readonly cvdSafe: boolean;
   readonly domains: number;
+  readonly figure: boolean;
+  readonly windows: boolean;
 }
 
 function viewStamp(
@@ -473,6 +481,8 @@ function viewStamp(
     measures: input.theme?.measures,
     cvdSafe: input.theme?.cvdSafe ?? false,
     domains: state.domainsVersion,
+    figure: input.figure ?? false,
+    windows: input.windows ?? false,
   };
 }
 
@@ -491,7 +501,9 @@ function sameStamp(a: ViewStamp, b: ViewStamp): boolean {
     a.schemes === b.schemes &&
     a.measures === b.measures &&
     a.cvdSafe === b.cvdSafe &&
-    a.domains === b.domains
+    a.domains === b.domains &&
+    a.figure === b.figure &&
+    a.windows === b.windows
   );
 }
 
@@ -624,7 +636,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     const layout = layoutOf(section);
     if (!layout.followWindow) return { start: axis.u0, end: axis.u1 };
     const viewport = input.viewports?.[section.address] ?? input.viewport;
-    const heights = section.tracks.map((t) => trackHeight(t, config));
+    const heights = section.tracks.map((t) => trackHeight(t, config, layout.heights?.(config) ?? config.heights));
     return layout.followWindow(section, axis, viewport, { width, config, text: input.text, heights });
   };
   const axes = new Map<string, AxisTransform | undefined>();
@@ -743,7 +755,8 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         );
       shown.push(...instances);
     }
-    const heights = shown.map((t) => trackHeight(t, config));
+    const byType = layout.heights?.(config) ?? config.heights;
+    const heights = shown.map((t) => trackHeight(t, config, byType));
     const nb = shown.length;
     const lays: LayerLayout[][] = [];
     const stripBreaks: number[][] = [];
@@ -883,6 +896,9 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         bands: shown,
         heights,
         layStrip,
+        report: sectionReport,
+        ...(input.figure ? { figure: true } : {}),
+        ...(input.windows ? { windows: true } : {}),
       };
       placement = layout.place(section, ctx, viewport, prevPlacement);
       for (let i = 0; i < placement.strips.n; i++) stripBreaks.push(placement.strips.axes[i].breaks([]));
@@ -1069,11 +1085,11 @@ function wantTemplate(
   }
 }
 
-function trackHeight(track: ResolvedTrack, config: RenderConfig): number {
+function trackHeight(track: ResolvedTrack, _config: RenderConfig, heights: RenderConfig['heights']): number {
   if (track.height !== undefined) return track.height;
   let h = 0;
-  for (const l of track.layers) h = Math.max(h, config.heights[l.type as keyof RenderConfig['heights']] ?? 0);
-  return h || config.heights.ranges;
+  for (const l of track.layers) h = Math.max(h, heights[l.type as keyof RenderConfig['heights']] ?? 0);
+  return h || heights.ranges;
 }
 
 const NoBreaks: readonly number[] = [];
@@ -1132,6 +1148,8 @@ function drawBackground(layout: ViewLayout, out: PassWriter, emphasis: Emphasis 
     }
     if (!under) continue;
     const strips = s.placement.strips;
+    const pb = s.placement.box;
+    if (s.placement.clip === true) out.clip(pb.x, pb.y, pb.width, pb.height);
     for (let i = 0; i < strips.n; i++) {
       const w = openStrip(s, i, out);
       const a = strips.axes[i];
@@ -1144,6 +1162,7 @@ function drawBackground(layout: ViewLayout, out: PassWriter, emphasis: Emphasis 
         }
       closeStrip(s, i, out);
     }
+    if (s.placement.clip === true) out.unclip();
   }
 }
 
@@ -1198,6 +1217,9 @@ function drawTracks(layout: ViewLayout, out: PassWriter, emphasis: Emphasis | un
       continue;
     }
     const nb = strips.bands;
+    const pb = s.placement.box;
+    const clipped = s.placement.clip === true;
+    if (clipped) out.clip(pb.x, pb.y, pb.width, pb.height);
     for (let i = 0; i < strips.n; i++) {
       const w = openStrip(s, i, out);
       const a = strips.axes[i];
@@ -1229,6 +1251,7 @@ function drawTracks(layout: ViewLayout, out: PassWriter, emphasis: Emphasis | un
     // what crosses strips, on the page
     const sl = s.sectionLays;
     for (let li = 0; li < sl.length; li++) sl[li].type.draw(sl[li].lay, pass, out, emphasis);
+    if (clipped) out.unclip();
   }
 }
 

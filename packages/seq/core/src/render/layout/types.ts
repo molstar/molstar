@@ -9,6 +9,7 @@
 // layer types lay out and draw a strip at a time in its own frame, hits come back through the placement's inverse, and
 // the viewer's navigation is the layout's arithmetic (`SectionNav`). Internal: no application implements one yet.
 
+import type { Issue } from '@molstar/core/repr/tree';
 import type { ResolvedSection, ResolvedTrack } from '@molstar/seqx-core/view';
 import type { AxisTransform, Viewport } from '../axis.js';
 import type { RenderConfig } from '../config.js';
@@ -63,6 +64,10 @@ export interface Placement {
   place(offset: number, out: PlacePoint): boolean;
   /** A polar strip's warp (`strips.warp` polar). */
   warpOf?(strip: number): PolarWarp;
+  /** Whether its strips are clipped to its box (a section that scrolls inside it). */
+  readonly clip?: boolean;
+  /** What a follower of the section follows: the display units it shows (text: its lines in view). */
+  readonly window?: Viewport;
 }
 
 /** What a layout reads of the view and the section: never a layer's params. */
@@ -85,6 +90,12 @@ export interface PlaceContext {
    * (`strips.used`): what a layout that collapses empty bands reads before it fixes the strip's height.
    */
   layStrip(placement: Placement, strip: number, labels?: LabelSink): void;
+  /** Says what the layout could not place (a text past `text.maxLines`). */
+  report(issue: Issue): void;
+  /** Lays out all of the section's content (an export: a text's every line), not only what is in view. */
+  readonly figure?: boolean;
+  /** Draws the windows an export leaves out by default (`export.window`: a ring's). */
+  readonly windows?: boolean;
 }
 
 /** The pure arithmetic of a section's viewport (_spec/README.md "Render", Section layouts, Navigation). */
@@ -123,6 +134,8 @@ export interface SectionLayoutType<Kept = unknown> {
   readonly name: string;
   /** Whether bands are filled with the track ink in the background pass (tracks: a track a box). */
   readonly fillBands: boolean;
+  /** A track's height by its layers' types when the spec gives none (the config's `heights` when absent). */
+  heights?(config: RenderConfig): RenderConfig['heights'];
   /** Cuts the section into strips for its box and viewport, into prev's buffers. */
   place(section: ResolvedSection, ctx: PlaceContext, viewport: Viewport | undefined, prev?: Kept): Placement & Kept;
   /** Whether two viewports place alike: the part of the section's key this layout reads. */
