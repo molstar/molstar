@@ -26,6 +26,7 @@ import {
   PlacePoint,
   PolarWarp,
   recordDrawLists,
+  StripPlacement,
   TracksNav,
   TranslateWarp,
   WindowMetrics,
@@ -178,6 +179,31 @@ describe('the tracks layout on the interface', () => {
     const emphasis: Emphasis = { selection: rangesLocation('rows', [2, 3]) };
     r.frame({ size: Size, emphasis });
     expect(seen).toEqual(['data', 'window', 'highlight', 'selection', 'hover', 'cursor', 'labels']);
+  });
+});
+
+describe('a placement of translated strips', () => {
+  it('`at(place(o))` gives `o` back: on the page, the middle of the strip’s first band with height', () => {
+    const p = new StripPlacement();
+    p.box = { x: 0, y: 0, width: 400, height: 200 };
+    const s = p.strips;
+    s.reset(2);
+    // two lines of 20 units, the second 60 px down; each line's band 0 collapsed, band 1 at 4 px, 10 high
+    for (let l = 0; l < 2; l++) {
+      const a = new AxisTransform('s', [0, 40], 50, 200, 1, { start: 20 * l, end: 20 * l + 20 });
+      const i = s.add(a, 0, 0, 60 * l, 20 * l);
+      s.bandY[2 * i + 1] = 4;
+      s.bandH[2 * i + 1] = 10;
+      s.height[i] = 14;
+    }
+    const pt = new PlacePoint();
+    for (let o = 0.5; o < 40; o += 1) {
+      expect(p.place(o, pt)).toBe(true);
+      expect(pt.band).toBe(1);
+      expect(p.at(pt.x, pt.y, pt)).toBe(true);
+      expect(pt.kind).toBe('data');
+      expect(pt.offset).toBeCloseTo(o);
+    }
   });
 });
 

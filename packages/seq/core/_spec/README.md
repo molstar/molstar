@@ -1050,10 +1050,11 @@ straight axis and a box, in every layout; a layout knows strips, bands and warps
 - **The placement** (`Placement`): the section's box, its whole content's height (text: every line, for scrolling and
   export), its strips; `at(x, y)` the inverse of the warp then of the cut, into a reused `PlacePoint` (strip, band, the
   point in the strip's frame, the kind, the display unit); `offsetAt(x, y)` the nearest unit (drags, zoom anchors);
-  `place(offset)` where a unit is drawn. **Kinds of point**: `data`, `label` (a ring's outside label), `gutter` (the
-  label column, text's row labels and numbers), `window`, `gap` (between groups or lines: no position for a hover, the
-  nearest for a drag), `empty`. Held by property tests: every position in view placed once, `at` its cell's center gives
-  it back, `offsetAt` monotone in reading order.
+  `place(offset)` where a unit is drawn (on the page: the middle of its strip's first band with height; `at` of it gives
+  the unit back). **Kinds of point**: `data`, `label` (a ring's outside label), `gutter` (the label column, text's row
+  labels and numbers), `window`, `gap` (between groups or lines: no position for a hover, the nearest for a drag),
+  `empty`. Held by property tests: every position in view placed once, `at` its cell's center gives it back, `offsetAt`
+  monotone in reading order.
 - **The viewport record** (`Viewport`): `{ start, end, top?, scale?, bands?, y? }`, read by the layout: tracks `start`,
   `end` the window, `top` a vertical scroll, `bands` a band's own `bandTop` and `rowScale` (a grid's `y` its second
   axis). One record for every layout (the field's meaning is the layout's): the viewer's groups, follows and history

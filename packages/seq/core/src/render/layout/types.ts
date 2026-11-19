@@ -29,11 +29,15 @@ export type PointKind = 'data' | 'label' | 'gutter' | 'window' | 'gap' | 'empty'
 /** A window's parts: its body (dragged: pans) and its two ends (dragged: resize about the other end). */
 export type WindowPart = 'body' | 'start' | 'end';
 
-/** A point placed: its strip and band, the point in the strip's frame, its kind, the display unit there. Reused. */
+/**
+ * A point placed: its strip and band, the point, its kind, the display unit there. Reused. From `at` the point is in
+ * the strip's frame (what a layer's hit reads); from `place` it is on the page (where the unit is drawn: the middle of
+ * the strip's first band with height), so `at(place(o))` gives `o` back.
+ */
 export class PlacePoint {
   strip = -1;
   band = -1;
-  /** The point in the strip's frame. */
+  /** The point: in the strip's frame from `at`, on the page from `place`. */
   x = 0;
   y = 0;
   kind: PointKind = 'empty';
@@ -52,7 +56,10 @@ export interface Placement {
   at(x: number, y: number, out: PlacePoint): boolean;
   /** The display unit under a point, the nearest when between strips or in a gutter (drags, zoom anchors). */
   offsetAt(x: number, y: number): number;
-  /** Where a display unit is drawn: its strip and page point (the cursor, reveal, section-scope layers). */
+  /**
+   * Where a display unit is drawn: its strip, its first band with height and the page point there (the cursor, reveal,
+   * section-scope layers); `at` of that point gives the unit back.
+   */
   place(offset: number, out: PlacePoint): boolean;
   /** A polar strip's warp (`strips.warp` polar). */
   warpOf?(strip: number): PolarWarp;

@@ -172,12 +172,16 @@ export class StripPlacement implements Placement {
     const i = lo - 1;
     if (i < 0 || offset > s.axes[i].u1) return false;
     const a = s.axes[i];
+    // on the page: the unit's x, the middle of the strip's first band with height (a collapsed band holds nothing)
+    let band = -1;
+    for (let j = 0; j < s.bands && band < 0; j++) if (s.bandH[i * s.bands + j] > 0) band = j;
     out.strip = i;
-    out.band = 0;
+    out.band = band;
     out.offset = offset;
     out.x = a.xOfUnit(offset) + s.dx[i];
-    out.y = s.top[i];
-    out.kind = 'data';
+    const k = i * s.bands + (band < 0 ? 0 : band);
+    out.y = band < 0 ? s.top[i] : s.bandY[k] + s.bandH[k] / 2 + s.dy[i];
+    out.kind = band < 0 ? 'gap' : 'data';
     return true;
   }
 }
