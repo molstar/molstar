@@ -23,101 +23,44 @@ clip 128 32 504 36
 rect 128 45 504 10 #7aa3a6ff
 unclip
 clip 128 76 504 20
-rect 128 76 6 20 #f5cfcfff
-rect 134 76 5 20 #cfe0f5ff
-rect 139 76 6 20 #cfe0f5ff
-rect 145 76 5 20 #f5cfcfff
-rect 150 76 6 20 #f5cfcfff
-rect 156 76 6 20 #cfe0f5ff
-rect 162 76 5 20 #f6e2b6ff
-rect 167 76 6 20 #f5cfcfff
-rect 173 76 5 20 #cfe0f5ff
-rect 178 76 6 20 #f6e2b6ff
-rect 184 76 6 20 #cdebd6ff
-rect 190 76 5 20 #cdebd6ff
-rect 195 76 6 20 #cdebd6ff
-rect 201 76 5 20 #cfe0f5ff
-rect 206 76 6 20 #cdebd6ff
-rect 212 76 6 20 #cfe0f5ff
-rect 218 76 5 20 #f6e2b6ff
-rect 223 76 6 20 #f6e2b6ff
-rect 229 76 5 20 #cfe0f5ff
-rect 234 76 6 20 #f5cfcfff
-rect 240 76 6 20 #cdebd6ff
-rect 246 76 5 20 #cfe0f5ff
-rect 251 76 6 20 #cfe0f5ff
-rect 257 76 5 20 #f5cfcfff
-rect 262 76 6 20 #f6e2b6ff
-rect 268 76 6 20 #f5cfcfff
-rect 274 76 5 20 #cdebd6ff
-rect 279 76 6 20 #cdebd6ff
-rect 285 76 5 20 #f5cfcfff
-rect 290 76 6 20 #f5cfcfff
-rect 296 76 6 20 #f6e2b6ff
-rect 302 76 5 20 #f6e2b6ff
-rect 307 76 6 20 #f6e2b6ff
-rect 313 76 5 20 #f6e2b6ff
-rect 318 76 6 20 #f6e2b6ff
-rect 324 76 6 20 #cdebd6ff
-rect 330 76 5 20 #f6e2b6ff
-rect 335 76 6 20 #f6e2b6ff
-rect 341 76 5 20 #cfe0f5ff
-rect 346 76 6 20 #cdebd6ff
-rect 352 76 6 20 #f5cfcfff
-rect 358 76 5 20 #f5cfcfff
-rect 363 76 6 20 #f6e2b6ff
-rect 369 76 5 20 #cdebd6ff
-rect 374 76 6 20 #f5cfcfff
-rect 380 76 6 20 #f5cfcfff
-rect 386 76 5 20 #cdebd6ff
-rect 391 76 6 20 #f6e2b6ff
-rect 397 76 5 20 #cdebd6ff
-rect 402 76 6 20 #cfe0f5ff
-rect 408 76 6 20 #f6e2b6ff
-rect 414 76 5 20 #f6e2b6ff
-rect 419 76 6 20 #cdebd6ff
-rect 425 76 5 20 #f6e2b6ff
-rect 430 76 6 20 #cdebd6ff
-rect 436 76 6 20 #cfe0f5ff
-rect 442 76 5 20 #f6e2b6ff
-rect 447 76 6 20 #f5cfcfff
-rect 453 76 5 20 #cdebd6ff
-rect 458 76 6 20 #f6e2b6ff
-rect 464 76 6 20 #f6e2b6ff
-rect 470 76 5 20 #f5cfcfff
-rect 475 76 6 20 #cfe0f5ff
-rect 481 76 5 20 #f6e2b6ff
-rect 486 76 6 20 #f6e2b6ff
-rect 492 76 6 20 #f5cfcfff
-rect 498 76 5 20 #f6e2b6ff
-rect 503 76 6 20 #cdebd6ff
-rect 509 76 5 20 #cdebd6ff
-rect 514 76 6 20 #f6e2b6ff
-rect 520 76 6 20 #f5cfcfff
-rect 526 76 5 20 #f5cfcfff
-rect 531 76 6 20 #f6e2b6ff
-rect 537 76 5 20 #f5cfcfff
-rect 542 76 6 20 #cfe0f5ff
-rect 548 76 6 20 #f5cfcfff
-rect 554 76 5 20 #f5cfcfff
-rect 559 76 6 20 #f6e2b6ff
-rect 565 76 5 20 #f5cfcfff
-rect 570 76 6 20 #f5cfcfff
-rect 576 76 6 20 #f5cfcfff
-rect 582 76 5 20 #f6e2b6ff
-rect 587 76 6 20 #f5cfcfff
-rect 593 76 5 20 #cdebd6ff
-rect 598 76 6 20 #f5cfcfff
-rect 604 76 6 20 #cdebd6ff
-rect 610 76 5 20 #f6e2b6ff
-rect 615 76 6 20 #cfe0f5ff
-rect 621 76 5 20 #cdebd6ff
-rect 626 76 6 20 #f5cfcfff
+rect 313 76 17 20 #cfe0f5ff
+rect 296 76 17 20 #f6e2b6ff
+rect 279 76 17 20 #f6e2b6ff
+rect 262 76 17 20 #cfe0f5ff
+rect 246 76 16 20 #cfe0f5ff
+rect 229 76 17 20 #cfe0f5ff
+rect 212 76 17 20 #cfe0f5ff
+rect 195 76 17 20 #cfe0f5ff
+rect 178 76 17 20 #cfe0f5ff
+rect 162 76 16 20 #cfe0f5ff
+rect 145 76 17 20 #cfe0f5ff
+rect 128 76 17 20 #cfe0f5ff
+rect 615 76 17 20 #f6e2b6ff
+rect 598 76 17 20 #f5cfcfff
+rect 582 76 16 20 #cdebd6ff
+rect 565 76 17 20 #cfe0f5ff
+rect 548 76 17 20 #cfe0f5ff
+rect 531 76 17 20 #f6e2b6ff
+rect 514 76 17 20 #f6e2b6ff
+rect 498 76 16 20 #f6e2b6ff
+rect 481 76 17 20 #cfe0f5ff
+rect 464 76 17 20 #f6e2b6ff
+rect 447 76 17 20 #f5cfcfff
+rect 430 76 17 20 #f6e2b6ff
+rect 414 76 16 20 #f6e2b6ff
+rect 397 76 17 20 #f6e2b6ff
+rect 380 76 17 20 #cfe0f5ff
+rect 363 76 17 20 #cfe0f5ff
+rect 346 76 17 20 #cfe0f5ff
+rect 330 76 16 20 #cdebd6ff
+glyphs "14px mono" 90.9 per C 321.5 #2d271eff, G 304.5 #2d271eff, G 287.5 #2d271eff, C 270.5 #2d271eff, C 254 #2d271eff, C 237.5 #2d271eff, C 220.5 #2d271eff, C 203.5 #2d271eff, C 186.5 #2d271eff, C 170 #2d271eff, C 153.5 #2d271eff, C 136.5 #2d271eff, G 623.5 #2d271eff, T 606.5 #2d271eff, A 590 #2d271eff, C 573.5 #2d271eff, C 556.5 #2d271eff, G 539.5 #2d271eff, G 522.5 #2d271eff, G 506 #2d271eff, C 489.5 #2d271eff, G 472.5 #2d271eff, T 455.5 #2d271eff, G 438.5 #2d271eff, G 422 #2d271eff, G 405.5 #2d271eff, C 388.5 #2d271eff, C 371.5 #2d271eff, C 354.5 #2d271eff, A 338 #2d271eff
 unclip
 clip 128 100 504 36
-rect 565 113 67 10 #7aa3a6ff
-rect 128 113 101 10 #7aa3a6ff
+rect 128 113 202 10 #7aa3a6ff
+rect 330 113 302 10 #7aa3a6ff
 unclip
+rect 329.5 76 1 60 #8a847aff
+rect 327.5 73 5 3 #8a847aff
 pass highlight
 pass selection
 pass hover
@@ -127,6 +70,7 @@ text "p53" 8 22.2 start "12px sans" #6b655cff width 20.02 max 112
 text "Domains" 8 54.2 start "12px sans" #6b655cff width 47.34 max 112
 text "DNA-binding" 131 53.5 start "10px sans" #2d271eff width 56.68 max 498
 text "TP53" 8 90.2 start "12px sans" #6b655cff width 28.68 max 112
+text "← reversed" 42.68 90.2 start "12px sans" #6b655cff width 56.69 max 77.32
 text "Domains on the gene" 8 122.2 start "12px sans" #6b655cff width 114.06 max 112
-text "DNA-binding" 568 121.5 start "10px sans" #2d271eff width 56.68 max 61
-text "DNA-binding" 131 121.5 start "10px sans" #2d271eff width 56.68 max 95
+text "DNA-binding" 131 121.5 start "10px sans" #2d271eff width 56.68 max 196
+text "DNA-binding" 333 121.5 start "10px sans" #2d271eff width 56.68 max 296

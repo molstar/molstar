@@ -11,6 +11,9 @@ import type { Meta, StoryObj } from '@storybook/web-components-vite';
 const Stories: Readonly<Record<string, readonly [title: string, name: string]>> = {
   tracks: ['Tracks', 'tracks'],
   'protein-on-gene': ['Protein on its gene', 'protein-on-its-gene'],
+  'one-axis': ['Protein and gene on one axis', 'protein-and-gene-on-one-axis'],
+  'genomic-follower': ['Genomic follower', 'genomic-follower'],
+  'reversed-gene': ['Reversed gene', 'reversed-gene'],
   'gene-by-region': ['Gene by region', 'gene-by-region'],
   'edit-and-undo': ['Edit and undo', 'edit-and-undo'],
   'bookmarks-and-links': ['Bookmarks and links', 'bookmarks-and-links'],
@@ -59,7 +62,7 @@ export const Views: StoryObj = {
     h.textContent = 'p53';
     const intro = document.createElement('p');
     intro.textContent =
-      'Human TP53: its protein with domains and conservation, and a toy gene it is placed on. Each view is one spec over this data.';
+      'Human TP53: its protein with domains and conservation, and a toy gene it is placed on, which encodes it but for one variant (R175H). Each view is one spec over this data.';
     const list = document.createElement('ul');
     for (const v of P53Views) {
       const li = document.createElement('li');

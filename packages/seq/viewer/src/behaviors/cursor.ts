@@ -17,10 +17,13 @@ import type { CommandDefinition, CommandResult } from '@molstar/ui/commands/type
 import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
 import {
   type AddressModel,
+  axisBreaks,
   axisTotal,
   type Cursor,
-  offsetOf,
-  positionAt,
+  cellOffset,
+  elementAt,
+  HiddenMessage,
+  hiddenLength,
   type SelectionModel,
   type SpecModel,
   type ViewModel,
@@ -52,10 +55,8 @@ export function cursorBehavior(
     const section = sectionOf(ctx.section) ?? view.resolved.value?.sections[0];
     const v = section && view.get(section.address);
     if (!section || !v || v.pending) return undefined;
-    const p = positionAt(section.axis, Math.ceil(v.start));
-    return p === undefined
-      ? undefined
-      : { section: section.address, system: section.axis.system, position: Math.floor(p) };
+    const p = elementAt(section.axis, Math.ceil(v.start));
+    return p === undefined ? undefined : { section: section.address, system: section.axis.system, position: p };
   };
 
   /**
@@ -71,22 +72,50 @@ export function cursorBehavior(
     else if (o + 1 > v.end) view.pan(section, o + 1 - v.end);
   };
 
-  /** The cursor a step along its axis, in display order, clamped to the axis. */
+  /**
+   * The cursor a step along its axis, in display order (whatever the direction), clamped to the axis; a step from one
+   * piece to the next goes over the break between them (_spec/README.md "Behaviors", Cursor).
+   */
   const stepped = (c: Cursor, delta: number): Cursor | undefined => {
     const axis = sectionOf(c.section)?.axis;
     const total = axis && axisTotal(axis);
-    const o = axis && offsetOf(axis, c.position);
+    const o = axis && cellOffset(axis, c.position);
     if (!axis || total === undefined || o === undefined) return undefined;
-    const next = Math.min(Math.max(Math.floor(o) + delta, 0), total - 1);
-    const p = positionAt(axis, next + 0.5);
-    return p === undefined ? undefined : { ...c, position: Math.floor(p) };
+    const next = Math.min(Math.max(o + delta, 0), total - 1);
+    const p = elementAt(axis, next);
+    return p === undefined ? undefined : { ...c, position: p };
+  };
+
+  /**
+   * What a step from `a` to `b` crossed: the hidden stretch of the break between them, named for the announcement
+   * ("crossed a break, 1,240 positions hidden"); empty when it crossed none.
+   */
+  const crossed = (a: Cursor, b: Cursor): string => {
+    const axis = sectionOf(b.section)?.axis;
+    if (!axis || a.section !== b.section) return '';
+    const oa = cellOffset(axis, a.position);
+    const ob = cellOffset(axis, b.position);
+    if (oa === undefined || ob === undefined) return '';
+    const breaks = axisBreaks(axis);
+    let hidden = 0;
+    let n = 0;
+    for (let i = 0; i + 2 < breaks.length; i += 3) {
+      const at = breaks[i];
+      if (at > Math.min(oa, ob) && at <= Math.max(oa, ob)) {
+        hidden += hiddenLength(breaks[i + 1], breaks[i + 2], axis.length);
+        n++;
+      }
+    }
+    if (!n) return '';
+    const what = n === 1 ? 'a break' : `${n} breaks`;
+    return `, crossed ${what}, ${hidden.toLocaleString('en-US')} positions hidden`;
   };
 
   const moveTo = (c: Cursor) => {
     selection.setCursor({ ...c, keyboard: true });
     const axis = sectionOf(c.section)?.axis;
-    const o = axis && offsetOf(axis, c.position);
-    if (o !== undefined) reveal(c.section, Math.floor(o));
+    const o = axis && cellOffset(axis, c.position);
+    if (o !== undefined) reveal(c.section, o);
   };
 
   /** The cursor on the section `delta` above or below, its position carried along the view's link. */
@@ -105,8 +134,8 @@ export function cursorBehavior(
     if (part?.ranges.length) return { section: to.address, system: to.axis.system, position: part.ranges[0] };
     // nothing carries it: the first position the section shows
     const v = view.get(to.address);
-    const p = v && !v.pending ? positionAt(to.axis, Math.ceil(v.start)) : undefined;
-    return p === undefined ? undefined : { section: to.address, system: to.axis.system, position: Math.floor(p) };
+    const p = v && !v.pending ? elementAt(to.axis, Math.ceil(v.start)) : undefined;
+    return p === undefined ? undefined : { section: to.address, system: to.axis.system, position: p };
   };
 
   const placed = (ctx: CursorContext): true | string => (current(ctx) ? true : 'No section to move the cursor in');
@@ -144,7 +173,8 @@ export function cursorBehavior(
         selection.extend({ system: next.system, position: next.position }, sectionOf(next.section)?.axis);
       }
       moveTo(next);
-      return { message: select === 'move' ? 'Moved' : select === 'add' ? 'Added' : 'Extended' };
+      const verb = select === 'move' ? 'Moved' : select === 'add' ? 'Added' : 'Extended';
+      return { message: `${verb}${crossed(c, next)}` };
     },
   });
 
@@ -185,7 +215,8 @@ export function cursorBehavior(
         const loc = shown.parts.length ? shown : c ? rangesLocation(c.system, [c.position, c.position + 1]) : undefined;
         if (!loc) return { message: '' };
         const r = addresses.focusLocation(loc);
-        return { message: r === 'moved' ? 'Focused' : r === 'pending' ? 'Kept until the view is placed' : '' };
+        const focused = addresses.movedToBreak ? HiddenMessage : 'Focused';
+        return { message: r === 'moved' ? focused : r === 'pending' ? 'Kept until the view is placed' : '' };
       },
     },
   ];

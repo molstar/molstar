@@ -44,6 +44,10 @@ const LayoutBound: Record<string, number> = {
   // 40.5 KB
   'p53 on its gene, letters': 64_000,
   'p53 on its gene, whole protein': 64_000,
+  // 161 KB (2026-11-19): the codon path's parts made a letter (`projectRanges` clears its buffer, TODO)
+  'p53 on its gene, coding': 240_000,
+  // 272 KB (313 KB run first): the breaks and pieces in view, 1,000 of each
+  'reversed, 150,000 pieces': 470_000,
   // 27.9 KB
   '3M letters (120 positions)': 48_000,
   // 37.3 KB

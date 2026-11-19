@@ -54,6 +54,7 @@ export {
   type AttachOptions,
   attachSources,
   NoAssets,
+  type PositionsViewport,
   type RenderSvgOptions,
   type RenderSvgResult,
   renderSvg,

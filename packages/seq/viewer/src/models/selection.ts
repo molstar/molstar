@@ -27,7 +27,7 @@ import {
   unionLocations,
 } from '@molstar/seqx-core/query';
 import type { Axis } from '@molstar/seqx-core/view';
-import { offsetOf } from './axis.js';
+import { cellOffset } from './axis.js';
 import type { Hit } from './hover.js';
 
 /** What is selected or highlighted: element keys, positions, and the positions drawn (theirs and the elements' extents). */
@@ -92,6 +92,11 @@ const keyId = (k: ElementKey) => `${typeof k.key === 'number' ? 'n' : 's'}${k.ke
 export function hitRange(hit: Hit, axis?: Axis, extent: Location | undefined = hit.extent): Anchor | undefined {
   const part = extent ? partOf(extent, hit.system) : undefined;
   if (part?.ranges.length) return { system: hit.system, ...spanOf(part.ranges, axis) };
+  // a letter through a path (a residue a codon wide): its element on its own system, which the selection projects
+  // onto the section (its codon, by closure); extends by elements there
+  const other = !hit.element && extent?.parts.length === 1 ? extent.parts[0] : undefined;
+  if (other?.ranges.length)
+    return { system: other.system, start: other.ranges[0], end: other.ranges[other.ranges.length - 1] };
   if (hit.position === undefined || Number.isNaN(hit.position)) return undefined;
   const p = Math.floor(hit.position);
   return { system: hit.system, start: p, end: p + 1 };
@@ -106,8 +111,8 @@ function spanOf(ranges: ArrayLike<number>, axis: Axis | undefined): { start: num
   let start = linear.start;
   let end = linear.end;
   for (let i = 0; i + 1 < ranges.length; i += 2) {
-    const a = offsetOf(axis, ranges[i]);
-    const b = offsetOf(axis, ranges[i + 1] - 1);
+    const a = cellOffset(axis, ranges[i]);
+    const b = cellOffset(axis, ranges[i + 1] - 1);
     if (a !== undefined && a < lo) [lo, start] = [a, ranges[i]];
     if (b !== undefined && b > hi) [hi, end] = [b, ranges[i + 1]];
   }
@@ -116,28 +121,48 @@ function spanOf(ranges: ArrayLike<number>, axis: Axis | undefined): { start: num
 
 /**
  * The positions from one span to another, both included, on their system: in display offsets on `axis` and split into
- * its pieces (a range over a cyclic origin is two ranges); without an axis, or a span it does not show, the hull.
+ * its pieces (a range over a cyclic origin is two ranges; on a reversed axis each piece read down), so a drag or an
+ * extend across a break selects the positions shown between its ends (`selection.acrossBreaks: shown`), or with `span`
+ * the hidden stretches between them too; without an axis, or a span it does not show, the hull.
  */
-function between(system: string, a: Anchor, b: Anchor, axis: Axis | undefined): Location {
-  const r = axis?.ranges;
+function between(
+  system: string,
+  a: Anchor,
+  b: Anchor,
+  axis: Axis | undefined,
+  across: 'shown' | 'span' = 'shown',
+): Location {
+  // an axis of another system (a residue's range on its gene's section) reads as no axis: the hull on the system
+  const r = axis?.system === system ? axis.ranges : undefined;
   if (r) {
-    const a0 = offsetOf(axis!, a.start);
-    const a1 = offsetOf(axis!, a.end - 1);
-    const b0 = offsetOf(axis!, b.start);
-    const b1 = offsetOf(axis!, b.end - 1);
-    if (a0 !== undefined && a1 !== undefined && b0 !== undefined && b1 !== undefined) {
-      const lo = Math.min(a0, b0);
-      const hi = Math.max(a1, b1) + 1;
+    const ends = [
+      cellOffset(axis!, a.start),
+      cellOffset(axis!, a.end - 1),
+      cellOffset(axis!, b.start),
+      cellOffset(axis!, b.end - 1),
+    ];
+    if (ends.every((o) => o !== undefined)) {
+      const lo = Math.min(...(ends as number[]));
+      const hi = Math.max(...(ends as number[])) + 1;
       const out: number[] = [];
       let acc = 0;
       for (let i = 0; i + 1 < r.length; i += 2) {
         const w = r[i + 1] - r[i];
         const s = Math.max(lo, acc);
         const e = Math.min(hi, acc + w);
-        if (e > s) out.push(r[i] + s - acc, r[i] + e - acc);
+        if (e > s) {
+          if (axis!.dir === -1) out.push(r[i + 1] - (e - acc), r[i + 1] - (s - acc));
+          else out.push(r[i] + s - acc, r[i] + e - acc);
+        }
         acc += w;
       }
-      if (out.length) return rangesLocation(system, out);
+      if (out.length) {
+        const loc = rangesLocation(system, out);
+        if (across === 'shown' || axis!.cyclic) return loc;
+        // the hidden stretches between the ends too: the hull of what is shown between them
+        const part = loc.parts[0].ranges;
+        return rangesLocation(system, [part[0], part[part.length - 1]]);
+      }
     }
   }
   const lin = (x: Anchor) =>
@@ -167,6 +192,8 @@ export type ExtendScope = 'range' | 'selection';
 export interface SelectionOptions {
   /** `range` by default (`selection.extendScope`). */
   readonly extendScope?: ExtendScope;
+  /** What a drag or an extend across a break selects: the positions shown (`shown`, the default) or the span. */
+  readonly acrossBreaks?: 'shown' | 'span';
 }
 
 /** What an extend keeps: the selection less the range the anchor is in, set when the anchor is. */
@@ -196,6 +223,7 @@ export class SelectionModel extends ReactiveModel {
       }
     | undefined;
   private readonly _scope: ExtendScope;
+  private readonly _across: 'shown' | 'span';
   /** The selection: an equal value tells nothing. */
   readonly value: ReadonlyState<Emphasized> = this._value.asReadonly;
   /** The keyboard cursor; an equal one tells nothing. */
@@ -211,6 +239,7 @@ export class SelectionModel extends ReactiveModel {
   ) {
     super();
     this._scope = options.extendScope ?? 'range';
+    this._across = options.acrossBreaks ?? 'shown';
   }
 
   /** Where an extend starts: the last element or cell set, toggled or begun from (none after a clear). */
@@ -269,7 +298,7 @@ export class SelectionModel extends ReactiveModel {
     const range = hit ? hitRange(hit, axis, this._extentOfHit(hit)) : undefined;
     if (!a || !range || range.system !== a.system) return hit ? this.select(hit, axis) : false;
     const before = this._value.value;
-    this._value.set(this._extended(between(a.system, a, range, axis)));
+    this._value.set(this._extended(between(a.system, a, range, axis, this._across)));
     return before !== this._value.value;
   }
 
@@ -369,8 +398,14 @@ export class SelectionModel extends ReactiveModel {
     const p = Math.floor(position);
     let cur: Anchor = { system: a.system, start: p, end: p + 1 };
     if (d.snap && hit?.element && hit.system === a.system) cur = hitRange(hit, axis, this._extentOfHit(hit)) ?? cur;
+    if (axis && axis.system !== a.system) {
+      // a drag begun on a residue of another system (a residue row): whole residues, from the one under the pointer
+      const r = hit ? hitRange(hit, axis, this._extentOfHit(hit)) : undefined;
+      if (!r || r.system !== a.system) return false;
+      cur = r;
+    }
     const before = this._value.value;
-    const loc = between(a.system, a, cur, axis);
+    const loc = between(a.system, a, cur, axis, this._across);
     switch (d.mode) {
       case 'replace':
         this._anchor = a;

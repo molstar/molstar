@@ -39,6 +39,8 @@ export interface RendererOptions {
 export interface FrameInput {
   readonly size: { readonly width: number; readonly height: number };
   readonly viewport?: Viewport;
+  /** A section's own window by its address, before `viewport` (an export placing sections one by one). */
+  readonly viewports?: Readonly<Record<string, Viewport>>;
   readonly dpr?: number;
   readonly settled?: boolean;
   readonly overlay?: Overlay;
@@ -73,6 +75,7 @@ class KeyParts {
   height = Number.NaN;
   dpr = Number.NaN;
   viewport = false;
+  viewports: Readonly<Record<string, Viewport>> | undefined = undefined;
   start = Number.NaN;
   end = Number.NaN;
   tokens = Number.NaN;
@@ -93,6 +96,7 @@ class KeyParts {
       this.dpr === (input.dpr ?? 1) &&
       this.viewport === (vp !== undefined) &&
       (vp === undefined || (this.start === vp.start && this.end === vp.end)) &&
+      this.viewports === input.viewports &&
       this.tokens === r.tokens.version &&
       this.text === r.options.text.version &&
       this.overlay === (input.overlay ?? EmptyOverlay).version &&
@@ -107,6 +111,7 @@ class KeyParts {
     this.height = input.size.height;
     this.dpr = input.dpr ?? 1;
     this.viewport = input.viewport !== undefined;
+    this.viewports = input.viewports;
     this.start = input.viewport?.start ?? Number.NaN;
     this.end = input.viewport?.end ?? Number.NaN;
     this.tokens = r.tokens.version;
@@ -117,7 +122,10 @@ class KeyParts {
 
   /** The key's text (the store's reads appended by the caller). */
   toString(configKey: string): string {
-    const vp = this.viewport ? `${this.start}:${this.end}` : 'all';
+    let vp = this.viewport ? `${this.start}:${this.end}` : 'all';
+    if (this.viewports)
+      for (const [a, v] of Object.entries(this.viewports).sort(([x], [y]) => (x < y ? -1 : 1)))
+        vp += `|${a}=${v.start}:${v.end}`;
     return [
       this.model,
       this.view,
@@ -244,6 +252,7 @@ export class Renderer {
         view,
         size: input.size,
         ...(input.viewport ? { viewport: input.viewport } : {}),
+        ...(input.viewports ? { viewports: input.viewports } : {}),
         dpr,
         tokens: this.tokens,
         text: this.options.text,

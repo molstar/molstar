@@ -61,11 +61,38 @@ export function layerSource(model: StaticModel, layer: ResolvedLayer): LayerSour
   };
 }
 
-/** The data's positions in view (`[start, end, …]`, sorted, merged): the section's carried back along the path. */
-export function dataRegions(src: LayerSource, axis: AxisTransform): number[] {
+/**
+ * The data's positions in view (`[start, end, …]`, sorted, merged): the section's carried back along the path; with
+ * `hidden`, the stretches the breaks in view hide too (what a layer draws as their ticks). Near ones merged (`near`,
+ * `mergeNear`: what a layer reads); without, exactly those in view (what a layer walks position by position).
+ */
+export function dataRegions(src: LayerSource, axis: AxisTransform, hidden = false, near = true): number[] {
   const vis = axis.visible([]);
-  if (!src.back) return Array.from(HalfOpenRanges.normalize(vis));
-  return Array.from(HalfOpenRanges.normalize(projectRanges(src.back, vis)));
+  if (hidden) {
+    const b = axis.breaks([]);
+    for (let i = 0; i + 2 < b.length; i += 3)
+      if (b[i + 2] >= b[i + 1]) vis.push(b[i + 1], b[i + 2]);
+      else vis.push(b[i + 1], axis.length ?? b[i + 1], 0, b[i + 2]);
+  }
+  const exact = HalfOpenRanges.normalize(src.back ? projectRanges(src.back, vis) : vis);
+  return near ? mergeNear(exact) : Array.from(exact);
+}
+
+/** Gaps of at most this many positions between regions are read with them (small: an intron of an exon pair stays apart). */
+export const ReadGap = 16;
+
+/**
+ * Sorted, merged regions with the gaps of at most `ReadGap` positions between them closed: a collapsed axis's pieces
+ * in view (150,000 single positions, EC-33) are read as a few regions, not a want each.
+ */
+export function mergeNear(ranges: ArrayLike<number>, gap = ReadGap): number[] {
+  const out: number[] = [];
+  for (let i = 0; i + 1 < ranges.length; i += 2) {
+    const n = out.length;
+    if (n && ranges[i] - out[n - 1] <= gap) out[n - 1] = Math.max(out[n - 1], ranges[i + 1]);
+    else out.push(ranges[i], ranges[i + 1]);
+  }
+  return out;
 }
 
 /** A region on the data's system carried onto the section's as pieces (`[start, end, …]`), into `out`. */

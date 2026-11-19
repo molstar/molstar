@@ -47,7 +47,7 @@ describe('ViewModel: scroll groups and follow (EC-113, EC-114)', () => {
 
   it('the gene follows the protein through the codon map at scale 3, over the intron, on both strands', () => {
     for (const strand of ['+', '-'] as const) {
-      const { view, range } = setup({ strand });
+      const { view, range } = setup({ strand, direction: 'genomic' });
       view.setWidth(ProteinSection, 20);
       view.setWidth(GeneSection, 20);
       expect(view.get(GeneSection)?.leader).toBe(ProteinSection);

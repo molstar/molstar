@@ -73,6 +73,13 @@ export interface Hit {
   readonly hull?: readonly [number, number];
   readonly position?: number;
   readonly system: string;
+  /**
+   * `break`: a collapsed break (within 3 CSS px of its notch, or on a tick of the items it hides): `position` the
+   * section's position at its edge (the last shown before it in display order), `extent` the hidden stretch on the
+   * section's system, `layer` the section's address, `count` the hidden items a tick stands for.
+   */
+  readonly target?: 'break';
+  readonly count?: number;
 }
 
 /** A section's id: the last step of its address. */

@@ -13,12 +13,15 @@
 import type { Op, Patch } from '@molstar/core/repr/patch';
 import { type Node, resolveAddress, type Value } from '@molstar/core/repr/tree';
 import type { CommandDefinition, CommandResult } from '@molstar/ui/commands/types';
-import type { EditOutcome, SpecModel } from '@molstar/seqx-viewer/models';
+import type { EditOutcome, SelectionModel, SpecModel, ViewModel } from '@molstar/seqx-viewer/models';
 import type { EditContext, EditOrigin } from '@molstar/seqx-viewer/ports';
 
 /** What an editing command is given: the node it edits, and what each needs. */
 export interface EditingContext {
-  /** The node's address: a layer (`layer.*`), a track (`track.*`), a ref (`refs.remove`), a section (`track.add`). */
+  /**
+   * The node's address: a layer (`layer.*`), a track (`track.*`), a ref (`refs.remove`), a section (`track.add`,
+   * `section.*`: else the keyboard cursor's section, else the first leading one).
+   */
   readonly address?: string;
   /** `track.move`, `track.add`: the sibling it goes after; null: first (`track.add`: last when absent). */
   readonly after?: string | null;
@@ -47,6 +50,8 @@ export const EditingCommandIds = {
   addTrack: 'track.add',
   removeRef: 'refs.remove',
   labelRef: 'refs.label',
+  reverseSection: 'section.reverse',
+  collapseSection: 'section.collapse',
   enterStep: 'step.enter',
   leaveStep: 'step.leave',
   cancelPreview: 'preview.cancel',
@@ -72,7 +77,13 @@ function nodeOf(root: Node, address: string | undefined, kind: string): Node | u
   return n?.kind === kind ? n : undefined;
 }
 
-export function editingBehavior(spec: SpecModel): EditingBehavior {
+/** What the axis commands read: the resolved view (a direction resolved), the keyboard cursor's section. */
+export interface AxisReaders {
+  readonly view: ViewModel;
+  readonly selection: SelectionModel;
+}
+
+export function editingBehavior(spec: SpecModel, axis?: AxisReaders): EditingBehavior {
   let disposed = false;
   const said =
     (done: string) =>
@@ -93,7 +104,66 @@ export function editingBehavior(spec: SpecModel): EditingBehavior {
     (ctx: EditingContext): true | string =>
       disposed ? 'The viewer is retired' : nodeOf(spec.root.value, ctx.address, kind) ? true : `No ${what} there`;
 
+  /** The section an axis command acts on: the one named, else the keyboard cursor's, else the first leading one. */
+  const sectionOf = (ctx: EditingContext): string | undefined => {
+    const root = spec.root.value;
+    if (ctx.address !== undefined) return nodeOf(root, ctx.address, 'section') ? ctx.address : undefined;
+    const c = axis?.selection.cursor.value?.section;
+    if (c !== undefined && nodeOf(root, c, 'section')) return c;
+    const first = axis?.view.resolved.value?.sections.find((x) => !x.follow) ?? axis?.view.resolved.value?.sections[0];
+    return first?.address;
+  };
+  const sectionNeeded = (ctx: EditingContext): true | string =>
+    disposed ? 'The viewer is retired' : sectionOf(ctx) ? true : 'No section there';
+  /** A section's direction as resolved (a `follow` or `along` resolved), 1 when not shown. */
+  const resolvedDir = (address: string): 1 | -1 =>
+    axis?.view.resolved.value?.sections.find((x) => x.address === address)?.axis.dir ?? 1;
+
   const commands: CommandDefinition<EditingContext>[] = [
+    {
+      id: EditingCommandIds.reverseSection,
+      title: 'Reverse a section',
+      category: 'Edit',
+      shortcut: { key: 'R', shift: true },
+      when: sectionNeeded,
+      run: (_, ctx) => {
+        // `genomic` and `reversed` swap; `follow` or `along` becomes the explicit opposite of what it resolved to
+        const at = sectionOf(ctx)!;
+        const node = nodeOf(spec.root.value, at, 'section')!;
+        const d = node.params?.direction;
+        const next =
+          d === 'genomic' ? 'reversed' : d === 'reversed' ? 'genomic' : resolvedDir(at) === -1 ? 'genomic' : 'reversed';
+        return edit(
+          'Reverse a section',
+          () => [{ op: 'set', at: ids(at), key: 'direction', value: next }],
+          ctx,
+          'Reversed',
+        );
+      },
+    },
+    {
+      id: EditingCommandIds.collapseSection,
+      title: 'Collapse or expand a section’s hidden stretches',
+      category: 'Edit',
+      shortcut: { key: 'C', shift: true },
+      when: sectionNeeded,
+      run: (_, ctx) => {
+        // `pieces` between `whole` and the section's `collapsed` (`coding` when absent); no memory of an earlier form
+        const at = sectionOf(ctx)!;
+        const node = nodeOf(spec.root.value, at, 'section')!;
+        const pieces = node.params?.pieces;
+        const whole = pieces === undefined || pieces === 'whole';
+        const op: Op = whole
+          ? { op: 'set', at: ids(at), key: 'pieces', value: node.params?.collapsed ?? 'coding' }
+          : { op: 'unset', at: ids(at), key: 'pieces' };
+        return edit(
+          whole ? 'Collapse a section' : 'Expand a section',
+          () => [op],
+          ctx,
+          whole ? 'Collapsed' : 'Expanded',
+        );
+      },
+    },
     {
       id: EditingCommandIds.hideLayer,
       title: 'Hide a layer',

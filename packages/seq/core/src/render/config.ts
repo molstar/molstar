@@ -84,6 +84,13 @@ export interface RenderConfig {
     /** The keyboard cursor's ink, a token (`msui-text`: neutral, never the selection's accent). */
     readonly cursorInk: SeqTokenName;
   };
+  /**
+   * The axis's marks: a reversed axis says so in its section's first label (`directionMark`: `label`, an arrow and
+   * "reversed", or "along" what it reads along; `none` for a host whose own chrome says it). Fixed: a break is a
+   * hairline in the break ink (`seq-break`) across the section's band with a notch above it, zero units wide, hit
+   * within 3 CSS px of its notch and on its hidden items' ticks.
+   */
+  readonly axis: { readonly directionMark: 'label' | 'none' };
   /** What a want adds on each side of the view, as a fraction of it (the store's `margin` priority). */
   readonly margin: number;
   /** A follower's leader pieces carried as their image's hull, or the shortest arc on a cyclic follower. */
@@ -141,6 +148,7 @@ export const DefaultRenderConfig: RenderConfig = {
     hoverOffset: 1,
     cursorInk: 'msui-text',
   },
+  axis: { directionMark: 'label' },
   margin: 0.5,
   followArc: 'shortest',
   maxTemplateTracks: 200,
@@ -165,6 +173,7 @@ export function renderConfig(over: RenderConfigOverrides = {}): RenderConfig {
     ...DefaultRenderConfig,
     ...(over as Partial<RenderConfig>),
     nodes: { ...DefaultRenderConfig.nodes, ...over.nodes },
+    axis: { ...DefaultRenderConfig.axis, ...over.axis },
     heights: { ...DefaultRenderConfig.heights, ...over.heights },
     density: { ...DefaultRenderConfig.density, ...over.density },
     densityUnits: { ...DefaultRenderConfig.densityUnits, ...over.densityUnits },

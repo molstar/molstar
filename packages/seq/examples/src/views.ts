@@ -7,6 +7,7 @@
 import type { Node } from '@molstar/core/repr/tree';
 import type { SeqRegistryEntry } from '@molstar/seqx-core/context';
 import * as addressing from './p53/addressing.js';
+import * as axis from './p53/axis.js';
 import * as bookmarks from './p53/bookmarks.js';
 import * as geneByRegion from './p53/gene-by-region.js';
 import * as proteinOnGene from './p53/protein-on-gene.js';
@@ -42,8 +43,32 @@ export const P53Views: readonly ExampleView[] = [
     id: 'protein-on-gene',
     title: 'Protein on its gene',
     summary:
-      'The gene’s section follows the protein’s through the codon map: minus strand, three exons. Its introns are drawn at their full width, so one in view widens the gene’s window.',
+      'The gene’s section follows the protein’s through the codon map (minus strand, three exons), reading along it (`direction: follow`) on its coding pieces: each intron a hairline, three nucleotides a residue, both moving the same way.',
     build: proteinOnGene.build,
+  },
+  {
+    dataset: 'p53',
+    id: 'one-axis',
+    title: 'Protein and gene on one axis',
+    summary:
+      'One gene section with the protein’s letters a codon wide, its domains and the gene’s letters: it reads along the protein (`{ along: p53 }`) on its coding pieces; a codon split by an intron is drawn in each part; R175H, the gene’s one variant, is marked as a conflict.',
+    build: axis.oneAxis,
+  },
+  {
+    dataset: 'p53',
+    id: 'genomic-follower',
+    title: 'Genomic follower',
+    summary:
+      'For contrast: the gene follows its protein in genomic order (`direction: genomic`, introns shown), so on the minus strand it moves against the protein.',
+    build: axis.genomicFollower,
+  },
+  {
+    dataset: 'p53',
+    id: 'reversed-gene',
+    title: 'Reversed gene',
+    summary:
+      'The gene alone, reversed: positions count down left to right, its letters read on the other strand (the complement), the domains through the codon map; Shift+C collapses its introns.',
+    build: axis.reversedGene,
   },
   {
     dataset: 'p53',

@@ -102,6 +102,20 @@ describe('draw-list records', () => {
     record('p53-gene', recordDrawLists(r.lists));
     ctx.retire();
   });
+
+  it('p53 and its gene on one axis: residues a codon wide over the break between two exons, a viewport in positions', async () => {
+    const ctx = context();
+    const spec = ExampleViews.find((v) => v.id === 'one-axis')!.build();
+    const r = await ctx.renderSvg(spec, {
+      size: { width: 640, height: 116 },
+      viewport: { positions: { '/views/main/gene': [885, 975] } },
+    });
+    expect(r.issues).toEqual([]);
+    expect(r.settled).toBe(true);
+    expect(r.svg).toContain('data-direction="reversed" data-pieces="coding"');
+    record('p53-one-axis', recordDrawLists(r.lists));
+    ctx.retire();
+  });
 });
 
 describe('p53 gene by region', () => {

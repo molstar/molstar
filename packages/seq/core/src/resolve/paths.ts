@@ -9,6 +9,7 @@
 // A codon step is a scale: a residue `k` is the triplet `3k, 3k + 1, 3k + 2` of fine places, so every map on the
 // protein's side is scaled by 3 and the whole path is one linear map of fine places.
 
+import { HalfOpenRanges } from '@molstar/core/data/int/half-open-ranges';
 import {
   composeLinear,
   ImplicitLinear,
@@ -113,24 +114,81 @@ export function projectRanges(p: Path, ranges: ArrayLike<number>, out: number[] 
 }
 
 /**
- * The continuous image of a position `x` (a viewport's fractional edge): the edge where element `floor(x)` starts on
- * the target, plus the fraction times the scale in the run's direction; undefined where the element maps nowhere. A
- * follower moves smoothly with its leader within a run.
+ * A position as a fine place across a codon step (`3x`), else itself; within 1e-9 of a whole place, that place: a third
+ * is not exact in floating point, and `3 · (7 / 3)` just short of 7 would land in the place before (across an intron).
  */
-export function projectPoint(p: Path, x: number): number | undefined {
-  const k = Math.floor(x);
-  const frac = x - k;
-  const r = p.linear.forward(p.step === 1 ? 3 * k : k, (p.step === 1 ? 3 * k : k) + 1)[0];
-  if (!r) return undefined;
-  const edge = r.dir === 1 ? r.to : r.to + 1;
-  if (p.step === 1) return edge + frac * 3 * r.dir;
-  if (p.step === -1) return (edge + frac * r.dir) / 3;
-  return edge + frac * r.dir;
+function finePlace(p: Path, x: number): number {
+  if (p.step !== 1) return x;
+  const f = 3 * x;
+  const r = Math.round(f);
+  return Math.abs(f - r) < 1e-9 ? r : f;
 }
 
-/** The direction of a path: −1 where it reverses (a minus-strand gene), else 1 (its first run's for a path that turns). */
+/**
+ * The continuous image of a position `x` (a viewport's fractional edge), place by place: across a codon step a residue
+ * `x` is the fine place `3x`, so each nucleotide of a codon is its own edge and a codon split by an intron follows its
+ * nucleotides, never the intron. The edge where place `floor(x)` starts on the target plus the fraction in the run's
+ * direction; undefined where the place maps nowhere. A follower moves smoothly with its leader within a run.
+ */
+export function projectPoint(p: Path, x: number): number | undefined {
+  const fx = finePlace(p, x);
+  const k = Math.floor(fx);
+  const frac = fx - k;
+  const r = p.linear.forward(k, k + 1)[0];
+  if (!r) return undefined;
+  const edge = (r.dir === 1 ? r.to : r.to + 1) + frac * r.dir;
+  return p.step === -1 ? edge / 3 : edge;
+}
+
+/**
+ * The image of a window's end `x`: at a whole position the far edge of the place before it (so a window ending on an
+ * element's edge ends at its image's far edge, not the next element's start); within one, `projectPoint`.
+ */
+export function projectEnd(p: Path, x: number): number | undefined {
+  const fx = finePlace(p, x);
+  if (!Number.isInteger(fx)) return projectPoint(p, x);
+  const r = p.linear.forward(fx - 1, fx)[0];
+  if (!r) return undefined;
+  const edge = r.dir === 1 ? r.to + 1 : r.to;
+  return p.step === -1 ? edge / 3 : edge;
+}
+
+/**
+ * The direction of a path: the direction of the runs covering most of its length, −1 where it reverses (a minus-strand
+ * gene); `mixed` when it has runs both ways (an inversion). Why the majority: a direction that changed while panning
+ * would turn an axis over under the hand.
+ */
+export function pathDirection(p: Path): { readonly dir: 1 | -1; readonly mixed: boolean } {
+  const runs = p.linear.runs();
+  if (!runs) return { dir: linearDir(p.linear), mixed: false };
+  let up = 0;
+  let down = 0;
+  for (const r of runs)
+    if (r.dir === 1) up += r.length;
+    else down += r.length;
+  return { dir: down > up ? -1 : 1, mixed: up > 0 && down > 0 };
+}
+
+/** The direction of a path (`pathDirection`'s). */
 export function pathDir(p: Path): 1 | -1 {
-  return linearDir(p.linear);
+  return pathDirection(p).dir;
+}
+
+/**
+ * The positions on the nucleotide side of a path with a codon step: its coding runs (sorted, merged `[start, end, …]`);
+ * undefined for a path without one, or one unbounded.
+ */
+export function codingRanges(p: Path): number[] | undefined {
+  if (p.step === 0) return undefined;
+  const runs = p.linear.runs();
+  if (!runs) return undefined;
+  const out: number[] = [];
+  for (const r of runs) {
+    if (p.step === -1) out.push(r.from, r.from + r.length);
+    else if (r.dir === 1) out.push(r.to, r.to + r.length);
+    else out.push(r.to - r.length + 1, r.to + 1);
+  }
+  return Array.from(HalfOpenRanges.normalize(out));
 }
 
 /** The fine image of one place, with the direction of its run, or undefined. */

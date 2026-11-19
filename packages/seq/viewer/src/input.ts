@@ -30,6 +30,7 @@ import {
   hitTarget,
   isNothing,
   nearestOffsetOf,
+  cellOffset,
   offsetOf,
 } from '@molstar/seqx-viewer/models';
 import type { SeqViewer } from './viewer.js';
@@ -374,19 +375,20 @@ export class ViewerInput {
   private _focusOf(section: string, hit: Hit): { start: number; end: number } | undefined {
     const axis = this.viewer.view.resolved.value?.sections.find((s) => s.address === section)?.axis;
     if (!axis) return undefined;
+    // the edges' offsets, in display order whatever the axis's direction
     if (hit.hull && hit.hull[1] > hit.hull[0]) {
       const a = nearestOffsetOf(axis, hit.hull[0]);
-      const b = nearestOffsetOf(axis, hit.hull[1] - 1);
-      if (a !== undefined && b !== undefined) return { start: Math.min(a, b), end: Math.max(a, b) + 1 };
+      const b = nearestOffsetOf(axis, hit.hull[1]);
+      if (a !== undefined && b !== undefined && a !== b) return { start: Math.min(a, b), end: Math.max(a, b) };
     }
     const part = hit.extent?.parts.find((p) => p.system === hit.system);
     if (part && part.ranges.length >= 2) {
-      const start = offsetOf(axis, part.ranges[0]);
-      const end = offsetOf(axis, part.ranges[part.ranges.length - 1]);
-      return start !== undefined && end !== undefined ? { start, end } : undefined;
+      const a = offsetOf(axis, part.ranges[0]);
+      const b = offsetOf(axis, part.ranges[part.ranges.length - 1]);
+      return a !== undefined && b !== undefined ? { start: Math.min(a, b), end: Math.max(a, b) } : undefined;
     }
     if (hit.position === undefined) return undefined;
-    const start = offsetOf(axis, Math.floor(hit.position));
+    const start = cellOffset(axis, Math.floor(hit.position));
     return start === undefined ? undefined : { start, end: start + 1 };
   }
 

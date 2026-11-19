@@ -39,4 +39,22 @@ export const ViewIssues = defineIssues('seq.view', {
     description: 'A section follows one whose system no static path joins to its own; it does not follow',
     hint: 'Add a map between the sections’ systems',
   },
+  'seq.view.section.pieces': {
+    severity: 'warning',
+    description:
+      'A section’s `pieces` reach no piece of its system (`coding` with no codon map, a ranges node on another system); it shows `whole`',
+    hint: 'Name a codon map or a ranges node on the section’s system, or follow or read along a protein for `coding`',
+  },
+  'seq.view.direction.unresolved': {
+    severity: 'warning',
+    description:
+      'A section’s direction cannot be resolved (`follow` with no leader placed, `along` a system no path reaches); it is `genomic`',
+    hint: 'Follow a section whose system a path joins, or read along a system that reaches this one',
+  },
+  'seq.view.direction.mixed': {
+    severity: 'info',
+    description:
+      'The path a section’s direction is read along runs both ways (an inversion); the direction of most of its length is taken',
+    hint: 'Spell `genomic` or `reversed` to choose',
+  },
 });

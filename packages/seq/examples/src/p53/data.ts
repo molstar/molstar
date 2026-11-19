@@ -9,9 +9,11 @@ import { createSeqSpec } from '@molstar/seqx-core/lang';
 
 // The p53 dataset: human TP53 (UniProt P04637), 393 residues, its domains and a conservation signal per residue, and a
 // toy gene it is placed on (minus strand, three coding exons). The protein is the real one; the domains' bounds are
-// illustrative; the conservation and the gene's letters are generated from a seed and never stored, but the gene's letters
-// are also committed as a small file (`fixtures/p53/tp53-gene.seq`) that the views read through the source protocol,
-// the way data that is not inline is read.
+// illustrative; the conservation and the gene's introns and flanks are generated from a seed and never stored; the
+// gene's coding exons encode the protein (one codon a residue, the same for each amino acid) but for one known variant,
+// R175H, so a view checking codons shows the conflict where it is. The gene's letters are also committed as a small
+// file (`fixtures/p53/tp53-gene.seq`) that the views read through the source protocol, the way data that is not inline
+// is read.
 
 /** Human p53 (UniProt P04637), 393 residues. */
 export const P53 =
@@ -56,12 +58,56 @@ export const GeneExons = { start: [100, 480, 960], end: [400, 900, 1422] };
 
 export const GeneLength = 1500;
 
-/** The toy gene's letters: from a seed. */
+/** A codon for each amino acid (the one human genes use most), and the stop. */
+const Codons: Readonly<Record<string, string>> = {
+  A: 'GCC',
+  R: 'CGG',
+  N: 'AAC',
+  D: 'GAC',
+  C: 'TGC',
+  Q: 'CAG',
+  E: 'GAG',
+  G: 'GGC',
+  H: 'CAC',
+  I: 'ATC',
+  L: 'CTG',
+  K: 'AAG',
+  M: 'ATG',
+  F: 'TTC',
+  P: 'CCC',
+  S: 'AGC',
+  T: 'ACC',
+  W: 'TGG',
+  Y: 'TAC',
+  V: 'GTG',
+  '*': 'TGA',
+};
+
+/** The variant the toy gene carries: R175H (residue 174 from 0, a hotspot), its codon His where the protein says Arg. */
+export const GeneVariant = { residue: 174, from: 'R', to: 'H' } as const;
+
+/** The coding sequence, 5' to 3': p53 back-translated, the variant's codon, then the stop (1182 nucleotides). */
+export function geneCoding(): string {
+  let s = '';
+  for (let i = 0; i < P53.length; i++) s += Codons[i === GeneVariant.residue ? GeneVariant.to : P53[i]];
+  return `${s}${Codons['*']}`;
+}
+
+const Complement: Readonly<Record<string, string>> = { A: 'T', C: 'G', G: 'C', T: 'A' };
+
+/**
+ * The toy gene's letters: the flanks and introns from a seed; the coding sequence on the minus strand, read from the
+ * last exon's end down, complemented.
+ */
 export function geneLetters(): string {
   const r = seeded(17);
-  let s = '';
-  for (let i = 0; i < GeneLength; i++) s += 'ACGT'[Math.floor(r() * 4)];
-  return s;
+  const s: string[] = [];
+  for (let i = 0; i < GeneLength; i++) s.push('ACGT'[Math.floor(r() * 4)]);
+  const coding = geneCoding();
+  let c = 0;
+  for (let k = GeneExons.start.length - 1; k >= 0; k--)
+    for (let g = GeneExons.end[k] - 1; g >= GeneExons.start[k]; g--) s[g] = Complement[coding[c++]];
+  return s.join('');
 }
 
 /** The committed file of the gene's letters: the source a view names by location. */

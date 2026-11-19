@@ -25,9 +25,12 @@ describe('resolved view: the p53 example', () => {
     expect(main.layout).toBe('tracks');
     expect(main.issues).toEqual([]);
     expect(main.sections.map((s) => [s.address, s.axis])).toEqual([
-      ['/views/main/protein', { system: '/data/p53', length: 30, cyclic: false, ranges: [0, 30] }],
+      [
+        '/views/main/protein',
+        { system: '/data/p53', length: 30, cyclic: false, ranges: [0, 30], dir: 1, pieces: 'whole' },
+      ],
       // the gene's length is not known yet: its axis is pending
-      ['/views/main/gene', { system: '/data/tp53', cyclic: false }],
+      ['/views/main/gene', { system: '/data/tp53', cyclic: false, dir: -1, pieces: 'whole' }],
     ]);
     expect(resolveViews(model)).toEqual([main]);
     expect(resolveView(model, '/views/main')).toBe(main);
@@ -165,13 +168,21 @@ describe('resolved view: layers on other systems, queries, themes', () => {
     const lone = v.sections[1].tracks[0].layers[0];
     expect([lone.placed, lone.path]).toEqual([false, undefined]);
     expect(v.sections[2].follow).toBeUndefined();
-    expect(codes(v.issues)).toEqual(['seq.view.layer.unplaced', 'seq.view.follow.unplaced']);
-    expect(v.issues.map((i) => i.address)).toEqual(['/views/v/lone/t/ranges', '/views/v/follower']);
-    expect(v.issues[0].hint).toContain('No path of maps joins the systems');
+    // the follows are resolved before the axes (a follower's direction reads its path), so its issue comes first
+    expect(codes(v.issues)).toEqual(['seq.view.follow.unplaced', 'seq.view.layer.unplaced']);
+    expect(v.issues.map((i) => i.address)).toEqual(['/views/v/follower', '/views/v/lone/t/ranges']);
+    expect(v.issues[1].hint).toContain('No path of maps joins the systems');
   });
 
   it('keeps a section’s range', () => {
-    expect(v.sections[0].axis).toEqual({ system: '/data/tp53', length: 200, cyclic: false, ranges: [90, 200] });
+    expect(v.sections[0].axis).toEqual({
+      system: '/data/tp53',
+      length: 200,
+      cyclic: false,
+      ranges: [90, 200],
+      dir: 1,
+      pieces: 'whole',
+    });
   });
 
   it('reports a layer whose data names nothing (an unchecked spec)', () => {
@@ -209,6 +220,21 @@ describe('resolved view: cyclic sections', () => {
     expect(followRange(v.sections[1], [1, 5], { arc: 'hull' })).toEqual([0, 10]);
   });
 
+  it('a reversed cyclic follower takes its arc in its own display order: the piece below the origin first', () => {
+    const c = createSeqSpec();
+    const a = c.data.sequence('a', { alphabet: 'dna', letters: 'ACGTAC' });
+    const pl = c.data.sequence('plasmid', { alphabet: 'dna', letters: 'ACGTACGTAC', cyclic: true });
+    c.data.map('m', { from: a, to: pl, method: 'offset', by: 7 });
+    c.views.view('v', (view) => {
+      const lead = view.section('a', { of: a });
+      view.section('pl', { of: pl, range: [8, 2], follow: lead, direction: 'reversed' });
+    });
+    const f = resolveView(resolveSpec(c.build()), '/views/v')!.sections[1];
+    expect(f.axis.ranges).toEqual([0, 2, 8, 10]);
+    expect(followRange(f, [1, 5])).toEqual([0, 2, 8, 10]);
+    expect(followRange(f, [0, 2])).toEqual([7, 9]);
+  });
+
   it('a leader range over its cyclic origin is split before it is carried', () => {
     const c = createSeqSpec();
     const pl = c.data.sequence('plasmid', { alphabet: 'dna', letters: 'ACGTACGTAC', cyclic: true });
@@ -232,7 +258,7 @@ describe('resolved view: p53 on chr17', () => {
     const v = resolveView(m, '/views/main')!;
     expect(v.issues).toEqual([]);
     const gene = v.sections[1];
-    expect(gene.axis).toEqual({ system: '/data/chr17', cyclic: false });
+    expect(gene.axis).toEqual({ system: '/data/chr17', cyclic: false, dir: -1, pieces: 'whole' });
     expect(gene.tracks[0].layers[0].path?.step).toBe(1);
     expect(followRange(gene, [93, 292])).toEqual([7673743, 7676089]);
     expect(gene.follow?.dir).toBe(-1);

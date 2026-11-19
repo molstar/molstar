@@ -4,9 +4,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { rangesLocation } from '@molstar/seqx-core/query';
+import type { ResolvedSection } from '@molstar/seqx-core/view';
 import type { AxisTransform } from './axis.js';
 import { NoColor, type PassWriter } from './draw-lists.js';
-import type { Box, Emphasis } from './layer-type.js';
+import type { Box, Emphasis, Hit } from './layer-type.js';
 import { type SeqTokens, withAlpha } from './tokens.js';
 
 // Marks every layer type draws alike: spans as bands (placeholders, bars), and the hover's outline of a cell.
@@ -69,4 +71,30 @@ export function hoverCell(lay: CellLay & { readonly key: string }, out: PassWrit
 /** The failed placeholders, a conflict tint over each span: with none, nothing is drawn and nothing made. */
 export function drawFailed(out: PassWriter, spans: readonly number[], y: number, h: number, tokens: SeqTokens) {
   if (spans.length) drawSpans(out, spans, y, h, withAlpha(tokens.colors['seq-conflict'], 0.25));
+}
+
+/**
+ * A break as a hit (`target: 'break'`): the section's position at its edge (the last shown before it in display order),
+ * the hidden stretch as its extent on the section's system (two ranges across a cyclic origin).
+ */
+export function breakHit(
+  s: { readonly section: Pick<ResolvedSection, 'address'>; readonly id: string },
+  axis: AxisTransform,
+  x: number,
+  hiddenStart: number,
+  hiddenEnd: number,
+  count?: number,
+): Hit {
+  const length = axis.length ?? hiddenStart;
+  const ranges = hiddenEnd >= hiddenStart ? [hiddenStart, hiddenEnd] : [0, hiddenEnd, hiddenStart, length];
+  const position = axis.positionAt(Math.min(x, axis.x0 + axis.width - 1e-6) - 1e-6);
+  return {
+    layer: s.section.address,
+    section: s.id,
+    system: axis.system,
+    target: 'break',
+    position: position >= 0 ? position : axis.dir === -1 ? hiddenEnd : hiddenStart - 1,
+    extent: rangesLocation(axis.system, ranges),
+    ...(count !== undefined ? { count } : {}),
+  };
 }

@@ -12,18 +12,18 @@
 
 import { batch, derive, KeyedState, type ReadonlyState, ReactiveModel, State } from '@molstar/core/reactive';
 import { type Node, parseAddress } from '@molstar/core/repr/tree';
-import { inversePath, type Path, projectPoint } from '@molstar/seqx-core/resolve';
+import { inversePath, type Path, projectEnd, projectPoint } from '@molstar/seqx-core/resolve';
 import {
   type Axis,
   type Follow,
-  followRange,
+  followWindow,
   type ResolvedSection,
   type ResolvedView,
   resolveView,
   resolveViews,
 } from '@molstar/seqx-core/view';
 import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
-import { axesEqual, axisKey, axisTotal, nearestOffsetOf, offsetOf, positionAt } from './axis.js';
+import { axesEqual, axisKey, axisTotal, breakHolding, nearestOffsetOf, offsetOf, positionAt } from './axis.js';
 import type { SpecModel } from './spec.js';
 
 /**
@@ -66,8 +66,22 @@ interface SectionState {
 
 const DetachedPrefix = '#';
 
+/**
+ * A group's range in a step of the history (_spec/README.md "ViewModel", History): its offsets with its axis's
+ * signature (system, pieces, direction), its centre as a position and its members, so a step over a changed axis is
+ * restored by position (the centre and the zoom), never dropped.
+ */
+interface Kept {
+  readonly start: number;
+  readonly end: number;
+  readonly fitted: boolean;
+  readonly sig?: string;
+  readonly center?: number;
+  readonly members?: readonly string[];
+}
+
 /** The leading viewports at one time: each group's range by key (a detached follower's among them). */
-type Snapshot = ReadonlyMap<string, { readonly start: number; readonly end: number; readonly fitted: boolean }>;
+type Snapshot = ReadonlyMap<string, Kept>;
 
 /** What a jump did: moved the view, found it already there, or could not move. */
 export type JumpOutcome = 'moved' | 'same' | 'none';
@@ -78,11 +92,12 @@ export interface ViewHistory {
   readonly forward: number;
 }
 
+/** Two steps are the same view: the same groups at the same offsets, compared only on equal axes. */
 function snapshotsEqual(a: Snapshot, b: Snapshot): boolean {
   if (a.size !== b.size) return false;
   for (const [k, v] of a) {
     const w = b.get(k);
-    if (!w || w.start !== v.start || w.end !== v.end || w.fitted !== v.fitted) return false;
+    if (!w || w.sig !== v.sig || w.start !== v.start || w.end !== v.end || w.fitted !== v.fitted) return false;
   }
   return true;
 }
@@ -388,23 +403,57 @@ export class ViewModel extends ReactiveModel {
     this._history.set({ back: this._back.length, forward: this._forward.length });
   }
 
-  /** Each group's range now. */
+  /** Each group's range now, with its axis's signature, its centre as a position and its members. */
   private _snapshot(): Snapshot {
-    const out = new Map<string, { start: number; end: number; fitted: boolean }>();
-    for (const g of this._groups.values()) out.set(g.key, { start: g.start, end: g.end, fitted: g.fitted });
+    const out = new Map<string, Kept>();
+    for (const g of this._groups.values()) {
+      const center = g.axis.ranges ? positionAt(g.axis, (g.start + g.end) / 2) : undefined;
+      out.set(g.key, {
+        start: g.start,
+        end: g.end,
+        fitted: g.fitted,
+        sig: axisKey(g.axis),
+        ...(center !== undefined ? { center } : {}),
+        members: g.members,
+      });
+    }
     return out;
   }
 
   /**
-   * What restoring a snapshot would give: the groups there now, at its ranges; a follower detached since, attached; one
-   * detached then and attached since, detached again (a section gone since is left out).
+   * A group's kept range in a step: by its key, else (its axis changed since: a reverse, a collapse) by a member; on an
+   * axis of another signature, restored by position: the centre and the zoom, the centre clamped to what is drawn (a
+   * centre now hidden goes to its break). Undefined when the step has none of it.
+   */
+  private _keptOf(snap: Snapshot, g: Group): Kept | undefined {
+    let v = snap.get(g.key);
+    if (!v)
+      for (const w of snap.values())
+        if (w.members?.some((m) => g.members.includes(m))) {
+          v = w;
+          break;
+        }
+    if (!v || v.sig === undefined || v.sig === axisKey(g.axis)) return v;
+    const total = axisTotal(g.axis);
+    if (v.fitted || total === undefined) return { start: 0, end: total ?? v.end, fitted: true, sig: axisKey(g.axis) };
+    const c = v.center === undefined ? undefined : centerOffset(g.axis, v.center);
+    if (c === undefined) return { start: 0, end: total, fitted: true, sig: axisKey(g.axis) };
+    const half = (v.end - v.start) / 2;
+    return { start: c - half, end: c + half, fitted: false, sig: axisKey(g.axis) };
+  }
+
+  /**
+   * What restoring a snapshot would give: the groups there now, at its ranges (by position onto a changed axis); a
+   * follower detached since, attached; one detached then and attached since, detached again (a section gone since is
+   * left out).
    */
   private _restored(snap: Snapshot): Snapshot {
-    const out = new Map<string, { start: number; end: number; fitted: boolean }>();
+    const out = new Map<string, Kept>();
     for (const g of this._groups.values()) {
-      const v = snap.get(g.key);
-      if (v) out.set(g.key, v);
-      else if (!g.key.startsWith(DetachedPrefix)) out.set(g.key, { start: g.start, end: g.end, fitted: g.fitted });
+      const v = this._keptOf(snap, g);
+      if (v) out.set(g.key, { ...v, sig: axisKey(g.axis) });
+      else if (!g.key.startsWith(DetachedPrefix))
+        out.set(g.key, { start: g.start, end: g.end, fitted: g.fitted, sig: axisKey(g.axis) });
     }
     for (const [key, v] of snap)
       if (key.startsWith(DetachedPrefix) && !out.has(key) && this._detachable(key)) out.set(key, v);
@@ -420,7 +469,7 @@ export class ViewModel extends ReactiveModel {
   /** The groups take the snapshot's ranges in one publish; a follower detached since it was taken is attached again. */
   private _restore(snap: Snapshot): void {
     for (const [key, g] of [...this._groups]) {
-      const v = snap.get(key);
+      const v = this._keptOf(snap, g);
       if (v) {
         g.start = v.start;
         g.end = v.end;
@@ -491,24 +540,32 @@ export class ViewModel extends ReactiveModel {
     const total = axisTotal(axis);
     if (!lead || !v || total === undefined) return false;
     const la = follow.leaderAxis;
-    const ps = positionAt(la, lead.start);
-    const pe = positionAt(la, lead.end);
-    if (ps === undefined || pe === undefined) return false;
+    const l0 = positionAt(la, lead.start, 'start');
+    const l1 = positionAt(la, lead.end, 'end');
+    if (l0 === undefined || l1 === undefined) return false;
+    // the leader's window in positions, lowest first (a reversed leader's start is its highest)
+    const ps = Math.min(l0, l1);
+    const pe = Math.max(l0, l1);
     if (delta !== undefined) {
       // the image of the leader's window before the follower's clamp, moved by the pan
-      const image = carried(s.section, follow, ps, pe, this.config);
-      const a = image && nearestOffsetOf(axis, image[0]);
-      const b = image && nearestOffsetOf(axis, image[1]);
-      if (a !== undefined && b !== undefined && a < b) [start, end] = [a + delta, b + delta];
+      const w = followWindow(s.section, la, axis, lead.start, lead.end, this._arc());
+      if (w && !w.wraps && w.start < w.end) [start, end] = [w.start + delta, w.end + delta];
     }
     // a cyclic follower's range over its origin runs past the total
-    const pos = (o: number) => positionAt(axis, axis.cyclic && o > total ? o - total : o);
-    const lo = pos(start);
-    const hi = pos(end);
+    const pos = (o: number, side: 'start' | 'end') => positionAt(axis, axis.cyclic && o > total ? o - total : o, side);
+    const f0 = pos(start, 'start');
+    const f1 = pos(end, 'end');
+    // the follower's ends in positions, lowest first, with the way each moved there (navigation is in display order:
+    // on a reversed follower an end moved right moved down)
+    const rev = axis.dir === -1;
+    const lo = rev ? f1 : f0;
+    const hi = rev ? f0 : f1;
+    const mLo = rev ? -me : ms;
+    const mHi = rev ? -ms : me;
     const inv = inverseOf(follow.path);
-    const xLo = lo === undefined ? undefined : backTo(follow, inv, axis, lo, ms);
-    const xHi = hi === undefined ? undefined : backTo(follow, inv, axis, hi, me);
-    // the follower's start is the image of the leader's start, or of its end on a minus strand
+    const xLo = lo === undefined ? undefined : backTo(follow, inv, axis, lo, mLo);
+    const xHi = hi === undefined ? undefined : backTo(follow, inv, axis, hi, mHi);
+    // the leader's lowest position is the preimage of the follower's lowest, or of its highest on a minus strand
     let a = follow.dir === 1 ? xLo : xHi;
     let b = follow.dir === 1 ? xHi : xLo;
     if (delta !== undefined) {
@@ -517,16 +574,25 @@ export class ViewModel extends ReactiveModel {
       if (b === undefined) b = pe + (a - ps);
     } else {
       // an end moved outward past every image: the leader's axis edge on that side (its clamp keeps it in)
-      const startOut = follow.dir === 1 ? ms < 0 : me > 0;
-      const endOut = follow.dir === 1 ? me > 0 : ms < 0;
+      const lowOut = follow.dir === 1 ? mLo < 0 : mHi > 0;
+      const highOut = follow.dir === 1 ? mHi > 0 : mLo < 0;
       const lt = axisTotal(la);
-      a ??= startOut && lt !== undefined ? (positionAt(la, 0) ?? ps) : ps;
-      b ??= endOut && lt !== undefined ? (positionAt(la, lt) ?? pe) : pe;
+      const e0 = lt === undefined ? undefined : positionAt(la, 0, 'start');
+      const e1 = lt === undefined ? undefined : positionAt(la, lt, 'end');
+      const lowEdge = e0 === undefined || e1 === undefined ? ps : Math.min(e0, e1);
+      const highEdge = e0 === undefined || e1 === undefined ? pe : Math.max(e0, e1);
+      a ??= lowOut ? lowEdge : ps;
+      b ??= highOut ? highEdge : pe;
     }
     const oa = nearestOffsetOf(la, a);
     const ob = nearestOffsetOf(la, b);
     if (oa === undefined || ob === undefined || oa === ob) return false;
     return this.setRange(follow.leader, Math.min(oa, ob), Math.max(oa, ob));
+  }
+
+  /** The arc a cyclic follower takes (`follow.cyclicArc`). */
+  private _arc(): 'shortest' | 'hull' {
+    return this.config.follow.cyclicArc === 'hull' ? 'hull' : 'shortest';
   }
 
   private _groupOf(s: SectionState): Group | undefined {
@@ -698,24 +764,21 @@ export class ViewModel extends ReactiveModel {
     let start = prev?.start ?? 0;
     let end = prev?.end ?? total ?? 0;
     let pieces: readonly number[] | undefined = prev?.pieces;
-    const ps = positionAt(follow.leaderAxis, lead.start);
-    const pe = positionAt(follow.leaderAxis, lead.end);
-    const range = ps === undefined || pe === undefined ? undefined : carried(s.section, follow, ps, pe, this.config);
-    if (range && total !== undefined) {
-      const [lo, hi] = range;
-      const a = nearestOffsetOf(axis, lo);
-      const b = nearestOffsetOf(axis, hi);
-      if (a !== undefined && b !== undefined) {
-        if (a > b && axis.cyclic) {
-          // over the origin: on to the total, then from 0
-          start = a;
-          end = total + b;
-          pieces = [a, total, 0, b];
-        } else {
-          [start, end] = [Math.min(a, b), Math.max(a, b)];
-          pieces = undefined;
-          if (s.width > 0) [start, end] = clampRange(start, end, total, s.width, this.config.viewport.maxPxPerPosition);
-        }
+    const w =
+      total === undefined
+        ? undefined
+        : followWindow(s.section, follow.leaderAxis, axis, lead.start, lead.end, this._arc());
+    if (w && total !== undefined) {
+      if (w.wraps) {
+        // over the origin: on to the total, then from 0
+        start = w.start;
+        end = total + w.end;
+        pieces = [w.start, total, 0, w.end];
+      } else {
+        start = w.start;
+        end = w.end;
+        pieces = undefined;
+        if (s.width > 0) [start, end] = clampRange(start, end, total, s.width, this.config.viewport.maxPxPerPosition);
       }
     }
     this._set(address, start, end, s, pending, follow.leader, pieces);
@@ -741,55 +804,24 @@ function carry(key: string, section: ResolvedSection, prev: Group | undefined): 
     return axis.ranges?.[0] === 0 ? { ...group, start: prev.start, end: prev.end, fitted: false } : group;
   }
   const center = positionAt(prev.axis, (prev.start + prev.end) / 2);
-  const c = center === undefined ? undefined : offsetOf(axis, center);
+  const c = center === undefined ? undefined : centerOffset(axis, center);
   if (c === undefined) return group;
   const half = (prev.end - prev.start) / 2;
   return { ...group, start: c - half, end: c + half, fitted: false };
 }
 
-/** A leader's `[ps, pe)` positions carried to the follower's positions, `[lo, hi]` in its display direction. */
-function carried(
-  section: ResolvedSection,
-  follow: Follow,
-  ps: number,
-  pe: number,
-  config: ViewerConfig,
-): [number, number] | undefined {
-  let a = follow.point(ps);
-  let b = pathEnd(follow.path, pe);
-  if (a === undefined || b === undefined) {
-    const arc = config.follow.cyclicArc === 'hull' ? 'hull' : 'shortest';
-    const hull = followRange(section, [Math.floor(ps), Math.ceil(pe)], { arc });
-    if (!hull || hull.length < 2) return undefined;
-    const lo = hull[0];
-    const hi = hull[hull.length - 1];
-    if (a === undefined) a = follow.dir === 1 ? lo : hi;
-    if (b === undefined) b = follow.dir === 1 ? hi : lo;
-  }
-  const [lo, hi] = follow.dir === 1 ? [a, b] : [b, a];
-  // ends past each other: over a cyclic follower's origin, the wrap (or its hull when asked); on a linear follower,
-  // the leader's range wraps the coding sequence's origin, so the hull of the image
-  if (lo > hi || (lo === hi && pe > ps)) {
-    if (section.axis.cyclic && config.follow.cyclicArc !== 'hull') return [lo, hi];
-    const hull = followRange(section, [Math.floor(ps), Math.ceil(pe)], { arc: 'hull' });
-    return hull && hull.length >= 2 ? [hull[0], hull[hull.length - 1]] : undefined;
-  }
-  return [lo, hi];
+/**
+ * A centre position's offset on an axis: where it is shown; in a stretch a break hides (a collapse), the break's (the
+ * nearest piece edge, zero wide); outside the axis, none.
+ */
+function centerOffset(axis: Axis, center: number): number | undefined {
+  const o = offsetOf(axis, center);
+  if (o !== undefined) return o;
+  return breakHolding(axis, Math.floor(center)) >= 0 ? nearestOffsetOf(axis, center) : undefined;
 }
 
 /** How many follows a move asked of a follower goes up at most (a chain of follows; a cycle is cut). */
 const MaxFollowDepth = 16;
-
-/** The image of a range's end: the far edge of its last element's last place, or `projectPoint` within an element. */
-function pathEnd(p: Path, x: number): number | undefined {
-  if (!Number.isInteger(x)) return projectPoint(p, x);
-  const k = x - 1;
-  const fine = p.step === 1 ? 3 * k + 2 : k;
-  const r = p.linear.forward(fine, fine + 1)[0];
-  if (!r) return undefined;
-  const edge = r.dir === 1 ? r.to + 1 : r.to;
-  return p.step === -1 ? edge / 3 : edge;
-}
 
 /** A follow's path read back, made once per path. */
 const inverses = new WeakMap<Path, Path>();
@@ -804,37 +836,39 @@ const BeforeEdge = 1 - 1e-9;
 
 /**
  * The leader position whose image (`Follow.point`, what the follower's ends are made of) is the follower's position
- * `y`: the inverse of the forward map itself, so a follower moved through it shows what was asked. Each leader
- * element's image is a run of `point(k) + f · slope`, `f` in [0, 1) (a codon split by an intron runs on from its first
- * nucleotide: its image is not its nucleotides); the elements tried are those near `y`'s preimage through `inv` (the
- * follow read back) and near the nearest mapped positions on either side. Where `y` is in no element's image (an
- * intron, a UTR), the nearest image the way the end moved (`m`), so a pan steps over a gap and never sticks. Undefined
- * when nothing lies that way.
+ * `y`: the inverse of the forward map itself, so a follower moved through it shows what was asked. The forward map is
+ * place by place (a residue's three fine places across a codon step: a codon split by an intron is its nucleotides),
+ * each place's image a run of `point(k) + f · slope`, `f` in [0, 1); the places tried are those near `y`'s preimage
+ * through `inv` (the follow read back) and near the nearest mapped positions on either side. Where `y` is in no place's
+ * image (an intron, a UTR), the nearest image the way the end moved (`m`), so a pan steps over a gap and never sticks.
+ * Undefined when nothing lies that way.
  */
 function backTo(follow: Follow, inv: Path, axis: Axis, y: number, m: number): number | undefined {
+  // a place's width in leader positions: a third of a residue across a codon step
+  const u = follow.path.step === 1 ? 1 / 3 : 1;
   const tried = new Set<number>();
   let best: number | undefined;
   let distance = Infinity;
   const near = (x: number | undefined) => {
     if (x === undefined) return undefined;
-    const k0 = Math.floor(x);
+    const k0 = Math.floor(x / u + 1e-9);
     for (let k = k0 - 1; k <= k0 + 1; k++) {
       if (tried.has(k)) continue;
       tried.add(k);
-      const a = follow.point(k);
-      const half = follow.point(k + 0.5);
+      const a = follow.point(k * u);
+      const half = follow.point((k + 0.5) * u);
       if (a === undefined || half === undefined || half === a) continue;
       const slope = 2 * (half - a);
       const f = (y - a) / slope;
-      if (f >= 0 && f < 1) return k + f;
+      if (f >= 0 && f < 1) return (k + f) * u;
       if (m === 0) continue;
-      // the end of this element's image nearer `y`, when it lies the way the end moved
+      // the end of this place's image nearer `y`, when it lies the way the end moved
       const b = a + slope;
       const v = m > 0 ? Math.min(a, b) : Math.max(a, b);
       const d = (v - y) * m;
       if (d > 0 && d < distance) {
         distance = d;
-        best = k + (v === a ? 0 : BeforeEdge);
+        best = (k + (v === a ? 0 : BeforeEdge)) * u;
       }
     }
     return undefined;
@@ -872,7 +906,7 @@ function nearestMapped(inv: Path, axis: Axis, y: number, m: number): number | un
   if (to <= lo) return undefined;
   const runs = inv.linear.forward(lo * scale, to * scale);
   const last = runs[runs.length - 1];
-  return last ? pathEnd(inv, Math.floor((last.from + last.length - 1) / scale) + 1) : undefined;
+  return last ? projectEnd(inv, Math.floor((last.from + last.length - 1) / scale) + 1) : undefined;
 }
 
 /** At least `width / maxPx` wide (within the total), centered, within the axis. */

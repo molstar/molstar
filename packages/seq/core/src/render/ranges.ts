@@ -9,7 +9,7 @@ import { CategoryColumn, type Column } from '@molstar/core/repr/tree';
 import type { RangesDensity, RangesList } from '@molstar/seqx-core/data';
 import { rangesLocation } from '@molstar/seqx-core/query';
 import type { StaticModel } from '@molstar/seqx-core/resolve';
-import type { ResolvedLayer } from '@molstar/seqx-core/view';
+import { axisBreaks, breakHolding, type ResolvedLayer } from '@molstar/seqx-core/view';
 import { type AxisTransform, Cut } from './axis.js';
 import { type DensityStep, densityStep, fontSize } from './config.js';
 import {
@@ -45,9 +45,13 @@ import {
   sectionId,
 } from './layer-type.js';
 import { reportColor } from './letters.js';
-import { drawFailed, drawSpans } from './marks.js';
+import { breakHit, drawFailed, drawSpans } from './marks.js';
 import { squircleRadius } from './squircle.js';
 import { categoryToken, inkOn, mixColors, resolveColor, type SeqTokens } from './tokens.js';
+
+// the anchor a number read once: a draw reads no property of an imported object (that site's feedback, cleared, made
+// a warm draw deoptimize and allocate without end once the 150,000-piece scenario had run first)
+const AnchorStart: number = Anchor.start;
 
 // The `ranges` layer type (_spec/README.md "Render", Layer types): items in sticky lanes. Each item is carried onto
 // the section along the layer's path (a domain on its gene: a piece an exon) and drawn as a squircle where it is big
@@ -71,6 +75,8 @@ export interface RangesLay {
   key: string;
   system: string;
   section: string;
+  /** The section's address: a tick's hit names it as a break's does. */
+  sectionAddress: string;
   owner: string;
   /** The data's system: an element's extent is on it. */
   dataSystem: string;
@@ -110,6 +116,12 @@ export interface RangesLay {
   mink: Uint32Array;
   /** The gap between lanes, px. */
   gap: number;
+  /**
+   * The hidden items' ticks: one a break and lane whatever their number, `x, lane, count, hiddenStart, hiddenEnd`
+   * (`tn` of them): what a break hides is not dropped, and the marks stay bounded by the screen.
+   */
+  tn: number;
+  ticks: number[];
   /**
    * The hit marks (`hn` of them): each item's own marks, before `bars` merges a lane's runs (a run of several items is
    * drawn as one mark, hit and outlined by the item under the pointer); the drawn marks at `items`. The arrays are the
@@ -182,6 +194,7 @@ function newLay(ctx: LayoutContext, prep: RangesPrep): RangesLay {
     key: ctx.key,
     system: ctx.axis.system,
     section: sectionId(ctx.section),
+    sectionAddress: ctx.section.address,
     owner: prep.owner,
     dataSystem: prep.src?.dataSystem ?? '',
     box: ctx.box,
@@ -228,6 +241,8 @@ function newLay(ctx: LayoutContext, prep: RangesPrep): RangesLay {
       round: new Uint8Array(0),
       radius: new Float64Array(0),
     },
+    tn: 0,
+    ticks: [],
     densityY: 0,
     densityH: 0,
     strip: { diff: new Float64Array(0), counts: new Float64Array(0), v: 0.5 },
@@ -285,6 +300,7 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
     lay.key = ctx.key;
     lay.system = axis.system;
     lay.section = sectionId(ctx.section);
+    lay.sectionAddress = ctx.section.address;
     lay.owner = prep.owner;
     lay.dataSystem = prep.src?.dataSystem ?? '';
     lay.src = prep.src;
@@ -300,6 +316,8 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
     lay.failed.length = 0;
     lay.m = 0;
     lay.hn = 0;
+    lay.tn = 0;
+    lay.ticks.length = 0;
     lay.overflow = 0;
     lay.laneCount = 0;
     lay.density = undefined;
@@ -314,7 +332,8 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
     }
     const step = densityStep(axis.scale, axis.dpr, config);
     lay.step = step;
-    const regions = dataRegions(src, axis);
+    // the regions in view, and the stretches its breaks in view hide: an item there is drawn as its break's tick
+    const regions = dataRegions(src, axis, true);
     const level = layerLevel(src, data, axis);
     const read = readTiles(ctx, data, src, regions, level);
     placeholderSpans(src, axis, read.pending, lay.pending);
@@ -404,7 +423,6 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
     // marks: each item's pieces on the section, square where cut, round where the item really ends (on its own
     // system an item is its one piece: no mapping and no array an item)
     const px = 1 / axis.dpr;
-    const nk = axis.offsets.length;
     for (let i = 0; i < n; i++) {
       const lane = lay.lanes[i];
       if (lane < 0) continue;
@@ -420,12 +438,19 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
         lo = Math.min(lo, pieces[k]);
         hi = Math.max(hi, pieces[k + 1]);
       }
+      const marks = lay.m;
       for (let k = 0; k + 1 < pieces.length; k += 2) {
-        for (let a = 0; a < nk; a++) {
+        axis.piecesIn(pieces[k], pieces[k + 1]);
+        const ka = axis.ka;
+        const kb = axis.kb;
+        for (let a = ka; a <= kb; a++) {
           if (!axis.spanIn(a, pieces[k], pieces[k + 1])) continue;
+          // an end the item really has is round; on a reversed axis its start is on the right
+          const atLo = pieces[k] === lo;
+          const atHi = pieces[k + 1] === hi;
           let round = 0;
-          if (!(axis.scut & Cut.left) && pieces[k] === lo) round |= Round.left;
-          if (!(axis.scut & Cut.right) && pieces[k + 1] === hi) round |= Round.right;
+          if (!(axis.scut & Cut.left) && (axis.dir === -1 ? atHi : atLo)) round |= Round.left;
+          if (!(axis.scut & Cut.right) && (axis.dir === -1 ? atLo : atHi)) round |= Round.right;
           const x0 = axis.snap(axis.sx0);
           const j = nextMark(lay);
           lay.mx0[j] = x0;
@@ -435,6 +460,8 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
           lay.mround[j] = round;
         }
       }
+      // an item wholly in a hidden stretch: its break's tick in its lane
+      if (lay.m === marks && pieces.length >= 2) tickOn(lay, axis, pieces[0], lane);
     }
     if (lay.mode === 'bars') mergeRuns(lay, px);
     // labels inside marks wide enough, faded past their width (drawn in the labels pass)
@@ -489,8 +516,21 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
     if (y < box.y || y >= box.y + box.height || x < box.x || x >= box.x + box.width) return undefined;
     const position = lay.axis.positionAt(x);
     const base = { layer: lay.key, section: lay.section, system: lay.system, ...(position >= 0 ? { position } : {}) };
-    if (lay.mode === 'density' || !lay.hn) return base;
     const lane = Math.floor((y - box.y) / lay.laneHeight);
+    // a hidden items' tick is hit as its break (within the break's slop), the count of what it hides with it
+    for (let t = 0; t < lay.tn; t++) {
+      const at = 5 * t;
+      if (lay.ticks[at + 1] !== lane || Math.abs(x - lay.ticks[at]) > 3) continue;
+      return breakHit(
+        { section: { address: lay.sectionAddress }, id: lay.section },
+        lay.axis,
+        lay.ticks[at],
+        lay.ticks[at + 3],
+        lay.ticks[at + 4],
+        lay.ticks[at + 2],
+      );
+    }
+    if (lay.mode === 'density' || !lay.hn) return base;
     const j = lay.index.near(lane, x, lay.hslack);
     if (j < 0) return base;
     const item = lay.hitem[j];
@@ -529,9 +569,47 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
 // Each pass draws in a function of its own, called through a table (`drawPass`: nothing allocated once warm).
 
 /** The data pass: placeholders, the density strip, the marks. */
+/** The tick of a hidden item at section position `p` in `lane`: one a break and lane, its count kept. */
+function tickOn(lay: RangesLay, axis: AxisTransform, p: number, lane: number) {
+  const b = axisBreaks(axis);
+  const i = b.length ? breakHolding(axis, p) : -1;
+  if (i < 0 || b[i] < axis.u0 || b[i] > axis.u1) return;
+  const x = axis.xOfUnit(b[i]);
+  for (let t = 0; t < lay.tn; t++)
+    if (lay.ticks[5 * t] === x && lay.ticks[5 * t + 1] === lane) {
+      lay.ticks[5 * t + 2]++;
+      return;
+    }
+  lay.ticks.push(x, lane, 1, b[i + 1], b[i + 2]);
+  lay.tn++;
+}
+
+/** The hidden items' ticks: one a break and lane, in the break ink. */
+function drawTicks(lay: RangesLay, out: PassWriter) {
+  const { box, tokens } = lay;
+  const gap = lay.gap;
+  const px = 1 / lay.axis.dpr;
+  const g = out.args;
+  for (let t = 0; t < lay.tn; t++) {
+    g[0] = Math.round(lay.ticks[5 * t] * lay.axis.dpr) / lay.axis.dpr - 1.5 * px;
+    g[1] = box.y + lay.ticks[5 * t + 1] * lay.laneHeight + gap / 2;
+    g[2] = 3 * px;
+    g[3] = lay.laneHeight - gap;
+    g[4] = tokens.colors['seq-break'];
+    g[5] = NoColor;
+    g[6] = 0;
+    g[7] = 0;
+    g[8] = 0;
+    out.rectArgs();
+  }
+}
+
 function drawMarks(lay: RangesLay, out: PassWriter, _emphasis: Emphasis | undefined) {
   const { box, tokens } = lay;
   const gap = lay.gap;
+  // in a function of its own: this one stays small enough to have its calls inlined (a call that is not boxes the
+  // numbers it is passed)
+  if (lay.tn) drawTicks(lay, out);
   drawSpans(out, lay.pending, box.y, box.height, tokens.colors['seq-pending']);
   drawFailed(out, lay.failed, box.y, box.height, tokens);
   const a = out.args;
@@ -573,7 +651,8 @@ function drawLabels(lay: RangesLay, out: PassWriter, _emphasis: Emphasis | undef
     g[1] = y + h / 2 + lay.fontSize * 0.35;
     g[2] = lay.mlabel[j];
     g[3] = lay.mx1[j] - lay.mx0[j] - 6;
-    out.textArgs(lay.labels[lay.mitem[j]] as string, Anchor.start, lay.font, lay.mink[j]);
+    g[4] = lay.mink[j];
+    out.textArgs(lay.labels[lay.mitem[j]] as string, AnchorStart, lay.font);
   }
 }
 
@@ -659,11 +738,13 @@ function addToStrip(strip: RangesLay['strip'], src: LayerSource, axis: AxisTrans
   }
   const diff = strip.diff;
   const v = strip.v;
-  const nk = axis.offsets.length;
   const dpr = axis.dpr;
   const last = axis.columns - 1;
-  for (let k = 0; k + 1 < pieces.length; k += 2)
-    for (let a = 0; a < nk; a++) {
+  for (let k = 0; k + 1 < pieces.length; k += 2) {
+    axis.piecesIn(pieces[k], pieces[k + 1]);
+    const ka = axis.ka;
+    const kb = axis.kb;
+    for (let a = ka; a <= kb; a++) {
       if (!axis.spanIn(a, pieces[k], pieces[k + 1])) continue;
       const f0 = Math.floor((axis.sx0 - axis.x0) * dpr);
       const f1 = Math.floor((axis.sx1 - 1e-6 - axis.x0) * dpr);
@@ -672,6 +753,7 @@ function addToStrip(strip: RangesLay['strip'], src: LayerSource, axis: AxisTrans
       diff[c0] += v;
       diff[c1 + 1] -= v;
     }
+  }
 }
 
 /** An item's piece on its own system, and its pieces through a map: kept (a layout runs to its end). */

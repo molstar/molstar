@@ -191,6 +191,23 @@ const Complement: Readonly<Record<string, string>> = {
   N: 'N',
 };
 
+/** Complements by character code (ASCII), for DNA and for RNA (A pairs with U): made once, read with no allocation. */
+const ComplementCodes = [false, true].map((rna) => {
+  const t = new Uint16Array(128);
+  for (let i = 0; i < 128; i++) t[i] = i;
+  for (const [k, v] of Object.entries(Complement)) {
+    const out = rna && v === 'T' ? 'U' : v;
+    t[k.charCodeAt(0)] = out.charCodeAt(0);
+    t[k.toLowerCase().charCodeAt(0)] = out.toLowerCase().charCodeAt(0);
+  }
+  return t;
+});
+
+/** A nucleotide letter's complement (IUPAC; RNA's A pairs with U), by character code; any other letter as it is. */
+export function complementCode(code: number, rna = false): number {
+  return code < 128 ? ComplementCodes[rna ? 1 : 0][code] : code;
+}
+
 /**
  * The status of each residue of a protein against its gene's letters through a codon map's linear part: `unpaired`
  * where its triplet is not whole, `conflict` where the codon cannot encode it, else `paired`. A minus-strand codon is

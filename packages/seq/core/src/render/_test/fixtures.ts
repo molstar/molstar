@@ -87,8 +87,12 @@ export function geneLetters(): string {
   return s;
 }
 
-/** p53 on its gene: the protein's section (letters, domains), the gene's following it (letters, the domains on it). */
-export function p53GeneSpec(): Node {
+/**
+ * p53 on its gene: the protein's section (letters, domains), the gene's following it (letters, the domains on it), read
+ * along it (a minus strand: reversed); with `coding`, on its coding pieces (its introns collapsed), the protein's
+ * letters a codon wide on it too.
+ */
+export function p53GeneSpec(options: { readonly coding?: boolean } = {}): Node {
   const b = createSeqSpec({ title: 'p53 on its gene' });
   const p53 = b.data.sequence('p53', { alphabet: 'protein', letters: P53 });
   const gene = b.data.sequence('tp53', { alphabet: 'dna', letters: geneLetters() });
@@ -98,7 +102,8 @@ export function p53GeneSpec(): Node {
     const protein = v.section('protein', { of: p53 });
     protein.track('letters', { label: 'p53' }).layer('letters', { type: 'letters' });
     protein.track('domains', { label: 'Domains' }).layer('ranges', { type: 'ranges', data: d });
-    const g = v.section('gene', { of: gene, follow: protein });
+    const g = v.section('gene', { of: gene, follow: protein, ...(options.coding ? { pieces: 'coding' } : {}) });
+    if (options.coding) g.track('residues', { label: 'p53' }).layer('letters', { type: 'letters', data: p53 });
     g.track('letters', { label: 'TP53' }).layer('letters', { type: 'letters' });
     g.track('domains', { label: 'Domains on the gene' }).layer('ranges', { type: 'ranges', data: d });
   });
@@ -191,6 +196,40 @@ export function bigSpec(): Node {
     s.track('letters').layer('letters', { type: 'letters' });
     s.track('items').layer('ranges', { type: 'ranges', data: r });
     s.track('signal').layer('values', { type: 'values', data: v });
+  });
+  return b.build();
+}
+
+/** Single-position pieces on a reversed axis (EC-33): every other position of a 300,000-nucleotide sequence. */
+export const PIECES = 150_000;
+
+/**
+ * A sequence of `2 · PIECES` nucleotides shown reversed on its every other position (a ranges node of `PIECES`
+ * single-position rows as its `pieces`): 150,000 pieces and as many breaks, with its letters and a signal. The pieces
+ * node is not drawn as a ranges layer: a ranges layout walks every row of the entries it reads (TODO), which is not the
+ * axis's cost.
+ */
+export function piecesSpec(): Node {
+  const b = createSeqSpec({ title: 'pieces' });
+  const r = seeded(33);
+  let letters = '';
+  for (let i = 0; i < 2 * PIECES; i++) letters += 'ACGT'[Math.floor(r() * 4)];
+  const s = b.data.sequence('s', { alphabet: 'dna', letters });
+  const start = new Int32Array(PIECES);
+  const end = new Int32Array(PIECES);
+  for (let i = 0; i < PIECES; i++) {
+    start[i] = 2 * i;
+    end[i] = 2 * i + 1;
+  }
+  const pieces = b.data.ranges('pieces', { target: s, rows: { start, end } });
+  const signal = b.data.values('signal', {
+    target: s,
+    values: Float32Array.from({ length: 2 * PIECES }, (_, i) => Math.sin(i / 50)),
+  });
+  b.views.view('main', (v) => {
+    const sec = v.section('s', { of: s, direction: 'reversed', pieces });
+    sec.track('letters', { label: 'letters' }).layer('letters', { type: 'letters' });
+    sec.track('signal', { label: 'signal' }).layer('values', { type: 'values', data: signal });
   });
   return b.build();
 }

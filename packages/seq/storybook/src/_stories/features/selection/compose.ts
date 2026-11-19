@@ -53,7 +53,8 @@ export function cellPoint(viewer: SeqViewer, section: number, track: number, pos
   const s = viewer.frame?.layout.sections[section];
   const t = s?.tracks[track];
   if (!s?.axis || !t) throw new Error(`No track ${track} in section ${section} laid out`);
-  return [(s.axis.x(position) + s.axis.x(position + 1)) / 2, t.box.y + Math.min(6, t.box.height / 2)];
+  if (!s.axis.cell(position)) throw new Error(`Position ${position} is not shown in section ${section}`);
+  return [(s.axis.sx0 + s.axis.sx1) / 2, t.box.y + Math.min(6, t.box.height / 2)];
 }
 
 /** A click as the canvas gets it: the pointer over the point, pressed and released there. */

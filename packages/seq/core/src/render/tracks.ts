@@ -10,8 +10,11 @@ import { fitLevel, type Want } from '@molstar/seqx-core/data';
 import type { Location, LocationPart } from '@molstar/seqx-core/query';
 import { type OverlayNode, projectRanges, type StaticModel } from '@molstar/seqx-core/resolve';
 import {
+  axisBreaks,
+  breakHolding,
   expandTemplate,
   followRange,
+  followWindow,
   templateNodes,
   type ResolvedLayer,
   type ResolvedSection,
@@ -36,10 +39,15 @@ import { RenderIssues } from './issues.js';
 import type { Box, Emphasis, Hit, LayerType, LayoutContext, Overlay, StoreReader } from './layer-type.js';
 import { EmptyOverlay, sectionId } from './layer-type.js';
 import { LettersType } from './letters.js';
+import { breakHit } from './marks.js';
 import { RangesType } from './ranges.js';
 import type { TextMetrics } from './text.js';
 import type { SeqTokens } from './tokens.js';
 import { ValuesType } from './values.js';
+
+// the anchor a number read once: a draw reads no property of an imported object (that site's feedback, cleared, made
+// a warm draw deoptimize and allocate without end once the 150,000-piece scenario had run first)
+const AnchorStart: number = Anchor.start;
 
 // The tracks layout (_spec/README.md "Render", Tracks layout): sections stacked, each with its axis transform from its
 // system and range (a follower's from its leader's view), tracks with heights in px under one label column, each
@@ -81,6 +89,22 @@ export interface SectionLayout {
   readonly y: number;
   readonly height: number;
   readonly tracks: readonly TrackLayout[];
+  /** The breaks in view, `[x, hiddenStart, hiddenEnd, …]` (x unsnapped): a hairline each across the band. */
+  readonly breaks: readonly number[];
+  /** The direction mark in the first track's label row (`axis.directionMark`): its text, x and measured width. */
+  readonly mark?: { readonly text: string; readonly x: number; readonly width: number };
+}
+
+/** How far from a break's notch a point hits it, CSS px (fixed, as other hit boxes are). */
+export const BreakSlop = 3;
+/** A break's notch above the band: its width and height, CSS px. */
+const Notch = { width: 5, height: 3 };
+
+/** A section's direction mark, or none: a reversed axis says so (`reversed`, or `along` what it reads along). */
+function directionMark(section: ResolvedSection, config: RenderConfig): string | undefined {
+  if (config.axis.directionMark === 'none' || section.axis.dir !== -1) return undefined;
+  const along = section.axis.along;
+  return along === undefined ? '← reversed' : `← along ${along.slice(along.lastIndexOf('/') + 1)}`;
 }
 
 export interface ViewLayout {
@@ -104,6 +128,8 @@ export interface LayoutInput {
   readonly size: { readonly width: number; readonly height: number };
   /** The window of display units of every section that does not follow another; all of each by default. */
   readonly viewport?: Viewport;
+  /** A section's own window (by its address), before `viewport`: a caller placing sections one by one. */
+  readonly viewports?: Readonly<Record<string, Viewport>>;
   readonly dpr?: number;
   readonly tokens: SeqTokens;
   readonly text: TextMetrics;
@@ -125,41 +151,47 @@ export function layerKey(track: ResolvedTrack, layer: ResolvedLayer): string {
   return layer.address ?? `${track.address}:${layer.index}`;
 }
 
-/** A section's own pieces: its axis's, or the length its source gave once open; undefined while unknown. */
-function ownPieces(section: ResolvedSection, model: StaticModel, data: StoreReader): number[] | undefined {
-  if (section.axis.ranges) return [...section.axis.ranges];
+/**
+ * A section's own pieces: its axis's (the array itself: lookups are kept per pieces array), or the whole system once its
+ * source gave the length; undefined while unknown.
+ */
+function ownPieces(section: ResolvedSection, model: StaticModel, data: StoreReader): readonly number[] | undefined {
+  if (section.axis.ranges) return section.axis.ranges;
   const system = model.systems.get(section.axis.system);
   if (!system?.source) return undefined;
   const info = data
     .coverage(system.source)
     ?.systems.find((s) => s.name === system.name || s.aliases?.includes(system.name));
-  return info?.length === undefined ? undefined : [0, info.length];
+  return info?.length === undefined ? undefined : placedPieces(info.length);
+}
+
+/** The whole system's one piece for a length, kept per length (lookups are kept per pieces array). */
+const placed = new Map<number, readonly number[]>();
+function placedPieces(length: number): readonly number[] {
+  let p = placed.get(length);
+  if (!p) {
+    if (placed.size > 64) placed.clear();
+    placed.set(length, (p = [0, length]));
+  }
+  return p;
 }
 
 /**
- * A follower's pieces and window from its leader's view, continuously: the images of the leader's window edges
- * (`point`) within a run, so a follower moves with its leader as the viewer's does; the hull (or arc) of the leader's
- * positions in view where an edge maps nowhere, the leader's view has two pieces, or the window wraps a cyclic origin.
+ * A follower's pieces and window from its leader's view (_spec/README.md "Render", Tracks layout): the images of the
+ * leader's window edges as offsets along the follower's own pieces (`followWindow`, as the viewer's follow), so a
+ * follower moves with its leader and keeps its direction and breaks. A window over a cyclic follower's origin is drawn
+ * over the arc's pieces (`followRange`).
  */
-function followAxis(section: ResolvedSection, leader: AxisTransform, config: RenderConfig) {
-  const follow = section.follow!;
-  if (leader.offsets.length === 1) {
-    const at = (u: number) => leader.pieces[0] + u;
-    const edge = (x: number) => follow.point(x) ?? follow.point(x - 1e-9);
-    const a = edge(at(leader.u0));
-    const b = edge(at(leader.u1));
-    const { cyclic, length } = section.axis;
-    if (
-      a !== undefined &&
-      b !== undefined &&
-      a !== b &&
-      !(cyclic && length !== undefined && Math.abs(b - a) > length / 2)
-    ) {
-      const lo = Math.min(a, b);
-      const hi = Math.max(a, b);
-      const s = Math.floor(lo);
-      return { pieces: [s, Math.ceil(hi)], viewport: { start: lo - s, end: hi - s } };
-    }
+function followAxis(
+  section: ResolvedSection,
+  own: readonly number[] | undefined,
+  leader: AxisTransform,
+  config: RenderConfig,
+) {
+  const axis = { ...section.axis, ...(own ? { ranges: own } : {}) };
+  if (own) {
+    const w = followWindow(section, leader, axis, leader.u0, leader.u1, config.followArc);
+    if (w && !w.wraps) return { pieces: own, viewport: { start: w.start, end: w.end } };
   }
   const pieces = followRange(section, leader.visible([]), { arc: config.followArc });
   return pieces ? { pieces } : undefined;
@@ -189,7 +221,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState()): ViewL
   const axisOf = (section: ResolvedSection): AxisTransform | undefined => {
     if (axes.has(section.address)) return axes.get(section.address);
     const at = section.address;
-    let made: { pieces: number[]; viewport?: Viewport } | undefined;
+    let made: { pieces: readonly number[]; viewport?: Viewport } | undefined;
     if (section.follow) {
       const leaderSection = bySection.get(section.follow.leader);
       if (visiting.has(at) || !leaderSection) {
@@ -210,15 +242,21 @@ export function layoutView(input: LayoutInput, state = new LayoutState()): ViewL
         visiting.add(at);
         const leader = axisOf(leaderSection);
         visiting.delete(at);
-        if (leader) made = followAxis(section, leader, config);
+        if (leader) made = followAxis(section, ownPieces(section, input.model, input.data), leader, config);
       }
     }
     if (!made) {
       const own = ownPieces(section, input.model, input.data);
-      if (own) made = { pieces: own, ...(input.viewport ? { viewport: input.viewport } : {}) };
+      const viewport = input.viewports?.[at] ?? input.viewport;
+      if (own) made = { pieces: own, ...(viewport ? { viewport } : {}) };
     }
+    const { dir, length, cyclic } = section.axis;
     const axis = made?.pieces.length
-      ? new AxisTransform(section.axis.system, made.pieces, dataX, dataW, dpr, made.viewport)
+      ? new AxisTransform(section.axis.system, made.pieces, dataX, dataW, dpr, made.viewport, {
+          dir,
+          ...(length !== undefined ? { length } : {}),
+          cyclic,
+        })
       : undefined;
     if (!axes.has(at)) axes.set(at, axis);
     return axes.get(at);
@@ -327,6 +365,14 @@ export function layoutView(input: LayoutInput, state = new LayoutState()): ViewL
       first && bandEnd > first.y
         ? { x: first.x, y: first.y, width: first.width, height: bandEnd - first.y }
         : undefined;
+    const text = tracks.length ? directionMark(section, config) : undefined;
+    const mark = text
+      ? {
+          text,
+          x: config.inset + tracks[0].labelWidth + 6,
+          width: input.text.measure(config.labelFont, text),
+        }
+      : undefined;
     sections.push({
       section,
       id: sectionId(section),
@@ -335,6 +381,8 @@ export function layoutView(input: LayoutInput, state = new LayoutState()): ViewL
       y: top,
       height: y - top,
       tracks,
+      breaks: axis && band ? axis.breaks([]) : NoBreaks,
+      ...(mark ? { mark } : {}),
     });
   }
   // a layer gone from the view lets its last layout go
@@ -402,6 +450,8 @@ function trackHeight(track: ResolvedTrack, config: RenderConfig): number {
   for (const l of track.layers) h = Math.max(h, config.heights[l.type as keyof RenderConfig['heights']] ?? 0);
   return h || config.heights.ranges;
 }
+
+const NoBreaks: readonly number[] = [];
 
 /** Draws the layout's passes (all, or those named, e.g. the emphasis alone) into the lists, cleared first. */
 export function drawView(
@@ -484,6 +534,7 @@ function drawTracks(layout: ViewLayout, out: PassWriter, emphasis: Emphasis | un
       const { box } = t;
       if (pass === 'labels') drawLabel(out, t, tokens, config);
       else if (!column && emphasis) drawSectionEmphasis(out, s, box, emphasis, layout);
+      if (pass === 'labels' && ti === 0 && s.mark) drawMark(out, s, t, tokens, config);
       if (!t.layers.length) continue;
       const clip = pass === 'data';
       if (clip) out.clip(box.x, box.y, box.width, box.height);
@@ -493,7 +544,48 @@ function drawTracks(layout: ViewLayout, out: PassWriter, emphasis: Emphasis | un
       }
       if (clip) out.unclip();
     }
+    if (pass === 'data' && s.band && s.axis && s.breaks.length) drawBreaks(out, s, s.axis, s.band, tokens);
   }
+}
+
+/**
+ * A section's breaks (_spec/README.md "Render", Tracks layout): a hairline a device pixel wide in the break ink across
+ * the band, over the cells either side (they touch), and a notch above the band. Zero units wide: the hairline has no
+ * width of its own on the axis.
+ */
+function drawBreaks(out: PassWriter, s: SectionLayout, axis: AxisTransform, band: Box, tokens: SeqTokens) {
+  // through `args` (a number passed to a call that is not inlined is boxed: nothing allocated once warm)
+  const g = out.args;
+  const dpr = axis.dpr;
+  const px = 1 / dpr;
+  const b = s.breaks;
+  for (let i = 0; i + 2 < b.length; i += 3) {
+    const x = Math.round(b[i] * dpr) / dpr;
+    for (let k = 0; k < 2; k++) {
+      g[0] = k === 0 ? x - px / 2 : x - Notch.width / 2;
+      g[1] = k === 0 ? band.y : band.y - Notch.height;
+      g[2] = k === 0 ? px : Notch.width;
+      g[3] = k === 0 ? band.height : Notch.height;
+      g[4] = tokens.colors['seq-break'];
+      g[5] = NoColor;
+      g[6] = 0;
+      g[7] = 0;
+      g[8] = 0;
+      out.rectArgs();
+    }
+  }
+}
+
+/** The direction mark after the first track's label, muted, faded at the label column's edge. */
+function drawMark(out: PassWriter, s: SectionLayout, t: TrackLayout, tokens: SeqTokens, config: RenderConfig) {
+  const m = s.mark!;
+  const g = out.args;
+  g[0] = m.x;
+  g[1] = t.labelY;
+  g[2] = m.width;
+  g[3] = Math.max(0, config.inset + config.labelWidth - m.x);
+  g[4] = tokens.colors['msui-text-muted'];
+  out.textArgs(m.text, AnchorStart, config.labelFont);
 }
 
 /**
@@ -537,7 +629,8 @@ function drawLabel(out: PassWriter, t: TrackLayout, tokens: SeqTokens, config: R
   g[1] = t.labelY;
   g[2] = t.labelWidth;
   g[3] = config.labelWidth;
-  out.textArgs(t.track.label, Anchor.start, config.labelFont, tokens.colors['msui-text-muted']);
+  g[4] = tokens.colors['msui-text-muted'];
+  out.textArgs(t.track.label, AnchorStart, config.labelFont);
 }
 
 /** The keyboard cursor: a thin outline of its cell over the box, in a neutral ink (`emphasis.cursorInk`). */
@@ -587,12 +680,16 @@ function paintRanges(out: PassWriter, axis: AxisTransform, box: Box, part: Locat
   const rounded = Paint[3] !== 0;
   const outset = Paint[4];
   const dpr = axis.dpr;
-  const n = axis.offsets.length;
   const g = out.args;
   const h = box.height;
-  for (let i = 0; i + 1 < part.ranges.length; i += 2)
-    for (let k = 0; k < n; k++) {
+  for (let i = 0; i + 1 < part.ranges.length; i += 2) {
+    axis.piecesIn(part.ranges[i], part.ranges[i + 1]);
+    const ka = axis.ka;
+    const kb = axis.kb;
+    let drew = false;
+    for (let k = ka; k <= kb; k++) {
       if (!axis.spanIn(k, part.ranges[i], part.ranges[i + 1])) continue;
+      drew = true;
       const x0 = Math.round(axis.sx0 * dpr) / dpr;
       const x1 = Math.max(Math.round(axis.sx1 * dpr) / dpr, x0 + 1 / dpr);
       const cut = axis.scut;
@@ -630,6 +727,31 @@ function paintRanges(out: PassWriter, axis: AxisTransform, box: Box, part: Locat
         out.rectArgs();
       }
     }
+    // a range wholly in a hidden stretch lights its break: what a break hides is not dropped
+    if (!drew) litBreak(out, axis, box, part.ranges[i]);
+  }
+}
+
+/**
+ * The break hiding position `p`, when in view: a bar two device pixels wide across the box in the paint's fill, else its
+ * stroke (read from `Paint`: a color passed to a call that is not inlined is boxed).
+ */
+function litBreak(out: PassWriter, axis: AxisTransform, box: Box, p: number) {
+  const b = axisBreaks(axis);
+  const i = b.length ? breakHolding(axis, p) : -1;
+  if (i < 0 || b[i] < axis.u0 || b[i] > axis.u1) return;
+  const px = 1 / axis.dpr;
+  const g = out.args;
+  g[0] = Math.round(axis.xOfUnit(b[i]) * axis.dpr) / axis.dpr - px;
+  g[1] = box.y;
+  g[2] = 2 * px;
+  g[3] = box.height;
+  g[4] = Paint[0] !== NoColor ? Paint[0] : Paint[1];
+  g[5] = NoColor;
+  g[6] = 0;
+  g[7] = 0;
+  g[8] = 0;
+  out.rectArgs();
 }
 
 /** A Location's part on a system, found with an indexed loop (no iterator, no closure). */
@@ -731,9 +853,15 @@ function drawHighlights(out: PassWriter, axis: AxisTransform, box: Box, emphasis
   }
 }
 
-/** What is under a point: the topmost layer's hit in the track there. */
+/**
+ * What is under a point: the topmost layer's hit in the track there; a break within `BreakSlop` px of its notch (above
+ * the band, or a hidden items' tick a layer hits as the break). On data the cells and items beside a break win: the
+ * hairline has no width of its own.
+ */
 export function hitView(layout: ViewLayout, x: number, y: number): Hit | undefined {
-  for (const s of layout.sections)
+  for (const s of layout.sections) {
+    const notch = s.band && s.axis && s.breaks.length ? breakAt(s, x, y) : undefined;
+    if (notch) return notch;
     for (const t of s.tracks) {
       const { box } = t;
       if (y < box.y || y >= box.y + box.height || x < box.x || x >= box.x + box.width) continue;
@@ -742,10 +870,21 @@ export function hitView(layout: ViewLayout, x: number, y: number): Hit | undefin
       for (let i = t.layers.length - 1; i >= 0; i--) {
         const l = t.layers[i];
         const h = l.type.hit(l.lay, x, y);
-        if (h?.element) return h;
+        if (h?.element || h?.target === 'break') return h;
         position ??= h;
       }
       return position;
     }
+  }
+  return undefined;
+}
+
+/** The break whose notch is within `BreakSlop` px of a point above the band, as a hit; else undefined. */
+function breakAt(s: SectionLayout, x: number, y: number): Hit | undefined {
+  const band = s.band!;
+  if (y < band.y - Notch.height - BreakSlop || y >= band.y) return undefined;
+  const b = s.breaks;
+  for (let i = 0; i + 2 < b.length; i += 3)
+    if (Math.abs(x - b[i]) <= BreakSlop) return breakHit(s, s.axis!, b[i], b[i + 1], b[i + 2]);
   return undefined;
 }

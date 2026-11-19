@@ -58,6 +58,8 @@ function collectRefs(type: Walkable | undefined, value: Value | undefined, out: 
       for (const m of type.of as Walkable[]) {
         if (m.type === 'ref' && typeof value === 'string') return void out.push(value);
         if (m.type === 'list' && Array.isArray(value)) return collectRefs(m, value, out);
+        if (m.type === 'record' && typeof value === 'object' && !Array.isArray(value))
+          return collectRefs(m, value, out);
       }
       return;
     case 'record':
