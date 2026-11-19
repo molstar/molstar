@@ -276,7 +276,11 @@ describe('the grid over the complex', () => {
     for (let i = 0; i < 4; i++) {
       const drawn = g.lays[i].filter((l) => (l.lay as GridLay).grid);
       expect(drawn.length, systems(i)).toBe(1);
-      expect([st.axes[i].x0, st.axes[i].width]).toEqual([top.axes[i >> 1].x0, top.axes[i >> 1].width]);
+      // on the device grid (a pixel here): each edge within half of one of the blocks' above
+      const a = st.axes[i];
+      const t = top.axes[i >> 1];
+      expect(Math.abs(a.x0 - t.x0)).toBeLessThanOrEqual(0.5);
+      expect(Math.abs(a.x0 + a.width - (t.x0 + t.width))).toBeLessThanOrEqual(0.5);
     }
   });
 
@@ -306,7 +310,7 @@ describe('the grid over the complex', () => {
     );
   });
 
-  it('the chain boundaries: a hairline down the plot and one across it, in canvas lists and the SVG', async () => {
+  it('the chain boundaries are the blocks’ gaps, no line in them; each pair’s cells exactly in its blocks’ box, canvas lists and SVG alike', async () => {
     const ctx = createSeqContext({
       registry: [
         { kind: 'format-runtime', runtime: SeqRuntime },
@@ -316,16 +320,35 @@ describe('the grid over the complex', () => {
     });
     const r = await ctx.renderSvg(view.build(), { size: { width: 720, height: 900 } });
     expect(r.issues).toEqual([]);
-    const fills = recordDrawLists(r.lists, ['labels'])
-      .split('\n')
-      .filter((l) => l.startsWith('rect '));
-    const parsed = fills.map((l) => l.split(' ').slice(1, 5).map(Number));
-    const down = parsed.filter(([, , w, h]) => w === 1 && h > 100);
-    const across = parsed.filter(([, , w, h]) => h === 1 && w > 100);
-    expect([down.length, across.length]).toEqual([1, 1]);
-    // square at aspect 1: the plot as tall as wide, each hairline the plot's whole extent
-    expect(down[0][3]).toBe(across[0][2]);
-    expect(r.svg).toContain(`width="1" height="${down[0][3]}"`);
+    const lines = recordDrawLists(r.lists, ['data', 'labels']).split('\n');
+    const nums = (l: string) => l.split(' ').slice(1, 5).map(Number);
+    // the plot's four cells' clips (each cut at the boundary between its y blocks)
+    const clips = lines.filter((l) => l.startsWith('clip ') && l.includes(' cut-')).map(nums);
+    expect(clips).toHaveLength(4);
+    const plotTop = Math.min(...clips.map((c) => c[1]));
+    // no hairline over the plot: the boundary is the gap
+    const hair = lines.filter((l) => l.startsWith('rect ') && l.includes('#8a847a') && nums(l)[1] >= plotTop - 1);
+    expect(hair).toEqual([]);
+    expect(r.svg).not.toContain('#8a847a');
+    // each image exactly its pair of blocks' box (the clip round it, on the pixel grid): no cell past a block's edge
+    let clip: number[] | undefined;
+    let images = 0;
+    for (const l of lines) {
+      if (l.startsWith('clip ')) clip = l.includes(' cut-') ? nums(l) : undefined;
+      else if (l === 'unclip') clip = undefined;
+      else if (clip && l.startsWith('image ')) {
+        images++;
+        expect(clip.every(Number.isInteger), l).toBe(true);
+        expect(nums(l), l).toEqual(clip);
+      }
+    }
+    expect(images).toBe(4);
+    // the two x blocks apart by their gap
+    const xs = [...new Set(clips.map((c) => `${c[0]} ${c[2]}`))]
+      .map((k) => k.split(' ').map(Number))
+      .sort((a, b) => a[0] - b[0]);
+    expect(xs).toHaveLength(2);
+    expect(xs[1][0] - (xs[0][0] + xs[0][1])).toBeGreaterThan(1);
     ctx.retire();
   });
 

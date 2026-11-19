@@ -123,6 +123,51 @@ describe('a grid across two sections', () => {
   });
 });
 
+describe('a plot’s box is fixed', () => {
+  it('a zoom of one axis (y following a section) leaves the plot’s height and every track’s place; cells rectangles', async () => {
+    const b = createSeqSpec();
+    const x = b.data.sequence('x', { alphabet: 'rna', letters: letters(40) });
+    const y = b.data.sequence('y', { alphabet: 'rna', letters: letters(30, 5) });
+    const g = b.data.grid('g', { x, y, values: cellValues(40, 30) });
+    b.views.view('v', (v) => {
+      const sx = v.section('x', { of: x });
+      sx.track('t').layer('l', { type: 'letters' });
+      const sy = v.section('y', { of: y });
+      sy.track('t').layer('l', { type: 'letters' });
+      v.section('plot', { layout: 'grid', of: x, of_y: y, follow: sx.address, follow_y: sy.address })
+        .track('t')
+        .layer('g', { type: 'grid', data: g });
+      v.section('below', { of: x }).track('t').layer('l', { type: 'letters' });
+    });
+    const st = await settle(b.build());
+    const places = (l: ViewLayout) =>
+      l.sections.map((s) => [s.placement.box.y, s.placement.box.height, ...s.tracks.map((t) => t.box.y)]);
+    const frame = (vy: { start: number; end: number }) =>
+      st.renderer.frame({
+        size: Size,
+        settled: true,
+        viewports: { '/views/v/x': { start: 0, end: 40 }, '/views/v/y': vy },
+      });
+    const fit = await frame({ start: 0, end: 30 });
+    const plot = fit.layout.sections[2].placement;
+    // the data box's width over the aspect (1): square as a box, whatever the windows
+    expect(plot.box.height).toBeCloseTo(plot.strips.axes[0].width, 6);
+    const before = places(fit.layout);
+    for (const vy of [
+      { start: 10, end: 20 },
+      { start: 0, end: 4 },
+      { start: 26, end: 30 },
+    ]) {
+      const f = await frame(vy);
+      expect(places(f.layout)).toEqual(before);
+      const s = f.layout.sections[2].placement.strips;
+      expect([s.ys[0]!.u0, s.ys[0]!.u1]).toEqual([vy.start, vy.end]);
+      // the cells rectangles: x's 40 across the width, y's few down the same height
+      expect(s.ys[0]!.scale).toBeGreaterThan(s.axes[0].scale);
+    }
+  });
+});
+
 describe('the grid layer', () => {
   it('at the fit and zoomed in: every cell in view drawn with its value’s color, hit back as its two positions', async () => {
     const n = 24;

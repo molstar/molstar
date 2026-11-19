@@ -103,12 +103,15 @@ nothing and tells nothing.
   direction).
 - **Grids**: a grid whose y moves apart from x (`movesY`: its own window, `follow_y: none`, or a section it follows)
   takes a vertical pan (`panPx`'s dy, px of its plot's height) and a zoom (about `anchorY`, an offset down y) on y too.
-  Following a section, the move is carried to y's leader as a follower's is (`_lead`, through y's follow); its own
-  window is kept on the section apart from x's group (`y`, absent when all of y shows), clamped within y, cleared by a
-  fit, and passed to the frame (`viewports[section].y`, a follower's entry too); a history step (`snapshot`, `record`,
-  `jump`) keeps it beside the groups (`ys`, by section) and restores it, so a y-only move is a step and back undoes it
-  (a y that follows is kept by its leader's group). With `follow_y: x` y moves with x. Why: the PAE's cyclin A is a
-  section of its own, so a scroll over the plot must move it, not CDK2.
+  A fit of a grid that follows (its moves leading) fits its leaders, x's and y's (`0` over the plot shows all of it). A
+  pan stops at an axis's end, the window's width kept (a follower's pan too, when its window fits its axis): carried to
+  a leader past its end, it narrowed the leader instead. Following a section, the move is carried to y's leader as a
+  follower's is (`_lead`, through y's follow); its own window is kept on the section apart from x's group (`y`, absent
+  when all of y shows), clamped within y, cleared by a fit, and passed to the frame (`viewports[section].y`, a
+  follower's entry too); a history step (`snapshot`, `record`, `jump`) keeps it beside the groups (`ys`, by section) and
+  restores it, so a y-only move is a step and back undoes it (a y that follows is kept by its leader's group). With
+  `follow_y: x` y moves with x. Why: the PAE's cyclin A is a section of its own, so a scroll over the plot must move it,
+  not CDK2.
 - **Layouts** (the core's "Section layouts", Navigation): each move asked of a section is its layout's arithmetic
   (`SectionNav`: `pan` by a scroll's px deltas, `zoom` about a unit, `fit`, `reveal` the least move, `focus`, `step`,
   `clamp`) over its placement in the last frame (`setLayoutSource`: the viewer's frames, and the one map of layouts the
@@ -693,11 +696,15 @@ binding table; per move one hit record and one modifiers record are reused.
   viewport's own width or height. A zoom is about the unit the placement has under the pointer (over the label column
   the section's first visible). A section that scrolls inside its box (`Placement.clip`, a text) takes a wheel without
   Cmd/Ctrl only while its content overflows the box, scrolling it through its layout's `pan`, and gives it back to the
-  page at its top and bottom (scroll chaining). True when a binding took it, and the page does not scroll.
+  page at its top and bottom (scroll chaining). True when a binding took it, and the page does not scroll. **The wheel
+  over a plot is the plot's**: over a grid's box (`GridPlacement.box`) it is always true, so the page never scrolls from
+  inside the plot, even where a pan stops at an axis's end; outside it, as anywhere. Why: a plot whose wheel fell
+  through at an end moved the page under the pointer.
 - **Double click**: the bound command with the section, what to focus (the element's hull on the section, its extent
   carried along the layer's path, else the position's cell, in offsets; a Shift+click's extend before it is given back,
   as a clear one is), the unit the placement has under the pointer (`at`) and the double-click's zoom factor (`step`,
-  `navigate.doubleClickZoomStep`).
+  `navigate.doubleClickZoomStep`). On a grid's cell the context also says `cell` and the unit down y (`atY`): the focus
+  zooms a step about the cell on both axes (below, `navigate`).
 - **Side buttons**: a mouse's back and forward buttons are the `back-button` and `forward-button` gestures
   (`sideButton`), taken only when the command can act (a step to go): then the mounted UI keeps the page from going back
   on their press and release; else they are the page's.
@@ -789,8 +796,11 @@ rows' commands) reads the last frame's rows layers through the behavior context'
   of lines, Shift+Alt+↑↓) with their keys from `view.keys` (the first the shortcut), single keys scoped to the viewer
   (`scope: 'canvas'`); `when` says why one cannot run (no section, a follower that does not move, nothing to focus, no
   step back) instead of a throw. A fit and a focus are jumps; a focus on what the view already shows focused goes back
-  (`view.backOnFocused`). A step zoom (the keys, Shift+double-click) is about the context's offset (the pointer's), else
-  the keyboard cursor's cell on that section when in view, else the centre, by the context's `step` or
+  (`view.backOnFocused`). A focus on a grid's cell (`cell`) is a step zoom about it on both axes instead (`at`, `atY`,
+  by `step`), their ratio kept, a jump of its own (a step of the history: again zooms further, back undoes each); why: a
+  jump to the cell's two positions re-centred each axis on its residue, so a second double-click shifted the view
+  instead of zooming. A step zoom (the keys, Shift+double-click) is about the context's offset (the pointer's), else the
+  keyboard cursor's cell on that section when in view, else the centre, by the context's `step` or
   `navigate.wheelZoomStep`.
 
 - `select` on a grid: a hit with a `ySystem` that is no rows axis and no element is a cell of two axes, and the same

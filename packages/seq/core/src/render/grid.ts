@@ -276,23 +276,32 @@ function layoutRects(lay: GridLay, prep: GridPrep, a: AxisTransform, ay: AxisTra
   const i1 = Math.ceil(a.u1);
   const j0 = Math.floor(ay.u0);
   const j1 = Math.ceil(ay.u1);
+  // a cell part out of view is cut at the axes' edges (a block's, on a grid over blocks): no rect past them
+  const xa = a.x0;
+  const xb = a.x0 + a.width;
+  const ya = ay.x0;
+  const yb = ay.x0 + ay.width;
   for (let ui = i0; ui < i1; ui++) {
     const i = a.elementAtUnit(ui + 0.5);
     if (i < 0 || i >= g.nx || !a.cell(i)) continue;
-    const x0 = Math.min(a.sx0, a.sx1);
-    const w = Math.abs(a.sx1 - a.sx0);
+    const x0 = Math.max(xa, Math.min(a.sx0, a.sx1));
+    const w = Math.min(xb, Math.max(a.sx0, a.sx1)) - x0;
+    if (!(w > 0)) continue;
     for (let uj = j0; uj < j1; uj++) {
       const j = ay.elementAtUnit(uj + 0.5);
       if (j < 0 || j >= g.ny || !keeps(prep.triangle, i, j) || !ay.cell(j)) continue;
+      const y0 = Math.max(ya, Math.min(ay.sx0, ay.sx1));
+      const h = Math.min(yb, Math.max(ay.sx0, ay.sx1)) - y0;
+      if (!(h > 0)) continue;
       const c = colorOf(lay, g.values[i * g.ny + j]);
       if (c === NoColor) continue;
       const k = lay.n++;
       lay.rx = grown(lay.rx, 4 * k + 4);
       lay.rc = grown(lay.rc, k + 1);
       lay.rx[4 * k] = x0;
-      lay.rx[4 * k + 1] = Math.min(ay.sx0, ay.sx1);
+      lay.rx[4 * k + 1] = y0;
       lay.rx[4 * k + 2] = w;
-      lay.rx[4 * k + 3] = Math.abs(ay.sx1 - ay.sx0);
+      lay.rx[4 * k + 3] = h;
       lay.rc[k] = c;
     }
   }

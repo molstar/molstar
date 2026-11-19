@@ -19,12 +19,15 @@ import type { HitTarget, ViewModel } from '@molstar/seqx-viewer/models';
 
 /**
  * Which section a command acts on (the one under the pointer or with focus), what to focus (offsets), and for a step
- * zoom the offset it is about (`at`: the pointer's) and its factor (`step`: a double-click's).
+ * zoom the offset it is about (`at`: the pointer's; `atY`, down a grid's y) and its factor (`step`: a double-click's).
+ * `cell`: the focus is a grid's cell, which zooms a step about `at` (and `atY`) instead of a jump to its positions.
  */
 export interface NavigateContext {
   readonly section: string | undefined;
   readonly focus?: { readonly start: number; readonly end: number };
   readonly at?: number;
+  readonly atY?: number;
+  readonly cell?: boolean;
   readonly step?: number;
 }
 
@@ -155,8 +158,14 @@ export function navigateBehavior(
     return view.jump(() => view.zoom(section, factor, anchor), false) !== 'none';
   };
 
-  /** A double-click's focus: a jump; on what the view already shows focused, back (`view.backOnFocused`). */
+  /**
+   * A double-click's focus: a jump; on what the view already shows focused, back (`view.backOnFocused`). On a grid's
+   * cell a step zoom about it on both axes, their ratio kept, a step of the history each (again: further; back: undone)
+   * (_spec/README.md "Input"): a jump to both positions would re-centre, never zoom.
+   */
   const focus = (section: string, ctx: NavigateContext): boolean | string => {
+    if (ctx.cell && ctx.at !== undefined)
+      return view.jump(() => view.zoom(section, ctx.step ?? wheelZoomStep, ctx.at, ctx.atY)) !== 'none';
     const r = view.jump(() => view.setRange(section, ctx.focus!.start, ctx.focus!.end));
     if (r === 'same' && config.view.backOnFocused && view.canBack) return view.back() ? 'Back' : false;
     return r !== 'none';

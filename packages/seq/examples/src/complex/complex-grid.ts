@@ -13,7 +13,7 @@ import { PaeColor, predictionData } from './pae.js';
 // The grid over the complex (the whole-complex PAE plot): the prediction's chains side by side as blocks of one tracks
 // section (CDK2, then cyclin A2), and a grid section that follows it on both axes (`follow`, `follow_y: x`): its x and y
 // are the blocks' display axis, the chains in the section's order, so the plot is the N×N matrix over the complex
-// (298 + 432 residues, synthetic), its chain boundaries hairlines across it. The matrix is read through the matrix
+// (298 + 432 residues, synthetic), its chain boundaries the blocks' gaps across it. The matrix is read through the matrix
 // read and held as one grid node a pair of chains (a grid draws only on its own systems), all four in one track.
 
 export const title = 'Complex: PAE over the complex (synthetic)';
