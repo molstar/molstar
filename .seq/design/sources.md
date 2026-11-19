@@ -34,7 +34,9 @@ standardized, and we convert other formats onto it".
   application's runtime for that format binds to the entry, never to the spec node ([composition.md](composition.md)).
 - **A runtime per format**, provided by the application: a registry entry the viewer's spec lists (§executors-by-composition),
   that turns a format into the protocol. The core ships the protocol, the `seq` format and the small text formats
-  (FASTA, alignments, tables, Newick); binary and indexed genome formats are runtimes an application adds. A source
+  (FASTA, alignments, tables, Newick; the tables, JSON, MessagePack and GFF3 through one records runtime whose
+  transform is params of the `source` node, [files.md](files.md)); binary and indexed genome formats are runtimes an
+  application adds. A source
   whose format has no runtime is unavailable, with an issue; the rest of the spec opens.
 - **No whole-data manifest in the meaning**: a value domain left open means the data in view, computed when the view settles ([data-store.md](data-store.md)); a categorical value not
   listed in the theme takes a color by a stable hash of the value; lengths come from the source's coverage answer.

@@ -73,7 +73,9 @@ RW's fixes was checked in light only (Scale's tiles in canvas and SVG, labels wh
 - GD merged (`b69771348`, changelog `seq-gap-decisions.md`): gaps 1-6 and the individual colour-list exports (-13.4 kB);
   review findings fixed; looked at in dark. Every ColorLists importer typechecks; MVS and the base sequences pass.
 
-- SO merged (Features apart from Examples; a story-link test). FS's design revised after review: 10 gaps for the author.
+- SO merged (Features apart from Examples; a story-link test). FS's design agreed (the author, 2026-11-19: "Ok as recommended"): `.seq/design/files.md`, the Design page
+  "Files and sources", sources, protocol, examples, base-library, themes and performance amended; FS split into FS-A1
+  (strong), FS-A2 (fast), FS-B (conditional). Next: FS-A1. Open for the author: capping the heavy lane's workers.
 
 ## In progress
 

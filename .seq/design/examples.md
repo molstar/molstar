@@ -157,7 +157,9 @@ On the review of the decisions: "ok" to its recommendations.
 ### One rule for every fixture
 
 - **Real entries, read as published, converted only where no reader exists.** A fixture is in its own format when the
-  core reads that format (FASTA, Stockholm, Newick: the Stockholm and Newick readers of [grids-and-rows.md](grids-and-rows.md)), else in `seq` (the
+  core reads that format (FASTA, Stockholm, Newick: the Stockholm and Newick readers of [grids-and-rows.md](grids-and-rows.md); TSV, CSV, JSON,
+  MessagePack and GFF3 through the records runtime of [files.md](files.md), agreed 2026-11-19; a JSON fixture trimmed,
+  never reshaped, so its paths read the live response too), else in `seq` (the
   protocol's shape) converted at recording (mmCIF, GenBank, AlphaFold DB's JSON, AlphaFill's metadata, SAbDab's
   numbered files). Why: a reader without Seq\* can take a published file; a format the core will not read is not a
   reason to commit megabytes it would never open.

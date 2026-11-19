@@ -106,6 +106,7 @@ costs up to `f` times the pixels.
 | An edit: apply a patch, resolve again, redraw | under 16 ms; undo the same |
 | Pan and zoom frame at every scale fixture | the same targets: frame time does not grow with the data |
 | Open a 10,000 × 300 alignment (summaries built) | under 300 ms to the first frame |
+| Open a table of 100,000 records from a file (TSV, JSON or MessagePack, the transform applied) | under 300 ms to its tables ([files.md](files.md)); 10,000 rows the quick representative |
 | Open a 3M-nucleotide sequence from a file, with tracks (summaries built) | under 1 s to the first frame; then frames as for any size |
 | A region arriving from a source to drawn | within the next frame after it is decoded |
 | bigWig: a region at the right zoom level, local file | under 50 ms to decoded |

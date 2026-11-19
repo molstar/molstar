@@ -59,8 +59,9 @@ The features, under Features, shown on p53:
 
 Every dataset is real public data, small enough to commit, and read the way any data is read.
 
-- **Real entries, as published**: a file stays in its own format when the core reads it (FASTA, Stockholm, Newick), else
-  it is converted to the `seq` format when recorded (structures, GenBank records, AlphaFold DB's files).
+- **Real entries, as published**: a file stays in its own format when the core reads it (FASTA, Stockholm, Newick; TSV,
+  CSV, JSON, MessagePack and GFF3, [Files and sources](?path=/docs/design-files-and-sources--docs); JSON trimmed, never
+  reshaped), else it is converted to the `seq` format when recorded (structures, GenBank records, AlphaFold DB's files).
 - **Recorded by hand, never in tests**: a script fetches each entry, trims it to what the views read and writes it with
   its provenance. Tests never reach the network.
 - **Provenance is data**: each dataset lists every file's entry and version, URL, date, checksums, licence, attribution

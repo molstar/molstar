@@ -23,7 +23,12 @@ A format runtime is a registry entry ([ports.md](ports.md)):
 interface FormatRuntime {
   readonly name: string;                        // 'fasta', 'bigwig', 'seq'
   readonly formats: readonly string[];          // the `format` values it reads
-  open(source: SourceEntry, ctx: { assets: AssetReader; signal: AbortSignal }): Promise<OpenedSource>;  // AssetReader: the assets port's narrow shape
+  open(source: SourceEntry, ctx: OpenContext): Promise<OpenedSource>;
+}
+interface OpenContext {
+  readonly assets: AssetReader;                 // the assets port's narrow shape: readText, readBytes (files.md)
+  readonly signal: AbortSignal;
+  readonly limits: { maxRows: number; maxBytes: number };  // the store's settings; a parse's bound before it allocates
 }
 interface OpenedSource {
   readonly coverage: Coverage;                  // known after open

@@ -423,7 +423,9 @@ The claim: **this design covers what a user does with files as sources.**
   then record trimmed published files where the core reads them (DP's features as NCBI's GFF3), spell transforms in
   their builders, and keep `seq` only where no reader exists.
 
-## Gaps for the author
+## Decided by the author
+
+2026-11-19: "Ok as recommended" (every gap as recommended).
 
 1. The params land in `0.4.0`, this slice's one unreleased bump? Recommendation: yes. `0.4.0` is pre-release: making
    `newick` and `rows` optional (one of them or `source` required), if FS-B is built, is acceptable there with no

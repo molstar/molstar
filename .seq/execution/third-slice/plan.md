@@ -230,40 +230,27 @@ and dark before the merge.
       Editing Themes and the Schemes Gallery), Edit and undo, Bookmarks and links, Selection, Story and the stories of
       that kind move to Features, each linked from its dataset's index where it uses that data; the examples Design
       page and every story link updated; the headless twins follow their stories.
-- [ ] FS (strong, after SO, before the dataset lanes; the author, 2026-11-19: "we should have storybook example that
-      load data from files too instead of just inlining the values. This includes the annotation data with
-      descriptions of the transforms that need to be applied. Similar to how the base packages/sequences does that")
-      files as sources: a design first (drafted, reviewed and agreed as MD was), then built. The tables text format
-      the sources design lists but no runtime reads yet (TSV and CSV; GFF3 and BED considered there), and the
-      description of the transforms a file's annotation needs, written in the spec beside its source: which columns
-      are the target, start and end; a 1- or 0-based start, an inclusive or exclusive end; a numbering the positions
-      are in; renamed and typed columns; a filter; the base's `fields` remap and `from_source` read first. **JSON sources** too (the author, 2026-11-19:
-      "Also json sources so we can import uniprot stuff directly? And possibly other well formatted json?"): a JSON
-      file read through the same transforms, its records found by a path (UniProt's REST entry JSON: `features[]`,
-      `location.start.value`, `location.end.value`, `type`, `description`; EBI Proteins API's `features[]`; any array of
-      records), each column a path into a record; a UniProt entry's sequence and features read from one file. Fixtures
-      are saved responses (UniProt CC BY 4.0, recorded by hand), never fetched by a test; fetching from a service stays
-      the showcases' registry entry (ports.md). **MessagePack** as JSON's binary twin, out of the box (the author,
-      2026-11-19: "since we support json, it should support msgpack too out of the box, and both the SoA and AoS
-      layouts for data"), on Mol\*'s decoder moved down to core (the author, 2026-11-19: "Maybe the msgpack stuff
-      could be moved to core/data/??? And reexported in io?"): `@molstar/io`'s `common/msgpack` (the encoder and decoder)
-      to `@molstar/core/data/msgpack`, and the tree's MessagePack codec (`io/repr/msgpack.ts`) to
-      `@molstar/core/repr/codecs/msgpack` beside the JSON and S-expression codecs; `@molstar/io` re-exports both at their
-      old paths (non-breaking; its BinaryCIF reader and writer, g3d and the base sequences unchanged); `seqx-core` keeps
-      depending on `@molstar/core` alone. A base-library.md row, written with FS's design. **Both layouts** for JSON and MessagePack: an array of records (AoS)
-      and an object of column arrays (SoA, typed arrays kept as columns without a copy), read the same, as the base's
-      tables did. Built as a
-      runtime and its conformance suite, then stories that load the datasets from their fixtures (FASTA, Stockholm,
-      Newick, the tables with their transforms, the `seq` format), each with its headless twin reading the same
-      files through the Node assets reader.
+- [x] FS's design (strong; the author, 2026-11-19: "we should have storybook example that load data from files too
+      instead of just inlining the values"; JSON, MessagePack in both layouts, the MessagePack move to core): agreed
+      2026-11-19 ("Ok as recommended", its 10 gaps), [files.md](../../design/files.md) with its Design page.
+- [ ] FS-A1 (strong, after SO): the MessagePack move to `@molstar/core/data/msgpack` and `repr/codecs/msgpack` (io
+      re-exports), the delimited tokenizer at `@molstar/core/data/text/delimited` (hot `package.json` files through the
+      orchestrator), `AssetReader.readBytes`, `OpenContext.limits`, the records runtime for TSV, CSV, JSON and
+      MessagePack with the transform, the `seq` format's MessagePack, the conformance suite (files.md, Consequences).
+- [ ] FS-A2 (fast, after FS-A1): the GFF3 preset with the cyclic wrap (or GFF3 handed to DP), `dataFilter`'s trailing
+      `(not …)` rule, p53's UniProt entry as trimmed JSON and `uniprotEntry`, `Features/Files` with twins; owns
+      `packages/seq/examples/scripts/record.ts` (moved from DG).
+- [ ] FS-B (conditional): trees and pairs held from a file, only if DG's tree must be read from one this slice; else
+      deferred, the Newick inline.
 - [ ] LB (strong, after SO, before DG and DC: both draw ligands; the author, 2026-11-19: "the ligand rendering really
       isn't good") a one-position block a chip in every layout, as layouts.md (Blocks) now says (decided
       2026-11-19): a fixed slot its label's width, the text chip's rule; contacts an optional `pairs` layer the
       examples add, never a default.
 - [ ] DG Globins, DA Antibody, DP Plasmid, DT tRNA, DC Complex: fixtures (Gate 0's entries), builders, the views of
       [examples](../../design/examples.md), their stories and headless twins, drawing against the data, an editing
-      view each; generated data on core's `PCG` (p53's moves too: its fixture and records change once). DG owns
-      `record.ts` and the `sources.json` test. DP's features are drawn as arrows by strand on the ring and the linear
+      view each; generated data on core's `PCG` (p53's moves too: its fixture and records change once). FS-A2 owns
+      `record.ts`, DG the `sources.json` test; each lane records its published files trimmed where the core reads them
+      (files.md). DP's features are drawn as arrows by strand on the ring and the linear
       detail (the author, 2026-11-19: "usually saw people draw it like that"; SnapGene's and Benchling's maps): the
       builder sets the `ranges` layer's `arrow` channel (EC-232: off unless asked, so the builder asks), the arrowhead
       bent through the ring's polar warp, on the piece holding the end it points to (a feature across the origin
