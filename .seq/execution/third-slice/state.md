@@ -1,5 +1,18 @@
 # State: the third slice
 
+## Paused (2026-11-19): resume here
+
+The loop paused for a hand-over to a new orchestrator session. To resume: read `loop.md`, this file, `gaps.md`,
+`drift/`, then:
+
+1. **RW** (rows): its fix round was running as a subagent of the old session, which cannot be resumed from a new one.
+   Its branch is `seq/rw-rows` (worktree `.claude/worktrees/agent-acb0f5683e671f189`). Check
+   `git log packages-seq..seq/rw-rows` against [the fix round](briefs/rw-fix-round.md): if it reports done (all items,
+   rebased onto `2f0e4e417` or later), verify, look (light and dark), merge `--no-ff`, write
+   `.v6/changelogs/seq-rows.md`; else start a new RW lane in that worktree with the fix round's remaining items.
+2. Then **PG** and **NV** (briefs written; set their base to RW's merge), stage 4's GATE, stage 5 onward per the plan.
+3. The author's open questions: `gaps.md` 1–5. The use gates stay deferred to finalize.
+
 Work id `third-slice`. Plan: `plan.md`; loop: `loop.md`.
 
 ## Done
