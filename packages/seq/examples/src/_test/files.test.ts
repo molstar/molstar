@@ -7,7 +7,7 @@
 import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { createSeqContext } from '@molstar/seqx-core/context';
-import { DataStore, type RangesList } from '@molstar/seqx-core/data';
+import { DataStore, type RangesList, SeqRuntime } from '@molstar/seqx-core/data';
 import { RecordsRuntime, readRecords } from '@molstar/seqx-core/data/records';
 import {
   attachSources,
@@ -21,13 +21,14 @@ import {
 import { resolveSpec } from '@molstar/seqx-core/resolve';
 import { resolveViews } from '@molstar/seqx-core/view';
 import { describe, expect, it } from 'vitest';
-import { DomainFiles, type DomainFile, FilesFolder, PlasmidGffFile, PlasmidSeqId, plasmidGff3 } from '../files/data.js';
+import { DomainFiles, type DomainFile, FilesFolder, PlasmidSeqId } from '../files/data.js';
 import { EntryFile, EntryTracks } from '../files/p53-entry.js';
 import * as plasmidGff from '../files/plasmid-gff.js';
 import { uniprotTransform } from '../files/uniprot.js';
 import { nodeFixtureAssets, PackageFolder } from '../node-assets.js';
 import { P53 } from '../p53/data.js';
-import { PlasmidFeatures, PlasmidLength, RotatedOrigin, rotate } from '../plasmid/data.js';
+import { deriveFeatures, PlasmidLength, RotatedOrigin, rotate } from '../plasmid/derive.js';
+import { publishedLetters } from './plasmid-helpers.js';
 import { FilesViews, TableFiles } from '../views.js';
 
 // The Files dataset (files.md): the committed files are what their generators write, p53's UniProt entry and its
@@ -49,7 +50,10 @@ function compare(file: string, content: string | Uint8Array) {
 const sha256 = (b: Uint8Array | string) => createHash('sha256').update(b).digest('hex');
 const context = () =>
   createSeqContext({
-    registry: [{ kind: 'format-runtime', runtime: RecordsRuntime }],
+    registry: [
+      { kind: 'format-runtime', runtime: RecordsRuntime },
+      { kind: 'format-runtime', runtime: SeqRuntime },
+    ],
     ports: { assets: () => nodeFixtureAssets() },
   });
 
@@ -57,10 +61,6 @@ describe('the fixtures', () => {
   it.each(Object.keys(DomainFiles) as DomainFile[])('%s is what its generator writes', (file) => {
     const content = DomainFiles[file].content();
     compare(dir(file), typeof content === 'string' ? content : content);
-  });
-
-  it('the plasmid’s GFF3 is what its generator writes', () => {
-    compare(`${PackageFolder}${PlasmidGffFile}`, plasmidGff3());
   });
 
   it('every recorded file is listed in sources.json, under the bounds, with an allowed licence and its checksum', () => {
@@ -175,7 +175,7 @@ describe('the domains table in every file form', () => {
 describe('the plasmid’s GFF3', () => {
   async function laid() {
     const spec = plasmidGff.build();
-    const model = resolveSpec(spec, { runtimes: [RecordsRuntime] });
+    const model = resolveSpec(spec, { runtimes: [RecordsRuntime, SeqRuntime] });
     const view = resolveViews(model)[0];
     const store = new DataStore();
     await attachSources(model, store, { assets: nodeFixtureAssets().reader });
@@ -208,10 +208,10 @@ describe('the plasmid’s GFF3', () => {
       }
       return [...keys].sort();
     };
-    const bla = PlasmidFeatures.find((f) => f.id === 'bla')!;
+    const bla = deriveFeatures(publishedLetters()).find((f) => f.id === 'bla')!;
     // the CDS track (0): bla on both sides of the rotated origin, the same item
     expect(at(0, rotate(bla.start + 10, RotatedOrigin))).toContain('bla');
-    expect(at(0, rotate(bla.end - 10, RotatedOrigin))).toContain('bla');
+    expect(at(0, rotate(bla.start + bla.length - 10, RotatedOrigin))).toContain('bla');
     expect(at(0, 0)).toContain('bla');
     // the primer site (the track after the four types before it) across the origin
     const primer = GffTrackIndex('primer_bind');

@@ -12,6 +12,7 @@
 
 import { createSeqContext } from '@molstar/seqx-core/context';
 import { DataStore, DefaultStoreSettings, SeqRuntime } from '@molstar/seqx-core/data';
+import { RecordsRuntime } from '@molstar/seqx-core/data/records';
 import {
   attachSources,
   type BandsLay,
@@ -238,7 +239,7 @@ describe('the examples’ navigators', () => {
   });
 
   it('the plasmid’s strip wraps the origin with the detail’s window', async () => {
-    const r = await settled(navigators.plasmidStrip(), [], {
+    const r = await settled(navigators.plasmidStrip(), [RecordsRuntime], {
       size: { width: 800, height: 900 },
       viewports: { '/views/main/ring': { start: 2600, end: 2760 } },
     });
