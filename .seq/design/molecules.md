@@ -357,7 +357,7 @@ Rows and columns of ux-foundations section 8; "as an element" means the grammar'
 | `componentNames` | registry entry | none (the code alone) | the core ships no CCD | a host's CCD lookup (Mol\*'s) |
 | `identifierResolver` | registry entry | none (exact match only) | equivalence is chemistry | a host's (InChIKey, ChEMBL to CCD) |
 | identifier namespaces | open words | the documented vocabulary | a host's registry ids are pointers too | a fixed list |
-| `links.hover` | `BehaviorProvider` | off; a host adds it (decided: the author, 2026-11-19, "for the linked highlight: this is a full app level decision anyway how the events from different parts compose") | a conjugate read with its site | added by a host |
+| `links.hover` | `BehaviorProvider` | off; a host adds it (decided: the author, 2026-11-19, "for the linked highlight: this is a full app level decision anyway how the events from different parts compose"); on in the examples and their stories (the author: "the demo should show it on") | a conjugate read with its site | added by a host |
 | contacts | a layer the host or builder adds | none (decided) | "contacts should be optional and configurable by the app" | — |
 | the mmCIF runtime | registry entry | not registered | the core reads no structure file by default; its size | registered by the application |
 | `assembly`, `water`, `name` (mmCIF source) | source params | the deposited model; waters not read; `description` | what the entry is and says | an assembly id; `true`; `composition` |
@@ -454,7 +454,7 @@ The fourth slice builds it, after the third slice's DG, DC, DT and LB (chips) an
   `links.hover`; `block.form` in the context menu; the matrix cells above.
 - **`seqx-examples`**: DT (1EHZ's 11 modified residues, marked and found by query); DC (1FIN as a complex from its
   fixture: units with `auth` numbering, ATP `whole` and `atoms`, AlphaFill's transplants as molecules with scores,
-  contacts a `pairs` layer); DG (4HHB's hemes as molecules); Antibody gains an Fc glycan (an IgG1 entry with its N297
+  contacts a `pairs` layer; `links.hover` on, both ways); DG (4HHB's hemes as molecules, `links.hover` on); Antibody gains an Fc glycan (an IgG1 entry with its N297
   glycan, *the entry chosen at recording*, CC0) and an ADC construct (trastuzumab with a payload by SMILES on lysines,
   generated, occupancies), with their views and editing views.
 - **Storybook**: a `Seq* (next)/Design/Molecules` page; stories for each of the views above, each with its headless
@@ -509,7 +509,8 @@ superseded by the seq data ports design.
    **yes**: **decided yes**.
 9. Identifier namespaces open words, with a documented vocabulary, rather than a fixed list? Recommended **yes**: **decided yes**.
 10. ~~`links.hover` on in the default spec~~ **Decided off** (the author, 2026-11-19): how events from different parts
-    compose is the application's; the library offers the behavior, a host adds it.
+    compose is the application's; the library offers the behavior, a host adds it. The examples and their stories
+    turn it on, both ways (the author: "For #10 for the two way highlight.. the demo should show it on").
 11. ~~One CIF-to-nodes converter~~ **Superseded** (the author, 2026-11-19: "we should also be able to share data
     representation with mol* ... maybe we could have generic representation ports, similar to mol io, we could write
     seq io"): how Seq\* and a host share one data representation (Seq\*'s nodes read from a Mol\* `Model` or
