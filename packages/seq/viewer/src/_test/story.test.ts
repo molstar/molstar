@@ -132,6 +132,22 @@ describe('a story step played on the application’s clock', () => {
     expect(v.playStep('nothing').issue?.code).toBe('seq.viewer.step.unknown');
   });
 
+  it('a step entered by its command is the same transition, its view placed', async () => {
+    const { v, clock } = await make();
+    expect(v.runCommand('step.enter', { step: 'tall' })).toBe('Shown');
+    expect(v.moving).toBe(true);
+    expect(v.view.get(Protein)).toMatchObject({ start: 10, end: 20 });
+    clock.tick(200);
+    expect(heightShown(v)).toBe(30);
+    clock.runAll(16);
+    expect(heightShown(v)).toBe(40);
+    expect(v.drawnViewports[Other]).toMatchObject({ start: 30, end: 45 });
+    expect(v.runCommand('step.leave', {})).toBeTruthy();
+    expect(v.moving).toBe(true);
+    clock.runAll(16);
+    expect(heightShown(v)).toBe(20);
+  });
+
   it('is a cut under reduced motion: nothing is requested of the clock', async () => {
     const { v, clock } = await make([[viewerItem('view.motion'), 'cut']]);
     v.playStep('tall');

@@ -356,7 +356,9 @@ refuses (its own report), is forgotten so the next sync tries again. Retired wit
   (`animation.progress`, `animation.clear`). Each frame is shown in the frame slot: the frame's spec
   (`SpecModel.setFrame`, when the plan changes the spec) and each leading section's viewport (its `top` and `bands`
   too). A section entering or a view switched during a transition is placed as the frame's spec gives it (the view
-  switched at the start). A cut under reduced motion.
+  switched at the start). A cut under reduced motion. A step entered elsewhere (the `step.enter` and `step.leave`
+  commands, a host's `spec.enterStep`) is the same transition, from the spec and viewports drawn last: a snapshot's view
+  is a jump that animates.
 - **The picture as SVG** (`renderSvg`): the context's export of the shown spec, size and window through the viewer's
   store, at the last frame's device pixel ratio (the density steps are in device pixels, so it is the picture the canvas
   shows); the context's `renderSvg` of the same spec, size and window gives the same string.

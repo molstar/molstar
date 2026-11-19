@@ -34,6 +34,7 @@ import {
   plan as planTransition,
   type PlanOptions,
   sample,
+  type StoryState,
   type StepViewport,
   type TransitionPlan,
   type ViewState,
@@ -165,6 +166,10 @@ export class SeqViewer extends ReactiveModel {
   private _shownFrame: { plan: TransitionPlan; frame: StoryFrame; views?: ViewState } | undefined;
   private _request: { request: AnimationRequest; plan: TransitionPlan; jumps?: number } | undefined;
   private readonly _drawnFrames = new State(0);
+  /** The spec the last frame drew, the step shown, and whether `playStep` is entering one (no second transition). */
+  private _drawnRoot: Node | undefined;
+  private _shownStep: string | undefined;
+  private _stepping = false;
   /** The application's clock (the animation port): Seq*'s own motions are plans requested of it. */
   private readonly _animation: SeqAnimation;
   /** The participant face of the animation port: what the application's clock drives. */
@@ -330,6 +335,8 @@ export class SeqViewer extends ReactiveModel {
     });
     // a jump animates from the windows drawn to the model's (the model is there at once: hits read the frame drawn)
     this.listenPermanently(this.view.jumps, (n) => this._startMotion(n));
+    // a story step entered by a command or a host is a transition too (its view is a snapshot's: a jump)
+    this.listenPermanently(this.spec.step, () => this._stepChanged());
     this.listenPermanently(this.view.resolved, () => {
       this._followViewports();
       this._applyWidths();
@@ -644,13 +651,38 @@ export class SeqViewer extends ReactiveModel {
    */
   playStep(id: string | undefined, options: { readonly run?: boolean } = {}): { plan?: TransitionPlan; issue?: Issue } {
     this._endMotion();
-    const views = this._drawnViews.size ? { sections: Object.fromEntries(this._drawnViews) } : this._modelViews();
-    const from = { root: this.spec.shown.value, view: { ...views, ...this._viewAddress() } };
-    if (id === undefined) this.spec.leaveStep();
-    else {
-      const issue = this.spec.enterStep(id);
-      if (issue) return { issue };
+    const from = this._fromState(this.spec.shown.value);
+    this._stepping = true;
+    try {
+      if (id === undefined) this.spec.leaveStep();
+      else {
+        const issue = this.spec.enterStep(id);
+        if (issue) return { issue };
+      }
+    } finally {
+      this._stepping = false;
     }
+    this._shownStep = this.spec.step.value?.id;
+    return { plan: this._toStep(from, options.run ?? true) };
+  }
+
+  /** What a transition starts from: a root and the viewports drawn last (the model's before a frame). */
+  private _fromState(root: Node): StoryState {
+    const views = this._drawnViews.size ? { sections: Object.fromEntries(this._drawnViews) } : this._modelViews();
+    return { root, view: { ...views, ...this._viewAddress() } };
+  }
+
+  /** A step entered elsewhere (the `step.enter` command, a host): the same transition, from what was drawn. */
+  private _stepChanged(): void {
+    const id = this.spec.step.value?.id;
+    if (this._stepping || this._retired || id === this._shownStep) return;
+    this._shownStep = id;
+    this._endMotion();
+    this._toStep(this._fromState(this._drawnRoot ?? this.spec.shown.value), true);
+  }
+
+  /** The step shown (its view placed) and the plan to it from `from`, run or shown at its start. */
+  private _toStep(from: StoryState, run: boolean): TransitionPlan {
     const st = this.spec.step.value?.state;
     if (st?.view) {
       if (st.view.view !== undefined) this.view.show(st.view.view);
@@ -677,11 +709,11 @@ export class SeqViewer extends ReactiveModel {
     });
     if (this._cut || !p.channels.length) {
       this.schedule();
-      return { plan: p };
+      return p;
     }
-    if (options.run ?? true) this._run(p);
+    if (run) this._run(p);
     else this._showFrame(p, sample(p, 0));
-    return { plan: p };
+    return p;
   }
 
   /** The view shown's address, when one is shown by address. */
@@ -906,6 +938,7 @@ export class SeqViewer extends ReactiveModel {
       this._baseDirty = false;
     }
     this.counts.frames++;
+    if (!this._shownFrame) this._drawnRoot = this.spec.shown.value;
     if (this._shownFrame) this._drawnFrames.set(this._drawnFrames.value + 1);
     if (this._restDue) {
       // the settled picture is drawn: it rests now, once (a layout of this frame waits for no second rest)
