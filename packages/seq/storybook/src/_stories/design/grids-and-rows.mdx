@@ -39,7 +39,8 @@ depends on the pixels on screen, not the amount of data.
 - 10,000 rows are held and 10 million drawn lazily at the same frame time; a row not yet loaded shows as pending.
 - Clicking a row's header selects it, Shift and Cmd/Ctrl extend and toggle; a drag selects a block of rows × columns; a
   click or drag on the ruler's upper part selects columns (its lower part is the ruler rail and pans).
-- The keyboard cursor steps cells and rows, a page at a time, over rows never loaded.
+- The keyboard cursor steps columns; its rows (↑ ↓, a page at a time, over rows never loaded) are designed, not built
+  yet; Page Up and Page Down scroll the rows a page at a time.
 - **Row columns**: a row's annotations (species, description, length, identity to the reference, a field joined from a
   file) as columns on the left of the alignment or on its right, as text, numbers, bars or chips; their titles above the
   rows order the rows by them, and they give way to a narrow view before the labels do.

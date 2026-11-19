@@ -20,3 +20,7 @@
 - A drag in the viewer or a navigator ends wherever the button is released (outside the canvas, the iframe or the
   browser window) and when the window loses focus.
 - A wheel pan of a row of blocks keeps the content under the pointer; a ring chip's label is drawn once, in its pill.
+- From the novice pass: a story's SVG twin follows an edit at once; Enter applies the query box; Page Up and Page Down
+  scroll a rows band a page (pinned rows kept); a hovered row column's text drawn above every column on its own
+  surface, ellipsized at the view's edge; the tree's clade target 8 px, stopping at the labels; the host highlight in
+  red at 3:1; the tRNA dot plot on a quiet ramp; the plasmid's strands named; stories open where their controls move.

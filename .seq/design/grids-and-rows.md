@@ -412,7 +412,8 @@ reorder keeps it and it projects like any part; a block is a rect (`Location.rec
   ruler's upper part (above `navigator.rail.grabShare`, 0.4 of its height, from the bottom) selects a run of columns,
   a drag in its lower part is the ruler rail's and pans ([navigators.md](navigators.md)); a grid's rulers are its axes and pan.
 
-**The keyboard cursor** (EC-154): `{ section, system, position, ySystem, yPosition, part }`, `part` `cell` or `header`.
+**The keyboard cursor** (EC-154; built: its columns; its rows not yet, found by NP 2026-11-19: Page Up and Page
+Down scroll the band a page, the cursor stays): `{ section, system, position, ySystem, yPosition, part }`, `part` `cell` or `header`.
 ← from the first column onto the header, → back; ← → step columns; ↑ ↓ step display rows (pinned band to scrolled
 rows, a summary row one stop); Page Up and Page Down a window of rows; Cmd/Ctrl+↑ ↓ the first and last row;
 Shift+arrows extend the block; Enter focuses the row or cell, or opens a summary row; Space (on key-up, and only when

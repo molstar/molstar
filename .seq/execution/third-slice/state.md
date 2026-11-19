@@ -269,3 +269,7 @@ None.
 - The author's finding (2026-11-19, Globins › Family): a row column's expanded label drawn under the next column; long
   labels: grow to the view's edge, ellipsis past it, the full text in the hover card (recommended). Given to NP.
   HC started (strong).
+- NP merged after its review round (Page Down with pinned rows, `followSvg` on revisions only, the tip canvas 1×1 until
+  a tip, the tip walk skipped without a rows layer, the tip clamped to its band, the tree target stopping at the
+  labels). Not built: the keyboard cursor's rows (it is column-only; grids-and-rows' cursor designs `ySystem`,
+  `yPosition`): the Design page and the design say so; asked of the author. Quick 2585, medium 105, perf 127.
