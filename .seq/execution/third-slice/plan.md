@@ -193,7 +193,7 @@ and dark before the merge.
 
 ### Stage 4: stories and navigators (SY after stage 2, beside stage 3; NV after RW)
 
-- [ ] SY (strong) the stories library, as `stories.md`: `stateOf`, `plan`, `sample` and the channel kinds in
+- [x] SY (strong) the stories library, as `stories.md`: `stateOf`, `plan`, `sample` and the channel kinds in
       `seqx-core` (property tests: `sample(plan, 0)` is `from`, `sample(plan, 1)` is `to`, monotone, deterministic,
       allocation-free warm); the frame slot over the shown state; the `AnimationPort` with its default and headless
       adapters; the view history's jumps and focus through it; the p53 story played, scrubbed and exported.

@@ -92,3 +92,5 @@ None.
   `bandTop`/`rowScale` merge over them, keeping folds. Merge order: SY, then RW rebased onto it.
 - RW review: 15 findings (4 confirmed bugs, the bands units, config beyond the table, untested logic); look: SVG export
   drops the image tiles, labels cut to 3 characters, wedges over summary labels. All in RW's fix round.
+- SY merged (6b36ad68d; the ./story export and changelog 2f0e4e417). Post-merge: unit 132 files / 1282 passed, tsc,
+  storybook typecheck, lint, format all exit 0. RW rebasing onto 2f0e4e417 in its fix round.
