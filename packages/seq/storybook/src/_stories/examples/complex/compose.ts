@@ -10,7 +10,7 @@ import { Data, entryLigands, ligand } from '@molstar/seqx-examples/complex/data'
 import { hiddenData, ligandId } from '@molstar/seqx-examples/complex/ligands';
 import { plddtColor } from '@molstar/seqx-examples/complex/confidence';
 import type { Wanter } from '@molstar/seqx-core/data';
-import { cellReadout, readoutWants, rectReadout } from '@molstar/seqx-examples/complex/readout';
+import { readoutWants, rectReadout } from '@molstar/seqx-examples/complex/readout';
 import type { EditingBehavior } from '@molstar/seqx-viewer/behaviors/editing';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import type { EditingSession } from '../../features/editing/compose.js';
@@ -107,25 +107,18 @@ export function holdReadout(viewer: SeqViewer): () => void {
   };
 }
 
-/** What the readout panel shows: the hovered cell, the selected rect and its PAE, each a line ('' when none). */
-export function readout(viewer: SeqViewer): { readonly hover: string; readonly rect: string } {
+/**
+ * What the readout panel shows: the selected rect and its PAE ('' when none). The hovered cell is the viewer's hover
+ * card's (both residues, their chains, the value), so the panel says what the card does not: the selection.
+ */
+export function readout(viewer: SeqViewer): { readonly rect: string } {
   const layout = viewer.frame?.layout;
   const model = viewer.spec.model.value;
   const view = viewer.view.resolved.value;
-  if (!layout || !model || !view) return { hover: '', rect: '' };
+  if (!layout || !model || !view) return { rect: '' };
   holdReadout(viewer);
-  const h = viewer.hover.current;
   const v = { model, view, data: viewer.store.store };
-  const hover =
-    h.system !== undefined && h.ySystem !== undefined && h.position !== undefined && h.yPosition !== undefined
-      ? cellReadout(v, {
-          system: h.system,
-          position: h.position,
-          ySystem: h.ySystem,
-          yPosition: h.yPosition,
-        })
-      : '';
-  return { hover, rect: rectReadout(v, viewer.selection.value.value.location) };
+  return { rect: rectReadout(v, viewer.selection.value.value.location) };
 }
 
 /** The data the views hold, for a story's text (the chains, their copies). */

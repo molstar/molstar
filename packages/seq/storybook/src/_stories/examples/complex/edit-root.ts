@@ -21,9 +21,9 @@ import { holdReadout, readout } from './compose.js';
 
 // A Complex view with its edits (examples.md, "Editing experiences are views too"): the viewer, a button an edit (one
 // patch, one step of the host's stack), Undo and Redo, the history and the spec shown printed beside, the SVG export
-// following; with `readout`, the host's panel of a grid over the complex (the hovered cell, the selected rect and its
-// mean PAE), or with `lines` another dataset's panel (the Antibody's labels in both numberings). Every string from the
-// spec or data is put in as text, never markup.
+// following; with `readout`, the host's panel of a grid over the complex (the selected rect and its mean PAE: the
+// hovered cell is the viewer's hover card's), or with `lines` another dataset's panel (the Antibody's selection and
+// bookmarks). Every string from the spec or data is put in as text, never markup.
 
 /** An edit a button runs: its label and what it does (the status line says what it returns). */
 export interface ComplexEdit {
@@ -75,12 +75,11 @@ class ComplexEditRoot extends UiElement<ComplexEditModel> {
     const redo = Button({ size: 'sm', children: 'Redo', onClick: () => void s.stack.redo() }) as HTMLButtonElement;
     if (model.edits.length) tools.append(undo, redo);
 
-    // the host's panel: what the pointer is over and what is selected, in words
+    // the host's panel: what is selected, in words (what the pointer is over is the viewer's hover card)
     const panel = document.createElement('div');
     panel.style.cssText = `display: grid; gap: var(--msui-space-1); padding: var(--msui-space-3); border: 1px solid var(--msui-line); border-radius: var(--msui-radius-md); ${Mono}`;
-    const hoverLine = document.createElement('div');
     const rectLine = document.createElement('div');
-    panel.append(hoverLine, rectLine);
+    panel.append(rectLine);
     const showReadout = () => {
       if (model.lines) {
         panel.replaceChildren(
@@ -93,14 +92,12 @@ class ComplexEditRoot extends UiElement<ComplexEditModel> {
         return;
       }
       const r = readout(s.viewer);
-      hoverLine.textContent = r.hover ? `Hover: ${r.hover}` : 'Hover: (a cell of the plot)';
       rectLine.textContent = r.rect ? r.rect : 'Drag a rectangle on the plot: its residues and its mean PAE';
     };
     const panelShown = model.readout || model.lines !== undefined;
     if (panelShown) {
       // the letters the panel names are held while it is shown; it is written again when they arrive
       if (model.readout) onCleanup(holdReadout(s.viewer));
-      onCleanup(s.viewer.hover.version.listen(showReadout));
       onCleanup(s.viewer.selection.value.listen(showReadout));
       onCleanup(s.viewer.store.store.version.listen(showReadout));
       // the bookmarks a panel lists

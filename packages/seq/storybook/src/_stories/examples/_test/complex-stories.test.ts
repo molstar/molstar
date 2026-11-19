@@ -16,6 +16,7 @@ import { ComplexViews } from '@molstar/seqx-examples';
 import { copiesScale } from '@molstar/seqx-examples/complex/blocks';
 import { Data, entryLigands, Files } from '@molstar/seqx-examples/complex/data';
 import { nodeFixtureAssets, PackageFolder } from '@molstar/seqx-examples/node-assets';
+import { Describer } from '@molstar/seqx-viewer/describe';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { DomHost } from '@molstar/ui/dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -75,7 +76,7 @@ const centre = (a: { cell(i: number): void; sx0: number; sx1: number }, i: numbe
 };
 
 describe('the grid over the complex, headless', () => {
-  it('a hovered cell: both residues and chains in the panel, the crosshair across its strips, the cell outlined once', async () => {
+  it('a hovered cell: both residues and chains in the hover card, the crosshair across its strips, the cell outlined once', async () => {
     const s = await open(view('complex-grid'));
     const v = s.viewer;
     // the panel holds the letters it names (read from the files): as the story mounts it
@@ -96,7 +97,18 @@ describe('the grid over the complex, headless', () => {
       '/data/cyclin-protein',
       299,
     ]);
-    expect(readout(v).hover).toMatch(new RegExp(`^CDK2 K33 × cyclin A2 ${P20248[299]}300: \\d+ Å$`));
+    // the card (the viewer's: the panel once said it): both positions, both chains, the value
+    const card = new Describer({
+      spec: v.spec,
+      store: v.store,
+      addresses: v.addresses,
+      layout: () => v.frame?.layout,
+    }).describe(v.hover.current);
+    expect(card?.rows).toContainEqual({ label: 'Chain x', value: 'CDK2' });
+    expect(card?.rows).toContainEqual({ label: 'Chain y', value: 'cyclin A2' });
+    expect(card?.rows.find((r) => r.label === 'Value')?.value).toMatch(/^\d/);
+    expect(card?.rows).toContainEqual({ label: 'y', value: `cyclin A2 ${P20248[299]}300` });
+    expect(card?.rows).toContainEqual({ label: 'x', value: 'CDK2 K33' });
     const rects = recordDrawLists(v.frame!.lists, ['hover'])
       .split('\n')
       .filter((l) => l.startsWith('rect '));

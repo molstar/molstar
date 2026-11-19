@@ -12,6 +12,7 @@ import { theDesign, wildType } from '@molstar/seqx-examples/antibody/data';
 import { PackageFolder } from '@molstar/seqx-examples/node-assets';
 import { DomHost } from '@molstar/ui/dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { Describer } from '@molstar/seqx-viewer/describe';
 import { composeEditing, type EditingSession } from '../../features/editing/compose.js';
 import {
   bookmark,
@@ -175,7 +176,7 @@ describe('Antibody: the rulers against the data', () => {
 });
 
 describe('Antibody: labels in both numberings', () => {
-  it('a hovered residue: its Kabat and IMGT labels in the panel, once the files’ labels are in', async () => {
+  it('a hovered residue: its Kabat and IMGT labels in the hover card, once the files’ labels are in', async () => {
     const s = await open('schemes');
     const wt = wildType();
     const i = wt.heavy.kabat.indexOf('100A');
@@ -185,7 +186,18 @@ describe('Antibody: labels in both numberings', () => {
     const x = (section.axis!.x(i) + section.axis!.x(i + 1)) / 2;
     s.viewer.input.move(x, letters.box.y + letters.box.height / 2);
     await settle(s);
-    expect(readoutLines(s.viewer)[0]).toBe(`Hover: heavy ${i + 1}, Kabat 100A, IMGT 113`);
+    // the card's rows (the viewer's, not the story's): the position in each numbering of its system
+    const card = new Describer({
+      spec: s.viewer.spec,
+      store: s.viewer.store,
+      addresses: s.viewer.addresses,
+      layout: () => s.viewer.frame?.layout,
+    }).describe(s.viewer.hover.current);
+    expect(card?.rows).toContainEqual({ label: 'kabat', value: '100A' });
+    expect(card?.rows).toContainEqual({ label: 'imgt', value: '113' });
+    expect(card?.title).toBe(`1N8Z_B ${i + 1}`);
+    // the panel says what the card does not: the selection
+    expect(readoutLines(s.viewer)).toEqual(['Selection: (none)']);
   });
 
   it('a query by label in either scheme selects; a range written backwards in IMGT is an issue with its hint (EC-7)', async () => {
