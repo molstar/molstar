@@ -1292,10 +1292,12 @@ touch, at least `handlePx`) and at most a quarter of the window inside it, so a 
 over at least `hitPx`, centred and inside the span; `outside` the rest of the span. The `window` target with its `part`.
 Its drawing (`drawNavigatorWindow`, a ring's `drawWindowArgs`): the body in `seq-window` (tinted, outlined), the grips
 in `seq-grip` (`handlePx`; lit per part: an end's grip, the body both), a hairline at the true extent where the floor
-drew it wider (at least a device pixel), the wash (`seq-wash`) over the span outside it (a ring: none); idle (nothing
-can move) a quiet outline, not a target; an export's an outline with its wash, no grips. Its look (fill opacities, a
-grip's share of the thickness) is fixed. Its numbers reach the pass through arrays (`NavWindow`, `args`,
-`NavWindowFlags` read once as numbers): a window move allocates nothing once warm.
+drew it wider (at least a device pixel), the wash (`seq-wash`, the background at 0.2, at most 0.3: a test) over the span
+outside it (a ring: none; why light: an overview's window of a few floored rows of 10,000 washes nearly the whole
+picture, whose shape must still read; the window stands out by its edge and grips); idle (nothing can move) a quiet
+outline, not a target; an export's an outline with its wash, no grips. Its look (fill opacities, a grip's share of the
+thickness) is fixed. Its numbers reach the pass through arrays (`NavWindow`, `args`, `NavWindowFlags` read once as
+numbers): a window move allocates nothing once warm.
 
 ### Navigators
 

@@ -11,7 +11,7 @@
 
 import type { Node } from '@molstar/core/repr/tree';
 import { createSeqSpec, overviewNavigator } from '@molstar/seqx-core/lang';
-import { RowsRail, SlimRailPx, type Rail } from '@molstar/seqx-core/render';
+import { RowsRail, type RowsLay, SlimRailPx, type Rail } from '@molstar/seqx-core/render';
 import { afterEach, describe, expect, it } from 'vitest';
 import { viewerItem } from '../config.js';
 import { DefaultSeqViewerSpec } from '../default-spec.js';
@@ -79,6 +79,10 @@ describe('the rows rail', () => {
     // beside the data and its last numbers, never over them
     const data = v.frame!.layout.sections[0].tracks[1].box;
     expect(r.top).toBeGreaterThanOrEqual(data.x + data.width);
+    // right of the last numbers, as clipped to the band (the widest in view)
+    const lay = v.frame!.layout.sections[0].tracks[1].layers.find((l) => l.type.name === 'rows')!.lay as RowsLay;
+    expect(lay.lastText.length).toBeGreaterThan(0);
+    expect(lay.numberRightX + lay.lastMaxW).toBeLessThanOrEqual(r.top);
     expect(r.x).toBeCloseTo(data.y, 6);
     expect(r.width).toBeCloseTo(data.height, 6);
     expect(r.total).toBe(60);
