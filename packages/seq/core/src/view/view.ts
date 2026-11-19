@@ -62,6 +62,8 @@ export const LayerTypes: Readonly<Record<string, LayerType>> = {
   // an alignment's rows and its logo: no fallback (a reader without them draws none)
   rows: { shape: 'cells' },
   logo: { shape: 'cells' },
+  // a chromosome's stained bands (an ideogram): a reader without them draws the ranges
+  bands: { shape: 'ranges', fallback: 'ranges' },
   // pairs drawn as their ends where a reader lacks arcs; a grid has none (a reader without it draws none)
   pairs: { shape: 'pairs', fallback: 'ranges' },
   grid: { shape: 'grid' },
@@ -245,6 +247,32 @@ export interface ViewLink {
 /** The channel slots a layer has (`color`, `ink`, `size`, `opacity`, `line`, `arrow`, `shape`). */
 export const ThemeChannelNames = ['color', 'ink', 'size', 'opacity', 'line', 'arrow', 'shape'] as const;
 
+/**
+ * A navigator of the view (_spec/README.md "Resolved view", Navigators): its params as written with their defaults,
+ * the sections it binds (those the view has, in order; `missing` those it names that the view lacks), the system it
+ * draws and the static path from each bound section's system to it.
+ */
+export interface ResolvedNavigator {
+  readonly address: string;
+  readonly id: string;
+  readonly of: readonly string[];
+  readonly missing: readonly string[];
+  readonly axes: 'positions' | 'rows' | 'both';
+  readonly content: 'axis' | 'tracks' | 'bands' | 'rows';
+  /** The tracks drawn small (`content: tracks`), by address; the section's but its rulers when absent. */
+  readonly tracks?: readonly string[];
+  readonly bands?: string;
+  /** The system it draws: `system`, else its first bound section's; undefined when it binds none. */
+  readonly system?: string;
+  /** Whether it draws its first bound section's own axis (no `system`: its range, pieces, direction), else `system` whole. */
+  readonly sectionAxis: boolean;
+  readonly place: 'top' | 'bottom' | 'left' | 'right';
+  readonly size?: number | readonly [number, number];
+  readonly hidden: boolean;
+  /** The path from each bound section's system to `system`, by section; absent where none joins them. */
+  readonly paths: Readonly<Record<string, Path>>;
+}
+
 export interface ResolvedView {
   readonly address: string;
   readonly layout: string;
@@ -255,6 +283,8 @@ export interface ResolvedView {
   readonly sections: readonly ResolvedSection[];
   /** Every ordered pair of its sections a static path joins (the same system: the identity). */
   readonly links: readonly ViewLink[];
+  /** Its navigators in spec order, hidden ones included. */
+  readonly navigators: readonly ResolvedNavigator[];
   readonly issues: readonly Issue[];
 }
 
@@ -281,6 +311,14 @@ export function resolveView(model: StaticModel, address: string): ResolvedView |
   const v = build(model, node, address);
   views.set(address, v);
   return v;
+}
+
+/**
+ * A view node resolved over the model as if it were at `address`, uncached: what a navigator lays its picture out
+ * through (a view of its own over the spec's data, never in the spec).
+ */
+export function resolveViewNode(model: StaticModel, node: Node, address: string): ResolvedView {
+  return build(model, node, address);
 }
 
 function nodeAt(root: Node, address: string): Node | undefined {
@@ -456,7 +494,72 @@ function build(model: StaticModel, view: Node, address: string): ResolvedView {
     ...(ex && typeof ex === 'object' && !Array.isArray(ex) ? { export: ex as Record<string, Value> } : {}),
     sections,
     links,
+    navigators: navigatorsOf(model, view, address, sections),
     issues,
+  };
+}
+
+/** A view's navigators (`<view>/navigators/<id>`), resolved against its sections. */
+function navigatorsOf(
+  model: StaticModel,
+  view: Node,
+  address: string,
+  sections: readonly ResolvedSection[],
+): ResolvedNavigator[] {
+  const out: ResolvedNavigator[] = [];
+  for (const c of view.children ?? []) {
+    if (c.kind !== 'navigators') continue;
+    for (const n of c.children ?? [])
+      if (n.kind === 'navigator' && n.id !== undefined)
+        out.push(resolveNavigatorNode(model, sections, n, `${address}/${c.id}/${n.id}`));
+  }
+  return out;
+}
+
+/**
+ * A `navigator` node resolved against a view's sections, as if at `at`: a node of the spec, or a host's definition of
+ * the same shape (never saved).
+ */
+export function resolveNavigatorNode(
+  model: StaticModel,
+  sections: readonly ResolvedSection[],
+  n: Node,
+  at: string,
+): ResolvedNavigator {
+  const written = param(n, 'of');
+  const named = (Array.isArray(written) ? written : [written])
+    .map((v) => exactAddress(v))
+    .filter((v): v is string => v !== undefined);
+  const of = named.filter((a) => sections.some((s) => s.address === a));
+  const first = sections.find((s) => s.address === of[0]);
+  const system = exactAddress(param(n, 'system')) ?? first?.axis.system;
+  const paths: Record<string, Path> = {};
+  for (const a of of) {
+    const s = sections.find((x) => x.address === a)!;
+    if (system === undefined || !model.systems.has(system) || !model.systems.has(s.axis.system)) continue;
+    const path = s.axis.system === system ? identityPath(system) : model.path(s.axis.system, system).path;
+    if (path) paths[a] = path;
+  }
+  const tracks = param(n, 'tracks');
+  const axes = (param(n, 'axes') as ResolvedNavigator['axes'] | undefined) ?? 'positions';
+  const size = param(n, 'size');
+  return {
+    address: at,
+    id: n.id ?? at.slice(at.lastIndexOf('/') + 1),
+    of,
+    missing: named.filter((a) => !of.includes(a)),
+    axes,
+    content: (param(n, 'content') as ResolvedNavigator['content'] | undefined) ?? 'axis',
+    ...(Array.isArray(tracks)
+      ? { tracks: tracks.map((t) => exactAddress(t)).filter((t): t is string => t !== undefined) }
+      : {}),
+    ...(exactAddress(param(n, 'bands')) !== undefined ? { bands: exactAddress(param(n, 'bands'))! } : {}),
+    ...(system !== undefined ? { system } : {}),
+    sectionAxis: param(n, 'system') === undefined,
+    place: (param(n, 'place') as ResolvedNavigator['place'] | undefined) ?? (axes === 'rows' ? 'right' : 'top'),
+    ...(typeof size === 'number' || Array.isArray(size) ? { size: size as ResolvedNavigator['size'] } : {}),
+    hidden: param(n, 'hidden') === true,
+    paths,
   };
 }
 

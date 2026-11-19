@@ -27,6 +27,8 @@ export interface StoreReader {
   coverage(source: string): Coverage | undefined;
   keysOf(want: Want): string[];
   get(key: string): DataEntry | undefined;
+  /** The store's tiling and its bound on a want's tiles (a layer picks a level within it), where it has them. */
+  readonly settings?: { readonly tileBins: number; readonly maxTilesPerWant: number };
 }
 
 /** The dynamic nodes of tier 2 (the resolve pass's overlay): its version is part of the draw lists' key. */
@@ -126,6 +128,11 @@ export interface Hit {
   readonly count?: number;
   /** A `window` hit's part: its body (dragged: pans) or an end (dragged: resizes about the other end). */
   readonly part?: WindowPart;
+  /**
+   * A navigator's `window` hit: the navigator's id, `rail` for a section's ruler rail (_spec/README.md "Render",
+   * Navigators); `position` is then the position under the point at the navigator's scale.
+   */
+  readonly navigator?: string;
   /** The block (its index in the section) when the section has blocks. */
   readonly block?: number;
   /** What is under the point within the position, when a layer says (a logo's letter). */
@@ -174,6 +181,8 @@ export interface Emphasis {
   };
   /** The highlight channels in the order they were set: each a tint of its color (the `highlight` pass). */
   readonly highlights?: readonly EmphasisHighlight[];
+  /** The window being dragged (its hit): a rail is drawn grown while its drag runs, wherever the pointer goes. */
+  readonly drag?: Hit;
   /**
    * The hover and the selection carried onto the linked sections' systems (`projectOntoView`), one Location each, keyed
    * by system: drawn in the same look, lighter (`emphasis.projected`). The projected hover is drawn on every section

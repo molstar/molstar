@@ -55,13 +55,14 @@ afterEach(() => {
 });
 
 /** `clock`: the bound of the performance case reads the real `performance`, its timers faked alone. */
-async function make(view = tracks, clock = true, look?: SelectionLook) {
+async function make(view = tracks, clock = true, look?: SelectionLook, noRails = false) {
   vi.useFakeTimers({
     toFake: clock ? ['setTimeout', 'clearTimeout', 'Date', 'performance'] : ['setTimeout', 'clearTimeout'],
   });
   const v = composeViewer(view, {
     ports: { assets: () => ({ reader: { readText: async () => gene } }) },
     ...(look ? { look } : {}),
+    noRails,
   });
   viewer = v;
   v.input.mac = false;
@@ -99,7 +100,8 @@ describe('Selection, headless', () => {
   });
 
   it('protein on its gene: a residue selected on the protein shows on the gene, lighter, in the canvas and the SVG', async () => {
-    const v = await make(onGene);
+    // no ruler rails: their slim rows are the canvas's, never a figure's
+    const v = await make(onGene, true, undefined, true);
     v.view.setRange('/views/main/protein', 170, 180);
     await vi.advanceTimersByTimeAsync(400);
     v.draw();
@@ -129,7 +131,7 @@ describe('Selection, headless', () => {
   });
 
   it('protein on its gene: two ranges, one added with Cmd/Ctrl+drag and cut with Alt+drag, in the canvas and the SVG', async () => {
-    const v = await make(onGene);
+    const v = await make(onGene, true, undefined, true);
     v.view.setRange('/views/main/protein', 170, 190);
     await vi.advanceTimersByTimeAsync(400);
     v.draw();

@@ -33,7 +33,7 @@ export async function openExample(view: ExampleView, options: OpenOptions): Prom
   vi.useFakeTimers({
     toFake: realClock ? ['setTimeout', 'clearTimeout'] : ['setTimeout', 'clearTimeout', 'Date', 'performance'],
   });
-  const text = view.id === 'gene-by-region' ? regionSeqText() : gene;
+  const text = view.id === 'gene-by-region' || view.id === 'gene-region-ideogram' ? regionSeqText() : gene;
   const base = DefaultSeqViewerSpec();
   const v = createSeqViewer({
     ...base,

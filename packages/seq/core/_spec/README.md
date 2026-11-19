@@ -70,6 +70,15 @@ checks it cannot express.
   figure's form is the writer's, never the host's or the data's: one spec draws the same in the canvas, the SVG and
   another viewer. The refs inside `direction` and `pieces` are checked by kind as top-level refs are, and a change's
   check reaches them (its reverse index walks a union's record member). Why: the composition is the application's.
+- **Navigators** (`views/<view>/navigators/<id>`, the `navigators` container's id is `navigators`): a `navigator` node
+  is a part over a section's axis, its rows or both, placed by the host: `of` (a section or a list of them, refs),
+  `axes` (`positions`, `rows`, `both`), `content` (`axis`, `tracks`, `bands`, `rows`), `tracks` (refs), `bands` (a
+  `ranges` ref with a `stain` field), `system` (a sequence: a chromosome under a section on a region), `place` (`top`,
+  `bottom`, `left`, `right`: a hint), `size` (px across, or `[width, height]`), `hidden`. Absent params are the form's:
+  the builder's four helpers (`stripNavigator`, `ideogramNavigator`, `overviewNavigator`, `miniatureNavigator`) write
+  them. The view's `export.navigators` (`omit`, `include`) says whether an export draws them. `content: bands` with no
+  `bands` is `seq.lang.navigator.bands`. Why a node: a spec carries its navigators to another reader and an export can
+  draw them; why not a section: it has no axis of its own to scroll, its window is a section's viewport.
 - **Every child of the spec has an id**: each kind's ids are `required` in the description (a `layer`'s too), and the
   language's check `seq.lang.id.required` covers what the description cannot, an extension's kind. The bodies of slots
   are no children of the spec (a stored patch's ops have no ids). Why: every node is addressable, so hiding a layer is a
@@ -852,6 +861,11 @@ no target.
 - A layer's `data` naming a ref (a chain of them) to one address is read as that address (Language, Refs).
 - A layer's `data` may carry `access` and `length` (an instance's, from the overlay): what reads it takes them before
   the model's.
+- **Navigators** (`ResolvedView.navigators`, `resolveNavigatorNode` for a host's definition of the same shape): each
+  with its bound sections the view has (`of`, in order; `missing` those it lacks), its params with their defaults
+  (`axes` `positions`, `content` `axis`, `place` `top`, `right` for rows), the system it draws (`system`, else its first
+  section's; `sectionAxis` when it draws that section's own axis: its range, pieces and direction) and the static path
+  from each bound section's system to it (identity, a region into its chromosome, a protein into its gene).
 - `seq.view.*` (`ViewIssues`): `section.system`, `layer.type`, `layer.data`, `layer.shape`, `layer.unplaced`,
   `follow.unplaced`, `section.pieces`, `direction.unresolved`, `direction.mixed` (info); a test checks the catalog.
 
@@ -865,54 +879,59 @@ store's entries, as draw lists; hit-testing on the same layout; the recording an
 `RenderConfig`, each choice with its recommended default (`DefaultRenderConfig`, `renderConfig(over)`). The sizes are
 the UX foundations' numbers, CSS px, settled by the foundation stories; where no reason is given, none is recorded.
 
-| Item                                                  | Default                                                                                             | Why the default; the alternatives                                                                                                                                               |
-| ----------------------------------------------------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `inset`                                               | 8                                                                                                   | the page's inset around everything                                                                                                                                              |
-| `labelWidth`, `labelGap`                              | 112, 8                                                                                              | one label column a view, so the data columns align                                                                                                                              |
-| `trackGap`, `sectionGap`                              | 4, 8                                                                                                | gaps between a section's tracks and between sections                                                                                                                            |
-| `heights`                                             | letters 20, ranges 36, values 32, ruler 22, secondary 16, variants 32, frame 16, pairs 64, grid 240 | a track's height when the spec gives none: the largest of its layers' types'                                                                                                    |
-| `laneHeight`, `laneGap`                               | 12, 2                                                                                               | a lane of ranges and the gap within it                                                                                                                                          |
-| `density`                                             | letters 10, cells 3, dots 1, bars 1/64                                                              | each density step's lowest pixels a position (below)                                                                                                                            |
-| `densityUnits`                                        | letters `css`, the rest `device`                                                                    | legibility is in CSS px; what bounds the lists is a mark a device pixel                                                                                                         |
-| `letterSizes`                                         | 9 to 14                                                                                             | a short scale; the largest that fits the cell is used                                                                                                                           |
-| `monoAdvance`                                         | 0.6 em                                                                                              | a letter's size known from its cell with no measuring                                                                                                                           |
-| `labelFont`, `itemFont`                               | `12px sans`, `10px sans`                                                                            | a family role a backend maps to its stack                                                                                                                                       |
-| `fade`                                                | 12                                                                                                  | how far past its max width a text fades out                                                                                                                                     |
-| `squircleRatio`, `squircleMax`, `squircleMin`         | 1/3, 8, 6                                                                                           | a radius a third of the height, capped; none below the minimum                                                                                                                  |
-| `outline`                                             | hover 1.5, selection 1, cursor 1                                                                    | outline widths                                                                                                                                                                  |
-| `emphasis.selectionPlace`                             | `over`                                                                                              | a tint under the data is hidden by opaque cells and a selection then redraws the data; `under` (to confirm with the author)                                                     |
-| `emphasis.selectionShape`                             | `column`                                                                                            | a selection is of positions: one band a section across its tracks and gaps reads as one (the author's look); `tracks`, a box a track                                            |
-| `emphasis.selectionTint`, `emphasis.selectionOutline` | 0.18, 0.6                                                                                           | a soft tint and one thin outline (the author's look)                                                                                                                            |
-| `emphasis.highlightTint`                              | 0.3                                                                                                 | a highlight channel's tint                                                                                                                                                      |
-| `emphasis.projected`                                  | 0.5                                                                                                 | what is projected onto a linked section, a factor of its own look's opacity: the same look, lighter                                                                             |
-| `emphasis.hoverOffset`                                | 1                                                                                                   | the hover's outline outside its mark, concentric, never touching the selection's                                                                                                |
-| `emphasis.cursorInk`                                  | `msui-text`                                                                                         | the cursor neutral, never the selection's accent (the author's look)                                                                                                            |
-| `axis.directionMark`                                  | `label`                                                                                             | a reversed axis says so in its first label (an arrow and "reversed", or "along" what it reads along), in the picture and the export; `none` for a host whose own chrome says it |
-| `margin`                                              | 0.5                                                                                                 | what a want adds on each side, a fraction of the view (the store's `margin` priority)                                                                                           |
-| `followArc`                                           | `shortest`                                                                                          | a cyclic follower takes the shortest arc holding the image (EC-12); `hull`                                                                                                      |
-| `maxTemplateTracks`                                   | 200                                                                                                 | the tracks one template makes; past it `seq.render.template.limit`: a source's nodes are untrusted                                                                              |
-| `nodes.holdShown`                                     | true                                                                                                | a layout lists the nodes it shows, for its owner to hold in the store; false: nothing held by showing                                                                           |
-| `ranges.overflow`                                     | `extra-lanes`                                                                                       | only the items past the lanes collapse into a density row; `layer`, the whole layer                                                                                             |
-| `values.aggregate`                                    | `minmax`                                                                                            | below a device pixel a position, each column's extent, so negative extremes show; `max`                                                                                         |
-| `values.coarser`                                      | 1                                                                                                   | the coarsest level whose bin is no wider than k device pixels' positions (below)                                                                                                |
-| `values.direct`                                       | true                                                                                                | data on the section's own system placed with no mapping (below); false: the general mapping, the same lists                                                                     |
-| `ruler.labelGap`                                      | 48 px                                                                                               | the least between two ticks (the foundations' number); labels clear each other by an eighth of it                                                                               |
-| `text.scale`, `text.groupGap`                         | 12 px a position, half a cell                                                                       | the letter size a text opens at (its zoom); a space between words                                                                                                               |
-| `text.lineGap`, `text.bandGap`                        | 8, 2                                                                                                | a line block reads as one when the line gap is the larger                                                                                                                       |
-| `text.collapseEmpty`                                  | true                                                                                                | an empty band separates what belongs together (EC-96); false: uniform lines                                                                                                     |
-| `text.maxLines`, `text.maxHeight`                     | 100,000; 600 px                                                                                     | a figure, not a genome; a text in a host page scrolls inside its box past it                                                                                                    |
-| `text.pieceBreak`, `text.numberGap`                   | `none`; 8                                                                                           | lines stay aligned, the boundary marks the edge; the gap between a line and its numbers                                                                                         |
-| `text.heights`                                        | letters 18, ranges 4, values 3, ruler 14, secondary 6, variants 10, frame 14, pairs 24, grid 120    | a text's tracks thin: a ranges track reads as underlines, a values track as a strip                                                                                             |
-| `rings.hole`, `rings.maxDiameter`                     | 0.35 of the radius; 720 px                                                                          | room for the title, chords readable; a map, not a wall (`RenderConfig` preset; 0 to 0.8; px)                                                                                    |
-| `rings.blockGap`                                      | 1°                                                                                                  | a gap between blocks reads as a boundary (Circos)                                                                                                                               |
-| `rings.letters`                                       | `upright`                                                                                           | readable at any angle; `tangent`                                                                                                                                                |
-| `rings.center`                                        | `title`                                                                                             | the name and length in the hole; `none`                                                                                                                                         |
-| `rings.labelGap`, `rings.leaderBend`                  | 8, 12 px                                                                                            | leaders fan out over the ruler, never through one point                                                                                                                         |
-| `rings.window`                                        | `followed`                                                                                          | a window means only what a follower shows; `always` (idle, quiet, when nothing follows)                                                                                         |
-| `pairs.maxArcs`, `pairs.hitPx`                        | 4,096; 4                                                                                            | bounded by the screen: past it arcs binned by their ends' device columns (`seq.render.pairs.limit`); a curve is thin, so a hit within 4 px                                      |
-| `grid.rectMinPx`                                      | 12                                                                                                  | rects with outlines only where cells are few and large enough to read; image tiles below                                                                                        |
-| `grid.buildBudget`                                    | 65,536 samples a frame                                                                              | a frame while moving under 8 ms; a tile past it draws a coarser level meanwhile, never empty                                                                                    |
-| `internedStrings`                                     | 4,096                                                                                               | strings draw lists keep interned across frames, so a frame drawn again interns nothing; past it a full redraw starts the table again                                            |
+| Item                                                           | Default                                                                                             | Why the default; the alternatives                                                                                                                                               |
+| -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `inset`                                                        | 8                                                                                                   | the page's inset around everything                                                                                                                                              |
+| `labelWidth`, `labelGap`                                       | 112, 8                                                                                              | one label column a view, so the data columns align                                                                                                                              |
+| `trackGap`, `sectionGap`                                       | 4, 8                                                                                                | gaps between a section's tracks and between sections                                                                                                                            |
+| `heights`                                                      | letters 20, ranges 36, values 32, ruler 22, secondary 16, variants 32, frame 16, pairs 64, grid 240 | a track's height when the spec gives none: the largest of its layers' types'                                                                                                    |
+| `laneHeight`, `laneGap`                                        | 12, 2                                                                                               | a lane of ranges and the gap within it                                                                                                                                          |
+| `density`                                                      | letters 10, cells 3, dots 1, bars 1/64                                                              | each density step's lowest pixels a position (below)                                                                                                                            |
+| `densityUnits`                                                 | letters `css`, the rest `device`                                                                    | legibility is in CSS px; what bounds the lists is a mark a device pixel                                                                                                         |
+| `letterSizes`                                                  | 9 to 14                                                                                             | a short scale; the largest that fits the cell is used                                                                                                                           |
+| `monoAdvance`                                                  | 0.6 em                                                                                              | a letter's size known from its cell with no measuring                                                                                                                           |
+| `labelFont`, `itemFont`                                        | `12px sans`, `10px sans`                                                                            | a family role a backend maps to its stack                                                                                                                                       |
+| `fade`                                                         | 12                                                                                                  | how far past its max width a text fades out                                                                                                                                     |
+| `squircleRatio`, `squircleMax`, `squircleMin`                  | 1/3, 8, 6                                                                                           | a radius a third of the height, capped; none below the minimum                                                                                                                  |
+| `outline`                                                      | hover 1.5, selection 1, cursor 1                                                                    | outline widths                                                                                                                                                                  |
+| `emphasis.selectionPlace`                                      | `over`                                                                                              | a tint under the data is hidden by opaque cells and a selection then redraws the data; `under` (to confirm with the author)                                                     |
+| `emphasis.selectionShape`                                      | `column`                                                                                            | a selection is of positions: one band a section across its tracks and gaps reads as one (the author's look); `tracks`, a box a track                                            |
+| `emphasis.selectionTint`, `emphasis.selectionOutline`          | 0.18, 0.6                                                                                           | a soft tint and one thin outline (the author's look)                                                                                                                            |
+| `emphasis.highlightTint`                                       | 0.3                                                                                                 | a highlight channel's tint                                                                                                                                                      |
+| `emphasis.projected`                                           | 0.5                                                                                                 | what is projected onto a linked section, a factor of its own look's opacity: the same look, lighter                                                                             |
+| `emphasis.hoverOffset`                                         | 1                                                                                                   | the hover's outline outside its mark, concentric, never touching the selection's                                                                                                |
+| `emphasis.cursorInk`                                           | `msui-text`                                                                                         | the cursor neutral, never the selection's accent (the author's look)                                                                                                            |
+| `axis.directionMark`                                           | `label`                                                                                             | a reversed axis says so in its first label (an arrow and "reversed", or "along" what it reads along), in the picture and the export; `none` for a host whose own chrome says it |
+| `margin`                                                       | 0.5                                                                                                 | what a want adds on each side, a fraction of the view (the store's `margin` priority)                                                                                           |
+| `followArc`                                                    | `shortest`                                                                                          | a cyclic follower takes the shortest arc holding the image (EC-12); `hull`                                                                                                      |
+| `maxTemplateTracks`                                            | 200                                                                                                 | the tracks one template makes; past it `seq.render.template.limit`: a source's nodes are untrusted                                                                              |
+| `nodes.holdShown`                                              | true                                                                                                | a layout lists the nodes it shows, for its owner to hold in the store; false: nothing held by showing                                                                           |
+| `ranges.overflow`                                              | `extra-lanes`                                                                                       | only the items past the lanes collapse into a density row; `layer`, the whole layer                                                                                             |
+| `values.aggregate`                                             | `minmax`                                                                                            | below a device pixel a position, each column's extent, so negative extremes show; `max`                                                                                         |
+| `values.coarser`                                               | 1                                                                                                   | the coarsest level whose bin is no wider than k device pixels' positions (below)                                                                                                |
+| `values.direct`                                                | true                                                                                                | data on the section's own system placed with no mapping (below); false: the general mapping, the same lists                                                                     |
+| `ruler.labelGap`                                               | 48 px                                                                                               | the least between two ticks (the foundations' number); labels clear each other by an eighth of it                                                                               |
+| `text.scale`, `text.groupGap`                                  | 12 px a position, half a cell                                                                       | the letter size a text opens at (its zoom); a space between words                                                                                                               |
+| `text.lineGap`, `text.bandGap`                                 | 8, 2                                                                                                | a line block reads as one when the line gap is the larger                                                                                                                       |
+| `text.collapseEmpty`                                           | true                                                                                                | an empty band separates what belongs together (EC-96); false: uniform lines                                                                                                     |
+| `text.maxLines`, `text.maxHeight`                              | 100,000; 600 px                                                                                     | a figure, not a genome; a text in a host page scrolls inside its box past it                                                                                                    |
+| `text.pieceBreak`, `text.numberGap`                            | `none`; 8                                                                                           | lines stay aligned, the boundary marks the edge; the gap between a line and its numbers                                                                                         |
+| `text.heights`                                                 | letters 18, ranges 4, values 3, ruler 14, secondary 6, variants 10, frame 14, pairs 24, grid 120    | a text's tracks thin: a ranges track reads as underlines, a values track as a strip                                                                                             |
+| `rings.hole`, `rings.maxDiameter`                              | 0.35 of the radius; 720 px                                                                          | room for the title, chords readable; a map, not a wall (`RenderConfig` preset; 0 to 0.8; px)                                                                                    |
+| `rings.blockGap`                                               | 1°                                                                                                  | a gap between blocks reads as a boundary (Circos)                                                                                                                               |
+| `rings.letters`                                                | `upright`                                                                                           | readable at any angle; `tangent`                                                                                                                                                |
+| `rings.center`                                                 | `title`                                                                                             | the name and length in the hole; `none`                                                                                                                                         |
+| `rings.labelGap`, `rings.leaderBend`                           | 8, 12 px                                                                                            | leaders fan out over the ruler, never through one point                                                                                                                         |
+| `rings.window`                                                 | `followed`                                                                                          | a window means only what a follower shows; `always` (idle, quiet, when nothing follows)                                                                                         |
+| `pairs.maxArcs`, `pairs.hitPx`                                 | 4,096; 4                                                                                            | bounded by the screen: past it arcs binned by their ends' device columns (`seq.render.pairs.limit`); a curve is thin, so a hit within 4 px                                      |
+| `grid.rectMinPx`                                               | 12                                                                                                  | rects with outlines only where cells are few and large enough to read; image tiles below                                                                                        |
+| `grid.buildBudget`                                             | 65,536 samples a frame                                                                              | a frame while moving under 8 ms; a tile past it draws a coarser level meanwhile, never empty                                                                                    |
+| `navigator.window.minPx`, `.hitPx`, `.touchHitPx`, `.handlePx` | 16, 12, 24, 5 px                                                                                    | a window under a few px cannot be seen or grabbed; a press in the middle still pans; a finger is wider                                                                          |
+| `navigator.window.floor`                                       | `centred`                                                                                           | the drawn window says where; `thumb` (a scrollbar's mapping)                                                                                                                    |
+| `navigator.trackScale`, `navigator.trackMinPx`                 | 0.25, 2 px                                                                                          | a miniature reads as the view; a thinner track is not seen at dpr 1                                                                                                             |
+| `navigator.marks`                                              | selection, highlights, cursor                                                                       | where is what I picked; any subset                                                                                                                                              |
+| `navigator.rail.grownPx`, `.grabShare`                         | 6 px, 0.4                                                                                           | a target in use; an alignment ruler's labels select columns, its bottom pans                                                                                                    |
+| `internedStrings`                                              | 4,096                                                                                               | strings draw lists keep interned across frames, so a frame drawn again interns nothing; past it a full redraw starts the table again                                            |
 
 - **A values layer's level** (`values.coarser`, k): the coarsest of the source's levels whose bin is no wider than k
   device pixels' positions; 1 is a pixel's (what other layers read). A bin can still be as narrow as k/F pixels, F the
@@ -1144,6 +1163,11 @@ the y path in Emphasis).
   arrowhead, never on a cut end (nor where the item's rows are not all known); a line's label has the page's color under
   it, so the line stops at it; the hit boxes are the marks' lanes all the same.
 
+- **`bands`** (`render/bands.ts`, fallback `ranges`): a chromosome's stained bands in one band, an ideogram: each item a
+  block colored by its `stain` through the `giemsa` scheme (grays from the text ink; `acen` in `seq-centromere`), the
+  centromere's two `acen` bands as triangles meeting at it (the p arm's tip at its end, the q arm's at its start, turned
+  on a reversed axis), a hairline where no band is; its hit names the band (`state`: its label).
+
 ### Data
 
 - A layer's data is its node's access plan (an inline node's own address as the store's source, else its source node),
@@ -1258,11 +1282,83 @@ way, over a straight axis and a box, in every layout; a layout knows strips, ban
 
 ### Window
 
-`render/window.ts`: the window mark (a ring's window over a linear detail, the navigators' windows), drawn by a layout's
-chrome in the `window` pass in a strip's frame through its warp. Its body in `seq-window` (tinted and outlined), a grip
-as a tab just outside each end in `seq-grip`; the lit part drawn grown; idle (nothing follows it) a quiet outline, not a
-target. A floor of 16 px (a narrower window grows about its middle); its parts hit (`windowPart`) within at least 12 px
-(24 by touch), an end winning over the body near it, as the `window` target with its `part` (`body`, `start`, `end`).
+`render/window.ts`: the window mark (a ring's window over a linear detail, a navigator's, a ruler rail's), drawn in the
+`window` pass: a ring's by its layout's chrome in a strip's frame through its warp, a navigator's and a rail's on the
+page. One geometry for all, on `navigator.window` (the navigators design: one geometry, extended): its floor
+(`floorExtent`: at least `minPx`, at most half the span, `centred` on the truth or a `thumb`, clamped inside the span; a
+ring's frame has no span: it only grows about its middle), its parts (`navigatorPart`; a ring's `windowPart` the same
+with no span, no `outside`): a grip as a tab just outside each end, hit over half `hitPx` there (half `touchHitPx` by
+touch, at least `handlePx`) and at most a quarter of the window inside it, so a press in the middle pans; the body hit
+over at least `hitPx`, centred and inside the span; `outside` the rest of the span. The `window` target with its `part`.
+Its drawing (`drawNavigatorWindow`, a ring's `drawWindowArgs`): the body in `seq-window` (tinted, outlined), the grips
+in `seq-grip` (`handlePx`; lit per part: an end's grip, the body both), a hairline at the true extent where the floor
+drew it wider (at least a device pixel), the wash (`seq-wash`, the background at 0.2, at most 0.3: a test) over the span
+outside it (a ring: none; why light: an overview's window of a few floored rows of 10,000 washes nearly the whole
+picture, whose shape must still read; the window stands out by its edge and grips); idle (nothing can move) a quiet
+outline, not a target; an export's an outline with its wash, no grips. Its look (fill opacities, a grip's share of the
+thickness) is fixed. Its numbers reach the pass through arrays (`NavWindow`, `args`, `NavWindowFlags` read once as
+numbers): a window move allocates nothing once warm.
+
+### Navigators
+
+`render/navigator.ts` (`NavigatorRenderer`, `navigatorBox`, `railSections`, `rowsRailTracks`, `windowText`) and
+`render/rail.ts`:
+
+- **The picture**: a navigator lays its system whole out (the fit window, in the bound section's display order;
+  `direction: genomic` up whatever the section's) as a view of its own over the spec's data, resolved like any
+  (`resolveViewNode`), through the tracks layout with its own renderer and lists (no inset, label column or direction
+  mark; the view's image cache, `images`): `axis` no track, `tracks` the section's tracks (`tracks`, else all but
+  rulers) at `navigator.trackScale` of their height and lanes (at least `trackMinPx`) with no labels, `bands` one
+  `bands` track filling it, `rows` the section's first rows track with no header filling what the other tracks leave (an
+  overview's whole column), its rows fitted to the band (`rowScale` the band's height over the rows shown, the view's
+  folds); a picture that fills is made again for another height. The same system with no `system` param: the bound
+  section's own axis. Colors are the view's: the picture reads the view's renderer's held domains (`domains`, its
+  `layoutState`, a picture key mapped to the view's), never a domain of its own over the whole axis, so a value has one
+  color in both. Why the layout interface: a miniature drawn by other code drifts from the view it summarizes.
+- **What no summary serves is left out, said once**: a lazy alignment's rows (`seq.render.navigator.rows`: left out), a
+  ranges layer on a source with no coarse level whose whole axis passes the store's tile bound (the store's settings,
+  `storeSettings`; `seq.render.navigator.layer`); a ranges layer reads its coarse level when the source serves one. Its
+  wants are `view` priority only (an export waits for them).
+- **The windows**: each bound section's viewport as the view's last layout placed it, carried as positions along the
+  path to the navigator's system and placed on the picture (a follower's is its own shown range, so a leader's and its
+  followers' windows are drawn together; a scroll group's sections share one), in the picture's display order (a section
+  whose order the path turns against the picture's: its start is the picture's right end); over a cyclic origin two
+  pieces, a grip at each true end (where a piece meets the axis's end it is body); what the section cannot reach (a
+  region within its chromosome) washed, fixed; the floor within the picture, not that span (a region's window on its
+  chromosome is seen, its hairline the truth). Rows: the band's rows in view on the picture's rows. A window's ends back
+  in its section's own display units (`sectionUnitAt`) through the inverse path; past the picture's ends at the rate the
+  path carries the edge (a protein position three nucleotides). `moves` says per section which axes can move (0 idle:
+  quiet); absent, an export's outlines.
+- **Draw lists**: the base (`background`, `data`) is the picture's, keyed as any frame; the `window` pass draws the
+  washes, the windows (the one the pointer last acted on on top) and a sweep's outline; then the marks: the selection's
+  and the highlights' ticks at the picture's foot (`navigator.marks`), the keyboard cursor's hairline, the pointer's
+  hairline. A navigator never draws in a section's lists.
+- **Hits** (`hit`): the window part under a point, its section and axis, the position on the navigator's system, the
+  display row, a band's name (the `bands` layer's hit `state`). A navigator's hover is its own: a readout.
+- **The ruler rail** (`Rail`, `FrameInput.rails` and `railsActive`, by section address, `key`; the viewer's): drawn on
+  the first shown ruler's bottom border, else in a slim row of its own under the section's tracks (`SlimRailPx`, 12,
+  fixed: the form's size, the least a rail and its grips need; a hidden ruler too; under, not above: the tracks keep
+  their place); the whole axis across the data box, the window a segment with a grip each end (over a cyclic origin two
+  pieces, a grip at each true end, the axis's ends body), collapsed breaks a notch; its grab zone the ruler's row (on an
+  alignment's columns its lower `grabShare`: above it a drag selects columns), the slim row whole; grown (`grownPx`)
+  while hovered or dragged (`Emphasis.drag`); idle (not active) a quiet hairline with no grips and no target (at the fit
+  it reads as the line); in a figure (an export) a plain segment, no grips, no idle state. Its hit is the `window`
+  target with `navigator: 'rail'` (touch the wider hit: `hitView`'s `touch`), its unit `railUnitAt`. Rails are part of a
+  section's key by identity (a slim row takes room); which can move is not: the renderer sets it on the rails each
+  frame, an emphasis redraw too (an idle flip redraws the window pass alone). `railSections(view, hosted)`: every tracks
+  section no shown navigator binds along its positions: a declared navigator and a host's replace its rail, a hidden one
+  brings it back.
+- **The rows rail** (`placeRowsRail`, `SectionLayout.rowsRails`; `FrameInput.rails` by the rows track's address): the
+  same `Rail` upright (`vertical`: along the page's y, its line and grab zone across on x; one geometry, drawn and hit
+  by the same code, the coordinates turned at the rect and at the hit), `SlimRailPx` wide at the right edge (right of
+  the last numbers' gutter: the gutter widened by it while any rows rail is on, so the data keeps its width idle or
+  live), along the band's scrolled area below its pinned rows, in display rows below the pinned band; its window the
+  rows in view. Idle while every row is shown (`whole`, the layout's: the renderer sets `active` only when the viewer
+  says it can move and not `whole`). Its hit is the `window` target with `navigator: 'rows-rail'` (`RowsRail`), its
+  `layer` the track, `position` the display row. `rowsRailTracks(view, hosted)`: each tracks section's tracks with a
+  rows layer shown, unless a shown navigator binds the section along its rows (`rows` or `both`): an overview or a
+  miniature replaces it, a hidden one brings it back. Why: the design's "simple slider navigator for vertical
+  scrolling", the rail a linear section has, so a tall alignment can be scrolled and zoomed with no declared part.
 
 ### Rings layout
 
@@ -1620,6 +1716,13 @@ It reads every row (a logo of the rows shown is not built: the package's TODO).
 
 ### Export
 
+- **Navigators** (`navigators`, else the view's `export.navigators`, else `omit`): included, each shown navigator is
+  stacked by `place` around the view (top and bottom across it, left and right along it, a miniature at its size) as a
+  group with its windows' `<title>` (`Window: chr17:7,666,403–7,672,402 of chr17`) and `data-navigator` its id, its
+  windows outlines and wash, no handles, hover or idle state; the rails drawn as plain windows (no grips, no idle
+  state); the export opens the navigators' sources and waits for their wants, colors by the view's held domains.
+  Omitted, no rail either (no slim row: a viewer's export is its picture without its chrome). Why omitted by default: a
+  window is session, not a figure.
 - **What the layouts place** (`figure`): a text section draws every line, its box its content; `size.height: 'auto'` is
   the sections' content's height (measured from a first layout); a ring's window only with `window` (the view's
   `export.window` when absent, false: an exported map is a figure).
@@ -1658,7 +1761,8 @@ It reads every row (a logo of the rows shown is not built: the package's TODO).
   `rows.layout`, `rows.second`, `view`, `color`, `theme.channel`, `theme.scheme`, `theme.measure`, `theme.color`,
   `scale.log` (info), `legend.unlisted` (info), `filter`, `line-style` (info), `numbering`, `layer.type`,
   `layer.letters`, `axis.pending` (info), `text.lines`, `follow.leader`, `follow.blocks`, `ring.image`, `follow.cycle`,
-  `source`, `template.limit`, `unsettled`; a test checks the catalog.
+  `source`, `template.limit`, `unsettled`, `navigator.of`, `navigator.path`, `navigator.rows` (info), `navigator.layer`
+  (info); a test checks the catalog.
 
 ## Stories
 

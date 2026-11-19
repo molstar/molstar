@@ -64,6 +64,7 @@ describe('createSeqViewer', () => {
       'editing',
       'legend',
       'window',
+      'navigator',
       'rows',
     ]);
     expect(viewer.bindings.issues).toEqual([]);

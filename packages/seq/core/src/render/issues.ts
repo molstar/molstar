@@ -35,6 +35,28 @@ export const RenderIssues = defineIssues('seq.render', {
     description: 'A lazy alignment ordered by a field or a tree its source does not serve: drawn in data order',
     hint: 'Order a lazy alignment by `data`, or hold it',
   },
+  'seq.render.navigator.of': {
+    severity: 'warning',
+    description: 'A navigator names a section the view does not have (or none): its window is not drawn',
+    hint: 'Bind the navigator to a section of its view (`of`)',
+  },
+  'seq.render.navigator.path': {
+    severity: 'warning',
+    description: 'No path joins a bound section’s system to the navigator’s: that section’s window is not drawn',
+    hint: 'Draw the navigator on the section’s system, or add a map between the two',
+  },
+  'seq.render.navigator.rows': {
+    severity: 'info',
+    description:
+      'A navigator draws rows its section does not have, or an alignment no summary serves: it draws the rows’ structure only',
+    hint: 'Hold the alignment, or draw the navigator’s `axis`',
+  },
+  'seq.render.navigator.layer': {
+    severity: 'info',
+    description:
+      'A layer of a navigator’s tracks is left out: its source serves no coarse level and its whole axis passes the store’s bound on tiles',
+    hint: 'Serve the annotation at a coarse level, or name the navigator’s `tracks`',
+  },
   'seq.render.rows.lazy': {
     severity: 'info',
     description:

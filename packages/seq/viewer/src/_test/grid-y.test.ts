@@ -73,4 +73,33 @@ describe('a grid’s own y window', () => {
     expect(view.get(Plot)!.y).toBeUndefined();
     expect(ys()).toEqual([0, 40]);
   });
+
+  it('is kept by the history: a snapshot before a y move is recorded, and back returns to it', async () => {
+    frames = installFrames();
+    const viewer = createSeqViewer({ ...DefaultSeqViewerSpec(), ui: undefined });
+    viewers.push(viewer);
+    await viewer.load(spec());
+    viewer.resize(800);
+    await viewer.settle();
+    frames.flush();
+    viewer.draw();
+    const view = viewer.view;
+    view.zoom(Plot, 2, 30, 10);
+    const before = view.snapshot();
+    const x = view.get(Plot)!;
+    // a y-only move is a change of the view: recorded (a navigator's drag records its press on release)
+    view.panPx(Plot, 0, viewer.placementOf(Plot)!.box.height / 4);
+    expect(view.get(Plot)!.y).toEqual({ start: 10, end: 30 });
+    expect(view.record(before)).toBe(true);
+    expect(view.back()).toBe(true);
+    expect(view.get(Plot)!.y).toEqual({ start: 5, end: 25 });
+    expect(view.get(Plot)!.start).toBe(x.start);
+    expect(view.forward()).toBe(true);
+    expect(view.get(Plot)!.y).toEqual({ start: 10, end: 30 });
+    // a jump that moves only y is a move, and back undoes it
+    expect(view.jump(() => view.panPx(Plot, 0, -viewer.placementOf(Plot)!.box.height / 4))).toBe('moved');
+    expect(view.get(Plot)!.y).toEqual({ start: 5, end: 25 });
+    expect(view.back()).toBe(true);
+    expect(view.get(Plot)!.y).toEqual({ start: 10, end: 30 });
+  });
 });

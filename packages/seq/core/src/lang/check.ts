@@ -196,10 +196,16 @@ export function checkPlaced(at: Placed, look: SeqLookup, report: Report): void {
       if ((p(n, 'patch') === undefined) === (p(n, 'state') === undefined))
         report('seq.lang.snapshot.content', 'A story step has both a `patch` and a `state`, or neither', at);
       break;
+    case 'navigator':
+      // a navigator's form needs its data (_spec/README.md, Language, Navigators)
+      if (p(n, 'content') === 'bands' && p(n, 'bands') === undefined)
+        report('seq.lang.navigator.bands', 'A navigator draws `bands` and names no annotation of bands', at, 'bands');
+      break;
     case 'data':
     case 'views':
     case 'refs':
     case 'snapshots':
+    case 'navigators':
       if (n.id !== n.kind) report('seq.lang.container.id', `The id of ${n.kind} is \`${n.kind}\``, at);
       break;
     case 'ref': {

@@ -170,6 +170,27 @@ export interface RenderConfig {
     readonly pinInPlace: boolean;
   };
   /**
+   * Navigators and the window they share with a ring's (_spec/README.md "Render", Navigators): the window's least drawn
+   * width (`minPx`, at most half the span), its least hit width by pointer and by touch, its grips' width (tabs just
+   * outside each end, at most a quarter of the window inside it); a floored window drawn `centred` on the truth or as a
+   * scrollbar's `thumb`; a miniature's tracks at `trackScale` of their height, at least `trackMinPx`; the marks drawn over
+   * the picture; the ruler rail grown to `grownPx` while used, its grab zone on an alignment's ruler its lower
+   * `grabShare`.
+   */
+  readonly navigator: {
+    readonly window: {
+      readonly minPx: number;
+      readonly hitPx: number;
+      readonly touchHitPx: number;
+      readonly handlePx: number;
+      readonly floor: 'centred' | 'thumb';
+    };
+    readonly trackScale: number;
+    readonly trackMinPx: number;
+    readonly marks: readonly ('selection' | 'highlights' | 'cursor')[];
+    readonly rail: { readonly grownPx: number; readonly grabShare: number };
+  };
+  /**
    * The pairs layer (_spec/README.md "Render", The pairs layer): the most arcs drawn (`maxArcs`, 4,096: bounded by the
    * screen; past it one arc a bin of the ends' device columns, widest first, the rest a density strip of ends) and how
    * near a point is to a curve to hit it (`hitPx`, 4 CSS px: a curve is thin).
@@ -265,6 +286,13 @@ export const DefaultRenderConfig: RenderConfig = {
   internedStrings: DefaultMaxStrings,
   imageBytes: 64 * 1024 * 1024,
   rows: { labelMinPx: 8, pinInPlace: true },
+  navigator: {
+    window: { minPx: 16, hitPx: 12, touchHitPx: 24, handlePx: 5, floor: 'centred' },
+    trackScale: 0.25,
+    trackMinPx: 2,
+    marks: ['selection', 'highlights', 'cursor'],
+    rail: { grownPx: 6, grabShare: 0.4 },
+  },
   pairs: { maxArcs: 4096, hitPx: 4 },
   grid: { rectMinPx: 12, buildBudget: 65_536 },
   text: {
@@ -320,6 +348,12 @@ export function renderConfig(over: RenderConfigOverrides = {}): RenderConfig {
     emphasis: { ...DefaultRenderConfig.emphasis, ...over.emphasis },
     text: { ...DefaultRenderConfig.text, ...over.text },
     rows: { ...DefaultRenderConfig.rows, ...over.rows },
+    navigator: {
+      ...DefaultRenderConfig.navigator,
+      ...over.navigator,
+      window: { ...DefaultRenderConfig.navigator.window, ...over.navigator?.window },
+      rail: { ...DefaultRenderConfig.navigator.rail, ...over.navigator?.rail },
+    },
     pairs: { ...DefaultRenderConfig.pairs, ...over.pairs },
     grid: { ...DefaultRenderConfig.grid, ...over.grid },
   };

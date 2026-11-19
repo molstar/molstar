@@ -58,8 +58,10 @@ import { SecondaryType } from './secondary.js';
 import { ValuesType } from './values.js';
 import { VariantsType } from './variants.js';
 import { FrameType } from './frames.js';
+import { BandsType } from './bands.js';
+import { drawRail, hitRail, placeRail, placeRowsRail, Rail, SlimRailPx } from './rail.js';
 import { LogoType } from './logo.js';
-import { RowsType } from './rows.js';
+import { RowsLay, RowsType } from './rows.js';
 import { GridType, rectOver } from './grid.js';
 import { PairsType } from './pairs.js';
 import { RowHeight } from './rows-model.js';
@@ -81,6 +83,7 @@ export const BuiltInLayerTypes: Readonly<Record<string, LayerType<any, any>>> = 
   frame: FrameType,
   rows: RowsType,
   logo: LogoType,
+  bands: BandsType,
   pairs: PairsType,
   grid: GridType,
 };
@@ -130,6 +133,10 @@ export interface SectionLayout {
   readonly tracks: readonly TrackLayout[];
   /** The breaks in view, `[x, hiddenStart, hiddenEnd, …]` (x unsnapped): a hairline each across the band. */
   readonly breaks: readonly number[];
+  /** Its ruler rail, when it draws one (_spec/README.md "Render", Navigators). */
+  readonly rail?: Rail;
+  /** Its rows layers' rails (upright, at the right edge of each band), when they draw them. */
+  readonly rowsRails?: readonly Rail[];
   /** The direction mark in the first track's label row (`axis.directionMark`): its text, x and measured width. */
   readonly mark?: { readonly text: string; readonly x: number; readonly width: number };
   /** The layers' lays a strip and band (`strip * bands + band`), in the strip's frame. */
@@ -202,6 +209,24 @@ export interface LayoutInput {
   readonly folds?: Readonly<Record<string, readonly string[]>>;
   /** The shared image cache (_spec/README.md "Render", The shared reduction): the renderer's. */
   readonly images?: ImageCache;
+  /**
+   * The sections that draw a ruler rail, and the rows tracks that draw a rows rail, by address (_spec/README.md
+   * "Render", Navigators): part of each section's key by identity (a slim rail takes a row, a rows rail a column at the
+   * right edge). Which can move is set on the rails each frame by the renderer, out of the key: idle wakes with no
+   * relayout.
+   */
+  readonly rails?: Readonly<Record<string, unknown>>;
+  /**
+   * Another layout's held domains (_spec/README.md "Render", Navigators: a navigator's picture colors by its view's,
+   * never by a domain of its own over the whole axis): looked up by `map(key)`; this layout then holds none.
+   */
+  readonly domains?: HeldDomains;
+}
+
+/** A layout's held domains as another reads them: its state, and a key here to a key there. */
+export interface HeldDomains {
+  readonly state: LayoutState;
+  map(key: string): string;
 }
 
 /** What a layout keeps between frames: each layer's prepared form (per resolved layer) and its last layout. */
@@ -389,6 +414,9 @@ class SectionReads implements StoreReader {
   keysOf(w: Want) {
     return this.data.keysOf(w);
   }
+  get settings() {
+    return this.data.settings;
+  }
   get(key: string) {
     const e = this.data.get(key);
     this.keys[this.n] = key;
@@ -525,6 +553,7 @@ interface ViewStamp {
   readonly domains: number;
   readonly figure: boolean;
   readonly windows: boolean;
+  readonly rails: unknown;
 }
 
 function viewStamp(
@@ -548,9 +577,10 @@ function viewStamp(
     schemes: input.theme?.schemes,
     measures: input.theme?.measures,
     cvdSafe: input.theme?.cvdSafe ?? false,
-    domains: state.domainsVersion,
+    domains: input.domains ? input.domains.state.domainsVersion : state.domainsVersion,
     figure: input.figure ?? false,
     windows: input.windows ?? false,
+    rails: input.rails,
   };
 }
 
@@ -571,7 +601,8 @@ function sameStamp(a: ViewStamp, b: ViewStamp): boolean {
     a.cvdSafe === b.cvdSafe &&
     a.domains === b.domains &&
     a.figure === b.figure &&
-    a.windows === b.windows
+    a.windows === b.windows &&
+    a.rails === b.rails
   );
 }
 
@@ -699,21 +730,26 @@ function pendingPlacement(top: number, box: Box, heights: readonly number[], con
  * tree order and its first residue numbers widen the label column by their width (the labels keep theirs), its last
  * numbers take a right gutter. The widest of a view's tracks sections, so every section's data starts at one x.
  */
-function rowsHeader(view: ResolvedView): { readonly tree: number; readonly numbers: boolean } {
+function rowsHeader(
+  view: ResolvedView,
+  rails: LayoutInput['rails'],
+): { readonly tree: number; readonly numbers: boolean; readonly rail: boolean } {
   let tree = 0;
   let numbers = false;
+  let rail = false;
   for (const s of view.sections) {
     if (sectionLayoutName(s, view) !== 'tracks') continue;
     for (const t of s.tracks)
       for (const l of t.layers) {
         if (l.type !== 'rows' || !l.placed || l.params.hidden === true) continue;
         if (l.params.numbers !== 'none') numbers = true;
+        if (rails?.[t.address] !== undefined) rail = true;
         const w = l.params.tree_width;
         if (l.params.order === 'tree' && l.params.tree !== undefined)
           tree = Math.max(tree, typeof w === 'number' ? w : 120);
       }
   }
-  return { tree, numbers };
+  return { tree, numbers, rail };
 }
 
 /** A config with its label column widened by `extra` px, one a base and width. */
@@ -733,19 +769,22 @@ function numbersGutter(text: TextMetrics, config: RenderConfig): number {
 }
 
 export function layoutView(input: LayoutInput, state = new LayoutState(), again = false): ViewLayout {
-  const header = rowsHeader(input.view);
+  const header = rowsHeader(input.view, input.rails);
   const base = input.config ?? DefaultRenderConfig;
   // the first numbers take their own room in the label column, the labels keep theirs
   const first = header.numbers ? Math.ceil(input.text.measure(base.itemFont, '00000')) + 4 : 0;
   const config = widened(base, header.tree + first);
-  const right = header.numbers ? numbersGutter(input.text, config) : 0;
+  // the last numbers' gutter, and beside it a rows rail's column (fixed: a rail idle or live keeps the data's width)
+  const right = (header.numbers ? numbersGutter(input.text, config) : 0) + (header.rail ? SlimRailPx : 0);
   const extents = new Map<string, [number, number]>();
   const theme: ThemeContext = {
     schemes: input.theme?.schemes ?? DefaultThemeContext.schemes,
     ...(input.theme?.measures ? { measures: input.theme.measures } : {}),
     cvdSafe: input.theme?.cvdSafe ?? false,
     scale: (a) => input.view.scales?.[a] as ScaleParams | undefined,
-    domain: (key) => state.domains.get(key),
+    domain: input.domains
+      ? (key) => input.domains!.state.domains.get(input.domains!.map(key))
+      : (key) => state.domains.get(key),
     extent: (key, lo, hi) => {
       const e = extents.get(key);
       if (!e) extents.set(key, [lo, hi]);
@@ -907,6 +946,12 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     const sectionReport = cache.report;
     const sectionTheme = cache.theme;
     const want = cache.want;
+    const sectionTop = y;
+    // a ruler rail on a linear section (tracks, not a stack of blocks); a slim row of its own when no ruler is shown
+    const railOn =
+      input.rails?.[section.address] !== undefined &&
+      layout === TracksLayout &&
+      !(section.blocks && section.params.arrange === 'stack');
     const top = y;
     // a template is expanded here, over the overlay, into a track per node it selects; its source's region in view is
     // wanted, so the nodes it brings arrive
@@ -941,6 +986,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     }
     const byType = layout.heights?.(config) ?? config.heights;
     const heights = shown.map((t) => trackHeight(t, config, byType));
+    const ruler = railOn ? rulerTrack(shown, heights) : -1;
     // a rows band that fills (_spec/README.md "Render", The rows layer): the section's room left on the page, at least
     // its default height (a figure, laid out for its content, takes the default)
     // a band of every row in a layout whose bands do not scroll (text: an alignment figure's lines repeat its rows)
@@ -1178,6 +1224,9 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       });
     }
     y = top + placement.box.height;
+    // the slim rail's row, under the tracks
+    const slimTop = y;
+    if (railOn && ruler < 0) y += SlimRailPx;
     // the column the emphasis spans with `emphasis.selectionShape: 'column'`: the tracks laid out on the page and the
     // gaps between them
     let bandEnd = -1;
@@ -1210,6 +1259,43 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
           width: input.text.measure(config.labelFont, text),
         }
       : undefined;
+    let rail: Rail | undefined;
+    if (railOn && axis) {
+      rail = kept?.layout?.rail ?? new Rail();
+      const own = ownPieces(section, input.model, input.data) ?? axis.pieces;
+      placeRail(
+        rail,
+        section,
+        sectionId(section),
+        axis,
+        own,
+        ruler >= 0 ? tracks[ruler].box : undefined,
+        slimTop,
+        viewport,
+        config,
+        input.figure === true,
+      );
+    }
+    // each rows layer's rail, upright at the right edge (beside its last numbers), along its band's scrolled rows
+    let rowsRails: Rail[] | undefined;
+    if (input.rails && layout === TracksLayout)
+      for (let j = 0; j < tracks.length; j++) {
+        const t = tracks[j];
+        if (input.rails[t.track.address] === undefined) continue;
+        const l = t.layers.find((x) => x.lay instanceof RowsLay);
+        const lay = l?.lay as RowsLay | undefined;
+        if (!lay || lay.figure || lay.total === undefined) continue;
+        const r = kept?.layout?.rowsRails?.[rowsRails?.length ?? 0] ?? new Rail();
+        placeRowsRail(
+          r,
+          lay,
+          t.track.address,
+          sectionId(section),
+          width - config.inset - SlimRailPx,
+          input.figure === true,
+        );
+        (rowsRails ??= []).push(r);
+      }
     const sectionLayout: SectionLayout = {
       section,
       id: sectionId(section),
@@ -1217,8 +1303,10 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       placement,
       ...(axis ? { axis } : {}),
       ...(band ? { band } : {}),
-      y: top,
-      height: y - top,
+      ...(rail ? { rail } : {}),
+      ...(rowsRails ? { rowsRails } : {}),
+      y: sectionTop,
+      height: y - sectionTop,
       tracks,
       breaks: axis && band ? (stripBreaks[0] ?? NoBreaks) : NoBreaks,
       ...(mark ? { mark } : {}),
@@ -1235,7 +1323,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     cache.layout = sectionLayout;
     cache.section = section;
     cache.stamp = stamp;
-    cache.y = top;
+    cache.y = sectionTop;
     cache.axis = axis;
     cache.gridY = gridY;
     // a copy: a caller may hand the same record again with new numbers (the viewer reuses its own)
@@ -1251,7 +1339,9 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
   for (const key of [...state.lays.keys()]) if (!used.has(key)) state.lays.delete(key);
   // open scales: settled, the union of this layout's extents is held (laid out once more with it where it moved);
   // moving, a scale seen for the first time takes this layout's extent for the next frame
-  if (input.settled) {
+  if (input.domains) {
+    // the domains are another layout's: none held here
+  } else if (input.settled) {
     let moved = extents.size !== state.domains.size;
     for (const [k, e] of extents) {
       const h = state.domains.get(k);
@@ -1324,6 +1414,14 @@ function wantTemplate(
         });
     }
   }
+}
+
+/** The first shown track drawing a ruler (with height: a hidden ruler is no rail's), or −1. */
+function rulerTrack(shown: readonly ResolvedTrack[], heights: readonly number[]): number {
+  for (let j = 0; j < shown.length; j++)
+    if (heights[j] > 0 && shown[j].layers.some((l) => l.type === 'ruler' && l.placed && l.params.hidden !== true))
+      return j;
+  return -1;
 }
 
 /** How a track's rows layer takes its height: `fill`, a number of rows, or none (no rows layer). */
@@ -1488,6 +1586,9 @@ function drawTracks(layout: ViewLayout, out: PassWriter, emphasis: Emphasis | un
   for (let si = 0; si < layout.sections.length; si++) {
     const s = layout.sections[si];
     s.layout.chrome(s, pass, out, emphasis, -1, -1);
+    if (pass === 'window' && s.rail) drawRail(s.rail, out, emphasis, s.tokens, s.config);
+    if (pass === 'window' && s.rowsRails)
+      for (let i = 0; i < s.rowsRails.length; i++) drawRail(s.rowsRails[i], out, emphasis, s.tokens, s.config);
     const strips = s.placement.strips;
     if (!strips.n) {
       // pending: its tracks' chrome alone
@@ -1873,7 +1974,7 @@ function pointAt(): Float64Array {
   return HitAt;
 }
 
-export function hitView(layout: ViewLayout, x: number, y: number): Hit | undefined {
+export function hitView(layout: ViewLayout, x: number, y: number, touch = false): Hit | undefined {
   for (const s of layout.sections) {
     const strips = s.placement.strips;
     for (let i = 0; i < strips.n; i++) {
@@ -1885,6 +1986,14 @@ export function hitView(layout: ViewLayout, x: number, y: number): Hit | undefin
       const notch = breakAt(s, i, col, breaks, x, y);
       if (notch) return notch;
     }
+    // the ruler rail's grab zone, over the ruler (an idle rail is no target: a press falls through)
+    const rail = s.rail ? hitRail(s.rail, x, y, s.config, touch) : undefined;
+    if (rail) return rail;
+    if (s.rowsRails)
+      for (let i = 0; i < s.rowsRails.length; i++) {
+        const h = hitRail(s.rowsRails[i], x, y, s.config, touch);
+        if (h) return h;
+      }
     const own = s.layout.hitChrome?.(s, x, y);
     if (own) return own;
     // a `section` layer's marks, on the page, over the strips'

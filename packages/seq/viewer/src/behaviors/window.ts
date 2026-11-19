@@ -33,8 +33,12 @@ export interface WindowValue {
 }
 
 export interface WindowBehavior {
-  /** A press on a window's part at display unit `at`: true when a drag begins (the window can move). */
-  begin(section: string, part: WindowPart, at: number): boolean;
+  /**
+   * A press on a window's part at display unit `at`: true when a drag begins (the window can move). `drawn`: the window
+   * as drawn, in display units, when the floor drew it wider than the truth (a navigator's): an end dragged inward then
+   * keeps the view, outward it zooms out from the drawn end.
+   */
+  begin(section: string, part: WindowPart, at: number, drawn?: readonly [number, number]): boolean;
   /** The drag at display unit `at`: the body pans, an end resizes about the other. */
   dragTo(at: number): boolean;
   /** The drag ends: the slider says where the window settled. */
@@ -66,6 +70,7 @@ export function windowBehavior(view: ViewModel, config: ViewerConfig = DefaultVi
         last: number;
         moved: number;
         total: number | undefined;
+        drawn: readonly [number, number] | undefined;
       }
     | undefined;
 
@@ -152,13 +157,14 @@ export function windowBehavior(view: ViewModel, config: ViewerConfig = DefaultVi
     get dragging() {
       return drag !== undefined;
     },
-    begin(section, part, at) {
+    begin(section, part, at, drawn) {
       const v = view.get(section);
-      if (!v || v.pending || !view.canMove(section) || !Number.isFinite(at)) return false;
+      if (part === 'outside' || !v || v.pending || !view.canMove(section) || !Number.isFinite(at)) return false;
       // unwrapped over the origin where the section's window wraps it (`view.wraps`: a cyclic axis in tracks and rings)
       const axis = view.resolved.value?.sections.find((s) => s.address === section)?.axis;
       const total = axis && view.wraps(section) ? axisTotal(axis) : undefined;
-      drag = { section, part, at0: at, start: v.start, end: v.end, last: at, moved: 0, total };
+      const floored = drawn && drawn[1] - drawn[0] > v.end - v.start ? drawn : undefined;
+      drag = { section, part, at0: at, start: v.start, end: v.end, last: at, moved: 0, total, drawn: floored };
       return true;
     },
     dragTo(at) {
@@ -189,6 +195,12 @@ export function windowBehavior(view: ViewModel, config: ViewerConfig = DefaultVi
         d.moved = 1;
         at = d.last;
       }
+      // a floored window (drawn wider than the truth): inward keeps the view, outward zooms out from the drawn end
+      if (d.drawn && d.total === undefined) {
+        const out = d.part === 'start' ? d.at0 - at : at - d.at0;
+        if (d.part === 'start') return move(d.section, out > 0 ? d.drawn[0] - out : d.start, d.end);
+        return move(d.section, d.start, out > 0 ? d.drawn[1] + out : d.end);
+      }
       const held = d.part === 'start' ? d.end : d.start;
       const s = d.part === 'start' ? Math.min(at, held) : held;
       const e = d.part === 'start' ? held : Math.max(at, held);
@@ -205,4 +217,19 @@ export function windowBehavior(view: ViewModel, config: ViewerConfig = DefaultVi
       if (d) view.setRange(d.section, d.start, d.end);
     },
   };
+}
+
+/**
+ * Whether a section's window has nowhere to go along its positions (_spec/README.md "Behaviors", Window): it cannot move
+ * (a follower under `ignore`, a full-state step), or it shows its whole axis and zoom-in is at its limit
+ * (`viewport.maxPxPerPosition`). Idle is drawn quiet and is no target; it wakes when a zoom becomes possible.
+ */
+export function windowIdle(view: ViewModel, section: string, config: ViewerConfig = DefaultViewerConfig): boolean {
+  const v = view.get(section);
+  if (!v || v.pending || v.width <= 0 || !view.canMove(section)) return true;
+  const axis = view.resolved.value?.sections.find((s) => s.address === section)?.axis;
+  const total = axis && axisTotal(axis);
+  if (total === undefined) return true;
+  const whole = v.start <= 0 && v.end >= total;
+  return whole && total <= v.width / config.viewport.maxPxPerPosition;
 }

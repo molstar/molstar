@@ -157,6 +157,8 @@ const Cases: Record<string, { ctx: unknown; before?: (v: SeqViewer) => unknown }
   'window.pan-on': { ctx: { section: Protein }, before: (v) => v.view.setRange(Protein, 10, 20) },
   'window.grow': { ctx: { section: Protein }, before: (v) => v.view.setRange(Protein, 10, 20) },
   'window.shrink': { ctx: { section: Protein }, before: (v) => v.view.setRange(Protein, 10, 20) },
+  'navigator.center': { ctx: { section: Protein, at: 30 }, before: (v) => v.view.setRange(Protein, 10, 20) },
+  'navigator.zoom-to': { ctx: { section: Protein, start: 30, end: 40 } },
   'address.focus': { ctx: { address: '/refs/b' } },
   'address.reveal': {
     ctx: { address: '/data/p/(range :from 1 :to 5)' },

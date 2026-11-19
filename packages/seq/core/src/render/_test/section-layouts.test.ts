@@ -16,9 +16,10 @@ import { describe, expect, it } from 'vitest';
 import {
   AxisTransform,
   Cut,
+  DefaultRenderConfig,
   DrawLists,
   drawListsToSvg,
-  drawWindow,
+  drawWindowArgs,
   type Emphasis,
   type LayerType,
   LightTokens,
@@ -29,7 +30,6 @@ import {
   StripPlacement,
   TracksNav,
   TranslateWarp,
-  WindowMetrics,
   windowPart,
 } from '../index.js';
 import { BuiltInLayerTypes } from '../tracks.js';
@@ -369,7 +369,8 @@ describe('warps', () => {
 
 describe('the window mark', () => {
   it('its parts: the ends within half the hit width, the body between, nothing outside; a floor of 16 px', () => {
-    const half = WindowMetrics.hit / 2;
+    // one geometry with the navigators' (`navigator.window`)
+    const half = DefaultRenderConfig.navigator.window.hitPx / 2;
     expect(windowPart(100, 5, 100, 200, 0, 10)).toBe('start');
     expect(windowPart(100 - half, 5, 100, 200, 0, 10)).toBe('start');
     expect(windowPart(200 + half, 5, 100, 200, 0, 10)).toBe('end');
@@ -384,9 +385,16 @@ describe('the window mark', () => {
   it('active: a body and two grips; idle: a quiet outline alone', () => {
     const lists = new DrawLists();
     const out = lists.writer('window');
-    drawWindow(out, 100, 200, 0, 30, true, 'start', LightTokens);
+    const draw = (active: boolean, lit: 'start' | undefined) => {
+      out.args[0] = 100;
+      out.args[1] = 200;
+      out.args[2] = 0;
+      out.args[3] = 30;
+      drawWindowArgs(out, active, lit, LightTokens);
+    };
+    draw(true, 'start');
     expect(out.pass.rects.n).toBe(3);
-    drawWindow(out, 100, 200, 0, 30, false, undefined, LightTokens);
+    draw(false, undefined);
     expect(out.pass.rects.n).toBe(4);
     expect(recordDrawLists(lists, ['window'])).toMatch(/^size 0 0\npass window\nrect 100 0 100 30 #/);
   });

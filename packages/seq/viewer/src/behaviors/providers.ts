@@ -12,6 +12,7 @@ import { type CursorBehavior, cursorBehavior } from './cursor.js';
 import { type EditingBehavior, editingBehavior } from './editing.js';
 import { type HoverBehavior, hoverBehavior } from './hover.js';
 import { type NavigateBehavior, navigateBehavior } from './navigate.js';
+import { type NavigatorBehavior, navigatorBehavior } from './navigator.js';
 import { type RowsBehavior, rowsBehavior } from './rows.js';
 import { type SelectBehavior, selectBehavior } from './select.js';
 import { type ThemingBehavior, themingBehavior } from './theming.js';
@@ -70,6 +71,15 @@ export const EditingProvider: BehaviorProvider<undefined, EditingBehavior> = {
 export const WindowProvider: BehaviorProvider<undefined, WindowBehavior> = {
   name: 'window',
   create: ({ view, config }) => windowBehavior(view, config),
+};
+
+/**
+ * A navigator's gestures on its own window behavior (_spec/README.md "Behaviors", Navigator): a host may leave it out,
+ * and its navigators and rails are then drawn with no targets.
+ */
+export const NavigatorProvider: BehaviorProvider<undefined, NavigatorBehavior> = {
+  name: 'navigator',
+  create: ({ view, config }) => navigatorBehavior(view, config),
 };
 
 export const LegendProvider: BehaviorProvider<undefined, ThemingBehavior> = {

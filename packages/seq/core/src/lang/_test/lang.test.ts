@@ -267,6 +267,15 @@ const Misuses: Record<keyof typeof LangIssues.codes, () => Node> = {
     });
     return b.build();
   },
+  'seq.lang.navigator.bands': () => {
+    const b = createSeqSpec();
+    const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT' });
+    b.views.view('v', (v) => {
+      const a = v.section('a', { of: s });
+      v.navigator('n', { of: a, content: 'bands' });
+    });
+    return b.build();
+  },
 };
 
 const sequence = (b: ReturnType<typeof createSeqSpec>, cyclic: boolean) =>

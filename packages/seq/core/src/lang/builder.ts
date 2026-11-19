@@ -64,6 +64,49 @@ export interface ViewsBuilder {
 
 export interface ViewBuilder extends Addressed<'view'> {
   section(id: string, params: Params<'section'>, body?: (section: SectionBuilder) => void): SectionBuilder;
+  /** A navigator (`<view>/navigators/<id>`): its params, or a form's (`stripNavigator`, `ideogramNavigator`, …). */
+  navigator(id: string, params: NavigatorParams): Address<'navigator'>;
+}
+
+/** The sections a navigator binds: one, or several (a handle or an address each). */
+export type NavigatorOf = RefValue<'section'> | readonly RefValue<'section'>[];
+
+/** A navigator's params as the builder takes them: its references as handles or addresses. */
+export type NavigatorParams = Omit<Params<'navigator'>, 'of' | 'tracks'> & {
+  readonly of: NavigatorOf;
+  readonly tracks?: readonly RefValue<'track'>[];
+};
+
+type NavigatorExtra = Omit<NavigatorParams, 'of' | 'axes' | 'content'>;
+
+/**
+ * The navigator's forms as params (_spec/README.md, Language, Navigators): a strip of the axis, or of the section's
+ * tracks small (`content: 'tracks'`), across the view.
+ */
+export function stripNavigator(
+  of: NavigatorOf,
+  extra: NavigatorExtra & { readonly content?: 'axis' | 'tracks' } = {},
+): NavigatorParams {
+  return { of, axes: 'positions', content: 'axis', ...extra };
+}
+
+/** An ideogram: a chromosome's stained bands (`bands`), on `system` when the section shows a region of it. */
+export function ideogramNavigator(
+  of: NavigatorOf,
+  bands: NavigatorParams['bands'],
+  extra: Omit<NavigatorExtra, 'bands'> = {},
+): NavigatorParams {
+  return { of, axes: 'positions', content: 'bands', bands, ...extra };
+}
+
+/** A vertical overview of an alignment's rows: the rows summarized down a column, the window full width. */
+export function overviewNavigator(of: NavigatorOf, extra: NavigatorExtra = {}): NavigatorParams {
+  return { of, axes: 'rows', content: 'rows', place: 'right', ...extra };
+}
+
+/** A miniature: the section's tracks and rows, both axes whole. */
+export function miniatureNavigator(of: NavigatorOf, extra: NavigatorExtra = {}): NavigatorParams {
+  return { of, axes: 'both', content: 'tracks', ...extra };
 }
 
 export interface SectionBuilder extends Addressed<'section'> {
@@ -233,12 +276,17 @@ export function createSeqSpec(options: SeqSpecOptions = {}): SeqSpecBuilder {
     };
   }
   function viewBuilder(rec: Rec): ViewBuilder {
+    let navigators: Rec | undefined;
     return {
       address: rec.address as Address<'view'>,
       section(id, params, body) {
         const s = sectionBuilder(add(rec, 'section', id, params));
         body?.(s);
         return s;
+      },
+      navigator(id, params) {
+        navigators ??= add(rec, 'navigators', 'navigators', undefined);
+        return add(navigators, 'navigator', id, params).address as Address<'navigator'>;
       },
       toString: () => rec.address,
     };

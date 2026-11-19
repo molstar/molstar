@@ -192,6 +192,11 @@ export const LangIssues = defineIssues('seq.lang', {
     description: 'A section follows itself, directly or through other sections',
     hint: 'Following is a chain that ends at a section that follows none',
   },
+  'seq.lang.navigator.bands': {
+    severity: 'error',
+    description: 'A navigator draws `bands` and names no annotation of bands',
+    hint: 'Name the bands (`bands`: a ranges node with a `stain` field), or draw another `content`',
+  },
 });
 
 /** The bounds' codes (`bounds.ts`): what a spec sizes, refused before it is read (_spec/README.md, Language, Bounds). */

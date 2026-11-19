@@ -114,7 +114,9 @@ export function toSection(src: LayerSource, s: number, e: number, out: number[])
 
 /**
  * The level that fits the view on the data's system: the coarsest bin no wider than `coarser` device pixels' positions
- * (a values layer's `values.coarser`, else 1); with `finest`, the finest level.
+ * (a values layer's `values.coarser`, else 1), and coarser still while the view's span at it would want more tiles
+ * than the store's bound (`maxTilesPerWant`, where the reader says it: a whole chromosome at a high device pixel ratio
+ * reads its coarse level, never a refused one); with `finest`, the finest level.
  */
 export function layerLevel(
   src: LayerSource,
@@ -124,7 +126,15 @@ export function layerLevel(
   coarser = 1,
 ): number {
   const levels = data.coverage(src.source)?.levels ?? [1];
-  return finest ? levels[0] : fitLevel(levels, (coarser * src.ratio) / axis.devicePx);
+  if (finest) return levels[0];
+  let level = fitLevel(levels, (coarser * src.ratio) / axis.devicePx);
+  const s = data.settings;
+  if (s) {
+    const span = (axis.u1 - axis.u0) * src.ratio;
+    for (let i = levels.indexOf(level); i + 1 < levels.length && span / (s.tileBins * level) + 1 > s.maxTilesPerWant; )
+      level = levels[++i];
+  }
+  return level;
 }
 
 /** The tiles' state over the regions read: loaded entries, and the data positions still pending or failed. */

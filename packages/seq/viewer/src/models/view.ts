@@ -148,10 +148,14 @@ export interface BandRows {
   axisOf(system: string): Axis | undefined;
 }
 
-/** The leading viewports at one time: each group's range by key (a detached follower's among them), and the bands. */
+/**
+ * The leading viewports at one time: each group's range by key (a detached follower's among them), the bands, and the
+ * grids' own y windows (by section; a grid absent shows all of its y).
+ */
 interface Snapshot {
   readonly groups: ReadonlyMap<string, Kept>;
   readonly bands: ReadonlyMap<string, KeptBand>;
+  readonly ys: ReadonlyMap<string, { readonly start: number; readonly end: number }>;
 }
 
 const sameBand = (a: KeptBand | undefined, b: KeptBand | undefined) =>
@@ -162,6 +166,11 @@ const sameBand = (a: KeptBand | undefined, b: KeptBand | undefined) =>
   (a.key !== undefined && b.key !== undefined
     ? a.key === b.key && a.offset === b.offset
     : a.band.bandTop === b.band.bandTop);
+
+/** A step of the view's history as `snapshot` gives it: opaque, only `record` reads it. */
+export interface ViewSnapshot {
+  readonly __viewSnapshot?: never;
+}
 
 /** What a jump did: moved the view, found it already there, or could not move. */
 export type JumpOutcome = 'moved' | 'same' | 'none';
@@ -181,6 +190,11 @@ function snapshotsEqual(a: Snapshot, b: Snapshot): boolean {
       return false;
   }
   for (const [k, v] of a.bands) if (!sameBand(v, b.bands.get(k))) return false;
+  if (a.ys.size !== b.ys.size) return false;
+  for (const [k, v] of a.ys) {
+    const w = b.ys.get(k);
+    if (!w || w.start !== v.start || w.end !== v.end) return false;
+  }
   return true;
 }
 
@@ -548,15 +562,32 @@ export class ViewModel extends ReactiveModel {
     const before = this._snapshot();
     if (!move()) return 'none';
     if (snapshotsEqual(before, this._snapshot())) return 'same';
-    if (record) {
-      this._back.push(before);
-      const limit = Math.max(0, this.config.view.historyLimit);
-      if (this._back.length > limit) this._back.splice(0, this._back.length - limit);
-      this._forward.length = 0;
-      this._tellHistory();
-    }
+    if (record) this.record(before as unknown as ViewSnapshot);
     this._jumps.set(this._jumps.value + 1);
     return 'moved';
+  }
+
+  /**
+   * Every group's range and every band's scroll now, as `jump` keeps them (_spec/README.md "ViewModel", History): what
+   * a gesture that moves by hand reads at its press, to `record` on its release when it went far (a navigator's drag).
+   */
+  snapshot(): ViewSnapshot {
+    return this._snapshot() as ViewSnapshot;
+  }
+
+  /**
+   * Pushes a snapshot taken earlier as a step back (the forward steps dropped), unless the view is there now: a gesture's
+   * one step, pushed when it ends. False when nothing was pushed.
+   */
+  record(snapshot: ViewSnapshot): boolean {
+    const kept = snapshot as unknown as Snapshot;
+    if (snapshotsEqual(kept, this._snapshot())) return false;
+    this._back.push(kept);
+    const limit = Math.max(0, this.config.view.historyLimit);
+    if (this._back.length > limit) this._back.splice(0, this._back.length - limit);
+    this._forward.length = 0;
+    this._tellHistory();
+    return true;
   }
 
   /** What names the bands' rows for the history (the viewer's rows layers); none: a band kept as its `bandTop`. */
@@ -687,7 +718,10 @@ export class ViewModel extends ReactiveModel {
       const at = this._bandRows?.keyAt(track, band);
       bands.set(track, at ? { band, key: at.key, offset: at.offset } : { band });
     }
-    return { groups: out, bands };
+    // a grid's own y window (`follow_y: none`); a y that follows a section is kept by that section's group
+    const ys = new Map<string, { start: number; end: number }>();
+    for (const [address, s] of this._sections) if (s.y) ys.set(address, { ...s.y });
+    return { groups: out, bands, ys };
   }
 
   /**
@@ -737,7 +771,9 @@ export class ViewModel extends ReactiveModel {
     }
     for (const [key, v] of snap.groups)
       if (key.startsWith(DetachedPrefix) && !out.has(key) && this._detachable(key)) out.set(key, v);
-    return { groups: out, bands: snap.bands };
+    const ys = new Map<string, { start: number; end: number }>();
+    for (const [address, y] of snap.ys) if (this._ownY(address)) ys.set(address, y);
+    return { groups: out, bands: snap.bands, ys };
   }
 
   /** The follower a detached group's key names, when it is in the view and follows. */
@@ -784,6 +820,13 @@ export class ViewModel extends ReactiveModel {
         members: [s.section.address],
       });
       s.group = key;
+    }
+    // each grid's own y as kept (none kept: all of its y)
+    for (const [address, s] of this._sections) {
+      if (!this._ownY(address)) continue;
+      const y = snap.ys.get(address);
+      if (y) s.y = { ...y };
+      else delete s.y;
     }
     this._publish();
   }
@@ -966,6 +1009,12 @@ export class ViewModel extends ReactiveModel {
     // following a section: a state whose follow is y's, so a move asked of y is carried to y's leader (`_lead`)
     const lead = y.follow ? { ...s, section: { ...s.section, axis: y.axis, follow: y.follow } } : undefined;
     return { s, total, ...(lead ? { lead } : {}) };
+  }
+
+  /** Whether a section is a grid with a y window of its own (`follow_y: none`). */
+  private _ownY(section: string): boolean {
+    const r = this._yOf(section);
+    return !!r && !r.lead;
   }
 
   /** A grid's y window now, offsets: its own (all of y by default), or its leader's image. */

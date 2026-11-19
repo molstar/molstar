@@ -22,6 +22,8 @@ import {
   type RenderSvgResult,
   type Viewport as RenderViewport,
   hitView,
+  railSections,
+  rowsRailTracks,
   resolveColor,
   sectionLayoutName,
   textMinScale,
@@ -40,7 +42,7 @@ import {
   type TransitionPlan,
   type ViewState,
 } from '@molstar/seqx-core/story';
-import { type ResolvedView } from '@molstar/seqx-core/view';
+import type { ResolvedNavigator, ResolvedView } from '@molstar/seqx-core/view';
 import type { CommandDefinition, CommandResult } from '@molstar/ui/commands/types';
 import { cancelFrameCallback, DomHost, requestFrameCallback } from '@molstar/ui/dom';
 import {
@@ -68,6 +70,8 @@ import {
 import {
   AddressingProvider,
   type LinkRun,
+  NavigatorProvider,
+  windowIdle,
   RowsActions,
   RowsProvider,
   SelectProvider,
@@ -80,6 +84,7 @@ import { uiHistory } from './ui-history.js';
 import { ViewerIssues } from './issues.js';
 import type { BehaviorContext, BehaviorProvider, SeqViewerSpec } from './viewer-spec.js';
 import { mountCanvas } from './mount.js';
+import { type NavigatorDef, NavigatorModel } from './navigator.js';
 
 // The viewer (_spec/README.md "Composition"): composed from a spec by `createSeqViewer`, as a Mol* plugin is: the
 // context (registry, configuration, ports) first, then the models, the bindings and the behaviors, then the UI. Frames
@@ -163,7 +168,7 @@ export class SeqViewer extends ReactiveModel {
   private readonly _frameInput = { size: this._size } as Mutable<FrameInput>;
   private readonly _viewportOut = { start: 0, end: 0 };
   /** The window the last frame drew (NaN before one). */
-  private readonly _drawn = { start: Number.NaN, end: Number.NaN };
+  private readonly _drawnWindow = { start: Number.NaN, end: Number.NaN };
   /** Each leading section's viewport the last frame drew, by address: where a motion starts. */
   private readonly _drawnViews = new Map<string, StepViewport>();
   /**
@@ -173,6 +178,25 @@ export class SeqViewer extends ReactiveModel {
   private _shownFrame: { plan: TransitionPlan; frame: StoryFrame; views?: ViewState } | undefined;
   private _request: { request: AnimationRequest; plan: TransitionPlan; jumps?: number } | undefined;
   private readonly _drawnFrames = new State(0);
+  /** Bumped after every frame drawn: a navigator redraws over it. */
+  private readonly _drawn = new State(0);
+  readonly drawn: ReadonlyState<number> = this._drawn.asReadonly;
+  /**
+   * The ruler rails shown (_spec/README.md "Composition", Navigators): the reader's session (the embedded layout's
+   * corner button), never the spec; `navigator.form: none` draws none whatever it says.
+   */
+  private readonly _railsShown = new State(true);
+  readonly railsShown: ReadonlyState<boolean> = this._railsShown.asReadonly;
+  /** The sections that draw a rail and which can move: kept while they hold (the frame's key reads them by identity). */
+  private _rails: Record<string, true> | undefined;
+  private _railsFor: [unknown, boolean, number] = [undefined, false, 0];
+  /** Bumped when a host's navigator comes or goes: the rails it replaces are found again. */
+  private _hostedVersion = 0;
+  private _railsActive: Record<string, boolean> = {};
+  /** The rails' keys that are rows tracks' (a rows rail). */
+  private _rowsRails: ReadonlySet<string> = new Set();
+  /** The navigators' models by id: the view's declared ones as asked for, and a host's (`navigator(def)`). */
+  private readonly _navigators = new Map<string, NavigatorModel>();
   /** The spec the last frame drew, the step shown, and whether `playStep` is entering one (no second transition). */
   private _drawnRoot: Node | undefined;
   private _shownStep: string | undefined;
@@ -364,6 +388,8 @@ export class SeqViewer extends ReactiveModel {
     this._followViewports();
     if (target && viewerSpec.ui?.toolbar) this.registerPermanentDispose(viewerSpec.ui.toolbar(this, target));
     if (target && viewerSpec.ui?.canvas) this.registerPermanentDispose(mountCanvas(this, target));
+    if (target && viewerSpec.ui?.navigators) this.registerPermanentDispose(viewerSpec.ui.navigators(this, target));
+    if (target && viewerSpec.ui?.railToggle) this.registerPermanentDispose(viewerSpec.ui.railToggle(this, target));
     if (target && viewerSpec.ui?.legends) this.registerPermanentDispose(viewerSpec.ui.legends(this, target));
     // registered last, so it runs first: everything after it (the UI's teardown, the behaviors, the models) is disposed
     // while the viewer is retired, and none of it asks for a frame
@@ -787,7 +813,9 @@ export class SeqViewer extends ReactiveModel {
 
   /** The window the last frame drew (during a motion, between where it started and the model's), a copy. */
   get drawnViewport(): RenderViewport | undefined {
-    return Number.isNaN(this._drawn.start) ? undefined : { start: this._drawn.start, end: this._drawn.end };
+    return Number.isNaN(this._drawnWindow.start)
+      ? undefined
+      : { start: this._drawnWindow.start, end: this._drawnWindow.end };
   }
 
   /** Each leading section's viewport the last frame drew, by address (during a motion, the frame's), copies. */
@@ -970,8 +998,16 @@ export class SeqViewer extends ReactiveModel {
     if (viewports) input.viewports = viewports;
     else delete input.viewports;
     if (vp) {
-      this._drawn.start = vp.start;
-      this._drawn.end = vp.end;
+      this._drawnWindow.start = vp.start;
+      this._drawnWindow.end = vp.end;
+    }
+    this._updateRails(resolved);
+    if (this._rails) {
+      input.rails = this._rails;
+      input.railsActive = this._railsActive;
+    } else {
+      delete input.rails;
+      delete input.railsActive;
     }
     // what each leading section showed: where the next motion starts
     this._drawnViews.clear();
@@ -1010,6 +1046,15 @@ export class SeqViewer extends ReactiveModel {
       this.store.holdShown(frame.layout.shown);
     }
     this._frame = frame;
+    // the layout placed the view (its width): a rail that went idle or live with it is drawn so now (the window pass
+    // alone: which rails can move is outside the key)
+    const wasActive = this._railsActive;
+    this._updateRails(resolved);
+    if (this._rails && this._railsActive !== wasActive) {
+      input.railsActive = this._railsActive;
+      frame = renderer.frame(input);
+      this._frame = frame;
+    }
 
     // a resting pointer is hit again once a frame the view moves under it (EC-143)
     // (what that frame laid out is still to be drawn: `rebuilt` is the layout's, not the emphasis redraw's)
@@ -1032,6 +1077,7 @@ export class SeqViewer extends ReactiveModel {
       this._baseDirty = false;
     }
     this.counts.frames++;
+    this._drawn.set(this._drawn.value + 1);
     if (!this._shownFrame) this._drawnRoot = this.spec.shown.value;
     if (this._shownFrame) this._drawnFrames.set(this._drawnFrames.value + 1);
     if (this._restDue) {
@@ -1042,6 +1088,92 @@ export class SeqViewer extends ReactiveModel {
       this._rested.set(this._rested.value + 1);
     }
     return frame;
+  }
+
+  /**
+   * The rails this frame draws (_spec/README.md "Composition", Navigators): every linear section no shown navigator
+   * binds, and every rows track no navigator binds along its rows (a rows rail), while `navigator.form` is `rail` and
+   * the reader shows them; each active when the view can move it (the `navigator` behavior listed, not idle: idle is
+   * the whole axis at the zoom limit, a follower under `ignore`; a rows rail's every row shown, the layout's).
+   */
+  private _updateRails(resolved: ResolvedView): void {
+    const on = this.config.navigator.form === 'rail' && this._railsShown.value;
+    const f = this._railsFor;
+    if (f[0] !== resolved || f[1] !== on || f[2] !== this._hostedVersion) {
+      f[0] = resolved;
+      f[1] = on;
+      f[2] = this._hostedVersion;
+      // a host's navigator (`navigator(def)`) replaces the rail on what it binds, as a declared one does
+      const hosted: ResolvedNavigator[] = [];
+      for (const m of this._navigators.values()) {
+        const n = m.isHosted ? m.navigator : undefined;
+        if (n) hosted.push(n);
+      }
+      // and every rows layer's rows rail, by its track (a navigator over the section's rows replaces it)
+      const rows = on ? rowsRailTracks(resolved, hosted) : [];
+      this._rowsRails = new Set(rows);
+      this._rails = on
+        ? Object.fromEntries([...railSections(resolved, hosted), ...rows].map((a) => [a, true as const]))
+        : undefined;
+      this._railsActive = {};
+    }
+    const rails = this._rails;
+    if (!rails) return;
+    const behavior = this._handles.has(NavigatorProvider);
+    let changed = false;
+    // a rows rail can move while the behavior is there (idle while every row shows: the layout knows, `whole`)
+    const can = (a: string) => behavior && (this._rowsRails.has(a) || !windowIdle(this.view, a, this.config));
+    for (const a in rails) if (this._railsActive[a] !== can(a)) changed = true;
+    if (!changed) return;
+    const next: Record<string, boolean> = {};
+    for (const a in rails) next[a] = can(a);
+    this._railsActive = next;
+  }
+
+  /** Shows or hides the ruler rails (the reader's session: the embedded layout's corner button). */
+  setRailsShown(shown: boolean): void {
+    if (this._railsShown.value === shown) return;
+    this._railsShown.set(shown);
+    this.schedule();
+  }
+
+  /** The emphasis the last frame drew (the selection, the highlights, the cursor): what a navigator's marks read. */
+  get emphasis(): Emphasis {
+    return this._emphasis;
+  }
+
+  /**
+   * A navigator's model by its id (a declared node of the view's, by id or address, or a host's): made once and kept
+   * with the viewer. Undefined when there is none of that id.
+   */
+  navigatorModel(id: string): NavigatorModel | undefined {
+    const kept = this._navigators.get(id);
+    if (kept) return kept;
+    const view = this.view.resolved.value;
+    if (!view?.navigators.some((n) => n.id === id || n.address === id)) return undefined;
+    const m = new NavigatorModel(this, id);
+    this._navigators.set(id, m);
+    this.registerPermanentDispose(() => m.retire());
+    return m;
+  }
+
+  /**
+   * A host's navigator (_spec/README.md "Composition", Navigators): a definition of the `navigator` node's shape, never
+   * saved in the spec (a Mol* plugin's strip over a user's spec); mounted by its id like a declared one.
+   */
+  navigator(def: NavigatorDef): NavigatorModel {
+    this._navigators.get(def.id)?.retire();
+    const m = new NavigatorModel(this, def.id, def);
+    this._navigators.set(def.id, m);
+    this._hostedVersion++;
+    this.registerPermanentDispose(() => m.retire());
+    this.schedule();
+    return m;
+  }
+
+  /** The view's renderer (its image cache and held domains: a navigator's picture shares them). */
+  get renderer(): Renderer | undefined {
+    return this._renderer;
   }
 
   /** The last frame: its layout is what hit-testing reads. */
@@ -1075,6 +1207,14 @@ export class SeqViewer extends ReactiveModel {
     e.projected = p;
     p.hover = this.hover.projectedAll();
     p.hoverSection = this.hover.current.section;
+    // a window's part under the pointer (a rail's, a ring's) lights it; a window being dragged grows its rail
+    e.drag = this.input?.dragHit;
+    const wh = this.input?.windowHit;
+    if (wh) {
+      e.hover = wh;
+      this._hoverVersion = -1;
+      return;
+    }
     const v = this.hover.version.value;
     if (v === this._hoverVersion) return;
     this._hoverVersion = v;
@@ -1180,8 +1320,8 @@ export class SeqViewer extends ReactiveModel {
   }
 
   /** What is under a point of the last frame's layout. */
-  hit(x: number, y: number): RenderHit | undefined {
-    return this._frame ? hitView(this._frame.layout, x, y) : undefined;
+  hit(x: number, y: number, touch = false): RenderHit | undefined {
+    return this._frame ? hitView(this._frame.layout, x, y, touch) : undefined;
   }
 
   // ---- commands ----

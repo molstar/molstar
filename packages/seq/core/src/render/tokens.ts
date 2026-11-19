@@ -172,7 +172,7 @@ export const LightTokens: SeqTokens = createTokens('light', {
   'seq-ruler': '#8a847a',
   'seq-window': '#8f4c06',
   'seq-grip': '#6b655c',
-  'seq-wash': '#f1efeaa6',
+  'seq-wash': '#f1efea33',
   'seq-centromere': '#b4306a',
 });
 
@@ -231,7 +231,7 @@ export const DarkTokens: SeqTokens = createTokens('dark', {
   'seq-ruler': '#7d8592',
   'seq-window': '#5aa6f8',
   'seq-grip': '#8d95a1',
-  'seq-wash': '#121419a6',
+  'seq-wash': '#12141933',
   'seq-centromere': '#e86aa0',
 });
 

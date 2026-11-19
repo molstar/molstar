@@ -28,8 +28,11 @@ import type { PolarWarp } from './warp.js';
  */
 export type PointKind = 'data' | 'label' | 'gutter' | 'window' | 'gap' | 'empty';
 
-/** A window's parts: its body (dragged: pans) and its two ends (dragged: resize about the other end). */
-export type WindowPart = 'body' | 'start' | 'end';
+/**
+ * A window's parts: its body (dragged: pans), its two ends (dragged: resize about the other end), and on a navigator
+ * what is outside it (a click centres there, a drag sweeps a new window).
+ */
+export type WindowPart = 'body' | 'start' | 'end' | 'outside';
 
 /**
  * A point placed: its strip and band, the point, its kind, the display unit there. Reused. From `at` the point is in

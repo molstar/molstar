@@ -23,3 +23,11 @@ export const Ring: StoryObj = { render: () => exampleStory(view('ring')) };
 
 /** The rotated linear view: tracks from inside bla over the origin to past lacZα, the seam no break. */
 export const RotatedLinear: StoryObj = { render: () => exampleStory(view('rotated-linear')) };
+
+/**
+ * The ring and its linear detail with a strip of the whole construct over the detail: pan the detail over the origin
+ * and the strip's window wraps in two pieces, a grip at each true end; drag either piece and the detail follows.
+ */
+export const DetailWithAStrip: StoryObj = {
+  render: () => exampleStory(view('detail-strip'), { navigators: 'include' }),
+};
