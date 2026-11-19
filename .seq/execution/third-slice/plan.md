@@ -412,7 +412,7 @@ and dark before the merge.
       file, several sequences (`briefs/mf-many-sequences-file.md`).
 - [ ] PZ (strong, after CF and MV; the author, 2026-11-19: the PAE plot's navigation and its chain boundaries) a
       plot's fixed box, double-click zooms a step, the wheel the plot's, boundaries as gaps (`briefs/pz-plot-navigation.md`).
-- [ ] LP (strong, after MV; the author, 2026-11-19: "Behavior, on by default") `linkedPairs`: a range's pairs lit
+- [ ] LP (started on c184dfefc; strong, after MV; the author, 2026-11-19: "Behavior, on by default") `linkedPairs`: a range's pairs lit
       (`briefs/lp-linked-pairs.md`).
 - [x] HP (reported: `drafts/track-header-parts.md`, eight gaps for the author; strong, a fourth-slice draft) track header parts, drafted (`briefs/hp-header-parts-draft.md`).
 - [ ] RX (strong, next free slot; the author, 2026-11-19) a row column's whole value only under the pointer; the tree's

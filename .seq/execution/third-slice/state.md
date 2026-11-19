@@ -382,3 +382,11 @@ None.
   fits, else beside"): one label rule for both layouts (layouts.md, the Design page). Found in the screenshot: bla
   (AmpR)'s card says "Extent pUC19c 1–2,686" across the origin. Lane LL (fast) queued for both. CF's fix round sent
   (its review's ten findings and the author's two decisions). Use findings: bug 6, missing design 5, look 4.
+- MV merged (the author accepted its public API, 2026-11-19: "Accept and merge"): `sideEffects: false` on seq core and
+  viewer, viewer-composition.md's registry of layer types and layouts, changelog `seq-minimal-viewer.md`. Minimal viewer
+  1014 → 830 kB. Seq* (next)'s packages are new in v6, so their moves are not v6 breaks (nothing in
+  breaking-v6-changes.md). LP (strong) started on c184dfefc.
+- CF's fix round done and rebased onto MV. Decided (the author, 2026-11-19: "Leave it out of exports"): the rail row is
+  reserved only where a rail is drawn, never in an export; CF makes it so, then merges. CE reported (a caret at split
+  copies, `seq.render.pairs.copy`; no look yet): under independent review. RX reported (five parts, all checks): waits
+  for CF's merge to rebase (both move the rows' zoom bounds and touch rail.ts), then review.
