@@ -68,6 +68,12 @@ and no pairs reduction is public. GR's estimate: a ribbon-and-fan layer 400–70
 What it teaches the designs: a pairs level by bin pair; `ext:` layer kinds; an emphasis "everything touching this
 block"; a navigator over systems; a ring-zoom story channel.
 
+## Decided
+
+The author, 2026-11-19: "Rondo-like, extension" (question 1): the fifth slice's genome ring is bundled and
+count-weighted, built as an extension package on the public API; what it needs from core (`ext:` layer kinds first) is
+part of that plan. Questions 2–6 stay open for the fifth slice's plan.
+
 ## Open, for the author
 
 1. Circos-like (today's chords, culled) or Rondo-like (bundled, count-weighted)?

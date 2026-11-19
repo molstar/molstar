@@ -312,3 +312,6 @@ None.
 - GR reported (`research-genome-ring.md`): a Circos-like ring is close with what is built (blocks of several systems
   on a ring are tested, which GR missed); the Rondo look needs a bundled-pairs layer, a pairs level by bin pair, `ext:`
   layer kinds, a navigator over systems and a ring-zoom channel. Six questions for the author.
+- Decided (the author, 2026-11-19: "Rondo-like, extension"): the fifth slice's genome ring is Rondo-like (bundled,
+  count-weighted) and an extension package; `ext:` layer kinds before it (examples.md, version-1.md, the Design page,
+  `research-genome-ring.md`). Its other five questions wait for the fifth slice's plan.

@@ -99,7 +99,8 @@ Version 1's planned features ([features.md](features.md)) come in milestones, ea
    foundations' stories and presets, SVG and PNG export, the render CLI.
 3. **Integration**: structure maps and the Mol\* showcase, services, bigWig and range reads, the Nightingale reference,
    archives.
-4. **Genomes** (the fifth slice): the deferred list above.
+4. **Genomes** (the fifth slice): the deferred list above. Its showcase: a genome ring like Rondo's, bundled and count-weighted, as an
+   extension package (the author, 2026-11-19), so `ext:` layer kinds (extensibility.md) land before it.
 
 ## Open, to decide as the work reaches them
 
