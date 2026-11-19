@@ -236,3 +236,6 @@ None.
   numberings reported, labels matched by spelling then case; `shownNumbering` removed, the reader internal). No view
   shows it yet: DA's Antibody does. Quick 2166, medium 9. Designs (features, files, molecules) say the kind is built.
   TW starts in NB's slot; DA after.
+- Decided (the author, 2026-11-19, "Yes, accept it"): CY's lengths through resolve (`sourceLengths`,
+  `ResolveOptions.lengths`, `Resolver.resolve(spec, lengths?)`, `StaticModel.lengths`, `SpecModel.setLengths` replacing
+  `ViewModel.setLengthSource`/`refreshLengths`, `overlayQueryModel`'s `RowsReader`), subject to its review.
