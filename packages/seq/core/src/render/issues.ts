@@ -30,6 +30,12 @@ export const RenderIssues = defineIssues('seq.render', {
     description: 'A rows layer in a text figure draws every clade unfolded: a figure’s lines repeat the rows',
     hint: 'Fold clades in a tracks view; a text figure shows every row',
   },
+  'seq.render.rows.clade': {
+    severity: 'info',
+    description:
+      'A rows layer’s `collapsed` names no clade of its tree (a support value or a repeated label names none): not folded',
+    hint: 'Name the clade by its unique label, else `first..last` (its first and last leaves)',
+  },
   'seq.render.rows.order': {
     severity: 'info',
     description: 'A lazy alignment ordered by a field or a tree its source does not serve: drawn in data order',

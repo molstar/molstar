@@ -72,6 +72,39 @@ describe('the rows’ model', () => {
     expect(cladesHolding(clades, 3).map((c) => clades.name[c])).toEqual(['root', 'c..e', 'c..d']);
   });
 
+  it('clade names: a support value (a number, IQ-TREE’s `87.3/95`, `90|1`) or a label used twice names no clade', () => {
+    const names = (newick: string) => {
+      const t = readNewick(newick);
+      const ls = ['A', 'B', 'C', 'D', 'E'];
+      return buildClades(
+        t,
+        matchLeaves(
+          t,
+          ls.map((label) => ({ label })),
+        ),
+        ls.length,
+      )!.name;
+    };
+    // a unique number
+    expect(names('((A,B)1,C)root;')).toEqual(['root', 'A..B', 'A..A', 'B..B', 'C..C']);
+    // support pairs, unique and not plain numbers, still support
+    expect(names('((A,B)87.3/95,(C,D)90|1,E)root;')).toEqual([
+      'root',
+      'A..B',
+      'A..A',
+      'B..B',
+      'C..D',
+      'C..C',
+      'D..D',
+      'E..E',
+    ]);
+    // a label once a leaf and once an inner node: not unique
+    expect(names('((A,B)C,(C,D)x)root;')).toContain('A..B');
+    expect(names('((A,B)C,(C,D)x)root;')).toContain('x');
+    // a name that is not support and unique keeps its label
+    expect(names('((A,B)ab/c,C)root;')).toContain('ab/c');
+  });
+
   it('display rows: a folded clade one row, a pinned row in the band and in place, hidden rows out and counted', () => {
     const d = new DisplayRows();
     const cd = cladeNamed(clades, 'c..d');

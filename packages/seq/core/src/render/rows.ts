@@ -25,7 +25,7 @@ import {
   passDraws,
 } from './draw-lists.js';
 import { ImageCache, ImageTile } from './images.js';
-import { type Alphabet, LettersColorFallback } from './letters.js';
+import { type Alphabet, cellEdge, LettersColorFallback } from './letters.js';
 import { RenderIssues } from './issues.js';
 import { type LayerSource, layerSource, readTiles } from './layer-data.js';
 import {
@@ -683,6 +683,16 @@ export const RowsType: LayerType<Prep, RowsLay> = {
         );
     }
     lay.prepareRows(prep, ctx);
+    // a spec's fold naming no clade of the tree is said, never dropped silently (the session's folds are the tree's)
+    const clades = lay.foldsApply ? lay.clades : undefined;
+    const unknown = clades && prep.collapsed.length ? prep.collapsed.filter((n) => !clades.byName.has(n)) : NoFolds;
+    if (unknown.length)
+      ctx.report(
+        issueOf(RenderIssues, 'seq.render.rows.clade', `No clade of the tree is named ${unknown.join(', ')}`, {
+          address: ctx.key,
+          hint: RenderIssues.codes['seq.render.rows.clade'].hint,
+        }),
+      );
     const display = lay.display;
     if (lay.figure) {
       lay.rowScale = box.height / Math.max(1, display.count);
@@ -1480,11 +1490,16 @@ function drawRects(lay: RowsLay, out: PassWriter, from: number, to: number) {
     g[2] = lay.x1[k] - lay.x0[k];
     g[3] = lay.h[k];
     g[4] = lay.fill[k];
-    g[5] = edge;
-    g[6] = px;
+    g[5] = NoColor;
+    g[6] = 0;
     g[7] = 0;
     g[8] = 0;
     out.rectArgs();
+    if (edge !== NoColor) {
+      g[5] = edge;
+      g[6] = px;
+      cellEdge(out);
+    }
   }
 }
 

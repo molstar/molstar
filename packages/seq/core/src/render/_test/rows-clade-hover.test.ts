@@ -184,6 +184,22 @@ describe('a hovered clade', () => {
     expect(folded.bands.map((r) => [r[1], r[3]])).toEqual([[folded.lay.rowY(3), folded.lay.rowScale]]);
   });
 
+  it('`collapsed` naming no clade (a support value): said once, an info, the rest folded', async () => {
+    const s = await settle(spec({ order: 'tree', collapsed: ['95', 'GLB..CYG'] }, Support).build());
+    const f = await s.frame(at({ rowScale: 20 }));
+    const said = f.layout.issues.filter((i) => i.code === 'seq.render.rows.clade');
+    expect(said).toHaveLength(1);
+    expect(said[0].severity).toBe('info');
+    expect(said[0].message).toContain('95');
+    expect(said[0].message).not.toContain('GLB..CYG');
+    // GLB and CYG folded into one row
+    expect(rowsLay(f).display.count).toBe(4);
+    const named = await settle(spec({ order: 'tree', collapsed: ['gc'] }).build());
+    expect(
+      (await named.frame(at({ rowScale: 20 }))).layout.issues.some((i) => i.code === 'seq.render.rows.clade'),
+    ).toBe(false);
+  });
+
   it('a hover from another layer lights no clade', async () => {
     const { bands, branches } = await hovered({ order: 'tree' }, { rowScale: 20 }, 'gc', 'tree-node', {
       layer: '/views/v/s/rows/other',

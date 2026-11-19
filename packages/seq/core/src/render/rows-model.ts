@@ -137,9 +137,12 @@ export function buildClades(tree: TreeRead, leafRow: Int32Array, rows: number): 
   };
 }
 
-/** A label that reads as a number (a support value, a bootstrap count): never a clade's name. */
+/**
+ * A label that reads as support values (a bootstrap count, IQ-TREE's `87.3/95`: every `/`- or `|`-separated part a
+ * number): never a clade's name, since a reinferred tree changes it.
+ */
 function isNumeric(label: string): boolean {
-  return label.trim() !== '' && Number.isFinite(Number(label));
+  return label.split(/[/|]/).every((part) => part.trim() !== '' && Number.isFinite(Number(part)));
 }
 
 /** A clade by its name (`cladeNamed`), -1 for none. */
