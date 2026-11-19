@@ -146,6 +146,11 @@ below holds on every navigator form and on the ring's window unless it says rail
 - **Grown**: the rail is drawn thicker (2 to 6 px, `navigator.rail.grownPx`) while its drag runs, wherever the
   pointer goes, and while the pointer is over its grab zone; the cursor is `grab` there and `grabbing` during the drag,
   by the same rule. Why: a 2 px line is a hint at rest and a target in use.
+- **The cursor says the gesture** (the author, 2026-11-19: "when the action is resize on the sliders, it should get an
+  appropriate icon"): over a window's grip (`start`, `end`) and while dragging one, a resize cursor along the
+  navigator's axis (`ew-resize` on a horizontal one, `ns-resize` on a vertical one: the rows rail, a vertical
+  slider); over the window's body `grab`, `grabbing` while dragged; outside it `pointer` (a click centres); an idle
+  navigator the default. One rule for the ruler rail, the slim rail, the rows rail, the strip and the miniature.
 - **Hidden or disabled**:
   - `navigator.form: none` (`ViewerConfig`, the host's) draws no rail on any section; a declared `navigator` node's
     `hidden` (spec param) hides that one;
