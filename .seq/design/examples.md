@@ -335,7 +335,8 @@ Views:
 - **The dot plot** (the base-pair matrix): one grid over 1EHZ's positions on both axes: below the diagonal the
   structure's pairs (a value per kind), above it the family's covariation computed on 1EHZ's positions (above).
   Why: one figure shows the structure and the evidence for it, both from committed data.
-- **Anchors**: acceptor stem 1–7 : 66–72, D stem 10–13 : 22–25, anticodon stem 27–31 : 39–43, T stem 49–53 : 61–65;
+- **Anchors**: acceptor stem 1–7 : 66–72, D stem 10–13 : 22–25, anticodon stem 27–30 : 40–43 (the entry's base-pair table, `ndb_struct_na_base_pair`, has no A31·Ψ39 and has
+  Cm32·A38, non-canonical; kept as published, found by DT 2026-11-19), T stem 49–53 : 61–65;
   tertiary 8–14, 15–48 (Levitt), 18–55, 19–56, 26–44, 54–58; anticodon Gm34-A35-A36; the pairs from `SS_cons`
   projected onto 1EHZ land on its stems.
 

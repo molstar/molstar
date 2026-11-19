@@ -14,15 +14,14 @@ const meta: Meta = { title: 'Examples/Plasmid/Ring' };
 export default meta;
 
 /**
- * The construct (a stand-in of pUC19's length) as rings, the plus strand's features outermost, then the minus
- * strand's, the sites and a ruler; labels outside with leaders, the name and length in the hole. The linear detail under
- * it follows the ring's window (the sector on the rim): wheel or pan the detail and the window moves round the ring,
- * across the origin too, where the detail shows two pieces. bla and a primer site cross the origin, each one arc.
+ * pUC19c (INSDC L09137.2, 2,686 bp) as rings: the plus strand's features outermost, then the minus strand's, the
+ * restriction sites at their cuts and a ruler; labels outside with leaders, the name and length in the hole. Features
+ * are arrows by strand (plus to the end, minus to the start; a ring draws them from a device pixel a position, so on a
+ * high-resolution screen or large). The linear detail under it follows the ring's window (the sector on the rim):
+ * wheel or pan the detail and the window moves round the ring, across the origin too, where the detail shows two
+ * pieces. bla and a primer site cross the origin, each one arc.
  */
 export const Ring: StoryObj = { render: () => exampleStory(view('ring')) };
-
-/** The rotated linear view: tracks from inside bla over the origin to past lacZα, the seam no break. */
-export const RotatedLinear: StoryObj = { render: () => exampleStory(view('rotated-linear')) };
 
 /**
  * The ring and its linear detail with a strip of the whole construct over the detail: pan the detail over the origin

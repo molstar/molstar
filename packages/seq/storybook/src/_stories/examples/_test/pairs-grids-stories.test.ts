@@ -105,15 +105,15 @@ describe('tRNA: arcs, headless', () => {
     expect([...sel.shown.parts[0].ranges]).toEqual([0, 1, 71, 72]);
     v.input.click(x, y, { ctrlKey: true });
     expect(v.selection.value.value.elements.keys).toEqual([]);
-    // the inner stem's pair 31–39, then focus: the window its ends' hull
-    const j = Array.from({ length: lay.n }, (_, k) => k).find((k) => lay.prep!.data!.keys[lay.pair[k]] === '31-39')!;
+    // the anticodon stem's pair 30–40, then focus: the window its ends' hull
+    const j = Array.from({ length: lay.n }, (_, k) => k).find((k) => lay.prep!.data!.keys[lay.pair[k]] === '30-40')!;
     const [x2, y2] = curveAt(lay.curve, 8 * j, 0.5);
     v.input.doubleClick(x2, y2);
     await vi.advanceTimersByTimeAsync(1000);
     v.draw();
     const w = v.view.get('/views/main/trna')!;
-    expect(w.start).toBeLessThanOrEqual(30);
-    expect(w.end).toBeGreaterThanOrEqual(39);
+    expect(w.start).toBeLessThanOrEqual(29);
+    expect(w.end).toBeGreaterThanOrEqual(40);
     expect(w.end - w.start).toBeLessThan(76);
   });
 
@@ -261,7 +261,7 @@ describe('tRNA: the dot plot, headless', () => {
 
 describe('Complex: PAE and contacts, headless', () => {
   it('the grid’s x follows CDK2’s section, its y cyclin A’s; a cell hovered lights a residue of each', async () => {
-    viewer = await openExample(complex('pae'), {});
+    viewer = await openExample(complex('pae'), { fixtures: true });
     const v = viewer;
     expect(v.frame!.layout.issues).toEqual([]);
     v.view.setRange('/views/main/cdk2', 40, 80);
@@ -286,7 +286,7 @@ describe('Complex: PAE and contacts, headless', () => {
   });
 
   it('the PAE’s x is CDK2’s x whatever the two windows; its cells square where the room allows, capped otherwise', async () => {
-    viewer = await openExample(complex('pae'), {});
+    viewer = await openExample(complex('pae'), { fixtures: true });
     const v = viewer;
     for (const [c, y] of [
       [80, 40],
@@ -305,7 +305,7 @@ describe('Complex: PAE and contacts, headless', () => {
   });
 
   it('a zoom on the plot moves both leaders about the pointer; a vertical wheel pans y’s leader (cyclin A)', async () => {
-    viewer = await openExample(complex('pae'), {});
+    viewer = await openExample(complex('pae'), { fixtures: true });
     const v = viewer;
     v.view.setRange('/views/main/cdk2', 40, 120);
     v.view.setRange('/views/main/cyclin', 100, 180);
@@ -337,7 +337,7 @@ describe('Complex: PAE and contacts, headless', () => {
   });
 
   it('the contacts as arcs between the chains’ blocks: a hover lights both ends', async () => {
-    viewer = await openExample(complex('contacts'), {});
+    viewer = await openExample(complex('contacts'), { fixtures: true });
     const v = viewer;
     // 1FIN's contacts of both copies (a pair of residues once a copy), folded onto the merged blocks
     const lay = arcsOf(v);

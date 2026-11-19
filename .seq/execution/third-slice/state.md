@@ -199,3 +199,23 @@ None.
   perf 120 passed. Identity is PID1-like (either row a residue; gap-gap and insert cells left out), the author may
   choose another. Sizes after RC: reading a spec 203.9, headless 626.8, viewer default 995.5 kB. DP and DT running; DG
   and DC start (strong slots).
+- Decided (the author, 2026-11-19): pairs, ranges and maps on an alignment's columns wait for 0.5.0 (followups).
+- DP merged after its review round (sites asserted under every rotation, IUPAC letters, honest summaries; its four core
+  gaps are CY's). Running: DG, DC, DT's fix round, and OP, AY, SW (the author's exception); queued: NB, DA, CY.
+- DT merged after its review round (pairs over a source's letters, the rows legend by alphabet, the tertiary column,
+  generated data formatted); record.ts conflicts with DP resolved (both recorders, one dispatch table). Quick 1989,
+  medium 9. CY gains the grid-from-a-source gap. Running: DG, DC, OP, AY, SW; queued: NB (next strong slot), DA, CY.
+- SW merged (a pan about the pointer, a ring chip's label once, the minimal viewer measured at 959 kB: what keeps it
+  large in plan stage 7). Quick 1990.
+- AY merged after its review round (an SVG `role="figure"` with named groups and items, boxes that never take the
+  pointer, ids hashed per export, announcements by priority and quiet in a drag, forced colors for any theme source;
+  rows' and pairs' items untested: followups). OP merged after its review round (the core and the viewer spec conflict
+  kept both; mono fonts resolved to Liberation before resvg, `image-rendering="optimizeSpeed"`, links outside the root
+  refused, exit 5 internal, atomic writes, a pixel cap; the font files unverified against upstream: followups); its hot
+  files applied (the resvg catalog entry, the inventory, the root references, the lockfile). Quick 2043 (with
+  seqx-render), lint, format, workspace green. DG in review; DC running; NB waits for DG's slot.
+- DG merged after its review round (attribution shared by the family and columns views with UniProt's changes stated,
+  the recorder's rules tested offline, `#=GF SQ` and the seed's hash fixed, a summary row keeps its `+n`: core's
+  rows layer elides the first label instead; the Query stories' alignment examples over four inline rows). Conflicts
+  with DP and DT (`record.ts`, `draw-checks.ts`) resolved keeping both. Quick 2070, medium 9. Its core gaps (6–8) are
+  CY's. DC in review; NB starts in DG's slot.

@@ -30,6 +30,8 @@ export interface PairsData {
   /** −1 where an end is on its `-` strand, else 1 (EC-206: a reversed side is valid). */
   readonly aStrand: Int8Array;
   readonly bStrand: Int8Array;
+  /** Any other category column of the rows, by name, a value a kept pair (a flag a filter reads: `tertiary`). */
+  readonly extra?: Readonly<Record<string, readonly (string | null)[]>>;
 }
 
 /** A `grid` node's values: `nx × ny`, x-major (`values[i × ny + j]` at x i, y j), NaN missing. */
@@ -49,6 +51,8 @@ function category(v: Value | undefined): Category | undefined {
   if (Array.isArray(v)) return { get: (i) => (typeof v[i] === 'string' ? (v[i] as string) : null) };
   return typeof (v as unknown as Category).get === 'function' ? (v as unknown as Category) : undefined;
 }
+
+const PairColumns = new Set(['a_start', 'a_end', 'b_start', 'b_end', 'id', 'type', 'label', 'a_strand', 'b_strand']);
 
 /** A pairs node's rows read into arrays; rows whose ends are not intervals are left out (the checks said so). */
 export function readPairs(node: Node): PairsData {
@@ -75,6 +79,12 @@ export function readPairs(node: Node): PairsData {
   const kindIndex = new Map<string, number>();
   const keys: (string | number)[] = [];
   const labels: (string | null)[] = [];
+  const extraCols = Object.entries(rows)
+    .filter(([k]) => !PairColumns.has(k))
+    .flatMap(([k, v]) => {
+      const c = category(v);
+      return c ? [[k, c, [] as (string | null)[]] as const] : [];
+    });
   let n = 0;
   for (let i = 0; i < n0; i++) {
     if (!(as[i] >= 0 && ae[i] > as[i] && bs[i] >= 0 && be[i] > bs[i])) continue;
@@ -97,6 +107,7 @@ export function readPairs(node: Node): PairsData {
     bStrand[n] = bStr?.get(i) === '-' ? -1 : 1;
     keys.push(idCol?.get(i) ?? i);
     if (label) labels.push(label[i] ?? null);
+    for (const [, c, out] of extraCols) out.push(c.get(i));
     n++;
   }
   return {
@@ -111,6 +122,7 @@ export function readPairs(node: Node): PairsData {
     ...(label ? { labels } : {}),
     aStrand: aStrand.subarray(0, n),
     bStrand: bStrand.subarray(0, n),
+    ...(extraCols.length ? { extra: Object.fromEntries(extraCols.map(([k, , out]) => [k, out])) } : {}),
   };
 }
 

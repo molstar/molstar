@@ -25,6 +25,7 @@ import {
   tickHit,
   tickOn,
   itemsUsed,
+  describeItems,
 } from './items.js';
 import { LaneIndex } from './lanes.js';
 import { type LayerSource, layerSource, toSection } from './layer-data.js';
@@ -209,6 +210,8 @@ export const SecondaryType: LayerType<SecondaryPrep, SecondaryLay> = {
   draw(lay, _pass: PassName, out: PassWriter, emphasis?: Emphasis) {
     drawPass(SecondaryDraws, lay, out, emphasis);
   },
+
+  items: describeItems,
 
   hit(lay, at): Hit | undefined {
     const x = at[0];

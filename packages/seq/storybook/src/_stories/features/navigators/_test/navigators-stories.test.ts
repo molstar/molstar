@@ -96,7 +96,7 @@ describe('the navigators’ examples, headless', () => {
   it('the Globins’ 10,000 rows: a drag on the overview’s window moves the rows; the miniature covers both axes', {
     tags: ['medium'],
   }, async () => {
-    viewer = await openExample(GlobinsViews.find((v) => v.id === 'scale-navigators')!, { gene: '' });
+    viewer = await openExample(GlobinsViews.find((v) => v.id === 'scale-navigators')!, { fixtures: true });
     const v = viewer;
     const { nav, f } = await navigator(v, 'overview');
     const w = f.windows[0];

@@ -181,6 +181,37 @@ describe('a row under a pan', () => {
   });
 });
 
+describe('a row panned about the pointer', () => {
+  it('the content a pan brings under the pointer is the unit that was dx px right of it, chips and gaps between', async () => {
+    // the chips (ATP, MG) at the end enter the view as the window pans right
+    // the chips (ATP, MG) at the end enter the view as the window pans right
+    const s = await settle(chipsSpec());
+    const v0 = { start: 130, end: 185 };
+    const f0 = await s.frame({ size: Size, viewport: v0 });
+    const p0 = placementOf(f0);
+    const axis = f0.layout.sections[0].axis!;
+    const c = { total: 202, width: axis.width, height: 600, cyclic: false, maxScale: 40, placement: p0 };
+    const y = p0.strips.bandY[1] + 2;
+    // a pointer on CDK2, the unit dx px right of it (on a block, not in a gap) comes to it
+    // (the placement is reused by the next frame: the units first)
+    const moves = [
+      [100, 150],
+      [100, 200],
+      [300, 100],
+    ] as const;
+    const units = moves.map(([x, dx]) => p0.offsetAt(axis.x0 + x + dx, y));
+    for (const [i, [x, dx]] of moves.entries()) {
+      const u = units[i];
+      const v = TracksLayout.nav.pan(c, v0, dx, 0, x);
+      const f = await s.frame({ size: Size, viewport: v });
+      const p = placementOf(f);
+      const pt = new PlacePoint();
+      expect(p.place(u, pt)).toBe(true);
+      expect(pt.x).toBeCloseTo(axis.x0 + x, 0);
+    }
+  });
+});
+
 describe('a zoom about a point in a row with a chip first', () => {
   it('the point keeps its px as the chip leaves the view', async () => {
     const s = await settle(chipsSpec({ first: true, ligands: ['ATP'] }));
@@ -280,6 +311,9 @@ describe('a pill on a ring', () => {
     expect(chipsOf(p).length).toBe(1);
     const data = recordDrawLists(f.lists, ['data']);
     expect(data).toMatch(/text "ATP"/);
+    // once: the pill draws it, no outside label with a leader beside it
+    const all = recordDrawLists(f.lists, ['data', 'labels']);
+    expect(all.match(/text "ATP"/g)?.length).toBe(1);
   });
 });
 

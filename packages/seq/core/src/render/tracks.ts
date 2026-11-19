@@ -50,7 +50,7 @@ import type {
 } from './layer-type.js';
 import { walkStripes } from './highlight-stripes.js';
 import { EmptyOverlay, sectionId } from './layer-type.js';
-import { LettersType } from './letters.js';
+import { type LettersLay, LettersType } from './letters.js';
 import { breakHit } from './marks.js';
 import type { ScaleParams } from '@molstar/seqx-core/theme/index';
 import { DefaultThemeContext, type ThemeContext } from './channels.js';
@@ -1165,7 +1165,8 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
           firstRows = layerKey(t, l);
     // the lays of a strip's bands (_spec/README.md "Render", Section layouts: the lay cache bounded by the strips in view);
     // a `section` layer is laid out once a section, after
-    const layStrip = (placement: Placement, i: number, labels?: LabelSink) => {
+    const layStrip = (placement: Placement, i: number, labels?: LabelSink): boolean => {
+      let pill = false;
       const strips = placement.strips;
       const a = strips.axes[i];
       const keyed = layout !== TracksLayout || strips.n > 1 || section.blocks !== undefined;
@@ -1237,8 +1238,13 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
           const u = type.used ? type.used(l.lay) : h;
           if (u > strips.used[k]) strips.used[k] = u;
           out.push(l);
+          if (type.name === 'letters' && strips.chip[i]) {
+            const ll = l.lay as LettersLay;
+            if (ll.chip !== '' && ll.n > 0) pill = true;
+          }
         }
       }
+      return pill;
     };
     /** The `section` layers: once a section, over its box on the page, the placement their reader. */
     const laySection = (placement: Placement, a: AxisTransform): LayerLayout[] => {

@@ -15,8 +15,10 @@ import * as complexPae from './complex/pae.js';
 import * as complexText from './complex/text.js';
 import * as trna from './trna/trna.js';
 import * as globinsColumns from './globins/columns.js';
-import { generatedRegistry } from './globins/data.js';
+import { familyRegistry, generatedRegistry } from './globins/data.js';
 import * as globins from './globins/family.js';
+import * as hemoglobin from './globins/hemoglobin.js';
+import * as globinsQuery from './globins/query.js';
 import * as plasmidRing from './plasmid/ring.js';
 import * as addressing from './p53/addressing.js';
 import * as axis from './p53/axis.js';
@@ -29,6 +31,7 @@ import * as story from './p53/story.js';
 import * as themes from './p53/themes.js';
 import * as text from './p53/text.js';
 import * as tracks from './p53/tracks.js';
+import { AlignmentFileRuntime } from '@molstar/seqx-core/data/alignment-readers';
 import { RecordsRuntime } from '@molstar/seqx-core/data/records';
 import { type DomainFile, PlasmidGffFile } from './files/data.js';
 import * as p53Entry from './files/p53-entry.js';
@@ -197,8 +200,10 @@ export const FeatureViews: readonly ExampleView[] = [
     dataset: 'globins',
     id: 'query-alignment',
     title: 'Queried alignment',
-    summary: 'The globins family for the query stories: rows and columns addressed, a result selected in the view.',
-    build: () => globins.build(),
+    summary:
+      'Four rows of the Pfam globin seed inline above the whole seed read from its file, for the query stories: rows and columns addressed, a result selected in the view.',
+    build: globinsQuery.build,
+    registry: familyRegistry,
   },
   {
     dataset: 'p53',
@@ -213,7 +218,7 @@ export const FeatureViews: readonly ExampleView[] = [
     id: 'columns',
     title: 'Row columns',
     summary:
-      'The Globins family with data columns beside its rows: its species as text and its class as a chip on the left (the class from a file joined by row key), its identity to the ancestor, its residues as a bar and a score on the right. Click a title to order the rows by it, again for the other direction; narrow the view and the right columns yield first, then the left, a chip counting those hidden.',
+      'The Pfam globin seed with data columns beside its rows: its species as text and its class as a chip on the left (UniProt’s, from a file joined by row key), its identity to the reference row, its residues as a bar and its UniProt entry’s length on the right. Click a title to order the rows by it, again for the other direction; narrow the view and the right columns yield first, then the left, a chip counting those hidden.',
     build: globinsColumns.build,
     registry: globinsColumns.registry,
   },
@@ -263,23 +268,46 @@ export const LayerViews: readonly ExampleView[] = [
   },
 ];
 
-/** The Plasmid (a stand-in until its dataset is recorded): the ring with its linear detail, the rotated linear view. */
+/**
+ * The Plasmid: pUC19c (INSDC L09137.2), its features derived in code from the sequence and read as GFF3. The ring and
+ * the crossing run over the rotated variant, where bla and a primer site cross the origin; the rotated linear view
+ * over the published record; the scale view over a generated 200 kb construct.
+ */
 export const PlasmidViews: readonly ExampleView[] = [
   {
     dataset: 'plasmid',
     id: 'ring',
     title: 'Ring with a linear detail',
     summary:
-      'The construct as rings (each strand’s features, the sites, a ruler; labels outside, the name in the hole) and a linear detail following the ring’s window; bla and a primer site cross the origin, each one arc. Drag the window, or pan the detail: the other follows.',
+      'pUC19c as rings (each strand’s features as arrows, the restriction sites, a ruler; labels outside, the name in the hole) and a linear detail following the ring’s window; bla and a primer site cross the origin, each one arc. Drag the window, or pan the detail: the other follows.',
     build: () => plasmidRing.build(),
+    registry: () => records(),
+  },
+  {
+    dataset: 'plasmid',
+    id: 'crossing',
+    title: 'Features across the origin',
+    summary:
+      'The same, with bookmarks on bla and the primer site, the two features across the origin: click one and it is one item in two runs, on the ring and in the detail; focusing a bookmark moves the view to it, but over the hull of its runs (the whole ring for these two), not yet the shortest arc; a Shift+drag selection across the origin is not yet checked to extend the short way.',
+    build: plasmidRing.crossing,
+    registry: () => records(),
   },
   {
     dataset: 'plasmid',
     id: 'rotated-linear',
     title: 'Rotated linear view',
     summary:
-      'The construct in tracks from inside bla over the origin to past lacZα: a `range` past the origin, two pieces meeting at the seam with no break.',
-    build: plasmidRing.rotatedLinear,
+      'The published record in tracks from inside bla over the origin to past lacZα: a `range` past the origin, two pieces meeting at the seam with no break; the range’s start is the one param to set.',
+    build: () => plasmidRing.rotatedLinear(),
+    registry: () => records(),
+  },
+  {
+    dataset: 'plasmid',
+    id: 'scale',
+    title: 'Ring at scale',
+    summary:
+      'A generated 200 kb construct with 2,000 features on both strands, a tenth across the origin. The features show in the linear detail (a density strip at this size); the ring draws nothing for them yet and says so, as a ring does not draw a density row.',
+    build: plasmidRing.scale,
   },
   {
     dataset: 'plasmid',
@@ -288,40 +316,59 @@ export const PlasmidViews: readonly ExampleView[] = [
     summary:
       'The ring and its linear detail with a strip of the whole construct over the detail: drag the ring’s window over the origin and the strip’s window wraps in two pieces.',
     build: navigators.plasmidStrip,
+    registry: () => records(),
   },
 ];
 
-/** The Globins (a generated family until the Pfam seed and its tree are recorded): rows, trees, folds and scale. */
+/** The Globins: the Pfam PF00042 seed, its tree, 4HHB, and the generated variants for scale. */
 export const GlobinsViews: readonly ExampleView[] = [
   {
     dataset: 'globins',
     id: 'family',
     title: 'Family, logo and tree',
     summary:
-      'The family’s rows by its tree beside them, its conservation logo above: hover a cell and its column lights in every row; click a tree node to fold its clade (session state); Cmd/Ctrl+click a node selects its rows; the wheel scrolls the rows, `]` and `[` zoom them.',
+      'The Pfam globin seed’s 60 rows by their tree (neighbor joining on identity), its conservation logo above, each row’s species and its identity to the reference row (wild yak’s α) beside it: hover a cell and its column lights in every row; click a tree node to fold its clade (session state); Cmd/Ctrl+click a node selects its rows; the wheel scrolls the rows, `]` and `[` zoom them.',
     build: () => globins.build(),
+    registry: familyRegistry,
   },
   {
     dataset: 'globins',
     id: 'folded',
     title: 'Folded clades',
     summary:
-      'Two clades folded when the view opens (the layer’s `collapsed`): each one summary row, its consensus opaque by its share, labeled “first +n”, a wedge in the tree. Click a node to unfold it; `clades.keep` writes the folds shown back.',
+      'Two clades of the seed’s tree folded when the view opens (the layer’s `collapsed`): each one summary row, its consensus opaque by its share, labeled “first +n”, a wedge in the tree. Click a node to unfold it; `clades.keep` writes the folds shown back.',
     build: globins.folded,
+    registry: familyRegistry,
   },
   {
     dataset: 'globins',
     id: 'figure',
     title: 'Alignment figure',
-    summary: 'The family as an ESPript-style text figure: groups of ten, every row on every line, a ruler above.',
+    summary: 'The seed as an ESPript-style text figure: groups of ten, every row on every line, a ruler above.',
     build: globins.figure,
+    registry: familyRegistry,
+  },
+  {
+    dataset: 'globins',
+    id: 'hemoglobin',
+    title: 'Hemoglobin, heme chips and copies',
+    summary:
+      'PDB 4HHB as blocks: the α chains A and C and the β chains B and D merged into one block each labeled ×2, the four hemes as one chip ×4; the helices A to H from the entry, each heme’s contacting residues (within 4 Å, derived) as arcs and as the heme pocket, bookmarked.',
+    build: () => hemoglobin.build(),
+  },
+  {
+    dataset: 'globins',
+    id: 'hemoglobin-split',
+    title: 'Hemoglobin, copies split',
+    summary: 'The same blocks with the copies split (`copies: each`): a block a chain, a chip a heme.',
+    build: hemoglobin.split,
   },
   {
     dataset: 'globins',
     id: 'scale',
     title: '10,000 rows',
     summary:
-      'A generated variant of 10,000 rows × 300 columns, held, by a balanced tree: zoomed out the rows draw from the shared reduction as image tiles; `]` and `[` zoom the rows, the wheel scrolls them.',
+      'A generated variant of 10,000 rows × 300 columns sampled from the seed’s per-column profile, held, by a balanced tree: zoomed out the rows draw from the shared reduction as image tiles; `]` and `[` zoom the rows, the wheel scrolls them.',
     build: () => globins.scale(),
     registry: generatedRegistry,
   },
@@ -339,7 +386,7 @@ export const GlobinsViews: readonly ExampleView[] = [
     id: 'lazy',
     title: '10,000,000 rows, lazy',
     summary:
-      'A generated variant of ten million rows in data order: only the rows in view are ever made, a row not yet read labeled by its number until its tile arrives.',
+      'A generated variant of ten million rows in data order, sampled from the seed’s profile: only the rows in view are ever made, a row not yet read labeled by its number until its tile arrives.',
     build: () => globins.lazy(),
     registry: generatedRegistry,
   },
@@ -457,7 +504,7 @@ export const TrnaViews: readonly ExampleView[] = [
     id: 'arcs',
     title: 'Base pairs as arcs',
     summary:
-      'tRNA-Phe (1EHZ): its base pairs as arcs over the letters, the stems nested, the tertiary pairs crossing them; colored by kind. Hover a base: its partner lights.',
+      'tRNA-Phe (PDB 1EHZ, chain A): its 27 base pairs as arcs over the letters, the four stems nested, the six tertiary pairs (four of them crossing the stems’ pairs) over them; colored by kind (canonical, wobble, non-canonical); its 14 modified residues drawn as their parent letters, their codes in a track above. Hover an arc: both ends lit; click: the pair selected.',
     build: () => trna.build(),
   },
   {
@@ -478,12 +525,42 @@ export const TrnaViews: readonly ExampleView[] = [
   {
     dataset: 'trna',
     id: 'dot-plot',
-    title: 'Base-pair dot plot (synthetic probabilities)',
+    title: 'Base-pair dot plot',
     summary:
-      'The arcs over the letters and the dot plot under them, its axes following their window: synthetic base-pair probabilities above the diagonal (generated from the pairs and the bases’ complementarity with a seed, not computed), the structure’s pairs mirrored below. Hover a cell: a crosshair, both bases and the arcs ending there lit; drag a rectangle to select two ranges, Alt+drag to take a rectangle out.',
+      'The arcs over the letters and the dot plot under them, its axes following their window: above the diagonal the family’s covariation on 1EHZ’s positions (mutual information over the Rfam seed’s columns, computed through 1EHZ’s place in the seed), below it the structure’s pairs mirrored. Hover a cell: a crosshair, both bases and the arcs ending there lit; drag a rectangle to select two ranges, Alt+drag to take a rectangle out.',
     build: trna.dotPlot,
   },
+  {
+    dataset: 'trna',
+    id: 'seed-row',
+    title: 'A seed row with its SS_cons pairs',
+    summary:
+      'The seed row 1EHZ is placed on (the row of highest identity, found by aligning 1EHZ’s parent letters to every row): its letters and the pairs of the seed’s `SS_cons` projected onto it, nested only.',
+    build: trna.seedRow,
+  },
+  {
+    dataset: 'trna',
+    id: 'seed',
+    title: 'Rfam RF00005 seed',
+    summary:
+      'The seed (954 rows of 118 columns, Stockholm as published) under its conservation logo. The `SS_cons` arc and the link from 1EHZ’s residues wait for a pairs node and a map on an alignment’s columns.',
+    build: trna.seed,
+    registry: () => [{ kind: 'format-runtime', runtime: AlignmentFileRuntime }],
+  },
 ];
+
+/**
+ * The dot plot at 4,000 × 4,000: a generated grid of 16M values, so a view of its own, kept out of the lists the quick
+ * tests walk (its bound is the heavy lane's).
+ */
+export const TrnaScaleView: ExampleView = {
+  dataset: 'trna',
+  id: 'dot-plot-scale',
+  title: 'Dot plot at 4,000 × 4,000',
+  summary:
+    'A generated 4,000 × 4,000 grid on a generated RNA, the plot alone under its ruler: the frame target’s scale.',
+  build: () => trna.scale(),
+};
 
 /** The table files, each drawing the same six domains: the file, its title and what is special about its form. */
 export const TableFiles: readonly (readonly [file: DomainFile, id: string, title: string, form: string])[] = [

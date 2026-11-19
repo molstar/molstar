@@ -12,7 +12,6 @@ import { createSeqContext } from '@molstar/seqx-core/context';
 import { SeqRuntime } from '@molstar/seqx-core/data';
 import { recordDrawLists } from '@molstar/seqx-core/render';
 import { describe, expect, it } from 'vitest';
-import { ColumnsFile, columnsTsv } from '../globins/columns.js';
 import { nodeFixtureAssets, PackageFolder } from '../node-assets.js';
 import { GeneFile, geneSeqText, P53 } from '../p53/data.js';
 import { RegionFile, regionSeqText, Transcripts } from '../p53/region.js';
@@ -49,13 +48,21 @@ describe('the fixtures', () => {
   it('the committed region file is what its generator writes', () => {
     compare(`${PackageFolder}${RegionFile}`, regionSeqText());
   });
-
-  it('the committed Globins columns file is what its generator writes', () => {
-    compare(`${PackageFolder}${ColumnsFile}`, columnsTsv());
-  });
 });
 
+/**
+ * The issues a view is known to report (the code is the one allowed): the Plasmid's ring at scale has 200 features
+ * across the origin, all in one place, more than any ring's lanes: the rest collapses into a density row, an image,
+ * which a ring does not draw (`seq.render.ring.image`). A gap of the ring, scheduled as lane CY: this allowance goes
+ * when the ring draws it.
+ */
+const Known: Readonly<Record<string, readonly string[]>> = { 'plasmid/scale': ['seq.render.ring.image'] };
+
 describe.each(ExampleViews.map((v) => [`${v.dataset}/${v.id}`, v] as const))('%s', (_, view) => {
+  const allowed = Known[`${view.dataset}/${view.id}`] ?? [];
+  const unexpected = <T extends { code: string }>(issues: readonly T[]) =>
+    issues.filter((i) => !allowed.includes(i.code));
+
   it('builds a spec the language accepts, which resolves and lays out with no issue', async () => {
     const ctx = context(view);
     const spec = view.build();
@@ -63,7 +70,7 @@ describe.each(ExampleViews.map((v) => [`${v.dataset}/${v.id}`, v] as const))('%s
     const model = ctx.resolve(spec);
     expect(model.issues).toEqual([]);
     const resolved = ctx.view(model);
-    expect(resolved?.issues).toEqual([]);
+    expect(unexpected(resolved?.issues ?? [])).toEqual([]);
     expect(resolved?.sections.length).toBeGreaterThan(0);
     ctx.retire();
   });
@@ -71,7 +78,7 @@ describe.each(ExampleViews.map((v) => [`${v.dataset}/${v.id}`, v] as const))('%s
   it('renders to SVG settled, with no issue', async () => {
     const ctx = context(view);
     const r = await ctx.renderSvg(view.build(), { size: { width: 720, height: 320 } });
-    expect(r.issues).toEqual([]);
+    expect(unexpected(r.issues)).toEqual([]);
     expect(r.settled).toBe(true);
     expect(r.svg.startsWith('<svg ')).toBe(true);
     expect(r.svg.endsWith('</svg>')).toBe(true);

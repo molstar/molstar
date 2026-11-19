@@ -44,15 +44,16 @@ checks it cannot express.
   EC-35), `tree` (`of` an alignment, `newick` its text; leaves matched to rows when drawn), `pairs` (two locations that
   belong together: `a` a sequence, `b` another or `a`'s; its `rows` inline, `a_start`, `a_end`, `b_start`, `b_end` each
   pair's two ends, never wrapping, at least a position each (EC-10), self-pairs allowed; an open `type` its kind, since
-  `kind` is reserved: canonical, wobble, contact; `id`, `label`, `a_strand` and `b_strand` (EC-206)), `grid` (a value
-  per pair of positions: `x` a sequence, `y` another or `x`'s, `values` x-major float32, NaN missing, `|x| × |y|` of
-  them: `seq.lang.grid.length`); under `views`: `view`, then `section`, `block` (a piece of a section on a system of its
-  own: `of`, `range`, `label`), `track` (`hidden`, default false: kept in the spec, its row collapsed; its layers keep
-  their own), `layer` (`hidden`, default false: kept in the spec and not drawn, so hiding is a one-key `set`). A
-  `ranges` node's `map: 'codon'` makes each item (its rows by `id`) a coding sequence of its own (Overlay); a track's
-  `for_each` makes it a template (Resolved view, Templates; its kind param is `node_kind`, since `kind` is reserved, and
-  is `ranges` or `values`: what a layer draws). Reference params (`target`, `of`, `from`, `to`, `follow`, `source`,
-  `data`) are `ref` params naming the kinds they take; a reference is an address.
+  `kind` is reserved: canonical, wobble, contact; `id`, `label`, `a_strand` and `b_strand` (EC-206); any other category
+  column rides along as a field a data filter reads, `(item :tertiary yes)`), `grid` (a value per pair of positions: `x`
+  a sequence, `y` another or `x`'s, `values` x-major float32, NaN missing, `|x| × |y|` of them: `seq.lang.grid.length`);
+  under `views`: `view`, then `section`, `block` (a piece of a section on a system of its own: `of`, `range`, `label`),
+  `track` (`hidden`, default false: kept in the spec, its row collapsed; its layers keep their own), `layer` (`hidden`,
+  default false: kept in the spec and not drawn, so hiding is a one-key `set`). A `ranges` node's `map: 'codon'` makes
+  each item (its rows by `id`) a coding sequence of its own (Overlay); a track's `for_each` makes it a template
+  (Resolved view, Templates; its kind param is `node_kind`, since `kind` is reserved, and is `ranges` or `values`: what
+  a layer draws). Reference params (`target`, `of`, `from`, `to`, `follow`, `source`, `data`) are `ref` params naming
+  the kinds they take; a reference is an address.
 - **The axis's params** (the writer's: what the figure is; never inferred from what a section draws, so adding a layer
   never turns a section over): a section's `direction` (`genomic`, `reversed`, `follow`, or
   `{ along: <sequence or map> }`; absent: `follow` for a section with `follow`, else `genomic`), `pieces` (`whole`,
@@ -1892,12 +1893,12 @@ measures, consensus, the profile). An alignment's rows over its columns, its own
   the column's own; the tree by branch lengths, else depth, a folded clade a wedge at its summary row, its geometry in
   display rows kept by the display's version (a pan makes nothing sized by the nodes); labels in the items' font (a
   row's label is data; a Pfam label, `NAME/1-147`, reads whole) from `rows.labelMinPx` (8 px a row), cut with an
-  ellipsis past their room, a summary row "first +n"; the first residue numbers right-aligned before the data box and
-  the last after it, in a right gutter the view keeps when a rows layer draws numbers (`numbers: gutters`): the numbers
-  of the residues **in view** (the columns the cells are drawn for: a pan and a zoom change them; a gap is never
-  counted; a row with no residue in view has none), the row's own at the fit view (kept per data, or per lazy row once).
-  The right gutter is clipped to the band vertically, as the labels and cells are: a partly shown last row ends at the
-  band's foot on every side.
+  ellipsis past their room, a summary row "first +n" (its first label cut, never its count: the count is what it says);
+  the first residue numbers right-aligned before the data box and the last after it, in a right gutter the view keeps
+  when a rows layer draws numbers (`numbers: gutters`): the numbers of the residues **in view** (the columns the cells
+  are drawn for: a pan and a zoom change them; a gap is never counted; a row with no residue in view has none), the
+  row's own at the fit view (kept per data, or per lazy row once). The right gutter is clipped to the band vertically,
+  as the labels and cells are: a partly shown last row ends at the band's foot on every side.
 - **Row columns** (`columns`: a list of `{ field, side, as, width, title }`, `rowColumnsOf`; `render/rows-columns.ts`):
   data columns beside each row's header. `left` (the default) in the header between the label and the first numbers, the
   label column widened by them (a text figure's too); `right` after the last numbers' gutter, the right gutter widened
@@ -2012,12 +2013,41 @@ under the point as the hit's `state`. It reads every row (a logo of the rows sho
 - **Recording** (`recordDrawLists`): a line a primitive, pass by pass, numbers to two decimals, colors `#rrggbbaa`
   (`none` for no color): the committed records' format.
 - **SVG** (`drawListsToSvg`): a string, no DOM; passes as groups, clips as clip paths, squircles as the core's path,
-  images as `<image>`s of a PNG data URL (`render/png.ts`: stored deflate blocks, synchronous, no DOM), fades as
-  gradient masks, metadata as `data-*` attributes. Every text and attribute from a spec or data is escaped; a character
-  XML forbids (a control but tab, newline and return, U+FFFE and U+FFFF, a lone surrogate) becomes U+FFFD, one for one,
-  so a glyph run stays aligned with its x list. Ids take a prefix (`idPrefix`, name characters only), a metadata key is
-  written only as a plain name. Held by hostile labels, ids, titles, fonts and metadata parsed back as XML
+  images as `<image>`s (`image-rendering="optimizeSpeed"`: crisp; an attribute, since resvg ignores a style it cannot
+  read) of a PNG data URL (`render/png.ts`: stored deflate blocks, synchronous, no DOM), fades as gradient masks,
+  metadata as `data-*` attributes. Every text and attribute from a spec or data is escaped; a character XML forbids (a
+  control but tab, newline and return, U+FFFE and U+FFFF, a lone surrogate) becomes U+FFFD, one for one, so a glyph run
+  stays aligned with its x list. Ids take a prefix (`idPrefix`, name characters only), a metadata key is written only as
+  a plain name. Held by hostile labels, ids, titles, fonts and metadata parsed back as XML
   (`_test/svg-escaping.test.ts`).
+- **Accessibility** (`accessibility.ts`, `accessibleOf`; `SvgOptions.accessible`): an export's root is `role="figure"`,
+  `aria-labelledby` its `<title>` (the spec's `title`, else `Sequence view`) and `<desc>` (the sections, their systems
+  and track counts, and how many items are not named); over the picture a group `data-seq-accessible` holds a
+  `role="group"` a track (`aria-label` and `<title>`: its label, its item count and its section) and in it a
+  `role="img"` a named item (`LayerType.items`, which the ranges, secondary, variants, rows (a row an item: its label)
+  and pairs (a pair an item) layers have: the label, else the key, with its extent, 1-based and inclusive:
+  `DNA-binding, p53 94–292`), then a `role="img"` a highlight (`Highlight 1: 10 positions, p53 11–20`). A track names at
+  most `MaxNamedItemsPerTrack` (200) items and a figure `MaxNamedItems` (2,000), saying "n more not named" on the track
+  and in the description (a figure of 2,000 named items adds about 190 bytes each: roughly the size of the picture
+  itself for dense ranges). Each box is `fill="none" pointer-events="none"`: the layer never takes a pointer from the
+  picture beneath. Why boxes over the picture and not marks with names: the draw lists carry no semantics, and a layer's
+  items are already what the hit test names. **Ids**: the default `idPrefix` is a hash of the spec, the title, the size,
+  the token table, the view, the highlights and the selection, so exports that differ in them can share a page; two
+  equal exports share their ids, and a host inlining both passes each its own `idPrefix`. The viewer's announcements use
+  the same words (viewer `_spec`, Announcements).
+- **PNG** (`renderPng`, `export-png.ts`): the SVG export rasterized, so a PNG is the SVG's picture (the same options,
+  the same figure); the rasterizer is a port (`Rasterizer`: the SVG string and its size and `scale` × `dpr` to PNG
+  bytes) so the core carries no native code, and the application composes one (the render CLI's, `cli/seqx-render`, over
+  resvg). The SVG paints its own background, so the pixels are opaque. A rasterizer loads no system fonts: the text is
+  drawn with fonts bundled for the metrics the layouts measure with (Liberation Sans and Mono for the bundled table's
+  Arial and 600-advance mono), so the same SVG draws the same on every machine. Why rasterize the SVG and not draw the
+  lists again: one picture, one set of tests; a second renderer would drift. Held by the render CLI's probe pixels per
+  track in both themes (`cli/seqx-render/src/_test/png.test.ts`).
+- **The render CLI** (`seqx-render`, `cli/seqx-render`): a spec file (JSON, S-expression or MessagePack, by content) to
+  an SVG or a PNG, its assets read under `headlessAssetPolicy` (files under the spec's folder, no network unless
+  `--allow-host`; a spec's `uri` is untrusted), its issues printed one a line to stderr, exit codes 0 done, 1 spec, 2
+  usage, 3 unsettled, 4 file, 5 internal. Cold start, process start to a written file for p53's tracks, under 1 s (about
+  0.12 s), held in the heavy lane.
 
 ### Export
 

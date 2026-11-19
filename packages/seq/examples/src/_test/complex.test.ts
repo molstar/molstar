@@ -4,8 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { createHash } from 'node:crypto';
-import { readdirSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Node } from '@molstar/core/repr/tree';
 import { createSeqContext } from '@molstar/seqx-core/context';
@@ -42,27 +41,19 @@ import { cellReadout, rectReadout } from '../complex/readout.js';
 import { nodeFixtureAssets, PackageFolder } from '../node-assets.js';
 import { ComplexViews } from '../views.js';
 
-// The Complex dataset against its data: the fixtures as recorded (each listed with an allowed licence and its checksum,
-// under the bounds), the derived data held by the views equal to the files, the anchors of the entries (CDK2's K33, E51,
+// The Complex dataset against its data (its provenance is `sources.test.ts`'s): the derived data held by the views equal to the files, the anchors of the entries (CDK2's K33, E51,
 // D145; T160 in the activation loop; the PSTAIRE helix at the interface of both copies; ATP at the hinge), the PAE's
 // shape and the grid over the complex (a strip a pair of chains, a cell's hit on both chains' systems, the chain
 // boundaries drawn, a rect's summary).
 
 const Folder = join(PackageFolder, 'fixtures', 'complex');
-const Licences = ['CC0-1.0', 'CC-BY-4.0', 'LicenseRef-NCBI-public-data', 'LicenseRef-seqx-generated'];
 
 interface SourceRow {
   readonly file: string;
-  readonly licence: readonly string[];
-  readonly attribution: string;
-  readonly url: string;
-  readonly bytesFixture: number;
-  readonly sha256Fixture: string;
 }
 
 const sources = JSON.parse(readFileSync(join(Folder, 'sources.json'), 'utf8')) as SourceRow[];
 const read = (name: string) => readFileSync(join(Folder, name), 'utf8');
-const sha256 = (s: string) => createHash('sha256').update(s).digest('hex');
 
 /** A `seq` file's ranges table on a system, its fields by name. */
 function rangesOf(text: string, system: string) {
@@ -80,25 +71,6 @@ function rangesOf(text: string, system: string) {
 }
 
 describe('the Complex fixtures', () => {
-  it('every file of the folder is listed once, with an allowed licence, an attribution and its checksum', () => {
-    const files = readdirSync(Folder).filter((f) => f !== 'sources.json');
-    expect(sources.map((r) => r.file).sort()).toEqual(files.map((f) => `complex/${f}`).sort());
-    let total = 0;
-    for (const r of sources) {
-      const text = read(r.file.slice('complex/'.length));
-      expect(
-        r.licence.every((l) => Licences.includes(l)),
-        r.file,
-      ).toBe(true);
-      expect(r.attribution.length).toBeGreaterThan(0);
-      expect(sha256(text), r.file).toBe(r.sha256Fixture);
-      expect(new TextEncoder().encode(text).byteLength).toBe(r.bytesFixture);
-      expect(r.bytesFixture).toBeLessThan(1024 * 1024);
-      total += r.bytesFixture;
-    }
-    expect(total).toBeLessThan(2 * 1024 * 1024);
-  });
-
   it('the letters the views hold are the files’: 1FIN’s entities, UniProt’s entries', () => {
     const fin = read('1FIN.seq');
     expect(rangesOf(fin, 'cdk2').letters).toBe(Data.letters.cdk2);

@@ -52,7 +52,13 @@ function spec(): Node {
     const tree = b.data.tree('tree', { of: aln, newick: '((a,b)ab,(c,d)cd);' });
     v.section('aln', { of: aln })
       .track('rows', { height: 60 })
-      .layer('r', { type: 'rows', data: aln, tree, order: 'tree' });
+      .layer('r', {
+        type: 'rows',
+        data: aln,
+        tree,
+        order: 'tree',
+        columns: [{ field: 'label', side: 'right' }],
+      } as never);
   });
   b.snapshots.snapshot('first', {
     label: 'Domains taller',
@@ -236,6 +242,7 @@ const Cases: Record<string, { ctx: unknown; before?: (v: SeqViewer) => unknown }
   'rows.hide': { ctx: { track: RowsTrack, rows: [1] } },
   'rows.show': { ctx: { track: RowsTrack }, before: (v) => run(v, 'rows.hide', { track: RowsTrack, rows: [1] }) },
   'rows.order': { ctx: { track: RowsTrack, order: 'data' } },
+  'rows.order-next': { ctx: { track: RowsTrack } },
   'rows.zoom-in': { ctx: { track: RowsTrack } },
   'rows.zoom-out': { ctx: { track: RowsTrack } },
   'preview.cancel': {

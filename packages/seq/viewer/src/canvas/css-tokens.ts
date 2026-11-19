@@ -56,6 +56,86 @@ export function cssColorToHex(value: string): string | undefined {
   return `#${rgb.map((c) => hex(c!)).join('')}${hex(Math.round(Math.max(0, Math.min(1, a)) * 255))}`;
 }
 
+/** The system colors forced colors name (`CanvasText` and the rest), as hex strings. */
+export interface SystemColors {
+  readonly Canvas: string;
+  readonly CanvasText: string;
+  readonly Highlight: string;
+  readonly GrayText: string;
+}
+
+/** What a browser gives the system colors without a theme to say (its default light scheme), for one that cannot resolve them. */
+export const DefaultSystemColors: SystemColors = {
+  Canvas: '#ffffff',
+  CanvasText: '#000000',
+  Highlight: '#3399ff',
+  GrayText: '#6d6d6d',
+};
+
+/** A color with an opacity (`#rrggbb` with `alpha` in 0..1). */
+const withAlpha = (hex: string, alpha: number) =>
+  `${hex.slice(0, 7)}${Math.round(alpha * 255)
+    .toString(16)
+    .padStart(2, '0')}`;
+
+/**
+ * The tokens under forced colors (viewer _spec "Canvas2D backend", Forced colors): the chrome and the emphasis (the
+ * page, ink, lines, accent, selection and hover, the window and its grips, the cell hairline) take the system colors, so
+ * the data's ink, the selection and the hover stay visible on whatever the reader's palette is. The data colors stay
+ * (the data's meaning is in them), as `forced-color-adjust` leaves a legend's swatches.
+ */
+export function forcedColorTokens(tokens: SeqTokens, system: SystemColors = DefaultSystemColors): SeqTokens {
+  const hex = (name: SeqTokenName) => colorHex(tokens.colors[name]);
+  const colors = Object.fromEntries(SeqTokenNames.map((n) => [n, hex(n)])) as Record<SeqTokenName, string>;
+  const { Canvas, CanvasText, Highlight, GrayText } = system;
+  Object.assign(colors, {
+    'msui-bg': Canvas,
+    'msui-fg': CanvasText,
+    'msui-text': CanvasText,
+    'msui-text-muted': GrayText,
+    'msui-line': CanvasText,
+    'msui-accent': Highlight,
+    'msui-accent-muted': withAlpha(Highlight, 0.4),
+    'seq-track': Canvas,
+    'seq-sequence': CanvasText,
+    'seq-missing': GrayText,
+    'seq-pending': GrayText,
+    'seq-break': CanvasText,
+    'seq-hover': Highlight,
+    'seq-ruler': CanvasText,
+    'seq-window': Highlight,
+    'seq-grip': CanvasText,
+    'seq-wash': withAlpha(Highlight, 0.2),
+    'seq-cell-edge': CanvasText,
+  } satisfies Partial<Record<SeqTokenName, string>>);
+  return createTokens(tokens.theme, colors, tokens.fonts, tokens.logoChroma);
+}
+
+/** The system colors of a root's page, resolved by the browser through a probe element's `color`. */
+export function readSystemColors(root: Element): SystemColors {
+  const doc = root.ownerDocument;
+  const win = doc.defaultView;
+  const probe = root.appendChild(doc.createElement('span'));
+  const sys = (name: keyof SystemColors) => {
+    probe.style.color = '';
+    probe.style.color = name;
+    return (win && cssColorToHex(win.getComputedStyle(probe).color)) || DefaultSystemColors[name];
+  };
+  const out = {
+    Canvas: sys('Canvas'),
+    CanvasText: sys('CanvasText'),
+    Highlight: sys('Highlight'),
+    GrayText: sys('GrayText'),
+  };
+  probe.remove();
+  return out;
+}
+
+/** Whether the platform forces colors now. */
+export function forcedColorsActive(win: Window | null | undefined): boolean {
+  return !!win?.matchMedia?.('(forced-colors: active)')?.matches;
+}
+
 /**
  * The token table of a root's computed style. A value the CSS leaves as a function (`color-mix(…)`: a custom property
  * keeps its text) is resolved by the browser through a probe element's `color`.
@@ -82,6 +162,8 @@ export function readCssTokens(root: Element): SeqTokens {
   const colors = {} as Record<SeqTokenName, string>;
   for (const name of SeqTokenNames)
     colors[name] = resolve(style.getPropertyValue(`--${name}`)) ?? colorHex(fallback.colors[name]);
+  // under forced colors the system colors, resolved by the browser through the probe's `color`
+  const system = forcedColorsActive(win) ? readSystemColors(root) : undefined;
   probe?.remove();
 
   const font = (name: string, def: string) => style.getPropertyValue(`--msui-font-${name}`).trim() || def;
@@ -91,5 +173,11 @@ export function readCssTokens(root: Element): SeqTokens {
   };
   // `--seq-logo-chroma` is a number, not a color
   const chroma = Number.parseFloat(style.getPropertyValue('--seq-logo-chroma'));
-  return createTokens(theme, colors, fonts, Number.isFinite(chroma) && chroma >= 0 ? chroma : fallback.logoChroma);
+  const tokens = createTokens(
+    theme,
+    colors,
+    fonts,
+    Number.isFinite(chroma) && chroma >= 0 ? chroma : fallback.logoChroma,
+  );
+  return system ? forcedColorTokens(tokens, system) : tokens;
 }

@@ -15,7 +15,7 @@ import { type DensityStep, densityStep } from './config.js';
 import { NoColor, type PassWriter } from './draw-lists.js';
 import { dataRegions, type LayerSource, layerLevel, placeholderSpans, readTiles, toSection } from './layer-data.js';
 import type { FilterRow, RowFilter } from './filter.js';
-import type { Box, Hit, LayoutContext, StoreReader } from './layer-type.js';
+import type { Box, Hit, ItemDescription, LayoutContext, StoreReader } from './layer-type.js';
 import { breakHit } from './marks.js';
 import { addToStrip, paintStrip, resetStrip, type StripBuffers } from './ranges.js';
 import { sectionId } from './layer-type.js';
@@ -596,4 +596,53 @@ export class RowImages {
     if (!(x >= box.x - 0.5 && x <= box.x + box.width + 0.5)) return 0;
     return ((axis.dir === 1) !== this.flip) === atEnd ? 1 : 2;
   }
+}
+
+/**
+ * The items in view, each once: a row per piece makes one item (its extent the hull of the pieces on the data's
+ * system, its place the hull on the section clamped to the box). Allocates; for an export's accessible layer and the
+ * viewer's announcements, never a frame.
+ */
+export function describeItems(lay: ItemsBase): ItemDescription[] {
+  const rows = lay.rows;
+  const by = new Map<string | number, { label: string; s: number; e: number; lo: number; hi: number }>();
+  for (let i = 0; i < rows.n; i++) {
+    const key = rows.keys[i];
+    let lo = rows.starts[i];
+    let hi = rows.ends[i];
+    if (lay.src?.path) {
+      const pieces = toSection(lay.src, rows.starts[i], rows.ends[i], []);
+      lo = Number.POSITIVE_INFINITY;
+      hi = Number.NEGATIVE_INFINITY;
+      for (let k = 0; k + 1 < pieces.length; k += 2) {
+        lo = Math.min(lo, pieces[k]);
+        hi = Math.max(hi, pieces[k + 1]);
+      }
+    }
+    const g = by.get(key);
+    if (g) {
+      g.s = Math.min(g.s, rows.starts[i]);
+      g.e = Math.max(g.e, rows.ends[i]);
+      g.lo = Math.min(g.lo, lo);
+      g.hi = Math.max(g.hi, hi);
+    } else by.set(key, { label: rows.labels[i] || String(key), s: rows.starts[i], e: rows.ends[i], lo, hi });
+  }
+  const x0 = lay.box.x;
+  const x1 = lay.box.x + lay.box.width;
+  const out: ItemDescription[] = [];
+  for (const [key, g] of by) {
+    const a = g.lo < g.hi ? lay.axis.x(g.lo) : Number.NaN;
+    const b = g.lo < g.hi ? lay.axis.x(g.hi) : Number.NaN;
+    const l = Number.isFinite(a) && Number.isFinite(b) ? Math.min(a, b) : x0;
+    const r = Number.isFinite(a) && Number.isFinite(b) ? Math.max(a, b) : x1;
+    out.push({
+      key,
+      label: g.label,
+      start: g.s,
+      end: g.e,
+      x0: Math.max(x0, Math.min(x1, l)),
+      x1: Math.max(x0, Math.min(x1, r)),
+    });
+  }
+  return out;
 }

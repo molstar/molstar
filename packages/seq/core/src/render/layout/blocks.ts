@@ -331,13 +331,20 @@ export class BlockPlacement extends StripPlacement {
 /**
  * A pan of a row through its inverse (_spec/README.md "Render", Blocks): the unit `dx` px right of a reference point
  * comes to it (the window's middle less half the move, both in view), so what is under the pointer moves with it over
- * chips and gaps; undefined past a box's width (the caller pans linearly).
+ * chips and gaps; undefined past a box's width (the caller pans linearly). With the pointer's px `x` (from the axis's
+ * left) the reference is the pointer, within the box the move keeps in view: the content under it follows it, not the
+ * window's middle.
  */
-export function rowPan(row: BlockRow, v: Viewport, dx: number): Viewport | undefined {
+export function rowPan(row: BlockRow, v: Viewport, dx: number, x?: number): Viewport | undefined {
   if (!(Math.abs(dx) < row.width) || !dx) return undefined;
   const w = v.end - v.start;
   row.lay(v.start, v.end);
   let ref = row.x0 + row.width / 2 - dx / 2;
+  if (x !== undefined && Number.isFinite(x)) {
+    const lo = row.x0 + Math.max(0, -dx);
+    const hi = row.x0 + row.width - Math.max(0, dx);
+    ref = Math.min(Math.max(row.x0 + x, lo), Math.max(lo, hi));
+  }
   // a point in a gap has no unit of its own: both points moved on to the next block's first px
   ref += row.gapAfter(ref + dx);
   const u = row.unitAt(ref + dx);

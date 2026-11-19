@@ -129,6 +129,11 @@ export class SeqViewer extends ReactiveModel {
    * (data arriving, the content's height): what follows the picture waits for it.
    */
   readonly rested: ReadonlyState<number>;
+  /**
+   * Moves (a new record each time) after each command has run, whether or not it changed anything: what says what a
+   * key did when the state it moves stays (the announcements: a cursor key at the end of its axis).
+   */
+  readonly commandRan: ReadonlyState<{ readonly id: string; readonly n: number }>;
 
   /** Moves to the token table's version each time the tokens change (`setTokens`): what follows the picture redraws. */
   readonly tokensVersion: ReadonlyState<number>;
@@ -149,6 +154,7 @@ export class SeqViewer extends ReactiveModel {
   private readonly _issues = new State<readonly Issue[]>([], sameIssues);
   private readonly _behaviorIssues = new State<readonly Issue[]>([], sameIssues);
   private readonly _rested = new State(0);
+  private readonly _ran = new State<{ readonly id: string; readonly n: number }>({ id: '', n: 0 });
   private readonly _tokensVersion = new State(0);
   private readonly _handles = new Map<BehaviorProvider<any, any>, unknown>();
   private _frameId: number | undefined;
@@ -243,6 +249,7 @@ export class SeqViewer extends ReactiveModel {
     this.layoutIssues = this._issues.asReadonly;
     this.behaviorIssues = this._behaviorIssues.asReadonly;
     this.rested = this._rested.asReadonly;
+    this.commandRan = this._ran.asReadonly;
     this.tokensVersion = this._tokensVersion.asReadonly;
     this.tokens = this.context.tokens;
 
@@ -1337,6 +1344,7 @@ export class SeqViewer extends ReactiveModel {
     const can = c.when?.(context);
     if (can !== undefined && can !== true) return typeof can === 'string' ? can : 'Not available';
     const r = c.run({}, context as never, NeverAborted);
+    this._ran.set({ id, n: this._ran.value.n + 1 });
     return r instanceof Promise ? r.then((x: CommandResult) => x.message ?? '') : (r.message ?? '');
   }
 

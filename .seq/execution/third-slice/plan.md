@@ -313,6 +313,29 @@ and dark before the merge.
   section of blocks, an AF-shaped N×N PAE over the chains in order (synthetic, examples.md's data decision 2), chain
   boundaries, hover naming both residues, a rect split at chain boundaries, `gridSummary` and a story's readout panel.
   FS-A2 reads the matrix (a JSON or MessagePack array of arrays by path) for it.
+- [ ] NB (strong, next strong slot; before DA; the author, 2026-11-19: "Add it now (0.4.0)", DA having stopped on it)
+      the `numbering` kind (locations-and-queries, Numberings in forms): a child of a sequence, method `labels` (a
+      label per position from an inline list or a source table's column; insertion codes; no order required), `scheme`
+      (an open word: `kabat`, `imgt`, `chothia`, …); resolve wires it into the model's numberings so `(at :label "100A"
+      :numbering kabat)`, the ruler's `numbering` and hover read it, with the label rules EC-1 to EC-8; 0.4.0 (unreleased).
+      Then DA builds the Antibody views on it; the fourth slice's ML1 reuses the kind.
+- [ ] CY (strong, after DT's fix round: both touch an axis whose sequence comes from a source; found by DP and DT,
+      2026-11-19) the cyclic and source-axis gaps, each designed already: (1) a sequence whose letters come from a source
+      has its length from coverage wherever an axis is read (resolve's static model, the ring, a detail across the
+      origin, the GFF3 wrap, pairs: DT fixes pairs, CY the rest), so a cyclic `seq` file works as inline letters do;
+      (2) ranges' arrows decided per item's px width, not per layer step (a 2.7 kb ring at fit shows its arrowheads,
+      EC-232); (3) focus by the shortest arc for an item across the origin (EC-12; DP's `it.fails` test passes);
+      (4) a ranges layer that overflows its lanes on a ring draws its density as a ring band (radially), never refused
+      (the 200 kb ring, overlapping sites). DP's views then read the record from its file and draw sites over their
+      recognition sequence.
+      Also (DT, 2026-11-19): (5) a grid over a sequence whose letters come from a source (its values read after the
+      source opens, not at resolve: the 1EHZ dot plot then reads its letters from the file); and the tRNA arcs' legend
+      of pair kinds and the modified residues' codes as labels where they fit.
+      Also (DG and DC, 2026-11-19): (6) a blocks section over sequences read from a source gets its axis from
+      coverage (`seq.render.axis.pending`: DG's blocks take explicit ranges, DC's letters are inline); (7) a row
+      query by key on an alignment read from a source (`seq.query.row.unknown`: QS's example uses four inline rows);
+      (8) the text layout's `chrome` never throws on an alignment source not yet open (`render/layout/text.ts`,
+      `p.marks` undefined).
 - [ ] DG Globins, DA Antibody, DP Plasmid, DT tRNA, DC Complex: fixtures (Gate 0's entries), builders, the views of
       [examples](../../design/examples.md), their stories and headless twins, drawing against the data, an editing
       view each; generated data on core's `PCG` (p53's moves too: its fixture and records change once). FS-A2 owns
@@ -347,9 +370,11 @@ and dark before the merge.
 
 ### Stage 6: output, accessibility and use
 
-- [ ] OP (fast) PNG headless (the picture SVG draws, rasterized as Gate 0 decides) and the render CLI (`cli/`) under
+- [x] SW (merged; fast, an extra light lane by the author's exception, 2026-11-19: "run all three now as an exception") today's
+      small follow-ups: a pan about the pointer, a ring chip's label once, a minimal viewer's size measured.
+- [x] OP (fast; started early, by the author's exception, 2026-11-19) PNG headless (the picture SVG draws, rasterized as Gate 0 decides) and the render CLI (`cli/`) under
       the headless asset policy (EC-126), with its cold-start target.
-- [ ] AY (fast) titles in exported SVG, the cursor and hover announced, forced colors.
+- [x] AY (fast; started early, by the author's exception, 2026-11-19) titles in exported SVG, the cursor and hover announced, forced colors.
 - [ ] NOVICE PASS: a light agent plays a user in a visible browser with a task script per view; friction reported.
 - [ ] USE GATE (the author's use so far counts, 2026-11-19; at finalize only a look at what changed since) (deferred: the loop does not wait; finalize does): the author uses the views; findings fixed or placed,
       counted by kind.
@@ -362,6 +387,11 @@ and dark before the merge.
       think a minimal one could be smaller"): a `viewer, minimal` row in `packages/seq/_measure/sizes.mjs` (tracks,
       letters and ranges; no navigators, stories, editing, records runtime), what keeps it from shaking out found and
       fixed; the guides stay guides for the default composition (the author: "i guess that's fine").
+      Measured by SW (2026-11-19): viewer, minimal 959.2 kB against the default's 1023.1 kB: unused parts stay in through
+      `BuiltInLayerTypes` and the layouts table (`Renderer`'s default), `render/navigator.ts` via the `render` barrel and
+      `export.ts`, and the viewer's static imports of history, story, navigator and rows. The fix (registries injectable
+      or lazy by default, those pieces imported lazily, `sideEffects: false`) changes defaults or public API: the
+      author's call before the lane.
 - [ ] GATE: the author confirms or moves the targets the slice touched.
 
 ### Finalize

@@ -46,6 +46,7 @@ import {
   type Overlay,
   sectionId,
   type StoreReader,
+  type ItemDescription,
 } from './layer-type.js';
 import { NoClass, Pyramid, pyramidLevelFor } from './pyramid.js';
 import {
@@ -995,7 +996,23 @@ export const RowsType: LayerType<Prep, RowsLay> = {
   },
 
   legend(lay, options) {
-    return lay.channel ? channelLegends([lay.channel], { ...options, layer: lay.key }) : [];
+    if (!lay.channel) return [];
+    // the letters drawn as cells; zoomed out (image tiles) the alphabet's own (an RNA's U, never its T)
+    let painted = '';
+    const seen = new Set<number>();
+    for (let k = 0; k < lay.n; k++) if (lay.code[k] > 32) seen.add(lay.code[k]);
+    for (const c of seen) painted += String.fromCharCode(c);
+    const alphabet = lay.measureEnv?.alphabet;
+    if (lay.images.length || !painted) {
+      if (alphabet === 'rna') painted += 'ACGU';
+      else if (alphabet === 'dna') painted += 'ACGT';
+      else if (lay.images.length) painted = '';
+    }
+    return channelLegends([lay.channel], {
+      ...options,
+      layer: lay.key,
+      ...(painted ? { painted: painted.toUpperCase() } : {}),
+    });
   },
 
   hitOutside(lay, at): Hit | undefined {
@@ -1006,6 +1023,8 @@ export const RowsType: LayerType<Prep, RowsLay> = {
     lay.scratch.state = lay.cols.columns[lay.cols.titleCol[t]].field;
     return h;
   },
+
+  items: rowItems,
 
   hit(lay, at): Hit | undefined {
     const x = at[0];
@@ -1449,12 +1468,18 @@ function layoutHeader(lay: RowsLay, prep: Prep, ctx: LayoutContext) {
     const y = lay.rowY(i) + rs / 2 + size * 0.35;
     let t: string;
     if (e < 0) {
+      // a summary's count is what it says (EC-100): the first label is cut, never ` +n`
       const m = lay.display.members.get(i);
-      t = m ? `${lay.label(m[0])} +${m.length - 1}` : '';
-    } else t = lay.label(e);
-    if (lay.display.pinned && i >= lay.display.pinned && e >= 0 && config.rows.pinInPlace && isPinned(lay, e))
-      t = `· ${t}`;
-    t = elide(text, lay.labelFont, t, lay.labelMax);
+      const more = m ? ` +${m.length - 1}` : '';
+      const head = m
+        ? elide(text, lay.labelFont, lay.label(m[0]), lay.labelMax - text.measure(lay.labelFont, more))
+        : '';
+      t = m ? (head ? `${head}${more}` : elide(text, lay.labelFont, more.trim(), lay.labelMax)) : '';
+    } else {
+      t = lay.label(e);
+      if (lay.display.pinned && i >= lay.display.pinned && config.rows.pinInPlace && isPinned(lay, e)) t = `· ${t}`;
+      t = elide(text, lay.labelFont, t, lay.labelMax);
+    }
     lay.labelText.push(t);
     lay.labelY.push(y);
     lay.labelW.push(text.measure(lay.labelFont, t));
@@ -2235,3 +2260,36 @@ const RowsDraws = passDraws<RowsLay, Emphasis | undefined>({
   selection: drawSelection,
   cursor: drawCursor,
 });
+
+/**
+ * The data rows in view as items (a row an item: its label, its place among the rows), the summary rows of folded clades
+ * left out; none until the rows are placed.
+ */
+function rowItems(lay: RowsLay): ItemDescription[] {
+  const out: ItemDescription[] = [];
+  const d = lay.display;
+  const box = lay.box;
+  if (!lay.axis || !(lay.rowScale > 0)) return out;
+  const first = d.pinned + Math.max(0, Math.floor(lay.top));
+  for (let i = 0; i < d.count; i++) {
+    // the pinned band, then the scrolled rows from the band's top
+    if (i === d.pinned) i = first;
+    if (i >= d.count) break;
+    const y = lay.rowY(i);
+    if (y >= box.y + box.height) break;
+    const e = d.rowAt(i);
+    if (e < 0 || y + lay.rowScale <= box.y) continue;
+    out.push({
+      key: e,
+      label: lay.label(e),
+      start: e,
+      end: e + 1,
+      x0: box.x,
+      x1: box.x + box.width,
+      y: Math.max(y, box.y),
+      height: Math.min(y + lay.rowScale, box.y + box.height) - Math.max(y, box.y),
+      system: lay.rowsSystem,
+    });
+  }
+  return out;
+}

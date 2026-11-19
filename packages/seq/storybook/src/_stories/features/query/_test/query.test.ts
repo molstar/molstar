@@ -64,8 +64,16 @@ describe('Query, headless', () => {
 
   it('says a rect’s size as rects, not as positions', async () => {
     const v = await make('query-alignment');
-    const r = runQuery(v, '/data/globins/(rect :a (row :key "HBB_HUMAN/1-147") :b (range :from 20 :to 60))', 'select');
+    const r = runQuery(v, '/data/four/(rect :a (row :key "HBA1_BOSGR/26-136") :b (range :from 20 :to 60))', 'select');
     expect(r.size).toBe('1 rect');
+  });
+
+  it('alignment: a row form over the seed read from its file says its rows are not held', async () => {
+    const v = await make('query-alignment');
+    const q = QueryExamples.find((e) => e.id === 'alignment')!.queries.find((x) => x.issue)!;
+    const r = runQuery(v, q.query, 'select');
+    expect(r.status).toBe('failed');
+    expect(r.issues.map((i) => i.code)).toEqual(['seq.query.row.unknown']);
   });
 
   it('says why a query does not resolve, with its hint', async () => {
@@ -187,22 +195,22 @@ describe('Query, headless', () => {
     ],
     alignment: [
       {
-        query: '/data/globins/(row :key "HBB_HUMAN/1-147")',
+        query: '/data/four/(row :key "HBA1_BOSGR/26-136")',
         kind: 'location',
-        systems: [{ system: '/data/globins/(rows)', ranges: [[0, 1]] }],
+        systems: [{ system: '/data/four/(rows)', ranges: [[0, 1]] }],
       },
       {
-        query: '/data/globins/(range :from 20 :to 60)',
+        query: '/data/four/(range :from 20 :to 60)',
         kind: 'location',
-        systems: [{ system: '/data/globins', ranges: [[19, 60]] }],
+        systems: [{ system: '/data/four', ranges: [[19, 60]] }],
       },
       {
-        query: '/data/globins/(rect :a (row :key ["HBB_HUMAN/1-147" "GLB1_GEN/1-137"]) :b (range :from 20 :to 60))',
+        query: '/data/four/(rect :a (row :key ["HBA1_BOSGR/26-136" "HBB0_MOUSE/26-142"]) :b (range :from 20 :to 60))',
         kind: 'location',
         rects: [
           {
-            a: { system: '/data/globins/(rows)', ranges: [[0, 2]] },
-            b: { system: '/data/globins', ranges: [[19, 60]] },
+            a: { system: '/data/four/(rows)', ranges: [[0, 2]] },
+            b: { system: '/data/four', ranges: [[19, 60]] },
           },
         ],
       },

@@ -67,6 +67,12 @@
       "private": false
     },
     {
+      "name": "@molstar/seqx-render-cli",
+      "path": "cli/seqx-render",
+      "kind": "cli",
+      "private": true
+    },
+    {
       "name": "@molstar/particle-pack-cli",
       "path": "cli/particle-pack",
       "kind": "cli",

@@ -174,9 +174,10 @@ describe('blocks on a ring', () => {
       p.place(u + 0.5, pt);
       expect(p.at([pt.x, pt.y], pt) && Math.floor(pt.offset)).toBe(u);
     }
-    // the block labels lead the outside labels
+    // the block labels lead the outside labels, but a chip's: its pill draws it
     const placed = Array.from({ length: p.labels.m }, (_, k) => p.labels.text[p.labels.placed[k]]);
-    expect(placed).toEqual(expect.arrayContaining(['CDK2 ×2', 'cyclin A', 'ATP', 'PSTAIRE', 'cyclin box']));
+    expect(placed).toEqual(expect.arrayContaining(['CDK2 ×2', 'cyclin A', 'PSTAIRE', 'cyclin box']));
+    expect(placed).not.toContain('ATP');
   });
 
   it('a section of blocks on several systems neither follows nor is followed', async () => {

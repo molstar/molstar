@@ -441,24 +441,24 @@ export class ViewModel extends ReactiveModel {
 
   /**
    * Moves the view by a scroll's deltas, px (positive shows what is right and below), by its layout's arithmetic: a
-   * window pans across, a text scrolls its lines; nothing before a width. A follower that leads moves its leader.
+   * window pans across (a row of blocks keeping the content under the pointer's `x`, px along the axis), a text scrolls its lines; nothing before a width. A follower that leads moves its leader.
    */
-  panPx(section: string, dx: number, dy = 0): boolean {
+  panPx(section: string, dx: number, dy = 0, x?: number): boolean {
     const v = this.get(section);
     if (!v || v.width <= 0) return false;
     // a grid whose y moves apart from x: dy moves y (its own window, or the section it follows), dx moves x
     if (this._yOf(section)) {
       const moved = dy ? this._panY(section, dy) : false;
-      return (dx ? this._panX(section, v, dx, 0) : false) || moved;
+      return (dx ? this._panX(section, v, dx, 0, x) : false) || moved;
     }
-    return this._panX(section, v, dx, dy);
+    return this._panX(section, v, dx, dy, x);
   }
 
-  private _panX(section: string, v: Viewport, dx: number, dy: number): boolean {
+  private _panX(section: string, v: Viewport, dx: number, dy: number, x?: number): boolean {
     const g = this._leading(section) ? undefined : this._movable(section);
     const c = g && this._navContext(section, g);
     if (!g || !c) return dx ? this.pan(section, (dx * (v.end - v.start)) / v.width) : this._canMove(section);
-    this._take(g, this._navOf(g.layout).pan(c, rangeOf(g), dx, dy));
+    this._take(g, this._navOf(g.layout).pan(c, rangeOf(g), dx, dy, x));
     this._publish();
     return true;
   }

@@ -40,6 +40,7 @@ import {
 } from '@molstar/seqx-core/view';
 import type { Viewport } from './axis.js';
 import { type RenderConfigOverrides, renderConfig } from './config.js';
+import { accessibleOf, locationText } from './accessibility.js';
 import { DrawLists } from './draw-lists.js';
 import { RenderIssues } from './issues.js';
 import { layerSource } from './layer-data.js';
@@ -207,7 +208,12 @@ export interface RenderSvgOptions {
   readonly timeoutMs?: number;
   /** The time the timeout runs on; default the given store's clock, else the real one (a fake one in tests). */
   readonly clock?: StoreClock;
-  /** Prefixes the SVG's ids: by default `s` and a hash of the spec, so two exports inlined in one page differ. */
+  /**
+   * Prefixes the SVG's ids (clips, masks, the title and description an `aria-labelledby` names): by default `s` and a
+   * hash of the spec, the title, the size, the theme, the view, the highlights and the selection, so exports that
+   * differ in them can be inlined in one page. Two equal exports share their ids: a host that inlines both passes each
+   * its own `idPrefix`.
+   */
   readonly idPrefix?: string;
   readonly dpr?: number;
   readonly emphasis?: Emphasis;
@@ -530,10 +536,31 @@ export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<
       if (lists.height > h0 && place === 'right') bg.fill(0, h0, w0, lists.height - h0, tokens.colors['msui-bg']);
       layoutLegends(legends, band, tokens, text, lists.writer('labels'));
     }
+    // the ids (clips, masks, the title and description) tell two exports of one model apart: by what differs in them
+    // (the title, size, tokens, view, highlights, selection); two equal exports share their ids, so a host that inlines
+    // both gives each its own `idPrefix`
+    const titleText = String(spec.params?.title ?? '') || 'Sequence view';
+    const idPrefix =
+      options.idPrefix ??
+      `s${(
+        hashString(
+          [
+            model.hash,
+            titleText,
+            options.size.width,
+            options.size.height,
+            tokens.version,
+            view.address,
+            ...(emphasis?.highlights ?? []).map((h) => locationText(model, h.location)),
+            emphasis?.selection ? locationText(model, emphasis.selection) : '',
+          ].join('|'),
+        ) >>> 0
+      ).toString(36)}-`;
     let svg = drawListsToSvg(frame.lists, {
       fonts: tokens.fonts,
       fade: config.fade,
-      idPrefix: options.idPrefix ?? `s${(hashString(model.hash) >>> 0).toString(36)}-`,
+      idPrefix,
+      accessible: accessibleOf(model, frame.layout, titleText, emphasis?.highlights),
       metadata: {
         'seq-settled': String(settled),
         ...(domains.length ? { 'seq-domains': domains.join(';') } : {}),
@@ -553,7 +580,7 @@ export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<
       svg = withNavigators(svg, frame.lists, model, navs, drawn, {
         fonts: tokens.fonts,
         fade: config.fade,
-        idPrefix: options.idPrefix ?? `s${(hashString(model.hash) >>> 0).toString(36)}-`,
+        idPrefix,
       });
     }
     return { svg, settled, issues, lists: frame.lists, ...(selection ? { selection } : {}) };

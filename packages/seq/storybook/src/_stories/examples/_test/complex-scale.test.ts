@@ -28,7 +28,7 @@ const base = ComplexViews.find((v) => v.id === 'blocks')!;
 describe('the Complex at scale', () => {
   itWithin('200 copies of CDK2, a block each: a pan frame under 8 ms', async (within) => {
     const view = { ...base, id: 'copies-scale', build: () => copiesScale(200, 'each') };
-    viewer = await openExample(view, { realClock: true });
+    viewer = await openExample(view, { fixtures: true, realClock: true });
     const v = viewer;
     expect(v.frame!.layout.sections[0].section.blocks!.length).toBe(200);
     v.view.setRange('/views/main/copies', 0, 2000);
@@ -44,7 +44,7 @@ describe('the Complex at scale', () => {
   });
 
   itWithin('the PAE over the complex: a pan frame under 8 ms once its tiles are built', async (within) => {
-    viewer = await openExample(ComplexViews.find((v) => v.id === 'complex-grid')!, { realClock: true });
+    viewer = await openExample(ComplexViews.find((v) => v.id === 'complex-grid')!, { fixtures: true, realClock: true });
     const v = viewer;
     v.view.setRange('/views/main/chains', 100, 500);
     for (let i = 0; i < 4; i++) {

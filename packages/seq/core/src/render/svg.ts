@@ -80,7 +80,34 @@ function pathData(l: PathList, i: number): string {
   return d.join(' ');
 }
 
+/** What a figure says of itself (`accessibleOf`): the document's title and description, its tracks, items and highlights. */
+export interface SvgAccessible {
+  readonly title: string;
+  readonly description: string;
+  readonly tracks: readonly {
+    readonly title: string;
+    readonly x: number;
+    readonly y: number;
+    readonly width: number;
+    readonly height: number;
+    readonly items: readonly {
+      readonly title: string;
+      readonly x: number;
+      readonly y: number;
+      readonly width: number;
+      readonly height: number;
+    }[];
+  }[];
+  readonly highlights: readonly string[];
+}
+
 export interface SvgOptions {
+  /**
+   * The figure's names: the root is a figure (`role="figure"`) labelled by its `<title>` and `<desc>`; a group a track,
+   * each item (an image) and each highlight with an `aria-label` and a `<title>` of its own, over boxes at their
+   * places that nothing paints and no pointer hits (`pointer-events="none"`: the picture beneath stays the target).
+   */
+  readonly accessible?: SvgAccessible;
   /** The font stacks the family roles name (the token table's). */
   readonly fonts?: FontStacks;
   /** A title for the document (escaped). */
@@ -194,10 +221,10 @@ export function drawListsToSvg(lists: DrawLists, options: SvgOptions = {}): stri
       );
     },
     image(l, i) {
-      // one `<image>` a tile, its pixels a PNG data URL, never smoothed (a sample a device pixel or more)
+      // one `<image>` a tile, its pixels a PNG data URL, never smoothed (`image-rendering` as an attribute: resvg reads no `pixelated` and, given a style, ignores the attribute; browsers read `optimizeSpeed` as nearest)
       const img = l.images[i];
       body.push(
-        `<image x="${fmt(l.x[i])}" y="${fmt(l.y[i])}" width="${fmt(l.w[i])}" height="${fmt(l.h[i])}" preserveAspectRatio="none" style="image-rendering:pixelated" href="${pngDataUrl(img.width, img.height, img.data)}"/>`,
+        `<image x="${fmt(l.x[i])}" y="${fmt(l.y[i])}" width="${fmt(l.w[i])}" height="${fmt(l.h[i])}" preserveAspectRatio="none" image-rendering="optimizeSpeed" href="${pngDataUrl(img.width, img.height, img.data)}"/>`,
       );
     },
     clip(l, i) {
@@ -228,7 +255,50 @@ export function drawListsToSvg(lists: DrawLists, options: SvgOptions = {}): stri
   let meta = '';
   for (const [k, value] of Object.entries(options.metadata ?? {}))
     if (/^[a-z][a-z0-9-]*$/.test(k)) meta += ` data-${k}="${escapeXml(value)}"`;
-  const title = options.title === undefined ? '' : `<title>${escapeXml(options.title)}</title>`;
+  const a = options.accessible;
+  const titleText = a?.title ?? options.title;
+  const title =
+    titleText === undefined ? '' : `<title${a ? ` id="${prefix}title"` : ''}>${escapeXml(titleText)}</title>`;
+  const desc = a ? `<desc id="${prefix}desc">${escapeXml(a.description)}</desc>` : '';
+  const labelled = a ? ` role="figure" aria-labelledby="${prefix}title ${prefix}desc"` : '';
   const defsBlock = defs.length ? `<defs>${defs.join('')}</defs>` : '';
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"${meta}>${title}${defsBlock}${body.join('')}</svg>`;
+  if (a) body.push(accessibleGroups(a));
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"${labelled}${meta}>${title}${desc}${defsBlock}${body.join('')}</svg>`;
+}
+
+/** A box nothing paints and a pointer still hits: its `<title>` is the tooltip and the accessible name. */
+function named(
+  kind: string,
+  role: string,
+  title: string,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  inner = '',
+): string {
+  const t = escapeXml(title);
+  return `<g data-seq-${kind}="" role="${role}" aria-label="${t}"><title>${t}</title><rect x="${fmt(x)}" y="${fmt(y)}" width="${fmt(w)}" height="${fmt(h)}" fill="none" pointer-events="none"/>${inner}</g>`;
+}
+
+/** The figure's accessible groups, over the picture: each track with its items, then the highlights. */
+function accessibleGroups(a: SvgAccessible): string {
+  const out: string[] = ['<g data-seq-accessible="" fill="none">'];
+  for (const t of a.tracks)
+    out.push(
+      named(
+        'track',
+        'group',
+        t.title,
+        t.x,
+        t.y,
+        t.width,
+        t.height,
+        t.items.map((i) => named('item', 'img', i.title, i.x, i.y, i.width, i.height)).join(''),
+      ),
+    );
+  for (const h of a.highlights)
+    out.push(`<g data-seq-highlight="" role="img" aria-label="${escapeXml(h)}"><title>${escapeXml(h)}</title></g>`);
+  out.push('</g>');
+  return out.join('');
 }
