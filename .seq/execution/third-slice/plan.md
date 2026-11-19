@@ -241,7 +241,13 @@ and dark before the merge.
       `location.start.value`, `location.end.value`, `type`, `description`; EBI Proteins API's `features[]`; any array of
       records), each column a path into a record; a UniProt entry's sequence and features read from one file. Fixtures
       are saved responses (UniProt CC BY 4.0, recorded by hand), never fetched by a test; fetching from a service stays
-      the showcases' registry entry (ports.md). Built as a
+      the showcases' registry entry (ports.md). **MessagePack** as JSON's binary twin, out of the box (the author,
+      2026-11-19: "since we support json, it should support msgpack too out of the box, and both the SoA and AoS
+      layouts for data"), on Mol\*'s decoder (`@molstar/io`'s `common/msgpack`; `seqx-core` depends only on
+      `@molstar/core` today: the design decides between an `@molstar/io` dependency and moving the decoder down to core,
+      a base-library.md row, the author's call). **Both layouts** for JSON and MessagePack: an array of records (AoS)
+      and an object of column arrays (SoA, typed arrays kept as columns without a copy), read the same, as the base's
+      tables did. Built as a
       runtime and its conformance suite, then stories that load the datasets from their fixtures (FASTA, Stockholm,
       Newick, the tables with their transforms, the `seq` format), each with its headless twin reading the same
       files through the Node assets reader.
