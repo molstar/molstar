@@ -16,6 +16,10 @@ import { DarkTokens, type FrameInput, LightTokens, Renderer, type RowsLay } from
 import { settle } from './helpers.js';
 import { Columns, rowsSpec as spec, Section, Synthetic, Track } from './rows-fixtures.js';
 
+// the bounds are the design's, at 10,000 rows; the quick lane runs the same bodies over 1,000: the 10,000-row joins and
+// reductions are slow by nature, and the heavy lane (and `all`) keeps them
+const Rows = ['heavy', 'all'].includes((import.meta as { env?: { MODE?: string } }).env?.MODE ?? '') ? 10_000 : 1_000;
+
 const Size = { width: 1440, height: 800 };
 const at = (bandTop: number, rowScale: number, start = 0, end = Columns, folds?: readonly string[]): FrameInput => ({
   size: Size,
@@ -49,7 +53,7 @@ describe('the rows’ time over 10,000 × 300', () => {
   itWithin(
     'a first frame: the join, the measures, the order, the classes, the reduction, the layout',
     async (within) => {
-      const s = await settle(spec(10_000, true), [Synthetic]);
+      const s = await settle(spec(Rows, true), [Synthetic]);
       await s.frame(at(0, 0.06));
       const first = () => {
         const r = new Renderer({
@@ -70,7 +74,7 @@ describe('the rows’ time over 10,000 × 300', () => {
   );
 
   itWithin('a pan frame at the fit (image tiles), at letters and between two level pairs', async (within) => {
-    const s = await settle(spec(10_000, true), [Synthetic]);
+    const s = await settle(spec(Rows, true), [Synthetic]);
     const fit = [0, 1, 2, 3].map((k) => at(k, 0.06));
     const letters = [0, 20, 40, 60].map((k) => at(4000 + k / 20, 20, 100, 160));
     const pairs = [0, 4, 8, 12].map((k) => at(k * 20, 0.5, 0, Columns));
@@ -91,7 +95,7 @@ describe('the rows’ time over 10,000 × 300', () => {
   });
 
   itWithin('a theme change rebuilds the classes and the reduction under 50 ms', async (within) => {
-    const s = await settle(spec(10_000, false), [Synthetic]);
+    const s = await settle(spec(Rows, false), [Synthetic]);
     await s.frame(at(0, 0.06));
     let dark = false;
     const change = () => {
@@ -107,7 +111,7 @@ describe('the rows’ time over 10,000 × 300', () => {
   });
 
   itWithin('folding every clade under 16 ms', async (within) => {
-    const s = await settle(spec(10_000, true), [Synthetic]);
+    const s = await settle(spec(Rows, true), [Synthetic]);
     const f = await s.frame(at(0, 20));
     const l = rowsLay(f);
     const names = l.clades!.name.filter((_, c) => c > 0 && l.clades!.hi[c] - l.clades!.lo[c] > 1);
