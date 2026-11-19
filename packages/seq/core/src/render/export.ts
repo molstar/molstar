@@ -71,8 +71,9 @@ import { builtInTokens, type SeqTokens } from './tokens.js';
 // scale's domain as drawn is recorded (`data-seq-scale-<id>`): an open end unioned over what the export draws.
 
 /**
- * The store's sources a view reads: its placed layers' data, its sections' systems' sources (for a length), and its
- * navigators' systems' and bands' (_spec/README.md "Render", Navigators: a chromosome under a region).
+ * The store's sources a view reads: its placed layers' data, its sections' systems' sources (for a length), the sources
+ * of the numberings its layers name (a ruler's: no layer's data names them), and its navigators' systems' and bands'
+ * (_spec/README.md "Render", Navigators: a chromosome under a region; Export).
  */
 export function viewSources(model: StaticModel, view: ResolvedView): Set<string> {
   const out = new Set<string>();
@@ -88,11 +89,20 @@ export function viewSources(model: StaticModel, view: ResolvedView): Set<string>
       const source = system === undefined ? undefined : model.systems.get(system)?.source;
       if (source) out.add(source);
     }
+    const systems = [s.axis.system, ...(s.blocks ?? []).map((b) => b.axis.system)];
     for (const t of s.tracks) {
       if (t.template) out.add(t.template.source);
       for (const l of t.layers) {
         const src = layerSource(model, l);
         if (src) out.add(src.source);
+        // a numbering a layer names (a ruler's, a text's numbers): a source's rows when the system declares it so, read
+        // at layout, which wants them only once the source is open (Render, Numberings from a source)
+        const id = l.params.numbering;
+        if (typeof id === 'string' && id)
+          for (const system of [l.data?.system, ...systems]) {
+            const n = system === undefined ? undefined : model.numberingOf(system, id)?.source;
+            if (n) out.add(n);
+          }
         // a rows layer's joined fields: the sources whose own system is its rows system (Render, Row columns)
         const rows = l.type === 'rows' && l.data ? model.annotations.get(l.data.address)?.rows : undefined;
         if (rows) for (const b of model.sources.values()) if (b.entry.system === rows) out.add(b.address);
