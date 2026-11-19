@@ -246,7 +246,7 @@ and dark before the merge.
       letters and bars in their class color moved to 3:1 against the track's surface in each theme (grids-and-rows,
       The logo; themes.md's `ink` rule with the surface as the fill); tested over every built-in scheme in both themes;
       the Globins logo looked at in light and dark.
-- [ ] DX (fast, now; the author, 2026-11-19: "double clicking the vertical slider selects the last selected column. is
+- [x] DX (merged; fast, now; the author, 2026-11-19: "double clicking the vertical slider selects the last selected column. is
       that by design?": no) a double-click restores only what its own first click cleared: `input.ts` keeps the
       selection a click cleared (`_cleared`) for the double-click that may follow, but the rails' clicks and a
       suppressed click return before resetting it, so a later double-click on a rail (or after a drag) brings back a

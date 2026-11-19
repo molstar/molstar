@@ -170,4 +170,4 @@ None.
   with SY as decided. Post-merge: unit 143 files / 1379 passed, tsc, storybook typecheck, lint, format exit 0. Sizes
   185.2 / 532.5 / 836.5 kB against the 160 / 300 / 600 kB guides.
 - LG merged (the logo's letters at 3:1 against the track; looked at in light and dark: dark reads well, light reads but
-  muted, pale class colours darkened at low chroma). DX in its fix round (the review's two findings); HB and FS-A1 running.
+  muted, pale class colours darkened at low chroma). DX merged after one fix round (the restore guarded by a count of selection changes; the drag reset removed). HB and FS-A1 running.
