@@ -153,7 +153,8 @@ and dark before the merge.
       command; `view.back` and `view.forward` in the default toolbar with their disabled state; drawing checked against
       the data in the existing p53 example views; the selection's bookmark command (its name and key), beside
       `refs.remove` and labels, and `highlight.clear` (decided at the design review).
-- [ ] GATE: merged, reviewed, the checks green, sizes measured.
+- [x] GATE: merged, reviewed, the checks green, sizes measured (2026-11-19, after CY: quick 2553, medium 9, perf 127;
+      sizes in state.md, over target as stage 7 records).
 
 ### Stage 1: the axis, then themes and the small layers (after Gate 0)
 
@@ -247,8 +248,8 @@ and dark before the merge.
 - [x] FS-A2 (merged after review; fast, after FS-A1): a matrix read (an array of arrays by path, as a grid's values, for DC's PAE), the GFF3 preset with the cyclic wrap (or GFF3 handed to DP), `dataFilter`'s trailing
       `(not …)` rule, p53's UniProt entry as trimmed JSON and `uniprotEntry`, `Features/Files` with twins; owns
       `packages/seq/examples/scripts/record.ts` (moved from DG).
-- [ ] FS-B (conditional): trees and pairs held from a file, only if DG's tree must be read from one this slice; else
-      deferred, the Newick inline.
+- [x] FS-B (conditional): trees and pairs held from a file, only if DG's tree must be read from one this slice; else
+      deferred, the Newick inline. (Deferred, 2026-11-19: DG's tree is inline, InterPro serves no seed tree.)
 - [x] LG (merged; fast, now; the author, 2026-11-19: "this letter coloring doesn't really work for the logo plot") the logo's
       letters and bars in their class color moved to 3:1 against the track's surface in each theme (grids-and-rows,
       The logo; themes.md's `ink` rule with the surface as the fill); tested over every built-in scheme in both themes;
