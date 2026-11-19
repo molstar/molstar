@@ -111,7 +111,7 @@ limits (they were sort of self-imposed and estimate), but obviously try to minim
   2026-11-19: "we should also support a simple slider navigator for vertical scrolling too"): a rows layer's rows axis
   gets the same rail, vertical, 12 px wide at the right edge of its band (beside the right gutter's numbers), its
   window the rows in view (top and bottom grips; a drag scrolls, a grip zooms the rows, `]` and `[` as keys), idle when
-  every row is shown; the rows' default navigator, as the slim rail is a linear section's; a declared overview
+  every row is shown and the rows cannot zoom in (rows × the largest row scale fit the band: the ruler's rule); the rows' default navigator, as the slim rail is a linear section's; a declared overview
   replaces it on the rows it binds. **Its grab zone**: on a positions axis (blocks, a genome, a protein) the whole ruler row is
   the rail's, so a drag on the ruler pans (ux-foundations section 8's "drag on an axis pans" holds); on an alignment's
   columns only the ruler's lower part is (`navigator.rail.grabShare`, 0.4 of the ruler's height, a `RenderConfig`

@@ -407,3 +407,8 @@ None.
   in followups.md. RX rebased (a clade hover's 244 B a frame fixed): under independent review.
 - The author (2026-11-19): "slow down to just 1+1 lane after current stuff is done" (usage): no new lane until LP, UN
   and PG finish; then at most one strong and one fast lane at once; reviews of finished lanes still run.
+- UN reported (the "not numbered" ruler; looked at: the light screenshot reads right): under a short review. PG
+  stopped: its unbiased PCG32 broke the rows pyramid's stated tolerance (small blocks). Decided (the author,
+  2026-11-19: "Small blocks exact"): blocks under 64 rows counted exactly; PG continues. RX's review: nothing serious,
+  one medium (a pinned row's tip on the wrong copy) and five lows: its fix round sent; navigators.md's rows-rail idle
+  line corrected. To look later: the Antibody's IMGT track label under the Kabat one reads as a second line.
