@@ -185,3 +185,7 @@ None.
   RC running; PR starting.
 - HL merged after its review round (legend redraws, the grid striped, outlines whole, pixel snapping, breaks once, API
   tidied); the grid rows' stripes still allocate about 96 B a frame (bounded, in `packages/seq/TODO.md`; was 536 B).
+- FS-A2 merged after its review round (legend addresses on a base, one parser for base and filter, wraps clamped, the
+  matrix parsed once, the variants fixture UniProt's own records at 392 KB as Biome formats it, 281 KB compact: the
+  `biome.json` ignore for `packages/seq/examples/fixtures/**/*.json` left for the author's call). A spec conflict with
+  HL resolved keeping both. Quick lane 1827 passed. QS can start.

@@ -60,9 +60,9 @@ what the file's columns mean (the transform), where that runs, and how the examp
 | open a file by URL and pick its format | JBrowse, IGV | built: a `source` node (`uri`, `format`) is a patch like any edit |
 | drop a local file onto the view | IGV, Jalview | refused this slice: a host's upload path ([examples.md](examples.md)'s standing tension, the fourth slice with services) |
 | map columns in a dialog | JBrowse's add-track | refused: the application's; the spec's `fields` is the surface, and a host may build a form over the language description |
-| features as one track a type | ProtVista, Nightingale | planned (FS-A2): a layer's `data` with a leading item form (Decision, One track a feature type) |
+| features as one track a type | ProtVista, Nightingale | built (FS-A2): a layer's `data` with a leading item form (Decision, One track a feature type); `uniprotEntry` |
 | hide features by type or source | ProtVista's filters | built: a layer's trailing `(not …)` filter, the "n filtered" chip |
-| see the file as given beside the view | the current Seq\*'s format stories | planned (FS-A2): the Files stories print the file's head and the source node beside the view |
+| see the file as given beside the view | the current Seq\*'s format stories | built (FS-A2): the Files stories print the file's head and the source node beside the view |
 | see why rows were left out | the current Seq\*'s notes | planned (FS-A1): one issue a cause with a count and the first places (EC-86) |
 | fix a misread file (0- against 1-based) | none (edit the file) | planned (FS-A1): a patch of the source's transform, one undo step; the issue hints the other base |
 | re-read after the file changed | IGV's reload | refused: a source is read once a session; a host reloads by a patch of `uri` (a cache-busting query) |

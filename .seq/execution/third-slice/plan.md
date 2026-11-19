@@ -244,7 +244,7 @@ and dark before the merge.
       re-exports), the delimited tokenizer at `@molstar/core/data/text/delimited` (hot `package.json` files through the
       orchestrator), `AssetReader.readBytes`, `OpenContext.limits`, the records runtime for TSV, CSV, JSON and
       MessagePack with the transform, the `seq` format's MessagePack, the conformance suite (files.md, Consequences).
-- [ ] FS-A2 (fast, after FS-A1): a matrix read (an array of arrays by path, as a grid's values, for DC's PAE), the GFF3 preset with the cyclic wrap (or GFF3 handed to DP), `dataFilter`'s trailing
+- [x] FS-A2 (merged after review; fast, after FS-A1): a matrix read (an array of arrays by path, as a grid's values, for DC's PAE), the GFF3 preset with the cyclic wrap (or GFF3 handed to DP), `dataFilter`'s trailing
       `(not …)` rule, p53's UniProt entry as trimmed JSON and `uniprotEntry`, `Features/Files` with twins; owns
       `packages/seq/examples/scripts/record.ts` (moved from DG).
 - [ ] FS-B (conditional): trees and pairs held from a file, only if DG's tree must be read from one this slice; else
