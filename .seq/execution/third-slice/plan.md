@@ -307,4 +307,8 @@ command) drawn in the header's fixed slots, hit and announced, the built-ins (hi
 a host adding or removing its own; a hidden-tracks chip in the section header that shows a hidden track again; the
 headers' geometry as an API for a host's own widget later. Today: `track.hide`/`track.show`, `layer.hide`/`layer.show`
 and `layer.filter` as commands, the "n filtered" chip the header's only control (extensibility.md, "internal until an
-outside user"; ux-foundations section 9). The fourth slice's plan (Finalize, step 5) carries it.
+outside user"; ux-foundations section 9). Its story and test (the author, 2026-11-19): a "color by this track" header
+action with the Mol* integration: the click builds a MolViewSpec state ad hoc from the track's layer (its theme's
+colors over the residues it maps to the structure) and the 3D view shows it; headless, the built state checked against
+the track's colors, and the action as a host's registry entry (not built into Seq*). The fourth slice's plan (Finalize,
+step 5) carries it.
