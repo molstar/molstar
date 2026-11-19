@@ -8,3 +8,6 @@
   (`Back (⌥←)`) (C0).
 - `render/_test/frame-time.test.ts`'s max bound flaked once at the gate (18.8 ms against 16), passing on the rerun: the
   TODO item (best of three or a percentile).
+- Track header parts, decided for the fourth slice (the author, 2026-11-19): header actions as registry entries in
+  the header's fixed slots (a host's button among them), a hidden-tracks chip that shows hidden tracks again, the
+  headers' geometry for a host's widget later (plan, Out of scope).

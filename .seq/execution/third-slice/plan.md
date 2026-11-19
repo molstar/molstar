@@ -302,3 +302,9 @@ strong lanes at once) → CH beside them, GD after both → SO, LB, then the dat
 ## Out of scope
 
 Structures and services (the fourth slice), bigWig, Genomes, writers beyond SVG and PNG, settings layers.
+Track header parts (the author, 2026-11-19: "Fourth slice"): header actions as registry entries (icon, label, when,
+command) drawn in the header's fixed slots, hit and announced, the built-ins (hide, color, filter) on the same entries,
+a host adding or removing its own; a hidden-tracks chip in the section header that shows a hidden track again; the
+headers' geometry as an API for a host's own widget later. Today: `track.hide`/`track.show`, `layer.hide`/`layer.show`
+and `layer.filter` as commands, the "n filtered" chip the header's only control (extensibility.md, "internal until an
+outside user"; ux-foundations section 9). The fourth slice's plan (Finalize, step 5) carries it.
