@@ -272,7 +272,10 @@ is a segment of an address, `/data/p53/(range :from 94 :to 292)`.
 - **Positions are int32**: `normalizeRanges` throws on an end that is not an int32 integer (a programmer error, never a
   wrap); the forms check data first and report `seq.query.position.invalid`.
 - **Set operations** per system: union, intersection, subtraction. Rects intersect side by side over the same two
-  systems; a rect is not subtracted, and its complement is refused (`seq.query.form.unsupported`).
+  systems; **rects subtract** rects over the same two systems: `A × B` less `C × D` is `(A − C) × B` and
+  `(A ∩ C) × (B − D)` (at most two rects, their sides of several ranges; four with one range a side), so the cells stay
+  exact and a rect selection's Alt+drag is a Location; rects never merge and parts never subtract rects. A rect's
+  complement is refused (`seq.query.form.unsupported`).
 - **Overlap** of an item `[start, end)`: a boundary (zero length) at `p` overlaps `[s, e)` when `s ≤ p < e`; one at the
   system's end (`p = length`) overlaps a range ending there, so `(all)` holds it. O(log n).
 
