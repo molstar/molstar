@@ -58,6 +58,7 @@ export {
   type ResolveOptions,
   type Resolver,
   resolveSpec,
+  rowsSystemOf,
   type SourceBinding,
   type SourceParams,
   type StaticModel,

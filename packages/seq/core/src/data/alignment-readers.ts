@@ -9,6 +9,12 @@
 // line, never throwing (EC-40): a row of another width is left out and said, a tree that fails is said and the
 // alignment kept (EC-43).
 
+import { issueOf } from '@molstar/core/repr/tree';
+import { openAlignment } from './alignment-source.js';
+import { SourceIssues } from './issues.js';
+import { type FormatRuntime, isAbortError } from './protocol.js';
+import { SourceOpenError } from './seq-runtime.js';
+
 /** What a reader could not read: a line (1-based, 0 for the whole text) and why. */
 export interface ReadIssue {
   readonly line: number;
@@ -406,3 +412,36 @@ export function matchLeaves(tree: TreeRead, rows: readonly { readonly label: str
   });
   return out;
 }
+
+/**
+ * The runtime of alignment files (`aligned-fasta`, `stockholm`): the file read whole through the assets port (or its
+ * text inline as `value`) and opened as an alignment source (`openAlignment`); a file that leaves no row is refused
+ * with the reader's first issue.
+ */
+export const AlignmentFileRuntime: FormatRuntime = {
+  name: 'alignment-file',
+  formats: ['aligned-fasta', 'stockholm'],
+  async open(source, ctx) {
+    const fail = (code: 'seq.source.unreadable' | 'seq.source.no_data' | 'seq.source.malformed', message: string) =>
+      new SourceOpenError([issueOf(SourceIssues, code, message, { address: source.address })]);
+    if (source.uri === undefined && typeof source.value !== 'string')
+      throw fail('seq.source.no_data', 'An alignment file needs a uri or its text inline');
+    let text: string;
+    if (typeof source.value === 'string') text = source.value;
+    else
+      try {
+        text = await ctx.assets.readText(source.uri!, ctx.signal);
+      } catch (e) {
+        if (isAbortError(e) || ctx.signal.aborted) throw e;
+        throw fail('seq.source.unreadable', `The file ${source.uri} could not be read`);
+      }
+    const read = source.format === 'stockholm' ? readStockholm(text) : readAlignedFasta(text);
+    if (!read.rows.length)
+      throw fail('seq.source.malformed', `The alignment has no row: ${read.issues[0]?.message ?? 'empty'}`);
+    const rows = read.rows;
+    return openAlignment(
+      { label: rows.map((r) => r.label), letters: rows.map((r) => r.letters), first: rows.map((r) => r.first) },
+      source,
+    );
+  },
+};

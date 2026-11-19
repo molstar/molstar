@@ -13,6 +13,9 @@ export { SourceIssues, StoreIssues } from './issues.js';
 export { DefaultTileBins, dataKey, fitLevel, nodeKey, tileRegion, tileSpan, tileWidth } from './keys.js';
 export {
   type AssetReader,
+  type CellsCodes,
+  type CellsMajority,
+  type CellsTable,
   abortError,
   type Coverage,
   type DynamicNode,
@@ -92,3 +95,10 @@ export {
   sliceTable,
   tableRows,
 } from './tables.js';
+export {
+  AlignmentRuntime,
+  type AlignmentRows,
+  AlignmentSystems,
+  cellsSource,
+  openAlignment,
+} from './alignment-source.js';

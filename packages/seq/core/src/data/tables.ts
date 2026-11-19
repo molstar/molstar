@@ -20,6 +20,9 @@ import {
 } from '@molstar/core/repr/tree';
 import { measureNode, specBounds } from '@molstar/seqx-core/lang';
 import {
+  type CellsCodes,
+  type CellsMajority,
+  type CellsTable,
   type DynamicNode,
   FailureKinds,
   type LettersTable,
@@ -51,13 +54,17 @@ export function tableRows(t: Table): number {
       return t.value.length;
     case 'bins':
       return t.count.length;
+    case 'codes':
+      return t.columns > 0 ? Math.floor(t.codes.length / t.columns) : 0;
+    case 'majority':
+      return t.columns > 0 ? Math.floor(t.classes.length / t.columns) : 0;
   }
 }
 
 /** Whether an answer holds nothing: no rows in any table and no nodes (an `empty` entry). */
 export function isEmptyAnswer(tables: Tables, nodes: readonly DynamicNode[] | undefined): boolean {
   if (nodes?.length) return false;
-  for (const t of [tables.letters, tables.ranges, tables.values]) if (t && tableRows(t) > 0) return false;
+  for (const t of [tables.letters, tables.ranges, tables.values, tables.cells]) if (t && tableRows(t) > 0) return false;
   return true;
 }
 
@@ -78,7 +85,9 @@ export const NodeBytes = 256;
 export function answerBytes(tables: Tables, nodes: readonly DynamicNode[] | undefined): number {
   let n = 0;
   for (const d of nodes ?? []) n += Math.max(NodeBytes, measureNode(d.node).bytes);
-  const { letters: l, ranges: r, values: v } = tables;
+  const { letters: l, ranges: r, values: v, cells: c } = tables;
+  if (c?.form === 'codes') n += c.codes.byteLength + columnBytes(c.label) + columnBytes(c.first);
+  else if (c) n += c.classes.byteLength + c.shares.byteLength;
   if (l) n += typeof l.letters === 'string' ? 2 * l.letters.length : l.letters.byteLength;
   if (r?.form === 'list') {
     n += columnBytes(r.start) + columnBytes(r.end) + columnBytes(r.strand) + columnBytes(r.id) + columnBytes(r.row);
@@ -93,6 +102,7 @@ const Forms: Record<Shape, readonly string[]> = {
   letters: ['letters'],
   ranges: ['list', 'density'],
   values: ['positions', 'bins'],
+  cells: ['codes', 'majority'],
 };
 
 function isInt(x: unknown): boolean {
@@ -118,7 +128,7 @@ export function checkTables(tables: Tables): string | undefined {
     const t = (tables as Record<string, Table | undefined>)[shape];
     if (t === undefined) continue;
     const forms = Object.hasOwn(Forms, shape) ? Forms[shape as Shape] : undefined;
-    if (!forms) return 'a table of a shape other than letters, ranges and values';
+    if (!forms) return 'a table of a shape other than letters, ranges, values and cells';
     if (!isObject(t) || !forms.includes(t.form)) return `the ${shape} table has no form of its shape`;
     const bad = checkTable(t);
     if (bad) return `the ${shape} table: ${bad}`;
@@ -160,6 +170,24 @@ function checkTable(t: Table): string | undefined {
       for (const c of [t.min, t.max, t.mean, t.count])
         if (!(c instanceof Float32Array)) return 'a summary is not float32';
       return sameLength(t.count.length, t.min, t.max, t.mean) ? undefined : 'columns of unequal lengths';
+    case 'codes': {
+      if (!isInt(t.start) || !isInt(t.columns) || t.columns < 0) return '`start` and `columns` are not integers';
+      if (!(t.codes instanceof Uint8Array)) return '`codes` are not uint8';
+      if (t.columns === 0 ? t.codes.length !== 0 : t.codes.length % t.columns !== 0)
+        return '`codes` are not whole rows';
+      const n = tableRows(t);
+      if (t.label !== undefined && !(t.label instanceof CategoryColumn)) return '`label` is not a category';
+      if (t.first !== undefined && !(t.first instanceof Int32Array)) return '`first` is not int32';
+      return sameLength(n, t.label, t.first) ? undefined : 'columns of unequal lengths';
+    }
+    case 'majority':
+      if (!isInt(t.start) || !isInt(t.columns) || t.columns < 0) return '`start` and `columns` are not integers';
+      if (!(t.classes instanceof Uint8Array) || !(t.shares instanceof Uint8Array))
+        return '`classes` and `shares` are not uint8';
+      if (t.classes.length !== t.shares.length) return 'columns of unequal lengths';
+      return (t.columns === 0 ? t.classes.length === 0 : t.classes.length % t.columns === 0)
+        ? undefined
+        : '`classes` are not whole rows';
   }
 }
 
@@ -200,6 +228,10 @@ function columnCount(t: Table): number {
       return 2 + (t.category ? 1 : 0);
     case 'bins':
       return 4;
+    case 'codes':
+      return t.columns + (t.label ? 1 : 0) + (t.first ? 1 : 0);
+    case 'majority':
+      return 2 * t.columns;
   }
 }
 
@@ -293,6 +325,20 @@ function checkExtent(t: Table, r: RegionRequest, maxRows: number): string | unde
         if (s >= r.end || Math.max(e, s + 1) <= r.start) return 'a range outside the region';
       }
       if (t.strand) for (let i = 0; i < n; i++) if (t.strand[i] < -1 || t.strand[i] > 1) return 'a strand not −1, 0, 1';
+      return undefined;
+    }
+    case 'codes':
+    case 'majority': {
+      const n = tableRows(t);
+      if (t.form === 'codes' && L !== 1) return 'cells per row above level 1';
+      if (t.form === 'majority') {
+        if (L === 1) return 'row bins at level 1';
+        if (t.start % L !== 0) return 'row bins not aligned to the level';
+        if (n > 0 && (t.start < Math.floor(r.start / L) * L || t.start + n * L > Math.ceil(r.end / L) * L))
+          return 'outside the region';
+        return undefined;
+      }
+      if (n > 0 && (t.start < r.start || t.start + n > r.end)) return 'outside the region';
       return undefined;
     }
     case 'density': {
@@ -409,6 +455,31 @@ export function sliceTable<T extends Table>(t: T, level: number, cut: Cut): T {
         ...(t.fields && { fields: t.fields.map((f) => ({ name: f.name, column: gather(f.column, rows) })) }),
       } as T;
     }
+    case 'codes':
+    case 'majority': {
+      // rows by offset (a majority's by its row bins, as values' bins)
+      const step = t.form === 'majority' ? level : 1;
+      const n = tableRows(t);
+      const a = Math.max(0, Math.min(n, Math.floor((from - t.start) / step)));
+      const b = Math.max(a, Math.min(n, Math.ceil((to - t.start) / step)));
+      if (a === 0 && b === n) return t;
+      const c = t.columns;
+      if (t.form === 'majority')
+        return {
+          ...t,
+          start: t.start + a * step,
+          classes: t.classes.slice(a * c, b * c),
+          shares: t.shares.slice(a * c, b * c),
+        } as T;
+      const rows = Array.from({ length: b - a }, (_, i) => a + i);
+      return {
+        ...t,
+        start: t.start + a,
+        codes: t.codes.slice(a * c, b * c),
+        ...(t.label && { label: gather(t.label, rows) }),
+        ...(t.first && { first: t.first.slice(a, b) }),
+      } as T;
+    }
     case 'density': {
       const rows: number[] = [];
       for (let i = 0; i < t.bin.length; i++) {
@@ -471,6 +542,35 @@ export function joinTables(parts: readonly Table[], level: number): Table | stri
         max: concatColumns(bs.map((b) => b.max)),
         mean: concatColumns(bs.map((b) => b.mean)),
         count: concatColumns(bs.map((b) => b.count)),
+      };
+    }
+    case 'codes':
+    case 'majority': {
+      const cs = nonEmpty as CellsTable[];
+      const step = form === 'majority' ? level : 1;
+      for (let i = 1; i < cs.length; i++)
+        if (cs[i].columns !== cs[0].columns || cs[i].start !== cs[i - 1].start + tableRows(cs[i - 1]) * step)
+          return 'the parts leave a gap';
+      if (form === 'majority') {
+        const ms = cs as CellsMajority[];
+        return {
+          form,
+          start: ms[0].start,
+          columns: ms[0].columns,
+          classes: concatColumns(ms.map((m) => m.classes)),
+          shares: concatColumns(ms.map((m) => m.shares)),
+        };
+      }
+      const ks = cs as CellsCodes[];
+      if (ks.some((k) => !!k.label !== !!ks[0].label || !!k.first !== !!ks[0].first))
+        return 'the parts carry different columns';
+      return {
+        form: 'codes',
+        start: ks[0].start,
+        columns: ks[0].columns,
+        codes: concatColumns(ks.map((k) => k.codes)),
+        ...(ks[0].label && { label: concatColumns(ks.map((k) => k.label!)) }),
+        ...(ks[0].first && { first: concatColumns(ks.map((k) => k.first!)) }),
       };
     }
     case 'list': {

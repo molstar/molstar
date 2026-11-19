@@ -49,6 +49,8 @@ export interface DataBuilder {
   ranges(id: string, params: Params<'ranges'>): Address<'ranges'>;
   values(id: string, params: Params<'values'>): Address<'values'>;
   map(id: string, params: Params<'map'>): Address<'map'>;
+  alignment(id: string, params: Params<'alignment'>): Address<'alignment'>;
+  tree(id: string, params: Params<'tree'>): Address<'tree'>;
 }
 
 export interface ViewsBuilder {
@@ -191,6 +193,8 @@ export function createSeqSpec(options: SeqSpecOptions = {}): SeqSpecBuilder {
     ranges: dataKind('ranges'),
     values: dataKind('values'),
     map: dataKind('map'),
+    alignment: dataKind('alignment'),
+    tree: dataKind('tree'),
   } as unknown as DataBuilder;
 
   /** The inline rows of the data node an address names (a ranges node's), for the layer's theme. */

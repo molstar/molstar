@@ -25,6 +25,8 @@ import {
   type Value,
 } from '@molstar/core/repr/tree';
 import {
+  AlignmentRuntime,
+  AlignmentSystems,
   type FormatRuntime,
   inlineSeq,
   type RangesField,
@@ -152,12 +154,25 @@ export type AccessPlan =
 /** An annotation: its shape, the system it is on, its fields and how it is read. */
 export interface AnnotationEntry {
   readonly address: string;
-  readonly shape: 'ranges' | 'values';
+  /** `cells`: an alignment, on its columns system (`target`), its rows a system of their own (`rows`). */
+  readonly shape: 'ranges' | 'values' | 'cells';
   readonly target: string;
   readonly fields: readonly string[];
   readonly access: AccessPlan;
   /** Inline ranges as items (a wrapped row is two rows of one item, EC-9). */
   readonly items?: readonly QueryItem[];
+  /** An alignment's rows system (`rowsSystemOf`): a position a row, in data order (EC-35). */
+  readonly rows?: string;
+  /** An alignment's reference row, by label (what `identity` compares with). */
+  readonly reference?: string;
+}
+
+/**
+ * An alignment's rows system's address: its node's, then `(rows)` (rows are a system, EC-35: positions are rows in
+ * data order); its columns system is the node's own address.
+ */
+export function rowsSystemOf(alignment: string): string {
+  return `${alignment}/(rows)`;
 }
 
 /** A path between two systems, or why there is none. */
@@ -310,6 +325,15 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
   }
 
   const annotations = new Map<string, AnnotationEntry>();
+  // an alignment: its columns and rows systems, its cells an annotation on the columns
+  for (const at of data) {
+    if (at.node.kind !== 'alignment') continue;
+    const src = p(at.node, 'source') === undefined ? undefined : ref(at, 'source', ['source']);
+    const e = cached(`${at.address}|${key(at.node)}`, () => alignmentEntry(at, src?.address));
+    systems.set(e.columns.address, e.columns);
+    systems.set(e.rows.address, e.rows);
+    annotations.set(at.address, e.annotation);
+  }
   for (const at of data) {
     if (at.node.kind !== 'ranges' && at.node.kind !== 'values') continue;
     const target = ref(at, 'target', ['sequence']);
@@ -400,6 +424,53 @@ function sequenceEntry(at: Placed, source: string | undefined): SystemEntry {
     return { ...base, length, letters, access: inlinePlan(at.address, { ...base, length }, 'letters', tables) };
   }
   return { ...base, ...(source ? { source } : {}), access: sourcePlan(source ?? '', base.name, 'letters') };
+}
+
+/** An alignment's two systems and its cells, inline (read through `alignment`) or from a source by region. */
+function alignmentEntry(
+  at: Placed,
+  source: string | undefined,
+): { columns: SystemEntry; rows: SystemEntry; annotation: AnnotationEntry } {
+  const rows = p(at.node, 'rows') as { label?: Value; letters?: Value } | undefined;
+  const alphabet = p(at.node, 'alphabet') as SystemEntry['alphabet'];
+  const reference = p(at.node, 'reference');
+  const letters = Array.isArray(rows?.letters) ? (rows.letters as string[]) : undefined;
+  const label = Array.isArray(rows?.label) ? (rows.label as string[]) : undefined;
+  const access: AccessPlan =
+    letters && label
+      ? {
+          kind: 'inline',
+          source: { address: at.address, format: 'alignment', value: { label, letters } as unknown as Value },
+          runtime: AlignmentRuntime,
+          system: AlignmentSystems.rows,
+          shape: 'cells',
+        }
+      : sourcePlan(source ?? '', AlignmentSystems.rows, 'cells');
+  const system = (address: string, name: string, length: number | undefined): SystemEntry => ({
+    address,
+    kind: 'sequence',
+    alphabet,
+    ...(length !== undefined ? { length } : {}),
+    cyclic: false,
+    name,
+    numberings: ['index', 'ordinal'],
+    ...(source ? { source } : {}),
+    access,
+  });
+  const rowsAddress = rowsSystemOf(at.address);
+  return {
+    columns: system(at.address, AlignmentSystems.columns, letters ? (letters[0]?.length ?? 0) : undefined),
+    rows: system(rowsAddress, AlignmentSystems.rows, letters?.length),
+    annotation: {
+      address: at.address,
+      shape: 'cells',
+      target: at.address,
+      fields: ['label', 'first'],
+      access,
+      rows: rowsAddress,
+      ...(typeof reference === 'string' ? { reference } : {}),
+    },
+  };
 }
 
 type MapCode =

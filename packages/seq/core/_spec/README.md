@@ -26,7 +26,9 @@ is added in the change that builds what it describes.
   `layout` `text` or `rings`, a section's `layout` and its text params `group`, `numbers`, `group_labels`, `align`,
   `max_width`, `height`, its rings params `rotation`, `labels`, its blocks params `arrange`, `copies`, the `block` kind
   under a section, a section's `of` optional when it has blocks, the view's `export.window`, the layer type `frame` and
-  its `across`). A spec in an earlier `0.x` reads as one in this one, and is reported where it no longer fits.
+  its `across`, the kinds `alignment` and `tree`, a section `of` an alignment, the layer types `rows` and `logo` and
+their params `tree`, `order`, `collapsed`, `pinned`, `hidden_rows`, `height`, `summary`, `numbers`, `tree_width`,
+`logo_scale`, `correction`, `gaps`, `rows`). A spec in an earlier `0.x` reads as one in this one, and is reported where it no longer fits.
 
 ## Language
 
@@ -34,7 +36,10 @@ is added in the change that builds what it describes.
 checks it cannot express.
 
 - **Kinds**: `spec` (root: `version`, `title`); the containers `data`, `views`, `refs` and `snapshots` (reserved ids of
-  the same name); under `data`: `source`, `sequence`, `ranges`, `values`, `map`; under `views`: `view`, then `section`,
+  the same name); under `data`: `source`, `sequence`, `ranges`, `values`, `map`, `alignment` (rows over columns: its
+  `rows` inline, a `label` and aligned `letters` a row, every row as wide, or a `source`; its `reference` row by label;
+  the columns system its address, the rows system `rowsSystemOf(address)`, `<address>/(rows)`: rows are a system, EC-35),
+  `tree` (`of` an alignment, `newick` its text; leaves matched to rows when drawn); under `views`: `view`, then `section`,
   `block` (a piece of a section on a system of its own: `of`, `range`, `label`), `track` (`hidden`, default false: kept
   in the spec, its row collapsed; its layers keep their own), `layer` (`hidden`, default false: kept in the spec and not
   drawn, so hiding is a one-key `set`). A `ranges` node's `map: 'codon'` makes each item (its rows by `id`) a coding
@@ -512,6 +517,21 @@ over 20 runs; the heavy lane bounds one sample at 40 ms (`resolve/_test/addressi
   (five integer fields, unique names, each record after its header line, full lines of the stated size, ending within
   the file), else refused (`seq.source.malformed`); without one, the index is built from the file (`faidx`, samtools'
   layout). A file that is not ASCII is refused: offsets count bytes. Coverage: a system a record, letters, level 1.
+
+### Cells
+
+- **`cells`** (an alignment's rows on 1D tiles of its rows system, columns whole): at level 1 `codes` (`start` the first
+  row, `columns`, a byte a cell row-major: the letter's ASCII, gaps `-` and `.`) with the rows table (`label` a
+  category, a row's key; `first`, its first residue's number, EC-39); above it `majority` (a row bin per column: its
+  majority letter byte, 255 none, and that letter's share, 0–255), aligned to the level. Why columns whole: an
+  alignment is hundreds to a few thousand columns wide, so a tile of 1,024 rows stays within `maxBlockValues` up to
+  16,384 columns (wider is `too-large`), and the store's keys and tiles stay one-dimensional. Cut and joined by rows
+  (`sliceTable`, `joinTables`); not written in the `seq` format yet (no reader needs it).
+- **An alignment source** (`openAlignment`, `cellsSource`): two systems, `rows` (a position a row, data order) and
+  `columns`; `cells` served on `rows` at level 1, a tile a view of the bytes made once. Inline rows read through the
+  `alignment` runtime (`AlignmentRuntime`, which resolve binds to an inline `alignment` node); files through
+  `AlignmentFileRuntime` (`aligned-fasta`, `stockholm`; the readers' entry). `cellsSource(rows, columns, rowsOf)` makes a
+  tile's rows on demand (a generated alignment: no row held before it is asked for, EC-41).
 
 ### Alignment readers
 

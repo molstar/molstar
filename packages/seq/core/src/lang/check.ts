@@ -230,6 +230,7 @@ export function checkPlaced(at: Placed, look: SeqLookup, report: Report): void {
     case 'ranges':
     case 'values':
     case 'map':
+    case 'alignment':
       checkDataNode(n, { target: (key) => target(n, key)?.node }, (code, message, ...tail) =>
         report(code, message, at, ...tail),
       );
@@ -256,7 +257,14 @@ export function checkPlaced(at: Placed, look: SeqLookup, report: Report): void {
       } else {
         // a kind the param does not take is the reference's issue alone
         const kind = target(n, 'data')?.node.kind;
-        const want = type === 'letters' || type === 'ruler' ? 'sequence' : type === 'values' ? 'values' : 'ranges';
+        const want =
+          type === 'letters' || type === 'ruler'
+            ? 'sequence'
+            : type === 'values'
+              ? 'values'
+              : type === 'rows' || type === 'logo'
+                ? 'alignment'
+                : 'ranges';
         if (kind !== undefined && fieldsOf('layer')?.data?.kinds?.includes(kind) && kind !== want)
           report('seq.lang.layer.data', 'The data is not what the type draws', at, 'data');
       }
@@ -356,6 +364,22 @@ export function checkDataNode(
       if (p(n, 'value') !== undefined && p(n, 'index') !== undefined)
         say('seq.lang.source.index', 'An inline value has no index', 'index');
       break;
+    case 'alignment': {
+      if (!xor(p(n, 'rows') !== undefined, p(n, 'source') !== undefined))
+        say('seq.lang.alignment.content', 'An alignment has one of `rows` and `source`');
+      const rows = p(n, 'rows') as { label?: Value; letters?: Value } | undefined;
+      const letters = rows?.letters;
+      if (Array.isArray(letters) && letters.length) {
+        const w = String(letters[0]).length;
+        letters.forEach((l, i) => {
+          if (typeof l === 'string' && l.length !== w)
+            say('seq.lang.alignment.width', 'A row is not as wide as the first', 'rows', 'letters', i);
+        });
+        if (Array.isArray(rows?.label) && rows.label.length !== letters.length)
+          say('seq.lang.alignment.width', 'There is not one label a row', 'rows', 'label');
+      }
+      break;
+    }
     case 'sequence': {
       if (!xor(p(n, 'letters') !== undefined, p(n, 'source') !== undefined))
         say('seq.lang.sequence.content', 'A sequence has one of `letters` and `source`');
