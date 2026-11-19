@@ -48,8 +48,11 @@ describe('the navigators’ examples, headless', () => {
     expect(w.shown).toBe(true);
     // the region is a sliver of the chromosome: its window floored, the rest washed
     expect(w.dx1 - w.dx0).toBeGreaterThanOrEqual(viewer.context.renderConfig.navigator.window.minPx - 1e-6);
-    nav.move(nav.width * 0.1, 12);
-    expect(nav.readout.value).toMatch(/^chr17:[\d,]+ · p\d/);
+    nav.move(nav.width * 0.6, 12);
+    expect(nav.readout.value).toMatch(/^chr17:[\d,]+ · q\d/);
+    // over the window: what it shows
+    nav.move((w.dx0 + w.dx1) / 2, 12);
+    expect(nav.readout.value).toBe('chr17:7,666,403–7,672,402 of chr17');
     const r = await svg(viewer);
     expect(r.settled).toBe(true);
     expect(r.svg).toContain('data-navigator="chr17"');
@@ -101,6 +104,28 @@ describe('the navigators’ examples, headless', () => {
     nav.move(x, y + 100);
     nav.up();
     expect(v.view.band('/views/main/rows/rows')!.bandTop).toBeGreaterThan(1000);
+    // the rows scrolled: the overview's window is the rows in view, at their place in the column
+    v.view.setBand('/views/main/rows/rows', { bandTop: 4000 });
+    await vi.advanceTimersByTimeAsync(50);
+    v.draw();
+    const scrolled = nav.draw()!.windows[0];
+    const shown = scrolled.r1 - scrolled.r0;
+    expect(scrolled.r0).toBeCloseTo(4000, 0);
+    expect(shown).toBeGreaterThan(0);
+    const column = scrolled.hy - scrolled.ly;
+    expect((scrolled.y0 - scrolled.ly) / column).toBeCloseTo(0.4, 2);
+    expect((scrolled.y1 - scrolled.y0) / column).toBeCloseTo(shown / 10_000, 4);
+    // drawn: the band across the column at its rows (floored), its grips the rows axis's, no positions hairline
+    expect(scrolled.axes).toBe(2);
+    expect(scrolled.dy0).toBeLessThanOrEqual(scrolled.y0 + 1e-6);
+    expect(scrolled.dy1).toBeGreaterThanOrEqual(scrolled.y1 - 1e-6);
+    nav.move(nav.width / 2, (scrolled.dy0 + scrolled.dy1) / 2);
+    // over the window the readout names the rows shown
+    expect(nav.readout.value).toMatch(/^rows 4,001–[\d,]+ of 10,000$/);
+    const marks = nav.draw()!.lists.passes.hover.rects;
+    // the hover is the row's hairline across the column alone, never a positions hairline down it
+    expect(marks.n).toBe(1);
+    expect(marks.h[0]).toBeLessThan(2);
     const mini = await navigator(v, 'miniature');
     expect(mini.f.windows[0].axes).toBe(3);
     const r = await svg(v);

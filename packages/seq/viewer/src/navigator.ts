@@ -348,8 +348,11 @@ export class NavigatorModel extends ReactiveModel {
     this.changed();
   }
 
+  /** Over a window, what it shows (its positions, its rows); elsewhere the position, row and band under the pointer. */
   private readoutOf(h: NavigatorHit): string {
     const nav = this.navigator;
+    const w = h.part !== 'outside' ? this.windowOf(h.section) : undefined;
+    if (nav && w?.shown) return windowText(this.viewer.spec.model.value, nav, w);
     const name = (nav?.system && this.viewer.spec.model.value.systems.get(nav.system)?.name) ?? '';
     const parts: string[] = [];
     if (h.position !== undefined) parts.push(`${name}:${(h.position + 1).toLocaleString('en-US')}`);

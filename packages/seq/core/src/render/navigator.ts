@@ -142,7 +142,15 @@ function pictureOf(
   const tracks: Node[] = [];
   let rows: Picture['rows'];
   const content = nav.axes === 'rows' ? 'rows' : nav.content;
-  if (content === 'bands' && nav.bands)
+  if (content === 'axis')
+    // the axis: a ruler filling the navigator (its ticks and numbers at the picture's scale)
+    tracks.push({
+      kind: 'track',
+      id: 'axis',
+      params: { label: '', height: Math.max(1, height) },
+      children: [{ kind: 'layer', id: 'axis', params: { type: 'ruler' } }],
+    });
+  else if (content === 'bands' && nav.bands)
     tracks.push({
       kind: 'track',
       id: 'bands',
@@ -854,8 +862,10 @@ export class NavigatorRenderer {
         lists.writer('cursor').rectArgs();
       }
     }
+    // the pointer's hairlines: down the picture at its position (none on a rows navigator: it has no positions axis),
+    // across it at its row
     const px0 = input.pointerX ?? Number.NaN;
-    if (Number.isFinite(px0) && px0 >= box.x && px0 < box.x + box.width)
+    if (this.navigator.axes !== 'rows' && Number.isFinite(px0) && px0 >= box.x && px0 < box.x + box.width)
       lists
         .writer('hover')
         .fill(px0 - px / 2, box.y, px, this.frameInput.size.height - box.y, tokens.colors['seq-hover']);

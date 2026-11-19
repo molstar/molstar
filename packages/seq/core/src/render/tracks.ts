@@ -405,6 +405,9 @@ class SectionReads implements StoreReader {
   keysOf(w: Want) {
     return this.data.keysOf(w);
   }
+  get settings() {
+    return this.data.settings;
+  }
   get(key: string) {
     const e = this.data.get(key);
     this.keys[this.n] = key;

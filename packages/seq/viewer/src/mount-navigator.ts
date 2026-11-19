@@ -63,6 +63,7 @@ function mountModel(element: HTMLElement, viewer: SeqViewer, model: NavigatorMod
     frame = undefined;
     const f = model.draw();
     if (!f) return;
+    box();
     const dirty = backend.resize(model.width, model.height, viewer.dpr);
     backend.draw(f.lists, f.rebuilt || f.base || dirty);
     readout.textContent = model.readout.value ?? '';
@@ -136,14 +137,23 @@ function mountModel(element: HTMLElement, viewer: SeqViewer, model: NavigatorMod
   ];
   for (const [type, fn, options] of listeners) container.addEventListener(type, fn, options);
 
-  // the width follows the element (a strip across it), the height the form's unless the element sets one
+  // its box (_spec/README.md "Composition", Navigators): a strip across the element, as wide as it; a side part and a
+  // miniature at the form's box (an overview the view's height), never the element's width (an empty cell in a row
+  // measures its content: a canvas's default 300 px would hold itself); the height the form's unless the element sets
+  // one. The container's size is set to the model's, so the cell beside the canvas is the part's width and no more.
+  const across = () => {
+    const nav = model.navigator;
+    return !!nav && (nav.place === 'top' || nav.place === 'bottom') && nav.axes !== 'both';
+  };
+  const box = () => {
+    container.style.width = across() ? '' : `${model.width}px`;
+    container.style.height = `${model.height || 0}px`;
+  };
   let observer: ResizeObserver | undefined;
   const measure = () => {
-    const nav = model.navigator;
-    if (!nav) return;
-    // the element's size, else the form's box for the view (a strip's thickness, an overview's the view's height)
-    model.resize(element.clientWidth, element.clientHeight);
-    container.style.height = `${model.height || 0}px`;
+    if (!model.navigator) return;
+    model.resize(across() ? element.clientWidth : 0, element.style.height ? element.clientHeight : 0);
+    box();
     schedule();
   };
   if (typeof ResizeObserver !== 'undefined') {

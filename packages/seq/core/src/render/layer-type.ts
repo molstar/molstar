@@ -27,6 +27,8 @@ export interface StoreReader {
   coverage(source: string): Coverage | undefined;
   keysOf(want: Want): string[];
   get(key: string): DataEntry | undefined;
+  /** The store's tiling and its bound on a want's tiles (a layer picks a level within it), where it has them. */
+  readonly settings?: { readonly tileBins: number; readonly maxTilesPerWant: number };
 }
 
 /** The dynamic nodes of tier 2 (the resolve pass's overlay): its version is part of the draw lists' key. */
