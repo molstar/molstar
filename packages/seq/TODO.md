@@ -117,8 +117,10 @@ links, selection, the security bounds, MessagePack). Next, version 1's second mi
   - the ring's track labels (no label column on a ring), its ruler's ticks across the ruler ring only;
   - a copy group is the same system and range here: the complex kind's molecules and units name it once they exist
     (EC-65), and a merged block's hover then lights every member's system;
-  - a ring's frame where only its window moved draws every pass again (the design asks for the emphasis passes alone): a
-    frame key part for the windows;
+  - a ring's frame where only its window moved draws every pass again (the design asks for the emphasis passes alone):
+    the window moves with a viewport, and a viewport the ring's window shows is one a follower (or its leader) lays out
+    and draws by, so the frame's data passes are drawn again for that section anyway; the ring's own data kept needs
+    passes split by section (its lays are kept already);
   - one boxed number a frame left in the window's grips through the warp (16 B; `rings.quick.ts` bounds it);
   - a ring's `labels` sink: only `ranges` gives its labels (secondary, variants keep theirs inside);
   - `export.window` read by `renderSvg` alone: the PNG export with it;

@@ -43,7 +43,7 @@ const TwoPi = 2 * Math.PI;
  * window's rim outside the outer ring (its body and grips are hit there, so the data under the window stays hit), the
  * margin a ring keeps when it has no labels.
  */
-export const RingMetrics = { labelRoom: 96, rim: 10, margin: 4 } as const;
+export const RingMetrics = { labelRoom: 96, rim: 12, margin: 4 } as const;
 
 /** A rings section's params as the spec writes them (_spec/README.md "Resolved view"), with their defaults. */
 export interface RingParams {
@@ -675,9 +675,11 @@ function drawRingWindow(
   if (p.windowActive) {
     const g = w.args;
     const ink = tokens.colors['seq-window'];
-    g[0] = x0;
+    // a narrow window grows about its middle (`windowExtent`'s rule, the rim's)
+    const wide = x1 - x0 >= WindowMetrics.floor;
+    g[0] = wide ? x0 : (x0 + x1) / 2 - WindowMetrics.floor / 2;
     g[1] = 0;
-    g[2] = Math.max(x1 - x0, WindowMetrics.floor);
+    g[2] = wide ? x1 - x0 : WindowMetrics.floor;
     g[3] = p.depth;
     g[4] = ((ink & 0xffffff00) | Math.round(WindowMetrics.fill * 0.5 * 255)) >>> 0;
     g[5] = NoColor;

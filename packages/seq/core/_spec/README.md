@@ -1202,10 +1202,11 @@ target. A floor of 16 px (a narrower window grows about its middle); its parts h
   blocks its id and its units).
 - **The window** (`window` on the layout type, set on a kept placement too): the section's viewport (a ring that
   follows, its leader's range on its own axis), drawn in the `window` pass through the warp: a faint sector over the
-  rings, and on a rim outside the outer ring its body and grips (`render/window.ts`), hit there as the `window` target
-  with its `part`, so the data under the window stays hit. Shown with `rings.window: 'followed'` only while a section
-  follows the ring (or the ring follows), `always` idle otherwise; an export draws it only with `windows`
-  (`export.window`, `renderSvg`'s `window`).
+  rings, and on a 12 px rim outside the outer ring (the design's least hit) its body and grips (`render/window.ts`), hit
+  there as the `window` target with its `part`, so the data under the window stays hit; a grip is hit across the origin
+  from either side. A narrow window grows about its middle, its sector and its rim alike. Shown with
+  `rings.window: 'followed'` only while a section follows the ring (or the ring follows), `always` idle otherwise; an
+  export draws it only with `windows` (`export.window`, `renderSvg`'s `window`).
 - **Out of the key**: `sameKey` is always true (rotation and size are the section's and the view's), so a pan of a
   follower lays out the follower alone and draws the ring from its kept lays; its labels are not placed again.
 - **Its viewport** is the window: `RingsNav` pans it by px of the box's width, zooms about a unit, reveals a range round

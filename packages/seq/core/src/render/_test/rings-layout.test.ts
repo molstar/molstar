@@ -197,6 +197,27 @@ describe('the rings layout', () => {
     }
   });
 
+  it('the window’s rim is the design’s 12 px hit; a narrow window’s sector grows about its middle, as its rim does', async () => {
+    const s = await settle(ringSpec());
+    const f = await s.frame({ size: Size, viewports: { '/views/v/ring': { start: 100, end: 101 } } });
+    const p = ringOf(f).placement as RingPlacement;
+    const mid = p.frameX(100.5);
+    p.warp.map(mid, -11.5);
+    expect(hitAtPage(f, p.warp.px, p.warp.py)).toMatchObject({ target: 'window' });
+    // the sector (the window pass's first path, inside the ring): its angular middle is the window's
+    const angle = (x: number, y: number) => Math.atan2(x - p.cx, -(y - p.cy));
+    const sector = readPaths(f.lists, 'window')[0];
+    let lo = Infinity;
+    let hi = -Infinity;
+    for (let i = 0; i + 1 < sector.xy.length; i += 2) {
+      const t = angle(sector.xy[i], sector.xy[i + 1]);
+      lo = Math.min(lo, t);
+      hi = Math.max(hi, t);
+    }
+    p.warp.map(mid, 1);
+    expect((lo + hi) / 2).toBeCloseTo(angle(p.warp.px, p.warp.py), 4);
+  });
+
   it('the ring’s lists in SVG: every primitive bent onto the page (no rect survives the warp)', async () => {
     const s = await settle(ringSpec({ detail: false }));
     const f = await s.frame({ size: Size });
