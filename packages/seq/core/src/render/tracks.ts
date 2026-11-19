@@ -276,20 +276,41 @@ export function sectionLayoutName(section: ResolvedSection, view: ResolvedView):
 const NoLays: readonly LayerLayout[] = [];
 const NoSectionLays: LayerLayout[] = [];
 
+/** A layer's type: the first of its fallbacks drawn here (a loop: no array made a layer a frame). */
+function firstType(
+  layer: ResolvedLayer,
+  types: Readonly<Record<string, LayerType<any, any>>>,
+): LayerType<any, any> | undefined {
+  const f = layer.fallbacks;
+  for (let i = 0; i < f.length; i++) {
+    const t = types[f[i]];
+    if (t !== undefined) return t;
+  }
+  return undefined;
+}
+
 /**
  * A section's reads of the store (_spec/README.md "Render", The key: per section): the entries and coverages its
- * layout read with their versions, so a section whose reads hold is not laid out again.
+ * layout read with their versions, so a section whose reads hold is not laid out again. Its arrays are kept from layout
+ * to layout (a count, not a new array: a layout allocates a bounded amount).
  */
 class SectionReads implements StoreReader {
-  readonly keys: string[] = [];
-  readonly versions: number[] = [];
-  readonly sources: string[] = [];
-  readonly coverages: (Coverage | undefined)[] = [];
-  constructor(private readonly data: StoreReader) {}
+  private keys: string[] = [];
+  private versions: number[] = [];
+  private n = 0;
+  private sources: string[] = [];
+  private coverages: (Coverage | undefined)[] = [];
+  private m = 0;
+  private data!: StoreReader;
+  begin(data: StoreReader): void {
+    this.data = data;
+    this.n = 0;
+    this.m = 0;
+  }
   coverage(source: string) {
     const c = this.data.coverage(source);
-    this.sources.push(source);
-    this.coverages.push(c);
+    this.sources[this.m] = source;
+    this.coverages[this.m++] = c;
     return c;
   }
   keysOf(w: Want) {
@@ -297,34 +318,119 @@ class SectionReads implements StoreReader {
   }
   get(key: string) {
     const e = this.data.get(key);
-    this.keys.push(key);
-    this.versions.push(e?.version ?? -1);
+    this.keys[this.n] = key;
+    this.versions[this.n++] = e?.version ?? -1;
     return e;
   }
   /** Whether they read the same again (read through `data`, so a renderer's reader records them as read). */
   hold(data: StoreReader): boolean {
-    for (let i = 0; i < this.keys.length; i++)
-      if ((data.get(this.keys[i])?.version ?? -1) !== this.versions[i]) return false;
-    for (let i = 0; i < this.sources.length; i++)
-      if (data.coverage(this.sources[i]) !== this.coverages[i]) return false;
+    for (let i = 0; i < this.n; i++) if ((data.get(this.keys[i])?.version ?? -1) !== this.versions[i]) return false;
+    for (let i = 0; i < this.m; i++) if (data.coverage(this.sources[i]) !== this.coverages[i]) return false;
     return true;
   }
 }
 
-/** What a section kept from its last layout, and what it was laid out for. */
-interface SectionCache {
-  readonly layout: SectionLayout;
-  readonly section: ResolvedSection;
-  readonly stamp: ViewStamp;
-  readonly y: number;
-  readonly axis: AxisTransform | undefined;
-  readonly viewport: Viewport | undefined;
-  readonly reads: SectionReads;
-  readonly wants: readonly Want[];
-  readonly issues: readonly Issue[];
-  readonly used: readonly string[];
-  readonly showing: readonly string[];
-  readonly extents: readonly (readonly [string, number, number])[];
+/** Where a section's layout reports to this frame: the view's wants, issues, held domains, lays used, nodes shown. */
+interface FrameSinks {
+  readonly wants: Want[];
+  readonly report: (i: Issue) => void;
+  readonly theme: ThemeContext;
+  readonly used: Set<string>;
+  readonly showing: Set<string>;
+}
+
+/**
+ * What a section kept from its last layout, what it was laid out for, and what that layout gave the frame (wants,
+ * issues, extents, lays used, nodes shown), replayed when it is reused. One a section, kept across frames: its arrays,
+ * its reads, its theme and its sinks are made once (a layout allocates a bounded amount).
+ */
+class SectionCache {
+  layout!: SectionLayout;
+  section!: ResolvedSection;
+  stamp!: ViewStamp;
+  y = 0;
+  axis: AxisTransform | undefined;
+  viewport: Viewport | undefined;
+  readonly reads = new SectionReads();
+  private wants: Want[] = [];
+  private nw = 0;
+  private issues: Issue[] = [];
+  private ni = 0;
+  private used: string[] = [];
+  private nu = 0;
+  private showing: string[] = [];
+  private ns = 0;
+  private extentKeys: string[] = [];
+  private extentValues: number[] = [];
+  private ne = 0;
+  private sinks!: FrameSinks;
+
+  /** Starts a layout of the section for a frame. */
+  begin(data: StoreReader, sinks: FrameSinks): void {
+    this.reads.begin(data);
+    this.sinks = sinks;
+    this.nw = 0;
+    this.ni = 0;
+    this.nu = 0;
+    this.ns = 0;
+    this.ne = 0;
+  }
+
+  readonly want = (w: Want): void => {
+    this.wants[this.nw++] = w;
+    this.sinks.wants.push(w);
+  };
+
+  readonly report = (i: Issue): void => {
+    this.issues[this.ni++] = i;
+    this.sinks.report(i);
+  };
+
+  addUsed(key: string): void {
+    this.used[this.nu++] = key;
+    this.sinks.used.add(key);
+  }
+
+  addShowing(a: string, b: string): void {
+    this.showing[this.ns++] = a;
+    this.showing[this.ns++] = b;
+    this.sinks.showing.add(a).add(b);
+  }
+
+  /** The themes a section's layers read: the frame's, with the extents it saw recorded. */
+  readonly theme: ThemeContext = (() => {
+    const self = this;
+    return {
+      get schemes() {
+        return self.sinks.theme.schemes;
+      },
+      get measures() {
+        return self.sinks.theme.measures;
+      },
+      get cvdSafe() {
+        return self.sinks.theme.cvdSafe;
+      },
+      scale: (a) => self.sinks.theme.scale(a),
+      domain: (k) => self.sinks.theme.domain(k),
+      extent: (k, lo, hi) => {
+        self.extentKeys[self.ne] = k;
+        self.extentValues[2 * self.ne] = lo;
+        self.extentValues[2 * self.ne + 1] = hi;
+        self.ne++;
+        self.sinks.theme.extent(k, lo, hi);
+      },
+    } as ThemeContext;
+  })();
+
+  /** Gives this frame what the kept layout gave its own. */
+  replay(sinks: FrameSinks): void {
+    for (let i = 0; i < this.nw; i++) sinks.wants.push(this.wants[i]);
+    for (let i = 0; i < this.ni; i++) sinks.report(this.issues[i]);
+    for (let i = 0; i < this.nu; i++) sinks.used.add(this.used[i]);
+    for (let i = 0; i < this.ns; i++) sinks.showing.add(this.showing[i]);
+    for (let i = 0; i < this.ne; i++)
+      sinks.theme.extent(this.extentKeys[i], this.extentValues[2 * i], this.extentValues[2 * i + 1]);
+  }
 }
 
 /** The view's parts a section's layout reads (size, ratio, tokens, text, overlay, config, types, themes, domains). */
@@ -394,8 +500,21 @@ function sameAxis(a: AxisTransform | undefined, b: AxisTransform | undefined): b
   if (a === b) return true;
   if (!a || !b) return false;
   return (
-    a.pieces === b.pieces && a.u0 === b.u0 && a.u1 === b.u1 && a.x0 === b.x0 && a.width === b.width && a.dir === b.dir
+    a.u0 === b.u0 &&
+    a.u1 === b.u1 &&
+    a.x0 === b.x0 &&
+    a.width === b.width &&
+    a.dir === b.dir &&
+    samePieces(a.pieces, b.pieces)
   );
+}
+
+/** Two pieces arrays alike by value (a follower's are made again each frame). */
+function samePieces(a: readonly number[], b: readonly number[]): boolean {
+  if (a === b) return true;
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  return true;
 }
 
 /** Whether a section's kept layout is this frame's: its view parts, place, window, viewport by its layout, reads. */
@@ -568,6 +687,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
   const showing = new Set<string>();
   // what a section's reuse compares besides its own viewport and reads (_spec/README.md "Render", The key)
   const stamp = viewStamp(input, config, dpr, overlay, state);
+  const sinks: FrameSinks = { wants, report, theme, used, showing };
   let y = config.inset;
   for (const section of input.view.sections) {
     if (sections.length) y += config.sectionGap;
@@ -585,36 +705,19 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     // The key: per section)
     const kept = state.sections.get(section.address);
     if (kept && reusable(kept, section, layout, stamp, y, axis, viewport, input.data)) {
-      for (const w of kept.wants) wants.push(w);
-      for (const i of kept.issues) report(i);
-      for (const k of kept.used) used.add(k);
-      for (const k of kept.showing) showing.add(k);
-      for (const [k, lo, hi] of kept.extents) theme.extent(k, lo, hi);
+      kept.replay(sinks);
       sections.push(kept.layout);
       y += kept.layout.height;
       continue;
     }
-    const mine = new SectionReads(input.data);
-    const sectionWants: Want[] = [];
-    const sectionIssues: Issue[] = [];
-    const sectionUsed: string[] = [];
-    const sectionShowing: string[] = [];
-    const sectionExtents: [string, number, number][] = [];
-    const sectionReport = (i: Issue) => {
-      sectionIssues.push(i);
-      report(i);
-    };
-    const sectionTheme: ThemeContext = {
-      ...theme,
-      extent: (key, lo, hi) => {
-        sectionExtents.push([key, lo, hi]);
-        theme.extent(key, lo, hi);
-      },
-    };
-    const want = (w: Want) => {
-      sectionWants.push(w);
-      wants.push(w);
-    };
+    // the kept layout's placement, read before the cache starts again
+    const prevPlacement = kept?.layout?.layout === layout ? kept.layout.placement : undefined;
+    const cache = kept ?? new SectionCache();
+    cache.begin(input.data, sinks);
+    const mine = cache.reads;
+    const sectionReport = cache.report;
+    const sectionTheme = cache.theme;
+    const want = cache.want;
     const top = y;
     // a template is expanded here, over the overlay, into a track per node it selects; its source's region in view is
     // wanted, so the nodes it brings arrive
@@ -624,7 +727,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         shown.push(track);
         continue;
       }
-      if (axis) wantTemplate({ ...input, data: mine }, section, track.template, axis, overlay, { push: want });
+      if (axis) wantTemplate(input, mine, section, track.template, axis, overlay, want);
       const instances = expandTemplate(input.model, overlay, section, track, config.maxTemplateTracks);
       if (instances.length >= config.maxTemplateTracks && templateNodes(track, overlay).length > instances.length)
         sectionReport(
@@ -644,7 +747,6 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     const nb = shown.length;
     const lays: LayerLayout[][] = [];
     const stripBreaks: number[][] = [];
-    const prevPlacement = kept?.layout.layout === layout ? kept.layout.placement : undefined;
     // one layer's layout into its kept lay (its cache key: the layer's, by strip where a layout has several)
     const layOne = (
       track: ResolvedTrack,
@@ -658,22 +760,16 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       const keptLay = state.lays.get(cacheKey);
       const lay = type.layout(prep, ctx, mine, overlay, keptLay?.type === type ? keptLay.lay : undefined);
       state.lays.set(cacheKey, { type, lay });
-      used.add(cacheKey);
-      sectionUsed.push(cacheKey);
+      cache.addUsed(cacheKey);
       // what a shown layer draws and goes through (a node, an item system)
-      if (layer.data) {
-        showing.add(layer.data.address).add(layer.data.system);
-        sectionShowing.push(layer.data.address, layer.data.system);
-      }
-      for (const e of layer.path?.edges ?? []) {
-        showing.add(e.from).add(e.to);
-        sectionShowing.push(e.from, e.to);
-      }
+      if (layer.data) cache.addShowing(layer.data.address, layer.data.system);
+      const edges = layer.path?.edges;
+      if (edges) for (let e = 0; e < edges.length; e++) cache.addShowing(edges[e].from, edges[e].to);
       return { key: ctx.key, layer, type, lay };
     };
     /** A layer's type: the first of its fallbacks drawn here; none is said. */
     const typeOf = (layer: ResolvedLayer, key: string): LayerType<any, any> | undefined => {
-      const type = layer.fallbacks.map((t) => types[t]).find((t) => t !== undefined);
+      const type = firstType(layer, types);
       if (!type)
         sectionReport(
           issueOf(RenderIssues, 'seq.render.layer.type', 'No type of the layer’s fallbacks is drawn here', {
@@ -737,12 +833,12 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     };
     /** The `section` layers: once a section, over its box on the page, the placement their reader. */
     const laySection = (placement: Placement, a: AxisTransform): LayerLayout[] => {
-      const out: LayerLayout[] = [];
+      let out = NoSectionLays;
       for (const track of shown)
         for (const layer of track.layers) {
           if (!layer.placed || layer.params.hidden === true) continue;
           const key = layerKey(track, layer);
-          const type = layer.fallbacks.map((t) => types[t]).find((t) => t !== undefined);
+          const type = firstType(layer, types);
           if (type?.scope !== 'section') continue;
           const ctx: LayoutContext = {
             box: placement.box,
@@ -761,6 +857,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
             place: placement,
             labels: 'inside',
           };
+          if (out === NoSectionLays) out = [];
           out.push(layOne(track, layer, type, `${key}@section`, ctx));
         }
       return out;
@@ -879,20 +976,13 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       config,
     };
     sections.push(sectionLayout);
-    state.sections.set(section.address, {
-      layout: sectionLayout,
-      section,
-      stamp,
-      y: top,
-      axis,
-      viewport,
-      reads: mine,
-      wants: sectionWants,
-      issues: sectionIssues,
-      used: sectionUsed,
-      showing: sectionShowing,
-      extents: sectionExtents,
-    });
+    cache.layout = sectionLayout;
+    cache.section = section;
+    cache.stamp = stamp;
+    cache.y = top;
+    cache.axis = axis;
+    cache.viewport = viewport;
+    state.sections.set(section.address, cache);
   }
   // a section gone from the view lets its cache go
   if (state.sections.size > input.view.sections.length) {
@@ -932,20 +1022,21 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
  */
 function wantTemplate(
   input: LayoutInput,
+  data: StoreReader,
   section: ResolvedSection,
   template: TrackTemplate,
   axis: AxisTransform,
   overlay: Overlay,
-  out: { push(w: Want): void },
+  out: (w: Want) => void,
 ) {
   const pieces = axis.visible([]);
-  const coverage = input.data.coverage(template.source);
+  const coverage = data.coverage(template.source);
   const name = input.model.systems.get(section.axis.system)?.name;
   const info = coverage?.systems.find((s) => s.name === name || (name !== undefined && s.aliases?.includes(name)));
   if (coverage && info) {
     const level = fitLevel(coverage.levels, 1 / axis.devicePx);
     for (let i = 0; i + 1 < pieces.length; i += 2)
-      out.push({
+      out({
         source: template.source,
         system: info.name,
         start: Math.floor(pieces[i]),
@@ -955,7 +1046,7 @@ function wantTemplate(
   }
   if (template.depth < 1) return;
   for (const nested of overlay.nested(new Map([[template.source, template.depth]]))) {
-    const cov = input.data.coverage(nested.address);
+    const cov = data.coverage(nested.address);
     for (const s of cov?.systems ?? []) {
       const target = overlay.systemNamed(s.name, nested.parent);
       if (!target) continue;
@@ -966,7 +1057,7 @@ function wantTemplate(
       const ratio = path?.step === 1 ? 3 : path?.step === -1 ? 1 / 3 : 1;
       const level = fitLevel(cov!.levels, ratio / axis.devicePx);
       for (let i = 0; i + 1 < ranges.length; i += 2)
-        out.push({
+        out({
           source: nested.address,
           system: s.name,
           start: Math.floor(ranges[i]),
