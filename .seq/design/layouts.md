@@ -482,7 +482,9 @@ interface Placement {
   (never on a window move or a hover), sorted by angle or position, spread a line apart, upright; those a side or lane
   cannot hold are dropped by the same priority in both (the layer's order, then the longer item). The same text style
   (size, weight) in both; the ink is the contrast colour against the mark's fill inside, the text colour beside
-  (decided, the author, 2026-11-19: "contrast inside, text beside"). A placed label's hit is its item's. Why: one feature read two ways
+  (decided, the author, 2026-11-19: "contrast inside, text beside"). A leader never crosses another label or mark (a label that cannot be placed so is dropped). Neighbouring items of
+  one layer with the same label, less than a label's width apart, are labelled once at the run's start, no leader to
+  each (decided, the author, 2026-11-20: "Label a run once"; the hover card still names each). A placed label's hit is its item's. Why: one feature read two ways
   in two views of one map is two rules to learn; inside first keeps the label on its mark where there is room.
 - **The hole holds the title**: the section's label and the system's length (`rings.center: 'title'`).
 - **A feature across the origin** is drawn as one arc (two pieces meeting at the seam), selected as two runs (EC-9),

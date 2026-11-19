@@ -83,7 +83,8 @@ Provisional, from the third slice's `state.md`; replaced by its decided fold-bac
 
 ## Gate 0 (the author, before any build lane)
 
-Each with a recommendation.
+Decided (the author, 2026-11-20: "Accept all"): every question as recommended; the lane default one strong and one
+or two fast at once (not one at a time).
 
 1. **When it starts.** The build lanes after the third slice closes (finalize, fold-back, record); DR and the stage 0
    designs before, since they write only this folder. DR copies the two drafts into `fourth-slice/drafts/` and revises

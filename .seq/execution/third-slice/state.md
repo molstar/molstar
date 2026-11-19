@@ -474,3 +474,7 @@ None.
   after PZ's base); the wheel taken over the plot's data box only, not its labels; the x section's block row snapped as
   the grid's so columns align. XD's gaps decided (gap 2: namespaced keys, no `custom`); the viewer's four API
   additions accepted; SP and XD being promoted.
+- PF merged (gaps zoom, the wheel over the data box, block rows snapped). The fourth slice's Gate 0 accepted as
+  recommended (the author, 2026-11-20), lanes one strong and one or two fast. `custom` kept for a host's own data.
+  Decided (the author, 2026-11-20, Complex › Blocks › Row: a leader through another label; "Label a run once"): a
+  leader never crosses a label or mark; same-label neighbours labelled once (layouts.md); lane LX (fast) starts.
