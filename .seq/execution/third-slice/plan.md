@@ -252,6 +252,14 @@ and dark before the merge.
       suppressed click return before resetting it, so a later double-click on a rail (or after a drag) brings back a
       selection cleared long before. Reset it on every click that is not a double-click's second; a test for each path
       (rows rail, ruler rail, after a drag, a tree node, the filter chip) that fails on the parent.
+- [ ] HB (fast, after LG or DX frees a fast slot; the author, 2026-11-19: "hovering a CDK copy also highlights on
+      cyclin, but only when within range") the hover's cell outline on its own system only: in a section of blocks each
+      block is a strip with its own axis, and `hoverCell` (`render/marks.ts`) and the letters' hover pass outline the
+      hovered position in every strip whose range holds it, whatever the block's system. Check the hit's `system`
+      against the strip's (another copy of the same chain still lights: one Location keyed by system, by design); the
+      same check for every layer's hover pass over blocks (letters, logo, ranges, values, grid). Tests on Complex ›
+      Blocks (split, row and stacked): a CDK2 position lights both CDK2 copies and no cyclin, near and past the cyclin's
+      length; canvas and SVG.
 - [ ] RC (strong, after FS-A1, before DG; the author, 2026-11-19: "an extra column with some annotation next to each
       header… to the right of the sequence data", "ok, schedule it like that") row columns: the rows layer's `columns`
       (`field`, `side: left | right`, `as: text | number | bar | chip`, `width`, `title`), fields from `#=GS` lines,
