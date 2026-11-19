@@ -66,14 +66,18 @@ RW's fixes was checked in light only (Scale's tiles in canvas and SVG, labels wh
 - RF merged (`1e0782e9e`): the rows' numbers in view, the generated labels' ranges (the 247), the right gutter
   clipped at the band's foot. Post-merge: unit 151 / 1469, typechecks, storybook, lint, format: exit 0.
 
+- NV merged (`96a649d1f`, changelog `seq-navigators.md`): four rounds (review's 13 bugs; stories added; the ideogram
+  and plasmid strip blank at dpr 2; placement; the overview's width and rows window; the rows rail, decided; the
+  wash). Post-merge: unit 161 / 1578, typechecks, storybook, lint, format, perf 102, the `.seq` checks: exit 0.
+
 ## In progress
+
+- GD (strong): the gaps decided, `briefs/gd-gap-decisions.md`, started 2026-11-19.
 
 - MD drafted (`drafts/molecules.md`): a `molecule` kind, `sequence.components`, `complex`/`unit`, a `group` map, 0.5.0
   for the fourth slice (lanes ML, MC, MR, MX); 9 gaps. Reviewed (8 must-changes, all taken) and revised; agreed by the author 2026-11-19 ("Other recommendations from
   the design ok"; gap 10 off; gap 11 superseded by the seq data ports design, fourth slice): `.seq/design/molecules.md`
   with its Design page; maps.md, base-library.md, examples.md updated.
-- NV in its third round (2026-11-19): the look found the ideogram and the plasmid strip blank in the browser
-  (twins pass) and the parts mounted over the toolbar and the alignment; merging packages-seq (PG's hit signature).
 - PG and NV reported (branches `seq/pg-pairs-grids`, `seq/nv-navigators`, base `51787bb2b`); checks rerun by the
   orchestrator: PG green (unit 1433); NV green but heavy, whose two failures (rows-time's theme change, themes' 1.1×
   ratio) also fail on `packages-seq` under load and pass alone on NV: flaky bounds, to stage 4's gate. Reviews running

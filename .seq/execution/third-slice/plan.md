@@ -197,7 +197,7 @@ and dark before the merge.
       `seqx-core` (property tests: `sample(plan, 0)` is `from`, `sample(plan, 1)` is `to`, monotone, deterministic,
       allocation-free warm); the frame slot over the shown state; the `AnimationPort` with its default and headless
       adapters; the view history's jumps and focus through it; the p53 story played, scrubbed and exported.
-- [ ] NV (strong, after RW) navigators, as [navigators](../../design/navigators.md): one part by the axes it covers
+- [x] NV (strong, after RW) navigators, as [navigators](../../design/navigators.md): one part by the axes it covers
       (positions, rows, or both), drawn from the coarse summaries the views already read, the window dragged and
       resized to move the view, idle when there is nowhere to go, a floored window drawn wider (EC-110), a part a host
       places:
