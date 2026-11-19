@@ -10,7 +10,7 @@
 // double-click revealing the element's first line with the size kept, a drag past the box's edge scrolling it by the
 // clock), a linked selection revealed, and the letters copied as shown.
 
-import { PlacePoint, type TextPlacement } from '@molstar/seqx-core/render';
+import { type DrawLists, PlacePoint, recordDrawLists, type TextPlacement } from '@molstar/seqx-core/render';
 import { P53Views } from '@molstar/seqx-examples';
 import { P53 } from '@molstar/seqx-examples/p53/data';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
@@ -203,6 +203,40 @@ describe('a text section and the rest of the view', () => {
     await v.execute('selection.add', { range: { system: System, start: 0, end: 5 } });
     await flush(v);
     expect(placement(v).anchor).toBe(top);
+  });
+
+  it('the SVG holds every line of the figure: its height the figure’s, not the canvas’s box', async () => {
+    const v = await open('text');
+    const r = await v.renderSvg();
+    const height = Number(/^<svg[^>]* height="([\d.]+)"/.exec(r.svg)![1]);
+    const ys = recordDrawLists(r.lists, ['data'])
+      .split('\n')
+      .filter((l) => l.startsWith('glyphs '))
+      .map((l) => Number(l.split(' ')[3]));
+    // every residue drawn, the last line's baseline inside the picture
+    expect(ys.length).toBe(Math.ceil(P53.length / placement(v).geometry!.unitsPerLine));
+    expect(Math.max(...ys)).toBeLessThan(height);
+    expect(height).toBeGreaterThan(v.height);
+  });
+
+  it('the SVG lays the lines out as the canvas does: the same tops for the lines both show', async () => {
+    for (const id of ['text', 'text-under-tracks']) {
+      const v = await open(id);
+      // each line's letters' baseline, from the first line's (the letters band is each line's first)
+      const baselines = (lists: DrawLists) => {
+        const ys = recordDrawLists(lists, ['data'])
+          .split('\n')
+          .filter((l) => l.startsWith('glyphs '))
+          .map((l) => Number(l.split(' ')[3]));
+        return ys.map((y) => Math.round((y - ys[0]) * 100) / 100);
+      };
+      const canvas = baselines(v.frame!.lists);
+      const svg = baselines((await v.renderSvg()).lists);
+      expect(canvas.length, id).toBeGreaterThan(2);
+      expect(svg.slice(0, canvas.length), id).toEqual(canvas);
+      viewer?.retire();
+      viewer = undefined;
+    }
   });
 
   it('copies the selection’s letters as shown (selection.copyLetters), each run a line', async () => {

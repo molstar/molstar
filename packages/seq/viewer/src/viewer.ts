@@ -22,6 +22,7 @@ import {
   type Viewport as RenderViewport,
   hitView,
   resolveColor,
+  sectionLayoutName,
   textMinScale,
 } from '@molstar/seqx-core/render';
 import { type Location, locationOfResult } from '@molstar/seqx-core/query';
@@ -919,8 +920,10 @@ export class SeqViewer extends ReactiveModel {
   renderSvg(options: Partial<RenderSvgOptions> = {}): Promise<RenderSvgResult> {
     const resolved = this.view.resolved.value;
     const viewports = resolved ? this._viewports(resolved, this._viewport(resolved)) : undefined;
+    // a text section exports every line (the figure): the picture is as tall as it, not the canvas's scrolled box
+    const figure = resolved?.sections.some((s) => sectionLayoutName(s, resolved) === 'text') ?? false;
     return this.context.renderSvg(this.spec.shown.value, {
-      size: { width: this.width, height: this.height },
+      size: { width: this.width, height: figure ? 'auto' : this.height },
       ...(resolved ? { view: resolved.address } : {}),
       ...(viewports ? { viewports } : {}),
       store: this.store.store,
