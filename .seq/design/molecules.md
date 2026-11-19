@@ -480,33 +480,37 @@ The fourth slice builds it, after the third slice's DG, DC, DT and LB (chips) an
 - **MX** (strong, after MR) the examples changed once: DT, DC, DG to the new kinds; the glycan and ADC views; stories,
   headless twins, drawing against the data.
 
-## Gaps for the author
+## Decided by the author
 
-1. A new `molecule` kind beside `sequence`, rather than one kind with an alphabet of components? Recommend **yes**.
-2. A modified residue's letter is its parent's (MSE is `M`), the component beside it? Recommend **yes**.
-3. A modified residue marked by default in `letters` (`modified: mark`)? Recommend **yes**.
-4. A molecule block drawn `whole` (a chip) by default, a glycan included, its residues and atoms by patch? Recommend
-   **yes**.
-5. Water left out of a section of a complex by default (`classes` without `water`)? Recommend **yes**.
+2026-11-19: "Other recommendations from the design ok" (gaps 1–9 and 12–14 as recommended); gap 10 off; gap 11
+superseded by the seq data ports design.
+
+1. A new `molecule` kind beside `sequence`, rather than one kind with an alphabet of components? Recommended **yes**: **decided yes**.
+2. A modified residue's letter is its parent's (MSE is `M`), the component beside it? Recommended **yes**: **decided yes**.
+3. A modified residue marked by default in `letters` (`modified: mark`)? Recommended **yes**: **decided yes**.
+4. A molecule block drawn `whole` (a chip) by default, a glycan included, its residues and atoms by patch? Recommended
+   **yes**: **decided yes**.
+5. Water left out of a section of a complex by default (`classes` without `water`)? Recommended **yes**: **decided yes**.
 6. A component over several positions (CRO as T, Y, G): the canonical letters, rather than the structure's one
-   monomer? Recommend **yes**, until the structure maps' design says otherwise.
+   monomer? Recommended **yes**: **decided yes**, until the structure maps' design says otherwise.
 7. A modification known by name only (UniProt's PTMs) as a `ranges` item of type `modified` that
-   `(component :standard false)` also finds, rather than a `modified` row with a name and no component? Recommend
-   **yes**.
-8. Several components at one position: all kept, the first giving the letter, all on hover and in queries? Recommend
-   **yes**.
-9. Identifier namespaces open words, with a documented vocabulary, rather than a fixed list? Recommend **yes**.
+   `(component :standard false)` also finds, rather than a `modified` row with a name and no component? Recommended
+   **yes**: **decided yes**.
+8. Several components at one position: all kept, the first giving the letter, all on hover and in queries? Recommended
+   **yes**: **decided yes**.
+9. Identifier namespaces open words, with a documented vocabulary, rather than a fixed list? Recommended **yes**: **decided yes**.
 10. ~~`links.hover` on in the default spec~~ **Decided off** (the author, 2026-11-19): how events from different parts
     compose is the application's; the library offers the behavior, a host adds it.
 11. ~~One CIF-to-nodes converter~~ **Superseded** (the author, 2026-11-19: "we should also be able to share data
     representation with mol* ... maybe we could have generic representation ports, similar to mol io, we could write
     seq io"): how Seq\* and a host share one data representation (Seq\*'s nodes read from a Mol\* `Model` or
     `Structure` in memory, not parsed again; Seq\*'s annotations given to Mol\* as representations) is its own design,
-    "seq io", in the fourth slice before MC; MC builds on it.
+    seq data ports (the author's name for it: "the same principle not the same functionality"), in the fourth
+    slice before MC; MC builds on it.
 12. The mmCIF runtime as an opt-in entry of `seqx-core` (`runtimes/mmcif`) on `@molstar/io`'s CIF reader, rather than
-    a package of its own? Recommend **yes**.
+    a package of its own? Recommended **yes**: **decided yes**.
 13. The standard component per letter in `@molstar/core` beside the one-letter codes (a public addition, a new
-    base-library.md row)? Recommend **yes**.
+    base-library.md row)? Recommended **yes**: **decided yes**.
 14. This slice's DC row "ATP ... joined by a many-to-one map" (examples.md): 0.4.0 has no such map (`offset`, `codon`
     only). DC writes ATP's two forms as two sequences with no map this slice, hover not crossing until the fourth
-    slice? Recommend **yes**, and examples.md's row reworded with DC.
+    slice? Recommended **yes**: **decided yes**, and examples.md's row reworded with DC.

@@ -1,0 +1,31 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Design/Molecules" />
+
+# Molecules
+
+What is not a linear polymer of letters: a ligand, an ion, a drug, a glycan, and the modified residues inside a polymer.
+Seq\* holds **pointers and labels, never chemistry**: a component code, a SMILES or a GlyTouCan id is a string it
+matches and shows; parsing and depicting chemistry is a host's. Built in the fourth slice (language 0.5.0).
+
+## Kinds
+
+- A **molecule** sits beside a sequence: its positions are its components (one for ATP, several for a glycan), it
+  carries identifiers as open words (`ccd:ATP`, `smiles:…`, `glytoucan:…`), and optionally its heavy atoms as a second
+  form. Its residues and atoms are joined by a many-to-one map applied only at a path's ends.
+- A **modified residue** keeps its parent's letter (MSE draws as M, PSU as U) and carries its component, marked on the
+  letter and named on hover; several components at one position are all kept. A modification known by name only (a
+  UniProt PTM) is a `modified` range, found by the same query.
+- A **complex** has **units** (chains and molecules in a structure, each with its author numbering); copies are derived.
+  Its **links** (a drug on a lysine, a glycan on an asparagine, a disulfide) are a pairs node.
+
+## On an axis
+
+A molecule is a chip in every layout by default (its label, a fixed slot); its residues or atoms by patch. A section of
+a complex lays out polymers first, then molecules; water is left out unless asked. Where a molecule binds, and whether
+hovering it lights its linked sites, is the application's to turn on.
+
+## Reading
+
+From the `seq` format, and from mmCIF through an opt-in runtime on `@molstar/io`'s reader. Sharing the parsed
+representation with a host such as Mol\*, rather than parsing again, is a design of its own: the seq data ports.

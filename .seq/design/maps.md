@@ -33,7 +33,10 @@ to structural data .. basically SIFTS, but in abstract form."
 - **Structure maps, SIFTS in abstract form**:
   - A structure system is a chain instance (entry, model, assembly operator, chain); its positions are its residues in
     the structure's order, each with a key (sequence index where the structure has one; author number and insertion
-    code) and an observed flag.
+    code) and an observed flag. Read as a `unit` of a complex ([molecules](molecules.md), agreed 2026-11-19; the
+    structure lane confirming); units are systems on the paths' free steps under the copy rule, as built.
+- **A molecule's atoms onto its residues** ([molecules](molecules.md)): a many-to-one map applied only at a path's ends
+  (atoms collapsed before projection, expanded after), never a kind on paths, which stay one linear map with a scale.
   - A `structure` map relates a sequence (UniProt, or a construct) to that chain: segments, each with its provenance
     (SIFTS, an alignment, the author's numbering), and per-residue status: paired, conflict (an engineered mutation, a
     microheterogeneity), unpaired (an expression tag, a linker), unobserved.

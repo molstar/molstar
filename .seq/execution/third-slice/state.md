@@ -69,7 +69,9 @@ RW's fixes was checked in light only (Scale's tiles in canvas and SVG, labels wh
 ## In progress
 
 - MD drafted (`drafts/molecules.md`): a `molecule` kind, `sequence.components`, `complex`/`unit`, a `group` map, 0.5.0
-  for the fourth slice (lanes ML, MC, MR, MX); 9 gaps. Reviewed (8 must-changes, all taken) and revised; 14 gaps for the author.
+  for the fourth slice (lanes ML, MC, MR, MX); 9 gaps. Reviewed (8 must-changes, all taken) and revised; agreed by the author 2026-11-19 ("Other recommendations from
+  the design ok"; gap 10 off; gap 11 superseded by the seq data ports design, fourth slice): `.seq/design/molecules.md`
+  with its Design page; maps.md, base-library.md, examples.md updated.
 - NV in its third round (2026-11-19): the look found the ideogram and the plasmid strip blank in the browser
   (twins pass) and the parts mounted over the toolbar and the alignment; merging packages-seq (PG's hit signature).
 - PG and NV reported (branches `seq/pg-pairs-grids`, `seq/nv-navigators`, base `51787bb2b`); checks rerun by the
