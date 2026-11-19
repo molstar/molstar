@@ -181,7 +181,9 @@ export class StripPlacement implements Placement {
     return lo - 1;
   }
 
-  at(x: number, y: number, out: PlacePoint): boolean {
+  at(p: ArrayLike<number>, out: PlacePoint): boolean {
+    const x = p[0];
+    const y = p[1];
     const b = this.box;
     out.strip = -1;
     out.band = -1;
@@ -207,11 +209,14 @@ export class StripPlacement implements Placement {
       }
     }
     const a = s.axes[i];
+    // without groups (the common case) the axis's `inGap` and `unitAt` inlined by hand: `fx` is computed, and a number
+    // computed and passed to a call that is not inlined is boxed (a hit allocates nothing, `Placement.at`)
+    const grouped = a.gsize !== 0;
     if (fx < a.x0) out.kind = 'gutter';
     else if (fx >= a.x0 + a.width) out.kind = 'gutter';
-    else if (out.band < 0 || a.inGap(fx)) out.kind = 'gap';
+    else if (out.band < 0 || (grouped && a.inGap(fx))) out.kind = 'gap';
     else out.kind = 'data';
-    if (out.kind === 'data') out.offset = a.unitAt(fx);
+    if (out.kind === 'data') out.offset = grouped ? a.unitAt(fx) : a.u0 + (fx - a.x0) / a.scale;
     return true;
   }
 

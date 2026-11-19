@@ -83,7 +83,7 @@ describe('the text layout', () => {
         const y = top[pt.strip] + p.strips.bandY[pt.strip * 2] + 2;
         // the last line in view may run past the box's bottom (it scrolls inside)
         if (y >= p.box.y + p.box.height) break;
-        expect(p.at(pt.x, y, pt)).toBe(true);
+        expect(p.at([pt.x, y], pt)).toBe(true);
         expect(pt.kind).toBe('data');
         expect(Math.floor(pt.offset)).toBe(u);
         const o = p.offsetAt(p.strips.axes[pt.strip].xOfUnit(u + 0.5), y);
@@ -209,7 +209,7 @@ describe('the text layout', () => {
     for (let u = 0; u < 61 + 198; u += 7) {
       expect(t.place(u + 0.5, pt)).toBe(true);
       const page = { x: pt.x, y: pt.y };
-      expect(t.at(page.x, page.y, pt)).toBe(true);
+      expect(t.at([page.x, page.y], pt)).toBe(true);
       expect(Math.floor(pt.offset)).toBe(u);
     }
     const c: NavContext = { total: 259, width: 600, height: 400, cyclic: false, maxScale: 32, placement: t };

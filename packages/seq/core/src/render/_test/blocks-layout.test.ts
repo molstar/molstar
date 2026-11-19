@@ -75,7 +75,7 @@ describe('blocks in the tracks layout', () => {
     let last = -Infinity;
     for (let u = 0; u < 201; u++) {
       expect(p.place(u + 0.5, pt)).toBe(true);
-      expect(p.at(pt.x, pt.y, pt)).toBe(true);
+      expect(p.at([pt.x, pt.y], pt)).toBe(true);
       expect(pt.kind).toBe('data');
       expect(Math.floor(pt.offset)).toBe(u);
       const o = p.offsetAt(pt.x, pt.y);
@@ -147,7 +147,7 @@ describe('blocks in the tracks layout', () => {
     expect(pt.strip).toBe(0);
     // a point on the second row is the second block's
     const y = p.strips.bandY[p.strips.bands] + 2;
-    expect(p.at(p.strips.axes[1].xOfUnit(30.5), y, pt) && pt.strip).toBe(1);
+    expect(p.at([p.strips.axes[1].xOfUnit(30.5), y], pt) && pt.strip).toBe(1);
     expect(keysAt(f, p, 1, 30)).toEqual(['box']);
     // each row draws its own letters (a layer of the same key on every block: its lays kept a block each)
     for (let i = 0; i < p.strips.n; i++) {
@@ -170,7 +170,7 @@ describe('blocks on a ring', () => {
     const pt = new PlacePoint();
     for (let u = 0; u < 201; u += 3) {
       p.place(u + 0.5, pt);
-      expect(p.at(pt.x, pt.y, pt) && Math.floor(pt.offset)).toBe(u);
+      expect(p.at([pt.x, pt.y], pt) && Math.floor(pt.offset)).toBe(u);
     }
     // the block labels lead the outside labels
     const placed = Array.from({ length: p.labels.m }, (_, k) => p.labels.text[p.labels.placed[k]]);

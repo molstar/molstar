@@ -1966,6 +1966,8 @@ const Point = new PlacePoint();
  */
 /** The point a layer's hit reads (`LayerType.hit`): one array, so no number is boxed on the call. */
 const HitAt = new Float64Array(2);
+/** The page point a placement's `at` reads (`Placement.at`: from an array, never passed). */
+const PageAt = new Float64Array(2);
 
 /** `HitAt` set to the placed point (in its strip's frame). */
 function pointAt(): Float64Array {
@@ -2004,7 +2006,9 @@ export function hitView(layout: ViewLayout, x: number, y: number, touch = false)
       const h = l.type.hit(l.lay, HitAt);
       if (h?.element) return h;
     }
-    if (!s.placement.at(x, y, Point)) continue;
+    PageAt[0] = x;
+    PageAt[1] = y;
+    if (!s.placement.at(PageAt, Point)) continue;
     // a band's header in the label column (a rows layer's tree and labels): its layers of two axes hit it
     if (Point.kind === 'gutter' && Point.band >= 0) {
       const lays = s.lays[Point.strip * strips.bands + Point.band];

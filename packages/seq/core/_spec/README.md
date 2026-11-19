@@ -1489,10 +1489,11 @@ numbers): a window move allocates nothing once warm.
   over its extent; repacked only when the view settled and a fresh packing needs fewer lanes. Why: items must not jump
   when a neighboring region arrives.
 - **Hits go through the placement**: the section under the point, its layout's own marks (`hitChrome`), then the point
-  placed (`at`) and the band's layers, topmost first, each `hit` with the point in the strip's frame; a layer's hit box
-  is in its strip's frame, so every drawn mark keeps its hit box through the warp. `system` is the strip's; `block` its
-  index in the section when the section has blocks; `target` `window` (with its `part`) or `row` (a gutter's row) for a
-  layout's marks.
+  placed (`at`, reading the page point from an array as a layer's `hit` does: a number passed to a call that is not
+  inlined is boxed, so a cell's `hitView` allocates nothing past its caller's call) and the band's layers, topmost
+  first, each `hit` with the point in the strip's frame; a layer's hit box is in its strip's frame, so every drawn mark
+  keeps its hit box through the warp. `system` is the strip's; `block` its index in the section when the section has
+  blocks; `target` `window` (with its `part`) or `row` (a gutter's row) for a layout's marks.
 - **Hits** are `{ layer, section, element?, extent?, hull?, position?, system, ySystem?, yPosition?, target? }` (flat: a
   hit of two axes, a rows cell or a grid cell, is the target `cell` with `ySystem` and `yPosition` set, so it allocates
   nothing; `row` a rows header, `tree-node` a tree's node and `summary-row` a folded clade's row, their element the
