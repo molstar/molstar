@@ -9,12 +9,20 @@ import type { AssetManager } from '@molstar/core/util/assets';
 import { SizeLimitExceeded } from '@molstar/core/util/assets';
 import { type FormatRuntime, SeqRuntime } from '@molstar/seqx-core/data';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
-import { DefaultRenderConfig } from '@molstar/seqx-core/render';
+import {
+  BuiltInLayerTypes,
+  BuiltInLayouts,
+  DefaultRenderConfig,
+  LettersType,
+  TextLayout,
+} from '@molstar/seqx-core/render';
 import { describe, expect, it, vi } from 'vitest';
 import {
   AssetRefused,
   BrowserAssetPolicy,
+  BuiltInRenderRegistry,
   checkLocation,
+  composeSeqContext,
   configItem,
   createSeqContext,
   HeadlessAssetPolicy,
@@ -375,5 +383,73 @@ describe('createSeqContext', () => {
     const ctx = createSeqContext({ ports: { textMetrics: () => ({ measure }) } });
     expect(ctx.text.measure('12px sans', 'abc')).toBe(21);
     expect(measure).toHaveBeenCalledWith('12px sans', 'abc');
+  });
+});
+
+describe('layer types and layouts in the registry', () => {
+  const twoLayouts = () => {
+    const b = createSeqSpec({ title: 'two' });
+    const p = b.data.sequence('p', { alphabet: 'protein', letters: 'MEEPQSDP' });
+    const d = b.data.ranges('d', {
+      target: p,
+      rows: { start: new Int32Array([1]), end: new Int32Array([5]), id: ['a'], category: ['a'] },
+    });
+    b.views.view('main', (v) => {
+      const s = v.section('protein', { of: p });
+      s.track('letters').layer('letters', { type: 'letters' });
+      s.track('ranges').layer('r', { type: 'ranges', data: d });
+      v.section('text', { of: p, layout: 'text' }).track('letters').layer('letters', { type: 'letters' });
+    });
+    return b.build();
+  };
+  const codes = (issues: readonly { code: string }[]) => [...new Set(issues.map((i) => i.code))].sort();
+
+  it('composeSeqContext draws what its registry lists, and says what it does not', async () => {
+    const ctx = composeSeqContext({ registry: [{ kind: 'layer-type', type: LettersType }] });
+    expect(Object.keys(ctx.types)).toEqual(['letters']);
+    expect(ctx.layouts).toEqual({});
+    const r = await ctx.renderSvg(twoLayouts(), { size: { width: 400, height: 200 } });
+    expect(codes(r.issues)).toEqual(['seq.render.layer.type', 'seq.render.layout']);
+    expect(r.lists.passes.data.glyphs.n + r.lists.passes.data.texts.n).toBeGreaterThan(0);
+    const none = await composeSeqContext().renderSvg(twoLayouts(), { size: { width: 400, height: 200 } });
+    expect(none.lists.passes.data.glyphs.n + none.lists.passes.data.texts.n).toBe(0);
+  });
+
+  it('createSeqContext lists the built-ins first: every layer and layout drawn, nothing said', async () => {
+    const ctx = createSeqContext();
+    expect(ctx.types).toEqual(BuiltInLayerTypes);
+    expect(ctx.layouts).toEqual(BuiltInLayouts);
+    expect(BuiltInRenderRegistry.length).toBe(
+      Object.keys(BuiltInLayerTypes).length + Object.keys(BuiltInLayouts).length,
+    );
+    const r = await ctx.renderSvg(twoLayouts(), { size: { width: 400, height: 200 } });
+    expect(r.issues).toEqual([]);
+  });
+
+  it('the same type again is counted; another under one name is an error listing all, the context not made', () => {
+    const letters = { kind: 'layer-type', type: LettersType } as const;
+    expect(Object.keys(createSeqContext({ registry: [letters, letters] }).types).length).toBe(
+      Object.keys(BuiltInLayerTypes).length,
+    );
+    const mine = { ...LettersType };
+    const text = { ...TextLayout };
+    expect(() =>
+      createSeqContext({
+        registry: [
+          { kind: 'layer-type', type: mine },
+          { kind: 'layout', layout: text },
+        ],
+      }),
+    ).toThrow(/layer types under one name: letters/);
+    expect(() =>
+      composeSeqContext({
+        registry: [
+          { kind: 'layout', layout: TextLayout },
+          { kind: 'layout', layout: text },
+        ],
+      }),
+    ).toThrow(/layouts under one name: text/);
+    // a host's own type of a built-in's name: the base composition, which lists only it
+    expect(composeSeqContext({ registry: [{ kind: 'layer-type', type: mine }] }).types.letters).toBe(mine);
   });
 });
