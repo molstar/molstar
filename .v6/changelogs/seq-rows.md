@@ -11,3 +11,8 @@
 - A text figure's ruler draws one label a position (a group's end number wins) and the line numbers sit on the ruler's
   label baseline.
 - A row's first and last residue numbers follow the view (the residues in view, never a gap).
+- Rows layers show data columns beside each row's header (`columns`: `field`, `side` left or right, `as` text, number,
+  bar or chip, `width`, `title`), from the alignment's own fields (Stockholm `#=GS` tags, an inline table's extra
+  columns), the measures `length`, `gaps` and `identity`, or a records file joined by row key; a column's title orders
+  the rows by it (again: the other way); on narrow views the columns yield, right ones first. The Globins family shows
+  species and identity.

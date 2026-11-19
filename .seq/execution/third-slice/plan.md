@@ -298,7 +298,7 @@ and dark before the merge.
       `pointerup`/`pointercancel` for the drag's life, `lostpointercapture`, a buttonless move, window `blur` and a
       hidden document end it, once; in `mount.ts`, `mount-navigator.ts` and every storybook drag; tests per mount
       (jsdom: a release dispatched on the window, on another element, a buttonless move, blur).
-- [ ] RC (strong, after FS-A1, before DG; the author, 2026-11-19: "an extra column with some annotation next to each
+- [x] RC (merged after review; strong, after FS-A1, before DG; the author, 2026-11-19: "an extra column with some annotation next to each
       header… to the right of the sequence data", "ok, schedule it like that") row columns: the rows layer's `columns`
       (`field`, `side: left | right`, `as: text | number | bar | chip`, `width`, `title`), fields from `#=GS` lines,
       per-row measures (`length`, `gaps`, `identity`) and a records source joined by row key; titles that order the

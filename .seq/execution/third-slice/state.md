@@ -195,3 +195,7 @@ None.
   in fix rounds after their reviews.
 - QS merged after its review round (looked at: Residue 175 → `/data/p53 175`); the Files stories' head indents compact
   JSON (the fixtures are compact now). Quick lane 1866 passed. RC and LB in fix rounds.
+- LB and RC merged after their review rounds (conflicts with LB and FS-A2 resolved keeping both). Quick 1924, medium 8,
+  perf 120 passed. Identity is PID1-like (either row a residue; gap-gap and insert cells left out), the author may
+  choose another. Sizes after RC: reading a spec 203.9, headless 626.8, viewer default 995.5 kB. DP and DT running; DG
+  and DC start (strong slots).
