@@ -34,7 +34,8 @@ each feeds, with what a user does in each view and its editing view. How fixture
 - **Pfam and Rfam seeds** (Stockholm, CC0): curated, small, with `#=GC` lines. Pfam seeds have no lowercase inserts and
   usually no `RF` line, so they do not carry the insert-column case (EC-38); Rfam seeds carry `SS_cons`. Taken whole
   when under the bound.
-- **SAbDab** (CC BY 4.0, its site): Chothia- and IMGT-numbered files of an entry. Taken for the wild type's numbering.
+- **SAbDab** (CC BY 4.0, its API's OpenAPI document): an entry's numbered segments, IMGT only since SAbDab2 (found by DA,
+  2026-11-19: the Chothia files are gone). Taken for the wild type's numbering.
   Kabat is not among its files.
 - **ANARCI** (BSD-3): numbers any sequence in Kabat, Chothia and IMGT, against HMMs built from IMGT germlines (IMGT's
   own terms). Taken only to make the generated design's test oracle, run by hand (the data's decisions, 3).
@@ -260,11 +261,11 @@ Views:
 | What | Source | Licence | Size | Form |
 |---|---|---|---|---|
 | the Fab: **PDB 1N8Z**, trastuzumab (Herceptin) Fab with the HER2 extracellular domain (Cho et al. 2003): light chain A, heavy chain B; HER2 (chain C) not taken | RCSB/PDBe mmCIF | CC0-1.0 | about 5 KB | FASTA of the two chains as in the entry |
-| IMGT and Chothia numbering of both variable domains | SAbDab's numbered files of 1N8Z | CC-BY-4.0 | about 6 KB | `seq` numbering tables: labels per residue, insertion codes |
-| Kabat numbering | derived in code from Chothia: the two schemes number the framework alike and differ only where they place CDR-L1's and CDR-H1's insertions (Kabat after L27 and H35, Chothia after L30 and H31); committed as derived, compared with its generator | CC-BY-4.0 (from SAbDab's) | about 3 KB | `seq` numbering table |
+| IMGT numbering of both variable domains | SAbDab's numbered segments of 1N8Z (889, 890) | CC-BY-4.0 | about 6 KB | `seq` numbering tables: labels per residue, insertion codes |
+| Kabat numbering | derived in code from IMGT (SAbDab serves no Chothia): residues counted between the conserved anchors (L23, L35, L88, L98; H22, H36, H92, H103), insertions at Kabat's places (L27, L95; H35, H52, H82A–C, H100); a framework whose IMGT occupancy differs is refused, not guessed; committed as derived, compared with its generator and with trastuzumab's published Kabat numbering | CC-BY-4.0 (from SAbDab's) | about 3 KB | `seq` numbering table |
 | CDRs by both definitions | in code (Kabat's and IMGT's CDR ranges are definitions, not data) | `LicenseRef-seqx-generated` | none | in code |
 | the design | generated: substitutions in CDR-H2 and CDR-H3, a two-residue insertion in CDR-H3, a one-residue deletion in CDR-L1 | `LicenseRef-seqx-generated` | none | in code |
-| the design's numbering oracle | ANARCI run by hand on the design, its output (labels only, both schemes) committed for the tests to compare with the generator's numbering; tests cannot run ANARCI | `LicenseRef-anarci-numbering` (the data's decisions, 3) | about 6 KB | `seq` numbering tables |
+| the design's numbering oracle (not yet: ANARCI was not installed when DA recorded, 2026-11-19; the design's two rules, Kabat dropping 27 and IMGT dropping 36, are marked unchecked until it is) | ANARCI run by hand on the design, its output (labels only, both schemes) committed for the tests to compare with the generator's numbering; tests cannot run ANARCI | `LicenseRef-anarci-numbering` (the data's decisions, 3) | about 6 KB | `seq` numbering tables |
 
 - **Why trastuzumab**: one of the best known Fabs, its heavy chain carries Kabat insertion codes (expected 52A, 82A–C
   and 100A–C, *to verify when recording*), its sequence is in a CC0 entry and its numbering in SAbDab.
