@@ -130,18 +130,24 @@ function defaultProfile() {
   return (profileKept ??= profileOf(globinFamily()));
 }
 
-/** A row's label in the scale variant: `GEN_<n>/<start>-<end>` (EC-39), its start a function of its index. */
-export function generatedLabel(i: number): string {
+/**
+ * A row's label in the scale variant: `GEN_<n>/<start>-<end>` (EC-39), its start a function of its index and its end the
+ * number of its last residue (the row's letters counted, a gap never), so the label's range is the row's own.
+ */
+export function generatedLabel(i: number, columns = 300, seed = 1, row?: Uint8Array): string {
   const start = 1 + (i % 7);
-  return `GEN_${i + 1}/${start}-${start + 140}`;
+  const letters = row ?? generatedRow(i, columns, seed);
+  let n = 0;
+  for (let j = 0; j < letters.length; j++) if (letters[j] !== 45 && letters[j] !== 46) n++;
+  return `GEN_${i + 1}/${start}-${start + Math.max(n, 1) - 1}`;
 }
 
 /** A balanced tree over `n` rows of the scale variant (for collapsed clades at scale), leaves by label in data order. */
-export function balancedNewick(n: number): string {
+export function balancedNewick(n: number, columns = 300, seed = 1): string {
   const parts: string[] = [];
   const grow = (a: number, b: number, depth: number): void => {
     if (b - a === 1) {
-      parts.push(`${generatedLabel(a)}:1`);
+      parts.push(`${generatedLabel(a, columns, seed)}:1`);
       return;
     }
     const m = (a + b) >> 1;
@@ -173,8 +179,9 @@ export function generatedRuntime(delayMs = 0): FormatRuntime {
         const label: string[] = [];
         const first = new Int32Array(end - start);
         for (let i = start; i < end; i++) {
-          generatedRow(i, columns, seed, undefined, codes.subarray((i - start) * columns, (i - start + 1) * columns));
-          label.push(generatedLabel(i));
+          const row = codes.subarray((i - start) * columns, (i - start + 1) * columns);
+          generatedRow(i, columns, seed, undefined, row);
+          label.push(generatedLabel(i, columns, seed, row));
           first[i - start] = 1 + (i % 7);
         }
         return { codes, label, first };

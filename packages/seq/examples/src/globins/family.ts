@@ -92,7 +92,7 @@ export function scale(options: { readonly rows?: number; readonly columns?: numb
     value: { rows, columns: options.columns ?? 300, seed: 1 },
   });
   const aln = b.data.alignment('scale', { alphabet: 'protein', source: src });
-  const tree = b.data.tree('tree', { of: aln, newick: balancedNewick(rows) });
+  const tree = b.data.tree('tree', { of: aln, newick: balancedNewick(rows, options.columns ?? 300, 1) });
   b.views.view('main', (v) => {
     const s = v.section('rows', { of: aln });
     s.track('ruler', { label: 'Columns' }).layer('ruler', { type: 'ruler' });
