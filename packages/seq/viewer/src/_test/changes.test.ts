@@ -243,6 +243,8 @@ const Cases: Record<string, { ctx: unknown; before?: (v: SeqViewer) => unknown }
   'cursor.extend-down': { ctx: { section: Text }, before: cursorAtText(5) },
   'cursor.add-prev': { ctx: { section: Protein }, before: cursorAt(Protein) },
   'cursor.add-next': { ctx: { section: Protein }, before: cursorAt(Protein) },
+  'cursor.add-up': { ctx: { section: Text }, before: cursorAtText(15) },
+  'cursor.add-down': { ctx: { section: Text }, before: cursorAtText(5) },
   'cursor.page-down': { ctx: {}, before: cursorOnRow(0) },
   'cursor.page-up': { ctx: {}, before: cursorOnRow(3) },
   'cursor.first-row': { ctx: {}, before: cursorOnRow(3) },

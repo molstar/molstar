@@ -72,7 +72,7 @@ export interface Anchor {
 /**
  * The keyboard cursor: a position on a section's system (drawn on every section of that system); on a section of two
  * axes (an alignment's rows, a grid) its row too: `yPosition` on `ySystem` (a data row, a grid's y position), and on
- * rows its `part`, the row's cell or its header (grids-and-rows, The keyboard cursor).
+ * rows its `part`, the row's cell or its header (_spec/README.md "SelectionModel and HighlightModel", The cursor).
  */
 export interface Cursor {
   readonly section: string;
