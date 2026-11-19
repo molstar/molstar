@@ -321,6 +321,40 @@ describe('the text layout', () => {
     expect(crossed).toBe(1);
   });
 
+  it('overlapping ranges in a thin band are its density strip: kept on the lines they are on, collapsed elsewhere', async () => {
+    const b = createSeqSpec({ title: 'overlaps' });
+    const p53 = b.data.sequence('p53', { alphabet: 'protein', letters: P53 });
+    // two overlapping regions on the first lines, nothing after 94: one lane overflows into the density strip
+    const d = b.data.ranges('domains', { target: p53, rows: { start: [0, 50], end: [61, 94] } });
+    b.views.view('main', { layout: 'text' }, (v) => {
+      const s = v.section('protein', { of: p53 });
+      s.track('letters').layer('letters', { type: 'letters' });
+      s.track('domains').layer('ranges', { type: 'ranges', data: d });
+    });
+    const s = await settle(b.build(), [], { text: { maxHeight: 4000 } });
+    const f = await s.frame({ size: Size });
+    const sec = f.layout.sections[0];
+    const t = text(sec);
+    const nb = t.strips.bands;
+    let kept = 0;
+    for (let i = 0; i < t.strips.n; i++) {
+      const a = t.strips.axes[i];
+      const on = a.u0 < 94;
+      expect(t.strips.bandH[i * nb + 1] > 0, `line ${i}`).toBe(on);
+      if (!on) continue;
+      kept++;
+      const lay = sec.lays[i * nb + 1][0].lay as RangesLay;
+      expect(lay.mode).toBe('density');
+      expect(lay.density).toBeDefined();
+    }
+    expect(kept).toBeGreaterThan(0);
+    // the strip is drawn: an image a line it is kept on
+    const images = recordDrawLists(f.lists, ['data'])
+      .split('\n')
+      .filter((l) => l.startsWith('image ')).length;
+    expect(images).toBe(kept);
+  });
+
   it('too many lines are said, and the lines past the bound are not laid out', async () => {
     const s = await settle(p53TextSpec(), [], { text: { maxLines: 2 } });
     const f = await s.frame({ size: Size });
