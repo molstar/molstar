@@ -1369,12 +1369,11 @@ target. A floor of 16 px (a narrower window grows about its middle); its parts h
 - **y** (`ResolvedSection.y`): following x on the same system takes x's pieces, window and direction; following a
   section through a path maps that section's window (as `follow`); else the viewport's own `y` (`{ start, end }`), read
   by `GridNav` (`pan`'s dy, `zoom` and `fit` on both axes) and by `sameKey`. With `follow_y: x` the field is absent.
-- **Size** (EC-109): cells `aspect` (1) times as wide as tall whatever x's and y's windows: px a y unit the most that
-  both the data box's width and the room allow, the room the larger of `heights.grid` (a floor, decided) and nine tenths
-  of the view's height below the section's top; where the room is the bound the plot (its x transform and its track
-  boxes) is narrower than the data box, left-aligned. At least 40 px. `aspect: 'none'` takes the tallest track's height
-  and the data box's width. Why the floor: a view sized to its content would otherwise feed its height back into the
-  room and shrink.
+- **Size** (EC-109): x is the data box (the view's x, aligned with the sections it shares x with); the height makes a
+  cell `aspect` (1) times as wide as tall over y's window, capped by the room, the larger of `heights.grid` (a floor,
+  decided) and nine tenths of the view's height below the section's top: cells keep their aspect only where the room
+  allows. At least 40 px. `aspect: 'none'` takes the tallest track's height. Why the floor: a view sized to its content
+  would otherwise feed its height back into the room and shrink.
 - **Chrome**: the label column (the first track's label) and y's first and last positions at the plot's top and bottom,
   their strings made at place (a draw allocates nothing).
 
@@ -1459,9 +1458,10 @@ target. A floor of 16 px (a narrower window grows about its middle); its parts h
   reducer `mean`, `max` or `min`; a triangle's over its own cells alone, the others missing, so a coarse sample on the
   diagonal keeps its half and mixes in none of the other), one a resolved layer, at the level whose sample is at least a
   device pixel; tiles in the shared image LRU (`render/images.ts`) by layer, level, tile, the pyramid's and the colors'
-  versions and the triangle. A frame not settled builds at most `grid.buildBudget` samples, drawing a held coarser tile
-  meanwhile (else the first coarser within the budget, else the coarsest); a settled frame builds the rest. An axis
-  reversed flips its side of the plot (EC-145).
+  versions and the triangle; a tile's box on the device grid, so neighbours share a whole pixel edge (no seam). A frame
+  not settled builds at most `grid.buildBudget` samples, drawing a held coarser tile meanwhile (else the first coarser
+  within the budget, else the coarsest); a settled frame builds the rest. An axis reversed flips its side of the plot
+  (EC-145).
 - **Color**: the value's field theme (`value`), its domain the grid's range; a missing value (NaN) transparent;
   `triangle` keeps `upper` (y before x, above the diagonal) or `lower` (y after x).
 - **Hit**: any point on the plot is the cell under it (`target: 'cell'`, `position` on x, `ySystem`, `yPosition`), drawn
