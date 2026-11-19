@@ -27,10 +27,14 @@ const Track = '/views/v/s/rows';
 const Labels = ['HBA', 'HBB', 'MYG', 'GLB', 'CYG', 'NGB'];
 const Letters = ['MVLSPA', 'MVHLTP', 'MGLSDG', 'MKAVLG', 'MEKVPG', 'MERPEP'];
 
-function spec(collapsed: string[] = []): Node {
+const Newick = '((HBA,HBB)hb,(MYG,(GLB,(CYG,NGB)cn)gc)rest)root;';
+/** Support values as inner labels: two clades labelled `95`, one `90`, each named by its first and last leaves. */
+const Support = '((HBA,HBB)95,(MYG,(GLB,(CYG,NGB)95)90)rest)root;';
+
+function spec(collapsed: string[] = [], newick = Newick): Node {
   const b = createSeqSpec({ title: 'rows' });
   const aln = b.data.alignment('aln', { alphabet: 'protein', rows: { label: Labels, letters: Letters } });
-  const tree = b.data.tree('tree', { of: aln, newick: '((HBA,HBB)hb,(MYG,(GLB,(CYG,NGB)cn)gc)rest)root;' });
+  const tree = b.data.tree('tree', { of: aln, newick });
   b.views.view('v', (v) =>
     v
       .section('s', { of: aln })
@@ -51,12 +55,12 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-async function make(collapsed?: string[]) {
+async function make(collapsed?: string[], newick?: string) {
   vi.useFakeTimers({ toFake: ['Date', 'performance'] });
   frames = installFrames();
   const v = createSeqViewer({ ...DefaultSeqViewerSpec(), ui: undefined, config: [[viewerItem('view.jumpMs'), 0]] });
   viewer = v;
-  await v.load(spec(collapsed));
+  await v.load(spec(collapsed, newick));
   v.resize(400);
   await v.settle();
   frames.flush();
@@ -143,6 +147,35 @@ describe('an alignment’s rows in the viewer', () => {
     // the opening state changed: the session's set is reset to it (shown the same)
     expect(v.view.band(Track)?.folds).toBeUndefined();
     expect(lay(v).display.count).toBe(3);
+  });
+
+  it('clades labelled alike (support values) are named apart: a click, a hover, a toggle and `clades.keep` reach each', async () => {
+    const v = await make([], Support);
+    const l = lay(v);
+    expect(l.clades!.name).toContain('HBA..HBB');
+    expect(l.clades!.name).toContain('CYG..NGB');
+    expect(l.clades!.name).toContain('GLB..NGB');
+    expect(l.clades!.name).toContain('rest');
+    // a pointer and a click on the first `95` node (the rows in view): that clade by its name
+    const k = l.nodes.findIndex((_, i) => i % 3 === 0 && l.clades!.name[l.nodes[i]] === 'HBA..HBB');
+    v.input.move(l.nodes[k + 1], l.nodes[k + 2]);
+    frames!.flush();
+    expect(v.hover.current.element?.key).toBe('HBA..HBB');
+    expect(v.input.click(l.nodes[k + 1], l.nodes[k + 2])).toBe(true);
+    frames!.flush();
+    expect(v.view.band(Track)?.folds).toEqual(['HBA..HBB']);
+    expect(lay(v).display.count).toBe(5);
+    // the second `95`, by its own name: CYG and NGB in one summary row, the first clade still folded
+    await v.execute('clades.toggle', { track: Track, clade: 'CYG..NGB' });
+    frames!.flush();
+    expect(v.view.band(Track)?.folds).toEqual(['HBA..HBB', 'CYG..NGB']);
+    expect(lay(v).display.count).toBe(4);
+    await v.execute('clades.keep', { track: Track });
+    await v.settle();
+    frames!.flush();
+    const layer = v.spec.root.value.children![1].children![0].children![0].children![0].children![0];
+    expect(layer.params?.collapsed).toEqual(['HBA..HBB', 'CYG..NGB']);
+    expect(lay(v).display.count).toBe(4);
   });
 
   it('the wheel scrolls the rows in their band, `]` and `[` zoom them; the export draws the viewer’s folds', async () => {

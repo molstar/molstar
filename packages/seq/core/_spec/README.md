@@ -1610,10 +1610,12 @@ measures, consensus, the profile). An alignment's rows over its columns, its own
   clade's "+n" counts its shown rows, one with none goes, one with one folds to that row. Data order with nothing
   pinned, hidden or folded is arithmetic (no arrays): a million lazy rows cost what ten do. Held by property tests over
   random trees and folds (every shown row placed once, found where it is drawn).
-- **Clades** (`buildClades`): a tree's nodes over the rows, each a run of its leaf order; named by the node's label,
-  else `first..last` (its first and last leaves' labels), so a name survives a reorder; `allClades`, `cladesAtDepth`,
-  `cladesWithin(height)` (every largest clade whose leaves lie within `height` of its node by branch length) and
-  `cladesHolding(row)` are what the clade commands fold and open.
+- **Clades** (`buildClades`): a tree's nodes over the rows, each a run of its leaf order; named by the node's label
+  where it is unique in the tree and not a number, else `first..last` (its first and last leaves' labels), so a name
+  survives a reorder and two clades never share one (support values as inner labels, `((A,B)95,(C,D)95)`: a hover, a
+  fold and `clades.keep` reach each); `allClades`, `cladesAtDepth`, `cladesWithin(height)` (every largest clade whose
+  leaves lie within `height` of its node by branch length) and `cladesHolding(row)` are what the clade commands fold and
+  open.
 - **Folds** are the band's (`Viewport.bands[track].folds`, by name: session state, compared by identity and part of the
   section's key), else the layer's `collapsed` (the opening state).
 - **The transform**: `rowScale` (px a row; `RowHeight`, 20, fixed, when the band gives none) and `bandTop` (the band's
