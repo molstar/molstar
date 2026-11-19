@@ -109,6 +109,19 @@ links, selection, the security bounds, MessagePack). Next, version 1's second mi
   with a hidden layer reads nothing for it); the ranges layout walks every row of the entries it reads (a 150,000-row
   inline annotation: about 114 ms a frame); a letter through a codon path allocates its parts (`projectRanges` sets its
   buffer's length to 0, which lets the storage go: 161 KB a pan frame on the coding gene).
+- **Rings and blocks** (built: the rings layout with labels, the title and the window; blocks in tracks and on rings):
+  - blocks in the text layout (a block starting a line, its label inline on its first line; one-position blocks as chips
+    flowing after the chains, EC-99): waits for the text layout on this branch;
+  - `rotation` tweened by a story's `view` channel with the labels hidden, placed once at its end: the stories' player
+    first (labels are placed only when the ring is laid out, so the tween's frames place none);
+  - the ring's track labels (no label column on a ring), its ruler's ticks across the ruler ring only;
+  - a copy group is the same system and range here: the complex kind's molecules and units name it once they exist
+    (EC-65), and a merged block's hover then lights every member's system;
+  - a ring's frame where only its window moved draws every pass again (the design asks for the emphasis passes alone): a
+    frame key part for the windows;
+  - one boxed number a frame left in the window's grips through the warp (16 B; `rings.quick.ts` bounds it);
+  - a ring's `labels` sink: only `ranges` gives its labels (secondary, variants keep theirs inside);
+  - `export.window` read by `renderSvg` alone: the PNG export with it.
 - **Emphasis**: projected selection bands on a whole axis are rounded at intron edges, where the frame rule wants the
   ends a projection cut square (a projection-aware cut flag; on a collapsed axis an end at a break is square); the
   keyboard cursor reads as a full-height hairline below 1 px a cell (a minimum width or a caret).
@@ -164,9 +177,12 @@ links, selection, the security bounds, MessagePack). Next, version 1's second mi
   the editing UI says so.
 - Tests: the frame lane's dropped-tick leak is fixed in `@molstar/ui/dom`, so the stories' twins can drop their per-test
   `DomHost.requestAnimationFrame` swap.
-- Wrapping pans on a cyclic axis (only clamped now); scroll groups across viewers and views (EC-113); ring windows
-  (EC-114); navigators (strip, miniature, ideogram, vertical overview; EC-110: the Features page's Navigators row, a
-  design first).
+- Scroll groups across viewers and views (EC-113); navigators (strip, miniature, ideogram, vertical overview; EC-110:
+  the Features page's Navigators row, a design first).
+- Rings in the viewer: each section's `SectionNav` (the ring's wheel and keys move its window round, its zoom about the
+  pointer's angle), input through the placement (a drag along the ring selects an arc, two runs over the origin), the
+  `window` behavior's drags on the ring's rim (its `start`, `end` and `body` hits are built), history steps restored by
+  position across a layout patch; the matrix cells of a ring section and a block as binding tests.
 - Touch pinch (two pointers); the Mol\* structure port; the `@molstar/ui` keymap and command manager, replacing the
   shortcut match scoped to the container; `ParamDefinition`s for the config items.
 - An allocation tier for the viewer (`test:perf`: the Canvas2D draw, `store.overlay`, `_viewport`, `hover.set`, the
@@ -176,6 +192,9 @@ links, selection, the security bounds, MessagePack). Next, version 1's second mi
 
 ## `@molstar/seqx-examples`, `@molstar/seqx-storybook`
 
+- The Plasmid and the Complex are stand-ins (generated letters at the entries' lengths, features at the published
+  layout's places, named as such): pUC19c and 1FIN recorded with their dataset lanes replace them, the ring's record
+  written again.
 - The other datasets and their views (Antibody, Plasmid, tRNA, Globins), each carrying a drawing-against-the-data test
   as the p53 views do (`drawn-vs-data.test.ts`); the Complex dataset (CDK2 with cyclin A, its interface, PAE, ligands
   with AlphaFill's transplants) with pairs across chains, dot plots and ligands, its entries chosen and checked against

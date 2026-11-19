@@ -23,9 +23,10 @@ is added in the change that builds what it describes.
   `code`, the layer types `ruler`, `secondary`, `variants` and the layer params `numbering`, `encoding`, `style`,
   `line`, `arrow`, and the themes: the layer's channel slots `color`, `ink`, `size`, `opacity`, `line`, `arrow`, `shape`
   taking a value or a `seq.theme` form, its `scale`, the `scale` kind under `views`, a view's `export`, a view's
-  `layout` `text`, a section's `layout` and its text params `group`, `numbers`, `group_labels`, `align`, `max_width`,
-  `height`, the view's `export.window`, the layer type `frame` and its `across`). A spec in an earlier `0.x` reads as
-  one in this one, and is reported where it no longer fits.
+  `layout` `text` or `rings`, a section's `layout` and its text params `group`, `numbers`, `group_labels`, `align`,
+  `max_width`, `height`, its rings params `rotation`, `labels`, its blocks params `arrange`, `copies`, the `block` kind
+  under a section, a section's `of` optional when it has blocks, the view's `export.window`, the layer type `frame` and
+  its `across`). A spec in an earlier `0.x` reads as one in this one, and is reported where it no longer fits.
 
 ## Language
 
@@ -34,12 +35,13 @@ checks it cannot express.
 
 - **Kinds**: `spec` (root: `version`, `title`); the containers `data`, `views`, `refs` and `snapshots` (reserved ids of
   the same name); under `data`: `source`, `sequence`, `ranges`, `values`, `map`; under `views`: `view`, then `section`,
-  `track` (`hidden`, default false: kept in the spec, its row collapsed; its layers keep their own), `layer` (`hidden`,
-  default false: kept in the spec and not drawn, so hiding is a one-key `set`). A `ranges` node's `map: 'codon'` makes
-  each item (its rows by `id`) a coding sequence of its own (Overlay); a track's `for_each` makes it a template
-  (Resolved view, Templates; its kind param is `node_kind`, since `kind` is reserved, and is `ranges` or `values`: what
-  a layer draws). Reference params (`target`, `of`, `from`, `to`, `follow`, `source`, `data`) are `ref` params naming
-  the kinds they take; a reference is an address.
+  `block` (a piece of a section on a system of its own: `of`, `range`, `label`), `track` (`hidden`, default false: kept
+  in the spec, its row collapsed; its layers keep their own), `layer` (`hidden`, default false: kept in the spec and not
+  drawn, so hiding is a one-key `set`). A `ranges` node's `map: 'codon'` makes each item (its rows by `id`) a coding
+  sequence of its own (Overlay); a track's `for_each` makes it a template (Resolved view, Templates; its kind param is
+  `node_kind`, since `kind` is reserved, and is `ranges` or `values`: what a layer draws). Reference params (`target`,
+  `of`, `from`, `to`, `follow`, `source`, `data`) are `ref` params naming the kinds they take; a reference is an
+  address.
 - **The axis's params** (the writer's: what the figure is; never inferred from what a section draws, so adding a layer
   never turns a section over): a section's `direction` (`genomic`, `reversed`, `follow`, or
   `{ along: <sequence or map> }`; absent: `follow` for a section with `follow`, else `genomic`), `pieces` (`whole`,
@@ -694,12 +696,22 @@ of it (`buildOverlay(model, reader)`; `OverlayBuilder` keeps one a node version 
 no target.
 
 - **A view**: its address, its `layout`, its sections in order, its links, its issues.
-- **A section's layout**: its own `layout`, else its view's (`tracks`, `text`), with its layout's params as written
-  (`params`: `group`, `numbers`, `group_labels`, `align`, `max_width`, `height`); the layout reads them with its
-  defaults. Why on the section: a view mixes layouts (a ring and its linear detail; a text figure under a tracks
-  overview). What the figure means (group size, numbers) is the spec's; spacing is the render config's.
-- **A section**: an axis, its tracks, and its follow. A section whose `of` names no system is `seq.view.section.system`;
-  its layers are not placed.
+- **A section's layout**: its own `layout`, else its view's (`tracks`, `text`, `rings`), with its layout's params as
+  written (`params`: `group`, `numbers`, `group_labels`, `align`, `max_width`, `height`, `rotation`, `labels`,
+  `arrange`, `copies`); the layout reads them with its defaults. Why on the section: a view mixes layouts (a ring and
+  its linear detail; a text figure under a tracks overview). What the figure means (group size, numbers) is the spec's;
+  spacing is the render config's.
+- **A section**: an axis, its tracks, and its follow; its `blocks` when it has `block` children. A section whose `of`
+  names no system (with blocks: its first block's) is `seq.view.section.system`; its layers are not placed.
+- **Blocks**: each its axis (its system, its `range`, the section's direction), its first display unit in the section's
+  (`offset`: 0 in a stack), its label, the blocks it stands for (`members`), and each of the section's tracks' layers
+  resolved onto its system (a path a block: placed on each block its data reaches; a layer that reaches no block says
+  why once, by its first block's issue). Copies (the same system and range) are one block labeled `×N` with
+  `copies: 'merge'` (the default: a copy group's sequence said once, its cost one block's, EC-65, EC-67), a block each
+  with `each`. The section's axis is the blocks' display units in order: on one system in a row (or on a ring), the
+  blocks' pieces end to end (their breaks between them, a follow along one axis); else units `[0, total)` on the first
+  block's system (`pieces: 'blocks'`), the total the sum in a row and the longest block in a stack. A block that names
+  no system is `seq.view.section.system` and left out.
 - **An axis**: its system, its length unless unknown, cyclic, and the positions shown as `[start, end, …]` pieces in
   display order: the whole system, its `range`, or for a cyclic range that wraps the origin two pieces, from its start
   to the origin then on (`[8, 10, 0, 2]`). Without a known length, showing all of the system or wrapping, `ranges` is
@@ -814,6 +826,12 @@ the UX foundations' numbers, CSS px, settled by the foundation stories; where no
 | `text.maxLines`, `text.maxHeight`                     | 100,000; 600 px                                                                 | a figure, not a genome; a text in a host page scrolls inside its box past it                                                                                                    |
 | `text.pieceBreak`, `text.numberGap`                   | `none`; 8                                                                       | lines stay aligned, the boundary marks the edge; the gap between a line and its numbers                                                                                         |
 | `text.heights`                                        | letters 18, ranges 4, values 3, ruler 14, secondary 6, variants 10, frame 14    | a text's tracks thin: a ranges track reads as underlines, a values track as a strip                                                                                             |
+| `rings.hole`, `rings.maxDiameter`                     | 0.35 of the radius; 720 px                                                      | room for the title, chords readable; a map, not a wall (`RenderConfig` preset; 0 to 0.8; px)                                                                                    |
+| `rings.blockGap`                                      | 1°                                                                              | a gap between blocks reads as a boundary (Circos)                                                                                                                               |
+| `rings.letters`                                       | `upright`                                                                       | readable at any angle; `tangent`                                                                                                                                                |
+| `rings.center`                                        | `title`                                                                         | the name and length in the hole; `none`                                                                                                                                         |
+| `rings.labelGap`, `rings.leaderBend`                  | 8, 12 px                                                                        | leaders fan out over the ruler, never through one point                                                                                                                         |
+| `rings.window`                                        | `followed`                                                                      | a window means only what a follower shows; `always` (idle, quiet, when nothing follows)                                                                                         |
 | `internedStrings`                                     | 4,096                                                                           | strings draw lists keep interned across frames, so a frame drawn again interns nothing; past it a full redraw starts the table again                                            |
 
 - **A values layer's level** (`values.coarser`, k): the coarsest of the source's levels whose bin is no wider than k
@@ -1157,12 +1175,66 @@ as a tab just outside each end in `seq-grip`; the lit part drawn grown; idle (no
 target. A floor of 16 px (a narrower window grows about its middle); its parts hit (`windowPart`) within at least 12 px
 (24 by touch), an end winning over the body near it, as the `window` target with its `part` (`body`, `start`, `end`).
 
+### Rings layout
+
+`layout/rings.ts` (`RingsLayout`, `RingPlacement`, `RingsNav`):
+
+- **Rings outside in** (EC-108): the first track the outermost ring, each its track's height (scaled down together to
+  keep a hole of at least `rings.hole` of the radius), round the section's whole axis; the diameter fits the box's width
+  less the labels' room (`height` when the section has one), capped at `rings.maxDiameter`; the origin at `rotation`
+  (degrees clockwise from the top, a spec param, 0), display units clockwise (a reversed section's positions run
+  counterclockwise).
+- **A strip a block, one warp**: the unrolled frame is the outer circumference wide (so a layer reduces per angular
+  column at the outer ring; inner rings are finer than their pixels, never coarser), x the arc length from the origin,
+  so every strip shares one `PolarWarp`. Blocks are arcs with `rings.blockGap` between them; a whole cyclic section is
+  the full circle with no gap, its seam no break. A collapsed piece edge is zero width, its hairline marking it.
+- **Labels outside with leaders**: the strips' layers give their items' labels to the layout's sink (`ctx.labels`: text,
+  extent on the strip's system, element, the item's hit, order); placed when the ring is laid out (never on a window
+  move or a hover): each at its item's middle angle (an item over the origin, its rows meeting there, one arc), per side
+  (right: angles in [0, π)) sorted by height and spread a line apart within the box, hugging a circle
+  `labelGap + leaderBend` past the rings, its leader out along its angle to the bend then to the label; past what a side
+  holds, dropped by order (a block's label first, then the bands outside in) then the shorter item. A placed label hits
+  as its item (`hitChrome`, the hit the sink was given: never a second hit at an anchor). `labels: 'none'` gives no
+  sink.
+- **The hole holds the title** (`rings.center: 'title'`): the system's name and its length (`bp`, `aa`; a section of
+  blocks its id and its units).
+- **The window** (`window` on the layout type, set on a kept placement too): the section's viewport (a ring that
+  follows, its leader's range on its own axis), drawn in the `window` pass through the warp: a faint sector over the
+  rings, and on a rim outside the outer ring its body and grips (`render/window.ts`), hit there as the `window` target
+  with its `part`, so the data under the window stays hit. Shown with `rings.window: 'followed'` only while a section
+  follows the ring (or the ring follows), `always` idle otherwise; an export draws it only with `windows`
+  (`export.window`, `renderSvg`'s `window`).
+- **Out of the key**: `sameKey` is always true (rotation and size are the section's and the view's), so a pan of a
+  follower lays out the follower alone and draws the ring from its kept lays; its labels are not placed again.
+- **Its viewport** is the window: `RingsNav` pans it by px of the box's width, zooms about a unit, reveals a range round
+  the origin (unchanged when the range is in the window across the origin), steps wrapping, clamps by `clampWindow` (a
+  cyclic window wraps, never clamped at the total).
+- **An image is refused** on a ring (the warp counts it; `seq.render.ring.image`, said once a section by the frame).
+- `at` is `atan2` and the radius through the warp's inverse (a label before the rings; the rim `window` while active;
+  the hole and outside `empty`; between blocks `gap`); `offsetAt` the nearest block's edge in a gap; both monotone in
+  angle from the origin. Held by property tests over rotations.
+
+### Blocks
+
+- **A block** (`block` children of a section: `of`, `range`, `label`; the resolved view's `blocks`): a piece of a
+  section on a system of its own; a strip a block in every layout, its transform on the block's system, its layers the
+  block's (a path a block), a hit naming its `block`.
+- **Tracks** (`layout/blocks.ts`, `BlockPlacement`): `arrange: 'row'` (the default) lays the blocks end to end along one
+  viewport with a gap between two (at most 12 px, the gaps inside the window taking at most a quarter of the width, as
+  if 24 blocks shared it: EC-102); `stack` a block a row of the section's tracks, aligned at their first position, one
+  zoom (EC-102, EC-115). Each block's label in a row above its tracks, faded at its strip's width. Lays are kept by the
+  block's first unit, so a pan keeps them.
+- **Rings**: a block an arc (above).
+- **Follow across systems** is refused: a section of blocks on more than one system neither follows nor is followed
+  (`seq.render.follow.blocks`, it shows its own range). Why: which block's map a follow would carry is undecided. Blocks
+  on one system follow as one axis.
+
 ### Tracks layout
 
-- **On the interface** (`layout/tracks.ts`): one strip a section, translated by nothing (its frame the page), its bands
-  the tracks stacked with `trackGap`; its chrome the label column (each track's label, the filter chip, the direction
-  mark). Its draw lists are the same before and after the restatement but for the `window` pass's header: the committed
-  records are its guard.
+- **On the interface** (`layout/tracks.ts`): one strip a section (a block in view with blocks: Blocks), translated by
+  nothing (its frame the page), its bands the tracks stacked with `trackGap`; its chrome the label column (each track's
+  label, the filter chip, the direction mark). Its draw lists are the same before and after the restatement but for the
+  `window` pass's header: the committed records are its guard.
 - Sections stacked; each an `AxisTransform`: its pieces (`[start, end, …]` in display order) end to end as display units
   in its direction (a reversed piece `[s, e)` shows `e − 1 − k` at its offset `k`, EC-32), the viewport a window of them
   (`{ start, end }`, all by default; `viewports` by section address before it) across the data box. Both ways: a
@@ -1287,6 +1359,8 @@ target. A floor of 16 px (a narrower window grows about its middle); its parts h
   empty `<g data-section data-direction data-pieces data-y data-height>` a section (the draw lists are grouped by pass,
   not by section: these say what each axis is), and its ids take a prefix (`idPrefix`, by default `s` and a hash of the
   spec). On a shared store it reports only the issues of the sources it attached.
+- **A ring's window** (`window`, the view's `export.window` when absent, false): an export is a figure (`figure`), so a
+  ring's window is drawn only when asked.
 - **Legends** (`legend`: `none` by default, `below`, `right`; a view's `export.legend` when the option is absent): a
   band outside the data box with the view's merged legends; each shared scale's domain as drawn is recorded
   (`data-seq-scale-<id>`). `cvdSafe` draws the reader's substitution.
@@ -1295,8 +1369,8 @@ target. A floor of 16 px (a narrower window grows about its middle); its parts h
 
 - `seq.render.*` (`RenderIssues`): `view`, `color`, `theme.channel`, `theme.scheme`, `theme.measure`, `theme.color`,
   `scale.log` (info), `legend.unlisted` (info), `filter`, `line-style` (info), `numbering`, `layer.type`,
-  `layer.letters`, `axis.pending` (info), `text.lines`, `follow.leader`, `follow.cycle`, `source`, `template.limit`,
-  `unsettled`; a test checks the catalog.
+  `layer.letters`, `axis.pending` (info), `text.lines`, `follow.leader`, `follow.blocks`, `ring.image`, `follow.cycle`,
+  `source`, `template.limit`, `unsettled`; a test checks the catalog.
 
 ## Context
 

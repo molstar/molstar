@@ -145,7 +145,10 @@ nothing and tells nothing.
   streamed sequence is placed and its kept intent applies.
 - **Placed** only with a width and a known axis length, else `pending`: a move then is kept as the intent and placed
   when it can be (EC-112). Placing clamps the range within the axis and at most `viewport.maxPxPerPosition` px a
-  position. A viewport that shows the whole axis is fitted and stays so across resizes and updates.
+  position. A viewport that shows the whole axis is fitted and stays so across resizes and updates. **A cyclic axis's
+  viewport wraps** (an axis showing its whole cyclic system, in every layout): its start goes round the origin and its
+  end may pass the total, never clamped there, so a ring's window and a linear view pan across the origin; a follower of
+  it shows the window over the origin as two pieces.
 - **Resizes** keep the zoom about the center (`viewport.onResize`: `keep-zoom`; `keep-range`); a width of 0 (hidden)
   keeps everything, so a section shown again comes back as it was (EC-112).
 - **Updates** (EC-111): axes are compared by value. An equal axis keeps its range; a changed one keeps its center (as a
