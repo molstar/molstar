@@ -700,11 +700,8 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
   };
   const axes = new Map<string, AxisTransform | undefined>();
   const visiting = new Set<string>();
-  /** A following ring's window: its leader's range on its own axis. */
-  const followed = new Map<string, Viewport>();
-  /** The sections something follows: their windows are active. */
-  const leaders = new Set<string>();
-  for (const s of input.view.sections) if (s.follow) leaders.add(s.follow.leader);
+  /** A following ring's window: its leader's range on its own axis (made when a ring follows). */
+  let followed: Map<string, Viewport> | undefined;
   const axisOf = (section: ResolvedSection): AxisTransform | undefined => {
     if (axes.has(section.address)) return axes.get(section.address);
     const at = section.address;
@@ -741,6 +738,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         if (leader) made = followAxis(section, own, leader, leaderWindow(leaderSection, leader), config);
         // a follower that draws its whole axis with a window (a ring): the leader's range is its window
         if (made && own && layoutOf(section).window) {
+          followed ??= new Map();
           followed.set(at, followedWindow(section, own, made));
           made = { pieces: own };
         }
@@ -787,17 +785,9 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     // an unchanged section is not laid out again: its placement and lays are drawn again (_spec/README.md "Render",
     // The key: per section)
     const kept = state.sections.get(section.address);
-    // a placement's window (a ring's) is out of its key: set on a kept one too
-    const setWindow = (placement: Placement) => {
-      if (!layout.window) return;
-      const at = section.address;
-      const active = leaders.has(at) || followed.has(at);
-      const shown = (active || config.rings.window === 'always') && (!input.figure || input.windows === true);
-      layout.window(placement, followed.get(at) ?? viewport, active, shown);
-    };
     if (kept && reusable(kept, section, layout, stamp, y, axis, viewport, input.data)) {
       kept.replay(sinks);
-      setWindow(kept.layout.placement);
+      if (layout.window) setWindow(layout, kept.layout.placement, section.address, viewport, followed, input, config);
       sections.push(kept.layout);
       y += kept.layout.height;
       continue;
@@ -992,7 +982,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         ...(input.windows ? { windows: true } : {}),
       };
       placement = layout.place(section, ctx, viewport, prevPlacement);
-      setWindow(placement);
+      if (layout.window) setWindow(layout, placement, section.address, viewport, followed, input, config);
       for (let i = 0; i < placement.strips.n; i++) stripBreaks.push(placement.strips.axes[i].breaks([]));
       sectionLays = laySection(placement, axis);
     } else placement = pendingPlacement(top, sectionBox, heights, config);
@@ -1724,9 +1714,35 @@ export function hitView(layout: ViewLayout, x: number, y: number): Hit | undefin
   return undefined;
 }
 
-/** A hit with its block (its index in the section) when the section has blocks (_spec/README.md "Render", Lanes and Hits). */
+/**
+ * A placement's window (a ring's), out of its key: set on a kept placement too. Active while something follows the
+ * section or it follows (its window then its leader's range); shown when active or `rings.window: 'always'`, in a
+ * figure only with `windows`. A function of the module, not a closure a section a frame.
+ */
+function setWindow(
+  layout: SectionLayoutType,
+  placement: Placement,
+  at: string,
+  viewport: Viewport | undefined,
+  followed: Map<string, Viewport> | undefined,
+  input: LayoutInput,
+  config: RenderConfig,
+): void {
+  const own = followed?.get(at);
+  let active = own !== undefined;
+  const sections = input.view.sections;
+  for (let i = 0; i < sections.length && !active; i++) if (sections[i].follow?.leader === at) active = true;
+  const shown = (active || config.rings.window === 'always') && (!input.figure || input.windows === true);
+  layout.window!(placement, own ?? viewport, active, shown);
+}
+
+/**
+ * A hit with its block (its index in the section) when the section has blocks (_spec/README.md "Render", Lanes and
+ * Hits): written into the layer's hit, no copy (a layer's hit is its lay's, and a lay is one strip's: one block's).
+ */
 function withBlock(s: SectionLayout, strip: number, h: Hit): Hit {
-  return s.section.blocks ? { ...h, block: s.placement.strips.block[strip] } : h;
+  if (s.section.blocks) (h as { block?: number }).block = s.placement.strips.block[strip];
+  return h;
 }
 
 /** The break whose notch is within `BreakSlop` px of a point above the band column (in the strip's frame); else undefined. */

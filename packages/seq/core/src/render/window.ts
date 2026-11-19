@@ -48,6 +48,8 @@ const Extent = new Float64Array(2);
 // the metrics a draw reads, as numbers read once: a draw reads no property of an imported object
 const Grip: number = WindowMetrics.grip;
 const GripShare: number = WindowMetrics.gripShare;
+// an imported binding read in a draw is a property read under a module runner (it boxed one number a frame here)
+const None: number = NoColor;
 
 /**
  * Draws a window over `[x0, x1)` across `y`, `h` (a strip's frame): idle a quiet outline; active its body tinted and
@@ -94,7 +96,7 @@ export function drawWindowArgs(out: PassWriter, active: boolean, lit: WindowPart
   g[3] = h;
   // the inks at their opacities inline: a color passed to a call is boxed (nothing allocated once warm)
   const fill = lit === 'body' ? WindowMetrics.litFill : WindowMetrics.fill;
-  g[4] = active ? ((ink & 0xffffff00) | Math.round(fill * 255)) >>> 0 : NoColor;
+  g[4] = active ? ((ink & 0xffffff00) | Math.round(fill * 255)) >>> 0 : None;
   g[5] = active ? ink : ((ink & 0xffffff00) | Math.round(0.4 * 255)) >>> 0;
   g[6] = active && lit !== undefined ? 2 : 1;
   g[7] = 0;
@@ -111,7 +113,7 @@ export function drawWindowArgs(out: PassWriter, active: boolean, lit: WindowPart
     g[2] = gw;
     g[3] = gh;
     g[4] = grip;
-    g[5] = NoColor;
+    g[5] = None;
     g[6] = 0;
     g[7] = 0;
     g[8] = 0;

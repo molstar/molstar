@@ -905,8 +905,9 @@ the UX foundations' numbers, CSS px, settled by the foundation stories; where no
   its own, called only when it has something to draw, so the pass it belongs to stays small enough to have its writer
   calls inlined; nothing in a draw makes a closure, an iterator, a destructured array or a number for a call, or reads a
   property of an imported constant object (`Anchor.start`: read once into a module constant; a site whose feedback was
-  cleared deoptimized a warm draw without end); the hit's numbers are read where they are used. A layout sets a buffer
-  it reuses in place, never to a length of 0 (that lets the array's storage go).
+  cleared deoptimized a warm draw without end), nor an imported binding in a loop (`NoColor`: a property read under a
+  module runner, it boxed a number a frame in the window's grips); the hit's numbers are read where they are used. A
+  layout sets a buffer it reuses in place, never to a length of 0 (that lets the array's storage go).
 - **A layout allocates a bounded amount a frame**, not nothing: what it makes once (the wants, the regions, the key's
   text, the tiles' keys) and a little an item in view (ranges: an item's key, the lane maps). On the section's own
   system nothing a position or a bin (a values layer places through a kept placer, `AxisTransform.spanIn` and inline

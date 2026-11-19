@@ -121,7 +121,6 @@ links, selection, the security bounds, MessagePack). Next, version 1's second mi
     the window moves with a viewport, and a viewport the ring's window shows is one a follower (or its leader) lays out
     and draws by, so the frame's data passes are drawn again for that section anyway; the ring's own data kept needs
     passes split by section (its lays are kept already);
-  - one boxed number a frame left in the window's grips through the warp (16 B; `rings.quick.ts` bounds it);
   - a ring's `labels` sink: only `ranges` gives its labels (secondary, variants keep theirs inside);
   - `export.window` read by `renderSvg` alone: the PNG export with it;
   - a section of blocks on several systems (its axis on no system): a drag-select stays in the block it began on (across
