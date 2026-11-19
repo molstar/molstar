@@ -463,3 +463,9 @@ None.
   `headerPartsDom()` shipped) and promoted (the author: "Yes, after folding") to `.seq/design/structure-syncing.md`
   and `track-header-parts.md` with their Design pages; maps.md, ports.md, viewer-composition.md, ux-foundations.md,
   features.md updated. SP and XD drafting.
+- DB merged (6e290d105, after its review round; checks on the merged head: 2422 quick, 110 medium, perf 135; the p53
+  pan 35.9 kB a frame against 34.6 before). Left in TODO: sources' content and label lane, the label column over
+  template instances, ring labels inside their arc; the SVG export's navigator gets no sizings; the plasmid detail's
+  Reverse track reserves a label lane it does not fill (to the use gate's look). SP's gaps decided (the draft's
+  "Decided" section). XD's draft in, nine gaps for the author. DS reported (ring groups not opened on hover or zoom:
+  a question): under review.

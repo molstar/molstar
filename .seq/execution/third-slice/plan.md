@@ -431,7 +431,7 @@ and dark before the merge.
 - [x] DA (reported: `drafts/defaults-audit.md`, decided; fast, read-only, next fast slot; the author, 2026-11-19: "really good defaults for everything"; "audit
       next") the defaults audit: `drafts/defaults-audit.md` for the author (`briefs/da-defaults-audit.md`); then the
       track heights by content in steps (layouts.md, decided) built with its numbers.
-- [ ] DB (strong; the author, 2026-11-19: the audit "Accept as drafted", "Yes, per layer") tracks fit their content,
+- [x] DB (merged 6e290d105; strong; the author, 2026-11-19: the audit "Accept as drafted", "Yes, per layer") tracks fit their content,
       labels inside or beside, the extent bug, the label column, section gap, a layer's default colour
       (`briefs/db-default-heights-labels.md`).
 - [ ] DS (fast; the author, 2026-11-19: all four smaller proposals) the legend's groups and channels row, the rail
