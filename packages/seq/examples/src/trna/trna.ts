@@ -81,7 +81,7 @@ export function build(options: TrnaOptions = {}): Node {
         type: 'grid',
         data: covariation,
         triangle: 'upper',
-        color: theme.field('value', { domain: [0, 1.2], palette: theme.continuous({ colors: 'viridis' }) }),
+        color: theme.field('value', { domain: [0, 1.2], palette: theme.continuous({ colors: 'ramp' }) }),
       });
       t.layer('structure', { type: 'pairs', data: pairs, mirror: true, triangle: 'lower' });
     });
@@ -149,7 +149,7 @@ export function scale(size: number = ScaleSize): Node {
         data: grid,
         // zoomed out, the strongest cell of a sample: the helices stay in view
         aggregate: 'max',
-        color: theme.field('value', { domain: [0, 1], palette: theme.continuous({ colors: 'viridis' }) }),
+        color: theme.field('value', { domain: [0, 1], palette: theme.continuous({ colors: 'ramp' }) }),
       }),
     );
   });

@@ -1076,7 +1076,9 @@ function rowHit(lay: RowsLay, i: number, position: number | undefined): Hit {
  */
 function nearestNode(lay: RowsLay, x: number, y: number): number {
   const reach = TreeHitPx;
-  if (x < lay.treeX0 - reach || x > lay.treeX1 + reach) return -1;
+  // the target stops at the label column: a point over a row's label is the row's (a cherry at the tree's edge would
+  // take it, the reach being more than the 4 px between the tree and the labels)
+  if (x < lay.treeX0 - reach || x > lay.treeX1 + reach || x >= lay.labelX) return -1;
   const w = lay.wedges;
   for (let k = 0; k + 4 < w.length; k += 5)
     if (x >= w[k] - reach && x <= w[k + 2] && y >= w[k + 1] && y <= w[k + 3]) return w[k + 4];
@@ -1957,16 +1959,9 @@ function drawHeader(lay: RowsLay, out: PassWriter) {
   if (lay.lastText.length) out.unclip();
 }
 
-/**
- * The hover, then its row's column cells cut short read whole: a function of its own, so the hover's own stays as the
- * compiler had it (a number boxed a frame otherwise, measured).
- */
-function drawHoverAndColumns(lay: RowsLay, out: PassWriter, emphasis: Emphasis | undefined) {
-  drawHover(lay, out, emphasis);
-  if (lay.cols.n) hoverColumns(lay, out, emphasis);
-}
-
+/** The hovered row's column cells cut short, read whole in the `tip` pass: a function of its own (measured: no boxing). */
 function hoverColumns(lay: RowsLay, out: PassWriter, emphasis: Emphasis | undefined) {
+  if (!lay.cols.n) return;
   const h = emphasis?.hover;
   if (!h || h.layer !== lay.key) return;
   const row = h.yPosition ?? (h.system === lay.rowsSystem ? h.position : undefined);
@@ -2277,7 +2272,8 @@ function drawCursor(lay: RowsLay, out: PassWriter, emphasis: Emphasis | undefine
 const RowsDraws = passDraws<RowsLay, Emphasis | undefined>({
   data: drawData,
   labels: drawHeader,
-  hover: drawHoverAndColumns,
+  hover: drawHover,
+  tip: hoverColumns,
   selection: drawSelection,
   cursor: drawCursor,
 });

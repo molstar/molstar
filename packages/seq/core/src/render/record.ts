@@ -61,7 +61,8 @@ function roundOf(radius: number, round: number): string {
   return s;
 }
 
-/** The draw lists as lines, pass by pass (every pass, or those named); an empty pass is its header alone. */
+/** The draw lists as lines, pass by pass (every pass, or those named); an empty pass is its header alone, but for the `tip`, which most views never draw: it
+ * is recorded when it holds something. */
 export function recordDrawLists(lists: DrawLists, passes: readonly PassName[] = Passes): string {
   const lines: string[] = [`size ${fmt(lists.width)} ${fmt(lists.height)}`];
   const v: PassVisitor = {
@@ -120,6 +121,7 @@ export function recordDrawLists(lists: DrawLists, passes: readonly PassName[] = 
     },
   };
   for (const name of passes) {
+    if (name === 'tip' && !lists.passes.tip.size) continue;
     lines.push(`pass ${name}`);
     walkPass(lists.passes[name], v);
   }

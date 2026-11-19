@@ -219,7 +219,7 @@ describe('CanvasBackend', () => {
     const { base, overlay, labels, backend } = setup();
     const l = lists();
     backend.draw(l, true);
-    expect(backend.counts).toEqual({ base: 1, overlay: 0, labels: 1 });
+    expect(backend.counts).toEqual({ base: 1, overlay: 0, labels: 1, tip: 0 });
     base.context.take();
     labels.context.take();
     overlay.context.take();
@@ -247,7 +247,7 @@ describe('CanvasBackend', () => {
     backend.draw(l, false);
     expect(overlay.context.take()).toEqual([]);
     expect(base.context.take()).toEqual([]);
-    expect(backend.counts).toEqual({ base: 1, overlay: 3, labels: 1 });
+    expect(backend.counts).toEqual({ base: 1, overlay: 3, labels: 1, tip: 0 });
   });
 
   it('draws with the backing size over the CSS size: a rounded canvas is not drawn at the ratio asked for', () => {
@@ -294,7 +294,12 @@ describe('CanvasBackend', () => {
   });
 
   it('the canvases stack as the SVG’s passes do: the same order, pass by pass', () => {
-    const { base, overlay, labels, backend } = setup();
+    const base = new FakeCanvas();
+    const overlay = new FakeCanvas();
+    const labels = new FakeCanvas();
+    const tip = new FakeCanvas();
+    const backend = new CanvasBackend(base, overlay, labels, { tip });
+    backend.resize(200, 100, 2);
     // one rect a pass, each a color of its own whose red channel is the pass's place
     const l = new DrawLists();
     Passes.forEach((name, i) => l.writer(name).rect(1, 1, 5, 5, ((10 + i) << 24) | 0xff));
@@ -304,8 +309,13 @@ describe('CanvasBackend', () => {
         .map((c) => /fillStyle=rgba\((\d+),/.exec(c)?.[1])
         .filter((x) => x !== undefined)
         .map(Number);
-    // bottom to top: the base canvas, the overlay, the labels
-    const canvasOrder = [...red(base.context.log), ...red(overlay.context.log), ...red(labels.context.log)];
+    // bottom to top: the base canvas, the overlay, the labels, the tip
+    const canvasOrder = [
+      ...red(base.context.log),
+      ...red(overlay.context.log),
+      ...red(labels.context.log),
+      ...red(tip.context.log),
+    ];
     const svg = drawListsToSvg(l);
     const svgOrder = [...svg.matchAll(/data-pass="(\w+)"/g)].map(
       (m) => Passes.indexOf(m[1] as (typeof Passes)[number]) + 10,
@@ -342,5 +352,41 @@ describe('canvasTextMetrics', () => {
     expect(port.measure('12px sans', 'ab')).toBe(12);
     expect(port.measure('bold 10px mono', 'a')).toBe(6);
     expect(sets).toEqual([cssFont('12px sans'), cssFont('bold 10px mono')]);
+  });
+
+  it('the tip pass is drawn above the labels: on a canvas of its own, redrawn alone with the hover; else on the overlay', () => {
+    const base = new FakeCanvas();
+    const overlay = new FakeCanvas();
+    const labels = new FakeCanvas();
+    const tip = new FakeCanvas();
+    const backend = new CanvasBackend(base, overlay, labels, { tip });
+    backend.resize(200, 100, 2);
+    // no tip yet: no backing store of the view's size
+    expect([tip.width, tip.height]).toEqual([1, 1]);
+    const l = lists();
+    l.writer('tip').rect(1, 1, 5, 5, 0, BLUE, 1);
+    backend.draw(l, true);
+    expect([tip.width, tip.height]).toEqual([400, 200]);
+    expect(tip.context.calls('strokeRect')).toEqual(['strokeRect(1, 1, 5, 5)']);
+    expect(overlay.context.calls('strokeRect')).toEqual([]);
+    expect(labels.context.calls('strokeRect')).toEqual([]);
+    // the hover goes: the tip canvas shrinks back (cleared), the labels are not drawn again
+    const clears = labels.context.calls('clearRect').length;
+    l.reset(['highlight', 'selection', 'hover', 'cursor', 'tip']);
+    backend.draw(l, false);
+    expect(labels.context.calls('clearRect').length).toBe(clears);
+    expect([tip.width, tip.height]).toEqual([1, 1]);
+    expect(backend.counts.tip).toBe(2);
+    // and nothing more to do while there is no tip
+    backend.draw(l, false);
+    expect(backend.counts.tip).toBe(2);
+    // without a tip canvas the pass is the overlay's last
+    const o2 = new FakeCanvas();
+    const b2 = new CanvasBackend(new FakeCanvas(), o2, new FakeCanvas());
+    b2.resize(200, 100, 2);
+    b2.draw(l, true);
+    l.writer('tip').rect(1, 1, 5, 5, 0, BLUE, 1);
+    b2.draw(l, false);
+    expect(o2.context.calls('strokeRect')).toEqual(['strokeRect(1, 1, 5, 5)']);
   });
 });

@@ -17,6 +17,9 @@ import { plasmidData, type PlasmidVariant, scaleData, scaleStrand } from './data
 
 export const title = 'Plasmid ring';
 
+// The strands are named in words, in the ring's lanes' legend and the detail's track labels: the plus strand's features
+// are the outer lane's, the minus strand's the next.
+
 /** The arrow of each strand's features: where a feature on it points. */
 export const StrandArrow = { '+': 'end', '-': 'start' } as const;
 
@@ -31,19 +34,19 @@ export function build(options: { readonly rotation?: number; readonly variant?: 
       ...(options.rotation !== undefined ? { rotation: options.rotation } : {}),
     });
     ring
-      .track('plus', { label: 'Features +' })
+      .track('plus', { label: 'Forward strand' })
       .layer('features', { type: 'ranges', data: plus, arrow: StrandArrow['+'] });
     ring
-      .track('minus', { label: 'Features −' })
+      .track('minus', { label: 'Reverse strand' })
       .layer('features', { type: 'ranges', data: minus, arrow: StrandArrow['-'] });
     ring.track('sites', { label: 'Sites', height: 36 }).layer('sites', { type: 'ranges', data: sites() });
     ring.track('ruler', { label: 'Ruler' }).layer('ruler', { type: 'ruler' });
     const detail = v.section('detail', { of: seq, follow: ring });
     detail
-      .track('plus', { label: 'Features +' })
+      .track('plus', { label: 'Forward strand' })
       .layer('features', { type: 'ranges', data: plus, arrow: StrandArrow['+'] });
     detail
-      .track('minus', { label: 'Features −' })
+      .track('minus', { label: 'Reverse strand' })
       .layer('features', { type: 'ranges', data: minus, arrow: StrandArrow['-'] });
     detail.track('letters', { label: 'pUC19c' }).layer('letters', { type: 'letters' });
     detail.track('ruler', { label: 'Ruler' }).layer('ruler', { type: 'ruler' });

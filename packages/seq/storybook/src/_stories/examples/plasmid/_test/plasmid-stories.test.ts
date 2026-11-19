@@ -9,7 +9,7 @@ import { resolveAddress } from '@molstar/core/repr/tree';
 import { PlasmidViews } from '@molstar/seqx-examples';
 import { PackageFolder } from '@molstar/seqx-examples/node-assets';
 import { PlasmidLength } from '@molstar/seqx-examples/plasmid/derive';
-import type { RangesLay } from '@molstar/seqx-core/render';
+import { recordDrawLists, type RangesLay } from '@molstar/seqx-core/render';
 import { DomHost } from '@molstar/ui/dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { composeEditing, type EditingSession, historyRows } from '../../../features/editing/compose.js';
@@ -154,5 +154,22 @@ describe('Plasmid ring, drawn on the canvas', () => {
       v.retire();
       vi.useRealTimers();
     }
+  });
+});
+
+describe('Plasmid, the ring’s names and numbers', () => {
+  it('the strands are named in words (the legend’s and the detail’s labels), the ruler’s numbers are in the labels pass, over every tint', async () => {
+    const s = await make('ring');
+    const f = s.viewer.draw() ?? s.viewer.frame!;
+    const texts = (passes: Parameters<typeof recordDrawLists>[1]) =>
+      recordDrawLists(f.lists, passes)
+        .split('\n')
+        .filter((l) => l.startsWith('text '));
+    expect(texts(['labels']).some((l) => l.includes('"Forward strand"'))).toBe(true);
+    expect(texts(['labels']).some((l) => l.includes('"Reverse strand"'))).toBe(true);
+    // the ruler's numbers (the hole's) are labels: drawn above the window's tint, the selection's and the hover's
+    expect(texts(['labels']).some((l) => /^text "\d+00" /.test(l))).toBe(true);
+    expect(texts(['window', 'highlight', 'selection', 'hover', 'cursor'])).toEqual([]);
+    expect(texts(['data']).some((l) => /^text "\d+00" /.test(l))).toBe(false);
   });
 });

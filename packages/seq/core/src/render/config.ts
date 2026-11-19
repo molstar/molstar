@@ -183,7 +183,7 @@ export interface RenderConfig {
   /**
    * The rows layer (_spec/README.md "Render", The rows layer): the least row height a label, a number and an icon are
    * drawn at (`labelMinPx`, 8: a label needs a row), and a pinned row kept in its place in the order too (`pinInPlace`,
-   * true: the tree stays a tree). A row's height (`RowHeight`, 20) and a tree hit's reach (`TreeHitPx`, 6) are fixed.
+   * true: the tree stays a tree). A row's height (`RowHeight`, 20) and a tree hit's reach (`TreeHitPx`, 8) are fixed.
    * Row columns (Row columns): a column's least width before it is hidden (`columns.floorPx`, 32: a short number or a
    * chip), the gap before each (`columns.gapPx`, 6), and the data's least width they yield to (`columns.dataMinPx`,
    * 200: the data keeps a third of a 600 px view beside a tree, a label and two columns), and the title row a rows

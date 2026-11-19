@@ -10,6 +10,7 @@ import { regionSeqText } from '@molstar/seqx-examples/p53/region';
 import { DefaultSeqViewerSpec } from '@molstar/seqx-viewer/default-spec';
 import { createSeqViewer, type SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { openOnRegion } from '../p53/opening.js';
 
 // The Gene by region story, headless on a fake clock: the viewer composed as `example-root.ts` composes it, with the
 // story's SVG exports reading through the viewer's store (after the first settle, and again each time the view rests
@@ -133,5 +134,36 @@ describe('Gene by region, on the canvas', () => {
     expect(last?.height).toBe(v.height);
     expect(last?.svg).toContain(`height="${v.height}"`);
     expect(last?.svg).toContain('T3-domains');
+  });
+});
+
+describe('Gene by region, opened on a region', () => {
+  it('the opening is one jump: Back is then available (to the whole gene), Forward not yet', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date', 'performance'] });
+    const view = P53Views.find((v) => v.id === 'gene-by-region')!;
+    const text = regionSeqText();
+    const base = DefaultSeqViewerSpec();
+    viewer = createSeqViewer({
+      ...base,
+      ui: undefined,
+      registry: [...(base.registry ?? []), ...(view.registry?.({ delayMs: DelayMs }) ?? [])],
+      ports: {
+        assets: () => ({
+          reader: { readText: async () => text, readBytes: async () => new TextEncoder().encode(text) },
+        }),
+      },
+    });
+    const v = viewer;
+    v.resize(720);
+    await v.load(view.build());
+    await vi.advanceTimersByTimeAsync(2 * DelayMs);
+    // no move yet: neither button can run
+    expect(v.view.history.value).toEqual({ back: 0, forward: 0 });
+    const whole = { ...v.view.get('/views/main/region')! };
+    await openOnRegion(v);
+    await vi.advanceTimersByTimeAsync(2 * DelayMs);
+    const opened = v.view.get('/views/main/region')!;
+    expect(opened.end - opened.start).toBeLessThan((whole.end - whole.start) / 2);
+    expect(v.view.history.value).toEqual({ back: 1, forward: 0 });
   });
 });
