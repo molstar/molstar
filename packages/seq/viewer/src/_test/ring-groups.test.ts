@@ -104,20 +104,22 @@ describe('a ring’s grouped label', () => {
     );
   });
 
-  it('a pointer on it opens the fan in the next frame, laying nothing out', async () => {
+  it('a pointer on it opens the fan, laying nothing out; the hit reads the hover, with no draw between', async () => {
     const v = await make();
     const p = ringOf(v);
     const at = groupPoint(v);
     const layout = v.frame!.layout;
     v.input.move(at.x, at.y);
+    // no draw yet: a hit on a fan label already answers as its item
+    const slot = p.fan.slot[p.fan.members[3]];
+    const pt = { x: p.fan.right[slot] ? p.fan.x[slot] + 3 : p.fan.x[slot] - 3, y: p.fan.y[slot] - 0.35 * p.labelSize };
+    expect(v.hit(pt.x, pt.y)?.element?.key).toBe(p.fan.hits[p.fan.members[3]]!.element!.key);
     frames!.flush();
     v.draw();
     expect(v.frame!.layout).toBe(layout);
-    expect(p.openGroup).toBe(0);
-    // away from it: the grouped form again
+    expect(v.hit(pt.x, pt.y)?.element?.key).toBe(p.fan.hits[p.fan.members[3]]!.element!.key);
+    // away from it: the grouped form again, the fan's place no hit
     v.input.leave();
-    frames!.flush();
-    v.draw();
-    expect(p.openGroup).toBe(-1);
+    expect(v.hit(pt.x, pt.y)?.element?.key).not.toBe(p.fan.hits[p.fan.members[3]]!.element!.key);
   });
 });

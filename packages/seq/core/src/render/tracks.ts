@@ -2745,7 +2745,7 @@ function pointAt(): Float64Array {
   return HitAt;
 }
 
-export function hitView(layout: ViewLayout, x: number, y: number, touch = false): Hit | undefined {
+export function hitView(layout: ViewLayout, x: number, y: number, touch = false, hover?: Hit): Hit | undefined {
   for (const s of layout.sections) {
     const strips = s.placement.strips;
     for (let i = 0; i < strips.n; i++) {
@@ -2778,7 +2778,7 @@ export function hitView(layout: ViewLayout, x: number, y: number, touch = false)
         if (h) return h;
       }
     }
-    const own = s.layout.hitChrome?.(s, x, y);
+    const own = s.layout.hitChrome?.(s, x, y, hover);
     if (own) return own;
     // a `section` layer's marks, on the page, over the strips'
     for (let i = s.sectionLays.length - 1; i >= 0; i--) {

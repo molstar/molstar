@@ -98,6 +98,7 @@ export {
 } from './layer-type.js';
 export { BlockMetrics, BlockPlacement } from './layout/blocks.js';
 export {
+  openGroupOf,
   RingMetrics,
   type RingParams,
   RingPlacement,

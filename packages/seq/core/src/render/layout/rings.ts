@@ -144,8 +144,6 @@ export class RingPlacement implements Placement {
   labels = new RingLabels();
   /** Every label placed as if no group existed, when a fan is dense (m is 0 otherwise): what a hover on a group opens. */
   fan = new RingLabels();
-  /** The group whose fan is open (drawn by the tip pass from the hover), or −1; hits read it. */
-  openGroup = -1;
   cx = 0;
   cy = 0;
   /** The outer radius, and the rings' depth (their bands and the gaps between them). */
@@ -243,10 +241,10 @@ export class RingPlacement implements Placement {
 
   /**
    * The open group's member whose fan label is under a page point (its index among the fan's given labels), or −1: a
-   * fan is hit only while its group is open (`openGroup`, set by the pass that draws it from the hover).
+   * fan is hit only while its group is open (`openGroupOf` the hover: the draw and the hit read the same input).
    */
-  fanAt(x: number, y: number): number {
-    const g = this.openGroup;
+  fanAt(x: number, y: number, hover?: Hit): number {
+    const g = openGroupOf(this, hover);
     if (g < 0) return -1;
     const f = this.fan;
     for (let q = f.groupStart[g]; q < f.groupStart[g + 1]; q++) {
@@ -534,10 +532,10 @@ export const RingsLayout: SectionLayoutType<RingPlacement> = {
     else if (pass === 'labels') drawRingLabels(p, out, tokens, config);
     else if (pass === 'tip') drawRingFan(p, out, emphasis, tokens, config);
   },
-  hitChrome(s, x, y) {
+  hitChrome(s, x, y, hover) {
     const p = s.placement;
     if (!(p instanceof RingPlacement)) return undefined;
-    const i = p.fanAt(x, y);
+    const i = p.fanAt(x, y, hover);
     if (i >= 0) return p.fan.hits[i];
     const k = p.labelAt(x, y);
     if (k >= 0) return p.labels.hits[p.labels.placed[k]];
@@ -699,7 +697,6 @@ function layoutLabels(p: RingPlacement, config: RenderConfig, size: number, text
   const all = p.labels;
   const rc = config.rings;
   p.fan.reset();
-  p.openGroup = -1;
   all.ng = 0;
   if (findGroups(all, rc.cluster.over, (rc.cluster.degrees * Math.PI) / 180) === 0)
     return placeLabels(p, all, config, size, text);
@@ -798,9 +795,37 @@ function placeLabels(p: RingPlacement, l: RingLabels, config: RenderConfig, size
 }
 
 /**
+ * The group whose fan is open for a hover (a hit), or −1: the hovered group's own hit, or the hit of one of its members.
+ * A pure function of the placement and the hover: the draw (the emphasis the frame is drawn with) and the hit (the
+ * viewer's hover model) both ask it, so a hit gives the same answer with no draw between.
+ */
+export function openGroupOf(p: RingPlacement, h: Hit | undefined): number {
+  const f = p.fan;
+  if (!h || f.m === 0 || f.ng === 0) return -1;
+  const l = p.labels;
+  if (h.target === 'group') {
+    for (let q = 0; q < l.groupHits.length; q++) {
+      const gh = l.groupHits[q];
+      if (gh && gh.state === h.state && gh.layer === h.layer) return q;
+    }
+    return -1;
+  }
+  if (!h.element) return -1;
+  const key = h.element.key;
+  const owner = h.element.owner;
+  for (let q = 0; q < f.groupStart[f.ng]; q++) {
+    const e = f.hits[f.members[q]]?.element;
+    if (e && e.key === key && e.owner === owner) {
+      for (let r = 0; r < f.ng; r++) if (q >= f.groupStart[r] && q < f.groupStart[r + 1]) return r;
+    }
+  }
+  return -1;
+}
+
+/**
  * The open group's fan, over the labels (the tip pass: a hover redraws it alone, nothing is laid out): the group is the
  * hover's (its hit, or one of its members'); its grouped label is covered by the page's ground and its members' labels
- * drawn where the layout placed them (`p.fan`), each on a ground of its own. Sets `openGroup`, which the hits read.
+ * drawn where the layout placed them (`p.fan`), each on a ground of its own.
  */
 function drawRingFan(
   p: RingPlacement,
@@ -810,28 +835,9 @@ function drawRingFan(
   config: RenderConfig,
 ) {
   const f = p.fan;
-  p.openGroup = -1;
-  const h = emphasis?.hover;
-  if (!h || f.m === 0 || f.ng === 0) return;
-  const l = p.labels;
-  let g = -1;
-  if (h.target === 'group') {
-    for (let q = 0; q < l.groupHits.length; q++) {
-      const gh = l.groupHits[q];
-      if (gh && gh.state === h.state && gh.layer === h.layer) g = q;
-    }
-  } else if (h.element) {
-    const key = h.element.key;
-    const owner = h.element.owner;
-    for (let q = 0; q < f.groupStart[f.ng] && g < 0; q++) {
-      const e = f.hits[f.members[q]]?.element;
-      if (e && e.key === key && e.owner === owner) {
-        for (let r = 0; r < f.ng; r++) if (q >= f.groupStart[r] && q < f.groupStart[r + 1]) g = r;
-      }
-    }
-  }
+  const g = openGroupOf(p, emphasis?.hover);
   if (g < 0) return;
-  p.openGroup = g;
+  const l = p.labels;
   const ground = tokens.colors['msui-bg'];
   const ink = tokens.colors['msui-text'];
   const muted = tokens.colors['msui-text-muted'];

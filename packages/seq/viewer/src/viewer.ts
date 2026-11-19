@@ -1345,11 +1345,13 @@ export class SeqViewer extends ReactiveModel {
     const v = this.hover.version.value;
     if (v === this._hoverVersion) return;
     this._hoverVersion = v;
+    e.hover = this._hoverHit();
+  }
+
+  /** The hover model's hit as the emphasis (and the hits) read it, in the reused record; undefined with no hover. */
+  private _hoverHit(): RenderHit | undefined {
     const r = this.hover.current;
-    if (r.owner === undefined || r.layer === undefined || r.system === undefined) {
-      e.hover = undefined;
-      return;
-    }
+    if (r.owner === undefined || r.layer === undefined || r.system === undefined) return undefined;
     const h = this._emphasisHit;
     h.layer = r.layer;
     h.section = r.section === undefined ? '' : this._sectionId(r.section);
@@ -1364,7 +1366,7 @@ export class SeqViewer extends ReactiveModel {
     (h as { target: unknown }).target = r.target;
     // the row column cell a header hover is on: its cut value read whole in the tip pass (Emphasis along y)
     (h as { state: string | undefined }).state = r.state;
-    e.hover = h;
+    return h;
   }
 
   /**
@@ -1454,7 +1456,7 @@ export class SeqViewer extends ReactiveModel {
 
   /** What is under a point of the last frame's layout. */
   hit(x: number, y: number, touch = false): RenderHit | undefined {
-    return this._frame ? hitView(this._frame.layout, x, y, touch) : undefined;
+    return this._frame ? hitView(this._frame.layout, x, y, touch, this._hoverHit()) : undefined;
   }
 
   // ---- commands ----

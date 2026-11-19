@@ -24,6 +24,7 @@ import {
   recordDrawLists,
   drawListsToSvg,
   hitView,
+  openGroupOf,
 } from '../index.js';
 import { renderSvg } from '../render-svg.js';
 import type { FormatRuntime } from '@molstar/seqx-core/data';
@@ -474,19 +475,23 @@ describe('a dense fan of labels', () => {
     const hovered = s.renderer.frame({ size: Size, emphasis: { hover: { ...over } } });
     const lists = recordDrawLists(hovered.lists);
     for (let q = 0; q < 13; q++) expect(lists).toContain(`Site${q}`);
-    expect(p.openGroup).toBe(0);
+    expect(openGroupOf(p, over)).toBe(0);
     // a fan label is hit as its item, while the group is open
     const i = p.fan.members[3];
     const slot = p.fan.slot[i];
     const pt = labelPoint(p, p.fan, slot);
-    const member = hitAtPage(hovered, pt.x, pt.y)!;
+    // the hit reads the hover it is given, as the draw does: no draw between (`f` was never drawn with the hover)
+    const member = hitView(f.layout, pt.x, pt.y, false, { ...over })!;
     expect(member.element?.key).toBe(p.fan.hits[i]!.element!.key);
+    expect(hitView(f.layout, pt.x, pt.y)?.element?.key).not.toBe(p.fan.hits[i]!.element!.key);
+    // the member's own hover keeps its group open
+    expect(openGroupOf(p, { ...member })).toBe(0);
     // a hover on that item keeps the fan open; off the group the grouped form is drawn again
     const again = s.renderer.frame({ size: Size, emphasis: { hover: { ...member } } });
     expect(recordDrawLists(again.lists)).toContain('Site12');
     const off = s.renderer.frame({ size: Size, emphasis: {} });
     expect(recordDrawLists(off.lists)).not.toContain('Site3');
-    expect(p.openGroup).toBe(-1);
+    expect(openGroupOf(p, undefined)).toBe(-1);
     // closed, the fan's place is the grouped labels' again
     expect(hitAtPage(off, pt.x, pt.y)?.target).not.toBe('group');
   });
