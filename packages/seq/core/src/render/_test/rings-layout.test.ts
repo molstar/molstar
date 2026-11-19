@@ -21,10 +21,12 @@ import {
   recordDrawLists,
   drawListsToSvg,
   hitView,
+  renderSvg,
 } from '../index.js';
+import { rangesLocation } from '@molstar/seqx-core/query';
 import { settle } from './helpers.js';
 import { RingFeatures, RingLength, ringLetters, ringSpec } from './rings-fixtures.js';
-import { rng } from './small-helpers.js';
+import { type ReadPath, readPaths, rng } from './small-helpers.js';
 
 const Size = { width: 640, height: 900 };
 
@@ -146,7 +148,9 @@ describe('the rings layout', () => {
     const rows = RingFeatures;
     for (let pos = 0; pos < RingLength; pos += 7) {
       const want = rows.id.filter((_, i) =>
-        rows.start[i] < rows.end[i] ? pos >= rows.start[i] && pos < rows.end[i] : pos >= rows.start[i] || pos < rows.end[i],
+        rows.start[i] < rows.end[i]
+          ? pos >= rows.start[i] && pos < rows.end[i]
+          : pos >= rows.start[i] || pos < rows.end[i],
       );
       expect(keysAt(pos)).toEqual(want.sort());
     }
@@ -183,6 +187,40 @@ describe('the rings layout', () => {
   });
 });
 
+describe('a ring in two consumers and in an export', () => {
+  it('renderSvg draws the lists a renderer draws (the window only with `window`)', async () => {
+    const spec = ringSpec();
+    const viewports = { '/views/v/ring': { start: 500, end: 640 } };
+    const out = await renderSvg(spec, { size: Size, viewports });
+    const s = await settle(spec);
+    const f = await s.frame({ size: Size, viewports, figure: true, settled: true });
+    expect(recordDrawLists(out.lists)).toBe(recordDrawLists(f.lists));
+    expect(out.lists.passes.window.opCount).toBe(0);
+    const windowed = await renderSvg(spec, { size: Size, viewports, window: true });
+    expect(windowed.lists.passes.window.opCount).toBeGreaterThan(0);
+    expect(windowed.svg).toContain('<path');
+  });
+
+  it('a selection over the origin is one arc on the ring: two runs whose square ends meet at the seam', async () => {
+    const s = await settle(ringSpec({ detail: false }));
+    const selection = rangesLocation('/data/construct', [0, 30, 570, 600]);
+    const f = await s.frame({ size: Size, emphasis: { selection } });
+    const paths = readPaths(f.lists, 'selection');
+    // a tint and an outline a run, two runs: each a bent path on the page
+    expect(paths.length).toBe(4);
+    const p = ringOf(f).placement as RingPlacement;
+    // the runs meet at the origin's angle: a point of each at the seam
+    p.warp.map(p.frameX(0), 1);
+    const seam = { x: p.warp.px, y: p.warp.py };
+    const near = (q: ReadPath) => {
+      for (let i = 0; i + 1 < q.xy.length; i += 2)
+        if (Math.hypot(q.xy[i] - seam.x, q.xy[i + 1] - seam.y) < 2) return true;
+      return false;
+    };
+    expect(paths.filter(near).length).toBeGreaterThanOrEqual(2);
+  });
+});
+
 describe('the rings layout’s navigation', () => {
   const c: NavContext = { total: 600, width: 400, height: 400, cyclic: true, maxScale: 20 };
   it('pans round the origin, zooms about a unit, reveals by the shortest way, fits', () => {
@@ -200,4 +238,3 @@ describe('the rings layout’s navigation', () => {
 function hitAtPage(f: Frame, x: number, y: number): Hit | undefined {
   return hitView(f.layout, x, y);
 }
-

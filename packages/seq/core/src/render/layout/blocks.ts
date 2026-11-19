@@ -225,7 +225,13 @@ export function blockChrome(
   const strips = p.strips;
   if (pass === 'data' && band >= 0 && strip > 0 && p.stacked) {
     const k = strip * strips.bands + band;
-    out.fill(s.tracks[band]?.box.x ?? 0, strips.bandY[k], s.tracks[band]?.box.width ?? 0, strips.bandH[k], s.tokens.colors['seq-track']);
+    out.fill(
+      s.tracks[band]?.box.x ?? 0,
+      strips.bandY[k],
+      s.tracks[band]?.box.width ?? 0,
+      strips.bandH[k],
+      s.tokens.colors['seq-track'],
+    );
     return;
   }
   if (pass !== 'labels' || band >= 0) return;

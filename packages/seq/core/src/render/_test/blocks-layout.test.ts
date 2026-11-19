@@ -68,7 +68,8 @@ describe('blocks in the tracks layout', () => {
     const p = sec.placement as BlockPlacement;
     expect(p.strips.n).toBe(3);
     // gaps between the blocks, in order
-    for (let i = 1; i < 3; i++) expect(p.strips.axes[i].x0).toBeGreaterThan(p.strips.axes[i - 1].x0 + p.strips.axes[i - 1].width);
+    for (let i = 1; i < 3; i++)
+      expect(p.strips.axes[i].x0).toBeGreaterThan(p.strips.axes[i - 1].x0 + p.strips.axes[i - 1].width);
     const pt = new PlacePoint();
     let last = -Infinity;
     for (let u = 0; u < 201; u++) {
@@ -130,7 +131,8 @@ describe('blocks on a ring', () => {
     const f = await s.frame({ size: Size });
     const p = f.layout.sections[0].placement as RingPlacement;
     expect(p.strips.n).toBe(3);
-    for (let i = 1; i < 3; i++) expect(p.strips.axes[i].x0).toBeGreaterThan(p.strips.axes[i - 1].x0 + p.strips.axes[i - 1].width);
+    for (let i = 1; i < 3; i++)
+      expect(p.strips.axes[i].x0).toBeGreaterThan(p.strips.axes[i - 1].x0 + p.strips.axes[i - 1].width);
     expect(p.strips.axes.map((a) => a.system)).toEqual(['/data/cdk2', '/data/cyclin', '/data/atp']);
     const pt = new PlacePoint();
     for (let u = 0; u < 201; u += 3) {

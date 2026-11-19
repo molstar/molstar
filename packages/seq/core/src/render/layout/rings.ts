@@ -339,7 +339,8 @@ export const RingsLayout: SectionLayoutType<RingPlacement> = {
     // the blocks: arcs of the circle less their gaps (a whole cyclic block alone has none)
     const blocks = section.blocks;
     const nBlocks = blocks?.length ?? 1;
-    const whole = !blocks && axis.cyclic && axis.pieces.length === 2 && axis.pieces[0] === 0 && axis.total === axis.length;
+    const whole =
+      !blocks && axis.cyclic && axis.pieces.length === 2 && axis.pieces[0] === 0 && axis.total === axis.length;
     const gaps = whole ? 0 : nBlocks;
     const gap = (rc.blockGap * Math.PI) / 180;
     const arc = Math.max(TwoPi - gaps * gap, 1e-6);

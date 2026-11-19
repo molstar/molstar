@@ -67,6 +67,61 @@ export function ringSpec(options: RingOptions = {}): Node {
   return b.build();
 }
 
+/**
+ * A plasmid-sized ring (2,686 nt): four rings (features on each strand, sites, a ruler), about 30 labels, a linear
+ * detail following its window; what the ring's frame target is measured on.
+ */
+export function plasmidRingSpec(): Node {
+  const n = 2686;
+  const r = seeded(23);
+  let letters = '';
+  for (let i = 0; i < n; i++) letters += 'ACGT'[Math.floor(r() * 4)];
+  const plus = { start: [] as number[], end: [] as number[], id: [] as string[], label: [] as string[] };
+  const minus = { start: [] as number[], end: [] as number[], id: [] as string[], label: [] as string[] };
+  for (let k = 0; k < 13; k++) {
+    const s = Math.floor((k * n) / 13 + r() * 40);
+    const f = k % 2 ? minus : plus;
+    f.start.push(s);
+    f.end.push((s + 80 + Math.floor(r() * 120)) % n);
+    f.id.push(`f${k}`);
+    f.label.push(`feature ${k}`);
+  }
+  // one across the origin on each strand
+  plus.start.push(2600);
+  plus.end.push(60);
+  plus.id.push('ori');
+  plus.label.push('ori');
+  minus.start.push(2500);
+  minus.end.push(120);
+  minus.id.push('bla');
+  minus.label.push('bla');
+  const sites = { start: [] as number[], end: [] as number[], id: [] as string[], label: [] as string[] };
+  for (let k = 0; k < 14; k++) {
+    const s = Math.floor(r() * (n - 6));
+    sites.start.push(s);
+    sites.end.push(s + 6);
+    sites.id.push(`s${k}`);
+    sites.label.push(`Site${k}`);
+  }
+  const b = createSeqSpec({ title: 'plasmid ring' });
+  const c = b.data.sequence('plasmid', { alphabet: 'dna', letters, cyclic: true });
+  const fp = b.data.ranges('plus', { target: c, rows: plus });
+  const fm = b.data.ranges('minus', { target: c, rows: minus });
+  const fs = b.data.ranges('sites', { target: c, rows: sites });
+  b.views.view('v', (v) => {
+    const ring = v.section('ring', { of: c, layout: 'rings' });
+    ring.track('plus').layer('plus', { type: 'ranges', data: fp });
+    ring.track('minus').layer('minus', { type: 'ranges', data: fm });
+    ring.track('sites', { height: 12 }).layer('sites', { type: 'ranges', data: fs });
+    ring.track('ruler').layer('ruler', { type: 'ruler' });
+    const d = v.section('detail', { of: c, follow: ring });
+    d.track('plus').layer('plus', { type: 'ranges', data: fp });
+    d.track('minus').layer('minus', { type: 'ranges', data: fm });
+    d.track('letters').layer('letters', { type: 'letters' });
+  });
+  return b.build();
+}
+
 /** A small complex: two chains (one in two copies), a ligand, as blocks of one section. */
 export function blocksSpec(options: { arrange?: 'row' | 'stack'; copies?: 'merge' | 'each'; layout?: 'rings' } = {}) {
   const b = createSeqSpec({ title: 'blocks' });
