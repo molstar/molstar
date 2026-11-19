@@ -148,6 +148,12 @@ export interface RenderConfig {
    */
   readonly internedStrings: number;
   /**
+   * The shared image cache's bytes (64 MB): every `image` tile a layer draws (grid, rows, navigators) in one LRU, this
+   * over a tile's bytes its capacity (_spec/README.md "Render", The shared reduction). Why one: two caches could not lend
+   * each other room.
+   */
+  readonly imageBytes: number;
+  /**
    * The text layout (_spec/README.md "Render", Text layout): its letter size (`scale`, px a position: the zoom), the gap
    * between groups (a share of a cell), between lines and between a line's bands (px), whether a band no layer used on
    * a line collapses there, the most lines a section lays out, the most px a section in a page takes before it scrolls
@@ -217,6 +223,7 @@ export const DefaultRenderConfig: RenderConfig = {
     window: 'followed',
   },
   internedStrings: DefaultMaxStrings,
+  imageBytes: 64 * 1024 * 1024,
   text: {
     scale: 12,
     groupGap: 0.5,
