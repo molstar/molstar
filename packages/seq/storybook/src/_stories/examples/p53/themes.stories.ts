@@ -16,7 +16,7 @@ import {
   schemeColors,
   toRgb,
 } from '@molstar/seqx-core/theme/index';
-import { FeatureViews, P53Views } from '@molstar/seqx-examples';
+import { type ExampleView, FeatureViews, P53Views } from '@molstar/seqx-examples';
 import { mountLegend } from '@molstar/seqx-viewer/mount-legend';
 import { Button } from '@molstar/ui/components/button/button';
 import { defineElements, onCleanup } from '@molstar/ui/dom';
@@ -47,10 +47,16 @@ function text(tag: string, content: string, css = ''): HTMLElement {
   return el;
 }
 
-class ThemesEditingRoot extends UiElement<undefined> {
+// Each root renders once it has a model (`UiElement` renders nothing without one): the view, the schemes.
+export class ThemesEditingRoot extends UiElement<ExampleView> {
   static readonly tag = 'seqx-p53-themes-editing-root';
 
-  protected render(): HTMLElement {
+  /** The composition the story drives (its headless twin drives the same one). */
+  session: EditingSession | undefined;
+  /** The view's load, then the picker filled. */
+  loaded: Promise<void> | undefined;
+
+  protected render(view: ExampleView): HTMLElement {
     const root = document.createElement('div');
     root.style.cssText = Page;
     root.append(
@@ -62,8 +68,12 @@ class ThemesEditingRoot extends UiElement<undefined> {
     );
     const canvasHost = document.createElement('div');
     canvasHost.style.cssText = 'min-width: 0;';
-    const s: EditingSession = composeEditing(editingView, { target: canvasHost });
-    onCleanup(() => s.dispose());
+    const s: EditingSession = composeEditing(view, { target: canvasHost });
+    this.session = s;
+    onCleanup(() => {
+      s.dispose();
+      this.session = undefined;
+    });
     const status = text('p', '', Muted);
     const say = (p: Promise<string> | string) =>
       void Promise.resolve(p).then((m) => {
@@ -121,7 +131,7 @@ class ThemesEditingRoot extends UiElement<undefined> {
     onCleanup(() => svg.dispose());
 
     s.viewer.resize(960);
-    void s.viewer.load(editingView.build()).then(() => {
+    this.loaded = s.viewer.load(view.build()).then(() => {
       for (const name of pickerSchemes(s)) {
         const b = Button({ size: 'sm', children: name, onClick: () => say(pickScheme(s, name)) }) as HTMLElement;
         b.setAttribute('role', 'option');
@@ -162,10 +172,10 @@ function swatches(colors: readonly Color[], vision: ColorVision, label: string):
   return row;
 }
 
-class SchemesGalleryRoot extends UiElement<undefined> {
+export class SchemesGalleryRoot extends UiElement<readonly SchemeEntry[]> {
   static readonly tag = 'seqx-schemes-gallery-root';
 
-  protected render(): HTMLElement {
+  protected render(schemes: readonly SchemeEntry[]): HTMLElement {
     const root = document.createElement('div');
     root.style.cssText = Page;
     root.append(
@@ -180,7 +190,7 @@ class SchemesGalleryRoot extends UiElement<undefined> {
     const head = document.createElement('tr');
     for (const h of ['Scheme', 'Table', ...Visions]) head.append(text('th', h, 'text-align: left; padding: 4px 8px;'));
     table.append(head);
-    for (const entry of BuiltInSchemes) {
+    for (const entry of schemes) {
       for (const [name, tokens, dark] of [
         ['light', LightTokens, false],
         ['dark', DarkTokens, true],
@@ -221,7 +231,7 @@ export const Themes: StoryObj = { render: () => exampleStory(view) };
 export const EditingThemes: StoryObj = {
   render: () => {
     const el = document.createElement(ThemesEditingRoot.tag) as ThemesEditingRoot;
-    el.model = undefined;
+    el.model = editingView;
     return el;
   },
 };
@@ -230,7 +240,7 @@ export const EditingThemes: StoryObj = {
 export const SchemesGallery: StoryObj = {
   render: () => {
     const el = document.createElement(SchemesGalleryRoot.tag) as SchemesGalleryRoot;
-    el.model = undefined;
+    el.model = BuiltInSchemes;
     return el;
   },
 };

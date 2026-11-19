@@ -10,8 +10,9 @@ import { addDomains, conservation, P53, seeded } from './data.js';
 
 // p53's themes: the protein's letters under each scheme that fits a protein; its domains colored by their category
 // (the builder lists the categories, so the legend is the vocabulary); a per-residue confidence as AlphaFold's four
-// pLDDT bands (binned) and as a ramp; two signals naming one shared scale (one domain, one legend); variants colored by
-// consequence and sized by a log-scaled frequency; secondary structure by its scheme. Its export draws the legends
+// pLDDT bands (binned) and as a ramp; two signals naming one shared scale (one domain, one legend); variants (stem and
+// head) colored by consequence, their heads sized by a log-scaled frequency; secondary structure in its own layer, keyed
+// by its scheme. Its export draws the legends
 // below the data. The confidence, the second signal, the variants and the secondary structure are generated from seeds
 // (stand-ins, named so): the view's point is the themes.
 
@@ -56,7 +57,7 @@ export function variants() {
 export const Secondary = {
   start: new Int32Array([110, 124, 141, 156, 177, 194, 214, 230, 251, 264, 278]),
   end: new Int32Array([118, 130, 148, 164, 181, 200, 220, 236, 258, 271, 287]),
-  structure: categoryColumn([
+  category: categoryColumn([
     'strand',
     'turn',
     'strand',
@@ -115,17 +116,13 @@ export function build(): Node {
       scale: shared,
       color: theme.field('value', { scale: shared }),
     });
-    s.track('variants', { label: 'Variants' }).layer('ranges', {
-      type: 'ranges',
+    s.track('variants', { label: 'Variants', height: 40 }).layer('variants', {
+      type: 'variants',
       data: vars,
       color: theme.field('consequence'),
       size: theme.field('frequency', { type: 'log', domain: [1e-6, 0.1], range: [0.3, 1] }),
     });
-    s.track('secondary', { label: 'Secondary structure' }).layer('ranges', {
-      type: 'ranges',
-      data: ss,
-      color: theme.scheme('secondary', { field: 'structure' }),
-    });
+    s.track('secondary', { label: 'Secondary structure' }).layer('secondary', { type: 'secondary', data: ss });
   });
   return b.build();
 }
