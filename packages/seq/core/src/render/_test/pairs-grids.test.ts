@@ -23,6 +23,7 @@ import {
   GridPlacement,
   hitView,
   type PairsLay,
+  PairsType,
   type SectionLayout,
   splitCrossing,
   type ViewLayout,
@@ -417,6 +418,67 @@ describe('the pairs layer: arcs', () => {
     // a hover at a base lights the arcs with an end there (its partner's)
     const lists = new DrawLists();
     drawView(f.layout, lists, { hover: { layer: 'x', section: 's', system: '/data/s', position: 9 } }, ['hover']);
+    expect(lists.passes.hover.paths.n).toBe(1);
+  });
+
+  it('through the themes and the data filter: kinds colored by the channel’s default, a uniform color, a filter leaving pairs out', async () => {
+    const pairs: [number, number][] = [
+      [0, 20],
+      [2, 18],
+      [5, 9],
+      [11, 15],
+    ];
+    const types = ['stem', 'stem', 'tertiary', 'wobble'];
+    const build = (query = '', color?: string) => {
+      const b = createSeqSpec();
+      const sq = b.data.sequence('s', { alphabet: 'rna', letters: letters(24) });
+      const p = b.data.pairs('p', { a: sq, rows: pairRows(pairs, types) });
+      b.views.view('v', (v) => {
+        const sec = v.section('s', { of: sq });
+        sec.track('letters').layer('letters', { type: 'letters' });
+        sec.track('pairs').layer('arcs', { type: 'pairs', data: `${p}${query}`, ...(color ? { color } : {}) });
+      });
+      return b.build();
+    };
+    const lay = async (spec: ReturnType<typeof build>) => {
+      const st = await settle(spec);
+      const f = await st.renderer.frame({ size: Size, settled: true });
+      return { f, lay: arcsLay(f.layout.sections[0]) };
+    };
+    // by kind: one color a kind, the same kind the same
+    const all = (await lay(build())).lay;
+    expect(all.n).toBe(4);
+    const colorOf = (l: PairsLay, k: number) => l.color[[...l.pair.slice(0, l.n)].indexOf(k)];
+    expect(colorOf(all, 0)).toBe(colorOf(all, 1));
+    expect(new Set([colorOf(all, 0), colorOf(all, 2), colorOf(all, 3)]).size).toBe(3);
+    // a uniform color
+    const red = (await lay(build('', '#ff0000'))).lay;
+    for (let i = 0; i < red.n; i++) expect(red.color[i]).toBe(0xff0000ff);
+    // the filter: the tertiary pair left out, counted
+    const { f, lay: some } = await lay(build('/(not :of (item :type tertiary))'));
+    expect(some.n).toBe(3);
+    expect([...some.pair.slice(0, some.n)].sort()).toEqual([0, 1, 3]);
+    expect(f.layout.issues).toEqual([]);
+    expect(PairsType.filtered!(some)).toBe(1);
+    expect(f.layout.sections[0].tracks[1].filter?.count).toBe(1);
+  });
+
+  it('a cell’s hover lights the arcs ending at either position; a hover projected here lights them too', async () => {
+    const pairs: [number, number][] = [
+      [0, 20],
+      [2, 18],
+      [5, 9],
+      [11, 15],
+    ];
+    const st = await settle(arcsSpec({ n: 24, pairs }));
+    const f = await st.renderer.frame({ size: Size, settled: true });
+    const lists = new DrawLists();
+    const hover = { section: 'plot', system: '/data/s', position: 2, ySystem: '/data/s', yPosition: 15 };
+    drawView(f.layout, lists, { hover }, ['hover']);
+    expect(lists.passes.hover.paths.n).toBe(2);
+    drawView(f.layout, lists, { projected: { hover: rangesLocation('/data/s', [9, 10]), hoverSection: '/x' } }, [
+      'hover',
+    ]);
     expect(lists.passes.hover.paths.n).toBe(1);
   });
 

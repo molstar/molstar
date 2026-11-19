@@ -115,7 +115,7 @@ describe('tRNA: arcs, headless', () => {
 });
 
 describe('tRNA: the dot plot, headless', () => {
-  it('a cell hovered: the crosshair, both bases lit on the letters (projected)', async () => {
+  it('a cell hovered: the crosshair, both bases lit on the letters and the arcs ending at either (projected)', async () => {
     viewer = await openExample(trna('dot-plot'), { gene: '' });
     const v = viewer;
     const g = gridOf(v, 1);
@@ -131,9 +131,16 @@ describe('tRNA: the dot plot, headless', () => {
     const hover = recordDrawLists(v.frame!.lists, ['hover'])
       .split('\n')
       .filter((l) => l.startsWith('rect'));
-    // the crosshair (a column, a row, the cell outlined), the two bases on the letters; the pairs at those bases not lit
+    // the crosshair (a column, a row, the cell outlined), the two bases on the letters
     expect(hover.length).toBe(3 + 2);
-    expect(v.frame!.lists.passes.hover.paths.n).toBe(0);
+    // the arcs ending at either base lit (the projected hover), and none other
+    const arcs = arcsOf(v);
+    const d = arcs.prep!.data!;
+    const ends = (k: number, p: number) => (d.aStart[k] <= p && p < d.aEnd[k]) || (d.bStart[k] <= p && p < d.bEnd[k]);
+    let lit = 0;
+    for (let i = 0; i < arcs.n; i++) if (ends(arcs.pair[i], 30) || ends(arcs.pair[i], 39)) lit++;
+    expect(lit).toBeGreaterThan(0);
+    expect(v.frame!.lists.passes.hover.paths.n).toBe(lit);
   });
 
   it('a cell: click a one-cell rect, Shift+click the rect from it, Cmd/Ctrl+click toggles a cell out', async () => {

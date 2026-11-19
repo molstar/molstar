@@ -20,11 +20,15 @@
 
 import { issueOf } from '@molstar/core/repr/tree';
 import { type ElementKey, type Location, location } from '@molstar/seqx-core/query';
+import { theme as themeForm } from '@molstar/seqx-core/lang';
 import type { PairsData, StaticModel } from '@molstar/seqx-core/resolve';
+import type { Channel, ChannelName, ThemeDatum } from '@molstar/seqx-core/theme/index';
 import { cellOffset, type ResolvedLayer, type ResolvedSection } from '@molstar/seqx-core/view';
 import type { AxisTransform } from './axis.js';
+import { channelForms, channelLegends, Extents, type LayerChannels } from './channels.js';
 import type { RenderConfig } from './config.js';
 import { grown, NoColor, type PassName, type PassWriter } from './draw-lists.js';
+import { compileRowFilter } from './filter.js';
 import { RenderIssues } from './issues.js';
 import { type Box, type Emphasis, type Hit, type LayerType, type LayoutContext, sectionId } from './layer-type.js';
 import { WarpKind } from './layout/strips.js';
@@ -45,6 +49,57 @@ const Caret = 3;
 
 type Side = 'above' | 'below';
 
+/** The default color: by kind (the `type` column), a categorical palette whose colors are fixed by value. */
+const DefaultColor = themeForm.field('type', { list: false });
+
+/** A pair as the themes and the filter read it: its kind, label, key, strands and ends. */
+class PairDatum implements ThemeDatum {
+  value = Number.NaN;
+  letter = '';
+  start = 0;
+  end = 0;
+  k = 0;
+  key: string | number = 0;
+  constructor(readonly data: PairsData) {}
+  set(k: number): this {
+    const d = this.data;
+    this.k = k;
+    this.key = d.keys[k];
+    this.start = d.aStart[k];
+    this.end = d.aEnd[k];
+    return this;
+  }
+  field(name: string): string | number | undefined {
+    const d = this.data;
+    const k = this.k;
+    switch (name) {
+      case 'type':
+        return d.kind[k] < 0 ? undefined : d.kinds[d.kind[k]];
+      case 'label':
+        return d.labels?.[k] ?? undefined;
+      case 'id':
+        return d.keys[k];
+      case 'a_strand':
+        return d.aStrand[k] < 0 ? '-' : '+';
+      case 'b_strand':
+        return d.bStrand[k] < 0 ? '-' : '+';
+      case 'a_start':
+        return d.aStart[k];
+      case 'a_end':
+        return d.aEnd[k];
+      case 'b_start':
+        return d.bStart[k];
+      case 'b_end':
+        return d.bEnd[k];
+      default:
+        return undefined;
+    }
+  }
+}
+
+/** The color channel's environment: the ends are numbers, the rest text. */
+const PairEnv = { numeric: (n: string) => n === 'a_start' || n === 'a_end' || n === 'b_start' || n === 'b_end' };
+
 export interface PairsPrep {
   readonly owner: string;
   readonly data?: PairsData;
@@ -55,8 +110,13 @@ export interface PairsPrep {
   readonly acrossLines: boolean;
   readonly mirror: boolean;
   readonly triangle: 'both' | 'upper' | 'lower';
-  /** The `color` param when uniform (a token or a color), else each kind its category's. */
-  readonly color?: string | number;
+  readonly channels: LayerChannels;
+  /** 1 where the layer's data filter keeps a pair (all when none). */
+  readonly shown: Uint8Array;
+  /** The pairs the filter left out (the track's "n filtered"); whether its form is not read row by row (said). */
+  readonly filtered: number;
+  readonly unreadFilter: boolean;
+  readonly datum?: PairDatum;
   /** With `split`: 1 where a pair is drawn on the other side. */
   readonly other?: Uint8Array;
   /** Each pair's index by its key. */
@@ -80,6 +140,9 @@ export class PairsLay {
   dpr = 1;
   /** `arcs` (a section's) or `dots` (a grid's strip). */
   mode: 'arcs' | 'dots' | 'none' = 'none';
+  /** The color channel as last laid out, its open domains' extents. */
+  colorChannel: Channel | undefined;
+  readonly extents = new Extents();
   /** Arcs: the pair's index, and its curve on the page (start, two controls, end: 8 numbers), its color. */
   n = 0;
   pair = new Int32Array(64);
@@ -110,18 +173,43 @@ export class PairsLay {
   readonly seg = new Float64Array(4);
 }
 
+/** The annotation a layer's data names: its address, else (a query) the annotation it starts at. */
+function annotationOf(model: StaticModel, address: string) {
+  const a = model.annotations.get(address);
+  if (a) return { address, entry: a };
+  for (const [at, entry] of model.annotations) if (address.startsWith(`${at}/`)) return { address: at, entry };
+  return undefined;
+}
+
 function prepare(layer: ResolvedLayer, model: StaticModel): PairsPrep {
-  const owner = layer.data?.address ?? '';
-  const a = model.annotations.get(owner);
+  const named = annotationOf(model, layer.data?.address ?? '');
+  const owner = named?.address ?? '';
+  const a = named?.entry;
   const data = a?.shape === 'pairs' ? a.pairs : undefined;
   const p = layer.params;
   const index = new Map<string | number, number>();
   if (data) for (let k = 0; k < data.n; k++) if (!index.has(data.keys[k])) index.set(data.keys[k], k);
   const t = p.triangle;
-  const uniform = layer.theme.color;
+  // the layer's data filter, read pair by pair once (_spec/README.md "Themes", Filters)
+  const form = layer.data?.filter;
+  const filter = form ? compileRowFilter(form) : undefined;
+  const datum = data ? new PairDatum(data) : undefined;
+  const shown = new Uint8Array(data?.n ?? 0).fill(1);
+  let filtered = 0;
+  if (filter && datum)
+    for (let k = 0; k < shown.length; k++)
+      if (!filter(datum.set(k))) {
+        shown[k] = 0;
+        filtered++;
+      }
   return {
     owner,
     ...(data ? { data } : {}),
+    ...(datum ? { datum } : {}),
+    channels: channelForms(layer.theme),
+    shown,
+    filtered,
+    unreadFilter: form !== undefined && !filter,
     aSystem: a?.target ?? '',
     bSystem: a?.ySystem ?? '',
     side: p.side === 'below' ? 'below' : 'above',
@@ -129,8 +217,7 @@ function prepare(layer: ResolvedLayer, model: StaticModel): PairsPrep {
     acrossLines: p.across_lines === true,
     mirror: p.mirror === true,
     triangle: t === 'upper' || t === 'lower' ? t : 'both',
-    ...(typeof uniform === 'string' || typeof uniform === 'number' ? { color: uniform } : {}),
-    ...(data && p.crossing === 'split' && a?.target === a?.ySystem ? { other: splitCrossing(data) } : {}),
+    ...(data && p.crossing === 'split' && a?.target === a?.ySystem ? { other: splitCrossing(data, shown) } : {}),
     index,
     elements: [],
     extents: [],
@@ -143,21 +230,25 @@ function prepare(layer: ResolvedLayer, model: StaticModel): PairsPrep {
  * pairs as intervals between their ends' centres; exact by the interval recurrence to `SplitExact` pairs, greedy past
  * it (narrowest first, kept when it crosses none kept).
  */
-export function splitCrossing(d: PairsData): Uint8Array {
-  const n = d.n;
+export function splitCrossing(d: PairsData, shown?: Uint8Array): Uint8Array {
+  // the pairs drawn (a filter's): those left out cross nothing
+  const at: number[] = [];
+  for (let k = 0; k < d.n; k++) if (!shown || shown[k]) at.push(k);
+  const n = at.length;
   const lo = new Float64Array(n);
   const hi = new Float64Array(n);
-  for (let k = 0; k < n; k++) {
+  for (let i = 0; i < n; i++) {
+    const k = at[i];
     const ca = (d.aStart[k] + d.aEnd[k]) / 2;
     const cb = (d.bStart[k] + d.bEnd[k]) / 2;
-    lo[k] = Math.min(ca, cb);
-    hi[k] = Math.max(ca, cb);
+    lo[i] = Math.min(ca, cb);
+    hi[i] = Math.max(ca, cb);
   }
   const keep = new Uint8Array(n);
   if (n <= SplitExact) nestedExact(n, lo, hi, keep);
   else nestedGreedy(n, lo, hi, keep);
-  const other = new Uint8Array(n);
-  for (let k = 0; k < n; k++) other[k] = keep[k] ? 0 : 1;
+  const other = new Uint8Array(d.n);
+  for (let i = 0; i < n; i++) other[at[i]] = keep[i] ? 0 : 1;
   return other;
 }
 
@@ -279,28 +370,10 @@ function unitsOn(prep: PairsPrep, section: ResolvedSection): Float64Array {
   return u;
 }
 
-const CategoryTokens = [
-  'seq-cat-0',
-  'seq-cat-1',
-  'seq-cat-2',
-  'seq-cat-3',
-  'seq-cat-4',
-  'seq-cat-5',
-  'seq-cat-6',
-  'seq-cat-7',
-] as const;
-
-/** A pair's color: the uniform param's, else its kind's category when there are several (else the ranges' ink). */
-function pairColor(prep: PairsPrep, tokens: SeqTokens, k: number): number {
-  const c = prep.color;
-  if (typeof c === 'number') return c;
-  if (typeof c === 'string' && c.startsWith('token:')) {
-    const t = tokens.colors[c.slice(6) as keyof SeqTokens['colors']];
-    if (t !== undefined) return t;
-  }
-  const kind = prep.data!.kind[k];
-  if (kind < 0 || prep.data!.kinds.length < 2) return tokens.colors['seq-range'];
-  return tokens.colors[CategoryTokens[kind % CategoryTokens.length]];
+/** A pair's color from the layer's channel (its kind's by default); the ranges' ink where it gives none. */
+function pairColor(lay: PairsLay, prep: PairsPrep, k: number): number {
+  const c = lay.colorChannel?.at(prep.datum!.set(k));
+  return typeof c === 'number' ? c : lay.tokens!.colors['seq-range'];
 }
 
 const PA = new PlacePoint();
@@ -329,10 +402,32 @@ export const PairsType: LayerType<PairsPrep, PairsLay> = {
     lay.densityN = 0;
     lay.clip = undefined;
     lay.mode = 'none';
+    lay.colorChannel = undefined;
     if (!prep.data) return lay;
+    if (prep.unreadFilter)
+      ctx.report(
+        issueOf(
+          RenderIssues,
+          'seq.render.filter',
+          'The layer’s data query is not read pair by pair: no pair is left out',
+          {
+            address: ctx.key,
+            hint: RenderIssues.codes['seq.render.filter'].hint,
+          },
+        ),
+      );
+    lay.colorChannel = prep.channels.get('color' as ChannelName, DefaultColor, ctx, PairEnv);
+    lay.extents.reset([lay.colorChannel]);
     if (ctx.axisY) layoutDots(lay, prep, ctx, ctx.axis, ctx.axisY);
     else if (ctx.place) layoutArcs(lay, prep, ctx, ctx.place);
+    if (lay.extents.any) lay.extents.flush(ctx.theme);
     return lay;
+  },
+
+  filtered: (lay) => lay.prep?.filtered ?? 0,
+
+  legend(lay, options) {
+    return channelLegends([lay.colorChannel], { ...options, layer: lay.key });
   },
 
   draw(lay, pass: PassName, out: PassWriter, emphasis?: Emphasis) {
@@ -405,6 +500,7 @@ function layoutArcs(lay: PairsLay, prep: PairsPrep, ctx: LayoutContext, place: P
   let widest = 0;
   let unplaced = false;
   for (let k = 0; k < d.n; k++) {
+    if (!prep.shown[k]) continue;
     let oa = units[2 * k];
     let ob = units[2 * k + 1];
     if (Number.isNaN(oa) && Number.isNaN(ob)) {
@@ -541,7 +637,8 @@ function layoutArcs(lay: PairsLay, prep: PairsPrep, ctx: LayoutContext, place: P
     c[o + 4] = c[o + 6] + (2 / 3) * (qx - c[o + 6]);
     c[o + 5] = c[o + 7] + (2 / 3) * (qy - c[o + 7]);
     lay.pair[lay.n] = k;
-    lay.color[lay.n] = pairColor(prep, ctx.tokens, k);
+    lay.color[lay.n] = pairColor(lay, prep, k);
+    if (lay.extents.any) lay.extents.add(prep.datum!.set(k));
     lay.n++;
   }
   // translated strips clip to the data's box (an end taken past the window); a ring needs none
@@ -766,6 +863,7 @@ function layoutDots(lay: PairsLay, prep: PairsPrep, ctx: LayoutContext, a: AxisT
     return;
   }
   for (let k = 0; k < d.n; k++) {
+    if (!prep.shown[k]) continue;
     // a stretch runs with its partner when both ends are on the same strand, against it otherwise (EC-206)
     const parallel = d.aStrand[k] === d.bStrand[k];
     if (forward) dot(lay, prep, a, ay, k, d.aStart[k], d.aEnd[k], d.bStart[k], d.bEnd[k], parallel);
@@ -797,7 +895,8 @@ function dot(
   const cx = (xs + xe - 1) / 2;
   const cy = (ys + ye - 1) / 2;
   if ((t === 'upper' && !(cy < cx)) || (t === 'lower' && !(cy > cx))) return;
-  const color = pairColor(prep, lay.tokens!, k);
+  const color = pairColor(lay, prep, k);
+  if (lay.extents.any) lay.extents.add(prep.datum!.set(k));
   if (xe - xs === 1 && ye - ys === 1) {
     if (!a.cell(xs)) return;
     const ax0 = a.sx0;
@@ -928,29 +1027,69 @@ function selected(prep: PairsPrep, e: Emphasis, k: number): boolean {
   return false;
 }
 
-/** Whether a pair is lit in a pass: the hovered one or one with an end at the hovered position; a selected one. */
-function lit(prep: PairsPrep, pass: PassName, e: Emphasis, k: number, hovered: number, at: number): boolean {
-  if (pass !== 'hover') return selected(prep, e, k);
-  return k === hovered || (at >= 0 && endHolds(prep, k, e.hover!.system, at));
+/** Whether a pair's `a` end holds `x` and its `b` end `y`. */
+function endsAt(d: PairsData, k: number, x: number, y: number): boolean {
+  return x >= d.aStart[k] && x < d.aEnd[k] && y >= d.bStart[k] && y < d.bEnd[k];
+}
+
+/** Whether a pair has an end in a Location's ranges (a projected hover: a cell's two positions on linked sections). */
+function endIn(prep: PairsPrep, k: number, loc: Location): boolean {
+  const d = prep.data!;
+  for (let i = 0; i < loc.parts.length; i++) {
+    const part = loc.parts[i];
+    const a = part.system === prep.aSystem;
+    const b = part.system === prep.bSystem;
+    if (!a && !b) continue;
+    const r = part.ranges;
+    for (let j = 0; j + 1 < r.length; j += 2)
+      if ((a && d.aStart[k] < r[j + 1] && r[j] < d.aEnd[k]) || (b && d.bStart[k] < r[j + 1] && r[j] < d.bEnd[k]))
+        return true;
+  }
+  return false;
 }
 
 /**
- * The hover: the hovered pair (its element), or every pair with an end at the hovered position (a base: its partner
- * lights), drawn over in the hover's ink; the selection: each selected pair in the accent.
+ * Whether a pair is lit in a pass. The hover: the hovered pair; as arcs, every pair with an end at a hovered position
+ * (a base, or either position of a cell: its partners light) or in the hover projected here; as dots, the pair at the
+ * hovered cell. The selection: a selected pair.
+ */
+function lit(lay: PairsLay, pass: PassName, e: Emphasis, k: number, hovered: number): boolean {
+  const prep = lay.prep!;
+  if (pass !== 'hover') return selected(prep, e, k);
+  if (k === hovered) return true;
+  const h = e.hover;
+  if (h?.element) return false;
+  const x = h?.position === undefined ? -1 : Math.floor(h.position);
+  const y = h?.yPosition === undefined ? -1 : Math.floor(h.yPosition);
+  if (lay.mode === 'dots') {
+    if (!h || x < 0 || y < 0 || h.ySystem === undefined) return false;
+    return (
+      (h.system === prep.aSystem && h.ySystem === prep.bSystem && endsAt(prep.data!, k, x, y)) ||
+      (prep.mirror && h.system === prep.bSystem && h.ySystem === prep.aSystem && endsAt(prep.data!, k, y, x))
+    );
+  }
+  if (h && x >= 0 && endHolds(prep, k, h.system, x)) return true;
+  if (h && y >= 0 && h.ySystem !== undefined && endHolds(prep, k, h.ySystem, y)) return true;
+  const p = e.projected?.hover;
+  return p !== undefined && endIn(prep, k, p);
+}
+
+/**
+ * The hover: the hovered pair (its element), or the pairs at the hovered positions (`lit`), drawn over in the hover's
+ * ink; the selection: each selected pair in the accent.
  */
 function drawEmphasis(lay: PairsLay, pass: PassName, out: PassWriter, e: Emphasis) {
   const prep = lay.prep!;
   const tokens = lay.tokens!;
   const h = e.hover;
   let hovered = -1;
-  let at = -1;
   if (pass === 'hover') {
-    if (!h) return;
-    if (h.element) {
+    if (!h && !e.projected?.hover) return;
+    if (h?.element) {
       if (h.element.owner !== prep.owner) return;
       hovered = prep.index.get(h.element.key) ?? -1;
-    } else if (h.position !== undefined && h.yPosition === undefined) at = Math.floor(h.position);
-    if (hovered < 0 && at < 0) return;
+      if (hovered < 0) return;
+    }
   } else if (!e.elements?.keys.length) return;
   const ink = pass === 'hover' ? tokens.colors['seq-hover'] : tokens.colors['msui-accent'];
   const width = pass === 'hover' ? lay.config!.outline.hover + 1 : lay.config!.outline.selection + 1;
@@ -958,7 +1097,7 @@ function drawEmphasis(lay: PairsLay, pass: PassName, out: PassWriter, e: Emphasi
   if (lay.mode === 'arcs') {
     if (lay.clip) clipTo(out, lay.clip);
     for (let i = 0; i < lay.n; i++) {
-      if (!lit(prep, pass, e, lay.pair[i], hovered, at)) continue;
+      if (!lit(lay, pass, e, lay.pair[i], hovered)) continue;
       g[4] = NoColor;
       g[5] = ink;
       g[6] = width;
@@ -969,7 +1108,7 @@ function drawEmphasis(lay: PairsLay, pass: PassName, out: PassWriter, e: Emphasi
     return;
   }
   for (let i = 0; i < lay.nd; i++) {
-    if (!lit(prep, pass, e, lay.dotPair[i], hovered, at)) continue;
+    if (!lit(lay, pass, e, lay.dotPair[i], hovered)) continue;
     g[0] = lay.dots[4 * i];
     g[1] = lay.dots[4 * i + 1];
     g[2] = lay.dots[4 * i + 2];
@@ -983,7 +1122,7 @@ function drawEmphasis(lay: PairsLay, pass: PassName, out: PassWriter, e: Emphasi
   }
   const p = lay.seg;
   for (let i = 0; i < lay.ns; i++) {
-    if (!lit(prep, pass, e, lay.segPair[i], hovered, at)) continue;
+    if (!lit(lay, pass, e, lay.segPair[i], hovered)) continue;
     p[0] = lay.segs[5 * i];
     p[1] = lay.segs[5 * i + 1];
     p[2] = lay.segs[5 * i + 2];

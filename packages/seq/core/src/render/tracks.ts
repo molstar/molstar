@@ -1154,13 +1154,19 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       by += heights[j];
       const layers = lays[j] ?? NoLays;
       let filter: TrackLayout['filter'];
-      for (const l of layers) {
-        const count = l.type.filtered?.(l.lay) ?? 0;
-        if (!count) continue;
-        const text = `${count} filtered`;
-        const fw = input.text.measure(config.labelFont, text);
-        filter = { layer: l.key, count, text, x: config.inset + config.labelWidth - fw, width: fw };
-        break;
+      // its layers', then its `section` layers' (pairs: laid out once a section)
+      for (const own of [layers, sectionLays]) {
+        for (const l of own) {
+          if (own === sectionLays && !track.layers.includes(l.layer)) continue;
+          const count = l.type.filtered?.(l.lay) ?? 0;
+          if (!count) continue;
+          const text = `${count} filtered`;
+          const fw = input.text.measure(config.labelFont, text);
+          const layer = own === sectionLays ? layerKey(track, l.layer) : l.key;
+          filter = { layer, count, text, x: config.inset + config.labelWidth - fw, width: fw };
+          break;
+        }
+        if (filter) break;
       }
       tracks.push({
         track,
