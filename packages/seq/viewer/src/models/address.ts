@@ -42,7 +42,8 @@ import {
   withSourceNumberings,
 } from '@molstar/seqx-core/render';
 import { ViewerIssues } from '../issues.js';
-import { overlayQueryModel } from '@molstar/seqx-core/resolve';
+import { overlayQueryModel, type RowsSource } from '@molstar/seqx-core/resolve';
+import type { Axis } from '@molstar/seqx-core/view';
 import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
 import { breakHolding, nearestOffsetOf, positionAt } from './axis.js';
 import type { HoverModel } from './hover.js';
@@ -50,6 +51,27 @@ import { type Emphasized, type HighlightModel, isNothing, type SelectionModel } 
 import type { EditOptions, EditOutcome, SpecModel } from './spec.js';
 import type { StoreModel } from './store.js';
 import type { ViewModel } from './view.js';
+
+/**
+ * On a cyclic axis over its whole system (offsets the positions), the shortest arc holding sorted, merged ranges: the
+ * circle less its widest gap (EC-12), `[start, end]` in offsets with `end` past the length when it wraps the origin;
+ * undefined elsewhere (the hull is then the focus).
+ */
+function shortestArc(axis: Axis, ranges: ArrayLike<number>): [number, number] | undefined {
+  const n = axis.length;
+  const r = axis.ranges;
+  const k = ranges.length;
+  if (!axis.cyclic || n === undefined || axis.dir === -1 || r?.length !== 2 || r[0] !== 0 || r[1] !== n || k < 4)
+    return undefined;
+  let gap = n - ranges[k - 1] + ranges[0];
+  let arc: [number, number] | undefined;
+  for (let i = 2; i < k; i += 2)
+    if (ranges[i] - ranges[i - 1] > gap) {
+      gap = ranges[i] - ranges[i - 1];
+      arc = [ranges[i], ranges[i - 1] + n];
+    }
+  return arc;
+}
 
 /** A user-defined ref of the spec shown, with what it names now. */
 export interface RefEntry {
@@ -227,8 +249,8 @@ export class AddressModel extends ReactiveModel {
   // ---- resolving ----
 
   /**
-   * The query model addresses resolve over: the static model of what is shown, the store's nodes now, and the labels
-   * of the numberings read from sources that the store holds.
+   * The query model addresses resolve over: the static model of what is shown, the store's nodes and held rows now,
+   * and the labels of the numberings read from sources that the store holds.
    */
   queryModel(): QueryModel {
     const model = this.spec.model.value;
@@ -236,19 +258,26 @@ export class AddressModel extends ReactiveModel {
     const version = this.store.store.version.value;
     const q = this._query;
     if (q && q.model === model && q.overlay === overlay && q.version === version) return q.query;
-    const query = withSourceNumberings(overlayQueryModel(model, overlay), model, this.store.store, {
+    // one rows source a model (the query models are kept by it): rows read from a source asked for as numberings are
+    if (this._rows?.model !== model)
+      this._rows = { model, source: { data: this.store.store, want: (w) => this._wantTiles(model, w) } };
+    const query = withSourceNumberings(overlayQueryModel(model, overlay, this._rows.source), model, this.store.store, {
       maxPositions: this.maxNumberingPositions,
-      want: (w) => this._wantNumbering(model, w),
+      want: (w) => this._wantTiles(model, w),
     });
     this._query = { model, overlay, version, query };
     return query;
   }
 
+  /** The rows source of the model shown (`queryModel`). */
+  private _rows: { model: unknown; source: RowsSource } | undefined;
+
   /**
-   * Asks for a source numbering's tiles a form named (whoever resolves asks, so a link in a numbering no ruler shows
-   * resolves): the wants of the model shown, all at once, after the resolve that named them (never inside it).
+   * Asks for the tiles a form named, a source numbering's labels or an alignment's rows (whoever resolves asks, so a
+   * link in a numbering no ruler shows, or to a row no layer read, resolves): the wants of the model shown, all at
+   * once, after the resolve that named them (never inside it).
    */
-  private _wantNumbering(model: unknown, w: Want) {
+  private _wantTiles(model: unknown, w: Want) {
     if (this._numberingModel !== model) {
       this._numberingModel = model;
       this._numberingWants.clear();
@@ -512,6 +541,9 @@ export class AddressModel extends ReactiveModel {
         b = Math.max(b, x + base, y + base);
         if (x !== y) wide = true;
       }
+      // on a ring's whole system, an item across the origin is its shortest arc, not the hull of its runs (EC-12)
+      const arc = base === 0 ? shortestArc(axis, part.ranges) : undefined;
+      if (arc) [a, b] = arc;
       const v = this.view.get(s.address);
       // wholly hidden by a break: to its break, centered, the zoom kept; outside the section's range is not hidden by a
       // break (the focus as before: what the view can show of it)

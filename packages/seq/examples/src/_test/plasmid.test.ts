@@ -79,10 +79,11 @@ const context = () =>
   });
 
 describe('the Plasmid fixtures', () => {
-  it('the recorded file, the module of its letters and the GFF3 are what their generators write', () => {
+  it('the recorded file, the module of its letters, the rotated letters and the GFF3 are what their generators write', () => {
     const fromFile = publishedLetters();
     expect(fromFile).toBe(letters);
     compare(`${PackageFolder}${PlasmidFiles.published}`, seqText(PlasmidName, fromFile));
+    compare(`${PackageFolder}${PlasmidFiles.rotated}`, seqText(PlasmidName, rotateLetters(fromFile, RotatedOrigin)));
     compare(fileURLToPath(new URL('../plasmid/record.ts', import.meta.url)), recordModule(fromFile));
     const rotated = rotatedAnnotations(fromFile);
     compare(`${PackageFolder}${PlasmidFiles.rotatedFeatures}`, gff3Text(rotated.features, rotated.sites));
@@ -109,13 +110,20 @@ describe('the Plasmid fixtures', () => {
       bytesFixture: number;
       bytesDownloaded: number;
     }[];
-    expect(rows.map((r) => r.file).sort()).toEqual(['plasmid/L09137.2.seq', 'plasmid/pUC19c-rotated-features.gff3']);
-    const [record, gff] = [rows.find((r) => r.file.endsWith('.seq'))!, rows.find((r) => r.file.endsWith('.gff3'))!];
+    expect(rows.map((r) => r.file).sort()).toEqual([
+      'plasmid/L09137.2.seq',
+      'plasmid/pUC19c-rotated-features.gff3',
+      'plasmid/pUC19c-rotated.seq',
+    ]);
+    const at = (file: string) => rows.find((r) => r.file === `plasmid/${file}`)!;
+    const [record, rotated, gff] = [at('L09137.2.seq'), at('pUC19c-rotated.seq'), at('pUC19c-rotated-features.gff3')];
     expect(record.url).toBe('https://www.ebi.ac.uk/ena/browser/api/fasta/L09137.2');
     expect(record.licence).toEqual(['LicenseRef-NCBI-public-data']);
     expect(record.attribution).toContain('L09137.2');
-    expect(gff.licence).toEqual(['LicenseRef-seqx-generated']);
-    expect(gff.derived).toContain('derive.ts');
+    for (const g of [rotated, gff]) {
+      expect(g.licence).toEqual(['LicenseRef-seqx-generated']);
+      expect(g.derived).toContain('derive.ts');
+    }
     let total = 0;
     for (const r of rows) {
       const bytes = readFileSync(`${PackageFolder}fixtures/${r.file}`);
@@ -299,17 +307,13 @@ function tips(lay: RangesLay) {
 describe('the Plasmid views drawn against the data', () => {
   const size = { width: 720, height: 900 };
 
-  it('every view renders settled in both themes with no unexpected issue; dark is not light', async () => {
+  it('every view renders settled in both themes with no issue; dark is not light', async () => {
     for (const v of PlasmidViews) {
       const ctx = context();
       const out: string[] = [];
       for (const theme of ['light', 'dark'] as const) {
         const r = await ctx.renderSvg(v.build(), { size, tokens: theme === 'dark' ? DarkTokens : LightTokens });
-        const known = v.id === 'scale' ? ['seq.render.ring.image'] : [];
-        expect(
-          r.issues.filter((i) => !known.includes(i.code)),
-          `${v.id} ${theme}`,
-        ).toEqual([]);
+        expect(r.issues, `${v.id} ${theme}`).toEqual([]);
         expect(r.settled).toBe(true);
         out.push(r.svg);
       }
@@ -440,7 +444,7 @@ describe('the Plasmid views drawn against the data', () => {
     ctx.retire();
   });
 
-  it('the crossing view bookmarks bla and the primer site, each an item of its strand’s ranges', () => {
+  it('the crossing view bookmarks bla and the primer site, each an item of its strand’s ranges', async () => {
     const ctx = context();
     const spec = view('crossing').build();
     expect(ctx.check(spec)).toEqual([]);
@@ -449,8 +453,14 @@ describe('the Plasmid views drawn against the data', () => {
       ['bla', '/data/minus/(item :id bla)'],
       ['primer', '/data/plus/(item :id primer)'],
     ]);
+    // before its file is open the rows across the origin wait for the length, and say so; once open, none is left out
     const model = ctx.resolve(spec);
-    expect(model.issues).toEqual([]);
+    expect([...new Set(model.issues.map((i) => i.code))]).toEqual(['seq.resolve.length.unknown']);
+    const s = await settled(spec);
+    expect(s.renderer.options.model.issues).toEqual([]);
+    expect(s.renderer.options.model.annotations.get('/data/minus')?.items?.filter((i) => i.key === 'bla')).toHaveLength(
+      2,
+    );
     ctx.retire();
   });
 

@@ -243,3 +243,8 @@ None.
   outlines drawn after the well's clip, the secondary, bands, rows, cursor and grid cell hovers squircles, labels
   centred on the well). Quick 2206, medium 9, perf 120. CY in its fix round (will meet TW's layout hunks at merge);
   DA starts in TW's slot.
+- CY merged after its review round (one `openModel` for the open-resolve-open protocol, lengths keyed by source so an
+  edited uri never keeps the old length, `renderSvg` assigning its model only when the opening wins, row keys pending
+  and requested, the label skip, the text guard by name; `setLengths`, `lengthsEqual`, `StaticModel.lengths`,
+  `RowsReader` gone; `mapsEqual` added to `@molstar/core/util/map`). No conflicts with TW. Quick 2553 (DP's `it.fails`
+  now passes), medium 9, perf 127, workspace green. DA running; the strong queue is empty after it.

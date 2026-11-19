@@ -4,7 +4,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { readFileSync } from 'node:fs';
 import { FeatureViews } from '@molstar/seqx-examples';
+import { PackageFolder } from '@molstar/seqx-examples/node-assets';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { DomHost } from '@molstar/ui/dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -12,7 +14,8 @@ import { projectOntoView } from '@molstar/seqx-core/view';
 import { composeViewer, QueryExamples, readableRanges, runQuery } from '../compose.js';
 
 // The Query stories, headless on a fake clock, composed as the stories compose them: every example's queries run
-// through the query box's own path, each with its printed form, its result's kind and its location.
+// through the query box's own path, each with its printed form, its result's kind and its location. The files are read
+// as committed, at once (a read of the disk is not on the fake clock).
 
 const viewOf = (id: string) => FeatureViews.find((v) => v.id === id)!;
 
@@ -36,7 +39,17 @@ afterEach(() => {
 
 async function make(id: string) {
   const view = viewOf(id);
-  const v = composeViewer(view);
+  const read = (uri: string) => readFileSync(`${PackageFolder}${uri}`);
+  const v = composeViewer(view, {
+    ports: {
+      assets: () => ({
+        reader: {
+          readText: async (uri) => read(uri).toString('utf8'),
+          readBytes: async (uri) => new Uint8Array(read(uri)),
+        },
+      }),
+    },
+  });
   viewer = v;
   v.resize(720);
   await v.load(view.build());
@@ -68,12 +81,14 @@ describe('Query, headless', () => {
     expect(r.size).toBe('1 rect');
   });
 
-  it('alignment: a row form over the seed read from its file says its rows are not held', async () => {
+  it('alignment: a row form over the seed read from its file names its row, as over the four inline rows', async () => {
     const v = await make('query-alignment');
-    const q = QueryExamples.find((e) => e.id === 'alignment')!.queries.find((x) => x.issue)!;
-    const r = runQuery(v, q.query, 'select');
-    expect(r.status).toBe('failed');
-    expect(r.issues.map((i) => i.code)).toEqual(['seq.query.row.unknown']);
+    const r = runQuery(v, '/data/globins/(row :key "MYG_CYPCA/23-136")', 'select');
+    expect(r.status).toBe('resolved');
+    expect(r.issues).toEqual([]);
+    expect(runQuery(v, '/data/globins/(row :key "NOT_A_ROW")', 'select').issues.map((i) => i.code)).toEqual([
+      'seq.query.row.unknown',
+    ]);
   });
 
   it('says why a query does not resolve, with its hint', async () => {
@@ -195,24 +210,36 @@ describe('Query, headless', () => {
     ],
     alignment: [
       {
-        query: '/data/four/(row :key "HBA1_BOSGR/26-136")',
+        query: '/data/globins/(row :key "HBA1_BOSGR/26-136")',
         kind: 'location',
-        systems: [{ system: '/data/four/(rows)', ranges: [[0, 1]] }],
+        systems: [{ system: '/data/globins/(rows)', ranges: [[29, 30]] }],
       },
       {
-        query: '/data/four/(range :from 20 :to 60)',
+        query: '/data/globins/(range :from 20 :to 60)',
         kind: 'location',
-        systems: [{ system: '/data/four', ranges: [[19, 60]] }],
+        systems: [{ system: '/data/globins', ranges: [[19, 60]] }],
       },
       {
-        query: '/data/four/(rect :a (row :key ["HBA1_BOSGR/26-136" "HBB0_MOUSE/26-142"]) :b (range :from 20 :to 60))',
+        query:
+          '/data/globins/(rect :a (row :key ["HBA1_BOSGR/26-136" "HBB0_MOUSE/26-142"]) :b (range :from 20 :to 60))',
         kind: 'location',
         rects: [
           {
-            a: { system: '/data/four/(rows)', ranges: [[0, 2]] },
-            b: { system: '/data/four', ranges: [[19, 60]] },
+            a: {
+              system: '/data/globins/(rows)',
+              ranges: [
+                [16, 17],
+                [29, 30],
+              ],
+            },
+            b: { system: '/data/globins', ranges: [[19, 60]] },
           },
         ],
+      },
+      {
+        query: '/data/four/(row :key "HBA1_BOSGR/26-136")',
+        kind: 'location',
+        systems: [{ system: '/data/four/(rows)', ranges: [[0, 1]] }],
       },
     ],
   };

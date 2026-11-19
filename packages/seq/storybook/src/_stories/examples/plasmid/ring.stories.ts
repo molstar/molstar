@@ -14,12 +14,12 @@ const meta: Meta = { title: 'Examples/Plasmid/Ring' };
 export default meta;
 
 /**
- * pUC19c (INSDC L09137.2, 2,686 bp) as rings: the plus strand's features outermost, then the minus strand's, the
- * restriction sites at their cuts and a ruler; labels outside with leaders, the name and length in the hole. Features
- * are arrows by strand (plus to the end, minus to the start; a ring draws them from a device pixel a position, so on a
- * high-resolution screen or large). The linear detail under it follows the ring's window (the sector on the rim):
- * wheel or pan the detail and the window moves round the ring, across the origin too, where the detail shows two
- * pieces. bla and a primer site cross the origin, each one arc.
+ * pUC19c (INSDC L09137.2, 2,686 bp, its letters read from the recorded file) as rings: the plus strand's features
+ * outermost, then the minus strand's, the restriction sites over their recognition sequences and a ruler; labels
+ * outside with leaders, the name and length in the hole. Features are arrows by strand (plus to the end, minus to the
+ * start), each with its arrowhead where it is wide enough. The linear detail under it follows the ring's window (the
+ * sector on the rim): wheel or pan the detail and the window moves round the ring, across the origin too, where the
+ * detail shows two pieces. bla and a primer site cross the origin, each one arc.
  */
 export const Ring: StoryObj = { render: () => exampleStory(view('ring')) };
 

@@ -19,6 +19,8 @@ import {
   RingsNav,
   type ValuesLay,
   type NavContext,
+  NoColor,
+  type RangesLay,
   recordDrawLists,
   drawListsToSvg,
   hitView,
@@ -262,7 +264,7 @@ describe('a ring’s rotation and what it refuses', () => {
     expect(pt.y).toBeCloseTo(pb.cy, 6);
   });
 
-  it('an image (a ranges layer collapsed to its count strip) is refused on a ring, said once', async () => {
+  it('a ranges layer past its lanes draws its density as a ring band: its runs as sectors, never refused', async () => {
     const starts = Array.from({ length: 60 }, (_, i) => (i * 7) % 590);
     const b = createSeqSpec({ title: 'dense' });
     const c = b.data.sequence('c', { alphabet: 'dna', letters: ringLetters(), cyclic: true });
@@ -278,7 +280,22 @@ describe('a ring’s rotation and what it refuses', () => {
     );
     const s = await settle(b.build(), [], { ranges: { overflow: 'layer' } });
     const frame = await s.frame({ size: Size });
-    expect(frame.layout.issues.filter((i) => i.code === 'seq.render.ring.image').length).toBe(1);
+    expect(frame.layout.issues).toEqual([]);
+    const lay = frame.layout.sections[0].tracks[0].layers[0].lay as RangesLay;
+    expect(lay.mode).toBe('density');
+    // the strip's image is not on the page: its runs of one color are, bent, a sector each, every one inside the ring
+    const data = frame.lists.passes.data;
+    expect(data.images.n).toBe(0);
+    const p = ringOf(frame).placement as RingPlacement;
+    const pts = data.paths.points;
+    let sectors = 0;
+    for (let k = 0; k < data.paths.n; k++) {
+      if (data.paths.fill[k] === NoColor) continue;
+      sectors++;
+      const at = 2 * data.paths.pointStart[k];
+      expect(Math.hypot(pts[at] - p.cx, pts[at + 1] - p.cy)).toBeLessThanOrEqual(p.r + 1);
+    }
+    expect(sectors).toBeGreaterThan(1);
   });
 });
 

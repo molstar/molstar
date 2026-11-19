@@ -10,16 +10,14 @@ import { createSeqContext } from '@molstar/seqx-core/context';
 import { DataStore, type RangesList, SeqRuntime } from '@molstar/seqx-core/data';
 import { RecordsRuntime, readRecords } from '@molstar/seqx-core/data/records';
 import {
-  attachSources,
   bundledTextMetrics,
   hitView,
   LightTokens,
   layoutView,
   type RingPlacement,
   recordDrawLists,
+  openModel,
 } from '@molstar/seqx-core/render';
-import { resolveSpec } from '@molstar/seqx-core/resolve';
-import { resolveViews } from '@molstar/seqx-core/view';
 import { describe, expect, it } from 'vitest';
 import { DomainFiles, type DomainFile, FilesFolder, PlasmidSeqId } from '../files/data.js';
 import { EntryFile, EntryTracks } from '../files/p53-entry.js';
@@ -175,10 +173,15 @@ describe('the domains table in every file form', () => {
 describe('the plasmid’s GFF3', () => {
   async function laid() {
     const spec = plasmidGff.build();
-    const model = resolveSpec(spec, { runtimes: [RecordsRuntime, SeqRuntime] });
-    const view = resolveViews(model)[0];
     const store = new DataStore();
-    await attachSources(model, store, { assets: nodeFixtureAssets().reader });
+    // the record's file first (the sequence's length), then the model resolved again with it and the rest opened
+    const opened = await openModel(spec, store, {
+      runtimes: [RecordsRuntime, SeqRuntime],
+      assets: nodeFixtureAssets().reader,
+    });
+    const { model } = opened;
+    expect(model.systems.get('/data/plasmid')?.length).toBe(PlasmidLength);
+    const view = opened.view!;
     const input = {
       model,
       view,

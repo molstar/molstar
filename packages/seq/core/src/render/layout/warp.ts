@@ -9,8 +9,8 @@
 // draw added, in place (text: a line's lays kept across a scroll, only the translation changes); the polar warp takes
 // what a strip drew into a scratch pass and writes it bent onto the page: a rect an annular sector (its squircle
 // corners warped with it), a path's lines cut every few px so they bend, a glyph run's letters placed one by one with
-// their angles, an image refused (its layout says so), a clip applied in the strip's frame before warping. Buffers are
-// kept: nothing allocated once warm.
+// their angles, a one-row image (a density strip) its runs of one color as sectors, a taller image refused (its layout
+// says so), a clip applied in the strip's frame before warping. Buffers are kept: nothing allocated once warm.
 
 import { grown, NoColor, Op, PassList, Passes, PassWriter, PathCommand, type PathList } from '../draw-lists.js';
 import { fontSize } from '../config.js';
@@ -99,7 +99,7 @@ export class PolarWarp {
   tangent = false;
   /** The most px a cut segment spans along the ring. */
   step = 4;
-  /** Primitives refused (an image): its layout reports them. */
+  /** Primitives refused (an image of more than one row): its layout reports them. */
   refused = 0;
   /** A scratch pass a pass, named as it (what a strip draws reads its pass's name: the emphasis does). */
   private readonly scratches = Passes.map((name) => new PassList(name));
@@ -110,6 +110,8 @@ export class PolarWarp {
   private clipDepth = 0;
   /** The square's outline a rect is traced through, and the rect's numbers. */
   private readonly square = new PassList('data');
+  /** A one-row image's runs, a rect each, warped as rects are. */
+  private readonly runs = new PassList('data');
   private readonly rectArgs = new Float64Array(6);
 
   /** The page point of a frame point: into `px`, `py`. */
@@ -198,8 +200,7 @@ export class PolarWarp {
           this.text(out, p, t++);
           break;
         case Op.image:
-          im++;
-          this.refused++;
+          if (!this.band(out, p, im++)) this.refused++;
           break;
         case Op.clip:
           // the clip by its index: a number passed to a call that is not inlined is boxed
@@ -233,6 +234,51 @@ export class PolarWarp {
     this.clipStack[b + 1] = y0;
     this.clipStack[b + 2] = Math.max(0, x1 - x0);
     this.clipStack[b + 3] = Math.max(0, y1 - y0);
+  }
+
+  /**
+   * A one-row image (a density strip: a color a device column) as the ring band it stands for, each run of one color an
+   * annular sector, so a ring draws a layer's density as a track does; false for a taller image (a matrix).
+   */
+  private band(out: PassWriter, p: PassList, i: number): boolean {
+    const l = p.images;
+    const image = l.images[i];
+    if (!image || image.height !== 1) return false;
+    const d = image.data;
+    const n = image.width;
+    const cw = l.w[i] / Math.max(1, n);
+    const runs = this.runs;
+    for (let c = 0; c < n; ) {
+      const k = 4 * c;
+      if (d[k + 3] === 0) {
+        c++;
+        continue;
+      }
+      let e = c + 1;
+      while (
+        e < n &&
+        d[4 * e] === d[k] &&
+        d[4 * e + 1] === d[k + 1] &&
+        d[4 * e + 2] === d[k + 2] &&
+        d[4 * e + 3] === d[k + 3]
+      )
+        e++;
+      runs.reset();
+      runs.rects.push(
+        l.x[i] + c * cw,
+        l.y[i],
+        (e - c) * cw,
+        l.h[i],
+        ((d[k] << 24) | (d[k + 1] << 16) | (d[k + 2] << 8) | d[k + 3]) >>> 0,
+        NoColor,
+        0,
+        0,
+        0,
+      );
+      this.rect(out, runs, 0);
+      c = e;
+    }
+    return true;
   }
 
   /** A rect: clipped in the frame, traced as its squircle outline, written as a bent path. */

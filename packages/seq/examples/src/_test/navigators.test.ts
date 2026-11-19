@@ -14,7 +14,6 @@ import { createSeqContext } from '@molstar/seqx-core/context';
 import { DataStore, DefaultStoreSettings, SeqRuntime } from '@molstar/seqx-core/data';
 import { RecordsRuntime } from '@molstar/seqx-core/data/records';
 import {
-  attachSources,
   type BandsLay,
   bundledTextMetrics,
   DarkTokens,
@@ -24,9 +23,8 @@ import {
   type RangesLay,
   RowsLay,
   type Viewport,
+  openModel,
 } from '@molstar/seqx-core/render';
-import { resolveSpec } from '@molstar/seqx-core/resolve';
-import { resolveViews } from '@molstar/seqx-core/view';
 import { describe, expect, it } from 'vitest';
 import { generatedRegistry } from '../globins/data.js';
 import { Chr17Bands, Chr17BandsLevel, RegionOnChr17 } from '../navigators.js';
@@ -43,10 +41,14 @@ async function settled(
   nav = 0,
   navSize = { width: input.size.width, height: 48 },
 ) {
-  const model = resolveSpec(spec, { runtimes: [SeqRuntime, ...(runtimes as never[])] });
-  const [view] = resolveViews(model);
   const store = new DataStore();
-  expect(await attachSources(model, store, { assets: nodeFixtureAssets().reader })).toEqual([]);
+  const opened = await openModel(spec, store, {
+    runtimes: [SeqRuntime, ...(runtimes as never[])],
+    assets: nodeFixtureAssets().reader,
+  });
+  expect(opened.issues).toEqual([]);
+  const { model } = opened;
+  const view = opened.view!;
   const common = { model, view, data: store, tokens: LightTokens, text: bundledTextMetrics() };
   const renderer = new Renderer(common);
   const n = new NavigatorRenderer({ ...common, navigator: view.navigators[nav] });

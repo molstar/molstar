@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -44,6 +44,14 @@ export function arrayMapAdd<K, V>(map: Map<K, V[]>, key: K, value: V) {
   } else {
     map.set(key, [value]);
   }
+}
+
+/** Whether two maps hold the same keys, each with the same value (`Object.is`). */
+export function mapsEqual<K, V>(a: ReadonlyMap<K, V>, b: ReadonlyMap<K, V>): boolean {
+  if (a === b) return true;
+  if (a.size !== b.size) return false;
+  for (const [k, v] of a) if (!b.has(k) || !Object.is(b.get(k), v)) return false;
+  return true;
 }
 
 export class HashMap<K, V> {

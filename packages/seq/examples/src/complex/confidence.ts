@@ -30,8 +30,8 @@ export const Unobserved = '#9e9e9e';
 
 export function build(d: Derived = Data): Node {
   const b = createSeqSpec({ title });
-  const p = prediction(b, d);
-  const x = crystal(b, d);
+  const p = prediction(b);
+  const x = crystal(b);
   const shift = constructOffset(d);
   b.data.map('cdk2-in-1fin', { from: x.cdk2, to: p.cdk2.protein, method: 'offset', by: 0 });
   b.data.map('cyclin-in-1fin', { from: x.cyclin, to: p.cyclin.protein, method: 'offset', by: shift });

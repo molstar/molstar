@@ -279,7 +279,8 @@ layout per token table, held domains and the reader's substitution (`LayerChanne
   where unlisted values are hashed: `seq.render.legend.unlisted`), merged when they say the same (two layers on one
   scale: one legend), and converted to Mol*'s legends. A letters form's swatches name their letters: a letters layer
   passes the letters it laid out (`painted`), so its key lists only those (an RNA's U, never its T; no gap swatch where
-  there is no gap), then a color once; before any is drawn, every letter.
+  there is no gap), then a color once; before any is drawn, every letter. A view's legends (`viewLegends`) are its
+  tracks' layers' and its sections' own layers' (a pairs layer's arcs and dots), titled by the track holding the layer.
 - **Builder**: `theme.uniform|field|rules|scheme|letters|categorical|…` and `measure.*`; a layer's `field` form over an
   inline table's text column gets the column's values listed (the legend is the vocabulary); a `ranges` layer over a
   `category` column, a `variants` one over a `consequence` column and a `pairs` one over a `type` column default to a
@@ -385,7 +386,7 @@ is a segment of an address, `/data/p53/(range :from 94 :to 292)`.
 | `(at :label l :ins c :numbering n)`            | systems           | Location (one position)                                                                                         |
 | `(all)`                                        | systems           | Location                                                                                                        |
 | `(rect :a <location> :b <location>)`           | as its sides need | Location (one rect; each side one system; sides never wrap, `seq.query.range.wrap`)                             |
-| `(row :key k)`, `(row :key [k …])`             | alignments        | Location: the rows by key (label), positions of its rows system (`seq.query.row.unknown`): a rect's side        |
+| `(row :key k)`, `(row :key [k …])`             | alignments        | Location: the rows by key (label), positions of its rows system (`seq.query.row.unknown`, `.pending`): a side   |
 | `(item :id k)`, `(item :<field> v …)`          | annotations       | Elements (every param matches; a list param matches any of its atoms; a field the annotations lack is an issue) |
 | `(items :overlapping <location>)`              | annotations       | Elements (every item without `:overlapping`)                                                                    |
 | `(node :key k)`, `(chain :id k)`               | nodes             | Nodes, addressed by the form itself (`/data/1tup/(chain :id A)`), so location forms may follow a chain          |
@@ -398,8 +399,9 @@ is a segment of an address, `/data/p53/(range :from 94 :to 292)`.
   children with ids. Dynamic nodes are not in that universe yet. A rect has no complement; **inside `and`**, a
   `(not :of <location>)` operand is subtracted from the others' intersection instead (the same positions for parts), so
   `(and :of [<rect> (not :of <rect>)])` is a rect less a rect, exact (Location).
-- **`row`** reads the model's `row(rows, key)`: an inline alignment's labels; a source's rows are not held there, so a
-  key of one is `seq.query.row.unknown`.
+- **`row`** reads the model's `row(rows, key)`: an inline alignment's labels, else a source's rows the query model holds
+  (Overlay); while `rowsPending(rows)` the form waits over the whole rows system (`seq.query.row.pending`, the address
+  `waiting`); a key no held row has is `seq.query.row.unknown`.
 - **Operands**: a nested form is evaluated against the same prefix (its resolver, else `repr`'s child selection); an
   address from the root. The location of `items :overlapping` is evaluated against the annotations' targets; a part on a
   system no target is reports `seq.query.location.unreachable` (projection is not built), a rect is refused. An operand
@@ -463,10 +465,14 @@ links that carry addresses. Forms and addresses are one language, so this sits w
   `maxDepth` (64), `refDepth` (8); a signal and a deadline as a selection takes them.
 - **As positions** (`locationOfResult`): a Location itself; elements by their items' extents; a system's node whole; an
   annotation's by all its items; a section (and what is under it) by the region it shows. What focus and reveal read.
-- **The overlay's query model** (`overlayQueryModel(model, overlay)`, `resolve/query-model.ts`): the static model's
-  systems and annotations, then the overlay's (item systems, dynamic annotations), and `(node :key k)` naming a node the
-  store holds (a string key: `1` is not `"1"`); one per model and overlay. Why: a ref to a dynamic node resolves when
-  its node arrives, through the same forms.
+- **The overlay's query model** (`overlayQueryModel(model, overlay, rows?)`, `resolve/query-model.ts`): the static
+  model's systems and annotations, then the overlay's (item systems, dynamic annotations), and `(node :key k)` naming a
+  node the store holds (a string key: `1` is not `"1"`); one per model, overlay and rows source. With a `RowsSource`
+  (`{ data, want? }`: the store, and how whoever resolves asks for tiles; the viewer's and an export's), `(row :key k)`
+  on an alignment read from a source names the first row of the label in its rows' tiles (indexed label → row once a
+  table); while any is not loaded the form is pending and asks for the whole rows system through `want`, so no layer
+  needs to have read them. Why: a ref to a dynamic node, or to a source's row, resolves when its data arrives, through
+  the same forms.
 
 ### Back
 
@@ -828,6 +834,20 @@ store. `resolveSpec(spec, { runtimes, config })`, or `createResolver` to keep en
   labels a numbering at once, which the system's query form answers (`numbering(id)`, `numberingIds`); a source's holds
   its source, its field and an access plan on the sequence's name, its labels tier 2's (Render, Numberings from a
   source). Why not in tier 1: nothing there waits for a source.
+- **A length from coverage**: once a source is open, the length its coverage gives a system (by name or alias, an
+  alignment's columns and rows too) is passed to the next resolve (`sourceLengths(model, coverage)`,
+  `ResolveOptions.lengths`, `Resolver.resolve(spec, lengths)`), and the system resolves as one with inline letters of
+  that length: its rows wrap the origin, its codon maps and grids are read, its sections and blocks get their pieces.
+  `Lengths` is opaque: each length is kept by its system and its source node's hash, so a model whose source changed (an
+  edited `uri`) never reads the old file's length; the system is pending until the new source opens. The lengths are
+  part of the model's hash and of every entry's key over the system. Why again through resolve: what reads a length is
+  the model's, so a cyclic `seq` file works as inline letters do.
+- **Opening a model** (`openModel(spec, store, options)`, `render/export.ts`): the one implementation of the two phases.
+  It resolves (or takes the caller's first resolve), opens the sources that hold systems (`scope: 'view'`: the view's
+  only), resolves again with their lengths, then opens the rest, and gives the settled model, its view and every issue
+  (the model's, the view's, the openings'). `renderSvg` and the tests use it; the viewer composes the same pieces
+  reactively (its store opens on each model change, `sourceLengths` on each store change). Why one helper: four
+  hand-written copies had drifted (a source opened twice, a late model swapped in mid-render).
 - **Sources**: each `source` node bound to a `SourceEntry` made from its params (`SourceParams`, the description's: one
   definition) and to the first runtime of the caller's registry whose `formats` holds its `format`. No format is
   `seq.resolve.source.format`, no runtime `seq.resolve.source.runtime`; either way the source is unavailable.
@@ -1344,11 +1364,13 @@ the y path in Emphasis).
   and `density` (presence needs no data). A hit through a path carries the data's element as `extent` (the residue on
   its protein) and its parts on the section's system as `hull` (its codon); its hover outlines each part.
 - `ranges`: items in sticky lanes, carried onto the section along the layer's path (a domain on its gene: a piece an
-  exon); labels inside marks 24 px or wider, drawn in the `labels` pass. At `bars` a lane's marks touching within a
-  device pixel merge into a run; at `density`, or a density table, one heat strip, a device column a pixel. Items past
-  the lanes collapse into a density row in the last lane, the rest drawn as items (`ranges.overflow: 'extra-lanes'`), or
-  the whole layer becomes the strip (`'layer'`). In a band under a lane's height (a text line's underline) the strip
-  uses only the light `ThinStripShare` (0.3) of the density ramp, so it reads as a band, not as a dark rule.
+  exon); labels inside marks 24 px or wider (faded past the mark), or inside a narrower one when they fit whole with 3
+  px a side (a modified residue's code over its one position; none below 8 px), drawn in the `labels` pass. At `bars` a
+  lane's marks touching within a device pixel merge into a run; at `density`, or a density table, one heat strip, a
+  device column a pixel. Items past the lanes collapse into a density row in the last lane, the rest drawn as items
+  (`ranges.overflow: 'extra-lanes'`), or the whole layer becomes the strip (`'layer'`). In a band under a lane's height
+  (a text line's underline) the strip uses only the light `ThinStripShare` (0.3) of the density ramp, so it reads as a
+  band, not as a dark rule.
 - `values`: a bar a position, or at `bars` and `density` a bar a device column over the column's extent from the
   baseline (`values.aggregate: 'minmax'`, so negative extremes show; `'max'` the maximum alone), from positions or bins.
   Missing (NaN) is a 2 px neutral mark at the baseline. The domain is the layer's `domain` param where given, else open:
@@ -1399,7 +1421,9 @@ the y path in Emphasis).
   of the styles is drawn solid and said once a layout (`seq.render.line-style`). With `arrow`, a block is an arrow, a
   line gets a triangle, at the end (the start) of the item on the piece that holds it, by the rule of the strand's
   arrowhead, never on a cut end (nor where the item's rows are not all known); a line's label has the page's color under
-  it, so the line stops at it; the hit boxes are the marks' lanes all the same.
+  it, so the line stops at it; the hit boxes are the marks' lanes all the same. Whether an item has its arrowhead is its
+  own mark's width, at the items and the bars steps alike: 4 px or wider, fixed (narrower, the head would be all of the
+  mark); an arrow is never merged into a run of bars, and the density step has none.
 
 - **`bands`** (`render/bands.ts`, fallback `ranges`): a chromosome's stained bands in one band, an ideogram: each item a
   block colored by its `stain` through the `giemsa` scheme (grays from the text ink; `acen` in `seq-centromere`), the
@@ -1685,7 +1709,10 @@ numbers): a window move allocates nothing once warm.
   the origin (unchanged when the range is in the window across the origin), steps wrapping, clamps by `clampWindow` (a
   cyclic window wraps, never clamped at the total; one as wide as the axis is the fit, from 0: a whole turn from
   elsewhere would put the origin mid-window).
-- **An image is refused** on a ring (the warp counts it; `seq.render.ring.image`, said once a section by the frame).
+- **A one-row image is a ring band**: a density strip (a ranges layer past its lanes, its overflow row, a variants
+  count) is drawn radially, each run of one color an annular sector through the warp, so a ring never refuses its
+  density. Why: the strip's columns are the frame's, so the band is exactly what a track shows. **A taller image is
+  refused** (a matrix: the warp counts it; `seq.render.ring.image`, said once a section by the frame).
 - `at` is `atan2` and the radius through the warp's inverse (a label before the rings; the rim `window` while active;
   the hole and outside `empty`; between blocks `gap`); `offsetAt` the nearest block's edge in a gap; both monotone in
   angle from the origin. Held by property tests over rotations.
@@ -2158,13 +2185,16 @@ under the point as the hit's `state`. It reads every row (a logo of the rows sho
 - **What the layouts place** (`figure`): a text section draws every line, its box its content; `size.height: 'auto'` is
   the sections' content's height (measured from a first layout); a ring's window only with `window` (the view's
   `export.window` when absent, false: an exported map is a figure).
-- `renderSvg(spec, { size, viewport?, runtimes, … })`: checks and resolves the spec, opens the sources its view reads
-  (`attachSources`: inline data through `seq`, a source node through its runtime, a template's source; assets refused
-  unless a reader is given, `NoAssets`), wants through a want set of its own (EC-125), each round reads the overlay and
-  syncs its sources (let go at the end), lays out until its wants and the store's node version hold, waits for them to
-  settle, and draws once more with the view settled. It waits for its view's wants alone, never their margins.
+- `renderSvg(spec, { size, viewport?, runtimes, … })`: checks the spec and opens its model (`openModel`,
+  `scope: 'view'`: the sources its view reads, `attachSources`: inline data through `seq`, a source node through its
+  runtime, a template's source; assets refused unless a reader is given, `NoAssets`), wants through a want set of its
+  own (EC-125), each round reads the overlay and syncs its sources (let go at the end), lays out until its wants and the
+  store's node version hold, waits for them to settle, and draws once more with the view settled. It waits for its
+  view's wants alone, never their margins.
 - **One deadline** (`timeoutMs`, 10 s, on `clock`: real timers by default, a shared store's clock or a fake one) covers
-  opening the sources and settling; past it the opens are aborted and the export is `seq.render.unsettled`.
+  opening the sources and settling; past it the opens are aborted and the export is `seq.render.unsettled`. The model
+  and view resolved again are taken only when the opening wins the race with the deadline: a source that opens later
+  never swaps the model under a render (the first resolve's, its lengths pending, is drawn).
 - **A selection as an address** (`selection`): resolved by the export itself once its data settled, over its own store's
   nodes (`overlayQueryModel`), and drawn with `emphasis.selection`; what it named is `selection` in the result (absent
   with its issues when it named nothing). Why: an export is a consumer of an address of its own, not a copy of a

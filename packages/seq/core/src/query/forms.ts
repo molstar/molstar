@@ -550,6 +550,15 @@ const row: Resolve = (ctx, form, prefix) => {
     const at = printAddress(m.address);
     const rows = at.endsWith('/(rows)') ? at : `${at}/(rows)`;
     const ranges: number[] = [];
+    // rows read from a source and not held yet: the form waits over the whole rows system (pending, never unknown)
+    if (ctx.model.rowsPending?.(rows)) {
+      ctx.issues.push(
+        issueOf(QueryIssues, 'seq.query.row.pending', 'The alignment’s rows have not arrived', { address: at }),
+      );
+      const n = ctx.model.system(rows)?.length;
+      if (n !== undefined) stage(ctx, rangesLocation(rows, [0, n]));
+      continue;
+    }
     for (const k of keys) {
       const i = ctx.model.row?.(rows, k);
       if (i === undefined) return fail('seq.query.row.unknown', `No row has the key ${String(k)}`, { address: at });

@@ -17,7 +17,7 @@ import {
 } from '../../features/editing/compose.js';
 import { followSvg } from '../../follow-svg.js';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
-import { readout } from './compose.js';
+import { holdReadout, readout } from './compose.js';
 
 // A Complex view with its edits (examples.md, "Editing experiences are views too"): the viewer, a button an edit (one
 // patch, one step of the host's stack), Undo and Redo, the history and the spec shown printed beside, the SVG export
@@ -98,8 +98,11 @@ class ComplexEditRoot extends UiElement<ComplexEditModel> {
     };
     const panelShown = model.readout || model.lines !== undefined;
     if (panelShown) {
+      // the letters the panel names are held while it is shown; it is written again when they arrive
+      if (model.readout) onCleanup(holdReadout(s.viewer));
       onCleanup(s.viewer.hover.version.listen(showReadout));
       onCleanup(s.viewer.selection.value.listen(showReadout));
+      onCleanup(s.viewer.store.store.version.listen(showReadout));
     }
 
     const history = document.createElement('pre');

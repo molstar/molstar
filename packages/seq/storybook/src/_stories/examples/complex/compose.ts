@@ -9,7 +9,8 @@ import type { Node } from '@molstar/core/repr/tree';
 import { Data, entryLigands, ligand } from '@molstar/seqx-examples/complex/data';
 import { hiddenData, ligandId } from '@molstar/seqx-examples/complex/ligands';
 import { plddtColor } from '@molstar/seqx-examples/complex/confidence';
-import { cellReadout, rectReadout } from '@molstar/seqx-examples/complex/readout';
+import type { Wanter } from '@molstar/seqx-core/data';
+import { cellReadout, readoutWants, rectReadout } from '@molstar/seqx-examples/complex/readout';
 import type { EditingBehavior } from '@molstar/seqx-viewer/behaviors/editing';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import type { EditingSession } from '../../features/editing/compose.js';
@@ -87,14 +88,34 @@ export function setCopies(s: EditingSession, section: string, copies: 'merge' | 
   });
 }
 
+/** Each viewer's want of the letters its readout names (`holdReadout`). */
+const readoutWanters = new WeakMap<SeqViewer, Wanter>();
+
+/**
+ * Holds the letters the readout names (the chains' read from their files) in the viewer's store, as the host's panel
+ * does while it is shown; again after an edit. Returns the release.
+ */
+export function holdReadout(viewer: SeqViewer): () => void {
+  const model = viewer.spec.model.value;
+  const view = viewer.view.resolved.value;
+  let w = readoutWanters.get(viewer);
+  if (!w) readoutWanters.set(viewer, (w = viewer.store.store.wanter()));
+  if (view) w.want(readoutWants({ model, view }));
+  return () => {
+    readoutWanters.get(viewer)?.dispose();
+    readoutWanters.delete(viewer);
+  };
+}
+
 /** What the readout panel shows: the hovered cell, the selected rect and its PAE, each a line ('' when none). */
 export function readout(viewer: SeqViewer): { readonly hover: string; readonly rect: string } {
   const layout = viewer.frame?.layout;
   const model = viewer.spec.model.value;
   const view = viewer.view.resolved.value;
   if (!layout || !model || !view) return { hover: '', rect: '' };
+  holdReadout(viewer);
   const h = viewer.hover.current;
-  const v = { model, view };
+  const v = { model, view, data: viewer.store.store };
   const hover =
     h.system !== undefined && h.ySystem !== undefined && h.position !== undefined && h.yPosition !== undefined
       ? cellReadout(v, {

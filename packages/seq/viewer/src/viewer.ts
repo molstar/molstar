@@ -29,6 +29,8 @@ import {
   textMinScale,
 } from '@molstar/seqx-core/render';
 import { type Location, locationOfResult } from '@molstar/seqx-core/query';
+import { type Lengths, sourceLengths } from '@molstar/seqx-core/resolve';
+import { mapsEqual } from '@molstar/core/util/map';
 import type { SeqTokens } from '@molstar/seqx-core/render';
 import {
   type Frame as StoryFrame,
@@ -258,6 +260,7 @@ export class SeqViewer extends ReactiveModel {
       { runtimes: this.context.runtimes, config: this.context.resolveConfig },
       this.config,
       false,
+      this._lengths.asReadonly,
     );
     this.view = new ViewModel(this.spec, this.config);
     // a section's moves are its layout's arithmetic over its placement in the last frame (_spec/README.md "ViewModel")
@@ -335,7 +338,11 @@ export class SeqViewer extends ReactiveModel {
     this.input = new ViewerInput(this);
 
     // what moves the picture asks for a frame
-    this.listenPermanently(this.spec.model, () => this._sync());
+    this.listenPermanently(this.spec.model, (model) => {
+      // what the model no longer opens goes at once: no frame before the sync reads an edited source's old file
+      this.store.detachStale(model);
+      this._sync();
+    });
     this.listenPermanently(this.hover.version, () => this.schedule());
     this.listenPermanently(this.selection.value, () => {
       this._holdSelection();
@@ -349,17 +356,8 @@ export class SeqViewer extends ReactiveModel {
     // a band's own scroll, row zoom and folds (a rows band's)
     this.listenPermanently(this.view.bands, () => this.schedule());
     this.listenPermanently(this.hover.version, () => this.legends.updateHover(this._frame?.layout, this.hover.current));
-    // a source-backed system's length arrives with its source's coverage: the view's axes are placed then
-    this.view.setLengthSource((system) => {
-      const s = this.spec.model.value.systems.get(system);
-      if (!s?.source) return undefined;
-      const info = this.store.store
-        .coverage(s.source)
-        ?.systems.find((x) => x.name === s.name || x.aliases?.includes(s.name));
-      return info?.length;
-    });
     this.listenPermanently(this.store.store.version, () => {
-      this.view.refreshLengths();
+      this._readLengths();
       this.schedule();
     });
     this.listenPermanently(this.store.store.settled, () => this.schedule());
@@ -469,9 +467,25 @@ export class SeqViewer extends ReactiveModel {
     this._syncing = this._syncing.then(() =>
       this._retired ? undefined : this.store.sync(this.spec.model.value, this.context.assets),
     );
+    // an attach moves no entry: the lengths the opened sources give are read once they are in
+    this._syncing = this._syncing.then(() => this._readLengths());
     this._syncing = this._syncing.then(() => this.schedule());
     return this._syncing;
   }
+
+  /**
+   * A source-backed system's length arrives with its source's coverage: the model is resolved again with it
+   * (_spec/README.md "SpecModel"); an equal set of lengths is no change.
+   */
+  private _readLengths(): void {
+    if (this._retired) return;
+    // a coverage only from the source the model names as it is now (an edited source's old file gives none)
+    const model = this.spec.model.value;
+    this._lengths.set(sourceLengths(model, (s) => this.store.openedCoverage(model, s)));
+  }
+
+  /** The source-backed systems' lengths the spec's model is resolved with (`_readLengths`). */
+  private readonly _lengths = new State<Lengths>(new Map(), mapsEqual);
 
   /**
    * Resolves once the picture is complete: the sources open, the data the view wants arrived, the view settled. A

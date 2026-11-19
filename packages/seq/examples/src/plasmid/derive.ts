@@ -304,13 +304,17 @@ export function seqText(name: string, letters: string): string {
   return `${JSON.stringify(data)}\n`;
 }
 
-/** The fixtures' locations: the record as a `seq` file, and the rotated variant's features served as GFF3. */
+/**
+ * The fixtures' locations: the record as a `seq` file, the rotated variant's letters as one (the record turned to its
+ * origin), and the rotated variant's features served as GFF3.
+ */
 export const PlasmidFiles = {
   published: 'fixtures/plasmid/L09137.2.seq',
+  rotated: 'fixtures/plasmid/pUC19c-rotated.seq',
   rotatedFeatures: 'fixtures/plasmid/pUC19c-rotated-features.gff3',
 } as const;
 
-/** The module the record script writes from the record: its letters, for a view that needs them at once. */
+/** The module the record script writes from the record: its letters, what the annotations are derived from in code. */
 export function recordModule(letters: string): string {
   return `/**
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
@@ -319,10 +323,9 @@ export function recordModule(letters: string): string {
  */
 
 // INSDC ${PlasmidAccession}, Cloning vector ${PlasmidName}, complete sequence (${letters.length} bp, circular): the letters of
-// \`fixtures/plasmid/${PlasmidAccession}.seq\`, written by \`scripts/record.ts\` (a test compares the two). A cyclic
-// sequence read from a source has no length until it is opened, so the views that wrap the origin (the ring's window,
-// a range over it) take the letters inline, from here. A stand-in until the core reads a cyclic source's length at
-// resolve: then the views read the \`seq\` file and this module goes (lane CY).
+// \`fixtures/plasmid/${PlasmidAccession}.seq\`, written by \`scripts/record.ts\` (a test compares the two): what the
+// features and sites are derived from in code, at once when a view is built. The views read their letters from the
+// \`seq\` files.
 
 export const PublishedLetters =
   '${letters}';

@@ -10,11 +10,12 @@
 // across the chain boundary split at it, its summary), each editing view (one patch a step, undone and redone), the
 // ligands' arcs and refs, the confidence read from AlphaFold DB's files; every view in both themes, canvas and SVG.
 
+import { readFileSync } from 'node:fs';
 import { DarkTokens, type GridLay, type PairsLay, recordDrawLists } from '@molstar/seqx-core/render';
 import { ComplexViews } from '@molstar/seqx-examples';
 import { copiesScale } from '@molstar/seqx-examples/complex/blocks';
-import { Data, entryLigands } from '@molstar/seqx-examples/complex/data';
-import { nodeFixtureAssets } from '@molstar/seqx-examples/node-assets';
+import { Data, entryLigands, Files } from '@molstar/seqx-examples/complex/data';
+import { nodeFixtureAssets, PackageFolder } from '@molstar/seqx-examples/node-assets';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { DomHost } from '@molstar/ui/dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -22,6 +23,7 @@ import { composeEditing, type EditingSession, historyRows } from '../../features
 import {
   bookmarkInterface,
   hideLigandsPast,
+  holdReadout,
   readout,
   setCopies,
   setPlddtBins,
@@ -29,6 +31,9 @@ import {
 } from '../complex/compose.js';
 
 const view = (id: string) => ComplexViews.find((v) => v.id === id)!;
+
+/** Cyclin A2's letters as its UniProt entry has them. */
+const P20248 = JSON.parse(readFileSync(`${PackageFolder}${Files.cyclin}`, 'utf8')).sequence.value as string;
 
 let session: EditingSession | undefined;
 const raf = DomHost.requestAnimationFrame;
@@ -73,6 +78,9 @@ describe('the grid over the complex, headless', () => {
   it('a hovered cell: both residues and chains in the panel, the crosshair across its strips, the cell outlined once', async () => {
     const s = await open(view('complex-grid'));
     const v = s.viewer;
+    // the panel holds the letters it names (read from the files): as the story mounts it
+    holdReadout(v);
+    await vi.advanceTimersByTimeAsync(200);
     expect(v.frame!.layout.issues).toEqual([]);
     const st = v.frame!.layout.sections[1].placement.strips;
     expect(st.n).toBe(4);
@@ -88,7 +96,7 @@ describe('the grid over the complex, headless', () => {
       '/data/cyclin-protein',
       299,
     ]);
-    expect(readout(v).hover).toMatch(new RegExp(`^CDK2 K33 × cyclin A2 ${Data.letters.P20248[299]}300: \\d+ Å$`));
+    expect(readout(v).hover).toMatch(new RegExp(`^CDK2 K33 × cyclin A2 ${P20248[299]}300: \\d+ Å$`));
     const rects = recordDrawLists(v.frame!.lists, ['hover'])
       .split('\n')
       .filter((l) => l.startsWith('rect '));

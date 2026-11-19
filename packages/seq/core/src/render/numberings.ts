@@ -227,5 +227,6 @@ export function withSourceNumberings(
     ...(base.node ? { node: (owner, key) => base.node!(owner, key) } : {}),
     ...(base.chain ? { chain: (owner, id) => base.chain!(owner, id) } : {}),
     ...(base.row ? { row: (rows, key) => base.row!(rows, key) } : {}),
+    ...(base.rowsPending ? { rowsPending: (rows) => base.rowsPending!(rows) } : {}),
   };
 }

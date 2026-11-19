@@ -46,3 +46,6 @@
 - NB's leftovers: a text section's numbers in a source's numbering (inline only today); the `offset` and `segments`
   methods; a source's labels keyed other than by position; a records runtime converting labels of a declared
   numbering (files.md, Gaps).
+- CY's leftovers: the label skip's time gain measured (the heavy frame-time lane has the scenario); a viewer test of a
+  row request through `AddressModel`; `seq.resolve.length.unknown` before open quieter in the viewer; the 4 px
+  arrowhead and the narrow-label constants in the config; Shift+drag across the origin (DP).

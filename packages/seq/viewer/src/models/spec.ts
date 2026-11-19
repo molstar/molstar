@@ -25,7 +25,7 @@ import { hashNode, type Issue, issueOf, type Node, printAddress, resolveAddress 
 import { checkSpecBounds, SeqLanguage, SeqValidateOptions } from '@molstar/seqx-core/lang';
 // the change validators are their own entry: reading a spec carries no editing (core _spec, "Checks of a change")
 import { SeqPatchValidator, seqBoundsValidator, seqPatchValidator } from '@molstar/seqx-core/lang/changes';
-import { createResolver, type ResolveOptions, type StaticModel } from '@molstar/seqx-core/resolve';
+import { createResolver, type Lengths, type ResolveOptions, type StaticModel } from '@molstar/seqx-core/resolve';
 import { createStoryCache, type StepState, stateOf, stepPatchOf } from '@molstar/seqx-core/story';
 import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
 import { ViewerIssues } from '@molstar/seqx-viewer/issues';
@@ -163,6 +163,9 @@ export interface ShownStep {
   readonly state: StepState;
 }
 
+/** No source-backed system's length: a spec model of its own (a test's) resolves without. */
+const NoLengths: ReadonlyState<Lengths> = new State<Lengths>(new Map()).asReadonly;
+
 export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
   private readonly _head: State<SpecCommit>;
   private readonly _boundsIssues = new State<readonly Issue[]>([]);
@@ -220,7 +223,17 @@ export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
    */
   readonly loaded: ReadonlyState<boolean>;
 
-  constructor(root: Node, options: ResolveOptions = {}, config: ViewerConfig = DefaultViewerConfig, loaded = true) {
+  /**
+   * `lengths`: the lengths the opened sources' coverages give source-backed systems (the viewer's, from its store): the
+   * model is resolved again with them (_spec/README.md "SpecModel").
+   */
+  constructor(
+    root: Node,
+    options: ResolveOptions = {},
+    config: ViewerConfig = DefaultViewerConfig,
+    loaded = true,
+    lengths: ReadonlyState<Lengths> = NoLengths,
+  ) {
     super();
     this.config = config;
     this._loaded = new State(loaded);
@@ -243,7 +256,7 @@ export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
     this.changed = this._changed.asReadonly;
     this.boundsIssues = this._boundsIssues.asReadonly;
     const resolver = createResolver(options);
-    this.model = derive(this.shown, (s) => resolver.resolve(s));
+    this.model = derive([this.shown, lengths], (s, l) => resolver.resolve(s, l));
   }
 
   // ---- revisions ----

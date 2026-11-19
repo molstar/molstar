@@ -93,8 +93,12 @@ export const QueryIssues = defineIssues('seq.query', {
   },
   'seq.query.row.unknown': {
     severity: 'error',
-    description: 'No row of the alignment has the key, or its rows are not held',
+    description: 'No row of the alignment has the key',
     hint: 'a row key is its label',
+  },
+  'seq.query.row.pending': {
+    severity: 'info',
+    description: 'The rows of an alignment read from a source have not arrived: the form waits for them',
   },
   'seq.query.node.missing': {
     severity: 'warning',

@@ -190,8 +190,11 @@ export const BigRuntime: FormatRuntime = {
   },
 };
 
-/** A 3M-position system from the synthetic runtime: letters, ranges and values, each read by region. */
-export function bigSpec(): Node {
+/**
+ * A 3M-position system from the synthetic runtime: letters, ranges and values, each read by region; with `arrow`, the
+ * ranges draw an arrowhead at their end.
+ */
+export function bigSpec(options: { arrow?: boolean } = {}): Node {
   const b = createSeqSpec({ title: '3M positions' });
   const src = b.data.source('synthetic', { format: 'synthetic', uri: 'synthetic:chr' });
   const chr = b.data.sequence('chr', { alphabet: 'dna', source: src });
@@ -200,7 +203,7 @@ export function bigSpec(): Node {
   b.views.view('main', (view) => {
     const s = view.section('chr', { of: chr });
     s.track('letters').layer('letters', { type: 'letters' });
-    s.track('items').layer('ranges', { type: 'ranges', data: r });
+    s.track('items').layer('ranges', { type: 'ranges', data: r, ...(options.arrow ? { arrow: 'end' } : {}) });
     s.track('signal').layer('values', { type: 'values', data: v });
   });
   return b.build();

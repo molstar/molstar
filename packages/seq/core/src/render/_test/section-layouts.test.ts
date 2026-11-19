@@ -243,7 +243,7 @@ describe('warps', () => {
     expect(recordDrawLists(a, ['data'])).toBe(recordDrawLists(b, ['data']));
   });
 
-  it('the polar warp bends rects into sectors, places letters, refuses images, and its inverse brings a point back', () => {
+  it('the polar warp bends rects into sectors, places letters, refuses a matrix image, and its inverse brings a point back', () => {
     const lists = new DrawLists();
     const out = lists.writer('data');
     const p = new PolarWarp();
@@ -258,6 +258,8 @@ describe('warps', () => {
     w.beginGlyphs('10px mono', 10, 0x000000ff);
     w.letter(65, 90);
     w.endGlyphs();
+    // a matrix (two rows) is refused; a one-row strip of nothing painted draws nothing
+    w.image(0, 0, 10, 10, { width: 1, height: 2, data: new Uint8Array(8) });
     w.image(0, 0, 10, 10, { width: 1, height: 1, data: new Uint8Array(4) });
     p.close(out);
     expect(p.refused).toBe(1);
