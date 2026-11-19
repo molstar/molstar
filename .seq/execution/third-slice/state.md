@@ -323,3 +323,7 @@ None.
   when RK or CS merges. EO (fast, read-only) started.
 - EO reported (`ec-outcomes-draft.md`): of 56 rows, kept 45, changed 2 (EC-92, EC-138), not met 9; three
   contradictions in `drift/ec-contradictions.md`. AT (fast) running; ET (fast) starts for the ECs built but untested.
+- AT merged (`f88979d0c`, test-only): the exported SVG names no pairs arcs (it.fails; fix added to CF's brief); a
+  folded clade's summary row unnamed (drift/ec-contradictions.md 4). ET (fast) started.
+- **Lanes at once** (the author, 2026-11-19: "let's keep 1heavy+2 light or heavy active after current stuff
+  finishes"): three lanes, one strong and two of either kind, in place of loop.md's two strong and two fast.

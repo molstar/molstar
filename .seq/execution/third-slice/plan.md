@@ -399,7 +399,7 @@ and dark before the merge.
 - [x] GR (fast, read-only research; reported: `research-genome-ring.md`; the author, 2026-11-19: Rondo's genome ring, "perhaps even as an extension to
       show this is "easy"") a view like rondo.app's against what is built (`briefs/gr-genome-ring-research.md`).
 - [x] EO (fast, read-only; reported: `ec-outcomes-draft.md`, `drift/ec-contradictions.md`) the third slice's edge-case outcomes drafted (`briefs/eo-ec-outcomes.md`).
-- [ ] AT (fast) the rows and pairs layers' accessible items tested (`briefs/at-accessible-items-tests.md`).
+- [x] AT (fast; merged `f88979d0c`; the arcs' naming bug to CF) the rows and pairs layers' accessible items tested (`briefs/at-accessible-items-tests.md`).
 - [ ] ET (fast) tests for the edge cases built but untested (`briefs/et-ec-tests.md`).
 - [ ] CF (strong, after a strong slot frees) CS's core findings: a ruler's units (decided), inline data's tiles, shown
       means in view (decided) (`briefs/cf-chromosome-core.md`).

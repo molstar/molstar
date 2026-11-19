@@ -11,3 +11,6 @@ Found by EO (`ec-outcomes-draft.md`). For the author at the next gate, each with
 3. **EC-63** says pairs of several kinds at one cell show glyphs, "+" when they do not fit; the code slices the dots at
    one cell (`core/src/render/pairs.ts` `sideBySide`), untested. Recommend: amend to slices (built, readable), with a
    test of a hit per slice; glyphs to `TODO.md`.
+4. **A folded clade's summary row is not named** to assistive technology (`core/src/render/rows.ts` `rowItems` skips
+   it on purpose; AT's test records it): a screen reader cannot reach a folded clade. Recommend: name it by its summary
+   label ("HBA +12"), as the announcer and the hover card already say it.

@@ -23,6 +23,12 @@ on its parent:
    Test: browse five genes' exons and return to the fit: no exon tracks remain once their regions are out of view and
    evicted; a track whose node is on screen never vanishes (the reason for `holdShown`).
 
+4. **The exported SVG names no arcs** (found by AT): `render/accessibility.ts:73-75` walks each track's `layers`, but
+   a pairs layer's arcs are section-scope (`SectionLayout.sectionLays`, `tracks.ts:164, 1341`), so no arc is named, on
+   a track or a ring. Walk the section's own layers too (as `tracks.ts:1367-1370` does for the filter chip), and remove
+   the `.fails` from `render/_test/accessible-items.test.ts` "names each arc in the exported SVG, on a track and on a
+   ring".
+
 **Not in scope**: the hover card's strand (viewer, after RK); the ranges layout walking every row (core TODO; CS
 answers density instead). RK (keyboard cursor) works in `packages/seq/viewer` and in `core/src/render/{rows,tracks,
 grid,layer-type}.ts`: keep your `tracks.ts` change to the held-nodes hunk; CS works in `packages/seq/examples` and
