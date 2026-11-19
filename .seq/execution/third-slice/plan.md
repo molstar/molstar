@@ -404,6 +404,8 @@ and dark before the merge.
 - [ ] CF (strong, after a strong slot frees) CS's core findings: a ruler's units (decided), inline data's tiles, shown
       means in view (decided) (`briefs/cf-chromosome-core.md`).
 - [ ] SC (fast) a range's strand in the hover card (`briefs/sc-card-strand.md`).
+- [ ] PG (strong, after CF; the author, 2026-11-19: "Fix PCG in core") a real PCG32, seeded data regenerated once
+      (`briefs/pg-pcg.md`).
 - [ ] USE GATE (the author's use so far counts, 2026-11-19; at finalize only a look at what changed since) (deferred: the loop does not wait; finalize does): the author uses the views; findings fixed or placed,
       counted by kind.
 

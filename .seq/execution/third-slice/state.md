@@ -336,3 +336,6 @@ None.
 - CS's PCG finding: core's `PCG` (`@molstar/core/data/util/hash-functions.ts:588`) is a 32-bit-state variant with a
   64-bit output step, biased (CS: G 33%, C 20% over 1 Mb); fixing it changes Mol*'s distinct colors and every seeded
   Seq* fixture: the author's call.
+- CF, MV (strong) and SC (fast) started from `6883ee3c7`. Decided (the author, 2026-11-19: "Fix PCG in core"): a real
+  PCG32 in `@molstar/core`, Mol*'s distinct colors and every seeded Seq* fixture regenerated once (base-library.md);
+  lane PG (strong) after CF.
