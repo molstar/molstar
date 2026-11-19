@@ -89,19 +89,22 @@ describe('the grid over the complex, headless', () => {
       299,
     ]);
     expect(readout(v).hover).toMatch(new RegExp(`^CDK2 K33 × cyclin A2 ${Data.letters.P20248[299]}300: \\d+ Å$`));
-    // the crosshair: CDK2's column on both strips of its x (1, and 0 above it), cyclin's row on both of its y (1, 3),
-    // the cell's outline once; and K33 and cyclin A2's 300 lit on the blocks above
     const rects = recordDrawLists(v.frame!.lists, ['hover'])
       .split('\n')
       .filter((l) => l.startsWith('rect '));
-    expect(rects.length).toBeGreaterThanOrEqual(5);
-    // the blocks above light both residues on their own blocks (the hover's Location, keyed by system)
-    const blocksBox = v.frame!.layout.sections[0].placement.box;
-    const above = rects.filter((l) => {
-      const y = Number(l.split(' ')[2]);
-      return y >= blocksBox.y && y < blocksBox.y + blocksBox.height;
-    });
-    expect(above.length).toBeGreaterThanOrEqual(2);
+    // exactly: K33's column on the two strips of CDK2's x (one a y block), cyclin A2's row on the two strips of its y,
+    // the cell outlined on its one strip, and both residues outlined on the blocks above
+    const box = v.frame!.layout.sections[1].placement.box;
+    const shape = (l: string) => {
+      const [x, y, w, h] = l.split(' ').slice(1, 5).map(Number);
+      return { x, y, w, h, fill: !l.split(' ')[5].startsWith('none'), inPlot: y >= box.y && y < box.y + box.height };
+    };
+    const shapes = rects.map(shape);
+    const plot = shapes.filter((r) => r.inPlot);
+    expect(plot.filter((r) => r.fill && r.h > 20).length).toBe(2);
+    expect(plot.filter((r) => r.fill && r.w > 20).length).toBe(2);
+    expect(plot.filter((r) => !r.fill).length).toBe(1);
+    expect(shapes.filter((r) => !r.inPlot).length).toBe(2);
   });
 
   it('a rect dragged across the chain boundary is split at it: a rect a pair of chains, its summary in the panel', async () => {
@@ -246,6 +249,14 @@ describe('the Complex editing views, headless', () => {
     const arcs = sec.sectionLays.map((l) => l.lay as PairsLay);
     const expected = [Data.ligands[0], ...entryLigands()].map((l) => new Set(l.contacts.map(([r]) => r)).size);
     expect(arcs.map((l) => l.n)).toEqual(expected);
+    // each ligand's arcs in a color of its own (the palette's token by its place)
+    const colors = new Set(
+      recordDrawLists(v.frame!.lists, ['data'])
+        .split('\n')
+        .filter((l) => l.startsWith('path '))
+        .map((l) => /#[0-9a-f]{8}/.exec(l)?.[0]),
+    );
+    expect(colors.size).toBe(expected.length);
     // the refs the builder wrote: one a ligand
     expect(v.addresses.refs.value.length).toBe(expected.length);
     const all = shownLigands(s);

@@ -31,6 +31,13 @@ export const Files = {
   cyclinConfidence: 'fixtures/complex/AF-P20248-F1-confidence_v6.json',
 } as const;
 
+/**
+ * AlphaFill's usage policy as checked when the Complex was recorded: a policy of its own (free use, attribution of
+ * AlphaFill and AlphaFold, modified files only with the parent attributed), no CC BY 4.0 or looser licence stated, so
+ * its transplants are not taken (the data's decisions, 1).
+ */
+export const AlphaFillPolicy = { url: 'https://alphafill.eu/license', checked: '2026-11-19' } as const;
+
 /** The systems of `1FIN.seq` (and `contacts.seq`): CDK2's entity and the cyclin A construct's. */
 export const CrystalSystems = { cdk2: 'cdk2', cyclin: 'cyclin-a' } as const;
 

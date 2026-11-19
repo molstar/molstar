@@ -45,10 +45,11 @@ import {
   ContactCutoff,
   contactsSeq,
   type Ligand,
-  moleculeSeq,
+  moleculeSeq as complexSeq,
   trim1fin,
   trimLigand,
 } from '../src/complex/record-trim.ts';
+import {
   gff3Text,
   PlasmidAccession,
   PlasmidFiles,
@@ -188,7 +189,7 @@ async function complex(): Promise<Row[]> {
     sources.push({ id, text });
     ligands.push(trimLigand(text, id, comp, t.cdk2));
   }
-  const molecule = write('1FIN.seq', moleculeSeq(t));
+  const molecule = write('1FIN.seq', complexSeq(t));
   const contacts = write('contacts.seq', contactsSeq(t, ligands));
   const cc0 = (
     file: string,
@@ -254,7 +255,8 @@ async function complex(): Promise<Row[]> {
     const name = `AF-${acc}-F1-confidence_v6.json`;
     const afUrl = `https://alphafold.ebi.ac.uk/files/${name}`;
     const af = await fetchText(afUrl, 'application/json', name);
-    const kept = write(name, af.endsWith('\n') ? af : `${af}\n`);
+    // as published, byte for byte (no newline added)
+    const kept = write(name, af);
     rows.push({
       file: `complex/${name}`,
       entry: `AlphaFold DB AF-${acc}-F1, model version 6, per-residue confidence (pLDDT)`,
@@ -262,7 +264,7 @@ async function complex(): Promise<Row[]> {
       recorded: day,
       licence: ['CC-BY-4.0'],
       attribution: `AlphaFold DB (Jumper et al. 2021; Varadi et al. 2024), AF-${acc}-F1 v6, CC BY 4.0`,
-      trimmed: 'none (as published)',
+      trimmed: 'none: as published, byte for byte',
       derived: 'none',
       bytesDownloaded: bytes(af),
       bytesFixture: bytes(kept),

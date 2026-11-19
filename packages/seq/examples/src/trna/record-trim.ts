@@ -6,72 +6,14 @@
 
 import { categoryColumn } from '@molstar/core/repr/tree';
 import { encodeSeq, inlineSeq, type SeqData } from '@molstar/seqx-core/data';
+import { cifRows } from '../files/cif.js';
 
 // What the record script keeps of PDB 1EHZ's mmCIF (`scripts/record.ts trna`): chain A's sequence, its modified residues
 // and the entry's own base-pair table (`ndb_struct_na_base_pair`), nothing renamed. Kept here, in the package's
 // sources, so a unit test holds the rules; the script imports them.
 
-/** The rows of a `loop_` (or a single-row category) of mmCIF text, each a record by item name. */
-export function cifRows(text: string, category: string): Record<string, string>[] {
-  const lines = text.split('\n');
-  const names: string[] = [];
-  const tokens: string[] = [];
-  let i = 0;
-  let loop = false;
-  for (; i < lines.length; i++) {
-    const l = lines[i];
-    if (l.startsWith('loop_') && lines[i + 1]?.startsWith(`${category}.`)) {
-      loop = true;
-      i++;
-      break;
-    }
-    if (l.startsWith(`${category}.`)) break;
-  }
-  if (i >= lines.length) return [];
-  // item names, then the values: whitespace separated, quoted with ' or ", or a `;` text block
-  if (loop) {
-    for (; i < lines.length && lines[i].startsWith(`${category}.`); i++)
-      names.push(lines[i].trim().slice(category.length + 1));
-    for (; i < lines.length; i++) {
-      const l = lines[i];
-      if (l.startsWith('#') || l.startsWith('loop_') || l.startsWith('_')) break;
-      if (l.startsWith(';')) {
-        let text = l.slice(1);
-        while (!lines[++i].startsWith(';')) text += `\n${lines[i]}`;
-        tokens.push(text);
-      } else tokens.push(...tokenize(l));
-    }
-  } else {
-    // a category of single items: a value on the item's line, or a `;` block under it
-    for (; i < lines.length && (lines[i].startsWith(`${category}.`) || lines[i].startsWith(';')); i++) {
-      const l = lines[i];
-      if (l.startsWith(';')) {
-        let text = l.slice(1);
-        while (!lines[++i].startsWith(';')) text += `\n${lines[i]}`;
-        tokens.push(text);
-        continue;
-      }
-      const m = /^\S+\.(\S+)\s*(.*)$/.exec(l)!;
-      names.push(m[1]);
-      if (m[2].trim()) tokens.push(...tokenize(m[2]));
-    }
-  }
-  const rows: Record<string, string>[] = [];
-  for (let r = 0; r + names.length <= tokens.length; r += names.length) {
-    const row: Record<string, string> = {};
-    names.forEach((n, k) => (row[n] = tokens[r + k]));
-    rows.push(row);
-    if (!loop) break;
-  }
-  return rows;
-}
-
-function tokenize(line: string): string[] {
-  const out: string[] = [];
-  const re = /'((?:[^']|'(?=\S))*)'(?=\s|$)|"((?:[^"]|"(?=\S))*)"(?=\s|$)|(\S+)/g;
-  for (const m of line.matchAll(re)) out.push(m[1] ?? m[2] ?? m[3]);
-  return out;
-}
+/** The mmCIF reader the record scripts share (here for the tests that read it from this module). */
+export { cifRows };
 
 /**
  * The six tertiary pairs of the structure (1-based): those outside the cloverleaf's four stems that hold the L-shape

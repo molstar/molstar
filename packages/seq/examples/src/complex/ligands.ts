@@ -78,11 +78,14 @@ export function build(options: LigandsOptions = {}, d: Derived = Data): Node {
     s.block('cdk2', { of: x.cdk2, label: 'CDK2 (1FIN A)' });
     for (const n of nodes) s.block(ligandId(n.l.comp), { of: n.seq, label: n.l.comp });
     s.track('contacts', { label: 'Contacts (≤ 4 Å)' }, (t) => {
-      for (const n of nodes)
+      // a ligand's arcs in its own color of the categorical palette (by its place: the chips' order), told apart
+      nodes.forEach((n, k) =>
         t.layer(ligandId(n.l.comp), {
           type: 'pairs',
           data: hidden.has(n.l.comp) ? hiddenData(n.pairs) : n.pairs,
-        });
+          color: ligandColor(k),
+        }),
+      );
     });
     if (names) s.track('atoms', { label: 'ATP atoms' }).layer('names', { type: 'ranges', data: names });
     s.track('letters', { label: 'Sequence' }).layer('letters', { type: 'letters' });
@@ -92,6 +95,9 @@ export function build(options: LigandsOptions = {}, d: Derived = Data): Node {
     b.refs.ref(`${ligandId(n.l.comp)}-contacts`, { to: n.pairs, label: `${n.l.comp} contacts (${n.l.entry})` });
   return b.build();
 }
+
+/** The color of the `k`th ligand's arcs: the categorical palette's `k`th token (its eight in turn). */
+export const ligandColor = (k: number) => `token:seq-cat-${k % 8}`;
 
 /** A ligand's contacts hidden: every row filtered out (`(not (item :type contact))`). */
 export const hiddenData = (pairs: string) =>

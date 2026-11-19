@@ -6,6 +6,7 @@
 
 import { categoryColumn } from '@molstar/core/repr/tree';
 import { encodeSeq, inlineSeq, type SeqData } from '@molstar/seqx-core/data';
+import { cifRows } from '../files/cif.js';
 
 // What the record script keeps of PDB 1FIN's mmCIF and of the CDK2 entries its ligands come from (`scripts/record.ts
 // complex`): the chains' letters and secondary structure, and what is derived from the coordinates (residue contacts
@@ -14,59 +15,6 @@ import { encodeSeq, inlineSeq, type SeqData } from '@molstar/seqx-core/data';
 
 /** Heavy atoms closer than this (Å) are in contact (examples' `contacts.cutoff`). */
 export const ContactCutoff = 4;
-
-/** The rows of a `loop_` (or a single-row category) of mmCIF text, each a record by item name. */
-export function cifRows(text: string, category: string): Record<string, string>[] {
-  const lines = text.split('\n');
-  const prefix = `${category}.`;
-  let i = lines.findIndex(
-    (l, k) => l.startsWith(prefix) || (l.startsWith('loop_') && lines[k + 1]?.startsWith(prefix)),
-  );
-  if (i < 0) return [];
-  const loop = lines[i].startsWith('loop_');
-  if (loop) i++;
-  const names: string[] = [];
-  const tokens: string[] = [];
-  const block = () => {
-    let t = lines[i].slice(1);
-    while (!lines[++i].startsWith(';')) t += `\n${lines[i]}`;
-    tokens.push(t);
-  };
-  if (loop) {
-    for (; lines[i]?.startsWith(prefix); i++) names.push(lines[i].trim().slice(prefix.length));
-    for (; i < lines.length; i++) {
-      const l = lines[i];
-      if (l.startsWith('#') || l.startsWith('loop_') || l.startsWith('_')) break;
-      if (l.startsWith(';')) block();
-      else tokens.push(...tokenize(l));
-    }
-  } else {
-    for (; i < lines.length && (lines[i].startsWith(prefix) || lines[i].startsWith(';')); i++) {
-      if (lines[i].startsWith(';')) {
-        block();
-        continue;
-      }
-      const m = /^\S+?\.(\S+)\s*(.*)$/.exec(lines[i])!;
-      names.push(m[1]);
-      if (m[2].trim()) tokens.push(...tokenize(m[2]));
-    }
-  }
-  const rows: Record<string, string>[] = [];
-  for (let r = 0; r + names.length <= tokens.length; r += names.length) {
-    const row: Record<string, string> = {};
-    names.forEach((n, k) => (row[n] = tokens[r + k]));
-    rows.push(row);
-    if (!loop) break;
-  }
-  return rows;
-}
-
-function tokenize(line: string): string[] {
-  const out: string[] = [];
-  const re = /'((?:[^']|'(?=\S))*)'(?=\s|$)|"((?:[^"]|"(?=\S))*)"(?=\s|$)|(\S+)/g;
-  for (const m of line.matchAll(re)) out.push(m[1] ?? m[2] ?? m[3]);
-  return out;
-}
 
 interface Atom {
   readonly asym: string;

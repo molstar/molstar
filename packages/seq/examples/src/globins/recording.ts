@@ -7,6 +7,7 @@
 import { AlignmentOp, globalAlign } from '@molstar/core/algorithms/sequence/needleman-wunsch';
 import { categoryColumn } from '@molstar/core/repr/tree';
 import type { SeqData } from '@molstar/seqx-core/data';
+import { cifLoop } from '../files/cif.js';
 
 // What the record script does with the Globins entries (`scripts/record.ts globins`): the Pfam seed cut to the rows
 // nearest human hemoglobin, 4HHB's chains, helices and heme contacts read from its mmCIF. Kept in the package's sources
@@ -131,44 +132,7 @@ export function columnsFromUniprot(uniprotTsv: string, seedText: string): string
   return `${out.join('\n')}\n`;
 }
 
-/** An mmCIF category's loop (or its single row) as columns by field name; quoted values unquoted. */
-export function cifLoop(text: string, category: string): Record<string, string[]> {
-  const lines = text.split('\n');
-  const prefix = `_${category}.`;
-  const out: Record<string, string[]> = {};
-  const at = lines.findIndex((l) => l.startsWith(prefix));
-  if (at < 0) return out;
-  const fields: string[] = [];
-  const looped = lines[at - 1]?.startsWith('loop_');
-  let k = at;
-  if (!looped) {
-    for (; k < lines.length && lines[k].startsWith(prefix); k++) {
-      const [name, ...rest] = tokens(lines[k]);
-      out[name.slice(prefix.length)] = [rest.join(' ')];
-    }
-    return out;
-  }
-  for (; k < lines.length && lines[k].startsWith(prefix); k++) fields.push(lines[k].trim().slice(prefix.length));
-  for (const f of fields) out[f] = [];
-  let row: string[] = [];
-  for (; k < lines.length; k++) {
-    const l = lines[k];
-    if (l.startsWith('#') || l.startsWith('loop_') || l.startsWith('_')) break;
-    row.push(...tokens(l));
-    if (row.length >= fields.length) {
-      fields.forEach((f, q) => out[f].push(row[q]));
-      row = [];
-    }
-  }
-  return out;
-}
-
-function tokens(line: string): string[] {
-  const out: string[] = [];
-  const re = /'([^']*)'(?=\s|$)|"([^"]*)"(?=\s|$)|(\S+)/g;
-  for (let m = re.exec(line); m; m = re.exec(line)) out.push(m[1] ?? m[2] ?? m[3]);
-  return out;
-}
+export { cifLoop };
 
 const OneLetter: Readonly<Record<string, string>> = {
   ALA: 'A',

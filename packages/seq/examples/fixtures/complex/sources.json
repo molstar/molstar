@@ -56,12 +56,12 @@
       "CC-BY-4.0"
     ],
     "attribution": "AlphaFold DB (Jumper et al. 2021; Varadi et al. 2024), AF-P24941-F1 v6, CC BY 4.0",
-    "trimmed": "none (as published)",
+    "trimmed": "none: as published, byte for byte",
     "derived": "none",
     "bytesDownloaded": 4100,
-    "bytesFixture": 4101,
+    "bytesFixture": 4100,
     "sha256Download": "04d509a8f724f1d1a373ac9b80fd8219e2262939e8a4434f2a700a5e3ad91230",
-    "sha256Fixture": "ebb97c046d9629ce9e715d1eeefa033792b7b5b68faf623cabbe75da65927153"
+    "sha256Fixture": "04d509a8f724f1d1a373ac9b80fd8219e2262939e8a4434f2a700a5e3ad91230"
   },
   {
     "file": "complex/P20248.json",
@@ -88,11 +88,11 @@
       "CC-BY-4.0"
     ],
     "attribution": "AlphaFold DB (Jumper et al. 2021; Varadi et al. 2024), AF-P20248-F1 v6, CC BY 4.0",
-    "trimmed": "none (as published)",
+    "trimmed": "none: as published, byte for byte",
     "derived": "none",
     "bytesDownloaded": 5953,
-    "bytesFixture": 5954,
+    "bytesFixture": 5953,
     "sha256Download": "439f94c8b17b1d2feaf1ad45470e6e60686652cb8db14afb588c9942dc5b076b",
-    "sha256Fixture": "edb5bb1c5ce24e7965d4be2af7381b9258ce41467a529047cf32451dc2f18b6b"
+    "sha256Fixture": "439f94c8b17b1d2feaf1ad45470e6e60686652cb8db14afb588c9942dc5b076b"
   }
 ]

@@ -5,6 +5,7 @@
  */
 
 import { ComplexViews } from '@molstar/seqx-examples';
+import { AlphaFillPolicy } from '@molstar/seqx-examples/complex/data';
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { storyId } from '../../story-id.js';
 
@@ -50,6 +51,7 @@ interface SourceRow {
   readonly entry: string;
   readonly licence: readonly string[];
   readonly attribution: string;
+  readonly trimmed: string;
   readonly derived: string;
 }
 
@@ -103,7 +105,7 @@ export const Views: StoryObj = {
       sources,
       h('h3', 'Generated and derived'),
       p(
-        'Derived at recording, from the coordinates: the contacts within 4 Å between heavy atoms across each copy’s chains, and each ligand’s contacting residues. Generated in code: the PAE over the complex (synthetic: no permissive prediction of the complex was found; low across 1FIN’s interface, from a seed), and the 200 copies of the scale view. Curated in code: the PSTAIRE helix, the activation loop and the cyclin box folds (UniProt has no feature of them). AlphaFill’s transplants are not taken: its usage policy states no CC BY 4.0 or looser licence.',
+        `Derived at recording, from the coordinates: the contacts within 4 Å between heavy atoms across each copy’s chains, and each ligand’s contacting residues. Generated in code: the PAE over the complex (synthetic: no permissive prediction of the complex was found; low across 1FIN’s interface, from a seed), and the 200 copies of the scale view. Curated in code: the PSTAIRE helix, the activation loop and the cyclin box folds (UniProt has no feature of them). AlphaFill’s transplants are not taken: its usage policy (${AlphaFillPolicy.url}, checked ${AlphaFillPolicy.checked}) states no CC BY 4.0 or looser licence.`,
       ),
     );
     // the provenance as recorded, read the way the views read the fixtures
@@ -112,7 +114,8 @@ export const Views: StoryObj = {
       .then((rows: SourceRow[]) => {
         for (const r of rows) {
           const li = document.createElement('li');
-          li.textContent = `${r.file}: ${r.entry}. ${r.licence.join(', ')}; ${r.attribution}.${r.derived !== 'none' ? ` Derived: ${r.derived}.` : ''}`;
+          // a CC BY source's changes stated (its `trimmed`), as the licence asks
+          li.textContent = `${r.file}: ${r.entry}. ${r.licence.join(', ')}; ${r.attribution}. Changed: ${r.trimmed}.${r.derived !== 'none' ? ` Derived: ${r.derived}.` : ''}`;
           sources.append(li);
         }
       })
