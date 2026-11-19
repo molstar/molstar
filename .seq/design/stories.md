@@ -118,8 +118,10 @@ is that you can store it as a patch when it makes sense."
 
 `story.transition.duration` (the base duration of ux-foundations section 7), `story.transition.easing` (ease in and out), `story.linger`,
 `story.view.path` (`auto`: pan when the ranges overlap, else out-across-in), `story.color.space` (`oklab`),
-`story.cut.at` (0.5), `story.reducedMotion` (follows the platform), `story.stepStart` (`spec`; `from` per step),
-`story.store` (`patch`; `full`, or `smaller` for the encoder), `story.maxChain` (8).
+`story.cut.at` (0.5), `story.stepStart` (`spec`; `from` per step),
+`story.store` (`patch`; `full`, or `smaller` for the encoder), `story.maxChain` (8). Whether motion plays at all is
+the viewer's one item, `view.motion` (`platform`: animate unless the platform asks for reduced motion; `cut`;
+`animate`), read by jumps and stories alike (decided, 2026-11-19: one item, `story.reducedMotion` dropped).
 
 ## Tensions
 

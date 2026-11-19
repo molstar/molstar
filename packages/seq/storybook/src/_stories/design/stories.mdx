@@ -34,7 +34,8 @@ end values and its time window. An application may inspect, retime, drop or add 
 | order   | children reordered                      | each moves to its new place                              |
 | cut     | anything else                           | switched at the channel's time (the midpoint by default) |
 
-Data does not animate: data arriving during a transition draws in place. Reduced motion makes every channel a cut.
+Data does not animate: data arriving during a transition draws in place. Reduced motion makes every channel a cut;
+whether motion plays is the viewer's one setting, `view.motion` (`platform`, `cut`, `animate`), for jumps and stories alike.
 
 ## Sampling is pure; a frame is shown, never committed
 

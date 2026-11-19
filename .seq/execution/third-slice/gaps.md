@@ -35,3 +35,14 @@ the winner leads by more than 0.1, share within 0.1" doesn't hold: at those numb
 0.25. Options: (a) record the measured tolerance in grids-and-rows.md; (b) keep the top two classes per sample (more
 memory per level, closer shares). Recommendation: (a), since the image tiles are below 3 device px where the shade reads,
 not the letter. RW's tests assert the measured bounds until you decide.
+
+## Decided by the author (2026-11-19: "go as recommended")
+
+All five open gaps above, as recommended; written into themes.md, stories.md, ux-foundations.md and grids-and-rows.md
+and their Design pages. Built by lane GD after PG and NV merge (it touches the viewer's config and the themes' render):
+
+1. The lists-free palette module in `@molstar/core/util/color`, re-exported by `value-palette.ts`: yes (non-breaking).
+2. `classes` stays the default: yes. Every substitute safe: yes, `classes-safe` (the classes on Okabe–Ito hues).
+3. Dark letter cells: (a), a hairline cell edge (`seq-cell-edge`) in dark only.
+4. One motion item: `view.motion: platform | cut | animate` (default `platform`), `story.reducedMotion` dropped.
+5. The pyramid's tolerance: (a), the measured bounds recorded in grids-and-rows.md.

@@ -308,6 +308,9 @@ Rows in view are found by arithmetic, O(1) a row, never a scan.
   the served row bins (approximate, said once). Framed as one discrete mark, square where the view cuts it (EC-100).
   **Hit**: target `summary-row`, its element the clade (its extent its rows on the rows system, the column as
   `position`); a tree node hits as `tree-node`, its element the clade.
+  **Hovered** (ux-foundations section 8: the element is hovered, here and on linked sections): a hover on a tree node
+  or a summary row lights the clade: its branches in `seq-hover` ink and the band of its rows (one band, the clade's
+  rows being adjacent in tree order; folded, the summary row's band), as a header hover lights a row's. Drawing only.
   **Selected**: a click selects the clade's rows; Cmd/Ctrl+click toggles them; a selection holding some of its rows
   draws a partial mark (the tint over the share, an outline when all). **Exported** as drawn, label and wedge included.
 - **What a fold does to the rest**:
@@ -334,8 +337,10 @@ Rows in view are found by arithmetic, O(1) a row, never a scan.
 
 - a sample of a level pair (`[rowLevel, columnLevel]`, factor 4 each, independent: zoomed out on columns a row stays a
   row) holds a majority letter and its share; **a majority is not mergeable**, so each level is the majority of the
-  majorities below it (shares averaged): approximate, tested against the exact majority within a tolerance (the share
-  within 0.1; the letter exact where the exact winner leads by more than 0.1);
+  majorities below it (shares averaged): approximate, tested against the exact majority within the measured tolerance
+  (decided, 2026-11-19: the share within 0.05 on average and 0.3 at worst; the letter exact where the exact winner
+  leads by more than 0.25). Enough because a level's image is drawn below 3 device px a cell, where the shade reads and
+  the letter does not; keeping the top two classes per sample was declined (memory per level);
 - colored **by the theme's classes** (`rows.reduce`: `theme`): one pass mapping each cell to its theme class through a
   table by letter, or by (column, letter) when the theme declares column dependence (Clustal X's rules), so the
   per-letter shortcut holds both ways; the pyramid then reduces classes, not letters. A theme change rebuilds the

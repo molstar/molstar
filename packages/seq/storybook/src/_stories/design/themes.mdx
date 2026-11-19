@@ -44,13 +44,16 @@ forms, printed as S-expressions:
 Residue and nucleotide schemes (Clustal X, Zappo, Taylor, hydrophobicity, ESPript and more), number ramps (viridis,
 cividis, the pLDDT bins), category palettes (Okabe–Ito, Tableau) and the Giemsa stains are named entries with their
 provenance, a dark variant, and whether they are color-blind safe. A scheme is offered only where it fits. The defaults
-come from the theme's tokens and pass a color-vision check in both themes. A layer's default theme belongs to the
+come from the theme's tokens and pass a color-vision check in both themes. A scheme that is not safe declares a safe
+substitute, drawn under the reader's `theme.cvdSafe`: the protein schemes' is `classes-safe`, the residue classes on
+Okabe–Ito hues; `classes` stays the default. A layer's default theme belongs to the
 language, never the host, so one spec draws alike everywhere; a host recolors through `--seq-*` tokens.
 
 ## Colors
 
 A color in a spec is a hex literal, a token (`token:range`) or `light-dark(a, b)` for a writer's color that must read in
-both themes. Ink on a colored mark follows its fill, and the hover outline stays visible against any fill.
+both themes. Ink on a colored mark follows its fill, and the hover outline stays visible against any fill. In the dark
+theme a letter cell draws a hairline edge, since its dark fill sits close to the page.
 
 ## Legends
 
