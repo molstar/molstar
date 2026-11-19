@@ -302,10 +302,9 @@ export class ViewModel extends ReactiveModel {
    */
   reveal(section: string, start: number, end: number): boolean {
     if (!Number.isFinite(start) || !Number.isFinite(end) || this._leading(section)) return false;
-    const s = this._sections.get(section);
-    const g = s && !(s.section.follow && s.group === undefined) ? this._groupOf(s) : undefined;
+    const g = this._movable(section);
     const c = g && this._navContext(section, g);
-    if (!g || !c || !this._canMove(section)) return false;
+    if (!g || !c) return false;
     const next = this._navOf(g.layout).reveal(c, rangeOf(g), Math.min(start, end), Math.max(start, end));
     if (next.start === g.start && next.end === g.end) return false;
     this._take(g, next);

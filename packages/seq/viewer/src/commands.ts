@@ -48,6 +48,8 @@ export const CommandChangeKinds: Readonly<Record<string, ChangeKind>> = {
   'cursor.down': 'session',
   'cursor.extend-prev': 'session',
   'cursor.extend-next': 'session',
+  'cursor.extend-up': 'session',
+  'cursor.extend-down': 'session',
   'cursor.add-prev': 'session',
   'cursor.add-next': 'session',
   'cursor.toggle': 'session',
@@ -61,6 +63,8 @@ export const CommandChangeKinds: Readonly<Record<string, ChangeKind>> = {
   'view.zoom-out': 'navigate',
   'view.pan-left': 'navigate',
   'view.pan-right': 'navigate',
+  'view.pan-up': 'navigate',
+  'view.pan-down': 'navigate',
   // the actions on addresses: a focus or a reveal moves the view; a selection or a highlight is session state
   'address.focus': 'navigate',
   'address.reveal': 'navigate',

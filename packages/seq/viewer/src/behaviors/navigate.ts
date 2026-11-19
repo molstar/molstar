@@ -152,6 +152,16 @@ export function navigateBehavior(
     return !!v && view.pan(section, fraction * (v.end - v.start));
   };
 
+  /** Scrolls by a line: the anchor moved by the layout's step up or down from it (up from the first line: its top). */
+  const lineBy = (section: string, dir: 'up' | 'down') => {
+    const v = view.get(section);
+    if (!v || v.pending) return false;
+    const from = Math.floor(v.start);
+    const to = view.step(section, from, dir);
+    if (to < 0) return dir === 'up' && v.start > 0 && view.pan(section, -v.start);
+    return view.pan(section, to - from);
+  };
+
   const commands: CommandDefinition<NavigateContext>[] = [
     command(
       'view.fit',
@@ -180,6 +190,9 @@ export function navigateBehavior(
     command('view.zoom-out', 'Zoom out', (s, ctx) => stepZoom(s, ctx, 1 / (ctx.step ?? wheelZoomStep)), 'Zoomed out'),
     command('view.pan-left', 'Pan left', (s) => panBy(s, -keyPanFraction), 'Panned left'),
     command('view.pan-right', 'Pan right', (s) => panBy(s, keyPanFraction), 'Panned right'),
+    // a line in a layout of lines (a text scrolls a line); a window has one line, so nothing
+    command('view.pan-up', 'Scroll a line up', (s) => lineBy(s, 'up'), 'Scrolled up'),
+    command('view.pan-down', 'Scroll a line down', (s) => lineBy(s, 'down'), 'Scrolled down'),
   ];
 
   return {
