@@ -1045,9 +1045,16 @@ strip's.
   section 6): a position lit by one channel takes the whole band; by several, the band splits into equal stripes, one a
   channel present there, in channel order, at most `emphasis.highlightStripes`, the channels past the last sharing it (a
   ring's band radially). The style draws in the channel's stripe: `tint` fills it at `emphasis.highlightTint`, `band` a
-  bar `emphasis.highlightBand` px along its foot in the color as given, `outline` its stroke (`outline.selection`)
-  without fill. The run of a channel with one slot and one stripe count is one rect: a channel is cut only where the set
-  of channels lighting changes. Why stripes: stacked tints of two colors blend into a third that names neither.
+  bar `emphasis.highlightBand` px along its foot in the color as given. A fill's run is one rect while its slot and the
+  stripe count stay: it is cut only where the set of channels lighting changes (`highlight-stripes.ts`, a merge of the
+  channels' sorted boundaries: nothing allocated). **An `outline` takes no stripe** (it has no fill, so it does not
+  count among the channels lighting): one stroke (`outline.selection`) over the channel's own ranges on the whole band,
+  above the fills, never fragmented by another channel's boundary. Stripe edges and the bar are on device pixels, one
+  edge between two stripes (no overlap, no seam). A range wholly in a hidden stretch lights its break once a channel, at
+  its first run. **The grid** stripes its highlighted rows the same way across the plot (a stripe a channel, in channel
+  order; `band` a bar along a stripe's left edge, `outline` one stroke over the row); the columns are the strip's, drawn
+  with the tracks'. **The navigators' ticks stay one tick a channel** (a tick is a position mark, no band to split). Why
+  stripes: stacked tints of two colors blend into a third that names neither.
 - `selection` (a Location): a soft accent tint at `emphasis.selectionTint` and one thin outline inside it
   (`outline.selection`, 1 px, the accent at `emphasis.selectionOutline`, 0.6), the tints first, then the outlines;
   squircle ends where a range really ends, square where the view or a piece cuts it (the frame rule) (the `selection`

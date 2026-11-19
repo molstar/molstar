@@ -163,7 +163,8 @@ export interface EmphasisHighlight {
 }
 
 /** A highlight channel's look (_spec/README.md "Render", Emphasis). */
-export type HighlightStyle = 'tint' | 'band' | 'outline';
+export const HighlightStyles = ['tint', 'band', 'outline'] as const;
+export type HighlightStyle = (typeof HighlightStyles)[number];
 
 /**
  * What the emphasis passes draw (_spec/README.md "Render", Emphasis): the hover, the selection (a Location), the

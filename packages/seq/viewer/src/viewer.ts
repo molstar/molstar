@@ -79,7 +79,7 @@ import {
 import type { AnimationRequest, SeqAnimation, SeqAnimationParticipant } from '@molstar/seqx-viewer/ports';
 import { frameAnimation } from './animation.js';
 import { ViewerInput } from './input.js';
-import { LegendModel } from './legends.js';
+import { highlightColorOf, LegendModel } from './legends.js';
 import { uiHistory } from './ui-history.js';
 import { ViewerIssues } from './issues.js';
 import type { BehaviorContext, BehaviorProvider, SeqViewerSpec } from './viewer-spec.js';
@@ -1238,16 +1238,6 @@ export class SeqViewer extends ReactiveModel {
     e.hover = h;
   }
 
-  /** A highlight channel's color: `highlight.colors[name]`, else `highlight.color`, resolved through the tokens. */
-  highlightColor(name: string): number {
-    const { color, colors } = this.config.highlight;
-    return (
-      resolveColor(Object.hasOwn(colors, name) ? colors[name] : color, this.tokens) ??
-      resolveColor(color, this.tokens) ??
-      this.tokens.colors['seq-cat-5']
-    );
-  }
-
   /** The highlight channels as drawn: each its Location on every section it shows on, in its channel's color. */
   private _updateHighlights(): void {
     const k = this._highlightsFor;
@@ -1267,7 +1257,7 @@ export class SeqViewer extends ReactiveModel {
       const h = this.highlight.get(name);
       if (!h || isNothing(h)) continue;
       const location = this._projector.of(h.shown, { own: true }) ?? h.shown;
-      out.push({ location, color: this.highlightColor(name), ...(h.style ? { style: h.style } : {}) });
+      out.push({ location, color: highlightColorOf(this, name), ...(h.style ? { style: h.style } : {}) });
     }
     this._highlights = out;
     this._emphasis.highlights = out.length ? out : undefined;

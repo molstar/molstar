@@ -17,7 +17,7 @@
 
 import { issueOf } from '@molstar/core/repr/tree';
 import { theme as themeForm } from '@molstar/seqx-core/lang';
-import { type Location, partOf } from '@molstar/seqx-core/query';
+import type { Location, LocationPart } from '@molstar/seqx-core/query';
 import type { GridData, StaticModel } from '@molstar/seqx-core/resolve';
 import type { ChannelName, Channel } from '@molstar/seqx-core/theme/index';
 import type { ResolvedLayer } from '@molstar/seqx-core/view';
@@ -25,9 +25,18 @@ import type { AxisTransform } from './axis.js';
 import { channelForms, channelLegends, Extents, type LayerChannels, PlainDatum } from './channels.js';
 import type { RenderConfig } from './config.js';
 import { grown, type ImageData, NoColor, type PassName, type PassWriter } from './draw-lists.js';
+import { walkStripes } from './highlight-stripes.js';
 import { ImageCache, ImageTile } from './images.js';
 import { RenderIssues } from './issues.js';
-import { type Box, type Emphasis, type Hit, type LayerType, type LayoutContext, sectionId } from './layer-type.js';
+import {
+  type Box,
+  type Emphasis,
+  type EmphasisHighlight,
+  type Hit,
+  type LayerType,
+  type LayoutContext,
+  sectionId,
+} from './layer-type.js';
 import { Pyramid, pyramidLevelFor } from './pyramid.js';
 import type { SeqTokens } from './tokens.js';
 
@@ -469,7 +478,12 @@ export function rectOver(loc: Location | undefined, x: string, y: string | undef
 }
 
 /** A Location's part on a system. */
-const partOn = (loc: Location | undefined, system: string) => (loc ? partOf(loc, system) : undefined);
+function partOn(loc: Location | undefined, system: string): LocationPart | undefined {
+  // an indexed loop: `partOf`'s `for...of` makes an iterator on this redraw path (nothing allocated once warm)
+  if (!loc) return undefined;
+  for (let i = 0; i < loc.parts.length; i++) if (loc.parts[i].system === system) return loc.parts[i];
+  return undefined;
+}
 
 /**
  * What the emphasis paints with: the fill, the stroke and its width (`Ink[0..2]`), set before each paint. The colors
@@ -535,18 +549,114 @@ function paintRows(lay: GridLay, out: PassWriter, ranges: Int32Array) {
   const ay = lay.axisY!;
   const a = lay.axis!;
   const b = lay.box;
+  // a stripe across the plot (a highlight's, where channels overlap): its edges on device pixels, shared with its
+  // neighbors; a band is a bar along its leading edge
+  stripeEdges(a);
+  const w = RowX[1] - RowX[0];
+  if (w <= 0) return;
   for (let r = 0; r + 1 < ranges.length; r += 2) {
     if (!span(ay, ranges[r], ranges[r + 1], 2)) continue;
     const top = Math.max(b.y, Box4[2]);
     const bottom = Math.min(b.y + b.height, Box4[3]);
     if (bottom <= top) continue;
     // across the plot: x's extent (the plot may be narrower than its band)
-    R[0] = a.x0;
+    R[0] = RowX[0];
     R[1] = top;
-    R[2] = a.width;
+    R[2] = RowX[1] - RowX[0];
     R[3] = bottom - top;
     rect(out);
   }
+}
+
+/**
+ * The x edges `[RowX[0], RowX[1]]` of stripe `slot` of `count` across the plot, on device pixels (shared with its
+ * neighbors); a bar (`RowLook[2]` px) is along the leading edge. Through an array: a double returned or kept is boxed.
+ */
+const RowX = new Float64Array(2);
+
+function stripeEdges(a: AxisTransform) {
+  const slot = RowLook[0];
+  const count = RowLook[1];
+  const dpr = a.dpr;
+  if (count > 1) {
+    RowX[0] = Math.round((a.x0 + (slot * a.width) / count) * dpr) / dpr;
+    RowX[1] = Math.round((a.x0 + ((slot + 1) * a.width) / count) * dpr) / dpr;
+  } else {
+    RowX[0] = a.x0;
+    RowX[1] = a.x0 + a.width;
+  }
+  if (RowLook[2] > 0)
+    RowX[1] = RowX[0] + Math.min(Math.max(Math.round(RowLook[2] * dpr) / dpr, 1 / dpr), RowX[1] - RowX[0]);
+}
+
+/** A stripe's look for `paintRows`: its slot, the stripe count, and a bar's width (0: the whole stripe). */
+const RowLook = new Float64Array([0, 1, 0]);
+
+/** The rows' highlight channels (`walkStripes`' context: set before it, since it is given no closure). */
+const GParts: (LocationPart | undefined)[] = [];
+const GIndex: number[] = [];
+const GOutlines: number[] = [];
+const GRun = new Int32Array(2);
+let GLay!: GridLay;
+let GOut!: PassWriter;
+let GList!: readonly EmphasisHighlight[];
+
+/**
+ * The highlight channels' rows (the plot's y part; the x part is the strip's, drawn with the tracks'): where channels
+ * overlap the row is split into equal stripes across the plot, in channel order (as in tracks, a band's stripes
+ * perpendicular to its axis); `band` is a bar along a stripe's left edge; `outline` takes no stripe, one outline over
+ * the whole row.
+ */
+function drawRowHighlights(lay: GridLay, out: PassWriter, hs: readonly EmphasisHighlight[]) {
+  const config = lay.config!;
+  let n = 0;
+  let o = 0;
+  for (let i = 0; i < hs.length; i++) {
+    const part = partOn(hs[i].location, lay.ySystem);
+    if (!part) continue;
+    if (hs[i].style === 'outline') GOutlines[o++] = i;
+    else {
+      GParts[n] = part;
+      GIndex[n] = i;
+      n++;
+    }
+  }
+  GLay = lay;
+  GOut = out;
+  GList = hs;
+  if (n === 1) {
+    rowsOf(lay, out, hs[GIndex[0]], GParts[0]!.ranges, 0, 1);
+  } else if (n > 1) walkStripes(GParts, n, Math.max(1, config.emphasis.highlightStripes | 0), emitRows);
+  for (let k = 0; k < o; k++) {
+    const h = hs[GOutlines[k]];
+    rowsOf(lay, out, h, partOn(h.location, lay.ySystem)!.ranges, 0, 1);
+  }
+  for (let c = 0; c < n; c++) GParts[c] = undefined;
+}
+
+function emitRows(channel: number, start: number, end: number, slot: number, count: number, _first: number) {
+  GRun[0] = start;
+  GRun[1] = end;
+  rowsOf(GLay, GOut, GList[GIndex[channel]], GRun, slot, count);
+}
+
+/** A channel's ranges as rows in its style, in stripe `slot` of `count`. */
+function rowsOf(lay: GridLay, out: PassWriter, h: EmphasisHighlight, ranges: Int32Array, slot: number, count: number) {
+  const em = lay.config!.emphasis;
+  const style = h.style ?? 'tint';
+  Src[0] = h.color;
+  Src[1] = style === 'tint' ? em.highlightTint : style === 'band' ? 1 : 0;
+  Src[2] = h.color;
+  Src[3] = style === 'outline' ? 1 : 0;
+  Src[4] = style === 'outline' ? lay.config!.outline.selection : 0;
+  ink();
+  RowLook[0] = slot;
+  RowLook[1] = count;
+  RowLook[2] = style === 'band' ? em.highlightBand : 0;
+  paintRows(lay, out, ranges);
+  RowLook[0] = 0;
+  RowLook[1] = 1;
+  RowLook[2] = 0;
 }
 
 /**
@@ -612,19 +722,7 @@ function drawEmphasis(lay: GridLay, pass: PassName, out: PassWriter, e: Emphasis
   const em = config.emphasis;
   switch (pass) {
     case 'highlight': {
-      const hs = e.highlights;
-      if (!hs || em.selectionPlace !== 'over') return;
-      for (let i = 0; i < hs.length; i++) {
-        const part = partOn(hs[i].location, lay.ySystem);
-        if (!part) continue;
-        Src[0] = hs[i].color;
-        Src[1] = em.highlightTint;
-        Src[2] = 0;
-        Src[3] = 0;
-        Src[4] = 0;
-        ink();
-        paintRows(lay, out, part.ranges);
-      }
+      if (e.highlights && em.selectionPlace === 'over') drawRowHighlights(lay, out, e.highlights);
       return;
     }
     case 'selection': {

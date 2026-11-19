@@ -5,7 +5,8 @@
  */
 
 import { ReactiveModel, type ReadonlyState, State } from '@molstar/core/reactive';
-import { type RangesLay, type ViewLayout, viewLegends } from '@molstar/seqx-core/render';
+import { type RangesLay, resolveColor, type SeqTokens, type ViewLayout, viewLegends } from '@molstar/seqx-core/render';
+import type { ViewerConfig } from './config.js';
 import { formatValue, type Legend, legendsEqual } from '@molstar/seqx-core/theme/index';
 
 // The viewer's legends (_spec/README.md "Legends"): derived from the layout's channels when the view settles, a theme,
@@ -167,4 +168,20 @@ export function legendRows(
     });
   }
   return out;
+}
+
+/**
+ * A highlight channel's color: `highlight.colors[name]`, else `highlight.color`, resolved through the tokens (the viewer
+ * draws it, the Legend part shows it).
+ */
+export function highlightColorOf(
+  viewer: { readonly config: ViewerConfig; readonly tokens: SeqTokens },
+  name: string,
+): number {
+  const { color, colors } = viewer.config.highlight;
+  return (
+    resolveColor(Object.hasOwn(colors, name) ? colors[name] : color, viewer.tokens) ??
+    resolveColor(color, viewer.tokens) ??
+    viewer.tokens.colors['seq-cat-5']
+  );
 }

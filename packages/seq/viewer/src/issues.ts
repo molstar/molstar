@@ -30,6 +30,11 @@ export const ViewerIssues = defineIssues('seq.viewer', {
     description: 'A key gesture in the pointer bindings: keys are bound through the keymap',
     hint: 'Give the command its key in the keymap',
   },
+  'seq.viewer.highlight.style': {
+    severity: 'warning',
+    description: 'A highlight names a style that is not `tint`, `band` or `outline`; the channel is a tint',
+    hint: 'tint, band or outline',
+  },
   'seq.viewer.preview.dropped': {
     severity: 'warning',
     description: 'A preview no longer applies over the new root (an edit landed during the gesture): it is dropped',

@@ -823,8 +823,11 @@ settle: a legend that changes during a pan reads as noise, and its cost stays of
   and measures fit the layer); `preview(layer, channel, value)` shows one hovered (a preview, ended by `layer.channel`
   or Esc).
 - **The Legend part lists the active highlight channels** after the legends: a row a channel (`data-highlight`) with a
-  swatch in the channel's color (`SeqViewer.highlightColor`) shaped by its style, and a Clear, which runs
-  `highlight.clear` with the channel's name.
+  swatch in the channel's color (`highlightColorOf`, beside the legend rows) shaped by its style, and a Clear, which
+  runs `highlight.clear` with the channel's name. The rows are redrawn only when the channel names, a channel's style or
+  its color change (a channel moved to other positions redraws nothing), and on a token change (the colors); a focused
+  Clear keeps its focus across the redraw. A style that is not `tint`, `band` or `outline` is a tint, reported once
+  (`seq.viewer.highlight.style`); an unset style is a tint, so setting `tint` is no change.
 
 ## Configuration
 

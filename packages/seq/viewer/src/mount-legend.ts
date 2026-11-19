@@ -5,7 +5,7 @@
  */
 
 import { colorHex } from '@molstar/seqx-core/theme/index';
-import { legendRows } from './legends.js';
+import { highlightColorOf, legendRows } from './legends.js';
 import type { SeqViewer } from './viewer.js';
 
 // The `Legend` part (_spec/README.md "Legends"): a part the host places (beside a track header, in a panel, in a Mol*
@@ -35,7 +35,18 @@ export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: Le
   let focus = 0;
   let items: HTMLElement[] = [];
 
+  /** What the highlight rows show: the channels, their styles and colors (a channel's place changes none of it). */
+  const highlightKey = () =>
+    viewer.highlight.names.value
+      .map((n) => `${n}|${viewer.highlight.get(n)?.style ?? 'tint'}|${highlightColorOf(viewer, n)}`)
+      .join('\n');
+  let shownKey = '';
+
   const draw = () => {
+    // a Clear button that has the focus keeps it across the redraw (its channel's new button, else the part itself)
+    const active = doc.activeElement;
+    const focusedClear = active instanceof HTMLElement && host.contains(active) ? active.dataset.clear : undefined;
+    shownKey = highlightKey();
     host.replaceChildren();
     items = [];
     const rows = legendRows(viewer, options);
@@ -92,7 +103,7 @@ export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: Le
       const row = doc.createElement('span');
       row.dataset.highlight = h;
       row.style.cssText = 'display: inline-flex; align-items: center; gap: 4px;';
-      const color = colorHex(viewer.highlightColor(h));
+      const color = colorHex(highlightColorOf(viewer, h));
       const swatch = doc.createElement('span');
       swatch.setAttribute('aria-hidden', 'true');
       swatch.dataset.style = style;
@@ -109,9 +120,16 @@ export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: Le
       clear.type = 'button';
       clear.textContent = 'Clear';
       clear.setAttribute('aria-label', `Clear the ${h} highlight`);
+      clear.dataset.clear = h;
       clear.addEventListener('click', () => void viewer.execute('highlight.clear', { channel: h }));
       row.append(clear);
       host.append(row);
+    }
+    if (focusedClear !== undefined) {
+      const again = [...host.querySelectorAll<HTMLElement>('button[data-clear]')].find(
+        (b) => b.dataset.clear === focusedClear,
+      );
+      (again ?? host).focus();
     }
     focus = Math.min(focus, Math.max(0, items.length - 1));
     items.forEach((it, i) => it.setAttribute('aria-selected', String(i === focus)));
@@ -146,7 +164,9 @@ export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: Le
     viewer.legends.legends.listen(draw),
     viewer.legends.hover.listen(draw),
     viewer.legends.cvdSafe.listen(draw),
-    viewer.highlight.version.listen(draw),
+    // a channel's place changing is no change of what the rows show; a theme's tokens change their colors
+    viewer.highlight.version.listen(() => highlightKey() !== shownKey && draw()),
+    viewer.tokensVersion.listen(() => highlightKey() !== shownKey && draw()),
   ];
   draw();
   return () => {

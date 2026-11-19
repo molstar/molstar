@@ -11,10 +11,11 @@
 
 import type { Node } from '@molstar/core/repr/tree';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
-import { recordDrawLists } from '@molstar/seqx-core/render';
+import { DarkTokens, recordDrawLists } from '@molstar/seqx-core/render';
 import { afterEach, describe, expect, it } from 'vitest';
 import { viewerItem } from '../config.js';
 import { DefaultSeqViewerSpec } from '../default-spec.js';
+import { highlightColorOf } from '../legends.js';
 import { mountLegend } from '../mount-legend.js';
 import { createSeqViewer, type SeqViewer } from '../viewer.js';
 import { type Frames, installFrames } from './frames.js';
@@ -125,7 +126,7 @@ describe('the Legend part lists the highlight channels', () => {
     expect(rows.map((r) => r.querySelector<HTMLElement>('[data-style]')!.dataset.style)).toEqual(['tint', 'band']);
     // the swatch is the channel's color
     const hex = (c: number) => `#${(c >>> 0).toString(16).padStart(8, '0')}`;
-    expect(rows[0].querySelector<HTMLElement>('[data-style]')!.dataset.color).toBe(hex(v.highlightColor('a')));
+    expect(rows[0].querySelector<HTMLElement>('[data-style]')!.dataset.color).toBe(hex(highlightColorOf(v, 'a')));
     const clear = (name: string) =>
       [...el.querySelectorAll('button')].find((b) => b.getAttribute('aria-label') === `Clear the ${name} highlight`)!;
     clear('a').click();
@@ -135,5 +136,76 @@ describe('the Legend part lists the highlight channels', () => {
     clear('b').click();
     expect(el.querySelectorAll('[data-highlight]').length).toBe(0);
     dispose();
+  });
+});
+
+describe('the Legend part redraws only when its rows change', () => {
+  const mount = async () => {
+    const v = await make();
+    v.addresses.highlightAddress(Range(2, 5), 'a');
+    v.addresses.highlightAddress(Range(4, 8), 'b');
+    const el = document.createElement('div');
+    document.body.append(el);
+    return { v, el, dispose: mountLegend(el, v) };
+  };
+  const clearOf = (el: HTMLElement, name: string) => el.querySelector<HTMLElement>(`button[data-clear="${name}"]`)!;
+
+  it('a channel moved to other positions redraws nothing; a new channel, a style or a removed one does', async () => {
+    const { v, el, dispose } = await mount();
+    const before = clearOf(el, 'a');
+    v.addresses.highlightAddress(Range(6, 9), 'a');
+    expect(clearOf(el, 'a')).toBe(before);
+    v.addresses.highlightAddress(Range(6, 9), 'a', 'tint');
+    expect(clearOf(el, 'a')).toBe(before);
+    v.addresses.highlightAddress(Range(6, 9), 'a', 'outline');
+    expect(clearOf(el, 'a')).not.toBe(before);
+    expect(el.querySelector<HTMLElement>('[data-highlight="a"] [data-style]')!.dataset.style).toBe('outline');
+    const b = clearOf(el, 'b');
+    v.addresses.highlightAddress(Range(1, 3), 'c');
+    expect(clearOf(el, 'b')).not.toBe(b);
+    expect([...el.querySelectorAll<HTMLElement>('[data-highlight]')].map((r) => r.dataset.highlight)).toEqual([
+      'a',
+      'b',
+      'c',
+    ]);
+    dispose();
+  });
+
+  it('a focused Clear button keeps its focus across a redraw', async () => {
+    const { v, el, dispose } = await mount();
+    clearOf(el, 'b').focus();
+    expect(document.activeElement).toBe(clearOf(el, 'b'));
+    v.addresses.highlightAddress(Range(1, 3), 'c');
+    expect(document.activeElement).toBe(clearOf(el, 'b'));
+    v.highlight.clear('b');
+    // its channel gone: the focus stays in the part
+    expect(el.contains(document.activeElement)).toBe(true);
+    dispose();
+  });
+
+  it('a theme change redraws the swatches in the new colors', async () => {
+    const { v, el, dispose } = await mount();
+    const color = () => el.querySelector<HTMLElement>('[data-highlight="a"] [data-style]')!.dataset.color;
+    const before = color();
+    const node = el.querySelector('[data-highlight="a"]');
+    v.setTokens(DarkTokens);
+    expect(el.querySelector('[data-highlight="a"]')).not.toBe(node);
+    expect(color()).toBe(`#${(highlightColorOf(v, 'a') >>> 0).toString(16).padStart(8, '0')}`);
+    expect(color()).not.toBe(before);
+    dispose();
+  });
+});
+
+describe('a channel’s style at the API', () => {
+  it('an unknown style is a tint, reported once; an explicit tint is no change', async () => {
+    const v = await make();
+    v.addresses.highlightAddress(Range(2, 5), 'a');
+    const version = v.highlight.version.value;
+    v.addresses.highlightAddress(Range(2, 5), 'a', 'tint');
+    expect(v.highlight.version.value).toBe(version);
+    v.addresses.highlightAddress(Range(2, 5), 'a', 'glow' as never);
+    v.addresses.highlightAddress(Range(3, 5), 'a', 'glow' as never);
+    expect(v.highlight.get('a')?.style).toBe('tint');
+    expect(v.addresses.issues.value.filter((i) => i.code === 'seq.viewer.highlight.style').length).toBe(1);
   });
 });

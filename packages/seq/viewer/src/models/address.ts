@@ -34,7 +34,8 @@ import {
   resolveAddressIn,
   unionLocations,
 } from '@molstar/seqx-core/query';
-import type { HighlightStyle } from '@molstar/seqx-core/render';
+import { type HighlightStyle, HighlightStyles } from '@molstar/seqx-core/render';
+import { ViewerIssues } from '../issues.js';
 import { overlayQueryModel } from '@molstar/seqx-core/resolve';
 import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
 import { breakHolding, nearestOffsetOf, positionAt } from './axis.js';
@@ -528,8 +529,23 @@ export class AddressModel extends ReactiveModel {
   ): AddressOutcome {
     const { resolution, value } = this._emphasized(address);
     if (!value) return this._outcome(resolution, false, 'Nothing to highlight');
+    if (style !== undefined && !HighlightStyles.includes(style)) {
+      this._badStyle();
+      style = 'tint';
+    }
     this.highlight.set(channel, style ? { ...value, style } : value);
     return this._outcome(resolution, true, 'Highlighted');
+  }
+
+  /** An unknown style is a tint, reported once: the issue stays while the session's issues do. */
+  private _badStyle(): void {
+    if (this._issues.value.some((i) => i.code === 'seq.viewer.highlight.style')) return;
+    this._issues.set([
+      ...this._issues.value,
+      issueOf(ViewerIssues, 'seq.viewer.highlight.style', 'A highlight style is unknown: drawn as a tint', {
+        hint: ViewerIssues.codes['seq.viewer.highlight.style'].hint,
+      }),
+    ]);
   }
 
   /** Clears a highlight channel, or every one: `highlightAddress`'s inverse. The channels cleared. */

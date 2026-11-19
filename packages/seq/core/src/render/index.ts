@@ -78,6 +78,7 @@ export {
   type Emphasis,
   type EmphasisHighlight,
   type HighlightStyle,
+  HighlightStyles,
   EmptyOverlay,
   type Hit,
   type HitTarget,

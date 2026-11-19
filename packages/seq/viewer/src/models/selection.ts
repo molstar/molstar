@@ -53,7 +53,7 @@ export const Nothing: Emphasized = Object.freeze({
 const same = (a: Emphasized, b: Emphasized) =>
   a === b ||
   (a.address === b.address &&
-    a.style === b.style &&
+    (a.style ?? 'tint') === (b.style ?? 'tint') &&
     elementsEqual(a.elements, b.elements) &&
     locationsEqual(a.location, b.location) &&
     locationsEqual(a.shown, b.shown));

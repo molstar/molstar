@@ -48,6 +48,7 @@ import type {
   Overlay,
   StoreReader,
 } from './layer-type.js';
+import { walkStripes } from './highlight-stripes.js';
 import { EmptyOverlay, sectionId } from './layer-type.js';
 import { LettersType } from './letters.js';
 import { breakHit } from './marks.js';
@@ -1776,6 +1777,8 @@ function drawCursor(
  * end (1) or square (0), and how far the stroke stands outside the range (0: inside it, concentric with the fill).
  */
 const Paint = new Float64Array(5);
+/** Whether a range wholly in a hidden stretch lights its break (a highlight's later runs of it do not: once). */
+let LitBreaks = true;
 
 /**
  * A part's ranges on a box: per range and piece of the axis in view, a rect over the box's height snapped to the device
@@ -1838,7 +1841,7 @@ function paintRanges(out: PassWriter, axis: AxisTransform, box: Box, part: Locat
       }
     }
     // a range wholly in a hidden stretch lights its break: what a break hides is not dropped
-    if (!drew) litBreak(out, axis, box, part.ranges[i]);
+    if (!drew && LitBreaks) litBreak(out, axis, box, part.ranges[i]);
   }
 }
 
@@ -1958,102 +1961,68 @@ const Stripe = new StripeBox();
 /** The one `[start, end)` range of a highlight run, as a part (reused). */
 const RunRanges = new Int32Array(2);
 const RunPart: LocationPart = { system: '', ranges: RunRanges };
-/** The channels with a part on this axis, and their index among the emphasis's (reused). */
+/** The channels with a part on this axis that take a stripe (fills), and those that do not (outlines): by index. */
 const HParts: (LocationPart | undefined)[] = [];
 const HIndex: number[] = [];
-/** Per channel: its cursor into its ranges, whether it lights here, its open run's start, slot and stripe count. */
-let HCursor = new Int32Array(8);
-let HLit = new Uint8Array(8);
-let HStart = new Int32Array(8);
-let HSlot = new Int32Array(8);
-let HStripes = new Int32Array(8);
+const HOutlines: number[] = [];
+/** What `emitRun` draws on (set before `walkStripes`: it is given no closure). */
+let HOut!: PassWriter;
+let HAxis!: AxisTransform;
+let HBox!: Box;
+let HList!: readonly EmphasisHighlight[];
+let HConfig!: RenderConfig;
 
 /**
  * The highlight channels on a box, in order (_spec/README.md "Render", Emphasis): where one channel alone lights a
  * position it takes the whole band; where several do, the band is split into equal stripes, one a channel present, in
  * channel order, at most `emphasis.highlightStripes` (the rest share the last one). A channel's `style` is drawn in its
- * stripe: `tint` (its color at `emphasis.highlightTint`), `band` (a bar along the stripe's foot) or `outline`.
+ * stripe: `tint` (its color at `emphasis.highlightTint`) or `band` (a bar along the stripe's foot); an `outline` takes
+ * no stripe (it has no fill): one outline over the channel's own ranges on the whole band, above the fills.
  */
 function drawHighlights(out: PassWriter, axis: AxisTransform, box: Box, emphasis: Emphasis, config: RenderConfig) {
   const hs = emphasis.highlights;
   if (!hs) return;
   let n = 0;
+  let o = 0;
   for (let i = 0; i < hs.length; i++) {
     const part = partOn(hs[i].location, axis.system);
     if (!part) continue;
-    HParts[n] = part;
-    HIndex[n] = i;
-    n++;
+    if (hs[i].style === 'outline') HOutlines[o++] = i;
+    else {
+      HParts[n] = part;
+      HIndex[n] = i;
+      n++;
+    }
   }
   if (n === 1) paintHighlight(out, axis, box, hs[HIndex[0]], HParts[0]!, 0, 1, config);
-  else if (n > 1) drawStripes(out, axis, box, hs, n, config);
+  else if (n > 1) {
+    HOut = out;
+    HAxis = axis;
+    HBox = box;
+    HList = hs;
+    HConfig = config;
+    walkStripes(HParts, n, Math.max(1, config.emphasis.highlightStripes | 0), emitRun);
+  }
+  for (let k = 0; k < o; k++) {
+    const h = hs[HOutlines[k]];
+    paintHighlight(out, axis, box, h, partOn(h.location, axis.system)!, 0, 1, config);
+  }
   for (let c = 0; c < n; c++) HParts[c] = undefined;
 }
 
-/** The channels collected in `HParts` (two or more) over the elementary stretches their ranges cut the axis into. */
-function drawStripes(
-  out: PassWriter,
-  axis: AxisTransform,
-  box: Box,
-  hs: readonly EmphasisHighlight[],
-  n: number,
-  config: RenderConfig,
-) {
-  if (HCursor.length < n) {
-    HCursor = new Int32Array(n * 2);
-    HLit = new Uint8Array(n * 2);
-    HStart = new Int32Array(n * 2);
-    HSlot = new Int32Array(n * 2);
-    HStripes = new Int32Array(n * 2);
-  }
-  // a merge of the channels' sorted boundaries (no sort: nothing allocated): `HCursor[c]` is the next boundary of
-  // channel `c`; after consuming a range's start (an even index) the channel lights, after its end it does not
-  for (let c = 0; c < n; c++) {
-    HCursor[c] = 0;
-    HSlot[c] = -1;
-  }
-  const max = Math.max(1, Math.floor(config.emphasis.highlightStripes));
-  for (;;) {
-    let at = 0x7fffffff;
-    let any = false;
-    for (let c = 0; c < n; c++) {
-      const r = HParts[c]!.ranges;
-      if (HCursor[c] < r.length && r[HCursor[c]] <= at) {
-        at = r[HCursor[c]];
-        any = true;
-      }
-    }
-    if (!any) break;
-    // who lights [at, next)
-    let present = 0;
-    for (let c = 0; c < n; c++) {
-      const r = HParts[c]!.ranges;
-      while (HCursor[c] < r.length && r[HCursor[c]] === at) HCursor[c]++;
-      const lit = (HCursor[c] & 1) === 1;
-      HLit[c] = lit ? 1 : 0;
-      if (lit) present++;
-    }
-    const count = Math.min(present, max);
-    // a run goes on while the channel's slot and the stripe count stay; else it is drawn and a new one begins
-    let rank = 0;
-    for (let c = 0; c < n; c++) {
-      const slot = HLit[c] ? Math.min(rank++, max - 1) : -1;
-      if (HSlot[c] >= 0 && (slot !== HSlot[c] || count !== HStripes[c])) {
-        RunRanges[0] = HStart[c];
-        RunRanges[1] = at;
-        paintHighlight(out, axis, box, hs[HIndex[c]], RunPart, HSlot[c], HStripes[c], config);
-        HSlot[c] = -1;
-      }
-      if (slot >= 0 && HSlot[c] < 0) {
-        HStart[c] = at;
-        HSlot[c] = slot;
-        HStripes[c] = count;
-      }
-    }
-  }
+/** `walkStripes`' run: a channel's `[start, end)` in its stripe. A hidden range lights its break once, at its first run. */
+function emitRun(channel: number, start: number, end: number, slot: number, count: number, first: number) {
+  RunRanges[0] = start;
+  RunRanges[1] = end;
+  LitBreaks = first === 1;
+  paintHighlight(HOut, HAxis, HBox, HList[HIndex[channel]], RunPart, slot, count, HConfig);
+  LitBreaks = true;
 }
 
-/** One channel's part in stripe `slot` of `stripes` of the box, in its style. */
+/** `v` snapped to the device pixels of an axis. */
+const snap = (v: number, dpr: number) => Math.round(v * dpr) / dpr;
+
+/** One channel's part in stripe `slot` of `stripes` of the box, in its style; stripe edges on device pixels. */
 function paintHighlight(
   out: PassWriter,
   axis: AxisTransform,
@@ -2065,16 +2034,25 @@ function paintHighlight(
   config: RenderConfig,
 ) {
   const em = config.emphasis;
-  const sh = box.height / stripes;
+  const dpr = axis.dpr;
   Stripe.x = box.x;
   Stripe.width = box.width;
-  Stripe.y = box.y + slot * sh;
-  Stripe.height = sh;
+  Stripe.y = box.y;
+  Stripe.height = box.height;
+  if (stripes > 1) {
+    // one edge between two stripes, so they neither overlap nor leave a seam
+    const y0 = snap(box.y + (slot * box.height) / stripes, dpr);
+    const y1 = snap(box.y + ((slot + 1) * box.height) / stripes, dpr);
+    if (y1 <= y0) return;
+    Stripe.y = y0;
+    Stripe.height = y1 - y0;
+  }
   const c = h.color;
   const style = h.style ?? 'tint';
   if (style === 'band') {
-    const bh = Math.min(em.highlightBand, sh);
-    Stripe.y += sh - bh;
+    const bottom = Stripe.y + Stripe.height;
+    const bh = Math.min(Math.max(snap(em.highlightBand, dpr), 1 / dpr), Stripe.height);
+    Stripe.y = bottom - bh;
     Stripe.height = bh;
     Paint[0] = c;
     Paint[1] = NoColor;
