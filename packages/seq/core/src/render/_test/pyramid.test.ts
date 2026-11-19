@@ -52,9 +52,9 @@ describe('the shared reduction (pyramid)', () => {
   });
 
   it('a majority of majorities is the exact majority within its tolerance: the letter where the winner leads by more than 0.25, the share within 0.05 on average and 0.3 at worst', () => {
-    // a majority is not mergeable: pointwise, a close block's share can be off by more than 0.1; the measured bounds
-    // (the author's to decide against the design's 0.1 pointwise): 0.05 on average, 0.3 at worst, the letter exact
-    // where the winner leads by more than 0.25
+    // a majority is not mergeable: pointwise, a close block's share can be off by more than 0.1; the recorded
+    // tolerance (_spec/README.md "Render", The rows layer): 0.05 on average, 0.3 at worst, the letter exact where the
+    // winner leads by more than 0.25
     const rng = new PCG(7);
     let sum = 0;
     let count = 0;

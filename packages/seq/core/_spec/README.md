@@ -1634,7 +1634,10 @@ measures, consensus, the profile). An alignment's rows over its columns, its own
   px the shared reduction over the scrolled display rows' theme classes (a class a distinct fill; factor 4, row and
   column levels apart) at the level pair whose sample is at least a device pixel, drawn as image tiles (256 × 256
   samples, opaque by the majority's share; the base level holds none: whole) in the shared image cache, offset from the
-  pinned band. The pinned rows are drawn on their own over a band that does not scroll (rects past `pinnedFrom`), the
+  pinned band. A level's majority is the majority of the majorities below it (shares averaged), approximate within the
+  measured tolerance, tested: the share within 0.05 on average and 0.3 at worst, the letter exact where the exact winner
+  leads by more than 0.25. Why: a majority is not mergeable across levels, and below 3 device px a cell the shade reads,
+  not the letter. The pinned rows are drawn on their own over a band that does not scroll (rects past `pinnedFrom`), the
   scrolled rows clipped below it. A letter-class reduction (`rows.reduce: letter`) is not built (the package's TODO).
 - **The header**, in the label column: the tree (`tree_width`, 120) and the first residue numbers widen the view's label
   column by their width (the widest of its tracks sections, so every section's data starts at one x), the labels keep
