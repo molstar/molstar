@@ -1147,8 +1147,8 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       const box: Box = {
         x: dataX,
         y: strips.n ? strips.bandY[j] + strips.dy[0] : by,
-        // a layout of two axes overlays its bands on the plot (as wide as x: square cells may narrow it)
-        width: layout.axesY && strips.n ? strips.axes[0].width : sectionBox.width,
+        width: sectionBox.width,
+        // a layout of two axes overlays its bands on the plot
         height: layout.axesY && strips.n ? strips.bandH[j] : heights[j],
       };
       by += heights[j];

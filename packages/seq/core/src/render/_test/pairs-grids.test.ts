@@ -183,7 +183,16 @@ describe('the grid layer', () => {
     // tiles meet: the first tile's right edge is the second's left (the 256th cell's boundary)
     const xs = new Set<number>();
     for (let k = 0; k < lay.images.length; k++) xs.add(Math.round(lay.ib[4 * k] * 1000) / 1000);
-    expect([...xs].sort((p, q) => p - q)).toEqual([0, ImageTile].map((p) => Math.round(a.x(p) * 1000) / 1000));
+    expect([...xs].sort((p, q) => p - q)).toEqual([0, ImageTile].map((p) => Math.round(a.x(p))));
+    // on the device grid at any ratio, so neighbours share a whole pixel edge (no antialiased seam between tiles)
+    for (const dpr of [1, 1.5, 2]) {
+      const g = gridLay((await s.renderer.frame({ size: Size, dpr, settled: true })).layout);
+      for (let k = 0; k < 4 * g.images.length; k++)
+        expect(Number.isInteger(Math.round(g.ib[k] * dpr * 1e6) / 1e6)).toBe(true);
+      const right = g.ib[0] + g.ib[2];
+      const next = g.images.findIndex((_, k) => g.ib[4 * k] > g.ib[0] && g.ib[4 * k + 1] === g.ib[1]);
+      expect(g.ib[4 * next]).toBeCloseTo(right, 9);
+    }
     // across the edge: the samples at x 255 and 256 (y 0) are their cells' colors
     const first = lay.images[0];
     const second = lay.images.find((_, k) => lay.ib[4 * k] > lay.ib[0] && lay.ib[4 * k + 1] === lay.ib[1])!;

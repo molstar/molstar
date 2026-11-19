@@ -49,6 +49,21 @@ function cellCentre(g: GridLay, i: number, j: number): [number, number] {
   return [x, (g.axisY!.sx0 + g.axisY!.sx1) / 2];
 }
 
+/**
+ * The grid layout's size rule at aspect 1: cells square (px a position across as down) when that height fits the room
+ * (the larger of a grid track's default height and nine tenths of the view below the plot's top), else that height.
+ */
+function expectAspect(v: SeqViewer, section: number) {
+  const st = v.frame!.layout.sections[section].placement.strips;
+  const x = st.axes[0];
+  const y = st.ys[0]!;
+  const square = x.scale * (y.u1 - y.u0);
+  const room = Math.max(240, (v.height - st.top[0]) * 0.9);
+  expect(st.height[0]).toBeCloseTo(Math.max(40, Math.min(square, room)), 6);
+  if (square <= room) expect(y.scale).toBeCloseTo(x.scale, 6);
+  else expect(y.scale).toBeLessThan(x.scale);
+}
+
 /** The paths of the data pass, as recorded (the arcs). */
 const paths = (lists: Parameters<typeof recordDrawLists>[0]) =>
   recordDrawLists(lists, ['data'])
@@ -143,12 +158,22 @@ describe('tRNA: the dot plot, headless', () => {
     expect(v.frame!.lists.passes.hover.paths.n).toBe(lit);
   });
 
-  it('the plot’s cells are square (aspect 1): as many px a position across as down, the plot within the view', async () => {
+  it('the plot’s x is the letters’ x (a hovered cell’s column under its base); its cells square where the room allows, the height capped otherwise', async () => {
     viewer = await openExample(trna('dot-plot'), { gene: '' });
     const v = viewer;
+    const top = v.frame!.layout.sections[0].axis!;
     const st = v.frame!.layout.sections[1].placement.strips;
-    expect(st.axes[0].scale).toBeCloseTo(st.ys[0]!.scale, 6);
-    expect(st.height[0]).toBeGreaterThan(100);
+    const x = st.axes[0];
+    expect([x.x0, x.width, x.u0, x.u1]).toEqual([top.x0, top.width, top.u0, top.u1]);
+    expectAspect(v, 1);
+    // a hovered cell's column is its base's cell on the letters
+    const g = gridOf(v, 1);
+    const [cx, cy] = cellCentre(g, 40, 47);
+    v.input.move(cx, cy);
+    v.draw();
+    expect(v.hover.current.position).toBe(40);
+    top.cell(40);
+    expect(cx).toBeCloseTo((top.sx0 + top.sx1) / 2, 6);
   });
 
   it('a cell: click a one-cell rect, Shift+click the rect from it, Cmd/Ctrl+click toggles a cell out', async () => {
@@ -260,20 +285,22 @@ describe('Complex: PAE and contacts, headless', () => {
     expect((await svg).issues).toEqual([]);
   });
 
-  it('the PAE’s cells are square whatever the two windows: px a residue across as down', async () => {
+  it('the PAE’s x is CDK2’s x whatever the two windows; its cells square where the room allows, capped otherwise', async () => {
     viewer = await openExample(complex('pae'), { gene: '' });
     const v = viewer;
     for (const [c, y] of [
       [80, 40],
       [40, 120],
+      [298, 260],
     ]) {
       v.view.setRange('/views/main/cdk2', 0, c);
       v.view.setRange('/views/main/cyclin', 0, y);
       await vi.advanceTimersByTimeAsync(500);
       v.draw();
-      const st = v.frame!.layout.sections[2].placement.strips;
-      expect(st.axes[0].u1 - st.axes[0].u0).toBe(c);
-      expect(st.axes[0].scale).toBeCloseTo(st.ys[0]!.scale, 6);
+      const cdk2 = v.frame!.layout.sections[0].axis!;
+      const x = v.frame!.layout.sections[2].placement.strips.axes[0];
+      expect([x.x0, x.width, x.u0, x.u1]).toEqual([cdk2.x0, cdk2.width, cdk2.u0, cdk2.u1]);
+      expectAspect(v, 2);
     }
   });
 

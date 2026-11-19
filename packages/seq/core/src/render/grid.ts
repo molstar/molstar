@@ -421,10 +421,13 @@ function placeTile(
   const xe = Math.min(xs + img.width * f, g.nx);
   const ys = Math.min(tj * ImageTile * f, g.ny);
   const ye = Math.min(ys + img.height * f, g.ny);
-  const x0 = a.x(xs);
-  const x1 = a.x(xe);
-  const y0 = ay.x(ys);
-  const y1 = ay.x(ye);
+  // the edges on the device grid: two tiles meeting at a fractional pixel would each antialias it, a seam the page
+  // shows through (a thin line where a tile ends)
+  const d = a.dpr;
+  const x0 = Math.round(a.x(xs) * d) / d;
+  const x1 = Math.round(a.x(xe) * d) / d;
+  const y0 = Math.round(ay.x(ys) * d) / d;
+  const y1 = Math.round(ay.x(ye) * d) / d;
   if (Number.isNaN(x0) || Number.isNaN(x1) || Number.isNaN(y0) || Number.isNaN(y1)) return;
   lay.images.push(img);
   lay.ib.push(Math.min(x0, x1), Math.min(y0, y1), Math.abs(x1 - x0), Math.abs(y1 - y0));
