@@ -82,5 +82,8 @@ export const split = () => build({ copies: 'each' });
 /** The chains stacked: a block a row, aligned at their first residue (`arrange: 'stack'`). */
 export const stacked = () => build({ arrange: 'stack' });
 
+/** The chains stacked with the copies split: a row a chain, the two ATPs as chips on one row of their own. */
+export const stackedSplit = () => build({ arrange: 'stack', copies: 'each' });
+
 /** The chains on a ring: a block an arc. */
 export const ring = () => build({ layout: 'rings' });

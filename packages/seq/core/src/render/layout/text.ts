@@ -15,7 +15,7 @@
 import { issueOf, type Value } from '@molstar/core/repr/tree';
 import { DefaultNumbering, findNumbering, type NumberingOf } from '@molstar/seqx-core/query';
 import type { StaticModel } from '@molstar/seqx-core/resolve';
-import type { ResolvedSection } from '@molstar/seqx-core/view';
+import { piecesTotal, type ResolvedSection } from '@molstar/seqx-core/view';
 import { AxisTransform, type Viewport } from '../axis.js';
 import { fontSize, type RenderConfig } from '../config.js';
 import { Anchor, type PassWriter } from '../draw-lists.js';
@@ -24,6 +24,7 @@ import { rulerBaseline } from '../ruler.js';
 import type { TextMetrics } from '../text.js';
 import type { SectionLayout } from '../tracks.js';
 import type { Hit } from '../layer-type.js';
+import { chipWidth, isChip, type ResolvedBlock } from './blocks.js';
 import { PlacePoint, StripPlacement } from './strips.js';
 import type { NavContext, PlaceContext, SectionLayoutType, SectionNav, StepDir } from './types.js';
 
@@ -95,6 +96,71 @@ export interface TextGeometry {
   readonly lineGap: number;
   readonly numberFont: string;
   readonly params: TextParams;
+  /** A section of blocks: each starts a line, its chips flowing like words (what a zoom breaks again by). */
+  readonly blocks?: TextBlocks;
+}
+
+/**
+ * A text's blocks (_spec/README.md "Render", Blocks): each block's first unit, and a chip's slot (px, its label's
+ * width, at most a line; 0 for a block that is no chip), and the space between two chips (a share of a cell).
+ */
+export interface TextBlocks {
+  readonly offsets: Float64Array;
+  readonly slots: Float64Array;
+  readonly gap: number;
+}
+
+/** A text's blocks for its section: their offsets and chips' slots. */
+export function textBlocks(
+  blocks: readonly ResolvedBlock[],
+  text: TextMetrics,
+  config: RenderConfig,
+  avail: number,
+): TextBlocks {
+  const offsets = new Float64Array(blocks.length);
+  const slots = new Float64Array(blocks.length);
+  for (let b = 0; b < blocks.length; b++) {
+    offsets[b] = blocks[b].offset ?? 0;
+    slots[b] = isChip(blocks[b]) ? Math.min(avail, chipWidth(text, config, blocks[b].label)) : 0;
+  }
+  return { offsets, slots, gap: config.text.groupGap };
+}
+
+/**
+ * Each line's first unit in a text of blocks: every block starts a line and is cut into lines of `upl`; a run of
+ * chips flows like words, as many on a line as fit `avail` with `gap` between two.
+ */
+export function blockStarts(total: number, upl: number, avail: number, gap: number, tb: TextBlocks): Float64Array {
+  const out: number[] = [];
+  let line = -1;
+  const n = tb.offsets.length;
+  for (let b = 0; b < n; b++) {
+    const o = tb.offsets[b];
+    const end = b + 1 < n ? tb.offsets[b + 1] : total;
+    if (tb.slots[b] > 0) {
+      if (line >= 0 && line + gap + tb.slots[b] <= avail) line += gap + tb.slots[b];
+      else {
+        out.push(o);
+        line = tb.slots[b];
+      }
+      continue;
+    }
+    line = -1;
+    for (let u = o; u < end; u += upl) out.push(u);
+  }
+  return Float64Array.from(out);
+}
+
+/** The block holding section unit `u` (its index in `offsets`). */
+function blockOf(tb: TextBlocks, u: number): number {
+  let lo = 0;
+  let hi = tb.offsets.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (tb.offsets[mid] <= u) lo = mid + 1;
+    else hi = mid;
+  }
+  return Math.max(0, lo - 1);
 }
 
 /** The width of `n` units of a line: their cells and the gaps between their groups. */
@@ -170,6 +236,7 @@ export function textGeometry(
   config: RenderConfig,
   text: TextMetrics,
   pieces?: ArrayLike<number>,
+  blocks?: readonly ResolvedBlock[],
 ): TextGeometry {
   const t = config.text;
   const cell = Math.max(textMinScale(config), scale ?? t.scale);
@@ -187,7 +254,13 @@ export function textGeometry(
   const unitsPerLine = unitsPerLineOf(avail, cell, group, gap);
   const full = lineWidthOf({ cell, group, gap }, Math.min(unitsPerLine, Math.max(1, total)));
   const lineX = params.align === 'center' ? dataX + Math.max(0, (avail - full) / 2) : dataX;
-  const starts = t.pieceBreak === 'line' ? pieceStarts(total, unitsPerLine, pieces) : undefined;
+  // a section of blocks: each starts a line, its chips flowing like words; else a piece edge may start one
+  const tb = blocks ? textBlocks(blocks, text, config, avail) : undefined;
+  const starts = tb
+    ? blockStarts(total, unitsPerLine, avail, tb.gap * cell, tb)
+    : t.pieceBreak === 'line'
+      ? pieceStarts(total, unitsPerLine, pieces)
+      : undefined;
   const lines = starts ? Math.max(1, starts.length) : Math.max(1, Math.ceil(total / unitsPerLine));
   const labelRow = params.groupLabels === 'above' && group > 0 ? fontSize(numberFont) + 2 : 0;
   const bandTops = new Float64Array(heights.length);
@@ -203,7 +276,8 @@ export function textGeometry(
     group,
     gap,
     unitsPerLine,
-    ...(starts ? { starts, pieces: Float64Array.from(pieces!) } : {}),
+    ...(starts ? { starts, pieces: tb ? tb.offsets : Float64Array.from(pieces!) } : {}),
+    ...(tb ? { blocks: tb } : {}),
     avail,
     inline,
     lines,
@@ -296,6 +370,58 @@ function lineAxis(base: AxisTransform, g: TextGeometry, u0: number, u1: number):
   );
 }
 
+/** A block's line: its pieces windowed to its units `[b0, b1)`, its groups from the line's first, at the line's x. */
+function blockLineAxis(block: ResolvedBlock, dpr: number, g: TextGeometry, b0: number, b1: number): AxisTransform {
+  const ax = block.axis;
+  return new AxisTransform(
+    ax.system,
+    ax.ranges ?? [],
+    g.lineX,
+    lineWidthOf(g, b1 - b0),
+    dpr,
+    { start: b0, end: b1 },
+    {
+      dir: ax.dir,
+      ...(ax.length !== undefined ? { length: ax.length } : {}),
+      cyclic: ax.cyclic,
+      ...(g.group > 0 ? { groups: { size: g.group, gap: g.gap, origin: b0 } } : {}),
+    },
+  );
+}
+
+/**
+ * A line of chips from block `b` (before section unit `u1`): each chip a strip its slot wide over its one position,
+ * the chips side by side with a word's gap between, the line's bands full (no band collapses on it).
+ */
+function chipLine(
+  p: TextPlacement,
+  ctx: PlaceContext,
+  g: TextGeometry,
+  tb: TextBlocks,
+  blocks: readonly ResolvedBlock[],
+  b: number,
+  u1: number,
+  y: number,
+): void {
+  const strips = p.strips;
+  const nb = ctx.bands.length;
+  let x = g.lineX;
+  for (let k = b; k < blocks.length && tb.offsets[k] < u1; k++) {
+    const block = blocks[k];
+    if (!block.axis.ranges || piecesTotal(block.axis.ranges) !== 1) continue;
+    const a = AxisTransform.on(block.axis, block.axis.ranges, x, tb.slots[k], ctx.dpr, { start: 0, end: 1 });
+    const i = strips.add(a, k, 0, y, tb.offsets[k]);
+    strips.chip[i] = 1;
+    for (let j = 0; j < nb; j++) {
+      strips.bandY[i * nb + j] = g.bandTops[j];
+      strips.bandH[i * nb + j] = g.bandHeights[j];
+    }
+    strips.height[i] = g.lineHeight;
+    ctx.layStrip(p, i);
+    x += tb.slots[k] + tb.gap * g.cell;
+  }
+}
+
 /**
  * The numbering a text's numbers print (_spec/README.md "Render", Text layout): the first of its layers that names one
  * (`numbering`, as a ruler does), on the section's system; `ordinal` when none does or the system has none of that id.
@@ -336,8 +462,10 @@ export const TextLayout: SectionLayoutType<TextPlacement> = {
       config,
       ctx.text,
       ctx.axis.offsets,
+      section.blocks,
     );
     p.geometry = g;
+    p.lineBlocks = g.blocks !== undefined;
     p.keep(g);
     if (g.lines > g.laid)
       ctx.report(
@@ -371,8 +499,21 @@ export const TextLayout: SectionLayoutType<TextPlacement> = {
     for (let l = from; l < g.laid && (figure || y < top + boxH); l++) {
       const u0 = lineStart(g, l);
       const u1 = lineEnd(g, l);
-      const a = lineAxis(ctx.axis, g, u0, u1);
-      const i = strips.add(a, 0, 0, y, u0);
+      // a line of chips: each a strip its slot wide, flowing like words (_spec/README.md "Render", Blocks)
+      const tb = g.blocks;
+      const b = tb ? blockOf(tb, u0) : 0;
+      if (tb && tb.slots[b] > 0) {
+        chipLine(p, ctx, g, tb, section.blocks!, b, u1, y);
+        p.heights[l] = g.lineHeight + g.lineGap;
+        y += p.heights[l];
+        continue;
+      }
+      const a = tb
+        ? blockLineAxis(section.blocks![b], ctx.dpr, g, u0 - tb.offsets[b], u1 - tb.offsets[b])
+        : lineAxis(ctx.axis, g, u0, u1);
+      // the line's units on its axis (a block's: from its first)
+      const du = a.u0 - u0;
+      const i = strips.add(a, b, 0, y, u0);
       const k0 = i * nb;
       for (let j = 0; j < nb; j++) {
         strips.bandY[k0 + j] = g.bandTops[j];
@@ -423,18 +564,18 @@ export const TextLayout: SectionLayoutType<TextPlacement> = {
         ? rulerBaseline(strips.bandY[k], strips.bandH[k])
         : strips.bandY[k] + strips.bandH[k] / 2 + labelSize * 0.35;
       if (params.numbers === 'start' || params.numbers === 'both') {
-        const s = numberAt(a, u0, numbering);
+        const s = numberAt(a, u0 + du, numbering);
         marks.push(mark(i, s, a.x0 - config.text.numberGap, baseline, AnchorEnd, g.numberFont, ctx.text));
       }
       if (params.numbers === 'end' || params.numbers === 'both') {
-        const s = numberAt(a, u1 - 1, numbering);
+        const s = numberAt(a, u1 - 1 + du, numbering);
         marks.push(mark(i, s, a.x0 + a.width + config.text.numberGap, baseline, AnchorStart, g.numberFont, ctx.text));
       }
       // a number a group: above its last position, or inline in the gap after it (groups start at a line's start)
       if (g.group > 0 && params.groupLabels !== 'none')
         for (let e = u0 + g.group; e <= u1; e += g.group) {
-          if (!a.cell(a.elementAtUnit(e - 1))) continue;
-          const s = numberAt(a, e - 1, numbering);
+          if (!a.cell(a.elementAtUnit(e - 1 + du))) continue;
+          const s = numberAt(a, e - 1 + du, numbering);
           if (params.groupLabels === 'above')
             marks.push(mark(i, s, (a.sx0 + a.sx1) / 2, g.labelRow - 2, AnchorMiddle, config.itemFont, ctx.text));
           else if (e < u1) marks.push(mark(i, s, a.sx1 + g.gap / 2, baseline, AnchorMiddle, config.itemFont, ctx.text));
@@ -444,8 +585,14 @@ export const TextLayout: SectionLayoutType<TextPlacement> = {
     boxH = boxOf();
     p.contentHeight = content();
     p.top = p.lineTop(first) + frac * p.heights[first];
-    const last = strips.n ? strips.axes[strips.n - 1].u1 : 0;
-    p.window = { start: strips.n ? strips.axes[0].u0 : 0, end: last };
+    // the units in view (lines of blocks: from their first units)
+    const n = strips.n;
+    const last = n
+      ? p.lineBlocks
+        ? strips.first[n - 1] + strips.axes[n - 1].u1 - strips.axes[n - 1].u0
+        : strips.axes[n - 1].u1
+      : 0;
+    p.window = { start: n ? (p.lineBlocks ? strips.first[0] : strips.axes[0].u0) : 0, end: last };
     p.box = { x: config.inset, y: top, width: ctx.width - 2 * config.inset, height: boxH };
     return p;
   },
@@ -460,6 +607,7 @@ export const TextLayout: SectionLayoutType<TextPlacement> = {
       ctx.config,
       ctx.text,
       axis.offsets,
+      section.blocks,
     );
     const pitch = g.lineHeight + g.lineGap;
     const boxH = params.height ?? Math.min(g.laid * pitch, ctx.config.text.maxHeight);
@@ -581,7 +729,12 @@ export const TextNav: SectionNav = {
     lineFrac(g, v.start, LineFrac);
     const lines = lineOf(g, at) - LineFrac.line - LineFrac.frac;
     // the new breaking's lines (pieces breaking lines: their starts again at the new width)
-    const next = { starts: g.starts ? pieceStarts(g.total, upl1, g.pieces) : undefined, unitsPerLine: upl1 };
+    const starts = g.blocks
+      ? blockStarts(g.total, upl1, g.avail, g.blocks.gap * cell, g.blocks)
+      : g.starts
+        ? pieceStarts(g.total, upl1, g.pieces)
+        : undefined;
+    const next = { starts, unitsPerLine: upl1 };
     const l1 = lineOf(next, at) - lines;
     const whole = Math.floor(l1);
     const a = lineStart(next, Math.max(0, whole));

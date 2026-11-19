@@ -336,6 +336,14 @@ export const ComplexViews: readonly ExampleView[] = [
   },
   {
     dataset: 'complex',
+    id: 'blocks-stacked-split',
+    title: 'Chains stacked, copies split',
+    summary:
+      'A row a chain (`arrange: stack`, `copies: each`), the two ATPs as chips sharing one row of their own, each its label’s width.',
+    build: complexBlocks.stackedSplit,
+  },
+  {
+    dataset: 'complex',
     id: 'blocks-ring',
     title: 'Chains on a ring',
     summary: 'The blocks on a ring, a block an arc with a gap between, their labels outside with the features’.',

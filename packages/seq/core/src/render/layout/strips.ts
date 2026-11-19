@@ -135,21 +135,28 @@ export class Strips {
   placeAcross(offset: number, out: PlacePoint): boolean {
     out.strip = -1;
     out.kind = 'empty';
+    // a unit at a strip's end and the next strip's start is the next's (a chip at its own first unit is the chip)
+    let at = -1;
     for (let i = 0; i < this.n; i++) {
       const a = this.axes[i];
       const u = offset - this.first[i];
       if (u < a.u0 || u > a.u1) continue;
-      const band = this.firstBand(i);
-      const k = i * this.bands + (band < 0 ? 0 : band);
-      out.strip = i;
-      out.band = band;
-      out.offset = offset;
-      out.x = a.xOfUnit(u);
-      out.y = band < 0 ? this.top[i] : this.bandY[k] + this.bandH[k] / 2;
-      out.kind = band < 0 ? 'gap' : 'data';
-      return true;
+      if (u < a.u1) {
+        at = i;
+        break;
+      }
+      if (at < 0) at = i;
     }
-    return false;
+    if (at < 0) return false;
+    const band = this.firstBand(at);
+    const k = at * this.bands + (band < 0 ? 0 : band);
+    out.strip = at;
+    out.band = band;
+    out.offset = offset;
+    out.x = this.axes[at].xOfUnit(offset - this.first[at]);
+    out.y = band < 0 ? this.top[at] : this.bandY[k] + this.bandH[k] / 2;
+    out.kind = band < 0 ? 'gap' : 'data';
+    return true;
   }
 
   /** The band's box in its strip's frame (the data box's x and width, the band's top and height). */
@@ -172,6 +179,11 @@ export class StripPlacement implements Placement {
   box: Box = { x: 0, y: 0, width: 0, height: 0 };
   contentHeight = 0;
   readonly strips = new Strips();
+  /**
+   * Its strips are lines of blocks (a text of blocks): each on its block's units, from its `first` section unit, and a
+   * line's chips side by side on it.
+   */
+  lineBlocks = false;
   /** Its bands overlay one another (a grid's plot): `at` gives the last band holding the point, the topmost. */
   readonly overlay: boolean = false;
 
@@ -198,7 +210,9 @@ export class StripPlacement implements Placement {
     out.offset = -1;
     if (y < b.y || y >= b.y + b.height) return false;
     const s = this.strips;
-    const i = this.stripAt(y);
+    let i = this.stripAt(y);
+    // strips side by side on a line (a text's chips): the one under x
+    if (this.lineBlocks) while (i > 0 && s.top[i - 1] === s.top[i] && x - s.dx[i] < s.axes[i].x0) i--;
     if (i < 0 || y >= s.top[i] + s.height[i]) {
       out.kind = 'gap';
       return true;
@@ -225,7 +239,7 @@ export class StripPlacement implements Placement {
     else out.kind = 'data';
     if (out.kind === 'data') {
       a.unitInto(StripX);
-      out.offset = StripX[1];
+      out.offset = this.lineBlocks ? s.first[i] + StripX[1] - a.u0 : StripX[1];
     }
     return true;
   }
@@ -235,35 +249,39 @@ export class StripPlacement implements Placement {
     if (!s.n) return -1;
     let i = this.stripAt(y);
     if (i < 0) i = 0;
+    if (this.lineBlocks) while (i > 0 && s.top[i - 1] === s.top[i] && x - s.dx[i] < s.axes[i].x0) i--;
     const a = s.axes[i];
     const fx = x - s.dx[i];
     // before a line's first cell or past its last (a gutter, the space after it): that cell, so a drag past a line's
     // end reaches its last unit and never the next line's first
     const cx = fx < a.x0 ? a.x0 : fx >= a.x0 + a.width ? a.x0 + a.width - 1e-6 : fx;
-    return a.unitAt(cx);
+    const u = a.unitAt(cx);
+    return this.lineBlocks ? s.first[i] + u - a.u0 : u;
   }
 
   place(offset: number, out: PlacePoint): boolean {
     const s = this.strips;
     out.strip = -1;
     out.kind = 'empty';
-    // the strip whose window holds the unit: strips run in reading order
+    // the strip whose window holds the unit: strips run in reading order (lines of blocks: by their first units)
+    const by = this.lineBlocks;
     let lo = 0;
     let hi = s.n;
     while (lo < hi) {
       const mid = (lo + hi) >> 1;
-      if (s.axes[mid].u0 <= offset) lo = mid + 1;
+      if ((by ? s.first[mid] : s.axes[mid].u0) <= offset) lo = mid + 1;
       else hi = mid;
     }
     const i = lo - 1;
-    if (i < 0 || offset > s.axes[i].u1) return false;
-    const a = s.axes[i];
+    const a = i < 0 ? undefined : s.axes[i];
+    const unit = a && by ? a.u0 + offset - s.first[i] : offset;
+    if (!a || unit > a.u1) return false;
     // on the page: the unit's x, the middle of the strip's first band with height (a collapsed band holds nothing)
     const band = s.firstBand(i);
     out.strip = i;
     out.band = band;
     out.offset = offset;
-    out.x = a.xOfUnit(offset) + s.dx[i];
+    out.x = a.xOfUnit(unit) + s.dx[i];
     const k = i * s.bands + (band < 0 ? 0 : band);
     out.y = band < 0 ? s.top[i] : s.bandY[k] + s.bandH[k] / 2 + s.dy[i];
     out.kind = band < 0 ? 'gap' : 'data';

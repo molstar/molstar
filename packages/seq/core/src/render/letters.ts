@@ -31,7 +31,15 @@ import {
   sectionId,
   type StoreReader,
 } from './layer-type.js';
-import { type Channel, inkAgainst, lettersDefault, type ThemeBody } from '@molstar/seqx-core/theme/index';
+import {
+  Black,
+  type Channel,
+  contrastRgba,
+  inkAgainst,
+  lettersDefault,
+  type ThemeBody,
+  White,
+} from '@molstar/seqx-core/theme/index';
 import { channelForms, channelLegends, type LayerChannels, PlainDatum } from './channels.js';
 import { drawFailed, drawSpans, hoverCell } from './marks.js';
 import { inkOn, type SeqTokens } from './tokens.js';
@@ -135,9 +143,10 @@ export interface LettersLay {
   /** A chip's label and its font (a one-position block): drawn as a pill over its one cell; '' on any other strip. */
   chip: string;
   chipFont: string;
-  /** The chip label's baseline and its measured width, made at layout. */
+  /** The chip label's baseline, its measured width and its ink, made at layout. */
   chipY: number;
   chipWidth: number;
+  chipInk: number;
 }
 
 /** The letter code at a position of a table, or 0. */
@@ -289,6 +298,7 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
       chipFont: '',
       chipY: 0,
       chipWidth: 0,
+      chipInk: 0,
     };
     lay.key = ctx.key;
     lay.system = axis.system;
@@ -429,6 +439,8 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
     // one to one: a section position in view that no letter lands on is an empty cell (the gap mark)
     if (prep.through === 'one') gapMarks(src, axis, vis, lay.gaps);
 
+    // a chip's label ink: the table's, else black or white, at 4.5:1 against its pill (a label is text, not a letter)
+    if (lay.chip && lay.n) lay.chipInk = chipInk(lay.fill[0], tokens);
     // one size a row: the largest of the scale whose advance fits the cell and whose height fits the row
     lay.fontSize = 0;
     if (step === 'letters') {
@@ -753,19 +765,21 @@ function drawConflicts(lay: LettersLay, out: PassWriter) {
 
 /**
  * A chip's pill (_spec/README.md "Render", Blocks): its one cell's fill as a pill a pixel inside the cell, its label
- * centred on it in the cell's ink, faded at the pill's width (the chip is its label's width: it fits).
+ * centred on it in the ink that holds 4.5:1 against the fill, faded at the pill's width (the label is elided to its
+ * slot: it fits); the letter cells' hairline (`seq-cell-edge`, dark only) round it, as round a cell.
  */
 function drawChip(lay: LettersLay, out: PassWriter) {
   const { box } = lay;
   const g = out.args;
   const h = Math.max(box.height - 2, 1);
+  const edge = lay.tokens.colors['seq-cell-edge'];
   g[0] = lay.x0[0] + 1;
   g[1] = box.y + 1;
   g[2] = lay.x1[0] - lay.x0[0] - 2;
   g[3] = h;
   g[4] = lay.fill[0];
-  g[5] = NoColor;
-  g[6] = 0;
+  g[5] = edge;
+  g[6] = edge === NoColor ? 0 : 1 / lay.axis.dpr;
   g[7] = h / 2;
   g[8] = 3;
   out.rectArgs();
@@ -773,8 +787,15 @@ function drawChip(lay: LettersLay, out: PassWriter) {
   g[1] = lay.chipY;
   g[2] = lay.chipWidth;
   g[3] = lay.x1[0] - lay.x0[0];
-  g[4] = lay.ink[0];
+  g[4] = lay.chipInk;
   out.textArgs(lay.chip, AnchorMiddle, lay.chipFont);
+}
+
+/** A chip's label ink against its fill: the tokens' ink when it holds 4.5:1, else black or white, the higher. */
+function chipInk(fill: number, tokens: SeqTokens): number {
+  const ink = inkOn(fill, tokens);
+  if (contrastRgba(ink, fill) >= 4.5) return ink;
+  return contrastRgba(Black, fill) >= contrastRgba(White, fill) ? Black : White;
 }
 
 /** Three-letter codes, centred in their parts. */

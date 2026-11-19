@@ -108,6 +108,7 @@ describe('Complex blocks, headless', () => {
     { id: 'blocks', labels: ['ATP ×2'], zoom: [500, 559] },
     { id: 'blocks-split', labels: ['ATP', 'ATP'], zoom: [1050, 1118] },
     { id: 'blocks-stacked', labels: ['ATP ×2'], zoom: [100, 160] },
+    { id: 'blocks-stacked-split', labels: ['ATP', 'ATP'], zoom: [100, 160] },
     { id: 'blocks-ring', labels: ['ATP ×2'] },
   ] as const;
   for (const c of chips)

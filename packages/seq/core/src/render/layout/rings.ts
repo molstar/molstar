@@ -26,7 +26,7 @@ import type { TextMetrics } from '../text.js';
 import type { SeqTokens } from '../tokens.js';
 import type { SectionLayout } from '../tracks.js';
 import { drawWindowArgs, floorExtent, WindowFill, windowPart } from '../window.js';
-import { chipWidth, isChip } from './blocks.js';
+import { chipSlots } from './blocks.js';
 import { PlacePoint, Strips, WarpKind } from './strips.js';
 import { clampWindow, TracksNav } from './tracks.js';
 import type { NavContext, Placement, PlaceContext, SectionLayoutType, SectionNav } from './types.js';
@@ -118,6 +118,8 @@ export class RingPlacement implements Placement {
   contentHeight = 0;
   readonly strips = new Strips();
   readonly warp = new PolarWarp();
+  /** Each block's chip slot (px of the outer ring; 0 for a block that is no chip). */
+  slots: Float64Array = new Float64Array(4);
   readonly labels = new RingLabels();
   cx = 0;
   cy = 0;
@@ -378,13 +380,15 @@ export const RingsLayout: SectionLayoutType<RingPlacement> = {
     if (blocks) for (const b of blocks) total += b.axis.ranges ? piecesTotal(b.axis.ranges) : 0;
     else total = axis.total;
     p.total = total;
-    // a chip (a one-position block) a fixed angle, its label's width on the outer ring: the polymers share the rest
+    // a chip (a one-position block) a fixed angle, its label's width on the outer ring (at most half the circle
+    // together): the polymers share the rest
     let chipPx = 0;
     let chips = 0;
+    const slots = blocks ? (p.slots = chipSlots(ctx.text, config, blocks, arc * r, p.slots)) : p.slots;
     if (blocks)
-      for (const b of blocks)
-        if (isChip(b)) {
-          chipPx += chipWidth(ctx.text, config, b.label);
+      for (let b = 0; b < blocks.length; b++)
+        if (slots[b] > 0) {
+          chipPx += slots[b];
           chips++;
         }
     const shared = Math.max(arc * r - chipPx, 1e-6);
@@ -395,9 +399,9 @@ export const RingsLayout: SectionLayoutType<RingPlacement> = {
       const pieces = b ? b.axis.ranges : axis.pieces;
       const len = pieces ? piecesTotal(pieces) : 0;
       if (!pieces || len <= 0) continue;
-      const chip = b !== undefined && isChip(b);
+      const chip = b !== undefined && slots[bi] > 0;
       const width = chip
-        ? chipWidth(ctx.text, config, b.label)
+        ? slots[bi]
         : chips
           ? (len / Math.max(total - chips, 1e-9)) * shared
           : (len / Math.max(total, 1e-9)) * arc * r;

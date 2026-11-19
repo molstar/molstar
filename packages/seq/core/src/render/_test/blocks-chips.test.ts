@@ -149,7 +149,7 @@ describe('a chip in the tracks layout', () => {
     const at = p0.offsetAt(a0.x0 + a0.width / 2, p0.strips.bandY[1] + 2);
     expect(Math.floor(at)).toBe(200);
     const axis = f0.layout.sections[0].axis!;
-    const c = { total: 201, width: axis.width, height: 600, cyclic: false, maxScale: 40 };
+    const c = { total: 201, width: axis.width, height: 600, cyclic: false, maxScale: 40, placement: p0 };
     const v = TracksLayout.nav.zoom(c, { start: 0, end: 201 }, 4, at);
     expect(v.end - v.start).toBeCloseTo(201 / 4, 6);
     const f = await s.frame({ size: Size, viewport: v });

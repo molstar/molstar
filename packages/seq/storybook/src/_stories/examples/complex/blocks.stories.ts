@@ -26,5 +26,8 @@ export const Split: StoryObj = { render: () => exampleStory(view('blocks-split')
 /** A block a row of the tracks, aligned at their first residue, one zoom for all. */
 export const Stacked: StoryObj = { render: () => exampleStory(view('blocks-stacked')) };
 
+/** Stacked with the copies split: a row a chain, the two ATP chips on one row of their own. */
+export const StackedSplit: StoryObj = { render: () => exampleStory(view('blocks-stacked-split')) };
+
 /** The blocks on a ring: a block an arc with a gap between, their labels outside with the features'. */
 export const OnARing: StoryObj = { render: () => exampleStory(view('blocks-ring')) };

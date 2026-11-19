@@ -1343,7 +1343,7 @@ way, over a straight axis and a box, in every layout; a layout knows strips, ban
   piece edges; a piece edge does not start a line (`text.pieceBreak: 'none'`), or starts one (`line`: each piece cut
   into lines of its own, the lines' first units kept in the geometry, `lineStart`, `lineEnd`, `lineOf`). Groups are
   bridged, fixed: an item or a selection is cut by a line break only (no second use for cutting at every group). A block
-  (with blocks) is to start a line, a one-position block to flow as a chip: the line loop is where they go.
+  (with blocks) starts a line, a one-position block flows as a chip (Blocks).
 - **A strip a line in view**, translated down the page; its bands the section's tracks (in track order, their heights
   their own, else `text.heights`: thin, a ranges track 4 px reads as underlines, a values track 3 px as a strip) under a
   row of group labels (`group_labels: 'above'`), `text.bandGap` between bands, `text.lineGap` after a line.
@@ -1375,7 +1375,7 @@ way, over a straight axis and a box, in every layout; a layout knows strips, ban
   first line to the top; below: its last line's bottom to the box's); a focus brings its first line to the top, the size
   kept; `up` and `down` step a line, the same column (a shorter line's last unit), none past the first or the last; the
   anchor is clamped where the last line meets the box's bottom, the scale to the letters' threshold and `maxScale`.
-- Not built yet: chips (one-position blocks: with blocks).
+- Blocks: each starts a line, chips flow like words (Blocks).
 
 ### Window
 
@@ -1531,19 +1531,38 @@ numbers): a window move allocates nothing once warm.
   however many: EC-102); `stack` a block a row of the section's tracks, aligned at their first position, one zoom
   (EC-102, EC-115). Each block's label in a row above its tracks, faded at its strip's width. Lays are kept by the block
   and its first unit, so a pan keeps them (by the block too: a stack's blocks all start at 0).
-- **A one-position block is a chip** (`isChip`, `chipWidth`, `Strips.chip`): a fixed slot its label's width (its label
-  with its `×N` in the label font, `BlockMetrics.chipPad` 5 px either side), its one position whole, never a position's
-  share: zoom does not scale it, so it reads at the fit view and is never clipped. Why: a one-position share is a sliver
-  at the fit view (the Complex's ATP) and the floor (a 2 px mark, unlabeled) says nothing. In a `row` a chip stands
-  where its block does (a ligand after the chains): the chips in view take their px from the width as the gaps do, so
-  the row's x is not linear over a chip (EC-102); the window, the rail and the navigators read the section's units, a
-  chip one unit, as they read across a gap. In a `stack` the chips share one row after the other blocks', side by side
-  from the first position's x, whatever the window. Its letters layer draws its label in a pill over its cell
-  (`LayoutContext.chip`), the label row above it then empty; another layer draws its mark across the chip where it has
-  something at the position, else nothing. Hit, hover, selection and a link read a chip as its one position. Contacts
-  (where a ligand binds) are a `pairs` layer a builder or an application adds, never drawn by default.
-- **Rings**: a block an arc (above); a chip a fixed-angle arc its label's width on the outer ring (the frame's px), the
-  other blocks sharing the rest of the circle by their lengths.
+- **A one-position block is a chip** (`isChip`, `chipWidth`, `chipSlots`, `Strips.chip`): a fixed slot its label's width
+  (its label with its `×N` in the label font, `BlockMetrics.chipPad` 5 px either side), never a position's share: zoom
+  does not scale it, so it reads at the fit view. Why: a one-position share is a sliver at the fit view (the Complex's
+  ATP) and the floor (a 2 px mark, unlabeled) says nothing. **A floor**: the chips take at most half the width
+  (`chipShare`; a ring: half its circle) together; past it they shrink by one factor, never below `chipMin` (16 px, less
+  only when even that would pass the half), their labels elided; the polymers keep the rest.
+- **A row** (`BlockRow`): a chip stands where its block does (a ligand after the chains). The chips in view take their
+  px from the width as the gaps do, so the row's x is not linear over a chip (EC-102); the window, the rail and the
+  navigators read the section's units, a chip one unit, as across a gap. The row is continuous in its window: a chip
+  partly in view takes px by the part of it in view, a gap by its boundary's distance to the nearer edge (none at the
+  edge, whole 12 px in), so a pan moves nothing by a jump. **Pan and zoom go through the row's inverse** (`rowPan`,
+  `rowZoom`, by bisection on the window's start): a pan brings the unit `dx` px from a reference point (the middle less
+  half the move, moved past a gap) to it, so what is under the pointer moves with it while nothing enters or leaves; a
+  zoom keeps its anchor's px as chips and gaps enter or leave. Why: a linear `dx · span / width` jumps over a chip.
+- **A stack**: the chips share one row after the other blocks', side by side from the first position's x, whatever the
+  window. A row's ground and its track labels are drawn once, at its first strip (a later chip's would paint over the
+  pill before it).
+- **The pill**: a letters layer on a chip draws its label in a pill over its cell (`LayoutContext.chip`, elided to its
+  slot): the cell's fill with the letter cells' hairline (`seq-cell-edge`, dark), its ink the tokens' when it holds
+  4.5:1 against the fill, else black or white. The label row above a chip is empty only where a pill was drawn (a letter
+  laid out on a band with height); else (no letters track, a pending tile, bars, a collapsed band) the label is there.
+  Another layer draws its mark across the chip where it has something at the position, else nothing.
+- **Labels**: a block's label above its tracks is elided to its strip's width, dropped when nothing of it fits: never
+  over the next block's. Hit, hover, selection and a link read a chip as its one position; `place` at a unit where one
+  strip ends and the next starts gives the next (a chip at its own first unit is the chip). Contacts (where a ligand
+  binds) are a `pairs` layer a builder or an application adds, never drawn by default.
+- **Text**: every block starts a line on its own system (its lines from its first unit, `blockStarts`); a run of chips
+  flows like words, as many on a line as fit, each its slot (at most a line) with a word's gap (`text.groupGap`)
+  between. The placement reads a line's units from its first section unit (`StripPlacement.lineBlocks`), a line's chips
+  by x. Not built yet: a block's label inline on its first line (EC-95).
+- **Rings**: a block an arc (above); a chip a fixed-angle arc its slot on the outer ring (the frame's px), its letters
+  ring a pill, the other blocks sharing the rest of the circle by their lengths.
 - **Follow across systems** is refused: a section of blocks on more than one system neither follows nor is followed
   (`seq.render.follow.blocks`, it shows its own range). Why: which block's map a follow would carry is undecided. Blocks
   on one system follow as one axis.
