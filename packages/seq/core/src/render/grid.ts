@@ -20,7 +20,7 @@ import { theme as themeForm } from '@molstar/seqx-core/lang';
 import type { Location, LocationPart } from '@molstar/seqx-core/query';
 import type { GridData, StaticModel } from '@molstar/seqx-core/resolve';
 import type { ChannelName, Channel } from '@molstar/seqx-core/theme/index';
-import type { ResolvedLayer } from '@molstar/seqx-core/view';
+import type { ResolvedLayer, ResolvedView } from '@molstar/seqx-core/view';
 import type { AxisTransform } from './axis.js';
 import { channelForms, channelLegends, Extents, type LayerChannels, PlainDatum } from './channels.js';
 import type { RenderConfig } from './config.js';
@@ -188,7 +188,9 @@ export const GridType: LayerType<GridPrep, GridLay> = {
     }
     if (!prep.grid) return lay;
     if (prep.xSystem !== axis.system || prep.ySystem !== ay.system) {
-      say(ctx, 'seq.render.grid.systems', 'The grid is not on its section’s two systems: it is not drawn');
+      // a grid over blocks is a strip a pair of blocks: a grid draws on the pairs of its own systems only, silently
+      if (!ctx.section.blocks)
+        say(ctx, 'seq.render.grid.systems', 'The grid is not on its section’s two systems: it is not drawn');
       return lay;
     }
     lay.grid = prep.grid;
@@ -758,11 +760,13 @@ function drawEmphasis(lay: GridLay, pass: PassName, out: PassWriter, e: Emphasis
       if (
         h &&
         h.section === lay.section &&
-        h.ySystem === lay.ySystem &&
         h.yPosition !== undefined &&
         h.position !== undefined &&
-        h.element === undefined
+        h.element === undefined &&
+        (h.ySystem === lay.ySystem || h.system === lay.system)
       ) {
+        // on a grid over blocks the crosshair crosses every strip of the hovered x block (its column) and of its y
+        // block (its row), the cell outlined on the one strip of both
         Src[0] = hover;
         Src[1] = CrossTint;
         Src[2] = 0;
@@ -771,10 +775,11 @@ function drawEmphasis(lay: GridLay, pass: PassName, out: PassWriter, e: Emphasis
         ink();
         Pos[0] = h.position;
         Pos[1] = h.yPosition;
-        paintColumn(lay, out);
+        if (h.system === lay.system) paintColumn(lay, out);
         Cell[0] = h.yPosition;
         Cell[1] = h.yPosition + 1;
-        paintRows(lay, out, Cell);
+        if (h.ySystem === lay.ySystem) paintRows(lay, out, Cell);
+        if (h.ySystem !== lay.ySystem || h.system !== lay.system) return;
         Src[0] = 0;
         Src[1] = 0;
         Src[2] = hover;
@@ -817,3 +822,57 @@ function drawEmphasis(lay: GridLay, pass: PassName, out: PassWriter, e: Emphasis
 
 /** One cell's y range, reused (a hover's row). */
 const Cell = new Int32Array(2);
+
+/** What `gridSummary` gives: the mean, least and greatest value of the cells counted, and their count (NaN when none). */
+export interface GridSummary {
+  readonly mean: number;
+  readonly min: number;
+  readonly max: number;
+  readonly count: number;
+}
+
+/**
+ * A summary of a view's grids over a rect (_spec/README.md "Render", The grid layer, A summary over a rect): the cells
+ * of every grid a grid layer of the view draws (each grid once) inside a rect of `rect` on the grid's two systems,
+ * missing values left out. A host's readout reads it (a selected rect's mean PAE); a library function, no state.
+ */
+export function gridSummary(
+  view: { readonly model: StaticModel; readonly view: ResolvedView },
+  rect: Location,
+): GridSummary {
+  const seen = new Set<string>();
+  let sum = 0;
+  let count = 0;
+  let min = Number.NaN;
+  let max = Number.NaN;
+  const visit = (layer: ResolvedLayer) => {
+    const owner = layer.data?.address;
+    if (layer.type !== 'grid' || !owner || seen.has(owner)) return;
+    seen.add(owner);
+    const a = view.model.annotations.get(owner);
+    const grid = a?.shape === 'grid' ? a.grid : undefined;
+    if (!a || !grid) return;
+    for (const r of rect.rects) {
+      if (r.a.system !== a.target || r.b.system !== a.ySystem) continue;
+      const xs = r.a.ranges;
+      const ys = r.b.ranges;
+      for (let p = 0; p + 1 < xs.length; p += 2)
+        for (let i = Math.max(0, xs[p]); i < Math.min(grid.nx, xs[p + 1]); i++)
+          for (let q = 0; q + 1 < ys.length; q += 2)
+            for (let j = Math.max(0, ys[q]); j < Math.min(grid.ny, ys[q + 1]); j++) {
+              const v = grid.values[i * grid.ny + j];
+              if (Number.isNaN(v)) continue;
+              sum += v;
+              count++;
+              if (!(v >= min)) min = v;
+              if (!(v <= max)) max = v;
+            }
+    }
+  };
+  for (const s of view.view.sections) {
+    if (s.layout !== 'grid') continue;
+    for (const t of s.tracks) for (const l of t.layers) visit(l);
+    for (const b of s.blocks ?? []) for (const ls of b.layers) for (const l of ls) visit(l);
+  }
+  return { mean: count ? sum / count : Number.NaN, min, max, count };
+}

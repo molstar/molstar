@@ -962,8 +962,12 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
             },
           ),
         );
-      } else if (multiSystem(section) || multiSystem(leaderSection)) {
-        // which block's map a follow would carry is undecided (_spec/README.md "Render", Blocks)
+      } else if (
+        (multiSystem(section) || multiSystem(leaderSection)) &&
+        section.axis.system !== leaderSection.axis.system
+      ) {
+        // which block's map a follow would carry is undecided (_spec/README.md "Render", Blocks); a grid over a section
+        // of blocks is on the blocks' own units, its follow the identity ("The grid layout", A grid over blocks)
         report(
           issueOf(RenderIssues, 'seq.render.follow.blocks', 'A section of blocks on several systems cannot follow', {
             address: at,
@@ -1226,7 +1230,9 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
             ...(grants && type.name === 'rows' && grants.has(key) ? { rowColumns: grants.get(key)! } : {}),
           };
           // kept by the strip's first unit, and its block's (a stack's blocks all start at 0)
-          const at = block ? `${key}#${strips.block[i]}@${strips.first[i]}` : `${key}@${strips.first[i]}`;
+          let at = block ? `${key}#${strips.block[i]}@${strips.first[i]}` : `${key}@${strips.first[i]}`;
+          // a grid over blocks: a strip a pair of blocks, kept by its y block too
+          if (block && strips.ys[i]) at += `|${strips.yBlock[i]}@${strips.yFirst[i]}`;
           const l = layOne(track, layer, type, keyed ? at : key, ctx);
           const u = type.used ? type.used(l.lay) : h;
           if (u > strips.used[k]) strips.used[k] = u;

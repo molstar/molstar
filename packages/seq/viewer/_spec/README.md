@@ -283,6 +283,11 @@ the region (a press there says it too, a tap's hover).
   `endRectDrag(cancel?)` drag a rect in `replace`, `add`, `subtract` (rects subtract exactly: core's Location) or
   `extend` (from the cell anchor); a cancel gives back the selection. Why rects, not two ranges: a range of each axis is
   every row and column, not the block between them.
+- **A rect over blocks** (a grid over a complex, its section's blocks): `beginRectDrag(cell, mode, blocks)` with the
+  section's blocks (`RectBlock`: system, axis, first unit), `rectDragTo(position, yPosition, system, ySystem)` to a cell
+  on any block: the span between the two cells in display units on each axis split at the blocks' boundaries
+  (`blocksRect`), a rect a pair of parts, one per pair of systems (copies merge). Why units: a drag across a chain
+  boundary is one gesture over the plot, its selection a part a chain.
 - **The anchor** is the range of the last element or cell set, toggled, added or dragged from, on its system (an item's
   extent there, else its cell); `set(value, anchor?)` replaces it; `clear()` drops it. With it the model keeps what an
   extend keeps: the selection less the anchor's range when the anchor was set (none after a click or a plain drag; all

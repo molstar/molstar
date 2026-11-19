@@ -43,7 +43,10 @@ export function projectOntoView(
 ): Location {
   if (!loc.parts.length && !loc.rects.length) return EmptyLocation;
   const systems: string[] = [];
-  for (const s of view.sections) if (!systems.includes(s.axis.system)) systems.push(s.axis.system);
+  // a section of blocks shows its blocks' systems (its own axis is their units, on no system)
+  for (const s of view.sections)
+    for (const system of s.blocks ? s.blocks.map((b) => b.axis.system) : [s.axis.system])
+      if (!systems.includes(system)) systems.push(system);
   const own = new Set(loc.parts.map((p) => p.system));
   // a rect's sides as positions, carried as the parts are; a side is no own part (its system's section shows it)
   const flat = loc.rects.length ? location({ parts: [...loc.parts, ...loc.rects.flatMap((r) => [r.a, r.b])] }) : loc;

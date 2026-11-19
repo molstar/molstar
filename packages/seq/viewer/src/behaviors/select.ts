@@ -207,8 +207,8 @@ export function selectBehavior(
 
   /** The drag: its section and system, and the axis its positions are read on (a block's: its offset in the section). */
   let drag: { section: string; system: string; axis: Axis; offset: number; block: boolean } | undefined;
-  /** A rect drag on a grid: its section and its cell's two systems. */
-  let rect: { section: string; system: string; ySystem: string } | undefined;
+  /** A rect drag on a grid: its section and its cell's two systems; over blocks, any block's cell. */
+  let rect: { section: string; system: string; ySystem: string; blocks: boolean } | undefined;
 
   return {
     commands,
@@ -225,8 +225,15 @@ export function selectBehavior(
       if (action === undefined || !isDragSelect(action) || !hit) return false;
       const cell = cellOf(hit);
       if (cell) {
-        selection.beginRectDrag(cell, DragSelectModes[action]);
-        rect = { section, system: cell.system, ySystem: cell.ySystem };
+        // a grid over a section of blocks: the rect is split at the chains' boundaries (grids-and-rows' grid over a
+        // complex, _spec/README.md "SelectionModel and HighlightModel", Rects)
+        const s = view.resolved.value?.sections.find((x) => x.address === section);
+        const blocks =
+          s?.layout === 'grid' && s.blocks
+            ? s.blocks.map((b) => ({ system: b.axis.system, axis: b.axis, offset: b.offset ?? 0 }))
+            : undefined;
+        selection.beginRectDrag(cell, DragSelectModes[action], blocks);
+        rect = { section, system: cell.system, ySystem: cell.ySystem, blocks: !!blocks };
         return true;
       }
       const at = placeOf(section, hit);
@@ -238,8 +245,9 @@ export function selectBehavior(
       if (rect) {
         // past the plot the cell stays the last one under the pointer
         const cell = cellOf(hit);
-        if (rect.section !== section || !cell || cell.system !== rect.system || cell.ySystem !== rect.ySystem)
-          return false;
+        if (rect.section !== section || !cell) return false;
+        if (rect.blocks) return selection.rectDragTo(cell.position, cell.yPosition, cell.system, cell.ySystem);
+        if (cell.system !== rect.system || cell.ySystem !== rect.ySystem) return false;
         return selection.rectDragTo(cell.position, cell.yPosition);
       }
       const d = drag;

@@ -388,12 +388,27 @@ function build(model: StaticModel, view: Node, address: string): ResolvedView {
   const viewLayout = typeof written === 'string' ? written : 'tracks';
   const byAddress = new Map<string, Node>();
   const systemOf = new Map<string, string>();
+  for (const s of sectionNodes) byAddress.set(`${address}/${s.id}`, s);
+  // a grid section with no system of its own that follows a section of blocks: a grid over them (`blocksGrid`)
+  const overBlocks = new Map<string, string>();
   for (const s of sectionNodes) {
     const at = `${address}/${s.id}`;
-    byAddress.set(at, s);
     // a section of blocks with no `of` is on its first block's system
     const first = blockNodes(s)[0];
     const system = exactAddress(param(s, 'of') ?? (first ? param(first, 'of') : undefined));
+    const leader = exactAddress(param(s, 'follow'));
+    const lead = leader === undefined ? undefined : byAddress.get(leader);
+    if (
+      system === undefined &&
+      (param(s, 'layout') ?? viewLayout) === 'grid' &&
+      leader !== undefined &&
+      lead &&
+      blockNodes(lead).length
+    ) {
+      overBlocks.set(at, leader);
+      systemOf.set(at, '');
+      continue;
+    }
     if (system === undefined || !model.systems.has(system))
       report('seq.view.section.system', 'The section shows no system of the spec', at);
     systemOf.set(at, system ?? '');
@@ -423,6 +438,7 @@ function build(model: StaticModel, view: Node, address: string): ResolvedView {
   };
   const blocksOf = new Map<string, BlockAxes>();
   for (const [at, s] of byAddress) {
+    if (overBlocks.has(at)) continue;
     const dir = dirOf(at);
     const bs = blockNodes(s);
     if (bs.length) {
@@ -437,10 +453,21 @@ function build(model: StaticModel, view: Node, address: string): ResolvedView {
     axes.set(at, ref ? { ...axis, along: ref } : axis);
   }
 
+  for (const [at, leader] of overBlocks) {
+    const b = blocksOf.get(leader);
+    if (!b) {
+      report('seq.view.section.system', 'The grid follows no section of blocks', at);
+      continue;
+    }
+    blocksOf.set(at, b);
+    axes.set(at, b.axis);
+    follows.set(at, { leader, path: identityPath(b.axis.system) });
+  }
+
   const sections: ResolvedSection[] = [];
   for (const s of sectionNodes) {
     const at = `${address}/${s.id}`;
-    const axis = axes.get(at)!;
+    const axis = axes.get(at) ?? { system: at, cyclic: false, dir: 1, pieces: 'blocks' };
     const known = model.systems.has(axis.system);
     let follow: Follow | undefined;
     const f = follows.get(at);
@@ -496,7 +523,9 @@ function build(model: StaticModel, view: Node, address: string): ResolvedView {
     const blocks = ba?.blocks.map((b, k) => ({ ...b, layers: blockLayers[k] }));
     const y =
       (typeof own === 'string' ? own : viewLayout) === 'grid'
-        ? gridAxis(model, s, at, axis, axes, systemOf, report)
+        ? overBlocks.has(at)
+          ? { axis, followsX: true }
+          : gridAxis(model, s, at, axis, axes, systemOf, report)
         : undefined;
     sections.push({
       address: at,

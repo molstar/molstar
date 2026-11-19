@@ -941,6 +941,10 @@ no target.
   system when `of_y` is another), a section's region through `follow` (the path from its system), `none` a window of its
   own (`viewport.y`). A y that cannot follow (no path) is `seq.view.follow.unplaced` and keeps its own window. A section
   whose `of` names no system (with blocks: its first block's) is `seq.view.section.system`; its layers are not placed.
+- **A grid over blocks** (a grid over a complex): a grid section with no `of` and no blocks of its own that `follow`s a
+  section of blocks takes that section's blocks and axis (their display units, on the leader's address), its follow the
+  identity on those units, and its y the same blocks (`followsX`). Its tracks' layers are placed per block as a section
+  of blocks' are. Why the leader's blocks: the section of blocks already orders the chains and their copies on one axis.
 - **Blocks**: each its axis (its system, its `range`, the section's direction), its first display unit in the section's
   (`offset`: 0 in a stack), its label, the blocks it stands for (`members`), and each of the section's tracks' layers
   resolved onto its system (a path a block: placed on each block its data reaches; a layer that reaches no block says
@@ -987,13 +991,13 @@ no target.
 - **Links**: every ordered pair of the view's sections a static path joins, with the path, composed when the view is
   resolved so hover and selection never compose; the same system is the identity.
 - **Projection** (`projectOntoView(model, view, loc, { close?, own?, linked? })`, `project.ts`): a Location on the
-  view's sections' systems, one Location keyed by system (two sections on one system show the same): each part carried
-  along the view's link from a section on its system, else, for a system no section shows, along the model's static
-  path; rects are not carried. `close` closes it first among the view's systems (a hover's: a nucleotide lifts to its
-  codon and gains its residue); `own` keeps the parts already on a section's system (a hover's and a highlight's), else
-  only what it adds where it has no part (a selection's); `linked: false` keeps the own parts alone. Why keyed by
-  system, not a function per section: the renderer reads a part per axis with an indexed loop, nothing called or made
-  per draw.
+  view's sections' systems (a section of blocks: its blocks' systems), one Location keyed by system (two sections on one
+  system show the same): each part carried along the view's link from a section on its system, else, for a system no
+  section shows, along the model's static path; rects are not carried. `close` closes it first among the view's systems
+  (a hover's: a nucleotide lifts to its codon and gains its residue); `own` keeps the parts already on a section's
+  system (a hover's and a highlight's), else only what it adds where it has no part (a selection's); `linked: false`
+  keeps the own parts alone. Why keyed by system, not a function per section: the renderer reads a part per axis with an
+  indexed loop, nothing called or made per draw.
 - **A track**: its address, its label (its id when absent), its height, and its `template` when it has `for_each`. A
   hidden track (`hidden: true`) is left out of the view, so its row collapses; the spec keeps it.
 - **A layer**: its address (with an id) and index, its type and fallback chain (`LayerTypes`: `secondary` and `variants`
@@ -1703,6 +1707,13 @@ numbers): a window move allocates nothing once warm.
   would otherwise feed its height back into the room and shrink.
 - **Chrome**: the label column (the first track's label) and y's first and last positions at the plot's top and bottom,
   their strings made at place (a draw allocates nothing).
+- **A grid over blocks** (its section's blocks a leader's, "Resolved view"): a strip a pair of blocks in view, x's block
+  across (`strips.block`) and y's down (`strips.yBlock`, its first unit `strips.yFirst`, in the lays' key), each block
+  laid as a row of blocks is (`BlockRow`, gaps between them), y over x's window and the plot's height; the strip's bands
+  that pair's cell; `at` finds the strip by x and y. Its follow is the identity on the leader's units (the tracks
+  layout's "several systems cannot follow" does not apply). Chrome: each chain boundary a 1 px `seq-break` hairline
+  across the plot (in the gap before the block, down at an x boundary, across at a y one) and each block's label at the
+  label column's right edge at its y.
 
 ### Lanes and Hits
 
@@ -1783,7 +1794,9 @@ numbers): a window move allocates nothing once warm.
 `render/grid.ts` (`GridType`, `axes: 2`): a `grid` entry's values over the strip's x and `ctx.axisY`.
 
 - **Only on its own systems**: x and y of the section must be the grid's (`seq.render.grid.systems`); no strip y is
-  `seq.render.layer.axes`. Why: a grid is not projected; a generator computes it on the systems it is drawn on.
+  `seq.render.layer.axes`. Why: a grid is not projected; a generator computes it on the systems it is drawn on. Over
+  blocks a grid draws on the strips of its own pair of systems only, silently on the others: a matrix over the complex
+  is one grid node a pair of chains.
 - **Drawn**: at `grid.rectMinPx` a cell and above, rects with outlines; below, `image` tiles (`ImageTile`, 256 × 256
   samples, never smoothed) from the shared 2D reduction (`render/pyramid.ts`: square levels, factor 2, `aggregate`'s
   reducer `mean`, `max` or `min`; a triangle's over its own cells alone, the others missing, so a coarse sample on the
@@ -1803,7 +1816,12 @@ numbers): a window move allocates nothing once warm.
   drawn as its rect, and on a section showing both its systems never its sides projected back (`rectOver`: the strip's x
   painting and the layer's rows skip them). Linked sections light both positions (the hover's location has a y part).
   Nothing allocated once warm: positions and colors go through typed scratch; a hit reads its point from `at`
-  (`AxisTransform.positionOf`).
+  (`AxisTransform.positionOf`). Over blocks the hover's column is painted on every strip of its x system, its row on
+  every strip of its y system, the cell outlined on the one strip of both.
+- **A summary over a rect** (`gridSummary(view, rect)`, `view` a model and a resolved view): the mean, least and
+  greatest value and the count of the cells inside the Location's rects of every grid a grid layer of the view draws
+  (each grid once, on a rect of its two systems), missing values left out; NaN with no cell. A library function, no
+  state: a host's readout reads it (a selected rect's mean PAE).
 
 ### Tensions (pairs and grids)
 
