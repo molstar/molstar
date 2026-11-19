@@ -20,8 +20,10 @@ import { vi } from 'vitest';
 export const HoverOwner = 'test';
 
 export interface OpenOptions {
-  /** The gene file's text (the views that read it by location). */
+  /** The gene file's text: what every location outside `fixtures/` reads (the views that read the gene by location). */
   readonly gene?: string;
+  /** Every location read from the examples' folder (the views of recorded datasets); `fixtures/…` always is. */
+  readonly fixtures?: true;
   /** Each answer's delay, or `staggered` (the story's own: later regions later). */
   readonly delayMs?: number | 'staggered';
   /** How long the fake clock runs after the load. */
@@ -48,9 +50,10 @@ export async function openExample(view: ExampleView, options: OpenOptions): Prom
     ports: {
       assets: () => {
         // every dataset’s files (`fixtures/…`) are read as they are committed, at once (a read of the disk is not on the
-        // fake clock: the layout waits for the letters); every other location answers the gene's text
+        // fake clock: the layout waits for the letters); every other location answers the gene's text, or with
+        // `fixtures` is read from the examples' folder too
         const read = (uri: string) => readFileSync(`${PackageFolder}${uri}`);
-        const fixture = (uri: string) => uri.startsWith('fixtures/');
+        const fixture = (uri: string) => options.fixtures === true || uri.startsWith('fixtures/');
         return {
           reader: {
             readText: async (uri) => (fixture(uri) ? read(uri).toString('utf8') : text),

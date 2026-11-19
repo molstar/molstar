@@ -83,6 +83,8 @@ describe('seqExampleFixtures', () => {
         'fixtures/p53/gene-region.seq',
         'fixtures/p53/tp53-gene.seq',
         'fixtures/globins/family-columns.tsv',
+        'fixtures/globins/PF00042-seed.sto',
+        'fixtures/globins/4hhb.seq',
       ]),
     );
     expect(names).toEqual(

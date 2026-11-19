@@ -1468,12 +1468,18 @@ function layoutHeader(lay: RowsLay, prep: Prep, ctx: LayoutContext) {
     const y = lay.rowY(i) + rs / 2 + size * 0.35;
     let t: string;
     if (e < 0) {
+      // a summary's count is what it says (EC-100): the first label is cut, never ` +n`
       const m = lay.display.members.get(i);
-      t = m ? `${lay.label(m[0])} +${m.length - 1}` : '';
-    } else t = lay.label(e);
-    if (lay.display.pinned && i >= lay.display.pinned && e >= 0 && config.rows.pinInPlace && isPinned(lay, e))
-      t = `· ${t}`;
-    t = elide(text, lay.labelFont, t, lay.labelMax);
+      const more = m ? ` +${m.length - 1}` : '';
+      const head = m
+        ? elide(text, lay.labelFont, lay.label(m[0]), lay.labelMax - text.measure(lay.labelFont, more))
+        : '';
+      t = m ? (head ? `${head}${more}` : elide(text, lay.labelFont, more.trim(), lay.labelMax)) : '';
+    } else {
+      t = lay.label(e);
+      if (lay.display.pinned && i >= lay.display.pinned && config.rows.pinInPlace && isPinned(lay, e)) t = `· ${t}`;
+      t = elide(text, lay.labelFont, t, lay.labelMax);
+    }
     lay.labelText.push(t);
     lay.labelY.push(y);
     lay.labelW.push(text.measure(lay.labelFont, t));

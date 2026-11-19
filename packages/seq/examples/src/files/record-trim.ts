@@ -8,6 +8,14 @@
 // none renamed or moved, so a spec's paths read the live response too. Kept here, in the package's sources, so a unit
 // test holds the rules; the script imports them.
 
+/** The licences a fixture may carry (examples.md, "Licences allowed"); the script refuses any other. */
+export const AllowedLicences = [
+  'CC0-1.0',
+  'CC-BY-4.0',
+  'LicenseRef-NCBI-public-data',
+  'LicenseRef-seqx-generated',
+] as const;
+
 type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
 export type Obj = { [key: string]: Json };
 

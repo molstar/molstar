@@ -12,7 +12,6 @@ import { createSeqContext } from '@molstar/seqx-core/context';
 import { SeqRuntime } from '@molstar/seqx-core/data';
 import { recordDrawLists } from '@molstar/seqx-core/render';
 import { describe, expect, it } from 'vitest';
-import { ColumnsFile, columnsTsv } from '../globins/columns.js';
 import { nodeFixtureAssets, PackageFolder } from '../node-assets.js';
 import { GeneFile, geneSeqText, P53 } from '../p53/data.js';
 import { RegionFile, regionSeqText, Transcripts } from '../p53/region.js';
@@ -48,10 +47,6 @@ describe('the fixtures', () => {
 
   it('the committed region file is what its generator writes', () => {
     compare(`${PackageFolder}${RegionFile}`, regionSeqText());
-  });
-
-  it('the committed Globins columns file is what its generator writes', () => {
-    compare(`${PackageFolder}${ColumnsFile}`, columnsTsv());
   });
 });
 
