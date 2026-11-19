@@ -174,4 +174,31 @@ describe('the rows layer', () => {
     const h = hitView(f.layout, lay!.lx[0], lay!.box.y + lay!.box.height - 2);
     expect(h).toMatchObject({ position: 0, state: 'M' });
   });
+
+  it('in text (an alignment figure) every row is on every line, unfolded, with no tree; each cell hits its row', async () => {
+    const b = createSeqSpec();
+    const aln = b.data.alignment('aln', { alphabet: 'protein', rows: { label: Labels, letters: Letters } });
+    const tree = b.data.tree('tree', { of: aln, newick: Newick });
+    b.views.view('v', (v) =>
+      v.section('s', { of: aln, layout: 'text', group: 3, max_width: 48 } as never, (s) =>
+        s
+          .track('rows', { label: '' })
+          .layer('r', { type: 'rows', data: aln, tree, order: 'tree', collapsed: ['hb'] } as never),
+      ),
+    );
+    expect(b.check()).toEqual([]);
+    const st = await settle(b.build());
+    const f = await st.frame({ size: Size, dpr: 1, settled: true });
+    const lays: RowsLay[] = [];
+    for (const sec of f.layout.sections)
+      for (const l of sec.lays) for (const x of l ?? []) if (x.type.name === 'rows') lays.push(x.lay as RowsLay);
+    expect(lays.length).toBeGreaterThan(1);
+    for (const lay of lays) {
+      expect(lay.figure).toBe(true);
+      expect(lay.display.count).toBe(5);
+      expect(lay.tree.length).toBe(0);
+      expect(lay.labelText.length).toBe(5);
+    }
+    expect(f.layout.issues.some((i) => i.code === 'seq.render.rows.text.unfolded')).toBe(true);
+  });
 });

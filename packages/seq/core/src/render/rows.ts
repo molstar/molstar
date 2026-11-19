@@ -116,6 +116,8 @@ export class RowsLay {
   cladesOf: unknown;
   readonly display = new DisplayRows();
   displayKey = '';
+  /** A band that does not scroll (a text figure's): every row, unfolded, no tree. */
+  figure = false;
   /** The layer's params as written (what its commands edit). */
   params: Readonly<Record<string, Value>> = {};
   /** Whether folds apply (tree order with a tree). */
@@ -226,8 +228,8 @@ export class RowsLay {
       const rows = held.labels.map((label) => ({ label }));
       this.clades = buildClades(prep.tree.read, matchLeaves(prep.tree.read, rows), held.rows);
     }
-    const folds = ctx.folds ?? prep.collapsed;
-    const key = `${held?.version ?? -1}|${this.total}`;
+    const folds = this.figure ? NoFolds : (ctx.folds ?? prep.collapsed);
+    const key = `${held?.version ?? -1}|${this.total}|${this.figure}`;
     if (key === this.displayKey && folds === this.folds) return;
     this.displayKey = key;
     this.folds = folds;
@@ -315,6 +317,8 @@ function fieldOrder(held: HeldCells, o: { readonly field: string; readonly direc
     );
   return Int32Array.from(idx);
 }
+
+const NoFolds: readonly string[] = [];
 
 const p = (layer: ResolvedLayer, key: string): Value | undefined => layer.params[key];
 const strings = (v: Value | undefined): string[] =>
@@ -425,6 +429,8 @@ export const RowsType: LayerType<Prep, RowsLay> = {
     const rowsSrc = at.src;
     lay.total = at.rows;
     lay.columns = at.columns ?? axis.length ?? 0;
+    // a band that does not scroll (text: a figure's lines repeat the rows): every row in the band, unfolded, no tree
+    lay.figure = ctx.section.layout !== 'tracks';
     lay.rowScale = ctx.rowScale ?? config.rows.rowHeight;
     const N = lay.total;
     if (N === undefined) {
@@ -450,6 +456,16 @@ export const RowsType: LayerType<Prep, RowsLay> = {
           }),
         );
     }
+    if (lay.figure) {
+      lay.rowScale = box.height / Math.max(1, N);
+      if ((ctx.folds ?? prep.collapsed).length)
+        ctx.report(
+          issueOf(RenderIssues, 'seq.render.rows.text.unfolded', 'Every clade is drawn unfolded in a text figure', {
+            address: ctx.key,
+            hint: RenderIssues.codes['seq.render.rows.text.unfolded'].hint,
+          }),
+        );
+    }
     lay.prepareRows(prep, ctx);
     const display = lay.display;
     // the rows' transform: the pinned band fixed, the rest scrolled within the band, clamped
@@ -457,7 +473,7 @@ export const RowsType: LayerType<Prep, RowsLay> = {
     lay.pinnedHeight = display.pinned * rs;
     const area = Math.max(0, box.height - lay.pinnedHeight);
     const content = (display.count - display.pinned) * rs;
-    lay.bandTop = Math.max(0, Math.min(ctx.bandTop ?? 0, Math.max(0, content - area)));
+    lay.bandTop = lay.figure ? 0 : Math.max(0, Math.min(ctx.bandTop ?? 0, Math.max(0, content - area)));
     lay.first = display.pinned + Math.floor(lay.bandTop / rs);
     lay.last = Math.min(display.count, display.pinned + Math.ceil((lay.bandTop + area) / rs));
     if (!heldable) readLazy(lay, ctx, data, rowsSrc);
@@ -875,7 +891,7 @@ function layoutHeader(lay: RowsLay, prep: Prep, ctx: LayoutContext) {
   const rs = lay.rowScale;
   const left = config.inset;
   const right = box.x - config.labelGap;
-  const treeW = lay.clades && prep.order === 'tree' ? Math.min(prep.treeWidth, (right - left) * 0.45) : 0;
+  const treeW = lay.clades && prep.order === 'tree' && !lay.figure ? Math.min(prep.treeWidth, (right - left) * 0.45) : 0;
   lay.treeX0 = left;
   lay.treeX1 = left + treeW;
   if (treeW > 0) layoutTree(lay, lay.clades!, left, treeW);

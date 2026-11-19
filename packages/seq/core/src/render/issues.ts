@@ -25,6 +25,11 @@ export const RenderIssues = defineIssues('seq.render', {
     description: 'A logo over a lazy alignment: its profile is a source’s to serve, and none is read yet',
     hint: 'Hold the alignment, or draw the logo over a held one',
   },
+  'seq.render.rows.text.unfolded': {
+    severity: 'info',
+    description: 'A rows layer in a text figure draws every clade unfolded: a figure’s lines repeat the rows',
+    hint: 'Fold clades in a tracks view; a text figure shows every row',
+  },
   'seq.render.rows.order': {
     severity: 'info',
     description: 'A lazy alignment ordered by a field or a tree its source does not serve: drawn in data order',

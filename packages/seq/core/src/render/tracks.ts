@@ -858,6 +858,13 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     const heights = shown.map((t) => trackHeight(t, config, byType));
     // a rows band that fills (_spec/README.md "Render", The rows layer): the section's room left on the page, at least
     // its default height (a figure, laid out for its content, takes the default)
+    // a band of every row in a layout whose bands do not scroll (text: an alignment figure's lines repeat its rows)
+    if (layout !== TracksLayout)
+      for (let j = 0; j < shown.length; j++) {
+        if (shown[j].height !== undefined || rowsFill(shown[j]) === undefined) continue;
+        const rows = rowsCount(shown[j], input.model);
+        if (rows !== undefined) heights[j] = rows * byType.rows;
+      }
     const fill = shown.findIndex((t) => t.height === undefined && rowsFill(t) === 'fill');
     if (fill >= 0 && !input.figure && layout === TracksLayout) {
       let used = 0;
@@ -1211,6 +1218,16 @@ function rowsFill(track: ResolvedTrack): 'fill' | number | undefined {
     if (l.type !== 'rows') continue;
     const h = l.params.height;
     return typeof h === 'number' ? h : 'fill';
+  }
+  return undefined;
+}
+
+/** The rows a track's rows layer shows, when its alignment's length is known (an inline one's). */
+function rowsCount(track: ResolvedTrack, model: StaticModel): number | undefined {
+  for (const l of track.layers) {
+    if (l.type !== 'rows' || !l.data) continue;
+    const rows = model.annotations.get(l.data.address)?.rows;
+    return rows === undefined ? undefined : model.systems.get(rows)?.length;
   }
   return undefined;
 }

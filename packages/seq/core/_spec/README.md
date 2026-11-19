@@ -1398,6 +1398,9 @@ measures, consensus, the profile). An alignment's rows over its columns, its own
   column (`position`) and row (`ySystem`, `yPosition`); a header's label is `row` (its `position` the data row on the
   rows system); a summary row `summary-row` and a tree node within `rows.treeHitPx` (6) of its branch, a wedge
   included, `tree-node`, each its element `{ owner: <alignment>, key: <clade name> }` and its extent the clade's rows.
+- **In a layout whose bands do not scroll** (text: the ESPript figure's lines repeat the rows): the band is every row
+  (its height the rows times the layout's `heights.rows`), every clade unfolded (`seq.render.rows.text.unfolded`, info,
+  when some are folded), no tree, no scroll; a lazy alignment there is drawn pending. Why: a fold would differ per line.
 - **Emphasis along y**: the hover tints its row's band and its column within the band and outlines the cell; the
   selection's parts on the rows system as row bands (a folded row lights its summary row), its rects of rows × columns
   as their cells; the cursor with a row (`Emphasis.cursor.ySystem`) outlines its cell (the strip draws a cursor without
@@ -1490,7 +1493,7 @@ under the point as the hit's `state`. `rows: shown` waits (the logo reads every 
 
 ### Issues
 
-- `seq.render.*` (`RenderIssues`): `rows.reduced` (info), `logo.profile` (info), `rows.order` (info), `view`, `color`, `theme.channel`, `theme.scheme`, `theme.measure`, `theme.color`,
+- `seq.render.*` (`RenderIssues`): `rows.reduced` (info), `rows.text.unfolded` (info), `logo.profile` (info), `rows.order` (info), `view`, `color`, `theme.channel`, `theme.scheme`, `theme.measure`, `theme.color`,
   `scale.log` (info), `legend.unlisted` (info), `filter`, `line-style` (info), `numbering`, `layer.type`,
   `layer.letters`, `axis.pending` (info), `text.lines`, `follow.leader`, `follow.blocks`, `ring.image`, `follow.cycle`,
   `source`, `template.limit`, `unsettled`; a test checks the catalog.
