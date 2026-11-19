@@ -61,9 +61,11 @@ recompiles the entries whose nodes (or the nodes they read) it changed and a vie
   (`seq.viewer.edit.masked`, an info in the result and `issues`). A step that no longer applies whole is shown as not
   applying (`step.applies` false, `seq.viewer.step.stale`): the ops that still apply are shown (the design: a step's
   state is what still applies, flagged), and a start it cannot reach is the core's `seq.story.step.from`; an unknown id
-  is `seq.viewer.step.unknown`. **While a full-state step is shown, an edit is refused** (`seq.viewer.step.frozen`, its
-  hint to edit the step), a patch, a preview and a whole root alike (`apply`: `frozen-step`): the step does not follow
-  the spec, so the edit would show nothing. `load` leaves the step first: a new document.
+  is `seq.viewer.step.unknown`; a spec model with no story part (`attachStory(StoryPart)`, what the viewer does when its
+  spec lists `story`) enters none, `seq.viewer.step.none`. **While a full-state step is shown, an edit is refused**
+  (`seq.viewer.step.frozen`, its hint to edit the step), a patch, a preview and a whole root alike (`apply`:
+  `frozen-step`): the step does not follow the spec, so the edit would show nothing. `load` leaves the step first: a new
+  document.
 - **The frame slot** (`setFrame(root)`, `frame`): an animation's frame shown over what is composed, `frame(step(...))`:
   no patch, no revision, no history step; the spec's hash never moves during an animation. `undefined` leaves it. The
   viewer ends a frame that changes the spec when the head moves under it (an edit, an undo, a load): the frame was made
@@ -415,22 +417,34 @@ owner, the store with it.
   rows rail (`rowsRailTracks`, by its track: replaced by a shown overview or miniature over its section), live while the
   behavior is listed, idle while every row shows (the layout's). The viewer's export leaves the rails out with its
   navigators (its picture without its chrome: no slim row); with `navigators: include` they are drawn plain.
-- `SeqViewerSpec`: `registry` (the core's entries), `behaviors` (a provider and its params), `bindings` (a preset,
-  override layers, extra action ids), `config` (`[item, value]` pairs), `ports` (factories with ownership), `ui` (the
-  parts; none for a headless viewer), `history` (the history port). `DefaultSeqViewerSpec()`
-  (`@molstar/seqx-viewer/default-spec`) lists the `seq` and records runtimes, the `hover`, `navigate`, `select`,
-  `cursor`, `addressing`, `editing`, `hoverCard` (its port `hoverCardOverlay()`) and `keysPanel` behaviors (the minimal
-  viewer lists neither: nothing of theirs is in its bundle), the default ports and the UI (`canvas`, and `history`: a
-  mounted viewer with no `history` given gets a `uiHistory()` stack of its own); an application spreads it. A headless
-  spread (`ui: undefined`) has no history, so its edits apply at once (`refs.add` and the editing commands answer at
-  once); a mounted one runs them in turn through its stack (`execute` waits for their message, `runCommand` gives `''`).
+- `SeqViewerSpec`: `registry` (the core's entries: format runtimes, layer types, layouts), `behaviors` (a provider and
+  its params), `bindings` (a preset, override layers, extra action ids), `config` (`[item, value]` pairs), `ports`
+  (factories with ownership), `ui` (the parts; none for a headless viewer), `history` (the history port), `story` (the
+  story part). `DefaultSeqViewerSpec()` (`@molstar/seqx-viewer/default-spec`) lists the `seq` and records runtimes, the
+  core's layer types and layouts (`BuiltInRenderRegistry`), the `hover`, `navigate`, `select`, `cursor`, `addressing`,
+  `editing`, `navigator`, `rows`, `hoverCard` (its port `hoverCardOverlay()`) and `keysPanel` behaviors, the story part
+  (`StoryPart`), the default ports and the UI (`canvas`, and `history: uiHistory`: a mounted viewer with no `history`
+  given gets a stack of its own from the factory); an application spreads it. A headless spread (`ui: undefined`) has no
+  history, so its edits apply at once (`refs.add` and the editing commands answer at once); a mounted one runs them in
+  turn through its stack (`execute` waits for their message, `runCommand` gives `''`).
+- **Injected, opt in**: what the spec does not list is not in the viewer's bundle. `createSeqViewer` imports no layer
+  type, layout, navigator, story, history or rows piece: the context is `composeSeqContext` of the spec's registry (the
+  canvas, the navigation's layouts and `renderSvg` draw its layer types and layouts alone; a layer of another type or a
+  section of another layout is said, `seq.render.layer.type`, `seq.render.layout`, and laid out as tracks); the
+  navigators (their models, `navigatorModel` and `navigator(def)`, and their export) are the `navigator` behavior's
+  handle (`NavigatorHandle`: none without it, and an export asked to include them says so,
+  `seq.render.navigator.export`); the rows rail's drags are the `rows` behavior's (`RowsHandle.railGesture`); story
+  steps and transitions are the `story` part (none: jumps and steps are cuts, `spec.enterStep` refuses,
+  `seq.viewer.step.none`); the mounted history is `ui.history`, a factory. Why: one rule for every part, listed or
+  absent, no lazy chunk a host's bundler must split, and the size a host pays follows what it lists; the size script's
+  minimal entry checks it (none of the unlisted modules in its bundle).
 - `createSeqViewer(spec, target?)` makes, in this order: the core's context (registry, configuration, ports), the models
-  (spec, view, hover, store, selection, highlight, addresses), the history (`spec.history`, else `uiHistory()` when
-  mounted with `ui.history`; bound to the spec), the binding table, the behaviors (one of each name; a behavior's
-  `commands` join the viewer's), then the UI into `target` when there is one: the toolbar the spec lists (`ui.toolbar`,
-  a function the host gives: `mountToolbar` of `@molstar/seqx-viewer/mount-toolbar`), then the canvas when the spec has
-  `ui.canvas`. Without a target it is headless: models, commands, frames, `hit`, SVG. Why the order: behaviors read the
-  models and the bindings, the UI the behaviors.
+  (spec, view, hover, store, selection, highlight, addresses), the history (`spec.history`, else `ui.history()` when
+  mounted; bound to the spec), the binding table (a behavior's `actions` bound only when it is listed), the behaviors
+  (one of each name; a behavior's `commands` join the viewer's), then the UI into `target` when there is one: the
+  toolbar the spec lists (`ui.toolbar`, a function the host gives: `mountToolbar` of
+  `@molstar/seqx-viewer/mount-toolbar`), then the canvas when the spec has `ui.canvas`. Without a target it is headless:
+  models, commands, frames, `hit`, SVG. Why the order: behaviors read the models and the bindings, the UI the behaviors.
 - The document is not part of the spec: `load(root, { view? })` sets the root and opens the sources; `settle()` waits
   for the picture (sources open, wanted data arrived, the view at rest).
 - **The frame** (`draw`): the renderer lays the view out when anything it reads changed, else redraws the emphasis
@@ -482,9 +496,9 @@ owner, the store with it.
   the teardown that follows asks for no frame; the frame callback and the settle timer are cancelled, then the mounted
   UI, the behaviors, the want set, the models and the context's owned ports go. After it no frame is pending and input
   is ignored. A spec that fails to compose (a behavior listed twice) retires what it made.
-- **Behaviors by provider**: the input finds a behavior by its provider (`viewer.behavior(HoverProvider)`), whatever the
-  spec calls it; one the spec does not list is a `seq.viewer.behavior.missing` issue (`behaviorIssues`), once, and the
-  gesture does nothing.
+- **Behaviors by name**: the input finds a behavior by its provider's name (`viewer.behavior<HoverBehavior>('hover')`,
+  or a provider), so it imports no provider; one the spec does not list is a `seq.viewer.behavior.missing` issue
+  (`behaviorIssues`), once, and the gesture does nothing.
 - `rested` moves once each time the picture comes to rest: when the frame laid out settled is drawn, `canvas.settleMs`
   after the view's last move; or `canvas.settleMs` after the last layout that changed what is drawn while the view was
   still (data arriving, the content's height). A move before the settled frame is drawn cancels that rest. What follows

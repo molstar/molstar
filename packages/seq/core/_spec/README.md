@@ -2198,6 +2198,11 @@ under the point as the hit's `state`. It reads every row (a logo of the rows sho
 - **What the layouts place** (`figure`): a text section draws every line, its box its content; `size.height: 'auto'` is
   the sections' content's height (measured from a first layout); a ring's window only with `window` (the view's
   `export.window` when absent, false: an exported map is a figure).
+- `exportSvg(spec, { size, types, layouts, navigatorExport?, … })` draws with what it is given (none of a kind when
+  absent: each layer said); `renderSvg(spec, options)` is `exportSvg` with the built-ins (`BuiltInLayerTypes`,
+  `BuiltInLayouts`, `NavigatorSvgExport`) unless the options name their own. Included navigators are drawn by the
+  `navigatorExport` part (`render/navigator-export`); without one an export asked to include them leaves them out,
+  `seq.render.navigator.export`.
 - `renderSvg(spec, { size, viewport?, runtimes, … })`: checks the spec and opens its model (`openModel`,
   `scope: 'view'`: the sources its view reads, `attachSources`: inline data through `seq`, a source node through its
   runtime, a template's source, the source of a numbering a layer names, which no layer's data does: a ruler's; assets
@@ -2236,9 +2241,10 @@ under the point as the hit's `state`. It reads every row (a logo of the rows sho
   `logo.profile` (info), `rows.order` (info), `rows.lazy` (info), `pairs.limit` (info), `pairs.systems`, `grid.systems`,
   `layer.axes`, `rows.layout`, `rows.second`, `view`, `color`, `theme.channel`, `theme.scheme`, `theme.measure`,
   `theme.color`, `scale.log` (info), `legend.unlisted` (info), `filter`, `line-style` (info), `numbering`,
-  `numbering.limit`, `numbering.source`, `numbering.rows`, `layer.type`, `layer.letters`, `axis.pending` (info),
-  `text.lines`, `follow.leader`, `follow.blocks`, `ring.image`, `follow.cycle`, `source`, `template.limit`, `unsettled`,
-  `navigator.of`, `navigator.path`, `navigator.rows` (info), `navigator.layer` (info); a test checks the catalog.
+  `numbering.limit`, `numbering.source`, `numbering.rows`, `layer.type`, `layout`, `layer.letters`, `axis.pending`
+  (info), `text.lines`, `follow.leader`, `follow.blocks`, `ring.image`, `follow.cycle`, `source`, `template.limit`,
+  `unsettled`, `navigator.of`, `navigator.path`, `navigator.rows` (info), `navigator.layer` (info), `navigator.export`;
+  a test checks the catalog.
 
 ## Stories
 
@@ -2291,14 +2297,23 @@ DOM-free; Seq* runs no clock (the viewer's animation port is the application's).
 `@molstar/seqx-core/context`: the headless composition. One place lists what a render needs; the viewer composes the
 same pieces. Nothing registers on import and there is no global registry.
 
-- `createSeqContext({ registry?, config?, ports? })`: the registry's runtimes, the configuration and the ports, and
-  through them `check`, `resolve`, `view` (the resolve passes) and `renderSvg`. `retire()` disposes what the context
-  made or was told to dispose.
-- **Registry entries** are data: `{ kind: 'format-runtime', runtime }` in this version. The same runtime object again is
-  no change; another under one name is an error listing every conflict (nothing registered). Layer types, themes and the
-  other kinds join when `renderSvg` takes them (a `types` option); run-time, atomic and undoable registration is the
-  viewer's followup. Why only runtimes: a layer type the SVG export cannot draw would make the canvas and the export
-  differ.
+- `composeSeqContext({ registry?, config?, ports? })`: the registry's runtimes, layer types and layouts as listed, the
+  configuration and the ports, and through them `check`, `resolve`, `view` (the resolve passes) and `renderSvg`
+  (`exportSvg` with the registry's types and layouts, no navigators). `createSeqContext(spec)`, the default: the core's
+  layer types and layouts (`BuiltInRenderRegistry`) listed before the spec's own entries, and the navigators in its
+  exports (`NavigatorSvgExport`). `retire()` disposes what the context made or was told to dispose. Why two: what a
+  composition does not list is not in its bundle (a viewer composes the base), and the headless default draws
+  everything.
+- **Registry entries** are data: `{ kind: 'format-runtime', runtime }`, `{ kind: 'layer-type', type }` and
+  `{ kind: 'layout', layout }`, each keyed by its provider's `name`. The same object again is no change; another under
+  one name is an error listing every conflict (nothing registered), so a host's own type of a built-in's name goes in
+  `composeSeqContext`. The canvas and the SVG export draw the same registry's layer types: a layer of a type not listed
+  is said (`seq.render.layer.type`) and not drawn, a section of a layout not listed is said (`seq.render.layout`) and
+  laid out as tracks. Run-time, atomic and undoable registration is the viewer's followup.
+- **No built-in table a renderer falls back to**: `Renderer` and `NavigatorRenderer` take `types` and `layouts`;
+  `layoutView` and `exportSvg` given none draw none. `BuiltInLayerTypes` and `BuiltInLayouts`
+  (`@molstar/seqx-core/render/built-ins`, and `BuiltInRender` to spread into a renderer's options) are the default
+  compositions' lists, imported by them alone: `createSeqContext`, `renderSvg` and the viewer's default spec.
 - **Configuration** is `[item, value]` pairs (`SeqConfigItem`, `configItem(key)`); the core's items are `SeqCoreConfig`
   (`theme`, `render`, `resolve`). Items of other keys are another package's (the viewer's `group.item` keys).
 - **Ports** are factories with ownership, each called once; unset, the default: no reads (`NoAssets`) and the bundled
