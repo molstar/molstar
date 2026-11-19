@@ -13,6 +13,7 @@ import type { ThemeContext } from './channels.js';
 import { DefaultRenderConfig, type RenderConfig } from './config.js';
 import { DrawLists, EmphasisPasses, type PassName } from './draw-lists.js';
 import { EmptyOverlay, type Emphasis, type LayerType, type Overlay, type StoreReader } from './layer-type.js';
+import type { SectionLayoutType } from './layout/types.js';
 import type { TextMetrics } from './text.js';
 import type { SeqTokens } from './tokens.js';
 import { BuiltInLayerTypes, drawView, LayoutState, layoutView, type ViewLayout } from './tracks.js';
@@ -35,6 +36,8 @@ export interface RendererOptions {
   readonly text: TextMetrics;
   readonly config?: RenderConfig;
   readonly types?: Readonly<Record<string, LayerType<any, any>>>;
+  /** The section layouts by name (the built-ins by default): the viewer's navigation reads the same (`LayoutSource`). */
+  readonly layouts?: Readonly<Record<string, SectionLayoutType<any>>>;
   /** The schemes and measures the themes read (the built-ins by default): the composition's registry entries. */
   readonly theme?: Partial<Pick<ThemeContext, 'schemes' | 'measures'>>;
 }
@@ -282,6 +285,7 @@ export class Renderer {
         overlay,
         settled: input.settled ?? false,
         types: this.options.types ?? BuiltInLayerTypes,
+        ...(this.options.layouts ? { layouts: this.options.layouts } : {}),
         theme: { ...this.options.theme, cvdSafe: input.cvdSafe ?? false },
         ...(input.figure ? { figure: true } : {}),
         ...(input.windows ? { windows: true } : {}),

@@ -9,6 +9,7 @@ import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { type Issue, issueOf, type Node } from '@molstar/core/repr/tree';
 import { createSeqContext, type SeqContext } from '@molstar/seqx-core/context';
 import {
+  BuiltInLayouts,
   type Emphasis,
   type EmphasisHighlight,
   type Frame,
@@ -111,6 +112,8 @@ export class SeqViewer extends ReactiveModel {
   height = 0;
   /** The device pixel ratio of the last frame. */
   dpr = 1;
+  /** The section layouts by name: one map the frames draw with and the view's moves navigate by. */
+  readonly layouts = BuiltInLayouts;
   /** Frames drawn and layouts made: what a test or a profile reads. */
   readonly counts = { frames: 0, layouts: 0 };
 
@@ -188,6 +191,7 @@ export class SeqViewer extends ReactiveModel {
     // a section's moves are its layout's arithmetic over its placement in the last frame (_spec/README.md "ViewModel")
     this.view.setLayoutSource({
       placement: (section) => this.placementOf(section),
+      layouts: this.layouts,
       minScale: textMinScale(this.context.renderConfig),
     });
     this.hover = new HoverModel(this.spec, this.view, this.config);
@@ -554,10 +558,13 @@ export class SeqViewer extends ReactiveModel {
 
   /**
    * Every leading section's viewport (the frame's `viewports`, by address), as its layout reads it (a window; a text's
-   * anchor and letter size): the first's during a jump's motion the window `_viewport` eases (`at` the time). Kept while
-   * equal, so the frame's key holds; undefined when no section is placed.
+   * anchor and letter size): the first's `lead`, the window `_viewport` gave (eased during a jump's motion), computed
+   * once a frame. Kept while equal, so the frame's key holds; undefined when no section is placed.
    */
-  private _viewports(resolved: ResolvedView, at?: number): Readonly<Record<string, RenderViewport>> | undefined {
+  private _viewports(
+    resolved: ResolvedView,
+    lead: RenderViewport | undefined,
+  ): Readonly<Record<string, RenderViewport>> | undefined {
     const kept = this._viewportsKept;
     let n = 0;
     let same = kept !== undefined;
@@ -565,7 +572,7 @@ export class SeqViewer extends ReactiveModel {
     for (const s of resolved.sections) {
       if (this.view.isFollowing(s.address)) continue;
       const v = this.view.get(s.address);
-      const w = first ? this._viewport(resolved, at) : v && !v.pending ? v : undefined;
+      const w = first ? lead : v && !v.pending ? v : undefined;
       first = false;
       if (!v || !w) continue;
       const k = kept?.[s.address];
@@ -579,7 +586,7 @@ export class SeqViewer extends ReactiveModel {
     for (const s of resolved.sections) {
       if (this.view.isFollowing(s.address)) continue;
       const v = this.view.get(s.address);
-      const w = first ? this._viewport(resolved, at) : v && !v.pending ? v : undefined;
+      const w = first ? lead : v && !v.pending ? v : undefined;
       first = false;
       if (!v || !w) continue;
       out[s.address] = { start: w.start, end: w.end, ...(v.scale !== undefined ? { scale: v.scale } : {}) };
@@ -624,6 +631,7 @@ export class SeqViewer extends ReactiveModel {
         tokens: this.tokens,
         text: this.context.text,
         config: this.context.renderConfig,
+        layouts: this.layouts,
       });
       rr[0] = model;
       rr[1] = resolved;
@@ -644,11 +652,11 @@ export class SeqViewer extends ReactiveModel {
     this._updateEmphasis();
     const input = this._frameInput;
     const now = DomHost.now();
-    // every leading section its own viewport, read by its layout (_spec/README.md "Composition")
-    const viewports = this._viewports(resolved, now);
+    // every leading section its own viewport, read by its layout (_spec/README.md "Composition"); the first's once
+    const vp = this._viewport(resolved, now);
+    const viewports = this._viewports(resolved, vp);
     if (viewports) input.viewports = viewports;
     else delete input.viewports;
-    const vp = this._viewport(resolved, now);
     if (vp) {
       this._drawn.start = vp.start;
       this._drawn.end = vp.end;
@@ -910,7 +918,7 @@ export class SeqViewer extends ReactiveModel {
    */
   renderSvg(options: Partial<RenderSvgOptions> = {}): Promise<RenderSvgResult> {
     const resolved = this.view.resolved.value;
-    const viewports = resolved ? this._viewports(resolved) : undefined;
+    const viewports = resolved ? this._viewports(resolved, this._viewport(resolved)) : undefined;
     return this.context.renderSvg(this.spec.shown.value, {
       size: { width: this.width, height: this.height },
       ...(resolved ? { view: resolved.address } : {}),

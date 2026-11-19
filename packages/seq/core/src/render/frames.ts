@@ -42,6 +42,8 @@ export interface FrameLay extends ItemsBase {
 
 const Pieces: number[] = [];
 const Spans: number[] = [];
+/** The rows titled in a layout (reused: a layout makes no set). */
+const Seen = new Set<number>();
 
 export const FrameType: LayerType<FramePrep, FrameLay> = {
   name: 'frame',
@@ -85,7 +87,8 @@ export const FrameType: LayerType<FramePrep, FrameLay> = {
     }
     if (lay.titled.length < lay.m) lay.titled = new Uint8Array(lay.m * 2);
     // a title where the region starts: its first mark in display order whose left end is its own
-    const seen = new Set<number>();
+    const seen = Seen;
+    seen.clear();
     for (let j = 0; j < lay.m; j++) {
       const row = lay.marks[4 * j + 3];
       lay.titled[j] = 0;
@@ -94,6 +97,7 @@ export const FrameType: LayerType<FramePrep, FrameLay> = {
         lay.titled[j] = 1;
       }
     }
+    seen.clear();
     return lay;
   },
 

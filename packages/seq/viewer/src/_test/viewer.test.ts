@@ -89,6 +89,20 @@ describe('createSeqViewer', () => {
     off();
   });
 
+  it('a frame reads its window once, and draws with the layouts its moves navigate by', async () => {
+    const { viewer } = await make();
+    const internal = viewer as unknown as {
+      _viewport(...args: unknown[]): unknown;
+      _renderer: { options: { layouts?: unknown } };
+      view: { _layouts: { layouts?: unknown } };
+    };
+    const spy = vi.spyOn(internal, '_viewport');
+    viewer.draw();
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(internal._renderer.options.layouts).toBe(viewer.layouts);
+    expect(internal.view._layouts.layouts).toBe(viewer.layouts);
+  });
+
   it('lists a behavior once and an empty spec makes a viewer with nothing to do', () => {
     const spec = DefaultSeqViewerSpec();
     const twice = { ...spec, behaviors: [...spec.behaviors, spec.behaviors[0]] };
