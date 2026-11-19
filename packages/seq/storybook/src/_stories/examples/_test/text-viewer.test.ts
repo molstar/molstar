@@ -206,10 +206,15 @@ describe('a text section and the rest of the view', () => {
   });
 
   it('copies the selection’s letters as shown (selection.copyLetters), each run a line', async () => {
+    const copied: string[] = [];
+    vi.stubGlobal('navigator', { clipboard: { writeText: async (t: string) => void copied.push(t) } });
     const v = await open();
     await v.execute('selection.add', { range: { system: System, start: 10, end: 25 } });
     await v.execute('selection.add', { range: { system: System, start: 40, end: 44 } });
-    expect(await v.execute('selection.copy-letters', {})).toBe(`${P53.slice(10, 25)}\n${P53.slice(40, 44)}`);
-    expect(await v.execute('selection.copy-letters', { stored: true })).toBe(P53.slice(10, 44));
+    // the letters to the clipboard, their count the message
+    expect(await v.execute('selection.copy-letters', {})).toBe('Copied 19 letters');
+    expect(copied.at(-1)).toBe(`${P53.slice(10, 25)}\n${P53.slice(40, 44)}`);
+    expect(await v.execute('selection.copy-letters', { stored: true })).toBe('Copied 34 letters');
+    expect(copied.at(-1)).toBe(P53.slice(10, 44));
   });
 });

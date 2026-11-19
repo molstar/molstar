@@ -9,8 +9,8 @@
 // collapsed stretch's are not), a run of consecutive display units a line; a section of several letters rows gives
 // them as FASTA lines (`>label`, then the row's letters). With `stored`, the stored letters of the selection's span on
 // the section's system, in position order, as stored. The section: the cursor's, else the first the selection projects
-// onto with letters. Letters not held yet are loaded first; the text is the command's message and is written through
-// the behavior's `write` (the platform's clipboard by default).
+// onto with letters. Letters not held yet are loaded first; the text is written through the behavior's `write` (the
+// platform's clipboard by default), the command's message says how many letters ("Copied 393 letters").
 
 import { type ResolvedLayer, type ResolvedSection, projectOntoView } from '@molstar/seqx-core/view';
 import type { Want } from '@molstar/seqx-core/data';
@@ -145,7 +145,10 @@ export function copyLettersCommand(
       const text = await lettersOf(!!ctx?.stored);
       if (!text) return { message: '' };
       await write(text);
-      return { message: text };
+      // a count, not the text: a message is shown and announced (a chromosome's letters would be read out)
+      let n = 0;
+      for (const line of text.split('\n')) if (!line.startsWith('>')) n += line.length;
+      return { message: `Copied ${n.toLocaleString('en-US')} letter${n === 1 ? '' : 's'}` };
     },
   };
 }

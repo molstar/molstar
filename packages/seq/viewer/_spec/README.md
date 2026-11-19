@@ -505,8 +505,9 @@ Small policies over the models (`behaviors/`), each reading the bindings.
   a `letters` layer; in its reading order (display order, a reversed section's too), complemented as drawn, only the
   positions shown (a collapsed stretch's are not), a run of consecutive units a line, a section of several letters rows
   as FASTA lines (`>label`, then the row's letters); `stored: true` copies the stored letters of the selection's span on
-  that system instead. Letters not held are loaded first (three rounds at most). The text is the message and goes
-  through the behavior's `write` (`SelectProvider`'s param; the platform's clipboard when there is one). Why what is
+  that system instead. Letters not held are loaded first (three rounds at most). The text goes through the behavior's
+  `write` (`SelectProvider`'s param; the platform's clipboard when there is one); the message is a count ("Copied 393
+  letters"): a message is shown and announced, never a sequence. Why what is
   shown: what a reader selected is what they saw (the author's decision).
 - `cursor`: the keyboard cursor's commands, on the cursor's section (else the context's, else the first; the first key
   places the cursor at the section's first position shown): `cursor.prev`, `cursor.next` (a cell in display order,

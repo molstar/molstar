@@ -130,14 +130,20 @@ describe('the view across layouts', () => {
   });
 
   it('copies a reversed DNA section’s letters complemented, in its reading order; stored, as stored', async () => {
+    // the text goes to the clipboard only; the command says how many letters (a message, not the sequence)
+    const copied: string[] = [];
+    vi.stubGlobal('navigator', { clipboard: { writeText: async (t: string) => void copied.push(t) } });
     const v = await make();
     await v.execute('selection.add', { range: { system: '/data/d', start: 2, end: 6 } });
     // stored CCGG at 2–5; read right to left on the reversed section, each complemented: CCGG
-    expect(await v.execute('selection.copy-letters', {})).toBe('CCGG');
+    expect(await v.execute('selection.copy-letters', {})).toBe('Copied 4 letters');
+    expect(copied.at(-1)).toBe('CCGG');
     await v.execute('selection.clear', {});
     await v.execute('selection.add', { range: { system: '/data/d', start: 0, end: 3 } });
     // AAC read backwards (CAA), complemented: GTT
-    expect(await v.execute('selection.copy-letters', {})).toBe('GTT');
-    expect(await v.execute('selection.copy-letters', { stored: true })).toBe('AAC');
+    expect(await v.execute('selection.copy-letters', {})).toBe('Copied 3 letters');
+    expect(copied.at(-1)).toBe('GTT');
+    await v.execute('selection.copy-letters', { stored: true });
+    expect(copied.at(-1)).toBe('AAC');
   });
 });
