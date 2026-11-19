@@ -517,14 +517,15 @@ export class SelectionModel extends ReactiveModel {
     return { elements: EmptyElements, location: loc, shown: loc };
   }
 
-  /**
-   * An item's whole extent, kept while it is selected: the hit's (a layer gives the piece hit, one of a row wrapped over
-   * a cyclic origin) with what `extentOf` resolves of its key. Undefined for a cell.
-   */
+  /** An item's whole extent for a hit (`_extentOfHit`), kept while it is selected; undefined for a cell. */
   extentOfHit(hit: Hit): Location | undefined {
     return this._extentOfHit(hit);
   }
 
+  /**
+   * An item's whole extent, kept while it is selected: the hit's (a layer gives the piece hit, one of a row wrapped over
+   * a cyclic origin) with what `extentOf` resolves of its key. Undefined for a cell.
+   */
   private _extentOfHit(hit: Hit): Location | undefined {
     const el = hit.element;
     if (!el) return undefined;

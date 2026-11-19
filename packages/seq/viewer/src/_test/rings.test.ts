@@ -68,13 +68,13 @@ describe('a ring and its linear detail in the ViewModel', () => {
 
   it('a ring following a detail: the detail leads, the ring shows its whole axis with the window the detail’s range', () => {
     const view = setup(true);
-    view.setRange(Detail, 200, 260);
-    expect(view.get(Detail)).toMatchObject({ start: 200, end: 260 });
-    expect(view.get(Ring)).toMatchObject({ start: 200, end: 260 });
-    // a linear leader's window stays within its axis (its layout does not wrap): the ring's window the same
     view.setRange(Detail, 590, 630);
-    expect(view.get(Detail)).toMatchObject({ start: 560, end: 600 });
-    expect(view.get(Ring)).toMatchObject({ start: 560, end: 600 });
+    expect(view.get(Detail)).toMatchObject({ start: 590, end: 630 });
+    // the ring follows: its viewport is the leader's range carried over the origin
+    expect(view.get(Ring)).toMatchObject({ start: 590, end: 630, pieces: [590, 600, 0, 30] });
+    // a linear view of a cyclic axis pans across its origin, never clamped at the total
+    view.pan(Detail, 20);
+    expect(view.get(Detail)).toMatchObject({ start: 10, end: 50 });
   });
 
   it('a window wider than half the ring is kept as set, never flipped to the other side', () => {

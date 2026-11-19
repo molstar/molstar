@@ -155,8 +155,9 @@ export function windowBehavior(view: ViewModel, config: ViewerConfig = DefaultVi
     begin(section, part, at) {
       const v = view.get(section);
       if (!v || v.pending || !view.canMove(section) || !Number.isFinite(at)) return false;
+      // unwrapped over the origin where the section's window wraps it (`view.wraps`: a cyclic axis in tracks and rings)
       const axis = view.resolved.value?.sections.find((s) => s.address === section)?.axis;
-      const total = axis?.cyclic ? axisTotal(axis) : undefined;
+      const total = axis && view.wraps(section) ? axisTotal(axis) : undefined;
       drag = { section, part, at0: at, start: v.start, end: v.end, last: at, moved: 0, total };
       return true;
     },

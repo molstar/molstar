@@ -81,7 +81,7 @@ describe('the window behavior', () => {
     expect(byId.get('window.grow')!.when!({ section: undefined })).toBe('No window to move');
   });
 
-  it('on a cyclic axis a body drag over the origin is a short step on: past it where the layout wraps, else held', () => {
+  it('on a cyclic axis a body drag over the origin is a short step on where the layout wraps, else the pointer’s place', () => {
     const ring = '/views/main/ring';
     const setup = (wraps: boolean) => {
       const b = createSeqSpec({ title: 'ring' });
@@ -89,9 +89,8 @@ describe('the window behavior', () => {
       b.views.view('main', (v) => v.section('ring', { of: c }).track('letters').layer('l', { type: 'letters' }));
       const config = viewerConfig({ viewport: { maxPxPerPosition: 4 } });
       const view = new ViewModel(new SpecModel(b.build()), config);
-      // a ring's stand-in: the tracks layout said to draw its window over the origin
-      if (wraps)
-        view.setLayoutSource({ placement: () => undefined, layouts: { tracks: { ...TracksLayout, wraps: true } } });
+      // the tracks layout wraps a cyclic window; a layout that does not (text's) said so here
+      view.setLayoutSource({ placement: () => undefined, layouts: { tracks: { ...TracksLayout, wraps } } });
       view.setWidth(ring, 40);
       view.setRange(ring, 80, 100);
       return { view, w: windowBehavior(view, config), range: () => [view.get(ring)!.start, view.get(ring)!.end] };
@@ -107,11 +106,11 @@ describe('the window behavior', () => {
     r.w.dragTo(90);
     expect(r.range()).toEqual([75, 95]);
     r.w.end();
-    // the tracks layout draws no window over the origin: held at the end, not thrown back to the start
+    // a layout that draws no window over the origin: the unit under the pointer as it is (one rule: `view.wraps`)
     const t = setup(false);
     t.w.begin(ring, 'body', 95);
     t.w.dragTo(5);
-    expect(t.range()).toEqual([80, 100]);
+    expect(t.range()).toEqual([0, 20]);
     t.w.dragTo(90);
     expect(t.range()).toEqual([75, 95]);
   });

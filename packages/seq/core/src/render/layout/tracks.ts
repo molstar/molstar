@@ -97,6 +97,8 @@ export function sameBands(a: Viewport['bands'], b: Viewport['bands']): boolean {
 export const TracksLayout: SectionLayoutType<StripPlacement> = {
   name: 'tracks',
   fillBands: true,
+  // a cyclic axis's window passes its origin: drawn as its two runs (the axis's pieces twice, `layoutView`)
+  wraps: true,
   place(section, ctx: PlaceContext, _viewport, prev) {
     if (section.blocks) return placeBlocks(section, ctx, prev instanceof BlockPlacement ? prev : undefined);
     const p = prev && !(prev instanceof BlockPlacement) ? prev : new StripPlacement();

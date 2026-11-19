@@ -248,7 +248,9 @@ function followAxis(
   config: RenderConfig,
 ) {
   const axis = { ...section.axis, ...(own ? { ranges: own } : {}) };
-  if (own && window.end <= leader.total) {
+  // a cyclic leader's window past its system's end (a linear view across its origin, its pieces twice) wraps
+  const turn = leader.cyclic && leader.length !== undefined ? Math.min(leader.total, leader.length) : leader.total;
+  if (own && window.end <= turn) {
     const w = followWindow(section, leader, axis, window.start, window.end, config.followArc);
     if (w && !w.wraps) return { pieces: own, viewport: { start: w.start, end: w.end } };
   }
@@ -271,6 +273,22 @@ function windowPositions(leader: AxisTransform, w: Viewport): number[] {
     at(0, Math.min(w.end - total, w.start));
   } else at(w.start, w.end);
   return out;
+}
+
+const Twice = new WeakMap<readonly number[], readonly number[]>();
+
+/**
+ * A cyclic axis's pieces under a window past its total (_spec/README.md "Render", Tracks layout: a linear view panned
+ * across its origin): the whole system twice, so the window's units go on over the origin as the second turn's (two
+ * runs, no break between); else the pieces as they are. Kept per pieces array (a pan makes none).
+ */
+function turned(section: ResolvedSection, own: readonly number[], viewport: Viewport | undefined): readonly number[] {
+  const { cyclic, length } = section.axis;
+  if (!cyclic || !viewport || own.length !== 2 || own[0] !== 0 || own[1] !== length || viewport.end <= own[1])
+    return own;
+  let t = Twice.get(own);
+  if (!t) Twice.set(own, (t = [own[0], own[1], own[0], own[1]]));
+  return t;
 }
 
 /**
@@ -748,7 +766,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       const own = ownPieces(section, input.model, input.data);
       // a layout that reads its viewport its own way (text: an anchor; a ring: its window) places over the whole axis
       const viewport = layoutOf(section).followWindow ? undefined : (input.viewports?.[at] ?? input.viewport);
-      if (own) made = { pieces: own, ...(viewport ? { viewport } : {}) };
+      if (own) made = { pieces: turned(section, own, viewport), ...(viewport ? { viewport } : {}) };
     }
     const axis = made?.pieces.length
       ? AxisTransform.on(section.axis, made.pieces, dataX, dataW, dpr, made.viewport)

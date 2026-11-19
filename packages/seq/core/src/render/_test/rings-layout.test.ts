@@ -416,6 +416,34 @@ describe('a ring over tiles', () => {
   });
 });
 
+describe('a linear view of a cyclic system across its origin', () => {
+  it('draws the window past the total as its two runs, the units on over the origin; a follower the same', async () => {
+    const b = createSeqSpec({ title: 'linear' });
+    const c = b.data.sequence('construct', { alphabet: 'dna', letters: ringLetters(), cyclic: true });
+    b.views.view('v', (v) => {
+      const lin = v.section('lin', { of: c });
+      lin.track('letters').layer('letters', { type: 'letters' });
+      v.section('ring', { of: c, layout: 'rings', follow: lin, labels: 'none' })
+        .track('r')
+        .layer('r', { type: 'ruler' });
+    });
+    const s = await settle(b.build());
+    const f = await s.frame({ size: Size, viewports: { '/views/v/lin': { start: 590, end: 630 } } });
+    const lin = f.layout.sections[0];
+    const a = lin.axis!;
+    expect([a.u0, a.u1]).toEqual([590, 630]);
+    expect(a.visible([])).toEqual([590, 600, 0, 30]);
+    // a letter a position, 40 of them, the unit past the total the origin's
+    const y = lin.tracks[0].box.y + 2;
+    expect(hitAtPage(f, a.xOfUnit(595.5), y)).toMatchObject({ position: 595 });
+    expect(hitAtPage(f, a.xOfUnit(600.5), y)).toMatchObject({ position: 0 });
+    expect(hitAtPage(f, a.xOfUnit(629.5), y)).toMatchObject({ position: 29 });
+    // the ring's window is the linear view's range, over the origin
+    const p = ringOf(f).placement as RingPlacement;
+    expect([p.windowStart, p.windowEnd]).toEqual([590, 630]);
+  });
+});
+
 describe('a ring with no strips', () => {
   const emptyRing = (range?: [number, number]) => {
     const b = createSeqSpec({ title: 'empty ring' });

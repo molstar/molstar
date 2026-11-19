@@ -634,19 +634,32 @@ export class ViewModel extends ReactiveModel {
   }
 
   /**
-   * What a section's layout's arithmetic reads (_spec/README.md "ViewModel", Layouts): its axis's total, its group's
-   * width (`g`) or its own, its placement in the last frame; undefined while it cannot be placed (no length or width):
-   * a move is then an intent, a window of offsets.
-   */
-  /**
-   * Whether a section's window wraps its cyclic axis's origin (its layout's `wraps`: a ring's): a range between two
-   * of its positions is then the shorter arc round the circle.
+   * Whether a section's window wraps its cyclic axis's origin (its layout's `wraps`: tracks and rings; a text's anchor
+   * does not): one rule for its navigation, its window's drags and its input.
    */
   wraps(section: string): boolean {
     const s = this._sections.get(section);
     return !!s && s.section.axis.cyclic && this._layoutOf(s.section.layout).wraps === true;
   }
 
+  /**
+   * Whether two ends on a section are read as the shorter arc between them: a layout that draws the whole circle (one
+   * with a `window`: a ring), or a wrapping window over the origin now (a linear view panned across it).
+   */
+  arcs(section: string): boolean {
+    if (!this.wraps(section)) return false;
+    const s = this._sections.get(section)!;
+    if (this._layoutOf(s.section.layout).window) return true;
+    const v = this.get(section);
+    const total = axisTotal(s.section.axis);
+    return !!v && total !== undefined && v.end > total;
+  }
+
+  /**
+   * What a section's layout's arithmetic reads (_spec/README.md "ViewModel", Layouts): its axis's total, its group's
+   * width (`g`) or its own, its placement in the last frame; undefined while it cannot be placed (no length or width):
+   * a move is then an intent, a window of offsets.
+   */
   private _navContext(section: string, g?: Group): NavContext | undefined {
     const s = this._sections.get(section);
     const total = s && axisTotal(s.section.axis);
@@ -658,8 +671,8 @@ export class ViewModel extends ReactiveModel {
       total,
       width,
       height: placement?.box.height ?? 0,
-      // a cyclic axis's window passes its origin where its layout draws it there (`wraps`: a ring's); tracks and text
-      // keep it within the axis (their leader's transform ends at its total)
+      // a cyclic axis's window passes its origin where its layout draws it there (`wraps`: tracks, rings); a text's
+      // anchor keeps within the axis
       cyclic: s.section.axis.cyclic && this._layoutOf(g?.layout ?? s.section.layout).wraps === true,
       maxScale: this.config.viewport.maxPxPerPosition,
       ...(minScale !== undefined ? { minScale } : {}),

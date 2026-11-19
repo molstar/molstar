@@ -219,12 +219,14 @@ export function selectBehavior(
       // its end cells, never another block's positions)
       const offset =
         (at ?? v.start + (Math.min(Math.max(x, 0), v.width - 1e-6) * (v.end - v.start)) / v.width) - d.offset;
-      const cell = d.block ? Math.min(Math.max(Math.floor(offset), 0), total - 1) : Math.floor(offset);
+      let cell = d.block ? Math.min(Math.max(Math.floor(offset), 0), total - 1) : Math.floor(offset);
+      // a window over a cyclic origin: its units past the total are the next turn's
+      if (cell >= total && view.wraps(section)) cell -= total;
       // the middle of the cell at the offset: an offset on a piece's end names no position past it
       const position = positionAt(axis, cell + 0.5);
       if (position === undefined) return false;
-      // round a ring: the shorter arc between the ends (`view.wraps`)
-      return selection.dragTo(position, hit && hit.system === d.system ? hit : undefined, axis, view.wraps(section));
+      // round a ring, or across a window's origin: the shorter arc between the ends (`view.arcs`)
+      return selection.dragTo(position, hit && hit.system === d.system ? hit : undefined, axis, view.arcs(section));
     },
     endDrag() {
       drag = undefined;

@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { type Placement, PlacePoint, type Hit as RenderHit } from '@molstar/seqx-core/render';
+import { type Placement, PlacePoint, type Hit as RenderHit, RingPlacement } from '@molstar/seqx-core/render';
 import { cancelFrameCallback, DomHost, requestFrameCallback } from '@molstar/ui/dom';
 import type { Axis } from '@molstar/seqx-core/view';
 import {
@@ -172,7 +172,9 @@ export class ViewerInput {
    * next, read from the placement by angle, the shorter way round; undefined elsewhere.
    */
   private _arcUnits(section: string, x0: number, y0: number, x1: number, y1: number): number | undefined {
-    if (!this.viewer.view.wraps(section)) return undefined;
+    // the window follows the pointer round a ring (one drawing the whole circle); a linear view pans by px
+    if (!this.viewer.view.arcs(section) || !(this.viewer.placementOf(section) instanceof RingPlacement))
+      return undefined;
     const a = this.offsetAt(section, x0, y0);
     const b = this.offsetAt(section, x1, y1);
     const v = this.viewer.view.get(section);
@@ -550,7 +552,7 @@ export class ViewerInput {
     // a section of blocks on several systems (its axis its own units): the block's axis, from the block's offset
     const block = hit.block !== undefined && s.axis.system !== hit.system ? s.blocks?.[hit.block] : undefined;
     const at = block ? (block.offset ?? 0) : 0;
-    const r = this._focusOn(block ? block.axis : s.axis, hit, !block && this.viewer.view.wraps(section));
+    const r = this._focusOn(block ? block.axis : s.axis, hit, !block && this.viewer.view.arcs(section));
     return r && at ? { start: r.start + at, end: r.end + at } : r;
   }
 

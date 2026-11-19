@@ -1236,6 +1236,9 @@ target. A floor of 16 px (a narrower window grows about its middle); its parts h
 
 ### Tracks layout
 
+- **A cyclic axis's window past its total** (a linear view panned across its origin, `wraps`): the transform takes the
+  whole system twice, so the window's units go on over the origin (two runs, no break between); a follower of it wraps
+  as of a ring's window.
 - **On the interface** (`layout/tracks.ts`): one strip a section (a block in view with blocks: Blocks), translated by
   nothing (its frame the page), its bands the tracks stacked with `trackGap`; its chrome the label column (each track's
   label, the filter chip, the direction mark). Its draw lists are the same before and after the restatement but for the

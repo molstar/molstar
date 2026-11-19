@@ -154,9 +154,8 @@ export interface SectionLayoutType<Kept = unknown> {
   sameKey(a: Viewport | undefined, b: Viewport | undefined): boolean;
   readonly nav: SectionNav;
   /**
-   * Its window may pass a cyclic axis's origin and draws there (a ring's): the viewer's navigation then wraps it
-   * (`NavContext.cyclic`). Absent, a window stays within its axis (tracks and text: a leader's transform ends at its
-   * total).
+   * Its window may pass a cyclic axis's origin and draws there (tracks: the system twice; a ring's): the viewer's
+   * navigation then wraps it (`NavContext.cyclic`). Absent, a window stays within its axis (text: an anchor).
    */
   readonly wraps?: boolean;
   /**
