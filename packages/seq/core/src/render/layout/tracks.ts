@@ -15,6 +15,7 @@ import { Anchor, type PassName, type PassWriter } from '../draw-lists.js';
 import type { Emphasis, Hit } from '../layer-type.js';
 import type { SeqTokens } from '../tokens.js';
 import type { SectionLayout, TrackLayout } from '../tracks.js';
+import { BlockPlacement, blockChrome, placeBlocks } from './blocks.js';
 import { StripPlacement } from './strips.js';
 import type { NavContext, PlaceContext, SectionLayoutType, SectionNav, StepDir } from './types.js';
 
@@ -26,6 +27,8 @@ export function clampWindow(c: NavContext, v: Viewport): Viewport {
   const total = c.total;
   const w = Math.min(Math.max(v.end - v.start, Math.min(c.width / c.maxScale, total)), total);
   if (c.cyclic) {
+    // as wide as the axis: the fit (a whole turn from elsewhere would show the origin mid-window, a follower over it)
+    if (w >= total) return v.start === 0 && v.end === total ? v : { ...v, start: 0, end: total };
     const s = ((v.start % total) + total) % total;
     return s === v.start && w === v.end - v.start ? v : { ...v, start: s, end: s + w };
   }
@@ -96,8 +99,11 @@ export function sameBands(a: Viewport['bands'], b: Viewport['bands']): boolean {
 export const TracksLayout: SectionLayoutType<StripPlacement> = {
   name: 'tracks',
   fillBands: true,
-  place(_section, ctx: PlaceContext, _viewport, prev) {
-    const p = prev ?? new StripPlacement();
+  // a cyclic axis's window passes its origin: drawn as its two runs (the axis's pieces twice, `layoutView`)
+  wraps: true,
+  place(section, ctx: PlaceContext, _viewport, prev) {
+    if (section.blocks) return placeBlocks(section, ctx, prev instanceof BlockPlacement ? prev : undefined);
+    const p = prev && !(prev instanceof BlockPlacement) ? prev : new StripPlacement();
     const strips = p.strips;
     const { config } = ctx;
     strips.reset(ctx.bands.length);
@@ -121,12 +127,19 @@ export const TracksLayout: SectionLayoutType<StripPlacement> = {
   },
   sameKey: sameWindow,
   nav: TracksNav,
-  chrome(s, pass, out, _emphasis, _strip, band) {
+  chrome(s, pass, out, _emphasis, strip, band) {
+    const p = s.placement;
+    if (p instanceof BlockPlacement) {
+      blockChrome(s, p, pass, out, strip, band);
+      if (strip > 0 && !p.stacked) return;
+    }
     if (pass !== 'labels' || band < 0) return;
     const t = s.tracks[band];
     if (!t || t.box.y >= s.pageHeight) return;
-    drawLabel(out, t, s.tokens, s.config);
-    if (band === 0 && s.mark) drawMark(out, s, t, s.tokens, s.config);
+    // a stack's later blocks: each its row's labels at its own place
+    const dy = strip > 0 && p instanceof BlockPlacement ? p.strips.bandY[strip * p.strips.bands + band] - t.box.y : 0;
+    drawLabel(out, t, s.tokens, s.config, dy);
+    if (band === 0 && s.mark && strip <= 0) drawMark(out, s, t, s.tokens, s.config);
   },
   hitChrome(s, x, y) {
     for (const t of s.tracks) {
@@ -139,11 +152,11 @@ export const TracksLayout: SectionLayoutType<StripPlacement> = {
   },
 };
 
-/** A track's label in the label column, faded past it. */
-function drawLabel(out: PassWriter, t: TrackLayout, tokens: SeqTokens, config: RenderConfig) {
+/** A track's label in the label column, faded past it (`dy` below its first row: a stack's later blocks). */
+function drawLabel(out: PassWriter, t: TrackLayout, tokens: SeqTokens, config: RenderConfig, dy = 0) {
   const g = out.args;
   g[0] = config.inset;
-  g[1] = t.labelY;
+  g[1] = t.labelY + dy;
   g[2] = t.labelWidth;
   const f = t.filter;
   // the label fades before the chip

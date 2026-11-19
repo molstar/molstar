@@ -86,6 +86,15 @@ export {
   type StoreReader,
   sectionId,
 } from './layer-type.js';
+export { BlockMetrics, BlockPlacement } from './layout/blocks.js';
+export {
+  RingMetrics,
+  type RingParams,
+  RingPlacement,
+  RingsLayout,
+  RingsNav,
+  ringParams,
+} from './layout/rings.js';
 export { PlacePoint, StripPlacement, Strips, WarpKind } from './layout/strips.js';
 export {
   lineEnd,
@@ -113,14 +122,14 @@ export type {
   WindowPart,
 } from './layout/types.js';
 export { PolarWarp, TranslateWarp } from './layout/warp.js';
-export { drawWindow, WindowMetrics, windowExtent, windowPart } from './window.js';
+export { drawWindow, drawWindowArgs, WindowMetrics, windowExtent, windowPart } from './window.js';
 export { type LettersLay, type LettersPrep, LettersType, shownLetters } from './letters.js';
 export { type RangesLay, type RangesPrep, RangesType } from './ranges.js';
 export { fmt, recordDrawLists } from './record.js';
 export { labelStep, type RulerLay, type RulerPrep, RulerType } from './ruler.js';
 export { type Frame, type FrameInput, Renderer, type RendererOptions } from './renderer.js';
 export { type SecondaryLay, type SecondaryPrep, SecondaryType, secondaryKind } from './secondary.js';
-export { SquircleHandle, squirclePath, squircleRadius } from './squircle.js';
+export { SquircleHandle, squirclePath, squirclePathArgs, squircleRadius } from './squircle.js';
 export { drawListsToSvg, escapeXml, type SvgOptions } from './svg.js';
 export { bundledTextMetrics, bundledWidth, createTextMetrics, parseFont, type TextMetrics } from './text.js';
 export {
@@ -151,6 +160,7 @@ export {
   LayoutState,
   layerKey,
   layoutView,
+  multiSystem,
   type SectionLayout,
   sectionLayoutName,
   type TrackLayout,

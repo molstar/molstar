@@ -155,8 +155,9 @@ export function windowBehavior(view: ViewModel, config: ViewerConfig = DefaultVi
     begin(section, part, at) {
       const v = view.get(section);
       if (!v || v.pending || !view.canMove(section) || !Number.isFinite(at)) return false;
+      // unwrapped over the origin where the section's window wraps it (`view.wraps`: a cyclic axis in tracks and rings)
       const axis = view.resolved.value?.sections.find((s) => s.address === section)?.axis;
-      const total = axis?.cyclic ? axisTotal(axis) : undefined;
+      const total = axis && view.wraps(section) ? axisTotal(axis) : undefined;
       drag = { section, part, at0: at, start: v.start, end: v.end, last: at, moved: 0, total };
       return true;
     },
@@ -174,7 +175,20 @@ export function windowBehavior(view: ViewModel, config: ViewerConfig = DefaultVi
         } else d.moved = at - d.at0;
         return move(d.section, d.start + d.moved, d.end + d.moved);
       }
-      // an end: the other held; an inward drag on a floored window keeps it (the floor holds its far end)
+      // an end: the other held; an inward drag on a floored window keeps it (the floor holds its far end). On a cyclic
+      // axis the pointer is unwrapped against its last place as the body's is (a ring's grip dragged over the origin),
+      // from the grip's own turn
+      if (d.total !== undefined) {
+        const t = d.total;
+        if (d.moved === 0 && d.last === d.at0) {
+          const grip = d.part === 'start' ? d.start : d.end;
+          d.last = d.at0 + Math.round((grip - d.at0) / t) * t;
+        }
+        const step = ((((at - d.last + t / 2) % t) + t) % t) - t / 2;
+        d.last += step;
+        d.moved = 1;
+        at = d.last;
+      }
       const held = d.part === 'start' ? d.end : d.start;
       const s = d.part === 'start' ? Math.min(at, held) : held;
       const e = d.part === 'start' ? held : Math.max(at, held);

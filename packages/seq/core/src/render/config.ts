@@ -126,6 +126,23 @@ export interface RenderConfig {
    */
   readonly ruler: { readonly labelGap: number };
   /**
+   * Rings (_spec/README.md "Render", Rings layout): the hole a share of the radius at least (0.35: room for the title,
+   * chords readable), the diameter's cap (720 px: a map, not a wall), the gap between blocks (1°: a boundary, Circos),
+   * letters `upright` or along the ring (`tangent`), the hole's title (`title`: the name and length; `none`), the
+   * outside labels' gap from the rings and their leaders' bend (8 and 12 px: leaders fan out over the ruler), and when
+   * the window is drawn (`followed`: only while a section follows the ring; `always`, idle when none does).
+   */
+  readonly rings: {
+    readonly hole: number;
+    readonly maxDiameter: number;
+    readonly blockGap: number;
+    readonly letters: 'upright' | 'tangent';
+    readonly center: 'title' | 'none';
+    readonly labelGap: number;
+    readonly leaderBend: number;
+    readonly window: 'followed' | 'always';
+  };
+  /**
    * The strings (texts and fonts) a renderer's draw lists keep interned across frames: a frame drawn again interns
    * nothing new; past this many, a full redraw starts the table again.
    */
@@ -189,6 +206,16 @@ export const DefaultRenderConfig: RenderConfig = {
   ranges: { overflow: 'extra-lanes' },
   values: { aggregate: 'minmax', coarser: 1, direct: true },
   ruler: { labelGap: 48 },
+  rings: {
+    hole: 0.35,
+    maxDiameter: 720,
+    blockGap: 1,
+    letters: 'upright',
+    center: 'title',
+    labelGap: 8,
+    leaderBend: 12,
+    window: 'followed',
+  },
   internedStrings: DefaultMaxStrings,
   text: {
     scale: 12,
@@ -226,6 +253,7 @@ export function renderConfig(over: RenderConfigOverrides = {}): RenderConfig {
     ranges: { ...DefaultRenderConfig.ranges, ...over.ranges },
     values: { ...DefaultRenderConfig.values, ...over.values },
     ruler: { ...DefaultRenderConfig.ruler, ...over.ruler },
+    rings: { ...DefaultRenderConfig.rings, ...over.rings },
     outline: { ...DefaultRenderConfig.outline, ...over.outline },
     emphasis: { ...DefaultRenderConfig.emphasis, ...over.emphasis },
     text: { ...DefaultRenderConfig.text, ...over.text },

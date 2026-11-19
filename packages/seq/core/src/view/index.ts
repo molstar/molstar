@@ -23,6 +23,7 @@ export {
   pieceAtOffset,
   pieceOfPosition,
   pieceOffsets,
+  piecesTotal,
   positionAt,
   wholePieces,
 } from './axis.js';

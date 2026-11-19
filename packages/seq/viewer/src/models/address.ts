@@ -430,8 +430,19 @@ export class AddressModel extends ReactiveModel {
       // one move a scroll group
       const group = this.view.groupOf(s.address);
       if (group.some((g) => done.has(g))) continue;
-      const axis = s.axis;
+      let axis = s.axis;
       let part = positions.parts.find((p) => p.system === axis.system);
+      // a section of blocks on several systems (its axis its own units, on no system): the first block holding some
+      // of the positions, on its own axis from its offset
+      let base = 0;
+      if (s.blocks && !model.systems.has(axis.system)) {
+        for (const b of s.blocks) {
+          const q = positions.parts.find((p) => p.system === b.axis.system);
+          if (!q?.ranges.length || !b.axis.ranges) continue;
+          [axis, part, base] = [b.axis, q, b.offset ?? 0];
+          break;
+        }
+      }
       if (!part) {
         const projected = model.systems.has(axis.system)
           ? model.project(positions, axis.system).location.parts.find((p) => p.system === axis.system)
@@ -448,8 +459,8 @@ export class AddressModel extends ReactiveModel {
       for (let i = 0; i + 1 < part.ranges.length; i += 2) {
         const x = axis.ranges ? (nearestOffsetOf(axis, part.ranges[i]) ?? part.ranges[i]) : part.ranges[i];
         const y = axis.ranges ? (nearestOffsetOf(axis, part.ranges[i + 1]) ?? part.ranges[i + 1]) : part.ranges[i + 1];
-        a = Math.min(a, x, y);
-        b = Math.max(b, x, y);
+        a = Math.min(a, x + base, y + base);
+        b = Math.max(b, x + base, y + base);
         if (x !== y) wide = true;
       }
       const v = this.view.get(s.address);
@@ -625,6 +636,8 @@ export class AddressModel extends ReactiveModel {
       if (this.view.isFollowing(s.address)) continue;
       const v = this.view.get(s.address);
       if (!v || v.pending) return undefined;
+      // a section of blocks on several systems shows no one system's positions
+      if (!this.spec.model.value.systems.has(s.axis.system)) continue;
       const a = positionAt(s.axis, v.start, 'start');
       const b = positionAt(s.axis, v.end, 'end');
       if (a === undefined || b === undefined) return undefined;

@@ -222,6 +222,7 @@ export function reusedHover(hits: readonly Hit[]): { emphasis: Emphasis; set(i: 
   hit.position = undefined;
   hit.element = undefined;
   hit.extent = undefined;
+  hit.block = undefined;
   return {
     emphasis: { hover: hit },
     set(i) {
@@ -232,6 +233,7 @@ export function reusedHover(hits: readonly Hit[]): { emphasis: Emphasis; set(i: 
       hit.position = h.position;
       hit.element = h.element;
       hit.extent = h.extent;
+      hit.block = h.block;
     },
   };
 }

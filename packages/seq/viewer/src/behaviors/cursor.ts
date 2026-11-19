@@ -88,6 +88,8 @@ export function cursorBehavior(
    */
   const stepped = (c: Cursor, delta: number): Cursor | undefined => {
     const axis = sectionOf(c.section)?.axis;
+    // a section of blocks on several systems: its units are no system's positions (stepping across blocks is open)
+    if (axis?.pieces === 'blocks' && axis.system !== c.system) return undefined;
     const total = axis && axisTotal(axis);
     const o = axis && cellOffset(axis, c.position);
     if (!axis || total === undefined || o === undefined) return undefined;

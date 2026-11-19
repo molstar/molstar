@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { closePath, cubicTo, lineTo, moveTo, type PathList, Round } from './draw-lists.js';
+import { grown, PathCommand, type PathList, Round } from './draw-lists.js';
 
 // The squircle (_spec/README.md "Render", Shapes): one curve, defined here, that every backend draws, so Canvas2D and
 // SVG draw the same corner. A corner is a quarter of the superellipse |x|⁴ + |y|⁴ = 1 as one cubic; its handles are
@@ -22,21 +22,105 @@ export function squircleRadius(w: number, h: number, ratio: number, max: number,
   return Math.min(h * ratio, max, w / 2, h / 2);
 }
 
+const Args = new Float64Array(6);
+
 /** The outline of a rect with squircle corners (the ends `round` names; the others square) added to a path. */
 export function squirclePath(p: PathList, x: number, y: number, w: number, h: number, r: number, round: number): void {
+  Args[0] = x;
+  Args[1] = y;
+  Args[2] = w;
+  Args[3] = h;
+  Args[4] = r;
+  Args[5] = round;
+  squirclePathArgs(p, Args);
+}
+
+/**
+ * `squirclePath` with its numbers in `a` (x, y, w, h, radius, round): what a draw loop calls, since a number passed to
+ * a call that is not inlined is boxed (the polar warp traces every rect through it: nothing allocated once warm).
+ */
+export function squirclePathArgs(p: PathList, a: Float64Array): void {
+  const x = a[0];
+  const y = a[1];
+  const w = a[2];
+  const h = a[3];
+  const r = a[4];
+  const round = a[5];
   const left = (round & Round.left) !== 0 ? Math.min(r, w / 2, h / 2) : 0;
   const right = (round & Round.right) !== 0 ? Math.min(r, w / 2, h / 2) : 0;
   const x1 = x + w;
   const y1 = y + h;
   const k = 1 - SquircleHandle;
-  moveTo(p, x + left, y);
-  lineTo(p, x1 - right, y);
-  if (right > 0) cubicTo(p, x1 - right * k, y, x1, y + right * k, x1, y + right);
-  lineTo(p, x1, y1 - right);
-  if (right > 0) cubicTo(p, x1, y1 - right * k, x1 - right * k, y1, x1 - right, y1);
-  lineTo(p, x + left, y1);
-  if (left > 0) cubicTo(p, x + left * k, y1, x, y1 - left * k, x, y1 - left);
-  lineTo(p, x, y + left);
-  if (left > 0) cubicTo(p, x, y + left * k, x + left * k, y, x + left, y);
-  closePath(p);
+  // the outline's commands and points written straight into the path's arrays: a point passed to a call that is not
+  // inlined is boxed (the polar warp traces every rect through here)
+  const P = Pts;
+  let n = 0;
+  let c = 0;
+  Cmds[c++] = PathCommand.move;
+  P[n++] = x + left;
+  P[n++] = y;
+  Cmds[c++] = PathCommand.line;
+  P[n++] = x1 - right;
+  P[n++] = y;
+  if (right > 0) {
+    Cmds[c++] = PathCommand.cubic;
+    P[n++] = x1 - right * k;
+    P[n++] = y;
+    P[n++] = x1;
+    P[n++] = y + right * k;
+    P[n++] = x1;
+    P[n++] = y + right;
+  }
+  Cmds[c++] = PathCommand.line;
+  P[n++] = x1;
+  P[n++] = y1 - right;
+  if (right > 0) {
+    Cmds[c++] = PathCommand.cubic;
+    P[n++] = x1;
+    P[n++] = y1 - right * k;
+    P[n++] = x1 - right * k;
+    P[n++] = y1;
+    P[n++] = x1 - right;
+    P[n++] = y1;
+  }
+  Cmds[c++] = PathCommand.line;
+  P[n++] = x + left;
+  P[n++] = y1;
+  if (left > 0) {
+    Cmds[c++] = PathCommand.cubic;
+    P[n++] = x + left * k;
+    P[n++] = y1;
+    P[n++] = x;
+    P[n++] = y1 - left * k;
+    P[n++] = x;
+    P[n++] = y1 - left;
+  }
+  Cmds[c++] = PathCommand.line;
+  P[n++] = x;
+  P[n++] = y + left;
+  if (left > 0) {
+    Cmds[c++] = PathCommand.cubic;
+    P[n++] = x;
+    P[n++] = y + left * k;
+    P[n++] = x + left * k;
+    P[n++] = y;
+    P[n++] = x + left;
+    P[n++] = y;
+  }
+  Cmds[c++] = PathCommand.close;
+  append(p, c, n);
+}
+
+/** A squircle's outline at most: 10 commands (a move, four lines, four corners, a close), 17 points. */
+const Cmds = new Uint8Array(10);
+const Pts = new Float64Array(34);
+
+/** Appends the outline's `c` commands and `n` numbers (x, y pairs) to a path. */
+function append(p: PathList, c: number, n: number): void {
+  p.commands = grown(p.commands, p.commandCount + c);
+  for (let i = 0; i < c; i++) p.commands[p.commandCount++] = Cmds[i];
+  p.points = grown(p.points, 2 * p.pointCount + n);
+  const at = 2 * p.pointCount;
+  for (let i = 0; i < n; i++) p.points[at + i] = Pts[i];
+  p.pointCount += n >> 1;
 }

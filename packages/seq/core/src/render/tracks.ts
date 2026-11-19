@@ -15,6 +15,8 @@ import {
   expandTemplate,
   followRange,
   followWindow,
+  offsetOf,
+  piecesTotal,
   templateNodes,
   type ResolvedLayer,
   type ResolvedSection,
@@ -48,6 +50,7 @@ import { RulerType } from './ruler.js';
 import { PlacePoint, StripPlacement, type Strips, WarpKind } from './layout/strips.js';
 import { TranslateWarp } from './layout/warp.js';
 import { TextLayout } from './layout/text.js';
+import { RingsLayout } from './layout/rings.js';
 import { TracksLayout } from './layout/tracks.js';
 import type { PlaceContext, Placement, SectionLayoutType } from './layout/types.js';
 import { SecondaryType } from './secondary.js';
@@ -245,7 +248,9 @@ function followAxis(
   config: RenderConfig,
 ) {
   const axis = { ...section.axis, ...(own ? { ranges: own } : {}) };
-  if (own && window.end <= leader.total) {
+  // a cyclic leader's window past its system's end (a linear view across its origin, its pieces twice) wraps
+  const turn = leader.cyclic && leader.length !== undefined ? Math.min(leader.total, leader.length) : leader.total;
+  if (own && window.end <= turn) {
     const w = followWindow(section, leader, axis, window.start, window.end, config.followArc);
     if (w && !w.wraps) return { pieces: own, viewport: { start: w.start, end: w.end } };
   }
@@ -270,15 +275,59 @@ function windowPositions(leader: AxisTransform, w: Viewport): number[] {
   return out;
 }
 
+const Twice = new WeakMap<readonly number[], readonly number[]>();
+
+/**
+ * A cyclic axis's pieces under a window past its total (_spec/README.md "Render", Tracks layout: a linear view panned
+ * across its origin): the whole system twice, so the window's units go on over the origin as the second turn's (two
+ * runs, no break between); else the pieces as they are. Kept per pieces array (a pan makes none).
+ */
+function turned(section: ResolvedSection, own: readonly number[], viewport: Viewport | undefined): readonly number[] {
+  const { cyclic, length } = section.axis;
+  if (!cyclic || !viewport || own.length !== 2 || own[0] !== 0 || own[1] !== length || viewport.end <= own[1])
+    return own;
+  let t = Twice.get(own);
+  if (!t) Twice.set(own, (t = [own[0], own[1], own[0], own[1]]));
+  return t;
+}
+
+/**
+ * A following ring's window on its own axis (_spec/README.md "Render", Rings layout: a ring that follows a linear
+ * section has the leader's range as its window): the follow's window as it is, else the first piece of the image its
+ * offsets on, as long as the image (over the origin: past the total).
+ */
+function followedWindow(
+  section: ResolvedSection,
+  own: readonly number[],
+  made: { pieces: readonly number[]; viewport?: Viewport },
+): Viewport {
+  if (made.viewport) return made.viewport;
+  const shape = { ...section.axis, ranges: own };
+  const p = made.pieces;
+  const len = piecesTotal(p);
+  // the image's first piece in display order: its low edge forward, its high edge reversed
+  const start = offsetOf(shape, section.axis.dir === -1 ? p[1] : p[0]) ?? 0;
+  return { start, end: start + len };
+}
+
 /** The layouts this target places sections with, by name (_spec/README.md "Render", Section layouts). */
 export const BuiltInLayouts: Readonly<Record<string, SectionLayoutType<any>>> = {
   tracks: TracksLayout,
   text: TextLayout,
+  rings: RingsLayout,
 };
 
 /** A section's layout: its own `layout`, else its view's. */
 export function sectionLayoutName(section: ResolvedSection, view: ResolvedView): string {
   return section.layout ?? view.layout;
+}
+
+/** Whether a section's blocks are on more than one system (_spec/README.md "Render", Blocks: it neither follows nor leads). */
+export function multiSystem(section: ResolvedSection): boolean {
+  const b = section.blocks;
+  if (!b) return false;
+  for (let i = 1; i < b.length; i++) if (b[i].axis.system !== b[0].axis.system) return true;
+  return false;
 }
 
 const NoLays: readonly LayerLayout[] = [];
@@ -669,6 +718,8 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
   };
   const axes = new Map<string, AxisTransform | undefined>();
   const visiting = new Set<string>();
+  /** A following ring's window: its leader's range on its own axis (made when a ring follows). */
+  let followed: Map<string, Viewport> | undefined;
   const axisOf = (section: ResolvedSection): AxisTransform | undefined => {
     if (axes.has(section.address)) return axes.get(section.address);
     const at = section.address;
@@ -689,33 +740,36 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
             },
           ),
         );
+      } else if (multiSystem(section) || multiSystem(leaderSection)) {
+        // which block's map a follow would carry is undecided (_spec/README.md "Render", Blocks)
+        report(
+          issueOf(RenderIssues, 'seq.render.follow.blocks', 'A section of blocks on several systems cannot follow', {
+            address: at,
+            hint: RenderIssues.codes['seq.render.follow.blocks'].hint,
+          }),
+        );
       } else {
         visiting.add(at);
         const leader = axisOf(leaderSection);
         visiting.delete(at);
-        if (leader)
-          made = followAxis(
-            section,
-            ownPieces(section, input.model, input.data),
-            leader,
-            leaderWindow(leaderSection, leader),
-            config,
-          );
+        const own = ownPieces(section, input.model, input.data);
+        if (leader) made = followAxis(section, own, leader, leaderWindow(leaderSection, leader), config);
+        // a follower that draws its whole axis with a window (a ring): the leader's range is its window
+        if (made && own && layoutOf(section).window) {
+          followed ??= new Map();
+          followed.set(at, followedWindow(section, own, made));
+          made = { pieces: own };
+        }
       }
     }
     if (!made) {
       const own = ownPieces(section, input.model, input.data);
       // a layout that reads its viewport its own way (text: an anchor; a ring: its window) places over the whole axis
       const viewport = layoutOf(section).followWindow ? undefined : (input.viewports?.[at] ?? input.viewport);
-      if (own) made = { pieces: own, ...(viewport ? { viewport } : {}) };
+      if (own) made = { pieces: turned(section, own, viewport), ...(viewport ? { viewport } : {}) };
     }
-    const { dir, length, cyclic } = section.axis;
     const axis = made?.pieces.length
-      ? new AxisTransform(section.axis.system, made.pieces, dataX, dataW, dpr, made.viewport, {
-          dir,
-          ...(length !== undefined ? { length } : {}),
-          cyclic,
-        })
+      ? AxisTransform.on(section.axis, made.pieces, dataX, dataW, dpr, made.viewport)
       : undefined;
     if (!axes.has(at)) axes.set(at, axis);
     return axes.get(at);
@@ -746,6 +800,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     const kept = state.sections.get(section.address);
     if (kept && reusable(kept, section, layout, stamp, y, axis, viewport, input.data)) {
       kept.replay(sinks);
+      if (layout.window) setWindow(layout, kept.layout.placement, section.address, viewport, followed, input, config);
       sections.push(kept.layout);
       y += kept.layout.height;
       continue;
@@ -762,8 +817,12 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     // a template is expanded here, over the overlay, into a track per node it selects; its source's region in view is
     // wanted, so the nodes it brings arrive
     const shown: ResolvedTrack[] = [];
-    for (const track of section.tracks) {
+    // each shown track's index in the section's (a template's instance: −1), what a block's layers are kept by
+    const trackOf: number[] = [];
+    for (let ti = 0; ti < section.tracks.length; ti++) {
+      const track = section.tracks[ti];
       if (!track.template) {
+        trackOf[shown.length] = ti;
         shown.push(track);
         continue;
       }
@@ -781,7 +840,10 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
             },
           ),
         );
-      shown.push(...instances);
+      for (const t of instances) {
+        trackOf[shown.length] = -1;
+        shown.push(t);
+      }
     }
     const byType = layout.heights?.(config) ?? config.heights;
     const heights = shown.map((t) => trackHeight(t, config, byType));
@@ -827,7 +889,9 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     const layStrip = (placement: Placement, i: number, labels?: LabelSink) => {
       const strips = placement.strips;
       const a = strips.axes[i];
-      const keyed = layout !== TracksLayout || strips.n > 1;
+      const keyed = layout !== TracksLayout || strips.n > 1 || section.blocks !== undefined;
+      // a block's strip draws its layers resolved onto the block's system (a path a block)
+      const block = section.blocks?.[strips.block[i]];
       const span = stripSpan(strips, i);
       for (let j = 0; j < nb; j++) {
         const k = i * nb + j;
@@ -840,7 +904,8 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         const track = shown[j];
         const band = bandOf(track);
         const box: Box = { x: a.x0, y: strips.bandY[k], width: a.width, height: h };
-        for (const layer of track.layers) {
+        const layers = block && trackOf[j] >= 0 ? block.layers[trackOf[j]] : track.layers;
+        for (const layer of layers) {
           if (!layer.placed || layer.params.hidden === true) continue; // a hidden layer is not drawn
           const key = layerKey(track, layer);
           const type = typeOf(layer, key);
@@ -865,7 +930,9 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
             ...(band ? { bandTop: band.bandTop } : {}),
             ...(band?.rowScale !== undefined ? { rowScale: band.rowScale } : {}),
           };
-          const l = layOne(track, layer, type, keyed ? `${key}@${strips.first[i]}` : key, ctx);
+          // kept by the strip's first unit, and its block's (a stack's blocks all start at 0)
+          const at = block ? `${key}#${strips.block[i]}@${strips.first[i]}` : `${key}@${strips.first[i]}`;
+          const l = layOne(track, layer, type, keyed ? at : key, ctx);
           const u = type.used ? type.used(l.lay) : h;
           if (u > strips.used[k]) strips.used[k] = u;
           out.push(l);
@@ -930,6 +997,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         ...(input.windows ? { windows: true } : {}),
       };
       placement = layout.place(section, ctx, viewport, prevPlacement);
+      if (layout.window) setWindow(layout, placement, section.address, viewport, followed, input, config);
       for (let i = 0; i < placement.strips.n; i++) stripBreaks.push(placement.strips.axes[i].breaks([]));
       sectionLays = laySection(placement, axis);
     } else placement = pendingPlacement(top, sectionBox, heights, config);
@@ -1653,12 +1721,43 @@ export function hitView(layout: ViewLayout, x: number, y: number): Hit | undefin
     for (let i = lays.length - 1; i >= 0; i--) {
       const l = lays[i];
       const h = l.type.hit(l.lay, Point.x, Point.y);
-      if (h?.element || h?.target === 'break') return h;
+      if (h?.element || h?.target === 'break') return withBlock(s, Point.strip, h);
       position ??= h;
     }
-    return position;
+    return position && withBlock(s, Point.strip, position);
   }
   return undefined;
+}
+
+/**
+ * A placement's window (a ring's), out of its key: set on a kept placement too. Active while something follows the
+ * section or it follows (its window then its leader's range); shown when active or `rings.window: 'always'`, in a
+ * figure only with `windows`. A function of the module, not a closure a section a frame.
+ */
+function setWindow(
+  layout: SectionLayoutType,
+  placement: Placement,
+  at: string,
+  viewport: Viewport | undefined,
+  followed: Map<string, Viewport> | undefined,
+  input: LayoutInput,
+  config: RenderConfig,
+): void {
+  const own = followed?.get(at);
+  let active = own !== undefined;
+  const sections = input.view.sections;
+  for (let i = 0; i < sections.length && !active; i++) if (sections[i].follow?.leader === at) active = true;
+  const shown = (active || config.rings.window === 'always') && (!input.figure || input.windows === true);
+  layout.window!(placement, own ?? viewport, active, shown);
+}
+
+/**
+ * A hit with its block (its index in the section) when the section has blocks (_spec/README.md "Render", Lanes and
+ * Hits): written into the layer's hit, no copy (a layer's hit is its lay's, and a lay is one strip's: one block's).
+ */
+function withBlock(s: SectionLayout, strip: number, h: Hit): Hit {
+  if (s.section.blocks) (h as { block?: number }).block = s.placement.strips.block[strip];
+  return h;
 }
 
 /** The break whose notch is within `BreakSlop` px of a point above the band column (in the strip's frame); else undefined. */

@@ -129,6 +129,9 @@ const BigCoverage: Coverage = {
 
 const hash = (p: number) => (Math.imul(p ^ 0x9e3779b9, 0x85ebca6b) >>> 13) & 0xffff;
 
+/** The big system's value at a position (level 1). */
+export const bigValue = (p: number) => hash(p) / 0xffff;
+
 /**
  * Items every 50 positions, 70 long (two lanes), each `r<start>`; a region's answer holds the items overlapping it
  * (the contract), so one starting in the tile before is in it too; a level above 1 answers their density.

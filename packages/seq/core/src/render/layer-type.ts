@@ -74,7 +74,12 @@ export interface LayoutContext {
 
 /** Where a layer gives its items' labels when its layout places them (rings: outside, with leaders). */
 export interface LabelSink {
-  label(text: string, start: number, end: number, element: ElementKey): void;
+  /**
+   * An item's label: its text, its extent `[start, end)` as positions on the strip's system (past each other over a
+   * cyclic origin), its element, the hit its placed label gives (the item's, never a second hit at an anchor, EC-108)
+   * and its order (what a layout that cannot place every label keeps first: lower first).
+   */
+  label(text: string, start: number, end: number, element: ElementKey, hit?: Hit, order?: number): void;
 }
 
 /**

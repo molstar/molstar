@@ -35,7 +35,7 @@ import {
   type StaticModel,
 } from '@molstar/seqx-core/resolve';
 import { followRef } from '@molstar/seqx-core/lang';
-import { type AxisShape, nearestOffsetOf, positionAt, wholePieces } from './axis.js';
+import { type AxisShape, axisTotal, nearestOffsetOf, positionAt, wholePieces } from './axis.js';
 import { ViewIssues } from './issues.js';
 
 type Shape = 'letters' | 'ranges' | 'values';
@@ -165,17 +165,55 @@ export interface ResolvedTrack {
 
 export interface ResolvedSection {
   readonly address: string;
+  /**
+   * Its axis; with blocks (_spec/README.md "Resolved view", Blocks) their display units in order: on one system in a
+   * row, the blocks' pieces end to end (the breaks between them); else units `[0, total)` on no system (its
+   * `system` the section's address, `pieces: 'blocks'`), each block's own axis in `blocks`.
+   */
   readonly axis: Axis;
   readonly follow?: Follow;
   readonly tracks: readonly ResolvedTrack[];
   /** Its layout: its own `layout`, else its view's. */
   readonly layout: string;
-  /** Its layout's params as written (text: `group`, `numbers`, `group_labels`, `align`, `max_width`, `height`). */
+  /**
+   * Its layout's params as written (text: `group`, `numbers`, `group_labels`, `align`, `max_width`, `height`; rings:
+   * `rotation`, `labels`, `height`; blocks: `arrange`, `copies`).
+   */
   readonly params: Readonly<Record<string, Value>>;
+  /** Its blocks in order (copies merged by `copies`), when it has `block` children. */
+  readonly blocks?: readonly ResolvedBlock[];
+}
+
+/**
+ * A block of a section (_spec/README.md "Resolved view", Blocks): its own axis (system, range, direction), where its
+ * display units start in the section's, its label, the blocks it stands for (merged copies, `×N`), and each track's
+ * layers resolved onto its system (a path a block: a layer whose data reaches it is placed there).
+ */
+export interface ResolvedBlock {
+  readonly address: string;
+  readonly label: string;
+  readonly axis: Axis;
+  /** Its first display unit in the section's (0 in a stack; undefined while a length before it is unknown). */
+  readonly offset?: number;
+  /** The blocks it stands for: itself, and the copies merged into it. */
+  readonly members: readonly string[];
+  /** Each of the section's tracks' layers on this block, by the track's index. */
+  readonly layers: readonly (readonly ResolvedLayer[])[];
 }
 
 /** The params a section's layout reads (_spec/README.md "Resolved view"). */
-const LayoutParams = ['group', 'numbers', 'group_labels', 'align', 'max_width', 'height'] as const;
+const LayoutParams = [
+  'group',
+  'numbers',
+  'group_labels',
+  'align',
+  'max_width',
+  'height',
+  'rotation',
+  'labels',
+  'arrange',
+  'copies',
+] as const;
 
 /** A path between two sections of a view, precomposed: hover and selection are projected along it. */
 export interface ViewLink {
@@ -257,7 +295,9 @@ function build(model: StaticModel, view: Node, address: string): ResolvedView {
   for (const s of sectionNodes) {
     const at = `${address}/${s.id}`;
     byAddress.set(at, s);
-    const system = exactAddress(param(s, 'of'));
+    // a section of blocks with no `of` is on its first block's system
+    const first = blockNodes(s)[0];
+    const system = exactAddress(param(s, 'of') ?? (first ? param(first, 'of') : undefined));
     if (system === undefined || !model.systems.has(system))
       report('seq.view.section.system', 'The section shows no system of the spec', at);
     systemOf.set(at, system ?? '');
@@ -285,8 +325,16 @@ function build(model: StaticModel, view: Node, address: string): ResolvedView {
     dirs.set(at, d);
     return d;
   };
+  const blocksOf = new Map<string, BlockAxes>();
   for (const [at, s] of byAddress) {
     const dir = dirOf(at);
+    const bs = blockNodes(s);
+    if (bs.length) {
+      const b = blockAxes(model, s, bs, at, dir, (param(s, 'layout') ?? viewLayout) === 'rings', report);
+      blocksOf.set(at, b);
+      axes.set(at, b.axis);
+      continue;
+    }
     const axis = axisOf(model, s, at, systemOf.get(at)!, dir, follows.get(at)?.path, along.get(at), report);
     const d = param(s, 'direction');
     const ref = d && typeof d === 'object' && !Array.isArray(d) ? exactAddress((d as Record<string, Value>).along) : '';
@@ -303,6 +351,8 @@ function build(model: StaticModel, view: Node, address: string): ResolvedView {
     const leaderAxis = f && axes.get(f.leader);
     if (f && leaderAxis) follow = followOf(f.leader, leaderAxis, f.path);
     const tracks: ResolvedTrack[] = [];
+    const ba = blocksOf.get(at);
+    const blockLayers: ResolvedLayer[][][] = ba ? ba.blocks.map(() => []) : [];
     for (const t of s.children ?? []) {
       if (t.kind !== 'track' || t.id === undefined) continue;
       // a hidden track is kept in the spec and left out of the view: its row collapses
@@ -310,11 +360,27 @@ function build(model: StaticModel, view: Node, address: string): ResolvedView {
       const ta = `${at}/${t.id}`;
       const layers: ResolvedLayer[] = [];
       const template = templateOf(param(t, 'for_each'));
+      const perBlock: ResolvedLayer[][] = blockLayers.map(() => []);
       (t.children ?? []).forEach((l, index) => {
         if (l.kind !== 'layer') return;
-        const system = known ? axis.system : undefined;
-        layers.push(layerOf(model, l, index, ta, system, report, template !== undefined));
+        if (!ba) {
+          const system = known ? axis.system : undefined;
+          layers.push(layerOf(model, l, index, ta, system, report, template !== undefined));
+          return;
+        }
+        // a path a block: placed on each block its data reaches; said only when it reaches none
+        const said: Parameters<Report>[] = [];
+        let placed: ResolvedLayer | undefined;
+        for (let k = 0; k < ba.blocks.length; k++) {
+          const r = layerOf(model, l, index, ta, ba.blocks[k].axis.system, (...a) => said.push(a), !!template);
+          perBlock[k].push(r);
+          placed ??= r.placed ? r : undefined;
+        }
+        if (!placed && said.length) report(...said[0]);
+        const any = placed ?? perBlock[0]?.[perBlock[0].length - 1];
+        if (any) layers.push(any);
       });
+      for (let k = 0; k < perBlock.length; k++) blockLayers[k].push(perBlock[k]);
       const label = param(t, 'label');
       const height = param(t, 'height');
       tracks.push({
@@ -331,6 +397,7 @@ function build(model: StaticModel, view: Node, address: string): ResolvedView {
       const v = param(s, k);
       if (v !== undefined) params[k] = v;
     }
+    const blocks = ba?.blocks.map((b, k) => ({ ...b, layers: blockLayers[k] }));
     sections.push({
       address: at,
       axis,
@@ -338,6 +405,7 @@ function build(model: StaticModel, view: Node, address: string): ResolvedView {
       tracks,
       layout: typeof own === 'string' ? own : viewLayout,
       params,
+      ...(blocks ? { blocks } : {}),
     });
   }
 
@@ -350,7 +418,6 @@ function build(model: StaticModel, view: Node, address: string): ResolvedView {
         a.axis.system === b.axis.system ? identityPath(a.axis.system) : model.path(a.axis.system, b.axis.system).path;
       if (path) links.push({ from: a.address, to: b.address, path });
     }
-  const layout = param(view, 'layout');
   const scales: Record<string, Readonly<Record<string, Value>>> = {};
   for (const c of model.spec.children ?? [])
     if (c.kind === 'views' && c.id !== undefined)
@@ -359,7 +426,7 @@ function build(model: StaticModel, view: Node, address: string): ResolvedView {
   const ex = param(view, 'export');
   return {
     address,
-    layout: typeof layout === 'string' ? layout : 'tracks',
+    layout: viewLayout,
     scales,
     ...(ex && typeof ex === 'object' && !Array.isArray(ex) ? { export: ex as Record<string, Value> } : {}),
     sections,
@@ -441,6 +508,103 @@ function pathAlong(model: StaticModel, ref: string, system: string): Path | unde
   }
   if (!model.systems.has(ref) || !model.systems.has(system)) return undefined;
   return ref === system ? identityPath(system) : model.path(ref, system).path;
+}
+
+/** A section's `block` children with ids, in order. */
+function blockNodes(section: Node): Node[] {
+  return (section.children ?? []).filter((c) => c.kind === 'block' && c.id !== undefined);
+}
+
+/** A section's blocks before their layers, and the section's axis over them. */
+interface BlockAxes {
+  readonly axis: Axis;
+  readonly blocks: readonly Omit<ResolvedBlock, 'layers'>[];
+}
+
+/**
+ * A section's blocks (_spec/README.md "Resolved view", Blocks): each its axis (its system, its `range`, the section's
+ * direction); copies (the same system and range) merged into the first's place with `copies: 'merge'` (the default),
+ * labeled `×N`; the section's axis their display units in order: on one system in a row (or on a ring) the blocks'
+ * pieces end to end, else units on no system (the section's address, `pieces: 'blocks'`), their total the sum in a
+ * row and the longest block in a stack. A block with no system is reported and left out.
+ */
+function blockAxes(
+  model: StaticModel,
+  section: Node,
+  nodes: readonly Node[],
+  at: string,
+  dir: 1 | -1,
+  ring: boolean,
+  report: Report,
+): BlockAxes {
+  const merge = param(section, 'copies') !== 'each';
+  const groups: { node: Node; address: string; axis: Axis; key: string; members: string[] }[] = [];
+  for (const n of nodes) {
+    const address = `${at}/${n.id}`;
+    const system = exactAddress(param(n, 'of'));
+    if (system === undefined || !model.systems.has(system)) {
+      report('seq.view.section.system', 'The block shows no system of the spec', address);
+      continue;
+    }
+    const range = param(n, 'range');
+    const key = `${system}|${Array.isArray(range) ? range.join(',') : 'all'}`;
+    const copy = merge ? groups.find((g) => g.key === key) : undefined;
+    if (copy) {
+      copy.members.push(address);
+      continue;
+    }
+    const axis = axisOf(model, n, address, system, dir, undefined, undefined, report);
+    groups.push({ node: n, address, axis, key, members: [address] });
+  }
+  const stack = !ring && param(section, 'arrange') === 'stack';
+  let offset: number | undefined = 0;
+  let longest = 0;
+  const blocks = groups.map((g) => {
+    const label = param(g.node, 'label');
+    const text = typeof label === 'string' ? label : g.node.id!;
+    const total = axisTotal(g.axis);
+    const at = stack ? 0 : offset;
+    if (offset !== undefined) offset = total === undefined ? undefined : offset + total;
+    if (total !== undefined) longest = Math.max(longest, total);
+    return {
+      address: g.address,
+      label: g.members.length > 1 ? `${text} ×${g.members.length}` : text,
+      axis: g.axis,
+      ...(at !== undefined ? { offset: at } : {}),
+      members: g.members,
+    };
+  });
+  const first = groups[0]?.axis;
+  const system = first?.system ?? '';
+  const pending = groups.some((g) => !g.axis.ranges);
+  if (first && !stack && groups.every((g) => g.axis.system === system)) {
+    // pieces of one sequence: one axis, its breaks between the blocks
+    const ranges = pending ? undefined : groups.flatMap((g) => g.axis.ranges!);
+    return {
+      axis: {
+        system,
+        ...(first.length !== undefined ? { length: first.length } : {}),
+        cyclic: first.cyclic,
+        dir,
+        pieces: 'blocks',
+        ...(ranges ? { ranges } : {}),
+      },
+      blocks,
+    };
+  }
+  // units of the section, on no system: a position on them is no block's (a selection, a focus, a bookmark or a cursor
+  // on a system never lands on the wrong block's); a block's hits carry its own system
+  const total = stack ? longest : offset;
+  return {
+    axis: {
+      system: at,
+      ...(pending || total === undefined ? {} : { length: total, ranges: [0, total] }),
+      cyclic: false,
+      dir: 1,
+      pieces: 'blocks',
+    },
+    blocks,
+  };
 }
 
 function axisOf(
@@ -723,10 +887,16 @@ export function followWindow(
   end: number,
   arc: 'shortest' | 'hull' = 'shortest',
 ): FollowWindow | undefined {
+  // a cyclic leader's window may pass its total: it wraps the origin (a ring's window, a rotated linear view)
+  const total = axisTotal(leader);
+  const wraps = leader.cyclic && total !== undefined && end > total && end - start < total;
   const ps = positionAt(leader, start, 'start');
-  const pe = positionAt(leader, end, 'end');
+  const pe = positionAt(leader, wraps ? end - total : end, 'end');
   if (ps === undefined || pe === undefined) return undefined;
-  const span = followSpan(section, Math.min(ps, pe), Math.max(ps, pe), arc);
+  // over the origin the positions run from the start's past the length to the end's: low edge past the high
+  const lo = wraps ? (leader.dir === -1 ? pe : ps) : Math.min(ps, pe);
+  const hi = wraps ? (leader.dir === -1 ? ps : pe) : Math.max(ps, pe);
+  const span = followSpan(section, lo, hi, arc);
   if (!span) return undefined;
   const a = nearestOffsetOf(axis, span[0]);
   const b = nearestOffsetOf(axis, span[1]);

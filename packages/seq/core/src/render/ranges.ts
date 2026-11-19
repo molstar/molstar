@@ -44,7 +44,7 @@ import type { Channel } from '@molstar/seqx-core/theme/index';
 import { channelForms, channelLegends, Extents, type LayerChannels, RowDatum } from './channels.js';
 import { LaneIndex, StickyLanes } from './lanes.js';
 import { type LayerSource, layerSource, toSection } from './layer-data.js';
-import type { Emphasis, Hit, LayerType, LayoutContext, Overlay, StoreReader } from './layer-type.js';
+import type { Emphasis, Hit, LabelSink, LayerType, LayoutContext, Overlay, StoreReader } from './layer-type.js';
 import { arrowArgs, drawFailed, drawSpans } from './marks.js';
 import { squircleRadius } from './squircle.js';
 import { inkOn, mixColors, type SeqTokens, withAlpha } from './tokens.js';
@@ -309,6 +309,57 @@ function anchorOf(axis: AxisTransform, a: number, s: number, e: number): number 
   return axis.dir === 1 ? Math.min(ua, ub) : Math.max(ua, ub);
 }
 
+/**
+ * Every shown item's label to a layout's sink (_spec/README.md "Render", Layer types: `labels`), an item once: its
+ * extent on the section's system (its image's first and last edge: past each other over a cyclic origin), its element
+ * and its hit, ordered by its band's place (the layer's order).
+ */
+function sinkLabels(lay: RangesLay, src: LayerSource, sink: LabelSink, order: number) {
+  // an item's rows (its pieces) by key, on the section's system
+  const byKey = new Map<string | number, { text: string; row: number; pieces: number[] }>();
+  for (let i = 0; i < lay.items; i++) {
+    const text = lay.labels[i];
+    if (!text || lay.lanes[i] < 0) continue;
+    const key = lay.keys[i];
+    let g = byKey.get(key);
+    if (!g) byKey.set(key, (g = { text, row: i, pieces: [] }));
+    if (src.path) g.pieces.push(...toSection(src, lay.starts[i], lay.ends[i], []));
+    else g.pieces.push(lay.starts[i], lay.ends[i]);
+  }
+  const base = { layer: lay.key, section: lay.section, system: lay.system };
+  const length = lay.axis.cyclic ? lay.axis.length : undefined;
+  for (const [key, g] of byKey) {
+    const [s, e] = itemArc(g.pieces, length);
+    const hit = itemHit(base, lay, key, lay.starts[g.row], lay.ends[g.row]);
+    sink.label(g.text, s, e, { owner: lay.owner, key }, hit, order);
+  }
+}
+
+/**
+ * An item's extent from its pieces: their hull, or on a cyclic system of `length` the circle less its widest gap
+ * (an item over the origin, two rows meeting there, is one arc: its start past its end).
+ */
+function itemArc(pieces: number[], length: number | undefined): [number, number] {
+  const n = pieces.length >> 1;
+  const order = Array.from({ length: n }, (_, k) => k).sort((a, b) => pieces[2 * a] - pieces[2 * b]);
+  const first = pieces[2 * order[0]];
+  let last = 0;
+  for (let k = 0; k < n; k++) last = Math.max(last, pieces[2 * k + 1]);
+  if (length === undefined) return [first, last];
+  let best = length - last + first;
+  let arc: [number, number] = [first, last];
+  let reach = pieces[2 * order[0] + 1];
+  for (let k = 1; k < n; k++) {
+    const s = pieces[2 * order[k]];
+    if (s - reach > best) {
+      best = s - reach;
+      arc = [s, reach];
+    }
+    reach = Math.max(reach, pieces[2 * order[k] + 1]);
+  }
+  return arc;
+}
+
 export const RangesType: LayerType<RangesPrep, RangesLay> = {
   name: 'ranges',
 
@@ -460,8 +511,11 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
       if (lay.m === marks && pieces.length >= 2) tickOn(lay, axis, pieces[0], lane);
     }
     if (lay.mode === 'bars') mergeRuns(lay, px);
-    // labels inside marks wide enough, faded past their width (drawn in the labels pass)
-    if (lay.mode === 'items' && lay.laneHeight >= 10)
+    // a layout's label sink (rings: placed outside with leaders) takes every shown item's label, an item once, with its
+    // hit; else labels inside marks wide enough, faded past their width (drawn in the labels pass)
+    const sink = ctx.labels !== undefined && ctx.labels !== 'inside' ? ctx.labels : undefined;
+    if (sink) sinkLabels(lay, src, sink, box.y);
+    else if (lay.mode === 'items' && lay.laneHeight >= 10)
       for (let j = 0; j < lay.m; j++) {
         const label = lay.mitem[j] >= 0 ? lay.labels[lay.mitem[j]] : undefined;
         if (label && lay.mx1[j] - lay.mx0[j] >= 24) {

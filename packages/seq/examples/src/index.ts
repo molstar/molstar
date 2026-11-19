@@ -8,4 +8,12 @@
 // exporting `build()`; `views.ts` lists them. The Node assets adapter (`@molstar/seqx-examples/node-assets`, it imports
 // `node:fs`) is an entry of its own, so a browser bundle of the views never pulls it in.
 
-export { ExampleViews, type ExampleView, FeatureViews, LayerViews, P53Views } from './views.js';
+export {
+  ComplexViews,
+  ExampleViews,
+  type ExampleView,
+  FeatureViews,
+  LayerViews,
+  P53Views,
+  PlasmidViews,
+} from './views.js';

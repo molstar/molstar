@@ -17,6 +17,7 @@ import type { CommandDefinition, CommandResult } from '@molstar/ui/commands/type
 import type { BindingTable, ModifierState } from '@molstar/seqx-viewer/bindings';
 import {
   type AddressModel,
+  axisTotal,
   type DragMode,
   type Hit,
   type HitTarget,
@@ -91,9 +92,21 @@ export function selectBehavior(
   bindings: BindingTable,
   addresses?: AddressModel,
 ): SelectBehavior {
-  /** A section's axis: spans are built in its display order (a range over a cyclic origin is two). */
-  const axisOf = (section: string | undefined): Axis | undefined =>
-    section === undefined ? undefined : view.resolved.value?.sections.find((s) => s.address === section)?.axis;
+  /**
+   * The axis a hit's positions are on and its first offset in the section: the section's (spans are built in its
+   * display order: a range over a cyclic origin is two), or on a section of blocks on several systems (its axis its own
+   * units, on no system) the hit block's own.
+   */
+  const placeOf = (
+    section: string | undefined,
+    hit?: Hit,
+  ): { axis: Axis; offset: number; block: boolean } | undefined => {
+    const s = section === undefined ? undefined : view.resolved.value?.sections.find((x) => x.address === section);
+    if (!s) return undefined;
+    const b = hit?.block !== undefined && s.axis.system !== hit.system ? s.blocks?.[hit.block] : undefined;
+    return b ? { axis: b.axis, offset: b.offset ?? 0, block: true } : { axis: s.axis, offset: 0, block: false };
+  };
+  const axisOf = (section: string | undefined, hit?: Hit): Axis | undefined => placeOf(section, hit)?.axis;
 
   /** A click with a position moves the cursor to it, on the section clicked. */
   const follow = (ctx: SelectContext) => {
@@ -113,7 +126,7 @@ export function selectBehavior(
     category: 'Selection',
     when: (ctx) => (ctx.hit ? true : 'Nothing to select here'),
     run: (_, ctx): CommandResult => {
-      const changed = act(ctx.hit, axisOf(ctx.section));
+      const changed = act(ctx.hit, axisOf(ctx.section, ctx.hit));
       follow(ctx);
       return { message: changed ? done : '' };
     },
@@ -125,7 +138,7 @@ export function selectBehavior(
       const loc = addresses?.locate(ctx.address).location;
       return loc && (loc.parts.length || loc.rects.length) ? { loc } : undefined;
     }
-    const r = ctx.range ?? (ctx.hit ? hitRange(ctx.hit, axisOf(ctx.section)) : undefined);
+    const r = ctx.range ?? (ctx.hit ? hitRange(ctx.hit, axisOf(ctx.section, ctx.hit)) : undefined);
     if (!r || !(r.end > r.start)) return undefined;
     return { loc: rangesLocation(r.system, [r.start, r.end]), anchor: r };
   };
@@ -174,7 +187,8 @@ export function selectBehavior(
     },
   ];
 
-  let drag: { section: string; system: string } | undefined;
+  /** The drag: its section and system, and the axis its positions are read on (a block's: its offset in the section). */
+  let drag: { section: string; system: string; axis: Axis; offset: number; block: boolean } | undefined;
 
   return {
     commands,
@@ -189,21 +203,30 @@ export function selectBehavior(
     beginDrag(section, hit, modifiers, target) {
       const action = bindings.resolve('drag', modifiers, target);
       if (action === undefined || !isDragSelect(action) || !hit) return false;
-      if (!selection.beginDrag(hit, axisOf(section), DragSelectModes[action])) return false;
-      drag = { section, system: hit.system };
+      const at = placeOf(section, hit);
+      if (!at || !selection.beginDrag(hit, at.axis, DragSelectModes[action])) return false;
+      drag = { section, system: hit.system, axis: at.axis, offset: at.offset, block: at.block };
       return true;
     },
     dragTo(section, x, hit, at) {
       const d = drag;
       if (!d || d.section !== section) return false;
       const v = view.get(section);
-      const axis = view.resolved.value?.sections.find((s) => s.address === section)?.axis;
-      if (!v || v.pending || !axis || v.width <= 0) return false;
-      const offset = at ?? v.start + (Math.min(Math.max(x, 0), v.width - 1e-6) * (v.end - v.start)) / v.width;
+      const axis = d.axis;
+      const total = axisTotal(axis);
+      if (!v || v.pending || total === undefined || v.width <= 0) return false;
+      // the placement's offset (a ring's by its angle), else the x's; a block's offsets from its first (past its ends:
+      // its end cells, never another block's positions)
+      const offset =
+        (at ?? v.start + (Math.min(Math.max(x, 0), v.width - 1e-6) * (v.end - v.start)) / v.width) - d.offset;
+      let cell = d.block ? Math.min(Math.max(Math.floor(offset), 0), total - 1) : Math.floor(offset);
+      // a window over a cyclic origin: its units past the total are the next turn's
+      if (cell >= total && view.wraps(section)) cell -= total;
       // the middle of the cell at the offset: an offset on a piece's end names no position past it
-      const position = positionAt(axis, Math.floor(offset) + 0.5);
+      const position = positionAt(axis, cell + 0.5);
       if (position === undefined) return false;
-      return selection.dragTo(position, hit && hit.system === d.system ? hit : undefined, axis);
+      // round a ring, or across a window's origin: the shorter arc between the ends (`view.arcs`)
+      return selection.dragTo(position, hit && hit.system === d.system ? hit : undefined, axis, view.arcs(section));
     },
     endDrag() {
       drag = undefined;

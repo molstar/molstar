@@ -79,7 +79,7 @@ export interface PlaceContext {
   readonly config: RenderConfig;
   readonly tokens: SeqTokens;
   readonly text: TextMetrics;
-  /** The view's model (its systems' numberings: a text's numbers). */
+  /** The view’s model (its systems’ numberings: a text’s numbers; a ring’s title: its system’s name and alphabet). */
   readonly model?: StaticModel;
   /** The section's region: its x and width (the data box's, past the label column), its top, the page below it. */
   readonly box: Box;
@@ -154,9 +154,8 @@ export interface SectionLayoutType<Kept = unknown> {
   sameKey(a: Viewport | undefined, b: Viewport | undefined): boolean;
   readonly nav: SectionNav;
   /**
-   * Its window may pass a cyclic axis's origin and draws there (a ring's): the viewer's navigation then wraps it
-   * (`NavContext.cyclic`). Absent, a window stays within its axis (tracks and text: a leader's transform ends at its
-   * total).
+   * Its window may pass a cyclic axis's origin and draws there (tracks: the system twice; a ring's): the viewer's
+   * navigation then wraps it (`NavContext.cyclic`). Absent, a window stays within its axis (text: an anchor).
    */
   readonly wraps?: boolean;
   /**
@@ -174,6 +173,12 @@ export interface SectionLayoutType<Kept = unknown> {
       readonly heights: readonly number[];
     },
   ): Viewport;
+  /**
+   * Sets the window a placement draws (a ring's: what its follower shows), its viewport's or its leader's range, on a
+   * kept placement too: the window is out of the section's key (_spec/README.md "Render", Rings layout). `active`:
+   * something follows it (or it follows); `shown`: drawn at all (`rings.window`, an export's `windows`).
+   */
+  window?(placement: Placement, viewport: Viewport | undefined, active: boolean, shown: boolean): void;
   /**
    * The layout's own marks of a pass (label column, gutters, numbers, a ring's guides and labels, a window): once a
    * section with `band` −1 before its strips, then once a band before its layers (`strip`, `band`), in the strip's frame.
