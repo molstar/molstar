@@ -366,3 +366,4 @@ None.
 - The author (2026-11-19): "2 columns hidden" misleading (reads as alignment columns; does not say which): the chip
   names them, its card lists them, on their side of the title band (decided as recommended; grids-and-rows.md, the
   Design page); folded into RX. Use findings: bug 2, missing design 5, look 3.
+- The author (2026-11-19): "also the positioning of the label is wrong": read as the hidden columns' chip hanging over the data's top-right corner; RX places it in its side's title band (to confirm with the author).

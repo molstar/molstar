@@ -24,7 +24,11 @@ deepest leaf's; the SVG alike. Look: Globins › Rows › Folded, light and dark
 show what columns where are when you hover it"; grids-and-rows.md, Row columns, Narrow): the chip names the hidden row
 columns ("Species, Identity hidden"; "Species +1 hidden" when short of room), sits in the title band on the side those
 columns live (never over the alignment's data), and its hover card lists each hidden column and why ("no room at this
-width"); announced the same. Tests: at a width that hides both, the chip's text and its card's rows; the SVG's text
+width"); announced the same. Its placement (the author: "also the positioning of the label is wrong": today it
+hangs at the alignment's top-right corner, over the data and past the numbers' gutter, since the columns it stands for
+have no room): inside the title band's own area on that side (the right columns' band end, aligned to the numbers'
+gutter; the left's beside the labels), never overlapping the data box, the rows rail or another title; when there is no
+room for it on that side, it moves into the label column's title band. Tests: at a width that hides both, the chip's text and its card's rows; the SVG's text
 alike. Look: Globins › Rows › Family at a narrow width.
 
 **Not in scope**: anything else. CF works in core (store, ruler, templates, accessibility, rows-model's measures), MV
