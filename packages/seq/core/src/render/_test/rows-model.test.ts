@@ -205,6 +205,12 @@ describe('the rows’ model', () => {
     const datum = { field: () => undefined, value: 0, letter: 'G', start: 0, end: 1 };
     expect(entries.get('matches-reference')!.read(datum, {})).toBe(0);
     expect(entries.get('share')!.read(datum, {})).toBe(0.75);
+    // EC-135: a theme's `gaps` reaches the share: a column A, A, - is 2/3 with gaps counted (ESPript's), 1 without
+    const gapped = held(['A', 'A', '-']);
+    const share = measureEntries(gapped, columnMeasures(gapped, -1)).get('share')!;
+    expect(share.read(datum, { gaps: 'count' })).toBeCloseTo(2 / 3, 6);
+    expect(share.read(datum, { gaps: 'ignore' })).toBe(1);
+    expect(share.read(datum, {})).toBe(1);
     const out = consensus(h, [0, 1, 2], new Uint8Array(12));
     expect(String.fromCharCode(out[0], out[3], out[6], out[9])).toBe('ACD-');
     expect(out[1]).toBe(170);

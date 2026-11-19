@@ -431,15 +431,13 @@ export interface ColumnMeasures {
   readonly reference: number;
 }
 
-/** The measures of `held` against its reference row (by label; -1 none). */
-export function columnMeasures(
-  held: HeldCells,
-  reference: number,
-  gaps: 'ignore' | 'count' = 'ignore',
-): ColumnMeasures {
+/**
+ * The most frequent letter's share a column: gaps left out of both counts (`ignore`), or counted as rows (`count`: a
+ * column `A, A, -` is 2/3, ESPript's strict identity, EC-135).
+ */
+export function columnShare(held: HeldCells, gaps: 'ignore' | 'count'): Float32Array {
   const { rows: R, columns: C, codes } = held;
   const share = new Float32Array(C);
-  const identity = new Float32Array(C).fill(Number.NaN);
   const counts = new Uint32Array(256);
   for (let j = 0; j < C; j++) {
     let most = 0;
@@ -453,6 +451,20 @@ export function columnMeasures(
     }
     for (let i = 0; i < R; i++) counts[upper(codes[i * C + j])] = 0;
     share[j] = n ? most / n : 0;
+  }
+  return share;
+}
+
+/** The measures of `held` against its reference row (by label; -1 none). */
+export function columnMeasures(
+  held: HeldCells,
+  reference: number,
+  gaps: 'ignore' | 'count' = 'ignore',
+): ColumnMeasures {
+  const { rows: R, columns: C, codes } = held;
+  const share = columnShare(held, gaps);
+  const identity = new Float32Array(C).fill(Number.NaN);
+  for (let j = 0; j < C; j++) {
     if (reference >= 0) {
       const ref = upper(codes[reference * C + j]);
       if (isGap(ref)) continue;
@@ -511,13 +523,22 @@ export function columnMeasures(
 
 /**
  * The measures as theme registry entries: `share` and `identity` read a datum's column (`start`), `matches-reference`
- * its letter against the reference row's at that column (1 or 0; NaN without a reference).
+ * its letter against the reference row's at that column (1 or 0; NaN without a reference). `share` reads its clause's
+ * `gaps` (`ignore` when absent; `count`, ESPript's, computed once when a theme first asks for it: EC-135).
  */
 export function measureEntries(held: HeldCells, m: ColumnMeasures): ReadonlyMap<string, MeasureEntry> {
   const C = held.columns;
   const column = (d: ThemeDatum) => (d.start >= 0 && d.start < C ? d.start : -1);
+  let counted: Float32Array | undefined;
+  const share = (d: ThemeDatum, params: Readonly<Record<string, unknown>>) => {
+    const j = column(d);
+    if (j < 0) return Number.NaN;
+    if (params.gaps !== 'count') return m.share[j];
+    counted ??= columnShare(held, 'count');
+    return counted[j];
+  };
   return new Map<string, MeasureEntry>([
-    ['share', { name: 'share', read: (d) => (column(d) < 0 ? Number.NaN : m.share[column(d)]) }],
+    ['share', { name: 'share', read: share }],
     ['identity', { name: 'identity', read: (d) => (column(d) < 0 ? Number.NaN : m.identity[column(d)]) }],
     [
       'matches-reference',

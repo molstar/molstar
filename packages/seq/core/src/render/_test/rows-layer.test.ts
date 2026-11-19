@@ -12,7 +12,7 @@
 // ellipsis, the last numbers in a right gutter); the text figure only in text; one rows layer a section; a lazy
 // alignment's pins said, its sub-pixel band a neutral fill.
 
-import { createSeqSpec } from '@molstar/seqx-core/lang';
+import { createSeqSpec, theme } from '@molstar/seqx-core/lang';
 import { rangesLocation } from '@molstar/seqx-core/query';
 import { describe, expect, it, vi } from 'vitest';
 import { type Frame, type FrameInput, hitView, Renderer, recordDrawLists } from '../index.js';
@@ -238,6 +238,29 @@ describe('the colors and the header', () => {
     });
     const lay = rowsLay(r.frame(at({ rowScale: 20 })));
     expect([...lay.measureEnv!.measures.keys()].sort()).toEqual(['custom', 'identity', 'matches-reference', 'share']);
+  });
+
+  it('ESPript’s `gaps` reaches the column share (EC-135): a column A, A, - is identical only with gaps ignored', async () => {
+    const fill = async (gaps: string) => {
+      const b = createSeqSpec();
+      const aln = b.data.alignment('aln', {
+        alphabet: 'protein',
+        rows: { label: ['a', 'b', 'c'], letters: ['A', 'A', '-'] },
+      });
+      b.views.view('v', (v) =>
+        v.section('s', { of: aln }, (s) =>
+          s.track('rows', { label: '' }, (t) =>
+            t.layer('r', { type: 'rows', data: aln, color: theme.scheme('espript', { gaps }) } as never),
+          ),
+        ),
+      );
+      const s = await settle(b.build());
+      const lay = rowsLay(await s.frame(at({ rowScale: 20 })));
+      return lay.colorOf('A'.charCodeAt(0), 0, 0) >>> 8;
+    };
+    // identical (red) when the gap is left out; with it counted, 2/3: the similar residues' tint
+    expect(await fill('ignore')).toBe(0xd62728);
+    expect(await fill('count')).toBe(0xfbe3e3);
   });
 
   it('the label column widened by the tree’s width; a label past its room cut with an ellipsis', async () => {
