@@ -39,6 +39,9 @@ export interface FamilyOptions {
   readonly scheme?: string;
 }
 
+/** The conservation logo's track height, px: its letters read at the fit (the default is the thin strip a value track gets). */
+export const LogoHeight = 64;
+
 /** The family: a ruler, its conservation logo, its rows by tree beside the tree, species and identity beside them. */
 export function build(options: FamilyOptions = {}): Node {
   const b = createSeqSpec({ title: 'Globins: the family' });
@@ -46,7 +49,7 @@ export function build(options: FamilyOptions = {}): Node {
   b.views.view('main', (v) => {
     const s = v.section('family', { of: aln });
     s.track('ruler', { label: 'Columns' }).layer('ruler', { type: 'ruler' });
-    s.track('logo', { label: 'Conservation' }).layer('logo', { type: 'logo', data: aln });
+    s.track('logo', { label: 'Conservation', height: LogoHeight }).layer('logo', { type: 'logo', data: aln });
     s.track('rows', { label: '' }).layer('rows', {
       type: 'rows',
       data: aln,
@@ -104,7 +107,7 @@ export function scale(options: { readonly rows?: number; readonly columns?: numb
   b.views.view('main', (v) => {
     const s = v.section('rows', { of: aln });
     s.track('ruler', { label: 'Columns' }).layer('ruler', { type: 'ruler' });
-    s.track('logo', { label: 'Conservation' }).layer('logo', { type: 'logo', data: aln });
+    s.track('logo', { label: 'Conservation', height: LogoHeight }).layer('logo', { type: 'logo', data: aln });
     s.track('rows', { label: '' }).layer('rows', { type: 'rows', data: aln, tree, order: 'tree' });
   });
   return b.build();

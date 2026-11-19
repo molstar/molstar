@@ -274,5 +274,12 @@ links, selection, the security bounds, MessagePack). Next, version 1's second mi
 - **The compute port (workers)**: when a profile shows the main thread is the limit.
 - **A JSON Schema** derived from the language description: when an outside reader or an agent tool needs to validate
   without the core.
+- **The ring's site labels fan out near a cluster** (the plasmid's restriction sites crowd the MCS, their leaders a
+  narrow fan, the labels a line apart on one side): a placement that spreads a cluster over both sides or stacks it in
+  columns; the novice pass found the names hard to follow.
+- **Long legends do not wrap** (the tRNA and complex views' legends run off a line in a narrow view): wrap the entries
+  by the available width, a group a line when it fits, and keep the pointer's hit boxes on the wrapped entries.
+- **The ring's lanes carry no names of their own**: the strands are named by the legend's words and the detail's track
+  labels; a lane's label drawn on the ring where no feature crosses it would name them in place.
 - **The grid rows' highlight stripes allocate a few bytes a run** (`grid.ts` `emitRows`, the quick case in
   `pairs-grids.quick.ts` bounds it at 128 B): find the boxed value; the tracks' stripes allocate nothing.

@@ -33,9 +33,21 @@ export const Schemes: StoryObj = {
     }),
 };
 
-/** The design under the same rulers: IMGT's 111.1 and 112.1 in CDR-H3, before 112 (EC-7); Kabat's 100D and 100E. */
+/**
+ * The design under the same rulers: IMGT's 111.1 and 112.1 in CDR-H3, before 112 (EC-7); Kabat's 100D and 100E. The same
+ * switch as Schemes: which scheme the top ruler shows.
+ */
 export const DesignNumberings: StoryObj = {
-  render: () => complexEditStory({ view: view('schemes-design'), lines: readoutLines, edits: [] }),
+  render: () =>
+    complexEditStory({
+      view: view('schemes-design'),
+      lines: readoutLines,
+      edits: [
+        { label: 'Top rulers in IMGT', run: (s) => setRuler(s, 'imgt') },
+        { label: 'Top rulers in Kabat', run: (s) => setRuler(s, 'kabat') },
+        { label: 'Top rulers in ordinals', run: (s) => setRuler(s, 'ordinal') },
+      ],
+    }),
 };
 
 /** Each chain's design and wild type as two rows by their IMGT positions: the insertions and the deletion as gaps. */

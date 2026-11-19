@@ -11,7 +11,7 @@ import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { DomHost } from '@molstar/ui/dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { projectOntoView } from '@molstar/seqx-core/view';
-import { composeViewer, QueryExamples, readableRanges, runQuery } from '../compose.js';
+import { composeViewer, QueryExamples, QueryRunner, readableRanges, runQuery } from '../compose.js';
 
 // The Query stories, headless on a fake clock, composed as the stories compose them: every example's queries run
 // through the query box's own path, each with its printed form, its result's kind and its location. The files are read
@@ -347,5 +347,24 @@ describe('Query, headless', () => {
         [174, 175],
       ]),
     ).toBe('94–292, 175');
+  });
+});
+
+describe('the query box’s runner', () => {
+  it('typing runs after a rest; Enter runs at once and drops the wait', () => {
+    const run = vi.fn();
+    const r = new QueryRunner(run, 100);
+    r.soon();
+    vi.advanceTimersByTime(50);
+    expect(run).not.toHaveBeenCalled();
+    r.now();
+    expect(run).toHaveBeenCalledTimes(1);
+    vi.advanceTimersByTime(200);
+    expect(run).toHaveBeenCalledTimes(1);
+    r.soon();
+    r.dispose();
+    r.now();
+    vi.advanceTimersByTime(200);
+    expect(run).toHaveBeenCalledTimes(1);
   });
 });

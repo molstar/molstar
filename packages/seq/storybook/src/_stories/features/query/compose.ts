@@ -168,6 +168,38 @@ function resolveQuery(viewer: SeqViewer, text: string, emphasis: Emphasis): Quer
 }
 
 /** Half-open index ranges as a reader writes them: 1-based and inclusive (`94–292`, one position `175`). */
+/**
+ * When the query box runs its text: typing runs it after a rest of `delayMs`, Enter and a change of what the result does
+ * run it at once (and drop a run still waiting). The story's text field calls these; nothing here reads the DOM.
+ */
+export class QueryRunner {
+  private _timer: ReturnType<typeof setTimeout> | undefined;
+  private _disposed = false;
+
+  constructor(
+    private readonly _run: () => void,
+    private readonly _delayMs: number,
+  ) {}
+
+  /** Typing: run after a rest. */
+  soon(): void {
+    clearTimeout(this._timer);
+    this._timer = setTimeout(() => this.now(), this._delayMs);
+  }
+
+  /** Enter, a chip, a mode: run now. */
+  now(): void {
+    clearTimeout(this._timer);
+    this._timer = undefined;
+    if (!this._disposed) this._run();
+  }
+
+  dispose(): void {
+    this._disposed = true;
+    clearTimeout(this._timer);
+  }
+}
+
 export function readableRanges(r: readonly (readonly [number, number])[]): string {
   return r.map(([a, b]) => (b - a === 1 ? `${a + 1}` : `${a + 1}–${b}`)).join(', ');
 }

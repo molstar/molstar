@@ -16,8 +16,8 @@ import type { MeasureEntry, ThemeDatum } from '@molstar/seqx-core/theme/index';
 /** A row's height when its band gives none (px: a letter row). Fixed: the letters' step needs 20 px. */
 export const RowHeight = 20;
 
-/** How near a tree's branch a point hits its node (px; decided). */
-export const TreeHitPx = 6;
+/** How near a tree's branch a point hits its node (px; decided: the junction's, a target a pointer finds). */
+export const TreeHitPx = 8;
 
 /** A gap byte: `-` or `.`. */
 export function isGap(code: number): boolean {

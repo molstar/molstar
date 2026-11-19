@@ -244,6 +244,8 @@ to its summary row), never silently dropped.
 - Built from `@molstar/ui` components and tokens only: track headers, legends, the hover card, menus, toolbars,
   navigators' frames. Section headers are `@molstar/ui` headers (32px); track header rows are rows (24px).
 - A track header names its data and shows its state (hidden layers, filters, a pending load) as icons in fixed slots.
+- **A ruler in its sequence's own numbering has no label** (the author, 2026-11-19: "we dont need 'position'
+  header on the track"): its numbers say what it is; a ruler in a declared numbering is named by it (Kabat, IMGT).
 - Legends sit with their track or in one legend panel, never over data.
 - Loading regions show a placeholder in place (`@molstar/ui`'s rule), never as empty data (EC-169).
 - **The hover card** (the author, 2026-11-19: "Yes, lane HC now", the novice pass's first finding): a `@molstar/ui`

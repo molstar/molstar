@@ -1193,9 +1193,11 @@ the UX foundations' numbers, CSS px, settled by the foundation stories; where no
 ### Draw lists
 
 - CSS pixels, origin top left; a list per pass, drawn in order: `background`, `data`, `window`, `highlight`,
-  `selection`, `hover`, `cursor`, `labels` (`Passes`; `window` to `cursor` are `EmphasisPasses`). `window` is the first
-  of the emphasis, under the highlights: a window is no data emphasis, and a highlight channel stays above it. It is the
-  layouts' own (their chrome): no layer draws there. The recorder writes an empty pass as its header.
+  `selection`, `hover`, `cursor`, `labels`, `tip` (`Passes`; `window` to `cursor` and `tip` are `EmphasisPasses`).
+  `window` is the first of the emphasis, under the highlights: a window is no data emphasis, and a highlight channel
+  stays above it. It is the layouts' own (their chrome): no layer draws there. `tip` is the last, over the labels: what
+  a hover reads whole over its neighbours (a column cell cut short), on a surface of its own, so no label shows through
+  it. The recorder writes an empty pass as its header, but for an empty `tip`.
 - **Primitives** as structs of arrays in growable typed arrays kept frame to frame (`reset` zeroes counts): `rect` (x,
   y, w, h, fill, stroke and width, a squircle radius, 0 square, and which ends are round, `Round`; `cutTop` and
   `cutBottom` square a round end's top or bottom corner: a grid's cell inside its plot, a row cut by its band), `path`
@@ -2066,9 +2068,9 @@ measures, consensus, the profile). An alignment's rows over its columns, its own
   system; on a row column's cell, left or right, the same with `state` naming its value, `Species: Homo sapiens`, made
   at layout); a column's title `column-title` (`LayerType.hitOutside`: what a layer draws outside its band, asked by
   `hitView` before a layout's chrome and the bands); a summary row `summary-row`, and `tree-node` the inner node whose
-  branch segment is nearest within `TreeHitPx` (6, fixed: decided) by distance to the segment, a wedge included (a
-  leaf's branch hits none), each its element `{ owner: <alignment>, key: <clade name> }` and its extent the clade's
-  rows.
+  branch segment is nearest within `TreeHitPx` (8, fixed: decided: a junction's size, a target a pointer finds) by
+  distance to the segment, a wedge included (a leaf's branch hits none), each its element
+  `{ owner: <alignment>, key: <clade name> }` and its extent the clade's rows.
 - **One rows layer a section** (`seq.render.rows.second`, warning: the cursor has one row order); a rows layer draws in
   tracks and text sections only (`seq.render.rows.layout`, warning, elsewhere).
 - **In a text section** (the ESPript figure's lines repeat the rows): the band is every shown row (its height the
@@ -2079,11 +2081,13 @@ measures, consensus, the profile). An alignment's rows over its columns, its own
   summary row alone; a pinned row's band at both its places, the scrolled rows' bands never over the pinned band). Why:
   the element is hovered, here and on linked sections.
 - **Emphasis along y**: the hover tints its row's band (a pinned row's at both its places) and its column within the
-  band and outlines the cell, and draws the row's column cells cut short whole over the page's background; the
-  selection's parts on the rows system as row bands, its rects of rows × columns as their cells, read over the display
-  rows in view only (a binary search a row: a selection of any size costs the rows in view); a summary row draws the
-  partial mark (the tint over the share of its rows selected, the outline when all are); the cursor with a row
-  (`Emphasis.cursor.ySystem`) outlines its cell (the strip draws a cursor without one).
+  band and outlines the cell, and draws the row's column cells cut short whole in the `tip` pass: on an opaque surface
+  (the page's background, then the track's well, outlined in the hover ink, a squircle by the shape rule), growing right
+  up to the view's edge where a longer text ends in an ellipsis (a number column's grows left); the selection's parts on
+  the rows system as row bands, its rects of rows × columns as their cells, read over the display rows in view only (a
+  binary search a row: a selection of any size costs the rows in view); a summary row draws the partial mark (the tint
+  over the share of its rows selected, the outline when all are); the cursor with a row (`Emphasis.cursor.ySystem`)
+  outlines its cell (the strip draws a cursor without one).
 
 ### The logo
 

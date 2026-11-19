@@ -246,6 +246,17 @@ describe('Antibody: the editing views', () => {
     expect(layer('light')?.params?.numbering).toBe('kabat');
   });
 
+  it('the design’s rulers take the same switch (Design numberings): its ticks stay valid in IMGT, undone to Kabat', async () => {
+    const s = await open('schemes-design');
+    const layer = (c: string) => resolveAddress(s.viewer.spec.root.value, ['views', 'main', c, 'ruler', 'ruler']);
+    expect(await setRuler(s, 'imgt')).toBe('Ruler in imgt');
+    await settle(s);
+    expect([layer('light')?.params?.numbering, layer('heavy')?.params?.numbering]).toEqual(['imgt', 'imgt']);
+    expect(s.viewer.frame!.layout.issues).toEqual([]);
+    await s.stack.undo();
+    expect(layer('heavy')?.params?.numbering).toBe('kabat');
+  });
+
   it('a CDR bookmarked from the selection, renamed, recolored, removed; each a step, undone and redone', async () => {
     const s = await open('cdrs');
     const start = hash(s);
@@ -294,5 +305,46 @@ describe('Antibody: the editing views', () => {
     expect(hash(s)).toBe(start);
     await s.stack.redo();
     expect(bookmarks(s).map((b) => b.id)).toEqual(['cdr-h3']);
+  });
+});
+
+describe('Antibody: the rulers’ tick labels never overlap', () => {
+  it('Kabat’s and IMGT’s rulers of both chains, at every zoom over the insertions: shown labels clear each other', async () => {
+    const s = await open('schemes', 1200);
+    const overlaps: string[] = [];
+    let pairs = 0;
+    for (const chain of ['light', 'heavy'])
+      for (const [start, end] of [
+        [0, 130],
+        [60, 130],
+        [70, 100],
+        [76, 94],
+        [78, 92],
+        [80, 90],
+        [98, 112],
+        [100, 110],
+      ] as const) {
+        s.viewer.view.setRange(`/views/main/${chain}`, start, end);
+        await settle(s);
+        const section = s.viewer.frame!.layout.sections.find((x) => x.id === chain)!;
+        for (const t of section.tracks) {
+          const lay = t.layers[0]?.lay as RulerLay | undefined;
+          if (!lay?.labels || t.track.address.endsWith('/letters')) continue;
+          const shown = Array.from({ length: lay.n }, (_, j) => j).filter((j) => lay.shown[j] === 1);
+          shown.sort((a, b) => lay.x[a] - lay.x[b]);
+          for (let k = 1; k < shown.length; k++) {
+            const a = shown[k - 1];
+            const b = shown[k];
+            const gap = lay.x[b] - lay.widths[b] / 2 - (lay.x[a] + lay.widths[a] / 2);
+            pairs++;
+            if (gap < 4)
+              overlaps.push(
+                `${chain} ${t.track.address} [${start},${end}] ${lay.labels[a]} ${lay.labels[b]} ${gap.toFixed(1)}`,
+              );
+          }
+        }
+      }
+    expect(pairs).toBeGreaterThan(50);
+    expect(overlaps).toEqual([]);
   });
 });

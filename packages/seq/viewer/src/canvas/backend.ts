@@ -78,11 +78,19 @@ export interface CanvasBackendOptions {
   readonly fonts?: FontCache;
   /** How far a text past its max width fades out, CSS px (the layout's `fade`). */
   readonly fade?: number;
+  /**
+   * A canvas above the labels for the `tip` pass (what a hover reads whole over its neighbours' labels); without one the
+   * pass is drawn on the overlay, under the labels.
+   */
+  readonly tip?: CanvasLike;
 }
 
 const OverlayPasses: readonly PassName[] = ['window', 'highlight', 'selection', 'hover', 'cursor'];
+/** The overlay's passes when there is no tip canvas: the tip last. */
+const OverlayAndTipPasses: readonly PassName[] = [...OverlayPasses, 'tip'];
 const BasePasses: readonly PassName[] = ['background', 'data'];
 const LabelPasses: readonly PassName[] = ['labels'];
+const TipPasses: readonly PassName[] = ['tip'];
 
 /** The most image strips kept: a strip past it shares the last slot (an image is put and drawn at once). */
 const MaxImageSlots = 16;
@@ -125,13 +133,17 @@ export class CanvasBackend {
   width = 0;
   height = 0;
   /** Draws counted: what the tests (and a profile) read. */
-  readonly counts = { base: 0, overlay: 0, labels: 0 };
+  readonly counts = { base: 0, overlay: 0, labels: 0, tip: 0 };
   /** The canvases' scale: the backing size over the CSS size (the rounded backing size, not the ratio asked for). */
   private _sx = 1;
   private _sy = 1;
   private readonly _base: Context2D;
   private readonly _overlay: Context2D;
   private readonly _labels: Context2D;
+  private readonly _tip: Context2D | undefined;
+  private _tipDirty = false;
+  /** Whether the tip canvas has its full backing size (a tip is drawn); else it is 1 × 1. */
+  private _tipFull = false;
   private readonly _colors = new ColorCache();
   private readonly _glyphs: string[] = [];
   private readonly _scratch = new PathList();
@@ -156,6 +168,9 @@ export class CanvasBackend {
     this._base = this._ctx = b;
     this._overlay = o;
     this._labels = t;
+    const tc = options.tip?.getContext('2d');
+    if (options.tip && !tc) throw new Error('A 2D canvas context is not available');
+    this._tip = tc ?? undefined;
     this.fonts = options.fonts ?? new FontCache();
     this._fade = options.fade ?? 12;
     this._visitor = this._makeVisitor();
@@ -179,9 +194,21 @@ export class CanvasBackend {
         c.style.height = `${height}px`;
       }
     }
+    // the tip canvas has no backing store of its size until a tip is drawn (a view with no hovered cell pays none)
+    const tip = this.options.tip;
+    if (tip) {
+      tip.width = 1;
+      tip.height = 1;
+      if (tip.style) {
+        tip.style.width = `${width}px`;
+        tip.style.height = `${height}px`;
+      }
+      this._tipFull = false;
+    }
     this._sx = this.base.width / width;
     this._sy = this.base.height / height;
     this._overlayDirty = false;
+    this._tipDirty = false;
     return true;
   }
 
@@ -209,14 +236,40 @@ export class CanvasBackend {
 
   private _drawOverlay(lists: DrawLists): void {
     let any = false;
-    for (const p of OverlayPasses) if (lists.passes[p].size) any = true;
-    if (!any && !this._overlayDirty) return;
-    this.counts.overlay++;
-    const ctx = this._overlay;
-    ctx.setTransform(this._sx, 0, 0, this._sy, 0, 0);
-    ctx.clearRect(0, 0, this.width, this.height);
-    this._drawPasses(lists, ctx, OverlayPasses, false);
-    this._overlayDirty = any;
+    const own = this._tip ? OverlayPasses : OverlayAndTipPasses;
+    for (const p of own) if (lists.passes[p].size) any = true;
+    if (any || this._overlayDirty) {
+      this.counts.overlay++;
+      const ctx = this._overlay;
+      ctx.setTransform(this._sx, 0, 0, this._sy, 0, 0);
+      ctx.clearRect(0, 0, this.width, this.height);
+      this._drawPasses(lists, ctx, own, false);
+      this._overlayDirty = any;
+    }
+    // the tip over the labels, on its own canvas: cleared only when it drew or is drawn
+    const tip = this._tip;
+    if (!tip) return;
+    const some = lists.passes.tip.size > 0;
+    if (!some && !this._tipDirty) return;
+    this.counts.tip++;
+    const canvas = this.options.tip!;
+    if (!some) {
+      // the tip went: the backing store goes with it
+      canvas.width = 1;
+      canvas.height = 1;
+      this._tipFull = false;
+      this._tipDirty = false;
+      return;
+    }
+    if (!this._tipFull) {
+      canvas.width = this.base.width;
+      canvas.height = this.base.height;
+      this._tipFull = true;
+    }
+    tip.setTransform(this._sx, 0, 0, this._sy, 0, 0);
+    tip.clearRect(0, 0, this.width, this.height);
+    this._drawPasses(lists, tip, TipPasses, false);
+    this._tipDirty = true;
   }
 
   private _drawPasses(lists: DrawLists, ctx: Context2D, passes: readonly PassName[], countBase: boolean): void {

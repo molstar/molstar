@@ -7,6 +7,7 @@
 import { P53Views } from '@molstar/seqx-examples';
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { exampleStory } from '../../examples/example-root.js';
+import { openStrip } from './compose.js';
 
 // Navigators as such (the navigators design): the ruler rail every linear section has by default, and a declared strip
 // that replaces it; on p53, whose tracks show both best; a strip with a follower, and the ideogram of a chromosome over
@@ -28,9 +29,16 @@ export const Rail: StoryObj = { render: () => exampleStory(view('tracks')) };
 /**
  * A declared strip over the same tracks replaces the rail: its picture the tracks small, its window the view's. Its
  * window is a slider: focus it and use the arrows, Shift+arrows, Home and End; its value is said when the view rests.
- * The SVG includes it, its window an outline titled with its positions.
+ * The SVG includes it, its window an outline titled with its positions. It opens zoomed in on the DNA-binding domain, so
+ * the window is smaller than the strip and can be dragged.
  */
-export const Strip: StoryObj = { render: () => exampleStory(view('tracks-strip'), { navigators: 'include' }) };
+export const Strip: StoryObj = {
+  render: () =>
+    exampleStory(view('tracks-strip'), {
+      navigators: 'include',
+      opening: openStrip,
+    }),
+};
 
 /**
  * The protein on its gene with a strip of the protein: its window and its gene follower's, carried along the codon map,
