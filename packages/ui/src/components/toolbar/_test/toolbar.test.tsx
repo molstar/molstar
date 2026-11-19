@@ -10,6 +10,7 @@
 import { derive } from '@molstar/core/reactive';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { delegateEvents, DomProbe, flush, render, ViewScope } from '../../../dom/index.js';
+import { styleText } from '../../../styles/registry.js';
 import { state } from '../../../state.js';
 import { countListeners, stubPointerCapture } from '../../../testing/gestures.js';
 import {
@@ -401,6 +402,14 @@ describe('Toolbar: menu rows', () => {
     flush();
     expect(t.menus()).toHaveLength(1);
     expect(document.activeElement).toBe(row);
+  });
+
+  it('a disabled button is dimmed by the toolbar itself (its text token is too near the enabled one)', () => {
+    // the registered sheet keeps the nesting: the first `&[aria-disabled="true"]` block after the button's class
+    const css = styleText();
+    const at = css.indexOf('.msui-toolbar-button {');
+    const rule = /&\[aria-disabled="true"\] \{([^}]*)\}/.exec(css.slice(at))?.[1];
+    expect(rule).toMatch(/opacity:\s*0?\.[3-6]/);
   });
 
   it('a disabled button and a disabled row do not run; their reasons are in their tooltips', async () => {

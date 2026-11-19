@@ -23,11 +23,6 @@ export function mountToolbar(
   const host = doc.createElement('div');
   host.style.position = 'relative';
   host.className = 'seqx-toolbar';
-  // the toolbar's own disabled colour (text-subtle) is a few percent from its enabled one (text-muted): too near to
-  // tell a disabled button from an enabled one, in either theme; opacity separates them in both
-  const style = doc.createElement('style');
-  style.textContent = '.seqx-toolbar [aria-disabled="true"] { opacity: 0.4; }';
-  host.append(style);
   // before the canvas the viewer mounted into the target
   target.prepend(host);
   const items: ToolbarItem[] = toolbarButtons(viewer, commands).map((b) => ({
