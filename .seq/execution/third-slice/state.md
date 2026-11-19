@@ -57,10 +57,13 @@ RW's fixes was checked in light only (Scale's tiles in canvas and SVG, labels wh
 
 - PG (strong) and NV (strong): pairs and grids, navigators (`briefs/pg-pairs-grids.md`, `nv-navigators.md`), base
   `51787bb2b`; started 2026-11-19 by the new orchestrator session.
+- CH (fast): the author's two findings from the Globins views (a tree-node hover lights nothing; the ruler's "70" drawn
+  twice in the Figure's 61–80 block), `briefs/ch-clade-hover.md`, base `00096372f`.
 
 ## Next
 
-After PG and NV: stage 4's GATE, then stage 5. The early use gate is deferred.
+After PG and NV: lane GD (gaps 1–5 decided as recommended, 2026-11-19: the core palette split, `classes-safe`,
+the dark cell edge, `view.motion`, the pyramid's tolerance), then stage 4's GATE, then stage 5. The early use gate is deferred.
 
 ## Decided
 
