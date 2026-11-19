@@ -39,8 +39,8 @@ break zero width, a hairline, on every layout); [layout-and-draw-lists](../../..
 
 **Model**: strong (opus).
 
-**Base**: `packages-seq` at `<set at start>`. Your worktree may be cut from master: with a clean tree, first
-`git checkout -B seq/tx-text <base>`, and check `git merge-base --is-ancestor <base> HEAD`.
+**Base**: `packages-seq` at `61d2887c3`. Your worktree may be cut from master: with a clean tree, first
+`git checkout -B seq/tx-text 61d2887c3`, and check `git merge-base --is-ancestor 61d2887c3 HEAD`.
 
 **Touches**: `packages/seq/{core,viewer,examples}/src/**`, `packages/seq/storybook/src/_stories/**` (not the Design
 pages), the `_spec`s, `packages/seq/TODO.md`, `.seq/design/performance.md`'s rows only through your report.
