@@ -55,9 +55,9 @@ import type { Unit } from '@molstar/model/model/structure';
 import { BondType } from '@molstar/model/model/structure/model/types';
 import type { UnitIndex } from '@molstar/model/model/structure/structure/element/util';
 import type { IntraUnitBondProps, IntraUnitBonds } from '@molstar/model/model/structure/structure/unit/bonds/data';
-import { computeRings, createIndex } from '@molstar/model/model/structure/structure/unit/rings/compute';
+import { computeResidueRings } from '@molstar/model/model/structure/structure/unit/rings/compute';
 import { applyCachedChemCompPattern, cacheChemCompPattern, chemCompHash } from './chemcomp-cache.js';
-import { State, hasPerceivableBond, type UnitRingsInfo } from './common.js';
+import { State, hasPerceivableBond } from './common.js';
 import type { InterUnitNeighbours } from './inter-unit-neighbours.js';
 import { applyFunctionalGroups } from './functional-groups-connectivity.js';
 import { perceiveAromaticRings } from './huckel.js';
@@ -117,11 +117,6 @@ export function perceiveBondOrders(
   );
   if (unit.elements.length <= 1) return bonds;
 
-  // rings over the graph being perceived, never `unit.rings` (`unit.bonds` is not set yet) and without aromaticity;
-  // computed once a residue needs perceiving (none in a unit of canonical or cached residues). Perception writes orders
-  // and flags, never the topology, so the rings are the same whenever they are computed.
-  let rings: UnitRingsInfo | undefined;
-
   const { label_comp_id } = unit.model.atomicHierarchy.atoms;
   const prefix = `${mode}|`;
   const residuesIt = Segmentation.transientSegments(unit.model.atomicHierarchy.residueAtomSegments, unit.elements);
@@ -138,7 +133,8 @@ export function perceiveBondOrders(
     const hash = chemCompHash(unit, start, end, prefix);
     if (applyCachedChemCompPattern(unit, bonds, start, end, hash)) continue;
 
-    rings ??= unitRings(unit, bonds);
+    // the residue's rings over the graph being perceived, never `unit.rings` (`unit.bonds` is not set yet)
+    const rings = computeResidueRings(unit, start, end, bonds);
     const state = State(unit, bonds, rings, getInterUnit(), start, end);
     assignHybridization(state);
     applyFunctionalGroups(state);
@@ -151,10 +147,4 @@ export function perceiveBondOrders(
     }
   }
   return bonds;
-}
-
-function unitRings(unit: Unit.Atomic, bonds: IntraUnitBonds): UnitRingsInfo {
-  const all = computeRings(unit, bonds);
-  const { elementRingIndices } = createIndex(all, []);
-  return { all, elementRingIndices };
 }

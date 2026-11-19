@@ -131,13 +131,10 @@ function assignGeometry(state: State) {
  * may be pyramidal even if it is conjugated.
  */
 function markPyramidalNitrogen(state: State, i: number) {
-  const { geometry, degree, el, inRing, unitIndices } = state;
+  const { geometry, degree, el, inRing } = state;
   if (geometry[i] !== AtomGeometry.Tetrahedral || degree[i] < 3 || el[i] !== Elements.N) return;
-  if (inRing[i]) {
-    const u = unitIndices[i];
-    const ringsCount = state.rings.elementRingIndices.get(u)?.length ?? 0;
-    if (ringsCount > 1) return; // N may be strained in fused or bridged rings: pyramidalization does not reflect hybridization
-  }
+  // N may be strained in fused or bridged rings: pyramidalization does not reflect hybridization
+  if (inRing[i] > 1) return;
   state.pyramidalNitrogen[i] = 1;
 }
 

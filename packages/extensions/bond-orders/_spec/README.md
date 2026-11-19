@@ -44,9 +44,9 @@ at the top of `src/perception/perceive.ts` and in each step's module.
    phosphate's O) the copies share the first copy's choice.
 6. **No closures in the neighbour loops**: `State` collects per-residue adjacency arrays once (intra-unit from the graph
    being perceived, inter-unit neighbours from §1.3); the steps loop over arrays and over the graph's `offset`/`b`. Why:
-   `unit.bonds` and `unit.rings` are not available inside `intra` (rings come from `computeRings(unit, bonds)` and
-   `createIndex(rings, [])`, without aromaticity, once a residue of the unit needs perceiving), and the core iterators
-   read them.
+   `unit.bonds` and `unit.rings` are not available inside `intra` (rings come from
+   `computeResidueRings(unit, start, end, bonds)`, for the residues perceived only, without aromaticity), and the core
+   iterators read them.
 7. **Output props**: `cacheable: true` (§1.3), and `canRemap: false` once a residue was perceived. Why: perceived orders
    depend on the geometry, so a frame with `dynamicBonds` is perceived again even where the file's bonds would carry
    over; a unit with only canonical residues keeps the built-in props.
@@ -72,14 +72,15 @@ at the top of `src/perception/perceive.ts` and in each step's module.
     never terminal: an atom of another residue has another heavy neighbour, even in ACE or NME), Hückel's exocyclic
     bond. A partner outside the residue with altlocs is one neighbour: an atom without altloc is bonded to each of its
     copies (Mol\* bonds atoms of different altlocs only when one has none), and the first copy met stands for it, chosen
-    per atom (the previous and next residues of a polymer are linked through different atoms). A ring through an atom
-    outside the residue (or in another altloc) is not one of its rings: no ring atom, no planarity or aromaticity test;
-    the residue's ring systems are its own rings grouped by shared atoms. No step writes such a bond: the pattern cache
-    applies a residue's pattern to its own bonds only, and the length and planarity tests (`markAmbiguous`) skip them.
-    Why: a nucleotide's P has its fourth bond in the previous residue (O3'), a carbamate's O in Ser (5KRE); without them
-    the phosphoryl and ester patterns do not match and the valence is wrong. Consequence: in `forceCompute`, a multiple
-    bond stated between residues of one unit becomes single (rare: peptide, phosphodiester, disulfide and glycosidic
-    links are single) until bonds across residues are perceived (TODO).
+    per atom (the previous and next residues of a polymer are linked through different atoms). Rings never leave a
+    residue (Mol\*'s search stays in it); a ring through an atom of another altloc is not one of its rings: no ring
+    atom, no planarity or aromaticity test; the residue's ring systems are its own complete rings grouped by shared
+    atoms. No step writes such a bond: the pattern cache applies a residue's pattern to its own bonds only, and the
+    length and planarity tests (`markAmbiguous`) skip them. Why: a nucleotide's P has its fourth bond in the previous
+    residue (O3'), a carbamate's O in Ser (5KRE); without them the phosphoryl and ester patterns do not match and the
+    valence is wrong. Consequence: in `forceCompute`, a multiple bond stated between residues of one unit becomes single
+    (rare: peptide, phosphodiester, disulfide and glycosidic links are single) until bonds across residues are perceived
+    (TODO).
 12. **Valence** (`valence`, `common.ts`): the octet rule on the charged atom's valence electrons (C+ and C- 3, B- 4, N+
     4, O- 1). P, S and Se expand their octet as in the CTAB convention: the smallest of the octet valence, +2, +4... at
     least the bond-order sum (a phosphate's P=O, a sulfoxide's and a sulfone's S=O). Why: the CCD and Mol\*'s valence

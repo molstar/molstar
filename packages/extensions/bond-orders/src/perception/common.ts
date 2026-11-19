@@ -18,17 +18,10 @@ import type { IntraUnitBonds } from '@molstar/model/model/structure/structure/un
 import { altLoc, formalCharge, typeSymbol } from '@molstar/model/props/computed/chemistry/util';
 import type { InterUnitNeighbours } from './inter-unit-neighbours.js';
 
-/** The rings of the graph being perceived, from `computeRings(unit, bonds)` and `createIndex(rings, [])`. */
-export interface UnitRingsInfo {
-  readonly all: ReadonlyArray<ArrayLike<UnitIndex>>;
-  readonly elementRingIndices: ReadonlyMap<UnitIndex, ArrayLike<number>>;
-}
-
 export interface State {
   unit: Unit.Atomic;
   /** the graph being perceived: a copy of the built-in bonds, written in place */
   bonds: IntraUnitBonds;
-  rings: UnitRingsInfo;
   /** number of atoms in the residue conformation (unique altloc) */
   n: number;
   /** UnitIndex per residue atom */
@@ -62,7 +55,7 @@ export interface State {
   geometry: Int8Array;
   /** remaining open valence per local atom */
   open: Int8Array;
-  /** 1 if the atom belongs to a ring within the residue */
+  /** the number of the residue's complete rings through the atom (0: not a ring atom) */
   inRing: Uint8Array;
   /** 1 if the atom is a pyramidal nitrogen */
   pyramidalNitrogen: Uint8Array;
@@ -89,14 +82,15 @@ const tmpVecB = Vec3();
 
 /**
  * Collect the residue's neighbour lists: intra-unit ones from the graph being perceived (`bonds`), neighbours in other
- * units from `interUnit`; neighbours in another altloc than the residue's reference one are skipped. Fills `degree`,
+ * units from `interUnit`; neighbours in another altloc than the residue's reference one are skipped. `rings`: the
+ * residue's (`computeResidueRings`). Fills `degree`,
  * `hCount`, the residue-local heavy/all lists and the neighbour-coordinate store (positions and residue-local index,
  * `-1` for a neighbour outside the residue).
  */
 export function State(
   unit: Unit.Atomic,
   bonds: IntraUnitBonds,
-  rings: UnitRingsInfo,
+  rings: ReadonlyArray<ArrayLike<UnitIndex>>,
   interUnit: InterUnitNeighbours,
   start: UnitIndex,
   end: UnitIndex,
@@ -204,45 +198,34 @@ export function State(
     }
   }
 
-  // Only the rings fully inside the residue (_spec §1.11): a ring through an atom outside it (another residue, or
-  // another altloc: atoms of different altlocs are never bonded, so each altloc has its own ring) sets no `inRing`, is
-  // not a 5/6 ring and is in no ring system.
-  const { all: allRings, elementRingIndices } = rings;
-  const seenRings = new Set<number>();
-  /** the complete rings met from the residue's atoms (every atom in the residue), as local atoms */
+  // The residue's rings (`computeResidueRings`: a ring never leaves its residue), the complete ones only (_spec §1.11):
+  // a ring through an atom of another altloc (atoms of different altlocs are never bonded, so each altloc has its own
+  // ring) counts in no `inRing`, is not a 5/6 ring and is in no ring system.
+  /** the residue's complete rings, as local atoms */
   const residueRings: number[][] = [];
   const localRings5or6: number[][] = [];
-  for (let i = 0; i < n; i++) {
-    const u = unitIndices[i];
-    const ringsForAtom = elementRingIndices.get(u);
-    if (!ringsForAtom) continue;
-    for (let r = 0; r < ringsForAtom.length; r++) {
-      const ri = ringsForAtom[r];
-      if (seenRings.has(ri)) continue;
-      seenRings.add(ri);
-      const ring = allRings[ri];
-      let local: number[] | undefined = new Array<number>(ring.length);
-      for (let k = 0; k < ring.length; k++) {
-        const localIndex = unitIndexToLocalIndex.get(ring[k]);
-        if (localIndex === void 0) {
-          // not in this residue (altloc or different residue)
-          local = void 0;
-          break;
-        }
-        local[k] = localIndex;
+  for (const ring of rings) {
+    let local: number[] | undefined = new Array<number>(ring.length);
+    for (let k = 0; k < ring.length; k++) {
+      const localIndex = unitIndexToLocalIndex.get(ring[k]);
+      if (localIndex === void 0) {
+        // an atom of another altloc
+        local = void 0;
+        break;
       }
-      if (!local) continue;
-      residueRings.push(local);
-      for (const k of local) inRing[k] = 1;
-      if (ring.length < 5 || ring.length > 6) continue;
-      const seq = ringTraversalSort(heavyNeighbours, local);
-      if (seq) localRings5or6.push(seq);
+      local[k] = localIndex;
     }
+    if (!local) continue;
+    residueRings.push(local);
+    for (const k of local) inRing[k]++;
+    if (ring.length < 5 || ring.length > 6) continue;
+    const seq = ringTraversalSort(heavyNeighbours, local);
+    if (seq) localRings5or6.push(seq);
   }
 
   // Ring systems collected for aromaticity perception:
   // the residue's complete rings (`residueRings`) grouped by shared atoms, each connected group a system.
-  // This differs from Mol* ringComponents which may merge rings across residues and altlocs. When these kind of rings
+  // This differs from Mol* ringComponents which may merge the rings of different altlocs. When these kind of rings
   // are filtered out, the remaining rings are grouped by shared atoms or left alone (single ring systems).
   // 3 and 4-membered rings are ignored for aromaticity unless part of a larger system with larger rings
   const ringGraph = new IntAdjacencyGraph.UniqueEdgeBuilder(residueRings.length);
@@ -271,7 +254,6 @@ export function State(
   return {
     unit,
     bonds,
-    rings,
     n,
     unitIndices,
     firstAltLoc: referenceAltLoc,
