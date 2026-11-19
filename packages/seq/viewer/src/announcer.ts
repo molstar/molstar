@@ -7,7 +7,7 @@
 import { type ReadonlyState, State } from '@molstar/core/reactive';
 import { DomHost } from '@molstar/ui/dom';
 import { locationText } from '@molstar/seqx-core/render';
-import { Describer } from '@molstar/seqx-viewer/describe';
+import { type Describer, describerFor } from '@molstar/seqx-viewer/describe';
 import type { SeqViewer } from './viewer.js';
 
 // What the viewer says to a reader who does not see the canvas (_spec/README.md "Input", Announcements): one polite
@@ -64,10 +64,12 @@ export class Announcer {
     this._viewer = viewer;
     this._rest = options.restMs ?? DefaultAnnouncerOptions.restMs;
     this._gap = options.minGapMs ?? DefaultAnnouncerOptions.minGapMs;
-    this._words = new Describer({
+    // the viewer's one describer: the hover card says the same words from it
+    this._words = describerFor({
       spec: viewer.spec,
       store: viewer.store,
       addresses: viewer.addresses,
+      view: viewer.view,
       layout: () => viewer.frame?.layout,
     });
     this._stop.push(

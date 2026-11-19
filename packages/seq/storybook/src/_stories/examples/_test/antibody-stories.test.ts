@@ -191,6 +191,7 @@ describe('Antibody: labels in both numberings', () => {
       spec: s.viewer.spec,
       store: s.viewer.store,
       addresses: s.viewer.addresses,
+      view: s.viewer.view,
       layout: () => s.viewer.frame?.layout,
     }).describe(s.viewer.hover.current);
     expect(card?.rows).toContainEqual({ label: 'kabat', value: '100A' });

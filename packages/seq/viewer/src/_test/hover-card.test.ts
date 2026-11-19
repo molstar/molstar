@@ -25,6 +25,7 @@ import { Describer } from '../describe.js';
 import { type CardBox, type HoverCard, type HoverCardPlace, placeCard } from '../hover-card.js';
 import { describeKeys } from '../keys.js';
 import { HoverCardProvider } from '../behaviors/hover-card.js';
+import { KeysPanelProvider } from '../behaviors/keys-panel.js';
 import { createSeqViewer, type SeqViewer } from '../viewer.js';
 import { type Frames, installFrames } from './frames.js';
 
@@ -151,7 +152,7 @@ async function make(
 }
 
 const words = (v: SeqViewer) =>
-  new Describer({ spec: v.spec, store: v.store, addresses: v.addresses, layout: () => v.frame?.layout });
+  new Describer({ spec: v.spec, store: v.store, addresses: v.addresses, view: v.view, layout: () => v.frame?.layout });
 
 /** The layer of a type in a section of the last frame, and the section. */
 function layerOf(v: SeqViewer, section: number, type: string) {
@@ -200,6 +201,15 @@ describe('the hover card’s content, headless on the HoverModel', () => {
       text: 's, h 13 (kabat 82B, imgt 107), letter Q, score 3',
     });
     expect(said).toBe(card!.text);
+  });
+
+  it('shows – for a numbering with no label at the place', async () => {
+    const v = await make(cardSpec());
+    const { s, l } = layerOf(v, 0, 'letters');
+    // Kabat has no label at the first position
+    const { card } = cardOf(v, { layer: l.key, section: s.section.address, system: Heavy, position: 0 });
+    expect(card?.rows).toContainEqual({ label: 'kabat', value: '–' });
+    expect(card?.text).toBe('s, h 1 (kabat –, imgt 1), letter E, score 0');
   });
 
   it('names an item by its label, extent and category; a value track’s value; a pair’s two ends', async () => {
@@ -399,12 +409,67 @@ describe('the hover card’s place and its life', () => {
     expect(r.last()).toBe('hide');
   });
 
+  it('a press within the rest clears it: no card follows', async () => {
+    const r = recorder();
+    const v = await make(cardSpec(), { port: r });
+    const [x, y] = letterPoint(v, 12);
+    v.input.move(x, y);
+    clock += 200;
+    v.input.down(x, y);
+    v.input.up();
+    clock += 1000;
+    frames.timers.fire();
+    expect(v.behavior(HoverCardProvider)!.shown.value).toBeUndefined();
+    expect(r.calls.filter((c) => c !== 'hide')).toHaveLength(0);
+  });
+
+  it('no stale card: a zoom key re-places the cursor’s card, an edit under a resting card sends it away', async () => {
+    const r = recorder();
+    const v = await make(cardSpec(), { port: r });
+    const card = () => v.behavior(HoverCardProvider)!.shown.value;
+    // the keyboard alone (the pointer off the canvas: a hover of its own would replace the cursor's card)
+    v.input.key({ key: 'ArrowRight' });
+    v.input.key({ key: 'ArrowRight' });
+    frames.flush();
+    const before = card()!;
+    const c = v.selection.cursor.value!;
+    // a zoom: the frame is laid out again, the cell moved; the card follows it there
+    expect(v.input.key({ key: '=' })).toBe(true);
+    // the zoom is a jump: animated on the page's frames, timed by the clock
+    for (let i = 0; i < 4; i++) {
+      clock += 100;
+      frames.flush();
+    }
+    const after = card()!;
+    expect(after.card.title).toBe(`h ${c.position + 1}`);
+    const s = v.frame!.layout.sections[0];
+    const cell = Math.min(s.axis!.x(c.position), s.axis!.x(c.position + 1));
+    expect(after.place.anchor.x).toBeCloseTo(cell, 5);
+    expect(after.place.anchor.width).not.toBeCloseTo(before.place.anchor.width, 1);
+    // an edit under a resting card: gone at the frame, back with the new picture's words after the rest
+    const [x, y] = letterPoint(v, 12);
+    v.input.move(x, y);
+    clock += 500;
+    frames.timers.fire();
+    expect(card()?.card.title).toBe('h 13');
+    await v.execute('layer.hide', { address: v.frame!.layout.sections[0].tracks[3].layers[0].key });
+    frames.flush();
+    expect(card()).toBeUndefined();
+    clock += 500;
+    frames.timers.fire();
+    // the value track is hidden: the card no longer names its value
+    expect(card()?.card.rows.some((row) => row.label === 'score')).toBe(false);
+  });
+
   it('shows at the keyboard cursor when a key moves it', async () => {
     const r = recorder();
     const v = await make(cardSpec(), { port: r });
     v.input.move(...letterPoint(v, 3));
     v.input.key({ key: 'ArrowRight' });
     v.input.key({ key: 'ArrowRight' });
+    // made after the frame that drew the cursor (a reveal may have moved the view), never from the frame before it
+    expect(v.behavior(HoverCardProvider)!.shown.value).toBeUndefined();
+    frames.flush();
     const shown = v.behavior(HoverCardProvider)!.shown.value;
     const c = v.selection.cursor.value!;
     expect(shown?.card.title).toBe(`h ${c.position + 1}`);
@@ -436,6 +501,43 @@ describe('the hover card’s place and its life', () => {
     expect(shown?.card.text).toMatch(/^Rectangle: 12 cells, mean /);
     v.input.up();
     expect(v.behavior(HoverCardProvider)!.shown.value).toBeUndefined();
+  });
+
+  it('makes its port once and leaves a host’s own (disposeWithViewer false) to the host', async () => {
+    const made: (HTMLElement | undefined)[] = [];
+    let disposed = 0;
+    const port = (container: HTMLElement | undefined) => {
+      made.push(container);
+      return { show() {}, hide() {}, disposeWithViewer: false, dispose: () => void disposed++ };
+    };
+    const base = DefaultSeqViewerSpec();
+    const v = createSeqViewer({
+      ...base,
+      ui: undefined,
+      behaviors: base.behaviors.map((b) =>
+        b.provider === HoverCardProvider ? { provider: HoverCardProvider, params: { port } } : b,
+      ),
+    });
+    viewers.push(v);
+    await v.load(cardSpec());
+    v.resize(900);
+    await v.settle();
+    frames.flush();
+    v.input.move(...letterPoint(v, 12));
+    clock += 500;
+    frames.timers.fire();
+    v.input.move(...letterPoint(v, 13));
+    clock += 500;
+    frames.timers.fire();
+    // headless: made at the first card, once
+    expect(made).toEqual([undefined]);
+    // a mount after it: the first given up (not disposed: the host's), one made over the canvas
+    const el = document.createElement('div');
+    const detach = v.behavior(HoverCardProvider)!.attach(el);
+    expect(made).toEqual([undefined, el]);
+    detach();
+    v.retire();
+    expect(disposed).toBe(0);
   });
 
   it('is the default adapter’s card over the canvas, and `hover.card` off removes it', async () => {
@@ -502,5 +604,57 @@ describe('the keys panel', () => {
     expect(v.input.key({ key: 'Escape' })).toBe(true);
     expect(panel.style.display).toBe('none');
     expect(v.selection.value.value.location.parts.length).toBeGreaterThan(0);
+  });
+  it('keeps its keys: Enter on Close closes it, arrows move no cursor; the focus comes back to what opened it', async () => {
+    vi.stubGlobal('ResizeObserver', undefined);
+    const target = document.createElement('div');
+    document.body.append(target);
+    const v = await make(cardSpec(), { target });
+    const container = target.querySelector<HTMLElement>('[role="application"]')!;
+    const panel = target.querySelector<HTMLElement>('.seqx-keys-panel')!;
+    const key = (el: Element, k: string) =>
+      el.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true }));
+    // opened from the canvas: its Close button takes the focus
+    container.focus();
+    key(container, '?');
+    expect(panel.style.display).toBe('');
+    const close = panel.querySelector('button')!;
+    expect(document.activeElement).toBe(close);
+    // an arrow in the panel stays there: the cursor does not move
+    key(close, 'ArrowRight');
+    expect(v.selection.cursor.value).toBeUndefined();
+    // Enter on Close closes it; the focus is the canvas's again
+    key(close, 'Enter');
+    expect(panel.style.display).toBe('none');
+    expect(document.activeElement).toBe(container);
+    // opened from another control (a toolbar's button): Esc on the panel closes it and gives that control the focus
+    const button = document.createElement('button');
+    document.body.append(button);
+    button.focus();
+    await v.execute('help.keys', {});
+    // drawn again as it opens: its Close button is a new one
+    const again = panel.querySelector('button')!;
+    expect(document.activeElement).toBe(again);
+    key(again, 'Escape');
+    expect(panel.style.display).toBe('none');
+    expect(document.activeElement).toBe(button);
+  });
+
+  it('Esc cancels a running drag before it closes the panel', async () => {
+    const v = await make(cardSpec());
+    const keys = v.behavior(KeysPanelProvider)!;
+    await v.execute('help.keys', {});
+    expect(keys.open.value).toBe(true);
+    // a drag-select on the letters, running
+    const [x, y] = letterPoint(v, 4);
+    v.input.move(x, y);
+    v.input.down(x, y);
+    v.input.move(...letterPoint(v, 8));
+    expect(v.input.dragging).toBe(true);
+    expect(v.input.key({ key: 'Escape' })).toBe(true);
+    expect(v.input.dragging).toBe(false);
+    expect(keys.open.value).toBe(true);
+    expect(v.input.key({ key: 'Escape' })).toBe(true);
+    expect(keys.open.value).toBe(false);
   });
 });

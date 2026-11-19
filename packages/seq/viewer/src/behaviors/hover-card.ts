@@ -5,10 +5,10 @@
  */
 
 import { type ReadonlyState, State } from '@molstar/core/reactive';
-import { gridSummary, type RowsLay, type SectionLayout, type ViewLayout } from '@molstar/seqx-core/render';
+import type { RowsLay, SectionLayout, ViewLayout } from '@molstar/seqx-core/render';
 import { DomHost } from '@molstar/ui/dom';
 import { DefaultAnnouncerOptions } from '@molstar/seqx-viewer/announcer';
-import { Describer, type Place, valueText } from '@molstar/seqx-viewer/describe';
+import { describerFor, type Place } from '@molstar/seqx-viewer/describe';
 import {
   type CardBox,
   CardEstimate,
@@ -18,7 +18,6 @@ import {
   type HoverCardPortFactory,
   placeCard,
 } from '@molstar/seqx-viewer/hover-card';
-import { hoverCardOverlay } from '@molstar/seqx-viewer/mount-hover-card';
 import type { BehaviorContext, BehaviorProvider } from '@molstar/seqx-viewer/viewer-spec';
 
 // The hover card (_spec/README.md "Behaviors", hoverCard; "Ports", Hover card): what the pointer rests on, in words,
@@ -27,9 +26,12 @@ import type { BehaviorContext, BehaviorProvider } from '@molstar/seqx-viewer/vie
 // the pointer and its drag), on leave, on Esc, a press and a wheel; shown at the keyboard cursor when a key moves it;
 // a dragged rectangle on a grid shows its summary (`gridSummary`). Per pointer move it stores two numbers: the card is
 // made on rest, never per move, and one timer waits for the rest however many moves come (a move pushes the rest on).
+// No card outlives what it describes: a frame laid out again (a zoom, a pan, an edit, a load, data arriving) places the
+// cursor's card again and sends a hover's away until the hover rests again. The port is a param, given by the default
+// spec (`hoverCardOverlay()`): this module draws nothing itself.
 
 export interface HoverCardParams {
-  /** The port's adapter (`@molstar/ui`'s card over the canvas when absent). */
+  /** The port's adapter (the default spec gives `@molstar/ui`'s card over the canvas; none: nothing is drawn). */
   readonly port?: HoverCardPortFactory;
   /** How long the hover rests before the card shows, ms (the announcer's, 500). */
   readonly restMs?: number;
@@ -55,8 +57,10 @@ export interface HoverCardBehavior {
   interrupt(): void;
   /** A drag ended. */
   released(): void;
-  /** A key moved the keyboard cursor: the card shows at its cell. */
+  /** A key moved the keyboard cursor: the card shows at its cell after the next frame (the one that revealed it). */
   cursorMoved(): void;
+  /** A frame was drawn (the viewer, each frame), laid out again or not: no allocation. */
+  framed(relaid: boolean): void;
   /** The mounted canvas's element: the port's adapter is made over it. */
   attach(container: HTMLElement): () => void;
   dispose(): void;
@@ -78,12 +82,7 @@ const around = (x: number, y: number, rx: number, ry: number): CardBox => ({
  * band's row); elsewhere (a grid, a ring, lines of text) a box around the pointer as large as a cell on each side.
  * Read on rest from the layout; never a frame's work.
  */
-export function anchorOf(
-  layout: ViewLayout,
-  words: Describer,
-  place: Place,
-  pointer: { readonly x: number; readonly y: number },
-): CardBox {
+function anchorOf(layout: ViewLayout, place: Place, pointer: { readonly x: number; readonly y: number }): CardBox {
   const section = layout.sections.find((s) => s.section.address === place.section);
   const px = pointer.x;
   const py = pointer.y;
@@ -97,7 +96,7 @@ export function anchorOf(
   let x1 = Number.NaN;
   let y = track.box.y;
   let height = track.box.height;
-  const item = place.element && layer.type.items && words.itemsOf(layer).find((d) => d.key === place.element!.key);
+  const item = place.element && layer.type.items?.(layer.lay).find((d) => d.key === place.element!.key);
   if (item) {
     x0 = item.x0;
     x1 = item.x1;
@@ -142,43 +141,72 @@ function cellBox(section: SectionLayout, position: number): CardBox | undefined 
   return { x: Math.min(a, b), y: top, width: Math.abs(b - a), height: last.y + last.height - top };
 }
 
-export function hoverCardBehavior(context: BehaviorContext, params: HoverCardParams = {}): HoverCardBehavior {
+/** What the card shows, by what asked for it. */
+type Showing = 'none' | 'hover' | 'cursor' | 'rect';
+
+function hoverCardBehavior(context: BehaviorContext, params: HoverCardParams = {}): HoverCardBehavior {
   const { hover, selection, config } = context;
   const restMs = params.restMs ?? DefaultAnnouncerOptions.restMs;
-  const words = new Describer(context);
+  // the viewer's one describer: the live region says the same words from it
+  const words = describerFor(context);
   const shown = new State<ShownHoverCard | undefined>(undefined);
+  // the port, made once (Ports, Hover card): at the mount, or headless at the first card; `made` says it was asked
   let port: HoverCardPort | undefined;
-  let portMade = false;
+  let made = false;
   // the pointer: NaN while it is off the canvas (kept in an array: a number written to a closure's variable is boxed)
   const at = new Float64Array([Number.NaN, Number.NaN]);
   let dragging = false;
+  let showing: Showing = 'none';
+  /** A key moved the keyboard cursor: its card is made after the next frame (the one that revealed it). */
+  let cursorDue = false;
   let changedAt = 0;
   let timer: unknown;
   let summaryTimer: unknown;
   let disposed = false;
 
   const portOf = (): HoverCardPort | undefined => {
-    if (!portMade && params.port) {
-      portMade = true;
-      port = params.port(undefined);
+    if (!made) {
+      made = true;
+      port = params.port?.(undefined);
     }
     return port;
   };
 
-  const show = (card: HoverCard, anchor: CardBox, pointer: { x: number; y: number }) => {
+  /** Lets the port go: disposed when the viewer owns it (`disposeWithViewer` not false). */
+  const release = () => {
+    const p = port;
+    port = undefined;
+    made = false;
+    if (p && p.disposeWithViewer !== false) p.dispose?.();
+  };
+
+  const show = (card: HoverCard, anchor: CardBox, pointer: { x: number; y: number }, by: Showing) => {
     const layout = context.layout();
     if (!layout || !config.hover.card) return;
     const view = { x: 0, y: 0, width: layout.width, height: layout.height };
-    const at = placeCard(anchor, pointer, view, CardEstimate);
-    const place: HoverCardPlace = { anchor, pointer, view, ...at };
+    const placed = placeCard(anchor, pointer, view, CardEstimate);
+    const place: HoverCardPlace = { anchor, pointer, view, ...placed };
+    showing = by;
     shown.set({ card, place });
     portOf()?.show(card, place);
   };
 
   const hide = () => {
+    showing = 'none';
     if (shown.value === undefined) return;
     shown.set(undefined);
     portOf()?.hide();
+  };
+
+  const stopTimer = () => {
+    DomHost.clearTimeout(timer);
+    timer = undefined;
+  };
+
+  /** The hover's rest begins (again): the card shows `restMs` after it, unless something moves first. */
+  const arm = () => {
+    changedAt = DomHost.now();
+    if (timer === undefined && hover.active) timer = DomHost.setTimeout(rest, restMs);
   };
 
   const rest = () => {
@@ -195,34 +223,36 @@ export function hoverCardBehavior(context: BehaviorContext, params: HoverCardPar
     const card = words.describe(hover.current);
     if (!layout || !card) return;
     const pointer = { x: at[0], y: at[1] };
-    show(card, anchorOf(layout, words, hover.current, pointer), pointer);
+    show(card, anchorOf(layout, hover.current, pointer), pointer, 'hover');
+  };
+
+  /** The card at the keyboard cursor's cell, from the last frame. */
+  const showCursor = () => {
+    const c = selection.cursor.value;
+    const layout = context.layout();
+    const section = c && layout?.sections.find((s) => s.section.address === c.section);
+    if (!c || !section) return hide();
+    const card = words.describe({ section: c.section, system: c.system, position: c.position });
+    const box = card && cellBox(section, c.position);
+    if (!card || !box) return hide();
+    show(card, box, { x: box.x + box.width / 2, y: box.y + box.height / 2 }, 'cursor');
   };
 
   const stopHover = hover.version.listen(() => {
     // a rectangle's summary stays while its drag moves the hover
     if (!dragging) hide();
-    changedAt = DomHost.now();
-    if (timer === undefined && hover.active) timer = DomHost.setTimeout(rest, restMs);
+    cursorDue = false;
+    arm();
   });
 
   // a rectangle dragged on a grid: its summary, a little after each change while the drag runs
   const summary = () => {
     summaryTimer = undefined;
     if (disposed || !dragging || !config.hover.card) return;
-    const loc = selection.value.value.location;
-    const view = context.view.resolved.value;
-    if (!loc.rects.length || !view) return;
-    const s = gridSummary({ model: context.spec.model.value, view }, loc);
-    if (!s.count) return;
-    const stats = [
-      { label: 'Mean', value: valueText(s.mean) },
-      { label: 'Min', value: valueText(s.min) },
-      { label: 'Max', value: valueText(s.max) },
-    ];
-    const cells = `${s.count.toLocaleString('en-US')} cell${s.count === 1 ? '' : 's'}`;
-    const text = `Rectangle: ${cells}, ${stats.map((r) => `${r.label.toLowerCase()} ${r.value}`).join(', ')}`;
+    const card = words.describe({ rect: selection.value.value.location });
+    if (!card) return;
     const pointer = { x: at[0], y: at[1] };
-    show({ title: cells, rows: stats, text }, around(at[0], at[1], 6, 6), pointer);
+    show(card, around(at[0], at[1], 6, 6), pointer, 'rect');
   };
   const stopSelection = selection.value.listen((v) => {
     if (!dragging || !v.location.rects.length || summaryTimer !== undefined) return;
@@ -236,14 +266,18 @@ export function hoverCardBehavior(context: BehaviorContext, params: HoverCardPar
       at[1] = p[1];
       if (drag && !dragging) {
         dragging = true;
+        stopTimer();
         hide();
       } else if (!drag && dragging) dragging = false;
     },
     leave() {
       at[0] = at[1] = Number.NaN;
+      stopTimer();
       hide();
     },
     interrupt() {
+      stopTimer();
+      cursorDue = false;
       hide();
     },
     released() {
@@ -252,38 +286,48 @@ export function hoverCardBehavior(context: BehaviorContext, params: HoverCardPar
       hide();
     },
     cursorMoved() {
-      const c = selection.cursor.value;
-      const layout = context.layout();
-      const section = c && layout?.sections.find((s) => s.section.address === c.section);
-      if (!c || !section) return hide();
-      const card = words.cell(c.section, c.system, c.position);
-      const box = card && cellBox(section, c.position);
-      if (!card || !box) return hide();
-      show(card, box, { x: box.x + box.width / 2, y: box.y + box.height / 2 });
+      cursorDue = true;
+    },
+    framed(relaid) {
+      if (cursorDue) {
+        cursorDue = false;
+        showCursor();
+        return;
+      }
+      if (!relaid || showing === 'none' || showing === 'rect') return;
+      // the view or the data moved under the card: the cursor's is placed again; a hover's goes until it rests again
+      if (showing === 'cursor') showCursor();
+      else {
+        hide();
+        arm();
+      }
     },
     attach(container) {
       if (!config.hover.card) return () => {};
-      port = (params.port ?? hoverCardOverlay())(container);
-      portMade = true;
+      // made once: a card shown before the mount (headless) gives its port up first
+      if (made) release();
+      made = true;
+      port = params.port?.(container);
       return () => {
         hide();
-        port?.dispose?.();
-        port = undefined;
+        release();
       };
     },
     dispose() {
       disposed = true;
       stopHover();
       stopSelection();
-      DomHost.clearTimeout(timer);
+      stopTimer();
       DomHost.clearTimeout(summaryTimer);
-      port?.dispose?.();
-      port = undefined;
+      release();
     },
   };
 }
 
-/** The hover card (`hoverCard`, in the default spec; `hover.card` turns it off). */
+/**
+ * The hover card (`hoverCard`, in the default spec with `hoverCardOverlay()` as its port; `hover.card` turns it off).
+ * Without a `port` nothing is drawn (the card's state still moves): a host gives its adapter, and bundles no default.
+ */
 export const HoverCardProvider: BehaviorProvider<HoverCardParams | undefined, HoverCardBehavior> = {
   name: 'hoverCard',
   create: (context, params) => hoverCardBehavior(context, params),

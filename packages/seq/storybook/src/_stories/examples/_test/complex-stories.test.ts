@@ -102,11 +102,14 @@ describe('the grid over the complex, headless', () => {
       spec: v.spec,
       store: v.store,
       addresses: v.addresses,
+      view: v.view,
       layout: () => v.frame?.layout,
     }).describe(v.hover.current);
     expect(card?.rows).toContainEqual({ label: 'Chain x', value: 'CDK2' });
     expect(card?.rows).toContainEqual({ label: 'Chain y', value: 'cyclin A2' });
-    expect(card?.rows.find((r) => r.label === 'Value')?.value).toMatch(/^\d/);
+    // the value in the unit the PAE's theme declares (Å), as the panel once wrote it
+    expect(card?.rows.find((r) => r.label === 'Value')?.value).toMatch(/^\d+(\.\d+)? Å$/);
+    expect(card?.text).toBe(`pae, CDK2 K33 × cyclin A2 ${P20248[299]}300, value 9 Å, chain x CDK2, chain y cyclin A2`);
     expect(card?.rows).toContainEqual({ label: 'y', value: `cyclin A2 ${P20248[299]}300` });
     expect(card?.rows).toContainEqual({ label: 'x', value: 'CDK2 K33' });
     const rects = recordDrawLists(v.frame!.lists, ['hover'])

@@ -53,17 +53,22 @@ export interface HoverCardPort {
   /** Shows the card at its place (one card: a show replaces the last). */
   show(card: HoverCard, place: HoverCardPlace): void;
   hide(): void;
+  /** False: the host owns it (one adapter shared by several viewers), and the viewer leaves it. */
+  readonly disposeWithViewer?: boolean;
   dispose?(): void;
 }
 
-/** The port's factory: given the element the canvas is mounted in (none headless), called once per mount. */
+/**
+ * The port's factory: given the element the canvas is mounted in (none headless). Called once a viewer: when it mounts,
+ * or headless at the first card (a mount after a headless card disposes that one first, when the viewer owns it).
+ */
 export type HoverCardPortFactory = (container: HTMLElement | undefined) => HoverCardPort;
 
 /** The size `HoverCardPlace` suggests a side for: a title and a few rows. */
 export const CardEstimate = { width: 200, height: 96 } as const;
 
 /** The gap between the card and the anchor, and the pointer, CSS px. */
-export const CardGap = 8;
+const CardGap = 8;
 
 /**
  * The card's position (its top-left) and side: beside the pointer (its left at the pointer, or its right where the

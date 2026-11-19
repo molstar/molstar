@@ -71,6 +71,7 @@ import {
 } from '@molstar/seqx-viewer/models';
 import {
   AddressingProvider,
+  type HoverCardBehavior,
   type LinkRun,
   NavigatorProvider,
   windowIdle,
@@ -1100,6 +1101,9 @@ export class SeqViewer extends ReactiveModel {
     }
     this.counts.frames++;
     this._drawn.set(this._drawn.value + 1);
+    // the hover card follows the frame: a cursor's card after the frame that revealed it, none outliving a new layout
+    // (by name: a viewer without the card bundles none of it)
+    (this.behaviors.get('hoverCard') as HoverCardBehavior | undefined)?.framed(rebuilt);
     if (!this._shownFrame) this._drawnRoot = this.spec.shown.value;
     if (this._shownFrame) this._drawnFrames.set(this._drawnFrames.value + 1);
     if (this._restDue) {

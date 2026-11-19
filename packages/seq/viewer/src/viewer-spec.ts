@@ -43,10 +43,20 @@ export interface BehaviorContext {
   layout(): ViewLayout | undefined;
 }
 
+/** What every behavior's handle may have: its end, and its part over a mounted canvas. */
+export interface BehaviorHandle {
+  dispose?(): void;
+  /**
+   * Its part over the canvas (the hover card's adapter, the keys panel): `mountCanvas` calls it with the canvas's
+   * element; the function it returns takes the part away. A headless viewer never calls it.
+   */
+  attach?(container: HTMLElement, viewer: SeqViewer): () => void;
+}
+
 /** A behavior's provider: creates the policy over the models; what it makes is its handle (`dispose` ends it). */
 export interface BehaviorProvider<Params = unknown, Handle = unknown> {
   readonly name: string;
-  create(context: BehaviorContext, params: Params): Handle & { dispose?(): void };
+  create(context: BehaviorContext, params: Params): Handle & BehaviorHandle;
 }
 
 export interface SeqViewerBehavior<Params = any> {

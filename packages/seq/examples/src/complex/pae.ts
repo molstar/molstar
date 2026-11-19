@@ -18,7 +18,7 @@ export const title = 'Complex: PAE across the chains (synthetic)';
 
 /** The PAE's color: viridis over 0 to 30 Å, low (confident) dark. */
 export const PaeColor = () =>
-  theme.field('value', { domain: [0, 30], palette: theme.continuous({ colors: 'viridis' }) });
+  theme.field('value', { domain: [0, 30], unit: 'Å', palette: theme.continuous({ colors: 'viridis' }) });
 
 /** The prediction's data nodes: the entries, the confidence, the PAE's four blocks and the contacts on P20248. */
 export function predictionData(b: SeqSpecBuilder, d: Derived = Data) {

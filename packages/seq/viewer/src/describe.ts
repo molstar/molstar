@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { ElementKey } from '@molstar/seqx-core/query';
+import type { ElementKey, Location } from '@molstar/seqx-core/query';
 import { DefaultNumbering, findNumbering, numberingIds } from '@molstar/seqx-core/query';
 import {
   itemText,
@@ -15,11 +15,12 @@ import {
   type SectionLayout,
   shownLetters,
   spanText,
+  gridSummary,
   type ValuesLay,
   type ViewLayout,
 } from '@molstar/seqx-core/render';
 import type { StaticModel } from '@molstar/seqx-core/resolve';
-import type { AddressModel, SpecModel, StoreModel } from '@molstar/seqx-viewer/models';
+import type { AddressModel, SpecModel, StoreModel, ViewModel } from '@molstar/seqx-viewer/models';
 import type { HoverCard, HoverCardRow } from './hover-card.js';
 
 // What a place is, in words (_spec/README.md "Input", Announcements; "Hover card"): one description that the live
@@ -27,14 +28,22 @@ import type { HoverCard, HoverCardRow } from './hover-card.js';
 // sections in order; each adds its part: a row of the card (a label and a value) and its words in the sentence. The
 // card's `text` is the sentence the announcer says, so a reader of the canvas and a reader of the live region are told
 // the same things. The sections are internal (extensibility.md: chrome parts behind internal interfaces until an outside
-// user needs one): not exported.
+// user needs one): not exported. One describer a viewer (`describerFor`, by its spec model): the announcer and the card
+// share it, and its items read once a frame.
 
 /** What the words read: the models a behavior is given, and the last frame's layout. */
 export interface DescribeSource {
   readonly spec: SpecModel;
   readonly store: StoreModel;
   readonly addresses: AddressModel;
+  /** The resolved view (a dragged rectangle's summary reads its grids). */
+  readonly view: ViewModel;
   layout(): ViewLayout | undefined;
+}
+
+/** A rectangle dragged on a grid: its summary is described. */
+export interface RectPlace {
+  readonly rect: Location;
 }
 
 /** A place to describe: the hover's record (`HoverRecord`) or a cell (the keyboard cursor's). */
@@ -71,7 +80,7 @@ class Parts {
 
 /** What a section reads. */
 interface PlaceContext {
-  readonly words: Describer;
+  readonly words: Words;
   readonly model: StaticModel;
   readonly section: SectionLayout;
   readonly layer: LayerLayout | undefined;
@@ -87,8 +96,12 @@ interface CardSection {
   describe(at: PlaceContext, out: Parts): void;
 }
 
-/** A value as a card says it: up to three significant decimals, no trailing zeros. */
-export function valueText(v: number): string {
+/** A value as a card says it: up to three significant decimals, no trailing zeros; its unit after it when given. */
+function valueText(v: number, unit = ''): string {
+  return unit ? `${numberText(v)} ${unit}` : numberText(v);
+}
+
+function numberText(v: number): string {
   if (!Number.isFinite(v)) return String(v);
   if (Number.isInteger(v)) return v.toLocaleString('en-US');
   const a = Math.abs(v);
@@ -215,11 +228,12 @@ const GridSection: CardSection = {
     const x = end(p.system, p.block, at.position);
     const y = end(p.ySystem, p.yBlock ?? p.block, at.yPosition);
     const v = at.words.gridValue(l, p.system, at.position, p.ySystem, at.yPosition);
+    const value = valueText(v, unitOf(l));
     out.title = `${x} × ${y}`;
     out.row('x', x);
     out.row('y', y);
-    if (!Number.isNaN(v)) out.row('Value', valueText(v));
-    out.words.push(`${at.section.id}, ${x} × ${y}${Number.isNaN(v) ? '' : `, value ${valueText(v)}`}`);
+    if (!Number.isNaN(v)) out.row('Value', value);
+    out.words.push(`${at.section.id}, ${x} × ${y}${Number.isNaN(v) ? '' : `, value ${value}`}`);
     out.whole = true;
   },
 };
@@ -272,8 +286,30 @@ const Sections: readonly CardSection[] = [
   BlockSection,
 ];
 
-/** The words of places in a viewer: the hover's, the cursor's. Items are read once a frame. */
-export class Describer {
+/**
+ * A unit the layer's theme declares for its values (a `field` form's or a scale's `unit`, `Å`): the first found in its
+ * channels' forms; '' when none does.
+ */
+function unitOf(l: LayerLayout): string {
+  const find = (v: unknown, depth: number): string => {
+    if (depth > 4 || typeof v !== 'object' || v === null) return '';
+    const node = v as { params?: Record<string, unknown>; args?: readonly unknown[] };
+    if (typeof node.params?.unit === 'string') return node.params.unit;
+    for (const x of [...Object.values(node.params ?? {}), ...(node.args ?? [])]) {
+      const u = find(x, depth + 1);
+      if (u) return u;
+    }
+    return '';
+  };
+  for (const v of Object.values(l.layer.theme ?? {})) {
+    const u = find(v, 0);
+    if (u) return u;
+  }
+  return '';
+}
+
+/** What the sections read, and the description itself (internal: the `Describer` is its face). */
+class Words {
   private readonly _src: DescribeSource;
   /** Items by layer layout, made once a frame (a description looks them up, a frame changes them). */
   private _items = new Map<LayerLayout, readonly ItemDescription[]>();
@@ -306,14 +342,20 @@ export class Describer {
     return { title: out.title || out.words[0], rows: out.rows, text: out.words.join(', ') };
   }
 
-  /** A cell of a section: the keyboard cursor's. */
-  cell(section: string, system: string, position: number): HoverCard | undefined {
-    return this.describe({ section, system, position });
-  }
-
-  /** The text of a place ('' when there is none). */
-  text(place: Place): string {
-    return this.describe(place)?.text ?? '';
+  /** A rectangle on a grid: its cells counted, their mean, least and greatest value (`gridSummary`). */
+  rect(loc: Location): HoverCard | undefined {
+    const view = this._src.view.resolved.value;
+    if (!loc.rects.length || !view) return undefined;
+    const s = gridSummary({ model: this._src.spec.model.value, view }, loc);
+    if (!s.count) return undefined;
+    const rows = [
+      { label: 'Mean', value: numberText(s.mean) },
+      { label: 'Min', value: numberText(s.min) },
+      { label: 'Max', value: numberText(s.max) },
+    ];
+    const cells = `${s.count.toLocaleString('en-US')} cell${s.count === 1 ? '' : 's'}`;
+    const text = `Rectangle: ${cells}, ${rows.map((r) => `${r.label.toLowerCase()} ${r.value}`).join(', ')}`;
+    return { title: cells, rows, text };
   }
 
   // ---- what the sections read ----
@@ -410,8 +452,12 @@ export class Describer {
           const lo = lay.lo[j];
           const hi = lay.v[j];
           if (Number.isNaN(hi)) break;
-          const label = t.track.label ?? l.key;
-          out.push([label, lo === hi || Number.isNaN(lo) ? valueText(hi) : `${valueText(lo)}–${valueText(hi)}`]);
+          const label = t.track.label || l.key;
+          const unit = unitOf(l);
+          out.push([
+            label,
+            lo === hi || Number.isNaN(lo) ? valueText(hi, unit) : `${numberText(lo)}–${valueText(hi, unit)}`,
+          ]);
           break;
         }
       }
@@ -430,7 +476,8 @@ export class Describer {
 
   /**
    * The position's labels in the system's declared numberings, with their ids: the numbering the section's layers show
-   * first (as a ruler or a text's numbers do), then the others; a numbering with no label there is left out.
+   * first (as a ruler or a text's numbers do), then the others; one with no label there (absent, or not arrived) says
+   * `–`, so a reader sees it is missing.
    */
   numberedLabels(section: SectionLayout, system: string, position: number): [string, string][] {
     const s = this._src.addresses.queryModel().system(system);
@@ -447,10 +494,38 @@ export class Describer {
     for (const id of ids) {
       const n = findNumbering(s, id);
       const label = n?.numbering.labelAt(position - n.shift);
-      if (label !== undefined) out.push([id, label]);
+      out.push([id, label ?? '–']);
     }
     return out;
   }
+}
+
+/** The words of places in a viewer: the hover's, the cursor's, a dragged rectangle's. */
+export class Describer {
+  private readonly _words: Words;
+
+  constructor(src: DescribeSource) {
+    this._words = new Words(src);
+  }
+
+  /** The description of a place (or a rectangle's summary) in the last frame; undefined when there is none. */
+  describe(place: Place | RectPlace): HoverCard | undefined {
+    return 'rect' in place ? this._words.rect(place.rect) : this._words.describe(place);
+  }
+
+  /** The text of a place ('' when there is none). */
+  text(place: Place | RectPlace): string {
+    return this.describe(place)?.text ?? '';
+  }
+}
+
+const Describers = new WeakMap<SpecModel, Describer>();
+
+/** The viewer's one describer (by its spec model): the announcer's and the hover card's. */
+export function describerFor(src: DescribeSource): Describer {
+  let d = Describers.get(src.spec);
+  if (!d) Describers.set(src.spec, (d = new Describer(src)));
+  return d;
 }
 
 /** A layer of a section by its key: its tracks', its strips' (a section of blocks), its section layers'. */

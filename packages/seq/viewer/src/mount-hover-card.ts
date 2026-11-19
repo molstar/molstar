@@ -37,24 +37,30 @@ export function hoverCardOverlay(): HoverCardPortFactory {
     // the label column as wide as its longest label: a card is narrow
     rows.style.setProperty('--msui-label', 'max-content');
     card.append(title, rows);
+    const pool: [HTMLElement, HTMLElement][] = [];
     container.append(card);
     return {
       show(c, place) {
         title.textContent = c.title;
-        const out: HTMLElement[] = [];
-        for (const r of c.rows) {
-          const label = doc.createElement('span');
-          label.className = 'msui-label';
-          label.textContent = r.label;
-          const value = doc.createElement('span');
-          value.className = 'msui-value msui-num';
-          value.style.textAlign = 'start';
-          value.textContent = r.value;
-          out.push(label, value);
+        // the rows' elements are kept across shows: made when a card has more rows than any before, hidden past its own
+        for (let i = 0; i < c.rows.length; i++) {
+          let pair = pool[i];
+          if (!pair) {
+            const label = doc.createElement('span');
+            label.className = 'msui-label';
+            const value = doc.createElement('span');
+            value.className = 'msui-value msui-num';
+            value.style.textAlign = 'start';
+            rows.append(label, value);
+            pool.push((pair = [label, value]));
+          }
+          pair[0].textContent = c.rows[i].label;
+          pair[1].textContent = c.rows[i].value;
+          pair[0].style.display = pair[1].style.display = '';
         }
-        rows.replaceChildren(...out);
+        for (let i = c.rows.length; i < pool.length; i++) pool[i][0].style.display = pool[i][1].style.display = 'none';
         // `display`, not `hidden`: the surface's own `display` would win over the attribute's
-        rows.style.display = out.length ? '' : 'none';
+        rows.style.display = c.rows.length ? '' : 'none';
         card.style.display = '';
         // placed at its own size (jsdom measures none: the estimate's place then)
         const width = card.offsetWidth;

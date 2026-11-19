@@ -923,11 +923,8 @@ export class ViewerInput {
    */
   key(e: KeyState & { key: string }): boolean {
     if (this.viewer.retired) return false;
-    // Esc hides the card and closes the keys panel first (an open panel's Esc is the panel's alone)
-    if (e.key === 'Escape') {
-      this.cardBehavior?.interrupt();
-      if (this.keysPanel?.close()) return true;
-    }
+    // Esc hides the card (whatever else it does)
+    if (e.key === 'Escape') this.cardBehavior?.interrupt();
     // Esc during a drag-select cancels it: the selection before it comes back, and the click after it is none
     // Esc during a window's drag puts the view back where the press found it
     if (e.key === 'Escape' && this._drag?.window) {
@@ -946,6 +943,8 @@ export class ViewerInput {
       this._suppressClick = true;
       return true;
     }
+    // a running drag's Esc is its cancel (above); then an open keys panel's: it closes, and does nothing else
+    if (e.key === 'Escape' && this.keysPanel?.close()) return true;
     const section =
       (this.resting ? this.sectionAt(this._y) : undefined) ?? this.viewer.view.resolved.value?.sections[0]?.address;
     const ctx = { section };
@@ -968,7 +967,7 @@ export class ViewerInput {
         }
         matched = true;
         this.viewer.runCommand(c.id, ctx);
-        // a key that moved the keyboard cursor: the card shows at its cell
+        // a key that moved the keyboard cursor: the card shows at its cell, after the frame that revealed it
         if (c.id.startsWith('cursor.')) this.cardBehavior?.cursorMoved();
         return true;
       }

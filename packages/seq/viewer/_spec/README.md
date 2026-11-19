@@ -415,11 +415,11 @@ owner, the store with it.
   override layers, extra action ids), `config` (`[item, value]` pairs), `ports` (factories with ownership), `ui` (the
   parts; none for a headless viewer), `history` (the history port). `DefaultSeqViewerSpec()`
   (`@molstar/seqx-viewer/default-spec`) lists the `seq` and records runtimes, the `hover`, `navigate`, `select`,
-  `cursor`, `addressing`, `editing`, `hoverCard` and `keysPanel` behaviors (the minimal viewer lists neither: nothing of
-  theirs is in its bundle), the default ports and the UI (`canvas`, and `history`: a mounted viewer with no `history`
-  given gets a `uiHistory()` stack of its own); an application spreads it. A headless spread (`ui: undefined`) has no
-  history, so its edits apply at once (`refs.add` and the editing commands answer at once); a mounted one runs them in
-  turn through its stack (`execute` waits for their message, `runCommand` gives `''`).
+  `cursor`, `addressing`, `editing`, `hoverCard` (its port `hoverCardOverlay()`) and `keysPanel` behaviors (the minimal
+  viewer lists neither: nothing of theirs is in its bundle), the default ports and the UI (`canvas`, and `history`: a
+  mounted viewer with no `history` given gets a `uiHistory()` stack of its own); an application spreads it. A headless
+  spread (`ui: undefined`) has no history, so its edits apply at once (`refs.add` and the editing commands answer at
+  once); a mounted one runs them in turn through its stack (`execute` waits for their message, `runCommand` gives `''`).
 - `createSeqViewer(spec, target?)` makes, in this order: the core's context (registry, configuration, ports), the models
   (spec, view, hover, store, selection, highlight, addresses), the history (`spec.history`, else `uiHistory()` when
   mounted with `ui.history`; bound to the spec), the binding table, the behaviors (one of each name; a behavior's
@@ -520,8 +520,18 @@ factory given the participant, called once per viewer; none: the page's frames.
 
 `hover-card.ts` (the data and `placeCard`), `mount-hover-card.ts` (the default adapter): what the pointer rests on is
 shown by the host (the author: "so apps can easily provide their own styles"). The port is the `hoverCard` behavior's
-param (`port`, a `HoverCardPortFactory` given the canvas's element, none headless), not `spec.ports`: the core's ports
-are the core's, and a viewer that leaves the behavior out bundles no card.
+param (`port`, a `HoverCardPortFactory` given the canvas's element, none headless; the author decided, 2026-11-19), not
+`spec.ports`: the core's ports are the core's.
+
+- **Supplied, never imported**: the behavior draws nothing itself; the default spec gives `hoverCardOverlay()` as the
+  param's value, as it gives `frameAnimation()` as the animation port. A host passes its own adapter there and bundles
+  no default card; no `port`: the card's state moves (`shown`) and nothing is drawn. A viewer that leaves the behavior
+  out bundles neither.
+- **Made once a viewer**: the factory is called at the mount (with the canvas's element), or headless at the first card
+  (with none); a mount after a headless card gives that port up first (disposed when the viewer owns it). The mount's
+  removal hides the card and gives the port up.
+- **Ownership** (`HoverCardPort.disposeWithViewer`, as the history's and the animation's): false, the host owns it (one
+  adapter shared by several viewers) and the viewer never disposes it; else the viewer does when it lets it go.
 
 - **The data** (`HoverCard`): a `title`, `rows` of `{ label, value }` and `text`, the announcer's sentence for the place
   (`describe.ts`, Announcements): one description for the live region and the card.
@@ -530,10 +540,11 @@ are the core's, and a viewer that leaves the behavior out bundles no card.
   adapter places its own card by its measured size with `placeCard(anchor, pointer, view, size)`: beside the pointer,
   above the anchor, else below it, else to its right or left, inside the view. Why boxes: the host's card has its own
   size; the viewer knows what it must not cover.
-- **The port** (`HoverCardPort`): `show(card, place)` (one card: a show replaces the last), `hide()`, `dispose()`.
+- **The port** (`HoverCardPort`): `show(card, place)` (one card: a show replaces the last), `hide()`, `dispose()`,
+  `disposeWithViewer`.
 - **The default adapter** (`hoverCardOverlay()`): `@molstar/ui`'s primitives in the canvas's element (`msui-surface`,
-  its tokens and squircle, a header, a form of rows), absolutely placed, `aria-hidden` (the live region says the same),
-  never in the draw lists or an export.
+  its tokens and squircle, a header, a form of rows; the rows' elements kept across shows), absolutely placed,
+  `aria-hidden` (the live region says the same), never in the draw lists or an export.
 
 ### History
 
@@ -684,21 +695,24 @@ binding table; per move one hit record and one modifiers record are reused.
   complex, and its value; a cell: the section, the system and the position, its labels in every declared numbering of
   the system (the section's shown one first: `kabat, h 13 (kabat 82B, imgt 107)`), the letter, each value track's value,
   the items there; last a block's chain and copy), each adding a row and its words. The sections are internal (chrome
-  parts behind internal interfaces until a host needs one). What is said: the keyboard cursor's place after each move of
-  its own (section, system, 1-based position, the letter a letters layer shows there, the items under it by their labels
-  and extents: the same words as the exported SVG's titles, `accessibility.ts`); the hover's when it rests (`restMs`,
-  500 ms: a pointer crossing the picture says nothing; the item's label and extent, else the cell's place, with its
-  label in the numbering the section's layers show, the first naming one: `kabat, h 13 (kabat 82B), letter Q`); a
-  selection's change once (`Selected 6 positions, p 3–8`, `Selection cleared`; the same selection again says nothing).
-  One rate limit for all (`minGapMs`, 700 ms): a message never follows another sooner, the latest one waiting its turn
-  (a held arrow key says where it is each gap, not each key). A message is a token (a counter and its text), so equal
-  words are said again: a cursor key that leaves the cursor in place (the end of its axis) is announced
-  (`viewer.commandRan` moves after every command). A message waiting its turn is replaced only by one of the same or a
-  higher priority (selection over cursor over hover), and the pointer leaving drops a waiting hover. While a gesture is
-  dragged the cursor and the hover say nothing and the selection says its end once, after the drag. Why one region and a
-  limit: a live region queues what it is given and a reader hears the queue after the cursor moved on. A navigator
-  slider's value is its own (`aria-valuetext`), never this region's. The highlight legend's Clear buttons and the
-  legend's entries are real buttons and options in the page's tab order, so they need nothing here.
+  parts behind internal interfaces until a host needs one); the viewer has one describer (`describerFor`, by its spec
+  model), the announcer's and the card's. A declared numbering with no label at the place (absent, or its labels not
+  arrived) says `–`. A value says the unit its layer's theme declares (a `field` form's or a scale's `unit`: `9 Å`).
+  What is said: the keyboard cursor's place after each move of its own (section, system, 1-based position, the letter a
+  letters layer shows there, the items under it by their labels and extents: the same words as the exported SVG's
+  titles, `accessibility.ts`); the hover's when it rests (`restMs`, 500 ms: a pointer crossing the picture says nothing;
+  the item's label and extent, else the cell's place, with its label in the numbering the section's layers show, the
+  first naming one: `kabat, h 13 (kabat 82B), letter Q`); a selection's change once (`Selected 6 positions, p 3–8`,
+  `Selection cleared`; the same selection again says nothing). One rate limit for all (`minGapMs`, 700 ms): a message
+  never follows another sooner, the latest one waiting its turn (a held arrow key says where it is each gap, not each
+  key). A message is a token (a counter and its text), so equal words are said again: a cursor key that leaves the
+  cursor in place (the end of its axis) is announced (`viewer.commandRan` moves after every command). A message waiting
+  its turn is replaced only by one of the same or a higher priority (selection over cursor over hover), and the pointer
+  leaving drops a waiting hover. While a gesture is dragged the cursor and the hover say nothing and the selection says
+  its end once, after the drag. Why one region and a limit: a live region queues what it is given and a reader hears the
+  queue after the cursor moved on. A navigator slider's value is its own (`aria-valuetext`), never this region's. The
+  highlight legend's Clear buttons and the legend's entries are real buttons and options in the page's tab order, so
+  they need nothing here.
 - **Forced colors** (`forced-colors: active`, whatever the `theme.source`: the root's CSS tokens through
   `readCssTokens`, a configured theme's table through `forcedColorTokens` over `readSystemColors`; `css-tokens.ts`):
   `readCssTokens` reads the system colors (`Canvas`, `CanvasText`, `Highlight`, `GrayText`, resolved by a probe
@@ -826,17 +840,26 @@ rows' commands) reads the last frame's rows layers through the behavior context'
   Ports, Hover card): the card shows `restMs` (the announcer's 500) after the hover last changed, beside the pointer,
   for a pointer over the canvas (a host's hover through `address.hover` shows none); one timer waits for the rest
   however many moves come, the card made then, never per move (the input tells it the pointer in a reused array: a move
-  allocates nothing). Hidden at a press, a wheel, Esc, while a drag runs, on leave and at the next hover's change. A key
-  that moves the keyboard cursor shows the card at its cell at once. A rectangle dragged on a grid shows its summary
-  while it is dragged (`gridSummary`: the cells counted, their mean, least and greatest value), at most once a 50 ms. A
-  behavior with `attach(container, viewer)` draws its part in the mounted canvas's element (the card's adapter, the keys
-  panel); `mountCanvas` calls it.
+  allocates nothing). Hidden at a press, a wheel, Esc, while a drag runs, on leave and at the next hover's change; a
+  press, a wheel, Esc and a leave also clear the rest waiting (no card follows them). A key that moves the keyboard
+  cursor shows the card at its cell after the next frame (`framed`, the viewer's, each frame: the one that drew the
+  cursor, a reveal's scroll included). No card outlives what it describes: a frame laid out again (a zoom, a pan, an
+  edit, a load, data or a source's labels arriving) places the cursor's card again at its cell and sends a hover's away
+  until the hover rests again. A rectangle dragged on a grid shows its summary while it is dragged (`gridSummary`: the
+  cells counted, their mean, least and greatest value), at most once a 50 ms. `hover.card` is read at composition (the
+  configuration is read-only after it): off, no card is shown and no port made. A behavior's part over the canvas is
+  `BehaviorHandle.attach(container, viewer)` (`viewer-spec.ts`): `mountCanvas` calls it for every behavior that has one,
+  and the function it returns takes the part away.
 - `keysPanel` (`KeysPanelProvider`, in the default spec): `help.keys` (`?` in `view.keys`; the toolbar's button) opens a
   `@molstar/ui` surface over the canvas's corner listing what the view answers to, `describeKeys(viewer)` (`keys.ts`,
   DOM-free, so a host draws its own): generated from the viewer's commands with their keys (`view.keys`, else the
   shortcut, as the input reads them) and from the binding table's gestures, grouped (move, zoom, select, edit, view), an
-  entry a command or a method once with every key and gesture that runs it; `help.keys` again or Esc closes it (an open
-  panel's Esc is its alone). Open or closed is the reader's (`none`: nothing in the models changes).
+  entry a command or a method once with every key and gesture that runs it; `help.keys` again or Esc closes it (on the
+  canvas a running drag's Esc cancels the drag first; then an open panel's Esc closes it and does nothing else). Open or
+  closed is the reader's (`none`: nothing in the models changes). Non-modal: opened, it takes the focus (its Close
+  button); closed, it gives the focus back to what opened it (the canvas, a toolbar's button), else to the canvas; the
+  focus may leave it (no trap). Its events are its own: no pointer event or key in it reaches the canvas (an arrow moves
+  no cursor, Enter on Close runs no command), and Esc on it closes it wherever the focus came from.
 - `editing`: edits of the spec as commands, each one patch made against the revision read (`SpecModel.patch`, one step):
   `layer.hide`, `layer.show` (the `hidden` key set or unset), `layer.color` (the layer's theme), `track.hide` and
   `track.show` (the track's own `hidden`: its layers keep theirs, so hide then show is a round trip), `track.move`
