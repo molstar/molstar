@@ -4,14 +4,12 @@
  * @author Paul Pillot <paul.pillot@tandemai.com>
  */
 
-import { SortedArray } from '@molstar/core/data/int';
 import type { Unit } from '@molstar/model/model/structure';
 import type { Model } from '@molstar/model/model/structure/model';
 import { BondType } from '@molstar/model/model/structure/model/types';
 import type { UnitIndex } from '@molstar/model/model/structure/structure/element/util';
 import type { IntraUnitBonds } from '@molstar/model/model/structure/structure/unit/bonds/data';
 import { getFlags, getOrder, isPerceivable, type State, setBond } from './common.js';
-import type { InterUnitNeighbours } from './inter-unit-neighbours.js';
 
 /** The perceived multiple and aromatic bonds of a component, by atom-name pair. */
 type BondingPattern = Map<string, { order: number; flags: number }>;
@@ -29,41 +27,15 @@ function getModelCache(model: Model) {
 }
 
 /**
- * The key of a residue's pattern (_spec §1.5): the mode prefix, the component id, its sorted unique atom names (an
- * incomplete residue gets its own key) and its links, the residue's atoms bonded outside the residue with their
- * partner (`C12-SER.OG`), in this unit or in another unit of the model. A pattern is only reused for copies with the
- * same atoms and the same links.
+ * The key of a residue's pattern (_spec §1.5): the mode prefix, the component id and its sorted unique atom names (an
+ * incomplete residue gets its own key).
  */
-export function chemCompHash(
-  unit: Unit.Atomic,
-  bonds: IntraUnitBonds,
-  interUnit: InterUnitNeighbours,
-  start: UnitIndex,
-  end: UnitIndex,
-  prefix: string,
-) {
+export function chemCompHash(unit: Unit.Atomic, start: UnitIndex, end: UnitIndex, prefix: string) {
   const { elements } = unit;
   const { label_atom_id, label_comp_id } = unit.model.atomicHierarchy.atoms;
-  const { offset, b, edgeProps } = bonds;
   const names = new Set<string>();
-  const linkSet = new Set<string>();
-  for (let u = start; u < end; u++) {
-    const name = label_atom_id.value(elements[u]);
-    names.add(name);
-    for (let t = offset[u]; t < offset[u + 1]; t++) {
-      const v = b[t];
-      if ((v >= start && v < end) || !BondType.isCovalent(edgeProps.flags[t])) continue;
-      linkSet.add(`${name}-${label_comp_id.value(elements[v])}.${label_atom_id.value(elements[v])}`);
-    }
-    const partners = interUnit.get(elements[u]);
-    if (!partners) continue;
-    for (const eI of partners) {
-      if (SortedArray.has(elements, eI)) continue; // an intra-unit bond, listed above
-      linkSet.add(`${name}-${label_comp_id.value(eI)}.${label_atom_id.value(eI)}`);
-    }
-  }
-  const compId = label_comp_id.value(elements[start]);
-  return `${prefix}${compId}|${[...names].sort().join(',')}|${[...linkSet].sort().join(',')}`;
+  for (let u = start; u < end; u++) names.add(label_atom_id.value(elements[u]));
+  return `${prefix}${label_comp_id.value(elements[start])}|${[...names].sort().join(',')}`;
 }
 
 function extractPattern(state: State): BondingPattern {
@@ -88,7 +60,12 @@ function extractPattern(state: State): BondingPattern {
   return pattern;
 }
 
-/** Apply the cached pattern of `hash` onto the residue's perceivable bonds, matched by atom names; false if none. */
+/**
+ * Apply the cached pattern of `hash` onto the residue's perceivable bonds, matched by atom names; false if none is
+ * cached. An empty pattern is a result (a component without multiple or aromatic bonds): applied, it writes nothing.
+ * Only bonds inside the residue, as the pattern records them: a bond leaving the residue is never written (_spec
+ * §1.11), even when its atom names match a pattern's pair.
+ */
 export function applyCachedChemCompPattern(
   unit: Unit.Atomic,
   bonds: IntraUnitBonds,
@@ -97,7 +74,8 @@ export function applyCachedChemCompPattern(
   hash: string,
 ): boolean {
   const pattern = getModelCache(unit.model).get(hash);
-  if (!pattern || pattern.size === 0) return false;
+  if (!pattern) return false;
+  if (pattern.size === 0) return true; // only single bonds, nothing to apply
 
   const { elements } = unit;
   const { label_atom_id } = unit.model.atomicHierarchy.atoms;
@@ -105,8 +83,9 @@ export function applyCachedChemCompPattern(
   for (let u = start; u < end; u++) {
     const nameA = label_atom_id.value(elements[u]);
     for (let t = offset[u]; t < offset[u + 1]; t++) {
-      const v = b[t] as UnitIndex;
-      if (u > v || !BondType.isCovalent(edgeProps.flags[t])) continue;
+      const v = b[t];
+      // `u < v` and `u >= start`: `v < end` keeps the bond inside the residue
+      if (u > v || v >= end || !BondType.isCovalent(edgeProps.flags[t])) continue;
       const nameB = label_atom_id.value(elements[v]);
       const p = pattern.get(nameA < nameB ? `${nameA}|${nameB}` : `${nameB}|${nameA}`);
       if (!p || !isPerceivable(getFlags(bonds, u, v), getOrder(bonds, u, v))) continue;

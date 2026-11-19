@@ -135,11 +135,10 @@ export function perceiveBondOrders(
     if (!hasPerceivableBond(bonds, start, end)) continue;
 
     props.canRemap = false;
-    const interUnit = getInterUnit();
-    const hash = chemCompHash(unit, bonds, interUnit, start, end, prefix);
+    const hash = chemCompHash(unit, start, end, prefix);
     if (applyCachedChemCompPattern(unit, bonds, start, end, hash)) continue;
 
-    const state = State(unit, bonds, rings, interUnit, start, end);
+    const state = State(unit, bonds, rings, getInterUnit(), start, end);
     assignHybridization(state);
     applyFunctionalGroups(state);
     perceiveAromaticRings(state);
