@@ -37,6 +37,14 @@ export interface PyramidLevel {
 /** A sample with no class (a majority level's empty cell). */
 export const NoClass = 255;
 
+/**
+ * A majority level whose sample covers fewer base rows than this counts its cells exactly, from the base; a larger one
+ * is the majority of the majorities below it (_spec/README.md "Render", the rows layer). Why: a majority of majorities
+ * misses the letter in small blocks (a lead up to 0.41 over seeds 1 to 12 of an unbiased generator), and a few rows a
+ * sample are cheap to count.
+ */
+export const ExactMajorityRows = 64;
+
 interface MutableLevel {
   rowLevel: number;
   columnLevel: number;
@@ -160,19 +168,26 @@ export class Pyramid {
       this._levels.set(key, l);
     }
     if (l.built === this._version) return l;
+    const f = this.options.factor;
+    if (this.options.reducer === 'majority' && f ** r < ExactMajorityRows) {
+      // a small block counts its cells exactly, from the base (_spec/README.md "Render", the rows layer)
+      this._reduce(this._base, l, f ** r, f ** c);
+      l.built = this._version;
+      return l;
+    }
     // from the finer level beside it: a square level from the one below on both axes, else rows first
     let from: PyramidLevel;
     let fr = 1;
     let fc = 1;
     if (square) {
       from = this.level(r - 1, c - 1);
-      fr = fc = this.options.factor;
+      fr = fc = f;
     } else if (r > 0) {
       from = this.level(r - 1, c);
-      fr = this.options.factor;
+      fr = f;
     } else {
       from = this.level(r, c - 1);
-      fc = this.options.factor;
+      fc = f;
     }
     this._reduce(from, l, fr, fc);
     l.built = this._version;

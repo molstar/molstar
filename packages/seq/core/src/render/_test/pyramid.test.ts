@@ -7,7 +7,7 @@
 import { PCG } from '@molstar/core/data/util/hash-functions';
 import { describe, expect, it } from 'vitest';
 import { ImageCache, ImageTileBytes } from '../images.js';
-import { NoClass, Pyramid, pyramidLevelFor } from '../pyramid.js';
+import { ExactMajorityRows, NoClass, Pyramid, pyramidLevelFor } from '../pyramid.js';
 
 /** A random grid of classes, each column biased to one class so majorities are mostly clear. */
 function classes(rng: PCG, rows: number, columns: number, k = 6): Uint8Array {
@@ -18,22 +18,28 @@ function classes(rng: PCG, rows: number, columns: number, k = 6): Uint8Array {
   return out;
 }
 
-/** The exact majority and its share over a block of the base. */
+/**
+ * The exact majority and its share over a block of the base (classes below 8, as `classes` makes them); `shareOf` reads
+ * the block's counts until the next call.
+ */
+const counts = new Float64Array(8);
 function exact(base: Uint8Array, columns: number, r0: number, r1: number, c0: number, c1: number) {
-  const counts = new Map<number, number>();
+  counts.fill(0);
   let n = 0;
   for (let r = r0; r < r1; r++)
     for (let c = c0; c < c1; c++) {
-      const v = base[r * columns + c];
+      counts[base[r * columns + c]]++;
       n++;
-      counts.set(v, (counts.get(v) ?? 0) + 1);
     }
-  const sorted = [...counts].sort((a, b) => b[1] - a[1] || a[0] - b[0]);
+  let letter = 0;
+  for (let v = 1; v < 8; v++) if (counts[v] > counts[letter]) letter = v;
+  let second = 0;
+  for (let v = 0; v < 8; v++) if (v !== letter && counts[v] > second) second = counts[v];
   return {
-    letter: sorted[0][0],
-    share: sorted[0][1] / n,
-    lead: (sorted[0][1] - (sorted[1]?.[1] ?? 0)) / n,
-    shareOf: (v: number) => (counts.get(v) ?? 0) / n,
+    letter,
+    share: counts[letter] / n,
+    lead: (counts[letter] - second) / n,
+    shareOf: (v: number) => (v < 8 ? counts[v] / n : 0),
   };
 }
 
@@ -51,51 +57,67 @@ describe('the shared reduction (pyramid)', () => {
     expect(p.level(9, 9).columns).toBe(1);
   });
 
-  it('a majority of majorities is the exact majority within its tolerance: the letter where the winner leads by more than 0.25, the share within 0.05 on average and 0.3 at worst', () => {
-    // a majority is not mergeable: pointwise, a close block's share can be off by more than 0.1; the recorded
-    // tolerance (_spec/README.md "Render", The rows layer): 0.05 on average, 0.3 at worst, the letter exact where the
-    // winner leads by more than 0.25
-    const rng = new PCG(7);
+  it('a block under 64 rows is its exact majority; a larger one the majority of majorities within its tolerance: the letter where the winner leads by more than 0.25, the share within 0.05 on average and 0.3 at worst (seeds 1 to 12)', () => {
+    // a majority is not mergeable: a majority of majorities misses the letter in small blocks (measured on PCG32,
+    // seeds 1 to 12: leads up to 0.41), so a block under `ExactMajorityRows` rows counts its cells; the recorded
+    // tolerance (_spec/README.md "Render", the rows layer) holds for the larger ones
+    expect(ExactMajorityRows).toBe(64);
     let sum = 0;
     let count = 0;
     let worst = 0;
-    for (let t = 0; t < 20; t++) {
-      const rows = 16 + (rng.int() % 200);
-      const columns = 8 + (rng.int() % 60);
-      const base = classes(rng, rows, columns);
-      const p = new Pyramid({ factor: 4, pairing: 'independent', reducer: 'majority' });
-      p.setClasses(rows, columns, base);
-      for (const [rl, cl] of [
-        [1, 0],
-        [2, 0],
-        [0, 1],
-        [1, 1],
-        [2, 1],
-      ]) {
-        const l = p.level(rl, cl);
-        const fr = 4 ** l.rowLevel;
-        const fc = 4 ** l.columnLevel;
-        for (let i = 0; i < l.rows; i++)
-          for (let j = 0; j < l.columns; j++) {
-            const e = exact(
-              base,
-              columns,
-              i * fr,
-              Math.min(rows, (i + 1) * fr),
-              j * fc,
-              Math.min(columns, (j + 1) * fc),
-            );
-            const o = i * l.columns + j;
-            if (e.lead > 0.25) expect(l.classes[o]).toBe(e.letter);
-            // the share against its letter's exact share, a wrong letter's too
-            const d = Math.abs(l.shares[o] / 255 - e.shareOf(l.classes[o]));
-            worst = Math.max(worst, d);
-            expect(d).toBeLessThanOrEqual(0.3);
-            sum += d;
-            count++;
-          }
+    let inexact = 0;
+    let misses = 0;
+    for (let seed = 1; seed <= 12; seed++) {
+      const rng = new PCG(seed);
+      for (let t = 0; t < 4; t++) {
+        const rows = 70 + (rng.int() % 400);
+        const columns = 8 + (rng.int() % 40);
+        const base = classes(rng, rows, columns);
+        const p = new Pyramid({ factor: 4, pairing: 'independent', reducer: 'majority' });
+        p.setClasses(rows, columns, base);
+        for (const [rl, cl] of [
+          [1, 0],
+          [2, 0],
+          [0, 1],
+          [1, 1],
+          [2, 1],
+          [3, 0],
+          [3, 1],
+          [4, 0],
+          [4, 1],
+        ]) {
+          const l = p.level(rl, cl);
+          const fr = 4 ** l.rowLevel;
+          const fc = 4 ** l.columnLevel;
+          const exactLevel = fr < ExactMajorityRows;
+          for (let i = 0; i < l.rows; i++)
+            for (let j = 0; j < l.columns; j++) {
+              const e = exact(
+                base,
+                columns,
+                i * fr,
+                Math.min(rows, (i + 1) * fr),
+                j * fc,
+                Math.min(columns, (j + 1) * fc),
+              );
+              const o = i * l.columns + j;
+              // the share against its letter's exact share, a wrong letter's too
+              const d = Math.abs(l.shares[o] / 255 - e.shareOf(l.classes[o]));
+              if (exactLevel) {
+                if (l.classes[o] !== e.letter || d > 0.5 / 255 + 1e-9) inexact++;
+                continue;
+              }
+              if (e.lead > 0.25 && l.classes[o] !== e.letter) misses++;
+              worst = Math.max(worst, d);
+              sum += d;
+              count++;
+            }
+        }
       }
     }
+    expect(count).toBeGreaterThan(500);
+    expect(inexact).toBe(0);
+    expect(misses).toBe(0);
     expect(sum / count).toBeLessThanOrEqual(0.05);
     expect(worst).toBeLessThanOrEqual(0.3);
   });
