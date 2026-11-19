@@ -140,17 +140,12 @@ function typeRingAtom(state: State, ringSet: Set<number>, i: number): RingAtomTy
 function isAromaticCandidate(state: State, atoms: number[]): boolean {
   const { geometry, unitIndices, ambiguous, bonds } = state;
   const ringSet = new Set(atoms);
-  const seen = new Set<number>();
-  const n = atoms.length;
   for (const i of atoms) {
     const u = unitIndices[i];
     if (geometry[i] !== AtomGeometry.Trigonal && ambiguous[i] === Ambiguity.None) return false;
 
     for (const j of state.heavyNeighbours[i]) {
       if (!ringSet.has(j) || j <= i) continue; // each ring bond once
-      const localBondId = n * i + j;
-      if (seen.has(localBondId)) continue;
-      seen.add(localBondId);
       const v = unitIndices[j];
       // Note: this is more lenient than the hybridization code: both exclusion criteria must be satisfied
       if (
