@@ -13,7 +13,7 @@
 
 import { createBuilder, type ParamsFor } from '@molstar/core/repr/builder';
 import { type Patch, patchToNode } from '@molstar/core/repr/patch';
-import { IdHint, IdPattern, type Issue, type Node, printAddress } from '@molstar/core/repr/tree';
+import { IdHint, IdPattern, type Issue, type Node, printAddress, type Value } from '@molstar/core/repr/tree';
 import { checkSeqSpec } from './check.js';
 import { type SeqKinds, SeqLanguage, SeqLanguageVersion, seqLanguages } from './language.js';
 import { writeLayerTheme } from './theme-builder.js';
@@ -81,12 +81,26 @@ export interface RefsBuilder {
   ref(id: string, params: { readonly to: RefTo; readonly label?: string; readonly color?: string }): Address<'ref'>;
 }
 
+/** A story step's params: a patch (no base) or a full state, and its start, view and timing. */
+export interface SnapshotParams {
+  readonly patch?: Patch | Node;
+  readonly state?: Node;
+  readonly label?: string;
+  /** The step the patch applies over (`/snapshots/<id>`), instead of the spec. */
+  readonly from?: string;
+  readonly keep?: 'full' | 'spec';
+  readonly view?: Value;
+  readonly duration?: number;
+  readonly easing?: 'linear' | 'ease-in' | 'ease-out' | 'ease-in-out';
+  readonly linger?: number;
+}
+
 export interface SnapshotsBuilder {
   /**
    * A story step (`/snapshots/<id>`): a stored patch with no base, shown over whatever the spec is. Its addresses are
    * refs of the spec (a rename or a move rewrites them).
    */
-  snapshot(id: string, params: { readonly patch: Patch | Node; readonly label?: string }): Address<'snapshot'>;
+  snapshot(id: string, params: SnapshotParams): Address<'snapshot'>;
 }
 
 export interface SeqSpecBuilder {
@@ -238,11 +252,12 @@ export function createSeqSpec(options: SeqSpecOptions = {}): SeqSpecBuilder {
   };
 
   const snapshotsBuilder: SnapshotsBuilder = {
-    snapshot: (id, { patch, label }) => {
-      if ('base' in patch && patch.base !== undefined) throw new Error('A story step is a patch with no base');
-      const node = 'kind' in patch ? patch : patchToNode(patch);
-      return add(snapshots, 'snapshot', id, { ...(label !== undefined ? { label } : {}), patch: node })
-        .address as Address<'snapshot'>;
+    snapshot: (id, { patch, ...rest }) => {
+      if (patch && 'base' in patch && patch.base !== undefined) throw new Error('A story step is a patch with no base');
+      const params: Record<string, Value> = {};
+      for (const [k, v] of Object.entries(rest)) if (v !== undefined) params[k] = v as Value;
+      if (patch) params.patch = 'kind' in patch ? patch : patchToNode(patch);
+      return add(snapshots, 'snapshot', id, params).address as Address<'snapshot'>;
     },
   };
 

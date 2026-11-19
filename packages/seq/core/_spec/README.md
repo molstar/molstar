@@ -146,15 +146,21 @@ checks it cannot express.
 
 ### Story steps
 
-`snapshot` nodes in the `snapshots` container (`/snapshots/<id>`): `label`, and `patch`, a stored patch in `seq.patch`
-(`patchLanguage(SeqLanguage)`, `SeqPatchLanguage`) with no `base`.
+`snapshot` nodes in the `snapshots` container (`/snapshots/<id>`): `label`, and one of `patch`, a stored patch in
+`seq.patch` (`patchLanguage(SeqLanguage)`, `SeqPatchLanguage`) with no `base`, and `state`, a full state (a `spec` node
+of the language itself, its refs resolved inside it); neither or both is `seq.lang.snapshot.content`. Beside them:
+`from` (a ref to the step a patch applies over: a delta), `keep` (`full` or `spec`, the encoder's form), `view` (the
+view and each section's viewport as positions) and the timing (`duration`, `easing`, `linger`). What they mean is
+Stories.
 
 - **A step applies over whatever the spec is**: entering one is navigation, never an edit (the viewer's `SpecModel`).
   Why no base: a story is written once and shown over every later revision.
 - **Its addresses are refs of the spec** (`repr/patch`'s stored-patch rule): a rename or a move rewrites them, and link
   integrity counts them. A sibling named by a `place` is not rewritten: such a step no longer applies after the rename,
   and is shown as not applying.
-- The builder writes one with `b.snapshots.snapshot(id, { patch, label })` (a `Patch` or its node; a base throws).
+- The builder writes one with
+  `b.snapshots.snapshot(id, { patch | state, label, from, keep, view, duration, easing, linger })` (a `Patch` or its
+  node; a base throws).
 
 ## Language builder
 
@@ -1383,6 +1389,44 @@ target. A floor of 16 px (a narrower window grows about its middle); its parts h
   `scale.log` (info), `legend.unlisted` (info), `filter`, `line-style` (info), `numbering`, `layer.type`,
   `layer.letters`, `axis.pending` (info), `text.lines`, `follow.leader`, `follow.blocks`, `ring.image`, `follow.cycle`,
   `source`, `template.limit`, `unsettled`; a test checks the catalog.
+
+## Stories
+
+`@molstar/seqx-core/story`: a story's states, a transition planned from the diff of two states, sampled at any time.
+DOM-free; Seq* runs no clock (the viewer's animation port is the application's).
+
+- **A step's state** (`stateOf(spec, id, { cache, apply, config })`): a full state is its own tree; a patch applies over
+  the spec given (the viewer passes its root with the preview), or over the state of the step it starts `from`. Cached
+  by the spec's revision and the step (`createStoryCache`, core's `LRUCache`). Why over the spec by default: any step is
+  reached directly and editing one step never changes another. A start missing or in a cycle is `seq.story.step.from` on
+  the step and on each step after it, which applies over what it can reach. **A patch that no longer applies whole**
+  applies op by op: the state is the ops that do, `applies` false, `skipped` the rest (`seq.story.step.stale`). `chain`
+  counts the deltas to the step's keyframe.
+- **The encoder** (`storeSteps(spec, steps, { store, maxChain })`, `withSteps`): `patch` a patch over the spec each,
+  `full` full states, `smaller` the smallest of a patch over the spec, a full state and a delta from the step before
+  while the chain is under `maxChain` (8): so reaching a step costs at most that many applies. `keep: full` stays a full
+  state, `keep: spec` a patch over the spec. Sizes compare the stored forms' JSON. States compare without the story's
+  own container (`stripStory`).
+- **A plan** (`plan(from, to, options)`): plain data; a channel per change, each with its window (`t0`, `t1`,
+  fractions), its easing and its slots in a frame. From each section's viewport both states name (`view`, field by
+  field: `start` and `end`, `top`, `scale`, each band's `bandTop` and `rowScale`, a grid's `y`); from the diff of the
+  roots in its order: a number set over a number (`number`; a section's `rotation` the short way round, its `labels`
+  held `none` while it turns: placed once, at its end), a hex color over a hex color (`color`, in `story.color.space`),
+  an insert (`enter`) and a remove (`leave`): a node with a `height` grows from 0 or shrinks to it, one without comes or
+  goes at the cut; a move within its parent (`order`, at the cut); anything else (`cut`, at `story.cut.at`), the view
+  shown too. Why a token or a missing value is a cut: interpolation needs both values, never invented. `reducedMotion`
+  makes every window `[1, 1]`: each channel a cut at the end. `pending(section)` marks a view channel that waits on
+  data: it holds its start and the frame counts it (`waiting`). A view's window **pans** (width geometric, centre
+  linear: the content under the eye moves evenly) when the windows overlap or touch, else goes **out, across and in**
+  (the width through the span holding both at the middle); `cyclic` totals move the end's centre by a turn for the
+  shortest arc. Sizes (`scale`, `rowScale`) move geometrically.
+- **Sampling** (`sample(plan, t, out?)`): every channel at `t` eased, into `out` or the plan's own frame (kept by plan):
+  deterministic and allocation-free warm. `sample(plan, 0)` is the start and `sample(plan, 1)` the end exactly (an angle
+  ends its short way round, the same angle). Numbers, each color component, a pan's centre and width are monotone.
+  Phases by channel (`ChannelPhase`: before, moving, done).
+- **A frame's picture** (`frameRoot`, `frameView`): the start's root with each channel's value set (a cut once switched,
+  an entering node at its grown height); the end's root itself once every channel is done, the start's before any began.
+  Why the end's own root: `sample(plan, 1)` shows the `to` state exactly, and a frame never makes a revision.
 
 ## Context
 
