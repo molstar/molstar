@@ -207,3 +207,10 @@ None.
   medium 9. CY gains the grid-from-a-source gap. Running: DG, DC, OP, AY, SW; queued: NB (next strong slot), DA, CY.
 - SW merged (a pan about the pointer, a ring chip's label once, the minimal viewer measured at 959 kB: what keeps it
   large in plan stage 7). Quick 1990.
+- AY merged after its review round (an SVG `role="figure"` with named groups and items, boxes that never take the
+  pointer, ids hashed per export, announcements by priority and quiet in a drag, forced colors for any theme source;
+  rows' and pairs' items untested: followups). OP merged after its review round (the core and the viewer spec conflict
+  kept both; mono fonts resolved to Liberation before resvg, `image-rendering="optimizeSpeed"`, links outside the root
+  refused, exit 5 internal, atomic writes, a pixel cap; the font files unverified against upstream: followups); its hot
+  files applied (the resvg catalog entry, the inventory, the root references, the lockfile). Quick 2043 (with
+  seqx-render), lint, format, workspace green. DG in review; DC running; NB waits for DG's slot.

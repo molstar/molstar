@@ -35,3 +35,8 @@
   arcs draw over the alignment and a structure's chain maps onto its closest seed row; in the fourth slice's 0.5.0
   bump with the molecules design. Until then the tRNA covariance view shows the seed's rows and logo, and the seed row
   as a sequence with its `SS_cons` pairs.
+- AY's leftovers: tests for the rows and pairs layers' `items` (a row by its label, a pair by its arcs and dots); a
+  dense figure's accessible layer about doubles the SVG (2,000 items in 388 kB of 732 kB): a coarser naming (one item
+  a run of equal features) if a host minds.
+- OP's leftovers: verify the bundled Liberation 2.1.5 files against the upstream release archive (they came from a
+  LibreOffice runtime); check `image-rendering="optimizeSpeed"` in browsers (nearest-neighbour as resvg).
