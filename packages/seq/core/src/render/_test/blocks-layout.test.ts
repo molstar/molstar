@@ -88,10 +88,12 @@ describe('blocks in the tracks layout', () => {
     expect(keysAt(f, p, 1, 120 + 30)).toEqual(['box']);
     const h = hitView(f.layout, p.strips.axes[1].xOfUnit(30.5), p.strips.bandY[p.strips.bands] + 2);
     expect(h).toMatchObject({ block: 1, system: '/data/cyclin' });
-    // the block labels above their tracks
+    // the block labels above their tracks, a chip's in its pill
     const texts = f.lists.passes.labels.texts;
     const strings = Array.from({ length: texts.n }, (_, i) => f.lists.string(texts.str[i]));
-    expect(strings).toEqual(expect.arrayContaining(['CDK2 ×2', 'cyclin A', 'ATP']));
+    expect(strings).toEqual(expect.arrayContaining(['CDK2 ×2', 'cyclin A']));
+    const data = f.lists.passes.data.texts;
+    expect(Array.from({ length: data.n }, (_, i) => f.lists.string(data.str[i]))).toContain('ATP');
   });
 
   it('a row zoomed into a block shows it alone; its lays kept across a pan', async () => {

@@ -9,7 +9,14 @@
 // detail following the ring's window across the origin; a hit on the ring names the feature there; the export's lists
 // are the canvas's but for the window; the blocks drawn on their own systems.
 
-import { type BlockPlacement, hitView, type RingPlacement } from '@molstar/seqx-core/render';
+import {
+  BlockPlacement,
+  bundledTextMetrics,
+  DarkTokens,
+  hitView,
+  type RingPlacement,
+  recordDrawLists,
+} from '@molstar/seqx-core/render';
 import { ComplexViews, PlasmidViews } from '@molstar/seqx-examples';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -95,4 +102,50 @@ describe('Complex blocks, headless', () => {
     expect(p.strips.axes.map((a) => a.system)).toEqual(['/data/cdk2', '/data/cyclin', '/data/atp']);
     expect(p.labels).toEqual(['CDK2 (A) ×2', 'cyclin A (B) ×2', 'ATP ×2']);
   });
+
+  // a one-position block is a chip: its label's width at the fit view and zoomed, its label whole, canvas and SVG
+  const chips = [
+    { id: 'blocks', labels: ['ATP ×2'], zoom: [500, 559] },
+    { id: 'blocks-split', labels: ['ATP', 'ATP'], zoom: [1050, 1118] },
+    { id: 'blocks-stacked', labels: ['ATP ×2'], zoom: [100, 160] },
+    { id: 'blocks-ring', labels: ['ATP ×2'] },
+  ] as const;
+  for (const c of chips)
+    for (const dark of [false, true])
+      it(`${c.id} (${dark ? 'dark' : 'light'}): the ATP chips at their label’s width, never clipped`, async () => {
+        viewer = await openExample(ComplexViews.find((v) => v.id === c.id)!, { gene: '' });
+        const v = viewer;
+        if (dark) v.setTokens(DarkTokens);
+        const text = bundledTextMetrics();
+        const windows = 'zoom' in c ? [undefined, c.zoom] : [undefined];
+        for (const w of windows) {
+          if (w) v.view.setRange('/views/main/complex', w[0], w[1]);
+          await vi.advanceTimersByTimeAsync(50);
+          v.draw();
+          const sec = v.frame!.layout.sections[0];
+          const p = sec.placement as BlockPlacement | RingPlacement;
+          const shown = p.strips.axes.map((_, i) => i).filter((i) => p.strips.chip[i]);
+          expect(shown.map((i) => p.strips.axes[i].system)).toEqual(c.labels.map(() => '/data/atp'));
+          if (p instanceof BlockPlacement) expect(shown.map((i) => p.labels[i])).toEqual([...c.labels]);
+          for (const i of shown)
+            expect(p.strips.axes[i].width).toBeCloseTo(text.measure('12px sans', c.labels[0]) + 10, 6);
+          if (!(p instanceof BlockPlacement)) continue;
+          // the rail skips the chips as it skips the gaps: the section's units across it, its window the view's
+          const rail = sec.rail;
+          if (rail && w) expect([rail.total, rail.start, rail.end]).toEqual([sec.axis!.total, w[0], w[1]]);
+          if (c.id === 'blocks') expect(rail).toBeDefined();
+          // each chip's label drawn in its pill, its width within the chip's
+          const texts = recordDrawLists(v.frame!.lists, ['data'])
+            .split('\n')
+            .filter((l) => l.startsWith(`text "${c.labels[0]}"`));
+          expect(texts.length).toBe(shown.length);
+          for (const l of texts)
+            expect(Number(/ width ([\d.]+)/.exec(l)![1])).toBeLessThanOrEqual(Number(/ max ([\d.]+)/.exec(l)![1]));
+        }
+        const svg = v.renderSvg({ idPrefix: 'c-' });
+        await vi.advanceTimersByTimeAsync(400);
+        const r = await svg;
+        expect(r.issues).toEqual([]);
+        expect(r.svg).toContain(`>${c.labels[0]}<`);
+      });
 });

@@ -17,7 +17,7 @@ import {
 } from '@molstar/seqx-core/resolve';
 import type { ResolvedLayer } from '@molstar/seqx-core/view';
 import type { AxisTransform } from './axis.js';
-import { type DensityStep, densityStep } from './config.js';
+import { type DensityStep, densityStep, fontSize } from './config.js';
 import { Anchor, drawPass, grown, NoColor, type PassName, type PassWriter, passDraws } from './draw-lists.js';
 import { RenderIssues } from './issues.js';
 import { dataRegions, type LayerSource, layerSource, mergeNear, placeholderSpans, readTiles } from './layer-data.js';
@@ -132,6 +132,12 @@ export interface LettersLay {
   color?: Channel;
   datum: PlainDatum;
   inks: Map<number, number>;
+  /** A chip's label and its font (a one-position block): drawn as a pill over its one cell; '' on any other strip. */
+  chip: string;
+  chipFont: string;
+  /** The chip label's baseline and its measured width, made at layout. */
+  chipY: number;
+  chipWidth: number;
 }
 
 /** The letter code at a position of a table, or 0. */
@@ -279,6 +285,10 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
       hoverOffset: config.emphasis.hoverOffset,
       datum: new PlainDatum(),
       inks: new Map(),
+      chip: '',
+      chipFont: '',
+      chipY: 0,
+      chipWidth: 0,
     };
     lay.key = ctx.key;
     lay.system = axis.system;
@@ -291,6 +301,10 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
     lay.box = box;
     lay.axis = axis;
     lay.tokens = tokens;
+    lay.chip = ctx.chip ?? '';
+    lay.chipFont = config.labelFont;
+    lay.chipY = lay.chip ? box.y + box.height / 2 + fontSize(config.labelFont) * 0.35 : 0;
+    lay.chipWidth = lay.chip ? ctx.text.measure(config.labelFont, lay.chip) : 0;
     lay.n = 0;
     lay.seen.fill(0);
     lay.three = false;
@@ -628,6 +642,10 @@ function drawCells(lay: LettersLay, out: PassWriter, _emphasis: Emphasis | undef
   // a path's gap marks and carets, and three-letter codes, each in a function of its own: this one stays small enough to
   // have its calls inlined (a call that is not boxes the numbers it is passed); every number through `args`
   if (lay.gaps.length || lay.carets.length) drawPathMarks(lay, out);
+  if (lay.chip && lay.n) {
+    drawChip(lay, out);
+    return;
+  }
   // a tick a position at `dots`, else the cell
   const tick = Math.max(2, Math.round(box.height * 0.3));
   const dots = lay.step === 'dots';
@@ -731,6 +749,32 @@ function drawConflicts(lay: LettersLay, out: PassWriter) {
     g[8] = 0;
     out.rectArgs();
   }
+}
+
+/**
+ * A chip's pill (_spec/README.md "Render", Blocks): its one cell's fill as a pill a pixel inside the cell, its label
+ * centred on it in the cell's ink, faded at the pill's width (the chip is its label's width: it fits).
+ */
+function drawChip(lay: LettersLay, out: PassWriter) {
+  const { box } = lay;
+  const g = out.args;
+  const h = Math.max(box.height - 2, 1);
+  g[0] = lay.x0[0] + 1;
+  g[1] = box.y + 1;
+  g[2] = lay.x1[0] - lay.x0[0] - 2;
+  g[3] = h;
+  g[4] = lay.fill[0];
+  g[5] = NoColor;
+  g[6] = 0;
+  g[7] = h / 2;
+  g[8] = 3;
+  out.rectArgs();
+  g[0] = (lay.x0[0] + lay.x1[0]) / 2;
+  g[1] = lay.chipY;
+  g[2] = lay.chipWidth;
+  g[3] = lay.x1[0] - lay.x0[0];
+  g[4] = lay.ink[0];
+  out.textArgs(lay.chip, AnchorMiddle, lay.chipFont);
 }
 
 /** Three-letter codes, centred in their parts. */

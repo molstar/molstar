@@ -1107,6 +1107,8 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
                 : {}),
             ...(input.images ? { images: input.images } : {}),
             ...(strips.ys[i] ? { axisY: strips.ys[i] } : {}),
+            // a chip's pill on a translated strip (a ring's arc draws its letters through the warp)
+            ...(block && strips.chip[i] && strips.warp[i] === WarpKind.translate ? { chip: block.label } : {}),
           };
           // kept by the strip's first unit, and its block's (a stack's blocks all start at 0)
           const at = block ? `${key}#${strips.block[i]}@${strips.first[i]}` : `${key}@${strips.first[i]}`;

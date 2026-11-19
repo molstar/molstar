@@ -1531,7 +1531,19 @@ numbers): a window move allocates nothing once warm.
   however many: EC-102); `stack` a block a row of the section's tracks, aligned at their first position, one zoom
   (EC-102, EC-115). Each block's label in a row above its tracks, faded at its strip's width. Lays are kept by the block
   and its first unit, so a pan keeps them (by the block too: a stack's blocks all start at 0).
-- **Rings**: a block an arc (above).
+- **A one-position block is a chip** (`isChip`, `chipWidth`, `Strips.chip`): a fixed slot its label's width (its label
+  with its `×N` in the label font, `BlockMetrics.chipPad` 5 px either side), its one position whole, never a position's
+  share: zoom does not scale it, so it reads at the fit view and is never clipped. Why: a one-position share is a sliver
+  at the fit view (the Complex's ATP) and the floor (a 2 px mark, unlabeled) says nothing. In a `row` a chip stands
+  where its block does (a ligand after the chains): the chips in view take their px from the width as the gaps do, so
+  the row's x is not linear over a chip (EC-102); the window, the rail and the navigators read the section's units, a
+  chip one unit, as they read across a gap. In a `stack` the chips share one row after the other blocks', side by side
+  from the first position's x, whatever the window. Its letters layer draws its label in a pill over its cell
+  (`LayoutContext.chip`), the label row above it then empty; another layer draws its mark across the chip where it has
+  something at the position, else nothing. Hit, hover, selection and a link read a chip as its one position. Contacts
+  (where a ligand binds) are a `pairs` layer a builder or an application adds, never drawn by default.
+- **Rings**: a block an arc (above); a chip a fixed-angle arc its label's width on the outer ring (the frame's px), the
+  other blocks sharing the rest of the circle by their lengths.
 - **Follow across systems** is refused: a section of blocks on more than one system neither follows nor is followed
   (`seq.render.follow.blocks`, it shows its own range). Why: which block's map a follow would carry is undecided. Blocks
   on one system follow as one axis.

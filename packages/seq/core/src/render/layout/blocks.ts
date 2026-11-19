@@ -9,12 +9,14 @@
 // them laid end to end, a gap between two (shrinking when zoomed out so positions keep three quarters of the width,
 // the gaps in view sharing the rest, EC-102); `stack`: a block a row of the section's tracks, aligned at their first
 // position, one zoom (EC-102, EC-115). Each block's label in a row above its tracks. Its lays are kept by the block
-// and its first unit, so a pan keeps them.
+// and its first unit, so a pan keeps them. A one-position block is a chip: a fixed slot its label's width, never a
+// position's share (zoom does not scale it), where it stands in a row, in a stack on one row the chips share.
 
 import { piecesTotal, type ResolvedSection } from '@molstar/seqx-core/view';
 import { AxisTransform } from '../axis.js';
-import { fontSize } from '../config.js';
+import { fontSize, type RenderConfig } from '../config.js';
 import { Anchor, type PassName, type PassWriter } from '../draw-lists.js';
+import type { TextMetrics } from '../text.js';
 import type { SectionLayout } from '../tracks.js';
 import { PlacePoint, StripPlacement } from './strips.js';
 import type { PlaceContext } from './types.js';
@@ -24,9 +26,20 @@ const AnchorStart: number = Anchor.start;
 
 /**
  * Fixed sizes (CSS px): the gap between two blocks in a row at most (a boundary that reads), the share of the width
- * the gaps in view may take (a quarter: positions keep three quarters, however many blocks).
+ * the gaps in view may take (a quarter: positions keep three quarters, however many blocks), a chip's padding either
+ * side of its label (the text chip's rule).
  */
-export const BlockMetrics = { gap: 12, gapShare: 0.25 } as const;
+export const BlockMetrics = { gap: 12, gapShare: 0.25, chipPad: 5 } as const;
+
+/** Whether a block is a chip: one position (a ligand, an ion, a glycan standing as one). */
+export function isChip(block: { readonly axis: { readonly ranges?: readonly number[] } }): boolean {
+  return !!block.axis.ranges && piecesTotal(block.axis.ranges) === 1;
+}
+
+/** A chip's width, CSS px: its label (its `×N` too) in the label font, `chipPad` either side; zoom never scales it. */
+export function chipWidth(text: TextMetrics, config: RenderConfig, label: string): number {
+  return text.measure(config.labelFont, label) + 2 * BlockMetrics.chipPad;
+}
 
 /** A section of blocks placed: its strips by x (a row) or by y (a stack), each strip's units its block's. */
 export class BlockPlacement extends StripPlacement {
@@ -36,12 +49,18 @@ export class BlockPlacement extends StripPlacement {
   /** Each strip's block's label (and the block's first unit: `strips.first`). */
   labels: string[] = [];
 
-  /** The strip at a page point: by x in a row, by its rows' extent in a stack; −1 when none. */
+  /** The strip at a page point: by x in a row, by its rows' extent in a stack (the chips' row by x too); −1 when none. */
   private stripOf(x: number, y: number): number {
     const s = this.strips;
     if (!this.stacked) return s.atX(x);
-    for (let i = 0; i < s.n; i++) if (y >= s.top[i] && y < s.top[i] + s.height[i]) return i;
-    return -1;
+    let row = -1;
+    for (let i = 0; i < s.n; i++) {
+      if (y < s.top[i] || y >= s.top[i] + s.height[i]) continue;
+      if (!s.chip[i]) return i;
+      if (x >= s.axes[i].x0 && x < s.axes[i].x0 + s.axes[i].width) return i;
+      if (row < 0) row = i;
+    }
+    return row;
   }
 
   override at(p: ArrayLike<number>, out: PlacePoint): boolean {
@@ -118,50 +137,83 @@ export function placeBlocks(section: ResolvedSection, ctx: PlaceContext, prev?: 
   const u1 = axis.u1;
   const x0 = axis.x0;
   const width = axis.width;
-  // a row's gaps inside the window take their px from the width (as a text's groups do)
+  // a row's gaps inside the window take their px from the width (as a text's groups do), and so do its chips in view:
+  // the row's x is not linear over a chip, as over a gap (EC-102)
   let inner = 0;
-  for (let b = 1; b < blocks.length; b++) {
+  let chipPx = 0;
+  let chipUnits = 0;
+  for (let b = 0; b < blocks.length; b++) {
     const o = blocks[b].offset ?? 0;
-    if (o > u0 && o < u1) inner++;
+    if (b > 0 && o > u0 && o < u1) inner++;
+    if (p.stacked || !isChip(blocks[b]) || o + 1 <= u0 || o >= u1) continue;
+    chipPx += chipWidth(ctx.text, config, blocks[b].label);
+    chipUnits += Math.min(u1, o + 1) - Math.max(u0, o);
   }
   // the gaps in view share a quarter of the width, at most 12 px each
   const gap = p.stacked ? 0 : Math.min(BlockMetrics.gap, (BlockMetrics.gapShare * width) / Math.max(1, inner));
-  const scale = Math.max(width - inner * gap, 1e-9) / (u1 - u0);
+  const scale = Math.max(width - inner * gap - chipPx, 1e-9) / Math.max(u1 - u0 - chipUnits, 1e-9);
   // the rows' height: the label row, then the tracks
   let rows = p.labelRow;
   for (let j = 0; j < nb; j++) rows += (j ? config.trackGap : 0) + ctx.heights[j];
   let y = top;
   let gaps = 0;
-  for (let b = 0; b < blocks.length; b++) {
-    const block = blocks[b];
-    const o = p.stacked ? 0 : (block.offset ?? 0);
-    const len = block.axis.ranges ? piecesTotal(block.axis.ranges) : 0;
-    if (b > 0 && !p.stacked && o > u0 && o < u1) gaps++;
-    const rowTop = y;
-    if (p.stacked) y += rows + (b + 1 < blocks.length ? config.sectionGap : 0);
-    const vs = Math.max(u0, o);
-    const ve = Math.min(u1, o + len);
-    if (!block.axis.ranges || ve <= vs) continue;
-    const a = AxisTransform.on(
-      block.axis,
-      block.axis.ranges,
-      x0 + (vs - u0) * scale + gaps * gap,
-      (ve - vs) * scale,
-      ctx.dpr,
-      { start: vs - o, end: ve - o },
-    );
-    const i = strips.add(a, b, 0, 0, o);
-    p.labels[i] = block.label;
-    strips.top[i] = rowTop;
-    strips.height[i] = rows;
-    let by = rowTop + p.labelRow;
-    for (let j = 0; j < nb; j++) {
-      if (j) by += config.trackGap;
-      strips.bandY[i * nb + j] = by;
-      strips.bandH[i * nb + j] = ctx.heights[j];
-      by += ctx.heights[j];
+  // a row: the chips before a block, their px and their units in the window
+  let chipsPx = 0;
+  let chipsUnits = 0;
+  // a stack: the other blocks a row each, then the chips' one row, side by side from the first position's x
+  let stackRows = 0;
+  let chipRow = -1;
+  let chipX = x0;
+  for (let round = 0; round < (p.stacked ? 2 : 1); round++)
+    for (let b = 0; b < blocks.length; b++) {
+      const block = blocks[b];
+      const chip = isChip(block);
+      if (p.stacked && chip !== (round === 1)) continue;
+      const o = p.stacked ? 0 : (block.offset ?? 0);
+      const len = block.axis.ranges ? piecesTotal(block.axis.ranges) : 0;
+      if (b > 0 && !p.stacked && o > u0 && o < u1) gaps++;
+      let rowTop = y;
+      if (p.stacked && (!chip || chipRow < 0)) {
+        if (stackRows++) y += config.sectionGap;
+        rowTop = y;
+        y += rows;
+        if (chip) chipRow = rowTop;
+      } else if (p.stacked) rowTop = chipRow;
+      const vs = Math.max(u0, o);
+      const ve = Math.min(u1, o + len);
+      // a stack's chips are on their row whatever the window
+      if (!block.axis.ranges || (ve <= vs && !(chip && p.stacked))) continue;
+      let a: AxisTransform;
+      if (chip) {
+        // a fixed slot its label's width over its one position whole: zoom never scales it
+        const w = chipWidth(ctx.text, config, block.label);
+        const x = p.stacked ? chipX : x0 + (vs - u0 - chipsUnits) * scale + gaps * gap + chipsPx;
+        a = AxisTransform.on(block.axis, block.axis.ranges, x, w, ctx.dpr, { start: 0, end: 1 });
+        chipX += w + BlockMetrics.gap;
+        chipsPx += w;
+        chipsUnits += ve - vs;
+      } else
+        a = AxisTransform.on(
+          block.axis,
+          block.axis.ranges,
+          x0 + (vs - u0 - chipsUnits) * scale + gaps * gap + chipsPx,
+          (ve - vs) * scale,
+          ctx.dpr,
+          { start: vs - o, end: ve - o },
+        );
+      const i = strips.add(a, b, 0, 0, o);
+      if (chip) strips.chip[i] = 1;
+      p.labels[i] = block.label;
+      strips.top[i] = rowTop;
+      strips.height[i] = rows;
+      let by = rowTop + p.labelRow;
+      for (let j = 0; j < nb; j++) {
+        if (j) by += config.trackGap;
+        strips.bandY[i * nb + j] = by;
+        strips.bandH[i * nb + j] = ctx.heights[j];
+        by += ctx.heights[j];
+      }
     }
-  }
   const height = p.stacked ? y - top : rows;
   p.contentHeight = height;
   p.box = { x: config.inset, y: top, width: ctx.width - 2 * config.inset, height };
@@ -194,6 +246,8 @@ export function blockChrome(
   const g = out.args;
   const size = fontSize(s.config.labelFont);
   for (let i = 0; i < strips.n; i++) {
+    // a chip's label is in its letters' pill
+    if (strips.chip[i] && hasPill(s, i)) continue;
     const a = strips.axes[i];
     g[0] = a.x0;
     g[1] = strips.top[i] + size;
@@ -202,4 +256,14 @@ export function blockChrome(
     g[4] = s.tokens.colors['msui-text-muted'];
     out.textArgs(p.labels[i], AnchorStart, s.config.labelFont);
   }
+}
+
+/** Whether a chip's strip draws its label in a pill: a letters layer laid on one of its bands. */
+function hasPill(s: SectionLayout, strip: number): boolean {
+  const nb = s.placement.strips.bands;
+  for (let j = 0; j < nb; j++) {
+    const lays = s.lays[strip * nb + j];
+    for (let k = 0; lays && k < lays.length; k++) if (lays[k].type.name === 'letters') return true;
+  }
+  return false;
 }

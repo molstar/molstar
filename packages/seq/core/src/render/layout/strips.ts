@@ -29,6 +29,8 @@ export class Strips {
    */
   readonly ys: (AxisTransform | undefined)[] = [];
   block = new Int32Array(4);
+  /** 1 where the strip is a chip: a one-position block in a fixed slot of screen px (_spec/README.md "Render", Blocks). */
+  chip = new Uint8Array(4);
   warp = new Uint8Array(4);
   dx = new Float64Array(4);
   dy = new Float64Array(4);
@@ -56,6 +58,7 @@ export class Strips {
     if (i >= this.block.length) {
       const need = i + 1;
       this.block = grown(this.block, need);
+      this.chip = grown(this.chip, need);
       this.warp = grown(this.warp, need);
       this.dx = grown(this.dx, need);
       this.dy = grown(this.dy, need);
@@ -72,6 +75,7 @@ export class Strips {
     this.axes[i] = axis;
     this.ys[i] = undefined;
     this.block[i] = block;
+    this.chip[i] = 0;
     this.warp[i] = WarpKind.translate;
     this.dx[i] = dx;
     this.dy[i] = dy;
