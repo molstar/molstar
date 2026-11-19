@@ -258,8 +258,11 @@ export class ViewerInput {
     out.element = h.element;
     out.extent = h.extent;
     out.hull = h.hull;
-    // a placement's own targets (_spec/README.md "Input"): a window with its part, a gutter's row
-    out.target = h.target === 'window' || h.target === 'row' ? h.target : undefined;
+    out.ySystem = h.ySystem;
+    out.yPosition = h.yPosition;
+    // the hit's own targets (_spec/README.md "Input"): a window with its part, a gutter's or a header's row, a cell of
+    // two axes, a tree node, a summary row; the rest read from what was hit
+    out.target = h.target === 'break' || h.target === 'filter' ? undefined : h.target;
     out.part = h.part;
     // a block's hit: its positions on the block's own axis (a section of blocks on several systems)
     out.block = h.block;

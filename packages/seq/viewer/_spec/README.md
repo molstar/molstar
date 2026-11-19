@@ -174,9 +174,11 @@ nothing and tells nothing.
 
 `models/hover.ts`: the hover, a method and never a command (it runs per pointer move).
 
-- **A hit** is `{ layer?, section?, system, position?, element?, extent?, target? }`; the section is read from the
-  layer's address when absent, the target (`hitTarget`) from what was hit: an element is an item, a position a cell,
-  neither empty space.
+- **A hit** is `{ layer?, section?, system, position?, ySystem?, yPosition?, element?, extent?, target? }`; the section
+  is read from the layer's address when absent, the target (`hitTarget`) from what was hit: an element is an item, a
+  position a cell, neither empty space; a layer's own target wins (`row`: a rows header; `cell` with `ySystem` and
+  `yPosition`: a rows or grid cell; `tree-node`; `summary-row`). The record keeps `ySystem` and `yPosition` (NaN when
+  none) flat beside the rest: a hit of two axes allocates nothing.
 - `set(hit, owner)` copies the hit into one reused record (`current`) and moves `version`: no allocation, and nothing
   told for the same hit. An element is the same hover by its key, whatever extent object comes with it. One owner at a
   time: another owner's `set` takes it; `clear(owner)` by a stale owner does nothing (EC-141); an undefined owner is

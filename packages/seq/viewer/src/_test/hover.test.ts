@@ -79,6 +79,26 @@ describe('HoverModel: ownership (EC-141)', () => {
     expect(hitTarget({ system: Protein })).toBe('empty');
     expect(hitTarget({ system: Protein, target: 'axis' })).toBe('axis');
   });
+
+  it('a cell of two axes keeps its row flat in the record: a new row is a new hover, the same is none', () => {
+    const { hover } = setup();
+    const cell = (row: number): Hit => ({ ...residue(4), ySystem: '/data/aln/(rows)', yPosition: row, target: 'cell' });
+    let told = 0;
+    const off = hover.version.listen(() => told++);
+    expect(hover.set(cell(7), 'x')).toBe(true);
+    expect(hover.current).toMatchObject({ position: 4, ySystem: '/data/aln/(rows)', yPosition: 7 });
+    expect(hover.set(cell(7), 'x')).toBe(false);
+    expect(hover.set(cell(8), 'x')).toBe(true);
+    expect(hover.set(residue(4), 'x')).toBe(true);
+    expect(hover.current.ySystem).toBeUndefined();
+    expect(Number.isNaN(hover.current.yPosition)).toBe(true);
+    expect(told).toBe(3);
+    expect(hitTarget({ system: Protein, element: { owner: 'a', key: 'c' }, target: 'tree-node' })).toBe('tree-node');
+    expect(hitTarget({ system: Protein, element: { owner: 'a', key: 'c' }, target: 'summary-row' })).toBe(
+      'summary-row',
+    );
+    off();
+  });
 });
 
 describe('HoverModel: projection onto linked sections (EC-30, EC-144)', () => {

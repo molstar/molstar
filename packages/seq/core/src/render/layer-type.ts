@@ -100,17 +100,31 @@ export interface Hit {
   readonly position?: number;
   readonly system: string;
   /**
+   * A position on the second axis (_spec/README.md "Render", Lanes and Hits): a row of the rows system, a grid's y.
+   * Flat, beside `position`, so a hit of two axes allocates nothing.
+   */
+  readonly ySystem?: string;
+  readonly yPosition?: number;
+  /**
    * `break`: a collapsed break (within 3 CSS px of its notch, or on a tick of the items it hides): `position` the
    * section's position at its edge (the last shown before it in display order), `extent` the hidden stretch on the
    * section's system, `layer` the section's address, `count` the hidden items a tick stands for.
    */
-  readonly target?: 'break' | 'filter' | 'window' | 'row';
+  readonly target?: HitTarget;
   readonly count?: number;
   /** A `window` hit's part: its body (dragged: pans) or an end (dragged: resizes about the other end). */
   readonly part?: WindowPart;
   /** The block (its index in the section) when the section has blocks. */
   readonly block?: number;
 }
+
+/**
+ * What a hit is, when it is more than an element or a position (_spec/README.md "Render", Lanes and Hits): `break`,
+ * `filter` (a track's chip), `window` (a ring's), `row` (a gutter's row, a rows header), `cell` (a cell of two axes:
+ * `ySystem` and `yPosition` set), `tree-node` (a tree's node: its element the clade), `summary-row` (a folded
+ * clade's row: its element the clade, `position` the column).
+ */
+export type HitTarget = 'break' | 'filter' | 'window' | 'row' | 'cell' | 'tree-node' | 'summary-row';
 
 /** A section's id: the last step of its address. */
 export function sectionId(section: { readonly address: string }): string {

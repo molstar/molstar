@@ -20,7 +20,19 @@ import type { SpecModel } from './spec.js';
 import type { ViewModel } from './view.js';
 
 /** What a hit's target is, for the gesture bindings (_spec/README.md "Bindings"): the granularity comes from the hit. */
-export type HitTarget = 'cell' | 'item' | 'row' | 'column' | 'track' | 'empty' | 'axis' | 'break' | 'filter' | 'window';
+export type HitTarget =
+  | 'cell'
+  | 'item'
+  | 'row'
+  | 'column'
+  | 'track'
+  | 'empty'
+  | 'axis'
+  | 'break'
+  | 'filter'
+  | 'window'
+  | 'tree-node'
+  | 'summary-row';
 
 /**
  * What the pointer is over, as the layout's hit test gives it: the layer, an element key and its extent, or a
@@ -52,6 +64,9 @@ export interface HoverRecord {
   readonly position: number;
   readonly element: ElementKey | undefined;
   readonly extent: Location | undefined;
+  /** The position on a second axis (a rows cell's row, a grid's y) and its system: NaN and undefined when none. */
+  readonly ySystem: string | undefined;
+  readonly yPosition: number;
 }
 
 type MutableRecord = { -readonly [K in keyof HoverRecord]: HoverRecord[K] };
@@ -69,6 +84,8 @@ export class HoverModel extends ReactiveModel {
     position: Number.NaN,
     element: undefined,
     extent: undefined,
+    ySystem: undefined,
+    yPosition: Number.NaN,
   };
   /** The version, the view and the model the caches are for. */
   private _cacheKey: [number, unknown, unknown] = [-1, undefined, undefined];
@@ -111,6 +128,7 @@ export class HoverModel extends ReactiveModel {
     if (!hit) return this.clear(owner);
     const r = this._record;
     const position = hit.position ?? Number.NaN;
+    const yPosition = hit.yPosition ?? Number.NaN;
     const section = hit.section ?? this._sectionOf(hit.layer);
     if (
       r.owner === owner &&
@@ -118,6 +136,8 @@ export class HoverModel extends ReactiveModel {
       r.layer === hit.layer &&
       r.section === section &&
       (r.position === position || (Number.isNaN(r.position) && Number.isNaN(position))) &&
+      r.ySystem === hit.ySystem &&
+      (r.yPosition === yPosition || (Number.isNaN(r.yPosition) && Number.isNaN(yPosition))) &&
       keysEqual(r.element, hit.element) &&
       (hit.element !== undefined || r.extent === hit.extent)
     )
@@ -129,6 +149,8 @@ export class HoverModel extends ReactiveModel {
     r.position = position;
     r.element = hit.element;
     r.extent = hit.extent;
+    r.ySystem = hit.ySystem;
+    r.yPosition = yPosition;
     this._version.set(this._version.value + 1);
     return true;
   }
@@ -137,8 +159,8 @@ export class HoverModel extends ReactiveModel {
   clear(owner: unknown): boolean {
     const r = this._record;
     if (r.owner === undefined || r.owner !== owner) return false;
-    r.owner = r.layer = r.section = r.system = r.element = r.extent = undefined;
-    r.position = Number.NaN;
+    r.owner = r.layer = r.section = r.system = r.element = r.extent = r.ySystem = undefined;
+    r.position = r.yPosition = Number.NaN;
     this._version.set(this._version.value + 1);
     return true;
   }

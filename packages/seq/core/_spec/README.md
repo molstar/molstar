@@ -1291,7 +1291,10 @@ target. A floor of 16 px (a narrower window grows about its middle); its parts h
   is in its strip's frame, so every drawn mark keeps its hit box through the warp. `system` is the strip's; `block` its
   index in the section when the section has blocks; `target` `window` (with its `part`) or `row` (a gutter's row) for a
   layout's marks.
-- **Hits** are `{ layer, section, element?, extent?, hull?, position?, system }`: `layer` the layer's key (its address,
+- **Hits** are `{ layer, section, element?, extent?, hull?, position?, system, ySystem?, yPosition?, target? }` (flat:
+  a hit of two axes, a rows cell or a grid cell, is the target `cell` with `ySystem` and `yPosition` set, so it
+  allocates nothing; `row` a rows header, `tree-node` a tree's node and `summary-row` a folded clade's row, their
+  element the clade): `layer` the layer's key (its address,
   else its track's and `:index`), `section` the section's id, `element` an item's `{ owner, key }` with its `extent` (a
   Location on the data's system), `position` on the section's system. Cells by arithmetic on the axis; items by
   `LaneIndex` (a lane's marks by left edge with a running maximum of right edges). In a track, the topmost layer with an

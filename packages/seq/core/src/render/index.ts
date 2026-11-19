@@ -79,6 +79,7 @@ export {
   type EmphasisHighlight,
   EmptyOverlay,
   type Hit,
+  type HitTarget,
   type LabelSink,
   type LayerType,
   type LayoutContext,
