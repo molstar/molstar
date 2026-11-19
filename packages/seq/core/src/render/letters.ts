@@ -50,7 +50,6 @@ const AnchorMiddle: number = Anchor.middle;
 // (the alphabet's token scheme by default: `classes`, `nucleotide-classes`), its letter's ink the `ink` channel (`auto`:
 // follows its fill at 4.5:1; a themed ink held at 3:1 against its fill).
 
-/** How a letters layer reaches its section: its own letters, a one-to-one path, a codon step, or none drawn. */
 type Alphabet = 'protein' | 'dna' | 'rna';
 
 /** The color channel's default body and environment by alphabet, made once (a layout makes none to read a kept channel). */
@@ -65,6 +64,7 @@ const LettersEnv: Record<Alphabet, { alphabet: Alphabet }> = {
   rna: { alphabet: 'rna' },
 };
 
+/** How a letters layer reaches its section: its own letters, a one-to-one path, a codon step, or none drawn. */
 type Through = 'own' | 'one' | 'codon' | 'refused';
 
 export interface LettersPrep {

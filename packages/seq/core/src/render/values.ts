@@ -52,10 +52,10 @@ import { channelForms, channelLegends, Extents, type LayerChannels, PlainDatum }
 /** How a values layer draws: bars (default), a line, or a line over the area under it. */
 export type ValuesEncoding = 'bars' | 'line' | 'area';
 
-/** The line's thickness, CSS px, and the area's opacity (the channels' defaults). */
 /** The color channel's environment: its one field is the value (made once). */
 const ValueEnv = { numeric: (n: string) => n === 'value' };
 
+/** The line's thickness, CSS px, and the area's opacity (the channels' defaults). */
 const LineWidth = 1.5;
 /** The area's alpha: 0.35 of 255. */
 const AreaAlpha = 89;
