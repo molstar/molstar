@@ -174,7 +174,11 @@ export class ViewerInput {
         chords.map(parseChord).filter((c): c is KeyChord => c !== undefined),
       );
     this._keys = keys;
+    viewer.selection.value.subscribe(() => this._selectionChanges++);
   }
+
+  /** How many times the selection changed: what a click cleared is given back only if nothing changed it since. */
+  private _selectionChanges = 0;
 
   private get hoverBehavior(): HoverBehavior | undefined {
     return this.viewer.behavior(HoverProvider);
@@ -579,6 +583,8 @@ export class ViewerInput {
     if (this.viewer.retired) return false;
     // a jump's motion stops where it is drawn: the input reads one picture
     this.viewer.stopMotion();
+    // what a click cleared is kept for that click's double-click only: any click but a double-click's second drops it
+    if ((e.detail ?? 1) <= 1) this._cleared = undefined;
     // a rail's click: outside its window it centres there (a jump, its own step); its second a double-click's
     const rr = this._rowsRailClick;
     if (rr) {
@@ -602,7 +608,6 @@ export class ViewerInput {
       this._restoreCleared();
       return false;
     }
-    this._cleared = undefined;
     const select = this.selectBehavior;
     if (!select) return false;
     const section = this.sectionAt(y);
@@ -640,7 +645,7 @@ export class ViewerInput {
     // Shift+click's extend (a Shift+double-click zooms out and selects nothing)
     const after = sel.value.value;
     if ((!isNothing(before) && isNothing(after)) || (e.shiftKey && after !== before))
-      this._cleared = { value: before, anchor, after };
+      this._cleared = { value: before, anchor, changes: this._selectionChanges };
     return taken;
   }
 
@@ -648,13 +653,13 @@ export class ViewerInput {
    * What the first click of a double-click changed (clicking the only selected element cleared it; a Shift+click
    * extended it), until the next click: the selection before and after it.
    */
-  private _cleared: { value: Emphasized; anchor: Anchor | undefined; after: Emphasized } | undefined;
+  private _cleared: { value: Emphasized; anchor: Anchor | undefined; changes: number } | undefined;
 
   /** A double-click's second click (or its `dblclick`) gives back what its first click changed, while it stands. */
   private _restoreCleared(): void {
     const c = this._cleared;
     this._cleared = undefined;
-    if (c && this.viewer.selection.value.value === c.after) this.viewer.selection.set(c.value, c.anchor);
+    if (c && this._selectionChanges === c.changes) this.viewer.selection.set(c.value, c.anchor);
   }
 
   get dragging(): boolean {

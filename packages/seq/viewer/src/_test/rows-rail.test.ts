@@ -161,6 +161,27 @@ describe('the rows rail', () => {
     expect(band(v)?.rowScale).toBeCloseTo(before, 6);
   });
 
+  it('a double-click on it gives back nothing a click elsewhere cleared', async () => {
+    const v = await make(spec(60));
+    const r = rowsRail(v)!;
+    const data = v.frame!.layout.sections[0].tracks[1].box;
+    const cell: [number, number] = [data.x + 20, data.y + 10];
+    const click = ([x, y]: [number, number], detail: number) => {
+      v.input.down(x, y);
+      v.input.up();
+      return v.input.click(x, y, { detail });
+    };
+    click(cell, 1);
+    expect(v.selection.value.value.shown.parts.length).toBeGreaterThan(0);
+    click(cell, 1);
+    expect(v.selection.value.value.shown.parts.length).toBe(0);
+    const rail: [number, number] = [r.top + 6, yOf(r, 40)];
+    click(rail, 1);
+    click(rail, 2);
+    v.input.doubleClick(...rail);
+    expect(v.selection.value.value.shown.parts.length).toBe(0);
+  });
+
   it('a click outside the window centres the rows there (a jump: back returns); a grip’s click does not', async () => {
     const v = await make(spec(60));
     const r = rowsRail(v)!;
