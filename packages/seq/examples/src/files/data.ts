@@ -78,3 +78,52 @@ export type DomainFile = keyof typeof DomainFiles;
 export const PlasmidGffFile: string = PlasmidFiles.rotatedFeatures;
 export const PlasmidSeqId: string = PlasmidName;
 export const FilesFolder = 'fixtures/files/';
+
+// One table, two sequences (files.md, "Its systems, by name"): a `target` column names each row's sequence, an empty
+// target is the source's own system. The rows are generated here (p53's domains from the Domains data, CDK2's loops as
+// illustrative bounds) and committed like the domains table.
+
+/** The many-sequences table's file name (under the tables' folder) and its columns. */
+export const ManySequencesFile = 'many-sequences.tsv';
+export const ManyColumns = ['target', 'id', 'label', 'start', 'end', 'category'] as const;
+
+/** CDK2 (UniProt P24941, 298 residues; the Complex dataset's chain). */
+export const Cdk2 =
+  'MENFQKVEKIGEGTYGVVYKARNKLTGEVVALKKIRLDTETEGVPSTAIREISLLKELNHPNIVKLLDVIHTENKLYLVFEFLHQDLKKFMDASALTGIPLPLIKSYLFQLLQGLAFCHSHRVLHRDLKPQNLLINTEGAIKLADFGLARAFGVPVRTYTHEVVTLWYRAPEILLGCKYYSTAVDIWSLGCIFAEMVTRRALFPGDSEIDQLFRIFRTLGTPDEVVWPGVTSMPDYKPSFPKWARQDFSKVVPPLDEDGRSLLSQMLHYDPNKRISAKAALAHPFFQDVTKPVPHLRL';
+
+/** The source's own system (a row with no target is on it) and the two named ones. */
+export const ManySystems = { own: 'p53', p53: 'p53', cdk2: 'cdk2' } as const;
+
+/**
+ * The rows, in file order, positions from 1 with the last one named: p53's TAD, DBD and TET named by their target, its
+ * NLS with an empty one (the source's own system, p53), and three CDK2 elements (illustrative bounds).
+ */
+export function manyRows() {
+  const p53 = (id: string, target: string) => {
+    const i = Domains.id.indexOf(id);
+    return {
+      target,
+      id,
+      label: Domains.label[i],
+      start: Domains.start[i] + 1,
+      end: Domains.end[i],
+      category: Domains.category[i],
+    };
+  };
+  return [
+    p53('TAD', ManySystems.p53),
+    { target: ManySystems.cdk2, id: 'GRL', label: 'Gly-rich loop', start: 12, end: 19, category: 'loop' },
+    p53('DBD', ManySystems.p53),
+    { target: ManySystems.cdk2, id: 'PSTAIRE', label: 'PSTAIRE helix', start: 46, end: 56, category: 'helix' },
+    p53('NLS', ''),
+    { target: ManySystems.cdk2, id: 'TLOOP', label: 'T-loop', start: 145, end: 172, category: 'loop' },
+    p53('TET', ManySystems.p53),
+  ];
+}
+
+/** The many-sequences table as TSV. */
+export function manyContent(): string {
+  const lines = [ManyColumns.join('\t')];
+  for (const r of manyRows()) lines.push(ManyColumns.map((c) => cell(r[c], '\t')).join('\t'));
+  return `${lines.join('\n')}\n`;
+}

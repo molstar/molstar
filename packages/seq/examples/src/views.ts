@@ -657,6 +657,15 @@ export const FilesViews: readonly ExampleView[] = [
   ),
   {
     dataset: 'files',
+    id: 'many-sequences',
+    title: 'Two sequences from one table',
+    summary:
+      'One TSV whose `target` column names each row’s sequence: p53’s domains and CDK2’s loops, a section each showing only its own rows; the one row with an empty target is on the source’s own system (p53).',
+    build: () => tables.buildMany(),
+    registry: records,
+  },
+  {
+    dataset: 'files',
     id: 'plasmid-gff3',
     title: 'Plasmid features from GFF3',
     summary:

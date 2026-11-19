@@ -19,7 +19,16 @@ import {
   openModel,
 } from '@molstar/seqx-core/render';
 import { describe, expect, it } from 'vitest';
-import { DomainFiles, type DomainFile, FilesFolder, PlasmidSeqId } from '../files/data.js';
+import {
+  Cdk2,
+  DomainFiles,
+  type DomainFile,
+  FilesFolder,
+  manyContent,
+  manyRows,
+  ManySequencesFile,
+  PlasmidSeqId,
+} from '../files/data.js';
 import { EntryFile, EntryTracks } from '../files/p53-entry.js';
 import * as plasmidGff from '../files/plasmid-gff.js';
 import { uniprotTransform } from '../files/uniprot.js';
@@ -59,6 +68,21 @@ describe('the fixtures', () => {
   it.each(Object.keys(DomainFiles) as DomainFile[])('%s is what its generator writes', (file) => {
     const content = DomainFiles[file].content();
     compare(dir(file), typeof content === 'string' ? content : content);
+  });
+
+  it('many-sequences.tsv is what its generator writes, listed in sources.json as generated, with its checksum', () => {
+    compare(dir(ManySequencesFile), manyContent());
+    const rows = JSON.parse(readFileSync(`${PackageFolder}${FilesFolder}sources.json`, 'utf8')) as {
+      file: string;
+      licence: string[];
+      sha256Fixture: string;
+      bytesFixture: number;
+    }[];
+    expect(rows.map((r) => r.file)).toEqual([`files/${ManySequencesFile}`]);
+    const bytes = readFileSync(dir(ManySequencesFile));
+    expect(rows[0].licence).toEqual(['LicenseRef-seqx-generated']);
+    expect(rows[0].bytesFixture).toBe(bytes.byteLength);
+    expect(rows[0].sha256Fixture).toBe(sha256(bytes));
   });
 
   it('every recorded file is listed in sources.json, under the bounds, with an allowed licence and its checksum', () => {
@@ -167,6 +191,103 @@ describe('the domains table in every file form', () => {
     for (const r of records) expect(r).toBe(records[0]);
     // the domains are drawn: their labels' items are in the record
     expect(records[0].length).toBeGreaterThan(500);
+  });
+});
+
+describe('one table, two sequences', () => {
+  const text = readFileSync(dir(ManySequencesFile), 'utf8');
+  const read = readRecords(
+    { format: 'tsv', text },
+    {},
+    {
+      system: 'p53',
+      limits: { maxRows: 1_000_000, maxBytes: 64 * 1024 * 1024 },
+    },
+  );
+  const rowsOf = (system: string) => {
+    const pair = read.data!.pairs.find((p) => p.request.system === system);
+    const ranges = (pair!.answer as { tables: { ranges: RangesList } }).tables.ranges;
+    const id = ranges.fields!.find((f) => f.name === 'label')!.column as { get(i: number): string | null };
+    return Array.from(ranges.start, (_, i) => [id.get(i), ranges.start[i], ranges.end[i]] as const);
+  };
+  /** The file's rows of a system as the reader holds them: positions from 0, the end exclusive. */
+  const expected = (system: string, own = false) =>
+    manyRows()
+      .filter((r) => r.target === system || (own && r.target === ''))
+      .map((r) => [r.label, r.start - 1, r.end] as const)
+      .sort((a, b) => a[1] - b[1]);
+
+  it('names two systems, each holding exactly the rows that target it; the empty target is on the source’s own', () => {
+    expect(read.issues).toEqual([]);
+    expect(read.data!.pairs.map((p) => p.request.system).sort()).toEqual(['cdk2', 'p53']);
+    expect(rowsOf('cdk2')).toEqual(expected('cdk2'));
+    expect(rowsOf('p53')).toEqual(expected('p53', true));
+    // the row with no target is NLS: on p53, the source's own system, and on no other
+    expect(rowsOf('p53').map((r) => r[0])).toContain('Nuclear localization');
+    expect(rowsOf('cdk2').map((r) => r[0])).not.toContain('Nuclear localization');
+    expect(manyRows().filter((r) => r.target === '').length).toBe(1);
+    expect(rowsOf('p53').length + rowsOf('cdk2').length).toBe(manyRows().length);
+  });
+
+  it('every row fits its sequence', () => {
+    for (const [, , end] of rowsOf('p53')) expect(end).toBeLessThanOrEqual(P53.length);
+    for (const [, , end] of rowsOf('cdk2')) expect(end).toBeLessThanOrEqual(Cdk2.length);
+  });
+
+  it('draws each section with its own rows’ labels only, once each', async () => {
+    const view = FilesViews.find((v) => v.id === 'many-sequences')!;
+    const ctx = context();
+    const r = await ctx.renderSvg(view.build(), { size: { width: 900, height: 360 } });
+    expect(r.issues).toEqual([]);
+    expect(r.settled).toBe(true);
+    const count = (t: string) => r.svg.split(`>${t}<`).length - 1;
+    // a row is drawn in its own section alone (a label once, never in both); the 8-residue Gly-rich loop's box is too
+    // narrow for its label at this width
+    for (const row of manyRows()) expect(count(row.label as string), row.id).toBe(row.id === 'GRL' ? 0 : 1);
+    ctx.retire();
+  });
+
+  it('draws against the data: a feature’s box spans its positions at the fit', async () => {
+    const view = FilesViews.find((v) => v.id === 'many-sequences')!;
+    const spec = view.build();
+    const store = new DataStore();
+    const opened = await openModel(spec, store, {
+      runtimes: [RecordsRuntime, SeqRuntime],
+      assets: nodeFixtureAssets().reader,
+    });
+    const input = {
+      model: opened.model,
+      view: opened.view!,
+      size: { width: 900, height: 360 },
+      viewports: {},
+      tokens: LightTokens,
+      text: bundledTextMetrics(),
+      data: store,
+    };
+    for (let i = 0; i < 4; i++) {
+      store.want(layoutView(input).wants);
+      await store.whenSettled();
+    }
+    const layout = layoutView(input);
+    expect(layout.sections.length).toBe(2);
+    // what is under a position of a section, over the page's height: its system and the items' keys
+    const keysAt = (section: number, pos: number) => {
+      const system = ['/data/p53', '/data/cdk2'][section];
+      const st = layout.sections[section].placement.strips;
+      const keys = new Set<string>();
+      for (let y = 0; y < input.size.height; y += 2) {
+        const h = hitView(layout, st.axes[0].xOfUnit(pos + 0.5 - st.first[0]), y);
+        if (h?.element && h.system === system) keys.add(`${h.system}:${String(h.element.key)}`);
+      }
+      return [...keys].sort();
+    };
+    // p53: its fitted window starts at 1, the DBD lies over 94..292 and the empty-target NLS over 319..360
+    expect(keysAt(0, 150)).toEqual(['/data/p53:DBD']);
+    expect(keysAt(0, 319)).toEqual(['/data/p53:NLS']);
+    expect(keysAt(0, 319).join()).not.toMatch(/cdk2/);
+    // CDK2: the T-loop at 145..172, nothing of p53's at the same positions
+    expect(keysAt(1, 160)).toEqual(['/data/cdk2:TLOOP']);
+    expect(keysAt(1, 280)).toEqual([]);
   });
 });
 

@@ -61,6 +61,27 @@ describe('Features/Files, headless', () => {
     expect(records[0]).toContain('rect');
   });
 
+  it('the many-sequences story: two sections, each with its own rows, and the file shown with its target column', async () => {
+    const v = view('many-sequences');
+    const viewer = await open(v);
+    expect(viewer.layoutIssues.value).toEqual([]);
+    const svg = await viewer.renderSvg({ idPrefix: 'm-' });
+    expect(svg.issues).toEqual([]);
+    expect(svg.settled).toBe(true);
+    // each section's own rows: p53's DNA-binding domain and the empty-target NLS once, CDK2's T-loop once
+    const count = (t: string) => svg.svg.split(`>${t}<`).length - 1;
+    for (const label of ['DNA-binding', 'Nuclear localization', 'T-loop']) expect(count(label), label).toBe(1);
+    // the PSTAIRE helix's box is too narrow for its label at 720 px: never drawn twice
+    expect(count('PSTAIRE helix')).toBeLessThanOrEqual(1);
+    const [file] = filesOf(v.build());
+    expect(file).toEqual({ uri: 'fixtures/files/many-sequences.tsv', format: 'tsv' });
+    const head = fileHead(bytesOf(file.uri), file.format).split('\n');
+    expect(head[0]).toBe('target\tid\tlabel\tstart\tend\tcategory');
+    // the row with no target starts with the delimiter
+    expect(head.some((l) => l.startsWith('\tNLS\t'))).toBe(true);
+    expect(printSources(v.build())).toContain('system');
+  });
+
   it('prints the head of the file and the source node, as the story does', () => {
     // UniProt's entry: the JSON as the service writes it, and the transform written out in the source node
     const entry = view('uniprot').build();
