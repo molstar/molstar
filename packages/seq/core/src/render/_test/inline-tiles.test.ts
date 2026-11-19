@@ -1,0 +1,71 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+// Inline data over a long system (_spec/README.md "Data", The seq format; "Render", Data): an inline ranges node is
+// served at the level whose one tile covers its system too, so a frame at the fit of 83 Mb reads a tile of it, not
+// 81,307 at level 1; a reader past the store's bound on a want's tiles builds no key a tile and is pending, never empty.
+
+import { inlineSeq, openSeq, SeqRuntime, seqToValue } from '@molstar/seqx-core/data';
+import { createSeqSpec } from '@molstar/seqx-core/lang';
+import { describe, expect, it, vi } from 'vitest';
+import type { RangesLay } from '../index.js';
+import { settle } from './helpers.js';
+import { layerLay } from './small-helpers.js';
+
+const Length = 83_257_441;
+const Starts = [1_000_000, 40_000_000, 80_000_000];
+
+/** A chromosome-long system (its length a source's coverage) and an inline ranges node on it, three items far apart. */
+function spec() {
+  const b = createSeqSpec({ title: 'inline' });
+  const value = seqToValue({
+    coverage: { systems: [{ name: 'chr', length: Length }], shapes: [], levels: [1] },
+    pairs: [],
+  });
+  const source = b.data.source('chr-source', { format: 'seq', value: value as never });
+  const chr = b.data.sequence('chr', { alphabet: 'dna', source, name: 'chr' });
+  const genes = b.data.ranges('genes', {
+    target: chr,
+    rows: { start: Starts, end: Starts.map((s) => s + 20_000), label: ['a', 'b', 'c'] },
+  });
+  b.views.view('main', (v) => {
+    v.section('chr', { of: chr }).track('genes').layer('genes', { type: 'ranges', data: genes });
+  });
+  return b.build();
+}
+
+describe('inline data over a long system', () => {
+  it('a ranges list is served at its whole level too, the same rows with one identity at both', async () => {
+    const tables = {
+      ranges: { form: 'list' as const, start: Int32Array.of(5, 2_000_000), end: Int32Array.of(9, 2_000_100) },
+    };
+    const data = inlineSeq({ name: 'chr', length: Length }, tables);
+    expect(data.coverage.levels).toEqual([1, 16 ** 5]);
+    const source = openSeq(data);
+    const signal = new AbortController().signal;
+    const read = async (level: number) => {
+      const a = await source.read({ system: 'chr', start: 0, end: Length, level, shapes: ['ranges'] }, signal);
+      return a.ok && a.tables.ranges?.form === 'list' ? Array.from(a.tables.ranges.row ?? []) : undefined;
+    };
+    expect(await read(16 ** 5)).toEqual(await read(1));
+    // a short system's inline data stays one level
+    expect(inlineSeq({ name: 's', length: 300 }, tables).coverage.levels).toEqual([1]);
+  });
+
+  it('a frame at the fit of 83 Mb reads a tile of an inline node, its items drawn', async () => {
+    const s = await settle(spec(), [SeqRuntime]);
+    const keysOf = vi.spyOn(s.store, 'keysOf');
+    const f = await s.frame({ size: { width: 1440, height: 80 }, dpr: 2, viewport: { start: 0, end: Length } });
+    let keys = 0;
+    for (const r of keysOf.mock.results) keys += (r.value as string[]).length;
+    expect(keys).toBeLessThan(64);
+    expect(Math.max(...f.wants.map((w) => s.store.keysOf(w).length))).toBeLessThanOrEqual(2);
+    expect(s.store.issues.value).toEqual([]);
+    const lay = layerLay<RangesLay>(f, 0);
+    expect(lay.pending).toEqual([]);
+    expect(lay.items).toBe(Starts.length);
+  });
+});

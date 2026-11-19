@@ -587,8 +587,11 @@ over 20 runs; the heavy lane bounds one sample at 40 ms (`resolve/_test/addressi
 - **Its runtime** joins the pairs of the request's system (by name or alias) and level that overlap the region, in
   position order, each cut to its part; a gap no pair holds is `not-served`, naming its positions (the format is
   explicit: an empty region is a pair with empty tables). A failure among the pairs is the answer; an unlisted system or
-  level is not served. A list without ids gets `row` from its place in the file. Inline data (`inlineSeq`) is one pair
-  over the whole system at level 1, its length in the coverage.
+  level is not served. A list without ids gets `row` from its place among the pairs of its system and level (one
+  identity at every level serving the same rows). Inline data (`inlineSeq`) is one pair over the whole system at level
+  1, its length in the coverage; ranges alone as a list over a system longer than a tile are served too at the least
+  power of 16 whose one tile covers the system (the same rows). Why: a layer zoomed out on a long system reads that one
+  tile, never the system a tile at level 1 (81,307 at 83 Mb), and a small inline payload needs no level between.
 
 ### Asynchronous sources
 
@@ -771,8 +774,9 @@ by fuzz tests (mutated text read without a throw).
 - **Keys**: `<source>|<system>|<level>|<tile>` and `<source>#<key>`; a part holding `|`, `#` or `\` escapes it, so no
   two keys of other parts are equal. A tile is `tileBins` bins (1,024) at the level's width; a want is clipped to the
   system's length when known and snaps to whole tiles; an unlisted level falls back to the coarsest listed no wider
-  (EC-170). A want over `maxTilesPerWant` tiles is `seq.store.too_many_tiles` and not asked: work is bounded before it
-  starts. A tile is asked for every shape its system serves: the key has no shapes.
+  (EC-170). A want over `maxTilesPerWant` tiles is `seq.store.too_many_tiles` and not asked, and `keysOf` lists none of
+  its tiles (a reader reads it as pending, never as empty): work is bounded before it starts, a key a tile included. A
+  tile is asked for every shape its system serves: the key has no shapes.
 - **Sources** are checked on `attach`: a malformed coverage is an issue and the source unavailable. `detach` cancels its
   requests, drops its entries, releases its holds and clears its reports.
 - **Entries** are `pending`, `loaded`, `empty` (no rows, no nodes), `failed` (kind and issue) or `evicted` (wanted,

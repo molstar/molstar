@@ -164,8 +164,9 @@ export interface SourceBinding {
 }
 
 /**
- * How a node's data is read: inline data as a `seq` source of one tile (the whole system), or a source of the spec by
- * region. `system` is the name the source knows the system by.
+ * How a node's data is read: inline data as a `seq` source of one pair over the whole system (a ranges list also at a
+ * level whose one tile is the whole system: `inlineSeq`), or a source of the spec by region. `system` is the name the
+ * source knows the system by.
  */
 export type AccessPlan =
   | {

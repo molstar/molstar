@@ -61,13 +61,16 @@ export function openSeq(data: SeqData): OpenedSource {
     names.set(s.name, s.name);
     for (const a of s.aliases ?? []) if (!names.has(a)) names.set(a, s.name);
   }
-  // A stable row identity: each pair's list rows numbered after the rows of the pairs before it.
+  // A stable row identity: each pair's list rows numbered after the rows of the pairs before it of its system and
+  // level, so a row has one identity at every level that serves it (inline data's whole level, the same rows).
   const rowBase = new Map<SeqPair, number>();
-  let rows = 0;
+  const rows = new Map<string, number>();
   for (const p of data.pairs) {
-    rowBase.set(p, rows);
+    const at = `${p.request.system}|${p.request.level}`;
+    const base = rows.get(at) ?? 0;
+    rowBase.set(p, base);
     const r = p.answer.ok ? p.answer.tables.ranges : undefined;
-    if (r?.form === 'list') rows += r.start.length;
+    rows.set(at, r?.form === 'list' ? base + r.start.length : base);
   }
 
   const answer = (request: RegionRequest): RegionAnswer => {

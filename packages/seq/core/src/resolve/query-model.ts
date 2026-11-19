@@ -102,8 +102,11 @@ function storeRows(model: StaticModel, src: RowsSource, rows: string): HeldRows 
     if (n === undefined) return Pending;
     const want = { source, system, start: 0, end: n, level: 1 };
     src.want?.(want);
+    const keys = src.data.keysOf(want);
+    // none listed past the store's bound on a want's tiles (never asked): pending, as before they are held
+    if (!keys.length && n > 0) return Pending;
     const tables: CellsTable[] = [];
-    for (const k of src.data.keysOf(want)) {
+    for (const k of keys) {
       const e = src.data.get(k);
       if (e?.status !== 'loaded') return Pending;
       const t = e.tables.cells;

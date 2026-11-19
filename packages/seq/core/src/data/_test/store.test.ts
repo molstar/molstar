@@ -418,6 +418,9 @@ describe('want sets', () => {
     store.want([view(0, 10 * 1024)]);
     expect(source.reads.length).toBe(2);
     expect(store.issues.value.map((i) => [i.code, i.address])).toEqual([['seq.store.too_many_tiles', S]]);
+    // its keys are not built either: a reader of a long system at a fine level stops at the bound
+    expect(store.keysOf(view(0, 4 * 1024))).toHaveLength(4);
+    expect(store.keysOf(view(0, 10 * 1024))).toEqual([]);
   });
 });
 

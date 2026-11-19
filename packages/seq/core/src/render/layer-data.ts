@@ -147,6 +147,8 @@ export function layerLevel(
   return level;
 }
 
+const NoSystems: readonly never[] = [];
+
 /** The tiles' state over the regions read: loaded entries, and the data positions still pending or failed. */
 export interface TileRead {
   readonly entries: Extract<DataEntry, { status: 'loaded' }>[];
@@ -168,7 +170,12 @@ export function readTiles(
   level: number,
 ): TileRead {
   const out: TileRead = { entries: [], pending: [], failed: [] };
-  const known = data.coverage(src.source) !== undefined;
+  const coverage = data.coverage(src.source);
+  const known = coverage !== undefined;
+  // whether the source lists the system (else no tile is listed for it, and nothing is pending)
+  let listed = false;
+  for (const s of coverage?.systems ?? NoSystems)
+    if (s.name === src.system || s.aliases?.includes(src.system)) listed = true;
   // two regions can share a tile (a cyclic view wrapping a short system): each entry is read once
   const seen = new Set<string>();
   for (let i = 0; i + 1 < regions.length; i += 2) {
@@ -186,7 +193,14 @@ export function readTiles(
       out.pending.push(start, end);
       continue;
     }
-    for (const key of data.keysOf(want)) {
+    const keys = data.keysOf(want);
+    // past the store's bound on a want's tiles none is listed or asked (`seq.store.too_many_tiles`): pending, never
+    // drawn as empty, at the cost of no key a tile
+    if (!keys.length && listed && end > start && (src.length === undefined || start < src.length)) {
+      out.pending.push(start, end);
+      continue;
+    }
+    for (const key of keys) {
       const e = data.get(key);
       if (e?.status === 'loaded') {
         if (!seen.has(key)) out.entries.push(e);

@@ -400,10 +400,14 @@ export class DataStore extends ReactiveModel {
     };
   }
 
-  /** The tiles a want covers: the keys of the entries it reads, in position order; none for an unknown source or system. */
+  /**
+   * The tiles a want covers: the keys of the entries it reads, in position order; none for an unknown source or system,
+   * and none past `maxTilesPerWant` tiles (such a want is not asked for either: `seq.store.too_many_tiles`), so a
+   * reader of the whole of a long system at a fine level does not build a key a tile.
+   */
   keysOf(want: Want): string[] {
     const t = this._tiles(want);
-    if (!t) return [];
+    if (!t || t.last - t.first + 1 > this.settings.maxTilesPerWant) return [];
     const out: string[] = [];
     for (let i = t.first; i <= t.last; i++) out.push(dataKey(want.source, t.system, t.level, i));
     return out;
