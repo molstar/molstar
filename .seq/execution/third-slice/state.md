@@ -222,3 +222,5 @@ None.
 - Decided (the author, 2026-11-19, "Yes, as proposed"): a track's vertical `padding` inside its well and squircle
   wells, data clipped (ux-foundations §3, §5; the Design page). TW queued after CY. DC in its fix round (merging
   `packages-seq` first); NB running; queued strong: CY (DC's slot), then TW, DA (after NB).
+- Decided (the author, 2026-11-19, "Yes, into TW"): a highlight takes the shape of what it marks; the hover outline
+  around a chip made concentric (ux-foundations §5). TW's brief gains it.

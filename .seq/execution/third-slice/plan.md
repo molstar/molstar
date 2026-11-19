@@ -320,7 +320,8 @@ and dark before the merge.
       :numbering kabat)`, the ruler's `numbering` and hover read it, with the label rules EC-1 to EC-8; 0.4.0 (unreleased).
       Then DA builds the Antibody views on it; the fourth slice's ML1 reuses the kind.
 - [ ] TW (strong, after CY in the strong queue; the author, 2026-11-19: "Yes, as proposed") a track's vertical
-      `padding` inside its well and squircle wells with the data clipped to them, `trackShape` to keep square
+      `padding` inside its well and squircle wells with the data clipped to them, `trackShape` to keep square; and highlights in the shape of what they mark (an item's squircle, a rect over
+      positions), the chip's hover outline concentric (a bug of §5)
       (ux-foundations §3, §5; brief `briefs/tw-track-wells.md`).
 - [ ] CY (strong, after DT's fix round: both touch an axis whose sequence comes from a source; found by DP and DT,
       2026-11-19) the cyclic and source-axis gaps, each designed already: (1) a sequence whose letters come from a source

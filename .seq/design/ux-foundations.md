@@ -106,6 +106,11 @@ smallest letter size needs, so cells never show without letters.
   as a rounded card over a table); a well shorter than 6px stays square, and a config switch (`trackShape: squircle |
   square`) keeps the square look for a host. The data inside follows the rules above: continuous data stays square,
   only the well's corners round.
+- **A highlight takes the shape of what it marks** (the author, 2026-11-19): on a discrete item (a feature, a chip, a
+  bookmark) its outline or band is the item's squircle, concentric and offset as the hover's; over positions (a span of
+  letters or cells, a column, a grid's rect) a rect, since square ends say "these positions, edge to edge" and adjacent
+  spans never read as items; ends cut by the view or a block square; a highlight across a whole track clipped by the
+  well. A hover's outline around a chip is the chip's squircle plus its offset, as around any squircle mark.
 - **One path, every backend.** Squircles are drawn as a path in the draw lists, never left to a backend's rounded
   rectangle, so Canvas2D and SVG draw the same curve.
 
