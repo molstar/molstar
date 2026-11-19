@@ -284,3 +284,6 @@ None.
   medium 105, perf 127, workspace green; the quick lane at load 4.2 over the guide (core 2.33, viewer 2.53, storybook
   2.46 s): re-measure quiet. Looked at: the card on p53's domain. **The loop paused** (the author); `resume.md` holds
   the state for a new orchestrator.
+- **The loop resumed** (2026-11-19, `/loop`). The quick lane re-measured near quiet (load 3.1–4.8, two runs): core
+  2.40 / 2.69, viewer 2.47 / 2.22, storybook 2.63 / 2.08, examples 1.54 s: over the 2 s guide. QT3 (fast,
+  `briefs/qt3-quick-lane.md`) starts; RK waits for it (its brief: nothing beside it in `packages/seq`).
