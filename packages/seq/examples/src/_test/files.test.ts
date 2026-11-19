@@ -4,10 +4,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { BuiltInRender } from '@molstar/seqx-core/render/built-ins';
+import { BuiltInLayerTypes, BuiltInLayouts } from '@molstar/seqx-core/render/built-ins';
 import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
-import { createSeqContext } from '@molstar/seqx-core/context';
+import { createSeqContext } from '@molstar/seqx-core/context/default';
 import { DataStore, type RangesList, SeqRuntime } from '@molstar/seqx-core/data';
 import { RecordsRuntime, readRecords } from '@molstar/seqx-core/data/records';
 import {
@@ -257,6 +257,8 @@ describe('one table, two sequences', () => {
       assets: nodeFixtureAssets().reader,
     });
     const input = {
+      types: BuiltInLayerTypes,
+      layouts: BuiltInLayouts,
       model: opened.model,
       view: opened.view!,
       size: { width: 900, height: 360 },
@@ -305,7 +307,8 @@ describe('the plasmid’s GFF3', () => {
     expect(model.systems.get('/data/plasmid')?.length).toBe(PlasmidLength);
     const view = opened.view!;
     const input = {
-      ...BuiltInRender,
+      types: BuiltInLayerTypes,
+      layouts: BuiltInLayouts,
       model,
       view,
       size: { width: 720, height: 900 },

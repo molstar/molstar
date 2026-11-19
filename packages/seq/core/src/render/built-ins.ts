@@ -50,6 +50,3 @@ export const BuiltInLayouts: Readonly<Record<string, SectionLayoutType<any>>> = 
   rings: RingsLayout,
   grid: GridLayout,
 };
-
-/** What a renderer draws with, the built-ins: spread into a `Renderer`'s or a layout's options. */
-export const BuiltInRender = { types: BuiltInLayerTypes, layouts: BuiltInLayouts } as const;

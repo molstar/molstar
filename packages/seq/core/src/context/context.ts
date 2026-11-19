@@ -118,12 +118,12 @@ export function runtimesOf(registry: readonly SeqRegistryEntry[]): FormatRuntime
 }
 
 /** The registered layer types by name, as `runtimesOf`: the same object again is no change, another an error. */
-export function layerTypesOf(registry: readonly SeqRegistryEntry[]): Readonly<Record<string, LayerType<any, any>>> {
+function layerTypesOf(registry: readonly SeqRegistryEntry[]): Readonly<Record<string, LayerType<any, any>>> {
   return Object.fromEntries(byName(registry, 'layer-type', 'layer types', (e) => e.type));
 }
 
 /** The registered section layouts by name, as `runtimesOf`. */
-export function layoutsOf(registry: readonly SeqRegistryEntry[]): Readonly<Record<string, SectionLayoutType<any>>> {
+function layoutsOf(registry: readonly SeqRegistryEntry[]): Readonly<Record<string, SectionLayoutType<any>>> {
   return Object.fromEntries(byName(registry, 'layout', 'layouts', (e) => e.layout));
 }
 

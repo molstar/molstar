@@ -15,7 +15,8 @@ import { overlayQueryModel, EmptyOverlay } from '@molstar/seqx-core/resolve';
 import { resolveAddressIn } from '@molstar/seqx-core/query';
 import { describe, expect, it } from 'vitest';
 import { H, Imgt, Kabat } from '../../resolve/_test/antibody.js';
-import { type RulerLay, renderSvg, withSourceNumberings } from '../index.js';
+import { type RulerLay, withSourceNumberings } from '../index.js';
+import { renderSvg } from '../render-svg.js';
 import { settle } from './helpers.js';
 import { layerLay } from './small-helpers.js';
 

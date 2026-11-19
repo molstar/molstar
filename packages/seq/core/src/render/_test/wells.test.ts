@@ -23,9 +23,9 @@ import {
   hitView,
   type PassName,
   recordDrawLists,
-  renderSvg,
   type RingPlacement,
 } from '../index.js';
+import { renderSvg } from '../render-svg.js';
 import { P53, p53GeneSpec, p53TracksSpec, smallLayersSpec } from './fixtures.js';
 import { settle } from './helpers.js';
 import { gridSpec } from './pairs-fixtures.js';

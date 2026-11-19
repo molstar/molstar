@@ -9,27 +9,21 @@ import type { AssetManager } from '@molstar/core/util/assets';
 import { SizeLimitExceeded } from '@molstar/core/util/assets';
 import { type FormatRuntime, SeqRuntime } from '@molstar/seqx-core/data';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
-import {
-  BuiltInLayerTypes,
-  BuiltInLayouts,
-  DefaultRenderConfig,
-  LettersType,
-  TextLayout,
-} from '@molstar/seqx-core/render';
+import { DefaultRenderConfig, LettersType, TextLayout } from '@molstar/seqx-core/render';
+import { BuiltInLayerTypes, BuiltInLayouts } from '@molstar/seqx-core/render/built-ins';
 import { describe, expect, it, vi } from 'vitest';
 import {
   AssetRefused,
   BrowserAssetPolicy,
-  BuiltInRenderRegistry,
   checkLocation,
   composeSeqContext,
   configItem,
-  createSeqContext,
   HeadlessAssetPolicy,
   policyAssets,
   utf8Length,
   SeqCoreConfig,
 } from '../index.js';
+import { BuiltInRenderRegistry, createSeqContext } from '../default.js';
 
 const noSignal = new AbortController().signal;
 

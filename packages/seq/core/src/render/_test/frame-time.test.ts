@@ -13,7 +13,8 @@
 
 import { BoundedTries } from '@molstar/test-harness/timing';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { hitView, renderSvg } from '../index.js';
+import { hitView } from '../index.js';
+import { renderSvg } from '../render-svg.js';
 import { p53TracksSpec } from './fixtures.js';
 import { hoverInput, hovers, prepare, Scenarios, stats, STEPS, time, walk } from './scenarios.js';
 import type { Settled } from './helpers.js';

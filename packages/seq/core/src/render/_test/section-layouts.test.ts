@@ -9,7 +9,6 @@
 // mark and its parts, the navigation's arithmetic, a section not laid out again while another moves, a layer with a
 // second axis drawn in the emphasis passes, reused buffers against fresh ones.
 
-import { BuiltInRender } from '../built-ins.js';
 import type { Node } from '@molstar/core/repr/tree';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { rangesLocation } from '@molstar/seqx-core/query';
@@ -33,7 +32,7 @@ import {
   TranslateWarp,
   windowPart,
 } from '../index.js';
-import { BuiltInLayerTypes } from '../built-ins.js';
+import { BuiltInLayerTypes, BuiltInLayouts } from '../built-ins.js';
 import { P53, p53TracksSpec } from './fixtures.js';
 import { settle } from './helpers.js';
 import { rng } from './small-helpers.js';
@@ -169,7 +168,7 @@ describe('the tracks layout on the interface', () => {
     const s = await settle(spec);
     const { Renderer, bundledTextMetrics, renderConfig } = await import('../index.js');
     const r = new Renderer({
-      ...BuiltInRender,
+      layouts: BuiltInLayouts,
       model: s.model,
       view: s.view,
       data: s.store,

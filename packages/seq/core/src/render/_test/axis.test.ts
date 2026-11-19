@@ -14,15 +14,8 @@ import { describe, expect, it } from 'vitest';
 import { AxisTransform, Cut } from '../axis.js';
 import { rangesLocation } from '@molstar/seqx-core/query';
 import { Round } from '../draw-lists.js';
-import {
-  colorHex,
-  hitView,
-  type LettersLay,
-  LightTokens,
-  type RangesLay,
-  recordDrawLists,
-  renderSvg,
-} from '../index.js';
+import { colorHex, hitView, type LettersLay, LightTokens, type RangesLay, recordDrawLists } from '../index.js';
+import { renderSvg } from '../render-svg.js';
 import { settle } from './helpers.js';
 
 const Size = { width: 640, height: 200 };

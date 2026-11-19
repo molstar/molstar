@@ -39,7 +39,6 @@ import { RowsLay } from './rows.js';
 import type { TextMetrics } from './text.js';
 import type { SeqTokens } from './tokens.js';
 import { hitView, type LayoutState, type SectionLayout, type ViewLayout } from './tracks.js';
-export { railSections, rowsRailTracks } from './rail.js';
 import {
   DefaultZoomStrip,
   drawNavigatorWindow,
@@ -60,9 +59,6 @@ import {
 
 /** A navigator's default thickness by its form (CSS px), and a miniature's box. */
 export const NavigatorSizes = { axis: 20, tracks: 48, bands: 24, rows: 96, both: [160, 96] } as const;
-
-// the zoom strip's defaults are with the window marks (the viewer's config reads them, navigators listed or not)
-export { DefaultZoomStrip } from './window.js';
 
 /** The gap between the context and the zoom strip, where the connectors run (CSS px, fixed: a look). */
 const ZoomGapPx = 6;

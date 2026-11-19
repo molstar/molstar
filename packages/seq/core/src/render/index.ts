@@ -6,7 +6,9 @@
 
 // @molstar/seqx-core/render: tier 3 (_spec/README.md "Render"): the layer-type contract and the built-in types, the
 // section layouts (strips, warps, placements, navigation) and the tracks layout, the window mark, draw lists in passes, hit-testing, the token table, the text metrics port, the recording and SVG
-// backends, and `renderSvg`. Named re-exports only.
+// backends. Named re-exports only; what a minimal composition does not ask for is on its own entry:
+// `render/render-svg` (`renderSvg`, the built-ins), `render/export-png`, `render/built-ins`, `render/navigator`,
+// `render/navigator-export`.
 
 export { AxisTransform, type BandViewport, Cut, type Viewport } from './axis.js';
 export {
@@ -63,22 +65,6 @@ export {
   exportSvg,
   viewSources,
 } from './export.js';
-export { renderSvg } from './render-svg.js';
-export { BuiltInLayerTypes, BuiltInLayouts, BuiltInRender } from './built-ins.js';
-export {
-  type ExportedNavigators,
-  type NavigatorExport,
-  type NavigatorExportInput,
-  NavigatorSvgExport,
-} from './navigator-export.js';
-export {
-  type RasterizeRequest,
-  type Rasterizer,
-  type RenderPngOptions,
-  type RenderPngResult,
-  renderPng,
-  svgSize,
-} from './export-png.js';
 export { RenderIssues } from './issues.js';
 export {
   DefaultThemeContext,
@@ -147,28 +133,17 @@ export type {
 } from './layout/types.js';
 export { PolarWarp, TranslateWarp } from './layout/warp.js';
 export {
+  DefaultZoomStrip,
   drawNavigatorWindow,
   drawWindowArgs,
   floorExtent,
+  navigatorPart,
   NavWin,
   NavWindow,
   NavWindowFlags,
-  navigatorPart,
   WindowFill,
   windowPart,
 } from './window.js';
-export {
-  type NavigatorFrame,
-  type NavigatorFrameInput,
-  type NavigatorHit,
-  NavigatorRenderer,
-  type NavigatorRendererOptions,
-  NavigatorSizes,
-  DefaultZoomStrip,
-  NavigatorWindow,
-  navigatorBox,
-  windowText,
-} from './navigator.js';
 export { type SourceLabelsOptions, withSourceNumberings } from './numberings.js';
 export {
   drawRail,

@@ -12,7 +12,8 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { recordDrawLists, renderSvg } from '../index.js';
+import { recordDrawLists } from '../index.js';
+import { renderSvg } from '../render-svg.js';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { p53GeneSpec, p53TracksSpec, seeded } from './fixtures.js';
 

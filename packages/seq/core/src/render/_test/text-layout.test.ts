@@ -26,12 +26,12 @@ import {
   type RangesLay,
   PlacePoint,
   recordDrawLists,
-  renderSvg,
   type SectionLayout,
   TextLayout,
   TextNav,
   type TextPlacement,
 } from '../index.js';
+import { renderSvg } from '../render-svg.js';
 import { paintStrip, resetStrip, type StripBuffers, ThinStripShare } from '../ranges.js';
 import { BigRuntime, P53, p53TextSpec } from './fixtures.js';
 import { settle } from './helpers.js';

@@ -23,10 +23,10 @@ import {
   LightTokens,
   type RangesLay,
   recordDrawLists,
-  renderSvg,
   type ValuesLay,
   viewLegends,
 } from '../index.js';
+import { renderSvg } from '../render-svg.js';
 import { P53, p53TracksSpec } from './fixtures.js';
 import { settle } from './helpers.js';
 

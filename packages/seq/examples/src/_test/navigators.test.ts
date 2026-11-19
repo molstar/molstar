@@ -10,8 +10,8 @@
 // row and draws them as the shared reduction's image over its column; the plasmid's strip wraps the origin. Each
 // exported with `navigators: include`, titled, settled, with no issue.
 
-import { BuiltInRender } from '@molstar/seqx-core/render/built-ins';
-import { createSeqContext } from '@molstar/seqx-core/context';
+import { BuiltInLayerTypes, BuiltInLayouts } from '@molstar/seqx-core/render/built-ins';
+import { createSeqContext } from '@molstar/seqx-core/context/default';
 import { DataStore, DefaultStoreSettings, SeqRuntime } from '@molstar/seqx-core/data';
 import { RecordsRuntime } from '@molstar/seqx-core/data/records';
 import {
@@ -19,13 +19,13 @@ import {
   bundledTextMetrics,
   DarkTokens,
   LightTokens,
-  NavigatorRenderer,
   Renderer,
   type RangesLay,
   RowsLay,
   type Viewport,
   openModel,
 } from '@molstar/seqx-core/render';
+import { NavigatorRenderer } from '@molstar/seqx-core/render/navigator';
 import { describe, expect, it } from 'vitest';
 import { generatedRegistry } from '../globins/data.js';
 import { Chr17Bands, Chr17BandsLevel, RegionOnChr17 } from '../navigators.js';
@@ -50,7 +50,15 @@ async function settled(
   expect(opened.issues).toEqual([]);
   const { model } = opened;
   const view = opened.view!;
-  const common = { ...BuiltInRender, model, view, data: store, tokens: LightTokens, text: bundledTextMetrics() };
+  const common = {
+    types: BuiltInLayerTypes,
+    layouts: BuiltInLayouts,
+    model,
+    view,
+    data: store,
+    tokens: LightTokens,
+    text: bundledTextMetrics(),
+  };
   const renderer = new Renderer(common);
   const n = new NavigatorRenderer({ ...common, navigator: view.navigators[nav] });
   const draw = () => {

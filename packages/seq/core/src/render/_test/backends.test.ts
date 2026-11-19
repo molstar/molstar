@@ -23,11 +23,11 @@ import {
   parseColor,
   Round,
   recordDrawLists,
-  renderSvg,
   resolveColor,
   SquircleHandle,
   squircleRadius,
 } from '../index.js';
+import { renderSvg } from '../render-svg.js';
 
 function sample(): DrawLists {
   const lists = new DrawLists();

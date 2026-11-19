@@ -14,10 +14,10 @@ import {
   DrawLists as Lists,
   drawListsToSvg,
   escapeXml,
-  renderPng,
-  renderSvg,
   walkPass,
 } from '@molstar/seqx-core/render';
+import { renderPng } from '@molstar/seqx-core/render/export-png';
+import { renderSvg } from '@molstar/seqx-core/render/render-svg';
 import { describe, expect, it } from 'vitest';
 import { resvgRasterizer } from '../rasterize.js';
 import { decodePng, p53Tracks } from './fixture.js';

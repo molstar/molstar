@@ -12,7 +12,6 @@
 // ellipsis, the last numbers in a right gutter); the text figure only in text; one rows layer a section; a lazy
 // alignment's pins said, its sub-pixel band a neutral fill.
 
-import { BuiltInRender } from '../built-ins.js';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { rangesLocation } from '@molstar/seqx-core/query';
 import { describe, expect, it, vi } from 'vitest';
@@ -234,7 +233,6 @@ describe('the colors and the header', () => {
     const s = await settle(spec().build());
     await s.frame(at({ rowScale: 20 }));
     const r = new Renderer({
-      ...BuiltInRender,
       ...s.renderer.options,
       theme: { measures: new Map([['custom', custom]]) },
     });

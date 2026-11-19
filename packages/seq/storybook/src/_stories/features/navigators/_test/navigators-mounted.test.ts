@@ -13,7 +13,7 @@
 // document's flow around the canvas (jsdom lays nothing out: the boxes are read from the styles the mount sets).
 
 import { GlobinsViews, P53Views, PlasmidViews, type ExampleView } from '@molstar/seqx-examples';
-import type { NavigatorRenderer } from '@molstar/seqx-core/render';
+import type { NavigatorRenderer } from '@molstar/seqx-core/render/navigator';
 import { regionSeqText } from '@molstar/seqx-examples/p53/region';
 import { DefaultSeqViewerSpec } from '@molstar/seqx-viewer/default-spec';
 import { mountToolbar } from '@molstar/seqx-viewer/mount-toolbar';

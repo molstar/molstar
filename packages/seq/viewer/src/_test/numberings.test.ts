@@ -12,7 +12,7 @@
 
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { rangesLocation } from '@molstar/seqx-core/query';
-import { renderSvg } from '@molstar/seqx-core/render';
+import { renderSvg } from '@molstar/seqx-core/render/render-svg';
 import { DomHost } from '@molstar/ui/dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Announcer } from '../announcer.js';

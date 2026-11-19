@@ -12,7 +12,8 @@
 import { overviewNavigator, stripNavigator } from '@molstar/seqx-core/lang';
 import { itWithin } from '@molstar/test-harness/timing';
 import { describe, expect } from 'vitest';
-import type { NavigatorFrameInput, ViewLayout } from '../index.js';
+import type { ViewLayout } from '../index.js';
+import type { NavigatorFrameInput } from '../navigator.js';
 import { p53TracksSpec } from './fixtures.js';
 import { bandsSpec, settleNavigator, withNavigator } from './navigator-fixtures.js';
 import { rowsSpec, Synthetic } from './rows-fixtures.js';

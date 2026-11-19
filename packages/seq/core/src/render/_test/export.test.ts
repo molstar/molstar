@@ -16,7 +16,8 @@ import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { resolveSpec } from '@molstar/seqx-core/resolve';
 import { describe, expect, it } from 'vitest';
 import { p53Spec } from '../../lang/_test/p53.js';
-import { attachSources, RenderIssues, renderSvg } from '../index.js';
+import { attachSources, RenderIssues } from '../index.js';
+import { renderSvg } from '../render-svg.js';
 import { blocks } from './helpers.js';
 import { BigRuntime, bigSpec, p53TracksSpec } from './fixtures.js';
 

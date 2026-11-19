@@ -7,15 +7,14 @@
 import { ReactiveModel, type ReadonlyState, State } from '@molstar/core/reactive';
 import type { Node } from '@molstar/core/repr/tree';
 import type { Want } from '@molstar/seqx-core/data';
+import { NavWindowFlags, type WindowPart } from '@molstar/seqx-core/render';
 import {
   type NavigatorFrame,
   type NavigatorHit,
   NavigatorRenderer,
-  NavWindowFlags,
   navigatorBox,
-  type WindowPart,
   windowText,
-} from '@molstar/seqx-core/render';
+} from '@molstar/seqx-core/render/navigator';
 import { axisTotal, type ResolvedNavigator, type ResolvedView, resolveNavigatorNode } from '@molstar/seqx-core/view';
 import type { NavigateBehavior, NavigatorBehavior } from '@molstar/seqx-viewer/behaviors';
 // the module, not the barrel: the behaviors' providers make this model (an import cycle through the barrel)

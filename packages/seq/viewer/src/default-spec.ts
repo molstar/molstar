@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { BuiltInRenderRegistry } from '@molstar/seqx-core/context';
+import { BuiltInRenderRegistry } from '@molstar/seqx-core/context/default';
 import { SeqRuntime } from '@molstar/seqx-core/data';
 import { RecordsRuntime } from '@molstar/seqx-core/data/records';
 import {

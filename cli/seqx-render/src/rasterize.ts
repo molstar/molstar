@@ -5,7 +5,7 @@
  */
 
 import { fileURLToPath } from 'node:url';
-import type { Rasterizer } from '@molstar/seqx-core/render';
+import type { Rasterizer } from '@molstar/seqx-core/render/export-png';
 import { Resvg } from '@resvg/resvg-js';
 
 // The render CLI's rasterizer port (the core's `Rasterizer`): resvg over the bundled fonts alone. The text metrics the

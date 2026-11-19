@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { BuiltInRender } from '@molstar/seqx-core/render/built-ins';
+import { BuiltInLayerTypes, BuiltInLayouts } from '@molstar/seqx-core/render/built-ins';
 import { readFileSync } from 'node:fs';
 import type { Node } from '@molstar/core/repr/tree';
 import { DataStore, decodeSeq, type FormatRuntime } from '@molstar/seqx-core/data';
@@ -132,7 +132,8 @@ async function settled(spec: Node, runtimes: readonly FormatRuntime[] = []) {
   const store = new DataStore();
   await attachSources(model, store, { assets: nodeFixtureAssets().reader });
   const renderer = new Renderer({
-    ...BuiltInRender,
+    types: BuiltInLayerTypes,
+    layouts: BuiltInLayouts,
     model,
     view,
     data: store,

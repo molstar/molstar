@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { BuiltInRender } from '@molstar/seqx-core/render/built-ins';
+import { BuiltInLayerTypes, BuiltInLayouts } from '@molstar/seqx-core/render/built-ins';
 import { DataStore } from '@molstar/seqx-core/data';
 import {
   attachSources,
@@ -13,8 +13,8 @@ import {
   Renderer,
   recordDrawLists,
   renderConfig,
-  renderSvg,
 } from '@molstar/seqx-core/render';
+import { renderSvg } from '@molstar/seqx-core/render/render-svg';
 import { resolveSpec } from '@molstar/seqx-core/resolve';
 import { resolveViews } from '@molstar/seqx-core/view';
 import { describe, expect, it } from 'vitest';
@@ -33,7 +33,8 @@ async function canvasPath(dpr: number): Promise<string> {
   const view = resolveViews(model)[0];
   const store = new DataStore();
   const renderer = new Renderer({
-    ...BuiltInRender,
+    types: BuiltInLayerTypes,
+    layouts: BuiltInLayouts,
     model,
     view,
     data: store,

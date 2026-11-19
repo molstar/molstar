@@ -22,7 +22,8 @@ import {
   overviewNavigator,
   stripNavigator,
 } from '@molstar/seqx-core/lang';
-import type { DrawLists, NavigatorRenderer } from '@molstar/seqx-core/render';
+import type { DrawLists } from '@molstar/seqx-core/render';
+import type { NavigatorRenderer } from '@molstar/seqx-core/render/navigator';
 import { afterEach, describe, expect, it } from 'vitest';
 import { viewerItem } from '../config.js';
 import { DefaultSeqViewerSpec } from '../default-spec.js';

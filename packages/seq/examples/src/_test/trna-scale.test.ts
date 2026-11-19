@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { BuiltInRender } from '@molstar/seqx-core/render/built-ins';
+import { BuiltInLayerTypes, BuiltInLayouts } from '@molstar/seqx-core/render/built-ins';
 import type { Node } from '@molstar/core/repr/tree';
 import { DataStore } from '@molstar/seqx-core/data';
 import {
@@ -41,7 +41,8 @@ async function settled(spec: Node) {
   const store = new DataStore();
   await attachSources(model, store);
   const renderer = new Renderer({
-    ...BuiltInRender,
+    types: BuiltInLayerTypes,
+    layouts: BuiltInLayouts,
     model,
     view: resolveViews(model)[0],
     data: store,

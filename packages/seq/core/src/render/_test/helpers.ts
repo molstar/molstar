@@ -7,7 +7,7 @@
 // Test helpers: a settled frame of a spec (resolved, its sources attached, its wants answered), and a pass's
 // primitives counted per track (each track's data is one clip block).
 
-import { BuiltInRender } from '../built-ins.js';
+import { BuiltInLayerTypes, BuiltInLayouts } from '../built-ins.js';
 import type { Node } from '@molstar/core/repr/tree';
 import { DataStore, type FormatRuntime } from '@molstar/seqx-core/data';
 import type { StaticModel } from '@molstar/seqx-core/resolve';
@@ -44,7 +44,8 @@ export async function settle(
   const { model, view: opened } = await openModel(spec, store, { runtimes });
   const view = opened!;
   const renderer = new Renderer({
-    ...BuiltInRender,
+    types: BuiltInLayerTypes,
+    layouts: BuiltInLayouts,
     model,
     view,
     data: store,

@@ -7,14 +7,12 @@
 // Helpers of the small layers' tests: a layer's layout out of a frame, a pass's paths and rects read back, a hit at a
 // point of a track.
 
-import { BuiltInRender } from '../built-ins.js';
 import type { Node } from '@molstar/core/repr/tree';
 import { DataStore, type FormatRuntime } from '@molstar/seqx-core/data';
 import { resolveSpec } from '@molstar/seqx-core/resolve';
 import { resolveViews } from '@molstar/seqx-core/view';
 import {
   attachSources,
-  BuiltInLayerTypes,
   bundledTextMetrics,
   type DrawLists,
   type Frame,
@@ -26,6 +24,7 @@ import {
   Renderer,
   renderConfig,
 } from '../index.js';
+import { BuiltInLayerTypes, BuiltInLayouts } from '../built-ins.js';
 
 /** The layout of the layer `index` of track `track` of section `section` of a frame. */
 export function layerLay<T = any>(f: Frame, track: number, index = 0, section = 0): T {
@@ -107,7 +106,7 @@ export async function frameWithout(
   await attachSources(model, store);
   const types = Object.fromEntries(Object.entries(BuiltInLayerTypes).filter(([name]) => !drop.includes(name)));
   const renderer = new Renderer({
-    ...BuiltInRender,
+    layouts: BuiltInLayouts,
     model,
     view,
     data: store,

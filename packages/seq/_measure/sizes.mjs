@@ -45,7 +45,8 @@ const Unlisted = [
   /seq\/viewer\/src\/behaviors\/rows/,
   /seq\/core\/src\/data\/records\.ts$/,
   /seq\/core\/src\/render\/built-ins\.ts$/,
-  /seq\/core\/src\/context\/default-context\.ts$/,
+  /seq\/core\/src\/context\/default\.ts$/,
+  /seq\/core\/src\/render\/render-svg\.ts$/,
 ];
 
 /** Target and entry of each case, bytes (minified). */

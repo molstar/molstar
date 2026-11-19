@@ -10,7 +10,7 @@
 // under 16 ms; and a frame of 10,000,000 lazy rows at letters within 1.2× of the held one. Each bound is the heavy
 // lane's (`itWithin`, best of three); the quick lane runs the same frames unbounded over 1,000 rows.
 
-import { BuiltInRender } from '../built-ins.js';
+import { BuiltInLayerTypes, BuiltInLayouts } from '../built-ins.js';
 import { itWithin } from '@molstar/test-harness/timing';
 import { describe, expect, it } from 'vitest';
 import { DarkTokens, type FrameInput, LightTokens, Renderer, type RowsLay } from '../index.js';
@@ -58,7 +58,8 @@ describe('the rows’ time over 10,000 × 300', () => {
       await s.frame(at(0, 0.06));
       const first = () => {
         const r = new Renderer({
-          ...BuiltInRender,
+          types: BuiltInLayerTypes,
+          layouts: BuiltInLayouts,
           model: s.model,
           view: s.view,
           data: s.store,

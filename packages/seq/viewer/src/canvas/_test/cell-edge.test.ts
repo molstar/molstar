@@ -9,7 +9,8 @@
 // one device pixel in the token; in light, none.
 
 import { createSeqSpec } from '@molstar/seqx-core/lang';
-import { builtInTokens, colorHex, type DrawLists, recordDrawLists, renderSvg } from '@molstar/seqx-core/render';
+import { builtInTokens, colorHex, type DrawLists, recordDrawLists } from '@molstar/seqx-core/render';
+import { renderSvg } from '@molstar/seqx-core/render/render-svg';
 import { describe, expect, it } from 'vitest';
 import { CanvasBackend } from '../backend.js';
 import { FakeCanvas } from './recording.js';

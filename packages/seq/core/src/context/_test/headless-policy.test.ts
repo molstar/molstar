@@ -16,13 +16,13 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   AssetRefused,
   checkLocation,
-  createSeqContext,
   headlessAssetPolicy,
   HeadlessAssetPolicy,
   policyAssets,
   rootUrl,
   SeqCoreConfig,
 } from '../index.js';
+import { createSeqContext } from '../default.js';
 
 const signal = new AbortController().signal;
 const refused = (r: ReturnType<typeof checkLocation>) => 'refused' in r;

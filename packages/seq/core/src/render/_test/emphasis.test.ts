@@ -12,7 +12,8 @@ import { describe, expect, it } from 'vitest';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { elements, type Location, rangesLocation } from '@molstar/seqx-core/query';
 import { projectOntoView } from '@molstar/seqx-core/view';
-import { type DrawLists, type Frame, type PassName, recordDrawLists, renderSvg } from '../index.js';
+import { type DrawLists, type Frame, type PassName, recordDrawLists } from '../index.js';
+import { renderSvg } from '../render-svg.js';
 import { p53GeneSpec, p53TracksSpec } from './fixtures.js';
 import { settle } from './helpers.js';
 

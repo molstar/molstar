@@ -8,7 +8,8 @@
 
 import { parseJson } from '@molstar/core/repr/codecs/json';
 import { checkSeqSpec } from '@molstar/seqx-core/lang';
-import { renderSvg, Renderer } from '@molstar/seqx-core/render';
+import { Renderer } from '@molstar/seqx-core/render';
+import { renderSvg } from '@molstar/seqx-core/render/render-svg';
 import { resolveSpec } from '@molstar/seqx-core/resolve';
 
 export function renderJson(json: string, width: number, height: number) {

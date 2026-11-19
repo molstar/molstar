@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { BuiltInRender } from '@molstar/seqx-core/render/built-ins';
+import { BuiltInLayerTypes, BuiltInLayouts } from '@molstar/seqx-core/render/built-ins';
 import { DataStore } from '@molstar/seqx-core/data';
 import { AlignmentFileRuntime } from '@molstar/seqx-core/data/alignment-readers';
 import { RecordsRuntime } from '@molstar/seqx-core/data/records';
@@ -15,8 +15,8 @@ import {
   LightTokens,
   type LogoLay,
   Renderer,
-  renderSvg,
 } from '@molstar/seqx-core/render';
+import { renderSvg } from '@molstar/seqx-core/render/render-svg';
 import { resolveSpec } from '@molstar/seqx-core/resolve';
 import { contrastRgba } from '@molstar/seqx-core/theme/index';
 import { resolveViews } from '@molstar/seqx-core/view';
@@ -43,7 +43,8 @@ describe('the Globins logo’s letter colors', () => {
       const store = new DataStore();
       await attachSources(model, store, { assets });
       const renderer = new Renderer({
-        ...BuiltInRender,
+        types: BuiltInLayerTypes,
+        layouts: BuiltInLayouts,
         model,
         view: resolveViews(model)[0],
         data: store,

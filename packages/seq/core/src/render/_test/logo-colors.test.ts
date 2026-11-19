@@ -8,7 +8,8 @@ import { Oklab } from '@molstar/core/util/color/spaces/oklab';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { describe, expect, it } from 'vitest';
 import { BuiltInSchemes, contrastRgba, glyphAgainst, GreyChroma, toRgb } from '../../theme/index.js';
-import { DarkTokens, LightTokens, recordDrawLists, renderSvg } from '../index.js';
+import { DarkTokens, LightTokens, recordDrawLists } from '../index.js';
+import { renderSvg } from '../render-svg.js';
 
 // The logo's letter colors (_spec/README.md "The logo"): a letter's color is its class's held at 3:1 against the track,
 // in each theme, for every color of every built-in protein and nucleotide scheme. The glyph runs of the data pass are

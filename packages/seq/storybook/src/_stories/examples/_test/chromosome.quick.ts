@@ -8,7 +8,7 @@
 // chromosome's 83 Mb, at the fit and at a density between two of its levels (512 positions a device pixel, between
 // 256 and 1,024). By hand, never in CI: `npx vitest run -c packages/seq/storybook/vitest.perf.config.ts`.
 
-import { BuiltInRender } from '@molstar/seqx-core/render/built-ins';
+import { BuiltInLayerTypes, BuiltInLayouts } from '@molstar/seqx-core/render/built-ins';
 import { DataStore, SeqRuntime } from '@molstar/seqx-core/data';
 import { bundledTextMetrics, type FrameInput, LightTokens, openModel, Renderer } from '@molstar/seqx-core/render';
 import { P53Views } from '@molstar/seqx-examples';
@@ -45,7 +45,8 @@ async function pan(start: number, span: number): Promise<{ renderer: Renderer; i
   const store = new DataStore();
   const opened = await openModel(view.build(), store, { runtimes });
   const renderer = new Renderer({
-    ...BuiltInRender,
+    types: BuiltInLayerTypes,
+    layouts: BuiltInLayouts,
     model: opened.model,
     view: opened.view!,
     data: store,

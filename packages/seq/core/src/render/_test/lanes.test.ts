@@ -7,7 +7,7 @@
 // Sticky lanes while data streams: an item keeps its lane when a neighboring tile arrives, though a fresh packing
 // would move it; lanes are repacked only once the view has settled and a packing needs fewer lanes.
 
-import { BuiltInRender } from '../built-ins.js';
+import { BuiltInLayerTypes, BuiltInLayouts } from '../built-ins.js';
 import { categoryColumn } from '@molstar/core/repr/tree';
 import { DataStore, type OpenedSource, type RegionAnswer, type RegionRequest } from '@molstar/seqx-core/data';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
@@ -84,7 +84,8 @@ describe('sticky lanes', () => {
     const source = new Deferred({ 0: tile0, 1024: tile1 });
     store.attach('/data/src', source);
     const renderer = new Renderer({
-      ...BuiltInRender,
+      types: BuiltInLayerTypes,
+      layouts: BuiltInLayouts,
       model,
       view,
       data: store,
@@ -111,7 +112,8 @@ describe('sticky lanes', () => {
 
     // a renderer with no history packs them fresh: `long` first
     const fresh = new Renderer({
-      ...BuiltInRender,
+      types: BuiltInLayerTypes,
+      layouts: BuiltInLayouts,
       model,
       view,
       data: store,
