@@ -833,12 +833,16 @@ function railDrawn(rail: Rail, viewer: SeqViewer): readonly [number, number] | u
   const a = rail.x + rail.start * k;
   const b = rail.x + Math.min(rail.end, rail.total) * k;
   const out = RailEnds;
-  floorExtent(a, b, rail.x, rail.x + rail.width, viewer.context.renderConfig.navigator.window, out);
+  out[0] = a;
+  out[1] = b;
+  out[2] = rail.x;
+  out[3] = rail.x + rail.width;
+  floorExtent(out, 0, viewer.context.renderConfig.navigator.window);
   if (out[1] - out[0] <= b - a + 1e-9) return undefined;
   return [railUnitAt(rail, out[0]), railUnitAt(rail, out[1])];
 }
 
-const RailEnds = new Float64Array(2);
+const RailEnds = new Float64Array(4);
 
 /** Whether a press at x on a rail was outside its window (a click there centres). */
 function hitPartOutside(rail: Rail, x: number, viewer: SeqViewer): boolean {

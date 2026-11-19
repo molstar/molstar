@@ -126,14 +126,18 @@ export function placeRail(
   for (let i = 0; i < b.length; i += 3) rail.breaks.push(b[i]);
 }
 
-const Ends = new Float64Array(2);
+const Ends = new Float64Array(4);
 
 /** The window's ends on the rail, px (the first piece over a cyclic origin: from its start to the axis's end). */
 function windowEnds(rail: Rail, config: RenderConfig): void {
   const k = rail.width / Math.max(1e-9, rail.total);
   const a = rail.x + rail.start * k;
   const b = rail.x + Math.min(rail.end, rail.total) * k;
-  floorExtent(a, b, rail.x, rail.x + rail.width, config.navigator.window, Ends);
+  Ends[0] = a;
+  Ends[1] = b;
+  Ends[2] = rail.x;
+  Ends[3] = rail.x + rail.width;
+  floorExtent(Ends, 0, config.navigator.window);
 }
 
 /** The window pass: the rail's line, its breaks' notches, the window's segment and its grips (lit, grown). */
@@ -146,10 +150,34 @@ export function drawRail(
 ) {
   const g = out.args;
   const line = tokens.colors['msui-line'];
-  out.fill(rail.x, rail.y - Line / 2, rail.width, Line, line);
+  {
+    const g = out.args;
+    g[0] = rail.x;
+    g[1] = rail.y - Line / 2;
+    g[2] = rail.width;
+    g[3] = Line;
+    g[4] = line;
+    g[5] = 0;
+    g[6] = 0;
+    g[7] = 0;
+    g[8] = 0;
+    out.rectArgs();
+  }
   for (let i = 0; i < rail.breaks.length; i++) {
     const x = rail.x + (rail.breaks[i] / rail.total) * rail.width;
-    out.fill(x - 0.5, rail.y - 2, 1, 4, line);
+    {
+      const g = out.args;
+      g[0] = x - 0.5;
+      g[1] = rail.y - 2;
+      g[2] = 1;
+      g[3] = 4;
+      g[4] = line;
+      g[5] = 0;
+      g[6] = 0;
+      g[7] = 0;
+      g[8] = 0;
+      out.rectArgs();
+    }
   }
   if (!(rail.total > 0)) return;
   const h = emphasis?.hover;
@@ -163,12 +191,36 @@ export function drawRail(
   windowEnds(rail, config);
   let a = Ends[0];
   let b = Ends[1];
-  out.fill(a, rail.y - t / 2, b - a, t, color);
+  {
+    const g = out.args;
+    g[0] = a;
+    g[1] = rail.y - t / 2;
+    g[2] = b - a;
+    g[3] = t;
+    g[4] = color;
+    g[5] = 0;
+    g[6] = 0;
+    g[7] = 0;
+    g[8] = 0;
+    out.rectArgs();
+  }
   if (rail.end > rail.total) {
     // over a cyclic origin: the second piece from the axis's start
     const k = rail.width / rail.total;
     b = rail.x + (rail.end - rail.total) * k;
-    out.fill(rail.x, rail.y - t / 2, b - rail.x, t, color);
+    {
+      const g = out.args;
+      g[0] = rail.x;
+      g[1] = rail.y - t / 2;
+      g[2] = b - rail.x;
+      g[3] = t;
+      g[4] = color;
+      g[5] = 0;
+      g[6] = 0;
+      g[7] = 0;
+      g[8] = 0;
+      out.rectArgs();
+    }
     a = Ends[0];
   }
   if (!rail.active) return;

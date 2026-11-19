@@ -319,7 +319,7 @@ export interface NavigatorFrame {
 /** The passes the navigator draws itself over its picture's. */
 const OwnPasses: readonly PassName[] = ['window', 'highlight', 'selection', 'hover', 'cursor'];
 
-const Ext = new Float64Array(4);
+const Ext = new Float64Array(8);
 const Seen: number[] = [];
 
 /**
@@ -585,12 +585,20 @@ export class NavigatorRenderer {
         }
       }
       const c = this.config.navigator.window;
-      floorExtent(w.x0, w.x1, w.lo, w.hi, c, Ext, 0);
-      floorExtent(w.y0, w.y1, w.ly, w.hy, c, Ext, 2);
+      Ext[0] = w.x0;
+      Ext[1] = w.x1;
+      Ext[2] = w.lo;
+      Ext[3] = w.hi;
+      Ext[4] = w.y0;
+      Ext[5] = w.y1;
+      Ext[6] = w.ly;
+      Ext[7] = w.hy;
+      floorExtent(Ext, 0, c);
+      floorExtent(Ext, 4, c);
       w.dx0 = Ext[0];
       w.dx1 = Ext[1];
-      w.dy0 = Ext[2];
-      w.dy1 = Ext[3];
+      w.dy0 = Ext[4];
+      w.dy1 = Ext[5];
       w.shown = true;
     }
   }
@@ -659,8 +667,32 @@ export class NavigatorRenderer {
       if (!w.shown || !(w.axes & NavWindowFlags.x)) continue;
       const box = this.layout!.sections[0].placement.box;
       const wash = tokens.colors['seq-wash'];
-      if (w.lo > box.x) out.fill(box.x, w.ly, w.lo - box.x, w.hy - w.ly, wash);
-      if (w.hi < box.x + box.width) out.fill(w.hi, w.ly, box.x + box.width - w.hi, w.hy - w.ly, wash);
+      if (w.lo > box.x) {
+        const g = out.args;
+        g[0] = box.x;
+        g[1] = w.ly;
+        g[2] = w.lo - box.x;
+        g[3] = w.hy - w.ly;
+        g[4] = wash;
+        g[5] = 0;
+        g[6] = 0;
+        g[7] = 0;
+        g[8] = 0;
+        out.rectArgs();
+      }
+      if (w.hi < box.x + box.width) {
+        const g = out.args;
+        g[0] = w.hi;
+        g[1] = w.ly;
+        g[2] = box.x + box.width - w.hi;
+        g[3] = w.hy - w.ly;
+        g[4] = wash;
+        g[5] = 0;
+        g[6] = 0;
+        g[7] = 0;
+        g[8] = 0;
+        out.rectArgs();
+      }
     }
     let topIndex = -1;
     for (let pass = 0; pass < 2; pass++)
@@ -752,8 +784,19 @@ export class NavigatorRenderer {
     }
     if (e?.cursor && e.cursor.system === system && marks.includes('cursor')) {
       const x = axis.x(e.cursor.position);
-      if (Number.isFinite(x))
-        lists.writer('cursor').fill(x - px / 2, box.y, px, box.height, tokens.colors['msui-text']);
+      if (Number.isFinite(x)) {
+        const g = lists.writer('cursor').args;
+        g[0] = x - px / 2;
+        g[1] = box.y;
+        g[2] = px;
+        g[3] = box.height;
+        g[4] = tokens.colors['msui-text'];
+        g[5] = 0;
+        g[6] = 0;
+        g[7] = 0;
+        g[8] = 0;
+        lists.writer('cursor').rectArgs();
+      }
     }
     const px0 = input.pointerX ?? Number.NaN;
     if (Number.isFinite(px0) && px0 >= box.x && px0 < box.x + box.width)
@@ -761,8 +804,19 @@ export class NavigatorRenderer {
         .writer('hover')
         .fill(px0 - px / 2, box.y, px, this.frameInput.size.height - box.y, tokens.colors['seq-hover']);
     const py0 = input.pointerY ?? Number.NaN;
-    if (Number.isFinite(py0) && this.navigator.axes !== 'positions')
-      lists.writer('hover').fill(box.x, py0 - px / 2, box.width, px, tokens.colors['seq-hover']);
+    if (Number.isFinite(py0) && this.navigator.axes !== 'positions') {
+      const g = lists.writer('hover').args;
+      g[0] = box.x;
+      g[1] = py0 - px / 2;
+      g[2] = box.width;
+      g[3] = px;
+      g[4] = tokens.colors['seq-hover'];
+      g[5] = 0;
+      g[6] = 0;
+      g[7] = 0;
+      g[8] = 0;
+      lists.writer('hover').rectArgs();
+    }
   }
 
   /** The part under a point of the navigator, the position, row and band there; undefined off the picture. */
@@ -931,6 +985,18 @@ function ticks(
     if (!Number.isFinite(a) || !Number.isFinite(b)) continue;
     const x0 = Math.min(a, b);
     const w = Math.max(px, Math.abs(b - a));
-    out.fill(x0, y, w, h, color);
+    {
+      const g = out.args;
+      g[0] = x0;
+      g[1] = y;
+      g[2] = w;
+      g[3] = h;
+      g[4] = color;
+      g[5] = 0;
+      g[6] = 0;
+      g[7] = 0;
+      g[8] = 0;
+      out.rectArgs();
+    }
   }
 }

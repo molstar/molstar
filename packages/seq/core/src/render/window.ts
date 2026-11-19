@@ -154,34 +154,27 @@ export function windowPart(
 type WindowConfig = RenderConfig['navigator']['window'];
 
 /**
- * A window along one axis after the floor (`navigator.window`): its true ends `[a, b)` within the span `[lo, hi)`, drawn
- * at least `minPx` wide (at most half the span), `centred` on the truth and clamped inside the span, or placed as a
- * scrollbar's `thumb` (its position proportional to the scroll). Into `out[i]`, `out[i + 1]`.
+ * A window along one axis after the floor (`navigator.window`): its true ends `[a, b)` within the span `[lo, hi)` read
+ * from `e[i]` to `e[i + 3]` (numbers in an array are never boxed: nothing allocated once warm), drawn at least `minPx`
+ * wide (at most half the span), `centred` on the truth and clamped inside the span, or placed as a scrollbar's
+ * `thumb` (its position proportional to the scroll). The drawn ends into `e[i]`, `e[i + 1]`.
  */
-export function floorExtent(
-  a: number,
-  b: number,
-  lo: number,
-  hi: number,
-  config: WindowConfig,
-  out: Float64Array,
-  i = 0,
-): void {
+export function floorExtent(e: Float64Array, i: number, config: WindowConfig): void {
+  const a = e[i];
+  const b = e[i + 1];
+  const lo = e[i + 2];
+  const hi = e[i + 3];
   const span = hi - lo;
   const min = Math.min(config.minPx, span / 2);
-  if (b - a >= min) {
-    out[i] = a;
-    out[i + 1] = b;
-    return;
-  }
+  if (b - a >= min) return;
   let s: number;
   if (config.floor === 'thumb') {
     const room = span - (b - a);
     s = room > 0 ? lo + ((a - lo) * (span - min)) / room : lo;
   } else s = (a + b) / 2 - min / 2;
   s = Math.max(lo, Math.min(hi - min, s));
-  out[i] = s;
-  out[i + 1] = s + min;
+  e[i] = s;
+  e[i + 1] = s + min;
 }
 
 /**
@@ -259,10 +252,19 @@ export function drawNavigatorWindow(
   const y1 = W[3];
   if (!idle) {
     const wash = tokens.colors['seq-wash'];
-    washRect(out, W[8], W[10], x0 - W[8], W[11] - W[10], wash);
-    washRect(out, x1, W[10], W[9] - x1, W[11] - W[10], wash);
-    washRect(out, x0, W[10], x1 - x0, y0 - W[10], wash);
-    washRect(out, x0, y1, x1 - x0, W[11] - y1, wash);
+    // the four sides through `args` (a number passed to a call that is not inlined is boxed); an empty one is skipped
+    for (let k = 0; k < 4; k++) {
+      g[0] = k === 0 ? W[8] : k === 1 ? x1 : x0;
+      g[1] = k < 3 ? W[10] : y1;
+      g[2] = k === 0 ? x0 - W[8] : k === 1 ? W[9] - x1 : x1 - x0;
+      g[3] = k < 2 ? W[11] - W[10] : k === 2 ? y0 - W[10] : W[11] - y1;
+      g[4] = wash;
+      g[5] = 0;
+      g[6] = 0;
+      g[7] = 0;
+      g[8] = 0;
+      out.rectArgs();
+    }
   }
   const fill = lit === 'body' ? WindowMetrics.litFill : WindowMetrics.fill;
   g[0] = x0;
@@ -278,8 +280,32 @@ export function drawNavigatorWindow(
   if (idle) return;
   // the true extent where the floor drew it wider: a hairline, when it is at least a device pixel
   const px = 1 / dpr;
-  if (W[5] - W[4] < x1 - x0 - px && W[5] - W[4] >= px) out.fill((W[4] + W[5]) / 2 - px / 2, y0, px, y1 - y0, ink);
-  if (W[7] - W[6] < y1 - y0 - px && W[7] - W[6] >= px) out.fill(x0, (W[6] + W[7]) / 2 - px / 2, x1 - x0, px, ink);
+  if (W[5] - W[4] < x1 - x0 - px && W[5] - W[4] >= px) {
+    const g = out.args;
+    g[0] = (W[4] + W[5]) / 2 - px / 2;
+    g[1] = y0;
+    g[2] = px;
+    g[3] = y1 - y0;
+    g[4] = ink;
+    g[5] = 0;
+    g[6] = 0;
+    g[7] = 0;
+    g[8] = 0;
+    out.rectArgs();
+  }
+  if (W[7] - W[6] < y1 - y0 - px && W[7] - W[6] >= px) {
+    const g = out.args;
+    g[0] = x0;
+    g[1] = (W[6] + W[7]) / 2 - px / 2;
+    g[2] = x1 - x0;
+    g[3] = px;
+    g[4] = ink;
+    g[5] = 0;
+    g[6] = 0;
+    g[7] = 0;
+    g[8] = 0;
+    out.rectArgs();
+  }
   if (outline) return;
   const grip = tokens.colors['seq-grip'];
   const hw = config.handlePx;
@@ -317,8 +343,4 @@ export function drawNavigatorWindow(
       out.rectArgs();
     }
   }
-}
-
-function washRect(out: PassWriter, x: number, y: number, w: number, h: number, color: number): void {
-  if (w > 0 && h > 0) out.fill(x, y, w, h, color);
 }

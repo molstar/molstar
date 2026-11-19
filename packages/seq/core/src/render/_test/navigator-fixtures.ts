@@ -87,3 +87,42 @@ export function ideogramSpec(options: { readonly reversed?: boolean } = {}): Nod
   });
   return b.build();
 }
+
+/** A view spec with a navigator node added to its first view. */
+export function withNavigator(spec: Node, params: Record<string, unknown>): Node {
+  const views = spec.children!.find((c) => c.kind === 'views')!;
+  const view = views.children![0];
+  const nav: Node = {
+    kind: 'navigators',
+    id: 'navigators',
+    children: [{ kind: 'navigator', id: 'nav', params: params as never }],
+  };
+  const v2 = { ...view, children: [...(view.children ?? []), nav] };
+  return {
+    ...spec,
+    children: spec.children!.map((c) => (c === views ? { ...views, children: [v2, ...views.children!.slice(1)] } : c)),
+  };
+}
+
+/** A chromosome of 60,000 positions and its 60 bands (the stains in turn, the centromere's two at its middle). */
+export function bandsSpec(): Node {
+  const stains = ['gneg', 'gpos25', 'gneg', 'gpos50', 'gneg', 'gpos75', 'gneg', 'gpos100', 'gvar', 'stalk'];
+  const n = 60;
+  const b = createSeqSpec({ title: 'sixty bands' });
+  const chr = b.data.sequence('chr', { alphabet: 'dna', letters: 'ACGT'.repeat(15_000) });
+  const bands = b.data.ranges('bands', {
+    target: chr,
+    rows: {
+      start: Array.from({ length: n }, (_, i) => i * 1000),
+      end: Array.from({ length: n }, (_, i) => (i + 1) * 1000),
+      id: Array.from({ length: n }, (_, i) => `b${i}`),
+      stain: Array.from({ length: n }, (_, i) => (i === 29 || i === 30 ? 'acen' : stains[i % stains.length])),
+    } as never,
+  });
+  b.views.view('v', (v) => {
+    const s = v.section('region', { of: chr, range: [20_000, 21_000] });
+    s.track('letters').layer('letters', { type: 'letters' });
+    v.navigator('chr', ideogramNavigator(s, bands, { system: chr }));
+  });
+  return b.build();
+}
