@@ -137,13 +137,25 @@ export function layerLevel(
 ): number {
   const levels = data.coverage(src.source)?.levels ?? [1];
   if (finest) return levels[0];
-  let level = fitLevel(levels, (coarser * src.ratio) / axis.devicePx);
+  return boundedLevel(levels, (coarser * src.ratio) / axis.devicePx, (axis.u1 - axis.u0) * src.ratio, data);
+}
+
+/**
+ * The coarsest of `levels` no wider than `positionsPerPixel`, and coarser still while `span` positions at it would
+ * want more tiles than the store's bound (`maxTilesPerWant`, where the reader says it): what a layer reads and what a
+ * template wants of a nested source, so neither asks for a long system a tile at level 1.
+ */
+export function boundedLevel(
+  levels: readonly number[],
+  positionsPerPixel: number,
+  span: number,
+  data: Pick<StoreReader, 'settings'>,
+): number {
+  let level = fitLevel(levels, positionsPerPixel);
   const s = data.settings;
-  if (s) {
-    const span = (axis.u1 - axis.u0) * src.ratio;
+  if (s)
     for (let i = levels.indexOf(level); i + 1 < levels.length && span / (s.tileBins * level) + 1 > s.maxTilesPerWant; )
       level = levels[++i];
-  }
   return level;
 }
 

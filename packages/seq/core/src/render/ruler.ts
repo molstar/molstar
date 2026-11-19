@@ -46,7 +46,7 @@ export interface RulerPrep {
   readonly source?: { readonly model: StaticModel; readonly entry: NumberingEntry };
   readonly system?: QuerySystem;
   /** `units: bases`: an `ordinal` ruler labels in bp, kb or Mb by its step (_spec/README.md "Render", Layer types). */
-  readonly bases: boolean;
+  readonly bases?: boolean;
 }
 
 export interface RulerLay {
@@ -153,7 +153,7 @@ export const RulerType: LayerType<RulerPrep, RulerLay> = {
     const step = labelStep(axis.scale, config.ruler.labelGap);
     const ranges = axis.visible([]);
     for (let r = 0; r + 1 < ranges.length; r += 2)
-      tickRange(lay, numbering, ranges[r], ranges[r + 1], step, prep.bases);
+      tickRange(lay, numbering, ranges[r], ranges[r + 1], step, prep.bases === true);
     fit(lay, ctx);
     return lay;
   },

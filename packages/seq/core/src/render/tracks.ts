@@ -6,7 +6,7 @@
 
 import { HalfOpenRanges } from '@molstar/core/data/int/half-open-ranges';
 import { type Issue, issueOf } from '@molstar/core/repr/tree';
-import { type Coverage, fitLevel, type Want } from '@molstar/seqx-core/data';
+import { type Coverage, nodeKey, type Want } from '@molstar/seqx-core/data';
 import type { Location, LocationPart } from '@molstar/seqx-core/query';
 import { type OverlayNode, projectRanges, type StaticModel } from '@molstar/seqx-core/resolve';
 import {
@@ -49,6 +49,7 @@ import type {
   StoreReader,
 } from './layer-type.js';
 import { walkStripes } from './highlight-stripes.js';
+import { boundedLevel } from './layer-data.js';
 import { EmptyOverlay, sectionId } from './layer-type.js';
 import type { LettersLay } from './letters.js';
 import { breakHit } from './marks.js';
@@ -1079,6 +1080,8 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     // a template is expanded here, over the overlay, into a track per node it selects; its source's region in view is
     // wanted, so the nodes it brings arrive
     const shown: ResolvedTrack[] = [];
+    // a template's instances whose node is out of view: shown, but holding nothing (Shown nodes)
+    let away: Set<ResolvedTrack> | undefined;
     // each shown track's index in the section's (a template's instance: −1), what a block's layers are kept by
     const trackOf: number[] = [];
     for (let ti = 0; ti < section.tracks.length; ti++) {
@@ -1102,6 +1105,8 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
             },
           ),
         );
+      if (axis && config.nodes.holdShown && instances.length)
+        away = instancesAway(input, mine, section, track.template, axis, overlay, instances, config.margin, away);
       for (const t of instances) {
         trackOf[shown.length] = -1;
         shown.push(t);
@@ -1152,9 +1157,10 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       const lay = type.layout(prep, ctx, mine, overlay, keptLay?.type === type ? keptLay.lay : undefined);
       state.lays.set(cacheKey, { type, lay });
       cache.addUsed(cacheKey);
-      // what a shown layer draws and goes through (a node, an item system)
-      if (layer.data) cache.addShowing(layer.data.address, layer.data.system);
-      const edges = layer.path?.edges;
+      // what a shown layer draws and goes through (a node, an item system); a template's instance out of view none
+      const holds = !away?.has(track);
+      if (layer.data && holds) cache.addShowing(layer.data.address, layer.data.system);
+      const edges = holds ? layer.path?.edges : undefined;
       if (edges) for (let e = 0; e < edges.length; e++) cache.addShowing(edges[e].from, edges[e].to);
       return { key: ctx.key, layer, type, lay };
     };
@@ -1540,7 +1546,7 @@ function wantTemplate(
   const name = input.model.systems.get(section.axis.system)?.name;
   const info = coverage?.systems.find((s) => s.name === name || (name !== undefined && s.aliases?.includes(name)));
   if (coverage && info) {
-    const level = fitLevel(coverage.levels, 1 / axis.devicePx);
+    const level = boundedLevel(coverage.levels, 1 / axis.devicePx, axis.u1 - axis.u0, data);
     for (let i = 0; i + 1 < pieces.length; i += 2)
       out({
         source: template.source,
@@ -1561,7 +1567,8 @@ function wantTemplate(
       if (!path && target.address !== section.axis.system) continue;
       const ranges = HalfOpenRanges.normalize(path ? projectRanges(path, pieces) : pieces);
       const ratio = path?.step === 1 ? 3 : path?.step === -1 ? 1 / 3 : 1;
-      const level = fitLevel(cov!.levels, ratio / axis.devicePx);
+      // bounded as a layer's level is: a long nested system at the fit is one coarse tile, never 81,307 at level 1
+      const level = boundedLevel(cov!.levels, ratio / axis.devicePx, (axis.u1 - axis.u0) * ratio, data);
       for (let i = 0; i + 1 < ranges.length; i += 2)
         out({
           source: nested.address,
@@ -1572,6 +1579,56 @@ function wantTemplate(
         });
     }
   }
+}
+
+/**
+ * A template's instances whose node is out of view (_spec/README.md "Render", Shown nodes), added to `into`: neither
+ * the node nor a node it came under is carried by a loaded tile of the template's source over the view and its margin,
+ * at the level the template wants (a node listed up front in its source's coverage lives with its source: the one it
+ * came under decides). Such an instance holds nothing: its node goes as any other once its tiles are evicted.
+ */
+function instancesAway(
+  input: LayoutInput,
+  data: StoreReader,
+  section: ResolvedSection,
+  template: TrackTemplate,
+  axis: AxisTransform,
+  overlay: Overlay,
+  instances: readonly ResolvedTrack[],
+  margin: number,
+  into: Set<ResolvedTrack> | undefined,
+): Set<ResolvedTrack> | undefined {
+  const coverage = data.coverage(template.source);
+  const name = input.model.systems.get(section.axis.system)?.name;
+  const info = coverage?.systems.find((s) => s.name === name || (name !== undefined && s.aliases?.includes(name)));
+  // where the source's tiles are not the section's, it cannot be told: every instance holds, as before
+  if (!coverage || !info) return into;
+  const level = boundedLevel(coverage.levels, 1 / axis.devicePx, axis.u1 - axis.u0, data);
+  const carried = new Set<string>();
+  const pieces = axis.visible([]);
+  for (let i = 0; i + 1 < pieces.length; i += 2) {
+    const m = Math.ceil((pieces[i + 1] - pieces[i]) * margin);
+    const start = Math.max(0, Math.floor(pieces[i]) - m);
+    const end = Math.ceil(pieces[i + 1]) + m;
+    for (const k of data.keysOf({ source: template.source, system: info.name, start, end, level })) {
+      const e = data.get(k);
+      if (e?.status === 'loaded') for (const n of e.nodes) carried.add(n);
+    }
+  }
+  const inView = (address: string | undefined): boolean => {
+    for (let n = address ? overlay.node(address) : undefined; n; n = overlay.node(n.source)) {
+      if (carried.has(nodeKey(n.source, n.key))) return true;
+      const key = n.key;
+      if (!data.coverage(n.source)?.nodes?.some((x) => x.key === key)) return false;
+    }
+    return true;
+  };
+  for (const t of instances) {
+    let address: string | undefined;
+    for (const l of t.layers) if (l.data && !address) address = l.data.address;
+    if (!inView(address)) (into ??= new Set()).add(t);
+  }
+  return into;
 }
 
 /** The first shown track drawing a ruler (with height: a hidden ruler is no rail's), or −1. */

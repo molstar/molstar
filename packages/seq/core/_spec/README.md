@@ -1805,12 +1805,19 @@ numbers): a window move allocates nothing once warm.
 - **Templates** are expanded here over the frame's overlay (`expandTemplate`), at most `maxTemplateTracks` instances
   (the first in order; more is `seq.render.template.limit`, so the work is bounded before it starts); a template's
   source region in view, on the section's system as the source names it, is wanted at the level that fits, so the nodes
-  it brings arrive. The overlay's issues are the layout's. A template below its source also wants each nested source's
-  systems (`systemNamed`) in view, carried along the overlay's path from the section, so a nested source that sends its
-  nodes by region is asked for them.
+  it brings arrive; that level and a nested source's (below) are bounded as a layer's is (coarser while the view would
+  want more than `maxTilesPerWant` tiles), so a long nested system at the fit is a coarse tile, never refused. The
+  overlay's issues are the layout's. A template below its source also wants each nested source's systems (`systemNamed`)
+  in view, carried along the overlay's path from the section, so a nested source that sends its nodes by region is asked
+  for them.
 - **Shown nodes** (`nodes.holdShown`, true): the layout lists the nodes it shows (`ViewLayout.shown`: the data and the
   path systems of each laid-out layer, through `overlay.holds`), for its owner to hold in the store; with `false`, none.
-  Why: a node stays while it is shown, not only while the region that brought it is cached.
+  Why: a node stays while it is shown, not only while the region that brought it is cached. **Shown means in view**: a
+  template's instance holds its node (and the path systems it goes through) only while the node, or the node it came
+  under (one listed up front in its source's coverage lives with its source), is carried by a loaded tile of the
+  template's source over the view and its margin at the level the template wants; out of it the node goes as any other
+  once its tiles are evicted, and its track with it. Why: an instance held its node, so every place browsed left its
+  tracks (29 empty after five places on a chromosome); a track whose node's region is on screen never vanishes.
 - Cell edges snap to the device grid (`snap`). One label column for every track of a view; a track's label is centred on
   its well (its padding with it), in tracks and on a text's first line.
 - **A track's padding** (its `padding`, else `trackPadding`): px inside its well above and below its data, never left or

@@ -12,7 +12,16 @@
 
 import { BuiltInLayerTypes, BuiltInLayouts } from '@molstar/seqx-core/render/built-ins';
 import { readFileSync } from 'node:fs';
-import { DataStore, decodeSeq, type FormatRuntime, type RegionRequest, SeqRuntime } from '@molstar/seqx-core/data';
+import {
+  DataStore,
+  decodeSeq,
+  type FormatRuntime,
+  type RegionRequest,
+  readSeq,
+  type SeqData,
+  SeqRuntime,
+  seqToValue,
+} from '@molstar/seqx-core/data';
 import {
   bundledTextMetrics,
   DefaultRenderConfig,
@@ -138,8 +147,8 @@ function recording(inner: FormatRuntime): FormatRuntime & { requests: RegionRequ
 }
 
 /** The view over one store: the renderer, the overlay's sources and the ideogram, settled at a viewport. */
-async function open(settings: { maxBytes?: number } = {}) {
-  const runtime = recording(chromosomeRuntime());
+async function open(settings: { maxBytes?: number } = {}, wrap = (r: FormatRuntime) => r) {
+  const runtime = recording(wrap(chromosomeRuntime()));
   const runtimes = [SeqRuntime, runtime];
   const store = new DataStore({ settings });
   const opened = await openModel(chromosome.build(), store, { runtimes });
@@ -374,6 +383,76 @@ const Browsed = [-2, -1, 0, 1, 2].map((k) => ({
 /** A pan of `span` positions from `start`: 8 views, each `step` along (a pan, not a zoom: the span is kept). */
 const pan = (start: number, span: number, step = span / 1000) =>
   Array.from({ length: 8 }, (_, i) => ({ start: start + i * step, end: start + span + i * step }));
+
+/** The chromosome's runtime with each gene's nested source serving level 1 too (the same rows as its coarse level). */
+function withLevel1(inner: FormatRuntime): FormatRuntime {
+  const nested = (value: unknown) => {
+    const d = readSeq(value as never).data!;
+    const pair = d.pairs[0];
+    const data: SeqData = {
+      coverage: { ...d.coverage, levels: [1, ...d.coverage.levels] },
+      pairs: [{ request: { ...pair.request, level: 1 }, answer: pair.answer }, ...d.pairs],
+    };
+    return seqToValue(data);
+  };
+  return {
+    ...inner,
+    async open(source, ctx) {
+      const opened = await inner.open(source, ctx);
+      return {
+        ...opened,
+        async read(r, signal) {
+          const a = await opened.read(r, signal);
+          if (!a.ok || !a.nodes) return a;
+          const nodes = a.nodes.map((n) => {
+            const value = n.node.params?.value;
+            return value === undefined
+              ? n
+              : { ...n, node: { ...n.node, params: { ...n.node.params, value: nested(value) } } };
+          });
+          return { ...a, nodes };
+        },
+      };
+    },
+  };
+}
+
+describe('a nested source over the chromosome', () => {
+  // a template wants each nested source's system in view at the level a layer would read: bounded by the store's tiles
+  // a want, so a gene's exons served at level 1 too are wanted at their coarse level at the fit, never 81,307 tiles
+  it('served at level 1 too, it is wanted a tile or a few at the fit, no issue', async () => {
+    const v = await open({}, withLevel1);
+    await v.settle(AtTp53);
+    const fit = await v.settle();
+    const max = v.store.settings.maxTilesPerWant;
+    const over = fit.f.wants.filter((w) => Math.ceil((w.end - w.start) / (1024 * w.level)) > max);
+    expect(over).toEqual([]);
+    expect(v.store.issues.value).toEqual([]);
+    // at TP53 it reads level 1 again: its exons drawn
+    const at = await v.settle(AtTp53);
+    expect((layerOf(at.f.layout, 'Exons TP53').lay as RangesLay).m).toBeGreaterThan(0);
+  });
+});
+
+describe('shown means in view', () => {
+  // a template's instance holds its gene only while the gene's region is in view: browsing five places shows each
+  // place's exons, and back at the fit, their regions out of view and evicted, no exons track is left
+  it('each place shows its genes’ exons; back at the fit, evicted, none remains', async () => {
+    // a byte bound nothing unwanted fits under: what leaves the view is evicted at once
+    const v = await open({ maxBytes: 1 });
+    const exonTracks = (layout: ViewLayout) =>
+      layout.sections[0].tracks.map((t) => t.track.label).filter((l) => l.startsWith('Exons '));
+    for (const view of Browsed) {
+      const shown = exonTracks((await v.settle(view)).f.layout);
+      // the place's exons are shown, TP53's at its own (a track whose gene is on screen does not vanish)
+      expect(shown.length).toBeGreaterThan(0);
+      if (view.start <= Tp53.start && view.end >= Tp53.end) expect(shown).toContain('Exons TP53');
+    }
+    const fit = await v.settle();
+    expect(exonTracks(fit.f.layout)).toEqual([]);
+    expect(fit.f.layout.shown).toEqual([]);
+  });
+});
 
 describe('back at the fit after TP53 and its neighbours', () => {
   // each gene's exons are a nested source of one coarse level: back at the fit, a frame reads a tile of each, never the
