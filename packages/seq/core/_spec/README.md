@@ -185,26 +185,41 @@ layout per token table, held domains and the reader's substitution (`LayerChanne
   and the measures a host registers (a column's share, a reference row) offered only where registered. Why words for
   clauses: a kind is a word in the description.
 - **Scales**: `linear`, `log`, `sqrt`; a `domain` with an open end follows the data in view, computed when the view
-  settles and held while it does not; `non_positive` on `log`: `missing` or `clamp` (`seq.render.scale.log`). A `scale`
-  node (`/views/<id>`) is shared: every layer and channel naming it reads one domain, its open ends the union over them
-  at settle (one relayout).
-- _*Palettes are Mol*'s value palettes_* (`@molstar/core/util/color/value-palette`: lists, scale, mid, unlisted hash),
-  converted both ways with MolViewSpec's palettes. Why: one palette model across Mol*.
+  settles and held while it does not; `non_positive` on `log`: `missing` (before any bin or end color) or `clamp` (the
+  domain's low end) (`seq.render.scale.log`). A center (`mid`) makes a number's default palette the diverging one. A
+  `scale` node (`/views/<id>`) is shared: every layer and channel naming it reads one domain, its open ends the union
+  over them at settle (one relayout).
+- **Palettes are Mol\*'s value palettes** (`@molstar/core/util/color/value-palette`: lists, scale, mid, unlisted hash),
+  converted both ways with MolViewSpec's palettes, their scale with them (`toMvsPalette`; `fromMvsPalette` and
+  `fromMvsScale`: type, domain, center, `non_positive`, the colors past the ends). Why: one palette model across Mol\*.
+  A named list is one the schemes use (`NamedLists`: viridis, cividis, magma, blues, rd-bu, okabe-ito, tableau10,
+  category10) or a token list (ramp, diverging, categories); no other of Mol\*'s lists. Why: a spec reads the same
+  wherever Seq\* runs, and a list added to Mol\* is not one here until named.
 - **Schemes** (`SchemeRegistry`, `builtInSchemes()`): residue schemes as data from core (Clustal X, Zappo, Taylor,
   hydrophobicity, helix, strand, turn, buried), nucleotide ones, ramps and categories (viridis, cividis, magma, blues,
   rd-bu, pLDDT's bands, Okabe–Ito, Tableau 10), secondary structure, Giemsa; each says its subject, the measures it
   needs, whether it is safe under the three color-vision deficiencies (checked: 0.06 Oklab apart under Machado 2009) and
   the safe one a reader's substitution draws instead (`theme.cvdSafe`). A scheme's literal colors are the light table's;
-  the dark table's are derived (lightness mapped into the dark band, hue kept) unless it is safe as it is.
-- **Legends** are data (`Legend`: swatches, a ramp with ticks, steps, sizes; the vocabulary listed, or the values
-  painted where unlisted values are hashed: `seq.render.legend.unlisted`), merged when they say the same (two layers on
-  one scale: one legend), and converted to Mol*'s legends.
+  the dark table's are derived (lightness mapped into the dark band, Oklab L 0.30–0.62, hue kept) unless it is safe as
+  it is. The band is bounded by the ink: above about 0.62 neither ink reaches 4.5:1. Provenance is `theme/provenance`'s
+  (`schemeProvenance`), read by a picker, never by drawing.
+- **Colors as spelled** (`theme/spelling`: `parseColor`, `isColorSpelling`, `resolveColor`) need no color space: the
+  spec reader's checks import them alone.
+- **Legends** are data (`Legend`: swatches, a ramp with ticks placed by its scale (a log scale's decades, a center at
+  the middle), steps, sizes on the channel's own scale (a radius's `sqrt`); the vocabulary listed, or the values painted
+  where unlisted values are hashed: `seq.render.legend.unlisted`), merged when they say the same (two layers on one
+  scale: one legend), and converted to Mol*'s legends.
 - **Builder**: `theme.uniform|field|rules|scheme|letters|categorical|…` and `measure.*`; a layer's `field` form over an
   inline table's text column gets the column's values listed (the legend is the vocabulary); a `ranges` layer over a
   `category` column and a `variants` one over a `consequence` column default to a field form on it.
 - **Checks** (`seq.lang.theme.*`): a form or palette that does not exist (`form`), a color that does not read (`color`),
   a channel a form cannot fill (`channel`), a field of the wrong type (`type`), stops out of order (`stops`), a scale
   that does not exist (`scale`), forms nested past `themeDepth` (4, `depth`).
+- **Filters**: a theme never hides; a filter does. An item layer's `data` written as a query
+  (`<annotation>/(not :of (item :<field> v))`) leaves out the rows its form rejects as the shared item reader reads them
+  (`item` by `:id` or a field, a list param any of its values; `not`, `and`, `or`), compiled once a prepare
+  (`compileRowFilter`); the track's label column shows "n filtered" (`TrackLayout.filter`), a hit on it
+  `target: 'filter'`. A form not read row by row filters nothing and is `seq.render.filter`.
 
 ## Issues
 
@@ -919,9 +934,10 @@ the measures, the scales and their held domains, the reader's substitution).
   `color`, `size` (a share of the lane, the mark shrunk about its middle, its lane and hit box kept: EC-137) and
   `opacity`, a dictionary-coded field colored once a code; `values` `color` (uniform, or a bar by its value; a line's
   color follows) and a `scale`; `secondary` `color` (its classes in the `seq-ss-*` tokens, keyed by the `secondary`
-  scheme; a form reads `kind` as the class word); `variants` `color` (`seq-variant`); `ruler` none (`seq-ruler`). A
-  channel's issues are said in every layout that reads it. A layer draws the first type of its fallback chain the target
-  has; none is `seq.render.layer.type`.
+  scheme; a form reads `kind` as the class word); `variants` `color` (`seq-variant`) and `size` (the head's radius, on
+  `sqrt` unless the form says; its hit box kept); `ruler` none (`seq-ruler`). A channel's issues are said in every
+  layout that reads it. A layer draws the first type of its fallback chain the target has; none is
+  `seq.render.layer.type`.
 
 - `letters`: a section's own letters, or another system's through a path that pairs positions one to one (identity,
   offset, segments, pairwise, an alignment row: a letter its image's cell; a section position no letter lands on, a gap
@@ -1120,9 +1136,9 @@ the measures, the scales and their held domains, the reader's substitution).
 ### Issues
 
 - `seq.render.*` (`RenderIssues`): `view`, `color`, `theme.channel`, `theme.scheme`, `theme.measure`, `theme.color`,
-  `scale.log` (info), `legend.unlisted` (info), `line-style` (info), `numbering`, `layer.type`, `layer.letters`,
-  `axis.pending` (info), `follow.leader`, `follow.cycle`, `source`, `template.limit`, `unsettled`; a test checks the
-  catalog.
+  `scale.log` (info), `legend.unlisted` (info), `filter`, `line-style` (info), `numbering`, `layer.type`,
+  `layer.letters`, `axis.pending` (info), `follow.leader`, `follow.cycle`, `source`, `template.limit`, `unsettled`; a
+  test checks the catalog.
 
 ## Context
 

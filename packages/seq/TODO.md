@@ -116,14 +116,18 @@ links, selection, the security bounds, MessagePack). Next, version 1's second mi
   against 16): best of three, or a percentile instead of the max. The p53 fixtures round-tripped JSON ↔ MessagePack in a
   test here (io cannot import them).
 
-- **Themes**: `layer.filter` (what hides marks; opacity never does: blocked on the query sublanguage); the pLDDT view's
-  data is a seeded stand-in (a model's confidence from a real fixture); a hover halo on the legend's entry in the canvas
-  (EC-138: the legend highlights, the marks do not ring); a values layer's y on a `log` scale (its color reads one, its
-  bars are linear); a `field` form's `:data` (a field of another annotation); forced colors (`forced-colors: active`:
-  the system's palette); the column measures (`share`, `identity`, `matches-reference`) registered by an alignment's
-  layers; `classes` (the default protein scheme) is not safe under the three deficiencies (its substitute is drawn under
-  `theme.cvdSafe`): a safe default, a design decision; the `theme/` entry is reached through the `./*` export
-  (`theme/index`): its own `./theme` export.
+- **Themes**: a filter by a value's range (steps, a ramp: `(item :<field>)` compares atoms only) and filters through a
+  tiled source's server; the legend's menu entry for `layer.filter` (the command and the chip are built); the pLDDT
+  view's data is a seeded stand-in (a model's confidence from a real fixture); a hover halo on the legend's entry in the
+  canvas (EC-138: the legend highlights, the marks do not ring); a values layer's y on a `log` scale (its color reads
+  one, its bars are linear); a `field` form's `:data` (a field of another annotation); forced colors
+  (`forced-colors: active`: the system's palette); the column measures (`share`, `identity`, `matches-reference`)
+  registered by an alignment's layers; `classes` (the default protein scheme) is not safe under the three deficiencies
+  (its substitute is drawn under `theme.cvdSafe`): a safe default, a design decision; the dark band (L 0.30–0.62) reads
+  dim against the dark page (fills 1.4–1.7:1 against it at the low end) and cannot rise without giving up 4.5:1 ink: an
+  outline or a lighter page, a design decision; an inline table's column named `kind` is refused by the s-expression
+  codec (a reserved key), so `secondary` reads `category` in the examples; the `theme/` entry is reached through the
+  `./*` export (`theme/index`): its own `./theme` export.
 
 ## `@molstar/seqx-viewer`
 

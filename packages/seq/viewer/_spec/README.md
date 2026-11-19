@@ -557,7 +557,9 @@ settle: a legend that changes during a pan reads as noise, and its cost stays of
 
 - **The legend behavior's commands** (`behaviors/theming.ts`, patches unless said): `layer.channel` (a channel's value
   or form set or unset, on one layer or several in one patch), `scale.set` (a scale's params; `null` reopens a domain's
-  end), `theme.value-color` (one value's color in a field form's palette, the listed values keeping theirs),
+  end), `theme.value-color` (one value's color in a field form's palette, the listed values keeping theirs; refused on a
+  scheme, rules or any other form: never replaced), `layer.filter` (a value's items hidden or shown again: one patch of
+  the layer's `data`, a `not` of the values hidden; no value: cleared, as a click on the track's "n filtered" chip),
   `legend.select` (session: the items whose field has the value; Cmd/Ctrl toggles), `legend.hover` (session: a highlight
   named `legend`), `theme.cvd-safe` (session). `fittingSchemes(layer)` is what a menu offers (the schemes whose subject
   and measures fit the layer); `preview(layer, channel, value)` shows one hovered (a preview, ended by `layer.channel`
