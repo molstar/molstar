@@ -139,9 +139,36 @@ describe('tRNA: 1EHZ’s arcs against its anchors', () => {
     });
 });
 
+describe('tRNA: the arcs’ legend and the modified residues’ codes', () => {
+  it('the legend lists the pair kinds under the arcs’ track; zoomed in, each modified residue is labeled by its code', async () => {
+    viewer = await openExample(trna('arcs'), { gene: '' });
+    const arcs = viewLegends(viewer.frame!.layout).legends.find((l) => l.title === 'Base pairs');
+    expect(arcs?.entries.kind === 'swatches' && arcs.entries.items.map((i) => i.label)).toEqual([
+      'canonical',
+      'wobble',
+      'non-canonical',
+    ]);
+    // at fit a residue's mark is narrower than its code: none labeled; zoomed in, each code fits its mark
+    const modified = () =>
+      viewer!.frame!.layout.sections[0].tracks.find((t) => t.track.label === 'Modified')!.layers[0].lay as RangesLay;
+    expect(Array.from({ length: modified().m }, (_, j) => modified().mlabel[j]).every((w) => !(w > 0))).toBe(true);
+    viewer.view.setRange('/views/main/trna', 0, 14);
+    await vi.advanceTimersByTimeAsync(50);
+    viewer.draw();
+    const lay = modified();
+    const labelled = Array.from({ length: lay.m }, (_, j) =>
+      lay.mlabel[j] > 0 ? lay.labels[lay.mitem[j]] : '',
+    ).filter(Boolean);
+    expect(labelled.slice(0, 3)).toEqual(['2MG', 'H2U', 'H2U']);
+  });
+});
+
 describe('tRNA: the dot plot’s two triangles', () => {
   it('the covariation only above the diagonal, exactly the cells computed; the structure’s 27 pairs below', async () => {
     viewer = await openExample(trna('dot-plot'), { gene: '' });
+    // its letters read from the file, their length its once open
+    const trnaSystem = viewer.spec.model.value.systems.get('/data/trna');
+    expect([trnaSystem?.source, trnaSystem?.letters, trnaSystem?.length]).toEqual(['/data/ehz', undefined, 76]);
     const section = viewer.frame!.layout.sections[1];
     expect(viewer.frame!.layout.issues).toEqual([]);
     const grid = section.lays[0][0].lay as GridLay;

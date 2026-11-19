@@ -4,8 +4,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { readFileSync } from 'node:fs';
 import { resolveAddress } from '@molstar/core/repr/tree';
 import { PlasmidViews } from '@molstar/seqx-examples';
+import { PackageFolder } from '@molstar/seqx-examples/node-assets';
 import { PlasmidLength } from '@molstar/seqx-examples/plasmid/derive';
 import type { RangesLay } from '@molstar/seqx-core/render';
 import { DomHost } from '@molstar/ui/dom';
@@ -15,8 +17,8 @@ import { openExample } from '../../_test/draw-checks.js';
 import { bookmarkRange, rangeOf, setStart, showEnzymes, sitesDataOf, strandHidden, toggleStrand } from '../editing.js';
 
 // The Plasmid's stories, headless on a fake clock, composed as the stories compose them: the crossing view's bookmarks
-// focus the feature that crosses the origin (over the hull of its runs for now: the shortest arc is pending, lane CY,
-// and its `it.fails` flips then; a Shift+drag across the origin is pending too); the editing views (a strand's track hidden, the
+// focus the feature that crosses the origin by its shortest arc (EC-12; a Shift+drag across the origin is pending);
+// the editing views (a strand's track hidden, the
 // enzymes shown, bla bookmarked from its start to its stop, the linear view's start set) each one patch and one step of
 // the host's stack, undone and redone.
 
@@ -40,7 +42,18 @@ afterEach(() => {
 async function make(id: string) {
   vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date', 'performance'] });
   const v = view(id);
-  const s = composeEditing(v);
+  // the record's `seq` files read as committed, at once (a read of the disk is not on the fake clock)
+  const read = (uri: string) => readFileSync(`${PackageFolder}${uri}`);
+  const s = composeEditing(v, {
+    ports: {
+      assets: () => ({
+        reader: {
+          readText: async (uri) => read(uri).toString('utf8'),
+          readBytes: async (uri) => new Uint8Array(read(uri)),
+        },
+      }),
+    },
+  });
   session = s;
   s.viewer.resize(720);
   await s.viewer.load(v.build());
@@ -60,10 +73,8 @@ describe('Plasmid, features across the origin, headless', () => {
     }
   });
 
-  // A gap against the design (EC-12): the focus takes the hull of the item's runs (0 to the length for an item that
-  // crosses the origin), not the arc it covers; the follower's `shortest` arc applies to a window, not to a focus. When
-  // the focus takes the shortest arc this test fails: it then asserts it, without `fails`.
-  it.fails('a bookmark on bla focuses it by its shortest arc: its two runs, not the whole ring (EC-12)', async () => {
+  // the focus takes the arc the item covers, never the hull of its runs (0 to the length across the origin)
+  it('a bookmark on bla focuses it by its shortest arc: its two runs, not the whole ring (EC-12)', async () => {
     const s = await make('crossing');
     const v = s.viewer;
     expect(v.runCommand('address.focus', { address: '/refs/bla' })).toBe('Focused');
@@ -86,7 +97,7 @@ describe('Plasmid, editing, headless', () => {
     expect(sitesDataOf(s)).toBe('/data/sites/(item :id [EcoRI HindIII])');
     expect(await bookmarkRange(s, 2311, 486, 'bla-range', 'bla, start to stop')).toBe('Bookmarked');
     expect(historyRows(s).done.length).toBe(3);
-    // the bookmark is a range over the origin: it resolves and focuses (the shortest arc is pending, lane CY)
+    // the bookmark is a range over the origin: it resolves and focuses by its shortest arc
     const ref = s.viewer.addresses.refs.value.find((r) => r.id === 'bla-range');
     expect(ref?.to).toEqual(['/data/plasmid/(range :from 2312 :to 486)']);
     expect(s.viewer.runCommand('address.focus', { address: '/refs/bla-range' })).toBe('Focused');
@@ -118,13 +129,19 @@ describe('Plasmid, editing, headless', () => {
 });
 
 describe('Plasmid ring, drawn on the canvas', () => {
-  it('the detail’s minus strand arrow is on the canvas at bla’s start, on the piece holding it', async () => {
+  it('bla’s arrow on the ring at fit, and on the detail at its start, on the piece holding it', async () => {
     const v = await openExample(view('ring'), {});
     try {
       const ring = v.frame!.layout.sections[0];
       expect(ring.tracks.length).toBe(4);
-      // arrows on the canvas need a device pixel a position: the ring at 720 px draws bars (a gap, lane CY), the detail
-      // zoomed to bla's start draws the minus strand's arrow on the piece holding its start
+      // the ring at 720 px draws bars, and each feature its arrowhead by its own width: bla's on the minus strand
+      const ringLay = ring.tracks[1].layers[0].lay as RangesLay;
+      expect(ringLay.mode).toBe('bars');
+      const ringTips = Array.from({ length: ringLay.m }, (_, j) => j).filter(
+        (j) => ringLay.mitem[j] >= 0 && ringLay.keys[ringLay.mitem[j]] === 'bla' && ringLay.mtip[j] > 0,
+      );
+      expect(ringTips).toHaveLength(1);
+      // the detail zoomed to bla's start draws the minus strand's arrow on the piece holding its start
       v.view.setRange('/views/main/ring', 2250, 2450);
       await vi.advanceTimersByTimeAsync(50);
       v.draw();

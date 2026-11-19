@@ -11,7 +11,7 @@ import { RenderIssues } from './issues.js';
 import type { Box } from './layer-type.js';
 import type { TextMetrics } from './text.js';
 import type { SeqTokens } from './tokens.js';
-import type { ViewLayout } from './tracks.js';
+import type { LayerLayout, ViewLayout } from './tracks.js';
 
 // Legends (_spec/README.md "Render", Export; "Themes", Legends): derived from each laid-out layer's channels, merged
 // when they say the same, never drawn on the canvas over data. An export draws them when asked, laid out here into a
@@ -20,12 +20,15 @@ import type { ViewLayout } from './tracks.js';
 /** The legends of a layout: each layer's, titled by its track's label, merged; with the notes they say once. */
 export function viewLegends(layout: ViewLayout, maxItems = 12): { legends: Legend[]; issues: Issue[] } {
   const all: Legend[] = [];
-  for (const s of layout.sections)
-    for (const t of s.tracks)
-      for (const l of t.layers) {
-        const ls = l.type.legend?.(l.lay, { title: t.track.label });
-        if (ls) for (const x of ls) all.push(maxItems < 12 ? trim(x, maxItems) : x);
-      }
+  const add = (l: { type: LayerLayout['type']; lay: unknown }, title: string) => {
+    const ls = l.type.legend?.(l.lay, { title });
+    if (ls) for (const x of ls) all.push(maxItems < 12 ? trim(x, maxItems) : x);
+  };
+  for (const s of layout.sections) {
+    for (const t of s.tracks) for (const l of t.layers) add(l, t.track.label);
+    // a section's own layers (pairs' arcs and dots), titled by the track that holds them
+    for (const l of s.sectionLays) add(l, s.section.tracks.find((t) => t.layers.includes(l.layer))?.label ?? '');
+  }
   const legends = mergeLegends(all);
   const issues: Issue[] = [];
   for (const l of legends)

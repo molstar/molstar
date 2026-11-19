@@ -29,7 +29,7 @@ export interface BlocksOptions {
 
 /** The data nodes of 1FIN's views: its sequences, ATP, the features, the interface and the contacts. */
 export function crystalData(b: SeqSpecBuilder, d: Derived = Data) {
-  const x = crystal(b, d);
+  const x = crystal(b);
   const atp = b.data.sequence('atp', { alphabet: 'protein', letters: 'X', name: 'ATP' });
   const shift = constructOffset(d);
   const cdk2Features = b.data.ranges('cdk2-features', { target: x.cdk2, rows: Cdk2Features });

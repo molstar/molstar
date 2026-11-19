@@ -9,8 +9,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createSeqContext } from '@molstar/seqx-core/context';
-import { SeqRuntime } from '@molstar/seqx-core/data';
-import { recordDrawLists } from '@molstar/seqx-core/render';
+import { DataStore, SeqRuntime } from '@molstar/seqx-core/data';
+import { openModel, recordDrawLists } from '@molstar/seqx-core/render';
 import { describe, expect, it } from 'vitest';
 import { nodeFixtureAssets, PackageFolder } from '../node-assets.js';
 import { GeneFile, geneSeqText, P53 } from '../p53/data.js';
@@ -50,13 +50,8 @@ describe('the fixtures', () => {
   });
 });
 
-/**
- * The issues a view is known to report (the code is the one allowed): the Plasmid's ring at scale has 200 features
- * across the origin, all in one place, more than any ring's lanes: the rest collapses into a density row, an image,
- * which a ring does not draw (`seq.render.ring.image`). A gap of the ring, scheduled as lane CY: this allowance goes
- * when the ring draws it.
- */
-const Known: Readonly<Record<string, readonly string[]>> = { 'plasmid/scale': ['seq.render.ring.image'] };
+/** The issues a view is known to report (the code is the one allowed), by `dataset/id`: none today. */
+const Known: Readonly<Record<string, readonly string[]>> = {};
 
 describe.each(ExampleViews.map((v) => [`${v.dataset}/${v.id}`, v] as const))('%s', (_, view) => {
   const allowed = Known[`${view.dataset}/${view.id}`] ?? [];
@@ -67,11 +62,23 @@ describe.each(ExampleViews.map((v) => [`${v.dataset}/${v.id}`, v] as const))('%s
     const ctx = context(view);
     const spec = view.build();
     expect(ctx.check(spec)).toEqual([]);
+    // resolved before any source opens: rows across the origin of a sequence read from a file wait for its length
+    // (said, and only of a system read from a source); resolved again once the files are open, with no issue
     const model = ctx.resolve(spec);
-    expect(model.issues).toEqual([]);
+    const systemOf = (address = '') => model.annotations.get(address)?.target ?? model.maps.get(address)?.to;
+    const fromSource = (address?: string) => model.systems.get(systemOf(address) ?? '')?.source !== undefined;
+    expect(model.issues.filter((i) => i.code !== 'seq.resolve.length.unknown' || !fromSource(i.address))).toEqual([]);
     const resolved = ctx.view(model);
     expect(unexpected(resolved?.issues ?? [])).toEqual([]);
     expect(resolved?.sections.length).toBeGreaterThan(0);
+    const opened = await openModel(spec, new DataStore(), {
+      runtimes: ctx.runtimes,
+      config: ctx.resolveConfig,
+      assets: ctx.assets,
+      model,
+    });
+    expect(opened.model.issues).toEqual([]);
+    expect(unexpected(opened.issues)).toEqual([]);
     ctx.retire();
   });
 

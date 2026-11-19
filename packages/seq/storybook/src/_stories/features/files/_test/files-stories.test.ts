@@ -79,7 +79,7 @@ describe('Features/Files, headless', () => {
     // a MessagePack file prints as the JSON it holds
     const packed = filesOf(view('table-msgpack-aos').build())[0];
     expect(fileHead(bytesOf(packed.uri), packed.format)).toMatch(/^MessagePack, \d+ bytes, as JSON:\n\[/);
-    const gff = filesOf(view('plasmid-gff3').build())[0];
+    const gff = filesOf(view('plasmid-gff3').build()).find((f) => f.format === 'gff3')!;
     expect(fileHead(bytesOf(gff.uri), gff.format).split('\n')[0]).toBe('##gff-version 3');
     expect(printSources(view('plasmid-gff3').build())).toContain('gff3');
   });

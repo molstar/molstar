@@ -88,6 +88,26 @@ export class StoreModel extends ReactiveModel {
    * by the next sync. Resolves when the openings started now have settled.
    */
   async sync(model: StaticModel, assets: AssetReader): Promise<void> {
+    const wanted = this._detachStale(model);
+    const started: Promise<void>[] = [];
+    for (const [address, { entry, runtime }] of wanted) {
+      if (this._open.has(address)) continue;
+      const opening: Opening = { entry, abort: new AbortController() };
+      this._open.set(address, opening);
+      started.push(this._attach(address, opening, runtime, assets));
+    }
+    await Promise.all(started);
+  }
+
+  /**
+   * Detaches at once what `model` no longer opens from the entry it was opened from (an edited source's old file, a
+   * source gone), so no frame before the next sync reads it: what `sync` does first.
+   */
+  detachStale(model: StaticModel): void {
+    this._detachStale(model);
+  }
+
+  private _detachStale(model: StaticModel) {
     const wanted = new Map<string, { entry: SourceEntry; runtime: FormatRuntime }>();
     for (const b of model.sources.values())
       if (b.runtime) wanted.set(b.address, { entry: b.entry, runtime: b.runtime });
@@ -106,14 +126,16 @@ export class StoreModel extends ReactiveModel {
     // a source that failed and is no longer wanted takes its issue with it
     const stale = this._issues.value.filter((i) => i.address !== undefined && !wanted.has(i.address));
     for (const i of stale) this._report(i.address!, undefined);
-    const started: Promise<void>[] = [];
-    for (const [address, { entry, runtime }] of wanted) {
-      if (this._open.has(address)) continue;
-      const opening: Opening = { entry, abort: new AbortController() };
-      this._open.set(address, opening);
-      started.push(this._attach(address, opening, runtime, assets));
-    }
-    await Promise.all(started);
+    return wanted;
+  }
+
+  /**
+   * The coverage of a source of `model` when what the store holds under its address was opened from the entry the
+   * model binds there now; undefined while it is not (an edited source's old file, one still opening).
+   */
+  openedCoverage(model: StaticModel, address: string) {
+    const o = this._open.get(address);
+    return o && o.entry === model.sources.get(address)?.entry ? this.store.coverage(address) : undefined;
   }
 
   /**

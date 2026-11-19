@@ -8,9 +8,9 @@ import type { Node } from '@molstar/core/repr/tree';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { familySources } from './sources.js';
 
-// The Globins for the query stories (Features/Query): four rows of the Pfam seed inline (`/data/four`, a row form reads
-// an inline alignment's rows by their labels) above the whole seed read from its file (`/data/globins`, whose rows a row
-// form does not read yet: `seq.query.row.unknown`).
+// The Globins for the query stories (Features/Query): the whole Pfam seed read from its file (`/data/globins`, a row form
+// names its rows by their labels once they are held: it is shown first) over four of its rows inline (`/data/four`,
+// named at once).
 
 /** Four rows of the seed, as its file has them: an α and a β chain, a myoglobin and a leghemoglobin. */
 export const FourRows = {
@@ -23,7 +23,7 @@ export const FourRows = {
   ],
 } as const;
 
-/** The four rows inline and the seed from its file, each a section of its rows. */
+/** The seed from its file and the four rows inline, each a section of its rows. */
 export function build(): Node {
   const b = createSeqSpec({ title: 'Globins: rows and columns addressed' });
   const four = b.data.alignment('four', {
@@ -33,11 +33,11 @@ export function build(): Node {
   });
   const { aln } = familySources(b);
   b.views.view('main', (v) => {
-    const s = v.section('four', { of: four });
-    s.track('ruler', { label: 'Columns' }).layer('ruler', { type: 'ruler' });
-    s.track('rows', { label: '' }).layer('rows', { type: 'rows', data: four });
     const f = v.section('family', { of: aln });
+    f.track('ruler', { label: 'Columns' }).layer('ruler', { type: 'ruler' });
     f.track('rows', { label: '' }).layer('rows', { type: 'rows', data: aln });
+    const s = v.section('four', { of: four });
+    s.track('rows', { label: '' }).layer('rows', { type: 'rows', data: four });
   });
   return b.build();
 }

@@ -30,6 +30,7 @@ import {
   type ResolveConfig,
   resolveSpec,
   type StaticModel,
+  sourceLengths,
 } from '@molstar/seqx-core/resolve';
 import {
   nearestOffsetOf,
@@ -82,8 +83,11 @@ export function viewSources(model: StaticModel, view: ResolvedView): Set<string>
     if (a) out.add(a.kind === 'inline' ? a.source.address : a.source);
   }
   for (const s of view.sections) {
-    const source = model.systems.get(s.axis.system)?.source;
-    if (source) out.add(source);
+    // the systems it lays out: its axis's, its blocks', a grid's y
+    for (const system of [s.axis.system, ...(s.blocks ?? []).map((b) => b.axis.system), s.y?.axis.system]) {
+      const source = system === undefined ? undefined : model.systems.get(system)?.source;
+      if (source) out.add(source);
+    }
     for (const t of s.tracks) {
       if (t.template) out.add(t.template.source);
       for (const l of t.layers) {
@@ -170,6 +174,73 @@ export async function attachSources(
     }),
   );
   return issues;
+}
+
+export interface OpenModelOptions extends AttachOptions {
+  /** The format runtimes the application composed (inline data always reads through `seq`). */
+  readonly runtimes?: readonly FormatRuntime[];
+  readonly config?: Partial<ResolveConfig>;
+  /** The view's address (the first view when absent): what is opened is what it reads. */
+  readonly view?: string;
+  /** Opens what the view reads (`view`, an export's), or every source of the model (`all`, the default). */
+  readonly scope?: 'view' | 'all';
+  /** The spec's first resolve, when the caller made it already. */
+  readonly model?: StaticModel;
+}
+
+export interface OpenedModel {
+  /** The model resolved with the lengths the opened sources gave (the first resolve when none did). */
+  readonly model: StaticModel;
+  /** Its view (undefined when the spec has none of the address). */
+  readonly view?: ResolvedView;
+  /** The model's, the view's, and what opening the sources said. */
+  readonly issues: readonly Issue[];
+}
+
+/**
+ * A spec's model with its sources open (_spec/README.md "Resolve", A length from coverage): resolved; the sources
+ * that hold a system opened first; resolved again with the lengths their coverages gave; then the rest opened over
+ * that model. Each source is opened once (one that failed is not tried again). The one implementation of the
+ * protocol: an export, a test's harness and a host's one-shot render use it; the viewer keeps its store in step itself.
+ */
+export async function openModel(spec: Node, store: DataStore, options: OpenModelOptions = {}): Promise<OpenedModel> {
+  const resolveOptions = {
+    ...(options.runtimes ? { runtimes: options.runtimes } : {}),
+    ...(options.config ? { config: options.config } : {}),
+  };
+  const viewOf = (m: StaticModel) => (options.view ? resolveView(m, options.view) : resolveViews(m)[0]);
+  const scoped = (m: StaticModel, v: ResolvedView | undefined) =>
+    options.scope === 'view' && v ? viewSources(m, v) : undefined;
+  let model = options.model ?? resolveSpec(spec, resolveOptions);
+  let view = viewOf(model);
+  const shown = scoped(model, view);
+  const first = new Set(
+    [...model.systems.values()].flatMap((s) => (s.source && (!shown || shown.has(s.source)) ? [s.source] : [])),
+  );
+  const attach = (m: StaticModel, only: Set<string> | undefined) => {
+    const { only: _o, ...rest } = options;
+    return attachSources(m, store, { ...rest, ...(only ? { only } : {}) });
+  };
+  const said = first.size ? await attach(model, first) : [];
+  const lengths = sourceLengths(model, (source) => store.coverage(source));
+  if (lengths.size) {
+    model = resolveSpec(spec, { ...resolveOptions, lengths });
+    view = viewOf(model);
+  }
+  // the rest, over the model with the lengths: each opened once
+  let rest = scoped(model, view);
+  if (!rest) {
+    rest = new Set<string>();
+    for (const b of model.sources.values()) rest.add(b.address);
+    for (const plan of [
+      ...[...model.systems.values()].map((s) => s.access),
+      ...[...model.annotations.values()].map((a) => a.access),
+    ])
+      if (plan?.kind === 'inline') rest.add(plan.source.address);
+  }
+  for (const s of first) rest.delete(s);
+  const opened = await attach(model, rest);
+  return { model, ...(view ? { view } : {}), issues: [...model.issues, ...(view?.issues ?? []), ...said, ...opened] };
 }
 
 /**
@@ -295,13 +366,14 @@ export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<
     return { svg: drawListsToSvg(lists), settled, issues, lists };
   };
   if (hasErrors(issues)) return blank(true);
-  const model = resolveSpec(spec, {
+  const resolveOptions = {
     ...(options.runtimes ? { runtimes: options.runtimes } : {}),
     config: options.resolve ?? {},
-  });
-  issues.push(...model.issues);
-  const view = options.view ? resolveView(model, options.view) : resolveViews(model)[0];
-  if (!view) {
+  };
+  let model = resolveSpec(spec, resolveOptions);
+  const firstView = options.view ? resolveView(model, options.view) : resolveViews(model)[0];
+  if (!firstView) {
+    issues.push(...model.issues);
     issues.push(
       issueOf(RenderIssues, 'seq.render.view', 'The spec has no such view', {
         ...(options.view ? { address: options.view } : {}),
@@ -310,7 +382,7 @@ export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<
     );
     return blank(true);
   }
-  issues.push(...view.issues);
+  let view: ResolvedView = firstView;
   const own = !options.store;
   const clock = options.clock ?? options.store?.clock ?? RealClock;
   const store = options.store ?? new DataStore({ clock });
@@ -333,18 +405,27 @@ export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<
     const expired = new Promise<undefined>((resolve) => {
       timer = clock.setTimeout(() => resolve(undefined), timeout);
     });
+    // the sources opened and the model resolved again with their lengths; taken only when that wins the race (a late
+    // one never swaps the model under the render)
     const opened = await Promise.race([
-      attachSources(model, store, {
+      openModel(spec, store, {
+        ...resolveOptions,
         ...(options.assets ? { assets: options.assets } : {}),
+        ...(options.view ? { view: options.view } : {}),
         signal: controller.signal,
-        only: viewSources(model, view),
         attached,
+        scope: 'view',
+        model,
       }),
       expired,
     ]);
     clock.clearTimeout(timer);
-    if (opened) issues.push(...opened);
-    else {
+    if (opened?.view) {
+      model = opened.model;
+      view = opened.view;
+      issues.push(...opened.issues);
+    } else {
+      issues.push(...model.issues, ...view.issues);
       settled = false;
       controller.abort();
     }
@@ -446,7 +527,7 @@ export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<
     // the selection as an address: resolved over what the export holds now, as a viewer resolves it over its own
     let selection: Location | undefined;
     if (options.selection !== undefined) {
-      const q = overlayQueryModel(model, overlays.of(model, store));
+      const q = overlayQueryModel(model, overlays.of(model, store), { data: store });
       const r = resolveAddressIn(spec, q, options.selection);
       if (r.result) selection = locationOfResult(spec, q, r.result).location;
       else issues.push(...r.issues);

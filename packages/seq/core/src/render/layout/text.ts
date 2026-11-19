@@ -661,9 +661,10 @@ export const TextLayout: SectionLayoutType<TextPlacement> = {
     return h;
   },
   chrome(s, pass, out, _emphasis, strip, band) {
-    if (pass !== 'labels' || band !== 0) return;
-    const p = s.placement as TextPlacement;
-    const marks = p.marks;
+    // a pending section (no axis: an alignment's source not open) has the pending placement, no lines: nothing to draw
+    if (pass !== 'labels' || band !== 0 || s.axis === undefined) return;
+    if (!(s.placement instanceof TextPlacement)) throw new Error(`The text layout's chrome got another placement`);
+    const marks = s.placement.marks;
     const g = out.args;
     const color = s.tokens.colors['msui-text-muted'];
     for (let i = 0; i < marks.length; i++) {

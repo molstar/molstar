@@ -5,19 +5,10 @@
  */
 
 // The shape of what the record script derives from the Complex's structures (`derived-data.ts`): 1FIN's chains and
-// copies, the contacts across each copy, and the ligands with their contacting residues.
+// copies, the contacts across each copy, and the ligands with their contacting residues. The chains' letters are the
+// files' (`1FIN.seq`, the UniProt entries), read where the views read them.
 
 export interface Derived {
-  /**
-   * The chains' letters: 1FIN's CDK2 entity and cyclin A construct (as `1FIN.seq` has them), UniProt's P24941 and P20248
-   * (as the entries have them): held for the blocks, whose lengths a layout needs before a source opens.
-   */
-  readonly letters: {
-    readonly cdk2: string;
-    readonly construct: string;
-    readonly P24941: string;
-    readonly P20248: string;
-  };
   /** The author number of the cyclin A construct's first residue (P20248's numbering). */
   readonly cyclinFirst: number;
   /** 1FIN's chains: label asym id, the entity's system, the copy of the complex. */

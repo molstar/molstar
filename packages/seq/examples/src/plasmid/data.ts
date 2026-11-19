@@ -7,16 +7,17 @@
 import { PCG } from '@molstar/core/data/util/hash-functions';
 import { printAddress } from '@molstar/core/repr/tree';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
-import { deriveFeatures, findSites, PlasmidName, rotatedAnnotations, rotateLetters, RotatedOrigin } from './derive.js';
+import { deriveFeatures, findSites, PlasmidFiles, PlasmidName, rotatedAnnotations } from './derive.js';
 import { PublishedLetters } from './record.js';
 
 export { PlasmidFiles, PlasmidLength, PlasmidName, RotatedOrigin } from './derive.js';
 
 // The Plasmid dataset (examples.md, Plasmid): pUC19c, INSDC L09137.2 (recorded as a `seq` file, its letters also a
 // module: `record.ts`), its features found in the sequence and its restriction sites computed on it, in code
-// (`derive.ts`), the rows written inline. Two instances: the published one, and the rotated one whose origin is inside
-// bla, so bla and a generated primer site cross it. The ring's scale variant is generated here, from a seed. The
-// rotated variant's features are also served as GFF3 (`fixtures/plasmid/`, the Files dataset's view reads it).
+// (`derive.ts`), the rows written inline; the views read the letters from the `seq` files. Two instances: the published
+// one, and the rotated one whose origin is inside bla, so bla and a generated primer site cross it (its letters a `seq`
+// file of their own). The ring's scale variant is generated here, from a seed. The rotated variant's features are also
+// served as GFF3 (`fixtures/plasmid/`, the Files dataset's view reads it).
 
 export type PlasmidVariant = 'published' | 'rotated';
 
@@ -30,17 +31,18 @@ const endOf = (f: { start: number; length: number }, length: number) => {
 
 /**
  * The sequence and the ranges of an instance: each strand's features, the sites, and the sites' address (all of them,
- * or the enzymes named). Everything is derived from the record's letters here, at once (the instance of `letters`
- * given, the fixture's by default): the features are found in the sequence, the sites computed on it, never read.
+ * or the enzymes named). The letters are read from the instance's `seq` file; the annotations are derived from the
+ * record's letters here, at once: the features are found in the sequence, the sites computed on it, never read.
  */
-export function plasmidData(b: Builder, variant: PlasmidVariant = 'rotated', letters: string = PublishedLetters) {
+export function plasmidData(b: Builder, variant: PlasmidVariant = 'rotated') {
   const rotated = variant === 'rotated';
-  const turned = rotated ? rotateLetters(letters, RotatedOrigin) : letters;
+  const letters = PublishedLetters;
   const { features, sites } = rotated
     ? rotatedAnnotations(letters)
     : { features: deriveFeatures(letters), sites: findSites(letters) };
-  const length = turned.length;
-  const seq = b.data.sequence('plasmid', { alphabet: 'dna', letters: turned, cyclic: true, name: PlasmidName });
+  const length = letters.length;
+  const file = b.data.source('record', { format: 'seq', uri: rotated ? PlasmidFiles.rotated : PlasmidFiles.published });
+  const seq = b.data.sequence('plasmid', { alphabet: 'dna', source: file, cyclic: true, name: PlasmidName });
   const strand = (s: '+' | '-') => {
     const f = features.filter((x) => x.strand === s);
     return b.data.ranges(s === '+' ? 'plus' : 'minus', {
@@ -58,9 +60,10 @@ export function plasmidData(b: Builder, variant: PlasmidVariant = 'rotated', let
   const siteRanges = b.data.ranges('sites', {
     target: seq,
     rows: {
-      // a site is drawn where its enzyme cuts, one position (the recognition sequences of two enzymes can overlap)
-      start: sites.map((x) => x.cut),
-      end: sites.map((x) => x.cut + 1),
+      // a site over its recognition sequence (one across the origin ends before it starts; two enzymes' can overlap:
+      // lanes)
+      start: sites.map((x) => x.start),
+      end: sites.map((x) => endOf(x, length)),
       id: sites.map((x) => x.enzyme),
       label: sites.map((x) => x.enzyme),
     },

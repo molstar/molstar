@@ -28,6 +28,7 @@ import {
   recordDrawLists,
   renderSvg,
   type SectionLayout,
+  TextLayout,
   TextNav,
   type TextPlacement,
 } from '../index.js';
@@ -440,6 +441,27 @@ describe('the text layout', () => {
     const f = await s.frame({ size: Size });
     expect(f.layout.issues.map((i) => i.code)).toContain('seq.render.text.lines');
     expect(text(f.layout.sections[0]).strips.n).toBeLessThanOrEqual(2);
+  });
+
+  it('over an alignment whose source has not opened, its chrome draws nothing and the axis is pending', async () => {
+    const b = createSeqSpec({ title: 'pending text' });
+    const file = b.data.source('file', { format: 'stockholm', uri: 'file.sto' });
+    const aln = b.data.alignment('aln', { alphabet: 'protein', source: file });
+    b.views.view('v', (v) =>
+      v.section('s', { of: aln, layout: 'text' }).track('rows').layer('rows', { type: 'rows', data: aln }),
+    );
+    const s = await settle(b.build());
+    const f = await s.frame({ size: Size });
+    expect(f.layout.issues.map((i) => i.code)).toContain('seq.render.axis.pending');
+    // the chrome skips the pending section by name (no axis); a laid section with another placement still throws
+    const pending = f.layout.sections[0];
+    expect(pending.axis).toBeUndefined();
+    const out = {} as never;
+    expect(() => TextLayout.chrome!(pending, 'labels', out, undefined as never, 0, 0)).not.toThrow();
+    const laid = (await (await settle(p53TextSpec())).frame({ size: Size })).layout.sections[0];
+    expect(() =>
+      TextLayout.chrome!({ ...laid, placement: pending.placement }, 'labels', out, undefined as never, 0, 0),
+    ).toThrow(/another placement/);
   });
 });
 

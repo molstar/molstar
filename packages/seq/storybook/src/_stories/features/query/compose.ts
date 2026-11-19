@@ -266,20 +266,17 @@ export const QueryExamples: readonly QueryExample[] = [
     title: 'An alignment’s rows and columns',
     view: 'query-alignment',
     about:
-      'An alignment has two axes: a row form names rows by their labels, a range names columns. A rect pairs them, rows by columns; the selection is a rectangle of cells. Four of the seed’s rows are inline above it; the whole seed is read from its file, and a row form reads only an inline alignment’s rows: the last query says so.',
+      'An alignment has two axes: a row form names rows by their labels, a range names columns. A rect pairs them, rows by columns; the selection is a rectangle of cells. The whole seed is read from its file: a row form names its rows once they are held. Four of its rows are also inline below it, a row form naming them at once: the last query.',
     emphasis: 'select',
     queries: [
-      { label: 'A row', query: '/data/four/(row :key "HBA1_BOSGR/26-136")' },
-      { label: 'Some columns', query: '/data/four/(range :from 20 :to 60)' },
+      { label: 'A row', query: '/data/globins/(row :key "HBA1_BOSGR/26-136")' },
+      { label: 'Some columns', query: '/data/globins/(range :from 20 :to 60)' },
       {
         label: 'Rows by columns',
-        query: '/data/four/(rect :a (row :key ["HBA1_BOSGR/26-136" "HBB0_MOUSE/26-142"]) :b (range :from 20 :to 60))',
+        query:
+          '/data/globins/(rect :a (row :key ["HBA1_BOSGR/26-136" "HBB0_MOUSE/26-142"]) :b (range :from 20 :to 60))',
       },
-      {
-        label: 'A row of the seed’s file (an issue)',
-        query: '/data/globins/(row :key "HBA1_BOSGR/26-136")',
-        issue: true,
-      },
+      { label: 'A row of the four inline', query: '/data/four/(row :key "HBA1_BOSGR/26-136")' },
     ],
   },
 ];

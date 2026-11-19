@@ -231,48 +231,16 @@ export class ViewModel extends ReactiveModel {
   /** Where a section's placement comes from: its moves are then its layout's arithmetic (`setLayoutSource`). */
   private _layouts: LayoutSource | undefined;
 
-  /** The lengths of source-backed systems the store's coverages give, by system address (`refreshLengths`). */
-  private readonly _lengths = new State<ReadonlyMap<string, number>>(new Map(), sameLengths);
-  private _lengthOf: ((system: string) => number | undefined) | undefined;
-
   constructor(spec: SpecModel, config: ViewerConfig = DefaultViewerConfig) {
     super();
     this._spec = spec;
     this.config = config;
-    this.resolved = derive([spec.model, this._view, this._lengths], (model, address, lengths) =>
-      withLengths(model.spec, address === undefined ? resolveViews(model)[0] : resolveView(model, address), lengths),
+    // a source-backed system's length is the model's once its source opened (`SpecModel.setLengths`)
+    this.resolved = derive([spec.model, this._view], (model, address) =>
+      address === undefined ? resolveViews(model)[0] : resolveView(model, address),
     );
     this._update(this.resolved.value);
     this.listenPermanently(this.resolved, (v) => this._update(v));
-  }
-
-  /**
-   * Where the length of a system the spec does not know comes from (the store's coverage of its source); read by
-   * `refreshLengths`, which the viewer calls when the store changes.
-   */
-  setLengthSource(lengthOf: (system: string) => number | undefined): void {
-    this._lengthOf = lengthOf;
-    this.refreshLengths();
-  }
-
-  /**
-   * Reads the lengths of the sections' systems whose axis waits for one: a section on a source-backed system is placed
-   * once its source's coverage gives the length (the axis gets its pieces, a kept intent applies, EC-112).
-   */
-  refreshLengths(): void {
-    const lengthOf = this._lengthOf;
-    if (!lengthOf) return;
-    const model = this._spec.model.value;
-    const view = this._view.value === undefined ? resolveViews(model)[0] : resolveView(model, this._view.value);
-    const next = new Map<string, number>();
-    for (const sec of view?.sections ?? []) {
-      for (const axis of sec.follow ? [sec.axis, sec.follow.leaderAxis] : [sec.axis]) {
-        if (axis.ranges || next.has(axis.system)) continue;
-        const n = lengthOf(axis.system);
-        if (n !== undefined && Number.isInteger(n) && n >= 0) next.set(axis.system, n);
-      }
-    }
-    this._lengths.set(next);
   }
 
   /**
@@ -1446,47 +1414,6 @@ function rangeParam(root: Node, address: string): string {
   for (const seg of p?.segments ?? []) n = typeof seg === 'string' ? n?.children?.find((c) => c.id === seg) : undefined;
   const r = n?.params?.range;
   return Array.isArray(r) ? r.join(',') : 'all';
-}
-
-function sameLengths(a: ReadonlyMap<string, number>, b: ReadonlyMap<string, number>): boolean {
-  if (a.size !== b.size) return false;
-  for (const [k, v] of a) if (b.get(k) !== v) return false;
-  return true;
-}
-
-/** An axis waiting for its length, given one: the whole system, or a cyclic range over the origin in two pieces. */
-function placedAxis(axis: Axis, lengths: ReadonlyMap<string, number>, range?: readonly number[]): Axis {
-  if (axis.ranges) return axis;
-  const length = lengths.get(axis.system);
-  if (length === undefined) return axis;
-  const ranges = range && range.length === 2 ? [range[0], length, 0, range[1]] : [0, length];
-  return { ...axis, length, ranges };
-}
-
-/**
- * The resolved view with the lengths the store gave to axes the spec leaves unknown (_spec/README.md "ViewModel",
- * Placed): its sections' axes and their follows' leader axes. The same view object when nothing changes.
- */
-function withLengths(
-  root: Node,
-  view: ResolvedView | undefined,
-  lengths: ReadonlyMap<string, number>,
-): ResolvedView | undefined {
-  if (!view || !lengths.size) return view;
-  let changed = false;
-  /** A section's own range: on an axis waiting for its length, only a cyclic range over the origin has one. */
-  const range = (address: string) => {
-    const r = rangeParam(root, address);
-    return r === 'all' ? undefined : r.split(',').map(Number);
-  };
-  const sections = view.sections.map((sec) => {
-    const axis = placedAxis(sec.axis, lengths, range(sec.address));
-    const leaderAxis = sec.follow ? placedAxis(sec.follow.leaderAxis, lengths, range(sec.follow.leader)) : undefined;
-    if (axis === sec.axis && leaderAxis === sec.follow?.leaderAxis) return sec;
-    changed = true;
-    return { ...sec, axis, ...(sec.follow ? { follow: { ...sec.follow, leaderAxis: leaderAxis! } } : {}) };
-  });
-  return changed ? { ...view, sections } : view;
 }
 
 /** The view's sections with every leader before its followers (a chain of follows, EC-114); a cycle is cut. */

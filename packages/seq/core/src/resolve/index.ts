@@ -51,6 +51,7 @@ export {
   type BoundSourceEntry,
   createResolver,
   DefaultResolveConfig,
+  type Lengths,
   type MapEntry,
   type NumberingEntry,
   OpenLength,
@@ -65,6 +66,7 @@ export {
   type SourceParams,
   type StaticModel,
   type SystemEntry,
+  sourceLengths,
 } from './model.js';
 export {
   buildOverlay,
@@ -78,7 +80,7 @@ export {
   type OverlayNode,
   type OverlayOptions,
 } from './overlay.js';
-export { overlayQueryModel } from './query-model.js';
+export { overlayQueryModel, type RowsSource } from './query-model.js';
 export {
   composeEdges,
   DefaultPathBounds,

@@ -97,4 +97,6 @@ export interface QueryModel {
    * undefined: what `(row :key k)` reads (rows are positions, EC-35).
    */
   row?(rows: string, key: Atom): number | undefined;
+  /** Whether an alignment's rows are not held yet (read from a source): a row form then waits, never unknown. */
+  rowsPending?(rows: string): boolean;
 }

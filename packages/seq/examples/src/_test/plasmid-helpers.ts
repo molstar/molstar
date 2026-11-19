@@ -9,15 +9,13 @@ import type { Node } from '@molstar/core/repr/tree';
 import { DataStore, SeqRuntime } from '@molstar/seqx-core/data';
 import { RecordsRuntime } from '@molstar/seqx-core/data/records';
 import {
-  attachSources,
   type Frame,
   type FrameInput,
   bundledTextMetrics,
   LightTokens,
+  openModel,
   Renderer,
 } from '@molstar/seqx-core/render';
-import { resolveSpec } from '@molstar/seqx-core/resolve';
-import { resolveViews } from '@molstar/seqx-core/view';
 import { nodeFixtureAssets, PackageFolder } from '../node-assets.js';
 import { PlasmidFiles } from '../plasmid/derive.js';
 
@@ -39,11 +37,12 @@ export interface Settled {
 
 /** A spec resolved and its sources opened against the fixtures; `frame` runs until the data has arrived. */
 export async function settled(spec: Node): Promise<Settled> {
-  const model = resolveSpec(spec, { runtimes: [SeqRuntime, RecordsRuntime] });
-  const view = resolveViews(model)[0];
   const store = new DataStore();
-  await attachSources(model, store, { assets: nodeFixtureAssets().reader });
-  const renderer = new Renderer({ model, view, data: store, tokens: LightTokens, text: bundledTextMetrics() });
+  const { model, view } = await openModel(spec, store, {
+    runtimes: [SeqRuntime, RecordsRuntime],
+    assets: nodeFixtureAssets().reader,
+  });
+  const renderer = new Renderer({ model, view: view!, data: store, tokens: LightTokens, text: bundledTextMetrics() });
   return {
     renderer,
     async frame(input) {

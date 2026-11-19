@@ -7,13 +7,13 @@
 import { inlineSeq, SeqRuntime, seqToValue } from '@molstar/seqx-core/data';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { describe, expect, it } from 'vitest';
-import { type PairsLay, recordDrawLists, renderSvg } from '../index.js';
+import { type PairsLay, recordDrawLists, renderSvg, viewLegends } from '../index.js';
 import { settle } from './helpers.js';
 import { letters, pairRows } from './pairs-fixtures.js';
 
 // Pairs over a sequence whose letters arrive from a source (_spec/README.md "Render", Pairs): the resolved axis has no
 // pieces until the source gave its length, the layout places it from the coverage, and the arcs' ends are read on that
-// axis, in the canvas's lists and in the export alike.
+// axis, in the canvas's lists and in the export alike; the arcs' legend lists the pair kinds, titled by their track.
 
 const N = 40;
 const Pairs = [
@@ -34,10 +34,10 @@ function spec() {
     ),
   });
   const s = b.data.sequence('s', { alphabet: 'rna', source: src });
-  const p = b.data.pairs('p', { a: s, rows: pairRows(Pairs) });
+  const p = b.data.pairs('p', { a: s, rows: pairRows(Pairs, ['canonical', 'canonical', 'wobble']) });
   b.views.view('v', (v) => {
     const sec = v.section('s', { of: s });
-    sec.track('pairs').layer('arcs', { type: 'pairs', data: p });
+    sec.track('pairs', { label: 'Base pairs' }).layer('arcs', { type: 'pairs', data: p });
     sec.track('letters').layer('letters', { type: 'letters' });
   });
   return b.build();
@@ -58,5 +58,16 @@ describe('pairs over a sequence read from a source', () => {
     const r = await renderSvg(spec(), { size: { width: 640, height: 200 }, runtimes: [SeqRuntime] });
     expect(r.issues).toEqual([]);
     expect(paths(r.lists)).toEqual(paths(f.lists));
+  });
+
+  it('the arcs’ legend lists the pair kinds, titled by the track that holds them', async () => {
+    const s = await settle(spec(), [SeqRuntime]);
+    const f = await s.frame({ size: { width: 640, height: 200 }, dpr: 1, settled: true });
+    const legend = viewLegends(f.layout).legends.find((l) => l.layers.includes('/views/v/s/pairs/arcs'));
+    expect(legend?.title).toBe('Base pairs');
+    expect(legend?.entries.kind === 'swatches' && legend.entries.items.map((i) => i.label)).toEqual([
+      'canonical',
+      'wobble',
+    ]);
   });
 });

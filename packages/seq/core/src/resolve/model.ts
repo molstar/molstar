@@ -27,6 +27,7 @@ import {
 import {
   AlignmentRuntime,
   AlignmentSystems,
+  type Coverage,
   type FormatRuntime,
   inlineSeq,
   type RangesField,
@@ -225,7 +226,7 @@ export interface Projection {
 
 export interface StaticModel extends QueryModel {
   readonly spec: Node;
-  /** The spec's hash: equal specs give the same model. */
+  /** The spec's hash, with the lengths it was resolved with: equal specs and lengths give the same model. */
   readonly hash: string;
   readonly config: ResolveConfig;
   readonly systems: ReadonlyMap<string, SystemEntry>;
@@ -259,10 +260,55 @@ export interface ResolveOptions {
   /** The format runtimes the application composed; inline data always reads through the `seq` runtime. */
   readonly runtimes?: readonly FormatRuntime[];
   readonly config?: Partial<ResolveConfig>;
+  /**
+   * The lengths of source-backed systems that their sources' coverages gave once opened (`sourceLengths`, or
+   * `openModel` in render): such a system then resolves as one with inline letters of that length (_spec/README.md
+   * "Resolve", Systems). Each is kept by its system and its source node, so a source edited since is unknown again.
+   */
+  readonly lengths?: Lengths;
 }
 
+/**
+ * Source-backed systems' lengths (`sourceLengths`): opaque, each keyed by its system's address and its source node's
+ * hash.
+ */
+export type Lengths = ReadonlyMap<string, number>;
+
+/** A length's key: the system and the source node it was read from. */
+const lengthKey = (system: string, sourceHash: string) => `${system}|${sourceHash}`;
+
+/** Each model's source nodes' hashes, by the source's address: what `sourceLengths` keys a length by. */
+const SourceHashes = new WeakMap<StaticModel, ReadonlyMap<string, string>>();
+
 export interface Resolver {
-  resolve(spec: Node): StaticModel;
+  /** The model of a spec; `lengths` as `ResolveOptions.lengths`, for this call. */
+  resolve(spec: Node, lengths?: Lengths): StaticModel;
+}
+
+/**
+ * The lengths the opened sources' coverages give the model's systems of unknown length (letters, an alignment's
+ * columns and rows from a source), by system address: what the next resolve takes (`ResolveOptions.lengths`). A
+ * system is found in its source's coverage by its name or an alias.
+ */
+export function sourceLengths(model: StaticModel, coverage: (source: string) => Coverage | undefined): Lengths {
+  const out = new Map<string, number>();
+  const hashes = SourceHashes.get(model);
+  for (const s of model.systems.values()) {
+    const hash = s.source && hashes?.get(s.source);
+    if (!hash) continue;
+    const info = coverage(s.source!)?.systems.find((x) => x.name === s.name || x.aliases?.includes(s.name));
+    if (info?.length !== undefined) out.set(lengthKey(s.address, hash), info.length);
+  }
+  return out;
+}
+
+/** The lengths' part of a model's hash: none when empty, so a spec without sources keeps its spec's hash. */
+function lengthsKey(lengths: Lengths | undefined): string {
+  if (!lengths?.size) return '';
+  return `|${[...lengths]
+    .sort((a, b) => (a[0] < b[0] ? -1 : 1))
+    .map(([k, v]) => `${k}=${v}`)
+    .join(',')}`;
 }
 
 /** A path search's outcome and the map entries of the systems it read: valid while those are the same. */
@@ -276,15 +322,15 @@ export function createResolver(options: ResolveOptions = {}): Resolver {
   let entries = new Map<string, unknown>();
   let last: Model | undefined;
   return {
-    resolve(spec) {
-      if (last && last.hash === hashNode(spec)) return last;
+    resolve(spec, lengths = options.lengths) {
+      if (last && last.hash === `${hashNode(spec)}${lengthsKey(lengths)}`) return last;
       const next = new Map<string, unknown>();
       const cached = <T>(key: string, make: () => T): T => {
         const v = (entries.has(key) ? entries.get(key) : make()) as T;
         next.set(key, v);
         return v;
       };
-      last = build(spec, options, cached, last?.pathEntries);
+      last = build(spec, { ...options, ...(lengths ? { lengths } : {}) }, cached, last?.pathEntries);
       entries = next;
       return last;
     },
@@ -332,14 +378,31 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
     );
     return undefined;
   };
-  const key = (...nodes: Node[]) => nodes.map(hashNode).join(':');
+  // a source-backed system's length (given for its source node as it is now) is part of what an entry over it reads
+  const given: Lengths = options.lengths ?? new Map();
+  const sourceHashes = new Map<string, string>();
+  for (const at of data) if (at.node.kind === 'source') sourceHashes.set(at.address, hashNode(at.node));
+  const lengths = new Map<string, number>();
+  if (given.size)
+    for (const at of data) {
+      if (at.node.kind !== 'sequence' && at.node.kind !== 'alignment') continue;
+      const src = exactAddress(p(at.node, 'source'));
+      const hash = src === undefined ? undefined : sourceHashes.get(src);
+      if (hash === undefined) continue;
+      const systems = at.node.kind === 'alignment' ? [at.address, rowsSystemOf(at.address)] : [at.address];
+      for (const system of systems) {
+        const n = given.get(lengthKey(system, hash));
+        if (n !== undefined) lengths.set(system, n);
+      }
+    }
+  const key = (...at: Placed[]) => at.map((a) => `${hashNode(a.node)}#${lengths.get(a.address) ?? ''}`).join(':');
   const runtimes = options.runtimes ?? [];
 
   // sources first: what reads by region names them
   const sources = new Map<string, SourceBinding>();
   for (const at of data) {
     if (at.node.kind !== 'source') continue;
-    const bound = cached(`${at.address}|${key(at.node)}`, () => bindSource(at, runtimes));
+    const bound = cached(`${at.address}|${key(at)}`, () => bindSource(at, runtimes));
     issues.push(...bound.issues);
     sources.set(at.address, bound.binding);
   }
@@ -350,7 +413,7 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
     const src = p(at.node, 'source') === undefined ? undefined : ref(at, 'source', ['source']);
     systems.set(
       at.address,
-      cached(`${at.address}|${key(at.node)}`, () => sequenceEntry(at, src?.address)),
+      cached(`${at.address}|${key(at)}`, () => sequenceEntry(at, src?.address, lengths.get(at.address))),
     );
   }
 
@@ -365,7 +428,9 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
       const src = p(c, 'source') === undefined ? undefined : ref(placed, 'source', ['source']);
       numberings.set(
         placed.address,
-        cached(`${placed.address}|${key(c)}|${system.name}`, () => numberingEntry(placed, system, src?.address)),
+        cached(`${placed.address}|${key(placed, at)}|${system.name}`, () =>
+          numberingEntry(placed, system, src?.address),
+        ),
       );
     }
   }
@@ -376,7 +441,7 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
     const from = ref(at, 'from', ['sequence']);
     const to = ref(at, 'to', ['sequence']);
     if (!from || !to) continue;
-    const entry = cached(`${at.address}|${key(at.node, from.node, to.node)}|${config.encoding}`, () =>
+    const entry = cached(`${at.address}|${key(at, from, to)}|${config.encoding}`, () =>
       mapEntry(at, systems.get(from.address)!, systems.get(to.address)!, config),
     );
     maps.set(at.address, entry.map);
@@ -388,7 +453,10 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
   for (const at of data) {
     if (at.node.kind !== 'alignment') continue;
     const src = p(at.node, 'source') === undefined ? undefined : ref(at, 'source', ['source']);
-    const e = cached(`${at.address}|${key(at.node)}`, () => alignmentEntry(at, src?.address));
+    const rowsAt = rowsSystemOf(at.address);
+    const e = cached(`${at.address}|${key(at)}|${lengths.get(rowsAt) ?? ''}`, () =>
+      alignmentEntry(at, src?.address, lengths.get(at.address), lengths.get(rowsAt)),
+    );
     systems.set(e.columns.address, e.columns);
     systems.set(e.rows.address, e.rows);
     annotations.set(at.address, e.annotation);
@@ -402,7 +470,7 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
     const yKey = isPairs ? 'b' : 'y';
     const y = p(at.node, yKey) === undefined ? x : ref(at, yKey, ['sequence']);
     if (!y) continue;
-    const entry = cached(`${at.address}|${key(at.node, x.node, y.node)}`, () =>
+    const entry = cached(`${at.address}|${key(at, x, y)}`, () =>
       heldEntry(at, systems.get(x.address)!, systems.get(y.address)!),
     );
     annotations.set(at.address, entry.annotation);
@@ -413,14 +481,16 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
     const target = ref(at, 'target', ['sequence']);
     if (!target) continue;
     const src = p(at.node, 'source') === undefined ? undefined : ref(at, 'source', ['source']);
-    const entry = cached(`${at.address}|${key(at.node, target.node)}`, () =>
+    const entry = cached(`${at.address}|${key(at, target)}`, () =>
       annotationEntry(at, systems.get(target.address)!, src?.address),
     );
     annotations.set(at.address, entry.annotation);
     issues.push(...entry.issues);
   }
 
-  return new Model(spec, config, systems, maps, sources, annotations, numberings, issues, carried);
+  const model = new Model(spec, config, systems, maps, sources, annotations, numberings, issues, carried, given);
+  SourceHashes.set(model, sourceHashes);
+  return model;
 }
 
 // ---- entries ----
@@ -494,7 +564,7 @@ function sourcePlan(source: string, system: string, shape: Shape): AccessPlan {
   return { kind: 'source', source, system, shape };
 }
 
-function sequenceEntry(at: Placed, source: string | undefined): SystemEntry {
+function sequenceEntry(at: Placed, source: string | undefined, known: number | undefined): SystemEntry {
   const letters = p(at.node, 'letters');
   const name = p(at.node, 'name');
   const base = {
@@ -510,7 +580,13 @@ function sequenceEntry(at: Placed, source: string | undefined): SystemEntry {
     const length = letters.length;
     return { ...base, length, letters, access: inlinePlan(at.address, { ...base, length }, 'letters', tables) };
   }
-  return { ...base, ...(source ? { source } : {}), access: sourcePlan(source ?? '', base.name, 'letters') };
+  return {
+    ...base,
+    // the length its source's coverage gave (`ResolveOptions.lengths`), else unknown
+    ...(source && known !== undefined ? { length: known } : {}),
+    ...(source ? { source } : {}),
+    access: sourcePlan(source ?? '', base.name, 'letters'),
+  };
 }
 
 /** The ids of a sequence's `numbering` children, in order (a built-in's id is no declared numbering). */
@@ -547,6 +623,8 @@ function numberingEntry(at: Placed, system: SystemEntry, source: string | undefi
 function alignmentEntry(
   at: Placed,
   source: string | undefined,
+  knownColumns?: number,
+  knownRows?: number,
 ): { columns: SystemEntry; rows: SystemEntry; annotation: AnnotationEntry } {
   const rows = p(at.node, 'rows') as { label?: Value; letters?: Value } | undefined;
   const alphabet = p(at.node, 'alphabet') as SystemEntry['alphabet'];
@@ -587,8 +665,12 @@ function alignmentEntry(
   });
   const rowsAddress = rowsSystemOf(at.address);
   return {
-    columns: system(at.address, AlignmentSystems.columns, letters ? (letters[0]?.length ?? 0) : undefined),
-    rows: system(rowsAddress, AlignmentSystems.rows, letters?.length),
+    columns: system(
+      at.address,
+      AlignmentSystems.columns,
+      letters ? (letters[0]?.length ?? 0) : source ? knownColumns : undefined,
+    ),
+    rows: system(rowsAddress, AlignmentSystems.rows, letters ? letters.length : source ? knownRows : undefined),
     annotation: {
       address: at.address,
       shape: 'cells',
@@ -874,8 +956,9 @@ class Model implements StaticModel {
     readonly numberings: ReadonlyMap<string, NumberingEntry>,
     readonly issues: readonly Issue[],
     private readonly carried?: ReadonlyMap<string, PathEntry>,
+    lengths: Lengths = new Map(),
   ) {
-    this.hash = hashNode(spec);
+    this.hash = `${hashNode(spec)}${lengthsKey(lengths)}`;
     let fromSource = false;
     for (const n of numberings.values()) {
       if (n.source) fromSource = true;

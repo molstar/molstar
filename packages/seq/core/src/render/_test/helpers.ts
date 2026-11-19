@@ -9,15 +9,15 @@
 
 import type { Node } from '@molstar/core/repr/tree';
 import { DataStore, type FormatRuntime } from '@molstar/seqx-core/data';
-import { resolveSpec, type StaticModel } from '@molstar/seqx-core/resolve';
-import { type ResolvedView, resolveViews } from '@molstar/seqx-core/view';
+import type { StaticModel } from '@molstar/seqx-core/resolve';
+import type { ResolvedView } from '@molstar/seqx-core/view';
 import {
-  attachSources,
   bundledTextMetrics,
   type DrawLists,
   type Frame,
   type FrameInput,
   LightTokens,
+  openModel,
   type PassName,
   Renderer,
   type RenderConfigOverrides,
@@ -39,10 +39,9 @@ export async function settle(
   runtimes: readonly FormatRuntime[] = [],
   config: RenderConfigOverrides = {},
 ): Promise<Settled> {
-  const model = resolveSpec(spec, { runtimes });
-  const view = resolveViews(model)[0];
   const store = new DataStore();
-  await attachSources(model, store);
+  const { model, view: opened } = await openModel(spec, store, { runtimes });
+  const view = opened!;
   const renderer = new Renderer({
     model,
     view,

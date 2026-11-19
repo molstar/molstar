@@ -145,6 +145,22 @@ describe('ranges: line styles', () => {
   }
 });
 
+describe('ranges: labels', () => {
+  it('inside a mark narrower than a label’s room only when the label fits whole (a residue’s code)', async () => {
+    // 40 positions over the data's width: about 17 px a position, room for a one-letter code, not a long label
+    const rows = { start: [5, 20], end: [6, 21], id: ['a', 'b'], label: ['I', 'a long label'] };
+    const lay = layerLay<RangesLay>(
+      await (await settle(spec(rows as never, {}, { length: 40 }))).frame({ size: SIZE }),
+      0,
+    );
+    const w = lay.mx1[0] - lay.mx0[0];
+    expect(w).toBeLessThan(24);
+    const labelled = Array.from({ length: lay.m }, (_, j) => (lay.mlabel[j] > 0 ? lay.keys[lay.mitem[j]] : undefined));
+    expect(labelled).toEqual(['a', undefined]);
+    expect(lay.mlabel[0] + 6).toBeLessThanOrEqual(w);
+  });
+});
+
 describe('ranges: arrowheads', () => {
   const MANY: Rows = { start: [10, 100, 250], end: [60, 220, 390], id: ['a', 'b', 'c'] };
 
@@ -201,6 +217,24 @@ describe('ranges: arrowheads', () => {
         expect(lay.mtip[j]).toBe(row === 90 ? start : end);
       }
     }
+  });
+
+  it('is decided per item by its width, not by the layer’s step: at the bars step a wide item keeps its arrowhead', async () => {
+    // 8,000 positions over 800 px: a tenth of a pixel a position, the bars step
+    const rows: Rows = {
+      start: [500, 3000, 3020, 6000],
+      end: [2500, 3010, 3030, 7000],
+      id: ['wide', 'n1', 'n2', 'w2'],
+    };
+    const s = await settle(spec(rows, { arrow: 'end' }, { length: 8000 }));
+    const lay = layerLay<RangesLay>(await s.frame({ size: SIZE }), 0);
+    expect(lay.mode).toBe('bars');
+    const tips = new Map(marks(lay).map((x) => [x.key, x.tips]));
+    expect(tips.get('wide')).toBe(2);
+    expect(tips.get('w2')).toBe(2);
+    // a narrow item has none; narrow ones close together still merge into one run
+    expect([...tips.keys()].filter((k) => k !== 'wide' && k !== 'w2').every((k) => !tips.get(k))).toBe(true);
+    expect(lay.m).toBe(3);
   });
 
   it('a line gets a triangle at its end and stops where it begins; hits are the same', async () => {

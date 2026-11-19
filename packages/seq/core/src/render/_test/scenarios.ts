@@ -97,6 +97,16 @@ export const Scenarios: readonly Scenario[] = [
     center: BIG / 2,
     panStep: 0.5,
   },
+  // dense items with arrowheads, at the step before bars: 11 to 23 px wide, each label measured too wide for its mark
+  // before the early skip (ranges.ts, the labels inside marks)
+  {
+    name: '3M items with arrowheads (8,000 positions)',
+    spec: () => bigSpec({ arrow: true }),
+    runtimes: [BigRuntime],
+    width: 8000,
+    center: BIG / 2,
+    panStep: 8,
+  },
   {
     // the default level (`values.coarser` 1): the values layer places the 100,000 positions in view one by one,
     // directly (the data is on the section's own system)
