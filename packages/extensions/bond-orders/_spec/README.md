@@ -41,7 +41,11 @@ at the top of `src/perception/perceive.ts` and in each step's module.
    links, a polymer split into one key per neighbourhood (1tup: 231 keys for 627 residues, 27 without). Known limitation
    (a deviation from unit.md §4): two complete copies with the same key but different geometry or different links get
    the pattern of whichever unit is perceived first; between equivalent atoms (a carboxylate's O, a guanidinium's N, a
-   phosphate's O) the copies share the first copy's choice.
+   phosphate's O) the copies share the first copy's choice. Within one model, different molecules under one component id
+   that is not a CCD code (`UNL`, a mol2 `MOL`) with the same atom names get the first one's pattern. Models never
+   share: the caches are keyed by the `Model` object, and a pose of a multi-pose SDF or mol2 file, a `MODEL` section of
+   a PDB or mmCIF file (a new object even when its hierarchy is the previous one's) and a trajectory frame are each a
+   model of their own.
 6. **No closures in the neighbour loops**: `State` collects per-residue adjacency arrays once (intra-unit from the graph
    being perceived, inter-unit neighbours from §1.3); the steps loop over arrays and over the graph's `offset`/`b`. Why:
    `unit.bonds` and `unit.rings` are not available inside `intra` (rings come from

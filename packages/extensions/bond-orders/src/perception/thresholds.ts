@@ -4,10 +4,6 @@
  * @author Paul Pillot <paul.pillot@tandemai.com>
  */
 
-// Step 9c per-bond-type reference lengths (Angstrom), from Sayle "PDB: Cruft to Content". A bond
-// of the given order is accepted when its length is at or below the reference. Pairs absent here
-// (e.g. C=N) are never assigned a localized multiple bond by 9c.
-
 import { sortedCantorPairing } from '@molstar/core/data/util';
 import { Vec3 } from '@molstar/core/math/linear-algebra';
 import { radToDeg } from '@molstar/core/math/misc';
@@ -72,8 +68,8 @@ const carbonylBondMaxLength = 1.28; // C=O
 export const carbonylBondMaxLengthSq = carbonylBondMaxLength * carbonylBondMaxLength;
 
 /**
- * Reference maximum length (Zhang 2012) for a multiple bond of the given order between the two
- *  elements, or undefined for an unlisted pair.
+ * Reference maximum length (Sayle 2001, Zhang 2012) for a multiple bond of the given order between the two
+ *  elements, or undefined for an unlisted pair: an unlisted pair gets no localized multiple bond in step 9c.
  */
 function multipleBondMaxLength(a: ElementSymbol, b: ElementSymbol, order: number): number | undefined {
   if (order === 3) {
@@ -122,7 +118,7 @@ const tmpVecC = Vec3();
 const tmpVecD = Vec3();
 
 /** True when the bond u-v is longer than the Labute upper single-bond-length reference for its element
- *  pair (`getDoubleBondMaxLength`) — too long to be a double/aromatic bond. Unlisted pairs (-1) never
+ *  pair (`getUnambiguousSingleBondThreshold`) — too long to be a double/aromatic bond. Unlisted pairs (-1) never
  *  exceed. */
 export function exceedsMaxDoubleLength(state: State, u: UnitIndex, v: UnitIndex) {
   const { unit } = state;

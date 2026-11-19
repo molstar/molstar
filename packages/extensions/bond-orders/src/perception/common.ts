@@ -62,7 +62,7 @@ export interface State {
   /** `Ambiguity` bit-flags per local atom (geometry that can't be decided) */
   ambiguous: Uint8Array;
   assignedBonds: Uint8Array;
-  /** rings of size 5 or 6 that are fully contained in the residue, as local UnitIndex arrays */
+  /** rings of size 5 or 6 complete in the residue, as residue-local atom indices in traversal order */
   localRings5or6: number[][];
   /**
    * fused ring systems or isolated ring systems (ring components)

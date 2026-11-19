@@ -277,7 +277,7 @@ function matchComponent(
 /**
  * Sayle (2001) Step 9c: multiple-bond assignment between sp/sp/terminal or
  * sp2/sp2/terminal that have unfilled valence and no assigned multiple bond.
- * The distance threshold from Sayle (2001) must be satisfied.
+ * The bond must be within the multiple-bond length for its element pair (Sayle 2001, Zhang 2012).
  */
 function assignLocalizedMultipleBonds(state: State) {
   const { n, bonds, geometry, heavyNeighbours, open, unitIndices } = state;
