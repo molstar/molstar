@@ -439,3 +439,5 @@ None.
   would undo it). DB (strong, takes LL) and DS (fast, takes LR) start: one strong and one fast, the author's limit.
 - The author (2026-11-19): "slow down to just 1 lane after current batch is done": one lane at a time from now; DB
   (strong) starts, DS waits for it.
+- The author (2026-11-19): "let's pause after current tasks are done": DB finishes (review, fix round, merge), then
+  the loop stops; DS and the rest stay queued in plan.md.
