@@ -189,6 +189,8 @@ export class RowsLay {
   classColors = new Uint32Array(256);
   pyramidOf = '';
   baseBytes: Uint8Array | undefined;
+  /** A class by (column, letter): 254 unknown yet. */
+  classTable: Uint8Array | undefined;
   /** The shared image cache (the frame's, else the layer's own). */
   cache: ImageCache | undefined;
 
@@ -245,7 +247,7 @@ export class RowsLay {
     const rowsOf = (labels: readonly string[]) => labels.map((l) => byLabel.get(l) ?? -1).filter((r) => r >= 0);
     const tree = prep.order === 'tree' ? this.clades : undefined;
     this.foldsApply = tree !== undefined;
-    this.foldIds = tree ? folds.map((f) => tree.name.indexOf(f)).filter((c) => c >= 0) : [];
+    this.foldIds = tree ? folds.map((f) => tree.byName.get(f) ?? -1).filter((c) => c >= 0) : [];
     let order: Int32Array | undefined;
     if (typeof prep.order === 'object') order = fieldOrder(held, prep.order);
     const plain = !tree && !order && !prep.pinned.length && !prep.hidden.length;
@@ -809,27 +811,45 @@ function layoutImages(lay: RowsLay, ctx: LayoutContext, c0: number, c1: number) 
     const need = R * C;
     if (!own.baseBytes || own.baseBytes.length < need) own.baseBytes = new Uint8Array(need);
     const base = own.baseBytes;
-    // one class a distinct fill (at most 254): the theme's classes, so a reduced sample reads as the theme
+    // one class a distinct fill (at most 254): the theme's classes, so a reduced sample reads as the theme; a table by
+    // (column, letter) made once, then one lookup a cell
     const classOf = new Map<number, number>();
     const missing = tokens.colors['seq-missing'];
+    const table = own.classTable && own.classTable.length >= C * 128 ? own.classTable : new Uint8Array(C * 128);
+    own.classTable = table;
+    table.fill(254, 0, C * 128);
+    const classAt = (code: number, j: number): number => {
+      const u = upper(code);
+      if (u > 127) return NoClass;
+      const k = j * 128 + u;
+      let c = table[k];
+      if (c !== 254) return c;
+      const fill = lay.colorOf(code, j, missing);
+      if (fill === NoColor) c = NoClass;
+      else {
+        let id = classOf.get(fill);
+        if (id === undefined) {
+          id = classOf.size < 253 ? classOf.size : 252;
+          if (classOf.size < 253) classOf.set(fill, id);
+          lay.classColors[id] = fill;
+        }
+        c = id;
+      }
+      table[k] = c;
+      return c;
+    };
     for (let i = 0; i < R; i++) {
       const e = display.rowAt(i);
       const sum = e < 0 ? summaryOf(lay, i) : undefined;
+      if (sum) {
+        for (let j = 0; j < C; j++) base[i * C + j] = classAt(sum[3 * j], j);
+        continue;
+      }
+      const row = e * C;
       for (let j = 0; j < C; j++) {
-        const code = sum ? sum[3 * j] : held.codes[e * C + j];
-        const fill = lay.colorOf(code, j, missing);
-        let k: number;
-        if (fill === NoColor) k = NoClass;
-        else {
-          let c = classOf.get(fill);
-          if (c === undefined) {
-            c = classOf.size < 254 ? classOf.size : 253;
-            if (classOf.size < 254) classOf.set(fill, c);
-            lay.classColors[c] = fill;
-          }
-          k = c;
-        }
-        base[i * C + j] = k;
+        const code = held.codes[row + j];
+        const c = table[j * 128 + (code & 127)];
+        base[i * C + j] = c !== 254 && code < 97 ? c : classAt(code, j);
       }
     }
     pyr.setClasses(R, C, base.subarray(0, need));
@@ -1234,14 +1254,18 @@ function drawSelection(lay: RowsLay, out: PassWriter, emphasis: Emphasis | undef
   if (!sel) return;
   const { box, tokens, config } = lay;
   const accent = tokens.colors['msui-accent'];
-  const tint = ((accent & 0xffffff00) | Math.round(255 * config.emphasis.selectionTint)) >>> 0;
-  const line = ((accent & 0xffffff00) | Math.round(255 * config.emphasis.selectionOutline)) >>> 0;
+  // the colors through a typed array: a number past a small integer passed to a call is boxed
+  SelPaint[0] = ((accent & 0xffffff00) | Math.round(255 * config.emphasis.selectionTint)) >>> 0;
+  SelPaint[1] = ((accent & 0xffffff00) | Math.round(255 * config.emphasis.selectionOutline)) >>> 0;
   const g = out.args;
   for (let p = 0; p < sel.parts.length; p++) {
     const part = sel.parts[p];
     if (part.system !== lay.rowsSystem) continue;
-    for (let k = 0; k + 1 < part.ranges.length; k += 2)
-      paintRows(lay, out, part.ranges[k], part.ranges[k + 1], box.x, box.x + box.width, tint, line);
+    for (let k = 0; k + 1 < part.ranges.length; k += 2) {
+      SelPaint[2] = box.x;
+      SelPaint[3] = box.x + box.width;
+      paintRows(lay, out, part.ranges[k], part.ranges[k + 1]);
+    }
   }
   for (let r = 0; r < sel.rects.length; r++) {
     const rect = sel.rects[r];
@@ -1252,25 +1276,24 @@ function drawSelection(lay: RowsLay, out: PassWriter, emphasis: Emphasis | undef
       const xa = lay.axis.x(cols.ranges[c]);
       const xb = lay.axis.x(cols.ranges[c + 1]);
       if (Number.isNaN(xa) || Number.isNaN(xb)) continue;
-      for (let k = 0; k + 1 < rows.ranges.length; k += 2)
-        paintRows(lay, out, rows.ranges[k], rows.ranges[k + 1], Math.min(xa, xb), Math.max(xa, xb), tint, line);
+      for (let k = 0; k + 1 < rows.ranges.length; k += 2) {
+        SelPaint[2] = Math.min(xa, xb);
+        SelPaint[3] = Math.max(xa, xb);
+        paintRows(lay, out, rows.ranges[k], rows.ranges[k + 1]);
+      }
     }
   }
   void g;
 }
 
 /** Data rows `[a, b)` as the display rows they are shown at, between x0 and x1: a tint and an outline each. */
-function paintRows(
-  lay: RowsLay,
-  out: PassWriter,
-  a: number,
-  b: number,
-  x0: number,
-  x1: number,
-  tint: number,
-  line: number,
-) {
+/** The selection's tint and outline colors and the x span (`drawSelection` sets them): read by `paintRows`. */
+const SelPaint = new Float64Array(4);
+
+function paintRows(lay: RowsLay, out: PassWriter, a: number, b: number) {
   const g = out.args;
+  const x0 = SelPaint[2];
+  const x1 = SelPaint[3];
   const { box } = lay;
   const w = lay.config.outline.selection;
   let last = -1;
@@ -1284,8 +1307,8 @@ function paintRows(
     g[1] = y;
     g[2] = x1 - x0;
     g[3] = lay.rowScale;
-    g[4] = tint;
-    g[5] = line;
+    g[4] = SelPaint[0];
+    g[5] = SelPaint[1];
     g[6] = w;
     g[7] = 0;
     g[8] = 0;

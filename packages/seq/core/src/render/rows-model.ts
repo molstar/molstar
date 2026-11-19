@@ -54,6 +54,8 @@ export interface Clades {
   readonly order: Int32Array;
   /** Children of each node, as the tree reads them. */
   readonly children: readonly (readonly number[])[];
+  /** Each name's node (the first of a name): a fold's lookup. */
+  readonly byName: ReadonlyMap<string, number>;
 }
 
 /** The clades of a tree over `rows` labels (leaves matched by `matchLeaves`); undefined for an empty tree. */
@@ -94,8 +96,12 @@ export function buildClades(tree: TreeRead, leafRow: Int32Array, rows: number): 
   for (let r = 0; r < rows; r++) if (rowLeaf[r] < 0) order[at++] = r;
   const leafLabel = (k: number) => tree.label[tree.leaves[k]] ?? '';
   const name: string[] = [];
-  for (let n = 0; n < nodes; n++)
-    name.push(tree.label[n] && leafAt[n] < 0 ? tree.label[n] : `${leafLabel(lo[n])}..${leafLabel(hi[n] - 1)}`);
+  const byName = new Map<string, number>();
+  for (let n = 0; n < nodes; n++) {
+    const s = tree.label[n] && leafAt[n] < 0 ? tree.label[n] : `${leafLabel(lo[n])}..${leafLabel(hi[n] - 1)}`;
+    name.push(s);
+    if (!byName.has(s)) byName.set(s, n);
+  }
   return {
     nodes,
     parent: tree.parent,
@@ -109,12 +115,13 @@ export function buildClades(tree: TreeRead, leafRow: Int32Array, rows: number): 
     rowLeaf,
     order,
     children: tree.children,
+    byName,
   };
 }
 
 /** A clade by its name (`cladeNamed`), -1 for none. */
 export function cladeNamed(clades: Clades, name: string): number {
-  return clades.name.indexOf(name);
+  return clades.byName.get(name) ?? -1;
 }
 
 /**
@@ -285,26 +292,35 @@ export function cladesHolding(clades: Clades, row: number): number[] {
  * (gaps counted as a letter: a column mostly gaps reads as a gap) and its share 0–255, and the non-gap share. Into
  * `out` (3 bytes a column: letter, share, non-gap share).
  */
-export function consensus(held: HeldCells, rows: ArrayLike<number>, out: Uint8Array, counts = new Uint32Array(256)) {
+export function consensus(held: HeldCells, rows: ArrayLike<number>, out: Uint8Array, counts?: Uint32Array) {
   const C = held.columns;
   const n = rows.length;
+  // rows outer, columns inner (the cells row-major): a count a letter a column
+  const k = counts && counts.length >= C * 128 ? counts : new Uint32Array(C * 128);
+  k.fill(0, 0, C * 128);
+  const filled = new Uint32Array(C);
+  const codes = held.codes;
+  for (let i = 0; i < n; i++) {
+    const row = rows[i] * C;
+    for (let j = 0; j < C; j++) {
+      const c = upper(codes[row + j]) & 127;
+      k[j * 128 + c]++;
+      if (!isGap(c)) filled[j]++;
+    }
+  }
   for (let j = 0; j < C; j++) {
     let best = 45;
     let most = 0;
-    let filled = 0;
-    for (let i = 0; i < n; i++) {
-      const c = upper(held.codes[rows[i] * C + j]);
-      const k = ++counts[c];
-      if (!isGap(c)) filled++;
-      if (k > most || (k === most && c < best)) {
-        most = k;
+    for (let c = 0; c < 128; c++) {
+      const v = k[j * 128 + c];
+      if (v > most) {
+        most = v;
         best = c;
       }
     }
-    for (let i = 0; i < n; i++) counts[upper(held.codes[rows[i] * C + j])] = 0;
     out[3 * j] = best;
     out[3 * j + 1] = n ? Math.round((255 * most) / n) : 0;
-    out[3 * j + 2] = n ? Math.round((255 * filled) / n) : 0;
+    out[3 * j + 2] = n ? Math.round((255 * filled[j]) / n) : 0;
   }
   return out;
 }

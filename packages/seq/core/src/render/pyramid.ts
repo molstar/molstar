@@ -79,8 +79,11 @@ export class Pyramid {
     shares: Empty8,
     built: 0,
   };
-  /** Votes a class while a majority sample is reduced. */
+  /** Votes a class while a majority sample is reduced, the sample each was last counted in (the last: the stamp). */
   private readonly _votes = new Float64Array(256);
+  private readonly _stamps = new Uint32Array(257);
+  /** The cells each finer sample covers, by row and by column (kept). */
+  private readonly _weights = { rows: new Float64Array(0), columns: new Float64Array(0) };
 
   constructor(options: PyramidOptions) {
     if (!(options.factor >= 2) || !Number.isInteger(options.factor)) throw new Error('A pyramid’s factor is 2 or more');
@@ -210,6 +213,8 @@ export class Pyramid {
         f ** from.columnLevel,
         this._rows,
         this._columns,
+        this._stamps,
+        this._weights,
       );
     } else {
       if (to.values.length < n) to.values = new Float32Array(n);
@@ -261,46 +266,58 @@ function reduceMajority(
   unitColumns: number,
   baseRows: number,
   baseColumns: number,
+  stamps: Uint32Array,
+  weights: { rows: Float64Array; columns: Float64Array },
 ): void {
   const classes = from.classes;
   const shares = from.shares;
   const whole = shares.length === 0;
   const W = from.columns;
   const H = from.rows;
+  // the cells each finer sample covers: whole units but at the far edges
+  if (weights.rows.length < H) weights.rows = new Float64Array(H);
+  if (weights.columns.length < W) weights.columns = new Float64Array(W);
+  const rw = weights.rows;
+  const cw = weights.columns;
+  for (let r = 0; r < H; r++) rw[r] = Math.min(baseRows, (r + 1) * unitRows) - r * unitRows;
+  for (let c = 0; c < W; c++) cw[c] = Math.min(baseColumns, (c + 1) * unitColumns) - c * unitColumns;
+  let stamp = stamps[256];
   for (let i = 0; i < to.rows; i++) {
     const r0 = i * fr;
     const r1 = Math.min(H, r0 + fr);
     for (let j = 0; j < to.columns; j++) {
       const c0 = j * fc;
       const c1 = Math.min(W, c0 + fc);
+      // a new stamp a sample: a class's votes count from 0 when first seen in it (no pass to clear them)
+      stamp = (stamp + 1) >>> 0;
       let n = 0;
-      for (let r = r0; r < r1; r++) {
-        const h = Math.min(baseRows, (r + 1) * unitRows) - r * unitRows;
-        for (let c = c0; c < c1; c++) {
-          const k = r * W + c;
-          const cl = classes[k];
-          const cells = h * (Math.min(baseColumns, (c + 1) * unitColumns) - c * unitColumns);
-          n += cells;
-          if (cl !== NoClass) votes[cl] += (whole ? 255 : shares[k]) * cells;
-        }
-      }
       let best = NoClass;
       let most = 0;
-      for (let r = r0; r < r1; r++)
+      for (let r = r0; r < r1; r++) {
+        const h = rw[r];
+        const row = r * W;
         for (let c = c0; c < c1; c++) {
-          const cl = classes[r * W + c];
+          const k = row + c;
+          const cells = h * cw[c];
+          n += cells;
+          const cl = classes[k];
           if (cl === NoClass) continue;
-          const v = votes[cl];
+          if (stamps[cl] !== stamp) {
+            stamps[cl] = stamp;
+            votes[cl] = 0;
+          }
+          const v = (votes[cl] += (whole ? 255 : shares[k]) * cells);
+          // votes only grow: the argmax followed as they do, the lower class on a tie
           if (v > most || (v === most && cl < best)) {
             most = v;
             best = cl;
           }
         }
-      // clear what was voted (only the classes seen: no pass over 256 a sample)
-      for (let r = r0; r < r1; r++) for (let c = c0; c < c1; c++) votes[classes[r * W + c]] = 0;
+      }
       const o = i * to.columns + j;
       to.classes[o] = best;
       to.shares[o] = n === 0 || best === NoClass ? 0 : Math.round(most / n);
     }
   }
+  stamps[256] = stamp;
 }

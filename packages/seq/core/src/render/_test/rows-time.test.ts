@@ -10,70 +10,11 @@
 // under 16 ms; and a frame of 10,000,000 lazy rows at letters within 1.2× of the held one. Each bound is the heavy
 // lane's (`itWithin`, best of three); the quick lane runs a fit frame and a letters frame unbounded.
 
-import { PCG } from '@molstar/core/data/util/hash-functions';
-import type { Node } from '@molstar/core/repr/tree';
-import { cellsSource, type FormatRuntime } from '@molstar/seqx-core/data';
-import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { itWithin } from '@molstar/test-harness/timing';
 import { describe, expect, it } from 'vitest';
 import { DarkTokens, type FrameInput, LightTokens, Renderer, type RowsLay } from '../index.js';
 import { settle } from './helpers.js';
-
-const Residues = 'ACDEFGHIKLMNPQRSTVWY-';
-const Columns = 300;
-const Track = '/views/v/s/rows';
-const Section = '/views/v/s';
-
-/** A synthetic alignment source (`synthetic`): rows made by index, each a biased draw a column. */
-const Synthetic: FormatRuntime = {
-  name: 'synthetic',
-  formats: ['synthetic'],
-  async open(source) {
-    const n = (source.value as { rows: number }).rows;
-    return cellsSource(n, Columns, (start, end) => {
-      const codes = new Uint8Array((end - start) * Columns);
-      for (let i = start; i < end; i++) {
-        const rng = new PCG((i * 2654435761) >>> 0);
-        for (let j = 0; j < Columns; j++)
-          codes[(i - start) * Columns + j] = Residues.charCodeAt(
-            rng.float() < 0.6 ? (j * 7) % Residues.length : rng.int() % Residues.length,
-          );
-      }
-      const label = Array.from({ length: end - start }, (_, k) => `R${start + k}`);
-      return { codes, label, first: new Int32Array(end - start).fill(1) };
-    });
-  },
-};
-
-/** A balanced tree over the rows, its leaves `R<i>`. */
-function balanced(n: number): string {
-  const out: string[] = [];
-  const grow = (a: number, b: number) => {
-    if (b - a === 1) return void out.push(`R${a}:1`);
-    const m = (a + b) >> 1;
-    out.push('(');
-    grow(a, m);
-    out.push(',');
-    grow(m, b);
-    out.push('):1');
-  };
-  grow(0, n);
-  return `${out.join('')};`;
-}
-
-function spec(rows: number, tree: boolean): Node {
-  const b = createSeqSpec();
-  const src = b.data.source('src', { format: 'synthetic', value: { rows } });
-  const aln = b.data.alignment('aln', { alphabet: 'protein', source: src });
-  const t = tree ? b.data.tree('tree', { of: aln, newick: balanced(rows) }) : undefined;
-  b.views.view('v', (v) =>
-    v
-      .section('s', { of: aln })
-      .track('rows', { label: '', height: 600 })
-      .layer('r', { type: 'rows', data: aln, ...(t ? { tree: t, order: 'tree' } : {}) } as never),
-  );
-  return b.build();
-}
+import { Columns, rowsSpec as spec, Section, Synthetic, Track } from './rows-fixtures.js';
 
 const Size = { width: 1440, height: 800 };
 const at = (bandTop: number, rowScale: number, start = 0, end = Columns, folds?: readonly string[]): FrameInput => ({
