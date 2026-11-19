@@ -43,7 +43,7 @@ that shows it (dataset: view).
 | Feature | What | Status | Design | Cases | View |
 |---|---|---|---|---|---|
 | Indices and labels | 0-based indices, labels converted at the edge | building: `index` and `ordinal`, labels in queries; the Antibody view not | [building-blocks](building-blocks.md) | 1–8 | Antibody: Kabat vs IMGT |
-| Numbering schemes | offset, segments, labels, names; Kabat, IMGT | building: built-ins and the query model's declared lookup; the language declares none yet | [maps](maps.md) | 2–8 | Antibody: Kabat vs IMGT |
+| Numbering schemes | offset, segments, labels, names; Kabat, IMGT | built: the `numbering` kind with `labels` (inline or a records source's column), queries, addresses, the ruler and hover read it (NB); offset and segments planned | [maps](maps.md) | 2–8 | Antibody: Kabat vs IMGT |
 | Cyclic systems | origin, wrapped ranges, shortest arc | building: wrapped ranges, offset and codon maps over the origin; the Plasmid view not | [building-blocks](building-blocks.md) | 9–14 | Plasmid: across the origin |
 | Map kinds | identity, offset, numbering, segments, pairwise, alignment, codon, structure | building: offset and codon | [maps](maps.md) | 15–30 | p53: protein on its gene |
 | Map sourcing | inline, from a source by region, computed by a runtime | building: inline and by region (item maps); computed not | [maps](maps.md) | 212 | p53: structure map computed by alignment |

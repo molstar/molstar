@@ -231,3 +231,8 @@ None.
   kept inside the select behavior; one mmCIF reader for the three recorders; ligand arcs by ligand). Public beyond
   `gridSummary`: `Hit.yBlock` (a split copy told from its twin), `GridLay.off` and the track layout's `filter.dy`
   (fields of existing layout types), accepted. Quick 2131, medium 9. CY starts in DC's slot.
+- NB merged after its review round (a cap on a source's numbering with an issue past it, held labels kept through
+  eviction, a pending numbering resolves as waiting and the address model wants its tiles, blank and mismatched
+  numberings reported, labels matched by spelling then case; `shownNumbering` removed, the reader internal). No view
+  shows it yet: DA's Antibody does. Quick 2166, medium 9. Designs (features, files, molecules) say the kind is built.
+  TW starts in NB's slot; DA after.

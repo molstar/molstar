@@ -43,3 +43,6 @@
 - DC's leftovers: `@molstar/io` as a dev dependency of seqx-examples so the record scripts read mmCIF with
   `parseCifText` (and the recorders out of the published `src/`); a ligand chip coloured on its own (one letters
   layer draws every block's pill).
+- NB's leftovers: a text section's numbers in a source's numbering (inline only today); the `offset` and `segments`
+  methods; a source's labels keyed other than by position; a records runtime converting labels of a declared
+  numbering (files.md, Gaps).

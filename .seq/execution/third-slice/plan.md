@@ -313,7 +313,7 @@ and dark before the merge.
   section of blocks, an AF-shaped N×N PAE over the chains in order (synthetic, examples.md's data decision 2), chain
   boundaries, hover naming both residues, a rect split at chain boundaries, `gridSummary` and a story's readout panel.
   FS-A2 reads the matrix (a JSON or MessagePack array of arrays by path) for it.
-- [ ] NB (strong, next strong slot; before DA; the author, 2026-11-19: "Add it now (0.4.0)", DA having stopped on it)
+- [x] NB (strong, next strong slot; before DA; the author, 2026-11-19: "Add it now (0.4.0)", DA having stopped on it)
       the `numbering` kind (locations-and-queries, Numberings in forms): a child of a sequence, method `labels` (a
       label per position from an inline list or a source table's column; insertion codes; no order required), `scheme`
       (an open word: `kabat`, `imgt`, `chothia`, …); resolve wires it into the model's numberings so `(at :label "100A"

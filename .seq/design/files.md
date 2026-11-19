@@ -28,7 +28,7 @@ what the file's columns mean (the transform), where that runs, and how the examp
   the sequence's end left out and one running past it clipped, one note counting both (EC-51). Taken: the remap, both
   layouts, the roles, the clipping note. Not taken: the UniProt conversion as code behind a service name (the transform
   is written in the spec, so a reader without Seq\* sees it), `from_source` (one source node read by several data nodes
-  is this codebase's shape already), positions by a declared numbering (no `numbering` kind yet, Gaps).
+  is this codebase's shape already), positions by a declared numbering (the `numbering` kind exists, NB; a records runtime does not convert its labels yet, Gaps).
 - **MolViewSpec**: annotations `*_from_uri` with `format` (`cif`, `bcif`, `json`), a `schema` saying which columns are
   positions, `field_remapping`; JSON as an array of records. Taken: the remap as data beside the location. Not taken:
   schemas as a closed list (here the roles are the protocol's fields).
@@ -183,8 +183,8 @@ read". Every param optional; the GFF3 preset fixes its own. Within the language'
 - **Positions**: `base: 1` subtracts one; an `inclusive` end adds one; a `position` row is `[p, p + 1)`. Converted
   once, at the edge, never mixed in one table (EC-1). The file default is `1` and `inclusive` because people's tables,
   UniProt, the Proteins API, GFF3 and VCF count from one and name the last position (EC-195: stated, not learned).
-  **Labels of a declared numbering** (Kabat in a CDR table) wait for the language's `numbering` kind (Gaps): a label is
-  converted against the target system's numbering, which a runtime does not see.
+  **Labels of a declared numbering** (Kabat in a CDR table): the `numbering` kind exists (NB), but a records runtime
+  does not convert a label against the target system's numbering, which it does not see (Gaps).
 - **Values**: a `value` with a `position` a row (sparse: the positions not named are NaN); a `value` with no `position`
   is one value a row from the first position. A position named twice keeps the last, said once.
 - **No expressions, no value recoding**: no computed column, no unit conversion, no string splitting, no map from one
@@ -450,7 +450,7 @@ The claim: **this design covers what a user does with files as sources.**
 8. examples.md's fixture rule amended (read as published where the core reads the format; JSON trimmed, never
    reshaped), and p53's variants and secondary structure moving from `seq` to UniProt's JSON in DG's commit with the
    `PCG` change, so p53's records change once? Recommendation: yes.
-9. Positions as labels of a declared numbering (Kabat in a file) wait for the language's `numbering` kind?
+9. Positions as labels of a declared numbering (Kabat in a file) wait for a runtime that converts them (the kind exists, NB)?
    Recommendation: yes; the Antibody's CDRs are in code as [examples.md](examples.md) says.
 10. The `secondary` layer reads UniProt's words (`Helix`, `Beta strand`, `Turn`) instead of a recoding transform?
     Recommendation: yes.
