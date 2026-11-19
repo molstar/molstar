@@ -392,7 +392,7 @@ and dark before the merge.
 - [ ] CS (strong, beside RK; the author, 2026-11-19: "we should also add a "genome-level" example(s)", "let's do
       chromosome scale this slice") p53's chromosome: chromosome 17 by region, generated, TP53 in place
       ([examples](../../design/examples.md), p53's chromosome; `briefs/cs-chromosome.md`).
-- [ ] SF (fast, beside RK and CS; the author, 2026-11-19: "Small fixes") the size script's `--files`, `@molstar/ui`'s
+- [x] SF (fast, beside RK and CS; merged `2afa74936`; the author, 2026-11-19: "Small fixes") the size script's `--files`, `@molstar/ui`'s
       disabled toolbar item (`briefs/sf-small-fixes.md`).
 - [ ] SR (fast, read-only, beside RK and CS; the author, 2026-11-19: "Spec reconcile prep") finalize's reconcile
       listed ahead (`briefs/sr-reconcile-prep.md`).

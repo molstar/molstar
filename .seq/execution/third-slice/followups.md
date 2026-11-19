@@ -58,3 +58,5 @@
 - HC's leftovers: rulers naming their chain kept labelled (Complex, Antibody against); an empty track label still
   drawn as empty text (core `tracks.ts`); a cursor card replaced when a zoom re-hits the hover; the size script's
   `--files` crash.
+- SF's leftover: look at a disabled toolbar button in `@molstar/ui`'s Storybook and in Prism, light and dark (the
+  dimming computed at 1.7–1.9:1, not seen).

@@ -300,3 +300,7 @@ None.
   minimal viewer "Injectable, opt-in" (viewer-composition.md, Creating a viewer; lane MV, strong, after RK:
   `briefs/mv-minimal-viewer.md`); the open gaps "Yes, as recommended", found already decided and built by GD (gaps.md's
   Open heading was stale, corrected).
+- SF merged (`2afa74936`; reviewed by the orchestrator, 48 lines): the size script's `--files` (inputs summed over the
+  chunks loaded first) and `--only` (an unknown entry refused), its quick test; `@molstar/ui`'s disabled toolbar button
+  at opacity 0.4 (1.7–1.9:1, computed; not looked at in a browser), Seq\*'s own rule removed; changelog
+  `.v6/changelogs/ui-toolbar-disabled.md`. On the merged tree: quick 3190 (ui and seq), tsc, lint, format green.
