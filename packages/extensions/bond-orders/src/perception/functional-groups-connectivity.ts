@@ -17,7 +17,6 @@ import { Vec3 } from '@molstar/core/math/linear-algebra';
 import { isDebugMode } from '@molstar/core/util/debug';
 import { Elements } from '@molstar/model/model/structure/model/properties/atomic/types';
 import type { ElementSymbol } from '@molstar/model/model/structure/model/types';
-import type { UnitIndex } from '@molstar/model/model/structure/structure/element/util';
 import { AtomGeometry } from '@molstar/model/props/computed/chemistry/geometry';
 import { atomId } from '@molstar/model/props/computed/chemistry/util';
 import {
@@ -280,7 +279,10 @@ function connectivityOk(c: NeighborConnectivity, isTerminal: boolean) {
 }
 
 export function applyFunctionalGroups(state: State) {
-  const { unitIndices, n, geometry } = state;
+  const { unitIndices, n, geometry, open } = state;
+  // open valences, kept up to date as patterns write: a neighbour takes a multiple bond only within its own (the
+  // shared N of two guanidines, an O with an explicit H)
+  computeOpenValence(state);
   for (let i = 0; i < n; i++) {
     // If the center already has a multiple bond (e.g. a backbone C=O or phosphate
     // P=O from the order table), its pi system is already placed - don't add another.
@@ -336,7 +338,10 @@ export function applyFunctionalGroups(state: State) {
             order,
           );
         if (order < 2) continue;
+        const added = order - getOrder(state.bonds, u, v);
         setBond(state.bonds, u, v, order, 0);
+        open[i] = Math.max(0, open[i] - added);
+        open[j] = Math.max(0, open[j] - added);
       }
       break;
     }
@@ -383,7 +388,8 @@ const tmpPos = Vec3();
  * - higher-order prefer short bonds (Labute 2005)
  * - higher-order prefer in-ring bonds (Sayle 2001)
  * A neighbour outside the residue is never terminal (an atom of another residue has another heavy neighbour) and
- * fills order-1 slots only: no multiple bond is written across the residue's boundary (_spec §1.11).
+ * fills order-1 slots only: no multiple bond is written across the residue's boundary (_spec §1.11). A neighbour in it
+ * fills a higher-order slot only within its open valence.
  */
 function assignSlots(state: State, i: number, nb: Candidate[], specs: NeighbourSpec[]): number[] | undefined {
   const m = nb.length;
@@ -399,22 +405,31 @@ function assignSlots(state: State, i: number, nb: Candidate[], specs: NeighbourS
     // heavy degree, every bond counted: a residue atom bonded outside the residue is not terminal
     const isTerminalHSuppressed = !outside && state.degree[j] - state.hCount[j] === 1;
     const inRingJ = outside ? 0 : state.inRing[j];
-    const v = outside ? -1 : state.unitIndices[j];
-    const assigned = !outside && isAssignedBond(state, u, v as UnitIndex);
-    const curOrder = assigned ? getOrder(state.bonds, u, v as UnitIndex) : 0;
+    const v = outside ? undefined : state.unitIndices[j];
+    const assigned = v !== undefined && isAssignedBond(state, u, v);
+    const order = v === undefined ? 0 : getOrder(state.bonds, u, v);
+    const curOrder = assigned ? order : 0;
     for (let si = 0; si < s; si++) {
       const spec = specs[si];
       let c: number;
       if (
         !matchEl(spec.el, elJ) ||
         !connectivityOk(spec.connectivity, isTerminalHSuppressed) ||
-        (outside && spec.order > 1)
+        (outside && spec.order > 1) ||
+        // the neighbour's open valence must allow the order increase
+        (!outside && spec.order > order && state.open[j] < spec.order - order)
       ) {
         c = Infinity;
       } else {
         const ringBonus = spec.order > 1 && inRingJ ? -2 : 0;
         // If already assigned bond and conflicts with the spec, penalize to allow picking a better slot
         // (e.g. guanidine double bond assignment after amide recognition)
+        // FIXME: wrong, kept until a benchmark can measure the change. A center with a multiple bond is skipped
+        // (`applyFunctionalGroups`), so the only conflict left is an order-2 slot on a bond assigned single: proven
+        // single by hybridization (too long, non-planar) or stated (`auto`). The search minimizes, and the penalty is
+        // subtracted there: such a bond is preferred for the double (by 1 Å², more than the d2 differences), and
+        // `setBond` then overrides the geometry or the stated order. Intended: no higher order on an assigned bond
+        // (Infinity). The order-1 branch never applies.
         const preAssignmentPenalty = assigned && spec.order !== curOrder ? 1 : 0;
         c = spec.order > 1 ? d2 + ringBonus - preAssignmentPenalty : -d2 + preAssignmentPenalty;
       }

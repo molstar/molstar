@@ -164,6 +164,56 @@ describe('bond-order perception: basic cases', () => {
     expect(orders.filter((o) => o === 2).length).toBe(1);
   });
 
+  it('a functional group puts no double on an O with an explicit H (its open valence)', async () => {
+    // propanoic acid (its ethyl makes CT connected: the carboxylic acid pattern matches), the H written on the O nearer
+    // to C: the C=O goes to the other O
+    const { rows } = await intraBondOrders(
+      [
+        'HETATM    1  C   LIG A   1       0.000   0.000   0.000  1.00  0.00           C  ',
+        'HETATM    2  CT  LIG A   1      -1.520   0.000   0.000  1.00  0.00           C  ',
+        'HETATM    3  O1  LIG A   1       0.625   1.083   0.000  1.00  0.00           O  ',
+        'HETATM    4  O2  LIG A   1       0.635  -1.100   0.000  1.00  0.00           O  ',
+        'HETATM    5  HO1 LIG A   1       1.580   1.250   0.000  1.00  0.00           H  ',
+        'HETATM    6  CM  LIG A   1      -2.030   1.430   0.000  1.00  0.00           C  ',
+        'END',
+      ].join('\n'),
+    );
+    const order = (a: string, b: string) => rows.find((r) => r.a === a && r.b === b)?.order;
+    expect([order('C', 'O1'), order('C', 'O2')]).toEqual([1, 2]);
+  });
+
+  // WBE's 3-amino-5-(methylamino)-1,2,4-triazole (CCD model coordinates): C33 and C34 both match the guanidinium
+  // pattern, and N7 ([nH]) is the neighbour they share. The only PDB component with this substructure.
+  const WbeTriazole = [
+    'HETATM    1  C23 WBE A   1       9.546  -9.654  18.098  1.00  0.00           C  ',
+    'HETATM    2  N6  WBE A   1       8.932 -10.956  18.386  1.00  0.00           N  ',
+    'HETATM    3  C33 WBE A   1       9.430 -12.171  17.723  1.00  0.00           C  ',
+    'HETATM    4  N9  WBE A   1      10.285 -12.218  16.730  1.00  0.00           N  ',
+    'HETATM    5  N8  WBE A   1      10.485 -13.567  16.397  1.00  0.00           N  ',
+    'HETATM    6  C34 WBE A   1       9.744 -14.298  17.196  1.00  0.00           C  ',
+    'HETATM    7  N7  WBE A   1       9.070 -13.453  18.039  1.00  0.00           N  ',
+    'HETATM    8  N10 WBE A   1       9.643 -15.758  17.193  1.00  0.00           N  ',
+  ];
+  const doublesOf = (rows: { a: string; b: string; order: number }[], atom: string) =>
+    rows.filter((r) => r.order === 2 && (r.a === atom || r.b === atom)).map((r) => (r.a === atom ? r.b : r.a));
+
+  it("WBE's triazole matches its CCD: aromatic, C33=N9 and C34=N8, N7 ([nH]) without a double", async () => {
+    const { rows, aromaticCount } = await intraBondOrders([...WbeTriazole, 'END'].join('\n'));
+    expect(aromaticCount).toBe(5);
+    expect([doublesOf(rows, 'C33'), doublesOf(rows, 'C34'), doublesOf(rows, 'N7')]).toEqual([['N9'], ['N8'], []]);
+  });
+
+  it('two functional groups sharing a neighbour: one double on it at most (its open valence)', async () => {
+    // WBE's triazole, N7 moved to 1.28 Å of both C33 and C34 (N9, N8: 1.31 Å): the nearest N of both guanidiniums
+    const distorted = WbeTriazole.map((l) =>
+      l.includes(' N7 ') ? 'HETATM    7  N7  WBE A   1       9.175 -13.410  17.921  1.00  0.00           N  ' : l,
+    );
+    const { rows, aromaticCount } = await intraBondOrders([...distorted, 'END'].join('\n'));
+    expect(doublesOf(rows, 'N7').length).toBeLessThanOrEqual(1);
+    expect([doublesOf(rows, 'C33').length, doublesOf(rows, 'C34').length]).toEqual([1, 1]);
+    expect(aromaticCount).toBe(5);
+  });
+
   it('perceives imidazol-2-one as aromatic: both ring N lone-pair donors (the 4n+2 search, Hückel)', async () => {
     // no H: N1 and N3 are ambiguous (1 or 2 π electrons), the sum reaches 6 only with both at 2
     const { rows } = await intraBondOrders(

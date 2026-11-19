@@ -115,8 +115,10 @@ Quick lane, no network (`src/_test/`). Fixtures in `src/_test/fixtures/`, named 
   order (§1.11).
 - `1tup-e-dt1001-dt1002.pdb` (two nucleotides of chain E): in `forceCompute`, the second residue's P=O, its P bonded to
   the first residue's O3' (§1.11); with that O3' in two altlocs, P still has one partner there.
-- Basic cases: benzene, CONECT benzene, exocyclic amino, carboxylate, glycine, altlocs (a carbonyl O; a benzene atom; a
-  naphthalene atom in one ring, and a fusion atom: the reference altloc's rings form the system).
+- Basic cases: benzene, CONECT benzene, exocyclic amino, carboxylate, a carboxylic acid with an explicit H on its O,
+  WBE's triazole (two guanidiniums sharing a ring N: its CCD orders, and, with that N moved nearest to both, one double
+  on it at most), imidazol-2-one, glycine, altlocs (a carbonyl O; a benzene atom; a naphthalene atom in one ring, and a
+  fusion atom: the reference altloc's rings form the system).
 - The residue gate: a residue whose orders are all stated is left as is, without building the inter-unit neighbours.
 - The pattern cache: a second copy of a component without multiple bonds reuses the empty pattern, not perceived again.
 - The provider: modes (a mol2's bond table untouched in `auto`), cache shared by two structures of a model, one instance
