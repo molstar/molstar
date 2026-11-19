@@ -513,6 +513,25 @@ over 20 runs; the heavy lane bounds one sample at 40 ms (`resolve/_test/addressi
   the file), else refused (`seq.source.malformed`); without one, the index is built from the file (`faidx`, samtools'
   layout). A file that is not ASCII is refused: offsets count bytes. Coverage: a system a record, letters, level 1.
 
+### Alignment readers
+
+`data/alignment-readers.ts`, an entry of its own (`@molstar/seqx-core/data/alignment-readers`: a reader of a spec never
+pays for them). Each reads text into plain data and reports what it cannot read, by line, never throwing (EC-40); held
+by fuzz tests (mutated text read without a throw).
+
+- **Aligned FASTA** (`readAlignedFasta`) and **Stockholm** (`readStockholm`: a row's letters joined across blocks,
+  `#=GF`, `#=GS`, `#=GR` read past, the first alignment of a file): rows of the first row's width, another width or a
+  character that is no letter or gap said and left out; gaps `-`, `.` (`~` read as `-`). A row's first residue number
+  from its label (`NAME/27-137`, EC-39), else 1. **Insert columns** (EC-38): `#=GC RF`'s `.` and `-`, else a column whose
+  letters are all lowercase (A3M's lowercase is on no column). **Pairs**: `#=GC SS_cons` as column pairs, each bracket
+  kind (`<>`, `()`, `[]`, `{}`) a nesting of its own and a pseudoknot an uppercase letter with its lowercase.
+- **Newick** (`readNewick`): nodes in pre-order (parent, branch length, label, children), leaves in tree order; labels
+  bare or quoted (`''` a quote), `[comments]` read past, underscores kept (a label is matched against row names);
+  iterative (a deep tree costs no stack), at most `MaxTreeNodes` (1,000,000) nodes; what does not parse leaves the tree
+  empty with its issue, and the alignment is kept (EC-43).
+- **Leaves to rows** (`matchLeaves`): a leaf names its row by label, else by the label before its last `/`; a row is the
+  first leaf's that names it; -1 for none.
+
 ### Store
 
 - **Keys**: `<source>|<system>|<level>|<tile>` and `<source>#<key>`; a part holding `|`, `#` or `\` escapes it, so no
