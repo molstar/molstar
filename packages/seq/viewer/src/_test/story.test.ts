@@ -236,6 +236,44 @@ describe('a jump’s motion through the port', () => {
   });
 });
 
+describe('a ring turned by a step', () => {
+  it('tweens its rotation the short way round, its labels hidden while it turns and placed once at its end', async () => {
+    const { port, clock } = headlessAnimation();
+    const v = createSeqViewer({ ...DefaultSeqViewerSpec(), ui: undefined, animation: port });
+    viewers.push(v);
+    const b = createSeqSpec({ title: 'ring' });
+    const c = b.data.sequence('c', { alphabet: 'dna', letters: 'ACGT'.repeat(250), cyclic: true });
+    const f = b.data.ranges('f', {
+      target: c,
+      rows: { start: new Int32Array([10, 400]), end: new Int32Array([200, 600]), id: ['a', 'b'] },
+    });
+    const Ring = ['views', 'main', 'ring'];
+    b.views.view('main', (w) => {
+      w.section('ring', { of: c, layout: 'rings', rotation: 20 }).track('f').layer('f', { type: 'ranges', data: f });
+    });
+    b.snapshots.snapshot('turned', {
+      patch: { ops: [{ op: 'set', at: Ring, key: 'rotation', value: 300 }] },
+      duration: 400,
+      easing: 'linear',
+    });
+    await v.load(b.build());
+    v.resize(600);
+    await v.settle();
+    v.draw();
+    const { plan } = v.playStep('turned');
+    expect(plan!.channels[0]).toMatchObject({ kind: 'number', delta: -80 });
+    const layouts = v.counts.layouts;
+    clock.tick(200);
+    const mid = resolveAddress(v.spec.shown.value, Ring)!.params!;
+    expect(mid).toMatchObject({ rotation: -20, labels: 'none' });
+    clock.runAll(16);
+    expect(resolveAddress(v.spec.shown.value, Ring)!.params).toMatchObject({ rotation: 300 });
+    expect(resolveAddress(v.spec.shown.value, Ring)!.params!.labels).toBeUndefined();
+    // laid out each frame of the turn, and once more at its end, where its labels are placed
+    expect(v.counts.layouts).toBeGreaterThan(layouts);
+  });
+});
+
 describe('a jump in a text: its anchor and its letter size', () => {
   it('a step zoom tweens the letter size geometrically, the anchor along', async () => {
     const { port, clock } = headlessAnimation();
