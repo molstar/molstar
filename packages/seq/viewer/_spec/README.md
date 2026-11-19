@@ -133,6 +133,12 @@ nothing and tells nothing.
   `ignore` drops the move; `detach` gives the follower its own range until a fit or `attach`; a move with invalid
   arguments moves and detaches nothing. Focus and reveal by address move the leading sections as before, and the cursor
   on a follower reveals nothing unless it may detach (`reveal.cursor`).
+- **Bands** (`bands`, `band(track)`, `setBand(track, band)`, `bandsOf(section)`): a band's own viewport by its track's
+  address, a rows band's scroll (`bandTop`, px), row zoom (`rowScale`, px a row) and folded clades (`folds`, by name:
+  session state, the layer's `collapsed` when absent; `folds: undefined` drops them). One map, replaced on each change
+  (compared by identity: a frame's key), read into each leading section's frame viewport (`viewports[s].bands`), so the
+  export draws the viewer's folds and scroll. A step of the history keeps the bands with the windows (`Kept.bands`), so
+  back after a fold or a bulk fold lands on the same rows. The scroll is kept in px, not as a row key (a followup).
 - **History** (`jump`, `back`, `forward`, `history`): a jump (a focus, a fit, a reveal, a bookmark's or a link's move,
   the cursor's Enter) runs through `jump(move)`, which pushes the viewports it left (every group's range, a detached
   follower's among them) when it moved the view, and drops the steps forward; `same` when the view already showed it,
@@ -536,7 +542,8 @@ binding table; per move one hit record and one modifiers record are reused.
 
 ## Behaviors
 
-Small policies over the models (`behaviors/`), each reading the bindings.
+Small policies over the models (`behaviors/`), each reading the bindings. `rows` (an alignment's rows: Commands, the
+rows' commands) reads the last frame's rows layers through the behavior context's `layout()`.
 
 - **A section of blocks on several systems** (its axis on no system): a hit names its `block`, and its positions are
   read on that block's axis from its `offset`: a drag-select stays in the block it began on (clamped at its ends), a
@@ -638,9 +645,14 @@ Small policies over the models (`behaviors/`), each reading the bindings.
   empty space clears; `SelectionDrags` on data: a drag selects a range, Cmd/Ctrl+drag adds it, Alt/Option+drag removes
   it, Shift+drag extends the anchor's range; Alt+wheel is unbound on purpose, left to the platform and the host) and
   `genome-browser` (a drag on data pans instead; the selection's clicks kept, its drags dropped).
-- `bindingTable(preset, overrides, { actions, kinds })`: each override layer replaces bindings of the same gesture,
+- **A tree's nodes** (`CladeBindings`, in `default`): a click on a `tree-node` toggles its clade's fold
+  (`clades.toggle`: decided, a node is chrome, as a group's chevron; a preset may bind it to select), Cmd/Ctrl+click
+  toggles its rows in the selection; a `summary-row` is an element (a click selects the clade's rows).
+- `bindingTable(preset, overrides, { actions, kinds, keys })`: each override layer replaces bindings of the same gesture,
   modifiers and target (`action: null` removes one); two of one key within a layer conflict. Resolving is map lookups,
-  no allocation.
+  no allocation. **The keys check** (`keyConflicts`, the viewer passes `view.keys`): two commands whose chords one key
+  event matches conflict (`seq.viewer.binding.conflict`): a printable chord without Shift matches whatever Shift types
+  it, so a `Shift+=` chord is the `+` of `view.zoom-in`'s (Shift as the common layouts type it).
 
 ## Commands
 
@@ -665,6 +677,18 @@ selection's gestures and the cursor's moves are session state; the cursor's focu
   absent), with no memory of an earlier form. On the section named (`address`), else the keyboard cursor's, else the
   first leading one; their keys are `view.keys`' (Shift+R, Shift+C). Why patches: direction and pieces are what the
   figure is, so undo (not back) returns them and the export says the same.
+
+- **The rows' commands** (the `rows` behavior's, `behaviors/rows.ts`, on a track's rows layer, the first when none is
+  named): folds are session state (the band's `folds`: no undo step): `clades.toggle` (a hand's move, no history step),
+  `clades.collapseAll` (every clade but the root), `clades.expandAll`, `clades.collapseTo { depth | height }` and
+  `clades.reveal { rows }` (opens the clades holding them) are jumps, so back restores the folds and the rows' window
+  together; `clades.keep` writes the folds shown into the layer's `collapsed` (one patch); `rows.pin` (toggles: a pinned
+  row is unpinned), `rows.hide`, `rows.show` (the hidden-rows chip's) and `rows.order` are patches of the layer's params,
+  read from the spec as it is now; `rows.zoom-in` and `rows.zoom-out` (`]`, `[` in `view.keys`) double and halve
+  `rowScale` (1/64 to 40 px a row) about the band's middle row. **An edit of `collapsed`** (a patch, an undo) resets the
+  session's folds to it; other edits keep them. The wheel's vertical delta over a rows band (its cells, its header)
+  scrolls its rows (`bandTop`, clamped), its horizontal pans the columns. Clades fold only in tree order (`when` says).
+  `rows.filter` waits for a `filter` param of the rows layer.
 
 ## Legends
 
@@ -729,7 +753,7 @@ settings form.
 | `story.stepStart`                 | `spec`                                                                                                                                                                                                                                                                                                                                       | a patch step applies over the spec: any step reached directly; `from` per step                                                                                                                                                                                               |
 | `story.store`                     | `patch`                                                                                                                                                                                                                                                                                                                                      | the encoder stores a patch over the spec (it follows edits); `full`, `smaller`                                                                                                                                                                                               |
 | `story.maxChain`                  | 8                                                                                                                                                                                                                                                                                                                                            | deltas at most between a step and its keyframe: reaching a step costs at most that many applies                                                                                                                                                                              |
-| `view.keys`                       | `view.back`: Alt+ArrowLeft, Backspace; `view.forward`: Alt+ArrowRight; `view.fit`: 0; `view.zoom-in`: = and +; `view.zoom-out`: -; `view.pan-left`, `view.pan-right`, `view.pan-up`, `view.pan-down`: Shift+Alt+Arrow; `selection.copy-letters`: Mod+c; `selection.bookmark`: Mod+d; `section.reverse`: Shift+R; `section.collapse`: Shift+C | the view's commands' keys by command id, the first the shortcut, and the one shown in the toolbar's tooltip (Cmd/Ctrl+D bookmarks the selection: the browser's own bookmark key, taken only while the canvas has focus); an override merges by id (`[]`: none)               |
+| `view.keys`                       | `view.back`: Alt+ArrowLeft, Backspace; `view.forward`: Alt+ArrowRight; `view.fit`: 0; `view.zoom-in`: = and +; `view.zoom-out`: -; `view.pan-left`, `view.pan-right`, `view.pan-up`, `view.pan-down`: Shift+Alt+Arrow; `selection.copy-letters`: Mod+c; `selection.bookmark`: Mod+d; `section.reverse`: Shift+R; `section.collapse`: Shift+C; `rows.zoom-in`: ]; `rows.zoom-out`: [ | the view's commands' keys by command id, the first the shortcut, and the one shown in the toolbar's tooltip (Cmd/Ctrl+D bookmarks the selection: the browser's own bookmark key, taken only while the canvas has focus); an override merges by id (`[]`: none)               |
 | `ui.toolbar` (in `SeqViewerSpec`) | none                                                                                                                                                                                                                                                                                                                                         | a function mounting the bar above the canvas (`mountToolbar`: Back and Forward, their keys and disabled state); the host places it, as it would a legend: the bar is `@molstar/ui`'s and heavy                                                                               |
 | `ui.legends` (in `SeqViewerSpec`) | `legendsMount`                                                                                                                                                                                                                                                                                                                               | a function mounting the Legend part (`mountLegend(element, viewer, { of, maxItems })`: the legends of the view or of one track, at most 12 entries each, its rows options with accessible names, roving focus, a click selecting a value's items, a hover highlighting them) |
 | `navigate.wheelZoomStep`          | 1.25                                                                                                                                                                                                                                                                                                                                         | the zoom of one wheel notch (100 px of delta) with the zoom modifier, and of a key zoom (no reason recorded)                                                                                                                                                                 |

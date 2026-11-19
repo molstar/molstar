@@ -8,7 +8,7 @@
 // section layouts (strips, warps, placements, navigation) and the tracks layout, the window mark, draw lists in passes, hit-testing, the token table, the text metrics port, the recording and SVG
 // backends, and `renderSvg`. Named re-exports only.
 
-export { AxisTransform, Cut, type Viewport } from './axis.js';
+export { AxisTransform, type BandViewport, Cut, type Viewport } from './axis.js';
 export {
   DefaultRenderConfig,
   type DensityStep,

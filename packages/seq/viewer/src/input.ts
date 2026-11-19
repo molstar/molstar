@@ -21,8 +21,10 @@ import {
   isDragSelect,
   type NavigateBehavior,
   NavigateProvider,
+  RowsProvider,
   type SelectBehavior,
   SelectProvider,
+  trackOfLayer,
   type WindowBehavior,
   WindowProvider,
 } from '@molstar/seqx-viewer/behaviors';
@@ -397,6 +399,14 @@ export class ViewerInput {
       void this.viewer.execute('layer.filter', { address: chip.layer });
       return true;
     }
+    // a tree node's click: its bound command (toggles the clade's fold by default), unless it is a selection's
+    if (chip?.target === 'tree-node' && chip.element) {
+      const action = this.viewer.bindings.resolve('click', this._modifiers(e), 'tree-node');
+      if (action !== undefined && !action.startsWith('selection.')) {
+        void this.viewer.execute(action, { track: trackOfLayer(chip.layer), clade: chip.element.key });
+        return true;
+      }
+    }
     const hit = this._hitAt(x, y);
     const sel = this.viewer.selection;
     const before = sel.value.value;
@@ -483,6 +493,15 @@ export class ViewerInput {
     // a section that scrolls inside its box (a text) takes the wheel only while it overflows, and gives it back at its
     // ends; Cmd/Ctrl+wheel zooms it as any section
     if (this.viewer.placementOf(section)?.clip && !e.ctrlKey && !e.metaKey) return this._scrollBox(section, dy);
+    // over a rows band (its cells, its header) the wheel's vertical delta scrolls its rows, the rest pans the columns
+    const rowsHit =
+      this._hit.ySystem !== undefined || target === 'row' || target === 'summary-row' || target === 'tree-node';
+    const rows = rowsHit && !mods.mod && !mods.shift ? this.viewer.behavior(RowsProvider) : undefined;
+    if (rows && this._hit.layer !== undefined && Math.abs(dy) >= Math.abs(dx)) {
+      const scrolled = rows.wheel(trackOfLayer(this._hit.layer), dy);
+      this.viewer.schedule();
+      return scrolled;
+    }
     const taken = this.viewer.bindings.resolve('wheel', mods, target) !== undefined;
     if (taken) nav.wheel(section, dx, dy, local, mods, target, at);
     // the frame asked for after the behavior's own, so a wheel's deltas apply in the frame that draws them

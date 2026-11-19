@@ -270,6 +270,9 @@ export const DefaultViewerConfig: ViewerConfig = {
       'selection.bookmark': ['Mod+d'],
       'section.reverse': ['Shift+R'],
       'section.collapse': ['Shift+C'],
+      // each matches only its own `e.key`: typed alone on the common layouts, never a browser's zoom key (EC-155)
+      'rows.zoom-in': [']'],
+      'rows.zoom-out': ['['],
     },
   },
   navigate: { wheelZoomStep: 1.25, doubleClickZoomStep: 2, keyPanFraction: 0.1, coalesceWheel: true },

@@ -111,6 +111,20 @@ export const CommandChangeKinds: Readonly<Record<string, ChangeKind>> = {
   // a story step is navigation: entered and left, never undone
   'step.enter': 'navigate',
   'step.leave': 'navigate',
+  // an alignment's rows: folds are session state (a bulk fold a jump), pins, hidden rows, the order and the kept folds
+  // spec edits, the rows' zoom a move
+  'clades.toggle': 'session',
+  'clades.collapseAll': 'session',
+  'clades.expandAll': 'session',
+  'clades.collapseTo': 'session',
+  'clades.reveal': 'session',
+  'clades.keep': 'patch',
+  'rows.pin': 'patch',
+  'rows.hide': 'patch',
+  'rows.show': 'patch',
+  'rows.order': 'patch',
+  'rows.zoom-in': 'navigate',
+  'rows.zoom-out': 'navigate',
   // Esc ends a gesture's preview in nothing
   'preview.cancel': 'preview',
 };

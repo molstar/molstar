@@ -12,6 +12,7 @@ import {
   BuiltInLayouts,
   type Emphasis,
   type EmphasisHighlight,
+  type BandViewport,
   type Frame,
   type FrameInput,
   type Hit as RenderHit,
@@ -64,7 +65,13 @@ import {
   StoreModel,
   ViewModel,
 } from '@molstar/seqx-viewer/models';
-import { AddressingProvider, type LinkRun, SelectProvider } from '@molstar/seqx-viewer/behaviors';
+import {
+  AddressingProvider,
+  type LinkRun,
+  RowsActions,
+  RowsProvider,
+  SelectProvider,
+} from '@molstar/seqx-viewer/behaviors';
 import type { AnimationRequest, SeqAnimation, SeqAnimationParticipant } from '@molstar/seqx-viewer/ports';
 import { frameAnimation } from './animation.js';
 import { ViewerInput } from './input.js';
@@ -256,8 +263,10 @@ export class SeqViewer extends ReactiveModel {
     const extraActions = viewerSpec.bindings?.actions ?? [];
     // the selection's actions only with the behavior that runs them: else its bindings are reported, never dead
     const select = viewerSpec.behaviors.some((b) => b.provider === SelectProvider) ? SelectActions : [];
+    const rows = viewerSpec.behaviors.some((b) => b.provider === RowsProvider) ? RowsActions : [];
     this.bindings = bindingTable(preset, viewerSpec.bindings?.overrides ?? [], {
-      actions: [...DefaultActions, ...select, ...extraActions],
+      actions: [...DefaultActions, ...select, ...rows, ...extraActions],
+      keys: this.config.view.keys,
     });
 
     // behaviors, after the models; one of each name
@@ -272,6 +281,7 @@ export class SeqViewer extends ReactiveModel {
       config: this.config,
       bindings: this.bindings,
       legends: this.legends,
+      layout: () => this._frame?.layout,
     };
     try {
       for (const b of viewerSpec.behaviors) {
@@ -301,6 +311,8 @@ export class SeqViewer extends ReactiveModel {
     this.listenPermanently(this.highlight.version, () => this.schedule());
     // the reader's substitution redraws (its frames are keyed by it); the hover moves the legend's entry
     this.listenPermanently(this.legends.cvdSafe, () => this.schedule());
+    // a band's own scroll, row zoom and folds (a rows band's)
+    this.listenPermanently(this.view.bands, () => this.schedule());
     this.listenPermanently(this.hover.version, () => this.legends.updateHover(this._frame?.layout, this.hover.current));
     // a source-backed system's length arrives with its source's coverage: the view's axes are placed then
     this.view.setLengthSource((system) => {
@@ -812,14 +824,13 @@ export class SeqViewer extends ReactiveModel {
       const w = this._shownViewport(s.address, eye);
       if (!w) continue;
       const k = kept?.[s.address];
-      const framed = this._shownFrame !== undefined;
       if (
         !k ||
         k.start !== w.start ||
         k.end !== w.end ||
         k.scale !== w.scale ||
         k.top !== (w.top || undefined) ||
-        k.bands !== (framed ? w.bands : undefined)
+        k.bands !== this._bandsFor(s.address, w)
       )
         same = false;
       n++;
@@ -831,16 +842,15 @@ export class SeqViewer extends ReactiveModel {
       if (this.view.isFollowing(s.address)) continue;
       const w = this._shownViewport(s.address, eye);
       if (!w) continue;
+      const bands = this._bandsFor(s.address, w);
       out[s.address] = {
         start: w.start,
         end: w.end,
         ...(w.scale !== undefined ? { scale: w.scale } : {}),
         // `top`: the frame's during a motion, else the model's (when set)
         ...(w.top ? { top: w.top } : {}),
-        // `bands`: only a shown frame's, a pass-through of a step's view (`bandTop`, `rowScale` in display rows; each
-        // record copied with those two set, its other fields kept). The ViewModel holds no bands here: the rows
-        // layer's state is to merge under them (the package's TODO, Stories)
-        ...(this._shownFrame && w.bands !== undefined ? { bands: w.bands as RenderViewport['bands'] } : {}),
+        // `bands`: the ViewModel's (scroll, row zoom, folds), a shown frame's `bandTop` and `rowScale` over them
+        ...(bands ? { bands } : {}),
       };
     }
     this._viewportsKept = out;
@@ -848,6 +858,36 @@ export class SeqViewer extends ReactiveModel {
   }
 
   private _viewportsKept: Readonly<Record<string, RenderViewport>> | undefined;
+
+  /**
+   * A section's bands as a frame reads them (_spec/README.md "ViewModel", Bands): the ViewModel's (a rows band's scroll,
+   * row zoom and folds, session state), a shown story frame's `bandTop` and `rowScale` merged over them, the session's
+   * folds kept. Kept while both are the same objects, so the frame's key holds.
+   */
+  private _bandsFor(section: string, w: StepViewport): RenderViewport['bands'] | undefined {
+    const own = this.view.bandsOf(section);
+    const framed = this._shownFrame ? w.bands : undefined;
+    if (!framed) return own;
+    const kept = this._bandsMerged.get(section);
+    if (kept && kept[0] === own && kept[1] === framed) return kept[2];
+    const out: Record<string, BandViewport> = { ...own };
+    for (const track of Object.keys(framed)) {
+      const f = framed[track];
+      const o = own?.[track];
+      out[track] = {
+        bandTop: f.bandTop ?? o?.bandTop ?? 0,
+        ...((f.rowScale ?? o?.rowScale) !== undefined ? { rowScale: f.rowScale ?? o?.rowScale } : {}),
+        ...(o?.folds !== undefined ? { folds: o.folds } : {}),
+      };
+    }
+    this._bandsMerged.set(section, [own, framed, out]);
+    return out;
+  }
+
+  private readonly _bandsMerged = new Map<
+    string,
+    [RenderViewport['bands'] | undefined, NonNullable<StepViewport['bands']>, RenderViewport['bands']]
+  >();
 
   /** A section's placement in the last frame (its strips, what its layout's arithmetic reads), by address. */
   placementOf(section: string): Placement | undefined {

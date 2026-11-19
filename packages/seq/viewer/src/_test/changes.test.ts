@@ -23,6 +23,7 @@ const Protein = '/views/main/protein';
 const Text = '/views/main/text';
 const LettersLayer = `${Protein}/letters/l`;
 const DomainsTrack = `${Protein}/domains`;
+const RowsTrack = '/views/main/aln/rows';
 
 function spec(): Node {
   const b = createSeqSpec({ title: 'changes' });
@@ -43,6 +44,15 @@ function spec(): Node {
     v.section('text', { of: p, layout: 'text', max_width: 130, height: 90 })
       .track('letters')
       .layer('l', { type: 'letters' });
+    // an alignment's rows in tree order: folds, pins, hidden rows, the rows' zoom
+    const aln = b.data.alignment('aln', {
+      alphabet: 'protein',
+      rows: { label: ['a', 'b', 'c', 'd'], letters: ['MEEP', 'MEDP', 'MKEP', 'LEEP'] },
+    });
+    const tree = b.data.tree('tree', { of: aln, newick: '((a,b)ab,(c,d)cd);' });
+    v.section('aln', { of: aln })
+      .track('rows', { height: 60 })
+      .layer('r', { type: 'rows', data: aln, tree, order: 'tree' });
   });
   b.snapshots.snapshot('first', {
     label: 'Domains taller',
@@ -93,8 +103,10 @@ function look(v: SeqViewer) {
       ...v.highlight.names.value.map((n) => v.highlight.get(n)),
       // the reader's color-blind substitution
       v.legends.cvdSafe.value,
+      // a rows band's folds (session state)
+      v.view.band(RowsTrack)?.folds,
     ],
-    navigate: `${vp?.start} ${vp?.end} ${text?.start} ${v.spec.step.value?.id}`,
+    navigate: `${vp?.start} ${vp?.end} ${text?.start} ${v.spec.step.value?.id} ${v.view.band(RowsTrack)?.rowScale}`,
   };
 }
 
@@ -209,6 +221,21 @@ const Cases: Record<string, { ctx: unknown; before?: (v: SeqViewer) => unknown }
   'cursor.add-next': { ctx: { section: Protein }, before: cursorAt(Protein) },
   'cursor.toggle': { ctx: { section: Protein }, before: cursorAt(Protein) },
   'cursor.focus': { ctx: { section: Protein }, before: cursorAt(Protein) },
+  'clades.toggle': { ctx: { track: RowsTrack, clade: 'ab' } },
+  'clades.collapseAll': { ctx: { track: RowsTrack } },
+  'clades.expandAll': { ctx: { track: RowsTrack }, before: (v) => run(v, 'clades.collapseAll', { track: RowsTrack }) },
+  'clades.collapseTo': { ctx: { track: RowsTrack, depth: 1 } },
+  'clades.reveal': {
+    ctx: { track: RowsTrack, rows: [0] },
+    before: (v) => run(v, 'clades.toggle', { track: RowsTrack, clade: 'ab' }),
+  },
+  'clades.keep': { ctx: { track: RowsTrack } },
+  'rows.pin': { ctx: { track: RowsTrack, rows: [2] } },
+  'rows.hide': { ctx: { track: RowsTrack, rows: [1] } },
+  'rows.show': { ctx: { track: RowsTrack }, before: (v) => run(v, 'rows.hide', { track: RowsTrack, rows: [1] }) },
+  'rows.order': { ctx: { track: RowsTrack, order: 'data' } },
+  'rows.zoom-in': { ctx: { track: RowsTrack } },
+  'rows.zoom-out': { ctx: { track: RowsTrack } },
   'preview.cancel': {
     ctx: {},
     before: (v) =>

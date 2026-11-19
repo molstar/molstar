@@ -91,6 +91,8 @@ export interface RowsPrep {
   readonly numbers: 'gutters' | 'none';
   readonly treeWidth: number;
   readonly reference?: string;
+  /** The layer's params as written. */
+  readonly params: Readonly<Record<string, Value>>;
   /** The layer's theme slots (its channels are made again with the data's measures). */
   readonly channelsForms: ResolvedLayer['theme'];
 }
@@ -114,6 +116,10 @@ export class RowsLay {
   cladesOf: unknown;
   readonly display = new DisplayRows();
   displayKey = '';
+  /** The layer's params as written (what its commands edit). */
+  params: Readonly<Record<string, Value>> = {};
+  /** Whether folds apply (tree order with a tree). */
+  foldsApply = false;
   /** The folds applied (clade ids) and their names, as the band or the layer's `collapsed` gave them. */
   folds: readonly string[] = [];
   foldIds: number[] = [];
@@ -236,6 +242,7 @@ export class RowsLay {
     });
     const rowsOf = (labels: readonly string[]) => labels.map((l) => byLabel.get(l) ?? -1).filter((r) => r >= 0);
     const tree = prep.order === 'tree' ? this.clades : undefined;
+    this.foldsApply = tree !== undefined;
     this.foldIds = tree ? folds.map((f) => tree.name.indexOf(f)).filter((c) => c >= 0) : [];
     let order: Int32Array | undefined;
     if (typeof prep.order === 'object') order = fieldOrder(held, prep.order);
@@ -336,6 +343,7 @@ function prepareRows(layer: ResolvedLayer, model: StaticModel): RowsPrep {
   return {
     ...(src ? { src } : {}),
     owner,
+    params: layer.params,
     rowsSystem: a?.rows ?? rowsSystemOf(owner),
     alphabet: system?.alphabet ?? 'protein',
     channels: channelForms(layer.theme),
@@ -384,6 +392,7 @@ export const RowsType: LayerType<Prep, RowsLay> = {
     lay.system = axis.system;
     lay.rowsSystem = prep.rowsSystem;
     lay.owner = prep.owner;
+    lay.params = prep.params;
     lay.box = box;
     lay.axis = axis;
     lay.tokens = tokens;

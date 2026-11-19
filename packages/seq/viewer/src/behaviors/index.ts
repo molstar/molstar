@@ -13,6 +13,7 @@ export * from './editing.js';
 export * from './hover.js';
 export * from './navigate.js';
 export * from './providers.js';
+export * from './rows.js';
 export * from './select.js';
 export * from './theming.js';
 export * from './window.js';
