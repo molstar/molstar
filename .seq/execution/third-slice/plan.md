@@ -246,6 +246,12 @@ and dark before the merge.
       letters and bars in their class color moved to 3:1 against the track's surface in each theme (grids-and-rows,
       The logo; themes.md's `ink` rule with the surface as the fill); tested over every built-in scheme in both themes;
       the Globins logo looked at in light and dark.
+- [ ] DX (fast, now; the author, 2026-11-19: "double clicking the vertical slider selects the last selected column. is
+      that by design?": no) a double-click restores only what its own first click cleared: `input.ts` keeps the
+      selection a click cleared (`_cleared`) for the double-click that may follow, but the rails' clicks and a
+      suppressed click return before resetting it, so a later double-click on a rail (or after a drag) brings back a
+      selection cleared long before. Reset it on every click that is not a double-click's second; a test for each path
+      (rows rail, ruler rail, after a drag, a tree node, the filter chip) that fails on the parent.
 - [ ] RC (strong, after FS-A1, before DG; the author, 2026-11-19: "an extra column with some annotation next to each
       header… to the right of the sequence data", "ok, schedule it like that") row columns: the rows layer's `columns`
       (`field`, `side: left | right`, `as: text | number | bar | chip`, `width`, `title`), fields from `#=GS` lines,
