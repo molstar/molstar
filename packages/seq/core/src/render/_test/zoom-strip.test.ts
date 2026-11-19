@@ -11,8 +11,15 @@
 // whatever the floor; the hysteresis at the threshold (and the strip gone when the span grows past it); the mark kept
 // while the bound section is pending; the tokens kept over a picture made again; a reversed section.
 
+import { createSeqSpec, stripNavigator } from '@molstar/seqx-core/lang';
 import { describe, expect, it } from 'vitest';
-import { DarkTokens, NavWindowFlags, type NavigatorRendererOptions, type ViewLayout } from '../index.js';
+import {
+  DarkTokens,
+  DefaultRenderConfig,
+  NavWindowFlags,
+  type NavigatorRendererOptions,
+  type ViewLayout,
+} from '../index.js';
 import { regionSpec, settleNavigator } from './navigator-fixtures.js';
 
 const R = '/views/v/region';
@@ -102,12 +109,27 @@ describe('the zoom strip', () => {
   });
 
   it('a bound section on the navigator’s whole axis: no strip, its window right; two far regions keep the hull', async () => {
-    const whole = await zoomed({ others: ['whole'] });
-    expect(whole.s.nav.zoomHeight).toBe(0);
-    const w = whole.f.windows[1];
-    const axis = whole.ctx.axis!;
+    // the navigator on the chromosome's section's own axis, and a short sequence mapped onto it beside
+    const b = createSeqSpec({ title: 'own axis' });
+    const chr = b.data.sequence('chr', { alphabet: 'dna', letters: 'ACGT'.repeat(250) });
+    const short = b.data.sequence('short', { alphabet: 'dna', letters: 'ACGT'.repeat(5) });
+    b.data.map('short-on-chr', { from: short, to: chr, method: 'offset', by: 300 });
+    b.views.view('v', (v) => {
+      const c = v.section('chr', { of: chr });
+      c.track('letters').layer('letters', { type: 'letters' });
+      const s = v.section('short', { of: short });
+      s.track('letters').layer('letters', { type: 'letters' });
+      v.navigator('chr', stripNavigator([c.address, s.address]));
+    });
+    const own = await settleNavigator(b.build());
+    const { nav: f } = await own.frames({ size: { width: 600, height: 200 } }, { size: Box });
+    expect(own.nav.zoomHeight).toBe(0);
+    const axis = own.nav.pictureSection!.axis!;
+    const w = f.windows[0];
     expect(w.x0).toBeCloseTo(axis.xOfUnit(0), 3);
     expect(w.x1).toBeCloseTo(axis.xOfUnit(1000), 3);
+    const whole = await zoomed({ others: ['whole'] });
+    expect(whole.s.nav.zoomHeight).toBe(0);
     // the hull of two far regions is wide: one strip (the spec's known case)
     const far = await zoomed({ range: [100, 110], others: [[900, 910]] });
     expect(far.s.nav.zoomHeight).toBe(0);
@@ -135,7 +157,8 @@ describe('the zoom strip', () => {
   });
 
   it('the mark is centred on the truth, whatever `window.floor`; the truth inside it', async () => {
-    const { f, ctx } = await zoomed({ range: [100, 110] }, Box, {}, { navigator: { window: { floor: 'thumb' } } });
+    const thumb = { navigator: { window: { ...DefaultRenderConfig.navigator.window, floor: 'thumb' as const } } };
+    const { f, ctx } = await zoomed({ range: [100, 110] }, Box, {}, thumb);
     const axis = ctx.axis!;
     const [m] = marks(f, 0, 24);
     const a = axis.xOfUnit(100);
