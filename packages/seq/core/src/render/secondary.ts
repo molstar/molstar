@@ -413,7 +413,10 @@ function drawBlocks(lay: SecondaryLay, out: PassWriter, _emphasis: Emphasis | un
   }
 }
 
-/** The hover pass: an outline around each of the hovered item's marks, outside it by the offset. */
+/**
+ * The hover pass: an outline around each of the hovered item's marks, outside it by the offset; concentric with the
+ * mark (its radius plus the offset, its round ends: a helix's squircle; a strand or a turn square).
+ */
 function drawHover(lay: SecondaryLay, out: PassWriter, emphasis: Emphasis | undefined) {
   const h = emphasis?.hover;
   if (!h || h.layer !== lay.key || !h.element) return;
@@ -429,8 +432,9 @@ function drawHover(lay: SecondaryLay, out: PassWriter, emphasis: Emphasis | unde
     a[4] = NoColor;
     a[5] = lay.tokens.colors['seq-hover'];
     a[6] = lay.hoverWidth;
-    a[7] = 0;
-    a[8] = 0;
+    const r = lay.mradius[j];
+    a[7] = r > 0 ? r + half : 0;
+    a[8] = lay.mround[j];
     out.rectArgs();
   }
 }

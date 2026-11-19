@@ -1177,13 +1177,15 @@ the UX foundations' numbers, CSS px, settled by the foundation stories; where no
   of the emphasis, under the highlights: a window is no data emphasis, and a highlight channel stays above it. It is the
   layouts' own (their chrome): no layer draws there. The recorder writes an empty pass as its header.
 - **Primitives** as structs of arrays in growable typed arrays kept frame to frame (`reset` zeroes counts): `rect` (x,
-  y, w, h, fill, stroke and width, a squircle radius, 0 square, and which ends are round), `path` (move, line, cubic,
-  close in shared arrays; fill, stroke, dash), `glyphs` (a run of letters in one font, an x a letter at its center, one
-  baseline, a color a letter or one; a **placed** run gives each letter its own y, angle and vertical scale: letters
-  along a ring, a logo's stacked letters, a row's letters; one form for the three, so one code a backend), `text` (an
-  interned string, x, y, anchor, font, color, its measured width and a max width: faded past it, never ellipsized),
-  `image` (RGBA bytes the layer owns), `clip` (a box, or a squircle with a radius and round ends: a track's well) and
-  `unclip`. A pass's `ops` keep the order its primitives were added in. Colors are `0xRRGGBBAA`; `NoColor` (0) is none.
+  y, w, h, fill, stroke and width, a squircle radius, 0 square, and which ends are round, `Round`; `cutTop` and
+  `cutBottom` square a round end's top or bottom corner: a grid's cell inside its plot, a row cut by its band), `path`
+  (move, line, cubic, close in shared arrays; fill, stroke, dash), `glyphs` (a run of letters in one font, an x a letter
+  at its center, one baseline, a color a letter or one; a **placed** run gives each letter its own y, angle and vertical
+  scale: letters along a ring, a logo's stacked letters, a row's letters; one form for the three, so one code a
+  backend), `text` (an interned string, x, y, anchor, font, color, its measured width and a max width: faded past it,
+  never ellipsized), `image` (RGBA bytes the layer owns), `clip` (a box, or a squircle with a radius and round ends: a
+  track's well) and `unclip`. A pass's `ops` keep the order its primitives were added in. Colors are `0xRRGGBBAA`;
+  `NoColor` (0) is none.
 - **Bounded by the screen**: at most one primitive a device column a lane, or one a cell when cells are a device pixel
   or wider; tracks below the page are not laid out.
 - **Nothing allocated once warm on the draw and emphasis paths** (a full draw of a laid-out view, a hover, a selection
@@ -1256,13 +1258,18 @@ strip's.
   hover from elsewhere (a structure, no layer) is drawn on every section (the `hover` pass). Every hover a squircle
   (Shapes): a cell's (letters, logo, values) by the cell's size, square on a side the view cuts and below the minimum,
   its radius the cell's plus the offset; a letter's codon parts round on the element's outer sides alone; a chip's
-  concentric with its pill; the projected hover round where its range really ends.
+  concentric with its pill; the projected hover round where its range really ends; a secondary structure's mark (its
+  radius plus the offset, its round ends: a helix round, a strand or a turn square), a band's (square at the view's
+  edge), a rows cell's (square where the view or its band cuts it); a grid's hovered or selected cell by its size, its
+  crosshair's column and row square (they end at the plot: a cut).
 - `cursor`: a 1 px outline of its cell (`outline.cursor`) over the band, in a neutral ink (`emphasis.cursorInk`,
-  `msui-text`), never the accent (the `cursor` pass). Whether it is shown is the caller's (a viewer shows it once the
-  keyboard moved it).
+  `msui-text`), never the accent (the `cursor` pass); a squircle by the cell over the band, inside it by half its width
+  (concentric), square on a side the view cuts. Whether it is shown is the caller's (a viewer shows it once the keyboard
+  moved it).
 - **A box a track** (`selectionShape: 'tracks'`) in a layout that fills its bands: the highlights' and the selection's
-  tints drawn inside the track's well clip, so they take its shape; the outlines around marks (the hover's, outside
-  them) are not clipped.
+  tints drawn inside the track's well clip, so they take its shape; then, after the clip, the outlines (the selection's,
+  an `outline`-style highlight's; the hover's in its own pass): an outline around a mark is never clipped, so a cut end
+  keeps its square corners. Under the data (`under`) the same, in the background pass, the clip in the page's frame.
 - **The tints' place** (`emphasis.selectionPlace`): `over` (the default: the highlights' tints over the data in the
   `highlight` pass, the selection's above them in the `selection` pass with its outline; a selection or a highlight
   redraws the emphasis alone) or `under` (the highlights' tints and then the selection's in the `background` pass, under
@@ -1280,15 +1287,19 @@ strip's.
 - Continuous data (cells, value bars) is square; discrete marks (ranges, at every step, a merged run at `bars` too) are
   squircles, radius a third of the height, capped, square below the minimum, so a mark has the shape its emphasis
   outlines. **Every emphasis is a squircle** by the same rule (Emphasis): the hover, the projected hover, the selection,
-  the highlights in each style, a cell's and a chip's hover. **A track's well is a surface, so a squircle**
-  (`render/wells.ts`, `trackShape`): the rule over the well's height, round at both ends (square below the minimum, or
-  `square`), filled with `seq-track` in the background (a stack's later rows in their first strip's data pass), and each
-  track's data is clipped to it with the same path, one clip a track and strip (a block's strip in a row square where it
-  stops short of the well's ends); the data inside keeps its own shape (cells square: a letters or grid track loses a
-  sliver at its corners). Text and rings draw no well: their clip is the well's box. A merged run is round only where
-  its first and last items really end. An end cut by the view, a piece of the axis or a piece of the item's own image
-  (an exon) is square; a mark cut at both ends is square. The squircle is one curve, `squirclePath` (each corner a cubic
-  on |x|⁴ + |y|⁴ = 1), that every backend draws. Outlines are concentric.
+  the highlights in each style, a cell's and a chip's hover, the keyboard cursor. **A track's well is a surface, so a
+  squircle** (`render/wells.ts`, `trackShape`): the rule over the well's height, round at both ends (square below the
+  minimum, or `square`), filled with `seq-track` in the background (a stack's later rows in their first strip's data
+  pass), and each track's data is clipped to it with the same path, one clip a track and strip (a block's strip in a row
+  square where it stops short of the well's ends); the data inside keeps its own shape (cells square: a letters or grid
+  track loses a sliver at its corners). **A grid over blocks** has one well, the plot's (its cells together, grown by
+  its padding): each cell's clip is square on an edge inside the plot (`cutTop`, `cutBottom`, and a side short of the
+  plot's ends), so only the plot's outer corners round; the top row's and the bottom row's clips reach into its padding.
+  A ring's well is its ground (a sector, the band grown radially by its padding), not a squircle; text draws no well;
+  both clip their data to the well's box (the band grown by its padding). A merged run is round only where its first and
+  last items really end. An end cut by the view, a piece of the axis or a piece of the item's own image (an exon) is
+  square; a mark cut at both ends is square. The squircle is one curve, `squirclePath` (each corner a cubic on |x|⁴ +
+  |y|⁴ = 1), that every backend draws. Outlines are concentric.
 
 ### Layer types
 
@@ -1760,7 +1771,8 @@ numbers): a window move allocates nothing once warm.
 - **Shown nodes** (`nodes.holdShown`, true): the layout lists the nodes it shows (`ViewLayout.shown`: the data and the
   path systems of each laid-out layer, through `overlay.holds`), for its owner to hold in the store; with `false`, none.
   Why: a node stays while it is shown, not only while the region that brought it is cached.
-- Cell edges snap to the device grid (`snap`). One label column for every track of a view.
+- Cell edges snap to the device grid (`snap`). One label column for every track of a view; a track's label is centred on
+  its well (its padding with it), in tracks and on a text's first line.
 - **A track's padding** (its `padding`, else `trackPadding`): px inside its well above and below its data, never left or
   right. The well (`TrackLayout.well`) is the track's height plus its padding; its data's band (`TrackLayout.box`, the
   strips' `bandY`, `bandH`: what every layer lays out, hits and emphasizes in) is inset by it, and `Strips.padT`, `padB`

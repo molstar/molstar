@@ -24,11 +24,13 @@ import {
   type PassName,
   recordDrawLists,
   renderSvg,
+  type RingPlacement,
 } from '../index.js';
-import { P53, p53TracksSpec } from './fixtures.js';
+import { P53, p53GeneSpec, p53TracksSpec, smallLayersSpec } from './fixtures.js';
 import { settle } from './helpers.js';
 import { gridSpec } from './pairs-fixtures.js';
 import { blocksSpec } from './rings-fixtures.js';
+import { rowsSpec, Synthetic } from './rows-fixtures.js';
 
 const Size = { width: 800, height: 400 };
 const Protein = '/data/p53';
@@ -137,8 +139,19 @@ describe('a track’s padding', () => {
     // the outer ring's band moves in by its top padding, the next ring by both sides (scaled together)
     expect(sp.bandY[0]).toBeCloseTo(sp.padT[0], 6);
     expect(sp.bandY[1]).toBeGreaterThan(s0.bandY[1]);
-    // its ground is the well: the band grown by its padding, a sector (a path)
-    expect(sp.bandY[0] - sp.padT[0]).toBe(0);
+    // its ground is the well: the band grown by its padding, a sector (a path) from the outer radius in by the
+    // band's height and both paddings
+    const p = f.layout.sections[0].placement as RingPlacement;
+    const ground = lines(f, 'data').find((l) => l.startsWith('path ') && l.endsWith(' #e9e6e0ff'))!;
+    const n = ground
+      .split(' ')
+      .slice(1, -1)
+      .filter((t) => !/^[MLCZ]$/.test(t))
+      .map(Number);
+    const radii: number[] = [];
+    for (let k = 0; k + 1 < n.length; k += 2) radii.push(Math.hypot(n[k] - p.cx, n[k + 1] - p.cy));
+    expect(Math.max(...radii)).toBeCloseTo(p.r, 0);
+    expect(Math.min(...radii)).toBeCloseTo(p.r - (sp.padT[0] + sp.bandH[0] + sp.padB[0]), 0);
   });
 
   it('text bands honour it: the band inset in its line', async () => {
@@ -149,6 +162,46 @@ describe('a track’s padding', () => {
     expect(b.bandY[0]).toBe(a.bandY[0] + 5);
     expect(b.padT[0]).toBe(5);
     expect(b.bandH[0]).toBe(a.bandH[0]);
+  });
+
+  it('a collapsed text band drops its padding; a kept one keeps it', async () => {
+    const f = await frameOf(
+      padded(undefined, { top: 3, bottom: 2 }, { layout: 'text' }),
+      undefined,
+      {},
+      { start: 0, end: 393 },
+    );
+    const st = f.layout.sections[0].placement.strips;
+    let kept = 0;
+    let collapsed = 0;
+    for (let i = 0; i < st.n; i++) {
+      const k = i * st.bands + 1;
+      if (st.bandH[k] > 0) {
+        kept++;
+        expect([st.padT[k], st.padB[k]]).toEqual([3, 2]);
+        // the line's height holds the well: the band's bottom and its padding
+        expect(st.height[i]).toBe(st.bandY[k] + st.bandH[k] + 2);
+      } else {
+        collapsed++;
+        expect([st.padT[k], st.padB[k]]).toEqual([0, 0]);
+        // the letters' band alone: the line as tall as it
+        expect(st.height[i]).toBe(st.bandY[i * st.bands] + st.bandH[i * st.bands]);
+      }
+    }
+    expect(kept).toBeGreaterThan(0);
+    expect(collapsed).toBeGreaterThan(0);
+  });
+
+  it('a track’s label is centred on its well, in tracks and text', async () => {
+    const f = await frameOf(padded({ top: 12 }));
+    const t = f.layout.sections[0].tracks[0];
+    expect(t.labelY - 12 * 0.35).toBeCloseTo(t.well.y + t.well.height / 2, 6);
+    const g = await frameOf(padded({ top: 12 }, undefined, { layout: 'text' }));
+    const st = g.layout.sections[0].placement.strips;
+    const label = lines(g, 'labels').find((l) => l.startsWith('text "p53"'))!;
+    const y = Number(label.split(' ')[3]);
+    const mid = st.bandY[0] - st.padT[0] + (st.bandH[0] + st.padT[0] + st.padB[0]) / 2;
+    expect(y).toBeCloseTo(mid + st.dy[0] + 12 * 0.35, 6);
   });
 
   it('a grid’s plot is inset by it, its well around it', async () => {
@@ -350,5 +403,282 @@ describe('every emphasis a squircle', () => {
     expect(h.length).toBe(1);
     // the pill is a pixel inside the 20 px cell: its radius 9, the outline 1 + 1.75 further out
     expect(h[0]).toMatch(/ squircle 11\.75$/);
+  });
+});
+
+/** Blocks of lengths `ns` and a grid a pair of them following them (values `i·100 + j`). */
+function blocksGrid(ns: readonly number[]): Node {
+  const b = createSeqSpec();
+  const seqs = ns.map((n, k) => b.data.sequence(`s${k}`, { alphabet: 'rna', letters: 'ACGU'.repeat(n).slice(0, n) }));
+  const grids: string[] = [];
+  ns.forEach((nx, x) =>
+    ns.forEach((ny, y) => {
+      const v = new Float32Array(nx * ny);
+      for (let i = 0; i < nx; i++) for (let j = 0; j < ny; j++) v[i * ny + j] = i * 100 + j;
+      grids.push(b.data.grid(`g${x}${y}`, { x: seqs[x], y: seqs[y], values: v }));
+    }),
+  );
+  b.views.view('v', (v) => {
+    const s = v.section('chains', {});
+    seqs.forEach((q, k) => s.block(`b${k}`, { of: q, label: `chain ${k}` }));
+    s.track('letters').layer('letters', { type: 'letters' });
+    const g = v.section('plot', { layout: 'grid', follow: s.address });
+    g.track('plot', {}, (t) => grids.forEach((d, k) => t.layer(`g${k}`, { type: 'grid', data: d })));
+  });
+  return b.build();
+}
+
+describe('a grid over blocks: one well, its cells square inside it', () => {
+  const clipsOf = (f: Frame) => {
+    const s = f.layout.sections[1];
+    const top = s.y;
+    return lines(f, 'data')
+      .filter((l) => l.startsWith('clip '))
+      .map((l) => {
+        const p = l.split(' ');
+        return { x: Number(p[1]), y: Number(p[2]), w: Number(p[3]), h: Number(p[4]), flags: p.slice(5).join(' ') };
+      })
+      .filter((c) => c.y >= top);
+  };
+
+  for (const padding of [undefined, { top: 10, bottom: 4 }])
+    it(`three blocks${padding ? ', padded' : ''}: only the plot's outer corners round${padding ? '; the padding honoured' : ''}`, async () => {
+      const spec = padding ? withParams(blocksGrid([12, 20, 16]), 'plot', { padding }) : blocksGrid([12, 20, 16]);
+      const f = await frameOf(spec, undefined, {}, { start: 0, end: 48 });
+      const t = f.layout.sections[1].tracks[0];
+      const well = t.well;
+      // the plot's well: the cells together, grown by the padding
+      expect(t.box.y - well.y).toBe(padding?.top ?? 0);
+      expect(well.y + well.height - (t.box.y + t.box.height)).toBe(padding?.bottom ?? 0);
+      const clips = clipsOf(f);
+      expect(clips.length).toBe(9);
+      const right = well.x + well.width;
+      const bottom = well.y + well.height;
+      for (const c of clips) {
+        const atTop = Math.abs(c.y - well.y) < 0.5;
+        const atBottom = Math.abs(c.y + c.h - bottom) < 0.5;
+        const atLeft = Math.abs(c.x - well.x) < 0.5;
+        const atRight = Math.abs(c.x + c.w - right) < 1;
+        // a cell's clip reaches the well (the padding) at the plot's top and bottom, its own rows elsewhere
+        if (!atTop) expect(c.y).toBeGreaterThan(well.y);
+        if (!c.flags) {
+          expect(atLeft || atRight).toBe(false);
+          continue;
+        }
+        // round only on the sides at the plot's outer edges; cut where the cell meets another inside it
+        expect(
+          c.flags.includes('left')
+            ? atLeft && !atRight
+            : c.flags.includes('right')
+              ? atRight && !atLeft
+              : atLeft && atRight,
+        ).toBe(true);
+        expect(c.flags.includes('cut-top')).toBe(!atTop);
+        expect(c.flags.includes('cut-bottom')).toBe(!atBottom);
+      }
+      // the middle column's cells boxes (no side at the plot's ends); the four corner cells round at one corner each
+      expect(clips.filter((c) => !c.flags).length).toBe(3);
+      expect(
+        clips.filter((c) => c.flags && (!c.flags.includes('cut-top') || !c.flags.includes('cut-bottom'))).length,
+      ).toBe(4);
+      // the top row's clips start at the well (its padding inside them), the cells' bands at the plot
+      const topRow = clips.filter((c) => Math.abs(c.y - well.y) < 0.5);
+      expect(topRow.length).toBe(3);
+    });
+});
+
+describe('outlines unclipped, tints in the well', () => {
+  it('a box a track: a selection cut by the view’s left edge keeps its outline’s corners outside the clip', async () => {
+    const f = await frameOf(
+      p53TracksSpec(),
+      { selection: rangesLocation(Protein, [0, 6]) },
+      { emphasis: { selectionShape: 'tracks' } },
+      { start: 2, end: 32 },
+    );
+    const sel = lines(f, 'selection');
+    const unclip = sel.indexOf('unclip');
+    expect(sel[0]).toMatch(/^clip 128 8 664 20 squircle 6\.67$/);
+    expect(sel[1]).toMatch(/^rect 128 8 [\d.]+ 20 #[0-9a-f]{8} squircle 6\.67 right$/);
+    expect(unclip).toBe(2);
+    // the outline after the clip: its square left corners whole
+    expect(sel[3]).toMatch(/^rect 128\.5 8\.5 [\d.]+ 19 none stroke #[0-9a-f]{8} 1 squircle 6\.17 right$/);
+  });
+
+  it('an outline-style highlight is drawn after the clip too; its tint inside it', async () => {
+    const hl = (style?: 'outline') => ({
+      location: rangesLocation(Protein, [4, 8]),
+      color: 0xff0000ff,
+      ...(style ? { style } : {}),
+    });
+    const f = await frameOf(
+      p53TracksSpec(),
+      { highlights: [hl(), hl('outline')] },
+      { emphasis: { selectionShape: 'tracks' } },
+    );
+    const h = lines(f, 'highlight');
+    expect(h[0].startsWith('clip ')).toBe(true);
+    expect(h[1]).toMatch(/ #ff00004d squircle /);
+    expect(h[2]).toBe('unclip');
+    expect(h[3]).toMatch(/ none stroke #ff0000ff 1 squircle /);
+  });
+
+  it('the background’s tints under the data: the well’s clip in the page’s frame, as the data’s', async () => {
+    const f = await frameOf(
+      p53TracksSpec(),
+      { selection: rangesLocation(Protein, [4, 8]) },
+      { emphasis: { selectionShape: 'tracks', selectionPlace: 'under' } },
+    );
+    const back = lines(f, 'background').filter((l) => l.startsWith('clip '));
+    const data = lines(f, 'data').filter((l) => l.startsWith('clip '));
+    expect(back).toEqual(data);
+    for (const s of f.layout.sections)
+      if (s.layout.fillBands) {
+        expect(s.placement.strips.dx[0]).toBe(0);
+        expect(s.placement.strips.dy[0]).toBe(0);
+      }
+  });
+});
+
+describe('emphasis cut ends', () => {
+  it('a selection cut at a break (an intron collapsed) is square there, round at its real ends', async () => {
+    const f = await frameOf(
+      p53GeneSpec({ coding: true }),
+      { selection: rangesLocation('/data/tp53', [380, 500]) },
+      {},
+      { start: 0, end: 1200 },
+    );
+    const tints = lines(f, 'selection').filter((l) => l.startsWith('rect ') && !l.includes('stroke'));
+    const own = tints.filter((l) => / squircle [\d.]+ (left|right)$/.test(l));
+    // the gene's two pieces either side of the break: each round at its real end alone
+    expect(own.length).toBeGreaterThanOrEqual(2);
+    expect(own.some((l) => l.endsWith(' left'))).toBe(true);
+    expect(own.some((l) => l.endsWith(' right'))).toBe(true);
+  });
+
+  it('a selection cut at a block’s end is square there', async () => {
+    const b = createSeqSpec();
+    const p = b.data.sequence('p', { alphabet: 'protein', letters: P53 });
+    const q = b.data.sequence('q', { alphabet: 'protein', letters: P53.slice(0, 80) });
+    b.views.view('v', (v) => {
+      const s = v.section('s', {});
+      s.block('a', { of: p, range: [0, 50] });
+      s.block('b', { of: q });
+      s.track('letters').layer('letters', { type: 'letters' });
+    });
+    const f = await frameOf(b.build(), { selection: rangesLocation('/data/p', [40, 60]) }, {}, { start: 0, end: 130 });
+    const sel = lines(f, 'selection').filter((l) => l.startsWith('rect '));
+    expect(sel.length).toBe(2);
+    expect(sel.every((l) => / squircle [\d.]+ left$/.test(l))).toBe(true);
+  });
+});
+
+describe('every emphasis a squircle: the other layers', () => {
+  it('a secondary structure’s helix hover: the mark’s radius plus the offset, its round ends', async () => {
+    const f0 = await frameOf(smallLayersSpec());
+    const helix = lines(f0, 'data').find((l) => {
+      const p = l.split(' ');
+      // the secondary track's band (34 to 50): a helix, a squircle
+      return p[0] === 'rect' && Number(p[2]) > 34 && Number(p[2]) < 50 && l.includes(' squircle ');
+    })!;
+    const [x, y, w, h] = helix.split(' ').slice(1, 5).map(Number);
+    const r = Number(helix.split(' ').at(-1));
+    const hit = hitView(f0.layout, x + w / 2, y + h / 2)!;
+    expect(hit.element).toBeDefined();
+    const f = await frameOf(smallLayersSpec(), { hover: hit });
+    const hover = lines(f, 'hover').filter((l) => l.startsWith('rect '));
+    expect(hover[0]).toBe(
+      `rect ${x - 1.75} ${y - 1.75} ${w + 3.5} ${h + 3.5} none stroke #2d271eff 1.5 squircle ${Number((r + 1.75).toFixed(2))}`,
+    );
+  });
+
+  it('a band’s hover: a squircle by the band’s size', async () => {
+    const b = createSeqSpec();
+    const chr = b.data.sequence('chr', { alphabet: 'dna', letters: 'ACGT'.repeat(250) });
+    const bands = b.data.ranges('bands', {
+      target: chr,
+      rows: {
+        start: [0, 200, 400, 520, 600, 700, 900],
+        end: [200, 400, 520, 600, 700, 900, 1000],
+        id: ['p13', 'p12', 'p11.2', 'p11.1', 'q11.1', 'q12', 'q13'],
+        stain: ['gneg', 'gpos50', 'gpos25', 'acen', 'acen', 'gpos100', 'gvar'],
+      },
+    });
+    b.views.view('v', (v) =>
+      v
+        .section('s', { of: chr })
+        .track('bands', { height: 20 })
+        .layer('bands', { type: 'bands', data: bands } as never),
+    );
+    const spec = b.build();
+    const f0 = await frameOf(spec, undefined, {}, { start: 0, end: 1000 });
+    const t = f0.layout.sections[0].tracks[0];
+    const hit = hitView(f0.layout, t.box.x + t.box.width * 0.3, t.box.y + 5)!;
+    expect(hit.element).toBeDefined();
+    const f = await frameOf(spec, { hover: hit }, {}, { start: 0, end: 1000 });
+    const hover = lines(f, 'hover').filter((l) => l.startsWith('rect '));
+    expect(hover.length).toBe(1);
+    expect(hover[0]).toMatch(/ squircle 8\.42$/);
+  });
+
+  it('a rows cell’s hover: a squircle by the cell (square below the minimum)', async () => {
+    const s = await settle(rowsSpec(20, false), [Synthetic]);
+    const input = { size: { width: 800, height: 700 }, viewport: { start: 0, end: 30 } };
+    await s.frame(input);
+    const f0 = s.renderer.frame(input);
+    const t = f0.layout.sections[0].tracks[0];
+    const hit = hitView(f0.layout, t.box.x + 100, t.box.y + 60)!;
+    expect(hit.yPosition).toBeDefined();
+    const f = s.renderer.frame({ ...input, emphasis: { hover: hit } });
+    const outline = lines(f, 'hover')
+      .filter((l) => l.includes(' stroke '))
+      .at(-1)!;
+    const [, , , w, h] = outline.split(' ').map(Number);
+    if (w - 3.5 >= 6 && h - 3.5 >= 6) expect(outline).toMatch(/ squircle [\d.]+$/);
+    else expect(outline).not.toContain('squircle');
+    // zoomed in: cells wide enough, a squircle
+    const near = { ...input, viewport: { start: 0, end: 20 } };
+    await s.frame(near);
+    const g0 = s.renderer.frame(near);
+    const hit2 = hitView(g0.layout, t.box.x + 100, t.box.y + 60)!;
+    const g = s.renderer.frame({ ...near, emphasis: { hover: hit2 } });
+    expect(
+      lines(g, 'hover')
+        .filter((l) => l.includes(' stroke '))
+        .at(-1),
+    ).toMatch(/ squircle [\d.]+$/);
+  });
+
+  it('the keyboard cursor: square where the view cuts its cell', async () => {
+    const f = await frameOf(
+      p53TracksSpec(),
+      { cursor: { system: Protein, position: 2 } },
+      {},
+      { start: 2.5, end: 32.5 },
+    );
+    expect(lines(f, 'cursor').filter((l) => l.startsWith('rect '))[0]).toMatch(/ squircle [\d.]+ right$/);
+  });
+
+  it('a grid’s hovered cell: its outline a squircle, the crosshair’s column and row square', async () => {
+    const r = await frameOf(
+      gridSpec({ n: 12 }),
+      {
+        hover: {
+          layer: '/views/v/plot/plot/grid',
+          section: 'plot',
+          system: '/data/s',
+          position: 3,
+          ySystem: '/data/s',
+          yPosition: 4,
+        },
+      },
+      {},
+      { start: 0, end: 12 },
+    );
+    const hover = lines(r, 'hover').filter((l) => l.startsWith('rect '));
+    const strokes = hover.filter((l) => l.includes('none stroke'));
+    const fills = hover.filter((l) => !l.startsWith('rect') || !l.includes('none stroke'));
+    expect(strokes.at(-1)).toMatch(/ squircle [\d.]+$/);
+    expect(fills.length).toBeGreaterThan(0);
+    expect(fills.every((l) => !l.includes('squircle'))).toBe(true);
   });
 });

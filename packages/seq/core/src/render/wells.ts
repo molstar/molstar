@@ -34,8 +34,10 @@ export function wellCorners(g: Float64Array, r: number, config: RenderConfig): v
 /**
  * The clip of band `j` on strip `i` into `g` (x, y, w, h, radius, round ends: `PassWriter.clipSquircleArgs`), in the
  * strip's frame: the band's well (its padding round it) over `box`'s x. In a layout that fills its bands (tracks, a
- * grid) it is the well's squircle, round where `box` reaches the track's well's ends (a block within the row: square
- * where it stops short of them); elsewhere (text, rings: no well drawn) a box.
+ * grid) it is the well's squircle (its radius by the track's well), round where `box` reaches the track's well's ends
+ * (a block within the row: square where it stops short of them); a grid's cell (a pair of blocks) is square too on
+ * an edge inside the plot (`cutTop`, `cutBottom`), so only the plot's outer corners round. Elsewhere (text, rings: their
+ * wells are boxes) the well's box.
  */
 export function wellClipArgs(g: Float64Array, s: SectionLayout, i: number, j: number, box: Box): void {
   const strips = s.placement.strips;
@@ -49,12 +51,22 @@ export function wellClipArgs(g: Float64Array, s: SectionLayout, i: number, j: nu
   const well = s.layout.fillBands ? s.tracks[j]?.well : undefined;
   if (well) {
     // the radius by the track's well, the clip's x the box's
+    const h = g[3];
     g[2] = well.width;
+    g[3] = well.height;
     wellCorners(g, 4, s.config);
+    g[3] = h;
     if (g[4] > 0) {
-      const left = box.x <= well.x + 0.5 ? Round.left : 0;
-      const right = box.x + box.width >= well.x + well.width - 0.5 ? Round.right : 0;
-      g[5] = left | right;
+      let round =
+        (box.x <= well.x + 0.5 ? Round.left : 0) | (box.x + box.width >= well.x + well.width - 0.5 ? Round.right : 0);
+      // a grid's cells share one well (the plot's): an edge inside it is cut
+      if (s.layout.axesY) {
+        if (g[1] > well.y + 0.5) round |= Round.cutTop;
+        if (g[1] + h < well.y + well.height - 0.5) round |= Round.cutBottom;
+      }
+      // no round end: a box (a cell inside the plot)
+      if ((round & 3) === 0) g[4] = 0;
+      g[5] = (round & 3) === 0 ? 0 : round;
     }
   }
   g[2] = box.width;

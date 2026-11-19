@@ -64,7 +64,7 @@ import { chipText } from './layout/blocks.js';
 import { TextLayout } from './layout/text.js';
 import { RingsLayout } from './layout/rings.js';
 import { TracksLayout } from './layout/tracks.js';
-import { GridLayout } from './layout/grid.js';
+import { GridLayout, GridPlacement } from './layout/grid.js';
 import type { PlaceContext, Placement, SectionLayoutType } from './layout/types.js';
 import { SecondaryType } from './secondary.js';
 import { ValuesType } from './values.js';
@@ -1346,14 +1346,16 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     for (let j = 0; j < nb; j++) {
       if (j) by += config.trackGap;
       const track = shown[j];
-      const pt = strips.n ? strips.padT[j] : pads[2 * j];
-      const pb = strips.n ? strips.padB[j] : pads[2 * j + 1];
+      // a grid's track is its plot (over blocks: its cells together), its well the plot's grown by its padding
+      const plot = placement instanceof GridPlacement && strips.n ? placement : undefined;
+      const pt = plot ? plot.padTop : strips.n ? strips.padT[j] : pads[2 * j];
+      const pb = plot ? plot.padBottom : strips.n ? strips.padB[j] : pads[2 * j + 1];
       const box: Box = {
         x: dataX,
-        y: strips.n ? strips.bandY[j] + strips.dy[0] : by + pt,
+        y: plot ? plot.plotTop : strips.n ? strips.bandY[j] + strips.dy[0] : by + pt,
         width: sectionBox.width,
         // a layout of two axes overlays its bands on the plot
-        height: layout.axesY && strips.n ? strips.bandH[j] : heights[j],
+        height: plot ? plot.plotHeight : heights[j],
       };
       const well: Box =
         pt > 0 || pb > 0 ? { x: box.x, y: box.y - pt, width: box.width, height: box.height + pt + pb } : box;
@@ -1383,7 +1385,8 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         box,
         well,
         labelWidth: input.text.measure(config.labelFont, track.label),
-        labelY: box.y + box.height / 2 + labelSize * 0.35,
+        // centred on its well (its padding with it), not on its data
+        labelY: well.y + well.height / 2 + labelSize * 0.35,
         layers,
         ...(filter ? { filter } : {}),
       });
@@ -1409,12 +1412,12 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       for (let j = 0; j < nb; j++) {
         const k = i * nb + j;
         boxes.push(
-          i === 0 && layout.fillBands
+          i === 0 && layout.fillBands && !layout.axesY
             ? tracks[j].box
             : { x: a.x0, y: strips.bandY[k], width: a.width, height: strips.bandH[k] },
         );
       }
-      columns.push(i === 0 && layout.fillBands ? band : stripColumn(strips, i, height));
+      columns.push(i === 0 && layout.fillBands && !layout.axesY ? band : stripColumn(strips, i, height));
     }
     const text = tracks.length ? directionMark(section, config) : undefined;
     const mark = text
@@ -1681,11 +1684,20 @@ function drawBackground(layout: ViewLayout, out: PassWriter, emphasis: Emphasis 
         if (under && !column && s.axis) {
           const strips = s.placement.strips;
           if (strips.n) {
+            // in the page's frame: the first strip's (a layout that fills its bands translates it by nothing)
             wellClipArgs(out.args, s, 0, ti, box);
+            out.args[0] += strips.dx[0];
+            out.args[1] += strips.dy[0];
             out.clipSquircleArgs();
+            EmphasisPart = Part.tints;
           }
           drawTints(out, s, s.axis, box, emphasis!, tokens, config);
-          if (strips.n) out.unclip();
+          if (strips.n) {
+            out.unclip();
+            EmphasisPart = Part.outlines;
+            drawTints(out, s, s.axis, box, emphasis!, tokens, config);
+            EmphasisPart = Part.all;
+          }
         }
       }
       if (under && column && s.axis && s.band) drawTints(out, s, s.axis, s.band, emphasis!, tokens, config);
@@ -1722,8 +1734,16 @@ function drawTints(
   config: RenderConfig,
 ) {
   if (emphasis.highlights) drawHighlights(out, axis, box, emphasis, config);
-  drawSelectionTint(out, axis, box, emphasis, tokens, config, projectedSides(s, axis, emphasis));
+  if (EmphasisPart !== Part.outlines)
+    drawSelectionTint(out, axis, box, emphasis, tokens, config, projectedSides(s, axis, emphasis));
 }
+
+/**
+ * Which of the emphasis a box draws: all of it, its tints alone (inside a track's well clip), or its outlines alone
+ * (after the clip: an outline around a mark is never clipped).
+ */
+const Part = { all: 0, tints: 1, outlines: 2 } as const;
+let EmphasisPart: number = Part.all;
 
 /** Whether a section draws the selection's projected parts: not a selected rect's sides where it shows both systems. */
 function projectedSides(s: SectionLayout, axis: AxisTransform, emphasis: Emphasis): boolean {
@@ -1835,11 +1855,16 @@ function drawStrips(
               (pass === 'selection' &&
                 (emphasis.selection !== undefined || emphasis.projected?.selection !== undefined)));
           if (tint) {
+            // the tints inside the well's clip, then the outlines over them unclipped
             wellClipArgs(w.args, s, i, j, box);
             w.clipSquircleArgs();
-          }
-          drawSectionEmphasis(w, s, a, box, emphasis, layout);
-          if (tint) w.unclip();
+            EmphasisPart = Part.tints;
+            drawSectionEmphasis(w, s, a, box, emphasis, layout);
+            w.unclip();
+            EmphasisPart = Part.outlines;
+            drawSectionEmphasis(w, s, a, box, emphasis, layout);
+            EmphasisPart = Part.all;
+          } else drawSectionEmphasis(w, s, a, box, emphasis, layout);
         }
         const lays = s.lays[k];
         // the window pass is the layouts' own (their chrome): no layer draws there, so a hover's redraw walks none
@@ -1913,8 +1938,8 @@ function drawSectionEmphasis(
       break;
     case 'selection': {
       const sides = projectedSides(s, axis, emphasis);
-      if (over) drawSelectionTint(out, axis, box, emphasis, tokens, config, sides);
-      drawSelectionOutline(out, axis, box, emphasis, tokens, config, sides);
+      if (over && EmphasisPart !== Part.outlines) drawSelectionTint(out, axis, box, emphasis, tokens, config, sides);
+      if (EmphasisPart !== Part.tints) drawSelectionOutline(out, axis, box, emphasis, tokens, config, sides);
       break;
     }
     case 'hover':
@@ -1934,7 +1959,11 @@ function drawSectionEmphasis(
 // width, the corners, an offset) goes through `Paint`, a typed array: its numbers are never boxed; colors at an
 // opacity are made inline (`withAlpha` would box its result).
 
-/** The keyboard cursor: a thin outline of its cell over the box, in a neutral ink (`emphasis.cursorInk`). */
+/**
+ * The keyboard cursor: a thin outline of its cell over the box, in a neutral ink (`emphasis.cursorInk`); a squircle by
+ * the cell over the box (every emphasis a squircle), inside it by half its width (concentric), square on a side the
+ * view cuts and below the minimum.
+ */
 function drawCursor(
   out: PassWriter,
   axis: AxisTransform,
@@ -1947,18 +1976,29 @@ function drawCursor(
   const w = config.outline.cursor;
   // `snap` inline, the rect through `args`: an emphasis redraw allocates nothing once warm
   const dpr = axis.dpr;
-  const x0 = Math.round(axis.sx0 * dpr) / dpr;
-  const x1 = Math.round(axis.sx1 * dpr) / dpr;
+  let x0 = Math.round(axis.sx0 * dpr) / dpr;
+  let x1 = Math.round(axis.sx1 * dpr) / dpr;
+  // a side past the view's edge is cut there: square
+  const round = (x0 >= axis.x0 ? Round.left : 0) | (x1 <= axis.x0 + axis.width ? Round.right : 0);
+  x0 = Math.max(x0, axis.x0);
+  x1 = Math.min(x1, axis.x0 + axis.width);
+  const cw = x1 - x0;
+  const h = box.height;
+  // `squircleRadius` inline (a number returned from a call is boxed); the outline's less half its width
+  const r =
+    cw < config.squircleMin || h < config.squircleMin
+      ? 0
+      : Math.min(h * config.squircleRatio, config.squircleMax, cw / 2, h / 2);
   const g = out.args;
   g[0] = x0 + w / 2;
   g[1] = box.y + w / 2;
-  g[2] = Math.max(x1 - x0 - w, 0.5);
-  g[3] = box.height - w;
+  g[2] = Math.max(cw - w, 0.5);
+  g[3] = h - w;
   g[4] = NoColor;
   g[5] = tokens.colors[config.emphasis.cursorInk];
   g[6] = w;
-  g[7] = 0;
-  g[8] = 0;
+  g[7] = r > 0 && round !== 0 ? Math.max(r - w / 2, 0) : 0;
+  g[8] = round;
   out.rectArgs();
 }
 
@@ -2193,8 +2233,11 @@ function drawHighlights(out: PassWriter, axis: AxisTransform, box: Box, emphasis
       n++;
     }
   }
-  if (n === 1) paintHighlight(out, axis, box, hs[HIndex[0]], HParts[0]!, 0, 1, config);
-  else if (n > 1) {
+  // the fills (tints, bands) and the outlines drawn apart when a well's clip holds the fills alone
+  const fills = EmphasisPart === Part.outlines ? 0 : n;
+  if (EmphasisPart === Part.tints) o = 0;
+  if (fills === 1) paintHighlight(out, axis, box, hs[HIndex[0]], HParts[0]!, 0, 1, config);
+  else if (fills > 1) {
     HOut = out;
     HAxis = axis;
     HBox = box;

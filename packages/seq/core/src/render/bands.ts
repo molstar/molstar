@@ -261,23 +261,36 @@ function drawBands(lay: BandsLay, out: PassWriter, _emphasis: Emphasis | undefin
   }
 }
 
-/** The hover pass: an outline around the hovered band. */
+/**
+ * The hover pass: an outline around the hovered band, a squircle by the band's size (every emphasis a squircle), its
+ * radius plus the offset; square on a side at the view's edge (a band there may go on past it) and below the minimum.
+ */
 function drawHover(lay: BandsLay, out: PassWriter, emphasis: Emphasis | undefined) {
   const h = emphasis?.hover;
   if (!h || h.layer !== lay.key || !h.element) return;
   const half = lay.hoverWidth / 2 + lay.hoverOffset;
   const a = out.args;
+  const c = lay.config;
+  const { box } = lay;
+  const bh = box.height;
   for (let j = 0; j < lay.m; j++) {
     if (lay.rows.keys[lay.mitem[j]] !== h.element.key) continue;
-    a[0] = lay.mx0[j] - half;
-    a[1] = lay.box.y - half;
-    a[2] = lay.mx1[j] - lay.mx0[j] + 2 * half;
-    a[3] = lay.box.height + 2 * half;
+    const x0 = lay.mx0[j];
+    const x1 = lay.mx1[j];
+    const w = x1 - x0;
+    // `squircleRadius` inline (a number returned from a call is boxed)
+    const r =
+      w < c.squircleMin || bh < c.squircleMin ? 0 : Math.min(bh * c.squircleRatio, c.squircleMax, w / 2, bh / 2);
+    const round = (x0 > box.x + 0.5 ? 1 : 0) | (x1 < box.x + box.width - 0.5 ? 2 : 0);
+    a[0] = x0 - half;
+    a[1] = box.y - half;
+    a[2] = w + 2 * half;
+    a[3] = bh + 2 * half;
     a[4] = NoColor;
     a[5] = lay.tokens.colors['seq-hover'];
     a[6] = lay.hoverWidth;
-    a[7] = 0;
-    a[8] = 0;
+    a[7] = r > 0 && round !== 0 ? r + half : 0;
+    a[8] = round;
     out.rectArgs();
   }
 }

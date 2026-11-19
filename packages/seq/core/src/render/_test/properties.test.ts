@@ -276,9 +276,10 @@ describe('draw lists: emphasis', () => {
       'rect 328.5 8.5 39 95 none stroke #8f4c0699 1 squircle 7.5',
       '',
     ]);
-    // the cursor: one thin outline of its cell over the band, in the neutral ink
+    // the cursor: one thin outline of its cell over the band, in the neutral ink; a squircle by the cell over the band
+    // (capped at 8), inside it by half its width
     expect(recordDrawLists(f.lists, ['cursor']).split('\n').slice(2)).toEqual([
-      'rect 528.5 8.5 19 95 none stroke #2d271eff 1',
+      'rect 528.5 8.5 19 95 none stroke #2d271eff 1 squircle 7.5',
       '',
     ]);
   });

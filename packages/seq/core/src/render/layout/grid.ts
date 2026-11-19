@@ -48,6 +48,9 @@ export class GridPlacement extends StripPlacement {
   /** The plot's top and height on the page: its well's less the padding (_spec/README.md "Render", Tracks layout). */
   plotTop = 0;
   plotHeight = 0;
+  /** The padding above and below the plot inside its well. */
+  padTop = 0;
+  padBottom = 0;
 
   override at(p: ArrayLike<number>, out: PlacePoint): boolean {
     if (!this.xRow) return super.at(p, out);
@@ -107,7 +110,15 @@ function blockRow(row: BlockRow, blocks: readonly ResolvedBlock[], x0: number, w
  * block across and y's down, each laid as a row of blocks over its window (y follows x: the same window down the
  * plot's height), the pair's cell its bands' box.
  */
-function placeBlocksGrid(section: ResolvedSection, ctx: PlaceContext, p: GridPlacement, top: number, h: number) {
+function placeBlocksGrid(
+  section: ResolvedSection,
+  ctx: PlaceContext,
+  p: GridPlacement,
+  top: number,
+  h: number,
+  pt: number,
+  pb: number,
+) {
   const blocks = section.blocks!;
   const strips = p.strips;
   const x = ctx.axis;
@@ -145,9 +156,14 @@ function placeBlocksGrid(section: ResolvedSection, ctx: PlaceContext, p: GridPla
       strips.yFirst[i] = oc;
       strips.top[i] = yr.x[c];
       strips.height[i] = yr.w[c];
+      // the plot's well round its cells: the padding above the first row and below the last
+      const padT = yr.x[c] <= top + 0.5 ? pt : 0;
+      const padB = yr.x[c] + yr.w[c] >= top + h - 0.5 ? pb : 0;
       for (let j = 0; j < ctx.bands.length; j++) {
         strips.bandY[i * strips.bands + j] = yr.x[c];
         strips.bandH[i * strips.bands + j] = yr.w[c];
+        strips.padT[i * strips.bands + j] = padT;
+        strips.padB[i * strips.bands + j] = padB;
       }
     }
   }
@@ -251,8 +267,10 @@ export const GridLayout: SectionLayoutType<GridPlacement> = {
     p.yFirst = p.yLast = '';
     p.plotTop = top;
     p.plotHeight = h;
+    p.padTop = pt;
+    p.padBottom = pb;
     if (section.blocks) {
-      placeBlocksGrid(section, ctx, p, top, h);
+      placeBlocksGrid(section, ctx, p, top, h, pt, pb);
       p.contentHeight = h + pt + pb;
       p.box = { x: config.inset, y: well, width: ctx.width - 2 * config.inset, height: h + pt + pb };
       for (let k = 0; k < strips.n; k++) ctx.layStrip(p, k);

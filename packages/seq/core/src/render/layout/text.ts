@@ -565,7 +565,10 @@ export const TextLayout: SectionLayoutType<TextPlacement> = {
         let prev = Number.NEGATIVE_INFINITY;
         for (let j = 0; j < nb; j++) {
           if (strips.bandH[k0 + j] <= 0) continue;
-          const by = Math.max(strips.bandY[k0 + j] + strips.bandH[k0 + j] / 2 + labelSize * 0.35, prev + labelSize);
+          // centred on the band's well (its padding with it)
+          const k = k0 + j;
+          const mid = strips.bandY[k] + (strips.bandH[k] + strips.padB[k] - strips.padT[k]) / 2;
+          const by = Math.max(mid + labelSize * 0.35, prev + labelSize);
           prev = by;
           const m = mark(i, ctx.bands[j].label, config.inset, by, AnchorStart, config.labelFont, ctx.text);
           marks.push({ ...m, maxWidth: config.labelWidth });

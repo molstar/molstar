@@ -33,7 +33,15 @@ interface R {
   readonly paint: string;
 }
 
-/** The highlight pass's rects, in drawing order: `rect x y w h fill stroke [width]`. */
+/** The SVG's highlight pass, its group alone (not the wells, the clips or another pass's marks). */
+function highlightPass(svg: string): string {
+  const at = svg.indexOf('<g data-pass="highlight">');
+  if (at < 0) return '';
+  const end = svg.indexOf('<g data-pass="', at + 1);
+  return svg.slice(at, end < 0 ? undefined : end);
+}
+
+/** The highlight pass's marks (its rects, never a clip), in drawing order: `rect x y w h fill stroke [width]`. */
 function listRects(lists: Parameters<typeof recordDrawLists>[0]): R[] {
   return recordDrawLists(lists, ['highlight'])
     .split('\n')
@@ -50,7 +58,7 @@ function listRects(lists: Parameters<typeof recordDrawLists>[0]): R[] {
  */
 function svgRects(svg: string): R[] {
   const out: R[] = [];
-  for (const m of svg.matchAll(/<(rect|path) ([^>]*)\/>/g)) {
+  for (const m of highlightPass(svg).matchAll(/<(rect|path) ([^>]*)\/>/g)) {
     const a = Object.fromEntries([...m[2].matchAll(/([\w-]+)="([^"]*)"/g)].map((x) => [x[1], x[2]]));
     if (a['fill-opacity'] !== '0.3') continue;
     const paint = `${a.fill} ${a['fill-opacity']}`;
@@ -178,8 +186,10 @@ describe('text lines and rings', () => {
       '#00ff004d',
       '#00ff004d',
     ]);
-    // the ring's paths, then the linear section's squircles (paths too)
-    const fills = [...r.svg.matchAll(/<path [^>]*fill="(#[0-9a-f]{6})" fill-opacity="0.3"\/>/g)].map((m) => m[1]);
+    // the ring's paths, then the linear section's squircles (paths too), in the highlight pass alone
+    const fills = [...highlightPass(r.svg).matchAll(/<path [^>]*fill="(#[0-9a-f]{6})" fill-opacity="0.3"\/>/g)].map(
+      (m) => m[1],
+    );
     expect(fills).toEqual(['#ff0000', '#ff0000', '#00ff00', '#00ff00', '#ff0000', '#ff0000', '#00ff00', '#00ff00']);
   });
 });

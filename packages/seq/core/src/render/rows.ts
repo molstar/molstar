@@ -2040,22 +2040,41 @@ function hoverBand(lay: RowsLay, out: PassWriter, i: number, ink: number, rows =
   out.rectArgs();
 }
 
-/** The hovered cell's outline at display row `i`, between x0 and x1. */
-function hoverCell(lay: RowsLay, out: PassWriter, i: number, a: number, b: number, ink: number) {
+/** The hovered cell's x extents (`hoverCell` reads them: set before the call). */
+const CellX = new Float64Array(2);
+
+/**
+ * The hovered cell's outline at display row `i`, between `CellX[0]` and `CellX[1]`: a squircle by the cell's size (every emphasis a
+ * squircle), its radius plus the offset, square on a side the view or the band's edge cuts and below the minimum.
+ */
+function hoverCell(lay: RowsLay, out: PassWriter, i: number, ink: number) {
   const { box, config } = lay;
+  // the cell's x through an array: a fractional number passed to a call that is not inlined is boxed
+  const a = CellX[0];
+  const b = CellX[1];
   const y = lay.rowY(i);
-  if (y + lay.rowScale <= box.y || y >= box.y + box.height) return;
+  const rh = lay.rowScale;
+  if (y + rh <= box.y || y >= box.y + box.height) return;
   const g = out.args;
   const d = config.outline.hover / 2 + config.emphasis.hoverOffset;
+  const w = b - a;
+  const r =
+    w < config.squircleMin || rh < config.squircleMin
+      ? 0
+      : Math.min(rh * config.squircleRatio, config.squircleMax, w / 2, rh / 2);
+  // cut: past the data box's sides (the view), above or below the band (its rows scroll inside it)
+  let round = (a >= box.x ? 1 : 0) | (b <= box.x + box.width ? 2 : 0);
+  if (y < box.y) round |= 4;
+  if (y + rh > box.y + box.height) round |= 8;
   g[0] = a - d;
   g[1] = y - d;
-  g[2] = b - a + 2 * d;
-  g[3] = lay.rowScale + 2 * d;
+  g[2] = w + 2 * d;
+  g[3] = rh + 2 * d;
   g[4] = NoColor;
   g[5] = ink;
   g[6] = config.outline.hover;
-  g[7] = 0;
-  g[8] = 0;
+  g[7] = r > 0 && (round & 3) !== 0 ? r + d : 0;
+  g[8] = round;
   out.rectArgs();
 }
 
@@ -2136,8 +2155,10 @@ function drawHover(lay: RowsLay, out: PassWriter, emphasis: Emphasis | undefined
   g[7] = 0;
   g[8] = 0;
   out.rectArgs();
-  if (i >= 0) hoverCell(lay, out, i, a, b, ink);
-  if (j >= 0 && j !== i) hoverCell(lay, out, j, a, b, ink);
+  CellX[0] = a;
+  CellX[1] = b;
+  if (i >= 0) hoverCell(lay, out, i, ink);
+  if (j >= 0 && j !== i) hoverCell(lay, out, j, ink);
 }
 
 /** The selection's tint and outline colors and the x span (`drawSelection` sets them): read by `paintRows`. */

@@ -44,10 +44,17 @@ export function squirclePathArgs(p: PathList, a: Float64Array): void {
   const y = a[1];
   const w = a[2];
   const h = a[3];
-  const r = a[4];
+  const r = Math.min(a[4], w / 2, h / 2);
   const round = a[5];
-  const left = (round & Round.left) !== 0 ? Math.min(r, w / 2, h / 2) : 0;
-  const right = (round & Round.right) !== 0 ? Math.min(r, w / 2, h / 2) : 0;
+  // each corner round where its side's end is (`Round.left`, `right`) and its edge is not cut (`cutTop`, `cutBottom`)
+  const left = (round & Round.left) !== 0;
+  const right = (round & Round.right) !== 0;
+  const top = (round & Round.cutTop) === 0;
+  const bottom = (round & Round.cutBottom) === 0;
+  const tl = left && top ? r : 0;
+  const tr = right && top ? r : 0;
+  const br = right && bottom ? r : 0;
+  const bl = left && bottom ? r : 0;
   const x1 = x + w;
   const y1 = y + h;
   const k = 1 - SquircleHandle;
@@ -57,54 +64,54 @@ export function squirclePathArgs(p: PathList, a: Float64Array): void {
   let n = 0;
   let c = 0;
   Cmds[c++] = PathCommand.move;
-  P[n++] = x + left;
+  P[n++] = x + tl;
   P[n++] = y;
   Cmds[c++] = PathCommand.line;
-  P[n++] = x1 - right;
+  P[n++] = x1 - tr;
   P[n++] = y;
-  if (right > 0) {
+  if (tr > 0) {
     Cmds[c++] = PathCommand.cubic;
-    P[n++] = x1 - right * k;
+    P[n++] = x1 - tr * k;
     P[n++] = y;
     P[n++] = x1;
-    P[n++] = y + right * k;
+    P[n++] = y + tr * k;
     P[n++] = x1;
-    P[n++] = y + right;
+    P[n++] = y + tr;
   }
   Cmds[c++] = PathCommand.line;
   P[n++] = x1;
-  P[n++] = y1 - right;
-  if (right > 0) {
+  P[n++] = y1 - br;
+  if (br > 0) {
     Cmds[c++] = PathCommand.cubic;
     P[n++] = x1;
-    P[n++] = y1 - right * k;
-    P[n++] = x1 - right * k;
+    P[n++] = y1 - br * k;
+    P[n++] = x1 - br * k;
     P[n++] = y1;
-    P[n++] = x1 - right;
+    P[n++] = x1 - br;
     P[n++] = y1;
   }
   Cmds[c++] = PathCommand.line;
-  P[n++] = x + left;
+  P[n++] = x + bl;
   P[n++] = y1;
-  if (left > 0) {
+  if (bl > 0) {
     Cmds[c++] = PathCommand.cubic;
-    P[n++] = x + left * k;
+    P[n++] = x + bl * k;
     P[n++] = y1;
     P[n++] = x;
-    P[n++] = y1 - left * k;
+    P[n++] = y1 - bl * k;
     P[n++] = x;
-    P[n++] = y1 - left;
+    P[n++] = y1 - bl;
   }
   Cmds[c++] = PathCommand.line;
   P[n++] = x;
-  P[n++] = y + left;
-  if (left > 0) {
+  P[n++] = y + tl;
+  if (tl > 0) {
     Cmds[c++] = PathCommand.cubic;
     P[n++] = x;
-    P[n++] = y + left * k;
-    P[n++] = x + left * k;
+    P[n++] = y + tl * k;
+    P[n++] = x + tl * k;
     P[n++] = y;
-    P[n++] = x + left;
+    P[n++] = x + tl;
     P[n++] = y;
   }
   Cmds[c++] = PathCommand.close;

@@ -24,8 +24,12 @@ export const Op = { rect: 0, path: 1, glyphs: 2, text: 3, image: 4, clip: 5, unc
 
 export type OpKind = keyof typeof Op;
 
-/** Rounded ends of a squircle rect: an end cut by the view or a block is square (the frame rule). */
-export const Round = { none: 0, left: 1, right: 2, both: 3 } as const;
+/**
+ * Rounded ends of a squircle rect: an end cut by the view or a block is square (the frame rule). `cutTop` and
+ * `cutBottom` square the top or bottom corners of the round ends too (a cell of a grid over blocks, a row cut by its
+ * band's edge: cut above or below).
+ */
+export const Round = { none: 0, left: 1, right: 2, both: 3, cutTop: 4, cutBottom: 8 } as const;
 
 export const PathCommand = { move: 0, line: 1, cubic: 2, close: 3 } as const;
 
