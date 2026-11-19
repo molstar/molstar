@@ -397,8 +397,8 @@ describe('the tracks layout’s navigation', () => {
 
   it('pan by px, zoom about a unit, fit, reveal, clamp', () => {
     const v = { start: 100, end: 200 };
-    expect(TracksNav.pan(c, v, 40, 0)).toMatchObject({ start: 90, end: 190 });
-    expect(TracksNav.pan(c, v, 4_000, 0)).toMatchObject({ start: 0, end: 100 });
+    expect(TracksNav.pan(c, v, 40, 0)).toMatchObject({ start: 110, end: 210 });
+    expect(TracksNav.pan(c, v, -4_000, 0)).toMatchObject({ start: 0, end: 100 });
     expect(TracksNav.zoom(c, v, 2, 150)).toMatchObject({ start: 125, end: 175 });
     expect(TracksNav.zoom(c, v, 2, 100)).toMatchObject({ start: 100, end: 150 });
     // never past the most px a position

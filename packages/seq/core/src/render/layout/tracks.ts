@@ -40,7 +40,7 @@ export const TracksNav: SectionNav = {
   pan(c, v, dx, dy) {
     const d = (dx * (v.end - v.start)) / c.width;
     const top = Math.max(0, (v.top ?? 0) + dy);
-    return clampWindow(c, { ...v, start: v.start - d, end: v.end - d, ...(dy ? { top } : {}) });
+    return clampWindow(c, { ...v, start: v.start + d, end: v.end + d, ...(dy ? { top } : {}) });
   },
   zoom(c, v, factor, at) {
     const start = at - (at - v.start) / factor;

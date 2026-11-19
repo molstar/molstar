@@ -172,4 +172,36 @@ describe('the text layout’s navigation', () => {
     expect(TextNav.zoom(c, { ...v, scale: 12 }, 0.1, 100).scale).toBe(10);
     expect(TextNav.fit(c, { start: 100, end: 200, scale: 20 })).toEqual({ start: 0, end: 100 });
   });
+
+  it('a pan reads the viewport it is given (two pans before a layout add up); a zoom keeps the pointer’s line at its y', async () => {
+    const s = await settle(p53TextSpec(), [], { text: { maxHeight: 120 } });
+    const f = await s.frame({ size: { width: 720, height: 400 }, viewport: { start: 0, end: 393 } });
+    const p = text(f.layout.sections[0]);
+    const g = p.geometry!;
+    const c: NavContext = {
+      total: 393,
+      width: 600,
+      height: 120,
+      cyclic: false,
+      maxScale: 32,
+      minScale: 10,
+      placement: p,
+    };
+    const pitch = g.lineHeight + g.lineGap;
+    const once = TextNav.pan(c, { start: 0, end: 393 }, 0, pitch);
+    expect(TextNav.pan(c, once, 0, pitch).start).toBeCloseTo(2 * g.unitsPerLine);
+    // the scroll's sign: a positive dy shows what is below
+    expect(TextNav.pan(c, once, 0, -pitch).start).toBeCloseTo(0);
+    // zoomed in about a unit two lines below the anchor: it stays two lines below, on the new breaking
+    const at = 2 * g.unitsPerLine + 3;
+    const z = TextNav.zoom(c, { start: 0, end: 393, scale: g.cell }, 1.5, at);
+    const laid = await s.frame({
+      size: { width: 720, height: 400 },
+      viewport: { start: z.start, end: 393, scale: z.scale },
+    });
+    const q = text(laid.layout.sections[0]);
+    const lineOf = (u: number, upl: number) => Math.floor(u / upl);
+    expect(lineOf(at, q.geometry!.unitsPerLine) - lineOf(q.anchor, q.geometry!.unitsPerLine)).toBe(2);
+    expect(q.geometry!.unitsPerLine).toBeLessThan(g.unitsPerLine);
+  });
 });

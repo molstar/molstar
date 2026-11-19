@@ -118,6 +118,7 @@ export type StepDir = 'left' | 'right' | 'up' | 'down' | 'home' | 'end';
 
 /** Gestures to viewports, pure: what the viewer calls instead of doing arithmetic of its own. */
 export interface SectionNav {
+  /** Moves the view by a scroll's deltas, px: positive shows what is right of and below what is in view. */
   pan(c: NavContext, v: Viewport, dx: number, dy: number): Viewport;
   /** Zooms by `factor` (above 1: in) about display unit `at`, kept where it is. */
   zoom(c: NavContext, v: Viewport, factor: number, at: number): Viewport;

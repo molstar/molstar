@@ -67,6 +67,9 @@ export interface TextGeometry {
   readonly group: number;
   readonly gap: number;
   readonly unitsPerLine: number;
+  /** The width lines may take (px), and the part of a group's gap an inline group label takes (px). */
+  readonly avail: number;
+  readonly inline: number;
   /** Lines in the section, and those laid out at most (`text.maxLines`). */
   readonly lines: number;
   readonly laid: number;
@@ -87,6 +90,12 @@ export interface TextGeometry {
 export function lineWidthOf(g: Pick<TextGeometry, 'cell' | 'group' | 'gap'>, n: number): number {
   if (n <= 0) return 0;
   return n * g.cell + (g.group > 0 ? (Math.ceil(n / g.group) - 1) * g.gap : 0);
+}
+
+/** How many units a line of `avail` px holds: whole groups of `group` cells with `gap` after each (none: cells). */
+export function unitsPerLineOf(avail: number, cell: number, group: number, gap: number): number {
+  if (group > 0) return Math.max(1, Math.floor((avail + gap) / (group * cell + gap))) * group;
+  return Math.max(1, Math.floor(avail / cell));
 }
 
 /** Breaks a section's `total` display units into lines for a width, a scale and its params. */
@@ -112,9 +121,7 @@ export function textGeometry(
   // an inline group label takes part in breaking: the gap holds it
   const inline = params.groupLabels === 'inline' && group > 0 ? numberW : 0;
   const gap = group > 0 ? t.groupGap * cell + inline : 0;
-  let unitsPerLine: number;
-  if (group > 0) unitsPerLine = Math.max(1, Math.floor((avail + gap) / (group * cell + gap))) * group;
-  else unitsPerLine = Math.max(1, Math.floor(avail / cell));
+  const unitsPerLine = unitsPerLineOf(avail, cell, group, gap);
   const full = lineWidthOf({ cell, group, gap }, Math.min(unitsPerLine, Math.max(1, total)));
   const lineX = params.align === 'center' ? dataX + Math.max(0, (avail - full) / 2) : dataX;
   const lines = Math.max(1, Math.ceil(total / unitsPerLine));
@@ -132,6 +139,8 @@ export function textGeometry(
     group,
     gap,
     unitsPerLine,
+    avail,
+    inline,
     lines,
     laid: Math.min(lines, t.maxLines),
     lineX,
@@ -397,18 +406,32 @@ function placed(c: NavContext): TextPlacement | undefined {
   return c.placement instanceof TextPlacement && c.placement.geometry ? c.placement : undefined;
 }
 
+/** The px from the first line's top to an anchor (a display unit, fractional within its line). */
+function topOf(p: TextPlacement, anchor: number): number {
+  const g = p.geometry!;
+  const line = Math.min(p.heights.length - 1, Math.floor(anchor / g.unitsPerLine));
+  if (line < 0) return 0;
+  return p.lineTop(line) + (anchor / g.unitsPerLine - line) * p.heights[line];
+}
+
+/** The anchor at px `y` from the first line's top. */
+function anchorAt(p: TextPlacement, y: number): number {
+  p.locate(y);
+  return (p.lineAt + p.frac) * p.geometry!.unitsPerLine;
+}
+
 /**
  * The text layout's arithmetic (_spec/README.md "Render", Text layout): a pan scrolls lines (vertical), a zoom steps the
- * letter size keeping the position under the pointer at its y, a reveal brings a line to the top, up and down step a
- * line; the anchor is clamped to the content and the scale to the letters' threshold and `maxScale`.
+ * letter size keeping the line under the pointer at its y, a reveal brings a line not in view to the top, up and down
+ * step a line (none past the first or the last: the cursor then crosses to the section above or below); the anchor is
+ * clamped to the content and the scale to the letters' threshold and `maxScale`. Each reads the viewport it is given
+ * (its anchor `start`), the placement only for the lines' breaking and heights.
  */
 export const TextNav: SectionNav = {
   pan(c, v, _dx, dy) {
     const p = placed(c);
     if (!p || !dy) return v;
-    const g = p.geometry!;
-    p.locate(p.top + dy);
-    const start = (p.lineAt + p.frac) * g.unitsPerLine;
+    const start = anchorAt(p, topOf(p, v.start) + dy);
     return TextNav.clamp(c, { ...v, start, end: start + (v.end - v.start) });
   },
   zoom(c, v, factor, at) {
@@ -416,11 +439,14 @@ export const TextNav: SectionNav = {
     const scale = Math.max(c.minScale ?? 0, Math.min(c.maxScale, (v.scale ?? p?.geometry?.cell ?? 12) * factor));
     if (!p) return { ...v, scale };
     const g = p.geometry!;
-    // the line holding `at` keeps its y: its offset in lines from the anchor's top, in the new breaking
+    // the line holding `at` keeps its y: its distance in lines from the anchor, in the new breaking (exact: the
+    // breaking's own arithmetic at the new cell)
+    const cell = Math.max(c.minScale ?? 0, scale);
+    const gap = g.group > 0 ? ((g.gap - g.inline) / g.cell) * cell + g.inline : 0;
     const upl0 = g.unitsPerLine;
-    const lines0 = at / upl0 - p.anchor / upl0;
-    const upl1 = Math.max(1, Math.round((upl0 * g.cell) / scale / Math.max(1, g.group)) * Math.max(1, g.group));
-    const start = Math.max(0, at - lines0 * upl1);
+    const upl1 = unitsPerLineOf(Math.max(cell, g.avail), cell, g.group, gap);
+    const lines = Math.floor(at / upl0) - v.start / upl0;
+    const start = Math.max(0, Math.floor(at / upl1) * upl1 - lines * upl1);
     return TextNav.clamp(c, { ...v, start, end: start + (v.end - v.start), scale });
   },
   fit(_c, v) {
@@ -431,9 +457,14 @@ export const TextNav: SectionNav = {
     const p = placed(c);
     if (!p) return v;
     const g = p.geometry!;
-    if (start >= p.window.start && end <= p.window.end) return v;
-    const line = Math.floor(start / g.unitsPerLine);
-    return TextNav.clamp(c, { ...v, start: line * g.unitsPerLine });
+    // in view: from the anchor's top to the box's bottom
+    const top = topOf(p, v.start);
+    const first = Math.floor(start / g.unitsPerLine);
+    const last = Math.floor(Math.max(start, end - 1) / g.unitsPerLine);
+    const y0 = p.lineTop(first);
+    const y1 = p.lineTop(Math.min(last + 1, p.heights.length));
+    if (y0 >= top && Math.min(y1, y0 + p.box.height) <= top + p.box.height) return v;
+    return TextNav.clamp(c, { ...v, start: first * g.unitsPerLine });
   },
   step(c, offset, dir: StepDir) {
     const last = c.total - 1;
@@ -443,21 +474,19 @@ export const TextNav: SectionNav = {
     const upl = p?.geometry?.unitsPerLine ?? 1;
     const d = dir === 'left' ? -1 : dir === 'right' ? 1 : dir === 'up' ? -upl : upl;
     const next = offset + d;
-    if (next < 0 || next > last) return dir === 'down' && offset + 1 <= last ? last : -1;
-    return next;
+    if (next >= 0 && next <= last) return next;
+    // down from the line above the last, shorter: the last unit
+    if (dir === 'down' && Math.floor(offset / upl) < Math.floor(last / upl)) return last;
+    return -1;
   },
   clamp(c, v) {
     const p = placed(c);
     let start = Math.max(0, v.start);
     if (p) {
-      const g = p.geometry!;
       // the anchor no lower than where the last line's bottom meets the box's bottom
-      const content = p.lineTop(g.laid);
-      const room = Math.max(0, content - p.box.height);
-      p.locate(room);
-      const most = (p.lineAt + p.frac) * g.unitsPerLine;
-      start = Math.min(start, most);
-    }
+      const content = p.lineTop(p.geometry!.laid);
+      start = Math.min(start, anchorAt(p, Math.max(0, content - p.box.height)));
+    } else start = Math.min(start, Math.max(0, c.total - 1));
     const scale = v.scale === undefined ? undefined : Math.max(c.minScale ?? 0, Math.min(c.maxScale, v.scale));
     if (start === v.start && scale === v.scale) return v;
     return { ...v, start, ...(scale !== undefined ? { scale } : {}) };
