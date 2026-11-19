@@ -46,7 +46,7 @@ its first and last leaves)? Recommend **yes** (`drift/clade-names.md`).
 
 A line's start and end numbers ("61", "80") sit at the first band's middle, 6 px below the ruler's labels ("65",
 "75"); layouts.md (Numbers per row) is silent. Put them on the ruler's label baseline when the first band is a ruler?
-Recommend **yes** (one line of numbers reads as one row).
+Recommend **yes** (one line of numbers reads as one row). **Decided yes** (the author, 2026-11-19); built in CH's fix round.
 
 ## Decided by the author (2026-11-19: "go as recommended")
 

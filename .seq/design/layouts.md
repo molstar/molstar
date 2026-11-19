@@ -413,7 +413,9 @@ interface Placement {
   in the band's numbering, printed in a gutter (start: left, after the label column; end: right); `start` because a
   line is read from its start, so its first number places what follows without counting; group labels
   (`group_labels`: `above`, `inline`, `none`) number each group (EC-94). A line with no position of a row has no
-  number for it.
+  number for it. A ruler band's line numbers sit on the ruler's label baseline (decided, the author, 2026-11-19): one
+  row of numbers across the line, start, ticks and end. A position carries one label: a group's end number falls on a
+  ruler tick of the same numbering, the ruler draws the tick without its label.
 - **Alignment figures** (EC-97, the ESPript figure): a rows layer ([grids-and-rows.md](grids-and-rows.md)) is a band of text rows on each line; each
   row's label in the label column of every line, its last residue on the line in its own numbering in the end gutter;
   group labels number the reference row. The label column fades a long label (`@molstar/ui`'s rule), where the
