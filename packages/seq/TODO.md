@@ -130,8 +130,7 @@ links, selection, the security bounds, MessagePack). Next, version 1's second mi
 - **Emphasis**: projected selection bands on a whole axis are rounded at intron edges, where the frame rule wants the
   ends a projection cut square (a projection-aware cut flag; on a collapsed axis an end at a break is square); the
   keyboard cursor reads as a full-height hairline below 1 px a cell (a minimum width or a caret).
-- **Tests**: `render/_test/frame-time.test.ts`'s per-frame max bounds flake under a parallel heavy run (18 and 50 ms
-  against 16): best of three, or a percentile instead of the max. The p53 fixtures round-tripped JSON ↔ MessagePack in a
+- **Tests**: the p53 fixtures round-tripped JSON ↔ MessagePack in a
   test here (io cannot import them).
 
 - **Themes**: a filter by a value's range (steps, a ramp: `(item :<field>)` compares atoms only) and filters through a
