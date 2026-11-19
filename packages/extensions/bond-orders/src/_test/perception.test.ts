@@ -49,6 +49,19 @@ describe('bond-order perception: hard cases', () => {
     expect(phosphate.map((r) => r.order).sort()).toEqual([1, 2]);
     expect(bondRows(unit).find((r) => r.a === "O3'" && r.b === 'P')?.order).toBe(1);
   });
+
+  it("1tup-e-dt1001-dt1002: the previous residue's O3' in two altlocs is one partner of P", async () => {
+    // P (no altloc) is bonded to both copies of O3': the first one counts, the other is skipped
+    const lines = readFixture('1tup-e-dt1001-dt1002.pdb').split('\n');
+    const i = lines.findIndex((l) => l.startsWith('ATOM      6  O3'));
+    const altA = `${lines[i].slice(0, 16)}A${lines[i].slice(17, 54)} 0.50${lines[i].slice(60)}`;
+    const altB = `${altA.slice(0, 16)}B${altA.slice(17, 30)}  27.988${altA.slice(38)}`;
+    lines.splice(i, 1, altA, altB);
+    const model = await modelFromPdb(lines.join('\n'), '1TUP');
+    const unit = perceived(model, 'forceCompute').units[0] as Unit.Atomic;
+    const phosphate = bondRows(unit).filter((r) => r.a === 'OP1' || r.a === 'OP2' || r.b === 'OP1' || r.b === 'OP2');
+    expect(phosphate.map((r) => r.order).sort()).toEqual([1, 2]);
+  });
 });
 
 // Basic cases (_spec §4).

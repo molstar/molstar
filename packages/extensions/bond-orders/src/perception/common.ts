@@ -133,6 +133,10 @@ export function State(
     const posList: number[] = [];
     const localList: number[] = [];
     const elList: ElementSymbol[] = [];
+    // the altloc kept for this atom's neighbours outside the residue, per loop: an atom without altloc is bonded to
+    // every copy of an altloc'd partner, the first copy met stands for the partner (its order is the same, and never
+    // written). The copies of one partner are all in one loop (a partner in the unit is skipped in the inter-unit one).
+    let partnerAlt = '';
 
     // inter-unit neighbours
     const partners = interUnit.get(elements[u]);
@@ -143,7 +147,10 @@ export function State(
         if (SortedArray.has(elements, eI)) continue;
 
         const eAlt = label_alt_id.value(eI);
-        if (eAlt && eAlt !== referenceAltLoc) continue;
+        if (eAlt) {
+          if (!partnerAlt) partnerAlt = eAlt;
+          else if (eAlt !== partnerAlt) continue;
+        }
 
         degree[i]++;
         conformation.invariantPosition(eI, tmpVecA);
@@ -156,11 +163,17 @@ export function State(
     }
 
     // intra-unit neighbours, from the graph being perceived
+    partnerAlt = '';
     for (let t = offset[u]; t < offset[u + 1]; t++) {
       if (!BondType.isCovalent(flags[t])) continue;
       const v = b[t];
       const vAlt = altLoc(unit, v);
-      if (vAlt && vAlt !== referenceAltLoc) continue; // skip bonds to atoms in other altlocs
+      if (vAlt) {
+        if (v >= start && v < end) {
+          if (vAlt !== referenceAltLoc) continue; // skip bonds to residue atoms from different altloc
+        } else if (!partnerAlt) partnerAlt = vAlt;
+        else if (vAlt !== partnerAlt) continue; // another copy of an altloc'd partner
+      }
       degree[i]++;
       conformation.invariantPosition(elements[v], tmpVecA);
       posList.push(tmpVecA[0], tmpVecA[1], tmpVecA[2]);

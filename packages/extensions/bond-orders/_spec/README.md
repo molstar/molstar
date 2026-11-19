@@ -65,13 +65,16 @@ at the top of `src/perception/perceive.ts` and in each step's module.
     `outsideMultiple`, the neighbour store with its elements), and every step sees the atom's whole environment: the
     open valence, `hasMultipleBond`, the functional groups (a neighbour outside the residue fills an order-1 slot, is
     never terminal: an atom of another residue has another heavy neighbour, even in ACE or NME), Hückel's exocyclic
-    bond. A ring through an atom outside the residue (or in another altloc) is not one of its rings: no ring atom, no
-    planarity or aromaticity test; the residue's ring systems are its own rings grouped by shared atoms. No step writes
-    such a bond: the pattern cache applies a residue's pattern to its own bonds only, and the length and planarity tests
-    (`markAmbiguous`) skip them. Why: a nucleotide's P has its fourth bond in the previous residue (O3'), a carbamate's
-    O in Ser (5KRE); without them the phosphoryl and ester patterns do not match and the valence is wrong. Consequence:
-    in `forceCompute`, a multiple bond stated between residues of one unit becomes single (rare: peptide,
-    phosphodiester, disulfide and glycosidic links are single) until bonds across residues are perceived (TODO).
+    bond. A partner outside the residue with altlocs is one neighbour: an atom without altloc is bonded to each of its
+    copies (Mol\* bonds atoms of different altlocs only when one has none), and the first copy met stands for it, chosen
+    per atom (the previous and next residues of a polymer are linked through different atoms). A ring through an atom
+    outside the residue (or in another altloc) is not one of its rings: no ring atom, no planarity or aromaticity test;
+    the residue's ring systems are its own rings grouped by shared atoms. No step writes such a bond: the pattern cache
+    applies a residue's pattern to its own bonds only, and the length and planarity tests (`markAmbiguous`) skip them.
+    Why: a nucleotide's P has its fourth bond in the previous residue (O3'), a carbamate's O in Ser (5KRE); without them
+    the phosphoryl and ester patterns do not match and the valence is wrong. Consequence: in `forceCompute`, a multiple
+    bond stated between residues of one unit becomes single (rare: peptide, phosphodiester, disulfide and glycosidic
+    links are single) until bonds across residues are perceived (TODO).
 
 ## 2. Layout
 
@@ -111,7 +114,7 @@ Quick lane, no network (`src/_test/`). Fixtures in `src/_test/fixtures/`, named 
 - `5kre-ser124-6wg.pdb` (SER A 124, 6WG and their CONECT records): the ligand unit sees its link to Ser OG, with its
   order (§1.11).
 - `1tup-e-dt1001-dt1002.pdb` (two nucleotides of chain E): in `forceCompute`, the second residue's P=O, its P bonded to
-  the first residue's O3' (§1.11).
+  the first residue's O3' (§1.11); with that O3' in two altlocs, P still has one partner there.
 - Basic cases: benzene, CONECT benzene, exocyclic amino, carboxylate, glycine, altlocs (a carbonyl O; a benzene atom; a
   naphthalene atom in one ring, and a fusion atom: the reference altloc's rings form the system).
 - The residue gate: a residue whose orders are all stated is left as is, without building the inter-unit neighbours.
