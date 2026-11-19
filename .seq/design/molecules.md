@@ -87,6 +87,7 @@ sequence's table of its non-standard positions; `residues` is a molecule's list 
 | the previous implementation: a ligand as one position or its atoms | built: `form` on a block, by patch |
 | find the modified residues of a chain | built: `(component :standard false)`, selected by the query command |
 | hover a modified residue: its component and name | built: hover text |
+| see which residues are modified, at a glance: Mol\*'s sequence panel prints the component code inline where it has no one-letter code (`PSU`, microheterogeneity as `(MSE\|MET)`), the parent letter otherwise; UniProt's and PDBe's feature viewers (Nightingale) and RCSB's 1D viewer give modifications a feature row of their own, a marker per site, typed by kind | built, each a value of `letters.modified` (below): `mark`, `code` (Mol\*'s), `tint`, `none`; the feature row as a `ranges` layer over `modified`-type items or the sequence's `(component :standard false)` sites |
 | address a residue by its author number | built: a unit's `auth` numbering |
 | see a glycan's tree, a compound's 2D drawing | refused in the core: chemistry is the host's (it receives the hovered molecule's identifiers); a glycan's tree layer with a host's SNFG table planned later (Tensions) |
 | edit a monomer, draw a connection (HELM editors) | refused: data is not edited in the viewer (ux-foundations section 8) |
@@ -110,9 +111,16 @@ sequence's table of its non-standard positions; `residues` is a molecule's list 
 - **Several components at one position** (microheterogeneity, `hetero`): several rows with one `position`, in the
   source's order, every one kept (as Mol\* keeps them); the first gives the letter, all are shown on hover
   (`A · ALA | GLY`), found by the query and marked like a modified residue (gap 8).
-- **Drawn**: a `letters` layer's `modified` param (`mark`, the default, or `none`) puts a mark on a position whose
-  component is not standard (the preset's `letters.modifiedMark`: a dot at the cell's top right, in the letter's ink;
-  one bar over the cells of a component of `length` > 1). Where a cell has room for three letters (`code: three`, or
+- **Drawn** (the author, 2026-11-19: "we need a visual representation for the modified residues in the tracks. Maybe a
+  dot or something? How do people do it? Should be configurable either way"): a `letters` layer's `modified` param
+  says how a position whose component is not standard is drawn: `mark` (the default: a dot at the cell's top right in
+  the letter's ink, `RenderConfig`'s `letters.modifiedMark` for its size and place; one bar over the cells of a
+  component of `length` > 1; below the letters' minimum size, where letters become color strips, a tick above the
+  strip, so the mark survives zooming out), `code` (the component's code in place of the letter where the cell has
+  room, the dot otherwise: Mol\*'s sequence panel), `tint` (the cell outlined in `seq-modified`, a new token, for
+  figures where a dot is too small), or `none`. A modification's color is never the residue scheme's (the scheme
+  colors the parent letter); a writer who wants modifications by kind adds the feature row, a `ranges` layer over
+  the sites, colored by type like any range. Where a cell has room for three letters (`code: three`, or
   `auto` with room, EC-117) the position shows its component's code (`MSE`) instead of the parent's (`Met`). Why a
   mark by default: a PSU drawn as a bare `U` says something false by omission, and the writer turns it off.
 - **Hover** shows the letter, the component code and its name: `U · PSU (pseudouridine)`.
@@ -340,7 +348,8 @@ Rows and columns of ux-foundations section 8; "as an element" means the grammar'
 | `block.form` | spec param | `whole` for a molecule, `residues` for a sequence or unit | a molecule reads at the fit view; one rule for every non-polymer | `residues`, `atoms` |
 | `section.classes` | spec param | `[polymer, branched, ligand, ion]` | Mol\*'s and MVS's order (EC-101); waters say nothing on an axis | any list; `water` added |
 | `copies` | spec param | `merge` (layouts.md) | unchanged | `each` (poses: the builder's for a pose set) |
-| `modified` (`letters`) | spec param | `mark` | a modified residue drawn as its parent alone hides it | `none` |
+| `modified` (`letters`) | spec param | `mark` | a modified residue drawn as its parent alone hides it | `code`, `tint`, `none` |
+| the mark's size and place | `RenderConfig` (`letters.modifiedMark`) | a dot of 3 px at the cell's top right; a tick above a strip | the presets pattern | — |
 | `letters.modifiedMark` | `RenderConfig` preset | a dot at the cell's top right in the letter's ink; a bar over a long component | reads at 8 px, never covers the letter | `underline` |
 | `code` (`letters`) | spec param | `auto` (exists): the component's code where three letters have room | a cell with room says what the residue is | `one`, `three` |
 | `class` (molecule) | spec param | `ligand` | the commonest non-polymer | `branched`, `ion`, `water`, any word |
