@@ -9,7 +9,7 @@ import { P53Views } from '@molstar/seqx-examples';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { itWithin } from '@molstar/test-harness/timing';
 import { afterEach, describe, expect, vi } from 'vitest';
-import { openExample } from './draw-checks.js';
+import { openExample } from '../../../examples/_test/draw-checks.js';
 
 // The text viewer's performance representatives (performance.md, text layout): on the p53 text figure in a box that
 // scrolls, a hover (the input's move through the placement, the hover's redraw) under 2 ms; a drag-select's step (the

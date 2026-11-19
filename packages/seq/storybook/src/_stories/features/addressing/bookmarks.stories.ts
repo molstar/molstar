@@ -9,12 +9,13 @@ import { Button } from '@molstar/ui/components/button/button';
 import { defineElements, onCleanup } from '@molstar/ui/dom';
 import { UiElement } from '@molstar/ui/elements/ui-element';
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
-import { bookmarkRows, bookmarkView, composeViewer, focusBookmark } from './compose.js';
+import { bookmarkRows, bookmarkView, composeViewer, focusBookmark, LinkStatus, RegionText } from './compose.js';
 
 // Bookmarks (addressing): the gene's region read region by region, with refs as bookmarks. Each bookmark focuses the
 // view; one on a transcript waits until its region's answer brings the transcript, then resolves (a focus asked
 // meanwhile runs then). "Bookmark this view" adds a ref of what is shown: one patch. Every string from the spec is put
-// in as text, never markup.
+// in as text, never markup. A short text beside the view links the same way: a link moves the view (a focus asked
+// meanwhile runs when its node arrives).
 
 const Row = 'display: flex; gap: var(--msui-space-2); align-items: baseline; flex-wrap: wrap;';
 const Muted =
@@ -47,10 +48,33 @@ class BookmarksRoot extends UiElement<ExampleView> {
     tools.append(add);
     const status = document.createElement('p');
     status.style.cssText = 'margin: 0; color: var(--msui-text-muted);';
-    root.append(summary, canvasHost, tools, list, status);
+    const text = document.createElement('p');
+    text.style.cssText = 'margin: 0; max-width: 72ch;';
+    root.append(summary, text, canvasHost, tools, list, status);
 
     const viewer = composeViewer(view, { target: canvasHost });
     onCleanup(() => viewer.retire());
+    // a link on a node that arrives later says it waits, and `Focused` when the view has moved to it
+    const links = new LinkStatus(viewer, (m) => {
+      status.textContent = m;
+    });
+    onCleanup(() => links.dispose());
+    for (const run of RegionText) {
+      if (typeof run === 'string') {
+        text.append(run);
+        continue;
+      }
+      const a = document.createElement('a');
+      a.style.cssText = 'color: var(--msui-accent); cursor: pointer; text-decoration: underline;';
+      a.textContent = run.text;
+      a.setAttribute('href', run.href);
+      a.title = run.href;
+      a.addEventListener('click', (e) => {
+        e.preventDefault();
+        status.textContent = links.follow(run.href);
+      });
+      text.append(a);
+    }
 
     const draw = () => {
       list.replaceChildren(
@@ -93,7 +117,7 @@ defineElements([BookmarksRoot]);
 const meta: Meta = { title: 'Features/Addressing/Bookmarks' };
 export default meta;
 
-/** Refs as bookmarks: each focuses the view; one on a transcript waits for its region; add one of the view. */
+/** Refs as bookmarks and the links of a short text: each focuses the view; one on a transcript waits for its region; add one of the view. */
 export const Bookmarks: StoryObj = {
   render: () => {
     const el = document.createElement(BookmarksRoot.tag) as BookmarksRoot;

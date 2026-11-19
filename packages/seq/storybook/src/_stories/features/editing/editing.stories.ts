@@ -9,7 +9,9 @@ import { Button } from '@molstar/ui/components/button/button';
 import { defineElements, onCleanup } from '@molstar/ui/dom';
 import { UiElement } from '@molstar/ui/elements/ui-element';
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
+import { followSvg } from '../../follow-svg.js';
 import {
+  addTrack,
   bookmarkView,
   cancelDrag,
   composeEditing,
@@ -22,6 +24,7 @@ import {
   recolorStructure,
   setDomainsColor,
   toggleTrack,
+  trackHeight,
   Tracks,
 } from './compose.js';
 
@@ -29,7 +32,7 @@ import {
 // stand-in host's stack that also holds a stand-in structure's color. Hide or show a track, move one first, color the
 // domains, bookmark the view, recolor the structure (the host's own step); Undo and Redo walk both in order. The slider
 // is a drag: each move a preview, its release one step, Esc nothing. The printed spec (views and refs) follows what is
-// shown. Every string from the spec is put in as text, never markup.
+// shown, and so does the SVG export beside it. Every string from the spec is put in as text, never markup.
 
 const Row = 'display: flex; gap: var(--msui-space-2); align-items: center; flex-wrap: wrap;';
 const Mono = 'margin: 0; font: var(--msui-text-xs) / var(--msui-leading-xs) var(--msui-font-mono);';
@@ -43,6 +46,8 @@ class EditingRoot extends UiElement<ExampleView> {
       'display: grid; align-content: start; gap: var(--msui-space-4); padding: var(--msui-space-5); min-height: 100vh; background: var(--msui-bg); color: var(--msui-text); font: var(--msui-text-sm) / var(--msui-leading-sm) var(--msui-font-sans);';
     const canvasHost = document.createElement('div');
     canvasHost.style.cssText = 'min-width: 0;';
+    const svgHost = document.createElement('div');
+    svgHost.style.cssText = 'min-width: 0; overflow-x: auto;';
     const status = document.createElement('p');
     status.style.cssText = 'margin: 0; color: var(--msui-text-muted);';
     const say = (p: Promise<string> | string) =>
@@ -60,6 +65,7 @@ class EditingRoot extends UiElement<ExampleView> {
         Button({ size: 'sm', children: `Hide/show ${id}`, onClick: () => say(toggleTrack(s, id)) }) as HTMLElement,
       );
     tools.append(
+      Button({ size: 'sm', children: 'Add a track', onClick: () => say(addTrack(s)) }) as HTMLElement,
       Button({
         size: 'sm',
         children: 'Conservation first',
@@ -107,11 +113,17 @@ class EditingRoot extends UiElement<ExampleView> {
     slider.type = 'range';
     slider.min = '8';
     slider.max = '80';
-    slider.value = '24';
+    // the slider shows the domains' height as the spec shown says it (a preview, a commit, an undo, a cancel)
+    const showHeight = () => {
+      const h = trackHeight(s, 'domains');
+      if (h !== undefined) slider.value = String(Math.round(h));
+    };
     slider.addEventListener('input', () => dragHeight(s, 'domains', Number(slider.value)));
     slider.addEventListener('change', () => void endDrag(s));
     slider.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') say(cancelDrag(s));
+      if (e.key !== 'Escape') return;
+      say(cancelDrag(s));
+      showHeight();
     });
     drag.append('Domains height (drag; Esc cancels)', slider);
 
@@ -123,7 +135,11 @@ class EditingRoot extends UiElement<ExampleView> {
     panes.style.cssText =
       'display: grid; gap: var(--msui-space-4); grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);';
     panes.append(history, printed);
-    root.append(canvasHost, tools, drag, host, status, panes);
+    root.append(canvasHost, tools, drag, host, status, panes, svgHost);
+
+    // the SVG is the viewer's export of the spec as shown, drawn when the view rests
+    const svg = followSvg(s.viewer, svgHost, { prefix: 'edit' });
+    onCleanup(() => svg.dispose());
 
     const draw = () => {
       const rows = historyRows(s);
@@ -138,6 +154,7 @@ class EditingRoot extends UiElement<ExampleView> {
       structureLabel.textContent = `Structure: ${s.structure.value}`;
       undo.disabled = rows.done.length === 0;
       redo.disabled = rows.redo.length === 0;
+      showHeight();
     };
     for (const state of [s.stack.steps, s.stack.redoable, s.viewer.spec.shown, s.structure])
       onCleanup(state.listen(draw));
@@ -147,7 +164,16 @@ class EditingRoot extends UiElement<ExampleView> {
         status.textContent = lastMove(s);
       }),
     );
-    void s.viewer.load(view.build()).then(draw);
+    void s.viewer
+      .load(view.build())
+      .then(() => s.viewer.settle())
+      .then(() => {
+        draw();
+        return svg.draw();
+      })
+      .catch((e: unknown) => {
+        status.textContent = `The view did not load: ${e instanceof Error ? e.message : String(e)}`;
+      });
     return root;
   }
 }
@@ -157,7 +183,7 @@ defineElements([EditingRoot]);
 const meta: Meta = { title: 'Features/Editing' };
 export default meta;
 
-/** Edits as patches on one host stack with a stand-in structure; a drag as a preview; the printed spec beside. */
+/** Edits as patches on one host stack with a stand-in structure; a drag as a preview; the printed spec and the SVG beside. */
 export const Editing: StoryObj = {
   render: () => {
     const el = document.createElement(EditingRoot.tag) as EditingRoot;

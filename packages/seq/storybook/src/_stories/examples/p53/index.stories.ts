@@ -6,54 +6,28 @@
 
 import { P53Views } from '@molstar/seqx-examples';
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
-
-/** The views' stories: the title's last step and the export's name (Storybook's id: the sanitized title, `--`, the name). */
-const Stories: Readonly<Record<string, readonly [title: string, name: string]>> = {
-  tracks: ['Tracks', 'tracks'],
-  'protein-on-gene': ['Protein on its gene', 'protein-on-its-gene'],
-  'one-axis': ['Protein and gene on one axis', 'protein-and-gene-on-one-axis'],
-  'genomic-follower': ['Genomic follower', 'genomic-follower'],
-  'reversed-gene': ['Reversed gene', 'reversed-gene'],
-  'gene-by-region': ['Gene by region', 'gene-by-region'],
-  'edit-and-undo': ['Edit and undo', 'edit-and-undo'],
-  'bookmarks-and-links': ['Bookmarks and links', 'bookmarks-and-links'],
-  selection: ['Selection', 'selection'],
-};
-
-/** The examples built on the views: what to try in each. */
-const Tries: readonly { readonly id: string; readonly title: string; readonly summary: string }[] = [
-  {
-    id: 'edit-and-undo',
-    title: 'Edit and undo',
-    summary: 'The tracks edited: add and hide a track, set a theme, undo and redo, drag a height to preview it.',
-  },
-  {
-    id: 'bookmarks-and-links',
-    title: 'Bookmarks and links',
-    summary: 'The gene’s region with bookmarks and a text whose links move the view, on transcripts that arrive later.',
-  },
-  {
-    id: 'selection',
-    title: 'Selection',
-    summary: 'Drag on the gene to select nucleotides; the protein shows them projected, in canvas and SVG.',
-  },
-];
-
-const sanitize = (s: string) =>
-  s
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '');
-
-function storyId(view: string): string {
-  const [title, name] = Stories[view];
-  return `${sanitize(`Seq* (next)/Examples/p53/${title}`)}--${name}`;
-}
+import { FeatureStories, FeatureTries, Figures, idOf, type Where } from './where.js';
 
 const meta: Meta = { title: 'Examples/p53/Index' };
 export default meta;
 
-/** The views of the p53 dataset, each a story of its own. */
+function item(href: Where, title: string, summary: string): HTMLElement {
+  const li = document.createElement('li');
+  const a = document.createElement('a');
+  a.href = `?path=/story/${idOf(href)}`;
+  a.target = '_top';
+  a.textContent = title;
+  li.append(a, ` ${summary}`);
+  return li;
+}
+
+function list(items: readonly HTMLElement[]): HTMLElement {
+  const ul = document.createElement('ul');
+  ul.append(...items);
+  return ul;
+}
+
+/** The views of the p53 dataset: its figures, then the features its data shows (each a story of its own). */
 export const Views: StoryObj = {
   render: () => {
     const root = document.createElement('div');
@@ -63,29 +37,16 @@ export const Views: StoryObj = {
     const intro = document.createElement('p');
     intro.textContent =
       'Human TP53: its protein with domains and conservation, and a toy gene it is placed on, which encodes it but for one variant (R175H). Each view is one spec over this data.';
-    const list = document.createElement('ul');
-    for (const v of P53Views) {
-      const li = document.createElement('li');
-      const a = document.createElement('a');
-      a.href = `?path=/story/${storyId(v.id)}`;
-      a.target = '_top';
-      a.textContent = v.title;
-      li.append(a, ` ${v.summary}`);
-      list.append(li);
-    }
+    const figures = list(P53Views.filter((v) => Figures[v.id]).map((v) => item(Figures[v.id], v.title, v.summary)));
     const h2 = document.createElement('h3');
-    h2.textContent = 'Editing, addressing and selection';
-    const list2 = document.createElement('ul');
-    for (const v of Tries) {
-      const li = document.createElement('li');
-      const a = document.createElement('a');
-      a.href = `?path=/story/${storyId(v.id)}`;
-      a.target = '_top';
-      a.textContent = v.title;
-      li.append(a, ` ${v.summary}`);
-      list2.append(li);
-    }
-    root.append(h, intro, list, h2, list2);
+    h2.textContent = 'Features shown on this data';
+    const note = document.createElement('p');
+    note.textContent = 'How each works is a Features story, on whichever dataset shows it best; these are on p53.';
+    const features = list([
+      ...P53Views.filter((v) => FeatureStories[v.id]).map((v) => item(FeatureStories[v.id], v.title, v.summary)),
+      ...FeatureTries.map((t) => item(t.where, t.title, t.summary)),
+    ]);
+    root.append(h, intro, figures, h2, note, features);
     return root;
   },
 };

@@ -5,7 +5,7 @@
  */
 
 import type { ThemingBehavior } from '@molstar/seqx-viewer/behaviors';
-import type { EditingSession } from '../../features/editing/compose.js';
+import type { EditingSession } from '../editing/compose.js';
 
 // The themes editing story's composition, DOM-free: the story and its headless twin call these. A scheme is previewed
 // while hovered in the picker and picked in one patch; the shared scale's domain is set for both signals in one step.

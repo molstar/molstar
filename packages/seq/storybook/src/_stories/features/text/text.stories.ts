@@ -6,11 +6,11 @@
 
 import { P53Views } from '@molstar/seqx-examples';
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
-import { exampleStory } from '../example-root.js';
+import { exampleStory } from '../../examples/example-root.js';
 
 const view = (id: string) => P53Views.find((v) => v.id === id)!;
 
-const meta: Meta = { title: 'Examples/p53/Text' };
+const meta: Meta = { title: 'Features/Text' };
 export default meta;
 
 /**

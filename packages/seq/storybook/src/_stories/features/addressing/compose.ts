@@ -5,6 +5,7 @@
  */
 
 import type { SeqPorts } from '@molstar/seqx-core/context';
+import { printLink } from '@molstar/seqx-core/query';
 import type { ExampleView } from '@molstar/seqx-examples';
 import type { LinkRun } from '@molstar/seqx-viewer/behaviors';
 import { DefaultSeqViewerSpec } from '@molstar/seqx-viewer/default-spec';
@@ -146,3 +147,22 @@ export class LinkStatus {
     this._off = undefined;
   }
 }
+
+/** A run of the short text: plain, or a link (its text and its `!seq-…` href). */
+export type Run = string | { readonly text: string; readonly href: string };
+
+const link = (text: string, address: string): Run => ({
+  text,
+  href: printLink({ actions: [{ action: 'focus', address }] }),
+});
+
+/** The text beside the gene's region: each link moves the view; a transcript's arrives later, and its focus waits. */
+export const RegionText: readonly Run[] = [
+  'TP53 sits at ',
+  link('the gene', '/refs/gene'),
+  ' of this region. Its second transcript, ',
+  link('T2', '/refs/t2'),
+  ', is read with its part of the region, so a focus on it waits until it arrives; so does one on a neighbor, ',
+  link('WRAP53', '/refs/wrap53'),
+  '.',
+];

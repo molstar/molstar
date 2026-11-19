@@ -177,7 +177,7 @@ class StoryRoot extends UiElement<ExampleView> {
 
 defineElements([StoryRoot]);
 
-const meta: Meta = { title: 'Examples/p53/Story' };
+const meta: Meta = { title: 'Features/Story' };
 export default meta;
 
 /** Play the p53 story, scrub a transition with the slider, watch the stand-in camera follow; export a step's SVG. */

@@ -16,7 +16,7 @@ import { nodeFixtureAssets } from '@molstar/seqx-examples/node-assets';
 import { GeneFile, GeneVariant } from '@molstar/seqx-examples/p53/data';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import { openExample } from './draw-checks.js';
+import { openExample } from '../../../examples/_test/draw-checks.js';
 
 const Gene = '/views/main/gene';
 const Protein = '/views/main/protein';

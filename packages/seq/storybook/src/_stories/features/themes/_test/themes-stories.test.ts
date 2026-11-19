@@ -11,14 +11,14 @@ import { FeatureViews, P53Views } from '@molstar/seqx-examples';
 import { LetterSchemes } from '@molstar/seqx-examples/p53/themes';
 import { DomHost } from '@molstar/ui/dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { EditingSession } from '../../features/editing/compose.js';
+import type { EditingSession } from '../../editing/compose.js';
 import {
   EditingThemes,
   SchemesGallery,
   type SchemesGalleryRoot,
   type ThemesEditingRoot,
   Themes,
-} from '../p53/themes.stories.js';
+} from '../themes.stories.js';
 import {
   cancelScheme,
   Letters,
@@ -27,7 +27,7 @@ import {
   previewScheme,
   setSignalDomain,
   signalDomains,
-} from '../p53/themes-compose.js';
+} from '../themes-compose.js';
 
 // The p53 themes stories in a DOM (jsdom) on a fake clock, each mounted as Storybook mounts it (the story's `render`,
 // its element connected to the page), the edits driven through the composition the story made: a scheme previewed
