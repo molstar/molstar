@@ -16,7 +16,7 @@ does not fit: a chromosome region, a 10,000-row alignment, a long protein's trac
 | Precedent | Taken | Not taken |
 |---|---|---|
 | The current Seq\*'s navigation track | one entry made of parts (an axis, the tracks in miniature, ticks of highlights and the selection); the window's parts (body, two end handles as tabs outside the ends, a hit at least 12 px, a floor of 16 px); idle drawn quiet with no relayout; the window filled in a window token, never the selection's ink; the base drawn on its own pass so a pan redraws only the window | the navigator as a registry entry of a preset with twelve switches (here: one part with a form and a few params); a press outside the window jumping, then the drag panning (here: a sweep, Tensions); a floored window placed as a scrollbar thumb (here: centred on the truth, Tensions) |
-| The current Seq\*'s ruler rail | the default linear navigator with no row of its own: drawn on the pinned ruler's bottom border, the window a thicker segment (drag pans, ends zoom); the whole ruler row its grab zone on a positions axis, only the lower 40% on an alignment's columns (above it a drag selects columns); a slim `rail` row without a ruler | — (taken whole: the author's choice) |
+| The current Seq\*'s ruler rail | the default linear navigator, drawn just below the pinned ruler's bottom border (a 12 px row of its own on the canvas with rails on; never in an export), the window a thicker segment (drag pans, ends zoom); the whole ruler row its grab zone on a positions axis, only the lower 40% on an alignment's columns (above it a drag selects columns); a slim `rail` row without a ruler | — (taken whole: the author's choice) |
 | The current Seq\*'s vertical overview | the rows in miniature down a column, the window the rows and columns in view, top and bottom handles for the rows, left and right for the columns | a render prop of the section (`verticalNav`) beside a scrollbar mode: here it is the same part as the strip, with both axes |
 | The current Seq\*'s ideogram | Giemsa stains as grays derived from the theme's ink (here the themes design's `giemsa` scheme), the centromere's two `acen` bands as triangles, a hairline where a block has no bands | bands as application data found by block name (its own TODO wanted them as document data: here they are an annotation) |
 | IGV's ideogram and ruler | a red box over the chromosome; a click centres there; a drag on the ideogram or the ruler sweeps a region to zoom to | the ideogram always drawn p-arm left whatever the view's direction (Tensions) |
@@ -90,7 +90,7 @@ limits (they were sort of self-imposed and estimate), but obviously try to minim
 
   | Form | `axes` | `content` | Default size | For |
   |---|---|---|---|---|
-  | rail (the default) | `positions` | `axis` as a hairline, the window a thicker segment | no row of its own: drawn on the pinned ruler's bottom border (`ruler` rail); 12 px (`slim` rail, a section with no ruler) | every linear section |
+  | rail (the default) | `positions` | `axis` as a hairline, the window a thicker segment | a 12 px row just below the pinned ruler's bottom border on the canvas with rails on, none in an export (`ruler` rail); 12 px (`slim` rail, a section with no ruler) | every linear section |
   | strip | `positions` | `axis`, or `tracks` (a navigation track with the section's tracks small) | 20 px (`axis`), 48 (`tracks`) | any long section |
   | ideogram | `positions` | `bands` over a chromosome | 24 px | a genomic section |
   | vertical overview | `rows` (positions summarized, the window full width) | `rows`, columns compressed across | 96 px wide | an alignment's rows, the Globins 10,000-row view |
@@ -102,7 +102,10 @@ limits (they were sort of self-imposed and estimate), but obviously try to minim
   centres or sweeps), drawn on the ruler instead of a row of its own.
 - **The rail is every linear section's navigator by default** (`navigator.form`: `rail`), with no node in the spec
   (a declared navigator replaces it on the sections it binds, as does a host's `viewer.navigator(def)` part; a hidden
-  declared navigator brings the rail back): on a section with a ruler track it is drawn on that ruler's bottom border;
+  declared navigator brings the rail back): on a section with a ruler track it is drawn just below that ruler's bottom border, in a 12 px row of its own on the
+  canvas with rails on (none with the toggle off) and never in an export (a figure has no row; included rails lie on the
+  border) (decided, the author, 2026-11-19: "Below the border", so the rail never covers the ruler's ticks or labels;
+  "Leave it out of exports", so a figure has no empty strip);
   with none, a `slim` rail row under the section's tracks (decided at NV's review: under, so the tracks keep the
   coordinates they have with no rail; its size fixed, 12 px, the form's). **The rows rail** (decided, the author,
   2026-11-19: "we should also support a simple slider navigator for vertical scrolling too"): a rows layer's rows axis

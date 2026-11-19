@@ -401,7 +401,7 @@ and dark before the merge.
 - [x] EO (fast, read-only; reported: `ec-outcomes-draft.md`, `drift/ec-contradictions.md`) the third slice's edge-case outcomes drafted (`briefs/eo-ec-outcomes.md`).
 - [x] AT (fast; merged `f88979d0c`; the arcs' naming bug to CF) the rows and pairs layers' accessible items tested (`briefs/at-accessible-items-tests.md`).
 - [x] ET (fast; merged `50956fce0`; EC-135 to CF) tests for the edge cases built but untested (`briefs/et-ec-tests.md`).
-- [ ] CF (strong, after a strong slot frees) CS's core findings: a ruler's units (decided), inline data's tiles, shown
+- [x] CF (merged ecb040933) (strong, after a strong slot frees) CS's core findings: a ruler's units (decided), inline data's tiles, shown
       means in view (decided) (`briefs/cf-chromosome-core.md`).
 - [x] SC (fast; merged) a range's strand in the hover card (`briefs/sc-card-strand.md`).
 - [ ] PG (strong, after CF; the author, 2026-11-19: "Fix PCG in core") a real PCG32, seeded data regenerated once

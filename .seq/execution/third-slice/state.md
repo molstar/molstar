@@ -393,3 +393,11 @@ None.
 - Decided (the author, 2026-11-19, Antibody's light chain: the rulers blank over the constant domain; "customizable,
   … 'not numbered' as default"): the ruler's `unnumbered: mark | fallback` (axis.md, the Design page); lane UN (fast)
   after CF. The cut CDR labels in the same view are LL's. Use findings: bug 6, missing design 6, look 4.
+- CF merged (ecb040933): insertions labelled with room, the rail below the ruler's border on the canvas only (none in
+  an export), tracks go when their node's region leaves the view at the default bound, `tooMany`, row identity kept,
+  `formatGenomic` without `-0`. navigators.md and its Design page say the rail's row; changelog
+  `seq-chromosome-core.md`. All checks on the merged head (2677 quick, 110 medium). Not looked at in Storybook (the
+  Antibody's insertions at the closest zoom, the rail's row): to the use gate's look.
+- LP stopped on two gaps in the public API; decided (the author, 2026-11-19): pairs answer `items` with a row's
+  `system`, a highlight channel's `elements`, the linked pairs in the highlight pass (viewer-models.md,
+  locations-and-queries.md); LP's round 2 started. PG and UN can start now (after CF); RX rebases next.
