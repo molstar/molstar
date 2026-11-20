@@ -20,7 +20,8 @@ import {
   type WindowPart,
 } from '@molstar/seqx-core/render';
 import { type PartCursor, partCursor } from './part-cursor.js';
-import { cancelFrameCallback, DomHost, requestFrameCallback } from '@molstar/ui/dom';
+import { cancelFrameCallback, requestFrameCallback } from '@molstar/ui/dom/frame';
+import { DomHost } from '@molstar/ui/dom/host';
 import type { Axis } from '@molstar/seqx-core/view';
 import {
   CladeActions,

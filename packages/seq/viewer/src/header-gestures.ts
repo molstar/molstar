@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { DomHost } from '@molstar/ui/dom';
+import { DomHost } from '@molstar/ui/dom/host';
 
 // The headers' DOM gestures on the mounted canvas (_spec/README.md "Behaviors", Headers: Gestures): the secondary click
 // (`contextmenu`, prevented when the menu took it: Shift's is the browser's, the behavior says) and the long press of a

@@ -13,7 +13,7 @@
 import type { Node } from '@molstar/core/repr/tree';
 import { SeqCoreConfig } from '@molstar/seqx-core/context';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { HeadersBehavior } from '../behaviors/headers.js';
 import { HeadersProvider } from '../behaviors/headers.js';
 import { DefaultSeqViewerSpec } from '../default-spec.js';
@@ -77,6 +77,8 @@ async function make(params?: HeadersParams, root = spec()): Promise<SeqViewer> {
   await v.load(root);
   v.resize(600);
   await v.settle();
+  // the headers' late parts (a lazy chunk)
+  await vi.dynamicImportSettled();
   frames.flush();
   return v;
 }
@@ -290,6 +292,7 @@ describe('a host’s entries', () => {
     await v.load(spec());
     v.resize(600);
     await v.settle();
+    await vi.dynamicImportSettled();
     frames.flush();
     expect(items(v, More).map((i) => i.name)).not.toContain('seq:hide');
     // block.form has no block here: its own `when` says why

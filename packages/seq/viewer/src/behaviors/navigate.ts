@@ -12,7 +12,7 @@
 // the pointer or the centre.
 
 import type { CommandDefinition, CommandResult } from '@molstar/ui/commands/types';
-import { cancelFrameCallback, requestFrameCallback } from '@molstar/ui/dom';
+import { cancelFrameCallback, requestFrameCallback } from '@molstar/ui/dom/frame';
 import { type BindingTable, type KeyChord, type ModifierState, parseChord } from '@molstar/seqx-viewer/bindings';
 import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
 import type { HitTarget, ViewModel } from '@molstar/seqx-viewer/models';

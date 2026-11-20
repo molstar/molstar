@@ -6,7 +6,7 @@
 
 import { Button } from '@molstar/ui/components/button/button';
 import { Icon } from '@molstar/ui/components/icon/icon';
-import { render } from '@molstar/ui/dom';
+import { render } from '@molstar/ui/dom/render';
 import type {
   HeaderMenuItem,
   HeaderPartsHeader,

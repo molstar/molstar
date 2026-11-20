@@ -5,7 +5,8 @@
  */
 
 import { type ReadonlyState, State } from '@molstar/core/reactive';
-import { cancelFrameCallback, DomHost, requestFrameCallback } from '@molstar/ui/dom';
+import { cancelFrameCallback, requestFrameCallback } from '@molstar/ui/dom/frame';
+import { DomHost } from '@molstar/ui/dom/host';
 import type { SeqViewer } from './viewer.js';
 
 // The viewer's frame clock (_spec/README.md "Composition"): one frame asked for at a time, whatever asked (`@molstar/ui/dom`'s

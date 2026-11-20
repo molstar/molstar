@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { cancelFrameCallback, requestFrameCallback } from '@molstar/ui/dom';
+import { cancelFrameCallback, requestFrameCallback } from '@molstar/ui/dom/frame';
 import { modifiersOf } from '@molstar/seqx-viewer/bindings';
 import { CanvasBackend, type CanvasLike, FontCache } from '@molstar/seqx-viewer/canvas';
 import { createDragSession } from './drag-session.js';

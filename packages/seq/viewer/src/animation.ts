@@ -8,7 +8,8 @@
 // (`@molstar/seqx-viewer/animation`) for the composition roots: the page's frames (`frameAnimation`, the default: a
 // plain viewer animates with no host code) and a fake clock stepped by hand (`headlessAnimation`: tests and export).
 
-import { cancelFrameCallback, DomHost, requestFrameCallback } from '@molstar/ui/dom';
+import { cancelFrameCallback, requestFrameCallback } from '@molstar/ui/dom/frame';
+import { DomHost } from '@molstar/ui/dom/host';
 import type { TransitionPlan } from '@molstar/seqx-core/story';
 import type {
   AnimationRequest,

@@ -8,26 +8,21 @@ import { type ReadonlyState, State } from '@molstar/core/reactive';
 import { resolveAddress } from '@molstar/core/repr/tree';
 import {
   actionColumns,
-  type Box,
   type HeaderInputFacts,
-  type HeaderLine,
-  HeaderMenuName,
   type HeaderParts,
   type HeaderPartsOf,
   type HeaderSlotPart,
   type HeaderStatePart,
   type Hit as RenderHit,
-  type SectionLayout,
   type ViewLayout,
 } from '@molstar/seqx-core/render';
-import { actionsShown } from '@molstar/seqx-core/render/headers-draw';
 import { hiddenTracksOf } from '@molstar/seqx-core/render/headers';
 import type { ResolvedSection, ResolvedTrack } from '@molstar/seqx-core/view';
 import { formatChord, isMac } from '@molstar/ui/commands/keys';
 import type { CommandDefinition, CommandResult } from '@molstar/ui/commands/types';
-import { DomHost } from '@molstar/ui/dom';
+import { DomHost } from '@molstar/ui/dom/host';
 import { parseChord } from '@molstar/seqx-viewer/bindings';
-import { describerFor, type Place } from '@molstar/seqx-viewer/describe';
+import { describerFor } from '@molstar/seqx-viewer/describe';
 import {
   type HeaderActionEntry,
   type HeaderEntry,
@@ -38,18 +33,16 @@ import {
   type HeaderMenuItem,
   type HeaderMenuPlace,
   type HeaderMenuPort,
-  type HeaderPartsHeader,
   type HeaderPartsPort,
   type HeaderPartsState,
   type HeaderTarget,
   type HeadersParams,
-  headerWords,
   sameGeometry,
 } from '@molstar/seqx-viewer/header-entries';
 import type { HeaderIcon } from '@molstar/seqx-core/render';
 import type { BehaviorContext, BehaviorProvider } from '@molstar/seqx-viewer/viewer-spec';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
-import { headerCursor } from './header-cursor.js';
+import type { HeaderExtras } from './header-extras.js';
 import type { HoverCardBehavior } from './hover-card.js';
 import type { ThemingBehavior } from './theming.js';
 
@@ -156,14 +149,14 @@ export function headersBehavior(context: BehaviorContext, params: HeadersParams 
    * loaded once an entry has an icon; until then (and for an icon no path reads, `seq.viewer.header.icon`) a slot draws
    * its label's first letter. Loaded, the headers are laid out again.
    */
-  let iconOf: ((name: string) => HeaderIcon | undefined) | undefined;
+  let iconOf: ((name: string | undefined, markup?: string) => HeaderIcon | undefined) | undefined;
   let iconsAsked = false;
   const setEntries = (next: readonly HeaderEntry[]) => {
     entries = next;
-    if (!iconOf && !iconsAsked && next.some((e) => e.icon !== undefined)) {
+    if (!iconOf && !iconsAsked && next.some((e) => e.icon !== undefined || e.iconMarkup !== undefined)) {
       iconsAsked = true;
       void import('@molstar/seqx-viewer/header-icons').then((m) => {
-        iconOf = m.headerIcon as (name: string) => HeaderIcon | undefined;
+        iconOf = m.headerIcon;
         if (!disposed) setEntries(entries);
       });
     }
@@ -326,7 +319,7 @@ export function headersBehavior(context: BehaviorContext, params: HeadersParams 
             : {}),
         });
       } else if (it.slot && !dom) {
-        const icon = it.icon ? iconOf?.(it.icon) : undefined;
+        const icon = iconOf?.(it.icon, entries.find((x) => x.name === it.name)?.iconMarkup);
         (slots ??= []).push({ name: it.name, label: it.label, ...(icon ? { icon } : {}), enabled: it.enabled });
       }
     }
@@ -337,31 +330,7 @@ export function headersBehavior(context: BehaviorContext, params: HeadersParams 
 
   // ---- the menu ----
 
-  const menuOf = (target: HeaderTarget, only?: string): HeaderMenu | undefined => {
-    const groups: HeaderMenuItem[][] = [];
-    if (only !== undefined) {
-      const f = factsOf(target);
-      const e = entries.find((x) => x.name === only);
-      if (!f || !e) return undefined;
-      const it = itemOf(e, f);
-      // a chip's list: each thing it hides, then the entry itself ("Show all"); a slot's submenu: its items
-      const own =
-        it.kind === 'state' ? [...(it.items ?? []), { ...it, items: undefined } as HeaderMenuItem] : (it.items ?? [it]);
-      return { target, groups: [own.map(({ items: _, ...x }) => x)] };
-    }
-    if (target.element) {
-      const f = factsOf(target);
-      if (f) groups.push(itemsOf(f, 'element'));
-    }
-    if (target.track !== undefined) {
-      const f = factsOf({ section: target.section, track: target.track });
-      if (f) groups.push(itemsOf(f, 'track'));
-    }
-    const sf = factsOf({ section: target.section });
-    if (sf) groups.push(itemsOf(sf, 'section'));
-    const out = groups.filter((g) => g.length);
-    return out.length ? { target, groups: out } : undefined;
-  };
+  const menuOf = (target: HeaderTarget, only?: string) => extras?.menuOf(target, only);
 
   const port = (): HeaderMenuPort | undefined => {
     if (!menuPort && params.menu && !menuPortMounted) menuPort = params.menu(undefined);
@@ -396,95 +365,7 @@ export function headersBehavior(context: BehaviorContext, params: HeadersParams 
 
   // ---- geometry ----
 
-  /** A section's layout by address in the last frame. */
-  const sectionLayout = (layout: ViewLayout | undefined, address: string): SectionLayout | undefined =>
-    layout?.sections.find((s) => s.section.address === address);
-
-  /** A header line's slot boxes: as laid out (canvas), or the action columns' a host's DOM parts fill. */
-  const slotBoxes = (line: HeaderLine, items: readonly HeaderMenuItem[]) => {
-    if (!dom) {
-      const out = line.slots.map((s) => ({
-        name: s.part.name,
-        box: { x: s.x, y: s.y, width: s.width, height: s.height },
-      }));
-      if (line.menu)
-        out.push({
-          name: HeaderMenuName,
-          box: { x: line.menu.x, y: line.menu.y, width: line.menu.width, height: line.menu.height },
-        });
-      return out;
-    }
-    const cols = actionColumns(viewer!.context.renderConfig);
-    if (cols.n < 0 || line.short) return [];
-    const px = viewer!.context.renderConfig.header.slotPx;
-    const cy = line.label.y + line.label.height / 2;
-    const y = cy - px / 2;
-    const out = items
-      .filter((i) => i.slot)
-      .slice(0, cols.n)
-      .map((i, k) => ({ name: i.name, box: { x: cols.x + k * px, y, width: px, height: px } }));
-    if (items.some((i) => i.kind === 'action'))
-      out.push({ name: HeaderMenuName, box: { x: cols.x + cols.n * px, y, width: px, height: px } });
-    return out;
-  };
-
-  const geometryOf = (layout: ViewLayout): HeaderGeometry[] => {
-    const out: HeaderGeometry[] = [];
-    const h = viewer?.height ?? Number.POSITIVE_INFINITY;
-    for (const s of layout.sections) {
-      const lines: [HeaderLine, HeaderTarget, Box | undefined][] = [];
-      if (s.header) lines.push([s.header, { section: s.section.address }, undefined]);
-      const seen = new Set<string>();
-      for (const t of s.tracks) {
-        if (!t.header || seen.has(t.track.address)) continue;
-        seen.add(t.track.address);
-        lines.push([t.header, { section: s.section.address, track: t.track.address }, t.well]);
-      }
-      for (const [line, target, well] of lines) {
-        const f = dom ? factsOf(target) : undefined;
-        const items = f ? itemsOf(f, target.track ? 'track' : 'section') : [];
-        const b = line.line;
-        out.push({
-          target,
-          line: b,
-          label: line.label,
-          slots: slotBoxes(line, items),
-          states: line.states.map((st) => ({ name: st.name, box: st.box, text: st.text, mark: st.mark })),
-          ...(well ? { well } : {}),
-          shown: b.y + b.height > 0 && b.y < h && b.y >= s.y - 1 && b.y + b.height <= s.y + s.height + 1,
-        });
-      }
-    }
-    return out;
-  };
-
-  /** The hovered or cursor's header whose actions show (`header.actions.show`), for the parts. */
-  const showing = (g: HeaderGeometry): boolean => {
-    if (!viewer) return false;
-    const s = sectionLayout(viewer.frame?.layout, g.target.section);
-    return (
-      !!s &&
-      actionsShown(
-        g.target.track ?? g.target.section,
-        s.id,
-        viewer.emphasis,
-        viewer.context.renderConfig,
-        g.target.track !== undefined,
-      )
-    );
-  };
-
-  const partsState = (): HeaderPartsState => {
-    const layout = viewer?.frame?.layout;
-    const headers: HeaderPartsHeader[] = [];
-    for (const g of layout ? geometryOf(layout) : []) {
-      if (!g.shown) continue;
-      const f = factsOf(g.target);
-      if (!f) continue;
-      headers.push({ geometry: g, actions: showing(g), items: itemsOf(f, g.target.track ? 'track' : 'section') });
-    }
-    return { headers };
-  };
+  const partsState = (): HeaderPartsState => extras?.partsState() ?? { headers: [] };
 
   // the last layout published and the headers whose actions showed (the parts: a hover moves only these)
   let publishedFor: unknown;
@@ -494,9 +375,9 @@ export function headersBehavior(context: BehaviorContext, params: HeadersParams 
     const layout = viewer.frame?.layout;
     if (!layout) return;
     const relaid = layout !== publishedFor;
-    if (relaid) {
+    if (relaid && extras) {
       publishedFor = layout;
-      geometry.set(geometryOf(layout));
+      geometry.set(extras.geometryOf(layout));
     }
     if (!partsPort) return;
     // the parts follow the hover only when the header whose actions show changed (a key of its address)
@@ -521,62 +402,14 @@ export function headersBehavior(context: BehaviorContext, params: HeadersParams 
     }
     return undefined;
   };
-  /** What a secondary click at a point opens: an element's, a track's or a section's menu. */
-  const targetAt = (x: number, y: number, hit: RenderHit | undefined): HeaderTarget | undefined => {
-    const layout = viewer?.frame?.layout;
-    if (!layout || !viewer) return undefined;
-    if (hit) {
-      const header = headerTarget(hit, layout);
-      if (header) return header;
-      for (const s of layout.sections)
-        for (const t of s.tracks)
-          if (t.layers.some((l) => l.key === hit.layer))
-            return {
-              section: s.section.address,
-              track: t.track.address,
-              ...(hit.element ? { element: { layer: hit.layer, key: hit.element.key } } : {}),
-            };
-    }
-    // a track's band under the point, else its section
-    const section = viewer.input.sectionAt(y);
-    const s = section === undefined ? undefined : sectionLayout(layout, section);
-    if (!s) return undefined;
-    const t = s.tracks.find((t) => y >= t.box.y && y < t.box.y + t.box.height);
-    return t ? { section: s.section.address, track: t.track.address } : { section: s.section.address };
-  };
-
-  /** Where a menu opens for a header: under its line's label start, else at the point. */
-  const placeOf = (target: HeaderTarget): HeaderMenuPlace => {
-    const g = geometry.value.find((x) => x.target.section === target.section && x.target.track === target.track);
-    return g ? { x: g.label.x, y: g.line.y + g.line.height } : { x: 0, y: 0 };
-  };
-
   const click = (x: number, y: number, touch: boolean): boolean => {
     if (!viewer) return false;
     const hit = viewer.hit(x, y, touch);
     const t = hit?.target;
     if (!hit || (t !== 'header-slot' && t !== 'header-state' && t !== 'header-label' && t !== 'section-header'))
       return false;
-    const target = headerTarget(hit, viewer.frame?.layout);
-    if (!target) return true;
-    if (t === 'header-label' || t === 'section-header') {
-      // no hover on touch: a tap on the label shows its slots (as the pointer resting there would), a tap on a slot
-      // then runs it
-      if (touch) viewer.input.move(x, y, { pointerType: 'touch' });
-      return true;
-    }
-    const name = hit.state ?? '';
-    const g = geometry.value.find((g) => g.target.track === target.track && g.target.section === target.section);
-    const box = g?.slots.find((s) => s.name === name)?.box ?? g?.states.find((s) => s.name === name)?.box;
-    const at = box ? { x: box.x, y: box.y + box.height } : { x, y };
-    if (name === HeaderMenuName) return openMenu(target, at), true;
-    const e = entries.find((e) => e.name === name);
-    if (!e) return true;
-    // an action with a submenu opens it at its slot; a chip lists what it hides under `hiddenChip: menu`
-    const f = factsOf(target);
-    const subs = f && e.items?.(f);
-    if (subs?.length && (e.kind !== 'state' || params.hiddenChip === 'menu')) return openMenu(target, at, e.name), true;
-    void run(e.name, target);
+    // a header's parts are never a selection's: taken, run once the late parts landed
+    extras?.click(hit, x, y, touch);
     return true;
   };
 
@@ -594,46 +427,14 @@ export function headersBehavior(context: BehaviorContext, params: HeadersParams 
       askedAt = Number.NEGATIVE_INFINITY;
       return true;
     }
-    const hit = viewer.hit(x, y);
-    const c = viewer.context.renderConfig;
-    const inColumn = x >= c.inset && x < c.inset + c.labelWidth;
-    if (contextClick === 'header' && !inColumn) return false;
-    const target = targetAt(x, y, hit);
-    if (!target) return false;
-    // a chip's own list (each thing it hides, then all)
-    const only = hit?.target === 'header-state' && hit.state ? hit.state : undefined;
-    const known = only !== undefined && entries.find((x) => x.name === only)?.items;
-    return openMenu(target, { x, y }, known ? only : undefined);
-  };
-
-  // ---- the words ----
-
-  /** The words of a header's part (a slot, a chip, a label): its entry's label and key, why not, what a click does. */
-  const words = (place: Place): { title: string; text: string } | undefined => {
-    if (!viewer || place.layer === undefined) return undefined;
-    const target = headerTarget({ layer: place.layer } as RenderHit, viewer.frame?.layout);
-    if (!target) return undefined;
-    const f = factsOf(target);
-    if (!f) return undefined;
-    return headerWords(place, f, itemsOf(f, target.track ? 'track' : 'section'));
+    return !!extras?.context(x, y, contextClick === 'header');
   };
 
   // ---- the menu key ----
 
-  const cursorTarget = (): HeaderTarget | undefined => {
-    const c = context.selection.cursor.value;
-    if (!c) return undefined;
-    if (c.track !== undefined)
-      return c.track === c.section ? { section: c.section } : { section: c.section, track: c.track };
-    const s = sectionOfAddress(c.section);
-    const first = s?.tracks[0];
-    return s ? { section: s.address, ...(first ? { track: first.address } : {}) } : undefined;
-  };
-
+  /** The menu at the keyboard cursor (the late parts'): the browser's secondary click after it is this ask (EC-156). */
   const menuAtCursor = (): CommandResult => {
-    const target = cursorTarget();
-    const ok = !!target && openMenu(target, placeOf(target));
-    // the browser's own secondary click after the menu key is this ask (EC-156)
+    const ok = !!extras?.menuAtCursor();
     if (ok) askedAt = DomHost.now();
     return { message: ok ? 'Actions' : '' };
   };
@@ -643,13 +444,16 @@ export function headersBehavior(context: BehaviorContext, params: HeadersParams 
       title: 'Open the actions of the track at the cursor',
       category: 'Headers',
       scope: 'canvas',
-      when: () => (disposed ? 'The viewer is retired' : cursorTarget() ? true : 'No cursor'),
+      when: () => (disposed ? 'The viewer is retired' : extras?.cursorTarget() ? true : 'No cursor'),
       run: () => menuAtCursor(),
     },
   ];
 
-  // the cursor off what was hidden (by the frame, after a layout)
-  let keepCursor: () => void = () => {};
+  /**
+   * The late parts (`header-extras.ts`, a lazy chunk asked for once composed): the menu's data, the geometry and the
+   * parts, what a secondary click opens, the words, the cursor on headers.
+   */
+  let extras: HeaderExtras | undefined;
 
   const behavior: HeadersBehavior = {
     commands,
@@ -687,7 +491,7 @@ export function headersBehavior(context: BehaviorContext, params: HeadersParams 
     openMenu,
     closeMenu,
     framed() {
-      keepCursor();
+      extras?.keepCursor();
       published();
     },
 
@@ -700,9 +504,26 @@ export function headersBehavior(context: BehaviorContext, params: HeadersParams 
       );
       check(listed, []);
       setEntries(listed);
-      describerFor(context).headers = words;
-      // the cursor's moves onto and between headers (Enter on one opens its menu)
-      keepCursor = headerCursor(v, menuAtCursor);
+      void import('./header-extras.js').then((m) => {
+        if (disposed) return;
+        extras = m.headerExtras({
+          viewer: v,
+          openMenu,
+          run,
+          geometry: () => geometry.value,
+          hiddenChipMenu: params.hiddenChip === 'menu',
+          dom: !!dom,
+          entries: () => entries,
+          factsOf: (t) => factsOf(t),
+          itemOf,
+          itemsOf,
+          headerTarget,
+          menuAtCursor,
+        });
+        describerFor(context).headers = extras.words;
+        publishedFor = undefined;
+        published();
+      });
       // a host's DOM parts take the focus when the cursor comes onto a header
       stops.push(
         context.selection.cursor.listen((c) => {
@@ -754,10 +575,8 @@ export function headersBehavior(context: BehaviorContext, params: HeadersParams 
       for (const s of stops.splice(0)) s();
       if (menuPort && menuPort.disposeWithViewer !== false) menuPort.dispose?.();
       menuPort = undefined;
-      if (viewer) {
-        const d = describerFor(context);
-        if (d.headers === words) d.headers = undefined;
-      }
+      const d = describerFor(context);
+      if (extras && d.headers === extras.words) d.headers = undefined;
     },
   };
   return behavior;

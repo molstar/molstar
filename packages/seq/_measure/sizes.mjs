@@ -212,7 +212,24 @@ for (const r of rows.filter((r) => r.lazyCost)) {
   for (const [k, v] of r.lazyCost.top) console.log(`  ${pad(kB(v), 10)}${k}`);
 }
 
-// each entry's unlisted modules: none may have a byte in any chunk (no lazy chunk either: the design has none)
+// each entry's lazy chunks (viewer-composition, Injected, opt in: a listed part used rarely or late may load on first
+// use): each chunk's size and its largest inputs
+for (const r of rows) {
+  if (r.own) continue;
+  const first = new Set(loaded(r.meta));
+  const lazy = Object.entries(r.meta.outputs).filter(([k]) => !first.has(k) && k.endsWith('.js'));
+  if (!lazy.length) continue;
+  console.log(`\n${r.name}: lazy chunks (minified, loaded on first use)`);
+  for (const [k, o] of lazy.sort((a, b) => b[1].bytes - a[1].bytes)) {
+    const inputs = Object.entries(o.inputs)
+      .sort((a, b) => b[1].bytesInOutput - a[1].bytesInOutput)
+      .slice(0, 3)
+      .map(([f, v]) => `${f.replace(/^packages\//, '')} ${kB(v.bytesInOutput)}`);
+    console.log(`  ${pad(kB(o.bytes), 10)}${k.split('/').pop()}: ${inputs.join(', ')}`);
+  }
+}
+
+// each entry's unlisted modules: none may have a byte in any chunk (a lazy one too)
 let held = 0;
 for (const r of rows) {
   if (!r.unlisted) continue;

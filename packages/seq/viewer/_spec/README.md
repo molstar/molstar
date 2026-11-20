@@ -485,8 +485,12 @@ the rails and navigators (`viewer-rails.ts`), the emphasis (`viewer-emphasis.ts`
   `seq.render.navigator.export`, and keeps the rails), their gestures the `navigator` behavior's; the rows rail's drags
   are the `rows` behavior's (`RowsBehavior.railGesture`); story steps and transitions are the `story` part (none: jumps
   and steps are cuts, `spec.enterStep` refuses, `seq.viewer.step.none`); the mounted history is `ui.history`, a factory.
-  Why: one rule for every part, listed or absent, no lazy chunk a host's bundler must split, and the size a host pays
-  follows what it lists; the size script's minimal entry checks it (none of the unlisted modules in its bundle).
+  Why: one rule for every part, listed or absent, and the size a host pays follows what it lists; the size script's
+  minimal entry checks it (none of the unlisted modules in its bundle). **Lazy chunks**: a listed part used rarely or
+  late (the header entries' icons, their menu and DOM parts, the headers' late parts, a runtime such as mmCIF, the
+  molecule letters) may load by a dynamic `import()` on first use, which every bundler splits; the size script lists
+  each entry's chunks. The first frame does not wait for one: what it would draw is drawn plainly (a slot's letter for
+  its icon) and drawn again when it lands.
 - `createSeqViewer(spec, target?)` makes, in this order: the core's context (registry, configuration, ports), the models
   (spec, view, hover, store, selection, highlight, addresses), the history (`spec.history`, else `ui.history()` when
   mounted; bound to the spec), the binding table (the selection's and the rows' actions bound only when their behavior
@@ -1021,7 +1025,11 @@ rows' commands) reads the last frame's rows layers through the behavior context'
   its first. A pair or a position hovered is the pairs layer's own rule (its partners light), never the channel. Why a
   behavior: a host chooses an analysis, and the same query serves the selection.
 - `headers` (`HeadersProvider`, `behaviors/headers.ts`, in the default spec; left out: states only, no slots, no menu):
-  the track headers' entries and gestures (core's Track headers draws and hits them).
+  the track headers' entries and gestures (core's Track headers draws and hits them). Its eager part is the hover path's
+  (the entries made into slots and chips, a run, the menu's state); its late parts (`header-extras.ts`, a lazy chunk
+  asked for once composed: the menu's data, the geometry and the parts, a click's and a secondary click's target, the
+  words, the cursor on headers) work once they land: until then a click on a header part is taken and does nothing, and
+  nothing is published.
   - **Entries** (`header-entries.ts`): `HeaderEntry` (`name` namespaced `<id>:<name>`, `on` `track`, `section` or
     `element`, `kind` `action` or `state`, `icon` `@molstar/ui`'s, `label`, `when`, `command`, `args`, `text`, `order`,
     `slot`, `items` a submenu), listed in the registry as `{ kind: 'header-action', entry }` (`SeqViewerRegistryEntry`)
@@ -1048,10 +1056,11 @@ rows' commands) reads the last frame's rows layers through the behavior context'
     click runs it, its secondary click lists its items, then itself (the `hiddenChip: menu` param: the click lists
     them).
   - **Slots** are the applying actions with an icon (or `slot: true`), by `order` then name, the first
-    `actionColumns(…).n`; every entry is in the menu. A slot's icon is read once into path data (`header-icons.ts`: the
-    Lucide markup's `path`, `line`, `circle`, `ellipse`, `polyline`, `polygon`, `rect`; arcs and quadratics as cubics),
-    a lazy chunk with `@molstar/ui`'s icon markup (one map of every icon), loaded once an entry has an icon: until it
-    lands, and for an icon no path reads, the slot draws its label's first letter; then the headers are laid out again.
+    `actionColumns(…).n`; every entry is in the menu. A slot's icon (the entry's `iconMarkup`, else a built-in's by
+    name: `@molstar/ui`'s per-icon modules, never its map of every icon) is read once into path data (`header-icons.ts`:
+    the Lucide markup's `path`, `line`, `circle`, `ellipse`, `polyline`, `polygon`, `rect`; arcs and quadratics as
+    cubics), a lazy chunk, loaded once an entry has an icon: until it lands, and for an icon no path reads, the slot
+    draws its label's first letter; then the headers are laid out again.
   - **Gestures**: a click on a slot runs it (the "⋯" opens the menu), on a chip runs its state, on a label nothing (on
     touch it shows the slots, as a hover there, so a second tap on a slot runs it); never a selection's. A secondary
     click (`contextmenu` on the mounted canvas) opens the menu under `contextClick` (`everywhere`, the default spec's:

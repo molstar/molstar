@@ -5,23 +5,28 @@
  */
 
 import { type HeaderIcon, PathCommand } from '@molstar/seqx-core/render';
-import { LucideIcons } from '@molstar/ui/components/icon/_generated/lucide';
-import type { IconName } from '@molstar/ui/components/icon/icon';
+import { lucideEyeOff } from '@molstar/ui/components/icon/_generated/lucide/eye-off';
+import { lucidePalette } from '@molstar/ui/components/icon/_generated/lucide/palette';
 
-// A header entry's icon as path data (_spec/README.md "Behaviors", Headers: icons as paths): `@molstar/ui`'s Lucide
-// markup read once a name into move, line, cubic and close commands in its 24-unit box, what core's draw lists stroke.
-// The elements read: `path`, `line`, `circle`, `polyline`, `polygon`, `rect`, `ellipse`; another makes the icon
-// unreadable (undefined: the slot draws its label's first letter, and the registration says so).
+// A header entry's icon as path data (_spec/README.md "Behaviors", Headers: icons as paths): its markup (Lucide's, in a
+// 24-unit box: the entry's own `iconMarkup`, else a built-in's icon, imported by itself from `@molstar/ui`) read once
+// into move, line, cubic and close commands, what core's draw lists stroke. The elements read: `path`, `line`,
+// `circle`, `polyline`, `polygon`, `rect`, `ellipse`; another makes the icon unreadable (undefined: the slot draws its
+// label's first letter). No map of every icon: a host's entry brings its own markup.
+
+/** The built-in entries' icons by name. */
+const BuiltIn: Readonly<Record<string, string>> = { 'eye-off': lucideEyeOff, palette: lucidePalette };
 
 const Cache = new Map<string, HeaderIcon | null>();
 
-/** An icon's paths, read once a name; undefined when it has an element no path reads (or no such icon). */
-export function headerIcon(name: IconName): HeaderIcon | undefined {
-  let out = Cache.get(name);
+/** An icon's paths (its markup, else a built-in's by name), read once; undefined when no path reads it. */
+export function headerIcon(name: string | undefined, markup?: string): HeaderIcon | undefined {
+  const text = markup ?? (name === undefined ? undefined : BuiltIn[name]);
+  if (text === undefined) return undefined;
+  let out = Cache.get(text);
   if (out === undefined) {
-    const markup = (LucideIcons as Readonly<Record<string, string>>)[name];
-    out = markup === undefined ? null : (readMarkup(markup) ?? null);
-    Cache.set(name, out);
+    out = readMarkup(text) ?? null;
+    Cache.set(text, out);
   }
   return out ?? undefined;
 }

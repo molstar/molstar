@@ -29,7 +29,7 @@ import type { SeqTokens } from '@molstar/seqx-core/render';
 import type { StepViewport, TransitionPlan } from '@molstar/seqx-core/story';
 import type { ResolvedView } from '@molstar/seqx-core/view';
 import type { CommandDefinition, CommandResult } from '@molstar/ui/commands/types';
-import { DomHost } from '@molstar/ui/dom';
+import { DomHost } from '@molstar/ui/dom/host';
 import { bindingTable, DefaultActions, type BindingTable, BindingPresets } from '@molstar/seqx-viewer/bindings';
 import type { CanvasBackend } from '@molstar/seqx-viewer/canvas';
 import { type ViewerConfig, viewerConfigOf } from '@molstar/seqx-viewer/config';
