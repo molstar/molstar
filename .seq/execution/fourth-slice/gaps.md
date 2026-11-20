@@ -12,6 +12,12 @@ under the author's standing permission (`state.md`, Decided). Each a yes or no q
   older than the pointer's last own hover (the review: a late non-null 3D hover took the pointer's). Keep? Recommended
   yes (EC-141 covered for hovers, not only leaves).
 
+- **HD**: `withAdapter` is generic over the registry's entry type (a viewer's registry passes through); the examples'
+  chain tables gain `ChainResidue.b`, `ChainTable.model`, `HostModel`. Keep? Recommended yes.
+- **HD's drift**: no section can show a source's complex (`drift/host-complex-sections.md`): keep static sections with
+  an issue, sections over a source's complex, or the source bringing `values` nodes? Recommended: sections over a
+  source's complex in the next slice's view-model work, the issue until then.
+
 ## Decisions as recommended
 
 - **ST2**: the link sends every jump that names a Location (`focus`, `reveal`, and back/forward over them); `fit`,

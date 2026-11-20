@@ -309,7 +309,7 @@ disagrees with its code writes a drift note and stops.
       and `unitRows`, its `side` for `linkStructure`); the stories: hover, selection, focus, chain maps (SIFTS against an
       alignment by `priority` and `via`), "color by this track" as a host's header entry; twins; the Design page
       (`briefs/st3-fake-viewer.md`).
-- [ ] HD (fast, after ST3 and DP) the fake host's data adapter beside the fake viewer (it serves 2OCJ and a pLDDT track
+- [x] HD (fast, after ST3 and DP) the fake host's data adapter beside the fake viewer (it serves 2OCJ and a pLDDT track
       from its chain table through `withAdapter`) and the `Host data` story with its twin (no asset read; equal nodes
       to the default adapter); the Extensibility page's adapter list (`briefs/hd-host-data.md`).
 - [ ] HP3 (fast, after ST3) `Features/Track headers` and its twins, the Design page (`briefs/hp3-header-stories.md`).
