@@ -5,10 +5,11 @@
  */
 
 import type { Pyramid, PyramidLevel } from './pyramid.js';
+import type { RowsLay } from './rows.js';
 
 // The level pair the rows draw their image tiles from (_spec/README.md "Render", The rows layer; performance.md,
 // Levels): while the view moves, a level not built yet is built `rows.buildBudget` cells a frame and the level drawn last
-// stays drawn meanwhile (its tiles placed at the new zoom), none when none of the base was drawn; a settled frame builds
+// stays drawn meanwhile (its tiles placed at the new zoom), the rows pending when none of the base was drawn; a settled frame builds
 // the rest.
 
 /** The level pair each pyramid drew last: its base's version, row level and column level (kept, reused). */
@@ -37,4 +38,16 @@ export function rowsLevel(
   drawn[1] = level.rowLevel;
   drawn[2] = level.columnLevel;
   return level;
+}
+
+/**
+ * While no level is whole to draw (a moving frame's build): the scrolled rows in view pending, the rows' own placeholder
+ * over them, never an empty band (data-store.md: pending is never drawn as empty, EC-169). Their cells still hit as
+ * the data they are (held): only their picture waits. True, for the caller's one line.
+ */
+export function rowsPending(lay: RowsLay): boolean {
+  const top = Math.max(lay.box.y + lay.pinnedHeight, lay.rowY(lay.display.pinned));
+  const bottom = Math.min(lay.box.y + lay.box.height, lay.rowY(lay.display.count));
+  if (bottom > top) lay.pending.push(top, bottom - top);
+  return true;
 }

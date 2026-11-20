@@ -63,15 +63,22 @@ describe('the rows’ levels across frames', () => {
     expect(await frame(20_000)).toBe(false);
   });
 
-  it('a zoom out of the letters (no level drawn yet) draws no cells while the level builds, never a whole build', async () => {
+  it('a zoom out of the letters (no level drawn yet) draws the rows pending while the level builds, never a whole build', async () => {
     const s = await settle(spec(Rows, true), [Synthetic], { rows: { buildBudget: 20_000 } } as never);
     // the letters, settled: no image level drawn
     expect(rowsLay(await s.frame(at(20, 40, true))).images.length).toBe(0);
     // out to the fit, moving: a part built, nothing drawn of it
-    let lay = rowsLay(s.renderer.frame(at(0.4, Columns, false)));
+    const f = s.renderer.frame(at(0.4, Columns, false));
+    let lay = rowsLay(f);
     const [r, c] = wanted(lay, 0.4);
     expect(lay.pyramid!.isBuilt(r, c)).toBe(false);
     expect(lay.images.length).toBe(0);
+    // the rows in view drawn pending meanwhile, never an empty band (EC-169)
+    expect(lay.pending.length).toBe(2);
+    expect(lay.pending[1]).toBeGreaterThan(0);
+    const rects = f.lists.passes.data.rects;
+    const ink = lay.tokens.colors['seq-pending'];
+    expect(Array.from({ length: rects.n }, (_, k) => rects.fill[k]).filter((x) => x === ink).length).toBe(1);
     // the frames after it build the rest, then draw it
     let frames = 0;
     for (let w = Columns - 1; !lay.images.length && frames < 100; w--, frames++)

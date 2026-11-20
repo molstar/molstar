@@ -34,7 +34,7 @@ import {
   Round,
 } from './draw-lists.js';
 import { ImageCache, ImageTile } from './images.js';
-import { rowsLevel } from './rows-levels.js';
+import { rowsLevel, rowsPending } from './rows-levels.js';
 import { type Alphabet, cellEdge, LettersColorFallback } from './letters.js';
 import { RenderIssues } from './issues.js';
 import { type LayerSource, layerSource, readTiles } from './layer-data.js';
@@ -1429,7 +1429,7 @@ function layoutImages(lay: RowsLay, ctx: LayoutContext, c0: number, c1: number) 
   const rowLevel = pyramidLevelFor(1 / (lay.rowScale * dpr), 4);
   const colLevel = pyramidLevelFor(1 / axis.devicePx, 4);
   const level = R > 0 ? rowsLevel(pyr, rowLevel, colLevel, ctx.settled, ctx.config.rows.buildBudget) : undefined;
-  if (!level) return;
+  if (!level) return void (R > 0 && rowsPending(lay));
   const fr = 4 ** level.rowLevel;
   const fc = 4 ** level.columnLevel;
   const s0 = Math.floor((lay.first - P) / fr);
