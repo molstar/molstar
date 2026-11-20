@@ -516,6 +516,11 @@ is a segment of an address, `/data/p53/(range :from 94 :to 292)`.
   system no target is reports `seq.query.location.unreachable` (projection is not built), a rect is refused. An operand
   naming a ref is refused (`seq.query.ref.unresolved`): addressing follows refs before the forms read an address
   (Addressing), so only a caller of `evaluateQuery` itself meets it.
+- **Composition** (MolQL's, monadic; decided by the author, 2026-11-20): a form maps over every element its prefix
+  yields and concatenates what each gives; a prefix element with nothing to give (a unit with no atoms, a complex with
+  no such chain) yields nothing, said by a warning, never a failure of the whole query. A prefix of the wrong type is
+  still `seq.query.form.prefix`. Not yet so: `(atom …)` fails over a prefix without atoms; it and `(atoms)` are to be
+  replaced by an `(elements …)` form (a design being drafted).
 - **Molecule forms** (`query/molecule-forms.ts`; the forms' shared kit `query/form-kit.ts`): codes and identifiers match
   exactly (`ccd:atp` is not `ccd:ATP`); a host's `equivalents` adds identifiers to an asked one. `:standard false` alone
   reads the sparse rows, never scanning a sequence; with `:id` or `:class` the positions are scanned, each a visit; a
@@ -1182,7 +1187,9 @@ Seq\* holds pointers and labels: codes and identifiers are strings.
   atoms, `<molecule>/(atoms)` (`atomsSystemOf`; `kind: 'atoms'`). Its class is `ligand` when it names none.
 - **A unit** is a system (`kind: 'unit'`) on its molecule's positions over its range, counted from 0: its position i is
   the molecule's `start + i` (`SystemEntry.parent`), its length its range's (its molecule's when it names none, unknown
-  while that is), its letters its sequence's over the range. A unit of a molecule with atoms has its own
+  while that is), its letters its sequence's over the range: inline, sliced; a source's, read on the sequence's
+  positions through the unit's step (the layer's data system is then the sequence), pending while unread (EC-169), and a
+  component form reading standard components waits for them. A unit of a molecule with atoms has its own
   `<unit>/(atoms)`: the molecule's atoms of its residues. Why from 0: every system counts from 0, and the step up adds
   the start (decided by the author).
 - **Steps**: a unit's `up` to its molecule and `down` from it (`unitEdges`), free in the search and under the copy rule
@@ -1202,7 +1209,10 @@ Seq\* holds pointers and labels: codes and identifiers are strings.
   start and clipped to the range.
 - **Bounded**: a complex past `maxUnits` units is refused whole with `seq.resolve.complex.units` (its hint: read a
   subset of the assembly).
-- **Compounds** (`compounds`): the `compound` nodes by code (name, class, parents), what `(component :class …)` reads.
+- **Compounds** (`compounds`): the `compound` nodes by code (name, class, parents), what `(component :class …)` reads;
+  `compound(code)` falls back to the host's names (`ResolveOptions.componentNames`, the `componentNames` entry's
+  lookup). A host's identifier resolver is `ResolveOptions.equivalents` (the `identifierResolver` entry): the
+  identifiers it holds the same compound as one, which `(molecule :identifier …)` adds; none by default.
 
 ### Maps
 
@@ -1276,8 +1286,9 @@ Seq\* holds pointers and labels: codes and identifiers are strings.
 
 `seq.resolve.*` (`ResolveIssues`): `ref.missing` and `source.format` (a spec not checked), `source.runtime`,
 `map.empty`, `map.codon_length`, `map.table`, `length.unknown`, `path.none`, `path.ambiguous`, `path.limit`,
-`complex.units`, and the overlay's `node.invalid`, `node.ref`, `node.depth`. A test checks the catalog against the
-sources.
+`complex.units`, `ref.system` (a reference to a sequence, molecule or unit that made no system: a unit of a refused
+complex or of nothing held; what reads it is left out), and the overlay's `node.invalid`, `node.ref`, `node.depth`. A
+test checks the catalog against the sources.
 
 ## Overlay
 
