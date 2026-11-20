@@ -58,6 +58,7 @@ node .seq/oz/_checks/paths-check.ts --allow '^(?!\.seq/|packages/seq/)'
 node .seq/oz/_checks/merge-gate.ts --package .seq/oz --instance .seq
 node .seq/_checks/ec-ids.ts
 node .seq/_checks/closed-work.ts
+node .seq/_checks/file-size.ts
 ```
 
 The last two are this scaffold's own: every `EC-<n>` cited in `packages/seq` names an item of the edge-case catalog
@@ -66,7 +67,8 @@ a feature marked `done` in [design/features.md](design/features.md) has each ite
 outcome (rows done before the rule in `_checks/ec-coverage-baseline.json`, which only shrinks; `--worklist` prints the
 built rows' items no test names, the close's list); and a
 closed work folder has a `foldback.md` with the author's decision on it (merged, in part, or not) ([principles](principles/README.md), "The fold-back is a step
-of every close").
+of every close"). `file-size.ts` bounds a source file in `packages/seq` (§module-size: 800 lines a note, 1500 a failure, tests
+2500; the files already past it in `_checks/file-size-baseline.json`, which only shrinks, lowered by `--update`).
 
 The `--allow` patterns limit the id and path checks to what this scaffold governs: the rest of the repository uses
 the section sign for its own spec sections (`harness.md`, section 6).
