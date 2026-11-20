@@ -5,30 +5,15 @@
  */
 
 import { CategoryColumn, type Column } from '@molstar/core/repr/tree';
-import type { DataStore, Shape, Tables, Want } from '@molstar/seqx-core/data';
-import type { StaticModel } from '@molstar/seqx-core/resolve';
-import type { ResolvedLayer } from '@molstar/seqx-core/view';
+import type { DataStore, Tables, Want } from '@molstar/seqx-core/data';
+import type { LayerSource } from '@molstar/seqx-core/render';
 
-// The second consumer's reading (EC-183, `_spec` Resolved view): what a layer draws is in the store, found through the
-// resolved view's layer and the model's access plans, with the public entries of `@molstar/seqx-core` alone. Core's
-// own reader of the same is `render/layer-data.ts`; nothing of it is used here.
+// The second consumer's reading (EC-183, `_spec` Resolved view): what a layer draws is in the store, found through
+// `layerSource`, the render entry's data access (a layer's source, system and shape from the model's plans: not a layout
+// or a draw list), then the store's tiles.
 
 /** Where a layer's rows are in the store: its source, the name the source knows the system by, and the shape. */
-export interface Access {
-  readonly source: string;
-  readonly system: string;
-  readonly shape: Shape;
-}
-
-/** The store's source of a placed layer's data, from the layer's data and the model's plans (inline data: its node). */
-export function accessOf(model: StaticModel, layer: ResolvedLayer): Access | undefined {
-  const data = layer.data;
-  if (!data || !layer.placed) return undefined;
-  const plan = data.access ?? model.systems.get(data.address)?.access ?? model.annotations.get(data.address)?.access;
-  if (!plan) return undefined;
-  const source = plan.kind === 'inline' ? plan.source.address : plan.source;
-  return { source, system: plan.system, shape: plan.shape };
-}
+export type Access = Pick<LayerSource, 'source' | 'system' | 'shape'>;
 
 /** The tables of the tiles covering `[start, end)` of a layer's data, finest level, once they settle; `pending` counts tiles not loaded. */
 export async function readTables(

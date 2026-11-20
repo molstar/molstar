@@ -6,7 +6,7 @@
 
 import type { RangesField, Tables } from '@molstar/seqx-core/data';
 import type { DataStore } from '@molstar/seqx-core/data';
-import { LightTokens } from '@molstar/seqx-core/render';
+import { LightTokens, layerSource } from '@molstar/seqx-core/render';
 import { complementCode, type StaticModel } from '@molstar/seqx-core/resolve';
 import {
   builtInSchemes,
@@ -24,7 +24,7 @@ import {
   type ResolvedSection,
   type ResolvedView,
 } from '@molstar/seqx-core/view';
-import { accessOf, cell, readTables } from './read.js';
+import { cell, readTables } from './read.js';
 
 // The second consumer of the resolved view (EC-183; `_spec` Resolved view; rendering.md "A second consumer, in tests
 // only"): letters, ranges, values and variants of one section, as plain SVG, from the resolved view, the static model
@@ -158,7 +158,7 @@ export async function drawSection(
     let height = track.height ?? 20;
     const trackMarks: Mark[] = [];
     for (const layer of track.layers) {
-      const access = accessOf(model, layer);
+      const access = layerSource(model, layer);
       // a layer reached through a path (a follower's) is carried by the path's maps: left to a consumer that builds them
       if (!access || !Kinds.has(layer.type) || layer.path) {
         skipped.push(layer.address ?? track.address);

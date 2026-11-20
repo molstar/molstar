@@ -9,7 +9,8 @@ import type { Node } from '@molstar/core/repr/tree';
 import { createSeqContext } from '@molstar/seqx-core/context/default';
 import { DataStore, SeqRuntime } from '@molstar/seqx-core/data';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
-import { openModel } from '@molstar/seqx-core/render';
+import { LightTokens, openModel } from '@molstar/seqx-core/render';
+import { colorHex } from '@molstar/seqx-core/theme';
 import { describe, expect, it } from 'vitest';
 import { nodeFixtureAssets } from '../../node-assets.js';
 import { ExampleViews } from '../../views.js';
@@ -22,6 +23,12 @@ import { type Drawn, drawSection, type Mark } from './draw.js';
 // where, read back from core's SVG as positions (its plot maps a window of positions to its width): which letter at which
 // position in which colour, which range from where to where with which label, which bar at which height, which head at
 // which site. Layouts differ (px, heights, lanes); positions, text and colours by value do not.
+//
+// What is independent: positions, text, heights (shares of the track), the dedupe of a range over a tile edge, the
+// complement on a reversed axis. What is shared: the colours, through the theme compile (`compileChannel`,
+// `builtInSchemes`, the token table) that core's channels use too, so a colour check shows the resolved view carries
+// the forms and the consumer reads the data they run over, never that the theme compile is right (its own tests are).
+// Data access (`layerSource`) and the token table are core's, public through `render`.
 
 const Width = 720;
 
@@ -144,7 +151,15 @@ describe('EC-183 the second consumer draws what core draws', () => {
     }
     // the two missing values (100, 101) draw no bar
     const missing = await both(p53('tracks'), [95, 105]);
-    expect(of(missing, 'value').map((m) => m.position)).toEqual([95, 96, 97, 98, 99, 102, 103, 104]);
+    const expected = [95, 96, 97, 98, 99, 102, 103, 104];
+    expect(of(missing, 'value').map((m) => m.position)).toEqual(expected);
+    // core draws a mark there too, not a bar: in the missing colour, where the consumer leaves the position empty
+    const marks = inTrack(missing.core.rects, missing.track('Conservation')).map(
+      (c) => [Math.floor(missing.at((c.x0 + c.x1) / 2)), c.fill] as const,
+    );
+    const missingFill = colorHex(LightTokens.colors['seq-missing']).slice(0, 7);
+    expect(marks.filter(([, f]) => f !== missingFill).map(([p]) => p)).toEqual(expected);
+    expect(marks.filter(([, f]) => f === missingFill).map(([p]) => p)).toEqual([100, 101]);
   });
 
   it('EC-183 variants: each head at its site, in the colour of its consequence', async () => {
@@ -152,8 +167,8 @@ describe('EC-183 the second consumer draws what core draws', () => {
     const b = await both(p53('variants'), win);
     const heads = of(b, 'variant');
     expect(heads.map((m) => m.text)).toEqual(['R175H', 'R196*']);
-    // a head is an 8 px shape (core's ruler ticks are 1 px rects)
-    const coreHeads = inTrack(b.core.paths, b.track('Variants')).filter((r) => r.x1 - r.x0 === 8);
+    // the heads are the shapes of the variants track (its only layer; core's ruler ticks are rects in another track)
+    const coreHeads = inTrack(b.core.paths, b.track('Variants')).sort((p, q) => p.x0 - q.x0);
     expect(coreHeads).toHaveLength(heads.length);
     heads.forEach((m, i) => {
       expect(b.at((coreHeads[i].x0 + coreHeads[i].x1) / 2)).toBeCloseTo(m.position + 0.5, 0);
@@ -224,6 +239,17 @@ describe('EC-183 across a tile edge and on a reversed axis', () => {
           b.core.items.some((x) => x.startsWith(`${m.text},`)),
           m.text,
         ).toBe(true);
+      // and where they are: core's shapes, by the positions they span (a range over the tile edge once, clipped to the window)
+      const shapes = inTrack(b.core.paths, b.track('Ranges'))
+        .map((p) => [Math.min(b.at(p.x0), b.at(p.x1)), Math.max(b.at(p.x0), b.at(p.x1)), p.fill] as const)
+        .sort((p, q) => p[0] - q[0] || p[1] - q[1]);
+      expect(shapes).toHaveLength(ranges.length);
+      const mine = ranges.map((m) => [...span(m, win), m.fill] as const).sort((p, q) => p[0] - q[0] || p[1] - q[1]);
+      mine.forEach(([s, e, fill], i) => {
+        expect(shapes[i][0]).toBeCloseTo(s, 0);
+        expect(shapes[i][1]).toBeCloseTo(e, 0);
+        expect(shapes[i][2]).toBe(fill);
+      });
     });
   }
 });
@@ -243,10 +269,20 @@ describe('EC-183 the consumer needs nothing private', () => {
     const specifiers: string[] = [];
     for (const f of files) {
       const text = readFileSync(new URL(f, dir), 'utf8');
+      // static imports (type ones too), re-exports and dynamic `import('…')`
       for (const m of text.matchAll(/from '([^']+)'/g)) specifiers.push(m[1]);
-      // no layout, draw list or other part of core's render but the token table
-      for (const m of text.matchAll(/import \{([^}]*)\} from '@molstar\/seqx-core\/render'/g))
-        expect(m[1].trim()).toBe('LightTokens');
+      for (const m of text.matchAll(/\bimport\(\s*'([^']+)'/g)) specifiers.push(m[1]);
+      // `render` is data access and the token table alone: no layout, draw list or backend
+      for (const m of text.matchAll(/(?:import|export)[^;]*?'@molstar\/seqx-core\/render'/gs)) {
+        const names = /\{([^}]*)\}/
+          .exec(m[0])?.[1]
+          .split(',')
+          .map((n) => n.trim().replace(/^type\s+/, ''))
+          .filter(Boolean);
+        expect(names, m[0]).toBeDefined();
+        for (const n of names!) expect(['LightTokens', 'layerSource', 'LayerSource'], n).toContain(n);
+      }
+      expect(text).not.toMatch(/import\(\s*[^'\s)]/);
     }
     for (const s of specifiers) {
       if (s.startsWith('./')) continue;
