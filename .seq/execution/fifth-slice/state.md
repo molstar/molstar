@@ -34,6 +34,6 @@ the morning").
 | genome-coordinates | GA | 2026-11-20 | 2026-11-20 (3 blocking, 8 to fix) | 2026-11-20 | yes |
 | region-reads | RR | 2026-11-21 | 2026-11-21 (2 blocking, 8 to fix) | 2026-11-21 | yes |
 | genome-formats | GF | 2026-11-21 | 2026-11-21 (3 blocking, 8 to fix) | 2026-11-21 | yes |
-| across-sections | LX | | | | |
+| across-sections | LX | 2026-11-21 | in review | | |
 | ring-extension | RN | | | | |
 | genomes-dataset | GD | | | n/a | |
