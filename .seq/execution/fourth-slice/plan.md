@@ -245,7 +245,7 @@ disagrees with its code writes a drift note and stops.
 
 ### Stage 1: molecules, maps and copies (strong lanes in order; [molecules](../../design/molecules.md), The fourth slice's lanes)
 
-- [ ] ML1 (strong, first) the language: the kinds, params, checks and builder (molecules.md, Decision and Consequences,
+- [x] ML1 (merged 2026-11-20) (strong, first) the language: the kinds, params, checks and builder (molecules.md, Decision and Consequences,
       `seqx-core` `lang/`); the `seq` format's tables; `source.ref` and `values.field` (seq-data-ports, Decided, gaps 2
       and 4); the 0.5.0 bump opened and owned (`briefs/ml1-language.md`). The core's standard component per letter
       (`@molstar/core`, a base-library row, decided).
@@ -317,7 +317,7 @@ disagrees with its code writes a drift note and stops.
       user's own file (Gate 0, 12) (`briefs/sv-services.md`).
 - [x] AR (merged 2026-11-20) (fast, any time after stage 0) archives over the assets port: read and write zip with `@molstar/core/util/zip`,
       entries resolved as assets, EC-91's bounds; every dataset saved and opened (`briefs/ar-archives.md`).
-- [ ] NG (fast, any time after stage 0) the resolved view's second consumer (the author, 2026-11-19: Nightingale
+- [x] NG (merged 2026-11-20) (fast, any time after stage 0) the resolved view's second consumer (the author, 2026-11-19: Nightingale
       dropped, "our own test consumer only"): a test-only plain-SVG consumer of letters, ranges, values and variants
       from the resolved view and the store alone; the field test (EC-183) (`briefs/ng-test-consumer.md`).
 - [ ] GATE: merged, reviewed, checks green, `pnpm build` and `check:workspace` (core changed), sizes, gaps.

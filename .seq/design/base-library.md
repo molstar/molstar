@@ -61,7 +61,7 @@ Written anew in core with their tests, the previous code read as a guide.
 | residue alphabets and schemes | `@molstar/core/util/color` and sequence constants | residue color schemes as rules (Clustal X, Zappo, Taylor, ESPript), alphabets beside `@molstar/model`'s one-letter codes (moved down to core) |
 | MessagePack | `@molstar/core/data/msgpack` (the encoder and decoder) and `@molstar/core/repr/codecs/msgpack` (the tree's codec), moved down from `@molstar/io`, which re-exports both | JSON's binary twin for sources, read by `seqx-core` without an io dependency (the author, 2026-11-19; built with FS) |
 | a delimited-record tokenizer | `@molstar/core/data/text/delimited` | RFC 4180 records with plain string cells (a one-character delimiter, quote and comment, a BOM skipped), written from io's CSV parser as the guide; io's reader unchanged ([files.md](files.md), agreed 2026-11-19) |
-| standard components | `@molstar/core`'s sequence constants, beside the one-letter codes | the standard component of each letter by alphabet (A ↔ ALA, DA, A), the inverse half of the row above ([molecules](molecules.md), agreed 2026-11-19) |
+| standard components | `@molstar/core/util/sequence-constants` (built in the fourth slice, ML1: `SequenceAlphabet`, `StandardComponents`, `standardComponent`, `standardLetter`, and `AminoAcidNames` moved there as the one table) | the standard component of each letter by alphabet (A ↔ ALA, DA, A), the inverse half of the row above ([molecules](molecules.md), agreed 2026-11-19) |
 | substitution matrices | `@molstar/core/algorithms/sequence/` | BLOSUM and friends, now in `@molstar/model` |
 
 ## Add: missing everywhere

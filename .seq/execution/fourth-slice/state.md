@@ -49,6 +49,8 @@ One row a merged lane (loop, step 5, record): review findings and look findings 
 | Lane | Merged | Bug | Missing design | Look | Notes |
 | --- | --- | --- | --- | --- | --- |
 | AR | 2026-11-20 | 3 (review: duplicate names past the bounds; a written archive failing the ratio; case-folded names) | 0 | 0 | six low (a Configuration table, host spec bounds, version, exports, the fuzz's asserts, the story's reads); the look clean |
+| NG | 2026-11-20 | 3 (review: public data access called missing in the _spec; a partial copy of layerSource; tile-edge ranges by label only) | 0 | 0 | three low (the import scan's dynamic imports, the variant heads' width, the missing values on core's side) |
+| ML1 | 2026-11-20 | 1 (a section's range unbounded on units and molecules) | 1 (a unit's positions: from 0, decided) | 0 | the core table duplicated `AminoAcidNames` (moved to `util/sequence-constants`); five low |
 
 ## How to verify
 
