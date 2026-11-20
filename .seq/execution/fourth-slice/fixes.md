@@ -7,6 +7,8 @@ queue. Each line: what is seen, where (the story), where it came from, its kind 
 
 ## Open
 
+- **SZ's viewer split, four small findings** (low): `viewer.test.ts:116` checks the `_viewport`/`_renderer` shims, not the frame's own calls; `viewer-motion.ts`'s viewport assembly (`window`, `all`, `_bandsFor`) belongs in `viewer-viewports.ts`; `ViewerFrame`'s mutable public fields written by `useBackend`; `view-follow.ts`'s shared out-records. SZ part two's review.
+
 - **The Antibody's IMGT label reads as a second line** (look): Antibody, the ruler's numbering label. Third slice's look. Open: not part of FX2; whether the ruler's name or the `labels` lane makes the second line is not yet read.
 - **Alignment Rows And Columns collapses when the frame's size changes** (bug; look if the cause is only the story's
   sizing): Features › Query › Alignment Rows And Columns. When the Storybook zoom slider changes the frame's size, the
