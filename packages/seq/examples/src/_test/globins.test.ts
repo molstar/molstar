@@ -109,11 +109,11 @@ describe('the Globins fixtures’ anchors', () => {
     type Category = { dict: string[]; codes: ArrayLike<number> };
     const strings = (c: Category) => Array.from(c.codes, (k) => c.dict[k]);
     const atoms = hem.params!.atoms as unknown as { name: Category; element: Category; residue: ArrayLike<number> };
-    expect([hem.kind, strings(hem.params!.residues as unknown as Category), new Set(Array.from(atoms.residue))]).toEqual([
-      'molecule',
-      ['HEM'],
-      new Set([0]),
-    ]);
+    expect([
+      hem.kind,
+      strings(hem.params!.residues as unknown as Category),
+      new Set(Array.from(atoms.residue)),
+    ]).toEqual(['molecule', ['HEM'], new Set([0])]);
     expect([strings(atoms.name), strings(atoms.element)]).toEqual([HemeAtoms.name, HemeAtoms.element]);
     expect(HemeAtoms.name).toHaveLength(43);
     expect(HemeAtoms.element.filter((e) => e === 'FE')).toHaveLength(1);

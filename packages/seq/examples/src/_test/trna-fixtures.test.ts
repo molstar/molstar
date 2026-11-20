@@ -16,6 +16,8 @@ import { derive, mutualInformation } from '../trna/derive.js';
 import { writeDerived } from '../trna/generated.js';
 import {
   covariationGrid,
+  ModifiedCompounds,
+  ModifiedResidues,
   MoleculeFile,
   PairsFile,
   Pairs,
@@ -60,6 +62,10 @@ describe('the tRNA fixtures', () => {
     expect(field(r, 'category').every((p: string, k: number) => p === letters[r.start[k]])).toBe(true);
     expect(letters.slice(33, 36)).toBe('GAA');
     expect(decodeSeq(text(MoleculeFile)).data!.coverage.systems[0].name).toBe(SystemName);
+    // the sequence's `modified` table the views write is the file's: each component at its position, its parent the letter
+    expect(ModifiedResidues.map((m) => m[0])).toEqual(Array.from(r.start as Int32Array));
+    expect(ModifiedResidues.map((m) => m[1])).toEqual(field(r, 'label'));
+    for (const [p, code] of ModifiedResidues) expect(ModifiedCompounds[code].parent).toBe(letters[p]);
   });
 
   it('the pairs the code holds are the file’s: 27, six tertiary, the kinds from the entry’s own classes', () => {

@@ -4,11 +4,21 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { applyPatch } from '@molstar/core/repr/patch';
 import type { Node } from '@molstar/core/repr/tree';
-import { createSeqSpec, theme } from '@molstar/seqx-core/lang';
+import {
+  addRefPatch,
+  createSeqSpec,
+  modified as modifiedTable,
+  type RefInput,
+  SeqLanguage,
+  theme,
+} from '@molstar/seqx-core/lang';
 import {
   covariationGrid,
   ehzPairs,
+  ModifiedCompounds,
+  ModifiedResidues,
   MoleculeFile,
   SeedFile,
   ScaleSize,
@@ -23,18 +33,33 @@ import { DerivedData } from './derived-data.js';
 // nested and the six tertiary pairs among them (four cross the stems' pairs); the pairs as arcs, split by crossing, as chords on a ring and as a dot
 // plot (the family's covariation, computed on 1EHZ's positions, above the diagonal, the structure's pairs below); the
 // seed row 1EHZ is placed on with its `SS_cons` pairs; the seed's rows with their logo; and the dot plot at 4,000 ×
-// 4,000. A modified residue is drawn as its parent letter, its code in a track of ranges, a label where it fits (the
-// mark is later); the arcs' legend lists the pair kinds.
+// 4,000. A modified residue is its parent's letter with its component in the sequence's `modified` table (a dot at the
+// cell's top right; its code and name on hover), its code also in a track of ranges, a label where it fits; the
+// modified residues found by query (`(elements :modified true)`), a bookmark; the arcs' legend lists the pair kinds.
 
 export const title = 'tRNA-Phe';
 
 type Builder = ReturnType<typeof createSeqSpec>;
 
-/** 1EHZ: its letters and modified residues from the committed file, its base pairs. */
+/** The bookmark the builder writes: the modified residues, found by query. */
+export const ModifiedRef: RefInput = {
+  id: 'modified',
+  to: '/data/trna/(elements :modified true)',
+  label: 'Modified residues',
+};
+
+/** 1EHZ: its letters and modified residues from the committed file, its components, its base pairs. */
 function molecule(b: Builder) {
   const file = b.data.source('ehz', { format: 'seq', uri: MoleculeFile });
+  for (const [code, c] of Object.entries(ModifiedCompounds))
+    b.data.compound(code, { name: c.name, parents: [c.parent] });
   // the letters from the file: a grid over them is read once the file gives their length
-  const trna = b.data.sequence('trna', { alphabet: 'rna', source: file, name: SystemName });
+  const trna = b.data.sequence('trna', {
+    alphabet: 'rna',
+    source: file,
+    name: SystemName,
+    modified: modifiedTable(ModifiedResidues.map(([position, component]) => ({ position, component }))),
+  });
   const modified = b.data.ranges('modified', { target: trna, source: file });
   const pairs = b.data.pairs('pairs', { a: trna, rows: ehzPairs() });
   return { trna, modified, pairs };
@@ -86,7 +111,10 @@ export function build(options: TrnaOptions = {}): Node {
       t.layer('structure', { type: 'pairs', data: pairs, mirror: true, triangle: 'lower' });
     });
   });
-  return b.build();
+  const root = b.build();
+  const r = applyPatch(root, addRefPatch(root, ModifiedRef), { language: SeqLanguage });
+  if (!r.ok) throw new Error(`The bookmark did not apply: ${r.issues.map((i) => i.code).join(', ')}`);
+  return r.root;
 }
 
 /** Crossing pairs on the other side: the largest nested set above, the tertiary pairs that cross it below. */

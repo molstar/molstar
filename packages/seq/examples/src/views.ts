@@ -577,7 +577,7 @@ export const TrnaViews: readonly ExampleView[] = [
     id: 'arcs',
     title: 'Base pairs as arcs',
     summary:
-      'tRNA-Phe (PDB 1EHZ, chain A): its 27 base pairs as arcs over the letters, the four stems nested, the six tertiary pairs (four of them crossing the stems’ pairs) over them; colored by kind (canonical, wobble, non-canonical); its 14 modified residues drawn as their parent letters, their codes in a track above. Hover an arc: both ends lit; click: the pair selected.',
+      'tRNA-Phe (PDB 1EHZ, chain A): its 27 base pairs as arcs over the letters, the four stems nested, the six tertiary pairs (four of them crossing the stems’ pairs) over them; colored by kind (canonical, wobble, non-canonical); its 14 modified residues as their parent letters, each marked (its component on hover), their codes in a track above, found by the “Modified residues” bookmark (`(elements :modified true)`). Hover an arc: both ends lit; click: the pair selected.',
     build: () => trna.build(),
   },
   {

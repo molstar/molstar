@@ -15,9 +15,10 @@ export default meta;
 
 /**
  * tRNA-Phe (PDB 1EHZ, chain A): its 27 base pairs as arcs over the letters, the four stems nested and the six tertiary
- * pairs among them (four cross the stems' pairs), colored by kind (canonical, wobble, non-canonical); its 14 modified residues as their parent
- * letters with their codes in a track. Hover a base: the arc to its partner lights. Click an arc: both bases are
- * selected. Pan: an arc whose end leaves the window moves continuously. Editing: hide the tertiary pairs (a filter by
+ * pairs among them (four cross the stems' pairs), colored by kind (canonical, wobble, non-canonical); its 14 modified
+ * residues (11 components) as their parent letters, each with a dot at its cell's top right (hover: `U · PSU` and its
+ * name), their codes also in a track; the bookmarks list's “Modified residues” runs `(elements :modified true)` and
+ * highlights the 14. Hover a base: the arc to its partner lights. Click an arc: both bases are selected. Pan: an arc whose end leaves the window moves continuously. Editing: hide the tertiary pairs (a filter by
  * that field in the arcs' `data`, a patch).
  */
 export const Arcs: StoryObj = { render: () => exampleStory(view('arcs')) };
