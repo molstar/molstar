@@ -273,7 +273,7 @@ disagrees with its code writes a drift note and stops.
       `priority` and the section's `via` with `StaticModel.path(from, to, via?)` (structure-syncing, Choosing between
       two maps; both params join the bump), a numbering's `offset` and `segments` methods (NB's leftovers); EC-22 to
       EC-27 on every encoding (`briefs/mk-structure-maps.md`).
-- [ ] AC (strong, after MK; followups: "Yes, slice 4 (0.5.0)") pairs, ranges and maps targeting an alignment's columns:
+- [x] AC (strong, after MK; followups: "Yes, slice 4 (0.5.0)") pairs, ranges and maps targeting an alignment's columns:
       the tRNA's `SS_cons` arcs over the alignment, a chain mapped onto its closest seed row
       (`briefs/ac-alignment-targets.md`).
 - [ ] MR (strong, after AC) drawing and interaction: a section of a complex, `form` through the chips, the letters' mark
