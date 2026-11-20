@@ -8,7 +8,7 @@
 // modified indices, complexes' units with their copy groups and the `maxUnits` bound, links held on per-row units,
 // compounds by code. The model's build calls it with its own placing, caching and refs.
 
-import { type Issue, issueOf, type Node, type Value } from '@molstar/core/repr/tree';
+import { type Issue, issueOf, type Node, printAddress, type Value } from '@molstar/core/repr/tree';
 import { readPairs } from './held.js';
 import { ResolveIssues } from './issues.js';
 import type { AnnotationEntry, ResolveConfig, SystemEntry } from './model.js';
@@ -36,6 +36,51 @@ export type Cached = <T>(key: string, make: () => T) => T;
 
 const p = (n: Node, key: string): Value | undefined => n.params?.[key];
 
+/** A child of a complex or a molecule (a unit, links), placed under it. */
+export interface Child extends Placed {
+  readonly parent: Placed;
+}
+
+/** A complex's units and links and a molecule's links, by parent, each addressed under it (and found by address). */
+export function placeChildren(data: readonly Placed[], byAddress: Map<string, Placed>): Map<Placed, Child[]> {
+  const out = new Map<Placed, Child[]>();
+  for (const at of data) {
+    if (at.node.kind !== 'complex' && at.node.kind !== 'molecule') continue;
+    const list: Child[] = [];
+    const ids = at.address.split('/').filter(Boolean);
+    for (const c of at.node.children ?? []) {
+      if (c.id === undefined || (c.kind !== 'unit' && c.kind !== 'pairs')) continue;
+      const placed = { node: c, address: printAddress([...ids, c.id]), parent: at };
+      list.push(placed);
+      byAddress.set(placed.address, placed);
+    }
+    out.set(at, list);
+  }
+  return out;
+}
+
+/** Links: a complex's between its units (an end's unit a row's), a molecule's between its residues. */
+export function buildLinks(
+  children: ReadonlyMap<Placed, readonly Child[]>,
+  molecular: Molecular,
+  systems: ReadonlyMap<string, SystemEntry>,
+  annotations: Map<string, AnnotationEntry>,
+  cached: Cached,
+  key: (...at: Placed[]) => string,
+): void {
+  for (const [parent, list] of children) {
+    const units = molecular.complexes.get(parent.address)?.units;
+    if (parent.node.kind === 'complex' ? !units?.length : !systems.has(parent.address)) continue;
+    for (const at of list) {
+      if (at.node.kind !== 'pairs') continue;
+      const entry = cached(`${at.address}|${key(at, parent)}`, () =>
+        linksEntry(at.address, at.node, parent.address, units),
+      );
+      annotations.set(at.address, entry);
+    }
+  }
+}
+
 /**
  * Molecules (their residues and atoms systems), sequences' modified indices, and complexes' units (systems on their
  * molecules' positions) with their copy groups; a complex past `maxUnits` units is refused (_spec/README.md "Resolve",
@@ -43,7 +88,7 @@ const p = (n: Node, key: string): Value | undefined => n.params?.[key];
  */
 export function buildMolecular(
   data: readonly Placed[],
-  inner: readonly (Placed & { readonly parent: Placed })[],
+  children: ReadonlyMap<Placed, readonly Child[]>,
   systems: Map<string, SystemEntry>,
   issues: Issue[],
   config: ResolveConfig,
@@ -75,13 +120,14 @@ export function buildMolecular(
   const complexes = new Map<string, ComplexEntry>();
   for (const c of data) {
     if (c.node.kind !== 'complex') continue;
-    const children = inner.filter((u) => u.parent === c && u.node.kind === 'unit');
-    if (children.length > config.maxUnits) {
-      issues.push(unitsIssue(c.address, children.length, config.maxUnits));
+    const own = children.get(c) ?? [];
+    const unitNodes = own.filter((u) => u.node.kind === 'unit');
+    if (unitNodes.length > config.maxUnits) {
+      issues.push(unitsIssue(c.address, unitNodes.length, config.maxUnits));
       continue;
     }
     const list: UnitEntry[] = [];
-    for (const u of children) {
+    for (const u of unitNodes) {
       const of = ref(u, 'of', ['sequence', 'molecule']);
       const system = of && systems.get(of.address);
       if (!of || !system) continue;
@@ -94,7 +140,7 @@ export function buildMolecular(
       for (const sys of e.systems) systems.set(sys.address, sys);
       if (e.atoms) atoms.set(e.atoms.address, e.atoms);
     }
-    const links = inner.filter((l) => l.parent === c && l.node.kind === 'pairs').map((l) => l.address);
+    const links = own.filter((l) => l.node.kind === 'pairs').map((l) => l.address);
     complexes.set(c.address, complexEntry(c.address, c.node, list, links));
   }
   return { molecules, complexes, units, atoms, modified, nodes };

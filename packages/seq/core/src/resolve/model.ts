@@ -65,7 +65,14 @@ import {
   hasUnsplitExon,
 } from './codon.js';
 import { type GridData, type PairsData, readGrid, readPairs } from './held.js';
-import { buildMolecular, type Cached, compoundEntry, linksEntry, type Placed } from './model-molecules.js';
+import {
+  buildLinks,
+  buildMolecular,
+  type Cached,
+  compoundEntry,
+  type Placed,
+  placeChildren,
+} from './model-molecules.js';
 import { ResolveIssues } from './issues.js';
 import { composeLinear, type Encoding, expand, ImplicitLinear, isEmptyLinear, type Linear, toRuns } from './linear.js';
 import {
@@ -394,17 +401,7 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
       byAddress.set(placed.address, placed);
     }
   }
-  // a complex's units and links, a molecule's links: addressed under their parent
-  const inner: (Placed & { readonly parent: Placed })[] = [];
-  for (const at of data) {
-    if (at.node.kind !== 'complex' && at.node.kind !== 'molecule') continue;
-    for (const c of at.node.children ?? []) {
-      if (c.id === undefined || (c.kind !== 'unit' && c.kind !== 'pairs')) continue;
-      const placed = { node: c, address: printAddress([...addressIds(at.address), c.id]), parent: at };
-      inner.push(placed);
-      byAddress.set(placed.address, placed);
-    }
-  }
+  const inner = placeChildren(data, byAddress);
   const ref = (at: Placed, key: string, kinds: readonly string[]): Placed | undefined => {
     const a = exactAddress(p(at.node, key));
     const t = a === undefined ? undefined : byAddress.get(a);
@@ -461,7 +458,7 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
 
   // a sequence's and a unit's numberings: inline labels read at once, a source's where its rows are
   const numberings = new Map<string, NumberingEntry>();
-  for (const at of [...data, ...inner]) {
+  for (const at of [...data, ...[...inner.values()].flat()]) {
     if (at.node.kind !== 'sequence' && (at.node.kind !== 'unit' || !systems.has(at.address))) continue;
     const system = systems.get(at.address)!;
     for (const c of at.node.children ?? []) {
@@ -530,16 +527,7 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
     issues.push(...entry.issues);
   }
 
-  // links: a complex's between its units (an end's unit a row's), a molecule's between its residues
-  for (const at of inner) {
-    if (at.node.kind !== 'pairs') continue;
-    const units = molecular.complexes.get(at.parent.address)?.units;
-    if (at.parent.node.kind === 'complex' ? !units?.length : !systems.has(at.parent.address)) continue;
-    const entry = cached(`${at.address}|${key(at, at.parent)}`, () =>
-      linksEntry(at.address, at.node, at.parent.address, units),
-    );
-    annotations.set(at.address, entry);
-  }
+  buildLinks(inner, molecular, systems, annotations, cached, key);
 
   const compounds = new Map<string, CompoundEntry>();
   for (const at of data)
