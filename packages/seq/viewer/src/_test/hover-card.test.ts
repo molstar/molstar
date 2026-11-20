@@ -482,6 +482,31 @@ describe('the hover card’s place and its life', () => {
     expect(card()?.card.rows.some((row) => row.label === 'score')).toBe(false);
   });
 
+  it('a zoom that re-hits the same item under a resting pointer keeps the cursor’s card (placed again)', async () => {
+    const r = recorder();
+    const v = await make(cardSpec(), { port: r });
+    const card = () => v.behavior(HoverCardProvider)!.shown.value;
+    // the pointer rests on the domain (positions 2 to 8), the keyboard cursor elsewhere shows its card
+    const s = v.frame!.layout.sections[0];
+    const t = s.tracks[2];
+    v.input.move((s.axis!.x(5) + s.axis!.x(6)) / 2, t.box.y + t.box.height / 2);
+    expect(v.hover.current.element?.key).toBe('A');
+    v.input.key({ key: 'ArrowRight' });
+    frames.flush();
+    const c = v.selection.cursor.value!;
+    expect(card()?.card.title).toBe(`h ${c.position + 1}`);
+    const version = v.hover.version.value;
+    // a zoom: the pointer's position moves within the domain, so the hover is hit again, the same item
+    expect(v.input.key({ key: '=' })).toBe(true);
+    for (let i = 0; i < 4; i++) {
+      clock += 100;
+      frames.flush();
+    }
+    expect(v.hover.version.value).not.toBe(version);
+    expect(v.hover.current.element?.key).toBe('A');
+    expect(card()?.card.title).toBe(`h ${c.position + 1}`);
+  });
+
   it('shows at the keyboard cursor when a key moves it', async () => {
     const r = recorder();
     const v = await make(cardSpec(), { port: r });
