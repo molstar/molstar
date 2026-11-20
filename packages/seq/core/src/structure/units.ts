@@ -24,6 +24,7 @@ import { observedOf } from './facts.js';
 import { StructureSyncIssues } from './issues.js';
 import {
   bindingsOf,
+  pendingOf,
   type StructureBinding,
   type StructureModel,
   type StructureReads,
@@ -59,6 +60,11 @@ export interface UnitsResult {
   readonly cut: Location;
   /** Whether the gate held it: whole units were sent, or nothing. */
   readonly gated?: 'units' | 'skip';
+  /**
+   * The described maps (onto a unit a source describes) it could take that wait for their description (EC-169): the
+   * target is what is held so far, never the whole; absent when none waits.
+   */
+  readonly pending?: readonly string[];
   readonly issues: readonly Issue[];
 }
 
@@ -103,6 +109,12 @@ export function toUnits(
       if (out.over && limits?.over === 'skip') break;
     }
   const cut = out.cut.length ? location({ parts: out.cut }) : EmptyLocation;
+  const pending = pendingOf(
+    r,
+    sources.map((s) => s.system),
+    complexes,
+  );
+  const waiting = pending.length ? { pending } : {};
   if (limits && out.over) {
     say(
       issueOf(
@@ -112,11 +124,11 @@ export function toUnits(
         { hint: StructureSyncIssues.codes['seq.structure.gated'].hint },
       ),
     );
-    if (limits.over === 'skip') return { target: EmptyLocation, cut, gated: 'skip', issues };
+    if (limits.over === 'skip') return { target: EmptyLocation, cut, gated: 'skip', ...waiting, issues };
     const whole = out.touched.map((u) => ({ system: u.address, ranges: observedOf(u) }));
-    return { target: location({ parts: whole }), cut, gated: 'units', issues };
+    return { target: location({ parts: whole }), cut, gated: 'units', ...waiting, issues };
   }
-  return { target: out.parts.length ? location({ parts: out.parts }) : EmptyLocation, cut, issues };
+  return { target: out.parts.length ? location({ parts: out.parts }) : EmptyLocation, cut, ...waiting, issues };
 }
 
 /** A part of the Location, read once: its system, its ranges, and its unit or atoms when it is on one. */
@@ -319,6 +331,8 @@ export interface FromUnitsResult {
   readonly location: Location;
   /** The positions on nothing the bound complexes hold (counted, said once). */
   readonly unplaced: number;
+  /** The described maps it could take that wait for their description (EC-169), as `UnitsResult.pending`. */
+  readonly pending?: readonly string[];
   readonly issues: readonly Issue[];
 }
 
@@ -381,5 +395,15 @@ export function fromUnits(
         ),
       ]
     : [];
-  return { location: parts.length ? location({ parts }) : EmptyLocation, unplaced, issues };
+  const pending = pendingOf(
+    r,
+    target.parts.map((p) => p.system),
+    complexes,
+  );
+  return {
+    location: parts.length ? location({ parts }) : EmptyLocation,
+    unplaced,
+    ...(pending.length ? { pending } : {}),
+    issues,
+  };
 }

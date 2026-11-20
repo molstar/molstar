@@ -19,6 +19,7 @@ import {
   type StaticModel,
   type SystemEntry,
   type UnitEntry,
+  pendingMaps,
 } from '@molstar/seqx-core/resolve';
 
 /** A model the translation reads: the static model, or it with the overlay a source's complexes are in. */
@@ -50,7 +51,33 @@ export interface StructureReads {
   moleculesOf(complex: ComplexEntry): Iterable<string>;
   /** The units of a complex with a map of their own (a step that is no unit step: the spec's or the overlay's). */
   ownMapped(complex: ComplexEntry): ReadonlySet<string>;
+  /** Whether a system is held: the model's, else the overlay's. */
+  held(address: string): boolean;
 }
+
+/**
+ * The described maps (a map onto a unit a source describes, `StaticModel.describedMaps`) waiting for their description
+ * (EC-169) that a translation of `systems` under `complexes` could take: an end among the systems, or the described
+ * end inside a bound complex (every complex when absent). Their addresses, in the model's order.
+ */
+export function pendingOf(
+  r: StructureReads,
+  systems: Iterable<string>,
+  complexes: readonly StructureBinding[] | undefined,
+): readonly string[] {
+  const described = r.model.describedMaps;
+  if (!described?.size) return NoPending;
+  const waiting = pendingMaps(described.values(), r.held);
+  if (!waiting.length) return NoPending;
+  const set = new Set(systems);
+  const within = (a: string) => !complexes || complexes.some((b) => a.startsWith(`${b.complex}/`));
+  return waiting.filter((address) => {
+    const d = described.get(address)!;
+    return set.has(d.from) || set.has(d.to) || (!r.held(d.from) && within(d.from)) || (!r.held(d.to) && within(d.to));
+  });
+}
+
+const NoPending: readonly string[] = [];
 
 const Kept = new WeakMap<StaticModel, WeakMap<Overlay | StaticModel, StructureReads>>();
 
@@ -88,6 +115,7 @@ function makeReads(model: StaticModel, overlay: Overlay | undefined): StructureR
   const edgesFrom = (s: string) => overlay?.edgesFrom?.(s) ?? model.edgesFrom(s);
   return {
     model,
+    held: (a) => model.systems.has(a) || overlay?.system(a) !== undefined,
     unit: (a) => own.units.get(a) ?? dyn?.units.get(a),
     complex: (a) => own.complexes.get(a) ?? dyn?.complexes.get(a),
     complexes: () => {

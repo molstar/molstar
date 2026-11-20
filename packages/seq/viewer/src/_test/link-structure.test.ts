@@ -12,7 +12,8 @@
 import type { Node } from '@molstar/core/repr/tree';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { EmptyLocation, type Location, location, locationsEqual } from '@molstar/seqx-core/query';
-import { atomsSystemOf } from '@molstar/seqx-core/resolve';
+import { seqToValue } from '@molstar/seqx-core/data';
+import { atomsSystemOf, nodeAddress } from '@molstar/seqx-core/resolve';
 import type { RangesLay } from '@molstar/seqx-core/render';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DefaultSeqViewerSpec } from '../default-spec.js';
@@ -62,6 +63,62 @@ const pointer = { pointer: true };
 const hoverUp = (v: SeqViewer, position: number) => v.hover.set({ section: UpSection, system: Up, position }, pointer);
 const same = (a: Location | null | undefined, b: Location) => !!a && locationsEqual(a, b);
 const kinds = (side: RecordingSide) => side.told.map((t) => t.kind);
+
+/**
+ * A sequence `x` and a spec map onto unit A of a complex a source describes (SIFTS per chain): the description
+ * arrives with the source's region (`describe`), not before.
+ */
+function described(): Node {
+  const b = createSeqSpec({ title: 'a map onto a described unit' });
+  const ent = { kind: 'sequence', params: { alphabet: 'protein', letters: 'CPECGKSF' } } as Node;
+  const cx = {
+    kind: 'complex',
+    id: 'cx',
+    children: [{ kind: 'unit', id: 'A', params: { of: nodeAddress(Zf, 'ent'), chain: 'A' } }],
+  } as Node;
+  const data = {
+    coverage: { systems: [{ name: 'zf', length: 8 }], shapes: [{ system: 'zf', shape: 'letters' }], levels: [1] },
+    pairs: [
+      {
+        request: { system: 'zf', start: 0, end: 8, level: 1, shapes: ['letters'] },
+        answer: {
+          ok: true,
+          tables: { letters: { form: 'letters', start: 0, letters: 'CPECGKSF' } },
+          nodes: [
+            { key: 'ent', node: ent },
+            { key: 'cx', node: cx },
+          ],
+        },
+      },
+    ],
+  };
+  b.data.source('zf', { format: 'seq', value: seqToValue(data as never) });
+  const xs = b.data.sequence('x', { alphabet: 'protein', letters: 'CPECGKS' });
+  b.data.map('xa', { from: xs, to: UnitA as never, method: 'offset', by: 1 });
+  b.views.view('main', (v) => v.section('x', { of: xs }).track('letters').layer('letters', { type: 'letters' }));
+  return b.build();
+}
+const Zf = '/data/zf';
+const UnitA = `${nodeAddress(Zf, 'cx')}/A`;
+
+describe('linkStructure over a map that waits for its description (EC-169)', () => {
+  it('holds a hover and a selection until the description arrives, never sends them as nothing; then sends them', async () => {
+    const { v, side, frames } = await make({}, described());
+    const loc = location({ parts: [{ system: '/data/x', ranges: [0, 2] }] });
+    v.hover.setLocation(loc, pointer);
+    v.selection.set({ elements: v.selection.value.value.elements, location: loc, shown: loc });
+    frames.flush();
+    // pending: nothing told (not a null, not an empty target)
+    expect(side.told).toEqual([]);
+    // the description arrives with the source's region
+    v.store.store.want([{ source: Zf, system: 'zf', start: 0, end: 8, level: 1 }]);
+    await v.store.store.whenSettled();
+    frames.flush();
+    expect(kinds(side).sort()).toEqual(['highlight', 'select']);
+    for (const t of side.told)
+      expect(same(t.target, location({ parts: [{ system: UnitA, ranges: [1, 3] }] }))).toBe(true);
+  });
+});
 
 describe('linkStructure', () => {
   it('hover out: a residue of P04637 lit on every chain of the entity (EC-48), unobserved lights nothing (EC-118)', async () => {

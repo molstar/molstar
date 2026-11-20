@@ -222,7 +222,10 @@ describe('two consumers: a host’s description and the translation, in one test
     const before = { model, overlay: buildOverlay(model, { nodes: new Map(), nodeVersion: { value: 0 } }) };
     const held = (o: Overlay) => (s: string) => model.systems.has(s) || o.system(s) !== undefined;
     expect(pendingMaps(model.describedMaps?.values(), held(before.overlay))).toEqual(['/data/xa']);
-    expect(toUnits(before, rangesLocation(x, [0, 2])).target.parts).toEqual([]);
+    // said pending, never an empty target as if it were the whole: toUnits and fromUnits alike
+    const waiting = toUnits(before, rangesLocation(x, [0, 2]));
+    expect([waiting.target.parts, waiting.pending]).toEqual([[], ['/data/xa']]);
+    expect(fromUnits(before, rangesLocation(A, [0, 2]), [{ complex }]).pending).toEqual(['/data/xa']);
     // the description arrived: the map is an overlay edge, searched on its own
     const nodes = new Map<string, NodeEntry>();
     for (const n of structureNodes(zincFinger(), { source: Source }).nodes)
@@ -231,6 +234,8 @@ describe('two consumers: a host’s description and the translation, in one test
     expect(pendingMaps(model.describedMaps?.values(), held(after.overlay))).toEqual([]);
     expect(after.overlay.edgesFrom!(x).map((e) => [e.map, e.to])).toContainEqual(['/data/xa', A]);
     const r = toUnits(after, rangesLocation(x, [0, 2]));
+    expect(r.pending).toBeUndefined();
+    expect(fromUnits(after, rangesLocation(A, [0, 2]), [{ complex }]).pending).toBeUndefined();
     expect(systems(r.target)).toEqual([A]);
     expect(ranges(r.target, A)).toEqual([1, 3]);
     // a map onto a unit of no spec source stays a missing ref

@@ -1315,6 +1315,9 @@ over the same translation.
 - **The side** (`StructureSide`, plain data, the host's): `highlight(target | null)`, `select(target | null)`,
   `focus(target, { durationMs })`, and optionally `onHover`, `onSelect`, `onFocus` (each returning its unsubscribe) and
   a `signal`. A target is a Location on units (structured-cloneable).
+- **Pending** (EC-169): a hover or a selection whose `toUnits` says `pending` and reaches nothing yet is held, never
+  sent as nothing (the last sent stays); the store's nodes arriving (`nodeVersion`) sends it again, then as it resolves.
+  Why: a host's per-chain maps arrive after the view, and a cleared highlight there would be a lie.
 - **Out**: on each hover (`hover.version`), the hover's Location through `toUnits` under the hover's limits, sent when
   its image changes (an unchanged image sends nothing; an empty one, an unobserved residue, is `null`, EC-118); the
   selection's `shown`, one message a frame (a frame callback: a drag moves it every pointer event), under the

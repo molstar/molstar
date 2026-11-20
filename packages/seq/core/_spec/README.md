@@ -1314,6 +1314,11 @@ alone.
   `insCode` split from the label, `labeled`, `observed`, a row a position). Why: an adapter joins them against its own
   residue list once and per message looks up, never walks the model. A description read by `structureNodes` gives back
   its chains' ids and residues as described (tested on the zinc finger and every mmCIF fixture).
+- **Pending** (EC-169): a described map it could take (a map onto a unit a source describes, Overlay, Described ends: an
+  end among the Location's systems, or its unit inside a bound complex) that waits for its description is said in
+  `UnitsResult.pending` and `FromUnitsResult.pending` (their addresses): the target is what is held so far, never the
+  whole, and a consumer holds it until it resolves. Why: an empty target while the description travels is not "nothing
+  there".
 - **To units** (`toUnits(model, loc, complexes?, options?)`): each part (a rect's sides as parts; an atoms part
   collapsed onto its residues) carried onto each bound unit along the model's paths with the binding's `via`; a
   molecule's part reaches every unit of it (EC-48). Through the molecule: a part is carried onto a unit's molecule once

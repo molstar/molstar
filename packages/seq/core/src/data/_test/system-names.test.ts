@@ -38,7 +38,10 @@ describe('an alignment’s columns from an old source naming them `columns`', ()
   });
 
   it('match a coverage and a names map by the alias last', () => {
-    const systems = [{ name: 'columns', length: 40 }, { name: 'seed/columns', length: 30 }];
+    const systems = [
+      { name: 'columns', length: 40 },
+      { name: 'seed/columns', length: 30 },
+    ];
     expect(coverageSystemOf(systems, 'seed/columns')?.length).toBe(30);
     expect(coverageSystemOf(systems.slice(0, 1), 'full/columns')?.length).toBe(40);
     expect(sourceNameOf(new Map([['columns', 'columns']]), 'full/columns')).toBe('columns');
