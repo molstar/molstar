@@ -68,7 +68,8 @@ const Present = 0;
 
 type Field = CifField | undefined;
 const fieldOf = (c: CifCategory | undefined, name: string): Field => c?.getField(name);
-const has = (f: Field, row: number) => f !== undefined && f.valueKind(row) === Present;
+// a row past the field's own (a category given twice) is no value
+const has = (f: Field, row: number) => f !== undefined && row < f.rowCount && f.valueKind(row) === Present;
 const strOf = (f: Field, row: number) => (has(f, row) ? f!.str(row) : undefined);
 
 /**
@@ -368,9 +369,11 @@ export function mmcifDescription(frame: CifFrame, options: MmcifReadOptions, add
   const idEntity: number[] = [];
   const idNamespace: string[] = [];
   const idValue: string[] = [];
+  const idSeen = new Set<string>();
   const identifier = (e: number, namespace: string, value: string) => {
-    for (let k = 0; k < idEntity.length; k++)
-      if (idEntity[k] === e && idNamespace[k] === namespace && idValue[k] === value) return;
+    const key = `${e}\u0000${namespace}\u0000${value}`;
+    if (idSeen.has(key)) return;
+    idSeen.add(key);
     idEntity.push(e);
     idNamespace.push(namespace);
     idValue.push(value);
@@ -481,10 +484,15 @@ export function mmcifDescription(frame: CifFrame, options: MmcifReadOptions, add
       link.bAtom.push(ba ?? null);
     }
   };
-  const byAuth = (asym: string, auth: string | undefined, ins: string | undefined) => {
-    for (const r of residues.get(asym)?.values() ?? []) if (`${r.auth}` === auth && r.ins === (ins ?? '')) return r;
-    return undefined;
-  };
+  // a residue by its author number, indexed once (a `struct_conn` row looks one up)
+  const authIndex = new Map<string, Residue>();
+  for (const [asym, byPosition] of residues)
+    for (const r of byPosition.values()) {
+      const k = `${asym}\u0000${r.auth}\u0000${r.ins}`;
+      if (!authIndex.has(k)) authIndex.set(k, r);
+    }
+  const byAuth = (asym: string, auth: string | undefined, ins: string | undefined) =>
+    authIndex.get(`${asym}\u0000${auth}\u0000${ins ?? ''}`);
   const sc = cats.struct_conn;
   let unread = 0;
   for (let i = 0; i < (sc?.rowCount ?? 0); i++) {
@@ -559,10 +567,12 @@ export function mmcifDescription(frame: CifFrame, options: MmcifReadOptions, add
   }
   const compounds = { id: [] as string[], name: [] as (string | undefined)[], type: [] as (string | undefined)[] };
   const parents: (string[] | undefined)[] = [];
+  const compoundSeen = new Set<string>();
   const cc = cats.chem_comp;
   for (let i = 0; i < (cc?.rowCount ?? 0); i++) {
     const id = strOf(fieldOf(cc, 'id'), i);
-    if (id === undefined || !used.has(id) || compounds.id.includes(id)) continue;
+    if (id === undefined || !used.has(id) || compoundSeen.has(id)) continue;
+    compoundSeen.add(id);
     compounds.id.push(id);
     compounds.name.push(strOf(fieldOf(cc, 'name'), i));
     compounds.type.push(strOf(fieldOf(cc, 'type'), i));

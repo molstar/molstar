@@ -130,7 +130,8 @@ export async function openMmcif(
   } catch (e) {
     if (e instanceof MmcifAssemblyError)
       throw new SourceOpenError([issueOf(MmcifIssues, 'seq.io.mmcif.assembly', e.message, { address })]);
-    throw e;
+    // a file is untrusted input: whatever else its reading met is said, never rethrown
+    return fail('seq.source.malformed', `The mmCIF source cannot be read: ${String((e as Error)?.message ?? e)}`);
   }
   const nodes = structureNodes(described.description, {
     source: address,
