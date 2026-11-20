@@ -71,7 +71,16 @@ export {
 export { structureStatus } from './maps-segments.js';
 export { viaList } from './maps-via.js';
 export type { CompoundEntry, Molecular } from './molecule-query.js';
-export type { AtomsEntry, ComplexEntry, ModifiedIndex, MoleculeEntry, UnitEntry } from './molecules.js';
+export {
+  type AtomsEntry,
+  atomsSystemOf,
+  type ComplexEntry,
+  collapseAtoms,
+  expandAtoms,
+  type ModifiedIndex,
+  type MoleculeEntry,
+  type UnitEntry,
+} from './molecules.js';
 export {
   buildOverlay,
   EmptyOverlay,

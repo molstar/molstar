@@ -1,0 +1,98 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+// A structure shaped as 2OCJ (p53's DNA-binding domain, not yet recorded): P04637 and the entity it maps to by a
+// `structure` map (residues 94 to 312, author numbering equal to UniProt's), `copies` copies of the domain with
+// unobserved ends, a zinc per chain, and optionally an `alignment`-like map of the same pair. Synthetic letters.
+
+import type { Node } from '@molstar/core/repr/tree';
+import { createSeqSpec } from '@molstar/seqx-core/lang';
+
+export const Up = '/data/p53';
+export const Ent = '/data/ent';
+export const Zn = '/data/zn';
+export const Complex = '/data/2ocj';
+export const UpLength = 393;
+/** The entity: UniProt 94 to 312. */
+export const EntStart = 93;
+export const EntLength = 219;
+/** Each chain's modeled residues on the entity (`[2, 196)`: 96 to 289). */
+export const Observed: readonly [number, number] = [2, 196];
+
+const Letters = 'ACDEFGHIKLMNPQRSTVWY';
+const letters = (n: number, seed: number) => Array.from({ length: n }, (_, i) => Letters[(i * 7 + seed) % 20]).join('');
+
+export interface P53Options {
+  readonly copies?: number;
+  /** A second map of the same pair, one residue off, with this priority (absent: none). */
+  readonly aln?: number;
+  /** The sifts map's priority (absent: none written). */
+  readonly sifts?: number;
+  /** The units in reverse order (order irrelevant). */
+  readonly reversed?: boolean;
+  /** A numbering `auth` on the entity too (one past the units' labels), which the units' own beat (EC-8). */
+  readonly entityAuth?: boolean;
+}
+
+export const chainId = (k: number) => (k < 26 ? String.fromCharCode(65 + k) : `X${k}`);
+
+export function p53Spec(o: P53Options = {}): Node {
+  const copies = o.copies ?? 4;
+  const b = createSeqSpec({ title: '2OCJ-shaped' });
+  const up = b.data.sequence('p53', { alphabet: 'protein', letters: letters(UpLength, 3) });
+  const entLetters = letters(UpLength, 3).slice(EntStart, EntStart + EntLength);
+  const ent = b.data.sequence('ent', { alphabet: 'protein', letters: entLetters }, (s) => {
+    if (o.entityAuth)
+      s.numbering('auth', {
+        method: 'labels',
+        labels: Array.from({ length: EntLength }, (_, i) => String(EntStart + 2 + i)),
+      });
+  });
+  const zn = b.data.molecule('zn', {
+    class: 'ion',
+    residues: ['ZN'],
+    atoms: { residue: [0], name: ['ZN'], element: ['ZN'] },
+  });
+  b.data.complex('2ocj', { name: '2OCJ' }, (c) => {
+    const order = Array.from({ length: copies }, (_, k) => k);
+    if (o.reversed) order.reverse();
+    for (const k of order) {
+      const chain = chainId(k);
+      c.unit(
+        chain,
+        { of: ent, chain, auth_chain: chain, observed: { start: [Observed[0]], end: [Observed[1]] } },
+        (u) =>
+          u.numbering('auth', {
+            method: 'labels',
+            labels: Array.from({ length: EntLength }, (_, i) =>
+              i >= Observed[0] && i < Observed[1]
+                ? i === 10
+                  ? `${EntStart + 1 + i}A`
+                  : String(EntStart + 1 + i)
+                : null,
+            ),
+          }),
+      );
+    }
+    for (const k of order) c.unit(`Z${chainId(k)}`, { of: zn, chain: `Z${chainId(k)}`, auth_chain: chainId(k) });
+  });
+  b.data.map('sifts', {
+    from: up,
+    to: ent,
+    method: 'structure',
+    segments: { from: [EntStart], to: [0], length: [EntLength], provenance: ['sifts'] },
+    ...(o.sifts !== undefined ? { priority: o.sifts } : {}),
+  });
+  if (o.aln !== undefined)
+    b.data.map('aln', {
+      from: up,
+      to: ent,
+      method: 'segments',
+      segments: { from: [EntStart + 1], to: [0], length: [EntLength - 1] },
+      priority: o.aln,
+    });
+  return b.build();
+}
