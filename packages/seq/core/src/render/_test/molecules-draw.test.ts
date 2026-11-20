@@ -22,7 +22,7 @@ import {
   type RangesLay,
   recordDrawLists,
 } from '../index.js';
-import { theme } from '@molstar/seqx-core/lang';
+import { createSeqSpec, theme } from '@molstar/seqx-core/lang';
 import { settle } from './helpers.js';
 import { moleculesSpec } from './molecules-fixtures.js';
 
@@ -96,6 +96,28 @@ describe('a complex drawn against its data', () => {
     // a chip no rule names takes the rules' default, neither rule's color
     expect([0xd62728ff, 0x9467bdff]).not.toContain(pill('/data/c/g'));
     expect(recordDrawLists(f.lists, ['data'])).toContain('#d62728ff');
+  });
+
+  it('a unit’s atoms read their unit’s first component, not the molecule’s (a unit over its second residue)', async () => {
+    const b = createSeqSpec();
+    const m = b.data.molecule('m', {
+      residues: ['NAG', 'BMA'],
+      atoms: { residue: [0, 0, 1, 1], name: ['C1', 'O1', 'C1', 'O2'], element: ['C', 'O', 'C', 'O'] },
+    });
+    b.data.complex('c', {}, (c) => c.unit('u', { of: m, range: [1, 2] }));
+    b.views.view('v', (v) => {
+      const s = v.section('s', { of: '/data/c' as never });
+      s.block('u', { form: 'atoms' });
+      s.track('t').layer('l', {
+        type: 'letters',
+        color: theme.rules([theme.rule([theme.eq('component', 'BMA')], '#d62728')]),
+      });
+    });
+    const st = await settle(b.build());
+    const f = await st.frame({ size: Size });
+    const [atoms] = lettersLays(f);
+    expect(atoms.lay.n).toBeGreaterThan(0);
+    expect(atoms.lay.fill[0]).toBe(0xd62728ff);
   });
 
   it('a chip is hit as its whole block: its every residue', async () => {

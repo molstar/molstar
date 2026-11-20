@@ -627,7 +627,17 @@ function build(model: StaticModel, view: Node, address: string): ResolvedView {
           if (!model.systems.has(from) || !model.systems.has(to)) continue;
           // what is projected onto a section or from it takes its `via` (both ends' named maps)
           const via = a.via && b.via ? [...new Set([...a.via, ...b.via])] : (b.via ?? a.via);
-          const path = from === to ? identityPath(from) : model.path(from, to, via).path;
+          let path = from === to ? identityPath(from) : model.path(from, to, via).path;
+          // both ends naming rival maps of one pair leave it tied: the target's map carries it, and that is said
+          if (!path && a.via && b.via) {
+            path = model.path(from, to, b.via).path;
+            if (path)
+              report(
+                'seq.view.via.conflict',
+                `${a.address} and ${b.address} name rival maps in their via; ${b.address}'s carries what reaches it`,
+                b.address,
+              );
+          }
           if (path) links.push({ from: a.address, to: b.address, fromSystem: from, toSystem: to, path });
         }
     }

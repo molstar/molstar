@@ -1651,10 +1651,11 @@ no target.
   it and from it (hover, selection; the viewer's hover fallback and focus hull read it too). A link takes both ends'
   `via` (the author, 2026-11-20), so two sections of one chain, each naming one map, light different residues for one
   hover (a comparison), and a hover on either reaches a section naming none through its map; between two sections naming
-  none the pair stays ambiguous and there is no link. Why both: a section's via says how its positions meet the others',
-  whichever way the projection runs. A named map on none of those paths is `seq.resolve.via.unused` (a warning at the
-  section, the map its place), and those paths were chosen as if the via were absent. Why warn: a via that settles
-  nothing is a figure's mistake the reader cannot see.
+  none the pair stays ambiguous and there is no link; two naming rival maps of one pair leave it tied, so the target's
+  map carries it and `seq.view.via.conflict` says so at the target (never a link gone silently). Why both: a section's
+  via says how its positions meet the others', whichever way the projection runs. A named map on none of those paths is
+  `seq.resolve.via.unused` (a warning at the section, the map its place), and those paths were chosen as if the via were
+  absent. Why warn: a via that settles nothing is a figure's mistake the reader cannot see.
 - **Grids**: a grid section's `y` (`GridAxis`) is its second axis, down the plot: `of_y`'s system whole (`of`'s when
   absent), top down, and what it shows: `follow_y: x` (the default) x's window (`followsX`; through the path from x's
   system when `of_y` is another), a section's region through `follow` (the path from its system), `none` a window of its
