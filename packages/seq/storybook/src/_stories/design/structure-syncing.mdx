@@ -30,12 +30,13 @@ echoing each other, sends a dragged selection at most once a frame, and clears b
 
 ## Two maps of one chain
 
-A reference sequence can reach a chain through SIFTS and through an alignment at once. Each map may carry a
-**priority**: the higher-ranked one is taken everywhere. A section may name the map it goes **via**, so a figure can
-compare both side by side. A path is ranked by its maps' priorities, weakest first, so a map both paths share never
-hides the rivals. Equal priorities stay ambiguous and are reported, never chosen silently; a `via` that names a map off
-every path the section takes (its layers', and what its hover, selection and focus project) is a warning, so a structure
-section with no layers of its own still uses its `via`.
+A reference sequence can reach a chain through SIFTS and through an alignment at once; a map onto one chain a data
+source describes waits for that description, then joins. Each map may carry a **priority**: the higher-ranked one is
+taken everywhere. A section may name the map it goes **via**, so a figure can compare both side by side. A path is
+ranked by its maps' priorities, weakest first, so a map both paths share never hides the rivals. Equal priorities stay
+ambiguous and are reported, never chosen silently; a `via` that names a map off every path the section takes (its
+layers', and what its hover, selection and focus project) is a warning, so a structure section with no layers of its own
+still uses its `via`.
 
 ## In the Storybook
 

@@ -89,7 +89,9 @@ Pure, tested in Node, over a `StaticModel` (and its overlay).
 - **`unitRows(model, store, annotation, complexes)`**: an annotation's rows as targets on units with their fields, for a
   host to write as its own representation ([seq-data-ports.md](seq-data-ports.md)), beside `colorRuns`.
 - **`toUnits(model, loc, complexes, options) → { target, cut }`**: a Location carried onto the units of the bound
-  complexes along static or overlay paths, under the copy rule and the use's `via`; unobserved positions cut (no atoms,
+  complexes along static or overlay paths, under the copy rule and the use's `via` (a map onto a unit a source's
+  description gives, SIFTS per chain, resolves as an overlay edge once the description has arrived, pending until
+  then; the author, 2026-11-20, ST1's drift: "Yes, as recommended"); unobserved positions cut (no atoms,
   nothing to light); a molecule unit whole (`ligand: whole`); the size gate (EC-167): past `maxRuns` or `maxLength`,
   whole units (`over: units`) or nothing (`skip`). Why the gate here: a 4,000-unit assembly's selection must not become
   4,000 × n runs a frame, whatever the host.

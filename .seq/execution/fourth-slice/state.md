@@ -32,6 +32,9 @@ The third slice is closed (2026-11-20; its record in `.seq/records/third-slice/`
 - MX's drifts (the author, 2026-11-20: "ok for the drifts"): a section's `via` counts every path of the section, its
   projections included (maps.md; MX fixes it with the projection bug); a component query on a source-backed sequence
   stays pending until the letters arrive (as built; TODO.md).
+- AC's and ST1's drifts (the author, 2026-11-20: "Yes, as recommended"): an alignment's columns named
+  `<alignment>/columns`; a map onto a unit a source describes resolves as an overlay edge, pending until the
+  description arrives. Both to FX3 (`fixes.md`).
 - Size targets are bounds once reset after RR (the author, 2026-11-20: "reduce render first, then move the size
   targets"). Moved for the query language: reading a spec 230, headless 820, minimal 920 kB (the author,
   2026-11-20), the default viewer 1,290 kB ("Move to 1290 kB", 2026-11-20); for molecules drawn, headless 830 and

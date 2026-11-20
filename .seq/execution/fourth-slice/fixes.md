@@ -7,6 +7,15 @@ queue. Each line: what is seen, where (the story), where it came from, its kind 
 
 ## Open
 
+- **An alignment's columns named by the alignment** (missing design, decided): `<alignment>/columns` instead of the one
+  name `columns` (`resolve/model.ts`, `AlignmentSystems`; a ranges source on an alignment reads its rows by it).
+  building-blocks.md, Alignment. AC's drift, the author: "Yes, as recommended". For FX3; a test with one source shared
+  by two alignments.
+- **A map onto a unit a source describes** (missing design, decided): resolve takes it as an overlay edge once the
+  description has arrived, pending until then (today `seq.resolve.ref.missing`; ST1's test injects the edge by hand).
+  structure-syncing.md, `toUnits`. ST1's drift, the author: "Yes, as recommended". For FX3, before HD (which serves
+  SIFTS per chain); EC-169 for the pending state.
+
 - **Hover cards too loose** (look): every view's card (Globins family: "Row, columns, index"; a ring's features). The
   author, 2026-11-20: "the hover cards should be more compact in general". Tighter row spacing and padding, the key and
   value columns closer; the card's title once (the Globins card repeats the row's name as title and first row).
