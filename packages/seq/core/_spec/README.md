@@ -891,8 +891,22 @@ by fuzz tests (mutated text read without a throw).
 - **Assets**: `AssetReader.openRange(uri, signal)` when the host has it (`policyAssets`: core's `openRanges` under the
   policy), else the file whole through `readBytes`, bounded by `limits.maxBytes`. A range read that fails (core's
   `AssetRangeError`: a changed file, a mangled `Content-Range`) fails the region (`failed`), never wrong values.
-- **Bounds**: blocks of one region over `limits.maxBytes` and bins over `limits.maxRows` are `too-large`; trees deeper
-  than 16 and nodes past their size are `malformed`. Decoded blocks: the last 16 kept for a pan back; pages are core's.
+- **Bounds** (security.md: a file is untrusted input): blocks of one region over `limits.maxBytes`, bins over
+  `limits.maxRows` and blocks inflating past `maxInflatedBytes` together are `too-large`; a tree node listing more than
+  `maxNodeItems`, a tree level wider than `maxLevelNodes` (its offsets de-duplicated), more than `maxIndexBytes` of
+  nodes for one open or region, a tree deeper than 16 and a node past its size are `malformed`. Blocks are inflated one
+  after another into what they hold, never a buffer of the header's `uncompressBufSize` each. Decoded blocks: the last
+  16 kept for a pan back; pages are core's.
+- **Configuration**: `bigWigRuntime(over)` (`BigWigRuntime` is `bigWigRuntime()`), `BigWigLimits`,
+  `DefaultBigWigLimits`:
+
+  | Item               | Default | Why the default; the alternatives                                                  |
+  | ------------------ | ------- | ---------------------------------------------------------------------------------- |
+  | `maxNodeItems`     | 4,096   | UCSC writes 256 items a node; 4,096 × 32 bytes is a node of 128 kB at most         |
+  | `maxLevelNodes`    | 1,024   | a region of one tile touches a few nodes a level; a crafted level is refused       |
+  | `maxIndexBytes`    | 8 MiB   | the nodes one open or region reads: a real file's region reads kilobytes           |
+  | `maxInflatedBytes` | 64 MiB  | a region's blocks inflated together: the store's byte bound, so one answer fits it |
+
 - **Tests**: the shared source suite (`data/_test/source-suite.ts`) through core's manager by range and through whole
   bytes; files from a test-only writer on core's `PCG` (`runtimes/_test/bigwig-writer.ts`: every section type, both zoom
   levels, edges, a gap, a chromosome without data, big-endian, uncompressed); its synthetic twin is

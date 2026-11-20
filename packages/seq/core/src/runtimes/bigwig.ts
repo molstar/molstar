@@ -37,6 +37,64 @@ const MaxDepth = 16;
 const BlockCache = 16;
 
 class Malformed extends Error {}
+/** A region past the runtime's bounds for one answer: `too-large` (a coarser level reads fewer bytes). */
+class TooLarge extends Error {}
+
+/**
+ * What one open or one region may cost, whatever the file says (security.md: a file is untrusted input): a crafted tree
+ * or block is refused with an issue before it allocates. Each a reason in _spec/README.md "Data", bigWig.
+ */
+export interface BigWigLimits {
+  /** Items a tree node may list (its block size): UCSC writes 256. */
+  readonly maxNodeItems: number;
+  /** Nodes one level of a tree may have, offsets de-duplicated. */
+  readonly maxLevelNodes: number;
+  /** Bytes of tree nodes one open (the chromosome tree) or one region (its index) reads. */
+  readonly maxIndexBytes: number;
+  /** Bytes the blocks of one region inflate to, together. */
+  readonly maxInflatedBytes: number;
+}
+
+export const DefaultBigWigLimits: BigWigLimits = {
+  maxNodeItems: 4096,
+  maxLevelNodes: 1024,
+  maxIndexBytes: 8 * 1024 * 1024,
+  maxInflatedBytes: 64 * 1024 * 1024,
+};
+
+/**
+ * The nodes of a tree level by level from `root`: each level's offsets de-duplicated, its width, the bytes read and the
+ * depth bounded; `visit` reads a node and gives its children.
+ */
+async function walk(
+  reader: AssetRangeReader,
+  root: number,
+  nodeBytes: number,
+  bounds: BigWigLimits,
+  signal: AbortSignal,
+  what: string,
+  visit: (node: Uint8Array) => number[],
+) {
+  let level = [root];
+  let read = 0;
+  for (let depth = 0; level.length; depth++) {
+    if (depth > MaxDepth) throw new Malformed(`${what} deeper than any file needs`);
+    if (level.length > bounds.maxLevelNodes)
+      throw new Malformed(`${what} wider than ${bounds.maxLevelNodes} nodes a level`);
+    read += level.length * nodeBytes;
+    if (read > bounds.maxIndexBytes) throw new Malformed(`${what} past ${bounds.maxIndexBytes} bytes of nodes`);
+    const nodes = await reader.read(
+      level.map((offset) => ({ offset, length: nodeBytes })),
+      signal,
+    );
+    const next = new Set<number>();
+    for (const node of nodes) {
+      if (node.length < 4) throw new Malformed(`${what}: a node runs past the end of the file`);
+      for (const child of visit(node)) next.add(child);
+    }
+    level = [...next];
+  }
+}
 
 interface Zoom {
   readonly level: number;
@@ -73,11 +131,14 @@ function wholeReader(bytes: Uint8Array): AssetRangeReader {
   };
 }
 
-/** Inflates a zlib block, at most `limit` bytes (the header's `uncompressBufSize`). */
-async function inflate(bytes: Uint8Array, limit: number): Promise<Uint8Array> {
+/**
+ * Inflates a zlib block: at most `limit` bytes (the header's `uncompressBufSize`, else malformed) and `budget` (what
+ * the region has left, else too large). Chunks are gathered, not a buffer of `limit` allocated up front.
+ */
+async function inflate(bytes: Uint8Array, limit: number, budget: number): Promise<Uint8Array> {
   const stream = new Blob([bytes as Uint8Array<ArrayBuffer>]).stream().pipeThrough(new DecompressionStream('deflate'));
   const reader = stream.getReader();
-  const out = new Uint8Array(limit);
+  const chunks: Uint8Array[] = [];
   let n = 0;
   for (;;) {
     let next: ReadableStreamReadResult<Uint8Array>;
@@ -91,10 +152,17 @@ async function inflate(bytes: Uint8Array, limit: number): Promise<Uint8Array> {
       await reader.cancel().catch(() => {});
       throw new Malformed(`a data block inflates past ${limit} bytes`);
     }
-    out.set(next.value, n);
+    if (n + next.value.length > budget) {
+      await reader.cancel().catch(() => {});
+      throw new TooLarge('the blocks of one region inflate past the runtime’s bound');
+    }
+    chunks.push(next.value);
     n += next.value.length;
   }
-  return out.subarray(0, n);
+  if (chunks.length === 1) return chunks[0];
+  const out = new Uint8Array(n);
+  for (let i = 0, o = 0; i < chunks.length; o += chunks[i].length, i++) out.set(chunks[i], o);
+  return out;
 }
 
 /** An opened bigWig: its header, chromosomes and the reads of a region. */
@@ -109,6 +177,7 @@ class BigWig {
     readonly fullIndex: number,
     readonly uncompress: number,
     readonly chroms: ReadonlyMap<string, Chrom>,
+    readonly bounds: BigWigLimits,
   ) {}
 
   /** The bytes of `ranges`, each the length asked (else the file is cut short). */
@@ -129,19 +198,13 @@ class BigWig {
     const dv = viewOf(head);
     if (dv.getUint32(0, le) !== RTreeMagic) throw new Malformed('an index is not an R-tree');
     const blockSize = dv.getUint32(4, le);
-    if (blockSize < 1 || blockSize > 1 << 16) throw new Malformed(`an index's block size ${blockSize}`);
-    const found: Block[] = [];
-    let level = [index + 48];
-    for (let depth = 0; level.length; depth++) {
-      if (depth > MaxDepth) throw new Malformed('an index deeper than any file needs');
-      // a node's items: 32 bytes a leaf's, 24 an inner one's; the longer read, clipped at the end of the file
-      const nodes = await this.reader.read(
-        level.map((offset) => ({ offset, length: 4 + 32 * blockSize })),
-        signal,
-      );
+    if (blockSize < 1 || blockSize > this.bounds.maxNodeItems)
+      throw new Malformed(`an index's block size ${blockSize}, over ${this.bounds.maxNodeItems}`);
+    const found = new Map<number, Block>();
+    // a node's items: 32 bytes a leaf's, 24 an inner one's; the longer read, clipped at the end of the file
+    await walk(this.reader, index + 48, 4 + 32 * blockSize, this.bounds, signal, 'an index', (node) => {
       const next: number[] = [];
-      for (const node of nodes) {
-        if (node.length < 4) throw new Malformed('an index node runs past the end of the file');
+      {
         const v = viewOf(node);
         const leaf = v.getUint8(0) === 1;
         const count = v.getUint16(2, le);
@@ -155,20 +218,33 @@ class BigWig {
           const after = sc > chrom || (sc === chrom && sb >= end);
           const before = ec < chrom || (ec === chrom && eb <= start);
           if (after || before) continue;
-          if (leaf) found.push({ offset: u64(v, o + 16, le), size: u64(v, o + 24, le) });
-          else next.push(u64(v, o + 16, le));
+          if (!leaf) next.push(u64(v, o + 16, le));
+          else {
+            // a block listed twice is read once
+            const offset = u64(v, o + 16, le);
+            if (!found.has(offset)) found.set(offset, { offset, size: u64(v, o + 24, le) });
+          }
         }
       }
-      level = next;
-    }
-    return found.sort((a, b) => a.offset - b.offset);
+      return next;
+    });
+    return [...found.values()].sort((a, b) => a.offset - b.offset);
   }
 
   /** The data blocks inflated, from the source's cache or read (the missing ones asked at once). */
   async blocksOf(found: readonly Block[], signal: AbortSignal): Promise<Uint8Array[]> {
     const missing = found.filter((b) => !this.blocks.has(b.offset));
     const raw = missing.length ? await this.read(missing, signal, 'a data block') : [];
-    const inflated = await Promise.all(raw.map((r) => (this.uncompress > 0 ? inflate(r, this.uncompress) : r)));
+    // one after another, the region's inflated bytes bounded together (a crafted file's blocks each inflate to its
+    // `uncompressBufSize`)
+    const inflated: Uint8Array[] = [];
+    let left = this.bounds.maxInflatedBytes;
+    for (const r of raw) {
+      if (signal.aborted) throw abortError();
+      const block = this.uncompress > 0 ? await inflate(r, this.uncompress, left) : r;
+      left -= block.length;
+      inflated.push(block);
+    }
     const got = new Map(missing.map((b, i) => [b.offset, inflated[i]]));
     const out = found.map((b) => got.get(b.offset) ?? this.blocks.get(b.offset)!);
     found.forEach((b, i) => {
@@ -253,7 +329,12 @@ class BigWig {
 }
 
 /** The header, zoom headers and chromosome tree of a bigWig. */
-async function readBigWig(reader: AssetRangeReader, signal: AbortSignal, maxRows: number): Promise<BigWig> {
+async function readBigWig(
+  reader: AssetRangeReader,
+  signal: AbortSignal,
+  maxRows: number,
+  bounds: BigWigLimits,
+): Promise<BigWig> {
   const [head] = await reader.read([{ offset: 0, length: 64 }], signal);
   if (head.length < 64) throw new Malformed('shorter than a bigWig header');
   const h = viewOf(head);
@@ -282,21 +363,14 @@ async function readBigWig(reader: AssetRangeReader, signal: AbortSignal, maxRows
   const blockSize = t.getUint32(4, le);
   const keySize = t.getUint32(8, le);
   const items = u64(t, 16, le);
-  if (blockSize < 1 || blockSize > 1 << 16 || keySize < 1 || keySize > 1024 || items > maxRows)
+  if (blockSize < 1 || blockSize > bounds.maxNodeItems || keySize < 1 || keySize > 1024 || items > maxRows)
     throw new Malformed('the chromosome tree’s sizes');
   const chroms = new Map<string, Chrom>();
   const latin1 = new TextDecoder('latin1');
-  let level = [chromTree + 32];
-  for (let depth = 0; level.length; depth++) {
-    if (depth > MaxDepth) throw new Malformed('a chromosome tree deeper than any file needs');
-    const nodes = await reader.read(
-      level.map((offset) => ({ offset, length: 4 + blockSize * (keySize + 8) })),
-      signal,
-    );
+  await walk(reader, chromTree + 32, 4 + blockSize * (keySize + 8), bounds, signal, 'the chromosome tree', (node) => {
     const next: number[] = [];
-    for (const node of nodes) {
+    {
       const v = viewOf(node);
-      if (node.length < 4) throw new Malformed('a chromosome tree node past the end of the file');
       const leaf = v.getUint8(0) === 1;
       const count = v.getUint16(2, le);
       if (count > blockSize || 4 + count * (keySize + 8) > node.length)
@@ -314,9 +388,9 @@ async function readBigWig(reader: AssetRangeReader, signal: AbortSignal, maxRows
         if (chroms.size > items) throw new Malformed('more chromosomes than the tree says');
       }
     }
-    level = next;
-  }
-  return new BigWig(reader, le, zooms, fullIndex, uncompress, chroms);
+    return next;
+  });
+  return new BigWig(reader, le, zooms, fullIndex, uncompress, chroms, bounds);
 }
 
 function failure(kind: 'not-served' | 'malformed' | 'too-large', why: string): RegionAnswer {
@@ -335,10 +409,11 @@ export async function openBigWig(
   signal: AbortSignal,
   limits: OpenContext['limits'],
   source: SourceEntry = { address: '', format: 'bigwig' },
+  bounds: BigWigLimits = DefaultBigWigLimits,
 ): Promise<OpenedSource> {
   let file: BigWig;
   try {
-    file = await readBigWig(reader, signal, limits.maxRows);
+    file = await readBigWig(reader, signal, limits.maxRows, bounds);
   } catch (e) {
     reader.dispose();
     if (signal.aborted || isAbortError(e)) throw abortError();
@@ -389,6 +464,7 @@ export async function openBigWig(
     } catch (e) {
       if (signal.aborted || isAbortError(e)) throw abortError();
       if (e instanceof Malformed) return failure('malformed', e.message);
+      if (e instanceof TooLarge) return failure('too-large', e.message);
       throw e;
     }
   }
@@ -396,7 +472,7 @@ export async function openBigWig(
   return { coverage, read, dispose: () => reader.dispose() };
 }
 
-async function open(source: SourceEntry, ctx: OpenContext): Promise<OpenedSource> {
+async function open(source: SourceEntry, ctx: OpenContext, bounds: BigWigLimits): Promise<OpenedSource> {
   const uri = source.uri;
   if (uri === undefined)
     throw new SourceOpenError([
@@ -418,8 +494,14 @@ async function open(source: SourceEntry, ctx: OpenContext): Promise<OpenedSource
       issueOf(SourceIssues, 'seq.source.unreadable', `The file ${uri} could not be read`, { address: source.address }),
     ]);
   }
-  return openBigWig(reader, ctx.signal, ctx.limits, source);
+  return openBigWig(reader, ctx.signal, ctx.limits, source, bounds);
 }
 
-/** The runtime of bigWig (`format: 'bigwig'`): opt in by listing it in a viewer's registry. */
-export const BigWigRuntime: FormatRuntime = { name: 'bigwig', formats: ['bigwig'], open };
+/** A bigWig runtime with its own bounds (`DefaultBigWigLimits` for those not given). */
+export function bigWigRuntime(over: Partial<BigWigLimits> = {}): FormatRuntime {
+  const bounds = { ...DefaultBigWigLimits, ...over };
+  return { name: 'bigwig', formats: ['bigwig'], open: (source, ctx) => open(source, ctx, bounds) };
+}
+
+/** The runtime of bigWig (`format: 'bigwig'`) with the default bounds: opt in by listing it in a viewer's registry. */
+export const BigWigRuntime: FormatRuntime = bigWigRuntime();

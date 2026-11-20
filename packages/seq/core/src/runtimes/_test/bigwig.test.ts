@@ -22,7 +22,7 @@ import { headlessAssetPolicy, policyAssets } from '../../context/assets.js';
 import { binValues } from '../../data/summaries.js';
 import { FakeClock } from '../../data/_test/synthetic.js';
 import { sourceSuite } from '../../data/_test/source-suite.js';
-import { BigWigRuntime } from '../bigwig.js';
+import { BigWigRuntime, bigWigRuntime } from '../bigwig.js';
 import { syntheticSignal, type WriterChrom, type WriterOptions, writeBigWig } from './bigwig-writer.js';
 
 // The bigWig runtime (_spec/README.md "Data", bigWig) on files its test-only writer makes from a seed: both zoom
@@ -354,6 +354,88 @@ describe('the bigWig runtime', () => {
     })) as ValuesBins;
     expect(v.count.length).toBe(Math.ceil(length / level));
     expect(v.count.reduce((n, x) => n + x, 0)).toBe(length);
+  });
+});
+
+// security.md: a file is untrusted input. Each crafted file is refused with a coded issue, before it allocates.
+describe('a crafted bigWig is refused by the runtime’s bounds', () => {
+  /** The fixture with `patch` applied to a copy (offsets from its header: little-endian). */
+  function crafted(patch: (dv: DataView, at: { chromTree: number; fullIndex: number }) => void) {
+    const bytes = Fixture.slice();
+    const dv = new DataView(bytes.buffer);
+    patch(dv, { chromTree: Number(dv.getBigUint64(8, true)), fullIndex: Number(dv.getBigUint64(24, true)) });
+    return bytes;
+  }
+  const whole = { system: 'chrA', start: 0, end: 10_000, level: 1, shapes: ['values' as const] };
+
+  it('an index node of 65,536 items is refused, not read as 2 MB a node', async () => {
+    const bytes = crafted((dv, at) => dv.setUint32(at.fullIndex + 4, 65_536, true));
+    const s = await BigWigRuntime.open(entry, bytesContext({ [Url]: bytes }));
+    const a = await s.read(whole, signal);
+    expect(a).toMatchObject({ ok: false, kind: 'malformed', issue: { code: 'seq.source.malformed' } });
+    s.dispose();
+  });
+
+  it('an index whose children all point at one node (itself): read once a level, refused at the depth bound', async () => {
+    const bytes = crafted((dv, at) => {
+      const root = at.fullIndex + 48;
+      expect(dv.getUint8(root)).toBe(0);
+      const count = dv.getUint16(root + 2, true);
+      for (let i = 0; i < count; i++) {
+        dv.setUint32(root + 4 + 24 * i, 0, true);
+        dv.setUint32(root + 4 + 24 * i + 8, 0xffffffff, true);
+        dv.setBigUint64(root + 4 + 24 * i + 16, BigInt(root), true);
+      }
+    });
+    const reads: number[] = [];
+    const ctx = bytesContext({ [Url]: bytes });
+    const s = await BigWigRuntime.open(entry, {
+      ...ctx,
+      assets: {
+        ...ctx.assets,
+        openRange: async () => {
+          const r = { size: bytes.length };
+          return {
+            ...r,
+            read: async (ranges) => {
+              reads.push(ranges.length);
+              return ranges.map((x) => bytes.subarray(x.offset, Math.min(bytes.length, x.offset + x.length)));
+            },
+            dispose() {},
+          };
+        },
+      },
+    });
+    const n = reads.length;
+    expect(await s.read(whole, signal)).toMatchObject({ ok: false, kind: 'malformed' });
+    // the header, then one node a level: never the 4^depth a tree of repeated children names
+    expect(Math.max(...reads.slice(n))).toBe(1);
+    s.dispose();
+  });
+
+  it('a chromosome tree of 65,535 items of 1,032 bytes a node is refused at open', async () => {
+    const bytes = crafted((dv, at) => {
+      dv.setUint32(at.chromTree + 4, 65_535, true);
+      dv.setUint32(at.chromTree + 8, 1024, true);
+    });
+    await expect(BigWigRuntime.open(entry, bytesContext({ [Url]: bytes }))).rejects.toSatisfy(
+      (e) => e instanceof SourceOpenError && e.issues[0].code === 'seq.source.malformed',
+    );
+  });
+
+  it('a tree level wider than its bound, and blocks inflating past the region’s bound, are refused', async () => {
+    const narrow = await bigWigRuntime({ maxLevelNodes: 2 }).open(entry, bytesContext({ [Url]: Fixture }));
+    expect(await narrow.read(whole, signal)).toMatchObject({ ok: false, kind: 'malformed' });
+    narrow.dispose();
+    const small = await bigWigRuntime({ maxInflatedBytes: 2000 }).open(entry, bytesContext({ [Url]: Fixture }));
+    expect(await small.read(whole, signal)).toMatchObject({
+      ok: false,
+      kind: 'too-large',
+      issue: { code: 'seq.source.too_large' },
+    });
+    // a region within the bound is read
+    expect((await small.read({ ...whole, end: 64 }, signal)).ok).toBe(true);
+    small.dispose();
   });
 });
 
