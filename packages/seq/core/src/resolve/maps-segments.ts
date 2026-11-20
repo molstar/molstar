@@ -10,7 +10,7 @@
 // unit's own fact: where a structure map onto a unit says otherwise, it is reported once and the unit wins.
 
 import { HalfOpenRanges } from '@molstar/core/data/int/half-open-ranges';
-import { isColumn, type Value } from '@molstar/core/repr/tree';
+import { CategoryColumn, isColumn, type Value } from '@molstar/core/repr/tree';
 import { composeLinear, ImplicitLinear, type Linear, type Run, RunsLinear, runTargets, wrapRun } from './linear.js';
 
 /** A structure map's own facts beside its runs. */
@@ -31,8 +31,12 @@ interface Ends {
 }
 
 type Strings = { get(i: number): string | null };
-const strings = (v: Value | undefined): Strings | undefined =>
-  v && typeof (v as Strings).get === 'function' ? (v as Strings) : undefined;
+/** A column of strings as the normalized spec holds it: a category column, or an array where it has nulls. */
+export function strings(v: Value | undefined): Strings | undefined {
+  if (v instanceof CategoryColumn) return v;
+  if (!Array.isArray(v)) return undefined;
+  return { get: (i: number) => (typeof v[i] === 'string' ? (v[i] as string) : null) };
+}
 
 /** A `segments` table's runs, in the order written. */
 export function segmentRuns(table: Record<string, Value> | undefined): Run[] {

@@ -7,12 +7,19 @@
 // The checks of a map's and a numbering's methods (_spec/README.md, Language, Maps and Numberings): which params a
 // method takes, and the runs of `segments` and `structure` maps and of `segments` numberings.
 
-import { isColumn, type Node, type Value } from '@molstar/core/repr/tree';
+import { CategoryColumn, isColumn, type Node, type Value } from '@molstar/core/repr/tree';
 import type { Code } from './check.js';
 
 type Say = (code: Code, message: string, ...tail: (string | number)[]) => void;
 
 const p = (n: Node, key: string): Value | undefined => n.params?.[key];
+
+/** A column of strings as the normalized spec holds it: a category column, or an array where it has nulls. */
+function strings(v: Value | undefined): { get(i: number): string | null } | undefined {
+  if (v instanceof CategoryColumn) return v;
+  if (!Array.isArray(v)) return undefined;
+  return { get: (i: number) => (typeof v[i] === 'string' ? (v[i] as string) : null) };
+}
 
 /** The params each map method takes besides `from`, `to` and `priority`. */
 const MapParams: Readonly<Record<string, readonly string[]>> = {
@@ -50,7 +57,7 @@ export function checkMapSegments(n: Node, say: Say): void {
   if (t && isColumn(t.from) && isColumn(t.length)) {
     const from = t.from as ArrayLike<number>;
     const length = t.length as ArrayLike<number>;
-    const strand = t.strand as { get(i: number): string | null } | undefined;
+    const strand = strings(t.strand);
     const order = Array.from({ length: Math.min(from.length, length.length) }, (_, i) => i).sort(
       (a, b) => from[a] - from[b],
     );
@@ -69,7 +76,7 @@ export function checkMapSegments(n: Node, say: Say): void {
   if (st && isColumn(st.start) && isColumn(st.end)) {
     const start = st.start as ArrayLike<number>;
     const end = st.end as ArrayLike<number>;
-    const word = st.status as { get(i: number): string | null } | undefined;
+    const word = strings(st.status);
     for (let i = 0; i < Math.min(start.length, end.length); i++) {
       const w = word?.get(i);
       if (end[i] < start[i] || (w !== 'conflict' && w !== 'unobserved')) {
@@ -109,7 +116,7 @@ export function checkNumberingSegments(n: Node, say: Say): void {
   if (!t || !isColumn(t.start) || !isColumn(t.end)) return;
   const start = t.start as ArrayLike<number>;
   const end = t.end as ArrayLike<number>;
-  const insertion = t.insertion as { get(i: number): string | null } | undefined;
+  const insertion = strings(t.insertion);
   const order = Array.from({ length: Math.min(start.length, end.length) }, (_, i) => i).sort(
     (a, b) => start[a] - start[b],
   );

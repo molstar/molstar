@@ -10,13 +10,12 @@
 
 import { isColumn, type Value } from '@molstar/core/repr/tree';
 import { type Numbering, sequentialNumbering } from '@molstar/seqx-core/query';
+import { strings } from './maps-segments.js';
 
 /** A numbering of `length` positions, position `i` labelled `i + by`. */
 export function offsetNumbering(id: string, length: number, by: number): Numbering {
   return sequentialNumbering(id, length, by);
 }
-
-type Strings = { get(i: number): string | null };
 
 /**
  * A numbering of runs: positions `[start, end)` labelled `first`, `first + 1`, …, each with its run's insertion code
@@ -28,9 +27,9 @@ export function segmentsNumbering(id: string, length: number, table: Record<stri
     const start = table.start as ArrayLike<number>;
     const end = table.end as ArrayLike<number>;
     const first = table.first as ArrayLike<number>;
-    const codes = table.insertion as Strings | undefined;
+    const codes = strings(table.insertion);
     for (let i = 0; i < Math.min(start.length, end.length, first.length); i++)
-      runs.push({ start: start[i], end: end[i], first: first[i], code: codes?.get?.(i) ?? '' });
+      runs.push({ start: start[i], end: end[i], first: first[i], code: codes?.get(i) ?? '' });
   }
   runs.sort((a, b) => a.start - b.start);
   const at = (i: number) => {

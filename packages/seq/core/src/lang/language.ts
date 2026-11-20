@@ -281,6 +281,7 @@ export const SeqLanguage = defineLanguage({
             insertion: {
               type: 'column',
               of: 'category',
+              missing: true,
               doc: 'An insertion code after each run’s numbers (`52A`), for a run of one position.',
             },
           },
@@ -500,6 +501,7 @@ export const SeqLanguage = defineLanguage({
             provenance: {
               type: 'column',
               of: 'category',
+              missing: true,
               doc: 'For `structure`: where each run comes from, an open word (`sifts`, `alignment`, `author`).',
             },
           },
