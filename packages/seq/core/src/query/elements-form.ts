@@ -88,15 +88,19 @@ function indexRows(items: Items, defs: ReadonlyMap<string, PropertyDef>): RowInd
   return { groups: [...groups.values()] };
 }
 
-/** The rows a frame's coarse values select (a word set, `identifier`, by each of its words). */
-function rowsFor(index: RowIndex, reads: FrameReads, absent: Absent): number[] {
+/**
+ * The rows a frame's coarse values select (a word set, `identifier`, by each of its words); `'pending'` when a value
+ * read has not arrived (EC-169: the frame waits, never counted as lacking).
+ */
+function rowsFor(index: RowIndex, reads: FrameReads, absent: Absent): number[] | 'pending' {
   const out: number[] = [];
   for (const g of index.groups) {
     let keys: Atom[][] = [[]];
     let lacking = false;
     for (const d of g.fields) {
       const rd = reads.reader(d);
-      const v = rd === 'pending' ? undefined : rd?.(0, -1);
+      if (rd === 'pending') return 'pending';
+      const v = rd?.(0, -1);
       if (v === undefined) {
         absent.set(d.name, (absent.get(d.name) ?? 0) + 1);
         lacking = true;
@@ -389,6 +393,10 @@ export function elementsOver(ctx: Ctx, frames: readonly Frame[], items: Items): 
     tick(ctx);
     const reads = new FrameReads(ctx, f);
     const rows = rowsFor(index, reads, absent);
+    if (rows === 'pending') {
+      reportPending(ctx, f, pending);
+      continue;
+    }
     if (!rows.length) continue;
     const part = walkFrame(ctx, reads, items, rows, level, defs, predOf, absent, pending);
     if (part) parts.push(part);

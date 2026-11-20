@@ -145,3 +145,30 @@ describe('values channels', () => {
     expect([loc(r, '/data/c/D/(atoms)'), codes(r)]).toEqual([[], ['seq.query.property.absent']]);
   });
 });
+
+describe('a unit-level property pending (EC-169)', () => {
+  /** A batch number a unit, from a host's table: unit A's not arrived yet. */
+  const batch: QueryPropertyEntry = {
+    kind: 'query-property',
+    name: 'af:batch',
+    level: 'unit',
+    type: 'number',
+    read: (_, system) => (system.endsWith('/A') ? 'pending' : column(1, () => 7)),
+  };
+  const g = specRun(glycanSpec(), ext(batch));
+
+  it('a node filter stages the unit and says it waits, never drops it silently; the rest kept', () => {
+    const r = g.run('/(merge :of [/data/c/A /data/c/D])/(filter :test (= (prop af:batch) 7))');
+    expect(codes(r)).toEqual(['seq.query.property.pending']);
+    expect(r.complete).toBe(false);
+    expect(r.pending).toEqual(rangesLocation('/data/c/A', [0, 9]));
+    expect(r.result?.type === 'nodes' && r.result.nodes.map((n) => n.address.join('/'))).toEqual(['data/c/D']);
+  });
+
+  it('an elements field read on a unit: pending, never counted as lacking', () => {
+    const r = g.run('/data/c/(elements :"af:batch" 7)');
+    expect(codes(r)).toEqual(['seq.query.property.pending']);
+    expect([r.complete, r.pending]).toEqual([false, rangesLocation('/data/c/A', [0, 9])]);
+    expect(loc(r, '/data/c/D')).toEqual([0, 8]);
+  });
+});

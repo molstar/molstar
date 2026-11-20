@@ -103,10 +103,11 @@ const filter: Resolve = (ctx, form, prefix) => {
   } else {
     // nodes: a unit (or a molecule) passes when its test does, read at the unit level
     const pred = compilePredicate(ctx.ext, test, absent, levelRank('unit'), 'A filter’s test over nodes');
+    const pending: { said?: boolean } = {};
     const kept: Selected[] = [];
     for (const m of prefixNodes(prefix, 'filter')) {
       const frames = framesOf(ctx, { kind: 'nodes', matches: [m] }, 'filter');
-      if (frames.some((f) => passes(ctx, f, pred))) kept.push(m);
+      if (frames.some((f) => passes(ctx, f, pred, pending))) kept.push(m);
     }
     checkLimit(ctx, kept.length);
     out = { type: 'nodes', nodes: kept };
@@ -115,11 +116,18 @@ const filter: Resolve = (ctx, form, prefix) => {
   return out;
 };
 
-/** Whether a frame's unit-level test passes. */
-function passes(ctx: Ctx, f: Frame, pred: Predicate): boolean {
+/**
+ * Whether a frame's unit-level test passes; a property it reads pending stages the frame and says so (EC-169), the
+ * node then not held until its values arrive, never silently dropped.
+ */
+function passes(ctx: Ctx, f: Frame, pred: Predicate, pending: { said?: boolean }): boolean {
   tick(ctx);
   const rs = readersOf(new FrameReads(ctx, f), pred.uses);
-  return rs !== 'pending' && pred.test(rs, 0, -1);
+  if (rs === 'pending') {
+    reportPending(ctx, f, pending);
+    return false;
+  }
+  return pred.test(rs, 0, -1);
 }
 
 /** The keys whose extent the location holds. */
