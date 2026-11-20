@@ -82,7 +82,7 @@ export function zincFingerNodes(): readonly Node[] {
     c.unit(
       'A-1_555',
       {
-        of: `${Source}/(node :key 1)`,
+        of: `${Source}/(node :key "1")`,
         chain: 'A',
         auth_chain: 'A',
         operator: '1_555',
@@ -90,10 +90,10 @@ export function zincFingerNodes(): readonly Node[] {
       },
       (u) => u.numbering('auth', auth([null, '11', '12', '12A', '13'])),
     );
-    c.unit('B-1_555', { of: `${Source}/(node :key 1)`, chain: 'B', auth_chain: 'B', operator: '1_555' }, (u) =>
+    c.unit('B-1_555', { of: `${Source}/(node :key "1")`, chain: 'B', auth_chain: 'B', operator: '1_555' }, (u) =>
       u.numbering('auth', auth(['10', '11', '12', '13', '14'])),
     );
-    c.unit('C-1_555', { of: `${Source}/(node :key 2)`, chain: 'C', auth_chain: 'A', operator: '1_555' }, (u) =>
+    c.unit('C-1_555', { of: `${Source}/(node :key "2")`, chain: 'C', auth_chain: 'A', operator: '1_555' }, (u) =>
       u.numbering('auth', auth(['101'])),
     );
     c.links('links', {

@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { categoryColumn, type Issue, issueOf, type Node } from '@molstar/core/repr/tree';
+import { categoryColumn, type Issue, issueOf, type Node, parseAddress, printAddress } from '@molstar/core/repr/tree';
 import { type SequenceAlphabet, standardComponent, standardLetter } from '@molstar/core/util/sequence-constants';
 import type { DynamicNode, SystemInfo } from '@molstar/seqx-core/data';
 import { StructureIssues } from './issues.js';
@@ -177,7 +177,12 @@ function modifiedRows(comps: ReadEntity['components'], letters: string, alphabet
 
 /** A unit: its chain and operator, its observed runs when some position was not, its `auth` labels when given. */
 function unitNode(u: ReadUnit, source: string): Node {
-  const params: Record<string, unknown> = { of: `${source}/(node :key ${u.entity.id})`, chain: u.chain };
+  // the entity's node address as the overlay prints it: a key is a string (`"1"`, never the number 1)
+  const of = printAddress([
+    ...(parseAddress(source).pattern?.segments ?? []),
+    { kind: 'node', params: { key: u.entity.id } },
+  ]);
+  const params: Record<string, unknown> = { of, chain: u.chain };
   if (u.auth !== undefined) params.auth_chain = u.auth;
   if (u.operator !== undefined) params.operator = u.operator;
   const length = u.entity.length;
