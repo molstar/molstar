@@ -7,7 +7,7 @@
 // Molecules in the viewer (_spec/README.md "HoverModel", Molecules; "Behaviors", Links hover; "Commands", block.form):
 // the hover's words name a modified residue's component and its alternatives, a molecule's residue, an atom and its
 // residue; the hover carries the molecule's identifiers; `links.hover` lights a glycan's site from the glycan and the
-// glycan from its site; `block.form` switches a block's form in one patch, a derived block written out first.
+// glycan from its site; `block.form` switches a block's form in one patch, a derived block by one `block` child that overrides it alone.
 
 import type { Node } from '@molstar/core/repr/tree';
 import { createSeqSpec, identifiers, modified } from '@molstar/seqx-core/lang';
@@ -15,6 +15,7 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { LinksHoverChannel, LinksHoverProvider } from '../behaviors/links-hover.js';
 import { DefaultSeqViewerSpec } from '../default-spec.js';
 import { Describer } from '../describe.js';
+import { type UiHistory, uiHistory } from '../ui-history.js';
 import { createSeqViewer, type SeqViewer } from '../viewer.js';
 
 /** An Fc chain twice, its glycan on N10 of A, ATP with atoms; a section of the complex; a modified tRNA. */
@@ -67,11 +68,12 @@ afterAll(() => {
   for (const v of viewers.splice(0)) v.retire();
 });
 
-async function make(links = true) {
+async function make(links = true, history = false) {
   const base = DefaultSeqViewerSpec();
   const v = createSeqViewer({
     ...base,
     ui: undefined,
+    ...(history ? { history: uiHistory() } : {}),
     behaviors: links ? [...base.behaviors, { provider: LinksHoverProvider, params: undefined }] : base.behaviors,
   });
   viewers.push(v);
@@ -154,20 +156,45 @@ describe('molecules in the viewer', async () => {
     expect(parts.map((q) => Array.from(q.ranges))).toEqual([[0, 3]]);
   });
 
-  it('block.form: a derived block written out with its form, one undo step; the view otherwise the same', async () => {
-    const w = await make(false);
-    const before = w.view.resolved.value!.sections[0].blocks!.map((b) => [b.label, b.form]);
-    expect(before).toEqual([
+  it('block.form: one `block` child overrides that unit, the others stay derived; one undo step; a unit added later is listed', async () => {
+    const w = await make(false, true);
+    const forms = () => w.view.resolved.value!.sections[0].blocks!.map((b) => [b.label, b.form]);
+    expect(forms()).toEqual([
       ['A ×2', 'residues'],
       ['Fc glycan', 'whole'],
       ['ATP', 'whole'],
     ]);
     await w.execute('block.form', { address: '/views/v/complex/g', form: 'residues' });
     await w.settle();
-    const after = w.view.resolved.value!.sections[0].blocks!.map((b) => [b.label, b.form]);
-    expect(after).toEqual([
+    expect(forms()).toEqual([
       ['A ×2', 'residues'],
       ['Fc glycan', 'residues'],
+      ['ATP', 'whole'],
+    ]);
+    const section = w.spec.root.value.children!.find((n) => n.id === 'views')!.children![0].children![0];
+    expect(section.children!.filter((n) => n.kind === 'block').map((n) => [n.id, n.params])).toEqual([
+      ['g', { form: 'residues' }],
+    ]);
+    // a unit the complex gains after the override: listed, derived
+    const complex = w.spec.root.value.children!.find((n) => n.id === 'data')!.children!.find((n) => n.id === 'c')!;
+    const a = complex.children!.find((n) => n.id === 'A')!;
+    await w.spec.patch('Add a unit', {
+      ops: [{ op: 'insert', parent: ['data', 'c'], place: { last: true }, node: { ...a, id: 'C' } }],
+    });
+    await w.settle();
+    expect(forms()).toEqual([
+      ['A ×3', 'residues'],
+      ['Fc glycan', 'residues'],
+      ['ATP', 'whole'],
+    ]);
+    // one undo step each: the unit, then the override
+    const stack = (w.spec.history as UiHistory).stack;
+    await stack.undo();
+    await stack.undo();
+    await w.settle();
+    expect(forms()).toEqual([
+      ['A ×2', 'residues'],
+      ['Fc glycan', 'whole'],
       ['ATP', 'whole'],
     ]);
     await w.execute('block.form', { address: '/views/v/complex/l', form: 'atoms' });

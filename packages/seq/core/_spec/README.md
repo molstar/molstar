@@ -33,12 +33,13 @@ is added in the change that builds what it describes.
   track's `padding`, an addition; `0.5.0`: the kinds `molecule`, `compounds`, `compound`, `complex` and `unit`, a
   `numbering` under a unit, `pairs` under a complex or a molecule with the link columns `a_unit`, `b_unit`, `a_atom`,
   `b_atom`, `order`, `occupancy` and its `a` optional, a sequence's `modified`, the data references widened to molecules
-  and units and a section's `of` to a complex, a block's `form`, a section's `classes`, a layer's `modified`, a `ranges`
-  layer taking `pairs`, a source's `ref` and a values node's `field`; a map's `priority`, its methods `segments` and
-  `structure` with `segments` and `status`, a section's `via`, and a numbering's methods `offset` and `segments` with
-  `by` and `segments`; `pairs.a`/`b`, `ranges.target` and `map.to` naming an alignment, its columns). A spec in an
-  earlier `0.x` reads as one in this one, and is reported where it no longer fits: a `0.4.0` spec reads unchanged (every
-  addition is optional, and every kind a reference took it still takes).
+  and units and a section's `of` to a complex, a block's `form` and its `of` optional (an override of a derived unit), a
+  section's `classes`, a layer's `modified`, a `ranges` layer taking `pairs`, a source's `ref` and a values node's
+  `field`; a map's `priority`, its methods `segments` and `structure` with `segments` and `status`, a section's `via`,
+  and a numbering's methods `offset` and `segments` with `by` and `segments`; `pairs.a`/`b`, `ranges.target` and
+  `map.to` naming an alignment, its columns). A spec in an earlier `0.x` reads as one in this one, and is reported where
+  it no longer fits: a `0.4.0` spec reads unchanged (every addition is optional, and every kind a reference took it
+  still takes).
 
 ## Language
 
@@ -56,15 +57,15 @@ checks it cannot express.
   `a_strand` and `b_strand` (EC-206); any other category column rides along as a field a data filter reads,
   `(item :tertiary yes)`), `grid` (a value per pair of positions: `x` a sequence, `y` another or `x`'s, `values` x-major
   float32, NaN missing, `|x| × |y|` of them: `seq.lang.grid.length`); under a `sequence`: `numbering` (Numberings,
-  below); under `views`: `view`, then `section`, `block` (a piece of a section on a system of its own: `of`, `range`,
-  `label`), `track` (`hidden`, default false: kept in the spec, its row collapsed; its layers keep their own; `padding`,
-  px inside its well around its data, vertical only: a number top and bottom, or `{ top, bottom }` one or both, each
-  non-negative, a `repr` issue otherwise; absent, the render config's `trackPadding`: Render, Tracks layout), `layer`
-  (`hidden`, default false: kept in the spec and not drawn, so hiding is a one-key `set`). A `ranges` node's
-  `map: 'codon'` makes each item (its rows by `id`) a coding sequence of its own (Overlay); a track's `for_each` makes
-  it a template (Resolved view, Templates; its kind param is `node_kind`, since `kind` is reserved, and is `ranges` or
-  `values`: what a layer draws). Reference params (`target`, `of`, `from`, `to`, `follow`, `source`, `data`) are `ref`
-  params naming the kinds they take; a reference is an address.
+  below); under `views`: `view`, then `section`, `block` (a piece of a section on a system of its own: `of` (absent: an
+  override of a derived unit), `range`, `label`), `track` (`hidden`, default false: kept in the spec, its row collapsed;
+  its layers keep their own; `padding`, px inside its well around its data, vertical only: a number top and bottom, or
+  `{ top, bottom }` one or both, each non-negative, a `repr` issue otherwise; absent, the render config's
+  `trackPadding`: Render, Tracks layout), `layer` (`hidden`, default false: kept in the spec and not drawn, so hiding is
+  a one-key `set`). A `ranges` node's `map: 'codon'` makes each item (its rows by `id`) a coding sequence of its own
+  (Overlay); a track's `for_each` makes it a template (Resolved view, Templates; its kind param is `node_kind`, since
+  `kind` is reserved, and is `ranges` or `values`: what a layer draws). Reference params (`target`, `of`, `from`, `to`,
+  `follow`, `source`, `data`) are `ref` params naming the kinds they take; a reference is an address.
 - **The axis's params** (the writer's: what the figure is; never inferred from what a section draws, so adding a layer
   never turns a section over): a section's `direction` (`genomic`, `reversed`, `follow`, or
   `{ along: <sequence or map> }`; absent: `follow` for a section with `follow`, else `genomic`), `pieces` (`whole`,
@@ -1663,10 +1664,14 @@ no target.
   of blocks' are. Why the leader's blocks: the section of blocks already orders the chains and their copies on one axis.
   Refused (`seq.view.section.system`): a grid with blocks of its own, and one following blocks in a stack or on a ring
   (the plot's axes are a row's units).
-- **A section of a complex** (`of` a complex with no `block` children; `view/blocks.ts`): a block a unit, at
-  `<section>/<unit id>`, ordered by the section's `classes` (`[polymer, branched, ligand, ion]` when absent: water left
-  out, EC-101), polymers in the complex's order, then each class in order; a class not listed is left out. Explicit
-  `block` children win (a writer picks units, forms and order). Why left out: hundreds of waters say nothing on an axis.
+- **A section of a complex** (`of` a complex; `view/blocks.ts`): a block a unit, at `<section>/<unit id>`, ordered by
+  the section's `classes` (`[polymer, branched, ligand, ion]` when absent: water left out, EC-101), polymers in the
+  complex's order, then each class in order; a class not listed is left out. Why left out: hundreds of waters say
+  nothing on an axis. **An override**: a `block` child with no `of` whose id is a derived unit's (a merged copies
+  block's: its first unit's) sets that block's `form` and `label` only; the rest stay derived, from the complex and
+  `classes`, units added later included. When every `block` child is an override the section lists every derived unit;
+  otherwise the `block` children win (a writer picks units, forms and order). Why: one form switched (`block.form`) must
+  not freeze the list of units (the author's decision, "override one unit").
 - **A block's form** (`form`): as written, else `whole` for a molecule or a unit of one and `residues` for a sequence or
   a unit of one; `atoms` puts its axis on the atoms system (`<unit>/(atoms)`), its `range` the atoms of the residues in
   range, and falls back to the default where there is none (the language says so). **Its label**: as written, else its

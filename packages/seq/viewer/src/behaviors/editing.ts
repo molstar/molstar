@@ -123,9 +123,9 @@ export function editingBehavior(spec: SpecModel, axis?: AxisReaders): EditingBeh
     axis?.view.resolved.value?.sections.find((x) => x.address === address)?.axis.dir ?? 1;
 
   /**
-   * A block's node to patch: a `block` child, or a block a section of a complex derives from its units (its address
-   * `<section>/<unit id>`), which the patch writes out first as the section's children (every block it shows, in
-   * order, copies a block each so `copies` still merges them): explicit blocks win, so the view is the same but the form.
+   * A block's patch: its `block` child's `form` set, or for a block a section of a complex derives from its units (its
+   * address `<section>/<unit id>`, a merged copies block's its first unit's) one `block` child of that id with the
+   * form: an override of that unit alone, the rest still derived (core's _spec "Resolved view", A section of a complex).
    */
   const blockEdit = (address: string, form: string): Op[] | undefined => {
     const root = spec.root.value;
@@ -133,36 +133,9 @@ export function editingBehavior(spec: SpecModel, axis?: AxisReaders): EditingBeh
     const path = ids(address);
     const sectionAt = `/${path.slice(0, -1).join('/')}`;
     const section = axis?.view.resolved.value?.sections.find((x) => x.address === sectionAt);
-    if (!section?.blocks || !nodeOf(root, sectionAt, 'section')) return undefined;
-    const ops: Op[] = [];
-    let found = false;
-    let before: string | null = null;
-    for (const b of section.blocks)
-      for (let i = 0; i < b.members.length; i++) {
-        const id = b.members[i].slice(sectionAt.length + 1);
-        const of = unitOf(b.systems[i]);
-        const mine = b.members[i] === address || b.address === address;
-        if (mine) found = true;
-        const params: Record<string, Value> = { of };
-        if (mine) params.form = form;
-        else if (b.form !== 'residues' && b.form !== defaultForm(b.systems[i])) params.form = b.form;
-        ops.push({
-          op: 'insert',
-          parent: ids(sectionAt),
-          place: { after: before },
-          node: { kind: 'block', id, params },
-        });
-        before = id;
-      }
-    return found ? ops : undefined;
-  };
-  /** A block's unit: an atoms system's residues system (a block of form `atoms` shows its unit's atoms). */
-  const unitOf = (system: string) => (system.endsWith('/(atoms)') ? system.slice(0, -'/(atoms)'.length) : system);
-  /** The form a block on a system has when it names none: `whole` for a molecule's unit, `residues` else. */
-  const defaultForm = (system: string) => {
-    const m = spec.model.value.molecular;
-    const u = m.units.get(unitOf(system));
-    return m.molecules.has(u ? u.of : unitOf(system)) ? 'whole' : 'residues';
+    if (!section?.blocks?.some((b) => b.address === address) || !nodeOf(root, sectionAt, 'section')) return undefined;
+    const node: Node = { kind: 'block', id: path[path.length - 1], params: { form } };
+    return [{ op: 'insert', parent: ids(sectionAt), place: { last: true }, node }];
   };
 
   const commands: CommandDefinition<EditingContext>[] = [

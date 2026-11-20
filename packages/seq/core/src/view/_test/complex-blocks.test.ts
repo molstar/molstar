@@ -49,4 +49,31 @@ describe('a section of a complex', () => {
     const l = blocks.find((b) => b.address.endsWith('/l'))!;
     expect([l.form, l.axis.system, l.axis.ranges]).toEqual(['atoms', '/data/c/l/(atoms)', [0, 4]]);
   });
+
+  it('a block child with a derived unit’s id overrides that unit only; the rest stay derived, with `classes`', () => {
+    const { blocks, view } = blocksOf(moleculesSpec({ overrides: { g: { form: 'residues', label: 'Fc glycan' } } }));
+    expect(blocks.map((b) => [b.label, b.form])).toEqual([
+      ['A ×2', 'residues'],
+      ['Fc glycan', 'residues'],
+      ['ATP', 'whole'],
+      ['NA', 'whole'],
+    ]);
+    expect(view.issues).toEqual([]);
+    // `classes` still applies: the water listed, the ions left out
+    const c = blocksOf(moleculesSpec({ overrides: { g: { form: 'residues' } }, classes: ['branched', 'water'] }));
+    expect(c.blocks.map((b) => [b.label, b.form])).toEqual([
+      ['Glycan', 'residues'],
+      ['HOH', 'whole'],
+    ]);
+    // a merged copies block by its first unit's id: every copy
+    expect(blocksOf(moleculesSpec({ overrides: { A: { form: 'whole' } } })).blocks[0]).toMatchObject({
+      label: 'A ×2',
+      form: 'whole',
+    });
+  });
+
+  it('a unit added to the complex after an override is listed (merged with its copy)', () => {
+    const { blocks } = blocksOf(moleculesSpec({ overrides: { g: { form: 'residues' } }, extraIon: true }));
+    expect(blocks.map((b) => b.label)).toEqual(['A ×2', 'Glycan', 'ATP', 'NA ×2']);
+  });
 });

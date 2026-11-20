@@ -1084,11 +1084,10 @@ selection's gestures and the cursor's moves are session state; the cursor's focu
   figure is, so undo (not back) returns them and the export says the same.
 - **`block.form`** (the `editing` behavior's, a patch, one undo step; a command only: the viewer has no context menu
   yet, the design's place for it; no default key): sets a block's `form` (`whole`, `residues`, `atoms`; `address` the
-  block, `form`). A block a section of a complex derives from its units has no node: the patch first writes out every
-  block the section shows as its `block` children, in order, a merged copy a block each (so `copies` still merges them),
-  each block's form kept where it is not its default, then the one named with its form. Why written out: explicit blocks
-  win (the core's Resolved view), so one `block` child alone would leave the section that one block; the language has no
-  per-unit form on a section of a complex. The view is the same but the form, and undo returns the derived blocks.
+  block, `form`). A block a section of a complex derives from its units has no node: the patch inserts one `block` child
+  of that unit's id (a merged copies block's: its first unit's) with the form, an override of that block alone (the
+  core's Resolved view, A section of a complex); the others stay derived, units added later listed. Undo removes the
+  child.
 
 - **The rows' commands** (the `rows` behavior's, `behaviors/rows.ts`, on a track's rows layer, the first when none is
   named): folds are session state (the band's `folds`: no undo step): `clades.toggle` (a hand's move, no history step),

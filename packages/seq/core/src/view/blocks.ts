@@ -27,19 +27,38 @@ export function sectionComplex(model: StaticModel, section: Node): string | unde
 
 /**
  * A section's block nodes: its `block` children (explicit blocks win), else a block a unit of the complex it is `of`,
- * by `classes` (a class not listed left out), polymers in the complex's order, then each class in order.
+ * by `classes` (a class not listed left out), polymers in the complex's order, then each class in order. A `block`
+ * child whose id is a derived unit's (no `of`, or that unit) overrides that unit only, its `form` and `label` (a
+ * merged copies block by its first unit's id: every copy); a section whose children are all overrides lists every
+ * derived unit, as units are added too.
  */
 export function blockNodes(model: StaticModel, section: Node): Node[] {
   const own = (section.children ?? []).filter((c) => c.kind === 'block' && c.id !== undefined);
-  if (own.length) return own;
   const complex = sectionComplex(model, section);
   const units = complex === undefined ? undefined : model.molecular.complexes.get(complex)?.units;
-  if (!units) return [];
+  if (!units) return own;
+  const byId = new Map(units.map((u) => [u.id, u]));
+  const override = (n: Node) => {
+    const u = byId.get(n.id!);
+    const of = param(n, 'of');
+    return u !== undefined && (of === undefined || exactAddress(of) === u.address);
+  };
+  if (own.length && !own.every(override)) return own;
+  // each override's params by the units it reaches: its unit, or with merged copies its unit's copy group
+  const merge = param(section, 'copies') !== 'each';
+  const over = new Map<string, Record<string, Value>>();
+  for (const n of own) {
+    const u = byId.get(n.id!)!;
+    const params: Record<string, Value> = {};
+    for (const k of ['form', 'label'] as const) if (param(n, k) !== undefined) params[k] = param(n, k)!;
+    for (const v of units) if (v === u || (merge && v.copy === u.copy)) over.set(v.id, params);
+  }
   const written = param(section, 'classes');
   const classes = Array.isArray(written) ? written.map(String) : DefaultSectionClasses;
   const out: Node[] = [];
   for (const c of classes)
-    for (const u of units) if (u.class === c) out.push({ kind: 'block', id: u.id, params: { of: u.address } });
+    for (const u of units)
+      if (u.class === c) out.push({ kind: 'block', id: u.id, params: { of: u.address, ...over.get(u.id) } });
   return out;
 }
 

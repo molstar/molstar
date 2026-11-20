@@ -24,6 +24,10 @@ export interface MoleculesOptions {
   readonly numbers?: 'start' | 'end' | 'both';
   /** ATP's block form (by an explicit block list: the complex's units in order, ATP's form as given). */
   readonly atpForm?: 'whole' | 'residues' | 'atoms';
+  /** Overrides of derived units: `block` children by a unit's id, with no `of`. */
+  readonly overrides?: Readonly<Record<string, { form?: 'whole' | 'residues' | 'atoms'; label?: string }>>;
+  /** A second sodium ion's unit (`n2`), after the others. */
+  readonly extraIon?: boolean;
   /** The links' arcs (a pairs track; true but in text). */
   readonly links?: boolean;
   /** The links' sites: a ranges track over the links, each end a mark labeled by the other. */
@@ -78,6 +82,7 @@ export function moleculesSpec(o: MoleculesOptions = {}): Node {
     units.g = c.unit('g', { of: glycan, chain: 'G', label: 'Glycan' });
     units.l = c.unit('l', { of: atp, chain: 'L' });
     units.n = c.unit('n', { of: na, chain: 'N' });
+    if (o.extraIon) units.n2 = c.unit('n2', { of: na, chain: 'M', label: 'NA 2' });
     c.links('links', {
       rows: {
         a_unit: ['A', 'A', 'l'],
@@ -101,6 +106,7 @@ export function moleculesSpec(o: MoleculesOptions = {}): Node {
         ...(o.numbers ? { numbers: o.numbers } : {}),
       },
       (s) => {
+        for (const [id, p] of Object.entries(o.overrides ?? {})) s.block(id, p);
         if (o.atpForm)
           for (const id of [...ids, 'g', 'l', 'n'])
             s.block(id, { of: units[id] as never, ...(id === 'l' ? { form: o.atpForm } : {}) });
