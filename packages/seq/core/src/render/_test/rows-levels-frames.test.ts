@@ -62,4 +62,21 @@ describe('the rows’ levels across frames', () => {
     expect(await frame()).toBe(true);
     expect(await frame(20_000)).toBe(false);
   });
+
+  it('a zoom out of the letters (no level drawn yet) draws no cells while the level builds, never a whole build', async () => {
+    const s = await settle(spec(Rows, true), [Synthetic], { rows: { buildBudget: 20_000 } } as never);
+    // the letters, settled: no image level drawn
+    expect(rowsLay(await s.frame(at(20, 40, true))).images.length).toBe(0);
+    // out to the fit, moving: a part built, nothing drawn of it
+    let lay = rowsLay(s.renderer.frame(at(0.4, Columns, false)));
+    const [r, c] = wanted(lay, 0.4);
+    expect(lay.pyramid!.isBuilt(r, c)).toBe(false);
+    expect(lay.images.length).toBe(0);
+    // the frames after it build the rest, then draw it
+    let frames = 0;
+    for (let w = Columns - 1; !lay.images.length && frames < 100; w--, frames++)
+      lay = rowsLay(s.renderer.frame(at(0.4, w, false)));
+    expect(frames).toBeGreaterThan(1);
+    expect(lay.images.length).toBeGreaterThan(0);
+  });
 });

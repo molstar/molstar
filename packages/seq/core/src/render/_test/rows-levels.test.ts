@@ -69,13 +69,16 @@ describe('a pyramid level built across calls', () => {
 describe('the rows’ level while the view moves', () => {
   it('keeps the level drawn last until the wanted one is whole; a settled frame builds it', () => {
     const p = majority(3000, 200);
-    // a first frame builds what it draws
-    expect(rowsLevel(p, 1, 1, false, 5000)).toMatchObject({ rowLevel: 1, columnLevel: 1 });
+    // none drawn yet while the view moves: nothing until the level is whole (never a whole build in a moving frame)
+    let first = rowsLevel(p, 1, 1, false, 5000);
+    expect(first).toBeUndefined();
+    while (!first) first = rowsLevel(p, 1, 1, false, 5000);
+    expect(first).toMatchObject({ rowLevel: 1, columnLevel: 1 });
     // a zoom out: the old level drawn while the new one builds, a budget a frame
     let frames = 0;
     let l = rowsLevel(p, 3, 2, false, 5000);
-    while (l.rowLevel !== 3) {
-      expect([l.rowLevel, l.columnLevel]).toEqual([1, 1]);
+    while (l!.rowLevel !== 3) {
+      expect([l!.rowLevel, l!.columnLevel]).toEqual([1, 1]);
       frames++;
       l = rowsLevel(p, 3, 2, false, 5000);
     }

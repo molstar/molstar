@@ -1425,11 +1425,11 @@ function layoutImages(lay: RowsLay, ctx: LayoutContext, c0: number, c1: number) 
     }
     pyr.setClasses(R, C, base.subarray(0, need));
   }
-  if (R <= 0) return;
   const dpr = axis.dpr;
   const rowLevel = pyramidLevelFor(1 / (lay.rowScale * dpr), 4);
   const colLevel = pyramidLevelFor(1 / axis.devicePx, 4);
-  const level = rowsLevel(pyr, rowLevel, colLevel, ctx.settled, ctx.config.rows.buildBudget);
+  const level = R > 0 ? rowsLevel(pyr, rowLevel, colLevel, ctx.settled, ctx.config.rows.buildBudget) : undefined;
+  if (!level) return;
   const fr = 4 ** level.rowLevel;
   const fc = 4 ** level.columnLevel;
   const s0 = Math.floor((lay.first - P) / fr);
