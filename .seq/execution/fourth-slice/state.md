@@ -36,13 +36,13 @@ The third slice is closed (2026-11-20; its record in `.seq/records/third-slice/`
 
 ## In progress
 
-- 2026-11-20: QE, ST1, AC, HP1 and MR merged. One lane at once (the author). CU (strong; CE's parked
-  `seq/ce-copy-ends`) next.
+- 2026-11-20: QE, ST1, AC, HP1, MR and CU merged. Two lanes at once (the author). HP2 (strong, `seq/hp2-lane`) builds;
+  MX (strong) next beside it.
 
 ## Next
 
-1. CU, then MX and stage 1's gate (QE's heavy `:index` bound; the drift notes; the quick-lane folders over 2 s:
-   core, viewer); then HP2, ST2, ST3, HD, HP3.
+1. MX, then stage 1's gate (QE's heavy `:index` bound; the drift notes; the quick-lane folders over 2 s: core,
+   viewer); HP2's check, look, review; then ST2, ST3, HD, HP3.
 
 ## Findings by lane
 
@@ -67,6 +67,7 @@ One row a merged lane (loop, step 5, record): review findings and look findings 
 | AC | 2026-11-20 | 0 | 2 (the `alignment` map kind owed, a `segments` stopgap; one fixed name for every alignment's columns: drift) | 0 | weak tests (a path compared with itself, a test passing on the parent, the hover's section unchecked, no gap end drawn); EC-48 claimed whole; a duplicated kinds list; the look deferred to MX; core/render 2.28 s at load 8.9 (the gate measures it quiet) |
 | HP1 | 2026-11-20 | 4 (review: slots hit while not drawn; rows tracks' states over the tree; navigator pictures given headers; marks at negative x) | 3 (a label hit for `Emphasis.header`; the "⋯" order and backdrop; marks in a narrow column: the author amended the design) | 0 | `HeaderFacts` renamed; `nodeAt` a private copy of repr/tree; test gaps; no new part visible without a host (HP3's stories); minimal viewer 915.8 of 920 kB |
 | MR | 2026-11-20 | 4 (review: EC-95's label over the start number; the allocation tier order-dependent, a test helper's megamorphic copy; an atoms-form block lit as residues; a view after an edit never opening its end plans) | 1 (`block.form` froze the unit list: a block child overrides one unit, the author) | 3 (look: "Fc A1"; the code mode never shown; the story's data against its text) | sizes past 820 / 920 twice trimmed (lazy molecule letters), the bounds moved to 830 / 930 (the author); three brief items built late |
+| CU | 2026-11-20 | 2 (review: the real example as on the parent, every contact on the first heme; a private copy of the unit step) | 1 (an unnamed pair across split copies: never on a guessed copy, the author) | 1 (look: the split hemoglobin's contacts all on the first heme) | weak issue tests; no tile-edge test; `ResolvedBlock.copy` internal; CE's parked branch deleted |
 
 ## How to verify
 
