@@ -26,6 +26,8 @@ const ComplexStories: Readonly<Record<string, readonly [title: string, name: str
   ligands: ['Examples/Complex/Views', 'Ligands'],
   'ligands-atoms': ['Examples/Complex/Views', 'AtpPerAtom'],
   text: ['Examples/Complex/Views', 'Text'],
+  units: ['Examples/Complex/Views', 'AsAComplex'],
+  'units-atoms': ['Examples/Complex/Views', 'AsAComplexAtpAtoms'],
 };
 
 /** The Features shown on this data, each with what to try. */

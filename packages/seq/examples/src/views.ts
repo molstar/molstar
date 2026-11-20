@@ -17,6 +17,7 @@ import * as complexGrid from './complex/complex-grid.js';
 import * as complexLigands from './complex/ligands.js';
 import * as complexPae from './complex/pae.js';
 import * as complexText from './complex/text.js';
+import * as complexUnits from './complex/units.js';
 import * as molecules from './molecules/molecules.js';
 import * as trna from './trna/trna.js';
 import * as globinsColumns from './globins/columns.js';
@@ -545,6 +546,21 @@ export const ComplexViews: readonly ExampleView[] = [
     title: 'Text with a ligand chip',
     summary: '1FIN’s first copy as text: CDK2, then cyclin A, then ATP as a chip flowing with the letters like a word.',
     build: () => complexText.build(),
+  },
+  {
+    dataset: 'complex',
+    id: 'units',
+    title: '1FIN as a complex',
+    summary:
+      'PDB 1FIN as a complex of its units: CDK2 ×2 and cyclin A ×2 (author numbers: CDK2 from 1, the construct from 173), ATP ×2 a chip colored on its own, and six CC0 entries’ ligands standing for AlphaFill’s transplants, each its resolution as its score; the contacts per pair of units as arcs. Hover ATP: its CDK2 residues light; hover a contact: both ends. The editing view switches ATP between a chip and its 31 heavy atoms (one patch).',
+    build: () => complexUnits.build(),
+  },
+  {
+    dataset: 'complex',
+    id: 'units-atoms',
+    title: '1FIN, ATP by its atoms',
+    summary: 'The same complex with the first ATP by its heavy atoms, each labeled by its element.',
+    build: complexUnits.atoms,
   },
 ];
 
