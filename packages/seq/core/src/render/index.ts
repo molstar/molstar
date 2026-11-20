@@ -147,6 +147,7 @@ export {
   WindowFill,
   windowPart,
 } from './window.js';
+export { type NarrowColumns, narrowColumns, overviewWidth } from './narrow.js';
 export { type SourceLabelsOptions, withSourceNumberings } from './numberings.js';
 export {
   drawRail,

@@ -101,6 +101,8 @@ export interface LayoutContext {
   /** A band's own scroll (display rows below its pinned band) and row zoom (px a row), when it scrolls its rows. */
   readonly bandTop?: number;
   readonly rowScale?: number;
+  /** The tree's width a narrow frame grants a rows layer (0: collapsed); the layer's own when absent. */
+  readonly treePx?: number;
   /** The clades a rows layer folds (session state, by name), when the band says; its `collapsed` when absent. */
   readonly folds?: readonly string[];
   /** The shared image cache a layer keeps its image tiles in (the renderer's). */

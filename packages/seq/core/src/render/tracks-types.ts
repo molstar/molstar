@@ -18,6 +18,7 @@ import { LabelLane, type LayerContent, type TrackSizing, type TrackSizingHook } 
 import type { Placement, SectionLayoutType } from './layout/types.js';
 import { Rail } from './rail.js';
 import type { ImageCache } from './images.js';
+import type { NarrowColumns } from './narrow.js';
 import type { SectionCache } from './tracks-cache.js';
 
 // The tracks layout's records (_spec/README.md "Render", Tracks layout): what it is given (`LayoutInput`), what it
@@ -111,6 +112,8 @@ export interface ViewLayout {
   readonly issues: readonly Issue[];
   /** The dynamic nodes this layout shows, with what they name (with `nodes.holdShown`): its owner holds them. */
   readonly shown: readonly OverlayNode[];
+  /** The columns a narrow frame laid out with, the plot's width and the frame's least (a view with a tracks section). */
+  readonly narrow?: NarrowColumns;
 }
 
 export interface LayoutInput {

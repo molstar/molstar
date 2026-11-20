@@ -62,7 +62,7 @@ async function make(collapsed?: string[], newick?: string) {
   const v = createSeqViewer({ ...DefaultSeqViewerSpec(), ui: undefined, config: [[viewerItem('view.jumpMs'), 0]] });
   viewer = v;
   await v.load(spec(collapsed, newick));
-  v.resize(400);
+  v.resize(480);
   await v.settle();
   frames.flush();
   v.input.mac = false;
@@ -248,7 +248,7 @@ describe('an alignment’s rows in the viewer', () => {
     const v = createSeqViewer({ ...DefaultSeqViewerSpec(), ui: undefined, config: [[viewerItem('view.jumpMs'), 0]] });
     viewer = v;
     await v.load(b.build());
-    v.resize(400);
+    v.resize(480);
     await v.settle();
     frames.flush();
     expect(lay(v).display.pinned).toBe(2);
@@ -338,7 +338,7 @@ describe('the rows’ band in display rows, kept by key', () => {
         },
       ],
     });
-    v.resize(400);
+    v.resize(480);
     await v.settle();
     v.draw();
     v.view.setBand(Track, { folds: ['hb'] });
@@ -649,7 +649,7 @@ describe('the rows’ columns in the viewer', () => {
     const v = createSeqViewer({ ...DefaultSeqViewerSpec(), ui: undefined, config: [[viewerItem('view.jumpMs'), 0]] });
     viewer = v;
     await v.load(b.build());
-    v.resize(400);
+    v.resize(480);
     await v.settle();
     frames.flush();
     const logo = v.frame!.layout.sections[0].tracks[0].box;

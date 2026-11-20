@@ -23,7 +23,9 @@ export function layoutHeader(lay: RowsLay, prep: RowsPrep, ctx: LayoutContext) {
   const left = config.inset;
   const right = box.x - config.labelGap;
   const treeW =
-    lay.clades && prep.order === 'tree' && !lay.figure ? Math.max(0, Math.min(prep.treeWidth, right - left - 24)) : 0;
+    lay.clades && prep.order === 'tree' && !lay.figure
+      ? Math.max(0, Math.min(ctx.treePx ?? prep.treeWidth, right - left - 24))
+      : 0;
   lay.treeX0 = left;
   lay.treeX1 = left + treeW;
   if (treeW > 0) layoutTree(lay, lay.clades!, left, treeW);

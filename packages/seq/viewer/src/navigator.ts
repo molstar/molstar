@@ -7,7 +7,7 @@
 import { ReactiveModel, type ReadonlyState, State } from '@molstar/core/reactive';
 import type { Node } from '@molstar/core/repr/tree';
 import type { Want } from '@molstar/seqx-core/data';
-import { NavWindowFlags, type WindowPart } from '@molstar/seqx-core/render';
+import { NavWindowFlags, overviewWidth, type WindowPart } from '@molstar/seqx-core/render';
 import {
   type NavigatorFrame,
   type NavigatorHit,
@@ -88,6 +88,8 @@ export class NavigatorModel extends ReactiveModel {
   height = 0;
   private hostWidth = 0;
   private hostHeight = 0;
+  /** The width it shares with the canvas beside it (`setRoom`), 0 unknown. */
+  private room = 0;
   private renderer: NavigatorRenderer | undefined;
   private rendererFor: unknown[] = [];
   private readonly wanter;
@@ -159,6 +161,17 @@ export class NavigatorModel extends ReactiveModel {
     this.changed();
   }
 
+  /**
+   * Sets the width it shares with the canvas beside it (the default `ui.navigators`' row, less the other side parts):
+   * a vertical overview of the form's size narrows and hides in a narrow frame by the plot it leaves (core's "Render",
+   * A narrow frame: `overviewWidth`).
+   */
+  setRoom(width: number): void {
+    if (width === this.room) return;
+    this.room = Math.max(0, width);
+    this.changed();
+  }
+
   /** The box the picture is drawn in: the host's and the form's (a zoom strip draws below it). */
   private boxHeight = 0;
 
@@ -172,6 +185,11 @@ export class NavigatorModel extends ReactiveModel {
     const b = navigatorBox(nav, this.hostWidth || this.viewer.width, this.viewer.height);
     const zoom = this.renderer?.zoomHeight ?? 0;
     this.width = this.hostWidth || b.width;
+    // a vertical overview at its form's size beside the canvas gives way to the plot (A narrow frame)
+    const narrow = this.viewer.frame?.layout.narrow;
+    if (!this.hostWidth && this.room > 0 && narrow && nav.axes === 'rows' && nav.size === undefined)
+      if (nav.place === 'left' || nav.place === 'right')
+        this.width = overviewWidth(this.room - narrow.columnsPx, b.width, this.viewer.context.renderConfig);
     this.boxHeight = this.hostHeight ? Math.max(1, this.hostHeight - zoom) : b.height;
     this.height = this.hostHeight || this.boxHeight + zoom;
   }

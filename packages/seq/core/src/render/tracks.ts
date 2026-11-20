@@ -27,6 +27,7 @@ import { chipText } from './layout/blocks.js';
 import { TracksLayout } from './layout/tracks.js';
 import type { GridPlacement } from './layout/grid.js';
 import type { PlaceContext, Placement, SectionLayoutType } from './layout/types.js';
+import { narrowColumns } from './narrow.js';
 import { placeRail, placeRowsRail, Rail, SlimRailPx } from './rail.js';
 import type { RowsLay } from './rows.js';
 import { rowsCount, rowsFillHeight, rowsShown } from './rows-fill.js';
@@ -132,7 +133,14 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
   // rail), yielding to a narrow view; kept while the view, the width and the room they read are
   const fixed = 2 * base.inset + base.labelWidth + base.labelGap + header.tree + first + gutter;
   const fit = columnsFit(state, viewColumns(input.view), input.size.width, fixed, base, header.rail);
-  const config = widened(base, header.tree + first + (fit?.left ?? 0));
+  // a narrow frame: the label column to its floor, then the tree collapsed, the plot kept (narrow.ts)
+  const narrow = header.tracks
+    ? narrowColumns(input.size.width, fixed + (fit ? fit.left + fit.right : 0), base.labelWidth, header.tree, base)
+    : undefined;
+  const config = widened(
+    narrow ? measured(given, narrow.labelWidth) : base,
+    (narrow?.tree ?? header.tree) + first + (fit?.left ?? 0),
+  );
   const right = gutter + (fit?.right ?? 0);
   const grants = fit?.grants;
   // a text section's lines leave the right columns their room (the text layout known by its registered name, as the
@@ -558,6 +566,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
             // a chip's pill: its label elided to its slot (a position's px on its strip: the whole chip's)
             ...(block && strips.chip[i] ? { chip: chipText(input.text, config, block.label, a.scale) } : {}),
             ...(grants && type.name === 'rows' && grants.has(key) ? { rowColumns: grants.get(key)! } : {}),
+            ...(narrow && narrow.tree !== header.tree && type.name === 'rows' ? { treePx: narrow.tree } : {}),
           };
           // kept by the strip's first unit, and its block's (a stack's blocks all start at 0)
           let at = block ? `${key}#${strips.block[i]}@${strips.first[i]}` : `${key}@${strips.first[i]}`;
@@ -835,7 +844,18 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       }
   for (const i of overlay.issues) report(i);
   const shownNodes = config.nodes.holdShown && overlay.nodes.length ? overlay.holds(showing) : [];
-  return { width, height, dpr, tokens: input.tokens, config, sections, wants, issues, shown: shownNodes };
+  return {
+    width,
+    height,
+    dpr,
+    tokens: input.tokens,
+    config,
+    sections,
+    wants,
+    issues,
+    shown: shownNodes,
+    ...(narrow ? { narrow } : {}),
+  };
 }
 
 const NoBreaks: readonly number[] = [];

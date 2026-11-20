@@ -30,12 +30,16 @@ export function rowsHeader(
   readonly tree: number;
   readonly numbers: boolean;
   readonly rail: boolean;
+  /** The view has a tracks section (a label column a narrow frame shrinks). */
+  readonly tracks: boolean;
 } {
   let tree = 0;
   let numbers = false;
   let rail = false;
+  let tracks = false;
   for (const s of view.sections) {
     if (sectionLayoutName(s, view) !== 'tracks') continue;
+    tracks = true;
     for (const t of s.tracks)
       for (const l of t.layers) {
         if (l.type !== 'rows' || !l.placed || l.params.hidden === true) continue;
@@ -46,7 +50,7 @@ export function rowsHeader(
           tree = Math.max(tree, typeof w === 'number' ? w : 120);
       }
   }
-  return { tree, numbers, rail };
+  return { tree, numbers, rail, tracks };
 }
 
 const NoColumns: ReadonlyMap<string, readonly RowColumn[]> = new Map();
