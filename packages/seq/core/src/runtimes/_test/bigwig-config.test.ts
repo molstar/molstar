@@ -15,7 +15,8 @@ import { DefaultBigWigLimits } from '../bigwig.js';
 describe('the bigWig runtime’s Configuration table', () => {
   it('names every item of DefaultBigWigLimits, and none it lacks', () => {
     const md = readFileSync(fileURLToPath(new URL('../../../_spec/README.md', import.meta.url)), 'utf8');
-    const section = md.slice(md.indexOf('\n### bigWig\n'), md.indexOf('\n### Archives\n'));
+    const start = md.indexOf('\n### bigWig\n');
+    const section = md.slice(start, md.indexOf('\n### ', start + 1));
     const rows = [...section.matchAll(/^ *\| `(\w+)` +\|/gm)].map((m) => m[1]);
     expect(rows.sort()).toEqual(Object.keys(DefaultBigWigLimits).sort());
   });

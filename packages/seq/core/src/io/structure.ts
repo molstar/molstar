@@ -14,6 +14,7 @@ export type {
   ChainTable,
   ComponentTable,
   CompoundTable,
+  EntityLinkTable,
   EntityTable,
   EntityType,
   IdentifierTable,
