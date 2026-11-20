@@ -227,8 +227,16 @@ export function windowBehavior(view: ViewModel, config: ViewerConfig = DefaultVi
 export function windowIdle(view: ViewModel, section: string, config: ViewerConfig = DefaultViewerConfig): boolean {
   const v = view.get(section);
   if (!v || v.pending || v.width <= 0 || !view.canMove(section)) return true;
-  const axis = view.resolved.value?.sections.find((s) => s.address === section)?.axis;
-  const total = axis && axisTotal(axis);
+  // (a loop, not `find`: a frame asks this per rail and allocates no closure)
+  const sections = view.resolved.value?.sections;
+  let total: number | undefined;
+  if (sections)
+    for (let i = 0; i < sections.length; i++) {
+      const s = sections[i];
+      if (s.address !== section) continue;
+      total = s.axis && axisTotal(s.axis);
+      break;
+    }
   if (total === undefined) return true;
   const whole = v.start <= 0 && v.end >= total;
   return whole && total <= v.width / config.viewport.maxPxPerPosition;
