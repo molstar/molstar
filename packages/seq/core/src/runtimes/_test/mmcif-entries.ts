@@ -74,7 +74,7 @@ export function summary(source: OpenedSource): Summary {
             ? values(c.children![0].params!.labels as CategoryColumn).filter((x) => x !== null)
             : [];
           out.units[c.id!] =
-            `of ${q.of.split(' ').pop().slice(0, -1)} auth ${q.auth_chain} observed ${runs(q.observed)} labels ${labels[0]}..${labels[labels.length - 1]} (${labels.length})`;
+            `of ${q.of.split(' ').pop().slice(0, -1).replace(/"/g, '')} auth ${q.auth_chain} observed ${runs(q.observed)} labels ${labels[0]}..${labels[labels.length - 1]} (${labels.length})`;
         } else if (c.kind === 'pairs') for (const t of values(q.rows.type)) out.links[t!] = (out.links[t!] ?? 0) + 1;
       }
   }

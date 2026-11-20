@@ -264,7 +264,7 @@ disagrees with its code writes a drift note and stops.
 - [x] ML2 (merged 2026-11-20) (strong, after DP: both touch resolve and the store) the model: unit and atoms systems, the atoms map at a
       path's ends, held pairs with per-row units, copy groups, the modified index, `maxUnits`, the query forms
       (`briefs/ml2-model.md`).
-- [ ] MC (strong, after ML2 and DP) the mmCIF runtime (`runtimes/mmcif`, opt-in): CIF categories to
+- [x] MC (merged 2026-11-20) (strong, after ML2 and DP) the mmCIF runtime (`runtimes/mmcif`, opt-in): CIF categories to
       `StructureDescription` to `structureNodes`, `values` by `field` (B-factor, pLDDT), the allowlist, the conformance
       suite split as seq-data-ports says, the fixtures re-recorded (`briefs/mc-mmcif.md`). Parallel with ML2 is gone:
       two strong lanes at once break the lane limit.

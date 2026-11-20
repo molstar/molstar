@@ -3359,6 +3359,9 @@ importers:
       '@molstar/core':
         specifier: workspace:*
         version: link:../../core
+      '@molstar/io':
+        specifier: workspace:*
+        version: link:../../io
       tslib:
         specifier: 'catalog:'
         version: 2.8.1

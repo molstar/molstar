@@ -98,6 +98,7 @@
   },
   "dependencies": {
     "@molstar/core": "workspace:*",
+    "@molstar/io": "workspace:*",
     "tslib": "catalog:"
   },
   "devDependencies": {
