@@ -210,4 +210,4 @@ Answered by the author, 2026-11-20, and applied (the designs, the Design pages, 
 
 `drift/ec-contradictions.md` is deleted; `drift/finalize-config.md` keeps item 8 (sizes) for RR.
 
-Decided by the author:
+Decided by the author, 2026-11-20: merged: "add a note about the sizes to the slice 3 foldback too. and then you can apply the foldback." (B10 already applied: §module-size, `file-size.ts`, lane SZ.)
