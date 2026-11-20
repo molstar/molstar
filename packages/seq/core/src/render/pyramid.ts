@@ -7,7 +7,8 @@
 // The shared 2D reduction (_spec/README.md "Render", The shared reduction): one pyramid over a typed grid of samples,
 // its levels by a factor and a pairing the caller gives (square levels for a grid; a row level and a column level
 // apart for rows, so a row stays a row zoomed out on columns), and a reducer (mean, max, min, or the majority with its
-// share). Levels are built on demand, each from the finer level beside it, into buffers kept across bases of any size.
+// share). Levels are built on demand, each from the finer level beside it, into buffers kept across bases of any size;
+// at once (`level`) or a budget of cells at a time across calls (`levelWithin`: a frame builds a level across frames).
 
 /** How a sample of a coarser level reads its finer samples. */
 export type Reducer = 'mean' | 'max' | 'min' | 'majority';
@@ -55,6 +56,9 @@ interface MutableLevel {
   shares: Uint8Array;
   /** The base's version it was built for; -1 never. */
   built: number;
+  /** The base's version it is being built for, and its rows built so far (a build across calls). */
+  building: number;
+  done: number;
 }
 
 const Empty32 = new Float32Array(0);
@@ -86,6 +90,8 @@ export class Pyramid {
     classes: Empty8,
     shares: Empty8,
     built: 0,
+    building: 0,
+    done: 0,
   };
   /** Votes a class while a majority sample is reduced, the sample each was last counted in (the last: the stamp). */
   private readonly _votes = new Float64Array(256);
@@ -139,18 +145,52 @@ export class Pyramid {
 
   /**
    * A level: `level(k)` for a square pyramid, `level(rowLevel, columnLevel)` for an independent one; clamped to the
-   * levels there are. The base itself at (0, 0), its shares 255 when it was given none.
+   * levels there are. The base itself at (0, 0), its shares 255 when it was given none. Built whole now when it is not.
    */
   level(rowLevel: number, columnLevel: number = rowLevel): PyramidLevel {
-    const square = this.options.pairing === 'square';
+    this._clamp(rowLevel, columnLevel);
+    const r = this._r;
+    const c = this._c;
+    this._advance(r, c, Number.POSITIVE_INFINITY);
+    return this._slot(r, c);
+  }
+
+  /**
+   * A level as `level` gives it when it is built; else its build goes on by about `cells` cells read (its finer levels
+   * first; at least a row of samples a call) and undefined until it is whole: what a frame asks while the view moves
+   * (performance.md, Levels).
+   */
+  levelWithin(rowLevel: number, columnLevel: number, cells: number): PyramidLevel | undefined {
+    this._clamp(rowLevel, columnLevel);
+    const r = this._r;
+    const c = this._c;
+    return this._advance(r, c, cells) < 0 ? undefined : this._slot(r, c);
+  }
+
+  /** Whether a level (clamped) is built for the current base. */
+  isBuilt(rowLevel: number, columnLevel: number = rowLevel): boolean {
+    this._clamp(rowLevel, columnLevel);
+    return (this._r === 0 && this._c === 0) || this._slot(this._r, this._c).built === this._version;
+  }
+
+  // ---- internals ----
+
+  /** The clamped level pair `_clamp` writes (fields: a pair returned would be an allocation a call). */
+  private _r = 0;
+  private _c = 0;
+
+  private _clamp(rowLevel: number, columnLevel: number): void {
     const clamp = (k: number, n: number) => Math.max(0, Math.min(Math.floor(k), n - 1));
-    let r: number;
-    let c: number;
-    if (square) r = c = clamp(rowLevel, Math.max(this.levels('rows'), this.levels('columns')));
+    if (this.options.pairing === 'square')
+      this._r = this._c = clamp(rowLevel, Math.max(this.levels('rows'), this.levels('columns')));
     else {
-      r = clamp(rowLevel, this.levels('rows'));
-      c = clamp(columnLevel, this.levels('columns'));
+      this._r = clamp(rowLevel, this.levels('rows'));
+      this._c = clamp(columnLevel, this.levels('columns'));
     }
+  }
+
+  /** A level's kept buffers (the base at (0, 0)). */
+  private _slot(r: number, c: number): MutableLevel {
     if (r === 0 && c === 0) return this._base;
     const key = r * 65536 + c;
     let l = this._levels.get(key);
@@ -164,37 +204,58 @@ export class Pyramid {
         classes: Empty8,
         shares: Empty8,
         built: -1,
+        building: -1,
+        done: 0,
       };
       this._levels.set(key, l);
     }
-    if (l.built === this._version) return l;
-    const f = this.options.factor;
-    if (this.options.reducer === 'majority' && f ** r < ExactMajorityRows) {
-      // a small block counts its cells exactly, from the base (_spec/README.md "Render", the rows layer)
-      this._reduce(this._base, l, f ** r, f ** c);
-      l.built = this._version;
-      return l;
-    }
-    // from the finer level beside it: a square level from the one below on both axes, else rows first
-    let from: PyramidLevel;
-    let fr = 1;
-    let fc = 1;
-    if (square) {
-      from = this.level(r - 1, c - 1);
-      fr = fc = f;
-    } else if (r > 0) {
-      from = this.level(r - 1, c);
-      fr = f;
-    } else {
-      from = this.level(r, c - 1);
-      fc = f;
-    }
-    this._reduce(from, l, fr, fc);
-    l.built = this._version;
     return l;
   }
 
-  // ---- internals ----
+  /**
+   * Builds level (r, c) on by at most about `cells` cells read: from the base when its block is small (a majority's
+   * exact count), else from the finer level beside it (a square level from the one below on both axes, else rows
+   * first), which is built first. The budget left, or −1 while the level is not whole.
+   */
+  private _advance(r: number, c: number, cells: number): number {
+    if (r === 0 && c === 0) return cells;
+    const l = this._slot(r, c);
+    if (l.built === this._version) return cells;
+    const f = this.options.factor;
+    let from: PyramidLevel;
+    let fr = 1;
+    let fc = 1;
+    if (this.options.reducer === 'majority' && f ** r < ExactMajorityRows) {
+      // a small block counts its cells exactly, from the base (_spec/README.md "Render", the rows layer)
+      from = this._base;
+      fr = f ** r;
+      fc = f ** c;
+    } else {
+      const square = this.options.pairing === 'square';
+      const fr0 = square || r > 0 ? r - 1 : r;
+      const fc0 = square || r === 0 ? c - 1 : c;
+      cells = this._advance(fr0, fc0, cells);
+      if (cells < 0) return -1;
+      from = this._slot(fr0, fc0);
+      fr = fr0 === r ? 1 : f;
+      fc = fc0 === c ? 1 : f;
+    }
+    if (l.building !== this._version) {
+      l.building = this._version;
+      l.done = 0;
+      this._size(from, l, fr, fc);
+    }
+    // a row of samples reads `fr` rows of the finer level, each its columns
+    const perRow = Math.max(1, fr * from.columns);
+    const rows = cells === Number.POSITIVE_INFINITY ? l.rows : Math.max(1, Math.floor(cells / perRow));
+    const i1 = Math.min(l.rows, l.done + rows);
+    this._reduce(from, l, fr, fc, l.done, i1);
+    cells -= (i1 - l.done) * perRow;
+    l.done = i1;
+    if (l.done < l.rows) return -1;
+    l.built = this._version;
+    return Math.max(0, cells);
+  }
 
   private _set(rows: number, columns: number): void {
     if (!(rows >= 0 && columns >= 0) || !Number.isInteger(rows) || !Number.isInteger(columns))
@@ -205,18 +266,22 @@ export class Pyramid {
     this._base.built = this._version;
   }
 
-  /** `to` from `from`, `fr` × `fc` samples a sample, into its kept buffers. */
-  private _reduce(from: PyramidLevel, to: MutableLevel, fr: number, fc: number): void {
-    const rows = Math.ceil(from.rows / fr);
-    const columns = Math.ceil(from.columns / fc);
-    const n = rows * columns;
-    to.rows = rows;
-    to.columns = columns;
+  /** `to`'s size from `from`, `fr` × `fc` samples a sample, its kept buffers grown to hold it. */
+  private _size(from: PyramidLevel, to: MutableLevel, fr: number, fc: number): void {
+    to.rows = Math.ceil(from.rows / fr);
+    to.columns = Math.ceil(from.columns / fc);
+    const n = to.rows * to.columns;
     if (this.options.reducer === 'majority') {
       if (to.classes.length < n) {
         to.classes = new Uint8Array(n);
         to.shares = new Uint8Array(n);
       }
+    } else if (to.values.length < n) to.values = new Float32Array(n);
+  }
+
+  /** `to`'s rows `i0` to `i1` from `from`, `fr` × `fc` samples a sample. */
+  private _reduce(from: PyramidLevel, to: MutableLevel, fr: number, fc: number, i0: number, i1: number): void {
+    if (this.options.reducer === 'majority') {
       const f = this.options.factor;
       reduceMajority(
         from,
@@ -230,20 +295,27 @@ export class Pyramid {
         this._columns,
         this._stamps,
         this._weights,
+        i0,
+        i1,
       );
-    } else {
-      if (to.values.length < n) to.values = new Float32Array(n);
-      reduceNumbers(from, to, fr, fc, this.options.reducer);
-    }
+    } else reduceNumbers(from, to, fr, fc, this.options.reducer, i0, i1);
   }
 }
 
-function reduceNumbers(from: PyramidLevel, to: MutableLevel, fr: number, fc: number, reducer: Reducer): void {
+function reduceNumbers(
+  from: PyramidLevel,
+  to: MutableLevel,
+  fr: number,
+  fc: number,
+  reducer: Reducer,
+  i0: number,
+  i1: number,
+): void {
   const src = from.values;
   const out = to.values;
   const W = from.columns;
   const H = from.rows;
-  for (let i = 0; i < to.rows; i++) {
+  for (let i = i0; i < i1; i++) {
     const r0 = i * fr;
     const r1 = Math.min(H, r0 + fr);
     for (let j = 0; j < to.columns; j++) {
@@ -283,6 +355,8 @@ function reduceMajority(
   baseColumns: number,
   stamps: Uint32Array,
   weights: { rows: Float64Array; columns: Float64Array },
+  i0: number,
+  i1: number,
 ): void {
   const classes = from.classes;
   const shares = from.shares;
@@ -297,7 +371,7 @@ function reduceMajority(
   for (let r = 0; r < H; r++) rw[r] = Math.min(baseRows, (r + 1) * unitRows) - r * unitRows;
   for (let c = 0; c < W; c++) cw[c] = Math.min(baseColumns, (c + 1) * unitColumns) - c * unitColumns;
   let stamp = stamps[256];
-  for (let i = 0; i < to.rows; i++) {
+  for (let i = i0; i < i1; i++) {
     const r0 = i * fr;
     const r1 = Math.min(H, r0 + fr);
     for (let j = 0; j < to.columns; j++) {

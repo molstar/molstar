@@ -11,7 +11,7 @@
 import type { Node } from '@molstar/core/repr/tree';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { describe, expect, it } from 'vitest';
-import { hitView, type RangesLay } from '../index.js';
+import { hitView, type RangesLay, RangesType } from '../index.js';
 import { settle } from './helpers.js';
 import { layerLay, readPaths, readRects, rng } from './small-helpers.js';
 
@@ -158,6 +158,77 @@ describe('ranges: labels', () => {
     const labelled = Array.from({ length: lay.m }, (_, j) => (lay.mlabel[j] > 0 ? lay.keys[lay.mitem[j]] : undefined));
     expect(labelled).toEqual(['a', undefined]);
     expect(lay.mlabel[0] + 6).toBeLessThanOrEqual(w);
+  });
+
+  /** The labels pass's texts. */
+  const texts = (f: Awaited<ReturnType<Awaited<ReturnType<typeof settle>>['frame']>>) => {
+    const t = f.lists.passes.labels.texts;
+    return Array.from({ length: t.n }, (_, i) => ({ text: f.lists.string(t.str[i]), x: t.x[i], w: t.width[i] }));
+  };
+
+  // the last 40 of 400 positions (about 70 px): "Tetramerization domain" (about 105 px) fits neither whole inside nor
+  // beside (past the box's end there), so it goes inside cut; "Nuclear localization" fits beside, whole
+  const LONG = {
+    start: [300, 360],
+    end: [304, 400],
+    id: ['nls', 'tet'],
+    label: ['Nuclear localization', 'Tetramerization domain'],
+  };
+
+  it('one that fits neither whole inside nor beside goes inside cut with an ellipsis, at least `labels.minChars`', async () => {
+    const s = await settle(spec(LONG as never, {}));
+    const f = await s.frame({ size: SIZE });
+    const lay = layerLay<RangesLay>(f, 0);
+    const t = texts(f);
+    const tet = t.find((x) => x.text.startsWith('Tetr'))!;
+    expect(tet.text).toMatch(/^Tetr[\w ]*…$/);
+    expect(tet.text.length - 1).toBeGreaterThanOrEqual(4);
+    // within its mark, its inset kept
+    const j = Array.from({ length: lay.m }, (_, k) => k).find((k) => lay.keys[lay.mitem[k]] === 'tet')!;
+    expect(lay.mcut[j]).toBe(tet.text.length - 1);
+    expect(tet.x).toBeGreaterThanOrEqual(lay.mx0[j] + 3 - 1e-6);
+    expect(tet.x + tet.w).toBeLessThanOrEqual(lay.mx1[j] - 3 + 1e-6);
+    // beside, whole
+    expect(t.map((x) => x.text)).toContain('Nuclear localization');
+  });
+
+  it('a cut label’s item keeps its whole label: its description (what the hover card and the live region read) and its hit', async () => {
+    const f = await (await settle(spec(LONG as never, {}))).frame({ size: SIZE });
+    const lay = layerLay<RangesLay>(f, 0);
+    const j = Array.from({ length: lay.m }, (_, k) => k).find((k) => lay.keys[lay.mitem[k]] === 'tet')!;
+    expect(lay.mcut[j]).toBeGreaterThan(0);
+    const item = RangesType.items!(lay as never).find((d) => d.key === 'tet')!;
+    expect(item.label).toBe('Tetramerization domain');
+    // a press on the cut label hits its item, by its key: the address names it whole (`(item :id tet)`)
+    const t = texts(f).find((x) => x.text.startsWith('Tetr'))!;
+    expect(hitView(f.layout, t.x + t.w / 2, lay.laneY + lay.laneHeight / 2)?.element?.key).toBe('tet');
+  });
+
+  it('a label of at most `labels.minChars` letters is never cut: whole, or dropped', async () => {
+    // the last 3 of 400 positions (about 5 px): no room for "Nucl" whole, inside or beside
+    const rows = { start: [397], end: [400], id: ['n'], label: ['Nucl'] };
+    const f = await (await settle(spec(rows as never, {}))).frame({ size: SIZE });
+    const lay = layerLay<RangesLay>(f, 0);
+    for (let j = 0; j < lay.m; j++) expect(lay.mcut[j]).toBe(0);
+    expect(texts(f).filter((x) => x.text.startsWith('N'))).toEqual([]);
+    // with `minChars` 2 the same label is cut (were there room) or dropped, never cut below 2 letters
+    const g = await (await settle(spec(rows as never, {}), [], { labels: { minChars: 2 } })).frame({ size: SIZE });
+    for (const x of texts(g)) if (x.text.endsWith('…')) expect(x.text.length - 1).toBeGreaterThanOrEqual(2);
+  });
+
+  it('a larger `labels.minChars` keeps more letters or none: the label dropped', async () => {
+    const s = await settle(spec(LONG as never, {}), [], { labels: { minChars: 14 } });
+    const f = await s.frame({ size: SIZE });
+    expect(texts(f).some((x) => x.text.startsWith('Tetr'))).toBe(false);
+  });
+
+  it('a label inside stays within the box when its mark is cut at the section’s edge', async () => {
+    const s = await settle(spec({ start: [0], end: [200], id: ['a'], label: ['C-terminal'] } as never, {}));
+    const f = await s.frame({ size: SIZE, viewport: { start: 100, end: 300 } });
+    const lay = layerLay<RangesLay>(f, 0);
+    const t = texts(f).find((x) => x.text.startsWith('C-'))!;
+    expect(t.x).toBeGreaterThanOrEqual(lay.box.x);
+    expect(t.x + t.w).toBeLessThanOrEqual(lay.box.x + lay.box.width);
   });
 });
 

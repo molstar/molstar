@@ -4,14 +4,15 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { P53Views } from '@molstar/seqx-examples';
+import { FeatureViews, GlobinsViews, P53Views } from '@molstar/seqx-examples';
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { exampleStory } from '../../examples/example-root.js';
 import { openStrip } from './compose.js';
 
 // Navigators as such (the navigators design): the ruler rail every linear section has by default, and a declared strip
 // that replaces it; on p53, whose tracks show both best; a strip with a follower, and the ideogram of a chromosome over
-// a gene's region. The other datasets' strips are drawn in their own examples.
+// a gene's region; the vertical forms over the Globins' rows (the rows rail, the vertical overview). The other datasets'
+// strips are drawn in their own examples.
 
 const meta: Meta = { title: 'Features/Navigators' };
 export default meta;
@@ -57,4 +58,23 @@ export const ProteinStripWithItsGene: StoryObj = {
  */
 export const GeneRegionOnChr17: StoryObj = {
   render: () => exampleStory(view('gene-region-ideogram'), { navigators: 'include' }),
+};
+
+/**
+ * The rows rail, an alignment's rows' navigator when none is declared: the rail upright at the right edge of the rows'
+ * band, beside their numbers, its window the rows in view. Drag it to scroll the rows, a grip to zoom them, click
+ * beside the window to centre there; `]` and `[` zoom them. Idle while every row shows.
+ */
+export const RowsRail: StoryObj = {
+  render: () => exampleStory(FeatureViews.find((v) => v.id === 'rows-rail')!),
+};
+
+/**
+ * The vertical overview of the same rows, declared (it replaces the rows rail): every row summarized down a column at
+ * the right, its window the rows and the columns in view, a grip on each of its four sides. Drag the window to move
+ * both, its top and bottom grips to zoom the rows, its left and right grips to zoom the columns; click outside it to
+ * centre there. The SVG includes it.
+ */
+export const VerticalOverview: StoryObj = {
+  render: () => exampleStory(GlobinsViews.find((v) => v.id === 'family')!, { navigators: 'include' }),
 };

@@ -11,7 +11,15 @@ import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { DomHost } from '@molstar/ui/dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { projectOntoView } from '@molstar/seqx-core/view';
-import { composeViewer, QueryExamples, QueryRunner, readableRanges, runQuery } from '../compose.js';
+import {
+  composeViewer,
+  type QueryReport,
+  QueryExamples,
+  QueryRunner,
+  readableRanges,
+  rerunWhileWaiting,
+  runQuery,
+} from '../compose.js';
 
 // The Query stories, headless on a fake clock, composed as the stories compose them: every example's queries run
 // through the query box's own path, each with its printed form, its result's kind and its location. The files are read
@@ -37,7 +45,7 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-async function make(id: string) {
+async function make(id: string, wait = 200) {
   const view = viewOf(id);
   const read = (uri: string) => readFileSync(`${PackageFolder}${uri}`);
   const v = composeViewer(view, {
@@ -53,8 +61,19 @@ async function make(id: string) {
   viewer = v;
   v.resize(720);
   await v.load(view.build());
-  await vi.advanceTimersByTimeAsync(200);
+  await vi.advanceTimersByTimeAsync(wait);
   return v;
+}
+
+/** The query alignment's rows band in each section: its box's height and its rows' (every row at its scale). */
+function rowsBands(v: SeqViewer) {
+  v.draw();
+  return v.frame!.layout.sections.flatMap((s) => {
+    const lay = s.lays.flat().find((l) => l?.type.name === 'rows')?.lay as
+      | { box: { height: number }; rowScale: number; display: { count: number } }
+      | undefined;
+    return lay ? [{ box: lay.box.height, rows: lay.display.count * lay.rowScale }] : [];
+  });
 }
 
 describe('Query, headless', () => {
@@ -89,6 +108,44 @@ describe('Query, headless', () => {
     expect(runQuery(v, '/data/globins/(row :key "NOT_A_ROW")', 'select').issues.map((i) => i.code)).toEqual([
       'seq.query.row.unknown',
     ]);
+  });
+
+  it('alignment: a rows band never taller than its rows, the same across a resize of the frame', async () => {
+    const v = await make('query-alignment');
+    const bands = rowsBands(v);
+    expect(bands.length).toBeGreaterThan(0);
+    for (const b of bands) expect(b.box).toBeLessThanOrEqual(b.rows);
+    for (const w of [1440, 360, 1000, 720]) {
+      v.resize(w);
+      await vi.advanceTimersByTimeAsync(200);
+      v.draw();
+      for (const b of rowsBands(v)) expect(b.box).toBeLessThanOrEqual(b.rows);
+    }
+    // and settled: the canvas as tall as its content, which stays put
+    const h = v.frame!.layout.height;
+    v.resize(1440);
+    await vi.advanceTimersByTimeAsync(200);
+    v.resize(720);
+    await vi.advanceTimersByTimeAsync(200);
+    v.draw();
+    expect(v.frame!.layout.height).toBe(h);
+  });
+
+  it('alignment: a query waiting for the rows read from the file runs again once they arrive', async () => {
+    const v = await make('query-alignment', 0);
+    const q = '/data/globins/(row :key "HBA1_BOSGR/26-136")';
+    let last: QueryReport | undefined = runQuery(v, q, 'select');
+    expect(last.status).toBe('waiting');
+    const off = rerunWhileWaiting(
+      v,
+      () => last,
+      () => {
+        last = runQuery(v, q, 'select');
+      },
+    );
+    await vi.advanceTimersByTimeAsync(1000);
+    off();
+    expect(last.status).toBe('resolved');
   });
 
   it('says why a query does not resolve, with its hint', async () => {

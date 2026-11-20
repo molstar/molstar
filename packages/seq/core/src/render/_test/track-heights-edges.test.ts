@@ -306,6 +306,23 @@ describe('a leader', () => {
     expect(y0).toBeCloseTo(l.laneY + lane * l.laneHeight + l.gap / 2, 6);
   });
 
+  it('an item in a lower lane, its start under another lane’s mark, rises from where nothing is above it (LX)', async () => {
+    // A (lane 0) labeled beside, its label ending just before B's start; B (lane 1, under A's end) moved past it: its
+    // place on the label line is found from A's end, where no mark is above it, not dropped
+    const rows: Rows = { start: [0, 29], end: [30, 31], id: ['a', 'b'], label: ['A longer domain name', 'B2'] };
+    const s = await settle(tracks([rows], undefined));
+    const f = await s.frame({ size: Size, settled: true });
+    const l = lay(f);
+    const b = Array.from({ length: l.items }, (_, i) => i).find((i) => l.keys[i] === 'b')!;
+    expect(l.lanes[b]).toBe(1);
+    const placed = Array.from({ length: l.ln }, (_, k) => l.keys[l.litem[k]]);
+    expect(placed).toEqual(['a', 'b']);
+    // its leader rises past B's start, where no mark of lane 0 is
+    const rise = l.lwant[placed.indexOf('b')];
+    expect(rise).toBeGreaterThan(l.axis.x(29));
+    for (let j = 0; j < l.m; j++) if (l.mlane[j] === 0) expect(l.mx0[j] <= rise && rise < l.mx1[j]).toBe(false);
+  });
+
   it('a label under another lane’s mark has no leader up through it: dropped', async () => {
     // A in lane 0 over B's start, C before B: B (lane 1) would need a leader through A's mark
     const rows: Rows = {

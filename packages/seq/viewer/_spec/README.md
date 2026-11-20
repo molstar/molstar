@@ -911,9 +911,10 @@ rows' commands) reads the last frame's rows layers through the behavior context'
   Ports, Hover card): the card shows `restMs` (the announcer's 500) after the hover last changed, beside the pointer,
   for a pointer over the canvas (a host's hover through `address.hover` shows none); one timer waits for the rest
   however many moves come, the card made then, never per move (the input tells it the pointer in a reused array: a move
-  allocates nothing). Hidden at a press, a wheel, Esc, while a drag runs, on leave and at the next hover's change; a
-  press, a wheel, Esc and a leave also clear the rest waiting (no card follows them). A key that moves the keyboard
-  cursor shows the card at its cell (on rows its row's cell or header, on a grid its cell) after the next frame
+  allocates nothing). Hidden at a press, a wheel, Esc, while a drag runs, on leave and at the next hover's change (a
+  re-hit of the same element, cell or target under a resting pointer, a zoom's or a pan's, is no change: a cursor's card
+  stays); a press, a wheel, Esc and a leave also clear the rest waiting (no card follows them). A key that moves the
+  keyboard cursor shows the card at its cell (on rows its row's cell or header, on a grid its cell) after the next frame
   (`framed`, the viewer's, each frame: the one that drew the cursor, a reveal's scroll included). No card outlives what
   it describes: a frame laid out again (a zoom, a pan, an edit, a load, data or a source's labels arriving) places the
   cursor's card again at its cell and sends a hover's away until the hover rests again. A rectangle dragged on a grid

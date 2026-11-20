@@ -14,7 +14,7 @@ import {
   type RangesLay,
   type RowsLay,
 } from '@molstar/seqx-core/render';
-import { GlobinsViews } from '@molstar/seqx-examples';
+import { FeatureViews, GlobinsViews } from '@molstar/seqx-examples';
 import { readFileSync } from 'node:fs';
 import { readStockholm } from '@molstar/seqx-core/data/alignment-readers';
 import { ColumnsFile, ReferenceRow, SeedFile } from '@molstar/seqx-examples/globins/data';
@@ -178,11 +178,9 @@ describe('Globins stories, headless', () => {
     expect(svg.match(/<image [^>]*href="data:image\/png;base64,/g)?.length).toBe(lay.images.length);
   });
 
-  for (const id of ['family', 'scale'])
-    it(`${id}: the rows rail at the band's right edge, live (its rows scroll), drawn; a drag on it scrolls them`, {
-      tags: id === 'scale' ? ['medium'] : [],
-    }, async () => {
-      viewer = await openExample(GlobinsViews.find((v) => v.id === id)!, { fixtures: true });
+  for (const id of ['rows-rail'])
+    it(`${id}: the rows rail at the band's right edge, live (its rows scroll), drawn; a drag on it scrolls them`, async () => {
+      viewer = await openExample(FeatureViews.find((v) => v.id === id)!, { fixtures: true });
       const v = viewer;
       const s = v.frame!.layout.sections.find((x) => x.rowsRails?.length)!;
       expect(s, id).toBeDefined();
@@ -206,5 +204,21 @@ describe('Globins stories, headless', () => {
       v.input.move(x, y + r.width / 4);
       v.input.up();
       expect(v.view.band(lay.key.slice(0, lay.key.lastIndexOf('/')))?.bandTop).toBeGreaterThan(r.total / 8);
+    });
+
+  for (const id of ['family', 'folded'])
+    it(`${id}: the vertical overview declared, so no rows rail; its window has the rows and the columns`, async () => {
+      viewer = await openExample(GlobinsViews.find((v) => v.id === id)!, { fixtures: true });
+      const v = viewer;
+      expect(v.frame!.layout.sections.some((x) => x.rowsRails?.length)).toBe(false);
+      const nav = v.navigatorModel('overview')!;
+      nav.draw();
+      await vi.advanceTimersByTimeAsync(600);
+      v.draw();
+      const w = nav.draw()!.windows[0];
+      expect(w.shown).toBe(true);
+      // four grips: the rows (top, bottom) and the columns (left, right)
+      expect(w.axes).toBe(3);
+      expect(nav.width).toBe(96);
     });
 });

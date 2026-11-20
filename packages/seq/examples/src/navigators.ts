@@ -11,7 +11,6 @@ import {
   ideogramNavigator,
   miniatureNavigator,
   type NavigatorParams,
-  overviewNavigator,
   stripNavigator,
 } from '@molstar/seqx-core/lang';
 import * as globins from './globins/family.js';
@@ -112,25 +111,23 @@ function withNavigators(
     if (c.kind !== 'views') return c;
     return {
       ...c,
-      children: (c.children ?? []).map((v) =>
-        v.id !== id
-          ? v
-          : {
-              ...v,
-              children: [
-                ...(v.children ?? []),
-                {
-                  kind: 'navigators',
-                  id: 'navigators',
-                  children: Object.entries(navigators).map(([n, params]) => ({
-                    kind: 'navigator',
-                    id: n,
-                    params: params as unknown as Readonly<Record<string, Value>>,
-                  })),
-                },
-              ],
-            },
-      ),
+      children: (c.children ?? []).map((v) => {
+        if (v.id !== id) return v;
+        const added = Object.entries(navigators).map(([n, params]) => ({
+          kind: 'navigator',
+          id: n,
+          params: params as unknown as Readonly<Record<string, Value>>,
+        }));
+        // into the view's navigators when it declares some already (the Globins' overview), else a container of them
+        const kids = v.children ?? [];
+        const has = kids.some((k) => k.kind === 'navigators');
+        return {
+          ...v,
+          children: has
+            ? kids.map((k) => (k.kind === 'navigators' ? { ...k, children: [...(k.children ?? []), ...added] } : k))
+            : [...kids, { kind: 'navigators', id: 'navigators', children: added }],
+        };
+      }),
     };
   });
   return { ...spec, children };
@@ -210,10 +207,9 @@ export function proteinGeneStrip(): Node {
   });
 }
 
-/** The Globins' 10,000 rows with a vertical overview of its rows at the right and a miniature above. */
+/** The Globins' 10,000 rows with their vertical overview at the right (the scale view's) and a miniature above. */
 export function globinsNavigators(): Node {
   return withNavigators(globins.scale(), '/views/main', {
-    overview: overviewNavigator('/views/main/rows'),
     miniature: miniatureNavigator('/views/main/rows'),
   });
 }

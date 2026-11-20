@@ -6,7 +6,13 @@
 
 import type { Node } from '@molstar/core/repr/tree';
 import { matchLeaves, readNewick } from '@molstar/seqx-core/data/alignment-readers';
-import { createSeqSpec, theme } from '@molstar/seqx-core/lang';
+import {
+  createSeqSpec,
+  type NavigatorOf,
+  type NavigatorParams,
+  overviewNavigator,
+  theme,
+} from '@molstar/seqx-core/lang';
 import { buildClades, cladesAtDepth } from '@molstar/seqx-core/render';
 import { balancedNewick, familyRegistry, GeneratedFormat, SeedFile, SeedTree } from './data.js';
 import { familySources } from './sources.js';
@@ -33,8 +39,22 @@ export const FamilyColumns = [
   { field: 'identity', side: 'right', as: 'number', title: 'Identity' },
 ] as const;
 
+/**
+ * The vertical overview of an alignment's rows (navigators.md, the vertical overview): the rows summarized down a
+ * column at the right, its window the rows and the columns in view, a grip each side (top and bottom for the rows, left
+ * and right for the columns), 96 px wide.
+ */
+export function rowsOverview(of: NavigatorOf): NavigatorParams {
+  return { ...overviewNavigator(of), axes: 'both', size: OverviewWidth };
+}
+
+/** The vertical overview's width, px (navigators.md, the forms' table). */
+export const OverviewWidth = 96;
+
 export interface FamilyOptions {
   readonly collapsed?: readonly string[];
+  /** The vertical overview of the rows at the right (`true` when absent; without it the rows rail). */
+  readonly overview?: boolean;
   /** The rows' residue scheme (the layer's default when absent). */
   readonly scheme?: string;
 }
@@ -59,6 +79,7 @@ export function build(options: FamilyOptions = {}): Node {
       ...(options.collapsed ? { collapsed: [...options.collapsed] } : {}),
       ...(options.scheme ? { color: theme.scheme(options.scheme) } : {}),
     });
+    if (options.overview !== false) v.navigator('overview', rowsOverview(s));
   });
   return b.build();
 }
@@ -95,7 +116,9 @@ export function figure(): Node {
 }
 
 /** The scale variant held (10,000 × 300 by default), by its balanced tree; its rows sampled from the seed's profile. */
-export function scale(options: { readonly rows?: number; readonly columns?: number } = {}): Node {
+export function scale(
+  options: { readonly rows?: number; readonly columns?: number; readonly overview?: boolean } = {},
+): Node {
   const rows = options.rows ?? 10_000;
   const b = createSeqSpec({ title: `Globins: ${rows.toLocaleString('en-US')} rows` });
   const src = b.data.source('generated', {
@@ -109,6 +132,7 @@ export function scale(options: { readonly rows?: number; readonly columns?: numb
     s.track('ruler', { label: '' }).layer('ruler', { type: 'ruler' });
     s.track('logo', { label: 'Conservation', height: LogoHeight }).layer('logo', { type: 'logo', data: aln });
     s.track('rows', { label: '' }).layer('rows', { type: 'rows', data: aln, tree, order: 'tree' });
+    if (options.overview !== false) v.navigator('overview', rowsOverview(s));
   });
   return b.build();
 }

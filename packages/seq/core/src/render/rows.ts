@@ -34,6 +34,7 @@ import {
   Round,
 } from './draw-lists.js';
 import { ImageCache, ImageTile } from './images.js';
+import { rowsLevel, rowsPending } from './rows-levels.js';
 import { type Alphabet, cellEdge, LettersColorFallback } from './letters.js';
 import { RenderIssues } from './issues.js';
 import { type LayerSource, layerSource, readTiles } from './layer-data.js';
@@ -1375,19 +1376,18 @@ function layoutImages(lay: RowsLay, ctx: LayoutContext, c0: number, c1: number) 
   const P = display.pinned;
   const pyr = (lay.pyramid ??= new Pyramid({ factor: 4, pairing: 'independent', reducer: 'majority' }));
   const baseKey = `${held.version}|${display.version}|${tokens.version}|${lay.channelVersion}`;
-  const own = lay;
   const R = display.count - P;
-  if (own.pyramidOf !== baseKey) {
-    own.pyramidOf = baseKey;
+  if (lay.pyramidOf !== baseKey) {
+    lay.pyramidOf = baseKey;
     const need = R * C;
-    if (!own.baseBytes || own.baseBytes.length < need) own.baseBytes = new Uint8Array(need);
-    const base = own.baseBytes;
+    if (!lay.baseBytes || lay.baseBytes.length < need) lay.baseBytes = new Uint8Array(need);
+    const base = lay.baseBytes;
     // one class a distinct fill (at most 254): the theme's classes, so a reduced sample reads as the theme; a table by
     // (column, letter) made once, then one lookup a cell
     const classOf = new Map<number, number>();
     const missing = tokens.colors['seq-missing'];
-    const table = own.classTable && own.classTable.length >= C * 128 ? own.classTable : new Uint8Array(C * 128);
-    own.classTable = table;
+    const table = lay.classTable && lay.classTable.length >= C * 128 ? lay.classTable : new Uint8Array(C * 128);
+    lay.classTable = table;
     table.fill(254, 0, C * 128);
     const classAt = (code: number, j: number): number => {
       const u = upper(code);
@@ -1425,11 +1425,11 @@ function layoutImages(lay: RowsLay, ctx: LayoutContext, c0: number, c1: number) 
     }
     pyr.setClasses(R, C, base.subarray(0, need));
   }
-  if (R <= 0) return;
   const dpr = axis.dpr;
   const rowLevel = pyramidLevelFor(1 / (lay.rowScale * dpr), 4);
   const colLevel = pyramidLevelFor(1 / axis.devicePx, 4);
-  const level = pyr.level(rowLevel, colLevel);
+  const level = R > 0 ? rowsLevel(pyr, rowLevel, colLevel, ctx.settled, ctx.config.rows.buildBudget) : undefined;
+  if (!level) return void (R > 0 && rowsPending(lay));
   const fr = 4 ** level.rowLevel;
   const fc = 4 ** level.columnLevel;
   const s0 = Math.floor((lay.first - P) / fr);
@@ -1440,7 +1440,7 @@ function layoutImages(lay: RowsLay, ctx: LayoutContext, c0: number, c1: number) 
   const whole = level.shares.length === 0;
   for (let ti = Math.floor(s0 / ImageTile); ti * ImageTile < s1; ti++)
     for (let tj = Math.floor(t0 / ImageTile); tj * ImageTile < t1; tj++) {
-      const key = `${lay.key}|${level.rowLevel}.${level.columnLevel}|${ti}.${tj}|${own.pyramidOf}`;
+      const key = `${lay.key}|${level.rowLevel}.${level.columnLevel}|${ti}.${tj}|${lay.pyramidOf}`;
       let img = cache.get(key);
       const rows = Math.min(ImageTile, level.rows - ti * ImageTile);
       const cols = Math.min(ImageTile, level.columns - tj * ImageTile);
@@ -2487,13 +2487,12 @@ const RowsDraws = passDraws<RowsLay, Emphasis | undefined>({
 });
 
 /**
- * The data rows in view as items (a row an item: its label, its place among the rows), the summary rows of folded clades
- * left out; none until the rows are placed.
+ * The rows in view as items (a row an item: its label, its place), a folded clade's summary row by its summary label
+ * (`HBA +12`, its extent its first row's: EC-100); none until the rows are placed.
  */
 function rowItems(lay: RowsLay): ItemDescription[] {
   const out: ItemDescription[] = [];
   const d = lay.display;
-  const box = lay.box;
   if (!lay.axis || !(lay.rowScale > 0)) return out;
   const first = d.pinned + Math.max(0, Math.floor(lay.top));
   for (let i = 0; i < d.count; i++) {
@@ -2501,18 +2500,19 @@ function rowItems(lay: RowsLay): ItemDescription[] {
     if (i === d.pinned) i = first;
     if (i >= d.count) break;
     const y = lay.rowY(i);
-    if (y >= box.y + box.height) break;
+    if (y >= lay.box.y + lay.box.height) break;
     const e = d.rowAt(i);
-    if (e < 0 || y + lay.rowScale <= box.y) continue;
+    const row = e >= 0 ? e : (d.members.get(i)?.[0] ?? -1);
+    if (row < 0 || y + lay.rowScale <= lay.box.y) continue;
     out.push({
-      key: e,
-      label: lay.label(e),
-      start: e,
-      end: e + 1,
-      x0: box.x,
-      x1: box.x + box.width,
-      y: Math.max(y, box.y),
-      height: Math.min(y + lay.rowScale, box.y + box.height) - Math.max(y, box.y),
+      key: e >= 0 ? e : lay.displayLabel(i),
+      label: lay.displayLabel(i),
+      start: row,
+      end: row + 1,
+      x0: lay.box.x,
+      x1: lay.box.x + lay.box.width,
+      y: Math.max(y, lay.box.y),
+      height: Math.min(y + lay.rowScale, lay.box.y + lay.box.height) - Math.max(y, lay.box.y),
       system: lay.rowsSystem,
     });
   }

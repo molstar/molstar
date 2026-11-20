@@ -1269,6 +1269,7 @@ the UX foundations' numbers, CSS px, settled by the foundation stories; where no
 | `letterSizes`                                                  | 9 to 14                                                                                                                | a short scale; the largest that fits the cell is used                                                                                                                                                                                                                                                                   |
 | `monoAdvance`                                                  | 0.6 em                                                                                                                 | a letter's size known from its cell with no measuring                                                                                                                                                                                                                                                                   |
 | `labelFont`, `itemFont`                                        | `12px sans`, `10px sans`                                                                                               | a family role a backend maps to its stack                                                                                                                                                                                                                                                                               |
+| `labels.minChars`                                              | 4                                                                                                                      | a label cut inside its mark keeps at least so many letters, else it is dropped (the author: “4 characters as default is fine, should be configurable”)                                                                                                                                                                  |
 | `fade`                                                         | 12                                                                                                                     | how far past its max width a text fades out                                                                                                                                                                                                                                                                             |
 | `squircleRatio`, `squircleMax`, `squircleMin`                  | 1/3, 8, 6                                                                                                              | a radius a third of the height, capped; none below the minimum                                                                                                                                                                                                                                                          |
 | `outline`                                                      | hover 1.5, selection 1, cursor 1                                                                                       | outline widths                                                                                                                                                                                                                                                                                                          |
@@ -1317,6 +1318,7 @@ the UX foundations' numbers, CSS px, settled by the foundation stories; where no
 | `imageBytes`                                                   | 64 MB                                                                                                                  | the shared image cache: every `image` tile a layer draws (grid, rows, navigators) in one LRU, since two caches could not lend each other room (The shared reduction)                                                                                                                                                    |
 | `rows.labelMinPx`                                              | 8 px                                                                                                                   | the least row height a label, a number, a chip or an icon is drawn at; below it the label column is empty (the rows layer, decided)                                                                                                                                                                                     |
 | `rows.pinInPlace`                                              | true                                                                                                                   | a pinned row is also drawn in its place in the order, marked `·`, so the order reads whole; false: in the pinned band only                                                                                                                                                                                              |
+| `rows.buildBudget`                                             | 2^18 cells                                                                                                             | a moving frame builds at most so many cells of the rows' new level, the level drawn last drawn meanwhile; a settled frame builds the rest (a 10,000 × 300 level took two frames of about 100 ms)                                                                                                                        |
 | `rows.columns.floorPx`, `.gapPx`, `.dataMinPx`, `.titlePx`     | 32, 6, 200, 16 px                                                                                                      | a row column yields to a narrow view down to its floor, right ones first (EC-107); the gap before each; the data's least width; a column's title band                                                                                                                                                                   |
 
 - **A values layer's level** (`values.coarser`, k): the coarsest of the source's levels whose bin is no wider than k
@@ -1683,8 +1685,10 @@ way, over a straight axis and a box, in every layout; a layout knows strips, ban
   are kept across a scroll, only its translation changes); polar (rings, `PolarWarp`): x to an angle, y to a radius;
   what the strip drew goes through a scratch pass onto the page: a rect an annular sector (its squircle corners warped
   with it), a path's lines cut every few px so they bend, a glyph run placed letter by letter (upright or along the
-  ring), an image refused (its layout reports it), a clip applied in the strip's frame before warping (a clip by path
-  would change the lists' form for one case). Nothing allocated once warm.
+  ring; a letter's center warped, 0.35 em above its baseline, the baseline put back below it in the letter's own turned
+  frame: a warped baseline puts an upright letter's center off its cell, along the ring), an image refused (its layout
+  reports it), a clip applied in the strip's frame before warping (a clip by path would change the lists' form for one
+  case). Nothing allocated once warm.
 - **The placement** (`Placement`): the section's box, its whole content's height (text: every line, for scrolling and
   export), its strips; `at(x, y)` the inverse of the warp then of the cut, into a reused `PlacePoint` (strip, band, the
   point in the strip's frame, the kind, the display unit); `offsetAt(x, y)` the nearest unit (drags, zoom anchors);
@@ -2064,16 +2068,22 @@ numbers): a window move allocates nothing once warm.
 ### Labels inside if they fit, else beside
 
 - One rule in both layouts (rings: the sink, Rings layout). On a linear track an item's label is drawn inside the first
-  of its marks it fits whole in (the mark less its arrowheads and a 3 px inset each side), never cut mid-word; else in
-  the track's label lane at its leftmost mark's x, moved right clear of a label placed before it with a short leader
-  from its own mark (at most its own width, or 24 px); **a leader never crosses another label or a mark above its item**
-  (the label lane's labels, the marks of this and the earlier layers: `LabelLane.crosses`), so a label that would need
-  one is dropped, as is one the lane cannot hold, or a track with no label lane (the hover card names it). **A run is
-  labeled once**: items of one layer with the same label, each less than the label's width from the one before it in x,
-  get one label at the run's start and none of their own (`firstOfRuns`; the label's hit is the run's first item; the
-  hover card names each). **One label lane a track**: its layers' labels beside share it, placed by one priority, the
-  layer's order, then the longer item. An item is labeled once. The same font and size inside and beside; the ink is the
-  contrast rule's inside a mark, the text color beside it (decided). A placed label's hit is its item's.
+  of its marks it fits whole in (the mark's part in the box, less its arrowheads and a 3 px inset each side: a mark cut
+  at the section's edge keeps its label within the box, never clipped mid-glyph); else in the track's label lane at its
+  leftmost mark's x, moved right clear of a label placed before it with a short leader from its own mark (at most its
+  own width, or 24 px; an item in a lower lane whose start is under a mark above rises from the first x of it with no
+  mark above, `LabelLane.clearX`, else is not moved there); **a leader never crosses another label or a mark above its
+  item** (the label lane's labels, the marks of this and the earlier layers: `LabelLane.crosses`), so a label that would
+  need one goes on, as does one the lane cannot hold, or one on a track with no label lane: **inside cut** with an
+  ellipsis in the first of its marks that holds at least `labels.minChars` letters (4) and the ellipsis, the most
+  letters that fit (a label of `minChars` letters or fewer only whole), else dropped (the hover card names it, whole;
+  the address too). The canvas and the SVG cut alike (one layout, the text-metrics port); a cut is made once
+  (`range-labels.ts`). Why: a label vanishing whole from a box a step of zoom narrower reads as lost data (the author).
+  **A run is labeled once**: items of one layer with the same label, each less than the label's width from the one
+  before it in x, get one label at the run's start and none of their own (`firstOfRuns`; the label's hit is the run's
+  first item; the hover card names each). **One label lane a track**: its layers' labels beside share it, placed by one
+  priority, the layer's order, then the longer item. An item is labeled once. The same font and size inside and beside;
+  the ink is the contrast rule's inside a mark, the text color beside it (decided). A placed label's hit is its item's.
 - **Placed per layout** (the layers', in their order, allocation-free once warm): a pan in the same level lays the
   layers out again and places their labels again in view, as their marks are; never on a hover.
 
@@ -2275,7 +2285,9 @@ measures, consensus, the profile). An alignment's rows over its columns, its own
   top in display rows below the pinned band, fractional, as a step's view declares it; the layout turns it into px,
   clamped so the last rows fill the band) from the band; the pinned band fixed at the top, the rest scrolled under it;
   display rows in view by arithmetic. The band's height: `height` a number of rows, else `fill` (the section's room left
-  on the page, at least `heights.rows`, 240; a figure takes the default).
+  on the page, at least `heights.rows`, 240, at most every display row at `RowHeight` with its title row when the rows
+  are counted; a figure takes the default). Why the cap: a page as tall as its content gives the last frame's content as
+  the room, so a band taking it grew by the sections below on every frame, an empty well under its rows.
 - **A kept window** (`keyAt`, `topOf`): the row at a band's top by its key (a held row's label, a lazy row's `#n`) and
   the fraction scrolled past it; back to a top under any folds and zoom, clamped: a folded row at its summary row, a
   hidden one at the nearest row shown in the order (`DisplayRows.nearestRow`). What the viewer's history keeps, and what
@@ -2289,15 +2301,19 @@ measures, consensus, the profile). An alignment's rows over its columns, its own
   px the shared reduction over the scrolled display rows' theme classes (a class a distinct fill; factor 4, row and
   column levels apart) at the level pair whose sample is at least a device pixel, drawn as image tiles (256 × 256
   samples, opaque by the majority's share; the base level holds none: whole) in the shared image cache, offset from the
-  pinned band. A level whose sample covers under 64 rows counts its cells' classes exactly, from the base; a larger one
-  is the majority of the majorities below it (shares averaged), approximate within the measured tolerance, tested over
-  seeds 1 to 12: the share within 0.05 on average and 0.3 at worst, the letter exact where the exact winner leads by
-  more than 0.25. Why: a majority is not mergeable across levels, and a majority of majorities is wrong for small blocks
-  (measured on an unbiased generator, seeds 1 to 12: the letter missed at leads up to 0.41, shares off by up to 0.41); a
-  few rows a sample are cheap to count; and below 3 device px a cell the shade reads, not the letter. The pinned rows
-  are drawn on their own over a band that does not scroll (rects past `pinnedFrom`), the scrolled rows clipped below it.
-  The reducer is the theme's classes, fixed (no item, decided by the author 2026-11-20); a reduction by letter is in the
-  package's TODO.
+  pinned band. While the view moves a level not built yet is built `rows.buildBudget` cells a frame (2^18, about 4 ms;
+  `Pyramid.levelWithin`, its finer levels first) and the level pair drawn last stays drawn meanwhile, its tiles placed
+  at the new zoom (the rows in view drawn pending while no level of the base is drawn yet, a zoom out of the letters or
+  a fold: never an empty band, EC-169); a settled frame builds the rest (`rows-levels.ts`). Why: a 10,000 × 300 level
+  from its base took two frames of about 100 ms each zoom (performance.md, Levels). A level whose sample covers under 64
+  rows counts its cells' classes exactly, from the base; a larger one is the majority of the majorities below it (shares
+  averaged), approximate within the measured tolerance, tested over seeds 1 to 12: the share within 0.05 on average and
+  0.3 at worst, the letter exact where the exact winner leads by more than 0.25. Why: a majority is not mergeable across
+  levels, and a majority of majorities is wrong for small blocks (measured on an unbiased generator, seeds 1 to 12: the
+  letter missed at leads up to 0.41, shares off by up to 0.41); a few rows a sample are cheap to count; and below 3
+  device px a cell the shade reads, not the letter. The pinned rows are drawn on their own over a band that does not
+  scroll (rects past `pinnedFrom`), the scrolled rows clipped below it. The reducer is the theme's classes, fixed (no
+  item, decided by the author 2026-11-20); a reduction by letter is in the package's TODO.
 - **The header**, in the label column: the tree (`tree_width`, 120) and the first residue numbers widen the view's label
   column by their width (the widest of its tracks sections, so every section's data starts at one x), the labels keep
   the column's own; the tree by branch lengths, else depth, a folded clade a wedge at its summary row, its geometry in
@@ -2461,17 +2477,18 @@ under the point as the hit's `state`. It reads every row (a logo of the rows sho
   `aria-labelledby` its `<title>` (the spec's `title`, else `Sequence view`) and `<desc>` (the sections, their systems
   and track counts, and how many items are not named); over the picture a group `data-seq-accessible` holds a
   `role="group"` a track (`aria-label` and `<title>`: its label, its item count and its section) and in it a
-  `role="img"` a named item (`LayerType.items`, which the ranges, secondary, variants, rows (a row an item: its label)
-  and pairs (a pair an item) layers have: the label, else the key, with its extent, 1-based and inclusive:
-  `DNA-binding, p53 94–292`), then a `role="img"` a highlight (`Highlight 1: 10 positions, p53 11–20`). A track names at
-  most `MaxNamedItemsPerTrack` (200) items and a figure `MaxNamedItems` (2,000), saying "n more not named" on the track
-  and in the description (a figure of 2,000 named items adds about 190 bytes each: roughly the size of the picture
-  itself for dense ranges). Each box is `fill="none" pointer-events="none"`: the layer never takes a pointer from the
-  picture beneath. Why boxes over the picture and not marks with names: the draw lists carry no semantics, and a layer's
-  items are already what the hit test names. **Ids**: the default `idPrefix` is a hash of the spec, the title, the size,
-  the token table, the view, the highlights and the selection, so exports that differ in them can share a page; two
-  equal exports share their ids, and a host inlining both passes each its own `idPrefix`. The viewer's announcements use
-  the same words (viewer `_spec`, Announcements).
+  `role="img"` a named item (`LayerType.items`, which the ranges, secondary, variants, rows (a row an item: its label; a
+  folded clade's summary row by its summary label, `HBA +12`) and pairs (a pair an item) layers have: the label, else
+  the key, with its extent, 1-based and inclusive: `DNA-binding, p53 94–292`), then a `role="img"` a highlight
+  (`Highlight 1: 10 positions, p53 11–20`). A track names at most `MaxNamedItemsPerTrack` (200) items and a figure
+  `MaxNamedItems` (2,000), saying "n more not named" on the track and in the description (a figure of 2,000 named items
+  adds about 190 bytes each: roughly the size of the picture itself for dense ranges). Each box is
+  `fill="none" pointer-events="none"`: the layer never takes a pointer from the picture beneath. Why boxes over the
+  picture and not marks with names: the draw lists carry no semantics, and a layer's items are already what the hit test
+  names. **Ids**: the default `idPrefix` is a hash of the spec, the title, the size, the token table, the view, the
+  highlights and the selection, so exports that differ in them can share a page; two equal exports share their ids, and
+  a host inlining both passes each its own `idPrefix`. The viewer's announcements use the same words (viewer `_spec`,
+  Announcements).
 - **PNG** (`renderPng`, `export-png.ts`): the SVG export rasterized, so a PNG is the SVG's picture (the same options,
   the same figure); the rasterizer is a port (`Rasterizer`: the SVG string and its size and `scale` × `dpr` to PNG
   bytes) so the core carries no native code, and the application composes one (the render CLI's, `cli/seqx-render`, over

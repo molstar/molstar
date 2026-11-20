@@ -91,6 +91,11 @@ export interface RenderConfig {
   readonly labelFont: string;
   /** Items' labels inside their marks. */
   readonly itemFont: string;
+  /**
+   * Items' labels inside their marks: one that fits neither whole inside nor beside goes inside cut with an ellipsis
+   * while at least `minChars` letters are kept (4; a label of so many or fewer only whole), else is dropped.
+   */
+  readonly labels: { readonly minChars: number };
   /** How far past its max width a text fades out, CSS px. */
   readonly fade: number;
   /** Squircle corners: radius a third of the height, capped; none below `squircleMin` in either dimension. */
@@ -203,11 +208,14 @@ export interface RenderConfig {
    * chip), the gap before each (`columns.gapPx`, 6), and the data's least width they yield to (`columns.dataMinPx`,
    * 200: the data keeps a third of a 600 px view beside a tree, a label and two columns), and the title row a rows
    * layer with columns takes above its rows (`columns.titlePx`, 16: a line of the items' font), so its titles never
-   * reach the track above.
+   * reach the track above. While the view moves a frame builds at most `buildBudget` cells of the shared reduction's
+   * new level (2^18: about 4 ms), the level drawn last drawn meanwhile (a settled frame builds the rest), as the
+   * grid's `buildBudget`.
    */
   readonly rows: {
     readonly labelMinPx: number;
     readonly pinInPlace: boolean;
+    readonly buildBudget: number;
     readonly columns: {
       readonly floorPx: number;
       readonly gapPx: number;
@@ -301,6 +309,7 @@ export const DefaultRenderConfig: RenderConfig = {
   monoAdvance: 0.6,
   labelFont: '12px sans',
   itemFont: '10px sans',
+  labels: { minChars: 4 },
   fade: 12,
   squircleRatio: 1 / 3,
   squircleMax: 8,
@@ -340,7 +349,12 @@ export const DefaultRenderConfig: RenderConfig = {
   },
   internedStrings: DefaultMaxStrings,
   imageBytes: 64 * 1024 * 1024,
-  rows: { labelMinPx: 8, pinInPlace: true, columns: { floorPx: 32, gapPx: 6, dataMinPx: 200, titlePx: 16 } },
+  rows: {
+    labelMinPx: 8,
+    pinInPlace: true,
+    buildBudget: 1 << 18,
+    columns: { floorPx: 32, gapPx: 6, dataMinPx: 200, titlePx: 16 },
+  },
   navigator: {
     window: { minPx: 16, hitPx: 12, touchHitPx: 24, handlePx: 5, floor: 'centred' },
     trackScale: 0.25,

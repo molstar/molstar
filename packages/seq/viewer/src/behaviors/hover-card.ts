@@ -168,6 +168,62 @@ function cellBox(section: SectionLayout, c: Cursor): CardBox | undefined {
   return { x: Math.min(a, b), y: top, width: Math.abs(b - a), height: last.y + last.height - top };
 }
 
+/**
+ * What a hover hits, as a card names it: its section, layer, target, element, block and state, and its cell (the
+ * position's, unless an element), on one axis or two. `update` keeps the place's and says whether it was the same.
+ * Strings by reference and numbers in an array: no allocation a move.
+ */
+class HitIdentity {
+  private section: string | undefined;
+  private layer: string | undefined;
+  private target: string | undefined;
+  private ySystem: string | undefined;
+  private state: string | undefined;
+  private owner: string | undefined;
+  private key: string | number | undefined;
+  private members: unknown;
+  /** The model the hit was read from: a load or an edit keeping the section, layer and key is another hit. */
+  private data: unknown;
+  /** The cell along x and y (−1: none), the block and the y block (−1: none). */
+  private readonly cells = new Float64Array([-1, -1, -1, -1]);
+
+  update(p: Place, data: unknown): boolean {
+    const e = p.element;
+    const x = e || Number.isNaN(p.position) ? -1 : Math.floor(p.position);
+    const y = p.yPosition === undefined || Number.isNaN(p.yPosition) ? -1 : Math.floor(p.yPosition);
+    const c = this.cells;
+    const same =
+      this.section === p.section &&
+      this.layer === p.layer &&
+      this.target === p.target &&
+      this.ySystem === p.ySystem &&
+      this.state === p.state &&
+      this.members === p.members &&
+      this.data === data &&
+      this.owner === e?.owner &&
+      this.key === e?.key &&
+      c[0] === x &&
+      c[1] === y &&
+      c[2] === (p.block ?? -1) &&
+      c[3] === (p.yBlock ?? -1);
+    this.section = p.section;
+    this.layer = p.layer;
+    this.target = p.target;
+    this.ySystem = p.ySystem;
+    this.state = p.state;
+    this.members = p.members;
+    this.data = data;
+    this.owner = e?.owner;
+    this.key = e?.key;
+    c[0] = x;
+    c[1] = y;
+    c[2] = p.block ?? -1;
+    c[3] = p.yBlock ?? -1;
+    // nothing hovered is never the same hover (a leave and a return show the card again)
+    return same && p.section !== undefined;
+  }
+}
+
 /** What the card shows, by what asked for it. */
 type Showing = 'none' | 'hover' | 'cursor' | 'rect';
 
@@ -190,6 +246,7 @@ function hoverCardBehavior(context: BehaviorContext, params: HoverCardParams = {
   let timer: unknown;
   let summaryTimer: unknown;
   let disposed = false;
+  const sameHit = new HitIdentity();
 
   const portOf = (): HoverCardPort | undefined => {
     if (!made) {
@@ -266,6 +323,9 @@ function hoverCardBehavior(context: BehaviorContext, params: HoverCardParams = {
   };
 
   const stopHover = hover.version.listen(() => {
+    // a re-hit of what was hovered (a zoom or a pan under a resting pointer: the same element, cell or target) is no
+    // change: the card stays (a cursor's is placed again with the frame); the same place of another model is a change
+    if (sameHit.update(hover.current, context.spec.model.value)) return;
     // a rectangle's summary stays while its drag moves the hover
     if (!dragging) hide();
     cursorDue = false;

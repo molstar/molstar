@@ -138,17 +138,16 @@ describe('the navigators’ examples, headless', () => {
     const column = scrolled.hy - scrolled.ly;
     expect((scrolled.y0 - scrolled.ly) / column).toBeCloseTo(0.4, 2);
     expect((scrolled.y1 - scrolled.y0) / column).toBeCloseTo(shown / 10_000, 4);
-    // drawn: the band across the column at its rows (floored), its grips the rows axis's, no positions hairline
-    expect(scrolled.axes).toBe(2);
+    // drawn: the box at its rows (floored) and its columns, a grip on each side (the four of the vertical overview)
+    expect(scrolled.axes).toBe(3);
     expect(scrolled.dy0).toBeLessThanOrEqual(scrolled.y0 + 1e-6);
     expect(scrolled.dy1).toBeGreaterThanOrEqual(scrolled.y1 - 1e-6);
     nav.move(nav.width / 2, (scrolled.dy0 + scrolled.dy1) / 2);
-    // over the window the readout names the rows shown
-    expect(nav.readout.value).toMatch(/^rows 4,001–[\d,]+ of 10,000$/);
+    // over the window the readout names the columns and the rows shown
+    expect(nav.readout.value).toMatch(/rows 4,001–[\d,]+ of 10,000$/);
     const marks = nav.draw()!.lists.passes.hover.rects;
-    // the hover is the row's hairline across the column alone, never a positions hairline down it
-    expect(marks.n).toBe(1);
-    expect(marks.h[0]).toBeLessThan(2);
+    // the hover: the row's hairline across the column and the column's down it (both axes)
+    expect(marks.n).toBe(2);
     const mini = await navigator(v, 'miniature');
     expect(mini.f.windows[0].axes).toBe(3);
     const r = await svg(v);

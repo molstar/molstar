@@ -63,7 +63,8 @@ async function settled(
   const n = new NavigatorRenderer({ ...common, navigator: view.navigators[nav] });
   const draw = () => {
     const f = renderer.frame({ ...input, settled: true });
-    const g = n.frame({ size: navSize, view: f.layout });
+    // settled as the viewer gives it (the store's): a still picture builds its level whole
+    const g = n.frame({ size: navSize, view: f.layout, settled: true });
     return { f, g };
   };
   for (let i = 0; i < 8; i++) {

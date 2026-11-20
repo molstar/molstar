@@ -858,13 +858,23 @@ function annotationEntry(
 /** The columns of inline ranges the format reads itself; the others are a table's custom columns. */
 const KnownColumns = new Set(['start', 'end', 'id', 'label', 'category', 'strand']);
 
+/**
+ * A column of strings as the normalized spec holds it: a category column, or an array where it has nulls (a null reads
+ * as none: no strand, no category); absent, or null whole, none.
+ */
+function stringsOf(c: Value | undefined): { get(i: number): string | null } | undefined {
+  if (c instanceof CategoryColumn) return c;
+  if (!Array.isArray(c)) return undefined;
+  return { get: (i: number) => (typeof c[i] === 'string' ? (c[i] as string) : null) };
+}
+
 function inlineRanges(rows: Record<string, Value>, target: SystemEntry) {
   const start = rows.start as Int32Array;
   const end = rows.end as Int32Array;
-  const id = rows.id as { get(i: number): string | null } | undefined;
-  const strand = rows.strand as { get(i: number): string | null } | undefined;
+  const id = stringsOf(rows.id);
+  const strand = stringsOf(rows.strand);
   const label = Array.isArray(rows.label) ? (rows.label as (string | null)[]) : undefined;
-  const category = rows.category as { get(i: number): string | null } | undefined;
+  const category = stringsOf(rows.category);
   const fieldNames = [label && 'label', category && 'category', strand && 'strand'].filter((f): f is string => !!f);
   const items: QueryItem[] = [];
   const s: number[] = [];

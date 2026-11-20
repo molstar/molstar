@@ -88,7 +88,7 @@ describe('the rows layer’s items', () => {
     expect(t.map((x) => x.split(',')[0])).toEqual(Labels);
   });
 
-  it('leaves a folded clade’s summary row without an item, its rows named no more', async () => {
+  it('names a folded clade’s summary row by its summary label, its rows named no more', async () => {
     const s = await settle(rowsSpec({ order: 'tree' }));
     const f = await s.frame({
       size: { width: 600, height: 300 },
@@ -97,8 +97,11 @@ describe('the rows layer’s items', () => {
         '/views/v/s': { start: 0, end: 6, bands: { '/views/v/s/rows': { rowScale: 20, folds: ['hb'] } as never } },
       },
     });
-    // HBA and HBB fold into one summary row, which `rowItems` leaves out (rows.ts)
-    expect(itemsOf(f, RowsType).map((i) => i.label)).toEqual(['MYG/1-6', 'GLB/3-8', 'CYG/1-6']);
+    // HBA and HBB fold into one summary row, an item named as the announcer and the hover card say it (`first +n`)
+    const labels = itemsOf(f, RowsType).map((i) => i.label);
+    expect(labels).toHaveLength(4);
+    expect(labels.filter((l) => / \+1$/.test(l))).toHaveLength(1);
+    expect(labels.filter((l) => !/ \+1$/.test(l))).toEqual(['MYG/1-6', 'GLB/3-8', 'CYG/1-6']);
   });
 });
 
