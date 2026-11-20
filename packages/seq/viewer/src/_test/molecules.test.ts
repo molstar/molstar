@@ -6,7 +6,7 @@
 
 // Molecules in the viewer (_spec/README.md "HoverModel", Molecules; "Behaviors", Links hover; "Commands", block.form):
 // the hover's words name a modified residue's component and its alternatives, a molecule's residue, an atom and its
-// residue; the hover carries the molecule's identifiers; `linksHover` lights a glycan's site from the glycan and the
+// residue; the hover carries the molecule's identifiers; `links.hover` lights a glycan's site from the glycan and the
 // glycan from its site; `block.form` switches a block's form in one patch, a derived block written out first.
 
 import type { Node } from '@molstar/core/repr/tree';
@@ -129,7 +129,7 @@ describe('molecules in the viewer', async () => {
     expect(describeAt(v, '/views/v/trna', '/data/trna', 0).molecule).toBeUndefined();
   });
 
-  it('linksHover: the glycan lights its site; the site lights the glycan; a hover elsewhere none', () => {
+  it('links.hover: the glycan lights its site; the site lights the glycan; a hover elsewhere none', () => {
     const owner = {};
     v.hover.set({ section: '/views/v/complex', system: '/data/c/g', position: 1 }, owner);
     const site = v.highlight.get(LinksHoverChannel)?.location.parts.map((p) => [p.system, Array.from(p.ranges)]);

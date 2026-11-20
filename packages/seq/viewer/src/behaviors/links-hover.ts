@@ -10,7 +10,7 @@ import type { ResolvedView } from '@molstar/seqx-core/view';
 import type { Emphasized } from '@molstar/seqx-viewer/models';
 import type { BehaviorContext, BehaviorProvider } from '@molstar/seqx-viewer/viewer-spec';
 
-// The `linksHover` behavior (_spec/README.md "Behaviors", Links hover; the design's `links.hover`): hovering a
+// The `links.hover` behavior (_spec/README.md "Behaviors", Links hover): hovering a
 // molecule (a chip, a residue, an atom) lights the polymer positions its links reach; hovering a linked site lights
 // the molecule (its whole unit) or, on a link between two polymers (a disulfide), the other end. Written to a
 // highlight channel of its own (`linked`), cleared when the hover goes. Off by default: how events from different
@@ -151,8 +151,8 @@ export function linksHoverBehavior(ctx: BehaviorContext): LinksHoverBehavior {
   };
 }
 
-/** The `linksHover` behavior's provider: not in `DefaultSeqViewerSpec()`; a host (an example) lists it. */
+/** The `links.hover` behavior's provider: not in `DefaultSeqViewerSpec()`; a host (an example) lists it. */
 export const LinksHoverProvider: BehaviorProvider<undefined, LinksHoverBehavior> = {
-  name: 'linksHover',
+  name: 'links.hover',
   create: (ctx) => linksHoverBehavior(ctx),
 };

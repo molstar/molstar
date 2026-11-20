@@ -35,7 +35,7 @@ export interface OpenOptions {
   readonly history?: boolean;
   /** The viewer's config items, as the story passes them (`exampleStory`'s `config`). */
   readonly config?: SeqViewerSpec['config'];
-  /** Behaviors besides the default spec's, as the story lists them (`exampleStory`'s `behaviors`: `linksHover`). */
+  /** Behaviors besides the default spec's, as the story lists them (`exampleStory`'s `behaviors`: `links.hover`). */
   readonly behaviors?: SeqViewerSpec['behaviors'];
 }
 

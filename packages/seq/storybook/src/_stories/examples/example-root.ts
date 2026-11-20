@@ -30,7 +30,7 @@ type ExampleModel = ExampleView & {
   readonly opening?: (viewer: SeqViewer) => unknown;
   /** The viewer's config items (`[item, value]` pairs) over the default spec's. */
   readonly config?: SeqViewerSpec['config'];
-  /** Behaviors besides the default spec's (a host's choice the story shows on: `linksHover`). */
+  /** Behaviors besides the default spec's (a host's choice the story shows on: `links.hover`). */
   readonly behaviors?: SeqViewerSpec['behaviors'];
 };
 

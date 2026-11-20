@@ -12,7 +12,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { openExample } from '../../../examples/_test/draw-checks.js';
 
 // The molecules' stories, headless on a fake clock, each composed as its story composes it (a viewer of the view with
-// `linksHover` listed, and its SVG export): the canvas and the SVG draw the same lists in both themes, every chip its
+// `links.hover` listed, and its SVG export): the canvas and the SVG draw the same lists in both themes, every chip its
 // label, and the hover the first story asks for lights what it says.
 
 let viewer: SeqViewer | undefined;

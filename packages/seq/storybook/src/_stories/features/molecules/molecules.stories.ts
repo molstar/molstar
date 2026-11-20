@@ -10,7 +10,7 @@ import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { exampleStory } from '../../examples/example-root.js';
 
 // Molecules drawn (Design › Molecules): the canvas and the SVG of one spec side by side, in the light and the dark
-// theme. `linksHover` is on in every story (a host's choice: off in the default viewer).
+// theme. `links.hover` is on in every story (a host's choice: off in the default viewer).
 
 const meta: Meta = { title: 'Features/Molecules' };
 export default meta;
