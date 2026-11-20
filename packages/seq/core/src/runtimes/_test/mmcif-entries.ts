@@ -189,56 +189,77 @@ export async function frameOf(id: EntryId): Promise<CifFrame> {
 }
 
 /**
- * The counts counted again from the file's categories, no code of the runtime's: entities and chains not water, each
- * polymer's `entity_poly_seq` positions, the `struct_conn` rows of each link type on chains read (a polymer's backbone
- * `covale` at a modified residue and a branch's own rows aside), and each branch's links times its chains.
+ * The counts read again from the file's categories by the plainest rule each states, none of the converter's: the
+ * entities and `struct_asym` chains not water, each polymer's `entity_poly_seq` rows, the `struct_conn` rows of each
+ * `conn_type_id` (with how many have an end on a water chain and how many both ends on one chain), each branched
+ * entity's `pdbx_entity_branch_link` rows times its chains, and each chain's author numbers from its scheme
+ * (`pdbx_poly_seq_scheme.auth_seq_num` and `pdb_ins_code` where modeled, `pdbx_branch_scheme`'s and
+ * `pdbx_nonpoly_scheme`'s `pdb_seq_num`) as `<first>..<last> (<n>)`. Where they differ from what the runtime reads,
+ * the tests say why.
  */
 export function countedFromFile(frame: CifFrame) {
-  const cat = (n: string) => frame.categories[n];
   const col = (n: string, f: string) => {
-    const c = cat(n);
-    return c ? Array.from({ length: c.rowCount }, (_, i) => c.getField(f)?.str(i) ?? '') : [];
+    const c = frame.categories[n];
+    const field = c?.getField(f);
+    return c ? Array.from({ length: c.rowCount }, (_, i) => (field?.valueKind(i) === 0 ? field.str(i) : '')) : [];
   };
   const type = new Map(col('entity', 'id').map((id, i) => [id, col('entity', 'type')[i]]));
   const asymEntity = new Map(col('struct_asym', 'id').map((id, i) => [id, col('struct_asym', 'entity_id')[i]]));
-  const chains = [...asymEntity].filter(([, e]) => type.get(e) !== 'water').map(([a]) => a);
+  const water = (asym: string) => type.get(asymEntity.get(asym) ?? '') === 'water';
+  const chains = [...asymEntity.keys()].filter((a) => !water(a));
   const lengths: Record<string, number> = {};
   for (const e of col('entity_poly_seq', 'entity_id')) lengths[e] = (lengths[e] ?? 0) + 1;
-  const links: Record<string, number> = {};
-  const conn = col('struct_conn', 'conn_type_id');
-  const [a, b, sa, sb, role] = [
-    'ptnr1_label_asym_id',
-    'ptnr2_label_asym_id',
-    'ptnr1_label_seq_id',
-    'ptnr2_label_seq_id',
-    'pdbx_role',
-  ].map((f) => col('struct_conn', f));
-  conn.forEach((t, i) => {
-    const kept = (x: string) => chains.includes(x);
-    if (!kept(a[i]) || !kept(b[i])) return;
-    const e = type.get(asymEntity.get(a[i])!);
-    if (a[i] === b[i] && e === 'branched') return;
-    if (a[i] === b[i] && t === 'covale' && Math.abs(Number(sa[i]) - Number(sb[i])) === 1) return;
-    const name =
-      t === 'disulf'
-        ? 'disulfide'
-        : t === 'metalc'
-          ? 'metal'
-          : t === 'covale'
-            ? /glycosylation/i.test(role[i])
-              ? 'glycosidic'
-              : 'covalent'
-            : undefined;
-    if (name) links[name] = (links[name] ?? 0) + 1;
+  const conn: Record<string, { rows: number; onWater: number; oneChain: number }> = {};
+  const [a, b] = ['ptnr1_label_asym_id', 'ptnr2_label_asym_id'].map((f) => col('struct_conn', f));
+  col('struct_conn', 'conn_type_id').forEach((t, i) => {
+    const c = (conn[t] ??= { rows: 0, onWater: 0, oneChain: 0 });
+    c.rows++;
+    if (water(a[i]) || water(b[i])) c.onWater++;
+    if (a[i] === b[i]) c.oneChain++;
   });
-  for (const e of col('pdbx_entity_branch_link', 'entity_id')) {
-    const n = chains.filter((c) => asymEntity.get(c) === e).length;
-    if (n) links.glycosidic = (links.glycosidic ?? 0) + n;
-  }
+  let branchLinksOnChains = 0;
+  for (const e of col('pdbx_entity_branch_link', 'entity_id'))
+    branchLinksOnChains += chains.filter((c) => asymEntity.get(c) === e).length;
+  const auth = new Map<string, string[]>();
+  const scheme = (cat: string, asymF: string, numF: string, insF?: string) => {
+    const [asym, num] = [col(cat, asymF), col(cat, numF)];
+    const ins = insF ? col(cat, insF) : [];
+    asym.forEach((x, i) => {
+      if (!num[i] || water(x)) return;
+      if (!auth.has(x)) auth.set(x, []);
+      auth.get(x)!.push(`${num[i]}${ins[i] ?? ''}`);
+    });
+  };
+  scheme('pdbx_poly_seq_scheme', 'asym_id', 'auth_seq_num', 'pdb_ins_code');
+  scheme('pdbx_branch_scheme', 'asym_id', 'pdb_seq_num');
+  scheme('pdbx_nonpoly_scheme', 'asym_id', 'pdb_seq_num', 'pdb_ins_code');
+  const labels: Record<string, string> = {};
+  for (const [x, l] of auth) labels[x] = `${l[0]}..${l[l.length - 1]} (${l.length})`;
   return {
-    entities: [...type].filter(([, t]) => t !== 'water').length,
+    entities: [...type.values()].filter((t) => t !== 'water').length,
     chains: chains.length,
     lengths,
-    links,
+    conn,
+    branchLinksOnChains,
+    labels,
   };
+}
+
+/** The author numbers a summary's units read: `<first>..<last> (<n>)` by chain. */
+export const unitLabels = (s: Summary) =>
+  Object.fromEntries(Object.entries(s.units).map(([u, d]) => [u, /labels (.*)$/.exec(d)![1]]));
+
+/**
+ * The links the runtime reads, against the file's plain counts, each difference said: a `metalc` row with an end on a
+ * water is not read (waters are not read); a `covale` row with both ends on one chain is the chain itself (a polymer's
+ * backbone at a modified residue) or a glycan's own bond, which is read from `pdbx_entity_branch_link` instead, once a
+ * chain of the glycan; `hydrog` and the other types are not links (molecules.md, Reading).
+ */
+export function expectLinksAsCounted(s: Summary, counted: ReturnType<typeof countedFromFile>) {
+  const c = (t: string) => counted.conn[t] ?? { rows: 0, onWater: 0, oneChain: 0 };
+  expect(s.links.metal ?? 0).toBe(c('metalc').rows - c('metalc').onWater);
+  expect(s.links.disulfide ?? 0).toBe(c('disulf').rows - c('disulf').onWater);
+  expect((s.links.covalent ?? 0) + (s.links.glycosidic ?? 0)).toBe(
+    c('covale').rows - c('covale').oneChain - c('covale').onWater + counted.branchLinksOnChains,
+  );
 }

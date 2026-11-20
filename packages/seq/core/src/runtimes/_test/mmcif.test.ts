@@ -17,7 +17,15 @@ import { DefaultOpenLimits, type OpenContext, type OpenedSource } from '../../da
 import { SourceOpenError } from '../../data/seq-runtime.js';
 import { assemblyOperators, operatorGroups } from '../mmcif-description.js';
 import { type MmcifOptions, MmcifRuntime, mmcifRuntime, openMmcif } from '../mmcif.js';
-import { countedFromFile, expectValid, frameOf, openEntry, Recorded, summary } from './mmcif-entries.js';
+import {
+  countedFromFile,
+  expectLinksAsCounted,
+  expectValid,
+  frameOf,
+  openEntry,
+  Recorded,
+  summary,
+} from './mmcif-entries.js';
 
 const signal = () => new AbortController().signal;
 const ctx = { signal: signal(), limits: DefaultOpenLimits };
@@ -171,9 +179,16 @@ describe('the mmCIF runtime on 1EHZ (the quick representative)', () => {
     const source = await openEntry('1EHZ');
     expect(summary(source)).toEqual(Recorded['1EHZ']);
     const counted = countedFromFile(await frameOf('1EHZ'));
-    expect(Object.keys(Recorded['1EHZ'].units).length).toBe(counted.chains);
-    expect(Recorded['1EHZ'].links).toEqual(counted.links);
+    const s = Recorded['1EHZ'];
+    expect(Object.keys(s.sequences).length + Object.keys(s.molecules).length).toBe(counted.entities);
+    expect(Object.keys(s.units).length).toBe(counted.chains);
     expect(counted.lengths).toEqual({ '1': 76 });
+    // 47 metalc rows, 36 on a water; 25 covale rows, each within the chain (its backbone at a modified residue)
+    expect([counted.conn.metalc, counted.conn.covale]).toEqual([
+      { rows: 47, onWater: 36, oneChain: 0 },
+      { rows: 25, onWater: 0, oneChain: 25 },
+    ]);
+    expectLinksAsCounted(s, counted);
     expectValid(source.coverage.nodes!);
   });
 

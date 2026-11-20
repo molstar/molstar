@@ -9,7 +9,17 @@
 // lane: each file is a few hundred kilobytes parsed; the quick representative is 1EHZ (`mmcif.test.ts`).
 
 import { describe, expect, it } from 'vitest';
-import { countedFromFile, type EntryId, expectValid, frameOf, openEntry, Recorded, summary } from './mmcif-entries.js';
+import {
+  countedFromFile,
+  type EntryId,
+  expectLinksAsCounted,
+  expectValid,
+  frameOf,
+  openEntry,
+  Recorded,
+  summary,
+  unitLabels,
+} from './mmcif-entries.js';
 
 describe('the mmCIF runtime on PDB entries', { tags: ['medium'] }, () => {
   for (const id of ['1FIN', '4HHB', '3SGJ'] as const satisfies readonly EntryId[]) {
@@ -20,8 +30,10 @@ describe('the mmCIF runtime on PDB entries', { tags: ['medium'] }, () => {
       const s = Recorded[id];
       expect(Object.keys(s.sequences).length + Object.keys(s.molecules).length).toBe(counted.entities);
       expect(Object.keys(s.units).length).toBe(counted.chains);
-      expect(s.links).toEqual(counted.links);
       for (const [e, n] of Object.entries(counted.lengths)) expect(s.sequences[e]).toMatch(new RegExp(`^\\w+ ${n} `));
+      // author numbers: what `atom_site` gives the modeled residues is what each chain's scheme lists
+      expect(unitLabels(s)).toEqual(counted.labels);
+      expectLinksAsCounted(s, counted);
       expectValid(source.coverage.nodes!);
     });
   }
