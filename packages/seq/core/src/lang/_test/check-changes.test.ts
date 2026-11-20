@@ -15,6 +15,7 @@ import { createSeqSpec } from '../builder.js';
 import { checkSeqLang } from '../check.js';
 import { checkSeqChanges, SeqPatchValidator } from '../check-changes.js';
 import { SeqLanguage, SeqValidateOptions } from '../language.js';
+import { moleculesSpec } from './molecules.js';
 import { P53_LETTERS, p53Spec } from './p53.js';
 
 const options = { language: SeqLanguage, validate: SeqValidateOptions, allowDangling: true, allowRebind: true };
@@ -156,6 +157,58 @@ const Cases: { name: string; root: () => Node; patch: Patch; introduces: readonl
     root: p53Spec,
     patch: { ops: [{ op: 'remove', at: ['data', 'conservation'] }] },
     introduces: [],
+  },
+  {
+    name: 'a glycan’s residues cut: its own links past them',
+    root: moleculesSpec,
+    patch: { ops: [{ op: 'set', at: ['data', 'glycan'], key: 'residues', value: ['NAG'] }] },
+    introduces: [
+      'seq.lang.link.bounds|/data/glycan/bonds|rows/a_start/0',
+      'seq.lang.link.bounds|/data/glycan/bonds|rows/b_start/1',
+    ],
+  },
+  {
+    name: 'a unit’s range cut: its numbering, the complex’s links and the ranges on the unit past it',
+    root: moleculesSpec,
+    patch: { ops: [{ op: 'set', at: ['data', 'c', 'A'], key: 'range', value: [0, 8] }] },
+    introduces: [
+      'seq.lang.link.bounds|/data/c/links|rows/a_start/0',
+      'seq.lang.numbering.length|/data/c/A/auth|labels',
+      'seq.lang.ranges.bounds|/data/sites|rows/end/0',
+      'seq.lang.unit.observed|/data/c/A|observed/start/0',
+    ],
+  },
+  {
+    name: 'a unit removed: a link naming it',
+    root: moleculesSpec,
+    patch: { ops: [{ op: 'remove', at: ['data', 'c', 'B'] }] },
+    introduces: ['seq.lang.link.unit|/data/c/links|rows/b_unit/1'],
+  },
+  {
+    name: 'a unit renamed: a link naming its old id',
+    root: moleculesSpec,
+    patch: { ops: [{ op: 'move', at: ['data', 'c', 'G'], parent: ['data', 'c'], place: { last: true }, rename: 'X' }] },
+    introduces: ['seq.lang.link.unit|/data/c/links|rows/b_unit/0'],
+  },
+  {
+    name: 'a sequence shortened: the units over it',
+    root: moleculesSpec,
+    patch: { ops: [{ op: 'set', at: ['data', 'fc'], key: 'letters', value: 'MKTAYIAKQR' }] },
+    introduces: ['seq.lang.unit.range|/data/c/A|range', 'seq.lang.unit.range|/data/c/B|range'],
+  },
+  {
+    name: 'a molecule’s atoms dropped: a block of a unit over it drawn as atoms',
+    root: () => {
+      const r = applyPatch(
+        moleculesSpec(),
+        { ops: [{ op: 'set', at: ['views', 'v', 'blocks', 'atp'], key: 'of', value: '/data/c/L' }] },
+        options,
+      );
+      if (!r.ok) throw new Error('setup');
+      return r.root;
+    },
+    patch: { ops: [{ op: 'unset', at: ['data', 'atp'], key: 'atoms' }] },
+    introduces: ['seq.lang.molecule.form|/views/v/blocks/atp|form'],
   },
 ];
 

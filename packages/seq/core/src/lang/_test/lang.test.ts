@@ -15,6 +15,7 @@ import { checkSeqLang, checkSeqSpec } from '../check.js';
 import { LangIssues } from '../issues.js';
 import { SeqLanguage, SeqLanguageVersion } from '../language.js';
 import { theme } from '../theme-builder.js';
+import { MoleculeMisuses } from './molecules.js';
 import { EXONS, P53_LETTERS, p53Spec } from './p53.js';
 
 describe('the language', () => {
@@ -96,6 +97,7 @@ function themed(value: unknown, channel = 'color', scale = false): Node {
 }
 
 const Misuses: Record<keyof typeof LangIssues.codes, () => Node> = {
+  ...MoleculeMisuses,
   'seq.lang.theme.form': () => themed(theme.continuous({ colors: 'viridis' })),
   'seq.lang.theme.color': () => themed('reddish'),
   'seq.lang.theme.channel': () => themed('#ff0000', 'size'),

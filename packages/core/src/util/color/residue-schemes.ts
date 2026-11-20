@@ -41,29 +41,8 @@ function scheme(s: Omit<ResidueScheme, 'colors'> & { colors?: Record<string, str
   return { ...s, colors: s.colors ?? fromGroups(s.groups ?? []) };
 }
 
-/** The twenty amino acids' one-letter codes and their three-letter names. */
-export const AminoAcidNames: Readonly<Record<string, string>> = {
-  A: 'ALA',
-  R: 'ARG',
-  N: 'ASN',
-  D: 'ASP',
-  C: 'CYS',
-  Q: 'GLN',
-  E: 'GLU',
-  G: 'GLY',
-  H: 'HIS',
-  I: 'ILE',
-  L: 'LEU',
-  K: 'LYS',
-  M: 'MET',
-  F: 'PHE',
-  P: 'PRO',
-  S: 'SER',
-  T: 'THR',
-  W: 'TRP',
-  Y: 'TYR',
-  V: 'VAL',
-};
+/** The twenty amino acids' one-letter codes and their three-letter names (one table, the sequence constants'). */
+export { AminoAcidNames } from '../sequence-constants.js';
 
 export const ResidueSchemes = {
   /** Clustal X's residue groups and colors; its column thresholds are rules over a column's shares (not data here). */

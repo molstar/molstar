@@ -10,13 +10,22 @@
 
 import { patchLanguage } from '@molstar/core/repr/patch';
 import { defineLanguage, type Language, type ParamType, type ValidateOptions } from '@molstar/core/repr/schema';
+import {
+  BlockForm,
+  LettersModified,
+  LinkColumns,
+  ModifiedParam,
+  MoleculeKinds,
+  SectionClasses,
+  SystemKinds,
+} from './molecule-language.js';
 import { ScaleParamsDescription, ThemeLanguage, ThemeLanguageId } from './theme-language.js';
 
 /**
  * The version of the language this description is (the package's `LanguageVersion` is the same). Pre-release (`0.x`):
  * a change moves it with no migration (_spec/README.md, Versions).
  */
-export const SeqLanguageVersion = '0.4.0';
+export const SeqLanguageVersion = '0.5.0';
 
 /**
  * A channel slot (_spec/README.md "Themes", Forms): a string (the `uniform` form: a color, a token, a word), a number
@@ -178,6 +187,10 @@ export const SeqLanguage = defineLanguage({
           doc: 'The format the source is read as (`fasta`, `bed`, `bigwig`).',
         },
         uri: { type: 'string', doc: 'Where it is: a url or a path.' },
+        ref: {
+          type: 'string',
+          doc: 'A host’s name for the data (an edited or predicted model with no file), read by a host’s adapter only: beside a `uri`, which a reader without the host opens; alone, the source is the host’s (not portable, said once).',
+        },
         index: { type: 'string', doc: 'Where its index is, for formats read by region.' },
         value: { type: 'any', doc: 'The data inline, for small values (instead of `uri`).' },
         fields: {
@@ -241,11 +254,12 @@ export const SeqLanguage = defineLanguage({
           type: 'string',
           doc: 'The name its source knows it by (a FASTA record, a chromosome); the node’s id when absent.',
         },
+        modified: ModifiedParam,
       },
     },
     numbering: {
       doc: 'A numbering of its sequence’s positions (its id the numbering’s name, `:numbering kabat`): a label a position, inline or from a source’s column. Labels need no order (IMGT), carry insertion codes (`100A`, `111.1`) and may be absent at a position.',
-      parents: ['sequence'],
+      parents: ['sequence', 'unit'],
       ids: 'required',
       params: {
         method: {
@@ -281,7 +295,12 @@ export const SeqLanguage = defineLanguage({
       parents: ['data'],
       ids: 'required',
       params: {
-        target: { type: 'ref', kinds: ['sequence'], required: true, doc: 'The sequence the ranges are on.' },
+        target: {
+          type: 'ref',
+          kinds: SystemKinds,
+          required: true,
+          doc: 'The system the ranges are on: a sequence, a molecule’s residues (every unit over it too), a unit.',
+        },
         rows: {
           type: 'table',
           columns: {
@@ -307,7 +326,12 @@ export const SeqLanguage = defineLanguage({
       parents: ['data'],
       ids: 'required',
       params: {
-        target: { type: 'ref', kinds: ['sequence'], required: true, doc: 'The sequence the values are on.' },
+        target: {
+          type: 'ref',
+          kinds: SystemKinds,
+          required: true,
+          doc: 'The system the values are on: a sequence, a molecule’s residues, a unit.',
+        },
         values: {
           type: 'column',
           of: 'float32',
@@ -317,6 +341,10 @@ export const SeqLanguage = defineLanguage({
           type: 'ref',
           kinds: ['source'],
           doc: 'The source that holds the values, read by region (instead of `values`).',
+        },
+        field: {
+          type: 'string',
+          doc: 'With `source`: the column of its values read (`plddt`, `b_factor`); the source’s default value when absent.',
         },
       },
     },
@@ -370,15 +398,19 @@ export const SeqLanguage = defineLanguage({
       },
     },
     pairs: {
-      doc: 'Pairs of locations that belong together (base pairs, contacts): each row two ends, a range on `a` and one on `b` (the same system when `b` is absent); held whole.',
-      parents: ['data'],
+      doc: 'Pairs of locations that belong together (base pairs, contacts, links): each row two ends, a range on `a` and one on `b` (the same system when `b` is absent); held whole. As a child of a complex or a molecule, its links: it names no `a` or `b` (its parent is both), a complex’s rows each end’s unit.',
+      parents: ['data', 'complex', 'molecule'],
       ids: 'required',
       params: {
-        a: { type: 'ref', kinds: ['sequence'], required: true, doc: 'The sequence each pair’s first end is on.' },
+        a: {
+          type: 'ref',
+          kinds: SystemKinds,
+          doc: 'The system each pair’s first end is on; required under `data`, none under a complex or a molecule.',
+        },
         b: {
           type: 'ref',
-          kinds: ['sequence'],
-          doc: 'The sequence each pair’s second end is on (`a` when absent: pairs within one system).',
+          kinds: SystemKinds,
+          doc: 'The system each pair’s second end is on (`a` when absent: pairs within one system).',
         },
         rows: {
           type: 'table',
@@ -396,6 +428,7 @@ export const SeqLanguage = defineLanguage({
             label: { type: 'list', of: { type: 'string', doc: 'A label.' }, doc: 'A label of each pair.' },
             a_strand: { type: 'column', of: 'category', doc: 'The strand of each first end: `+` or `-`.' },
             b_strand: { type: 'column', of: 'category', doc: 'The strand of each second end: `+` or `-`.' },
+            ...LinkColumns,
           },
           required: true,
           doc: 'The pairs inline, a column for each field; an end never wraps. Any other category column rides along as a field of the pairs a data filter reads (`(item :tertiary yes)`).',
@@ -407,11 +440,11 @@ export const SeqLanguage = defineLanguage({
       parents: ['data'],
       ids: 'required',
       params: {
-        x: { type: 'ref', kinds: ['sequence'], required: true, doc: 'The sequence of the grid’s first axis.' },
+        x: { type: 'ref', kinds: SystemKinds, required: true, doc: 'The system of the grid’s first axis.' },
         y: {
           type: 'ref',
-          kinds: ['sequence'],
-          doc: 'The sequence of its second axis (`x` when absent).',
+          kinds: SystemKinds,
+          doc: 'The system of its second axis (`x` when absent).',
         },
         values: {
           type: 'column',
@@ -426,8 +459,8 @@ export const SeqLanguage = defineLanguage({
       parents: ['data'],
       ids: 'required',
       params: {
-        from: { type: 'ref', kinds: ['sequence'], required: true, doc: 'The sequence the map starts on.' },
-        to: { type: 'ref', kinds: ['sequence'], required: true, doc: 'The sequence the map ends on.' },
+        from: { type: 'ref', kinds: SystemKinds, required: true, doc: 'The system the map starts on.' },
+        to: { type: 'ref', kinds: SystemKinds, required: true, doc: 'The system the map ends on.' },
         method: {
           type: 'string',
           enum: ['offset', 'codon'],
@@ -451,6 +484,7 @@ export const SeqLanguage = defineLanguage({
         },
       },
     },
+    ...MoleculeKinds,
     view: {
       doc: 'A view: sections of tracks of layers, laid out as `layout` says.',
       parents: ['views'],
@@ -557,8 +591,8 @@ export const SeqLanguage = defineLanguage({
       params: {
         of: {
           type: 'ref',
-          kinds: ['sequence', 'alignment'],
-          doc: 'The coordinate system the section shows (an alignment: its columns); required unless the section has `block` children.',
+          kinds: ['sequence', 'alignment', 'molecule', 'unit', 'complex'],
+          doc: 'The coordinate system the section shows (an alignment: its columns), or a complex (a block a unit, copies merged by `copies`, ordered by `classes`); required unless the section has `block` children.',
         },
         range: {
           type: 'list',
@@ -703,6 +737,7 @@ export const SeqLanguage = defineLanguage({
           enum: ['merge', 'each'],
           doc: 'Blocks that are copies (the same system and range): one block labeled `×N` (`merge`, when absent) or a block each.',
         },
+        classes: SectionClasses,
       },
     },
     block: {
@@ -710,7 +745,12 @@ export const SeqLanguage = defineLanguage({
       parents: ['section'],
       ids: 'required',
       params: {
-        of: { type: 'ref', kinds: ['sequence'], required: true, doc: 'The coordinate system the block shows.' },
+        of: {
+          type: 'ref',
+          kinds: SystemKinds,
+          required: true,
+          doc: 'The coordinate system the block shows: a sequence, a molecule, a unit of a complex.',
+        },
         range: {
           type: 'list',
           of: { type: 'integer', min: 0, doc: 'A position.' },
@@ -719,6 +759,7 @@ export const SeqLanguage = defineLanguage({
           doc: 'The region shown, `[start, end)` (over a cyclic origin when start is past end); all of the system when absent.',
         },
         label: { type: 'string', doc: 'The block’s label (its id when absent).' },
+        form: BlockForm,
       },
     },
     track: {
@@ -809,7 +850,7 @@ export const SeqLanguage = defineLanguage({
         data: {
           type: 'ref',
           kinds: ['sequence', 'ranges', 'values', 'alignment', 'pairs', 'grid'],
-          doc: 'The data it draws (the letters of the section for `letters`, its axis for `ruler`).',
+          doc: 'The data it draws (the letters of the section for `letters`, its axis for `ruler`; a `ranges` layer takes `pairs` too: each end a mark at its site).',
         },
         color: channel('The marks’ color: a color, a token, `light-dark(a, b)`, or a theme form.'),
         ink: channel('`letters`: the letters’ color (`auto`: follows its fill, 4.5:1), or a theme form.'),
@@ -1025,6 +1066,7 @@ export const SeqLanguage = defineLanguage({
           enum: ['auto', 'one', 'three'],
           doc: 'For `letters` of residues a codon wide: `auto` (when absent) three-letter codes where the narrowest part in view has room; `one`, `three`.',
         },
+        modified: LettersModified,
       },
     },
   },

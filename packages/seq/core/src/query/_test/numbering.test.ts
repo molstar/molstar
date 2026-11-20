@@ -77,6 +77,17 @@ describe('query: numberings', () => {
     expect(numberingIds(unit).sort()).toEqual(['auth', 'imgt', 'index', 'kabat', 'ordinal']);
   });
 
+  it("a ranged unit's built-in ordinal and index are its own: its ordinal 1 is the molecule's ordinal 3", () => {
+    const unit = Systems.unit;
+    const ordinal = findNumbering(unit, 'ordinal')!;
+    const index = findNumbering(unit, 'index')!;
+    expect([ordinal.shift, index.shift]).toEqual([0, 0]);
+    expect([labelIndex(ordinal, unit, '1'), labelIndex(index, unit, '0')]).toEqual([0, 0]);
+    // the unit starts at the molecule's index 2: its first position is the molecule's ordinal 3
+    expect(unit.parent?.start).toBe(2);
+    expect(labelIndex(ordinal, unit, '9')).toBe(-1);
+  });
+
   it('index and ordinal snap and hint in O(1), as a scan of the same labels does', () => {
     const length = 40;
     const ord = { numbering: sequentialNumbering('ordinal', length, 1), shift: 0 };

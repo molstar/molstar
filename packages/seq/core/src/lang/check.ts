@@ -23,6 +23,17 @@ import {
   type Value,
 } from '@molstar/core/repr/tree';
 import { checkSpecBounds, DefaultSpecBounds, IssueCaps, type SpecBounds } from './bounds.js';
+import {
+  checkBlockForm,
+  checkCompound,
+  checkLinks,
+  checkModified,
+  checkMolecule,
+  checkUnit,
+  inlineLength,
+  type LinkParent,
+  unitLength,
+} from './check-molecules.js';
 import { LangIssues } from './issues.js';
 import { SeqLanguage, SeqLanguageVersion, SeqValidateOptions } from './language.js';
 import { followRef, refAddresses } from './refs.js';
@@ -165,12 +176,20 @@ export function checkPlaced(at: Placed, look: SeqLookup, report: Report): void {
   const n = at.node;
   const p = param;
   const target = (x: Node, key: string) => targetOf(x, key, look);
+  const say = (code: Code, message: string, ...tail: (string | number)[]) => report(code, message, at, ...tail);
+  /** The positions of a unit a param names (its range's, else its molecule's inline length). */
+  const length = (key: string) => {
+    const t = target(n, key)?.node;
+    return t?.kind === 'unit' ? unitLength(t, inlineLength(target(t, 'of')?.node)) : undefined;
+  };
   /** The sequence a param names, with what is known of its extent. */
+  /** The system a param names (a sequence, a molecule's residues, a unit's own positions), with its extent. */
   const systemOf = (x: Node, key: string) => {
     const t = target(x, key)?.node;
-    if (t?.kind !== 'sequence') return undefined;
-    const letters = p(t, 'letters');
-    return { cyclic: p(t, 'cyclic') === true, length: typeof letters === 'string' ? letters.length : undefined };
+    if (t?.kind === 'sequence' || t?.kind === 'molecule')
+      return { cyclic: p(t, 'cyclic') === true, length: inlineLength(t) };
+    if (t?.kind === 'unit') return { cyclic: false, length: unitLength(t, inlineLength(target(t, 'of')?.node)) };
+    return undefined;
   };
   // every child of the spec is addressable: the description requires an id of each of its kinds, this check of an
   // extension's kind (a slot's body is no child: not walked)
@@ -206,6 +225,7 @@ export function checkPlaced(at: Placed, look: SeqLookup, report: Report): void {
     case 'refs':
     case 'snapshots':
     case 'navigators':
+    case 'compounds':
       if (n.id !== n.kind) report('seq.lang.container.id', `The id of ${n.kind} is \`${n.kind}\``, at);
       break;
     case 'ref': {
@@ -231,20 +251,34 @@ export function checkPlaced(at: Placed, look: SeqLookup, report: Report): void {
       }
       break;
     }
-    case 'numbering':
-      checkNumbering(n, at.parent, (code, message, ...tail) => report(code, message, at, ...tail));
+    case 'numbering': {
+      // a unit's labels are one a position of its own (its range's, else its molecule's)
+      const u = at.parent?.kind === 'unit' ? at.parent : undefined;
+      const total = u ? unitLength(u, inlineLength(target(u, 'of')?.node)) : inlineLength(at.parent);
+      checkNumbering(n, total, (code, message, ...tail) => report(code, message, at, ...tail));
       break;
+    }
+    case 'compound':
+      checkCompound(n, say);
+      break;
+    case 'unit':
+      checkUnit(n, inlineLength(target(n, 'of')?.node), say);
+      break;
+    case 'block': {
+      const of = target(n, 'of')?.node;
+      checkBlockForm(n, of?.kind === 'unit' ? target(of, 'of')?.node : of, say);
+      break;
+    }
     case 'source':
     case 'sequence':
+    case 'molecule':
     case 'ranges':
     case 'values':
     case 'map':
     case 'alignment':
     case 'pairs':
     case 'grid':
-      checkDataNode(n, { target: (key) => target(n, key)?.node }, (code, message, ...tail) =>
-        report(code, message, at, ...tail),
-      );
+      checkDataNode(n, { target: (key) => target(n, key)?.node, length, parent: linkParent(at, look) }, say);
       break;
     case 'layer': {
       const type = p(n, 'type');
@@ -278,7 +312,9 @@ export function checkPlaced(at: Placed, look: SeqLookup, report: Report): void {
                 : type === 'pairs' || type === 'grid'
                   ? type
                   : 'ranges';
-        if (kind !== undefined && fieldsOf('layer')?.data?.kinds?.includes(kind) && kind !== want)
+        // a `ranges` layer takes `pairs` too: each end a mark at its site
+        const fits = kind === want || (type === 'ranges' && kind === 'pairs');
+        if (kind !== undefined && fieldsOf('layer')?.data?.kinds?.includes(kind) && !fits)
           report('seq.lang.layer.data', 'The data is not what the type draws', at, 'data');
       }
       break;
@@ -349,7 +385,7 @@ export function checkFollow(at: Placed, look: SeqLookup, report: Report): void {
  */
 function checkNumbering(
   n: Node,
-  sequence: Node | undefined,
+  total: number | undefined,
   say: (code: Code, message: string, ...tail: (string | number)[]) => void,
 ): void {
   const labels = param(n, 'labels');
@@ -358,9 +394,8 @@ function checkNumbering(
     say('seq.lang.numbering.content', 'A numbering has one of `labels` and `source`, and `field` only with a source');
   if (n.id === 'index' || n.id === 'ordinal') say('seq.lang.numbering.id', `\`${n.id}\` is a built-in numbering`);
   if (!(labels instanceof CategoryColumn)) return;
-  const letters = sequence ? param(sequence, 'letters') : undefined;
-  if (typeof letters === 'string' && labels.length !== letters.length)
-    say('seq.lang.numbering.length', `There are ${labels.length} labels for ${letters.length} positions`, 'labels');
+  if (total !== undefined && labels.length !== total)
+    say('seq.lang.numbering.length', `There are ${labels.length} labels for ${total} positions`, 'labels');
   const seen = new Set<string>();
   for (let i = 0; i < labels.length; i++) {
     const l = labels.get(i);
@@ -376,8 +411,27 @@ function checkNumbering(
 /** What a data node's checks read of a node it names: the node itself (a spec node, or what stands for a dynamic one). */
 export interface DataNodeTargets {
   target(key: string): Node | undefined;
-  /** The length of the sequence a param names when its letters are not inline (a dynamic node's target). */
+  /** The length of the system a param names when its positions are not inline (a dynamic node's target, a unit). */
   length?(key: string): number | undefined;
+  /** What a `pairs` node is under (`data` when absent): a complex's or a molecule's links. */
+  parent?: LinkParent;
+}
+
+/** What a `pairs` node's checks read of its parent: a complex's units by id, or a molecule's residues. */
+function linkParent(at: Placed, look: SeqLookup): LinkParent {
+  const parent = at.parent;
+  if (!parent) return { kind: 'data' };
+  if (parent.kind === 'molecule') return { kind: 'molecule', length: inlineLength(parent) };
+  if (parent.kind !== 'complex') return { kind: parent.kind };
+  return {
+    kind: 'complex',
+    unit: (id) => {
+      const u = parent.children?.find((c) => c.kind === 'unit' && c.id === id);
+      if (!u) return undefined;
+      const of = exactAddress(param(u, 'of'));
+      return { length: unitLength(u, inlineLength(of === undefined ? undefined : look.get(of)?.node)) };
+    },
+  };
 }
 
 /**
@@ -394,19 +448,29 @@ export function checkDataNode(
 ): void {
   const p = (x: Node, key: string): Value | undefined => x.params?.[key];
   const xor = (a: boolean, b: boolean) => a !== b;
+  // a sequence, a molecule's residues or a unit: what is known of its extent
   const systemOf = (key: string) => {
     const t = ctx.target(key);
-    if (t?.kind !== 'sequence') return undefined;
-    const letters = p(t, 'letters');
-    const length = typeof letters === 'string' ? letters.length : ctx.length?.(key);
+    if (t?.kind !== 'sequence' && t?.kind !== 'molecule' && t?.kind !== 'unit') return undefined;
+    const length = inlineLength(t) ?? ctx.length?.(key);
     return { cyclic: p(t, 'cyclic') === true, length };
   };
   switch (n.kind) {
-    case 'source':
-      if (!xor(p(n, 'uri') !== undefined, p(n, 'value') !== undefined))
-        say('seq.lang.source.content', 'A source has one of `uri` and `value`');
+    case 'source': {
+      // a host's `ref` beside a `uri`, or alone (not portable, said once: EC-185); inline data is never a host's
+      const uri = p(n, 'uri') !== undefined;
+      const value = p(n, 'value') !== undefined;
+      const ref = p(n, 'ref') !== undefined;
+      if (uri === value ? !(ref && !uri) : ref && value)
+        say('seq.lang.source.content', 'A source has one of `uri` and `value` (a host’s `ref` with no value)');
+      else if (ref && !uri)
+        say('seq.lang.source.host_only', 'The source is named by a host’s `ref` alone: not portable', 'ref');
       if (p(n, 'value') !== undefined && p(n, 'index') !== undefined)
         say('seq.lang.source.index', 'An inline value has no index', 'index');
+      break;
+    }
+    case 'molecule':
+      checkMolecule(n, say);
       break;
     case 'alignment': {
       if (!xor(p(n, 'rows') !== undefined, p(n, 'source') !== undefined))
@@ -430,6 +494,7 @@ export function checkDataNode(
       const letters = p(n, 'letters');
       if (typeof letters === 'string' && !Letters[String(p(n, 'alphabet'))]?.test(letters))
         say('seq.lang.sequence.letters', 'The letters are not of the alphabet', 'letters');
+      checkModified(n, say);
       break;
     }
     case 'ranges': {
@@ -464,6 +529,7 @@ export function checkDataNode(
       break;
     }
     case 'pairs': {
+      checkLinks(n, ctx.parent ?? { kind: 'data' }, say);
       const rows = p(n, 'rows') as Record<string, Value> | undefined;
       if (!rows) break;
       // each end an interval within its system, never wrapping (EC-10)
@@ -497,8 +563,8 @@ export function checkDataNode(
     }
     case 'values': {
       const values = p(n, 'values');
-      if (!xor(values !== undefined, p(n, 'source') !== undefined))
-        say('seq.lang.values.content', 'A values node has one of `values` and `source`');
+      if (!xor(values !== undefined, p(n, 'source') !== undefined) || (p(n, 'field') !== undefined && !p(n, 'source')))
+        say('seq.lang.values.content', 'A values node has one of `values` and `source`, `field` with a source');
       const length = systemOf('target')?.length;
       if (isColumn(values) && length !== undefined && (values as ArrayLike<number>).length !== length)
         say('seq.lang.values.length', 'There is not one value per position', 'values');
