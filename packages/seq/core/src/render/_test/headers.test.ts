@@ -25,7 +25,13 @@ import {
   renderConfig,
   type SectionLayout,
 } from '../index.js';
-import { builtInHeaderStates, HeaderMenuName, sectionHeaderLine, trackHeaderLine } from '../headers.js';
+import {
+  builtInHeaderStates,
+  drawsSectionHeader,
+  HeaderMenuName,
+  sectionHeaderLine,
+  trackHeaderLine,
+} from '../headers.js';
 import { renderSvg } from '../render-svg.js';
 import { P53, seeded } from './fixtures.js';
 import { settle } from './helpers.js';
@@ -210,6 +216,11 @@ describe('the section’s header line (EC-237: hidden tracks kept in the spec, c
       states: [],
       hit: { target: 'section-header' },
     });
+    const hidden: HeaderParts = { states: [{ name: 'seq:hidden-tracks', text: '1 hidden' }] };
+    expect(drawsSectionHeader(undefined, config('always'))).toBe(true);
+    expect(drawsSectionHeader(undefined, config('auto'))).toBe(false);
+    expect(drawsSectionHeader(hidden, config('auto'))).toBe(true);
+    expect(drawsSectionHeader(hidden, config('none'))).toBe(false);
   });
 });
 
@@ -252,6 +263,16 @@ describe('drawn alike, hit as laid out', () => {
     );
     expect(tipPaths({ header: t.track.address })).toMatch(/^path /m);
     expect(tipPaths({})).not.toMatch(/^path /m);
+    // `always`: every track's actions at rest; `never`: none laid out (the menu only), the states beside the labels
+    const at = async (show: 'always' | 'never') => {
+      const r = await settle(spec(), [], { labelColumn: { min: 140 }, header: { actions: { show } } });
+      return r.frame({ ...input, emphasis: {} });
+    };
+    const always = await at('always');
+    expect(recordDrawLists(always.lists, ['tip']).match(/^path /gm)).toHaveLength(3);
+    const never = await at('never');
+    expect(recordDrawLists(never.lists, ['tip'])).not.toMatch(/^(path|rect) /m);
+    for (const x of never.layout.sections[0].tracks) expect(x.header!.slots).toEqual([]);
   });
 
   it('a state’s hit names its entry, its track and its count; the section’s line is `section-header`', async () => {
