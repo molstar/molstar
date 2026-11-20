@@ -10,55 +10,9 @@ queue. Each line: what is seen, where (the story), where it came from, its kind 
 - **FX3's first item: the quick-lane folders over 2 s** (stage 1's gate, the author, 2026-11-20: "Pass, FX3 fixes
   times"): core 2.8 s, viewer 2.7 s, storybook 2.3 s on a quiet machine (examples 1.6 s; all 8.2 s). The items below
   for each folder (core, viewer, storybook) are its notes: waste fixed, nature moved with a quick representative.
-- **Submenus from a command's select param** (missing build, the design holds it: track-header-parts.md, "A command
-  whose one param is a select is a submenu"): HP2 builds them from an entry's `items` because `layer.channel` has no
-  select param. The author, 2026-11-20: "Commands own choices": `layer.channel` declares its choices, and the menu,
-  the palette and an agent read them from it; the entries' `items` go.
 - **T-DM1's CCD ids** (examples): DM1 and the SMCC/MCC linker are `UNL` placeholders (`examples/.../antibody/adc.ts`).
   Look them up in the repo's CCD data first; a fetch of the PDB's chemical component pages is asked before it is made.
   The author, 2026-11-20: "Both to FX3".
-- **The pairs layer reads text columns only** (`resolve/held.ts:57`): numeric extra columns kept, so the ADC's arcs
-  color by `occupancy` directly (the bands go). The author, 2026-11-20: "Both to FX3".
-
-- **An alignment's columns named by the alignment** (missing design, decided): `<alignment>/columns` instead of the one
-  name `columns` (`resolve/model.ts`, `AlignmentSystems`; a ranges source on an alignment reads its rows by it).
-  building-blocks.md, Alignment. AC's drift, the author: "Yes, as recommended". For FX3; a test with one source shared
-  by two alignments.
-- **A map onto a unit a source describes** (missing design, decided): resolve takes it as an overlay edge once the
-  description has arrived, pending until then (today `seq.resolve.ref.missing`; ST1's test injects the edge by hand).
-  structure-syncing.md, `toUnits`. ST1's drift, the author: "Yes, as recommended". For FX3, before HD (which serves
-  SIFTS per chain); EC-169 for the pending state.
-
-- **Hover cards too loose** (look): every view's card (Globins family: "Row, columns, index"; a ring's features). The
-  author, 2026-11-20: "the hover cards should be more compact in general". Tighter row spacing and padding, the key and
-  value columns closer; the card's title once (the Globins card repeats the row's name as title and first row).
-- **A hover card with many items lists every one** (missing design): a ring of 200 kb, the card at a position lists
-  20+ features down the page. The author, 2026-11-20: "if there is too many items, should truncate? (app level
-  overridable ... we should have ports anyway)". Proposed: the default card shows the first n items (a `hover.card`
-  param, by count or by the card's height) and "+k more"; the full list stays in the hover record; a host replaces the
-  card through the existing `hoverCard` port. State it in viewer-models.md (or ux-foundations.md's hover) and its page
-  with the fix.
-- **The ring's card lists features that do not cover the hovered position** (bug, to confirm): the same card at
-  131,892 lists features whose ranges wrap the origin (199,690-200,000, 1-24), none containing 131,892. Check the
-  hit or the card's items for wrapping ranges (an `end < start` range read as its complement, or the whole ring).
-  Seen in the author's screenshot, 2026-11-20.
-
-- **The vertical map's resize handle scrolls the view instead of resizing** (bug): the Globins family view (the
-  alignment's rows by species, its vertical map with the window and the thin slider beside the rows' labels). Dragging
-  the window's vertical resize anchor (the bars on its top and bottom edges) scrolls the rows instead of changing the
-  window's height (the rows' zoom). The author, 2026-11-20: "the vertical resize anchor doesn't work on this and
-  instead scrolls the view". Check: the anchor's hit target against the map's pan target, and the gesture's
-  precedence (navigators.md).
-- **A double-click on the vertical map's window, and on the thin slider, resets the vertical zoom** (missing design,
-  small): the same view. The author, 2026-11-20: "double click on the window (and perhaps the 'thin slider') should
-  prolly reset the vertical zoom too?". As the horizontal navigator's double-click resets (navigators.md); state it in
-  the design and its page with the fix.
-
-- **The storybook folder's quick-lane time over 2 s** (nature, partly): `packages/seq/storybook` at 3.0 s after MX
-  (2.3 s before; one quick twin a new story kept, the rest moved to medium). With core's and viewer's below.
-- **The core folder's quick-lane time over 2 s** (waste or nature): `packages/seq/core` at 2.7-3.4 s before and after
-  MR; bigWig 1.0 s, hover-time 0.7 s, mmCIF 0.7 s (MR's review). Fix the waste, move what is slow by nature with a
-  quick representative.
 - **The viewer's quick-lane folder over 2 s** (waste): `packages/seq/viewer` at 2.62-2.68 s on a quiet machine
   (load 2.3) before and after HP1, about a third imports and a fifth jsdom's environment. Measured at HP1's merge. Check
   which files set up jsdom or import the full viewer per file; share a fixture per file, or move a slow-by-nature test
@@ -82,6 +36,49 @@ queue. Each line: what is seen, where (the story), where it came from, its kind 
   closest zoom and the rail's row (CF), the rows layer (RX). Open: for the use gate's look.
 
 ## Fixed
+
+- **Submenus from a command's select param** (missing build, the design holds it: track-header-parts.md, "A command
+  whose one param is a select is a submenu"): HP2 builds them from an entry's `items` because `layer.channel` has no
+  select param. The author, 2026-11-20: "Commands own choices": `layer.channel` declares its choices, and the menu,
+  the palette and an agent read them from it; the entries' `items` go. **Fixed by FX3 `f0f9b2bf8`.**
+- **The pairs layer reads text columns only** (`resolve/held.ts:57`): numeric extra columns kept, so the ADC's arcs
+  color by `occupancy` directly (the bands go). The author, 2026-11-20: "Both to FX3". **Fixed by FX3 `cfc0ad070`, `e0ede95a7`.**
+- **An alignment's columns named by the alignment** (missing design, decided): `<alignment>/columns` instead of the one
+  name `columns` (`resolve/model.ts`, `AlignmentSystems`; a ranges source on an alignment reads its rows by it).
+  building-blocks.md, Alignment. AC's drift, the author: "Yes, as recommended". For FX3; a test with one source shared
+  by two alignments. **Fixed by FX3 `f063aab62`, `1eebaf8ba` (the alias for old sources).**
+- **A map onto a unit a source describes** (missing design, decided): resolve takes it as an overlay edge once the
+  description has arrived, pending until then (today `seq.resolve.ref.missing`; ST1's test injects the edge by hand).
+  structure-syncing.md, `toUnits`. ST1's drift, the author: "Yes, as recommended". For FX3, before HD (which serves
+  SIFTS per chain); EC-169 for the pending state. **Fixed by FX3 `1c77d43b9`, `761339242` (pending reaches toUnits and the link).**
+- **Hover cards too loose** (look): every view's card (Globins family: "Row, columns, index"; a ring's features). The
+  author, 2026-11-20: "the hover cards should be more compact in general". Tighter row spacing and padding, the key and
+  value columns closer; the card's title once (the Globins card repeats the row's name as title and first row). **Fixed by FX3 `4a4e6b77a`.**
+- **A hover card with many items lists every one** (missing design): a ring of 200 kb, the card at a position lists
+  20+ features down the page. The author, 2026-11-20: "if there is too many items, should truncate? (app level
+  overridable ... we should have ports anyway)". Proposed: the default card shows the first n items (a `hover.card`
+  param, by count or by the card's height) and "+k more"; the full list stays in the hover record; a host replaces the
+  card through the existing `hoverCard` port. State it in viewer-models.md (or ux-foundations.md's hover) and its page
+  with the fix. **Fixed by FX3 `4a4e6b77a` (`hover.cardItems`, "+k more"; designs 57dbd51b8).**
+- **The ring's card lists features that do not cover the hovered position** (bug, to confirm): the same card at
+  131,892 lists features whose ranges wrap the origin (199,690-200,000, 1-24), none containing 131,892. Check the
+  hit or the card's items for wrapping ranges (an `end < start` range read as its complement, or the whole ring).
+  Seen in the author's screenshot, 2026-11-20. **Fixed by FX3 `4a4e6b77a` (an item crossing the origin matched by its two runs).**
+- **The vertical map's resize handle scrolls the view instead of resizing** (bug): the Globins family view (the
+  alignment's rows by species, its vertical map with the window and the thin slider beside the rows' labels). Dragging
+  the window's vertical resize anchor (the bars on its top and bottom edges) scrolls the rows instead of changing the
+  window's height (the rows' zoom). The author, 2026-11-20: "the vertical resize anchor doesn't work on this and
+  instead scrolls the view". Check: the anchor's hit target against the map's pan target, and the gesture's
+  precedence (navigators.md). **Fixed by FX3 `e0512a1aa`, `79c68d436`.**
+- **A double-click on the vertical map's window, and on the thin slider, resets the vertical zoom** (missing design,
+  small): the same view. The author, 2026-11-20: "double click on the window (and perhaps the 'thin slider') should
+  prolly reset the vertical zoom too?". As the horizontal navigator's double-click resets (navigators.md); state it in
+  the design and its page with the fix. **Fixed by FX3 `e0512a1aa`, `79c68d436` (designs 57dbd51b8).**
+- **The storybook folder's quick-lane time over 2 s** (nature, partly): `packages/seq/storybook` at 3.0 s after MX
+  (2.3 s before; one quick twin a new story kept, the rest moved to medium). With core's and viewer's below. **Fixed by FX3 `c65c9c4db`: 2.24 s.**
+- **The core folder's quick-lane time over 2 s** (waste or nature): `packages/seq/core` at 2.7-3.4 s before and after
+  MR; bigWig 1.0 s, hover-time 0.7 s, mmCIF 0.7 s (MR's review). Fix the waste, move what is slow by nature with a
+  quick representative. **Fixed by FX3 `c65c9c4db`: 2.14 s.**
 
 - **Decided designs for FX2** (the author, 2026-11-20; `drafts/fx-designs.md`): built, designs and Design pages in step (FD2). Fixed by FX2: `1ae3224c0` (`navigator.rowsRail`), `4fa5d5d1e`, `14a8a20ec`, `5d64807f3` (a narrow frame's order, `navigator.overview.minPlotPx`, `minPx`), `6f1952ea2`, `5f7b13c17` (`rings.cluster.fanMax`), `fbf3839b8`, `c0e55a47f` (the issues).
 - **The "2 hidden" chip overlaps the vertical overview's top** (look): Globins › Rows › Folded at 1280 px. Fixed by FX2: `c3129dd89`.

@@ -64,7 +64,7 @@ The third slice is closed (2026-11-20; its record in `.seq/records/third-slice/`
    gates are deferred, not passed. Two lanes at once in all, shared with the fifth slice's stage 0
    (`../fifth-slice/state.md`, "Overnight"): one fifth-slice draft (or its review) and one fourth-slice lane at a time,
    while both have work.
-2. The fourth slice's order: ST2 merged; merge FX3; then ST3 → HD (after FX3's map onto a described unit) → HP3; SV (after
+2. The fourth slice's order: ST2 and FX3 merged; then ST3 → HD (after FX3's map onto a described unit) → HP3; SV (after
    ST3); stage 2's and stage 3's gates; stage 4 (EX → CN, LE); the novice pass; M4. **Stop before FINALIZE**: no
    fold-back, record or close until the author has reviewed (the morning).
 3. In the morning, with the author: the fifth slice's drafts agreed; the fourth slice's review, then its finalize.
@@ -96,6 +96,7 @@ One row a merged lane (loop, step 5, record): review findings and look findings 
 | MX | 2026-11-20 | 4 (review: chip pills cut below `labels.minChars`, a core cause; the 1FIN twin counting arcs only; module state in molecule letters; rival vias a silent missing link) | 3 (a section's `via` scope and a component query pending: drifts decided; the pairs layer reads text columns only: TODO, the author's) | 2 (look: "AT…", "2…" chips; transplants' contacts not said to come from other entries) | the projection bug (a blocks section unlinked) fixed in core; half the brief built late; T-DM1's CCD ids placeholders; storybook folder 3.0 s |
 | HP2 | 2026-11-20 | 7 (my check: a legends race, imports outliving teardown; review: settle not waiting for the ports; clicks lost before the late chunk; `seq:filtered` on one layer; DOM parts drawn under chips; the hidden chip a mark at 112 px, core) | 3 (the default viewer past 1290: `@molstar/ui` fixed, the author; lazy chunks allowed, the author; the chip in the minimal viewer, the author) | 1 (look: "1 hidden" a bare mark) | red twice at my check; internals exported; submenus from items pending for the author; default viewer 1289.9 of 1290 |
 | ST2 | 2026-11-20 | 2 (review: a double-click focus never reached the structure; ST1's paths empty over an empty overlay) | 2 (unnamed jumps recorded as focus: kinds added; the link's hover allocation target: for the author, gaps.md) | 0 | the default viewer 0.4 kB past 1,290 (moved to 1,330, the author); minor copies; nothing drawn (ST3's stories) |
+| FX3 | 2026-11-21 | 4 (review: the columns alias not serving old sources; the pending state unwired; three quick representatives dropped; resolve/model.ts at 1433) | 0 | 0 | 9 items fixed, 1 partly (the viewer folder 2.78 s, gaps.md); T-DM1's CCD ids open (a fetch, gaps.md); the look's items and SZ's four to the next fix point |
 
 ## How to verify
 
