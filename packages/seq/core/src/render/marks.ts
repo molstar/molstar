@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { rangesLocation } from '@molstar/seqx-core/query';
+import { type Location, type LocationPart, rangesLocation } from '@molstar/seqx-core/query';
 import type { ResolvedSection } from '@molstar/seqx-core/view';
 import type { AxisTransform } from './axis.js';
 import type { RenderConfig } from './config.js';
@@ -12,7 +12,26 @@ import { NoColor, type PassWriter, Round } from './draw-lists.js';
 import type { Box, Emphasis, Hit } from './layer-type.js';
 import { type SeqTokens, withAlpha } from './tokens.js';
 
-// Marks every layer type draws alike: spans as bands (placeholders, bars), and the hover's outline of a cell.
+// Marks every layer type draws alike: spans as bands (placeholders, bars), and the hover's outline of a cell; and the
+// emphasis's location reads the layers and the layouts share (`partOn`, `rectOver`), so no layer imports another's.
+
+/** A Location's part on a system, found with an indexed loop (`partOf`'s `for...of` makes an iterator on redraw paths). */
+export function partOn(loc: Location | undefined, system: string): LocationPart | undefined {
+  if (!loc) return undefined;
+  for (let i = 0; i < loc.parts.length; i++) if (loc.parts[i].system === system) return loc.parts[i];
+  return undefined;
+}
+
+/**
+ * Whether a selection holds a rect over a section's two systems: such a section draws the rect itself, never its sides
+ * projected (they light the sections of one of its systems).
+ */
+export function rectOver(loc: Location | undefined, x: string, y: string | undefined): boolean {
+  if (!loc || y === undefined) return false;
+  for (let i = 0; i < loc.rects.length; i++)
+    if (loc.rects[i].a.system === x && loc.rects[i].b.system === y) return true;
+  return false;
+}
 
 /** A rect per `x0, x1, cut` triple, over the band `y` to `y + h`, at least a device pixel wide. */
 export function drawSpans(out: PassWriter, spans: readonly number[], y: number, h: number, fill: number, minW = 1) {

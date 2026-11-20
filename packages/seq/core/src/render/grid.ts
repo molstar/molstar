@@ -37,6 +37,7 @@ import {
   type LayoutContext,
   sectionId,
 } from './layer-type.js';
+import { partOn, rectOver } from './marks.js';
 import { Pyramid, pyramidLevelFor } from './pyramid.js';
 import type { SeqTokens } from './tokens.js';
 
@@ -484,25 +485,6 @@ function drawData(lay: GridLay, out: PassWriter) {
     Ink[0] = lay.rc[k];
     rect(out);
   }
-}
-
-/**
- * Whether a selection holds a rect over a section's two systems: such a section draws the rect itself, never its sides
- * projected (they light the sections of one of its systems).
- */
-export function rectOver(loc: Location | undefined, x: string, y: string | undefined): boolean {
-  if (!loc || y === undefined) return false;
-  for (let i = 0; i < loc.rects.length; i++)
-    if (loc.rects[i].a.system === x && loc.rects[i].b.system === y) return true;
-  return false;
-}
-
-/** A Location's part on a system. */
-function partOn(loc: Location | undefined, system: string): LocationPart | undefined {
-  // an indexed loop: `partOf`'s `for...of` makes an iterator on this redraw path (nothing allocated once warm)
-  if (!loc) return undefined;
-  for (let i = 0; i < loc.parts.length; i++) if (loc.parts[i].system === system) return loc.parts[i];
-  return undefined;
 }
 
 /**

@@ -32,6 +32,7 @@ import { type DrawLists, NoColor, type PassName, type PassWriter } from './draw-
 import type { ImageCache } from './images.js';
 import { RenderIssues } from './issues.js';
 import { layerSource } from './layer-data.js';
+import { partOn } from './marks.js';
 import type { Emphasis, Overlay, StoreReader } from './layer-type.js';
 import type { WindowPart } from './layout/types.js';
 import { Renderer, type RendererOptions } from './renderer.js';
@@ -1457,12 +1458,6 @@ function foldsOf(view: ViewLayout | undefined, section: string | undefined) {
   const s = view && section ? sectionIn(view, section) : undefined;
   const lay = rowsLayOf(s);
   return lay?.foldsApply ? lay.folds : undefined;
-}
-
-function partOn(loc: Emphasis['selection'], system: string) {
-  if (!loc) return undefined;
-  for (let i = 0; i < loc.parts.length; i++) if (loc.parts[i].system === system) return loc.parts[i];
-  return undefined;
 }
 
 /** Ticks over position ranges at the picture's foot, each at least a device pixel. */

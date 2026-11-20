@@ -7,14 +7,14 @@
 import type { Node as SpecNode } from '@molstar/core/repr/tree';
 import {
   floorExtent,
-  GridPlacement,
+  type GridPlacement,
   type Placement,
   PlacePoint,
   type Rail,
   RowsRail,
   railUnitAt,
   type Hit as RenderHit,
-  RingPlacement,
+  type SectionLayout,
   type WindowPart,
 } from '@molstar/seqx-core/render';
 import { type PartCursor, partCursor } from './part-cursor.js';
@@ -255,9 +255,14 @@ export class ViewerInput {
   }
 
   private _railOf(section: string): Rail | undefined {
+    return this._sectionOf(section)?.rail;
+  }
+
+  /** A section's layout in the last frame, by address. */
+  private _sectionOf(section: string): SectionLayout | undefined {
     const sections = this.viewer.frame?.layout.sections;
     if (!sections) return undefined;
-    for (let i = 0; i < sections.length; i++) if (sections[i].section.address === section) return sections[i].rail;
+    for (let i = 0; i < sections.length; i++) if (sections[i].section.address === section) return sections[i];
     return undefined;
   }
 
@@ -300,8 +305,9 @@ export class ViewerInput {
    */
   private _arcUnits(section: string, x0: number, y0: number, x1: number, y1: number): number | undefined {
     // the window follows the pointer round a ring (one drawing the whole circle); a linear view pans by px
-    if (!this.viewer.view.arcs(section) || !(this.viewer.placementOf(section) instanceof RingPlacement))
-      return undefined;
+    // a polar placement (`warpOf`): the rings layout read through the placement contract, never by its class, so a
+    // composition that lists no rings bundles none
+    if (!this.viewer.view.arcs(section) || !this.viewer.placementOf(section)?.warpOf) return undefined;
     const a = this.offsetAt(section, x0, y0);
     const b = this.offsetAt(section, x1, y1);
     const v = this.viewer.view.get(section);
@@ -795,8 +801,10 @@ export class ViewerInput {
    * height round its cells; never the label column or the y blocks' labels in it.
    */
   private _overPlot(section: string, x: number, y: number): boolean {
-    const p = this.viewer.placementOf(section);
-    if (!(p instanceof GridPlacement) || !p.strips.n) return false;
+    // the grid layout by its registered name, never its class (a composition that lists no grid bundles none)
+    const s = this._sectionOf(section);
+    if (s?.layout.name !== 'grid' || !s.placement.strips.n) return false;
+    const p = s.placement as GridPlacement;
     const r = p.xRow;
     const a = p.strips.axes[0];
     const x0 = r ? r.x0 : a.x0;
