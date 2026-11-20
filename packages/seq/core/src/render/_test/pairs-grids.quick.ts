@@ -6,8 +6,9 @@
 
 // The pairs' and grids' allocation targets (the design's "Performance and size"): a warm draw of a dot plot (image
 // tiles and rects) and of 4,096 arcs, and a warm hover (the crosshair over the cells, the arcs lit), allocate nothing; a
-// hit on a cell or an arc allocates no hit object. By hand, never in CI: `pnpm -C packages/seq/core test:perf`.
+// hit on a cell, an arc or a caret allocates no hit object, the pairs on split copies too. By hand, never in CI: `pnpm -C packages/seq/core test:perf`.
 
+import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { rangesLocation } from '@molstar/seqx-core/query';
 import { quickCase } from '@molstar/test-harness/quick';
 import { describe, expect, inject, it } from 'vitest';
@@ -22,7 +23,7 @@ import {
   PlacePoint,
 } from '../index.js';
 import { settle } from './helpers.js';
-import { arcsSpec, gridSpec, randomPairs } from './pairs-fixtures.js';
+import { arcsSpec, gridSpec, letters, pairRows, randomPairs } from './pairs-fixtures.js';
 import { reusedHover } from './scenarios.js';
 
 const Size = { width: 1440, height: 1600 };
@@ -202,6 +203,49 @@ describe('pairs and grids draw and hover with nothing allocated once warm', () =
       {},
     );
     console.info(`pairs hit: ${hit.r.bytesPerStep.toFixed(0)} bytes a hit (${hit.r.note})`);
+    expect(hit.r.bytesPerStep, hit.r.note).toBeLessThanOrEqual(HitBound);
+  });
+
+  it('pairs on split copies: draw, a hit on an arc and on a caret', async ({ task }) => {
+    // a sequence's 0–300 twice (`copies: each`), 400 pairs within it: each drawn on both copies, those past 300 carets
+    const b = createSeqSpec();
+    const seq = b.data.sequence('s', { alphabet: 'rna', letters: letters(400) });
+    const p = b.data.pairs('p', { a: seq, b: seq, rows: pairRows(randomPairs(400, 150, 5)) });
+    b.views.view('v', (v) =>
+      v.section('s', { of: seq, copies: 'each' }, (sec) => {
+        sec.block('a1', { of: seq, range: [0, 300] });
+        sec.block('a2', { of: seq, range: [0, 300] });
+        sec.track('pairs', { height: 120 }).layer('pairs', { type: 'pairs', data: p });
+      }),
+    );
+    const s = await settle(b.build());
+    const f = await s.frame({ size: Size, dpr: 2, settled: true });
+    const d = quickCase(task, 'copies draw', () => drawView(f.layout, f.lists), {});
+    console.info(`copies draw: ${d.r.bytesPerStep.toFixed(0)} bytes a frame (${d.r.note})`);
+    expect(d.r.bytesPerStep, d.r.note).toBeLessThanOrEqual(inject('perfThreshold'));
+    const lay = f.layout.sections[0].sectionLays[0].lay as PairsLay;
+    expect(lay.carets.length).toBeGreaterThan(0);
+    const points: number[] = [];
+    for (let i = 0; i < lay.n; i += 7) {
+      const o = 8 * i;
+      points.push((lay.curve[o] + lay.curve[o + 6]) / 2, (lay.curve[o + 3] + lay.curve[o + 1]) / 2);
+    }
+    for (let i = 0; i + 3 < lay.carets.length; i += 4)
+      points.push(lay.carets[i], lay.carets[i + 1] + (lay.carets[i + 2] > 0 ? -3 : 3));
+    // the points on an arc or a caret (an arc's middle by its controls is near its curve, not on it, for a few)
+    const on: number[] = [];
+    for (let i = 0; i + 1 < points.length; i += 2)
+      if (hitView(f.layout, points[i], points[i + 1])) on.push(points[i], points[i + 1]);
+    expect(on.length).toBeGreaterThan(0.9 * points.length);
+    const flat = Float64Array.from(on);
+    const m = flat.length / 2;
+    const hit = quickCase(
+      task,
+      'copies hit',
+      (i) => void hitView(f.layout, flat[2 * (i % m)], flat[2 * (i % m) + 1]),
+      {},
+    );
+    console.info(`copies hit: ${hit.r.bytesPerStep.toFixed(0)} bytes a hit (${hit.r.note})`);
     expect(hit.r.bytesPerStep, hit.r.note).toBeLessThanOrEqual(HitBound);
   });
 });
