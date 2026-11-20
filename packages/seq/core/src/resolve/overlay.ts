@@ -499,7 +499,8 @@ class DynamicOverlay implements Overlay {
       // one runtime a format, never the first listed (_spec/README.md "Context", Registry entries)
       const found = runtimeFor(this.options.runtimes ?? NoRuntimes, format);
       const runtime = found === 'conflict' ? undefined : found;
-      if (!runtime) this.report('seq.resolve.source.runtime', 'No runtime reads the format of the source', n.address);
+      const why = found === 'conflict' ? 'Several runtimes read' : 'No runtime reads';
+      if (!runtime) this.report('seq.resolve.source.runtime', `${why} the format of the source`, n.address);
       out.push({
         address: n.address,
         entry: entry as unknown as BoundSourceEntry,
