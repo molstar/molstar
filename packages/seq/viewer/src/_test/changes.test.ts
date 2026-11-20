@@ -59,6 +59,8 @@ function spec(): Node {
         order: 'tree',
         columns: [{ field: 'label', side: 'right' }],
       } as never);
+    // a block, so its form is switched
+    v.section('blocks', {}, (s) => s.block('b', { of: p }));
   });
   b.snapshots.snapshot('first', {
     label: 'Domains taller',
@@ -201,6 +203,7 @@ const Cases: Record<string, { ctx: unknown; before?: (v: SeqViewer) => unknown }
   },
   'section.reverse': { ctx: { address: Protein } },
   'section.collapse': { ctx: { address: Protein } },
+  'block.form': { ctx: { address: '/views/main/blocks/b', form: 'whole' } },
   'layer.hide': { ctx: { address: LettersLayer } },
   'layer.show': { ctx: { address: LettersLayer }, before: (v) => run(v, 'layer.hide', { address: LettersLayer }) },
   'layer.color': { ctx: { address: `${DomainsTrack}/d`, color: '#d62728' } },

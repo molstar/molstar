@@ -35,6 +35,8 @@ export interface OpenOptions {
   readonly history?: boolean;
   /** The viewer's config items, as the story passes them (`exampleStory`'s `config`). */
   readonly config?: SeqViewerSpec['config'];
+  /** Behaviors besides the default spec's, as the story lists them (`exampleStory`'s `behaviors`: `links.hover`). */
+  readonly behaviors?: SeqViewerSpec['behaviors'];
 }
 
 /** A viewer of an example view on a fake clock, composed as the stories compose it: loaded, the clock run, drawn. */
@@ -50,6 +52,7 @@ export async function openExample(view: ExampleView, options: OpenOptions): Prom
     ui: undefined,
     ...(history ? { history: uiHistory() } : {}),
     ...(options.config ? { config: [...(base.config ?? []), ...options.config] } : {}),
+    ...(options.behaviors ? { behaviors: [...base.behaviors, ...options.behaviors] } : {}),
     registry: [...(base.registry ?? []), ...(view.registry?.(delayMs === 'staggered' ? {} : { delayMs }) ?? [])],
     ports: {
       assets: () => {

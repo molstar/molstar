@@ -96,6 +96,12 @@ export interface RenderConfig {
    * while at least `minChars` letters are kept (4; a label of so many or fewer only whole), else is dropped.
    */
   readonly labels: { readonly minChars: number };
+  /**
+   * The letters layer's mark of a modified position (`modified: mark`, _spec/README.md "Render", Layer types): a dot
+   * `size` px at the cell's top right (`shape: 'dot'`) or a bar along its bottom (`underline`), in the letter's ink; a
+   * bar over a component of several positions, a tick at a strip's top below the cells.
+   */
+  readonly letters: { readonly modifiedMark: { readonly shape: 'dot' | 'underline'; readonly size: number } };
   /** How far past its max width a text fades out, CSS px. */
   readonly fade: number;
   /** Squircle corners: radius a third of the height, capped; none below `squircleMin` in either dimension. */
@@ -332,6 +338,7 @@ export const DefaultRenderConfig: RenderConfig = {
   labelFont: '12px sans',
   itemFont: '10px sans',
   labels: { minChars: 4 },
+  letters: { modifiedMark: { shape: 'dot', size: 3 } },
   fade: 12,
   squircleRatio: 1 / 3,
   squircleMax: 8,
@@ -456,6 +463,7 @@ export function renderConfig(over: RenderConfigOverrides = {}): RenderConfig {
     density: { ...DefaultRenderConfig.density, ...over.density },
     densityUnits: { ...DefaultRenderConfig.densityUnits, ...over.densityUnits },
     ranges: { ...DefaultRenderConfig.ranges, ...over.ranges },
+    letters: { modifiedMark: { ...DefaultRenderConfig.letters.modifiedMark, ...over.letters?.modifiedMark } },
     values: { ...DefaultRenderConfig.values, ...over.values },
     ruler: { ...DefaultRenderConfig.ruler, ...over.ruler },
     rings: { ...DefaultRenderConfig.rings, ...over.rings },

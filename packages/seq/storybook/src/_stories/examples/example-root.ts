@@ -30,6 +30,8 @@ type ExampleModel = ExampleView & {
   readonly opening?: (viewer: SeqViewer) => unknown;
   /** The viewer's config items (`[item, value]` pairs) over the default spec's. */
   readonly config?: SeqViewerSpec['config'];
+  /** Behaviors besides the default spec's (a host's choice the story shows on: `links.hover`). */
+  readonly behaviors?: SeqViewerSpec['behaviors'];
 };
 
 const Box = 'display: grid; gap: var(--msui-space-2); min-width: 0; align-content: start;';
@@ -86,6 +88,7 @@ class ExampleRoot extends UiElement<ExampleModel> {
         ui: { ...base.ui, toolbar: mountToolbar },
         registry: [...(base.registry ?? []), ...extra],
         ...(view.config ? { config: [...(base.config ?? []), ...view.config] } : {}),
+        ...(view.behaviors ? { behaviors: [...base.behaviors, ...view.behaviors] } : {}),
       },
       canvasHost,
     );
@@ -157,9 +160,13 @@ export function exampleStory(
     readonly files?: boolean;
     readonly opening?: (viewer: SeqViewer) => unknown;
     readonly config?: SeqViewerSpec['config'];
+    readonly behaviors?: SeqViewerSpec['behaviors'];
   } = {},
 ): HTMLElement {
   const el = document.createElement(ExampleRoot.tag) as ExampleRoot;
-  el.model = options.navigators || options.files || options.opening || options.config ? { ...view, ...options } : view;
+  el.model =
+    options.navigators || options.files || options.opening || options.config || options.behaviors
+      ? { ...view, ...options }
+      : view;
   return el;
 }

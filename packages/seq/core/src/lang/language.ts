@@ -824,8 +824,7 @@ export const SeqLanguage = defineLanguage({
         of: {
           type: 'ref',
           kinds: SystemKinds,
-          required: true,
-          doc: 'The coordinate system the block shows: a sequence, a molecule, a unit of a complex.',
+          doc: 'The coordinate system the block shows: a sequence, a molecule, a unit of a complex. Absent on a block of a section of a complex whose id is a unit’s: it overrides that unit (its `form`, its `label`), the others still derived.',
         },
         range: {
           type: 'list',

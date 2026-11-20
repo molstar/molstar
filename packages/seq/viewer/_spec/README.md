@@ -269,6 +269,14 @@ the region (a press there says it too, a tap's hover).
   parts on the section's own system. `projectedAll()` is the same for every section at once (the core's
   `projectOntoView`, one Location keyed by system), what the frame draws (Emphasis).
 
+- **Molecules** (`describe-molecules.ts`): `molecule()` is the molecule the hover is on (a molecule's residue or atom, a
+  unit of one, a chip): its address, name, class, `identifiers` and unit, computed when asked and kept for the version;
+  undefined on a sequence. Why identifiers: a host's card draws a structure from a SMILES or a CCD code; no depiction
+  port (one consumer, the host's card, already has what it needs). The hover's words (the card and the announcer) add a
+  modified residue's component with its name (`Component: PSU (pseudouridine)`, the spec's `compound` node or the host's
+  `componentNames`), its alternatives (`Components: H2U | U`), a molecule's residue by its code, an atom by its name and
+  element with its residue (`Atom: O1G (O)`, `Residue: ATP 1`); a pair of a complex's links names each end's unit.
+
 ### SelectionModel and HighlightModel
 
 `models/selection.ts`: session state as addresses and Locations, never in the spec.
@@ -392,15 +400,16 @@ then resolves.
 
 `models/store.ts`: the viewer's one `DataStore`, made with `store.cacheBytes`, `store.inFlight`, `store.tileBins` and
 timed by `DomHost` (`DomHostClock`). `sync(model, assets)` opens the static model's sources (each bound to a runtime,
-and each inline access plan) with the store's `limits` (its `maxRows` and `maxBytes`) and attaches them under their
-addresses; a source whose entry is the object it was opened from is kept (the resolver keeps entries by hash), a changed
-one is opened again, one gone is detached and its issue cleared. `detachStale(model)` does that detaching alone, at once
-on a model change (the viewer, before its sync), so no frame reads an edited source's old file;
-`openedCoverage(model, address)` is a source's coverage only when it was opened from the model's own entry (what
-`sourceLengths` reads). A source that cannot be opened is an issue at its address (`issues`), and an opened source's own
-`issues` (the rows a file of records left out, each with its count, places and hint) are reported there too; a failed
-opening, or a coverage the store refuses (its own report), is forgotten so the next sync tries again. Retired with its
-owner, the store with it.
+and each inline access plan, of a links' ends the ones built: core's `LinkEnds`) with the store's `limits` (its
+`maxRows` and `maxBytes`) and attaches them under their addresses; a source whose entry is the object it was opened from
+is kept (the resolver keeps entries by hash), a changed one is opened again, one gone is detached and its issue cleared.
+`detachStale(model)` does that detaching alone, at once on a model change (the viewer, before its sync), so no frame
+reads an edited source's old file; the viewer syncs again when another view of the same model resolves (the plans that
+view built: a ranges layer's links' ends); `openedCoverage(model, address)` is a source's coverage only when it was
+opened from the model's own entry (what `sourceLengths` reads). A source that cannot be opened is an issue at its
+address (`issues`), and an opened source's own `issues` (the rows a file of records left out, each with its count,
+places and hint) are reported there too; a failed opening, or a coverage the store refuses (its own report), is
+forgotten so the next sync tries again. Retired with its owner, the store with it.
 
 - **Host updates**: an opened source's `changes` (core's Data, Protocol) ask a reopen for the next frame (`DomHost`'s),
   so changes inside one frame reopen once; the source is opened again from its entry and reattached in place
@@ -974,6 +983,13 @@ rows' commands) reads the last frame's rows layers through the behavior context'
   address still waits is asked again), and the channel's value per set of keys: a hover allocates nothing a frame past
   its first. A pair or a position hovered is the pairs layer's own rule (its partners light), never the channel. Why a
   behavior: a host chooses an analysis, and the same query serves the selection.
+- `links.hover` (`LinksHoverProvider`, `links-hover.ts`; not in the default spec: how events from different parts
+  compose is the application's, the examples list it): hovering a molecule (a chip, a residue, an atom) lights the
+  positions its links reach (a complex's `pairs` children, each end on its row's unit); hovering a linked site lights
+  the molecule's whole unit (a link between two polymers, a disulfide: the other end). Written to its own highlight
+  channel (`linked`), cleared when the hover goes; a merged block's hover is each of its copies', and an end on a merged
+  copy is lit on the block it is merged into, a residue on an atoms-form block as its atoms (the atoms entry's offsets).
+  A link is never a map: nothing is projected across it. Contacts get no such behavior (a layer the host adds).
 - `editing`: edits of the spec as commands, each one patch made against the revision read (`SpecModel.patch`, one step):
   `layer.hide`, `layer.show` (the `hidden` key set or unset), `layer.color` (the layer's theme), `track.hide` and
   `track.show` (the track's own `hidden`: its layers keep theirs, so hide then show is a round trip), `track.move`
@@ -982,6 +998,32 @@ rows' commands) reads the last frame's rows layers through the behavior context'
   `step.enter` and `step.leave` (navigation); `preview.cancel` (Esc). A gesture's preview is a method, never a command
   (it runs per pointer move): `preview(patch)` replaces the last, `endPreview(label)` ends it in one step,
   `cancelPreview()` in nothing. `when` says why one cannot run (no such node, no step shown, nothing to cancel).
+
+### Molecules: the interaction matrix's cells
+
+The cells the molecules design names, each built or not and why (the core's "Resolved view", Blocks; "Render", Blocks):
+
+- **A section of a complex**: zoom and pan as its layout; hidden by its tracks; `classes`, `copies`, `arrange` by a
+  patch (`SpecModel.patch`): no `section.set` command yet, because nothing but a host's own menu would run it.
+- **A chip** (`form: whole`): a click selects its block's every residue (its hit's `extent`), Shift+click and
+  Cmd/Ctrl+click as an element; double-click focuses that extent. Not built: a sibling section zooming to the chip's
+  residues or atoms through the atoms map, because the viewer's focus carries a location along static paths only and the
+  atoms map is applied at a path's ends by the model's projection, not by the focus. Zoom and pan: no, a chip is fixed
+  in px and the window skips it (one unit). Hidden: no, by `classes` or the blocks by patch. Its form: the `block.form`
+  command (Commands), no context menu yet.
+- **A modified residue**, **a molecule's residue or atom**: as an element; a modified residue's mark hidden by
+  `modified: none` on the layer (by patch). Atoms collapse onto residues for other sections where the model's projection
+  does it.
+- **A link** (an arc, or a site's mark on a `ranges` layer over links): a click selects the link, both ends lit, each on
+  its row's unit; Shift and Cmd/Ctrl as elements; double-click its extent, two parts on two systems; hidden by its
+  layer's items (`layer.filter`).
+- **A range over blocks with chips**: no drag across a chip in reading order, because a drag on a section of blocks
+  stays in the block it began on (Behaviors, a section of blocks on several systems): a position on the section's units
+  is no system's. Enter focuses the selection.
+- **The selection**: `(filter :test (= (prop modified) true))` and the other forms through the query command; a bookmark
+  by `selection.bookmark`. **The view**: 0 fits, chips keep their px. **A track or layer**: `track.hide`; `modified` by
+  patch. **A bookmark**: `refs.add`, its action run. **A follower**: never a section of several systems
+  (`seq.render.follow.blocks`). **A navigator**: chips skipped as the window skips them.
 
 ## Bindings
 
@@ -1041,6 +1083,12 @@ selection's gestures and the cursor's moves are session state; the cursor's focu
   absent), with no memory of an earlier form. On the section named (`address`), else the keyboard cursor's, else the
   first leading one; their keys are `view.keys`' (Shift+R, Shift+C). Why patches: direction and pieces are what the
   figure is, so undo (not back) returns them and the export says the same.
+- **`block.form`** (the `editing` behavior's, a patch, one undo step; a command only: the viewer has no context menu
+  yet, the design's place for it; no default key): sets a block's `form` (`whole`, `residues`, `atoms`; `address` the
+  block, `form`). A block a section of a complex derives from its units has no node: the patch inserts one `block` child
+  of that unit's id (a merged copies block's: its first unit's) with the form, an override of that block alone (the
+  core's Resolved view, A section of a complex); the others stay derived, units added later listed. Undo removes the
+  child.
 
 - **The rows' commands** (the `rows` behavior's, `behaviors/rows.ts`, on a track's rows layer, the first when none is
   named): folds are session state (the band's `folds`: no undo step): `clades.toggle` (a hand's move, no history step),

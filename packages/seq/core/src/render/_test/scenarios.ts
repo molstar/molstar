@@ -24,6 +24,7 @@ import {
   smallLayersSpec,
 } from './fixtures.js';
 import { type Settled, settle } from './helpers.js';
+import { moleculesSpec } from './molecules-fixtures.js';
 
 export const SIZE = { width: 1440, height: 400 } as const;
 export const DPR = 2;
@@ -83,6 +84,16 @@ export const Scenarios: readonly Scenario[] = [
     width: 60,
     center: 196,
     panStep: 0.3,
+  },
+  // a complex: 200 copies of a chain merged into one block (EC-67), a glycan, ATP and an ion as chips, the modified
+  // residues marked, the links as arcs; the window over the block and the chips
+  {
+    name: 'complex, 200 copies',
+    spec: () => moleculesSpec({ chains: 200 }),
+    runtimes: [],
+    width: 91,
+    center: 45.5,
+    panStep: 0.25,
   },
   {
     name: '3M letters (120 positions)',
@@ -226,11 +237,33 @@ export function hovers(
   return { hits, points, emphasis };
 }
 
+/** A hit as one shape: every field, in one order (what the viewer's HoverModel record is). */
+function oneShape(h: Hit): Hit {
+  return {
+    layer: h.layer,
+    section: h.section,
+    system: h.system,
+    position: h.position,
+    element: h.element,
+    extent: h.extent,
+    block: h.block,
+    ySystem: h.ySystem,
+    yPosition: h.yPosition,
+    target: h.target,
+    state: h.state,
+  };
+}
+
 /**
- * The hover as the viewer draws it (viewer.ts, `_updateEmphasis`): one emphasis record holding one hit record, the
- * hit's fields set to each hit in turn (`set(i)`), so a hover step is the viewer's: a field write and a frame.
+ * The hover as the viewer draws it (viewer-emphasis.ts, `hoverHit`): one emphasis record holding one hit record, the
+ * hit's fields set to each hit in turn (`set(i)`), so a hover step is the viewer's: a field write and a frame. The
+ * fields are read from records of one shape, as the viewer reads them from its HoverModel's one record. Why: read from
+ * the layers' hits (a shape per layer type) its loads went megamorphic once the complex's shapes had joined (the
+ * feedback is the one closure site's, every scenario's; `--log-ic`), and `set` allocated 16 B on two hits in three (the
+ * heap sampler): every scenario after the complex's measured 6 to 11 B a hover. A finding of the test, not the renderer.
  */
-export function reusedHover(hits: readonly Hit[]): { emphasis: Emphasis; set(i: number): void } {
+export function reusedHover(source: readonly Hit[]): { emphasis: Emphasis; set(i: number): void } {
+  const hits = source.map(oneShape);
   const hit = { layer: '', section: '', system: '' } as { -readonly [K in keyof Hit]: Hit[K] };
   hit.position = undefined;
   hit.element = undefined;

@@ -141,6 +141,7 @@ export async function attachSources(
   for (const plan of [
     ...[...model.systems.values()].map((s) => s.access),
     ...[...model.annotations.values()].map((a) => a.access),
+    ...[...model.annotations.values()].flatMap((a) => (a.ends ? [...a.ends.built()] : [])),
   ])
     if (plan?.kind === 'inline') opens.set(plan.source.address, () => plan.runtime.open(plan.source, ctx));
   for (const b of model.sources.values()) {
@@ -241,6 +242,7 @@ export async function openModel(spec: Node, store: DataStore, options: OpenModel
     for (const plan of [
       ...[...model.systems.values()].map((s) => s.access),
       ...[...model.annotations.values()].map((a) => a.access),
+      ...[...model.annotations.values()].flatMap((a) => (a.ends ? [...a.ends.built()] : [])),
     ])
       if (plan?.kind === 'inline') rest.add(plan.source.address);
   }

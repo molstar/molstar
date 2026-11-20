@@ -7,19 +7,20 @@
 import { issueOf } from '@molstar/core/repr/tree';
 import type { SequenceAlphabet } from '@molstar/core/util/sequence-constants';
 import type { LettersTable, Want } from '@molstar/seqx-core/data';
-import { rangesLocation } from '@molstar/seqx-core/query';
+import { type Location, rangesLocation } from '@molstar/seqx-core/query';
 import {
   codonPairs,
   complementCode,
   type GeneticCode,
   projectBoundary,
+  type ModifiedIndex,
   projectRanges,
   type StaticModel,
 } from '@molstar/seqx-core/resolve';
 import type { ResolvedLayer } from '@molstar/seqx-core/view';
 import type { AxisTransform } from './axis.js';
 import { type DensityStep, densityStep, fontSize, type RenderConfig } from './config.js';
-import { Anchor, drawPass, grown, NoColor, type PassName, type PassWriter, passDraws } from './draw-lists.js';
+import { drawPass, grown, type PassName, type PassWriter } from './draw-lists.js';
 import { RenderIssues } from './issues.js';
 import { dataRegions, type LayerSource, layerSource, mergeNear, placeholderSpans, readTiles } from './layer-data.js';
 import {
@@ -32,15 +33,12 @@ import {
   sectionId,
   type StoreReader,
 } from './layer-type.js';
-import { Black, type Channel, contrastRgba, inkAgainst, White } from '@molstar/seqx-core/theme/index';
+import { type Channel, inkAgainst } from '@molstar/seqx-core/theme/index';
 import { channelForms, channelLegends, type LayerChannels, PlainDatum } from './channels.js';
 import { LettersColorFallback, LettersEnv } from './layer-color.js';
-import { drawFailed, drawSpans, hoverCell } from './marks.js';
+import { chipInk, LettersDraws } from './letters-draw.js';
+import type { MoleculeLabels, MoleculeLay, ModifiedStyle } from './letters-molecule.js';
 import { inkOn, type SeqTokens } from './tokens.js';
-
-// the anchor a number read once: a draw reads no property of an imported object (that site's feedback, cleared, made
-// a warm draw deoptimize and allocate without end once the 150,000-piece scenario had run first)
-const AnchorMiddle: number = Anchor.middle;
 
 // The `letters` layer type (_spec/README.md "Render", Layer types): a system's letters, a cell a position. By density
 // step: letters on their colored cells, cells only, a tick a position, then one bar a piece in view (presence needs no
@@ -71,9 +69,18 @@ export interface LettersPrep {
   /** Across a codon step: the section's own letters (each codon's status) and the map's genetic code. */
   readonly sectionSrc?: LayerSource;
   readonly genetic?: GeneticCode;
+  /**
+   * On a molecule's residues or atoms: its labels (codes, element symbols) instead of letters; how a modified position
+   * is drawn and the data system's modified rows. Set by the molecules' letters (`MoleculeLettersType`), which a
+   * composition registers in this type's place; absent here.
+   */
+  readonly molecule?: MoleculeLabels;
+  readonly modified?: ModifiedStyle;
+  readonly marks?: ModifiedIndex;
+  readonly longMarks?: Uint8Array;
 }
 
-export interface LettersLay {
+export interface LettersLay extends MoleculeLay {
   key: string;
   system: string;
   /** The section's id (hits name it). */
@@ -133,6 +140,8 @@ export interface LettersLay {
   chipY: number;
   chipWidth: number;
   chipInk: number;
+  /** A chip's extent, its block's every position (made once a layout: a hover over it is the same hover). */
+  chipExtent: Location | undefined;
 }
 
 /** The letter code at a position of a table, or 0. */
@@ -150,43 +159,6 @@ function letterIn(tables: readonly LettersTable[], p: number): number {
     if (c) return c;
   }
   return 0;
-}
-
-/** Three-letter codes by one-letter code (IUPAC), the stop as `Ter`. */
-const ThreeLetter: Readonly<Record<string, string>> = {
-  A: 'Ala',
-  R: 'Arg',
-  N: 'Asn',
-  D: 'Asp',
-  C: 'Cys',
-  Q: 'Gln',
-  E: 'Glu',
-  G: 'Gly',
-  H: 'His',
-  I: 'Ile',
-  L: 'Leu',
-  K: 'Lys',
-  M: 'Met',
-  F: 'Phe',
-  P: 'Pro',
-  S: 'Ser',
-  T: 'Thr',
-  W: 'Trp',
-  Y: 'Tyr',
-  V: 'Val',
-  U: 'Sec',
-  O: 'Pyl',
-  B: 'Asx',
-  Z: 'Glx',
-  J: 'Xle',
-  X: 'Xaa',
-  '*': 'Ter',
-};
-// dense (no holes: a read of one allocates nothing), `Xaa` for a code with none
-const ThreeByCode: string[] = Array.from({ length: 128 }, () => 'Xaa');
-for (const [k, v] of Object.entries(ThreeLetter)) {
-  ThreeByCode[k.charCodeAt(0)] = v;
-  ThreeByCode[k.toLowerCase().charCodeAt(0)] = v;
 }
 
 /**
@@ -286,6 +258,12 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
       chipY: 0,
       chipWidth: 0,
       chipInk: 0,
+      labels: undefined,
+      mods: [],
+      modStyle: 'mark',
+      modComponents: [],
+      modLong: undefined,
+      chipExtent: undefined,
     };
     lay.key = ctx.key;
     lay.system = axis.system;
@@ -303,6 +281,7 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
     lay.chipFont = config.labelFont;
     lay.chipY = lay.chip ? box.y + box.height / 2 + fontSize(config.labelFont) * 0.35 : 0;
     lay.chipWidth = lay.chip ? ctx.text.measure(config.labelFont, lay.chip) : 0;
+    lay.chipExtent = lay.chip ? chipExtent(lay.system, axis.pieces, lay.chipExtent) : undefined;
     lay.n = 0;
     lay.seen.fill(0);
     lay.three = false;
@@ -312,6 +291,8 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
     lay.gaps.length = 0;
     lay.carets.length = 0;
     lay.conflicts.length = 0;
+    lay.mods.length = 0;
+    lay.labels = undefined;
     const src = prep.src;
     if (!src) return lay;
     if (prep.through === 'refused') {
@@ -325,7 +306,9 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
     }
     // the layer's density follows its own cell: a residue a codon wide is three positions
     const width = prep.through === 'codon' ? 3 : 1;
-    const step = densityStep(axis.scale * width, axis.dpr, config);
+    const fine = densityStep(axis.scale * width, axis.dpr, config);
+    // a chip's cells are always laid out (its pill is its first cell's fill), however many positions share its slot
+    const step = lay.chip && (fine === 'bars' || fine === 'density') ? 'cells' : fine;
     lay.step = step;
     const vis = axis.visible([]);
     // the positions in view exactly (walked one by one), read merged across near gaps (one read over short pieces)
@@ -477,6 +460,8 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
     if (y < box.y || y >= box.y + box.height) return undefined;
     const position = lay.axis.positionAt(x);
     if (position < 0) return undefined;
+    // a chip stands for its block's whole range (a molecule's every residue, through them every atom)
+    if (lay.chip !== '' && lay.n > 0) return chipHit(lay, position);
     if (lay.through !== 'codon' && lay.through !== 'one')
       return { layer: lay.key, section: lay.section, position, system: lay.system };
     // a letter through a path: its data element on `extent`, its parts on the section's system as `hull`
@@ -502,6 +487,31 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
     return { layer: lay.key, section: lay.section, position, system: lay.system };
   },
 };
+
+/** Every position of a chip's block (its pieces' hull on its system); the last made while it is the same. */
+function chipExtent(system: string, p: readonly number[], kept: Location | undefined): Location | undefined {
+  let lo = Infinity;
+  let hi = -Infinity;
+  for (let i = 0; i + 1 < p.length; i += 2) {
+    lo = Math.min(lo, p[i]);
+    hi = Math.max(hi, p[i + 1]);
+  }
+  if (!(lo < hi)) return undefined;
+  const k = kept?.parts[0];
+  if (k && k.system === system && k.ranges[0] === lo && k.ranges[1] === hi) return kept;
+  return rangesLocation(system, [lo, hi]);
+}
+
+/** A chip's hit: its position, and as its extent every position of its block. */
+function chipHit(lay: LettersLay, position: number): Hit {
+  return {
+    layer: lay.key,
+    section: lay.section,
+    position,
+    system: lay.system,
+    extent: lay.chipExtent,
+  };
+}
 
 /** The parts of one letter's image (kept: a layout runs to its end). */
 const Parts: number[] = [];
@@ -633,249 +643,6 @@ function gapMarks(src: LayerSource, axis: AxisTransform, vis: readonly number[],
     }
   }
 }
-
-// Each pass draws in a function of its own, called through a table (`drawPass`: nothing allocated once warm).
-
-/** The data pass: bars, placeholders, gap marks, cells or ticks, the letters on them, carets. */
-function drawCells(lay: LettersLay, out: PassWriter, _emphasis: Emphasis | undefined) {
-  const { box, tokens } = lay;
-  drawSpans(out, lay.bars, box.y, box.height, tokens.colors['seq-sequence']);
-  drawSpans(out, lay.pending, box.y, box.height, tokens.colors['seq-pending']);
-  drawFailed(out, lay.failed, box.y, box.height, tokens);
-  // a path's gap marks and carets, and three-letter codes, each in a function of its own: this one stays small enough to
-  // have its calls inlined (a call that is not boxes the numbers it is passed); every number through `args`
-  if (lay.gaps.length || lay.carets.length) drawPathMarks(lay, out);
-  if (lay.chip && lay.n) {
-    drawChip(lay, out);
-    return;
-  }
-  // a tick a position at `dots`, else the cell
-  const tick = Math.max(2, Math.round(box.height * 0.3));
-  const dots = lay.step === 'dots';
-  const y = dots ? box.y + (box.height - tick) / 2 : box.y;
-  const h = dots ? tick : box.height;
-  const px = 1 / lay.axis.dpr;
-  // a letter cell's hairline (`seq-cell-edge`: dark only, none in light), so dim dark cells read apart from the page
-  const edge = lay.step === 'letters' ? tokens.colors['seq-cell-edge'] : NoColor;
-  const g = out.args;
-  for (let j = 0; j < lay.n; j++) {
-    g[0] = lay.x0[j];
-    g[1] = y;
-    g[2] = Math.max(lay.x1[j] - lay.x0[j], px);
-    g[3] = h;
-    g[4] = lay.fill[j];
-    g[5] = NoColor;
-    g[6] = 0;
-    g[7] = 0;
-    g[8] = 0;
-    out.rectArgs();
-    if (edge !== NoColor) {
-      g[5] = edge;
-      g[6] = px;
-      cellEdge(out);
-    }
-  }
-  if (lay.conflicts.length) drawConflicts(lay, out);
-  if (lay.step !== 'letters' || !(lay.fontSize > 0) || !lay.n) return;
-  if (lay.three) {
-    drawThree(lay, out);
-    return;
-  }
-  g[1] = lay.glyphY;
-  out.beginGlyphsArgs(lay.font, NoColor);
-  for (let j = 0; j < lay.n; j++) {
-    if (!lay.show[j]) continue;
-    g[0] = (lay.x0[j] + lay.x1[j]) / 2;
-    g[4] = lay.ink[j];
-    out.letterArgs(lay.code[j]);
-  }
-  out.endGlyphs();
-}
-
-/**
- * A letter cell's hairline (`seq-cell-edge`) over the cell `out.args` holds (x, y, w, h; its color in `[5]`, a device
- * pixel in `[6]`: read from the array, a number passed to a call that is not inlined is boxed): drawn inside the cell,
- * a stroke a device pixel wide on the rect inset by half of one, so it covers whole device pixels of its own cell and a
- * neighbour's fill never paints over it (a stroke on the edge itself straddles two pixels). Shared with the rows layer.
- */
-export function cellEdge(out: PassWriter) {
-  const g = out.args;
-  const px = g[6];
-  if (g[2] <= 2 * px || g[3] <= 2 * px) return;
-  g[0] += px / 2;
-  g[1] += px / 2;
-  g[2] -= px;
-  g[3] -= px;
-  g[4] = NoColor;
-  out.rectArgs();
-}
-
-/** A one-to-one path's gap marks (a thin mark across the middle of an empty cell) and carets (a letter with no position). */
-function drawPathMarks(lay: LettersLay, out: PassWriter) {
-  const { box, tokens } = lay;
-  const px = 1 / lay.axis.dpr;
-  const g = out.args;
-  for (let k = 0; k < 2; k++) {
-    const gaps = k === 0;
-    const list = gaps ? lay.gaps : lay.carets;
-    const step = gaps ? 3 : 1;
-    for (let i = 0; i + step - 1 < list.length; i += step) {
-      g[0] = gaps ? list[i] : list[i] - px;
-      g[1] = gaps ? box.y + box.height / 2 - 0.5 : box.y;
-      g[2] = gaps ? Math.max(list[i + 1] - list[i], 1) : 2 * px;
-      g[3] = gaps ? 1 : box.height;
-      g[4] = tokens.colors[gaps ? 'seq-missing' : 'msui-text'];
-      g[5] = NoColor;
-      g[6] = 0;
-      g[7] = 0;
-      g[8] = 0;
-      out.rectArgs();
-    }
-  }
-}
-
-/** A conflict's mark: a bar along the bottom of the cell, a fifth of its height (at least 2 px), in the conflict ink. */
-function drawConflicts(lay: LettersLay, out: PassWriter) {
-  const { box, tokens } = lay;
-  const h = Math.max(2, Math.round(box.height * 0.2));
-  const g = out.args;
-  const c = lay.conflicts;
-  for (let i = 0; i + 1 < c.length; i += 2) {
-    g[0] = c[i];
-    g[1] = box.y + box.height - h;
-    g[2] = Math.max(c[i + 1] - c[i], 1);
-    g[3] = h;
-    g[4] = tokens.colors['seq-conflict'];
-    g[5] = NoColor;
-    g[6] = 0;
-    g[7] = 0;
-    g[8] = 0;
-    out.rectArgs();
-  }
-}
-
-/**
- * A chip's pill (_spec/README.md "Render", Blocks): its one cell's fill as a pill a pixel inside the cell, its label
- * centred on it in the ink that holds 4.5:1 against the fill, faded at the pill's width (the label is elided to its
- * slot: it fits); the letter cells' hairline (`seq-cell-edge`, dark only) round it, as round a cell.
- */
-function drawChip(lay: LettersLay, out: PassWriter) {
-  const { box } = lay;
-  const g = out.args;
-  const h = Math.max(box.height - 2, 1);
-  const edge = lay.tokens.colors['seq-cell-edge'];
-  g[0] = lay.x0[0] + 1;
-  g[1] = box.y + 1;
-  g[2] = lay.x1[0] - lay.x0[0] - 2;
-  g[3] = h;
-  g[4] = lay.fill[0];
-  g[5] = edge;
-  g[6] = edge === NoColor ? 0 : 1 / lay.axis.dpr;
-  g[7] = h / 2;
-  g[8] = 3;
-  out.rectArgs();
-  g[0] = (lay.x0[0] + lay.x1[0]) / 2;
-  g[1] = lay.chipY;
-  g[2] = lay.chipWidth;
-  g[3] = lay.x1[0] - lay.x0[0];
-  g[4] = lay.chipInk;
-  out.textArgs(lay.chip, AnchorMiddle, lay.chipFont);
-}
-
-/** A chip's label ink against its fill: the tokens' ink when it holds 4.5:1, else black or white, the higher. */
-function chipInk(fill: number, tokens: SeqTokens): number {
-  const ink = inkOn(fill, tokens);
-  if (contrastRgba(ink, fill) >= 4.5) return ink;
-  return contrastRgba(Black, fill) >= contrastRgba(White, fill) ? Black : White;
-}
-
-/** Three-letter codes, centred in their parts. */
-function drawThree(lay: LettersLay, out: PassWriter) {
-  const g = out.args;
-  for (let j = 0; j < lay.n; j++) {
-    if (!lay.show[j]) continue;
-    g[0] = (lay.x0[j] + lay.x1[j]) / 2;
-    g[1] = lay.glyphY;
-    g[2] = 0;
-    g[3] = lay.x1[j] - lay.x0[j];
-    g[4] = lay.ink[j];
-    out.textArgs(ThreeByCode[lay.code[j] & 127], AnchorMiddle, lay.font);
-  }
-}
-
-/**
- * The hover pass: a letter through a path outlines each part of its element (a residue's codon, split by an intron
- * too); a chip, its pill; else the hovered position's cell. Each a squircle (_spec/README.md "Render", Shapes: every
- * emphasis a squircle), concentric: a part's ends round where the element really ends (its outermost parts' outer
- * sides), square where an intron cuts it; square below `squircleMin`; a chip's round as its pill.
- */
-function drawHover(lay: LettersLay, out: PassWriter, emphasis: Emphasis | undefined) {
-  const h = emphasis?.hover;
-  if (!h || h.layer !== lay.key) return;
-  if (lay.chip !== '' && lay.n > 0) {
-    drawChipHover(lay, out, emphasis);
-    return;
-  }
-  const part = lay.through === 'own' ? undefined : h.extent?.parts[0];
-  if (!part || part.system !== lay.dataSystem || !part.ranges.length) {
-    hoverCell(lay, out, emphasis);
-    return;
-  }
-  const p = part.ranges[0];
-  const d = lay.hoverWidth / 2 + lay.hoverOffset;
-  const g = out.args;
-  const { box } = lay;
-  // the element's outer sides: its parts' leftmost and rightmost x (the sides between parts are cut)
-  let lo = Infinity;
-  let hi = -Infinity;
-  for (let j = 0; j < lay.n; j++) {
-    if (lay.pos[j] !== p) continue;
-    if (lay.x0[j] < lo) lo = lay.x0[j];
-    if (lay.x1[j] > hi) hi = lay.x1[j];
-  }
-  const c = lay.config;
-  const bh = box.height;
-  for (let j = 0; j < lay.n; j++) {
-    if (lay.pos[j] !== p) continue;
-    const w = lay.x1[j] - lay.x0[j];
-    const r =
-      w < c.squircleMin || bh < c.squircleMin ? 0 : Math.min(bh * c.squircleRatio, c.squircleMax, w / 2, bh / 2);
-    const round = (lay.x0[j] <= lo ? 1 : 0) | (lay.x1[j] >= hi ? 2 : 0);
-    g[0] = lay.x0[j] - d;
-    g[1] = box.y - d;
-    g[2] = w + 2 * d;
-    g[3] = bh + 2 * d;
-    g[4] = NoColor;
-    g[5] = lay.tokens.colors['seq-hover'];
-    g[6] = lay.hoverWidth;
-    g[7] = r > 0 && round !== 0 ? r + d : 0;
-    g[8] = round;
-    out.rectArgs();
-  }
-}
-
-/** A chip's hover: outside its pill by the offset, concentric with it (the pill's radius plus the gap to it). */
-function drawChipHover(lay: LettersLay, out: PassWriter, emphasis: Emphasis | undefined) {
-  const h = emphasis!.hover!;
-  if (h.system !== lay.axis.system || h.position === undefined || !lay.axis.cell(h.position)) return;
-  const { box } = lay;
-  // the pill is a pixel inside the cell (`drawChip`); the outline `d` outside the cell
-  const d = lay.hoverWidth / 2 + lay.hoverOffset;
-  const ph = Math.max(box.height - 2, 1);
-  const g = out.args;
-  g[0] = lay.x0[0] - d;
-  g[1] = box.y - d;
-  g[2] = lay.x1[0] - lay.x0[0] + 2 * d;
-  g[3] = box.height + 2 * d;
-  g[4] = NoColor;
-  g[5] = lay.tokens.colors['seq-hover'];
-  g[6] = lay.hoverWidth;
-  g[7] = ph / 2 + 1 + d;
-  g[8] = 3;
-  out.rectArgs();
-}
-
-const LettersDraws = passDraws<LettersLay, Emphasis | undefined>({ data: drawCells, hover: drawHover });
 
 /**
  * A letter's ink: `auto` follows its fill (the table's inks at 4.5:1); a themed ink is held at 3:1 against its fill,

@@ -48,6 +48,7 @@ export {
 export {
   type AccessPlan,
   type AnnotationEntry,
+  type LinkEnds,
   type BoundSourceEntry,
   createResolver,
   DefaultResolveConfig,

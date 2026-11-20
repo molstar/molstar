@@ -16,6 +16,7 @@ import * as complexGrid from './complex/complex-grid.js';
 import * as complexLigands from './complex/ligands.js';
 import * as complexPae from './complex/pae.js';
 import * as complexText from './complex/text.js';
+import * as molecules from './molecules/molecules.js';
 import * as trna from './trna/trna.js';
 import * as globinsColumns from './globins/columns.js';
 import { familyRegistry, generatedRegistry } from './globins/data.js';
@@ -684,6 +685,51 @@ export const FilesViews: readonly ExampleView[] = [
   },
 ];
 
+/**
+ * Molecules drawn: a section of a complex (a block a unit, copies merged, the molecules as chips), the forms (whole,
+ * residues, atoms), a modified residue four ways, the complex as text, 200 copies with a glycan chip. Generated inline.
+ */
+export const MoleculeViews: readonly ExampleView[] = [
+  {
+    dataset: 'molecules',
+    id: 'molecules-complex',
+    title: 'A section of a complex',
+    summary:
+      'An Fc-like chain twice, merged into one block ×2, then its glycan, ATP and a sodium ion as chips (the water left out); the modified residues marked; the links as arcs: the glycan on N47, the disulfide C5–C71 across the copies, the sodium on D64 and ATP.',
+    build: molecules.complexView,
+  },
+  {
+    dataset: 'molecules',
+    id: 'molecules-forms',
+    title: 'Whole, residues, atoms',
+    summary:
+      'The molecules whole (a chip each), then the glycan by its residues (their codes) and ATP by its heavy atoms (their element symbols).',
+    build: molecules.formsView,
+  },
+  {
+    dataset: 'molecules',
+    id: 'molecules-modified',
+    title: 'Modified residues',
+    summary:
+      'A tRNA’s modified nucleotides four ways: a dot at the cell’s corner (the default), the code in place of the letter where it fits, the cell outlined, nothing; the Fc’s MSE, SEP and a CRO over three letters.',
+    build: molecules.modifiedView,
+  },
+  {
+    dataset: 'molecules',
+    id: 'molecules-text',
+    title: 'As text',
+    summary: 'The complex as text: each chain’s letters in lines, then the molecules’ chips flowing like words.',
+    build: molecules.textView,
+  },
+  {
+    dataset: 'molecules',
+    id: 'molecules-copies',
+    title: '200 copies',
+    summary: '200 copies of the chain merged into one block ×200, the glycan, ATP and the ion as chips after it.',
+    build: molecules.copiesView,
+  },
+];
+
 export const ExampleViews: readonly ExampleView[] = [
   ...P53Views,
   ...FilesViews,
@@ -694,4 +740,5 @@ export const ExampleViews: readonly ExampleView[] = [
   ...AntibodyViews,
   ...GlobinsViews,
   ...TrnaViews,
+  ...MoleculeViews,
 ];

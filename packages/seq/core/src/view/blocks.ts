@@ -1,0 +1,225 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+// A section's blocks (_spec/README.md "Resolved view", Blocks): its `block` children, else a complex's units (a section
+// `of` a complex: ordered by `classes`, polymers in the complex's order, then each class, EC-101); each block's form
+// (`whole`, `residues`, `atoms`), its label (a chip's: its molecule's name, else its one component, else its id), its
+// copies merged (EC-65); the section's axis over them.
+
+import { exactAddress, type Node, type Value } from '@molstar/core/repr/tree';
+import { atomsSystemOf, type StaticModel, type UnitEntry } from '@molstar/seqx-core/resolve';
+import { axisTotal } from './axis.js';
+import type { Axis, BlockForm, ResolvedBlock } from './view.js';
+
+const param = (n: Node, key: string): Value | undefined => n.params?.[key];
+
+/** The classes a section of a complex shows when it names none: water left out (EC-101). */
+export const DefaultSectionClasses: readonly string[] = ['polymer', 'branched', 'ligand', 'ion'];
+
+/** The complex a section is `of`, when it is one. */
+export function sectionComplex(model: StaticModel, section: Node): string | undefined {
+  const of = exactAddress(param(section, 'of'));
+  return of !== undefined && model.molecular.complexes.has(of) ? of : undefined;
+}
+
+/**
+ * A section's block nodes: its `block` children (explicit blocks win), else a block a unit of the complex it is `of`,
+ * by `classes` (a class not listed left out), polymers in the complex's order, then each class in order. A `block`
+ * child whose id is a derived unit's (no `of`, or that unit) overrides that unit only, its `form` and `label` (a
+ * merged copies block by its first unit's id: every copy); a section whose children are all overrides lists every
+ * derived unit, as units are added too.
+ */
+export function blockNodes(model: StaticModel, section: Node): Node[] {
+  const own = (section.children ?? []).filter((c) => c.kind === 'block' && c.id !== undefined);
+  const complex = sectionComplex(model, section);
+  const units = complex === undefined ? undefined : model.molecular.complexes.get(complex)?.units;
+  if (!units) return own;
+  const byId = new Map(units.map((u) => [u.id, u]));
+  const override = (n: Node) => {
+    const u = byId.get(n.id!);
+    const of = param(n, 'of');
+    return u !== undefined && (of === undefined || exactAddress(of) === u.address);
+  };
+  if (own.length && !own.every(override)) return own;
+  // each override's params by the units it reaches: its unit, or with merged copies its unit's copy group
+  const merge = param(section, 'copies') !== 'each';
+  const over = new Map<string, Record<string, Value>>();
+  for (const n of own) {
+    const u = byId.get(n.id!)!;
+    const params: Record<string, Value> = {};
+    for (const k of ['form', 'label'] as const) if (param(n, k) !== undefined) params[k] = param(n, k)!;
+    for (const v of units) if (v === u || (merge && v.copy === u.copy)) over.set(v.id, params);
+  }
+  const written = param(section, 'classes');
+  const classes = Array.isArray(written) ? written.map(String) : DefaultSectionClasses;
+  const out: Node[] = [];
+  for (const c of classes)
+    for (const u of units)
+      if (u.class === c) out.push({ kind: 'block', id: u.id, params: { of: u.address, ...over.get(u.id) } });
+  return out;
+}
+
+/**
+ * A block's display units in its section: one for a `whole` block (a chip: its molecule one unit, layouts.md), else
+ * its positions shown; undefined while its length is unknown.
+ */
+export function blockUnits(block: { readonly form?: string; readonly axis: Axis }): number | undefined {
+  if (block.form === 'whole' && block.axis.ranges) return 1;
+  return axisTotal(block.axis);
+}
+
+/** A section's blocks before their layers, and the section's axis over them. */
+export interface BlockAxes {
+  readonly axis: Axis;
+  readonly blocks: readonly Omit<ResolvedBlock, 'layers'>[];
+}
+
+type AxisOf = (node: Node, at: string, system: string) => Axis;
+type Report = (message: string, at: string) => void;
+
+/**
+ * A block's form and the system it shows (_spec/README.md "Resolved view", Blocks): `form` as written, else `whole`
+ * for a molecule or a unit of one and `residues` for the rest; `atoms` shows the molecule's (or unit's) atoms system,
+ * its range the atoms of the residues in range; refused (the default form) where there is no atoms system.
+ */
+function formOf(model: StaticModel, node: Node, system: string): { form: BlockForm; system: string; node: Node } {
+  const m = model.molecular;
+  const unit = m.units.get(system);
+  const molecule = m.molecules.get(unit ? unit.of : system);
+  const written = param(node, 'form');
+  const fallback: BlockForm = molecule ? 'whole' : 'residues';
+  if (written === 'whole' || written === 'residues') return { form: written, system, node };
+  if (written !== 'atoms') return { form: fallback, system, node };
+  const atoms = m.atoms.get(atomsSystemOf(system));
+  if (!atoms) return { form: fallback, system, node };
+  const range = param(node, 'range');
+  if (!Array.isArray(range) || range.length !== 2) return { form: 'atoms', system: atoms.address, node };
+  // the atoms of the residues in range: a residue's atoms are a run (`AtomsEntry.offsets`)
+  const o = atoms.offsets;
+  const n = o.length - 1;
+  const clamp = (r: number) => o[Math.max(0, Math.min(n, Number(r)))];
+  const params = { ...node.params, range: [clamp(range[0] as number), clamp(range[1] as number)] };
+  return { form: 'atoms', system: atoms.address, node: { ...node, params } };
+}
+
+/** A block's label: as written, else its unit's, else (a molecule) its name or its one component, else its id. */
+function labelOf(model: StaticModel, node: Node, system: string, unit: UnitEntry | undefined): string {
+  const written = param(node, 'label');
+  if (typeof written === 'string') return written;
+  if (unit?.label !== undefined) return unit.label;
+  const molecule = model.molecular.molecules.get(unit ? unit.of : system);
+  if (molecule) {
+    if (molecule.name !== undefined) return molecule.name;
+    const r = molecule.residues;
+    const start = unit?.start ?? 0;
+    const end = unit?.end ?? r?.length ?? 0;
+    if (r && end - start === 1 && r[start]) return r[start];
+  }
+  return node.id!;
+}
+
+/**
+ * A section's blocks (_spec/README.md "Resolved view", Blocks): each its axis (its system, its `range`, the section's
+ * direction) and form; copies (units of one copy group, or the same system, with the same range and form) merged into
+ * the first's place with `copies: 'merge'` (the default), labeled `×N`; the section's axis their display units in
+ * order: on one system in a row (or on a ring) the blocks' pieces end to end, else units on no system (the section's
+ * address, `pieces: 'blocks'`), their total the sum in a row and the longest block in a stack. A block with no system
+ * is reported and left out.
+ */
+export function blockAxes(
+  model: StaticModel,
+  section: Node,
+  nodes: readonly Node[],
+  at: string,
+  dir: 1 | -1,
+  ring: boolean,
+  axisOf: AxisOf,
+  report: Report,
+): BlockAxes {
+  const merge = param(section, 'copies') !== 'each';
+  const groups: {
+    node: Node;
+    address: string;
+    axis: Axis;
+    key: string;
+    members: string[];
+    systems: string[];
+    form: BlockForm;
+    label: string;
+  }[] = [];
+  for (const n of nodes) {
+    const address = `${at}/${n.id}`;
+    const of = exactAddress(param(n, 'of'));
+    if (of === undefined || !model.systems.has(of)) {
+      report('The block shows no system of the spec', address);
+      continue;
+    }
+    const unit = model.molecular.units.get(of);
+    const { form, system, node } = formOf(model, n, of);
+    const range = param(node, 'range');
+    // units of one copy group are copies whatever their systems (EC-65): equal `of` and range
+    const key = `${unit ? unit.copy : system}|${form}|${Array.isArray(range) ? range.join(',') : 'all'}`;
+    const copy = merge ? groups.find((g) => g.key === key) : undefined;
+    if (copy) {
+      copy.members.push(address);
+      copy.systems.push(system);
+      continue;
+    }
+    const axis = axisOf(node, address, system);
+    const label = labelOf(model, n, of, unit);
+    groups.push({ node, address, axis, key, members: [address], systems: [system], form, label });
+  }
+  const stack = !ring && param(section, 'arrange') === 'stack';
+  let offset: number | undefined = 0;
+  let longest = 0;
+  const blocks = groups.map((g) => {
+    // a chip is one unit, however many residues it stands for
+    const total = blockUnits(g);
+    const start = stack ? 0 : offset;
+    if (offset !== undefined) offset = total === undefined ? undefined : offset + total;
+    if (total !== undefined) longest = Math.max(longest, total);
+    return {
+      address: g.address,
+      label: g.members.length > 1 ? `${g.label} ×${g.members.length}` : g.label,
+      axis: g.axis,
+      form: g.form,
+      ...(start !== undefined ? { offset: start } : {}),
+      members: g.members,
+      systems: g.systems,
+    };
+  });
+  const first = groups[0]?.axis;
+  const system = first?.system ?? '';
+  const pending = groups.some((g) => !g.axis.ranges);
+  if (first && !stack && groups.every((g) => g.axis.system === system && g.form !== 'whole')) {
+    // pieces of one sequence: one axis, its breaks between the blocks
+    const ranges = pending ? undefined : groups.flatMap((g) => g.axis.ranges!);
+    return {
+      axis: {
+        system,
+        ...(first.length !== undefined ? { length: first.length } : {}),
+        cyclic: first.cyclic,
+        dir,
+        pieces: 'blocks',
+        ...(ranges ? { ranges } : {}),
+      },
+      blocks,
+    };
+  }
+  // units of the section, on no system: a position on them is no block's (a selection, a focus, a bookmark or a cursor
+  // on a system never lands on the wrong block's); a block's hits carry its own system
+  const total = stack ? longest : offset;
+  return {
+    axis: {
+      system: at,
+      ...(pending || total === undefined ? {} : { length: total, ranges: [0, total] }),
+      cyclic: false,
+      dir: 1,
+      pieces: 'blocks',
+    },
+    blocks,
+  };
+}

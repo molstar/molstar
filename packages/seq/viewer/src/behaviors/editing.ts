@@ -31,6 +31,8 @@ export interface EditingContext {
   readonly color?: Value;
   /** `refs.label`: the bookmark's label ('' removes it: its id is shown). */
   readonly label?: string;
+  /** `block.form`: the block's form (`whole`, `residues`, `atoms`). */
+  readonly form?: 'whole' | 'residues' | 'atoms';
   /** `step.enter`: the story step's id. */
   readonly step?: string;
   /** Who edits (`person` when absent; an agent's turn joins one step). */
@@ -52,6 +54,7 @@ export const EditingCommandIds = {
   labelRef: 'refs.label',
   reverseSection: 'section.reverse',
   collapseSection: 'section.collapse',
+  formBlock: 'block.form',
   enterStep: 'step.enter',
   leaveStep: 'step.leave',
   cancelPreview: 'preview.cancel',
@@ -119,7 +122,38 @@ export function editingBehavior(spec: SpecModel, axis?: AxisReaders): EditingBeh
   const resolvedDir = (address: string): 1 | -1 =>
     axis?.view.resolved.value?.sections.find((x) => x.address === address)?.axis.dir ?? 1;
 
+  /**
+   * A block's patch: its `block` child's `form` set, or for a block a section of a complex derives from its units (its
+   * address `<section>/<unit id>`, a merged copies block's its first unit's) one `block` child of that id with the
+   * form: an override of that unit alone, the rest still derived (core's _spec "Resolved view", A section of a complex).
+   */
+  const blockEdit = (address: string, form: string): Op[] | undefined => {
+    const root = spec.root.value;
+    if (nodeOf(root, address, 'block')) return [{ op: 'set', at: ids(address), key: 'form', value: form }];
+    const path = ids(address);
+    const sectionAt = `/${path.slice(0, -1).join('/')}`;
+    const section = axis?.view.resolved.value?.sections.find((x) => x.address === sectionAt);
+    if (!section?.blocks?.some((b) => b.address === address) || !nodeOf(root, sectionAt, 'section')) return undefined;
+    const node: Node = { kind: 'block', id: path[path.length - 1], params: { form } };
+    return [{ op: 'insert', parent: ids(sectionAt), place: { last: true }, node }];
+  };
+
   const commands: CommandDefinition<EditingContext>[] = [
+    {
+      id: EditingCommandIds.formBlock,
+      title: 'Show a block as',
+      category: 'Edit',
+      when: (ctx) =>
+        disposed
+          ? 'The viewer is retired'
+          : ctx.address === undefined || ctx.form === undefined
+            ? 'No block or form given'
+            : blockEdit(ctx.address, ctx.form)
+              ? true
+              : 'No block there',
+      run: (_, ctx) =>
+        edit('Show a block as', () => blockEdit(ctx.address!, ctx.form!) ?? [], ctx, `Shown as ${ctx.form}`),
+    },
     {
       id: EditingCommandIds.reverseSection,
       title: 'Reverse a section',

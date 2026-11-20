@@ -21,7 +21,7 @@ import type { LettersLay } from './letters.js';
 import type { ThemeContext } from './channels.js';
 import { colorKey, defaultColors, viewTheme } from './layer-color.js';
 import { LabelLane } from './sizing.js';
-import { chipText } from './layout/blocks.js';
+import { blockLength, chipText } from './layout/blocks.js';
 import { TracksLayout } from './layout/tracks.js';
 import type { GridPlacement } from './layout/grid.js';
 import type { PlaceContext, Placement, SectionLayoutType } from './layout/types.js';
@@ -543,8 +543,10 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
                 : {}),
             ...(input.images ? { images: input.images } : {}),
             ...(strips.ys[i] ? { axisY: strips.ys[i] } : {}),
-            // a chip's pill: its label elided to its slot (a position's px on its strip: the whole chip's)
-            ...(block && strips.chip[i] ? { chip: chipText(input.text, config, block.label, a.scale) } : {}),
+            // a chip's pill: its label elided to its slot (its positions' px on its strip: the whole chip's)
+            ...(block && strips.chip[i]
+              ? { chip: chipText(input.text, config, block.label, a.scale * blockLength(block)) }
+              : {}),
             ...(grants && type.name === 'rows' && grants.has(key) ? { rowColumns: grants.get(key)! } : {}),
             ...(narrow && narrow.tree !== header.tree && type.name === 'rows' ? { treePx: narrow.tree } : {}),
           };

@@ -5,6 +5,7 @@
  */
 
 import { BuiltInLayerTypes, BuiltInLayouts } from '@molstar/seqx-core/render/built-ins';
+import { MoleculeLettersType } from '@molstar/seqx-core/render/letters-molecule';
 import { NavigatorSvgExport } from '@molstar/seqx-core/render/navigator-export';
 import { composeSeqContext, type SeqContext, type SeqContextSpec, type SeqRegistryEntry } from './context.js';
 
@@ -14,7 +15,11 @@ import { composeSeqContext, type SeqContext, type SeqContextSpec, type SeqRegist
 
 /** The core's layer types and section layouts as registry entries: what the default compositions list. */
 export const BuiltInRenderRegistry: readonly SeqRegistryEntry[] = [
-  ...Object.values(BuiltInLayerTypes).map((type) => ({ kind: 'layer-type' as const, type })),
+  // the letters with molecules (their labels, modified residues' marks) in the core letters' place
+  ...Object.values({ ...BuiltInLayerTypes, letters: MoleculeLettersType }).map((type) => ({
+    kind: 'layer-type' as const,
+    type,
+  })),
   ...Object.values(BuiltInLayouts).map((layout) => ({ kind: 'layout' as const, layout })),
 ];
 
