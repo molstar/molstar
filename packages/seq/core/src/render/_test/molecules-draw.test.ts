@@ -19,6 +19,7 @@ import {
   LightTokens,
   type LettersLay,
   type PairsLay,
+  type RangesLay,
   recordDrawLists,
 } from '../index.js';
 import { settle } from './helpers.js';
@@ -150,5 +151,23 @@ describe('a complex drawn against its data', () => {
     for (let k = 1; k < chips.length; k++)
       expect(p.strips.axes[chips[k]].x0).toBeGreaterThan(p.strips.axes[chips[k - 1]].x0);
     expect(texts(f)).toEqual(expect.arrayContaining(['Glycan', 'ATP', 'NA']));
+  });
+
+  it('a ranges layer over the links: each end a mark at its site, labeled by the other end', async () => {
+    const s = await settle(moleculesSpec({ copies: 'each', sites: true }));
+    const f = await s.frame({ size: Size });
+    expect(f.layout.sections[0].section.blocks!.length).toBe(5);
+    const sec = f.layout.sections[0];
+    const nb = sec.placement.strips.bands;
+    const marks = new Map<string, number>();
+    for (let i = 0; i < sec.placement.strips.n; i++)
+      for (const l of sec.lays[i * nb + 1] ?? [])
+        if (l.type.name === 'ranges') marks.set(sec.placement.strips.axes[i].system, (l.lay as RangesLay).items);
+    // A: the glycan's site, the disulfide's end, the metal's site; B: the disulfide's other end; the glycan; ATP
+    expect(Object.fromEntries(marks)).toEqual({ '/data/c/A': 3, '/data/c/B': 1, '/data/c/g': 1, '/data/c/l': 1 });
+    expect(s.view.issues.filter((i) => i.code !== 'seq.view.layer.unplaced')).toEqual([]);
+    // zoomed onto N11: its mark wide enough for its label, the other end
+    const z = await s.frame({ size: Size, viewport: { start: 6, end: 16 } });
+    expect(texts(z, 'labels')).toEqual(expect.arrayContaining(['→ Glycan 1']));
   });
 });

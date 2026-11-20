@@ -2082,6 +2082,11 @@ the y path in Emphasis).
   cells; `code` the component's code in place of the letter where the cell has room for three letters (the mark
   elsewhere, EC-117); `tint` the cell outlined in `seq-modified`; `none`. No value changes a cell's width; every
   modified position in view has its mark at every step. A modification's color is never the residue scheme's.
+- `ranges` **over links** (a complex's or a molecule's `pairs` child, `data` naming it): each end on the layer's system
+  (a block's unit) a mark at its site, its label the other end (`→ Glycan 1`), its category the link's kind: the entry's
+  `ends`, an inline ranges plan a system (`<links>#<system>`), opened into the store as every inline plan; placed on
+  each section or block with an end (`seq.view.layer.unplaced` where none). A data `pairs` node has no ends plan: its
+  ranges reader is not built.
 - `ranges`: items in sticky lanes, carried onto the section along the layer's path (a domain on its gene: a piece an
   exon); labels inside marks 24 px or wider (faded past the mark), or inside a narrower one when they fit whole with 3
   px a side (a modified residue's code over its one position; none below 8 px), drawn in the `labels` pass. At `bars` a

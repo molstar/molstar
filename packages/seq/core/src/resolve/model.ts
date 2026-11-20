@@ -234,6 +234,11 @@ export interface AnnotationEntry {
   readonly reference?: string;
   /** A complex's links: the units their rows' ends are on (`PairsData.aUnit`, `bUnit` index it), by address. */
   readonly units?: readonly string[];
+  /**
+   * Links' ends on each system as inline ranges (a `ranges` layer over links reads them), by system; opened into the
+   * store as every inline plan is.
+   */
+  readonly ends?: ReadonlyMap<string, AccessPlan>;
 }
 
 /**

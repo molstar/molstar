@@ -162,7 +162,11 @@ export class StoreModel extends ReactiveModel {
     for (const b of model.sources.values())
       if (b.runtime) wanted.set(b.address, { entry: b.entry, runtime: b.runtime });
     const plans = [...model.systems.values()].map((s) => s.access);
-    for (const a of model.annotations.values()) if (a.access) plans.push(a.access);
+    for (const a of model.annotations.values()) {
+      if (a.access) plans.push(a.access);
+      // links' ends, a ranges layer's over them (core's _spec "Render", Layer types: ranges)
+      if (a.ends) plans.push(...a.ends.values());
+    }
     for (const p of plans)
       if (p.kind === 'inline') wanted.set(p.source.address, { entry: p.source, runtime: p.runtime });
 

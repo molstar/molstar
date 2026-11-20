@@ -8,10 +8,11 @@
 // modified indices, complexes' units with their copy groups and the `maxUnits` bound, links held on per-row units,
 // compounds by code. The model's build calls it with its own placing, caching and refs.
 
-import { type Issue, issueOf, type Node, printAddress, type Value } from '@molstar/core/repr/tree';
-import { readPairs } from './held.js';
+import { categoryColumn, type Issue, issueOf, type Node, printAddress, type Value } from '@molstar/core/repr/tree';
+import { inlineSeq, type RangesList, SeqRuntime, seqToValue } from '@molstar/seqx-core/data';
+import { type PairsData, readPairs } from './held.js';
 import { ResolveIssues } from './issues.js';
-import type { AnnotationEntry, ResolveConfig, SystemEntry } from './model.js';
+import type { AccessPlan, AnnotationEntry, ResolveConfig, SystemEntry } from './model.js';
 import type { CompoundEntry, Molecular } from './molecule-query.js';
 import {
   type AtomsEntry,
@@ -74,7 +75,7 @@ export function buildLinks(
     for (const at of list) {
       if (at.node.kind !== 'pairs') continue;
       const entry = cached(`${at.address}|${key(at, parent)}`, () =>
-        linksEntry(at.address, at.node, parent.address, units),
+        linksEntry(at.address, at.node, parent.address, units, systems),
       );
       annotations.set(at.address, entry);
     }
@@ -154,11 +155,79 @@ export function unitsIssue(address: string, count: number, max: number): Issue {
   });
 }
 
+/** A position or a span as a reader says it (from 1). */
+const spanText = (s: number, e: number) => (e - s > 1 ? `${s + 1}–${e}` : `${s + 1}`);
+
+/**
+ * A link's ends on each system as an inline ranges plan (what a `ranges` layer over links reads, _spec/README.md
+ * "Render", Layer types: ranges): a row an end, its id `<key>:a` or `<key>:b`, its label the other end (`→ Glycan 1`),
+ * its category the link's kind. Its source address `<links>#<system>`.
+ */
+function endsPlans(
+  address: string,
+  d: PairsData,
+  systemOf: (k: number, side: 0 | 1) => string,
+  systems: ReadonlyMap<string, SystemEntry>,
+): ReadonlyMap<string, AccessPlan> {
+  const by = new Map<
+    string,
+    { start: number[]; end: number[]; id: string[]; label: string[]; kind: (string | null)[] }
+  >();
+  const name = (s: string) => systems.get(s)?.name ?? s;
+  for (let k = 0; k < d.n; k++)
+    for (const side of [0, 1] as const) {
+      const here = systemOf(k, side);
+      const there = systemOf(k, side ? 0 : 1);
+      let t = by.get(here);
+      if (!t) by.set(here, (t = { start: [], end: [], id: [], label: [], kind: [] }));
+      t.start.push(side ? d.bStart[k] : d.aStart[k]);
+      t.end.push(side ? d.bEnd[k] : d.aEnd[k]);
+      t.id.push(`${d.keys[k]}:${side ? 'b' : 'a'}`);
+      t.label.push(`→ ${name(there)} ${side ? spanText(d.aStart[k], d.aEnd[k]) : spanText(d.bStart[k], d.bEnd[k])}`);
+      t.kind.push(d.kind[k] < 0 ? null : d.kinds[d.kind[k]]);
+    }
+  const out = new Map<string, AccessPlan>();
+  for (const [system, t] of by) {
+    const s = systems.get(system);
+    if (!s) continue;
+    const table: RangesList = {
+      form: 'list',
+      start: Int32Array.from(t.start),
+      end: Int32Array.from(t.end),
+      id: categoryColumn(t.id),
+      fields: [
+        { name: 'label', column: categoryColumn(t.label) },
+        { name: 'category', column: categoryColumn(t.kind) },
+      ],
+    };
+    const value = seqToValue(inlineSeq({ name: system, length: s.length, cyclic: s.cyclic }, { ranges: table }));
+    out.set(system, {
+      kind: 'inline',
+      source: { address: `${address}#${system}`, format: 'seq', value },
+      runtime: SeqRuntime,
+      system,
+      shape: 'ranges',
+    });
+  }
+  return out;
+}
+
 /** Links held whole: a complex's on per-row units (`units`, in its order), a molecule's on its residues. */
-export function linksEntry(address: string, node: Node, parent: string, units?: readonly UnitEntry[]): AnnotationEntry {
+export function linksEntry(
+  address: string,
+  node: Node,
+  parent: string,
+  units?: readonly UnitEntry[],
+  systems?: ReadonlyMap<string, SystemEntry>,
+): AnnotationEntry {
   const index = units && new Map(units.map((u, i) => [u.id, i]));
   const pairs = readPairs(node, index && ((id) => index.get(id) ?? -1));
   const target = units?.[0]?.address ?? parent;
+  const systemOf = (k: number, side: 0 | 1) => {
+    const u = side ? pairs.bUnit : pairs.aUnit;
+    return units && u ? (units[u[k]]?.address ?? target) : target;
+  };
+  const ends = systems ? endsPlans(address, pairs, systemOf, systems) : undefined;
   const fields = ['type', ...(pairs.labels ? ['label'] : []), ...Object.keys(pairs.extra ?? {})];
   return {
     address,
@@ -168,6 +237,7 @@ export function linksEntry(address: string, node: Node, parent: string, units?: 
     fields,
     pairs,
     ...(units ? { units: units.map((u) => u.address) } : {}),
+    ...(ends?.size ? { ends } : {}),
   };
 }
 

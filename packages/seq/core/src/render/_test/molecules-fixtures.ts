@@ -24,6 +24,8 @@ export interface MoleculesOptions {
   readonly atpForm?: 'whole' | 'residues' | 'atoms';
   /** The links' arcs (a pairs track; true but in text). */
   readonly links?: boolean;
+  /** The links' sites: a ranges track over the links, each end a mark labeled by the other. */
+  readonly sites?: boolean;
 }
 
 /** The Fc chains' unit ids: `A`, `B`, … */
@@ -100,6 +102,7 @@ export function moleculesSpec(o: MoleculesOptions = {}): Node {
           for (const id of [...ids, 'g', 'l', 'n'])
             s.block(id, { of: units[id] as never, ...(id === 'l' ? { form: o.atpForm } : {}) });
         s.track('letters').layer('letters', { type: 'letters', ...(o.modified ? { modified: o.modified } : {}) });
+        if (o.sites) s.track('sites').layer('sites', { type: 'ranges', data: '/data/c/links' as never });
         if (o.layout !== 'text' && o.links !== false)
           s.track('links').layer('links', { type: 'pairs', data: '/data/c/links' as never });
       },

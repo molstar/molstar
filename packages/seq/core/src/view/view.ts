@@ -1013,6 +1013,13 @@ function layerOf(
     report('seq.view.layer.data', 'The layer’s data names nothing the static model holds', at);
     return { ...base, placed: false };
   }
+  // a ranges layer over links: their ends on the section's (or the block's) system, a mark each (Render, Layer types)
+  if (data.shape === 'pairs' && layerType.shape === 'ranges') {
+    const ends = model.annotations.get(data.address)?.ends;
+    if (ends?.has(system)) return { ...base, data: { ...data, system }, placed: true };
+    report('seq.view.layer.unplaced', 'The links have no end on the section’s system', at);
+    return { ...base, data, placed: false };
+  }
   if (data.shape !== undefined && data.shape !== layerType.shape) {
     report('seq.view.layer.shape', 'The layer’s type does not draw the shape of its data', at);
     return { ...base, data, placed: false };
