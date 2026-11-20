@@ -146,10 +146,8 @@ base-library change, below), archives. The Genomes milestone is the fifth.
     item only with a second use) ("Opening and closing clades");
   - a toggle's motion (the rows' heights animated as a jump's: `view.motion`, `view.jumpMs`); the drag past the band's
     edge scrolling the rows ("Opening and closing clades", "Lazy rows");
-  - accessibility: a tree node announced with its state through the canvas's accessible layer, and a folded clade's
-    summary row named by its summary label ("HBA +12", as the announcer and the hover card say it): `rowItems` in
-    `render/rows.ts` skips it, so a screen reader cannot reach a folded clade (found by AT; EC outcomes, third slice)
-    ("Opening and closing clades");
+  - accessibility: a tree node announced with its state through the canvas's accessible layer ("Opening and closing
+    clades");
   - icons in the header's fixed slots (pin, a bound row's link) and the rows table's data columns ("The rows axis");
   - the renderer's section cache keyed by the export's `folds`; the cell hit's 16 B (a number boxed from the point to
     its column through the axis, every layer's hit) measured by the allocation tier;

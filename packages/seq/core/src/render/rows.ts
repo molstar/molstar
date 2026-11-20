@@ -2487,13 +2487,12 @@ const RowsDraws = passDraws<RowsLay, Emphasis | undefined>({
 });
 
 /**
- * The data rows in view as items (a row an item: its label, its place among the rows), the summary rows of folded clades
- * left out; none until the rows are placed.
+ * The rows in view as items (a row an item: its label, its place), a folded clade's summary row by its summary label
+ * (`HBA +12`, its extent its first row's: EC-100); none until the rows are placed.
  */
 function rowItems(lay: RowsLay): ItemDescription[] {
   const out: ItemDescription[] = [];
   const d = lay.display;
-  const box = lay.box;
   if (!lay.axis || !(lay.rowScale > 0)) return out;
   const first = d.pinned + Math.max(0, Math.floor(lay.top));
   for (let i = 0; i < d.count; i++) {
@@ -2501,18 +2500,19 @@ function rowItems(lay: RowsLay): ItemDescription[] {
     if (i === d.pinned) i = first;
     if (i >= d.count) break;
     const y = lay.rowY(i);
-    if (y >= box.y + box.height) break;
+    if (y >= lay.box.y + lay.box.height) break;
     const e = d.rowAt(i);
-    if (e < 0 || y + lay.rowScale <= box.y) continue;
+    const row = e >= 0 ? e : (d.members.get(i)?.[0] ?? -1);
+    if (row < 0 || y + lay.rowScale <= lay.box.y) continue;
     out.push({
-      key: e,
-      label: lay.label(e),
-      start: e,
-      end: e + 1,
-      x0: box.x,
-      x1: box.x + box.width,
-      y: Math.max(y, box.y),
-      height: Math.min(y + lay.rowScale, box.y + box.height) - Math.max(y, box.y),
+      key: e >= 0 ? e : lay.displayLabel(i),
+      label: lay.displayLabel(i),
+      start: row,
+      end: row + 1,
+      x0: lay.box.x,
+      x1: lay.box.x + lay.box.width,
+      y: Math.max(y, lay.box.y),
+      height: Math.min(y + lay.rowScale, lay.box.y + lay.box.height) - Math.max(y, lay.box.y),
       system: lay.rowsSystem,
     });
   }

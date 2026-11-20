@@ -2322,17 +2322,18 @@ under the point as the hit's `state`. It reads every row (a logo of the rows sho
   `aria-labelledby` its `<title>` (the spec's `title`, else `Sequence view`) and `<desc>` (the sections, their systems
   and track counts, and how many items are not named); over the picture a group `data-seq-accessible` holds a
   `role="group"` a track (`aria-label` and `<title>`: its label, its item count and its section) and in it a
-  `role="img"` a named item (`LayerType.items`, which the ranges, secondary, variants, rows (a row an item: its label)
-  and pairs (a pair an item) layers have: the label, else the key, with its extent, 1-based and inclusive:
-  `DNA-binding, p53 94–292`), then a `role="img"` a highlight (`Highlight 1: 10 positions, p53 11–20`). A track names at
-  most `MaxNamedItemsPerTrack` (200) items and a figure `MaxNamedItems` (2,000), saying "n more not named" on the track
-  and in the description (a figure of 2,000 named items adds about 190 bytes each: roughly the size of the picture
-  itself for dense ranges). Each box is `fill="none" pointer-events="none"`: the layer never takes a pointer from the
-  picture beneath. Why boxes over the picture and not marks with names: the draw lists carry no semantics, and a layer's
-  items are already what the hit test names. **Ids**: the default `idPrefix` is a hash of the spec, the title, the size,
-  the token table, the view, the highlights and the selection, so exports that differ in them can share a page; two
-  equal exports share their ids, and a host inlining both passes each its own `idPrefix`. The viewer's announcements use
-  the same words (viewer `_spec`, Announcements).
+  `role="img"` a named item (`LayerType.items`, which the ranges, secondary, variants, rows (a row an item: its label; a
+  folded clade's summary row by its summary label, `HBA +12`) and pairs (a pair an item) layers have: the label, else
+  the key, with its extent, 1-based and inclusive: `DNA-binding, p53 94–292`), then a `role="img"` a highlight
+  (`Highlight 1: 10 positions, p53 11–20`). A track names at most `MaxNamedItemsPerTrack` (200) items and a figure
+  `MaxNamedItems` (2,000), saying "n more not named" on the track and in the description (a figure of 2,000 named items
+  adds about 190 bytes each: roughly the size of the picture itself for dense ranges). Each box is
+  `fill="none" pointer-events="none"`: the layer never takes a pointer from the picture beneath. Why boxes over the
+  picture and not marks with names: the draw lists carry no semantics, and a layer's items are already what the hit test
+  names. **Ids**: the default `idPrefix` is a hash of the spec, the title, the size, the token table, the view, the
+  highlights and the selection, so exports that differ in them can share a page; two equal exports share their ids, and
+  a host inlining both passes each its own `idPrefix`. The viewer's announcements use the same words (viewer `_spec`,
+  Announcements).
 - **PNG** (`renderPng`, `export-png.ts`): the SVG export rasterized, so a PNG is the SVG's picture (the same options,
   the same figure); the rasterizer is a port (`Rasterizer`: the SVG string and its size and `scale` × `dpr` to PNG
   bytes) so the core carries no native code, and the application composes one (the render CLI's, `cli/seqx-render`, over
