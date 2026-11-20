@@ -16,10 +16,10 @@ import type { Node } from '@molstar/core/repr/tree';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { partOf, rangesLocation } from '@molstar/seqx-core/query';
 import { describe, expect, it } from 'vitest';
-import { ImplicitLinear, linearsEqual } from '../linear.js';
+import { ImplicitLinear, isEmptyLinear, linearsEqual } from '../linear.js';
 import { viaRivals, withoutRivals } from '../maps-via.js';
 import { createResolver, type ResolveConfig, resolveSpec, type StaticModel } from '../model.js';
-import { type Edge, findPath, type PathGraph, type PathSearch } from '../paths.js';
+import { composeEdges, type Edge, findPath, type Path, type PathGraph, type PathSearch } from '../paths.js';
 
 const Encodings: ResolveConfig['encoding'][] = ['cheapest', 'runs', 'expanded'];
 const UP = 'MEEPQSDPSVEPPLSQETFSDLWKLLPENN';
@@ -245,39 +245,79 @@ describe('a carried search and priority', () => {
 
 // ---- properties over random graphs ----
 
-/** A random graph of offset maps among `n` systems, a few joining one pair twice, each with a random priority. */
-function randomGraph(rng: PCG, n: number, ranked: boolean): { graph: PathGraph; maps: Edge[] } {
+/**
+ * A random graph of offset maps among `n` systems, a few joining one pair twice, each with a random priority; the last
+ * system a molecule with two units (`/u0` its `[0, 50)`, `/u1` its `[50, 100)`), their steps free under the copy rule,
+ * and maps reaching the units too.
+ */
+function randomGraph(rng: PCG, n: number, ranked: boolean): { graph: PathGraph; maps: Edge[]; systems: string[] } {
   const out = new Map<string, Edge[]>();
+  const add = (e: Edge) => out.set(e.from, [...(out.get(e.from) ?? []), e]);
+  const molecule = `/s${n - 1}`;
+  for (const [u, start] of [
+    ['/u0', 0],
+    ['/u1', 50],
+  ] as const) {
+    const linear = new ImplicitLinear(start, 1, 0, 50);
+    add({ map: u, from: u, to: molecule, backward: false, step: 0, linear, unit: 'up' });
+    add({ map: u, from: molecule, to: u, backward: true, step: 0, linear: linear.inverse(), unit: 'down' });
+  }
+  const systems = [...Array.from({ length: n }, (_, i) => `/s${i}`), '/u0', '/u1'];
   const maps: Edge[] = [];
   const count = 4 + (rng.int() % 6);
   for (let i = 0; i < count; i++) {
-    const a = rng.int() % n;
-    let b = rng.int() % n;
-    if (a === b) b = (b + 1) % n;
+    const a = rng.int() % systems.length;
+    let b = rng.int() % systems.length;
+    if (a === b) b = (b + 1) % systems.length;
     const by = rng.int() % 3;
     // drawn either way, so the ranked graph is the unranked one with priorities
     const drawn = (rng.int() % 5) - 2;
     const priority = ranked ? drawn : 0;
     const linear = new ImplicitLinear(by, 1, 0, 100);
-    const fwd: Edge = { map: `/m${i}`, from: `/s${a}`, to: `/s${b}`, backward: false, step: 0, linear, priority };
-    const back: Edge = { ...fwd, from: fwd.to, to: fwd.from, backward: true, linear: linear.inverse() };
+    const fwd: Edge = { map: `/m${i}`, from: systems[a], to: systems[b], backward: false, step: 0, linear, priority };
     maps.push(fwd);
-    for (const e of [fwd, back]) out.set(e.from, [...(out.get(e.from) ?? []), e]);
+    add(fwd);
+    add({ ...fwd, from: fwd.to, to: fwd.from, backward: true, linear: linear.inverse() });
   }
-  return { graph: { edgesFrom: (s) => out.get(s) ?? [] }, maps };
+  return { graph: { edgesFrom: (s) => out.get(s) ?? [] }, maps, systems };
+}
+
+/**
+ * The oracle: every candidate of the shortest length that has any, by the search's rules written out plainly (each
+ * system once, unit steps free, no step down from a molecule the path climbed out of, an empty composition dropped).
+ */
+function shortestCandidates(graph: PathGraph, from: string, to: string, max = 4): { length: number; paths: Path[] } {
+  for (let length = 0; length <= max; length++) {
+    const paths: Path[] = [];
+    const walk = (at: string, edges: Edge[], seen: Set<string>, climbed: Set<string>, cost: number) => {
+      if (at === to) {
+        const p = cost === length ? composeEdges(from, edges) : undefined;
+        if (p && !isEmptyLinear(p.linear)) paths.push(p);
+        return;
+      }
+      for (const e of graph.edgesFrom(at)) {
+        const c = cost + (e.unit ? 0 : 1);
+        if (seen.has(e.to) || c > length || (e.unit === 'down' && climbed.has(e.from))) continue;
+        walk(e.to, [...edges, e], new Set([...seen, e.to]), e.unit === 'up' ? new Set([...climbed, e.to]) : climbed, c);
+      }
+    };
+    walk(from, [], new Set([from]), new Set(), 0);
+    if (paths.length) return { length, paths };
+  }
+  return { length: -1, paths: [] };
 }
 
 const counted = (r: PathSearch) => (r.ok ? r.path.edges.filter((e) => !e.unit).length : undefined);
 
-/** Whether some simple path of at most `max` steps from `from` to `to` steps through one of `maps`. */
+/** Whether some simple path of at most `max` counted steps from `from` to `to` steps through one of `maps`. */
 function touches(graph: PathGraph, from: string, to: string, maps: ReadonlySet<string>, max = 4): boolean {
   const go = (at: string, seen: Set<string>, depth: number, hit: boolean): boolean => {
     if (at === to) return hit;
-    if (depth === max) return false;
     for (const e of graph.edgesFrom(at)) {
-      if (seen.has(e.to)) continue;
+      if (seen.has(e.to) || depth + (e.unit ? 0 : 1) > max) continue;
       seen.add(e.to);
-      const r = go(e.to, seen, depth + 1, hit || maps.has(e.map));
+      // a unit's step is free, as in the search
+      const r = go(e.to, seen, depth + (e.unit ? 0 : 1), hit || maps.has(e.map));
       seen.delete(e.to);
       if (r) return true;
     }
@@ -287,20 +327,27 @@ function touches(graph: PathGraph, from: string, to: string, maps: ReadonlySet<s
 }
 
 describe('paths: properties at small seeds (EC-22, EC-24)', () => {
-  it('a priority never lengthens a path: where a path exists unranked, the ranked one is as short, else none', () => {
+  it('a priority never lengthens a path: the ranked path is one of the unranked search’s shortest candidates (EC-25 too)', () => {
     const rng = new PCG(23);
     let settled = 0;
+    let crossed = 0;
     for (let c = 0; c < 60; c++) {
       const seed = rng.int();
       const plain = randomGraph(new PCG(seed), 6, false).graph;
-      const ranked = randomGraph(new PCG(seed), 6, true).graph;
-      for (let a = 0; a < 6; a++)
-        for (let b = 0; b < 6; b++) {
-          const p = findPath(plain, `/s${a}`, `/s${b}`);
-          const q = findPath(ranked, `/s${a}`, `/s${b}`);
+      const { graph: ranked, systems } = randomGraph(new PCG(seed), 6, true);
+      for (const a of systems)
+        for (const b of systems) {
+          if (a === b) continue;
+          const p = findPath(plain, a, b);
+          const q = findPath(ranked, a, b);
+          const oracle = shortestCandidates(plain, a, b);
           // ranking only settles ties: never a path where none is, never another length
           if (!p.ok && p.why === 'none') expect(q.ok).toBe(false);
-          if (q.ok && p.ok) expect(counted(q)).toBe(counted(p));
+          if (q.ok) {
+            expect(counted(q)).toBe(oracle.length);
+            expect(oracle.paths.some((o) => linearsEqual(o.linear, q.path.linear))).toBe(true);
+            if (q.path.edges.some((e) => e.unit)) crossed++;
+          }
           if (q.ok && !p.ok) {
             expect(p.why).not.toBe('none');
             settled++;
@@ -309,26 +356,27 @@ describe('paths: properties at small seeds (EC-22, EC-24)', () => {
           if (p.ok) expect(q.ok && linearsEqual(q.path.linear, p.path.linear)).toBe(true);
         }
     }
-    // the seeds hold ties that a rank settles
+    // the seeds hold ties that a rank settles, and ranked paths through units
     expect(settled).toBeGreaterThan(0);
+    expect(crossed).toBeGreaterThan(0);
   });
 
   it('a via leaves alone every path that no rival lies on', () => {
     const rng = new PCG(29);
     let compared = 0;
     for (let c = 0; c < 60; c++) {
-      const { graph, maps } = randomGraph(rng, 6, true);
+      const { graph, maps, systems } = randomGraph(rng, 6, true);
       const via = [maps[rng.int() % maps.length].map];
       const rivals = viaRivals(
         via,
         maps.map((m) => ({ address: m.map, from: m.from, to: m.to })),
       );
       const filtered = withoutRivals(graph, rivals);
-      for (let a = 0; a < 6; a++)
-        for (let b = 0; b < 6; b++) {
-          if (a === b || touches(graph, `/s${a}`, `/s${b}`, rivals)) continue;
-          const p = findPath(graph, `/s${a}`, `/s${b}`);
-          const q = findPath(filtered, `/s${a}`, `/s${b}`);
+      for (const a of systems)
+        for (const b of systems) {
+          if (a === b || touches(graph, a, b, rivals)) continue;
+          const p = findPath(graph, a, b);
+          const q = findPath(filtered, a, b);
           expect(q.ok).toBe(p.ok);
           if (p.ok && q.ok) expect(linearsEqual(q.path.linear, p.path.linear)).toBe(true);
           else if (!p.ok && !q.ok) expect(q.why).toBe(p.why);
