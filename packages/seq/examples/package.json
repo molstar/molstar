@@ -38,6 +38,7 @@
     "tslib": "catalog:"
   },
   "devDependencies": {
+    "@molstar/io": "workspace:*",
     "@types/node": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"

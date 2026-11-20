@@ -42,13 +42,14 @@ The third slice is closed (2026-11-20; its record in `.seq/records/third-slice/`
 
 ## In progress
 
-- 2026-11-20: QE, ST1, AC, HP1, MR and CU merged. Two lanes at once (the author). HP2 (strong, `seq/hp2-lane`) builds;
-  MX (strong) next beside it.
+- 2026-11-20: QE, ST1, AC, HP1, MR, CU and MX merged: the molecules track done. HP2 (strong, `seq/hp2-lane`) in review.
 
 ## Next
 
-1. MX, then stage 1's gate (QE's heavy `:index` bound; the drift notes; the quick-lane folders over 2 s: core,
-   viewer); HP2's check, look, review; then ST2, ST3, HD, HP3.
+1. Stage 1's gate: the merged tree's checks, medium, heavy (QE's `:index` bound), the tiers, sizes, the matrix cells
+   (molecules.md's), the quick-lane folders over 2 s (core, viewer, storybook), a report to the author.
+2. HP2's fix round and merge; then ST2, ST3, HD, HP3; FX3 after the gate.
+3. For the author: T-DM1's CCD ids (placeholders); the pairs layer reading numeric columns (arcs by occupancy).
 
 ## Findings by lane
 
@@ -74,6 +75,7 @@ One row a merged lane (loop, step 5, record): review findings and look findings 
 | HP1 | 2026-11-20 | 4 (review: slots hit while not drawn; rows tracks' states over the tree; navigator pictures given headers; marks at negative x) | 3 (a label hit for `Emphasis.header`; the "⋯" order and backdrop; marks in a narrow column: the author amended the design) | 0 | `HeaderFacts` renamed; `nodeAt` a private copy of repr/tree; test gaps; no new part visible without a host (HP3's stories); minimal viewer 915.8 of 920 kB |
 | MR | 2026-11-20 | 4 (review: EC-95's label over the start number; the allocation tier order-dependent, a test helper's megamorphic copy; an atoms-form block lit as residues; a view after an edit never opening its end plans) | 1 (`block.form` froze the unit list: a block child overrides one unit, the author) | 3 (look: "Fc A1"; the code mode never shown; the story's data against its text) | sizes past 820 / 920 twice trimmed (lazy molecule letters), the bounds moved to 830 / 930 (the author); three brief items built late |
 | CU | 2026-11-20 | 2 (review: the real example as on the parent, every contact on the first heme; a private copy of the unit step) | 1 (an unnamed pair across split copies: never on a guessed copy, the author) | 1 (look: the split hemoglobin's contacts all on the first heme) | weak issue tests; no tile-edge test; `ResolvedBlock.copy` internal; CE's parked branch deleted |
+| MX | 2026-11-20 | 4 (review: chip pills cut below `labels.minChars`, a core cause; the 1FIN twin counting arcs only; module state in molecule letters; rival vias a silent missing link) | 3 (a section's `via` scope and a component query pending: drifts decided; the pairs layer reads text columns only: TODO, the author's) | 2 (look: "AT…", "2…" chips; transplants' contacts not said to come from other entries) | the projection bug (a blocks section unlinked) fixed in core; half the brief built late; T-DM1's CCD ids placeholders; storybook folder 3.0 s |
 
 ## How to verify
 

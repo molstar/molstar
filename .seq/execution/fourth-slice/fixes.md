@@ -41,6 +41,8 @@ queue. Each line: what is seen, where (the story), where it came from, its kind 
   prolly reset the vertical zoom too?". As the horizontal navigator's double-click resets (navigators.md); state it in
   the design and its page with the fix.
 
+- **The storybook folder's quick-lane time over 2 s** (nature, partly): `packages/seq/storybook` at 3.0 s after MX
+  (2.3 s before; one quick twin a new story kept, the rest moved to medium). With core's and viewer's below.
 - **The core folder's quick-lane time over 2 s** (waste or nature): `packages/seq/core` at 2.7-3.4 s before and after
   MR; bigWig 1.0 s, hover-time 0.7 s, mmCIF 0.7 s (MR's review). Fix the waste, move what is slow by nature with a
   quick representative.
