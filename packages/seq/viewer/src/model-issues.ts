@@ -4,8 +4,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { derive, type ReadonlyState } from '@molstar/core/reactive';
 import type { Issue } from '@molstar/core/repr/tree';
 import type { StaticModel } from '@molstar/seqx-core/resolve';
+import { sameIssues } from '@molstar/seqx-viewer/models';
 import type { SeqViewer } from './viewer.js';
 
 // The model's issues as the viewer says them (_spec/README.md "SpecModel", Issues of a pending address): an issue of a
@@ -40,14 +42,19 @@ function waits(model: StaticModel, address: string | undefined, pending: (source
 }
 
 /**
- * The viewer's model's issues as it says them: a source is pending until the viewer's store opened it from the model's
- * own entry, or reported it (a failed opening).
+ * The viewer's `modelIssues`: its model's issues as it says them, again when the model, the store's reports or the
+ * picture's rest move. A source is pending until the viewer's store opened it from the model's own entry, or reported
+ * it (a failed opening).
  */
-export function modelIssues(viewer: SeqViewer): readonly Issue[] {
-  const model = viewer.spec.model.value;
-  const reported = viewer.store.issues.value;
-  return shownModelIssues(
-    model,
-    (source) => viewer.store.openedCoverage(model, source) === undefined && !reported.some((i) => i.address === source),
+export function modelIssuesState(viewer: SeqViewer): ReadonlyState<readonly Issue[]> {
+  return derive(
+    [viewer.spec.model, viewer.store.issues, viewer.rested],
+    (model, reported) =>
+      shownModelIssues(
+        model,
+        (source) =>
+          viewer.store.openedCoverage(model, source) === undefined && !reported.some((i) => i.address === source),
+      ),
+    sameIssues,
   );
 }

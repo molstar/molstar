@@ -14,6 +14,7 @@ import type { SeqViewerSpec } from '@molstar/seqx-viewer/viewer-spec';
 import { defineElements, onCleanup } from '@molstar/ui/dom';
 import { UiElement } from '@molstar/ui/elements/ui-element';
 import { followSvg } from '../follow-svg.js';
+import { statusIssues } from './status-issues.js';
 import { filesOf, fileHead, printSources } from '../features/files/file-head.js';
 
 // A story of an example view (examples-and-stories.md): the view's `build()` shown by a viewer composed from the default
@@ -97,11 +98,13 @@ class ExampleRoot extends UiElement<ExampleModel> {
     // share a clip or a mask
     const svg = followSvg(viewer, svgHost, {
       prefix: 'ex',
-      also: [viewer.layoutIssues],
+      also: [viewer.layoutIssues, viewer.modelIssues],
       ...(view.navigators ? { svg: { navigators: view.navigators } } : {}),
       onDraw: (r) => {
-        status.textContent = `${r.settled ? 'Settled' : 'Not settled'}; ${r.issues.length} issue${r.issues.length === 1 ? '' : 's'}${
-          r.issues.length ? `: ${r.issues.map((i) => i.message).join('; ')}` : ''
+        // the export's issues and the viewer's model's as it says them (one of a source still opening held back)
+        const issues = statusIssues(r.issues, viewer.modelIssues.value);
+        status.textContent = `${r.settled ? 'Settled' : 'Not settled'}; ${issues.length} issue${issues.length === 1 ? '' : 's'}${
+          issues.length ? `: ${issues.map((i) => i.message).join('; ')}` : ''
         }`;
       },
     });

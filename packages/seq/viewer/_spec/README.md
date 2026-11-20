@@ -28,12 +28,13 @@ recompiles the entries whose nodes (or the nodes they read) it changed and a vie
   lengths, resolved again with the lengths the opened sources' coverages give, so such a system is laid out, its rows
   wrapped over a cyclic origin and its grids read as over inline letters (the core's `ResolveOptions.lengths`). Why the
   model, not the view: what reads a length (an item across the origin, a codon map, a grid, a block) is the model's.
-- **Issues of a pending address** (`model-issues.ts`: `modelIssues(viewer)`, `shownModelIssues(model, pending)`): an
-  issue of a pending address is not shown. `seq.resolve.length.unknown` at an annotation or a map over a system read
-  from a source is held back until the source's opening settles (opened from the model's own entry, `openedCoverage`, or
-  reported by the store: failed); every other issue of the model is shown as it is, `seq.resolve.system.unnamed` too.
-  Why: the code is transient while a source opens (its length arrives, the model is resolved again, it goes), so said
-  then it only flashes.
+- **Issues of a pending address** (`viewer.modelIssues`, a state; `model-issues.ts`, `shownModelIssues`): the model's
+  issues as the viewer says them, again when the model, the store's reports or the picture's rest move; an issue of a
+  pending address is not shown. `seq.resolve.length.unknown` at an annotation or a map over a system read from a source
+  is held back until the source's opening settles (opened from the model's own entry, `openedCoverage`, or reported by
+  the store: failed); every other issue of the model is shown as it is, `seq.resolve.system.unnamed` too. The stories'
+  status line reads it beside the export's issues. Why: the code is transient while a source opens (its length arrives,
+  the model is resolved again, it goes), so said then it only flashes.
 
 - **Patches** (`applyPatch(patch, options)`): `repr/patch`'s `applyPatch` with `SeqLanguage`, its slots
   (`SeqValidateOptions`) and the checks of a change (`SeqPatchValidator`, the core's `seq.lang` checks of what the

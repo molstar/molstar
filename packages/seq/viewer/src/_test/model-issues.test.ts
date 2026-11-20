@@ -15,7 +15,7 @@ import { createSeqSpec } from '@molstar/seqx-core/lang';
 import type { StaticModel } from '@molstar/seqx-core/resolve';
 import { afterEach, describe, expect, it } from 'vitest';
 import { DefaultSeqViewerSpec } from '../default-spec.js';
-import { modelIssues, shownModelIssues } from '../model-issues.js';
+import { shownModelIssues } from '../model-issues.js';
 import { createSeqViewer, type SeqViewer } from '../viewer.js';
 import { type Frames, installFrames } from './frames.js';
 
@@ -61,12 +61,12 @@ describe('the model’s issues as the viewer says them', () => {
     const loading = v.load(spec());
     // the model before the source opens: the row waits for the length, said by core, held back by the viewer
     expect(codes(v.spec.model.value.issues)).toContain('seq.resolve.length.unknown');
-    expect(codes(modelIssues(v))).not.toContain('seq.resolve.length.unknown');
+    expect(codes(v.modelIssues.value)).not.toContain('seq.resolve.length.unknown');
     await loading;
     v.resize(600);
     await v.settle();
     expect(codes(v.spec.model.value.issues)).toEqual([]);
-    expect(modelIssues(v)).toEqual([]);
+    expect(v.modelIssues.value).toEqual([]);
   });
 
   it('said when the source settled without the length (opened, or failed)', () => {
@@ -88,7 +88,7 @@ describe('the model’s issues as the viewer says them', () => {
     await v.load(spec('ring'));
     v.resize(600);
     await v.settle();
-    const said = modelIssues(v);
+    const said = v.modelIssues.value;
     expect(codes(said)).toContain('seq.resolve.system.unnamed');
     // the wrapped row's length is never known: said too, its source settled
     expect(codes(said)).toContain('seq.resolve.length.unknown');

@@ -73,6 +73,7 @@ import { frameAnimation } from './animation.js';
 import { ViewerInput } from './input.js';
 import { highlightColorOf, LegendModel } from './legends.js';
 import { ViewerIssues } from './issues.js';
+import { modelIssuesState } from './model-issues.js';
 import { narrowedVersion, rowsRailsOf } from './narrowed.js';
 import type { BehaviorContext, BehaviorProvider, SeqViewerSpec } from './viewer-spec.js';
 import { mountCanvas } from './mount.js';
@@ -132,6 +133,8 @@ export class SeqViewer extends ReactiveModel {
   readonly commands: ViewerCommand[] = [];
   /** The layout's issues of the last frame (a color it cannot read, a layer it cannot draw). */
   readonly layoutIssues: ReadonlyState<readonly Issue[]>;
+  /** The model's issues as the viewer says them: one of an address still pending held back (`model-issues.ts`). */
+  readonly modelIssues: ReadonlyState<readonly Issue[]>;
   /** The viewer's own: a gesture that needs a behavior the spec does not list, once each. */
   readonly behaviorIssues: ReadonlyState<readonly Issue[]>;
   /**
@@ -299,6 +302,7 @@ export class SeqViewer extends ReactiveModel {
     });
     this.hover = new HoverModel(this.spec, this.view, this.config);
     this.store = new StoreModel(this.config);
+    this.modelIssues = modelIssuesState(this);
     // an element selected by an address and then toggled is drawn by its extent, resolved over what is shown
     this.selection = new SelectionModel(
       (els) =>
