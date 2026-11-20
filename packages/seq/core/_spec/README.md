@@ -1678,13 +1678,13 @@ no target.
   unit's `label`, else (a molecule) its `name`, else its one component's code (`ATP`), else its id.
 - **Blocks**: each its axis (its system, its `range`, the section's direction), its form, its first display unit in the
   section's (`offset`: 0 in a stack), its label, the blocks it stands for (`members`) and their systems (`systems`: a
-  merged copy's unit, what an end on a copy is drawn on), its copy group (`copy`: blocks of one key are copies), and
-  each of the section's tracks' layers resolved onto its system (a path a block: placed on each block its data reaches;
-  a layer that reaches no block says why once, by its first block's issue). Copies (the same system, or units of one
-  copy group, with the same range and form) are one block labeled `×N` with `copies: 'merge'` (the default: a copy
-  group's sequence said once, its cost one block's, EC-65, EC-67), a block each with `each`. The section's axis is the
-  blocks' display units in order: on one system in a row (or on a ring), the blocks' pieces end to end (their breaks
-  between them, a follow along one axis); else units `[0, total)` on no system (its `system` the section's address,
+  merged copy's unit, what an end on a copy is drawn on), its copy group (`copy`, internal: the pairs layer's), and each
+  of the section's tracks' layers resolved onto its system (a path a block: placed on each block its data reaches; a
+  layer that reaches no block says why once, by its first block's issue). Copies (the same system, or units of one copy
+  group, with the same range and form) are one block labeled `×N` with `copies: 'merge'` (the default: a copy group's
+  sequence said once, its cost one block's, EC-65, EC-67), a block each with `each`. The section's axis is the blocks'
+  display units in order: on one system in a row (or on a ring), the blocks' pieces end to end (their breaks between
+  them, a follow along one axis); else units `[0, total)` on no system (its `system` the section's address,
   `pieces: 'blocks'`), the total the sum in a row and the longest block in a stack. Why: a position on them is no
   block's, so a selection, a focus, a bookmark or a cursor on a system never reads them as its own; a block's hits carry
   its system and its index (`block`), and a consumer maps them through the block's axis and `offset`. A block that names
@@ -2837,13 +2837,15 @@ numbers): a window move allocates nothing once warm.
   `systems`); its hit's extent on the two units.
 - **Ends on blocks** (`render/pairs-ends.ts`): an end is on the first block showing its system: the block of its system
   or its row's unit, the block a merged copy of it is merged into, or a block of a unit of it (a sequence or a molecule
-  reaches every unit over it, EC-48, its position less the unit's start, within its range). A pair whose ends are on one
-  block of one system is drawn again on each copy of that block (`ResolvedBlock.copy`, the resolver's copy groups: one
-  copy group, or one system and one range and form), a caret a copy where its other end is placed on none: split copies
-  each show a pair within one molecule, a unit named by the data shows it alone, a zoom block (another range) is no
-  copy. Ends on two systems shown as split copies whose data names no copy are on the first copy of each. Why the
-  copies: the data says the pair is within that system, so every copy holds it; across two systems it does not say which
-  copies pair.
+  reaches every unit over it, EC-48, by the resolver's step down to the unit: within its range). A pair whose ends are
+  on one block of one system is drawn again on each copy of that block (`ResolvedBlock.copy`, the resolver's copy
+  groups: one copy group, or one system and one range and form), a caret a copy where its other end is on no block:
+  split copies each show a pair within one molecule, a unit named by the data shows it alone, a zoom block (another
+  range) is no copy. A pair between two systems with an end on split copies its data names no unit of is drawn on no
+  copy, never a guessed one, and `seq.render.pairs.copy` (warning, once a layer) gives the pairs shown so (a filter's
+  left out) and each system with its copies; one whose other end is on no block also says `seq.render.pairs.systems`.
+  Why: the data says a pair within one system holds on every copy; across two it does not say which copies touch, and a
+  contact drawn on the wrong copy states a fact the data does not hold (derive contacts per pair of units).
 - **Bounded by the screen**: past `pairs.maxArcs`, arcs binned by their ends' device columns, one a bin (widest first),
   the rest a density strip of ends, said once (`seq.render.pairs.limit`, info). Ends on two systems that are not the
   section's own report `seq.render.pairs.systems`.

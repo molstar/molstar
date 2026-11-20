@@ -22,7 +22,7 @@
 import { issueOf } from '@molstar/core/repr/tree';
 import { type Key, type Location, location } from '@molstar/seqx-core/query';
 import { theme as themeForm } from '@molstar/seqx-core/lang';
-import type { PairsData, StaticModel, UnitEntry } from '@molstar/seqx-core/resolve';
+import type { PairsData, StaticModel } from '@molstar/seqx-core/resolve';
 import type { Channel, ChannelName, ThemeDatum } from '@molstar/seqx-core/theme/index';
 import type { ResolvedLayer, ResolvedSection } from '@molstar/seqx-core/view';
 import type { AxisTransform } from './axis.js';
@@ -143,8 +143,8 @@ export interface PairsPrep {
   /** Each pair's element and extent (both ends), made when first hit. */
   readonly elements: (Key | undefined)[];
   readonly extents: (Location | undefined)[];
-  /** The model's units: a block of a unit shows what it instantiates (an end on a molecule reaches its units). */
-  readonly molecularUnits: ReadonlyMap<string, UnitEntry>;
+  /** The resolver's steps: a block of a unit shows what it instantiates (an end on a molecule reaches its units). */
+  readonly model: StaticModel;
   /** The ends drawn in a section (`pairEnds`), by section. */
   readonly units: WeakMap<ResolvedSection, PairEnds>;
 }
@@ -257,7 +257,7 @@ function prepare(layer: ResolvedLayer, model: StaticModel): PairsPrep {
     index,
     elements: [],
     extents: [],
-    molecularUnits: model.molecular.units,
+    model,
     units: new WeakMap(),
   };
 }
@@ -513,12 +513,20 @@ function layoutArcs(lay: PairsLay, prep: PairsPrep, ctx: LayoutContext, place: P
   let m = 0;
   let widest = 0;
   let unplaced = false;
+  let copied = 0;
   // each entry a pair, or a pair again on a copy (`pairEnds`)
   for (let e = 0; e < ends.n; e++) {
     const k = ends.pair[e];
     if (!prep.shown[k]) continue;
     let oa = units[2 * e];
     let ob = units[2 * e + 1];
+    const unnamed = ends.unnamed[e];
+    if (unnamed) {
+      // an end on split copies the data names no unit of: on no copy (`pairEnds`)
+      copied++;
+      if (unnamed & 4) unplaced = true;
+      continue;
+    }
     if (Number.isNaN(oa) && Number.isNaN(ob)) {
       unplaced = true;
       continue;
@@ -563,6 +571,7 @@ function layoutArcs(lay: PairsLay, prep: PairsPrep, ctx: LayoutContext, place: P
     if (span > widest) widest = span;
     m++;
   }
+  if (copied) reportCopies(ctx, prep, ends, copied);
   if (unplaced)
     ctx.report(
       issueOf(RenderIssues, 'seq.render.pairs.systems', 'Some pairs’ ends are on no system the section shows', {
@@ -680,6 +689,23 @@ function layoutArcs(lay: PairsLay, prep: PairsPrep, ctx: LayoutContext, place: P
     const b = place.box;
     lay.clip = { x: x0, y: b.y, width: Math.max(0, x1 - x0), height: b.height };
   }
+}
+
+/** The pairs on split copies whose data names no units: the count, each system with its copies. */
+function reportCopies(ctx: LayoutContext, prep: PairsPrep, ends: PairEnds, n: number) {
+  const name = (system: string, copies: number) => `${system.slice(system.lastIndexOf('/') + 1)} ×${copies}`;
+  const shown = [
+    ...(ends.aCopies ? [name(prep.aSystem, ends.aCopies)] : []),
+    ...(ends.bCopies && prep.bSystem !== prep.aSystem ? [name(prep.bSystem, ends.bCopies)] : []),
+  ];
+  const pairs = n === 1 ? 'pair' : 'pairs';
+  const message = `${n} ${pairs} on split copies (${shown.join(', ')}) not drawn: the data names no units`;
+  ctx.report(
+    issueOf(RenderIssues, 'seq.render.pairs.copy', message, {
+      address: ctx.key,
+      hint: RenderIssues.codes['seq.render.pairs.copy'].hint,
+    }),
+  );
 }
 
 /** A caret at a placed end whose partner is not placed (a tick into the band), its pair's. */

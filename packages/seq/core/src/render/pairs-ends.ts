@@ -7,15 +7,16 @@
 // Where a pairs layer's ends are in a section (_spec/README.md "Render", The pairs layer, Ends on blocks): each end's
 // centre as the section's display units, on the section's axis or on a block. An end is on the first block showing
 // its system: the block of its system or of its row's unit, the block a merged copy of it is merged into, or a block of
-// a unit of it (a sequence or a molecule reaches every unit over it, EC-48). A pair whose two ends are on one block of
-// one system is drawn again on each copy of that block (the resolver's copy groups, `ResolvedBlock.copy`): split copies
-// each show it, a unit named by the data shows it alone.
+// a unit of it (a sequence or a molecule reaches every unit over it, EC-48, by the resolver's step down to the unit).
+// A pair whose two ends are on one block of one system is drawn again on each copy of that block (the resolver's copy
+// groups, `ResolvedBlock.copy`). A pair between two systems with an end on split copies its data names no unit of is
+// on no copy (never a guessed one): flagged, said by the layer (`seq.render.pairs.copy`).
 
-import type { PairsData, UnitEntry } from '@molstar/seqx-core/resolve';
+import { composeEdges, type Path, projectRanges, type PairsData, type StaticModel } from '@molstar/seqx-core/resolve';
 import { cellOffset, type ResolvedSection } from '@molstar/seqx-core/view';
 import type { AxisTransform } from './axis.js';
 
-/** The ends drawn in a section: a pair's two ends' centres as display units (NaN: not on it), and its pair, by entry. */
+/** The ends drawn in a section: each entry's two ends' centres as display units (NaN: not on it), and its pair. */
 export interface PairEnds {
   /** The axis pieces they were placed on (kept by them: a source's coverage fills the layout's). */
   readonly pieces: readonly number[] | undefined;
@@ -25,6 +26,14 @@ export interface PairEnds {
   readonly u: Float64Array;
   /** Each entry's pair. */
   readonly pair: Int32Array;
+  /**
+   * Each entry's ends on split copies its data names no unit of (bit 1: `a`, 2: `b`): drawn on no copy; bit 4, its
+   * other end is on no block either.
+   */
+  readonly unnamed: Uint8Array;
+  /** The copies shown of `a`'s system and of `b`'s where an entry is `unnamed` there (0: none). */
+  readonly aCopies: number;
+  readonly bCopies: number;
 }
 
 /** What placing a pair's ends reads. */
@@ -34,8 +43,8 @@ export interface PairEndsInput {
   readonly bSystem: string;
   /** A complex's links: the units their ends are on (`PairsData.aUnit`, `bUnit` index them). */
   readonly endUnits?: readonly string[];
-  /** The model's units: a block of a unit shows what it instantiates. */
-  readonly molecularUnits: ReadonlyMap<string, UnitEntry>;
+  /** The resolver's steps: a unit's step down from what it instantiates. */
+  readonly model: Pick<StaticModel, 'edgesFrom'>;
 }
 
 type Axis = ResolvedSection['axis'];
@@ -49,42 +58,45 @@ function centreOf(axis: Parameters<typeof cellOffset>[0], start: number, end: nu
 }
 
 /**
- * What each block shows, flat: for block `i`, entries `reach[i]` to `reach[i + 1]` of `systems`, each a system with
- * the shift and length of its positions on the block (a unit of a molecule: its start and length; its own: 0, ∞).
+ * What each block shows, flat: for block `i`, entries `at[i]` to `at[i + 1]`, each a system and the resolver's path
+ * from it onto the block's (undefined: the block's own, or a merged copy's).
  */
 interface Reach {
   readonly at: Int32Array;
   readonly systems: string[];
-  readonly shift: number[];
-  readonly length: number[];
+  readonly paths: (Path | undefined)[];
 }
 
-function reachOf(section: ResolvedSection, units: ReadonlyMap<string, UnitEntry>): Reach {
+function reachOf(section: ResolvedSection, model: PairEndsInput['model']): Reach {
   const blocks = section.blocks!;
   const at = new Int32Array(blocks.length + 1);
   const systems: string[] = [];
-  const shift: number[] = [];
-  const length: number[] = [];
+  const paths: (Path | undefined)[] = [];
   let from = 0;
-  const add = (system: string, s: number, n: number) => {
+  const add = (system: string, path: Path | undefined) => {
     for (let j = from; j < systems.length; j++) if (systems[j] === system) return;
     systems.push(system);
-    shift.push(s);
-    length.push(n);
+    paths.push(path);
   };
   for (let i = 0; i < blocks.length; i++) {
     at[i] = from = systems.length;
     const b = blocks[i];
-    add(b.axis.system, 0, Number.POSITIVE_INFINITY);
-    for (const s of b.systems) add(s, 0, Number.POSITIVE_INFINITY);
-    for (const s of b.systems) {
-      const u = units.get(s);
-      if (u) add(u.of, u.start, u.end === undefined ? Number.POSITIVE_INFINITY : u.end - u.start);
-    }
+    add(b.axis.system, undefined);
+    for (const s of b.systems) add(s, undefined);
+    // a unit's molecule (or sequence) by the unit's step down from it
+    for (const s of b.systems)
+      for (const up of model.edgesFrom(s)) {
+        if (up.unit !== 'up') continue;
+        const down = model.edgesFrom(up.to).find((e) => e.unit === 'down' && e.to === s);
+        const path = down && composeEdges(up.to, [down]);
+        if (path) add(up.to, path);
+      }
   }
   at[blocks.length] = systems.length;
-  return { at, systems, shift, length };
+  return { at, systems, paths };
 }
+
+const Projected: number[] = [];
 
 /** `[s, e)` on `system` on block `i` as the section's display units, NaN when the block does not show it. */
 function onBlock(
@@ -100,9 +112,16 @@ function onBlock(
   if (b.offset === undefined) return Number.NaN;
   for (let j = reach.at[i]; j < reach.at[i + 1]; j++) {
     if (reach.systems[j] !== system) continue;
-    const from = s - reach.shift[j];
-    const to = e - reach.shift[j];
-    if (from < 0 || to > reach.length[j]) return Number.NaN;
+    const path = reach.paths[j];
+    let from = s;
+    let to = e;
+    if (path) {
+      // onto the unit: the whole end within its range, else not on it
+      projectRanges(path, [s, e], Projected);
+      if (Projected.length !== 2 || Projected[1] - Projected[0] !== e - s) return Number.NaN;
+      from = Projected[0];
+      to = Projected[1];
+    }
     // a chip is one unit: every residue of its molecule's ends at its middle
     if (b.form === 'whole') return b.offset + 0.5;
     const c = centreOf(shape(b.axis), from, to);
@@ -111,8 +130,8 @@ function onBlock(
   return Number.NaN;
 }
 
-/** Placing: the first block holding an end, into `At`. */
-const At = { block: -1, u: Number.NaN };
+/** Placing an end: its first block, its centre there, its copies holding it (blocks of that block's copy group). */
+const At = { block: -1, u: Number.NaN, copies: 0 };
 
 function firstOn(
   section: ResolvedSection,
@@ -124,22 +143,23 @@ function firstOn(
 ) {
   At.block = -1;
   At.u = Number.NaN;
+  At.copies = 0;
   if (system === undefined) return;
-  const n = section.blocks!.length;
-  for (let i = 0; i < n; i++) {
+  const blocks = section.blocks!;
+  for (let i = 0; i < blocks.length; i++) {
     const u = onBlock(section, reach, shape, i, system, s, e);
-    if (!Number.isNaN(u)) {
-      At.block = i;
-      At.u = u;
-      return;
-    }
+    if (Number.isNaN(u)) continue;
+    At.block = i;
+    At.u = u;
+    At.copies = 1;
+    for (let j = i + 1; j < blocks.length; j++)
+      if (blocks[j].copy === blocks[i].copy && !Number.isNaN(onBlock(section, reach, shape, j, system, s, e)))
+        At.copies++;
+    return;
   }
 }
 
-/**
- * Each pair's ends in a section (the module's comment): on the section's axis, or on its blocks, a pair whose ends are
- * on one block of one system again on each of that block's copies.
- */
+/** Each pair's ends in a section (the module's comment). */
 export function pairEnds(input: PairEndsInput, section: ResolvedSection, layout: AxisTransform): PairEnds {
   // the pieces the layout placed the axis on: the resolved axis has none while its letters come from a source
   const pieces = section.axis.ranges ?? layout.pieces;
@@ -160,33 +180,59 @@ export function pairEnds(input: PairEndsInput, section: ResolvedSection, layout:
       u[2 * k + 1] = on(bOf(k), d.bStart[k], d.bEnd[k]);
       pair[k] = k;
     }
-    return { pieces, n: d.n, u, pair };
+    return { pieces, n: d.n, u, pair, unnamed: new Uint8Array(d.n), aCopies: 0, bCopies: 0 };
   }
-  const reach = reachOf(section, input.molecularUnits);
+  const reach = reachOf(section, input.model);
   const u: number[] = [];
   const pair: number[] = [];
+  const unnamed: number[] = [];
+  let aCopies = 0;
+  let bCopies = 0;
   for (let k = 0; k < d.n; k++) {
     const as = aOf(k);
     const bs = bOf(k);
     firstOn(section, reach, shape, as, d.aStart[k], d.aEnd[k]);
     const ia = At.block;
-    u.push(At.u);
+    const ua = At.u;
+    const ca = At.copies;
     firstOn(section, reach, shape, bs, d.bStart[k], d.bEnd[k]);
     const ib = At.block;
-    u.push(At.u);
+    const ub = At.u;
+    const cb = At.copies;
     pair.push(k);
-    // one system, one block (or one end not placed): each copy of that block holding the end shows the pair too
+    // one system, one block (or one end on none): the pair is on each copy of that block
     const i = ia >= 0 ? ia : ib;
-    if (i < 0 || as !== bs || (ia >= 0 && ib >= 0 && ia !== ib)) continue;
-    const copy = blocks[i].copy;
-    for (let j = i + 1; j < blocks.length; j++) {
-      if (blocks[j].copy !== copy) continue;
-      const ua = ia < 0 ? Number.NaN : onBlock(section, reach, shape, j, as!, d.aStart[k], d.aEnd[k]);
-      const ub = ib < 0 ? Number.NaN : onBlock(section, reach, shape, j, bs!, d.bStart[k], d.bEnd[k]);
-      if (Number.isNaN(ua) && Number.isNaN(ub)) continue;
+    if (i >= 0 && as === bs && (ia < 0 || ib < 0 || ia === ib)) {
       u.push(ua, ub);
-      pair.push(k);
+      unnamed.push(0);
+      const copy = blocks[i].copy;
+      for (let j = i + 1; j < blocks.length; j++) {
+        if (blocks[j].copy !== copy) continue;
+        const ja = ia < 0 ? Number.NaN : onBlock(section, reach, shape, j, as!, d.aStart[k], d.aEnd[k]);
+        const jb = ib < 0 ? Number.NaN : onBlock(section, reach, shape, j, bs!, d.bStart[k], d.bEnd[k]);
+        if (Number.isNaN(ja) && Number.isNaN(jb)) continue;
+        u.push(ja, jb);
+        pair.push(k);
+        unnamed.push(0);
+      }
+      continue;
     }
+    // an end on split copies its data names no unit of: on no copy, never a guessed one
+    const flag = (ca > 1 ? 1 : 0) | (cb > 1 ? 2 : 0) | (ia < 0 || ib < 0 ? 4 : 0);
+    if (flag & 3) {
+      u.push(Number.NaN, Number.NaN);
+      if (ca > 1) aCopies = Math.max(aCopies, ca);
+      if (cb > 1) bCopies = Math.max(bCopies, cb);
+    } else u.push(ua, ub);
+    unnamed.push(flag & 3 ? flag : 0);
   }
-  return { pieces, n: pair.length, u: Float64Array.from(u), pair: Int32Array.from(pair) };
+  return {
+    pieces,
+    n: pair.length,
+    u: Float64Array.from(u),
+    pair: Int32Array.from(pair),
+    unnamed: Uint8Array.from(unnamed),
+    aCopies,
+    bCopies,
+  };
 }

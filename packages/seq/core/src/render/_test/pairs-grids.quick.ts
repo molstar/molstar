@@ -5,8 +5,9 @@
  */
 
 // The pairs' and grids' allocation targets (the design's "Performance and size"): a warm draw of a dot plot (image
-// tiles and rects) and of 4,096 arcs, and a warm hover (the crosshair over the cells, the arcs lit), allocate nothing; a
-// hit on a cell, an arc or a caret allocates no hit object, the pairs on split copies too. By hand, never in CI: `pnpm -C packages/seq/core test:perf`.
+// tiles and rects) and of 4,096 arcs, and a warm hover (the crosshair over the cells, the arcs lit), allocate nothing;
+// a hit on a cell, an arc or a caret allocates no hit object, the pairs on split copies too. By hand, never in CI:
+// `pnpm -C packages/seq/core test:perf`.
 
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { rangesLocation } from '@molstar/seqx-core/query';

@@ -198,33 +198,36 @@ export function cifHelices(text: string): CifHelix[] {
 export const ContactDistance = 4;
 
 /**
- * Each heme's contacting residues (derived): the residues of the heme's own chain (`auth_asym_id`) with a heavy atom
- * within `ContactDistance` of one of the heme's, as `label_seq_id`s ascending; by the heme's `auth_asym_id`.
+ * The hemes' contacts per pair of units (derived): for each heme (by its `auth_asym_id`) and each chain, the chain's
+ * residues with a heavy atom within `ContactDistance` of one of the heme's, as `label_seq_id`s ascending; the pairs
+ * with a contact, by heme then chain.
  */
-export function hemeContacts(text: string): Map<string, number[]> {
+export function hemeContacts(text: string): { heme: string; chain: string; residues: number[] }[] {
   const a = cifLoop(text, 'atom_site');
   const n = a.id.length;
-  const out = new Map<string, number[]>();
-  const hemes = new Map<string, number[]>();
+  const hemes = new Map<string, number[][]>();
+  const xyz = (k: number) => [Number(a.Cartn_x[k]), Number(a.Cartn_y[k]), Number(a.Cartn_z[k])];
   for (let k = 0; k < n; k++)
     if (a.label_comp_id[k] === 'HEM' && a.type_symbol[k] !== 'H') {
       const c = a.auth_asym_id[k];
-      hemes.set(c, [...(hemes.get(c) ?? []), k]);
+      hemes.set(c, [...(hemes.get(c) ?? []), xyz(k)]);
     }
-  const xyz = (k: number) => [Number(a.Cartn_x[k]), Number(a.Cartn_y[k]), Number(a.Cartn_z[k])];
   const d2 = ContactDistance * ContactDistance;
-  for (const [chain, atoms] of hemes) {
-    const ps = atoms.map(xyz);
-    const seen = new Set<number>();
+  const out: { heme: string; chain: string; residues: number[] }[] = [];
+  for (const heme of [...hemes.keys()].sort()) {
+    const ps = hemes.get(heme)!;
+    const seen = new Map<string, Set<number>>();
     for (let k = 0; k < n; k++) {
-      if (a.group_PDB[k] !== 'ATOM' || a.auth_asym_id[k] !== chain || a.type_symbol[k] === 'H') continue;
+      if (a.group_PDB[k] !== 'ATOM' || a.type_symbol[k] === 'H') continue;
       const [x, y, z] = xyz(k);
-      if (ps.some(([u, v, w]) => (x - u) ** 2 + (y - v) ** 2 + (z - w) ** 2 <= d2)) seen.add(Number(a.label_seq_id[k]));
+      if (!ps.some(([u, v, w]) => (x - u) ** 2 + (y - v) ** 2 + (z - w) ** 2 <= d2)) continue;
+      const chain = a.auth_asym_id[k];
+      let s = seen.get(chain);
+      if (!s) seen.set(chain, (s = new Set()));
+      s.add(Number(a.label_seq_id[k]));
     }
-    out.set(
-      chain,
-      [...seen].sort((x, y) => x - y),
-    );
+    for (const chain of [...seen.keys()].sort())
+      out.push({ heme, chain, residues: [...seen.get(chain)!].sort((x, y) => x - y) });
   }
   return out;
 }

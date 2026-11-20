@@ -6,6 +6,7 @@
 
 import { BuiltInLayerTypes, BuiltInLayouts } from '@molstar/seqx-core/render/built-ins';
 import { readFileSync } from 'node:fs';
+import { gunzipSync } from 'node:zlib';
 import type { Node } from '@molstar/core/repr/tree';
 import { DataStore, decodeSeq, type FormatRuntime } from '@molstar/seqx-core/data';
 import { AlignmentFileRuntime, readNewick, readStockholm } from '@molstar/seqx-core/data/alignment-readers';
@@ -35,9 +36,9 @@ import {
   seedProfile,
 } from '../globins/data.js';
 import * as globins from '../globins/family.js';
-import { HemeContacts, HemeHistidines } from '../globins/hemes.js';
+import { HemeContacts, HemeHistidines, HemeUnitContacts } from '../globins/hemes.js';
 import { HemoglobinLengths } from '../globins/hemoglobin.js';
-import { identity, residuesOf } from '../globins/recording.js';
+import { hemeContacts, identity, residuesOf } from '../globins/recording.js';
 import { neighborJoining } from '../globins/tree.js';
 import { nodeFixtureAssets, PackageFolder } from '../node-assets.js';
 
@@ -115,6 +116,11 @@ describe('the Globins fixtures’ anchors', () => {
         expect(HemeContacts[c]).toContain(h);
       }
     }
+  });
+
+  it('4HHB’s heme contacts per pair of units, derived from its atoms: each heme touches its own chain only', () => {
+    const cif = gunzipSync(readFileSync(`${PackageFolder}fixtures/structures/4HHB.cif.gz`)).toString();
+    expect(hemeContacts(cif)).toEqual(HemeUnitContacts);
   });
 
   it('the columns file: a record a row, keyed by its label; UniProt’s organism and class', () => {

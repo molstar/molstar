@@ -16,11 +16,12 @@ const meta: Meta = { title: 'Examples/Globins/Hemoglobin' };
 export default meta;
 
 /**
- * PDB 4HHB as blocks: the α chains A and C and the β chains B and D, each pair merged into one block labeled ×2, the
- * four hemes one chip ×4 after them. The helices A to H from the entry; each heme's contacting residues (within 4 Å,
- * derived) as arcs and as the heme pocket, bookmarked (the bookmarks list runs each). Hover α: its copy is the same
- * block; hover a contact's arc: the heme and its residue light. The toggle splits the copies into a block a chain and
- * merges them again (one patch each way, undone and redone from the stack beside it).
+ * PDB 4HHB as a complex's units in blocks: the α chains A and C and the β chains B and D, each pair merged into one
+ * block labeled ×2, the four hemes one chip ×4 after them. The helices A to H from the entry; each heme's contacting
+ * residues (within 4 Å, derived per pair of units) as arcs and as the heme pocket, bookmarked (the bookmarks list runs
+ * each). Hover α: its copy is the same block; hover a contact's arc: the heme and its residue light. The toggle splits
+ * the copies into a block a chain, each heme's arcs to the chain it sits in, and merges them again (one patch each way,
+ * undone and redone from the stack beside it).
  */
 export const Hemoglobin: StoryObj = {
   render: () =>
