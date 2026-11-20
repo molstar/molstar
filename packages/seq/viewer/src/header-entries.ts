@@ -314,6 +314,7 @@ export const BuiltInHeaderEntries: readonly HeaderActionEntry[] = (
     {
       name: HeaderEntryNames.reverse,
       on: 'section',
+      order: 6,
       label: 'Reverse',
       command: 'section.reverse',
       slot: false,
@@ -322,6 +323,7 @@ export const BuiltInHeaderEntries: readonly HeaderActionEntry[] = (
     {
       name: HeaderEntryNames.collapse,
       on: 'section',
+      order: 7,
       label: 'Collapse or expand hidden stretches',
       command: 'section.collapse',
       slot: false,
