@@ -164,6 +164,7 @@ export class SeqViewer extends ReactiveModel {
   private readonly _emphasis: ViewerEmphasis;
   private readonly _frame: ViewerFrame;
   private _retired = false;
+  private readonly _retiredController = new AbortController();
   private _syncing: Promise<void> = Promise.resolve();
   private _viewportListeners: (() => void)[] = [];
 
@@ -346,6 +347,8 @@ export class SeqViewer extends ReactiveModel {
     // while the viewer is retired, and none of it asks for a frame
     onRetire(() => {
       this._retired = true;
+      // a helper over the viewer ends first, while the models it clears still stand
+      this._retiredController.abort();
       clock.dispose();
       frame.dispose();
       for (const u of this._viewportListeners) u();
@@ -374,6 +377,14 @@ export class SeqViewer extends ReactiveModel {
   /** Whether `retire` has run: a frame asked for before it does nothing. */
   get retired(): boolean {
     return this._retired;
+  }
+
+  /**
+   * Aborted when the viewer retires (_spec/README.md "Composition", Retire), before its models are: what a helper over
+   * the viewer (`linkStructure`) ends with.
+   */
+  get retiredSignal(): AbortSignal {
+    return this._retiredController.signal;
   }
 
   // ---- the document ----

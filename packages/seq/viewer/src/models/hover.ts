@@ -12,7 +12,7 @@
 
 import { type ReadonlyState, ReactiveModel, State } from '@molstar/core/reactive';
 import type { Hit as RenderHit } from '@molstar/seqx-core/render';
-import { type Key, EmptyLocation, type Location, location } from '@molstar/seqx-core/query';
+import { EmptyLocation, isEmptyLocation, type Key, type Location, location } from '@molstar/seqx-core/query';
 import { projectRanges, type Path } from '@molstar/seqx-core/resolve';
 import { projectOntoView } from '@molstar/seqx-core/view';
 import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
@@ -185,6 +185,26 @@ export class HoverModel extends ReactiveModel {
     r.yBlock = hit.yBlock;
     r.state = hit.state;
     r.members = hit.members;
+    this._version.set(this._version.value + 1);
+    return true;
+  }
+
+  /**
+   * Hovers a Location with no hit for `owner` (_spec/README.md "HoverModel", A Location): drawn as a projected hover
+   * on every section it reaches, with no card and no words (no layer, no system); cleared only by its owner, so a
+   * pointer taking the hover takes it and a late clear of the Location's owner does nothing (EC-141). An empty
+   * Location clears it. False when nothing changed (the same Location object, the same owner).
+   */
+  setLocation(loc: Location, owner: unknown): boolean {
+    if (owner === undefined) return false;
+    if (isEmptyLocation(loc)) return this.clear(owner);
+    const r = this._record;
+    if (r.owner === owner && r.extent === loc && r.layer === undefined && r.system === undefined) return false;
+    r.layer = r.section = r.system = r.element = r.ySystem = r.target = undefined;
+    r.block = r.yBlock = r.state = r.members = undefined;
+    r.position = r.yPosition = Number.NaN;
+    r.owner = owner;
+    r.extent = loc;
     this._version.set(this._version.value + 1);
     return true;
   }

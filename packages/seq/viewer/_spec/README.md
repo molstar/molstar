@@ -194,6 +194,13 @@ nothing and tells nothing. Beside `models/view.ts` (the moves and the publish): 
   back and forward. `snapshot()` gives every group's range and band now, as a jump keeps them, and `record(snapshot)`
   pushes one taken earlier as a step (unless the view is there now): a gesture's one step, pushed when it ends (a
   navigator's far drag, of its window or its rows); `jump` pushes through it.
+- **The last jump** (`lastJump`, a state told before `jumps` moves): `{ n, kind, location?, durationMs }`, `n` the count
+  `jumps` moves to, `kind` `focus` (a focus, and a jump that names no kind: a step zoom, a navigator's move), `reveal`,
+  `fit`, `back` or `forward`; `location` the Location a focus or a reveal named (`AddressModel`'s, an address resolved),
+  and on a step back or forward the one the jump that left the view at that step named, kept with the step while no hand
+  moved the view since (a step pushed after a hand's move names none); `durationMs` is `view.jumpMs`. Why: `jumps`
+  counts but says neither where nor how long; a link to a structure viewer, a story's camera and an analytics host read
+  the same record.
 - **A source-backed system's length** is the model's once its source opened (SpecModel, its `lengths`): the resolved
   view's axes get their pieces then, so a section on a streamed sequence is placed and its kept intent applies.
 - **Placed** only with a width and a known axis length, else `pending`: a move then is kept as the intent and placed
@@ -261,6 +268,11 @@ the region (a press there says it too, a tap's hover).
   told for the same hit. An element is the same hover by its key, whatever extent object comes with it. One owner at a
   time: another owner's `set` takes it; `clear(owner)` by a stale owner does nothing (EC-141); an undefined owner is
   refused.
+- **A Location** (`setLocation(loc, owner)`): a hover with no hit (a structure viewer's hover a link carries in): the
+  record holds the Location as its extent with no layer, section or system, so it is drawn as a projected hover on every
+  section it reaches (`projectedAll`), with no card, no words and no address; owned as a hit is (another owner's `set`
+  takes it, a stale owner's clear does nothing, EC-141); an empty Location clears it; the same Location object for the
+  same owner tells nothing. Why: without it a link falls back to a highlight channel's tint, which reads as a bookmark.
 - **Projection** is lazy: `location()` (the extent, else the position, with the cell's y part when the hit has one: a
   grid cell is two positions, so linked sections light both) and `projected(section)` are computed when asked and kept
   for the version (and the view and model). The location is closed first (`hover.closeCodons`: a nucleotide gains its
@@ -371,7 +383,9 @@ then resolves.
   else a focus), `select`, `highlightAddress` (a channel, `links.highlightChannel` by default), `hoverAddress` (the
   links' own channel, `links.hoverChannel`, EC-182: the pointer's hover is left alone), `unhover`,
   `clearHighlight(channel?)` (one channel or all). Each answers an outcome: done, the resolution's status, a message,
-  its issues.
+  its issues. `focusLocation(loc)` and `revealLocation(loc)` move to a Location as `focus` and `reveal` move to an
+  address's (`moved`, `pending`, `none`); every focus and reveal names its Location to the view's last jump (ViewModel,
+  History).
 - **A focus that waits** (an address of a node not held, data not loaded) is kept and runs when the address resolves:
   retried on the refs' state, the store's version and its node version; another focus replaces it. A focus whose section
   is not placed yet (no width, no length) is kept as the view's intent and reported not done
@@ -549,7 +563,10 @@ the rails and navigators (`viewer-rails.ts`), the emphasis (`viewer-emphasis.ts`
 - **Retire** (`retire()`): the viewer is marked retired first (its disposer is registered last, so it runs first), so
   the teardown that follows asks for no frame; the frame callback and the settle timer are cancelled, then the mounted
   UI, the behaviors, the want set, the models and the context's owned ports go. After it no frame is pending and input
-  is ignored. A spec that fails to compose (a behavior listed twice) retires what it made.
+  is ignored. A spec that fails to compose (a behavior listed twice) retires what it made. `retiredSignal` (an
+  `AbortSignal`) is aborted as the viewer is marked retired, before its models go: a helper over the viewer (a structure
+  link) ends on it and clears what it set while the models stand. Why: `retired` is a getter and the dispose hooks are
+  protected; any helper needs the end.
 - **Composed** (`BehaviorHandle.composed(viewer)`): called once every behavior and the frame are made, before the UI;
   what reads the viewer's commands or registry (the header entries' checks). A throw retires what was made.
   `viewer.headers` is the `headers` behavior's geometry (undefined without it).

@@ -22,6 +22,7 @@ import {
   type StepDir,
   TracksLayout,
 } from '@molstar/seqx-core/render';
+import type { Location } from '@molstar/seqx-core/query';
 import type { BandViewport } from '@molstar/seqx-core/render';
 import { type Axis, followWindow, type ResolvedView, resolveView, resolveViews } from '@molstar/seqx-core/view';
 import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
@@ -31,9 +32,11 @@ import { type BandRows, type Bands, ViewBands } from './view-bands.js';
 import { followerRange, followOrder, leaderRange, MaxFollowDepth } from './view-follow.js';
 import { DetachedPrefix, type Group, groupSections, rangeOf, type SectionState } from './view-groups.js';
 import {
+  type JumpKind,
   type JumpOutcome,
   JumpSteps,
   type KeptBand,
+  type LastJump,
   restoredOf,
   restoreInto,
   type Snapshot,
@@ -43,7 +46,7 @@ import {
   type ViewSnapshot,
 } from './view-history.js';
 
-export type { BandRows, Bands, JumpOutcome, KeptBand, ViewHistory, ViewSnapshot };
+export type { BandRows, Bands, JumpKind, JumpOutcome, KeptBand, LastJump, ViewHistory, ViewSnapshot };
 
 /**
  * A section's viewport: `[start, end)` in offsets along its axis (fractional; positions on an axis that shows its
@@ -105,6 +108,14 @@ export class ViewModel extends ReactiveModel {
   readonly history: ReadonlyState<ViewHistory> = this._steps.history;
   /** Moves on each jump, back and forward (and each step zoom): what a viewer animates; a move by hand does not. */
   readonly jumps: ReadonlyState<number> = this._jumps.asReadonly;
+  private readonly _lastJump = new State<LastJump | undefined>(undefined);
+  /** Where the last jump left the view, while no hand moved it: the step a jump pushes keeps its Location. */
+  private _landed: Snapshot | undefined;
+  /**
+   * The last jump (_spec/README.md "ViewModel", History, The last jump): its count, kind, the Location it named and its
+   * duration; told before `jumps` moves. Undefined before the first.
+   */
+  readonly lastJump: ReadonlyState<LastJump | undefined> = this._lastJump.asReadonly;
 
   /** Where a section's placement comes from: its moves are then its layout's arithmetic (`setLayoutSource`). */
   private _layouts: LayoutSource | undefined;
@@ -420,13 +431,31 @@ export class ViewModel extends ReactiveModel {
    * `same` when the view already showed what was asked (a double-click on what is focused), `none` when nothing could
    * move. A pan or a zoom by hand pushes nothing: a jump after it pushes where the hand left the view.
    */
-  jump(move: () => boolean, record = true): JumpOutcome {
+  jump(
+    move: () => boolean,
+    record = true,
+    named: { readonly kind?: JumpKind; readonly location?: Location } = {},
+  ): JumpOutcome {
     const before = this._snapshot();
     if (!move()) return 'none';
     if (snapshotsEqual(before, this._snapshot())) return 'same';
     if (record) this.record(before as unknown as ViewSnapshot);
-    this._jumps.set(this._jumps.value + 1);
+    this._jumped(named.kind ?? 'focus', named.location);
     return 'moved';
+  }
+
+  /** A jump landed: the last jump told, then the count moved; where it left the view kept with its Location. */
+  private _jumped(kind: JumpKind, location: Location | undefined): void {
+    const n = this._jumps.value + 1;
+    this._landed = location ? { ...this._snapshot(), location } : undefined;
+    this._lastJump.set({ n, kind, ...(location ? { location } : {}), durationMs: this.config.view.jumpMs });
+    this._jumps.set(n);
+  }
+
+  /** A step as the history keeps it: with the Location of the jump that left the view there, unless a hand moved it. */
+  private _named(snapshot: Snapshot): Snapshot {
+    const l = this._landed;
+    return l?.location && snapshotsEqual(l, snapshot) ? { ...snapshot, location: l.location } : snapshot;
   }
 
   /**
@@ -444,7 +473,7 @@ export class ViewModel extends ReactiveModel {
   record(snapshot: ViewSnapshot): boolean {
     const kept = snapshot as unknown as Snapshot;
     if (snapshotsEqual(kept, this._snapshot())) return false;
-    this._steps.push(kept, this.config.view.historyLimit);
+    this._steps.push(this._named(kept), this.config.view.historyLimit);
     return true;
   }
 
@@ -499,20 +528,23 @@ export class ViewModel extends ReactiveModel {
   /** Forgets the history (a new spec loaded). */
   clearHistory(): void {
     this._steps.clear();
+    this._landed = undefined;
   }
 
   private _step(forward: boolean): boolean {
     const own = (address: string) => this._ownY(address);
+    let location: Location | undefined;
     const moved = this._steps.step(
       forward,
-      this._snapshot(),
+      this._named(this._snapshot()),
       (t) => restoredOf(t, this._groups, this._sections, own),
       (t) => {
+        location = t.location;
         restoreInto(t, this._groups, this._sections, this._bands, own);
         this._publish();
       },
     );
-    if (moved) this._jumps.set(this._jumps.value + 1);
+    if (moved) this._jumped(forward ? 'forward' : 'back', location);
     return moved;
   }
 

@@ -235,7 +235,7 @@ export function navigatorBehavior(view: ViewModel, config: ViewerConfig = Defaul
       const fitted = mode !== 'fit' && isFitted(view, section);
       return fitted
         ? zoomTo(section, at - units / 2, at + units / 2, !folded)
-        : view.jump(() => view.fit(section), !folded) === 'moved';
+        : view.jump(() => view.fit(section), !folded, { kind: 'fit' }) === 'moved';
     },
     dispose() {
       clicked = undefined;
