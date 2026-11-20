@@ -1323,7 +1323,10 @@ Seq\* holds pointers and labels: codes and identifiers are strings.
   `observed` when given (the unit wins), else the map's; then `conflict`; then `paired` where a run holds it, else
   `unpaired`; `structureProvenance(data, k)` a position's run's word. A structure map onto a unit whose `unobserved`
   rows are not the unit's (on the residues it pairs) is `seq.resolve.map.observed`, once. Why the unit wins: observed is
-  the structure's own fact.
+  the structure's own fact. Status changes no path: a projection through a run pairs its unobserved and conflicting
+  residues as any other (a hover on the sequence lights an unobserved residue in Seq\*); cutting what has no atoms is
+  the structure translation's (`toUnits`; maps.md, structure-syncing.md: unobserved positions never sent). Why: one path
+  for every use, and a residue missing from the model is still the sequence's.
 - **Priority**: `MapEntry.priority` (0 when absent), on each of its edges.
 - A map that pairs nothing is `seq.resolve.map.empty`; a partial one is no issue.
 
