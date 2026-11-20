@@ -8,7 +8,18 @@ import { AntibodyViews } from '@molstar/seqx-examples';
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { complexEditStory } from '../complex/edit-root.js';
 import { exampleStory } from '../example-root.js';
-import { bookmark, bookmarkLines, readoutLines, recolor, remove, rename, selectCdr, setRuler } from './compose.js';
+import { LinksHoverProvider } from '@molstar/seqx-viewer/behaviors';
+import {
+  bookmark,
+  bookmarkLines,
+  readoutLines,
+  recolor,
+  remove,
+  rename,
+  selectCdr,
+  setRuler,
+  toggleGlycanForm,
+} from './compose.js';
 
 const view = (id: string) => AntibodyViews.find((v) => v.id === id)!;
 
@@ -71,4 +82,27 @@ export const CdrBookmarks: StoryObj = {
         { label: 'Remove it', run: (s) => remove(s, 'cdr') },
       ],
     }),
+};
+
+/** The host's choice the Fc stories show on (off in the default viewer): a glycan lights its Asn, the Asn its glycan. */
+const LinksHoverOn = [{ provider: LinksHoverProvider, params: undefined }] as const;
+
+/**
+ * A human IgG1 Fc (PDB 3AVE): its two chains merged into one block ×2, their N-glycans (G0F: NAG NAG BMA MAN NAG MAN
+ * NAG FUC) one chip ×2 and the zinc a chip after them; the glycan on Asn297, the two disulfides of each chain and the
+ * zinc's histidines as arcs. Hover the glycan's chip: N297 lights; hover N297: the glycan (`links.hover`, on here).
+ * Editing: the glycans as chips or by their residues (one patch each way, undone and redone).
+ */
+export const FcGlycan: StoryObj = {
+  render: () =>
+    complexEditStory({
+      view: view('fc-glycan'),
+      edits: [{ label: 'Glycans: chips/residues', run: (s) => toggleGlycanForm(s) }],
+      behaviors: LinksHoverOn,
+    }),
+};
+
+/** The glycans by their residues, each by its code, their seven glycosidic links as arcs over them. */
+export const GlycanResidues: StoryObj = {
+  render: () => exampleStory(view('fc-glycan-residues'), { behaviors: LinksHoverOn }),
 };

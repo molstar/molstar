@@ -7,6 +7,7 @@
 import type { Node } from '@molstar/core/repr/tree';
 import type { SeqRegistryEntry } from '@molstar/seqx-core/context';
 import * as antibodyAgainst from './antibody/against.js';
+import * as antibodyFc from './antibody/fc-glycan.js';
 import { registry as antibodyRegistry } from './antibody/data.js';
 import * as antibodySchemes from './antibody/schemes.js';
 import * as complexBlocks from './complex/blocks.js';
@@ -585,6 +586,22 @@ export const AntibodyViews: readonly ExampleView[] = [
       'The wild type with both numberings, for bookmarking its CDRs: select one by its address in Kabat’s labels, bookmark the selection, rename it, recolor it, remove it; each one step, undone and redone.',
     build: antibodySchemes.cdrs,
     registry: antibodyRegistry,
+  },
+  {
+    dataset: 'antibody',
+    id: 'fc-glycan',
+    title: 'The Fc and its N297 glycan',
+    summary:
+      'A human IgG1 Fc (PDB 3AVE): its two chains merged into one block ×2, their N-glycans (eight residues, G0F) one chip ×2, the zinc a chip; the glycan on Asn297, the disulfides and the zinc’s histidines as arcs. Hover the glycan: N297 lights; hover N297: the glycan. The editing view switches the glycans between a chip and their residues (one patch).',
+    build: () => antibodyFc.build(),
+  },
+  {
+    dataset: 'antibody',
+    id: 'fc-glycan-residues',
+    title: 'The glycan’s residues',
+    summary:
+      'The same Fc with the glycans by their residues (NAG NAG BMA MAN NAG MAN NAG FUC, each by its code), their seven glycosidic links as arcs over them.',
+    build: antibodyFc.residues,
   },
 ];
 

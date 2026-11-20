@@ -18,7 +18,8 @@
 // CIF parser (`cif.ts`, the examples' one reader). The datasets: `p53`,
 // UniProt P04637's REST entry (CC-BY-4.0) and the Proteins API's variants of it, those of UniProt's own and ClinVar's
 // sources; `p53-structure`, PDB 2OCJ's committed mmCIF (CC0-1.0, no fetch) as the entity's `seq` and the fake structure
-// viewer's chain table; `globins`, the Pfam PF00042 seed (CC0-1.0) cut to 60 rows, UniProt's organisms of its
+// viewer's chain table; `antibody-structure`, PDB 3AVE's committed mmCIF (CC0-1.0, no fetch) as its Fc's `seq`;
+// `globins`, the Pfam PF00042 seed (CC0-1.0) cut to 60 rows, UniProt's organisms of its
 // rows (CC-BY-4.0) and PDB 4HHB (CC0-1.0); `plasmid`, INSDC L09137.2 (pUC19c) as ENA serves it in FASTA, converted to
 // the `seq` format, its letters also as a module of the examples (what the features and sites are derived from in code
 // when a view is built; the views read the letters from the `seq` files), and the rotated variant's features and sites,
@@ -35,6 +36,8 @@ import { gunzipSync } from 'node:zlib';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readCif } from './cif.ts';
+import type { Cif } from '../src/files/cif.ts';
+import { FcSystem } from '../lib/antibody/fc-glycan.js';
 import { writeDerived } from '../lib/trna/generated.js';
 import { moleculeSeq, pairsSeq, trimEntry as trimCif } from '../lib/trna/record-trim.js';
 import {
@@ -688,22 +691,46 @@ async function antibody(): Promise<Row[]> {
 }
 
 /**
- * p53's structure: PDB 2OCJ's mmCIF as `record-structures.ts` committed it (no fetch here: one file, read by both),
- * into the entity's `seq` file (its letters, chain A's secondary structure) and the fake structure viewer's own chain
- * table (`p53/structure-record.ts`).
+ * Files written from an mmCIF as `record-structures.ts` committed it (no fetch here: one file, read by both), checked
+ * against its recorded checksum; each file's row says what was kept.
  */
-async function p53Structure(): Promise<Row[]> {
+async function fromStructure(
+  id: string,
+  entry: string,
+  files: (cif: Cif) => [file: string, out: string, trimmed: string][],
+): Promise<Row[]> {
   const entries = JSON.parse(readFileSync(join(Folder, 'fixtures/structures/sources.json'), 'utf8')) as {
     file: string;
     url: string;
     recorded: string;
     sha256Inflated: string;
   }[];
-  const entry = entries.find((e) => e.file === 'structures/2OCJ.cif.gz')!;
-  const text = gunzipSync(readFileSync(join(Folder, 'fixtures', entry.file)));
-  if (sha256(text) !== entry.sha256Inflated) throw new Error(`${entry.file} is not the file recorded`);
+  const recorded = entries.find((e) => e.file === `structures/${id}.cif.gz`)!;
+  const text = gunzipSync(readFileSync(join(Folder, 'fixtures', recorded.file)));
+  if (sha256(text) !== recorded.sha256Inflated) throw new Error(`${recorded.file} is not the file recorded`);
   const cif = await readCif(text);
-  const files: [string, string, string][] = [
+  return files(cif).map(([file, out, trimmed]) => {
+    writeFileSync(join(Folder, 'fixtures', file), out);
+    return {
+      file,
+      entry,
+      url: recorded.url,
+      recorded: recorded.recorded,
+      licence: ['CC0-1.0'],
+      attribution: `wwPDB, PDB ${id}, CC0`,
+      trimmed,
+      derived: 'none',
+      bytesDownloaded: text.length,
+      bytesFixture: bytesOf(out),
+      sha256Download: recorded.sha256Inflated,
+      sha256Fixture: sha256(out),
+    };
+  });
+}
+
+/** p53's structure: PDB 2OCJ's entity as `seq` and the fake structure viewer's chain table (`p53/structure-record.ts`). */
+const p53Structure = () =>
+  fromStructure('2OCJ', 'PDB 2OCJ, the human p53 core domain, four chains (Wang, Rosengarth, Luecke 2007), mmCIF', (cif) => [
     [
       'p53/2OCJ.seq',
       structureSeq(cif),
@@ -714,29 +741,22 @@ async function p53Structure(): Promise<Row[]> {
       chainTableJson(chainTable(cif, '2OCJ')),
       'the fake structure viewer’s chain table: every chain instance but the waters (struct_asym), its residues’ label and author numbers, components and whether modeled (pdbx_poly_seq_scheme, pdbx_nonpoly_scheme, atom_site of model 1); coordinates dropped',
     ],
-  ];
-  return files.map(([file, out, trimmed]) => {
-    writeFileSync(join(Folder, 'fixtures', file), out);
-    return {
-      file,
-      entry: 'PDB 2OCJ, the human p53 core domain, four chains (Wang, Rosengarth, Luecke 2007), mmCIF',
-      url: entry.url,
-      recorded: entry.recorded,
-      licence: ['CC0-1.0'],
-      attribution: 'wwPDB, PDB 2OCJ, CC0',
-      trimmed,
-      derived: 'none',
-      bytesDownloaded: text.length,
-      bytesFixture: bytesOf(out),
-      sha256Download: entry.sha256Inflated,
-      sha256Fixture: sha256(out),
-    };
-  });
-}
+  ]);
+
+/** The Antibody's Fc: PDB 3AVE's Fc entity as `seq` (its glycans, links and units are `antibody/fc-glycan.ts`'s). */
+const antibodyStructure = () =>
+  fromStructure('3AVE', 'PDB 3AVE, a fucosylated human IgG1 Fc with its N297 glycans (Matsumiya et al. 2007), mmCIF', (cif) => [
+    [
+      'antibody/3AVE.seq',
+      structureSeq(cif, FcSystem),
+      'the Fc entity (IGHG1_HUMAN P01857 108–330): its canonical letters (entity_poly) and chain A’s helices and strands (struct_conf, struct_sheet_range, label_seq_id) as ranges; coordinates, glycans, zinc and waters dropped (the glycans, links and units are code, checked against the entry by the tests)',
+    ],
+  ]);
 
 const Datasets: Readonly<Record<string, () => Promise<Row[]>>> = {
   p53,
   'p53-structure': p53Structure,
+  'antibody-structure': antibodyStructure,
   globins,
   plasmid,
   trna,
@@ -745,7 +765,7 @@ const Datasets: Readonly<Record<string, () => Promise<Row[]>>> = {
 };
 
 /** A dataset's fixtures folder, when not its name. */
-const Folders: Readonly<Record<string, string>> = { 'p53-structure': 'p53' };
+const Folders: Readonly<Record<string, string>> = { 'p53-structure': 'p53', 'antibody-structure': 'antibody' };
 
 async function main(name: string | undefined) {
   if (!name || !Datasets[name]) throw new Error(`usage: record.ts ${Object.keys(Datasets).join(' | ')}`);

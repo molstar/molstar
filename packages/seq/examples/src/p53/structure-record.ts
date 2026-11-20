@@ -15,7 +15,7 @@ import { type Cif, cifRows } from '../files/cif.js';
 // its residues with their label and author numbers, observed or not), read from the same file and held apart from
 // Seq*'s nodes. Here, in the package's sources, so a unit test holds the rules; the script imports them.
 
-/** The entity's system in the `seq` file. */
+/** The entity's system in 2OCJ's `seq` file. */
 export const StructureSystem = '2OCJ-1';
 
 /** A residue of a chain instance in the fake viewer's table. */
@@ -139,11 +139,11 @@ export function readChainTable(text: string): ChainTable {
 }
 
 /**
- * The entity's `seq` file: its canonical letters (`entity_poly.pdbx_seq_one_letter_code_can`, the one polymer entity)
- * and chain A's helices and strands (`struct_conf`, `struct_sheet_range`, by `label_seq_id`) as ranges with a
- * `category`.
+ * An entry's polymer entity as a `seq` file (2OCJ's, 3AVE's: one polymer entity each), named `system`: its canonical
+ * letters (`entity_poly.pdbx_seq_one_letter_code_can`) and chain A's helices and strands (`struct_conf`,
+ * `struct_sheet_range`, by `label_seq_id`) as ranges with a `category`.
  */
-export function structureSeq(cif: Cif): string {
+export function structureSeq(cif: Cif, system: string = StructureSystem): string {
   const [poly] = cifRows(cif, '_entity_poly');
   const letters = poly.pdbx_seq_one_letter_code_can.replace(/\s+/g, '');
   const rows: { start: number; end: number; kind: string }[] = [];
@@ -155,7 +155,7 @@ export function structureSeq(cif: Cif): string {
       rows.push({ start: Number(r.beg_label_seq_id) - 1, end: Number(r.end_label_seq_id), kind: 'strand' });
   rows.sort((a, b) => a.start - b.start || a.end - b.end);
   const data = inlineSeq(
-    { name: StructureSystem, length: letters.length, alphabet: 'protein' },
+    { name: system, length: letters.length, alphabet: 'protein' },
     {
       letters: { form: 'letters', start: 0, letters },
       ranges: {

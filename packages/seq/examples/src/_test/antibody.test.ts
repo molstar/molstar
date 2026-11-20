@@ -59,7 +59,7 @@ describe('the fixtures', () => {
       licenceEvidence?: { url: string; quoted: string };
       selectedBy?: { url: string; sha256: string };
     }[];
-    const sabdab = rows.filter((r) => r.file.endsWith('.seq'));
+    const sabdab = rows.filter((r) => r.file.endsWith('.seq') && r.file.includes('1N8Z'));
     expect(sabdab).toHaveLength(2);
     for (const r of sabdab) {
       expect(r.licence).toEqual(['CC-BY-4.0']);

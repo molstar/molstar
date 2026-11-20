@@ -17,6 +17,8 @@ const AntibodyStories: Readonly<Record<string, string>> = {
   'schemes-design': 'DesignNumberings',
   against: 'DesignAgainstWildType',
   cdrs: 'CdrBookmarks',
+  'fc-glycan': 'FcGlycan',
+  'fc-glycan-residues': 'GlycanResidues',
 };
 
 /** The Features shown on this data. */
@@ -28,6 +30,10 @@ const Features: readonly (readonly [title: string, summary: string])[] = [
   ['Rows', 'the design and the wild type as an alignment of two rows, their indels gaps.'],
   ['Bookmarks', 'a CDR selected by its address, bookmarked from the selection, renamed, recolored, removed.'],
   ['Editing', 'the ruler’s scheme switched; each bookmark edit; every one a step, undone and redone.'],
+  [
+    'Molecules',
+    'an IgG1 Fc (PDB 3AVE) as a complex: its N297 glycan a branched molecule, a chip or its residues (one patch), its links as arcs.',
+  ],
 ];
 
 interface SourceRow {
@@ -71,7 +77,7 @@ export const Views: StoryObj = {
       el('h2', 'Antibody: trastuzumab’s Fab'),
       el(
         'p',
-        'PDB 1N8Z, trastuzumab (Herceptin) Fab with HER2: the light chain (A, 214 residues) and the heavy chain (B, 220); HER2 is not taken. Each view is one spec over this data.',
+        'PDB 1N8Z, trastuzumab (Herceptin) Fab with HER2: the light chain (A, 214 residues) and the heavy chain (B, 220); HER2 is not taken. PDB 3AVE, a fucosylated human IgG1 Fc with its N297 glycans. Each view is one spec over this data.',
       ),
       views,
       el('h3', 'Features shown on this data'),
