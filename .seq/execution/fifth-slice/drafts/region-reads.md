@@ -634,3 +634,4 @@ in GA's draft word for word. Still open after it, for the gate:
 - Images on rings drawn as runs are not measured yet.
 - A `.hic` without a whole-assembly level still makes up to 1,024 requests.
 - Reads inside runs wait for GC2's measure.
+- GF's revision (genome-formats.md, "Where this differs…") asks for text here: sided pairs sources, items at tile size for every list shape, item extents and span rows with `measure`, genotype-class `codes`; taken at the gate.

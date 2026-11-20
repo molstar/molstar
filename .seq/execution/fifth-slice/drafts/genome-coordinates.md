@@ -603,3 +603,4 @@ them all. Still open after it, for the gate:
 - Data reads inside a run (the joint rule with RR, amended in after RR's revision) wait for GC2's measure.
 - `natural` order on worded names stays a tension.
 - The square navigator's bound is agreed with RR's draft at the gate.
+- GF's revision (genome-formats.md, "Where this differs…") asks for `assembly.sizes` (a chrom.sizes) with `seq.resolve.assembly.lengths` here; taken at the gate.
