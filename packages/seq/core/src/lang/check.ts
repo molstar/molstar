@@ -183,11 +183,13 @@ export function checkPlaced(at: Placed, look: SeqLookup, report: Report): void {
     return t?.kind === 'unit' ? unitLength(t, inlineLength(target(t, 'of')?.node)) : undefined;
   };
   /** The sequence a param names, with what is known of its extent. */
+  /** The system a param names (a sequence, a molecule's residues, a unit's own positions), with its extent. */
   const systemOf = (x: Node, key: string) => {
     const t = target(x, key)?.node;
-    if (t?.kind !== 'sequence') return undefined;
-    const letters = p(t, 'letters');
-    return { cyclic: p(t, 'cyclic') === true, length: typeof letters === 'string' ? letters.length : undefined };
+    if (t?.kind === 'sequence' || t?.kind === 'molecule')
+      return { cyclic: p(t, 'cyclic') === true, length: inlineLength(t) };
+    if (t?.kind === 'unit') return { cyclic: false, length: unitLength(t, inlineLength(target(t, 'of')?.node)) };
+    return undefined;
   };
   // every child of the spec is addressable: the description requires an id of each of its kinds, this check of an
   // extension's kind (a slot's body is no child: not walked)

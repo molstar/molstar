@@ -194,6 +194,29 @@ describe('molecules, complexes, units and links', () => {
     expect(codes(b.build())).toEqual(['seq.lang.molecule.form']);
   });
 
+  it('a section’s range is bounded on a unit’s own positions and a molecule’s residues, as on a sequence', () => {
+    const b = createSeqSpec();
+    const s = b.data.sequence('s', { alphabet: 'protein', letters: 'MKTAYIAK' });
+    const m = b.data.molecule('m', { residues: ['NAG', 'NAG'] });
+    let u = '';
+    b.data.complex('c', {}, (c) => {
+      u = c.unit('A', { of: s, range: [2, 4] });
+    });
+    b.views.view('v', (v) => {
+      v.section('unit', { of: u, range: [0, 2] });
+      v.section('molecule', { of: m, range: [0, 2] });
+    });
+    expect(codes(b.build())).toEqual([]);
+    b.views.view('w', (v) => {
+      v.section('unit', { of: u, range: [0, 3] });
+      v.section('molecule', { of: m, range: [0, 6] });
+    });
+    expect(checkSeqSpec(b.build()).map((i) => [i.code, i.address])).toEqual([
+      ['seq.lang.section.range', '/views/w/unit'],
+      ['seq.lang.section.range', '/views/w/molecule'],
+    ]);
+  });
+
   it('modified tables of any rows: in order and in bounds exactly when no issue is said (property)', () => {
     const next = rng(7);
     for (let run = 0; run < 200; run++) {
