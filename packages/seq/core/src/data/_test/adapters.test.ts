@@ -10,7 +10,7 @@
 // the host's edit is told by `changes` and reattached in place with node identity kept (EC-176, EC-185).
 
 import type { Issue } from '@molstar/core/repr/tree';
-import { type StructureDescription, structureNodes, unitValues } from '@molstar/seqx-core/io/structure';
+import { type StructureDescription, structureNodes } from '@molstar/seqx-core/io/structure';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { buildOverlay, resolveSpec } from '@molstar/seqx-core/resolve';
 import { describe, expect, it } from 'vitest';
@@ -64,7 +64,7 @@ function testHost(fallback: FormatRuntime) {
   const listeners = new Set<() => void>();
   const serve = (entry: SourceEntry): OpenedSource => {
     const read = structureNodes(description, { source: entry.address });
-    const values = (field: string) => unitValues(description, field, read.systems);
+    const values = (field: string) => read.values(field);
     return {
       coverage: {
         systems: read.systems,

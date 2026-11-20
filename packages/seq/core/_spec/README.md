@@ -995,7 +995,9 @@ over the assets port, with `@molstar/core/util/zip` (never a private zip). Not a
 
 `src/io/` (`@molstar/seqx-core/io/structure`, `@molstar/core` only): a structure's host-neutral description and the one
 converter from it to the nodes molecules are read as (Language, Molecules and complexes), shared by every adapter of a
-structure (a file's runtime, a host holding its model). Neither imports `@molstar/model` or `@molstar/io`.
+structure (a file's runtime, a host holding its model). Neither imports `@molstar/model` or `@molstar/io`. Its public
+names: `StructureDescription` and its table types, `structureNodes` (with `StructureNodes`, its options and
+`StructureLimits`, `DefaultStructureLimits`) and `StructureIssues`.
 
 - **`StructureDescription`**: tables of columns named in mmCIF's words, rows referencing other tables' rows by index:
   `entities` (`id`, `type`, the polymer's type, `name`, canonical letters), `components` (a row a position of an entity,
@@ -1003,23 +1005,39 @@ structure (a file's runtime, a host holding its model). Neither imports `@molsta
   `auth_asym_id`, entity, `operator`), `residues` (a chain's positions with `auth_seq_id`, `ins_code`, `observed`),
   `links`, `compounds` (`parents`), a molecule's heavy `atoms`, named per-residue `values`. Why columns and indices: a
   host fills them from its own model without a CIF frame, and a description is format-neutral.
-- **`structureNodes(description, { source, water?, complex? })`**: a sequence per polymer entity (letters given, else
-  each position's first component's standard letter, else its one parent's, else `X` or `N`, said once:
+- **`structureNodes(description, { source, water?, complex?, limits? })`**: a sequence per polymer entity (letters
+  given, else each position's first component's standard letter, else its one parent's, else `X` or `N`, said once:
   `seq.io.structure.letters`; `modified` the positions whose component is not their letter's standard one and every row
   of a position with alternatives), a molecule per other entity (`class` `branched`, `water`, else `ion` for one atom,
   else `ligand`), the `compounds`, and a complex of units (`of` the entity's node, `chain`, `auth_chain`, `operator`,
   `observed` runs when a position was not, an `auth` numbering from `auth_seq_id` and `ins_code`) with a `links` child;
-  water only when asked. It also gives the units' systems (their ids and lengths), and `unitValues` a named value over
-  each unit's positions: what a source serves for a `values` node's `field`.
-- **Keys from identifiers, never indices**: an entity by its `id`, the compounds `compounds`, the complex `complex`
-  (`options.complex`); a unit's id its chain and operator (`unitId`: `A-1_555`). Entities and compounds are read in
-  their ids' order, a position's components in theirs. Why: every adapter of one structure gives equal keys, so a
+  water only when asked. It also gives the units' systems (their ids and lengths) and `values(field)`, a named value
+  over each kept unit's positions from that unit's own residue rows: what a source serves for a `values` node's `field`.
+  Why on the result: the values follow the units the reading kept, by the same keys.
+- **Checked and bounded** (`structure-read.ts`; a host is code Seq\* does not own): every table and every cell is read
+  as its type before anything is sized by it; what does not read is said at the source's address and left out, never
+  thrown. A table missing, of another type or with a column of another length is left out (`seq.io.structure.columns`);
+  a row with a cell of another type, naming no row of another table, a position past its unit, or a position listed
+  twice in a unit (no row wins by order) is left out (`seq.io.structure.rows`); rows, an entity's positions and units
+  past their limits are left out (`seq.io.structure.bounds`); hydrogens are left out (`seq.io.structure.hydrogen`,
+  EC-64). A seeded fuzz holds it.
+- **Keys from identifiers, never indices or row order**: an entity by its `id`, the compounds `compounds`, the complex
+  `complex` (`options.complex`); a unit's id its chain and its operator joined by `-` (`A-1_555`; the chain alone
+  without one). A chain holding `-` or a character no id takes, an operator holding one, or a key given twice (an
+  entity, a unit, a compound) is refused, every row of it (`seq.io.structure.id`): never made into another id, never the
+  first row kept, so no two descriptions' rows can meet under one key. Entities, compounds and units are in their ids'
+  natural order, links by their ends, identifiers by namespace and value, atoms by residue and name; only a position's
+  alternatives keep their rows' order (it is data). Why: every adapter of one structure gives equal nodes, so a
   selection, a bookmark or a ref made with the file holds with the host; and a removed chain, or rows in another order,
-  rename nothing (a seeded property).
-- **A malformed description is said, never thrown** (a host is code Seq\* does not own): a table whose columns differ in
-  length is left out (`seq.io.structure.columns`); rows naming no row of another table, or a position past their entity,
-  are left out (`seq.io.structure.rows`); an identifier that is no id, given twice or a reserved key
-  (`seq.io.structure.id`); hydrogens left out (`seq.io.structure.hydrogen`, EC-64). Each at the source's address.
+  change nothing else (a seeded property over every table).
+
+| Item               | Default    | Why the default; the alternatives                                                   |
+| ------------------ | ---------- | ----------------------------------------------------------------------------------- |
+| `limits.maxLength` | 1,000,000  | positions of one entity: titin's 35,000 with room; a description is untrusted input |
+| `limits.maxUnits`  | 10,000     | units of the complex: a large assembly's chains under its operators                 |
+| `limits.maxRows`   | 10,000,000 | rows of one table: a ribosome's residues under its operators with room              |
+| `water`            | `false`    | waters say nothing on an axis (molecules.md); `true`                                |
+| `complex`          | `complex`  | the complex's id and key; any id                                                    |
 
 ## Resolve
 

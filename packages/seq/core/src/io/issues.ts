@@ -10,13 +10,20 @@ import { defineIssues } from '@molstar/core/repr/tree';
 export const StructureIssues = defineIssues('seq.io', {
   'seq.io.structure.columns': {
     severity: 'error',
-    description: 'A table of a structure description has columns of unequal lengths: the table is left out',
+    description:
+      'A table of a structure description is missing or not a table, or has a column of another length or none: the table is left out',
     hint: 'The adapter fills every column of a table a row each',
   },
   'seq.io.structure.rows': {
     severity: 'warning',
     description:
-      'Rows of a structure description name a row of another table that is not there, or a position past its entity: left out',
+      'Rows of a structure description do not read (a cell of another type, a row of no table, a position past its entity, a position listed twice): left out',
+  },
+  'seq.io.structure.bounds': {
+    severity: 'warning',
+    description:
+      'A structure description is past a bound (rows of a table, positions of an entity, units of the complex): what is past it is left out',
+    hint: 'Raise the bound (`StructureNodesOptions.limits`) if the description is trusted',
   },
   'seq.io.structure.id': {
     severity: 'warning',

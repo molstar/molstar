@@ -21,11 +21,5 @@ export type {
   ResidueTable,
   StructureDescription,
 } from './structure-description.js';
-export {
-  nodeRef,
-  type StructureNodes,
-  type StructureNodesOptions,
-  structureNodes,
-  unitId,
-  unitValues,
-} from './structure-nodes.js';
+export { type StructureNodes, type StructureNodesOptions, structureNodes } from './structure-nodes.js';
+export { DefaultStructureLimits, type StructureLimits } from './structure-read.js';
