@@ -106,3 +106,10 @@ export const FcGlycan: StoryObj = {
 export const GlycanResidues: StoryObj = {
   render: () => exampleStory(view('fc-glycan-residues'), { behaviors: LinksHoverOn }),
 };
+
+/**
+ * T-DM1 (trastuzumab emtansine), generated: trastuzumab's Fab chains twice and the emtansine payload as a chip (its CCD
+ * ids placeholders until named), linked to every lysine with occupancies summing to the average DAR of 3.5, each arc
+ * colored by its band of occupancy. Hover the payload: every conjugation site lights (`links.hover`, on here).
+ */
+export const Adc: StoryObj = { render: () => exampleStory(view('adc'), { behaviors: LinksHoverOn }) };

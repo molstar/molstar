@@ -19,6 +19,7 @@ const AntibodyStories: Readonly<Record<string, string>> = {
   cdrs: 'CdrBookmarks',
   'fc-glycan': 'FcGlycan',
   'fc-glycan-residues': 'GlycanResidues',
+  adc: 'Adc',
 };
 
 /** The Features shown on this data. */

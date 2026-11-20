@@ -6,6 +6,7 @@
 
 import type { Node } from '@molstar/core/repr/tree';
 import type { SeqRegistryEntry } from '@molstar/seqx-core/context';
+import * as antibodyAdc from './antibody/adc.js';
 import * as antibodyAgainst from './antibody/against.js';
 import * as antibodyFc from './antibody/fc-glycan.js';
 import { registry as antibodyRegistry } from './antibody/data.js';
@@ -618,6 +619,14 @@ export const AntibodyViews: readonly ExampleView[] = [
     summary:
       'The same Fc with the glycans by their residues (NAG NAG BMA MAN NAG MAN NAG FUC, each by its code), their seven glycosidic links as arcs over them.',
     build: antibodyFc.residues,
+  },
+  {
+    dataset: 'antibody',
+    id: 'adc',
+    title: 'T-DM1, an antibody–drug conjugate (generated)',
+    summary:
+      'Trastuzumab emtansine as a construct: trastuzumab’s Fab chains twice (the Fc not held) and the emtansine payload (SMCC–DM1, its CCD ids placeholders), linked to every lysine with occupancies summing to the average DAR of 3.5; the arcs colored by their band of occupancy. Hover the payload: every conjugation site lights.',
+    build: () => antibodyAdc.build(),
   },
 ];
 
