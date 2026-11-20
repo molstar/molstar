@@ -2147,15 +2147,18 @@ measures, consensus, the profile). An alignment's rows over its columns, its own
   px the shared reduction over the scrolled display rows' theme classes (a class a distinct fill; factor 4, row and
   column levels apart) at the level pair whose sample is at least a device pixel, drawn as image tiles (256 × 256
   samples, opaque by the majority's share; the base level holds none: whole) in the shared image cache, offset from the
-  pinned band. A level whose sample covers under 64 rows counts its cells' classes exactly, from the base; a larger one
-  is the majority of the majorities below it (shares averaged), approximate within the measured tolerance, tested over
-  seeds 1 to 12: the share within 0.05 on average and 0.3 at worst, the letter exact where the exact winner leads by
-  more than 0.25. Why: a majority is not mergeable across levels, and a majority of majorities is wrong for small blocks
-  (measured on an unbiased generator, seeds 1 to 12: the letter missed at leads up to 0.41, shares off by up to 0.41); a
-  few rows a sample are cheap to count; and below 3 device px a cell the shade reads, not the letter. The pinned rows
-  are drawn on their own over a band that does not scroll (rects past `pinnedFrom`), the scrolled rows clipped below it.
-  The reducer is the theme's classes, fixed (no item, decided by the author 2026-11-20); a reduction by letter is in the
-  package's TODO.
+  pinned band. While the view moves a level not built yet is built `RowsBuildCells` cells a frame (2^18, about 4 ms;
+  `Pyramid.levelWithin`, its finer levels first) and the level pair drawn last stays drawn meanwhile, its tiles placed
+  at the new zoom; a settled frame builds the rest (`rows-levels.ts`). Why: a 10,000 × 300 level from its base took two
+  frames of about 100 ms each zoom (performance.md, Levels). A level whose sample covers under 64 rows counts its cells'
+  classes exactly, from the base; a larger one is the majority of the majorities below it (shares averaged), approximate
+  within the measured tolerance, tested over seeds 1 to 12: the share within 0.05 on average and 0.3 at worst, the
+  letter exact where the exact winner leads by more than 0.25. Why: a majority is not mergeable across levels, and a
+  majority of majorities is wrong for small blocks (measured on an unbiased generator, seeds 1 to 12: the letter missed
+  at leads up to 0.41, shares off by up to 0.41); a few rows a sample are cheap to count; and below 3 device px a cell
+  the shade reads, not the letter. The pinned rows are drawn on their own over a band that does not scroll (rects past
+  `pinnedFrom`), the scrolled rows clipped below it. The reducer is the theme's classes, fixed (no item, decided by the
+  author 2026-11-20); a reduction by letter is in the package's TODO.
 - **The header**, in the label column: the tree (`tree_width`, 120) and the first residue numbers widen the view's label
   column by their width (the widest of its tracks sections, so every section's data starts at one x), the labels keep
   the column's own; the tree by branch lengths, else depth, a folded clade a wedge at its summary row, its geometry in
