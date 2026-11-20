@@ -58,10 +58,10 @@ base-library change, below), archives. The Genomes milestone is the fifth.
 
 - **A dynamic (overlay) values node's `field`**: read its source's channel, as a static one does (DP, 2026-11-20).
 
-- **Track heights and labels beside for a source's items** (`render/ranges-content.ts`): a source-backed layer (a
-  GFF3, a table, a tiled genome) is not known whole before it is read, so its track keeps its fixed height and has no
-  label lane (its labels inside or dropped). A content from what the store holds whole (a small file read in one tile)
-  would give it the inline rule.
+- **Track heights and labels beside for a source's items** (`render/ranges-content.ts`): a source-backed layer (a GFF3,
+  a table, a tiled genome) is not known whole before it is read, so its track keeps its fixed height and has no label
+  lane (its labels inside or dropped). A content from what the store holds whole (a small file read in one tile) would
+  give it the inline rule.
 - **The label column over a template's instances**: measured over the view's own track labels, so an instance's name
   (`Domains T1-domains`) ends in an ellipsis; measuring the instances needs the viewer's data box (`dataX`) to follow
   the frame's column, not the view's.
