@@ -11,7 +11,6 @@ import {
   AddressingProvider,
   CursorProvider,
   EditingProvider,
-  HeadersProvider,
   HoverCardProvider,
   HoverProvider,
   KeysPanelProvider,
@@ -23,6 +22,7 @@ import {
   RowsProvider,
   WindowProvider,
 } from '@molstar/seqx-viewer/behaviors';
+import { HeadersProvider } from '@molstar/seqx-viewer/behaviors/headers';
 import { defaultPorts } from '@molstar/seqx-viewer/ports';
 import { frameAnimation } from './animation.js';
 import { BuiltInHeaderEntries } from './header-entries.js';

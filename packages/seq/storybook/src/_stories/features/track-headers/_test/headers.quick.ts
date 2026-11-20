@@ -10,7 +10,7 @@
 // CI: `npx vitest run -c packages/seq/storybook/vitest.perf.config.ts`.
 
 import { createSeqSpec } from '@molstar/seqx-core/lang';
-import { HeadersProvider } from '@molstar/seqx-viewer/behaviors';
+import { HeadersProvider } from '@molstar/seqx-viewer/behaviors/headers';
 import { DefaultSeqViewerSpec } from '@molstar/seqx-viewer/default-spec';
 import { createSeqViewer, type SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { measureBytesPerStep, quickCase } from '@molstar/test-harness/quick';

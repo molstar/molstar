@@ -373,6 +373,10 @@ export interface HeadersParams {
   readonly parts?: 'canvas' | HeaderPartsPortFactory;
   /** What a secondary click opens: `everywhere` (default), `header` (the label column), `none` (the browser's). */
   readonly contextClick?: 'everywhere' | 'header' | 'none';
+  /** A long press opens the menu after this many ms (500: touch's context menu). */
+  readonly longPressMs?: number;
+  /** A count chip's click: `all` (default) shows every hidden thing in one patch; `menu` lists them. */
+  readonly hiddenChip?: 'all' | 'menu';
 }
 
 const sameBox = (a: Box | undefined, b: Box | undefined) =>

@@ -21,11 +21,6 @@
 // opens a summary row, on the header focuses the row. Moves are arithmetic on display rows (a row never loaded is
 // stepped over by its index); the band scrolls to show the row by the least move. On a grid ↑ ↓ step its y and
 // Cmd/Ctrl+↑ ↓ go to its ends, its y shown by the least move.
-//
-// A track's header (a tracks layout's label line, and its section's header line when drawn): ← at the section's first
-// position goes onto its first track's header (`part: 'header'`, `track` its address; a section's line its address),
-// ↑ ↓ step between the section's headers and on to the next section's, → back to the data where it left; Enter is
-// the header's menu's (the `headers` behavior), Space and the extends do nothing there.
 
 import {
   EmptyKeys,
@@ -60,9 +55,9 @@ import { type RowsOf, rowsOf as rowsIn, twoAxesLayer } from './two-axes.js';
 /** The cursor less its row: a cell on the section's axis. */
 const plain = (section: string, system: string, position: number): Cursor => ({ section, system, position });
 
-/** The cursor on its row's cell (off the header), or off a track's header back on the data. */
+/** The cursor on its row's cell (off the header). */
 const onCell = (c: Cursor): Cursor => {
-  const { part: _, track: __, ...rest } = c;
+  const { part: _, ...rest } = c;
   return rest;
 };
 
@@ -145,46 +140,6 @@ export function createCursor(
     const o = which === 'first' ? Math.ceil(v?.start ?? 0) : Math.floor((v?.end ?? total) - 1);
     const p = elementAt(y, Math.max(0, Math.min(total - 1, o)));
     return p === undefined ? c : { ...c, ySystem: y.system, yPosition: p };
-  };
-  /**
-   * A section's headers the cursor stands on, in display order: its header line (its address) when drawn, then each
-   * track's label line (a rows track has none: its label column is its rows'); none in a layout without them.
-   */
-  const headersOf = (address: string): string[] => {
-    const s = layout()?.sections.find((x) => x.section.address === address);
-    const out: string[] = [];
-    if (!s) return out;
-    if (s.header) out.push(address);
-    for (const t of s.tracks)
-      if (t.header?.hit?.target === 'header-label' && !out.includes(t.track.address)) out.push(t.track.address);
-    return out;
-  };
-  /** ↑ ↓ on a header: the next header of its section, else the next section's first (last going up), else none. */
-  const headerStep = (c: Cursor, delta: -1 | 1): Cursor | undefined => {
-    const list = headersOf(c.section);
-    const i = list.indexOf(c.track!);
-    if (i >= 0 && list[i + delta] !== undefined) return { ...c, track: list[i + delta] };
-    const sections = view.resolved.value?.sections ?? [];
-    for (
-      let k = sections.findIndex((x) => x.address === c.section) + delta;
-      k >= 0 && k < sections.length;
-      k += delta
-    ) {
-      const next = headersOf(sections[k].address);
-      if (!next.length) continue;
-      const to = sections[k];
-      const v = view.get(to.address);
-      const p = v && !v.pending ? elementAt(to.axis, Math.ceil(v.start)) : undefined;
-      if (p === undefined) continue;
-      return {
-        section: to.address,
-        system: to.axis.system,
-        position: p,
-        part: 'header',
-        track: next.at(delta > 0 ? 0 : -1),
-      };
-    }
-    return undefined;
   };
   /** Whether a section has a second axis the cursor can stand on (rows, a grid's y). */
   const hasRows = (address: string) => !!rowsOf(address) || !!gridY(address);
@@ -302,7 +257,6 @@ export function createCursor(
    * its rows; else a line, else the section above or below.
    */
   const vertical = (c: Cursor, delta: -1 | 1): Cursor | undefined => {
-    if (c.track !== undefined) return headerStep(c, delta);
     if (onRows(c)) return rowStep(c, delta, false) ?? across(c, delta);
     if (delta > 0 && hasRows(c.section)) return enter(c, 'first');
     return line(c, delta < 0 ? 'up' : 'down') ?? across(c, delta);
@@ -323,21 +277,14 @@ export function createCursor(
     const p = elementAt(axis, next);
     return p === undefined ? undefined : { ...c, position: p };
   };
-  /**
-   * ← on rows: from the first column onto the row's header (a step back elsewhere); on the header it stays. Elsewhere
-   * from the first position onto the section's first track's header.
-   */
+  /** ← on rows: from the first column onto the row's header (a step back elsewhere); on the header it stays. */
   const back = (c: Cursor): Cursor | undefined => {
     if (c.part === 'header') return c;
     const s = stepped(c, -1);
     if (s && s.position === c.position && rowsOf(c.section) && onRows(c)) return { ...c, part: 'header' };
-    if (s && s.position === c.position && !onRows(c)) {
-      const first = headersOf(c.section).find((h) => h !== c.section);
-      if (first !== undefined) return { ...c, part: 'header', track: first };
-    }
     return s;
   };
-  /** → from the header back onto the row's cell (the column it left), or the data; a step on elsewhere. */
+  /** → from the header back onto the row's cell (the column it left); a step on elsewhere. */
   const on = (c: Cursor): Cursor | undefined => (c.part === 'header' ? onCell(c) : stepped(c, 1));
 
   /**
@@ -501,8 +448,8 @@ export function createCursor(
       const next = selection.cursor.value ? to(c) : c;
       if (!next) return { message: '' };
       const header = c.part === 'header' && c.ySystem !== undefined && c.yPosition !== undefined;
-      // on the header the column it left is hidden: Shift with ← → moves nothing; on a track's header nothing extends
-      if (select !== 'move' && ((header && horizontal) || c.track !== undefined)) return { message: '' };
+      // on the header the column it left is hidden: Shift with ← → moves nothing
+      if (select !== 'move' && header && horizontal) return { message: '' };
       if (select !== 'move' && onRows(c) && !header) {
         // a cell of two axes: the block from where it began to the cursor's cell (Cmd/Ctrl+Shift: a new one)
         extendBlock(c, onCell(next), select === 'add');
@@ -687,12 +634,7 @@ export function createCursor(
       category: 'Cursor',
       shortcut: { key: ' ' },
       scope: 'canvas',
-      when: (ctx) =>
-        selection.cursor.value?.track !== undefined
-          ? 'On a header'
-          : selection.cursor.value && current(ctx)
-            ? true
-            : 'No cursor',
+      when: (ctx) => (selection.cursor.value && current(ctx) ? true : 'No cursor'),
       run: (_, ctx): CommandResult => {
         const c = current(ctx)!;
         const r = rowsOf(c.section);
@@ -721,13 +663,7 @@ export function createCursor(
       category: 'Cursor',
       shortcut: { key: 'Enter' },
       scope: 'canvas',
-      // on a track's header Enter is its menu's (the `headers` behavior)
-      when: () =>
-        selection.cursor.value?.track !== undefined
-          ? 'On a header: Enter opens its actions'
-          : selection.cursor.value || selection.value.value.shown.parts.length
-            ? true
-            : 'Nothing to focus',
+      when: () => (selection.cursor.value || selection.value.value.shown.parts.length ? true : 'Nothing to focus'),
       run: (): CommandResult => {
         const c = selection.cursor.value;
         // a summary row opens (its clade unfolds), the cursor kept on its first row

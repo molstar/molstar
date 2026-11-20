@@ -45,10 +45,10 @@ import {
   type HeadersParams,
   sameGeometry,
 } from '@molstar/seqx-viewer/header-entries';
-import { headerGestures } from '@molstar/seqx-viewer/header-gestures';
-import { headerIcon } from '@molstar/seqx-viewer/header-icons';
+import type { HeaderIcon } from '@molstar/seqx-core/render';
 import type { BehaviorContext, BehaviorProvider } from '@molstar/seqx-viewer/viewer-spec';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
+import { headerCursor } from './header-cursor.js';
 import type { HoverCardBehavior } from './hover-card.js';
 import type { ThemingBehavior } from './theming.js';
 
@@ -147,13 +147,25 @@ export function headersBehavior(context: BehaviorContext, params: HeadersParams 
       names.add(e.name);
       if (e.command !== undefined && viewer && !commandOf(e.command))
         problems.push(`${e.name}: no command ${e.command} (seq.viewer.header.command)`);
-      if (e.icon !== undefined && !headerIcon(e.icon))
-        problems.push(`${e.name}: icon ${e.icon} not readable as paths (seq.viewer.header.icon)`);
     }
     if (problems.length) throw new Error(`The header entries are refused: ${problems.join('; ')}`);
   };
+  /**
+   * The entries' icons as paths: `@molstar/ui`'s Lucide markup and its reader are a lazy chunk (`header-icons.ts`),
+   * loaded once an entry has an icon; until then (and for an icon no path reads, `seq.viewer.header.icon`) a slot draws
+   * its label's first letter. Loaded, the headers are laid out again.
+   */
+  let iconOf: ((name: string) => HeaderIcon | undefined) | undefined;
+  let iconsAsked = false;
   const setEntries = (next: readonly HeaderEntry[]) => {
     entries = next;
+    if (!iconOf && !iconsAsked && next.some((e) => e.icon !== undefined)) {
+      iconsAsked = true;
+      void import('@molstar/seqx-viewer/header-icons').then((m) => {
+        iconOf = m.headerIcon as (name: string) => HeaderIcon | undefined;
+        if (!disposed) setEntries(entries);
+      });
+    }
     // a new function: part of the layout's key, so the next frame lays the headers out again
     partsOf = (f) => layoutParts(f);
     viewer?.schedule();
@@ -313,7 +325,7 @@ export function headersBehavior(context: BehaviorContext, params: HeadersParams 
             : {}),
         });
       } else if (it.slot && !dom) {
-        const icon = it.icon ? headerIcon(it.icon) : undefined;
+        const icon = it.icon ? iconOf?.(it.icon) : undefined;
         (slots ??= []).push({ name: it.name, label: it.label, ...(icon ? { icon } : {}), enabled: it.enabled });
       }
     }
@@ -559,11 +571,10 @@ export function headersBehavior(context: BehaviorContext, params: HeadersParams 
     if (name === HeaderMenuName) return openMenu(target, at), true;
     const e = entries.find((e) => e.name === name);
     if (!e) return true;
-    // an action with a submenu opens it at its slot; a chip lists what it hides under `header.hiddenChip.click: menu`
+    // an action with a submenu opens it at its slot; a chip lists what it hides under `hiddenChip: menu`
     const f = factsOf(target);
     const subs = f && e.items?.(f);
-    if (subs?.length && (e.kind !== 'state' || viewer.config.header.hiddenChip.click === 'menu'))
-      return openMenu(target, at, e.name), true;
+    if (subs?.length && (e.kind !== 'state' || params.hiddenChip === 'menu')) return openMenu(target, at, e.name), true;
     void run(e.name, target);
     return true;
   };
@@ -639,6 +650,13 @@ export function headersBehavior(context: BehaviorContext, params: HeadersParams 
     return s ? { section: s.address, ...(first ? { track: first.address } : {}) } : undefined;
   };
 
+  const menuAtCursor = (): CommandResult => {
+    const target = cursorTarget();
+    const ok = !!target && openMenu(target, placeOf(target));
+    // the browser's own secondary click after the menu key is this ask (EC-156)
+    if (ok) askedAt = DomHost.now();
+    return { message: ok ? 'Actions' : '' };
+  };
   const commands: CommandDefinition<unknown>[] = [
     {
       id: HeadersMenuCommand,
@@ -646,13 +664,7 @@ export function headersBehavior(context: BehaviorContext, params: HeadersParams 
       category: 'Headers',
       scope: 'canvas',
       when: () => (disposed ? 'The viewer is retired' : cursorTarget() ? true : 'No cursor'),
-      run: (): CommandResult => {
-        const target = cursorTarget()!;
-        const ok = openMenu(target, placeOf(target));
-        // the browser's own secondary click after the menu key is this ask (EC-156)
-        if (ok) askedAt = DomHost.now();
-        return { message: ok ? 'Actions' : '' };
-      },
+      run: () => menuAtCursor(),
     },
   ];
 
@@ -739,6 +751,8 @@ export function headersBehavior(context: BehaviorContext, params: HeadersParams 
       check(listed, []);
       setEntries(listed);
       describerFor(context).headers = words;
+      // the cursor's moves onto and between headers (Enter on one opens its menu)
+      headerCursor(v, menuAtCursor);
       // a host's DOM parts take the focus when the cursor comes onto a header
       stops.push(
         context.selection.cursor.listen((c) => {
@@ -763,11 +777,18 @@ export function headersBehavior(context: BehaviorContext, params: HeadersParams 
         published();
       }
       // the secondary click (Shift: the browser's) and the long press (touch's context menu, once per ask)
-      const stopGestures = headerGestures(container, v.config.header.menu.longPressMs, contextAt, (x, y) => {
-        if (!shownMenu.value && contextAt(x, y)) askedAt = DomHost.now();
+      // (a lazy chunk, loaded at the mount)
+      let stopGestures: (() => void) | undefined;
+      let detached = false;
+      void import('@molstar/seqx-viewer/header-gestures').then((m) => {
+        if (detached) return;
+        stopGestures = m.headerGestures(container, params.longPressMs ?? 500, contextAt, (x, y) => {
+          if (!shownMenu.value && contextAt(x, y)) askedAt = DomHost.now();
+        });
       });
       return () => {
-        stopGestures();
+        detached = true;
+        stopGestures?.();
         closeMenu();
         if (menuPort && menuPort.disposeWithViewer !== false) menuPort.dispose?.();
         menuPort = undefined;

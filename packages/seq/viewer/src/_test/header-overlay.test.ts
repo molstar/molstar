@@ -15,8 +15,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { type HeadersBehavior, HeadersProvider } from '../behaviors/headers.js';
 import { RecordingContext } from '../canvas/_test/recording.js';
 import { DefaultSeqViewerSpec } from '../default-spec.js';
-import { headerMenuOverlay } from '../mount-header-menu.js';
-import { headerPartsDom } from '../mount-header-parts.js';
+import { headerMenuOverlay, headerPartsDom } from '../mount-header-menu.js';
 import { type UiHistory, uiHistory } from '../ui-history.js';
 import { createSeqViewer, type SeqViewer } from '../viewer.js';
 import { type Frames, installFrames } from './frames.js';
@@ -80,6 +79,8 @@ async function mount(dom: boolean) {
   viewers.push(v);
   await v.load(spec());
   await v.settle();
+  // the gestures, the icons, the menu's and the parts' DOM are lazy chunks
+  await vi.dynamicImportSettled();
   frames.flush();
   const container = target.querySelector<HTMLElement>('[role="application"]')!;
   return { v, container, headers: v.behaviors.get('headers') as HeadersBehavior };
@@ -103,6 +104,7 @@ describe('the header menu’s overlay', () => {
     const e = mouse('contextmenu', ...at);
     container.dispatchEvent(e);
     expect(e.defaultPrevented).toBe(true);
+    await vi.dynamicImportSettled();
     const menu = container.querySelector('[role="menu"]')!;
     const labels = [...menu.querySelectorAll('[role^="menuitem"]')].map((b) => b.textContent);
     // the track's items, then the section's (a key quiet at the row's end)

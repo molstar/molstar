@@ -81,6 +81,8 @@ async function mount(items: [any, unknown][] = []) {
   viewer = v;
   await v.load(proteinOnGene());
   await v.settle();
+  // the header entries' icons are a lazy chunk: the headers are laid out again once it lands
+  await tick();
   frames.flush();
   return v;
 }

@@ -35,8 +35,8 @@ const at = (el: HTMLElement, b: { x: number; y: number; width: number; height: n
 
 const sameTarget = (a: HeaderTarget, b: HeaderTarget) => a.section === b.section && a.track === b.track;
 
-/** `@molstar/ui` buttons over the headers' boxes. */
-export function headerPartsDom(): HeaderPartsPortFactory {
+/** `@molstar/ui` buttons over the headers' boxes (the lazy chunk `headerPartsDom()` loads). */
+export function partsDomPort(): HeaderPartsPortFactory {
   return (container, behavior) => {
     const doc = container.ownerDocument;
     const layer = doc.createElement('div');
