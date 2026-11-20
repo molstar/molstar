@@ -78,6 +78,7 @@ import {
   moleculeOf,
   unitsOf,
 } from './molecule-query.js';
+import { type DescribedMap, describedAddress } from './maps-described.js';
 import { mapEntry, numberingEntry } from './maps-entry.js';
 import type { StructureMapData } from './maps-segments.js';
 import { pathKey, viaList, viaPath, viaRivals, withoutRivals } from './maps-via.js';
@@ -293,6 +294,8 @@ export interface StaticModel extends QueryModel {
   readonly molecular: Molecular;
   /** The compounds described (`compound` nodes), by code. */
   readonly compounds: ReadonlyMap<string, CompoundEntry>;
+  /** The maps with an end a source describes (a unit of its complex): the overlay's steps once held (Overlay). */
+  readonly describedMaps?: ReadonlyMap<string, DescribedMap>;
   /** A sequence's modified index, or a unit's of one; undefined when it has none. */
   modified(system: string): ModifiedIndex | undefined;
   /** A component described: its `compound` node, else the host's names (`ResolveOptions.componentNames`). */
@@ -570,8 +573,20 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
   }
 
   const maps = new Map<string, MapEntry>();
+  const describedMaps = new Map<string, DescribedMap>();
+  const isSource = (a: string) => byAddress.get(a)?.node.kind === 'source';
   for (const at of data) {
     if (at.node.kind !== 'map') continue;
+    // an end a source describes (a unit of its complex): the overlay's once it arrives, pending until then
+    const dFrom = describedAddress(p(at.node, 'from'), isSource);
+    const dTo = describedAddress(p(at.node, 'to'), isSource);
+    if (dFrom !== undefined || dTo !== undefined) {
+      const f = dFrom ?? ref(at, 'from', SystemRefs)?.address;
+      const t = dTo ?? ref(at, 'to', ColumnsRefs)?.address;
+      if (f !== undefined && t !== undefined)
+        describedMaps.set(at.address, { address: at.address, node: at.node, from: f, to: t });
+      continue;
+    }
     const from = ref(at, 'from', SystemRefs);
     const to = ref(at, 'to', ColumnsRefs);
     if (!from || !to) continue;
@@ -632,6 +647,7 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
     { equivalents: options.equivalents, componentNames: options.componentNames },
     carried,
     given,
+    describedMaps,
   );
   SourceHashes.set(model, sourceHashes);
   return model;
@@ -862,8 +878,9 @@ export function resolveMapNode(
   from: SystemEntry,
   to: SystemEntry,
   config: ResolveConfig,
+  unit?: UnitEntry,
 ): { map: MapEntry; issues: Issue[] } {
-  return mapEntry({ node, address }, from, to, config);
+  return mapEntry({ node, address }, from, to, config, unit);
 }
 
 /** A `ranges` or `values` node resolved on its target (the overlay's dynamic annotations are resolved so). */
@@ -1051,6 +1068,7 @@ class Model implements StaticModel {
     private readonly host: Pick<ResolveOptions, 'equivalents' | 'componentNames'> = {},
     private readonly carried?: ReadonlyMap<string, PathEntry>,
     lengths: Lengths = new Map(),
+    readonly describedMaps: ReadonlyMap<string, DescribedMap> = new Map(),
   ) {
     this.hash = `${hashNode(spec)}${lengthsKey(lengths)}`;
     let fromSource = false;

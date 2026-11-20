@@ -1613,6 +1613,13 @@ of it (`buildOverlay(model, reader)`; `OverlayBuilder` keeps one a node version 
   search per version, never on hover. `Overlay.edgesFrom(system)` lists what such a search reads from a system (the
   spec's maps, the overlay's units' steps and item maps): a reader telling a unit with a map of its own (the structure
   translation) reads the overlay's too.
+- **Described ends** (`maps-described.ts`): a spec `map` whose `from` or `to` is a node a spec source describes (a unit
+  of its complex, `<source>/(node :key <key>)/<unit>`: SIFTS per chain) is no missing ref: the static model keeps it
+  aside (`StaticModel.describedMaps`), and the overlay resolves it (`resolveMapNode`, the unit's observed runs read)
+  into steps both ways once both ends are held, its issues the overlay's. Until then it is pending
+  (`pendingMaps(maps, held)`, EC-169), never a map that pairs nothing. A dynamic address under no spec source stays
+  `seq.resolve.ref.missing`. Why: the design's route for a host's per-chain maps, and the pending state the data already
+  has.
 - **Nested sources** (EC-179): `nested(needs)` lists the source nodes at a depth some template on their root needs,
   bound to the first runtime that reads their format (`OverlayOptions.runtimes`; none: `seq.resolve.source.runtime`);
   one deeper than `maxNestedDepth` is `seq.resolve.node.depth` and not listed. Why on need: a nested source is a

@@ -25,11 +25,9 @@ import {
 } from '@molstar/seqx-core/query';
 import {
   buildOverlay,
-  composeEdges,
-  type Edge,
-  ImplicitLinear,
   nodeAddress,
   type Overlay,
+  pendingMaps,
   resolveSpec,
   type StaticModel,
 } from '@molstar/seqx-core/resolve';
@@ -209,38 +207,36 @@ describe('two consumers: a host’s description and the translation, in one test
     expect(systems(toUnits(host, rangesLocation(B, [0, 2])).target)).toEqual([B]);
   });
 
-  it('a map onto one of the overlay’s units is its own: searched on its own, the copies reached from the molecule', () => {
-    const host = hostOverlay();
+  it('a spec map onto one of the overlay’s units (SIFTS per chain): pending until the description, then an overlay edge', () => {
+    // x i ↦ A i + 1: a map whose `to` is a unit a source describes, named by its dynamic address
+    const b = createSeqSpec();
+    b.data.source('zf', { format: 'mmcif', uri: 'zf.cif' });
+    const xs = b.data.sequence('x', { alphabet: 'protein', letters: 'CPEC' });
+    b.data.map('xa', { from: xs, to: A as never, method: 'offset', by: 1 });
+    const model = resolveSpec(b.build());
     const x = '/data/x';
-    // a source's map onto unit A (SIFTS per chain): x i ↦ A i + 1, as the overlay would hold it
-    const edge: Edge = {
-      map: '/data/xa',
-      from: A,
-      to: x,
-      backward: true,
-      step: 0,
-      linear: new ImplicitLinear(-1, 1, 1, 5),
-    };
-    const forward = composeEdges(x, [
-      { ...edge, from: x, to: A, backward: false, linear: new ImplicitLinear(1, 1, 0, 4) },
-    ])!;
-    const overlay: Overlay = {
-      ...host.overlay,
-      molecular: host.overlay.molecular,
-      system: (a) => host.overlay.system(a),
-      annotation: (a) => host.overlay.annotation(a),
-      node: (a) => host.overlay.node(a),
-      nested: (n) => host.overlay.nested(n),
-      systemNamed: (n, near) => host.overlay.systemNamed(n, near),
-      holds: (a) => host.overlay.holds(a),
-      edgesFrom: (s) => [...(host.overlay.edgesFrom?.(s) ?? []), ...(s === A ? [edge] : [])],
-      path: (from, to, via) => (from === x && to === A ? { path: forward } : host.overlay.path(from, to, via)),
-    };
-    const r = toUnits({ model: host.model, overlay }, rangesLocation(x, [0, 2]));
+    // no missing ref: kept for the overlay
+    expect(model.issues.map((i) => i.code)).not.toContain('seq.resolve.ref.missing');
+    expect([...(model.describedMaps?.keys() ?? [])]).toEqual(['/data/xa']);
+    // before the description: pending (EC-169), nothing reached
+    const before = { model, overlay: buildOverlay(model, { nodes: new Map(), nodeVersion: { value: 0 } }) };
+    const held = (o: Overlay) => (s: string) => model.systems.has(s) || o.system(s) !== undefined;
+    expect(pendingMaps(model.describedMaps?.values(), held(before.overlay))).toEqual(['/data/xa']);
+    expect(toUnits(before, rangesLocation(x, [0, 2])).target.parts).toEqual([]);
+    // the description arrived: the map is an overlay edge, searched on its own
+    const nodes = new Map<string, NodeEntry>();
+    for (const n of structureNodes(zincFinger(), { source: Source }).nodes)
+      nodes.set(nodeKey(Source, n.key), { source: Source, key: n.key, node: n.node, version: 1 });
+    const after = { model, overlay: buildOverlay(model, { nodes, nodeVersion: { value: 1 } }) };
+    expect(pendingMaps(model.describedMaps?.values(), held(after.overlay))).toEqual([]);
+    expect(after.overlay.edgesFrom!(x).map((e) => [e.map, e.to])).toContainEqual(['/data/xa', A]);
+    const r = toUnits(after, rangesLocation(x, [0, 2]));
     expect(systems(r.target)).toEqual([A]);
     expect(ranges(r.target, A)).toEqual([1, 3]);
-    // without the overlay's edges A is no unit of its own: its map is never asked
-    const plain = toUnits(host, rangesLocation(x, [0, 2]));
-    expect(plain.target.parts).toEqual([]);
+    // a map onto a unit of no spec source stays a missing ref
+    const c = createSeqSpec();
+    const ys = c.data.sequence('y', { alphabet: 'protein', letters: 'CPEC' });
+    c.data.map('ya', { from: ys, to: '/data/nowhere/(node :key complex)/A-1_555' as never, method: 'offset', by: 1 });
+    expect(resolveSpec(c.build()).issues.map((i) => i.code)).toContain('seq.resolve.ref.missing');
   });
 });
