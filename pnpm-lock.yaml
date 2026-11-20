@@ -3422,6 +3422,9 @@ importers:
         specifier: workspace:*
         version: link:../../ui
     devDependencies:
+      '@molstar/mvs-builder':
+        specifier: workspace:*
+        version: link:../../mvs/builder
       '@molstar/test-harness':
         specifier: workspace:*
         version: link:../../../test-harness

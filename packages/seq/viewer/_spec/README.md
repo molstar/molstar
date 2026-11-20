@@ -1326,10 +1326,10 @@ over the same translation.
   one clock). A fit names none: nothing sent.
 - **In**: the side's hover as a hover of a Location (`HoverModel.setLocation`) owned by the link: drawn projected, no
   card; the pointer taking the hover takes it, and the side's `null` clears only the link's own (a stale `null` does
-  nothing, EC-141); the side's selection through `fromUnits` (a unit's atoms kept where a section or block shows its
-  atoms form, collapsed onto its residues elsewhere, unit by unit) into `selection.set`, then revealed
-  (`revealOnSelect`: `revealLocation`, the zoom kept; `focus`; `none`); a `null` clears it; its focus as `focusLocation`
-  (one jump).
+  nothing, EC-141); a side hover carrying its time (`at`) older than the pointer's last own hover is dropped; the side's
+  selection through `fromUnits` (a unit's atoms kept where a section or block shows its atoms form, collapsed onto its
+  residues elsewhere, unit by unit) into `selection.set`, then revealed (`revealOnSelect`: `revealLocation`, the zoom
+  kept; `focus`; `none`); a `null` clears it; its focus as `focusLocation` (one jump).
 - **Echoes** never go back: the link's own hover is not sent (it only ends the pointer's hover sent before it, with
   `null`, sent from inside the side's `onHover` call); a selection equal (`locationsEqual`) to the one last set from the
   side is not sent; a jump made while a message from the side is applied (its selection's reveal, its focus) is not

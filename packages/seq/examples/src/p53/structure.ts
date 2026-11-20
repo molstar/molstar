@@ -53,6 +53,10 @@ export interface StructureOptions {
   readonly copies?: 'merge' | 'each';
   /** The map a section's paths take (`via`): SIFTS's or the alignment's; absent, the ranked one (SIFTS). */
   readonly via?: 'sifts' | 'aln';
+  /** The alignment's map shifted by this many residues (a wrong alignment: the Chain maps story's rival); 0: exact. */
+  readonly alnShift?: number;
+  /** A second section of the complex, its paths through the alignment's map (`via`), below the first (SIFTS's). */
+  readonly compare?: boolean;
 }
 
 /** The addresses a host's adapter and the stories name. */
@@ -124,11 +128,16 @@ export function build(options: StructureOptions = {}): Node {
     segments: { from: [EntityStart], to: [0], length: [EntityLength], provenance: ['sifts'] },
     priority: 1,
   });
+  const shift = options.alnShift ?? 0;
   b.data.map('aln', {
     from: p53,
     to: entity,
     method: 'segments',
-    segments: { from: [...AlignedSegments.from], to: [...AlignedSegments.to], length: [...AlignedSegments.length] },
+    segments: {
+      from: AlignedSegments.from.map((f) => f + shift),
+      to: [...AlignedSegments.to],
+      length: AlignedSegments.length.map((n) => n - shift),
+    },
   });
   b.views.view('main', (v) => {
     const p = v.section('protein', { of: p53 });
@@ -146,6 +155,14 @@ export function build(options: StructureOptions = {}): Node {
     });
     s.track('secondary', { label: 'Secondary structure' }).layer('secondary', { type: 'ranges', data: secondary });
     s.track('letters', { label: '2OCJ' }).layer('letters', { type: 'letters' });
+    if (options.compare) {
+      const a = v.section('structure-aln', {
+        of: StructureAddresses.complex as never,
+        copies: 'merge',
+        via: StructureAddresses.aln as never,
+      });
+      a.track('letters', { label: '2OCJ via alignment' }).layer('letters', { type: 'letters' });
+    }
   });
   return b.build();
 }
@@ -155,3 +172,9 @@ export const split = () => build({ copies: 'each' });
 
 /** The section's paths through the alignment's map, not SIFTS's. */
 export const viaAlignment = () => build({ via: 'aln' });
+
+/**
+ * The two maps of P04637 onto the entity set against each other: SIFTS's ranked first, the alignment's shifted by one
+ * residue; the first section follows the ranked map, the second goes `via` the alignment's.
+ */
+export const compare = () => build({ alnShift: 1, compare: true });

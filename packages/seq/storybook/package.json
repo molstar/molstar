@@ -29,6 +29,7 @@
     "@types/node": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:",
-    "@molstar/test-harness": "workspace:*"
+    "@molstar/test-harness": "workspace:*",
+    "@molstar/mvs-builder": "workspace:*"
   }
 }

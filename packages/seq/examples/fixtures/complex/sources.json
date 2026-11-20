@@ -94,5 +94,21 @@
     "bytesFixture": 5953,
     "sha256Download": "439f94c8b17b1d2feaf1ad45470e6e60686652cb8db14afb588c9942dc5b076b",
     "sha256Fixture": "439f94c8b17b1d2feaf1ad45470e6e60686652cb8db14afb588c9942dc5b076b"
+  },
+  {
+    "file": "complex/1FIN-chains.json",
+    "entry": "PDB 1FIN, CDK2 and cyclin A with ATP (Jeffrey et al. 1995), mmCIF",
+    "url": "https://files.rcsb.org/download/1FIN.cif.gz",
+    "recorded": "2026-11-20",
+    "licence": [
+      "CC0-1.0"
+    ],
+    "attribution": "wwPDB, PDB 1FIN, CC0",
+    "trimmed": "the fake structure viewer’s chain table: every chain instance but the waters (struct_asym), its residues’ label and author numbers, components and whether modeled (pdbx_poly_seq_scheme, pdbx_nonpoly_scheme, atom_site of model 1); coordinates dropped",
+    "derived": "none",
+    "bytesDownloaded": 999052,
+    "bytesFixture": 25683,
+    "sha256Download": "dfe5da37b2e28d3d74eefa0edee97d57ea127538beead9e68a8a42a5c363a1ac",
+    "sha256Fixture": "9940953fed539ed9e34ce63c22c7c85ebf545772f61cc317490dfd0a80a0b96e"
   }
 ]

@@ -40,5 +40,20 @@ still uses its `via`.
 
 ## In the Storybook
 
-The structure viewer here is a small fake: chains as rows of residue cells, with its own MolViewSpec translation and an
-optional latency. A real 3D viewer will use the same library and the same tests.
+The structure viewer here is a small fake: each chain instance a row of residue cells (the dashed gaps are residues the
+entry has no atoms for, a ligand a chip, copies their own rows), a grammar of its own (hover; click selects;
+Cmd/Ctrl+click toggles; Esc clears; double-click focuses; "Select chain" and "Within 5 Å" select what no sequence did),
+a camera frame that a focus moves over the time it was given, and an optional latency on what it tells. Its structure is
+its own recorded chain table, read from the mmCIF apart from anything of Seq\*, and its state is MolViewSpec, validated
+before it is taken. Its adapter, the host's, is the one place that knows both vocabularies: it joins `structureFacts`
+against the table once and gives `linkStructure` its side. A real 3D viewer will use the same library and the same
+tests.
+
+The stories, each with a headless twin on a fake clock:
+[Hover both ways](?path=/story/seq-next-features-structure-link--hover-both-ways) (and
+[with latency](?path=/story/seq-next-features-structure-link--hover-with-latency): a late message never takes the hover
+from the pointer), [Selection both ways](?path=/story/seq-next-features-structure-link--selection-both-ways),
+[Focus and back](?path=/story/seq-next-features-structure-link--focus-and-back) on 1FIN,
+[Chain maps](?path=/story/seq-next-features-structure-link--chain-maps) (SIFTS against a shifted alignment, by
+`priority` and `via`) and [Color by this track](?path=/story/seq-next-features-structure-link--color-by-this-track) (a
+host's header entry).

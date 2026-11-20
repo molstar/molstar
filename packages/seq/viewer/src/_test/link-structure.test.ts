@@ -161,6 +161,17 @@ describe('linkStructure', () => {
     expect(side.told).toHaveLength(2);
   });
 
+  it('hover in: a hover that happened before the pointer’s last own is dropped, a later one taken (EC-141)', async () => {
+    const { v, side } = await make();
+    hoverUp(v, EntStart + 20);
+    const own = performance.now();
+    side.hover(onChains(30, 31, ['B']), own - 1);
+    expect(v.hover.owner).toBe(pointer);
+    side.hover(onChains(30, 31, ['B']), own + 1);
+    expect(v.hover.owner).not.toBe(pointer);
+    expect(v.hover.active).toBe(true);
+  });
+
   it('selection out: one message a frame, the last value; an unchanged image sends nothing', async () => {
     const { v, side, frames } = await make();
     for (const end of [20, 30, 40]) {

@@ -18,7 +18,8 @@
 // CIF parser (`cif.ts`, the examples' one reader). The datasets: `p53`,
 // UniProt P04637's REST entry (CC-BY-4.0) and the Proteins API's variants of it, those of UniProt's own and ClinVar's
 // sources; `p53-structure`, PDB 2OCJ's committed mmCIF (CC0-1.0, no fetch) as the entity's `seq` and the fake structure
-// viewer's chain table; `antibody-structure`, PDB 3AVE's committed mmCIF (CC0-1.0, no fetch) as its Fc's `seq`;
+// viewer's chain table; `complex-structure`, PDB 1FIN's committed mmCIF (CC0-1.0, no fetch) as its fake structure
+// viewer chain table; `antibody-structure`, PDB 3AVE's committed mmCIF (CC0-1.0, no fetch) as its Fc's `seq`;
 // `globins`, the Pfam PF00042 seed (CC0-1.0) cut to 60 rows, UniProt's organisms of its
 // rows (CC-BY-4.0) and PDB 4HHB (CC0-1.0); `plasmid`, INSDC L09137.2 (pUC19c) as ENA serves it in FASTA, converted to
 // the `seq` format, its letters also as a module of the examples (what the features and sites are derived from in code
@@ -747,6 +748,16 @@ const p53Structure = () =>
     ],
   );
 
+/** The Complex's fake structure viewer chain table: PDB 1FIN's chain instances (`p53/structure-record.ts`'s rules). */
+const complexStructure = () =>
+  fromStructure('1FIN', 'PDB 1FIN, CDK2 and cyclin A with ATP (Jeffrey et al. 1995), mmCIF', (cif) => [
+    [
+      'complex/1FIN-chains.json',
+      chainTableJson(chainTable(cif, '1FIN')),
+      'the fake structure viewer’s chain table: every chain instance but the waters (struct_asym), its residues’ label and author numbers, components and whether modeled (pdbx_poly_seq_scheme, pdbx_nonpoly_scheme, atom_site of model 1); coordinates dropped',
+    ],
+  ]);
+
 /** The Antibody's Fc: PDB 3AVE's Fc entity as `seq` (its glycans, links and units: `antibody/fc-glycan.ts`). */
 const antibodyStructure = () =>
   fromStructure(
@@ -764,6 +775,7 @@ const antibodyStructure = () =>
 const Datasets: Readonly<Record<string, () => Promise<Row[]>>> = {
   p53,
   'p53-structure': p53Structure,
+  'complex-structure': complexStructure,
   'antibody-structure': antibodyStructure,
   globins,
   plasmid,
@@ -773,7 +785,11 @@ const Datasets: Readonly<Record<string, () => Promise<Row[]>>> = {
 };
 
 /** A dataset's fixtures folder, when not its name. */
-const Folders: Readonly<Record<string, string>> = { 'p53-structure': 'p53', 'antibody-structure': 'antibody' };
+const Folders: Readonly<Record<string, string>> = {
+  'p53-structure': 'p53',
+  'complex-structure': 'complex',
+  'antibody-structure': 'antibody',
+};
 
 async function main(name: string | undefined) {
   if (!name || !Datasets[name]) throw new Error(`usage: record.ts ${Object.keys(Datasets).join(' | ')}`);
