@@ -242,26 +242,26 @@ never chemistry: a component code, a SMILES, a GlyTouCan id are strings it match
   glycan's selection never selects its site.
 - **Views of them**: `section.of` takes a complex (a block a unit), `section.classes` the classes shown in order
   (`polymer` a sequence's units, else a molecule's class; `[polymer, branched, ligand, ion]` when absent: water left
-  out); `block.form` (`whole`, `residues`, `atoms`; `whole` for a molecule and `residues` for a sequence when absent;
-  `atoms` on a system without them is `seq.lang.molecule.form`, a unit read through its molecule, a molecule from a
-  source not judged); a `letters` layer's `modified` (`mark`, `code`, `tint`, `none`; `mark` when absent); a `ranges`
-  layer takes `pairs` data (each end a mark at its site). What they draw is Render's.
+  out); `block.form` (`whole`, `residues`, `atoms`; `whole` for a molecule or a unit of one, `residues` for a sequence
+  or a unit of one, when absent; `atoms` on a system without them is `seq.lang.molecule.form`, a unit read through its
+  molecule, a molecule from a source not judged); a `letters` layer's `modified` (`mark`, `code`, `tint`, `none`; `mark`
+  when absent); a `ranges` layer takes `pairs` data (each end a mark at its site). What they draw is Render's.
 - **Shared with dynamic nodes**: `checkDataNode` runs a molecule's and a sequence's `modified` checks and a pairs node's
   link checks (`DataNodeTargets.parent`), so a host's molecule is held to the spec's rules; `checkUnit` and `checkLinks`
   take what they read as arguments, for the overlay's complexes.
 
-| Item                   | Default                                                   | Why the default; the alternatives                                                        |
-| ---------------------- | --------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `block.form`           | `whole` for a molecule, `residues` for a sequence or unit | a molecule reads at the fit view; one rule for every non-polymer; `residues`, `atoms`    |
-| `section.classes`      | `[polymer, branched, ligand, ion]`                        | Mol\*'s and MVS's order (EC-101); waters say nothing on an axis; any list, `water` added |
-| `copies`               | `merge`                                                   | unchanged; `each` (poses: the builder's for a pose set)                                  |
-| `modified` (`letters`) | `mark`                                                    | a modified residue drawn as its parent alone hides it; `code`, `tint`, `none`            |
-| `code` (`letters`)     | `auto`                                                    | the component's code where three letters have room; `one`, `three`                       |
-| `class` (`molecule`)   | `ligand`                                                  | the commonest non-polymer; `branched`, `ion`, `water`, any word                          |
-| identifier namespaces  | open words                                                | a host's registry ids are pointers too; the documented vocabulary                        |
-| `ref` (`source`)       | absent                                                    | portable by `uri`; a host's name for data with no file                                   |
-| `field` (`values`)     | the source's default value                                | one source, many channels                                                                |
-| hydrogens in `atoms`   | refused (fixed)                                           | lengths and per-atom data line up across entries (EC-64)                                 |
+| Item                   | Default                                                                             | Why the default; the alternatives                                                        |
+| ---------------------- | ----------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `block.form`           | `whole` for a molecule or a unit of one, `residues` for a sequence or a unit of one | a molecule reads at the fit view; one rule for every non-polymer; `residues`, `atoms`    |
+| `section.classes`      | `[polymer, branched, ligand, ion]`                                                  | Mol\*'s and MVS's order (EC-101); waters say nothing on an axis; any list, `water` added |
+| `copies`               | `merge`                                                                             | unchanged; `each` (poses: the builder's for a pose set)                                  |
+| `modified` (`letters`) | `mark`                                                                              | a modified residue drawn as its parent alone hides it; `code`, `tint`, `none`            |
+| `code` (`letters`)     | `auto`                                                                              | the component's code where three letters have room; `one`, `three`                       |
+| `class` (`molecule`)   | `ligand`                                                                            | the commonest non-polymer; `branched`, `ion`, `water`, any word                          |
+| identifier namespaces  | open words                                                                          | a host's registry ids are pointers too; the documented vocabulary                        |
+| `ref` (`source`)       | absent                                                                              | portable by `uri`; a host's name for data with no file                                   |
+| `field` (`values`)     | the source's default value                                                          | one source, many channels                                                                |
+| hydrogens in `atoms`   | refused (fixed)                                                                     | lengths and per-atom data line up across entries (EC-64)                                 |
 
 ### Refs
 

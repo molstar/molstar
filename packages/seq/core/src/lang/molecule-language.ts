@@ -190,7 +190,7 @@ export const MoleculeKinds = {
 export const BlockForm = {
   type: 'string',
   enum: ['whole', 'residues', 'atoms'],
-  doc: 'How it is drawn: `whole` (one chip over its range, labeled), `residues` (a position a residue or letter) or `atoms` (a position a heavy atom; a molecule with atoms only). `whole` for a molecule (or a unit of one), `residues` for a sequence or a unit of one, when absent.',
+  doc: 'How it is drawn: `whole` (one chip over its range, labeled), `residues` (a position a residue or letter) or `atoms` (a position a heavy atom; a molecule with atoms only). `whole` for a molecule or a unit of one, `residues` for a sequence or a unit of one, when absent.',
 } as const;
 
 export const SectionClasses = {

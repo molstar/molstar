@@ -9,6 +9,7 @@ import { parseSexpr, printSexpr } from '@molstar/core/repr/codecs/sexpr';
 import { applyPatch, diff } from '@molstar/core/repr/patch';
 import { normalize, validateAndNormalize } from '@molstar/core/repr/schema';
 import { hashNode, type Node } from '@molstar/core/repr/tree';
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { createSeqSpec, modified } from '../builder.js';
 import { checkSeqSpec } from '../check.js';
@@ -245,6 +246,13 @@ describe('molecules, complexes, units and links', () => {
       ['seq.lang.section.range', '/views/w/unit'],
       ['seq.lang.section.range', '/views/w/molecule'],
     ]);
+  });
+
+  it('block.form’s default is one rule, in the description and the _spec', () => {
+    const rule = '`whole` for a molecule or a unit of one, `residues` for a sequence or a unit of one';
+    expect(SeqLanguage.kinds.block.params.form.doc).toContain(rule);
+    const spec = readFileSync(new URL('../../../_spec/README.md', import.meta.url), 'utf8').replace(/\s+/g, ' ');
+    expect(spec.split(rule).length - 1).toBe(2);
   });
 
   it('modified tables of any rows: in order and in bounds exactly when no issue is said (property)', () => {
