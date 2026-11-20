@@ -65,3 +65,32 @@ export const StoreIssues = defineIssues('seq.store', {
     description: 'A source sent a node again under its key with other content; the held node is kept',
   },
 });
+
+/** The archive's codes (`archive.ts`; EC-91). */
+export const ArchiveIssues = defineIssues('seq.archive', {
+  'seq.archive.unreadable': {
+    severity: 'error',
+    description: 'The bytes are not a zip archive, or it is damaged (cut short, a failed checksum, an unknown method)',
+  },
+  'seq.archive.bounds': {
+    severity: 'error',
+    description: 'An archive is past a bound: its entries, their expanded size, one entry’s, or a ratio of expansion',
+    hint: 'Raise the bound if the archive is trusted, else do not open it',
+  },
+  'seq.archive.name': {
+    severity: 'error',
+    description: 'An entry’s name is no path under the archive’s root (absolute, with `..`, a backslash, a control)',
+  },
+  'seq.archive.index': {
+    severity: 'error',
+    description: 'The archive’s index is missing or not in its shape, or lists a file the archive does not hold',
+  },
+  'seq.archive.spec': {
+    severity: 'error',
+    description: 'The archive’s spec is missing, past the spec bounds or not a tree',
+  },
+  'seq.archive.data': {
+    severity: 'error',
+    description: 'A data file the spec names could not be read to be saved in the archive',
+  },
+});
