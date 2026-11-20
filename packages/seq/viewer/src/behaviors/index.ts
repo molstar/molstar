@@ -10,6 +10,7 @@ export * from './addressing.js';
 export * from './copy.js';
 export * from './cursor.js';
 export * from './editing.js';
+export * from './headers.js';
 export * from './hover.js';
 export * from './hover-card.js';
 export * from './keys-panel.js';

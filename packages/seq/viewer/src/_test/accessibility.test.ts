@@ -207,7 +207,8 @@ describe('the announcer', () => {
     const said: { id: number; text: string }[] = [];
     a.message.listen((m) => said.push(m));
     await v.execute('cursor.prev', { section: Section });
-    await v.execute('cursor.prev', { section: Section });
+    // ↑ in the top section stays (← at the first position goes onto the track's header now: a key that moves)
+    await v.execute('cursor.up', { section: Section });
     expect(said.map((m) => m.text)).toEqual(['s, p 1, letter M', 's, p 1, letter M']);
     expect(said[1].id).toBeGreaterThan(said[0].id);
     a.dispose();
@@ -263,7 +264,8 @@ describe('the mounted live region', () => {
       .spyOn(live[0], 'textContent', 'set')
       .mockImplementation((t: string | null) => void writes.push(t ?? ''));
     clock += 1000;
-    await v.execute('cursor.prev', { section: Section });
+    // ↑ in the top section stays (← at the first position goes onto the track's header now)
+    await v.execute('cursor.up', { section: Section });
     expect(writes).toEqual(['', 's, p 1, letter M']);
     spy.mockRestore();
     v.retire();

@@ -81,8 +81,13 @@ export interface Cursor {
   readonly position: number;
   readonly ySystem?: string;
   readonly yPosition?: number;
-  /** `cell` when absent; `header`: the row's header (its label, its clade), the column it left kept in `position`. */
+  /**
+   * `cell` when absent; `header`: the row's header (its label, its clade), the column it left kept in `position`; with
+   * `track` a track's header (its label line; a section's line when `track` is the section's address).
+   */
   readonly part?: 'cell' | 'header';
+  /** On a track's header (`part: 'header'`): the track's address, or its section's for the section's header line. */
+  readonly track?: string;
   /** The keyboard moved it: drawn (focus-visible); a click places it unseen. */
   readonly keyboard?: boolean;
 }
@@ -97,6 +102,7 @@ const sameCursor = (a: Cursor | undefined, b: Cursor | undefined) =>
     a.ySystem === b.ySystem &&
     a.yPosition === b.yPosition &&
     (a.part ?? 'cell') === (b.part ?? 'cell') &&
+    a.track === b.track &&
     !!a.keyboard === !!b.keyboard);
 
 const keyId = (k: Key) => `${typeof k.key === 'number' ? 'n' : 's'}${k.key}\u0000${k.owner}`;

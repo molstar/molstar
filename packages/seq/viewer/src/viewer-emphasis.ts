@@ -30,7 +30,16 @@ export class ViewerEmphasis {
     ySystem: string | undefined;
     yPosition: number | undefined;
     part: 'cell' | 'header' | undefined;
-  } = { system: '', position: 0, section: undefined, ySystem: undefined, yPosition: undefined, part: undefined };
+    track: string | undefined;
+  } = {
+    system: '',
+    position: 0,
+    section: undefined,
+    ySystem: undefined,
+    yPosition: undefined,
+    part: undefined,
+    track: undefined,
+  };
   /** The highlights as drawn, made again only when a channel, the tokens, the view or the model changed. */
   private _highlights: readonly EmphasisHighlight[] = [];
   private readonly _highlightsFor: unknown[] = [];
@@ -69,6 +78,8 @@ export class ViewerEmphasis {
       k.ySystem = c.ySystem;
       k.yPosition = c.yPosition;
       k.part = c.part;
+      // on a track's header: its actions drawn
+      k.track = c.track;
       e.cursor = k;
     } else e.cursor = undefined;
     this.updateHighlights();

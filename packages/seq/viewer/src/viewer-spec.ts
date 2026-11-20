@@ -5,10 +5,11 @@
  */
 
 import type { ViewLayout } from '@molstar/seqx-core/render';
-import type { SeqConfigItem, SeqPorts, SeqRegistryEntry } from '@molstar/seqx-core/context';
+import type { SeqConfigItem, SeqPorts } from '@molstar/seqx-core/context';
 import type { BindingTable, GestureBinding } from '@molstar/seqx-viewer/bindings';
 import type { ViewerConfig } from '@molstar/seqx-viewer/config';
 import type { SeqAnimationPort, SeqHistoryPort } from '@molstar/seqx-viewer/ports';
+import type { SeqViewerRegistryEntry } from './header-entries.js';
 import type { LegendModel } from './legends.js';
 import type { SeqNavigatorsPart } from './navigators.js';
 import type { SeqStoryPart } from './story.js';
@@ -53,6 +54,11 @@ export interface BehaviorHandle {
    * element; the function it returns takes the part away. A headless viewer never calls it.
    */
   attach?(container: HTMLElement, viewer: SeqViewer): () => void;
+  /**
+   * Called once every behavior is made, before the UI: what reads the viewer's commands or registry (the `headers`
+   * behavior's entries, checked against them). A throw retires what was made.
+   */
+  composed?(viewer: SeqViewer): void;
 }
 
 /** A behavior's provider: creates the policy over the models; what it makes is its handle (`dispose` ends it). */
@@ -112,8 +118,11 @@ export interface SeqViewerUI {
 }
 
 export interface SeqViewerSpec {
-  /** Registry entries, in order: what the viewer can read, compute and draw. */
-  readonly registry?: readonly SeqRegistryEntry[];
+  /**
+   * Registry entries, in order: what the viewer can read, compute and draw (the core's kinds), and its header entries
+   * (`header-action`, the `headers` behavior's).
+   */
+  readonly registry?: readonly SeqViewerRegistryEntry[];
   /** Behaviors with their params, initialized after the registry. */
   readonly behaviors: readonly SeqViewerBehavior[];
   readonly bindings?: SeqViewerBindings;

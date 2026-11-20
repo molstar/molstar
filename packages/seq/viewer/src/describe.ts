@@ -406,8 +406,17 @@ class Words {
     this._src = src;
   }
 
+  /** The header words (the `headers` behavior's), when it is listed. */
+  headers: ((place: Place) => { readonly title: string; readonly text: string } | undefined) | undefined = undefined;
+
   /** The description of a place in the last frame; undefined when it is in none of its sections. */
   describe(place: Place): HoverCard | undefined {
+    // a header's part: its entry's words alone (the card a title alone; _spec/README.md "Behaviors", Headers)
+    const t = place.target;
+    if (t === 'header-slot' || t === 'header-state' || t === 'header-label' || t === 'section-header') {
+      const h = this.headers?.(place);
+      return h ? { title: h.title, rows: [], text: h.text } : undefined;
+    }
     const layout = this._src.layout();
     if (!layout || place.section === undefined) return undefined;
     const section = layout.sections.find((s) => s.section.address === place.section);
@@ -429,9 +438,19 @@ class Words {
     return { title: out.title || out.words[0], rows: out.rows, text: out.words.join(', ') };
   }
 
-  /** The cursor as a place: on a section of two axes its row's layer and row, its header the row alone. */
+  /**
+   * The cursor as a place: on a section of two axes its row's layer and row, its header the row alone; on a track's
+   * header the header (`state: 'cursor'`: its words say the key that opens its actions).
+   */
   cursorPlace(c: Cursor): Place {
     const cell: Place = { section: c.section, system: c.system, position: c.position };
+    if (c.track !== undefined)
+      return {
+        ...cell,
+        layer: c.track,
+        target: c.track === c.section ? 'section-header' : 'header-label',
+        state: 'cursor',
+      };
     const layout = this._src.layout();
     if (c.ySystem === undefined || c.yPosition === undefined || !layout) return cell;
     const s = layout.sections.find((x) => x.section.address === c.section);
@@ -646,6 +665,14 @@ export class Describer {
   describe(place: Place | RectPlace | CursorPlace): HoverCard | undefined {
     if ('rect' in place) return this._words.rect(place.rect);
     return this._words.describe('cursor' in place ? this._words.cursorPlace(place.cursor) : place);
+  }
+
+  /** The header words of a place (a slot, a chip, a label): the `headers` behavior sets them when it is listed. */
+  get headers(): Words['headers'] {
+    return this._words.headers;
+  }
+  set headers(fn: Words['headers']) {
+    this._words.headers = fn;
   }
 
   /** The text of a place ('' when there is none). */

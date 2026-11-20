@@ -1,0 +1,331 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+import type { Value } from '@molstar/core/repr/tree';
+import type { SeqRegistryEntry } from '@molstar/seqx-core/context';
+import { type Box, HeaderStateNames, type HiddenTrack } from '@molstar/seqx-core/render';
+import type { IconName } from '@molstar/ui/components/icon/icon';
+
+// A track's and a section's header entries (_spec/README.md "Behaviors", Headers): registry entries of kind
+// `header-action` naming a command, made into slots, chips and menu items once a layout from DOM-free facts. The
+// built-ins are entries like a host's (`BuiltInHeaderEntries`), in the default spec's registry. Data and types only:
+// the `headers` behavior reads them.
+
+/** A layer of a header's track, as the entries read it. */
+export interface HeaderLayerFacts {
+  /** Its address (a layer with no id: its key, `<track>:<n>`, which no command takes). */
+  readonly address: string;
+  readonly type: string;
+  readonly label: string;
+  readonly hidden: boolean;
+  /** The rows its user filter leaves out (0: none). */
+  readonly filtered: number;
+  /** Its color as written (absent: its type's default). */
+  readonly color?: Value;
+  /** The schemes that fit it (what "Color ▸" offers): none for a layer with no color channel. */
+  readonly schemes: readonly { readonly name: string; readonly label: string }[];
+}
+
+/**
+ * What a header's entries read (_spec/README.md "Behaviors", Headers: `HeaderFacts`): plain data from the resolved view
+ * and the last layout, made once a layout a shown header (and when a menu opens). Pure functions of it decide whether
+ * an entry shows, its label, its args and a state's text.
+ */
+export interface HeaderFacts {
+  /** Whose header: a track's, a section's, or an element's menu. */
+  readonly on: 'track' | 'section' | 'element';
+  /** The track's address (a section's for its own header). */
+  readonly address: string;
+  readonly label: string;
+  /** The section's address and the system of its axis; whether it is linear (no ring). */
+  readonly section: string;
+  readonly system: string;
+  readonly linear: boolean;
+  /** The section's tracks' ids in spec order, the hidden ones too (`track.move`'s siblings). */
+  readonly tracks: readonly string[];
+  /** The track's layers (none on a section's header). */
+  readonly layers: readonly HeaderLayerFacts[];
+  /** The section's tracks the spec hides, in spec order. */
+  readonly hiddenTracks: readonly HiddenTrack[];
+  /** The element a menu was opened on (`on: 'element'`): its layer and key. */
+  readonly element?: { readonly layer: string; readonly key: string | number };
+}
+
+/** An item of an entry's submenu: a label and the command it runs with its args (a layer's checkbox, a scheme). */
+export interface HeaderSubEntry {
+  readonly label: string;
+  readonly command: string;
+  readonly args: Readonly<Record<string, unknown>>;
+  /** A checked item (a shown layer), or the chosen one of a choice. */
+  readonly checked?: boolean;
+}
+
+/**
+ * A header entry (_spec/README.md "Behaviors", Headers): an action (a slot when it has an icon, and a menu item) or a
+ * state (a chip), on a track's header, a section's or an element's menu; namespaced (`seq:hide`, `myapp:color-by`).
+ */
+export interface HeaderEntry {
+  /** Namespaced: two entries under one name are a registration error. */
+  readonly name: string;
+  readonly on: 'track' | 'section' | 'element';
+  /** `action` (default): a slot and a menu item; `state`: a chip ("12 filtered"). */
+  readonly kind?: 'action' | 'state';
+  /** `@molstar/ui`'s; an action without one is in the menu only (the command's icon when absent). */
+  readonly icon?: IconName;
+  /** Its label (the command's title when absent). */
+  readonly label?: string | ((f: HeaderFacts) => string);
+  /** Shown at all (absent: always). The command's own `when` says whether it runs now. */
+  readonly when?: (f: HeaderFacts) => boolean;
+  /** A command the viewer has (a state may have none: it says, it does not run). */
+  readonly command?: string;
+  /** The command's context (default `{ address: f.address }`). */
+  readonly args?: (f: HeaderFacts) => Readonly<Record<string, unknown>>;
+  /** A state's chip text ("12 filtered"); none: no chip. */
+  readonly text?: (f: HeaderFacts) => string | undefined;
+  /** Slots by order, then name. */
+  readonly order?: number;
+  /** false: the menu only (default: true when it has an icon). */
+  readonly slot?: boolean;
+  /**
+   * A submenu (a layer's checkboxes, a scheme choice, a chip's list of what it hides): each runs its own command. Its
+   * slot opens the menu at it; a chip's secondary click lists them before the entry itself ("Show all").
+   */
+  readonly items?: (f: HeaderFacts) => readonly HeaderSubEntry[];
+}
+
+/** A registry entry of the viewer: a header entry (`SeqViewerSpec.registry`, beside the core's kinds). */
+export interface HeaderActionEntry {
+  readonly kind: 'header-action';
+  readonly entry: HeaderEntry;
+}
+
+/** What a viewer's registry lists: the core's entries and the viewer's own kinds. */
+export type SeqViewerRegistryEntry = SeqRegistryEntry | HeaderActionEntry;
+
+/** What a header (or a menu) is about: its section's address, the track's, the element a menu was opened on. */
+export interface HeaderTarget {
+  readonly section: string;
+  readonly track?: string;
+  readonly element?: { readonly layer: string; readonly key: string | number };
+}
+
+/**
+ * An item of a header's menu or parts (_spec/README.md "Behaviors", Headers: one item list for both): DOM-free data. A
+ * choice runs its `command` with `args` through `viewer.execute` (`HeadersBehavior.runItem`).
+ */
+export interface HeaderMenuItem {
+  /** Its entry's name. */
+  readonly name: string;
+  readonly kind: 'action' | 'state';
+  readonly label: string;
+  readonly icon?: IconName;
+  /** A state's chip text. */
+  readonly text?: string;
+  /** Its command's key, as text (`⇧F10`). */
+  readonly key?: string;
+  /** Its command can run now; else `why` says why not. */
+  readonly enabled: boolean;
+  readonly why?: string;
+  readonly checked?: boolean;
+  /** Whether it is drawn in a slot (an action with an icon, in the first `header.slots`). */
+  readonly slot?: boolean;
+  readonly command?: string;
+  readonly args?: Readonly<Record<string, unknown>>;
+  /** A submenu. */
+  readonly items?: readonly HeaderMenuItem[];
+}
+
+/** A header's menu: its target, and its groups (the element's entries, the track's, the section's), each non-empty. */
+export interface HeaderMenu {
+  readonly target: HeaderTarget;
+  readonly groups: readonly (readonly HeaderMenuItem[])[];
+}
+
+/** A part's box and its entry's name. */
+export interface HeaderPartBox {
+  readonly name: string;
+  readonly box: Box;
+}
+
+/**
+ * A header's geometry (_spec/README.md "Behaviors", Headers: `viewer.headers`), in the canvas's CSS px as the hits are:
+ * its target, its line's box, its label's, each slot's (the "⋯" `seq:menu` among them) and each chip's with its
+ * entry's name, its track's well, and whether it is on the page.
+ */
+export interface HeaderGeometry {
+  readonly target: HeaderTarget;
+  readonly line: Box;
+  readonly label: Box;
+  readonly slots: readonly HeaderPartBox[];
+  readonly states: readonly (HeaderPartBox & { readonly text: string; readonly mark: boolean })[];
+  readonly well?: Box;
+  readonly shown: boolean;
+}
+
+/** A header's parts for a host's DOM (`headerParts`): its geometry, whether its actions show now, and its items. */
+export interface HeaderPartsHeader {
+  readonly geometry: HeaderGeometry;
+  readonly actions: boolean;
+  readonly items: readonly HeaderMenuItem[];
+}
+
+/** What a parts port is given (`HeadersBehavior.parts`): every shown header's parts. */
+export interface HeaderPartsState {
+  readonly headers: readonly HeaderPartsHeader[];
+}
+
+// ---- the built-ins ----
+
+const isTrack = (f: HeaderFacts) => f.on === 'track';
+/** The layer "Color ▸" acts on: the first with more than one fitting scheme. */
+const colorLayer = (f: HeaderFacts) => f.layers.find((l) => l.schemes.length > 1 && !l.hidden);
+const schemeOf = (c: Value | undefined) =>
+  typeof c === 'object' && c !== null && !Array.isArray(c) && (c as { kind?: unknown }).kind === 'scheme'
+    ? (c as { params?: { name?: unknown } }).params?.name
+    : undefined;
+/** A track's place among its siblings, by id, and the id the move puts it after (null: first). */
+const moveAfter = (f: HeaderFacts, delta: -1 | 1): string | null | undefined => {
+  const id = f.address.slice(f.address.lastIndexOf('/') + 1);
+  const i = f.tracks.indexOf(id);
+  if (i < 0 || i + delta < 0 || i + delta >= f.tracks.length) return undefined;
+  return delta > 0 ? f.tracks[i + 1] : i >= 2 ? f.tracks[i - 2] : null;
+};
+const count = (n: number, one: string, many: string) => (n === 1 ? `1 ${one}` : `${n} ${many}`);
+
+/** The built-in entries' names. */
+export const HeaderEntryNames = {
+  hide: 'seq:hide',
+  color: 'seq:color',
+  layers: 'seq:layers',
+  moveUp: 'seq:move-up',
+  moveDown: 'seq:move-down',
+  filtered: HeaderStateNames.filtered,
+  hiddenLayers: HeaderStateNames.hiddenLayers,
+  hiddenTracks: HeaderStateNames.hiddenTracks,
+  reverse: 'seq:reverse',
+  collapse: 'seq:collapse',
+} as const;
+
+/**
+ * The built-in header entries (_spec/README.md "Behaviors", Headers), registry entries like a host's: in
+ * `DefaultSeqViewerSpec().registry`; a host leaves one out of the registry it spreads to remove it.
+ */
+export const BuiltInHeaderEntries: readonly HeaderActionEntry[] = (
+  [
+    { name: HeaderEntryNames.hide, on: 'track', icon: 'eye-off', label: 'Hide track', command: 'track.hide', order: 1 },
+    {
+      name: HeaderEntryNames.color,
+      on: 'track',
+      icon: 'palette',
+      label: 'Color',
+      command: 'layer.channel',
+      order: 2,
+      when: (f) => colorLayer(f) !== undefined,
+      args: (f) => ({ address: colorLayer(f)!.address, channel: 'color' }),
+      items: (f) => {
+        const l = colorLayer(f)!;
+        const now = schemeOf(l.color);
+        return l.schemes.map((s) => ({
+          label: s.label,
+          command: 'layer.channel',
+          args: { address: l.address, channel: 'color', value: { kind: 'scheme', params: { name: s.name } } },
+          checked: s.name === now,
+        }));
+      },
+    },
+    {
+      name: HeaderEntryNames.layers,
+      on: 'track',
+      label: 'Layers',
+      command: 'layer.hide',
+      slot: false,
+      order: 3,
+      when: (f) => f.layers.filter((l) => !l.address.includes(':')).length > 1,
+      args: (f) => ({ address: f.layers[0].address }),
+      items: (f) =>
+        f.layers
+          .filter((l) => !l.address.includes(':'))
+          .map((l) => ({
+            label: l.label,
+            command: l.hidden ? 'layer.show' : 'layer.hide',
+            args: { address: l.address },
+            checked: !l.hidden,
+          })),
+    },
+    {
+      name: HeaderEntryNames.moveUp,
+      on: 'track',
+      label: 'Move up',
+      command: 'track.move',
+      slot: false,
+      order: 4,
+      when: (f) => moveAfter(f, -1) !== undefined,
+      args: (f) => ({ address: f.address, after: moveAfter(f, -1) }),
+    },
+    {
+      name: HeaderEntryNames.moveDown,
+      on: 'track',
+      label: 'Move down',
+      command: 'track.move',
+      slot: false,
+      order: 5,
+      when: (f) => moveAfter(f, 1) !== undefined,
+      args: (f) => ({ address: f.address, after: moveAfter(f, 1) }),
+    },
+    {
+      name: HeaderEntryNames.filtered,
+      on: 'track',
+      kind: 'state',
+      label: 'Clear the filter',
+      command: 'layer.filter',
+      when: (f) => isTrack(f) && f.layers.some((l) => l.filtered > 0),
+      args: (f) => ({ address: f.layers.find((l) => l.filtered > 0)!.address }),
+      text: (f) => `${f.layers.find((l) => l.filtered > 0)!.filtered} filtered`,
+    },
+    {
+      name: HeaderEntryNames.hiddenLayers,
+      on: 'track',
+      kind: 'state',
+      label: 'Show every layer',
+      command: 'layer.show',
+      when: (f) => f.layers.some((l) => l.hidden),
+      args: (f) => ({ addresses: f.layers.filter((l) => l.hidden).map((l) => l.address) }),
+      text: (f) => `${count(f.layers.filter((l) => l.hidden).length, 'layer', 'layers')} hidden`,
+      items: (f) =>
+        f.layers
+          .filter((l) => l.hidden)
+          .map((l) => ({ label: `Show ${l.label}`, command: 'layer.show', args: { address: l.address } })),
+    },
+    {
+      name: HeaderEntryNames.hiddenTracks,
+      on: 'section',
+      kind: 'state',
+      label: 'Show all',
+      command: 'track.show',
+      when: (f) => f.hiddenTracks.length > 0,
+      args: (f) => ({ addresses: f.hiddenTracks.map((t) => t.address) }),
+      text: (f) => `${f.hiddenTracks.length} hidden`,
+      items: (f) =>
+        f.hiddenTracks.map((t) => ({ label: `Show ${t.label}`, command: 'track.show', args: { address: t.address } })),
+    },
+    {
+      name: HeaderEntryNames.reverse,
+      on: 'section',
+      label: 'Reverse',
+      command: 'section.reverse',
+      slot: false,
+      when: (f) => f.linear,
+    },
+    {
+      name: HeaderEntryNames.collapse,
+      on: 'section',
+      label: 'Collapse or expand hidden stretches',
+      command: 'section.collapse',
+      slot: false,
+      when: (f) => f.linear,
+    },
+  ] satisfies HeaderEntry[]
+).map((entry) => ({ kind: 'header-action', entry }));

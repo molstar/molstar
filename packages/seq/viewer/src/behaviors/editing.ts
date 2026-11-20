@@ -23,6 +23,8 @@ export interface EditingContext {
    * `section.*`: else the keyboard cursor's section, else the first leading one).
    */
   readonly address?: string;
+  /** `track.show`, `layer.show`: several at once, one patch (a header's chip shows every hidden one). */
+  readonly addresses?: readonly string[];
   /** `track.move`, `track.add`: the sibling it goes after; null: first (`track.add`: last when absent). */
   readonly after?: string | null;
   /** `track.add`: the track to insert (its id is its place among the section's tracks). */
@@ -116,6 +118,20 @@ export function editingBehavior(spec: SpecModel, axis?: AxisReaders): EditingBeh
     const first = axis?.view.resolved.value?.sections.find((x) => !x.follow) ?? axis?.view.resolved.value?.sections[0];
     return first?.address;
   };
+  /** The nodes a show acts on (`addresses`, else `address`): each of the kind, else why not. */
+  const shownOf = (ctx: EditingContext): readonly string[] =>
+    ctx.addresses ?? (ctx.address !== undefined ? [ctx.address] : []);
+  const allNeed =
+    (kind: string, what: string) =>
+    (ctx: EditingContext): true | string => {
+      const at = shownOf(ctx);
+      if (disposed) return 'The viewer is retired';
+      if (!at.length) return `No ${what} there`;
+      for (const a of at) if (!nodeOf(spec.root.value, a, kind)) return `No ${what} there`;
+      return true;
+    };
+  const unhide = (ctx: EditingContext) => () =>
+    shownOf(ctx).map((a): Op => ({ op: 'unset', at: ids(a), key: 'hidden' }));
   const sectionNeeded = (ctx: EditingContext): true | string =>
     disposed ? 'The viewer is retired' : sectionOf(ctx) ? true : 'No section there';
   /** A section's direction as resolved (a `follow` or `along` resolved), 1 when not shown. */
@@ -210,9 +226,8 @@ export function editingBehavior(spec: SpecModel, axis?: AxisReaders): EditingBeh
       id: EditingCommandIds.showLayer,
       title: 'Show a layer',
       category: 'Edit',
-      when: needs('layer', 'layer'),
-      run: (_, ctx) =>
-        edit('Show a layer', () => [{ op: 'unset', at: ids(ctx.address!), key: 'hidden' }], ctx, 'Shown'),
+      when: allNeed('layer', 'layer'),
+      run: (_, ctx) => edit('Show a layer', unhide(ctx), ctx, 'Shown'),
     },
     {
       id: EditingCommandIds.colorLayer,
@@ -242,9 +257,8 @@ export function editingBehavior(spec: SpecModel, axis?: AxisReaders): EditingBeh
       id: EditingCommandIds.showTrack,
       title: 'Show a track',
       category: 'Edit',
-      when: needs('track', 'track'),
-      run: (_, ctx) =>
-        edit('Show a track', () => [{ op: 'unset', at: ids(ctx.address!), key: 'hidden' }], ctx, 'Shown'),
+      when: allNeed('track', 'track'),
+      run: (_, ctx) => edit('Show a track', unhide(ctx), ctx, 'Shown'),
     },
     {
       id: EditingCommandIds.moveTrack,

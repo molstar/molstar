@@ -138,6 +138,10 @@ export class ViewerFrame {
     input.settled = this.clock.quiet && store.store.settled.value;
     input.emphasis = this.emphasis.emphasis;
     input.cvdSafe = viewer.legends.cvdSafe.value;
+    // the header entries' parts (the `headers` behavior's, by name: a viewer without it bundles none of it)
+    const headers = viewer.behaviors.get('headers')?.partsOf;
+    if (headers) input.headers = headers;
+    else if (input.headers) delete input.headers;
     // tier 2: the store's dynamic nodes (its version is part of the frame's key)
     input.overlay = store.overlay(model, resolved, context);
 

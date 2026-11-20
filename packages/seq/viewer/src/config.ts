@@ -262,6 +262,14 @@ export interface ViewerConfig {
    * form (`patch`) and its chain (8).
    */
   readonly story: StoryConfig;
+  /**
+   * Track headers (the `headers` behavior): a long press opens the menu (`menu.longPressMs`, 500, touch's context
+   * menu); a count chip's click shows every hidden thing in one patch (`hiddenChip.click: all`) or lists them (`menu`).
+   */
+  readonly header: {
+    readonly menu: { readonly longPressMs: number };
+    readonly hiddenChip: { readonly click: 'all' | 'menu' };
+  };
 }
 
 export const DefaultViewerConfig: ViewerConfig = {
@@ -321,6 +329,8 @@ export const DefaultViewerConfig: ViewerConfig = {
       'rows.tree': ['Shift+T'],
       // the keys panel: what the view answers to (a printable key: whatever Shift types it)
       'help.keys': ['?'],
+      // a track header's menu at the keyboard cursor (Enter on a header: `cursor.focus` refuses there)
+      'headers.menu': ['ContextMenu', 'Shift+F10', 'Enter'],
     },
   },
   navigate: { wheelZoomStep: 1.25, doubleClickZoomStep: 2, keyPanFraction: 0.1, coalesceWheel: true },
@@ -335,6 +345,7 @@ export const DefaultViewerConfig: ViewerConfig = {
   bounds: { ...DefaultSpecBounds, maxBlockValues: DefaultMaxBlockValues },
   copyLink: { prefer: ['ref', 'ids'], numbering: 'ordinal', action: 'focus' },
   story: DefaultStoryConfig,
+  header: { menu: { longPressMs: 500 }, hiddenChip: { click: 'all' } },
 };
 
 type DeepPartial<T> = {

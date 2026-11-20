@@ -691,10 +691,12 @@ export class ViewerInput {
       void this.viewer.execute('rows.tree', { track: trackOfLayer(chip.layer) });
       return true;
     }
-    // a header's parts are never a selection's (_spec/README.md "Input"): the "n filtered" chip clears its layer's
-    // filter (one patch); the other entries are the headers behavior's
+    // a header's parts are never a selection's (_spec/README.md "Input"): the `headers` behavior's (by name: a viewer
+    // without it bundles none of it), else the "n filtered" chip clears its layer's filter (one patch)
     const t = chip?.target;
     if (chip && (t === 'header-state' || t === 'header-slot' || t === 'header-label' || t === 'section-header')) {
+      const headers = this.viewer.behaviors.get('headers');
+      if (headers) return headers.click(x, y, this._touch) || true;
       const layer =
         chip.state === HeaderStateNames.filtered ? filteredLayer(this.viewer.frame?.layout, chip) : undefined;
       if (layer) void this.viewer.execute('layer.filter', { address: layer });
