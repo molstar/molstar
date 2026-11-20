@@ -111,6 +111,9 @@
       "path": "./packages/extensions/backgrounds"
     },
     {
+      "path": "./packages/extensions/bond-orders"
+    },
+    {
       "path": "./packages/extensions/debug-helpers"
     },
     {

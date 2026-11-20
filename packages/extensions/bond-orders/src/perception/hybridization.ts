@@ -1,0 +1,287 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author Paul Pillot <paul.pillot@tandemai.com>
+ *
+ * Assigns hybridization to atoms based on local geometry. Follows Sayle (2001) method based on angles
+ * and Labute (2005) method for measuring atoms' local point cloud dimensionality (PCA of the atom + its heavy and hydrogen neighbours).
+ * This identifies straightforward cases (linear, trigonal and tetrahedral with 3+ neighbours).
+ * The remaining cases (e.g. a C/N atom with 2 neighbours) are marked as ambiguous instead of
+ * assigning hybridization based on angle only. This diverges from Sayle's method.
+ * Further assessments are made to reject unambiguous single bonds:
+ * - bond length above threshold (Labute 2005)
+ * - non planar dihedral across the bond (Labute 2005)
+ * A special case is made for planar rings, following Sayle (2001) method to promote ambiguous sp3 atoms
+ * to sp2 if the average ring torsion is below a threshold (7.5°). Note that in the original work
+ * 2 different thresholds were used for 5- and 6-membered rings (7.5° and 12° respectively). It
+ * seems that the 12º threshold was overfitting to accomodate the disputed 2TRM benzamidine structure,
+ * which is actually non-planar (see discussion in Labute 2005).
+ */
+
+import { Vec3 } from '@molstar/core/math/linear-algebra';
+import { PrincipalAxes } from '@molstar/core/math/linear-algebra/matrix/principal-axes';
+import { degToRad, radToDeg } from '@molstar/core/math/misc';
+import { isDebugMode } from '@molstar/core/util/debug';
+import { Elements } from '@molstar/model/model/structure/model/properties/atomic/types';
+import type { UnitIndex } from '@molstar/model/model/structure/structure/element/util';
+import { AtomGeometry } from '@molstar/model/props/computed/chemistry/geometry';
+import { atomId } from '@molstar/model/props/computed/chemistry/util';
+import { Ambiguity, isAssignedBond, isHydrogenElement, pos, type State, setAssignedBond } from './common.js';
+import { exceedsMaxDoubleLength, hasPlanarDihedral } from './thresholds.js';
+
+// Per-atom dimensionality: threshold from which the principal component of the coordinates of
+// connected atoms is deemed significant: 1D, 2D or 3D.
+const PcaDimThresholdSquared = 0.2 * 0.2;
+
+// Max average |torsion| (degrees) for a ring to count as planar (sp2).
+const Torsion5MaxDeg = 7.5;
+
+// Sayle (2001) thresholds for geometries (minimal angles rather than ideal angles)
+const SP_ANGLE = degToRad(155);
+const SP2_ANGLE = degToRad(115);
+
+const tmpVecA = Vec3();
+const tmpVecB = Vec3();
+const tmpVecC = Vec3();
+const tmpVecD = Vec3();
+
+/**
+ * Labute per-atom dimensionality: PCA of the local point cloud (atom `i` + its heavy and hydrogen
+ * neighbours). Returns the number of significant principal components (1 = linear, 2 = planar, 3 = 3-D)
+ * using the *scatter*-matrix √-eigenvalues (RMS spread × √nPoints) against `PcaDimThreshold`.
+ */
+function atomDimensionality(state: State, i: number): number {
+  const coords: number[] = [];
+  pos(state, i, tmpVecA);
+  Vec3.toArray(tmpVecA, coords, 0);
+  coords.push(...state.neighbourPos[i]);
+  const nPoints = coords.length / 3;
+  const { dirA, dirB, dirC } = PrincipalAxes.calculateMomentsAxes(coords);
+  // `dir*` magnitudes are sqrt(W / (nPoints/3)); scale back
+  const n3 = nPoints / 3;
+  let dims = 0;
+  if (Vec3.squaredMagnitude(dirA) * n3 > PcaDimThresholdSquared) dims++;
+  if (Vec3.squaredMagnitude(dirB) * n3 > PcaDimThresholdSquared) dims++;
+  if (Vec3.squaredMagnitude(dirC) * n3 > PcaDimThresholdSquared) dims++;
+  return dims;
+}
+
+function assignGeometry(state: State) {
+  const { n, degree, geometry, el, unitIndices } = state;
+  for (let i = 0; i < n; i++) {
+    const u = unitIndices[i];
+    const deg = degree[i];
+    if (deg === 0) {
+      geometry[i] = AtomGeometry.Spherical;
+      continue;
+    }
+
+    if (deg === 1) {
+      geometry[i] = AtomGeometry.Terminal;
+      if (isHydrogenElement(el[i])) {
+        setAssignedBond(state, u);
+      }
+      continue;
+    }
+
+    // With ≥3 total neighbours (heavy + present H) the local point cloud can be 3-D, so PCA
+    // dimensionality (Labute) reliably separates pyramidal sp3 from planar sp2.
+    if (deg >= 3) {
+      const dims = atomDimensionality(state, i);
+      if (dims > 2) {
+        geometry[i] = AtomGeometry.Tetrahedral;
+        if (el[i] === Elements.N) markPyramidalNitrogen(state, i);
+      } else if (dims > 1) {
+        geometry[i] = deg > 3 ? AtomGeometry.SquarePlanar : AtomGeometry.Trigonal;
+      } else {
+        geometry[i] = AtomGeometry.Linear;
+      }
+      continue;
+    }
+
+    // With 2 neighbours dimensionality is pointless,
+    // so fall back to the angle test with ambiguities.
+    // Sayle's 6a step is a measure of the average bond angle over neighbours, but here
+    // we are down to a single possible angle.
+    pos(state, i, tmpVecA);
+    // deg === 2 → exactly two stored neighbours; build direction vectors (neighbour - centre)
+    const np = state.neighbourPos[i];
+    Vec3.fromArray(tmpVecB, np, 0);
+    Vec3.sub(tmpVecB, tmpVecB, tmpVecA);
+    Vec3.fromArray(tmpVecC, np, 3);
+    Vec3.sub(tmpVecC, tmpVecC, tmpVecA);
+    const avg = Vec3.angle(tmpVecB, tmpVecC);
+
+    if (avg > SP_ANGLE) state.geometry[i] = AtomGeometry.Linear;
+    else if (avg > SP2_ANGLE) state.geometry[i] = AtomGeometry.Trigonal;
+    else {
+      state.geometry[i] = AtomGeometry.Tetrahedral;
+      state.ambiguous[i] |= Ambiguity.Sp2OrSp3Borderline;
+    }
+  }
+}
+
+/**
+ * A Nitrogen located in a conjugated system tends to have a planar geometry.
+ * If a Nitrogen is tetrahedral, this could be used as an argument to prevent
+ * over-perception of nearby atoms' hybridization.
+ * Note that a nearby aromatic ring forms a weaker conjugation effect with an
+ * adjacent Nitrogen: it is not planar in that case.
+ * Note that a Nitrogen that is strained (e.g. in bridged rings or fused saturated rings),
+ * may be pyramidal even if it is conjugated.
+ */
+function markPyramidalNitrogen(state: State, i: number) {
+  const { geometry, degree, el, inRing } = state;
+  if (geometry[i] !== AtomGeometry.Tetrahedral || degree[i] < 3 || el[i] !== Elements.N) return;
+  // N may be strained in fused or bridged rings: pyramidalization does not reflect hybridization
+  if (inRing[i] > 1) return;
+  state.pyramidalNitrogen[i] = 1;
+}
+
+/**
+ * Sayle (2001) step 6b: planarity override for 5/6-membered rings.
+ * Hybridization based on angles is unreliable in rings. E.g. in a 5 membered all-sp2 ring,
+ * the average bond angle is ~108° which falls in the tetrahedral range.
+ * Sayle recovers those by checking the average torsion across the rings bonds. If it is
+ * below 7.5º, the ring is deemed planar and all atoms are promoted to sp2.
+ * In this implementation, if any of the atoms is unambiguous sp3, the ring is ignored.
+ */
+function applyRingPlanarity(state: State) {
+  const { localRings5or6, unit, unitIndices, geometry, degree } = state;
+  for (const seq of localRings5or6) {
+    const len = seq.length;
+    if (len !== 5 && len !== 6) continue;
+
+    // Check that all rings atoms are either trigonal or tetrahedral with degree 2 (hence ambiguous)
+    let foundNonTrigonal = false;
+    let nbTrigonal = 0;
+    isDebugMode && console.log('Ring ', seq.map((i) => atomId(unit, unitIndices[i])).join('-'), ' planarity check');
+    for (const i of seq) {
+      const geom = geometry[i];
+      if (geom === AtomGeometry.Trigonal) {
+        nbTrigonal++;
+        continue;
+      }
+      if (geom === AtomGeometry.Tetrahedral && degree[i] === 2) continue;
+      foundNonTrigonal = true;
+      break;
+    }
+    if (foundNonTrigonal) continue;
+    if (nbTrigonal === len) continue; // all trigonal, nothing to do
+
+    // Average torsion across the ring's bonds.
+    let sum = 0;
+    pos(state, seq[0], tmpVecA);
+    pos(state, seq[1], tmpVecB);
+    pos(state, seq[2], tmpVecC);
+
+    for (let i = 0; i < len; i++) {
+      pos(state, seq[(i + 3) % len], tmpVecD);
+      const deg = Math.abs(radToDeg(Vec3.dihedralAngle(tmpVecA, tmpVecB, tmpVecC, tmpVecD)));
+      sum += Math.min(deg, 180 - deg);
+      // Rotate
+      Vec3.copy(tmpVecA, tmpVecB);
+      Vec3.copy(tmpVecB, tmpVecC);
+      Vec3.copy(tmpVecC, tmpVecD);
+    }
+    const avg = sum / len;
+    // Note: Sayle's 6-ring threshold is 12° which allows 2TRM disputed benzamidine to be perceived as planar, when it has an actual cyclo-hexene chair like conformation.
+    // Here we use the more conservative 5-ring threshold for both 5-and 6-rings.
+    if (avg < Torsion5MaxDeg) {
+      for (const i of seq) geometry[i] = AtomGeometry.Trigonal;
+    }
+  }
+}
+
+/** Labute's conservative single-bond test applied to one intra-unit neighbour `v` of `u`. */
+function assignLongOrNonPlanarBond(state: State, u: UnitIndex, v: UnitIndex, seen: Set<UnitIndex>) {
+  if (seen.has(v)) return;
+  if (isAssignedBond(state, u, v)) return;
+
+  if (exceedsMaxDoubleLength(state, u, v)) {
+    setAssignedBond(state, u, v);
+    isDebugMode &&
+      console.log('Assigned bond ', atomId(state.unit, u), '-', atomId(state.unit, v), ' as single (too long)');
+    return;
+  }
+
+  const j = state.unitIndices.indexOf(v);
+  if (
+    state.degree[j] > 1 && // Can't compute dihedral to terminal atom.
+    !hasPlanarDihedral(state, u, v)
+  ) {
+    setAssignedBond(state, u, v);
+    isDebugMode &&
+      console.log('Assigned bond ', atomId(state.unit, u), '-', atomId(state.unit, v), ' as single (non-planar)');
+  }
+}
+
+/**
+ * Apply marking over atoms and bonds that are ambiguous or unabiguous:
+ * - Rings of 5 atoms not passing the planarity test: angle is ~108° which is assigned to tetrahedral at the geometry stage. If the atom
+ * has only 2 neighbours, it is marked as ambiguous.
+ * - Bonds too long or for which no planar dihedral can be found are marked as unambiguous single bonds.
+ */
+function markAmbiguous(state: State) {
+  for (const seq of state.localRings5or6) {
+    if (seq.length !== 5) continue;
+    for (const i of seq) {
+      if (state.degree[i] === 2 && state.geometry[i] === AtomGeometry.Tetrahedral) {
+        state.ambiguous[i] |= Ambiguity.Sp2OrSp3InRing5;
+      }
+    }
+  }
+
+  // Labute's conservative tests: planarity OR single-bond-length test to all perceivable bonds, and mark those that fail as "assigned" (excluded from double/aromatic candidacy).
+  const seen = new Set<UnitIndex>();
+  const { unit, n, unitIndices, geometry, ambiguous, heavyNeighbours } = state;
+  for (let i = 0; i < n; i++) {
+    const u = unitIndices[i];
+    if (geometry[i] !== AtomGeometry.Trigonal && ambiguous[i] === Ambiguity.None) {
+      isDebugMode && console.log('Atom ', atomId(unit, u), ' is not trigonal, skipping');
+      continue;
+    }
+    // Loop over heavyNeighbours, to only check the bonds inside the residue.
+    // Outside residue bonds are never perceived for now (_spec §1.11).
+    for (const j of heavyNeighbours[i]) assignLongOrNonPlanarBond(state, u, unitIndices[j], seen);
+    seen.add(u);
+  }
+
+  // "Antialiasing": check for stranded sp or sp2 atoms. Demote to sp2 or sp3.
+  for (let i = 0; i < n; i++) {
+    if (geometry[i] !== AtomGeometry.Linear) continue;
+    let found = false;
+    for (const j of state.heavyNeighbours[i]) {
+      if (geometry[j] === AtomGeometry.Terminal || geometry[j] === AtomGeometry.Linear) {
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      geometry[i] = AtomGeometry.Trigonal;
+    }
+  }
+
+  for (let i = 0; i < n; i++) {
+    if (geometry[i] !== AtomGeometry.Trigonal && geometry[i] !== AtomGeometry.Tetrahedral && ambiguous[i] === 0)
+      continue;
+    let found = false;
+    for (const j of state.heavyNeighbours[i]) {
+      if (geometry[j] === AtomGeometry.Terminal || geometry[j] === AtomGeometry.Trigonal || ambiguous[j] > 0) {
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      // No trigonal or suitable tetrahedral neighbor found, demote to sp3
+      geometry[i] = AtomGeometry.Tetrahedral;
+      ambiguous[i] = 0;
+    }
+  }
+}
+
+export function assignHybridization(state: State) {
+  assignGeometry(state);
+  applyRingPlanarity(state);
+  markAmbiguous(state);
+}

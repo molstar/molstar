@@ -1,0 +1,260 @@
+data_CHR
+#
+
+_chem_comp.id                                   CHR
+_chem_comp.name                                 NEOCARZINOSTATIN-CHROMOPHORE
+_chem_comp.type                                 NON-POLYMER
+_chem_comp.pdbx_type                            HETAIN
+_chem_comp.formula                              "C35 H33 N O12"
+_chem_comp.mon_nstd_parent_comp_id              ?
+_chem_comp.pdbx_synonyms                        NCS-CHROMOPHORE
+_chem_comp.pdbx_formal_charge                   0
+_chem_comp.pdbx_initial_date                    1999-07-08
+_chem_comp.pdbx_modified_date                   2020-06-17
+_chem_comp.pdbx_ambiguous_flag                  N
+_chem_comp.pdbx_release_status                  REL
+_chem_comp.pdbx_replaced_by                     ?
+_chem_comp.pdbx_replaces                        ?
+_chem_comp.formula_weight                       659.636
+_chem_comp.one_letter_code                      ?
+_chem_comp.three_letter_code                    CHR
+_chem_comp.pdbx_model_coordinates_details       ?
+_chem_comp.pdbx_model_coordinates_missing_flag  N
+_chem_comp.pdbx_ideal_coordinates_details       ?
+_chem_comp.pdbx_ideal_coordinates_missing_flag  N
+_chem_comp.pdbx_model_coordinates_db_code       1NCO
+_chem_comp.pdbx_subcomponent_list               ?
+_chem_comp.pdbx_processing_site                 EBI
+#   #
+loop_
+_chem_comp_atom.comp_id
+_chem_comp_atom.atom_id
+_chem_comp_atom.alt_atom_id
+_chem_comp_atom.type_symbol
+_chem_comp_atom.charge
+_chem_comp_atom.pdbx_align
+_chem_comp_atom.pdbx_aromatic_flag
+_chem_comp_atom.pdbx_leaving_atom_flag
+_chem_comp_atom.pdbx_stereo_config
+_chem_comp_atom.model_Cartn_x
+_chem_comp_atom.model_Cartn_y
+_chem_comp_atom.model_Cartn_z
+_chem_comp_atom.pdbx_model_Cartn_x_ideal
+_chem_comp_atom.pdbx_model_Cartn_y_ideal
+_chem_comp_atom.pdbx_model_Cartn_z_ideal
+_chem_comp_atom.pdbx_component_atom_id
+_chem_comp_atom.pdbx_component_comp_id
+_chem_comp_atom.pdbx_ordinal
+CHR  C1    C1    C  0  1  N  N  N  60.208   -5.847  11.425  -0.927   0.076  -1.967  C1    CHR   1  
+CHR  C2    C2    C  0  1  N  N  N  61.438   -5.746  11.913  -1.555   0.056  -3.261  C2    CHR   2  
+CHR  C3    C3    C  0  1  N  N  N  62.659   -5.945  12.066  -1.928  -0.215  -4.355  C3    CHR   3  
+CHR  C4    C4    C  0  1  N  N  S  64.081   -6.463  11.899  -2.131  -1.033  -5.576  C4    CHR   4  
+CHR  O2    O2    O  0  1  N  N  N  64.825   -6.273  10.656  -2.891  -2.234  -5.423  O2    CHR   5  
+CHR  C5    C5    C  0  1  N  N  R  64.207   -7.545  10.799  -1.481  -2.425  -5.546  C5    CHR   6  
+CHR  C6    C6    C  0  1  N  N  N  62.981   -7.937  10.122  -0.740  -2.764  -4.305  C6    CHR   7  
+CHR  C7    C7    C  0  1  N  N  N  61.808   -8.020   9.804  -0.315  -2.614  -3.205  C7    CHR   8  
+CHR  C8    C8    C  0  1  N  N  N  60.513   -7.804   9.772   0.334  -2.158  -2.015  C8    CHR   9  
+CHR  C9    C9    C  0  1  N  N  N  59.807   -6.879  10.437   0.040  -0.925  -1.480  C9    CHR  10  
+CHR  C10   C10   C  0  1  N  N  R  58.272   -6.766  10.377   0.675  -0.340  -0.231  C10   CHR  11  
+CHR  O1    O1    O  0  1  N  N  N  57.706   -7.856  11.159   1.951   0.228  -0.533  O1    CHR  12  
+CHR  C11   C11   C  0  1  N  N  R  57.953   -5.391  10.986  -0.322   0.754   0.194  C11   CHR  13  
+CHR  O6    O6    O  0  1  N  N  N  57.800   -4.399   9.916  -1.158   0.280   1.282  O6    CHR  14  
+CHR  C12   C12   C  0  1  N  N  N  59.180   -5.104  11.857  -1.156   1.018  -1.034  C12   CHR  15  
+CHR  C13   C13   C  0  1  N  N  R  56.304   -8.016  10.978   2.680   0.282   0.694  C13   CHR  16  
+CHR  O3    O3    O  0  1  N  N  N  56.031   -8.499   9.651   3.081  -1.035   1.066  O3    CHR  17  
+CHR  C14   C14   C  0  1  N  N  R  55.730   -8.993  11.994   3.914   1.167   0.510  C14   CHR  18  
+CHR  N1    N1    N  0  1  N  N  N  56.103   -8.730  13.349   3.494   2.528   0.152  N1    CHR  19  
+CHR  C19   C19   C  0  1  N  N  N  55.753   -7.468  14.037   3.334   3.266   1.412  C19   CHR  20  
+CHR  C15   C15   C  0  1  N  N  R  56.269  -10.334  11.768   4.784   0.587  -0.610  C15   CHR  21  
+CHR  O4    O4    O  0  1  N  N  N  55.606  -11.119  12.727   6.010   1.317  -0.692  O4    CHR  22  
+CHR  C16   C16   C  0  1  N  N  R  55.934  -10.811  10.364   5.078  -0.882  -0.293  C16   CHR  23  
+CHR  O5    O5    O  0  1  N  N  N  54.517  -10.890  10.299   5.894  -0.965   0.876  O5    CHR  24  
+CHR  C17   C17   C  0  1  N  N  R  56.545   -9.801   9.376   3.755  -1.613  -0.050  C17   CHR  25  
+CHR  C18   C18   C  0  1  N  N  N  56.104  -10.136   7.956   4.035  -3.090   0.236  C18   CHR  26  
+CHR  C20   C20   C  0  1  N  N  N  56.568   -4.409   9.119  -1.640   1.152   2.191  C20   CHR  27  
+CHR  O7    O7    O  0  1  N  N  N  55.602   -4.973   9.635  -1.375   2.335   2.099  O7    CHR  28  
+CHR  C21   C21   C  0  1  Y  N  N  56.428   -3.779   7.826  -2.485   0.672   3.291  C21   CHR  29  
+CHR  C22   C22   C  0  1  Y  N  N  55.451   -4.263   6.912  -3.874   0.605   3.148  C22   CHR  30  
+CHR  O9    O9    O  0  1  N  N  N  54.364   -5.050   7.328  -4.450   0.986   1.982  O9    CHR  31  
+CHR  C23   C23   C  0  1  Y  N  N  55.557   -4.007   5.533  -4.669   0.148   4.199  C23   CHR  32  
+CHR  C24   C24   C  0  1  Y  N  N  56.598   -3.248   5.035  -4.134  -0.243   5.385  C24   CHR  33  
+CHR  C25   C25   C  0  1  Y  N  N  57.532   -2.712   5.915  -2.744  -0.200   5.598  C25   CHR  34  
+CHR  C26   C26   C  0  1  Y  N  N  57.454   -2.961   7.301  -1.892   0.249   4.560  C26   CHR  35  
+CHR  C27   C27   C  0  1  Y  N  N  58.407   -2.380   8.142  -0.511   0.299   4.770  C27   CHR  36  
+CHR  C28   C28   C  0  1  Y  N  N  59.426   -1.601   7.664   0.005  -0.102   5.983  C28   CHR  37  
+CHR  O8    O8    O  0  1  N  N  N  60.377   -1.020   8.488   1.347  -0.061   6.190  O8    CHR  38  
+CHR  C31   C31   C  0  1  N  N  N  60.700   -1.458   9.823   1.575  -0.532   7.519  C31   CHR  39  
+CHR  C29   C29   C  0  1  Y  N  N  59.498   -1.392   6.308  -0.838  -0.552   7.002  C29   CHR  40  
+CHR  C30   C30   C  0  1  Y  N  N  58.563   -1.937   5.440  -2.185  -0.604   6.823  C30   CHR  41  
+CHR  C32   C32   C  0  1  N  N  N  58.744   -1.657   3.981  -3.077  -1.092   7.935  C32   CHR  42  
+CHR  C33   C33   C  0  1  N  N  R  64.816   -6.621  13.241  -2.219  -0.270  -6.899  C33   CHR  43  
+CHR  O10   O10   O  0  1  N  N  N  66.127   -7.074  12.990  -0.885   0.036  -7.401  O10   CHR  44  
+CHR  C34   C34   C  0  1  N  N  N  66.312   -8.222  13.598  -0.742   1.366  -7.476  C34   CHR  45  
+CHR  O11   O11   O  0  1  N  N  N  67.372   -8.825  13.636   0.276   1.902  -7.863  O11   CHR  46  
+CHR  O12   O12   O  0  1  N  N  N  65.252   -8.584  14.286  -1.824   2.050  -7.087  O12   CHR  47  
+CHR  C35   C35   C  0  1  N  N  N  64.259   -7.604  14.222  -2.864   1.112  -6.684  C35   CHR  48  
+CHR  H5    H5    H  0  1  N  N  N  64.591   -8.585  10.685  -1.087  -2.842  -6.473  H5    CHR  49  
+CHR  H8    H8    H  0  1  N  N  N  59.950   -8.480   9.106   1.087  -2.781  -1.555  H8    CHR  50  
+CHR  H10   H10   H  0  1  N  N  N  57.848   -6.842   9.348   0.768  -1.100   0.545  H10   CHR  51  
+CHR  H11   H11   H  0  1  N  N  N  57.004   -5.358  11.570   0.210   1.657   0.492  H11   CHR  52  
+CHR  H12   H12   H  0  1  N  N  N  59.311   -4.424  12.716  -1.841   1.845  -1.149  H12   CHR  53  
+CHR  H13   H13   H  0  1  N  N  N  55.822   -7.021  11.125   2.045   0.700   1.475  H13   CHR  54  
+CHR  H14   H14   H  0  1  N  N  N  54.628   -8.893  11.856   4.486   1.194   1.438  H14   CHR  55  
+CHR  HN1   HN1   H  0  1  N  N  N  57.113   -8.850  13.419   2.575   2.450  -0.256  HN1   CHR  56  
+CHR  H191  1H19  H  0  0  N  N  N  56.043   -7.262  15.093   3.020   4.288   1.197  H191  CHR  57  
+CHR  H192  2H19  H  0  0  N  N  N  56.134   -6.626  13.412   2.578   2.776   2.026  H192  CHR  58  
+CHR  H193  3H19  H  0  0  N  N  N  54.648   -7.336  13.959   4.283   3.282   1.947  H193  CHR  59  
+CHR  H15   H15   H  0  1  N  N  N  57.379  -10.380  11.858   4.253   0.658  -1.559  H15   CHR  60  
+CHR  HO4   HO4   H  0  1  N  N  N  55.956  -11.989  12.580   6.525   0.920  -1.408  HO4   CHR  61  
+CHR  H16   H16   H  0  1  N  N  N  56.350  -11.812  10.105   5.598  -1.340  -1.134  H16   CHR  62  
+CHR  HO5   HO5   H  0  1  N  N  N  54.307  -11.188   9.421   6.054  -1.905   1.040  HO5   CHR  63  
+CHR  H17   H17   H  0  1  N  N  N  57.654   -9.840   9.478   3.126  -1.529  -0.936  H17   CHR  64  
+CHR  H181  1H18  H  0  0  N  N  N  56.505  -11.153   7.741   3.092  -3.624   0.345  H181  CHR  65  
+CHR  H182  2H18  H  0  0  N  N  N  55.003  -10.050   7.800   4.603  -3.519  -0.589  H182  CHR  66  
+CHR  H183  3H18  H  0  0  N  N  N  56.406   -9.370   7.204   4.611  -3.179   1.157  H183  CHR  67  
+CHR  HO9   HO9   H  0  1  N  N  N  53.711   -5.373   6.717  -4.494   0.199   1.422  HO9   CHR  68  
+CHR  H23   H23   H  0  1  N  N  N  54.809   -4.409   4.828  -5.740   0.104   4.067  H23   CHR  69  
+CHR  H24   H24   H  0  1  N  N  N  56.682   -3.072   3.949  -4.784  -0.591   6.174  H24   CHR  70  
+CHR  H27   H27   H  0  1  N  N  N  58.352   -2.543   9.231   0.145   0.645   3.986  H27   CHR  71  
+CHR  H311  1H31  H  0  0  N  N  N  61.465   -0.990  10.485   2.644  -0.517   7.732  H311  CHR  72  
+CHR  H312  2H31  H  0  0  N  N  N  59.743   -1.467  10.396   1.055   0.112   8.228  H312  CHR  73  
+CHR  H313  3H31  H  0  0  N  N  N  60.958   -2.540   9.750   1.200  -1.552   7.613  H313  CHR  74  
+CHR  H29   H29   H  0  1  N  N  N  60.321   -0.775   5.909  -0.414  -0.864   7.946  H29   CHR  75  
+CHR  H321  1H32  H  0  0  N  N  N  59.580   -1.028   3.595  -3.208  -2.171   7.849  H321  CHR  76  
+CHR  H322  2H32  H  0  0  N  N  N  58.785   -2.637   3.450  -2.620  -0.858   8.897  H322  CHR  77  
+CHR  H323  3H32  H  0  0  N  N  N  57.790   -1.223   3.598  -4.048  -0.602   7.865  H323  CHR  78  
+CHR  H33   H33   H  0  1  N  N  N  64.723   -5.608  13.697  -2.782  -0.845  -7.634  H33   CHR  79  
+CHR  H351  1H35  H  0  0  N  N  N  63.973   -7.166  15.207  -3.746   1.224  -7.315  H351  CHR  80  
+CHR  H352  2H35  H  0  0  N  N  N  63.243   -7.987  13.969  -3.122   1.254  -5.635  H352  CHR  81  
+#   #
+loop_
+_chem_comp_bond.comp_id
+_chem_comp_bond.atom_id_1
+_chem_comp_bond.atom_id_2
+_chem_comp_bond.value_order
+_chem_comp_bond.pdbx_aromatic_flag
+_chem_comp_bond.pdbx_stereo_config
+_chem_comp_bond.pdbx_ordinal
+CHR  C1   C2    SING  N  N   1  
+CHR  C1   C9    SING  N  N   2  
+CHR  C1   C12   DOUB  N  N   3  
+CHR  C2   C3    TRIP  N  N   4  
+CHR  C3   C4    SING  N  N   5  
+CHR  C4   O2    SING  N  N   6  
+CHR  C4   C5    SING  N  N   7  
+CHR  C4   C33   SING  N  N   8  
+CHR  O2   C5    SING  N  N   9  
+CHR  C5   C6    SING  N  N  10  
+CHR  C5   H5    SING  N  N  11  
+CHR  C6   C7    TRIP  N  N  12  
+CHR  C7   C8    SING  N  N  13  
+CHR  C8   C9    DOUB  N  E  14  
+CHR  C8   H8    SING  N  N  15  
+CHR  C9   C10   SING  N  N  16  
+CHR  C10  O1    SING  N  N  17  
+CHR  C10  C11   SING  N  N  18  
+CHR  C10  H10   SING  N  N  19  
+CHR  O1   C13   SING  N  N  20  
+CHR  C11  O6    SING  N  N  21  
+CHR  C11  C12   SING  N  N  22  
+CHR  C11  H11   SING  N  N  23  
+CHR  O6   C20   SING  N  N  24  
+CHR  C12  H12   SING  N  N  25  
+CHR  C13  O3    SING  N  N  26  
+CHR  C13  C14   SING  N  N  27  
+CHR  C13  H13   SING  N  N  28  
+CHR  O3   C17   SING  N  N  29  
+CHR  C14  N1    SING  N  N  30  
+CHR  C14  C15   SING  N  N  31  
+CHR  C14  H14   SING  N  N  32  
+CHR  N1   C19   SING  N  N  33  
+CHR  N1   HN1   SING  N  N  34  
+CHR  C19  H191  SING  N  N  35  
+CHR  C19  H192  SING  N  N  36  
+CHR  C19  H193  SING  N  N  37  
+CHR  C15  O4    SING  N  N  38  
+CHR  C15  C16   SING  N  N  39  
+CHR  C15  H15   SING  N  N  40  
+CHR  O4   HO4   SING  N  N  41  
+CHR  C16  O5    SING  N  N  42  
+CHR  C16  C17   SING  N  N  43  
+CHR  C16  H16   SING  N  N  44  
+CHR  O5   HO5   SING  N  N  45  
+CHR  C17  C18   SING  N  N  46  
+CHR  C17  H17   SING  N  N  47  
+CHR  C18  H181  SING  N  N  48  
+CHR  C18  H182  SING  N  N  49  
+CHR  C18  H183  SING  N  N  50  
+CHR  C20  O7    DOUB  N  N  51  
+CHR  C20  C21   SING  N  N  52  
+CHR  C21  C22   DOUB  Y  N  53  
+CHR  C21  C26   SING  Y  N  54  
+CHR  C22  O9    SING  N  N  55  
+CHR  C22  C23   SING  Y  N  56  
+CHR  O9   HO9   SING  N  N  57  
+CHR  C23  C24   DOUB  Y  N  58  
+CHR  C23  H23   SING  N  N  59  
+CHR  C24  C25   SING  Y  N  60  
+CHR  C24  H24   SING  N  N  61  
+CHR  C25  C26   DOUB  Y  N  62  
+CHR  C25  C30   SING  Y  N  63  
+CHR  C26  C27   SING  Y  N  64  
+CHR  C27  C28   DOUB  Y  N  65  
+CHR  C27  H27   SING  N  N  66  
+CHR  C28  O8    SING  N  N  67  
+CHR  C28  C29   SING  Y  N  68  
+CHR  O8   C31   SING  N  N  69  
+CHR  C31  H311  SING  N  N  70  
+CHR  C31  H312  SING  N  N  71  
+CHR  C31  H313  SING  N  N  72  
+CHR  C29  C30   DOUB  Y  N  73  
+CHR  C29  H29   SING  N  N  74  
+CHR  C30  C32   SING  N  N  75  
+CHR  C32  H321  SING  N  N  76  
+CHR  C32  H322  SING  N  N  77  
+CHR  C32  H323  SING  N  N  78  
+CHR  C33  O10   SING  N  N  79  
+CHR  C33  C35   SING  N  N  80  
+CHR  C33  H33   SING  N  N  81  
+CHR  O10  C34   SING  N  N  82  
+CHR  C34  O11   DOUB  N  N  83  
+CHR  C34  O12   SING  N  N  84  
+CHR  O12  C35   SING  N  N  85  
+CHR  C35  H351  SING  N  N  86  
+CHR  C35  H352  SING  N  N  87  
+#   #
+loop_
+_pdbx_chem_comp_descriptor.comp_id
+_pdbx_chem_comp_descriptor.type
+_pdbx_chem_comp_descriptor.program
+_pdbx_chem_comp_descriptor.program_version
+_pdbx_chem_comp_descriptor.descriptor
+CHR  SMILES            ACDLabs               10.04  "O=C1OCC(O1)C23C#CC=7C(=CC#CC3O2)C(OC4OC(C(O)C(O)C4NC)C)C(OC(=O)c6c5cc(OC)cc(c5ccc6O)C)C=7"  
+CHR  SMILES_CANONICAL  CACTVS                3.341  "CN[C@@H]1[C@@H](O)[C@@H](O)[C@@H](C)O[C@@H]1O[C@H]2[C@H](OC(=O)c3c(O)ccc4c(C)cc(OC)cc34)C=C\5C#C[C@@]6(O[C@@H]6C#C\C=C2\5)[C@H]7COC(=O)O7"  
+CHR  SMILES            CACTVS                3.341  "CN[CH]1[CH](O)[CH](O)[CH](C)O[CH]1O[CH]2[CH](OC(=O)c3c(O)ccc4c(C)cc(OC)cc34)C=C5C#C[C]6(O[CH]6C#CC=C25)[CH]7COC(=O)O7"  
+CHR  SMILES_CANONICAL  "OpenEye OEToolkits"  1.5.0  "Cc1cc(cc2c1ccc(c2C(=O)O[C@@H]3C=C\4C#C[C@]5([C@H](O5)C#C\C=C4\[C@H]3O[C@@H]6[C@@H]([C@H]([C@H]([C@H](O6)C)O)O)NC)[C@H]7COC(=O)O7)O)OC"  
+CHR  SMILES            "OpenEye OEToolkits"  1.5.0  "Cc1cc(cc2c1ccc(c2C(=O)OC3C=C4C#CC5(C(O5)C#CC=C4C3OC6C(C(C(C(O6)C)O)O)NC)C7COC(=O)O7)O)OC"  
+CHR  InChI             InChI                 1.03   "InChI=1S/C35H33NO12/c1-16-12-19(42-4)14-22-20(16)8-9-23(37)27(22)32(40)45-24-13-18-10-11-35(26-15-43-34(41)46-26)25(48-35)7-5-6-21(18)31(24)47-33-28(36-3)30(39)29(38)17(2)44-33/h6,8-9,12-14,17,24-26,28-31,33,36-39H,15H2,1-4H3/b21-6+/t17-,24-,25-,26-,28-,29+,30-,31-,33-,35+/m1/s1"  
+CHR  InChIKey          InChI                 1.03   QZGIWPZCWHMVQL-UIYAJPBUSA-N  
+#
+_pdbx_chem_comp_identifier.comp_id          CHR
+_pdbx_chem_comp_identifier.type             "SYSTEMATIC NAME"
+_pdbx_chem_comp_identifier.program          ACDLabs
+_pdbx_chem_comp_identifier.program_version  10.04
+_pdbx_chem_comp_identifier.identifier       "(1aS,5R,6R,6aE,9aR)-6-{[2,6-dideoxy-2-(methylamino)-alpha-D-galactopyranosyl]oxy}-1a-[(4R)-2-oxo-1,3-dioxolan-4-yl]-2,3,8,9-tetradehydro-1a,5,6,9a-tetrahydrocyclopenta[5,6]cyclonona[1,2-b]oxiren-5-yl 2-hydroxy-7-methoxy-5-methylnaphthalene-1-carboxylate"
+#   #
+loop_
+_pdbx_chem_comp_audit.comp_id
+_pdbx_chem_comp_audit.action_type
+_pdbx_chem_comp_audit.date
+_pdbx_chem_comp_audit.processing_site
+CHR  "Create component"   1999-07-08  EBI   
+CHR  "Modify descriptor"  2011-06-04  RCSB  
+CHR  "Modify synonyms"    2020-06-05  PDBE  
+#
+_pdbx_chem_comp_synonyms.ordinal     1
+_pdbx_chem_comp_synonyms.comp_id     CHR
+_pdbx_chem_comp_synonyms.name        NCS-CHROMOPHORE
+_pdbx_chem_comp_synonyms.provenance  ?
+_pdbx_chem_comp_synonyms.type        ?
+##

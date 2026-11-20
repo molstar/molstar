@@ -2,18 +2,24 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Paul Pillot <paul.pillot@tandemai.com>
  */
 
 import { Asset } from '@molstar/core/util/assets';
+import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
+import {
+  BallAndStickParams,
+  BallAndStickRepresentationProvider,
+} from '@molstar/graphics/repr/structure/representation/ball-and-stick';
 import { createPrismViewer } from '@molstar/prism-viewer/page';
 import type { PrismViewer } from '@molstar/prism-viewer/viewer';
 import { NaiveOrdersBondProvider } from './providers.js';
 import { BondProvidersViewerSpec } from './spec.js';
 import './index.html';
 
-// The bond providers example page: a viewer with the example's providers, a header that loads an entry and switches
-// the structure's bonds through the `structure.bonds` operation (as the inspector's Bonds field does), and a button
-// that unregisters and registers one provider at run time.
+// The bond providers example page: a viewer with the example's providers and bond-order perception, a header that loads
+// an entry and switches the structure's bonds through the `structure.bonds` operation (as the inspector's Bonds field
+// does), and a button that unregisters and registers one provider at run time.
 
 function element<T extends HTMLElement>(selector: string): T {
   const e = document.querySelector<T>(selector);
@@ -28,6 +34,8 @@ const Choices: Record<string, { provider: string; params?: Record<string, unknow
   'naive-distance': { provider: 'naive-distance', params: { cutoff: 1.9 } },
   'naive-orders': { provider: 'naive-orders' },
   random: { provider: 'random', params: { probability: 0.1, maxDistance: 4, seed: 42 } },
+  auto: { provider: 'bond-order-perception', params: { mode: 'auto' } },
+  forceCompute: { provider: 'bond-order-perception', params: { mode: 'forceCompute' } },
   // naive orders for the ligands, the built-in bonds for the rest and between units
   'per-unit': {
     provider: 'per-unit',
@@ -39,6 +47,12 @@ const Choices: Record<string, { provider: string; params?: Record<string, unknow
     },
   },
 };
+
+// Kekulé orders rather than dashed aromatic bonds in every ball-and-stick (presets, the focus, one added by hand): no
+// plugin setting gives a representation's params a default, so the definition and the provider's defaults are patched
+// before the viewer starts.
+BallAndStickParams.aromaticBonds = PD.Boolean(false, { description: BallAndStickParams.aromaticBonds.description });
+(BallAndStickRepresentationProvider.defaultValues as { aromaticBonds: boolean }).aromaticBonds = false;
 
 async function main() {
   const status = element<HTMLElement>('#status');
@@ -54,15 +68,18 @@ async function main() {
     status.textContent = `Loading ${pdbId}…`;
     await viewer.api.session.clear();
     try {
-      // ball-and-stick everywhere, so the bonds are what you see
       await viewer.run(`Load ${pdbId}`, async (plugin) => {
+        // the PDB format: the connectivity the file states (CONECT, LINK), without orders, so there is something to
+        // perceive in `auto`; the mmCIF files state the ligands' orders (`chem_comp_bond`), which `auto` keeps, and
+        // without that table the ligands are bonded by distance
         const data = await plugin.builders.data.download(
-          { url: Asset.Url(`https://models.rcsb.org/${pdbId}.bcif`), isBinary: true },
+          { url: Asset.Url(`https://files.rcsb.org/download/${pdbId}.pdb`) },
           { state: { isGhost: true } },
         );
-        const trajectory = await plugin.builders.structure.parseTrajectory(data, 'mmcif');
+        const trajectory = await plugin.builders.structure.parseTrajectory(data, 'pdb');
+        // polymers as cartoon, ligands as ball-and-stick
         await plugin.builders.structure.hierarchy.applyPreset(trajectory, 'default', {
-          representationPreset: 'ball-and-stick' as never,
+          representationPreset: 'polymer-and-ligand' as never,
         });
       });
       status.textContent = `${pdbId}: the default bonds. Pick the structure in the Structure panel to see its Bonds field.`;
@@ -75,6 +92,13 @@ async function main() {
     button.addEventListener('click', async () => {
       const choice = Choices[button.dataset.bonds!];
       say(await viewer.api.structure.bonds({ provider: choice.provider, params: choice.params ?? {} }));
+    });
+  }
+
+  for (const button of document.querySelectorAll<HTMLButtonElement>('button[data-entry]')) {
+    button.addEventListener('click', () => {
+      element<HTMLInputElement>('#source').value = button.dataset.entry!;
+      void load(button.dataset.entry!);
     });
   }
 

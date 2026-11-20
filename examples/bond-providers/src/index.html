@@ -43,12 +43,17 @@
         <input id="source" type="text" value="1HSG" aria-label="PDB ID" />
         <button type="submit">Load</button>
       </form>
+      <button data-entry="1HSG">1HSG</button>
+      <button data-entry="1NCO">1NCO (CHR)</button>
+      <button data-entry="5KRE">5KRE (covalent 6WG)</button>
       <strong>Bonds:</strong>
       <button data-bonds="default">Default</button>
       <button data-bonds="none">None (format only)</button>
       <button data-bonds="naive-distance">Naive distance</button>
       <button data-bonds="naive-orders">Naive orders</button>
       <button data-bonds="random">Random</button>
+      <button data-bonds="auto">Perceived (auto)</button>
+      <button data-bonds="forceCompute">Perceived (force compute)</button>
       <button data-bonds="per-unit">By unit (ligands: naive orders)</button>
       <button id="toggle">Unregister naive orders</button>
       <span id="status"></span>

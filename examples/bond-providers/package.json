@@ -3,7 +3,7 @@
   "version": "6.0.0-dev.0",
   "private": true,
   "type": "module",
-  "description": "Mol* Prism: bond providers, two naive ones of the example's own beside the built-in, 'none' and 'per-unit'",
+  "description": "Mol* Prism: bond providers, naive ones of the example's own and bond-order perception (the bond-orders extension) beside the built-in, 'none' and 'per-unit'",
   "license": "MIT",
   "engines": {
     "node": ">=22.13.0"
@@ -14,7 +14,9 @@
     "dev": "node ../../scripts/esbuild/app.mjs examples/bond-providers --dev"
   },
   "dependencies": {
+    "@molstar/bond-orders-extension": "workspace:*",
     "@molstar/core": "workspace:*",
+    "@molstar/graphics": "workspace:*",
     "@molstar/model": "workspace:*",
     "@molstar/plugin": "workspace:*",
     "@molstar/prism-viewer": "workspace:*",
