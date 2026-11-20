@@ -165,16 +165,27 @@ const MarkGap = 4;
 
 /**
  * The action columns a view lays out with (_spec/README.md "Render", Track headers): `header.slots` columns and the
- * "⋯", `header.slotPx` each, ending at the label column's right end, as many slots as leave two columns' width of
+ * "⋯", `header.slotPx` each, ending at the label column's right end, as many slots as leave three columns' width of
  * label; none with `header.actions.show: never`. One set for every header of the view: every track's eye in one column.
  */
 export function actionColumns(config: RenderConfig): { readonly x: number; readonly n: number } {
+  let c = Columns.get(config);
+  if (c) return c;
   const h = config.header;
   const end = config.inset + config.labelWidth;
-  if (h.actions.show === 'never' || !(h.slotPx > 0)) return { x: end, n: -1 };
-  const n = Math.max(0, Math.min(h.slots, Math.floor(config.labelWidth / h.slotPx) - 3));
-  return { x: end - (n + 1) * h.slotPx, n };
+  const n =
+    h.actions.show === 'never' || !(h.slotPx > 0)
+      ? -1
+      : Math.max(0, Math.min(h.slots, Math.floor(config.labelWidth / h.slotPx) - 3));
+  c = { x: n < 0 ? end : end - (n + 1) * h.slotPx, n, size: fontSize(config.labelFont) };
+  Columns.set(config, c);
+  return c;
 }
+
+/** The action columns and the label font's size by config: a layout reads them once a header (nothing made). */
+type ColumnsOf = { readonly x: number; readonly n: number; readonly size: number };
+const Columns = new WeakMap<RenderConfig, ColumnsOf>();
+const labelSizeOf = (config: RenderConfig) => (actionColumns(config) as ColumnsOf).size;
 
 /** Whether a header lays out actions: a slot or a menu given, not short, not a figure, `header.actions.show` not `never`. */
 function hasActions(parts: HeaderParts | undefined, short: boolean, figure: boolean, config: RenderConfig): boolean {
@@ -188,16 +199,30 @@ function hasActions(parts: HeaderParts | undefined, short: boolean, figure: bool
 
 /** What a header line is laid out from: its hits' target, its line, whether it is short, its states' own line. */
 interface LineInput {
-  readonly layer: string;
-  readonly section: string;
+  layer: string;
+  section: string;
   /** The label line's centre. */
-  readonly cy: number;
-  readonly line: Box;
-  readonly short: boolean;
-  /** States on a line of their own under the label (a track of two lines' height): their baseline. */
-  readonly ownLine?: number;
-  readonly figure: boolean;
+  cy: number;
+  /** The line's top and height (the label column's part of it). */
+  top: number;
+  height: number;
+  short: boolean;
+  /** States on a line of their own under the label (a track of two lines' height): their baseline; else NaN. */
+  ownLine: number;
+  figure: boolean;
 }
+
+/** The one input a layout's header lines are laid out from, set field by field (a header makes none). */
+const At: LineInput = {
+  layer: '',
+  section: '',
+  cy: 0,
+  top: 0,
+  height: 0,
+  short: false,
+  ownLine: Number.NaN,
+  figure: false,
+};
 
 /**
  * A header's line laid out from its parts: the slots in their columns (the first `n` given), the "⋯" at the column's
@@ -214,7 +239,7 @@ function layoutLine(
   const cols = actionColumns(config);
   const inset = config.inset;
   const end = inset + config.labelWidth;
-  const size = fontSize(config.labelFont);
+  const size = labelSizeOf(config);
   const slotPx = h.slotPx;
   const sy = at.cy - slotPx / 2;
   let slots = NoSlots;
@@ -272,7 +297,7 @@ function layoutLine(
       return x + MarkGap;
     };
     if (at.short) labelEnd = marks(0, given.length, chipsEnd, at.cy) - ChipGap;
-    else if (at.ownLine !== undefined) {
+    else if (!Number.isNaN(at.ownLine)) {
       // a line of their own under the label, from the column's start, under the action columns when clear of them;
       // what does not fit a mark (the first always a chip)
       const own = actions && at.ownLine - size + 1 < actions.y + actions.height ? chipsEnd : end;
@@ -305,15 +330,16 @@ function layoutLine(
     out.sort((a, b) => a.at - b.at);
     states = out;
   }
-  return {
-    line: at.line,
+  const out: { -readonly [K in keyof HeaderLine]: HeaderLine[K] } = {
+    line: { x: inset, y: at.top, width: config.labelWidth, height: at.height },
     label: { x: inset, y: at.cy - size / 2 - 2, width: Math.max(0, labelEnd - inset), height: size + 4 },
     slots,
-    ...(menu ? { menu } : {}),
     states,
-    ...(actions ? { actions } : {}),
     short: at.short,
   };
+  if (menu) out.menu = menu;
+  if (actions) out.actions = actions;
+  return out;
 }
 
 function stateBox(
@@ -366,7 +392,7 @@ export function trackHeaderLine(
   text: TextMetrics,
   figure: boolean,
 ): { readonly header: HeaderLine; readonly labelY: number } {
-  const size = fontSize(config.labelFont);
+  const size = labelSizeOf(config);
   const short = well.height < config.header.minHeightPx;
   // a line of their own when two lines fit (a chip clear of the slots above it when the header has actions)
   const two = !short && parts?.states?.length && well.height >= 2 * (size + 6);
@@ -377,22 +403,23 @@ export function trackHeaderLine(
     : 0;
   const centre = well.y + well.height / 2;
   const labelY = centre + size * 0.35 - dy / 2;
-  const header = layoutLine(
-    parts,
-    {
-      layer: track,
-      section,
-      cy: labelY - size * 0.35,
-      line: { x: config.inset, y: well.y, width: config.labelWidth, height: well.height },
-      short,
-      ...(dy ? { ownLine: labelY + dy } : {}),
-      figure,
-    },
-    config,
-    text,
-  );
-  return { header, labelY };
+  const at = At;
+  at.layer = track;
+  at.section = section;
+  at.cy = labelY - size * 0.35;
+  at.top = well.y;
+  at.height = well.height;
+  at.short = short;
+  at.ownLine = dy ? labelY + dy : Number.NaN;
+  at.figure = figure;
+  const out = TrackLine;
+  out.header = layoutLine(parts, at, config, text);
+  out.labelY = labelY;
+  return out;
 }
+
+/** `trackHeaderLine`'s answer, one record (read at once by its caller). */
+const TrackLine: { header: HeaderLine; labelY: number } = { header: undefined as never, labelY: 0 };
 
 /**
  * Whether a section draws its header line (`section.header`): `auto` when it has a state or a slot, `always`, `none`.
@@ -415,35 +442,21 @@ export function sectionHeaderLine(
   figure: boolean,
 ): SectionHeaderLine {
   const h = config.header.sectionPx;
-  const line = layoutLine(
-    parts,
-    {
-      layer: section.address,
-      section: id,
-      cy: top + h / 2,
-      line: { x: config.inset, y: top, width: config.labelWidth, height: h },
-      short: false,
-      figure,
-    },
-    config,
-    text,
-  );
+  const at = At;
+  at.layer = section.address;
+  at.section = id;
+  at.cy = top + h / 2;
+  at.top = top;
+  at.height = h;
+  at.short = false;
+  at.ownLine = Number.NaN;
+  at.figure = figure;
+  const line = layoutLine(parts, at, config, text);
   return {
     ...line,
     hit: { layer: section.address, section: id, system: '', target: 'section-header' },
   };
 }
-
-/** A track's layers hidden by the spec (`hidden: true`), by key. */
-export function hiddenLayersOf(
-  track: ResolvedTrack,
-  key: (layer: ResolvedTrack['layers'][number]) => string,
-): string[] {
-  let out: string[] | undefined;
-  for (const l of track.layers) if (l.params.hidden === true) (out ??= []).push(key(l));
-  return out ?? (NoKeys as string[]);
-}
-const NoKeys: readonly string[] = [];
 
 /** The spec's node at an address (a path of ids), undefined when there is none. */
 function nodeAt(root: Node, address: string): Node | undefined {

@@ -11,7 +11,6 @@ import {
   drawsSectionHeader,
   type HeaderFacts,
   type HeaderLine,
-  hiddenLayersOf,
   hiddenTracksOf,
   type SectionHeaderLine,
   sectionHeaderLine,
@@ -27,6 +26,18 @@ import type { LayerLayout, LayoutInput } from './tracks-types.js';
 
 const NoFiltered: HeaderFacts['filtered'] = [];
 const NoKeys: readonly string[] = [];
+const HiddenLayers = new WeakMap<ResolvedTrack, readonly string[]>();
+
+/** A track's layers the spec hides (`hidden: true`), by key; kept a resolved track. */
+function hiddenLayersOf(track: ResolvedTrack): readonly string[] {
+  let out = HiddenLayers.get(track);
+  if (out) return out;
+  let found: string[] | undefined;
+  for (const l of track.layers) if (l.params.hidden === true) (found ??= []).push(layerKey(track, l));
+  out = found ?? NoKeys;
+  HiddenLayers.set(track, out);
+  return out;
+}
 
 /** A section's header line when it draws one (`section.header`), from `top`; its height is `header.sectionPx`. */
 export function sectionHeaderOf(
@@ -62,18 +73,24 @@ export function trackHeaderOf(
   well: Box,
   config: RenderConfig,
 ): { readonly header: HeaderLine; readonly labelY: number } {
+  // its layers', then its `section` layers' (pairs: laid out once a section)
   let filtered: { layer: string; count: number }[] | undefined;
-  for (const own of [layers, sectionLays])
-    for (const l of own) {
-      if (own === sectionLays && !track.layers.includes(l.layer)) continue;
-      const count = l.type.filtered?.(l.lay) ?? 0;
-      if (count) (filtered ??= []).push({ layer: own === sectionLays ? layerKey(track, l.layer) : l.key, count });
-    }
+  for (let i = 0; i < layers.length; i++) {
+    const l = layers[i];
+    const count = l.type.filtered?.(l.lay) ?? 0;
+    if (count) (filtered ??= []).push({ layer: l.key, count });
+  }
+  for (let i = 0; i < sectionLays.length; i++) {
+    const l = sectionLays[i];
+    if (!track.layers.includes(l.layer)) continue;
+    const count = l.type.filtered?.(l.lay) ?? 0;
+    if (count) (filtered ??= []).push({ layer: layerKey(track, l.layer), count });
+  }
   const facts: HeaderFacts = {
     section,
     track,
     filtered: filtered ?? NoFiltered,
-    hiddenLayers: hiddenLayersOf(track, (l) => layerKey(track, l)),
+    hiddenLayers: hiddenLayersOf(track),
     hiddenTracks: hiddenTracksOf(input.model, section),
   };
   let parts = (input.headers ?? builtInHeaderStates)(facts);
