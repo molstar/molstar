@@ -18,7 +18,7 @@ To rerun:
 | --- | --- | --- |
 | Heavy lane: wall-clock bounds, scaling, oracles | 27 files, 109 tests, 24 s | pass |
 | Draw and hover loops allocate nothing warm (core) | 135 cases within baseline + 4 B | pass |
-| Draw and hover loops allocate nothing warm (Storybook) | **the viewer's warm emphasis frame (p53 on its gene: selection, highlight and hover, projected): 800 B a frame** against 0; the other 4 cases pass | **fail**: lane EA |
+| Draw and hover loops allocate nothing warm (Storybook) | **the viewer's warm emphasis frame (p53 on its gene: selection, highlight and hover, projected): 800 B a frame** against 0; the other 4 cases pass | **fail**, fixed by lane EA (`f289450ce`: no closure in the rails, no `Object.keys`, no `Map.clear` a frame; 0 B after) |
 | Browser pan and zoom under 8 ms, never over 16: the 10,000 × 300 alignment (Globins › Rows › Scale) | pan 0.1 / 0.2 / 0.2; row scroll 2.1 / 2.9 / 3.1; zoom 1.2 / 2.5 / 6.2 (warm). **Two frames of about 100 ms in every 120-step zoom**: a frame callback outside the viewer's ticks, most likely the rows' image tiles rebuilt at a new level | ticks pass; **the 100 ms frames fail** |
 | The same: a ring (Plasmid › Ring) | pan 0.2 / 0.3 / 0.5; scroll 0.3 / 0.7 / 4.2; zoom 1.0 / 1.7 / 2.1; no long frame | pass |
 | Text reflow at a changing width (Features › Text, 120 widths) | 1.6 / 3.3 / 4.1; no long frame | pass |
@@ -33,8 +33,8 @@ To rerun:
 
 ## The misses, for the targets gate
 
-- **The emphasis frame's 800 B**: a regression since `0a92bdb64` added the case. Lane EA (fast) is finding and
-  removing it; the budget is not raised.
+- **The emphasis frame's 800 B**: fixed (EA, `f289450ce`). It grew over several lanes from 7143d873a (16 B), not
+  in one; the allocation tier ran only at gates in Storybook, so nothing caught it between.
 - **The 100 ms zoom frames on 10,000 rows**: rare (two in 120 steps) but over 16 ms. This is a fix lane, not a target
   move. The likely remedy is building the new level's tiles across frames, keeping the old level drawn meanwhile
   (performance.md, Levels).
