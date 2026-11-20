@@ -104,8 +104,8 @@ The code is the truth for how; this file records the rules the code relies on, e
 - The URL cache key includes the credentials, redirect rule and bound of the read: reads with others do not share a
   download. Why: another credential can answer differently, and a bound is a refusal that must not become another read's
   failure. So a bounded and an unbounded read of one URL download separately (accepted: bounded reads are the policy's,
-  unbounded ones are the app's). Reads with the same options share as before. Range reads and the cache behavior are
-  otherwise unchanged.
+  unbounded ones are the app's). Reads with the same options share as before. The cache behavior is otherwise unchanged;
+  range reads (§10) key their pages the same way.
 - `SizeLimitExceeded` (`util/data-source`, re-exported from `util/assets`) names its `source`, a URL or a file name.
 
 ## 9. The conformance suite
@@ -113,9 +113,44 @@ The code is the truth for how; this file records the rules the code relies on, e
 - `checkAssetManager(create)` (`assets-conformance.ts`, `@molstar/core/util/assets-conformance`) returns how a manager
   breaks the interface: a read gives data; references are counted and released (also after a failed read); concurrent
   reads of a URL share one download; a failed download is not cached; gzip is inflated on request; the four options of
-  §8 honored or the read refused. Data and a function, no test framework, as `checkCodec`: an app runs it on its own
-  manager in its tests, `DefaultAssetManager` runs it in core's (`_test/assets-conformance.test.ts`, with a derived
-  manager that adds credentials, and one that drops the options, which the suite must catch).
+  §8 honored or the read refused; and, for a manager with `openRange`, range reads (§10: the bytes asked, by page; a
+  changed `ETag` fails; a server that ignores `Range` read once, under `maxBytes`). Data and a function, no test
+  framework, as `checkCodec`: an app runs it on its own manager in its tests, `DefaultAssetManager` runs it in core's
+  (`_test/assets-conformance.test.ts`, with a derived manager that adds credentials, and one that drops the options,
+  which the suite must catch).
 - It runs on a fake `fetch` installed on `globalThis` for the run (restored after, one run at a time): nothing reaches
   the network, and a manager is observed by the requests it makes. A manager that does not download through `fetch` is
   outside its reach.
+
+## 10. Range reads
+
+- `openRanges(manager, asset, options)` (`assets-range.ts`, re-exported by `assets.ts`) opens an `AssetRangeReader`: its
+  `size`, and `read(ranges, signal)` giving one byte array a range, clipped at the end. It uses the manager's optional
+  `openRange`; a manager without one (a custom one) is served by resolving the asset whole (`binary`, `shared`, under
+  `maxBytes`) and giving views of its bytes. Why optional: a plugin's custom manager keeps compiling and stays correct,
+  only not lazy. Why here: indexed formats (bigWig) read a header, an index and a few blocks of a file of hundreds of
+  MB.
+- `DefaultAssetManager.openRange` reads by page (64 KiB by default, a power of two from 4 KiB to 4 MiB; the author,
+  2026-11-20) and keeps pages in a cache by asset and page, least recently used going first past `maxPages` (256).
+  Readers of one key share its pages and its requests in flight; the last reader's `dispose` lets them go, and the
+  manager's `clear`/`dispose` closes every reader (its reads reject). The key is the URL cache's (`urlCacheKey`: URL,
+  headers, credentials, redirect, bound, §8) with the page size; a file's is its asset. Range readers do not hold a
+  manager entry (`assets`, a session's files, do not list them).
+- A read gathers the missing pages of all its ranges; adjacent ones are one request, runs apart go in parallel (four at
+  a time). A range inside one page is a view of it, not a copy. A request is shared by the reads that wait on it; each
+  leaves on its own signal (rejecting as aborted), and the last to leave stops it. A failed or stopped request is not
+  kept: the next read fetches again.
+- URLs: `Range: bytes=a-b`, the asset's headers, `credentials` and `redirect` as given (§8). Opening reads page 0, which
+  gives the size (`Content-Range`'s total, checked against `maxBytes` before the body) and the validator (`ETag`, else
+  `Last-Modified`); later pages send it as `If-Range`. A `Content-Range` that is not the range asked (start, end) or has
+  no total, a total or validator that changed, a 416 on a valid range, a 200 after the first page, or a body longer or
+  shorter than its range fail with `AssetRangeError` (by name across copies, as `SizeLimitExceeded`). Why strict (the
+  author, 2026-11-20: "fail on change"): a proxy that mangles ranges, or a file replaced under a reader, would otherwise
+  give wrong bytes that decode as data.
+- A server that ignores `Range` (a 200 on the first page): its body is read once, under `maxBytes`, and held whole by
+  the reader's store; every range is a view of it (never a download a range). It is not put in the URL cache.
+- A request with a body (a POST) is not ranged: read whole, as `resolve` reads it.
+- Files: a file whose bytes the manager holds (a `shared` read) is served from them; otherwise `Blob.slice` a run of
+  pages, never the whole file. `maxBytes` is checked against the file's size.
+- `file://` URLs in Node.js: `stat` against `maxBytes` before any byte, then reads at an offset with the module
+  `setFSModule` set (`getFS`, internal).

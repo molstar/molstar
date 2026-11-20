@@ -436,7 +436,8 @@ function contentLength(response: Response) {
 
 // NOTE: a workaround for using this in Node.js
 let _fs: typeof import('fs') | undefined = undefined;
-function getFS() {
+/** @internal The module `setFSModule` set (range reads of `file://` URLs in Node.js, `assets-range.ts`). */
+export function getFS() {
   if (!_fs) {
     throw new Error(
       "When running in Node.js and reading from files, call mol-util/data-source's setFSModule function first.",
