@@ -35,14 +35,13 @@ The third slice is closed (2026-11-20; its record in `.seq/records/third-slice/`
 
 ## In progress
 
-- 2026-11-20: QE, ST1 and AC merged. HP1 (strong; `seq/hp1-lane`) in review.
+- 2026-11-20: QE, ST1, AC and HP1 merged. One lane at once (the author). MR (strong, `seq/mr-lane`) next.
 
 ## Next
 
-1. QE's heavy bound (`:index`, `itWithin` 400 ms) runs at stage 1's gate (the lane could not run the heavy lane).
-2. HP1: the review's fix round, merge (the author on `Emphasis.header` and the "⋯" order if the review raises them).
-   The drift notes (`drift/`) asked at stage 1's gate.
-3. MR (strong, after AC) now on the molecules track; HP2 after HP1; then CU, MX; FX3 after stage 1's gate.
+1. MR; then CU, MX and stage 1's gate (QE's heavy `:index` bound runs there; the drift notes asked there); HP2 after
+   MR (both in render and the viewer's hover), then ST2, ST3, HD, HP3.
+2. The minimal viewer at 915.8 of 920 kB: MR's growth may pass it; a growth past it comes to the author.
 
 ## Findings by lane
 
@@ -65,6 +64,7 @@ One row a merged lane (loop, step 5, record): review findings and look findings 
 | QE | 2026-11-20 | 3 (review: an empty column printed as everything; a pending property dropped in node filters, EC-169; column lengths unbounded before zipping) | 0 | 0 | `:index` scanned rows × residues (4.2 s → indexed); monadic laws untested; internals exported; PYL; the default viewer 2.7 kB past its bound, moved to 1,290 kB (the author) |
 | ST1 | 2026-11-20 | 6 (review: the entry unresolvable by name; colorRuns not compiled as the track; past the tile bound read complete-empty, EC-169; an overlay unit's maps ignored; the gate lighting unobserved-only units; toUnits quadratic) | 1 (resolve cannot hold a map onto a source's unit: drift) | 0 | test gaps (units past 0, EC-4, atoms); re-exports internal; Seq*'s own surface accepted by the orchestrator; nothing drawn |
 | AC | 2026-11-20 | 0 | 2 (the `alignment` map kind owed, a `segments` stopgap; one fixed name for every alignment's columns: drift) | 0 | weak tests (a path compared with itself, a test passing on the parent, the hover's section unchecked, no gap end drawn); EC-48 claimed whole; a duplicated kinds list; the look deferred to MX; core/render 2.28 s at load 8.9 (the gate measures it quiet) |
+| HP1 | 2026-11-20 | 4 (review: slots hit while not drawn; rows tracks' states over the tree; navigator pictures given headers; marks at negative x) | 3 (a label hit for `Emphasis.header`; the "⋯" order and backdrop; marks in a narrow column: the author amended the design) | 0 | `HeaderFacts` renamed; `nodeAt` a private copy of repr/tree; test gaps; no new part visible without a host (HP3's stories); minimal viewer 915.8 of 920 kB |
 
 ## How to verify
 

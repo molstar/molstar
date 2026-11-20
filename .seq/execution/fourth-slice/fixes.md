@@ -7,6 +7,11 @@ queue. Each line: what is seen, where (the story), where it came from, its kind 
 
 ## Open
 
+- **The viewer's quick-lane folder over 2 s** (waste): `packages/seq/viewer` at 2.62-2.68 s on a quiet machine
+  (load 2.3) before and after HP1, about a third imports and a fifth jsdom's environment. Measured at HP1's merge. Check
+  which files set up jsdom or import the full viewer per file; share a fixture per file, or move a slow-by-nature test
+  with a quick representative kept.
+
 - **SZ's viewer split, four small findings** (low): `viewer.test.ts:116` checks the `_viewport`/`_renderer` shims, not the frame's own calls; `viewer-motion.ts`'s viewport assembly (`window`, `all`, `_bandsFor`) belongs in `viewer-viewports.ts`; `ViewerFrame`'s mutable public fields written by `useBackend`; `view-follow.ts`'s shared out-records. SZ part two's review.
 
 - **The Antibody's IMGT label reads as a second line** (look): Antibody, the ruler's numbering label. Third slice's look. Open: not part of FX2; whether the ruler's name or the `labels` lane makes the second line is not yet read.
