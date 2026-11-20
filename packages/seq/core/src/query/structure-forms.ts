@@ -87,7 +87,14 @@ const filter: Resolve = (ctx, form, prefix) => {
   let out: QueryResult;
   if (r?.type === 'location' || r?.type === 'keys') {
     const frames = framesOf(ctx, prefix, 'filter');
-    const pred = compilePredicate(ctx.ext, test, absent, frameLevel(frames), 'A filter’s test');
+    // an empty prefix has no level to read past: nothing to test, nothing refused
+    const pred = compilePredicate(
+      ctx.ext,
+      test,
+      absent,
+      frames.length ? frameLevel(frames) : undefined,
+      'A filter’s test',
+    );
     const loc = filterFrames(ctx, frames, pred, absent);
     out =
       r.type === 'location'

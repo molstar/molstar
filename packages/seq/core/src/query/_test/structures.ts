@@ -5,9 +5,8 @@
  */
 
 // The structure query tests' helpers: a spec's or a source's nodes as a query model (the overlay over the static
-// model, as a viewer's), an address evaluated over it, and a form built in code evaluated over a prefix (a predicate's
-// positional operands are held in `args`, which the address grammar reads once `@molstar/core` does: until then a
-// test builds the form). And a small fixture recorded from 3SGJ: the IgG1 Fc's chain A around Asn297, its first
+// model, as a viewer's), an address evaluated over it, and a form built in code evaluated over a prefix (a predicate
+// built from values, as `itemsPredicate` builds one). And a small fixture recorded from 3SGJ: the IgG1 Fc's chain A around Asn297, its first
 // N-glycan (entity 3, chain D: eight residues, each with its C1 and a few more atoms) and the glycosidic link between
 // them, with the glycan's own links.
 

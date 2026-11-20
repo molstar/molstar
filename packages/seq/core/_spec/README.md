@@ -579,8 +579,10 @@ source's).
 - **Expressions take positional operands** (the author, 2026-11-20, "Accept, but allow positional operands"), held in a
   node's `args`: `=`, `!=` (on a set of words, membership), `<`, `<=`, `>`, `>=`, `(in-range x lo hi)`, `(in x [ … ])`,
   `(and p …)`, `(or p …)`, `(not p)`, `(prop name)`, `(value <values annotation> :field f)`. Any other form with a
-  positional operand is `seq.query.form.param`. **`@molstar/core`'s address grammar does not read positional values, nor
-  the operator symbols as kinds, yet**: a predicate is built in code until it does (the stop in QE's report).
+  positional operand is `seq.query.form.param`. `@molstar/core`'s address grammar reads them (`args`, before keyword
+  params) and the operator symbols as heads (`OperatorKinds`; the author, 2026-11-20, "Accept the core change"), so
+  `/data/1fin/(elements :chain A :atom CA)/(filter :test (> (prop b-factor) 60))` is text, printed back the same. A
+  filter over an empty prefix tests nothing and refuses nothing.
 - **Types are checked when a test is compiled**: a literal reads as the other operand's type (a number as a word where
   the property is one); an operator over a word and a number, a test that is not boolean, logic over a value:
   `seq.query.form.type`. An element whose test reads no value (a property it lacks) fails the test.

@@ -9,6 +9,7 @@
 // `elements-pdb.test.ts`): `elements` at each depth, over a selection as its prefix, `groups` by level, `filter`,
 // `expand` and `linked`; a lacking property a warning and nothing, never a failure (monadic).
 
+import { parseAddress, printAddress } from '@molstar/core/repr/tree';
 import { describe, expect, it } from 'vitest';
 import { openEntry } from '../../runtimes/_test/mmcif-entries.js';
 import { codes, count, ex, glycanSpec, keysOf, loc, prop, sourceRun, specRun } from './structures.js';
@@ -98,6 +99,16 @@ describe('elements on the 3SGJ glycan fixture', () => {
     expect(loc(over, D)).toEqual([3, 4, 5, 6, 7, 8]);
   });
 
+  it('as text: filter and groups with predicates parse, resolve and print back the same', () => {
+    const c6 = `${D}/(elements :atom [C1 C6])/(filter :test (= (prop atom) C6))`;
+    expect(loc(g.run(c6), DA)).toEqual([23, 24]);
+    expect(printAddress(parseAddress(c6).pattern!.segments)).toBe(c6);
+    const man = '/data/c/(groups :by unit :residue-test (in (prop component) [MAN FUC]))';
+    expect(keysOf(g.run(man))).toEqual(['/data/c#D']);
+    // a positional operand on a form that is no expression
+    expect(codes(g.run(`${D}/(elements C1)`))).toEqual(['seq.query.form.param']);
+  });
+
   it('groups: a key a residue, an atom, a unit; a lower level’s property in a test refused', () => {
     const man = { kind: 'groups', params: { 'residue-test': ex('=', prop('component'), 'MAN') } };
     expect(keysOf(g.form('/data/c', man))).toEqual([`${D}#3`, `${D}#5`]);
@@ -116,7 +127,7 @@ describe('elements on 1EHZ (read by the mmCIF runtime)', async () => {
   const unit = '/data/1ehz/(node :key complex)/A';
 
   it('modified residues: a key each, the 14 rows of `pdbx_struct_mod_residue`', () => {
-    const r = t.form('/data/1ehz', { kind: 'groups', params: { 'residue-test': ex('=', prop('modified'), true) } });
+    const r = t.run('/data/1ehz/(groups :residue-test (= (prop modified) true))');
     expect(keysOf(r)).toEqual([9, 15, 16, 25, 31, 33, 36, 38, 39, 45, 48, 53, 54, 57].map((p) => `${unit}#${p}`));
     expect(count(t.run('/data/1ehz/(elements :modified true)'))).toBe(14);
     // Y37 is YYG: by its component

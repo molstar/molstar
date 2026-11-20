@@ -10,6 +10,7 @@
 // representatives are the 3SGJ glycan fixture and 1EHZ (`elements.test.ts`).
 // @module-tag medium
 
+import { parseAddress, printAddress } from '@molstar/core/repr/tree';
 import { describe, expect, it } from 'vitest';
 import { openEntry } from '../../runtimes/_test/mmcif-entries.js';
 import { codes, count, ex, keysOf, loc, prop, sourceRun } from './structures.js';
@@ -39,6 +40,14 @@ describe('the structure language on PDB entries', { tags: ['medium'] }, () => {
     const t = sourceRun('1fin', (await openEntry('1FIN')).coverage.nodes ?? []);
     const a = '/data/1fin/(node :key complex)/A';
     expect(loc(t.run('/data/1fin/(elements :chain A :beg 10 :end 20)'), a)).toEqual([9, 20]);
+    // as text: b-factor is an atom's (properties.md), so over residues it is a level error, said, never guessed
+    const residues = '/data/1fin/(elements :chain A)/(filter :test (> (prop b-factor) 60))';
+    expect(printAddress(parseAddress(residues).pattern!.segments)).toBe(residues);
+    expect(codes(t.run(residues))).toEqual(['seq.query.property.level']);
+    // over atoms it reads: none are held on a polymer, and no b-factor channel is written yet (MC): nothing, a warning
+    const mobile = t.run('/data/1fin/(elements :chain A :atom CA)/(filter :test (> (prop b-factor) 60))');
+    expect(count(mobile)).toBe(0);
+    expect(codes(mobile).every((c) => c === 'seq.query.property.absent')).toBe(true);
     // atoms of a polymer are not held (molecules.md): an atom field there lacks, a warning (drift: the eleven Cα)
     const ca = t.run('/data/1fin/(elements :chain A :beg 10 :end 20 :atom CA)');
     expect([count(ca), codes(ca)]).toEqual([0, ['seq.query.property.absent']]);

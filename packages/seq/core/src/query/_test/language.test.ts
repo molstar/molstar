@@ -237,3 +237,36 @@ describe('the index walk (the quick representative)', () => {
     expect(reads()).toBeLessThanOrEqual(2 * n);
   });
 });
+
+describe('the designs’ examples as text (locations-and-queries.md, properties.md, addressing.md)', () => {
+  const examples = [
+    '/data/4hhb/(elements :component HEM :atom FE)',
+    '/data/4hhb/(elements :auth-chain [A C] :auth-seq 87)',
+    '/data/1fin/(elements :chain A :beg 10 :end 20 :atom CA)',
+    '/data/1fin/(elements :chain A :atom CA)/(filter :test (> (prop b-factor) 60))',
+    '/data/1fin/(elements :chain A)/(filter :test (> (prop b-factor) 60))',
+    '/data/af-p53/(elements)/(filter :test (>= (prop af:plddt) 70))',
+    '/data/af-p53/(elements)/(filter :test (>= (value /data/af-p53/plddt :field score) 70))',
+    '/data/glycan/(elements :atom C1)',
+    '/data/1fin/(elements :chain A :seq 33)/(linked :via /data/1fin/links)',
+    '/data/1ehz/(groups :residue-test (= (prop modified) true))',
+    '/data/1ehz/(elements :component MSE :element SE)',
+    '/data/x/(elements :items [(fields :chain A :seq 33) (fields :chain B :beg 140 :end 146)])',
+    '/data/x/(filter :test (= (prop component-class) saccharide))',
+    '/data/x/(molecule :entity 3)',
+    '/data/x/(elements :atom CA)/(expand :to residue)',
+    '/data/x/(filter :test (and (in-range (prop seq) 10 20) (not (in (prop component) [GLY PRO]))))',
+    '/data/x/(except :of [(elements :chain A) (elements :chain A :seq 33)])',
+  ];
+  it('each parses, prints canonically and reads back equal (keys sorted)', () => {
+    for (const t of examples) {
+      const p = parseAddress(t);
+      expect(p.issues, t).toEqual([]);
+      const printed = printAddress(p.pattern!.segments);
+      expect(parseAddress(printed).pattern, t).toEqual(p.pattern);
+      expect(printAddress(parseAddress(printed).pattern!.segments)).toBe(printed);
+    }
+    // one written in canonical order prints as written
+    expect(printAddress(parseAddress(examples[4]).pattern!.segments)).toBe(examples[4]);
+  });
+});
