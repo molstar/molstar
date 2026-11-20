@@ -61,7 +61,10 @@ node .seq/_checks/closed-work.ts
 ```
 
 The last two are this scaffold's own: every `EC-<n>` cited in `packages/seq` names an item of the edge-case catalog
-([sources/seqstar/edge-cases.md](sources/seqstar/edge-cases.md); [design/edge-cases.md](design/edge-cases.md)); and a
+([sources/seqstar/edge-cases.md](sources/seqstar/edge-cases.md); [design/edge-cases.md](design/edge-cases.md)), and
+a feature marked `done` in [design/features.md](design/features.md) has each item it covers named by a test or given an
+outcome (rows done before the rule in `_checks/ec-coverage-baseline.json`, which only shrinks; `--worklist` prints the
+built rows' items no test names, the close's list); and a
 closed work folder has a `foldback.md` with the author's decision on it (merged, in part, or not) ([principles](principles/README.md), "The fold-back is a step
 of every close").
 

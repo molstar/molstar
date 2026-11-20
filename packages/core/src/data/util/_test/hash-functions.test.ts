@@ -131,6 +131,60 @@ describe('PCG', () => {
     expect(first).toBe(0x3ac5b7c3);
   });
 
+  it('equals the published algorithm in 64-bit arithmetic over many seeds and long runs', () => {
+    // pcg32_srandom_r and pcg32_random_r of pcg-c-basic, written with BigInt as an independent oracle: the two-halves
+    // arithmetic's carries are exercised deep into each sequence, not only in the first draws
+    const Mask = (1n << 64n) - 1n;
+    const Mul = 6364136223846793005n;
+    const oracle = (seed: number) => {
+      const inc = (54n << 1n) | 1n;
+      let state = 0n;
+      const step = () => {
+        state = (state * Mul + inc) & Mask;
+      };
+      step();
+      state = (state + BigInt(seed >>> 0)) & Mask;
+      step();
+      return () => {
+        const old = state;
+        step();
+        const xorshifted = Number((((old >> 18n) ^ old) >> 27n) & 0xffffffffn);
+        const rot = Number(old >> 59n);
+        return ((xorshifted >>> rot) | (xorshifted << (-rot & 31))) >>> 0;
+      };
+    };
+    for (const seed of [0, 1, 7, 42, 26699, 0x7fffffff, 0x80000000, 0xdeadbeef, 0xffffffff]) {
+      const rng = new PCG(seed);
+      const ref = oracle(seed);
+      for (let i = 0; i < 2000; i++) {
+        const a = rng.int();
+        const b = ref();
+        if (a !== b) expect({ seed, draw: i, value: a }).toEqual({ seed, draw: i, value: b });
+      }
+    }
+    // the carry from the low half into the high half after adding the increment (about one step in 4·10^7, so no
+    // sequence above reaches it): a state whose low half times the multiplier ends within the increment of 2^32
+    const MulLo = Mul & 0xffffffffn;
+    let inv = 1n; // MulLo⁻¹ mod 2^32 by Newton's iteration
+    for (let i = 0; i < 5; i++) inv = (inv * (2n - MulLo * inv)) & 0xffffffffn;
+    for (const hi of [0n, 0x12345678n, 0xffffffffn]) {
+      const lo = (0xffffffffn * inv) & 0xffffffffn; // lo · MulLo ≡ 2^32 − 1, so adding the increment carries
+      const start = (hi << 32n) | lo;
+      const rng = new PCG(0) as unknown as { hi: number; lo: number; int(): number };
+      rng.hi = Number(hi);
+      rng.lo = Number(lo);
+      let state = start;
+      const inc = (54n << 1n) | 1n;
+      for (let i = 0; i < 3; i++) {
+        const old = state;
+        state = (state * Mul + inc) & Mask;
+        const xorshifted = Number((((old >> 18n) ^ old) >> 27n) & 0xffffffffn);
+        const rot = Number(old >> 59n);
+        expect(rng.int()).toBe(((xorshifted >>> rot) | (xorshifted << (-rot & 31))) >>> 0);
+      }
+    }
+  });
+
   it('floats fall into eighths evenly, within 1% over 1M draws', () => {
     const rng = new PCG(1);
     const counts = new Float64Array(8);
