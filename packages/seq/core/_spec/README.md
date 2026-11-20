@@ -999,7 +999,11 @@ store. `resolveSpec(spec, { runtimes, config })`, or `createResolver` to keep en
   `Lengths` is opaque: each length is kept by its system and its source node's hash, so a model whose source changed (an
   edited `uri`) never reads the old file's length; the system is pending until the new source opens. The lengths are
   part of the model's hash and of every entry's key over the system. Why again through resolve: what reads a length is
-  the model's, so a cyclic `seq` file works as inline letters do.
+  the model's, so a cyclic `seq` file works as inline letters do. A sequence whose opened source names systems but none
+  after it (its `name`, else its id, nor an alias) is kept by `sourceLengths` as unnamed, and the next resolve says
+  `seq.resolve.system.unnamed` at it (an error, its path the `name` param, else `source`): its length stays unknown and
+  nothing over it lays out. Why its own code: a spec fault with its own fix (name the sequence), never a wait, where
+  `length.unknown` is transient while a source opens.
 - **Opening a model** (`openModel(spec, store, options)`, `render/export.ts`): the one implementation of the two phases.
   It resolves (or takes the caller's first resolve), opens the sources that hold systems (`scope: 'view'`: the view's
   only), resolves again with their lengths, then opens the rest, and gives the settled model, its view and every issue
@@ -1095,8 +1099,8 @@ store. `resolveSpec(spec, { runtimes, config })`, or `createResolver` to keep en
 ### Issues
 
 `seq.resolve.*` (`ResolveIssues`): `ref.missing` and `source.format` (a spec not checked), `source.runtime`,
-`map.empty`, `map.codon_length`, `map.table`, `length.unknown`, `path.none`, `path.ambiguous`, `path.limit`, and the
-overlay's `node.invalid`, `node.ref`, `node.depth`. A test checks the catalog against the sources.
+`map.empty`, `map.codon_length`, `map.table`, `length.unknown`, `system.unnamed`, `path.none`, `path.ambiguous`,
+`path.limit`, and the overlay's `node.invalid`, `node.ref`, `node.depth`. A test checks the catalog against the sources.
 
 ## Overlay
 
