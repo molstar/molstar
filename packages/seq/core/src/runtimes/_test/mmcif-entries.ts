@@ -59,12 +59,13 @@ export function summary(source: OpenedSource): Summary {
     const p = (node.params ?? {}) as Record<string, any>;
     if (node.kind === 'sequence')
       out.sequences[node.id!] = `${p.alphabet} ${p.letters.length} modified ${p.modified?.position.length ?? 0}`;
-    else if (node.kind === 'molecule')
+    else if (node.kind === 'molecule') {
+      const own = node.children?.find((c) => c.kind === 'pairs')?.params?.rows as { a_start: Int32Array } | undefined;
       out.molecules[node.id!] =
         `${p.class} [${values(p.residues).join(' ')}] atoms ${p.atoms?.residue.length ?? 0} ids ${
           p.identifiers ? values(p.identifiers.namespace).join(',') : '-'
-        }`;
-    else if (node.kind === 'compounds') out.compounds = node.children?.length ?? 0;
+        }${own ? ` links ${own.a_start.length}` : ''}`;
+    } else if (node.kind === 'compounds') out.compounds = node.children?.length ?? 0;
     else if (node.kind === 'complex')
       for (const c of node.children ?? []) {
         const q = (c.params ?? {}) as Record<string, any>;
@@ -157,12 +158,12 @@ export const Recorded: Readonly<Record<EntryId, Summary>> = {
   },
   '3SGJ': {
     // an IgG1 Fc (two chains, ends unmodeled) and FcγRIIIa, three N-glycans as branched entities (8, 5 and 2
-    // residues: their 19 `pdbx_entity_branch_link` rows over D, E, F and G), 4 N-glycosylation and 7 disulfide rows
+    // residues, their 12 `pdbx_entity_branch_link` rows each molecule's links), 4 N-glycosylation and 7 disulfide rows
     sequences: { '1': 'protein 225 modified 0', '2': 'protein 204 modified 0' },
     molecules: {
-      '3': 'branched [NAG NAG BMA MAN NAG MAN NAG FUC] atoms 99 ids linucs,wurcs',
-      '4': 'branched [NAG NAG BMA MAN MAN] atoms 61 ids linucs,wurcs',
-      '5': 'branched [NAG NAG] atoms 28 ids linucs,wurcs',
+      '3': 'branched [NAG NAG BMA MAN NAG MAN NAG FUC] atoms 99 ids linucs,wurcs links 7',
+      '4': 'branched [NAG NAG BMA MAN MAN] atoms 61 ids linucs,wurcs links 4',
+      '5': 'branched [NAG NAG] atoms 28 ids linucs,wurcs links 1',
       '6': 'ligand [MLI] atoms 7 ids ccd',
     },
     compounds: 25,
@@ -176,7 +177,7 @@ export const Recorded: Readonly<Record<EntryId, Summary>> = {
       G: 'of 5 auth G observed all labels 1..2 (2)',
       H: 'of 6 auth A observed all labels 509..509 (1)',
     },
-    links: { disulfide: 7, glycosidic: 23 },
+    links: { disulfide: 7, glycosidic: 4 },
     issues: [],
   },
 };
@@ -192,7 +193,7 @@ export async function frameOf(id: EntryId): Promise<CifFrame> {
  * The counts read again from the file's categories by the plainest rule each states, none of the converter's: the
  * entities and `struct_asym` chains not water, each polymer's `entity_poly_seq` rows, the `struct_conn` rows of each
  * `conn_type_id` (with how many have an end on a water chain and how many both ends on one chain), each branched
- * entity's `pdbx_entity_branch_link` rows times its chains, and each chain's author numbers from its scheme
+ * entity's `pdbx_entity_branch_link` rows, and each chain's author numbers from its scheme
  * (`pdbx_poly_seq_scheme.auth_seq_num` and `pdb_ins_code` where modeled, `pdbx_branch_scheme`'s and
  * `pdbx_nonpoly_scheme`'s `pdb_seq_num`) as `<first>..<last> (<n>)`. Where they differ from what the runtime reads,
  * the tests say why.
@@ -217,9 +218,8 @@ export function countedFromFile(frame: CifFrame) {
     if (water(a[i]) || water(b[i])) c.onWater++;
     if (a[i] === b[i]) c.oneChain++;
   });
-  let branchLinksOnChains = 0;
-  for (const e of col('pdbx_entity_branch_link', 'entity_id'))
-    branchLinksOnChains += chains.filter((c) => asymEntity.get(c) === e).length;
+  const branchLinks: Record<string, number> = {};
+  for (const e of col('pdbx_entity_branch_link', 'entity_id')) branchLinks[e] = (branchLinks[e] ?? 0) + 1;
   const auth = new Map<string, string[]>();
   const scheme = (cat: string, asymF: string, numF: string, insF?: string) => {
     const [asym, num] = [col(cat, asymF), col(cat, numF)];
@@ -240,7 +240,7 @@ export function countedFromFile(frame: CifFrame) {
     chains: chains.length,
     lengths,
     conn,
-    branchLinksOnChains,
+    branchLinks,
     labels,
   };
 }
@@ -252,14 +252,16 @@ export const unitLabels = (s: Summary) =>
 /**
  * The links the runtime reads, against the file's plain counts, each difference said: a `metalc` row with an end on a
  * water is not read (waters are not read); a `covale` row with both ends on one chain is the chain itself (a polymer's
- * backbone at a modified residue) or a glycan's own bond, which is read from `pdbx_entity_branch_link` instead, once a
- * chain of the glycan; `hydrog` and the other types are not links (molecules.md, Reading).
+ * backbone at a modified residue) or a glycan's own bond, which is read from `pdbx_entity_branch_link` instead, as
+ * the molecule's links; `hydrog` and the other types are not links (molecules.md, Reading).
  */
 export function expectLinksAsCounted(s: Summary, counted: ReturnType<typeof countedFromFile>) {
   const c = (t: string) => counted.conn[t] ?? { rows: 0, onWater: 0, oneChain: 0 };
   expect(s.links.metal ?? 0).toBe(c('metalc').rows - c('metalc').onWater);
   expect(s.links.disulfide ?? 0).toBe(c('disulf').rows - c('disulf').onWater);
   expect((s.links.covalent ?? 0) + (s.links.glycosidic ?? 0)).toBe(
-    c('covale').rows - c('covale').oneChain - c('covale').onWater + counted.branchLinksOnChains,
+    c('covale').rows - c('covale').oneChain - c('covale').onWater,
   );
+  for (const [e, d] of Object.entries(s.molecules))
+    expect(/ links (\d+)$/.exec(d)?.[1] ?? '0', `molecule ${e}`).toBe(String(counted.branchLinks[e] ?? 0));
 }

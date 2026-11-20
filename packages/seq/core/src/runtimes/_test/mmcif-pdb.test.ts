@@ -51,7 +51,11 @@ describe('the mmCIF runtime on PDB entries', { tags: ['medium'] }, () => {
     const rows = links.params!.rows as Record<string, any>;
     const pairs = Array.from({ length: rows.a_start.length }, (_, i) => `${rows.a_unit.get(i)}:${rows.b_unit.get(i)}`);
     expect(pairs.filter((p) => p === 'A:D' || p === 'B:E' || p === 'C:F' || p === 'C:G').length).toBe(4);
-    expect(pairs.filter((p) => p === 'D:D').length).toBe(7);
+    expect(pairs.filter((p) => p === 'D:D').length).toBe(0);
+    // a glycan's own bonds are the molecule's links, once (not once a unit)
+    const own = glycan.children!.find((c) => c.id === 'links')!.params!.rows as Record<string, any>;
+    expect(Array.from(own.a_start)).toEqual([1, 2, 3, 4, 5, 6, 7]);
+    expect(Array.from({ length: 7 }, (_, i) => `${own.a_atom.get(i)}-${own.b_atom.get(i)}`)[0]).toBe('C1-O4');
   });
 
   it('4HHB: B-factors by unit, the default field when no pLDDT is there', async () => {

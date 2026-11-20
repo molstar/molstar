@@ -540,6 +540,15 @@ export function mmcifDescription(frame: CifFrame, options: MmcifReadOptions, add
     issues.push(
       issueOf(MmcifIssues, 'seq.io.mmcif.links', `${unread} struct_conn rows not read as links`, { address }),
     );
+  // a branch's own links: the molecule's (molecules.md, Links), once an entity, not once a unit
+  const own = {
+    entity: [] as number[],
+    a: [] as number[],
+    b: [] as number[],
+    aAtom: [] as (string | null)[],
+    bAtom: [] as (string | null)[],
+    order: [] as (string | null)[],
+  };
   const bl = cats.pdbx_entity_branch_link;
   for (let i = 0; i < (bl?.rowCount ?? 0); i++) {
     const e = entityRow.get(strOf(fieldOf(bl, 'entity_id'), i) ?? '');
@@ -548,11 +557,12 @@ export function mmcifDescription(frame: CifFrame, options: MmcifReadOptions, add
     const p1 = positionOf[e].get(n1!.int(i));
     const p2 = positionOf[e].get(n2!.int(i));
     if (p1 === undefined || p2 === undefined) continue;
-    for (const asym of asymOrder) {
-      if (asymEntity.get(asym) !== e) continue;
-      const [a1, a2] = [strOf(fieldOf(bl, 'atom_id_1'), i), strOf(fieldOf(bl, 'atom_id_2'), i)];
-      addLink(asym, p1, asym, p2, 'glycosidic', a1, a2);
-    }
+    own.entity.push(e);
+    own.a.push(p1);
+    own.b.push(p2);
+    own.aAtom.push(strOf(fieldOf(bl, 'atom_id_1'), i) ?? null);
+    own.bAtom.push(strOf(fieldOf(bl, 'atom_id_2'), i) ?? null);
+    own.order.push(strOf(fieldOf(bl, 'value_order'), i) ?? null);
   }
 
   // compounds: those of the entities read, their parents from `chem_comp` or `pdbx_struct_mod_residue`
@@ -618,6 +628,15 @@ export function mmcifDescription(frame: CifFrame, options: MmcifReadOptions, add
       type: link.type,
       a_atom: link.aAtom,
       b_atom: link.bAtom,
+    },
+    entityLinks: {
+      entity: Int32Array.from(own.entity),
+      a_position: Int32Array.from(own.a),
+      b_position: Int32Array.from(own.b),
+      type: own.entity.map(() => 'glycosidic'),
+      a_atom: own.aAtom,
+      b_atom: own.bAtom,
+      order: own.order,
     },
     compounds: { ...compounds, parents },
     atoms: {

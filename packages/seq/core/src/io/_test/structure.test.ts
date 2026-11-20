@@ -104,6 +104,36 @@ describe('structureNodes', () => {
     expect(issues.every((i) => i.address === Source)).toBe(true);
   });
 
+  it('a molecule’s own links are its links child, by their ends; a polymer’s or a position past the molecule left out, said', () => {
+    const d = zincFinger();
+    const withLinks: StructureDescription = {
+      ...d,
+      entityLinks: {
+        entity: Int32Array.of(1, 1, 0, 1),
+        a_position: Int32Array.of(0, 0, 0, 0),
+        b_position: Int32Array.of(0, 0, 1, 5),
+        type: ['glycosidic', 'covalent', 'covalent', 'covalent'],
+        a_atom: ['O4', null, null, null],
+        b_atom: ['C1', null, null, null],
+        order: ['sing', null, null, null],
+      },
+    };
+    const { nodes, issues } = read(withLinks);
+    const links = nodes[1].node.children?.find((c) => c.kind === 'pairs');
+    const rows = links?.params?.rows as Record<string, any>;
+    expect(links?.id).toBe('links');
+    expect(Array.from(rows.a_start)).toEqual([0, 0]);
+    expect([rows.type.get(0), rows.type.get(1), rows.a_atom.get(1), rows.order.get(1)]).toEqual([
+      'covalent',
+      'glycosidic',
+      'O4',
+      'sing',
+    ]);
+    expect(nodes[0].node.children).toBeUndefined();
+    expect(issues.map((i) => i.code)).toContain('seq.io.structure.rows');
+    expectValid(nodes);
+  });
+
   it('leaves a molecule’s hydrogens out, said (EC-64)', () => {
     const d = zincFinger();
     const withH: StructureDescription = {

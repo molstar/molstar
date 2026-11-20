@@ -144,12 +144,13 @@ function entityNode(x: ReadEntity, parents: ReadonlyMap<string, readonly string[
       element: categoryColumn(x.atoms.map((a) => a.element)),
     };
   if (x.name !== undefined) params.name = x.name;
+  const links = entityLinksNode(x.links);
   if (x.identifiers.length)
     params.identifiers = {
       namespace: categoryColumn(x.identifiers.map((i) => i.namespace)),
       value: x.identifiers.map((i) => i.value),
     };
-  return { node: { kind: 'molecule', id: x.id, params } as Node, unknown: 0 };
+  return { node: { kind: 'molecule', id: x.id, params, ...(links ? { children: [links] } : {}) } as Node, unknown: 0 };
 }
 
 /** A component's letter: its own standard one, else its parent's (one parent: MSE is `M`), else none. */
@@ -226,6 +227,22 @@ function linksNode(links: readonly ReadLink[]): Node | undefined {
   if (links.some((l) => l.type !== null)) rows.type = categoryColumn(links.map((l) => l.type));
   if (links.some((l) => l.aAtom !== null)) rows.a_atom = categoryColumn(links.map((l) => l.aAtom));
   if (links.some((l) => l.bAtom !== null)) rows.b_atom = categoryColumn(links.map((l) => l.bAtom));
+  return { kind: 'pairs', id: 'links', params: { rows } } as Node;
+}
+
+/** A molecule's own links between its positions (a glycan's bonds), a row a link; undefined with none. */
+function entityLinksNode(links: ReadEntity['links']): Node | undefined {
+  if (!links.length) return undefined;
+  const rows: Record<string, unknown> = {
+    a_start: Int32Array.from(links, (l) => l.aPosition),
+    a_end: Int32Array.from(links, (l) => l.aPosition + 1),
+    b_start: Int32Array.from(links, (l) => l.bPosition),
+    b_end: Int32Array.from(links, (l) => l.bPosition + 1),
+  };
+  if (links.some((l) => l.type !== null)) rows.type = categoryColumn(links.map((l) => l.type));
+  if (links.some((l) => l.aAtom !== null)) rows.a_atom = categoryColumn(links.map((l) => l.aAtom));
+  if (links.some((l) => l.bAtom !== null)) rows.b_atom = categoryColumn(links.map((l) => l.bAtom));
+  if (links.some((l) => l.order !== null)) rows.order = categoryColumn(links.map((l) => l.order));
   return { kind: 'pairs', id: 'links', params: { rows } } as Node;
 }
 

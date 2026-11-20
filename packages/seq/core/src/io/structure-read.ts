@@ -39,6 +39,17 @@ export interface ReadEntity {
   readonly identifiers: readonly { readonly namespace: string; readonly value: string }[];
   /** By residue, then name, then element. */
   readonly atoms: readonly { readonly residue: number; readonly name: string; readonly element: string }[];
+  /** Its own links (a molecule's only): by their ends, then type and atoms. */
+  readonly links: readonly ReadEntityLink[];
+}
+
+export interface ReadEntityLink {
+  readonly aPosition: number;
+  readonly bPosition: number;
+  readonly type: string | null;
+  readonly aAtom: string | null;
+  readonly bAtom: string | null;
+  readonly order: string | null;
 }
 
 export interface ReadUnit {
@@ -189,6 +200,7 @@ export function readStructure(
       components: [],
       identifiers: [],
       atoms: [],
+      links: [],
     };
   }
   const entityAt = (x: unknown) => (int(x) && x >= 0 && x < nE ? ents[x] : undefined);
@@ -223,6 +235,39 @@ export function readStructure(
   }
   if (hydrogens) say('seq.io.structure.hydrogen', `${hydrogens} hydrogen atoms left out`);
 
+  // a molecule's own links (a polymer has none: a sequence takes no links child); positions checked with lengths
+  const el = D.entityLinks;
+  const nEL = rows('entityLinks', el, ['entity', 'a_position', 'b_position'], ['type', 'a_atom', 'b_atom', 'order']);
+  for (let i = 0; i < nEL; i++) {
+    const [en, ap, bp, type, aa, ba, order] = [
+      'entity',
+      'a_position',
+      'b_position',
+      'type',
+      'a_atom',
+      'b_atom',
+      'order',
+    ].map((k) => col(el, k)?.[i]);
+    if (!named(en) || !int(ap) || !int(bp) || ap < 0 || bp < 0 || ![type, aa, ba, order].every(optStr)) {
+      badRow('entityLinks');
+      continue;
+    }
+    const x = entityAt(en);
+    if (!x) continue;
+    if (x.type === 'polymer') {
+      badRow('entityLinks');
+      continue;
+    }
+    x.links.push({
+      aPosition: ap,
+      bPosition: bp,
+      type: asOpt(type) ?? null,
+      aAtom: asOpt(aa) ?? null,
+      bAtom: asOpt(ba) ?? null,
+      order: asOpt(order) ?? null,
+    });
+  }
+
   // each entity's length: its letters', else its components' (a molecule's run of positions from 0)
   for (const x of ents) {
     if (!x) continue;
@@ -238,6 +283,19 @@ export function readStructure(
     if (atoms.length < x.atoms.length) bad.set('atoms', (bad.get('atoms') ?? 0) + x.atoms.length - atoms.length);
     atoms.sort((a, b) => a.residue - b.residue || byCode(a.name, b.name) || byCode(a.element, b.element));
     x.atoms = atoms;
+    const links = x.links.filter((l) => l.aPosition < length && l.bPosition < length);
+    if (links.length < x.links.length)
+      bad.set('entityLinks', (bad.get('entityLinks') ?? 0) + x.links.length - links.length);
+    links.sort(
+      (p, q) =>
+        p.aPosition - q.aPosition ||
+        p.bPosition - q.bPosition ||
+        nullable(p.type, q.type) ||
+        nullable(p.aAtom, q.aAtom) ||
+        nullable(p.bAtom, q.bAtom) ||
+        nullable(p.order, q.order),
+    );
+    x.links = links;
   }
 
   // units: an id each, of its chain and operator; every row of an id given twice left out
@@ -374,8 +432,6 @@ export function readStructure(
     });
   }
   const unitOrder = new Map(units.map((u, i) => [u.id, i]));
-  const nullable = (a: string | null, b: string | null) =>
-    byCode(a ?? '', b ?? '') || (a === null ? 0 : 1) - (b === null ? 0 : 1);
   links.sort(
     (x, y) =>
       unitOrder.get(x.a)! - unitOrder.get(y.a)! ||
@@ -433,11 +489,16 @@ export function readStructure(
   };
 }
 
-type MutableEntity = Omit<ReadEntity, 'components' | 'identifiers' | 'atoms' | 'length'> & {
+/** Two optional cells in order: by code, absent first. */
+const nullable = (a: string | null, b: string | null) =>
+  byCode(a ?? '', b ?? '') || (a === null ? 0 : 1) - (b === null ? 0 : 1);
+
+type MutableEntity = Omit<ReadEntity, 'components' | 'identifiers' | 'atoms' | 'length' | 'links'> & {
   length: number;
   components: { position: number; component: string }[];
   identifiers: { namespace: string; value: string }[];
   atoms: { residue: number; name: string; element: string }[];
+  links: ReadEntityLink[];
 };
 
 type MutableUnit = Omit<ReadUnit, 'residues'> & {

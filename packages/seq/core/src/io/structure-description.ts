@@ -80,6 +80,24 @@ export interface LinkTable {
   readonly b_atom?: readonly (string | null)[];
 }
 
+/**
+ * Links between residues of one molecule (a branch's `pdbx_entity_branch_link`): a row a bond, read as the molecule's
+ * `links` child (molecules.md, Links). A polymer's are not read: a sequence has no links child.
+ */
+export interface EntityLinkTable {
+  /** The entity's row. */
+  readonly entity: Int32Array;
+  /** Positions in the entity, from 0. */
+  readonly a_position: Int32Array;
+  readonly b_position: Int32Array;
+  /** `glycosidic`, any word. */
+  readonly type?: readonly (string | undefined)[];
+  readonly a_atom?: readonly (string | null)[];
+  readonly b_atom?: readonly (string | null)[];
+  /** The bond's order (`sing`, `doub`). */
+  readonly order?: readonly (string | null)[];
+}
+
 /** The components described (`chem_comp`): a row each. */
 export interface CompoundTable {
   readonly id: readonly string[];
@@ -109,6 +127,8 @@ export interface StructureDescription {
   readonly chains: ChainTable;
   readonly residues: ResidueTable;
   readonly links?: LinkTable;
+  /** Links within a molecule (a glycan's own bonds). */
+  readonly entityLinks?: EntityLinkTable;
   readonly compounds?: CompoundTable;
   readonly atoms?: AtomTable;
   /** Named values a residue row (`b_factor`, `occupancy`, `plddt`; NaN: none): the channels a `values` node reads. */

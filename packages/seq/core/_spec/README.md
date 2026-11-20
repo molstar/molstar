@@ -949,9 +949,10 @@ by fuzz tests (mutated text read without a throw).
   residues a unit from `atom_site`'s first model (a polymer's by `label_seq_id`, a branch's by `auth_seq_id` through
   `pdbx_branch_scheme`'s `pdb_seq_num`, a water's in order), so `observed` is what was modeled and the `auth` numbering
   `auth_seq_id` and `pdbx_PDB_ins_code`; links from `struct_conn` (`covale`: `covalent`, or `glycosidic` with a
-  glycosylation role; `disulf`, `metalc`) within one copy, and each branch's `pdbx_entity_branch_link` on each of its
-  units; compounds of the entities read from `chem_comp`, a parent from `mon_nstd_parent_comp_id` else
-  `pdbx_struct_mod_residue`; a molecule's atoms from its first unit (natural order of `label_asym_id`).
+  glycosylation role; `disulf`, `metalc`) within one copy, and each branch's `pdbx_entity_branch_link` its molecule's
+  `links` (`entityLinks`, once an entity, not once a unit); compounds of the entities read from `chem_comp`, a parent
+  from `mon_nstd_parent_comp_id` else `pdbx_struct_mod_residue`; a molecule's atoms from its first unit (natural order
+  of `label_asym_id`).
 - **Left out, said once** (`seq.io.mmcif.*`): an atom name's second `label_alt_id` (the first read; the others dropped:
   a position is one atom), a `struct_conn` row with an end on a symmetry mate or on no unit read (a water when waters
   are not read). A polymer's backbone `covale` (a modified residue to its neighbor) is the chain, not a link, and a
@@ -1097,17 +1098,19 @@ names: `StructureDescription` and its table types, `structureNodes` (with `Struc
   `entities` (`id`, `type`, the polymer's type, `name`, canonical letters), `components` (a row a position of an entity,
   several at one its alternatives, the first giving the letter), `identifiers`, `chains` (the units: `label_asym_id`,
   `auth_asym_id`, entity, `operator`), `residues` (a chain's positions with `auth_seq_id`, `ins_code`, `observed`),
-  `links`, `compounds` (`parents`), a molecule's heavy `atoms`, named per-residue `values`. Why columns and indices: a
-  host fills them from its own model without a CIF frame, and a description is format-neutral.
+  `links`, `entityLinks` (a molecule's own: a glycan's bonds), `compounds` (`parents`), a molecule's heavy `atoms`,
+  named per-residue `values`. Why columns and indices: a host fills them from its own model without a CIF frame, and a
+  description is format-neutral.
 - **`structureNodes(description, { source, water?, complex?, limits? })`**: a sequence per polymer entity (letters
   given, else each position's first component's standard letter, else its one parent's, else `X` or `N`, said once:
   `seq.io.structure.letters`; `modified` the positions whose component is not their letter's standard one and every row
   of a position with alternatives), a molecule per other entity (`class` `branched`, `water`, else `ion` for one atom,
   else `ligand`), the `compounds`, and a complex of units (`of` the entity's node, `chain`, `auth_chain`, `operator`,
   `observed` runs when a position was not, an `auth` numbering from `auth_seq_id` and `ins_code`) with a `links` child;
-  water only when asked. It also gives the units' systems (their ids and lengths) and `values(field)`, a named value
-  over each kept unit's positions from that unit's own residue rows: what a source serves for a `values` node's `field`.
-  Why on the result: the values follow the units the reading kept, by the same keys.
+  a molecule's `entityLinks` its own `links` child (a polymer's left out: a sequence takes none); water only when asked.
+  It also gives the units' systems (their ids and lengths) and `values(field)`, a named value over each kept unit's
+  positions from that unit's own residue rows: what a source serves for a `values` node's `field`. Why on the result:
+  the values follow the units the reading kept, by the same keys.
 - **Checked and bounded** (`structure-read.ts`; a host is code Seq\* does not own): every table and every cell is read
   as its type before anything is sized by it; what does not read is said at the source's address and left out, never
   thrown. A table missing, of another type or with a column of another length is left out (`seq.io.structure.columns`);
