@@ -108,8 +108,9 @@ async function drawn(id: string, window: [number, number], tokens = LightTokens)
 }
 
 describe('Antibody: the rulers against the data', () => {
-  // the ruler ticks the step's round values, and an insertion code's label where it has room: at the closest zoom
-  // (32 px a residue) CDR-H2's 52A, FR3's 82A–C and CDR-H3's 100A–C show beside the round values; at the fit none
+  // the ruler ticks the step's round values, and an insertion code's label where it clears them: at the closest zoom
+  // (32 px a residue) CDR-H2's 52A, FR3's 82A–C and CDR-H3's 100A–C show beside the round values; at the fit only
+  // where one clears them
   for (const t of ['light', 'dark'] as const)
     it(
       `${t}: the wild type’s Kabat ruler labels the heavy chain’s insertions at the closest zoom, read from the file; no issue`,
@@ -135,10 +136,14 @@ describe('Antibody: the rulers against the data', () => {
           for (const l of [...round, ...insertions]) expect(has(r, l), l).toBe(true);
           for (const l of insertions) expect(r.svg).toContain(l);
         }
-        // at the fit the round values alone: no insertion crowds them
+        // at the fit the round values, and an insertion only where it clears them: none crowds a round value
         const fit = await drawn('schemes', [0, 220], tokens);
-        for (const l of ['52A', '82A', '82B', '82C', '100A', '100B', '100C']) expect(has(fit, l), l).toBe(false);
         expect(has(fit, '100')).toBe(true);
+        const spans = fit.ticks
+          .filter((t) => t.shown)
+          .map((t) => t.x)
+          .sort((a, b) => a - b);
+        for (let k = 1; k < spans.length; k++) expect(spans[k] - spans[k - 1]).toBeGreaterThan(4);
         const one = await drawn('schemes', [98, 112], tokens);
         const other = await drawn('schemes', [98, 112], t === 'dark' ? LightTokens : DarkTokens);
         expect(other.raw).not.toBe(one.raw);
@@ -176,12 +181,13 @@ describe('Antibody: the rulers against the data', () => {
   it('the design’s IMGT ruler ticks 111.1 and 112.1 before 112 (inline labels, EC-7); Kabat’s 100D and 100E drawn', async () => {
     const r = await drawn('schemes-design', [100, 116]);
     expect(r.issues).toEqual([]);
-    for (const l of ['111.1', '100D', '100E']) expect(r.svg).toContain(l);
+    for (const l of ['112.1', '100D', '100E']) expect(r.svg).toContain(l);
     const x = (l: string) => r.ticks.find((t) => t.label === l)!.x;
     expect(x('111.1')).toBeLessThan(x('112.1'));
     expect(x('112.1')).toBeLessThan(x('112'));
-    // at the closest zoom (32 px a residue) three labels a residue apart do not clear: 112.1 yields to its neighbours
-    expect(r.ticks.find((t) => t.label === '112.1')!.shown).toBe(false);
+    // at the closest zoom (32 px a residue) labels a residue apart do not all clear: the insertion nearest a drawn round
+    // value wins (112.1 beside 112), its neighbour yields
+    expect(r.ticks.find((t) => t.label === '112.1')!.shown).toBe(true);
   });
 
   it('the design against the wild type: two rows a chain, as wide as their alignment', async () => {

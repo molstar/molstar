@@ -29,7 +29,8 @@ const AnchorStart: number = Anchor.start;
 
 // The `ruler` layer type (_spec/README.md "Render", Layer types): the section's axis labelled by a numbering. Ticks at
 // the labels that are multiples of a step of 1, 2 or 5 × 10ⁿ (the least whose px apart reach the label gap); insertion
-// labels (100A, 111.1) are minor ticks, labeled where there is room; a label that does not fit is skipped, never shrunk.
+// labels (100A, 111.1) are minor ticks, labeled where they clear what is drawn; a label that does not fit is skipped,
+// never shrunk.
 // It labels the positions where they are, so a reversed axis counts down and a collapsed one labels its pieces. Where a
 // numbering has no label (past its coverage: a light chain's constant domain under Kabat) `unnumbered` says what is
 // there (axis.md, "Where a numbering does not reach"): `mark` (default) a muted dashed line over the run, one muted note
@@ -427,30 +428,45 @@ function tickRange(
 }
 
 /**
- * Which labels are drawn: majors first, then minors (each only within its own position's width), each only where it
- * clears every one drawn and the data box.
+ * Which labels are drawn: majors first, then minors, each only where it clears every one drawn and the data box. The
+ * minors in priority order (one rule, the order decides who wins): the nearest a drawn major first, then the shorter
+ * label, then by position, so the first insertion after a round value is labelled before the third, and a number
+ * stands between every pair of majors where one fits. Decided at layout, never on a hover: no jitter.
  */
 function fit(lay: RulerLay, ctx: LayoutContext) {
   const { box } = lay;
   const gap = Math.max(4, ctx.config.ruler.labelGap / 8);
   const taken: number[] = [];
-  for (let pass = 1; pass >= 0; pass--)
-    for (let j = 0; j < lay.n; j++) {
-      lay.shown[j] = pass === 1 ? 0 : lay.shown[j];
-      if (lay.major[j] !== pass || !lay.labels[j]) continue;
-      const w = (lay.widths[j] = ctx.text.measure(lay.font, lay.labels[j]));
-      const a = lay.x[j] - w / 2;
-      const b = lay.x[j] + w / 2;
-      if (a < box.x || b > box.x + box.width) continue;
-      // an insertion's label only where it fits its own position (labelled with room beside its neighbours': never
-      // crowding a round value at a zoom where a position is narrower than its label)
-      if (pass === 0 && w > lay.axis.scale) continue;
-      let free = true;
-      for (let k = 0; k + 1 < taken.length && free; k += 2) free = b + gap <= taken[k] || a >= taken[k + 1] + gap;
-      if (!free) continue;
-      taken.push(a, b);
-      lay.shown[j] = 1;
+  const place = (j: number) => {
+    const w = (lay.widths[j] = ctx.text.measure(lay.font, lay.labels[j]));
+    const a = lay.x[j] - w / 2;
+    const b = lay.x[j] + w / 2;
+    if (a < box.x || b > box.x + box.width) return;
+    let free = true;
+    for (let k = 0; k + 1 < taken.length && free; k += 2) free = b + gap <= taken[k] || a >= taken[k + 1] + gap;
+    if (!free) return;
+    taken.push(a, b);
+    lay.shown[j] = 1;
+  };
+  const minors: number[] = [];
+  for (let j = 0; j < lay.n; j++) {
+    lay.shown[j] = 0;
+    if (!lay.labels[j]) continue;
+    if (lay.major[j]) place(j);
+    else minors.push(j);
+  }
+  if (minors.length) {
+    // each minor's distance to the nearest drawn major (none drawn: all alike)
+    const near = new Float64Array(lay.n);
+    for (const j of minors) {
+      let d = Infinity;
+      for (let k = 0; k < lay.n; k++) if (lay.major[k] && lay.shown[k]) d = Math.min(d, Math.abs(lay.x[k] - lay.x[j]));
+      near[j] = d;
+      lay.widths[j] = ctx.text.measure(lay.font, lay.labels[j]);
     }
+    minors.sort((a, b) => near[a] - near[b] || lay.widths[a] - lay.widths[b] || a - b);
+    for (const j of minors) place(j);
+  }
   // one note at the start of each unnumbered run, past any label reaching into it, only where the run holds it
   if (lay.nruns) {
     lay.noteWidth = ctx.text.measure(lay.font, lay.note);

@@ -274,19 +274,23 @@ function kabatRuler(
 }
 
 describe('the ruler: insertion labels', () => {
-  it('are minor ticks from 4 px a position, labeled only within their position and with room, the step held', () => {
+  it('are minor ticks from 4 px a position, labeled where they clear what is drawn, the step held', () => {
     // 7 positions across 700 px: room for every label
     const near = shown(kabatRuler(98, 105).lay).map((l) => l.label);
     expect(near).toEqual(expect.arrayContaining(['100', '100A', '100B']));
     // in the numbering's order: 111, 111.1, 111.2, 112 (EC-7)
     const order = shown(kabatRuler(109, 116).lay).map((l) => l.label);
     expect(order.filter((l) => l.startsWith('11'))).toEqual(['110', '111', '111.1', '111.2', '112']);
-    // 30 positions (23 px each): the insertions are minor ticks, unlabelled (a label wider than its position); the
-    // majors the step's round values alone, the step held across the insertions
+    // 30 positions (23 px each): the insertions are minor ticks, labelled where they clear the majors' labels and each
+    // other (a label wider than its position too); the majors the step's round values, the step held across them
     const far = kabatRuler(90, 120).lay;
     const labels = shown(far).map((l) => l.label);
     expect(labels).toContain('100');
-    expect(labels.filter((l) => !/^\d+$/.test(l))).toEqual([]);
+    const spans = Array.from({ length: far.n }, (_, j) => j)
+      .filter((j) => far.shown[j])
+      .map((j) => [far.x[j] - far.widths[j] / 2, far.x[j] + far.widths[j] / 2])
+      .sort((a, b) => a[0] - b[0]);
+    for (let k = 1; k < spans.length; k++) expect(spans[k][0]).toBeGreaterThan(spans[k - 1][1]);
     const minors = Array.from({ length: far.n }, (_, j) => far.major[j] === 0 && far.labels[j]).filter(Boolean);
     expect(minors).toEqual(expect.arrayContaining(['100A', '100B', '111.1', '111.2']));
     const step = labelStep(far.axis.scale, GAP);
@@ -310,7 +314,8 @@ describe('the ruler: insertion labels', () => {
     const majors = Array.from({ length: lay.n }, (_, j) => lay.major[j] === 1 && lay.labels[j]).filter(Boolean);
     expect(majors).not.toContain('30');
     expect(majors).toContain('40');
-    expect(shown(lay).filter((l) => /[A-Z.]/.test(l.label))).toEqual([]);
+    // an insertion's label, where drawn, is its minor tick's: never at a round value's place
+    for (let j = 0; j < lay.n; j++) if (/[A-Z.]/.test(lay.labels[j])) expect(lay.major[j]).toBe(0);
   });
 
   it('every label shown, of any view, is a label of the numbering at its tick, and none overlap', () => {

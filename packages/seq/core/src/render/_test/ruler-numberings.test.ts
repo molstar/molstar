@@ -66,6 +66,27 @@ describe('the ruler in a declared numbering', () => {
     expect(imgt.map((l) => l.label)).toEqual(Imgt);
   });
 
+  it('an insertion’s label where it clears what is drawn, though wider than its position: the nearest a major first', async () => {
+    // about 24 px a position: `111.1` and `112.1` are wider than theirs
+    const s = await settle(spec());
+    const f = await s.frame({ size: { width: 640, height: 120 }, viewport: { start: 0, end: H.length } });
+    const lay = layerLay<RulerLay>(f, 0, 0, 1);
+    expect(lay.axis.scale).toBeLessThan(30);
+    const imgt = shown(lay);
+    for (const { label, position } of imgt) expect(label).toBe(Imgt[position]);
+    const minors = imgt.filter((l) => l.label.includes('.')).map((l) => l.label);
+    expect(minors.length).toBeGreaterThan(0);
+    // wider than its position, drawn all the same where it clears its neighbours
+    for (let j = 0; j < lay.n; j++)
+      if (lay.shown[j] && lay.labels[j].includes('.')) expect(lay.widths[j]).toBeGreaterThan(lay.axis.scale);
+    // never two drawn labels within the gap of each other
+    const spans = Array.from({ length: lay.n }, (_, j) => j)
+      .filter((j) => lay.shown[j])
+      .map((j) => [lay.x[j] - lay.widths[j] / 2, lay.x[j] + lay.widths[j] / 2])
+      .sort((a, b) => a[0] - b[0]);
+    for (let k = 1; k < spans.length; k++) expect(spans[k][0]).toBeGreaterThanOrEqual(spans[k - 1][1] + 4 - 1e-6);
+  });
+
   it('the SVG prints the same labels', async () => {
     const r = await renderSvg(spec(), { size: Size, viewport: { start: 0, end: H.length }, legend: 'none' });
     expect(r.issues).toEqual([]);
