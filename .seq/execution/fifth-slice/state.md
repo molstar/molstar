@@ -31,8 +31,8 @@ the morning").
 
 | Draft | Lane | Drafted | Reviewed | Revised | Committed |
 | --- | --- | --- | --- | --- | --- |
-| genome-coordinates | GA | 2026-11-20 | in review | | |
-| region-reads | RR | | | | |
+| genome-coordinates | GA | 2026-11-20 | 2026-11-20 (3 blocking, 8 to fix) | 2026-11-20 | yes |
+| region-reads | RR | started 2026-11-20 | | | |
 | genome-formats | GF | | | | |
 | across-sections | LX | | | | |
 | ring-extension | RN | | | | |
