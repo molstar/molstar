@@ -1584,26 +1584,28 @@ the y path in Emphasis).
   between every pair of majors where one fits, the insertion beside a round value (IMGT's 112.1 beside 112) before its
   neighbour, a label wider than its own position too; decided at layout, never on a hover, so no jitter, and the hit
   card names the rest (the author, 2026-11-20, replacing "within its own position's width", which left the comb of ticks
-  unnumbered at a mid zoom). It labels the positions where they are: a reversed axis counts down, a collapsed one labels
-  its pieces. Where a text section prints a group's end number (`group_labels` not `none`) the ruler draws the tick
-  without its label: a position carries one label, the group's (only where the ruler's numbering is the one the group
-  labels print). Over a piece of more than 4,096 positions, or on a built-in numbering, the labels are looked up by
-  number (a tick a step), not a position at a time. **Units** (`units`): `none` labels the number as its numbering does;
-  `bases` labels an `ordinal` ruler in bp, kb or Mb chosen by the step (`@molstar/core/util/number`'s `formatGenomic`:
-  7,668,402 at a base step, 7,668 kb at a kilobase one, 7.67 Mb from 10 kb), one unit and one count of decimals a step;
-  another numbering keeps its own labels. Why: the writer of a chromosome view says so, never inferred from the
-  alphabet. **Where the numbering does not reach** (`unnumbered`; decided, the author, 2026-11-19, the Antibody's light
-  chain: Kabat and IMGT number only the variable domain): a position past the numbering's labelled extent (before its
-  first label or after its last, found once a numbering, of any length of piece) is in an unnumbered run; a position
-  with no label between two labelled ones stays blank. `mark` (the default): the ruler's line over the run is muted and
-  dashed, one muted note at its start (`not numbered`, ` by <numbering>` added where the ruler's track label does not
-  name the numbering) where it fits clear of the labels, no ticks. `fallback`: the run is labelled by
-  `fallbackNumbering` (`ordinal` when absent; a numbering the system declares, built in or inline) in the muted style
-  (ticks and labels at a lower opacity), no line and no note. Under `fallback`, a `fallbackNumbering` the system lacks
-  is `seq.render.numbering.fallback` and `mark` is used. Why: a blank reads as a bug, and a fallback numbering is the
-  writer's choice, never a silent default (its numbers are not the scheme's). Canvas and SVG alike (one draw list). A
-  hit is the position under the pointer; the hover card and the live region say its position and `not numbered by <id>`
-  there. Fallback: none (omitted).
+  unnumbered at a mid zoom). A ruler track is unlabelled unless its spec names it; with more than one ruler over a view
+  (two chains' numberings, an against view) the spec names each (its chain, its scheme) and the name stays drawn: it is
+  the only sign whose numbers are which (intended, never a label the viewer adds). It labels the positions where they
+  are: a reversed axis counts down, a collapsed one labels its pieces. Where a text section prints a group's end number
+  (`group_labels` not `none`) the ruler draws the tick without its label: a position carries one label, the group's
+  (only where the ruler's numbering is the one the group labels print). Over a piece of more than 4,096 positions, or on
+  a built-in numbering, the labels are looked up by number (a tick a step), not a position at a time. **Units**
+  (`units`): `none` labels the number as its numbering does; `bases` labels an `ordinal` ruler in bp, kb or Mb chosen by
+  the step (`@molstar/core/util/number`'s `formatGenomic`: 7,668,402 at a base step, 7,668 kb at a kilobase one, 7.67 Mb
+  from 10 kb), one unit and one count of decimals a step; another numbering keeps its own labels. Why: the writer of a
+  chromosome view says so, never inferred from the alphabet. **Where the numbering does not reach** (`unnumbered`;
+  decided, the author, 2026-11-19, the Antibody's light chain: Kabat and IMGT number only the variable domain): a
+  position past the numbering's labelled extent (before its first label or after its last, found once a numbering, of
+  any length of piece) is in an unnumbered run; a position with no label between two labelled ones stays blank. `mark`
+  (the default): the ruler's line over the run is muted and dashed, one muted note at its start (`not numbered`,
+  ` by <numbering>` added where the ruler's track label does not name the numbering) where it fits clear of the labels,
+  no ticks. `fallback`: the run is labelled by `fallbackNumbering` (`ordinal` when absent; a numbering the system
+  declares, built in or inline) in the muted style (ticks and labels at a lower opacity), no line and no note. Under
+  `fallback`, a `fallbackNumbering` the system lacks is `seq.render.numbering.fallback` and `mark` is used. Why: a blank
+  reads as a bug, and a fallback numbering is the writer's choice, never a silent default (its numbers are not the
+  scheme's). Canvas and SVG alike (one draw list). A hit is the position under the pointer; the hover card and the live
+  region say its position and `not numbered by <id>` there. Fallback: none (omitted).
 - `secondary`: the items of a `ranges` layer (the class from the `kind` field, else `category`; an inline table cannot
   name a column `kind`, the builder's key for a node's kind and reserved by the S-expression codec, so it writes
   `category`, while a source table's `kind` column reads: DSSP codes or words: helix, strand, UniProt's `Helix`,
