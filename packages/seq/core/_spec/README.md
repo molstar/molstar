@@ -1918,18 +1918,19 @@ numbers): a window move allocates nothing once warm.
   of its marks it fits whole in (the mark's part in the box, less its arrowheads and a 3 px inset each side: a mark cut
   at the section's edge keeps its label within the box, never clipped mid-glyph); else in the track's label lane at its
   leftmost mark's x, moved right clear of a label placed before it with a short leader from its own mark (at most its
-  own width, or 24 px); **a leader never crosses another label or a mark above its item** (the label lane's labels, the
-  marks of this and the earlier layers: `LabelLane.crosses`), so a label that would need one goes on, as does one the
-  lane cannot hold, or one on a track with no label lane: **inside cut** with an ellipsis in the first of its marks that
-  holds at least `labels.minChars` letters (4) and the ellipsis, the most letters that fit (a label of `minChars`
-  letters or fewer only whole), else dropped (the hover card names it, whole; the address too). The canvas and the SVG
-  cut alike (one layout, the text-metrics port); a cut is made once (`range-labels.ts`). Why: a label vanishing whole
-  from a box a step of zoom narrower reads as lost data (the author). **A run is labeled once**: items of one layer with
-  the same label, each less than the label's width from the one before it in x, get one label at the run's start and
-  none of their own (`firstOfRuns`; the label's hit is the run's first item; the hover card names each). **One label
-  lane a track**: its layers' labels beside share it, placed by one priority, the layer's order, then the longer item.
-  An item is labeled once. The same font and size inside and beside; the ink is the contrast rule's inside a mark, the
-  text color beside it (decided). A placed label's hit is its item's.
+  own width, or 24 px; an item in a lower lane whose start is under a mark above rises from the first x of it with no
+  mark above, `LabelLane.clearX`, else is not moved there); **a leader never crosses another label or a mark above its
+  item** (the label lane's labels, the marks of this and the earlier layers: `LabelLane.crosses`), so a label that would
+  need one goes on, as does one the lane cannot hold, or one on a track with no label lane: **inside cut** with an
+  ellipsis in the first of its marks that holds at least `labels.minChars` letters (4) and the ellipsis, the most
+  letters that fit (a label of `minChars` letters or fewer only whole), else dropped (the hover card names it, whole;
+  the address too). The canvas and the SVG cut alike (one layout, the text-metrics port); a cut is made once
+  (`range-labels.ts`). Why: a label vanishing whole from a box a step of zoom narrower reads as lost data (the author).
+  **A run is labeled once**: items of one layer with the same label, each less than the label's width from the one
+  before it in x, get one label at the run's start and none of their own (`firstOfRuns`; the label's hit is the run's
+  first item; the hover card names each). **One label lane a track**: its layers' labels beside share it, placed by one
+  priority, the layer's order, then the longer item. An item is labeled once. The same font and size inside and beside;
+  the ink is the contrast rule's inside a mark, the text color beside it (decided). A placed label's hit is its item's.
 - **Placed per layout** (the layers', in their order, allocation-free once warm): a pan in the same level lays the
   layers out again and places their labels again in view, as their marks are; never on a hover.
 

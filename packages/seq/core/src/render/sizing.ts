@@ -154,6 +154,23 @@ export class LabelLane {
     return false;
   }
 
+  /**
+   * The first x in `x0` to `x1` with no mark in a lane above `lane` over it: where a leader from an item in `lane` can
+   * rise to the label lane (its start, for the first lane); NaN when its whole extent is covered.
+   */
+  clearX(x0: number, x1: number, lane: number): number {
+    let x = x0;
+    for (let moved = true; moved && x < x1; ) {
+      moved = false;
+      for (let q = 0; q < this.mk; q++)
+        if (this.mlane[q] < lane && this.mx0[q] <= x && x < this.mx1[q]) {
+          x = this.mx1[q];
+          moved = true;
+        }
+    }
+    return x < x1 ? x : Number.NaN;
+  }
+
   /** The first x from `x` rightward where a label `w` wide stands `gap` clear of every label placed. */
   free(x: number, w: number, gap: number): number {
     for (let moved = true; moved; ) {

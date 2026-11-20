@@ -502,12 +502,15 @@ function placeBeside(lay: RangesLay, ctx: LayoutContext) {
   for (let k = 0; k < c; k++) {
     const i = cand[k];
     const w = ctx.text.measure(lay.font, lay.labels[i] as string);
-    const want = Math.max(left[i], x0);
+    let want = Math.max(left[i], x0);
     // the first free place from its start rightward, past the labels already placed in the track's lane
-    const x = lane.free(want, w, LabelGapPx);
+    let x = lane.free(want, w, LabelGapPx);
+    // moved: its leader rises from its start, or (an item in a lower lane) from the first x of it with no mark above
+    if (x - want >= 1 && lay.lanes[i] > 0)
+      x = lane.free((want = lane.clearX(want, Math.min(lay.right[i], x1), lay.lanes[i])), w, LabelGapPx);
     // dropped past the box's end, or moved further than its own width (a leader is a short one), or when its leader
     // would cross a label or a mark (then it may go inside cut)
-    const no = x + w > x1 || x - want > Math.max(w, 24);
+    const no = !(want < x1) || x + w > x1 || x - want > Math.max(w, 24);
     if (no || (x - want >= 1 && lane.crosses(want + 0.5, Math.max(0, lay.lanes[i]), x - 2))) {
       labeled.delete(lay.keys[i]);
       continue;
