@@ -200,6 +200,17 @@ export class QueryRunner {
   }
 }
 
+/**
+ * Runs the query again each time the view comes to rest while its last report waits for its data (an alignment's rows
+ * read from a file arrive after the first run), so the status line says what the query names once it can, never that
+ * the rows have not arrived while they are drawn. Returns the listener's removal.
+ */
+export function rerunWhileWaiting(viewer: SeqViewer, last: () => QueryReport | undefined, run: () => void): () => void {
+  return viewer.rested.listen(() => {
+    if (last()?.status === 'waiting') run();
+  });
+}
+
 export function readableRanges(r: readonly (readonly [number, number])[]): string {
   return r.map(([a, b]) => (b - a === 1 ? `${a + 1}` : `${a + 1}–${b}`)).join(', ');
 }

@@ -21,6 +21,7 @@ import {
   QueryRunner,
   type QueryReport,
   readableRanges,
+  rerunWhileWaiting,
   runQuery,
   statusLine,
 } from './compose.js';
@@ -174,10 +175,14 @@ class QueryRoot extends UiElement<QueryModel> {
       out.replaceChildren(...rows);
     };
 
+    let last: QueryReport | undefined;
     const runNow = () => {
       if (disposed) return;
-      draw(runQuery(viewer, text.value, emphasis));
+      last = runQuery(viewer, text.value, emphasis);
+      draw(last);
     };
+    // a query waiting for its data runs again when the view rests with it arrived
+    onCleanup(rerunWhileWaiting(viewer, () => last, runNow));
     viewer.load(view.build()).then(
       () => runner.now(),
       (e: unknown) => {

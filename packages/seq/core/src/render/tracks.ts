@@ -78,6 +78,7 @@ import { drawRail, hitRail, placeRail, placeRowsRail, Rail, SlimRailPx } from '.
 import type { RowsLay } from './rows.js';
 import { columnsRoom, fitRowColumns, RowHeight, type RowColumn, rowColumnsOf } from './rows-model.js';
 import type { ImageCache } from './images.js';
+import { rowsCount, rowsFillHeight, rowsShown } from './rows-fill.js';
 import { wellClipArgs, wellCorners } from './wells.js';
 
 // The tracks layout (_spec/README.md "Render", Tracks layout): sections stacked, each with its axis transform from its
@@ -1429,7 +1430,13 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       for (let j = 0; j < heights.length; j++)
         used += (j !== fill ? heights[j] + config.trackGap : 0) + pads[2 * j] + pads[2 * j + 1];
       if (heights === sizedBands.heights) heights = heights.slice();
-      heights[fill] = Math.max(heights[fill], Math.floor(height - top - used - config.inset));
+      const n = rowsShown(shown[fill], input.model, config.rows.pinInPlace);
+      heights[fill] = rowsFillHeight(
+        heights[fill],
+        height - top - used - config.inset,
+        n,
+        titleRowOf(shown[fill], config),
+      );
     }
     const nb = shown.length;
     const lays: LayerLayout[][] = [];
@@ -1971,16 +1978,6 @@ function rowsFill(track: ResolvedTrack): 'fill' | number | undefined {
     if (l.type !== 'rows') continue;
     const h = l.params.height;
     return typeof h === 'number' ? h : 'fill';
-  }
-  return undefined;
-}
-
-/** The rows a track's rows layer shows, when its alignment's length is known (an inline one's). */
-function rowsCount(track: ResolvedTrack, model: StaticModel): number | undefined {
-  for (const l of track.layers) {
-    if (l.type !== 'rows' || !l.data) continue;
-    const rows = model.annotations.get(l.data.address)?.rows;
-    return rows === undefined ? undefined : model.systems.get(rows)?.length;
   }
   return undefined;
 }

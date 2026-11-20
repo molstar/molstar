@@ -2123,7 +2123,9 @@ measures, consensus, the profile). An alignment's rows over its columns, its own
   top in display rows below the pinned band, fractional, as a step's view declares it; the layout turns it into px,
   clamped so the last rows fill the band) from the band; the pinned band fixed at the top, the rest scrolled under it;
   display rows in view by arithmetic. The band's height: `height` a number of rows, else `fill` (the section's room left
-  on the page, at least `heights.rows`, 240; a figure takes the default).
+  on the page, at least `heights.rows`, 240, at most every display row at `RowHeight` with its title row when the rows
+  are counted; a figure takes the default). Why the cap: a page as tall as its content gives the last frame's content as
+  the room, so a band taking it grew by the sections below on every frame, an empty well under its rows.
 - **A kept window** (`keyAt`, `topOf`): the row at a band's top by its key (a held row's label, a lazy row's `#n`) and
   the fraction scrolled past it; back to a top under any folds and zoom, clamped: a folded row at its summary row, a
   hidden one at the nearest row shown in the order (`DisplayRows.nearestRow`). What the viewer's history keeps, and what
