@@ -181,7 +181,9 @@ sequence's table of its non-standard positions; `residues` is a molecule's list 
   each instantiate a sequence or a molecule: `of`, `range` (on the molecule; absent: all), `observed` (ranges of what
   was modeled; absent: all; unobserved gray, EC-118), `chain` (the structure's `label_asym_id`), `auth_chain`,
   `operator` (MVS's `instance_id`: `1_555`, `ASM-X0-1`), `label`. A unit is a system: its molecule's positions over its
-  range, never renumbered (EC-13: its range never wraps). A complex adds no arithmetic (EC-35). Units are the paths'
+  range, counted from 0 as every system's (the step up to the molecule adds the range's start; decided by the author,
+  2026-11-20: "From 0, as built"); its built-in `ordinal` and `index` are its own, and declared numberings (`auth`)
+  name the residues as before (EC-13: its range never wraps). A complex adds no arithmetic (EC-35). Units are the paths'
   free `up` and `down` steps that `resolve/paths.ts` already takes under the copy rule.
 - **A unit's `auth` numbering**: a `numbering` child of the unit (labels a position: the author's number and insertion
   code), read by the mmCIF runtime from `atom_site` (`auth_seq_id`, `pdbx_PDB_ins_code`), `pdbx_branch_scheme` for a

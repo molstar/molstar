@@ -18,8 +18,10 @@ The third slice is closed (2026-11-20; its record in `.seq/records/third-slice/`
   parallelism).
 - DP kept as a strong lane (nothing else builds the seq data ports); the order of HP1 and ST1 is the orchestrator's
   (the author, 2026-11-20: "order doesn't really matter, decisions as recommended").
-- A public API change in `@molstar/core` (BW's range reads, the standard components) and the first fetch of a
-  service's fixtures are asked when a lane reaches them (loop, Stop and ask).
+- `@molstar/core`'s standard components (ML1): "Accept" (2026-11-20). BW's range reads: the surface in
+  `drafts/bw-range-reads.md` "Accept", 64 KiB pages, "fail on change" (2026-11-20). The first fetch of a service's
+  fixtures is still asked when SV reaches it.
+- A unit's positions count from 0, as every system's ("From 0, as built", 2026-11-20); molecules.md reworded.
 - Small findings collect in `fixes.md` for the fix points; the author's findings from checking the third slice go
   there as they come (the author, 2026-11-20).
 - A label that does not fit its box: an ellipsis inside before it is dropped, at least 4 characters by default,

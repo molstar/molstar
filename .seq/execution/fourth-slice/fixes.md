@@ -7,6 +7,12 @@ queue. Each line: what is seen, where (the story), where it came from, its kind 
 
 ## Open
 
+- **Decided designs for FX2** (the author, 2026-11-20; `drafts/fx-designs.md`): the rows rail beside the overview
+  (`navigator.rowsRail`), a narrow frame's order of giving way (`navigator.overview.minPlotPx`, `minPx`), ring groups
+  fanned up to 12 (`rings.cluster.fanMax`), `seq.resolve.system.unnamed` and `length.unknown` held while pending; and
+  the fixes the drafts found (the Reverse track's label lane per track, the ruler's insertion labels, an empty label).
+- **The "2 hidden" chip overlaps the vertical overview's top** (look): Globins › Rows › Folded at 1280 px. FX1's look.
+
 - **Ring letters off their cells** (look): on a ring the letters drift from the cells they name, unevenly spaced and
   crowding in places (UUUAG near 10, GGGAG near 20), not centred on their cell's angle and the track's mid radius. Where:
   tRNA › Views › Chords (and every ring with letters). The author, 2026-11-20. Check the placement against the cell's
