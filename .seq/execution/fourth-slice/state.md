@@ -29,10 +29,16 @@ The third slice is closed (2026-11-20; its record in `.seq/records/third-slice/`
 - Size targets are bounds once reset after RR (the author, 2026-11-20: "reduce render first, then move the size
   targets").
 
+## In progress
+
+- 2026-11-20: the loop started. ML1 (strong; `seq/ml1-lane`), FX1 (strong; `seq/fx-1`; fixes.md's open items but the
+  orchestrator's looks), AR (fast; `seq/ar-lane`), each in its own worktree from `e2769319e`. ML1 builds the
+  `@molstar/core` standard components last, in commits that can be dropped, for the author's acceptance.
+
 ## Next
 
-1. ML1 (molecules), FX1 (views) and AR or NG (formats and data), one lane a track.
-2. Then each track in the plan's order (Order and parallelism).
+1. On each report: check, look (FX1's and AR's stories), review in its own worktree, fix round, merge, record.
+2. Then each track in the plan's order: DP after ML1; SZ after FX1; MC beside ML2 (after ML1's node shapes).
 
 ## Findings by lane
 
