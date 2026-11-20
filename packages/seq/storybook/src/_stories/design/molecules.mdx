@@ -15,9 +15,17 @@ matches and shows; parsing and depicting chemistry is a host's. Built in the fou
   form. Its residues and atoms are joined by a many-to-one map applied only at a path's ends.
 - A **modified residue** keeps its parent's letter (MSE draws as M, PSU as U) and carries its component, marked on the
   letter and named on hover; several components at one position are all kept. A modification known by name only (a
-  UniProt PTM) is a `modified` range, found by the same query.
+  UniProt PTM) is a `modified` range, found by the same query: `(filter :test (= (prop modified) true))`.
 - A **complex** has **units** (chains and molecules in a structure, each with its author numbering); copies are derived.
   Its **links** (a drug on a lysine, a glycan on an asparagine, a disulfide) are a pairs node.
+
+## Queries
+
+A structure's parts are selected with one record, as MolViewSpec and MolQL write it:
+`(elements :component HEM :atom FE)` gives 4HHB's four irons, `(elements :chain A :beg 10 :end 20 :atom CA)` eleven of
+CDK2's Cα atoms. The finest field says how deep it goes: chains, residues or atoms. `(groups …)` gives one key per
+residue (or atom, unit, molecule), and a filter tests any property. Chains and molecules as nodes stay `(chain …)` and
+`(molecule …)`.
 
 ## On an axis
 

@@ -76,11 +76,21 @@ entry, track header parts).
   ([viewer-composition](viewer-composition.md)), and an extension carries behaviors. `createSeqContext`
   takes either type and ignores the viewer's fields.
 - **What an extension may ship** (this version): layer types, section layouts, sizings, format runtimes, residue
-  schemes and measures, navigator pictures (part 2), header actions, commands, bindings, behaviors, config items. Not
+  schemes and measures, navigator pictures (part 2), header actions, commands, bindings, behaviors, config items, query
+  forms and properties (below). Not
   node kinds or data shapes: an extension's layer reads one of the six shapes (`letters`, `ranges`, `values`, `cells`,
   `pairs`, `grid`), its data from the built-in kinds through a format runtime. Why: resolve, the store, queries,
   selection and the second consumer know those shapes; a new shape is a new node kind, opened when an extension needs
   one (Rondo's bin pairs are `pairs`).
+- **Query forms and properties** (decided by the author, 2026-11-20: "also make the language extensible so people could
+  add generators, filters, etc on their own props (basically just adding a few symbols)"; "it should be easy to add own
+  filter, modified/combinator etc. likely won't need it many cases, but in general"): two registry kinds,
+  `{ kind: 'query-form', name, role: 'generator' | 'filter' | 'modifier' | 'combinator' | 'operator', params, result,
+  resolve }` ([locations-and-queries.md](locations-and-queries.md), The language) and `{ kind: 'query-property', name,
+  level, type, aliases?, read }`, `read` a function over the query model or `{ values, field }`, a values annotation's
+  field by declaration alone ([properties.md](properties.md)). Checked by role at evaluation; a namespaced symbol nobody
+  registered is `seq.query.extension.missing`, with no fallback: a query cannot be approximated, as a format cannot.
+  Why entries and not a query plugin: the built-ins are the same entries, and one table resolves both.
 - **Names are namespaced by the descriptor's id**: every entry an extension ships is named `<id>:<name>`
   (`rondo:ribbons`), checked at composition (`seq.context.extension.namespace`, an error listing every offender).
   Built-ins keep bare names (`ranges`, `tracks`); `seq` is reserved. `ext:` in the designs is the placeholder for an id,

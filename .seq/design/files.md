@@ -49,7 +49,8 @@ what the file's columns mean (the transform), where that runs, and how the examp
   skipped, headerless), built on io's CIF column model (`CifField`), its byte tokenizer, `ByteStringCache`, text-byte
   token columns, `ReaderResult` and core's `Task`; io's MessagePack decoder; core's JSON and MessagePack tree codecs;
   the `seq` runtime answering regions from request/answer pairs ([protocol.md](protocol.md)); `compileRowFilter` and
-  the viewer's `dataFilter` (a layer's `data` address whose trailing `(not …)` is the user's filter,
+  the viewer's `dataFilter` (a layer's `data` address whose trailing `(except …)` is the user's filter; `except` is
+  `not` renamed by the author, 2026-11-20, [locations-and-queries.md](locations-and-queries.md);
   [themes.md](themes.md)); the Node fixtures adapter and the Storybook's Vite plugin serving `fixtures/`
   ([examples-and-stories.md](examples-and-stories.md)).
 
@@ -61,7 +62,7 @@ what the file's columns mean (the transform), where that runs, and how the examp
 | drop a local file onto the view | IGV, Jalview | refused this slice: a host's upload path ([examples.md](examples.md)'s standing tension, the fourth slice with services) |
 | map columns in a dialog | JBrowse's add-track | refused: the application's; the spec's `fields` is the surface, and a host may build a form over the language description |
 | features as one track a type | ProtVista, Nightingale | built (FS-A2): a layer's `data` with a leading item form (Decision, One track a feature type); `uniprotEntry` |
-| hide features by type or source | ProtVista's filters | built: a layer's trailing `(not …)` filter, the "n filtered" chip |
+| hide features by type or source | ProtVista's filters | built: a layer's trailing `(except …)` filter, the "n filtered" chip |
 | see the file as given beside the view | the current Seq\*'s format stories | built (FS-A2): the Files stories print the file's head and the source node beside the view |
 | see why rows were left out | the current Seq\*'s notes | planned (FS-A1): one issue a cause with a count and the first places (EC-86) |
 | fix a misread file (0- against 1-based) | none (edit the file) | planned (FS-A1): a patch of the source's transform, one undo step; the issue hints the other base |
@@ -197,7 +198,7 @@ read". Every param optional; the GFF3 preset fixes its own. Within the language'
 
 - **Recommended: no new param.** A layer's `data` is already an address with query segments; a feature-type track
   writes its rows as `/data/features/(item :category Domain)`. The viewer's `dataFilter` takes only a **trailing
-  `(not …)`** as the user's filter (the chip counts it, the theming commands toggle it, the base is everything before
+  `(except …)`** as the user's filter (the chip counts it, the theming commands toggle it, the base is everything before
   it); today it treats every segment that is not an id as the user's, so it changes to keep a leading item form in the
   base. The rows a leading form rejects are not counted as filtered. Why: the item filter sublanguage is built,
   `compileRowFilter` reads it, and the distinction the chip needs (what the track is against what the user hides) is
@@ -306,7 +307,7 @@ Files add no gesture: what a file holds is drawn by the layers that read it, as 
 | | select | extend | add / remove | focus | back | zoom | pan | hide | edit |
 |---|---|---|---|---|---|---|---|---|---|
 | **an element** | as its layer's: a row read from a file is an item (`id`, else `row`) like an inline one; a feature across a ring's origin one item | as its layer's | as its layer's | as its layer's | as its layer's | — | — | no: a filter hides | no: data is not edited in the viewer |
-| **a track or layer** | as built | as built | no: a track is added by `track.add` | as built | as built | — | — | the user's trailing `(not …)` filter (counted); a leading item form is what the track is, not a gesture | the source's transform: a patch, one undo step, the source reopened in place; not previewed (Decision, the key) |
+| **a track or layer** | as built | as built | no: a track is added by `track.add` | as built | as built | — | — | the user's trailing `(except …)` filter (counted); a leading item form is what the track is, not a gesture | the source's transform: a patch, one undo step, the source reopened in place; not previewed (Decision, the key) |
 | **a bookmark or link** | — | — | as built | as built | as built | — | — | — | no new cell: a bookmark of `(item :id X)` follows the id across a transform's edit; one of positions stays on positions (a Tension) |
 | **a section, a follower, a range, the selection, the view, a navigator** | no change: positions are positions whatever file they came from | | | | | | | | |
 
@@ -404,7 +405,7 @@ The claim: **this design covers what a user does with files as sources.**
   - `_spec`: Data gains "Records" (formats, layouts, paths, the transform, issues, bounds) and the `seq` format's
     MessagePack; Protocol (`readBytes`, `limits`); Language (the params, Versions); Configuration.
 - **`seqx-viewer`**: the default spec registers the records runtime; the source sync passes `limits`; `dataFilter`
-  takes only a trailing `(not …)` as the user's filter (its test: a leading item form kept in the base, not counted).
+  takes only a trailing `(except …)` as the user's filter (its test: a leading item form kept in the base, not counted).
 - **`seqx-examples`**: `node-assets.ts` reads bytes; p53's UniProt entry and variants as trimmed JSON with their
   `sources.json` rows; `uniprotEntry`; pUC19c's GFF3 if DP takes it. Anchors on the read data (P04637 is 393 residues;
   R175, R248, R273 inside the DNA-binding domain).
@@ -430,7 +431,7 @@ The claim: **this design covers what a user does with files as sources.**
 1. The params land in `0.4.0`, this slice's one unreleased bump? Recommendation: yes. `0.4.0` is pre-release: making
    `newick` and `rows` optional (one of them or `source` required), if FS-B is built, is acceptable there with no
    migration, as every `0.x` change is.
-2. One track a feature type by a leading item form in `layer.data` (`dataFilter` takes only a trailing `(not …)` as
+2. One track a feature type by a leading item form in `layer.data` (`dataFilter` takes only a trailing `(except …)` as
    the user's), instead of a `where` param on `ranges`? Recommendation: yes; `where` only if a query, legend or scale
    must address the subset as a node. No `values.where` either way (values have no items).
 3. File defaults `base: 1`, `ends: inclusive`; inline `value` `0` and `exclusive` as `ranges.rows`? Recommendation:

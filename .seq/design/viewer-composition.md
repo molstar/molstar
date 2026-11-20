@@ -44,8 +44,10 @@ interface SeqViewerSpec {
 
 - **Registry entries are pure data**, as the plugin's: a record of providers grouped by kind, no behaviors, no config,
   no functions run at registration. Kinds in this version: node kinds, layer types, themes and palettes, residue
-  schemes, numbering schemes and codon tables, format readers and writers, map runtimes, backends, query functions,
-  commands. Layer types and section layouts are registry entries (`layer-type`, `layout`; MV, 2026-11-19): the canvas and `renderSvg`/`exportSvg` draw the composition's own, so a layer type the canvas draws the export draws too, and one neither has is said (`seq.render.layout`); tracks is the one fixed fallback layout. Keys are names; extension names are namespaced ([extensibility.md](extensibility.md)). Chrome parts
+  schemes, numbering schemes and codon tables, format readers and writers, map runtimes, backends, query forms and
+  properties (`query-form`, `query-property`: decided by the author, 2026-11-20, "make the language extensible so people
+  could add generators, filters, etc on their own props"; [locations-and-queries.md](locations-and-queries.md),
+  [properties.md](properties.md)), commands. Layer types and section layouts are registry entries (`layer-type`, `layout`; MV, 2026-11-19): the canvas and `renderSvg`/`exportSvg` draw the composition's own, so a layer type the canvas draws the export draws too, and one neither has is said (`seq.render.layout`); tracks is the one fixed fallback layout. Keys are names; extension names are namespaced ([extensibility.md](extensibility.md)). Chrome parts
   are internal interfaces until an outside user needs them; track header actions are the first opened (`headerActions`,
   [track-header-parts](track-header-parts.md)).
 - **Ports are factories with ownership**, as `PluginSpec.assetManager`:

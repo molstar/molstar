@@ -9,9 +9,13 @@ What an outside package may add to Seq\*, how a spec names it, and what a reader
 ## Extensions
 
 An extension is one descriptor (an id, a version, the language versions it targets) carrying layer types, layouts,
-formats, schemes, navigator pictures, header actions, commands and behaviors. Everything it ships is named under its id
-(`rondo:ribbons`), so two extensions never collide and a built-in is never shadowed. It is registered as a whole, or not
-at all, and can be added and removed at run time.
+formats, schemes, navigator pictures, header actions, commands, behaviors, and query forms and properties. Everything it
+ships is named under its id (`rondo:ribbons`), so two extensions never collide and a built-in is never shadowed. It is
+registered as a whole, or not at all, and can be added and removed at run time.
+
+The query language opens the same way: an extension adds a property (a per-residue score, read from one of its
+annotations by declaration alone, `af:plddt`), which every filter can then test,
+`(filter :test (>= (prop af:plddt) 70))`; or, rarely, a generator, filter, modifier, combinator or operator of its own.
 
 ## In a spec
 

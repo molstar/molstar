@@ -1,0 +1,34 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Design/Properties" />
+
+# Properties
+
+A query's predicates read properties: typed values per element (a molecule, a unit, a residue, an atom), apart from the
+forms that combine them. `(elements :chain A :atom CA)` is shorthand for tests on the properties `chain` and `atom`; a
+filter reads any property, `(filter :test (> (prop b-factor) 60))`.
+
+## Built in
+
+| Level    | Properties                                                                          |
+| -------- | ----------------------------------------------------------------------------------- |
+| molecule | `entity`, `molecule-class`, `identifier`                                            |
+| unit     | `chain`, `auth-chain`, `operator`                                                   |
+| residue  | `seq`, `auth-seq`, `ins`, `index`, `component`, and the rest of the residue's facts |
+| atom     | `atom`, `element`, `atom-index`, `b-factor`, `occupancy`                            |
+| any      | a values channel on the element's system, `(value <annotation> :field f)`           |
+
+Each has a short name, printed, and a long one, read: MolViewSpec's and mmCIF's (`label_asym_id` for `chain`), so a
+selection from a structure viewer is copied in as it is.
+
+## Absent and pending
+
+An element without a property (no author numbering, no atoms) fails its test and yields nothing, with one warning: a
+query composes over what is there and never fails as a whole. A property whose data has not arrived is pending, never
+read as absent.
+
+## Added by an extension
+
+An extension registers its own properties (`af:plddt`), namespaced as every extension entry; every filter and `elements`
+field can then read them. Generators, filters, modifiers and combinators are added the same way when one is needed. An
+unknown namespaced name is reported, never ignored.

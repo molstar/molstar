@@ -243,6 +243,14 @@ disagrees with its code writes a drift note and stops.
       split by what changes together, and `models/view.ts` (1466) looked at; behavior unchanged, the baseline lowered
       by the orchestrator (`file-size.ts --update`) at the merge. The author, 2026-11-20: "Yes, add all three".
 
+### The query language's elements (strong; `briefs/qe-query-elements.md`; designs: locations-and-queries.md, properties.md)
+
+- [ ] QE after MC (its 3SGJ fixture) and ML2: `elements` and `groups`, a generic `filter` over typed properties with
+      positional operands, modifiers and combinators (`merge`/`intersect`/`except`), the `query-form` and
+      `query-property` registry kinds, short and long aliases, selections as records or columns; `atom`, `entity` and
+      `component` removed (the author, 2026-11-20: "we should not really have (atom), we should have (elements ....)").
+      Molecules track, beside MK when their files differ.
+
 ### Stage 1: molecules, maps and copies (strong lanes in order; [molecules](../../design/molecules.md), The fourth slice's lanes)
 
 - [x] ML1 (merged 2026-11-20) (strong, first) the language: the kinds, params, checks and builder (molecules.md, Decision and Consequences,

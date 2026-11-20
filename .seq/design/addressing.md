@@ -43,7 +43,7 @@ have the view act on it. One grammar serves all of them, the same as meso\*'s.
   ```
   address = "/" | ("/" step)+ ["/*"]
   step    = id | form
-  form    = "(" kind (":" key value)* ")"
+  form    = "(" kind value* (":" key value)* ")"
   value   = atom | list | form | address
   list    = "[" value* "]"
   atom    = number | string | symbol | "true" | "false" | "nil"
@@ -51,7 +51,10 @@ have the view act on it. One grammar serves all of them, the same as meso\*'s.
   symbol  = a word without spaces, brackets, quotes or ':' at its start (an id, a label such as 94A, a kind)
   ```
 
-  An address of ids names one node; with forms it names a set (each result exact). It is read and printed canonically
+  Positional values come before keyword params and are accepted only by expression forms (operators, `prop`, `value`:
+  `(filter :test (> (prop b-factor) 60))`); any other form with one is `seq.query.form.param` (decided by the author,
+  2026-11-20: "Accept, but allow positional operands"; [locations-and-queries.md](locations-and-queries.md), The
+  language). An address of ids names one node; with forms it names a set (each result exact). It is read and printed canonically
   (`parse(print(a)) = a`): one space between items, strings quoted only when they must be.
 - **In a URL or a markdown link** an address is percent-encoded as a whole (spaces, brackets, quotes and `#`), so it
   survives as one link destination; the links codec does it both ways ([Actions and links](#actions-and-links)).
@@ -65,6 +68,8 @@ have the view act on it. One grammar serves all of them, the same as meso\*'s.
   | `/data/1tup/(chain :id A)/(at :label 94A :numbering auth)` | one residue by its author number and insertion code |
   | `/data/p53/features/(item :id DNA-binding)` | one feature |
   | `/data/p53/features/(item :type domain)` | every domain |
+  | `/data/1fin/(elements :chain A :beg 10 :end 20 :atom CA)` | a schema selection: eleven Cα atoms |
+  | `/data/1fin/(elements :chain A :atom CA)/(filter :test (> (prop b-factor) 60))` | a filter over a property |
   | `/data/globins/(row :species human)` | rows by a field |
   | `/data/globins/(rect :rows (rows :from "HBA_HUMAN/1-141" :to "HBB_HUMAN/1-146") :columns (range :from 30 :to 60))` | a block of an alignment |
   | `/data/trna/pairs/(rect :a (range :from 10 :to 25) :b (range :from 40 :to 55))` | a rectangle of a dot plot or grid |
@@ -77,6 +82,28 @@ have the view act on it. One grammar serves all of them, the same as meso\*'s.
 - **Bounded**: selection takes a limit and a depth, as meso\*'s does; more matches is an issue, never a truncation.
 - **Positions in labels**: forms take labels of a named numbering, resolved at the edge (EC-1 to EC-8); an address that
   no longer resolves is reported with what it named, never silently re-bound.
+
+### Schema selections: short and long names, records and columns
+
+Decided by the author, 2026-11-20: field names, "support both short and long aliases"; items, "also remember the SoA
+and AoS interchangeable representations we have"; records in an address as `:items [(fields …) …]`, "Yes".
+
+- **`(elements …)` takes a table of items**, each a record of properties ([properties.md](properties.md)): one item is
+  the form's params (`(elements :chain A :seq 33)`); columns are lists, row *i* across them one item and a scalar the
+  same in every row (`(elements :chain [A C] :auth-seq 87)`: A 87 and C 87; MolQL's schema-item rule); records are
+  `:items [(fields :chain A :seq 33) (fields :chain B :beg 140 :end 146)]`, `fields` a record never evaluated. In JSON
+  and the builder: an object (columns where its values are arrays) or an array of objects, as a records file
+  ([files.md](files.md), Records and columns). `nil` in a row is no test on that field. Items are a union; within one,
+  every field must match. With one list the rows are alternatives (`:component [NAG MAN]`); several lists zip, never a
+  product.
+- **Both names read, the short one prints**: `:chain` and `:label_asym_id`, `:auth-seq` and `:auth_seq_id`, the table
+  in [properties.md](properties.md). Why short: an address is typed and read beside a sequence, and one printed form
+  keeps equal selections equal as text; the long names are MolViewSpec's, so a structure viewer's selection comes in as
+  a copy. One field under both names is a form error.
+- **Normalized to columns** (typed; a field absent in every row dropped) and **printed in the shorter layout** (one item
+  as params; else columns or records, ties to columns), so `parse(print(a))` equals `a` as a value.
+- **Bounds**: columns of unequal lengths, a `fields` that is not a record, `seq` with `beg`/`end` in one row, `beg` past
+  `end`: form errors naming the row; rows count against the evaluation's limit, more an issue, never a truncation.
 
 ### User-defined refs
 

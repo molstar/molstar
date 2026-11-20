@@ -13,16 +13,29 @@ way an IPv6 address is a path of groups: `/data/p53/features`. `/data/p53/*` nam
 structure's chains, an alignment's rows, items) is reached by forms, such as `/data/1tup/(chain :id A)`.
 
 A segment can also be a query form, `(kind :key value)`, which selects among what the path so far names. Forms compose
-as MolQL's: each maps over every element the path so far yields and concatenates the results (`(atom :name C1)` over a
-glycan's three residues gives three atoms; an element with none gives nothing). It is the same grammar meso\* uses:
+as MolQL's: each maps over every element the path so far yields and concatenates the results (`(elements :atom C1)` over
+a glycan's three residues gives three atoms; an element with none gives nothing). It is the same grammar meso\* uses:
 
 | Address                                                                                                            | Names                                           |
 | ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------- |
 | `/data/p53/(range :from 120 :to 130 :numbering uniprot)`                                                           | residues 120 to 130 in UniProt numbering        |
 | `/data/1tup/(chain :id A)/(at :label 94A :numbering auth)`                                                         | one residue by author number and insertion code |
 | `/data/p53/features/(item :type domain)`                                                                           | every domain                                    |
+| `/data/1fin/(elements :chain A :beg 10 :end 20 :atom CA)`                                                          | eleven Cα atoms of CDK2's glycine loop          |
+| `/data/1fin/(elements :chain A :atom CA)/(filter :test (> (prop b-factor) 60))`                                    | the mobile ones among them                      |
 | `/data/globins/(rect :rows (rows :from "HBA_HUMAN/1-141" :to "HBB_HUMAN/1-146") :columns (range :from 30 :to 60))` | a block of an alignment                         |
 | `/data/trna/pairs/(rect :a (range :from 10 :to 25) :b (range :from 40 :to 55))`                                    | a rectangle of a dot plot                       |
+
+Forms have roles, as MolQL's: generators (`elements`, a structure's schema selection; `groups`, one key per residue or
+atom), a filter over a predicate, modifiers (`expand`, `linked`), and combinators (`merge`, `intersect`, `except`).
+Inside a predicate, operators take their operands in order (`(> (prop b-factor) 60)`); everywhere else, params are
+named. A predicate reads properties: a chain, a residue's number or component, an atom's name or element, a value from
+an annotation, or one an extension adds.
+
+A schema selection is the record a structure viewer speaks: its fields have short names (`:chain`, `:auth-seq`) and
+MolViewSpec's long ones (`:label_asym_id`, `:auth_seq_id`), both read, the short one printed. Several items can be
+written as records (`:items [(fields :chain A :seq 33) (fields :chain B :seq 145)]`) or as columns
+(`:chain [A B] :seq [33 145]`), which mean the same.
 
 Rects (two ranges over two axes) can be selected, highlighted, focused and linked just like ranges.
 

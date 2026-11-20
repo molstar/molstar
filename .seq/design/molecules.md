@@ -85,9 +85,9 @@ sequence's table of its non-standard positions; `residues` is a molecule's list 
 | UniProt: hover a disulfide, both ends light | built: links are pairs, hovered end to end |
 | Mol\*: show or hide water and ions in the sequence panel | built: the section's `classes` by patch |
 | the previous implementation: a ligand as one position or its atoms | built: `form` on a block, by patch |
-| find the modified residues of a chain | built: `(component :standard false)`, selected by the query command |
+| find the modified residues of a chain | built: `(filter :test (= (prop modified) true))`, selected by the query command |
 | hover a modified residue: its component and name | built: hover text |
-| see which residues are modified, at a glance: Mol\*'s sequence panel prints the component code inline where it has no one-letter code (`PSU`, microheterogeneity as `(MSE\|MET)`), the parent letter otherwise; UniProt's and PDBe's feature viewers (Nightingale) and RCSB's 1D viewer give modifications a feature row of their own, a marker per site, typed by kind | built, each a value of `letters.modified` (below): `mark`, `code` (Mol\*'s), `tint`, `none`; the feature row as a `ranges` layer over `modified`-type items or the sequence's `(component :standard false)` sites |
+| see which residues are modified, at a glance: Mol\*'s sequence panel prints the component code inline where it has no one-letter code (`PSU`, microheterogeneity as `(MSE\|MET)`), the parent letter otherwise; UniProt's and PDBe's feature viewers (Nightingale) and RCSB's 1D viewer give modifications a feature row of their own, a marker per site, typed by kind | built, each a value of `letters.modified` (below): `mark`, `code` (Mol\*'s), `tint`, `none`; the feature row as a `ranges` layer over `modified`-type items or the sequence's `modified` sites |
 | address a residue by its author number | built: a unit's `auth` numbering |
 | see a glycan's tree, a compound's 2D drawing | refused in the core: chemistry is the host's (it receives the hovered molecule's identifiers); a glycan's tree layer with a host's SNFG table planned later (Tensions) |
 | edit a monomer, draw a connection (HELM editors) | refused: data is not edited in the viewer (ux-foundations section 8) |
@@ -133,8 +133,8 @@ sequence's table of its non-standard positions; `residues` is a molecule's list 
   labels a host already holds).
 - **A modification known by name only** (UniProt's `Modified residue`, `Glycosylation`, `Lipidation`: no CCD code, no
   glycan) stays an annotation: a `ranges` item whose `type` is `modified` (or `glycosylation`, `lipidation`), its name
-  its label. `(component :standard false)` finds those items too, over the annotations targeting the prefix's systems
-  (`:annotations`, default true), so "where are the modified residues" has one answer whatever the source. Why not a
+  its label. the `modified` property ([properties.md](properties.md)) covers those items too, over the annotations targeting
+  the element's system, so "where are the modified residues" has one answer whatever the source. Why not a
   `modified` row without a component: the sequence's table says what a position *is* (a structure's chemistry); a
   database's PTM is a claim with evidence about a position, which is what annotations hold (gap 7).
 
@@ -279,15 +279,22 @@ sequence's table of its non-standard positions; `residues` is a molecule's list 
 
 ### Queries
 
+Decided by the author, 2026-11-20: "we should not really have (atom), we should have (elements ....) and that gets
+"schema selection" etc .. similar to "atom groups" combined with "schema item" in molQL .... could still have two
+generators"; "Accept both". `atom`, `entity` and `component` are replaced by the generators `elements` and `groups` and
+the generic `filter` ([locations-and-queries.md](locations-and-queries.md), The language), over properties
+([properties.md](properties.md)).
+
 | Form | Prefix | Result |
 |---|---|---|
-| `(component :id MSE)`, `(component :id [PSU 2MG])` | sequences, molecules, units | Location: the positions with that component (alternatives included) |
-| `(component :standard false :annotations true)` | sequences, units | Location: every non-standard position, and the `modified`-type items of their annotations |
-| `(component :class saccharide)` | as above | Location, through the `compound` nodes or the host's names entry; a code with neither is no match |
-| `(molecule :identifier "ccd:ATP")`, `(molecule :class ligand)` | `data`, a complex | Nodes: molecules (with the host's resolver, its equivalents) |
-| `(entity :id 3)` | a complex from a source | Nodes: the molecule its source calls entity 3 |
-| `(chain :id A :operator 1_555)`, `(chain :auth B)` | a complex | Nodes: units (the form exists; `:operator` and `:auth` added) |
-| `(atom :name O1G)` | a molecule's `(atoms)`, a unit | Locations: every atom of that name in each element its prefix yields (decided by the author, 2026-11-20: "this is every atom. it needs to work similar to how MolQL does. monadic composition.") |
+| `(elements :component MSE)`, `(elements :component [PSU 2MG])` | sequences, molecules, units, a complex, a Location | Location: the positions with that component (alternatives included) |
+| `(filter :test (= (prop modified) true))` | a Location (`(elements)`: every residue) | Location: every non-standard position, and those under `modified`-type annotation items |
+| `(filter :test (= (prop component-class) saccharide))` | as above | Location, through the `compound` nodes or the host's names entry; a code with neither is no match |
+| `(groups :residue-test (= (prop modified) true))` | as `elements` | Keys: a key each modified residue |
+| `(molecule :identifier "ccd:ATP")`, `(molecule :class ligand)`, `(molecule :entity 3)` | `data`, a complex | Nodes: molecules (with the host's resolver, its equivalents; by a source's entity id) |
+| `(chain :id A :operator 1_555)`, `(chain :auth B)` | a complex | Nodes: units |
+| `(elements :entity 3)`, `(elements :chain A :beg 10 :end 20)` | a complex | Location: the units' positions |
+| `(elements :atom O1G)`, `(elements :component HEM :atom FE)` | a molecule, a unit, a complex, a Location | Location: every atom of that name in each element its prefix yields (decided by the author, 2026-11-20: "this is every atom. it needs to work similar to how MolQL does. monadic composition.") |
 | `(atoms)` | a molecule, a unit | Nodes: its atoms system |
 
 ### Reading
@@ -341,7 +348,7 @@ Rows and columns of ux-foundations section 8; "as an element" means the grammar'
 | **an element**: a molecule's residue or atom | as an element; atoms collapse onto residues for other sections | as an element | as an element | as an element | as an element | — | — | no | no: data |
 | **an element**: a link (an arc, or a site's mark) | click: the link item; both ends lit | Shift+click | Cmd/Ctrl+click | double-click: its extent, two parts on two systems, each section revealing its own | Alt+Left | — | — | its layer's items by type (`layer.filter`: hide disulfides) | no: data |
 | **a range** over blocks with chips | drag in reading order across a chip (the Complex's text figure) | Shift+drag | Cmd/Ctrl+drag, Alt+drag | Enter | Alt+Left | — | — | — | — |
-| **the selection** | `(component :standard false)` and the other forms through the query command | — | — | Enter | Alt+Left | — | — | — | bookmark it (a glycosylation site, a ligand's pocket) |
+| **the selection** | `(filter :test (= (prop modified) true))` and the other forms through the query command | — | — | Enter | Alt+Left | — | — | — | bookmark it (a glycosylation site, a ligand's pocket) |
 | **the view** | — | — | — | 0 fits; chips keep their px | — | — | — | — | — |
 | **a track or layer** | — | — | — | — | — | — | — | `track.hide` (a sites track, the contacts) | `modified` by patch; a links layer added by the host or builder |
 | **a bookmark or link** | — | — | `refs.add` (a ligand's contacts, a site) | runs its action: the molecule and its sites highlighted | Alt+Left | — | — | — | its label |
@@ -360,7 +367,7 @@ Rows and columns of ux-foundations section 8; "as an element" means the grammar'
 | `letters.modifiedMark` | `RenderConfig` preset | a dot at the cell's top right in the letter's ink; a bar over a long component | reads at 8 px, never covers the letter | `underline` |
 | `code` (`letters`) | spec param | `auto` (exists): the component's code where three letters have room | a cell with room says what the residue is | `one`, `three` |
 | `class` (molecule) | spec param | `ligand` | the commonest non-polymer | `branched`, `ion`, `water`, any word |
-| `:annotations` of `(component …)` | query param | true | one answer for "where are the modified residues" | false: the sequences' own only |
+| annotation items in `modified` | fixed (property) | included | one answer for "where are the modified residues" | `standard` for the sequences' own only |
 | `componentNames` | registry entry | none (the code alone) | the core ships no CCD | a host's CCD lookup (Mol\*'s) |
 | `identifierResolver` | registry entry | none (exact match only) | equivalence is chemistry | a host's (InChIKey, ChEMBL to CCD) |
 | identifier namespaces | open words | the documented vocabulary | a host's registry ids are pointers too | a fixed list |
@@ -509,9 +516,8 @@ superseded by the seq data ports design.
 5. Water left out of a section of a complex by default (`classes` without `water`)? Recommended **yes**: **decided yes**.
 6. A component over several positions (CRO as T, Y, G): the canonical letters, rather than the structure's one
    monomer? Recommended **yes**: **decided yes**, until the structure maps' design says otherwise.
-7. A modification known by name only (UniProt's PTMs) as a `ranges` item of type `modified` that
-   `(component :standard false)` also finds, rather than a `modified` row with a name and no component? Recommended
-   **yes**: **decided yes**.
+7. A modification known by name only (UniProt's PTMs) as a `ranges` item of type `modified` that the `modified`
+   property also finds, rather than a `modified` row with a name and no component? Recommended **yes**: **decided yes**.
 8. Several components at one position: all kept, the first giving the letter, all on hover and in queries? Recommended
    **yes**: **decided yes**.
 9. Identifier namespaces open words, with a documented vocabulary, rather than a fixed list? Recommended **yes**: **decided yes**.
