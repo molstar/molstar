@@ -45,8 +45,8 @@ function spec(edit?: (b: ReturnType<typeof createSeqSpec>) => void): Node {
     const s = v.section('protein', { of: p });
     s.track('letters', { label: 'Letters' }).layer('l', { type: 'letters' });
     const t = s.track('domains', { label: 'Domains' });
-    t.layer('d', { type: 'ranges', data: d, label: 'Domains' });
-    t.layer('e', { type: 'ranges', data: d, label: 'Copy' });
+    t.layer('d', { type: 'ranges', data: d });
+    t.layer('e', { type: 'ranges', data: d });
     s.track('more', { label: 'More' }).layer('l', { type: 'letters' });
   });
   edit?.(b);
@@ -158,8 +158,8 @@ describe('the built-in entries: a slot, a menu item and the command alike', () =
     const v = await make();
     const layers = item(v, Domains, 'seq:layers').items!;
     expect(layers.map((l) => [l.label, l.checked])).toEqual([
-      ['Domains', true],
-      ['Copy', true],
+      ['d', true],
+      ['e', true],
     ]);
     await settled(headers(v).runItem(layers[1]));
     await settled(v.execute('layer.hide', { address: `${Domains}/d` }));

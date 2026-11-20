@@ -180,7 +180,8 @@ export function headersBehavior(context: BehaviorContext, params: HeadersParams 
     for (const l of track?.layers ?? []) {
       const address = l.address ?? `${track!.address}:${l.index}`;
       const filtered = at?.filtered.find((x) => x.layer === address)?.count ?? 0;
-      const label = typeof l.params.label === 'string' ? l.params.label : (l.address?.split('/').pop() ?? l.type);
+      // a layer has no label of its own: its id, else its type
+      const label = l.address?.split('/').pop() ?? l.type;
       layers.push({
         address,
         type: l.type,

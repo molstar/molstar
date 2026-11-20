@@ -17,7 +17,7 @@ import { RecordingContext } from '../canvas/_test/recording.js';
 import { DefaultSeqViewerSpec } from '../default-spec.js';
 import { headerMenuOverlay } from '../mount-header-menu.js';
 import { headerPartsDom } from '../mount-header-parts.js';
-import { uiHistory } from '../ui-history.js';
+import { type UiHistory, uiHistory } from '../ui-history.js';
 import { createSeqViewer, type SeqViewer } from '../viewer.js';
 import { type Frames, installFrames } from './frames.js';
 
@@ -148,11 +148,11 @@ describe('headerPartsDom()', () => {
     parts[1].dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     expect(document.activeElement).toBe(container);
     // a press: the slot's entry, one patch
-    const steps = (v.spec.history as { stack: { steps: { value: unknown[] } } }).stack.steps.value.length;
+    const steps = (v.spec.history as UiHistory).stack.steps.value.length;
     layer.querySelector<HTMLElement>('[data-part="seq:hide"]')!.click();
     await new Promise((done) => setTimeout(done, 0));
     frames.flush();
     expect(v.view.resolved.value!.sections[0].tracks.map((t) => t.address)).toEqual([`${Section}/letters`]);
-    expect((v.spec.history as { stack: { steps: { value: unknown[] } } }).stack.steps.value.length).toBe(steps + 1);
+    expect((v.spec.history as UiHistory).stack.steps.value.length).toBe(steps + 1);
   });
 });
