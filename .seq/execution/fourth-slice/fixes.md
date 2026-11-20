@@ -29,6 +29,14 @@ queue. Each line: what is seen, where (the story), where it came from, its kind 
   frame callback outside the viewer's ticks, most likely the rows' image tiles rebuilt at a new level. Build them
   across frames and keep the old level drawn meanwhile (performance.md, Levels). From the third slice's M3
   (`third-slice/measurements.md`).
+- **A label that does not fit its box disappears whole; an ellipsis inside first** (look, a rule added to layouts.md
+  "Labels inside if they fit, else beside"): p53's domain track at a mid zoom ("Nuclear localization", "C-terminal",
+  "Tetramerization" shown, then the boxes empty a step later, C-terminal cut at the edge). The author, 2026-11-20:
+  "should we allow ellipsis (up to a degree) in the boxes instead of the text disappearing as a whole?" Proposed order:
+  whole inside; else whole beside when the lane has room; else inside cut with an ellipsis while at least 4 characters
+  (or the whole label, if shorter) and the ellipsis fit; else dropped. The cut keeps the hover card and the address
+  whole; the canvas and the SVG cut alike (text-metrics port). A label cut at the section's edge is placed within it
+  (C-terminal), never clipped mid-glyph.
 - **The vertical overview went missing from the stories and examples** (bug; first in FX1): the rows rail was to be added
   beside the vertical overview (the author: "also have the thin slider"), but it replaced it. Globins › Rows › Folded
   and the other alignments now show only the rail. The author, 2026-11-20: "at the very least we should have stories for
