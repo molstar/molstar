@@ -9,7 +9,7 @@ import { type Issue, issueOf, type Node, type Value } from '@molstar/core/repr/t
 import { SyncRuntimeContext } from '@molstar/core/task/execution/synchronous';
 import type { RuntimeContext } from '@molstar/core/task';
 import { unzip, zip } from '@molstar/core/util/zip/zip';
-import { checkSpecBounds, DefaultSpecBounds } from '@molstar/seqx-core/lang';
+import { checkSpecBounds, DefaultSpecBounds, type SpecBounds } from '@molstar/seqx-core/lang';
 import { ArchiveIssues } from './issues.js';
 import type { AssetReader } from './protocol.js';
 
@@ -88,16 +88,15 @@ function buffer(bytes: Uint8Array): ArrayBuffer {
   return bytes.byteOffset === 0 && bytes.byteLength === b.byteLength ? b : (bytes.slice().buffer as ArrayBuffer);
 }
 
+type Listing = Readonly<Record<string, { size: number; csize: number }>>;
+
 /** The bounds an archive's listing (names and declared sizes) must meet: the first one broken, or undefined. */
-function checkListing(
-  listing: Readonly<Record<string, { size: number; csize: number }>>,
-  limits: ArchiveLimits,
-): Issue | undefined {
+function checkListing(listing: Listing, limits: ArchiveLimits): Issue | undefined {
   const folded = new Map<string, string>();
   for (const name of Object.keys(listing)) {
     const why = checkArchiveName(name, limits);
     if (why) return bad('seq.archive.name', `The entry ${JSON.stringify(name)} is refused: ${why}`);
-    const key = name.normalize('NFC').toLowerCase();
+    const key = fold(name);
     const other = folded.get(key);
     if (other !== undefined)
       return bad('seq.archive.name', `The entries ${JSON.stringify(other)} and ${JSON.stringify(name)} are one name`);
@@ -117,6 +116,15 @@ function checkListing(
   return undefined;
 }
 
+/** The end record's count of entries (the zip's own, as core reads it: the last record in the final 64 KB). */
+function entryCount(data: Uint8Array): number | undefined {
+  const first = Math.max(0, data.length - 22 - 65535);
+  for (let i = data.length - 22; i >= first; i--)
+    if (data[i] === 0x50 && data[i + 1] === 0x4b && data[i + 2] === 5 && data[i + 3] === 6)
+      return data[i + 10] | (data[i + 11] << 8);
+  return undefined;
+}
+
 const decoder = new TextDecoder('utf-8', { fatal: true });
 
 /** The index's shape: its spec's entry and its data files', or why not. */
@@ -130,8 +138,7 @@ function readIndex(text: string, limits: ArchiveLimits): { spec: string; files: 
   const o = json as { archive?: unknown; version?: unknown; spec?: unknown; files?: unknown };
   if (typeof json !== 'object' || json === null || Array.isArray(json) || o.archive !== ArchiveKind)
     return `the index is not one of a \`${ArchiveKind}\` archive`;
-  if (typeof o.version !== 'number' || o.version > ArchiveVersion)
-    return `the index is of version ${String(o.version)}`;
+  if (o.version !== ArchiveVersion) return `the index is of version ${String(o.version)}`;
   if (typeof o.spec !== 'string' || checkArchiveName(o.spec, limits) || o.spec.endsWith('/'))
     return 'the index names no spec entry';
   if (!Array.isArray(o.files) || o.files.length > limits.maxEntries) return 'the index lists no files';
@@ -147,10 +154,16 @@ function readIndex(text: string, limits: ArchiveLimits): { spec: string; files: 
  */
 export async function readArchive(
   bytes: Uint8Array,
-  options: { readonly limits?: Partial<ArchiveLimits>; readonly runtime?: RuntimeContext } = {},
+  options: {
+    readonly limits?: Partial<ArchiveLimits>;
+    /** The host's spec bounds (`DefaultSpecBounds`). */
+    readonly specBounds?: SpecBounds;
+    readonly runtime?: RuntimeContext;
+  } = {},
 ): Promise<ArchiveRead> {
   const limits = { ...DefaultArchiveLimits, ...options.limits };
   const rt = options.runtime ?? SyncRuntimeContext;
+  const bounds = options.specBounds ?? DefaultSpecBounds;
   const fail = (...issues: Issue[]): ArchiveRead => ({ issues });
   if (bytes.byteLength > limits.maxBytes)
     return fail(bad('seq.archive.bounds', `The archive has ${bytes.byteLength} bytes, more than ${limits.maxBytes}`));
@@ -164,7 +177,11 @@ export async function readArchive(
       bad(/bound/.test(message) ? 'seq.archive.bounds' : 'seq.archive.unreadable', `The archive: ${message}`),
     );
   }
-  const sizes = listing as Readonly<Record<string, { size: number; csize: number }>>;
+  const sizes = listing as Listing;
+  // the listing is a map by name: two entries of one name show only the last, and each would be inflated
+  const declared = entryCount(bytes);
+  if (declared !== undefined && declared !== Object.keys(sizes).length)
+    return fail(bad('seq.archive.name', 'Two entries of the archive have one name'));
   const refused = checkListing(sizes, limits);
   if (refused) return fail(refused);
 
@@ -185,13 +202,11 @@ export async function readArchive(
         return fail(bad('seq.archive.index', `The index lists ${JSON.stringify(n)}, which the archive does not hold`));
     const entries = await inflate(new Set([index.spec, ...index.files]));
     const spec = entries[index.spec];
-    if (spec.byteLength > DefaultSpecBounds.maxBytes)
-      return fail(
-        bad('seq.archive.spec', `The spec has ${spec.byteLength} bytes, more than ${DefaultSpecBounds.maxBytes}`),
-      );
+    if (spec.byteLength > bounds.maxBytes)
+      return fail(bad('seq.archive.spec', `The spec has ${spec.byteLength} bytes, more than ${bounds.maxBytes}`));
     const decoded = parseJson(decoder.decode(spec));
     if (!decoded.node) return { issues: [bad('seq.archive.spec', 'The spec is not a tree'), ...decoded.issues] };
-    const bounded = checkSpecBounds(decoded.node);
+    const bounded = checkSpecBounds(decoded.node, bounds);
     if (bounded.length) return { issues: [bad('seq.archive.spec', 'The spec is past the spec bounds'), ...bounded] };
     const files = new Map<string, Uint8Array>();
     for (const f of index.files) files.set(f, entries[f]);
@@ -274,24 +289,27 @@ function rewrite(node: Node, names: ReadonlyMap<string, string>): Node {
     : { ...node, ...(params ? { params } : {}), ...(children ? { children } : {}) };
 }
 
+/** A name as two entries are compared: a disk that folds case or normalizes would write one over the other. */
+const fold = (name: string) => name.normalize('NFC').toLowerCase();
+
 /** An entry's name for a location: its own path when that is one under the root, else `data/<n>-<its last segment>`. */
-function nameFor(uri: string, taken: ReadonlySet<string>, limits: ArchiveLimits): string {
+function nameFor(uri: string, folds: ReadonlySet<string>, limits: ArchiveLimits): string {
   const own = entryOf(uri);
-  const reserved = own === ArchiveIndexName || own === ArchiveSpecName;
+  const reserved = fold(own) === fold(ArchiveIndexName) || fold(own) === fold(ArchiveSpecName);
   if (
     !HasScheme.test(own) &&
     !/[?#]/.test(own) &&
     !own.endsWith('/') &&
     !reserved &&
     !checkArchiveName(own, limits) &&
-    !taken.has(own)
+    !folds.has(fold(own))
   )
     return own;
   const last = own.split(/[\\/]/).filter(Boolean).pop() ?? 'file';
   const base = last.replace(/[^A-Za-z0-9._-]/g, '_').slice(-64) || 'file';
-  for (let n = taken.size; ; n++) {
+  for (let n = folds.size; ; n++) {
     const name = `data/${n}-${base}`;
-    if (!taken.has(name)) return name;
+    if (!folds.has(fold(name))) return name;
   }
 }
 
@@ -312,6 +330,8 @@ export async function writeArchive(
     readonly keep?: (uri: string) => boolean;
     readonly signal?: AbortSignal;
     readonly limits?: Partial<ArchiveLimits>;
+    /** The host's spec bounds (`DefaultSpecBounds`). */
+    readonly specBounds?: SpecBounds;
     readonly runtime?: RuntimeContext;
   },
 ): Promise<ArchiveWritten> {
@@ -321,13 +341,15 @@ export async function writeArchive(
   sourceUris(spec, uris);
   const names = new Map<string, string>();
   const taken = new Set<string>();
+  const folds = new Set<string>([fold(ArchiveIndexName), fold(ArchiveSpecName)]);
   const files: Record<string, Uint8Array<ArrayBuffer>> = Object.create(null);
   const issues: Issue[] = [];
   let total = 0;
   for (const uri of uris) {
     if (options.keep?.(uri)) continue;
-    const name = nameFor(uri, taken, limits);
+    const name = nameFor(uri, folds, limits);
     taken.add(name);
+    folds.add(fold(name));
     names.set(uri, name);
     let data: Uint8Array;
     try {
@@ -361,9 +383,26 @@ export async function writeArchive(
   const all: Record<string, Uint8Array<ArrayBuffer>> = Object.create(null);
   all[ArchiveIndexName] = encoder.encode(index);
   all[ArchiveSpecName] = encoder.encode(text);
-  if (all[ArchiveSpecName].byteLength > DefaultSpecBounds.maxBytes)
+  if (all[ArchiveSpecName].byteLength > (options.specBounds ?? DefaultSpecBounds).maxBytes)
     return { issues: [bad('seq.archive.spec', 'The spec is past the spec bounds')] };
   for (const n of taken) all[n] = files[n];
+  // What is written opens (the reader's bounds, checked on the bytes): an entry past the ratio (a megabyte of `N`) is
+  // stored, as is, in a second pass; a bound still broken refuses the write with the reader's own issue.
+  const rt = options.runtime ?? SyncRuntimeContext;
   const noCmpr = new Set([...taken].filter((n) => Stored.test(n)));
-  return { bytes: new Uint8Array(await zip(options.runtime ?? SyncRuntimeContext, all, noCmpr)), issues: [] };
+  let out = new Uint8Array(await zip(rt, all, noCmpr));
+  let listed = (await unzip(rt, out.buffer as ArrayBuffer, true)) as Listing;
+  for (const [name, { size, csize }] of Object.entries(listed))
+    if (size > limits.ratioFloor && size > limits.maxRatio * csize) noCmpr.add(name);
+  if (noCmpr.size > 0) {
+    out = new Uint8Array(await zip(rt, all, noCmpr));
+    listed = (await unzip(rt, out.buffer as ArrayBuffer, true)) as Listing;
+  }
+  const refused = checkListing(listed, limits);
+  if (refused) return { issues: [refused] };
+  if (out.byteLength > limits.maxBytes)
+    return {
+      issues: [bad('seq.archive.bounds', `The archive has ${out.byteLength} bytes, more than ${limits.maxBytes}`)],
+    };
+  return { bytes: out, issues: [] };
 }

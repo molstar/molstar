@@ -807,9 +807,26 @@ over the assets port, with `@molstar/core/util/zip` (never a private zip). Not a
   `SpecBounds.maxBytes` and its checks. All but the spec are read from the central directory before anything is inflated
   (core's `unzip` limits, and the listing), so a bomb is refused by its declared sizes; a declared size that lies is
   caught by core (the inflated length and CRC-32 must match). Why: the declared sizes are what allocates.
-- **Names**: a path under the root only: no empty name, control character, backslash, drive, absolute path, empty, `.`
-  or `..` segment; two entries that differ in case or normalization only are refused as one name (a reader on a
-  case-folding disk would write one over the other). A trailing `/` is a directory.
+- **Configuration** (`ArchiveLimits`, passed to `readArchive` and `writeArchive`; `DefaultArchiveLimits`; the host's,
+  never the archive's):
+
+  | Key             | Default | Whose                                       | Bounds                                         |
+  | --------------- | ------- | ------------------------------------------- | ---------------------------------------------- |
+  | `maxEntries`    | 1,000   | the host's (security.md, EC-91)             | entries, directories included                  |
+  | `maxBytes`      | 256 MB  | the host's                                  | the archive's bytes, and the entries' together |
+  | `maxEntryBytes` | 64 MB   | `OpenLimits.maxBytes` (a file parsed whole) | one entry's expanded size                      |
+  | `maxRatio`      | 200     | the host's                                  | expanded over compressed, over `ratioFloor`    |
+  | `ratioFloor`    | 64 KB   | the host's                                  | an entry this small is not held to the ratio   |
+  | `maxNameLength` | 256     | the host's                                  | an entry's name, characters                    |
+
+  The spec's bounds are the host's `SpecBounds` (`specBounds`, `DefaultSpecBounds`). The writer keeps to the same
+  bounds, storing an entry that would pass the ratio compressed (a megabyte of `N`) as it is, and refuses the write for
+  any other bound with the reader's issue: what is written opens. Why: a saved view that cannot be opened is lost.
+
+- **Names**: two central entries of one name are refused (the end record's count is not the listing's); a path under the
+  root only: no empty name, control character, backslash, drive, absolute path, empty, `.` or `..` segment; two entries
+  that differ in case or normalization only are refused as one name (a reader on a case-folding disk would write one
+  over the other). A trailing `/` is a directory.
 - **Known limits**: a runtime that reads files its source does not name (a profile in a `value`) is not saved by the
   writer; two central entries of one name keep the last (core's `unzip` returns a map).
 

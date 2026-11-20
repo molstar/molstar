@@ -107,7 +107,11 @@ export async function printRefusal(h: Hostile): Promise<{ read: ArchiveRead; tex
 
 /** The assets of the page: a location is fetched relative to it (the Vite plugin serves the examples' fixtures). */
 export const pageAssets: AssetReader = {
-  readText: async (uri) => (await fetch(uri)).text(),
+  readText: async (uri) => {
+    const r = await fetch(uri);
+    if (!r.ok) throw new Error(`${uri}: ${r.status}`);
+    return r.text();
+  },
   readBytes: async (uri) => {
     const r = await fetch(uri);
     if (!r.ok) throw new Error(`${uri}: ${r.status}`);

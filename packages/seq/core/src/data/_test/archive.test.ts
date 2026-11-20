@@ -6,8 +6,8 @@
 
 import type { Node } from '@molstar/core/repr/tree';
 import { SyncRuntimeContext } from '@molstar/core/task/execution/synchronous';
-import { zip } from '@molstar/core/util/zip/zip';
-import { createSeqSpec } from '@molstar/seqx-core/lang';
+import { unzip, zip } from '@molstar/core/util/zip/zip';
+import { createSeqSpec, DefaultSpecBounds } from '@molstar/seqx-core/lang';
 import { describe, expect, it } from 'vitest';
 import {
   type Archive,
@@ -159,6 +159,39 @@ describe('writing an archive', () => {
   });
 });
 
+describe('writing an archive: what is written opens (EC-91)', () => {
+  it('EC-91: stores an entry that would pass the ratio compressed (a megabyte of N in a FASTA), and it opens', async () => {
+    const fasta = enc.encode(`>chr\n${'N'.repeat(1 << 20)}\n`);
+    const w = await writeArchive(specOf('chr.fa'), { assets: fake({ 'chr.fa': fasta }) });
+    expect(w.issues).toEqual([]);
+    const r = await readArchive(w.bytes!);
+    expect(r.issues).toEqual([]);
+    expect(r.archive!.files.get('chr.fa')).toEqual(fasta);
+  });
+
+  it('EC-91: refuses when a bound still breaks after that (an archive past the total)', async () => {
+    const fasta = enc.encode('N'.repeat(1 << 20));
+    const w = await writeArchive(specOf('chr.fa'), {
+      assets: fake({ 'chr.fa': fasta }),
+      limits: { maxBytes: 1 << 20 },
+    });
+    expect(w.bytes).toBeUndefined();
+    expect(codes(w)).toEqual(['seq.archive.bounds']);
+  });
+
+  it('names two locations that differ in case only, or one that is `SPEC.json`, as different entries', async () => {
+    const assets = fake({ 'A.seq': 'A', 'a.seq': 'a', 'SPEC.json': 'S', 'Index.JSON': 'I' });
+    const w = await writeArchive(specOf('A.seq', 'a.seq', 'SPEC.json', 'Index.JSON'), { assets });
+    expect(w.issues).toEqual([]);
+    const r = await readArchive(w.bytes!);
+    expect(r.issues).toEqual([]);
+    expect(r.archive!.files.size).toBe(4);
+    const uris = sourcesOf(r.archive!.spec).map((p) => p?.uri as string);
+    expect(new Set(uris.map((u) => u.toLowerCase())).size).toBe(4);
+    expect(uris[0]).toBe('A.seq');
+  });
+});
+
 describe('reading an archive: assets', () => {
   it('serves the entries as assets by name, `./` dropped, and refuses what it does not hold', async () => {
     const r = await readArchive(await valid(['d/x.seq']));
@@ -221,6 +254,17 @@ describe('reading an archive: names (EC-91)', () => {
 });
 
 describe('reading an archive: bounds (EC-91)', () => {
+  it('EC-91: refuses two entries of one name, which the listing would show once (the bounds of the first bypassed)', async () => {
+    const z = await valid(['a.seq', 'b.seq'], { 'a.seq': new Uint8Array(1 << 20), 'b.seq': enc.encode('small') });
+    // b.seq renamed a.seq in the local and the central header: same length, so the offsets hold
+    const text = new TextDecoder('latin1').decode(z);
+    const renamed = z.slice();
+    for (let i = text.indexOf('b.seq'); i >= 0; i = text.indexOf('b.seq', i + 1)) renamed.set(enc.encode('a.seq'), i);
+    const r = await readArchive(renamed, { limits: { maxEntryBytes: 1000 } });
+    expect(codes(r)).toEqual(['seq.archive.name']);
+    expect(r.archive).toBeUndefined();
+  });
+
   it('EC-91: refuses more entries than the bound, from the end record', async () => {
     const extra: Record<string, Uint8Array<ArrayBuffer>> = {};
     for (let i = 0; i < 20; i++) extra[`e${i}`] = enc.encode('x');
@@ -284,6 +328,9 @@ describe('reading an archive: the index and the spec', () => {
     ['not an object', '[]'],
     ['another archive', index({ archive: 'tar' })],
     ['a newer version', index({ version: 2 })],
+    ['version 0', index({ version: 0 })],
+    ['a negative version', index({ version: -1 })],
+    ['a fractional version', index({ version: 1.5 })],
     ['a spec above the root', index({ spec: '../spec.json' })],
     ['a file above the root', index({ files: ['/etc/passwd'] })],
     ['a file it lacks', rawIndex('spec.json', ['gone.seq'])],
@@ -310,6 +357,17 @@ describe('reading an archive: the index and the spec', () => {
     const r = await readArchive(await entries(rawIndex('spec.json', []), json));
     expect(codes(r)[0]).toBe('seq.archive.spec');
     expect(r.archive).toBeUndefined();
+  });
+
+  it('takes the host’s spec bounds', async () => {
+    const z = await valid();
+    expect(codes(await readArchive(z, { specBounds: { ...DefaultSpecBounds, maxBytes: 10 } }))).toEqual([
+      'seq.archive.spec',
+    ]);
+    expect(codes(await readArchive(z, { specBounds: { ...DefaultSpecBounds, maxDepth: 0 } }))[0]).toBe(
+      'seq.archive.spec',
+    );
+    expect(codes(await readArchive(z))).toEqual([]);
   });
 
   it('refuses bytes that are no zip, or a zip cut short, without throwing', async () => {
@@ -343,10 +401,14 @@ function rng(seed: number) {
   };
 }
 
-/** Mutations of a valid archive: always an archive or an error, never a throw, and every name kept is under the root. */
+/** Mutations of a valid archive: an archive or an error, never a throw, and the bounds held by what opens. */
 async function fuzz(runs: number) {
-  const base = await valid(['a.seq', 'd/b.seq'], { 'c.seq': enc.encode('c'.repeat(5000)) });
+  // content that does not compress, so the base is within the ratio
   const r = rng(91);
+  const noise = Uint8Array.from({ length: 5000 }, () => Math.floor(r() * 256));
+  const base = await valid(['a.seq', 'd/b.seq'], { 'c.seq': noise });
+  const limits = { maxEntries: 50, maxBytes: 1 << 20, maxEntryBytes: 6000, ratioFloor: 1000, maxRatio: 20 };
+  let opened = 0;
   for (let i = 0; i < runs; i++) {
     const z = base.slice();
     const n = 1 + Math.floor(r() * 4);
@@ -355,15 +417,33 @@ async function fuzz(runs: number) {
       z[Math.max(0, at)] = Math.floor(r() * 256);
     }
     const cut = r() < 0.2 ? z.subarray(0, Math.floor(r() * z.length)) : z;
-    const out = await readArchive(cut, { limits: { maxEntries: 50, maxBytes: 1 << 20 } });
+    const out = await readArchive(cut, { limits });
     expect(out.archive !== undefined || out.issues.some((x) => x.severity === 'error')).toBe(true);
-    if (out.archive) for (const name of out.archive.files.keys()) expect(checkArchiveName(name)).toBeUndefined();
+    if (!out.archive) continue;
+    opened++;
+    // the bounds held: no entry past its bound, the total within, every entry past the floor within the ratio, and
+    // the listing's entries and the end record's agree
+    const listed = (await unzip(SyncRuntimeContext, cut.slice().buffer as ArrayBuffer, true)) as Record<
+      string,
+      { size: number; csize: number }
+    >;
+    let total = 0;
+    for (const [name, data] of out.archive.files) {
+      expect(checkArchiveName(name)).toBeUndefined();
+      expect(data.byteLength).toBeLessThanOrEqual(limits.maxEntryBytes);
+      total += data.byteLength;
+      const { size, csize } = listed[name];
+      expect(size).toBe(data.byteLength);
+      if (size > limits.ratioFloor) expect(size).toBeLessThanOrEqual(limits.maxRatio * csize);
+    }
+    expect(total).toBeLessThanOrEqual(limits.maxBytes);
   }
+  return opened;
 }
 
 describe('reading an archive: fuzz', () => {
   it('EC-91: mutated archives are archives or issues, and every name that opens is under the root', async () => {
-    await fuzz(300);
+    expect(await fuzz(300)).toBeGreaterThan(0);
   });
 
   it('EC-91: random names are accepted only when they have no way above the root', () => {
