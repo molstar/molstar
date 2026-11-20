@@ -101,7 +101,7 @@ export const Scenarios: readonly Scenario[] = [
     panStep: 0.5,
   },
   // dense items with arrowheads, at the step before bars: 11 to 23 px wide, each label measured too wide for its mark
-  // before the early skip (ranges.ts, the labels inside marks)
+  // before the early skip (range-labels.ts, the labels inside marks)
   {
     name: '3M items with arrowheads (8,000 positions)',
     spec: () => bigSpec({ arrow: true }),

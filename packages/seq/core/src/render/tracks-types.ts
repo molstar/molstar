@@ -218,21 +218,3 @@ export interface SizedHeights {
   readonly contents: readonly (LayerContent | undefined)[];
   readonly issue?: Issue;
 }
-
-/** A layer's key: its address, else its track's and its index. */
-export function layerKey(track: ResolvedTrack, layer: ResolvedLayer): string {
-  return layer.address ?? `${track.address}:${layer.index}`;
-}
-
-/** A layer's type: the first of its fallbacks drawn here (a loop: no array made a layer a frame). */
-export function firstType(
-  layer: ResolvedLayer,
-  types: Readonly<Record<string, LayerType<any, any>>>,
-): LayerType<any, any> | undefined {
-  const f = layer.fallbacks;
-  for (let i = 0; i < f.length; i++) {
-    const t = types[f[i]];
-    if (t !== undefined) return t;
-  }
-  return undefined;
-}

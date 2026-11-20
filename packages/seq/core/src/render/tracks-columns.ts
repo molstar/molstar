@@ -4,12 +4,12 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { ResolvedTrack, ResolvedView } from '@molstar/seqx-core/view';
+import type { ResolvedLayer, ResolvedTrack, ResolvedView } from '@molstar/seqx-core/view';
 import type { RenderConfig } from './config.js';
 import { elide, type TextMetrics } from './text.js';
 import { SlimRailPx } from './rail.js';
 import { columnsRoom, fitRowColumns, type RowColumn, rowColumnsOf } from './rows-model.js';
-import { layerKey, type LayoutInput, type LayoutState } from './tracks-types.js';
+import type { LayoutInput, LayoutState } from './tracks-types.js';
 import { sectionLayoutName } from './tracks-axes.js';
 
 // The view's label column (_spec/README.md "Render", Configuration: `labelColumn`; The rows layer; Row columns): its
@@ -209,4 +209,9 @@ export function elidedLabel(state: LayoutState, text: TextMetrics, font: string,
 /** The right gutter's width when a rows layer draws residue numbers: five digits and a gap. */
 export function numbersGutter(text: TextMetrics, config: RenderConfig): number {
   return text.measure(config.itemFont, '00000') + config.labelGap;
+}
+
+/** A layer's key: its address, else its track's and its index. */
+export function layerKey(track: ResolvedTrack, layer: ResolvedLayer): string {
+  return layer.address ?? `${track.address}:${layer.index}`;
 }

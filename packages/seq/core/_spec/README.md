@@ -1516,6 +1516,11 @@ collapses a band no layer used, and only the layer knows its lanes), `scope` (`s
 a time; `section`, once a section, drawn in page coordinates: what crosses strips), `axes` (2: a second axis of its own,
 the y path in Emphasis).
 
+- **The ranges layer's modules**: `render/ranges.ts` (the layer type: its prepared form, lanes and marks, hit, legend)
+  and beside it, a concern each, `ranges-lay.ts` (what it keeps), `ranges-content.ts` (its content: Track heights),
+  `ranges-beside.ts` (labels beside), `ranges-draw.ts`, `ranges-density.ts` (the heat strip) and `ranges-theme.ts` (its
+  channels).
+
 - **Channels a type reads** ("Themes"): `letters` `color` (the alphabet's scheme by default) and `ink`; `ranges`
   `color`, `size` (a share of the lane, the mark shrunk about its middle, its lane and hit box kept: EC-137) and
   `opacity`, a dictionary-coded field colored once a code; `values` `color` (uniform, or a bar by its value; a line's

@@ -31,8 +31,6 @@ import { placeRail, placeRowsRail, Rail, SlimRailPx } from './rail.js';
 import type { RowsLay } from './rows.js';
 import { rowsCount, rowsFillHeight, rowsShown } from './rows-fill.js';
 import {
-  firstType,
-  layerKey,
   type LayerLayout,
   type LayoutInput,
   LayoutState,
@@ -47,6 +45,7 @@ import {
   columnsFit,
   elidedLabel,
   labelColumnWidth,
+  layerKey,
   measured,
   numbersGutter,
   rowsHeader,
@@ -55,15 +54,14 @@ import {
   widened,
 } from './tracks-columns.js';
 import { instanceInView, wantTemplate } from './tracks-templates.js';
-import { bandHeights, rowsFill, rulerTrack } from './tracks-heights.js';
+import { bandHeights, firstType, rowsFill, rulerTrack } from './tracks-heights.js';
 
 export { multiSystem, sectionLayoutName } from './tracks-axes.js';
-export { labelColumnWidth } from './tracks-columns.js';
+export { labelColumnWidth, layerKey } from './tracks-columns.js';
 export { BreakSlop, drawView } from './tracks-draw.js';
 export { hitView } from './tracks-hit.js';
 export {
   type HeldDomains,
-  layerKey,
   type LayerLayout,
   type LayoutInput,
   LayoutState,

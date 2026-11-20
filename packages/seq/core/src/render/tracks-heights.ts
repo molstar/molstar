@@ -5,7 +5,7 @@
  */
 
 import { type Issue, issueOf } from '@molstar/core/repr/tree';
-import type { ResolvedSection, ResolvedTrack } from '@molstar/seqx-core/view';
+import type { ResolvedLayer, ResolvedSection, ResolvedTrack } from '@molstar/seqx-core/view';
 import type { RenderConfig } from './config.js';
 import { RenderIssues } from './issues.js';
 import type { LayerType } from './layer-type.js';
@@ -20,7 +20,7 @@ import {
 import { TracksLayout } from './layout/tracks.js';
 import type { SectionLayoutType } from './layout/types.js';
 import { RowHeight } from './rows-model.js';
-import { firstType, type LayoutInput, type LayoutState, type SizedHeights } from './tracks-types.js';
+import type { LayoutInput, LayoutState, SizedHeights } from './tracks-types.js';
 import { ownPieces } from './tracks-axes.js';
 import { titleRowOf } from './tracks-columns.js';
 
@@ -186,4 +186,17 @@ function trackHeight(track: ResolvedTrack, config: RenderConfig, heights: Render
   let h = 0;
   for (const l of track.layers) h = Math.max(h, heights[l.type as keyof RenderConfig['heights']] ?? 0);
   return h || heights.ranges;
+}
+
+/** A layer's type: the first of its fallbacks drawn here (a loop: no array made a layer a frame). */
+export function firstType(
+  layer: ResolvedLayer,
+  types: Readonly<Record<string, LayerType<any, any>>>,
+): LayerType<any, any> | undefined {
+  const f = layer.fallbacks;
+  for (let i = 0; i < f.length; i++) {
+    const t = types[f[i]];
+    if (t !== undefined) return t;
+  }
+  return undefined;
 }
