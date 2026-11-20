@@ -190,7 +190,7 @@ export function navigateBehavior(
     command(
       'view.fit',
       'Fit the view',
-      (s) => view.jump(() => view.fit(s), true, { kind: 'fit' }) !== 'none',
+      (s) => view.jump(() => view.fit(s), true, 'fit') !== 'none',
       'Fitted',
       (ctx) => (ctx.section === undefined ? 'No section to fit' : true),
     ),

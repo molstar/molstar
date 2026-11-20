@@ -661,7 +661,7 @@ export class NavigatorModel extends ReactiveModel {
       case '-':
         return view.jump(() => view.zoom(section, 1 / this.viewer.config.navigate.doubleClickZoomStep)) === 'moved';
       case '0':
-        return view.jump(() => view.fit(section), true, { kind: 'fit' }) === 'moved';
+        return view.jump(() => view.fit(section), true, 'fit') === 'moved';
       default:
         return false;
     }

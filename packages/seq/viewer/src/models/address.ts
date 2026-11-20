@@ -476,10 +476,7 @@ export class AddressModel extends ReactiveModel {
     return this._moveTo(loc, false);
   }
 
-  /**
-   * Brings a Location into view as `reveal` brings an address's (_spec/README.md "AddressModel", Actions): nothing when
-   * it is shown, a pan when it fits, else a focus.
-   */
+  /** Brings a Location into view as `reveal` brings an address's (_spec/README.md "AddressModel", Actions). */
   revealLocation(loc: Location): 'moved' | 'pending' | 'none' {
     return this._moveTo(loc, true);
   }
@@ -497,7 +494,8 @@ export class AddressModel extends ReactiveModel {
         return r !== 'none';
       },
       true,
-      { kind: reveal ? 'reveal' : 'focus', location: loc },
+      reveal ? 'reveal' : 'focus',
+      loc,
     );
     return r;
   }

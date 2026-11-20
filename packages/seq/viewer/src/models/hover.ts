@@ -196,17 +196,8 @@ export class HoverModel extends ReactiveModel {
    * Location clears it. False when nothing changed (the same Location object, the same owner).
    */
   setLocation(loc: Location, owner: unknown): boolean {
-    if (owner === undefined) return false;
-    if (isEmptyLocation(loc)) return this.clear(owner);
-    const r = this._record;
-    if (r.owner === owner && r.extent === loc && r.layer === undefined && r.system === undefined) return false;
-    r.layer = r.section = r.system = r.element = r.ySystem = r.target = undefined;
-    r.block = r.yBlock = r.state = r.members = undefined;
-    r.position = r.yPosition = Number.NaN;
-    r.owner = owner;
-    r.extent = loc;
-    this._version.set(this._version.value + 1);
-    return true;
+    // a hit of the extent alone: no layer, section, system or position
+    return isEmptyLocation(loc) ? this.clear(owner) : this.set({ extent: loc } as Hit, owner);
   }
 
   /** Clears the hover when `owner` holds it; a stale owner's clear (a late leave) does nothing (EC-141). */

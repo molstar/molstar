@@ -86,33 +86,33 @@ describe('what the viewer publishes for the wiring', () => {
     expect(after.end - after.start).toBeCloseTo(before.end - before.start);
     expect(after.start).toBeLessThanOrEqual(200);
     expect(after.end).toBeGreaterThanOrEqual(210);
-    expect(v.view.lastJump.value).toMatchObject({ n: jumps + 1, kind: 'reveal' });
+    expect(v.view.lastJump).toMatchObject({ n: jumps + 1, kind: 'reveal' });
   });
 
   it('lastJump: kind, Location and duration, told before jumps; back names the earlier jump’s Location', async () => {
     const v = await make();
     const seen: unknown[] = [];
-    const off = v.view.jumps.listen((n) => seen.push(v.view.lastJump.value?.n === n));
+    const off = v.view.jumps.listen((n) => seen.push(v.view.lastJump?.n === n));
     const a = onUp(100, 140);
     v.addresses.focusLocation(a);
-    expect(v.view.lastJump.value).toEqual({ n: v.view.jumps.value, kind: 'focus', location: a, durationMs: 240 });
+    expect(v.view.lastJump).toEqual({ n: v.view.jumps.value, kind: 'focus', location: a, durationMs: 240 });
     v.addresses.focusLocation(onUp(200, 220));
     v.view.back();
-    expect(v.view.lastJump.value?.kind).toBe('back');
-    expect(v.view.lastJump.value?.location).toBe(a);
+    expect(v.view.lastJump?.kind).toBe('back');
+    expect(v.view.lastJump?.location).toBe(a);
     v.view.forward();
-    expect(locationsEqual(v.view.lastJump.value!.location!, onUp(200, 220))).toBe(true);
+    expect(locationsEqual(v.view.lastJump!.location!, onUp(200, 220))).toBe(true);
     // a fit names none
     v.runCommand('view.fit', { section: UpSection });
-    expect(v.view.lastJump.value).toMatchObject({ kind: 'fit' });
-    expect(v.view.lastJump.value?.location).toBeUndefined();
+    expect(v.view.lastJump).toMatchObject({ kind: 'fit' });
+    expect(v.view.lastJump?.location).toBeUndefined();
     // a hand's move after a jump: the step pushed then names none
     v.addresses.focusLocation(a);
     v.view.pan(UpSection, 3);
     v.addresses.focusLocation(onUp(300, 320));
     v.view.back();
-    expect(v.view.lastJump.value?.kind).toBe('back');
-    expect(v.view.lastJump.value?.location).toBeUndefined();
+    expect(v.view.lastJump?.kind).toBe('back');
+    expect(v.view.lastJump?.location).toBeUndefined();
     off();
     expect(seen.every((s) => s === true)).toBe(true);
   });

@@ -157,7 +157,8 @@ export function linkStructure(viewer: SeqViewer, side: StructureSide, options: L
 
   if (out(options.focus))
     offs.push(
-      viewer.view.lastJump.listen((j) => {
+      viewer.view.jumps.listen(() => {
+        const j = viewer.view.lastJump;
         if (inbound || !j?.location) return;
         if ((j.kind === 'back' || j.kind === 'forward') && !followJumps) return;
         const t = onUnits(j.location, selectLimits);

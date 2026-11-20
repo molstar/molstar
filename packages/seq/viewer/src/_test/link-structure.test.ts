@@ -128,7 +128,7 @@ describe('linkStructure', () => {
     expect(same(v.selection.value.value.shown, onChains(150, 160, ['A']))).toBe(true);
     // revealed: a jump, the zoom kept, and no focus sent for it
     expect(v.view.jumps.value).toBe(jumps + 1);
-    expect(v.view.lastJump.value?.kind).toBe('reveal');
+    expect(v.view.lastJump?.kind).toBe('reveal');
     expect(side.told).toEqual([]);
     side.click(null);
     frames.flush();
@@ -154,7 +154,7 @@ describe('linkStructure', () => {
     expect(side.told).toHaveLength(n);
     // the view's fit: nothing sent
     v.runCommand('view.fit', { section: UpSection });
-    expect(v.view.lastJump.value?.kind).toBe('fit');
+    expect(v.view.lastJump?.kind).toBe('fit');
     expect(side.told).toHaveLength(n);
   });
 
@@ -163,7 +163,7 @@ describe('linkStructure', () => {
     const jumps = v.view.jumps.value;
     side.doubleClick(onChains(50, 60, ['B']));
     expect(v.view.jumps.value).toBe(jumps + 1);
-    expect(v.view.lastJump.value?.kind).toBe('focus');
+    expect(v.view.lastJump?.kind).toBe('focus');
     expect(side.told).toEqual([]);
     v.addresses.focusLocation(onUp(EntStart + 100, EntStart + 120));
     expect(kinds(side)).toEqual(['focus']);
@@ -238,10 +238,10 @@ describe('linkStructure', () => {
     expect(i.side.told).toEqual([]);
   });
 
-  it('a section of the complex: a residue hovered on chain C lights P04637’s through the link (EC-48)', async () => {
+  it('a section of the complex: a residue hovered on chain C is sent on chain C alone, the copy rule (EC-25)', async () => {
     const { v, side } = await make();
     v.hover.set({ section: ComplexSection, system: `${Complex}/C`, position: 40 }, pointer);
-    const t = side.told[0].target;
-    expect(t?.parts.map((p) => p.system)).toContain(`${Complex}/C`);
+    expect(side.told).toHaveLength(1);
+    expect(same(side.told[0].target, onChains(40, 41, ['C']))).toBe(true);
   });
 });

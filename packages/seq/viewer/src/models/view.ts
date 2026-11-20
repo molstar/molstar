@@ -108,14 +108,9 @@ export class ViewModel extends ReactiveModel {
   readonly history: ReadonlyState<ViewHistory> = this._steps.history;
   /** Moves on each jump, back and forward (and each step zoom): what a viewer animates; a move by hand does not. */
   readonly jumps: ReadonlyState<number> = this._jumps.asReadonly;
-  private readonly _lastJump = new State<LastJump | undefined>(undefined);
   /** Where the last jump left the view, while no hand moved it: the step a jump pushes keeps its Location. */
   private _landed: Snapshot | undefined;
-  /**
-   * The last jump (_spec/README.md "ViewModel", History, The last jump): its count, kind, the Location it named and its
-   * duration; told before `jumps` moves. Undefined before the first.
-   */
-  readonly lastJump: ReadonlyState<LastJump | undefined> = this._lastJump.asReadonly;
+  private _lastJump: LastJump | undefined;
 
   /** Where a section's placement comes from: its moves are then its layout's arithmetic (`setLayoutSource`). */
   private _layouts: LayoutSource | undefined;
@@ -426,36 +421,40 @@ export class ViewModel extends ReactiveModel {
   // ---- the history of jumps ----
 
   /**
+   * The last jump (_spec/README.md "ViewModel", History, The last jump): its count (`jumps`), kind, the Location it named
+   * and its duration; set before `jumps` moves, so a listener of `jumps` reads it. Undefined before the first.
+   */
+  get lastJump(): LastJump | undefined {
+    return this._lastJump;
+  }
+
+  /**
    * Runs a jump (a focus, a fit, a reveal, a bookmark's or a link's move): when it moves the view, the viewports it left
    * are pushed on the history (`record`, the default; a step zoom animates without one) and the steps forward dropped.
    * `same` when the view already showed what was asked (a double-click on what is focused), `none` when nothing could
    * move. A pan or a zoom by hand pushes nothing: a jump after it pushes where the hand left the view.
    */
-  jump(
-    move: () => boolean,
-    record = true,
-    named: { readonly kind?: JumpKind; readonly location?: Location } = {},
-  ): JumpOutcome {
+  jump(move: () => boolean, record = true, kind: JumpKind = 'focus', location?: Location): JumpOutcome {
     const before = this._snapshot();
     if (!move()) return 'none';
     if (snapshotsEqual(before, this._snapshot())) return 'same';
     if (record) this.record(before as unknown as ViewSnapshot);
-    this._jumped(named.kind ?? 'focus', named.location);
+    this._jumped(kind, location);
     return 'moved';
   }
 
   /** A jump landed: the last jump told, then the count moved; where it left the view kept with its Location. */
   private _jumped(kind: JumpKind, location: Location | undefined): void {
     const n = this._jumps.value + 1;
-    this._landed = location ? { ...this._snapshot(), location } : undefined;
-    this._lastJump.set({ n, kind, ...(location ? { location } : {}), durationMs: this.config.view.jumpMs });
+    this._landed = location && { ...this._snapshot(), location };
+    this._lastJump = { n, kind, location, durationMs: this.config.view.jumpMs };
     this._jumps.set(n);
   }
 
-  /** A step as the history keeps it: with the Location of the jump that left the view there, unless a hand moved it. */
+  /** A step as the history keeps it: where the last jump left the view, with its Location, unless a hand moved it. */
   private _named(snapshot: Snapshot): Snapshot {
     const l = this._landed;
-    return l?.location && snapshotsEqual(l, snapshot) ? { ...snapshot, location: l.location } : snapshot;
+    return l && snapshotsEqual(l, snapshot) ? l : snapshot;
   }
 
   /**
