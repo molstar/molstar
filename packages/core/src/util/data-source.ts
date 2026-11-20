@@ -14,6 +14,7 @@ import { type RuntimeContext, Task } from '@molstar/core/task';
 import { Asset, AssetManager } from './assets.js';
 import { RUNNING_IN_NODEJS } from './nodejs-shims.js';
 import { ungzip, unzip } from './zip/zip.js';
+import { getFS, setFS } from './internal/fs.js';
 
 export enum DataCompressionMethod {
   None,
@@ -434,19 +435,9 @@ function contentLength(response: Response) {
   return Number.isSafeInteger(length) && length >= 0 ? length : -1;
 }
 
-// NOTE: a workaround for using this in Node.js
-let _fs: typeof import('fs') | undefined = undefined;
-function getFS() {
-  if (!_fs) {
-    throw new Error(
-      "When running in Node.js and reading from files, call mol-util/data-source's setFSModule function first.",
-    );
-  }
-  return _fs;
-}
-
+// NOTE: a workaround for using this in Node.js; the module is held in `internal/fs.ts`, read by range reads too
 export function setFSModule(fs: typeof import('fs')) {
-  _fs = fs;
+  setFS(fs);
 }
 
 function statAsync(filename: string): Promise<{ size: number }> {

@@ -20,8 +20,17 @@ import { Task, type RuntimeContext } from '@molstar/core/task';
 import { File_ as File } from './nodejs-shims.js';
 import { iterableToArray } from '@molstar/core/data/util/array';
 import { gzipDeclaredSize, isGzip, ungzip } from './zip/zip.js';
+import type { AssetRangeReader, RangeReadOptions } from './assets-range.js';
+import { defaultRanges } from './internal/range-pages.js';
 
 export { AssetManager, DefaultAssetManager, Asset, SizeLimitExceeded };
+export {
+  type AssetRange,
+  AssetRangeError,
+  type AssetRangeReader,
+  openRanges,
+  type RangeReadOptions,
+} from './assets-range.js';
 
 type _File = File;
 type Asset = Asset.Url | Asset.File;
@@ -347,6 +356,11 @@ interface AssetManager {
    * text): a manager may let go of them, keeping what it reads them again from. Optional, a hint.
    */
   letGoOfBytes?(asset: Asset): void;
+  /**
+   * Byte ranges of the asset, read by page and cached by asset and page (`util/_spec/assets.md` §10). Optional:
+   * `openRanges` serves a manager without it by reading the asset whole.
+   */
+  readonly openRange?: (asset: Asset, options?: RangeReadOptions) => Task<AssetRangeReader>;
   clearTag(tag: string): void;
   clear(): void;
   dispose(): void;
@@ -435,6 +449,18 @@ class DefaultAssetManager implements AssetManager {
 
   private _assets = new Map<string, HeldAsset>();
   private _urlCache = new Map<string, UrlCacheEntry>();
+  /** Range readers' page stores, by the URL cache's key or the file (§10). */
+  private _ranges = defaultRanges({
+    manager: this,
+    held: (asset) => {
+      const entry = this._assets.get(asset.id);
+      return entry && (entry.bytes ? { bytes: entry.bytes } : { file: entry.file });
+    },
+    urlKey: urlCacheKey,
+  });
+
+  readonly openRange = (asset: Asset, options?: RangeReadOptions): Task<AssetRangeReader> =>
+    this._ranges.open(asset, options);
 
   get assets(): AssetManager.Entry[] {
     return iterableToArray(this._assets.values());
@@ -627,6 +653,8 @@ class DefaultAssetManager implements AssetManager {
 
   clear() {
     for (const id of Array.from(this._assets.keys())) this._remove(id);
+    // range readers' pages go too: their reads reject from now on
+    this._ranges.clear();
   }
 
   dispose() {

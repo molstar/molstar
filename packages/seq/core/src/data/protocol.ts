@@ -5,6 +5,7 @@
  */
 
 import type { CategoryColumn, Column, ColumnType, Issue, Node, Value } from '@molstar/core/repr/tree';
+import type { AssetRangeReader } from '@molstar/core/util/assets';
 
 // The source protocol (_spec/README.md "Data", Protocol): what a format runtime opens, what an opened source covers,
 // and the request and answer of one region. Types only, but for the abort error.
@@ -214,6 +215,11 @@ export interface AssetReader {
   readText(uri: string, signal: AbortSignal): Promise<string>;
   /** The bytes as stored (a MessagePack file; a text read whole whose size is bounded before it is parsed). */
   readBytes(uri: string, signal: AbortSignal): Promise<Uint8Array>;
+  /**
+   * Byte ranges of the asset (core's `AssetRangeReader`): an indexed format (bigWig) reads a header, an index and a few
+   * blocks. Optional: a format reads the file whole through `readBytes` when the host has none.
+   */
+  openRange?(uri: string, signal: AbortSignal): Promise<AssetRangeReader>;
 }
 
 /** A parse's bounds, checked before it allocates (_spec/README.md "Data", Records). */

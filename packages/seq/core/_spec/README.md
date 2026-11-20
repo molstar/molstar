@@ -889,6 +889,47 @@ by fuzz tests (mutated text read without a throw).
 - **Performance**: 100,000 TSV rows read under 300 ms (`records-time.test.ts`, heavy lane, best of three); 10,000 in the
   quick lane.
 
+### bigWig
+
+`runtimes/bigwig.ts` (`@molstar/seqx-core/runtimes/bigwig`, opt in: `BigWigRuntime`, `openBigWig`): a format runtime
+(`bigwig`) of `values` by region and zoom level, read by range through the assets port.
+
+- **Reading**: opening reads the header (little- or big-endian, by its magic), the zoom headers and the chromosome B+
+  tree; a region reads its level's R-tree (the full data at level 1, a zoom level's records at its reduction), the
+  blocks it points to in one call, inflated (`DecompressionStream`, bounded by the header's `uncompressBufSize`) and
+  decoded. Why one call: core's range reader batches the pages of all the blocks, adjacent ones in one request.
+- **Coverage**: a system a chromosome (its name and size), `values` on each, levels `1` and the zoom levels' reductions
+  as they are (protocol, Levels). A level the file does not have, another shape, an unknown chromosome: `not-served`.
+- **Answers**: level 1 per position (NaN where the file has no data); a zoom level per bin of its width from a multiple
+  of it, `count` the bases with data, `mean` the sum over them by the count, as `binValues` summarizes. A record that
+  does not start on the level's multiples (UCSC's start where the data starts) is shared by its overlap with each bin. A
+  region past the chromosome's end is empty, not failed.
+- **Assets**: `AssetReader.openRange(uri, signal)` when the host has it (`policyAssets`: core's `openRanges` under the
+  policy), else the file whole through `readBytes`, bounded by `limits.maxBytes`. A range read that fails (core's
+  `AssetRangeError`: a changed file, a mangled `Content-Range`) fails the region (`failed`), never wrong values.
+- **Bounds** (security.md: a file is untrusted input): blocks of one region over `limits.maxBytes`, bins over
+  `limits.maxRows` and blocks inflating past `maxInflatedBytes` together are `too-large`; a tree node listing more than
+  `maxNodeItems`, a tree level wider than `maxLevelNodes` (its offsets de-duplicated), more than `maxIndexBytes` of
+  nodes for one open or region, a tree deeper than 16 and a node past its size are `malformed`. Blocks are inflated one
+  after another into what they hold, never a buffer of the header's `uncompressBufSize` each. Decoded blocks: the last
+  16 kept for a pan back; pages are core's.
+- **Configuration**: `bigWigRuntime(over)` (`BigWigRuntime` is `bigWigRuntime()`), `BigWigLimits`,
+  `DefaultBigWigLimits`:
+
+  | Item               | Default | Why the default; the alternatives                                                  |
+  | ------------------ | ------- | ---------------------------------------------------------------------------------- |
+  | `maxNodeItems`     | 4,096   | UCSC writes 256 items a node; 4,096 × 32 bytes is a node of 128 kB at most         |
+  | `maxLevelNodes`    | 1,024   | a region of one tile touches a few nodes a level; a crafted level is refused       |
+  | `maxIndexBytes`    | 8 MiB   | the nodes one open or region reads: a real file's region reads kilobytes           |
+  | `maxInflatedBytes` | 64 MiB  | a region's blocks inflated together: the store's byte bound, so one answer fits it |
+
+- **Tests**: the shared source suite (`data/_test/source-suite.ts`) through core's manager by range and through whole
+  bytes; files from a test-only writer on core's `PCG` (`runtimes/_test/bigwig-writer.ts`: every section type, both zoom
+  levels, edges, a gap, a chromosome without data, big-endian, uncompressed); its synthetic twin is
+  `delayedRuntime(BigWigRuntime)` on a fake clock.
+- **Performance**: a region at the zoom level that fits, from a local file, decoded under 50 ms (heavy, `itWithin`).
+  Size: its own row, under 30 kB, in no bundle that does not list it.
+
 ### Archives
 
 `data/archive.ts` (`readArchive`, `writeArchive`, `archiveReader`): a spec with its data files and an index as one zip,

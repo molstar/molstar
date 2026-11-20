@@ -34,6 +34,10 @@ interface Route {
   declare?: boolean;
   /** The response waits for this before it is given. */
   gate?: Promise<void>;
+  /** A `Range` request is answered with the whole body (200), as a server that ignores it. */
+  ignoresRange?: boolean;
+  /** The `ETag` sent. */
+  etag?: string;
 }
 
 interface Seen {
@@ -79,7 +83,20 @@ class FakeFetch {
     if (!route) return new Response('not found', { status: 404 });
     if (route.status !== undefined && route.status >= 400) return new Response('', { status: route.status });
 
-    const body = route.body ?? new Uint8Array(0);
+    let body = route.body ?? new Uint8Array(0);
+    // a range of the body (206), unless the route ignores ranges
+    const range = /^bytes=(\d+)-(\d+)$/.exec(new Headers(init.headers).get('Range') ?? '');
+    const extra: Record<string, string> = route.etag ? { ETag: route.etag } : {};
+    let status = route.status ?? 200;
+    if (range && !route.ignoresRange) {
+      const a = Number(range[1]);
+      const b = Math.min(Number(range[2]), body.length - 1);
+      if (a >= body.length)
+        return new Response('', { status: 416, headers: { 'Content-Range': `bytes */${body.length}` } });
+      extra['Content-Range'] = `bytes ${a}-${b}/${body.length}`;
+      body = body.slice(a, b + 1);
+      status = 206;
+    }
     const size = route.chunk ?? Math.max(body.length, 1);
     let offset = 0;
     const stream = new ReadableStream<Uint8Array>(
@@ -101,7 +118,7 @@ class FakeFetch {
       seen.stopped = true;
     });
     const headers: Record<string, string> = route.declare === false ? {} : { 'Content-Length': String(body.length) };
-    return new Response(stream, { status: route.status ?? 200, headers });
+    return new Response(stream, { status, headers: { ...headers, ...extra } });
   };
 }
 
@@ -353,6 +370,70 @@ const cases: Record<string, Case> = {
     m.dispose();
   },
 
+  // range reads (§10): run when the manager has `openRange` (a manager without it is served whole by `openRanges`)
+
+  'range reads give the bytes asked, by page, cached': async (create, fake, fail) => {
+    const m = create();
+    if (!m.openRange) return;
+    const body = rangeBody(3 * 4096 + 50);
+    fake.serve('https://x.org/r', { body });
+    const r = await failure(
+      rangeRead(m, 'https://x.org/r', [
+        { offset: 4090, length: 20 },
+        { offset: 3 * 4096 + 40, length: 99 },
+      ]),
+    );
+    const got = r.data as Uint8Array[] | undefined;
+    if (r.error || !got) return fail(`a range read failed: ${r.error}`);
+    if (!sameBytes(got[0], body.subarray(4090, 4110)) || !sameBytes(got[1], body.subarray(3 * 4096 + 40)))
+      fail('a range read gave other bytes than asked (or did not clip at the end)');
+    const ranged = fake.seen.filter((s) => new Headers(s.init.headers).has('Range'));
+    if (ranged.length === 0) fail('a range read was not made with a Range request');
+    if (fake.seen.length > 3) fail(`two ranges over three pages made ${fake.seen.length} requests`);
+    m.dispose();
+  },
+
+  'range reads: a changed ETag between pages fails': async (create, fake, fail) => {
+    const m = create();
+    if (!m.openRange) return;
+    const body = rangeBody(4 * 4096);
+    fake.serve('https://x.org/e', { body, etag: '"1"' });
+    const reader = await m.openRange(Asset.Url('https://x.org/e'), { pageSize: 4096 }).run();
+    try {
+      fake.serve('https://x.org/e', { body, etag: '"2"' });
+      const r = await reader.read([{ offset: 3 * 4096, length: 4 }]).then(
+        (data) => ({ data, error: undefined }),
+        (error) => ({ data: undefined, error }),
+      );
+      if (!r.error) fail('a page of an asset whose ETag changed was read');
+      else if ((r.error as { name?: string }).name !== 'AssetRangeError')
+        fail(`a changed ETag failed with ${String(r.error)}, not AssetRangeError`);
+    } finally {
+      reader.dispose();
+    }
+    m.dispose();
+  },
+
+  'range reads: a server that ignores Range is read once, under maxBytes': async (create, fake, fail) => {
+    const m = create();
+    if (!m.openRange) return;
+    const body = rangeBody(3 * 4096);
+    fake.serve('https://x.org/w', { body, ignoresRange: true });
+    const r = await failure(
+      rangeRead(m, 'https://x.org/w', [
+        { offset: 5000, length: 10 },
+        { offset: 9000, length: 10 },
+      ]),
+    );
+    const got = r.data as Uint8Array[] | undefined;
+    if (r.error || !got || !sameBytes(got[1], body.subarray(9000, 9010)))
+      fail(`a read of a server that ignores Range gave ${r.error ?? 'other bytes'}`);
+    if (fake.seen.length !== 1) fail(`a server that ignores Range was asked ${fake.seen.length} times`);
+    const bound = await failure(rangeRead(m, 'https://x.org/w', [{ offset: 0, length: 1 }], { maxBytes: 100 }));
+    if (!bound.error) fail('a server that ignores Range was read over maxBytes');
+    m.dispose();
+  },
+
   'maxBytes that is not a size refuses the read': async (create, fake, fail) => {
     fake.serve('https://x.org/a', 'abc');
     const m = create();
@@ -363,6 +444,30 @@ const cases: Record<string, Case> = {
     m.dispose();
   },
 };
+
+/** Bytes that tell where they came from. */
+function rangeBody(n: number) {
+  return Uint8Array.from({ length: n }, (_, i) => (i * 7 + (i >> 8)) & 255);
+}
+
+function sameBytes(a: Uint8Array | undefined, b: Uint8Array) {
+  return !!a && a.length === b.length && a.every((x, i) => x === b[i]);
+}
+
+/** A range read as a wrapper `failure` reads: the reader opened, the ranges read, the reader disposed. */
+async function rangeRead(
+  m: AssetManager,
+  url: string,
+  ranges: { offset: number; length: number }[],
+  options: { maxBytes?: number } = {},
+): Promise<Asset.Wrapper<any>> {
+  const reader = await m.openRange!(Asset.Url(url), { pageSize: 4096, ...options }).run();
+  try {
+    return { data: await reader.read(ranges), dispose: () => {} };
+  } finally {
+    reader.dispose();
+  }
+}
 
 /**
  * How a manager breaks the guarantees of `AssetManager` (none: it conforms): each failure names the case and what
