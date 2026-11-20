@@ -1139,6 +1139,17 @@ no target.
   (`axes` `positions`, `content` `axis`, `place` `top`, `right` for rows), the system it draws (`system`, else its first
   section's; `sectionAxis` when it draws that section's own axis: its range, pieces and direction) and the static path
   from each bound section's system to it (identity, a region into its chromosome, a protein into its gene).
+- **A second consumer** (EC-183; `packages/seq/examples/src/_test/consumer/`, tests only): letters, ranges, values and
+  variants of a section drawn as plain SVG, compared with core's SVG as positions, text, heights and colours, forward,
+  reversed and across a tile edge. What an outside drawer needs is public: the resolved view, the model, the store, the
+  theme compile (`theme`), and from `render` the data access (`layerSource`) and the token table (`LightTokens`); a test
+  fails on any other import from `render` (layouts, draw lists, backends) and on any path into `src/`. Colours agree
+  partly through shared code (the theme compile), positions, text, heights and the dedupe do not. Missing, replicated
+  from the code or the spec text: the layer types' default channel forms (a letters scheme by alphabet, `token:value`,
+  `token:range`, `token:variant`: render-private), the open values domain (the values in view down to zero: stated only
+  in the code), the row filter (`compileRowFilter` is not exported: a consumer cannot apply a layer's query), the
+  complement of a nucleotide on a reversed axis and the item key that drops a range seen in an earlier tile (both spec
+  text, read again). Not drawn: a layer behind a path (the maps are public, `projectRanges`; not built).
 - `seq.view.*` (`ViewIssues`): `section.system`, `layer.type`, `layer.data`, `layer.shape`, `layer.unplaced`,
   `follow.unplaced`, `section.pieces`, `direction.unresolved`, `direction.mixed` (info); a test checks the catalog.
 
