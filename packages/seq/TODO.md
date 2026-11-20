@@ -56,7 +56,7 @@ base-library change, below), archives. The Genomes milestone is the fifth.
 
 ## `@molstar/seqx-core`
 
-- **Track heights and labels beside for a source's items** (`render/ranges.ts` `content`): a source-backed layer (a
+- **Track heights and labels beside for a source's items** (`render/ranges-content.ts`): a source-backed layer (a
   GFF3, a table, a tiled genome) is not known whole before it is read, so its track keeps its fixed height and has no
   label lane (its labels inside or dropped). A content from what the store holds whole (a small file read in one tile)
   would give it the inline rule.

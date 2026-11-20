@@ -238,7 +238,7 @@ disagrees with its code writes a drift note and stops.
 
 ### Module split (strong; §module-size; `briefs/sz-module-split.md`)
 
-- [ ] SZ after FX1 and before HP1, while no molecules lane is in the files it splits (else after stage 1's gate):
+- [ ] SZ (part one merged 2026-11-20: tracks.ts 2871 → 865, rows.ts 2520 → 413, ranges.ts 1521 → 464; part two, `viewer.ts`, after DP) after FX1 and before HP1, while no molecules lane is in the files it splits (else after stage 1's gate):
       the four files over 1500 lines (`render/tracks.ts`, `render/rows.ts`, `render/ranges.ts`, `viewer/viewer.ts`)
       split by what changes together, and `models/view.ts` (1466) looked at; behavior unchanged, the baseline lowered
       by the orchestrator (`file-size.ts --update`) at the merge. The author, 2026-11-20: "Yes, add all three".

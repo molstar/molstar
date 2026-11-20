@@ -52,6 +52,7 @@ One row a merged lane (loop, step 5, record): review findings and look findings 
 | NG | 2026-11-20 | 3 (review: public data access called missing in the _spec; a partial copy of layerSource; tile-edge ranges by label only) | 0 | 0 | three low (the import scan's dynamic imports, the variant heads' width, the missing values on core's side) |
 | ML1 | 2026-11-20 | 1 (a section's range unbounded on units and molecules) | 1 (a unit's positions: from 0, decided) | 0 | the core table duplicated `AminoAcidNames` (moved to `util/sequence-constants`); five low |
 | FX1 | 2026-11-20 | 4 (review: the levels fix's wiring untested; a whole level still built when none was drawn; an empty band while building, against EC-169; a second build budget) | 0 | 2 (look: the "2 hidden" chip over the overview; a narrow frame squeezing the alignment, decided for FX2) | 10 items fixed, 4 partly, the rest to FX2 with the decided designs |
+| SZ (1) | 2026-11-20 | 0 | 0 | 0 | review: no behavior change; an import cycle grown to 7 modules, the ranges modules unlisted, three nits |
 
 ## How to verify
 
