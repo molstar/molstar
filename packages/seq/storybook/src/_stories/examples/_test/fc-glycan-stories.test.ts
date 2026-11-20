@@ -121,7 +121,10 @@ describe('the Fc glycan stories, headless', () => {
     v.hover.clear(owner);
   });
 
-  it('by residues: each residue its code, the seven glycosidic links arcs; the SVG draws the canvas’s lists in both themes', async () => {
+  // the residues and their arcs, and the export in both themes: the medium lane (the editing view is the quick twin)
+  it('by residues: each residue its code, the seven glycosidic links arcs; each atom its element; the SVG draws the canvas’s lists in both themes', {
+    tags: ['medium'],
+  }, async () => {
     viewer = await openExample(view('fc-glycan-residues'), { fixtures: true, behaviors: LinksHoverOn });
     const v = viewer;
     expect(v.layoutIssues.value).toEqual([]);

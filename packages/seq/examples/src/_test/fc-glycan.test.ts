@@ -9,7 +9,6 @@ import { readFileSync } from 'node:fs';
 import { gunzipSync } from 'node:zlib';
 import { decodeSeq } from '@molstar/seqx-core/data';
 import { describe, expect, it } from 'vitest';
-import { readCif } from '../../scripts/cif.js';
 import {
   Asn297,
   Disulfides,
@@ -72,6 +71,8 @@ describe('the Fc glycan (3AVE)', () => {
   it('the entry’s glycan, links, observed runs and author numbers are the view’s; the file written again', {
     tags: ['medium'],
   }, async () => {
+    // the parser imported here: only this medium test needs it (the quick lane does not load @molstar/io)
+    const { readCif } = await import('../../scripts/cif.js');
     const cif = await readCif(gunzipSync(readFileSync(`${PackageFolder}fixtures/structures/3AVE.cif.gz`)));
     expect(structureSeq(cif, FcSystem)).toBe(text(FcFile));
     // an IgG1 Fc (IGHG1_HUMAN) with the glycan on Asn297

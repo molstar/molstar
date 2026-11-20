@@ -50,6 +50,10 @@ describe('T-DM1, headless', () => {
         .map((l) => /#[0-9a-f]{8}/.exec(l)?.[0]),
     );
     expect(strokes.size).toBeGreaterThan(1);
+  });
+
+  it('its export has no issue', { tags: ['medium'] }, async () => {
+    const v = await open();
     const svg = v.renderSvg({ idPrefix: 'adc-' });
     await vi.advanceTimersByTimeAsync(400);
     expect((await svg).issues).toEqual([]);

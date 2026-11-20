@@ -191,7 +191,10 @@ describe('1FIN as a complex, headless', () => {
     v.hover.clear(owner);
   });
 
-  it('ATP by its atoms: each atom its element; the SVG draws the canvas’s lists in both themes', async () => {
+  // the export in both themes: the medium lane (the fit view's twin is the quick one)
+  it('ATP by its atoms: each atom its element; the SVG draws the canvas’s lists in both themes', {
+    tags: ['medium'],
+  }, async () => {
     viewer = await openExample(view('units-atoms'), { fixtures: true, behaviors: LinksHoverOn });
     const v = viewer;
     expect(v.layoutIssues.value).toEqual([]);

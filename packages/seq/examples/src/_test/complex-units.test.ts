@@ -8,7 +8,6 @@ import { readFileSync } from 'node:fs';
 import { gunzipSync } from 'node:zlib';
 import type { Node } from '@molstar/core/repr/tree';
 import { describe, expect, it } from 'vitest';
-import { readCif } from '../../scripts/cif.js';
 import { Data, entryLigands } from '../complex/data.js';
 import { build, transplantUnit } from '../complex/units.js';
 import { PackageFolder } from '../node-assets.js';
@@ -51,6 +50,8 @@ describe('1FIN as a complex', () => {
 
   // the whole entry parsed: slow by nature, the medium lane
   it('every modeled residue’s author number is its unit’s label', { tags: ['medium'] }, async () => {
+    // the parser imported here: only this medium test needs it (the quick lane does not load @molstar/io)
+    const { readCif } = await import('../../scripts/cif.js');
     const cif = await readCif(gunzipSync(readFileSync(`${PackageFolder}fixtures/structures/1FIN.cif.gz`)));
     for (const ch of Data.chains) {
       const labels = labelsOf(spec, ch.id);

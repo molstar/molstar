@@ -9,7 +9,6 @@ import { readFileSync } from 'node:fs';
 import { gunzipSync } from 'node:zlib';
 import { decodeSeq } from '@molstar/seqx-core/data';
 import { describe, expect, it } from 'vitest';
-import { readCif } from '../../scripts/cif.js';
 import { PackageFolder } from '../node-assets.js';
 import { P53 } from '../p53/data.js';
 import {
@@ -109,6 +108,8 @@ describe('p53’s structure (2OCJ)', () => {
   it('the record rules write the committed files again from the mmCIF; its metal links are the view’s', {
     tags: ['medium'],
   }, async () => {
+    // the parser imported here: only this medium test needs it (the quick lane does not load @molstar/io)
+    const { readCif } = await import('../../scripts/cif.js');
     const cif = await readCif(gunzipSync(readFileSync(`${PackageFolder}fixtures/structures/2OCJ.cif.gz`)));
     expect(structureSeq(cif)).toBe(text(StructureFile));
     expect(chainTableJson(chainTable(cif, '2OCJ'))).toBe(text(ChainTableFile));

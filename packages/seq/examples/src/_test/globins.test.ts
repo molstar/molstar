@@ -39,7 +39,6 @@ import * as globins from '../globins/family.js';
 import { HemeAtoms, HemeContacts, HemeHistidines, HemeUnitContacts, HemoglobinChains } from '../globins/hemes.js';
 import * as hemoglobin from '../globins/hemoglobin.js';
 import { HemoglobinLengths } from '../globins/hemoglobin.js';
-import { readCif } from '../../scripts/cif.js';
 import { hemeAtoms, hemeContacts, identity, residuesOf } from '../globins/recording.js';
 import { neighborJoining } from '../globins/tree.js';
 import { nodeFixtureAssets, PackageFolder } from '../node-assets.js';
@@ -138,6 +137,8 @@ describe('the Globins fixtures’ anchors', () => {
   it('4HHB’s heme contacts per pair of units, derived from its atoms: each heme touches its own chain only; every heme’s heavy atoms the molecule’s', {
     tags: ['medium'],
   }, async () => {
+    // the parser imported here: only this medium test needs it (the quick lane does not load @molstar/io)
+    const { readCif } = await import('../../scripts/cif.js');
     const cif = await readCif(gunzipSync(readFileSync(`${PackageFolder}fixtures/structures/4HHB.cif.gz`)));
     expect(hemeContacts(cif)).toEqual(HemeUnitContacts);
     const atoms = hemeAtoms(cif);

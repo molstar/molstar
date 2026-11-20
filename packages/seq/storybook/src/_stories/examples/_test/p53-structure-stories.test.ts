@@ -67,8 +67,11 @@ describe('p53’s structure stories, headless', () => {
     expect(arcs(v)).toBe(Chains.length * ZincSites.length);
   });
 
+  // the merged story's is the quick representative; the split's the medium lane's
   for (const id of ['structure', 'structure-split'])
-    it(`${id}: R175 on P04637 lights on the chains (EC-25), and a chain's R175 lights P04637`, async () => {
+    it(`${id}: R175 on P04637 lights on the chains (EC-25), and a chain's R175 lights P04637`, {
+      tags: id === 'structure' ? [] : ['medium'],
+    }, async () => {
       const v = await open(id);
       expect(v.layoutIssues.value).toEqual([]);
       const owner = {};
@@ -95,7 +98,7 @@ describe('p53’s structure stories, headless', () => {
   });
 
   for (const id of ['structure', 'structure-split'])
-    it(`${id}: the SVG draws the canvas’s lists in both themes, with no issue`, async () => {
+    it(`${id}: the SVG draws the canvas’s lists in both themes, with no issue`, { tags: ['medium'] }, async () => {
       const v = await open(id);
       v.setRailsShown(false);
       for (const tokens of [undefined, DarkTokens]) {
