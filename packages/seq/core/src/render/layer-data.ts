@@ -59,15 +59,26 @@ export function layerSource(model: StaticModel, layer: ResolvedLayer): LayerSour
     access.kind === 'inline'
       ? { source: access.source.address, system: access.system, shape: access.shape }
       : { source: access.source, system: access.system, shape: access.shape };
-  const path = layer.path;
+  let path = layer.path;
+  let dataSystem = data.system;
+  // a unit's letters from a source are its sequence's, read on the sequence's positions through the unit's step
+  // (_spec/README.md "Resolve", Molecules and units)
+  const own = model.systems.get(data.system);
+  if (own?.kind === 'unit' && own.parent && access.kind === 'source' && !data.access) {
+    const through = model.path(own.parent.system, path?.to ?? data.system).path;
+    if (through) {
+      path = through;
+      dataSystem = own.parent.system;
+    }
+  }
   const filter = data.filter ? compileRowFilter(data.filter) : undefined;
   const base = data.base ? compileRowFilter(data.base) : undefined;
-  const length = data.length ?? model.systems.get(data.system)?.length;
+  const length = dataSystem === data.system ? (data.length ?? own?.length) : model.systems.get(dataSystem)?.length;
   return {
     ...plan,
-    dataSystem: data.system,
+    dataSystem,
     ...(length !== undefined ? { length } : {}),
-    ...(model.systems.get(data.system)?.cyclic ? { cyclic: true } : {}),
+    ...(model.systems.get(dataSystem)?.cyclic ? { cyclic: true } : {}),
     // a source's rows past the system's length are the reader's to wrap or clip; inline rows were wrapped by the model
     ...(length !== undefined && access.kind !== 'inline' ? { wraps: true } : {}),
     ...(path ? { path, back: inversePath(path) } : {}),

@@ -79,7 +79,18 @@ export {
   subtractLocations,
   unionLocations,
 } from './location.js';
-export type { ItemsRead, Numbering, QueryAnnotation, QueryItem, QueryModel, QuerySystem } from './model.js';
+export type {
+  ItemsRead,
+  Numbering,
+  QueryAnnotation,
+  QueryAtoms,
+  QueryComponents,
+  QueryItem,
+  QueryModel,
+  QueryMolecule,
+  QuerySystem,
+  QueryUnit,
+} from './model.js';
 export {
   anyLabelIn,
   BuiltInNumberings,

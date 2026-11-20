@@ -10,7 +10,15 @@
 import { describe, expect, it } from 'vitest';
 import { codonLinear } from '../codon.js';
 import { ImplicitLinear, type Linear } from '../linear.js';
-import { type Edge, findPath, type PathGraph, type PathSearch, projectRanges, type Step } from '../paths.js';
+import {
+  type Edge,
+  findPath,
+  inversePath,
+  type PathGraph,
+  type PathSearch,
+  projectRanges,
+  type Step,
+} from '../paths.js';
 
 interface MapDef {
   readonly from: string;
@@ -153,6 +161,15 @@ describe('paths: units and the copy rule (EC-25, EC-26)', () => {
   it('a longer legal path beats a shorter illegal one: the rule is part of the search (EC-25)', () => {
     const g = graph({ ...maps, ux: offset('/u1', '/x', 0), xu: offset('/x', '/u2', 0) });
     expect(via(findPath(g, '/u1', '/u2'))).toEqual(['ux', 'xu']);
+  });
+
+  it('a path read the other way reads a unit’s step the other way: up is down (EC-25)', () => {
+    const r = findPath(graph(maps), '/p', '/u1');
+    const back = r.ok ? inversePath(r.path) : undefined;
+    expect(back?.edges.map((e) => [e.from, e.to, e.unit])).toEqual([
+      ['/u1', '/m', 'up'],
+      ['/m', '/p', undefined],
+    ]);
   });
 
   it('a path ending at a ranged unit is clipped to the unit (EC-26)', () => {

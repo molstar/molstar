@@ -14,6 +14,7 @@ import type { Atom, Node } from '@molstar/core/repr/tree';
 import type { CellsTable, DataStore, Want } from '@molstar/seqx-core/data';
 import type { QueryAnnotation, QueryModel, QuerySystem } from '@molstar/seqx-core/query';
 import { pairsQueryAnnotation, queryAnnotation, type StaticModel } from './model.js';
+import { atomsOf, componentsOf, moleculeOf, unitsOf } from './molecule-query.js';
 import { nodeAddress, type Overlay } from './overlay.js';
 
 /** What a row form reads of an alignment's rows read from a source: the store's loaded tiles, and how to ask for them. */
@@ -35,7 +36,7 @@ export function overlayQueryModel(model: StaticModel, overlay: Overlay, rows?: R
   if (!byOverlay) models.set(model, (byOverlay = new WeakMap()));
   let byReader = byOverlay.get(overlay);
   if (!byReader) byOverlay.set(overlay, (byReader = new Map()));
-  let q = byReader.get(rows);
+  let q: QueryModel | undefined = byReader.get(rows);
   if (q) return q;
   const systems = new Map<string, QuerySystem | undefined>();
   const annotations = new Map<string, QueryAnnotation | undefined>();
@@ -45,13 +46,17 @@ export function overlayQueryModel(model: StaticModel, overlay: Overlay, rows?: R
       if (s) return s;
       if (systems.has(address)) return systems.get(address);
       const e = overlay.system(address);
+      // a dynamic unit's numberings are its own inline labels; its molecule's number it where it has none of an id
+      const own = overlay.molecular.numberings?.get(address);
+      const parent = e?.parent && q!.system(e.parent.system);
       const out: QuerySystem | undefined = e
         ? {
             address,
             length: e.length ?? model.config.openQueryLength,
             cyclic: e.cyclic,
-            numbering: () => undefined,
-            numberingIds: () => [],
+            numbering: (id) => own?.get(id),
+            numberingIds: () => (own ? [...own.keys()] : []),
+            ...(parent ? { parent: { system: parent, start: e.parent!.start } } : {}),
           }
         : undefined;
       systems.set(address, out);
@@ -71,6 +76,23 @@ export function overlayQueryModel(model: StaticModel, overlay: Overlay, rows?: R
       annotations.set(address, out);
       return out;
     },
+    components: (s) =>
+      model.components?.(s) ??
+      componentsOf(overlay.molecular, overlay.system(s), (a) => model.systems.get(a) ?? overlay.system(a)),
+    // a source's compound before the host's names: what the data says beats a lookup
+    compoundClass: (code) =>
+      model.compounds.get(code)?.class ?? overlay.molecular.compounds?.get(code)?.class ?? model.compound(code)?.class,
+    equivalents: (identifier) => model.equivalents?.(identifier) ?? [],
+    annotationsOn: (s) => [
+      ...(model.annotationsOn?.(s) ?? []),
+      ...overlay.nodes.flatMap((n) => {
+        const a = overlay.annotation(n.address);
+        return a?.shape === 'ranges' && a.target === s ? [a.address] : [];
+      }),
+    ],
+    units: (c) => model.units?.(c) ?? unitsOf(overlay.molecular, c),
+    molecule: (a) => model.molecule?.(a) ?? moleculeOf(overlay.molecular, a),
+    atoms: (s) => model.atoms?.(s) ?? atomsOf(overlay.molecular, s),
     node(owner: string, key: Atom): Node | undefined {
       // the store's keys are strings: a number never names one (`1` is not `"1"`)
       return typeof key === 'string' ? overlay.node(nodeAddress(owner, key))?.node : undefined;

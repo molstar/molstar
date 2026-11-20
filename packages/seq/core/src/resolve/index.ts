@@ -68,6 +68,8 @@ export {
   type SystemEntry,
   sourceLengths,
 } from './model.js';
+export type { CompoundEntry, Molecular } from './molecule-query.js';
+export type { AtomsEntry, ComplexEntry, ModifiedIndex, MoleculeEntry, UnitEntry } from './molecules.js';
 export {
   buildOverlay,
   EmptyOverlay,

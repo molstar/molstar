@@ -14,12 +14,9 @@
 
 import {
   type Atom,
-  CancelEvery,
   type FormResolver,
-  type FormResolverInput,
   type FormResolverResult,
   type Issue,
-  type IssuePlace,
   issueOf,
   isNode,
   matchesForm,
@@ -30,7 +27,6 @@ import {
   type Selected,
   type SelectOptions,
   selectAddress,
-  TreeIssues,
   type Value,
 } from '@molstar/core/repr/tree';
 import {
@@ -42,12 +38,28 @@ import {
   subtractElements,
   unionElements,
 } from './elements.js';
-import { type QueryIssueCode, QueryIssues } from './issues.js';
+import {
+  annotationsOf,
+  checkLimit,
+  checkParams,
+  type Ctx,
+  Failure,
+  fail,
+  param,
+  prefixNodes,
+  type Resolve,
+  required,
+  type Shared,
+  stage,
+  systemsOf,
+  tick,
+} from './form-kit.js';
+import { QueryIssues } from './issues.js';
+import { MoleculeForms } from './molecule-forms.js';
 import { hasLabelSuffix, isNoInsertionCode, readLabel } from './labels.js';
 import {
   EmptyLocation,
   intersectLocations,
-  isEmptyLocation,
   isPosition,
   type Location,
   location,
@@ -86,88 +98,18 @@ export const QueryFormKinds = [
   'and',
   'or',
   'not',
+  'component',
+  'molecule',
+  'entity',
+  'atom',
+  'atoms',
 ] as const;
-
-/** An evaluation failed: its issues (at least one error). Thrown inside a resolver, caught at its edge. */
-class Failure {
-  constructor(readonly issues: readonly Issue[]) {}
-}
-
-const fail = (code: QueryIssueCode, message: string, place?: IssuePlace): never => {
-  throw new Failure([issueOf(QueryIssues, code, message, place)]);
-};
-
-/** What one evaluation shares across its nested forms, nested addresses included. */
-interface Shared {
-  /** Visits since the signal and the deadline were last read. */
-  visits: number;
-  /** Inside a rect's side: a range may not wrap (EC-10). */
-  noWrap: boolean;
-}
 
 /**
  * The evaluation running now, if any: a nested address calls `selectAddress`, which calls the table's resolvers again;
  * they join the outer evaluation's counter instead of starting their own. Evaluation is synchronous, so one slot does.
  */
 let active: Shared | undefined;
-
-/** One resolver call's state: its input, the issues it carries, what is pending, the shared counter. */
-interface Ctx {
-  readonly model: QueryModel;
-  readonly input: FormResolverInput;
-  readonly resolvers: Readonly<Record<string, FormResolver>>;
-  readonly issues: Issue[];
-  readonly shared: Shared;
-  complete: boolean;
-  pending: Location;
-}
-
-/** Counts a visit; every CancelEvery reads the signal and the deadline. */
-function tick(ctx: Ctx) {
-  if (++ctx.shared.visits < CancelEvery) return;
-  ctx.shared.visits = 0;
-  const { signal, deadline } = ctx.input;
-  if (signal?.aborted)
-    throw new Failure([issueOf(TreeIssues, 'repr.tree.address.cancelled', 'The selection was cancelled')]);
-  if (deadline !== undefined && performance.now() > deadline)
-    throw new Failure([
-      issueOf(TreeIssues, 'repr.tree.address.deadline_exceeded', 'The selection ran past its deadline'),
-    ]);
-}
-
-function checkLimit(ctx: Ctx, count: number) {
-  const { limit } = ctx.input;
-  if (count <= limit) return;
-  throw new Failure([
-    issueOf(TreeIssues, 'repr.tree.address.limit_exceeded', `More than ${limit} matches`, {
-      hint: 'narrow the address, or raise the limit',
-    }),
-  ]);
-}
-
-function stage(ctx: Ctx, pending: Location | undefined) {
-  if (!pending || isEmptyLocation(pending)) return;
-  ctx.complete = false;
-  ctx.pending = unionLocations(ctx.pending, pending);
-}
-
-// ---- params ----
-
-function checkParams(form: Node, allowed: readonly string[]) {
-  for (const key of Object.keys(form.params ?? {}))
-    if (!allowed.includes(key))
-      fail('seq.query.form.param', `A form of kind ${form.kind} names a param it does not take`, {
-        hint: allowed.length ? `params: ${allowed.join(', ')}` : 'no params',
-      });
-}
-
-const param = (form: Node, key: string): Value | undefined => (form.params ? own(form.params, key) : undefined);
-
-function required(form: Node, key: string): Value {
-  const v = param(form, key);
-  if (v === undefined) fail('seq.query.form.param', `A form of kind ${form.kind} needs :${key}`);
-  return v as Value;
-}
 
 /** A numbering's id: a word (a number is spelled as written). */
 function numberingId(form: Node): string {
@@ -184,29 +126,6 @@ function label(value: Value, address: string): string {
   return fail('seq.query.label.syntax', 'A label is not an integer or a word', {
     address,
     hint: r.error === 'fraction' ? 'a .n label is quoted: "100.1"' : QueryIssues.codes['seq.query.label.syntax'].hint,
-  });
-}
-
-// ---- what the prefix names ----
-
-function prefixNodes(prefix: Named, kind: string): readonly Selected[] {
-  if (prefix.kind === 'nodes') return prefix.matches;
-  return fail('seq.query.form.prefix', `A form of kind ${kind} applies to nodes, and its prefix names ${prefix.type}`);
-}
-
-function systemsOf(ctx: Ctx, prefix: Named, kind: string): QuerySystem[] {
-  return prefixNodes(prefix, kind).map((m) => {
-    const address = printAddress(m.address);
-    const s = ctx.model.system(address);
-    return s ?? fail('seq.query.form.prefix', `A form of kind ${kind} applies to systems`, { address });
-  });
-}
-
-function annotationsOf(ctx: Ctx, prefix: Named, kind: string): QueryAnnotation[] {
-  return prefixNodes(prefix, kind).map((m) => {
-    const address = printAddress(m.address);
-    const a = ctx.model.annotation(address);
-    return a ?? fail('seq.query.form.prefix', `A form of kind ${kind} applies to annotations`, { address });
   });
 }
 
@@ -586,8 +505,6 @@ const row: Resolve = (ctx, form, prefix) => {
   return { type: 'location', location: location({ parts }) };
 };
 
-const chain = heldNodes('id', (model, owner, id) => model.chain?.(owner, id));
-
 /** The extent of elements: the union of their items' ranges on each annotation's target. */
 function extentOf(ctx: Ctx, e: Elements): Location {
   const byOwner = new Map<string, Set<string | number>>();
@@ -736,8 +653,6 @@ const not: Resolve = (ctx, form, prefix) => {
 
 // ---- the table ----
 
-type Resolve = (ctx: Ctx, form: Node, prefix: Named) => QueryResult;
-
 const Forms: Readonly<Record<(typeof QueryFormKinds)[number], Resolve>> = {
   range: locationForm(rangeOn),
   at: locationForm(atOn),
@@ -747,11 +662,11 @@ const Forms: Readonly<Record<(typeof QueryFormKinds)[number], Resolve>> = {
   item,
   items,
   node,
-  chain,
   extent,
   and,
   or,
   not,
+  ...MoleculeForms,
 };
 
 /**

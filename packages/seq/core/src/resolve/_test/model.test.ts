@@ -256,8 +256,9 @@ describe('static model: inline ranges’ strands', () => {
       b.data.ranges('f', { target: s, rows: { start: [0, 4], end: [2, 6], strand } as never });
       const m = resolveSpec(b.build());
       const a = m.annotations.get('/data/f')!;
-      expect(a.items.map((i) => i.key)).toEqual([0, 1]);
-      expect(a.items.map((i) => i.fields?.strand ?? null)).toEqual(Array.isArray(strand) ? strand : [null, null]);
+      expect(a.items).toBeDefined();
+      expect(a.items!.map((i) => i.key)).toEqual([0, 1]);
+      expect(a.items!.map((i) => i.fields?.strand ?? null)).toEqual(Array.isArray(strand) ? strand : [null, null]);
     });
 });
 

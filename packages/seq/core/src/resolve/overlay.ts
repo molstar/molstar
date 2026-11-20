@@ -32,6 +32,8 @@ import {
   type StaticModel,
   type SystemEntry,
 } from './model.js';
+import { EmptyMolecular, type Molecular } from './molecule-query.js';
+import { DynamicMolecular } from './overlay-molecules.js';
 import { type Edge, findPath, type Step } from './paths.js';
 
 // The overlay (_spec/README.md "Overlay"): tier 2, the dynamic nodes the data store holds, over the static model and
@@ -86,8 +88,13 @@ export interface Overlay {
   readonly nodes: readonly OverlayNode[];
   /** What was left out and why, each once (grows as item systems and nested sources are asked for). */
   readonly issues: readonly Issue[];
+  /** Its sources' molecules, complexes, units and compounds (_spec/README.md "Overlay", Molecules and complexes). */
+  readonly molecular: Molecular;
   node(address: string): OverlayNode | undefined;
-  /** An item's coordinate system (`<ranges node>/(item :id <id>)`), made on first use. */
+  /**
+   * A system of its nodes: a sequence, a molecule's residues or atoms, a unit of a complex; or an item's coordinate
+   * system (`<ranges node>/(item :id <id>)`), made on first use.
+   */
   system(address: string): SystemEntry | undefined;
   annotation(address: string): AnnotationEntry | undefined;
   /** A path with a dynamic end over the spec's maps and the overlay's; between spec systems, the static model's. */
@@ -114,6 +121,7 @@ export const EmptyOverlay: Overlay = {
   version: 0,
   nodes: [],
   issues: [],
+  molecular: EmptyMolecular,
   node: () => undefined,
   system: () => undefined,
   annotation: () => undefined,
@@ -207,6 +215,7 @@ class DynamicOverlay implements Overlay {
   private edges: Map<string, Edge[]> | undefined;
   private readonly paths = new Map<string, PathResult>();
   private readonly reported = new Set<string>();
+  readonly molecular: DynamicMolecular;
 
   constructor(
     private readonly model: StaticModel,
@@ -215,6 +224,11 @@ class DynamicOverlay implements Overlay {
   ) {
     this.version = reader.nodeVersion.value;
     this.config = { ...DefaultResolveConfig, ...model.config, ...options.config };
+    this.molecular = new DynamicMolecular(
+      this.config,
+      (a) => this.model.systems.get(a) ?? this.system(a),
+      (issue) => this.push(issue),
+    );
     // parents first: a nested source's nodes are under a longer source address
     const entries = [...reader.nodes.values()].sort(
       (a, b) => a.source.length - b.source.length || cmp(a.source, b.source) || cmp(a.key, b.key),
@@ -246,10 +260,22 @@ class DynamicOverlay implements Overlay {
       this.byAddress.set(address, n);
       if (n.kind === 'ranges' && n.node.params?.map === 'codon') this.coding.set(address, n);
     }
-    // in depth order, coding nodes first: a node may be on an item of a shallower one (or one of its own depth)
-    const order = (n: OverlayNode) => n.depth * 2 + (this.coding.has(n.address) ? 0 : 1);
-    for (const n of [...this.byAddress.values()].sort((a, b) => order(a) - order(b))) {
-      const fails = !this.rules(n) || ((n.kind === 'ranges' || n.kind === 'values') && !this.resolveAnnotation(n));
+    // in depth order; sequences and molecules, then complexes (units on them), then coding nodes first: a node may be
+    // on an item or a unit of a shallower one (or one of its own depth)
+    const rank = (n: OverlayNode) =>
+      n.kind === 'sequence' || n.kind === 'molecule' || n.kind === 'compounds'
+        ? 0
+        : n.kind === 'complex'
+          ? 1
+          : this.coding.has(n.address)
+            ? 2
+            : 3;
+    const order = (n: OverlayNode) => n.depth * 4 + rank(n);
+    for (const n of [...this.byAddress.values()].sort((a, b) => order(a) - order(b) || cmp(a.address, b.address))) {
+      const fails =
+        !this.rules(n) ||
+        !this.molecular.add(n.address, n.node) ||
+        ((n.kind === 'ranges' || n.kind === 'values') && !this.resolveAnnotation(n));
       if (fails) {
         this.byAddress.delete(n.address);
         this.coding.delete(n.address);
@@ -266,7 +292,10 @@ class DynamicOverlay implements Overlay {
     if (a === undefined) return undefined;
     const sys = this.model.systems.get(a) ?? this.system(a);
     if (sys)
-      return { node: { kind: 'sequence', params: { alphabet: sys.alphabet, cyclic: sys.cyclic } }, length: sys.length };
+      return {
+        node: { kind: 'sequence', params: { ...(sys.alphabet ? { alphabet: sys.alphabet } : {}), cyclic: sys.cyclic } },
+        length: sys.length,
+      };
     if (this.model.sources.has(a) || this.byAddress.get(a)?.kind === 'source') return { node: { kind: 'source' } };
     return undefined;
   }
@@ -328,10 +357,12 @@ class DynamicOverlay implements Overlay {
   }
 
   annotation(address: string): AnnotationEntry | undefined {
-    return this.annotations.get(address);
+    return this.annotations.get(address) ?? this.molecular.annotations.get(address);
   }
 
   system(address: string): SystemEntry | undefined {
+    const own = this.molecular.systems.get(address);
+    if (own) return own;
     const segments = segmentsOf(address);
     const last = segments?.[segments.length - 1];
     if (!segments || typeof last === 'string' || last?.kind !== 'item') return undefined;
@@ -414,6 +445,7 @@ class DynamicOverlay implements Overlay {
       if (!list) edges.set(e.from, (list = []));
       list.push(e);
     };
+    for (const e of this.molecular.edges) add(e);
     for (const n of this.coding.values())
       for (const m of this.itemsOf(n)?.maps ?? []) {
         add({ map: m.address, from: m.from, to: m.to, backward: false, step: m.step, linear: m.linear });
@@ -454,14 +486,21 @@ class DynamicOverlay implements Overlay {
     return undefined;
   }
 
-  /** The node an address is or is an item of. */
+  /** The node an address is, or is an item, a unit or an atoms system of (up to `<complex>/<unit>/(atoms)`). */
   private ownerOf(address: string): OverlayNode | undefined {
     const n = this.byAddress.get(address);
     if (n) return n;
     const segments = segmentsOf(address);
-    const last = segments?.[segments.length - 1];
-    if (!segments || typeof last === 'string' || last?.kind !== 'item') return undefined;
-    return this.byAddress.get(printAddress(segments.slice(0, -1)));
+    if (!segments) return undefined;
+    // an item, a unit (an id under its complex) or an atoms system: its node is one or two segments up
+    let k = segments.length;
+    if (typeof segments[k - 1] !== 'string' && (segments[k - 1] as { kind: string }).kind === 'atoms') k--;
+    const last = segments[k - 1];
+    if (k < 2 || !(typeof last === 'string' || last.kind === 'item' || k < segments.length)) return undefined;
+    return (
+      this.byAddress.get(printAddress(segments.slice(0, k))) ??
+      this.byAddress.get(printAddress(segments.slice(0, k - 1)))
+    );
   }
 
   holds(addresses: Iterable<string>): readonly OverlayNode[] {
@@ -478,6 +517,8 @@ class DynamicOverlay implements Overlay {
     while (todo.length) {
       const n = todo.pop()!;
       for (const key of ['target', 'source']) add(canonical(n.node.params?.[key]));
+      // a complex holds what its units instantiate
+      for (const u of n.kind === 'complex' ? (n.node.children ?? []) : []) add(canonical(u.params?.of));
     }
     return [...out];
   }

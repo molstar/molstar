@@ -481,18 +481,26 @@ is a segment of an address, `/data/p53/(range :from 94 :to 292)`.
 
 ### Forms
 
-| Form                                           | Prefix            | Result                                                                                                          |
-| ---------------------------------------------- | ----------------- | --------------------------------------------------------------------------------------------------------------- |
-| `(range :from l :to l :numbering n)`           | systems           | Location                                                                                                        |
-| `(at :label l :ins c :numbering n)`            | systems           | Location (one position)                                                                                         |
-| `(all)`                                        | systems           | Location                                                                                                        |
-| `(rect :a <location> :b <location>)`           | as its sides need | Location (one rect; each side one system; sides never wrap, `seq.query.range.wrap`)                             |
-| `(row :key k)`, `(row :key [k …])`             | alignments        | Location: the rows by key (label), positions of its rows system (`seq.query.row.unknown`, `.pending`): a side   |
-| `(item :id k)`, `(item :<field> v …)`          | annotations       | Elements (every param matches; a list param matches any of its atoms; a field the annotations lack is an issue) |
-| `(items :overlapping <location>)`              | annotations       | Elements (every item without `:overlapping`)                                                                    |
-| `(node :key k)`, `(chain :id k)`               | nodes             | Nodes, addressed by the form itself (`/data/1tup/(chain :id A)`), so location forms may follow a chain          |
-| `(extent :of <elements>)`                      | any               | Location                                                                                                        |
-| `(and :of […])`, `(or :of […])`, `(not :of x)` | any               | the operands' one type                                                                                          |
+| Form                                                           | Prefix                              | Result                                                                                                          |
+| -------------------------------------------------------------- | ----------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `(range :from l :to l :numbering n)`                           | systems                             | Location                                                                                                        |
+| `(at :label l :ins c :numbering n)`                            | systems                             | Location (one position)                                                                                         |
+| `(all)`                                                        | systems                             | Location                                                                                                        |
+| `(rect :a <location> :b <location>)`                           | as its sides need                   | Location (one rect; each side one system; sides never wrap, `seq.query.range.wrap`)                             |
+| `(row :key k)`, `(row :key [k …])`                             | alignments                          | Location: the rows by key (label), positions of its rows system (`seq.query.row.unknown`, `.pending`): a side   |
+| `(item :id k)`, `(item :<field> v …)`                          | annotations                         | Elements (every param matches; a list param matches any of its atoms; a field the annotations lack is an issue) |
+| `(items :overlapping <location>)`                              | annotations                         | Elements (every item without `:overlapping`)                                                                    |
+| `(node :key k)`                                                | nodes                               | Nodes, addressed by the form itself (`/data/1tup/(node :key T1)`), so location forms may follow a node          |
+| `(chain :id A :operator 1_555)`, `(chain :auth B)`             | a complex                           | Nodes: its units by chain, operator and author chain, each by its id; elsewhere a chain data makes, by the form |
+| `(component :id MSE)`, `(component :id [PSU 2MG])`             | sequences, molecules, units         | Location: the positions with that component, alternatives included                                              |
+| `(component :standard false :annotations true)`                | sequences, units                    | Location: the non-standard positions, and the `modified`-type items of the annotations on them                  |
+| `(component :class saccharide)`                                | as above                            | Location: a word of the class of the component's `compound` node; a code with none is no match                  |
+| `(molecule :identifier "ccd:ATP")`, `(molecule :class ligand)` | `data`, a complex                   | Nodes: molecules (a complex's: its units')                                                                      |
+| `(entity :id 3)`                                               | a complex from a source             | Nodes: the molecule its units' `of` names by that key                                                           |
+| `(atom :name O1G)`                                             | a molecule, a unit, an atoms system | Location: the atoms of that name, on the atoms system                                                           |
+| `(atoms)`                                                      | a molecule, a unit                  | Nodes: its atoms system, `<system>/(atoms)`                                                                     |
+| `(extent :of <elements>)`                                      | any                                 | Location                                                                                                        |
+| `(and :of […])`, `(or :of […])`, `(not :of x)`                 | any                                 | the operands' one type                                                                                          |
 
 - **Combinators take `:of`**: a form's params are keywords only (the address grammar), so `and`, `or` and `not` read a
   list or one operand under `:of`. Operands of different types are `seq.query.form.type`.
@@ -508,6 +516,18 @@ is a segment of an address, `/data/p53/(range :from 94 :to 292)`.
   system no target is reports `seq.query.location.unreachable` (projection is not built), a rect is refused. An operand
   naming a ref is refused (`seq.query.ref.unresolved`): addressing follows refs before the forms read an address
   (Addressing), so only a caller of `evaluateQuery` itself meets it.
+- **Composition** (MolQL's, monadic; decided by the author, 2026-11-20): a form maps over every element its prefix
+  yields and concatenates what each gives; a prefix element with nothing to give (a unit with no atoms, a complex with
+  no such chain) yields nothing, said by a warning, never a failure of the whole query. A prefix of the wrong type is
+  still `seq.query.form.prefix`. Not yet so: `(atom …)` fails over a prefix without atoms; it and `(atoms)` are to be
+  replaced by an `(elements …)` form (a design being drafted).
+- **Molecule forms** (`query/molecule-forms.ts`; the forms' shared kit `query/form-kit.ts`): codes and identifiers match
+  exactly (`ccd:atp` is not `ccd:ATP`); a host's `equivalents` adds identifiers to an asked one. `:standard false` alone
+  reads the sparse rows, never scanning a sequence; with `:id` or `:class` the positions are scanned, each a visit; a
+  molecule's residues have no standard component (`:standard false` holds them all). `:annotations` (true when absent)
+  adds the items whose `type`, else `category`, is `modified`, `glycosylation` or `lipidation`. A chain form gives a
+  unit by its id, so one system has one address whichever form found it (a chain addressed by its form is the fallback
+  where the prefix is no complex).
 - **The table**: `queryResolvers(model, extra?)`; an extra kind named as a query form throws (a form's meaning is never
   replaced silently). `evaluateQuery` is `selectAddress` with the table, typed.
 
@@ -515,7 +535,11 @@ is a segment of an address, `/data/p53/(range :from 94 :to 292)`.
 
 - An interface (`QueryModel`): `system(address)` (length, cyclic, numberings, parent), `annotation(address)` (target,
   fields, `items(over?)` with what is pending, a row's `system` when not the target: a pair's ends), `node(owner, key)`
-  and `chain(owner, id)` for nodes data makes. The static model implements it; tests use a hand-written one.
+  and `chain(owner, id)` for nodes data makes; for the molecule forms, optionally, `components(system)`
+  (`QueryComponents`: a sequence's modified rows beside its standard components, a molecule's codes),
+  `compoundClass(code)`, `annotationsOn(system)`, `units(complex)` (`QueryUnit`), `molecule(address)` (`QueryMolecule`),
+  `equivalents(identifier)` and `atoms(system)` (`QueryAtoms`). The static model implements it; tests use a hand-written
+  one.
 
 ### Staged and bounded
 
@@ -1095,24 +1119,27 @@ store. `resolveSpec(spec, { runtimes, config })`, or `createResolver` to keep en
 
 `ResolveConfig`, each choice with its recommended default (`DefaultResolveConfig`):
 
-| Item                | Default     | Why the default; the alternatives                                                                                                                                |
-| ------------------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `maxPathSteps`      | 4           | counted steps a path may take (EC-22): bounded search                                                                                                            |
-| `maxPathCandidates` | 16          | candidate paths kept (EC-22): bounded search                                                                                                                     |
-| `encoding`          | `cheapest`  | each map in its cheapest form; `runs` or `expanded` hold every bounded map so, for tests and comparisons                                                         |
-| `openQueryLength`   | int32's max | what the query forms read on a system of unknown length, so labels resolve before its source opens; layout never reads it (an axis of unknown length is pending) |
-| `maxNestedDepth`    | 4           | the levels of nested sources the overlay requests (EC-179): a spec's sources are untrusted                                                                       |
+| Item                | Default     | Why the default; the alternatives                                                                                                                                     |
+| ------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `maxPathSteps`      | 4           | counted steps a path may take (EC-22): bounded search                                                                                                                 |
+| `maxPathCandidates` | 16          | candidate paths kept (EC-22): bounded search                                                                                                                          |
+| `encoding`          | `cheapest`  | each map in its cheapest form; `runs` or `expanded` hold every bounded map so, for tests and comparisons                                                              |
+| `openQueryLength`   | int32's max | what the query forms read on a system of unknown length, so labels resolve before its source opens; layout never reads it (an axis of unknown length is pending)      |
+| `maxNestedDepth`    | 4           | the levels of nested sources the overlay requests (EC-179): a spec's sources are untrusted                                                                            |
+| `maxUnits`          | 65,536      | the units a complex holds (a large capsid's assembly); a complex past it is refused whole (`seq.resolve.complex.units`), a source's or a spec's; larger at its memory |
 
 ### Systems, sources, annotations
 
 - **Systems**: each `sequence`, with its alphabet, cyclic flag, its numberings' ids (the built-ins `index`, `ordinal`,
   then its declared ones), its `name` (the record its source knows it by: the param, else its id), and its length when
   its letters are inline; else the length is unknown, pending until the source is opened, never a guess. Why: nothing in
-  tier 1 waits, and nothing lays out on a made-up length.
-- **Numberings**: each `numbering` child of a sequence (`numberings`, by its address; `numberingOf(system, id)`): inline
-  labels a numbering at once, which the system's query form answers (`numbering(id)`, `numberingIds`); a source's holds
-  its source, its field and an access plan on the sequence's name, its labels tier 2's (Render, Numberings from a
-  source). Why not in tier 1: nothing there waits for a source.
+  tier 1 waits, and nothing lays out on a made-up length. A molecule's residues and atoms and a complex's units are
+  systems too (Molecules and units); a data reference to a system (`target`, `a`, `b`, `x`, `y`, a map's `from` and
+  `to`) takes any of a sequence, a molecule and a unit.
+- **Numberings**: each `numbering` child of a sequence or a unit (`numberings`, by its address;
+  `numberingOf(system, id)`): inline labels a numbering at once, which the system's query form answers (`numbering(id)`,
+  `numberingIds`); a source's holds its source, its field and an access plan on the sequence's name, its labels tier 2's
+  (Render, Numberings from a source). Why not in tier 1: nothing there waits for a source.
 - **A length from coverage**: once a source is open, the length its coverage gives a system (by name or alias, an
   alignment's columns and rows too) is passed to the next resolve (`sourceLengths(model, coverage)`,
   `ResolveOptions.lengths`, `Resolver.resolve(spec, lengths)`), and the system resolves as one with inline letters of
@@ -1137,14 +1164,55 @@ store. `resolveSpec(spec, { runtimes, config })`, or `createResolver` to keep en
   into typed arrays on the entry (`pairs`, `grid`), on two systems (`target` and `ySystem`), with no access plan: they
   are inline, read whole, and their reductions are their layers'. A grid whose values are not `|x| × |y|`, or more than
   `DefaultMaxBlockValues` (the bound the store checks a block), is dropped with `seq.resolve.grid.size` saying the count
-  it expected. Pairs and grids read by region wait for the Genomes milestone.
+  it expected. Pairs and grids read by region wait for the Genomes milestone. **Links** (a `pairs` child, Language,
+  Molecules and complexes) are held so too: a molecule's on its residues (`target` and `ySystem` the molecule); a
+  complex's with each end on its row's unit (`PairsData.aUnit`, `bUnit`: indices into the entry's `units`, the complex's
+  units in order; a row naming no unit of it is left out), so a query reads each end on its own unit and an end on one
+  copy never lights another.
 - **Wrapped rows**: a row that wraps a cyclic origin is two rows of one item, in the items and the table (EC-9). On a
   sequence of unknown length it is left out with `seq.resolve.length.unknown` until the length is known.
 - **The query forms' model**: `system`, `annotation` (ranges; inline items at once, a source's pending over what is
-  asked); `node` and `chain` answer none (no overlay, no structures in tier 1), and the form reports
-  `seq.query.node.missing`.
+  asked); the molecule forms' reads (`components`, `compoundClass`, `annotationsOn`, `units`, `molecule`, `atoms`:
+  `resolve/molecule-query.ts`, one implementation for the model and the overlay); `node` answers none (no overlay in
+  tier 1), and the form reports `seq.query.node.missing`.
 - **Caching**: an entry is keyed by its address and the hashes of the nodes it reads (a map: itself and its two
   sequences); an equal spec gives the same model, its paths and resolved views with it.
+
+### Molecules and units
+
+`resolve/molecules.ts` (the entries), `StaticModel.molecular` (`molecules`, `complexes`, `units`, `atoms`, `modified`).
+Seq\* holds pointers and labels: codes and identifiers are strings.
+
+- **A molecule** is two systems: `<molecule>` (its residues, a code each; `kind: 'molecule'`, no alphabet) and, with
+  atoms, `<molecule>/(atoms)` (`atomsSystemOf`; `kind: 'atoms'`). Its class is `ligand` when it names none.
+- **A unit** is a system (`kind: 'unit'`) on its molecule's positions over its range, counted from 0: its position i is
+  the molecule's `start + i` (`SystemEntry.parent`), its length its range's (its molecule's when it names none, unknown
+  while that is), its letters its sequence's over the range: inline, sliced; a source's, read on the sequence's
+  positions through the unit's step (the layer's data system is then the sequence), pending while unread (EC-169), and a
+  component form reading standard components waits for them. A unit of a molecule with atoms has its own
+  `<unit>/(atoms)`: the molecule's atoms of its residues. Why from 0: every system counts from 0, and the step up adds
+  the start (decided by the author).
+- **Steps**: a unit's `up` to its molecule and `down` from it (`unitEdges`), free in the search and under the copy rule
+  (Paths); a carried search is checked against the units it read as against the maps.
+- **Copies are derived** (EC-65): units of one complex with equal `of` and range share a copy group
+  (`ComplexEntry.copies`, by key, each group's units in the complex's order), never declared; the same groups for any
+  order of the units.
+- **The atoms group map** (`AtomsEntry.offsets`: residue `r` owns atoms `[offsets[r], offsets[r + 1])`): many-to-one, so
+  never a path step (a path is one linear map at one scale). It applies at a path's ends only: a part on atoms is
+  collapsed onto the residues it touches before projection (`collapseAtoms`, as nucleotides onto residues), and an image
+  on a molecule's residues is expanded onto their atoms after it when the target is an atoms system (`expandAtoms`).
+  Focus projects through it (one jump); a follow does not (no path enters an atoms system: a follow needs a fixed scale,
+  EC-113).
+- **The modified index** (`modified(system)`): a sequence's `modified` rows, sorted (position, component, length);
+  `modifiedAt` gives the components covering a position (alternatives in the source's order), `componentsAt` those or
+  the letter's standard component (`@molstar/core`'s `standardComponent`). A unit's is its sequence's shifted by the
+  start and clipped to the range.
+- **Bounded**: a complex past `maxUnits` units is refused whole with `seq.resolve.complex.units` (its hint: read a
+  subset of the assembly).
+- **Compounds** (`compounds`): the `compound` nodes by code (name, class, parents), what `(component :class …)` reads;
+  `compound(code)` falls back to the host's names (`ResolveOptions.componentNames`, the `componentNames` entry's
+  lookup). A host's identifier resolver is `ResolveOptions.equivalents` (the `identifierResolver` entry): the
+  identifiers it holds the same compound as one, which `(molecule :identifier …)` adds; none by default.
 
 ### Maps
 
@@ -1193,7 +1261,8 @@ store. `resolveSpec(spec, { runtimes, config })`, or `createResolver` to keep en
   ambiguous; nothing else can.
 - **Projection** (`projectRanges(path, ranges, out?)`, `StaticModel.project`): ranges along the path, into the caller's
   buffer when given; from nucleotides to residues, the residues they touch (EC-18). A part with no path is left out with
-  its issue; rects are not projected yet.
+  its issue; rects are not projected yet. `project` applies the atoms group map at the ends (Molecules and units).
+- **A path read the other way** (`inversePath`) reads each step the other way: a unit's `up` is `down`.
 - **A point** (`projectPoint`, exported from `resolve`: the viewer's follows read it too): the continuous image of a
   fractional position, place by place: across a codon step residue `x` is fine place `3x`, so each nucleotide of a codon
   is an edge of its own and a codon split by an intron follows its nucleotides, never the intron; where place `floor(x)`
@@ -1216,8 +1285,10 @@ store. `resolveSpec(spec, { runtimes, config })`, or `createResolver` to keep en
 ### Issues
 
 `seq.resolve.*` (`ResolveIssues`): `ref.missing` and `source.format` (a spec not checked), `source.runtime`,
-`map.empty`, `map.codon_length`, `map.table`, `length.unknown`, `path.none`, `path.ambiguous`, `path.limit`, and the
-overlay's `node.invalid`, `node.ref`, `node.depth`. A test checks the catalog against the sources.
+`map.empty`, `map.codon_length`, `map.table`, `length.unknown`, `path.none`, `path.ambiguous`, `path.limit`,
+`complex.units`, `ref.system` (a reference to a sequence, molecule or unit that made no system: a unit of a refused
+complex or of nothing held; what reads it is left out), and the overlay's `node.invalid`, `node.ref`, `node.depth`. A
+test checks the catalog against the sources.
 
 ## Overlay
 
@@ -1246,8 +1317,18 @@ of it (`buildOverlay(model, reader)`; `OverlayBuilder` keeps one a node version 
   request, and a view that shows no domains asks for none.
 - **Named systems**: `systemNamed(name, near)` is the system a nested source's coverage names: an item system of a node
   its parent source (`near`) brought, else a spec system of the name.
-- **Holds**: `holds(addresses)` is the nodes of the given addresses (a node, or an item system: its node) and,
-  transitively, the nodes their `target` and `source` name: what is shown holds what it is drawn through.
+- **Holds**: `holds(addresses)` is the nodes of the given addresses (a node; an item system, a unit or an atoms system:
+  its node) and, transitively, the nodes their `target` and `source` name and a complex's units' `of`: what is shown
+  holds what it is drawn through.
+- **Molecules and complexes** (`overlay-molecules.ts`, `Overlay.molecular`): a source's `sequence` and `molecule` nodes
+  are systems at their node's address (a molecule's atoms at `<node>/(atoms)`), its `compounds` node its compounds, and
+  a `complex` node's units systems at `<complex node>/<unit id>` with their steps (Resolve, Molecules and units), their
+  inline numberings (`auth`) answering the query forms. Sequences and molecules are taken before complexes, complexes
+  before annotations, at each depth. Each unit passes `checkUnit` against its molecule's length and each links node
+  `checkLinks` against the complex's units, as a spec's do; one with an error is left out with its issues, and a unit
+  whose `of` names nothing held is `seq.resolve.node.ref`. A complex past `maxUnits` units is refused whole. A
+  structure's unit names its entity's node by a string key (`(node :key "1")`), as `nodeAddress` prints it: a number
+  never names a node.
 
 ## Resolved view
 

@@ -15,6 +15,12 @@ export const ResolveIssues = defineIssues('seq.resolve', {
     description: 'A reference the resolve pass follows names no node of a kind it takes (the spec was not checked)',
     hint: 'Check the spec first: checkSeqSpec reports what it names',
   },
+  'seq.resolve.ref.system': {
+    severity: 'warning',
+    description:
+      'A reference names a sequence, molecule or unit that made no system (a unit of a refused complex, or of nothing held); what reads it is left out',
+    hint: 'Name a system the model holds: a unit of a complex within `maxUnits`, whose `of` is held',
+  },
   'seq.resolve.source.format': {
     severity: 'error',
     description: 'A source names no format (the spec was not checked); it is unavailable',
@@ -80,6 +86,11 @@ export const ResolveIssues = defineIssues('seq.resolve', {
   'seq.resolve.item.strand': {
     severity: 'warning',
     description: 'The rows of an item with a codon map are on both strands; the first row’s strand is taken',
+  },
+  'seq.resolve.complex.units': {
+    severity: 'warning',
+    description: 'A complex has more units than the configuration allows (`maxUnits`); it is left out',
+    hint: 'Read a subset of the assembly (fewer operators or chains), or raise `maxUnits` at its memory',
   },
   'seq.resolve.node.depth': {
     severity: 'warning',

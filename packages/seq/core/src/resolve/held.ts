@@ -32,6 +32,12 @@ export interface PairsData {
   readonly bStrand: Int8Array;
   /** Any other category column of the rows, by name, a value a kept pair (a flag a filter reads: `tertiary`). */
   readonly extra?: Readonly<Record<string, readonly (string | null)[]>>;
+  /**
+   * Links of a complex (_spec/README.md "Resolve", Pairs and grids): each end's unit, an index into the annotation's
+   * `units`; a row naming no unit of the complex is left out.
+   */
+  readonly aUnit?: Int32Array;
+  readonly bUnit?: Int32Array;
 }
 
 /** A `grid` node's values: `nx × ny`, x-major (`values[i × ny + j]` at x i, y j), NaN missing. */
@@ -52,10 +58,25 @@ function category(v: Value | undefined): Category | undefined {
   return typeof (v as unknown as Category).get === 'function' ? (v as unknown as Category) : undefined;
 }
 
-const PairColumns = new Set(['a_start', 'a_end', 'b_start', 'b_end', 'id', 'type', 'label', 'a_strand', 'b_strand']);
+const PairColumns = new Set([
+  'a_start',
+  'a_end',
+  'b_start',
+  'b_end',
+  'id',
+  'type',
+  'label',
+  'a_strand',
+  'b_strand',
+  'a_unit',
+  'b_unit',
+]);
 
-/** A pairs node's rows read into arrays; rows whose ends are not intervals are left out (the checks said so). */
-export function readPairs(node: Node): PairsData {
+/**
+ * A pairs node's rows read into arrays; rows whose ends are not intervals are left out (the checks said so). Under a
+ * complex (`unitOf`: a unit's index by its id, −1 for none) each end's unit is read too, a row naming none left out.
+ */
+export function readPairs(node: Node, unitOf?: (id: string) => number): PairsData {
   const rows = (p(node, 'rows') ?? {}) as Record<string, Value>;
   const col = (k: string): ArrayLike<number> => (isColumn(rows[k]) ? (rows[k] as unknown as ArrayLike<number>) : []);
   const as = col('a_start');
@@ -68,6 +89,14 @@ export function readPairs(node: Node): PairsData {
   const aStr = category(rows.a_strand);
   const bStr = category(rows.b_strand);
   const label = Array.isArray(rows.label) ? (rows.label as (string | null)[]) : undefined;
+  const aUnits = unitOf && category(rows.a_unit);
+  const bUnits = unitOf && category(rows.b_unit);
+  const aUnit = unitOf ? new Int32Array(n0) : undefined;
+  const bUnit = unitOf ? new Int32Array(n0) : undefined;
+  const unitAt = (c: Category | undefined, i: number) => {
+    const id = c?.get(i);
+    return id === null || id === undefined ? -1 : unitOf!(id);
+  };
   const aStart = new Int32Array(n0);
   const aEnd = new Int32Array(n0);
   const bStart = new Int32Array(n0);
@@ -88,6 +117,13 @@ export function readPairs(node: Node): PairsData {
   let n = 0;
   for (let i = 0; i < n0; i++) {
     if (!(as[i] >= 0 && ae[i] > as[i] && bs[i] >= 0 && be[i] > bs[i])) continue;
+    if (aUnit && bUnit) {
+      const ua = unitAt(aUnits, i);
+      const ub = unitAt(bUnits, i);
+      if (ua < 0 || ub < 0) continue;
+      aUnit[n] = ua;
+      bUnit[n] = ub;
+    }
     aStart[n] = as[i];
     aEnd[n] = ae[i];
     bStart[n] = bs[i];
@@ -123,6 +159,7 @@ export function readPairs(node: Node): PairsData {
     aStrand: aStrand.subarray(0, n),
     bStrand: bStrand.subarray(0, n),
     ...(extraCols.length ? { extra: Object.fromEntries(extraCols.map(([k, , out]) => [k, out])) } : {}),
+    ...(aUnit && bUnit ? { aUnit: aUnit.subarray(0, n), bUnit: bUnit.subarray(0, n) } : {}),
   };
 }
 
