@@ -91,6 +91,11 @@ export interface RenderConfig {
   readonly labelFont: string;
   /** Items' labels inside their marks. */
   readonly itemFont: string;
+  /**
+   * Items' labels inside their marks: one that fits neither whole inside nor beside goes inside cut with an ellipsis
+   * while at least `minChars` letters are kept (4; a label of so many or fewer only whole), else is dropped.
+   */
+  readonly labels: { readonly minChars: number };
   /** How far past its max width a text fades out, CSS px. */
   readonly fade: number;
   /** Squircle corners: radius a third of the height, capped; none below `squircleMin` in either dimension. */
@@ -301,6 +306,7 @@ export const DefaultRenderConfig: RenderConfig = {
   monoAdvance: 0.6,
   labelFont: '12px sans',
   itemFont: '10px sans',
+  labels: { minChars: 4 },
   fade: 12,
   squircleRatio: 1 / 3,
   squircleMax: 8,

@@ -1117,6 +1117,7 @@ the UX foundations' numbers, CSS px, settled by the foundation stories; where no
 | `letterSizes`                                                  | 9 to 14                                                                                                                | a short scale; the largest that fits the cell is used                                                                                                                                                                                                                                                                   |
 | `monoAdvance`                                                  | 0.6 em                                                                                                                 | a letter's size known from its cell with no measuring                                                                                                                                                                                                                                                                   |
 | `labelFont`, `itemFont`                                        | `12px sans`, `10px sans`                                                                                               | a family role a backend maps to its stack                                                                                                                                                                                                                                                                               |
+| `labels.minChars`                                              | 4                                                                                                                      | a label cut inside its mark keeps at least so many letters, else it is dropped (the author: “4 characters as default is fine, should be configurable”)                                                                                                                                                                  |
 | `fade`                                                         | 12                                                                                                                     | how far past its max width a text fades out                                                                                                                                                                                                                                                                             |
 | `squircleRatio`, `squircleMax`, `squircleMin`                  | 1/3, 8, 6                                                                                                              | a radius a third of the height, capped; none below the minimum                                                                                                                                                                                                                                                          |
 | `outline`                                                      | hover 1.5, selection 1, cursor 1                                                                                       | outline widths                                                                                                                                                                                                                                                                                                          |
@@ -1912,16 +1913,21 @@ numbers): a window move allocates nothing once warm.
 ### Labels inside if they fit, else beside
 
 - One rule in both layouts (rings: the sink, Rings layout). On a linear track an item's label is drawn inside the first
-  of its marks it fits whole in (the mark less its arrowheads and a 3 px inset each side), never cut mid-word; else in
-  the track's label lane at its leftmost mark's x, moved right clear of a label placed before it with a short leader
-  from its own mark (at most its own width, or 24 px); **a leader never crosses another label or a mark above its item**
-  (the label lane's labels, the marks of this and the earlier layers: `LabelLane.crosses`), so a label that would need
-  one is dropped, as is one the lane cannot hold, or a track with no label lane (the hover card names it). **A run is
-  labeled once**: items of one layer with the same label, each less than the label's width from the one before it in x,
-  get one label at the run's start and none of their own (`firstOfRuns`; the label's hit is the run's first item; the
-  hover card names each). **One label lane a track**: its layers' labels beside share it, placed by one priority, the
-  layer's order, then the longer item. An item is labeled once. The same font and size inside and beside; the ink is the
-  contrast rule's inside a mark, the text color beside it (decided). A placed label's hit is its item's.
+  of its marks it fits whole in (the mark's part in the box, less its arrowheads and a 3 px inset each side: a mark cut
+  at the section's edge keeps its label within the box, never clipped mid-glyph); else in the track's label lane at its
+  leftmost mark's x, moved right clear of a label placed before it with a short leader from its own mark (at most its
+  own width, or 24 px); **a leader never crosses another label or a mark above its item** (the label lane's labels, the
+  marks of this and the earlier layers: `LabelLane.crosses`), so a label that would need one goes on, as does one the
+  lane cannot hold, or one on a track with no label lane: **inside cut** with an ellipsis in the first of its marks that
+  holds at least `labels.minChars` letters (4) and the ellipsis, the most letters that fit (a label of `minChars`
+  letters or fewer only whole), else dropped (the hover card names it, whole; the address too). The canvas and the SVG
+  cut alike (one layout, the text-metrics port); a cut is made once (`range-labels.ts`). Why: a label vanishing whole
+  from a box a step of zoom narrower reads as lost data (the author). **A run is labeled once**: items of one layer with
+  the same label, each less than the label's width from the one before it in x, get one label at the run's start and
+  none of their own (`firstOfRuns`; the label's hit is the run's first item; the hover card names each). **One label
+  lane a track**: its layers' labels beside share it, placed by one priority, the layer's order, then the longer item.
+  An item is labeled once. The same font and size inside and beside; the ink is the contrast rule's inside a mark, the
+  text color beside it (decided). A placed label's hit is its item's.
 - **Placed per layout** (the layers', in their order, allocation-free once warm): a pan in the same level lays the
   layers out again and places their labels again in view, as their marks are; never on a hover.
 

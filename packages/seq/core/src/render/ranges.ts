@@ -60,7 +60,8 @@ import type {
 import { LabelLane, type LayerContent } from './sizing.js';
 import { arrowArgs, drawFailed, drawSpans } from './marks.js';
 import { squircleRadius } from './squircle.js';
-import { CategoryCount, inkOn, mixColors, type SeqTokens, withAlpha } from './tokens.js';
+import { CategoryCount, mixColors, type SeqTokens, withAlpha } from './tokens.js';
+import { LabelInset, LabelMinPx, labelText, labelX, labelsInside, minGlyphPx } from './range-labels.js';
 
 // the anchor a number read once: a draw reads no property of an imported object (that site's feedback, cleared, made
 // a warm draw deoptimize and allocate without end once the 150,000-piece scenario had run first)
@@ -90,25 +91,10 @@ const WaveStep = 3;
 const WaveAmplitude = 2;
 const LineWidth = 2;
 /**
- * Labels inside if they fit, else beside (_spec/README.md "Render", Labels): a label goes inside its mark only whole,
- * its inset each side (`LabelInset`: 3 px a side) included, never cut mid-word; else in the label lane above the
- * track, at its item's start, a leader when it had to move (`LabelGapPx` between two labels there), or it is dropped.
- * None inside a mark below `LabelMinPx`, where no text fits.
+ * Labels inside if they fit, else beside (_spec/README.md "Render", Labels; range-labels.ts): in the label lane above
+ * the track, at its item's start, a leader when it had to move (`LabelGapPx` between two labels there).
  */
-const LabelInset = 6;
-const LabelMinPx = 8;
 const LabelGapPx = 6;
-/**
- * The narrowest a glyph is, in ems of the item font (a lower bound: `i`, `l`, `.` are about 0.22 em in sans fonts): a
- * label of n glyphs is at least n of these wide, so one too long for a narrow mark is skipped unmeasured.
- */
-const MinGlyphEm = 0.15;
-
-/** The narrowest a glyph of `font` is (CSS px); 0 when its size is not in px (every label is then measured). */
-function minGlyphPx(font: string): number {
-  const m = /(\d+(?:\.\d+)?)px/.exec(font);
-  return m ? Number(m[1]) * MinGlyphEm : 0;
-}
 /** A mark this wide (CSS px) or wider draws its item's arrowhead, at any step: narrower, the head would be all of it. */
 const ArrowMinPx = 4;
 /** A highlight's alpha: 0.35 of 255, the channel's default. */
@@ -172,6 +158,7 @@ export interface RangesLay extends ItemsBase {
   mitem: Int32Array;
   mround: Uint8Array;
   mlabel: Float32Array;
+  mcut: Int32Array;
   /** Each mark's squircle radius (0: square) and its label's ink, made at layout: the draw computes no number. */
   mradius: Float64Array;
   mink: Uint32Array;
@@ -274,6 +261,7 @@ function newLay(ctx: LayoutContext, prep: RangesPrep): RangesLay {
     mitem: new Int32Array(64),
     mround: new Uint8Array(64),
     mlabel: new Float32Array(64),
+    mcut: new Int32Array(64),
     mradius: new Float64Array(64),
     mink: new Uint32Array(64),
     mtip: new Uint8Array(64),
@@ -339,6 +327,7 @@ function nextMark(lay: RangesLay): number {
     lay.mitem = grown(lay.mitem, j + 1);
     lay.mround = grown(lay.mround, j + 1);
     lay.mlabel = grown(lay.mlabel, j + 1);
+    lay.mcut = grown(lay.mcut, j + 1);
     lay.mradius = grown(lay.mradius, j + 1);
     lay.mink = grown(lay.mink, j + 1);
     lay.mtip = grown(lay.mtip, j + 1);
@@ -460,43 +449,34 @@ const OwnLane = new LabelLane();
 /**
  * Each label inside the first of its marks it fits whole; an item whose label fits none of its marks in view goes beside,
  * in the track's label lane at its leftmost mark's x (moved right past a label placed before it, the track's earlier
- * layers' first, a leader drawn from its own lane), placed by one priority (the layer's order, then the longer item)
- * and dropped when the lane cannot hold it. Allocation-free once warm: placed per layout, never on a hover.
+ * layers' first, a leader drawn from its own lane), placed by one priority (the layer's order, then the longer item);
+ * one the lane cannot hold goes inside cut, else is dropped. Allocation-free once warm: per layout, never on a hover.
  */
 function placeLabels(lay: RangesLay, ctx: LayoutContext) {
-  const { tokens, text } = ctx;
   const n = lay.items;
   lay.left = grown(lay.left, n);
   const left = lay.left;
   left.fill(Number.POSITIVE_INFINITY, 0, n);
   lay.right = grown(lay.right, n);
   lay.right.fill(Number.NEGATIVE_INFINITY, 0, n);
-  const glyph = minGlyphPx(lay.font);
   for (let j = 0; j < lay.hn; j++) {
     const i = lay.hitem[j];
     if (i < 0) continue;
     if (lay.hx0[j] < left[i]) left[i] = lay.hx0[j];
     if (lay.hx1[j] > lay.right[i]) lay.right[i] = lay.hx1[j];
   }
-  // an item labeled once: in the first of its marks (in reading order on the page) its label fits
+  // whole inside, else beside, else inside cut (range-labels.ts): an item labeled once
+  lay.labeled.clear();
+  labelsInside(lay, ctx.text, ctx.tokens, 0);
+  if (lay.labelY >= 0) placeBeside(lay, ctx);
+  labelsInside(lay, ctx.text, ctx.tokens, ctx.config.labels.minChars);
+}
+
+/** Labels beside, in the track's label lane: each item with no label inside, by priority; dropped when it cannot. */
+function placeBeside(lay: RangesLay, ctx: LayoutContext) {
+  const left = lay.left;
   const labeled = lay.labeled;
-  labeled.clear();
-  for (let j = 0; j < lay.m; j++) {
-    const i = lay.mitem[j];
-    if (i < 0) continue;
-    const label = lay.labels[i];
-    if (!label || labeled.has(lay.keys[i])) continue;
-    // an arrowhead is no room for text: the label sits in the mark's body
-    const w = lay.mx1[j] - lay.mx0[j] - tipRoom(lay, j, 3);
-    // only whole: one surely too long for its mark is not measured (dense items)
-    if (w < LabelMinPx || label.length * glyph + LabelInset > w) continue;
-    const m = text.measure(lay.font, label);
-    if (m + LabelInset > w) continue;
-    lay.mlabel[j] = m;
-    lay.mink[j] = lay.style ? tokens.colors['msui-text'] : inkOn(lay.fills[i], tokens);
-    labeled.add(lay.keys[i]);
-  }
-  if (lay.labelY < 0) return;
+  const n = lay.items;
   const lane = ctx.labelLane ?? OwnLane;
   if (!ctx.labelLane) lane.reset();
   // the layer's marks, for the leaders of this and the later layers (a leader never crosses a mark above its item)
@@ -521,14 +501,17 @@ function placeLabels(lay: RangesLay, ctx: LayoutContext) {
   const x1 = lay.box.x + lay.box.width;
   for (let k = 0; k < c; k++) {
     const i = cand[k];
-    const w = text.measure(lay.font, lay.labels[i] as string);
+    const w = ctx.text.measure(lay.font, lay.labels[i] as string);
     const want = Math.max(left[i], x0);
     // the first free place from its start rightward, past the labels already placed in the track's lane
     const x = lane.free(want, w, LabelGapPx);
     // dropped past the box's end, or moved further than its own width (a leader is a short one), or when its leader
-    // would cross a label or a mark
-    if (x + w > x1 || x - want > Math.max(w, 24)) continue;
-    if (x - want >= 1 && lane.crosses(want + 0.5, Math.max(0, lay.lanes[i]), x - 2)) continue;
+    // would cross a label or a mark (then it may go inside cut)
+    const no = x + w > x1 || x - want > Math.max(w, 24);
+    if (no || (x - want >= 1 && lane.crosses(want + 0.5, Math.max(0, lay.lanes[i]), x - 2))) {
+      labeled.delete(lay.keys[i]);
+      continue;
+    }
     lane.add(x, w);
     const q = lay.ln++;
     if (q >= lay.lx.length) {
@@ -1148,7 +1131,7 @@ function drawStyled(lay: RangesLay, out: PassWriter) {
   }
 }
 
-/** The labels pass: the labels inside their marks, whole, and those beside in the label lane with their leaders. */
+/** The labels pass: the labels inside their marks (whole or cut), and those beside in the label lane with their leaders. */
 function drawLabels(lay: RangesLay, out: PassWriter, _emphasis: Emphasis | undefined) {
   const gap = lay.gap;
   const g = out.args;
@@ -1159,7 +1142,7 @@ function drawLabels(lay: RangesLay, out: PassWriter, _emphasis: Emphasis | undef
     const baseline = y + h / 2 + lay.fontSize * 0.35;
     if (lay.style >= 1 && lay.style <= 5) {
       // a line runs through its label's place: the page's color under the text, so the label reads (the line stops at it)
-      g[0] = lay.mx0[j] + 1;
+      g[0] = labelX(lay, j) - 2;
       g[1] = baseline - lay.fontSize * 0.85;
       g[2] = lay.mlabel[j] + 4;
       g[3] = lay.fontSize;
@@ -1170,12 +1153,12 @@ function drawLabels(lay: RangesLay, out: PassWriter, _emphasis: Emphasis | undef
       g[8] = 0;
       out.rectArgs();
     }
-    g[0] = lay.mx0[j] + 3 + tipRoom(lay, j, 1);
+    g[0] = labelX(lay, j);
     g[1] = baseline;
     g[2] = lay.mlabel[j];
     g[3] = lay.mlabel[j];
     g[4] = lay.mink[j];
-    out.textArgs(lay.labels[lay.mitem[j]] as string, AnchorStart, lay.font);
+    out.textArgs(labelText(lay, j), AnchorStart, lay.font);
   }
   if (!lay.ln) return;
   const mid = lay.labelY + lay.laneHeight / 2;
@@ -1207,14 +1190,6 @@ function drawLabels(lay: RangesLay, out: PassWriter, _emphasis: Emphasis | undef
     g[4] = ink;
     out.textArgs(lay.labels[lay.litem[k]] as string, AnchorStart, lay.font);
   }
-}
-
-/** The px a mark's arrowheads take on the sides `sides` names (1: its left, 2: its right, 3: both). */
-function tipRoom(lay: RangesLay, j: number, sides: number): number {
-  const tips = lay.mtip[j] & sides;
-  if (!tips) return 0;
-  const head = Math.min((lay.laneHeight - lay.gap) * 0.9, lay.mx1[j] - lay.mx0[j]);
-  return tips === 3 ? 2 * head : head;
 }
 
 /** A leader's three points, written per label (kept). */

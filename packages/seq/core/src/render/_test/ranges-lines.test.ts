@@ -159,6 +159,53 @@ describe('ranges: labels', () => {
     expect(labelled).toEqual(['a', undefined]);
     expect(lay.mlabel[0] + 6).toBeLessThanOrEqual(w);
   });
+
+  /** The labels pass's texts. */
+  const texts = (f: Awaited<ReturnType<Awaited<ReturnType<typeof settle>>['frame']>>) => {
+    const t = f.lists.passes.labels.texts;
+    return Array.from({ length: t.n }, (_, i) => ({ text: f.lists.string(t.str[i]), x: t.x[i], w: t.width[i] }));
+  };
+
+  // the last 40 of 400 positions (about 70 px): "Tetramerization domain" (about 105 px) fits neither whole inside nor
+  // beside (past the box's end there), so it goes inside cut; "Nuclear localization" fits beside, whole
+  const LONG = {
+    start: [300, 360],
+    end: [304, 400],
+    id: ['nls', 'tet'],
+    label: ['Nuclear localization', 'Tetramerization domain'],
+  };
+
+  it('one that fits neither whole inside nor beside goes inside cut with an ellipsis, at least `labels.minChars`', async () => {
+    const s = await settle(spec(LONG as never, {}));
+    const f = await s.frame({ size: SIZE });
+    const lay = layerLay<RangesLay>(f, 0);
+    const t = texts(f);
+    const tet = t.find((x) => x.text.startsWith('Tetr'))!;
+    expect(tet.text).toMatch(/^Tetr[\w ]*…$/);
+    expect(tet.text.length - 1).toBeGreaterThanOrEqual(4);
+    // within its mark, its inset kept
+    const j = Array.from({ length: lay.m }, (_, k) => k).find((k) => lay.keys[lay.mitem[k]] === 'tet')!;
+    expect(lay.mcut[j]).toBe(tet.text.length - 1);
+    expect(tet.x).toBeGreaterThanOrEqual(lay.mx0[j] + 3 - 1e-6);
+    expect(tet.x + tet.w).toBeLessThanOrEqual(lay.mx1[j] - 3 + 1e-6);
+    // beside, whole
+    expect(t.map((x) => x.text)).toContain('Nuclear localization');
+  });
+
+  it('a larger `labels.minChars` keeps more letters or none: the label dropped', async () => {
+    const s = await settle(spec(LONG as never, {}), [], { labels: { minChars: 14 } });
+    const f = await s.frame({ size: SIZE });
+    expect(texts(f).some((x) => x.text.startsWith('Tetr'))).toBe(false);
+  });
+
+  it('a label inside stays within the box when its mark is cut at the section’s edge', async () => {
+    const s = await settle(spec({ start: [0], end: [200], id: ['a'], label: ['C-terminal'] } as never, {}));
+    const f = await s.frame({ size: SIZE, viewport: { start: 100, end: 300 } });
+    const lay = layerLay<RangesLay>(f, 0);
+    const t = texts(f).find((x) => x.text.startsWith('C-'))!;
+    expect(t.x).toBeGreaterThanOrEqual(lay.box.x);
+    expect(t.x + t.w).toBeLessThanOrEqual(lay.box.x + lay.box.width);
+  });
 });
 
 describe('ranges: arrowheads', () => {
