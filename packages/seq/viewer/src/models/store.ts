@@ -32,7 +32,7 @@ import {
   type StaticModel,
 } from '@molstar/seqx-core/resolve';
 import type { ResolvedView } from '@molstar/seqx-core/view';
-import { DomHost } from '@molstar/ui/dom';
+import { DomHost } from '@molstar/ui/dom/host';
 import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
 import { ViewerIssues } from '@molstar/seqx-viewer/issues';
 

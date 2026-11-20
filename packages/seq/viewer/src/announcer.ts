@@ -5,7 +5,7 @@
  */
 
 import { type ReadonlyState, State } from '@molstar/core/reactive';
-import { DomHost } from '@molstar/ui/dom';
+import { DomHost } from '@molstar/ui/dom/host';
 import { locationText } from '@molstar/seqx-core/render';
 import { type Describer, describerFor } from '@molstar/seqx-viewer/describe';
 import type { SeqViewer } from './viewer.js';

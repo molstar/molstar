@@ -131,8 +131,12 @@ describe('a header line’s geometry', () => {
         expect(boxes[i].x).toBeGreaterThanOrEqual(config.inset);
         expect(boxes[i].x + boxes[i].width).toBeLessThanOrEqual(config.inset + config.labelWidth + 1e-9);
       }
-      // the slots in their columns: the k-th at the columns' x plus k slots, the "⋯" at the column's end
-      header.slots.forEach((s, k) => expect(s.x).toBe(cols.x + k * config.header.slotPx));
+      // the slots in their columns: the k-th k + 1 slots left of the "⋯" (the first next to it, whatever the line's
+      // count), within the columns; the "⋯" at the column's end
+      header.slots.forEach((s, k) => {
+        expect(s.x).toBe(config.inset + config.labelWidth - (k + 2) * config.header.slotPx);
+        expect(s.x).toBeGreaterThanOrEqual(cols.x);
+      });
       if (header.menu) expect(header.menu.x).toBe(config.inset + config.labelWidth - config.header.slotPx);
       // a short track: no slots, its states marks
       if (height < config.header.minHeightPx) {
@@ -156,6 +160,65 @@ describe('a header line’s geometry', () => {
     const eyes = s.tracks.filter((t) => t.header!.slots.length).map((t) => t.header!.slots[0].x);
     expect(eyes.length).toBe(3);
     expect(new Set(eyes).size).toBe(1);
+  });
+});
+
+describe('a line reserves only the slots it has (the default 112 px column)', () => {
+  const well = { x: 200, y: 40, width: 400, height: 20 };
+  const eye = { name: 'seq:hide', label: 'Hide track', enabled: true };
+  const palette = { name: 'seq:color', label: 'Color', enabled: true };
+
+  it('a section line with no slots: its "1 hidden" a chip up to the "⋯"; a track with the eye alone: "1 filtered" a chip', () => {
+    const config = renderConfig();
+    expect(config.labelWidth).toBe(112);
+    const section = { address: '/views/main/p' } as never;
+    const sh = sectionHeaderLine(
+      { states: [{ name: 'seq:hidden-tracks', text: '1 hidden', count: 1 }], menu: true },
+      section,
+      'p',
+      0,
+      config,
+      Text,
+      false,
+    );
+    expect(sh.states.map((x) => x.mark)).toEqual([false]);
+    expect(sh.states[0].box.x + sh.states[0].box.width).toBeLessThanOrEqual(sh.menu!.x);
+    const { header } = trackHeaderLine(
+      { slots: [eye], states: [{ name: 'seq:filtered', text: '1 filtered', count: 1 }], menu: true },
+      '/v/s/t',
+      's',
+      well,
+      config,
+      Text,
+      false,
+    );
+    expect(header.states.map((x) => x.mark)).toEqual([false]);
+    expect(header.states[0].box.x + header.states[0].box.width).toBeLessThanOrEqual(header.slots[0].x);
+  });
+
+  it('the eye in one column whether the line has one slot or two', () => {
+    const config = renderConfig();
+    const one = trackHeaderLine({ slots: [eye], menu: true }, '/v/s/a', 's', well, config, Text, false).header.slots;
+    const oneX = one[0].x;
+    const two = trackHeaderLine({ slots: [eye, palette], menu: true }, '/v/s/b', 's', well, config, Text, false).header
+      .slots;
+    expect(two[0].x).toBe(oneX);
+    expect(two[1].x).toBe(oneX - config.header.slotPx);
+  });
+
+  it('an 80 px column with actions: the slot leaves the chips no room, the states marks', () => {
+    const config = renderConfig({ labelWidth: 80 });
+    const { header } = trackHeaderLine(
+      { slots: [eye], states: [{ name: 'seq:filtered', text: '1 filtered', count: 1 }], menu: true },
+      '/v/s/t',
+      's',
+      well,
+      config,
+      Text,
+      false,
+    );
+    expect(header.slots).toHaveLength(1);
+    expect(header.states.map((x) => x.mark)).toEqual([true]);
   });
 });
 
@@ -300,7 +363,7 @@ describe('drawn alike, hit as laid out', () => {
       count: 1,
     });
     const line = sec.header!.line;
-    expect(hitView(f.layout, line.x + line.width - 30, line.y + line.height / 2)).toBe(sec.header!.hit);
+    expect(hitView(f.layout, line.x + 2, line.y + line.height / 2)).toBe(sec.header!.hit);
     // the "⋯" names the menu, hit while its track's actions show
     const t0 = sec.tracks[0];
     const menu = t0.header!.menu!;
@@ -339,6 +402,29 @@ describe('drawn alike, hit as laid out', () => {
       'highlight',
     ]);
     expect(over).toBe(none);
+  });
+
+  it('a host’s DOM parts (`hosted`): the chrome draws no state, slot or "⋯" over their boxes; an export its states', async () => {
+    const hosted: HeaderPartsOf = (f) => {
+      const p = Host(f);
+      return p && { ...p, hosted: true };
+    };
+    const { s, f, input } = await frame(['more'], hosted);
+    const sec = f.layout.sections[0];
+    const dom = sec.tracks[1];
+    // laid out as the canvas's (the boxes the parts are placed over)
+    expect(dom.header!.hosted).toBe(true);
+    expect(dom.header!.slots.length).toBeGreaterThan(0);
+    expect(dom.header!.states.length).toBeGreaterThan(0);
+    const slot = dom.header!.slots[0];
+    const hover = { hover: { ...slot.hit } };
+    const lists = s.renderer.frame({ ...input, emphasis: hover }).lists;
+    const drawn = recordDrawLists(lists, ['labels', 'tip']);
+    expect(drawn).not.toContain('"2 filtered"');
+    expect(drawn).not.toContain('"1 hidden"');
+    expect(recordDrawLists(lists, ['tip'])).not.toMatch(/^(path|rect) /m);
+    const out = await renderSvg(spec(['more']), { size: { width: 720, height: 200 }, headers: hosted });
+    expect(out.svg).toContain('2 filtered');
   });
 
   it('an export draws the states, never the slots; `header.states.export: none` leaves the states out', async () => {

@@ -13,14 +13,14 @@ import {
   type Rail,
   RowsRail,
   railUnitAt,
-  HeaderStateNames,
   type Hit as RenderHit,
   type SectionLayout,
-  type ViewLayout,
   type WindowPart,
 } from '@molstar/seqx-core/render';
+import type { HeaderActionEntry } from './header-entries.js';
 import { type PartCursor, partCursor } from './part-cursor.js';
-import { cancelFrameCallback, DomHost, requestFrameCallback } from '@molstar/ui/dom';
+import { cancelFrameCallback, requestFrameCallback } from '@molstar/ui/dom/frame';
+import { DomHost } from '@molstar/ui/dom/host';
 import type { Axis } from '@molstar/seqx-core/view';
 import {
   CladeActions,
@@ -679,10 +679,6 @@ export class ViewerInput {
       this._restoreCleared();
       return false;
     }
-    const select = this.selectBehavior;
-    if (!select) return false;
-    const section = this.sectionAt(y);
-    // the track's "n filtered" chip: its click clears the layer's filter (one patch)
     const chip = this.viewer.hit(x, y);
     // the hidden-columns chip: its hover names them, a click does nothing
     if (chip?.target === 'columns-hidden') return true;
@@ -691,15 +687,30 @@ export class ViewerInput {
       void this.viewer.execute('rows.tree', { track: trackOfLayer(chip.layer) });
       return true;
     }
-    // a header's parts are never a selection's (_spec/README.md "Input"): the "n filtered" chip clears its layer's
-    // filter (one patch); the other entries are the headers behavior's
+    // a header's parts are never a selection's (_spec/README.md "Input"): the `headers` behavior's (by name: a viewer
+    // without it bundles none of it); without it a state listed as an entry with the layers it is about runs that
+    // entry's command over them (the "n filtered" chip clears its layers' filters), the other states are facts
     const t = chip?.target;
     if (chip && (t === 'header-state' || t === 'header-slot' || t === 'header-label' || t === 'section-header')) {
-      const layer =
-        chip.state === HeaderStateNames.filtered ? filteredLayer(this.viewer.frame?.layout, chip) : undefined;
-      if (layer) void this.viewer.execute('layer.filter', { address: layer });
+      const headers = this.viewer.behaviors.get('headers');
+      if (headers) headers.click(x, y, this._touch);
+      else if (t === 'header-state') {
+        const command = this.viewer.registry.find(
+          (r): r is HeaderActionEntry =>
+            r.kind === 'header-action' && (r as HeaderActionEntry).entry.name === chip.state,
+        )?.entry.command;
+        const st = this.viewer.frame?.layout.sections
+          .flatMap((s) => s.tracks)
+          .find((x) => x.track.address === chip.layer)
+          ?.header?.states.find((s) => s.name === chip.state);
+        if (command && st?.addresses) void this.viewer.execute(command, { addresses: st.addresses });
+      }
       return true;
     }
+    // the rest is a selection's (none without the select behavior)
+    const select = this.selectBehavior;
+    if (!select) return false;
+    const section = this.sectionAt(y);
     // a tree node's click: its bound command (toggles the clade's fold by default), unless it is a selection's
     if (chip?.target === 'tree-node' && chip.element) {
       const action = this.viewer.bindings.resolve('click', this._modifiers(e), 'tree-node');
@@ -1108,12 +1119,3 @@ function railDrawn(rail: Rail, viewer: SeqViewer): readonly [number, number] | u
 }
 
 const RailEnds = new Float64Array(4);
-
-/** The layer a track's "n filtered" chip (its `seq:filtered` state) is about, in the layout it was hit in. */
-function filteredLayer(layout: ViewLayout | undefined, hit: RenderHit): string | undefined {
-  for (const s of layout?.sections ?? [])
-    for (const t of s.tracks)
-      if (t.track.address === hit.layer)
-        for (const st of t.header?.states ?? []) if (st.name === hit.state) return st.address;
-  return undefined;
-}

@@ -80,6 +80,7 @@ describe('createSeqViewer', () => {
       'rows',
       'hoverCard',
       'keysPanel',
+      'headers',
       'linkedPairs',
     ]);
     expect(viewer.bindings.issues).toEqual([]);

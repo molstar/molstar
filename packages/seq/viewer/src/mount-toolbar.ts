@@ -6,7 +6,8 @@
 
 import { Toolbar, type ToolbarItem } from '@molstar/ui/components/toolbar/toolbar';
 import { installTooltips } from '@molstar/ui/components/tooltip/tooltip';
-import { onCleanup, render } from '@molstar/ui/dom';
+import { render } from '@molstar/ui/dom/render';
+import { onCleanup } from '@molstar/ui/dom/scope';
 import { DefaultToolbar, toolbarButtons } from './toolbar.js';
 import type { SeqViewer } from './viewer.js';
 

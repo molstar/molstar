@@ -277,6 +277,8 @@ const Cases: Record<string, { ctx: unknown; before?: (v: SeqViewer) => unknown }
   'rows.page-up': { ctx: { track: RowsTrack }, before: (v) => v.runCommand('rows.page-down', { track: RowsTrack }) },
   // opened in a wide frame by hand: the command folds it back to its toggle
   'rows.tree': { ctx: { track: RowsTrack }, before: (v) => v.view.setBand(RowsTrack, { tree: true }) },
+  // the menu at a shown cursor: the reader's, nothing in the models
+  'headers.menu': { ctx: {}, before: cursorAt(Protein) },
   'preview.cancel': {
     ctx: {},
     before: (v) =>

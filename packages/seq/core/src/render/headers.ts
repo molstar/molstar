@@ -39,15 +39,20 @@ export interface HeaderStatePart {
   readonly name: string;
   readonly text: string;
   readonly count?: number;
-  /** What the state is about when not the header's own target (the filtered layer). */
-  readonly address?: string;
+  /** The layers it is about when not the header's own target (the filtered ones: what "n filtered" clears). */
+  readonly addresses?: readonly string[];
 }
 
-/** A header's parts: its action slots in slot order, its states, and whether it has a menu ("⋯": any entry applies). */
+/**
+ * A header's parts: its action slots in slot order, its states, and whether it has a menu ("⋯": any entry applies);
+ * `hosted`: a host's DOM parts draw them over the laid-out boxes, so the chrome draws none of them (a figure draws its
+ * states still).
+ */
 export interface HeaderParts {
   readonly slots?: readonly HeaderSlotPart[];
   readonly states?: readonly HeaderStatePart[];
   readonly menu?: boolean;
+  readonly hosted?: boolean;
 }
 
 /**
@@ -82,19 +87,21 @@ export const HeaderStateNames = {
 export const HeaderMenuName = 'seq:menu';
 
 /**
- * The built-in states (`LayoutInput.headers` absent): a track's "n filtered" (its first thinned layer) and "n layers
- * hidden", a section's "n hidden" (its hidden tracks). No slots and no menu: those are a host's entries.
+ * The built-in states (`LayoutInput.headers` absent): a track's "n filtered" (the rows its layers' filters left out, every
+ * thinned layer's) and "n layers hidden", a section's "n hidden" (its hidden tracks). No slots and no menu: those are a
+ * host's entries.
  */
 export const builtInHeaderStates: HeaderPartsOf = (f) => {
   let states: HeaderStatePart[] | undefined;
   if (f.track) {
-    const t = f.filtered[0];
-    if (t)
+    let rows = 0;
+    for (const t of f.filtered) rows += t.count;
+    if (f.filtered.length)
       (states ??= []).push({
         name: HeaderStateNames.filtered,
-        text: `${t.count} filtered`,
-        count: t.count,
-        address: t.layer,
+        text: `${rows} filtered`,
+        count: rows,
+        addresses: f.filtered.map((t) => t.layer),
       });
     const n = f.hiddenLayers.length;
     if (n)
@@ -128,7 +135,7 @@ export interface HeaderStateBox {
   readonly name: string;
   readonly text: string;
   readonly count?: number;
-  readonly address?: string;
+  readonly addresses?: readonly string[];
   readonly mark: boolean;
   readonly x: number;
   readonly y: number;
@@ -151,6 +158,8 @@ export interface HeaderLine {
   readonly actions?: Box;
   /** Shorter than `header.minHeightPx`: no slots, its states as marks. */
   readonly short: boolean;
+  /** A host's DOM parts draw its slots, its "⋯" and its states over their boxes: the chrome draws none of them. */
+  readonly hosted?: boolean;
   /**
    * What the line gives outside its slots and states: a track's `header-label`, a section's `section-header`; none on
    * a rows track (its label column is its tree and rows).
@@ -172,7 +181,8 @@ const MarkGap = 4;
 /**
  * The action columns a view lays out with (_spec/README.md "Render", Track headers): `header.slots` columns and the
  * "⋯", `header.slotPx` each, ending at the label column's right end, as many slots as leave three columns' width of
- * label; none with `header.actions.show: never`. One set for every header of the view: every track's eye in one column.
+ * label; none with `header.actions.show: never`. One set for every header of the view, counted from the "⋯" leftwards
+ * (the first slot next to it): every track's eye in one column, and a line reserves only the slots it has.
  */
 export function actionColumns(config: RenderConfig): ActionColumns {
   let c = Columns.get(config);
@@ -240,9 +250,10 @@ const At: LineInput = {
 };
 
 /**
- * A header's line laid out from its parts: the slots in their columns (the first `n` given), the "⋯" at the column's
- * end, the states as chips ending where the action columns begin (from the column's start on a line of their own), a
- * state no chip fits a mark. A figure has no slots and no "⋯", and no states with `header.states.export: none`.
+ * A header's line laid out from its parts: the slots in their columns (the first `n` given, the first next to the "⋯"),
+ * the "⋯" at the column's end, the states as chips ending where the line's own slots begin (the "⋯" on a line with
+ * none; from the column's start on a line of their own), a state no chip fits a mark. A figure has no slots and no
+ * "⋯", and no states with `header.states.export: none`.
  */
 function layoutLine(
   parts: HeaderParts | undefined,
@@ -268,7 +279,7 @@ function layoutLine(
       const p = given[i];
       out.push({
         part: p,
-        x: cols.x + i * slotPx,
+        x: end - (i + 2) * slotPx,
         y: sy,
         width: slotPx,
         height: slotPx,
@@ -285,7 +296,9 @@ function layoutLine(
         height: slotPx,
         hit: { layer: at.layer, section: at.section, system: '', target: 'header-slot', state: HeaderMenuName },
       };
-    actions = { x: cols.x, y: sy, width: end - cols.x, height: slotPx };
+    // the line's own slots and the "⋯" column (a slotted line always has a menu: every entry is in it)
+    const x = end - (n + 1) * slotPx;
+    actions = { x, y: sy, width: end - x, height: slotPx };
   }
   const given = at.figure && h.states.export === 'none' ? undefined : parts?.states;
   let states = NoStates;
@@ -293,9 +306,9 @@ function layoutLine(
   let labelEnd = end;
   if (given?.length) {
     const out: (HeaderStateBox & { readonly at: number })[] = [];
-    // on the label's line the states end before the action columns (a gap before them) when the header has actions,
-    // else at the column's end; on a line of their own at the column's end (the actions are on the label's line)
-    const chipsEnd = actions ? cols.x - ChipGap : end;
+    // on the label's line the states end before the line's own actions (a gap before them) when it has any, else at
+    // the column's end; on a line of their own at the column's end (the actions are on the label's line)
+    const chipsEnd = actions ? actions.x - ChipGap : end;
     // states `[from, to)` as marks, right to left from `right`, centred on `cy`: the leftmost's x; a mark with no room
     // left in the column is not laid out (its words are the card's)
     const marks = (from: number, to: number, right: number, cy: number): number => {
@@ -351,6 +364,7 @@ function layoutLine(
   };
   if (menu) out.menu = menu;
   if (actions) out.actions = actions;
+  if (parts?.hosted && !at.figure) out.hosted = true;
   if (at.labelHit) out.hit = { layer: at.layer, section: at.section, system: '', target: 'header-label' };
   return out;
 }
@@ -374,7 +388,7 @@ function stateBox(
     name: p.name,
     text: p.text,
     ...(p.count !== undefined ? { count: p.count } : {}),
-    ...(p.address !== undefined ? { address: p.address } : {}),
+    ...(p.addresses !== undefined ? { addresses: p.addresses } : {}),
     mark,
     x,
     y,

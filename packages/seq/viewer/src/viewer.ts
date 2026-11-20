@@ -7,7 +7,7 @@
 import { type Listenable, ReactiveModel, type ReadonlyState, State } from '@molstar/core/reactive';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import type { Issue, Node } from '@molstar/core/repr/tree';
-import { composeSeqContext, type SeqContext } from '@molstar/seqx-core/context';
+import { composeSeqContext, type SeqContext, type SeqRegistryEntry } from '@molstar/seqx-core/context';
 import {
   type Emphasis,
   type Frame,
@@ -29,7 +29,7 @@ import type { SeqTokens } from '@molstar/seqx-core/render';
 import type { StepViewport, TransitionPlan } from '@molstar/seqx-core/story';
 import type { ResolvedView } from '@molstar/seqx-core/view';
 import type { CommandDefinition, CommandResult } from '@molstar/ui/commands/types';
-import { DomHost } from '@molstar/ui/dom';
+import { DomHost } from '@molstar/ui/dom/host';
 import { bindingTable, DefaultActions, type BindingTable, BindingPresets } from '@molstar/seqx-viewer/bindings';
 import type { CanvasBackend } from '@molstar/seqx-viewer/canvas';
 import { type ViewerConfig, viewerConfigOf } from '@molstar/seqx-viewer/config';
@@ -49,7 +49,8 @@ import { frameAnimation } from './animation.js';
 import { ViewerInput } from './input.js';
 import { LegendModel } from './legends.js';
 import { modelIssuesState } from './model-issues.js';
-import type { BehaviorContext, BehaviorProvider, SeqViewerSpec } from './viewer-spec.js';
+import type { BehaviorContext, BehaviorHandle, BehaviorProvider, SeqViewerSpec } from './viewer-spec.js';
+import type { HeaderGeometry, SeqViewerRegistryEntry } from './header-entries.js';
 import { mountCanvas } from './mount.js';
 import type { NavigatorDef, NavigatorModel } from './navigator.js';
 import { behaviorOf, createBehaviors, listedActions } from './viewer-behaviors.js';
@@ -76,6 +77,8 @@ export type ViewerCommand = CommandDefinition<any>;
 
 export class SeqViewer extends ReactiveModel {
   readonly context: SeqContext;
+  /** The spec's registry as listed: the core's entries and the viewer's own kinds (header entries). */
+  readonly registry: readonly SeqViewerRegistryEntry[];
   readonly config: ViewerConfig;
   readonly spec: SpecModel;
   readonly view: ViewModel;
@@ -173,8 +176,12 @@ export class SeqViewer extends ReactiveModel {
     const config = (this.config = viewerConfigOf(viewerSpec.config));
     // the headless pieces first: the registry, the configuration and the ports
     // the registry as listed: what the canvas and the SVG draw (_spec/README.md "Composition", Injected, opt in)
+    this.registry = viewerSpec.registry ?? [];
     const context = (this.context = composeSeqContext({
-      ...(viewerSpec.registry ? { registry: viewerSpec.registry } : {}),
+      // the core's kinds (the viewer's own, the header entries, are its behaviors')
+      ...(viewerSpec.registry
+        ? { registry: viewerSpec.registry.filter((e): e is SeqRegistryEntry => e.kind !== 'header-action') }
+        : {}),
       ...(viewerSpec.config ? { config: viewerSpec.config } : {}),
       ...(viewerSpec.ports ? { ports: viewerSpec.ports } : {}),
     }));
@@ -254,12 +261,12 @@ export class SeqViewer extends ReactiveModel {
     };
     try {
       createBehaviors(viewerSpec.behaviors, behaviorContext, this.behaviors, this.commands, onRetire);
+      this.input = new ViewerInput(this);
     } catch (e) {
       // what was made is not left behind
       this.retire();
       throw e;
     }
-    this.input = new ViewerInput(this);
 
     // what moves the picture asks for a frame
     listen(spec.model, (model) => {
@@ -322,6 +329,13 @@ export class SeqViewer extends ReactiveModel {
       this.schedule();
     });
     this._followViewports();
+    // what reads the commands of every behavior and the frame (the header entries' checks), before the UI
+    try {
+      for (const h of this.behaviors.values() as Iterable<BehaviorHandle | undefined>) h?.composed?.(this);
+    } catch (e) {
+      this.retire();
+      throw e;
+    }
     const ui = viewerSpec.ui;
     if (target && ui?.toolbar) onRetire(ui.toolbar(this, target));
     if (target && ui?.canvas) onRetire(mountCanvas(this, target));
@@ -347,6 +361,14 @@ export class SeqViewer extends ReactiveModel {
   behavior<H>(provider: BehaviorProvider<any, H> | string): H | undefined {
     // by name: what the input asks for names no provider object, so a viewer bundles only the behaviors it lists
     return behaviorOf<H>(this.behaviors, typeof provider === 'string' ? provider : provider.name, this._behaviorIssues);
+  }
+
+  /**
+   * The headers' geometry (_spec/README.md "Behaviors", Headers): each shown header's boxes in the canvas's CSS px,
+   * published when a layout moves them; undefined without the `headers` behavior.
+   */
+  get headers(): ReadonlyState<readonly HeaderGeometry[]> | undefined {
+    return this.behaviors.get('headers')?.geometry;
   }
 
   /** Whether `retire` has run: a frame asked for before it does nothing. */
@@ -402,11 +424,13 @@ export class SeqViewer extends ReactiveModel {
   private readonly _lengths = new State<Lengths>(new Map(), mapsEqual);
 
   /**
-   * Resolves once the picture is complete: the sources open, the data the view wants arrived, the view settled. A
-   * viewer with no size yet is given the default one. For tests, exports and stories that wait for the picture.
+   * Resolves once the picture is complete: the sources open, the behaviors' lazy chunks landed, the data the view
+   * wants arrived, the view settled. A viewer with no size yet is given the default one. For tests, exports and
+   * stories that wait for the picture.
    */
   async settle(timeoutMs = 10_000): Promise<boolean> {
     await this._syncing;
+    for (const h of this.behaviors.values() as Iterable<BehaviorHandle | undefined>) await h?.loaded?.();
     const until = DomHost.now() + timeoutMs;
     this._clock.quiet = true;
     for (let round = 0; round < 8; round++) {
@@ -675,6 +699,8 @@ export class SeqViewer extends ReactiveModel {
       // what the canvas shows of the session: the selection, as its address when it has one (the export resolves it
       // over what it holds, and projects it onto the linked sections), else as its Location; the highlight channels
       ...this._emphasis.svgEmphasis(),
+      // the headers' states as the canvas draws them (a figure lays out no slots)
+      ...(this.behaviors.get('headers') ? { headers: this.behaviors.get('headers').partsOf } : {}),
       ...options,
     });
   }

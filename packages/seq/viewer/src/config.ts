@@ -321,6 +321,8 @@ export const DefaultViewerConfig: ViewerConfig = {
       'rows.tree': ['Shift+T'],
       // the keys panel: what the view answers to (a printable key: whatever Shift types it)
       'help.keys': ['?'],
+      // a track header's menu at the keyboard cursor (the `headers` behavior's; Enter on a header too)
+      'headers.menu': ['ContextMenu', 'Shift+F10'],
     },
   },
   navigate: { wheelZoomStep: 1.25, doubleClickZoomStep: 2, keyPanFraction: 0.1, coalesceWheel: true },

@@ -6,7 +6,7 @@
 
 import { type ReadonlyState, State } from '@molstar/core/reactive';
 import type { GridLay, RowsLay, SectionLayout, ViewLayout } from '@molstar/seqx-core/render';
-import { DomHost } from '@molstar/ui/dom';
+import { DomHost } from '@molstar/ui/dom/host';
 import { DefaultAnnouncerOptions } from '@molstar/seqx-viewer/announcer';
 import { describerFor, type Place } from '@molstar/seqx-viewer/describe';
 import type { Cursor } from '@molstar/seqx-viewer/models';

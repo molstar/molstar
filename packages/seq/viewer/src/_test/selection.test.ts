@@ -72,6 +72,7 @@ async function make(root: Node = spec(), config: readonly (readonly [any, unknow
   viewer.input.mac = false;
   await viewer.load(root);
   viewer.resize(600);
+  // the headers' late parts (a lazy chunk: the chips' clicks, the cursor on headers): `settle` waits for them
   await viewer.settle();
   frames.flush();
   return viewer;
@@ -116,7 +117,7 @@ describe('clicks (the interaction grammar)', () => {
     expect(ranges(v)).toEqual([]);
   });
 
-  it('a header’s parts are never a selection’s: a click on a hidden-tracks chip or a section’s line changes nothing', async () => {
+  it('a header’s parts are never a selection’s: a click on a hidden-tracks chip shows the track, a section’s line changes nothing', async () => {
     const root = spec();
     const protein = root.children!.find((c) => c.kind === 'views')!.children![0].children![0];
     const domains = protein.children!.find((c) => c.id === 'domains')!;
@@ -128,10 +129,14 @@ describe('clicks (the interaction grammar)', () => {
     const line = v.frame!.layout.sections[0].header!;
     const chip = line.states[0];
     expect(chip.name).toBe('seq:hidden-tracks');
-    expect(click(v, [chip.box.x + 2, chip.box.y + chip.box.height / 2])).toBe(true);
     expect(click(v, [line.line.x + line.line.width - 4, line.line.y + line.line.height / 2])).toBe(true);
-    expect(ranges(v)).toEqual([4, 5]);
     expect(v.spec.revision.value).toBe(revision);
+    // the chip is the `headers` behavior's `seq:hidden-tracks` entry (the default spec lists it): its click shows the
+    // hidden track, one patch; the selection stays
+    expect(click(v, [chip.box.x + 2, chip.box.y + chip.box.height / 2])).toBe(true);
+    expect(ranges(v)).toEqual([4, 5]);
+    expect(v.spec.revision.value).not.toBe(revision);
+    expect(v.view.resolved.value!.sections[0].tracks.map((t) => t.address)).toContain(`${ProteinSection}/domains`);
   });
 
   it('an item is selected by its key, drawn by its extent; Shift+click extends from it in one system', async () => {
@@ -495,10 +500,13 @@ describe('the keyboard cursor', () => {
     expect(v.selection.cursor.value?.position).toBe(2);
     key(v, 'ArrowLeft');
     expect(v.selection.cursor.value?.position).toBe(1);
-    // clamped at the axis's start
-    key(v, 'ArrowLeft');
+    // clamped at the axis's start; one more ← goes onto the track's header (the `headers` design), → back to the data
     key(v, 'ArrowLeft');
     expect(v.selection.cursor.value?.position).toBe(0);
+    key(v, 'ArrowLeft');
+    expect(v.selection.cursor.value).toMatchObject({ position: 0, part: 'header', track: `${ProteinSection}/letters` });
+    key(v, 'ArrowRight');
+    expect(v.selection.cursor.value).toEqual({ section: ProteinSection, system: P, position: 0, keyboard: true });
     key(v, 'ArrowRight', { shiftKey: true });
     key(v, 'ArrowRight', { shiftKey: true });
     expect(ranges(v)).toEqual([0, 3]);

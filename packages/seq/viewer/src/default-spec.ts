@@ -22,8 +22,11 @@ import {
   RowsProvider,
   WindowProvider,
 } from '@molstar/seqx-viewer/behaviors';
+import { HeadersProvider } from '@molstar/seqx-viewer/behaviors/headers';
 import { defaultPorts } from '@molstar/seqx-viewer/ports';
 import { frameAnimation } from './animation.js';
+import { BuiltInHeaderEntries } from './header-entries.js';
+import { headerMenuOverlay } from './mount-header-menu.js';
 import { hoverCardOverlay } from './mount-hover-card.js';
 import { legendsMount } from './mount-legend.js';
 import { navigatorsMount } from './mount-navigator.js';
@@ -46,6 +49,8 @@ export function DefaultSeqViewerSpec(): SeqViewerSpec {
       { kind: 'format-runtime', runtime: RecordsRuntime },
       // the core's layer types and layouts: what the canvas and the SVG draw
       ...BuiltInRenderRegistry,
+      // the track headers' built-in entries (hide, color, layers, the chips): a host's sit beside them
+      ...BuiltInHeaderEntries,
     ],
     behaviors: [
       { provider: HoverProvider },
@@ -61,6 +66,9 @@ export function DefaultSeqViewerSpec(): SeqViewerSpec {
       // the card's port: `@molstar/ui`'s card over the canvas (a host with its own passes it here, and bundles none)
       { provider: HoverCardProvider, params: { port: hoverCardOverlay() } },
       { provider: KeysPanelProvider },
+      // the track headers: slots on hover, the chips' clicks, the menu (its port `@molstar/ui`'s context menu) and the
+      // secondary click everywhere (Shift+secondary click the browser's)
+      { provider: HeadersProvider, params: { menu: headerMenuOverlay(), contextClick: 'everywhere' } },
       // a hovered or selected range lights the pairs with an end in it (an analysis a host lists, removed to opt out)
       { provider: LinkedPairsProvider },
     ],

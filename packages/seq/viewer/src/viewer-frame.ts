@@ -138,6 +138,10 @@ export class ViewerFrame {
     input.settled = this.clock.quiet && store.store.settled.value;
     input.emphasis = this.emphasis.emphasis;
     input.cvdSafe = viewer.legends.cvdSafe.value;
+    // the header entries' parts (the `headers` behavior's, by name: a viewer without it bundles none of it)
+    const headers = viewer.behaviors.get('headers')?.partsOf;
+    if (headers) input.headers = headers;
+    else if (input.headers) delete input.headers;
     // tier 2: the store's dynamic nodes (its version is part of the frame's key)
     input.overlay = store.overlay(model, resolved, context);
 
@@ -201,6 +205,8 @@ export class ViewerFrame {
     // the hover card follows the frame: a cursor's card after the frame that revealed it, none outliving a new layout
     // (by name: a viewer without the card bundles none of it)
     (viewer.behaviors.get('hoverCard') as HoverCardBehavior | undefined)?.framed(rebuilt);
+    // the headers' geometry and parts follow the frame (by name, as the card)
+    viewer.behaviors.get('headers')?.framed();
     this.motion.drawn();
     // the settled picture is drawn: it rests now, once
     this.clock.drawn();

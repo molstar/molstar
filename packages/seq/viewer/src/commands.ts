@@ -142,6 +142,8 @@ export const CommandChangeKinds: Readonly<Record<string, ChangeKind>> = {
   'rows.tree': 'session',
   // Esc ends a gesture's preview in nothing
   'preview.cancel': 'preview',
+  // a track header's menu opens: the reader's, nothing in the models
+  'headers.menu': 'none',
 };
 
 /** A command's change kind: the table's, then `extra` (an extension's commands); undefined when unknown. */
