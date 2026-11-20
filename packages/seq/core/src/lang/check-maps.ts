@@ -50,10 +50,27 @@ export function mapParamsFit(n: Node): boolean {
 
 /**
  * A `segments` or `structure` map's runs: each at least one position, none overlapping another on `from`, a strand
- * `+` or `-`; its status rows each `[start, end)` and `conflict` or `unobserved`.
+ * `+` or `-`; a structure map's none overlapping on `to` either (one residue of the structure is one of the sequence;
+ * a segments map may be many-to-one, a fusion onto its part, EC-20: maps.md, One interface); its status rows each
+ * `[start, end)` and `conflict` or `unobserved`.
  */
 export function checkMapSegments(n: Node, say: Say): void {
   const t = p(n, 'segments') as Record<string, Value> | undefined;
+  if (t && p(n, 'method') === 'structure' && isColumn(t.to) && isColumn(t.length)) {
+    const to = t.to as ArrayLike<number>;
+    const length = t.length as ArrayLike<number>;
+    const strand = strings(t.strand);
+    // each run's target `[lo, hi)`: `to` is the image of its first position, downward on `-`
+    const lo = (i: number) => (strand?.get(i) === '-' ? to[i] - length[i] + 1 : to[i]);
+    const order = Array.from({ length: Math.min(to.length, length.length) }, (_, i) => i)
+      .filter((i) => length[i] >= 1)
+      .sort((a, b) => lo(a) - lo(b));
+    for (let j = 1; j < order.length; j++)
+      if (lo(order[j - 1]) + length[order[j - 1]] > lo(order[j])) {
+        say('seq.lang.map.segments', 'Two runs of a structure map overlap on `to`', 'segments', order[j]);
+        return;
+      }
+  }
   if (t && isColumn(t.from) && isColumn(t.length)) {
     const from = t.from as ArrayLike<number>;
     const length = t.length as ArrayLike<number>;

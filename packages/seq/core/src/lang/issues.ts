@@ -143,7 +143,7 @@ export const LangIssues = defineIssues('seq.lang', {
   'seq.lang.map.segments': {
     severity: 'error',
     description:
-      'A map’s run holds no position, overlaps another on `from`, or has a strand other than `+` and `-`; or a status row ends before it starts or says other than `conflict` and `unobserved`',
+      'A map’s run holds no position, overlaps another on `from` (a structure map’s on `to` too), or has a strand other than `+` and `-`; or a status row ends before it starts or says other than `conflict` and `unobserved`',
     hint: 'Give each run a length of at least 1, apart from the others on `from`; a status row says `conflict` or `unobserved`',
   },
   'seq.lang.map.alphabet': {

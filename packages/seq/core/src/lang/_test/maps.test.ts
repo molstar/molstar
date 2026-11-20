@@ -60,6 +60,20 @@ describe('maps: methods and their params', () => {
   });
 });
 
+describe('maps: one-to-one on `to` where the kind is', () => {
+  it('a structure map’s runs overlapping on `to` are refused; a segments map’s are many-to-one, a fusion (EC-20)', () => {
+    // up 0–3 and 6–9 both onto the chain's 2–5: two residues of the sequence on one of the structure
+    const overlapping = { from: [0, 6], to: [2, 3], length: [4, 4] };
+    const [e] = checkSeqSpec(mapSpec({ method: 'structure', segments: overlapping }));
+    expect([e?.code, e?.path?.slice(-2)]).toEqual(['seq.lang.map.segments', ['segments', 1]]);
+    // read downward: 9 down to 6 is the chain's 5 down to 2
+    const down = { from: [0, 6], to: [2, 5], length: [4, 4], strand: ['+', '-'] };
+    expect(codes(mapSpec({ method: 'structure', segments: down }))).toEqual(['seq.lang.map.segments']);
+    expect(codes(mapSpec({ method: 'structure', segments: { from: [0, 6], to: [0, 4], length: [4, 4] } }))).toEqual([]);
+    expect(codes(mapSpec({ method: 'segments', segments: overlapping }))).toEqual([]);
+  });
+});
+
 describe('a section’s via', () => {
   function viaSpec(via: (m: { a: string; b: string; s: string }) => unknown): Node {
     const b = createSeqSpec();
