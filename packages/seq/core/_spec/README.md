@@ -1532,8 +1532,10 @@ way, over a straight axis and a box, in every layout; a layout knows strips, ban
   are kept across a scroll, only its translation changes); polar (rings, `PolarWarp`): x to an angle, y to a radius;
   what the strip drew goes through a scratch pass onto the page: a rect an annular sector (its squircle corners warped
   with it), a path's lines cut every few px so they bend, a glyph run placed letter by letter (upright or along the
-  ring), an image refused (its layout reports it), a clip applied in the strip's frame before warping (a clip by path
-  would change the lists' form for one case). Nothing allocated once warm.
+  ring; a letter's center warped, 0.35 em above its baseline, the baseline put back below it in the letter's own turned
+  frame: a warped baseline puts an upright letter's center off its cell, along the ring), an image refused (its layout
+  reports it), a clip applied in the strip's frame before warping (a clip by path would change the lists' form for one
+  case). Nothing allocated once warm.
 - **The placement** (`Placement`): the section's box, its whole content's height (text: every line, for scrolling and
   export), its strips; `at(x, y)` the inverse of the warp then of the cut, into a reused `PlacePoint` (strip, band, the
   point in the strip's frame, the kind, the display unit); `offsetAt(x, y)` the nearest unit (drags, zoom anchors);

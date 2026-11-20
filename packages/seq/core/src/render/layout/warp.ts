@@ -16,6 +16,9 @@ import { grown, NoColor, Op, PassList, Passes, PassWriter, PathCommand, type Pat
 import { fontSize } from '../config.js';
 import { squirclePathArgs } from '../squircle.js';
 
+/** A letter's center above its baseline, in ems (the layers' `fontSize * 0.35` from a cell's middle to its baseline). */
+const CenterEm = 0.35;
+
 /** What a translation moves: the counts of a pass's lists when a strip began to draw. */
 export class TranslateWarp {
   private rects = 0;
@@ -409,22 +412,30 @@ export class PolarWarp {
     o.color[k] = l.color[i];
     o.placed[k] = 1;
     const cs = this.clipDepth > 0 ? 4 * (this.clipDepth - 1) : -1;
+    const size = this.sizeOf(out, l.font[i]);
     // a letter is kept while any of it is in the clip: half a mono advance (0.3 em) either side of its center
-    const half = cs >= 0 ? 0.3 * this.sizeOf(out, l.font[i]) : 0;
+    const half = cs >= 0 ? 0.3 * size : 0;
+    // its center is above its baseline by `CenterEm` (the layers set a letter's baseline at its cell's middle plus it)
+    const up = CenterEm * size;
     for (let j = l.start[i], end = j + l.count[i]; j < end; j++) {
       const x = l.x[j];
       if (cs >= 0 && (x + half <= this.clipStack[cs] || x - half >= this.clipStack[cs] + this.clipStack[cs + 2]))
         continue;
-      const y = placed ? l.ly[j] : l.y[i];
-      this.qx = x;
-      this.qy = y;
+      const a = placed ? l.angle[j] : 0;
+      const v = placed ? l.vs[j] : 1;
+      // the letter's center is what is warped (its cell's angle, its band's radius), then its baseline is put back
+      // below it in its own turned frame: a baseline warped instead puts the letter's center off its cell, along the
+      // ring where the letter stands upright
+      this.qx = x + Math.sin(a) * v * up;
+      this.qy = (placed ? l.ly[j] : l.y[i]) - Math.cos(a) * v * up;
       this.mapQ();
+      const t = (this.tangent ? this.qt : 0) + a;
       const m = o.nextLetter();
       o.codes[m] = l.codes[j];
-      o.x[m] = this.px;
-      o.ly[m] = this.py;
-      o.angle[m] = (this.tangent ? this.qt : 0) + (placed ? l.angle[j] : 0);
-      o.vs[m] = placed ? l.vs[j] : 1;
+      o.x[m] = this.px - Math.sin(t) * v * up;
+      o.ly[m] = this.py + Math.cos(t) * v * up;
+      o.angle[m] = t;
+      o.vs[m] = v;
       o.colors[m] = l.color[i] !== NoColor ? NoColor : l.colors[j];
     }
     o.end();
