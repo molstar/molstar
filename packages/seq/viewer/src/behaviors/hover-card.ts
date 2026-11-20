@@ -182,10 +182,12 @@ class HitIdentity {
   private owner: string | undefined;
   private key: string | number | undefined;
   private members: unknown;
+  /** The model the hit was read from: a load or an edit keeping the section, layer and key is another hit. */
+  private data: unknown;
   /** The cell along x and y (−1: none), the block and the y block (−1: none). */
   private readonly cells = new Float64Array([-1, -1, -1, -1]);
 
-  update(p: Place): boolean {
+  update(p: Place, data: unknown): boolean {
     const e = p.element;
     const x = e || Number.isNaN(p.position) ? -1 : Math.floor(p.position);
     const y = p.yPosition === undefined || Number.isNaN(p.yPosition) ? -1 : Math.floor(p.yPosition);
@@ -197,6 +199,7 @@ class HitIdentity {
       this.ySystem === p.ySystem &&
       this.state === p.state &&
       this.members === p.members &&
+      this.data === data &&
       this.owner === e?.owner &&
       this.key === e?.key &&
       c[0] === x &&
@@ -209,6 +212,7 @@ class HitIdentity {
     this.ySystem = p.ySystem;
     this.state = p.state;
     this.members = p.members;
+    this.data = data;
     this.owner = e?.owner;
     this.key = e?.key;
     c[0] = x;
@@ -320,8 +324,8 @@ function hoverCardBehavior(context: BehaviorContext, params: HoverCardParams = {
 
   const stopHover = hover.version.listen(() => {
     // a re-hit of what was hovered (a zoom or a pan under a resting pointer: the same element, cell or target) is no
-    // change: the card stays (a cursor's is placed again with the frame)
-    if (sameHit.update(hover.current)) return;
+    // change: the card stays (a cursor's is placed again with the frame); the same place of another model is a change
+    if (sameHit.update(hover.current, context.spec.model.value)) return;
     // a rectangle's summary stays while its drag moves the hover
     if (!dragging) hide();
     cursorDue = false;

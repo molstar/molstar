@@ -54,7 +54,7 @@ const Kabat = [null, '1', '2', '3', '4', '5', '52', '52A', '53', '54', '82', '82
 const Imgt = ['1', '2', '3', '4', '5', '6', '55', '56', '57', '58', '105', '106', '107', '108', '109', '111', '111.1', '112.1', '112', '113'];
 
 /** A heavy chain in two numberings with its domains, a value track and a pair; a grid of it against itself. */
-function cardSpec() {
+function cardSpec(domain = 'CDR1') {
   const b = createSeqSpec({ title: 'card' });
   const h = b.data.sequence('h', { alphabet: 'protein', letters: H }, (s) => {
     s.numbering('kabat', { method: 'labels', labels: Kabat, scheme: 'kabat' });
@@ -62,7 +62,7 @@ function cardSpec() {
   });
   const d = b.data.ranges('d', {
     target: h,
-    rows: { start: [2], end: [8], id: ['A'], label: ['CDR1'], category: ['loop'] },
+    rows: { start: [2], end: [8], id: ['A'], label: [domain], category: ['loop'] },
   });
   const v = b.data.values('v', { target: h, values: Float32Array.from({ length: 20 }, (_, i) => i / 4) });
   const p = b.data.pairs('p', { a: h, rows: { a_start: [2], a_end: [3], b_start: [15], b_end: [16], id: ['2-15'] } });
@@ -505,6 +505,29 @@ describe('the hover card’s place and its life', () => {
     expect(v.hover.version.value).not.toBe(version);
     expect(v.hover.current.element?.key).toBe('A');
     expect(card()?.card.title).toBe(`h ${c.position + 1}`);
+  });
+
+  it('a load that keeps the hovered item’s section, layer and key is a new hover: its card comes with the new words', async () => {
+    const r = recorder();
+    const v = await make(cardSpec(), { port: r });
+    const card = () => v.behavior(HoverCardProvider)!.shown.value;
+    const s = v.frame!.layout.sections[0];
+    const t = s.tracks[2];
+    v.input.move((s.axis!.x(5) + s.axis!.x(6)) / 2, t.box.y + t.box.height / 2);
+    clock += 500;
+    frames.timers.fire();
+    expect(card()?.card.title).toMatch(/CDR1/);
+    // Esc: the card goes until the hover changes
+    v.input.key({ key: 'Escape' });
+    expect(card()).toBeUndefined();
+    // the data loaded again, the domain renamed: the pointer rests on the same item (key A) of another model
+    await v.load(cardSpec('CDR-H1'));
+    await v.settle();
+    frames.flush();
+    expect(v.hover.current.element?.key).toBe('A');
+    clock += 500;
+    frames.timers.fire();
+    expect(card()?.card.title).toMatch(/CDR-H1/);
   });
 
   it('shows at the keyboard cursor when a key moves it', async () => {
