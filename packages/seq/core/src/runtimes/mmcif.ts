@@ -20,16 +20,17 @@ import {
 } from '../data/protocol.js';
 import { SourceOpenError } from '../data/seq-runtime.js';
 import { DefaultStructureLimits, type StructureLimits, structureNodes } from '../io/structure.js';
-import { MmcifAssemblyError, MmcifIssues, type MmcifReadOptions, mmcifDescription } from './mmcif-description.js';
+import type { MmcifReadOptions } from './mmcif-description.js';
+import { MmcifIssues } from './mmcif-issues.js';
 
 // mmCIF (_spec/README.md "Data", mmCIF; molecules.md, Reading), the opt-in runtime `@molstar/seqx-core/runtimes/mmcif`:
-// a source of format `mmcif` read whole (gzipped or not) by `@molstar/io`'s text CIF parser, loaded when a source is
-// first opened (its chunk is not paid by a viewer that lists the runtime and opens none), its categories read into a
-// `StructureDescription` (`mmcif-description.ts`) and that into nodes by `structureNodes`, the one converter every
-// adapter of a structure shares (seq-data-ports.md, Seq io). It serves the nodes up front and, by region, the units'
+// a source of format `mmcif` read whole (gzipped or not) by `@molstar/io`'s text CIF parser, its categories read into
+// a `StructureDescription` (`mmcif-description.ts`; both loaded when a source first opens, a chunk a viewer that lists
+// the runtime and opens none never pays) and that into nodes by `structureNodes`, the one converter every adapter of a
+// structure shares (seq-data-ports.md, Seq io). It serves the nodes up front and, by region, the units'
 // per-residue values by `field`: `b_factor`, `occupancy` and, in a model with them, `plddt` (the default when present).
 
-export { MmcifIssues } from './mmcif-description.js';
+export { MmcifIssues } from './mmcif-issues.js';
 
 /** The source params (molecules.md, Configuration) a runtime is made with; a source's own `assembly` wins. */
 export interface MmcifOptions {
@@ -124,6 +125,8 @@ export async function openMmcif(
     name: options.name ?? 'description',
     maxUnits: options.limits?.maxUnits ?? DefaultStructureLimits.maxUnits,
   };
+  // the reading of categories is loaded with the parser, on first open (Size)
+  const { MmcifAssemblyError, mmcifDescription } = await import('./mmcif-description.js');
   let described: ReturnType<typeof mmcifDescription>;
   try {
     described = mmcifDescription(frame, readOptions, address);

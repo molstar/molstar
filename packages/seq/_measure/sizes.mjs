@@ -66,7 +66,8 @@ const AllCases = [
   { name: 'viewer, minimal', entry: 'viewer-minimal.ts', target: 880_000, unlisted: Unlisted },
   { name: 'bigWig runtime', entry: 'bigwig.ts', target: 30_000, own: /seq\/core\/src\/runtimes\// },
   // the mmCIF runtime and Seq io's converter (in no viewer entry); `@molstar/io`'s parser is its lazy chunk, loaded
-  // when the first mmCIF source opens: listed apart (`lazy`), its `@molstar/core` imports counted in no row
+  // when the first mmCIF source opens: listed apart (`lazy`), measured with every import it brings that the default
+  // viewer's bundle does not hold (its `@molstar/core` imports too): what a host pays on first open
   {
     name: 'mmCIF runtime',
     entry: 'mmcif.ts',
@@ -131,10 +132,10 @@ function contributors(meta, depth) {
   return [...groups].sort((a, b) => b[1] - a[1]);
 }
 
-const rows = [];
-for (const c of Cases) {
-  const r = await build({
-    entryPoints: [join(here, c.entry)],
+/** A split build of an entry, `own` leaving out what its folders import (none: every import bundled). */
+const bundle = (entry, own) =>
+  build({
+    entryPoints: [join(here, entry)],
     bundle: true,
     minify: true,
     format: 'esm',
@@ -148,15 +149,50 @@ for (const c of Cases) {
     // paid by an entry that never loads it; what loads before any dynamic import is measured
     splitting: true,
     outdir: join(here, 'out'),
-    plugins: c.own ? [ownOnly(c.own), resolveWorkspace] : [resolveWorkspace],
+    plugins: own ? [ownOnly(own), resolveWorkspace] : [resolveWorkspace],
   });
+
+/** The inputs of an entry's default viewer bundle (any chunk): what a host composing the viewer already pays. */
+let viewerInputs;
+const inViewer = async () => {
+  if (!viewerInputs) {
+    const v = await bundle('viewer.ts');
+    viewerInputs = new Set(Object.values(v.metafile.outputs).flatMap((o) => Object.keys(o.inputs)));
+  }
+  return viewerInputs;
+};
+
+/** An entry's lazy chunks with every import bundled: the bytes past the viewer's, and the largest folders of them. */
+async function lazyCost(entry) {
+  const r = await bundle(entry);
+  const first = new Set(loaded(r.metafile));
+  const viewer = await inViewer();
+  const groups = new Map();
+  let bytes = 0;
+  for (const [k, o] of Object.entries(r.metafile.outputs)) {
+    if (first.has(k) || !k.endsWith('.js')) continue;
+    for (const [f, v] of Object.entries(o.inputs)) {
+      if (viewer.has(f)) continue;
+      bytes += v.bytesInOutput;
+      const key = f
+        .replace(/^packages\//, '')
+        .split('/')
+        .slice(0, 4)
+        .join('/');
+      groups.set(key, (groups.get(key) ?? 0) + v.bytesInOutput);
+    }
+  }
+  return { bytes, top: [...groups].sort((a, b) => b[1] - a[1]).slice(0, 5) };
+}
+
+const rows = [];
+for (const c of Cases) {
+  const r = await bundle(c.entry, c.own);
   const chunks = loaded(r.metafile).map((k) => r.outputFiles.find((f) => f.path === join(root, k)).contents);
   const code = Buffer.concat(chunks);
-  // the chunks loaded after a dynamic import: what an opt-in runtime loads on first use
-  const first = new Set(loaded(r.metafile));
-  const later = Object.keys(r.metafile.outputs).filter((k) => !first.has(k) && k.endsWith('.js'));
-  const lazy = later.reduce((n, k) => n + r.outputFiles.find((f) => f.path === join(root, k)).contents.length, 0);
-  rows.push({ ...c, min: code.length, gzip: gzipSync(code, { level: 9 }).length, lazyBytes: lazy, meta: r.metafile });
+  // the chunks loaded after a dynamic import, with their imports: what an opt-in runtime loads on first use
+  const lazy = c.lazy ? await lazyCost(c.entry) : undefined;
+  rows.push({ ...c, min: code.length, gzip: gzipSync(code, { level: 9 }).length, lazyCost: lazy, meta: r.metafile });
 }
 
 const pad = (s, n) => String(s).padEnd(n);
@@ -165,8 +201,12 @@ for (const r of rows)
   console.log(
     `${pad(r.name, 22)}${pad(kB(r.min), 12)}${pad(kB(r.gzip), 12)}${pad(`< ${kB(r.target)}`, 12)}${r.min < r.target ? 'pass' : 'FAIL'}`,
   );
-for (const r of rows.filter((r) => r.lazy === true))
-  console.log(`${r.name}: ${kB(r.lazyBytes)} more on first use (its lazy chunks, minified)`);
+for (const r of rows.filter((r) => r.lazyCost)) {
+  console.log(
+    `${r.name}: ${kB(r.lazyCost.bytes)} more on first open (its lazy chunks and their imports past the viewer's, minified):`,
+  );
+  for (const [k, v] of r.lazyCost.top) console.log(`  ${pad(kB(v), 10)}${k}`);
+}
 
 // each entry's unlisted modules: none may have a byte in any chunk (no lazy chunk either: the design has none)
 let held = 0;

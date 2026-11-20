@@ -4,10 +4,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { defineIssues, type Issue, issueOf } from '@molstar/core/repr/tree';
+import { type Issue, issueOf } from '@molstar/core/repr/tree';
 import type { CifCategory, CifField, CifFrame } from '@molstar/io/reader/cif/data-model';
 import type { EntityType, StructureDescription } from '../io/structure.js';
 import { natural } from '../io/structure-read.js';
+import { MmcifIssues } from './mmcif-issues.js';
 
 // An mmCIF frame read into a structure description (_spec/README.md "Data", mmCIF; molecules.md, Reading): the CIF
 // categories as `@molstar/io`'s parser gives them, read by field name (no schema: its size), into the columns
@@ -15,30 +16,6 @@ import { natural } from '../io/structure-read.js';
 // units of the deposited model or of the assembly asked, their modeled residues from `atom_site` (the first model,
 // the first `label_alt_id` an atom name has), links from `struct_conn` and the branches' own, compounds from
 // `chem_comp`, a molecule's atoms from its first unit and the per-residue values (`b_factor`, `occupancy`, `plddt`).
-
-/** The mmCIF runtime's own codes (the rest are `seq.io.structure.*`, said by `structureNodes`, and `seq.source.*`). */
-export const MmcifIssues = defineIssues('seq.io.mmcif', {
-  'seq.io.mmcif.assembly': {
-    severity: 'error',
-    description: 'The assembly asked is not in the file: the source is not read',
-    hint: 'Name an assembly of `pdbx_struct_assembly_gen`, or none for the deposited model',
-  },
-  'seq.io.mmcif.operators': {
-    severity: 'warning',
-    description:
-      'An assembly’s operator expression names more operators than the units bound (`limits.maxUnits`): the ids past it are never made, the rest left out',
-  },
-  'seq.io.mmcif.altloc': {
-    severity: 'info',
-    description:
-      'Atoms at alternate locations: the first `label_alt_id` an atom name has is read, the others dropped (a position is one atom)',
-  },
-  'seq.io.mmcif.links': {
-    severity: 'info',
-    description:
-      '`struct_conn` rows not read as links: an end on a symmetry mate, or on a residue no unit read has (a water when waters are not read)',
-  },
-});
 
 /** How the file is read (molecules.md, Reading; the source params). */
 export interface MmcifReadOptions {

@@ -939,8 +939,9 @@ by fuzz tests (mutated text read without a throw).
   `limits.maxBytes` before and after inflating), parsed by `@molstar/io`'s text CIF parser (an allowlisted entry; the
   lint's restricted imports), its categories read by field name into a `StructureDescription`
   (`runtimes/mmcif-description.ts`), and that into nodes by `structureNodes` (Seq io), never a converter of its own. Why
-  no mmCIF schema: its size; the description names the few fields read. Why the parser by dynamic import: a viewer that
-  lists the runtime and opens no mmCIF source pays its own code only. BinaryCIF is not read (its decoder's size).
+  no mmCIF schema: its size; the description names the few fields read. Why the parser and the reading by dynamic
+  import: a viewer that lists the runtime and opens no mmCIF source pays its own code only. BinaryCIF is not read (its
+  decoder's size).
 - **What is read**: entities (`entity`, `entity_poly`'s type and `pdbx_seq_one_letter_code_can`); components a position
   (`entity_poly_seq`, `pdbx_entity_branch_list` by `num`, `pdbx_entity_nonpoly`; a water one `HOH` a water of its
   longest unit); identifiers (a non-polymer's `ccd`, a branch's `wurcs` and `linucs` from
@@ -976,7 +977,9 @@ by fuzz tests (mutated text read without a throw).
   quick, 1FIN, 4HHB and 3SGJ medium), each against the counts recorded from its file and counted again from its
   categories by the parser alone, and valid by the language; a small hand-written file for what no entry has (a polymer
   without canonical letters, an altloc, a hydrogen, two operators, waters, pLDDT, the answers and refusals).
-- **Size**: its own row (its code and Seq io's converter) under 30 kB; the parser's chunk, on first open, apart.
+- **Size**: its own row (the runtime and Seq io's converter, 19 kB) under 30 kB; the chunk on first open (the parser and
+  the reading of categories) apart, with every import it brings past the default viewer's: 90 kB, half of it
+  `@molstar/core`'s linear algebra, which `data/db`'s `Column` (the parser's fields) imports for its tensor schema.
 
 ### Archives
 
