@@ -156,6 +156,10 @@ base-library change, below), archives. The Genomes milestone is the fifth.
   - a rows track's header line as its title row (`rows.titleRow: auto`): until then a rows track draws no states, no
     slots and no label hit (core's "Track headers"); the header line in the text layout's first line, a grid's label and
     a ring's menu (the core lays it out in the tracks layout only, its blocks' first row included);
+  - the track headers' `seq:pending` state (`loader-circle`, data pending in view: no per-track pending fact yet), a
+    run's message said by the live region, a header entry's widget slot (`kind: 'widget'`, when a host asks), a template
+    instance's hide (the template's), and a jump onto a hidden track said with its section's chip (the viewer's
+    `headers` behavior);
   - the renderer's section cache keyed by the export's `folds`; the cell hit's 16 B (a number boxed from the point to
     its column through the axis, every layer's hit) measured by the allocation tier;
   - a Design page (the Pfam globin seed and its tree are recorded: the seed as published, the tree by neighbor joining,

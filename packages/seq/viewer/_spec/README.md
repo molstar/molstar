@@ -462,16 +462,19 @@ the rails and navigators (`viewer-rails.ts`), the emphasis (`viewer-emphasis.ts`
   navigators' idle rule, so a rail zoomed out to the whole band keeps its grips). The viewer's export leaves the rails
   out with its navigators (its picture without its chrome: no slim row); with `navigators: include` they are drawn
   plain.
-- `SeqViewerSpec`: `registry` (the core's entries: format runtimes, layer types, layouts), `behaviors` (a provider and
-  its params), `bindings` (a preset, override layers, extra action ids), `config` (`[item, value]` pairs), `ports`
-  (factories with ownership), `ui` (the parts; none for a headless viewer), `history` (the history port), `story` (the
-  story part). `DefaultSeqViewerSpec()` (`@molstar/seqx-viewer/default-spec`) lists the `seq` and records runtimes, the
-  core's layer types and layouts (`BuiltInRenderRegistry`), the `hover`, `navigate`, `select`, `cursor`, `addressing`,
-  `editing`, `navigator`, `rows`, `hoverCard` (its port `hoverCardOverlay()`), `keysPanel` and `linkedPairs` behaviors,
-  the story part (`StoryPart`), the default ports and the UI (`canvas`, and `history: uiHistory`: a mounted viewer with
-  no `history` given gets a stack of its own from the factory); an application spreads it. A headless spread
-  (`ui: undefined`) has no history, so its edits apply at once (`refs.add` and the editing commands answer at once); a
-  mounted one runs them in turn through its stack (`execute` waits for their message, `runCommand` gives `''`).
+- `SeqViewerSpec`: `registry` (the core's entries: format runtimes, layer types, layouts; and the viewer's own kind,
+  `header-action`, the `headers` behavior's, left out of the core's context; `viewer.registry` as listed), `behaviors`
+  (a provider and its params), `bindings` (a preset, override layers, extra action ids), `config` (`[item, value]`
+  pairs), `ports` (factories with ownership), `ui` (the parts; none for a headless viewer), `history` (the history
+  port), `story` (the story part). `DefaultSeqViewerSpec()` (`@molstar/seqx-viewer/default-spec`) lists the `seq` and
+  records runtimes, the core's layer types and layouts (`BuiltInRenderRegistry`), the header entries
+  (`BuiltInHeaderEntries`), the `hover`, `navigate`, `select`, `cursor`, `addressing`, `editing`, `navigator`, `rows`,
+  `hoverCard` (its port `hoverCardOverlay()`), `keysPanel`, `headers` (its menu `headerMenuOverlay()`,
+  `contextClick: everywhere`) and `linkedPairs` behaviors, the story part (`StoryPart`), the default ports and the UI
+  (`canvas`, and `history: uiHistory`: a mounted viewer with no `history` given gets a stack of its own from the
+  factory); an application spreads it. A headless spread (`ui: undefined`) has no history, so its edits apply at once
+  (`refs.add` and the editing commands answer at once); a mounted one runs them in turn through its stack (`execute`
+  waits for their message, `runCommand` gives `''`).
 - **Injected, opt in**: what the spec does not list is not in the viewer's bundle. `createSeqViewer` imports no layer
   type, layout, navigator, story, history or rows piece: the context is `composeSeqContext` of the spec's registry (the
   canvas, the navigation's layouts and `renderSvg` draw its layer types and layouts alone; a layer of another type or a
@@ -542,6 +545,9 @@ the rails and navigators (`viewer-rails.ts`), the emphasis (`viewer-emphasis.ts`
   the teardown that follows asks for no frame; the frame callback and the settle timer are cancelled, then the mounted
   UI, the behaviors, the want set, the models and the context's owned ports go. After it no frame is pending and input
   is ignored. A spec that fails to compose (a behavior listed twice) retires what it made.
+- **Composed** (`BehaviorHandle.composed(viewer)`): called once every behavior and the frame are made, before the UI;
+  what reads the viewer's commands or registry (the header entries' checks). A throw retires what was made.
+  `viewer.headers` is the `headers` behavior's geometry (undefined without it).
 - **Behaviors by name**: the input finds a behavior by its provider's name (`viewer.behavior<HoverBehavior>('hover')`,
   or a provider), so it imports no provider; one the spec does not list is a `seq.viewer.behavior.missing` issue
   (`behaviorIssues`), once, and the gesture does nothing. A handle under a built-in's name is checked for the methods
@@ -612,6 +618,28 @@ param (`port`, a `HoverCardPortFactory` given the canvas's element, none headles
 - **The default adapter** (`hoverCardOverlay()`): `@molstar/ui`'s primitives in the canvas's element (`msui-surface`,
   its tokens and squircle, a header, a form of rows; the rows' elements kept across shows), absolutely placed,
   `aria-hidden` (the live region says the same), never in the draw lists or an export.
+
+### Header menu and Header parts
+
+The `headers` behavior's params, as the hover card's port is its behavior's.
+
+- **The menu** (`menu`, a `HeaderMenuPortFactory` given the canvas's element, none headless; made at the first menu
+  headless, given up at the mount): `show(menu, place, behavior)` (`HeaderMenu`: its target and groups of
+  `HeaderMenuItem`s: name, kind, label, icon, chip text, key, enabled or `why`, checked, slot, command and args, a
+  submenu), `hide()`. A choice runs `behavior.runItem(item)` (`viewer.execute`), a hovered scheme `behavior.preview`, a
+  menu closed without a choice `behavior.closeMenu()` (a preview ends in nothing). `headerMenu(viewer, target)` is the
+  data, DOM-free. The default adapter, `headerMenuOverlay()` (`mount-header-menu.ts`), is `@molstar/ui`'s context menu
+  at the place (an item with a submenu opens it in its place: the context menu has no nested menus); its keyboard is the
+  menu's, and closed the focus goes back to the canvas.
+- **The parts** (`parts`: `canvas`, the default, or a `HeaderPartsPortFactory` given the canvas's element and the
+  behavior): the layout still lays out every header; the canvas draws the states (the export's) and no slot and no "⋯";
+  the port is given `headerParts(viewer)` (`HeaderPartsState`: each shown header's geometry, whether its actions show,
+  and the items `headerMenu` gives it) on change, and `focus(target)` when the keyboard cursor comes onto a header. A
+  press runs `behavior.run(name, target)`, the slot click's path. `headerPartsDom()` (`mount-header-parts.ts`,
+  `@molstar/ui` buttons and icons): a part at each slot box of a header whose actions show and a transparent button over
+  each chip; one tab stop a header (← → between its parts, Enter or Space runs, Esc back to the canvas); Tab never
+  captured (EC-155); its events stopped at its root (the canvas sees no press there).
+- **Ownership** as the hover card's (`disposeWithViewer`).
 
 ### History
 
@@ -868,6 +896,11 @@ rows' commands) reads the last frame's rows layers through the behavior context'
   `write` (`SelectProvider`'s param; the platform's clipboard when there is one); the message is a count ("Copied 393
   letters"): a message is shown and announced, never a sequence. Why what is shown: what a reader selected is what they
   saw (the author's decision).
+- **The cursor on track headers** (`cursor-moves.ts`): `cursor.prev` at a section's first position goes onto its first
+  track's header (`part: 'header'`, `track` its address; the section's line its section's address), drawn with its
+  actions (`Emphasis.cursor.track`); ↑ ↓ step between the section's headers (its line first), then on to the next
+  section's; → back to the data where it left; Space and the extends do nothing there; Enter is `headers.menu`
+  (`cursor.focus` refuses there). A rows track has no header line: its rows' header is the rows' own.
 - `cursor`: the keyboard cursor's commands, on the cursor's section (else the context's, else the first; the first key
   places the cursor at the section's first position shown): `cursor.prev`, `cursor.next` (a cell in display order,
   whatever the direction, clamped to the axis, across breaks: a step over one says what it crossed, "crossed a break,
@@ -983,6 +1016,54 @@ rows' commands) reads the last frame's rows layers through the behavior context'
   address still waits is asked again), and the channel's value per set of keys: a hover allocates nothing a frame past
   its first. A pair or a position hovered is the pairs layer's own rule (its partners light), never the channel. Why a
   behavior: a host chooses an analysis, and the same query serves the selection.
+- `headers` (`HeadersProvider`, `behaviors/headers.ts`, in the default spec; left out: states only, no slots, no menu):
+  the track headers' entries and gestures (core's Track headers draws and hits them).
+  - **Entries** (`header-entries.ts`): `HeaderEntry` (`name` namespaced `<id>:<name>`, `on` `track`, `section` or
+    `element`, `kind` `action` or `state`, `icon` `@molstar/ui`'s, `label`, `when`, `command`, `args`, `text`, `order`,
+    `slot`, `items` a submenu), listed in the registry as `{ kind: 'header-action', entry }` (`SeqViewerRegistryEntry`)
+    or registered at run time (`register(...entries)`, returning its undo). Registration is atomic: every problem in one
+    error before anything changes (a name twice, no namespace, a command the viewer lacks, `seq.viewer.header.command`;
+    an icon no path reads, `seq.viewer.header.icon`); the registry's are checked once every behavior is made
+    (`BehaviorHandle.composed`). The label and icon default to the command's. Why entries: one list for a slot, a menu
+    item, a DOM part, a key and an agent; the registry's rules (atomic, undoable, namespaced) for free.
+  - **Built-ins** (`BuiltInHeaderEntries`, in the default spec's registry; a host leaves one out to remove it):
+    `seq:hide` (`eye-off`, `track.hide`), `seq:color` (`palette`, the first shown layer with more than one fitting
+    scheme: its schemes a submenu of `layer.channel`, previewed while focused or hovered), `seq:layers` (more than one
+    addressable layer: a checked item a layer, `layer.hide` or `layer.show`), `seq:move-up`, `seq:move-down`
+    (`track.move`, a sibling there), the states `seq:filtered` (`layer.filter` clears), `seq:hidden-layers`
+    (`layer.show` of every hidden layer, one patch; its list each) and the section's `seq:hidden-tracks` (`track.show`
+    of every hidden track, one patch; its list each, then "Show all"), the section's `seq:reverse` and `seq:collapse`.
+    `seq:pending` is not built (the TODO).
+  - **`HeaderFacts`**: plain data from the resolved view, the spec and the last layout (the address, label, section,
+    system, linear, the section's track ids, the track's layers with type, label, hidden, filtered rows, color and
+    fitting schemes, the hidden tracks, the element). Entries' functions are pure over them, run once a layout a shown
+    header (`partsOf`, the frame's `headers`, a new function when the entries change: a new layout) and when a menu
+    opens.
+  - **Shown or enabled**: an entry's `when` decides whether it shows, its command's `when` whether it runs (a disabled
+    item muted, its reason its `why`). An action with `items` opens them (its slot opens the menu at it); a state's
+    click runs it, its secondary click lists its items, then itself (`header.hiddenChip.click: menu`: the click lists
+    them).
+  - **Slots** are the applying actions with an icon (or `slot: true`), by `order` then name, the first
+    `actionColumns(…).n`; every entry is in the menu. A slot's icon is read once into path data (`header-icons.ts`: the
+    Lucide markup's `path`, `line`, `circle`, `ellipse`, `polyline`, `polygon`, `rect`; arcs and quadratics as cubics).
+  - **Gestures**: a click on a slot runs it (the "⋯" opens the menu), on a chip runs its state, on a label nothing (on
+    touch it shows the slots, as a hover there, so a second tap on a slot runs it); never a selection's. A secondary
+    click (`contextmenu` on the mounted canvas) opens the menu under `contextClick` (`everywhere`, the default spec's:
+    at what it hits, an element's entries first, then its track's and its section's; `header`, the label column only;
+    `none`, the browser's); Shift+secondary click is always the browser's. A long press (touch,
+    `header.menu.longPressMs`) opens it. The menu key, Shift+F10 and Enter on a header (`headers.menu`, `view.keys`)
+    open it at the cursor's header (its section's first track's on data), once per ask: the browser's secondary click
+    that follows within a second is taken and opens nothing (EC-156).
+  - **The cursor off what was hidden**: a frame whose layout no longer has the cursor's track moves it to the next
+    track's header, else the previous one's, else the section's line.
+  - **Published on change** (by name from the frame, `framed()`: no listener; a frame that kept its layout reads one
+    field and makes nothing): `geometry` (`viewer.headers`, `HeaderGeometry[]`: target, line, label, slot and chip boxes
+    with their names, the well, `shown`), compared structurally; `parts` (`HeaderPartsState`) only with a parts port,
+    again when the header whose actions show changes.
+  - **Words** (`describe.ts`, the describer's `headers`): a slot its label and key ("Hide track", why when disabled), a
+    chip its text and what a click does ("2 hidden: click show all"), a label its track's label and states (its layers
+    for the card), the cursor on a header "…, Enter for actions". The card of a header part is a title alone. A header's
+    hover lights none of the track's items (EC-146: refused by default).
 - `links.hover` (`LinksHoverProvider`, `links-hover.ts`; not in the default spec: how events from different parts
   compose is the application's, the examples list it): hovering a molecule (a chip, a residue, an atom) lights the
   positions its links reach (a complex's `pairs` children, each end on its row's unit); hovering a linked site lights
@@ -992,12 +1073,13 @@ rows' commands) reads the last frame's rows layers through the behavior context'
   A link is never a map: nothing is projected across it. Contacts get no such behavior (a layer the host adds).
 - `editing`: edits of the spec as commands, each one patch made against the revision read (`SpecModel.patch`, one step):
   `layer.hide`, `layer.show` (the `hidden` key set or unset), `layer.color` (the layer's theme), `track.hide` and
-  `track.show` (the track's own `hidden`: its layers keep theirs, so hide then show is a round trip), `track.move`
-  (among its siblings, `after`), `track.add` (a `node` inserted under the section `address`, after `after`, last without
-  it; the id taken is refused), `refs.remove`, `refs.label` (a bookmark's `label` param set, or removed with `''`);
-  `step.enter` and `step.leave` (navigation); `preview.cancel` (Esc). A gesture's preview is a method, never a command
-  (it runs per pointer move): `preview(patch)` replaces the last, `endPreview(label)` ends it in one step,
-  `cancelPreview()` in nothing. `when` says why one cannot run (no such node, no step shown, nothing to cancel).
+  `track.show` (the track's own `hidden`: its layers keep theirs, so hide then show is a round trip; `layer.show` and
+  `track.show` take `addresses` too, every one in one patch: a chip's "show all"), `track.move` (among its siblings,
+  `after`), `track.add` (a `node` inserted under the section `address`, after `after`, last without it; the id taken is
+  refused), `refs.remove`, `refs.label` (a bookmark's `label` param set, or removed with `''`); `step.enter` and
+  `step.leave` (navigation); `preview.cancel` (Esc). A gesture's preview is a method, never a command (it runs per
+  pointer move): `preview(patch)` replaces the last, `endPreview(label)` ends it in one step, `cancelPreview()` in
+  nothing. `when` says why one cannot run (no such node, no step shown, nothing to cancel).
 
 ### Molecules: the interaction matrix's cells
 
@@ -1037,8 +1119,9 @@ The cells the molecules design names, each built or not and why (the core's "Res
   (`break`, the render hit's `target`): no default binding but the hover, so a double-click on it does nothing (the
   pointer aimed at the break; showing its stretch is `section.collapse`, a spec change). A header's parts are targets
   too (`header-slot`, `header-state`, `header-label`, `section-header`: core's Track headers): never a selection's (a
-  click there selects and clears nothing; the "n filtered" chip clears its filter), and a drag on a track's label line
-  pans as its track (`header-label`, in `default`).
+  click there selects and clears nothing; with the `headers` behavior a slot or a chip runs its entry, else the "n
+  filtered" chip clears its filter), and a drag on a track's label line pans as its track (`header-label`, in
+  `default`). A slot is hit only while its header's actions show.
 - **Actions must exist**: a model method (`hover`, `pan`, `zoom`, `drag-select`, `drag-add`, `drag-subtract`,
   `drag-extend`) or a command the viewer defines (`DefaultActions`, or the `actions` given). A binding to another is
   reported (`seq.viewer.binding.action`) and left out, so the gesture does nothing.
@@ -1083,12 +1166,12 @@ selection's gestures and the cursor's moves are session state; the cursor's focu
   absent), with no memory of an earlier form. On the section named (`address`), else the keyboard cursor's, else the
   first leading one; their keys are `view.keys`' (Shift+R, Shift+C). Why patches: direction and pieces are what the
   figure is, so undo (not back) returns them and the export says the same.
-- **`block.form`** (the `editing` behavior's, a patch, one undo step; a command only: the viewer has no context menu
-  yet, the design's place for it; no default key): sets a block's `form` (`whole`, `residues`, `atoms`; `address` the
-  block, `form`). A block a section of a complex derives from its units has no node: the patch inserts one `block` child
-  of that unit's id (a merged copies block's: its first unit's) with the form, an override of that block alone (the
-  core's Resolved view, A section of a complex); the others stay derived, units added later listed. Undo removes the
-  child.
+- **`block.form`** (the `editing` behavior's, a patch, one undo step; a command only, in no built-in menu: a host's
+  `on: 'element'` header entry may name it; no default key): sets a block's `form` (`whole`, `residues`, `atoms`;
+  `address` the block, `form`). A block a section of a complex derives from its units has no node: the patch inserts one
+  `block` child of that unit's id (a merged copies block's: its first unit's) with the form, an override of that block
+  alone (the core's Resolved view, A section of a complex); the others stay derived, units added later listed. Undo
+  removes the child.
 
 - **The rows' commands** (the `rows` behavior's, `behaviors/rows.ts`, on a track's rows layer, the first when none is
   named): folds are session state (the band's `folds`: no undo step): `clades.toggle` (a hand's move, no history step),
@@ -1247,8 +1330,8 @@ settings form.
 | `bounds.maxPlaces`                          | 10                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | places kept a code, the rest counted (EC-86)                                                                                                                                                                                                                                 |
 | `bounds.themeDepth`                         | 4                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | a theme form's nesting (`seq.lang.theme.depth`): rules over rules read, a deeper tree is a mistake                                                                                                                                                                           |
 | `bounds.maxBlockValues`                     | 2^24                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | the values (rows times columns) a table of an answer may hold, held by the store                                                                                                                                                                                             |
-| `header.menu.longPressMs`                   | 500                                       | a long press opens a track header's menu (touch's context menu; the `headers` behavior) | any |
-| `header.hiddenChip.click`                  | `all`                                     | a count chip's click shows every hidden thing in one patch, one rule with the filter chip and the rows' (track header parts) | `menu` (the list, each shown alone) |
+| `header.menu.longPressMs`                   | 500                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | a long press opens a track header's menu (touch's context menu; the `headers` behavior)                                                                                                                                                                                      | any                                 |
+| `header.hiddenChip.click`                   | `all`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | a count chip's click shows every hidden thing in one patch, one rule with the filter chip and the rows' (track header parts)                                                                                                                                                 | `menu` (the list, each shown alone) |
 
 The spec's bounds are held by the viewer's patches, previews, story steps and whole roots (`SpecModel.apply` refuses
 with `'out-of-bounds'` and `boundsIssues`; `viewer.load` rejects with the issues); the table bound by its store. The
