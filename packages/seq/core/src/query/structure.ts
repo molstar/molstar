@@ -264,7 +264,8 @@ export class FrameReads {
             : this.frame.of;
     if (!system) return undefined;
     const read = d.read!;
-    const col = typeof read === 'function' ? read(model, system) : model.property?.(system, read.values, read.field);
+    const col =
+      typeof read === 'function' ? read(model, system) : model.property?.(system, read.values, read.field || undefined);
     return byColumn(col, d.level === 'atom' ? (_, a) => a : d.level === 'residue' ? (r) => r : () => 0);
   }
 }

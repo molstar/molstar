@@ -200,6 +200,7 @@ function intersect(a: readonly number[], b: readonly number[]): number[] {
 /** A row's fine fields (residue, atom; the range fields aside) as a predicate, compiled once a row. */
 function finePredicate(ctx: Ctx, items: Items, r: number, defs: ReadonlyMap<string, PropertyDef>, absent: Absent) {
   const tests: Node[] = [];
+  const ranks: number[] = [];
   for (const f of items.fields) {
     const d = defs.get(f);
     const v = items.columns[f][r];
@@ -207,8 +208,13 @@ function finePredicate(ctx: Ctx, items: Items, r: number, defs: ReadonlyMap<stri
     // a seq or author number named by index is not tested again
     if (f === 'seq' || f === 'auth-seq') continue;
     tests.push({ kind: '=', args: [{ kind: 'prop', args: [f] }, v] });
+    ranks.push(levelRank(d.level));
   }
-  return tests.length ? compilePredicate(ctx.ext, { kind: 'and', args: tests }, absent) : undefined;
+  // residue fields before atom fields: `and` stops at the first false, so an atom field lacks only where they matched
+  const order = tests.map((_, i) => i).sort((x, y) => ranks[x] - ranks[y]);
+  return tests.length
+    ? compilePredicate(ctx.ext, { kind: 'and', args: order.map((i) => tests[i]) }, absent)
+    : undefined;
 }
 
 /** The elements a frame gives: per row its positions by index, then its fine test per residue or atom. */
@@ -225,11 +231,10 @@ function walkFrame(
   const f = reads.frame;
   let authCache: Map<number, number[]> | undefined | null = null;
   const auth = () => (authCache === null ? (authCache = authIndex(f)) : authCache);
+  // a frame without atoms (a polymer's unit) is still tested by residue: its atom fields then lack, counted only
+  // where its residue fields matched, and it gives nothing
   const atoms = level >= Atoms ? reads.atoms() : undefined;
-  if (level >= Atoms && !atoms) {
-    absent.set('atoms', (absent.get('atoms') ?? 0) + 1);
-    return undefined;
-  }
+  const lacking = level >= Atoms && !atoms;
   const all = f.residues ? Array.from(f.residues) : [0, f.system.length];
   const out: number[] = [];
   for (const r of rows) {
@@ -244,7 +249,7 @@ function walkFrame(
       for (let p = positions[k]; p < positions[k + 1]; p++) {
         tick(ctx);
         if (!atoms) {
-          if (!pred || pred.test(rs!, p, -1)) out.push(p, p + 1);
+          if ((!pred || pred.test(rs!, p, -1)) && !lacking) out.push(p, p + 1);
           continue;
         }
         const [s, e] = atoms.atomsOf(p);

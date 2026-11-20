@@ -12,7 +12,7 @@
 // names read as the short one, a field absent in every row dropped, a row given twice once) and printed in the shorter
 // layout (one item as params, else columns or records, ties to columns), so `parse(print(a))` equals `a` as a value.
 
-import { type Atom, isNode, type Node, type Value } from '@molstar/core/repr/tree';
+import { type Atom, isNode, type Node, printAddress, type Value } from '@molstar/core/repr/tree';
 import { coerce } from './expressions.js';
 import { fail } from './form-kit.js';
 import { findProperty, levelRank, type PropertyDef, type PropertyTable } from './properties.js';
@@ -156,8 +156,6 @@ export function itemsEqual(a: Items, b: Items): boolean {
   return true;
 }
 
-const atomText = (v: Atom): number => (typeof v === 'string' ? v.length + 1 : `${v}`.length);
-
 /**
  * The `elements` form of items in the shorter layout: one item as params; else columns (a field the same in every
  * row a scalar) or `:items` records, whichever prints shorter, ties to columns.
@@ -170,27 +168,19 @@ export function elementsForm(items: Items): Node {
     return fields.length ? { kind: 'elements', params } : { kind: 'elements' };
   }
   const cols: Record<string, Value> = {};
-  let colText = 0;
   for (const f of fields) {
     const c = columns[f];
-    const same = c.every((v) => Object.is(v, c[0]));
-    cols[f] = same ? c[0] : [...c];
-    colText += f.length + 2 + (same ? atomText(c[0]) : c.reduce((n: number, v) => n + atomText(v) + 1, 1));
+    cols[f] = c.every((v) => Object.is(v, c[0])) ? c[0] : [...c];
   }
-  let recText = 8;
   const records: Node[] = [];
   for (let r = 0; r < rows; r++) {
     const params: Record<string, Value> = {};
-    recText += 9;
-    for (const f of fields) {
-      const v = columns[f][r];
-      if (v === null) continue;
-      params[f] = v;
-      recText += f.length + 3 + atomText(v);
-    }
+    for (const f of fields) if (columns[f][r] !== null) params[f] = columns[f][r];
     records.push({ kind: 'fields', params });
   }
-  return recText < colText ? { kind: 'elements', params: { items: records } } : { kind: 'elements', params: cols };
+  const byColumns: Node = { kind: 'elements', params: cols };
+  const byRecords: Node = { kind: 'elements', params: { items: records } };
+  return printAddress([byRecords]).length < printAddress([byColumns]).length ? byRecords : byColumns;
 }
 
 /** The finest level of items' fields (`levelRank`), -1 when none: the range fields are a residue's. */
