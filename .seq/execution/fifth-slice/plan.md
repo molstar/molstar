@@ -93,6 +93,11 @@ drafts run overnight with their reviews, before the fourth slice's close; their 
    streamed things, keep this region, the remaining query forms): here or a version-1 close-out slice. Recommended: a
    close-out slice after this one.
 
+**Public API** (the author, 2026-11-20: "you can change public api of packages/seq, core/repr, packages/ui if needed.
+this has no other consumers beyond the work here yet"): a lane changes those packages' surfaces where its design needs
+it, recorded in its changelog entry; a change elsewhere in `@molstar/core` or in `@molstar/io` (BGZF and tabix, Gate 0,
+2) is agreed in stage 0 first.
+
 ## Testing strategy
 
 - **Every lane**: as the fourth slice (quick-lane tests beside the code; a story with a headless twin on a fake clock;
