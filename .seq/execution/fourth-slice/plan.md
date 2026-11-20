@@ -304,7 +304,7 @@ disagrees with its code writes a drift note and stops.
       (`HoverModel.setLocation`, `AddressModel.revealLocation`, `view.lastJump`, `viewer.retiredSignal`; accepted as
       the design lists them), then `@molstar/seqx-viewer/link-structure`: `linkStructure` with echoes, coalescing,
       clearing on either end, focus with the jump's duration, `via` (`briefs/st2-structure-link.md`).
-- [ ] ST3 (fast, after ST2; HP2 done) the fake structure viewer (`_stories/support/`, importing nothing of Seq\*, its
+- [x] ST3 (fast, after ST2; HP2 done) the fake structure viewer (`_stories/support/`, importing nothing of Seq\*, its
       own chain table, MolViewSpec validated by `mvs-builder`) with its host's adapter (translation on `structureFacts`
       and `unitRows`, its `side` for `linkStructure`); the stories: hover, selection, focus, chain maps (SIFTS against an
       alignment by `priority` and `via`), "color by this track" as a host's header entry; twins; the Design page

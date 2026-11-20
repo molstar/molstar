@@ -321,3 +321,5 @@ base-library change, below), archives. The Genomes milestone is the fifth.
   labels; a lane's label drawn on the ring where no feature crosses it would name them in place.
 - **The grid rows' highlight stripes allocate a few bytes a run** (`grid.ts` `emitRows`, the quick case in
   `pairs-grids.quick.ts` bounds it at 128 B): find the boxed value; the tracks' stripes allocate nothing.
+- **Host commands cannot declare their change kind** (structure-syncing: a host's color command changes no Seq\* state):
+  `CommandChangeKinds` has no hook for a host's ids.

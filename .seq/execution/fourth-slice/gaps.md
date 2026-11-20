@@ -8,6 +8,9 @@ under the author's standing permission (`state.md`, Decided). Each a yes or no q
 - **ST2**: `JumpKind` gains `zoom` and `move`; `view.jump(move, record?, kind = 'move', location?)`;
   `NavigateContext.location`; core `toUnits`/`fromUnits` over an empty overlay read the model alone. Keep? Recommended
   yes (the review: unnamed jumps were recorded as `focus`).
+- **ST3**: `StructureSide.onHover`'s callback takes the event's time (`at?: number`); `linkStructure` drops a side hover
+  older than the pointer's last own hover (the review: a late non-null 3D hover took the pointer's). Keep? Recommended
+  yes (EC-141 covered for hovers, not only leaves).
 
 ## Decisions as recommended
 

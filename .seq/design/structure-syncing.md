@@ -27,7 +27,8 @@ Reading units from a host's structure is the seq data ports design's.
   `highlight`, `select`, `focus`, `onHover`, `onSelect`). Taken:
   - hover and selection both ways;
   - the size gate (EC-167): residue by residue within bounds, else whole chains or nothing;
-  - a 3D hover with an owner of its own, so a late 3D leave never clears the pointer's hover (EC-141);
+  - a 3D hover with an owner of its own, so a late 3D leave never clears the pointer's hover, and a 3D hover older than
+    the pointer's last own hover (its `at`) is dropped (EC-141);
   - a non-polymer position lighting its whole residue;
   - chain instances keyed by `label_asym_id` and operator (EC-181).
 
@@ -112,7 +113,7 @@ interface StructureSide {
   select(target: StructureTarget | null): void;
   focus(target: StructureTarget, options: { readonly durationMs: number }): void;
   /** The structure viewer's own events, translated by the host; each returns its unsubscribe. */
-  onHover?(fn: (target: StructureTarget | null) => void): () => void;
+  onHover?(fn: (target: StructureTarget | null, at?: number) => void): () => void;
   onSelect?(fn: (target: StructureTarget | null) => void): () => void;
   onFocus?(fn: (target: StructureTarget) => void): () => void;
   /** Aborted when the structure viewer goes: the link clears and disposes itself. */
