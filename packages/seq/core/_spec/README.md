@@ -402,17 +402,16 @@ layout per token table, held domains and the reader's substitution (`LayerChanne
 - **Filters**: a theme never hides; a filter does. An item layer's `data` written as a query
   (`<annotation>/(not :of (item :<field> v))`) leaves out the rows its form rejects as the shared item reader reads them
   (`item` by `:id` or a field, a list param any of its values; `not`, `and`, `or`), compiled once a prepare
-  (`compileRowFilter`); the track's label column shows "n filtered" (`TrackLayout.filter`), a hit on it
-  `target: 'filter'`: on a track of two lines' height on a line of its own under the label (`filter.dy`, the label
-  whole, the two lines centred together), else at the column's end with the label fading before it. A form not read row
-  by row filters nothing and is `seq.render.filter`. **One rule for the base and the filter** (`splitDataForms`, read by
-  the layers and the viewer's `dataFilter` alike): a leading run of item forms (`and` and `or` of them too) is the
-  track's base (`<annotation>/(item :category Domain)`; `ResolvedLayer.data.base`, `LayerSource.base`): its rejected
-  rows are left out and not counted as filtered; a trailing `(not …)` is the user's (`data.filter`) and counted. Why:
-  one read of a file serves a layer a feature type, and the chip counts what the user hid, not what the track is. A lone
-  form of another kind stays the filter (and is `seq.render.filter` when no row reads it); any other mix of forms is
-  `seq.render.filter` too (`data.unread`), every row drawn. Density tables take neither the base nor the wrap: they are
-  counts of what a source served.
+  (`compileRowFilter`); the track's header shows "n filtered", its `seq:filtered` state (Render, Track headers: a chip
+  of `TrackLayout.header`, its `address` the filtered layer, hit `header-state`), laid out and drawn as every state. A
+  form not read row by row filters nothing and is `seq.render.filter`. **One rule for the base and the filter**
+  (`splitDataForms`, read by the layers and the viewer's `dataFilter` alike): a leading run of item forms (`and` and
+  `or` of them too) is the track's base (`<annotation>/(item :category Domain)`; `ResolvedLayer.data.base`,
+  `LayerSource.base`): its rejected rows are left out and not counted as filtered; a trailing `(not …)` is the user's
+  (`data.filter`) and counted. Why: one read of a file serves a layer a feature type, and the chip counts what the user
+  hid, not what the track is. A lone form of another kind stays the filter (and is `seq.render.filter` when no row reads
+  it); any other mix of forms is `seq.render.filter` too (`data.unread`), every row drawn. Density tables take neither
+  the base nor the wrap: they are counts of what a source served.
 
 ## Issues
 
@@ -2335,15 +2334,16 @@ numbers): a window move allocates nothing once warm.
 - **Its modules**: `render/tracks.ts` (the layout pass, `layoutView`, and the public names) and beside it, a concern
   each, `tracks-types.ts` (its input, its layouts, `LayoutState`), `tracks-axes.ts` (a section's axis, a follower's),
   `tracks-cache.ts` (a section's reuse), `tracks-strips.ts`, `tracks-columns.ts` (the label column),
-  `tracks-templates.ts`, `tracks-heights.ts` (Track heights), `tracks-draw.ts`, `tracks-emphasis.ts` (Emphasis) and
-  `tracks-hit.ts`.
+  `tracks-templates.ts`, `tracks-heights.ts` (Track heights), `tracks-headers.ts` (Track headers: the facts and the
+  lines), `tracks-draw.ts`, `tracks-emphasis.ts` (Emphasis) and `tracks-hit.ts`; the header line's own modules are
+  `headers.ts` (its parts and geometry) and `headers-draw.ts` (drawn and hit).
 - **A cyclic axis's window past its total** (a linear view panned across its origin, `wraps`): the transform takes the
   whole system twice, so the window's units go on over the origin (two runs, no break between); a follower of it wraps
   as of a ring's window.
 - **On the interface** (`layout/tracks.ts`): one strip a section (a block in view with blocks: Blocks), translated by
   nothing (its frame the page), its bands the tracks stacked with `trackGap`; its chrome the label column (each track's
-  label, the filter chip, the direction mark). Its draw lists are the same before and after the restatement but for the
-  `window` pass's header: the committed records are its guard.
+  label and header line, the section's header line, the direction mark: Track headers). Its draw lists are the same
+  before and after the restatement but for the `window` pass's header: the committed records are its guard.
 - Sections stacked; each an `AxisTransform`: its pieces (`[start, end, …]` in display order) end to end as display units
   in its direction (a reversed piece `[s, e)` shows `e − 1 − k` at its offset `k`, EC-32), the viewport a window of them
   (`{ start, end }`, all by default; `viewports` by section address before it) across the data box. Both ways: a
@@ -2389,6 +2389,42 @@ numbers): a window move allocates nothing once warm.
   say by how much a band (`PlaceContext.pads`, set by each layout). A point in the padding is in no band: no item. Rows
   and blocks stack wells with `trackGap` between them; text lines hold them (a collapsed band drops its padding too); a
   ring's padding is radial, scaled with its rings; a grid's plot is inset by its bands' largest padding.
+
+### Track headers
+
+- **Parts given, geometry laid out.** A header is a track's line in the label column, or a section's line above its
+  first track. Its parts come from `LayoutInput.headers` (`HeaderPartsOf`: facts in, parts out, once a layout a header;
+  part of the key by identity, `FrameInput.headers`, `RenderSvgOptions.headers`): `slots` (an entry's name, label, icon
+  as path data in a 24-unit box, enabled), `states` (name, text, count, the address it is about) and `menu` (any entry
+  applies). The facts (`HeaderFacts`) are DOM-free: the layers a filter thinned with their counts, the hidden layers,
+  the section's hidden tracks read from the spec (each once, in spec order). Absent, `builtInHeaderStates`: a track's
+  `seq:filtered` ("n filtered", its first thinned layer) and `seq:hidden-layers`, a section's `seq:hidden-tracks` ("n
+  hidden"); no slots, no menu. Why given: which entries apply and whether they run is the viewer's (its registry and
+  commands); where they go is the layout's, so a canvas and a host's DOM parts agree.
+- **Where** (`header.*`): `actionColumns`: `header.slots` columns of `header.slotPx` and the "⋯" at the column's end, as
+  many slots as leave three columns of label (an 80 px column holds one), none under `header.actions.show: never`; one
+  set a view, so a slot's x is never the label's. The slots are the first given; the "⋯" when `menu`. A track under
+  `header.minHeightPx` (`short`) takes no slots and its states are marks (6 px accent squircles, their words the
+  card's). States beside the label end before the action columns when the header has actions, else at the column's end,
+  the last nearest; a state with no room left is a mark, so a slot never overlaps a state. On a track two lines high the
+  states take a line of their own under the label (the label whole, the two lines centred together; lower by the slot's
+  half when the header has actions, so the line clears them). The label fades before what is beside it
+  (`HeaderLine.label`). A rows track takes no slots (its title row is its header, the TODO).
+- **The section's line** (`section.header`: `auto` when its parts have a state or a slot, `always`, `none`):
+  `header.sectionPx` high above its first track, the tracks moved down by it (`SectionLayout.header`); kept when every
+  track of the section is hidden. Why `auto`: no line that says nothing, records without hidden tracks unchanged.
+- **Drawn**: the states in the labels pass (always: facts about the picture), the actions in the tip pass over a
+  backdrop of the page's color covering the label's tail (the label never moves): each slot's icon stroked in the muted
+  ink (an entry not enabled in the line ink, the hovered one in the accent; no icon: its label's first letter), the "⋯"
+  three dots. Actions show for `always`, or on `hover` for the header `Emphasis.header` names, the track a hover's hit
+  is in (its data, its slots, its states; a section's line only its own hits), and the cursor's header
+  (`cursor.part: 'header'`, `cursor.track`): an emphasis redraw, no layout, nothing allocated (`headers.quick.ts`). A
+  header's hover lights none of its track's items (EC-146: refused by default). A figure (`figure`) lays out no slots
+  and no "⋯"; its states as drawn, none with `header.states.export: none`.
+- **Hit** (`hitChrome`, before the bands): a slot or the "⋯" `header-slot`, a state `header-state` (`count` its count),
+  a section's line elsewhere `section-header`; `state` the entry's name (`HeaderMenuName` the "⋯"), `layer` the track's
+  address (a section's for its line). The slots are hit whether drawn or not (a pointer reaching for one shows them).
+  Each hit is laid out with its part (`hit`): a hover makes no object.
 
 ### Track heights
 
@@ -2501,10 +2537,12 @@ numbers): a window move allocates nothing once warm.
   hit of two axes, a rows cell or a grid cell, is the target `cell` with `ySystem` and `yPosition` set, so it allocates
   nothing; `row` a rows header, `tree-node` a tree's node and `summary-row` a folded clade's row, their element the
   clade; `column-title` a rows layer's column title, `state` its field; `columns-hidden` its hidden-columns chip,
-  `state` its text): `layer` the layer's key (its address, else its track's and `:index`), `section` the section's id,
-  `element` an item's `{ owner, key }` with its `extent` (a Location on the data's system), `position` on the section's
-  system. Cells by arithmetic on the axis; items by `LaneIndex` (a lane's marks by left edge with a running maximum of
-  right edges). In a track, the topmost layer with an element under the point wins, else the topmost with a position.
+  `state` its text; `header-slot`, `header-state` and `section-header` a header's parts, `state` the entry's name,
+  `layer` the track's or the section's address: Track headers): `layer` the layer's key (its address, else its track's
+  and `:index`), `section` the section's id, `element` an item's `{ owner, key }` with its `extent` (a Location on the
+  data's system), `position` on the section's system. Cells by arithmetic on the axis; items by `LaneIndex` (a lane's
+  marks by left edge with a running maximum of right edges). In a track, the topmost layer with an element under the
+  point wins, else the topmost with a position.
 - **What a break hides is not dropped** (fixed): a `ranges` layer reads the stretches its breaks in view hide too
   (`dataRegions(src, axis, true)`), and its items wholly in one draw one tick on the break a lane in the break ink,
   whatever their number (`ticks`: x, lane, count, the hidden stretch), hit as the break (its `count`); a Location there
