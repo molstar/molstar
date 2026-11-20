@@ -34,22 +34,10 @@ export {
   parseLink,
   printLink,
 } from './links.js';
-export {
-  type Key,
-  type Keys,
-  EmptyKeys,
-  compareKeys,
-  keySet,
-  keysEqual,
-  hashKeys,
-  intersectKeys,
-  subtractKeys,
-  unionKeys,
-} from './keys.js';
+export { EmptyKeys, type Key, type Keys, keySet, keysEqual, unionKeys } from './keys.js';
 export { type Evaluation, evaluateQuery, type QueryOptions, QueryFormKinds, queryResolvers } from './forms.js';
-export { ExpressionKinds, type ExprValue } from './expressions.js';
+export type { ExprValue } from './expressions.js';
 export {
-  NoQueryExtensions,
   type QueryExtensionEntry,
   type QueryExtensions,
   type QueryFormContext,
@@ -59,17 +47,15 @@ export {
   type QueryPropertyEntry,
   queryExtensions,
 } from './extensions.js';
-export { elementsForm, type Items, type ItemsInput, itemsEqual, itemsOf, itemsPredicate, readItems } from './items.js';
+// a selection's items, renamed apart from render's `readItems` and the overlay's `itemsOf` (the builder's JSON reads
+// them; addressing.md, Schema selections)
 export {
-  BuiltInProperties,
-  BuiltInPropertyTable,
-  type PropertyDef,
-  type PropertyLevel,
-  PropertyLevels,
-  type PropertyTable,
-  type PropertyType,
-  propertyTable,
-} from './properties.js';
+  type Items as SelectionItems,
+  type ItemsInput as SelectionItemsInput,
+  itemsOf as selectionItemsOf,
+  readItems as readSelectionItems,
+} from './items.js';
+export type { PropertyDef, PropertyLevel, PropertyTable, PropertyType } from './properties.js';
 export { type QueryIssueCode, QueryIssues } from './issues.js';
 export {
   compareLabels,
