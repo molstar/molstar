@@ -12,7 +12,7 @@
 
 import { overviewNavigator, stripNavigator } from '@molstar/seqx-core/lang';
 import { itWithin } from '@molstar/test-harness/timing';
-import { describe, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import type { ViewLayout } from '../index.js';
 import type { NavigatorFrameInput } from '../navigator.js';
 import { p53TracksSpec } from './fixtures.js';
@@ -82,6 +82,19 @@ describe('the navigators’ time', () => {
     run(WarmFrames);
     const m = within(1 * Frames, () => run());
     console.info(`navigator, an ideogram of 60 bands: median ${m.toFixed(3)} ms`);
+  });
+});
+
+// the quick representative: the overview laid out again from its summary grid, over 1,000 rows
+describe('the navigators’ time, a rows overview', () => {
+  it('the 1,000-row overview from its summary grid, laid out again', async () => {
+    const s = await settleNavigator(withNavigator(rowsSpec(1_000, true), overviewNavigator('/views/v/s')), 0, [
+      Synthetic,
+    ]);
+    const { view } = await s.frames({ size: { width: 1200, height: 600 } }, { size: { width: 96, height: 600 } });
+    expect(s.nav.frame({ size: { width: 95, height: 600 }, view: view.layout }).rebuilt).toBe(true);
+    expect(s.nav.pictureSection!.tracks.length).toBe(1);
+    expect(s.nav.frame({ size: { width: 96, height: 600 }, view: view.layout }).rebuilt).toBe(true);
   });
 });
 
