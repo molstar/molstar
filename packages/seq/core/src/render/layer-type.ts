@@ -198,7 +198,9 @@ export interface Hit {
 
 /**
  * What a hit is, when it is more than an element or a position (_spec/README.md "Render", Lanes and Hits): `break`,
- * `filter` (a track's chip), `window` (a ring's), `row` (a gutter's row, a rows header), `cell` (a cell of two axes:
+ * `header-slot` (a header's action slot or its "⋯": `state` the entry's name), `header-state` (a header's state chip
+ * or mark: `state` the entry's name, `count` its count), `section-header` (a section's header line; a header's hits
+ * name its track's address, or its section's, in `layer`), `window` (a ring's), `row` (a gutter's row, a rows header), `cell` (a cell of two axes:
  * `ySystem` and `yPosition` set), `tree-node` (a tree's node: its element the clade), `summary-row` (a folded
  * clade's row: its element the clade, `position` the column), `column-title` (a rows layer's column title: `state`
  * its field; a click orders the rows by it), `columns-hidden` (a rows layer's hidden-columns chip: `state` its text;
@@ -207,7 +209,9 @@ export interface Hit {
  */
 export type HitTarget =
   | 'break'
-  | 'filter'
+  | 'header-slot'
+  | 'header-state'
+  | 'section-header'
   | 'window'
   | 'row'
   | 'cell'
@@ -258,7 +262,8 @@ export interface Emphasis {
   readonly elements?: Elements;
   /**
    * The keyboard cursor; on a cell of two axes (a rows cell, a grid's) its row too, drawn by the layer of two axes on
-   * its own section (`section`, its address: the others mark its column); on rows its `part`, a cell or the header.
+   * its own section (`section`, its address: the others mark its column); on rows its `part`, a cell or the header;
+   * on a track's header (`part: 'header'`) the track's address (`track`): its actions drawn.
    */
   readonly cursor?: {
     readonly system: string;
@@ -267,7 +272,14 @@ export interface Emphasis {
     readonly ySystem?: string;
     readonly yPosition?: number;
     readonly part?: 'cell' | 'header';
+    readonly track?: string;
   };
+  /**
+   * The header whose actions show (_spec/README.md "Render", Track headers: `header.actions.show: hover`), its track's
+   * or its section's address, as the viewer's headers set it (the pointer over the track, a tap); besides the track a
+   * hover's hit is in and the cursor's header.
+   */
+  readonly header?: string;
   /** The highlight channels in the order they were set: each a tint of its color (the `highlight` pass). */
   readonly highlights?: readonly EmphasisHighlight[];
   /** The window being dragged (its hit): a rail is drawn grown while its drag runs, wherever the pointer goes. */

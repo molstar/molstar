@@ -56,6 +56,7 @@ import {
 } from './tracks-columns.js';
 import { instanceInView, wantTemplate } from './tracks-templates.js';
 import { bandHeights, firstType, rowsFill, rulerTrack } from './tracks-heights.js';
+import { sectionHeaderOf, trackHeaderOf } from './tracks-headers.js';
 
 export { multiSystem, sectionLayoutName } from './tracks-axes.js';
 export { labelColumnWidth, layerKey } from './tracks-columns.js';
@@ -372,7 +373,11 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     // a ruler rail on a linear section (tracks, not a stack of blocks); a slim row of its own when no ruler is shown
     const railable = layout === TracksLayout && !(section.blocks && section.params.arrange === 'stack');
     const railOn = input.rails?.[section.address] !== undefined && railable;
-    const top = y;
+    // its header line above its first track, in a layout that draws track headers (_spec/README.md "Render", Track
+    // headers)
+    const sectionHeader =
+      layout === TracksLayout ? sectionHeaderOf(input, section, sectionId(section), y, config) : undefined;
+    const top = sectionHeader ? y + config.header.sectionPx : y;
     // a template is expanded here, over the overlay, into a track per node it selects; its source's region in view is
     // wanted, so the nodes it brings arrive
     const shown: ResolvedTrack[] = [];
@@ -681,27 +686,13 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         pt > 0 || pb > 0 ? { x: box.x, y: box.y - pt, width: box.width, height: box.height + pt + pb } : box;
       by += pt + heights[j] + pb;
       const layers = lays[j] ?? NoLays;
-      let filter: TrackLayout['filter'];
-      // its layers', then its `section` layers' (pairs: laid out once a section)
-      for (const own of [layers, sectionLays]) {
-        for (const l of own) {
-          if (own === sectionLays && !track.layers.includes(l.layer)) continue;
-          const count = l.type.filtered?.(l.lay) ?? 0;
-          if (!count) continue;
-          const text = `${count} filtered`;
-          const fw = input.text.measure(config.labelFont, text);
-          const layer = own === sectionLays ? layerKey(track, l.layer) : l.key;
-          // a track of two lines' height: the chip under the label, which keeps its width; else at the column's end,
-          // the label fading before it
-          const dy = box.height >= 2 * (labelSize + 6) ? labelSize + 4 : 0;
-          const x = dy ? config.inset : config.inset + config.labelWidth - fw;
-          filter = { layer, count, text, x, width: fw, dy };
-          break;
-        }
-        if (filter) break;
-      }
-      // the label's room: the column, less a chip beside it (a chip on a line of its own leaves it whole)
-      const room = filter && !filter.dy ? Math.max(0, filter.x - config.inset - 6) : config.labelWidth;
+      // its header's line: its states (the "n filtered" chip among them) and slots; the label's room what its states
+      // beside it leave (states on a line of their own leave it whole)
+      const head =
+        layout === TracksLayout
+          ? trackHeaderOf(input, section, sectionId(section), track, layers, sectionLays, well, config)
+          : undefined;
+      const room = head ? head.header.label.width : config.labelWidth;
       const labelText = elidedLabel(state, input.text, config.labelFont, track.label, room);
       tracks.push({
         track,
@@ -710,9 +701,9 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         labelText,
         labelWidth: input.text.measure(config.labelFont, labelText),
         // centred on its well (its padding with it), not on its data
-        labelY: well.y + well.height / 2 + labelSize * 0.35,
+        labelY: head ? head.labelY : well.y + well.height / 2 + labelSize * 0.35,
         layers,
-        ...(filter ? { filter } : {}),
+        ...(head ? { header: head.header } : {}),
       });
     }
     y = top + placement.box.height;
@@ -800,6 +791,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       y: sectionTop,
       height: y - sectionTop,
       tracks,
+      ...(sectionHeader ? { header: sectionHeader } : {}),
       breaks: axis && band ? (stripBreaks[0] ?? NoBreaks) : NoBreaks,
       ...(mark ? { mark } : {}),
       lays,

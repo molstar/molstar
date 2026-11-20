@@ -162,9 +162,10 @@ describe('theme commands', () => {
     await v.settle();
     frames!.flush();
     const track = v.frame!.layout.sections[0].tracks.find((t) => t.track.label === 'Domains')!;
-    expect(track.filter?.count).toBe(2);
+    const chip = track.header?.states.find((s) => s.name === 'seq:filtered');
+    expect(chip?.count).toBe(2);
     // the chip's click: the input clears the filter
-    v.input.click(track.filter!.x + 1, track.labelY + track.filter!.dy / 2);
+    v.input.click(chip!.x + 1, chip!.box.y + chip!.box.height / 2);
     await v.settle();
     expect(layerParams(v, Layer).data).toBe('/data/domains');
   });

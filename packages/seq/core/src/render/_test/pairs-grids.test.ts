@@ -522,7 +522,7 @@ describe('the pairs layer: arcs', () => {
     expect([...some.pair.slice(0, some.n)].sort()).toEqual([0, 1, 3]);
     expect(f.layout.issues).toEqual([]);
     expect(PairsType.filtered!(some)).toBe(1);
-    expect(f.layout.sections[0].tracks[1].filter?.count).toBe(1);
+    expect(f.layout.sections[0].tracks[1].header?.states.find((s) => s.name === 'seq:filtered')?.count).toBe(1);
   });
 
   it('a cell’s hover lights the arcs ending at either position; a hover projected here lights them too', async () => {
