@@ -17,7 +17,8 @@
 // loads every recorder and stops at its usage line before fetching anything.) mmCIF is read by `@molstar/io`'s text
 // CIF parser (`cif.ts`, the examples' one reader). The datasets: `p53`,
 // UniProt P04637's REST entry (CC-BY-4.0) and the Proteins API's variants of it, those of UniProt's own and ClinVar's
-// sources; `globins`, the Pfam PF00042 seed (CC0-1.0) cut to 60 rows, UniProt's organisms of its
+// sources; `p53-structure`, PDB 2OCJ's committed mmCIF (CC0-1.0, no fetch) as the entity's `seq` and the fake structure
+// viewer's chain table; `globins`, the Pfam PF00042 seed (CC0-1.0) cut to 60 rows, UniProt's organisms of its
 // rows (CC-BY-4.0) and PDB 4HHB (CC0-1.0); `plasmid`, INSDC L09137.2 (pUC19c) as ENA serves it in FASTA, converted to
 // the `seq` format, its letters also as a module of the examples (what the features and sites are derived from in code
 // when a view is built; the views read the letters from the `seq` files), and the rotated variant's features and sites,
@@ -65,6 +66,7 @@ import {
   seqText,
 } from '../lib/plasmid/derive.js';
 import { HemeAtoms, HemeUnitContacts } from '../lib/globins/hemes.js';
+import { chainTable, chainTableJson, structureSeq } from '../lib/p53/structure-record.js';
 import { kabatFromImgt } from '../lib/antibody/numbering.js';
 import {
   Entry as FabEntry,
@@ -685,12 +687,70 @@ async function antibody(): Promise<Row[]> {
   ];
 }
 
-const Datasets: Readonly<Record<string, () => Promise<Row[]>>> = { p53, globins, plasmid, trna, complex, antibody };
+/**
+ * p53's structure: PDB 2OCJ's mmCIF as `record-structures.ts` committed it (no fetch here: one file, read by both),
+ * into the entity's `seq` file (its letters, chain A's secondary structure) and the fake structure viewer's own chain
+ * table (`p53/structure-record.ts`).
+ */
+async function p53Structure(): Promise<Row[]> {
+  const entries = JSON.parse(readFileSync(join(Folder, 'fixtures/structures/sources.json'), 'utf8')) as {
+    file: string;
+    url: string;
+    recorded: string;
+    sha256Inflated: string;
+  }[];
+  const entry = entries.find((e) => e.file === 'structures/2OCJ.cif.gz')!;
+  const text = gunzipSync(readFileSync(join(Folder, 'fixtures', entry.file)));
+  if (sha256(text) !== entry.sha256Inflated) throw new Error(`${entry.file} is not the file recorded`);
+  const cif = await readCif(text);
+  const files: [string, string, string][] = [
+    [
+      'p53/2OCJ.seq',
+      structureSeq(cif),
+      'the one polymer entity (P04637 94–312): its canonical letters (entity_poly) and chain A’s helices and strands (struct_conf, struct_sheet_range, label_seq_id) as ranges; coordinates, waters and zinc dropped',
+    ],
+    [
+      'p53/2OCJ-chains.json',
+      chainTableJson(chainTable(cif, '2OCJ')),
+      'the fake structure viewer’s chain table: every chain instance but the waters (struct_asym), its residues’ label and author numbers, components and whether modeled (pdbx_poly_seq_scheme, pdbx_nonpoly_scheme, atom_site of model 1); coordinates dropped',
+    ],
+  ];
+  return files.map(([file, out, trimmed]) => {
+    writeFileSync(join(Folder, 'fixtures', file), out);
+    return {
+      file,
+      entry: 'PDB 2OCJ, the human p53 core domain, four chains (Wang, Rosengarth, Luecke 2007), mmCIF',
+      url: entry.url,
+      recorded: entry.recorded,
+      licence: ['CC0-1.0'],
+      attribution: 'wwPDB, PDB 2OCJ, CC0',
+      trimmed,
+      derived: 'none',
+      bytesDownloaded: text.length,
+      bytesFixture: bytesOf(out),
+      sha256Download: entry.sha256Inflated,
+      sha256Fixture: sha256(out),
+    };
+  });
+}
+
+const Datasets: Readonly<Record<string, () => Promise<Row[]>>> = {
+  p53,
+  'p53-structure': p53Structure,
+  globins,
+  plasmid,
+  trna,
+  complex,
+  antibody,
+};
+
+/** A dataset's fixtures folder, when not its name. */
+const Folders: Readonly<Record<string, string>> = { 'p53-structure': 'p53' };
 
 async function main(name: string | undefined) {
   if (!name || !Datasets[name]) throw new Error(`usage: record.ts ${Object.keys(Datasets).join(' | ')}`);
   const rows = await Datasets[name]();
-  const file = join(Folder, 'fixtures', name, 'sources.json');
+  const file = join(Folder, 'fixtures', Folders[name] ?? name, 'sources.json');
   let existing: Row[] = [];
   try {
     existing = JSON.parse(readFileSync(file, 'utf8')) as Row[];

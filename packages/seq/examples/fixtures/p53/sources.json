@@ -30,5 +30,37 @@
     "bytesFixture": 281420,
     "sha256Download": "35fcead9b351fbc3888f73a4a5ea5178d0824f5b34252a3dbdee69903cb93cfb",
     "sha256Fixture": "cd60139a10eb1947028caa3e25dc2760691e253643aec5c399451969f3961139"
+  },
+  {
+    "file": "p53/2OCJ.seq",
+    "entry": "PDB 2OCJ, the human p53 core domain, four chains (Wang, Rosengarth, Luecke 2007), mmCIF",
+    "url": "https://files.rcsb.org/download/2OCJ.cif.gz",
+    "recorded": "2026-11-20",
+    "licence": [
+      "CC0-1.0"
+    ],
+    "attribution": "wwPDB, PDB 2OCJ, CC0",
+    "trimmed": "the one polymer entity (P04637 94–312): its canonical letters (entity_poly) and chain A’s helices and strands (struct_conf, struct_sheet_range, label_seq_id) as ranges; coordinates, waters and zinc dropped",
+    "derived": "none",
+    "bytesDownloaded": 699868,
+    "bytesFixture": 1219,
+    "sha256Download": "e54e3321ca0c3e482d73d8d7637682bf0a3a210bf4091d1a34343e1e0bd29470",
+    "sha256Fixture": "ae1691435b7b6db3a7b71bc90ba96e08908fd997127cd0582dbfded2213077d6"
+  },
+  {
+    "file": "p53/2OCJ-chains.json",
+    "entry": "PDB 2OCJ, the human p53 core domain, four chains (Wang, Rosengarth, Luecke 2007), mmCIF",
+    "url": "https://files.rcsb.org/download/2OCJ.cif.gz",
+    "recorded": "2026-11-20",
+    "licence": [
+      "CC0-1.0"
+    ],
+    "attribution": "wwPDB, PDB 2OCJ, CC0",
+    "trimmed": "the fake structure viewer’s chain table: every chain instance but the waters (struct_asym), its residues’ label and author numbers, components and whether modeled (pdbx_poly_seq_scheme, pdbx_nonpoly_scheme, atom_site of model 1); coordinates dropped",
+    "derived": "none",
+    "bytesDownloaded": 699868,
+    "bytesFixture": 20583,
+    "sha256Download": "e54e3321ca0c3e482d73d8d7637682bf0a3a210bf4091d1a34343e1e0bd29470",
+    "sha256Fixture": "f3d4a34f1d0feb1ac80a3bea14244e08575d56a78f854a8fe6204b778f3f62ba"
   }
 ]

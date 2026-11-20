@@ -33,6 +33,7 @@ import * as layers from './p53/layers.js';
 import * as proteinOnGene from './p53/protein-on-gene.js';
 import * as query from './p53/query.js';
 import * as story from './p53/story.js';
+import * as p53Structure from './p53/structure.js';
 import * as themes from './p53/themes.js';
 import * as text from './p53/text.js';
 import * as tracks from './p53/tracks.js';
@@ -182,6 +183,22 @@ export const P53Views: readonly ExampleView[] = [
     summary:
       'The tracks as a story of four steps: the whole protein, its DNA-binding domain (the conservation taller), the R175H hotspot (marked by a track of its own, the domains recolored) and the tetramerization domain (the conservation gone); each a view and a patch over the spec.',
     build: story.build,
+  },
+  {
+    dataset: 'p53',
+    id: 'structure',
+    title: 'Structure (2OCJ)',
+    summary:
+      'P04637 over PDB 2OCJ’s four copies of the DNA-binding domain, merged into one block ×4 with the zinc chip ×4: the ends unobserved gray, author numbers UniProt’s, each zinc’s four ligands as arcs. P04637 maps to the entity by SIFTS’s `structure` map (ranked first) and by an alignment’s `segments` map, its domains drawn on the chains through it; hover the zinc: its ligands light.',
+    build: () => p53Structure.build(),
+  },
+  {
+    dataset: 'p53',
+    id: 'structure-split',
+    title: 'Structure, copies split',
+    summary:
+      'The four chains of 2OCJ a block each, each zinc a chip, the section’s paths through the alignment’s map (`via`).',
+    build: () => p53Structure.build({ copies: 'each', via: 'aln' }),
   },
 ];
 
