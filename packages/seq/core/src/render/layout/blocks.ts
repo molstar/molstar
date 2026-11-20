@@ -37,9 +37,20 @@ const AnchorStart: number = Anchor.start;
  */
 export const BlockMetrics = { gap: 12, gapShare: 0.25, chipPad: 5, chipShare: 0.5, chipMin: 16 } as const;
 
-/** Whether a block is a chip: one position (a ligand, an ion, a glycan standing as one). */
-export function isChip(block: { readonly axis: { readonly ranges?: readonly number[] } }): boolean {
-  return !!block.axis.ranges && piecesTotal(block.axis.ranges) === 1;
+/**
+ * Whether a block is a chip: its form `whole` (a molecule's default: a ligand, an ion, a glycan, every position of it
+ * in one slot), or one position.
+ */
+export function isChip(block: {
+  readonly form?: string;
+  readonly axis: { readonly ranges?: readonly number[] };
+}): boolean {
+  return !!block.axis.ranges && (block.form === 'whole' || piecesTotal(block.axis.ranges) === 1);
+}
+
+/** A block's positions shown (0 while pending). */
+export function blockLength(block: { readonly axis: { readonly ranges?: readonly number[] } }): number {
+  return block.axis.ranges ? piecesTotal(block.axis.ranges) : 0;
 }
 
 /** A chip's width, CSS px: its label (its `×N` too) in the label font, `chipPad` either side; zoom never scales it. */
@@ -99,7 +110,7 @@ export class BlockRow {
   n = 0;
   offset = new Float64Array(4);
   len = new Float64Array(4);
-  /** A chip's slot (px), 0 for a block that is no chip. */
+  /** A chip's px a unit (its slot over its positions: one but for a `whole` chip of several), 0 for no chip. */
   chip = new Float64Array(4);
   x0 = 0;
   width = 0;
@@ -408,7 +419,8 @@ export function placeBlocks(section: ResolvedSection, ctx: PlaceContext, prev?: 
     row.len[b] = blocks[b].axis.ranges ? piecesTotal(blocks[b].axis.ranges!) : 0;
   }
   row.chip = grown(row.chip, blocks.length);
-  row.chip.set(slots.subarray(0, blocks.length));
+  // a chip's slot shared by its positions (a `whole` chip of several: each a part of its one slot)
+  for (let b = 0; b < blocks.length; b++) row.chip[b] = slots[b] > 0 ? slots[b] / Math.max(1, row.len[b]) : 0;
   // a row's gaps and chips take their px from the width (the row's x is not linear over them, EC-102)
   // the blocks' edges on the device grid, as a grid's under them (its columns align with these)
   if (!p.stacked) {
@@ -444,7 +456,7 @@ export function placeBlocks(section: ResolvedSection, ctx: PlaceContext, prev?: 
       let a: AxisTransform;
       if (p.stacked && chip) {
         // a stack's chips are on their row whatever the window, each its slot over its one position
-        a = AxisTransform.on(block.axis, block.axis.ranges, chipX, slots[b], ctx.dpr, { start: 0, end: 1 });
+        a = AxisTransform.on(block.axis, block.axis.ranges, chipX, slots[b], ctx.dpr, { start: 0, end: row.len[b] });
         chipX += slots[b] + BlockMetrics.gap;
       } else if (p.stacked) {
         const vs = Math.max(u0, 0);

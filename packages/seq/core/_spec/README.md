@@ -1663,17 +1663,26 @@ no target.
   of blocks' are. Why the leader's blocks: the section of blocks already orders the chains and their copies on one axis.
   Refused (`seq.view.section.system`): a grid with blocks of its own, and one following blocks in a stack or on a ring
   (the plot's axes are a row's units).
-- **Blocks**: each its axis (its system, its `range`, the section's direction), its first display unit in the section's
-  (`offset`: 0 in a stack), its label, the blocks it stands for (`members`), and each of the section's tracks' layers
-  resolved onto its system (a path a block: placed on each block its data reaches; a layer that reaches no block says
-  why once, by its first block's issue). Copies (the same system and range) are one block labeled `×N` with
-  `copies: 'merge'` (the default: a copy group's sequence said once, its cost one block's, EC-65, EC-67), a block each
-  with `each`. The section's axis is the blocks' display units in order: on one system in a row (or on a ring), the
-  blocks' pieces end to end (their breaks between them, a follow along one axis); else units `[0, total)` on no system
-  (its `system` the section's address, `pieces: 'blocks'`), the total the sum in a row and the longest block in a stack.
-  Why: a position on them is no block's, so a selection, a focus, a bookmark or a cursor on a system never reads them as
-  its own; a block's hits carry its system and its index (`block`), and a consumer maps them through the block's axis
-  and `offset`. A block that names no system is `seq.view.section.system` and left out.
+- **A section of a complex** (`of` a complex with no `block` children; `view/blocks.ts`): a block a unit, at
+  `<section>/<unit id>`, ordered by the section's `classes` (`[polymer, branched, ligand, ion]` when absent: water left
+  out, EC-101), polymers in the complex's order, then each class in order; a class not listed is left out. Explicit
+  `block` children win (a writer picks units, forms and order). Why left out: hundreds of waters say nothing on an axis.
+- **A block's form** (`form`): as written, else `whole` for a molecule or a unit of one and `residues` for a sequence or
+  a unit of one; `atoms` puts its axis on the atoms system (`<unit>/(atoms)`), its `range` the atoms of the residues in
+  range, and falls back to the default where there is none (the language says so). **Its label**: as written, else its
+  unit's `label`, else (a molecule) its `name`, else its one component's code (`ATP`), else its id.
+- **Blocks**: each its axis (its system, its `range`, the section's direction), its form, its first display unit in the
+  section's (`offset`: 0 in a stack), its label, the blocks it stands for (`members`) and their systems (`systems`: a
+  merged copy's unit, what an end on a copy is drawn on), and each of the section's tracks' layers resolved onto its
+  system (a path a block: placed on each block its data reaches; a layer that reaches no block says why once, by its
+  first block's issue). Copies (the same system, or units of one copy group, with the same range and form) are one block
+  labeled `×N` with `copies: 'merge'` (the default: a copy group's sequence said once, its cost one block's, EC-65,
+  EC-67), a block each with `each`. The section's axis is the blocks' display units in order: on one system in a row (or
+  on a ring), the blocks' pieces end to end (their breaks between them, a follow along one axis); else units
+  `[0, total)` on no system (its `system` the section's address, `pieces: 'blocks'`), the total the sum in a row and the
+  longest block in a stack. Why: a position on them is no block's, so a selection, a focus, a bookmark or a cursor on a
+  system never reads them as its own; a block's hits carry its system and its index (`block`), and a consumer maps them
+  through the block's axis and `offset`. A block that names no system is `seq.view.section.system` and left out.
 - **An axis**: its system, its length unless unknown, cyclic, and the positions shown as `[start, end, …]` pieces in
   display order: the whole system, its `range`, or for a cyclic range that wraps the origin two pieces, from its start
   to the origin then on (`[8, 10, 0, 2]`). Without a known length, showing all of the system or wrapping, `ranges` is
@@ -1781,6 +1790,7 @@ the UX foundations' numbers, CSS px, settled by the foundation stories; where no
 | `monoAdvance`                                                  | 0.6 em                                                                                                                 | a letter's size known from its cell with no measuring                                                                                                                                                                                                                                                                                                                                                  |
 | `labelFont`, `itemFont`                                        | `12px sans`, `10px sans`                                                                                               | a family role a backend maps to its stack                                                                                                                                                                                                                                                                                                                                                              |
 | `labels.minChars`                                              | 4                                                                                                                      | a label cut inside its mark keeps at least so many letters, else it is dropped (the author: “4 characters as default is fine, should be configurable”)                                                                                                                                                                                                                                                 |
+| `letters.modifiedMark`                                         | `shape: dot`, `size: 3`                                                                                                | a modified position's mark (`letters` `modified: mark`): a dot of 3 px at the cell's top right in the letter's ink, never over the letter; a bar over a component of several positions; a tick at a strip's top below the cells (the mark survives a zoom out); `underline` a bar along the cell's bottom                                                                                              |
 | `fade`                                                         | 12                                                                                                                     | how far past its max width a text fades out                                                                                                                                                                                                                                                                                                                                                            |
 | `squircleRatio`, `squircleMax`, `squircleMin`                  | 1/3, 8, 6                                                                                                              | a radius a third of the height, capped; none below the minimum                                                                                                                                                                                                                                                                                                                                         |
 | `outline`                                                      | hover 1.5, selection 1, cursor 1                                                                                       | outline widths                                                                                                                                                                                                                                                                                                                                                                                         |
@@ -1859,10 +1869,10 @@ the UX foundations' numbers, CSS px, settled by the foundation stories; where no
 - `SeqTokens`: every color the lists use (`msui-*` chrome, `seq-*` data: tracks, ink, missing, pending, conflict, the
   break ink (`seq-break`), residue and nucleotide classes, eight categories (chosen apart under the three color-vision
   deficiencies in both tables), the density ramp, a five-stop ramp and a diverging triple, secondary structure
-  (`seq-ss-helix`, `-strand`, `-turn`), `seq-variant`, `seq-ruler`, the navigator's window, grip and wash, the
-  centromere, a letter cell's edge), as `0xRRGGBBAA`, the logo's chroma floor (`seq-logo-chroma`, a number) and the font
-  stacks of the two family roles. Node has a light and a dark table (`LightTokens`, `DarkTokens`); the viewer reads its
-  own from CSS.
+  (`seq-ss-helix`, `-strand`, `-turn`), `seq-variant`, `seq-ruler`, a modified position's outline (`seq-modified`, the
+  letters' `modified: tint`), the navigator's window, grip and wash, the centromere, a letter cell's edge), as
+  `0xRRGGBBAA`, the logo's chroma floor (`seq-logo-chroma`, a number) and the font stacks of the two family roles. Node
+  has a light and a dark table (`LightTokens`, `DarkTokens`); the viewer reads its own from CSS.
 - **A letter cell's edge** (`seq-cell-edge`): in the dark table a hairline, 1 device px, around each cell drawn with its
   letter (the letters layer's `letters` step, a rows layer's letter cells), at 3:1 against the page; none (transparent)
   in the light table. Why: the dark scheme colors sit at 1.4–1.7:1 against the dark page and cannot go lighter without
@@ -2062,7 +2072,16 @@ the y path in Emphasis).
   never change data (model, status and search read the stored ones; colors by letter read the shown one). A cell a
   position (a part) colored by class, letters on them, a tick a position at `dots`, one bar a piece in view at `bars`
   and `density` (presence needs no data). A hit through a path carries the data's element as `extent` (the residue on
-  its protein) and its parts on the section's system as `hull` (its codon); its hover outlines each part.
+  its protein) and its parts on the section's system as `hull` (its codon); its hover outlines each part. **Molecules**
+  (`render/letters-molecule.ts`): on a molecule's residues (or a unit of one) a cell a residue labeled by its component
+  code, on an atoms system a cell an atom labeled by its element symbol, where the label fits at the letter sizes (no
+  letters are read: the labels are the model's); the cells' fill `seq-sequence` or a uniform `color`. **Modified
+  positions** (`modified`, on the section's own letters or through a one-to-one path; the data system's modified index,
+  alternatives one mark): `mark` (the default) a dot at the cell's top right in its letter's ink
+  (`letters.modifiedMark`), a bar over a component of several positions (CRO), a tick at the strip's top below the
+  cells; `code` the component's code in place of the letter where the cell has room for three letters (the mark
+  elsewhere, EC-117); `tint` the cell outlined in `seq-modified`; `none`. No value changes a cell's width; every
+  modified position in view has its mark at every step. A modification's color is never the residue scheme's.
 - `ranges`: items in sticky lanes, carried onto the section along the layer's path (a domain on its gene: a piece an
   exon); labels inside marks 24 px or wider (faded past the mark), or inside a narrower one when they fit whole with 3
   px a side (a modified residue's code over its one position; none below 8 px), drawn in the `labels` pass. At `bars` a
@@ -2498,6 +2517,9 @@ numbers): a window move allocates nothing once warm.
   however many: EC-102); `stack` a block a row of the section's tracks, aligned at their first position, one zoom
   (EC-102, EC-115). Each block's label in a row above its tracks, faded at its strip's width. Lays are kept by the block
   and its first unit, so a pan keeps them (by the block too: a stack's blocks all start at 0).
+- **A chip** (`isChip`): a block of form `whole` (a molecule's default: its every residue in one slot) or of one
+  position. A chip of several positions shares its slot among them (each its part: another layer's mark at a residue
+  lands on its part); its units are its positions, so the window and the navigators count them.
 - **A one-position block is a chip** (`isChip`, `chipWidth`, `chipSlots`, `Strips.chip`): a fixed slot its label's width
   (its label with its `×N` in the label font, `BlockMetrics.chipPad` 5 px either side), never a position's share: zoom
   does not scale it, so it reads at the fit view. Why: a one-position share is a sliver at the fit view (the Complex's
@@ -2520,9 +2542,11 @@ numbers): a window move allocates nothing once warm.
   pill before it).
 - **The pill**: a letters layer on a chip draws its label in a pill over its cell (`LayoutContext.chip`, elided to its
   slot): the cell's fill with the letter cells' hairline (`seq-cell-edge`, dark), its ink the tokens' when it holds
-  4.5:1 against the fill, else black or white. The label row above a chip is empty only where a pill was drawn (a letter
-  laid out on a band with height); else (no letters track, a pending tile, bars, a collapsed band) the label is there.
-  Another layer draws its mark across the chip where it has something at the position, else nothing.
+  4.5:1 against the fill, else black or white; one pill over a chip's cells. A chip is hit as its whole block (the hit's
+  `extent` its every position, made once a layout: a hover over it is one hover), so a click selects every residue and,
+  through the atoms map, every atom. The label row above a chip is empty only where a pill was drawn (a letter laid out
+  on a band with height); else (no letters track, a pending tile, bars, a collapsed band) the label is there. Another
+  layer draws its mark across the chip where it has something at the position, else nothing.
 - **Labels**: a block's label above its tracks is elided to its strip's width, dropped when nothing of it fits: never
   over the next block's. Hit, hover, selection and a link read a chip as its one position; `place` at a unit where one
   strip ends and the next starts gives the next (a chip at its own first unit is the chip). Contacts (where a ligand
@@ -2789,6 +2813,9 @@ numbers): a window move allocates nothing once warm.
 - **Crossing pairs** (`crossing`): `same` draws them crossing; `split` the largest nested subset on `side`, the rest on
   the other (`splitCrossing`: exact up to `SplitExact`, 2,000 pairs, by an interval DP over the sorted ends; greedy past
   it, fixed: the exact subset is quadratic and no figure asks for another bound). On one system only.
+- **A complex's links** (`pairs` under a complex): each end on its row's unit (`PairsData.aUnit`, `bUnit` into the
+  entry's `units`), placed on the block showing that unit, or on the block a merged copy of it is merged into (its
+  `systems`); its hit's extent on the two units.
 - **Bounded by the screen**: past `pairs.maxArcs`, arcs binned by their ends' device columns, one a bin (widest first),
   the rest a density strip of ends, said once (`seq.render.pairs.limit`, info). Ends on two systems that are not the
   section's own report `seq.render.pairs.systems`.

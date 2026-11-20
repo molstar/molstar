@@ -26,7 +26,7 @@ import type { TextMetrics } from '../text.js';
 import type { SeqTokens } from '../tokens.js';
 import type { SectionLayout } from '../tracks.js';
 import { drawWindowArgs, floorExtent, WindowFill, windowPart } from '../window.js';
-import { chipSlots } from './blocks.js';
+import { blockLength, chipSlots } from './blocks.js';
 import { PlacePoint, Strips, WarpKind } from './strips.js';
 import { clampWindow, TracksNav } from './tracks.js';
 import type { NavContext, Placement, PlaceContext, SectionLayoutType, SectionNav } from './types.js';
@@ -433,13 +433,14 @@ export const RingsLayout: SectionLayoutType<RingPlacement> = {
     // a chip (a one-position block) a fixed angle, its label's width on the outer ring (at most half the circle
     // together): the polymers share the rest
     let chipPx = 0;
+    // the units the chips stand for (a `whole` chip of several, each of them)
     let chips = 0;
     const slots = blocks ? (p.slots = chipSlots(ctx.text, config, blocks, arc * r, p.slots)) : p.slots;
     if (blocks)
       for (let b = 0; b < blocks.length; b++)
         if (slots[b] > 0) {
           chipPx += slots[b];
-          chips++;
+          chips += blockLength(blocks[b]);
         }
     const shared = Math.max(arc * r - chipPx, 1e-6);
     let x = (gaps ? gap / 2 : 0) * r;

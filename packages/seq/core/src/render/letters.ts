@@ -7,12 +7,13 @@
 import { issueOf } from '@molstar/core/repr/tree';
 import type { SequenceAlphabet } from '@molstar/core/util/sequence-constants';
 import type { LettersTable, Want } from '@molstar/seqx-core/data';
-import { rangesLocation } from '@molstar/seqx-core/query';
+import { type Location, rangesLocation } from '@molstar/seqx-core/query';
 import {
   codonPairs,
   complementCode,
   type GeneticCode,
   projectBoundary,
+  type ModifiedIndex,
   projectRanges,
   type StaticModel,
 } from '@molstar/seqx-core/resolve';
@@ -36,6 +37,19 @@ import { Black, type Channel, contrastRgba, inkAgainst, White } from '@molstar/s
 import { channelForms, channelLegends, type LayerChannels, PlainDatum } from './channels.js';
 import { LettersColorFallback, LettersEnv } from './layer-color.js';
 import { drawFailed, drawSpans, hoverCell } from './marks.js';
+import {
+  drawModified,
+  drawMoleculeLabels,
+  hideCoded,
+  layMoleculeCells,
+  longRows,
+  type MoleculeLabels,
+  type MoleculeLay,
+  type ModifiedStyle,
+  modifiedSpans,
+  modifiedStyle,
+  moleculeLabels,
+} from './letters-molecule.js';
 import { inkOn, type SeqTokens } from './tokens.js';
 
 // the anchor a number read once: a draw reads no property of an imported object (that site's feedback, cleared, made
@@ -71,9 +85,15 @@ export interface LettersPrep {
   /** Across a codon step: the section's own letters (each codon's status) and the map's genetic code. */
   readonly sectionSrc?: LayerSource;
   readonly genetic?: GeneticCode;
+  /** On a molecule's residues or atoms: its labels (codes, element symbols) instead of letters. */
+  readonly molecule?: MoleculeLabels;
+  /** How a modified position is drawn, and the data system's modified rows (none: no mark). */
+  readonly modified: ModifiedStyle;
+  readonly marks?: ModifiedIndex;
+  readonly longMarks?: Uint8Array;
 }
 
-export interface LettersLay {
+export interface LettersLay extends MoleculeLay {
   key: string;
   system: string;
   /** The section's id (hits name it). */
@@ -133,6 +153,8 @@ export interface LettersLay {
   chipY: number;
   chipWidth: number;
   chipInk: number;
+  /** A chip's extent, its block's every position (made once a layout: a hover over it is the same hover). */
+  chipExtent: Location | undefined;
 }
 
 /** The letter code at a position of a table, or 0. */
@@ -221,6 +243,15 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
     const through = throughOf(src);
     const complement = layer.params.complement;
     const code = layer.params.code;
+    const dataSystem = src?.dataSystem ?? layer.data?.address;
+    const molecule = dataSystem === undefined ? undefined : moleculeLabels(model, dataSystem);
+    const modified = modifiedStyle(layer.params.modified);
+    // a modified position's mark: on the section's own letters or through a one-to-one path (never a codon's parts)
+    const marks =
+      modified !== 'none' && dataSystem !== undefined && (through === 'own' || through === 'one')
+        ? model.modified(dataSystem)
+        : undefined;
+    const longMarks = marks && longRows(marks);
     let sectionSrc: LayerSource | undefined;
     let genetic: GeneticCode | undefined;
     if (through === 'codon' && src?.path) {
@@ -242,6 +273,10 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
       code: code === 'one' || code === 'three' ? code : 'auto',
       ...(sectionSrc ? { sectionSrc } : {}),
       ...(genetic ? { genetic } : {}),
+      ...(molecule ? { molecule } : {}),
+      modified,
+      ...(marks?.position.length ? { marks } : {}),
+      ...(longMarks ? { longMarks } : {}),
     };
   },
 
@@ -286,6 +321,12 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
       chipY: 0,
       chipWidth: 0,
       chipInk: 0,
+      labels: undefined,
+      mods: [],
+      modStyle: 'mark',
+      modComponents: [],
+      modLong: undefined,
+      chipExtent: undefined,
     };
     lay.key = ctx.key;
     lay.system = axis.system;
@@ -303,6 +344,7 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
     lay.chipFont = config.labelFont;
     lay.chipY = lay.chip ? box.y + box.height / 2 + fontSize(config.labelFont) * 0.35 : 0;
     lay.chipWidth = lay.chip ? ctx.text.measure(config.labelFont, lay.chip) : 0;
+    lay.chipExtent = lay.chip ? chipExtent(lay.system, axis.pieces, lay.chipExtent) : undefined;
     lay.n = 0;
     lay.seen.fill(0);
     lay.three = false;
@@ -312,8 +354,13 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
     lay.gaps.length = 0;
     lay.carets.length = 0;
     lay.conflicts.length = 0;
+    lay.mods.length = 0;
+    lay.labels = prep.molecule?.labels;
+    lay.modStyle = prep.modified;
+    lay.modComponents = prep.marks?.component ?? [];
+    lay.modLong = prep.longMarks;
     const src = prep.src;
-    if (!src) return lay;
+    if (!src && !prep.molecule) return lay;
     if (prep.through === 'refused') {
       ctx.report(
         issueOf(RenderIssues, 'seq.render.layer.letters', Refused, {
@@ -325,9 +372,26 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
     }
     // the layer's density follows its own cell: a residue a codon wide is three positions
     const width = prep.through === 'codon' ? 3 : 1;
-    const step = densityStep(axis.scale * width, axis.dpr, config);
+    const fine = densityStep(axis.scale * width, axis.dpr, config);
+    // a chip's cells are always laid out (its pill is its first cell's fill), however many positions share its slot
+    const step = lay.chip && (fine === 'bars' || fine === 'density') ? 'cells' : fine;
     lay.step = step;
     const vis = axis.visible([]);
+    // every modified position in view has its mark, whatever the step (a tick below the cells)
+    if (prep.marks && src) modifiedSpans(prep.marks, src, axis, lay.mods);
+    if (prep.molecule) {
+      // a molecule's residues or atoms: a cell a position, labeled by its code or element where it fits
+      const c = prep.channels.forms.color === undefined ? undefined : prep.channels.get('color', 'token:sequence', ctx);
+      const fill = typeof c?.constant === 'number' ? c.constant : tokens.colors['seq-sequence'];
+      if (step === 'bars' || step === 'density') {
+        for (let i = 0; i + 1 < vis.length; i += 2) axis.spans(vis[i], vis[i + 1], lay.bars);
+        return lay;
+      }
+      layMoleculeCells(lay, prep.molecule.labels, axis, vis, box, config, tokens, fill, step === 'letters');
+      if (lay.chip && lay.n) lay.chipInk = chipInk(lay.fill[0], tokens);
+      return lay;
+    }
+    if (!src) return lay;
     // the positions in view exactly (walked one by one), read merged across near gaps (one read over short pieces)
     const regions = prep.through === 'own' ? vis : dataRegions(src, axis, false, false);
     if (step === 'bars' || step === 'density') {
@@ -451,6 +515,7 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
       if (prep.through === 'codon' && prep.alphabet === 'protein')
         lay.three = prep.code === 'three' || (prep.code === 'auto' && narrowest >= 3 * advance + 2);
       if (lay.three) for (let j = 0; j < lay.n; j++) lay.show[j] = lay.x1[j] - lay.x0[j] >= 3 * advance + 1 ? 1 : 0;
+      if (lay.mods.length) hideCoded(lay, config);
     }
     return lay;
   },
@@ -477,6 +542,8 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
     if (y < box.y || y >= box.y + box.height) return undefined;
     const position = lay.axis.positionAt(x);
     if (position < 0) return undefined;
+    // a chip stands for its block's whole range (a molecule's every residue, through them every atom)
+    if (lay.chip !== '' && lay.n > 0) return chipHit(lay, position);
     if (lay.through !== 'codon' && lay.through !== 'one')
       return { layer: lay.key, section: lay.section, position, system: lay.system };
     // a letter through a path: its data element on `extent`, its parts on the section's system as `hull`
@@ -502,6 +569,31 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
     return { layer: lay.key, section: lay.section, position, system: lay.system };
   },
 };
+
+/** Every position of a chip's block (its pieces' hull on its system); the last made while it is the same. */
+function chipExtent(system: string, p: readonly number[], kept: Location | undefined): Location | undefined {
+  let lo = Infinity;
+  let hi = -Infinity;
+  for (let i = 0; i + 1 < p.length; i += 2) {
+    lo = Math.min(lo, p[i]);
+    hi = Math.max(hi, p[i + 1]);
+  }
+  if (!(lo < hi)) return undefined;
+  const k = kept?.parts[0];
+  if (k && k.system === system && k.ranges[0] === lo && k.ranges[1] === hi) return kept;
+  return rangesLocation(system, [lo, hi]);
+}
+
+/** A chip's hit: its position, and as its extent every position of its block. */
+function chipHit(lay: LettersLay, position: number): Hit {
+  return {
+    layer: lay.key,
+    section: lay.section,
+    position,
+    system: lay.system,
+    ...(lay.chipExtent ? { extent: lay.chipExtent } : {}),
+  };
+}
 
 /** The parts of one letter's image (kept: a layout runs to its end). */
 const Parts: number[] = [];
@@ -677,6 +769,10 @@ function drawCells(lay: LettersLay, out: PassWriter, _emphasis: Emphasis | undef
   }
   if (lay.conflicts.length) drawConflicts(lay, out);
   if (lay.step !== 'letters' || !(lay.fontSize > 0) || !lay.n) return;
+  if (lay.labels) {
+    drawMoleculeLabels(lay, out);
+    return;
+  }
   if (lay.three) {
     drawThree(lay, out);
     return;
@@ -764,9 +860,14 @@ function drawChip(lay: LettersLay, out: PassWriter) {
   const g = out.args;
   const h = Math.max(box.height - 2, 1);
   const edge = lay.tokens.colors['seq-cell-edge'];
-  g[0] = lay.x0[0] + 1;
+  // a chip of several positions (a `whole` molecule): one pill over its cells
+  const x0 = lay.x0[0];
+  const x1 = lay.x1[lay.n - 1];
+  const lo = x0 < x1 ? x0 : lay.x0[lay.n - 1];
+  const hi = x0 < x1 ? x1 : lay.x1[0];
+  g[0] = lo + 1;
   g[1] = box.y + 1;
-  g[2] = lay.x1[0] - lay.x0[0] - 2;
+  g[2] = hi - lo - 2;
   g[3] = h;
   g[4] = lay.fill[0];
   g[5] = edge;
@@ -774,10 +875,10 @@ function drawChip(lay: LettersLay, out: PassWriter) {
   g[7] = h / 2;
   g[8] = 3;
   out.rectArgs();
-  g[0] = (lay.x0[0] + lay.x1[0]) / 2;
+  g[0] = (lo + hi) / 2;
   g[1] = lay.chipY;
   g[2] = lay.chipWidth;
-  g[3] = lay.x1[0] - lay.x0[0];
+  g[3] = hi - lo;
   g[4] = lay.chipInk;
   out.textArgs(lay.chip, AnchorMiddle, lay.chipFont);
 }
@@ -859,13 +960,17 @@ function drawChipHover(lay: LettersLay, out: PassWriter, emphasis: Emphasis | un
   const h = emphasis!.hover!;
   if (h.system !== lay.axis.system || h.position === undefined || !lay.axis.cell(h.position)) return;
   const { box } = lay;
-  // the pill is a pixel inside the cell (`drawChip`); the outline `d` outside the cell
+  // the pill is a pixel inside the cells (`drawChip`); the outline `d` outside them
   const d = lay.hoverWidth / 2 + lay.hoverOffset;
   const ph = Math.max(box.height - 2, 1);
   const g = out.args;
-  g[0] = lay.x0[0] - d;
+  const x0 = lay.x0[0];
+  const x1 = lay.x1[lay.n - 1];
+  const lo = x0 < x1 ? x0 : lay.x0[lay.n - 1];
+  const hi = x0 < x1 ? x1 : lay.x1[0];
+  g[0] = lo - d;
   g[1] = box.y - d;
-  g[2] = lay.x1[0] - lay.x0[0] + 2 * d;
+  g[2] = hi - lo + 2 * d;
   g[3] = box.height + 2 * d;
   g[4] = NoColor;
   g[5] = lay.tokens.colors['seq-hover'];
@@ -875,7 +980,13 @@ function drawChipHover(lay: LettersLay, out: PassWriter, emphasis: Emphasis | un
   out.rectArgs();
 }
 
-const LettersDraws = passDraws<LettersLay, Emphasis | undefined>({ data: drawCells, hover: drawHover });
+/** The data pass: the cells and their letters, then the modified positions' marks over them. */
+function drawData(lay: LettersLay, out: PassWriter, emphasis: Emphasis | undefined) {
+  drawCells(lay, out, emphasis);
+  if (lay.mods.length && !(lay.chip && lay.n)) drawModified(lay, out, lay.tokens, lay.config);
+}
+
+const LettersDraws = passDraws<LettersLay, Emphasis | undefined>({ data: drawData, hover: drawHover });
 
 /**
  * A letter's ink: `auto` follows its fill (the table's inks at 4.5:1); a themed ink is held at 3:1 against its fill,

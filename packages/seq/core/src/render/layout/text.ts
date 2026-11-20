@@ -408,7 +408,7 @@ function blockLineAxis(block: ResolvedBlock, dpr: number, g: TextGeometry, b0: n
 }
 
 /**
- * A line of chips from block `b` (before section unit `u1`): each chip a strip its slot wide over its one position,
+ * A line of chips from block `b` (before section unit `u1`): each chip a strip its slot wide over its positions,
  * the chips side by side with a word's gap between, the line's bands full (no band collapses on it).
  */
 function chipLine(
@@ -426,8 +426,11 @@ function chipLine(
   let x = g.lineX;
   for (let k = b; k < blocks.length && tb.offsets[k] < u1; k++) {
     const block = blocks[k];
-    if (!block.axis.ranges || piecesTotal(block.axis.ranges) !== 1) continue;
-    const a = AxisTransform.on(block.axis, block.axis.ranges, x, tb.slots[k], ctx.dpr, { start: 0, end: 1 });
+    if (!block.axis.ranges || !isChip(block)) continue;
+    const a = AxisTransform.on(block.axis, block.axis.ranges, x, tb.slots[k], ctx.dpr, {
+      start: 0,
+      end: piecesTotal(block.axis.ranges),
+    });
     const i = strips.add(a, k, 0, y, tb.offsets[k]);
     strips.chip[i] = 1;
     setBands(strips, i, nb, g);

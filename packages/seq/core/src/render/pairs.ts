@@ -120,6 +120,8 @@ export interface PairsPrep {
   readonly data?: PairsData;
   readonly aSystem: string;
   readonly bSystem: string;
+  /** A complex's links: the units their ends are on (`PairsData.aUnit`, `bUnit` index them), each row's own. */
+  readonly endUnits?: readonly string[];
   readonly side: Side;
   readonly reach: number;
   readonly acrossLines: boolean;
@@ -244,6 +246,7 @@ function prepare(layer: ResolvedLayer, model: StaticModel): PairsPrep {
     unreadFilter: (form !== undefined && !filter) || (baseForm !== undefined && !base) || layer.data?.unread === true,
     aSystem: a?.target ?? '',
     bSystem: a?.ySystem ?? '',
+    ...(a?.units ? { endUnits: a.units } : {}),
     side: p.side === 'below' ? 'below' : 'above',
     reach: typeof p.reach === 'number' && p.reach >= 0 ? p.reach : 0.25,
     acrossLines: p.across_lines === true,
@@ -377,7 +380,8 @@ function centreOf(axis: Parameters<typeof cellOffset>[0], start: number, end: nu
 
 /**
  * Each pair's ends' centres as the section's display units (NaN: not on it): on the section's axis, or on the first
- * block on the end's system (merged copies are one block: one arc a copy group).
+ * block on the end's system (merged copies are one block: one arc a copy group; an end on a merged copy is drawn on
+ * the block it is merged into). A complex's link has each end on its row's unit.
  */
 function unitsOn(prep: PairsPrep, section: ResolvedSection, layout: AxisTransform): Float64Array {
   // the pieces the layout placed the axis on: the resolved axis has none while its letters come from a source (the
@@ -393,15 +397,18 @@ function unitsOn(prep: PairsPrep, section: ResolvedSection, layout: AxisTransfor
     const blocks = section.blocks;
     if (!blocks) return section.axis.system === system ? centreOf(shape(section.axis), s, e) : Number.NaN;
     for (const b of blocks)
-      if (b.axis.system === system && b.offset !== undefined) {
+      if ((b.axis.system === system || b.systems.includes(system)) && b.offset !== undefined) {
         const c = centreOf(shape(b.axis), s, e);
         if (!Number.isNaN(c)) return b.offset + c;
       }
     return Number.NaN;
   };
+  const units = prep.endUnits;
   for (let k = 0; k < d.n; k++) {
-    u[2 * k] = on(prep.aSystem, d.aStart[k], d.aEnd[k]);
-    u[2 * k + 1] = on(prep.bSystem, d.bStart[k], d.bEnd[k]);
+    const as = units && d.aUnit ? units[d.aUnit[k]] : prep.aSystem;
+    const bs = units && d.bUnit ? units[d.bUnit[k]] : prep.bSystem;
+    u[2 * k] = as === undefined ? Number.NaN : on(as, d.aStart[k], d.aEnd[k]);
+    u[2 * k + 1] = bs === undefined ? Number.NaN : on(bs, d.bStart[k], d.bEnd[k]);
   }
   prep.units.set(section, { pieces: own, u });
   return u;
@@ -868,6 +875,18 @@ function outside(c: Float64Array, o: number, v: number, r: number): boolean {
   return v < lo - r || v > hi + r;
 }
 
+/** A pair's `a` end's system: its row's unit under a complex, else the layer's. */
+function aOf(prep: PairsPrep, k: number): string {
+  const u = prep.endUnits && prep.data!.aUnit;
+  return u ? (prep.endUnits![u[k]] ?? prep.aSystem) : prep.aSystem;
+}
+
+/** A pair's `b` end's system: its row's unit under a complex, else the layer's. */
+function bOf(prep: PairsPrep, k: number): string {
+  const u = prep.endUnits && prep.data!.bUnit;
+  return u ? (prep.endUnits![u[k]] ?? prep.bSystem) : prep.bSystem;
+}
+
 /** A pair's hit: its element and its extent, both ends (made once a pair). */
 function pairHit(lay: PairsLay, k: number): Hit {
   const prep = lay.prep!;
@@ -875,20 +894,22 @@ function pairHit(lay: PairsLay, k: number): Hit {
   let element = prep.elements[k];
   if (!element) element = prep.elements[k] = { owner: prep.owner, key: d.keys[k] };
   let extent = prep.extents[k];
+  const as = aOf(prep, k);
+  const bs = bOf(prep, k);
   if (!extent) {
     const parts =
-      prep.aSystem === prep.bSystem
-        ? [{ system: prep.aSystem, ranges: [d.aStart[k], d.aEnd[k], d.bStart[k], d.bEnd[k]] }]
+      as === bs
+        ? [{ system: as, ranges: [d.aStart[k], d.aEnd[k], d.bStart[k], d.bEnd[k]] }]
         : [
-            { system: prep.aSystem, ranges: [d.aStart[k], d.aEnd[k]] },
-            { system: prep.bSystem, ranges: [d.bStart[k], d.bEnd[k]] },
+            { system: as, ranges: [d.aStart[k], d.aEnd[k]] },
+            { system: bs, ranges: [d.bStart[k], d.bEnd[k]] },
           ];
     extent = prep.extents[k] = location({ parts });
   }
   const h = lay.scratch;
   h.layer = lay.key;
   h.section = lay.section;
-  h.system = prep.aSystem;
+  h.system = as;
   h.element = element;
   h.extent = extent;
   h.position = undefined;
@@ -1067,8 +1088,8 @@ function hitDots(lay: PairsLay, at: Float64Array): Hit | undefined {
 function endHolds(prep: PairsPrep, k: number, system: string, p: number): boolean {
   const d = prep.data!;
   return (
-    (system === prep.aSystem && p >= d.aStart[k] && p < d.aEnd[k]) ||
-    (system === prep.bSystem && p >= d.bStart[k] && p < d.bEnd[k])
+    (system === aOf(prep, k) && p >= d.aStart[k] && p < d.aEnd[k]) ||
+    (system === bOf(prep, k) && p >= d.bStart[k] && p < d.bEnd[k])
   );
 }
 
@@ -1091,8 +1112,8 @@ function endIn(prep: PairsPrep, k: number, loc: Location): boolean {
   const d = prep.data!;
   for (let i = 0; i < loc.parts.length; i++) {
     const part = loc.parts[i];
-    const a = part.system === prep.aSystem;
-    const b = part.system === prep.bSystem;
+    const a = part.system === aOf(prep, k);
+    const b = part.system === bOf(prep, k);
     if (!a && !b) continue;
     const r = part.ranges;
     for (let j = 0; j + 1 < r.length; j += 2)
