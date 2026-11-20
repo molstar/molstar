@@ -96,8 +96,11 @@ interface SeqViewerSpec {
   parts the default spec lists, never imported by `createSeqViewer` itself; barrels (`render`, `export`) re-export
   nothing a minimal composition does not ask for; the packages say `sideEffects: false`. `DefaultSeqViewerSpec()` and
   `createSeqContext`'s default list everything, so the default composition is unchanged; a smaller spec ships less.
-  Why: one rule for every part (listed or absent), no lazy chunks a host's bundler must split, and the size a host
-  pays follows what it lists. Checked by the size script's `viewer, minimal` entry (an esbuild metafile: none of the
+  Why: one rule for every part (listed or absent), and the size a host pays follows what it lists. **Lazy chunks**: a
+  listed part used rarely or late (the icons' markup, a header's menu and DOM parts, a runtime such as mmCIF, the
+  molecule letters) may load by a dynamic `import()` on first use, which every bundler splits; the size script lists
+  each chunk (the author, 2026-11-20: "Allow lazy chunks"). The first frame does not wait for one: what it would draw
+  is drawn plainly (a slot's letter for its icon) and drawn again when it lands. Checked by the size script's `viewer, minimal` entry (an esbuild metafile: none of the
   unlisted modules in it).
 - **Headless without a viewer**: `createSeqContext(spec)` in the core takes the registry, the config and the ports a
   render needs (assets, text metrics, backends) and gives the resolve passes and `renderSvg`, for the CLI, servers and

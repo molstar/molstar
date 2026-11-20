@@ -64,7 +64,9 @@ along the shortest unambiguous path, and reports when there is none. Structure m
 those paths: a variant on the gene reaches a residue in the structure through codon and structure maps, and the copy
 rule keeps each chain instance apart.
 
-**Alignment.** Rows (each a unit or a sequence with its map onto the columns) over a columns system.
+**Alignment.** Rows (each a unit or a sequence with its map onto the columns) over a columns system. The columns system
+is named by its alignment (`<alignment>/columns`), so a source's records shared by several alignments (one Stockholm
+file of many families) say whose columns they are (the author, 2026-11-20, AC's drift: "Yes, as recommended").
 
 **Annotation.** Data on a system, in one of six shapes: `ranges` (intervals with fields), `values` (a number per
 position or bin), `pairs` (two locations, possibly on two systems: contacts, base pairs, synteny), `matrix` (a value
