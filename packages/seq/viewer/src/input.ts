@@ -21,6 +21,7 @@ import type { HeaderActionEntry } from './header-entries.js';
 import { type PartCursor, partCursor } from './part-cursor.js';
 import { cancelFrameCallback, requestFrameCallback } from '@molstar/ui/dom/frame';
 import { DomHost } from '@molstar/ui/dom/host';
+import { type Location, rangesLocation } from '@molstar/seqx-core/query';
 import type { Axis } from '@molstar/seqx-core/view';
 import {
   CladeActions,
@@ -888,9 +889,11 @@ export class ViewerInput {
     const atY = cell ? this.offsetYAt(section, x, y) : undefined;
     const hull = hit ? this._focusOf(section, hit) : undefined;
     const focus = hull ?? (cell ? { start: Math.floor(at), end: Math.floor(at) + 1 } : undefined);
+    const location = hull && hit ? this._locationOf(hit) : undefined;
     this.viewer.runCommand(action, {
       section,
       ...(focus ? { focus } : {}),
+      ...(location ? { location } : {}),
       ...(at >= 0 ? { at } : {}),
       ...(cell ? { cell: true } : {}),
       ...(atY !== undefined ? { atY } : {}),
@@ -940,6 +943,14 @@ export class ViewerInput {
     const at = block ? (block.offset ?? 0) : 0;
     const r = this._focusOn(block ? block.axis : s.axis, hit, !block && this.viewer.view.arcs(section));
     return r && at ? { start: r.start + at, end: r.end + at } : r;
+  }
+
+  /** What a focused hit names: the element's whole extent, else its position (the view's last jump says it). */
+  private _locationOf(hit: Hit): Location | undefined {
+    const extent = (hit.element && this.viewer.selection.extentOfHit(hit)) || hit.extent;
+    if (extent) return extent;
+    const p = hit.position;
+    return p === undefined ? undefined : rangesLocation(hit.system, [Math.floor(p), Math.floor(p) + 1]);
   }
 
   private _focusOn(axis: Axis, hit: Hit, arc: boolean): { start: number; end: number } | undefined {

@@ -92,12 +92,14 @@ export function navigatorBehavior(view: ViewModel, config: ViewerConfig = Defaul
   const center = (section: string, at: number, record = true) => {
     const w = width(section);
     if (!(w > 0) || !Number.isFinite(at)) return false;
-    return view.jump(() => view.setRange(section, at - w / 2, at + w / 2), record) === 'moved';
+    return view.jump(() => view.setRange(section, at - w / 2, at + w / 2), record, 'move') === 'moved';
   };
 
   const zoomTo = (section: string, start: number, end: number, record = true) => {
     if (!Number.isFinite(start) || !Number.isFinite(end) || start === end) return false;
-    return view.jump(() => view.setRange(section, Math.min(start, end), Math.max(start, end)), record) === 'moved';
+    return (
+      view.jump(() => view.setRange(section, Math.min(start, end), Math.max(start, end)), record, 'move') === 'moved'
+    );
   };
 
   const commands: CommandDefinition<NavigatorContext>[] = [
@@ -235,7 +237,7 @@ export function navigatorBehavior(view: ViewModel, config: ViewerConfig = Defaul
       const fitted = mode !== 'fit' && isFitted(view, section);
       return fitted
         ? zoomTo(section, at - units / 2, at + units / 2, !folded)
-        : view.jump(() => view.fit(section), !folded) === 'moved';
+        : view.jump(() => view.fit(section), !folded, 'fit') === 'moved';
     },
     dispose() {
       clicked = undefined;

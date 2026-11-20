@@ -265,6 +265,10 @@ to its summary row), never silently dropped.
   the draw lists, not in an export: DOM over the canvas. **Through a port** (ports.md, the author, 2026-11-19): the
   viewer computes the card as data (title, rows, the announcer's text) and its place (`placeCard`), headless and
   tested without a DOM; the hover card port draws it, `@molstar/ui`'s card by default, a host's own components and
+  styles in its place. **Compact** (the author, 2026-11-20: "the hover cards should be more compact in general"): the
+  title one line and said once, each row one text line, the value beside its label. **Capped**: past `hover.cardItems`
+  (8) item rows the card shows the first and a "+k more" row; `HoverCard.more` keeps the rest, the live region says
+  every item; a host's card through the port draws what it likes (the author: "app level overridable").
   styles in its place. A host turns it off (config) or adds rows behind its internal interface (extensibility.md);
   context menus stay later.
 - **The keys panel**: `?` (and a toolbar button) opens a panel listing what the view answers to, generated from the

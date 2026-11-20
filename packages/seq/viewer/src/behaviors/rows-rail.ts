@@ -138,11 +138,15 @@ export class RowsRailGesture {
     if (detail > 1 || part !== 'outside' || !Number.isFinite(at)) return false;
     const shown = w.end - w.start;
     return (
-      this.view.jump(() => {
-        const before = this.view.band(track)?.bandTop;
-        this.view.setBand(track, { bandTop: clamp(at - shown / 2, 0, Math.max(0, w.total - shown)) });
-        return this.view.band(track)?.bandTop !== before;
-      }) === 'moved'
+      this.view.jump(
+        () => {
+          const before = this.view.band(track)?.bandTop;
+          this.view.setBand(track, { bandTop: clamp(at - shown / 2, 0, Math.max(0, w.total - shown)) });
+          return this.view.band(track)?.bandTop !== before;
+        },
+        true,
+        'move',
+      ) === 'moved'
     );
   }
 }

@@ -300,7 +300,7 @@ disagrees with its code writes a drift note and stops.
 - [x] HP2 (strong, after ST1) the viewer: the `headerActions` registry kind, built-in entries, the `headers` behavior
       (reveal, clicks, the menu and its port, long press, the secondary click param), `headerPartsDom()` over
       `viewer.headers`, the cursor on headers, words (`briefs/hp2-header-behavior.md`).
-- [ ] ST2 (strong, after HP2; smaller: no behavior, no port, nothing in the composition) the viewer's four additions
+- [x] ST2 (strong, after HP2; smaller: no behavior, no port, nothing in the composition) the viewer's four additions
       (`HoverModel.setLocation`, `AddressModel.revealLocation`, `view.lastJump`, `viewer.retiredSignal`; accepted as
       the design lists them), then `@molstar/seqx-viewer/link-structure`: `linkStructure` with echoes, coalescing,
       clearing on either end, focus with the jump's duration, `via` (`briefs/st2-structure-link.md`).

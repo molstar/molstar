@@ -589,11 +589,15 @@ export class NavigatorModel extends ReactiveModel {
       const row = this.renderer?.rowAt(y);
       if (track && w && row !== undefined)
         moved =
-          this.viewer.view.jump(() => {
-            const before = this.viewer.view.band(track)?.bandTop;
-            this.viewer.view.setBand(track, { bandTop: this.clampTop(d.hit.section, row - (w.r1 - w.r0) / 2) });
-            return this.viewer.view.band(track)?.bandTop !== before;
-          }) === 'moved';
+          this.viewer.view.jump(
+            () => {
+              const before = this.viewer.view.band(track)?.bandTop;
+              this.viewer.view.setBand(track, { bandTop: this.clampTop(d.hit.section, row - (w.r1 - w.r0) / 2) });
+              return this.viewer.view.band(track)?.bandTop !== before;
+            },
+            true,
+            'move',
+          ) === 'moved';
       if (nav.axes === 'rows') return moved;
     }
     const at = this.renderer?.sectionUnitAt(d.hit.section, x);
@@ -705,11 +709,16 @@ export class NavigatorModel extends ReactiveModel {
       }
       case '=':
       case '+':
-        return view.jump(() => view.zoom(section, this.viewer.config.navigate.doubleClickZoomStep)) === 'moved';
+        return (
+          view.jump(() => view.zoom(section, this.viewer.config.navigate.doubleClickZoomStep), true, 'zoom') === 'moved'
+        );
       case '-':
-        return view.jump(() => view.zoom(section, 1 / this.viewer.config.navigate.doubleClickZoomStep)) === 'moved';
+        return (
+          view.jump(() => view.zoom(section, 1 / this.viewer.config.navigate.doubleClickZoomStep), true, 'zoom') ===
+          'moved'
+        );
       case '0':
-        return view.jump(() => view.fit(section)) === 'moved';
+        return view.jump(() => view.fit(section), true, 'fit') === 'moved';
       default:
         return false;
     }

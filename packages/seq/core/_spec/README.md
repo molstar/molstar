@@ -1297,7 +1297,8 @@ names: `StructureDescription` and its table types, `structureNodes` (with `Struc
 `src/structure/` (`@molstar/seqx-core/structure`): the translation between Seq\*'s Locations and a structure's units,
 for a host wiring a structure viewer beside a sequence view. A library, not a port: nothing registers, nothing is
 composed, no structure viewer's types (the vocabulary is the host's adapter's, which alone knows both sides). Plain data
-in and out; pure over a model (`StructureModel`: the static model, or it with the overlay a source's complexes are in);
+in and out; pure over a model (`StructureModel`: the static model, or it with the overlay a source's complexes are in; a
+path between two of the model's systems is the model's, so an overlay that holds no node reads as the model alone);
 Node-tested. Its public names: `structureFacts`, `toUnits`, `fromUnits`, `unitRows`, `colorRuns`, `DefaultSyncLimits`
 and `StructureSyncIssues`, with their types. Why a library: the viewer's events are the surface every host already uses;
 a port would duplicate them for one consumer, and a headless host (a server coloring a structure) needs the translation
@@ -1354,6 +1355,9 @@ alone.
 - **Performance**: a 2OCJ hover onto its four units is a few µs once the paths are kept, and a selection on 32,768
   copies tens of milliseconds (quick, bounded in the heavy lane); a hover on a `maxUnits` assembly is one search a part
   and molecule and a unit step each (heavy). A unit's observed runs are made once a unit; its other facts when asked.
+  Allocation (the opt-in tier, `units.quick.ts`): the target is a new Location a hover (a host keeps it), so not zero; a
+  lit unit inside its observed runs is placed without a cut (no intersect or subtract made), a path's image read into a
+  scratch, the default bindings kept a reads: about 9 kB a 2OCJ hover on four units, 1.7 kB a lit unit, bounded.
 
 | Item               | Default                                 | Why the default; the alternatives                                         |
 | ------------------ | --------------------------------------- | ------------------------------------------------------------------------- |

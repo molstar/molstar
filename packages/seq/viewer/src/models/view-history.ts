@@ -5,6 +5,7 @@
  */
 
 import { type ReadonlyState, State } from '@molstar/core/reactive';
+import type { Location } from '@molstar/seqx-core/query';
 import type { BandViewport } from '@molstar/seqx-core/render';
 import { axisKey, axisTotal, positionAt } from './axis.js';
 import type { ViewBands } from './view-bands.js';
@@ -49,6 +50,22 @@ export interface Snapshot {
   readonly groups: ReadonlyMap<string, Kept>;
   readonly bands: ReadonlyMap<string, KeptBand>;
   readonly ys: ReadonlyMap<string, { readonly start: number; readonly end: number }>;
+  /** The Location the jump that left the view here named, while no hand moved it since (`ViewModel.lastJump`). */
+  readonly location?: Location;
+}
+
+/** What a jump was (_spec/README.md "ViewModel", History, The last jump). */
+export type JumpKind = 'focus' | 'reveal' | 'back' | 'forward' | 'fit' | 'zoom' | 'move';
+
+/**
+ * The last jump (`ViewModel.lastJump`): its count (`jumps`), its kind, the Location it named (a focus's or a reveal's;
+ * a step's when the step kept one) and the duration the viewer animates it over.
+ */
+export interface LastJump {
+  readonly n: number;
+  readonly kind: JumpKind;
+  readonly location?: Location;
+  readonly durationMs: number;
 }
 
 /** A step of the view's history as `snapshot` gives it: opaque, only `record` reads it. */

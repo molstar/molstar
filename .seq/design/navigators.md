@@ -304,6 +304,8 @@ preset or a host rebinds or leaves them out.
 | wheel, Cmd/Ctrl+wheel, pinch | as over the bound section (the same deltas in that section's px; one leading section, above), zoom about the window's centre, not the pointer: the position under the pointer at the navigator's scale may be far outside the view, and a zoom about it would leap. Fixed: no second use for a navigator without the wheel | the view's `pan`, `zoom` |
 | Esc during a drag or sweep | cancels it, the view back where the press found it | — |
 | hover | a hairline and a readout in the navigator (the position, the row, an ideogram's band name); the viewer's hover is not set | — |
+| a rows window: drag its top or bottom grip | zooms the rows about the other end; never scrolls (the author, 2026-11-20) | the rows' zoom (`rowScale`) |
+| a rows window: double-click (the rows rail's, the vertical overview's) | resets the rows' zoom (`rowScale` to its default, the top row kept), one jump; on the overview with the rows not zoomed, the positions' double-click (the author, 2026-11-20: "double click on the window (and perhaps the 'thin slider') should prolly reset the vertical zoom too") | the rows' zoom, a jump |
 
 - **History**: a click, a sweep and a double-click are jumps (Alt+Left goes back); a step a navigator pushes is the
   view's, under its one rule (a step over a changed axis or layout restored by position, clamped to what is drawn,

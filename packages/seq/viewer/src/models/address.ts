@@ -476,6 +476,11 @@ export class AddressModel extends ReactiveModel {
     return this._moveTo(loc, false);
   }
 
+  /** Brings a Location into view as `reveal` brings an address's (_spec/README.md "AddressModel", Actions). */
+  revealLocation(loc: Location): 'moved' | 'pending' | 'none' {
+    return this._moveTo(loc, true);
+  }
+
   /**
    * A focus or a reveal is a jump (_spec/README.md "ViewModel", History): the viewports it leaves are a step of the
    * view's history.
@@ -483,10 +488,15 @@ export class AddressModel extends ReactiveModel {
   private _moveTo(loc: Location, reveal: boolean, only?: string): 'moved' | 'pending' | 'none' {
     let r: 'moved' | 'pending' | 'none' = 'none';
     this._landing?.stop();
-    this.view.jump(() => {
-      r = this._moveEach(loc, reveal, only);
-      return r !== 'none';
-    });
+    this.view.jump(
+      () => {
+        r = this._moveEach(loc, reveal, only);
+        return r !== 'none';
+      },
+      true,
+      reveal ? 'reveal' : 'focus',
+      loc,
+    );
     return r;
   }
 

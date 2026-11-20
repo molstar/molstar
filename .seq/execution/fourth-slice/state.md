@@ -40,10 +40,16 @@ The third slice is closed (2026-11-20; its record in `.seq/records/third-slice/`
   1289.9 / 922.6 kB; the quick-lane folders over 2 s (core, viewer, storybook) are FX3's first item. Submenus from a
   command's select param ("Commands own choices"); T-DM1's CCD ids and the pairs layer's numeric columns ("Both to
   FX3").
+- **Public API changes allowed without stopping** (the author, 2026-11-20: "you can change public api of packages/seq,
+  core/repr, packages/ui if needed. this has no other consumers beyond the work here yet"): a lane may change the
+  public surface of `packages/seq/*`, `@molstar/core`'s `repr`, and `@molstar/ui` where its work needs it, each change
+  in its changelog entry and listed in `gaps.md` for the author's review; `pnpm build` and `check:workspace` at its
+  merge when core or ui changed. The rest of `@molstar/core` and `@molstar/io` still stop the lane.
 - Size targets are bounds once reset after RR (the author, 2026-11-20: "reduce render first, then move the size
   targets"). Moved for the query language: reading a spec 230, headless 820, minimal 920 kB (the author,
   2026-11-20), the default viewer 1,290 kB ("Move to 1290 kB", 2026-11-20); for molecules drawn, headless 830 and
-  minimal 930 kB ("Move to 830 / 930 kB", 2026-11-20).
+  minimal 930 kB ("Move to 830 / 930 kB", 2026-11-20); for the structure link and the rest of the slice, the default
+  viewer 1,330 kB ("Move to 1330 kB", 2026-11-20).
 
 ## In progress
 
@@ -51,9 +57,17 @@ The third slice is closed (2026-11-20; its record in `.seq/records/third-slice/`
 
 ## Next
 
-1. FX3 (strong): `fixes.md`'s open items, the folders' times first; the hover cards' items wait for ST2 (both in the
-   viewer's hover).
-2. ST2 (strong, after HP2), then ST3, HD (after FX3's map onto a described unit), HP3; SV; stage 2's gate.
+1. **Overnight (the author, 2026-11-20: "you can continue with slice 4 too, just don't close it until i review it in
+   the morning")**: the loop runs "Running while the author is away" (loop.md): decisions a gate would ask are made as
+   recommended and listed in `gaps.md`; a public API change past a design in `packages/seq`, core's `repr` or `@molstar/ui` goes ahead (Decided, the
+   author), listed in `gaps.md`; elsewhere in `@molstar/core` or `@molstar/io` the lane stops; the use
+   gates are deferred, not passed. Two lanes at once in all, shared with the fifth slice's stage 0
+   (`../fifth-slice/state.md`, "Overnight"): one fifth-slice draft (or its review) and one fourth-slice lane at a time,
+   while both have work.
+2. The fourth slice's order: ST2 merged; merge FX3; then ST3 → HD (after FX3's map onto a described unit) → HP3; SV (after
+   ST3); stage 2's and stage 3's gates; stage 4 (EX → CN, LE); the novice pass; M4. **Stop before FINALIZE**: no
+   fold-back, record or close until the author has reviewed (the morning).
+3. In the morning, with the author: the fifth slice's drafts agreed; the fourth slice's review, then its finalize.
 
 ## Findings by lane
 
@@ -81,6 +95,7 @@ One row a merged lane (loop, step 5, record): review findings and look findings 
 | CU | 2026-11-20 | 2 (review: the real example as on the parent, every contact on the first heme; a private copy of the unit step) | 1 (an unnamed pair across split copies: never on a guessed copy, the author) | 1 (look: the split hemoglobin's contacts all on the first heme) | weak issue tests; no tile-edge test; `ResolvedBlock.copy` internal; CE's parked branch deleted |
 | MX | 2026-11-20 | 4 (review: chip pills cut below `labels.minChars`, a core cause; the 1FIN twin counting arcs only; module state in molecule letters; rival vias a silent missing link) | 3 (a section's `via` scope and a component query pending: drifts decided; the pairs layer reads text columns only: TODO, the author's) | 2 (look: "AT…", "2…" chips; transplants' contacts not said to come from other entries) | the projection bug (a blocks section unlinked) fixed in core; half the brief built late; T-DM1's CCD ids placeholders; storybook folder 3.0 s |
 | HP2 | 2026-11-20 | 7 (my check: a legends race, imports outliving teardown; review: settle not waiting for the ports; clicks lost before the late chunk; `seq:filtered` on one layer; DOM parts drawn under chips; the hidden chip a mark at 112 px, core) | 3 (the default viewer past 1290: `@molstar/ui` fixed, the author; lazy chunks allowed, the author; the chip in the minimal viewer, the author) | 1 (look: "1 hidden" a bare mark) | red twice at my check; internals exported; submenus from items pending for the author; default viewer 1289.9 of 1290 |
+| ST2 | 2026-11-20 | 2 (review: a double-click focus never reached the structure; ST1's paths empty over an empty overlay) | 2 (unnamed jumps recorded as focus: kinds added; the link's hover allocation target: for the author, gaps.md) | 0 | the default viewer 0.4 kB past 1,290 (moved to 1,330, the author); minor copies; nothing drawn (ST3's stories) |
 
 ## How to verify
 
