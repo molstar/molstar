@@ -110,6 +110,18 @@ describe('writing an archive', () => {
     expect(assets.reads.filter((u) => u === 'https://x.org/a/g.seq')).toHaveLength(1);
   });
 
+  it('leaves a location the host keeps as written, unread', async () => {
+    const assets = fake({ 'a.seq': 'A' });
+    const w = await writeArchive(specOf('generated:chr1', 'a.seq'), {
+      assets,
+      keep: (u) => u.startsWith('generated:'),
+    });
+    const r = await readArchive(w.bytes!);
+    expect(sourcesOf(r.archive!.spec).map((p) => p?.uri)).toEqual(['generated:chr1', 'a.seq']);
+    expect([...r.archive!.files.keys()]).toEqual(['a.seq']);
+    expect(assets.reads).toEqual(['a.seq']);
+  });
+
   it('writes an archive without files for a spec with inline data only', async () => {
     const w = await writeArchive(specOf(), { assets: fake({}) });
     const r = await readArchive(w.bytes!);

@@ -305,6 +305,11 @@ export async function writeArchive(
   spec: Node,
   options: {
     readonly assets: AssetReader;
+    /**
+     * Locations a format runtime of the host serves itself (`generated:chr17`: no file), left as written and never
+     * read. The archive does not hold them: opened where that runtime is not, such a source is the host's to answer.
+     */
+    readonly keep?: (uri: string) => boolean;
     readonly signal?: AbortSignal;
     readonly limits?: Partial<ArchiveLimits>;
     readonly runtime?: RuntimeContext;
@@ -320,6 +325,7 @@ export async function writeArchive(
   const issues: Issue[] = [];
   let total = 0;
   for (const uri of uris) {
+    if (options.keep?.(uri)) continue;
     const name = nameFor(uri, taken, limits);
     taken.add(name);
     names.set(uri, name);
