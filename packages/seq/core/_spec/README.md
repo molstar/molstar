@@ -1181,6 +1181,77 @@ names: `StructureDescription` and its table types, `structureNodes` (with `Struc
 | `water`            | `false`    | waters say nothing on an axis (molecules.md); `true`                                |
 | `complex`          | `complex`  | the complex's id and key; any id                                                    |
 
+## Structures
+
+`src/structure/` (`@molstar/seqx-core/structure`): the translation between Seq\*'s Locations and a structure's units,
+for a host wiring a structure viewer beside a sequence view. A library, not a port: nothing registers, nothing is
+composed, no structure viewer's types (the vocabulary is the host's adapter's, which alone knows both sides). Plain data
+in and out; pure over a model (`StructureModel`: the static model, or it with the overlay a source's complexes are in);
+Node-tested. Its public names: `structureFacts`, `toUnits`, `fromUnits`, `unitRows`, `colorRuns`, `DefaultSyncLimits`
+and `StructureSyncIssues`, with their types. Why a library: the viewer's events are the surface every host already uses;
+a port would duplicate them for one consumer, and a headless host (a server coloring a structure) needs the translation
+alone.
+
+- **A target** (`StructureTarget`) is a Location whose parts are on units, or on a molecule unit's atoms: structured
+  clone carries it across `postMessage`. A binding (`StructureBinding`: `{ complex, via? }`) names a complex and the
+  maps its paths take; absent, every complex with no `via`.
+- **Facts** (`structureFacts(model, complex)`): per unit its address, id, `chain`, `auth_chain`, `operator`, label, its
+  molecule and start on it, length, class and kind (`polymer`, `branched`, `other`), observed runs (sorted, within it;
+  every position when it names none), copy group (EC-65), its `auth` numbering both ways (`label(position)`,
+  `position(label)`: the unit's own, else its molecule's shifted onto it, EC-8), and its residue rows (`authSeqId`,
+  `insCode` split from the label, `labeled`, `observed`, a row a position). Why: an adapter joins them against its own
+  residue list once and per message looks up, never walks the model. A description read by `structureNodes` gives back
+  its chains' ids and residues as described (tested on the zinc finger and every mmCIF fixture).
+- **To units** (`toUnits(model, loc, complexes?, options?)`): each part (a rect's sides as parts; an atoms part
+  collapsed onto its residues) carried onto each bound unit along the model's paths with the binding's `via`; a
+  molecule's part reaches every unit of it (EC-48). Through the molecule: a part is carried onto a unit's molecule once
+  and steps down to each unit (its start subtracted, clipped to it), so an assembly of `maxUnits` copies searches once a
+  part, not once a copy (a search from a sequence reads every unit's step). The copy rule as the search keeps it
+  (EC-25): a part on a unit of the molecule, or a path climbing out of one onto it, never steps down to another; a unit
+  with maps of its own is searched on its own (its map may be the shorter path). A path ambiguous or past its bound is
+  said once (`seq.resolve.path.*`); one that is none is not (most systems reach no structure). Then: unobserved
+  positions cut (`cut` says them; nothing to light, EC-118); a molecule unit whole (`ligand: whole`, the default) or,
+  with `ligand: atoms`, its atoms (an atoms part its own atoms, a residue its atoms); the size gate.
+- **The size gate** (EC-167): past `maxRuns` runs or `maxLength` positions after the cut, whole units (`over: units`:
+  each unit touched, its observed runs) or nothing (`skip`), said as `seq.structure.gated` and in `gated`. Monotone: a
+  bound raised never gates what a lower one passed, and a gated target holds the exact one. `limits: null` gates nothing
+  (rows and colors are written once). Why here: a 4,000-unit assembly's selection must not become 4,000 × n runs a
+  frame, whatever the host.
+- **From units** (`fromUnits(model, target, complexes?, { atoms? })`): a part on a bound unit kept (clipped to it); on a
+  unit's atoms collapsed onto its residues unless `atoms` (a section shows the atoms form); on a molecule spread over
+  every bound unit of it; the rest counted (`unplaced`, `seq.structure.unplaced` once). Round trips (property tests):
+  `fromUnits(toUnits(loc))` is the Location's observed part on the units, as the model's own projection gives it; and
+  `toUnits(fromUnits(t))` is `t`'s observed part.
+- **Rows** (`unitRows(model, store, annotation, complexes?, { want?, ligand? })`): a ranges or pairs annotation's items
+  (a range's rows, a pair's two ends) as targets on units with their fields, items reaching no unit left out. Inline
+  rows at once; a source's from the tiles the store holds at its finest level over the whole system, the rest `pending`
+  (never read as empty, EC-169); `want` asks for them (the library holds no consumer). Another kind is
+  `seq.structure.rows`.
+- **Colors** (`colorRuns(model, store, layer, complexes?, { want?, ligand? })`): a letters, values or ranges layer's
+  color channel compiled as drawing compiles it (its slot's body, else the type's default: the alphabet's scheme,
+  `token:value`, `token:range`), with the built-in tokens light and dark (`color`, `dark`: a scheme's dark variant), an
+  open scale's domain the extent of the data read; evaluated per position (letters, values) or per item (ranges),
+  grouped by color, carried onto units ungated, runs in the order of each color's first position. Unobserved positions
+  cut, uncolored ones (a missing value, a letter not held) in no run, data not held `pending`. Another layer is
+  `seq.structure.layer`. A snapshot: a host rebuilds on the layer's changes for live colors. Why the view's compile: a
+  structure colored by a track agrees with the track.
+- **Performance**: a 2OCJ hover onto its four units is a few µs once the paths are kept (quick, bounded in the heavy
+  lane); a hover on a `maxUnits` assembly is one search a part and a unit step each (heavy).
+
+| Item             | Default                                 | Why the default; the alternatives                                         |
+| ---------------- | --------------------------------------- | ------------------------------------------------------------------------- |
+| `complexes`      | every complex, no `via`                 | the spec names no host's binding; `{ complex, via? }[]`                   |
+| `limits` (hover) | 2,000 runs, 20,000 positions, `units`   | the precedent's bounds, a frame's worth; any; `skip`                      |
+| `limits`         | 20,000 runs, 200,000 positions, `units` | a selection, sent once (`DefaultSyncLimits.select`); `null` gates nothing |
+| `ligand`         | `whole`                                 | a ligand's position is its residue; `atoms`                               |
+| unobserved       | never sent (fixed)                      | nothing to light                                                          |
+| the vocabulary   | Locations on units (fixed)              | a structure viewer's types are the host's adapter's                       |
+
+### Issues
+
+`seq.structure.*` (`StructureSyncIssues`): `complex` (a binding naming no complex), `gated`, `unplaced`, `rows`,
+`layer`.
+
 ## Resolve
 
 `src/resolve/` (`@molstar/seqx-core/resolve`): the static model, tier 1: pure, over a checked spec, nothing from the
@@ -1359,7 +1430,8 @@ Seq\* holds pointers and labels: codes and identifiers are strings.
   named map on none of its paths (follow, along, layers, grid y, the links onto it) as `seq.resolve.via.unused`, a
   warning at the section with the map as its place (`viaUnusedIssue`; Resolved view, Via). One entry a pair and `via`
   set (sorted, deduplicated: `viaList`); its carried search's deps are every map of the systems it read, rivals too.
-  `project(loc, to, { via })` and the overlay's `path(from, to, via?)` take it.
+  `project(loc, to, { via })` and the overlay's `path(from, to, via?)` take it, and a structure binding's `via`
+  (Structures) is read as a section's: by `toUnits`, `unitRows` and `colorRuns` on that binding's paths.
 - **Kept**: a search is done once per model (the reverse read as the inverse), and carried to the next resolve with the
   map entries of every system it read; it is kept while those are the same objects (entries are kept by hash, a
   `priority` in it, so a changed priority drops the search), so an edit elsewhere keeps the path object. Why: a map
@@ -3062,5 +3134,5 @@ same pieces. Nothing registers on import and there is no global registry.
   names (server-side request forgery).
 - **Bounds**: `SeqCoreConfig.bounds` (`Partial<SpecBounds>` over `DefaultSpecBounds`, Language, Bounds) is the context's
   `bounds`, which its `check` and its `renderSvg` hold (`RenderSvgOptions.bounds`).
-- A port factory that throws leaves nothing made: the ports already made are disposed, last first; a structure port made
-  is disposed with the context.
+- A port factory that throws leaves nothing made: the ports already made are disposed, last first. There is no structure
+  port: syncing with a structure viewer is a library over the viewer's events and commands (Structures).

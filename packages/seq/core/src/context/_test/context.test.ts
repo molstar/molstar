@@ -354,22 +354,24 @@ describe('createSeqContext', () => {
     expect(dispose).toHaveBeenCalledTimes(1);
   });
 
-  it('a factory that throws disposes the ports already made, last first, and a structure port with them', () => {
+  it('a factory that throws disposes the ports already made, last first', () => {
     const order: string[] = [];
     const assets = () => ({
       reader: { readText: async () => '', readBytes: async () => new Uint8Array() },
       dispose: () => order.push('assets'),
     });
     const text = () => ({ measure: () => 1, dispose: () => order.push('text') });
-    const structure = () => {
-      throw new Error('no structure');
+    const trackSizing = () => {
+      throw new Error('no sizing');
     };
-    expect(() => createSeqContext({ ports: { assets, textMetrics: text, structure } })).toThrow('no structure');
+    expect(() => createSeqContext({ ports: { assets, textMetrics: text, trackSizing } })).toThrow('no sizing');
     expect(order).toEqual(['text', 'assets']);
-    // a structure port made is disposed with the context
-    const dispose = vi.fn();
-    createSeqContext({ ports: { structure: () => ({ runtime: {}, dispose }) } }).retire();
-    expect(dispose).toHaveBeenCalledTimes(1);
+  });
+
+  it('names no structure port: structure syncing is a library over the viewer’s events, not a port', () => {
+    // @ts-expect-error: no such port
+    createSeqContext({ ports: { structure: () => ({ runtime: {} }) } }).retire();
+    expect('structure' in createSeqContext()).toBe(false);
   });
 
   it('measures text through the port', () => {

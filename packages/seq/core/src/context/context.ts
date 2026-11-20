@@ -97,12 +97,6 @@ export interface TextMetricsPort extends PortResult {
   dispose?(): void;
 }
 
-/** A structure runtime binds structure systems to a structure viewer: no adapter in this version, unset. */
-export interface StructurePort extends PortResult {
-  readonly runtime: unknown;
-  dispose?(): void;
-}
-
 /**
  * The host's last word on track heights (_spec/README.md "Render", Track heights): each section's tracks with their
  * content heights and the named sizing's answer, returning the heights (an application fitting the viewer into a fixed
@@ -117,7 +111,6 @@ export interface TrackSizingPort extends PortResult {
 export interface SeqPorts {
   readonly assets?: () => AssetsPort;
   readonly textMetrics?: () => TextMetricsPort;
-  readonly structure?: () => StructurePort;
   readonly trackSizing?: () => TrackSizingPort;
 }
 
@@ -207,8 +200,6 @@ export interface SeqContext {
   readonly assets: AssetReader;
   /** The text metrics port. */
   readonly text: TextMetrics;
-  /** The structure port's runtime, when one was bound. */
-  readonly structure: unknown;
   /** The spec's issues (the language's checks). */
   check(spec: Node): Issue[];
   /** The static model of a spec with the registered runtimes. */
@@ -241,7 +232,6 @@ export function composeSeqContext(spec: SeqContextSpec = {}): SeqContext {
 
   // a factory that throws leaves nothing made behind: the ports already made are disposed, last first
   let assets: AssetReader = NoAssets;
-  let structure: unknown;
   let text: TextMetrics = undefined as never;
   let trackSizing: TrackSizingHook | undefined;
   try {
@@ -261,12 +251,6 @@ export function composeSeqContext(spec: SeqContextSpec = {}): SeqContext {
       text = createTextMetrics((font) => (s) => port.measure(font, s));
       if (port.disposeWithViewer !== false && port.dispose) disposers.push(() => port.dispose!());
     } else text = bundledTextMetrics();
-
-    if (spec.ports?.structure) {
-      const port = spec.ports.structure();
-      structure = port.runtime;
-      if (port.disposeWithViewer !== false && port.dispose) disposers.push(() => port.dispose!());
-    }
 
     if (spec.ports?.trackSizing) {
       const port = spec.ports.trackSizing();
@@ -298,7 +282,6 @@ export function composeSeqContext(spec: SeqContextSpec = {}): SeqContext {
     tokens,
     assets,
     text,
-    structure,
     check: (s) => checkSeqSpec(s, bounds),
     resolve: (s) => resolveSpec(s, { runtimes, config: resolveCfg }),
     view: (model, address) => (address ? resolveView(model, address) : resolveViews(model)[0]),
