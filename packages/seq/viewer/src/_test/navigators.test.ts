@@ -530,6 +530,33 @@ describe('an overview and a miniature over an alignment’s rows', () => {
     expect(top(v)).toBeCloseTo(60 - shown, 0);
   });
 
+  it('the overview’s rows grips zoom the rows about the other end (never a scroll); a double-click on its window resets them', async () => {
+    const v = await make(rowsSpec(60, 'overview'), [[viewerItem('view.jumpMs'), 0]]);
+    v.view.setBand(RowsTrack, { bandTop: 20 });
+    v.draw();
+    const { nav, f } = await drawNav(v, 'nav');
+    const w = f.windows[0];
+    const shown = w.r1 - w.r0;
+    const x = (w.dx0 + w.dx1) / 2;
+    // the bottom bar's grip: a tab just past the window's bottom
+    const y = w.dy1 + 1;
+    expect([nav.hit(x, y)?.axis, nav.hit(x, y)?.part]).toEqual(['rows', 'end']);
+    expect(nav.down(x, y)).toBe(true);
+    // 10 rows down: the top held, more rows shown (a zoom out), not scrolled
+    nav.move(x, y + ((w.hy - w.ly) * 10) / 60);
+    nav.up();
+    expect(top(v)).toBeCloseTo(20, 6);
+    expect(v.view.band(RowsTrack)?.rowScale).toBeDefined();
+    v.draw();
+    const g = nav.draw()!.windows[0];
+    expect(g.r1 - g.r0).toBeCloseTo(shown + 10, 0);
+    expect(v.view.history.value.back).toBe(1);
+    // a double-click on the window: the rows' zoom reset, one jump
+    expect(nav.doubleClick((g.dx0 + g.dx1) / 2, (g.dy0 + g.dy1) / 2)).toBe(true);
+    expect(v.view.band(RowsTrack)?.rowScale).toBeUndefined();
+    expect(v.view.history.value.back).toBe(2);
+  });
+
   it('the miniature: its body drags both axes; a click outside centres both', async () => {
     const v = await make(rowsSpec(60, 'miniature'), [[viewerItem('view.jumpMs'), 0]]);
     v.view.setRange(S, 0, 10);

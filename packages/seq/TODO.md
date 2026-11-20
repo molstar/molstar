@@ -60,9 +60,6 @@ base-library change, below), archives. The Genomes milestone is the fifth.
 ## `@molstar/seqx-core`
 
 - **A dynamic (overlay) values node's `field`**: read its source's channel, as a static one does (DP, 2026-11-20).
-- **A pairs layer reads only text fields of its rows** (`resolve/held.ts`, the extra columns `category` keeps): a link's
-  numeric `occupancy` or `order` cannot color an arc by a continuous scale, so the ADC example colors by a text band of
-  occupancy. For the author: hold numeric columns too (MX, 2026-11-20).
 
 - **Track heights and labels beside for a source's items** (`render/ranges-content.ts`): a source-backed layer (a GFF3,
   a table, a tiled genome) is not known whole before it is read, so its track keeps its fixed height and has no label
@@ -175,8 +172,7 @@ base-library change, below), archives. The Genomes milestone is the fifth.
   - a heme per heavy atom (4HHB's hemes are one position each this slice) and the map from 4HHB's units onto the seed's
     columns (a `segments` map through the closest row, as the tRNA's chain; the `alignment` map kind, the gapped row
     itself with no runs written, is not built); pairs on an alignment's columns are drawn on its sections only (a
-    chain's section says `seq.render.pairs.systems`: pairs are not projected); every alignment's columns system is named
-    `columns`, so a ranges source shared by two alignments cannot tell them apart (pending the author);
+    chain's section says `seq.render.pairs.systems`: pairs are not projected);
   - the text layout's `chrome` throws when an alignment's source has not opened (`render/layout/text.ts`, its
     placement's `marks` undefined: a figure over a seed whose runtime is missing).
 - **Rings and blocks** (built: the rings layout with labels, the title and the window; blocks in tracks and on rings):

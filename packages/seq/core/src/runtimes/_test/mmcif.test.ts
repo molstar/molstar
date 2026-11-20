@@ -278,11 +278,16 @@ describe('the mmCIF runtime', () => {
     expect(assemblyOperators('(1-60)(61-88)', 5).operators.length).toBe(5);
   });
 
-  it('a crafted operator expression is bounded as it is expanded, never made whole, and said', async () => {
-    const crafted = Array.from({ length: 20 }, () => '1-999999').join(',');
+  const crafted = Array.from({ length: 20 }, () => '1-999999').join(',');
+
+  it('a crafted operator expression is bounded as it is expanded, never made whole', () => {
     expect(crafted.length).toBe(179);
     const { groups, bounded } = operatorGroups(crafted, 10_001);
     expect([groups.flat().length, bounded]).toEqual([10_001, true]);
+  });
+
+  // the open makes its 10,000 units (a quarter of a second): medium
+  it('a crafted operator expression is bounded as the file opens, and said', { tags: ['medium'] }, async () => {
     const s = await open({ assembly: '1' }, Small.replace("1 '(1-2)' A,B", `1 '${crafted}' A,B`));
     expect(s.issues?.map((i) => i.code)).toContain('seq.io.mmcif.operators');
     expect(s.issues?.map((i) => i.code)).toContain('seq.io.structure.bounds');
@@ -380,49 +385,56 @@ describe('the mmCIF runtime', () => {
     expect(asked).toEqual(['small.cif', 'gone.cif']);
   });
 
-  it('a fuzz: seeded malformed files (categories dropped, columns short, rows repeated, huge numbers) never throw past a coded refusal, and give valid nodes', async () => {
-    const rng = new PCG(5);
-    const pick = (n: number) => rng.int() % n;
-    const lines = Small.split('\n');
-    for (let run = 0; run < 60; run++) {
-      const out = [...lines];
-      for (let k = 0, n = 1 + pick(6); k < n; k++) {
-        const i = 1 + pick(out.length - 1);
-        const what = pick(5);
-        if (what === 0)
-          out.splice(i, 1); // a line gone: a column short, a category's header lost
-        else if (what === 1)
-          out.splice(i, 0, out[i]); // a row or a field name repeated
-        else if (what === 2)
-          out[i] = out[i].replace(/\b\d+\b/g, '2000000000'); // huge numbers
-        else if (what === 3)
-          out[i] = out[i].replace(/\S+$/, '?'); // a value unknown
-        else
-          out.splice(
-            i,
-            0,
-            'loop_',
-            '_pdbx_struct_assembly_gen.assembly_id',
-            '_pdbx_struct_assembly_gen.oper_expression',
-            '_pdbx_struct_assembly_gen.asym_id_list',
-            "1 '(1-2000000000)(X)' A,B,Q",
-          );
-      }
-      const text = out.join('\n');
-      for (const options of [{}, { assembly: '1', water: true }] as MmcifOptions[]) {
-        try {
-          const s = await open(options, text);
-          expectValid(s.coverage.nodes!);
-          for (const i of s.issues ?? []) expect(i.code).toMatch(/^seq\.(io|source)\./);
-        } catch (e) {
-          if (!(e instanceof SourceOpenError)) throw new Error(`run ${run}: ${String(e)}`);
-          for (const i of e.issues) expect(i.code).toMatch(/^seq\.(io|source)\./);
-          // a refusal is the reading's (the parser's, the bound's), never a crash of the converter caught
-          expect(e.issues[0].message, `run ${run}`).not.toMatch(/Cannot read|is not a function|is not iterable/);
+  // a short fuzz quick, the full one medium
+  for (const [runs, tags] of [
+    [12, []],
+    [60, ['medium']],
+  ] as [number, string[]][])
+    it(`a fuzz of ${runs}: seeded malformed files (categories dropped, columns short, rows repeated, huge numbers) never throw past a coded refusal, and give valid nodes`, {
+      tags,
+    }, async () => {
+      const rng = new PCG(5);
+      const pick = (n: number) => rng.int() % n;
+      const lines = Small.split('\n');
+      for (let run = 0; run < runs; run++) {
+        const out = [...lines];
+        for (let k = 0, n = 1 + pick(6); k < n; k++) {
+          const i = 1 + pick(out.length - 1);
+          const what = pick(5);
+          if (what === 0)
+            out.splice(i, 1); // a line gone: a column short, a category's header lost
+          else if (what === 1)
+            out.splice(i, 0, out[i]); // a row or a field name repeated
+          else if (what === 2)
+            out[i] = out[i].replace(/\b\d+\b/g, '2000000000'); // huge numbers
+          else if (what === 3)
+            out[i] = out[i].replace(/\S+$/, '?'); // a value unknown
+          else
+            out.splice(
+              i,
+              0,
+              'loop_',
+              '_pdbx_struct_assembly_gen.assembly_id',
+              '_pdbx_struct_assembly_gen.oper_expression',
+              '_pdbx_struct_assembly_gen.asym_id_list',
+              "1 '(1-2000000000)(X)' A,B,Q",
+            );
+        }
+        const text = out.join('\n');
+        for (const options of [{}, { assembly: '1', water: true }] as MmcifOptions[]) {
+          try {
+            const s = await open(options, text);
+            expectValid(s.coverage.nodes!);
+            for (const i of s.issues ?? []) expect(i.code).toMatch(/^seq\.(io|source)\./);
+          } catch (e) {
+            if (!(e instanceof SourceOpenError)) throw new Error(`run ${run}: ${String(e)}`);
+            for (const i of e.issues) expect(i.code).toMatch(/^seq\.(io|source)\./);
+            // a refusal is the reading's (the parser's, the bound's), never a crash of the converter caught
+            expect(e.issues[0].message, `run ${run}`).not.toMatch(/Cannot read|is not a function|is not iterable/);
+          }
         }
       }
-    }
-  });
+    });
 
   it('an aborted open rejects with an AbortError, never an issue', async () => {
     const c = new AbortController();

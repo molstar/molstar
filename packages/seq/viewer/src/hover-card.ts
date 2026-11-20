@@ -13,14 +13,39 @@
 export interface HoverCardRow {
   readonly label: string;
   readonly value: string;
+  /** The row names an item at the place (a feature under it, a group's member): what `hover.cardItems` counts. */
+  readonly item?: boolean;
 }
 
 /** What the card says: its title, its rows, and the sentence the live region says of the same place. */
 export interface HoverCard {
   readonly title: string;
+  /** Its rows: past `hover.cardItems` item rows, the first of them and a row `+k more` (`more` holds the rest). */
   readonly rows: readonly HoverCardRow[];
-  /** The announcer's words for the place: the card and the live region read the same. */
+  /** The announcer's words for the place: the card and the live region read the same (every item). */
   readonly text: string;
+  /** The item rows the card leaves to its `+k more` row: a host's card may list them. */
+  readonly more?: readonly HoverCardRow[];
+}
+
+/**
+ * The card a port draws: at most `maxItems` item rows, the rest counted in a row `+k more` and kept in `more`; the card
+ * itself when it has no more.
+ */
+export function cutItems(card: HoverCard, maxItems: number): HoverCard {
+  let items = 0;
+  for (const r of card.rows) if (r.item) items++;
+  if (items <= maxItems) return card;
+  const rows: HoverCardRow[] = [];
+  const more: HoverCardRow[] = [];
+  let n = 0;
+  for (const r of card.rows) {
+    if (!r.item) rows.push(r);
+    else if (n++ < maxItems) rows.push(r);
+    else more.push(r);
+  }
+  rows.push({ label: `+${more.length} more`, value: '' });
+  return { ...card, rows, more };
 }
 
 /** A box in the canvas's CSS px. */

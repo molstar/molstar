@@ -5,8 +5,8 @@
  */
 
 // The T-DM1 construct's story (generated), headless on a fake clock, composed as the story composes it (a viewer with
-// `links.hover` and its SVG export): the occupancies summing to the DAR, every conjugation link an arc colored by its band of
-// occupancy (a more occupied site a different color than a less occupied one), the payload lighting every site.
+// `links.hover` and its SVG export): the occupancies summing to the DAR, every conjugation link an arc colored by its
+// occupancy (a number of the links' rows, on a continuous scale), the payload lighting every site.
 
 import { type PairsLay, recordDrawLists } from '@molstar/seqx-core/render';
 import { AntibodyViews } from '@molstar/seqx-examples';
@@ -33,7 +33,7 @@ const open = async () => {
 };
 
 describe('T-DM1, headless', () => {
-  it('the occupancies sum to the DAR; every link an arc, colored by its band of occupancy; the payload’s ids placeholders', async () => {
+  it('the occupancies sum to the DAR; every link an arc, colored by its occupancy; the payload’s ids placeholders', async () => {
     const sites = conjugationSites();
     expect(sites.reduce((n, s) => n + s.occupancy, 0)).toBeCloseTo(Dar, 9);
     expect(sites.every((s) => s.occupancy > 0 && s.occupancy <= 1)).toBe(true);
@@ -42,14 +42,14 @@ describe('T-DM1, headless', () => {
     expect(v.layoutIssues.value).toEqual([]);
     const lay = v.frame!.layout.sections[0].sectionLays.find((l) => l.type.name === 'pairs')!.lay as PairsLay;
     expect(lay.n).toBe(sites.length);
-    // the most and the least occupied sites drawn in different colors
+    // colored by the occupancy itself: as many colors as occupancies (no bands)
     const strokes = new Set(
       recordDrawLists(v.frame!.lists, ['data'])
         .split('\n')
         .filter((l) => l.startsWith('path'))
         .map((l) => /#[0-9a-f]{8}/.exec(l)?.[0]),
     );
-    expect(strokes.size).toBeGreaterThan(1);
+    expect(strokes.size).toBe(new Set(sites.map((s) => s.occupancy)).size);
   });
 
   it('its export has no issue', { tags: ['medium'] }, async () => {

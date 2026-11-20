@@ -305,79 +305,85 @@ describe('the rows layer', () => {
     expect(hitView(f.layout, x0 + 2, (y0 + y1) / 2)).toMatchObject({ target: 'tree-node', element: { key: 'hb' } });
   });
 
-  describe('the header below `rows.labelMinPx`: the label column empty, the tree down to what resolves', () => {
-    const Rows = 10_000;
-    // the 10,000 rows and their tree settled once for the file's two frames
-    let settled: ReturnType<typeof settle> | undefined;
-    const scaled = () => (settled ??= settle(rowsSpec(Rows, true, { tree_width: 120 }), [Synthetic]));
-    const at = (rowScale: number) =>
-      ({
-        size: { width: 900, height: 700 },
-        dpr: 2,
-        settled: true,
-        viewports: { [Section]: { start: 0, end: Columns, bands: { [Track]: { bandTop: 0, rowScale } } } },
-      }) as never;
+  // 2,000 rows quick, the 10,000 medium (their settle a third of a second)
+  for (const [Rows, tags] of [
+    [2_000, []],
+    [10_000, ['medium']],
+  ] as [number, string[]][])
+    describe(`the header below \`rows.labelMinPx\` on ${Rows} rows: the label column empty, the tree down to what resolves`, {
+      tags,
+    }, () => {
+      // the rows and their tree settled once for the describe's frames
+      let settled: ReturnType<typeof settle> | undefined;
+      const scaled = () => (settled ??= settle(rowsSpec(Rows, true, { tree_width: 120 }), [Synthetic]));
+      const at = (rowScale: number) =>
+        ({
+          size: { width: 900, height: 700 },
+          dpr: 2,
+          settled: true,
+          viewports: { [Section]: { start: 0, end: Columns, bands: { [Track]: { bandTop: 0, rowScale } } } },
+        }) as never;
 
-    /** The header's draw items (the labels pass, clipped to the label column): kind and x. */
-    const header = (f: { lists: Parameters<typeof recordDrawLists>[0] }, lay: RowsLay) =>
-      recordDrawLists(f.lists, ['labels'])
-        .split('\n')
-        .map((l) => l.split(' '))
-        // the track's own label (empty here) aside
-        .filter(([kind, x]) => (kind === 'rect' || kind === 'text' || kind === 'path') && x !== '""')
-        .filter(([, x]) => Number(x) < lay.box.x);
+      /** The header's draw items (the labels pass, clipped to the label column): kind and x. */
+      const header = (f: { lists: Parameters<typeof recordDrawLists>[0] }, lay: RowsLay) =>
+        recordDrawLists(f.lists, ['labels'])
+          .split('\n')
+          .map((l) => l.split(' '))
+          // the track's own label (empty here) aside
+          .filter(([kind, x]) => (kind === 'rect' || kind === 'text' || kind === 'path') && x !== '""')
+          .filter(([, x]) => Number(x) < lay.box.x);
 
-    it('at the band’s whole zoom on 10,000 rows: nothing in the label column, the tree’s few resolved clades only', async () => {
-      const s = await scaled();
-      const f = await s.frame(at(600 / Rows));
-      const lay = rowsLay(f as never);
-      expect(lay.rowScale).toBeLessThan(1);
-      const items = header(f as never, lay);
-      // the label column (past the tree): no label, number, chip or icon
-      expect(items.filter(([, x]) => Number(x) >= lay.treeX1)).toEqual([]);
-      expect(items.filter(([kind]) => kind === 'text')).toEqual([]);
-      // the tree still drawn, down to the clades whose rows take 4 px: two segments a clade at most, a clade at least
-      // 4 px of the band's 600 for each level, never one a row
-      expect(lay.tree.length).toBeGreaterThan(0);
-      expect(lay.tree.length / 4).toBeLessThan(2 * 2 * (600 / 4));
-      expect(items.length).toBe(lay.tree.length / 4);
-    });
+      it('at the band’s whole zoom: nothing in the label column, the tree’s few resolved clades only', async () => {
+        const s = await scaled();
+        const f = await s.frame(at(600 / Rows));
+        const lay = rowsLay(f as never);
+        expect(lay.rowScale).toBeLessThan(1);
+        const items = header(f as never, lay);
+        // the label column (past the tree): no label, number, chip or icon
+        expect(items.filter(([, x]) => Number(x) >= lay.treeX1)).toEqual([]);
+        expect(items.filter(([kind]) => kind === 'text')).toEqual([]);
+        // the tree still drawn, down to the clades whose rows take 4 px: two segments a clade at most, a clade at least
+        // 4 px of the band's 600 for each level, never one a row
+        expect(lay.tree.length).toBeGreaterThan(0);
+        expect(lay.tree.length / 4).toBeLessThan(2 * 2 * (600 / 4));
+        expect(items.length).toBe(lay.tree.length / 4);
+      });
 
-    it('zoomed out, a node’s vertical spans its drawn branches only: each end meets a branch (none with no child drawn)', async () => {
-      const s = await scaled();
-      const f = await s.frame(at(600 / Rows));
-      const lay = rowsLay(f as never);
-      const t = lay.tree;
-      const top = lay.box.y + lay.pinnedHeight;
-      const bottom = lay.box.y + lay.box.height;
-      // the branches' ys by the x they touch (either end)
-      const meets = new Map<number, Set<number>>();
-      const touching = (x: number) => meets.get(x) ?? meets.set(x, new Set()).get(x)!;
-      for (let k = 0; k + 3 < t.length; k += 4)
-        if (t[k + 1] === t[k + 3]) {
-          touching(t[k]).add(t[k + 1]);
-          touching(t[k + 2]).add(t[k + 1]);
+      it('zoomed out, a node’s vertical spans its drawn branches only: each end meets a branch (none with no child drawn)', async () => {
+        const s = await scaled();
+        const f = await s.frame(at(600 / Rows));
+        const lay = rowsLay(f as never);
+        const t = lay.tree;
+        const top = lay.box.y + lay.pinnedHeight;
+        const bottom = lay.box.y + lay.box.height;
+        // the branches' ys by the x they touch (either end)
+        const meets = new Map<number, Set<number>>();
+        const touching = (x: number) => meets.get(x) ?? meets.set(x, new Set()).get(x)!;
+        for (let k = 0; k + 3 < t.length; k += 4)
+          if (t[k + 1] === t[k + 3]) {
+            touching(t[k]).add(t[k + 1]);
+            touching(t[k + 2]).add(t[k + 1]);
+          }
+        let verticals = 0;
+        for (let k = 0; k + 3 < t.length; k += 4) {
+          if (t[k] !== t[k + 2] || t[k + 1] === t[k + 3]) continue;
+          verticals++;
+          const ys = meets.get(t[k]) ?? new Set();
+          for (const y of [t[k + 1], t[k + 3]]) expect(ys.has(y) || y <= top || y >= bottom, `${t[k]} ${y}`).toBe(true);
         }
-      let verticals = 0;
-      for (let k = 0; k + 3 < t.length; k += 4) {
-        if (t[k] !== t[k + 2] || t[k + 1] === t[k + 3]) continue;
-        verticals++;
-        const ys = meets.get(t[k]) ?? new Set();
-        for (const y of [t[k + 1], t[k + 3]]) expect(ys.has(y) || y <= top || y >= bottom, `${t[k]} ${y}`).toBe(true);
-      }
-      expect(verticals).toBeGreaterThan(10);
-    });
+        expect(verticals).toBeGreaterThan(10);
+      });
 
-    it('at 8 px a row: the labels, the tree to every leaf', async () => {
-      const s = await scaled();
-      const f = await s.frame(at(8));
-      const lay = rowsLay(f as never);
-      const shown = Math.ceil(600 / 8);
-      expect(lay.labelText.length).toBeGreaterThanOrEqual(shown - 1);
-      expect(lay.labelText[0]).toMatch(/^R\d+$/);
-      // every leaf in view has its branch
-      const leaves = lay.treeNode.filter((n) => n < 0).length;
-      expect(leaves).toBeGreaterThanOrEqual(shown - 1);
+      it('at 8 px a row: the labels, the tree to every leaf', async () => {
+        const s = await scaled();
+        const f = await s.frame(at(8));
+        const lay = rowsLay(f as never);
+        const shown = Math.ceil(600 / 8);
+        expect(lay.labelText.length).toBeGreaterThanOrEqual(shown - 1);
+        expect(lay.labelText[0]).toMatch(/^R\d+$/);
+        // every leaf in view has its branch
+        const leaves = lay.treeNode.filter((n) => n < 0).length;
+        expect(leaves).toBeGreaterThanOrEqual(shown - 1);
+      });
     });
-  });
 });

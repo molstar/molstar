@@ -630,8 +630,13 @@ param (`port`, a `HoverCardPortFactory` given the canvas's element, none headles
 - **Ownership** (`HoverCardPort.disposeWithViewer`, as the history's and the animation's): false, the host owns it (one
   adapter shared by several viewers) and the viewer never disposes it; else the viewer does when it lets it go.
 
-- **The data** (`HoverCard`): a `title`, `rows` of `{ label, value }` and `text`, the announcer's sentence for the place
-  (`describe.ts`, Announcements): one description for the live region and the card.
+- **The data** (`HoverCard`): a `title`, `rows` of `{ label, value }` (`item` on a row naming an item at the place: a
+  feature under it, a group's member) and `text`, the announcer's sentence for the place (`describe.ts`, Announcements):
+  one description for the live region and the card. The title is said once: no row repeats it (a row's card is titled by
+  its label). A card of more than `hover.cardItems` (8) item rows goes to the port cut (`cutItems`): the first ones,
+  then a row `+k more`, the rest in `more`; the behavior's `shown` keeps the whole card and the live region says every
+  item. Why: a ring's position under 20 features filled the page; a host that wants the list whole draws its own card
+  from `more` (the port).
 - **The place** (`HoverCardPlace`): the `anchor` (the hovered cell or item, the cursor's cell: never covered), the
   `pointer`, the `view` (the canvas) and the side and position `placeCard` gives a card of `CardEstimate`'s size; an
   adapter places its own card by its measured size with `placeCard(anchor, pointer, view, size)`: beside the pointer,
@@ -641,7 +646,9 @@ param (`port`, a `HoverCardPortFactory` given the canvas's element, none headles
   `disposeWithViewer`.
 - **The default adapter** (`hoverCardOverlay()`): `@molstar/ui`'s primitives in the canvas's element (`msui-surface`,
   its tokens and squircle, a header, a form of rows; the rows' elements kept across shows), absolutely placed,
-  `aria-hidden` (the live region says the same), never in the draw lists or an export.
+  `aria-hidden` (the live region says the same), never in the draw lists or an export. Compact: the title a text line,
+  each row a text line (not a control row's height), the value next to its label (the label column as wide as its
+  longest label, no control inset). Why: a card is read at a glance, beside the pointer.
 
 ### Header menu and Header parts
 
@@ -758,9 +765,13 @@ binding table; per move one hit record and one modifiers record are reused.
   `MaxRowScale`, never past the rows there are), each by the rows the pointer travelled (a floored window reaches every
   row); a drag farther than the rows in view, or a zoom, is one step (`navigator.dragStep`); Esc puts the band back. A
   press that never moved acts at its click: outside the window the rows centre there (a jump), on the window nothing; a
-  double-click nothing more. `]` and `[` (the rows behavior's `rows.zoom-in`, `rows.zoom-out`) zoom the rows; PageDown
-  and PageUp (`cursor.page-down`, `cursor.page-up`, with no cursor shown on rows: as `rows.page-down`, `rows.page-up`)
-  move the window by the rows it shows less one, the page's own key at an end.
+  double-click on the window resets the rows' zoom (`resetZoom`: `rowScale` unset, the band's top row kept; a jump),
+  outside it nothing more. A vertical overview's rows grips (its window's top and bottom bars) are this gesture over its
+  window, never a scroll; a double-click on its window resets zoomed rows the same, else it is the positions' (one
+  gesture, one step). Why: the rows rail and the overview are one window over the rows. `]` and `[` (the rows behavior's
+  `rows.zoom-in`, `rows.zoom-out`) zoom the rows; PageDown and PageUp (`cursor.page-down`, `cursor.page-up`, with no
+  cursor shown on rows: as `rows.page-down`, `rows.page-up`) move the window by the rows it shows less one, the page's
+  own key at an end.
 
 - **Round a ring** (a section whose window `wraps`), the placement read by angle: a zoom keeps the unit under the
   pointer's angle (the turn nearest the window, `RingsNav.zoom`); a pan drag (Space+drag) moves the window by the units
@@ -1033,7 +1044,9 @@ rows' commands) reads the last frame's rows layers through the behavior context'
   closed is the reader's (`none`: nothing in the models changes). Non-modal: opened, it takes the focus (its Close
   button); closed, it gives the focus back to what opened it (the canvas, a toolbar's button), else to the canvas; the
   focus may leave it (no trap). Its events are its own: no pointer event or key in it reaches the canvas (an arrow moves
-  no cursor, Enter on Close runs no command), and Esc on it closes it wherever the focus came from.
+  no cursor, Enter on Close runs no command), and Esc on it closes it wherever the focus came from. Its DOM is a lazy
+  chunk (`keys-panel-dom.ts`) asked for at the first open (`loaded`, which `settle` waits for). Why: a reader opens it
+  rarely, and the default viewer's size has no room for what it does not draw.
 - `linkedPairs` (`LinkedPairsProvider`, in the default spec, removed to opt out; `linked-pairs.ts`): on a hovered or
   selected range element (a feature, a CDR), the pairs with an end in its extent, on every pairs layer of the view
   (`layers`: those named by address, all when absent), written to its own highlight channel (`linked-pairs`, element
@@ -1061,16 +1074,19 @@ rows' commands) reads the last frame's rows layers through the behavior context'
   `loaded` and `preview`.
   - **Entries** (`header-entries.ts`): `HeaderEntry` (`name` namespaced `<id>:<name>`, `on` `track`, `section` or
     `element`, `kind` `action` or `state`, `icon` `@molstar/ui`'s, `label`, `when`, `command`, `args`, `text`, `order`,
-    `slot`, `items` a submenu: pending at the gate, the author's: a submenu's choices are the menu's and the parts'
-    only, not the palette's nor an agent's), listed in the registry as `{ kind: 'header-action', entry }`
-    (`SeqViewerRegistryEntry`) or registered at run time (`register(...entries)`, returning its undo). Registration is
-    atomic: every problem in one error before anything changes (a name twice, no namespace, a command the viewer lacks,
-    `seq.viewer.header.command`); the registry's are checked once every behavior is made (`BehaviorHandle.composed`).
-    The label and icon default to the command's. Why entries: one list for a slot, a menu item, a DOM part, a key and an
-    agent; the registry's rules (atomic, undoable, namespaced) for free.
+    `slot`, `items` a submenu of other commands or args: a layer's checkboxes, a chip's list), listed in the registry as
+    `{ kind: 'header-action', entry }` (`SeqViewerRegistryEntry`) or registered at run time (`register(...entries)`,
+    returning its undo). Registration is atomic: every problem in one error before anything changes (a name twice, no
+    namespace, a command the viewer lacks, `seq.viewer.header.command`); the registry's are checked once every behavior
+    is made (`BehaviorHandle.composed`). The label and icon default to the command's. **A command whose one param is a
+    select is a submenu** of its options (an entry with no `items`): each item the entry's args with the choice under
+    the param's name, the param's default checked, previewed while hovered through the command's `preview`; a command
+    reads the choice from its args (a palette's) or its context (`viewer.execute`'s). Why: the command owns its choices,
+    so the menu, a palette and an agent offer the same. Why entries: one list for a slot, a menu item, a DOM part, a key
+    and an agent; the registry's rules (atomic, undoable, namespaced) for free.
   - **Built-ins** (`BuiltInHeaderEntries`, in the default spec's registry; a host leaves one out to remove it):
     `seq:hide` (`eye-off`, `track.hide`), `seq:color` (`palette`, the first shown layer with more than one fitting
-    scheme: its schemes a submenu of `layer.channel`, previewed while focused or hovered), `seq:layers` (more than one
+    scheme: `layer.channel`'s choices a submenu, previewed while focused or hovered), `seq:layers` (more than one
     addressable layer: a checked item a layer, `layer.hide` or `layer.show`), `seq:move-up`, `seq:move-down`
     (`track.move`, a sibling there), the states `seq:filtered` (its count the track's, every thinned layer's rows;
     `layer.filter` clears every thinned layer's filter, one patch), `seq:hidden-layers` (`layer.show` of every hidden
@@ -1260,14 +1276,16 @@ legend, its entries with accessible names (`<title>: <value>`), the entries past
 settle: a legend that changes during a pan reads as noise, and its cost stays off the frame.
 
 - **The legend behavior's commands** (`behaviors/theming.ts`, patches unless said): `layer.channel` (a channel's value
-  or form set or unset, on one layer or several in one patch), `scale.set` (a scale's params; `null` reopens a domain's
-  end), `theme.value-color` (one value's color in a field form's palette, the listed values keeping theirs; refused on a
-  scheme, rules or any other form: never replaced), `layer.filter` (a value's items hidden or shown again: one patch of
-  the layer's `data`, a trailing `(not …)` of the values hidden; no value: cleared, every layer of `addresses` in one
-  patch, as a click on the track's "n filtered" chip). The user's filter is only that trailing `(not …)` (`dataFilter`):
-  what leads it, the annotation and a leading run of item forms (`<annotation>/(item :category Domain)`, a layer a
-  feature type), is the layer's base, kept when the filter is set, toggled or cleared, its rejected rows not counted as
-  filtered (core's Render, Filters: `splitDataForms` is the one parser). A legend entry's items are the base's forms and
+  or form set or unset, on one layer or several in one patch; on one layer's color its choices are a select param,
+  `scheme`, the layer's fitting schemes, its default the layer's scheme: read when no `value` is given; its `preview`
+  the gesture's preview), `scale.set` (a scale's params; `null` reopens a domain's end), `theme.value-color` (one
+  value's color in a field form's palette, the listed values keeping theirs; refused on a scheme, rules or any other
+  form: never replaced), `layer.filter` (a value's items hidden or shown again: one patch of the layer's `data`, a
+  trailing `(not …)` of the values hidden; no value: cleared, every layer of `addresses` in one patch, as a click on the
+  track's "n filtered" chip). The user's filter is only that trailing `(not …)` (`dataFilter`): what leads it, the
+  annotation and a leading run of item forms (`<annotation>/(item :category Domain)`, a layer a feature type), is the
+  layer's base, kept when the filter is set, toggled or cleared, its rejected rows not counted as filtered (core's
+  Render, Filters: `splitDataForms` is the one parser). A legend entry's items are the base's forms and
   `(item :<field> v)` in one query (`itemsAddress`: one item form holding every param, or an `and` when the base has
   `and` or `or`), `legend.select` (session: the items whose field has the value; Cmd/Ctrl toggles), `legend.hover`
   (session: a highlight named `legend`), `theme.cvd-safe` (session). `fittingSchemes(layer)` is what a menu offers (the
@@ -1297,6 +1315,9 @@ over the same translation.
 - **The side** (`StructureSide`, plain data, the host's): `highlight(target | null)`, `select(target | null)`,
   `focus(target, { durationMs })`, and optionally `onHover`, `onSelect`, `onFocus` (each returning its unsubscribe) and
   a `signal`. A target is a Location on units (structured-cloneable).
+- **Pending** (EC-169): a hover or a selection whose `toUnits` says `pending` and reaches nothing yet is held, never
+  sent as nothing (the last sent stays); the store's nodes arriving (`nodeVersion`) sends it again, then as it resolves.
+  Why: a host's per-chain maps arrive after the view, and a cleared highlight there would be a lie.
 - **Out**: on each hover (`hover.version`), the hover's Location through `toUnits` under the hover's limits, sent when
   its image changes (an unchanged image sends nothing; an empty one, an unobserved residue, is `null`, EC-118); the
   selection's `shown`, one message a frame (a frame callback: a drag moves it every pointer event), under the
@@ -1351,6 +1372,7 @@ settings form.
 | `store.tileBins`                            | 1,024                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | bins per tile (no reason recorded)                                                                                                                                                                                                                                           |
 | `hover.projectLinked`                       | true                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | the hover shows on every linked section; false: only sections of the hovered system                                                                                                                                                                                          |
 | `hover.card`                                | true                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | the hover card (the `hoverCard` behavior) shows what the pointer rests on; false: none (the live region still says it)                                                                                                                                                       |
+| `hover.cardItems`                           | 8                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | the items the card lists at most (a place's features, a group's members): past it the first ones and a row `+k more`; the data keeps every one (`HoverCard.more`), the live region says them all                                                                             |
 | `hover.closeCodons`                         | true                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | a nucleotide lights its whole codon and its residue (EC-30, EC-144); false: the position alone                                                                                                                                                                               |
 | `selection.holdNodes`                       | true                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | a selection's dynamic nodes stay while selected, so a selected transcript survives a scroll; false: only while shown                                                                                                                                                         |
 | `selection.extendScope`                     | `range`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | an extend changes the range the anchor is in, the others kept; `selection`: the whole selection becomes that range                                                                                                                                                           |

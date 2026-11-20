@@ -41,6 +41,11 @@ export interface ViewerConfig {
      * live region still says it).
      */
     readonly card: boolean;
+    /**
+     * The items the hover card lists at most (the features at a place, a group's members): past it the first ones and a
+     * row `+k more` (8); the card's data keeps the rest (`HoverCard.more`) and the live region says every one.
+     */
+    readonly cardItems: number;
   };
   readonly selection: {
     /**
@@ -269,7 +274,7 @@ export const DefaultViewerConfig: ViewerConfig = {
   density: { letterMinPx: 7, dotMinPx: 2 },
   bindings: { preset: 'default' },
   store: { cacheBytes: 64 * 1024 * 1024, inFlight: 6, tileBins: 1024 },
-  hover: { projectLinked: true, closeCodons: true, card: true },
+  hover: { projectLinked: true, closeCodons: true, card: true, cardItems: 8 },
   selection: { holdNodes: true, extendScope: 'range', acrossBreaks: 'shown' },
   highlight: { color: 'token:cat-5', colors: { 'link-hover': 'token:hover' } },
   cursor: { keys: { prev: 'ArrowLeft', next: 'ArrowRight', up: 'ArrowUp', down: 'ArrowDown' } },

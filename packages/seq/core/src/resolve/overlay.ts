@@ -103,7 +103,10 @@ export interface Overlay {
    * `via`, the named maps' rivals are left out (maps-via.ts).
    */
   path(from: string, to: string, via?: readonly string[]): PathResult;
-  /** The steps from a system its paths search: the spec's maps and the overlay's (units' steps, item maps). */
+  /**
+   * The steps from a system its paths search: the spec's maps and the overlay's (units' steps, item maps, the spec's
+   * maps onto a unit a source describes once it is held: `StaticModel.describedMaps`).
+   */
   edgesFrom?(system: string): readonly Edge[];
   /**
    * The source nodes to open: those at a depth some template on their root needs (`needs`: root → depth), within
@@ -443,7 +446,10 @@ class DynamicOverlay implements Overlay {
     return t === undefined ? undefined : (this.model.systems.get(t) ?? this.system(t));
   }
 
-  /** The overlay's steps: every item map both ways, made when a path is first asked for. */
+  /**
+   * The overlay's steps: every item map both ways, and each spec map with an end a source describes whose ends are
+   * held (pending until then: `pendingMaps`), made when a path is first asked for.
+   */
   private dynamicEdges(): Map<string, Edge[]> {
     if (this.edges) return this.edges;
     const edges = new Map<string, Edge[]>();
@@ -452,19 +458,27 @@ class DynamicOverlay implements Overlay {
       if (!list) edges.set(e.from, (list = []));
       list.push(e);
     };
+    const both = (m: MapEntry) => {
+      add({ map: m.address, from: m.from, to: m.to, backward: false, step: m.step, linear: m.linear });
+      add({
+        map: m.address,
+        from: m.to,
+        to: m.from,
+        backward: true,
+        step: -m.step as Step,
+        linear: m.linear.inverse(),
+      });
+    };
     for (const e of this.molecular.edges) add(e);
-    for (const n of this.coding.values())
-      for (const m of this.itemsOf(n)?.maps ?? []) {
-        add({ map: m.address, from: m.from, to: m.to, backward: false, step: m.step, linear: m.linear });
-        add({
-          map: m.address,
-          from: m.to,
-          to: m.from,
-          backward: true,
-          step: -m.step as Step,
-          linear: m.linear.inverse(),
-        });
-      }
+    for (const n of this.coding.values()) for (const m of this.itemsOf(n)?.maps ?? []) both(m);
+    for (const d of this.model.describedMaps?.values() ?? []) {
+      const from = this.model.systems.get(d.from) ?? this.system(d.from);
+      const to = this.model.systems.get(d.to) ?? this.system(d.to);
+      if (!from || !to) continue;
+      const r = resolveMapNode(d.address, d.node, from, to, this.config, this.molecular.units.get(d.to));
+      for (const i of r.issues) this.report(i.code as keyof typeof ResolveIssues.codes, i.message, d.address);
+      both(r.map);
+    }
     this.edges = edges;
     return edges;
   }

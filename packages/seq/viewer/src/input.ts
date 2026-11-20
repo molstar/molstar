@@ -855,8 +855,11 @@ export class ViewerInput {
     if (section === undefined) return false;
     const mods = this._modifiers(e);
     const hit = this._hitAt(x, y);
-    // on a rows rail: nothing (its first click centred, or not)
-    if (hit?.target === 'window' && hit.navigator === RowsRail) return true;
+    // on a rows rail: its window resets the rows' zoom; outside it nothing (its first click centred, or not)
+    if (hit?.target === 'window' && hit.navigator === RowsRail) {
+      if (hit.part !== 'outside' && hit.layer !== undefined) this.rowsRailGesture?.resetZoom(hit.layer);
+      return true;
+    }
     // on a ruler rail: the navigator's double-click (fit, or fitted a window `navigator.zoomPx` px wide there)
     const rail = hit?.target === 'window' && hit.navigator === 'rail' ? this._railOf(section) : undefined;
     const nav = this.navigatorBehavior;

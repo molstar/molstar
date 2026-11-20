@@ -5,14 +5,14 @@
  */
 
 // The structure translation's representatives (_spec/README.md "Structures", Performance): one 2OCJ hover carried
-// onto its four units a frame and a selection on every one of 32,768 copies (quick, bounded in the heavy lane: linear
-// in the parts and the units reached, one search a part and molecule), and a hover on an assembly of `maxUnits` units
+// onto its four units a frame and a selection on every one of 32,768 copies (bounded in the heavy lane: linear in
+// the parts and the units reached, one search a part and molecule; medium unbounded, a quick representative on 4,096), and a hover on an assembly of `maxUnits` units
 // gated to whole units (EC-167, heavy: the scale).
 
 import { positionCount, rangesLocation } from '@molstar/seqx-core/query';
 import { DefaultResolveConfig, resolveSpec } from '@molstar/seqx-core/resolve';
-import { itWithin } from '@molstar/test-harness/timing';
-import { describe, expect } from 'vitest';
+import { itWithin, type Within } from '@molstar/test-harness/timing';
+import { describe, expect, it } from 'vitest';
 import { DefaultSyncLimits, toUnits } from '../units.js';
 import { EntStart, Observed, p53Spec, Up } from './p53.js';
 
@@ -34,22 +34,32 @@ describe('a hover a frame', () => {
   });
 });
 
+/** A selection on `copies` copies: past the gate, whole units; ungated, a run on each (EC-167). */
+function selectionOnCopies(copies: number, within: Within) {
+  // made in the body: a try again searches again
+  const model = resolveSpec(p53Spec({ copies, auth: false, zinc: false }));
+  const sel = rangesLocation(Up, [EntStart + 10, EntStart + 60]);
+  // measured: about 70 ms gated (the first: its searches) and 50 ms exact (an M-series laptop); the gate stops counting once over
+  const gated = within(400, () => toUnits(model, sel));
+  expect([gated.gated, gated.target.parts.length]).toEqual(['units', copies]);
+  const exact = within(400, () => toUnits(model, sel, undefined, { limits: null }));
+  expect(positionCount(exact.target)).toBe(copies * 50);
+  expect(positionCount(gated.target)).toBe(copies * (Observed[1] - Observed[0]));
+}
+
 describe('a selection on every copy', () => {
+  // the quick representative: past the gate at a few thousand copies already
+  it('a selection on 4,096 copies: past the gate, whole units; ungated, a run on each (EC-167)', () =>
+    selectionOnCopies(4096, (_, f) => f()));
+});
+
+// the scale: medium unbounded, heavy bounded (a second or more a run)
+describe('a selection on every copy, at scale', { tags: ['medium'] }, () => {
   const copies = 32_768;
 
   itWithin(
     'a selection on 32,768 copies: past the gate, whole units; ungated, a run on each (EC-167)',
-    (within) => {
-      // made in the body: a try again searches again
-      const model = resolveSpec(p53Spec({ copies, auth: false, zinc: false }));
-      const sel = rangesLocation(Up, [EntStart + 10, EntStart + 60]);
-      // measured: about 70 ms gated (the first: its searches) and 50 ms exact (an M-series laptop); the gate stops counting once over
-      const gated = within(400, () => toUnits(model, sel));
-      expect([gated.gated, gated.target.parts.length]).toEqual(['units', copies]);
-      const exact = within(400, () => toUnits(model, sel, undefined, { limits: null }));
-      expect(positionCount(exact.target)).toBe(copies * 50);
-      expect(positionCount(gated.target)).toBe(copies * (Observed[1] - Observed[0]));
-    },
+    (within) => selectionOnCopies(copies, within),
     30_000,
   );
 });

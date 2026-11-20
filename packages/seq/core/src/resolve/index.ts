@@ -52,6 +52,7 @@ export {
   type BoundSourceEntry,
   createResolver,
   DefaultResolveConfig,
+  isSystemInfo,
   type Lengths,
   type MapEntry,
   type NumberingEntry,
@@ -69,6 +70,7 @@ export {
   type SystemEntry,
   sourceLengths,
 } from './model.js';
+export { type DescribedMap, pendingMaps } from './maps-described.js';
 export { structureStatus } from './maps-segments.js';
 export { viaList } from './maps-via.js';
 export type { CompoundEntry, Molecular } from './molecule-query.js';

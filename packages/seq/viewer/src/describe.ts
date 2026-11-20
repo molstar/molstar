@@ -87,8 +87,8 @@ class Parts {
   /** Set by a section that says all there is (an item: its own words): the place's sections then say nothing. */
   whole = false;
 
-  row(label: string, value: string): void {
-    this.rows.push({ label, value });
+  row(label: string, value: string, item = false): void {
+    this.rows.push(item ? { label, value, item } : { label, value });
   }
 }
 
@@ -199,7 +199,7 @@ const GroupSection: CardSection = {
     for (const m of members) {
       const it = m.element ? items.find((d) => d.key === m.element!.key) : undefined;
       if (!it) continue;
-      out.row(it.label, `${system} ${extentText(it)}`);
+      out.row(it.label, `${system} ${extentText(it)}`, true);
       said.push(it.label);
     }
     out.words.push(`${members.length} items: ${said.join(', ')}`);
@@ -265,8 +265,8 @@ const RowSection: CardSection = {
     const i = lay.cursorRow(e);
     const label = i >= 0 ? lay.displayLabel(i) : lay.label(e);
     const shown = i >= 0 ? lay.display.rowAt(i) : e;
+    // the title names the row: no row repeats it
     out.title = label;
-    out.row('Row', label);
     // a lazy row whose tile has not come yet: said pending (its label is its number until it does)
     const pending = !lay.held && shown >= 0 && !lay.lazyLabels.has(shown);
     out.words.push(`row ${label}${pending ? ', pending' : ''}`);
@@ -356,7 +356,7 @@ const PlaceSection: CardSection = {
       out.words.push(`${label} ${value}`);
     }
     const items = w.itemsAt(at.section, position);
-    for (const it of items) out.row(it.label, it.extent);
+    for (const it of items) out.row(it.label, it.extent, true);
     if (items.length) out.words.push(`items: ${items.map((i) => `${i.label}, ${i.extent}`).join('; ')}`);
   },
 };
@@ -532,7 +532,10 @@ class Words {
     return typeof f === 'string' ? f : '';
   }
 
-  /** The items of a section at a position: its tracks' layers' items under the position's x. */
+  /**
+   * The items of a section at a position: its tracks' layers' items under the position's x; an item across a cyclic
+   * origin (its two `runs`) by its runs, never by its drawn x span (the complement of what it covers).
+   */
   itemsAt(section: SectionLayout, position: number, only?: LayerLayout): { label: string; extent: string }[] {
     const axis = section.axis;
     if (!axis) return [];
@@ -540,13 +543,15 @@ class Words {
     const b = axis.x(position + 1);
     if (!Number.isFinite(a) || !Number.isFinite(b)) return [];
     const x = (a + b) / 2;
+    const axisSystem = section.section.axis.system;
     const out: { label: string; extent: string }[] = [];
     for (const t of section.tracks)
       for (const l of t.layers) {
         if (only && l !== only) continue;
         const data = l.layer.data?.system;
+        const own = (it: ItemDescription) => (it.system ?? data ?? section.section.axis.system) === axisSystem;
         for (const it of this.itemsOf(l))
-          if (it.y === undefined && it.x0 <= x && x <= it.x1)
+          if (it.y === undefined && (it.runs ? own(it) && inRuns(it.runs, position) : it.x0 <= x && x <= it.x1))
             out.push({
               label: it.label,
               extent: `${this.systemName(it.system ?? data ?? section.section.axis.system)} ${extentText(it)}`,
@@ -707,4 +712,10 @@ function layerOf(section: SectionLayout, key: string): LayerLayout | undefined {
   for (const ls of section.lays) for (const l of ls) if (l.key === key) return l;
   for (const l of section.sectionLays) if (l.key === key) return l;
   return undefined;
+}
+
+/** Whether a position is in one of `[start, end)` runs (an item's across a cyclic origin). */
+function inRuns(runs: readonly number[], position: number): boolean {
+  for (let k = 0; k + 1 < runs.length; k += 2) if (position >= runs[k] && position < runs[k + 1]) return true;
+  return false;
 }

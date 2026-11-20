@@ -98,11 +98,16 @@ export function linkStructure(viewer: SeqViewer, side: StructureSide, options: L
     const m = viewer.spec.model.value;
     return { model: m, overlay: viewer.store.currentOverlay(m) };
   };
-  const onUnits = (loc: Location, limits: SyncLimits): StructureTarget | null => {
-    if (isEmptyLocation(loc)) return null;
-    const t = toUnits(model(), loc, complexes, { limits, ligand }).target;
-    return isEmptyLocation(t) ? null : t;
+  /** Whether the last hover and selection sent wait for a described map (EC-169): sent again once it resolves. */
+  let waitingHover = false;
+  let waitingSelection = false;
+  /** A Location on units, and whether a described map it could take waits for its description. */
+  const unitsOf = (loc: Location, limits: SyncLimits): { t: StructureTarget | null; pending: boolean } => {
+    if (isEmptyLocation(loc)) return { t: null, pending: false };
+    const r = toUnits(model(), loc, complexes, { limits, ligand });
+    return { t: isEmptyLocation(r.target) ? null : r.target, pending: !!r.pending };
   };
+  const onUnits = (loc: Location, limits: SyncLimits): StructureTarget | null => unitsOf(loc, limits).t;
   const same = (a: StructureTarget | null, b: StructureTarget | null) =>
     a === b || (a !== null && b !== null && locationsEqual(a, b));
   /** The systems the view's sections and blocks show: a unit's atoms form among them where it is shown. */
@@ -139,17 +144,18 @@ export function linkStructure(viewer: SeqViewer, side: StructureSide, options: L
 
   // ---- out: the viewer's hover, selection and jumps ----
 
-  if (out(options.hover))
-    offs.push(
-      viewer.hover.version.listen(() => {
-        // the side's own hover, carried in, is never sent back: it only ends the pointer's sent before it
-        const loc = viewer.hover.owner === owner ? undefined : viewer.hover.location();
-        const t = loc ? onUnits(loc, hoverLimits) : null;
-        if (same(t, sentHover)) return;
-        sentHover = t;
-        side.highlight(t);
-      }),
-    );
+  const sendHover = () => {
+    // the side's own hover, carried in, is never sent back: it only ends the pointer's sent before it
+    const loc = viewer.hover.owner === owner ? undefined : viewer.hover.location();
+    const { t, pending } = loc ? unitsOf(loc, hoverLimits) : { t: null, pending: false };
+    // waiting for a described map: held (the last sent stays), never sent as nothing; sent once it resolves
+    waitingHover = pending;
+    if (pending && t === null) return;
+    if (same(t, sentHover)) return;
+    sentHover = t;
+    side.highlight(t);
+  };
+  if (out(options.hover)) offs.push(viewer.hover.version.listen(sendHover));
 
   const sendSelection = () => {
     selectionDue = undefined;
@@ -157,7 +163,9 @@ export function linkStructure(viewer: SeqViewer, side: StructureSide, options: L
     const shown = viewer.selection.value.value.shown;
     if (fromSide && locationsEqual(shown, fromSide)) return;
     fromSide = undefined;
-    const t = onUnits(shown, selectLimits);
+    const { t, pending } = unitsOf(shown, selectLimits);
+    waitingSelection = pending;
+    if (pending && t === null) return;
     if (same(t, sentSelection)) return;
     sentSelection = t;
     side.select(t);
@@ -179,6 +187,16 @@ export function linkStructure(viewer: SeqViewer, side: StructureSide, options: L
         if ((j.kind === 'back' || j.kind === 'forward') && !followJumps) return;
         const t = onUnits(j.location, selectLimits);
         if (t) side.focus(t, { durationMs: j.durationMs });
+      }),
+    );
+
+  // a description arriving (the store's nodes): what waited for it is sent again
+  if (out(options.hover) || out(options.select))
+    offs.push(
+      viewer.store.store.nodeVersion.listen(() => {
+        if (disposed) return;
+        if (waitingHover) sendHover();
+        if (waitingSelection && selectionDue === undefined) sendSelection();
       }),
     );
 

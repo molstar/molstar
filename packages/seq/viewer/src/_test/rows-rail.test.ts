@@ -162,6 +162,24 @@ describe('the rows rail', () => {
     expect(band(v)?.rowScale).toBeCloseTo(before, 6);
   });
 
+  it('a double-click on its window resets the rows’ zoom (a jump, the top row kept); outside it nothing', async () => {
+    const v = await make(spec(60));
+    v.view.setBand(RowsTrack, { bandTop: 10, rowScale: 4 });
+    v.draw();
+    const r = rowsRail(v)!;
+    const x = r.top + 6;
+    // outside the window: nothing
+    expect(v.input.doubleClick(x, yOf(r, r.end + 10))).toBe(true);
+    expect(band(v)?.rowScale).toBe(4);
+    // on the window: the default zoom, the band's top row kept, one step
+    const steps = v.view.history.value.back;
+    expect(v.input.doubleClick(x, yOf(r, (r.start + r.end) / 2))).toBe(true);
+    expect([band(v)?.rowScale, band(v)?.bandTop]).toEqual([undefined, 10]);
+    expect(v.view.history.value.back).toBe(steps + 1);
+    v.view.back();
+    expect(band(v)?.rowScale).toBe(4);
+  });
+
   it('a double-click on it gives back nothing a click elsewhere cleared', async () => {
     const v = await make(spec(60));
     const r = rowsRail(v)!;

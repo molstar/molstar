@@ -35,7 +35,8 @@ function panner(renderer: Renderer, inputs: readonly FrameInput[]): () => void {
   };
 }
 
-describe('a dot plot’s frame, 2,000 × 2,000', () => {
+// the pan frame's tiles built at four places: medium unbounded, heavy bounded
+describe('a dot plot’s pan frame, 2,000 × 2,000', { tags: ['medium'] }, () => {
   itWithin('a pan frame once its tiles are built', async (within) => {
     const s = await settle(gridSpec({ n: 2000 }));
     const inputs = [0, 1, 2, 3].map((k) => at(200 + 3 * k, 1400 + 3 * k));
@@ -46,7 +47,9 @@ describe('a dot plot’s frame, 2,000 × 2,000', () => {
     for (let k = 0; k < 8; k++) pan();
     within(8, pan);
   });
+});
 
+describe('a dot plot’s frame, 2,000 × 2,000', () => {
   it('a frame while moving builds at most a tile’s samples (`grid.buildBudget`), a coarser tile meanwhile', async () => {
     const s = await settle(gridSpec({ n: 2000 }));
     const images = s.renderer.images;

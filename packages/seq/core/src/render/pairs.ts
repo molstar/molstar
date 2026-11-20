@@ -114,8 +114,19 @@ class PairDatum implements ThemeDatum {
   }
 }
 
-/** The color channel's environment: the ends are numbers, the rest text. */
-const PairEnv = { numeric: (n: string) => n === 'a_start' || n === 'a_end' || n === 'b_start' || n === 'b_end' };
+const PairEnds = new Set(['a_start', 'a_end', 'b_start', 'b_end']);
+const PairEnvs = new WeakMap<PairsData, { numeric(n: string): boolean }>();
+/** The color channel's environment: the ends and the numeric extra columns are numbers, the rest text. */
+function pairEnv(d: PairsData | undefined): { numeric(n: string): boolean } {
+  let env = d && PairEnvs.get(d);
+  if (env) return env;
+  const numbers = new Set(
+    Object.entries(d?.extra ?? {}).flatMap(([k, v]) => (v.some((x) => typeof x === 'number') ? [k] : [])),
+  );
+  env = { numeric: (n: string) => PairEnds.has(n) || numbers.has(n) };
+  if (d) PairEnvs.set(d, env);
+  return env;
+}
 
 export interface PairsPrep {
   readonly owner: string;
@@ -427,7 +438,7 @@ export const PairsType: LayerType<PairsPrep, PairsLay> = {
           },
         ),
       );
-    lay.colorChannel = prep.channels.get('color' as ChannelName, DefaultColor, ctx, PairEnv);
+    lay.colorChannel = prep.channels.get('color' as ChannelName, DefaultColor, ctx, pairEnv(prep.data));
     lay.extents.reset([lay.colorChannel]);
     if (ctx.axisY) layoutDots(lay, prep, ctx, ctx.axis, ctx.axisY);
     else if (ctx.place) layoutArcs(lay, prep, ctx, ctx.place);

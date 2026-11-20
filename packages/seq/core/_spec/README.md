@@ -54,18 +54,19 @@ checks it cannot express.
   belong together: `a` a system, `b` another or `a`'s, `a` required under `data` (`seq.lang.link.target`); its `rows`
   inline, `a_start`, `a_end`, `b_start`, `b_end` each pair's two ends, never wrapping, at least a position each (EC-10),
   self-pairs allowed; an open `type` its kind, since `kind` is reserved: canonical, wobble, contact; `id`, `label`,
-  `a_strand` and `b_strand` (EC-206); any other category column rides along as a field a data filter reads,
-  `(item :tertiary yes)`), `grid` (a value per pair of positions: `x` a sequence, `y` another or `x`'s, `values` x-major
-  float32, NaN missing, `|x| × |y|` of them: `seq.lang.grid.length`); under a `sequence`: `numbering` (Numberings,
-  below); under `views`: `view`, then `section`, `block` (a piece of a section on a system of its own: `of` (absent: an
-  override of a derived unit), `range`, `label`), `track` (`hidden`, default false: kept in the spec, its row collapsed;
-  its layers keep their own; `padding`, px inside its well around its data, vertical only: a number top and bottom, or
-  `{ top, bottom }` one or both, each non-negative, a `repr` issue otherwise; absent, the render config's
-  `trackPadding`: Render, Tracks layout), `layer` (`hidden`, default false: kept in the spec and not drawn, so hiding is
-  a one-key `set`). A `ranges` node's `map: 'codon'` makes each item (its rows by `id`) a coding sequence of its own
-  (Overlay); a track's `for_each` makes it a template (Resolved view, Templates; its kind param is `node_kind`, since
-  `kind` is reserved, and is `ranges` or `values`: what a layer draws). Reference params (`target`, `of`, `from`, `to`,
-  `follow`, `source`, `data`) are `ref` params naming the kinds they take; a reference is an address.
+  `a_strand` and `b_strand` (EC-206); any other column rides along as a field, text a data filter reads or numbers a
+  theme reads (an occupancy on a continuous scale; NaN missing), `(item :tertiary yes)`), `grid` (a value per pair of
+  positions: `x` a sequence, `y` another or `x`'s, `values` x-major float32, NaN missing, `|x| × |y|` of them:
+  `seq.lang.grid.length`); under a `sequence`: `numbering` (Numberings, below); under `views`: `view`, then `section`,
+  `block` (a piece of a section on a system of its own: `of` (absent: an override of a derived unit), `range`, `label`),
+  `track` (`hidden`, default false: kept in the spec, its row collapsed; its layers keep their own; `padding`, px inside
+  its well around its data, vertical only: a number top and bottom, or `{ top, bottom }` one or both, each non-negative,
+  a `repr` issue otherwise; absent, the render config's `trackPadding`: Render, Tracks layout), `layer` (`hidden`,
+  default false: kept in the spec and not drawn, so hiding is a one-key `set`). A `ranges` node's `map: 'codon'` makes
+  each item (its rows by `id`) a coding sequence of its own (Overlay); a track's `for_each` makes it a template
+  (Resolved view, Templates; its kind param is `node_kind`, since `kind` is reserved, and is `ranges` or `values`: what
+  a layer draws). Reference params (`target`, `of`, `from`, `to`, `follow`, `source`, `data`) are `ref` params naming
+  the kinds they take; a reference is an address.
 - **The axis's params** (the writer's: what the figure is; never inferred from what a section draws, so adding a layer
   never turns a section over): a section's `direction` (`genomic`, `reversed`, `follow`, or
   `{ along: <sequence or map> }`; absent: `follow` for a section with `follow`, else `genomic`), `pieces` (`whole`,
@@ -450,9 +451,9 @@ address, `/data/p53/(range :from 94 :to 292)`.
 - **Pairs answer `items`**: a pairs annotation is queried as its items, a pair one item with a row per end, each row on
   its own system (`QueryItem.system`; a ranges row's is its annotation's `target`): `(items :overlapping <location>)`
   gives the pairs with an end in the location, on either system; `(item :type …)` reads a pair's fields (`type`,
-  `label`, its other category columns); `extent` and a result's location cover both ends. Why: a host asks which pairs
-  touch a range (the viewer's `linkedPairs`). A location part on neither target is read against the rows' systems before
-  it is said unreachable.
+  `label`, its other columns); `extent` and a result's location cover both ends. Why: a host asks which pairs touch a
+  range (the viewer's `linkedPairs`). A location part on neither target is read against the rows' systems before it is
+  said unreachable.
 
 ### Location
 
@@ -1313,6 +1314,11 @@ alone.
   `insCode` split from the label, `labeled`, `observed`, a row a position). Why: an adapter joins them against its own
   residue list once and per message looks up, never walks the model. A description read by `structureNodes` gives back
   its chains' ids and residues as described (tested on the zinc finger and every mmCIF fixture).
+- **Pending** (EC-169): a described map it could take (a map onto a unit a source describes, Overlay, Described ends: an
+  end among the Location's systems, or its unit inside a bound complex) that waits for its description is said in
+  `UnitsResult.pending` and `FromUnitsResult.pending` (their addresses): the target is what is held so far, never the
+  whole, and a consumer holds it until it resolves. Why: an empty target while the description travels is not "nothing
+  there".
 - **To units** (`toUnits(model, loc, complexes?, options?)`): each part (a rect's sides as parts; an atoms part
   collapsed onto its residues) carried onto each bound unit along the model's paths with the binding's `via`; a
   molecule's part reaches every unit of it (EC-48). Through the molecule: a part is carried onto a unit's molecule once
@@ -1378,6 +1384,8 @@ alone.
 
 `src/resolve/` (`@molstar/seqx-core/resolve`): the static model, tier 1: pure, over a checked spec, nothing from the
 store. `resolveSpec(spec, { runtimes, config })`, or `createResolver` to keep entries and paths between specs.
+`model.ts` builds and holds the model; `model-entries.ts` makes each node's entry (a source's binding, a sequence's and
+an alignment's systems, a held pairs or grid node, an annotation), importing the model's types alone.
 
 ### Configuration
 
@@ -1400,10 +1408,13 @@ store. `resolveSpec(spec, { runtimes, config })`, or `createResolver` to keep en
   tier 1 waits, and nothing lays out on a made-up length. A molecule's residues and atoms and a complex's units are
   systems too (Molecules and units); a data reference to a system (`target`, `a`, `b`, `x`, `y`, a map's `from` and
   `to`) takes any of a sequence, a molecule and a unit; `pairs.a`/`b`, `ranges.target` and `map.to` an alignment's
-  columns too (its address). An alignment's systems are made before the maps, pairs and ranges, which read them. A
-  ranges source on an alignment is read on the system named `columns` (its columns system's name, as an alignment
-  source's coverage says it; a records source names it so with `system`): pending the author's decision (a source shared
-  by two alignments cannot tell their columns apart; TODO.md).
+  columns too (its address). An alignment's systems are made before the maps, pairs and ranges, which read them. An
+  alignment's columns system is named by its alignment, `<id>/columns` (a ranges source on an alignment reads its
+  records on that name). `columns` is their alias, kept for old sources: an alignment's own file and a records source
+  written before this name say `columns`, and every place a source is matched to a system serves the alias last
+  (`sourceNameOf`, `coverageSystemOf`, `data/system-names.ts`: the store, the `seq` reader, summaries, numberings,
+  values; `SystemEntry.aliases`, `isSystemInfo` for the lengths). Why: a source's records shared by several alignments
+  (one Stockholm file of many families) say whose columns they are.
 - **Numberings**: each `numbering` child of a sequence or a unit (`numberings`, by its address;
   `numberingOf(system, id)`): inline labels, an `offset` (`sequentialNumbering`, so labels snap with no scan) and
   `segments` (`maps-numbering.ts`, arithmetic a run, scanned by the forms) a numbering at once (over the open length
@@ -1617,6 +1628,13 @@ of it (`buildOverlay(model, reader)`; `OverlayBuilder` keeps one a node version 
   search per version, never on hover. `Overlay.edgesFrom(system)` lists what such a search reads from a system (the
   spec's maps, the overlay's units' steps and item maps): a reader telling a unit with a map of its own (the structure
   translation) reads the overlay's too.
+- **Described ends** (`maps-described.ts`): a spec `map` whose `from` or `to` is a node a spec source describes (a unit
+  of its complex, `<source>/(node :key <key>)/<unit>`: SIFTS per chain) is no missing ref: the static model keeps it
+  aside (`StaticModel.describedMaps`), and the overlay resolves it (`resolveMapNode`, the unit's observed runs read)
+  into steps both ways once both ends are held, its issues the overlay's. Until then it is pending
+  (`pendingMaps(maps, held)`, EC-169), never a map that pairs nothing. A dynamic address under no spec source stays
+  `seq.resolve.ref.missing`. Why: the design's route for a host's per-chain maps, and the pending state the data already
+  has.
 - **Nested sources** (EC-179): `nested(needs)` lists the source nodes at a depth some template on their root needs,
   bound to the first runtime that reads their format (`OverlayOptions.runtimes`; none: `seq.resolve.source.runtime`);
   one deeper than `maxNestedDepth` is `seq.resolve.node.depth` and not listed. Why on need: a nested source is a

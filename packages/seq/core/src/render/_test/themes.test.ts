@@ -223,16 +223,16 @@ describe('the export’s legends', () => {
 
 describe('performance representatives', () => {
   const N = 10_000;
-  function many(color?: Node): Node {
+  function many(color?: Node, n = N): Node {
     const b = createSeqSpec();
-    const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT'.repeat(N * 2) });
-    const start = Int32Array.from({ length: N }, (_, i) => i * 8);
+    const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT'.repeat(n * 2) });
+    const start = Int32Array.from({ length: n }, (_, i) => i * 8);
     const r = b.data.ranges('r', {
       target: s,
       rows: {
         start,
         end: start.map((x) => x + 6),
-        category: Array.from({ length: N }, (_, i) => `c${i % 8}`),
+        category: Array.from({ length: n }, (_, i) => `c${i % 8}`),
       },
     });
     b.views.view('main', (v) =>
@@ -244,32 +244,52 @@ describe('performance representatives', () => {
     return b.build();
   }
 
-  itWithin(
-    'a layout with a field theme costs at most 1.1× the same layout uniform (10,000 ranges by a category)',
-    async (within) => {
-      const uniform = await settle(many());
-      const themed = await settle(many(theme.field('category')));
-      // a viewport of its own each frame: every frame lays out
-      const at = (k: number) => ({ size: { width: 1600, height: 240 }, viewport: { start: k, end: N * 8 + k } });
-      for (let k = 0; k < 6; k++) {
-        await uniform.frame(at(k));
-        await themed.frame(at(k));
-      }
-      let k = 10;
-      // the two measured in turn, the themed held to 1.1× the uniform, each its best of seven
-      let f: ReturnType<typeof themed.renderer.frame> | undefined;
-      ratioWithin(
-        within,
-        1.1,
-        () => uniform.renderer.frame(at(k++)),
-        () => {
-          f = themed.renderer.frame(at(k++));
-        },
-        7,
-      );
-      expect(f!.rebuilt).toBe(true);
-      expect((f!.layout.sections[0].tracks[0].layers[0].lay as RangesLay).items).toBeGreaterThan(1000);
-    },
+  // the quick representative: the same two layouts over 500 ranges, a frame each laid out again
+  it('a layout with a field theme lays out as the uniform one does, every frame (500 ranges by a category)', async () => {
+    const n = 500;
+    const uniform = await settle(many(undefined, n));
+    const themed = await settle(many(theme.field('category'), n));
+    const at = (k: number) => ({ size: { width: 1600, height: 240 }, viewport: { start: k, end: n * 8 + k } });
+    // a viewport of its own each frame, in turn (as the ratio's run); unbounded: its cost is the medium and heavy lanes'
+    await uniform.frame(at(0));
+    await themed.frame(at(0));
+    const g = uniform.renderer.frame(at(1));
+    const f = themed.renderer.frame(at(1));
+    expect([f.rebuilt, g.rebuilt]).toEqual([true, true]);
+    const items = (x: typeof f) => (x.layout.sections[0].tracks[0].layers[0].lay as RangesLay).items;
+    expect(items(f)).toBe(items(g));
+    expect(items(f)).toBeGreaterThan(100);
+  });
+
+  // the ratio: medium unbounded (two layouts of 10,000 ranges, a dozen frames each), heavy bounded
+  describe('the field theme’s cost', { tags: ['medium'] }, () =>
+    itWithin(
+      'a layout with a field theme costs at most 1.1× the same layout uniform (10,000 ranges by a category)',
+      async (within) => {
+        const uniform = await settle(many());
+        const themed = await settle(many(theme.field('category')));
+        // a viewport of its own each frame: every frame lays out
+        const at = (k: number) => ({ size: { width: 1600, height: 240 }, viewport: { start: k, end: N * 8 + k } });
+        for (let k = 0; k < 6; k++) {
+          await uniform.frame(at(k));
+          await themed.frame(at(k));
+        }
+        let k = 10;
+        // the two measured in turn, the themed held to 1.1× the uniform, each its best of seven
+        let f: ReturnType<typeof themed.renderer.frame> | undefined;
+        ratioWithin(
+          within,
+          1.1,
+          () => uniform.renderer.frame(at(k++)),
+          () => {
+            f = themed.renderer.frame(at(k++));
+          },
+          7,
+        );
+        expect(f!.rebuilt).toBe(true);
+        expect((f!.layout.sections[0].tracks[0].layers[0].lay as RangesLay).items).toBeGreaterThan(1000);
+      },
+    ),
   );
 
   itWithin('legends for 100 tracks are derived in under 1 ms', (within) => {

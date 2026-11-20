@@ -8,7 +8,8 @@
 // ruler rail upright, in display rows below the pinned band. A drag on its window scrolls the rows (`bandTop`); a grip
 // zooms them about the other end, which stays (`rowScale`, within the rows behavior's bounds); a press outside the
 // window is a click that centres the rows there (a jump); Esc puts the band back where the press found it. A drag is
-// one step of the view's history when it went farther than the rows in view or zoomed (`navigator.dragStep`).
+// one step of the view's history when it went farther than the rows in view or zoomed (`navigator.dragStep`). A
+// double-click on its window resets the rows' zoom (`resetZoom`); the vertical overview's grips are the same gesture.
 
 import { MaxRowScale, MinRowScale, type WindowPart } from '@molstar/seqx-core/render';
 import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
@@ -104,6 +105,21 @@ export class RowsRailGesture {
     const zoomed = now?.rowScale !== p.band.rowScale;
     const step = this.config.navigator.dragStep;
     if (step === 'always' || (step === 'far' && (far || zoomed))) this.view.record(p.before);
+  }
+
+  /**
+   * A double-click on a rows window (the rows rail's, a vertical overview's): the rows' zoom back to the band's default
+   * (`rowScale` unset), the row at the band's top kept there; a jump, its own step. False when it had none set.
+   */
+  resetZoom(track: string): boolean {
+    this._press = undefined;
+    if (this.view.band(track)?.rowScale === undefined) return false;
+    return (
+      this.view.jump(() => {
+        this.view.setBand(track, { rowScale: undefined });
+        return true;
+      }) === 'moved'
+    );
   }
 
   /** Esc: the band back where the press found it. */

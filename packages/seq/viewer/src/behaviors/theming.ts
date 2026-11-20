@@ -64,7 +64,8 @@ import {
   type SchemeRegistry,
   TokenLists,
 } from '@molstar/seqx-core/theme/index';
-import type { CommandDefinition, CommandResult } from '@molstar/ui/commands/types';
+import type { ParamDefinition as PD } from '@molstar/core/util/param-definition';
+import type { CommandArgs, CommandDefinition, CommandResult } from '@molstar/ui/commands/types';
 import type { AddressModel, EditOutcome, SpecModel } from '@molstar/seqx-viewer/models';
 import type { EditOrigin } from '@molstar/seqx-viewer/ports';
 import type { LegendModel } from '@molstar/seqx-viewer/legends';
@@ -76,8 +77,13 @@ export interface ThemingContext {
   readonly addresses?: readonly string[];
   /** `layer.channel`: the channel (`color` when absent). */
   readonly channel?: string;
-  /** `layer.channel`: its form or value; absent: unset (the layer type's default again). */
+  /** `layer.channel`: its form or value; absent: unset (the layer type's default again), or `scheme`'s. */
   readonly value?: Value;
+  /**
+   * `layer.channel`'s select param (one layer's color: a fitting scheme by name), as a header's submenu item passes it:
+   * read when `value` is absent.
+   */
+  readonly scheme?: string;
   /** `scale.set`: the params set (`null` at a domain's end reopens it; `undefined` leaves a param). */
   readonly scale?: Readonly<Record<string, Value | undefined>>;
   /** `theme.value-color`, `legend.*`: the value (its text). */
@@ -157,6 +163,31 @@ export function themingBehavior(
       : { op: 'set', at: ids(layer), key: channel, value };
   const live = (f: (ctx: ThemingContext) => true | string) => (ctx: ThemingContext) =>
     disposed ? 'The viewer is retired' : f(ctx);
+  /** `layer.channel`'s value: the context's, else its select param's scheme (the args', then the context's). */
+  const channelValue = (args: CommandArgs, ctx: ThemingContext): Value | undefined => {
+    if (ctx.value !== undefined) return ctx.value;
+    const name = typeof args.scheme === 'string' ? args.scheme : ctx.scheme;
+    return name === undefined ? undefined : ({ kind: 'scheme', params: { name } } as unknown as Value);
+  };
+  /**
+   * `layer.channel`'s choices (_spec/README.md "Legends", the legend behavior's commands: the command owns them): on one
+   * layer's color, its fitting schemes as one select param, `scheme`, its default the scheme the layer has (none: no
+   * default, optional). What a header's menu (a submenu), a palette and an agent read. A literal, not `PD.Select`: the
+   * module stays out of the bundle.
+   */
+  const channelParams = (ctx: ThemingContext): PD.Params => {
+    const ls = layers(ctx);
+    const fit = ls.length === 1 && (ctx.channel ?? 'color') === 'color' ? fittingSchemes(ls[0]) : [];
+    if (!fit.length) return {};
+    const c = node(ls[0], 'layer')?.params?.color;
+    const scheme = {
+      type: 'select',
+      isOptional: true,
+      defaultValue: isNode(c) && c.kind === 'scheme' ? c.params?.name : undefined,
+      options: fit.map((s) => [s.name, s.label]),
+    } as PD.Select<string>;
+    return { scheme };
+  };
 
   /** The address of a value's items on a layer's data: its base's forms and `(item :<field> v)` in one query. */
   const itemsOf = (layer: string, value: string): string | undefined => {
@@ -222,6 +253,23 @@ export function themingBehavior(
     previewing = false;
     spec.cancelPreview();
   };
+  function fittingSchemes(layer: string): SchemeEntry[] {
+    const n = node(layer, 'layer');
+    if (!n) return [];
+    const type = n.params?.type;
+    const data = n.params?.data;
+    const target = typeof data === 'string' ? node(data, 'sequence') : undefined;
+    const alphabet = type === 'letters' ? (target?.params?.alphabet ?? letterAlphabet(spec, layer)) : undefined;
+    const subject =
+      alphabet === 'protein' ? 'protein' : alphabet ? 'nucleotide' : type === 'values' ? 'numbers' : 'categories';
+    return schemes.fitting(subject);
+  }
+  function previewChannel(layer: string, channel: string, value: Value | undefined): boolean {
+    if (disposed || !node(layer, 'layer')) return false;
+    const ok = spec.setPreview({ ops: [channelOp(layer, channel, value)] }).ok;
+    previewing = ok;
+    return ok;
+  }
 
   const commands: CommandDefinition<ThemingContext>[] = [
     {
@@ -229,13 +277,21 @@ export function themingBehavior(
       title: 'Theme a layer’s channel',
       category: 'Edit',
       when: live((ctx) => (layers(ctx).length && layers(ctx).every((a) => node(a, 'layer')) ? true : 'No layer there')),
-      run: (_, ctx) =>
-        edit(
+      params: (ctx) => channelParams(ctx),
+      // a choice hovered in a menu: the gesture's preview (ended by the choice's patch, or by Esc)
+      preview: (args, ctx) => {
+        const ls = layers(ctx);
+        return ls.length === 1 && previewChannel(ls[0], ctx.channel ?? 'color', channelValue(args, ctx));
+      },
+      run: (args, ctx) => {
+        const value = channelValue(args, ctx);
+        return edit(
           'Theme a layer',
-          () => layers(ctx).map((a) => channelOp(a, ctx.channel ?? 'color', ctx.value)),
+          () => layers(ctx).map((a) => channelOp(a, ctx.channel ?? 'color', value)),
           ctx,
-          ctx.value === undefined ? 'Default theme' : 'Themed',
-        ),
+          value === undefined ? 'Default theme' : 'Themed',
+        );
+      },
     },
     {
       id: ThemingCommandIds.scale,
@@ -355,23 +411,8 @@ export function themingBehavior(
 
   return {
     commands,
-    fittingSchemes(layer) {
-      const n = node(layer, 'layer');
-      if (!n) return [];
-      const type = n.params?.type;
-      const data = n.params?.data;
-      const target = typeof data === 'string' ? node(data, 'sequence') : undefined;
-      const alphabet = type === 'letters' ? (target?.params?.alphabet ?? letterAlphabet(spec, layer)) : undefined;
-      const subject =
-        alphabet === 'protein' ? 'protein' : alphabet ? 'nucleotide' : type === 'values' ? 'numbers' : 'categories';
-      return schemes.fitting(subject);
-    },
-    preview(layer, channel, value) {
-      if (disposed || !node(layer, 'layer')) return false;
-      const ok = spec.setPreview({ ops: [channelOp(layer, channel, value)] }).ok;
-      previewing = ok;
-      return ok;
-    },
+    fittingSchemes,
+    preview: previewChannel,
     cancelPreview,
     dispose() {
       disposed = true;

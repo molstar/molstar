@@ -11,6 +11,7 @@ import type { NumberingEntry, StaticModel } from '@molstar/seqx-core/resolve';
 import { DefaultRenderConfig } from './config.js';
 import { RenderIssues } from './issues.js';
 import type { StoreReader } from './layer-type.js';
+import { coverageSystemOf } from '@molstar/seqx-core/data/system-names';
 
 // A source's numbering (_spec/README.md "Render", Numberings from a source): its labels are its rows' (a row a
 // position: its `position` or its `start`; the label its `field`), read whole on the system at level 1, held once
@@ -111,7 +112,7 @@ export function readSourceNumbering(
     if (own !== undefined) want(own);
     return Pending;
   }
-  const sys = coverage.systems.find((s) => s.name === name || s.aliases?.includes(name));
+  const sys = coverageSystemOf(coverage.systems, name);
   const length = own ?? sys?.length;
   if (!sys || length === undefined) {
     if (same(prev, coverage, NoEntries)) return prev!.result;

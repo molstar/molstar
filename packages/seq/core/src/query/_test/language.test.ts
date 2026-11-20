@@ -22,7 +22,7 @@ import {
   unionLocations,
 } from '@molstar/seqx-core/query';
 import { resolveSpec } from '@molstar/seqx-core/resolve';
-import { itWithin } from '@molstar/test-harness/timing';
+import { itWithin, type Within } from '@molstar/test-harness/timing';
 import { describe, expect, it } from 'vitest';
 import { elementsForm, type Items, itemsEqual, itemsOf, itemsPredicate, readItems } from '../items.js';
 import { BuiltInPropertyTable } from '../properties.js';
@@ -380,17 +380,27 @@ describe('the fine fields indexed (a row naming no position)', () => {
     expect(count(evaluateQuery(spec, model, '/data/p/(elements :index [0 5 1999 2000])', { limit: 10 }))).toBe(3);
   });
 
-  itWithin('1,000 rows over 100,000 residues: index, component and atom fields', (within) => {
-    const n = 100_000;
-    for (const field of ['index', 'component', 'atom']) {
-      const { model, spec } = longProtein(n);
-      const query = fieldRows(n, 1000, field);
-      evaluateQuery(spec, model, query, { limit: 1e6 }); // warm
-      // measured: tens of ms (an M-series laptop); a scan per row took seconds
-      const r = within(400, () => evaluateQuery(spec, model, query, { limit: 1e6 }));
-      expect(codes(r), field).toEqual([]);
-    }
-  });
+  it('100 rows over 10,000 residues: index, component and atom fields', () =>
+    fieldRowsOver(10_000, 100, (_, f) => f()));
+});
+
+/** `rows` rows over `n` residues, each by an index, a component and an atom field; the second evaluation in `within`. */
+function fieldRowsOver(n: number, rows: number, within: Within) {
+  for (const field of ['index', 'component', 'atom']) {
+    const { model, spec } = longProtein(n);
+    const query = fieldRows(n, rows, field);
+    evaluateQuery(spec, model, query, { limit: 1e6 }); // warm
+    // measured: tens of ms (an M-series laptop); a scan per row took seconds
+    const r = within(400, () => evaluateQuery(spec, model, query, { limit: 1e6 }));
+    expect(codes(r), field).toEqual([]);
+  }
+}
+
+// the scale: medium unbounded, heavy bounded
+describe('the fine fields indexed, at scale', { tags: ['medium'] }, () => {
+  itWithin('1,000 rows over 100,000 residues: index, component and atom fields', (within) =>
+    fieldRowsOver(100_000, 1000, within),
+  );
 });
 
 describe('monadic laws', () => {

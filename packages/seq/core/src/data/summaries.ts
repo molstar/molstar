@@ -18,6 +18,7 @@ import {
   type ValuesPositions,
 } from './protocol.js';
 import { checkAnswer, DefaultMaxRows } from './tables.js';
+import { coverageSystemOf } from './system-names.js';
 
 // Value summaries (_spec/README.md "Data", Summaries): a source that serves level 1 only gets coarser levels for its
 // values, so a values layer zoomed out reads a coarse level and stays within the store's tile bound. A system of known
@@ -158,7 +159,7 @@ export function withSummaries(
   const pyramids = new Map<string, Pyramid>();
   let bytes = 0;
   const reading = new AbortController();
-  const infoOf = (system: string) => coverage.systems.find((s) => s.name === system || s.aliases?.includes(system));
+  const infoOf = (system: string) => coverageSystemOf(coverage.systems, system);
 
   const failure = (why: string): RegionAnswer => ({
     ok: false,

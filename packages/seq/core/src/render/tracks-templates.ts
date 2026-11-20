@@ -6,7 +6,7 @@
 
 import { HalfOpenRanges } from '@molstar/core/data/int/half-open-ranges';
 import { type Coverage, nodeKey, type Want } from '@molstar/seqx-core/data';
-import { projectRanges } from '@molstar/seqx-core/resolve';
+import { isSystemInfo, projectRanges } from '@molstar/seqx-core/resolve';
 import type { ResolvedSection, ResolvedTrack, TrackTemplate } from '@molstar/seqx-core/view';
 import { AxisTransform } from './axis.js';
 import type { Overlay, StoreReader } from './layer-type.js';
@@ -80,8 +80,8 @@ function templateSource(
   axis: AxisTransform,
 ): { readonly coverage: Coverage; readonly system: string; readonly level: number } | undefined {
   const coverage = data.coverage(template.source);
-  const name = input.model.systems.get(section.axis.system)?.name;
-  const info = coverage?.systems.find((s) => s.name === name || (name !== undefined && s.aliases?.includes(name)));
+  const system = input.model.systems.get(section.axis.system);
+  const info = system && coverage?.systems.find((s) => isSystemInfo(s, system));
   if (!coverage || !info) return undefined;
   return {
     coverage,

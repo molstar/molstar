@@ -329,14 +329,15 @@ describe('the Complex editing views, headless', () => {
   });
 });
 
-// the views that take long to draw are the medium lane's; the others stay in the quick lane as its representatives
-const SlowViews = new Set(['pae', 'complex-grid', 'blocks-stacked', 'blocks-stacked-split', 'blocks-ring']);
+// a sweep: three views stay in the quick lane as its representatives (a block, a unit, an atom-level view), the rest
+// are the medium lane's
+const QuickViews = new Set(['blocks', 'units', 'ligands-atoms']);
 
 describe('every Complex view in both themes, headless', () => {
   for (const ex of ComplexViews)
     it(
       `${ex.id}: laid out and exported with no issue, light and dark`,
-      SlowViews.has(ex.id) ? { tags: ['medium'] } : {},
+      QuickViews.has(ex.id) ? {} : { tags: ['medium'] },
       async () => {
         const s = await open(ex);
         for (const dark of [false, true]) {

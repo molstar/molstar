@@ -8,6 +8,7 @@
 import { printSexpr } from '@molstar/core/repr/codecs/sexpr';
 import { type Node, resolveAddress } from '@molstar/core/repr/tree';
 import { FeatureViews, P53Views } from '@molstar/seqx-examples';
+import { BuiltInSchemes } from '@molstar/seqx-core/theme/index';
 import { LetterSchemes } from '@molstar/seqx-examples/p53/themes';
 import { DomHost } from '@molstar/ui/dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -15,7 +16,7 @@ import type { EditingSession } from '../../editing/compose.js';
 import {
   EditingThemes,
   SchemesGallery,
-  type SchemesGalleryRoot,
+  SchemesGalleryRoot,
   type ThemesEditingRoot,
   Themes,
 } from '../themes.stories.js';
@@ -172,10 +173,26 @@ describe('p53 Themes, headless', () => {
     expect(svg).toMatch(/missense/);
   });
 
-  it('the view and the gallery mount with content', () => {
+  it('the view mounts with content', () => {
     const t = mount<HTMLElement>(Themes);
     expect(t.querySelectorAll('*').length).toBeGreaterThan(3);
     t.remove();
+  });
+
+  // the gallery's quick representative: two schemes, each table a row of four visions' swatches
+  it('the gallery mounts two schemes’ rows', () => {
+    const el = document.createElement(SchemesGalleryRoot.tag) as SchemesGalleryRoot;
+    el.model = BuiltInSchemes.slice(0, 2);
+    document.body.append(el);
+    mounted = el;
+    const rows = el.querySelectorAll('tr');
+    // a header, then a row a table a scheme has colors in
+    expect(rows.length).toBeGreaterThan(2);
+    expect(rows[1].querySelectorAll('td').length).toBe(2 + 4);
+  });
+
+  // every scheme in both tables under four visions, a swatch a color, in jsdom: a third of a second (a sweep)
+  it('the gallery mounts with content', { tags: ['medium'] }, () => {
     const g = mount<SchemesGalleryRoot>(SchemesGallery);
     expect(g.querySelectorAll('tr').length).toBeGreaterThan(20);
   });

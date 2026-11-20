@@ -16,7 +16,7 @@ import { checkSeqChanges } from '@molstar/seqx-core/lang/changes';
 import { partOf, rangesLocation } from '@molstar/seqx-core/query';
 import { resolveViews } from '@molstar/seqx-core/view';
 import { describe, expect, it } from 'vitest';
-import { resolveSpec, rowsSystemOf, type StaticModel } from '../model.js';
+import { resolveSpec, rowsSystemOf, sourceLengths, type StaticModel } from '../model.js';
 
 /** A small seed: three rows over 12 columns; `b` is the row the chain is closest to. */
 const Seed = { label: ['a', 'b', 'c'], letters: ['GCG-AUUUAGCU', 'GCGGA-UU.GCU', 'GC-GAUUUAGC-'] };
@@ -134,16 +134,41 @@ describe('an alignment named by pairs, ranges and maps (EC-48, in part: an align
     expect(issues.map((i) => i.address)).toEqual(['/views/v/chain/stems/stems']);
   });
 
-  it('a ranges source on an alignment is read on the system named `columns` (pinned, pending the author)', () => {
-    const b = createSeqSpec({ title: 'a ranges source on the columns' });
+  it('a ranges source shared by two alignments reads each one’s columns by its name, `<alignment>/columns`', () => {
+    const b = createSeqSpec({ title: 'one source over two alignments’ columns' });
     const seed = b.data.alignment('seed', { alphabet: 'rna', rows: Seed });
-    const file = b.data.source('gc-file', { format: 'bed', uri: 'gc.bed' });
-    b.data.ranges('gc', { target: seed, source: file });
+    const full = b.data.alignment('full', { alphabet: 'rna', rows: Seed });
+    const file = b.data.source('gc-file', { format: 'bed', uri: 'families.bed' });
+    b.data.ranges('gc-seed', { target: seed, source: file });
+    b.data.ranges('gc-full', { target: full, source: file });
     const m = resolveSpec(b.build());
-    const gc = m.annotations.get('/data/gc')!;
-    expect([gc.target, gc.access]).toEqual([
-      '/data/seed',
-      { kind: 'source', source: '/data/gc-file', system: 'columns', shape: 'ranges' },
+    expect([m.systems.get('/data/seed')!.name, m.systems.get('/data/full')!.name]).toEqual([
+      'seed/columns',
+      'full/columns',
     ]);
+    const access = (a: string) => m.annotations.get(a)!.access;
+    expect([access('/data/gc-seed'), access('/data/gc-full')]).toEqual([
+      { kind: 'source', source: '/data/gc-file', system: 'seed/columns', shape: 'ranges' },
+      { kind: 'source', source: '/data/gc-file', system: 'full/columns', shape: 'ranges' },
+    ]);
+  });
+
+  it('an alignment’s own source names its columns `columns`: their length read from it', () => {
+    const b = createSeqSpec({ title: 'an alignment from a source' });
+    const file = b.data.source('sto', { format: 'stockholm', uri: 'family.sto' });
+    b.data.alignment('family', { alphabet: 'rna', source: file });
+    const m = resolveSpec(b.build());
+    const coverage = {
+      systems: [
+        { name: 'rows', length: 7 },
+        { name: 'columns', length: 42 },
+      ],
+    };
+    const lengths = sourceLengths(m, () => coverage as never);
+    const again = resolveSpec(b.build(), { lengths });
+    expect([
+      again.systems.get('/data/family')!.length,
+      again.systems.get(rowsSystemOf('/data/family'))?.length,
+    ]).toEqual([42, 7]);
   });
 });

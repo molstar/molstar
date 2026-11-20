@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { StaticModel } from '@molstar/seqx-core/resolve';
+import { isSystemInfo, type StaticModel } from '@molstar/seqx-core/resolve';
 import {
   followRange,
   followWindow,
@@ -32,9 +32,7 @@ export function ownPieces(
   if (section.axis.ranges) return section.axis.ranges;
   const system = model.systems.get(section.axis.system);
   if (!system?.source) return undefined;
-  const info = data
-    .coverage(system.source)
-    ?.systems.find((s) => s.name === system.name || s.aliases?.includes(system.name));
+  const info = data.coverage(system.source)?.systems.find((s) => isSystemInfo(s, system));
   return info?.length === undefined ? undefined : placedPieces(info.length);
 }
 

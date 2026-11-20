@@ -249,12 +249,13 @@ describe('the bigWig runtime', () => {
     s.dispose();
   });
 
-  it('big-endian, uncompressed and two-items-a-node files read the same', async () => {
-    for (const o of [
-      { bigEndian: true },
-      { compress: false },
-      { blockSize: 2, itemsPerSection: 7 },
-    ] as WriterOptions[]) {
+  // the writer's variants: big-endian quick, the other two medium (a file written each, a few hundred ms)
+  for (const [name, o, tags] of [
+    ['big-endian', { bigEndian: true }, []],
+    ['uncompressed', { compress: false }, ['medium']],
+    ['two-items-a-node', { blockSize: 2, itemsPerSection: 7 }, ['medium']],
+  ] as [string, WriterOptions, string[]][])
+    it(`${name} files read the same`, { tags }, async () => {
       const bytes = await writeBigWig(Chroms, { ...Options, ...o });
       const s = await BigWigRuntime.open(entry, bytesContext({ [Url]: bytes }));
       const v = (await values(
@@ -266,8 +267,7 @@ describe('the bigWig runtime', () => {
       )) as ValuesBins;
       expectBins(z, binValues({ form: 'positions', start: 0, value: Chroms[0].values }, 256, 10_000));
       s.dispose();
-    }
-  });
+    });
 
   it('summaries that do not start on the level’s multiples are shared by overlap', async () => {
     // one record over [8, 24) of 16 positions, mean 1: half of it in each 16-wide bin
@@ -329,32 +329,36 @@ describe('the bigWig runtime', () => {
     s.dispose();
   });
 
-  // the performance target: a bigWig region at the right zoom level from a local file, under 50 ms to decoded
-  itWithin('a region at the zoom level that fits, from a local file, decoded under 50 ms', async (within) => {
-    const length = 400_000;
-    const big = await bigFixture(length);
-    // a view of the whole chromosome over 1,024 device columns: the coarsest level no wider than a column (EC-170)
-    const level = 256;
-    const manager = new DefaultAssetManager();
-    const file = Asset.File(new File([big as Uint8Array<ArrayBuffer>], 'big.bw'));
-    const context: OpenContext = {
-      assets: {
-        readText: () => Promise.reject(new Error('text')),
-        readBytes: () => Promise.reject(new Error('whole')),
-        openRange: () => openRanges(manager, file).run(),
-      } as AssetReader,
-      signal,
-      limits,
-    };
-    const v = (await within(50, async () => {
-      const s = await BigWigRuntime.open(entry, context);
-      const a = await values(s.read({ system: 'chr1', start: 0, end: length, level, shapes: ['values'] }, signal));
-      s.dispose();
-      return a;
-    })) as ValuesBins;
-    expect(v.count.length).toBe(Math.ceil(length / level));
-    expect(v.count.reduce((n, x) => n + x, 0)).toBe(length);
-  });
+  // the performance target: a bigWig region at the right zoom level from a local file, under 50 ms to decoded; its
+  // 400,000 positions written first (a third of a second): medium unbounded, heavy bounded; the quick lane reads zoom
+  // levels from the small fixture above
+  describe('the performance target', { tags: ['medium'] }, () =>
+    itWithin('a region at the zoom level that fits, from a local file, decoded under 50 ms', async (within) => {
+      const length = 400_000;
+      const big = await bigFixture(length);
+      // a view of the whole chromosome over 1,024 device columns: the coarsest level no wider than a column (EC-170)
+      const level = 256;
+      const manager = new DefaultAssetManager();
+      const file = Asset.File(new File([big as Uint8Array<ArrayBuffer>], 'big.bw'));
+      const context: OpenContext = {
+        assets: {
+          readText: () => Promise.reject(new Error('text')),
+          readBytes: () => Promise.reject(new Error('whole')),
+          openRange: () => openRanges(manager, file).run(),
+        } as AssetReader,
+        signal,
+        limits,
+      };
+      const v = (await within(50, async () => {
+        const s = await BigWigRuntime.open(entry, context);
+        const a = await values(s.read({ system: 'chr1', start: 0, end: length, level, shapes: ['values'] }, signal));
+        s.dispose();
+        return a;
+      })) as ValuesBins;
+      expect(v.count.length).toBe(Math.ceil(length / level));
+      expect(v.count.reduce((n, x) => n + x, 0)).toBe(length);
+    }),
+  );
 });
 
 // security.md: a file is untrusted input. Each crafted file is refused with a coded issue, before it allocates.

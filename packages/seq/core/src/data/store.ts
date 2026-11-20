@@ -31,6 +31,7 @@ import {
   DefaultMaxRows,
   isEmptyAnswer,
 } from './tables.js';
+import { sourceNameOf } from './system-names.js';
 
 // The data store (_spec/README.md "Data", Store): entries by key in keyed states, versioned; the want sets of its
 // consumers merged; requests deduped by tile, ordered and bounded in flight, cancelled after a grace (at once when the
@@ -563,7 +564,7 @@ export class DataStore extends ReactiveModel {
 
   private _tiles(w: Want) {
     const s = this._sources.get(w.source);
-    const system = s?.names.get(w.system);
+    const system = s && sourceNameOf(s.names, w.system);
     if (!s || system === undefined) return undefined;
     const cov = s.opened.coverage;
     const level = cov.levels.includes(w.level) ? w.level : fitLevel(cov.levels, w.level);
