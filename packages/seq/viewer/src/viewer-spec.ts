@@ -59,6 +59,11 @@ export interface BehaviorHandle {
    * behavior's entries, checked against them). A throw retires what was made.
    */
   composed?(viewer: SeqViewer): void;
+  /**
+   * Resolves once the lazy chunks it asked for landed (the `headers` behavior's late parts and icons): `settle` waits
+   * for them, so a settled picture is the whole one and no import outlives the viewer's tests.
+   */
+  loaded?(): Promise<void>;
 }
 
 /** A behavior's provider: creates the policy over the models; what it makes is its handle (`dispose` ends it). */

@@ -7,7 +7,9 @@
 // Extracts the inner markup of the Lucide icons used by the UI (styles §8) from `lucide-static` into
 // `src/components/icon/_generated/lucide/<name>.ts`, a module an icon (`lucide/eye-off.ts` exports `lucideEyeOff`), so a
 // consumer that needs a few imports only those modules and a bundler (splitting by module) carries no other; and
-// `src/components/icon/_generated/lucide.ts`, the map of them all by name (`LucideIcons`, what `Icon` reads). Only the used icons are copied; the package is a devDependency.
+// `src/components/icon/_generated/lucide.ts`, the map of them all by name (`LucideIcons`, what `Icon` reads), the same
+// markup inline (one module, not 133 imports: what `Icon` loads stays one module). Only the used icons are copied; the
+// package is a devDependency.
 //
 //   node scripts/icons.mjs            regenerate
 //   node scripts/icons.mjs --check    fail if the generated module is missing or stale
@@ -193,7 +195,6 @@ function generate() {
   const names = [...new Set(ICONS)].sort();
   const generated = `// Generated from lucide-static ${LUCIDE_VERSION} (ISC License, Copyright (c) Lucide Contributors) by scripts/icons.mjs; do not edit.`;
   const outputs = [];
-  const imports = [];
   const entries = [];
   for (const name of names) {
     const file = path.join(lucideRoot, 'icons', `${name}.svg`);
@@ -205,21 +206,9 @@ function generate() {
       path.join(iconsDir, `${name}.ts`),
       [HEADER, '', generated, '', `export const ${exportName(name)} = '${value}';`, ''].join('\n'),
     ]);
-    imports.push(`import { ${exportName(name)} } from './lucide/${name}.js';`);
-    entries.push(`  '${name}': ${exportName(name)},`);
+    entries.push(`  '${name}': '${value}',`);
   }
-  const map = [
-    HEADER,
-    '',
-    generated,
-    '',
-    ...imports,
-    '',
-    'export const LucideIcons = {',
-    ...entries,
-    '} as const;',
-    '',
-  ];
+  const map = [HEADER, '', generated, '', 'export const LucideIcons = {', ...entries, '} as const;', ''];
   outputs.push([output, map.join('\n')]);
   return outputs;
 }

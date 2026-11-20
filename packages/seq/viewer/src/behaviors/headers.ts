@@ -13,8 +13,6 @@ import {
   type HeaderPartsOf,
   type HeaderSlotPart,
   type HeaderStatePart,
-  type Hit as RenderHit,
-  type ViewLayout,
 } from '@molstar/seqx-core/render';
 import { hiddenTracksOf } from '@molstar/seqx-core/render/headers';
 import type { ResolvedSection, ResolvedTrack } from '@molstar/seqx-core/view';
@@ -94,6 +92,8 @@ export interface HeadersBehavior {
   /** A secondary click at a canvas point: true when the menu took it (the browser's menu then prevented). */
   context(x: number, y: number, e?: { readonly shiftKey?: boolean }): boolean;
   composed(viewer: SeqViewer): void;
+  /** Resolves once its lazy chunks (the late parts, the icons, the gestures) landed: what `settle` waits for. */
+  loaded(): Promise<void>;
   /** A frame was drawn (the viewer's frame, each frame): the geometry and the parts follow it; a hover makes nothing. */
   framed(): void;
   attach(container: HTMLElement, viewer: SeqViewer): () => void;
@@ -114,6 +114,21 @@ export function headersBehavior(context: BehaviorContext, params: HeadersParams 
   const mac = isMac();
   let viewer: SeqViewer | undefined;
   let disposed = false;
+  /**
+   * The lazy chunks asked for (`loaded`, what `settle` waits for; three at most). A chunk landing after the viewer is
+   * retired is ignored, its failure too (a torn-down test environment); before, a failure is the host's to see.
+   */
+  const loading: Promise<void>[] = [];
+  const lazy = <M>(load: Promise<M>, landed: (m: M) => void): void => {
+    loading.push(
+      load.then(
+        (m) => void (disposed || landed(m)),
+        (e) => {
+          if (!disposed) throw e;
+        },
+      ),
+    );
+  };
   /** The registry's entries and a host's, in order; a new `partsOf` each change. */
   let entries: readonly HeaderEntry[] = [];
   let partsOf: HeaderPartsOf = () => undefined;
@@ -155,9 +170,9 @@ export function headersBehavior(context: BehaviorContext, params: HeadersParams 
     entries = next;
     if (!iconOf && !iconsAsked && next.some((e) => e.icon !== undefined || e.iconMarkup !== undefined)) {
       iconsAsked = true;
-      void import('@molstar/seqx-viewer/header-icons').then((m) => {
+      lazy(import('@molstar/seqx-viewer/header-icons'), (m) => {
         iconOf = m.headerIcon;
-        if (!disposed) setEntries(entries);
+        setEntries(entries);
       });
     }
     // a new function: part of the layout's key, so the next frame lays the headers out again
@@ -391,25 +406,18 @@ export function headersBehavior(context: BehaviorContext, params: HeadersParams 
   };
   let partsPort: HeaderPartsPort | undefined;
 
-  // ---- the target under a point ----
+  // ---- a click ----
 
-  /** The header a hit is on (a track's line, a slot, a chip, a section's line): its target. */
-  const headerTarget = (hit: RenderHit, layout: ViewLayout | undefined): HeaderTarget | undefined => {
-    for (const s of layout?.sections ?? []) {
-      if (s.section.address === hit.layer) return { section: s.section.address };
-      for (const t of s.tracks)
-        if (t.track.address === hit.layer) return { section: s.section.address, track: t.track.address };
-    }
-    return undefined;
-  };
   const click = (x: number, y: number, touch: boolean): boolean => {
     if (!viewer) return false;
     const hit = viewer.hit(x, y, touch);
     const t = hit?.target;
     if (!hit || (t !== 'header-slot' && t !== 'header-state' && t !== 'header-label' && t !== 'section-header'))
       return false;
-    // a header's parts are never a selection's: taken, run once the late parts landed
-    extras?.click(hit, x, y, touch);
+    // a header's parts are never a selection's: taken, run by the late parts; before they land a chip's click is the
+    // input's (the "n filtered" chip clears its filter in one step), the rest taken and doing nothing
+    if (!extras) return t !== 'header-state';
+    extras.click(hit, x, y, touch);
     return true;
   };
 
@@ -497,6 +505,9 @@ export function headersBehavior(context: BehaviorContext, params: HeadersParams 
 
     click,
     context: contextAt,
+    async loaded() {
+      await Promise.all(loading);
+    },
     composed(v) {
       viewer = v;
       const listed = (v.registry ?? []).flatMap((e) =>
@@ -504,8 +515,7 @@ export function headersBehavior(context: BehaviorContext, params: HeadersParams 
       );
       check(listed, []);
       setEntries(listed);
-      void import('./header-extras.js').then((m) => {
-        if (disposed) return;
+      lazy(import('./header-extras.js'), (m) => {
         extras = m.headerExtras({
           viewer: v,
           openMenu,
@@ -517,7 +527,6 @@ export function headersBehavior(context: BehaviorContext, params: HeadersParams 
           factsOf: (t) => factsOf(t),
           itemOf,
           itemsOf,
-          headerTarget,
           menuAtCursor,
         });
         describerFor(context).headers = extras.words;
@@ -551,7 +560,7 @@ export function headersBehavior(context: BehaviorContext, params: HeadersParams 
       // (a lazy chunk, loaded at the mount)
       let stopGestures: (() => void) | undefined;
       let detached = false;
-      void import('@molstar/seqx-viewer/header-gestures').then((m) => {
+      lazy(import('@molstar/seqx-viewer/header-gestures'), (m) => {
         if (detached) return;
         stopGestures = m.headerGestures(container, params.longPressMs ?? 500, contextAt, (x, y) => {
           if (!shownMenu.value && contextAt(x, y)) askedAt = DomHost.now();

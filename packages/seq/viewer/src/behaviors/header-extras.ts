@@ -44,7 +44,6 @@ export interface HeaderInner {
   factsOf(target: HeaderTarget): HeaderFacts | undefined;
   itemOf(e: HeaderEntry, f: HeaderFacts): HeaderMenuItem;
   itemsOf(f: HeaderFacts, on: HeaderEntry['on']): HeaderMenuItem[];
-  headerTarget(hit: RenderHit, layout: ViewLayout | undefined): HeaderTarget | undefined;
   /** Opens the menu at the keyboard cursor (Enter on a header). */
   menuAtCursor(): CommandResult;
   openMenu(target: HeaderTarget, place: { x: number; y: number }, only?: string): boolean;
@@ -74,6 +73,16 @@ export interface HeaderExtras {
 
 const sectionLayout = (layout: ViewLayout | undefined, address: string): SectionLayout | undefined =>
   layout?.sections.find((s) => s.section.address === address);
+
+/** The header a hit is on (a track's line, a slot, a chip, a section's line): its target. */
+export function headerTarget(hit: RenderHit, layout: ViewLayout | undefined): HeaderTarget | undefined {
+  for (const s of layout?.sections ?? []) {
+    if (s.section.address === hit.layer) return { section: s.section.address };
+    for (const t of s.tracks)
+      if (t.track.address === hit.layer) return { section: s.section.address, track: t.track.address };
+  }
+  return undefined;
+}
 
 export function headerExtras(inner: HeaderInner): HeaderExtras {
   const { viewer, dom } = inner;
@@ -173,7 +182,7 @@ export function headerExtras(inner: HeaderInner): HeaderExtras {
   const targetAt = (x: number, y: number, hit: RenderHit | undefined): HeaderTarget | undefined => {
     const layout = viewer.frame?.layout;
     if (!layout) return undefined;
-    const header = hit && inner.headerTarget(hit, layout);
+    const header = hit && headerTarget(hit, layout);
     if (header) return header;
     if (hit)
       for (const s of layout.sections)
@@ -194,14 +203,14 @@ export function headerExtras(inner: HeaderInner): HeaderExtras {
 
   const words = (place: Place) => {
     if (place.layer === undefined) return undefined;
-    const target = inner.headerTarget({ layer: place.layer } as RenderHit, viewer.frame?.layout);
+    const target = headerTarget({ layer: place.layer } as RenderHit, viewer.frame?.layout);
     const f = target && inner.factsOf(target);
     return f ? headerWords(place, f, inner.itemsOf(f, on(target!))) : undefined;
   };
 
   const click = (hit: RenderHit, x: number, y: number, touch: boolean): void => {
     const t = hit.target;
-    const target = inner.headerTarget(hit, viewer.frame?.layout);
+    const target = headerTarget(hit, viewer.frame?.layout);
     if (!target) return;
     if (t === 'header-label' || t === 'section-header') {
       // no hover on touch: a tap on the label shows its slots (as the pointer resting there would), a tap on a slot

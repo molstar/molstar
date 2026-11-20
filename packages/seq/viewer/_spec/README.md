@@ -1028,8 +1028,10 @@ rows' commands) reads the last frame's rows layers through the behavior context'
   the track headers' entries and gestures (core's Track headers draws and hits them). Its eager part is the hover path's
   (the entries made into slots and chips, a run, the menu's state); its late parts (`header-extras.ts`, a lazy chunk
   asked for once composed: the menu's data, the geometry and the parts, a click's and a secondary click's target, the
-  words, the cursor on headers) work once they land: until then a click on a header part is taken and does nothing, and
-  nothing is published.
+  words, the cursor on headers) work once they land: until then a chip's click is the input's (the "n filtered" chip
+  clears its filter in one step), a click on another header part is taken and does nothing, and nothing is published.
+  Its lazy chunks are its handle's `loaded()`, which `settle` waits for; one landing after the viewer is retired is
+  ignored. Why: a settled picture is the whole one, and no import outlives a test's viewer.
   - **Entries** (`header-entries.ts`): `HeaderEntry` (`name` namespaced `<id>:<name>`, `on` `track`, `section` or
     `element`, `kind` `action` or `state`, `icon` `@molstar/ui`'s, `label`, `when`, `command`, `args`, `text`, `order`,
     `slot`, `items` a submenu), listed in the registry as `{ kind: 'header-action', entry }` (`SeqViewerRegistryEntry`)

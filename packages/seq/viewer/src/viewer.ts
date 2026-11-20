@@ -424,11 +424,13 @@ export class SeqViewer extends ReactiveModel {
   private readonly _lengths = new State<Lengths>(new Map(), mapsEqual);
 
   /**
-   * Resolves once the picture is complete: the sources open, the data the view wants arrived, the view settled. A
-   * viewer with no size yet is given the default one. For tests, exports and stories that wait for the picture.
+   * Resolves once the picture is complete: the sources open, the behaviors' lazy chunks landed, the data the view
+   * wants arrived, the view settled. A viewer with no size yet is given the default one. For tests, exports and
+   * stories that wait for the picture.
    */
   async settle(timeoutMs = 10_000): Promise<boolean> {
     await this._syncing;
+    for (const h of this.behaviors.values() as Iterable<BehaviorHandle | undefined>) await h?.loaded?.();
     const until = DomHost.now() + timeoutMs;
     this._clock.quiet = true;
     for (let round = 0; round < 8; round++) {
