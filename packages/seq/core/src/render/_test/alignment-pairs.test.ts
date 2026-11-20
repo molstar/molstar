@@ -40,8 +40,12 @@ const Family: FormatRuntime = {
   },
 };
 
-/** Nested stems around the middle, and pairs whose ends lie either side of the first image tile's edge (256). */
+/**
+ * Nested stems around the middle, pairs whose ends lie either side of the first image tile's edge (256), and one end on
+ * a column row 0 gaps (7: the chain has no residue there).
+ */
 const Pairs: [number, number][] = [
+  [7, 120],
   [10, 590],
   [11, 589],
   [100, 300],
@@ -64,7 +68,8 @@ function rowZero() {
   return { from, to, length };
 }
 
-function spec(): Node {
+/** With `onChain`, the pairs drawn on the chain's section too: not their system, so said, never projected. */
+function spec(o: { onChain?: boolean } = {}): Node {
   const b = createSeqSpec({ title: 'consensus pairs over a family' });
   const file = b.data.source('file', { format: 'family', uri: 'family:seed' });
   const seed = b.data.alignment('seed', { alphabet: 'rna', source: file });
@@ -88,7 +93,9 @@ function spec(): Node {
     s.track('arcs', { label: 'SS_cons' }).layer('arcs', { type: 'pairs', data: pairs });
     s.track('rows', { label: '', height: 200 }).layer('rows', { type: 'rows', data: seed });
     s.track('stems', { label: 'Chain stems' }).layer('stems', { type: 'ranges', data: stems });
-    v.section('chain', { of: chain }).track('letters').layer('letters', { type: 'letters' });
+    const c = v.section('chain', { of: chain });
+    c.track('letters').layer('letters', { type: 'letters' });
+    if (o.onChain) c.track('arcs').layer('arcs', { type: 'pairs', data: pairs });
   });
   return b.build();
 }
@@ -160,12 +167,41 @@ describe('pairs on an alignment’s columns, over its rows', () => {
     expect(onChain.parts.map((p) => [p.system, Array.from(p.ranges)])).toEqual([['/data/chain', [342, 343, 428, 429]]]);
     const projected = new DrawLists();
     drawView(f.layout, projected, { projected: { hover: onChain, hoverSection: sec.section.address } }, ['hover']);
-    expect(projected.passes.hover.rects.n + projected.passes.hover.paths.n).toBeGreaterThan(0);
+    // the chain's section is the one lit: its two residues' cells, nothing over the family's
+    const r = projected.passes.hover.rects;
+    const chainBox = f.layout.sections[1].placement.box;
+    const ax = f.layout.sections[1].placement.strips.axes[0];
+    expect(r.n).toBe(2);
+    for (let k = 0; k < r.n; k++) {
+      expect(r.y[k]).toBeGreaterThanOrEqual(chainBox.y - 2);
+      expect(r.y[k] + r.h[k]).toBeLessThanOrEqual(chainBox.y + chainBox.height + 2);
+    }
+    const centres = Array.from({ length: r.n }, (_, k) => r.x[k] + r.w[k] / 2).sort((a, b) => a - b);
+    expect(centres[0]).toBeCloseTo(ax.xOfUnit(342.5), 0);
+    expect(centres[1]).toBeCloseTo(ax.xOfUnit(428.5), 0);
+    expect(projected.passes.hover.paths.n).toBe(0);
+    // an end on a column row 0 gaps reaches no residue: the pair 7-120 lights its other end alone
+    const gap = projectOntoView(
+      st.model,
+      st.view,
+      location({ parts: [{ system: '/data/seed', ranges: [7, 8, 120, 121] }] }),
+    );
+    expect(gap.parts.map((p) => [p.system, Array.from(p.ranges)])).toEqual([['/data/chain', [102, 103]]]);
     const back = projectOntoView(st.model, st.view, rangesLocation('/data/chain', [85, 86]));
     expect(back.parts.map((p) => [p.system, Array.from(p.ranges)])).toEqual([['/data/seed', [100, 101]]]);
     const fromChain = new DrawLists();
     drawView(f.layout, fromChain, { projected: { hover: back, hoverSection: '/views/v/chain' } }, ['hover']);
     expect(fromChain.passes.hover.paths.n).toBe(1);
+  });
+
+  it('drawn on the chain’s section, the pairs on the columns are said (`seq.render.pairs.systems`), never projected', async () => {
+    const st = await settle(spec({ onChain: true }), [Family]);
+    const f = await st.frame({ size: Size });
+    expect(f.layout.issues.map((i) => [i.code, i.address])).toEqual([
+      ['seq.render.pairs.systems', '/views/v/chain/arcs/arcs'],
+    ]);
+    expect(arcs(f.layout.sections[1]).n).toBe(0);
+    expect(arcs(f.layout.sections[0]).n).toBe(Pairs.length);
   });
 
   it('a selected pair is drawn in the accent; a selection on the columns draws over the rows', async () => {

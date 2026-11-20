@@ -142,9 +142,10 @@ checks it cannot express.
   for every coordinate the language writes.
 - **Systems** a data reference takes (`ranges.target`, `values.target`, `pairs.a`/`b`, `grid.x`/`y`, `map.from`/`to`,
   `block.of`): a sequence, a molecule (its residues) or a unit; `section.of` a complex too (Molecules and complexes).
-  `pairs.a`/`b`, `ranges.target` and `map.to` also take an alignment, meaning its columns system (EC-48): a family's
-  consensus pairs (Stockholm's `SS_cons`) drawn over its rows, a chain mapped onto the columns through the seed row it
-  is closest to (a `segments` map, a run a stretch of the row with no gap). An inline alignment's width bounds their
+  `pairs.a`/`b`, `ranges.target` and `map.to` also take an alignment, meaning its columns system (EC-48's "an alignment
+  its columns"): a family's consensus pairs (Stockholm's `SS_cons`) drawn over its rows, a chain mapped onto the columns
+  through the seed row it is closest to (a `segments` map, a run a stretch of the row with no gap: a stopgap until the
+  design's `alignment` map kind, the gapped row itself, is built; TODO.md). An inline alignment's width bounds their
   ends and ranges (`seq.lang.pairs.bounds`, `seq.lang.ranges.bounds`; a change to its rows checks them again). Why these
   four: they are what a family's annotation and a structure's link to it name; `map.from`, `values`, `grid` and
   `block.of` wait for a use (a map from the columns is the same map read back).
@@ -1318,7 +1319,8 @@ store. `resolveSpec(spec, { runtimes, config })`, or `createResolver` to keep en
   `to`) takes any of a sequence, a molecule and a unit; `pairs.a`/`b`, `ranges.target` and `map.to` an alignment's
   columns too (its address). An alignment's systems are made before the maps, pairs and ranges, which read them. A
   ranges source on an alignment is read on the system named `columns` (its columns system's name, as an alignment
-  source's coverage says it; a records source names it so with `system`).
+  source's coverage says it; a records source names it so with `system`): pending the author's decision (a source shared
+  by two alignments cannot tell their columns apart; TODO.md).
 - **Numberings**: each `numbering` child of a sequence or a unit (`numberings`, by its address;
   `numberingOf(system, id)`): inline labels, an `offset` (`sequentialNumbering`, so labels snap with no scan) and
   `segments` (`maps-numbering.ts`, arithmetic a run, scanned by the forms) a numbering at once (over the open length

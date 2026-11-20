@@ -14,6 +14,7 @@ import type { Node } from '@molstar/core/repr/tree';
 import { checkSeqSpec, createSeqSpec, SeqLanguage, SeqValidateOptions } from '@molstar/seqx-core/lang';
 import { checkSeqChanges } from '@molstar/seqx-core/lang/changes';
 import { partOf, rangesLocation } from '@molstar/seqx-core/query';
+import { resolveViews } from '@molstar/seqx-core/view';
 import { describe, expect, it } from 'vitest';
 import { resolveSpec, rowsSystemOf, type StaticModel } from '../model.js';
 
@@ -66,7 +67,7 @@ function spec(o: { map?: boolean; past?: boolean; values?: boolean } = {}): Node
 const ranges = (m: StaticModel, from: string, r: number[], to: string) =>
   Array.from(partOf(m.project(rangesLocation(from, r), to).location, to)?.ranges ?? []);
 
-describe('an alignment named by pairs, ranges and maps (EC-48: an alignment its columns)', () => {
+describe('an alignment named by pairs, ranges and maps (EC-48, in part: an alignment its columns)', () => {
   it('the checks take it, and bound its ends by the columns; `values` still names a system only', () => {
     expect(checkSeqSpec(spec())).toEqual([]);
     const past = checkSeqSpec(spec({ past: true })).map((i) => [i.code, i.address]);
@@ -114,11 +115,35 @@ describe('an alignment named by pairs, ranges and maps (EC-48: an alignment its 
     // back: the gapped columns 5 and 8 map nowhere; the stems on the columns reach the chain's residues
     expect(ranges(m, '/data/seed', [5, 6], '/data/chain')).toEqual([]);
     expect(ranges(m, '/data/seed', [9, 12], '/data/chain')).toEqual([7, 10]);
-    expect(m.path('/data/chain', '/data/seed').path).toBe(m.path('/data/chain', '/data/seed').path);
+    // the path: one step, the map read forward from the chain onto the columns, its runs the row's
+    const path = m.path('/data/chain', '/data/seed').path!;
+    expect([path.from, path.to, path.step]).toEqual(['/data/chain', '/data/seed', 0]);
+    expect(path.edges.map((e) => [e.map, e.from, e.to, e.backward])).toEqual([
+      ['/data/onto', '/data/chain', '/data/seed', false],
+    ]);
+    expect(path.linear.runs()?.map((r) => [r.from, r.to, r.length])).toEqual([
+      [0, 0, 5],
+      [5, 6, 2],
+      [7, 9, 3],
+    ]);
   });
 
-  it('with no map, nothing on the columns reaches the chain: the path’s issue, said once', () => {
-    const m = resolveSpec(spec({ map: false }));
-    expect(m.path('/data/seed', '/data/chain').issue?.code).toBe('seq.resolve.path.none');
+  it('with no map, the ranges on the columns shown on the chain’s section: unplaced, said once', () => {
+    const issues = resolveViews(resolveSpec(spec({ map: false }))).flatMap((v) => v.issues);
+    expect(issues.map((i) => i.code)).toEqual(['seq.view.layer.unplaced']);
+    expect(issues.map((i) => i.address)).toEqual(['/views/v/chain/stems/stems']);
+  });
+
+  it('a ranges source on an alignment is read on the system named `columns` (pinned, pending the author)', () => {
+    const b = createSeqSpec({ title: 'a ranges source on the columns' });
+    const seed = b.data.alignment('seed', { alphabet: 'rna', rows: Seed });
+    const file = b.data.source('gc-file', { format: 'bed', uri: 'gc.bed' });
+    b.data.ranges('gc', { target: seed, source: file });
+    const m = resolveSpec(b.build());
+    const gc = m.annotations.get('/data/gc')!;
+    expect([gc.target, gc.access]).toEqual([
+      '/data/seed',
+      { kind: 'source', source: '/data/gc-file', system: 'columns', shape: 'ranges' },
+    ]);
   });
 });

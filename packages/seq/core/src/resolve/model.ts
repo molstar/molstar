@@ -39,7 +39,7 @@ import {
   type Tables,
 } from '@molstar/seqx-core/data';
 import { channelAddress, runtimeFor } from '@molstar/seqx-core/data/channels';
-import type { SeqKinds } from '@molstar/seqx-core/lang';
+import { type SeqKinds, SeqLanguage } from '@molstar/seqx-core/lang';
 import {
   type ItemsRead,
   type Location,
@@ -408,10 +408,10 @@ export function resolveSpec(spec: Node, options: ResolveOptions = {}): StaticMod
 const p = (n: Node, key: string): Value | undefined => n.params?.[key];
 
 /** The kinds a data reference to a system takes: a sequence, a molecule's residues, a unit of a complex. */
-const SystemRefs = ['sequence', 'molecule', 'unit'] as const;
+const SystemRefs: readonly string[] = SeqLanguage.kinds.map.params.from.kinds;
 const SystemKinds: ReadonlySet<string> = new Set(SystemRefs);
-/** What `pairs.a`/`b`, `ranges.target` and `map.to` take besides: an alignment, by its columns system (its address). */
-const ColumnsRefs = [...SystemRefs, 'alignment'] as const;
+/** What `pairs.a`/`b`, `ranges.target` and `map.to` take: a system or an alignment, by its columns (the description's). */
+const ColumnsRefs: readonly string[] = SeqLanguage.kinds.map.params.to.kinds;
 
 function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: ReadonlyMap<string, PathEntry>): Model {
   const config: ResolveConfig = { ...DefaultResolveConfig, ...options.config };

@@ -162,7 +162,8 @@ base-library change, below), archives. The Genomes milestone is the fifth.
   - a heme per heavy atom (4HHB's hemes are one position each this slice) and the map from 4HHB's units onto the seed's
     columns (a `segments` map through the closest row, as the tRNA's chain; the `alignment` map kind, the gapped row
     itself with no runs written, is not built); pairs on an alignment's columns are drawn on its sections only (a
-    chain's section says `seq.render.pairs.systems`: pairs are not projected);
+    chain's section says `seq.render.pairs.systems`: pairs are not projected); every alignment's columns system is named
+    `columns`, so a ranges source shared by two alignments cannot tell them apart (pending the author);
   - the text layout's `chrome` throws when an alignment's source has not opened (`render/layout/text.ts`, its
     placement's `marks` undefined: a figure over a seed whose runtime is missing).
 - **Rings and blocks** (built: the rings layout with labels, the title and the window; blocks in tracks and on rings):
