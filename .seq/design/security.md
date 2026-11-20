@@ -50,12 +50,12 @@ bounded before it starts (§bounded-work).
   | a grid or matrix block | 2^24 values (EC-58) |
   | regular expressions in search | linear-time matching only (no backreferences), a step budget |
   | `custom` payloads | counted in the spec size; never interpreted by a reader that does not own them |
-  | an archive | entries, total size, no path above its root (EC-91) |
+  | an archive | entries (1,000), total size (256 MB), one entry (64 MB), the ratio (200, over 64 KB), names (no path above its root, absolute, a drive, a backslash, control characters, empty or `.` segments, over 256, or a duplicate however cased), all read from the central directory before anything is inflated; what is written is checked by the same bounds (EC-91) |
 
   Built in the second slice (lane Q): the spec's size, nesting, query depth, a column's length and the issues kept
   (`SpecBounds`, held by the check, the viewer's patches, previews and story steps), a block's values and an answer's
-  dynamic nodes (at most 10,000 and 16 MB together, `AnswerBounds`), nested sources. The regular expressions' and the
-  archive's bounds land with search and archives.
+  dynamic nodes (at most 10,000 and 16 MB together, `AnswerBounds`), nested sources. The archive's bounds are built in the
+  fourth slice (lane AR, `ArchiveLimits`); the regular expressions' land with search.
 
 - **Output is escaped**: SVG text and attributes are escaped by the SVG backend; labels from data never become markup;
   links act only through commands on addresses ([addressing.md](addressing.md)).

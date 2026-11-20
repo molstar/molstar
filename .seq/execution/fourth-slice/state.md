@@ -46,6 +46,7 @@ One row a merged lane (loop, step 5, record): review findings and look findings 
 
 | Lane | Merged | Bug | Missing design | Look | Notes |
 | --- | --- | --- | --- | --- | --- |
+| AR | 2026-11-20 | 3 (review: duplicate names past the bounds; a written archive failing the ratio; case-folded names) | 0 | 0 | six low (a Configuration table, host spec bounds, version, exports, the fuzz's asserts, the story's reads); the look clean |
 
 ## How to verify
 

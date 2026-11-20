@@ -315,7 +315,7 @@ disagrees with its code writes a drift note and stops.
 - [ ] SV (fast, after MK and ST3) services in Storybook: UniProt, PDBe SIFTS, AlphaFold DB as runtimes from recorded
       fixtures with a live switch; the predictions-onto-a-structure and addressing showcases on the fake viewer; a
       user's own file (Gate 0, 12) (`briefs/sv-services.md`).
-- [ ] AR (fast, any time after stage 0) archives over the assets port: read and write zip with `@molstar/core/util/zip`,
+- [x] AR (merged 2026-11-20) (fast, any time after stage 0) archives over the assets port: read and write zip with `@molstar/core/util/zip`,
       entries resolved as assets, EC-91's bounds; every dataset saved and opened (`briefs/ar-archives.md`).
 - [ ] NG (fast, any time after stage 0) the resolved view's second consumer (the author, 2026-11-19: Nightingale
       dropped, "our own test consumer only"): a test-only plain-SVG consumer of letters, ranges, values and variants
