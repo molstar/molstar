@@ -40,17 +40,9 @@ describe('the structure language on PDB entries', { tags: ['medium'] }, () => {
     const t = sourceRun('1fin', (await openEntry('1FIN')).coverage.nodes ?? []);
     const a = '/data/1fin/(node :key complex)/A';
     expect(loc(t.run('/data/1fin/(elements :chain A :beg 10 :end 20)'), a)).toEqual([9, 20]);
-    // as text: b-factor is an atom's (properties.md), so over residues it is a level error, said, never guessed
-    const residues = '/data/1fin/(elements :chain A)/(filter :test (> (prop b-factor) 60))';
-    expect(printAddress(parseAddress(residues).pattern!.segments)).toBe(residues);
-    expect(codes(t.run(residues))).toEqual(['seq.query.property.level']);
-    // over atoms it reads: none are held on a polymer, and no b-factor channel is written yet (MC): nothing, a warning
-    const mobile = t.run('/data/1fin/(elements :chain A :atom CA)/(filter :test (> (prop b-factor) 60))');
-    expect(count(mobile)).toBe(0);
-    expect(codes(mobile).every((c) => c === 'seq.query.property.absent')).toBe(true);
-    // atoms of a polymer are not held (molecules.md): an atom field there lacks, a warning (drift: the eleven Cα)
+    // a polymer's atoms read by its residues' standard components: the eleven residues with a CA (no warning)
     const ca = t.run('/data/1fin/(elements :chain A :beg 10 :end 20 :atom CA)');
-    expect([count(ca), codes(ca)]).toEqual([0, ['seq.query.property.absent']]);
+    expect([loc(ca, a), codes(ca)]).toEqual([[9, 20], []]);
     const units = t.form('/data/1fin', {
       kind: 'groups',
       params: { 'unit-test': ex('=', prop('auth-chain'), 'A'), by: 'unit' },
@@ -62,6 +54,37 @@ describe('the structure language on PDB entries', { tags: ['medium'] }, () => {
       params: { test: ex('=', prop('component'), 'ATP') },
     });
     expect(count(p)).toBe(6);
+  });
+
+  it('1FIN: b-factor read where its channel lies, a residue’s from the mmCIF runtime: residues filtered as text', async () => {
+    const source = await openEntry('1FIN');
+    const unit = '/data/1fin/(node :key complex)/A';
+    const read = await source.read(
+      { system: 'A', start: 0, end: 298, level: 1, shapes: ['values'], field: 'b_factor' },
+      new AbortController().signal,
+    );
+    if (!read.ok || read.tables.values?.form !== 'positions') throw new Error('no values');
+    const values = read.tables.values;
+    const channel = { kind: 'values', id: 'bf', params: { target: unit, source: '/data/1fin', field: 'b_factor' } };
+    const data = {
+      coverage: () => source.coverage,
+      keysOf: () => ['A'],
+      get: () => ({ status: 'loaded', tables: { values } }),
+    };
+    const t = sourceRun('1fin', [...(source.coverage.nodes ?? []), { key: 'bf', node: channel }], undefined, {
+      data: data as never,
+    });
+    const text = '/data/1fin/(elements :chain A)/(filter :test (> (prop b-factor) 60))';
+    expect(printAddress(parseAddress(text).pattern!.segments)).toBe(text);
+    const r = t.run(text);
+    expect(codes(r)).toEqual([]);
+    const expected: number[] = [];
+    for (let i = 0; i < values.value.length; i++) if (values.value[i] > 60) expected.push(values.start + i);
+    expect(expected.length).toBeGreaterThan(0);
+    const got = loc(r, unit) as number[];
+    const positions: number[] = [];
+    for (let k = 0; k < got.length; k += 2) for (let p = got[k]; p < got[k + 1]; p++) positions.push(p);
+    expect(positions).toEqual(expected);
   });
 
   it('3SGJ: a C1 a glycan residue; the Asn297s and what their links join (EC-62)', async () => {

@@ -58,8 +58,9 @@ export const BuiltInProperties: readonly PropertyDef[] = Object.freeze([
   def('atom', 'atom', 'word', 'label_atom_id'),
   def('element', 'atom', 'word', 'type_symbol'),
   def('atom-index', 'atom', 'integer', 'atom_index'),
-  def('b-factor', 'atom', 'number', 'B_iso_or_equiv'),
-  def('occupancy', 'atom', 'number'),
+  // values channels: read where their channel lies (an atom's, else its residue's), so a residue may test them
+  def('b-factor', 'residue', 'number', 'B_iso_or_equiv'),
+  def('occupancy', 'residue', 'number'),
 ]);
 
 /** The properties a query reads: the built-ins and the registry's, by every name each has. */

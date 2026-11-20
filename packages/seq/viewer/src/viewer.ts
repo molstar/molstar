@@ -210,8 +210,7 @@ export class SeqViewer extends ReactiveModel {
     this.modelIssues = modelIssuesState(this);
     // an element selected by an address and then toggled is drawn by its extent, resolved over what is shown
     const selection = (this.selection = new SelectionModel(
-      (els) =>
-        locationOfResult(spec.shown.value, this.addresses.queryModel(), { type: 'keys', keys: els }).location,
+      (els) => locationOfResult(spec.shown.value, this.addresses.queryModel(), { type: 'keys', keys: els }).location,
       { extendScope: config.selection.extendScope, acrossBreaks: config.selection.acrossBreaks },
     ));
     const emphasis = (this._emphasis = new ViewerEmphasis(this));

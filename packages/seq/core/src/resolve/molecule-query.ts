@@ -9,6 +9,7 @@
 // `molecules.ts`, so the static model and the overlay answer alike.
 
 import { type Node, parseAddress } from '@molstar/core/repr/tree';
+import { standardComponent } from '@molstar/core/util/sequence-constants';
 import type { Numbering, QueryAtoms, QueryComponents, QueryMolecule, QueryUnit } from '@molstar/seqx-core/query';
 import type { SystemEntry } from './model.js';
 import {
@@ -102,6 +103,8 @@ export function componentsOf(
     ...(letters === undefined && system.source ? { pending: true } : {}),
     ...(index ? { modified: index } : {}),
     at: (p) => componentsAt(index, system.alphabet, letters, p),
+    standard: (p) =>
+      system.alphabet && letters && p < letters.length ? standardComponent(system.alphabet, letters[p]) : undefined,
   };
 }
 

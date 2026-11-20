@@ -159,8 +159,10 @@ describe('monadic composition', () => {
   });
 
   it('an element lacking a property yields nothing, the rest stays: one warning', () => {
-    const r = g.run('/data/c/(elements :atom C1)');
-    expect([count(r), codes(r)]).toEqual([8, ['seq.query.property.absent']]);
+    const r = g.run('/data/c/(elements :atom-index 0)');
+    expect([count(r), codes(r)]).toEqual([1, ['seq.query.property.absent']]);
+    // a polymer's atoms read by its residues' standard components: none has a C1, nothing lacks
+    expect(codes(g.run('/data/c/(elements :atom C1)'))).toEqual([]);
   });
 
   it('combinators over one type: except of a location, one operand its complement within the prefix', () => {

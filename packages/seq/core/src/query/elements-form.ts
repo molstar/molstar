@@ -231,10 +231,10 @@ function walkFrame(
   const f = reads.frame;
   let authCache: Map<number, number[]> | undefined | null = null;
   const auth = () => (authCache === null ? (authCache = authIndex(f)) : authCache);
-  // a frame without atoms (a polymer's unit) is still tested by residue: its atom fields then lack, counted only
-  // where its residue fields matched, and it gives nothing
+  // a frame without atoms held (a polymer's unit) is tested by residue: an atom field reads the atoms of its standard
+  // component (`residue-atoms.ts`), so the residues having that atom are the result, as a structure viewer reads them
+  // (the author, 2026-11-20); where nothing knows them, they lack, counted where the residue fields matched
   const atoms = level >= Atoms ? reads.atoms() : undefined;
-  const lacking = level >= Atoms && !atoms;
   const all = f.residues ? Array.from(f.residues) : [0, f.system.length];
   const out: number[] = [];
   for (const r of rows) {
@@ -249,7 +249,7 @@ function walkFrame(
       for (let p = positions[k]; p < positions[k + 1]; p++) {
         tick(ctx);
         if (!atoms) {
-          if ((!pred || pred.test(rs!, p, -1)) && !lacking) out.push(p, p + 1);
+          if (!pred || pred.test(rs!, p, -1)) out.push(p, p + 1);
           continue;
         }
         const [s, e] = atoms.atomsOf(p);

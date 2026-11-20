@@ -12,7 +12,7 @@
 
 import { type ReadonlyState, ReactiveModel, State } from '@molstar/core/reactive';
 import type { Hit as RenderHit } from '@molstar/seqx-core/render';
-import { type ElementKey, EmptyLocation, type Location, location } from '@molstar/seqx-core/query';
+import { type Key, EmptyLocation, type Location, location } from '@molstar/seqx-core/query';
 import { projectRanges, type Path } from '@molstar/seqx-core/resolve';
 import { projectOntoView } from '@molstar/seqx-core/view';
 import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
@@ -66,7 +66,7 @@ export interface HoverRecord {
   readonly system: string | undefined;
   /** NaN when the hover is no position. */
   readonly position: number;
-  readonly element: ElementKey | undefined;
+  readonly element: Key | undefined;
   readonly extent: Location | undefined;
   /** The position on a second axis (a rows cell's row, a grid's y) and its system: NaN and undefined when none. */
   readonly ySystem: string | undefined;
@@ -84,7 +84,7 @@ export interface HoverRecord {
 
 type MutableRecord = { -readonly [K in keyof HoverRecord]: HoverRecord[K] };
 
-const keysEqual = (a: ElementKey | undefined, b: ElementKey | undefined) =>
+const keysEqual = (a: Key | undefined, b: Key | undefined) =>
   a === b || (!!a && !!b && a.owner === b.owner && a.key === b.key);
 
 export class HoverModel extends ReactiveModel {

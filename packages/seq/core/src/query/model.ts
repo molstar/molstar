@@ -161,6 +161,11 @@ export interface QueryComponents {
   };
   /** The components at a position: its non-standard ones (alternatives in order), else its standard one or code. */
   at(position: number): readonly string[];
+  /**
+   * A polymer position's standard component, by its letter (a modified residue's parent: `MET` under `MSE`): what an
+   * atom field reads where the residue's atoms are not held.
+   */
+  standard?(position: number): string | undefined;
 }
 
 /** A unit of a complex, as the node forms read it. */

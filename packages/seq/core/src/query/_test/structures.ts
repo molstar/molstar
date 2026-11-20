@@ -72,13 +72,14 @@ export function sourceRun(
   id: string,
   nodes: readonly { key: string; node: Node }[],
   extensions?: QueryExtensions,
+  src?: RowsSource,
 ): Run {
   const b = createSeqSpec();
   b.data.source(id, { format: 'mmcif', uri: `${id}.cif` });
   const spec = b.build();
   const model = resolveSpec(spec);
   const overlay = buildOverlay(model, reader(nodes, `/data/${id}`));
-  return runner(spec, overlayQueryModel(model, overlay), extensions);
+  return runner(spec, overlayQueryModel(model, overlay, src), extensions);
 }
 
 /** A Location result's ranges on a system, else the issues' codes. */

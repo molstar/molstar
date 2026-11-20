@@ -46,19 +46,6 @@ export {
   subtractKeys,
   unionKeys,
 } from './keys.js';
-/**
- * The names before Keys (the author, 2026-11-20: "Rename to Keys"), kept for the viewer until its split lands (SZ):
- * removed then, 0.5.0 being unreleased.
- * @deprecated `Key`, `Keys`, `EmptyKeys`, `keySet`, `keysEqual`, `unionKeys`.
- */
-export {
-  type Key as ElementKey,
-  type Keys as Elements,
-  EmptyKeys as EmptyElements,
-  keySet as elements,
-  keysEqual as elementsEqual,
-  unionKeys as unionElements,
-} from './keys.js';
 export { type Evaluation, evaluateQuery, type QueryOptions, QueryFormKinds, queryResolvers } from './forms.js';
 export { ExpressionKinds, type ExprValue } from './expressions.js';
 export {

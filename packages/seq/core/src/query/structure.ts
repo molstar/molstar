@@ -14,6 +14,7 @@ import { type Atom, type Named, parseAddress, printAddress } from '@molstar/core
 import { type Ctx, fail, prefixNodes, stage, tick } from './form-kit.js';
 import { keysExtent } from './key-extent.js';
 import { parseLabel } from './labels.js';
+import { atomElement, standardAtoms } from './residue-atoms.js';
 import { isEmptyLocation, type Location, rangesLocation } from './location.js';
 import type { PropertyRead, QueryAtoms, QueryComponents, QuerySystem, QueryUnit } from './model.js';
 import { findNumbering, numberingPending } from './numbering.js';
@@ -161,9 +162,35 @@ export class FrameReads {
     return r;
   }
 
-  private hooked(name: string, system: string | undefined, field?: string): Reader | 'pending' | undefined {
+  private hooked(
+    name: string,
+    system: string | undefined,
+    field?: string,
+    atoms?: boolean,
+  ): Reader | 'pending' | undefined {
     if (!system) return undefined;
-    return byColumn(this.ctx.model.property?.(system, name, field), (r, a) => (a >= 0 ? a : r));
+    const at =
+      atoms === undefined
+        ? (r: number, a: number) => (a >= 0 ? a : r)
+        : atoms
+          ? (_: number, a: number) => a
+          : (r: number) => r;
+    return byColumn(this.ctx.model.property?.(system, name, field), at);
+  }
+
+  /**
+   * A polymer residue's atoms where they are not held (the author, 2026-11-20: "Residues, as a structure viewer reads
+   * them"): the heavy atoms of its standard component (a modified residue's parent), a set of names (or elements) an
+   * atom field tests by membership; undefined where neither the components nor the table know them.
+   */
+  private residueAtoms(elements: boolean): Reader | 'pending' | undefined {
+    const c = this.comps();
+    if (!c?.polymer) return undefined;
+    return (r) => {
+      const code = c.standard?.(r) ?? c.at(r)[0];
+      const names = code === undefined ? undefined : standardAtoms(code);
+      return names && (elements ? [...new Set(names.map(atomElement))] : names);
+    };
   }
 
   private make(d: PropertyDef): Reader | 'pending' | undefined {
@@ -217,14 +244,21 @@ export class FrameReads {
       case 'element':
       case 'atom-index': {
         const atoms = this.atoms();
-        if (!atoms) return undefined;
+        if (!atoms) return d.name === 'atom-index' ? undefined : this.residueAtoms(d.name === 'element');
         if (d.name === 'atom-index') return (_, a) => a;
         const col = d.name === 'atom' ? atoms.names : atoms.element;
         return (_, a) => col.get(a) ?? undefined;
       }
-      default:
-        // `b-factor`, `occupancy`: values channels on the atoms the hook answers, lacking otherwise
-        return this.hooked(d.name, this.atoms()?.address);
+      default: {
+        // `b-factor`, `occupancy`: values channels, read at the level of the system their channel lies on (an atoms
+        // channel answers atoms, a residues channel residues: the mmCIF runtime serves them a residue), else lacking
+        const onAtoms = this.hooked(d.name, this.atoms()?.address, undefined, true);
+        const onResidues = this.hooked(d.name, frame.system.address, undefined, false);
+        if (onAtoms === 'pending' || onResidues === 'pending') return 'pending';
+        if (!onAtoms) return onResidues;
+        if (!onResidues) return (r, a) => (a >= 0 ? onAtoms(r, a) : undefined);
+        return (r, a) => (a >= 0 ? (onAtoms(r, a) ?? onResidues(r, a)) : onResidues(r, a));
+      }
     }
   }
 

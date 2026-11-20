@@ -104,14 +104,18 @@ describe('(atoms), (elements :atom …)', () => {
     expect(codes(run('/data/fc/(atoms)'))).toEqual(['seq.query.node.missing']);
   });
 
-  it('atoms by name, on the system’s atoms; a system without atoms lacks them (a warning, nothing)', () => {
+  it('atoms by name, on the system’s atoms; on a polymer, the residues whose standard component has them', () => {
     expect(loc(run('/data/atp/(elements :atom O1G)'), '/data/atp/(atoms)')).toEqual([1, 2]);
     expect(loc(run('/data/c/L/(elements :atom [PG N1])'), '/data/c/L/(atoms)')).toEqual([0, 1, 2, 3]);
-    const none = run('/data/fc/(elements :atom O1G)');
-    expect([none.result?.type === 'location' && none.result.location.parts.length, codes(none)]).toEqual([
-      0,
-      ['seq.query.property.absent'],
-    ]);
+    // residues, as a structure viewer reads them: a CA on every amino acid, an SD on the MET under the MSE
+    const ca = run('/data/fc/(elements :atom CA)');
+    expect([loc(ca, '/data/fc'), codes(ca)]).toEqual([[0, 22], []]);
+    expect(loc(run('/data/fc/(elements :atom SD)'), '/data/fc')).toEqual([0, 1]);
+    expect(loc(run('/data/fc/(elements :element S)'), '/data/fc')).toEqual([0, 1]);
+    expect(loc(run('/data/fc/(elements :atom O1G)'), '/data/fc')).toEqual([]);
+    expect(loc(run('/data/trna/(elements :atom "O2\'" :component G)'), '/data/trna')).toEqual([0, 1, 2, 4, 14, 15]);
+    // an atom's index is a held atom's alone
+    expect(codes(run('/data/fc/(elements :atom-index 0)'))).toEqual(['seq.query.property.absent']);
   });
 });
 

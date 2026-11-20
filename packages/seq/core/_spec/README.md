@@ -470,8 +470,7 @@ address, `/data/p53/(range :from 94 :to 292)`.
   A number never equals a string (`1` is not `"1"`), as in an address. Keys are sorted (owner, numbers before strings)
   and each once; compared and hashed as values.
 - **Their extent** (`key-extent.ts`): an annotation's items by their ranges; a structure group's (`groups`) by its
-  owner: a residues or atoms system's position, a complex's unit by its id, or its entity's units. The viewer still
-  imports the old names (`ElementKey`, `Elements`, `EmptyElements`, …), re-exported as deprecated until its split lands.
+  owner: a residues or atoms system's position, a complex's unit by its id, or its entity's units.
 
 ### Numberings and labels
 
@@ -572,9 +571,11 @@ source's).
   over the auth numbering in its order (EC-1 to EC-8: an end it lacks snaps inward); `seq` with `beg` or `end` in one
   row, `beg` past `end`, one property under two names: errors naming the row. Rows count against the limit.
 - **Its depth** is its finest field: none below a unit, every matching unit's whole residues system; residue fields,
-  those positions; an atom field, positions on the units' atoms systems. A frame without atoms (a polymer's unit: Seq\*
-  holds no polymer atoms) is tested by residue: its atom fields lack where its residue fields matched (a warning), and
-  it gives nothing. Why: the record says how deep it goes, as MolViewSpec's does.
+  those positions; an atom field, positions on the units' atoms systems. A frame without atoms held (a polymer's unit)
+  is tested by residue: an atom field reads the heavy atoms of its standard component (`query/residue-atoms.ts`; a
+  modified residue by its parent, its letter's), so the result is the residues that have that atom, as a structure
+  viewer reads them, and a viewer given them picks the atoms (the author, 2026-11-20: "Residues, as a structure viewer
+  reads them"); `atom-index` lacks there. Why: the record says how deep it goes, as MolViewSpec's does.
 - **Sugar, exactly** (`itemsPredicate`): a field `:f v` is `(= (prop f) v)`, `:beg b :end e` `(in-range (prop seq) b e)`
   (an end alone `>=` or `<=`), a row `and` of its fields, items `or` of their rows; a property test holds the walk equal
   to `filter` with that predicate over the same elements. The walk differs in speed only: rows indexed by their molecule
@@ -614,15 +615,17 @@ properties.md (`query/properties.ts`): a typed symbol read per element of one le
   `index` (`residue_index`), `component` (`label_comp_id`, words: the alternatives), `component-class` (the words of the
   components' classes), `standard`, `modified` (non-standard, or under a `modified`-type annotation item: `type`, else
   `category`, `modified`, `glycosylation` or `lipidation`); atom `atom` (`label_atom_id`), `element` (`type_symbol`),
-  `atom-index` (`atom_index`), `b-factor` (`B_iso_or_equiv`), `occupancy`. A bare unknown name is
-  `seq.query.form.param`, its hint listing the names (a near spelling first); a namespaced one nobody registered
-  `seq.query.extension.missing`.
+  `atom-index` (`atom_index`); `b-factor` (`B_iso_or_equiv`) and `occupancy`, values channels read where their channel
+  lies (an atoms channel an atom's, a residues channel, as the mmCIF runtime serves them, a residue's: residue-level, so
+  a residue's test may read them; the author, 2026-11-20). A bare unknown name is `seq.query.form.param`, its hint
+  listing the names (a near spelling first); a namespaced one nobody registered `seq.query.extension.missing`.
 - **How each is read** (`FrameReads`, made once a frame and a property): the units (`QueryUnit.entity`, `chain`, …), the
   molecules, the components and the modified index, the numberings (`auth`), the atoms (`QueryAtoms.names`, `element`,
   `residue`, `atomsOf`); a residue property on an atom reads its residue's. `b-factor`, `occupancy` and `(value …)` are
-  values channels the `QueryModel.property(system, name, field?)` hook answers (`resolve/query-values.ts`: a `values`
-  annotation on the system from the store's tiles, `'pending'` while one is not loaded, the frame then staged with
-  `seq.query.property.pending`); the mmCIF runtime does not write the atoms' channels yet (MC), so they lack.
+  values channels the `QueryModel.property(system, name, field?)` hook answers (on the atoms system first, then the
+  residues) (`resolve/query-values.ts`: a `values` annotation on the system from the store's tiles, `'pending'` while
+  one is not loaded, the frame then staged with `seq.query.property.pending`); a polymer's atoms read their residues'
+  standard components (Language, `elements`).
 - **An element that lacks a property** fails its test and yields nothing; one warning a property,
   `seq.query.property.absent`, naming it and the count. Why: monadic composition.
 

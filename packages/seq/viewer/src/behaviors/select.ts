@@ -13,7 +13,7 @@
 // alignment's rows) the same gestures select rects: a click a one-cell rect, Shift+click the rect from the anchor
 // cell, Cmd/Ctrl+click toggles the cell, a drag a rect, Cmd/Ctrl+drag adds one, Alt+drag subtracts one.
 
-import { EmptyElements, type Location, rangesLocation } from '@molstar/seqx-core/query';
+import { EmptyKeys, type Location, rangesLocation } from '@molstar/seqx-core/query';
 import type { Axis } from '@molstar/seqx-core/view';
 import type { CommandDefinition, CommandResult } from '@molstar/ui/commands/types';
 import type { BindingTable, ModifierState } from '@molstar/seqx-viewer/bindings';
@@ -301,7 +301,7 @@ export function selectBehavior(
           selection.set(over.before);
           if (over.mode === 'add') selection.add(r);
           else selection.subtract(r);
-        } else selection.set({ elements: EmptyElements, location: r, shown: r });
+        } else selection.set({ elements: EmptyKeys, location: r, shown: r });
         return selection.value.value !== was;
       }
       if (rect) {
