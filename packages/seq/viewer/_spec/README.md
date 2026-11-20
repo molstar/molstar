@@ -1044,16 +1044,16 @@ rows' commands) reads the last frame's rows layers through the behavior context'
   `loaded` and `preview`.
   - **Entries** (`header-entries.ts`): `HeaderEntry` (`name` namespaced `<id>:<name>`, `on` `track`, `section` or
     `element`, `kind` `action` or `state`, `icon` `@molstar/ui`'s, `label`, `when`, `command`, `args`, `text`, `order`,
-    `slot`, `items` a submenu of other commands or args: a layer's checkboxes, a chip's list), listed in the registry as `{ kind: 'header-action', entry }`
-    (`SeqViewerRegistryEntry`) or registered at run time (`register(...entries)`, returning its undo). Registration is
-    atomic: every problem in one error before anything changes (a name twice, no namespace, a command the viewer lacks,
-    `seq.viewer.header.command`); the registry's are checked once every behavior is made (`BehaviorHandle.composed`).
-    The label and icon default to the command's. **A command whose one param is a select is a submenu** of its options
-    (an entry with no `items`): each item the entry's args with the choice under the param's name, the param's default
-    checked, previewed while hovered through the command's `preview`; a command reads the choice from its args (a
-    palette's) or its context (`viewer.execute`'s). Why: the command owns its choices, so the menu, a palette and an
-    agent offer the same. Why entries: one list for a slot, a menu item, a DOM part, a key and an
-    agent; the registry's rules (atomic, undoable, namespaced) for free.
+    `slot`, `items` a submenu of other commands or args: a layer's checkboxes, a chip's list), listed in the registry as
+    `{ kind: 'header-action', entry }` (`SeqViewerRegistryEntry`) or registered at run time (`register(...entries)`,
+    returning its undo). Registration is atomic: every problem in one error before anything changes (a name twice, no
+    namespace, a command the viewer lacks, `seq.viewer.header.command`); the registry's are checked once every behavior
+    is made (`BehaviorHandle.composed`). The label and icon default to the command's. **A command whose one param is a
+    select is a submenu** of its options (an entry with no `items`): each item the entry's args with the choice under
+    the param's name, the param's default checked, previewed while hovered through the command's `preview`; a command
+    reads the choice from its args (a palette's) or its context (`viewer.execute`'s). Why: the command owns its choices,
+    so the menu, a palette and an agent offer the same. Why entries: one list for a slot, a menu item, a DOM part, a key
+    and an agent; the registry's rules (atomic, undoable, namespaced) for free.
   - **Built-ins** (`BuiltInHeaderEntries`, in the default spec's registry; a host leaves one out to remove it):
     `seq:hide` (`eye-off`, `track.hide`), `seq:color` (`palette`, the first shown layer with more than one fitting
     scheme: `layer.channel`'s choices a submenu, previewed while focused or hovered), `seq:layers` (more than one
@@ -1248,14 +1248,14 @@ settle: a legend that changes during a pan reads as noise, and its cost stays of
 - **The legend behavior's commands** (`behaviors/theming.ts`, patches unless said): `layer.channel` (a channel's value
   or form set or unset, on one layer or several in one patch; on one layer's color its choices are a select param,
   `scheme`, the layer's fitting schemes, its default the layer's scheme: read when no `value` is given; its `preview`
-  the gesture's preview), `scale.set` (a scale's params; `null` reopens a domain's
-  end), `theme.value-color` (one value's color in a field form's palette, the listed values keeping theirs; refused on a
-  scheme, rules or any other form: never replaced), `layer.filter` (a value's items hidden or shown again: one patch of
-  the layer's `data`, a trailing `(not …)` of the values hidden; no value: cleared, every layer of `addresses` in one
-  patch, as a click on the track's "n filtered" chip). The user's filter is only that trailing `(not …)` (`dataFilter`):
-  what leads it, the annotation and a leading run of item forms (`<annotation>/(item :category Domain)`, a layer a
-  feature type), is the layer's base, kept when the filter is set, toggled or cleared, its rejected rows not counted as
-  filtered (core's Render, Filters: `splitDataForms` is the one parser). A legend entry's items are the base's forms and
+  the gesture's preview), `scale.set` (a scale's params; `null` reopens a domain's end), `theme.value-color` (one
+  value's color in a field form's palette, the listed values keeping theirs; refused on a scheme, rules or any other
+  form: never replaced), `layer.filter` (a value's items hidden or shown again: one patch of the layer's `data`, a
+  trailing `(not …)` of the values hidden; no value: cleared, every layer of `addresses` in one patch, as a click on the
+  track's "n filtered" chip). The user's filter is only that trailing `(not …)` (`dataFilter`): what leads it, the
+  annotation and a leading run of item forms (`<annotation>/(item :category Domain)`, a layer a feature type), is the
+  layer's base, kept when the filter is set, toggled or cleared, its rejected rows not counted as filtered (core's
+  Render, Filters: `splitDataForms` is the one parser). A legend entry's items are the base's forms and
   `(item :<field> v)` in one query (`itemsAddress`: one item form holding every param, or an `and` when the base has
   `and` or `or`), `legend.select` (session: the items whose field has the value; Cmd/Ctrl toggles), `legend.hover`
   (session: a highlight named `legend`), `theme.cvd-safe` (session). `fittingSchemes(layer)` is what a menu offers (the

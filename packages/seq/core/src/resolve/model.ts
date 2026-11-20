@@ -35,6 +35,7 @@ import {
   SeqRuntime,
   type Shape,
   type SourceEntry,
+  type SystemInfo,
   seqToValue,
   type Tables,
 } from '@molstar/seqx-core/data';
@@ -129,8 +130,10 @@ export interface SystemEntry {
   readonly letters?: string;
   /** The source of its letters. */
   readonly source?: string;
-  /** The name its source knows it by: its `name`, else its id. */
+  /** The name its source knows it by: its `name`, else its id (an alignment's columns: `<alignment>/columns`). */
   readonly name: string;
+  /** Other names its own source knows it by (an alignment's columns: `columns`, as one alignment's file says it). */
+  readonly aliases?: readonly string[];
   /** Its numberings' ids: the built-ins (`index`, `ordinal`), then its `numbering` children's, in order. */
   readonly numberings: readonly string[];
   /** How its letters are read. */
@@ -370,12 +373,17 @@ export function sourceLengths(model: StaticModel, coverage: (source: string) => 
     const hash = s.source && hashes?.get(s.source);
     if (!hash) continue;
     const known = coverage(s.source!)?.systems;
-    const info = known?.find((x) => x.name === s.name || x.aliases?.includes(s.name));
+    const info = known?.find((x) => isSystemInfo(x, s));
     if (info?.length !== undefined) out.set(lengthKey(s.address, hash), info.length);
-    else if (!info && known?.length && s.name !== AlignmentSystems.rows && s.name !== AlignmentSystems.columns)
+    else if (!info && known?.length && s.name !== AlignmentSystems.rows && !s.aliases)
       out.set(lengthKey(s.address, hash), Unnamed);
   }
   return out;
+}
+
+/** Whether a coverage's system is `system`: by its name, or an alias of either (`SystemEntry.aliases`). */
+export function isSystemInfo(info: SystemInfo, system: SystemEntry): boolean {
+  return info.name === system.name || !!info.aliases?.includes(system.name) || !!system.aliases?.includes(info.name);
 }
 
 /** A length that says the system's source opened and names no system after it (never a length). */
@@ -773,23 +781,27 @@ function alignmentEntry(
           shape: 'cells',
         }
       : sourcePlan(source ?? '', AlignmentSystems.rows, 'cells');
-  const system = (address: string, name: string, length: number | undefined): SystemEntry => ({
+  const system = (address: string, name: string, length: number | undefined, aliases?: string[]): SystemEntry => ({
     address,
     kind: 'sequence',
     alphabet,
     ...(length !== undefined ? { length } : {}),
     cyclic: false,
     name,
+    ...(aliases ? { aliases } : {}),
     numberings: ['index', 'ordinal'],
     ...(source ? { source } : {}),
     access,
   });
   const rowsAddress = rowsSystemOf(at.address);
   return {
+    // named by its alignment, `<id>/columns`: a source's records shared by several alignments (one Stockholm file of
+    // many families) say whose columns they are; its own source (one alignment) says `columns`
     columns: system(
       at.address,
-      AlignmentSystems.columns,
+      `${at.node.id ?? ''}/${AlignmentSystems.columns}`,
       letters ? (letters[0]?.length ?? 0) : source ? knownColumns : undefined,
+      [AlignmentSystems.columns],
     ),
     rows: system(rowsAddress, AlignmentSystems.rows, letters ? letters.length : source ? knownRows : undefined),
     annotation: {

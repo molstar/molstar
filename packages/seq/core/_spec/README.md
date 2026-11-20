@@ -1396,10 +1396,10 @@ store. `resolveSpec(spec, { runtimes, config })`, or `createResolver` to keep en
   tier 1 waits, and nothing lays out on a made-up length. A molecule's residues and atoms and a complex's units are
   systems too (Molecules and units); a data reference to a system (`target`, `a`, `b`, `x`, `y`, a map's `from` and
   `to`) takes any of a sequence, a molecule and a unit; `pairs.a`/`b`, `ranges.target` and `map.to` an alignment's
-  columns too (its address). An alignment's systems are made before the maps, pairs and ranges, which read them. A
-  ranges source on an alignment is read on the system named `columns` (its columns system's name, as an alignment
-  source's coverage says it; a records source names it so with `system`): pending the author's decision (a source shared
-  by two alignments cannot tell their columns apart; TODO.md).
+  columns too (its address). An alignment's systems are made before the maps, pairs and ranges, which read them. An
+  alignment's columns system is named by its alignment, `<id>/columns` (a ranges source on an alignment reads its
+  records on that name; its own source, one alignment's file, says `columns`: `SystemEntry.aliases`, `isSystemInfo`).
+  Why: a source's records shared by several alignments (one Stockholm file of many families) say whose columns they are.
 - **Numberings**: each `numbering` child of a sequence or a unit (`numberings`, by its address;
   `numberingOf(system, id)`): inline labels, an `offset` (`sequentialNumbering`, so labels snap with no scan) and
   `segments` (`maps-numbering.ts`, arithmetic a run, scanned by the forms) a numbering at once (over the open length

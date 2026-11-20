@@ -52,6 +52,7 @@ export {
   type BoundSourceEntry,
   createResolver,
   DefaultResolveConfig,
+  isSystemInfo,
   type Lengths,
   type MapEntry,
   type NumberingEntry,
