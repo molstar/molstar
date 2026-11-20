@@ -41,6 +41,8 @@ interface Served {
   gate?: Promise<void>;
   /** Answers every range with 416. */
   refuse?: boolean;
+  /** Sends no `Content-Range`, as a cross-origin server that does not expose it. */
+  hideContentRange?: boolean;
 }
 
 interface Request {
@@ -80,7 +82,11 @@ function serve(routes: Record<string, Served>) {
     const contentRange = s.contentRange?.(a, b, size) ?? `bytes ${a}-${b}/${size}`;
     return new Response(s.body.slice(a, b + 1), {
       status: 206,
-      headers: { ...meta, 'Content-Range': contentRange, 'Content-Length': String(b + 1 - a) },
+      headers: {
+        ...meta,
+        ...(s.hideContentRange ? {} : { 'Content-Range': contentRange }),
+        'Content-Length': String(b + 1 - a),
+      },
     });
   });
   vi.stubGlobal('fetch', fake);
@@ -260,7 +266,7 @@ describe('range reads of a URL', () => {
     r.dispose();
   });
 
-  it('credentials, redirect and the asset’s headers reach the requests; If-Range carries the validator', async () => {
+  it('credentials, redirect and the asset’s headers reach the requests; no If-Range (not CORS-safelisted)', async () => {
     const log = serve({ [url]: { body: data, etag: '"v1"' } });
     const asset = Asset.Url(url, { headers: { Accept: 'application/octet-stream' } });
     const r = await open(new DefaultAssetManager(), asset, { ...opts, credentials: 'include', redirect: 'error' });
@@ -270,8 +276,8 @@ describe('range reads of a URL', () => {
       expect(l.init.redirect).toBe('error');
       expect((l.init.headers as Record<string, string>).Accept).toBe('application/octet-stream');
     }
-    expect(log[0].ifRange).toBeUndefined();
-    expect(log[1].ifRange).toBe('"v1"');
+    expect(log.length).toBe(2);
+    expect(log.every((l) => l.ifRange === undefined)).toBe(true);
     r.dispose();
   });
 
@@ -353,10 +359,37 @@ describe('range reads of a URL', () => {
     const r = await open(m, Asset.Url(url));
     serve({ [url]: { body: data, ...after } });
     await expect(r.read([{ offset: 3 * Page, length: 1 }])).rejects.toThrow(new RegExp(`${name} changed`));
-    // a server that sees If-Range fail answers 200: the asset changed, the read fails too
+    // a 200 after the first page: the asset changed (or its server stopped serving ranges), the read fails too
     serve({ [url]: { body: data, ...after, ignoresRange: true } });
     await expect(r.read([{ offset: 4 * Page, length: 1 }])).rejects.toBeInstanceOf(AssetRangeError);
     r.dispose();
+  });
+
+  it('a weak ETag is no validator: Last-Modified is compared instead', async () => {
+    const m = new DefaultAssetManager();
+    const lastModified = 'Mon, 02 Nov 2026 10:00:00 GMT';
+    serve({ [url]: { body: data, etag: 'W/"1"', lastModified } });
+    const r = await open(m, Asset.Url(url));
+    // a weak tag may change with the bytes the same
+    serve({ [url]: { body: data, etag: 'W/"2"', lastModified } });
+    expect((await r.read([{ offset: 3 * Page, length: 2 }]))[0]).toEqual(data.slice(3 * Page, 3 * Page + 2));
+    serve({ [url]: { body: data, etag: 'W/"2"', lastModified: 'Fri, 20 Nov 2026 10:00:00 GMT' } });
+    await expect(r.read([{ offset: 4 * Page, length: 1 }])).rejects.toThrow(/Last-Modified changed/);
+    r.dispose();
+  });
+
+  it('a server that hides Content-Range (CORS): the asset read whole once, under maxBytes', async () => {
+    const log = serve({ [url]: { body: data, hideContentRange: true } });
+    const r = await open(new DefaultAssetManager(), Asset.Url(url));
+    expect(r.size).toBe(data.length);
+    expect(log.map((l) => l.range)).toEqual([`bytes=0-${Page - 1}`, undefined]);
+    expect((await r.read([{ offset: 4 * Page, length: 3 }]))[0]).toEqual(data.slice(4 * Page, 4 * Page + 3));
+    expect(log.length).toBe(2);
+    r.dispose();
+    serve({ [url]: { body: data, hideContentRange: true } });
+    await expect(
+      open(new DefaultAssetManager(), Asset.Url(url), { ...opts, maxBytes: data.length - 1 }),
+    ).rejects.toMatchObject({ name: 'SizeLimitExceeded' });
   });
 
   it('a 416 on a valid range fails; an empty asset opens empty', async () => {

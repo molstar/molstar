@@ -141,14 +141,20 @@ The code is the truth for how; this file records the rules the code relies on, e
   leaves on its own signal (rejecting as aborted), and the last to leave stops it. A failed or stopped request is not
   kept: the next read fetches again.
 - URLs: `Range: bytes=a-b`, the asset's headers, `credentials` and `redirect` as given (§8). Opening reads page 0, which
-  gives the size (`Content-Range`'s total, checked against `maxBytes` before the body) and the validator (`ETag`, else
-  `Last-Modified`); later pages send it as `If-Range`. A `Content-Range` that is not the range asked (start, end) or has
-  no total, a total or validator that changed, a 416 on a valid range, a 200 after the first page, or a body longer or
+  gives the size (`Content-Range`'s total, checked against `maxBytes` before the body) and the validator (a strong
+  `ETag`, else `Last-Modified`; a weak `W/` tag is none), compared on every later page with the total. No `If-Range`:
+  RFC 9110 forbids it with a weak validator, and it is not CORS-safelisted, so a cross-origin read would preflight every
+  page (`Range` with one range is safelisted). A `Content-Range` that is not the range asked (start, end) or has no
+  total, a total or validator that changed, a 416 on a valid range, a 200 after the first page, or a body longer or
   shorter than its range fail with `AssetRangeError` (by name across copies, as `SizeLimitExceeded`). Why strict (the
   author, 2026-11-20: "fail on change"): a proxy that mangles ranges, or a file replaced under a reader, would otherwise
   give wrong bytes that decode as data.
 - A server that ignores `Range` (a 200 on the first page): its body is read once, under `maxBytes`, and held whole by
   the reader's store; every range is a view of it (never a download a range). It is not put in the URL cache.
+- Cross-origin: a server must expose `Content-Range` (and `ETag` or `Last-Modified`, to be compared) through
+  `Access-Control-Expose-Headers`. One that hides `Content-Range` (a 206 without it) cannot have its ranges checked: the
+  asset is read whole once, under `maxBytes`, as from a server that ignores `Range`. One that hides the validator is
+  checked by the total alone.
 - A request with a body (a POST) is not ranged: read whole, as `resolve` reads it.
 - Files: a file whose bytes the manager holds (a `shared` read) is served from them; otherwise `Blob.slice` a run of
   pages, never the whole file. `maxBytes` is checked against the file's size.

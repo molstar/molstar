@@ -396,16 +396,18 @@ function contentRange(header: string | null): { a: number; b: number; total: num
 type Net = Pick<RangeReadOptions, 'credentials' | 'redirect' | 'maxBytes'>;
 
 /**
- * Opens a URL's store over HTTP: the first page is the probe, which says the size and the validator (`ETag`, else
- * `Last-Modified`), or that the server ignores `Range` (a 200: the body read once, under `maxBytes`, and held whole).
- * Later pages are asked with `If-Range` and must be what was asked of the same asset.
+ * Opens a URL's store over HTTP: the first page is the probe, which says the size and the validator (a strong `ETag`,
+ * else `Last-Modified`), or that the server ignores `Range` (a 200: the body read once, under `maxBytes`, and held
+ * whole), or that it hides `Content-Range` from a cross-origin reader (the asset then read whole the same way). Later
+ * pages must be what was asked of the same asset: their total and validator are compared here. No `If-Range`: RFC 9110
+ * forbids it with a weak validator, and it is not CORS-safelisted (a preflight a page); `Range` alone is (§10).
  */
 function httpStore(asset: Asset.Url, net: Net, pageSize: number, maxPages: number, onEmpty: () => void) {
   const url = asset.url;
   let validator: { name: 'ETag' | 'Last-Modified'; value: string } | undefined;
-  const request = async (a: number, b: number, signal: AbortSignal) => {
-    const headers: Record<string, string> = { ...asset.headers, Range: `bytes=${a}-${b - 1}` };
-    if (validator) headers['If-Range'] = validator.value;
+  const request = async (a: number, b: number | undefined, signal: AbortSignal) => {
+    const headers: Record<string, string> = { ...asset.headers };
+    if (b !== undefined) headers.Range = `bytes=${a}-${b - 1}`;
     return fetch(url, {
       signal,
       method: 'GET',
@@ -445,7 +447,14 @@ function httpStore(asset: Asset.Url, net: Net, pageSize: number, maxPages: numbe
   );
   /** The probe: page 0, or the whole asset from a server that ignores `Range`. */
   const probe = async (signal: AbortSignal) => {
-    const response = await request(0, pageSize, signal);
+    let response = await request(0, pageSize, signal);
+    if (response.status === 206 && response.headers.get('Content-Range') === null) {
+      // a cross-origin server that does not expose `Content-Range`: its ranges cannot be checked, so the asset is read
+      // whole, once, under `maxBytes`
+      await response.body?.cancel().catch(() => {});
+      response = await request(0, undefined, signal);
+      if (response.status !== 200) throw await status(response);
+    }
     if (response.status === 200) {
       const limit = net.maxBytes ?? Number.POSITIVE_INFINITY;
       const bytes = await readBody(response, limit, () => new SizeLimitExceeded(limit, url));
@@ -471,7 +480,9 @@ function httpStore(asset: Asset.Url, net: Net, pageSize: number, maxPages: numbe
       throw new SizeLimitExceeded(net.maxBytes, url);
     }
     store.size = range.total;
-    const etag = response.headers.get('ETag');
+    // a weak ETag (`W/"…"`) says the bytes may differ: no validator of bytes, so `Last-Modified` is compared instead
+    const tag = response.headers.get('ETag');
+    const etag = tag && !/^W\//.test(tag) ? tag : null;
     const modified = response.headers.get('Last-Modified');
     validator = etag
       ? { name: 'ETag', value: etag }
