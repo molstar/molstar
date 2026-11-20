@@ -393,6 +393,11 @@ on a model change (the viewer, before its sync), so no frame reads an edited sou
 opening, or a coverage the store refuses (its own report), is forgotten so the next sync tries again. Retired with its
 owner, the store with it.
 
+- **Host updates**: an opened source's `changes` (core's Data, Protocol) ask a reopen for the next frame (`DomHost`'s),
+  so changes inside one frame reopen once; the source is opened again from its entry and reattached in place
+  (`DataStore.reattach`: nodes kept by key, tiles read again); a reopen that fails is an issue at its address and the
+  reading before it stays; an earlier reopen settling after a later one is dropped. A source gone or retired stops
+  listening. Why: a host edits in bursts, and the sequences follow its edit without a second source.
 - **Session holds** (`holdSession(name, model, addresses)`): the dynamic nodes a session state names, with what they
   name (`Overlay.holds`), held in the store under the name, those it no longer names let go; retired with the model.
 - **The overlay** (tier 2): `overlay(model, view, { runtimes, assets })` gives a frame the overlay of the store's
