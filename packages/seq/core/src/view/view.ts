@@ -819,12 +819,12 @@ function resolveDirection(
   return path.edges.length || path.step !== 0 ? of(path) : 1;
 }
 
-/** The path from what a section reads along (a system, or a map: its own linear part) to the section's system. */
 /** A map's own path, from its `from` to its `to`. */
 function mapPath(map: MapEntry): Path {
   return { from: map.from, to: map.to, step: map.step, linear: map.linear, edges: [] };
 }
 
+/** The path from what a section reads along (a system, or a map: its own linear part) to the section's system. */
 function pathAlong(model: StaticModel, ref: string, system: string, via: readonly string[]): Path | undefined {
   const map = model.maps.get(ref);
   if (map) {
@@ -837,7 +837,10 @@ function pathAlong(model: StaticModel, ref: string, system: string, via: readonl
   return ref === system ? identityPath(system) : model.path(ref, system, via).path;
 }
 
-/** A section's `block` children with ids, in order. */
+/**
+ * The axis of a section or a block (`node`, at `at`) on `system`: its pieces (`pieces`, by the path it follows or reads
+ * along) cut to its `range`, its direction, cyclic and length from the system; issues reported at `at`.
+ */
 function axisOf(
   model: StaticModel,
   node: Node,

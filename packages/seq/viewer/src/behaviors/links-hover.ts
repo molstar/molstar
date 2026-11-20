@@ -5,7 +5,7 @@
  */
 
 import { EmptyKeys, location } from '@molstar/seqx-core/query';
-import type { StaticModel } from '@molstar/seqx-core/resolve';
+import type { AtomsEntry, StaticModel } from '@molstar/seqx-core/resolve';
 import type { ResolvedView } from '@molstar/seqx-core/view';
 import type { Emphasized } from '@molstar/seqx-viewer/models';
 import type { BehaviorContext, BehaviorProvider } from '@molstar/seqx-viewer/viewer-spec';
@@ -15,7 +15,8 @@ import type { BehaviorContext, BehaviorProvider } from '@molstar/seqx-viewer/vie
 // the molecule (its whole unit) or, on a link between two polymers (a disulfide), the other end. Written to a
 // highlight channel of its own (`linked`), cleared when the hover goes. Off by default: how events from different
 // parts compose is the application's; a host lists it (the examples do). A link is never a map: nothing is projected
-// across it, the lit ends are its rows' own (a merged copy's drawn on the block it is merged into).
+// across it, the lit ends are its rows' own (a merged copy's drawn on the block it is merged into; residues on an
+// atoms-form block as their atoms).
 
 /** The channel the behavior writes: its color is `highlight.colors.linked`, else `highlight.color`. */
 export const LinksHoverChannel = 'linked';
@@ -30,11 +31,25 @@ function residuesOf(model: StaticModel, system: string): string {
   return model.molecular.atoms.get(system)?.of ?? system;
 }
 
-/** Each merged copy's system, to the system of the block it is merged into (the view's blocks). */
-function mergedSystems(view: ResolvedView | undefined): Map<string, string> {
-  const out = new Map<string, string>();
+/** Where a unit's residues are drawn: the system of its block (or the one it is merged into); its atoms if by atoms. */
+interface ShownOn {
+  readonly system: string;
+  readonly atoms?: AtomsEntry;
+}
+
+/**
+ * Each block member's residues system (a merged copy's, an atoms-form block's units) to where its residues are drawn
+ * (the view's blocks): a link's end is on a unit's residues, a block's axis may be another copy's or its atoms.
+ */
+function shownOn(model: StaticModel, view: ResolvedView | undefined): Map<string, ShownOn> {
+  const out = new Map<string, ShownOn>();
   for (const s of view?.sections ?? [])
-    for (const b of s.blocks ?? []) for (const sys of b.systems) if (sys !== b.axis.system) out.set(sys, b.axis.system);
+    for (const b of s.blocks ?? [])
+      for (const sys of b.systems) {
+        const atoms = model.molecular.atoms.get(sys);
+        const residues = atoms?.of ?? sys;
+        if (residues !== b.axis.system) out.set(residues, { system: b.axis.system, atoms });
+      }
   return out;
 }
 
@@ -86,8 +101,9 @@ export function linkedBy(
 
 export function linksHoverBehavior(ctx: BehaviorContext): LinksHoverBehavior {
   const { hover, highlight, spec, view } = ctx;
-  let merged = new Map<string, string>();
-  let mergedFor: unknown;
+  let shown = new Map<string, ShownOn>();
+  let shownFor: unknown;
+  let shownModel: unknown;
   /** The last places lit (their key) and the value written for them: a hover within them writes nothing new. */
   let lastKey = '';
 
@@ -100,9 +116,10 @@ export function linksHoverBehavior(ctx: BehaviorContext): LinksHoverBehavior {
       return;
     }
     const v = view.resolved.value;
-    if (mergedFor !== v) {
-      mergedFor = v;
-      merged = mergedSystems(v);
+    if (shownFor !== v || shownModel !== model) {
+      shownFor = v;
+      shownModel = model;
+      shown = shownOn(model, v);
     }
     // a merged block stands for every copy: its hover is each copy's
     const section = v?.sections.find((s) => s.address === r.section);
@@ -112,10 +129,16 @@ export function linksHoverBehavior(ctx: BehaviorContext): LinksHoverBehavior {
     const lit = linkedBy(model, systems, Math.floor(r.position));
     const parts = new Map<string, number[]>();
     for (const l of lit) {
-      const at = merged.get(l.system) ?? l.system;
+      const on = shown.get(l.system);
+      const at = on?.system ?? l.system;
       let ranges = parts.get(at);
       if (!ranges) parts.set(at, (ranges = []));
-      ranges.push(l.start, l.end);
+      // residues drawn by their atoms: the atoms of those residues
+      const o = on?.atoms?.offsets;
+      if (o) {
+        const last = o.length - 1;
+        ranges.push(o[Math.min(Math.max(l.start, 0), last)], o[Math.min(Math.max(l.end, 0), last)]);
+      } else ranges.push(l.start, l.end);
     }
     const key = [...parts].map(([s, r]) => `${s}:${r.join(',')}`).join(';');
     if (key === lastKey) return;

@@ -82,9 +82,19 @@ describe('the molecules’ stories, headless', () => {
     expect(lit()).toEqual([['/data/complex/A', [46, 47]]]);
     v.hover.set({ section, system: '/data/complex/A', position: 46 }, owner);
     expect(lit()).toEqual([['/data/complex/glycan', [0, 5]]]);
-    // drawn: the highlight pass outlines the glycan's chip
+    // drawn: the highlight pass outlines the glycan's chip, and nothing else
     v.draw();
-    expect(recordDrawLists(v.frame!.lists, ['highlight']).length).toBeGreaterThan(0);
+    const p = v.frame!.layout.sections[0].placement as BlockPlacement;
+    const chip = p.strips.axes.find((x) => x.system === '/data/complex/glycan')!;
+    const rects = recordDrawLists(v.frame!.lists, ['highlight'])
+      .split('\n')
+      .filter((l) => l.startsWith('rect '))
+      .map((l) => l.split(' ').slice(1, 5).map(Number));
+    expect(rects).toHaveLength(1);
+    const [x, , w] = rects[0];
+    expect(x).toBeGreaterThanOrEqual(Math.floor(chip.x0) - 1);
+    expect(x + w).toBeLessThanOrEqual(Math.ceil(chip.x0 + chip.width) + 1);
+    expect(w).toBeGreaterThan(chip.width / 2);
     v.hover.clear(owner);
   });
 });

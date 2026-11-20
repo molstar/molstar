@@ -63,12 +63,47 @@ function spec(): Node {
   return b.build();
 }
 
+/** ATP twice, merged into one block by its atoms (an override of the first unit), a sodium bound to the second's O1G. */
+function atomsSpec(): Node {
+  const b = createSeqSpec({ title: 'atoms' });
+  const atp = b.data.molecule('atp', {
+    residues: ['ATP'],
+    atoms: { residue: [0, 0, 0], name: ['PG', 'O1G', 'N1'], element: ['P', 'O', 'N'] },
+  });
+  const na = b.data.molecule('na', { class: 'ion', residues: ['NA'] });
+  b.data.complex('c', {}, (c) => {
+    c.unit('l', { of: atp });
+    c.unit('l2', { of: atp });
+    c.unit('n', { of: na });
+    c.links('links', {
+      rows: {
+        a_unit: ['n'],
+        a_start: [0],
+        a_end: [1],
+        b_unit: ['l2'],
+        b_start: [0],
+        b_end: [1],
+        type: ['metal'],
+        a_atom: ['NA'],
+        b_atom: ['O1G'],
+      },
+    });
+  });
+  b.views.view('v', (v) =>
+    v.section('complex', { of: '/data/c' }, (s) => {
+      s.block('l', { form: 'atoms' });
+      s.track('letters').layer('letters', { type: 'letters' });
+    }),
+  );
+  return b.build();
+}
+
 const viewers: SeqViewer[] = [];
 afterAll(() => {
   for (const v of viewers.splice(0)) v.retire();
 });
 
-async function make(links = true, history = false) {
+async function make(links = true, history = false, root: Node = spec()) {
   const base = DefaultSeqViewerSpec();
   const v = createSeqViewer({
     ...base,
@@ -77,7 +112,7 @@ async function make(links = true, history = false) {
     behaviors: links ? [...base.behaviors, { provider: LinksHoverProvider, params: undefined }] : base.behaviors,
   });
   viewers.push(v);
-  await v.load(spec());
+  await v.load(root);
   v.resize(800);
   await v.settle();
   return v;
@@ -142,6 +177,23 @@ describe('molecules in the viewer', async () => {
     v.hover.set({ section: '/views/v/complex', system: '/data/c/A', position: 3 }, owner);
     expect(v.highlight.get(LinksHoverChannel)).toBeUndefined();
     v.hover.clear(owner);
+  });
+
+  it('links.hover onto an atoms-form merged block: the copy’s residue lit as its atoms, on the block’s atoms system', async () => {
+    const w = await make(true, false, atomsSpec());
+    expect(w.view.resolved.value!.sections[0].blocks!.map((b) => [b.label, b.axis.system])).toEqual([
+      ['ATP ×2', '/data/c/l/(atoms)'],
+      ['NA', '/data/c/n'],
+    ]);
+    const owner = {};
+    w.hover.set({ section: '/views/v/complex', system: '/data/c/n', position: 0 }, owner);
+    const lit = w.highlight.get(LinksHoverChannel)?.location.parts.map((p) => [p.system, Array.from(p.ranges)]);
+    expect(lit).toEqual([['/data/c/l/(atoms)', [0, 3]]]);
+    // and back: an atom of the merged block lights the sodium
+    w.hover.set({ section: '/views/v/complex', system: '/data/c/l/(atoms)', position: 1, block: 0 }, owner);
+    const back = w.highlight.get(LinksHoverChannel)?.location.parts.map((p) => [p.system, Array.from(p.ranges)]);
+    expect(back).toEqual([['/data/c/n', [0, 1]]]);
+    w.hover.clear(owner);
   });
 
   it('a click on a chip selects its every residue', async () => {

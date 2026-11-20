@@ -987,8 +987,8 @@ rows' commands) reads the last frame's rows layers through the behavior context'
   positions its links reach (a complex's `pairs` children, each end on its row's unit); hovering a linked site lights
   the molecule's whole unit (a link between two polymers, a disulfide: the other end). Written to its own highlight
   channel (`linked`), cleared when the hover goes; a merged block's hover is each of its copies', and an end on a merged
-  copy is lit on the block it is merged into. A link is never a map: nothing is projected across it. Contacts get no
-  such behavior (a layer the host adds).
+  copy is lit on the block it is merged into, a residue on an atoms-form block as its atoms (the atoms entry's offsets).
+  A link is never a map: nothing is projected across it. Contacts get no such behavior (a layer the host adds).
 - `editing`: edits of the spec as commands, each one patch made against the revision read (`SpecModel.patch`, one step):
   `layer.hide`, `layer.show` (the `hidden` key set or unset), `layer.color` (the layer's theme), `track.hide` and
   `track.show` (the track's own `hidden`: its layers keep theirs, so hide then show is a round trip), `track.move`
