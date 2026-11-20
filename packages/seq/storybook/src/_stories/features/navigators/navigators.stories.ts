@@ -6,18 +6,22 @@
 
 import { FeatureViews, GlobinsViews, P53Views } from '@molstar/seqx-examples';
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
+import { viewerItem } from '@molstar/seqx-viewer/config';
 import { exampleStory } from '../../examples/example-root.js';
 import { openStrip } from './compose.js';
 
 // Navigators as such (the navigators design): the ruler rail every linear section has by default, and a declared strip
 // that replaces it; on p53, whose tracks show both best; a strip with a follower, and the ideogram of a chromosome over
-// a gene's region; the vertical forms over the Globins' rows (the rows rail, the vertical overview). The other datasets'
+// a gene's region; the vertical forms over the Globins' rows (the rows rail, the vertical overview, both). The other datasets'
 // strips are drawn in their own examples.
 
 const meta: Meta = { title: 'Features/Navigators' };
 export default meta;
 
 const view = (id: string) => P53Views.find((v) => v.id === id)!;
+
+/** The rows rail replaced by a declared overview (the rule before `navigator.rowsRail`). */
+const OverviewAlone = [[viewerItem('navigator.rowsRail'), 'unlessOverview']] as const;
 
 /**
  * The ruler rail, every linear section's navigator by default: the whole axis on the ruler's bottom border, the window a
@@ -70,11 +74,24 @@ export const RowsRail: StoryObj = {
 };
 
 /**
- * The vertical overview of the same rows, declared (it replaces the rows rail): every row summarized down a column at
- * the right, its window the rows and the columns in view, a grip on each of its four sides. Drag the window to move
- * both, its top and bottom grips to zoom the rows, its left and right grips to zoom the columns; click outside it to
- * centre there. The SVG includes it.
+ * The vertical overview of the same rows, declared, alone (`navigator.rowsRail: unlessOverview`, the rail replaced):
+ * every row summarized down a column at the right, its window the rows and the columns in view, a grip on each of its
+ * four sides. Drag the window to move both, its top and bottom grips to zoom the rows, its left and right grips to zoom
+ * the columns; click outside it to centre there. The SVG includes it.
  */
 export const VerticalOverview: StoryObj = {
+  render: () =>
+    exampleStory(GlobinsViews.find((v) => v.id === 'family')!, {
+      navigators: 'include',
+      config: OverviewAlone,
+    }),
+};
+
+/**
+ * Both together, the default (`navigator.rowsRail: always`): the rows rail at the band's right edge beside the numbers,
+ * the precise control, and the overview beside the canvas, the picture. They draw one window: a drag on either moves
+ * the other in the same frame.
+ */
+export const RowsRailAndOverview: StoryObj = {
   render: () => exampleStory(GlobinsViews.find((v) => v.id === 'family')!, { navigators: 'include' }),
 };

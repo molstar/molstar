@@ -160,6 +160,7 @@ export {
   railSections,
   railUnitAt,
   rowsRailTracks,
+  type RowsRailMode,
   SlimRailPx,
 } from './rail.js';
 export { type BandsLay, type BandsPrep, BandsType } from './bands.js';

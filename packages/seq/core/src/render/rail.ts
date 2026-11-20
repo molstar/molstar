@@ -384,13 +384,20 @@ export function railSections(view: ResolvedView, hosted: readonly ResolvedNaviga
 
 /**
  * The rows tracks that draw a rows rail by default (_spec/README.md "Render", Navigators, The rows rail): each linear
- * section's tracks with a rows layer shown, unless a shown navigator binds the section along its rows (an overview, a
- * miniature): it replaces the rail on the rows it binds; a hidden one brings it back.
+ * section's tracks with a rows layer shown; beside a shown navigator over the section's rows (`always`, the default: the
+ * overview is a picture, the rail the precise control), replaced by it (`unlessOverview`: a hidden one brings the rail
+ * back), or none (`none`).
  */
-export function rowsRailTracks(view: ResolvedView, hosted: readonly ResolvedNavigator[] = []): string[] {
+export function rowsRailTracks(
+  view: ResolvedView,
+  hosted: readonly ResolvedNavigator[] = [],
+  mode: RowsRailMode = 'always',
+): string[] {
+  if (mode === 'none') return [];
   const bound = new Set<string>();
-  for (const list of [view.navigators, hosted])
-    for (const n of list) if (!n.hidden && n.axes !== 'positions') for (const a of n.of) bound.add(a);
+  if (mode === 'unlessOverview')
+    for (const list of [view.navigators, hosted])
+      for (const n of list) if (!n.hidden && n.axes !== 'positions') for (const a of n.of) bound.add(a);
   const out: string[] = [];
   for (const s of view.sections) {
     if ((s.layout ?? view.layout) !== 'tracks' || bound.has(s.address)) continue;
@@ -399,3 +406,6 @@ export function rowsRailTracks(view: ResolvedView, hosted: readonly ResolvedNavi
   }
   return out;
 }
+
+/** When a rows band draws its rows rail: beside a navigator over its rows, unless one binds them, or never. */
+export type RowsRailMode = 'always' | 'unlessOverview' | 'none';

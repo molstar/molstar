@@ -207,10 +207,10 @@ describe('Globins stories, headless', () => {
     });
 
   for (const id of ['family', 'folded'])
-    it(`${id}: the vertical overview declared, so no rows rail; its window has the rows and the columns`, async () => {
+    it(`${id}: the vertical overview declared, the rows rail beside it; its window has the rows and the columns`, async () => {
       viewer = await openExample(GlobinsViews.find((v) => v.id === id)!, { fixtures: true });
       const v = viewer;
-      expect(v.frame!.layout.sections.some((x) => x.rowsRails?.length)).toBe(false);
+      expect(v.frame!.layout.sections.some((x) => x.rowsRails?.length)).toBe(true);
       const nav = v.navigatorModel('overview')!;
       nav.draw();
       await vi.advanceTimersByTimeAsync(600);

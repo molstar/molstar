@@ -1213,8 +1213,8 @@ export class SeqViewer extends ReactiveModel {
       }
       // a declared navigator replaces a rail only when the spec lists the navigators (else it is not drawn: said once)
       const shown = this._navigatorsPart ? resolved : this._withoutNavigators(resolved);
-      // and every rows layer's rows rail, by its track (a navigator over the section's rows replaces it)
-      const rows = on ? rowsRailTracks(shown, hosted) : [];
+      // and every rows layer's rows rail, by its track (`navigator.rowsRail`: beside a navigator over its rows, or not)
+      const rows = on ? rowsRailTracks(shown, hosted, this.config.navigator.rowsRail) : [];
       this._rowsRails = new Set(rows);
       this._rails = on
         ? Object.fromEntries([...railSections(shown, hosted), ...rows].map((a) => [a, true as const]))

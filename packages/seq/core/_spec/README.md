@@ -1878,10 +1878,12 @@ numbers): a window move allocates nothing once warm.
   still at `MaxRowScale`, 40 px a row, the rows' zoom-in limit with `MinRowScale`, 1/64, their least; the renderer sets
   `active` only when the viewer says it can move and not `whole`). Its hit is the `window` target with
   `navigator: 'rows-rail'` (`RowsRail`), its `layer` the track, `position` the display row.
-  `rowsRailTracks(view, hosted)`: each tracks section's tracks with a rows layer shown, unless a shown navigator binds
-  the section along its rows (`rows` or `both`): an overview or a miniature replaces it, a hidden one brings it back.
-  Why: the design's "simple slider navigator for vertical scrolling", the rail a linear section has, so a tall alignment
-  can be scrolled and zoomed with no declared part.
+  `rowsRailTracks(view, hosted, mode)`: each tracks section's tracks with a rows layer shown; by `mode` (the viewer's
+  `navigator.rowsRail`) drawn beside a shown navigator over the section's rows too (`always`, the default), replaced by
+  one (`unlessOverview`: a hidden one brings it back), or never (`none`). Why: the design's "simple slider navigator for
+  vertical scrolling", the rail a linear section has, so a tall alignment can be scrolled and zoomed with no declared
+  part; kept beside an overview because the overview is a picture and the rail the precise control (the replace rule
+  holds on the positions axis alone, where the rail and a strip are two pictures of one axis in one place).
 
 ### Rings layout
 

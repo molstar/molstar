@@ -10,7 +10,7 @@
 import { configItem, type SeqConfigItem } from '@molstar/seqx-core/context';
 import { DefaultMaxBlockValues } from '@molstar/seqx-core/data';
 import { DefaultSpecBounds, type SpecBounds } from '@molstar/seqx-core/lang';
-import { DefaultZoomStrip } from '@molstar/seqx-core/render';
+import { DefaultZoomStrip, type RowsRailMode } from '@molstar/seqx-core/render';
 import { DefaultStoryConfig, type StoryConfig } from '@molstar/seqx-core/story';
 
 /** What the models and behaviors read; read-only after composition. */
@@ -113,10 +113,12 @@ export interface ViewerConfig {
    * double-click does (`toggle-fit`: fit, or fitted, zoom so the window is `zoomPx` navigator px wide; `fit`, `none`),
    * which way a navigator runs (`display`: the bound section's display order, a drag right moves the view right;
    * `genomic`), and when a navigator gets a zoom strip (`zoomStrip`: its reachable span narrower than `minPx`, 48; the
-   * strip `heightPx` more, 16).
+   * strip `heightPx` more, 16), and when a rows band draws its rows rail (`rowsRail`: `always`, beside a declared
+   * overview too; `unlessOverview`, replaced by a navigator over its rows; `none`).
    */
   readonly navigator: {
     readonly form: 'rail' | 'none';
+    readonly rowsRail: RowsRailMode;
     readonly dragOutside: 'sweep' | 'pan';
     readonly dragStep: 'far' | 'never' | 'always';
     readonly doubleClick: 'toggle-fit' | 'fit' | 'none';
@@ -276,6 +278,7 @@ export const DefaultViewerConfig: ViewerConfig = {
   follow: { followerMoves: 'lead', cyclicArc: 'wrap' },
   navigator: {
     form: 'rail',
+    rowsRail: 'always',
     dragOutside: 'sweep',
     dragStep: 'far',
     doubleClick: 'toggle-fit',
