@@ -48,6 +48,20 @@ describe('one adapter a format', () => {
     // again with the same adapter: no change, no conflict
     expect(runtimesOf(withAdapter(registry, host)).map((r) => r.name)).toEqual(['records', 'host']);
   });
+
+  it('a runtime listed twice is narrowed once, and an adapter may share the name of the runtime it narrows', () => {
+    const records = rt('records', 'tsv', 'json');
+    const twice = runtimesOf(withAdapter([entry(records), entry(records)], rt('host', 'json')));
+    expect(twice.map((r) => [r.name, r.formats])).toEqual([
+      ['records', ['tsv']],
+      ['host', ['json']],
+    ]);
+    const named = runtimesOf(withAdapter([entry(records)], rt('records', 'json')));
+    expect(named.map((r) => [r.name, r.formats])).toEqual([
+      ['records', ['tsv']],
+      ['records', ['json']],
+    ]);
+  });
 });
 
 describe('binding by format', () => {

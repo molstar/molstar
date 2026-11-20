@@ -128,11 +128,12 @@ export interface SeqContextSpec {
 }
 
 /**
- * The registered runtimes by name: the same object again is no change, another under one name is an error, and so is
- * a format two of them read (one adapter a format: `withAdapter` replaces one); every conflict listed.
+ * The registered runtimes, keyed by the formats they read (one adapter a format: `withAdapter` replaces one): the same
+ * object again is no change, a format two of them read is an error listing every conflict. Not by name: a runtime
+ * narrowed by `withAdapter` keeps its name beside an adapter that may share it.
  */
 export function runtimesOf(registry: readonly SeqRegistryEntry[]): FormatRuntime[] {
-  const runtimes = [...byName(registry, 'format-runtime', 'format runtimes', (e) => e.runtime).values()];
+  const runtimes = [...new Set(registry.flatMap((e) => (e.kind === 'format-runtime' ? [e.runtime] : [])))];
   const { conflicts } = runtimesByFormat(runtimes);
   if (conflicts.size)
     throw new Error(

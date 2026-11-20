@@ -18,6 +18,8 @@ import type { SeqRegistryEntry } from './context.js';
  */
 export function withAdapter(registry: readonly SeqRegistryEntry[], adapter: FormatRuntime): SeqRegistryEntry[] {
   const taken = new Set(adapter.formats);
+  // one narrowing a runtime, however often it is listed: the same object, so `runtimesOf` counts it once
+  const narrowings = new Map<FormatRuntime, FormatRuntime>();
   const out: SeqRegistryEntry[] = [];
   for (const e of registry) {
     if (e.kind !== 'format-runtime') out.push(e);
@@ -25,7 +27,11 @@ export function withAdapter(registry: readonly SeqRegistryEntry[], adapter: Form
     const r = e.runtime;
     const rest = r.formats.filter((f) => !taken.has(f));
     if (rest.length === r.formats.length) out.push(e);
-    else if (rest.length) out.push({ kind: 'format-runtime', runtime: narrowed(r, rest) });
+    else if (rest.length) {
+      let n = narrowings.get(r);
+      if (!n) narrowings.set(r, (n = narrowed(r, rest)));
+      out.push({ kind: 'format-runtime', runtime: n });
+    }
   }
   out.push({ kind: 'format-runtime', runtime: adapter });
   return out;

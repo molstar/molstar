@@ -2701,16 +2701,18 @@ same pieces. Nothing registers on import and there is no global registry.
 - **Data adapters, one a format**: a format two registered runtimes read is an error listing every conflict
   (`runtimesOf`), so which one reads a source never depends on the order they are listed in;
   `withAdapter(registry, adapter)` puts a host's adapter in place of the defaults for its formats (a runtime left with
-  other formats keeps them under its name). The resolver and the overlay bind a source to the one runtime of its format
-  (`runtimeFor`); a list given them with two for a format binds none (`seq.resolve.source.runtime`). Why:
-  extensibility's "never resolved by order".
+  other formats keeps them under its name, one narrowing however often it is listed). Format runtimes are keyed by their
+  formats and their identity, not by name: a narrowed runtime and an adapter may share one. The resolver and the overlay
+  bind a source to the one runtime of its format (`runtimeFor`); a list given them with two for a format binds none
+  (`seq.resolve.source.runtime`). Why: extensibility's "never resolved by order".
 - **Registry entries** are data: `{ kind: 'format-runtime', runtime }`, `{ kind: 'layer-type', type }`,
   `{ kind: 'layout', layout }` and `{ kind: 'track-sizing', sizing }` (an `ext:` sizing a section's `heights` names:
-  Render, Track heights), each keyed by its provider's `name`. The same object again is no change; another under one
-  name is an error listing every conflict (nothing registered), so a host's own type of a built-in's name goes in
-  `composeSeqContext`. The canvas and the SVG export draw the same registry's layer types: a layer of a type not listed
-  is said (`seq.render.layer.type`) and not drawn, a section of a layout not listed is said (`seq.render.layout`) and
-  laid out as tracks. Run-time, atomic and undoable registration is the viewer's followup.
+  Render, Track heights), each keyed by its provider's `name` (a format runtime by its formats, above). The same object
+  again is no change; another under one name is an error listing every conflict (nothing registered), so a host's own
+  type of a built-in's name goes in `composeSeqContext`. The canvas and the SVG export draw the same registry's layer
+  types: a layer of a type not listed is said (`seq.render.layer.type`) and not drawn, a section of a layout not listed
+  is said (`seq.render.layout`) and laid out as tracks. Run-time, atomic and undoable registration is the viewer's
+  followup.
 - **The tracks layout is the one fixed fallback**: a section whose layout is not listed (or every section, with no
   layouts given) is laid out as tracks, and the viewer's navigation reads tracks likewise; tracks needs no entry. Why:
   the tracks layout is the frame's own (the label column, the rails, the bands), a section must be placed somehow, and
