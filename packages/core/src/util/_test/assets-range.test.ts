@@ -272,6 +272,16 @@ describe('range reads of a URL', () => {
     await expect(r.read([{ offset: 0, length: 1 }])).rejects.toMatchObject({ name: 'AssetRangeError' });
   });
 
+  it('a cached page holds its own bytes, not its whole request’s: maxPages bounds memory', async () => {
+    serve({ [url]: { body: data } });
+    const r = await open(new DefaultAssetManager(), Asset.Url(url), { pageSize: Page, maxPages: 1 });
+    // pages 1 to 4 in one request; then page 4 alone from the cache
+    await r.read([{ offset: Page, length: 4 * Page }]);
+    const [x] = await r.read([{ offset: 4 * Page + 1, length: 2 }]);
+    expect(x.buffer.byteLength).toBe(Page);
+    r.dispose();
+  });
+
   it('least recently used pages go first past maxPages', async () => {
     const log = serve({ [url]: { body: data } });
     const r = await open(new DefaultAssetManager(), Asset.Url(url), { pageSize: Page, maxPages: 2 });

@@ -200,11 +200,17 @@ class PageStore {
     private readonly onEmpty: () => void,
   ) {}
 
-  /** Pages of `[a, b)` read before open finished (the probe's): kept as fetched pages are. */
+  /**
+   * Keeps the pages of a run read from `first`. A page of a run of several is copied out of the run's buffer: a view
+   * would hold the whole run while the page is cached, and `maxPages` would bound no memory.
+   */
   keep(first: number, bytes: Uint8Array) {
     const ps = this.pageSize;
-    for (let i = 0, p = first; i * ps < bytes.length; i++, p++)
-      this.put(p, bytes.subarray(i * ps, Math.min(bytes.length, (i + 1) * ps)));
+    const own = bytes.length <= ps && bytes.byteLength === bytes.buffer.byteLength;
+    for (let i = 0, p = first; i * ps < bytes.length; i++, p++) {
+      const page = bytes.subarray(i * ps, Math.min(bytes.length, (i + 1) * ps));
+      this.put(p, own ? page : page.slice());
+    }
   }
 
   private put(page: number, bytes: Uint8Array) {

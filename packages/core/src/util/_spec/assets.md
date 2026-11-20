@@ -137,9 +137,10 @@ The code is the truth for how; this file records the rules the code relies on, e
   headers, credentials, redirect, bound, §8) with the page size; a file's is its asset. Range readers do not hold a
   manager entry (`assets`, a session's files, do not list them).
 - A read gathers the missing pages of all its ranges; adjacent ones are one request, runs apart go in parallel (four at
-  a time). A range inside one page is a view of it, not a copy. A request is shared by the reads that wait on it; each
-  leaves on its own signal (rejecting as aborted), and the last to leave stops it. A failed or stopped request is not
-  kept: the next read fetches again.
+  a time). A range inside one page is a view of it, not a copy; a page of a run of several is cached as a copy of its
+  own bytes, so `maxPages` bounds memory (a view would hold the whole run). A request is shared by the reads that wait
+  on it; each leaves on its own signal (rejecting as aborted), and the last to leave stops it. A failed or stopped
+  request is not kept: the next read fetches again.
 - URLs: `Range: bytes=a-b`, the asset's headers, `credentials` and `redirect` as given (§8). Opening reads page 0, which
   gives the size (`Content-Range`'s total, checked against `maxBytes` before the body) and the validator (a strong
   `ETag`, else `Last-Modified`; a weak `W/` tag is none), compared on every later page with the total. No `If-Range`:
