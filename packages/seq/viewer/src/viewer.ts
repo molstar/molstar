@@ -4,108 +4,72 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { ReactiveModel, type ReadonlyState, State } from '@molstar/core/reactive';
+import { type Listenable, ReactiveModel, type ReadonlyState, State } from '@molstar/core/reactive';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
-import { type Issue, issueOf, type Node } from '@molstar/core/repr/tree';
+import type { Issue, Node } from '@molstar/core/repr/tree';
 import { composeSeqContext, type SeqContext } from '@molstar/seqx-core/context';
 import {
   type Emphasis,
-  type EmphasisHighlight,
-  type BandViewport,
   type Frame,
-  type FrameInput,
   type Hit as RenderHit,
   type Placement,
-  Renderer,
+  type Renderer,
   type RendererOptions,
   type RenderSvgOptions,
   type RenderSvgResult,
   type Viewport as RenderViewport,
   hitView,
-  railSections,
-  resolveColor,
   textMinScale,
 } from '@molstar/seqx-core/render';
 import { labelColumnWidth } from '@molstar/seqx-core/render/tracks';
-import { type Location, locationOfResult } from '@molstar/seqx-core/query';
+import { locationOfResult } from '@molstar/seqx-core/query';
 import { type Lengths, sourceLengths } from '@molstar/seqx-core/resolve';
 import { mapsEqual } from '@molstar/core/util/map';
 import type { SeqTokens } from '@molstar/seqx-core/render';
-import type {
-  Frame as StoryFrame,
-  PlanOptions,
-  StoryState,
-  StepViewport,
-  TransitionPlan,
-  ViewState,
-} from '@molstar/seqx-core/story';
-import type { ResolvedNavigator, ResolvedView } from '@molstar/seqx-core/view';
+import type { StepViewport, TransitionPlan } from '@molstar/seqx-core/story';
+import type { ResolvedView } from '@molstar/seqx-core/view';
 import type { CommandDefinition, CommandResult } from '@molstar/ui/commands/types';
-import { cancelFrameCallback, DomHost, requestFrameCallback } from '@molstar/ui/dom';
-import {
-  bindingTable,
-  DefaultActions,
-  type BindingTable,
-  BindingPresets,
-  CladeActions,
-  SelectActions,
-} from '@molstar/seqx-viewer/bindings';
+import { DomHost } from '@molstar/ui/dom';
+import { bindingTable, DefaultActions, type BindingTable, BindingPresets } from '@molstar/seqx-viewer/bindings';
 import type { CanvasBackend } from '@molstar/seqx-viewer/canvas';
 import { type ViewerConfig, viewerConfigOf } from '@molstar/seqx-viewer/config';
 import {
   AddressModel,
-  axisTotal,
   HighlightModel,
   HoverModel,
-  isNothing,
-  nearestOffsetOf,
-  Projector,
   SelectionModel,
   SpecModel,
   sameIssues,
   StoreModel,
   ViewModel,
 } from '@molstar/seqx-viewer/models';
-import type { AddressingBehavior, HoverCardBehavior, LinkRun } from '@molstar/seqx-viewer/behaviors';
-import { windowIdle } from '@molstar/seqx-viewer/behaviors/window';
-import type { AnimationRequest, SeqAnimation, SeqAnimationParticipant } from '@molstar/seqx-viewer/ports';
+import type { AddressingBehavior, LinkRun } from '@molstar/seqx-viewer/behaviors';
+import type { SeqAnimationParticipant } from '@molstar/seqx-viewer/ports';
 import { frameAnimation } from './animation.js';
 import { ViewerInput } from './input.js';
-import { highlightColorOf, LegendModel } from './legends.js';
-import { ViewerIssues } from './issues.js';
+import { LegendModel } from './legends.js';
 import { modelIssuesState } from './model-issues.js';
-import { narrowedVersion, rowsRailsOf } from './narrowed.js';
 import type { BehaviorContext, BehaviorProvider, SeqViewerSpec } from './viewer-spec.js';
 import { mountCanvas } from './mount.js';
-import type { SeqStoryPart } from './story.js';
 import type { NavigatorDef, NavigatorModel } from './navigator.js';
-import type { SeqNavigatorsPart } from './navigators.js';
+import { behaviorOf, createBehaviors, listedActions } from './viewer-behaviors.js';
+import { FrameClock } from './viewer-clock.js';
+import { ViewerEmphasis } from './viewer-emphasis.js';
+import { ViewerFrame } from './viewer-frame.js';
+import { ViewerMotion } from './viewer-motion.js';
+import { ViewerRails } from './viewer-rails.js';
+import { holdSelection, revealLinked } from './viewer-selection.js';
 
 // The viewer (_spec/README.md "Composition"): composed from a spec by `createSeqViewer`, as a Mol* plugin is: the
 // context (registry, configuration, ports) first, then the models, the bindings and the behaviors, then the UI. Frames
-// and time are `DomHost`'s. The frame: the renderer lays the view out (or, for a hover, redraws the emphasis passes
+// and time are `DomHost`'s. This module composes and wires; each concern is a collaborator beside it, given what it
+// reads: the behaviors (`viewer-behaviors.ts`), the frame clock (`viewer-clock.ts`), motion, the frame slot
+// and the viewports a frame reads as it shows them (`viewer-motion.ts`), the rails and navigators
+// (`viewer-rails.ts`), the emphasis (`viewer-emphasis.ts`), what a selection moves (`viewer-selection.ts`) and the
+// frame itself (`viewer-frame.ts`): the renderer lays the view out (or, for a hover, redraws the emphasis passes
 // alone) and the Canvas2D backend draws what changed.
 
 const NeverAborted = new AbortController().signal;
-
-type Mutable<T> = { -readonly [K in keyof T]: T[K] };
-
-/**
- * The methods the viewer and its input call on a built-in behavior's handle, by the behavior's name: a handle listed
- * under that name without one of them is refused (`seq.viewer.behavior.shape`), never called.
- */
-/** The actions a behavior's bindings may name, by its name: bound only when it is listed. */
-const BehaviorActions: Readonly<Record<string, readonly string[]>> = { select: SelectActions, rows: CladeActions };
-
-const BehaviorShapes: Readonly<Record<string, readonly string[]>> = {
-  hover: ['move', 'leave'],
-  navigate: ['drag', 'wheel', 'pinch'],
-  select: ['click', 'beginDrag', 'dragTo', 'endDrag', 'cancelDrag'],
-  window: ['begin', 'dragTo', 'end', 'cancel'],
-  navigator: ['center', 'zoomTo', 'press', 'dragTo', 'release', 'cancel', 'click', 'doubleClick'],
-  rows: ['wheel', 'lay', 'railGesture'],
-  addressing: ['runLink'],
-};
 
 /** A command a behavior provides, with the context it runs in. */
 export type ViewerCommand = CommandDefinition<any>;
@@ -166,72 +130,13 @@ export class SeqViewer extends ReactiveModel {
   readonly layouts: RendererOptions['layouts'];
   /** Frames drawn and layouts made: what a test or a profile reads. */
   readonly counts = { frames: 0, layouts: 0 };
-
-  /** Moves when the issues do, not with each layout: what follows them (a story's SVG export) runs once a change. */
-  private readonly _issues = new State<readonly Issue[]>([], sameIssues);
-  private readonly _behaviorIssues = new State<readonly Issue[]>([], sameIssues);
-  private readonly _rested = new State(0);
-  private readonly _ran = new State<{ readonly id: string; readonly n: number }>({ id: '', n: 0 });
-  private readonly _tokensVersion = new State(0);
-  private _frameId: number | undefined;
-  private _rehitting = false;
-  private readonly _emphasis: Mutable<Emphasis> = {};
-  private readonly _projector: Projector;
-  /** The emphasis's projected record, reused: its fields are the cached projections. */
-  private readonly _projected: { hover?: Location; selection?: Location; hoverSection?: string } = {};
-  private readonly _cursor: {
-    system: string;
-    position: number;
-    section: string | undefined;
-    ySystem: string | undefined;
-    yPosition: number | undefined;
-    part: 'cell' | 'header' | undefined;
-  } = { system: '', position: 0, section: undefined, ySystem: undefined, yPosition: undefined, part: undefined };
-  /** The highlights as drawn, made again only when a channel, the tokens, the view or the model changed. */
-  private _highlights: readonly EmphasisHighlight[] = [];
-  private readonly _highlightsFor: unknown[] = [];
-  private readonly _emphasisHit = {} as Mutable<RenderHit>;
-  /** Section ids by address (the last step), kept: a hover makes no string. */
-  private readonly _sectionIds = new Map<string, string>();
-  private readonly _size = { width: 0, height: 0 };
-  private readonly _frameInput = { size: this._size } as Mutable<FrameInput>;
-  private readonly _viewportOut = { start: 0, end: 0 };
-  /** The window the last frame drew (NaN before one). */
-  private readonly _drawnWindow = { start: Number.NaN, end: Number.NaN };
-  /** Each leading section's viewport the last frame drew, by address: where a motion starts. */
-  private readonly _drawnViews = new Map<string, StepViewport>();
-  /**
-   * The frame slot (_spec/README.md "Composition", Motion): the plan and frame shown over the state, its viewports by
-   * section; a request on the animation port running it (a jump's, with its count).
-   */
-  private _shownFrame: { plan: TransitionPlan; frame: StoryFrame; views?: ViewState } | undefined;
-  private _request: { request: AnimationRequest; plan: TransitionPlan; jumps?: number } | undefined;
-  private readonly _drawnFrames = new State(0);
   /** Bumped after every frame drawn: a navigator redraws over it. */
-  private readonly _drawn = new State(0);
-  readonly drawn: ReadonlyState<number> = this._drawn.asReadonly;
+  readonly drawn: ReadonlyState<number>;
   /**
    * The ruler rails shown (_spec/README.md "Composition", Navigators): the reader's session (the embedded layout's
    * corner button), never the spec; `navigator.form: none` draws none whatever it says.
    */
-  private readonly _railsShown = new State(true);
-  readonly railsShown: ReadonlyState<boolean> = this._railsShown.asReadonly;
-  /** The sections that draw a rail and which can move: kept while they hold (the frame's key reads them by identity). */
-  private _rails: Record<string, true> | undefined;
-  private _railsFor: [unknown, boolean, number, number] = [undefined, false, 0, 0];
-  /** Bumped when a host's navigator comes or goes: the rails it replaces are found again. */
-  private _hostedVersion = 0;
-  private _railsActive: Record<string, boolean> = {};
-  /** The rails' keys that are rows tracks' (a rows rail). */
-  private _rowsRails: ReadonlySet<string> = new Set();
-  /** The navigators' models by id: the view's declared ones as asked for, and a host's (`navigator(def)`). */
-  private readonly _navigators = new Map<string, NavigatorModel>();
-  /** The spec the last frame drew, the step shown, and whether `playStep` is entering one (no second transition). */
-  private _drawnRoot: Node | undefined;
-  private _shownStep: string | undefined;
-  private _stepping = false;
-  /** The application's clock (the animation port): Seq*'s own motions are plans requested of it. */
-  private readonly _animation: SeqAnimation;
+  readonly railsShown: ReadonlyState<boolean>;
   /** The participant face of the animation port: what the application's clock drives. */
   readonly animation: SeqAnimationParticipant;
   /**
@@ -239,128 +144,117 @@ export class SeqViewer extends ReactiveModel {
    * story step is a cut.
    */
   reducedMotion = false;
-  private _backend: CanvasBackend | undefined;
-  private _renderer: Renderer | undefined;
-  private _rendererFor: unknown[] = [];
-  private _wanter: { want(w: readonly any[]): void; dispose(): void } | undefined;
-  private _frame: Frame | undefined;
-  private _quiet = true;
-  private _settleTimer: unknown;
-  private _restTimer: unknown;
-  /** The view came to rest: `rested` moves once the frame that lays it out settled is drawn. */
-  private _restDue = false;
-  private _syncing: Promise<void> = Promise.resolve();
-  private _contentHeight = 0;
-  private _baseDirty = true;
-  private _hoverVersion = -1;
+
+  /** Moves when the issues do, not with each layout: what follows them (a story's SVG export) runs once a change. */
+  private readonly _issues = new State<readonly Issue[]>([], sameIssues);
+  private readonly _behaviorIssues = new State<readonly Issue[]>([], sameIssues);
+  private readonly _ran = new State<{ readonly id: string; readonly n: number }>({ id: '', n: 0 });
+  private readonly _tokensVersion = new State(0);
+  /**
+   * The collaborators, each a module beside this one given what it reads (the frame calls them without allocating):
+   * one frame at a time and the rest, the motion, the frame slot and the viewports a frame reads, the rails and
+   * navigators, the emphasis, the frame.
+   */
+  private readonly _clock: FrameClock;
+  private readonly _motion: ViewerMotion;
+  private readonly _rails: ViewerRails;
+  private readonly _emphasis: ViewerEmphasis;
+  private readonly _frame: ViewerFrame;
   private _retired = false;
-  /** The stories and transitions the spec lists (`story`): none, every jump a cut and no step entered. */
-  private readonly _motion: SeqStoryPart | undefined;
+  private _syncing: Promise<void> = Promise.resolve();
+  private _viewportListeners: (() => void)[] = [];
 
-  /** The navigators the spec lists (`navigators`): none, a declared navigator is not drawn and its rail stays. */
-  private readonly _navigatorsPart: SeqNavigatorsPart | undefined;
-
-  constructor(
-    viewerSpec: SeqViewerSpec,
-    target?: HTMLElement,
-    private readonly fixedDpr?: number,
-  ) {
+  constructor(viewerSpec: SeqViewerSpec, target?: HTMLElement, fixedDpr?: number) {
     super();
-    this.config = viewerConfig(viewerSpec);
+    // (what the composition calls often, named once)
+    const listen = <T>(source: Listenable<T>, fn: (value: T) => void) => this.listenPermanently(source, fn);
+    const onRetire = (dispose: () => void) => this.registerPermanentDispose(dispose);
+    const schedule = () => this.schedule();
+    const config = (this.config = viewerConfigOf(viewerSpec.config));
     // the headless pieces first: the registry, the configuration and the ports
     // the registry as listed: what the canvas and the SVG draw (_spec/README.md "Composition", Injected, opt in)
-    this.context = composeSeqContext({
+    const context = (this.context = composeSeqContext({
       ...(viewerSpec.registry ? { registry: viewerSpec.registry } : {}),
       ...(viewerSpec.config ? { config: viewerSpec.config } : {}),
       ...(viewerSpec.ports ? { ports: viewerSpec.ports } : {}),
-    });
-    this.registerPermanentDispose(() => this.context.retire());
-    this.layouts = this.context.layouts;
-    this._motion = viewerSpec.story;
-    this._navigatorsPart = viewerSpec.navigators;
+    }));
+    onRetire(() => context.retire());
+    this.layouts = context.layouts;
+    const clock = (this._clock = new FrameClock(this));
+    const rails = (this._rails = new ViewerRails(this, viewerSpec.navigators, this._behaviorIssues, onRetire));
     this.layoutIssues = this._issues.asReadonly;
     this.behaviorIssues = this._behaviorIssues.asReadonly;
-    this.rested = this._rested.asReadonly;
+    this.rested = clock.rested;
     this.commandRan = this._ran.asReadonly;
     this.tokensVersion = this._tokensVersion.asReadonly;
-    this.tokens = this.context.tokens;
+    this.railsShown = rails.shown;
+    this.tokens = context.tokens;
 
-    this.spec = new SpecModel(
+    const spec = (this.spec = new SpecModel(
       createSeqSpec().build(),
-      { runtimes: this.context.runtimes, config: this.context.resolveConfig },
-      this.config,
+      { runtimes: context.runtimes, config: context.resolveConfig },
+      config,
       false,
       this._lengths.asReadonly,
       viewerSpec.story ? { story: viewerSpec.story } : {},
-    );
-    this.view = new ViewModel(this.spec, this.config);
+    ));
+    const view = (this.view = new ViewModel(spec, config));
     // a section's moves are its layout's arithmetic over its placement in the last frame (_spec/README.md "ViewModel")
-    this.view.setLayoutSource({
+    view.setLayoutSource({
       placement: (section) => this.placementOf(section),
       layouts: this.layouts,
-      minScale: textMinScale(this.context.renderConfig),
+      minScale: textMinScale(context.renderConfig),
     });
-    this.hover = new HoverModel(this.spec, this.view, this.config);
-    this.store = new StoreModel(this.config, { removed: (gone) => this.selection.dropGone(gone) });
+    const hover = (this.hover = new HoverModel(spec, view, config));
+    const store = (this.store = new StoreModel(config, { removed: (gone) => this.selection.dropGone(gone) }));
     this.modelIssues = modelIssuesState(this);
     // an element selected by an address and then toggled is drawn by its extent, resolved over what is shown
-    this.selection = new SelectionModel(
+    const selection = (this.selection = new SelectionModel(
       (els) =>
-        locationOfResult(this.spec.shown.value, this.addresses.queryModel(), { type: 'elements', elements: els })
-          .location,
-      { extendScope: this.config.selection.extendScope, acrossBreaks: this.config.selection.acrossBreaks },
-    );
-    this._projector = new Projector(this.spec, this.view);
-    this.highlight = new HighlightModel();
-    this.legends = new LegendModel(this.config.theme.cvdSafe);
-    this.addresses = new AddressModel(
-      this.spec,
-      this.view,
-      this.store,
-      this.hover,
-      this.selection,
-      this.highlight,
-      this.config,
-      this.context.renderConfig.maxNumberingPositions,
-    );
-    for (const m of [this.addresses, this.highlight, this.selection, this.store, this.hover, this.view, this.spec])
-      this.registerPermanentDispose(() => m.retire());
+        locationOfResult(spec.shown.value, this.addresses.queryModel(), { type: 'elements', elements: els }).location,
+      { extendScope: config.selection.extendScope, acrossBreaks: config.selection.acrossBreaks },
+    ));
+    const emphasis = (this._emphasis = new ViewerEmphasis(this));
+    const highlight = (this.highlight = new HighlightModel());
+    const legends = (this.legends = new LegendModel(config.theme.cvdSafe));
+    const addresses = (this.addresses = new AddressModel(
+      spec,
+      view,
+      store,
+      hover,
+      selection,
+      highlight,
+      config,
+      context.renderConfig.maxNumberingPositions,
+    ));
+    for (const m of [addresses, highlight, selection, store, hover, view, spec]) onRetire(() => m.retire());
     // the host's history, through Seq*'s port: the spec takes part in it (none headless unless the spec gives one)
     const history = viewerSpec.history ?? (target && viewerSpec.ui?.history ? viewerSpec.ui.history() : undefined);
-    if (history) this.spec.attachHistory(history);
+    if (history) spec.attachHistory(history);
 
-    const preset = viewerSpec.bindings?.preset ?? BindingPresets[this.config.bindings.preset];
+    const preset = viewerSpec.bindings?.preset ?? BindingPresets[config.bindings.preset];
     const extraActions = viewerSpec.bindings?.actions ?? [];
-    // a behavior's actions only with the behavior that runs them (the selection's, the rows'), by its name: else their
-    // bindings are reported, never dead
-    const listed = viewerSpec.behaviors.flatMap((b) => BehaviorActions[b.provider.name] ?? []);
-    this.bindings = bindingTable(preset, viewerSpec.bindings?.overrides ?? [], {
-      actions: [...DefaultActions, ...listed, ...extraActions],
-      keys: this.config.view.keys,
-    });
+    const bindings = (this.bindings = bindingTable(preset, viewerSpec.bindings?.overrides ?? [], {
+      actions: [...DefaultActions, ...listedActions(viewerSpec.behaviors), ...extraActions],
+      keys: config.view.keys,
+    }));
 
     // behaviors, after the models; one of each name
-    const context: BehaviorContext = {
-      spec: this.spec,
-      view: this.view,
-      hover: this.hover,
-      store: this.store,
-      selection: this.selection,
-      highlight: this.highlight,
-      addresses: this.addresses,
-      config: this.config,
-      bindings: this.bindings,
-      legends: this.legends,
-      layout: () => this._frame?.layout,
+    const behaviorContext: BehaviorContext = {
+      spec,
+      view,
+      hover,
+      store,
+      selection,
+      highlight,
+      addresses,
+      config,
+      bindings,
+      legends,
+      layout: () => this._frame?.frame?.layout,
     };
     try {
-      for (const b of viewerSpec.behaviors) {
-        if (this.behaviors.has(b.provider.name)) throw new Error(`The behavior ${b.provider.name} is listed twice`);
-        const handle = b.provider.create(context, b.params);
-        this.behaviors.set(b.provider.name, handle);
-        if (Array.isArray(handle?.commands)) this.commands.push(...handle.commands);
-        if (typeof handle?.dispose === 'function') this.registerPermanentDispose(() => handle.dispose());
-      }
+      createBehaviors(viewerSpec.behaviors, behaviorContext, this.behaviors, this.commands, onRetire);
     } catch (e) {
       // what was made is not left behind
       this.retire();
@@ -369,81 +263,73 @@ export class SeqViewer extends ReactiveModel {
     this.input = new ViewerInput(this);
 
     // what moves the picture asks for a frame
-    this.listenPermanently(this.spec.model, (model) => {
+    listen(spec.model, (model) => {
       // what the model no longer opens goes at once: no frame before the sync reads an edited source's old file
-      this.store.detachStale(model);
+      store.detachStale(model);
       this._sync();
     });
-    this.listenPermanently(this.hover.version, () => this.schedule());
-    this.listenPermanently(this.selection.value, () => {
-      this._holdSelection();
-      this._revealLinked();
+    listen(hover.version, schedule);
+    listen(selection.value, () => {
+      holdSelection(this);
+      revealLinked(this, emphasis.projector);
       this.schedule();
     });
-    this.listenPermanently(this.selection.cursor, () => this.schedule());
-    this.listenPermanently(this.highlight.version, () => this.schedule());
+    listen(selection.cursor, schedule);
+    listen(highlight.version, schedule);
     // the reader's substitution redraws (its frames are keyed by it); the hover moves the legend's entry
-    this.listenPermanently(this.legends.cvdSafe, () => this.schedule());
+    listen(legends.cvdSafe, schedule);
     // a band's own scroll, row zoom and folds (a rows band's)
-    this.listenPermanently(this.view.bands, () => this.schedule());
-    this.listenPermanently(this.hover.version, () => this.legends.updateHover(this._frame?.layout, this.hover.current));
-    this.listenPermanently(this.store.store.version, () => {
+    listen(view.bands, schedule);
+    listen(hover.version, () => legends.updateHover(this._frame?.frame?.layout, hover.current));
+    listen(store.store.version, () => {
       this._readLengths();
       this.schedule();
     });
-    this.listenPermanently(this.store.store.settled, () => this.schedule());
+    listen(store.store.settled, schedule);
     // the animation port (_spec/README.md "Ports", Animation): the application's clock, the page's frames by default
-    this.animation = {
-      progress: (plan, t) => {
-        if (this._motion) this._showFrame(plan, this._motion.sample(plan, t));
-      },
-      show: (plan, frame) => this._showFrame(plan, frame),
-      clear: () => this._clearFrame(),
-      draw: () => {
-        this.draw();
-      },
-      drawn: this._drawnFrames.asReadonly,
-      durationOf: (plan) => plan.duration,
-    };
-    this._animation = (viewerSpec.animation ?? frameAnimation())(this.animation);
-    this.registerPermanentDispose(() => {
-      this._request?.request.cancel();
-      this._request = undefined;
-      if (this._animation.disposeWithViewer !== false) this._animation.dispose?.();
-    });
+    const motion = (this._motion = new ViewerMotion(
+      this,
+      clock,
+      viewerSpec.story,
+      viewerSpec.animation ?? frameAnimation(),
+    ));
+    this.animation = motion.participant;
+    onRetire(() => motion.dispose());
+    const frame = (this._frame = new ViewerFrame(
+      this,
+      fixedDpr,
+      clock,
+      motion,
+      (resolved) => this._viewport(resolved),
+      rails,
+      emphasis,
+      this._issues,
+    ));
+    this.drawn = frame.drawn;
     // a jump animates from the windows drawn to the model's (the model is there at once: hits read the frame drawn)
-    this.listenPermanently(this.view.jumps, (n) => this._startMotion(n));
+    listen(view.jumps, (n) => motion.jumped(n));
     // an edit, an undo or a load under a frame that changes the spec ends it: the frame was made from the old root
-    this.listenPermanently(this.spec.head, () => {
-      const f = this._shownFrame;
-      if (!f || f.plan.from.root === f.plan.to.root) return;
-      this._endMotion();
-      this._clearFrame();
-    });
+    listen(spec.head, () => motion.headMoved());
     // a story step entered by a command or a host is a transition too (its view is a snapshot's: a jump)
-    this.listenPermanently(this.spec.step, () => this._stepChanged());
-    this.listenPermanently(this.view.resolved, () => {
+    listen(spec.step, () => motion.stepChanged());
+    listen(view.resolved, () => {
       this._followViewports();
       this._applyWidths();
       this.schedule();
     });
     this._followViewports();
-    if (target && viewerSpec.ui?.toolbar) this.registerPermanentDispose(viewerSpec.ui.toolbar(this, target));
-    if (target && viewerSpec.ui?.canvas) this.registerPermanentDispose(mountCanvas(this, target));
-    if (target && viewerSpec.ui?.navigators) this.registerPermanentDispose(viewerSpec.ui.navigators(this, target));
-    if (target && viewerSpec.ui?.railToggle) this.registerPermanentDispose(viewerSpec.ui.railToggle(this, target));
-    if (target && viewerSpec.ui?.legends) this.registerPermanentDispose(viewerSpec.ui.legends(this, target));
+    const ui = viewerSpec.ui;
+    if (target && ui?.toolbar) onRetire(ui.toolbar(this, target));
+    if (target && ui?.canvas) onRetire(mountCanvas(this, target));
+    if (target && ui?.navigators) onRetire(ui.navigators(this, target));
+    if (target && ui?.railToggle) onRetire(ui.railToggle(this, target));
+    if (target && ui?.legends) onRetire(ui.legends(this, target));
     // registered last, so it runs first: everything after it (the UI's teardown, the behaviors, the models) is disposed
     // while the viewer is retired, and none of it asks for a frame
-    this.registerPermanentDispose(() => {
+    onRetire(() => {
       this._retired = true;
-      if (this._frameId !== undefined) cancelFrameCallback(this._frameId);
-      this._frameId = undefined;
-      DomHost.clearTimeout(this._settleTimer);
-      this._settleTimer = undefined;
-      DomHost.clearTimeout(this._restTimer);
-      this._restTimer = undefined;
-      this._wanter?.dispose();
+      clock.dispose();
+      frame.dispose();
       for (const u of this._viewportListeners) u();
       this._viewportListeners.length = 0;
     });
@@ -455,38 +341,8 @@ export class SeqViewer extends ReactiveModel {
    * with another shape), is reported once as an issue (`behaviorIssues`) and the gesture does nothing.
    */
   behavior<H>(provider: BehaviorProvider<any, H> | string): H | undefined {
-    const name = typeof provider === 'string' ? provider : provider.name;
     // by name: what the input asks for names no provider object, so a viewer bundles only the behaviors it lists
-    const handle = this.behaviors.get(name);
-    if (handle !== undefined) {
-      const lacks = BehaviorShapes[name]?.find((m) => typeof handle[m] !== 'function');
-      if (lacks === undefined) return handle as H;
-      this._behaviorIssue(
-        name,
-        'seq.viewer.behavior.shape',
-        `The viewer's ${name} behavior has no ${lacks}: its gestures do nothing`,
-      );
-      return undefined;
-    }
-    this._behaviorIssue(
-      name,
-      'seq.viewer.behavior.missing',
-      `The viewer has no ${name} behavior: its gestures do nothing`,
-    );
-    return undefined;
-  }
-
-  /** A behavior's issue, once by its name. */
-  private _behaviorIssue(
-    name: string,
-    code: 'seq.viewer.behavior.missing' | 'seq.viewer.behavior.shape',
-    message: string,
-  ): void {
-    if (this._behaviorIssues.value.some((i) => i.address === name)) return;
-    this._behaviorIssues.set([
-      ...this._behaviorIssues.value,
-      issueOf(ViewerIssues, code, message, { address: name, hint: ViewerIssues.codes[code].hint }),
-    ]);
+    return behaviorOf<H>(this.behaviors, typeof provider === 'string' ? provider : provider.name, this._behaviorIssues);
   }
 
   /** Whether `retire` has run: a frame asked for before it does nothing. */
@@ -548,7 +404,7 @@ export class SeqViewer extends ReactiveModel {
   async settle(timeoutMs = 10_000): Promise<boolean> {
     await this._syncing;
     const until = DomHost.now() + timeoutMs;
-    this._quiet = true;
+    this._clock.quiet = true;
     for (let round = 0; round < 8; round++) {
       const frame = this.draw();
       if (!frame) return true;
@@ -573,8 +429,8 @@ export class SeqViewer extends ReactiveModel {
 
   /** Attaches the Canvas2D backend (mounted UI), or none: the viewer then lays out and hit-tests without drawing. */
   useBackend(backend: CanvasBackend | undefined): void {
-    this._backend = backend;
-    this._baseDirty = true;
+    this._frame.backend = backend;
+    this._frame.baseDirty = true;
     this.schedule();
   }
 
@@ -585,8 +441,7 @@ export class SeqViewer extends ReactiveModel {
   setTokens(tokens: SeqTokens): boolean {
     if (this._retired || tokens.version === this.tokens.version) return false;
     this.tokens = tokens;
-    if (this._renderer) this._renderer.tokens = tokens;
-    this._baseDirty = true;
+    this._frame.setTokens(tokens);
     this._tokensVersion.set(tokens.version);
     this.schedule();
     return true;
@@ -621,8 +476,6 @@ export class SeqViewer extends ReactiveModel {
     for (const s of sections) this.view.setWidth(s.address, dataW);
   }
 
-  private _viewportListeners: (() => void)[] = [];
-
   /** A frame is asked for by each section's viewport changing: listened to, again when the view's sections change. */
   private _followViewports(): void {
     for (const u of this._viewportListeners) u();
@@ -630,164 +483,18 @@ export class SeqViewer extends ReactiveModel {
     for (const s of this.view.resolved.value?.sections ?? [])
       this._viewportListeners.push(
         this.view.viewport(s.address).listen(() => {
-          // a move by hand ends a motion, a story's too, and clears a frame a host shows (a jump's own move is
-          // followed by its count moving; a step's view is placed before its motion starts)
-          if (this._request && (this._request.jumps === undefined || this._request.jumps === this.view.jumps.value))
-            this._endMotion();
-          else if (!this._request && this._shownFrame) this._clearFrame();
-          this._moved();
+          // a move by hand ends a motion, a story's too, and clears a frame a host shows
+          this._motion.handMoved();
+          this._clock.moved();
           this.schedule();
         }),
       );
   }
 
-  /** The view moved: it is not settled until it rests for `canvas.settleMs`. */
-  private _moved(): void {
-    if (this._retired) return;
-    this._quiet = false;
-    this._restDue = false;
-    DomHost.clearTimeout(this._settleTimer);
-    this._settleTimer = DomHost.setTimeout(() => {
-      this._settleTimer = undefined;
-      this._quiet = true;
-      this._restDue = true;
-      this.schedule();
-    }, this.config.canvas.settleMs);
-  }
-
-  /** The picture changed while the view is quiet (data arrived, the height followed): it rests `canvas.settleMs` later. */
-  private _changed(): void {
-    if (this._retired || !this._quiet) return;
-    DomHost.clearTimeout(this._restTimer);
-    this._restTimer = DomHost.setTimeout(() => {
-      this._restTimer = undefined;
-      if (this._quiet && !this._retired) this._rested.set(this._rested.value + 1);
-    }, this.config.canvas.settleMs);
-  }
-
   /** Asks for a frame: one a frame (`@molstar/ui/dom`'s frame callbacks, on `DomHost`), whatever asked; `retire` cancels it. */
   schedule(): void {
     // a re-hit's own hover change is drawn by the frame that made it
-    if (this._frameId !== undefined || this._retired || this._rehitting) return;
-    this._frameId = requestFrameCallback(() => {
-      this._frameId = undefined;
-      if (!this._retired) this.draw();
-    });
-  }
-
-  /**
-   * Whether a motion, a jump's or a story's, is a cut: `view.motion` (`cut`; `platform`: the platform's reduced motion;
-   * `animate`: never), one item for both (_spec/README.md, Configuration).
-   */
-  private get _cut(): boolean {
-    const motion = this.config.view.motion;
-    return motion === 'cut' || (motion === 'platform' && this.reducedMotion);
-  }
-
-  /** Each leading section's viewport in the model now (what a jump goes to), by address. */
-  private _modelViews(): ViewState {
-    const sections: Record<string, StepViewport> = {};
-    for (const s of this.view.resolved.value?.sections ?? []) {
-      if (this.view.isFollowing(s.address)) continue;
-      const v = this.view.get(s.address);
-      if (!v || v.pending) continue;
-      // the bands' top and zoom (display rows, px a row): what a step tweens; the folds are the session's, never a step's
-      const own = this.view.bandsOf(s.address);
-      let bands: Record<string, { bandTop: number; rowScale?: number }> | undefined;
-      for (const track in own ?? {}) {
-        const b = own![track];
-        (bands ??= {})[track] = { bandTop: b.bandTop, ...(b.rowScale !== undefined ? { rowScale: b.rowScale } : {}) };
-      }
-      sections[s.address] = {
-        start: v.start,
-        end: v.end,
-        ...(v.top ? { top: v.top } : {}),
-        ...(v.scale !== undefined ? { scale: v.scale } : {}),
-        ...(bands ? { bands } : {}),
-      };
-    }
-    return { sections };
-  }
-
-  /** What a plan of this viewer needs besides its states: the cyclic sections' totals (a window's shortest arc). */
-  private _planOptions(): Pick<PlanOptions, 'cyclic' | 'config' | 'resolveColor'> {
-    const cyclic: Record<string, number> = {};
-    for (const s of this.view.resolved.value?.sections ?? [])
-      if (this.view.wraps(s.address)) {
-        const total = axisTotal(s.axis);
-        if (total) cyclic[s.address] = total;
-      }
-    // a token blends through the color it draws in (the viewer's token table, light or dark as shown)
-    const tokens = this.tokens;
-    const color = (c: string) => {
-      const r = resolveColor(c, tokens);
-      // RGBA: an opaque color as hex; one with alpha is no color a plan blends
-      return r === undefined || (r & 0xff) !== 0xff ? undefined : `#${(r >>> 8).toString(16).padStart(6, '0')}`;
-    };
-    return { cyclic, config: this.config.story, resolveColor: color };
-  }
-
-  /**
-   * A jump moved the view (_spec/README.md "Composition", Motion): a plan from every leading section's viewport drawn
-   * (window, letter size) to the model's, requested of the animation port over `view.jumpMs`, unless motion is cut.
-   */
-  private _startMotion(jumps: number): void {
-    const { jumpMs } = this.config.view;
-    this._endMotion();
-    const motion = this._motion;
-    if (!motion || this._retired || this._cut || !(jumpMs > 0) || !this._drawnViews.size) return;
-    const from: ViewState = { sections: Object.fromEntries(this._drawnViews) };
-    const shown = this.spec.shown.value;
-    const p = motion.plan(
-      { root: shown, view: from },
-      { root: shown, view: this._modelViews() },
-      { ...this._planOptions(), duration: jumpMs },
-    );
-    if (p.channels.length) this._run(p, jumps);
-  }
-
-  /** Runs a plan on the application's clock, shown from its start now; the frame left at its end. */
-  private _run(plan: TransitionPlan, jumps?: number): void {
-    this._request?.request.cancel();
-    if (!this._motion) return;
-    this._showFrame(plan, this._motion.sample(plan, 0));
-    const request = this._animation.request(plan, {
-      duration: plan.duration,
-      done: () => {
-        if (this._request?.plan !== plan) return;
-        this._request = undefined;
-        this._clearFrame();
-      },
-    });
-    this._request = { request, plan, ...(jumps !== undefined ? { jumps } : {}) };
-  }
-
-  /** Ends a running motion where the model is (no frame left over it). */
-  private _endMotion(): void {
-    if (!this._request) return;
-    this._request.request.cancel();
-    this._request = undefined;
-    this._clearFrame();
-  }
-
-  /** Shows a frame over the state (the frame slot): its spec when the plan changes the spec, its viewports. */
-  private _showFrame(plan: TransitionPlan, frame: StoryFrame): void {
-    const motion = this._motion;
-    if (this._retired || !motion) return;
-    // a plan between two equal roots (a jump's) shows the state itself
-    this.spec.setFrame(plan.from.root === plan.to.root ? undefined : motion.frameRoot(plan, frame));
-    const views = motion.frameView(plan, frame);
-    this._shownFrame = { plan, frame, ...(views ? { views } : {}) };
-    this._moved();
-    this.schedule();
-  }
-
-  /** Leaves the frame: the state is shown and drawn again. */
-  private _clearFrame(): void {
-    if (!this._shownFrame && this.spec.frame === undefined) return;
-    this._shownFrame = undefined;
-    this.spec.setFrame(undefined);
-    this.schedule();
+    this._clock.schedule();
   }
 
   /**
@@ -797,14 +504,7 @@ export class SeqViewer extends ReactiveModel {
    * shows. What every pointer and key input does first.
    */
   stopMotion(): void {
-    const r = this._request;
-    if (!r && !this._shownFrame) return;
-    const drawn = [...this._drawnViews];
-    r?.request.cancel();
-    this._request = undefined;
-    this._clearFrame();
-    for (const [address, v] of drawn) this.view.setViewport(address, v);
-    this.draw();
+    this._motion.stop();
   }
 
   /**
@@ -816,233 +516,36 @@ export class SeqViewer extends ReactiveModel {
    * issue says so). The issue when the step is unknown.
    */
   playStep(id: string | undefined, options: { readonly run?: boolean } = {}): { plan?: TransitionPlan; issue?: Issue } {
-    this._endMotion();
-    const from = this._fromState(this.spec.shown.value);
-    this._stepping = true;
-    try {
-      if (id === undefined) this.spec.leaveStep();
-      else {
-        const issue = this.spec.enterStep(id);
-        if (issue) return { issue };
-      }
-    } finally {
-      this._stepping = false;
-    }
-    this._shownStep = this.spec.step.value?.id;
-    return { plan: this._toStep(from, options.run ?? true) };
-  }
-
-  /** What a transition starts from: a root and the viewports drawn last (the model's before a frame). */
-  private _fromState(root: Node): StoryState {
-    const views = this._drawnViews.size ? { sections: Object.fromEntries(this._drawnViews) } : this._modelViews();
-    return { root, view: { ...views, ...this._viewAddress() } };
-  }
-
-  /** A step entered elsewhere (the `step.enter` command, a host): the same transition, from what was drawn. */
-  private _stepChanged(): void {
-    const id = this.spec.step.value?.id;
-    if (this._stepping || this._retired || id === this._shownStep) return;
-    this._shownStep = id;
-    this._endMotion();
-    this._toStep(this._fromState(this._drawnRoot ?? this.spec.shown.value), true);
-  }
-
-  /** The step shown (its view placed) and the plan to it from `from`, run or shown at its start (none: no motion). */
-  private _toStep(from: StoryState, run: boolean): TransitionPlan | undefined {
-    const st = this.spec.step.value?.state;
-    if (st?.view) {
-      if (st.view.view !== undefined) this.view.show(st.view.view);
-      const resolved = this.view.resolved.value;
-      for (const [address, v] of Object.entries(st.view.sections)) {
-        const axis = resolved?.sections.find((s) => s.address === address)?.axis;
-        const s = axis && nearestOffsetOf(axis, v.start);
-        const e = axis && nearestOffsetOf(axis, v.end);
-        if (s === undefined || e === undefined) continue;
-        this.view.setViewport(address, {
-          start: s,
-          end: e,
-          ...(v.top !== undefined ? { top: v.top } : {}),
-          ...(v.scale !== undefined ? { scale: v.scale } : {}),
-        });
-        // a step's bands: their top and zoom placed in the view model, the session's folds kept
-        for (const track in v.bands ?? {}) {
-          const b = v.bands![track];
-          this.view.setBand(track, {
-            ...(b.bandTop !== undefined ? { bandTop: b.bandTop } : {}),
-            ...(b.rowScale !== undefined ? { rowScale: b.rowScale } : {}),
-          });
-        }
-      }
-    }
-    const motion = this._motion;
-    if (!motion) {
-      this.schedule();
-      return undefined;
-    }
-    const to = { root: this.spec.shown.value, view: { ...this._modelViews(), ...this._viewAddress() } };
-    const timing = st?.timing;
-    const p = motion.plan(from, to, {
-      ...this._planOptions(),
-      reducedMotion: this._cut,
-      ...(timing ? { duration: timing.duration, easing: timing.easing } : {}),
-    });
-    if (this._cut || !p.channels.length) {
-      this.schedule();
-      return p;
-    }
-    if (run) this._run(p);
-    else this._showFrame(p, motion.sample(p, 0));
-    return p;
-  }
-
-  /** The view shown's address, when one is shown by address. */
-  private _viewAddress(): { view?: string } {
-    const v = this.view.view.value;
-    return v !== undefined ? { view: v } : {};
+    return this._motion.playStep(id, options);
   }
 
   /** Whether a motion (a jump's, a story step's) is drawing. */
   get moving(): boolean {
-    return this._request !== undefined;
+    return this._motion.moving;
   }
 
   /** The window the last frame drew (during a motion, between where it started and the model's), a copy. */
   get drawnViewport(): RenderViewport | undefined {
-    return Number.isNaN(this._drawnWindow.start)
-      ? undefined
-      : { start: this._drawnWindow.start, end: this._drawnWindow.end };
+    const w = this._motion.drawnWindow;
+    return Number.isNaN(w.start) ? undefined : { start: w.start, end: w.end };
   }
 
   /** Each leading section's viewport the last frame drew, by address (during a motion, the frame's), copies. */
   get drawnViewports(): Readonly<Record<string, StepViewport>> {
-    return Object.fromEntries([...this._drawnViews].map(([k, v]) => [k, { ...v }]));
+    return Object.fromEntries([...this._motion.drawnViews].map(([k, v]) => [k, { ...v }]));
   }
-
-  /**
-   * A leading section's viewport as drawn now: the frame's (an animation's), else the model's. `eye` false: a jump's
-   * motion is the eye's way only (the SVG and `viewport` read the model, the destination), a story's frame is shown.
-   */
-  private _shownViewport(address: string, eye = true): StepViewport | undefined {
-    const jump =
-      this._request !== undefined && this._request.jumps !== undefined && this._request.plan === this._shownFrame?.plan;
-    const f = eye || !jump ? this._shownFrame?.views?.sections[address] : undefined;
-    if (f) return f;
-    const v = this.view.get(address);
-    return v && !v.pending ? v : undefined;
-  }
-
-  /**
-   * The window the renderer draws: the first section that leads (the renderer takes one window for all), as the frame
-   * slot shows it during a motion. Undefined when it is not placed.
-   */
-  private _viewport(resolved: ResolvedView, eye = true): RenderViewport | undefined {
-    for (const s of resolved.sections) {
-      if (this.view.isFollowing(s.address)) continue;
-      const w = this._shownViewport(s.address, eye);
-      if (!w) return undefined;
-      const out = this._viewportOut;
-      out.start = w.start;
-      out.end = w.end;
-      return out;
-    }
-    return undefined;
-  }
-
-  /**
-   * Every leading section's viewport (the frame's `viewports`, by address), as its layout reads it (a window; a text's
-   * anchor and letter size; a top, a band's scroll), as the frame slot shows it during a motion: each section's own,
-   * field by field. Computed once a frame and kept while equal, so the frame's key holds; undefined when no section is
-   * placed.
-   */
-  private _viewports(resolved: ResolvedView, eye = true): Readonly<Record<string, RenderViewport>> | undefined {
-    const kept = this._viewportsKept;
-    let n = 0;
-    let same = kept !== undefined;
-    for (const s of resolved.sections) {
-      // a grid's own y window: its entry even when x follows (the frame reads its `y`)
-      const y = this.view.get(s.address)?.y;
-      if (this.view.isFollowing(s.address) && !y) continue;
-      const w = this._shownViewport(s.address, eye);
-      if (!w) continue;
-      const k = kept?.[s.address];
-      if (
-        !k ||
-        k.start !== w.start ||
-        k.end !== w.end ||
-        k.scale !== w.scale ||
-        k.top !== (w.top || undefined) ||
-        k.y !== y ||
-        k.bands !== this._bandsFor(s.address, w)
-      )
-        same = false;
-      n++;
-    }
-    if (!n) return (this._viewportsKept = undefined);
-    if (same && this._viewportsKeptCount === n) return kept;
-    const out: Record<string, RenderViewport> = {};
-    for (const s of resolved.sections) {
-      const y = this.view.get(s.address)?.y;
-      if (this.view.isFollowing(s.address) && !y) continue;
-      const w = this._shownViewport(s.address, eye);
-      if (!w) continue;
-      const bands = this._bandsFor(s.address, w);
-      out[s.address] = {
-        start: w.start,
-        end: w.end,
-        ...(w.scale !== undefined ? { scale: w.scale } : {}),
-        // `top`: the frame's during a motion, else the model's (when set)
-        ...(w.top ? { top: w.top } : {}),
-        // `bands`: the ViewModel's (scroll, row zoom, folds), a shown frame's `bandTop` and `rowScale` over them
-        ...(bands ? { bands } : {}),
-        ...(y ? { y } : {}),
-      };
-    }
-    this._viewportsKept = out;
-    this._viewportsKeptCount = n;
-    return out;
-  }
-
-  private _viewportsKept: Readonly<Record<string, RenderViewport>> | undefined;
-  /** How many entries `_viewportsKept` holds (compared each frame without listing its keys). */
-  private _viewportsKeptCount = 0;
-
-  /**
-   * A section's bands as a frame reads them (_spec/README.md "ViewModel", Bands): the ViewModel's (a rows band's scroll,
-   * row zoom and folds, session state), a shown story frame's `bandTop` and `rowScale` merged over them, the session's
-   * folds kept. Kept while both are the same objects, so the frame's key holds.
-   */
-  private _bandsFor(section: string, w: StepViewport): RenderViewport['bands'] | undefined {
-    const own = this.view.bandsOf(section);
-    const framed = this._shownFrame ? w.bands : undefined;
-    if (!framed) return own;
-    const kept = this._bandsMerged.get(section);
-    if (kept && kept[0] === own && kept[1] === framed) return kept[2];
-    const out: Record<string, BandViewport> = { ...own };
-    for (const track of Object.keys(framed)) {
-      const f = framed[track];
-      const o = own?.[track];
-      out[track] = {
-        bandTop: f.bandTop ?? o?.bandTop ?? 0,
-        ...((f.rowScale ?? o?.rowScale) !== undefined ? { rowScale: f.rowScale ?? o?.rowScale } : {}),
-        ...(o?.folds !== undefined ? { folds: o.folds } : {}),
-        ...(o?.tree ? { tree: true } : {}),
-      };
-    }
-    this._bandsMerged.set(section, [own, framed, out]);
-    return out;
-  }
-
-  private readonly _bandsMerged = new Map<
-    string,
-    [RenderViewport['bands'] | undefined, NonNullable<StepViewport['bands']>, RenderViewport['bands']]
-  >();
 
   /** A section's placement in the last frame (its strips, what its layout's arithmetic reads), by address. */
   placementOf(section: string): Placement | undefined {
-    const sections = this._frame?.layout.sections;
-    if (!sections) return undefined;
-    for (let i = 0; i < sections.length; i++) if (sections[i].section.address === section) return sections[i].placement;
-    return undefined;
+    return this._frame?.placementOf(section);
+  }
+
+  /**
+   * The window the renderer draws (`ViewerMotion.window`): the first leading section's, as the frame slot shows it
+   * during a motion; a frame reads it once.
+   */
+  private _viewport(resolved: ResolvedView, eye = true): RenderViewport | undefined {
+    return this._motion.window(resolved, eye);
   }
 
   /** The viewport the last frame was drawn with, a copy (for the SVG and tests). */
@@ -1058,222 +561,17 @@ export class SeqViewer extends ReactiveModel {
    * (no view, no width).
    */
   draw(): Frame | undefined {
-    if (this._retired) return undefined;
-    const model = this.spec.model.value;
-    const resolved = this.view.resolved.value;
-    if (!resolved || this.width <= 0) return undefined;
-    const rr = this._rendererFor;
-    if (!this._renderer || rr[0] !== model || rr[1] !== resolved) {
-      this._renderer = new Renderer({
-        model,
-        view: resolved,
-        data: this.store.store,
-        tokens: this.tokens,
-        text: this.context.text,
-        config: this.context.renderConfig,
-        types: this.context.types,
-        layouts: this.layouts,
-        sizings: this.context.sizings,
-        ...(this.context.trackSizing ? { trackSizing: this.context.trackSizing } : {}),
-      });
-      rr[0] = model;
-      rr[1] = resolved;
-      this._wanter?.dispose();
-      this._wanter = this.store.store.wanter();
-    }
-    const renderer = this._renderer;
-    const dpr =
-      this.fixedDpr ??
-      (this.config.canvas.dpr === 'device' ? (globalThis.devicePixelRatio ?? 1) : this.config.canvas.dpr);
-    this.dpr = dpr;
-
-    const { height: h } = this.config.canvas;
-    const fixed = h !== 'content';
-    const size = this._size;
-    size.width = this.width;
-    size.height = fixed ? h : Math.min(this.config.canvas.maxHeight, Math.max(this._contentHeight, 32));
-    this._updateEmphasis();
-    const input = this._frameInput;
-    // every leading section its own viewport, read by its layout (_spec/README.md "Composition"); the first's once
-    const vp = this._viewport(resolved);
-    const viewports = this._viewports(resolved);
-    if (viewports) input.viewports = viewports;
-    else delete input.viewports;
-    if (vp) {
-      this._drawnWindow.start = vp.start;
-      this._drawnWindow.end = vp.end;
-    }
-    this._updateRails(resolved);
-    if (this._rails) {
-      input.rails = this._rails;
-      input.railsActive = this._railsActive;
-    } else {
-      delete input.rails;
-      delete input.railsActive;
-    }
-    // what each leading section showed: where the next motion starts
-    // (kept in place: `Map.clear` makes a new table a frame)
-    if (viewports) {
-      for (const k of this._drawnViews.keys()) if (!(k in viewports)) this._drawnViews.delete(k);
-      for (const k in viewports) this._drawnViews.set(k, viewports[k]);
-    } else if (this._drawnViews.size) this._drawnViews.clear();
-    // a motion is not settled while it runs
-    if (this._request) this._moved();
-    input.dpr = dpr;
-    input.settled = this._quiet && this.store.store.settled.value;
-    input.emphasis = this._emphasis;
-    input.cvdSafe = this.legends.cvdSafe.value;
-    // tier 2: the store's dynamic nodes (its version is part of the frame's key)
-    input.overlay = this.store.overlay(model, resolved, this.context);
-
-    let frame = renderer.frame(input);
-    let rebuilt = frame.rebuilt;
-    if (!fixed) {
-      const last = frame.layout.sections.at(-1);
-      const content = last ? Math.ceil(last.y + last.height + this.context.renderConfig.inset) : 32;
-      if (content !== this._contentHeight) {
-        this._contentHeight = content;
-        size.height = Math.min(this.config.canvas.maxHeight, Math.max(content, 32));
-        frame = renderer.frame(input);
-        rebuilt ||= frame.rebuilt;
-      }
-    }
-    this.height = size.height;
-    if (rebuilt) {
-      this.counts.layouts++;
-      // what the models read of the placement (a text's lines in view) follows the frame
-      this.view.placed();
-      if (!this._restDue) this._changed();
-      this._wanter?.want(frame.wants);
-      this._issues.set(frame.layout.issues);
-      // legends on settle only (a pan's frames derive none), compared structurally
-      if (input.settled) this.legends.update(frame.layout);
-      this.store.holdShown(frame.layout.shown);
-    }
-    this._frame = frame;
-    // the layout placed the view (its width): a rail that went idle or live with it is drawn so now (the window pass
-    // alone: which rails can move is outside the key)
-    const wasActive = this._railsActive;
-    this._updateRails(resolved);
-    if (this._rails && this._railsActive !== wasActive) {
-      input.railsActive = this._railsActive;
-      frame = renderer.frame(input);
-      this._frame = frame;
-    }
-
-    // a resting pointer is hit again once a frame the view moves under it (EC-143)
-    // (what that frame laid out is still to be drawn: `rebuilt` is the layout's, not the emphasis redraw's)
-    if (rebuilt && this.config.pointer.rehit) {
-      this._rehitting = true;
-      const changed = this.input.rehit();
-      this._rehitting = false;
-      if (changed) {
-        this._updateEmphasis();
-        frame = renderer.frame(input);
-        this._frame = frame;
-      }
-    }
-
-    const backend = this._backend;
-    if (backend) {
-      backend.fonts.setStacks(renderer.tokens.fonts);
-      this._baseDirty = backend.resize(size.width, size.height, dpr) || this._baseDirty;
-      backend.draw(frame.lists, rebuilt || frame.base || this._baseDirty);
-      this._baseDirty = false;
-    }
-    this.counts.frames++;
-    this._drawn.set(this._drawn.value + 1);
-    // the hover card follows the frame: a cursor's card after the frame that revealed it, none outliving a new layout
-    // (by name: a viewer without the card bundles none of it)
-    (this.behaviors.get('hoverCard') as HoverCardBehavior | undefined)?.framed(rebuilt);
-    if (!this._shownFrame) this._drawnRoot = this.spec.shown.value;
-    if (this._shownFrame) this._drawnFrames.set(this._drawnFrames.value + 1);
-    if (this._restDue) {
-      // the settled picture is drawn: it rests now, once (a layout of this frame waits for no second rest)
-      this._restDue = false;
-      DomHost.clearTimeout(this._restTimer);
-      this._restTimer = undefined;
-      this._rested.set(this._rested.value + 1);
-    }
-    return frame;
-  }
-
-  /**
-   * The rails this frame draws (_spec/README.md "Composition", Navigators): every linear section no shown navigator
-   * binds, and every rows track no navigator binds along its rows (a rows rail), while `navigator.form` is `rail` and
-   * the reader shows them; each active when the view can move it (the `navigator` behavior listed, not idle: idle is
-   * the whole axis at the zoom limit, a follower under `ignore`; a rows rail's every row shown, the layout's).
-   */
-  private _updateRails(resolved: ResolvedView): void {
-    const on = this.config.navigator.form === 'rail' && this._railsShown.value;
-    const f = this._railsFor;
-    if (f[0] !== resolved || f[1] !== on || f[2] !== this._hostedVersion || f[3] !== narrowedVersion(this)) {
-      f[0] = resolved;
-      f[1] = on;
-      f[2] = this._hostedVersion;
-      f[3] = narrowedVersion(this);
-      // a host's navigator (`navigator(def)`) replaces the rail on what it binds, as a declared one does
-      const hosted: ResolvedNavigator[] = [];
-      for (const m of this._navigators.values()) {
-        const n = m.isHosted ? m.navigator : undefined;
-        if (n) hosted.push(n);
-      }
-      // a declared navigator replaces a rail only when the spec lists the navigators (else it is not drawn: said once)
-      const shown = this._navigatorsPart ? resolved : this._withoutNavigators(resolved);
-      // and every rows layer's rows rail, by its track (`navigator.rowsRail`; a navigator a narrow frame hides, hidden)
-      const rows = on ? rowsRailsOf(this, shown, hosted, this.config) : [];
-      this._rowsRails = new Set(rows);
-      this._rails = on
-        ? Object.fromEntries([...railSections(shown, hosted), ...rows].map((a) => [a, true as const]))
-        : undefined;
-      this._railsActive = {};
-    }
-    const rails = this._rails;
-    if (!rails) return;
-    const behavior = this.behaviors.has('navigator');
-    let changed = false;
-    // a rows rail can move while the behavior is there (idle while every row shows: the layout knows, `whole`)
-    // (no closure: a frame makes none)
-    for (const a in rails) if (this._railsActive[a] !== this._railCan(behavior, a)) changed = true;
-    if (!changed) return;
-    const next: Record<string, boolean> = {};
-    for (const a in rails) next[a] = this._railCan(behavior, a);
-    this._railsActive = next;
-  }
-
-  private _railCan(behavior: boolean, address: string): boolean {
-    return behavior && (this._rowsRails.has(address) || !windowIdle(this.view, address, this.config));
-  }
-
-  /**
-   * The view as drawn by a viewer that lists no navigators: its declared ones left out (their rails stay), and one
-   * issue (`seq.viewer.navigators.none`) when it declares any shown.
-   */
-  private _withoutNavigators(resolved: ResolvedView): ResolvedView {
-    if (!resolved.navigators.some((n) => !n.hidden)) return resolved;
-    if (!this._behaviorIssues.value.some((i) => i.code === 'seq.viewer.navigators.none'))
-      this._behaviorIssues.set([
-        ...this._behaviorIssues.value,
-        issueOf(
-          ViewerIssues,
-          'seq.viewer.navigators.none',
-          'The view declares navigators and the viewer lists none: they are not drawn, the rails stay',
-          { address: resolved.address, hint: ViewerIssues.codes['seq.viewer.navigators.none'].hint },
-        ),
-      ]);
-    return { ...resolved, navigators: [] };
+    return this._frame.draw();
   }
 
   /** Shows or hides the ruler rails (the reader's session: the embedded layout's corner button). */
   setRailsShown(shown: boolean): void {
-    if (this._railsShown.value === shown) return;
-    this._railsShown.set(shown);
-    this.schedule();
+    this._rails.setShown(shown);
   }
 
   /** The emphasis the last frame drew (the selection, the highlights, the cursor): what a navigator's marks read. */
   get emphasis(): Emphasis {
-    return this._emphasis;
+    return this._emphasis.emphasis;
   }
 
   /**
@@ -1281,15 +579,7 @@ export class SeqViewer extends ReactiveModel {
    * with the viewer. Undefined when there is none of that id, or the spec lists no navigators (`navigators`).
    */
   navigatorModel(id: string): NavigatorModel | undefined {
-    const kept = this._navigators.get(id);
-    if (kept) return kept;
-    const view = this.view.resolved.value;
-    const part = this._navigatorsPart;
-    if (!part || !view?.navigators.some((n) => n.id === id || n.address === id)) return undefined;
-    const m = part.model(this, id);
-    this._navigators.set(id, m);
-    this.registerPermanentDispose(() => m.retire());
-    return m;
+    return this._rails.model(id);
   }
 
   /**
@@ -1298,15 +588,7 @@ export class SeqViewer extends ReactiveModel {
    * spec lists no navigators (`navigators`): a host that shows one composes them.
    */
   navigator(def: NavigatorDef): NavigatorModel {
-    const part = this._navigatorsPart;
-    if (!part) throw new Error(`The viewer lists no navigators (its spec's \`navigators\`): no navigator ${def.id}`);
-    this._navigators.get(def.id)?.retire();
-    const m = part.model(this, def.id, def);
-    this._navigators.set(def.id, m);
-    this._hostedVersion++;
-    this.registerPermanentDispose(() => m.retire());
-    this.schedule();
-    return m;
+    return this._rails.hosted(def);
   }
 
   /** The view's renderer (its image cache and held domains: a navigator's picture shares them). */
@@ -1314,166 +596,20 @@ export class SeqViewer extends ReactiveModel {
     return this._renderer;
   }
 
+  /** The renderer the frame made (made again when the model or the view changes). */
+  private get _renderer(): Renderer | undefined {
+    return this._frame.renderer;
+  }
+
   /** The last frame: its layout is what hit-testing reads. */
   get frame(): Frame | undefined {
-    return this._frame;
-  }
-
-  /**
-   * The emphasis the passes draw: the selection's Location and its projection onto the linked sections, the cursor, the
-   * highlight channels (each with its projection), and the hover with its projection. Reused records, mutated when what
-   * they show changes; the projections are cached (`Projector`, `HoverModel.projectedAll`), so a redraw makes none.
-   */
-  private _updateEmphasis(): void {
-    const e = this._emphasis;
-    const p = this._projected;
-    const sel = this.selection.value.value;
-    e.elements = sel.elements.keys.length ? sel.elements : undefined;
-    if (isNothing(sel)) e.selection = p.selection = undefined;
-    else {
-      e.selection = sel.shown;
-      p.selection = this._projector.of(sel.shown);
-    }
-    // the cursor shows once the keyboard moved it (focus-visible: a click places it unseen)
-    const c = this.selection.cursor.value;
-    if (c?.keyboard) {
-      const k = this._cursor;
-      k.system = c.system;
-      k.position = c.position;
-      // on a section of two axes its row and its part, drawn by that section's layer (the others mark its column)
-      k.section = c.section;
-      k.ySystem = c.ySystem;
-      k.yPosition = c.yPosition;
-      k.part = c.part;
-      e.cursor = k;
-    } else e.cursor = undefined;
-    this._updateHighlights();
-    e.projected = p;
-    p.hover = this.hover.projectedAll();
-    p.hoverSection = this.hover.current.section;
-    // a window's part under the pointer (a rail's, a ring's) lights it; a window being dragged grows its rail
-    e.drag = this.input?.dragHit;
-    const wh = this.input?.windowHit;
-    if (wh) {
-      e.hover = wh;
-      this._hoverVersion = -1;
-      return;
-    }
-    const v = this.hover.version.value;
-    if (v === this._hoverVersion) return;
-    this._hoverVersion = v;
-    e.hover = this._hoverHit();
-  }
-
-  /** The hover model's hit as the emphasis (and the hits) read it, in the reused record; undefined with no hover. */
-  private _hoverHit(): RenderHit | undefined {
-    const r = this.hover.current;
-    if (r.owner === undefined || r.layer === undefined || r.system === undefined) return undefined;
-    const h = this._emphasisHit;
-    h.layer = r.layer;
-    h.section = r.section === undefined ? '' : this._sectionId(r.section);
-    h.system = r.system;
-    (h as { position: number | undefined }).position = Number.isNaN(r.position) ? undefined : r.position;
-    (h as { element: unknown }).element = r.element;
-    (h as { extent: unknown }).extent = r.extent;
-    // a cell of two axes (a grid's, a rows cell): its second position, what the crosshair draws
-    (h as { ySystem: string | undefined }).ySystem = r.ySystem;
-    (h as { yPosition: number | undefined }).yPosition = Number.isNaN(r.yPosition) ? undefined : r.yPosition;
-    // the clade hover of a rows layer reads it (_spec/README.md "Render", The rows layer, Hover)
-    (h as { target: unknown }).target = r.target;
-    // the row column cell a header hover is on: its cut value read whole in the tip pass (Emphasis along y)
-    (h as { state: string | undefined }).state = r.state;
-    return h;
-  }
-
-  /**
-   * The highlight channels as drawn: each its Location on every section it shows on and its element keys, in its
-   * channel's color (the export's too, `_svgEmphasis`).
-   */
-  private _updateHighlights(): void {
-    const k = this._highlightsFor;
-    const version = this.highlight.version.value;
-    const view = this.view.resolved.value;
-    const model = this.spec.model.value;
-    if (k[0] === version && k[1] === this.tokens.version && k[2] === view && k[3] === model) {
-      this._emphasis.highlights = this._highlights.length ? this._highlights : undefined;
-      return;
-    }
-    k[0] = version;
-    k[1] = this.tokens.version;
-    k[2] = view;
-    k[3] = model;
-    const out: EmphasisHighlight[] = [];
-    for (const name of this.highlight.names.value) {
-      const h = this.highlight.get(name);
-      if (!h || isNothing(h)) continue;
-      const location = this._projector.of(h.shown, { own: true }) ?? h.shown;
-      // its element keys too: a layer of keyed items draws those it holds (a pair's arc, EmphasisHighlight.elements)
-      out.push({
-        location,
-        color: highlightColorOf(this, name),
-        ...(h.elements.keys.length ? { elements: h.elements } : {}),
-        ...(h.style ? { style: h.style } : {}),
-      });
-    }
-    this._highlights = out;
-    this._emphasis.highlights = out.length ? out : undefined;
-  }
-
-  /** The selection's dynamic nodes held while it is selected (`selection.holdNodes`). */
-  /**
-   * A selection made elsewhere (another section, a link, a structure) scrolls each section that shows none of it to its
-   * first part (_spec/README.md "Composition", `reveal.linked`): text sections by default, as a move by hand (no
-   * step of the history). Not the section the selection is being made in (a drag's, the cursor's): it shows it already.
-   */
-  private _revealLinked(): void {
-    const mode = this.config.reveal.linked;
-    const resolved = this.view.resolved.value;
-    const shown = this.selection.value.value.shown;
-    if (mode === 'none' || !resolved || this._retired || !shown.parts.length) return;
-    const own = this.input.selectingIn ?? this.selection.cursor.value?.section;
-    let loc: Location | undefined;
-    for (const s of resolved.sections) {
-      if (s.address === own || (mode === 'text' && s.layout !== 'text')) continue;
-      const v = this.view.get(s.address);
-      if (!v || v.pending) continue;
-      loc ??= this._projector.of(shown, { own: true }) ?? shown;
-      const r = loc.parts.find((p) => p.system === s.axis.system)?.ranges;
-      if (!r?.length) continue;
-      let first = Number.POSITIVE_INFINITY;
-      let shownNow = false;
-      for (let i = 0; i + 1 < r.length && !shownNow; i += 2) {
-        const a = nearestOffsetOf(s.axis, r[i]);
-        const b = nearestOffsetOf(s.axis, r[i + 1]);
-        if (a === undefined || b === undefined) continue;
-        const lo = Math.min(a, b);
-        const hi = Math.max(a, b);
-        if (hi > v.start && lo < v.end) shownNow = true;
-        first = Math.min(first, lo);
-      }
-      if (!shownNow && Number.isFinite(first)) this.view.reveal(s.address, first, first + 1);
-    }
-  }
-
-  private _holdSelection(): void {
-    if (!this.config.selection.holdNodes || this._retired) return;
-    const sel = this.selection.value.value;
-    const addresses: string[] = [];
-    for (const k of sel.elements.keys) addresses.push(k.owner);
-    for (const part of sel.shown.parts) addresses.push(part.system);
-    this.store.holdSession('selection', this.spec.model.value, addresses);
-  }
-
-  /** A section's id, its address's last step (kept: a hover allocates nothing once warm). */
-  private _sectionId(address: string): string {
-    let id = this._sectionIds.get(address);
-    if (id === undefined) this._sectionIds.set(address, (id = address.slice(address.lastIndexOf('/') + 1)));
-    return id;
+    return this._frame.frame;
   }
 
   /** What is under a point of the last frame's layout. */
   hit(x: number, y: number, touch = false): RenderHit | undefined {
-    return this._frame ? hitView(this._frame.layout, x, y, touch, this._hoverHit()) : undefined;
+    const frame = this._frame.frame;
+    return frame ? hitView(frame.layout, x, y, touch, this._emphasis.hoverHit()) : undefined;
   }
 
   // ---- commands ----
@@ -1509,20 +645,6 @@ export class SeqViewer extends ReactiveModel {
 
   // ---- export ----
 
-  /** The session as an export draws it: the selection (its address, else its Location) and the highlight channels. */
-  private _svgEmphasis(): Pick<RenderSvgOptions, 'selection' | 'emphasis'> {
-    this._updateHighlights();
-    const sel = this.selection.value.value;
-    const highlights = this._emphasis.highlights;
-    const location = sel.address === undefined && !isNothing(sel) ? sel.shown : undefined;
-    return {
-      ...(sel.address !== undefined ? { selection: sel.address } : {}),
-      ...(location || highlights
-        ? { emphasis: { ...(location ? { selection: location } : {}), ...(highlights ? { highlights } : {}) } }
-        : {}),
-    };
-  }
-
   /**
    * The picture as an SVG string: the same view, size and window through the context's ports and this viewer's store
    * (data already loaded is shared), at the device pixel ratio of the last frame: the density steps are in device
@@ -1530,10 +652,11 @@ export class SeqViewer extends ReactiveModel {
    */
   renderSvg(options: Partial<RenderSvgOptions> = {}): Promise<RenderSvgResult> {
     const resolved = this.view.resolved.value;
-    const viewports = resolved ? this._viewports(resolved, false) : undefined;
+    const viewports = resolved ? this._motion.all(resolved, false) : undefined;
     // a section that scrolls inside its box (a text's, as its layout placed it) exports every line (the figure): the
     // picture is as tall as it, not the canvas's scrolled box; a text laid out as tracks (no text layout listed) is not
     const figure = resolved?.sections.some((s) => this.placementOf(s.address)?.clip === true) ?? false;
+    const navigators = this._rails.part;
     return this.context.renderSvg(this.spec.shown.value, {
       size: { width: this.width, height: figure ? 'auto' : this.height },
       ...(resolved ? { view: resolved.address } : {}),
@@ -1544,17 +667,13 @@ export class SeqViewer extends ReactiveModel {
       // the navigators as the parts draw them (an included one's zoom strip, its direction)
       navigator: { zoomStrip: this.config.navigator.zoomStrip, direction: this.config.navigator.direction },
       // the navigators part: a viewer that lists none exports none (and says so when asked)
-      ...(this._navigatorsPart ? { navigatorExport: this._navigatorsPart.svgExport } : {}),
+      ...(navigators ? { navigatorExport: navigators.svgExport } : {}),
       // what the canvas shows of the session: the selection, as its address when it has one (the export resolves it
       // over what it holds, and projects it onto the linked sections), else as its Location; the highlight channels
-      ...this._svgEmphasis(),
+      ...this._emphasis.svgEmphasis(),
       ...options,
     });
   }
-}
-
-function viewerConfig(spec: SeqViewerSpec): ViewerConfig {
-  return viewerConfigOf(spec.config);
 }
 
 /**

@@ -9,10 +9,10 @@
 // frame gave it), follows through the resolved view's follow path (EC-113, EC-114), a move asked of a follower carried back
 // to its leader (`follow.followerMoves`: `lead`), viewports kept across updates (EC-111) and moves before a width kept
 // as intents (EC-112), and the view's history of jumps (back and forward). Session state: never in the spec or its
-// history.
+// history. This module holds the moves and the publish; beside it, the scroll groups across updates (`view-groups.ts`),
+// the bands (`view-bands.ts`), the follows' arithmetic (`view-follow.ts`) and the history's steps (`view-history.ts`).
 
 import { batch, derive, KeyedState, type ReadonlyState, ReactiveModel, State } from '@molstar/core/reactive';
-import { type Node, parseAddress } from '@molstar/core/repr/tree';
 import {
   type NavContext,
   type Placement,
@@ -23,19 +23,27 @@ import {
   TracksLayout,
 } from '@molstar/seqx-core/render';
 import type { BandViewport } from '@molstar/seqx-core/render';
-import { inversePath, type Path, projectEnd, projectPoint } from '@molstar/seqx-core/resolve';
-import {
-  type Axis,
-  type Follow,
-  followWindow,
-  type ResolvedSection,
-  type ResolvedView,
-  resolveView,
-  resolveViews,
-} from '@molstar/seqx-core/view';
+import { type Axis, followWindow, type ResolvedView, resolveView, resolveViews } from '@molstar/seqx-core/view';
 import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
-import { axesEqual, axisKey, axisTotal, breakHolding, nearestOffsetOf, offsetOf, positionAt } from './axis.js';
+import { axisTotal } from './axis.js';
 import type { SpecModel } from './spec.js';
+import { type BandRows, type Bands, ViewBands } from './view-bands.js';
+import { followerRange, followOrder, leaderRange, MaxFollowDepth } from './view-follow.js';
+import { DetachedPrefix, type Group, groupSections, rangeOf, type SectionState } from './view-groups.js';
+import {
+  type JumpOutcome,
+  JumpSteps,
+  type KeptBand,
+  restoredOf,
+  restoreInto,
+  type Snapshot,
+  snapshotOf,
+  snapshotsEqual,
+  type ViewHistory,
+  type ViewSnapshot,
+} from './view-history.js';
+
+export type { BandRows, Bands, JumpOutcome, KeptBand, ViewHistory, ViewSnapshot };
 
 /**
  * A section's viewport: `[start, end)` in offsets along its axis (fractional; positions on an axis that shows its
@@ -73,131 +81,6 @@ export interface LayoutSource {
   readonly minScale?: number;
 }
 
-interface Group {
-  readonly key: string;
-  readonly axis: Axis;
-  /** Its sections' layout: a group holds one (scroll groups across layouts would read one range two ways). */
-  readonly layout: string;
-  start: number;
-  end: number;
-  /** px a position, where the layout reads one (text). */
-  scale?: number;
-  /** It shows the whole axis and stays so across resizes and updates. */
-  fitted: boolean;
-  /** The last width (px) it was placed at: a resize keeps its zoom against it. */
-  placedWidth: number;
-  readonly members: string[];
-}
-
-interface SectionState {
-  readonly section: ResolvedSection;
-  /** Its group's key; undefined for an attached follower. */
-  group?: string;
-  width: number;
-  top: number;
-  /** A grid's own y window (`follow_y: none`): kept apart from x's group (_spec/README.md "ViewModel", Grids). */
-  y?: { start: number; end: number };
-}
-
-const DetachedPrefix = '#';
-
-/**
- * A group's range in a step of the history (_spec/README.md "ViewModel", History): its offsets with its axis's
- * signature (system, pieces, direction), its centre as a position and its members, so a step over a changed axis is
- * restored by position (the centre and the zoom), never dropped.
- */
-interface Kept {
-  readonly start: number;
-  readonly end: number;
-  readonly fitted: boolean;
-  readonly sig?: string;
-  readonly center?: number;
-  readonly members?: readonly string[];
-  readonly scale?: number;
-}
-
-/**
- * Every band's own viewport by its track's address (_spec/README.md "ViewModel", Bands): a rows band's scroll
- * (`bandTop`, display rows below its pinned band, fractional), row zoom (`rowScale`, px a row) and folded clades
- * (`folds`, session state). One object, replaced on each change.
- */
-export type Bands = ReadonlyMap<string, BandViewport>;
-
-const NoBands: Bands = new Map();
-
-/**
- * A band as a step of the history keeps it (_spec/README.md "ViewModel", History): its top row by key (a row's key, and
- * the fraction of it scrolled past) with its row zoom and folds, so a step back lands on the same rows whatever was
- * folded, hidden or reordered since; `bandTop` as it was, where no layout names the rows (`BandRows`).
- */
-export interface KeptBand {
-  readonly band: BandViewport;
-  readonly key?: string;
-  readonly offset?: number;
-}
-
-/**
- * What names a band's rows (the rows layer's last layout, given by the viewer): the key of the row at a band's top
- * and the fraction into it, and the top (display rows) a key stands at under a band's folds and row zoom, clamped (a
- * folded key at its summary row, a hidden one at the nearest row shown).
- */
-export interface BandRows {
-  keyAt(track: string, band: BandViewport): { readonly key: string; readonly offset: number } | undefined;
-  topOf(track: string, band: BandViewport, key: string, offset: number): number | undefined;
-  /** A rows system as an axis in its rows layer's display order (what Shift+click extends along). */
-  axisOf(system: string): Axis | undefined;
-}
-
-/**
- * The leading viewports at one time: each group's range by key (a detached follower's among them), the bands, and the
- * grids' own y windows (by section; a grid absent shows all of its y).
- */
-interface Snapshot {
-  readonly groups: ReadonlyMap<string, Kept>;
-  readonly bands: ReadonlyMap<string, KeptBand>;
-  readonly ys: ReadonlyMap<string, { readonly start: number; readonly end: number }>;
-}
-
-const sameBand = (a: KeptBand | undefined, b: KeptBand | undefined) =>
-  !!a &&
-  !!b &&
-  a.band.rowScale === b.band.rowScale &&
-  a.band.folds === b.band.folds &&
-  (a.key !== undefined && b.key !== undefined
-    ? a.key === b.key && a.offset === b.offset
-    : a.band.bandTop === b.band.bandTop);
-
-/** A step of the view's history as `snapshot` gives it: opaque, only `record` reads it. */
-export interface ViewSnapshot {
-  readonly __viewSnapshot?: never;
-}
-
-/** What a jump did: moved the view, found it already there, or could not move. */
-export type JumpOutcome = 'moved' | 'same' | 'none';
-
-/** The view's history of jumps: how many steps back and forward there are. */
-export interface ViewHistory {
-  readonly back: number;
-  readonly forward: number;
-}
-
-/** Two steps are the same view: the same groups at the same offsets, compared only on equal axes. */
-function snapshotsEqual(a: Snapshot, b: Snapshot): boolean {
-  if (a.groups.size !== b.groups.size || a.bands.size !== b.bands.size) return false;
-  for (const [k, v] of a.groups) {
-    const w = b.groups.get(k);
-    if (!w || w.sig !== v.sig || w.start !== v.start || w.end !== v.end || w.fitted !== v.fitted || w.scale !== v.scale)
-      return false;
-  }
-  for (const [k, v] of a.bands) if (!sameBand(v, b.bands.get(k))) return false;
-  if (a.ys.size !== b.ys.size) return false;
-  for (const [k, v] of a.ys) {
-    const w = b.ys.get(k);
-    if (!w || w.start !== v.start || w.end !== v.end) return false;
-  }
-  return true;
-}
-
 export class ViewModel extends ReactiveModel {
   private readonly _view = new State<string | undefined>(undefined);
   private readonly _viewports = new KeyedState<string, Viewport>();
@@ -213,18 +96,13 @@ export class ViewModel extends ReactiveModel {
   readonly resolved: ReadonlyState<ResolvedView | undefined>;
 
   /** The jumps' history (_spec/README.md "ViewModel", History): the viewports each jump left, and those back left. */
-  private readonly _back: Snapshot[] = [];
-  private readonly _forward: Snapshot[] = [];
-  private readonly _history = new State<ViewHistory>(
-    { back: 0, forward: 0 },
-    (a, b) => a.back === b.back && a.forward === b.forward,
-  );
+  private readonly _steps = new JumpSteps();
   private readonly _jumps = new State(0);
-  private readonly _bands = new State<Bands>(NoBands);
+  private readonly _bands = new ViewBands();
   /** Every band's own viewport by its track's address: a rows band's scroll, row zoom and folds. */
-  readonly bands: ReadonlyState<Bands> = this._bands.asReadonly;
+  readonly bands: ReadonlyState<Bands> = this._bands.bands;
   /** How many steps back and forward the view's history holds. */
-  readonly history: ReadonlyState<ViewHistory> = this._history.asReadonly;
+  readonly history: ReadonlyState<ViewHistory> = this._steps.history;
   /** Moves on each jump, back and forward (and each step zoom): what a viewer animates; a move by hand does not. */
   readonly jumps: ReadonlyState<number> = this._jumps.asReadonly;
 
@@ -566,29 +444,23 @@ export class ViewModel extends ReactiveModel {
   record(snapshot: ViewSnapshot): boolean {
     const kept = snapshot as unknown as Snapshot;
     if (snapshotsEqual(kept, this._snapshot())) return false;
-    this._back.push(kept);
-    const limit = Math.max(0, this.config.view.historyLimit);
-    if (this._back.length > limit) this._back.splice(0, this._back.length - limit);
-    this._forward.length = 0;
-    this._tellHistory();
+    this._steps.push(kept, this.config.view.historyLimit);
     return true;
   }
 
   /** What names the bands' rows for the history (the viewer's rows layers); none: a band kept as its `bandTop`. */
-  private _bandRows: BandRows | undefined;
-
   setBandRows(rows: BandRows | undefined): void {
-    this._bandRows = rows;
+    this._bands.rows = rows;
   }
 
   /** A rows system as an axis in display order, when a rows layer shows it; undefined else. */
   rowsAxis(system: string): Axis | undefined {
-    return this._bandRows?.axisOf(system);
+    return this._bands.rows?.axisOf(system);
   }
 
   /** A band's own viewport (its track's address), undefined when it has none yet. */
   band(track: string): BandViewport | undefined {
-    return this._bands.value.get(track);
+    return this._bands.get(track);
   }
 
   /**
@@ -597,232 +469,56 @@ export class ViewModel extends ReactiveModel {
    * kept by the next jump's step (a bulk fold runs through `jump`).
    */
   setBand(track: string, band: Partial<BandViewport>): void {
-    const prev = this._bands.value.get(track);
-    const next: { bandTop: number; rowScale?: number; folds?: readonly string[]; tree?: boolean } = {
-      bandTop: Math.max(0, band.bandTop ?? prev?.bandTop ?? 0),
-    };
-    const scale = 'rowScale' in band ? band.rowScale : prev?.rowScale;
-    const folds = 'folds' in band ? band.folds : prev?.folds;
-    // the tree a narrow frame collapsed, opened by the reader (`rows.tree`)
-    const tree = 'tree' in band ? band.tree : prev?.tree;
-    if (scale !== undefined) next.rowScale = scale;
-    if (folds !== undefined) next.folds = folds;
-    if (tree) next.tree = true;
-    if (
-      prev &&
-      prev.bandTop === next.bandTop &&
-      prev.rowScale === next.rowScale &&
-      prev.folds === next.folds &&
-      prev.tree === next.tree
-    )
-      return;
-    const map = new Map(this._bands.value);
-    map.set(track, next);
-    this._bands.set(map);
+    this._bands.set(track, band);
   }
 
   /** The bands of a section's tracks (by track address), as a frame reads them; undefined when none has one. */
   bandsOf(section: string): Readonly<Record<string, BandViewport>> | undefined {
-    const all = this._bands.value;
-    if (!all.size) return undefined;
-    const kept = this._bandsKept.get(section);
-    if (kept && kept[0] === all) return kept[1];
-    let out: Record<string, BandViewport> | undefined;
-    for (const [track, b] of all)
-      if (track.startsWith(`${section}/`)) {
-        out ??= {};
-        out[track] = b;
-      }
-    this._bandsKept.set(section, [all, out]);
-    return out;
+    return this._bands.of(section);
   }
-
-  private readonly _bandsKept = new Map<string, [Bands, Readonly<Record<string, BandViewport>> | undefined]>();
 
   /** Whether there is a step back or forward. */
   get canBack(): boolean {
-    return this._back.length > 0;
+    return this._steps.canBack;
   }
 
   get canForward(): boolean {
-    return this._forward.length > 0;
+    return this._steps.canForward;
   }
 
   /** Returns to the viewports the last jump left, every leading section's together; false when there is none. */
   back(): boolean {
-    return this._step(this._back, this._forward);
+    return this._step(false);
   }
 
   /** Goes again where the last back left. */
   forward(): boolean {
-    return this._step(this._forward, this._back);
+    return this._step(true);
   }
 
   /** Forgets the history (a new spec loaded). */
   clearHistory(): void {
-    this._back.length = 0;
-    this._forward.length = 0;
-    this._tellHistory();
+    this._steps.clear();
   }
 
-  private _step(from: Snapshot[], to: Snapshot[]): boolean {
-    // a step to where the view is now (a group gone, a hand that returned) is skipped
-    const now = this._snapshot();
-    let target: Snapshot | undefined;
-    while (from.length) {
-      const t = from.pop()!;
-      if (!snapshotsEqual(this._restored(t), now)) {
-        target = t;
-        break;
-      }
-    }
-    if (!target) {
-      this._tellHistory();
-      return false;
-    }
-    to.push(now);
-    this._restore(target);
-    this._tellHistory();
-    this._jumps.set(this._jumps.value + 1);
-    return true;
-  }
-
-  private _tellHistory(): void {
-    this._history.set({ back: this._back.length, forward: this._forward.length });
+  private _step(forward: boolean): boolean {
+    const own = (address: string) => this._ownY(address);
+    const moved = this._steps.step(
+      forward,
+      this._snapshot(),
+      (t) => restoredOf(t, this._groups, this._sections, own),
+      (t) => {
+        restoreInto(t, this._groups, this._sections, this._bands, own);
+        this._publish();
+      },
+    );
+    if (moved) this._jumps.set(this._jumps.value + 1);
+    return moved;
   }
 
   /** Each group's range now, with its axis's signature, its centre as a position and its members. */
   private _snapshot(): Snapshot {
-    const out = new Map<string, Kept>();
-    for (const g of this._groups.values()) {
-      const center = g.axis.ranges ? positionAt(g.axis, (g.start + g.end) / 2) : undefined;
-      out.set(g.key, {
-        start: g.start,
-        end: g.end,
-        fitted: g.fitted,
-        sig: sigOf(g),
-        ...(center !== undefined ? { center } : {}),
-        members: g.members,
-        ...(g.scale !== undefined ? { scale: g.scale } : {}),
-      });
-    }
-    // the bands with the windows, by their top rows' keys: back after a fold or a scroll lands on the same rows
-    const bands = new Map<string, KeptBand>();
-    for (const [track, band] of this._bands.value) {
-      const at = this._bandRows?.keyAt(track, band);
-      bands.set(track, at ? { band, key: at.key, offset: at.offset } : { band });
-    }
-    // a grid's own y window (`follow_y: none`); a y that follows a section is kept by that section's group
-    const ys = new Map<string, { start: number; end: number }>();
-    for (const [address, s] of this._sections) if (s.y) ys.set(address, { ...s.y });
-    return { groups: out, bands, ys };
-  }
-
-  /**
-   * A group's kept range in a step: by its key, else (its axis changed since: a reverse, a collapse) by a member; on an
-   * axis of another signature, restored by position: the centre and the zoom, the centre clamped to what is drawn (a
-   * centre now hidden goes to its break). Undefined when the step has none of it.
-   */
-  private _keptOf(snap: Snapshot, g: Group): Kept | undefined {
-    let v = snap.groups.get(g.key);
-    if (!v)
-      for (const w of snap.groups.values())
-        if (w.members?.some((m) => g.members.includes(m))) {
-          v = w;
-          break;
-        }
-    const sig = sigOf(g);
-    if (!v || v.sig === undefined || v.sig === sig) return v;
-    // the letter size is kept within one layout only (a text's, across a reverse or a collapse)
-    const scale = v.scale !== undefined && layoutOfSig(v.sig) === g.layout ? { scale: v.scale } : {};
-    const total = axisTotal(g.axis);
-    if (v.fitted || total === undefined) return { start: 0, end: total ?? v.end, fitted: true, sig, ...scale };
-    const c = v.center === undefined ? undefined : centerOffset(g.axis, v.center);
-    if (c === undefined) return { start: 0, end: total, fitted: true, sig, ...scale };
-    // the centre and the zoom: a window's middle, a text's lines in view (its anchor and its estimated end) alike
-    const half = (v.end - v.start) / 2;
-    return { start: c - half, end: c + half, fitted: false, sig, ...scale };
-  }
-
-  /**
-   * What restoring a snapshot would give: the groups there now, at its ranges (by position onto a changed axis); a
-   * follower detached since, attached; one detached then and attached since, detached again (a section gone since is
-   * left out).
-   */
-  private _restored(snap: Snapshot): Snapshot {
-    const out = new Map<string, Kept>();
-    for (const g of this._groups.values()) {
-      const v = this._keptOf(snap, g);
-      if (v) out.set(g.key, { ...v, sig: sigOf(g) });
-      else if (!g.key.startsWith(DetachedPrefix))
-        out.set(g.key, {
-          start: g.start,
-          end: g.end,
-          fitted: g.fitted,
-          sig: sigOf(g),
-          ...(g.scale !== undefined ? { scale: g.scale } : {}),
-        });
-    }
-    for (const [key, v] of snap.groups)
-      if (key.startsWith(DetachedPrefix) && !out.has(key) && this._detachable(key)) out.set(key, v);
-    const ys = new Map<string, { start: number; end: number }>();
-    for (const [address, y] of snap.ys) if (this._ownY(address)) ys.set(address, y);
-    return { groups: out, bands: snap.bands, ys };
-  }
-
-  /** The follower a detached group's key names, when it is in the view and follows. */
-  private _detachable(key: string): SectionState | undefined {
-    const s = this._sections.get(key.slice(DetachedPrefix.length));
-    return s?.section.follow ? s : undefined;
-  }
-
-  /** The groups take the snapshot's ranges in one publish; a follower detached since it was taken is attached again. */
-  private _restore(snap: Snapshot): void {
-    // each band at its kept top row's place under its kept folds and zoom, clamped; a band it had none of has none
-    const map = new Map<string, BandViewport>();
-    for (const [track, k] of snap.bands) {
-      const top = k.key !== undefined ? this._bandRows?.topOf(track, k.band, k.key, k.offset ?? 0) : undefined;
-      map.set(track, top === undefined ? k.band : { ...k.band, bandTop: top });
-    }
-    if (map.size || this._bands.value.size) this._bands.set(map.size ? map : NoBands);
-    for (const [key, g] of [...this._groups]) {
-      const v = this._keptOf(snap, g);
-      if (v) {
-        g.start = v.start;
-        g.end = v.end;
-        g.fitted = v.fitted;
-        if (v.scale !== undefined) g.scale = v.scale;
-        else delete g.scale;
-      } else if (key.startsWith(DetachedPrefix)) {
-        this._groups.delete(key);
-        for (const s of this._sections.values()) if (s.group === key) s.group = undefined;
-      }
-    }
-    // a follower detached when the snapshot was taken is detached again, at its range then
-    for (const [key, v] of snap.groups) {
-      const s = !this._groups.has(key) && key.startsWith(DetachedPrefix) ? this._detachable(key) : undefined;
-      if (!s) continue;
-      this._groups.set(key, {
-        key,
-        axis: s.section.axis,
-        layout: s.section.layout,
-        start: v.start,
-        end: v.end,
-        fitted: v.fitted,
-        ...(v.scale !== undefined ? { scale: v.scale } : {}),
-        placedWidth: s.width,
-        members: [s.section.address],
-      });
-      s.group = key;
-    }
-    // each grid's own y as kept (none kept: all of its y)
-    for (const [address, s] of this._sections) {
-      if (!this._ownY(address)) continue;
-      const y = snap.ys.get(address);
-      if (y) s.y = { ...y };
-      else delete s.y;
-    }
-    this._publish();
+    return snapshotOf(this._groups, this._sections, this._bands);
   }
 
   // ---- internals ----
@@ -919,72 +615,15 @@ export class ViewModel extends ReactiveModel {
 
   /**
    * A move asked of a follower moves its leader (_spec/README.md "ViewModel", Follow): the follower's asked `[start,
-   * end)` (offsets) is carried back through the follow, each end to the leader place whose image it is, so the
-   * follower shows what was asked and every section moves in step; on a minus strand the follower's ends are the
-   * images of the leader's other ends, so its pan moves the leader the other way. `ms`, `me`: which way each end
-   * moved. An end that maps nowhere (an intron, a UTR) takes the nearest place that maps the way it moved (`backTo`).
-   * A pan (`delta`) moves the follower's unclamped image of the leader, not the window its own `maxPxPerPosition`
-   * widened (which would zoom the leader out), and when one end maps nowhere the leader moves by the other's step: the
-   * leader keeps its width. A zoom or a range whose end lies past every image outward reaches the leader's axis edge
-   * there (a zoom out never stalls); inward, it keeps the leader's end. A leader that follows passes the move on up the
-   * chain, bounded by `_leading`.
+   * end)` carried back through the follow (`leaderRange`; `ms`, `me`: which way each end moved, `delta`: a pan's). A
+   * leader that follows passes the move on up the chain, bounded by `_leading`.
    */
   private _lead(s: SectionState, start: number, end: number, ms: number, me: number, delta?: number): boolean {
     const follow = s.section.follow!;
     const lead = this.get(follow.leader);
-    const v = this.get(s.section.address);
-    const axis = s.section.axis;
-    const total = axisTotal(axis);
-    if (!lead || !v || total === undefined) return false;
-    const la = follow.leaderAxis;
-    const l0 = positionAt(la, lead.start, 'start');
-    const l1 = positionAt(la, lead.end, 'end');
-    if (l0 === undefined || l1 === undefined) return false;
-    // the leader's window in positions, lowest first (a reversed leader's start is its highest)
-    const ps = Math.min(l0, l1);
-    const pe = Math.max(l0, l1);
-    if (delta !== undefined) {
-      // the image of the leader's window before the follower's clamp, moved by the pan
-      const w = followWindow(s.section, la, axis, lead.start, lead.end, this._arc());
-      if (w && !w.wraps && w.start < w.end) [start, end] = [w.start + delta, w.end + delta];
-    }
-    // a cyclic follower's range over its origin runs past the total
-    const pos = (o: number, side: 'start' | 'end') => positionAt(axis, axis.cyclic && o > total ? o - total : o, side);
-    const f0 = pos(start, 'start');
-    const f1 = pos(end, 'end');
-    // the follower's ends in positions, lowest first, with the way each moved there (navigation is in display order:
-    // on a reversed follower an end moved right moved down)
-    const rev = axis.dir === -1;
-    const lo = rev ? f1 : f0;
-    const hi = rev ? f0 : f1;
-    const mLo = rev ? -me : ms;
-    const mHi = rev ? -ms : me;
-    const inv = inverseOf(follow.path);
-    const xLo = lo === undefined ? undefined : backTo(follow, inv, axis, lo, mLo);
-    const xHi = hi === undefined ? undefined : backTo(follow, inv, axis, hi, mHi);
-    // the leader's lowest position is the preimage of the follower's lowest, or of its highest on a minus strand
-    let a = follow.dir === 1 ? xLo : xHi;
-    let b = follow.dir === 1 ? xHi : xLo;
-    if (delta !== undefined) {
-      if (a === undefined && b === undefined) return false;
-      if (a === undefined) a = ps + (b! - pe);
-      if (b === undefined) b = pe + (a - ps);
-    } else {
-      // an end moved outward past every image: the leader's axis edge on that side (its clamp keeps it in)
-      const lowOut = follow.dir === 1 ? mLo < 0 : mHi > 0;
-      const highOut = follow.dir === 1 ? mHi > 0 : mLo < 0;
-      const lt = axisTotal(la);
-      const e0 = lt === undefined ? undefined : positionAt(la, 0, 'start');
-      const e1 = lt === undefined ? undefined : positionAt(la, lt, 'end');
-      const lowEdge = e0 === undefined || e1 === undefined ? ps : Math.min(e0, e1);
-      const highEdge = e0 === undefined || e1 === undefined ? pe : Math.max(e0, e1);
-      a ??= lowOut ? lowEdge : ps;
-      b ??= highOut ? highEdge : pe;
-    }
-    const oa = nearestOffsetOf(la, a);
-    const ob = nearestOffsetOf(la, b);
-    if (oa === undefined || ob === undefined || oa === ob) return false;
-    return this.setRange(follow.leader, Math.min(oa, ob), Math.max(oa, ob));
+    if (!lead || !this.get(s.section.address)) return false;
+    const r = leaderRange(s.section, lead, start, end, ms, me, delta, this._arc());
+    return !!r && this.setRange(follow.leader, r.start, r.end);
   }
 
   /** Whether a section has a y that moves apart from x (a grid's own window, or a section it follows). */
@@ -1102,40 +741,13 @@ export class ViewModel extends ReactiveModel {
 
   /** A new resolved view: sections and groups again, each viewport kept by the rules of EC-111. */
   private _update(view: ResolvedView | undefined): void {
-    const root = this._spec.model.value.spec;
-    const oldSections = this._sections;
-    const oldGroups = this._groups;
-    const sections = new Map<string, SectionState>();
-    const groups = new Map<string, Group>();
-    for (const section of view?.sections ?? []) {
-      const old = oldSections.get(section.address);
-      const state: SectionState = { section, width: old?.width ?? 0, top: old?.top ?? 0 };
-      sections.set(section.address, state);
-      if (section.follow) {
-        // a detached follower stays detached while its axis is the same
-        const kept = old?.group?.startsWith(DetachedPrefix) ? oldGroups.get(old.group) : undefined;
-        if (kept && axesEqual(kept.axis, section.axis)) {
-          groups.set(kept.key, { ...kept, axis: section.axis });
-          state.group = kept.key;
-        }
-        continue;
-      }
-      // a pending axis has no pieces: its key holds the section's own range, so only equal ranges group
-      // groups only among sections of one layout: a range is read its layout's way (_spec/README.md "ViewModel")
-      const axisPart = section.axis.ranges
-        ? axisKey(section.axis)
-        : `${axisKey(section.axis)}|${rangeParam(root, section.address)}`;
-      const key = this.config.viewport.groupEqualAxes ? `${axisPart}|${section.layout}` : section.address;
-      state.group = key;
-      const existing = groups.get(key);
-      if (existing) {
-        existing.members.push(section.address);
-        continue;
-      }
-      const same = oldGroups.get(key);
-      const before = old?.group !== undefined ? oldGroups.get(old.group) : undefined;
-      groups.set(key, carry(key, section, same && axesEqual(same.axis, section.axis) ? same : before));
-    }
+    const { sections, groups } = groupSections(
+      view,
+      this._spec.model.value.spec,
+      this._sections,
+      this._groups,
+      this.config.viewport.groupEqualAxes,
+    );
     batch(() => {
       this._sections = sections;
       this._groups = groups;
@@ -1229,205 +841,23 @@ export class ViewModel extends ReactiveModel {
   }
 
   /**
-   * A follower's viewport: its leader's range carried along the follow path at its scale (1, 3 or 1/3). Each end is
-   * the continuous image of the leader's (`point` at the start, the far edge of the last element at a whole end), so
-   * it moves smoothly within a run; where an end maps nowhere (an intron, a UTR), the hull of the whole positions'
-   * image (`followRange`). Over a cyclic follower's origin the range wraps (`pieces`), or with `follow.cyclicArc:
-   * 'hull'` is the hull. Clamped by `maxPxPerPosition` like a leader. A follower whose leader has no viewport yet keeps
-   * its own until the leader's arrives.
+   * A follower's viewport: its leader's range carried along the follow path (`followerRange`), clamped by
+   * `maxPxPerPosition` like a leader. A follower whose leader has no viewport yet keeps its own until the leader's
+   * arrives.
    */
   private _follow(s: SectionState): void {
     const follow = s.section.follow!;
     const lead = this.get(follow.leader);
     const address = s.section.address;
     const prev = this.get(address);
-    const axis = s.section.axis;
-    const total = axisTotal(axis);
     if (!lead) {
       if (prev) this._set(address, prev.start, prev.end, s, true, follow.leader, prev.pieces);
       return;
     }
-    const pending = lead.pending || total === undefined || s.width <= 0;
-    let start = prev?.start ?? 0;
-    let end = prev?.end ?? total ?? 0;
-    let pieces: readonly number[] | undefined = prev?.pieces;
-    const w =
-      total === undefined
-        ? undefined
-        : followWindow(s.section, follow.leaderAxis, axis, lead.start, lead.end, this._arc());
-    if (w && total !== undefined) {
-      if (w.wraps) {
-        // over the origin: on to the total, then from 0
-        start = w.start;
-        end = total + w.end;
-        pieces = [w.start, total, 0, w.end];
-      } else {
-        start = w.start;
-        end = w.end;
-        pieces = undefined;
-        if (s.width > 0) [start, end] = clampRange(start, end, total, s.width, this.config.viewport.maxPxPerPosition);
-      }
-    }
-    this._set(address, start, end, s, pending, follow.leader, pieces);
+    const pending = lead.pending || axisTotal(s.section.axis) === undefined || s.width <= 0;
+    const r = followerRange(s.section, lead, prev, s.width, this._arc(), this.config.viewport.maxPxPerPosition);
+    this._set(address, r.start, r.end, s, pending, follow.leader, r.pieces);
   }
-}
-
-/**
- * A group's viewport across an update (EC-111): an equal axis keeps it; a changed one keeps its center and zoom when
- * the center is still shown, else fits; an axis that was pending (no length) keeps its intent where offsets are
- * positions from 0 on the same system. A new group fits.
- */
-function carry(key: string, section: ResolvedSection, prev: Group | undefined): Group {
-  const axis = section.axis;
-  const total = axisTotal(axis) ?? 0;
-  const group: Group = {
-    key,
-    axis,
-    layout: section.layout,
-    start: 0,
-    end: total,
-    fitted: true,
-    placedWidth: 0,
-    members: [section.address],
-  };
-  if (!prev) return group;
-  group.placedWidth = prev.placedWidth;
-  // the letter size is kept within one layout (a text across a patch of its params)
-  if (prev.scale !== undefined && prev.layout === section.layout) group.scale = prev.scale;
-  if (prev.fitted) return group;
-  if (axesEqual(prev.axis, axis)) return { ...group, start: prev.start, end: prev.end, fitted: false };
-  if (prev.axis.system !== axis.system) return group;
-  if (!prev.axis.ranges) {
-    // a pending axis's offsets are positions from 0: kept where the new axis starts there
-    return axis.ranges?.[0] === 0 ? { ...group, start: prev.start, end: prev.end, fitted: false } : group;
-  }
-  const center = positionAt(prev.axis, (prev.start + prev.end) / 2);
-  const c = center === undefined ? undefined : centerOffset(axis, center);
-  if (c === undefined) return group;
-  const half = (prev.end - prev.start) / 2;
-  return { ...group, start: c - half, end: c + half, fitted: false };
-}
-
-/**
- * A centre position's offset on an axis: where it is shown; in a stretch a break hides (a collapse), the break's (the
- * nearest piece edge, zero wide); outside the axis, none.
- */
-function centerOffset(axis: Axis, center: number): number | undefined {
-  const o = offsetOf(axis, center);
-  if (o !== undefined) return o;
-  return breakHolding(axis, Math.floor(center)) >= 0 ? nearestOffsetOf(axis, center) : undefined;
-}
-
-/** A group's range as its layout reads it. */
-function rangeOf(g: Group): RenderViewport {
-  return g.scale !== undefined ? { start: g.start, end: g.end, scale: g.scale } : { start: g.start, end: g.end };
-}
-
-/** A group's signature in a step of the history: its axis's and its layout (a step over either is restored by position). */
-function sigOf(g: Group): string {
-  return `${axisKey(g.axis)}#${g.layout}`;
-}
-
-function layoutOfSig(sig: string): string {
-  return sig.slice(sig.lastIndexOf('#') + 1);
-}
-
-/** How many follows a move asked of a follower goes up at most (a chain of follows; a cycle is cut). */
-const MaxFollowDepth = 16;
-
-/** A follow's path read back, made once per path. */
-const inverses = new WeakMap<Path, Path>();
-function inverseOf(p: Path): Path {
-  let inv = inverses.get(p);
-  if (!inv) inverses.set(p, (inv = inversePath(p)));
-  return inv;
-}
-
-/** Just short of an element's far edge: the limit of its continuous image there, not the next element's start. */
-const BeforeEdge = 1 - 1e-9;
-
-/**
- * The leader position whose image (`Follow.point`, what the follower's ends are made of) is the follower's position
- * `y`: the inverse of the forward map itself, so a follower moved through it shows what was asked. The forward map is
- * place by place (a residue's three fine places across a codon step: a codon split by an intron is its nucleotides),
- * each place's image a run of `point(k) + f · slope`, `f` in [0, 1); the places tried are those near `y`'s preimage
- * through `inv` (the follow read back) and near the nearest mapped positions on either side. Where `y` is in no place's
- * image (an intron, a UTR), the nearest image the way the end moved (`m`), so a pan steps over a gap and never sticks.
- * Undefined when nothing lies that way.
- */
-function backTo(follow: Follow, inv: Path, axis: Axis, y: number, m: number): number | undefined {
-  // a place's width in leader positions: a third of a residue across a codon step
-  const u = follow.path.step === 1 ? 1 / 3 : 1;
-  const tried = new Set<number>();
-  let best: number | undefined;
-  let distance = Infinity;
-  const near = (x: number | undefined) => {
-    if (x === undefined) return undefined;
-    const k0 = Math.floor(x / u + 1e-9);
-    for (let k = k0 - 1; k <= k0 + 1; k++) {
-      if (tried.has(k)) continue;
-      tried.add(k);
-      const a = follow.point(k * u);
-      const half = follow.point((k + 0.5) * u);
-      if (a === undefined || half === undefined || half === a) continue;
-      const slope = 2 * (half - a);
-      const f = (y - a) / slope;
-      if (f >= 0 && f < 1) return (k + f) * u;
-      if (m === 0) continue;
-      // the end of this place's image nearer `y`, when it lies the way the end moved
-      const b = a + slope;
-      const v = m > 0 ? Math.min(a, b) : Math.max(a, b);
-      const d = (v - y) * m;
-      if (d > 0 && d < distance) {
-        distance = d;
-        best = (k + (v === a ? 0 : BeforeEdge)) * u;
-      }
-    }
-    return undefined;
-  };
-  return (
-    near(projectPoint(inv, y)) ??
-    near(nearestMapped(inv, axis, y, 1)) ??
-    near(nearestMapped(inv, axis, y, -1)) ??
-    (m === 0 ? undefined : best)
-  );
-}
-
-/**
- * The leader place of the follower's nearest mapped position past `y` the way `m` says, within the follower's axis:
- * where the next one starts (`m` > 0), or the far edge of the last one before (`m` < 0).
- */
-function nearestMapped(inv: Path, axis: Axis, y: number, m: number): number | undefined {
-  const r = axis.ranges;
-  if (!r || r.length < 2) return undefined;
-  let lo = Infinity;
-  let hi = -Infinity;
-  for (let i = 0; i + 1 < r.length; i += 2) {
-    lo = Math.min(lo, r[i]);
-    hi = Math.max(hi, r[i + 1]);
-  }
-  // the inverse's source is in thirds of a residue when it steps up to nucleotides
-  const scale = inv.step === 1 ? 3 : 1;
-  if (m > 0) {
-    const from = Math.ceil(y);
-    if (from >= hi) return undefined;
-    const run = inv.linear.forward(from * scale, hi * scale)[0];
-    return run ? projectPoint(inv, Math.ceil(run.from / scale)) : undefined;
-  }
-  const to = Math.floor(y);
-  if (to <= lo) return undefined;
-  const runs = inv.linear.forward(lo * scale, to * scale);
-  const last = runs[runs.length - 1];
-  return last ? projectEnd(inv, Math.floor((last.from + last.length - 1) / scale) + 1) : undefined;
-}
-
-/** At least `width / maxPx` wide (within the total), centered, within the axis. */
-function clampRange(start: number, end: number, total: number, width: number, maxPx: number): [number, number] {
-  const w = Math.min(Math.max(end - start, Math.min(width / maxPx, total)), total);
-  if (w === end - start) return [start, end];
-  const c = (start + end) / 2;
-  const s = Math.min(Math.max(c - w / 2, 0), total - w);
-  return [s, s + w];
 }
 
 function piecesEqual(a: readonly number[] | undefined, b: readonly number[] | undefined): boolean {
@@ -1435,32 +865,6 @@ function piecesEqual(a: readonly number[] | undefined, b: readonly number[] | un
   if (!a || !b || a.length !== b.length) return false;
   for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
   return true;
-}
-
-/** A section's own `range` param as written ('all' without one): part of a pending axis's group key. */
-function rangeParam(root: Node, address: string): string {
-  const p = parseAddress(address).pattern;
-  let n: Node | undefined = root;
-  for (const seg of p?.segments ?? []) n = typeof seg === 'string' ? n?.children?.find((c) => c.id === seg) : undefined;
-  const r = n?.params?.range;
-  return Array.isArray(r) ? r.join(',') : 'all';
-}
-
-/** The view's sections with every leader before its followers (a chain of follows, EC-114); a cycle is cut. */
-function followOrder(view: ResolvedView | undefined): string[] {
-  const out: string[] = [];
-  const done = new Set<string>();
-  const byAddress = new Map((view?.sections ?? []).map((s) => [s.address, s] as const));
-  const visit = (s: ResolvedSection, seen: Set<string>) => {
-    if (done.has(s.address) || seen.has(s.address)) return;
-    seen.add(s.address);
-    const leader = s.follow && byAddress.get(s.follow.leader);
-    if (leader) visit(leader, seen);
-    done.add(s.address);
-    out.push(s.address);
-  };
-  for (const s of view?.sections ?? []) visit(s, new Set());
-  return out;
 }
 
 /**
