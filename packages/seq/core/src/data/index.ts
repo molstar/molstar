@@ -7,9 +7,25 @@
 // `@molstar/seqx-core/data`: the source protocol, the `seq` format and its runtime, and the data store
 // (_spec/README.md "Data"). Named re-exports only.
 
+export {
+  type Archive,
+  ArchiveEntryMissing,
+  ArchiveIndexName,
+  ArchiveKind,
+  type ArchiveLimits,
+  type ArchiveRead,
+  ArchiveSpecName,
+  ArchiveVersion,
+  type ArchiveWritten,
+  archiveReader,
+  checkArchiveName,
+  DefaultArchiveLimits,
+  readArchive,
+  writeArchive,
+} from './archive.js';
 export { asyncSeqSource, type DelayOptions, delayedRuntime, delayedSource } from './async-source.js';
 export { checkFai, FastaRuntime, type FaiRecord, faidx, openFasta, parseFai } from './fasta.js';
-export { SourceIssues, StoreIssues } from './issues.js';
+export { ArchiveIssues, SourceIssues, StoreIssues } from './issues.js';
 export { DefaultTileBins, dataKey, fitLevel, nodeKey, tileRegion, tileSpan, tileWidth } from './keys.js';
 export {
   type AssetReader,
