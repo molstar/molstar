@@ -64,6 +64,15 @@ describe('the molecules’ stories, headless', () => {
       expect(recordDrawLists(dark.lists, ['data'])).toBe(recordDrawLists(v.frame!.lists, ['data']));
     });
 
+  it('Modified residues: `code` shows the code where it fits (16 positions: 2MG), the dot where it does not', async () => {
+    const v = await open('molecules-modified');
+    v.draw();
+    const data = recordDrawLists(v.frame!.lists, ['data']);
+    expect(data).toContain('text "2MG"');
+    // the four whole-tRNA sections: no code fits, every modified residue its dot
+    expect(data.match(/text "PSU"/g)).toBeNull();
+  });
+
   it('A section of a complex: the glycan’s chip lights N47; N47 lights the glycan', async () => {
     const v = await open('molecules-complex');
     const owner = {};

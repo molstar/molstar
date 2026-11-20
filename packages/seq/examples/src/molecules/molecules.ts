@@ -137,7 +137,10 @@ export function formsView(): Node {
   return b.build();
 }
 
-/** A modified residue drawn four ways: `mark` (the default), `code`, `tint`, `none`. */
+/**
+ * A modified residue drawn four ways: `mark` (the default), `code`, `tint`, `none`; then `code` on 16 positions (2MG and
+ * H2U | U), wide enough for the codes: the dot where a code has no room.
+ */
 export function modifiedView(): Node {
   const b = createSeqSpec({ title: 'Molecules: modified residues' });
   const d = moleculesData(b);
@@ -146,6 +149,11 @@ export function modifiedView(): Node {
       v.section(m, { of: d.trna as never }, (s) =>
         s.track('letters', { label: `modified: ${m}` }).layer('letters', { type: 'letters', modified: m }),
       );
+    v.section('code-zoomed', { of: d.trna as never, range: [4, 20] }, (s) =>
+      s
+        .track('letters', { label: 'modified: code, 16 positions' })
+        .layer('letters', { type: 'letters', modified: 'code' }),
+    );
     v.section('fc', { of: d.fc as never }, (s) =>
       s.track('letters', { label: 'Fc (MSE, SEP, CRO)' }).layer('letters', { type: 'letters' }),
     );

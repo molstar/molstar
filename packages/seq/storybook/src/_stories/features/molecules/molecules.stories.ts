@@ -36,7 +36,7 @@ export const WholeResiduesAtoms: StoryObj = story('molecules-forms');
 
 /**
  * A modified residue four ways on a tRNA: a dot (2MG at 10, H2U | U at 17, PSU at 39 and 55), the code in place of the
- * letter where it fits (zoom in), the cell outlined, nothing. Zoom out: the dot becomes a tick at the strip's top. Hover
+ * letter where it fits (zoom in; the fifth section, 16 positions, shows 2MG), the cell outlined, nothing. Zoom out: the dot becomes a tick at the strip's top. Hover
  * one: its component and name; H2U | U says both.
  */
 export const ModifiedResidues: StoryObj = story('molecules-modified');
