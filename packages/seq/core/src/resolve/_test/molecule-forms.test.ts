@@ -9,7 +9,7 @@
 // identifier and class, a complex's units by chain, operator and author chain, atoms by name, the atoms system.
 
 import { type Node, printAddress } from '@molstar/core/repr/tree';
-import { createSeqSpec, modified } from '@molstar/seqx-core/lang';
+import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { type Evaluation, evaluateQuery, partOf } from '@molstar/seqx-core/query';
 import { describe, expect, it } from 'vitest';
 import { moleculesSpec } from '../../lang/_test/molecules.js';
