@@ -68,6 +68,8 @@ export function inversePath(p: Path): Path {
       backward: !e.backward,
       step: -e.step as Step,
       linear: e.linear.inverse(),
+      // a unit's step read the other way: up is down
+      ...(e.unit ? { unit: e.unit === 'up' ? ('down' as const) : ('up' as const) } : {}),
     }));
   return { from: p.to, to: p.from, step: -p.step as Step, linear: p.linear.inverse(), edges };
 }
