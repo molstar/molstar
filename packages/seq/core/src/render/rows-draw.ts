@@ -5,7 +5,7 @@
  */
 
 import { Anchor, NoColor, type PassWriter } from './draw-lists.js';
-import { cellEdge } from './letters.js';
+import { cellEdge } from './letters-draw.js';
 import { drawColumnCells, drawTitles } from './rows-columns.js';
 import { TogglePx } from './rows-header.js';
 import type { Clades } from './rows-model.js';

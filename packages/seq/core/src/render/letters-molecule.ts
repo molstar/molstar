@@ -18,7 +18,8 @@ import type { RenderConfig } from './config.js';
 import { Anchor, grown, NoColor, type PassName, type PassWriter } from './draw-lists.js';
 import type { LayerSource } from './layer-data.js';
 import type { Emphasis, LayerType } from './layer-type.js';
-import { chipInk, type LettersLay, type LettersPrep, LettersType } from './letters.js';
+import { type LettersLay, type LettersPrep, LettersType } from './letters.js';
+import { chipInk } from './letters-draw.js';
 import { inkOn, type SeqTokens } from './tokens.js';
 
 const AnchorMiddle: number = Anchor.middle;
