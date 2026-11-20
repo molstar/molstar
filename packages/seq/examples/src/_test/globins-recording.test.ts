@@ -13,6 +13,7 @@ import {
   cifHelices,
   columnsFromUniprot,
   cutSeed,
+  hemeAtoms,
   hemeContacts,
   hemoglobinSeq,
   SeedRows,
@@ -72,6 +73,7 @@ ATOM 4 C CA LEU A 3 0.0 9.0 0.0 A
 ATOM 5 N NE2 HIS B 2 1.0 0.0 0.0 B
 HETATM 6 FE FE HEM E . 0.0 0.0 0.0 A
 HETATM 7 C CHA HEM E . 0.0 0.0 3.5 A
+HETATM 8 H HHA HEM E . 0.0 0.0 4.5 A
 #
 `;
 
@@ -117,7 +119,7 @@ describe('the Globins recorder’s rules', () => {
     expect(() => columnsFromUniprot(tsv.split('\n').slice(0, 2).join('\n'), seed)).toThrow(/P02200/);
   });
 
-  it('a mini mmCIF: its chains, helices and heme contacts (heavy atoms within 4 Å, per pair of units), and its seq', async () => {
+  it('a mini mmCIF: its chains, helices and heme contacts (heavy atoms within 4 Å, per pair of units) and atoms, and its seq', async () => {
     const mini = await readCif(MiniCif);
     expect(cifChains(mini)).toEqual([
       { asym: 'A', letters: 'VHL', authFirst: 1 },
@@ -136,8 +138,9 @@ describe('the Globins recorder’s rules', () => {
     expect(seq.coverage.systems).toEqual([
       { name: 'hba', length: 3, alphabet: 'protein' },
       { name: 'hbb', length: 2, alphabet: 'protein' },
-      { name: 'hem', length: 1, alphabet: 'protein' },
     ]);
+    // a heme's heavy atoms in the file's order, its hydrogen left out (EC-64)
+    expect([...hemeAtoms(mini)]).toEqual([['E', { name: ['FE', 'CHA'], element: ['FE', 'C'] }]]);
     const decoded = decodeSeq(encodeSeq(seq)).data!;
     const hba = decoded.pairs[0].answer;
     expect(hba.ok && (hba.tables.letters as { letters: string }).letters).toBe('VHL');

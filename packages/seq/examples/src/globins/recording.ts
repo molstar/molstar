@@ -230,9 +230,22 @@ export function hemeContacts(text: Cif): { heme: string; chain: string; residues
   return out;
 }
 
+/** Each heme's heavy atoms by its `label_asym_id`, in `atom_site` order: names and elements (EC-64). */
+export function hemeAtoms(text: Cif): Map<string, { name: string[]; element: string[] }> {
+  const out = new Map<string, { name: string[]; element: string[] }>();
+  for (const r of text.rows('atom_site')) {
+    if (r.label_comp_id !== 'HEM' || r.type_symbol === 'H') continue;
+    let h = out.get(r.label_asym_id);
+    if (!h) out.set(r.label_asym_id, (h = { name: [], element: [] }));
+    h.name.push(r.label_atom_id);
+    h.element.push(r.type_symbol);
+  }
+  return out;
+}
+
 /**
  * 4HHB as `seq` data: the α and β chains' letters (chains A and B; C and D are their copies) with their helices as
- * ranges (`id` the helix's letter, A to H; `label` `helix A`…), and the heme as a system of one position.
+ * ranges (`id` the helix's letter, A to H; `label` `helix A`…). The hemes are molecules the view writes (`hemes.ts`).
  */
 export function hemoglobinSeq(text: Cif): SeqData {
   const chains = cifChains(text);
@@ -260,16 +273,9 @@ export function hemoglobinSeq(text: Cif): SeqData {
       },
     };
   });
-  pairs.push({
-    request: { system: 'hem', start: 0, end: 1, level: 1, shapes: ['letters'] },
-    answer: { ok: true, tables: { letters: { form: 'letters', start: 0, letters: 'X' } } },
-  });
   return {
     coverage: {
-      systems: [
-        ...systems.map((s) => ({ name: s.name, length: s.letters.length, alphabet: 'protein' })),
-        { name: 'hem', length: 1, alphabet: 'protein' },
-      ],
+      systems: systems.map((s) => ({ name: s.name, length: s.letters.length, alphabet: 'protein' })),
       shapes: [
         ...systems.map((s) => ({ system: s.name, shape: 'letters' as const })),
         ...systems.map((s) => ({
@@ -277,7 +283,6 @@ export function hemoglobinSeq(text: Cif): SeqData {
           shape: 'ranges' as const,
           fields: [{ name: 'label', type: 'category' as const }],
         })),
-        { system: 'hem', shape: 'letters' as const },
       ],
       levels: [1],
     },

@@ -64,7 +64,7 @@ import {
   rotatedAnnotations,
   seqText,
 } from '../lib/plasmid/derive.js';
-import { HemeUnitContacts } from '../lib/globins/hemes.js';
+import { HemeAtoms, HemeUnitContacts } from '../lib/globins/hemes.js';
 import { kabatFromImgt } from '../lib/antibody/numbering.js';
 import {
   Entry as FabEntry,
@@ -80,6 +80,7 @@ import {
   cifChains,
   columnsFromUniprot,
   cutSeed,
+  hemeAtoms,
   hemeContacts,
   hemoglobinSeq,
   SeedRows,
@@ -486,7 +487,7 @@ async function trna(): Promise<Row[]> {
 /**
  * The Globins: the Pfam seed (InterPro's, gzipped Stockholm) cut to the rows nearest 4HHB's α and β chains; the
  * UniProt entries of the rows kept (their organisms and classes, a columns file joined by row key); 4HHB's mmCIF as
- * `seq` (its chains' letters and helices, the heme a position) and its heme contacts checked against `hemes.ts`.
+ * `seq` (its chains' letters and helices) and its heme contacts and atoms checked against `hemes.ts`.
  */
 async function globins(): Promise<Row[]> {
   const dir = join(Folder, 'fixtures', 'globins');
@@ -513,6 +514,9 @@ async function globins(): Promise<Row[]> {
   const contacts = hemeContacts(parsed);
   if (JSON.stringify(contacts) !== JSON.stringify(HemeUnitContacts))
     throw new Error(`4HHB's heme contacts are ${JSON.stringify(contacts)}, not hemes.ts's`);
+  for (const [asym, atoms] of hemeAtoms(parsed))
+    if (JSON.stringify(atoms) !== JSON.stringify(HemeAtoms))
+      throw new Error(`4HHB's heme ${asym} has the atoms ${JSON.stringify(atoms)}, not hemes.ts's`);
   const { encodeSeq } = await import('@molstar/seqx-core/data');
   const files = {
     seed: join(dir, 'PF00042-seed.sto'),
@@ -562,7 +566,7 @@ async function globins(): Promise<Row[]> {
       licence: ['CC0-1.0'],
       attribution: 'wwPDB, PDB 4HHB, CC0',
       trimmed:
-        'chains A (α) and B (β) only, C and D their copies: their letters (pdbx_poly_seq_scheme) and helices (struct_conf, label_seq_id); the heme a position; coordinates, waters and phosphates dropped',
+        'chains A (α) and B (β) only, C and D their copies: their letters (pdbx_poly_seq_scheme) and helices (struct_conf, label_seq_id); the hemes are molecules the view writes, their atoms and contacts checked here; coordinates, waters and phosphates dropped',
       derived: `the hemes' contacting residues per pair of units (heavy atoms within ${ContactDistance} Å) are code (src/globins/hemes.ts), checked against the entry here`,
       bytesDownloaded: bytesOf(cif),
       bytesFixture: bytesOf(written.hb),

@@ -40,11 +40,11 @@
       "CC0-1.0"
     ],
     "attribution": "wwPDB, PDB 4HHB, CC0",
-    "trimmed": "chains A (α) and B (β) only, C and D their copies: their letters (pdbx_poly_seq_scheme) and helices (struct_conf, label_seq_id); the heme a position; coordinates, waters and phosphates dropped",
+    "trimmed": "chains A (α) and B (β) only, C and D their copies: their letters (pdbx_poly_seq_scheme) and helices (struct_conf, label_seq_id); the hemes are molecules the view writes, their atoms and contacts checked here; coordinates, waters and phosphates dropped",
     "derived": "the hemes' contacting residues per pair of units (heavy atoms within 4 Å) are code (src/globins/hemes.ts), checked against the entry here",
     "bytesDownloaded": 772198,
-    "bytesFixture": 2133,
+    "bytesFixture": 1888,
     "sha256Download": "2d3ca1bf21ddff35af2e2bc5d331720f7bfc46a16c4829ea3ec1b41062d5f5a6",
-    "sha256Fixture": "f11d024221b56666b3cd416f41a21e40bc212157bbb214d28d22aae8c4bc93b5"
+    "sha256Fixture": "f8dd05ec75725b0114f10a1a4954359d1d7f30f3b89f3d9fb91d81094458c1e3"
   }
 ]

@@ -10,13 +10,31 @@
 // in 4HHB; UniProt's number is one more, its initiator Met counted). Each heme touches its own chain only; C and D
 // are A's and B's copies, their contacts not quite the same (C lacks V62, D lacks L31 and L88 and has L91).
 
-/** The four chains: each a molecule's copy (α: A and C, β: B and D), its heme's asym id. */
+/** The four chains: each a molecule's copy (α: A and C, β: B and D), its heme's asym id and author number. */
 export const HemoglobinChains = [
-  { chain: 'A', of: 'hba', heme: 'E' },
-  { chain: 'B', of: 'hbb', heme: 'G' },
-  { chain: 'C', of: 'hba', heme: 'H' },
-  { chain: 'D', of: 'hbb', heme: 'J' },
+  { chain: 'A', of: 'hba', heme: 'E', hemeAuth: '142' },
+  { chain: 'B', of: 'hbb', heme: 'G', hemeAuth: '148' },
+  { chain: 'C', of: 'hba', heme: 'H', hemeAuth: '142' },
+  { chain: 'D', of: 'hbb', heme: 'J', hemeAuth: '148' },
 ] as const;
+
+/**
+ * The heme's heavy atoms (EC-64) as 4HHB's first heme has them (`atom_site` of asym E, in order; every heme of the
+ * entry the same 43): names, then elements (`scripts/record.ts globins` checks both against the entry).
+ */
+export const HemeAtoms: { readonly name: readonly string[]; readonly element: readonly string[] } = heavyAtoms([
+  ...['CHA', 'CHB', 'CHC', 'CHD'],
+  ...['C1A', 'C2A', 'C3A', 'C4A', 'CMA', 'CAA', 'CBA', 'CGA', 'O1A', 'O2A'],
+  ...['C1B', 'C2B', 'C3B', 'C4B', 'CMB', 'CAB', 'CBB'],
+  ...['C1C', 'C2C', 'C3C', 'C4C', 'CMC', 'CAC', 'CBC'],
+  ...['C1D', 'C2D', 'C3D', 'C4D', 'CMD', 'CAD', 'CBD', 'CGD', 'O1D', 'O2D'],
+  ...['NA', 'NB', 'NC', 'ND', 'FE'],
+]);
+
+/** Names and their elements: a name's first letter, iron's `FE`. */
+function heavyAtoms(name: string[]) {
+  return { name, element: name.map((n) => (n === 'FE' ? 'FE' : n[0])) };
+}
 
 /** Each heme's contacts per pair of units: the heme's chain, the chain it touches, the residues touched there. */
 export const HemeUnitContacts: readonly { heme: string; chain: string; residues: readonly number[] }[] = [
