@@ -69,18 +69,35 @@ function labelRoom(lay: LabelMarks, j: number): number {
   return x1 - labelX(lay, j) + LabelInset / 2;
 }
 
-/** Cut labels by label, the letters kept an index (`Spark…` once, whatever the layout): cleared when large. */
-const Cuts = new Map<string, string[]>();
+/** A label's cuts, the letters kept an index, and the generation it was last used in. */
+interface CutEntry {
+  readonly cuts: string[];
+  used: number;
+}
 
-/** A label's first `n` letters and an ellipsis, made once. */
-function cutLabel(label: string, n: number): string {
-  let cuts = Cuts.get(label);
-  if (!cuts) {
-    if (Cuts.size > 4096) Cuts.clear();
-    cuts = [];
-    Cuts.set(label, cuts);
+/**
+ * Cut labels by label (`Spark…` made once, whatever the layout). At `CutsLimit` labels (4,096, else twice those kept at
+ * the last pass), a miss lets go of the labels not used since the last pass (what is on screen stays): a warm layout
+ * finds every cut and allocates nothing, however many labels are cut; the pass is once a limit's worth of misses.
+ */
+const Cuts = new Map<string, CutEntry>();
+let CutsLimit = 4096;
+let CutsGeneration = 0;
+
+/** A label's first `n` letters and an ellipsis, made once while it is in use. @internal (exported for its test) */
+export function cutLabel(label: string, n: number): string {
+  let e = Cuts.get(label);
+  if (!e) {
+    if (Cuts.size >= CutsLimit) {
+      for (const [k, v] of Cuts) if (v.used !== CutsGeneration) Cuts.delete(k);
+      CutsGeneration++;
+      CutsLimit = Math.max(4096, 2 * Cuts.size);
+    }
+    e = { cuts: [], used: CutsGeneration };
+    Cuts.set(label, e);
   }
-  return (cuts[n] ??= `${label.slice(0, n)}…`);
+  e.used = CutsGeneration;
+  return (e.cuts[n] ??= `${label.slice(0, n)}…`);
 }
 
 /** The text a mark's label draws: its item's label whole, or cut. */
