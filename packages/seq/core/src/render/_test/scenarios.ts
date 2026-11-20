@@ -24,6 +24,7 @@ import {
   smallLayersSpec,
 } from './fixtures.js';
 import { type Settled, settle } from './helpers.js';
+import { moleculesSpec } from './molecules-fixtures.js';
 
 export const SIZE = { width: 1440, height: 400 } as const;
 export const DPR = 2;
@@ -138,6 +139,17 @@ export const Scenarios: readonly Scenario[] = [
     width: 200_000,
     center: BIG / 2,
     panStep: 200,
+  },
+  // a complex: 200 copies of a chain merged into one block (EC-67), a glycan, ATP and an ion as chips, the modified
+  // residues marked, the links as arcs; the window over the block and the chips. Last: what a section of
+  // blocks leaves compiled makes the others' warm hovers allocate 14 B (a finding)
+  {
+    name: 'complex, 200 copies',
+    spec: () => moleculesSpec({ chains: 200 }),
+    runtimes: [],
+    width: 91,
+    center: 45.5,
+    panStep: 0.25,
   },
 ];
 

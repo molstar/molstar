@@ -42,6 +42,8 @@ const LayoutBound: Record<string, number> = {
   'holey rulers': 64_000,
   // measured 25.7 KB
   'p53 tracks, letters': 40_000,
+  // 43.6 KB (pan; zoom 36.7 KB, 2026-11-20): one block for 200 copies, three chips, the marks, the links' arcs
+  'complex, 200 copies': 70_000,
   'p53 tracks, whole protein': 40_000,
   // 65.0 KB (seven tracks: the ruler's labels, secondary structure's and the variants' marks and sorts, the lines' paths)
   'p53 small layers, whole protein': 100_000,

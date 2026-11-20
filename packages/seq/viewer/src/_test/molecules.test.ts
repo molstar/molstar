@@ -93,7 +93,11 @@ const describeAt = (v: SeqViewer, section: string, system: string, position: num
   }).describe(v.hover.current);
   const molecule = v.hover.molecule();
   v.hover.clear(owner);
-  return { rows: Object.fromEntries(card.rows.map((r) => [r.label, r.value])), text: card.text, molecule };
+  return {
+    rows: Object.fromEntries((card?.rows ?? []).map((r) => [r.label, r.value])),
+    text: card?.text ?? '',
+    molecule,
+  };
 };
 
 describe('molecules in the viewer', async () => {

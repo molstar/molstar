@@ -534,7 +534,8 @@ export function blockChrome(
   }
   if (pass !== 'labels' || band >= 0) return;
   const g = out.args;
-  const size = fontSize(s.config.labelFont);
+  // the label font's size as the layout read it (its row less 4 px): a draw parses no font (a regex's match allocates)
+  const size = p.labelRow - 4;
   for (let i = 0; i < strips.n; i++) {
     // a chip's label is in its letters' pill where the pill is drawn
     if (strips.chip[i] && hasPill(s, i)) continue;
