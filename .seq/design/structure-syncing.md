@@ -165,14 +165,15 @@ Decided, the author, 2026-11-19: "priority + via", both in the 0.5.0 bump; if us
 `via` later.
 
 - **A map's `priority`** (an integer param of every map node, default 0). In `findPath`, after equal compositions are
-  merged, distinct shortest candidates are ranked by their weakest map (the lowest priority among the maps they step
-  through; unit steps have none); the top rank wins when it holds one composition; a tie stays ambiguous. Why:
+  merged, distinct shortest candidates are ranked by their maps' priorities sorted weakest first and compared in order (the
+  lowest priority among the maps they step through, then the next; unit steps have none) (decided by the author, 2026-11-20: "Compare sorted priorities": a shared unranked map ties and the rival maps decide); the top rank wins when it holds one composition; a tie stays ambiguous. Why:
   - one place decides for every use (follows, hover projection, the structure wiring, queries' `project`), so two
     sections never disagree about where a residue is;
   - the search stays shortest-first (EC-22): a priority never makes a longer path beat a shorter one;
   - the path cache stays keyed by its pair: the param is in the map entry's hash, so a carried search is dropped when a
     priority changes (paths.ts's `deps`);
-  - weakest map, not a sum: a path is as trustworthy as its least trusted step.
+  - weakest first, not a sum: a path is as trustworthy as its least trusted step, and among equally weak paths the
+    next step decides, so a map both share never hides the rivals.
 - **A use's `via`**: a section's `via` (a ref to a map, or a list), and a structure binding's (`linkStructure`'s `via`). For that use the search
   leaves out the rivals of the named maps (other maps joining the same two systems); paths that never reach that pair
   are unchanged. It applies to the section's `follow`, its `direction: { along }`, and what is projected onto it (hover,
