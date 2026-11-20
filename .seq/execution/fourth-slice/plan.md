@@ -253,7 +253,7 @@ disagrees with its code writes a drift note and stops.
       and `RegionRequest.field?`, the store's `reattach` (node content replaced by key), `withAdapter` (one adapter a
       format, conflicts listed), `io/structure` (`StructureDescription`, `structureNodes`), the viewer's store model
       reopening in place; the shared adapter conformance suite (`briefs/dp-data-ports.md`). No package of its own.
-- [ ] ML2 (strong, after DP: both touch resolve and the store) the model: unit and atoms systems, the atoms map at a
+- [x] ML2 (merged 2026-11-20) (strong, after DP: both touch resolve and the store) the model: unit and atoms systems, the atoms map at a
       path's ends, held pairs with per-row units, copy groups, the modified index, `maxUnits`, the query forms
       (`briefs/ml2-model.md`).
 - [ ] MC (strong, after ML2 and DP) the mmCIF runtime (`runtimes/mmcif`, opt-in): CIF categories to
