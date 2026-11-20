@@ -53,7 +53,10 @@ to structural data .. basically SIFTS, but in abstract form."
     sorted weakest first, compare highest (the weakest, then the next) is taken (decided by the author, 2026-11-20: "Compare sorted priorities": a shared unranked map ties and the rival maps decide); a full tie stays ambiguous (EC-23, EC-24); shortest still first (EC-22). Why: one answer for every
     use, and the path cache stays keyed by its pair (the param is in the map entry's hash);
   - a use's `via` (a section's, a structure binding's: a map or a list): for that use the search leaves out the named
-    maps' rivals (other maps of the same pair); a `via` naming a map that joins no pair on the path is a warning (decided by the author, 2026-11-20: "Warn"). Why: a figure comparing two maps shows both, a section each;
+    maps' rivals (other maps of the same pair); a `via` naming a map that joins no pair on any of the use's paths is a warning (decided by the author, 2026-11-20:
+    "Warn"); a section's paths are its layers', its `follow` and `along`, and what is projected onto it or from it
+    (hover, selection, the focus hull), so a structure section with no layer of its own still uses its `via` (the
+    author, 2026-11-20, MX's drift: "ok"). Why: a figure comparing two maps shows both, a section each;
   - no silent rule ranks kinds or specific over general maps: a wrong map taken quietly is worse than the issue.
 
 ## Consequences

@@ -12,6 +12,9 @@ PNG and the render CLI). Next, version 1's third milestone, integration (the fou
 viewer, seq data ports, extension openings, track header parts, services, bigWig with range reads of assets (a
 base-library change, below), archives. The Genomes milestone is the fifth.
 
+- **A component query on a source-backed sequence** (`(elements :component X)`) is pending until the source's letters
+  are read (EC-169); a format with a component index could answer it without the letters.
+
 ## Base library (`@molstar/core`, `@molstar/io`)
 
 - **`repr`**: `checkRefs` (the resolve pass), `composeLanguage`, `descriptors`, issue dedupe, the catalog docs
