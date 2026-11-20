@@ -875,8 +875,8 @@ by fuzz tests (mutated text read without a throw).
 
 ### bigWig
 
-`runtimes/bigwig.ts` (`@molstar/seqx-core/runtimes/bigwig`, opt in: `BigWigRuntime`, `openBigWig`, `RangeAssetReader`):
-a format runtime (`bigwig`) of `values` by region and zoom level, read by range through the assets port.
+`runtimes/bigwig.ts` (`@molstar/seqx-core/runtimes/bigwig`, opt in: `BigWigRuntime`, `openBigWig`): a format runtime
+(`bigwig`) of `values` by region and zoom level, read by range through the assets port.
 
 - **Reading**: opening reads the header (little- or big-endian, by its magic), the zoom headers and the chromosome B+
   tree; a region reads its level's R-tree (the full data at level 1, a zoom level's records at its reduction), the
@@ -888,8 +888,8 @@ a format runtime (`bigwig`) of `values` by region and zoom level, read by range 
   of it, `count` the bases with data, `mean` the sum over them by the count, as `binValues` summarizes. A record that
   does not start on the level's multiples (UCSC's start where the data starts) is shared by its overlap with each bin. A
   region past the chromosome's end is empty, not failed.
-- **Assets**: `RangeAssetReader.openRange(uri, signal)` when the host has it (core's `openRanges` under its policy),
-  else the file whole through `readBytes`, bounded by `limits.maxBytes`. A range read that fails (core's
+- **Assets**: `AssetReader.openRange(uri, signal)` when the host has it (`policyAssets`: core's `openRanges` under the
+  policy), else the file whole through `readBytes`, bounded by `limits.maxBytes`. A range read that fails (core's
   `AssetRangeError`: a changed file, a mangled `Content-Range`) fails the region (`failed`), never wrong values.
 - **Bounds**: blocks of one region over `limits.maxBytes` and bins over `limits.maxRows` are `too-large`; trees deeper
   than 16 and nodes past their size are `malformed`. Decoded blocks: the last 16 kept for a pan back; pages are core's.

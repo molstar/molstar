@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Asset, type AssetManager } from '@molstar/core/util/assets';
+import { Asset, type AssetManager, type AssetRangeReader, openRanges } from '@molstar/core/util/assets';
 import { SizeLimitExceeded } from '@molstar/core/util/assets';
 import type { AssetReader } from '@molstar/seqx-core/data';
 
@@ -272,8 +272,61 @@ export function policyAssets(manager: AssetManager, policy: AssetPolicy): AssetR
       wrapper.dispose();
     }
   }
+  /** `f` under the caller's signal and the policy's time: the signal it is given stops at either; `AssetRefused` mapped. */
+  async function bounded<T>(uri: string, signal: AbortSignal | undefined, f: (s: AbortSignal) => Promise<T>) {
+    if (signal?.aborted) throw signal.reason ?? new Error('aborted');
+    const stop = new AbortController();
+    const onAbort = () => stop.abort(signal!.reason);
+    signal?.addEventListener('abort', onAbort, { once: true });
+    const timer =
+      policy.timeoutMs !== undefined
+        ? setTimeout(() => stop.abort(new AssetRefused(uri, 'the read took too long')), policy.timeoutMs)
+        : undefined;
+    try {
+      return await f(stop.signal);
+    } catch (e) {
+      if (stop.signal.reason instanceof AssetRefused) throw stop.signal.reason;
+      if (signal?.aborted) throw signal.reason ?? e;
+      if (isSizeLimit(e)) throw new AssetRefused(uri, 'larger than the limit');
+      if ((policy.redirect ?? 'error') === 'error' && isRefusedRedirect(e))
+        throw new AssetRefused(uri, 'a redirect is not followed');
+      throw e;
+    } finally {
+      if (timer !== undefined) clearTimeout(timer);
+      signal?.removeEventListener('abort', onAbort);
+    }
+  }
+
+  /**
+   * Range reads (core's `openRanges`, `util/_spec/assets.md` §10) under the same rules as `readBytes`: the location
+   * checked, the policy's credentials and redirect rule on every request, `maxBytes` the asset's size, and each read
+   * (the open, then every `read`) under the caller's signal and the policy's time.
+   */
+  async function openRange(uri: string, signal: AbortSignal): Promise<AssetRangeReader> {
+    const checked = checkLocation(uri, policy);
+    if ('refused' in checked) throw new AssetRefused(uri, checked.refused);
+    const reader = await bounded(uri, signal, (s) =>
+      openRanges(manager, Asset.Url(checked.url), {
+        credentials: policy.credentials ?? 'omit',
+        redirect: policy.redirect ?? 'error',
+        signal: s,
+        ...(policy.maxBytes !== undefined ? { maxBytes: policy.maxBytes } : {}),
+      }).run(),
+    );
+    if (policy.maxBytes !== undefined && reader.size > policy.maxBytes) {
+      reader.dispose();
+      throw new AssetRefused(uri, 'larger than the limit');
+    }
+    return {
+      size: reader.size,
+      read: (ranges, s) => bounded(uri, s, (b) => reader.read(ranges, b)),
+      dispose: () => reader.dispose(),
+    };
+  }
+
   return {
     readText: (uri, signal) => readAs(uri, signal, 'string'),
     readBytes: (uri, signal) => readAs(uri, signal, 'binary'),
+    openRange,
   };
 }

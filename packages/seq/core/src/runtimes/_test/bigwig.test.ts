@@ -10,6 +10,7 @@ import { itWithin } from '@molstar/test-harness/timing';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { delayedRuntime } from '../../data/async-source.js';
 import {
+  type AssetReader,
   DefaultOpenLimits,
   type OpenContext,
   type RegionAnswer,
@@ -17,10 +18,11 @@ import {
   type ValuesPositions,
 } from '../../data/protocol.js';
 import { SourceOpenError } from '../../data/seq-runtime.js';
+import { headlessAssetPolicy, policyAssets } from '../../context/assets.js';
 import { binValues } from '../../data/summaries.js';
 import { FakeClock } from '../../data/_test/synthetic.js';
 import { sourceSuite } from '../../data/_test/source-suite.js';
-import { BigWigRuntime, type RangeAssetReader } from '../bigwig.js';
+import { BigWigRuntime } from '../bigwig.js';
 import { syntheticSignal, type WriterChrom, type WriterOptions, writeBigWig } from './bigwig-writer.js';
 
 // The bigWig runtime (_spec/README.md "Data", bigWig) on files its test-only writer makes from a seed: both zoom
@@ -69,7 +71,7 @@ afterEach(() => vi.unstubAllGlobals());
 
 /** Core's manager behind the port, by range reads (pages of 4 KiB: a small file still spans many). */
 function rangeContext(manager = new DefaultAssetManager()): OpenContext {
-  const assets: RangeAssetReader = {
+  const assets: AssetReader = {
     readText: () => Promise.reject(new Error('not read as text')),
     readBytes: () => Promise.reject(new Error('read whole')),
     openRange: (uri, s) => openRanges(manager, Asset.Url(uri), { signal: s, pageSize: 4096 }).run(),
@@ -237,6 +239,16 @@ describe('the bigWig runtime', () => {
     s.dispose();
   });
 
+  it('under a real host’s policy (policyAssets over core’s manager) it reads by range, never the whole file', async () => {
+    const log = serve({ [Url]: Fixture });
+    const assets = policyAssets(new DefaultAssetManager(), headlessAssetPolicy({ hosts: ['x.org'] }));
+    const s = await BigWigRuntime.open(entry, { assets, signal, limits });
+    await values(s.read({ system: 'chrA', start: 0, end: 10_000, level: 256, shapes: ['values'] }, signal));
+    expect(log.length).toBeGreaterThan(0);
+    expect(log.every((l) => l.range.startsWith('bytes='))).toBe(true);
+    s.dispose();
+  });
+
   it('big-endian, uncompressed and two-items-a-node files read the same', async () => {
     for (const o of [
       { bigEndian: true },
@@ -330,7 +342,7 @@ describe('the bigWig runtime', () => {
         readText: () => Promise.reject(new Error('text')),
         readBytes: () => Promise.reject(new Error('whole')),
         openRange: () => openRanges(manager, file).run(),
-      } as RangeAssetReader,
+      } as AssetReader,
       signal,
       limits,
     };

@@ -9,7 +9,6 @@ import type { AssetRangeReader } from '@molstar/core/util/assets';
 import { SourceIssues } from '../data/issues.js';
 import {
   abortError,
-  type AssetReader,
   type Coverage,
   type FormatRuntime,
   isAbortError,
@@ -28,11 +27,6 @@ import { SourceOpenError } from '../data/seq-runtime.js';
 // Opening reads the header, the zoom headers and the chromosome tree; a region reads the R-tree index of its level
 // (the full data at level 1, a zoom level's summaries at its reduction), then the data blocks it points to, inflated
 // and decoded. Levels are the file's own: 1 and its zoom levels' reductions. Little- and big-endian files alike.
-
-/** The assets port with range reads: `openRange` when the host has it (core's `openRanges` under its policy). */
-export interface RangeAssetReader extends AssetReader {
-  openRange?(uri: string, signal: AbortSignal): Promise<AssetRangeReader>;
-}
 
 const BigWigMagic = 0x888ffc26;
 const ChromTreeMagic = 0x78ca8c91;
@@ -408,7 +402,7 @@ async function open(source: SourceEntry, ctx: OpenContext): Promise<OpenedSource
     throw new SourceOpenError([
       issueOf(SourceIssues, 'seq.source.no_data', 'A bigWig source needs a uri', { address: source.address }),
     ]);
-  const assets = ctx.assets as RangeAssetReader;
+  const assets = ctx.assets;
   let reader: AssetRangeReader;
   try {
     if (assets.openRange) reader = await assets.openRange(uri, ctx.signal);
