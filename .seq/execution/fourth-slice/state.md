@@ -51,12 +51,16 @@ The third slice is closed (2026-11-20; its record in `.seq/records/third-slice/`
 
 ## Next
 
-1. **Overnight (the author, 2026-11-20)**: merge FX3 and ST2 when they report (check, look, review, fix round, as
-   always); then start **no new fourth-slice lane**: run the fifth slice's stage 0 drafts and reviews by
-   `../fifth-slice/state.md`, "Overnight", two lanes at a time. The author wakes the loop in the morning (wakes at
-   1:25 and 6:25 after the usage limit's reset).
-2. In the morning, with the author: the fifth slice's drafts agreed; then ST3, HD (after FX3's map onto a described
-   unit), HP3, SV, stage 2's gate, stage 4 (EX, CN, LE), the novice pass, M4, finalize.
+1. **Overnight (the author, 2026-11-20: "you can continue with slice 4 too, just don't close it until i review it in
+   the morning")**: the loop runs "Running while the author is away" (loop.md): decisions a gate would ask are made as
+   recommended and listed in `gaps.md`; a public API change past a design is never decided (the lane stops); the use
+   gates are deferred, not passed. Two lanes at once in all, shared with the fifth slice's stage 0
+   (`../fifth-slice/state.md`, "Overnight"): one fifth-slice draft (or its review) and one fourth-slice lane at a time,
+   while both have work.
+2. The fourth slice's order: merge FX3 and ST2; then ST3 → HD (after FX3's map onto a described unit) → HP3; SV (after
+   ST3); stage 2's and stage 3's gates; stage 4 (EX → CN, LE); the novice pass; M4. **Stop before FINALIZE**: no
+   fold-back, record or close until the author has reviewed (the morning).
+3. In the morning, with the author: the fifth slice's drafts agreed; the fourth slice's review, then its finalize.
 
 ## Findings by lane
 

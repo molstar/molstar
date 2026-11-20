@@ -10,10 +10,12 @@
 ## Overnight: stage 0 (run by the fourth slice's loop)
 
 The fourth slice's loop runs this while the author sleeps (its `state.md`, Next, points here). The lane limit is the
-fourth slice's `loop.md` line (two). No fourth-slice lane starts until the author is back.
+fourth slice's `loop.md` line (two), shared: one fifth-slice draft (or its review) beside one fourth-slice lane, while
+both have work (the author, 2026-11-20: "you can continue with slice 4 too, just don't close it until i review it in
+the morning").
 
-1. **Order**, two at a time: GA and RR (the foundations), then GF and LX (LX reads GA's and RR's drafts), then RN and
-   GD (they read the others). Briefs in `briefs/`; each writes one file in `drafts/` in the main checkout (no worktree,
+1. **Order**, one at a time beside the fourth slice (two when it has nothing ready): GA, RR (the foundations), GF,
+   LX (it reads GA's and RR's), RN, GD (they read the others). Briefs in `briefs/`; each writes one file in `drafts/` in the main checkout (no worktree,
    no code, no commits).
 2. **Each draft**: on its report, an independent review by a strong reviewer (read only; it gets the draft, the
    designs it amends and the brief, never the lane's report): the design's rules followed, the self-check, Gate 0's
