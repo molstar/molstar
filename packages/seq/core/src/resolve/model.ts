@@ -67,6 +67,30 @@ import {
 import { type GridData, type PairsData, readGrid, readPairs } from './held.js';
 import { ResolveIssues } from './issues.js';
 import { composeLinear, type Encoding, expand, ImplicitLinear, isEmptyLinear, type Linear, toRuns } from './linear.js';
+import {
+  atomsOf,
+  type CompoundEntry,
+  componentsOf,
+  EmptyMolecular,
+  type Molecular,
+  modifiedOf,
+  moleculeOf,
+  unitsOf,
+} from './molecule-query.js';
+import {
+  type AtomsEntry,
+  type ComplexEntry,
+  collapseAtoms,
+  complexEntry,
+  expandAtoms,
+  type ModifiedIndex,
+  type MoleculeEntry,
+  modifiedIndex,
+  moleculeEntry,
+  type UnitEntry,
+  unitEdges,
+  unitEntry,
+} from './molecules.js';
 import { composeEdges, type Edge, findPath, inversePath, type Path, projectRanges, type Step } from './paths.js';
 
 /** The length a system of unknown length (letters from a source, a streamed genome) answers the query forms with. */
@@ -87,6 +111,8 @@ export interface ResolveConfig {
   readonly openQueryLength: number;
   /** Levels of sources nested in dynamic nodes the overlay requests at most (EC-179): 4. */
   readonly maxNestedDepth: number;
+  /** Units a complex holds at most (a large capsid's assembly): 65,536; a complex past it is refused. */
+  readonly maxUnits: number;
 }
 
 export const DefaultResolveConfig: ResolveConfig = {
@@ -95,13 +121,18 @@ export const DefaultResolveConfig: ResolveConfig = {
   encoding: 'cheapest',
   openQueryLength: OpenLength,
   maxNestedDepth: 4,
+  maxUnits: 65536,
 };
 
-/** A coordinate system the spec declares: a sequence, its length when its letters are inline. */
+/**
+ * A coordinate system the spec declares: a sequence (an alignment's columns and rows too), a molecule's residues or
+ * atoms, a unit of a complex; its length when known.
+ */
 export interface SystemEntry {
   readonly address: string;
-  readonly kind: 'sequence';
-  readonly alphabet: 'protein' | 'dna' | 'rna';
+  readonly kind: 'sequence' | 'molecule' | 'atoms' | 'unit';
+  /** A sequence's, or a unit's of one; none for a molecule's residues and atoms. */
+  readonly alphabet?: 'protein' | 'dna' | 'rna';
   /** Undefined: unknown until its source is opened (pending, never a guess). */
   readonly length?: number;
   readonly cyclic: boolean;
@@ -114,6 +145,8 @@ export interface SystemEntry {
   readonly numberings: readonly string[];
   /** How its letters are read. */
   readonly access: AccessPlan;
+  /** A unit's molecule and where the unit starts on it: its position i is the molecule's `start + i`. */
+  readonly parent?: { readonly system: string; readonly start: number };
 }
 
 /**
@@ -205,6 +238,8 @@ export interface AnnotationEntry {
   readonly rows?: string;
   /** An alignment's reference row, by label (what `identity` compares with). */
   readonly reference?: string;
+  /** A complex's links: the units their rows' ends are on (`PairsData.aUnit`, `bUnit` index it), by address. */
+  readonly units?: readonly string[];
 }
 
 /**
@@ -239,6 +274,12 @@ export interface StaticModel extends QueryModel {
   readonly numberings: ReadonlyMap<string, NumberingEntry>;
   /** Whether a declared numbering's labels are a source's (read by tier 2): what wraps a query model checks first. */
   readonly hasSourceNumberings: boolean;
+  /** The molecules, complexes, units, atoms systems' group maps and modified indices (_spec/README.md "Resolve"). */
+  readonly molecular: Molecular;
+  /** The compounds described (`compound` nodes), by code. */
+  readonly compounds: ReadonlyMap<string, CompoundEntry>;
+  /** A sequence's modified index, or a unit's of one; undefined when it has none. */
+  modified(system: string): ModifiedIndex | undefined;
   readonly issues: readonly Issue[];
   /** A system's declared numbering by its id (`kabat`), or undefined: never a built-in (`index`, `ordinal`). */
   numberingOf(system: string, id: string): NumberingEntry | undefined;
@@ -248,7 +289,9 @@ export interface StaticModel extends QueryModel {
   edgesFrom(system: string): readonly Edge[];
   /**
    * A Location carried onto a system: each part along its path (rects are not carried yet); a part with no path is
-   * left out with the path's issue. With `close`, the location is first closed (`close`).
+   * left out with the path's issue. With `close`, the location is first closed (`close`). The atoms group map applies
+   * at the ends only: a part on atoms is collapsed onto their residues first, and onto an atoms system the image on
+   * its residues is expanded last.
    */
   project(loc: Location, to: string, options?: { close?: boolean }): Projection;
   /**
@@ -313,10 +356,10 @@ function lengthsKey(lengths: Lengths | undefined): string {
     .join(',')}`;
 }
 
-/** A path search's outcome and the map entries of the systems it read: valid while those are the same. */
+/** A path search's outcome and the entries (maps, units) of the systems it read: valid while those are the same. */
 interface PathEntry {
   readonly found: { readonly path: Path } | { readonly why: 'none' | 'ambiguous' | 'limit' };
-  readonly deps: ReadonlyMap<string, readonly MapEntry[]>;
+  readonly deps: ReadonlyMap<string, readonly (MapEntry | UnitEntry)[]>;
 }
 
 /** A resolve pass that keeps its entries between specs, by address and the hashes of the nodes each reads. */
@@ -353,6 +396,9 @@ interface Placed {
 
 const p = (n: Node, key: string): Value | undefined => n.params?.[key];
 
+/** The kinds a data reference to a system takes: a sequence, a molecule's residues, a unit of a complex. */
+const SystemRefs = ['sequence', 'molecule', 'unit'] as const;
+
 function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: ReadonlyMap<string, PathEntry>): Model {
   const config: ResolveConfig = { ...DefaultResolveConfig, ...options.config };
   const issues: Issue[] = [];
@@ -364,6 +410,17 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
       if (n.id === undefined) continue;
       const placed = { node: n, address: printAddress([c.id, n.id]) };
       data.push(placed);
+      byAddress.set(placed.address, placed);
+    }
+  }
+  // a complex's units and links, a molecule's links: addressed under their parent
+  const inner: (Placed & { readonly parent: Placed })[] = [];
+  for (const at of data) {
+    if (at.node.kind !== 'complex' && at.node.kind !== 'molecule') continue;
+    for (const c of at.node.children ?? []) {
+      if (c.id === undefined || (c.kind !== 'unit' && c.kind !== 'pairs')) continue;
+      const placed = { node: c, address: printAddress([...addressIds(at.address), c.id]), parent: at };
+      inner.push(placed);
       byAddress.set(placed.address, placed);
     }
   }
@@ -387,7 +444,7 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
   const lengths = new Map<string, number>();
   if (given.size)
     for (const at of data) {
-      if (at.node.kind !== 'sequence' && at.node.kind !== 'alignment') continue;
+      if (at.node.kind !== 'sequence' && at.node.kind !== 'alignment' && at.node.kind !== 'molecule') continue;
       const src = exactAddress(p(at.node, 'source'));
       const hash = src === undefined ? undefined : sourceHashes.get(src);
       if (hash === undefined) continue;
@@ -419,10 +476,12 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
     );
   }
 
-  // a sequence's numberings: inline labels read at once, a source's where its rows are
+  const molecular = buildMolecular(data, inner, systems, issues, config, cached, key, ref, lengths);
+
+  // a sequence's and a unit's numberings: inline labels read at once, a source's where its rows are
   const numberings = new Map<string, NumberingEntry>();
-  for (const at of data) {
-    if (at.node.kind !== 'sequence') continue;
+  for (const at of [...data, ...inner]) {
+    if (at.node.kind !== 'sequence' && (at.node.kind !== 'unit' || !systems.has(at.address))) continue;
     const system = systems.get(at.address)!;
     for (const c of at.node.children ?? []) {
       if (c.kind !== 'numbering' || c.id === undefined || c.id === 'index' || c.id === 'ordinal') continue;
@@ -440,8 +499,8 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
   const maps = new Map<string, MapEntry>();
   for (const at of data) {
     if (at.node.kind !== 'map') continue;
-    const from = ref(at, 'from', ['sequence']);
-    const to = ref(at, 'to', ['sequence']);
+    const from = ref(at, 'from', SystemRefs);
+    const to = ref(at, 'to', SystemRefs);
     if (!from || !to) continue;
     const entry = cached(`${at.address}|${key(at, from, to)}|${config.encoding}`, () =>
       mapEntry(at, systems.get(from.address)!, systems.get(to.address)!, config),
@@ -467,10 +526,10 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
   for (const at of data) {
     if (at.node.kind !== 'pairs' && at.node.kind !== 'grid') continue;
     const isPairs = at.node.kind === 'pairs';
-    const x = ref(at, isPairs ? 'a' : 'x', ['sequence']);
+    const x = ref(at, isPairs ? 'a' : 'x', SystemRefs);
     if (!x) continue;
     const yKey = isPairs ? 'b' : 'y';
-    const y = p(at.node, yKey) === undefined ? x : ref(at, yKey, ['sequence']);
+    const y = p(at.node, yKey) === undefined ? x : ref(at, yKey, SystemRefs);
     if (!y) continue;
     const entry = cached(`${at.address}|${key(at, x, y)}`, () =>
       heldEntry(at, systems.get(x.address)!, systems.get(y.address)!),
@@ -480,7 +539,7 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
   }
   for (const at of data) {
     if (at.node.kind !== 'ranges' && at.node.kind !== 'values') continue;
-    const target = ref(at, 'target', ['sequence']);
+    const target = ref(at, 'target', SystemRefs);
     if (!target) continue;
     const src = p(at.node, 'source') === undefined ? undefined : ref(at, 'source', ['source']);
     const entry = cached(`${at.address}|${key(at, target)}`, () =>
@@ -490,9 +549,140 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
     issues.push(...entry.issues);
   }
 
-  const model = new Model(spec, config, systems, maps, sources, annotations, numberings, issues, carried, given);
+  // links: a complex's between its units (an end's unit a row's), a molecule's between its residues
+  for (const at of inner) {
+    if (at.node.kind !== 'pairs') continue;
+    const units = molecular.complexes.get(at.parent.address)?.units;
+    if (at.parent.node.kind === 'complex' ? !units?.length : !systems.has(at.parent.address)) continue;
+    const entry = cached(`${at.address}|${key(at, at.parent)}`, () =>
+      linksEntry(at.address, at.node, at.parent.address, units),
+    );
+    annotations.set(at.address, entry);
+  }
+
+  const compounds = new Map<string, CompoundEntry>();
+  for (const at of data)
+    if (at.node.kind === 'compounds')
+      for (const c of at.node.children ?? [])
+        if (c.kind === 'compound' && c.id !== undefined) compounds.set(c.id, compoundEntry(c));
+
+  const model = new Model(
+    spec,
+    config,
+    systems,
+    maps,
+    sources,
+    annotations,
+    numberings,
+    issues,
+    molecular,
+    compounds,
+    carried,
+    given,
+  );
   SourceHashes.set(model, sourceHashes);
   return model;
+}
+
+/**
+ * Molecules (their residues and atoms systems), sequences' modified indices, and complexes' units (systems on their
+ * molecules' positions) with their copy groups; a complex past `maxUnits` units is refused (_spec/README.md "Resolve",
+ * Molecules and units).
+ */
+function buildMolecular(
+  data: readonly Placed[],
+  inner: readonly (Placed & { readonly parent: Placed })[],
+  systems: Map<string, SystemEntry>,
+  issues: Issue[],
+  config: ResolveConfig,
+  cached: Cached,
+  key: (...at: Placed[]) => string,
+  ref: (at: Placed, key: string, kinds: readonly string[]) => Placed | undefined,
+  lengths: ReadonlyMap<string, number>,
+): Molecular {
+  const molecules = new Map<string, MoleculeEntry>();
+  const atoms = new Map<string, AtomsEntry>();
+  const modified = new Map<string, ModifiedIndex>();
+  const nodes = new Map<string, Node>();
+  for (const at of data) {
+    if (at.node.kind === 'sequence') {
+      const m = cached(`${at.address}|${key(at)}|modified`, () => modifiedIndex(at.node));
+      if (m) modified.set(at.address, m);
+    }
+    if (at.node.kind !== 'molecule') continue;
+    const src = p(at.node, 'source') === undefined ? undefined : ref(at, 'source', ['source']);
+    const e = cached(`${at.address}|${key(at)}`, () =>
+      moleculeEntry(at.address, at.node, src?.address, lengths.get(at.address)),
+    );
+    molecules.set(at.address, e.molecule);
+    nodes.set(at.address, at.node);
+    for (const sys of e.systems) systems.set(sys.address, sys);
+    if (e.molecule.atoms) atoms.set(e.molecule.atoms.address, e.molecule.atoms);
+  }
+  const units = new Map<string, UnitEntry>();
+  const complexes = new Map<string, ComplexEntry>();
+  for (const c of data) {
+    if (c.node.kind !== 'complex') continue;
+    const children = inner.filter((u) => u.parent === c && u.node.kind === 'unit');
+    if (children.length > config.maxUnits) {
+      issues.push(unitsIssue(c.address, children.length, config.maxUnits));
+      continue;
+    }
+    const list: UnitEntry[] = [];
+    for (const u of children) {
+      const of = ref(u, 'of', ['sequence', 'molecule']);
+      const system = of && systems.get(of.address);
+      if (!of || !system) continue;
+      const e = cached(`${u.address}|${key(u, of)}`, () =>
+        unitEntry(u.address, c.address, u.node, { system, molecule: molecules.get(of.address) }),
+      );
+      list.push(e.unit);
+      units.set(u.address, e.unit);
+      nodes.set(u.address, u.node);
+      for (const sys of e.systems) systems.set(sys.address, sys);
+      if (e.atoms) atoms.set(e.atoms.address, e.atoms);
+    }
+    const links = inner.filter((l) => l.parent === c && l.node.kind === 'pairs').map((l) => l.address);
+    complexes.set(c.address, complexEntry(c.address, c.node, list, links));
+  }
+  return { molecules, complexes, units, atoms, modified, nodes };
+}
+
+/** A complex past `maxUnits` units, refused. */
+export function unitsIssue(address: string, count: number, max: number): Issue {
+  return issueOf(ResolveIssues, 'seq.resolve.complex.units', `The complex has ${count} units, past ${max}`, {
+    address,
+    hint: ResolveIssues.codes['seq.resolve.complex.units'].hint,
+  });
+}
+
+/** Links held whole: a complex's on per-row units (`units`, in its order), a molecule's on its residues. */
+export function linksEntry(address: string, node: Node, parent: string, units?: readonly UnitEntry[]): AnnotationEntry {
+  const index = units && new Map(units.map((u, i) => [u.id, i]));
+  const pairs = readPairs(node, index && ((id) => index.get(id) ?? -1));
+  const target = units?.[0]?.address ?? parent;
+  const fields = ['type', ...(pairs.labels ? ['label'] : []), ...Object.keys(pairs.extra ?? {})];
+  return {
+    address,
+    shape: 'pairs',
+    target,
+    ySystem: target,
+    fields,
+    pairs,
+    ...(units ? { units: units.map((u) => u.address) } : {}),
+  };
+}
+
+function compoundEntry(n: Node): CompoundEntry {
+  const name = p(n, 'name');
+  const cls = p(n, 'class');
+  const parents = p(n, 'parents');
+  return {
+    id: n.id ?? '',
+    ...(typeof name === 'string' ? { name } : {}),
+    ...(typeof cls === 'string' ? { class: cls } : {}),
+    ...(Array.isArray(parents) ? { parents: parents.map(String) } : {}),
+  };
 }
 
 // ---- entries ----
@@ -782,6 +972,11 @@ function mapEntry(
   return { map, issues };
 }
 
+/** A `sequence` node as a system (the overlay's dynamic sequences are resolved so). */
+export function resolveSequenceNode(address: string, node: Node, source: string | undefined): SystemEntry {
+  return sequenceEntry({ node, address }, source, undefined);
+}
+
 /** A `map` node resolved (the overlay's item maps are built as one): its entry and its issues. */
 export function resolveMapNode(
   address: string,
@@ -956,7 +1151,8 @@ class Model implements StaticModel {
   readonly pathEntries = new Map<string, PathEntry>();
   private readonly results = new Map<string, PathResult>();
   private readonly edges = new Map<string, Edge[]>();
-  private readonly edgeMaps = new Map<string, MapEntry[]>();
+  /** The entries whose steps leave each system (maps, units): what a carried search is checked against. */
+  private readonly edgeMaps = new Map<string, (MapEntry | UnitEntry)[]>();
   private readonly codons: CodonPaths[] = [];
   private readonly querySystems = new Map<string, QuerySystem>();
   private readonly queryAnnotations = new Map<string, QueryAnnotation | undefined>();
@@ -972,6 +1168,8 @@ class Model implements StaticModel {
     readonly annotations: ReadonlyMap<string, AnnotationEntry>,
     readonly numberings: ReadonlyMap<string, NumberingEntry>,
     readonly issues: readonly Issue[],
+    readonly molecular: Molecular = EmptyMolecular,
+    readonly compounds: ReadonlyMap<string, CompoundEntry> = new Map(),
     private readonly carried?: ReadonlyMap<string, PathEntry>,
     lengths: Lengths = new Map(),
   ) {
@@ -984,6 +1182,17 @@ class Model implements StaticModel {
       of.set(n.id, n);
     }
     this.hasSourceNumberings = fromSource;
+    const add = (e: Edge, owner: MapEntry | UnitEntry) => {
+      let list = this.edges.get(e.from);
+      if (!list) {
+        this.edges.set(e.from, (list = []));
+        this.edgeMaps.set(e.from, []);
+      }
+      list.push(e);
+      this.edgeMaps.get(e.from)!.push(owner);
+    };
+    // a unit's steps up to its molecule and down from it: free, under the copy rule (_spec/README.md "Resolve", Paths)
+    for (const u of molecular.units.values()) for (const e of unitEdges(u)) add(e, u);
     for (const m of maps.values()) {
       const fwd: Edge = { map: m.address, from: m.from, to: m.to, backward: false, step: m.step, linear: m.linear };
       const back: Edge = {
@@ -994,15 +1203,7 @@ class Model implements StaticModel {
         step: -m.step as Step,
         linear: m.linear.inverse(),
       };
-      for (const e of [fwd, back]) {
-        let list = this.edges.get(e.from);
-        if (!list) {
-          this.edges.set(e.from, (list = []));
-          this.edgeMaps.set(e.from, []);
-        }
-        list.push(e);
-        this.edgeMaps.get(e.from)!.push(m);
-      }
+      for (const e of [fwd, back]) add(e, m);
       if (m.step !== 0)
         this.codons.push({ map: m, down: composeEdges(m.to, [back])!, up: composeEdges(m.from, [fwd])! });
     }
@@ -1029,7 +1230,7 @@ class Model implements StaticModel {
     const old = this.carried?.get(k);
     if (old && this.valid(old)) e = old;
     else {
-      const deps = new Map<string, readonly MapEntry[]>();
+      const deps = new Map<string, readonly (MapEntry | UnitEntry)[]>();
       const r = findPath(
         {
           edgesFrom: (s) => {
@@ -1064,13 +1265,24 @@ class Model implements StaticModel {
     const src = options.close ? this.close(loc) : loc;
     const issues: Issue[] = [];
     const parts: { system: string; ranges: number[] }[] = [];
+    // the atoms group map at the ends (never a path step): onto an atoms system through its residues
+    const toAtoms = this.molecular.atoms.get(to);
+    const end = toAtoms ? toAtoms.of : to;
     for (const part of src.parts) {
-      const r = this.path(part.system, to);
+      const fromAtoms = this.molecular.atoms.get(part.system);
+      const from = fromAtoms ? fromAtoms.of : part.system;
+      const ranges = fromAtoms ? collapseAtoms(fromAtoms, part.ranges) : part.ranges;
+      if (part.system === to) {
+        parts.push({ system: to, ranges: Array.from(part.ranges) });
+        continue;
+      }
+      const r = this.path(from, end);
       if (!r.path) {
         if (r.issue) issues.push(r.issue);
         continue;
       }
-      parts.push({ system: to, ranges: projectRanges(r.path, part.ranges) });
+      const image = projectRanges(r.path, ranges);
+      parts.push({ system: to, ranges: toAtoms ? expandAtoms(toAtoms, image) : image });
     }
     return { location: location({ parts }), issues };
   }
@@ -1111,6 +1323,7 @@ class Model implements StaticModel {
     // its declared numberings: the inline ones answer here; a source's labels are tier 2's (`withSourceNumberings`)
     const own = this.numberingsBySystem.get(address);
     const ids = own ? [...own.keys()] : [];
+    const parent = e.parent && this.system(e.parent.system);
     s = {
       address,
       length: e.length ?? this.config.openQueryLength,
@@ -1119,6 +1332,8 @@ class Model implements StaticModel {
       numberingIds: () => ids,
       // a source's labels are tier 2's: here they never arrive, so a form naming them waits
       numberingPending: (id) => own?.get(id)?.source !== undefined,
+      // a unit's molecule numbers its positions where the unit has no numbering of an id
+      ...(parent ? { parent: { system: parent, start: e.parent!.start } } : {}),
     };
     this.querySystems.set(address, s);
     return s;
@@ -1154,9 +1369,39 @@ class Model implements StaticModel {
     return undefined;
   }
 
-  /** Structures are not built yet: no chain, and the form reports the node missing. */
+  /** Chains are a complex's units (`units`): no chain addressed by its form in the static model. */
   chain(): Node | undefined {
     return undefined;
+  }
+
+  modified(system: string): ModifiedIndex | undefined {
+    return modifiedOf(this.molecular, system);
+  }
+
+  components(system: string) {
+    return componentsOf(this.molecular, this.systems.get(system), (s) => this.systems.get(s));
+  }
+
+  compoundClass(code: string): string | undefined {
+    return this.compounds.get(code)?.class;
+  }
+
+  annotationsOn(system: string): readonly string[] {
+    const out: string[] = [];
+    for (const a of this.annotations.values()) if (a.shape === 'ranges' && a.target === system) out.push(a.address);
+    return out;
+  }
+
+  units(complex: string) {
+    return unitsOf(this.molecular, complex);
+  }
+
+  molecule(address: string) {
+    return moleculeOf(this.molecular, address);
+  }
+
+  atoms(system: string) {
+    return atomsOf(this.molecular, system);
   }
 }
 
@@ -1220,6 +1465,10 @@ export function pairsQueryAnnotation(
   const a = e.target;
   const b = e.ySystem ?? e.target;
   const lengthOf = (s: string) => systemOf(s)?.length ?? config.openQueryLength;
+  // a complex's links: each end on its row's unit
+  const units = e.units;
+  const aUnit = e.pairs?.aUnit;
+  const bUnit = e.pairs?.bUnit;
   let rows: QueryItem[] | undefined;
   const all = (): QueryItem[] => {
     if (rows) return rows;
@@ -1232,8 +1481,10 @@ export function pairsQueryAnnotation(
       if (d.labels) fields.label = d.labels[k] ?? null;
       for (const [name, col] of extra) fields[name] = col[k] ?? null;
       const key = d.keys[k];
-      rows.push({ key, start: d.aStart[k], end: d.aEnd[k], system: a, fields });
-      rows.push({ key, start: d.bStart[k], end: d.bEnd[k], system: b, fields });
+      const sa = units && aUnit ? units[aUnit[k]] : a;
+      const sb = units && bUnit ? units[bUnit[k]] : b;
+      rows.push({ key, start: d.aStart[k], end: d.aEnd[k], system: sa, fields });
+      rows.push({ key, start: d.bStart[k], end: d.bEnd[k], system: sb, fields });
     }
     return rows;
   };
@@ -1242,18 +1493,13 @@ export function pairsQueryAnnotation(
     target: a,
     fields: e.fields,
     // its ends' systems, read by the query forms (internal: `QueryAnnotation` names no such field)
-    systems: b === a ? [a] : [a, b],
+    systems: units ?? (b === a ? [a] : [a, b]),
     items(over?: Location): ItemsRead {
       if (!over) return { items: all() };
-      const pa = partOf(over, a);
-      const pb = b === a ? pa : partOf(over, b);
-      if (!pa && !pb) return { items: [] };
-      const la = lengthOf(a);
-      const lb = lengthOf(b);
       return {
         items: all().filter((it) => {
-          const p = it.system === a ? pa : pb;
-          return !!p && overlapsRanges(p.ranges, it.start, it.end, it.system === a ? la : lb);
+          const p = partOf(over, it.system!);
+          return !!p && overlapsRanges(p.ranges, it.start, it.end, lengthOf(it.system!));
         }),
       };
     },

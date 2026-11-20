@@ -104,4 +104,65 @@ export interface QueryModel {
   row?(rows: string, key: Atom): number | undefined;
   /** Whether an alignment's rows are not held yet (read from a source): a row form then waits, never unknown. */
   rowsPending?(rows: string): boolean;
+  /** A system's components (a sequence's, a molecule's residues, a unit's): what `(component …)` reads. */
+  components?(system: string): QueryComponents | undefined;
+  /** A component's class by its code (its `compound` node's, else the host's names entry), or undefined. */
+  compoundClass?(code: string): string | undefined;
+  /** The annotations whose items are on a system (a ranges annotation's target): `:annotations` reads them. */
+  annotationsOn?(system: string): readonly string[];
+  /** A complex's units in order, or undefined when the address is no complex: `chain` and `entity` read them. */
+  units?(complex: string): readonly QueryUnit[] | undefined;
+  /** A molecule by its address (a spec node or a dynamic one), or undefined. */
+  molecule?(address: string): QueryMolecule | undefined;
+  /** The identifiers a host's resolver gives as the same compound as one (`ccd:ATP`), never including it. */
+  equivalents?(identifier: string): readonly string[];
+  /** The atoms system of a molecule or a unit (its own address for an atoms system), or undefined. */
+  atoms?(system: string): QueryAtoms | undefined;
+}
+
+/**
+ * A system's chemical components (_spec/README.md "Queries", Forms: `component`): a sequence's sparse non-standard
+ * rows beside its letters' standard components, a molecule's residues a code each.
+ */
+export interface QueryComponents {
+  readonly length: number;
+  /** Whether its positions have standard components (a sequence or a unit of one): what `:standard` reads. */
+  readonly polymer: boolean;
+  /** A sequence's non-standard rows, sorted: position, component, the positions it covers. */
+  readonly modified?: {
+    readonly position: Int32Array;
+    readonly component: readonly string[];
+    readonly length: Int32Array;
+  };
+  /** The components at a position: its non-standard ones (alternatives in order), else its standard one or code. */
+  at(position: number): readonly string[];
+}
+
+/** A unit of a complex, as the node forms read it. */
+export interface QueryUnit {
+  readonly address: string;
+  readonly node: Node;
+  readonly id: string;
+  /** The sequence or molecule it instantiates. */
+  readonly of: string;
+  readonly chain?: string;
+  readonly authChain?: string;
+  readonly operator?: string;
+}
+
+/** A molecule, as `(molecule …)` reads it. */
+export interface QueryMolecule {
+  readonly address: string;
+  readonly node: Node;
+  /** `ligand` when its node names none. */
+  readonly class: string;
+  /** `namespace:value` each. */
+  readonly identifiers: readonly string[];
+}
+
+/** An atoms system: its address and each atom's name. */
+export interface QueryAtoms {
+  readonly address: string;
+  readonly length: number;
+  readonly names: { get(i: number): string | null };
 }
