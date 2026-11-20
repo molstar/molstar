@@ -5,31 +5,33 @@
  */
 
 // The pairs layer (_spec/README.md "Render", The pairs layer): two locations that belong together, drawn by where its
-// section puts them. Laid out once a section (`scope: 'section'`): each end placed with the placement's `place`, its
-// arc's control the mid offset at the arc's height in its strip's frame through the strip's warp, so one curve is an
-// arc over a track or a block, an arc between two lines, a chord through a ring's hole, with no layout named here. An
-// end not placed leaves a caret at the placed end, never a dangling arc; on one straight strip an end past the window is
-// taken `reach` (a share of the window, 0.25) past its edge, so an arc moves continuously on pan. An arc's height is by
-// its span against the widest drawn (nested arcs nest, the widest fills the band); `side` above or below (a ring's
-// below reaches the hole: chords). Crossing pairs are drawn crossing (`same`), or `split`: the largest nested set on
-// `side`, the rest on the other side (exact to 2,000 pairs, greedy past it). At most `pairs.maxArcs` arcs: past it one a
-// bin of the ends' device columns (widest first), the rest a density strip of ends. A hit is the arc within
-// `pairs.hitPx` of the point: the pair's element, its extent both ends. In a grid (a strip with `ctx.axisY`) the layer
-// is laid out a strip at a time instead: a dot a pair of single positions, a diagonal for a stretch, at (a, b) and with
-// `mirror` at (b, a) too; kinds at one cell side by side.
+// section puts them. Laid out once a section (`scope: 'section'`): each end on its block (`pairs-ends.ts`: a pair on
+// one system again on each copy) placed with the placement's `place`, its arc's control the mid offset at the arc's
+// height in its strip's frame through the strip's warp, so one curve is an arc over a track or a block, an arc between
+// two lines, a chord through a ring's hole, with no layout named here. An end not placed leaves a caret at the placed
+// end, never a dangling arc; on one straight strip an end past the window is taken `reach` (a share of the window,
+// 0.25) past its edge, so an arc moves continuously on pan. An arc's height is by its span against the widest drawn
+// (nested arcs nest, the widest fills the band); `side` above or below (a ring's below reaches the hole: chords).
+// Crossing pairs are drawn crossing (`same`), or `split`: the largest nested set on `side`, the rest on the other side
+// (exact to 2,000 pairs, greedy past it). At most `pairs.maxArcs` arcs: past it one a bin of the ends' device columns
+// (widest first), the rest a density strip of ends. A hit is the arc or caret within `pairs.hitPx` of the point: the
+// pair's element, its extent both ends. In a grid (a strip with `ctx.axisY`) the layer is laid out a strip at a time
+// instead: a dot a pair of single positions, a diagonal for a stretch, at (a, b) and with `mirror` at (b, a) too; kinds
+// at one cell side by side.
 
 import { issueOf } from '@molstar/core/repr/tree';
 import { type Key, type Location, location } from '@molstar/seqx-core/query';
 import { theme as themeForm } from '@molstar/seqx-core/lang';
-import type { PairsData, StaticModel } from '@molstar/seqx-core/resolve';
+import type { PairsData, StaticModel, UnitEntry } from '@molstar/seqx-core/resolve';
 import type { Channel, ChannelName, ThemeDatum } from '@molstar/seqx-core/theme/index';
-import { cellOffset, type ResolvedLayer, type ResolvedSection } from '@molstar/seqx-core/view';
+import type { ResolvedLayer, ResolvedSection } from '@molstar/seqx-core/view';
 import type { AxisTransform } from './axis.js';
 import { channelForms, channelLegends, Extents, type LayerChannels } from './channels.js';
 import type { RenderConfig } from './config.js';
 import { grown, NoColor, type PassName, type PassWriter } from './draw-lists.js';
 import { compileRowFilter } from './filter.js';
 import { RenderIssues } from './issues.js';
+import { type PairEnds, pairEnds } from './pairs-ends.js';
 import {
   type Box,
   type Emphasis,
@@ -141,11 +143,10 @@ export interface PairsPrep {
   /** Each pair's element and extent (both ends), made when first hit. */
   readonly elements: (Key | undefined)[];
   readonly extents: (Location | undefined)[];
-  /** Each pair's two ends' centres as display units of a section (NaN: not on it), by section. */
-  readonly units: WeakMap<
-    ResolvedSection,
-    { readonly pieces: readonly number[] | undefined; readonly u: Float64Array }
-  >;
+  /** The model's units: a block of a unit shows what it instantiates (an end on a molecule reaches its units). */
+  readonly molecularUnits: ReadonlyMap<string, UnitEntry>;
+  /** The ends drawn in a section (`pairEnds`), by section. */
+  readonly units: WeakMap<ResolvedSection, PairEnds>;
 }
 
 type ScratchHit = { -readonly [K in keyof Hit]: Hit[K] };
@@ -256,6 +257,7 @@ function prepare(layer: ResolvedLayer, model: StaticModel): PairsPrep {
     index,
     elements: [],
     extents: [],
+    molecularUnits: model.molecular.units,
     units: new WeakMap(),
   };
 }
@@ -370,50 +372,13 @@ function nestedGreedy(n: number, lo: Float64Array, hi: Float64Array, keep: Uint8
   }
 }
 
-/** The centre of `[start, end)` on an axis as a display unit, NaN when not shown. */
-function centreOf(axis: Parameters<typeof cellOffset>[0], start: number, end: number): number {
-  const a = cellOffset(axis, start);
-  const b = cellOffset(axis, end - 1);
-  if (a === undefined || b === undefined) return Number.NaN;
-  return (Math.min(a, b) + Math.max(a, b) + 1) / 2;
-}
-
-/**
- * Each pair's ends' centres as the section's display units (NaN: not on it): on the section's axis, or on the first
- * block on the end's system (merged copies are one block: one arc a copy group; an end on a merged copy is drawn on
- * the block it is merged into). A complex's link has each end on its row's unit.
- */
-function unitsOn(prep: PairsPrep, section: ResolvedSection, layout: AxisTransform): Float64Array {
-  // the pieces the layout placed the axis on: the resolved axis has none while its letters come from a source (the
-  // layout fills them from the source's coverage), so the units are kept by them too
-  const own = section.axis.ranges ?? layout.pieces;
+/** Each pair's ends in a section, kept by the section and the pieces they were placed on. */
+function endsIn(prep: PairsPrep, section: ResolvedSection, layout: AxisTransform): PairEnds {
   const kept = prep.units.get(section);
-  if (kept && kept.pieces === own) return kept.u;
-  const d = prep.data!;
-  const u = new Float64Array(2 * d.n).fill(Number.NaN);
-  const shape = (axis: typeof section.axis) =>
-    axis.ranges || axis.system !== layout.system ? axis : { ...axis, ranges: layout.pieces };
-  const on = (system: string, s: number, e: number): number => {
-    const blocks = section.blocks;
-    if (!blocks) return section.axis.system === system ? centreOf(shape(section.axis), s, e) : Number.NaN;
-    for (const b of blocks)
-      if ((b.axis.system === system || b.systems.includes(system)) && b.offset !== undefined) {
-        // a chip is one unit: every residue of its molecule's ends at its middle
-        if (b.form === 'whole') return b.offset + 0.5;
-        const c = centreOf(shape(b.axis), s, e);
-        if (!Number.isNaN(c)) return b.offset + c;
-      }
-    return Number.NaN;
-  };
-  const units = prep.endUnits;
-  for (let k = 0; k < d.n; k++) {
-    const as = units && d.aUnit ? units[d.aUnit[k]] : prep.aSystem;
-    const bs = units && d.bUnit ? units[d.bUnit[k]] : prep.bSystem;
-    u[2 * k] = as === undefined ? Number.NaN : on(as, d.aStart[k], d.aEnd[k]);
-    u[2 * k + 1] = bs === undefined ? Number.NaN : on(bs, d.bStart[k], d.bEnd[k]);
-  }
-  prep.units.set(section, { pieces: own, u });
-  return u;
+  if (kept && kept.pieces === (section.axis.ranges ?? layout.pieces)) return kept;
+  const ends = pairEnds({ ...prep, data: prep.data! }, section, layout);
+  prep.units.set(section, ends);
+  return ends;
 }
 
 /** A pair's color from the layer's channel (its kind's by default); the ranges' ink where it gives none. */
@@ -528,30 +493,32 @@ let StripOf = new Int32Array(128);
 let Raw = new Float64Array(256);
 
 function layoutArcs(lay: PairsLay, prep: PairsPrep, ctx: LayoutContext, place: Placement) {
-  const d = prep.data!;
   const s = place.strips;
   if (!s.n) return;
   lay.mode = 'arcs';
   const band = ctx.band ?? 0;
-  const units = unitsOn(prep, ctx.section, ctx.axis);
+  const ends = endsIn(prep, ctx.section, ctx.axis);
+  const units = ends.u;
   const nb = s.bands;
   const one = s.n === 1 && s.warp[0] === WarpKind.translate;
   const a0 = s.axes[0];
   const w = a0.u1 - a0.u0;
   const reachLo = a0.u0 - prep.reach * w;
   const reachHi = a0.u1 + prep.reach * w;
-  if (Spans.length < d.n) {
-    Spans = new Float64Array(2 * d.n);
-    StripOf = new Int32Array(4 * d.n);
-    Raw = new Float64Array(8 * d.n);
+  if (Spans.length < ends.n) {
+    Spans = new Float64Array(2 * ends.n);
+    StripOf = new Int32Array(4 * ends.n);
+    Raw = new Float64Array(8 * ends.n);
   }
   let m = 0;
   let widest = 0;
   let unplaced = false;
-  for (let k = 0; k < d.n; k++) {
+  // each entry a pair, or a pair again on a copy (`pairEnds`)
+  for (let e = 0; e < ends.n; e++) {
+    const k = ends.pair[e];
     if (!prep.shown[k]) continue;
-    let oa = units[2 * k];
-    let ob = units[2 * k + 1];
+    let oa = units[2 * e];
+    let ob = units[2 * e + 1];
     if (Number.isNaN(oa) && Number.isNaN(ob)) {
       unplaced = true;
       continue;
@@ -839,7 +806,7 @@ function segmentDistance2(x0: number, y0: number, x1: number, y1: number, x: num
   return ex * ex + ey * ey;
 }
 
-/** The arc nearest a page point within `pairs.hitPx` (a tie: the later, drawn on top). */
+/** The arc or caret nearest a page point within `pairs.hitPx` (a tie: the later, drawn on top). */
 function hitArcs(lay: PairsLay, at: Float64Array): Hit | undefined {
   const x = at[0];
   const y = at[1];
@@ -862,7 +829,19 @@ function hitArcs(lay: PairsLay, at: Float64Array): Hit | undefined {
       best = i;
     }
   }
-  return best < 0 ? undefined : pairHit(lay, lay.pair[best]);
+  // a caret (drawn after the arcs: a tie is its), by the distance to its box
+  let pair = best < 0 ? -1 : lay.pair[best];
+  const cs = lay.carets;
+  for (let i = 0; i + 3 < cs.length; i += 4) {
+    const top = cs[i + 2] > 0 ? cs[i + 1] - 2 * Caret : cs[i + 1];
+    const dx = Math.max(0, Math.abs(x - cs[i]) - Caret / 2);
+    const dy = y < top ? top - y : y > top + 2 * Caret ? y - top - 2 * Caret : 0;
+    if (dx * dx + dy * dy <= bestD) {
+      bestD = dx * dx + dy * dy;
+      pair = cs[i + 3];
+    }
+  }
+  return pair < 0 ? undefined : pairHit(lay, pair);
 }
 
 /** Whether `v` is more than `r` outside the range of a curve's four points' coordinates at `o`, `o + 2`, … */
