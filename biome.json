@@ -978,7 +978,7 @@
       "plugins": ["./packages/sequences/core/builder-imports.grit"]
     },
     {
-      "includes": ["packages/seq/**/src/**", "!**/_test/**"],
+      "includes": ["packages/seq/**/src/**"],
       "linter": {
         "rules": {
           "style": {
@@ -997,11 +997,38 @@
                   {
                     "group": [
                       "@molstar/io",
+                      "@molstar/io/**"
+                    ],
+                    "message": "Seq* imports @molstar/io only where its allowlist names an entry (Seq*'s packages design): the mmCIF runtime, the text CIF parser and its data model."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/seq/core/src/runtimes/mmcif*.ts", "packages/seq/core/src/runtimes/_test/mmcif*.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["zod", "zod/**"],
+                    "message": "zod is the AI package's own: declare tool inputs as field shapes (packages/ai/_spec/tools.md §2)."
+                  },
+                  {
+                    "group": [
+                      "@molstar/io",
                       "@molstar/io/**",
                       "!@molstar/io/reader/cif/text/parser",
                       "!@molstar/io/reader/cif/data-model"
                     ],
-                    "message": "Seq* imports @molstar/io's entries on its allowlist only (Seq*'s packages design): the text CIF parser and its data model, for the opt-in mmCIF runtime."
+                    "message": "The mmCIF runtime's allowlist of @molstar/io (Seq*'s packages design): the text CIF parser and its data model only."
                   }
                 ]
               }
