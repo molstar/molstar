@@ -122,6 +122,11 @@ nothing without a use; the fixed behaviors below are fixed partly so.
   direction mark (an arrow and "reversed"; with `along`, "along p53") drawn in the `labels` pass, so the export says it
   too. `axis.directionMark` (`RenderConfig`: `label`, or `none` for a host whose own chrome says it, as a Mol\* plugin's
   panel would).
+- **A ruler's insertion labels** (decided by the author, 2026-11-20, after `112.1` never showed at the closest zoom): an
+  insertion is labelled beside its residue's number wherever it clears what is drawn, a label wider than its position
+  too: the round values first, then the insertions nearest a drawn major, the shorter, by position. One rule: every
+  label is placed if it clears what is drawn, the order decides who wins; decided at layout, never on a hover, so
+  nothing jitters, and the hit card names the rest. `ruler.labelGap` is the clearance.
 - **A ruler's units** (decided, the author, 2026-11-19: "Yes, `units: none | bases`"; found by CS at 83 Mb): the ruler
   layer's `units` param, `none` (the number as its numbering labels it, the default) or `bases` (bp, kb, Mb, chosen by
   the tick step: 7,668,402 at a base tick, 7.67 Mb at a megabase one), formatted by `@molstar/core/util/number`'s

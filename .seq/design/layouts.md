@@ -147,7 +147,9 @@ limits (they were sort of self-imposed and estimate), but obviously try to minim
   The numbers (decided, the author, 2026-11-19, the defaults audit `drafts/defaults-audit.md`, "Accept as drafted"):
   a lane 14 px (a 12 px mark, a 2 px gap), 4 px padding top and bottom, so one lane 22 px (the ruler's band), two 36,
   at most five (78 px), then lanes compact; an empty track the one-lane minimum; a label lane counts as a lane when a
-  label goes beside its mark. Values, letters, rulers and pairs keep their fixed heights (they have no lanes). **The
+  label goes beside its mark. **Tracks of one kind share their mark lanes, each its own label lane** (decided by the
+  author, 2026-11-20, after the Reverse strand reserved an empty one beside the Forward's): the label lane is reserved
+  per track by its own labels, still decided by the whole data so it never appears with a pan. Values, letters, rulers and pairs keep their fixed heights (they have no lanes). **The
   algorithm is the spec's** (the author, 2026-11-19: "configurable in the spec … something like 'layout algorithm'"):
   the section's `heights` param names the sizing, `content` (the default, above), `uniform` (every track the tallest
   content height in the section), `fixed` (each track its layer type's fixed default, the second slice's look); an
@@ -482,7 +484,7 @@ interface Placement {
   (never on a window move or a hover), sorted by angle or position, spread a line apart, upright; those a side or lane
   cannot hold are dropped by the same priority in both (the layer's order, then the longer item). The same text style
   (size, weight) in both; the ink is the contrast colour against the mark's fill inside, the text colour beside
-  (decided, the author, 2026-11-19: "contrast inside, text beside"). A label that fits neither whole inside nor whole beside is cut inside with an ellipsis while at least `labels.minChars` letters (4 by default, a `RenderConfig` key; the whole label when it is shorter) and the ellipsis fit, else dropped; the hover card and the address keep it whole, the canvas and the SVG cut alike, and a label at the section's edge stays within it (decided by the author, 2026-11-20: "4 characters as default is fine, should be configurable"). A leader never crosses another label or mark (a label that cannot be placed so is dropped). Neighbouring items of
+  (decided, the author, 2026-11-19: "contrast inside, text beside"). A label that fits neither whole inside nor whole beside is cut inside with an ellipsis while at least `labels.minChars` letters (4 by default, a `RenderConfig` key; the whole label when it is shorter) and the ellipsis fit, else dropped; the hover card and the address keep it whole, the canvas and the SVG cut alike, and a label at the section's edge stays within it (decided by the author, 2026-11-20: "4 characters as default is fine, should be configurable"). A leader never crosses another label or mark (a label that cannot be placed so is dropped). **A ring group fans only while it can be read** (decided by the author, 2026-11-20, "Fan up to 12"): a group opens to its members up to `rings.cluster.fanMax` (12, a `RenderConfig` preset); a larger group stays one label and its hover card lists every member whole. **A ruler naming its chain is intended** (the author, 2026-11-20): a ruler track is unlabelled unless its spec names it, and with more than one in a view the name is the only sign whose numbers are which. Neighbouring items of
   one layer with the same label, less than a label's width apart, are labelled once at the run's start, no leader to
   each (decided, the author, 2026-11-20: "Label a run once"; the hover card still names each). A placed label's hit is its item's. Why: one feature read two ways
   in two views of one map is two rules to learn; inside first keeps the label on its mark where there is room.

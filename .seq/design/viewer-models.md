@@ -105,6 +105,15 @@ P; the `genome-browser` preset keeps the clicks and pans on a drag). The table i
   'navigate'`, kept beside the definition (`@molstar/ui`'s `CommandDefinition` has no such field; Seq\* keeps a table by
   command id, and proposes the field upstream if it proves general).
 
+### Issues
+
+- **An issue of a pending address is not shown** (decided by the author, 2026-11-20, "As proposed"): core reports the
+  static model's issues (`model.issues`); the viewer holds those that name an address whose store entry is `pending`
+  ([data-store.md](data-store.md) owns the state) until it settles, so `seq.resolve.length.unknown` does not flash while
+  a source opens. Why: the viewer is the only holder of "pending".
+- **`viewer.modelIssues` is a state**, the model's issues as the viewer says them (one of a source still opening held
+  back), beside `viewer.layoutIssues` (the frame's); a host and the example stories' status line read it.
+
 ### Configuration items of the first slice
 
 `foundations.preset` (`comfortable`), `density.letterMinPx`, `density.dotMinPx`, `bindings.preset` (`default`),

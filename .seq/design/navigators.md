@@ -94,7 +94,7 @@ limits (they were sort of self-imposed and estimate), but obviously try to minim
   | rail (the default) | `positions` | `axis` as a hairline, the window a thicker segment | a 12 px row just below the pinned ruler's bottom border on the canvas with rails on, none in an export (`ruler` rail); 12 px (`slim` rail, a section with no ruler) | every linear section |
   | strip | `positions` | `axis`, or `tracks` (a navigation track with the section's tracks small) | 20 px (`axis`), 48 (`tracks`) | any long section |
   | ideogram | `positions` | `bands` over a chromosome | 24 px | a genomic section |
-  | vertical overview | `both` (the window's rows and columns, four grips; the fourth slice's FX1, as the previous implementation's) | `rows`, columns compressed across | 96 px wide | an alignment's rows, the Globins 10,000-row view |
+  | vertical overview | `both` (the window's rows and columns, four grips; the fourth slice's FX1, as the previous implementation's) | `rows`, columns compressed across | 96 px wide, narrowing to 48 and hidden in a narrow frame | an alignment's rows, the Globins 10,000-row view |
   | miniature | `both` | `tracks` and `rows`, both axes whole | 160 × 96 px | a section with tracks and rows that both scroll |
 
   Why one part: the window's geometry, gestures, idle rule, floor, keys and announcements are the same along any axis;
@@ -112,8 +112,17 @@ limits (they were sort of self-imposed and estimate), but obviously try to minim
   2026-11-19: "we should also support a simple slider navigator for vertical scrolling too"): a rows layer's rows axis
   gets the same rail, vertical, 12 px wide at the right edge of its band (beside the right gutter's numbers), its
   window the rows in view (top and bottom grips; a drag scrolls, a grip zooms the rows, `]` and `[` as keys), idle when
-  every row is shown and the rows cannot zoom in (rows × the largest row scale fit the band: the ruler's rule); the rows' default navigator, as the slim rail is a linear section's; a declared overview
-  replaces it on the rows it binds. **Its grab zone**: on a positions axis (blocks, a genome, a protein) the whole ruler row is
+  every row is shown and the rows cannot zoom in (rows × the largest row scale fit the band: the ruler's rule); the rows' default navigator, as the slim rail is a linear section's. **A declared vertical overview does not replace it**
+  (decided by the author, 2026-11-20, "Both, configurable"): the overview is the picture, the rail the precise
+  control, both drawn against one window, so a drag on either moves the other in the same frame; the overview sits
+  right of the rail (the decision of 2026-11-20), the rail at the band's edge beside the numbers. `navigator.rowsRail`
+  (`ViewerConfig`): `always` (the default), `unlessOverview` (the old rule: a declared overview replaces it; an overview
+  a narrow frame hides counts as hidden, so the rail comes back), `none`. The replacement rule holds on the positions
+  axis only. **A narrow frame** (decided by the author, 2026-11-20, "As proposed"; the order in
+  [grids-and-rows.md](grids-and-rows.md)): the vertical overview narrows from 96 toward `navigator.overview.minPx` (48)
+  as the plot shrinks, and is hidden below `navigator.overview.minPlotPx` (160) of plot width (`RenderConfig` presets;
+  0 never hides), keyed on the plot's width, not the frame's; the rail then is all that is left, so the way to move is
+  never lost. The overview's picture draws its rows with no row columns, so the hidden-columns chip never lands on it. **Its grab zone**: on a positions axis (blocks, a genome, a protein) the whole ruler row is
   the rail's, so a drag on the ruler pans (ux-foundations section 8's "drag on an axis pans" holds); on an alignment's
   columns only the ruler's lower part is (`navigator.rail.grabShare`, 0.4 of the ruler's height, a `RenderConfig`
   preset), and a drag on the ruler above it selects columns. Why 0.4: the ruler's labels sit in its upper part, where

@@ -26,7 +26,10 @@ plasmid's linear detail.
   drag above it selects columns.
 - **The rows rail** sits at the right edge of the rows, beside their last numbers: its window is the rows in view, a
   drag scrolls them, a grip zooms them (`]` and `[` too), a click outside centres them there. It is idle while every row
-  shows, and an overview over the rows replaces it.
+  shows. A declared vertical overview does not replace it (decided by the author, 2026-11-20): the overview sits right
+  of the rail, both drawn against one window. `navigator.rowsRail` is `always` (the default), `unlessOverview` (the
+  overview replaces it; one a narrow frame hides counts as hidden) or `none`. In a narrow frame the overview narrows
+  from 96 to 48 px and hides below a plot of `navigator.overview.minPlotPx` (160 px), the rail staying.
 - Other forms are nodes of the view in the spec, so they travel with it; the host places each part where it wants
   (`mountNavigator`), and may also add one without touching the spec. A part sits beside the view at its form's size (a
   strip across it, an overview 96 px wide, a miniature 160 × 96), never over the data or the toolbar.

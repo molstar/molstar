@@ -7,14 +7,7 @@ queue. Each line: what is seen, where (the story), where it came from, its kind 
 
 ## Open
 
-- **Decided designs for FX2** (the author, 2026-11-20; `drafts/fx-designs.md`): the rows rail beside the overview
-  (`navigator.rowsRail`), a narrow frame's order of giving way (`navigator.overview.minPlotPx`, `minPx`), ring groups
-  fanned up to 12 (`rings.cluster.fanMax`), `seq.resolve.system.unnamed` and `length.unknown` held while pending; and
-  the fixes the drafts found (the Reverse track's label lane per track, the ruler's insertion labels, an empty label).
-- **The "2 hidden" chip overlaps the vertical overview's top** (look): Globins › Rows › Folded at 1280 px. FX1's look.
-- **The Reverse track reserves an empty label lane** (look): Plasmid › Ring › Detail with a strip. Third slice's DS look.
-- **Dense leaders when a ring group opens** (look): Plasmid, a group of more than 6 labels hovered. Third slice's DS look.
-- **The Antibody's IMGT label reads as a second line** (look): Antibody, the ruler's numbering label. Third slice's look.
+- **The Antibody's IMGT label reads as a second line** (look): Antibody, the ruler's numbering label. Third slice's look. Open: not part of FX2; whether the ruler's name or the `labels` lane makes the second line is not yet read.
 - **Alignment Rows And Columns collapses when the frame's size changes** (bug; look if the cause is only the story's
   sizing): Features › Query › Alignment Rows And Columns. When the Storybook zoom slider changes the frame's size, the
   plot collapses: at a small zoom the rows shrink into the top of a much larger, empty canvas; at a middle zoom the rows
@@ -22,34 +15,24 @@ queue. Each line: what is seen, where (the story), where it came from, its kind 
   end numbers (N, (, A half drawn). The status line under it says "The alignment's rows have not arrived" while the
   rows are drawn. The author, 2026-11-20. Check: the plot box against the host's size on resize (grids-and-rows.md: the
   plot box is fixed); the canvas's backing size against its CSS size at a changed devicePixelRatio or zoom; the right
-  edge's clip against the end-numbers column; the status text's settle. **FX1** (`51682eebc`) fixed the collapse and the status line; left for FX2: the last column's letters cut under the end numbers at 100% (not reproduced headlessly).
-- **The vertical overview went missing from the stories and examples** (bug; first in FX1): the rows rail was to be added
-  beside the vertical overview (the author: "also have the thin slider"), but it replaced it. Globins › Rows › Folded
-  and the other alignments now show only the rail. The author, 2026-11-20: "at the very least we should have stories for
-  this in features/navigation & use it in some examples too". Fix:
-  - Features › Navigators: one story for each vertical form side by side (the rows rail, the vertical overview with its
-    four handles as in `packages/sequences`, both together);
-  - the vertical overview declared again in the examples that had it (Globins Family, Folded and Scale; any other
-    alignment with more rows than fit);
-  - the rail stays the default only where no navigator is declared (navigators.md, the rows rail);
-  - check that the overview's picture and handles still draw and drag (`render/navigator.ts`, `mount-navigator.ts`). **FX1** (`68ab75210`) declared it again in Globins Family, Folded and Scale, with the RowsRail and VerticalOverview stories; left for FX2: both together (`navigator.rowsRail`, decided).
+  edge's clip against the end-numbers column; the status text's settle. **FX1** (`51682eebc`) fixed the collapse and the status line. **Still open (FX2 did not touch it):** the last column's letters cut under the end numbers at 100%, not reproduced headlessly; needs a look in the browser.
 - **A disabled toolbar button's dimming not looked at** (look): `@molstar/ui`'s Storybook and Prism, light and dark
-  (computed at 1.7-1.9:1, not seen). Third slice's SF leftover.
-- **A ruler naming its chain stays labelled; an empty track label is still drawn as empty text** (look): the Complex and
-  the Antibody's against view (rulers); core `tracks.ts` (the label). Third slice's HC leftovers. **FX1** (`e6487e46e`) draws no empty label; the ruler naming its chain is intended (two rulers need names, `drafts/fx-designs.md` 7): one line in layouts.md at FX2.
-- **An inline `strand` of null breaks core's model** (bug): `strand.get is not a function`; a null reads as no strand.
-  A section over a source sequence needs the sequence named after the source's system, else its length is unknown and
-  nothing lays out, and nothing says so: an issue naming it. Third slice's SC leftovers. **FX1** (`666e3464c`) made a null read as none; left for FX2: the issue naming an unnamed source system (`seq.resolve.system.unnamed`, decided).
-- **`seq.resolve.length.unknown` before open** (look): quieter in the viewer, which says it while a source opens.
-  Third slice's CY leftover.
-- **Antibody: IMGT 112.1 never on the ruler at the closest zoom** (three insertion labels a residue apart); short CDR
-  labels at the fit view (H1 by Kabat, L1 and L2 by IMGT); the against view's gaps faint at the fit (look). Third
-  slice's DA leftovers.
+  (computed at 1.7-1.9:1, not seen). Third slice's SF leftover. Open: a look, not a fix lane's work.
+- **Antibody: the against view's gaps faint at the fit; short CDR labels at the fit view** (look; H1 by Kabat, L1 and L2 by IMGT). Third slice's DA leftovers. FX2 fixed 112.1 (`ed8050a46`); these two were not part of FX2 and wait for the use gate's look.
 - **Not looked at past the lanes' own screenshots** (look, for the use gate's look): the Antibody's insertions at the
-  closest zoom and the rail's row (CF), the rows layer (RX).
+  closest zoom and the rail's row (CF), the rows layer (RX). Open: for the use gate's look.
 
 ## Fixed
 
+- **Decided designs for FX2** (the author, 2026-11-20; `drafts/fx-designs.md`): built, designs and Design pages in step (FD2). Fixed by FX2: `1ae3224c0` (`navigator.rowsRail`), `4fa5d5d1e`, `14a8a20ec`, `5d64807f3` (a narrow frame's order, `navigator.overview.minPlotPx`, `minPx`), `6f1952ea2`, `5f7b13c17` (`rings.cluster.fanMax`), `fbf3839b8`, `c0e55a47f` (the issues).
+- **The "2 hidden" chip overlaps the vertical overview's top** (look): Globins › Rows › Folded at 1280 px. Fixed by FX2: `c3129dd89`.
+- **The Reverse track reserves an empty label lane** (look): Plasmid › Ring › Detail with a strip. Fixed by FX2: `9b1d27080`.
+- **Dense leaders when a ring group opens** (look): Plasmid, a group of more than 6 labels hovered. Fixed by FX2: `6f1952ea2`, `5f7b13c17`.
+- **The vertical overview went missing** (bug): the rows rail replaced it. FX1 (`68ab75210`) declared it again; both together fixed by FX2: `1ae3224c0`.
+- **A ruler naming its chain stays labelled** (intended): fixed by FX2 as one line in the spec, `dca490334`; the empty label by FX1 `e6487e46e`.
+- **An inline `strand` of null; an unnamed source system** (bug): null by FX1 `666e3464c`; `seq.resolve.system.unnamed` by FX2 `fbf3839b8`.
+- **`seq.resolve.length.unknown` before open** (look): held back while the address is pending. Fixed by FX2: `fbf3839b8`, `c0e55a47f` (`viewer.modelIssues`).
+- **Antibody: IMGT 112.1 never on the ruler at the closest zoom** (look): Fixed by FX2: `ed8050a46`, `d228a4d2d`.
 - **Ring letters off their cells** (look): on a ring the letters drift from the cells they name, unevenly spaced and
   crowding in places (UUUAG near 10, GGGAG near 20), not centred on their cell's angle and the track's mid radius. Where:
   tRNA › Views › Chords (and every ring with letters). The author, 2026-11-20. Check the placement against the cell's

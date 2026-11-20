@@ -337,6 +337,13 @@ position it say to the right of the sequence data"; the base's data columns, Jal
   elsewhere on the row (its data, its label) tints the row and leaves its columns cut; the keyboard cursor on the
   row's header draws them whole, as the pointer on them would. Why: the expanded text covered the row's own residues
   while the user read them.
+- **A narrow frame gives way in one order** (decided by the author, 2026-11-20, "As proposed"; a miniature before names,
+  names before data; each step has a floor, never a column squeezed to nothing): (1) a vertical overview narrows from 96
+  to 48 px; (2) below a plot of `navigator.overview.minPlotPx` (160) it is hidden, the rows rail staying; (3) the label
+  column shrinks to its floor (80 px), then the tree collapses to its toggle glyph at the band's top; a click on it or
+  Shift+T (`rows.tree`) opens the tree whole for the session (a band's `tree`, the frame scrolling) and folds it back;
+  (4) the plot keeps its floor and the frame scrolls horizontally, never a hairline plot. The step is decided on the
+  columns at their own widths, so a navigator never flips with the columns it caused to shrink.
 - **Narrow**: columns yield before the label, right ones first, each down to a floor and then hidden (EC-107), a chip
   in the title band naming what it hides, on the side those columns live, never over the data ("Species, Identity
   hidden", "Species +1 hidden" when short of room; decided 2026-11-19, the author: "the 2 columns hidden is very

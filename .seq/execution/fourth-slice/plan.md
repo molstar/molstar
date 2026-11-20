@@ -233,7 +233,8 @@ disagrees with its code writes a drift note and stops.
 
 - [x] FX1 (merged 2026-11-20) before stage 1 (beside ML1 when its files are not the language's): the open items of fixes.md (the ring
       letters, the three DS looks, LX's dropped label) and the third slice's use gate's findings.
-- [ ] FX2, FX3, FX4 after stages 1, 2 and 3's gates; FX5 before M4 (the use gates' findings). A fix point with nothing
+- [x] FX2 (merged 2026-11-20, `05fe74453`: the author's four decided designs and the drafts' fixes)
+- [ ] FX3, FX4 after stages 1, 2 and 3's gates; FX5 before M4 (the use gates' findings). A fix point with nothing
       open is skipped. An FX lane takes only what needs no design.
 
 ### Module split (strong; §module-size; `briefs/sz-module-split.md`)

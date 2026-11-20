@@ -26,6 +26,9 @@ A section's `direction` is the writer's choice, never read off its layers:
 - Where a numbering does not reach (an antibody chain's constant domain under Kabat), the ruler says "not numbered" in a
   muted, dashed line (`unnumbered: mark`, decided 2026-11-19), or labels the run by a fallback numbering in the muted
   style (`unnumbered: fallback`).
+- A ruler labels an insertion beside its residue's number wherever it clears what is drawn, even a label wider than its
+  position (112.1 beside 112 at the closest zoom): the round values first, then the insertions nearest one (decided by
+  the author, 2026-11-20).
 - Letters read against their strand on screen show as their complement by default (`complement: auto`); `always` and
   `never` are the writer's. A protein is never complemented, and the stored letters are what search and status read.
 - Navigation is in display order, whatever the direction: a drag, the wheel and the arrows move what is on screen the
