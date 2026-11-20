@@ -383,8 +383,8 @@ layout per token table, held domains and the reader's substitution (`LayerChanne
   a channel a form cannot fill (`channel`), a field of the wrong type (`type`), stops out of order (`stops`), a scale
   that does not exist (`scale`), forms nested past `themeDepth` (4, `depth`).
 - **Filters**: a theme never hides; a filter does. An item layer's `data` written as a query
-  (`<annotation>/(not :of (item :<field> v))`) leaves out the rows its form rejects as the shared item reader reads them
-  (`item` by `:id` or a field, a list param any of its values; `not`, `and`, `or`), compiled once a prepare
+  (`<annotation>/(except :of (item :<field> v))`) leaves out the rows its form rejects as the shared item reader reads
+  them (`item` by `:id` or a field, a list param any of its values; `not`, `and`, `or`), compiled once a prepare
   (`compileRowFilter`); the track's label column shows "n filtered" (`TrackLayout.filter`), a hit on it
   `target: 'filter'`: on a track of two lines' height on a line of its own under the label (`filter.dy`, the label
   whole, the two lines centred together), else at the column's end with the label fading before it. A form not read row
@@ -407,19 +407,21 @@ and a misuse for each code is in `_test/lang.test.ts`. The namespaces are `repr.
 
 ## Queries
 
-`src/query/` (`@molstar/seqx-core/query`): locations, element keys, the three result types, and the query forms as
-`repr` form resolvers over a model of systems, numberings and annotations. Forms and addresses are one language: a form
-is a segment of an address, `/data/p53/(range :from 94 :to 292)`.
+`src/query/` (`@molstar/seqx-core/query`): locations, keys, the three result types, and the query forms as `repr` form
+resolvers over a model of systems, numberings, annotations and structures; property access apart from the language
+(locations-and-queries.md, The language; properties.md). Forms and addresses are one language: a form is a segment of an
+address, `/data/p53/(range :from 94 :to 292)`.
 
 ### Result types
 
-- **Nodes** (exact addresses of spec nodes and of nodes data makes), **Elements** (keys of what data makes: an
-  annotation's items) and **Location** (positions on systems). A form gives one of them; they travel as `repr`'s `Named`
-  (`{ kind: 'nodes' }`, `{ kind: 'other', type: 'elements' | 'location', value }`). A `Named` whose value lacks its
-  type's shape is no query result (`fromNamed` checks it). Why: a hover, a click and a layer each hold the type they act
-  on, and no form guesses a conversion.
-- **Conversions are forms**: `(extent :of <elements>)` gives a Location, `(items :overlapping <location>)` Elements. A
-  form given another type is `seq.query.form.type`.
+- **Nodes** (exact addresses of spec nodes and of nodes data makes), **Keys** (keys of what data makes: an annotation's
+  items, a structure's groups; the type was _Elements_, renamed by the author, 2026-11-20) and **Location** (positions
+  on systems). A form gives one of them; they travel as `repr`'s `Named` (`{ kind: 'nodes' }`,
+  `{ kind: 'other', type: 'keys' | 'location', value }`). A `Named` whose value lacks its type's shape is no query
+  result (`fromNamed` checks it). Why: a hover, a click and a layer each hold the type they act on, and no form guesses
+  a conversion.
+- **Conversions are forms**: `(extent :of <keys>)` gives a Location, `(items :overlapping <location>)` Keys. A form
+  given another type is `seq.query.form.type`.
 - **Pairs answer `items`**: a pairs annotation is queried as its items, a pair one item with a row per end, each row on
   its own system (`QueryItem.system`; a ranges row's is its annotation's `target`): `(items :overlapping <location>)`
   gives the pairs with an end in the location, on either system; `(item :type …)` reads a pair's fields (`type`,
@@ -445,11 +447,14 @@ is a segment of an address, `/data/p53/(range :from 94 :to 292)`.
 - **Overlap** of an item `[start, end)`: a boundary (zero length) at `p` overlaps `[s, e)` when `s ≤ p < e`; one at the
   system's end (`p = length`) overlaps a range ending there, so `(all)` holds it. O(log n).
 
-### Element keys
+### Keys
 
-- `{ owner, key }`: the owner's canonical address and the data's own key, a string or a number. A number never equals a
-  string (`1` is not `"1"`), as in an address. Elements are sorted (owner, numbers before strings) and each once;
-  compared and hashed as values.
+- `{ owner, key }` (`Key`; `query/keys.ts`): the owner's canonical address and the data's own key, a string or a number.
+  A number never equals a string (`1` is not `"1"`), as in an address. Keys are sorted (owner, numbers before strings)
+  and each once; compared and hashed as values.
+- **Their extent** (`key-extent.ts`): an annotation's items by their ranges; a structure group's (`groups`) by its
+  owner: a residues or atoms system's position, a complex's unit by its id, or its entity's units. The viewer still
+  imports the old names (`ElementKey`, `Elements`, `EmptyElements`, …), re-exported as deprecated until its split lands.
 
 ### Numberings and labels
 
@@ -481,55 +486,142 @@ is a segment of an address, `/data/p53/(range :from 94 :to 292)`.
 
 ### Forms
 
-| Form                                                           | Prefix                              | Result                                                                                                          |
-| -------------------------------------------------------------- | ----------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `(range :from l :to l :numbering n)`                           | systems                             | Location                                                                                                        |
-| `(at :label l :ins c :numbering n)`                            | systems                             | Location (one position)                                                                                         |
-| `(all)`                                                        | systems                             | Location                                                                                                        |
-| `(rect :a <location> :b <location>)`                           | as its sides need                   | Location (one rect; each side one system; sides never wrap, `seq.query.range.wrap`)                             |
-| `(row :key k)`, `(row :key [k …])`                             | alignments                          | Location: the rows by key (label), positions of its rows system (`seq.query.row.unknown`, `.pending`): a side   |
-| `(item :id k)`, `(item :<field> v …)`                          | annotations                         | Elements (every param matches; a list param matches any of its atoms; a field the annotations lack is an issue) |
-| `(items :overlapping <location>)`                              | annotations                         | Elements (every item without `:overlapping`)                                                                    |
-| `(node :key k)`                                                | nodes                               | Nodes, addressed by the form itself (`/data/1tup/(node :key T1)`), so location forms may follow a node          |
-| `(chain :id A :operator 1_555)`, `(chain :auth B)`             | a complex                           | Nodes: its units by chain, operator and author chain, each by its id; elsewhere a chain data makes, by the form |
-| `(component :id MSE)`, `(component :id [PSU 2MG])`             | sequences, molecules, units         | Location: the positions with that component, alternatives included                                              |
-| `(component :standard false :annotations true)`                | sequences, units                    | Location: the non-standard positions, and the `modified`-type items of the annotations on them                  |
-| `(component :class saccharide)`                                | as above                            | Location: a word of the class of the component's `compound` node; a code with none is no match                  |
-| `(molecule :identifier "ccd:ATP")`, `(molecule :class ligand)` | `data`, a complex                   | Nodes: molecules (a complex's: its units')                                                                      |
-| `(entity :id 3)`                                               | a complex from a source             | Nodes: the molecule its units' `of` names by that key                                                           |
-| `(atom :name O1G)`                                             | a molecule, a unit, an atoms system | Location: the atoms of that name, on the atoms system                                                           |
-| `(atoms)`                                                      | a molecule, a unit                  | Nodes: its atoms system, `<system>/(atoms)`                                                                     |
-| `(extent :of <elements>)`                                      | any                                 | Location                                                                                                        |
-| `(and :of […])`, `(or :of […])`, `(not :of x)`                 | any                                 | the operands' one type                                                                                          |
+| Form                                                                        | Prefix                  | Result                                                                                                          |
+| --------------------------------------------------------------------------- | ----------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `(range :from l :to l :numbering n)`                                        | systems                 | Location                                                                                                        |
+| `(at :label l :ins c :numbering n)`                                         | systems                 | Location (one position)                                                                                         |
+| `(all)`                                                                     | systems                 | Location                                                                                                        |
+| `(rect :a <location> :b <location>)`                                        | as its sides need       | Location (one rect; each side one system; sides never wrap, `seq.query.range.wrap`)                             |
+| `(row :key k)`, `(row :key [k …])`                                          | alignments              | Location: the rows by key (label), positions of its rows system (`seq.query.row.unknown`, `.pending`): a side   |
+| `(item :id k)`, `(item :<field> v …)`                                       | annotations             | Keys (every param matches; a list param matches any of its atoms; a field the annotations lack is an issue)     |
+| `(items :overlapping <location>)`                                           | annotations             | Keys (every item without `:overlapping`)                                                                        |
+| `(node :key k)`                                                             | nodes                   | Nodes, addressed by the form itself (`/data/1tup/(node :key T1)`), so location forms may follow a node          |
+| `(chain :id A :operator 1_555)`, `(chain :auth B)`                          | a complex               | Nodes: its units by chain, operator and author chain, each by its id; elsewhere a chain data makes, by the form |
+| `(molecule :identifier "ccd:ATP")`, `:class ligand`, `:entity 3`            | `data`, a complex       | Nodes: molecules (a complex's: its units', by their entity)                                                     |
+| `(atoms)`                                                                   | a molecule, a unit      | Nodes: its atoms system, `<system>/(atoms)`                                                                     |
+| `(elements <items>)`                                                        | structures (Language)   | Location: the schema selection, residues or atoms by its finest field                                           |
+| `(groups :residue-test p … :by level)`                                      | structures              | Keys: a key a group                                                                                             |
+| `(filter :test p)`                                                          | a Location, Keys, nodes | the prefix's type, a subset                                                                                     |
+| `(expand :to residue \| unit \| molecule)`, `(linked :via <pairs> :type w)` | a Location, Keys        | Location                                                                                                        |
+| `(extent :of <keys>)`                                                       | any                     | Location                                                                                                        |
+| `(merge :of […])`, `(intersect :of […])`, `(except :of [a b …])`            | any                     | the operands' one type                                                                                          |
 
-- **Combinators take `:of`**: a form's params are keywords only (the address grammar), so `and`, `or` and `not` read a
-  list or one operand under `:of`. Operands of different types are `seq.query.form.type`.
-- **`not`** complements within what the prefix names: its systems' positions, its annotations' items, its nodes'
-  children with ids. Dynamic nodes are not in that universe yet. A rect has no complement; **inside `and`**, a
-  `(not :of <location>)` operand is subtracted from the others' intersection instead (the same positions for parts), so
-  `(and :of [<rect> (not :of <rect>)])` is a rect less a rect, exact (Location).
+- **Combinators take `:of`** (`query/combinators.ts`), renamed from `or`, `and`, `not` (the author, 2026-11-20,
+  "Rename"; MolQL's names, `and`, `or`, `not` being predicate logic): `merge` and `intersect` a list; `except` its first
+  operand less the others, and with one operand (alone or a list of one) the complement within what the prefix names:
+  its systems' positions, its annotations' items, its nodes' children with ids. Dynamic nodes are not in that universe
+  yet. A rect has no complement; `(except :of [<rect> <rect>])` is a rect less a rect, exact (Location). Operands of
+  different types are `seq.query.form.type`. A layer's data filter is a trailing `(except :of …)` (Themes, Filters).
 - **`row`** reads the model's `row(rows, key)`: an inline alignment's labels, else a source's rows the query model holds
   (Overlay); while `rowsPending(rows)` the form waits over the whole rows system (`seq.query.row.pending`, the address
   `waiting`); a key no held row has is `seq.query.row.unknown`.
-- **Operands**: a nested form is evaluated against the same prefix (its resolver, else `repr`'s child selection); an
-  address from the root. The location of `items :overlapping` is evaluated against the annotations' targets; a part on a
-  system no target is reports `seq.query.location.unreachable` (projection is not built), a rect is refused. An operand
-  naming a ref is refused (`seq.query.ref.unresolved`): addressing follows refs before the forms read an address
-  (Addressing), so only a caller of `evaluateQuery` itself meets it.
+- **Operands**: a nested form is evaluated against the same prefix (its resolver, else `repr`'s child selection;
+  `query/evaluate.ts`); an address from the root. The location of `items :overlapping` is evaluated against the
+  annotations' targets; a part on a system no target is reports `seq.query.location.unreachable` (projection is not
+  built), a rect is refused. An operand naming a ref is refused (`seq.query.ref.unresolved`): addressing follows refs
+  before the forms read an address (Addressing; `:via` is an operand too), so only a caller of `evaluateQuery` itself
+  meets it.
 - **Composition** (MolQL's, monadic; decided by the author, 2026-11-20): a form maps over every element its prefix
-  yields and concatenates what each gives; a prefix element with nothing to give (a unit with no atoms, a complex with
-  no such chain) yields nothing, said by a warning, never a failure of the whole query. A prefix of the wrong type is
-  still `seq.query.form.prefix`. Not yet so: `(atom …)` fails over a prefix without atoms; it and `(atoms)` are to be
-  replaced by an `(elements …)` form (a design being drafted).
-- **Molecule forms** (`query/molecule-forms.ts`; the forms' shared kit `query/form-kit.ts`): codes and identifiers match
-  exactly (`ccd:atp` is not `ccd:ATP`); a host's `equivalents` adds identifiers to an asked one. `:standard false` alone
-  reads the sparse rows, never scanning a sequence; with `:id` or `:class` the positions are scanned, each a visit; a
-  molecule's residues have no standard component (`:standard false` holds them all). `:annotations` (true when absent)
-  adds the items whose `type`, else `category`, is `modified`, `glycosylation` or `lipidation`. A chain form gives a
-  unit by its id, so one system has one address whichever form found it (a chain addressed by its form is the fallback
-  where the prefix is no complex).
-- **The table**: `queryResolvers(model, extra?)`; an extra kind named as a query form throws (a form's meaning is never
-  replaced silently). `evaluateQuery` is `selectAddress` with the table, typed.
+  yields (nodes, a Location, Keys read as their extents) and concatenates what each gives; a prefix element with nothing
+  to give (a unit with no atoms, a complex with no such chain) yields nothing, said by a warning, never a failure of the
+  whole query. A prefix of the wrong type is still `seq.query.form.prefix`.
+- **Molecule node forms** (`query/molecule-forms.ts`; the forms' shared kit `query/form-kit.ts`): codes and identifiers
+  match exactly (`ccd:atp` is not `ccd:ATP`); a host's `equivalents` adds identifiers to an asked one. A chain form
+  gives a unit by its id, so one system has one address whichever form found it (a chain addressed by its form is the
+  fallback where the prefix is no complex). `atom`, `entity` and `component` are gone (the author, 2026-11-20: "we
+  should not really have (atom), we should have (elements ....)"): `(elements :atom O1G)`, `(elements :component MSE)`,
+  `(elements :standard false)`, `(elements :modified true)`, `(elements :component-class saccharide)`,
+  `(molecule :entity 3)`.
+- **The table**: `queryResolvers(model, extra?, extensions?)`, the built-ins and the registry's forms; an extra kind
+  named as a query form throws (a form's meaning is never replaced silently). `evaluateQuery` is `selectAddress` with
+  the table, typed; `options.extensions` the registry's (`SeqContext.query`), none by default.
+
+### Language
+
+The forms by role (locations-and-queries.md, The language; MolQL's split): generators `elements` and `groups`, the
+filter `filter`, the modifiers `expand` and `linked`, the combinators, and the expression forms a predicate is written
+in (`query/expressions.ts`). Structure forms walk a prefix's **frames** (`query/structure.ts`): a unit of a complex (or
+a lone molecule or sequence) with its residues system and its atoms when it has them, and what the prefix holds of them;
+over nodes, a complex's units, a unit, a molecule, else the complexes under the node (`QueryModel.complexes`: a
+source's).
+
+- **`elements`** (`query/elements-form.ts`): its items (`query/items.ts`) are one item as params
+  (`(elements :chain A :seq 33)`), columns as lists (row i across them one item, a scalar the same in every row, lists
+  zipped, unequal lengths an error), or records `:items [(fields …) …]` (alone; `fields` never evaluated); `itemsOf`
+  reads JSON's object or array of objects. Normalized to columns by the short names, typed by each property (a literal
+  read as its type: `:entity 3` is the word `"3"`), a field absent in every row dropped, a row given twice once;
+  `elementsForm` prints the shorter layout (one item as params, else columns or records by the printed length, ties to
+  columns), so `parse(print(a))` equals `a` (`itemsEqual`). Range fields: `beg`/`end` over `seq`, `auth-beg`/`auth-end`
+  over the auth numbering in its order (EC-1 to EC-8: an end it lacks snaps inward); `seq` with `beg` or `end` in one
+  row, `beg` past `end`, one property under two names: errors naming the row. Rows count against the limit.
+- **Its depth** is its finest field: none below a unit, every matching unit's whole residues system; residue fields,
+  those positions; an atom field, positions on the units' atoms systems. A frame without atoms (a polymer's unit: Seq\*
+  holds no polymer atoms) is tested by residue: its atom fields lack where its residue fields matched (a warning), and
+  it gives nothing. Why: the record says how deep it goes, as MolViewSpec's does.
+- **Sugar, exactly** (`itemsPredicate`): a field `:f v` is `(= (prop f) v)`, `:beg b :end e` `(in-range (prop seq) b e)`
+  (an end alone `>=` or `<=`), a row `and` of its fields, items `or` of their rows; a property test holds the walk equal
+  to `filter` with that predicate over the same elements. The walk differs in speed only: rows indexed by their molecule
+  and unit fields (a mask of the fields a row gives, then the values), each frame looking its rows up once; a row's
+  positions found by index from `seq`, its range or its author number (an index of the frame's author numbers, built
+  once a frame); only the rest tested per element, residue fields before atom fields. Rows plus matches, never rows ×
+  units (a quick representative counts the units' reads).
+- **`groups`** tests each level by its own `:<level>-test` (molecule, unit, residue, atom; a finer level's property in a
+  test is `seq.query.property.level`) and gives a key a group by `:by` (`residue` by default): a residue or an atom
+  (owner its residues or atoms system, key its 0-based position), a unit (owner its complex, key its id), a molecule
+  (owner the complex, key the entity id).
+- **`filter :test p`**: per position of a Location (a residue, or an atom on an atoms system), per key of Keys (by its
+  extent), per unit of nodes (a unit-level test; a node passes when one of its units does). A test reading finer than
+  its elements is `seq.query.property.level`.
+- **`expand :to`** `residue` (atoms to the residues holding them), `unit` (whole units), `molecule` (the units of one
+  molecule in the complex). **`linked :via <pairs> :type w`**: the prefix's residues and every end of a pair (of `type`
+  `w` or a list) with an end in them; never a projection through the pairs (links are never maps). Not built:
+  `include-surroundings` (no coordinates; a host's contacts are pairs, reached by `linked`).
+- **Expressions take positional operands** (the author, 2026-11-20, "Accept, but allow positional operands"), held in a
+  node's `args`: `=`, `!=` (on a set of words, membership), `<`, `<=`, `>`, `>=`, `(in-range x lo hi)`, `(in x [ … ])`,
+  `(and p …)`, `(or p …)`, `(not p)`, `(prop name)`, `(value <values annotation> :field f)`. Any other form with a
+  positional operand is `seq.query.form.param`. **`@molstar/core`'s address grammar does not read positional values, nor
+  the operator symbols as kinds, yet**: a predicate is built in code until it does (the stop in QE's report).
+- **Types are checked when a test is compiled**: a literal reads as the other operand's type (a number as a word where
+  the property is one); an operator over a word and a number, a test that is not boolean, logic over a value:
+  `seq.query.form.type`. An element whose test reads no value (a property it lacks) fails the test.
+
+### Properties
+
+properties.md (`query/properties.ts`): a typed symbol read per element of one level, apart from the language.
+
+- **Built in**, the short name printed and the long one read: molecule `entity` (`label_entity_id`), `molecule-class`,
+  `identifier` (words); unit `chain` (`label_asym_id`), `auth-chain` (`auth_asym_id`), `operator` (`instance_id`);
+  residue `seq` (`label_seq_id`, 1-based on the molecule), `auth-seq` (`auth_seq_id`), `ins` (`pdbx_PDB_ins_code`),
+  `index` (`residue_index`), `component` (`label_comp_id`, words: the alternatives), `component-class` (the words of the
+  components' classes), `standard`, `modified` (non-standard, or under a `modified`-type annotation item: `type`, else
+  `category`, `modified`, `glycosylation` or `lipidation`); atom `atom` (`label_atom_id`), `element` (`type_symbol`),
+  `atom-index` (`atom_index`), `b-factor` (`B_iso_or_equiv`), `occupancy`. A bare unknown name is
+  `seq.query.form.param`, its hint listing the names (a near spelling first); a namespaced one nobody registered
+  `seq.query.extension.missing`.
+- **How each is read** (`FrameReads`, made once a frame and a property): the units (`QueryUnit.entity`, `chain`, …), the
+  molecules, the components and the modified index, the numberings (`auth`), the atoms (`QueryAtoms.names`, `element`,
+  `residue`, `atomsOf`); a residue property on an atom reads its residue's. `b-factor`, `occupancy` and `(value …)` are
+  values channels the `QueryModel.property(system, name, field?)` hook answers (`resolve/query-values.ts`: a `values`
+  annotation on the system from the store's tiles, `'pending'` while one is not loaded, the frame then staged with
+  `seq.query.property.pending`); the mmCIF runtime does not write the atoms' channels yet (MC), so they lack.
+- **An element that lacks a property** fails its test and yields nothing; one warning a property,
+  `seq.query.property.absent`, naming it and the count. Why: monadic composition.
+
+### Extensions
+
+`query/extensions.ts`; extension-openings.md, the `query-form` and `query-property` entries.
+
+- `{ kind: 'query-form', name, role, params, result, resolve(ctx) }` for a generator, filter, modifier or combinator
+  (`ctx`: the model, the form, the prefix as a result, `evaluate`, `tick`, `limit`);
+  `{ kind: 'query-form', name, role: 'operator', result: 'value', type, resolve(args) }` over values;
+  `{ kind: 'query-property', name, level, type, aliases?, read }`, `read` a function over the model and a system or
+  `{ values, field }` (a values annotation's field, by its address or its id on the system).
+- **Composed** by `queryExtensions(entries, builtIns)` (the context's `queryExtensionsOf(registry)`): every name and
+  alias `<id>:<name>`, none a built-in's, two entries under one name refused; every problem in one error
+  (`seq.context.extension.namespace` for a bare one). **Checked by role** when evaluated: a result of its declared type;
+  a filter's a subset of its prefix (`seq.query.form.type`). A namespaced form nobody registered is
+  `seq.query.extension.missing`, before the selection runs; no fallback. A form's params print by the grammar, sorted
+  (core's printer), not in declared order.
 
 ### The model the forms read
 
@@ -538,8 +630,9 @@ is a segment of an address, `/data/p53/(range :from 94 :to 292)`.
   and `chain(owner, id)` for nodes data makes; for the molecule forms, optionally, `components(system)`
   (`QueryComponents`: a sequence's modified rows beside its standard components, a molecule's codes),
   `compoundClass(code)`, `annotationsOn(system)`, `units(complex)` (`QueryUnit`), `molecule(address)` (`QueryMolecule`),
-  `equivalents(identifier)` and `atoms(system)` (`QueryAtoms`). The static model implements it; tests use a hand-written
-  one.
+  `equivalents(identifier)`, `atoms(system)` (`QueryAtoms`: names, elements, each atom's residue, a residue's atoms),
+  `complexes(owner)` (the complexes at or under an address) and `property(system, name, field?)` (values channels,
+  Properties). The static model and the overlay's query model implement it; tests use a hand-written one.
 
 ### Staged and bounded
 
@@ -556,8 +649,9 @@ is a segment of an address, `/data/p53/(range :from 94 :to 292)`.
 - `seq.query.*` (`QueryIssues`): `form.prefix`, `form.param`, `form.type`, `form.unsupported`, `numbering.unknown`,
   `numbering.pending` (info), `label.syntax`, `label.int32`, `label.unknown` (with the nearest labels),
   `label.insertion`, `label.snapped` (info), `range.backwards`, `range.lap`, `range.wrap`, `range.empty` (warning),
-  `position.invalid`, `location.unreachable` (warning), `ref.unresolved`, `node.missing` (warning). A resolver's errors
-  fail the selection; its warnings and infos are carried. A test checks the catalog against the codes the sources use.
+  `position.invalid`, `location.unreachable` (warning), `ref.unresolved`, `node.missing` (warning), `property.level`,
+  `property.absent` (warning), `property.pending` (info), `extension.missing`. A resolver's errors fail the selection;
+  its warnings and infos are carried. A test checks the catalog against the codes the sources use.
 
 ### Examples
 
@@ -565,9 +659,10 @@ The stories `Features/Query` (`packages/seq/storybook/src/_stories/features/quer
 query box on p53 (what is typed is parsed, checked and resolved by `parseAddress`, `printAddress` and the viewer's
 `AddressModel`, its result selected or highlighted, its canonical form, kind, size and issues with hints shown), and one
 worked story each for items by category, ranges and slices, a result on the gene (projection is the view's, drawn from
-the protein's Location), `and`/`or`/`not`, and an alignment's rows and columns. Each has a headless twin in `_test/`
-checking the printed form and the result's positions per system. A form of the design not built yet (`search`, `onto`,
-`expand`, `group`) has no story.
+the protein's Location), `merge`/`intersect`/`except`, and an alignment's rows and columns. Each has a headless twin in
+`_test/` checking the printed form and the result's positions per system. The structure forms' examples are tests
+(`query/_test/elements.test.ts`, `elements-pdb.test.ts`: 4HHB, 1FIN, 3SGJ, 1EHZ) until a structure story lands (ST2); a
+form of the design not built yet (`search`, `onto`) has no story.
 
 ## Addressing
 
@@ -577,11 +672,11 @@ links that carry addresses. Forms and addresses are one language, so this sits w
 ### Resolving
 
 - `resolveAddressIn(root, model, address, bounds)`: the leading ref followed (`followRef`), the refs nested in form
-  operands followed (`:of`, `:a`, `:b`, `:overlapping`; a set as `(or :of [...])`), then the query forms over `model`; a
-  set's members give one type of result, together (else `seq.address.type`), gathered and normalized once (linear in the
-  members). Why operands only: a quoted string reads as the same value as an address, and elsewhere a string is a value
-  (an id, a label) that must never be rewritten. It answers a status, the result, the refs passed (`via`), the issues,
-  and what is pending.
+  operands followed (`:of`, `:a`, `:b`, `:overlapping`, `:via`; a set as `(merge :of [...])`), then the query forms over
+  `model`; a set's members give one type of result, together (else `seq.address.type`), gathered and normalized once
+  (linear in the members). Why operands only: a quoted string reads as the same value as an address, and elsewhere a
+  string is a value (an id, a label) that must never be rewritten. It answers a status, the result, the refs passed
+  (`via`), the issues, and what is pending.
 - **Status**: `resolved`; `waiting` when the result is empty and a node data makes is not held (`(node :key k)`), or the
   data is not loaded (`seq.address.waiting`, info: it resolves when they arrive); `missing` when it is empty otherwise
   (`seq.address.missing`, warning); `failed` on an error. An issue's `address` is the address asked, its `places` the
@@ -602,10 +697,10 @@ links that carry addresses. Forms and addresses are one language, so this sits w
 ### Back
 
 - `addressFor(root, model, result, { prefer, numbering })`: the shortest stable address, by `prefer` (`['ref', 'ids']`):
-  a ref of the spec that names exactly it (equal Location, Elements, or set of node addresses; each ref resolved once
-  per root and model, `refResults`), else ids and forms. Positions as `(range :from :to)`, one as `(at :label)`, a whole
-  system `(all)`, a cyclic range over the origin one wrapping range, several under `(or :of [...])` (from the root when
-  they span systems); a rect `(rect :a … :b …)`; elements `(item :id k)` or `(item :id [k …])`; nodes by their
+  a ref of the spec that names exactly it (equal Location, Keys, or set of node addresses; each ref resolved once per
+  root and model, `refResults`), else ids and forms. Positions as `(range :from :to)`, one as `(at :label)`, a whole
+  system `(all)`, a cyclic range over the origin one wrapping range, several under `(merge :of [...])` (from the root
+  when they span systems); a rect `(rect :a … :b …)`; elements `(item :id k)` or `(item :id [k …])`; nodes by their
   addresses.
 - **Labels** in the numbering asked (`ordinal` by default; an integer label a number, others strings). The address is
   resolved again and kept only when it reads back to the same result; else `ordinal`, which always does (a repeated
@@ -1267,7 +1362,7 @@ Seq\* holds pointers and labels: codes and identifiers are strings.
   start and clipped to the range.
 - **Bounded**: a complex past `maxUnits` units is refused whole with `seq.resolve.complex.units` (its hint: read a
   subset of the assembly).
-- **Compounds** (`compounds`): the `compound` nodes by code (name, class, parents), what `(component :class …)` reads;
+- **Compounds** (`compounds`): the `compound` nodes by code (name, class, parents), what `component-class` reads;
   `compound(code)` falls back to the host's names (`ResolveOptions.componentNames`, the `componentNames` entry's
   lookup). A host's identifier resolver is `ResolveOptions.equivalents` (the `identifierResolver` entry): the
   identifiers it holds the same compound as one, which `(molecule :identifier …)` adds; none by default.
@@ -2488,7 +2583,7 @@ numbers): a window move allocates nothing once warm.
   share it side by side (EC-63).
 - **Themes and filter**: its `color` channel (`channelForms`, held extents, its legend), by default `field type` (a
   categorical palette fixed by value; the builder lists an inline table's kinds, as for ranges' `category`); a pair the
-  channel gives no color takes the ranges' ink. The layer's data filter (`<pairs>/(not :of (item :type …))`) is read
+  channel gives no color takes the ranges' ink. The layer's data filter (`<pairs>/(except :of (item :type …))`) is read
   pair by pair at prepare (`id`, `type`, `label`, the strands and ends as fields): a pair left out is not drawn, split
   or hit, counted on its track's "n filtered" (a `section` layer's too); a form not read pair by pair is
   `seq.render.filter`.
@@ -2952,12 +3047,14 @@ same pieces. Nothing registers on import and there is no global registry.
   (`seq.resolve.source.runtime`). Why: extensibility's "never resolved by order".
 - **Registry entries** are data: `{ kind: 'format-runtime', runtime }`, `{ kind: 'layer-type', type }`,
   `{ kind: 'layout', layout }` and `{ kind: 'track-sizing', sizing }` (an `ext:` sizing a section's `heights` names:
-  Render, Track heights), each keyed by its provider's `name` (a format runtime by its formats, above). The same object
-  again is no change; another under one name is an error listing every conflict (nothing registered), so a host's own
-  type of a built-in's name goes in `composeSeqContext`. The canvas and the SVG export draw the same registry's layer
-  types: a layer of a type not listed is said (`seq.render.layer.type`) and not drawn, a section of a layout not listed
-  is said (`seq.render.layout`) and laid out as tracks. Run-time, atomic and undoable registration is the viewer's
-  followup.
+  Render, Track heights), each keyed by its provider's `name` (a format runtime by its formats, above); and the query
+  language's `{ kind: 'query-form', … }` and `{ kind: 'query-property', … }` (Queries, Extensions), composed into
+  `SeqContext.query` (`queryExtensionsOf`), what a host passes `evaluateQuery` as `extensions` (the viewer's address
+  model does not yet: a followup). The same object again is no change; another under one name is an error listing every
+  conflict (nothing registered), so a host's own type of a built-in's name goes in `composeSeqContext`. The canvas and
+  the SVG export draw the same registry's layer types: a layer of a type not listed is said (`seq.render.layer.type`)
+  and not drawn, a section of a layout not listed is said (`seq.render.layout`) and laid out as tracks. Run-time, atomic
+  and undoable registration is the viewer's followup.
 - **The tracks layout is the one fixed fallback**: a section whose layout is not listed (or every section, with no
   layouts given) is laid out as tracks, and the viewer's navigation reads tracks likewise; tracks needs no entry. Why:
   the tracks layout is the frame's own (the label column, the rails, the bands), a section must be placed somehow, and
