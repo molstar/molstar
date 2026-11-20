@@ -95,6 +95,11 @@ export interface FrameInput {
    */
   readonly rails?: Readonly<Record<string, unknown>>;
   readonly railsActive?: Readonly<Record<string, boolean>>;
+  /**
+   * Each header's parts (_spec/README.md "Render", Track headers: `LayoutInput.headers`): part of the key by identity (a
+   * caller makes a new one when its entries or their state change).
+   */
+  readonly headers?: LayoutInput['headers'];
 }
 
 /**
@@ -137,6 +142,9 @@ class KeyParts {
   windows = false;
   folds: FrameInput['folds'] = undefined;
   rails: FrameInput['rails'] = undefined;
+  headers: FrameInput['headers'] = undefined;
+  /** Bumped when `headers` changes: the key's text. */
+  headersVersion = 0;
   domains = Number.NaN;
 
   // the parts are read from their objects here, never passed as numbers (a call boxes the numbers it is passed)
@@ -162,6 +170,7 @@ class KeyParts {
       this.windows === (input.windows ?? false) &&
       this.folds === input.folds &&
       this.rails === input.rails &&
+      this.headers === input.headers &&
       this.domains === (r.options.domains?.state.domainsVersion ?? 0)
     );
   }
@@ -185,6 +194,10 @@ class KeyParts {
     this.figure = input.figure ?? false;
     this.windows = input.windows ?? false;
     this.rails = input.rails;
+    if (this.headers !== input.headers) {
+      this.headers = input.headers;
+      this.headersVersion++;
+    }
     this.domains = r.options.domains?.state.domainsVersion ?? 0;
   }
 
@@ -207,6 +220,7 @@ class KeyParts {
       this.figure ? 'figure' : '',
       this.windows ? 'windows' : '',
       this.rails ? `rails:${Object.keys(this.rails).sort().join(',')}` : '',
+      this.headers ? `headers:${this.headersVersion}` : '',
       configKey,
     ].join('|');
   }
@@ -400,6 +414,7 @@ export class Renderer {
         ...(input.windows ? { windows: true } : {}),
         ...(input.folds ? { folds: input.folds } : {}),
         ...(input.rails ? { rails: input.rails } : {}),
+        ...(input.headers ? { headers: input.headers } : {}),
         ...(this.options.domains ? { domains: this.options.domains } : {}),
         images: this.images,
       },

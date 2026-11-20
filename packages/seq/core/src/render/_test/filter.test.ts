@@ -11,11 +11,14 @@
 import type { Node } from '@molstar/core/repr/tree';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { describe, expect, it } from 'vitest';
-import { hitView, type RangesLay, type VariantsLay } from '../index.js';
+import { hitView, type RangesLay, type TrackLayout, type VariantsLay } from '../index.js';
 import { P53 } from './fixtures.js';
 import { settle } from './helpers.js';
 
 const Size = { width: 800, height: 120 };
+
+/** A track's "n filtered" chip: its `seq:filtered` state. */
+const filtered = (t: TrackLayout) => t.header?.states.find((s) => s.name === 'seq:filtered');
 const rows = {
   start: [0, 63, 93, 318, 323],
   end: [61, 94, 292, 360, 355],
@@ -48,10 +51,12 @@ describe('a layer’s data filter', () => {
     const t = f.layout.sections[0].tracks[0];
     const lay = t.layers[0].lay as RangesLay;
     expect(lay.keys.slice(0, lay.items).sort()).toEqual(['a', 'c', 'e']);
-    expect(t.filter).toMatchObject({ count: 2, text: '2 filtered', layer: '/views/main/p/t/l' });
-    expect(t.filter!.dy).toBeGreaterThan(0);
-    const hit = hitView(f.layout, t.filter!.x + 1, t.labelY + t.filter!.dy / 2);
-    expect(hit).toMatchObject({ target: 'filter', layer: '/views/main/p/t/l', count: 2 });
+    const chip = filtered(t)!;
+    expect(chip).toMatchObject({ count: 2, text: '2 filtered', address: '/views/main/p/t/l', mark: false });
+    // on a line of its own under the label (the track is two lines high)
+    expect(chip.y).toBeGreaterThan(t.labelY);
+    const hit = hitView(f.layout, chip.x + 1, chip.box.y + chip.box.height / 2);
+    expect(hit).toMatchObject({ target: 'header-state', state: 'seq:filtered', layer: '/views/main/p/t', count: 2 });
   });
 
   it('reads `item` by a list, `or` and `and`, in the other item layers too', async () => {
@@ -61,12 +66,12 @@ describe('a layer’s data filter', () => {
     const v = b.layout.sections[0].tracks[0].layers[0].lay as VariantsLay;
     expect([...v.rows.keys.slice(0, v.rows.n)].sort()).toEqual(['a', 'e']);
     // a lone `or` of items is the track's own rows (the base), not what the user hid: not counted
-    expect(b.layout.sections[0].tracks[0].filter).toBeUndefined();
+    expect(filtered(b.layout.sections[0].tracks[0])).toBeUndefined();
   });
 
   it('no filter: no chip; a form not read row by row: every row, and said', async () => {
     const plain = await layout('ranges', '');
-    expect(plain.layout.sections[0].tracks[0].filter).toBeUndefined();
+    expect(filtered(plain.layout.sections[0].tracks[0])).toBeUndefined();
     const range = await layout('ranges', '/(range :from 1 :to 100)');
     expect((range.layout.sections[0].tracks[0].layers[0].lay as RangesLay).items).toBe(5);
     expect(range.layout.issues.map((i) => i.code)).toContain('seq.render.filter');

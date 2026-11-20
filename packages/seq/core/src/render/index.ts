@@ -218,6 +218,25 @@ export {
   type TrackLayout,
   type ViewLayout,
 } from './tracks.js';
+export {
+  actionColumns,
+  builtInHeaderStates,
+  type ActionColumns,
+  type HeaderInputFacts,
+  type HeaderIcon,
+  type HeaderLine,
+  HeaderMenuName,
+  HeaderMenuPart,
+  type HeaderParts,
+  type HeaderPartsOf,
+  type HeaderSlotBox,
+  type HeaderSlotPart,
+  type HeaderStateBox,
+  HeaderStateNames,
+  type HeaderStatePart,
+  type HiddenTrack,
+  type SectionHeaderLine,
+} from './headers.js';
 export { type ValuesLay, type ValuesPrep, ValuesType } from './values.js';
 export { type VariantsLay, type VariantsPrep, VariantsType } from './variants.js';
 export { type FrameLay, type FramePrep, FrameType } from './frames.js';

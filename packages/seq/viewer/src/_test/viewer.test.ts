@@ -242,7 +242,9 @@ describe('input through the bindings', () => {
     expect(viewer.view.get('/views/main/protein')!.start).toBe(start);
     expect(viewer.selection.value.value.shown.parts.length).toBe(1);
     // the label column is empty space of the section
-    expect(viewer.hit(40, ProteinY)).toBeUndefined();
+    // the label column: a track's label line (a drag there pans as its track); left of it, empty space
+    expect(viewer.hit(40, ProteinY)).toMatchObject({ target: 'header-label' });
+    expect(viewer.hit(4, ProteinY)).toBeUndefined();
     expect(viewer.input.down(40, ProteinY)).toBe(true);
     viewer.input.move(80, ProteinY);
     viewer.input.up();
@@ -319,7 +321,9 @@ describe('input through the bindings', () => {
     expect(viewer.input.doubleClick(cellX(1), ProteinY)).toBe(true);
     const v = viewer.view.get('/views/main/protein')!;
     expect([v.start, v.end]).toEqual([1, 2]);
-    expect(viewer.input.doubleClick(40, ProteinY)).toBe(true);
+    // a track's label line neither focuses nor fits; the inset left of it is empty space
+    expect(viewer.input.doubleClick(40, ProteinY)).toBe(false);
+    expect(viewer.input.doubleClick(4, ProteinY)).toBe(true);
     expect(viewer.view.get('/views/main/protein')!.end).toBe(4);
   });
 });

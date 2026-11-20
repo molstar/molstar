@@ -163,6 +163,8 @@ export const NavigationBindings: readonly GestureBinding[] = [
   { gesture: 'hover', modifiers: '*', target: 'any', action: 'hover' },
   { gesture: 'drag', target: 'axis', action: 'pan' },
   { gesture: 'drag', target: 'empty', action: 'pan' },
+  // a track's label line pans as its track (a click there selects and clears nothing)
+  { gesture: 'drag', target: 'header-label', action: 'pan' },
   { gesture: 'drag', modifiers: ['space'], target: 'any', action: 'pan' },
   { gesture: 'wheel', target: 'any', action: 'pan' },
   { gesture: 'wheel', modifiers: ['shift'], target: 'any', action: 'pan' },

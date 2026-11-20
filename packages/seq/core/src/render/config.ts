@@ -138,6 +138,22 @@ export interface RenderConfig {
    * within 3 CSS px of its notch and on its hidden items' ticks.
    */
   readonly axis: { readonly directionMark: 'label' | 'none' };
+  /**
+   * A header's line in the label column (_spec/README.md "Render", Track headers): `slots` action columns of `slotPx`
+   * and the "⋯" at the column's end (2, 20 px: an icon of 14), none on a track under `minHeightPx` (16: its states
+   * marks); a section's line `sectionPx` high (20); the actions drawn on `hover` (the track hovered, the cursor on its
+   * header), `always` or `never` (the menu only); the states in an export (`include`) or not (`none`).
+   */
+  readonly header: {
+    readonly slots: number;
+    readonly slotPx: number;
+    readonly minHeightPx: number;
+    readonly sectionPx: number;
+    readonly actions: { readonly show: 'hover' | 'always' | 'never' };
+    readonly states: { readonly export: 'include' | 'none' };
+  };
+  /** A section's header line: drawn when it has a state or a slot (`auto`), for every section, or never. */
+  readonly section: { readonly header: 'auto' | 'always' | 'none' };
   /** What a want adds on each side of the view, as a fraction of it (the store's `margin` priority). */
   readonly margin: number;
   /** A follower's leader pieces carried as their image's hull, or the shortest arc on a cyclic follower. */
@@ -334,6 +350,15 @@ export const DefaultRenderConfig: RenderConfig = {
     cursorInk: 'msui-text',
   },
   axis: { directionMark: 'label' },
+  header: {
+    slots: 2,
+    slotPx: 20,
+    minHeightPx: 16,
+    sectionPx: 20,
+    actions: { show: 'hover' },
+    states: { export: 'include' },
+  },
+  section: { header: 'auto' },
   margin: 0.5,
   followArc: 'shortest',
   maxTemplateTracks: 200,
@@ -413,6 +438,13 @@ export function renderConfig(over: RenderConfigOverrides = {}): RenderConfig {
     ...(over as Partial<RenderConfig>),
     nodes: { ...DefaultRenderConfig.nodes, ...over.nodes },
     axis: { ...DefaultRenderConfig.axis, ...over.axis },
+    header: {
+      ...DefaultRenderConfig.header,
+      ...over.header,
+      actions: { ...DefaultRenderConfig.header.actions, ...over.header?.actions },
+      states: { ...DefaultRenderConfig.header.states, ...over.header?.states },
+    },
+    section: { ...DefaultRenderConfig.section, ...over.section },
     // a width given and no column rule: that width, fixed
     labelColumn: {
       ...DefaultRenderConfig.labelColumn,

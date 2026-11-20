@@ -109,9 +109,29 @@ describe('clicks (the interaction grammar)', () => {
     click(v, at(v, 0, 0, 2));
     expect(ranges(v)).toEqual([]);
     click(v, at(v, 0, 0, 4));
-    // the label column is empty space
+    // a track's label line is its header: a click there selects and clears nothing; left of it is empty space
     click(v, [40, at(v, 0, 0, 0)[1]]);
+    expect(ranges(v)).toEqual([4, 5]);
+    click(v, [4, at(v, 0, 0, 0)[1]]);
     expect(ranges(v)).toEqual([]);
+  });
+
+  it('a header’s parts are never a selection’s: a click on a hidden-tracks chip or a section’s line changes nothing', async () => {
+    const root = spec();
+    const protein = root.children!.find((c) => c.kind === 'views')!.children![0].children![0];
+    const domains = protein.children!.find((c) => c.id === 'domains')!;
+    (domains as { params: Record<string, unknown> }).params = { ...domains.params, hidden: true };
+    const v = await make(root);
+    click(v, at(v, 0, 0, 4));
+    expect(ranges(v)).toEqual([4, 5]);
+    const revision = v.spec.revision.value;
+    const line = v.frame!.layout.sections[0].header!;
+    const chip = line.states[0];
+    expect(chip.name).toBe('seq:hidden-tracks');
+    expect(click(v, [chip.box.x + 2, chip.box.y + chip.box.height / 2])).toBe(true);
+    expect(click(v, [line.line.x + line.line.width - 4, line.line.y + line.line.height / 2])).toBe(true);
+    expect(ranges(v)).toEqual([4, 5]);
+    expect(v.spec.revision.value).toBe(revision);
   });
 
   it('an item is selected by its key, drawn by its extent; Shift+click extends from it in one system', async () => {

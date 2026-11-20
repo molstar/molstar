@@ -14,6 +14,7 @@ import { drawRail } from './rail.js';
 import { wellClipArgs, wellCorners } from './wells.js';
 import type { SectionLayout, ViewLayout } from './tracks-types.js';
 import { drawSectionEmphasis, drawTints, emphasisPart, Part } from './tracks-emphasis.js';
+import { hasHeaderActions } from './headers-draw.js';
 
 // The view's draw (_spec/README.md "Render", Tracks layout): its passes, the background (the page and the wells), each
 // section's chrome, rails and strips through their warps, the layers' marks clipped to their wells, and the breaks.
@@ -163,8 +164,9 @@ function drawTracks(layout: ViewLayout, out: PassWriter, emphasis: Emphasis | un
   const column = config.emphasis.selectionShape === 'column';
   for (let si = 0; si < layout.sections.length; si++) {
     const s = layout.sections[si];
-    // the tip is a rows layer's (a hovered cell read whole): a section with none has nothing to walk, as the window pass
-    if (pass === 'tip' && !hasRows(s) && s.layout.name !== 'rings') continue;
+    // the tip is a rows layer's (a hovered cell read whole) and the headers' actions: a section with neither has nothing
+    // to walk, as the window pass
+    if (pass === 'tip' && !hasRows(s) && s.layout.name !== 'rings' && !hasHeaderActions(s)) continue;
     s.layout.chrome(s, pass, out, emphasis, -1, -1);
     if (pass === 'window' && s.rail) drawRail(s.rail, out, emphasis, s.tokens, s.config);
     if (pass === 'window' && s.rowsRails)

@@ -6,17 +6,18 @@
 
 // The tracks layout on the section layout interface (_spec/README.md "Render", Tracks layout): one strip a section
 // (a block in view, once blocks exist), its bands the section's tracks stacked with `trackGap` between them, its frame
-// the page (a translation by nothing); its chrome the label column (each track's label, the "n filtered" chip, the
-// direction mark). Its viewport is a window of display units across the data box.
+// the page (a translation by nothing); its chrome the label column (each track's label and header line, the section's
+// header line, the direction mark). Its viewport is a window of display units across the data box.
 
 import type { Viewport } from '../axis.js';
 import type { RenderConfig } from '../config.js';
 import { Anchor, type PassName, type PassWriter } from '../draw-lists.js';
-import type { Emphasis, Hit } from '../layer-type.js';
+import type { Emphasis } from '../layer-type.js';
 import type { SeqTokens } from '../tokens.js';
 import type { SectionLayout, TrackLayout } from '../tracks.js';
 import { BlockPlacement, blockChrome, placeBlocks, rowPan, rowZoom } from './blocks.js';
 import { StripPlacement } from './strips.js';
+import { drawSectionHeader, drawTrackHeader, hitHeaders } from '../headers-draw.js';
 import type { NavContext, PlaceContext, SectionLayoutType, SectionNav, StepDir } from './types.js';
 
 // the anchor a number read once: a draw reads no property of an imported object (_spec/README.md "Render", Draw lists)
@@ -147,54 +148,46 @@ export const TracksLayout: SectionLayoutType<StripPlacement> = {
   },
   sameKey: sameWindow,
   nav: TracksNav,
-  chrome(s, pass, out, _emphasis, strip, band) {
+  chrome(s, pass, out, emphasis, strip, band) {
     const p = s.placement;
     if (p instanceof BlockPlacement) {
       blockChrome(s, p, pass, out, strip, band);
       // the label column once a row: a stack's chips share one
       if (strip > 0 && (!p.stacked || !p.rowStart(strip))) return;
     }
-    if (pass !== 'labels' || band < 0) return;
+    // the section's header line (_spec/README.md "Render", Track headers), once before its strips
+    if (band < 0) {
+      if (strip < 0 && (pass === 'labels' || pass === 'tip')) drawSectionHeader(out, s, pass, emphasis);
+      return;
+    }
+    if (pass !== 'labels' && pass !== 'tip') return;
     const t = s.tracks[band];
     if (!t || t.box.y >= s.pageHeight) return;
     // a stack's later blocks: each its row's labels at its own place
     const dy = strip > 0 && p instanceof BlockPlacement ? p.strips.bandY[strip * p.strips.bands + band] - t.box.y : 0;
-    drawLabel(out, t, s.tokens, s.config, dy);
-    if (band === 0 && s.mark && strip <= 0) drawMark(out, s, t, s.tokens, s.config);
-  },
-  hitChrome(s, x, y) {
-    for (const t of s.tracks) {
-      // the "n filtered" chip in the label column: a click clears the filter
-      const f = t.filter;
-      // (on a line of its own under the label: its line's half of the track, the label's half not)
-      const y0 = f && f.dy ? t.labelY - f.dy / 2 + 2 : t.box.y;
-      if (f && x >= f.x - 2 && x < f.x + f.width + 2 && y >= y0 && y < t.box.y + t.box.height)
-        return { layer: f.layer, section: s.id, system: '', target: 'filter', count: f.count } satisfies Hit;
+    if (pass === 'labels') {
+      drawLabel(out, t, s.tokens, s.config, dy);
+      if (band === 0 && s.mark && strip <= 0) drawMark(out, s, t, s.tokens, s.config);
     }
-    return undefined;
+    // its header's states and, when they show, its actions (in a stack's first row)
+    drawTrackHeader(out, s, t, pass, emphasis, dy);
+  },
+  hitChrome(s, x, y, hover) {
+    return hitHeaders(s, x, y, hover);
   },
 };
 
 /** A track's label in the label column, faded past it (`dy` below its first row: a stack's later blocks). */
 function drawLabel(out: PassWriter, t: TrackLayout, tokens: SeqTokens, config: RenderConfig, dy = 0) {
   const g = out.args;
-  const f = t.filter;
   g[0] = config.inset;
-  // a chip on a line of its own: the two lines centred on the track together
-  g[1] = t.labelY + dy - (f ? f.dy / 2 : 0);
+  g[1] = t.labelY + dy;
   g[2] = t.labelWidth;
-  // the label fades before the chip beside it (a chip on a line of its own leaves it whole)
-  g[3] = f && !f.dy ? Math.max(0, f.x - config.inset - 6) : config.labelWidth;
+  // the label fades before the states beside it (states on a line of their own leave it whole)
+  g[3] = t.header ? t.header.label.width : config.labelWidth;
   g[4] = tokens.colors['msui-text-muted'];
   // an empty label (`label: ''`) draws no text
   if (t.labelText) out.textArgs(t.labelText, AnchorStart, config.labelFont);
-  if (!f) return;
-  g[0] = f.x;
-  g[1] = t.labelY + f.dy / 2;
-  g[2] = f.width;
-  g[3] = f.width;
-  g[4] = tokens.colors['msui-accent'];
-  out.textArgs(f.text, AnchorStart, config.labelFont);
 }
 
 /** The direction mark after the first track's label, muted, faded at the label column's edge. */

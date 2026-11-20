@@ -187,6 +187,7 @@ interface ViewStamp {
   readonly figure: boolean;
   readonly windows: boolean;
   readonly rails: unknown;
+  readonly headers: unknown;
 }
 
 export function viewStamp(
@@ -214,6 +215,7 @@ export function viewStamp(
     figure: input.figure ?? false,
     windows: input.windows ?? false,
     rails: input.rails,
+    headers: input.headers,
   };
 }
 
@@ -235,7 +237,8 @@ function sameStamp(a: ViewStamp, b: ViewStamp): boolean {
     a.domains === b.domains &&
     a.figure === b.figure &&
     a.windows === b.windows &&
-    a.rails === b.rails
+    a.rails === b.rails &&
+    a.headers === b.headers
   );
 }
 

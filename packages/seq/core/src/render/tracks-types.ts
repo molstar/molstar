@@ -20,6 +20,7 @@ import { Rail } from './rail.js';
 import type { ImageCache } from './images.js';
 import type { NarrowColumns } from './narrow.js';
 import type { SectionCache } from './tracks-cache.js';
+import type { HeaderLine, HeaderPartsOf, SectionHeaderLine } from './headers.js';
 
 // The tracks layout's records (_spec/README.md "Render", Tracks layout): what it is given (`LayoutInput`), what it
 // gives (the view's, sections', tracks' and layers' layouts) and what it keeps between frames (`LayoutState`).
@@ -47,18 +48,10 @@ export interface TrackLayout {
   readonly labelY: number;
   readonly layers: readonly LayerLayout[];
   /**
-   * The "n filtered" chip: the rows a layer's filter left out (the first layer with some), its text and its box at the
-   * label column's right end; a click on it clears the filter (`target: 'filter'`).
+   * Its header's line in the label column (_spec/README.md "Render", Track headers): its slots, its states (the "n
+   * filtered" chip among them, `seq:filtered`), the "⋯"; in a layout that draws a label column of track headers.
    */
-  readonly filter?: {
-    readonly layer: string;
-    readonly count: number;
-    readonly text: string;
-    readonly x: number;
-    readonly width: number;
-    /** Its line below the label's (px), on a track tall enough for two lines: the label then whole; else 0, beside it. */
-    readonly dy: number;
-  };
+  readonly header?: HeaderLine;
 }
 
 export interface SectionLayout {
@@ -76,6 +69,8 @@ export interface SectionLayout {
   readonly height: number;
   /** Its tracks as bands: on the page in tracks; in text, those of its first line. */
   readonly tracks: readonly TrackLayout[];
+  /** Its header line above its first track (`section.header`), when drawn: its hidden tracks' chip, its slots. */
+  readonly header?: SectionHeaderLine;
   /** The breaks in view, `[x, hiddenStart, hiddenEnd, …]` (x unsnapped): a hairline each across the band. */
   readonly breaks: readonly number[];
   /** Its ruler rail, when it draws one (_spec/README.md "Render", Navigators). */
@@ -150,6 +145,11 @@ export interface LayoutInput {
   readonly sizings?: Readonly<Record<string, TrackSizing>>;
   /** The host's `trackSizing` port: the last word on each section's tracks' heights. */
   readonly trackSizing?: TrackSizingHook;
+  /**
+   * Each header's parts from its facts (_spec/README.md "Render", Track headers: a host's entries made into slots and
+   * states), once a layout a header; `builtInHeaderStates` when absent. Part of the sections' key by identity.
+   */
+  readonly headers?: HeaderPartsOf;
   /**
    * A navigator's picture: its tracks small, no label lane (its labels are the view's).
    * @internal

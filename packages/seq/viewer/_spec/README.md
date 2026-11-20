@@ -993,7 +993,10 @@ rows' commands) reads the last frame's rows layers through the behavior context'
   held, tried after the exact ones. Why: a modifier held for something else must not kill the hover.
 - **Targets** are a hit's kind or `any`; a binding for the kind beats `any`'s. A collapsed break is its own target
   (`break`, the render hit's `target`): no default binding but the hover, so a double-click on it does nothing (the
-  pointer aimed at the break; showing its stretch is `section.collapse`, a spec change).
+  pointer aimed at the break; showing its stretch is `section.collapse`, a spec change). A header's parts are targets
+  too (`header-slot`, `header-state`, `header-label`, `section-header`: core's Track headers): never a selection's (a
+  click there selects and clears nothing; the "n filtered" chip clears its filter), and a drag on a track's label line
+  pans as its track (`header-label`, in `default`).
 - **Actions must exist**: a model method (`hover`, `pan`, `zoom`, `drag-select`, `drag-add`, `drag-subtract`,
   `drag-extend`) or a command the viewer defines (`DefaultActions`, or the `actions` given). A binding to another is
   reported (`seq.viewer.binding.action`) and left out, so the gesture does nothing.

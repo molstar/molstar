@@ -13,8 +13,10 @@ import {
   type Rail,
   RowsRail,
   railUnitAt,
+  HeaderStateNames,
   type Hit as RenderHit,
   type SectionLayout,
+  type ViewLayout,
   type WindowPart,
 } from '@molstar/seqx-core/render';
 import { type PartCursor, partCursor } from './part-cursor.js';
@@ -395,8 +397,8 @@ export class ViewerInput {
     out.ySystem = h.ySystem;
     out.yPosition = h.yPosition;
     // the hit's own targets (_spec/README.md "Input"): a window with its part, a gutter's or a header's row, a cell of
-    // two axes, a tree node, a summary row; the rest read from what was hit
-    out.target = h.target === 'break' || h.target === 'filter' ? undefined : h.target;
+    // two axes, a tree node, a summary row, a header's slot, state or line; the rest read from what was hit
+    out.target = h.target === 'break' ? undefined : h.target;
     out.part = h.part;
     out.navigator = h.navigator;
     // a block's hit: its positions on the block's own axis (a section of blocks on several systems)
@@ -407,7 +409,15 @@ export class ViewerInput {
     // tip reads whole; a title's field; the hidden-columns chip): another's (a logo's letter) would make each move within
     // its position a new hover (the card re-armed, the announcer speaking again)
     const t = h.target;
-    out.state = t === 'row' || t === 'column-title' || t === 'columns-hidden' || t === 'group' ? h.state : undefined;
+    out.state =
+      t === 'row' ||
+      t === 'column-title' ||
+      t === 'columns-hidden' ||
+      t === 'group' ||
+      t === 'header-slot' ||
+      t === 'header-state'
+        ? h.state
+        : undefined;
     out.members = h.members;
     return this._hit;
   }
@@ -681,8 +691,13 @@ export class ViewerInput {
       void this.viewer.execute('rows.tree', { track: trackOfLayer(chip.layer) });
       return true;
     }
-    if (chip?.target === 'filter') {
-      void this.viewer.execute('layer.filter', { address: chip.layer });
+    // a header's parts are never a selection's (_spec/README.md "Input"): the "n filtered" chip clears its layer's
+    // filter (one patch); the other entries are the headers behavior's
+    const t = chip?.target;
+    if (chip && (t === 'header-state' || t === 'header-slot' || t === 'header-label' || t === 'section-header')) {
+      const layer =
+        chip.state === HeaderStateNames.filtered ? filteredLayer(this.viewer.frame?.layout, chip) : undefined;
+      if (layer) void this.viewer.execute('layer.filter', { address: layer });
       return true;
     }
     // a tree node's click: its bound command (toggles the clade's fold by default), unless it is a selection's
@@ -1093,3 +1108,12 @@ function railDrawn(rail: Rail, viewer: SeqViewer): readonly [number, number] | u
 }
 
 const RailEnds = new Float64Array(4);
+
+/** The layer a track's "n filtered" chip (its `seq:filtered` state) is about, in the layout it was hit in. */
+function filteredLayer(layout: ViewLayout | undefined, hit: RenderHit): string | undefined {
+  for (const s of layout?.sections ?? [])
+    for (const t of s.tracks)
+      if (t.track.address === hit.layer)
+        for (const st of t.header?.states ?? []) if (st.name === hit.state) return st.address;
+  return undefined;
+}

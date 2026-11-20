@@ -153,6 +153,9 @@ base-library change, below), archives. The Genomes milestone is the fifth.
   - accessibility: a tree node announced with its state through the canvas's accessible layer ("Opening and closing
     clades");
   - icons in the header's fixed slots (pin, a bound row's link) and the rows table's data columns ("The rows axis");
+  - a rows track's header line as its title row (`rows.titleRow: auto`): until then a rows track draws no states, no
+    slots and no label hit (core's "Track headers"); the header line in the text layout's first line, a grid's label and
+    a ring's menu (the core lays it out in the tracks layout only, its blocks' first row included);
   - the renderer's section cache keyed by the export's `folds`; the cell hit's 16 B (a number boxed from the point to
     its column through the axis, every layer's hit) measured by the allocation tier;
   - a Design page (the Pfam globin seed and its tree are recorded: the seed as published, the tree by neighbor joining,
