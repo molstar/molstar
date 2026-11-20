@@ -5,6 +5,7 @@
  */
 
 import { issueOf } from '@molstar/core/repr/tree';
+import type { SequenceAlphabet } from '@molstar/core/util/sequence-constants';
 import type { LettersTable, Want } from '@molstar/seqx-core/data';
 import { rangesLocation } from '@molstar/seqx-core/query';
 import {
@@ -59,7 +60,7 @@ const AnchorMiddle: number = Anchor.middle;
 // follows its fill at 4.5:1; a themed ink held at 3:1 against its fill).
 
 /** A letters layer's alphabet (the system's); the rows and the logo read the same. */
-export type Alphabet = 'protein' | 'dna' | 'rna';
+export type Alphabet = SequenceAlphabet;
 
 /** The color channel's default body and environment by alphabet, made once (a layout makes none to read a kept channel). */
 export const LettersColorFallback: Record<Alphabet, ThemeBody> = {

@@ -4,45 +4,46 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The standard chemical component of each letter by alphabet (A is ALA in protein, DA in DNA, A in RNA), and its
-// inverse: what a position of a sequence is when nothing says otherwise. The inverse half of the one-letter codes
-// (`@molstar/model`'s `getProteinOneLetterCode` and friends), which also read force-field and modified names; these
+// A sequence's alphabets and their letters' components: the twenty amino acids' one-letter codes and three-letter
+// names (what the residue color schemes read), and the standard chemical component of each letter by alphabet (A is
+// ALA in protein, DA in DNA, A in RNA) with its inverse: what a position of a sequence is when nothing says otherwise.
+// The inverse half of `@molstar/model`'s one-letter codes, which also read force-field and modified names; these
 // tables hold the standard components only, so a letter has one component and a component one letter.
 
 /** The alphabets of a sequence's letters. */
 export type SequenceAlphabet = 'protein' | 'dna' | 'rna';
 
+/** The twenty amino acids' one-letter codes and their three-letter names. */
+export const AminoAcidNames: Readonly<Record<string, string>> = {
+  A: 'ALA',
+  R: 'ARG',
+  N: 'ASN',
+  D: 'ASP',
+  C: 'CYS',
+  Q: 'GLN',
+  E: 'GLU',
+  G: 'GLY',
+  H: 'HIS',
+  I: 'ILE',
+  L: 'LEU',
+  K: 'LYS',
+  M: 'MET',
+  F: 'PHE',
+  P: 'PRO',
+  S: 'SER',
+  T: 'THR',
+  W: 'TRP',
+  Y: 'TYR',
+  V: 'VAL',
+};
+
 /**
- * The standard component (a CCD code) of each uppercase letter, by alphabet. The unknown letters have the CCD's unknown
- * components: `X` is UNK in protein, `N` is DN in DNA and N in RNA. Ambiguity codes (B, Z, J; R, Y and the like) and the
- * gap have none.
+ * The standard component (a CCD code) of each uppercase letter, by alphabet: in protein the twenty amino acids, U
+ * (SEC), O (PYL) and the CCD's ambiguous ones, B (ASX) and Z (GLX); the unknown letters the CCD's unknown components
+ * (`X` UNK in protein, `N` DN in DNA and N in RNA). J, the nucleotide ambiguity codes and the gap have none.
  */
 export const StandardComponents: { readonly [A in SequenceAlphabet]: Readonly<Record<string, string>> } = {
-  protein: {
-    A: 'ALA',
-    R: 'ARG',
-    N: 'ASN',
-    D: 'ASP',
-    C: 'CYS',
-    Q: 'GLN',
-    E: 'GLU',
-    G: 'GLY',
-    H: 'HIS',
-    I: 'ILE',
-    L: 'LEU',
-    K: 'LYS',
-    M: 'MET',
-    F: 'PHE',
-    P: 'PRO',
-    S: 'SER',
-    T: 'THR',
-    W: 'TRP',
-    Y: 'TYR',
-    V: 'VAL',
-    U: 'SEC',
-    O: 'PYL',
-    X: 'UNK',
-  },
+  protein: { ...AminoAcidNames, U: 'SEC', O: 'PYL', B: 'ASX', Z: 'GLX', X: 'UNK' },
   dna: { A: 'DA', C: 'DC', G: 'DG', T: 'DT', N: 'DN' },
   rna: { A: 'A', C: 'C', G: 'G', U: 'U', N: 'N' },
 };

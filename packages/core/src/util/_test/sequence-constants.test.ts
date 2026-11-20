@@ -5,7 +5,14 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { type SequenceAlphabet, StandardComponents, standardComponent, standardLetter } from '../components.js';
+import { AminoAcidNames as ResidueSchemeNames } from '../color/residue-schemes.js';
+import {
+  AminoAcidNames,
+  type SequenceAlphabet,
+  StandardComponents,
+  standardComponent,
+  standardLetter,
+} from '../sequence-constants.js';
 
 const Alphabets: readonly SequenceAlphabet[] = ['protein', 'dna', 'rna'];
 
@@ -16,10 +23,11 @@ describe('standard components', () => {
     expect(standardComponent('protein', 'X')).toBe('UNK');
     expect(standardComponent('dna', 'N')).toBe('DN');
     expect(standardComponent('rna', 'U')).toBe('U');
+    expect([standardComponent('protein', 'B'), standardComponent('protein', 'z')]).toEqual(['ASX', 'GLX']);
   });
 
   it('have no component for an ambiguity code, the gap, or a letter not of the alphabet', () => {
-    for (const l of ['B', 'Z', 'J', '-', '*']) expect(standardComponent('protein', l)).toBeUndefined();
+    for (const l of ['J', '-', '*']) expect(standardComponent('protein', l)).toBeUndefined();
     for (const l of ['R', 'Y', 'U', '-']) expect(standardComponent('dna', l)).toBeUndefined();
     expect(standardComponent('rna', 'T')).toBeUndefined();
     expect(standardComponent('protein', 'constructor')).toBeUndefined();
@@ -34,6 +42,11 @@ describe('standard components', () => {
         expect(standardComponent(a, standardLetter(a, component)!)).toBe(component);
       }
     }
+  });
+
+  it('extend the twenty amino acids the color schemes read, one table', () => {
+    for (const [l, n] of Object.entries(AminoAcidNames)) expect(standardComponent('protein', l)).toBe(n);
+    expect(ResidueSchemeNames).toBe(AminoAcidNames);
   });
 
   it('read a modified component as no standard one (its parent is the writer’s or the CCD’s)', () => {
