@@ -6,8 +6,8 @@ applied (the third slice's `foldback.md`, merged by the author, 2026-11-20) and 
 
 ## Lanes at once
 
-**One lane at once, until the author says otherwise** (the author, 2026-11-20: "we could temporarily slow down to just
-1 lane until further notice"; before it, two or three). Each lane strong or fast by its work. Strong (the strongest model, high
+**Two lanes at once** (the author, 2026-11-20: "also we can run 2 lanes in parallel again now"; one before it, two or
+three before that). Each lane strong or fast by its work. Strong (the strongest model, high
 effort) for design, a model or anything ambiguous; fast (the fast model) for specified work: fixes, stories, tests,
 read-only. The author changes this line; the loop never does. What runs together is limited by files, not by kind
 (plan, Order and parallelism): never two lanes on the language or on core's store and resolve, never two in one file,

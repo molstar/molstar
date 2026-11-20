@@ -13,8 +13,8 @@ The third slice is closed (2026-11-20; its record in `.seq/records/third-slice/`
 - Gate 0 (the author, 2026-11-19): "Accept all" (plan, Gate 0).
 - Stage 0's designs agreed and promoted: structure syncing (a library, not a port), track header parts, seq data ports,
   extension openings (DR, SP, XD; plan, Stage 0).
-- Lanes at once: one, until further notice (the author, 2026-11-20: "we could temporarily slow down to just 1 lane
-  until further notice"); a lane's review and fix round count as that lane. Before it: two or three, each strong or fast by its work (the author, 2026-11-20: "2-3 lanes, all either heavy
+- Lanes at once: two (the author, 2026-11-20: "also we can run 2 lanes in parallel again now"; one for a while
+  before it); a lane's review and fix round count as that lane. Before it: two or three, each strong or fast by its work (the author, 2026-11-20: "2-3 lanes, all either heavy
   or light depending on context"); limited by files: three tracks (molecules, formats and data, views; plan, Order and
   parallelism).
 - DP kept as a strong lane (nothing else builds the seq data ports); the order of HP1 and ST1 is the orchestrator's
