@@ -227,6 +227,26 @@ describe('range reads of a URL', () => {
     b.dispose();
   });
 
+  it('a read that joins a request its only waiter just aborted fetches again, not failing', async () => {
+    const m = new DefaultAssetManager();
+    serve({ [url]: { body: data } });
+    const a = await open(m, Asset.Url(url));
+    const b = await open(m, Asset.Url(url));
+    let release!: () => void;
+    serve({ [url]: { body: data, gate: new Promise<void>((resolve) => (release = resolve)) } });
+    const stop = new AbortController();
+    const left = a.read([{ offset: 3 * Page, length: 4 }], stop.signal);
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    stop.abort();
+    // in the same turn, before the stopped request is forgotten
+    const joins = b.read([{ offset: 3 * Page, length: 4 }]);
+    release();
+    await expect(left).rejects.toSatisfy(Task.isAbort);
+    expect((await joins)[0]).toEqual(data.slice(3 * Page, 3 * Page + 4));
+    a.dispose();
+    b.dispose();
+  });
+
   it('dispose frees the pages with the last holder; a disposed reader rejects', async () => {
     const log = serve({ [url]: { body: data } });
     const m = new DefaultAssetManager();

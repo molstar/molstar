@@ -289,7 +289,8 @@ class PageStore {
           continue;
         }
         const pending = this.pending.get(p);
-        if (pending) runs.set(pending.run, pending.first);
+        // a request its waiters left is stopping: not joined, the page is fetched again
+        if (pending && !pending.run.controller.signal.aborted) runs.set(pending.run, pending.first);
         else if (!missing.includes(p)) missing.push(p);
       }
     }
@@ -301,9 +302,16 @@ class PageStore {
       runs.set(this.startRun(missing[i], j - i), missing[i]);
       i = j;
     }
-    const arrived = await Promise.all(
-      [...runs].map(([run, first]) => run.join(signal).then((b) => [first, b] as const)),
-    );
+    let arrived: (readonly [number, Uint8Array])[];
+    try {
+      arrived = await Promise.all([...runs].map(([run, first]) => run.join(signal).then((b) => [first, b] as const)));
+    } catch (e) {
+      // another reader's abort stopped a request this read joined (it had no other waiter then): not this read's
+      // failure, read again (as an open that joined an abandoned open does)
+      if (!signal?.aborted && !this.closed && [...runs.keys()].some((r) => r.controller.signal.aborted))
+        return this.read(ranges, signal);
+      throw e;
+    }
     if (this.closed) throw this.closed;
     for (const [first, bytes] of arrived)
       for (let i = 0; i * ps < bytes.length; i++)
