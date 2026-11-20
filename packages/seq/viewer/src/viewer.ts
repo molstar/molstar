@@ -973,7 +973,7 @@ export class SeqViewer extends ReactiveModel {
       n++;
     }
     if (!n) return (this._viewportsKept = undefined);
-    if (same && Object.keys(kept!).length === n) return kept;
+    if (same && this._viewportsKeptCount === n) return kept;
     const out: Record<string, RenderViewport> = {};
     for (const s of resolved.sections) {
       const y = this.view.get(s.address)?.y;
@@ -993,10 +993,13 @@ export class SeqViewer extends ReactiveModel {
       };
     }
     this._viewportsKept = out;
+    this._viewportsKeptCount = n;
     return out;
   }
 
   private _viewportsKept: Readonly<Record<string, RenderViewport>> | undefined;
+  /** How many entries `_viewportsKept` holds (compared each frame without listing its keys). */
+  private _viewportsKeptCount = 0;
 
   /**
    * A section's bands as a frame reads them (_spec/README.md "ViewModel", Bands): the ViewModel's (a rows band's scroll,
@@ -1103,8 +1106,11 @@ export class SeqViewer extends ReactiveModel {
       delete input.railsActive;
     }
     // what each leading section showed: where the next motion starts
-    this._drawnViews.clear();
-    if (viewports) for (const k in viewports) this._drawnViews.set(k, viewports[k]);
+    // (kept in place: `Map.clear` makes a new table a frame)
+    if (viewports) {
+      for (const k of this._drawnViews.keys()) if (!(k in viewports)) this._drawnViews.delete(k);
+      for (const k in viewports) this._drawnViews.set(k, viewports[k]);
+    } else if (this._drawnViews.size) this._drawnViews.clear();
     // a motion is not settled while it runs
     if (this._request) this._moved();
     input.dpr = dpr;
@@ -1220,12 +1226,16 @@ export class SeqViewer extends ReactiveModel {
     const behavior = this.behaviors.has('navigator');
     let changed = false;
     // a rows rail can move while the behavior is there (idle while every row shows: the layout knows, `whole`)
-    const can = (a: string) => behavior && (this._rowsRails.has(a) || !windowIdle(this.view, a, this.config));
-    for (const a in rails) if (this._railsActive[a] !== can(a)) changed = true;
+    // (no closure: a frame makes none)
+    for (const a in rails) if (this._railsActive[a] !== this._railCan(behavior, a)) changed = true;
     if (!changed) return;
     const next: Record<string, boolean> = {};
-    for (const a in rails) next[a] = can(a);
+    for (const a in rails) next[a] = this._railCan(behavior, a);
     this._railsActive = next;
+  }
+
+  private _railCan(behavior: boolean, address: string): boolean {
+    return behavior && (this._rowsRails.has(address) || !windowIdle(this.view, address, this.config));
   }
 
   /**
