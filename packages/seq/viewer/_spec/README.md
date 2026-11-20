@@ -1283,6 +1283,49 @@ settle: a legend that changes during a pan reads as noise, and its cost stays of
   Clear keeps its focus across the redraw. A style that is not `tint`, `band` or `outline` is a tint, reported once
   (`seq.viewer.highlight.style`); an unset style is a tint, so setting `tint` is no change.
 
+## Structure link
+
+`link-structure.ts` (`@molstar/seqx-viewer/link-structure`): `linkStructure(viewer, side, options?)` wires a viewer to a
+structure viewer its host translates for, both ways, and returns the disposer. A library over the viewer's public models
+and the core's translation (`@molstar/seqx-core/structure`, Structures): no behavior, no port, nothing in the
+composition, so a host that never calls it carries none of it. Why a helper: what it adds over the viewer's events
+(echoes, throttling, clearing) is per link, and a viewer may have none or two; a host with other needs writes its own
+over the same translation.
+
+- **The side** (`StructureSide`, plain data, the host's): `highlight(target | null)`, `select(target | null)`,
+  `focus(target, { durationMs })`, and optionally `onHover`, `onSelect`, `onFocus` (each returning its unsubscribe) and
+  a `signal`. A target is a Location on units (structured-cloneable).
+- **Out**: on each hover (`hover.version`), the hover's Location through `toUnits` under the hover's limits, sent when
+  its image changes (an unchanged image, an unobserved residue after one cut, sends nothing; nothing left is `null`);
+  the selection's `shown`, one message a frame (a frame callback: a drag moves it every pointer event), under the
+  selection's limits; a jump naming a Location (`view.lastJump`: a focus, a reveal, and back and forward when the step
+  kept one and `followJumps`) as `focus` with the jump's duration (the camera and the sections on one clock). A fit
+  names none: nothing sent.
+- **In**: the side's hover as a hover of a Location (`HoverModel.setLocation`) owned by the link: drawn projected, no
+  card; the pointer taking the hover takes it, and the side's `null` clears only the link's own (a stale `null` does
+  nothing, EC-141); the side's selection through `fromUnits` (atoms kept where a section or block shows a unit's atoms
+  form) into `selection.set`, then revealed (`revealOnSelect`: `revealLocation`, the zoom kept; `focus`; `none`); a
+  `null` clears it; its focus as `focusLocation` (one jump).
+- **Echoes** never go back: the link's own hover is not sent (it only ends the pointer's hover sent before it, with
+  `null`); a selection equal (`locationsEqual`) to the one last set from the side is not sent; a jump made while a
+  message from the side is applied (its selection's reveal, its focus) is not sent.
+- **The model** translated against is the spec's static model with the store's current overlay when it holds a source's
+  nodes (`StoreModel.currentOverlay`), else the static model alone.
+- **Clearing**: the disposer, the side's `signal` or the viewer retiring (`retiredSignal`) ends the link once: its
+  subscriptions and a waiting selection message dropped, `highlight(null)` and `select(null)` sent for the directions
+  sent out, the link's hover cleared. A signal aborted before the call ends the link at once.
+
+| Option           | Default                                 | Why the default; the alternatives                                    |
+| ---------------- | --------------------------------------- | -------------------------------------------------------------------- |
+| `complexes`      | every complex, no `via`                 | the spec names no host's binding; `{ complex, via? }[]` (Paths, Via) |
+| `hover`          | `both`                                  | the precedents link all three both ways; `out`, `in`, `none`         |
+| `select`         | `both`                                  | as `hover`                                                           |
+| `focus`          | `both`                                  | as `hover`                                                           |
+| `revealOnSelect` | `reveal`                                | a selection from the structure keeps the zoom; `focus`, `none`       |
+| `followJumps`    | `true`                                  | back and forward bring the camera; `false`                           |
+| `limits`         | `DefaultSyncLimits` (`hover`, `select`) | a hover a frame is smaller than a selection; any, `over: skip`       |
+| `ligand`         | `whole`                                 | a ligand's position is its residue; `atoms`                          |
+
 ## Configuration
 
 `config.ts`: `DefaultViewerConfig`, one object of the shape the models read (`viewerConfig(over)` for one group's items
