@@ -1384,6 +1384,8 @@ alone.
 
 `src/resolve/` (`@molstar/seqx-core/resolve`): the static model, tier 1: pure, over a checked spec, nothing from the
 store. `resolveSpec(spec, { runtimes, config })`, or `createResolver` to keep entries and paths between specs.
+`model.ts` builds and holds the model; `model-entries.ts` makes each node's entry (a source's binding, a sequence's and
+an alignment's systems, a held pairs or grid node, an annotation), importing the model's types alone.
 
 ### Configuration
 
