@@ -174,7 +174,7 @@ describe('tRNA: 1EHZ’s modified residues marked and found', () => {
         ? Array.from(partOf(r.result.location, '/data/trna')?.ranges ?? [])
         : r.issues;
     };
-    const runs = run(ModifiedRef.to) as number[];
+    const runs = run(ModifiedRef.to as string) as number[];
     const positions: number[] = [];
     for (let k = 0; k < runs.length; k += 2) for (let i = runs[k]; i < runs[k + 1]; i++) positions.push(i);
     expect(positions).toEqual(ModifiedResidues.map((m) => m[0]));
