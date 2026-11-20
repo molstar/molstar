@@ -873,6 +873,33 @@ by fuzz tests (mutated text read without a throw).
 - **Performance**: 100,000 TSV rows read under 300 ms (`records-time.test.ts`, heavy lane, best of three); 10,000 in the
   quick lane.
 
+### bigWig
+
+`runtimes/bigwig.ts` (`@molstar/seqx-core/runtimes/bigwig`, opt in: `BigWigRuntime`, `openBigWig`, `RangeAssetReader`):
+a format runtime (`bigwig`) of `values` by region and zoom level, read by range through the assets port.
+
+- **Reading**: opening reads the header (little- or big-endian, by its magic), the zoom headers and the chromosome B+
+  tree; a region reads its level's R-tree (the full data at level 1, a zoom level's records at its reduction), the
+  blocks it points to in one call, inflated (`DecompressionStream`, bounded by the header's `uncompressBufSize`) and
+  decoded. Why one call: core's range reader batches the pages of all the blocks, adjacent ones in one request.
+- **Coverage**: a system a chromosome (its name and size), `values` on each, levels `1` and the zoom levels' reductions
+  as they are (protocol, Levels). A level the file does not have, another shape, an unknown chromosome: `not-served`.
+- **Answers**: level 1 per position (NaN where the file has no data); a zoom level per bin of its width from a multiple
+  of it, `count` the bases with data, `mean` the sum over them by the count, as `binValues` summarizes. A record that
+  does not start on the level's multiples (UCSC's start where the data starts) is shared by its overlap with each bin. A
+  region past the chromosome's end is empty, not failed.
+- **Assets**: `RangeAssetReader.openRange(uri, signal)` when the host has it (core's `openRanges` under its policy),
+  else the file whole through `readBytes`, bounded by `limits.maxBytes`. A range read that fails (core's
+  `AssetRangeError`: a changed file, a mangled `Content-Range`) fails the region (`failed`), never wrong values.
+- **Bounds**: blocks of one region over `limits.maxBytes` and bins over `limits.maxRows` are `too-large`; trees deeper
+  than 16 and nodes past their size are `malformed`. Decoded blocks: the last 16 kept for a pan back; pages are core's.
+- **Tests**: the shared source suite (`data/_test/source-suite.ts`) through core's manager by range and through whole
+  bytes; files from a test-only writer on core's `PCG` (`runtimes/_test/bigwig-writer.ts`: every section type, both zoom
+  levels, edges, a gap, a chromosome without data, big-endian, uncompressed); its synthetic twin is
+  `delayedRuntime(BigWigRuntime)` on a fake clock.
+- **Performance**: a region at the zoom level that fits, from a local file, decoded under 50 ms (heavy, `itWithin`).
+  Size: its own row, under 30 kB, in no bundle that does not list it.
+
 ### Archives
 
 `data/archive.ts` (`readArchive`, `writeArchive`, `archiveReader`): a spec with its data files and an index as one zip,
