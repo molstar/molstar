@@ -353,6 +353,15 @@ export function checkSeqChanges(
   // what names a node that is gone (a ref left dangling under `allowDangling`, or one a move took)
   for (const r of changes.removed) referrersOfOld(r);
   for (const m of changes.moved) referrersOfOld(m.from);
+  /** A complex's links: their rows name its units by id, not by reference. */
+  const linksOf = (address: string) => {
+    const at = look.get(address);
+    if (at?.node.kind !== 'complex' && at?.node.kind !== 'molecule') return;
+    for (const c of at.node.children ?? []) if (c.kind === 'pairs') touch(`${address}/${c.id}`);
+  };
+  // a unit gone or renamed: the links of the complex it left
+  for (const r of [...changes.removed, ...changes.moved.map((m) => m.from)])
+    if (r.length > 1) linksOf(printAddress(r.slice(0, -1)));
 
   // what the changed nodes reach: what names them, on through refs; a template's layers; a chain a change closes
   const direct = queue.length;
@@ -364,6 +373,15 @@ export function checkSeqChanges(
     // a sequence's numberings: their labels are counted against its letters
     if (at.node.kind === 'sequence')
       for (const c of at.node.children ?? []) if (c.kind === 'numbering') touch(`${address}/${c.id}`);
+    // a molecule's links are counted against its residues
+    if (at.node.kind === 'molecule') linksOf(address);
+    // a unit's extent is its range or its molecule's: its numberings, what names it (a block's form, ranges on it)
+    // and its complex's links read it, also when it is reached through its molecule
+    if (at.node.kind === 'unit') {
+      for (const c of at.node.children ?? []) if (c.kind === 'numbering') touch(`${address}/${c.id}`);
+      if (i >= direct) referrers(address);
+      linksOf(printAddress(split(address).slice(0, -1)));
+    }
     if (at.node.kind === 'section') {
       const chain: string[] = [address];
       for (let a = sectionFollow(look, address); a !== undefined; ) {
