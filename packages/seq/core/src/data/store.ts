@@ -6,6 +6,7 @@
 
 import { batch, KeyedState, ReactiveModel, type ReadonlyState, State } from '@molstar/core/reactive';
 import { type Issue, issueOf, type Node, nodesEqual } from '@molstar/core/repr/tree';
+import { channelOf, channelSource, fieldChannel } from './channels.js';
 import { SourceIssues, StoreIssues } from './issues.js';
 import { DefaultTileBins, dataKey, fitLevel, nodeKey, tileRegion, tileSpan } from './keys.js';
 import {
@@ -217,6 +218,8 @@ interface Slot {
 
 interface AttachedSource {
   readonly opened: OpenedSource;
+  /** As attached, before its summaries: what a values channel of it reads. */
+  readonly raw: OpenedSource;
   readonly names: ReadonlyMap<string, string>;
   /** The node keys its coverage brought, held while it is attached. */
   readonly nodes: readonly string[];
@@ -324,10 +327,54 @@ export class DataStore extends ReactiveModel {
     // a late opening after the store is retired is the caller's to dispose
     if (this.isRetired) return false;
     if (this._sources.has(address)) this.detach(address);
+    const prepared = this._prepare(address, source);
+    if (!prepared) return false;
+    this._run(() => {
+      const nodes = this._intakeNodes(address, prepared.opened.coverage.nodes);
+      this._sources.set(address, { ...prepared, nodes });
+    });
+    return true;
+  }
+
+  /**
+   * A new reading of an attached source (a host's edit, _spec/README.md "Data", Store, Reattach): nodes of a key it
+   * still brings keep their identity and take its content (version moved); keys it no longer brings go, whoever holds
+   * them (the reading says they are gone); every tile of it and its channels is dropped and asked again while wanted.
+   * A malformed coverage is an issue and the old reading stays (`false`: the caller disposes `source`). Not attached:
+   * `attach`.
+   */
+  reattach(address: string, source: OpenedSource): boolean {
+    if (this.isRetired) return false;
+    const old = this._sources.get(address);
+    if (!old) return this.attach(address, source);
+    const prepared = this._prepare(address, source);
+    if (!prepared) return false;
+    this._run(() => {
+      // the new nodes first (replacing content by key), then the old holds let go, so a kept key is never dropped
+      const nodes = this._intakeNodes(address, prepared.opened.coverage.nodes, true);
+      const kept = new Set(nodes);
+      // what the old reading's tiles brought comes again, as the new reading has it, when they are read again
+      const brought: string[] = [];
+      for (const slot of this._slots.values())
+        if (channelSource(slot.region.source) === address) brought.push(...slot.nodes);
+      this._dropTiles(address);
+      for (const k of old.nodes) this._release(k);
+      for (const k of [...old.nodes, ...brought]) if (!kept.has(k)) this._remove(k);
+      this._sources.set(address, { ...prepared, nodes });
+      this._clearReports(address);
+      for (const set of this._wanters) set.tiles = this._plan(set.wants);
+    });
+    old.opened.dispose();
+    this._apply();
+    return true;
+  }
+
+  /** A source checked and summarized, its systems' names; undefined (said) when its coverage is malformed. */
+  private _prepare(address: string, source: OpenedSource): Omit<AttachedSource, 'nodes'> | undefined {
     const bad = checkCoverage(source.coverage);
     if (bad) {
       this._run(() => this._report(address, { ...bad, address }));
-      return false;
+      return undefined;
     }
     // a level-1 source's values get a pyramid, so a values layer zoomed out reads a coarse level
     const summaries = this.settings.summaries;
@@ -337,11 +384,33 @@ export class DataStore extends ReactiveModel {
       names.set(s.name, s.name);
       for (const a of s.aliases ?? []) if (!names.has(a)) names.set(a, s.name);
     }
-    this._run(() => {
-      const nodes = this._intakeNodes(address, opened.coverage.nodes);
-      this._sources.set(address, { opened, names, nodes });
-    });
-    return true;
+    return { opened, raw: source, names };
+  }
+
+  /**
+   * The source an address reads: an attached one, or a values channel of one (made when first read, summarized on its
+   * own, gone with its source).
+   */
+  private _source(address: string): AttachedSource | undefined {
+    const at = this._sources.get(address);
+    if (at) return at;
+    const channel = channelOf(address);
+    const base = channel && this._sources.get(channel.source);
+    if (!channel || !base || channelOf(channel.source)) return undefined;
+    const prepared = this._prepare(address, fieldChannel(base.raw, channel.field))!;
+    const made = { ...prepared, nodes: [] };
+    this._sources.set(address, made);
+    return made;
+  }
+
+  /** Drops the tiles of a source and of its channels, and the channels. */
+  private _dropTiles(address: string): void {
+    for (const slot of [...this._slots.values()]) if (channelSource(slot.region.source) === address) this._drop(slot);
+    for (const [a, s] of [...this._sources])
+      if (a !== address && channelSource(a) === address) {
+        this._sources.delete(a);
+        s.opened.dispose();
+      }
   }
 
   /**
@@ -353,7 +422,7 @@ export class DataStore extends ReactiveModel {
     const s = this._sources.get(address);
     if (!s) return;
     this._run(() => {
-      for (const slot of [...this._slots.values()]) if (slot.region.source === address) this._drop(slot);
+      this._dropTiles(address);
       for (const k of s.nodes) this._release(k);
       this._sources.delete(address);
       this._clearReports(address);
@@ -362,7 +431,7 @@ export class DataStore extends ReactiveModel {
   }
 
   coverage(address: string): Coverage | undefined {
-    return this._sources.get(address)?.opened.coverage;
+    return this._source(address)?.opened.coverage;
   }
 
   // Entries
@@ -457,7 +526,10 @@ export class DataStore extends ReactiveModel {
       if (t.last - t.first + 1 > this.settings.maxTilesPerWant) {
         const message = `A wanted region covers ${t.last - t.first + 1} tiles, more than ${this.settings.maxTilesPerWant}`;
         this._run(() =>
-          this._report(w.source, issueOf(StoreIssues, 'seq.store.too_many_tiles', message, { address: w.source })),
+          this._report(
+            channelSource(w.source),
+            issueOf(StoreIssues, 'seq.store.too_many_tiles', message, { address: channelSource(w.source) }),
+          ),
         );
         continue;
       }
@@ -487,7 +559,7 @@ export class DataStore extends ReactiveModel {
       for (const set of this._wanters)
         for (const [key, t] of set.tiles) {
           // a tile of a source detached since it was planned: no entry pending that nothing can answer
-          if (!this._sources.has(t.region.source)) continue;
+          if (!this._source(t.region.source)) continue;
           const at = merged.get(key);
           if (!at) merged.set(key, { ...t });
           else at.rank = Math.min(at.rank, t.rank);
@@ -529,7 +601,7 @@ export class DataStore extends ReactiveModel {
   // Tiles and slots
 
   private _tiles(w: Want) {
-    const s = this._sources.get(w.source);
+    const s = this._source(w.source);
     const system = s?.names.get(w.system);
     if (!s || system === undefined) return undefined;
     const cov = s.opened.coverage;
@@ -713,7 +785,7 @@ export class DataStore extends ReactiveModel {
   }
 
   private _start(slot: Slot): void {
-    const source = this._sources.get(slot.region.source);
+    const source = this._source(slot.region.source);
     // never left queued out of the queue: a slot whose source is gone goes with its pending entry
     if (!source) return this._drop(slot);
     slot.phase = 'flight';
@@ -802,7 +874,7 @@ export class DataStore extends ReactiveModel {
    * the cooldown at once; `not-served` and `too-large` are never retried. Each cause is reported once.
    */
   private _failure(slot: Slot, kind: FailureKind, issue: Issue): void {
-    const source = slot.region.source;
+    const source = channelSource(slot.region.source);
     this._report(source, { ...issue, address: issue.address ?? source });
     const retry = this.settings.retry;
     if (kind === 'failed' && slot.attempts + 1 < retry.attempts) {
@@ -906,8 +978,11 @@ export class DataStore extends ReactiveModel {
 
   // Nodes
 
-  /** Holds the nodes an answer (or a coverage) brought; the same key with other content keeps the held node. */
-  private _intakeNodes(source: string, nodes: readonly DynamicNode[] | undefined): readonly string[] {
+  /**
+   * Holds the nodes an answer (or a coverage) brought; the same key with other content keeps the held node, or, for a
+   * new reading (`replace`), takes the new content under its identity.
+   */
+  private _intakeNodes(source: string, nodes: readonly DynamicNode[] | undefined, replace = false): readonly string[] {
     if (!nodes?.length) return [];
     const keys: string[] = [];
     const seen = new Set<string>();
@@ -918,17 +993,27 @@ export class DataStore extends ReactiveModel {
       keys.push(k);
       this._holders.set(k, (this._holders.get(k) ?? 0) + 1);
       const held = this._nodes.get(k);
-      if (!held) {
+      if (held && nodesEqual(held.node, n.node)) continue;
+      if (!held || replace) {
         const version = this._next();
         this._nodes.set(k, { source, key: n.key, node: n.node, version });
         this._version.set(version);
         this._nodeVersion.set(version);
-      } else if (!nodesEqual(held.node, n.node)) {
+      } else {
         const message = 'A node came again with other content: kept';
         this._report(source, issueOf(StoreIssues, 'seq.store.node_conflict', message, { address: source }));
       }
     }
     return keys;
+  }
+
+  /** A node a new reading no longer brings goes now; its holders' releases count down to nothing after it. */
+  private _remove(k: string): void {
+    if (!this._nodes.has(k)) return;
+    this._nodes.delete(k);
+    const version = this._next();
+    this._version.set(version);
+    this._nodeVersion.set(version);
   }
 
   /** A node with no holder left goes, quietly. */
@@ -950,6 +1035,8 @@ export class DataStore extends ReactiveModel {
 
 class WantSet implements Wanter {
   tiles = new Map<string, PlannedTile>();
+  /** As last asked: planned again when a source is read anew. */
+  wants: readonly Want[] = [];
   private _disposed = false;
 
   constructor(private readonly _store: DataStore) {}
@@ -960,6 +1047,7 @@ class WantSet implements Wanter {
 
   want(wants: readonly Want[]): void {
     if (this._disposed) return;
+    this.wants = wants;
     this.tiles = this._store._plan(wants);
     this._store._apply();
   }
@@ -975,6 +1063,7 @@ class WantSet implements Wanter {
     if (this._disposed) return;
     this._disposed = true;
     this.tiles = new Map();
+    this.wants = [];
     this._store._removeSet(this);
   }
 }

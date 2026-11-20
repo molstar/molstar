@@ -67,6 +67,11 @@ export interface RegionRequest {
   /** A bin width the coverage lists. */
   readonly level: number;
   readonly shapes: readonly Shape[];
+  /**
+   * The values channel asked (a `values` node's `field`: `plddt`, `b_factor`); absent, the source's default value. A
+   * source serving one value ignores it (_spec/README.md "Data", Protocol).
+   */
+  readonly field?: string;
 }
 
 /** `letters`: one letter per position from `start`, a string, or codes into an alphabet. */
@@ -181,6 +186,8 @@ export interface SourceEntry {
   readonly address: string;
   readonly format: string;
   readonly uri?: string;
+  /** A host's name for the data (an edited model with no file): read by a host's adapter only, never by a default one. */
+  readonly ref?: string;
   /** Where the source's index is, for a format read with one (FASTA's `.fai`). */
   readonly index?: string;
   readonly value?: Value;
@@ -236,6 +243,12 @@ export interface OpenedSource {
   readonly issues?: readonly Issue[];
   /** Rejects with an `AbortError` when `signal` aborts; any other rejection is a `failed` answer. */
   read(request: RegionRequest, signal: AbortSignal): Promise<RegionAnswer>;
+  /**
+   * Optional: tells `fn` when the data changed (a host edited its structure), until the returned unsubscribe is called.
+   * Whoever attached the source opens it again and reattaches it in place (the viewer's source sync, coalesced a frame:
+   * _spec/README.md "Data", Protocol). A source read once (a file) has none.
+   */
+  changes?(fn: () => void): () => void;
   dispose(): void;
 }
 

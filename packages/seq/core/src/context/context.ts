@@ -6,7 +6,7 @@
 
 import type { Issue, Node } from '@molstar/core/repr/tree';
 import { type AssetManager, DefaultAssetManager } from '@molstar/core/util/assets';
-import type { AssetReader, FormatRuntime } from '@molstar/seqx-core/data';
+import { type AssetReader, type FormatRuntime, runtimesByFormat } from '@molstar/seqx-core/data';
 import { checkSeqSpec, type SpecBounds, specBounds } from '@molstar/seqx-core/lang';
 import {
   type RenderConfig,
@@ -127,9 +127,18 @@ export interface SeqContextSpec {
   readonly ports?: SeqPorts;
 }
 
-/** The registered runtimes by name: the same object again is no change, another under one name is an error (all listed). */
+/**
+ * The registered runtimes by name: the same object again is no change, another under one name is an error, and so is
+ * a format two of them read (one adapter a format: `withAdapter` replaces one); every conflict listed.
+ */
 export function runtimesOf(registry: readonly SeqRegistryEntry[]): FormatRuntime[] {
-  return [...byName(registry, 'format-runtime', 'format runtimes', (e) => e.runtime).values()];
+  const runtimes = [...byName(registry, 'format-runtime', 'format runtimes', (e) => e.runtime).values()];
+  const { conflicts } = runtimesByFormat(runtimes);
+  if (conflicts.size)
+    throw new Error(
+      `The registry holds several format runtimes for one format: ${[...conflicts].map(([f, names]) => `${f} (${names.join(', ')})`).join('; ')}`,
+    );
+  return runtimes;
 }
 
 /** The registered layer types by name, as `runtimesOf`: the same object again is no change, another an error. */

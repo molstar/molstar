@@ -21,6 +21,7 @@ export {
   writeArchive,
 } from './archive.js';
 export { asyncSeqSource, type DelayOptions, delayedRuntime, delayedSource } from './async-source.js';
+export { channelAddress, channelOf, channelSource, fieldChannel, runtimeFor, runtimesByFormat } from './channels.js';
 export { checkFai, FastaRuntime, type FaiRecord, faidx, openFasta, parseFai } from './fasta.js';
 export { ArchiveIssues, SourceIssues, StoreIssues } from './issues.js';
 export { DefaultTileBins, dataKey, fitLevel, nodeKey, tileRegion, tileSpan, tileWidth } from './keys.js';

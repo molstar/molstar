@@ -7,6 +7,7 @@
 // @molstar/seqx-core/context: the headless composition (_spec/README.md "Context"): the registry, the configuration and
 // the ports a render needs, the policy wrapper of the assets port, and `createSeqContext`. Named re-exports only.
 
+export { withAdapter } from './adapters.js';
 export {
   type AssetPolicy,
   AssetRefused,

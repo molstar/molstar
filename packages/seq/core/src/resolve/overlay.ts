@@ -15,7 +15,7 @@ import {
   type Segment,
   type Value,
 } from '@molstar/core/repr/tree';
-import type { FormatRuntime, NodeEntry } from '@molstar/seqx-core/data';
+import { type FormatRuntime, type NodeEntry, runtimeFor } from '@molstar/seqx-core/data';
 import { checkDataNode, LangIssues, SeqLanguage, SeqLanguageVersion } from '@molstar/seqx-core/lang';
 import { ResolveIssues } from './issues.js';
 import {
@@ -169,7 +169,9 @@ export interface OverlayOptions {
   readonly config?: Partial<ResolveConfig>;
 }
 
-const SourceKeys = ['uri', 'value', 'index', 'fields', 'assembly'] as const;
+const NoRuntimes: readonly FormatRuntime[] = [];
+
+const SourceKeys = ['uri', 'ref', 'value', 'index', 'fields', 'assembly'] as const;
 
 /** The overlay of the store's nodes now, over a static model. */
 export function buildOverlay(model: StaticModel, reader: NodeReader, options: OverlayOptions = {}): Overlay {
@@ -493,7 +495,9 @@ class DynamicOverlay implements Overlay {
       const format = typeof params.format === 'string' ? params.format : '';
       const entry: Record<string, unknown> = { address: n.address, format };
       for (const key of SourceKeys) if (params[key] !== undefined) entry[key] = params[key];
-      const runtime = this.options.runtimes?.find((r) => r.formats.includes(format));
+      // one runtime a format, never the first listed (_spec/README.md "Context", Registry entries)
+      const found = runtimeFor(this.options.runtimes ?? NoRuntimes, format);
+      const runtime = found === 'conflict' ? undefined : found;
       if (!runtime) this.report('seq.resolve.source.runtime', 'No runtime reads the format of the source', n.address);
       out.push({
         address: n.address,
