@@ -50,6 +50,15 @@ describe('one adapter a format', () => {
     expect(runtimesOf(withAdapter(registry, host)).map((r) => r.name)).toEqual(['records', 'host']);
   });
 
+  it('withAdapter keeps the entries of a host’s own kinds (a viewer’s registry lists header entries)', () => {
+    const header = { kind: 'header-action', entry: { name: 'x' } } as const;
+    const registry = withAdapter([header, entry(rt('mmcif', 'mmcif'))], rt('host', 'mmcif'));
+    expect(registry[0]).toBe(header);
+    expect(
+      runtimesOf(registry.filter((e): e is SeqRegistryEntry => e.kind !== 'header-action')).map((r) => r.name),
+    ).toEqual(['host']);
+  });
+
   it('a runtime listed twice is narrowed once, and an adapter may share the name of the runtime it narrows', () => {
     const records = rt('records', 'tsv', 'json');
     const twice = runtimesOf(withAdapter([entry(records), entry(records)], rt('host', 'json')));

@@ -56,11 +56,11 @@
       "CC0-1.0"
     ],
     "attribution": "wwPDB, PDB 2OCJ, CC0",
-    "trimmed": "the fake structure viewer’s chain table: every chain instance but the waters (struct_asym), its residues’ label and author numbers, components and whether modeled (pdbx_poly_seq_scheme, pdbx_nonpoly_scheme, atom_site of model 1); coordinates dropped",
+    "trimmed": "the fake structure viewer’s chain table: every chain instance but the waters (struct_asym), its residues’ label and author numbers, components and whether modeled (pdbx_poly_seq_scheme, pdbx_nonpoly_scheme, atom_site of model 1), each modeled residue’s mean heavy-atom B-factor, and the model beside them (entity, entity_poly, chem_comp, struct_conn, a non-polymer’s atoms); coordinates dropped",
     "derived": "none",
     "bytesDownloaded": 699868,
-    "bytesFixture": 20583,
+    "bytesFixture": 36806,
     "sha256Download": "e54e3321ca0c3e482d73d8d7637682bf0a3a210bf4091d1a34343e1e0bd29470",
-    "sha256Fixture": "f3d4a34f1d0feb1ac80a3bea14244e08575d56a78f854a8fe6204b778f3f62ba"
+    "sha256Fixture": "aadd087ab3392828146a2e4caa752c779b32ba10efcccbe0ad8d72db0b748d6c"
   }
 ]

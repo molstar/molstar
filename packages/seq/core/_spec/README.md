@@ -3362,9 +3362,10 @@ same pieces. Nothing registers on import and there is no global registry.
 - **Data adapters, one a format**: a format two registered runtimes read is an error listing every conflict
   (`runtimesOf`), so which one reads a source never depends on the order they are listed in;
   `withAdapter(registry, adapter)` puts a host's adapter in place of the defaults for its formats (a runtime left with
-  other formats keeps them under its name, one narrowing however often it is listed). Format runtimes are keyed by their
-  formats and their identity, not by name: a narrowed runtime and an adapter may share one. The resolver and the overlay
-  bind a source to the one runtime of its format (`runtimeFor`); a list given them with two for a format binds none
+  other formats keeps them under its name, one narrowing however often it is listed; generic over the entries a host's
+  registry holds, so a viewer's registry with its own kinds passes through). Format runtimes are keyed by their formats
+  and their identity, not by name: a narrowed runtime and an adapter may share one. The resolver and the overlay bind a
+  source to the one runtime of its format (`runtimeFor`); a list given them with two for a format binds none
   (`seq.resolve.source.runtime`). Why: extensibility's "never resolved by order".
 - **Registry entries** are data: `{ kind: 'format-runtime', runtime }`, `{ kind: 'layer-type', type }`,
   `{ kind: 'layout', layout }` and `{ kind: 'track-sizing', sizing }` (an `ext:` sizing a section's `heights` names:
