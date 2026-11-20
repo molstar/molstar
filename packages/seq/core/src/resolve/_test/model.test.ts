@@ -248,6 +248,19 @@ describe('static model: maps and their issues', () => {
   });
 });
 
+describe('static model: inline ranges’ strands', () => {
+  for (const strand of [null, [null, null], [null, '-']] as const)
+    it(`a strand of ${JSON.stringify(strand)} reads as no strand where null`, () => {
+      const b = createSeqSpec();
+      const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGTACGTAC' });
+      b.data.ranges('f', { target: s, rows: { start: [0, 4], end: [2, 6], strand } as never });
+      const m = resolveSpec(b.build());
+      const a = m.annotations.get('/data/f')!;
+      expect(a.items.map((i) => i.key)).toEqual([0, 1]);
+      expect(a.items.map((i) => i.fields?.strand ?? null)).toEqual(Array.isArray(strand) ? strand : [null, null]);
+    });
+});
+
 describe('static model: caching by hashes', () => {
   it('an equal spec gives the same model; an edit rebuilds only what it touched', () => {
     const resolver = createResolver({ runtimes: [Fasta] });
