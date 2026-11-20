@@ -98,7 +98,9 @@ recompiles the entries whose nodes (or the nodes they read) it changed and a vie
 `models/view.ts`, `models/axis.ts`: the view shown (`show(address)`, the first view by default) and its resolved view; a
 viewport per section, told per section (`viewport(section)`, a keyed state). Every change is written in one batch,
 leaders before followers, so a listener of one section reads the others consistent; a viewport equal to the last makes
-nothing and tells nothing.
+nothing and tells nothing. Beside `models/view.ts` (the moves and the publish): the scroll groups across updates
+(`view-groups.ts`), the bands (`view-bands.ts`), the follows' arithmetic (`view-follow.ts`) and the history's steps
+(`view-history.ts`).
 
 - **A viewport** is `{ start, end, top, width, pending, leader?, pieces?, scale?, y? }` (`y`: a grid's own y window):
   `[start, end)` in offsets along the axis in display order (0 at the first position shown), fractional. Why offsets: a
