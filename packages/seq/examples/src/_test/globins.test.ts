@@ -38,6 +38,7 @@ import {
 import * as globins from '../globins/family.js';
 import { HemeContacts, HemeHistidines, HemeUnitContacts } from '../globins/hemes.js';
 import { HemoglobinLengths } from '../globins/hemoglobin.js';
+import { readCif } from '../../scripts/cif.js';
 import { hemeContacts, identity, residuesOf } from '../globins/recording.js';
 import { neighborJoining } from '../globins/tree.js';
 import { nodeFixtureAssets, PackageFolder } from '../node-assets.js';
@@ -118,8 +119,8 @@ describe('the Globins fixtures’ anchors', () => {
     }
   });
 
-  it('4HHB’s heme contacts per pair of units, derived from its atoms: each heme touches its own chain only', () => {
-    const cif = gunzipSync(readFileSync(`${PackageFolder}fixtures/structures/4HHB.cif.gz`)).toString();
+  it('4HHB’s heme contacts per pair of units, derived from its atoms: each heme touches its own chain only', async () => {
+    const cif = await readCif(gunzipSync(readFileSync(`${PackageFolder}fixtures/structures/4HHB.cif.gz`)));
     expect(hemeContacts(cif)).toEqual(HemeUnitContacts);
   });
 

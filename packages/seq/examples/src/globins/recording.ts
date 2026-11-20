@@ -7,7 +7,7 @@
 import { AlignmentOp, globalAlign } from '@molstar/core/algorithms/sequence/needleman-wunsch';
 import { categoryColumn } from '@molstar/core/repr/tree';
 import type { SeqData } from '@molstar/seqx-core/data';
-import { cifLoop } from '../files/cif.js';
+import { type Cif, cifLoop } from '../files/cif.js';
 
 // What the record script does with the Globins entries (`scripts/record.ts globins`): the Pfam seed cut to the rows
 // nearest human hemoglobin, 4HHB's chains, helices and heme contacts read from its mmCIF. Kept in the package's sources
@@ -132,8 +132,6 @@ export function columnsFromUniprot(uniprotTsv: string, seedText: string): string
   return `${out.join('\n')}\n`;
 }
 
-export { cifLoop };
-
 const OneLetter: Readonly<Record<string, string>> = {
   ALA: 'A',
   ARG: 'R',
@@ -165,7 +163,7 @@ export interface CifChain {
 }
 
 /** The polymer chains, by `asym_id`. */
-export function cifChains(text: string): CifChain[] {
+export function cifChains(text: Cif): CifChain[] {
   const s = cifLoop(text, 'pdbx_poly_seq_scheme');
   const by = new Map<string, { letters: string; authFirst: number }>();
   s.asym_id.forEach((asym, k) => {
@@ -184,7 +182,7 @@ export interface CifHelix {
   readonly end: number;
 }
 
-export function cifHelices(text: string): CifHelix[] {
+export function cifHelices(text: Cif): CifHelix[] {
   const s = cifLoop(text, 'struct_conf');
   return s.id.map((_, k) => ({
     asym: s.beg_label_asym_id[k],
@@ -202,7 +200,7 @@ export const ContactDistance = 4;
  * residues with a heavy atom within `ContactDistance` of one of the heme's, as `label_seq_id`s ascending; the pairs
  * with a contact, by heme then chain.
  */
-export function hemeContacts(text: string): { heme: string; chain: string; residues: number[] }[] {
+export function hemeContacts(text: Cif): { heme: string; chain: string; residues: number[] }[] {
   const a = cifLoop(text, 'atom_site');
   const n = a.id.length;
   const hemes = new Map<string, number[][]>();
@@ -236,7 +234,7 @@ export function hemeContacts(text: string): { heme: string; chain: string; resid
  * 4HHB as `seq` data: the α and β chains' letters (chains A and B; C and D are their copies) with their helices as
  * ranges (`id` the helix's letter, A to H; `label` `helix A`…), and the heme as a system of one position.
  */
-export function hemoglobinSeq(text: string): SeqData {
+export function hemoglobinSeq(text: Cif): SeqData {
   const chains = cifChains(text);
   const helices = cifHelices(text);
   const systems = [
