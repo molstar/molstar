@@ -235,6 +235,15 @@ export const FeatureViews: readonly ExampleView[] = [
     build: globinsColumns.build,
     registry: globinsColumns.registry,
   },
+  {
+    dataset: 'globins',
+    id: 'rows-rail',
+    title: 'Rows rail',
+    summary:
+      'The Pfam globin seed with no navigator declared: its rows get the rows rail, a slim slider at the right edge of their band, its window the rows in view; drag it to scroll them, a grip to zoom them.',
+    build: () => globins.build({ overview: false }),
+    registry: familyRegistry,
+  },
 ];
 
 /** Views made for the small layers' stories (`Features/Layers`), over p53. */
@@ -348,7 +357,7 @@ export const GlobinsViews: readonly ExampleView[] = [
     id: 'family',
     title: 'Family, logo and tree',
     summary:
-      'The Pfam globin seed’s 60 rows by their tree (neighbor joining on identity), its conservation logo above, each row’s species and its identity to the reference row (wild yak’s α) beside it: hover a cell and its column lights in every row; click a tree node to fold its clade (session state); Cmd/Ctrl+click a node selects its rows; the wheel scrolls the rows, `]` and `[` zoom them.',
+      'The Pfam globin seed’s 60 rows by their tree (neighbor joining on identity), its conservation logo above, each row’s species and its identity to the reference row (wild yak’s α) beside it: hover a cell and its column lights in every row; click a tree node to fold its clade (session state); Cmd/Ctrl+click a node selects its rows; the wheel scrolls the rows, `]` and `[` zoom them; the vertical overview at the right moves them.',
     build: () => globins.build(),
     registry: familyRegistry,
   },
@@ -357,7 +366,7 @@ export const GlobinsViews: readonly ExampleView[] = [
     id: 'folded',
     title: 'Folded clades',
     summary:
-      'Two clades of the seed’s tree folded when the view opens (the layer’s `collapsed`): each one summary row, its consensus opaque by its share, labeled “first +n”, a wedge in the tree. Click a node to unfold it; `clades.keep` writes the folds shown back.',
+      'Two clades of the seed’s tree folded when the view opens (the layer’s `collapsed`): each one summary row, its consensus opaque by its share, labeled “first +n”, a wedge in the tree. Click a node to unfold it; `clades.keep` writes the folds shown back. The vertical overview at the right shows the folded rows.',
     build: globins.folded,
     registry: familyRegistry,
   },
@@ -389,7 +398,7 @@ export const GlobinsViews: readonly ExampleView[] = [
     id: 'scale',
     title: '10,000 rows',
     summary:
-      'A generated variant of 10,000 rows × 300 columns sampled from the seed’s per-column profile, held, by a balanced tree: zoomed out the rows draw from the shared reduction as image tiles; `]` and `[` zoom the rows, the wheel scrolls them.',
+      'A generated variant of 10,000 rows × 300 columns sampled from the seed’s per-column profile, held, by a balanced tree: zoomed out the rows draw from the shared reduction as image tiles; `]` and `[` zoom the rows, the wheel scrolls them; the vertical overview at the right shows every row and moves them.',
     build: () => globins.scale(),
     registry: generatedRegistry,
   },
@@ -398,7 +407,7 @@ export const GlobinsViews: readonly ExampleView[] = [
     id: 'scale-navigators',
     title: '10,000 rows with an overview',
     summary:
-      'The 10,000 rows with a vertical overview of every row at the right (summarized by the shared reduction) and a miniature of the columns and rows above: drag either window to move the rows.',
+      'The 10,000 rows with their vertical overview of every row at the right (summarized by the shared reduction) and a miniature of the columns and rows above: drag either window to move the rows.',
     build: navigators.globinsNavigators,
     registry: generatedRegistry,
   },
