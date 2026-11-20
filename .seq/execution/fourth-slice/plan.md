@@ -210,6 +210,13 @@ disagrees with its code writes a drift note and stops.
 - [ ] FX2, FX3, FX4 after stages 1, 2 and 3's gates; FX5 before M4 (the use gates' findings). A fix point with nothing
       open is skipped. An FX lane takes only what needs no design.
 
+### Module split (strong; §module-size; `briefs/sz-module-split.md`)
+
+- [ ] SZ after stage 1's gate, before HP1 (the molecules lanes are out of these files, the header lanes not yet in):
+      the four files over 1500 lines (`render/tracks.ts`, `render/rows.ts`, `render/ranges.ts`, `viewer/viewer.ts`)
+      split by what changes together, and `models/view.ts` (1466) looked at; behavior unchanged, the baseline lowered
+      by the orchestrator (`file-size.ts --update`) at the merge. The author, 2026-11-20: "Yes, add all three".
+
 ### Stage 1: molecules, maps and copies (strong lanes in order; [molecules](../../design/molecules.md), The fourth slice's lanes)
 
 - [ ] ML1 (strong, first) the language: the kinds, params, checks and builder (molecules.md, Decision and Consequences,
@@ -341,7 +348,7 @@ gate decides. If M3 leaves the target open, M4 asks again.
 The lane limit is one strong and one or two fast at once ("1+1-2", the author, 2026-11-20). The strong lanes run one
 after another:
 
-ML1 → DP → ML2 → MC → MK → AC → MR → CU → MX → gate → HP1 → ST1 → HP2 → ST2 → gate → BW → gate → EX → CN → gate →
+ML1 → DP → ML2 → MC → MK → AC → MR → CU → MX → gate → SZ → HP1 → ST1 → HP2 → ST2 → gate → BW → gate → EX → CN → gate →
 M4 → finalize.
 
 Fast lanes beside them, when their files are not the strong lane's:

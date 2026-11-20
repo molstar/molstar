@@ -95,6 +95,20 @@ sets anything (B1).
      blocks exact).
    - *Proposal*: core's seeded generators carry a reference-vector test against their published algorithm; a
      generated dataset states the statistics its tests assert.
+10. **Files grew one feature at a time, and bundles with them; neither had a bound that held.** (P; C; L) Added at the
+    author's request, 2026-11-20.
+    - *What happened*: twenty Seq\* source files passed 800 lines, `render/tracks.ts` 2882 and `render/rows.ts` 2520:
+      each lane added its feature to the file it knew. Nothing in the principles or checks bounded a file. The bundles
+      grew past every size target (reading a spec 175.4 kB against 160, headless rendering 712.0 against 300, the
+      default viewer 1142.4 against 600, the minimal one 853.1), measured at every gate and called guides, so nothing
+      stopped the growth either (C.8). The author: "do we have guards in our principles that check a single file size
+      with some reasonable limits? so we don't end up with 10k line superfiles?", and for the bundles "reduce render
+      first, then move the size targets".
+    - *Proposal*: **applied already** (the author, 2026-11-20: "Yes, add all three"): the principle §module-size (oz,
+      architecture rules), the instance check `.seq/_checks/file-size.ts` (800 lines a note, 1500 a failure, tests
+      2500, a baseline of the four files over 1500 that only shrinks), and a split lane in the fourth slice. For
+      bundles: lane RR reduces `render` before the targets reset; from then a size target is a bound checked at every
+      gate, moved only by the author's decision, as a test budget is.
 
 ## C. The earlier fold-backs' rules, checked against this slice
 

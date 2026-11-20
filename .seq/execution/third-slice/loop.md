@@ -130,6 +130,7 @@ node .seq/oz/_checks/paths-check.ts --allow '^(?!\.seq/|packages/seq/)'
 node .seq/oz/_checks/merge-gate.ts --package .seq/oz --instance .seq
 node .seq/_checks/ec-ids.ts
 node .seq/_checks/closed-work.ts
+node .seq/_checks/file-size.ts
 ```
 
 The `.seq` checks read the git index: stage first. When each also runs:
