@@ -18,5 +18,5 @@ A structure then offers "Bond order perception" in its `bonds` param (Prism: the
   file with a bond table, such as SDF or MOL2, is left as it is);
 - `forceCompute`: every covalent bond of every residue, stated orders included.
 
-A running viewer: [`examples/bond-orders`](../../../examples/bond-orders/README.md). Design and decisions:
-[\_spec](_spec/README.md); open items: [TODO](TODO.md).
+A running viewer: [`examples/bond-providers`](../../../examples/bond-providers/README.md), beside other providers.
+Design and decisions: [\_spec](_spec/README.md); open items: [TODO](TODO.md).

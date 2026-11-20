@@ -10,7 +10,13 @@
   "exclude": ["src/**/_test/**"],
   "references": [
     {
+      "path": "../../packages/extensions/bond-orders"
+    },
+    {
       "path": "../../packages/core"
+    },
+    {
+      "path": "../../packages/graphics"
     },
     {
       "path": "../../packages/model"

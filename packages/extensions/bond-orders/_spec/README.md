@@ -118,7 +118,7 @@ const withBondOrders = { ...spec, plugin: { ...spec.plugin, registry: [...(spec.
 ```
 
 Or in a state tree: a `StructureFromModel` with `bonds: { name: 'bond-order-perception', params: { mode: 'auto' } }`. A
-running example: `examples/bond-orders`.
+running example: `examples/bond-providers`.
 
 ## 4. Tests
 

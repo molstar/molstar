@@ -75,9 +75,6 @@
       "path": "./examples/lighting"
     },
     {
-      "path": "./examples/bond-orders"
-    },
-    {
       "path": "./examples/bond-providers"
     },
     {
