@@ -324,7 +324,7 @@ the region (a press there says it too, a tap's hover).
 
 ### Emphasis
 
-`models/projection.ts`, `viewer.ts`: what the emphasis passes draw, one reused record set before each frame.
+`models/projection.ts`, `viewer-emphasis.ts`: what the emphasis passes draw, one reused record set before each frame.
 
 - **The selection** (its `shown`) and **its projection** onto the linked sections (`Projector.of`: the core's
   `projectOntoView`, only the systems it has no part on), **the cursor**, **the highlight channels** in the order first
@@ -424,6 +424,10 @@ owner, the store with it.
 ## Composition
 
 `viewer-spec.ts`, `viewer.ts`, `default-spec.ts`: a viewer is composed from an explicit spec, as a Mol* plugin is.
+`viewer.ts` composes and wires; each concern is a module beside it: the behaviors (`viewer-behaviors.ts`), the frame
+clock (`viewer-clock.ts`), motion, the frame slot and the viewports a frame reads as it shows them (`viewer-motion.ts`),
+the rails and navigators (`viewer-rails.ts`), the emphasis (`viewer-emphasis.ts`), what a selection moves
+(`viewer-selection.ts`) and the frame (`viewer-frame.ts`).
 
 - **Navigators** (`mount-navigator.ts`): parts the host places, like the legends. `mountNavigator(element, viewer, id)`
   draws one navigator (a declared node's id, or a host's `viewer.navigator(def)`) into an element the host owns: its own
