@@ -11,7 +11,7 @@
 //
 //   node --experimental-strip-types scripts/record-structures.ts
 //
-// The entries: 1EHZ (tRNA-Phe, modified nucleotides), 1FIN (CDK2 and cyclin A, ATP and a magnesium), 4HHB (human
+// The entries: 1EHZ (tRNA-Phe, modified nucleotides), 1FIN (CDK2 and cyclin A, an ATP on each CDK2), 4HHB (human
 // deoxyhaemoglobin, hemes and phosphates) and 3SGJ (an IgG1 Fc with its N-glycans in `pdbx_branch_scheme`), all CC0-1.0.
 
 import { createHash } from 'node:crypto';
