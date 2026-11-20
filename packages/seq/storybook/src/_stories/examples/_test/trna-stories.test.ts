@@ -309,6 +309,49 @@ describe('tRNA: the seed row and the seed', () => {
   });
 });
 
+describe('tRNA: the seed’s SS_cons arcs over its columns', () => {
+  /** Each drawn arc's pair, by its columns: `i-j`. */
+  const drawn = (lay: PairsLay) => {
+    const d = lay.prep!.data!;
+    return Array.from({ length: lay.n }, (_, k) => `${d.aStart[lay.pair[k]]}-${d.bStart[lay.pair[k]]}`).sort();
+  };
+  const all = DerivedData.seedPairs.map(([i, j]) => `${i}-${j}`).sort();
+
+  it('every SS_cons pair an arc at the fit view; in a window its edges cut, those reaching it', async () => {
+    viewer = await openExample(trna('seed'), { gene: '' });
+    const v = viewer;
+    expect(v.frame!.layout.issues).toEqual([]);
+    expect(all).toHaveLength(21);
+    expect(drawn(arcsOf(v))).toEqual(all);
+    v.view.setRange('/views/main/family', 30.5, 60.5);
+    await vi.advanceTimersByTimeAsync(50);
+    v.draw();
+    // an arc with an end in view, or over the whole window (its span crosses it)
+    const want = DerivedData.seedPairs
+      .filter(([i, j]) => i < 60.5 && j + 1 > 30.5)
+      .map(([i, j]) => `${i}-${j}`)
+      .sort();
+    expect(want.length).toBeLessThan(all.length);
+    expect(drawn(arcsOf(v))).toEqual(want);
+  });
+
+  it('with 1EHZ below: a column’s hover reaches its residue; 1EHZ’s anticodon stem residue reaches its column', async () => {
+    viewer = await openExample(trna('seed-chain'), { gene: '' });
+    const v = viewer;
+    expect(v.frame!.layout.issues).toEqual([]);
+    const owner = {};
+    // 1EHZ's first residue sits on column columns[0]; its partner's column the pair's other end
+    const c0 = DerivedData.columns[0];
+    v.hover.set({ section: '/views/main/family', system: '/data/seed', position: c0 }, owner);
+    const on = v.hover.projectedAll()!.parts.find((q) => q.system === '/data/trna');
+    expect(Array.from(on!.ranges)).toEqual([0, 1]);
+    v.hover.set({ section: '/views/main/ehz', system: '/data/trna', position: 0 }, owner);
+    const col = v.hover.projectedAll()!.parts.find((q) => q.system === '/data/seed');
+    expect(Array.from(col!.ranges)).toEqual([c0, c0 + 1]);
+    v.hover.clear(owner);
+  });
+});
+
 describe('tRNA: the editing views, each a patch undone', () => {
   const arcs = ['views', 'main', 'trna', 'pairs', 'arcs'];
 

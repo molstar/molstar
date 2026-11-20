@@ -41,10 +41,16 @@ export const DotPlot: StoryObj = { render: () => exampleStory(view('dot-plot')) 
 export const SeedRow: StoryObj = { render: () => exampleStory(view('seed-row')) };
 
 /**
- * Rfam RF00005's seed, 954 rows of 118 columns, under its conservation logo. The `SS_cons` arc and the link from
- * 1EHZ's residues need a pairs node and a map on an alignment's columns, which the language does not have yet.
+ * Rfam RF00005's seed, 954 rows of 118 columns: its `SS_cons` pairs as arcs over its columns (the four stems), its
+ * conservation logo, its rows. Hover a column: the arcs ending in it light.
  */
 export const Seed: StoryObj = { render: () => exampleStory(view('seed')) };
+
+/**
+ * The seed with its `SS_cons` arcs and 1EHZ's letters below, mapped onto the columns through the seed row of highest
+ * identity (a `segments` map). Hover an arc: its two 1EHZ residues light; hover a residue: its column and its arcs.
+ */
+export const SeedAndChain: StoryObj = { render: () => exampleStory(view('seed-chain')) };
 
 /** The dot plot at 4,000 × 4,000: a generated grid, the plot alone, at the frame target. */
 export const DotPlotScale: StoryObj = { render: () => exampleStory(TrnaScaleView) };

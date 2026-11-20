@@ -666,8 +666,17 @@ export const TrnaViews: readonly ExampleView[] = [
     id: 'seed',
     title: 'Rfam RF00005 seed',
     summary:
-      'The seed (954 rows of 118 columns, Stockholm as published) under its conservation logo. The `SS_cons` arc and the link from 1EHZ’s residues wait for a pairs node and a map on an alignment’s columns.',
-    build: trna.seed,
+      'The seed (954 rows of 118 columns, Stockholm as published): its `SS_cons` pairs as arcs over its columns (21, the four stems), its conservation logo, its rows. Hover a column: the arcs ending in it light.',
+    build: () => trna.seed(),
+    registry: () => [{ kind: 'format-runtime', runtime: AlignmentFileRuntime }],
+  },
+  {
+    dataset: 'trna',
+    id: 'seed-chain',
+    title: 'The seed and 1EHZ',
+    summary:
+      'The seed with its `SS_cons` arcs, and 1EHZ’s letters below, mapped onto the columns through the seed row of highest identity (a `segments` map, the stopgap of an alignment map). Hover an arc: its two 1EHZ residues light; hover a residue: its column.',
+    build: trna.seedWithChain,
     registry: () => [{ kind: 'format-runtime', runtime: AlignmentFileRuntime }],
   },
 ];

@@ -17,6 +17,7 @@ import {
 import {
   covariationGrid,
   ehzPairs,
+  pairRows,
   ModifiedCompounds,
   ModifiedResidues,
   MoleculeFile,
@@ -147,19 +148,56 @@ export function seedRow(): Node {
   return b.build();
 }
 
-/** The Rfam RF00005 seed (a Stockholm file as published): its rows over its columns under a conservation logo. */
-export function seed(): Node {
+/**
+ * 1EHZ's positions on the seed's columns: the runs of its computed placement (`DerivedData.columns`, through the seed
+ * row of highest identity), each a `segments` map's segment (the stopgap of an `alignment` map: a chain onto a seed
+ * row's columns).
+ */
+export function ehzOnColumns() {
+  const from: number[] = [];
+  const to: number[] = [];
+  const length: number[] = [];
+  DerivedData.columns.forEach((c, i) => {
+    if (c < 0) return;
+    const k = length.length - 1;
+    if (k >= 0 && from[k] + length[k] === i && to[k] + length[k] === c) length[k]++;
+    else {
+      from.push(i);
+      to.push(c);
+      length.push(1);
+    }
+  });
+  return { from, to, length };
+}
+
+/**
+ * The Rfam RF00005 seed (a Stockholm file as published): its `SS_cons` pairs as arcs over its columns, its rows under a
+ * conservation logo; with `chain`, 1EHZ's letters below, mapped onto the columns (`ehzOnColumns`), so an arc's hover
+ * reaches its residues and a residue's its column.
+ */
+export function seed(options: { readonly chain?: boolean } = {}): Node {
   const b = createSeqSpec({ title: 'Rfam RF00005 seed' });
   const file = b.data.source('seed-file', { format: 'stockholm', uri: SeedFile });
   const aln = b.data.alignment('seed', { alphabet: 'rna', source: file, reference: DerivedData.row });
+  const ss = b.data.pairs('ss-cons', {
+    a: aln,
+    rows: pairRows(DerivedData.seedPairs.map(([i, j]) => [i, j, 'canonical'])),
+  });
+  const ehz = options.chain ? molecule(b).trna : undefined;
+  if (ehz) b.data.map('onto-seed', { from: ehz, to: aln, method: 'segments', segments: ehzOnColumns() });
   b.views.view('main', (v) => {
     const s = v.section('family', { of: aln });
     s.track('ruler', { label: '' }).layer('ruler', { type: 'ruler' });
+    s.track('ss-cons', { label: 'SS_cons' }).layer('arcs', { type: 'pairs', data: ss });
     s.track('logo', { label: 'Conservation' }).layer('logo', { type: 'logo', data: aln });
     s.track('rows', { label: '' }).layer('rows', { type: 'rows', data: aln });
+    if (ehz) v.section('ehz', { of: ehz }).track('letters', { label: '1EHZ' }).layer('letters', { type: 'letters' });
   });
   return b.build();
 }
+
+/** The seed with 1EHZ below it, on its columns. */
+export const seedWithChain = () => seed({ chain: true });
 
 /** The dot plot at `size` × `size` (4,000 by default): generated letters and values from seeds, the plot alone. */
 export function scale(size: number = ScaleSize): Node {
