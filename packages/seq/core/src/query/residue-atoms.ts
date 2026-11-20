@@ -38,6 +38,7 @@ const SideChains: Readonly<Record<string, string>> = {
   TYR: 'CB CG CD1 CD2 CE1 CE2 CZ OH',
   VAL: 'CB CG1 CG2',
   SEC: 'CB SE',
+  PYL: 'CB CG CD CE NZ C2 O2 CA2 CB2 CG2 CD2 CE2 N2',
   UNK: '',
 };
 
@@ -61,6 +62,17 @@ for (const [base, atoms] of Object.entries(Bases)) {
 /** A standard component's heavy atom names, or undefined for a code the table lacks. */
 export function standardAtoms(code: string): readonly string[] | undefined {
   return table.get(code);
+}
+
+const elementSets = new Map<string, readonly string[] | undefined>();
+
+/** A standard component's heavy atoms' element symbols, each once; made once a code. */
+export function standardElements(code: string): readonly string[] | undefined {
+  if (elementSets.has(code)) return elementSets.get(code);
+  const names = table.get(code);
+  const out = names && Object.freeze([...new Set(names.map(atomElement))]);
+  elementSets.set(code, out);
+  return out;
 }
 
 /** An atom name's element symbol (`SE` is selenium, `SG` sulfur: the CCD's names of the standard components). */

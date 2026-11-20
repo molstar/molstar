@@ -14,7 +14,7 @@ import { type Atom, type Named, parseAddress, printAddress } from '@molstar/core
 import { type Ctx, fail, prefixNodes, stage, tick } from './form-kit.js';
 import { keysExtent } from './key-extent.js';
 import { parseLabel } from './labels.js';
-import { atomElement, standardAtoms } from './residue-atoms.js';
+import { standardAtoms, standardElements } from './residue-atoms.js';
 import { isEmptyLocation, type Location, rangesLocation } from './location.js';
 import type { PropertyRead, QueryAtoms, QueryComponents, QuerySystem, QueryUnit } from './model.js';
 import { findNumbering, numberingPending } from './numbering.js';
@@ -188,8 +188,9 @@ export class FrameReads {
     if (!c?.polymer) return undefined;
     return (r) => {
       const code = c.standard?.(r) ?? c.at(r)[0];
-      const names = code === undefined ? undefined : standardAtoms(code);
-      return names && (elements ? [...new Set(names.map(atomElement))] : names);
+      // made once a code (`residue-atoms.ts`), never once a residue
+      if (code === undefined) return undefined;
+      return elements ? standardElements(code) : standardAtoms(code);
     };
   }
 

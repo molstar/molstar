@@ -564,18 +564,20 @@ source's).
 - **`elements`** (`query/elements-form.ts`): its items (`query/items.ts`) are one item as params
   (`(elements :chain A :seq 33)`), columns as lists (row i across them one item, a scalar the same in every row, lists
   zipped, unequal lengths an error), or records `:items [(fields …) …]` (alone; `fields` never evaluated); `itemsOf`
-  reads JSON's object or array of objects. Normalized to columns by the short names, typed by each property (a literal
-  read as its type: `:entity 3` is the word `"3"`), a field absent in every row dropped, a row given twice once;
-  `elementsForm` prints the shorter layout (one item as params, else columns or records by the printed length, ties to
-  columns), so `parse(print(a))` equals `a` (`itemsEqual`). Range fields: `beg`/`end` over `seq`, `auth-beg`/`auth-end`
-  over the auth numbering in its order (EC-1 to EC-8: an end it lacks snaps inward); `seq` with `beg` or `end` in one
-  row, `beg` past `end`, one property under two names: errors naming the row. Rows count against the limit.
+  (exported `selectionItemsOf`, `readItems` as `readSelectionItems`) reads JSON's object or array of objects. Normalized
+  to columns by the short names, typed by each property (a literal read as its type: `:entity 3` is the word `"3"`), a
+  field absent in every row dropped, a row given twice once; `elementsForm` prints the shorter layout (one item as
+  params, else columns or records by the printed length, ties to columns), so `parse(print(a))` equals `a`
+  (`itemsEqual`). Range fields: `beg`/`end` over `seq`, `auth-beg`/`auth-end` over the auth numbering in its order (EC-1
+  to EC-8: an end it lacks snaps inward); `seq` with `beg` or `end` in one row, `beg` past `end`, one property under two
+  names: errors naming the row. Rows count against the limit.
 - **Its depth** is its finest field: none below a unit, every matching unit's whole residues system; residue fields,
   those positions; an atom field, positions on the units' atoms systems. A frame without atoms held (a polymer's unit)
-  is tested by residue: an atom field reads the heavy atoms of its standard component (`query/residue-atoms.ts`; a
-  modified residue by its parent, its letter's), so the result is the residues that have that atom, as a structure
-  viewer reads them, and a viewer given them picks the atoms (the author, 2026-11-20: "Residues, as a structure viewer
-  reads them"); `atom-index` lacks there. Why: the record says how deep it goes, as MolViewSpec's does.
+  is tested by residue: an atom field reads the heavy atoms of its standard component (`query/residue-atoms.ts`, PYL and
+  SEC included, made once a code; a modified residue by its parent, its letter's), so the result is the residues that
+  have that atom, as a structure viewer reads them, and a viewer given them picks the atoms (the author, 2026-11-20:
+  "Residues, as a structure viewer reads them"); `atom-index` lacks there. Why: the record says how deep it goes, as
+  MolViewSpec's does.
 - **Sugar, exactly** (`itemsPredicate`): a field `:f v` is `(= (prop f) v)`, `:beg b :end e` `(in-range (prop seq) b e)`
   (an end alone `>=` or `<=`), a row `and` of its fields, items `or` of their rows; a property test holds the walk equal
   to `filter` with that predicate over the same elements. The walk differs in speed only: rows indexed by their molecule
