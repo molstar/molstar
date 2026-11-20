@@ -236,6 +236,32 @@ describe('the atoms group map, at a path’s ends only', () => {
   it('a follow needs a fixed scale: no path enters an atoms system (EC-113)', () => {
     expect(model.path('/data/atp/(atoms)', '/data/atp').issue?.code).toBe('seq.resolve.path.none');
   });
+
+  it('a ranged unit’s atoms are its residues’ (its first atom past 0), there and back', () => {
+    const b = createSeqSpec();
+    const m = b.data.molecule('m', {
+      residues: ['NAG', 'NAG', 'BMA'],
+      atoms: {
+        residue: [0, 0, 1, 1, 1, 2],
+        name: ['C1', 'O4', 'C1', 'C2', 'O4', 'C1'],
+        element: ['C', 'O', 'C', 'C', 'O', 'C'],
+      },
+    });
+    b.data.complex('c', {}, (c) => c.unit('U', { of: m, range: [1, 3] }));
+    const r = resolveSpec(b.build());
+    expect(r.molecular.atoms.get('/data/c/U/(atoms)')).toMatchObject({ of: '/data/c/U', first: 2 });
+    expect(r.systems.get('/data/c/U/(atoms)')?.length).toBe(4);
+    // the unit's atom 3 is the molecule's atom 5, residue 2
+    expect(ranges(r.project(rangesLocation('/data/c/U/(atoms)', [3, 4]), '/data/m').location, '/data/m')).toEqual([
+      2, 3,
+    ]);
+    expect(
+      ranges(r.project(rangesLocation('/data/m', [1, 2]), '/data/c/U/(atoms)').location, '/data/c/U/(atoms)'),
+    ).toEqual([0, 3]);
+    expect(
+      ranges(r.project(rangesLocation('/data/m/(atoms)', [5, 6]), '/data/c/U/(atoms)').location, '/data/c/U/(atoms)'),
+    ).toEqual([3, 4]);
+  });
 });
 
 // ---- properties ----
@@ -245,11 +271,8 @@ const Cases = 40;
 /** Units of `s` and `t` with ranges from a small set, so copies are common. */
 function randomUnits(rng: PCG) {
   const n = 1 + (rng.int() % 8);
-  const choices: [number, number][] = [
-    [0, 10],
-    [2, 8],
-    [2, 6],
-  ];
+  // an absent range is all of the sequence: the copy of an explicit [0, 10)
+  const choices: ([number, number] | undefined)[] = [[0, 10], [2, 8], [2, 6], undefined];
   return Array.from({ length: n }, (_, i) => ({
     id: `U${i}`,
     of: rng.int() % 2 ? ('s' as const) : ('t' as const),
@@ -286,6 +309,14 @@ describe('properties of molecules and units', () => {
       const units = randomUnits(rng);
       expect(groups(unitsSpec(shuffle(rng, units)))).toEqual(groups(unitsSpec(units)));
     }
+    expect(
+      groups(
+        unitsSpec([
+          { id: 'U', of: 's' },
+          { id: 'V', of: 's', range: [0, 10] },
+        ]),
+      ),
+    ).toEqual(['U,V']);
   });
 
   /** A molecule of 1–8 residues with 0–4 heavy atoms each. */
