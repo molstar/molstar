@@ -152,7 +152,7 @@ export const MoleculeKinds = {
     },
   },
   unit: {
-    doc: 'A unit of a complex: an instance of a sequence or a molecule, its positions the molecule’s over `range`, never renumbered; a coordinate system. Units of one complex with equal `of` and `range` are copies.',
+    doc: 'A unit of a complex: an instance of a sequence or a molecule, a coordinate system of the molecule’s positions over `range`, its position i the molecule’s `start + i`. Units of one complex with equal `of` and `range` are copies.',
     parents: ['complex'],
     ids: 'required',
     params: {
@@ -175,7 +175,7 @@ export const MoleculeKinds = {
           start: { type: 'column', of: 'int32', required: true, doc: 'The first position of each modeled run.' },
           end: { type: 'column', of: 'int32', required: true, doc: 'The position after its last.' },
         },
-        doc: 'The runs of its positions that were modeled, in order, within its range; all when absent (the rest drawn gray).',
+        doc: 'The runs of its own positions that were modeled, in order; all when absent (the rest drawn gray).',
       },
       chain: { type: 'string', doc: 'The structure’s chain (mmCIF’s `label_asym_id`).' },
       auth_chain: { type: 'string', doc: 'The author’s chain (`auth_asym_id`).' },

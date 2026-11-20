@@ -15,7 +15,7 @@ is added in the change that builds what it describes.
 
 ## Versions
 
-- The language has one version, `LanguageVersion` (`0.4.0`). Why: one language, one description, one number for readers
+- The language has one version, `LanguageVersion` (`0.5.0`). Why: one language, one description, one number for readers
   to check.
 - **Pre-release** (`0.x`): a change to the language moves the version with no migration (`0.1.0`: every child of the
   spec has an id, `layer` included; `0.2.0`: the `refs` container and the `ref` kind; `0.3.0`: the `snapshots` container
@@ -30,8 +30,13 @@ is added in the change that builds what it describes.
   their params `tree`, `order`, `collapsed`, `pinned`, `hidden_rows`, `height`, `summary`, `numbers`, `tree_width`,
   `columns`, `logo_scale`, `correction`, `gaps`, and a source's transform `records`, `letters`, `system`, `base`,
   `ends`, `types`, `attribution`, `licence`, with `fields` read, and the `numbering` kind under a sequence; and a
-  track's `padding`, an addition). A spec in an earlier `0.x` reads as one in this one, and is reported where it no
-  longer fits.
+  track's `padding`, an addition; `0.5.0`: the kinds `molecule`, `compounds`, `compound`, `complex` and `unit`, a
+  `numbering` under a unit, `pairs` under a complex or a molecule with the link columns `a_unit`, `b_unit`, `a_atom`,
+  `b_atom`, `order`, `occupancy` and its `a` optional, a sequence's `modified`, the data references widened to molecules
+  and units and a section's `of` to a complex, a block's `form`, a section's `classes`, a layer's `modified`, a `ranges`
+  layer taking `pairs`, a source's `ref` and a values node's `field`). A spec in an earlier `0.x` reads as one in this
+  one, and is reported where it no longer fits: a `0.4.0` spec reads unchanged (every addition is optional, and every
+  kind a reference took it still takes).
 
 ## Language
 
@@ -43,20 +48,21 @@ checks it cannot express.
   `rows` inline, a `label` and aligned `letters` a row, every row as wide, or a `source`; its `reference` row by label;
   the columns system its address, the rows system `rowsSystemOf(address)`, `<address>/(rows)`: rows are a system,
   EC-35), `tree` (`of` an alignment, `newick` its text; leaves matched to rows when drawn), `pairs` (two locations that
-  belong together: `a` a sequence, `b` another or `a`'s; its `rows` inline, `a_start`, `a_end`, `b_start`, `b_end` each
-  pair's two ends, never wrapping, at least a position each (EC-10), self-pairs allowed; an open `type` its kind, since
-  `kind` is reserved: canonical, wobble, contact; `id`, `label`, `a_strand` and `b_strand` (EC-206); any other category
-  column rides along as a field a data filter reads, `(item :tertiary yes)`), `grid` (a value per pair of positions: `x`
-  a sequence, `y` another or `x`'s, `values` x-major float32, NaN missing, `|x| × |y|` of them: `seq.lang.grid.length`);
-  under a `sequence`: `numbering` (Numberings, below); under `views`: `view`, then `section`, `block` (a piece of a
-  section on a system of its own: `of`, `range`, `label`), `track` (`hidden`, default false: kept in the spec, its row
-  collapsed; its layers keep their own; `padding`, px inside its well around its data, vertical only: a number top and
-  bottom, or `{ top, bottom }` one or both, each non-negative, a `repr` issue otherwise; absent, the render config's
-  `trackPadding`: Render, Tracks layout), `layer` (`hidden`, default false: kept in the spec and not drawn, so hiding is
-  a one-key `set`). A `ranges` node's `map: 'codon'` makes each item (its rows by `id`) a coding sequence of its own
-  (Overlay); a track's `for_each` makes it a template (Resolved view, Templates; its kind param is `node_kind`, since
-  `kind` is reserved, and is `ranges` or `values`: what a layer draws). Reference params (`target`, `of`, `from`, `to`,
-  `follow`, `source`, `data`) are `ref` params naming the kinds they take; a reference is an address.
+  belong together: `a` a system, `b` another or `a`'s, `a` required under `data` (`seq.lang.link.target`); its `rows`
+  inline, `a_start`, `a_end`, `b_start`, `b_end` each pair's two ends, never wrapping, at least a position each (EC-10),
+  self-pairs allowed; an open `type` its kind, since `kind` is reserved: canonical, wobble, contact; `id`, `label`,
+  `a_strand` and `b_strand` (EC-206); any other category column rides along as a field a data filter reads,
+  `(item :tertiary yes)`), `grid` (a value per pair of positions: `x` a sequence, `y` another or `x`'s, `values` x-major
+  float32, NaN missing, `|x| × |y|` of them: `seq.lang.grid.length`); under a `sequence`: `numbering` (Numberings,
+  below); under `views`: `view`, then `section`, `block` (a piece of a section on a system of its own: `of`, `range`,
+  `label`), `track` (`hidden`, default false: kept in the spec, its row collapsed; its layers keep their own; `padding`,
+  px inside its well around its data, vertical only: a number top and bottom, or `{ top, bottom }` one or both, each
+  non-negative, a `repr` issue otherwise; absent, the render config's `trackPadding`: Render, Tracks layout), `layer`
+  (`hidden`, default false: kept in the spec and not drawn, so hiding is a one-key `set`). A `ranges` node's
+  `map: 'codon'` makes each item (its rows by `id`) a coding sequence of its own (Overlay); a track's `for_each` makes
+  it a template (Resolved view, Templates; its kind param is `node_kind`, since `kind` is reserved, and is `ranges` or
+  `values`: what a layer draws). Reference params (`target`, `of`, `from`, `to`, `follow`, `source`, `data`) are `ref`
+  params naming the kinds they take; a reference is an address.
 - **The axis's params** (the writer's: what the figure is; never inferred from what a section draws, so adding a layer
   never turns a section over): a section's `direction` (`genomic`, `reversed`, `follow`, or
   `{ along: <sequence or map> }`; absent: `follow` for a section with `follow`, else `genomic`), `pieces` (`whole`,
@@ -91,6 +97,13 @@ checks it cannot express.
   names the first, the queries' rule). A change to a sequence checks its numberings again (Checks of a change). Why a
   child of the sequence: a numbering is the sequence's, and moving or removing the sequence takes its numberings with
   it.
+- **A source named by a host** (`ref`): a host's name for data with no file (an edited or predicted model), read by a
+  host's adapter only. Beside a `uri` it is portable (a reader without the host opens the `uri`); alone it is allowed
+  and said once (`seq.lang.source.host_only`, info, EC-185); beside an inline `value` it is `seq.lang.source.content`
+  (inline data is never a host's). Why: the same spec opens with the host and without it.
+- **A values channel** (`values.field`): with a `source`, the column of its values read (`plddt`, `b_factor`); the
+  source's default value when absent; without a source `seq.lang.values.content`. Why: one source, one open and one
+  parse serve every channel.
 - **Navigators** (`views/<view>/navigators/<id>`, the `navigators` container's id is `navigators`): a `navigator` node
   is a part over a section's axis, its rows or both, placed by the host: `of` (a section or a list of them, refs),
   `axes` (`positions`, `rows`, `both`), `content` (`axis`, `tracks`, `bands`, `rows`), `tracks` (refs), `bands` (a
@@ -109,6 +122,8 @@ checks it cannot express.
   codon map are in genomic order and do not overlap (`strand` says which way the protein runs); on a cyclic gene the
   last exon may cross the origin (`end < start`, ending at or before the first exon's start, EC-11). Why: one convention
   for every coordinate the language writes.
+- **Systems** a data reference takes (`ranges.target`, `values.target`, `pairs.a`/`b`, `grid.x`/`y`, `map.from`/`to`,
+  `block.of`): a sequence, a molecule (its residues) or a unit; `section.of` a complex too (Molecules and complexes).
 - **Defaults in params**: a codon map's `table` is the NCBI genetic code, 1 when absent; a sequence's `name` is the
   record its source knows it by, its id when absent. Neither is filled in by normalization, so a spec that leaves them
   out hashes as it did.
@@ -135,14 +150,16 @@ checks it cannot express.
   them, or named any node of a subtree it removed or moved away (walked in the old root); on through the user refs that
   name those, and through a ref with segments after it (`/refs/p/x` where `/refs/p` names a prefix of the node, at most
   the ref depth deep); a template's layers under a track whose params changed; a sequence's numberings when it changed;
-  the sections and refs of a chain a changed one closes. What names what is a reverse index of the spec's references (a
-  persistent set of referring nodes by the id run they name), built once a spec and derived from the last revision's
-  along its changes. The same checks on the same nodes before the change are taken away, by code, node (through moves)
-  and place in the node. Why: a patch is refused only for what it introduced (an error already there never blocks an
-  edit beside it), and the cost follows the change, not the spec. Held by tests that compare it with the whole check's
-  difference, patch by patch, along a chain of revisions and over seeded random patches of ref chains; and in the heavy
-  lane, at 16,000 layers, the first check after a load and a fan-out to every node no worse than the whole check, a
-  one-node edit a small part of it.
+  the sections and refs of a chain a changed one closes; a molecule's links (counted against its residues); a unit's
+  numberings, what names it and its complex's links, also when it is reached through its molecule; and the links of a
+  complex a unit left (removed or renamed: links name units by id, not by reference). What names what is a reverse index
+  of the spec's references (a persistent set of referring nodes by the id run they name), built once a spec and derived
+  from the last revision's along its changes. The same checks on the same nodes before the change are taken away, by
+  code, node (through moves) and place in the node. Why: a patch is refused only for what it introduced (an error
+  already there never blocks an edit beside it), and the cost follows the change, not the spec. Held by tests that
+  compare it with the whole check's difference, patch by patch, along a chain of revisions and over seeded random
+  patches of ref chains; and in the heavy lane, at 16,000 layers, the first check after a load and a fan-out to every
+  node no worse than the whole check, a one-node edit a small part of it.
 - **Bounds** (`bounds.ts`, `SpecBounds`, `DefaultSpecBounds`; the core's `bounds` item, `SeqCoreConfig.bounds`): a spec
   comes from a URL, a link or an agent, so what it sizes is refused with a coded issue before the work starts.
   `checkSpecBounds` is the first gate of `checkSeqSpec`, before the version and the description: one iterative walk (a
@@ -179,6 +196,71 @@ checks it cannot express.
   the reading node: the conventions are the file's whoever reads it, the store keys entries by source, and several
   readers of one file share one open; an edit of the transform is a patch of the source, which reopens it in place (one
   undo step, no side-by-side preview).
+
+### Molecules and complexes
+
+`lang/molecule-language.ts` (the kinds), `lang/check-molecules.ts` (their checks). Seq\* holds pointers and labels,
+never chemistry: a component code, a SMILES, a GlyTouCan id are strings it matches and shows.
+
+- **A sequence's `modified`**: a sparse table (`position` in order, `component`, `length` 1 when absent) of the
+  positions whose component is not their letter's standard one; a position not listed has its letter's standard
+  component. The letter is the parent's (MSE `M`, PSU `U`), `X` or `N` where there is none. Several rows at one position
+  are alternatives (microheterogeneity), the first giving the letter; a component of `length` > 1 stands for several
+  parents (CRO for T, Y, G) over their letters. Checks: positions in order (`seq.lang.modified.order`), within the
+  inline letters with their length (`seq.lang.modified.bounds`), a length of at least 1 stopping before the next row's
+  position (`seq.lang.modified.length`). Why sparse: a protein of 300 residues has a handful of modified ones; why the
+  parent's letter: search, alignment, schemes and translation read letters, and the component changes no arithmetic.
+- **A `molecule`** (under `data`): what is not a linear polymer of letters (a ligand, an ion, a glycan, a drug). Its
+  positions are its `residues` (a component code each, a category column) or its `source`'s
+  (`seq.lang.molecule.content`: one of them); its `atoms` optional, beside inline residues (`residue` non-decreasing and
+  a position of the residues, `seq.lang.molecule.atoms`; `name`, `element`; heavy atoms only, a hydrogen is
+  `seq.lang.molecule.hydrogen`, EC-64); its `class` an open word (`branched`, `ligand`, `ion`, `water`; `ligand` when
+  absent); its `name`; its `identifiers` (`namespace` an open lowercase word, `seq.lang.molecule.identifier`; `value`
+  matched exactly). Two systems: `<molecule>` (its residues) and `<molecule>/(atoms)`. A molecule with no identifier is
+  valid (an unknown ligand). Why a kind and not a sequence: a sequence's arithmetic (alphabets, schemes, codons,
+  aligners) does not apply, and folding both into one kind makes every reader of letters check a flag; why no hydrogens:
+  they are often absent or model-dependent, so lengths and per-atom data would not line up across entries.
+- **Compounds** (`/data/compounds/<code>`, the `compounds` container's id is `compounds`): a `compound` describes a
+  component, its id the code (`name`, `parents` a list of codes, `class` the CCD's `type` word, `identifiers`). A code
+  needs no node. Why a container: a compound is reference data, not a system, and its codes collide with the writer's
+  ids of systems.
+- **A `complex`** (under `data`, `name`): units shown together, in order, with the links between them; it adds no
+  arithmetic. **A `unit`** (under a complex): an instance of a sequence or a molecule (`of`), its `range` on it (never
+  wrapping, within it: `seq.lang.unit.range`, EC-13; all of it when absent), its `observed` runs (`start`, `end`, in
+  order within its positions: `seq.lang.unit.observed`), `chain` (`label_asym_id`), `auth_chain`, `operator`
+  (MolViewSpec's `instance_id`), `label`, `group` (a BIRD/PRD instance); its `numbering` children (`auth`) label its own
+  positions. A unit is a system whose position i is its molecule's `range[0] + i` (Queries, Numberings and labels; the
+  paths' unit steps). Units of one complex with equal `of` and `range` are copies, derived, never declared (EC-65).
+- **Links** are a `pairs` child of a complex (between its units: `a_unit`, `b_unit` the units' ids, each end on its
+  unit's positions) or of a molecule (between its residues); a child names no `a` or `b`, its parent is both
+  (`seq.lang.link.target`); unit columns only under a complex, each end naming a unit of it (`seq.lang.link.unit`) and
+  lying within it (`seq.lang.link.bounds`); `type` (`covalent`, `disulfide`, `glycosidic`, `metal`, any word), `a_atom`,
+  `b_atom`, `order`, `occupancy` (0 to 1, NaN 1: `seq.lang.link.occupancy`). Both ends on one unit is allowed (a
+  disulfide in a chain); glycoforms and stochastic conjugation are several rows with occupancies. Why a `pairs` node:
+  one shape for links and contacts, drawn by the pairs layer; never a map, so a glycan's selection never selects its
+  site.
+- **Views of them**: `section.of` takes a complex (a block a unit), `section.classes` the classes shown in order
+  (`polymer` a sequence's units, else a molecule's class; `[polymer, branched, ligand, ion]` when absent: water left
+  out); `block.form` (`whole`, `residues`, `atoms`; `whole` for a molecule and `residues` for a sequence when absent;
+  `atoms` on a system without them is `seq.lang.molecule.form`, a unit read through its molecule, a molecule from a
+  source not judged); a `letters` layer's `modified` (`mark`, `code`, `tint`, `none`; `mark` when absent); a `ranges`
+  layer takes `pairs` data (each end a mark at its site). What they draw is Render's.
+- **Shared with dynamic nodes**: `checkDataNode` runs a molecule's and a sequence's `modified` checks and a pairs node's
+  link checks (`DataNodeTargets.parent`), so a host's molecule is held to the spec's rules; `checkUnit` and `checkLinks`
+  take what they read as arguments, for the overlay's complexes.
+
+| Item                   | Default                                                   | Why the default; the alternatives                                                        |
+| ---------------------- | --------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `block.form`           | `whole` for a molecule, `residues` for a sequence or unit | a molecule reads at the fit view; one rule for every non-polymer; `residues`, `atoms`    |
+| `section.classes`      | `[polymer, branched, ligand, ion]`                        | Mol\*'s and MVS's order (EC-101); waters say nothing on an axis; any list, `water` added |
+| `copies`               | `merge`                                                   | unchanged; `each` (poses: the builder's for a pose set)                                  |
+| `modified` (`letters`) | `mark`                                                    | a modified residue drawn as its parent alone hides it; `code`, `tint`, `none`            |
+| `code` (`letters`)     | `auto`                                                    | the component's code where three letters have room; `one`, `three`                       |
+| `class` (`molecule`)   | `ligand`                                                  | the commonest non-polymer; `branched`, `ion`, `water`, any word                          |
+| identifier namespaces  | open words                                                | a host's registry ids are pointers too; the documented vocabulary                        |
+| `ref` (`source`)       | absent                                                    | portable by `uri`; a host's name for data with no file                                   |
+| `field` (`values`)     | the source's default value                                | one source, many channels                                                                |
+| hydrogens in `atoms`   | refused (fixed)                                           | lengths and per-atom data line up across entries (EC-64)                                 |
 
 ### Refs
 
@@ -232,6 +314,10 @@ of it.
   string); a handle of another kind is a type error. Which params are references is read from the description, in the
   types and when the builder converts a handle to its address. Why: no list of param names to keep in step with the
   language.
+- **Molecules and complexes**: `b.data.molecule(id, params, (m) => m.links(id, params))`,
+  `b.data.complex(id, params, (c) => { c.unit(id, params, (u) => u.numbering(id, params)); c.links(id, params) })`
+  (links' params are a pairs node's but `a` and `b`), `b.data.compound(id, params)` (the `compounds` container made with
+  the first); `modified(rows)` and `identifiers(record or pairs)` write the tables from rows.
 - **Misuse** that types do not reach (an id twice under one parent, a malformed id) throws where it is written; the rest
   is found by `check`. Calls are recorded and replayed on the engine of `@molstar/core/repr/builder` at `build`.
 - **Type tests** (`_test/types.test.ts`) mark wrong kinds and params with `@ts-expect-error`; they are checked by
@@ -595,6 +681,9 @@ over 20 runs; the heavy lane bounds one sample at 40 ms (`resolve/_test/addressi
   an HTML page or truncated JSON says JSON's error), read through the tree's codec of that encoding; the runtime reads
   bytes (`readBytes`), refuses a file over `limits.maxBytes` before parsing it (`seq.source.too_large`), and loads the
   MessagePack codec only when a file needs it (a dynamic import: a reader of inline specs does not pay for it).
+- **Nodes of the molecule kinds** (a molecule, a `compounds` container, a complex with its units and links) are carried
+  as any dynamic node, their tables typed through both encodings; the overlay validates each under `data` and runs the
+  language's rules on it. Why: the fixtures' form is the protocol's, one reading for a file and a host.
 - **Its runtime** joins the pairs of the request's system (by name or alias) and level that overlap the region, in
   position order, each cut to its part; a gap no pair holds is `not-served`, naming its positions (the format is
   explicit: an empty region is a pair with empty tables). A failure among the pairs is the answer; an unlisted system or
