@@ -134,6 +134,19 @@ describe('structureNodes', () => {
     expectValid(nodes);
   });
 
+  it('a non-polymer is an ion by its component’s formula, not by the atoms modeled (a phosphate with its P alone)', () => {
+    const d = zincFinger();
+    const phosphate: StructureDescription = {
+      ...d,
+      components: { ...d.components, component: ['CYS', 'HIS', 'MSE', 'CYS', 'XYZ', 'PO4', 'HOH'] },
+      compounds: { id: ['PO4', 'ZN'], formula: ['O4 P -3', 'Zn 2'] },
+      atoms: { entity: Int32Array.of(1), residue: Int32Array.of(0), name: ['P'], element: ['P'] },
+    };
+    expect(read(phosphate).nodes[1].node.params?.class).toBe('ligand');
+    const zinc: StructureDescription = { ...d, compounds: { id: ['ZN'], formula: ['Zn 2'] }, atoms: undefined };
+    expect(read(zinc).nodes[1].node.params?.class).toBe('ion');
+  });
+
   it('leaves a molecule’s hydrogens out, said (EC-64)', () => {
     const d = zincFinger();
     const withH: StructureDescription = {

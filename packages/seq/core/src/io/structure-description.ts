@@ -104,6 +104,8 @@ export interface CompoundTable {
   readonly name?: readonly (string | undefined)[];
   /** `chem_comp.type` (`L-PEPTIDE LINKING`, `NON-POLYMER`). */
   readonly type?: readonly (string | undefined)[];
+  /** `chem_comp.formula` (`C3 H2 O4 -2`, `Zn 2`): what tells an ion (one atom) from a ligand. */
+  readonly formula?: readonly (string | undefined)[];
   /** `chem_comp.mon_nstd_parent_comp_id`, split. */
   readonly parents?: readonly (readonly string[] | undefined)[];
 }

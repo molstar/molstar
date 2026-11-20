@@ -80,6 +80,7 @@ export interface ReadCompound {
   readonly name?: string;
   readonly type?: string;
   readonly parents?: readonly string[];
+  readonly formula?: string;
 }
 
 /** A description as read: entities, units, compounds by their ids; links by their ends. */
@@ -445,7 +446,7 @@ export function readStructure(
 
   // compounds: unique codes; every row of a code given twice left out
   const k = D.compounds;
-  const nK = rows('compounds', k, ['id'], ['name', 'type', 'parents']);
+  const nK = rows('compounds', k, ['id'], ['name', 'type', 'parents', 'formula']);
   const codes = new Map<string, number>();
   for (let i = 0; i < nK; i++) {
     const id = col(k, 'id')![i];
@@ -453,9 +454,9 @@ export function readStructure(
   }
   const compounds: ReadCompound[] = [];
   for (let i = 0; i < nK; i++) {
-    const [id, name, type, parents] = ['id', 'name', 'type', 'parents'].map((x) => col(k, x)?.[i]);
+    const [id, name, type, parents, formula] = ['id', 'name', 'type', 'parents', 'formula'].map((x) => col(k, x)?.[i]);
     const parentsOk = parents === undefined || parents === null || (Array.isArray(parents) && parents.every(str));
-    if (!str(id) || !optStr(name) || !optStr(type) || !parentsOk) {
+    if (!str(id) || !optStr(name) || !optStr(type) || !optStr(formula) || !parentsOk) {
       badRow('compounds');
       continue;
     }
@@ -467,6 +468,7 @@ export function readStructure(
       id,
       ...(str(name) ? { name } : {}),
       ...(str(type) ? { type } : {}),
+      ...(str(formula) ? { formula } : {}),
       ...(Array.isArray(parents) && parents.length ? { parents: parents as string[] } : {}),
     });
   }

@@ -73,9 +73,10 @@ export function structureNodes(d: StructureDescription, options: StructureNodesO
   );
   const issues = [...read.issues];
   const parents = new Map(read.compounds.filter((c) => c.parents).map((c) => [c.id, c.parents!]));
+  const formulas = new Map(read.compounds.filter((c) => c.formula).map((c) => [c.id, c.formula!]));
   let unknown = 0;
   const nodes: DynamicNode[] = read.entities.map((x) => {
-    const made = entityNode(x, parents);
+    const made = entityNode(x, parents, formulas);
     unknown += made.unknown;
     return { key: x.id, node: made.node };
   });
@@ -108,7 +109,11 @@ export function structureNodes(d: StructureDescription, options: StructureNodesO
 }
 
 /** An entity's node: a polymer a sequence (letters given, else from its components), any other a molecule. */
-function entityNode(x: ReadEntity, parents: ReadonlyMap<string, readonly string[]>): { node: Node; unknown: number } {
+function entityNode(
+  x: ReadEntity,
+  parents: ReadonlyMap<string, readonly string[]>,
+  formulas: ReadonlyMap<string, string>,
+): { node: Node; unknown: number } {
   const comps = x.components;
   if (x.type === 'polymer') {
     const alphabet = alphabetOf(x.polymerType);
@@ -134,7 +139,7 @@ function entityNode(x: ReadEntity, parents: ReadonlyMap<string, readonly string[
   const residues: string[] = [];
   for (const k of comps) if (k.position === residues.length) residues.push(k.component);
   const params: Record<string, unknown> = {
-    class: x.type === 'non-polymer' ? (x.atoms.length === 1 ? 'ion' : 'ligand') : x.type,
+    class: x.type === 'non-polymer' ? (isIon(residues, formulas, x.atoms.length) ? 'ion' : 'ligand') : x.type,
     residues: categoryColumn(residues),
   };
   if (x.atoms.length)
@@ -151,6 +156,23 @@ function entityNode(x: ReadEntity, parents: ReadonlyMap<string, readonly string[
       value: x.identifiers.map((i) => i.value),
     };
   return { node: { kind: 'molecule', id: x.id, params, ...(links ? { children: [links] } : {}) } as Node, unknown: 0 };
+}
+
+/**
+ * A non-polymer is an ion when its one component is one atom, by its compound's formula (`Zn 2`, `Cl -1`; not
+ * `O4 P -3`): its chemistry, not what was modeled (a phosphate with its P alone modeled is a ligand). Without a
+ * formula, the atoms described tell (one: an ion).
+ */
+function isIon(residues: readonly string[], formulas: ReadonlyMap<string, string>, atoms: number): boolean {
+  if (residues.length !== 1) return false;
+  const formula = formulas.get(residues[0]);
+  if (formula === undefined) return atoms === 1;
+  let n = 0;
+  for (const t of formula.trim().split(/\s+/)) {
+    const m = /^([A-Z][a-z]?)(\d*)$/.exec(t);
+    if (m) n += m[2] ? Number(m[2]) : 1;
+  }
+  return n === 1;
 }
 
 /** A component's letter: its own standard one, else its parent's (one parent: MSE is `M`), else none. */

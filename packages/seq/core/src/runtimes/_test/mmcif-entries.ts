@@ -137,9 +137,9 @@ export const Recorded: Readonly<Record<EntryId, Summary>> = {
   },
   '4HHB': {
     // α (141) and β (146) twice, a heme in each (43 heavy atoms, each Fe on its proximal His), two phosphates (the
-    // P alone modeled: an ion by `structureNodes`' one-atom rule)
+    // P alone modeled: a ligand still, by its formula `O4 P -3`)
     sequences: { '1': 'protein 141 modified 0', '2': 'protein 146 modified 0' },
-    molecules: { '3': 'ligand [HEM] atoms 43 ids ccd', '4': 'ion [PO4] atoms 1 ids ccd' },
+    molecules: { '3': 'ligand [HEM] atoms 43 ids ccd', '4': 'ligand [PO4] atoms 1 ids ccd' },
     compounds: 21,
     units: {
       A: 'of 1 auth A observed all labels 1..141 (141)',

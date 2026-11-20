@@ -1104,13 +1104,14 @@ names: `StructureDescription` and its table types, `structureNodes` (with `Struc
 - **`structureNodes(description, { source, water?, complex?, limits? })`**: a sequence per polymer entity (letters
   given, else each position's first component's standard letter, else its one parent's, else `X` or `N`, said once:
   `seq.io.structure.letters`; `modified` the positions whose component is not their letter's standard one and every row
-  of a position with alternatives), a molecule per other entity (`class` `branched`, `water`, else `ion` for one atom,
-  else `ligand`), the `compounds`, and a complex of units (`of` the entity's node, `chain`, `auth_chain`, `operator`,
-  `observed` runs when a position was not, an `auth` numbering from `auth_seq_id` and `ins_code`) with a `links` child;
-  a molecule's `entityLinks` its own `links` child (a polymer's left out: a sequence takes none); water only when asked.
-  It also gives the units' systems (their ids and lengths) and `values(field)`, a named value over each kept unit's
-  positions from that unit's own residue rows: what a source serves for a `values` node's `field`. Why on the result:
-  the values follow the units the reading kept, by the same keys.
+  of a position with alternatives), a molecule per other entity (`class` `branched`, `water`, else `ion` when its one
+  component is one atom by its compound's `formula` (without one, one atom described), else `ligand`), the `compounds`,
+  and a complex of units (`of` the entity's node, `chain`, `auth_chain`, `operator`, `observed` runs when a position was
+  not, an `auth` numbering from `auth_seq_id` and `ins_code`) with a `links` child; a molecule's `entityLinks` its own
+  `links` child (a polymer's left out: a sequence takes none); water only when asked. It also gives the units' systems
+  (their ids and lengths) and `values(field)`, a named value over each kept unit's positions from that unit's own
+  residue rows: what a source serves for a `values` node's `field`. Why on the result: the values follow the units the
+  reading kept, by the same keys.
 - **Checked and bounded** (`structure-read.ts`; a host is code Seq\* does not own): every table and every cell is read
   as its type before anything is sized by it; what does not read is said at the source's address and left out, never
   thrown. A table missing, of another type or with a column of another length is left out (`seq.io.structure.columns`);

@@ -575,7 +575,12 @@ export function mmcifDescription(frame: CifFrame, options: MmcifReadOptions, add
     const parent = strOf(fieldOf(mr, 'parent_comp_id'), i);
     if (code && parent && !modParent.has(code)) modParent.set(code, parent);
   }
-  const compounds = { id: [] as string[], name: [] as (string | undefined)[], type: [] as (string | undefined)[] };
+  const compounds = {
+    id: [] as string[],
+    name: [] as (string | undefined)[],
+    type: [] as (string | undefined)[],
+    formula: [] as (string | undefined)[],
+  };
   const parents: (string[] | undefined)[] = [];
   const compoundSeen = new Set<string>();
   const cc = cats.chem_comp;
@@ -586,6 +591,7 @@ export function mmcifDescription(frame: CifFrame, options: MmcifReadOptions, add
     compounds.id.push(id);
     compounds.name.push(strOf(fieldOf(cc, 'name'), i));
     compounds.type.push(strOf(fieldOf(cc, 'type'), i));
+    compounds.formula.push(strOf(fieldOf(cc, 'formula'), i));
     const own = strOf(fieldOf(cc, 'mon_nstd_parent_comp_id'), i);
     const p = own ? own.split(',').map((s) => s.trim()) : modParent.has(id) ? [modParent.get(id)!] : undefined;
     parents.push(p?.length ? p : undefined);
