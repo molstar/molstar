@@ -195,12 +195,14 @@ nothing and tells nothing. Beside `models/view.ts` (the moves and the publish): 
   pushes one taken earlier as a step (unless the view is there now): a gesture's one step, pushed when it ends (a
   navigator's far drag, of its window or its rows); `jump` pushes through it.
 - **The last jump** (`lastJump`, set before `jumps` moves, so a listener of `jumps` reads it):
-  `{ n, kind, location?, durationMs }`, `n` the count `jumps` moves to, `kind` `focus` (a focus, and a jump that names
-  no kind: a step zoom, a navigator's move), `reveal`, `fit`, `back` or `forward`; `location` the Location a focus or a
-  reveal named (`AddressModel`'s, an address resolved), and on a step back or forward the one the jump that left the
-  view at that step named, kept with the step while no hand moved the view since (a step pushed after a hand's move
-  names none); `durationMs` is `view.jumpMs`. Why: `jumps` counts but says neither where nor how long; a link to a
-  structure viewer, a story's camera and an analytics host read the same record.
+  `{ n, kind, location?, durationMs }`, `n` the count `jumps` moves to, `kind` `focus` (an address's or a Location's,
+  the cursor's Enter, a double-click on an element or a cell), `reveal`, `fit`, `zoom` (a step zoom, a grid cell's
+  double-click), `move` (a navigator's or a rows rail's move, a bulk fold; a jump that names no kind), `back` or
+  `forward`; `location` the Location a focus or a reveal named (`AddressModel`'s, an address resolved; a double-click's
+  element extent or position), and on a step back or forward the one the jump that left the view at that step named,
+  kept with the step while no hand moved the view since (a step pushed after a hand's move names none); `durationMs` is
+  `view.jumpMs`. Why: `jumps` counts but says neither where nor how long; a link to a structure viewer, a story's camera
+  and an analytics host read the same record.
 - **A source-backed system's length** is the model's once its source opened (SpecModel, its `lengths`): the resolved
   view's axes get their pieces then, so a section on a streamed sequence is placed and its kept intent applies.
 - **Placed** only with a width and a known axis length, else `pending`: a move then is kept as the intent and placed
@@ -1303,14 +1305,18 @@ over the same translation.
   one clock). A fit names none: nothing sent.
 - **In**: the side's hover as a hover of a Location (`HoverModel.setLocation`) owned by the link: drawn projected, no
   card; the pointer taking the hover takes it, and the side's `null` clears only the link's own (a stale `null` does
-  nothing, EC-141); the side's selection through `fromUnits` (atoms kept where a section or block shows a unit's atoms
-  form) into `selection.set`, then revealed (`revealOnSelect`: `revealLocation`, the zoom kept; `focus`; `none`); a
-  `null` clears it; its focus as `focusLocation` (one jump).
+  nothing, EC-141); the side's selection through `fromUnits` (a unit's atoms kept where a section or block shows its
+  atoms form, collapsed onto its residues elsewhere, unit by unit) into `selection.set`, then revealed
+  (`revealOnSelect`: `revealLocation`, the zoom kept; `focus`; `none`); a `null` clears it; its focus as `focusLocation`
+  (one jump).
 - **Echoes** never go back: the link's own hover is not sent (it only ends the pointer's hover sent before it, with
-  `null`); a selection equal (`locationsEqual`) to the one last set from the side is not sent; a jump made while a
-  message from the side is applied (its selection's reveal, its focus) is not sent.
-- **The model** translated against is the spec's static model with the store's current overlay when it holds a source's
-  nodes (`StoreModel.currentOverlay`), else the static model alone.
+  `null`, sent from inside the side's `onHover` call); a selection equal (`locationsEqual`) to the one last set from the
+  side is not sent; a jump made while a message from the side is applied (its selection's reveal, its focus) is not
+  sent. So a host keeps Seq\*'s highlight apart from its own hover: a `highlight(null)` arriving while it reports its
+  own hover clears what Seq\* lit earlier, never the side's hover. Of the jumps, only those naming a Location go out
+  (`focus`, `reveal`, and back and forward over them); `fit`, `zoom` and `move` name none.
+- **The model** translated against is the spec's static model with the store's current overlay
+  (`StoreModel.currentOverlay`; an empty one before the first frame reads as the model alone, core's Structures).
 - **Clearing**: the disposer, the side's `signal` or the viewer retiring (`retiredSignal`) ends the link once: its
   subscriptions and a waiting selection message dropped, `highlight(null)` and `select(null)` sent for the directions
   sent out, the link's hover cleared. A signal aborted before the call ends the link at once.

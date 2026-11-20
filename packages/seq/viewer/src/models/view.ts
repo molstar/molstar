@@ -434,19 +434,20 @@ export class ViewModel extends ReactiveModel {
    * `same` when the view already showed what was asked (a double-click on what is focused), `none` when nothing could
    * move. A pan or a zoom by hand pushes nothing: a jump after it pushes where the hand left the view.
    */
-  jump(move: () => boolean, record = true, kind: JumpKind = 'focus', location?: Location): JumpOutcome {
+  jump(move: () => boolean, record = true, kind: JumpKind = 'move', location?: Location): JumpOutcome {
     const before = this._snapshot();
     if (!move()) return 'none';
-    if (snapshotsEqual(before, this._snapshot())) return 'same';
+    const after = this._snapshot();
+    if (snapshotsEqual(before, after)) return 'same';
     if (record) this.record(before as unknown as ViewSnapshot);
-    this._jumped(kind, location);
+    this._jumped(kind, location, after);
     return 'moved';
   }
 
-  /** A jump landed: the last jump told, then the count moved; where it left the view kept with its Location. */
-  private _jumped(kind: JumpKind, location: Location | undefined): void {
+  /** A jump landed (`after`: where it left the view): the last jump told, then the count moved; `after` kept with its Location. */
+  private _jumped(kind: JumpKind, location: Location | undefined, after: Snapshot): void {
     const n = this._jumps.value + 1;
-    this._landed = location && { ...this._snapshot(), location };
+    this._landed = location && { ...after, location };
     this._lastJump = { n, kind, location, durationMs: this.config.view.jumpMs };
     this._jumps.set(n);
   }
@@ -543,7 +544,7 @@ export class ViewModel extends ReactiveModel {
         this._publish();
       },
     );
-    if (moved) this._jumped(forward ? 'forward' : 'back', location);
+    if (moved) this._jumped(forward ? 'forward' : 'back', location, this._snapshot());
     return moved;
   }
 

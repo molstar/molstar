@@ -101,7 +101,12 @@ function makeReads(model: StaticModel, overlay: Overlay | undefined): StructureR
     atoms: (a) => own.atoms.get(a) ?? dyn?.atoms.get(a),
     system: (a) => model.systems.get(a) ?? overlay?.system(a),
     querySystem: (a) => query.system(a),
-    path: (from, to, via) => (overlay ? overlay.path(from, to, via) : model.path(from, to, via)),
+    // a pair of the model's systems is the model's path (as `DynamicOverlay.path`): an overlay that holds no node (the
+    // empty one, before a store's first frame) knows no path of its own
+    path: (from, to, via) =>
+      overlay && !(model.systems.has(from) && model.systems.has(to))
+        ? overlay.path(from, to, via)
+        : model.path(from, to, via),
     unitsOf: (complex, molecule) => indexOf(complex).get(molecule) ?? [],
     moleculesOf: (complex) => indexOf(complex).keys(),
     ownMapped(complex) {
@@ -120,5 +125,11 @@ export function bindingsOf(
   r: StructureReads,
   complexes: readonly StructureBinding[] | undefined,
 ): readonly StructureBinding[] {
-  return complexes ?? r.complexes().map((c): StructureBinding => ({ complex: c.address }));
+  if (complexes) return complexes;
+  // kept a reads (a hover a frame makes none)
+  let all = Unbound.get(r);
+  if (!all) Unbound.set(r, (all = r.complexes().map((c): StructureBinding => ({ complex: c.address }))));
+  return all;
 }
+
+const Unbound = new WeakMap<StructureReads, readonly StructureBinding[]>();

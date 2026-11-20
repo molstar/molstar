@@ -10,7 +10,10 @@
 // and the side as two consumers of one link.
 
 import type { Node } from '@molstar/core/repr/tree';
-import { EmptyLocation, type Location, locationsEqual } from '@molstar/seqx-core/query';
+import { createSeqSpec } from '@molstar/seqx-core/lang';
+import { EmptyLocation, type Location, location, locationsEqual } from '@molstar/seqx-core/query';
+import { atomsSystemOf } from '@molstar/seqx-core/resolve';
+import type { RangesLay } from '@molstar/seqx-core/render';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DefaultSeqViewerSpec } from '../default-spec.js';
 import { type LinkStructureOptions, linkStructure } from '../link-structure.js';
@@ -158,6 +161,36 @@ describe('linkStructure', () => {
     expect(side.told).toHaveLength(n);
   });
 
+  it('a double-click focuses the domain: told to the side with the jump’s duration, the motion run on a fake clock', async () => {
+    // every timer faked (the frames' fallback a 16 ms timer): the clock drives the jump's motion
+    vi.useFakeTimers();
+    const v = createSeqViewer({ ...DefaultSeqViewerSpec(), ui: undefined });
+    viewer = v;
+    v.resize(800);
+    void v.load(p53Structure());
+    await vi.advanceTimersByTimeAsync(2000);
+    const side = recordingSide();
+    linkStructure(v, side);
+    v.draw();
+    const lay = v.frame!.layout.sections[0].tracks[1].layers[0].lay as RangesLay;
+    const [x, y] = [(lay.mx0[0] + lay.mx1[0]) / 2, lay.laneY + (lay.mlane[0] + 0.5) * lay.laneHeight];
+    expect(v.input.doubleClick(x, y)).toBe(true);
+    expect(v.view.lastJump).toMatchObject({ kind: 'focus' });
+    const jumpMs = v.config.view.jumpMs;
+    expect(side.told).toEqual([{ kind: 'focus', target: expect.anything(), durationMs: jumpMs }]);
+    expect(same(side.told[0].target, onChains(50, 60))).toBe(true);
+    // the sections move over the duration told: under way at its middle, at rest past it
+    expect(v.moving).toBe(true);
+    vi.advanceTimersByTime(jumpMs / 2);
+    expect(v.moving).toBe(true);
+    vi.advanceTimersByTime(jumpMs / 2 + 40);
+    expect(v.moving).toBe(false);
+    // a step zoom names no Location (`zoom`): nothing sent
+    v.runCommand('view.zoom-out', { section: UpSection });
+    expect(v.view.lastJump?.kind).toBe('zoom');
+    expect(side.told).toHaveLength(1);
+  });
+
   it('focus in: one jump, not sent back; followJumps false keeps back and forward here', async () => {
     const { v, side } = await make({ followJumps: false });
     const jumps = v.view.jumps.value;
@@ -243,5 +276,39 @@ describe('linkStructure', () => {
     v.hover.set({ section: ComplexSection, system: `${Complex}/C`, position: 40 }, pointer);
     expect(side.told).toHaveLength(1);
     expect(same(side.told[0].target, onChains(40, 41, ['C']))).toBe(true);
+  });
+
+  it('atoms from the side: kept on a unit whose atoms form is shown, collapsed onto its residue on another', async () => {
+    const b = createSeqSpec({ title: 'atoms' });
+    const atp = b.data.molecule('atp', {
+      residues: ['ATP'],
+      atoms: { residue: [0, 0, 0], name: ['PG', 'O1G', 'N1'], element: ['P', 'O', 'N'] },
+    });
+    b.data.complex('c', {}, (c) => {
+      c.unit('l', { of: atp });
+      c.unit('l2', { of: atp });
+    });
+    b.views.view('v', (v) =>
+      v.section('complex', { of: '/data/c', copies: 'each' }, (s) => {
+        s.block('l', { form: 'atoms' });
+        s.track('letters').layer('letters', { type: 'letters' });
+      }),
+    );
+    const { v, side } = await make({ revealOnSelect: 'none' }, b.build());
+    const [l, l2] = [atomsSystemOf('/data/c/l'), atomsSystemOf('/data/c/l2')];
+    expect(v.view.resolved.value?.sections[0].blocks?.map((x) => x.axis.system)).toContain(l);
+    side.click(
+      location({
+        parts: [
+          { system: l, ranges: [1, 2] },
+          { system: l2, ranges: [1, 2] },
+        ],
+      }),
+    );
+    const shown = v.selection.value.value.shown;
+    expect(shown.parts.map((p) => [p.system, Array.from(p.ranges)])).toEqual([
+      [l, [1, 2]],
+      ['/data/c/l2', [0, 1]],
+    ]);
   });
 });

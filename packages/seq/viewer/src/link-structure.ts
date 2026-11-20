@@ -10,7 +10,14 @@
 // viewer's events is per link: echoes never sent back, one selection message a frame, a stale `null` ignored, the
 // clearing at either end. No behavior, no port: a host that never calls it carries none of it.
 
-import { EmptyKeys, isEmptyLocation, type Location, locationsEqual } from '@molstar/seqx-core/query';
+import {
+  EmptyKeys,
+  isEmptyLocation,
+  type Location,
+  location,
+  locationsEqual,
+  unionLocations,
+} from '@molstar/seqx-core/query';
 import {
   DefaultSyncLimits,
   fromUnits,
@@ -60,7 +67,6 @@ export interface LinkStructureOptions {
 
 const out = (d: LinkDirection | undefined) => d === undefined || d === 'both' || d === 'out';
 const inward = (d: LinkDirection | undefined) => d === undefined || d === 'both' || d === 'in';
-const AtomsSuffix = '/(atoms)';
 
 /**
  * Links a viewer to a structure viewer's side both ways (_spec/README.md "Structure link"); returns the disposer. The
@@ -90,9 +96,7 @@ export function linkStructure(viewer: SeqViewer, side: StructureSide, options: L
 
   const model = (): StructureModel => {
     const m = viewer.spec.model.value;
-    const overlay = viewer.store.currentOverlay(m);
-    // no source's nodes held (none yet, before the first frame: an empty overlay that knows no path): the model alone
-    return overlay.nodes.length ? { model: m, overlay } : m;
+    return { model: m, overlay: viewer.store.currentOverlay(m) };
   };
   const onUnits = (loc: Location, limits: SyncLimits): StructureTarget | null => {
     if (isEmptyLocation(loc)) return null;
@@ -101,16 +105,28 @@ export function linkStructure(viewer: SeqViewer, side: StructureSide, options: L
   };
   const same = (a: StructureTarget | null, b: StructureTarget | null) =>
     a === b || (a !== null && b !== null && locationsEqual(a, b));
-  /** Atoms kept as atoms where a section or a block shows a unit's atoms form; else collapsed onto residues. */
-  const showsAtoms = () => {
+  /** The systems the view's sections and blocks show: a unit's atoms form among them where it is shown. */
+  const shown = () => {
+    const out = new Set<string>();
     for (const s of viewer.view.resolved.value?.sections ?? []) {
-      if (s.axis.system.endsWith(AtomsSuffix)) return true;
-      for (const b of s.blocks ?? []) if (b.axis.system.endsWith(AtomsSuffix)) return true;
+      out.add(s.axis.system);
+      for (const b of s.blocks ?? []) out.add(b.axis.system);
     }
-    return false;
+    return out;
   };
-  const onSequences = (target: StructureTarget) =>
-    fromUnits(model(), target, complexes, { atoms: showsAtoms() }).location;
+  /**
+   * A target on Seq*'s systems: a unit's atoms kept as atoms where its atoms form is shown, else collapsed onto its
+   * residues, unit by unit (a part on a shown system read with `atoms`, the rest without).
+   */
+  const onSequences = (target: StructureTarget): Location => {
+    const systems = shown();
+    const kept = target.parts.filter((p) => systems.has(p.system));
+    const m = model();
+    if (!kept.length) return fromUnits(m, target, complexes).location;
+    const rest = target.parts.filter((p) => !systems.has(p.system));
+    const atoms = fromUnits(m, location({ parts: kept, rects: target.rects }), complexes, { atoms: true }).location;
+    return rest.length ? unionLocations(atoms, fromUnits(m, location({ parts: rest }), complexes).location) : atoms;
+  };
   const apply = (fn: () => void) => {
     if (disposed) return;
     inbound = true;

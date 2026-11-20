@@ -117,6 +117,15 @@ describe('what the viewer publishes for the wiring', () => {
     expect(seen.every((s) => s === true)).toBe(true);
   });
 
+  it('lastJump names a step zoom `zoom` and a navigator’s move `move`, with no Location', async () => {
+    const v = await make();
+    v.addresses.focusLocation(onUp(100, 140));
+    v.runCommand('view.zoom-out', { section: UpSection });
+    expect(v.view.lastJump).toMatchObject({ kind: 'zoom', location: undefined });
+    v.behavior<{ center(section: string, at: number): boolean }>('navigator')?.center(UpSection, 300);
+    expect(v.view.lastJump).toMatchObject({ kind: 'move', location: undefined });
+  });
+
   it('retiredSignal: aborted once at retire, the viewer already marked retired', async () => {
     const v = await make();
     const seen: boolean[] = [];

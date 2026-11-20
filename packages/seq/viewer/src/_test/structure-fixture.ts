@@ -6,8 +6,9 @@
 
 // A structure shaped as 2OCJ for the structure link's tests: P04637 (synthetic letters) and the entity it maps to by a
 // `structure` map (residues 94 to 312), four chains A–D of it modeled 96–289 (the ends unobserved), a zinc each, and
-// optionally a second map of the same pair one residue off (`aln`, ranked lower). A view of P04637 above a section of
-// the complex; and a recording side, the structure viewer as its host translates it, with its own events to fire.
+// optionally a second map of the same pair one residue off (`aln`, ranked lower). A view of P04637 (its letters and a
+// domain at 144–153) above a section of the complex; and a recording side, the structure viewer as its host
+// translates it, with its own events to fire.
 
 import type { Node } from '@molstar/core/repr/tree';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
@@ -59,8 +60,14 @@ export function p53Structure(o: { readonly aln?: boolean } = {}): Node {
       method: 'segments',
       segments: { from: [EntStart + 1], to: [0], length: [EntLength - 1] },
     });
+  const domains = b.data.ranges('domains', {
+    target: up,
+    rows: { start: [EntStart + 50], end: [EntStart + 60], id: ['D'] },
+  });
   b.views.view('main', (v) => {
-    v.section('p53', { of: up }).track('letters').layer('letters', { type: 'letters' });
+    const s = v.section('p53', { of: up });
+    s.track('letters').layer('letters', { type: 'letters' });
+    s.track('domains').layer('domains', { type: 'ranges', data: domains });
     v.section('complex', { of: Complex }, (s) => s.track('letters').layer('letters', { type: 'letters' }));
   });
   return b.build();

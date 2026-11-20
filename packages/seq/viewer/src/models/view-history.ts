@@ -55,7 +55,7 @@ export interface Snapshot {
 }
 
 /** What a jump was (_spec/README.md "ViewModel", History, The last jump). */
-export type JumpKind = 'focus' | 'reveal' | 'back' | 'forward' | 'fit';
+export type JumpKind = 'focus' | 'reveal' | 'back' | 'forward' | 'fit' | 'zoom' | 'move';
 
 /**
  * The last jump (`ViewModel.lastJump`): its count (`jumps`), its kind, the Location it named (a focus's or a reveal's;

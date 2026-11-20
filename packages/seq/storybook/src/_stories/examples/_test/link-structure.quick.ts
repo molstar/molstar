@@ -6,9 +6,9 @@
 
 // The structure link on the hover's path (seqx-viewer _spec "Structure link"): on p53 and PDB 2OCJ, a hover moving
 // along P04637 (a new image a move) carried onto the four chains and told to a side, against the same hover with no
-// link: what the link adds a move is measured 31.8 KB: `toUnits` onto the units 29.7 KB of it (measured alone), the
-// hover's Location 2 KB, the link's own the rest; bounded and not growing. By hand,
-// never in CI: `npx vitest run -c packages/seq/storybook/vitest.perf.config.ts`.
+// link. Not zero: the target is a new Location a move (the side keeps it). Measured 11.3 kB a move with the link (from
+// 31.8 kB before the translation's cheap cuts): `toUnits` onto four units about 9.2 kB of it, the hover's Location
+// about 2 kB; the bound holds it. By hand, never in CI: `npx vitest run -c packages/seq/storybook/vitest.perf.config.ts`.
 
 import { linkStructure } from '@molstar/seqx-viewer/link-structure';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
@@ -46,7 +46,7 @@ describe('the structure link on the hover’s path', () => {
     console.info(
       `a 2OCJ hover a move: ${linked.toFixed(0)} bytes with the link, ${plain.toFixed(0)} without; the case ${r.bytesPerStep.toFixed(0)} (${r.note})`,
     );
-    // measured: 31.8 KB a move with the link (`toUnits` 29.7 KB of it); the bound holds it from growing
-    expect(linked - plain, reads.map((n) => n.toFixed(0)).join(' / ')).toBeLessThanOrEqual(40_000);
+    // the link's own bound: the case above has no baseline file, so this holds it
+    expect(linked - plain, reads.map((n) => n.toFixed(0)).join(' / ')).toBeLessThanOrEqual(12_500);
   });
 });
