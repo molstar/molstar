@@ -995,10 +995,7 @@
                     "message": "The backend folders are internal to graphics: contexts through @molstar/graphics/gl/contexts/webgl and webgpu, what extensions use through @molstar/graphics/gl/extend/webgl and webgpu."
                   },
                   {
-                    "group": [
-                      "@molstar/io",
-                      "@molstar/io/**"
-                    ],
+                    "group": ["@molstar/io", "@molstar/io/**"],
                     "message": "Seq* imports @molstar/io only where its allowlist names an entry (Seq*'s packages design): the mmCIF runtime, the text CIF parser and its data model."
                   }
                 ]
