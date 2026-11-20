@@ -24,8 +24,8 @@ function loc(address: string): [string, number[]][] | string[] {
 
 function keys(address: string): (string | number)[] | string[] {
   const r = run(address);
-  if (r.result?.type !== 'elements') return codes(r);
-  return r.result.elements.keys.map((k) => k.key);
+  if (r.result?.type !== 'keys') return codes(r);
+  return r.result.keys.keys.map((k) => k.key);
 }
 
 const codes = (r: Evaluation) => r.issues.map((i) => i.code);
@@ -148,7 +148,7 @@ describe('query forms: elements and nodes', () => {
     expect(keys('/data/p53/domains/(items :overlapping /data/p53/(at :label 301))')).toEqual([1]);
     // a location on another system overlaps nothing here, and says so (no projection yet)
     const other = run('/data/p53/domains/(items :overlapping /data/plasmid/(all))');
-    expect(other.result?.type === 'elements' && other.result.elements.keys).toEqual([]);
+    expect(other.result?.type === 'keys' && other.result.keys.keys).toEqual([]);
     expect(other.issues.map((i) => [i.code, i.severity, i.address])).toEqual([
       ['seq.query.location.unreachable', 'warning', '/data/plasmid'],
     ]);
@@ -189,41 +189,40 @@ describe('query forms: conversions', () => {
 
 describe('query forms: combinators over one type', () => {
   it('and, or, not over locations', () => {
-    expect(loc('/data/p53/(or :of [(range :from 1 :to 10) (range :from 5 :to 20) (at :label 30)])')).toEqual([
+    expect(loc('/data/p53/(merge :of [(range :from 1 :to 10) (range :from 5 :to 20) (at :label 30)])')).toEqual([
       [p53, [0, 20, 29, 30]],
     ]);
-    expect(loc('/data/p53/(and :of [(range :from 1 :to 10) (range :from 5 :to 20)])')).toEqual([[p53, [4, 10]]]);
-    expect(loc('/data/p53/(not :of (range :from 2 :to 392))')).toEqual([[p53, [0, 1, 392, 393]]]);
+    expect(loc('/data/p53/(intersect :of [(range :from 1 :to 10) (range :from 5 :to 20)])')).toEqual([[p53, [4, 10]]]);
+    expect(loc('/data/p53/(except :of (range :from 2 :to 392))')).toEqual([[p53, [0, 1, 392, 393]]]);
   });
 
   it('and, or, not over elements and nodes', () => {
-    expect(keys('/data/p53/domains/(and :of [(item :type domain) (items :overlapping (range :to 100))])')).toEqual([
-      'DBD',
-      'TAD',
-    ]);
-    expect(keys('/data/p53/domains/(not :of (item :type domain))')).toEqual([1, '1']);
-    expect(keys('/data/p53/domains/(or :of [(item :id TET) /data/plasmid/features/(item :id ori)])')).toEqual([
+    expect(
+      keys('/data/p53/domains/(intersect :of [(item :type domain) (items :overlapping (range :to 100))])'),
+    ).toEqual(['DBD', 'TAD']);
+    expect(keys('/data/p53/domains/(except :of (item :type domain))')).toEqual([1, '1']);
+    expect(keys('/data/p53/domains/(merge :of [(item :id TET) /data/plasmid/features/(item :id ori)])')).toEqual([
       'TET',
       'ori',
     ]);
-    const n = run('/views/main/(not :of (or :of [/views/main/protein (view)]))');
+    const n = run('/views/main/(except :of (merge :of [/views/main/protein (view)]))');
     expect(n.result?.type === 'nodes' && n.result.nodes.map((m) => printAddress(m.address))).toEqual([
       '/views/main/gene',
     ]);
   });
 
   it('a combinator that mixes types is an issue, not a guess', () => {
-    expect(codes(run('/data/p53/domains/(or :of [(item :id TET) (extent :of (item :id TET))])'))).toEqual([
+    expect(codes(run('/data/p53/domains/(merge :of [(item :id TET) (extent :of (item :id TET))])'))).toEqual([
       'seq.query.form.type',
     ]);
-    expect(codes(run('/data/p53/(or :of (all))'))).toEqual(['seq.query.form.param']);
+    expect(codes(run('/data/p53/(merge :of (all))'))).toEqual(['seq.query.form.param']);
   });
 });
 
 describe('query forms: staged and bounded evaluation', () => {
   it('over data read by region, says what is pending and never calls it empty', () => {
     const r = run('/data/p53/peaks/(items :overlapping (range :from 1 :to 100))');
-    expect(r.result?.type === 'elements' && r.result.elements.keys.map((k) => k.key)).toEqual(['a', 'b']);
+    expect(r.result?.type === 'keys' && r.result.keys.keys.map((k) => k.key)).toEqual(['a', 'b']);
     expect(r.complete).toBe(false);
     expect(r.pending.parts.map((p) => [p.system, [...p.ranges]])).toEqual([[p53, [50, 100]]]);
     const loaded = run('/data/p53/peaks/(items :overlapping (range :from 1 :to 50))');
@@ -237,7 +236,7 @@ describe('query forms: staged and bounded evaluation', () => {
   it('a result over the limit is an issue, never a truncation', () => {
     const r = run('/data/p53/domains/(items)', 4);
     expect([r.result, codes(r)]).toEqual([undefined, ['repr.tree.address.limit_exceeded']]);
-    expect(run('/data/p53/domains/(items)', 5).result?.type).toBe('elements');
+    expect(run('/data/p53/domains/(items)', 5).result?.type).toBe('keys');
   });
 
   it('stops on an aborted signal inside a long read', () => {
@@ -275,7 +274,7 @@ describe('query forms: staged and bounded evaluation', () => {
     const both = evaluateQuery(
       Spec,
       readsOf(600, () => c2.abort()),
-      '/data/p53/domains/(or :of [(items) (items)])',
+      '/data/p53/domains/(merge :of [(items) (items)])',
       {
         limit: Infinity,
         signal: c2.signal,
@@ -341,9 +340,9 @@ describe('query forms: chains, rects, labels (review round)', () => {
     ).toEqual([['/data/aln/(rows)', [0, 2], '/data/aln', [2, 6]]]);
   });
 
-  it('rects subtract: a location less `(not :of …)` within `and`, a rect less a rect exact', () => {
+  it('rects subtract: `except` takes a rect less a rect, exact', () => {
     const r = run(
-      '/data/p53/(and :of [(rect :a (range :from 1 :to 10) :b (range :from 1 :to 10)) (not :of (rect :a (range :from 4 :to 6) :b (range :from 4 :to 6)))])',
+      '/data/p53/(except :of [(rect :a (range :from 1 :to 10) :b (range :from 1 :to 10)) (rect :a (range :from 4 :to 6) :b (range :from 4 :to 6))])',
     );
     expect(r.issues).toEqual([]);
     const rects = r.result?.type === 'location' ? r.result.location.rects : [];
@@ -357,7 +356,7 @@ describe('query forms: chains, rects, labels (review round)', () => {
     }
     expect(cells).toBe(100 - 9);
     // parts as before: a range less a range
-    expect(loc('/data/p53/(and :of [(range :from 1 :to 10) (not :of (range :from 4 :to 6))])')).toEqual([
+    expect(loc('/data/p53/(except :of [(range :from 1 :to 10) (range :from 4 :to 6)])')).toEqual([
       [p53, [0, 3, 6, 10]],
     ]);
   });
@@ -374,10 +373,10 @@ describe('query forms: chains, rects, labels (review round)', () => {
     expect(codes(run('/data/p53/(rect :a (all) :b /data/p53/domains/(item :id TAD))'))).toEqual([
       'seq.query.form.type',
     ]);
-    expect(codes(run('/data/p53/(rect :a (or :of [(all) /data/plasmid/(all)]) :b (all))'))).toEqual([
+    expect(codes(run('/data/p53/(rect :a (merge :of [(all) /data/plasmid/(all)]) :b (all))'))).toEqual([
       'seq.query.form.type',
     ]);
-    expect(codes(run('/data/p53/(not :of (rect :a (all) :b (all)))'))).toEqual(['seq.query.form.unsupported']);
+    expect(codes(run('/data/p53/(except :of (rect :a (all) :b (all)))'))).toEqual(['seq.query.form.unsupported']);
     expect(codes(run('/data/p53/domains/(items :overlapping /data/p53/(rect :a (all) :b (all)))'))).toEqual([
       'seq.query.form.unsupported',
     ]);
@@ -436,7 +435,7 @@ describe('query forms: the table', () => {
     const s = selectAddress(Spec, '/data/p53/(mine)', { limit: 9, resolvers: t });
     expect(s.result).toEqual({ kind: 'other', type: 'mine', value: 1 });
     // a nested result of a type the queries do not know is an issue
-    expect(selectAddress(Spec, '/data/p53/(not :of (mine))', { limit: 9, resolvers: t }).issues[0].code).toBe(
+    expect(selectAddress(Spec, '/data/p53/(except :of (mine))', { limit: 9, resolvers: t }).issues[0].code).toBe(
       'seq.query.form.type',
     );
   });
@@ -447,7 +446,7 @@ describe('query forms: the table', () => {
 
   it('reads a Named as a result only when its value has the type’s shape', () => {
     expect(fromNamed({ kind: 'other', type: 'location', value: 5 })).toBeUndefined();
-    expect(fromNamed({ kind: 'other', type: 'elements', value: { keys: [{ owner: 1 }] } })).toBeUndefined();
+    expect(fromNamed({ kind: 'other', type: 'keys', value: { keys: [{ owner: 1 }] } })).toBeUndefined();
     expect(fromNamed({ kind: 'other', type: 'location', value: rangesLocation('/a', [0, 1]) })?.type).toBe('location');
   });
 

@@ -50,7 +50,7 @@ export const LinkedPairsChannel = 'linked-pairs';
 
 const BothSources: readonly LinkedPairsSource[] = ['hover', 'selection'];
 
-/** A pairs layer's annotation: its data's address up to its first form (`<pairs>/(not …)` reads `<pairs>`). */
+/** A pairs layer's annotation: its data's address up to its first form (`<pairs>/(except …)` reads `<pairs>`). */
 function annotationOf(layer: ResolvedLayer): string | undefined {
   const address = layer.data?.address;
   const segments = address ? parseAddress(address).pattern?.segments : undefined;
@@ -90,7 +90,7 @@ function extentForm(k: ElementKey, extent: Location | undefined): string | undef
       for (let i = 0; i + 1 < p.ranges.length; i += 2)
         if (p.ranges[i + 1] > p.ranges[i])
           ranges.push(`${p.system}/(range :from ${p.ranges[i]} :to ${p.ranges[i + 1] - 1} :numbering index)`);
-    if (ranges.length) return ranges.length === 1 ? ranges[0] : `(or :of [${ranges.join(' ')}])`;
+    if (ranges.length) return ranges.length === 1 ? ranges[0] : `(merge :of [${ranges.join(' ')}])`;
   }
   const owner = parseAddress(k.owner).pattern?.segments;
   if (!owner) return undefined;
@@ -153,7 +153,7 @@ export function linkedPairsBehavior(ctx: BehaviorContext, params: LinkedPairsPar
     if (where !== undefined)
       for (const p of pairs) {
         const r = addresses.resolve(`${p}/(items :overlapping ${where})`);
-        if (r.result?.type === 'elements') lit = unionElements(lit, r.result.elements);
+        if (r.result?.type === 'keys') lit = unionElements(lit, r.result.keys);
         else if (r.status === 'waiting') waiting = true;
       }
     return { lit, waiting };

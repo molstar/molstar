@@ -100,7 +100,7 @@ export const dotPlot = () => build({ dotPlot: true });
 
 /** The arcs' data with the pairs a field has a value on left out: what a patch of the layer's `data` writes (the editing view). */
 export const without = (pairs: string, field: 'type' | 'tertiary', value: string) =>
-  `${pairs}/(not :of (item :${field} ${value}))`;
+  `${pairs}/(except :of (item :${field} ${value}))`;
 
 /**
  * The seed row 1EHZ is placed on (the row of highest identity, computed: `DerivedData.row`): its letters and the pairs

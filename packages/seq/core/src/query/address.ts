@@ -24,7 +24,7 @@ import {
 } from '@molstar/core/repr/tree';
 import { DefaultRefDepth, type FollowedRef, followRef, RefsId, refPrefix } from '@molstar/seqx-core/lang';
 import { AddressIssues } from './address-issues.js';
-import { type ElementKey, elements, elementsEqual } from './elements.js';
+import { type Key, keySet, keysEqual } from './keys.js';
 import { evaluateQuery } from './forms.js';
 import {
   EmptyLocation,
@@ -113,11 +113,11 @@ class Refused {
  * The keys whose values are operands (a nested form, or an address from the root): only there is a string an
  * address. Elsewhere a string is a value (an id, a label), which a quoted `"/refs/x"` may well be: never rewritten.
  */
-const OperandKeys: ReadonlySet<string> = new Set(['of', 'a', 'b', 'overlapping']);
+const OperandKeys: ReadonlySet<string> = new Set(['of', 'a', 'b', 'overlapping', 'via']);
 
 /**
  * A form value with every nested operand address that starts with a ref rewritten to what the ref names: one address,
- * or a set as `(or :of [...])`, so an operand naming a ref reads as its target (the query forms refuse a ref node
+ * or a set as `(merge :of [...])`, so an operand naming a ref reads as its target (the query forms refuse a ref node
  * itself). `operand`: whether the value is an operand's (a string there is an address).
  */
 function followNested(root: Node, value: Value, refDepth: number, via: string[], operand: boolean): Value {
@@ -129,7 +129,7 @@ function followNested(root: Node, value: Value, refDepth: number, via: string[],
   if ('refused' in f) throw new Refused(refused(f, value));
   for (const a of f.via) if (!via.includes(a)) via.push(a);
   const out = f.addresses.map((a) => followAddress(root, a, refDepth, via));
-  return out.length === 1 ? out[0] : { kind: 'or', params: { of: out } };
+  return out.length === 1 ? out[0] : { kind: 'merge', params: { of: out } };
 }
 
 function followForm(root: Node, form: Node, refDepth: number, via: string[]): Node {
@@ -173,11 +173,11 @@ function unionResults(rs: readonly QueryResult[], limit: number): QueryResult | 
     }
     return { type, location: location({ parts, rects }) };
   }
-  if (type === 'elements') {
-    const keys: ElementKey[] = [];
-    for (const r of rs as Extract<QueryResult, { type: 'elements' }>[]) for (const k of r.elements.keys) keys.push(k);
-    const e = elements(keys);
-    return e.keys.length > limit ? limitIssue(limit) : { type, elements: e };
+  if (type === 'keys') {
+    const keys: Key[] = [];
+    for (const r of rs as Extract<QueryResult, { type: 'keys' }>[]) for (const k of r.keys.keys) keys.push(k);
+    const e = keySet(keys);
+    return e.keys.length > limit ? limitIssue(limit) : { type, keys: e };
   }
   const seen = new Set<string>();
   const nodes: Selected[] = [];
@@ -201,11 +201,7 @@ function limitIssue(limit: number): Issue {
 }
 
 function isEmptyResult(r: QueryResult): boolean {
-  return r.type === 'nodes'
-    ? !r.nodes.length
-    : r.type === 'elements'
-      ? !r.elements.keys.length
-      : isEmptyLocation(r.location);
+  return r.type === 'nodes' ? !r.nodes.length : r.type === 'keys' ? !r.keys.keys.length : isEmptyLocation(r.location);
 }
 
 /**
@@ -339,9 +335,9 @@ export function locationOfResult(root: Node, model: QueryModel, result: QueryRes
       parts.push({ system, ranges: from <= to ? [from, to] : [from, s.length, 0, to] });
     } else parts.push({ system, ranges: [0, s.length] });
   };
-  if (result.type === 'elements') {
+  if (result.type === 'keys') {
     const byOwner = new Map<string, Set<string | number>>();
-    for (const k of result.elements.keys) {
+    for (const k of result.keys.keys) {
       let keys = byOwner.get(k.owner);
       if (!keys) byOwner.set(k.owner, (keys = new Set()));
       keys.add(k.key);
@@ -378,7 +374,7 @@ export const DefaultAddressPreference: readonly AddressForm[] = ['ref', 'ids'];
 
 function resultsEqual(a: QueryResult, b: QueryResult): boolean {
   if (a.type === 'location' && b.type === 'location') return locationsEqual(a.location, b.location);
-  if (a.type === 'elements' && b.type === 'elements') return elementsEqual(a.elements, b.elements);
+  if (a.type === 'keys' && b.type === 'keys') return keysEqual(a.keys, b.keys);
   if (a.type === 'nodes' && b.type === 'nodes') {
     if (a.nodes.length !== b.nodes.length) return false;
     const keys = new Set(a.nodes.map(nodeKey));
@@ -461,7 +457,7 @@ function segmentsOf(address: string): readonly Segment[] {
 function partAddress(model: QueryModel, p: LocationPart, numbering: string, wrap: boolean): string | undefined {
   const forms = partForms(model, p, numbering, wrap);
   if (!forms?.length) return undefined;
-  const form = forms.length === 1 ? forms[0] : { kind: 'or', params: { of: forms } };
+  const form = forms.length === 1 ? forms[0] : { kind: 'merge', params: { of: forms } };
   return printAddress([...segmentsOf(p.system), form]);
 }
 
@@ -469,14 +465,14 @@ function partAddress(model: QueryModel, p: LocationPart, numbering: string, wrap
 function joined(items: readonly Value[]): string | undefined {
   if (!items.length) return undefined;
   if (items.length === 1) return typeof items[0] === 'string' ? items[0] : printAddress([items[0] as Node]);
-  return printAddress([{ kind: 'or', params: { of: items as Value[] } }]);
+  return printAddress([{ kind: 'merge', params: { of: items as Value[] } }]);
 }
 
 function idsAddress(model: QueryModel, target: QueryResult, numbering: string): string | undefined {
   if (target.type === 'nodes') return joined(target.nodes.map((n) => printAddress(n.address)));
-  if (target.type === 'elements') {
+  if (target.type === 'keys') {
     const byOwner = new Map<string, (string | number)[]>();
-    for (const k of target.elements.keys) {
+    for (const k of target.keys.keys) {
       let keys = byOwner.get(k.owner);
       if (!keys) byOwner.set(k.owner, (keys = []));
       keys.push(k.key);

@@ -7,7 +7,7 @@
 import type { Node } from '@molstar/core/repr/tree';
 import { describe, expect, it } from 'vitest';
 import { addressFor, locationOfResult, refResults, resolveAddressIn } from '../address.js';
-import { elements } from '../elements.js';
+import { keySet } from '../keys.js';
 import { location, rangesLocation } from '../location.js';
 import type { QueryResult } from '../result.js';
 import { Model, Spec } from './fixture.js';
@@ -59,7 +59,7 @@ describe('resolving an address', () => {
   });
 
   it('follows refs nested in a form’s operands', () => {
-    const r = resolve('/data/p53/(and :of [/refs/dbd (range :from 1 :to 100)])');
+    const r = resolve('/data/p53/(intersect :of [/refs/dbd (range :from 1 :to 100)])');
     expect(r.status).toBe('resolved');
     expect(loc(r)).toEqual(rangesLocation('/data/p53', [93, 100]));
     expect(r.via).toEqual(['/refs/dbd']);
@@ -77,8 +77,8 @@ describe('resolving an address', () => {
   it('names a set as the union of its members, one type', () => {
     const r = resolve('/refs/sites');
     expect(r.result).toEqual({
-      type: 'elements',
-      elements: elements([
+      type: 'keys',
+      keys: keySet([
         { owner: '/data/p53/domains', key: 'DBD' },
         { owner: '/data/p53/domains', key: 'TAD' },
       ]),
@@ -117,7 +117,7 @@ describe('resolving an address', () => {
     expect(resolve('/refs/core', { refDepth: 1 }).issues.map((i) => i.code)).toEqual(['seq.address.ref.depth']);
     expect(resolve('/refs/sites/(range :from 1 :to 2)').issues.map((i) => i.code)).toEqual(['seq.address.ref.set']);
     expect(resolve('/data/p53/(range :from 1 :to 2)/(x').status).toBe('failed');
-    expect(resolve('/data/(and :of [/refs/loop])').issues.map((i) => i.code)).toEqual(['seq.address.ref.cycle']);
+    expect(resolve('/data/(intersect :of [/refs/loop])').issues.map((i) => i.code)).toEqual(['seq.address.ref.cycle']);
   });
 
   it('is bounded: more matches than the limit is an issue, never a truncation', () => {
@@ -178,7 +178,7 @@ describe('the address of what is named', () => {
     expect(at(rangesLocation('/data/plasmid', [0, 5, 90, 100]))).toBe('/data/plasmid/(range :from 91 :to 5)');
     expect(at(rangesLocation('/data/plasmid', [0, 100]))).toBe('/data/plasmid/(all)');
     expect(at(rangesLocation('/data/p53', [0, 5, 10, 11]))).toBe(
-      '/data/p53/(or :of [(range :from 1 :to 5) (at :label 11)])',
+      '/data/p53/(merge :of [(range :from 1 :to 5) (at :label 11)])',
     );
     expect(
       at(
@@ -189,7 +189,7 @@ describe('the address of what is named', () => {
           ],
         }),
       ),
-    ).toBe('/(or :of [/data/ab/(at :label 1) /data/p53/(range :from 1 :to 5)])');
+    ).toBe('/(merge :of [/data/ab/(at :label 1) /data/p53/(range :from 1 :to 5)])');
   });
 
   it('names a rect by its two sides', () => {
@@ -204,8 +204,8 @@ describe('the address of what is named', () => {
   it('names elements by their items and nodes by their addresses', () => {
     expect(
       back({
-        type: 'elements',
-        elements: elements([
+        type: 'keys',
+        keys: keySet([
           { owner: '/data/p53/domains', key: 'TET' },
           { owner: '/data/p53/domains', key: 1 },
         ]),

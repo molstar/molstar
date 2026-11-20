@@ -88,7 +88,7 @@ describe('a source’s rows past the end of a long system', () => {
 
   it('data forms that are neither a base nor a trailing filter are said, every row drawn', async () => {
     const gff = [row('a', 1, 10), row('b', 20, 30)].join('\n');
-    const node = spec(gff, false, (f) => `${f}/(not :of (item :id a))/(item :id b)`);
+    const node = spec(gff, false, (f) => `${f}/(except :of (item :id a))/(item :id b)`);
     const { f, lay } = await laid(node, { start: 0, end: Long });
     expect(f.layout.issues.map((i) => i.code)).toContain('seq.render.filter');
     expect(pieces(lay)).toEqual(['a:0-10', 'b:19-30']);

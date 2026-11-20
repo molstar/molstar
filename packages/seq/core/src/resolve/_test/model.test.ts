@@ -125,9 +125,9 @@ describe('static model: the p53 example', () => {
     expect(g.result?.type === 'location' && ranges(g.result.location)).toEqual([['/data/tp53', [93, 292]]]);
     expect(model.system('/data/tp53')!.length).toBe(OpenLength);
     const items = q('/data/domains/(items :overlapping /data/p53/(range :from 14 :to 20))');
-    expect(items.result?.type === 'elements' && items.result.elements.keys.map((k) => k.key)).toEqual([0, 1]);
+    expect(items.result?.type === 'keys' && items.result.keys.keys.map((k) => k.key)).toEqual([0, 1]);
     const label = q('/data/domains/(item :label TAD)');
-    expect(label.result?.type === 'elements' && label.result.elements.keys.map((k) => k.key)).toEqual([1]);
+    expect(label.result?.type === 'keys' && label.result.keys.keys.map((k) => k.key)).toEqual([1]);
   });
 
   it('answers no chain and no dynamic node: no structures and no overlay in tier 1', () => {

@@ -13,7 +13,7 @@
 
 /**
  * A layer's data split: what the track is (the annotation and a leading run of item forms: its base) and the values of
- * `field` the user's filter, a trailing `(not …)`, leaves out (_spec/README.md "Themes", Filters; core's `splitDataForms`
+ * `field` the user's filter, a trailing `(except …)`, leaves out (_spec/README.md "Themes", Filters; core's `splitDataForms`
  * is the one parser, so what the viewer calls the base is what the layers read as it).
  */
 export function dataFilter(data: string, field: string): { readonly base: string; readonly hidden: readonly string[] } {
@@ -45,11 +45,11 @@ export function itemsAddress(data: string, field: string, value: string | readon
   const split = splitDataForms(segs.slice(ids.length));
   if (!p || !ids.length || split.unread) return undefined;
   const one: Node = { kind: 'item', params: { [field]: typeof value === 'string' ? value : [...value] } };
-  // item forms alone: one item holding every param (they are and-ed); an `and` or `or` in the base: an `and` of all
+  // item forms alone: one item holding every param (they are and-ed); an `intersect` or `merge` in the base: an `intersect` of all
   const plain = split.lead.every((f) => f.kind === 'item');
   const form: Node = plain
     ? { kind: 'item', params: Object.assign({}, ...split.lead.map((f) => f.params ?? {}), one.params) }
-    : { kind: 'and', params: { of: [...split.lead, one] } };
+    : { kind: 'intersect', params: { of: [...split.lead, one] } };
   return printAddress([...ids, form]);
 }
 
@@ -212,7 +212,7 @@ export function themingBehavior(
     }
     const next = hidden.includes(value) ? hidden.filter((h) => h !== value) : [...hidden, value];
     const to = next.length
-      ? `${base}/${printAddress([{ kind: 'not', params: { of: { kind: 'item', params: { [field]: next.length === 1 ? next[0] : next } } } }]).slice(1)}`
+      ? `${base}/${printAddress([{ kind: 'except', params: { of: { kind: 'item', params: { [field]: next.length === 1 ? next[0] : next } } } }]).slice(1)}`
       : base;
     return [{ op: 'set', at: ids(layer), key: 'data', value: to }];
   };

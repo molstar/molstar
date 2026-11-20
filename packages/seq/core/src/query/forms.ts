@@ -6,8 +6,9 @@
 
 // The first forms as `repr` form resolvers (_spec/README.md "Queries", Forms): each receives what its prefix names
 // and returns one of the three result types, or issues. Location forms read systems (`range`, `at`, `all`, `rect`),
-// element forms annotations (`item`, `items`), `node` and `chain` the model's data-made nodes; `extent` and
-// `items :overlapping` convert between types explicitly; `and`, `or`, `not` combine results of one type. A nested form
+// key forms annotations (`item`, `items`), `node` and `chain` the model's data-made nodes; `extent` and
+// `items :overlapping` convert between types explicitly; `merge`, `intersect`, `except` combine results of one type
+// (`combinators.ts`); the structure language's forms are `elements.ts`'s and `structure-forms.ts`'s. A nested form
 // is evaluated against the same prefix (a resolver's, else child selection), a nested address from the root. Every
 // evaluation is bounded (the caller's limit, signal and deadline, one visit counter across nested forms) and staged:
 // over data read by region it says what is pending.
@@ -18,26 +19,14 @@ import {
   type FormResolverResult,
   type Issue,
   issueOf,
-  isNode,
-  matchesForm,
   type Named,
   type Node,
-  own,
   printAddress,
   type Selected,
-  type SelectOptions,
   selectAddress,
   type Value,
 } from '@molstar/core/repr/tree';
-import {
-  type ElementKey,
-  type Elements,
-  EmptyElements,
-  elements,
-  intersectElements,
-  subtractElements,
-  unionElements,
-} from './elements.js';
+import { type Key, type Keys, keySet } from './keys.js';
 import {
   annotationsOf,
   checkLimit,
@@ -54,19 +43,19 @@ import {
   systemsOf,
   tick,
 } from './form-kit.js';
+import { Combinators } from './combinators.js';
+import { asType, evaluate } from './evaluate.js';
 import { QueryIssues } from './issues.js';
 import { MoleculeForms } from './molecule-forms.js';
 import { hasLabelSuffix, isNoInsertionCode, readLabel } from './labels.js';
 import {
   EmptyLocation,
-  intersectLocations,
   isPosition,
   type Location,
   location,
   overlapsRanges,
   partOf,
   rangesLocation,
-  subtractLocations,
   unionLocations,
 } from './location.js';
 import type { QueryAnnotation, QueryModel, QuerySystem } from './model.js';
@@ -81,7 +70,7 @@ import {
   numberingPending,
   snapLabel,
 } from './numbering.js';
-import { fromNamed, namedType, type QueryResult, toNamed } from './result.js';
+import { fromNamed, type QueryResult, toNamed } from './result.js';
 
 /** The forms' kinds, in the order the docs list them. */
 export const QueryFormKinds = [
@@ -95,9 +84,9 @@ export const QueryFormKinds = [
   'node',
   'chain',
   'extent',
-  'and',
-  'or',
-  'not',
+  'merge',
+  'intersect',
+  'except',
   'component',
   'molecule',
   'entity',
@@ -149,71 +138,6 @@ function numberingOf(ctx: Ctx, system: QuerySystem, id: string): NumberingOf | u
     address: system.address,
     hint: `numberings: ${numberingIds(system).join(', ')}`,
   });
-}
-
-// ---- nested values ----
-
-/** A nested value's result: a form against the prefix (its resolver, else child selection), an address from the root. */
-function evaluate(ctx: Ctx, value: Value, prefix: Named): QueryResult {
-  if (isNode(value)) {
-    const resolver = own(ctx.resolvers, value.kind);
-    if (!resolver) {
-      const out: Selected[] = [];
-      for (const m of prefixNodes(prefix, value.kind))
-        for (const c of m.node.children ?? []) {
-          tick(ctx);
-          if (c.id !== undefined && matchesForm(value, c)) out.push({ node: c, address: [...m.address, c.id] });
-        }
-      checkLimit(ctx, out.length);
-      return { type: 'nodes', nodes: out };
-    }
-    const r = resolver({ ...ctx.input, form: value, prefix });
-    return carry(ctx, r, r.result);
-  }
-  if (typeof value === 'string' && value.startsWith('/')) {
-    const { input } = ctx;
-    const options: SelectOptions = {
-      limit: input.limit,
-      maxDepth: input.maxDepth,
-      resolvers: ctx.resolvers,
-      signal: input.signal,
-      deadline: input.deadline,
-    };
-    const sel = selectAddress(input.root, value, options);
-    // refs are not resolved yet (a later pass's): an operand naming one is refused, never read as the ref node
-    if (sel.matches.some((m) => m.node.kind === 'ref'))
-      fail('seq.query.ref.unresolved', 'An operand names a ref', {
-        hint: QueryIssues.codes['seq.query.ref.unresolved'].hint,
-      });
-    return carry(ctx, sel, sel.result ?? { kind: 'nodes', matches: sel.matches });
-  }
-  return fail('seq.query.form.param', 'A form takes a nested form or an address here');
-}
-
-/** Carries a nested result's issues and pending regions; its errors fail the outer form. */
-function carry(
-  ctx: Ctx,
-  r: { readonly issues?: readonly Issue[]; readonly complete?: boolean; readonly pending?: unknown },
-  named: Named | undefined,
-): QueryResult {
-  const issues = r.issues ?? [];
-  if (issues.some((i) => i.severity === 'error') || !named) throw new Failure(issues);
-  ctx.issues.push(...issues);
-  if (r.complete === false) {
-    ctx.complete = false;
-    if (r.pending) ctx.pending = unionLocations(ctx.pending, r.pending as Location);
-  }
-  const result = fromNamed(named);
-  return result ?? fail('seq.query.form.type', `A nested form gives a result of type ${namedType(named)}`);
-}
-
-function asType<T extends QueryResult['type']>(
-  r: QueryResult,
-  type: T,
-  kind: string,
-): Extract<QueryResult, { type: T }> {
-  if (r.type !== type) fail('seq.query.form.type', `A form of kind ${kind} takes ${type}, and is given ${r.type}`);
-  return r as Extract<QueryResult, { type: T }>;
 }
 
 // ---- location forms ----
@@ -359,7 +283,7 @@ const item: Resolve = (ctx, form, prefix) => {
       fail('seq.query.form.param', 'A form of kind item names a field its annotation does not have', {
         hint: `params: ${['id', ...new Set(anns.flatMap((a) => a.fields))].join(', ')}`,
       });
-  const out: ElementKey[] = [];
+  const out: Key[] = [];
   for (const a of anns) {
     const read = a.items();
     stage(ctx, read.pending);
@@ -370,9 +294,9 @@ const item: Resolve = (ctx, form, prefix) => {
       if (ok) out.push({ owner: a.address, key: it.key });
     }
   }
-  const e = elements(out);
+  const e = keySet(out);
   checkLimit(ctx, e.keys.length);
-  return { type: 'elements', elements: e };
+  return { type: 'keys', keys: e };
 };
 
 /**
@@ -424,7 +348,7 @@ const items: Resolve = (ctx, form, prefix) => {
             address: p.system,
           }),
         );
-  const out: ElementKey[] = [];
+  const out: Key[] = [];
   for (let i = 0; i < anns.length; i++) {
     const a = anns[i];
     const systems = reach[i];
@@ -441,9 +365,9 @@ const items: Resolve = (ctx, form, prefix) => {
         out.push({ owner: a.address, key: it.key });
     }
   }
-  const e = elements(out);
+  const e = keySet(out);
   checkLimit(ctx, e.keys.length);
-  return { type: 'elements', elements: e };
+  return { type: 'keys', keys: e };
 };
 
 // ---- nodes, conversions, combinators ----
@@ -506,7 +430,7 @@ const row: Resolve = (ctx, form, prefix) => {
 };
 
 /** The extent of elements: the union of their items' ranges on each annotation's target. */
-function extentOf(ctx: Ctx, e: Elements): Location {
+function extentOf(ctx: Ctx, e: Keys): Location {
   const byOwner = new Map<string, Set<string | number>>();
   for (const k of e.keys) {
     let s = byOwner.get(k.owner);
@@ -540,115 +464,8 @@ function extentOf(ctx: Ctx, e: Elements): Location {
 
 const extent: Resolve = (ctx, form, prefix) => {
   checkParams(form, ['of']);
-  const e = asType(evaluate(ctx, required(form, 'of'), prefix), 'elements', 'extent').elements;
+  const e = asType(evaluate(ctx, required(form, 'of'), prefix), 'keys', 'extent').keys;
   return { type: 'location', location: extentOf(ctx, e) };
-};
-
-const nodeKey = (s: Selected) => printAddress(s.address);
-
-function combineNodes(a: readonly Selected[], b: readonly Selected[], keep: (inA: boolean, inB: boolean) => boolean) {
-  const inA = new Set(a.map(nodeKey));
-  const inB = new Set(b.map(nodeKey));
-  const seen = new Set<string>();
-  const out: Selected[] = [];
-  for (const s of [...a, ...b]) {
-    const k = nodeKey(s);
-    if (seen.has(k) || !keep(inA.has(k), inB.has(k))) continue;
-    seen.add(k);
-    out.push(s);
-  }
-  return out;
-}
-
-function combine(ctx: Ctx, kind: 'and' | 'or', rs: readonly QueryResult[]): QueryResult {
-  const type = rs[0].type;
-  for (const r of rs) if (r.type !== type) fail('seq.query.form.type', `A form of kind ${kind} mixes result types`);
-  const or = kind === 'or';
-  let acc = rs[0];
-  for (let i = 1; i < rs.length; i++) {
-    const r = rs[i];
-    if (acc.type === 'nodes' && r.type === 'nodes')
-      acc = { type: 'nodes', nodes: combineNodes(acc.nodes, r.nodes, or ? (x, y) => x || y : (x, y) => x && y) };
-    else if (acc.type === 'elements' && r.type === 'elements')
-      acc = { type: 'elements', elements: (or ? unionElements : intersectElements)(acc.elements, r.elements) };
-    else if (acc.type === 'location' && r.type === 'location')
-      acc = { type: 'location', location: (or ? unionLocations : intersectLocations)(acc.location, r.location) };
-  }
-  if (acc.type === 'nodes') checkLimit(ctx, acc.nodes.length);
-  if (acc.type === 'elements') checkLimit(ctx, acc.elements.keys.length);
-  return acc;
-}
-
-function operands(ctx: Ctx, form: Node, prefix: Named): QueryResult[] {
-  checkParams(form, ['of']);
-  const of = required(form, 'of');
-  if (!Array.isArray(of) || !of.length)
-    return fail('seq.query.form.param', `A form of kind ${form.kind} takes a list of forms`, {
-      hint: `(${form.kind} :of [(range :from 1 :to 9) (at :label 20)])`,
-    });
-  return (of as readonly Value[]).map((v) => evaluate(ctx, v, prefix));
-}
-
-/**
- * `and`: the intersection of its operands; a location less each `(not :of <location>)` among them, subtracted (what a
- * complement within the systems would intersect to, and the one way to take a rect from a rect: rects subtract, a rect
- * has no complement; _spec/README.md "Queries", Location).
- */
-const and: Resolve = (ctx, form, prefix) => {
-  checkParams(form, ['of']);
-  const of = required(form, 'of');
-  if (!Array.isArray(of) || !of.length) return combine(ctx, 'and', operands(ctx, form, prefix));
-  const kept: QueryResult[] = [];
-  const less: Location[] = [];
-  for (const v of of as readonly Value[]) {
-    const inner = isNode(v) && v.kind === 'not' ? v.params?.of : undefined;
-    const r = inner !== undefined ? evaluate(ctx, inner, prefix) : undefined;
-    if (r?.type === 'location') less.push(r.location);
-    else kept.push(evaluate(ctx, v, prefix));
-  }
-  if (!less.length) return combine(ctx, 'and', kept);
-  if (!kept.length)
-    return fail('seq.query.form.unsupported', 'A location less another needs one to take it from', {
-      hint: '(and :of [(rect :a … :b …) (not :of (rect :a … :b …))])',
-    });
-  const acc = combine(ctx, 'and', kept);
-  if (acc.type !== 'location') return fail('seq.query.form.type', 'A form of kind and mixes result types');
-  let loc = acc.location;
-  for (const l of less) loc = subtractLocations(loc, l);
-  return { type: 'location', location: loc };
-};
-const or: Resolve = (ctx, form, prefix) => combine(ctx, 'or', operands(ctx, form, prefix));
-
-/** The complement within what the prefix names: its systems' positions, its annotations' items, its nodes' children. */
-const not: Resolve = (ctx, form, prefix) => {
-  checkParams(form, ['of']);
-  const r = evaluate(ctx, required(form, 'of'), prefix);
-  if (r.type === 'location') {
-    if (r.location.rects.length)
-      return fail('seq.query.form.unsupported', 'A rect has no complement that is a location');
-    const all = location({
-      parts: systemsOf(ctx, prefix, 'not').map((s) => ({ system: s.address, ranges: [0, s.length] })),
-    });
-    return { type: 'location', location: subtractLocations(all, r.location) };
-  }
-  if (r.type === 'elements') {
-    let all = EmptyElements;
-    for (const a of annotationsOf(ctx, prefix, 'not')) {
-      const read = a.items();
-      stage(ctx, read.pending);
-      all = unionElements(all, elements(read.items.map((it) => ({ owner: a.address, key: it.key }))));
-    }
-    const e = subtractElements(all, r.elements);
-    checkLimit(ctx, e.keys.length);
-    return { type: 'elements', elements: e };
-  }
-  const children: Selected[] = [];
-  for (const m of prefixNodes(prefix, 'not'))
-    for (const c of m.node.children ?? [])
-      if (c.id !== undefined) children.push({ node: c, address: [...m.address, c.id] });
-  const out = combineNodes(children, r.nodes, (x, y) => x && !y);
-  checkLimit(ctx, out.length);
-  return { type: 'nodes', nodes: out };
 };
 
 // ---- the table ----
@@ -663,9 +480,7 @@ const Forms: Readonly<Record<(typeof QueryFormKinds)[number], Resolve>> = {
   items,
   node,
   extent,
-  and,
-  or,
-  not,
+  ...Combinators,
   ...MoleculeForms,
 };
 

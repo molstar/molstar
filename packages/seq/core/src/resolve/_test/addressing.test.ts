@@ -66,8 +66,8 @@ describe('a ref to a dynamic node', () => {
     // a form after the ref reads the node's items (the item's system is not a prefix of location forms yet)
     const item = resolveAddressIn(root, q, '/refs/t1/(item :id T1)');
     expect(item.result).toMatchObject({
-      type: 'elements',
-      elements: { keys: [{ owner: `${S}/(node :key T1)`, key: 'T1' }] },
+      type: 'keys',
+      keys: { keys: [{ owner: `${S}/(node :key T1)`, key: 'T1' }] },
     });
     // and the way back names the node by the ref
     expect(addressFor(root, q, after.result!)).toBe('/refs/t1');

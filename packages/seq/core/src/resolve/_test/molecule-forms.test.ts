@@ -57,7 +57,7 @@ describe('(component …)', () => {
     expect(loc(run('/data/fc/(component :standard false :annotations false)'), '/data/fc')).toEqual([0, 1, 3, 6]);
     // a unit's are its sequence's, shifted and clipped to it
     expect(loc(run('/data/c/A/(component :standard false)'), '/data/c/A')).toEqual([0, 1, 3, 6]);
-    expect(loc(run('/data/fc/(not :of (component :standard false :annotations false))'), '/data/fc')).toEqual([
+    expect(loc(run('/data/fc/(except :of (component :standard false :annotations false))'), '/data/fc')).toEqual([
       1, 3, 6, 22,
     ]);
     expect(loc(run('/data/fc/(component :id CRO :standard true)'), '/data/fc')).toEqual([]);

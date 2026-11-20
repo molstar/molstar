@@ -5,14 +5,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import {
-  elements,
-  elementsEqual,
-  hashElements,
-  intersectElements,
-  subtractElements,
-  unionElements,
-} from '../elements.js';
+import { keySet, keysEqual, hashKeys, intersectKeys, subtractKeys, unionKeys } from '../keys.js';
 import {
   EmptyLocation,
   hashLocation,
@@ -140,23 +133,23 @@ describe('query: Location', () => {
   });
 });
 
-describe('query: Elements', () => {
+describe('query: Keys', () => {
   const k = (owner: string, key: string | number) => ({ owner, key });
 
   it('are sorted and each once; a number key never equals its string', () => {
-    const e = elements([k('/b', 'x'), k('/a', 'y'), k('/a', 2), k('/a', '2'), k('/b', 'x'), k('/a', 10)]);
+    const e = keySet([k('/b', 'x'), k('/a', 'y'), k('/a', 2), k('/a', '2'), k('/b', 'x'), k('/a', 10)]);
     expect(e.keys).toEqual([k('/a', 2), k('/a', 10), k('/a', '2'), k('/a', 'y'), k('/b', 'x')]);
     expect(Object.isFrozen(e.keys)).toBe(true);
   });
 
   it('compare and hash as values, and combine as sets', () => {
-    const a = elements([k('/a', 1), k('/a', 'x')]);
-    const b = elements([k('/a', 'x'), k('/a', 1)]);
-    expect(elementsEqual(a, b) && hashElements(a) === hashElements(b)).toBe(true);
-    expect(hashElements(elements([k('/a', 1)]))).not.toBe(hashElements(elements([k('/a', '1')])));
-    const c = elements([k('/a', 'x'), k('/b', 'z')]);
-    expect(unionElements(a, c).keys).toEqual([k('/a', 1), k('/a', 'x'), k('/b', 'z')]);
-    expect(intersectElements(a, c).keys).toEqual([k('/a', 'x')]);
-    expect(subtractElements(a, c).keys).toEqual([k('/a', 1)]);
+    const a = keySet([k('/a', 1), k('/a', 'x')]);
+    const b = keySet([k('/a', 'x'), k('/a', 1)]);
+    expect(keysEqual(a, b) && hashKeys(a) === hashKeys(b)).toBe(true);
+    expect(hashKeys(keySet([k('/a', 1)]))).not.toBe(hashKeys(keySet([k('/a', '1')])));
+    const c = keySet([k('/a', 'x'), k('/b', 'z')]);
+    expect(unionKeys(a, c).keys).toEqual([k('/a', 1), k('/a', 'x'), k('/b', 'z')]);
+    expect(intersectKeys(a, c).keys).toEqual([k('/a', 'x')]);
+    expect(subtractKeys(a, c).keys).toEqual([k('/a', 1)]);
   });
 });

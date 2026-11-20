@@ -154,10 +154,10 @@ describe('theme commands', () => {
     const steps = () => v.spec.revision.value;
     const r0 = steps();
     await v.execute('layer.filter', { address: Layer, entry: 'binding' });
-    expect(layerParams(v, Layer).data).toBe('/data/domains/(not :of (item :category binding))');
+    expect(layerParams(v, Layer).data).toBe('/data/domains/(except :of (item :category binding))');
     expect(steps()).not.toBe(r0);
     await v.execute('layer.filter', { address: Layer, entry: 'linker' });
-    expect(layerParams(v, Layer).data).toBe('/data/domains/(not :of (item :category [binding linker]))');
+    expect(layerParams(v, Layer).data).toBe('/data/domains/(except :of (item :category [binding linker]))');
     await v.execute('layer.filter', { address: Layer, entry: 'linker' });
     await v.settle();
     frames!.flush();
