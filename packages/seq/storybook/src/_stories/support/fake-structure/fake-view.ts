@@ -15,7 +15,8 @@ import type { FakeStructureViewer } from './fake-viewer.js';
 // cell (unobserved ones dashed gaps, a ligand one chip), the state's colors, the pointer's hover as an outline, what
 // the host lit as a ring, the selection as a bar under the cells, and the camera as a frame that moves over the time
 // it was given. Its grammar is the model's: hover; click selects; Cmd/Ctrl+click toggles; Esc clears; double-click
-// focuses; the two buttons make selections of their own.
+// focuses; the buttons make selections of their own, and "Drop chain" edits the table (the chain of the selection or the
+// pointer, else the last polymer's, with its ligands).
 
 const CellWidth = 4;
 const RowHeight = 18;
@@ -65,43 +66,56 @@ class FakeStructureElement extends UiElement<FakeStructureViewer> {
       Button({ children: 'Select chain', onClick: () => fake.selectChain() }) as HTMLElement,
       Button({ children: 'Within 5 Å', onClick: () => fake.within() }) as HTMLElement,
       Button({ children: 'Clear', onClick: () => fake.clear() }) as HTMLElement,
+      Button({
+        children: 'Drop chain',
+        onClick: () => {
+          const auth = fake.chainToDrop();
+          if (auth !== undefined) fake.dropChain(auth);
+        },
+      }) as HTMLElement,
       status,
     );
 
     const rowsEl = document.createElement('div');
     rowsEl.className = 'fv-rows';
-    const cells: HTMLElement[][] = [];
-    for (const row of fake.rows) {
-      const r = document.createElement('div');
-      r.className = 'fv-row';
-      const label = document.createElement('span');
-      label.className = 'fv-label';
-      label.textContent = `${row.asym} ${row.operator}`;
-      label.title = `label_asym_id ${row.asym}, auth_asym_id ${row.auth}, entity ${row.entity}, operator ${row.operator}`;
-      const line = document.createElement('div');
-      line.className = 'fv-cells';
-      const els: HTMLElement[] = [];
-      row.residues.forEach((res, index) => {
-        const c = document.createElement('span');
-        c.className = 'fv-cell';
-        c.dataset.row = String(row.index);
-        c.dataset.index = String(index);
-        c.title = `${row.asym} ${res.auth}${res.ins} ${res.comp}${res.observed ? '' : ' (not modeled)'}`;
-        if (!res.observed) c.dataset.gap = '';
-        if (!row.polymer) {
-          c.dataset.chip = '';
-          c.textContent = res.comp;
-        }
-        els.push(c);
-        line.append(c);
-      });
-      cells.push(els);
-      r.append(label, line);
-      rowsEl.append(r);
-    }
     const frame = document.createElement('div');
     frame.className = 'fv-frame';
-    rowsEl.append(frame);
+    let cells: HTMLElement[][] = [];
+    // the rows as the table has them now (an edit builds them again)
+    const buildRows = () => {
+      cells = [];
+      const children: HTMLElement[] = [];
+      for (const row of fake.rows) {
+        const r = document.createElement('div');
+        r.className = 'fv-row';
+        const label = document.createElement('span');
+        label.className = 'fv-label';
+        label.textContent = `${row.asym} ${row.operator}`;
+        label.title = `label_asym_id ${row.asym}, auth_asym_id ${row.auth}, entity ${row.entity}, operator ${row.operator}`;
+        const line = document.createElement('div');
+        line.className = 'fv-cells';
+        const els: HTMLElement[] = [];
+        row.residues.forEach((res, index) => {
+          const c = document.createElement('span');
+          c.className = 'fv-cell';
+          c.dataset.row = String(row.index);
+          c.dataset.index = String(index);
+          c.title = `${row.asym} ${res.auth}${res.ins} ${res.comp}${res.observed ? '' : ' (not modeled)'}`;
+          if (!res.observed) c.dataset.gap = '';
+          if (!row.polymer) {
+            c.dataset.chip = '';
+            c.textContent = res.comp;
+          }
+          els.push(c);
+          line.append(c);
+        });
+        cells.push(els);
+        r.append(label, line);
+        children.push(r);
+      }
+      rowsEl.replaceChildren(...children, frame);
+    };
+    buildRows();
     root.append(style, tools, rowsEl);
 
     const draw = () => {
@@ -109,6 +123,8 @@ class FakeStructureElement extends UiElement<FakeStructureViewer> {
       const lit = fake.highlight.value;
       const sel = fake.selection.value;
       fake.rows.forEach((row) => {
+        // rows an edit made are built a moment later (the edit's own listener): until then, nothing to draw on
+        if (cells[row.index]?.length !== row.residues.length) return;
         cells[row.index].forEach((c, i) => {
           if (!row.residues[i].observed) return;
           c.style.background = fake.colorOf(row.index, i);
@@ -142,6 +158,13 @@ class FakeStructureElement extends UiElement<FakeStructureViewer> {
     };
     draw();
     place();
+    // an edit of the table: the rows built again, then drawn
+    const offEdits = fake.edits.listen(() => {
+      buildRows();
+      draw();
+      place();
+    });
+    onCleanup(() => offEdits());
     for (const s of [fake.hover, fake.highlight, fake.selection, fake.mvs]) {
       const off = s.listen(draw);
       onCleanup(() => off());

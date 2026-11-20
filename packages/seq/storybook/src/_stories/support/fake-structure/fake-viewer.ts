@@ -20,6 +20,7 @@ import {
   spanOfCell,
   spansOfSelector,
   toggleSpans,
+  withoutAuthChain,
 } from './chain-table.js';
 import { BaseColor, colorNodesOf, stateIssues, structureState } from './mvs-state.js';
 
@@ -50,7 +51,11 @@ export type Selectors = readonly ComponentExpressionT[];
 export const RadiusCells = 3;
 
 export class FakeStructureViewer {
-  readonly rows: readonly Row[];
+  private _rows: readonly Row[];
+  private _table: ChainTable;
+  /** Counts the table's edits (`dropChain`); `onEdit` tells a host that holds the model. */
+  readonly edits = new State(0);
+  private readonly _editFns = new Set<() => void>();
   readonly entry: string;
   readonly latency: number;
   /** Its own pointer's hover. */
@@ -74,11 +79,58 @@ export class FakeStructureViewer {
   readonly sent: { readonly kind: 'hover' | 'select' | 'focus'; readonly selectors: Selectors }[] = [];
 
   constructor(table: ChainTable, options: FakeStructureOptions = {}) {
-    this.rows = rowsOf(table);
+    this._table = table;
+    this._rows = rowsOf(table);
     this.entry = table.entry;
     this.latency = options.latency ?? 0;
     this._focusMs = options.focusMs ?? 400;
     this.mvs = new State<MVSData>(structureState(table.entry, []));
+  }
+
+  /** The rows now: a chain instance each, as the table (edited or not) has them. */
+  get rows(): readonly Row[] {
+    return this._rows;
+  }
+
+  /** The chain table now (the host's adapter reads its model from it). */
+  get table(): ChainTable {
+    return this._table;
+  }
+
+  // ---- its own edits, told to a host that holds its model ----
+
+  /** Tells `fn` after each edit of the table (`dropChain`); returns the unsubscribe. */
+  onEdit(fn: () => void): () => void {
+    this._editFns.add(fn);
+    return () => void this._editFns.delete(fn);
+  }
+
+  /**
+   * "Drop chain": the chain whose author chain id is `auth` goes, with what is bound to it (its ligands). The cells
+   * the pointer, the host and the selection held are gone with it, the colors are applied again to the rows left.
+   * Returns false for a chain it does not hold.
+   */
+  dropChain(auth: string): boolean {
+    const next = withoutAuthChain(this._table, auth);
+    if (next === this._table) return false;
+    this._table = next;
+    this._rows = rowsOf(next);
+    this.hover.set([]);
+    this.highlight.set([]);
+    this.selection.set([]);
+    this.camera.set(null);
+    // the state's colors are by selector: read again over the rows that are left
+    this.setState(this.mvs.value);
+    this.edits.set(this.edits.value + 1);
+    for (const f of [...this._editFns]) f();
+    return true;
+  }
+
+  /** The author chain id of the chain the selection or the pointer is on, else the last polymer chain's. */
+  chainToDrop(): string | undefined {
+    const picked = this.selection.value.length ? this.selection.value : this.hover.value;
+    const row = picked.length ? this._rows[picked[0].row] : [...this._rows].reverse().find((r) => r.polymer);
+    return row?.auth;
   }
 
   /** Aborted when the viewer goes: what a host's link ends with. */

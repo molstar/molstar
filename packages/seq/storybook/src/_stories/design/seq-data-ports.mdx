@@ -29,5 +29,8 @@ the application as rows on its units, which it writes in its own terms.
 
 ## In the Storybook
 
-The fake structure viewer serves 2OCJ from its own table: a pLDDT track reads from it, and dropping a chain is followed
-by the sequences, with no file read.
+The fake structure viewer serves 2OCJ from its own table (its chains, entities, compounds, bonds and each residue's
+B-factor): [Host data](?path=/story/seq-next-features-host-data--served-by-the-fake) shows the B-factors of two chains
+reading from it and the nodes it brings, with no file read, and dropping a chain is followed by the sequences a frame
+later. A button composes the same spec with the default adapter, which reads the file: the same nodes. A table that
+carries pLDDT (a predicted model) serves it by name the same way; 2OCJ is a crystal structure and has none.
