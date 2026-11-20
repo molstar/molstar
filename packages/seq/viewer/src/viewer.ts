@@ -23,7 +23,6 @@ import {
   type Viewport as RenderViewport,
   hitView,
   railSections,
-  rowsRailTracks,
   resolveColor,
   textMinScale,
 } from '@molstar/seqx-core/render';
@@ -63,6 +62,7 @@ import {
   Projector,
   SelectionModel,
   SpecModel,
+  sameIssues,
   StoreModel,
   ViewModel,
 } from '@molstar/seqx-viewer/models';
@@ -73,6 +73,7 @@ import { frameAnimation } from './animation.js';
 import { ViewerInput } from './input.js';
 import { highlightColorOf, LegendModel } from './legends.js';
 import { ViewerIssues } from './issues.js';
+import { narrowedVersion, rowsRailsOf } from './narrowed.js';
 import type { BehaviorContext, BehaviorProvider, SeqViewerSpec } from './viewer-spec.js';
 import { mountCanvas } from './mount.js';
 import type { SeqStoryPart } from './story.js';
@@ -214,7 +215,7 @@ export class SeqViewer extends ReactiveModel {
   readonly railsShown: ReadonlyState<boolean> = this._railsShown.asReadonly;
   /** The sections that draw a rail and which can move: kept while they hold (the frame's key reads them by identity). */
   private _rails: Record<string, true> | undefined;
-  private _railsFor: [unknown, boolean, number] = [undefined, false, 0];
+  private _railsFor: [unknown, boolean, number, number] = [undefined, false, 0, 0];
   /** Bumped when a host's navigator comes or goes: the rails it replaces are found again. */
   private _hostedVersion = 0;
   private _railsActive: Record<string, boolean> = {};
@@ -1201,10 +1202,11 @@ export class SeqViewer extends ReactiveModel {
   private _updateRails(resolved: ResolvedView): void {
     const on = this.config.navigator.form === 'rail' && this._railsShown.value;
     const f = this._railsFor;
-    if (f[0] !== resolved || f[1] !== on || f[2] !== this._hostedVersion) {
+    if (f[0] !== resolved || f[1] !== on || f[2] !== this._hostedVersion || f[3] !== narrowedVersion(this)) {
       f[0] = resolved;
       f[1] = on;
       f[2] = this._hostedVersion;
+      f[3] = narrowedVersion(this);
       // a host's navigator (`navigator(def)`) replaces the rail on what it binds, as a declared one does
       const hosted: ResolvedNavigator[] = [];
       for (const m of this._navigators.values()) {
@@ -1213,8 +1215,8 @@ export class SeqViewer extends ReactiveModel {
       }
       // a declared navigator replaces a rail only when the spec lists the navigators (else it is not drawn: said once)
       const shown = this._navigatorsPart ? resolved : this._withoutNavigators(resolved);
-      // and every rows layer's rows rail, by its track (`navigator.rowsRail`: beside a navigator over its rows, or not)
-      const rows = on ? rowsRailTracks(shown, hosted, this.config.navigator.rowsRail) : [];
+      // and every rows layer's rows rail, by its track (`navigator.rowsRail`; a navigator a narrow frame hides, hidden)
+      const rows = on ? rowsRailsOf(this, shown, hosted, this.config) : [];
       this._rowsRails = new Set(rows);
       this._rails = on
         ? Object.fromEntries([...railSections(shown, hosted), ...rows].map((a) => [a, true as const]))
@@ -1544,15 +1546,6 @@ export class SeqViewer extends ReactiveModel {
       ...options,
     });
   }
-}
-
-/** The same issues in the same order, by code, address and message. */
-function sameIssues(a: readonly Issue[], b: readonly Issue[]): boolean {
-  if (a === b) return true;
-  if (a.length !== b.length) return false;
-  for (let i = 0; i < a.length; i++)
-    if (a[i].code !== b[i].code || a[i].address !== b[i].address || a[i].message !== b[i].message) return false;
-  return true;
 }
 
 function viewerConfig(spec: SeqViewerSpec): ViewerConfig {

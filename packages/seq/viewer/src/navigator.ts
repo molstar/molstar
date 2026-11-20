@@ -22,6 +22,7 @@ import { windowIdle } from '@molstar/seqx-viewer/behaviors/window';
 import type { ModifierState } from '@molstar/seqx-viewer/bindings';
 import type { ViewSnapshot } from '@molstar/seqx-viewer/models';
 import { DragSlop } from './input.js';
+import { setNarrowed } from './narrowed.js';
 import { type PartCursor, partCursor } from './part-cursor.js';
 import type { SeqViewer } from './viewer.js';
 
@@ -190,6 +191,8 @@ export class NavigatorModel extends ReactiveModel {
     if (!this.hostWidth && this.room > 0 && narrow && nav.axes === 'rows' && nav.size === undefined)
       if (nav.place === 'left' || nav.place === 'right')
         this.width = overviewWidth(this.room - narrow.columnsPx, b.width, this.viewer.context.renderConfig);
+    // hidden for want of width: as a hidden navigator, its rows rail back under `unlessOverview` (the next frame's)
+    if (setNarrowed(this.viewer, this.id, b.width > 0 && this.width === 0)) this.viewer.schedule();
     this.boxHeight = this.hostHeight ? Math.max(1, this.hostHeight - zoom) : b.height;
     this.height = this.hostHeight || this.boxHeight + zoom;
   }

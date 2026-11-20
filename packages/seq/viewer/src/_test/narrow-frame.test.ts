@@ -43,13 +43,13 @@ function spec(): Node {
 }
 
 /** A viewer in a row `frame` px wide: the overview's room the row, the canvas what the overview leaves. */
-async function inFrame(frame: number) {
+async function inFrame(frame: number, config: readonly (readonly [unknown, unknown])[] = []) {
   frames?.restore();
   frames = installFrames();
   const viewer = createSeqViewer({
     ...DefaultSeqViewerSpec(),
     ui: undefined,
-    config: [[viewerItem('view.jumpMs'), 0]] as never,
+    config: [[viewerItem('view.jumpMs'), 0], ...config] as never,
   });
   viewers.push(viewer);
   await viewer.load(spec());
@@ -60,9 +60,10 @@ async function inFrame(frame: number) {
   const nav = viewer.navigatorModel('nav')!;
   nav.setRoom(frame);
   // the mount's loop: the part sized, the canvas resized to the rest, drawn again (twice: it is stable)
-  for (let i = 0; i < 2; i++) {
+  for (let i = 0; i < 3; i++) {
     nav.draw();
     viewer.resize(frame - nav.width);
+    frames!.flush();
     viewer.draw();
   }
   nav.draw();
@@ -92,6 +93,26 @@ describe('a narrow frame: the vertical overview beside the canvas', () => {
     const at480 = await inFrame(480);
     expect(at480.nav.width).toBe(480 - columns - 48 < 160 ? 0 : Math.min(96, 480 - columns - 160));
     expect(at480.viewer.frame!.layout.sections[0].rowsRails?.length).toBe(1);
+  });
+
+  it('under `unlessOverview` an overview hidden for want of width brings the rows rail back; wide, it replaces it', async () => {
+    const unless = [[viewerItem('navigator.rowsRail'), 'unlessOverview']] as const;
+    const wide = await inFrame(1280, unless);
+    expect(wide.nav.width).toBe(96);
+    expect(wide.viewer.frame!.layout.sections[0].rowsRails).toBeUndefined();
+    const narrow = await inFrame(wide.columns + 160 + 40, unless);
+    expect(narrow.nav.width).toBe(0);
+    expect(narrow.viewer.frame!.layout.sections[0].rowsRails?.length).toBe(1);
+    // wide again: the overview back, the rail replaced
+    narrow.nav.setRoom(1280);
+    for (let i = 0; i < 3; i++) {
+      narrow.nav.draw();
+      narrow.viewer.resize(1280 - narrow.nav.width);
+      frames!.flush();
+      narrow.viewer.draw();
+    }
+    expect(narrow.nav.width).toBe(96);
+    expect(narrow.viewer.frame!.layout.sections[0].rowsRails).toBeUndefined();
   });
 
   it('no room given, or a host’s own size, keeps its width', async () => {

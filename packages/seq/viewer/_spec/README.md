@@ -421,7 +421,8 @@ owner, the store with it.
   `ui.navigators` (`navigatorsMount`, on in the default spec) places the view's shown navigators by `place` around the
   canvas (top before it, bottom after it, left and right beside it in a row) through the same call, again when they
   change; each side part's room is the row less the other side parts (`NavigatorModel.setRoom`: a vertical overview of
-  its form's size narrows and hides by the plot it leaves, core's "Render", A narrow frame), and the canvas keeps the
+  its form's size narrows and hides by the plot it leaves, core's "Render", A narrow frame; one hidden so counts as
+  hidden for the rows rail, `narrowed.ts`, so under `unlessOverview` the rail comes back), and the canvas keeps the
   layout's least width (`narrow.minWidth`, its `min-width`), the middle of the row scrolling only past it.
   `ui.railToggle` (`railToggleMount`; for a viewer embedded in a host's cell) puts a button in the canvas's corner that
   hides and shows the ruler rails (`setRailsShown`, `railsShown`: the reader's session, never the spec). The rails
