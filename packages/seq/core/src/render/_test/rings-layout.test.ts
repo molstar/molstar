@@ -462,19 +462,19 @@ describe('a dense fan of labels', () => {
     expect(ringOf(hovered).placement).toBe(p);
   });
 
-  it('a hover on the group draws the fan (the grouped form at rest), and its labels are hit as their items', async () => {
-    const s = await settle(denseSpec(13));
+  it('a hover on a group of up to `fanMax` draws the fan (the grouped form at rest), and its labels are hit as their items', async () => {
+    const s = await settle(denseSpec(10));
     const f = await s.frame({ size: Size });
     const p = ringOf(f).placement as RingPlacement;
     const rest = recordDrawLists(f.lists);
-    expect(rest).toContain('13 items');
+    expect(rest).toContain('10 items');
     expect(rest).not.toContain('Site3');
     const k = groupSlot(p);
     const at = labelPoint(p, p.labels, k);
     const over = hitAtPage(f, at.x, at.y)!;
     const hovered = s.renderer.frame({ size: Size, emphasis: { hover: { ...over } } });
     const lists = recordDrawLists(hovered.lists);
-    for (let q = 0; q < 13; q++) expect(lists).toContain(`Site${q}`);
+    for (let q = 0; q < 10; q++) expect(lists).toContain(`Site${q}`);
     expect(openGroupOf(p, over)).toBe(0);
     // a fan label is hit as its item, while the group is open
     const i = p.fan.members[3];
@@ -488,7 +488,7 @@ describe('a dense fan of labels', () => {
     expect(openGroupOf(p, { ...member })).toBe(0);
     // a hover on that item keeps the fan open; off the group the grouped form is drawn again
     const again = s.renderer.frame({ size: Size, emphasis: { hover: { ...member } } });
-    expect(recordDrawLists(again.lists)).toContain('Site12');
+    expect(recordDrawLists(again.lists)).toContain('Site9');
     const off = s.renderer.frame({ size: Size, emphasis: {} });
     expect(recordDrawLists(off.lists)).not.toContain('Site3');
     expect(openGroupOf(p, undefined)).toBe(-1);

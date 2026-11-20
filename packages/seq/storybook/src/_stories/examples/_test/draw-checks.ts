@@ -10,6 +10,7 @@ import { PackageFolder } from '@molstar/seqx-examples/node-assets';
 import { regionSeqText } from '@molstar/seqx-examples/p53/region';
 import { DefaultSeqViewerSpec } from '@molstar/seqx-viewer/default-spec';
 import { uiHistory } from '@molstar/seqx-viewer/ui-history';
+import type { SeqViewerSpec } from '@molstar/seqx-viewer/viewer-spec';
 import { createSeqViewer, type SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { readFileSync } from 'node:fs';
 import { vi } from 'vitest';
@@ -32,6 +33,8 @@ export interface OpenOptions {
   readonly realClock?: boolean;
   /** The host's history, for edits that are undone (the spec takes part in it). */
   readonly history?: boolean;
+  /** The viewer's config items, as the story passes them (`exampleStory`'s `config`). */
+  readonly config?: SeqViewerSpec['config'];
 }
 
 /** A viewer of an example view on a fake clock, composed as the stories compose it: loaded, the clock run, drawn. */
@@ -46,6 +49,7 @@ export async function openExample(view: ExampleView, options: OpenOptions): Prom
     ...base,
     ui: undefined,
     ...(history ? { history: uiHistory() } : {}),
+    ...(options.config ? { config: [...(base.config ?? []), ...options.config] } : {}),
     registry: [...(base.registry ?? []), ...(view.registry?.(delayMs === 'staggered' ? {} : { delayMs }) ?? [])],
     ports: {
       assets: () => {

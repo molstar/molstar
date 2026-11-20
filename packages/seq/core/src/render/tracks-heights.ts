@@ -131,12 +131,17 @@ function sizeTracks(
     }
     // one lane block a track: the most lanes its layers need, one label lane for all of them
     contents.push(lanes === undefined ? undefined : { lanes, labels });
+    const content =
+      lanes !== undefined && rowsFill(t) === undefined
+        ? Math.max(other, lanesHeight(lanes + (labels ? 1 : 0), config))
+        : undefined;
     sized.push({
       track: t,
       kind,
       fixed: fixed[j],
-      ...(lanes !== undefined && rowsFill(t) === undefined
-        ? { content: Math.max(other, lanesHeight(lanes + (labels ? 1 : 0), config)) }
+      // its label lane its own: what it adds over its lanes (a kind shares lanes, never a label lane)
+      ...(content !== undefined
+        ? { content, label: labels ? content - Math.max(other, lanesHeight(lanes!, config)) : 0 }
         : {}),
       ...(t.height !== undefined ? { height: t.height } : {}),
     });

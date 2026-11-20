@@ -30,12 +30,16 @@ export function rowsHeader(
   readonly tree: number;
   readonly numbers: boolean;
   readonly rail: boolean;
+  /** The view has a tracks section (a label column a narrow frame shrinks). */
+  readonly tracks: boolean;
 } {
   let tree = 0;
   let numbers = false;
   let rail = false;
+  let tracks = false;
   for (const s of view.sections) {
     if (sectionLayoutName(s, view) !== 'tracks') continue;
+    tracks = true;
     for (const t of s.tracks)
       for (const l of t.layers) {
         if (l.type !== 'rows' || !l.placed || l.params.hidden === true) continue;
@@ -46,7 +50,7 @@ export function rowsHeader(
           tree = Math.max(tree, typeof w === 'number' ? w : 120);
       }
   }
-  return { tree, numbers, rail };
+  return { tree, numbers, rail, tracks };
 }
 
 const NoColumns: ReadonlyMap<string, readonly RowColumn[]> = new Map();
@@ -101,9 +105,12 @@ export function columnsFit(
   const widths = new Map<string, number[]>();
   let left = 0;
   let right = 0;
+  let own = 0;
   for (const [key, cols] of columns) {
-    const own = cols.map((c) => c.width);
-    const need = fixed + dataMinPx + columnsRoom(cols, own, 'left', gapPx) + columnsRoom(cols, own, 'right', gapPx);
+    const widths0 = cols.map((c) => c.width);
+    const room = columnsRoom(cols, widths0, 'left', gapPx) + columnsRoom(cols, widths0, 'right', gapPx);
+    own = Math.max(own, room);
+    const need = fixed + dataMinPx + room;
     const w = fitRowColumns(cols, need - width, floorPx, gapPx, []);
     widths.set(key, w);
     left = Math.max(left, columnsRoom(cols, w, 'left', gapPx));
@@ -114,7 +121,7 @@ export function columnsFit(
   const rightX = width - config.inset - (rail ? SlimRailPx : 0) - right;
   const grants = new Map<string, { widths: readonly number[]; rightX: number }>();
   for (const [key, w] of widths) grants.set(key, { widths: w, rightX });
-  const fit: ColumnsFit = { columns, width, fixed, config, left, right, grants };
+  const fit: ColumnsFit = { columns, width, fixed, config, left, right, own: own + (rail && own ? gapPx : 0), grants };
   state.columnsFit = fit;
   return fit;
 }
@@ -127,6 +134,8 @@ interface ColumnsFit {
   readonly config: RenderConfig;
   readonly left: number;
   readonly right: number;
+  /** The rooms at the columns' own widths (any frame's: what a narrow frame's navigator reads, never flipping). */
+  readonly own: number;
   readonly grants: ReadonlyMap<string, { readonly widths: readonly number[]; readonly rightX: number }>;
 }
 

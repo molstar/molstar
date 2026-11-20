@@ -10,9 +10,11 @@ import type { ExampleView } from '@molstar/seqx-examples';
 import { DefaultSeqViewerSpec } from '@molstar/seqx-viewer/default-spec';
 import { mountToolbar } from '@molstar/seqx-viewer/mount-toolbar';
 import { createSeqViewer, type SeqViewer } from '@molstar/seqx-viewer/viewer';
+import type { SeqViewerSpec } from '@molstar/seqx-viewer/viewer-spec';
 import { defineElements, onCleanup } from '@molstar/ui/dom';
 import { UiElement } from '@molstar/ui/elements/ui-element';
 import { followSvg } from '../follow-svg.js';
+import { statusIssues } from './status-issues.js';
 import { filesOf, fileHead, printSources } from '../features/files/file-head.js';
 
 // A story of an example view (examples-and-stories.md): the view's `build()` shown by a viewer composed from the default
@@ -26,6 +28,8 @@ type ExampleModel = ExampleView & {
   readonly files?: boolean;
   /** What the story does once the view is placed (a move to the region it opens on). */
   readonly opening?: (viewer: SeqViewer) => unknown;
+  /** The viewer's config items (`[item, value]` pairs) over the default spec's. */
+  readonly config?: SeqViewerSpec['config'];
 };
 
 const Box = 'display: grid; gap: var(--msui-space-2); min-width: 0; align-content: start;';
@@ -77,7 +81,12 @@ class ExampleRoot extends UiElement<ExampleModel> {
     const base = DefaultSeqViewerSpec();
     const extra = view.registry?.() ?? [];
     const viewer = createSeqViewer(
-      { ...base, ui: { ...base.ui, toolbar: mountToolbar }, registry: [...(base.registry ?? []), ...extra] },
+      {
+        ...base,
+        ui: { ...base.ui, toolbar: mountToolbar },
+        registry: [...(base.registry ?? []), ...extra],
+        ...(view.config ? { config: [...(base.config ?? []), ...view.config] } : {}),
+      },
       canvasHost,
     );
     onCleanup(() => viewer.retire());
@@ -89,11 +98,13 @@ class ExampleRoot extends UiElement<ExampleModel> {
     // share a clip or a mask
     const svg = followSvg(viewer, svgHost, {
       prefix: 'ex',
-      also: [viewer.layoutIssues],
+      also: [viewer.layoutIssues, viewer.modelIssues],
       ...(view.navigators ? { svg: { navigators: view.navigators } } : {}),
       onDraw: (r) => {
-        status.textContent = `${r.settled ? 'Settled' : 'Not settled'}; ${r.issues.length} issue${r.issues.length === 1 ? '' : 's'}${
-          r.issues.length ? `: ${r.issues.map((i) => i.message).join('; ')}` : ''
+        // the export's issues and the viewer's model's as it says them (one of a source still opening held back)
+        const issues = statusIssues(r.issues, viewer.modelIssues.value);
+        status.textContent = `${r.settled ? 'Settled' : 'Not settled'}; ${issues.length} issue${issues.length === 1 ? '' : 's'}${
+          issues.length ? `: ${issues.map((i) => i.message).join('; ')}` : ''
         }`;
       },
     });
@@ -137,7 +148,7 @@ defineElements([ExampleRoot]);
 
 /**
  * A Storybook `render` result for an example view (`navigators`: its SVG draws the view's navigators; `files`: the view's
- * source nodes and the head of each file they name are printed beside it).
+ * source nodes and the head of each file they name are printed beside it; `config`: the viewer's items).
  */
 export function exampleStory(
   view: ExampleView,
@@ -145,9 +156,10 @@ export function exampleStory(
     readonly navigators?: 'omit' | 'include';
     readonly files?: boolean;
     readonly opening?: (viewer: SeqViewer) => unknown;
+    readonly config?: SeqViewerSpec['config'];
   } = {},
 ): HTMLElement {
   const el = document.createElement(ExampleRoot.tag) as ExampleRoot;
-  el.model = options.navigators || options.files || options.opening ? { ...view, ...options } : view;
+  el.model = options.navigators || options.files || options.opening || options.config ? { ...view, ...options } : view;
   return el;
 }

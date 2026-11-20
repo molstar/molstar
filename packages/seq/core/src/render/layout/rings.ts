@@ -144,6 +144,10 @@ export class RingPlacement implements Placement {
   labels = new RingLabels();
   /** Every label placed as if no group existed, when a fan is dense (m is 0 otherwise): what a hover on a group opens. */
   fan = new RingLabels();
+  /** The most members a group's fan opens to (`rings.cluster.fanMax`): a larger group stays one label, its card the list. */
+  fanMax = Infinity;
+  /** The fan's labels' own angles while their pivoted ones are placed (scratch, kept between layouts). */
+  fanFrom = new Float64Array(16);
   cx = 0;
   cy = 0;
   /** The outer radius, and the rings' depth (their bands and the gaps between them). */
@@ -697,6 +701,7 @@ function layoutLabels(p: RingPlacement, config: RenderConfig, size: number, text
   const all = p.labels;
   const rc = config.rings;
   p.fan.reset();
+  p.fanMax = rc.cluster.fanMax;
   all.ng = 0;
   if (findGroups(all, rc.cluster.over, (rc.cluster.degrees * Math.PI) / 180) === 0)
     return placeLabels(p, all, config, size, text);
@@ -707,7 +712,13 @@ function layoutLabels(p: RingPlacement, config: RenderConfig, size: number, text
   const grouped = p.labels;
   grouped.reset();
   grouped.groupHits.length = 0;
-  placeLabels(p, full, config, size, text);
+  // a fan that opens pivots its members wider than their own arc about the group's middle, a line apart at the bend,
+  // their leaders from their own angles: placed with the rest, then their own angles back
+  const from = (p.fanFrom = grown(p.fanFrom, full.n));
+  from.set(full.angle.subarray(0, full.n));
+  pivotFans(p, full, labelLine(size) / (p.r + rc.labelGap));
+  placeLabels(p, full, config, size, text, from);
+  full.angle.set(from.subarray(0, full.n));
   full.slot = grown(full.slot, full.n);
   full.slot.fill(-1, 0, full.n);
   for (let k = 0; k < full.m; k++) full.slot[full.placed[k]] = k;
@@ -742,11 +753,50 @@ function layoutLabels(p: RingPlacement, config: RenderConfig, size: number, text
 }
 
 /**
+ * Pivots each group's members that a fan opens to (at most `p.fanMax`) about the group's middle angle, `step` radians
+ * apart (a line at the bend) or their own spacing if wider, in their own order along the ring: a dozen leaders fan out
+ * instead of running together over the group's own few degrees.
+ */
+function pivotFans(p: RingPlacement, l: RingLabels, step: number) {
+  for (let g = 0; g < l.ng; g++) {
+    const r = l.groupSize[g];
+    if (r > p.fanMax || r < 2) continue;
+    const c = l.groupAngle[g];
+    const a = l.groupStart[g];
+    // the members by their offset from the middle (small: a dozen; the scratch is the group's slice of `sorted`)
+    const off = (j: number) => ((((l.angle[j] - c + Math.PI) % TwoPi) + TwoPi) % TwoPi) - Math.PI;
+    const m = l.sorted;
+    for (let q = 0; q < r; q++) m[q] = l.members[a + q];
+    for (let q = 1; q < r; q++) {
+      const j = m[q];
+      let k = q - 1;
+      while (k >= 0 && off(m[k]) > off(j)) {
+        m[k + 1] = m[k];
+        k--;
+      }
+      m[k + 1] = j;
+    }
+    const d = Math.max(step, (off(m[r - 1]) - off(m[0])) / (r - 1));
+    for (let q = 0; q < r; q++) {
+      const t = c + (q - (r - 1) / 2) * d;
+      l.angle[m[q]] = ((t % TwoPi) + TwoPi) % TwoPi;
+    }
+  }
+}
+
+/**
  * Places a ring's labels: each side (right: angles in [0, π)) sorted by height, spread a line apart within the box
  * (a forward pass then a backward one), past what a side holds dropped by order then length; each label hugging the
  * circle at its leader's outer radius, its leader out along its angle to the bend, then to the label.
  */
-function placeLabels(p: RingPlacement, l: RingLabels, config: RenderConfig, size: number, text: TextMetrics) {
+function placeLabels(
+  p: RingPlacement,
+  l: RingLabels,
+  config: RenderConfig,
+  size: number,
+  text: TextMetrics,
+  from?: Float64Array,
+) {
   const rc = config.rings;
   const line = labelLine(size);
   const r1 = p.r + 2;
@@ -784,8 +834,10 @@ function placeLabels(p: RingPlacement, l: RingLabels, config: RenderConfig, size
       l.right[m] = right ? 1 : 0;
       l.width[m] = Math.min(RingMetrics.labelRoom, text.measure(config.itemFont, l.text[i]));
       const o = 6 * m;
-      l.leader[o] = p.cx + r1 * Math.sin(t);
-      l.leader[o + 1] = p.cy - r1 * Math.cos(t);
+      // from the mark (its own angle where a fan pivots it)
+      const t0 = from ? from[i] : t;
+      l.leader[o] = p.cx + r1 * Math.sin(t0);
+      l.leader[o + 1] = p.cy - r1 * Math.cos(t0);
       l.leader[o + 2] = p.cx + rb * Math.sin(t);
       l.leader[o + 3] = p.cy - rb * Math.cos(t);
       l.leader[o + 4] = x;
@@ -806,7 +858,7 @@ export function openGroupOf(p: RingPlacement, h: Hit | undefined): number {
   if (h.target === 'group') {
     for (let q = 0; q < l.groupHits.length; q++) {
       const gh = l.groupHits[q];
-      if (gh && gh.state === h.state && gh.layer === h.layer) return q;
+      if (gh && gh.state === h.state && gh.layer === h.layer) return f.groupSize[q] > p.fanMax ? -1 : q;
     }
     return -1;
   }
@@ -816,7 +868,8 @@ export function openGroupOf(p: RingPlacement, h: Hit | undefined): number {
   for (let q = 0; q < f.groupStart[f.ng]; q++) {
     const e = f.hits[f.members[q]]?.element;
     if (e && e.key === key && e.owner === owner) {
-      for (let r = 0; r < f.ng; r++) if (q >= f.groupStart[r] && q < f.groupStart[r + 1]) return r;
+      for (let r = 0; r < f.ng; r++)
+        if (q >= f.groupStart[r] && q < f.groupStart[r + 1]) return f.groupSize[r] > p.fanMax ? -1 : r;
     }
   }
   return -1;

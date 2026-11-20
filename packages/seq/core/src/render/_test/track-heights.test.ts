@@ -186,6 +186,20 @@ describe('labels inside if they fit, else beside', () => {
     }
   });
 
+  it('tracks of one kind share their lanes, each its own label lane: one without labels beside has no empty lane', async () => {
+    // a Forward and a Reverse strand: one lane each; the Forward's short item's label beside, the Reverse's inside
+    const r = await frameOf(spec([{ rows: Labeled }, { rows: { start: [0], end: [100], id: ['a'], label: ['A'] } }]));
+    const [forward, reverse] = r.layout.sections[0].tracks;
+    expect(forward.box.height).toBe(36);
+    expect(reverse.box.height).toBe(22);
+    const lay = reverse.layers[0].lay as RangesLay;
+    expect(lay.labelY).toBe(-1);
+    expect(lay.laneY).toBe(reverse.box.y + 4);
+    // the lanes are shared still: a Reverse needing two lanes makes the Forward two lanes and its label lane
+    const two = await frameOf(spec([{ rows: Labeled }, { rows: stacked(2) }]));
+    expect(two.layout.sections[0].tracks.map((t) => t.box.height)).toEqual([50, 36]);
+  });
+
   it('labels that all fit inside need no label lane; one the lane cannot hold is dropped, never cut', async () => {
     const fits = await frameOf(spec([{ rows: { start: [0], end: [100], id: ['a'], label: ['A'] } }]));
     expect(fits.layout.sections[0].tracks[0].box.height).toBe(22);

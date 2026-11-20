@@ -198,9 +198,17 @@ export function mountCanvas(viewer: SeqViewer, target: HTMLElement): () => void 
   ];
   for (const [type, fn, options] of listeners) container.addEventListener(type, fn, options);
 
-  // the width follows the container; the height is the layout's
+  // the width follows the container; the height is the layout's; its least width the layout's (a narrow frame: the
+  // plot keeps its floor and the frame scrolls, core's "Render", A narrow frame)
   let observer: ResizeObserver | undefined;
   const measure = () => viewer.resize(container.clientWidth);
+  let least = 0;
+  const stopLeast = viewer.drawn.listen(() => {
+    const m = viewer.frame?.layout.narrow?.minWidth ?? 0;
+    if (m === least) return;
+    least = m;
+    container.style.minWidth = m > 0 ? `${Math.ceil(m)}px` : '';
+  });
   if (typeof ResizeObserver !== 'undefined') {
     observer = new ResizeObserver(measure);
     observer.observe(container);
@@ -269,6 +277,7 @@ export function mountCanvas(viewer: SeqViewer, target: HTMLElement): () => void 
     reduced?.removeEventListener?.('change', onReduced);
     forced?.removeEventListener?.('change', onForced);
     stopSaying();
+    stopLeast();
     announcer.dispose();
     fontFaces?.removeEventListener?.('loadingdone', onFonts);
     viewer.useBackend(undefined);

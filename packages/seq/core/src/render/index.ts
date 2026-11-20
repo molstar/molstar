@@ -147,6 +147,7 @@ export {
   WindowFill,
   windowPart,
 } from './window.js';
+export { type NarrowColumns, narrowColumns, overviewWidth } from './narrow.js';
 export { type SourceLabelsOptions, withSourceNumberings } from './numberings.js';
 export {
   drawRail,
@@ -160,6 +161,7 @@ export {
   railSections,
   railUnitAt,
   rowsRailTracks,
+  type RowsRailMode,
   SlimRailPx,
 } from './rail.js';
 export { type BandsLay, type BandsPrep, BandsType } from './bands.js';

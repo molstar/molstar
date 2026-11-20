@@ -223,6 +223,9 @@ export class RowsLay {
   /** The hidden-rows chip: its text and box (none when no row is hidden). */
   chip = '';
   chipX = 0;
+  /** The tree's toggle in a narrow frame (its glyph's left and top; -1: none): its hit reopens the tree. */
+  toggleX = -1;
+  toggleY = 0;
   chipY = 0;
   chipW = 0;
   readonly datum = new PlainDatum();

@@ -8,10 +8,12 @@
 // SVG with the navigators included): chr17's ideogram over the gene's region (a band's name under the pointer, the
 // region's window), p53's tracks with a strip (it replaces the rail; a drag on its window pans), the protein's strip
 // with its gene's window (a drag on the gene's moves the protein), the Globins' overview and miniature (a drag moves the
-// rows), the plasmid's strip over the detail (a window over the origin in two pieces); and the feature's rail.
+// rows; the rows rail beside the overview), the plasmid's strip over the detail (a window over the origin in two
+// pieces); and the feature's rail.
 
 import { GlobinsViews, P53Views, PlasmidViews } from '@molstar/seqx-examples';
 import { regionSeqText } from '@molstar/seqx-examples/p53/region';
+import { viewerItem } from '@molstar/seqx-viewer/config';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { openExample } from '../../../examples/_test/draw-checks.js';
@@ -153,6 +155,22 @@ describe('the navigators’ examples, headless', () => {
     const r = await svg(v);
     expect(r.svg).toContain('data-navigator="overview"');
     expect(r.svg).toContain('data-navigator="miniature"');
+  });
+
+  it('the Globins’ family: the rows rail beside the overview by default, the overview alone under `unlessOverview`', async () => {
+    const family = GlobinsViews.find((v) => v.id === 'family')!;
+    viewer = await openExample(family, { gene: '' });
+    const both = viewer;
+    const rail = () => viewer!.frame!.layout.sections.find((s) => s.rowsRails?.length)?.rowsRails?.[0];
+    expect(rail()?.active).toBe(true);
+    const { f } = await navigator(both, 'overview');
+    expect(f.windows[0].rows).toBeGreaterThan(0);
+    both.retire();
+    viewer = await openExample(family, {
+      gene: '',
+      config: [[viewerItem('navigator.rowsRail'), 'unlessOverview']],
+    });
+    expect(rail()).toBeUndefined();
   });
 
   it('the plasmid’s strip over the detail: a window over the origin in two pieces', async () => {

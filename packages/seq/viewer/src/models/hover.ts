@@ -35,6 +35,7 @@ export type HitTarget =
   | 'summary-row'
   | 'column-title'
   | 'columns-hidden'
+  | 'tree-toggle'
   | 'group';
 
 /**

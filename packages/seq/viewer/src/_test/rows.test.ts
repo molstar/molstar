@@ -62,7 +62,7 @@ async function make(collapsed?: string[], newick?: string) {
   const v = createSeqViewer({ ...DefaultSeqViewerSpec(), ui: undefined, config: [[viewerItem('view.jumpMs'), 0]] });
   viewer = v;
   await v.load(spec(collapsed, newick));
-  v.resize(400);
+  v.resize(480);
   await v.settle();
   frames.flush();
   v.input.mac = false;
@@ -248,7 +248,7 @@ describe('an alignment’s rows in the viewer', () => {
     const v = createSeqViewer({ ...DefaultSeqViewerSpec(), ui: undefined, config: [[viewerItem('view.jumpMs'), 0]] });
     viewer = v;
     await v.load(b.build());
-    v.resize(400);
+    v.resize(480);
     await v.settle();
     frames.flush();
     expect(lay(v).display.pinned).toBe(2);
@@ -338,7 +338,7 @@ describe('the rows’ band in display rows, kept by key', () => {
         },
       ],
     });
-    v.resize(400);
+    v.resize(480);
     await v.settle();
     v.draw();
     v.view.setBand(Track, { folds: ['hb'] });
@@ -649,7 +649,7 @@ describe('the rows’ columns in the viewer', () => {
     const v = createSeqViewer({ ...DefaultSeqViewerSpec(), ui: undefined, config: [[viewerItem('view.jumpMs'), 0]] });
     viewer = v;
     await v.load(b.build());
-    v.resize(400);
+    v.resize(480);
     await v.settle();
     frames.flush();
     const logo = v.frame!.layout.sections[0].tracks[0].box;
@@ -671,5 +671,33 @@ describe('the rows’ columns in the viewer', () => {
     v.input.move(x, y2);
     frames!.flush();
     expect(v.hover.version.value).toBe(version);
+  });
+});
+
+describe('a narrow frame’s tree toggle', () => {
+  it('a collapsed tree is a toggle: its click opens the tree (session state), Shift+T folds it back', async () => {
+    const v = await make();
+    // narrow enough that the label column at its floor still leaves the plot short: the tree collapses
+    v.resize(260);
+    frames!.flush();
+    v.draw();
+    const l = lay(v);
+    expect(l.treeX1 - l.treeX0).toBe(0);
+    expect(l.toggleX).toBeGreaterThanOrEqual(0);
+    expect(v.hit(l.toggleX + 6, l.toggleY + 6)?.target).toBe('tree-toggle');
+    const least = v.frame!.layout.narrow!.minWidth;
+    expect(v.input.click(l.toggleX + 6, l.toggleY + 6)).toBe(true);
+    expect(v.view.band(Track)?.tree).toBe(true);
+    frames!.flush();
+    v.draw();
+    expect(lay(v).treeX1 - lay(v).treeX0).toBeGreaterThan(0);
+    expect(lay(v).toggleX).toBe(-1);
+    // the least width holds the tree: the frame scrolls
+    expect(v.frame!.layout.narrow!.minWidth).toBeGreaterThan(least);
+    expect(v.input.key({ key: 'T', shiftKey: true })).toBe(true);
+    expect(v.view.band(Track)?.tree).toBeUndefined();
+    frames!.flush();
+    v.draw();
+    expect(lay(v).toggleX).toBeGreaterThanOrEqual(0);
   });
 });

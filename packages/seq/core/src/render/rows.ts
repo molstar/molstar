@@ -30,7 +30,7 @@ import { rowColumnsOf, RowHeight } from './rows-model.js';
 import { NoFolds, RowsLay, type RowsPrep } from './rows-lay.js';
 import { readHeld, readJoined, readLazy, rowsSource } from './rows-read.js';
 import { layoutCells } from './rows-cells.js';
-import { layoutHeader } from './rows-header.js';
+import { inToggle, layoutHeader } from './rows-header.js';
 import { cladeHit, named, nearestNode, rowHit, writeHit } from './rows-hit.js';
 import { drawData, drawHeader } from './rows-draw.js';
 import { drawCursor, drawHover, drawSelection, hoverColumns } from './rows-emphasis.js';
@@ -171,6 +171,7 @@ export const RowsType: LayerType<RowsPrep, RowsLay> = {
     lay.viewC0 = 0;
     lay.viewC1 = 0;
     lay.tree.length = 0;
+    lay.toggleX = -1;
     lay.treeNode.length = 0;
     lay.treeClade.length = 0;
     lay.wedges.length = 0;
@@ -328,6 +329,8 @@ export const RowsType: LayerType<RowsPrep, RowsLay> = {
   },
 
   hitOutside(lay, at): Hit | undefined {
+    // the tree's toggle in a narrow frame: a click reopens the tree (session state)
+    if (inToggle(lay, at[0], at[1])) return writeHit(lay, lay.rowsSystem, undefined, undefined, 'tree-toggle');
     // a column's title in the layer's title row: `state` its field (a click orders the rows by it); the hidden-columns
     // chip names what it hides (`state` its text: the hover card lists them)
     const t = titleAt(lay, at[0], at[1]);

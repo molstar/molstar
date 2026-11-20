@@ -29,6 +29,8 @@ export interface SizedTrack {
   readonly kind: string;
   /** Its content's height, px: its lanes and their padding, at least its other layers' fixed heights; undefined: none. */
   readonly content?: number;
+  /** What its own label lane adds to `content`, px (0 or absent: none): tracks of one kind share lanes, not label lanes. */
+  readonly label?: number;
   /** Its layer types' fixed height (the tallest of its layers' types'). */
   readonly fixed: number;
   /** Its own height, when the spec gives one (it overrides any sizing). */
@@ -60,14 +62,17 @@ export function lanesHeight(lanes: number, config: RenderConfig): number {
   return 2 * config.lanePadding + n * config.laneHeight;
 }
 
-/** Tracks fit their content; tracks of one kind share the tallest (neighbours do not vary lane by lane). */
+/**
+ * Tracks fit their content; tracks of one kind share the tallest lanes (neighbours do not vary lane by lane), each with
+ * its own label lane (a track whose labels all fit inside reserves none).
+ */
 export const ContentSizing: TrackSizing = {
   name: 'content',
   heights(tracks) {
     const tallest = new Map<string, number>();
     for (const t of tracks)
-      if (t.content !== undefined) tallest.set(t.kind, Math.max(tallest.get(t.kind) ?? 0, t.content));
-    return tracks.map((t) => (t.content === undefined ? t.fixed : (tallest.get(t.kind) as number)));
+      if (t.content !== undefined) tallest.set(t.kind, Math.max(tallest.get(t.kind) ?? 0, t.content - (t.label ?? 0)));
+    return tracks.map((t) => (t.content === undefined ? t.fixed : (tallest.get(t.kind) as number) + (t.label ?? 0)));
   },
 };
 

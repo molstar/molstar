@@ -138,6 +138,7 @@ export const CommandChangeKinds: Readonly<Record<string, ChangeKind>> = {
   'rows.zoom-out': 'navigate',
   'rows.page-down': 'navigate',
   'rows.page-up': 'navigate',
+  'rows.tree': 'session',
   // Esc ends a gesture's preview in nothing
   'preview.cancel': 'preview',
 };

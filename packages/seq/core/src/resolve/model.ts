@@ -340,7 +340,8 @@ export interface Resolver {
 /**
  * The lengths the opened sources' coverages give the model's systems of unknown length (letters, an alignment's
  * columns and rows from a source), by system address: what the next resolve takes (`ResolveOptions.lengths`). A
- * system is found in its source's coverage by its name or an alias.
+ * system is found in its source's coverage by its name or an alias; a sequence whose opened source names systems but
+ * not its own is kept as unnamed (`seq.resolve.system.unnamed` at the next resolve).
  */
 export function sourceLengths(model: StaticModel, coverage: (source: string) => Coverage | undefined): Lengths {
   const out = new Map<string, number>();
@@ -348,11 +349,17 @@ export function sourceLengths(model: StaticModel, coverage: (source: string) => 
   for (const s of model.systems.values()) {
     const hash = s.source && hashes?.get(s.source);
     if (!hash) continue;
-    const info = coverage(s.source!)?.systems.find((x) => x.name === s.name || x.aliases?.includes(s.name));
+    const known = coverage(s.source!)?.systems;
+    const info = known?.find((x) => x.name === s.name || x.aliases?.includes(s.name));
     if (info?.length !== undefined) out.set(lengthKey(s.address, hash), info.length);
+    else if (!info && known?.length && s.name !== AlignmentSystems.rows && s.name !== AlignmentSystems.columns)
+      out.set(lengthKey(s.address, hash), Unnamed);
   }
   return out;
 }
+
+/** A length that says the system's source opened and names no system after it (never a length). */
+const Unnamed = -1;
 
 /** The lengths' part of a model's hash: none when empty, so a spec without sources keeps its spec's hash. */
 function lengthsKey(lengths: Lengths | undefined): string {
@@ -445,6 +452,7 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
   const sourceHashes = new Map<string, string>();
   for (const at of data) if (at.node.kind === 'source') sourceHashes.set(at.address, hashNode(at.node));
   const lengths = new Map<string, number>();
+  const unnamed = new Set<string>();
   if (given.size)
     for (const at of data) {
       if (at.node.kind !== 'sequence' && at.node.kind !== 'alignment' && at.node.kind !== 'molecule') continue;
@@ -454,7 +462,8 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
       const systems = at.node.kind === 'alignment' ? [at.address, rowsSystemOf(at.address)] : [at.address];
       for (const system of systems) {
         const n = given.get(lengthKey(system, hash));
-        if (n !== undefined) lengths.set(system, n);
+        if (n === Unnamed) unnamed.add(system);
+        else if (n !== undefined) lengths.set(system, n);
       }
     }
   const key = (...at: Placed[]) => at.map((a) => `${hashNode(a.node)}#${lengths.get(a.address) ?? ''}`).join(':');
@@ -476,6 +485,23 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
       at.address,
       cached(`${at.address}|${key(at)}`, () => sequenceEntry(at, src?.address, lengths.get(at.address))),
     );
+    // its source opened and names no system after it: its length stays unknown and nothing over it lays out (a spec
+    // fault: said, never a pending wait)
+    if (unnamed.has(at.address)) {
+      const name = systems.get(at.address)!.name;
+      issues.push(
+        issueOf(
+          ResolveIssues,
+          'seq.resolve.system.unnamed',
+          `The sequence's source names no system ${name}: its length is unknown and nothing over it is laid out`,
+          {
+            address: at.address,
+            path: ['params', p(at.node, 'name') === undefined ? 'source' : 'name'],
+            hint: ResolveIssues.codes['seq.resolve.system.unnamed'].hint,
+          },
+        ),
+      );
+    }
   }
 
   const molecular = buildMolecular(data, inner, systems, issues, config, cached, key, ref, lengths);

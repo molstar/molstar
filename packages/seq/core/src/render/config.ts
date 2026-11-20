@@ -185,8 +185,11 @@ export interface RenderConfig {
     readonly center: 'title' | 'none';
     readonly labelGap: number;
     readonly leaderBend: number;
-    /** More than `over` outside labels within `degrees` are one grouped label ("13 items"); 0 degrees: never grouped. */
-    readonly cluster: { readonly over: number; readonly degrees: number };
+    /**
+     * More than `over` outside labels within `degrees` are one grouped label ("13 items"); 0 degrees: never grouped. A
+     * hover opens a group of up to `fanMax` as a fan, pivoted wider than its own arc; a larger one is listed in its card.
+     */
+    readonly cluster: { readonly over: number; readonly degrees: number; readonly fanMax: number };
     readonly window: 'followed' | 'always';
   };
   /**
@@ -229,7 +232,9 @@ export interface RenderConfig {
    * outside each end, at most a quarter of the window inside it); a floored window drawn `centred` on the truth or as a
    * scrollbar's `thumb`; a miniature's tracks at `trackScale` of their height, at least `trackMinPx`; the marks drawn over
    * the picture; the ruler rail grown to `grownPx` while used, its grab zone on an alignment's ruler its lower
-   * `grabShare`.
+   * `grabShare`; a narrow frame's order of giving way (A narrow frame): a vertical overview narrowed toward
+   * `overview.minPx` (48) to keep the plot `overview.minPlotPx` (160) wide, hidden below it, then the label column and
+   * the tree, then the frame scrolls.
    */
   readonly navigator: {
     readonly window: {
@@ -243,6 +248,7 @@ export interface RenderConfig {
     readonly trackMinPx: number;
     readonly marks: readonly ('selection' | 'highlights' | 'cursor')[];
     readonly rail: { readonly grownPx: number; readonly grabShare: number };
+    readonly overview: { readonly minPlotPx: number; readonly minPx: number };
   };
   /**
    * The pairs layer (_spec/README.md "Render", The pairs layer): the most arcs drawn (`maxArcs`, 4,096: bounded by the
@@ -344,7 +350,7 @@ export const DefaultRenderConfig: RenderConfig = {
     center: 'title',
     labelGap: 8,
     leaderBend: 12,
-    cluster: { over: 6, degrees: 12 },
+    cluster: { over: 6, degrees: 12, fanMax: 12 },
     window: 'followed',
   },
   internedStrings: DefaultMaxStrings,
@@ -361,6 +367,7 @@ export const DefaultRenderConfig: RenderConfig = {
     trackMinPx: 2,
     marks: ['selection', 'highlights', 'cursor'],
     rail: { grownPx: 6, grabShare: 0.4 },
+    overview: { minPlotPx: 160, minPx: 48 },
   },
   pairs: { maxArcs: 4096, hitPx: 4 },
   grid: { rectMinPx: 12, buildBudget: 65_536 },
@@ -433,6 +440,7 @@ export function renderConfig(over: RenderConfigOverrides = {}): RenderConfig {
       ...over.navigator,
       window: { ...DefaultRenderConfig.navigator.window, ...over.navigator?.window },
       rail: { ...DefaultRenderConfig.navigator.rail, ...over.navigator?.rail },
+      overview: { ...DefaultRenderConfig.navigator.overview, ...over.navigator?.overview },
     },
     pairs: { ...DefaultRenderConfig.pairs, ...over.pairs },
     grid: { ...DefaultRenderConfig.grid, ...over.grid },

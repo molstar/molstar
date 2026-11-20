@@ -34,7 +34,7 @@ function spec(params: Record<string, unknown> = {}, track: Record<string, unknow
   return b;
 }
 
-const Size = { width: 400, height: 300 };
+const Size = { width: 480, height: 300 };
 
 function rowsLay(f: {
   layout: { sections: readonly { lays: readonly (readonly { lay: unknown; type: { name: string } }[])[] }[] };

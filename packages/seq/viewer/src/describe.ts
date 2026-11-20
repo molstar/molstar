@@ -178,7 +178,10 @@ const PairSection: CardSection = {
   },
 };
 
-/** A ring's grouped label (a dense fan as one): its members, each with its extent. */
+/**
+ * A ring's grouped label (a dense fan as one): every member, each with its extent. The card is the whole list: a group
+ * larger than `rings.cluster.fanMax` opens no fan, so no member is left to a "more".
+ */
 const GroupSection: CardSection = {
   name: 'group',
   describe(at, out) {
@@ -188,22 +191,17 @@ const GroupSection: CardSection = {
     const items = at.words.itemsOf(l);
     const system = at.words.systemName(l.layer.data?.system ?? at.section.section.axis.system);
     out.title = `${members.length} items`;
-    const shown = members.slice(0, GroupRows);
     const said: string[] = [];
-    for (const m of shown) {
+    for (const m of members) {
       const it = m.element ? items.find((d) => d.key === m.element!.key) : undefined;
       if (!it) continue;
       out.row(it.label, `${system} ${extentText(it)}`);
       said.push(it.label);
     }
-    if (members.length > shown.length) out.row('More', `${members.length - shown.length} more`);
-    out.words.push(`${members.length} items: ${said.join(', ')}${members.length > shown.length ? ' and more' : ''}`);
+    out.words.push(`${members.length} items: ${said.join(', ')}`);
     out.whole = true;
   },
 };
-
-/** The rows a group's card lists before "n more". */
-const GroupRows = 12;
 
 /** An item (a range, a feature): its label, its extent, its category. */
 const ItemSection: CardSection = {

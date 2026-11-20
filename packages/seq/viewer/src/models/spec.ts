@@ -138,7 +138,7 @@ function stepKeys(patch: Patch): Set<string> {
 }
 
 /** The same issues in the same order, by code, address and message: a composition that says the same tells nothing. */
-function sameIssues(a: readonly Issue[], b: readonly Issue[]): boolean {
+export function sameIssues(a: readonly Issue[], b: readonly Issue[]): boolean {
   if (a === b) return true;
   if (a.length !== b.length) return false;
   for (let i = 0; i < a.length; i++)

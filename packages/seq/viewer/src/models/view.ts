@@ -598,14 +598,24 @@ export class ViewModel extends ReactiveModel {
    */
   setBand(track: string, band: Partial<BandViewport>): void {
     const prev = this._bands.value.get(track);
-    const next: { bandTop: number; rowScale?: number; folds?: readonly string[] } = {
+    const next: { bandTop: number; rowScale?: number; folds?: readonly string[]; tree?: boolean } = {
       bandTop: Math.max(0, band.bandTop ?? prev?.bandTop ?? 0),
     };
     const scale = 'rowScale' in band ? band.rowScale : prev?.rowScale;
     const folds = 'folds' in band ? band.folds : prev?.folds;
+    // the tree a narrow frame collapsed, opened by the reader (`rows.tree`)
+    const tree = 'tree' in band ? band.tree : prev?.tree;
     if (scale !== undefined) next.rowScale = scale;
     if (folds !== undefined) next.folds = folds;
-    if (prev && prev.bandTop === next.bandTop && prev.rowScale === next.rowScale && prev.folds === next.folds) return;
+    if (tree) next.tree = true;
+    if (
+      prev &&
+      prev.bandTop === next.bandTop &&
+      prev.rowScale === next.rowScale &&
+      prev.folds === next.folds &&
+      prev.tree === next.tree
+    )
+      return;
     const map = new Map(this._bands.value);
     map.set(track, next);
     this._bands.set(map);

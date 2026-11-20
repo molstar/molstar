@@ -54,6 +54,12 @@ export const ResolveIssues = defineIssues('seq.resolve', {
       'A row or an exon wraps the origin of a cyclic sequence whose length is not known yet; it is left out until it is',
     hint: 'Give the sequence its letters inline, or wait for its source',
   },
+  'seq.resolve.system.unnamed': {
+    severity: 'error',
+    description:
+      'A sequence read from a source names no system the opened source holds: its length is unknown and nothing over it is laid out',
+    hint: 'Name the sequence (`name`, else its id) after a system its source holds',
+  },
   'seq.resolve.grid.size': {
     severity: 'warning',
     description: 'A grid’s values are not one per pair of positions of its systems, or more than a block holds',

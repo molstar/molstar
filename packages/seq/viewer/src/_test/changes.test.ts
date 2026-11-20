@@ -111,6 +111,8 @@ function look(v: SeqViewer) {
       v.legends.cvdSafe.value,
       // a rows band's folds (session state)
       v.view.band(RowsTrack)?.folds,
+      // a narrow frame's tree opened by the reader (session state)
+      v.view.band(RowsTrack)?.tree,
     ],
     navigate: `${vp?.start} ${vp?.end} ${text?.start} ${v.spec.step.value?.id} ${v.view.band(RowsTrack)?.rowScale}`,
     // the rows' scroll: a fold keeps the row at the top, so it moves with a session change; alone it is a navigation
@@ -270,6 +272,8 @@ const Cases: Record<string, { ctx: unknown; before?: (v: SeqViewer) => unknown }
   'rows.page-down': { ctx: { track: RowsTrack } },
   // from a page down (a page up at the top has nowhere to go)
   'rows.page-up': { ctx: { track: RowsTrack }, before: (v) => v.runCommand('rows.page-down', { track: RowsTrack }) },
+  // opened in a wide frame by hand: the command folds it back to its toggle
+  'rows.tree': { ctx: { track: RowsTrack }, before: (v) => v.view.setBand(RowsTrack, { tree: true }) },
   'preview.cancel': {
     ctx: {},
     before: (v) =>

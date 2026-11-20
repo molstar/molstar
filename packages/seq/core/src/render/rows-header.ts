@@ -13,6 +13,20 @@ import { NoNumber, type RowsLay, type RowsPrep } from './rows-lay.js';
 // The rows layer's header in the label column (_spec/README.md "Render", The rows layer: the header; The tree's look):
 // the tree's segments, wedges and nodes from its kept geometry, the labels, the first and last residue numbers.
 
+/** The tree's toggle glyph's side, CSS px (a narrow frame's collapsed tree). */
+export const TogglePx = 12;
+
+/** Whether a page point is on the tree's toggle (its glyph, a px around). */
+export function inToggle(lay: RowsLay, x: number, y: number): boolean {
+  return (
+    lay.toggleX >= 0 &&
+    x >= lay.toggleX - 1 &&
+    x < lay.toggleX + TogglePx + 1 &&
+    y >= lay.toggleY - 1 &&
+    y < lay.toggleY + TogglePx + 1
+  );
+}
+
 /**
  * The header in the label column: the tree (its own width, the label column widened by it), the labels (cut with an
  * ellipsis past their room), the first residue numbers before the data and the last after it (a right gutter).
@@ -23,14 +37,22 @@ export function layoutHeader(lay: RowsLay, prep: RowsPrep, ctx: LayoutContext) {
   const left = config.inset;
   const right = box.x - config.labelGap;
   const treeW =
-    lay.clades && prep.order === 'tree' && !lay.figure ? Math.max(0, Math.min(prep.treeWidth, right - left - 24)) : 0;
+    lay.clades && prep.order === 'tree' && !lay.figure
+      ? Math.max(0, Math.min(ctx.treePx ?? prep.treeWidth, right - left - 24))
+      : 0;
   lay.treeX0 = left;
   lay.treeX1 = left + treeW;
   if (treeW > 0) layoutTree(lay, lay.clades!, left, treeW);
+  // a tree a narrow frame collapsed: its toggle in its place, at the band's top (a click or Shift+T reopens it)
+  const toggle = ctx.treePx === 0 && lay.clades && prep.order === 'tree' && !lay.figure ? TogglePx + 4 : 0;
+  if (toggle) {
+    lay.toggleX = left;
+    lay.toggleY = box.y + lay.pinnedHeight;
+  }
   if (rs < config.rows.labelMinPx) return;
   // a row's label is data, as an item's: the items' font (a Pfam label, NAME/1-147, reads whole in the column)
   lay.labelFont = config.itemFont;
-  lay.labelX = left + treeW + (treeW ? 4 : 0);
+  lay.labelX = left + treeW + (treeW ? 4 : 0) + toggle;
   const numbers = prep.numbers === 'gutters';
   const numberW = numbers ? text.measure(config.itemFont, '00000') : 0;
   lay.numberX = right;

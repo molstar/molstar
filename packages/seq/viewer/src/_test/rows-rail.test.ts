@@ -7,8 +7,8 @@
 // The rows rail (_spec/README.md "Input", Navigators, The rows rail): a rows band's default navigator, the ruler rail
 // upright at the band's right edge beside its last numbers, headless on a fake clock in the platform's event order: a
 // drag on its window scrolls the rows (`bandTop`), a grip zooms them (`rowScale`) about the other end, `]` and `[` zoom
-// too; a click outside centres the rows; Esc cancels; idle only while every row is shown at the zoom-in limit; a
-// declared overview replaces it.
+// too; a click outside centres the rows; Esc cancels; idle only while every row is shown at the zoom-in limit; drawn
+// beside a declared overview unless `navigator.rowsRail` says otherwise.
 
 import type { Node } from '@molstar/core/repr/tree';
 import { createSeqSpec, overviewNavigator } from '@molstar/seqx-core/lang';
@@ -46,12 +46,12 @@ function spec(n: number, options: { height?: number; overview?: boolean } = {}) 
   return b.build();
 }
 
-async function make(root: Node) {
+async function make(root: Node, config: readonly (readonly [unknown, unknown])[] = []) {
   frames = installFrames();
   const viewer = createSeqViewer({
     ...DefaultSeqViewerSpec(),
     ui: undefined,
-    config: [[viewerItem('view.jumpMs'), 0]] as never,
+    config: [[viewerItem('view.jumpMs'), 0], ...config] as never,
   });
   viewers.push(viewer);
   await viewer.load(root);
@@ -261,9 +261,30 @@ describe('the rows rail', () => {
     expect(r.active).toBe(true);
   });
 
-  it('a declared overview over the rows replaces it; the data keeps its width when it is hidden', async () => {
-    const v = await make(spec(60, { overview: true }));
+  it('beside a declared overview by default (`navigator.rowsRail: always`); replaced by it under `unlessOverview`; none under `none`', async () => {
+    const both = await make(spec(60, { overview: true }));
+    const r = rowsRail(both)!;
+    expect(r).toBeDefined();
+    expect(r.active).toBe(true);
+    expect(r.total).toBe(60);
+    // the rail and the overview draw one window: a drag on the rail moves the overview's in the same frame
+    const nav = both.navigatorModel('nav')!;
+    nav.resize(0, 200);
+    expect(nav.draw()!.windows[0].r0).toBeCloseTo(0, 6);
+    const y0 = r.x + both.context.renderConfig.navigator.window.minPx / 2;
+    both.input.down(r.top + 6, y0);
+    both.input.move(r.top + 6, y0 + (10 / r.total) * r.width);
+    both.input.up();
+    both.draw();
+    expect(band(both)?.bandTop).toBeCloseTo(10, 6);
+    expect(nav.draw()!.windows[0].r0).toBeCloseTo(10, 6);
+    const v = await make(spec(60, { overview: true }), [[viewerItem('navigator.rowsRail'), 'unlessOverview']]);
     expect(v.frame!.layout.sections[0].rowsRails).toBeUndefined();
+    const none = await make(spec(60), [[viewerItem('navigator.rowsRail'), 'none']]);
+    expect(none.frame!.layout.sections[0].rowsRails).toBeUndefined();
+  });
+
+  it('the data keeps its width when it is hidden', async () => {
     const w = await make(spec(60));
     expect(rowsRail(w)).toBeDefined();
     const with_ = w.frame!.layout.sections[0].tracks[1].box.width;

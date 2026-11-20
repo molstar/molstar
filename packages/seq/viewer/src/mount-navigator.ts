@@ -63,8 +63,8 @@ function mountModel(element: HTMLElement, viewer: SeqViewer, model: NavigatorMod
   const draw = () => {
     frame = undefined;
     const f = model.draw();
-    if (!f) return;
     box();
+    if (!f) return;
     const dirty = backend.resize(model.width, model.height, viewer.dpr);
     backend.draw(f.lists, f.rebuilt || f.base || dirty);
     readout.textContent = model.readout.value ?? '';
@@ -195,6 +195,19 @@ export function navigatorsMount(viewer: SeqViewer, target: HTMLElement): () => v
   Object.assign(row.style, { display: 'flex', alignItems: 'stretch', width: '100%' });
   const middle = doc.createElement('div');
   Object.assign(middle.style, { flex: '1 1 auto', minWidth: '0' });
+  // a narrow frame (core's "Render", A narrow frame): each side part's room is the row less the other side parts; the
+  // canvas keeps the layout's least width and the middle scrolls past it (only then: a card is never clipped)
+  let sides: { cell: HTMLElement; id: string }[] = [];
+  const fit = () => {
+    const width = row.clientWidth;
+    for (const s of sides) {
+      let others = 0;
+      for (const o of sides) if (o !== s) others += o.cell.offsetWidth;
+      viewer.navigatorModel(s.id)?.setRoom(width - others);
+    }
+    const least = viewer.frame?.layout.narrow?.minWidth ?? 0;
+    middle.style.overflowX = least > middle.clientWidth + 0.5 ? 'auto' : '';
+  };
   const top = doc.createElement('div');
   const bottom = doc.createElement('div');
   if (canvas) {
@@ -211,9 +224,13 @@ export function navigatorsMount(viewer: SeqViewer, target: HTMLElement): () => v
     const key = navs.map((n) => `${n.id}:${n.place}`).join(',');
     if (mounted.map((m) => m.key).join(',') === key && mounted.length === navs.length) return;
     for (const m of mounted) m.dispose();
+    sides = [];
     mounted = navs.map((n) => {
       const cell = doc.createElement('div');
-      if (n.place === 'left' || n.place === 'right') cell.style.flex = '0 0 auto';
+      if (n.place === 'left' || n.place === 'right') {
+        cell.style.flex = '0 0 auto';
+        sides.push({ cell, id: n.id });
+      }
       if (n.place === 'top') top.append(cell);
       else if (n.place === 'bottom') bottom.append(cell);
       else if (n.place === 'left') middle.before(cell);
@@ -230,8 +247,17 @@ export function navigatorsMount(viewer: SeqViewer, target: HTMLElement): () => v
   };
   const unsubscribe = viewer.view.resolved.listen(sync);
   sync();
+  const unfit = viewer.drawn.listen(fit);
+  let observer: ResizeObserver | undefined;
+  if (typeof ResizeObserver !== 'undefined') {
+    observer = new ResizeObserver(fit);
+    observer.observe(row);
+  }
+  fit();
   return () => {
     unsubscribe();
+    unfit();
+    observer?.disconnect();
     for (const m of mounted) m.dispose();
     mounted = [];
     if (canvas) row.replaceWith(canvas);
