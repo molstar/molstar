@@ -77,7 +77,7 @@ export function hideLigandsPast(s: EditingSession, resolution: number): Promise<
 export function shownLigands(s: EditingSession): string[] {
   const track = nodeAt(s.viewer.spec.shown.value, ['views', 'main', 'ligands', 'contacts']);
   return (track?.children ?? [])
-    .filter((l) => typeof l.params?.data === 'string' && !(l.params.data as string).includes('(not'))
+    .filter((l) => typeof l.params?.data === 'string' && !(l.params.data as string).includes('(except'))
     .map((l) => l.id as string);
 }
 

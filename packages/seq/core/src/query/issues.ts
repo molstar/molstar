@@ -100,6 +100,26 @@ export const QueryIssues = defineIssues('seq.query', {
     severity: 'info',
     description: 'The rows of an alignment read from a source have not arrived: the form waits for them',
   },
+  'seq.query.property.level': {
+    severity: 'error',
+    description:
+      'A test reads a property finer than the elements it tests (an atom’s on a residue, a residue’s in a unit test)',
+    hint: 'test a finer level: (elements …) with an atom field, or groups’ :atom-test',
+  },
+  'seq.query.property.absent': {
+    severity: 'warning',
+    description:
+      'Elements lack a property a test reads (a chain on a lone molecule, auth-seq with no auth numbering, atoms on a polymer): their test is false, the rest kept',
+  },
+  'seq.query.property.pending': {
+    severity: 'info',
+    description: 'A property’s values have not arrived (a values channel read by region): the form waits for them',
+  },
+  'seq.query.extension.missing': {
+    severity: 'error',
+    description: 'A namespaced form or property no registered extension provides: a query is never approximated',
+    hint: 'register the extension that provides it (its query-form or query-property entry)',
+  },
   'seq.query.node.missing': {
     severity: 'warning',
     description: 'No node (a dynamic node, a chain) is held under the prefix with the key',

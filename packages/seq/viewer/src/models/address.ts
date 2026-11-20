@@ -18,9 +18,9 @@ import {
   AddressIssues,
   type AddressStatus,
   addressFor,
-  EmptyElements,
+  EmptyKeys,
   EmptyLocation,
-  elements,
+  keySet,
   isEmptyLocation,
   type LinkActionName,
   type Location,
@@ -585,7 +585,7 @@ export class AddressModel extends ReactiveModel {
       resolution,
       value: {
         address,
-        elements: r.type === 'elements' ? r.elements : EmptyElements,
+        elements: r.type === 'keys' ? r.keys : EmptyKeys,
         location: r.type === 'location' ? r.location : r.type === 'nodes' ? shown : EmptyLocation,
         shown,
       },
@@ -690,7 +690,7 @@ export class AddressModel extends ReactiveModel {
   hoverAddressNow(): string | undefined {
     const h = this.hover.current;
     if (h.owner === undefined || h.system === undefined) return undefined;
-    if (h.element) return this.addressOf({ type: 'elements', elements: elements([h.element]) });
+    if (h.element) return this.addressOf({ type: 'keys', keys: keySet([h.element]) });
     if (Number.isNaN(h.position)) return undefined;
     const p = Math.floor(h.position);
     return this.addressOf({ type: 'location', location: rangesLocation(h.system, [p, p + 1]) });
@@ -704,7 +704,7 @@ export class AddressModel extends ReactiveModel {
     if (isNothing(s)) return undefined;
     if (s.address !== undefined) return s.address;
     return s.elements.keys.length
-      ? this.addressOf({ type: 'elements', elements: s.elements })
+      ? this.addressOf({ type: 'keys', keys: s.elements })
       : this.addressOf({ type: 'location', location: s.location });
   }
 

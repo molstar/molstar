@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { elements, type Location, location } from '@molstar/seqx-core/query';
+import { keySet, type Location, location } from '@molstar/seqx-core/query';
 import type { Emphasized } from './selection.js';
 
 // What a host's update removed, taken out of session state (_spec/README.md "StoreModel", Host updates): the parts of
@@ -29,7 +29,7 @@ export function withoutGone(value: Emphasized, gone: readonly string[]): Emphasi
   const shown = without(value.shown, gone);
   if (keys.length === value.elements.keys.length && loc === value.location && shown === value.shown) return value;
   return {
-    elements: elements(keys),
+    elements: keySet(keys),
     location: loc,
     shown,
     ...(value.style !== undefined ? { style: value.style } : {}),

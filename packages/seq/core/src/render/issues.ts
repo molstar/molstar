@@ -159,7 +159,7 @@ export const RenderIssues = defineIssues('seq.render', {
   'seq.render.filter': {
     severity: 'warning',
     description: 'A layer’s data query is not a filter its rows can be read by: every row is drawn',
-    hint: 'Filter an annotation’s items by `(item :<field> v)`, `(not :of …)`, `(and :of […])` or `(or :of […])`',
+    hint: 'Filter an annotation’s items by `(item :<field> v)`, `(except :of …)`, `(intersect :of […])` or `(merge :of […])`',
   },
   'seq.render.item.range': {
     severity: 'warning',

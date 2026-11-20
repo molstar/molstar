@@ -246,7 +246,7 @@ disagrees with its code writes a drift note and stops.
 
 ### The query language's elements (strong; `briefs/qe-query-elements.md`; designs: locations-and-queries.md, properties.md)
 
-- [ ] QE after MC (its 3SGJ fixture) and ML2: `elements` and `groups`, a generic `filter` over typed properties with
+- [x] QE after MC (its 3SGJ fixture) and ML2: `elements` and `groups`, a generic `filter` over typed properties with
       positional operands, modifiers and combinators (`merge`/`intersect`/`except`), the `query-form` and
       `query-property` registry kinds, short and long aliases, selections as records or columns; `atom`, `entity` and
       `component` removed (the author, 2026-11-20: "we should not really have (atom), we should have (elements ....)").

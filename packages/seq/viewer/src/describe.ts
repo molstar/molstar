@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { ElementKey, Location } from '@molstar/seqx-core/query';
+import type { Key, Location } from '@molstar/seqx-core/query';
 import { DefaultNumbering, findNumbering, numberingIds } from '@molstar/seqx-core/query';
 import { extentText } from '@molstar/seqx-core/render/accessibility';
 import {
@@ -64,7 +64,7 @@ export interface Place {
   readonly system: string | undefined;
   /** NaN when none. */
   readonly position: number;
-  readonly element?: ElementKey | undefined;
+  readonly element?: Key | undefined;
   readonly ySystem?: string | undefined;
   /** NaN when none. */
   readonly yPosition?: number;
@@ -75,7 +75,7 @@ export interface Place {
   /** What a layer named within the position (a rows column cell: `title: value`). */
   readonly state?: string | undefined;
   /** A ring's grouped label: the hits of the items it stands for (`target` `group`). */
-  readonly members?: readonly { readonly element?: ElementKey | undefined }[] | undefined;
+  readonly members?: readonly { readonly element?: Key | undefined }[] | undefined;
 }
 
 /** The parts a description collects. */

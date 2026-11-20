@@ -10,13 +10,13 @@ filter reads any property, `(filter :test (> (prop b-factor) 60))`.
 
 ## Built in
 
-| Level    | Properties                                                                          |
-| -------- | ----------------------------------------------------------------------------------- |
-| molecule | `entity`, `molecule-class`, `identifier`                                            |
-| unit     | `chain`, `auth-chain`, `operator`                                                   |
-| residue  | `seq`, `auth-seq`, `ins`, `index`, `component`, and the rest of the residue's facts |
-| atom     | `atom`, `element`, `atom-index`, `b-factor`, `occupancy`                            |
-| any      | a values channel on the element's system, `(value <annotation> :field f)`           |
+| Level    | Properties                                                                                                     |
+| -------- | -------------------------------------------------------------------------------------------------------------- |
+| molecule | `entity`, `molecule-class`, `identifier`                                                                       |
+| unit     | `chain`, `auth-chain`, `operator`                                                                              |
+| residue  | `seq`, `auth-seq`, `ins`, `index`, `component`, `b-factor`, `occupancy`, and the rest                          |
+| atom     | `atom`, `element`, `atom-index` (on residues with no atoms held: the residues whose standard component has it) |
+| any      | a values channel on the element's system, `(value <annotation> :field f)`                                      |
 
 Each has a short name, printed, and a long one, read: MolViewSpec's and mmCIF's (`label_asym_id` for `chain`), so a
 selection from a structure viewer is copied in as it is.

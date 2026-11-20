@@ -234,7 +234,7 @@ export const RangesAndSlices: StoryObj = exampleStory('ranges');
 /** A result on the gene: the protein's selection projected through the codon map. */
 export const ResultOnTheGene: StoryObj = exampleStory('on-gene');
 
-/** And, or, not: combinators over positions, and the issue a mixed query gives. */
+/** Merge, intersect, except: combinators over positions, and the issue a mixed query gives. */
 export const AndOrNot: StoryObj = exampleStory('combined');
 
 /** An alignment's rows and columns: a row, columns, and a rect of both. */

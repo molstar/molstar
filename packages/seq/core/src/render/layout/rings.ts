@@ -18,7 +18,7 @@ import { piecesTotal, type ResolvedSection } from '@molstar/seqx-core/view';
 import { AxisTransform, type Viewport } from '../axis.js';
 import type { RenderConfig } from '../config.js';
 import { fontSize } from '../config.js';
-import type { ElementKey } from '@molstar/seqx-core/query';
+import type { Key } from '@molstar/seqx-core/query';
 import { Anchor, grown, NoColor, type PassWriter } from '../draw-lists.js';
 import type { Box, Emphasis, Hit, LabelSink } from '../layer-type.js';
 import { sectionId } from '../layer-type.js';
@@ -578,7 +578,7 @@ class RingSink implements LabelSink {
     this.p = p;
     this.strip = strip;
   }
-  label(text: string, start: number, end: number, _element: ElementKey, hit?: Hit, order = 0): void {
+  label(text: string, start: number, end: number, _element: Key, hit?: Hit, order = 0): void {
     const p = this.p;
     const a = p.strips.axes[this.strip];
     const xs = a.x(start);

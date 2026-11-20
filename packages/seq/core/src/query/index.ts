@@ -34,19 +34,28 @@ export {
   parseLink,
   printLink,
 } from './links.js';
-export {
-  type ElementKey,
-  type Elements,
-  EmptyElements,
-  compareElementKeys,
-  elements,
-  elementsEqual,
-  hashElements,
-  intersectElements,
-  subtractElements,
-  unionElements,
-} from './elements.js';
+export { EmptyKeys, type Key, type Keys, keySet, keysEqual, unionKeys } from './keys.js';
 export { type Evaluation, evaluateQuery, type QueryOptions, QueryFormKinds, queryResolvers } from './forms.js';
+export type { ExprValue } from './expressions.js';
+export {
+  type QueryExtensionEntry,
+  type QueryExtensions,
+  type QueryFormContext,
+  type QueryFormEntry,
+  type QueryFormRole,
+  type QueryOperatorEntry,
+  type QueryPropertyEntry,
+  queryExtensions,
+} from './extensions.js';
+// a selection's items, renamed apart from render's `readItems` and the overlay's `itemsOf` (the builder's JSON reads
+// them; addressing.md, Schema selections)
+export {
+  type Items as SelectionItems,
+  type ItemsInput as SelectionItemsInput,
+  itemsOf as selectionItemsOf,
+  readItems as readSelectionItems,
+} from './items.js';
+export type { PropertyDef, PropertyLevel, PropertyTable, PropertyType } from './properties.js';
 export { type QueryIssueCode, QueryIssues } from './issues.js';
 export {
   compareLabels,
@@ -83,6 +92,8 @@ export type {
   ItemsRead,
   Numbering,
   QueryAnnotation,
+  PropertyColumn,
+  PropertyRead,
   QueryAtoms,
   QueryComponents,
   QueryItem,

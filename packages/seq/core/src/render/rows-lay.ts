@@ -6,7 +6,7 @@
 
 import type { Issue, Value } from '@molstar/core/repr/tree';
 import { matchLeaves, readNewick } from '@molstar/seqx-core/data/alignment-readers';
-import type { ElementKey, Location } from '@molstar/seqx-core/query';
+import type { Key, Location } from '@molstar/seqx-core/query';
 import type { Channel, MeasureEntry } from '@molstar/seqx-core/theme/index';
 import type { Axis, ResolvedLayer } from '@molstar/seqx-core/view';
 import type { AxisTransform } from './axis.js';
@@ -195,8 +195,8 @@ export class RowsLay {
     state: undefined,
   };
   /** A clade's element and extent for its hits (a tree node's; a summary row's by display row), kept by the display. */
-  readonly cladeHits = new Map<number, { element: ElementKey; extent: Location }>();
-  readonly summaryHits = new Map<number, { element: ElementKey; extent: Location }>();
+  readonly cladeHits = new Map<number, { element: Key; extent: Location }>();
+  readonly summaryHits = new Map<number, { element: Key; extent: Location }>();
   cladeHitsOf = -1;
   /** The measures' registry entries over the theme's (kept by the held data and the theme's). */
   measureEnv: { measures: ReadonlyMap<string, MeasureEntry>; alphabet: Alphabet } | undefined;

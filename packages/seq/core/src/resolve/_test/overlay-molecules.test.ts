@@ -99,11 +99,11 @@ describe('the overlay’s molecules', () => {
 
   it('components, entities and molecules of a source’s complex', () => {
     const { run } = setup();
-    expect(loc(run(`${UnitA}/(component :id MSE)`), UnitA)).toEqual([2, 3]);
-    expect(loc(run(`${Seq1}/(component :standard false)`), Seq1)).toEqual([2, 3, 4, 5]);
-    expect(nodes(run(`${Complex}/(entity :id 2)`))).toEqual([nodeAddress(Source, '2')]);
+    expect(loc(run(`${UnitA}/(elements :component MSE)`), UnitA)).toEqual([2, 3]);
+    expect(loc(run(`${Seq1}/(elements :standard false)`), Seq1)).toEqual([2, 3, 4, 5]);
+    expect(nodes(run(`${Complex}/(molecule :entity 2)`))).toEqual([nodeAddress(Source, '2')]);
     expect(nodes(run(`${Complex}/(molecule :identifier "ccd:ZN")`))).toEqual([nodeAddress(Source, '2')]);
-    expect(loc(run(`${Complex}/C-1_555/(atom :name ZN)`), `${Complex}/C-1_555/(atoms)`)).toEqual([0, 1]);
+    expect(loc(run(`${Complex}/C-1_555/(elements :atom ZN)`), `${Complex}/C-1_555/(atoms)`)).toEqual([0, 1]);
   });
 
   it('a complex past maxUnits is refused whole, with an issue', () => {

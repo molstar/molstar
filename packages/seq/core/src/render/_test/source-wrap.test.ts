@@ -95,11 +95,11 @@ describe('a leading item form and a trailing filter', () => {
   });
 
   it('a trailing `(not …)` after it is the user’s: only what it rejects is counted', async () => {
-    const { t, lay } = await layout(true, '/(item :category CDS)/(not :of (item :id inside))');
+    const { t, lay } = await layout(true, '/(item :category CDS)/(except :of (item :id inside))');
     expect(lay.keys.slice(0, lay.items).sort()).toEqual(['across', 'across']);
     expect(t.filter).toMatchObject({ count: 1, text: '1 filtered' });
     // `(not …)` alone filters as before: every row it rejects is counted
-    const alone = await layout(true, '/(not :of (item :category CDS))');
+    const alone = await layout(true, '/(except :of (item :category CDS))');
     expect(alone.t.filter).toMatchObject({ count: 2 });
   });
 });

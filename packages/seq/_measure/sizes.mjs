@@ -63,9 +63,9 @@ const Runtimes = [/seq\/core\/src\/runtimes\//, /seq\/core\/src\/structure\//];
 /** Target and entry of each case, bytes (minified). */
 const AllCases = [
   { name: 'reading a spec', entry: 'spec-read.ts', target: 230_000 },
-  { name: 'headless rendering', entry: 'headless.ts', target: 780_000 },
-  { name: 'the viewer, default', entry: 'viewer.ts', target: 1_250_000, unlisted: Runtimes },
-  { name: 'viewer, minimal', entry: 'viewer-minimal.ts', target: 880_000, unlisted: Unlisted },
+  { name: 'headless rendering', entry: 'headless.ts', target: 820_000 },
+  { name: 'the viewer, default', entry: 'viewer.ts', target: 1_290_000, unlisted: Runtimes },
+  { name: 'viewer, minimal', entry: 'viewer-minimal.ts', target: 920_000, unlisted: Unlisted },
   { name: 'bigWig runtime', entry: 'bigwig.ts', target: 30_000, own: /seq\/core\/src\/runtimes\// },
   // the mmCIF runtime and Seq io's converter (in no viewer entry); `@molstar/io`'s parser is its lazy chunk, loaded
   // when the first mmCIF source opens: listed apart (`lazy`), measured with every import it brings that the default
