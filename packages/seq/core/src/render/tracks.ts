@@ -11,7 +11,6 @@ import {
   type ResolvedLayer,
   type ResolvedSection,
   type ResolvedTrack,
-  type ResolvedView,
   templateNodes,
 } from '@molstar/seqx-core/view';
 import { AxisTransform, type Viewport } from './axis.js';
@@ -19,9 +18,8 @@ import { DefaultRenderConfig, fontSize, type RenderConfig } from './config.js';
 import { RenderIssues } from './issues.js';
 import { type Box, EmptyOverlay, type LabelSink, type LayerType, type LayoutContext, sectionId } from './layer-type.js';
 import type { LettersLay } from './letters.js';
-import type { ScaleParams } from '@molstar/seqx-core/theme/index';
-import { DefaultThemeContext, type ThemeContext } from './channels.js';
-import { CategoryCount } from './tokens.js';
+import type { ThemeContext } from './channels.js';
+import { colorKey, defaultColors, viewTheme } from './layer-color.js';
 import { LabelLane } from './sizing.js';
 import { chipText } from './layout/blocks.js';
 import { TracksLayout } from './layout/tracks.js';
@@ -92,35 +90,6 @@ function directionMark(section: ResolvedSection, config: RenderConfig): string |
 const NoLays: readonly LayerLayout[] = [];
 const NoSectionLays: LayerLayout[] = [];
 
-/**
- * What a layer with no color is colored by (_spec/README.md "Themes", A layer with no color): its key, the data it
- * shows (a ring and its detail showing one node: one color) or, for a template's layer, the template's (its instances:
- * one color); undefined for a layer the spec colors or a type that has its own default.
- */
-function colorKey(track: ResolvedTrack, layer: ResolvedLayer): string | undefined {
-  if (layer.type !== 'ranges' || layer.theme.color !== undefined) return undefined;
-  return track.template ? `${track.address}:${layer.index}` : layer.data?.address;
-}
-
-/**
- * The colourless layers' places in the categorical palette, by their keys' first appearance in the view (a layer's
- * order): made once a view.
- */
-const DefaultColors = new WeakMap<ResolvedView, Map<string, number>>();
-function defaultColors(view: ResolvedView): Map<string, number> {
-  let m = DefaultColors.get(view);
-  if (m) return m;
-  m = new Map();
-  for (const s of view.sections)
-    for (const t of s.tracks)
-      for (const l of t.layers) {
-        const k = colorKey(t, l);
-        if (k !== undefined && !m.has(k)) m.set(k, m.size % CategoryCount);
-      }
-  DefaultColors.set(view, m);
-  return m;
-}
-
 export function layoutView(input: LayoutInput, state = new LayoutState(), again = false): ViewLayout {
   const header = rowsHeader(input.view, input.rails);
   const given = input.config ?? DefaultRenderConfig;
@@ -155,15 +124,13 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
   // rows and grid ones below: never by the built-in's identity, which would bundle it into every composition)
   const textWidth = input.size.width - (fit?.right ?? 0);
   const extents = new Map<string, [number, number]>();
-  const theme: ThemeContext = {
-    schemes: input.theme?.schemes ?? DefaultThemeContext.schemes,
-    ...(input.theme?.measures ? { measures: input.theme.measures } : {}),
-    cvdSafe: input.theme?.cvdSafe ?? false,
-    scale: (a) => input.view.scales?.[a] as ScaleParams | undefined,
-    domain: input.domains
+  const theme: ThemeContext = viewTheme(
+    input.view,
+    input.theme,
+    input.domains
       ? (key) => input.domains!.state.domains.get(input.domains!.map(key))
       : (key) => state.domains.get(key),
-    extent: (key, lo, hi) => {
+    (key, lo, hi) => {
       const e = extents.get(key);
       if (!e) extents.set(key, [lo, hi]);
       else {
@@ -171,7 +138,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         if (hi > e[1]) e[1] = hi;
       }
     },
-  };
+  );
   const dpr = input.dpr ?? 1;
   const types = input.types ?? NoTypes;
   const overlay = input.overlay ?? EmptyOverlay;

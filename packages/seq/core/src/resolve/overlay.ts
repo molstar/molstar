@@ -103,6 +103,8 @@ export interface Overlay {
    * `via`, the named maps' rivals are left out (maps-via.ts).
    */
   path(from: string, to: string, via?: readonly string[]): PathResult;
+  /** The steps from a system its paths search: the spec's maps and the overlay's (units' steps, item maps). */
+  edgesFrom?(system: string): readonly Edge[];
   /**
    * The source nodes to open: those at a depth some template on their root needs (`needs`: root → depth), within
    * `maxNestedDepth`; deeper ones are an issue and not listed.
@@ -130,6 +132,7 @@ export const EmptyOverlay: Overlay = {
   system: () => undefined,
   annotation: () => undefined,
   path: () => ({}),
+  edgesFrom: () => [],
   nested: () => [],
   systemNamed: () => undefined,
   holds: () => [],
@@ -464,6 +467,11 @@ class DynamicOverlay implements Overlay {
       }
     this.edges = edges;
     return edges;
+  }
+
+  edgesFrom(system: string): readonly Edge[] {
+    const dynamic = this.dynamicEdges().get(system);
+    return dynamic ? [...this.model.edgesFrom(system), ...dynamic] : this.model.edgesFrom(system);
   }
 
   path(from: string, to: string, via?: readonly string[]): PathResult {

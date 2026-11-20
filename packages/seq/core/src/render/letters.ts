@@ -32,16 +32,9 @@ import {
   sectionId,
   type StoreReader,
 } from './layer-type.js';
-import {
-  Black,
-  type Channel,
-  contrastRgba,
-  inkAgainst,
-  lettersDefault,
-  type ThemeBody,
-  White,
-} from '@molstar/seqx-core/theme/index';
+import { Black, type Channel, contrastRgba, inkAgainst, White } from '@molstar/seqx-core/theme/index';
 import { channelForms, channelLegends, type LayerChannels, PlainDatum } from './channels.js';
+import { LettersColorFallback, LettersEnv } from './layer-color.js';
 import { drawFailed, drawSpans, hoverCell } from './marks.js';
 import { inkOn, type SeqTokens } from './tokens.js';
 
@@ -62,17 +55,7 @@ const AnchorMiddle: number = Anchor.middle;
 /** A letters layer's alphabet (the system's); the rows and the logo read the same. */
 export type Alphabet = SequenceAlphabet;
 
-/** The color channel's default body and environment by alphabet, made once (a layout makes none to read a kept channel). */
-export const LettersColorFallback: Record<Alphabet, ThemeBody> = {
-  protein: { kind: 'scheme', params: { name: lettersDefault('protein') } },
-  dna: { kind: 'scheme', params: { name: lettersDefault('dna') } },
-  rna: { kind: 'scheme', params: { name: lettersDefault('rna') } },
-};
-const LettersEnv: Record<Alphabet, { alphabet: Alphabet }> = {
-  protein: { alphabet: 'protein' },
-  dna: { alphabet: 'dna' },
-  rna: { alphabet: 'rna' },
-};
+export { LettersColorFallback } from './layer-color.js';
 
 /** How a letters layer reaches its section: its own letters, a one-to-one path, a codon step, or none drawn. */
 type Through = 'own' | 'one' | 'codon' | 'refused';
