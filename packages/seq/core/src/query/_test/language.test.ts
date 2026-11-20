@@ -392,3 +392,45 @@ describe('the fine fields indexed (a row naming no position)', () => {
     }
   });
 });
+
+describe('monadic laws', () => {
+  const locOf = (address: string) => {
+    const r = g.run(address);
+    expect(
+      codes(r).filter((c) => c !== 'seq.query.property.absent'),
+      address,
+    ).toEqual([]);
+    return r.result?.type === 'location' ? r.result.location : location({});
+  };
+  const same = (a: string, b: string) => expect(locationsEqual(locOf(a), locOf(b)), `${a} ≡ ${b}`).toBe(true);
+  const selections = ['(elements :component NAG)', '(elements :atom C1)', '(elements :chain D :beg 2 :end 5)'];
+
+  it('identity: (elements) is the unit on either side', () => {
+    for (const p of ['/data/c', `${D}/(range :from 2 :to 6)`]) {
+      for (const s of selections) {
+        // left: what (elements) names, then s, is s
+        same(`${p}/(elements)/${s}`, `${p}/${s}`);
+        // right: s, then (elements) over it, holds what s holds (its residues; an atom selection's are atoms)
+        if (!s.includes(':atom')) same(`${p}/${s}/(elements)`, `${p}/${s}`);
+      }
+      same(`${p}/(elements)`, `${p}/(elements)/(elements)`);
+    }
+  });
+
+  it('associativity: chained forms group either way', () => {
+    const [a, b, c] = ['(elements :chain D)', '(elements :component [NAG MAN])', '(elements :atom C1)'];
+    const left = `/(merge :of [/data/c/${a}/${b}])/${c}`;
+    same(left, `/data/c/${a}/${b}/${c}`);
+    // a nested form is evaluated against the prefix, so b over a's result, then c, is c over (a then b)
+    same(`/(merge :of [/data/c/${a}])/${b}/${c}`, `/(merge :of [/(merge :of [/data/c/${a}])/${b}])/${c}`);
+    same(`/(merge :of [/(merge :of [/data/c/${a}])/${b}])/${c}`, left);
+  });
+
+  it('an empty element yields nothing, never an error', () => {
+    const empty = `${D}/(elements :component XYZ)`;
+    expect(count(g.run(empty))).toBe(0);
+    for (const f of ['(elements :atom C1)', '(expand :to unit)', '(linked :via /data/c/links)', '(elements)'])
+      expect([count(g.run(`${empty}/${f}`)), codes(g.run(`${empty}/${f}`))], f).toEqual([0, []]);
+    expect(count(g.run('/data/c/(elements :items [])/(expand :to molecule)'))).toBe(0);
+  });
+});
