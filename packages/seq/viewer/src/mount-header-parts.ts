@@ -38,6 +38,11 @@ export function headerPartsDom(): HeaderPartsPortFactory {
     layer.className = 'seqx-header-parts';
     Object.assign(layer.style, { position: 'absolute', left: '0', top: '0', width: '0', height: '0' });
     container.append(layer);
+    // a part's own events are its own: the canvas below sees no press, click, move or key there (stopped at the parts'
+    // root, where `@molstar/ui` delegates the buttons' handlers)
+    const own = (e: Event) => e.stopPropagation();
+    const types = ['pointerdown', 'pointerup', 'click', 'dblclick', 'pointermove', 'contextmenu', 'keydown', 'wheel'];
+    for (const type of types) layer.addEventListener(type, own);
     let dispose: (() => void) | undefined;
     let last: HeaderPartsState = { headers: [] };
     const press = (
@@ -112,9 +117,6 @@ export function headerPartsDom(): HeaderPartsPortFactory {
               e.stopPropagation();
             }
           });
-          // a part's own events are its own: the canvas below sees no press, click or move there
-          for (const type of ['pointerdown', 'click', 'dblclick', 'pointermove', 'contextmenu', 'keydown'])
-            group.addEventListener(type, (e) => e.stopPropagation());
           out.append(group);
         }
         return out;
@@ -135,6 +137,7 @@ export function headerPartsDom(): HeaderPartsPortFactory {
       },
       dispose() {
         dispose?.();
+        for (const type of types) layer.removeEventListener(type, own);
         layer.remove();
       },
     };
