@@ -112,10 +112,11 @@ interface Block {
   readonly size: number;
 }
 
-/** An unsigned 64-bit integer as a number (exact to 2^53, a file of 8 PB). */
+/** An unsigned 64-bit integer as a number; past 2^53 (a file of 8 PB) it is no offset or size of a real file. */
 function u64(dv: DataView, o: number, le: boolean): number {
   const lo = dv.getUint32(o + (le ? 0 : 4), le);
   const hi = dv.getUint32(o + (le ? 4 : 0), le);
+  if (hi > 0x1fffff) throw new Malformed('an offset or size past 2^53');
   return hi * 0x100000000 + lo;
 }
 

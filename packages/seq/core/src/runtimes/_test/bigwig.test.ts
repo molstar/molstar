@@ -413,6 +413,31 @@ describe('a crafted bigWig is refused by the runtime’s bounds', () => {
     s.dispose();
   });
 
+  it('an offset past 2^53 is malformed, not a RangeError of the range reader', async () => {
+    const bytes = crafted((dv) => dv.setUint32(24 + 4, 0xffffffff, true));
+    serve({ [Url]: bytes });
+    await expect(BigWigRuntime.open(entry, rangeContext())).rejects.toSatisfy(
+      (e) => e instanceof SourceOpenError && e.issues[0].code === 'seq.source.malformed',
+    );
+    // a leaf's block offset past it: the region is malformed
+    const leafy = crafted((dv, at) => {
+      for (let o = at.fullIndex + 48; ; ) {
+        const leaf = dv.getUint8(o) === 1;
+        if (leaf) return dv.setUint32(o + 4 + 16 + 4, 0xffffffff, true);
+        o = Number(dv.getBigUint64(o + 4 + 16, true));
+      }
+    });
+    serve({ [Url]: leafy });
+    const s = await BigWigRuntime.open(entry, rangeContext());
+    const answers = await Promise.all(
+      Chroms.map((c) =>
+        s.read({ system: c.name, start: 0, end: c.values.length, level: 1, shapes: ['values'] }, signal),
+      ),
+    );
+    expect(answers.some((a) => !a.ok && a.kind === 'malformed')).toBe(true);
+    s.dispose();
+  });
+
   it('a chromosome tree of 65,535 items of 1,032 bytes a node is refused at open', async () => {
     const bytes = crafted((dv, at) => {
       dv.setUint32(at.chromTree + 4, 65_535, true);
