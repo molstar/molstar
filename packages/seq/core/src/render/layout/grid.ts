@@ -326,7 +326,7 @@ function drawChrome(s: SectionLayout, _pass: PassName, out: PassWriter) {
     return;
   }
   const top = p instanceof GridPlacement ? p.plotTop : strips.top[0];
-  if (t) {
+  if (t?.labelText) {
     g[0] = config.inset;
     g[1] = top + 12;
     g[2] = t.labelWidth;
@@ -376,7 +376,7 @@ function drawBlocksChrome(s: SectionLayout, p: GridPlacement, out: PassWriter) {
     if (atY >= 0) out.fill(xr.x0, atY - px / 2, xr.width, px, ink);
   }
   const t = s.tracks[0];
-  if (t) {
+  if (t?.labelText) {
     g[0] = config.inset;
     g[1] = top + 12;
     g[2] = t.labelWidth;

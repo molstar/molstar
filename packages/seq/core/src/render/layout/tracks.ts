@@ -186,7 +186,8 @@ function drawLabel(out: PassWriter, t: TrackLayout, tokens: SeqTokens, config: R
   // the label fades before the chip beside it (a chip on a line of its own leaves it whole)
   g[3] = f && !f.dy ? Math.max(0, f.x - config.inset - 6) : config.labelWidth;
   g[4] = tokens.colors['msui-text-muted'];
-  out.textArgs(t.labelText, AnchorStart, config.labelFont);
+  // an empty label (`label: ''`) draws no text
+  if (t.labelText) out.textArgs(t.labelText, AnchorStart, config.labelFont);
   if (!f) return;
   g[0] = f.x;
   g[1] = t.labelY + f.dy / 2;
