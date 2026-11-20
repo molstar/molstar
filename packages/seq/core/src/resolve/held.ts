@@ -30,8 +30,11 @@ export interface PairsData {
   /** −1 where an end is on its `-` strand, else 1 (EC-206: a reversed side is valid). */
   readonly aStrand: Int8Array;
   readonly bStrand: Int8Array;
-  /** Any other category column of the rows, by name, a value a kept pair (a flag a filter reads: `tertiary`). */
-  readonly extra?: Readonly<Record<string, readonly (string | null)[]>>;
+  /**
+   * Any other column of the rows, by name, a value a kept pair: text (a flag a filter reads: `tertiary`) or numbers (an
+   * occupancy a theme reads; NaN read as missing).
+   */
+  readonly extra?: Readonly<Record<string, readonly (string | number | null)[]>>;
   /**
    * Links of a complex (_spec/README.md "Resolve", Pairs and grids): each end's unit, an index into the annotation's
    * `units`; a row naming no unit of the complex is left out.
@@ -56,6 +59,24 @@ function category(v: Value | undefined): Category | undefined {
   if (v === undefined || v === null) return undefined;
   if (Array.isArray(v)) return { get: (i) => (typeof v[i] === 'string' ? (v[i] as string) : null) };
   return typeof (v as unknown as Category).get === 'function' ? (v as unknown as Category) : undefined;
+}
+
+type Extra = { get(i: number): string | number | null };
+
+/** A column past the pairs' own: text (a category column or a list), or numbers (a list or a typed column). */
+function extraColumn(v: Value | undefined): Extra | undefined {
+  if (Array.isArray(v))
+    return {
+      get: (i) => {
+        const x = v[i];
+        return typeof x === 'string' || (typeof x === 'number' && !Number.isNaN(x)) ? x : null;
+      },
+    };
+  if (isColumn(v) && typeof (v as unknown as Category).get !== 'function') {
+    const a = v as unknown as ArrayLike<number>;
+    return { get: (i) => (Number.isNaN(a[i]) ? null : a[i]) };
+  }
+  return category(v);
 }
 
 const PairColumns = new Set([
@@ -111,8 +132,8 @@ export function readPairs(node: Node, unitOf?: (id: string) => number): PairsDat
   const extraCols = Object.entries(rows)
     .filter(([k]) => !PairColumns.has(k))
     .flatMap(([k, v]) => {
-      const c = category(v);
-      return c ? [[k, c, [] as (string | null)[]] as const] : [];
+      const c = extraColumn(v);
+      return c ? [[k, c, [] as (string | number | null)[]] as const] : [];
     });
   let n = 0;
   for (let i = 0; i < n0; i++) {

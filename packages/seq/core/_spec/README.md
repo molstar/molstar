@@ -54,18 +54,19 @@ checks it cannot express.
   belong together: `a` a system, `b` another or `a`'s, `a` required under `data` (`seq.lang.link.target`); its `rows`
   inline, `a_start`, `a_end`, `b_start`, `b_end` each pair's two ends, never wrapping, at least a position each (EC-10),
   self-pairs allowed; an open `type` its kind, since `kind` is reserved: canonical, wobble, contact; `id`, `label`,
-  `a_strand` and `b_strand` (EC-206); any other category column rides along as a field a data filter reads,
-  `(item :tertiary yes)`), `grid` (a value per pair of positions: `x` a sequence, `y` another or `x`'s, `values` x-major
-  float32, NaN missing, `|x| × |y|` of them: `seq.lang.grid.length`); under a `sequence`: `numbering` (Numberings,
-  below); under `views`: `view`, then `section`, `block` (a piece of a section on a system of its own: `of` (absent: an
-  override of a derived unit), `range`, `label`), `track` (`hidden`, default false: kept in the spec, its row collapsed;
-  its layers keep their own; `padding`, px inside its well around its data, vertical only: a number top and bottom, or
-  `{ top, bottom }` one or both, each non-negative, a `repr` issue otherwise; absent, the render config's
-  `trackPadding`: Render, Tracks layout), `layer` (`hidden`, default false: kept in the spec and not drawn, so hiding is
-  a one-key `set`). A `ranges` node's `map: 'codon'` makes each item (its rows by `id`) a coding sequence of its own
-  (Overlay); a track's `for_each` makes it a template (Resolved view, Templates; its kind param is `node_kind`, since
-  `kind` is reserved, and is `ranges` or `values`: what a layer draws). Reference params (`target`, `of`, `from`, `to`,
-  `follow`, `source`, `data`) are `ref` params naming the kinds they take; a reference is an address.
+  `a_strand` and `b_strand` (EC-206); any other column rides along as a field, text a data filter reads or numbers a
+  theme reads (an occupancy on a continuous scale; NaN missing), `(item :tertiary yes)`), `grid` (a value per pair of
+  positions: `x` a sequence, `y` another or `x`'s, `values` x-major float32, NaN missing, `|x| × |y|` of them:
+  `seq.lang.grid.length`); under a `sequence`: `numbering` (Numberings, below); under `views`: `view`, then `section`,
+  `block` (a piece of a section on a system of its own: `of` (absent: an override of a derived unit), `range`, `label`),
+  `track` (`hidden`, default false: kept in the spec, its row collapsed; its layers keep their own; `padding`, px inside
+  its well around its data, vertical only: a number top and bottom, or `{ top, bottom }` one or both, each non-negative,
+  a `repr` issue otherwise; absent, the render config's `trackPadding`: Render, Tracks layout), `layer` (`hidden`,
+  default false: kept in the spec and not drawn, so hiding is a one-key `set`). A `ranges` node's `map: 'codon'` makes
+  each item (its rows by `id`) a coding sequence of its own (Overlay); a track's `for_each` makes it a template
+  (Resolved view, Templates; its kind param is `node_kind`, since `kind` is reserved, and is `ranges` or `values`: what
+  a layer draws). Reference params (`target`, `of`, `from`, `to`, `follow`, `source`, `data`) are `ref` params naming
+  the kinds they take; a reference is an address.
 - **The axis's params** (the writer's: what the figure is; never inferred from what a section draws, so adding a layer
   never turns a section over): a section's `direction` (`genomic`, `reversed`, `follow`, or
   `{ along: <sequence or map> }`; absent: `follow` for a section with `follow`, else `genomic`), `pieces` (`whole`,
@@ -450,9 +451,9 @@ address, `/data/p53/(range :from 94 :to 292)`.
 - **Pairs answer `items`**: a pairs annotation is queried as its items, a pair one item with a row per end, each row on
   its own system (`QueryItem.system`; a ranges row's is its annotation's `target`): `(items :overlapping <location>)`
   gives the pairs with an end in the location, on either system; `(item :type …)` reads a pair's fields (`type`,
-  `label`, its other category columns); `extent` and a result's location cover both ends. Why: a host asks which pairs
-  touch a range (the viewer's `linkedPairs`). A location part on neither target is read against the rows' systems before
-  it is said unreachable.
+  `label`, its other columns); `extent` and a result's location cover both ends. Why: a host asks which pairs touch a
+  range (the viewer's `linkedPairs`). A location part on neither target is read against the rows' systems before it is
+  said unreachable.
 
 ### Location
 

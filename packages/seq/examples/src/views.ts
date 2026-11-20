@@ -625,7 +625,7 @@ export const AntibodyViews: readonly ExampleView[] = [
     id: 'adc',
     title: 'T-DM1, an antibody–drug conjugate (generated)',
     summary:
-      'Trastuzumab emtansine as a construct: trastuzumab’s Fab chains twice (the Fc not held) and the emtansine payload (SMCC–DM1, its CCD ids placeholders), linked to every lysine with occupancies summing to the average DAR of 3.5; the arcs colored by their band of occupancy. Hover the payload: every conjugation site lights.',
+      'Trastuzumab emtansine as a construct: trastuzumab’s Fab chains twice (the Fc not held) and the emtansine payload (SMCC–DM1, its CCD ids placeholders), linked to every lysine with occupancies summing to the average DAR of 3.5; the arcs colored by their occupancy. Hover the payload: every conjugation site lights.',
     build: () => antibodyAdc.build(),
   },
 ];

@@ -15,7 +15,7 @@ import { Data } from './data.js';
 // Fab chains (PDB 1N8Z's light and heavy chains, the Fc not held), two of each; its payload, emtansine (DM1 through an
 // SMCC linker), a molecule named by its components. Lysine conjugation is stochastic: the payload linked to every
 // lysine of every chain, each link's occupancy a share of the average drug-to-antibody ratio (3.5) by a generated
-// weight, so the occupancies sum to the DAR; the arcs colored by a band of occupancy (a field of the links' rows). The
+// weight, so the occupancies sum to the DAR; the arcs colored by their occupancy (a number of the links' rows). The
 // payload's CCD component ids are placeholders (`UNL`, the CCD's unknown ligand) until the author names them: no id is
 // guessed.
 
@@ -40,10 +40,6 @@ export const AdcChains = [
   { id: 'L2', chain: 'light' },
   { id: 'H2', chain: 'heavy' },
 ] as const;
-
-/** An occupancy's band, what the arcs are colored by (the label field the design names). */
-export const ShareBands = ['occupancy < 5%', 'occupancy 5–10%', 'occupancy ≥ 10%'] as const;
-export const shareOf = (o: number) => ShareBands[o < 0.05 ? 0 : o < 0.1 ? 1 : 2];
 
 /** The lysines of a chain's letters (0-based). */
 export const lysines = (letters: string) => [...letters].flatMap((c, i) => (c === 'K' ? [i] : []));
@@ -95,7 +91,6 @@ export function build(d: Derived = Data): Node {
         type: sites.map(() => 'covalent'),
         a_atom: sites.map(() => 'NZ'),
         occupancy: sites.map((s) => s.occupancy),
-        share: sites.map((s) => shareOf(s.occupancy)),
         label: sites.map((s) => `${s.unit} K${s.position + 1}`),
       },
     });
@@ -105,8 +100,8 @@ export function build(d: Derived = Data): Node {
     s.track('conjugation', { label: `Lysine conjugation (DAR ${Dar})` }).layer('conjugation', {
       type: 'pairs',
       data: '/data/adc/conjugation' as never,
-      // the occupancies drawn: an arc's color its band of occupancy (a text field: the pairs layer reads text fields)
-      color: theme.field('share', { palette: theme.categorical({ colors: 'categories', values: [...ShareBands] }) }),
+      // the occupancies drawn: an arc's color its occupancy, from none to the most occupied site's
+      color: theme.field('occupancy', { domain: [0, null], palette: theme.continuous({ colors: 'viridis' }) }),
     });
     s.track('letters', { label: 'Sequence' }).layer('letters', { type: 'letters' });
   });
