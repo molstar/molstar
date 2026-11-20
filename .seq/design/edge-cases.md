@@ -199,8 +199,12 @@ against the tests, completed by ET's (EC-63, 99, 115, 116, 138, 195), CF's (EC-1
   hover from elsewhere … is projected onto every section". Its outline holds 3:1 against the surfaces it is drawn on
   (the page, the track, the sequence's cells, the missing and pending fills), the residue and nucleotide class fills and
   a range's fill, in both themes: `render/_test/ec-hover-contrast` "seq-hover holds 3:1 against each surface and fill
-  it rings". Against the saturated data fills (the categorical, ramp and secondary colours) it does not: the author's
-  question (below).
+  it rings". The EC asks 3:1 against the track (what the outline sits on), not every fill; a saturated data fill it
+  fails (the categorical, ramp and secondary colours) gets a double outline, light and dark (decided by the author,
+  2026-11-20: "Accept both"; the double outline not built yet, below).
+- EC-63: kinds at one cell are drawn as slices, one a kind, each its own hit, not glyphs with "+" (decided by the
+  author, 2026-11-20: "Accept both"; [grids-and-rows.md](grids-and-rows.md)); `render/_test/ec-pairs-kinds` "the cell
+  is cut into a slice a kind, in order, each slice hit as its own pair". Glyphs are in `packages/seq/TODO.md`.
 - EC-171: the zoom gate is the store's bound on a want's tiles (`maxTilesPerWant`): a want past it is not asked, said
   once (`seq.store.too_many_tiles`) and drawn pending, while a coarser level shows density; there is no "load anyway".
   `data/_test/store` "are bounded: lengths clip, a want over the tile cap is an issue and not asked";
@@ -210,11 +214,8 @@ against the tests, completed by ET's (EC-63, 99, 115, 116, 138, 195), CF's (EC-1
 **Not met yet** (open, in `packages/seq/TODO.md` or the next slices' plans):
 
 - EC-59: two grids on one block pair merged, later over earlier, and a size cap per pair: not built.
-- EC-63: kinds at one cell are drawn as slices, one a kind, each its own hit (`render/_test/ec-pairs-kinds` "the cell
-  is cut into a slice a kind, in order, each slice hit as its own pair"); the design's glyphs and "+" are not built.
-  Slices or glyphs: the author's question.
 - EC-103: track groups and summaries: not built.
-- EC-138's outline against the saturated data fills: above.
+- EC-138's double outline over a saturated data fill the hover outline fails: above.
 - EC-149: drag snapping to whole codons over nucleotides (as in the second slice).
 - EC-154: the keyboard cursor steps a million lazy rows by index, and hidden and folded rows by the nearest shown
   (`viewer/src/_test/cursor-rows` "steps by index over rows never read: …", "a fold puts the cursor on the summary row;

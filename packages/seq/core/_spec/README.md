@@ -2144,7 +2144,8 @@ measures, consensus, the profile). An alignment's rows over its columns, its own
   (measured on an unbiased generator, seeds 1 to 12: the letter missed at leads up to 0.41, shares off by up to 0.41); a
   few rows a sample are cheap to count; and below 3 device px a cell the shade reads, not the letter. The pinned rows
   are drawn on their own over a band that does not scroll (rects past `pinnedFrom`), the scrolled rows clipped below it.
-  A letter-class reduction (`rows.reduce: letter`) is not built (the package's TODO).
+  The reducer is the theme's classes, fixed (no item, decided by the author 2026-11-20); a reduction by letter is in the
+  package's TODO.
 - **The header**, in the label column: the tree (`tree_width`, 120) and the first residue numbers widen the view's label
   column by their width (the widest of its tracks sections, so every section's data starts at one x), the labels keep
   the column's own; the tree by branch lengths, else depth, a folded clade a wedge at its summary row, its geometry in

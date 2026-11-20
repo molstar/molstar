@@ -450,7 +450,7 @@ interface Placement {
 - **Centered and capped lines** (`align`, `max_width`) move margins, hits and the selection with them (EC-98).
 - **Reflow** on resize is the layout's, keyed by the width; the anchor holds the reader's place.
 - **A linked selection is revealed** (`reveal.linked`, `text`; one `reveal` group in `ViewerConfig` with
-  `reveal.cursor`, today's `cursor.reveal`, and `reveal.opensClades` from [grids-and-rows.md](grids-and-rows.md)): when a selection is made
+  `reveal.cursor`, today's `cursor.reveal`; a reveal always opens the clades holding a row, [grids-and-rows.md](grids-and-rows.md)): when a selection is made
   in another section or a structure and projects onto a text section with none of it in view, the text scrolls its
   first line into view, as a move by hand (no history step). Why text only by default: a text hides most of its content,
   a tracks section shows the selection's projection where it is.
@@ -570,7 +570,7 @@ registry entry, an option of a call, or fixed with its reason).
 | `rings.center` | `RenderConfig` preset | `title` | the name and length in the hole | `none` |
 | `rings.labelGap`, `rings.leaderBend` | `RenderConfig` preset | 8 px, 12 px | leaders fan out over the ruler, never through one point | px |
 | `rings.window` | `RenderConfig` preset | `followed` | a window means only what a follower shows | `always` |
-| `reveal.linked` | `ViewerConfig` (the `reveal` group, with `reveal.cursor` and `reveal.opensClades`) | `text` | a text hides most of itself (Jalview scrolls to a linked selection) | `all`, `none` |
+| `reveal.linked` | `ViewerConfig` (the `reveal` group, with `reveal.cursor`) | `text` | a text hides most of itself (Jalview scrolls to a linked selection) | `all`, `none` |
 | the window's drags | `BehaviorProvider` (`window`, shared with the navigators) | in the default spec | a host may leave it out | — |
 | key of `selection.copyLetters` | `ViewerConfig` (`view.keys`) | Cmd/Ctrl+C | the platform's copy | any |
 | the ring's window in an export | spec param of the view (`export.window`, optional), `renderSvg`'s `window` overriding it (decided) | false | an exported map is a figure | true |

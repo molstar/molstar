@@ -269,9 +269,11 @@ and another viewer); a host recolors through `--seq-*` tokens.
   white, so a mid-tone fill can leave both under 4.5:1 (a saturated scheme color between them): there the ink is pure
   black or white, whichever is higher (the better of the two is always above 4.5:1). An `ink` theme's color under 3:1
   against its fill is moved in oklab lightness until it reaches 3:1 (fixed: a theme must not cost the letters, ux-foundations section 1). Tested over every color of every built-in scheme, both themes, not only the tokens.
-- **The hover outline holds 3:1 against any fill** (EC-138): where `seq-hover` falls under 3:1 against the mark it
-  outlines (an arbitrary scheme color), a 1 px halo in the opposite ink is drawn outside it; tested over every scheme
-  color. Exports draw no hover.
+- **The hover outline holds 3:1 against the track** (EC-138, decided by the author, 2026-11-20: "Accept both"): against what it sits on (the
+  page, the track, the sequence's cells, the missing and pending fills), tested in both themes. A fill it fails (a
+  saturated categorical, ramp or secondary color) gets the double outline, light and dark, the selection already uses
+  (ux-foundations), not a 3:1 against every fill; the double outline is in `packages/seq/TODO.md`. Exports draw no
+  hover.
 - **Compatibility**: a string in `layer.color` reads as before, and `token:<name>` keeps its three-step lookup
   (`seq-<name>`, `msui-<name>`, `<name>`). A non-string value (accepted today by the `any` param and reported at draw
   as `seq.render.color`, a warning) becomes a refusal at the check (`seq.lang.theme.form`) unless it is a form; a

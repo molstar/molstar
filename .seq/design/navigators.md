@@ -312,7 +312,8 @@ preset or a host rebinds or leaves them out.
   shown and zoom-in at its limit; all rows shown with no row zoom; a follower window under `ignore`). Idle is drawn quiet
   (no handles, no wash, the window a quiet line), its gestures do nothing, its cursor is the default and its slider is
   `aria-disabled`; it is live again when the view can move, with no relayout. A navigator whose every window is idle is
-  still drawn (`navigator.idle: quiet`; `hidden` the alternative): a part that comes and goes moves the host's layout.
+  still drawn, quiet (fixed, decided by the author, 2026-11-20; `hidden` in `packages/seq/TODO.md` until a host asks): a part that comes and goes
+  moves the host's layout.
 - **Keys**, while the part has focus (one tab stop; a slider per covered axis and window, roving): the slider's own
   keys, fixed (ARIA's slider pattern): arrows pan by `navigate.keyPanFraction` (Up and Down on rows), Shift+arrows
   resize the window about its centre (a zoom step), Home and End go to the ends (jumps), Enter centres on the readout's position (a jump); the view's keys from
@@ -371,7 +372,6 @@ registry entry, an option of a call, or fixed with its reason).
 | `navigator.window.floor` | `RenderConfig` preset | `centred` | the drawn window says where (Tensions) | `thumb` |
 | `navigator.trackScale`, `.trackMinPx` | `RenderConfig` preset | 0.25, 2 | a miniature reads as the view; a thinner track is not seen at dpr 1 | any |
 | `navigator.marks` | `RenderConfig` preset | selection, highlights, cursor | where is what I picked | any subset |
-| `navigator.idle` | `RenderConfig` preset | `quiet` | a part that vanishes moves the host's layout | `hidden` (not built: idle is quiet only, no item) |
 | `navigator.rail.grownPx`, `navigator.window.touchHitPx` | `RenderConfig` preset | 6, 24 | a target in use; a finger is wider than a pointer | px |
 | the embedded corner button | `SeqViewerSpec.ui` entry (`railToggle`), its state the reader's | on in the embedded layout | a cell's room is the reader's | off |
 | `navigator.form` | `ViewerConfig` | `rail` | a navigator on every linear section at no row's cost (the author's choice, the precedent) | `none` |

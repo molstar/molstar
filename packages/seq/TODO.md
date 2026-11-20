@@ -134,10 +134,12 @@ base-library change, below), archives. The Genomes milestone is the fifth.
   - `filter` and `rows.filter` (by a field's values or range: "Order");
   - the logo of the rows shown (`rows: shown`, taken out of the language until built: "The logo"); a small logo as a
     summary row (`summary: logo`, taken out likewise: "Opening and closing clades");
-  - a letter-class reduction (`rows.reduce: letter`, taken out of the config: "Drawing by density") and a lazy source's
-    served row bins, coarse levels drawn for 10M rows at the fit (a neutral fill today: "Lazy rows");
-  - `reveal.opensClades` (a focus or a reveal opening the clades holding a row) and `rows.clades.cutLine` (the distance
-    cut dragged across the tree), each with its `ViewerConfig` item ("Opening and closing clades");
+  - a reduction by letter beside the theme's classes (the reducer is fixed, decided by the author 2026-11-20: an item
+    `rows.reduce` only with a second use: "Drawing by density") and a lazy source's served row bins, coarse levels drawn
+    for 10M rows at the fit (a neutral fill today: "Lazy rows");
+  - a drag of the distance cut line across the tree (`clades.collapseTo { height }` is built); a reveal focusing a
+    folded clade's summary row instead of opening it (a reveal always opens, fixed: decided by the author 2026-11-20; an
+    item only with a second use) ("Opening and closing clades");
   - a toggle's motion (the rows' heights animated as a jump's: `view.motion`, `view.jumpMs`); the drag past the band's
     edge scrolling the rows ("Opening and closing clades", "Lazy rows");
   - accessibility: a tree node announced with its state through the canvas's accessible layer, and a folded clade's
@@ -185,15 +187,16 @@ base-library change, below), archives. The Genomes milestone is the fifth.
 - **Themes**: a filter by a value's range (steps, a ramp: `(item :<field>)` compares atoms only) and filters through a
   tiled source's server; the legend's menu entry for `layer.filter` (the command and the chip are built); the pLDDT
   view's data is a seeded stand-in (a model's confidence from a real fixture); a hover halo on the legend's entry in the
-  canvas (EC-138: the legend highlights, the marks do not ring); a values layer's y on a `log` scale (its color reads
-  one, its bars are linear); a `field` form's `:data` (a field of another annotation); forced colors
-  (`forced-colors: active`: the system's palette); the column measures (`share`, `identity`, `matches-reference`)
-  registered by an alignment's layers; `classes` (the default protein scheme) is not safe under the three deficiencies
-  (its substitute is drawn under `theme.cvdSafe`): a safe default, a design decision; the dark band (L 0.30–0.62) reads
-  dim against the dark page (fills 1.4–1.7:1 against it at the low end) and cannot rise without giving up 4.5:1 ink: an
-  outline or a lighter page, a design decision; an inline table's column named `kind` is refused by the s-expression
-  codec (a reserved key), so `secondary` reads `category` in the examples; the `theme/` entry is reached through the
-  `./*` export (`theme/index`): its own `./theme` export.
+  canvas (EC-138: the legend highlights, the marks do not ring); the hover outline's double outline (light and dark)
+  over a saturated fill under 3:1 against it (EC-138, decided by the author 2026-11-20: 3:1 is against the track); a
+  values layer's y on a `log` scale (its color reads one, its bars are linear); a `field` form's `:data` (a field of
+  another annotation); forced colors (`forced-colors: active`: the system's palette); the column measures (`share`,
+  `identity`, `matches-reference`) registered by an alignment's layers; `classes` (the default protein scheme) is not
+  safe under the three deficiencies (its substitute is drawn under `theme.cvdSafe`): a safe default, a design decision;
+  the dark band (L 0.30–0.62) reads dim against the dark page (fills 1.4–1.7:1 against it at the low end) and cannot
+  rise without giving up 4.5:1 ink: an outline or a lighter page, a design decision; an inline table's column named
+  `kind` is refused by the s-expression codec (a reserved key), so `secondary` reads `category` in the examples; the
+  `theme/` entry is reached through the `./*` export (`theme/index`): its own `./theme` export.
 
 - Layouts (text): chips (one-position blocks: with blocks; the line loop is their seam), the `figure` preset's spacing,
   inline group labels before a line's first group; the line heights are kept full until laid out (the text's `end` an
@@ -209,11 +212,12 @@ base-library change, below), archives. The Genomes milestone is the fifth.
   contexts a section; p53 on its gene pan 75 KB a step against 70.5 KB at the base, its 64 KB bound already passed at
   the base on this Node): an engine object a section would take the closures away.
 - Pairs and grids: pair labels under an apex (the `label` column is read, not drawn); kinds at one cell as glyphs with
-  "+" when they do not fit (EC-63: dots share the cell side by side, arcs do not); contacts on copies folded by copy
-  group (EC-62, EC-65); a grid's image tiles assume a one-piece axis (a grid over a section with breaks draws rects or
-  stretches the tiles); `across_lines` in text, and arcs on a stack of tracks sections read as lines; pairs and grids
-  are held in the model (`resolve/held.ts`), not through the seq format and the store (read by region waits for the
-  Genomes milestone); `split` with the letters between its two sides (one band: the split arcs stand on its middle).
+  "+" when they do not fit, if a figure asks (EC-63: slices decided by the author 2026-11-20; arcs do not share);
+  contacts on copies folded by copy group (EC-62, EC-65); a grid's image tiles assume a one-piece axis (a grid over a
+  section with breaks draws rects or stretches the tiles); `across_lines` in text, and arcs on a stack of tracks
+  sections read as lines; pairs and grids are held in the model (`resolve/held.ts`), not through the seq format and the
+  store (read by region waits for the Genomes milestone); `split` with the letters between its two sides (one band: the
+  split arcs stand on its middle).
 
 ## `@molstar/seqx-viewer`
 
@@ -253,8 +257,8 @@ base-library change, below), archives. The Genomes milestone is the fifth.
   alignment's rows are left out now); a navigator over a text section (the positions on its lines in view); the window's
   hover readout as an ARIA live region; a slider per covered axis (one per window, roving by PageDown and PageUp); a
   grid's own y window drawn on a navigator (the view's history keeps it; open until a Hi-C view); the rows rail as a
-  slider for a screen reader (a canvas mark now: `]`, `[` and the wheel are its keys); `navigator.idle: hidden` (idle is
-  quiet only, no item: until a host asks, navigators.md).
+  slider for a screen reader (a canvas mark now: `]`, `[` and the wheel are its keys); `navigator.idle: hidden` (fixed
+  quiet, decided by the author 2026-11-20; idle is quiet only, no item: until a host asks, navigators.md).
 - Rings in the viewer: the matrix cells of a ring section and a block as binding tests; a drag-select longer than half
   the ring selects the other side (the shorter arc is taken: the drag's swept direction would say which); a reversed
   ring's arcs (`selection.ts` reads an arc on a forward axis only, `dir === 1`).

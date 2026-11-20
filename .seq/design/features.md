@@ -128,7 +128,7 @@ what undo does to each.
 | Values for genomics | points, split by sample, log scale, reference line | deferred | — | 214–217 | trigger: the Genomes milestone ([version-1](version-1.md))
 | Variants | sites colored by a field | done: sites colored by a field, heads stacked, a count strip (SL; p53: variants) | [themes](themes.md) | — | p53: variants |
 | Variants by sample | samples as rows, long deletions solid | deferred | — | 222 | trigger: the Genomes milestone ([version-1](version-1.md))
-| Pairs | arcs above and below, kinds, chords on rings | building: arcs above and below, chords on rings, crossing pairs, linked pairs (PG, LP; tRNA: arcs); kinds at one cell as slices, the design's glyphs not (EC-63) | [grids-and-rows](grids-and-rows.md) | 62, 63, 129 | tRNA: arcs |
+| Pairs | arcs above and below, kinds, chords on rings | building: arcs above and below, chords on rings, crossing pairs, linked pairs (PG, LP; tRNA: arcs); kinds at one cell as slices (EC-63, decided) | [grids-and-rows](grids-and-rows.md) | 62, 63, 129 | tRNA: arcs |
 | Matrix | positions × states, majority and maximum density | deferred | — | 60, 61, 220 | trigger: the Genomes milestone ([version-1](version-1.md))
 | Grid and dot plots | a value per pair of positions; crosshair hover | building: a section of its own, rectangles, image tiles, navigation (PG, PZ; tRNA: dot plot; Complex: PAE); two grids on one block pair (EC-59) not | [grids-and-rows](grids-and-rows.md) | 58, 59, 109, 145 | tRNA: base-pair dot plot |
 | Logo | stacked letters by bits or probability | done: letters by conservation, saturation (LG, LS; Globins: family) | [grids-and-rows](grids-and-rows.md) | — | Globins: family |

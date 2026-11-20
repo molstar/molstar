@@ -186,8 +186,14 @@ From the second slice's close:
 
 ## Questions for the author left by this close
 
-The two drift notes kept in `drift/`: `finalize-config.md` (items 2–4: drop or keep planned the configuration the
-designs name and the code lacks) and `ec-contradictions.md` (EC-63 slices against glyphs; EC-138's outline against
-saturated fills), each with its recommendation.
+Answered by the author, 2026-11-20, and applied (the designs, the Design pages, the core `_spec`, `TODO.md`):
+
+1. `reveal.opensClades`: fixed, its row dropped ("Fix all three").
+2. `navigator.idle`: fixed quiet, `hidden` in `TODO.md`.
+3. `rows.reduce`: fixed, a reduction by letter in `TODO.md` (the cut line's drag stays planned there).
+4. EC-63: amended to the built and tested slices, glyphs in `TODO.md` ("Accept both").
+5. EC-138: the outline holds 3:1 against the track only, a double outline on a fill it fails (in `TODO.md`).
+
+`drift/ec-contradictions.md` is deleted; `drift/finalize-config.md` keeps item 8 (sizes) for RR.
 
 Decided by the author:

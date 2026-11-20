@@ -118,7 +118,7 @@ smallest letter size needs, so cells never show without letters.
 
 - **Layers of emphasis, in a fixed order** from below to above: data; highlight channels (named, each a tint of its
   color under the data); selection (an accent tint under the data and an accent outline over it); hover (an outline at
-  3:1 or better against its surroundings, EC-138); the keyboard cursor (an accent outline, thicker). A higher one never
+  3:1 or better against the track it sits on, a double outline over a fill it fails, EC-138); the keyboard cursor (an accent outline, thicker). A higher one never
   hides a lower one entirely. **Current pass order** (`selection` after `data`): the selection's tint is drawn
   translucent over the data, with its outline, not under it (default; to confirm with the author: the alternative is a
   separate under-data pass). Why over: a pass under the data is hidden by opaque cells.

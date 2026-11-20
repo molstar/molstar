@@ -57,11 +57,11 @@ depends on the pixels on screen, not the amount of data.
   clade's per-column consensus. Hovering a node or a summary row lights the clade: its branches and its rows' band.
 - The tree's branches are one width; a folded clade's wedge is a light, outlined triangle reaching its deepest leaf.
 - A fold is **session state**, like the scroll: no undo step. `clades.keep` writes the folds shown into the spec as its
-  opening state, one edit. Collapse all, expand all, collapse to a depth or a distance cut are commands; a drag of the
-  cut line across the tree is too.
+  opening state, one edit. Collapse all, expand all, collapse to a depth or a distance cut are commands (a drag of the
+  cut line across the tree is planned).
 - Folding never changes the selection: a selection holding part of a clade shows as a partial mark on its summary row.
-- Focusing a row inside a folded clade, following a link to it or landing on it in a search opens its clades; back folds
-  them again.
+- Focusing a row inside a folded clade, following a link to it or landing on it in a search always opens its clades;
+  back folds them again.
 - In a text figure every row shows on every line, unfolded.
 
 ## The logo

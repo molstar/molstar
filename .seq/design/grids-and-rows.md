@@ -180,8 +180,9 @@ vertical scale. This design builds on them and adds only:
   an apex in view whose ends are within reach. **Crossing pairs** (pseudoknots) are drawn crossing (`crossing`:
   `same`), or the crossing set on the other side (`split`: the largest nested subset above, the rest below; exact up to
   2,000 pairs, greedy past it, fixed: the exact subset is quadratic and no figure asks for another bound).
-- **Kinds at one cell** (EC-63): a glyph per kind side by side, "+" when they do not fit; a hover on a glyph lights that
-  kind's pairs only.
+- **Kinds at one cell** (EC-63): the cell is cut into a slice a kind, in order, each slice hit as its own pair (built
+  and tested; decided by the author, 2026-11-20: "Accept both"). A glyph per kind with "+" when they do not fit, the current Seq\*'s, is in
+  `packages/seq/TODO.md`.
 - **On a ring** the band is inside the innermost ring (`side: below` reaches the hole), so the apex placed toward the
   centre makes a chord, its depth by span. **In text** arcs between lines only with `acrossLines` (false: a line's
   own pairs, the others' ends marked). Fallback: `ranges` (each end a mark).
@@ -361,7 +362,7 @@ position it say to the right of the sequence data"; the base's data columns, Jal
   | open a summary row, show its rows | double-click on it; Enter at the cursor on it | `address.focus` on the clade | double-click again, or Alt+Left |
   | collapse all, expand all | the header's menu | `clades.collapseAll`, `clades.expandAll` | each other; Alt+Left restores the set before |
   | collapse to a depth | the header's menu | `clades.collapseTo { depth }` | `clades.expandAll`; Alt+Left |
-  | collapse by a distance cut | the header's menu; a drag of the cut line across the tree (`rows.clades.cutLine`) | `clades.collapseTo { height }` (every largest clade whose leaves lie within `height` of its node, by branch length) | `clades.expandAll`; Alt+Left |
+  | collapse by a distance cut | the header's menu (a drag of the cut line across the tree is planned, `packages/seq/TODO.md`) | `clades.collapseTo { height }` (every largest clade whose leaves lie within `height` of its node, by branch length) | `clades.expandAll`; Alt+Left |
   | expand the clades holding rows | the selection's context menu; done by a focus, a reveal, a link or a search step landing inside | `clades.reveal(rows)` | Alt+Left folds them again |
   | keep the folds shown as the opening set | the header's menu | `clades.keep` (one patch on `collapsed`) | undo |
 
@@ -390,9 +391,8 @@ position it say to the right of the sequence data"; the base's data columns, Jal
   - *the selection* is by data rows: a fold never changes it; folded rows show as the partial mark and on the overview;
   - *the cursor* keeps its data row: folded, it stands on the summary row (announced "in clade first +n"); unfolded, it
     is back on its row; ↑ ↓ step over a summary row as one stop;
-  - *a focus or a reveal* of a row inside opens the clades holding it (decided; `reveal.opensClades`, true, in the one
-    `reveal` group of `ViewerConfig` with `reveal.cursor` and `reveal.linked`), one jump; with `false` it focuses the
-    summary row;
+  - *a focus or a reveal* of a row inside opens the clades holding it, one jump (fixed, decided by the author, 2026-11-20: "Fix all three"; no
+    second use for focusing the summary row instead, which `packages/seq/TODO.md` keeps);
   - *a hover* projected onto a folded row (a structure, a sequence) lights the summary row's cells, partly;
   - *history*: windows stored as row keys, so a back after a fold lands on the same rows (a folded key on its summary
     row, the rule above); the window keeps the row at its top across a fold, so the rows under the pointer do not jump;
@@ -414,7 +414,8 @@ position it say to the right of the sequence data"; the base's data columns, Jal
   (decided, 2026-11-19: the share within 0.05 on average and 0.3 at worst; the letter exact where the exact winner
   leads by more than 0.25). Enough because a level's image is drawn below 3 device px a cell, where the shade reads and
   the letter does not; keeping the top two classes per sample was declined (memory per level);
-- colored **by the theme's classes** (`rows.reduce`: `theme`): one pass mapping each cell to its theme class through a
+- colored **by the theme's classes** (fixed, decided by the author, 2026-11-20: no `rows.reduce` item; a reduction by letter is in
+  `packages/seq/TODO.md`, the tension kept: a theme's plurality against the letters' own): one pass mapping each cell to its theme class through a
   table by letter, or by (column, letter) when the theme declares column dependence (Clustal X's rules), so the
   per-letter shortcut holds both ways; the pyramid then reduces classes, not letters. A theme change rebuilds the
   classes and the pyramid (3M cells: under 50 ms, a target with its test). A lazy source's served row bins are by
@@ -588,10 +589,7 @@ registry entry, an option of a call, or fixed with its reason).
 | `collapsed`, `pinned`, `hidden`, `order`, `filter` (rows layer) | spec param | none; `data` | the writer's opening state and order | — |
 | `rows.pinInPlace` | `RenderConfig` preset | true | the tree stays a tree | false: moved only |
 | `rows.labelMinPx` | `RenderConfig` preset | 8 | a label needs a row | — |
-| `rows.reduce` | `RenderConfig` preset | `theme` | color plurality reads as the theme | `letter` (not built: the reducer is the theme's classes only, no item; `packages/seq/TODO.md`) |
 | `scale`, `correction`, `gaps`, `rows` (logo layer) | spec param | `bits`, `none`, `ignore`, `all` | the logo's usual reading; exact for given frequencies; gaps are no letter; the alignment's logo, not the view's | `probability`, `small-sample`, `count`, `shown` |
-| `rows.clades.cutLine` | `ViewerConfig` | true | Jalview's threshold, dragged | false: the command only (not built: no cut line, no item; `clades.collapseTo` is; `packages/seq/TODO.md`) |
-| `reveal.opensClades` (the `reveal` group) | `ViewerConfig` | true (decided) | a row asked for is shown | false: the summary row focused (not built: a reveal always opens, no item) |
 | a click on a tree node | `ViewerConfig` (the bindings' preset) | toggles the fold (decided) | a node is chrome, as a group's chevron | a preset binds it to select |
 | keys of `rows.zoom-in`, `rows.zoom-out` | `ViewerConfig` (`view.keys`) | `]`, `[` | each matches only its own `e.key` (above) | any key the host's layout types alone |
 | the folds an export draws | option of `renderSvg` (`folds`) | the layer's `collapsed` | the viewer passes its own | — |
@@ -676,7 +674,7 @@ The claim: **this design covers what a user does with pairs, grids and rows.**
 - **`seqx-viewer`**: `rowScale` and `bandTop` moved through the section's `nav`; **the history's record** gains, per
   rows band, the top row's key and `rowScale`, and the folded set when a jump changed it; the folded set per rows layer
   in the `ViewModel` (session state, read and set as addresses by the `AddressModel`), passed to `renderSvg`'s `folds`;
-  `reveal.opensClades` in the `reveal` group; the hit's targets; the selection's rows part and rects; the cursor's
+  the hit's targets; the selection's rows part and rects; the cursor's
   `part`, `ySystem`, `yPosition`; the commands `rows.pin` (toggles: a pinned row is unpinned), `rows.hide`,
   `rows.show` (the hidden-rows chip's), `rows.filter`, `rows.order`, `clades.toggle`,
   `clades.collapseAll`, `clades.expandAll`, `clades.collapseTo`, `clades.reveal`, `clades.keep`, `rows.zoom-in`, `rows.zoom-out` (keys in `view.keys`); the bindings.
