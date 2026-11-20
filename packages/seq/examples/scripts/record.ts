@@ -728,30 +728,38 @@ async function fromStructure(
   });
 }
 
-/** p53's structure: PDB 2OCJ's entity as `seq` and the fake structure viewer's chain table (`p53/structure-record.ts`). */
+/** p53's structure: PDB 2OCJ's entity as `seq`, the fake structure viewer's chain table (`p53/structure-record.ts`). */
 const p53Structure = () =>
-  fromStructure('2OCJ', 'PDB 2OCJ, the human p53 core domain, four chains (Wang, Rosengarth, Luecke 2007), mmCIF', (cif) => [
-    [
-      'p53/2OCJ.seq',
-      structureSeq(cif),
-      'the one polymer entity (P04637 94–312): its canonical letters (entity_poly) and chain A’s helices and strands (struct_conf, struct_sheet_range, label_seq_id) as ranges; coordinates, waters and zinc dropped',
+  fromStructure(
+    '2OCJ',
+    'PDB 2OCJ, the human p53 core domain, four chains (Wang, Rosengarth, Luecke 2007), mmCIF',
+    (cif) => [
+      [
+        'p53/2OCJ.seq',
+        structureSeq(cif),
+        'the one polymer entity (P04637 94–312): its canonical letters (entity_poly) and chain A’s helices and strands (struct_conf, struct_sheet_range, label_seq_id) as ranges; coordinates, waters and zinc dropped',
+      ],
+      [
+        'p53/2OCJ-chains.json',
+        chainTableJson(chainTable(cif, '2OCJ')),
+        'the fake structure viewer’s chain table: every chain instance but the waters (struct_asym), its residues’ label and author numbers, components and whether modeled (pdbx_poly_seq_scheme, pdbx_nonpoly_scheme, atom_site of model 1); coordinates dropped',
+      ],
     ],
-    [
-      'p53/2OCJ-chains.json',
-      chainTableJson(chainTable(cif, '2OCJ')),
-      'the fake structure viewer’s chain table: every chain instance but the waters (struct_asym), its residues’ label and author numbers, components and whether modeled (pdbx_poly_seq_scheme, pdbx_nonpoly_scheme, atom_site of model 1); coordinates dropped',
-    ],
-  ]);
+  );
 
-/** The Antibody's Fc: PDB 3AVE's Fc entity as `seq` (its glycans, links and units are `antibody/fc-glycan.ts`'s). */
+/** The Antibody's Fc: PDB 3AVE's Fc entity as `seq` (its glycans, links and units: `antibody/fc-glycan.ts`). */
 const antibodyStructure = () =>
-  fromStructure('3AVE', 'PDB 3AVE, a fucosylated human IgG1 Fc with its N297 glycans (Matsumiya et al. 2007), mmCIF', (cif) => [
-    [
-      'antibody/3AVE.seq',
-      structureSeq(cif, FcSystem),
-      'the Fc entity (IGHG1_HUMAN P01857 108–330): its canonical letters (entity_poly) and chain A’s helices and strands (struct_conf, struct_sheet_range, label_seq_id) as ranges; coordinates, glycans, zinc and waters dropped (the glycans, links and units are code, checked against the entry by the tests)',
+  fromStructure(
+    '3AVE',
+    'PDB 3AVE, a fucosylated human IgG1 Fc with its N297 glycans (Matsumiya et al. 2007), mmCIF',
+    (cif) => [
+      [
+        'antibody/3AVE.seq',
+        structureSeq(cif, FcSystem),
+        'the Fc entity (IGHG1_HUMAN P01857 108–330): its canonical letters (entity_poly) and chain A’s helices and strands (struct_conf, struct_sheet_range, label_seq_id) as ranges; coordinates, glycans, zinc and waters dropped (the glycans, links and units are code, checked against the entry by the tests)',
+      ],
     ],
-  ]);
+  );
 
 const Datasets: Readonly<Record<string, () => Promise<Row[]>>> = {
   p53,
