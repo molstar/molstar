@@ -54,6 +54,7 @@ import type { NavigatorExport } from './navigator-export.js';
 import { railSections } from './rail.js';
 import { Renderer, type RendererOptions } from './renderer.js';
 import type { ViewLayout } from './tracks.js';
+import type { HeaderPartsOf } from './headers.js';
 import { drawListsToSvg } from './svg.js';
 import { bundledTextMetrics, type TextMetrics } from './text.js';
 import { builtInTokens, type SeqTokens } from './tokens.js';
@@ -294,6 +295,11 @@ export interface RenderSvgOptions {
   readonly dpr?: number;
   readonly emphasis?: Emphasis;
   /**
+   * Each header's parts (_spec/README.md "Render", Track headers): a viewer's entries, so the export draws the states
+   * it shows (the slots never are); the built-in states when absent.
+   */
+  readonly headers?: HeaderPartsOf;
+  /**
    * A selection as an address, resolved by the export itself once its data settled (its own store's nodes, so a ref
    * to a dynamic node resolves when the export has read it) and drawn with `emphasis.selection`.
    */
@@ -521,6 +527,7 @@ export async function exportSvg(spec: Node, options: RenderSvgOptions): Promise<
       ...(options.cvdSafe ? { cvdSafe: true } : {}),
       ...(options.folds ? { folds: options.folds } : {}),
       ...(rails ? { rails } : {}),
+      ...(options.headers ? { headers: options.headers } : {}),
     };
     let last = '';
     // what a layout wants can follow from what arrived (a length, a follower's range): ask until it holds; the

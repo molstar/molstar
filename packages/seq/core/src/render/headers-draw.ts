@@ -36,13 +36,15 @@ function inBox(b: { x: number; y: number; width: number; height: number }, x: nu
 
 /**
  * Whether a header's actions show (`header.actions.show`): `always`; on `hover` the header the viewer names
- * (`emphasis.header`), the track a hover's hit is in (its data, its slots, its states), the cursor's header.
+ * (`emphasis.header`), the track a hover's hit is in (its data, its slots, its states: `within`; a section's line only
+ * its own hits), the cursor's header.
  */
 export function actionsShown(
   address: string,
   section: string,
   emphasis: Emphasis | undefined,
   config: RenderConfig,
+  within = true,
 ): boolean {
   const show = config.header.actions.show;
   if (show === 'always') return true;
@@ -54,6 +56,7 @@ export function actionsShown(
   if (!h || h.section !== section) return false;
   const l = h.layer;
   if (l === address) return true;
+  if (!within) return false;
   // a layer's key under the track: its address (`<track>/<id>`) or its index (`<track>:<n>`)
   const n = address.length;
   if (l.length <= n || !l.startsWith(address)) return false;
@@ -212,7 +215,7 @@ export function drawSectionHeader(out: PassWriter, s: SectionLayout, pass: strin
   const line = s.header;
   if (!line) return;
   if (pass === 'labels') drawStates(out, line, s.tokens, s.config, 0);
-  else if (pass === 'tip' && line.actions && actionsShown(s.section.address, s.id, emphasis, s.config))
+  else if (pass === 'tip' && line.actions && actionsShown(s.section.address, s.id, emphasis, s.config, false))
     drawActions(out, line, emphasis?.hover, s.tokens, s.config);
 }
 

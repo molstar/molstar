@@ -176,6 +176,16 @@ export function actionColumns(config: RenderConfig): { readonly x: number; reado
   return { x: end - (n + 1) * h.slotPx, n };
 }
 
+/** Whether a header lays out actions: a slot or a menu given, not short, not a figure, `header.actions.show` not `never`. */
+function hasActions(parts: HeaderParts | undefined, short: boolean, figure: boolean, config: RenderConfig): boolean {
+  return (
+    !short &&
+    !figure &&
+    actionColumns(config).n >= 0 &&
+    !!(parts && ((parts.slots && parts.slots.length) || parts.menu))
+  );
+}
+
 /** What a header line is laid out from: its hits' target, its line, whether it is short, its states' own line. */
 interface LineInput {
   readonly layer: string;
@@ -210,7 +220,7 @@ function layoutLine(
   let slots = NoSlots;
   let menu: HeaderSlotBox | undefined;
   let actions: Box | undefined;
-  if (!at.short && !at.figure && cols.n >= 0 && (parts?.slots?.length || parts?.menu)) {
+  if (parts && hasActions(parts, at.short, at.figure, config)) {
     const given = parts.slots ?? [];
     const n = Math.min(cols.n, given.length);
     const out: HeaderSlotBox[] = [];
@@ -263,17 +273,18 @@ function layoutLine(
     };
     if (at.short) labelEnd = marks(0, given.length, chipsEnd, at.cy) - ChipGap;
     else if (at.ownLine !== undefined) {
-      // a line of their own under the label, from the column's start; what does not fit in the column a mark (the
-      // first always a chip)
+      // a line of their own under the label, from the column's start, under the action columns when clear of them;
+      // what does not fit a mark (the first always a chip)
+      const own = actions && at.ownLine - size + 1 < actions.y + actions.height ? chipsEnd : end;
       let x = inset;
       let i = 0;
       for (; i < given.length; i++) {
         const w = text.measure(config.labelFont, given[i].text);
-        if (i > 0 && x + w > end) break;
+        if ((i > 0 || own !== end) && x + w > own) break;
         out.push(stateBox(given[i], i, at, false, x, at.ownLine, w, size));
         x += w + ChipGap;
       }
-      if (i < given.length) marks(i, given.length, end, at.ownLine - size * 0.35);
+      if (i < given.length) marks(i, given.length, own, at.ownLine - size * 0.35);
     } else {
       // beside the label, the last state nearest the columns; the leading ones with no room left marks before them
       let x = chipsEnd;
@@ -288,7 +299,7 @@ function layoutLine(
         out.push(stateBox(given[i], i, at, false, x, at.cy + size * 0.35, w, size));
         x -= ChipGap;
       }
-      labelEnd = cut ? marks(0, cut, x + ChipGap, at.cy) - ChipGap : x;
+      labelEnd = cut ? marks(0, cut, x, at.cy) - ChipGap : x;
     }
     // in the given order
     out.sort((a, b) => a.at - b.at);
@@ -341,12 +352,6 @@ function stateBox(
   };
 }
 
-/** The chip on a line of its own under the label: its baseline below the label's, when the track is two lines high. */
-export function ownLineDy(config: RenderConfig, height: number): number {
-  const size = fontSize(config.labelFont);
-  return height >= 2 * (size + 6) ? size + 4 : 0;
-}
-
 /**
  * A track's header line (_spec/README.md "Render", Track headers) over its well, its label centred on it: its states on
  * a line of their own when it is two lines high (the label then whole, the two lines centred together), else beside
@@ -363,7 +368,13 @@ export function trackHeaderLine(
 ): { readonly header: HeaderLine; readonly labelY: number } {
   const size = fontSize(config.labelFont);
   const short = well.height < config.header.minHeightPx;
-  const dy = !short && parts?.states?.length ? ownLineDy(config, well.height) : 0;
+  // a line of their own when two lines fit (a chip clear of the slots above it when the header has actions)
+  const two = !short && parts?.states?.length && well.height >= 2 * (size + 6);
+  const dy = two
+    ? hasActions(parts, short, figure, config)
+      ? Math.max(size + 4, Math.ceil(config.header.slotPx / 2 + 0.65 * size - 1))
+      : size + 4
+    : 0;
   const centre = well.y + well.height / 2;
   const labelY = centre + size * 0.35 - dy / 2;
   const header = layoutLine(
