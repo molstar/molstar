@@ -140,6 +140,14 @@ export function observedDisagrees(
   return HalfOpenRanges.compare(own, theirs) !== 0;
 }
 
+/** A unit's observed runs, normalized once per array (the status is asked residue by residue). */
+const Observed = new WeakMap<object, HalfOpenRanges>();
+function observedRanges(observed: ArrayLike<number>): HalfOpenRanges {
+  let r = Observed.get(observed);
+  if (!r) Observed.set(observed, (r = HalfOpenRanges.normalize(observed)));
+  return r;
+}
+
 /**
  * A residue's status on a structure map's target (`k` a position of `to`): `unobserved` by the unit's `observed` when
  * given (the unit wins), else the map's; then `conflict`; then `paired` where a run holds it, else `unpaired`.
@@ -150,7 +158,7 @@ export function structureStatus(
   observed?: ArrayLike<number>,
 ): StructureStatus {
   const unobserved = observed
-    ? !HalfOpenRanges.overlaps(HalfOpenRanges.normalize(observed), k, k + 1)
+    ? !HalfOpenRanges.overlaps(observedRanges(observed), k, k + 1)
     : !!map.structure && HalfOpenRanges.overlaps(map.structure.unobserved, k, k + 1);
   if (unobserved) return 'unobserved';
   if (map.structure && HalfOpenRanges.overlaps(map.structure.conflict, k, k + 1)) return 'conflict';

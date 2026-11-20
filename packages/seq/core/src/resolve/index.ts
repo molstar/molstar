@@ -68,12 +68,7 @@ export {
   type SystemEntry,
   sourceLengths,
 } from './model.js';
-export {
-  type StructureMapData,
-  type StructureStatus,
-  structureProvenance,
-  structureStatus,
-} from './maps-segments.js';
+export { structureStatus } from './maps-segments.js';
 export { viaList } from './maps-via.js';
 export type { CompoundEntry, Molecular } from './molecule-query.js';
 export type { AtomsEntry, ComplexEntry, ModifiedIndex, MoleculeEntry, UnitEntry } from './molecules.js';

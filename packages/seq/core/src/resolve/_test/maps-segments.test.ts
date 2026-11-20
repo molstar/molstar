@@ -13,7 +13,8 @@
 import type { Node } from '@molstar/core/repr/tree';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { partOf, rangesLocation, resolveAddressIn } from '@molstar/seqx-core/query';
-import { describe, expect, it } from 'vitest';
+import { HalfOpenRanges } from '@molstar/core/data/int/half-open-ranges';
+import { describe, expect, it, vi } from 'vitest';
 import { linearsEqual } from '../linear.js';
 import { structureProvenance, structureStatus } from '../maps-segments.js';
 import { type ResolveConfig, resolveSpec, type StaticModel } from '../model.js';
@@ -150,6 +151,15 @@ describe('structure maps: provenance and residue status', () => {
     });
     const map = resolveSpec(b.build()).maps.get('/data/m')!;
     expect([0, 5].map((k) => structureProvenance(map.structure!, k))).toEqual(['alignment', 'sifts']);
+  });
+
+  it('reads a unit’s observed runs once, not per residue asked', () => {
+    const m = resolveSpec(structureSpec({ start: [10], end: [12] }));
+    const map = m.maps.get('/data/sifts')!;
+    const observed = Int32Array.of(2, 10, 12, 16);
+    const normalize = vi.spyOn(HalfOpenRanges, 'normalize');
+    for (let k = 0; k < 16; k++) structureStatus(map, k, observed);
+    expect(normalize).toHaveBeenCalledTimes(1);
   });
 
   it('a map’s unobserved residues that are not the unit’s are reported once; the unit wins', () => {
