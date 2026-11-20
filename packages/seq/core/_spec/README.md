@@ -1415,8 +1415,8 @@ the UX foundations' numbers, CSS px, settled by the foundation stories; where no
 
 ### Emphasis
 
-`Emphasis` (`layer-type.ts`), drawn by the view (`tracks.ts`) in the emphasis passes, a strip at a time in its frame
-through its warp (Section layouts), over the strip's **band column** (its bands and the gaps between them;
+`Emphasis` (`layer-type.ts`), drawn by the view (`tracks-emphasis.ts`) in the emphasis passes, a strip at a time in its
+frame through its warp (Section layouts), over the strip's **band column** (its bands and the gaps between them;
 `SectionLayout.columns`, in tracks `SectionLayout.band`; the shape `column`, the default) or over each band's box
 (`tracks`), `emphasis.selectionShape`, on the strip's transform and system. Why `column` by default: a selection is of
 positions, not of a track, and one band reads as one selection; why a strip: the selection is one look in every layout
@@ -1980,6 +1980,11 @@ numbers): a window move allocates nothing once warm.
 
 ### Tracks layout
 
+- **Its modules**: `render/tracks.ts` (the layout pass, `layoutView`, and the public names) and beside it, a concern
+  each, `tracks-types.ts` (its input, its layouts, `LayoutState`), `tracks-axes.ts` (a section's axis, a follower's),
+  `tracks-cache.ts` (a section's reuse), `tracks-strips.ts`, `tracks-columns.ts` (the label column),
+  `tracks-templates.ts`, `tracks-heights.ts` (Track heights), `tracks-draw.ts`, `tracks-emphasis.ts` (Emphasis) and
+  `tracks-hit.ts`.
 - **A cyclic axis's window past its total** (a linear view panned across its origin, `wraps`): the transform takes the
   whole system twice, so the window's units go on over the origin (two runs, no break between); a follower of it wraps
   as of a ring's window.
