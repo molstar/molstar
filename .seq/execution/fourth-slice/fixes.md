@@ -7,6 +7,20 @@ queue. Each line: what is seen, where (the story), where it came from, its kind 
 
 ## Open
 
+- **The vertical map's resize handle scrolls the view instead of resizing** (bug): the Globins family view (the
+  alignment's rows by species, its vertical map with the window and the thin slider beside the rows' labels). Dragging
+  the window's vertical resize anchor (the bars on its top and bottom edges) scrolls the rows instead of changing the
+  window's height (the rows' zoom). The author, 2026-11-20: "the vertical resize anchor doesn't work on this and
+  instead scrolls the view". Check: the anchor's hit target against the map's pan target, and the gesture's
+  precedence (navigators.md).
+- **A double-click on the vertical map's window, and on the thin slider, resets the vertical zoom** (missing design,
+  small): the same view. The author, 2026-11-20: "double click on the window (and perhaps the 'thin slider') should
+  prolly reset the vertical zoom too?". As the horizontal navigator's double-click resets (navigators.md); state it in
+  the design and its page with the fix.
+
+- **The core folder's quick-lane time over 2 s** (waste or nature): `packages/seq/core` at 2.7-3.4 s before and after
+  MR; bigWig 1.0 s, hover-time 0.7 s, mmCIF 0.7 s (MR's review). Fix the waste, move what is slow by nature with a
+  quick representative.
 - **The viewer's quick-lane folder over 2 s** (waste): `packages/seq/viewer` at 2.62-2.68 s on a quiet machine
   (load 2.3) before and after HP1, about a third imports and a fifth jsdom's environment. Measured at HP1's merge. Check
   which files set up jsdom or import the full viewer per file; share a fixture per file, or move a slow-by-nature test

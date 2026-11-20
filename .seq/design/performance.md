@@ -141,9 +141,9 @@ effects (`TODO.md`).
 | What | Target (minified) |
 |---|---|
 | Reading a spec (decode, validate, resolve), no viewer | under 230 kB (150 in the first slice, 160 in the second, 195 at the third slice's close; moved by the author, 2026-11-20, for language 0.5.0's molecules: measured 205.8) |
-| Headless rendering (the above, layout, draw lists, SVG) | under 820 kB (300 until the third slice, whose layers, layouts, navigators and rows it holds; 780 until the fourth slice's query language, the author, 2026-11-20; measured 802.8) |
+| Headless rendering (the above, layout, draw lists, SVG) | under 830 kB (300 until the third slice, whose layers, layouts, navigators and rows it holds; 780 until the fourth slice's query language, 820 until molecules drawn, the author, 2026-11-20; measured 820.9) |
 | The viewer, default configuration | under 1,290 kB (600 until the third slice, 1,250 until the query language, the author, 2026-11-20; measured 1,252.7; the previous Seq\*: 1,040 kB) |
-| The viewer, minimal (tracks, letters and ranges) | under 920 kB (880 until the query language; measured 905.7) |
+| The viewer, minimal (tracks, letters and ranges) | under 930 kB (880 until the query language, 920 until molecules drawn, the author, 2026-11-20; measured 922.0) |
 | A format runtime (bigWig) | under 30 kB, loaded only when composed |
 
 ## Scale

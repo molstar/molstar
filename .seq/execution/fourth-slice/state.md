@@ -31,17 +31,18 @@ The third slice is closed (2026-11-20; its record in `.seq/records/third-slice/`
   while no other lane is in them (the author, 2026-11-20: "Yes, add all three").
 - Size targets are bounds once reset after RR (the author, 2026-11-20: "reduce render first, then move the size
   targets"). Moved for the query language: reading a spec 230, headless 820, minimal 920 kB (the author,
-  2026-11-20), the default viewer 1,290 kB ("Move to 1290 kB", 2026-11-20).
+  2026-11-20), the default viewer 1,290 kB ("Move to 1290 kB", 2026-11-20); for molecules drawn, headless 830 and
+  minimal 930 kB ("Move to 830 / 930 kB", 2026-11-20).
 
 ## In progress
 
-- 2026-11-20: QE, ST1, AC and HP1 merged. One lane at once (the author). MR (strong, `seq/mr-lane`) next.
+- 2026-11-20: QE, ST1, AC, HP1 and MR merged. One lane at once (the author). CU (strong; CE's parked
+  `seq/ce-copy-ends`) next.
 
 ## Next
 
-1. MR; then CU, MX and stage 1's gate (QE's heavy `:index` bound runs there; the drift notes asked there); HP2 after
-   MR (both in render and the viewer's hover), then ST2, ST3, HD, HP3.
-2. The minimal viewer at 915.8 of 920 kB: MR's growth may pass it; a growth past it comes to the author.
+1. CU, then MX and stage 1's gate (QE's heavy `:index` bound; the drift notes; the quick-lane folders over 2 s:
+   core, viewer); then HP2, ST2, ST3, HD, HP3.
 
 ## Findings by lane
 
@@ -65,6 +66,7 @@ One row a merged lane (loop, step 5, record): review findings and look findings 
 | ST1 | 2026-11-20 | 6 (review: the entry unresolvable by name; colorRuns not compiled as the track; past the tile bound read complete-empty, EC-169; an overlay unit's maps ignored; the gate lighting unobserved-only units; toUnits quadratic) | 1 (resolve cannot hold a map onto a source's unit: drift) | 0 | test gaps (units past 0, EC-4, atoms); re-exports internal; Seq*'s own surface accepted by the orchestrator; nothing drawn |
 | AC | 2026-11-20 | 0 | 2 (the `alignment` map kind owed, a `segments` stopgap; one fixed name for every alignment's columns: drift) | 0 | weak tests (a path compared with itself, a test passing on the parent, the hover's section unchecked, no gap end drawn); EC-48 claimed whole; a duplicated kinds list; the look deferred to MX; core/render 2.28 s at load 8.9 (the gate measures it quiet) |
 | HP1 | 2026-11-20 | 4 (review: slots hit while not drawn; rows tracks' states over the tree; navigator pictures given headers; marks at negative x) | 3 (a label hit for `Emphasis.header`; the "⋯" order and backdrop; marks in a narrow column: the author amended the design) | 0 | `HeaderFacts` renamed; `nodeAt` a private copy of repr/tree; test gaps; no new part visible without a host (HP3's stories); minimal viewer 915.8 of 920 kB |
+| MR | 2026-11-20 | 4 (review: EC-95's label over the start number; the allocation tier order-dependent, a test helper's megamorphic copy; an atoms-form block lit as residues; a view after an edit never opening its end plans) | 1 (`block.form` froze the unit list: a block child overrides one unit, the author) | 3 (look: "Fc A1"; the code mode never shown; the story's data against its text) | sizes past 820 / 920 twice trimmed (lazy molecule letters), the bounds moved to 830 / 930 (the author); three brief items built late |
 
 ## How to verify
 

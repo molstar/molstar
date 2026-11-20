@@ -276,7 +276,7 @@ disagrees with its code writes a drift note and stops.
 - [x] AC (strong, after MK; followups: "Yes, slice 4 (0.5.0)") pairs, ranges and maps targeting an alignment's columns:
       the tRNA's `SS_cons` arcs over the alignment, a chain mapped onto its closest seed row
       (`briefs/ac-alignment-targets.md`).
-- [ ] MR (strong, after AC) drawing and interaction: a section of a complex, `form` through the chips, the letters' mark
+- [x] MR (strong, after AC) drawing and interaction: a section of a complex, `form` through the chips, the letters' mark
       and code, the pairs layer's per-row ends, hover, `links.hover`, `block.form`, ligand chips flowing in text
       (EC-99), a block's label inline on its first text line (EC-95, LB's leftover), the Design page
       (`briefs/mr-molecules-render.md`).

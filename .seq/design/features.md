@@ -64,7 +64,7 @@ that shows it (dataset: view).
 
 | Feature | What | Status | Design | Cases | View |
 |---|---|---|---|---|---|
-| Sequences, units, complexes, copies | molecules shared by units, copy groups | building: sequences and units, copies merged or split as blocks (RB, DC); the `complex` and `unit` kinds the fourth slice (molecules.md); EC-36 and EC-66's outcomes not recorded | [building-blocks](building-blocks.md) | 35, 36, 65–67 | Globins: hemoglobin |
+| Sequences, units, complexes, copies | molecules shared by units, copy groups | building: sequences and units, copies merged or split as blocks (RB, DC); the `complex` and `unit` kinds (ML1, ML2), a section of a complex drawn with block forms, molecule letters, modified marks and links (MR, [molecules](molecules.md)); EC-36 and EC-66's outcomes not recorded | [building-blocks](building-blocks.md) | 35, 36, 65–67 | Globins: hemoglobin |
 | Ligands | one position or one per atom; chips in text | building: chips of one position, one per heavy atom, arcs to the protein (DC, HB; Complex: Ligands, ATP per atom); AlphaFill's transplants and the hemoglobin's heme not | [layouts](layouts.md) | 64, 99 | Globins: hemoglobin with heme; Complex: ATP and AlphaFill's transplants |
 | Alignments | gaps, insert columns, numbered rows, lazy rows | building: aligned FASTA and Stockholm read, rows, logo, column measures (DG; Globins: family); EC-42's outcome not recorded | [grids-and-rows](grids-and-rows.md) | 38–44 | Globins: family |
 | Trees | given (Newick) or computed; clades collapse | building: Newick read, clades folded as session state, `clades.keep` (RW, CH; Globins: family by tree); groups of tracks (EC-103) not | [grids-and-rows](grids-and-rows.md) | 43, 100, 103 | Globins: family by tree |
