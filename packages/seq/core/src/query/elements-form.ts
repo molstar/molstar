@@ -21,7 +21,8 @@ import { compareLabels, parseLabel } from './labels.js';
 import { EmptyLocation, type Location, location, normalizeRanges } from './location.js';
 import { findNumbering, labelIndex, snapLabel } from './numbering.js';
 import { findProperty, levelRank, type PropertyDef } from './properties.js';
-import { type Frame, FrameReads, framesOf, type Reader, stageFrame } from './structure.js';
+import type { QueryAtoms } from './model.js';
+import { type Frame, FrameReads, framesOf, type PropValue, type Reader, stageFrame } from './structure.js';
 
 const Unit = levelRank('unit');
 const Residue = levelRank('residue');
@@ -126,7 +127,10 @@ function authIndex(f: Frame): Map<number, number[]> | undefined {
   return out;
 }
 
-/** The positions a row names by index (its `seq`, range, author number or author range), or undefined: every one. */
+/**
+ * The positions a row names by index (its `seq`, `index`, range, author number or author range), or undefined: every
+ * one.
+ */
 function rowPositions(
   ctx: Ctx,
   f: Frame,
@@ -149,6 +153,8 @@ function rowPositions(
     const i = seq - 1 - start;
     meet(i >= 0 && i < len ? [i, i + 1] : []);
   }
+  const index = at('index');
+  if (typeof index === 'number') meet(index >= 0 && index < len ? [index, index + 1] : []);
   if (beg !== null || end !== null) {
     const b = Math.max(0, typeof beg === 'number' ? beg - 1 - start : 0);
     const e = Math.min(len, typeof end === 'number' ? end - start : len);
@@ -205,8 +211,8 @@ function finePredicate(ctx: Ctx, items: Items, r: number, defs: ReadonlyMap<stri
     const d = defs.get(f);
     const v = items.columns[f][r];
     if (!d || v === null || levelRank(d.level) <= Unit || RangeFields[f]) continue;
-    // a seq or author number named by index is not tested again
-    if (f === 'seq' || f === 'auth-seq') continue;
+    // a seq, an index or an author number named by index is not tested again
+    if (f === 'seq' || f === 'index' || f === 'auth-seq') continue;
     tests.push({ kind: '=', args: [{ kind: 'prop', args: [f] }, v] });
     ranks.push(levelRank(d.level));
   }
@@ -224,6 +230,7 @@ function walkFrame(
   items: Items,
   rows: readonly number[],
   level: number,
+  defs: ReadonlyMap<string, PropertyDef>,
   preds: (r: number) => Predicate | undefined,
   absent: Absent,
   pending: { said?: boolean },
@@ -237,31 +244,117 @@ function walkFrame(
   const atoms = level >= Atoms ? reads.atoms() : undefined;
   const all = f.residues ? Array.from(f.residues) : [0, f.system.length];
   const out: number[] = [];
+  const maps = new FieldMaps(ctx, reads, atoms);
   for (const r of rows) {
-    const positions = level >= Residue ? (rowPositions(ctx, f, items, r, auth, absent) ?? all) : all;
+    const named = level >= Residue ? rowPositions(ctx, f, items, r, auth, absent) : undefined;
     const pred = preds(r);
     const rs = pred ? readersOf(reads, pred.uses) : undefined;
     if (rs === 'pending') {
       reportPending(ctx, f, pending);
       return undefined;
     }
-    for (let k = 0; k < positions.length; k += 2)
-      for (let p = positions[k]; p < positions[k + 1]; p++) {
-        tick(ctx);
-        if (!atoms) {
-          if (!pred || pred.test(rs!, p, -1)) out.push(p, p + 1);
-          continue;
-        }
-        const [s, e] = atoms.atomsOf(p);
-        for (let a = s; a < e; a++) {
-          if (f.atoms && !holds(f.atoms, a)) continue;
-          if (!pred || pred.test(rs!, p, a)) out.push(a, a + 1);
-        }
+    const test = (p: number, a: number) => {
+      tick(ctx);
+      if (!pred || pred.test(rs!, p, a)) out.push(a >= 0 ? a : p, (a >= 0 ? a : p) + 1);
+    };
+    const residue = (p: number) => {
+      if (!atoms) return test(p, -1);
+      const [s, e] = atoms.atomsOf(p);
+      for (let a = s; a < e; a++) if (!f.atoms || holds(f.atoms, a)) test(p, a);
+    };
+    // a row naming no position by index: its first fine field's elements from a map built once a frame and field
+    // (rows plus matches, never rows × residues), the rest of its test per candidate
+    const keyed = named ? undefined : firstFine(items, r, defs);
+    const candidates = keyed && maps.lookup(keyed.def, keyed.value);
+    if (candidates) {
+      for (const c of candidates) {
+        if (candidates.onAtoms) {
+          const p = atoms!.residue(c);
+          if ((!f.residues || holds(f.residues, p)) && (!f.atoms || holds(f.atoms, c))) test(p, c);
+        } else if (!f.residues || holds(f.residues, c)) residue(c);
       }
+      continue;
+    }
+    const positions = named ?? all;
+    for (let k = 0; k < positions.length; k += 2) for (let p = positions[k]; p < positions[k + 1]; p++) residue(p);
   }
   if (!out.length) return undefined;
   return { system: atoms ? atoms.address : f.system.address, ranges: Array.from(normalizeRanges(out)) };
 }
+
+/** A row's first residue field (then atom field) with a value, the range and index fields aside. */
+function firstFine(
+  items: Items,
+  r: number,
+  defs: ReadonlyMap<string, PropertyDef>,
+): { def: PropertyDef; value: Atom } | undefined {
+  let best: { def: PropertyDef; value: Atom } | undefined;
+  for (const f of items.fields) {
+    const d = defs.get(f);
+    const v = items.columns[f][r];
+    if (!d || v === null || levelRank(d.level) <= Unit || f === 'seq' || f === 'index' || f === 'auth-seq') continue;
+    if (!best || levelRank(d.level) < levelRank(best.def.level)) best = { def: d, value: v };
+  }
+  return best;
+}
+
+type Candidates = number[] & { onAtoms?: boolean };
+
+/**
+ * A frame's elements by a fine field's value, one map a field, built on first use: residues, or atoms for an atom
+ * field where atoms are held; a set of words keyed by each word. A value is keyed as `=` compares it (a literal read
+ * as the property's type).
+ */
+class FieldMaps {
+  private readonly maps = new Map<PropertyDef, Map<string, Candidates> | null>();
+  constructor(
+    private readonly ctx: Ctx,
+    private readonly reads: FrameReads,
+    private readonly atoms: QueryAtoms | undefined,
+  ) {}
+
+  lookup(d: PropertyDef, value: Atom): Candidates | undefined {
+    let m = this.maps.get(d);
+    if (m === undefined) this.maps.set(d, (m = this.build(d)));
+    if (!m) return undefined;
+    const c = coerce(value, d.type);
+    const onAtoms = levelRank(d.level) >= Atoms && !!this.atoms;
+    const found = c === undefined ? undefined : m.get(valueKey(c));
+    const out: Candidates = found ?? [];
+    out.onAtoms = onAtoms;
+    return out;
+  }
+
+  private build(d: PropertyDef): Map<string, Candidates> | null {
+    const rd = this.reads.reader(d);
+    // pending is said by the row's test; a property the frame lacks is counted by it too
+    if (!rd || rd === 'pending') return null;
+    const m = new Map<string, Candidates>();
+    const add = (v: PropValue, i: number) => {
+      if (v === undefined) return;
+      for (const x of Array.isArray(v) ? v : [v]) {
+        const k = valueKey(x as Atom);
+        let l = m.get(k);
+        if (!l) m.set(k, (l = []));
+        if (l[l.length - 1] !== i) l.push(i);
+      }
+    };
+    const f = this.reads.frame;
+    if (levelRank(d.level) >= Atoms && this.atoms) {
+      for (let a = 0; a < this.atoms.length; a++) {
+        tick(this.ctx);
+        add(rd(this.atoms.residue(a), a), a);
+      }
+    } else
+      for (let p = 0; p < f.system.length; p++) {
+        tick(this.ctx);
+        add(rd(p, -1), p);
+      }
+    return m;
+  }
+}
+
+const valueKey = (v: Atom) => `${typeof v}:${v}`;
 
 function holds(ranges: Int32Array, i: number): boolean {
   for (let k = 0; k < ranges.length; k += 2) if (i >= ranges[k] && i < ranges[k + 1]) return true;
@@ -297,7 +390,7 @@ export function elementsOver(ctx: Ctx, frames: readonly Frame[], items: Items): 
     const reads = new FrameReads(ctx, f);
     const rows = rowsFor(index, reads, absent);
     if (!rows.length) continue;
-    const part = walkFrame(ctx, reads, items, rows, level, predOf, absent, pending);
+    const part = walkFrame(ctx, reads, items, rows, level, defs, predOf, absent, pending);
     if (part) parts.push(part);
   }
   reportAbsent(ctx, absent);

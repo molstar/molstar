@@ -22,6 +22,7 @@ import {
   unionLocations,
 } from '@molstar/seqx-core/query';
 import { resolveSpec } from '@molstar/seqx-core/resolve';
+import { itWithin } from '@molstar/test-harness/timing';
 import { describe, expect, it } from 'vitest';
 import { elementsForm, type Items, itemsEqual, itemsOf, itemsPredicate, readItems } from '../items.js';
 import { BuiltInPropertyTable } from '../properties.js';
@@ -312,5 +313,82 @@ describe('the designs’ examples as text (locations-and-queries.md, properties.
     }
     // one written in canonical order prints as written
     expect(printAddress(parseAddress(examples[4]).pattern!.segments)).toBe(examples[4]);
+  });
+});
+
+/** A protein of `n` residues, its components' reads counted (`at` and `standard`). */
+function longProtein(n: number): { model: QueryModel; spec: Node; reads: () => number } {
+  const b = createSeqSpec();
+  const amino = 'ACDEFGHIKLMNPQRSTVWY';
+  b.data.sequence('p', {
+    alphabet: 'protein',
+    letters: Array.from({ length: n }, (_, i) => amino[(i * 7) % 20]).join(''),
+  });
+  const spec = b.build();
+  const model = resolveSpec(spec);
+  let reads = 0;
+  const proxy = new Proxy(model, {
+    get(target, key) {
+      if (key === 'components')
+        return (s: string) => {
+          const c = target.components?.(s);
+          if (!c) return c;
+          return {
+            ...c,
+            at: (p: number) => {
+              reads++;
+              return c.at(p);
+            },
+            standard: (p: number) => {
+              reads++;
+              return c.standard?.(p);
+            },
+          };
+        };
+      const v = Reflect.get(target, key, target);
+      return typeof v === 'function' ? v.bind(target) : v;
+    },
+  });
+  return { model: proxy, spec, reads: () => reads };
+}
+
+const fieldRows = (n: number, rows: number, field: string) => {
+  const amino = ['ALA', 'CYS', 'TRP', 'MET', 'GLY'];
+  const values =
+    field === 'index'
+      ? Array.from({ length: rows }, (_, i) => (i * 97) % n)
+      : field === 'atom'
+        ? Array.from({ length: rows }, (_, i) => ['SD', 'SG', 'NE1', 'CA'][i % 4])
+        : Array.from({ length: rows }, (_, i) => amino[i % 5]);
+  return `/data/p/(elements :${field} [${values.join(' ')}])`;
+};
+
+describe('the fine fields indexed (a row naming no position)', () => {
+  it('`index` named by index; a component or an atom field from one map a frame and field: rows plus matches', () => {
+    const n = 2000;
+    for (const field of ['index', 'component', 'atom']) {
+      const { model, spec, reads } = longProtein(n);
+      const r = evaluateQuery(spec, model, fieldRows(n, 300, field), { limit: 10000 });
+      expect(codes(r), field).toEqual([]);
+      const matches = count(r) as number;
+      expect(matches, field).toBeGreaterThan(0);
+      // a scan per row would read 300 × 2000 components
+      expect(reads(), field).toBeLessThanOrEqual(n + 2 * matches);
+    }
+    // the index field reads none, and names one position each
+    const { model, spec } = longProtein(n);
+    expect(count(evaluateQuery(spec, model, '/data/p/(elements :index [0 5 1999 2000])', { limit: 10 }))).toBe(3);
+  });
+
+  itWithin('1,000 rows over 100,000 residues: index, component and atom fields', (within) => {
+    const n = 100_000;
+    for (const field of ['index', 'component', 'atom']) {
+      const { model, spec } = longProtein(n);
+      const query = fieldRows(n, 1000, field);
+      evaluateQuery(spec, model, query, { limit: 1e6 }); // warm
+      // measured: tens of ms (an M-series laptop); a scan per row took seconds
+      const r = within(400, () => evaluateQuery(spec, model, query, { limit: 1e6 }));
+      expect(codes(r), field).toEqual([]);
+    }
   });
 });
