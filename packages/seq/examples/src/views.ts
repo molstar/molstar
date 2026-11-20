@@ -695,7 +695,7 @@ export const MoleculeViews: readonly ExampleView[] = [
     id: 'molecules-complex',
     title: 'A section of a complex',
     summary:
-      'An Fc-like chain twice, merged into one block ×2, then its glycan, ATP and a sodium ion as chips (the water left out); the modified residues marked; the links as arcs: the glycan on N47, a disulfide, the metal on K63.',
+      'An Fc-like chain twice, merged into one block ×2, then its glycan, ATP and a sodium ion as chips (the water left out); the modified residues marked; the links as arcs: the glycan on N47, the disulfide C5–C71 across the copies, the sodium on D64 and ATP.',
     build: molecules.complexView,
   },
   {

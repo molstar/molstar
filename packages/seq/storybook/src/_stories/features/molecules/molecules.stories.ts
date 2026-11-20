@@ -26,8 +26,8 @@ const story = (id: string) => {
 /**
  * A section of a complex: the two Fc chains merged into one block “Fc A ×2”, then the glycan, ATP and the sodium ion as
  * chips (the water left out). MSE at 1 and SEP at 21 carry a dot at their cell's top right, CRO a bar over its three
- * letters. Hover the glycan's chip: N47 lights; hover N47: the glycan lights. The arcs: the glycan's, the disulfide, the
- * metal. Zoom in: the chips keep their width.
+ * letters. Hover the glycan's chip: N47 lights; hover N47: the glycan lights. The arcs: the glycan's (N47), the disulfide
+ * (C5–C71), the sodium's on D64 and ATP. Zoom in: the chips keep their width.
  */
 export const SectionOfAComplex: StoryObj = story('molecules-complex');
 

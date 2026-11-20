@@ -8,12 +8,13 @@ import type { Node } from '@molstar/core/repr/tree';
 import { createSeqSpec, identifiers, modified, type SeqSpecBuilder } from '@molstar/seqx-core/lang';
 
 // Molecules drawn (the design's Molecules: On an axis, A section of a complex): a small generated glycoprotein complex,
-// written inline: an Fc-like chain in copies with modified residues (MSE, SEP, a three-letter CRO), a glycan on an
-// asparagine of the first chain, ATP with its heavy atoms bound by a metal link, a sodium ion and a water (left out by
+// written inline: an Fc-like chain in copies with modified residues (MSE on M1, SEP on S21, a three-letter CRO over
+// T31 Y32 G33), a glycan on N47 of the first chain (the sequon N-L-S), a disulfide from C5 of the first chain to C71 of
+// the second, ATP with its heavy atoms, a sodium ion bound to D64's OD1 and ATP's γ-phosphate, a water (left out by
 // default), and a tRNA-like sequence with modified nucleotides (2MG, PSU, H2U | U). Not an entry: the shapes the
 // design names, at a size a story reads at a glance (the recorded entries are the examples' DT, DC and DG).
 
-const FcLetters = 'MKTAYIAKQRQISFVKSHFSRQLEERLGLIEVQAPILSRVGDGTQDNLSGAEKAVQVKVKALPDAQFEVVHSLAKWKRQTLGQ';
+const FcLetters = 'MKTACIAKQRQISFVKSHFSSQLEERLGLITYGAPILSRVGDGTQDNLSGAEKAVQVKVKALPDAQFEVVCSLAKWKRQTLGQ';
 const TrnaLetters = 'GCGGAUUUAGCUCAGUUGGGAGAGCGCCAGACUGAAGAUCUGGAGGUCCUGUGUUCGAUCCACAGAAUUCGCACCA';
 
 interface Molecules {
@@ -91,15 +92,15 @@ export function moleculesData(b: SeqSpecBuilder, chains = 2): Molecules {
     units.water = c.unit('water', { of: water, chain: 'W' });
     links = c.links('links', {
       rows: {
-        a_unit: ['A', 'A', 'atp'],
-        a_start: [46, 4, 0],
-        a_end: [47, 5, 1],
-        b_unit: ['glycan', ids[1] ?? 'A', 'A'],
-        b_start: [0, 70, 62],
-        b_end: [1, 71, 63],
-        type: ['covalent', 'disulfide', 'metal'],
-        a_atom: ['ND2', 'SG', 'O1G'],
-        b_atom: ['C1', 'SG', 'NZ'],
+        a_unit: ['A', 'A', 'na', 'na'],
+        a_start: [46, 4, 0, 0],
+        a_end: [47, 5, 1, 1],
+        b_unit: ['glycan', ids[1] ?? 'A', 'A', 'atp'],
+        b_start: [0, 70, 63, 0],
+        b_end: [1, 71, 64, 1],
+        type: ['covalent', 'disulfide', 'metal', 'metal'],
+        a_atom: ['ND2', 'SG', 'NA', 'NA'],
+        b_atom: ['C1', 'SG', 'OD1', 'O1G'],
       },
     });
   });
