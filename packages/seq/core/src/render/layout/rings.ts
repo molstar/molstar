@@ -427,7 +427,7 @@ export const RingsLayout: SectionLayoutType<RingPlacement> = {
     w.step = 4;
     // each block's units over its share of the arc, from half a gap past the origin
     let total = 0;
-    if (blocks) for (const b of blocks) total += b.axis.ranges ? piecesTotal(b.axis.ranges) : 0;
+    if (blocks) for (const b of blocks) total += blockLength(b);
     else total = axis.total;
     p.total = total;
     // a chip (a one-position block) a fixed angle, its label's width on the outer ring (at most half the circle
@@ -448,7 +448,7 @@ export const RingsLayout: SectionLayoutType<RingPlacement> = {
     for (let bi = 0; bi < nBlocks; bi++) {
       const b = blocks?.[bi];
       const pieces = b ? b.axis.ranges : axis.pieces;
-      const len = pieces ? piecesTotal(pieces) : 0;
+      const len = !pieces ? 0 : b ? blockLength(b) : piecesTotal(pieces);
       if (!pieces || len <= 0) continue;
       const chip = b !== undefined && slots[bi] > 0;
       const width = chip

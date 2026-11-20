@@ -2518,8 +2518,10 @@ numbers): a window move allocates nothing once warm.
   (EC-102, EC-115). Each block's label in a row above its tracks, faded at its strip's width. Lays are kept by the block
   and its first unit, so a pan keeps them (by the block too: a stack's blocks all start at 0).
 - **A chip** (`isChip`): a block of form `whole` (a molecule's default: its every residue in one slot) or of one
-  position. A chip of several positions shares its slot among them (each its part: another layer's mark at a residue
-  lands on its part); its units are its positions, so the window and the navigators count them.
+  position. A chip is **one unit** of its section however many residues it stands for (`blockUnits`; layouts.md): its
+  strip shows its first position's cell, its pill and its hit stand for every position (the hit's `extent`), and a
+  pair's end on it is drawn at its middle. Why one unit: the window, the rail and the navigators skip a chip as a gap,
+  and 200 residues of a glycan never take the polymers' share.
 - **A one-position block is a chip** (`isChip`, `chipWidth`, `chipSlots`, `Strips.chip`): a fixed slot its label's width
   (its label with its `×N` in the label font, `BlockMetrics.chipPad` 5 px either side), never a position's share: zoom
   does not scale it, so it reads at the fit view. Why: a one-position share is a sliver at the fit view (the Complex's

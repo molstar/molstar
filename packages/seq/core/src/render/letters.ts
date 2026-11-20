@@ -327,6 +327,10 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
       modComponents: [],
       modLong: undefined,
       chipExtent: undefined,
+      // every field a layout sets, here: a lay of a molecule (which reads no color) has the same shape as a letters
+      // lay, so the draws over both stay monomorphic (a call not inlined boxes the numbers it is passed)
+      color: undefined,
+      src: undefined,
     };
     lay.key = ctx.key;
     lay.system = axis.system;
@@ -591,7 +595,7 @@ function chipHit(lay: LettersLay, position: number): Hit {
     section: lay.section,
     position,
     system: lay.system,
-    ...(lay.chipExtent ? { extent: lay.chipExtent } : {}),
+    extent: lay.chipExtent,
   };
 }
 

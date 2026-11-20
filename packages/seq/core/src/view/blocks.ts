@@ -43,6 +43,15 @@ export function blockNodes(model: StaticModel, section: Node): Node[] {
   return out;
 }
 
+/**
+ * A block's display units in its section: one for a `whole` block (a chip: its molecule one unit, layouts.md), else
+ * its positions shown; undefined while its length is unknown.
+ */
+export function blockUnits(block: { readonly form?: string; readonly axis: Axis }): number | undefined {
+  if (block.form === 'whole' && block.axis.ranges) return 1;
+  return axisTotal(block.axis);
+}
+
 /** A section's blocks before their layers, and the section's axis over them. */
 export interface BlockAxes {
   readonly axis: Axis;
@@ -148,7 +157,8 @@ export function blockAxes(
   let offset: number | undefined = 0;
   let longest = 0;
   const blocks = groups.map((g) => {
-    const total = axisTotal(g.axis);
+    // a chip is one unit, however many residues it stands for
+    const total = blockUnits(g);
     const start = stack ? 0 : offset;
     if (offset !== undefined) offset = total === undefined ? undefined : offset + total;
     if (total !== undefined) longest = Math.max(longest, total);
@@ -165,7 +175,7 @@ export function blockAxes(
   const first = groups[0]?.axis;
   const system = first?.system ?? '';
   const pending = groups.some((g) => !g.axis.ranges);
-  if (first && !stack && groups.every((g) => g.axis.system === system)) {
+  if (first && !stack && groups.every((g) => g.axis.system === system && g.form !== 'whole')) {
     // pieces of one sequence: one axis, its breaks between the blocks
     const ranges = pending ? undefined : groups.flatMap((g) => g.axis.ranges!);
     return {

@@ -15,7 +15,7 @@
 import { issueOf, type Value } from '@molstar/core/repr/tree';
 import { DefaultNumbering, findNumbering, type NumberingOf } from '@molstar/seqx-core/query';
 import type { StaticModel } from '@molstar/seqx-core/resolve';
-import { piecesTotal, type ResolvedSection } from '@molstar/seqx-core/view';
+import type { ResolvedSection } from '@molstar/seqx-core/view';
 import { AxisTransform, type Viewport } from '../axis.js';
 import { fontSize, type RenderConfig } from '../config.js';
 import { Anchor, type PassWriter } from '../draw-lists.js';
@@ -24,7 +24,7 @@ import { rulerBaseline } from '../ruler.js';
 import type { TextMetrics } from '../text.js';
 import type { SectionLayout } from '../tracks.js';
 import type { Hit } from '../layer-type.js';
-import { chipWidth, isChip, type ResolvedBlock } from './blocks.js';
+import { blockLength, chipWidth, isChip, type ResolvedBlock } from './blocks.js';
 import { PlacePoint, StripPlacement, type Strips } from './strips.js';
 import type { NavContext, PlaceContext, SectionLayoutType, SectionNav, StepDir } from './types.js';
 
@@ -429,7 +429,7 @@ function chipLine(
     if (!block.axis.ranges || !isChip(block)) continue;
     const a = AxisTransform.on(block.axis, block.axis.ranges, x, tb.slots[k], ctx.dpr, {
       start: 0,
-      end: piecesTotal(block.axis.ranges),
+      end: blockLength(block),
     });
     const i = strips.add(a, k, 0, y, tb.offsets[k]);
     strips.chip[i] = 1;

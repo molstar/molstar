@@ -398,6 +398,8 @@ function unitsOn(prep: PairsPrep, section: ResolvedSection, layout: AxisTransfor
     if (!blocks) return section.axis.system === system ? centreOf(shape(section.axis), s, e) : Number.NaN;
     for (const b of blocks)
       if ((b.axis.system === system || b.systems.includes(system)) && b.offset !== undefined) {
+        // a chip is one unit: every residue of its molecule's ends at its middle
+        if (b.form === 'whole') return b.offset + 0.5;
         const c = centreOf(shape(b.axis), s, e);
         if (!Number.isNaN(c)) return b.offset + c;
       }

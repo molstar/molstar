@@ -12,7 +12,7 @@
 // and its first unit, so a pan keeps them. A one-position block is a chip: a fixed slot its label's width, never a
 // position's share (zoom does not scale it), where it stands in a row, in a stack on one row the chips share.
 
-import { piecesTotal, type ResolvedSection } from '@molstar/seqx-core/view';
+import { blockUnits, piecesTotal, type ResolvedSection } from '@molstar/seqx-core/view';
 import { AxisTransform, type Viewport } from '../axis.js';
 import { fontSize, type RenderConfig } from '../config.js';
 import { Anchor, grown, NoColor, type PassName, type PassWriter } from '../draw-lists.js';
@@ -48,9 +48,9 @@ export function isChip(block: {
   return !!block.axis.ranges && (block.form === 'whole' || piecesTotal(block.axis.ranges) === 1);
 }
 
-/** A block's positions shown (0 while pending). */
-export function blockLength(block: { readonly axis: { readonly ranges?: readonly number[] } }): number {
-  return block.axis.ranges ? piecesTotal(block.axis.ranges) : 0;
+/** A block's display units (a chip one, `blockUnits`; 0 while pending). */
+export function blockLength(block: ResolvedBlock): number {
+  return blockUnits(block) ?? 0;
 }
 
 /** A chip's width, CSS px: its label (its `×N` too) in the label font, `chipPad` either side; zoom never scales it. */
@@ -416,7 +416,7 @@ export function placeBlocks(section: ResolvedSection, ctx: PlaceContext, prev?: 
   row.width = width;
   for (let b = 0; b < blocks.length; b++) {
     row.offset[b] = blocks[b].offset ?? 0;
-    row.len[b] = blocks[b].axis.ranges ? piecesTotal(blocks[b].axis.ranges!) : 0;
+    row.len[b] = blockLength(blocks[b]);
   }
   row.chip = grown(row.chip, blocks.length);
   // a chip's slot shared by its positions (a `whole` chip of several: each a part of its one slot)

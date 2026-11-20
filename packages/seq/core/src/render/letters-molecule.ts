@@ -168,15 +168,21 @@ export function layMoleculeCells(
   let narrowest = Infinity;
   for (let i = 0; i + 1 < vis.length; i += 2)
     for (let p = vis[i]; p < vis[i + 1]; p++) {
-      if (!axis.cell(p)) continue;
+      // its cell in each piece in view, as the letters' own loop reads it (`piecesIn`, `spanIn`)
+      axis.piecesIn(p, p + 1);
+      const ka = axis.ka;
+      const kb = axis.kb;
+      let k = ka;
+      while (k <= kb && !axis.spanIn(k, p, p + 1)) k++;
+      if (k > kb) continue;
       const j = lay.n++;
       if (j >= lay.pos.length) break;
       lay.pos[j] = p;
       lay.code[j] = 0;
       lay.fill[j] = fill;
       lay.ink[j] = ink;
-      lay.x0[j] = Math.round(Math.min(axis.sx0, axis.sx1) * dpr) / dpr;
-      lay.x1[j] = Math.round(Math.max(axis.sx0, axis.sx1) * dpr) / dpr;
+      lay.x0[j] = Math.round(axis.sx0 * dpr) / dpr;
+      lay.x1[j] = Math.round(axis.sx1 * dpr) / dpr;
       lay.show[j] = 0;
       narrowest = Math.min(narrowest, lay.x1[j] - lay.x0[j]);
     }

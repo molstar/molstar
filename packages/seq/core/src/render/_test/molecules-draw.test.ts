@@ -51,7 +51,7 @@ function pairsLay(f: Frame): PairsLay {
 
 describe('a complex drawn against its data', () => {
   for (const tokens of [LightTokens, DarkTokens])
-    it(`every chip its label in its pill, a molecule's residues one slot (${tokens === LightTokens ? 'light' : 'dark'})`, async () => {
+    it(`every chip its label in its pill, a molecule one unit (${tokens === LightTokens ? 'light' : 'dark'})`, async () => {
       const s = await settle(moleculesSpec());
       s.renderer.tokens = tokens;
       const f = await s.frame({ size: Size });
@@ -66,9 +66,12 @@ describe('a complex drawn against its data', () => {
         expect(svg).toContain(`>${label}<`);
       }
       expect(blocks.filter((b) => b.form === 'whole').map((b) => b.label)).toEqual(['Glycan', 'ATP', 'NA']);
-      // the glycan's five residues share one slot: its label's width, whatever the zoom
+      // the glycan's five residues are one chip, one unit of the section (layouts.md): its label's width, whatever the
+      // zoom; its strip shows its block's every residue (its pieces)
       const g = p.strips.axes.findIndex((a) => a.system === '/data/c/g');
-      expect([p.strips.axes[g].u0, p.strips.axes[g].u1]).toEqual([0, 5]);
+      expect([p.strips.axes[g].u0, p.strips.axes[g].u1]).toEqual([0, 1]);
+      expect(Array.from(p.strips.axes[g].pieces)).toEqual([0, 5]);
+      expect(blocks.find((b) => b.label === 'Glycan')!.axis.ranges).toEqual([0, 5]);
       const zoomed = await s.frame({ size: Size, viewport: { start: 60, end: 89 } });
       const pz = zoomed.layout.sections[0].placement as BlockPlacement;
       const gz = pz.strips.axes.findIndex((a) => a.system === '/data/c/g');

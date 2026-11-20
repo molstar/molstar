@@ -18,10 +18,10 @@
 import { AxisTransform, type Viewport } from '../axis.js';
 import { Anchor, grown, type PassName, type PassWriter } from '../draw-lists.js';
 import type { SectionLayout } from '../tracks.js';
-import { BlockRow, type ResolvedBlock } from './blocks.js';
+import { BlockRow, blockLength, type ResolvedBlock } from './blocks.js';
 import { type PlacePoint, StripPlacement } from './strips.js';
 import { clampWindow, sameWindow, TracksNav } from './tracks.js';
-import { piecesTotal, type ResolvedSection } from '@molstar/seqx-core/view';
+import type { ResolvedSection } from '@molstar/seqx-core/view';
 import type { NavContext, PlaceContext, SectionLayoutType, SectionNav } from './types.js';
 
 // the anchors as numbers read once: a draw reads no property of an imported object
@@ -109,7 +109,7 @@ function blockRow(
   row.width = width;
   for (let b = 0; b < blocks.length; b++) {
     row.offset[b] = blocks[b].offset ?? 0;
-    row.len[b] = blocks[b].axis.ranges ? piecesTotal(blocks[b].axis.ranges!) : 0;
+    row.len[b] = blockLength(blocks[b]);
   }
   row.lay(u0, u1);
   // each block's edges on the device grid, as the tracks' row above: its cells' clip and its tiles' edges meet exactly
