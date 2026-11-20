@@ -39,7 +39,7 @@ describe('the headers allocate nothing on a pointer move', () => {
   it('a pointer down the label column of 200 tracks: hit, the actions of its track drawn', async ({ task }) => {
     const s = await settle(spec(), [], { labelColumn: { min: 140 } });
     const size = { width: 1200, height: Tracks * 24 + 40 };
-    const emphasis: { hover?: Emphasis['hover']; header?: string } = {};
+    const emphasis: { hover?: Emphasis['hover'] } = {};
     const input = { size, settled: true, headers: Host, emphasis };
     const f = await s.frame(input);
     const tracks = f.layout.sections[0].tracks;
@@ -47,13 +47,11 @@ describe('the headers allocate nothing on a pointer move', () => {
     const xs = [12, 40, ...tracks[0].header!.slots.map((x) => x.x + 4), tracks[0].header!.menu!.x + 4];
     const points: number[] = [];
     for (const t of tracks) for (const x of xs) points.push(x, t.well.y + t.well.height / 2);
-    const addresses = tracks.map((t) => t.track.address);
     const n = points.length / 2;
     const step = (i: number) => {
       const k = i % n;
-      emphasis.hover = hitView(f.layout, points[2 * k], points[2 * k + 1]);
-      // the track the pointer is over (the viewer's headers say it from the geometry)
-      emphasis.header = addresses[(k / xs.length) | 0];
+      // the hit under the last hover (its label line shows the track's actions: its slots hit then)
+      emphasis.hover = hitView(f.layout, points[2 * k], points[2 * k + 1], false, emphasis.hover);
       s.renderer.frame(input);
     };
     for (let i = 0; i < n; i++) {

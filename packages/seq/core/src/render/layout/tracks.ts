@@ -172,8 +172,8 @@ export const TracksLayout: SectionLayoutType<StripPlacement> = {
     // its header's states and, when they show, its actions (in a stack's first row)
     drawTrackHeader(out, s, t, pass, emphasis, dy);
   },
-  hitChrome(s, x, y) {
-    return hitHeaders(s, x, y);
+  hitChrome(s, x, y, hover) {
+    return hitHeaders(s, x, y, hover);
   },
 };
 

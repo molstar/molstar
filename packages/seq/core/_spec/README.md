@@ -408,8 +408,8 @@ layout per token table, held domains and the reader's substitution (`LayerChanne
   a channel a form cannot fill (`channel`), a field of the wrong type (`type`), stops out of order (`stops`), a scale
   that does not exist (`scale`), forms nested past `themeDepth` (4, `depth`).
 - **Filters**: a theme never hides; a filter does. An item layer's `data` written as a query
-  (`<annotation>/(except :of (item :<field> v))`) leaves out the rows its form rejects as the shared item reader reads them
-  (`item` by `:id` or a field, a list param any of its values; `not`, `and`, `or`), compiled once a prepare
+  (`<annotation>/(except :of (item :<field> v))`) leaves out the rows its form rejects as the shared item reader reads
+  them (`item` by `:id` or a field, a list param any of its values; `not`, `and`, `or`), compiled once a prepare
   (`compileRowFilter`); the track's header shows "n filtered", its `seq:filtered` state (Render, Track headers: a chip
   of `TrackLayout.header`, its `address` the filtered layer, hit `header-state`), laid out and drawn as every state. A
   form not read row by row filters nothing and is `seq.render.filter`. **One rule for the base and the filter**
@@ -2604,35 +2604,43 @@ numbers): a window move allocates nothing once warm.
   first track. Its parts come from `LayoutInput.headers` (`HeaderPartsOf`: facts in, parts out, once a layout a header;
   part of the key by identity, `FrameInput.headers`, `RenderSvgOptions.headers`): `slots` (an entry's name, label, icon
   as path data in a 24-unit box, enabled), `states` (name, text, count, the address it is about) and `menu` (any entry
-  applies). The facts (`HeaderFacts`) are DOM-free: the layers a filter thinned with their counts, the hidden layers,
-  the section's hidden tracks read from the spec (each once, in spec order). Absent, `builtInHeaderStates`: a track's
-  `seq:filtered` ("n filtered", its first thinned layer) and `seq:hidden-layers`, a section's `seq:hidden-tracks` ("n
-  hidden"); no slots, no menu. Why given: which entries apply and whether they run is the viewer's (its registry and
-  commands); where they go is the layout's, so a canvas and a host's DOM parts agree.
-- **Where** (`header.*`): `actionColumns`: `header.slots` columns of `header.slotPx` and the "⋯" at the column's end, as
-  many slots as leave three columns of label (an 80 px column holds one), none under `header.actions.show: never`; one
-  set a view, so a slot's x is never the label's. The slots are the first given; the "⋯" when `menu`. A track under
-  `header.minHeightPx` (`short`) takes no slots and its states are marks (6 px accent squircles, their words the
-  card's). States beside the label end before the action columns when the header has actions, else at the column's end,
-  the last nearest; a state with no room left is a mark, so a slot never overlaps a state. On a track two lines high the
-  states take a line of their own under the label (the label whole, the two lines centred together; lower by the slot's
-  half when the header has actions, so the line clears them). The label fades before what is beside it
-  (`HeaderLine.label`). A rows track takes no slots (its title row is its header, the TODO).
+  applies). The facts (`HeaderInputFacts`; the viewer's own facts are its entries') are DOM-free: the layers a filter
+  thinned with their counts, the hidden layers, the section's hidden tracks read from the spec (each once, in spec
+  order). Absent, `builtInHeaderStates`: a track's `seq:filtered` ("n filtered", its first thinned layer) and
+  `seq:hidden-layers` ("1 layer hidden", "n layers hidden"), a section's `seq:hidden-tracks` ("n hidden"); no slots, no
+  menu. Why given: which entries apply and whether they run is the viewer's (its registry and commands); where they go
+  is the layout's, so a canvas and a host's DOM parts agree. A navigator's picture lays out no header.
+- **Where** (`header.*`): `actionColumns`: the "⋯" at the label column's right end, `header.slots` columns of
+  `header.slotPx` left of it, as many slots as leave three columns of label (an 80 px column holds one), none under
+  `header.actions.show: never`; one set a view, so a slot's x is never the label's. Why the "⋯" last: a kebab menu is
+  looked for at the row's end (Mol\*'s order; the author's). The slots are the first given (`HeaderSlotBox.part`); the
+  "⋯" when `menu`. A track under `header.minHeightPx` (`short`) takes no slots and its states are marks (6 px accent
+  squircles, their words the card's). States beside the label end before the action columns when the header has actions,
+  else at the column's end, the last nearest; a state with no room left is a mark, so a slot never overlaps a state: **a
+  narrow column draws its states as marks** (decided: an 80 px column with actions holds one slot, its chips marks), and
+  a mark with no room left in the column is left out (never left of it; its words the card's). On a track two lines high
+  the states take a line of their own under the label (the label whole, the two lines centred together; lower by the
+  slot's half when the header has actions, so the line clears them). The label fades before what is beside it
+  (`HeaderLine.label`). **A rows track** draws no states and no slots and gives no label hit: its label column is its
+  tree and row labels, hit as before; its header is its title row's (not built, the TODO).
 - **The section's line** (`section.header`: `auto` when its parts have a state or a slot, `always`, `none`):
   `header.sectionPx` high above its first track, the tracks moved down by it (`SectionLayout.header`); kept when every
   track of the section is hidden. Why `auto`: no line that says nothing, records without hidden tracks unchanged.
-- **Drawn**: the states in the labels pass (always: facts about the picture), the actions in the tip pass over a
-  backdrop of the page's color covering the label's tail (the label never moves): each slot's icon stroked in the muted
-  ink (an entry not enabled in the line ink, the hovered one in the accent; no icon: its label's first letter), the "⋯"
-  three dots. Actions show for `always`, or on `hover` for the header `Emphasis.header` names, the track a hover's hit
-  is in (its data, its slots, its states; a section's line only its own hits), and the cursor's header
-  (`cursor.part: 'header'`, `cursor.track`): an emphasis redraw, no layout, nothing allocated (`headers.quick.ts`). A
-  header's hover lights none of its track's items (EC-146: refused by default). A figure (`figure`) lays out no slots
-  and no "⋯"; its states as drawn, none with `header.states.export: none`.
-- **Hit** (`hitChrome`, before the bands): a slot or the "⋯" `header-slot`, a state `header-state` (`count` its count),
-  a section's line elsewhere `section-header`; `state` the entry's name (`HeaderMenuName` the "⋯"), `layer` the track's
-  address (a section's for its line). The slots are hit whether drawn or not (a pointer reaching for one shows them).
-  Each hit is laid out with its part (`hit`): a hover makes no object.
+- **Drawn**: the states in the labels pass (always: facts about the picture; a stack of blocks draws them once, on a
+  track's first row, where they are hit), the actions in the tip pass over a backdrop of the label column's background
+  (`msui-bg`: the column has no well) covering the label's tail (the label never moves): each slot's icon stroked in the
+  muted ink (an entry not enabled in the line ink, the hovered one in the accent; no icon: its label's first letter),
+  the "⋯" three dots. Actions show for `always`, or on `hover` for the track the hover's hit is in (its label line, its
+  slots, its states, its data; a section's line only its own hits) and the cursor's header (`cursor.part: 'header'`,
+  `cursor.track`): an emphasis redraw, no layout, nothing allocated (`headers.quick.ts`). No emphasis field of its own:
+  the hover drives it. A header's hover lights none of its track's items (EC-146: refused by default). A figure
+  (`figure`) lays out no slots and no "⋯"; its states as drawn, none with `header.states.export: none`.
+- **Hit** (`hitChrome(section, x, y, hover)`, before the bands): a slot or the "⋯" `header-slot` **only while its
+  track's actions show** (by the hover `hitView` is given: the label line hovered first, then the slot), a state
+  `header-state` (`count` its count), elsewhere on a track's line `header-label` (no `state`), on a section's line
+  `section-header`; `state` the entry's name (`HeaderMenuName` the "⋯"), `layer` the track's address (a section's for
+  its line), `section` its section. Each hit is laid out with its part (`hit`, a line's `HeaderLine.hit`): a hover makes
+  no object.
 
 ### Track heights
 
@@ -2745,12 +2753,12 @@ numbers): a window move allocates nothing once warm.
   hit of two axes, a rows cell or a grid cell, is the target `cell` with `ySystem` and `yPosition` set, so it allocates
   nothing; `row` a rows header, `tree-node` a tree's node and `summary-row` a folded clade's row, their element the
   clade; `column-title` a rows layer's column title, `state` its field; `columns-hidden` its hidden-columns chip,
-  `state` its text; `header-slot`, `header-state` and `section-header` a header's parts, `state` the entry's name,
-  `layer` the track's or the section's address: Track headers): `layer` the layer's key (its address, else its track's
-  and `:index`), `section` the section's id, `element` an item's `{ owner, key }` with its `extent` (a Location on the
-  data's system), `position` on the section's system. Cells by arithmetic on the axis; items by `LaneIndex` (a lane's
-  marks by left edge with a running maximum of right edges). In a track, the topmost layer with an element under the
-  point wins, else the topmost with a position.
+  `state` its text; `header-slot`, `header-state`, `header-label` and `section-header` a header's parts, `state` the
+  entry's name, `layer` the track's or the section's address: Track headers): `layer` the layer's key (its address, else
+  its track's and `:index`), `section` the section's id, `element` an item's `{ owner, key }` with its `extent` (a
+  Location on the data's system), `position` on the section's system. Cells by arithmetic on the axis; items by
+  `LaneIndex` (a lane's marks by left edge with a running maximum of right edges). In a track, the topmost layer with an
+  element under the point wins, else the topmost with a position.
 - **What a break hides is not dropped** (fixed): a `ranges` layer reads the stretches its breaks in view hide too
   (`dataRegions(src, axis, true)`), and its items wholly in one draw one tick on the break a lane in the break ink,
   whatever their number (`ticks`: x, lane, count, the hidden stretch), hit as the break (its `count`); a Location there

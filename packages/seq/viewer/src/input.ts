@@ -693,7 +693,8 @@ export class ViewerInput {
     }
     // a header's parts are never a selection's (_spec/README.md "Input"): the "n filtered" chip clears its layer's
     // filter (one patch); the other entries are the headers behavior's
-    if (chip?.target === 'header-state' || chip?.target === 'header-slot' || chip?.target === 'section-header') {
+    const t = chip?.target;
+    if (chip && (t === 'header-state' || t === 'header-slot' || t === 'header-label' || t === 'section-header')) {
       const layer =
         chip.state === HeaderStateNames.filtered ? filteredLayer(this.viewer.frame?.layout, chip) : undefined;
       if (layer) void this.viewer.execute('layer.filter', { address: layer });

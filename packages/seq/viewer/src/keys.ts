@@ -73,6 +73,7 @@ const TargetWords: Readonly<Record<string, string>> = {
   break: 'on a break',
   'header-slot': 'on a header’s action',
   'header-state': 'on a header’s state',
+  'header-label': 'on a track’s label',
   'section-header': 'on a section’s header',
   window: 'on a window',
   'tree-node': 'on a tree node',

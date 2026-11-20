@@ -9,7 +9,7 @@ import type { RenderConfig } from './config.js';
 import {
   builtInHeaderStates,
   drawsSectionHeader,
-  type HeaderFacts,
+  type HeaderInputFacts,
   type HeaderLine,
   hiddenTracksOf,
   type SectionHeaderLine,
@@ -24,7 +24,7 @@ import type { LayerLayout, LayoutInput } from './tracks-types.js';
 // this layout (the rows a filter left out, the hidden layers and tracks), its parts from them (`LayoutInput.headers`,
 // the built-in states when absent), and its line laid out.
 
-const NoFiltered: HeaderFacts['filtered'] = [];
+const NoFiltered: HeaderInputFacts['filtered'] = [];
 const NoKeys: readonly string[] = [];
 const HiddenLayers = new WeakMap<ResolvedTrack, readonly string[]>();
 
@@ -48,7 +48,7 @@ export function sectionHeaderOf(
   config: RenderConfig,
 ): SectionHeaderLine | undefined {
   if (input.picture) return undefined;
-  const facts: HeaderFacts = {
+  const facts: HeaderInputFacts = {
     section,
     filtered: NoFiltered,
     hiddenLayers: NoKeys,
@@ -72,7 +72,9 @@ export function trackHeaderOf(
   sectionLays: readonly LayerLayout[],
   well: Box,
   config: RenderConfig,
-): { readonly header: HeaderLine; readonly labelY: number } {
+): { readonly header: HeaderLine; readonly labelY: number } | undefined {
+  // a navigator's picture has no label lane
+  if (input.picture) return undefined;
   // its layers', then its `section` layers' (pairs: laid out once a section)
   let filtered: { layer: string; count: number }[] | undefined;
   for (let i = 0; i < layers.length; i++) {
@@ -86,16 +88,16 @@ export function trackHeaderOf(
     const count = l.type.filtered?.(l.lay) ?? 0;
     if (count) (filtered ??= []).push({ layer: layerKey(track, l.layer), count });
   }
-  const facts: HeaderFacts = {
+  const facts: HeaderInputFacts = {
     section,
     track,
     filtered: filtered ?? NoFiltered,
     hiddenLayers: hiddenLayersOf(track),
     hiddenTracks: hiddenTracksOf(input.model, section),
   };
-  let parts = (input.headers ?? builtInHeaderStates)(facts);
-  // a rows track's label column is its tree and its rows' labels: its slots wait for its title row (the package's TODO)
-  if (parts && (parts.slots || parts.menu) && track.layers.some((l) => l.type === 'rows'))
-    parts = parts.states ? { states: parts.states } : undefined;
-  return trackHeaderLine(parts, track.address, id, well, config, input.text, input.figure === true);
+  // a rows track's label column is its tree and its rows' labels: its header waits for its title row (the package's
+  // TODO): no parts and no label hit over them
+  const rows = track.layers.some((l) => l.type === 'rows');
+  const parts = rows ? undefined : (input.headers ?? builtInHeaderStates)(facts);
+  return trackHeaderLine(parts, track.address, id, well, config, input.text, input.figure === true, !rows);
 }

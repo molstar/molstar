@@ -31,6 +31,7 @@ export type HitTarget =
   | 'break'
   | 'header-slot'
   | 'header-state'
+  | 'header-label'
   | 'section-header'
   | 'window'
   | 'tree-node'

@@ -43,6 +43,12 @@ const Host: HeaderPartsOf = (f) => {
 
 const Size = { width: 960, height: 480 };
 
+/** A number as the record writes it: two decimals at most, no `-0`. */
+const fmt = (n: number) => {
+  const r = Math.round(n * 100) / 100;
+  return Object.is(r, -0) ? '0' : String(r);
+};
+
 async function frameOf(view: ExampleView) {
   const ctx = createSeqContext({
     registry: [{ kind: 'format-runtime', runtime: SeqRuntime }, ...(view.registry?.({ delayMs: 0 }) ?? [])],
@@ -103,18 +109,23 @@ describe.each(ExampleViews.map((v) => [`${v.dataset}/${v.id}`, v] as const))('%s
           const want = h.short || rows ? 0 : Math.min(cols.n, 2);
           expect(h.slots.length, t.track.address).toBe(want);
           for (const slot of h.slots) {
-            if (slot.icon) icons++;
+            if (slot.part.icon) icons++;
             if (slot.y + slot.height > layout.height) continue;
             expect(hitView(layout, slot.x + slot.width / 2, slot.y + slot.height / 2)).toMatchObject({
               target: 'header-slot',
-              state: slot.name,
+              state: slot.part.name,
               layer: t.track.address,
             });
           }
-          // every state its entries give: drawn (a chip its text, a mark a squircle) and hit as its entry
-          expect(h.states.map((x) => x.name)).toContain('host:bound');
+          // a rows track draws no states (its header is its title row's, not built); the rest every state its entries
+          // give, each drawn where it was laid out (a chip its text, a mark a squircle) and hit as its entry
+          if (rows) expect(h.states).toEqual([]);
+          else expect(h.states.map((x) => x.name)).toContain('host:bound');
           for (const st of h.states) {
-            if (!st.mark) expect(labels).toContain(`text "${st.text}"`);
+            const drawn = st.mark
+              ? `rect ${fmt(st.x)} ${fmt(st.y)} ${fmt(st.width)} ${fmt(st.width)} `
+              : `text "${st.text}" ${fmt(st.x)} ${fmt(st.y)} start`;
+            expect(labels, `${t.track.address} ${st.name}`).toContain(drawn);
             if (st.box.y + st.box.height > layout.height) continue;
             expect(hitView(layout, st.box.x + st.box.width / 2, st.box.y + st.box.height / 2)).toMatchObject({
               target: 'header-state',

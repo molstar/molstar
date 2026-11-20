@@ -221,10 +221,12 @@ export {
 export {
   actionColumns,
   builtInHeaderStates,
-  type HeaderFacts,
+  type ActionColumns,
+  type HeaderInputFacts,
   type HeaderIcon,
   type HeaderLine,
   HeaderMenuName,
+  HeaderMenuPart,
   type HeaderParts,
   type HeaderPartsOf,
   type HeaderSlotBox,

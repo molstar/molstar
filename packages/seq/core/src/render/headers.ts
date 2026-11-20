@@ -4,7 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { type Node, parseAddress } from '@molstar/core/repr/tree';
+import { resolveAddress } from '@molstar/core/repr/tree';
+import { idRunOf } from '@molstar/seqx-core/lang/check';
 import type { StaticModel } from '@molstar/seqx-core/resolve';
 import type { ResolvedSection, ResolvedTrack } from '@molstar/seqx-core/view';
 import { fontSize, type RenderConfig } from './config.js';
@@ -53,7 +54,7 @@ export interface HeaderParts {
  * What the layout knows of a header (a track's; a section's when `track` is absent), DOM-free: the layers a filter
  * thinned (by key, with the rows it left out), the hidden layers (their keys), the section's hidden tracks.
  */
-export interface HeaderFacts {
+export interface HeaderInputFacts {
   readonly section: ResolvedSection;
   readonly track?: ResolvedTrack;
   readonly filtered: readonly { readonly layer: string; readonly count: number }[];
@@ -68,7 +69,7 @@ export interface HiddenTrack {
 }
 
 /** A header's parts made from its facts, once a layout a header (a host's entries; the built-in states by default). */
-export type HeaderPartsOf = (facts: HeaderFacts) => HeaderParts | undefined;
+export type HeaderPartsOf = (facts: HeaderInputFacts) => HeaderParts | undefined;
 
 /** The built-in states' entry names. */
 export const HeaderStateNames = {
@@ -111,12 +112,12 @@ export const builtInHeaderStates: HeaderPartsOf = (f) => {
 
 /** A slot as laid out: its part, its box (its column on the header's line) and the hit it gives. */
 export interface HeaderSlotBox extends Box {
-  readonly name: string;
-  readonly label: string;
-  readonly icon?: HeaderIcon;
-  readonly enabled: boolean;
+  readonly part: HeaderSlotPart;
   readonly hit: Hit;
 }
+
+/** The "⋯"'s part. */
+export const HeaderMenuPart: HeaderSlotPart = { name: HeaderMenuName, label: 'Actions', enabled: true };
 
 /**
  * A state as laid out: a chip (its text from `x` at the baseline `y`, `width` its measured width) or, where no chip
@@ -150,6 +151,11 @@ export interface HeaderLine {
   readonly actions?: Box;
   /** Shorter than `header.minHeightPx`: no slots, its states as marks. */
   readonly short: boolean;
+  /**
+   * What the line gives outside its slots and states: a track's `header-label`, a section's `section-header`; none on
+   * a rows track (its label column is its tree and rows).
+   */
+  readonly hit?: Hit;
 }
 
 /** A section's header line (`section.header`): a line above its first track, its own hit `section-header`. */
@@ -168,7 +174,7 @@ const MarkGap = 4;
  * "⋯", `header.slotPx` each, ending at the label column's right end, as many slots as leave three columns' width of
  * label; none with `header.actions.show: never`. One set for every header of the view: every track's eye in one column.
  */
-export function actionColumns(config: RenderConfig): { readonly x: number; readonly n: number } {
+export function actionColumns(config: RenderConfig): ActionColumns {
   let c = Columns.get(config);
   if (c) return c;
   const h = config.header;
@@ -182,10 +188,16 @@ export function actionColumns(config: RenderConfig): { readonly x: number; reado
   return c;
 }
 
-/** The action columns and the label font's size by config: a layout reads them once a header (nothing made). */
-type ColumnsOf = { readonly x: number; readonly n: number; readonly size: number };
-const Columns = new WeakMap<RenderConfig, ColumnsOf>();
-const labelSizeOf = (config: RenderConfig) => (actionColumns(config) as ColumnsOf).size;
+/** The action columns' x, how many slots (−1: no actions), and the label font's size a header reads with them. */
+export interface ActionColumns {
+  readonly x: number;
+  readonly n: number;
+  readonly size: number;
+}
+
+/** By config: a layout reads them once a header (nothing made). */
+const Columns = new WeakMap<RenderConfig, ActionColumns>();
+const labelSizeOf = (config: RenderConfig) => actionColumns(config).size;
 
 /** Whether a header lays out actions: a slot or a menu given, not short, not a figure, `header.actions.show` not `never`. */
 function hasActions(parts: HeaderParts | undefined, short: boolean, figure: boolean, config: RenderConfig): boolean {
@@ -210,6 +222,8 @@ interface LineInput {
   /** States on a line of their own under the label (a track of two lines' height): their baseline; else NaN. */
   ownLine: number;
   figure: boolean;
+  /** A track's line hit as `header-label` outside its parts (not a rows track's, not a section's). */
+  labelHit: boolean;
 }
 
 /** The one input a layout's header lines are laid out from, set field by field (a header makes none). */
@@ -222,6 +236,7 @@ const At: LineInput = {
   short: false,
   ownLine: Number.NaN,
   figure: false,
+  labelHit: false,
 };
 
 /**
@@ -252,10 +267,7 @@ function layoutLine(
     for (let i = 0; i < n; i++) {
       const p = given[i];
       out.push({
-        name: p.name,
-        label: p.label,
-        ...(p.icon ? { icon: p.icon } : {}),
-        enabled: p.enabled,
+        part: p,
         x: cols.x + i * slotPx,
         y: sy,
         width: slotPx,
@@ -266,9 +278,7 @@ function layoutLine(
     if (n) slots = out;
     if (parts.menu)
       menu = {
-        name: HeaderMenuName,
-        label: 'Actions',
-        enabled: true,
+        part: HeaderMenuPart,
         x: end - slotPx,
         y: sy,
         width: slotPx,
@@ -286,10 +296,12 @@ function layoutLine(
     // on the label's line the states end before the action columns (a gap before them) when the header has actions,
     // else at the column's end; on a line of their own at the column's end (the actions are on the label's line)
     const chipsEnd = actions ? cols.x - ChipGap : end;
-    // states `[from, to)` as marks, right to left from `right`, centred on `cy`: the leftmost's x
+    // states `[from, to)` as marks, right to left from `right`, centred on `cy`: the leftmost's x; a mark with no room
+    // left in the column is not laid out (its words are the card's)
     const marks = (from: number, to: number, right: number, cy: number): number => {
       let x = right;
       for (let i = to - 1; i >= from; i--) {
+        if (x - MarkPx < inset) break;
         x -= MarkPx;
         out.push(stateBox(given[i], i, at, true, x, cy - MarkPx / 2, MarkPx, size));
         x -= MarkGap;
@@ -339,6 +351,7 @@ function layoutLine(
   };
   if (menu) out.menu = menu;
   if (actions) out.actions = actions;
+  if (at.labelHit) out.hit = { layer: at.layer, section: at.section, system: '', target: 'header-label' };
   return out;
 }
 
@@ -391,6 +404,7 @@ export function trackHeaderLine(
   config: RenderConfig,
   text: TextMetrics,
   figure: boolean,
+  labelHit = true,
 ): { readonly header: HeaderLine; readonly labelY: number } {
   const size = labelSizeOf(config);
   const short = well.height < config.header.minHeightPx;
@@ -412,6 +426,7 @@ export function trackHeaderLine(
   at.short = short;
   at.ownLine = dy ? labelY + dy : Number.NaN;
   at.figure = figure;
+  at.labelHit = labelHit;
   const out = TrackLine;
   out.header = layoutLine(parts, at, config, text);
   out.labelY = labelY;
@@ -451,23 +466,12 @@ export function sectionHeaderLine(
   at.short = false;
   at.ownLine = Number.NaN;
   at.figure = figure;
+  at.labelHit = false;
   const line = layoutLine(parts, at, config, text);
   return {
     ...line,
     hit: { layer: section.address, section: id, system: '', target: 'section-header' },
   };
-}
-
-/** The spec's node at an address (a path of ids), undefined when there is none. */
-function nodeAt(root: Node, address: string): Node | undefined {
-  const p = parseAddress(address).pattern;
-  if (!p) return undefined;
-  let n: Node | undefined = root;
-  for (const s of p.segments) {
-    if (typeof s !== 'string') return undefined;
-    n = n?.children?.find((c) => c.id === s);
-  }
-  return n;
 }
 
 const Hidden = new WeakMap<ResolvedSection, readonly HiddenTrack[]>();
@@ -478,7 +482,7 @@ export function hiddenTracksOf(model: StaticModel, section: ResolvedSection): re
   let out = Hidden.get(section);
   if (out) return out;
   let found: HiddenTrack[] | undefined;
-  for (const t of nodeAt(model.spec, section.address)?.children ?? []) {
+  for (const t of resolveAddress(model.spec, idRunOf(section.address))?.children ?? []) {
     if (t.kind !== 'track' || t.id === undefined || t.params?.hidden !== true) continue;
     const label = t.params?.label;
     (found ??= []).push({ address: `${section.address}/${t.id}`, label: typeof label === 'string' ? label : t.id });

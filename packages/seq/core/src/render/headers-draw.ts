@@ -9,7 +9,7 @@ import { Anchor, grown, NoColor, Op, type PassWriter, PathCommandPoints } from '
 import {
   type HeaderIcon,
   type HeaderLine,
-  HeaderMenuName,
+  HeaderMenuPart,
   type HeaderSlotBox,
   type SectionHeaderLine,
 } from './headers.js';
@@ -35,9 +35,9 @@ function inBox(b: { x: number; y: number; width: number; height: number }, x: nu
 }
 
 /**
- * Whether a header's actions show (`header.actions.show`): `always`; on `hover` the header the viewer names
- * (`emphasis.header`), the track a hover's hit is in (its data, its slots, its states: `within`; a section's line only
- * its own hits), the cursor's header.
+ * Whether a header's actions show (`header.actions.show`): `always`; on `hover` the track a hover's hit is in (its label
+ * line, its slots, its states, its data: `within`; a section's line only its own hits), the cursor's header. A slot is
+ * hit only while they show.
  */
 export function actionsShown(
   address: string,
@@ -49,7 +49,6 @@ export function actionsShown(
   const show = config.header.actions.show;
   if (show === 'always') return true;
   if (show === 'never' || !emphasis) return false;
-  if (emphasis.header === address) return true;
   const c = emphasis.cursor;
   if (c && c.part === 'header' && c.track === address) return true;
   const h = emphasis.hover;
@@ -126,15 +125,15 @@ function drawSlot(out: PassWriter, s: HeaderSlotBox, hover: Hit | undefined, tok
   const g = out.args;
   // the hovered slot (the hit as laid out, or a copy of it)
   const hovered =
-    hover !== undefined && hover.target === 'header-slot' && hover.state === s.name && hover.layer === s.hit.layer;
+    hover !== undefined && hover.target === 'header-slot' && hover.state === s.part.name && hover.layer === s.hit.layer;
   const ink = hovered
     ? tokens.colors['msui-accent']
-    : s.enabled
+    : s.part.enabled
       ? tokens.colors['msui-text-muted']
       : tokens.colors['msui-line'];
   const cx = s.x + s.width / 2;
   const cy = s.y + s.height / 2;
-  if (s.name === HeaderMenuName) {
+  if (s.part === HeaderMenuPart) {
     // three dots across the slot's middle
     for (let k = -1; k <= 1; k++) {
       g[0] = cx + k * 4 - 1;
@@ -150,8 +149,8 @@ function drawSlot(out: PassWriter, s: HeaderSlotBox, hover: Hit | undefined, tok
     }
     return;
   }
-  if (s.icon) {
-    iconArgs(out, s.icon, cx - IconPx / 2, cy - IconPx / 2, IconPx / 24, ink);
+  if (s.part.icon) {
+    iconArgs(out, s.part.icon, cx - IconPx / 2, cy - IconPx / 2, IconPx / 24, ink);
     return;
   }
   g[0] = cx;
@@ -159,7 +158,7 @@ function drawSlot(out: PassWriter, s: HeaderSlotBox, hover: Hit | undefined, tok
   g[2] = 0;
   g[3] = s.width;
   g[4] = ink;
-  out.textArgs(s.label.charAt(0) || '?', AnchorMiddle, config.labelFont);
+  out.textArgs(s.part.label.charAt(0) || '?', AnchorMiddle, config.labelFont);
 }
 
 /** An icon's path stroked at `(x, y)` scaled by `k` (its commands and points copied in: nothing allocated once warm). */
@@ -205,8 +204,10 @@ export function drawTrackHeader(
 ) {
   const line = t.header;
   if (!line) return;
-  if (pass === 'labels') drawStates(out, line, s.tokens, s.config, dy);
-  else if (pass === 'tip' && dy === 0 && line.actions && actionsShown(t.track.address, s.id, emphasis, s.config))
+  // a stack's later rows: their labels only, the states drawn and hit once (on its first)
+  if (pass === 'labels') {
+    if (dy === 0) drawStates(out, line, s.tokens, s.config, 0);
+  } else if (pass === 'tip' && dy === 0 && line.actions && actionsShown(t.track.address, s.id, emphasis, s.config))
     drawActions(out, line, emphasis?.hover, s.tokens, s.config);
 }
 
@@ -231,29 +232,38 @@ export function hasHeaderActions(s: SectionLayout): boolean {
   return has;
 }
 
+/** The emphasis a hit test reads (the hover alone), one record (a hit makes no object). */
+const HoverOnly: { hover?: Hit } = {};
+
 /**
  * What a header part is under a point (_spec/README.md "Render", Track headers: Hit): a slot or the "⋯"
- * (`header-slot`), a state (`header-state`), a section's line (`section-header`); the slots are hit whether drawn or
- * not (laid out in fixed columns: a pointer reaching for one shows them). The hit is the one laid out (none made).
+ * (`header-slot`) while its actions show under `hover` (the last hover's), a state (`header-state`), elsewhere on a
+ * track's line `header-label`, on a section's line `section-header`. The hit is the one laid out (none made).
  */
-export function hitHeaders(s: SectionLayout, x: number, y: number): Hit | undefined {
+export function hitHeaders(s: SectionLayout, x: number, y: number, hover: Hit | undefined): Hit | undefined {
   const config = s.config;
   if (x < config.inset || x >= config.inset + config.labelWidth) return undefined;
+  HoverOnly.hover = hover;
   const sh = s.header;
-  if (sh && y >= sh.line.y && y < sh.line.y + sh.line.height) return hitLine(sh, x, y) ?? sh.hit;
+  if (sh && y >= sh.line.y && y < sh.line.y + sh.line.height)
+    return hitLine(sh, x, y, actionsShown(s.section.address, s.id, HoverOnly, config, false)) ?? sh.hit;
   for (let i = 0; i < s.tracks.length; i++) {
-    const line = s.tracks[i].header;
+    const t = s.tracks[i];
+    const line = t.header;
     if (!line || y < line.line.y || y >= line.line.y + line.line.height) continue;
-    const h = hitLine(line, x, y);
+    const h = hitLine(line, x, y, actionsShown(t.track.address, s.id, HoverOnly, config));
     if (h) return h;
+    if (line.hit) return line.hit;
   }
   return undefined;
 }
 
-function hitLine(line: HeaderLine | SectionHeaderLine, x: number, y: number): Hit | undefined {
-  const slots = line.slots;
-  for (let i = 0; i < slots.length; i++) if (inBox(slots[i], x, y)) return slots[i].hit;
-  if (line.menu && inBox(line.menu, x, y)) return line.menu.hit;
+function hitLine(line: HeaderLine | SectionHeaderLine, x: number, y: number, shown: boolean): Hit | undefined {
+  if (shown) {
+    const slots = line.slots;
+    for (let i = 0; i < slots.length; i++) if (inBox(slots[i], x, y)) return slots[i].hit;
+    if (line.menu && inBox(line.menu, x, y)) return line.menu.hit;
+  }
   const states = line.states;
   for (let i = 0; i < states.length; i++) if (inBox(states[i].box, x, y)) return states[i].hit;
   return undefined;
