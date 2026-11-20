@@ -930,6 +930,53 @@ by fuzz tests (mutated text read without a throw).
 - **Performance**: a region at the zoom level that fits, from a local file, decoded under 50 ms (heavy, `itWithin`).
   Size: its own row, under 30 kB, in no bundle that does not list it.
 
+### mmCIF
+
+`runtimes/mmcif.ts` (`@molstar/seqx-core/runtimes/mmcif`, opt in: `MmcifRuntime`, `mmcifRuntime`, `openMmcif`,
+`MmcifIssues`): a format runtime (`mmcif`) of a structure's nodes and its units' values (molecules.md, Reading).
+
+- **One converter**: the file is read whole (gzipped or not, by its magic; `DecompressionStream`, bounded by
+  `limits.maxBytes` before and after inflating), parsed by `@molstar/io`'s text CIF parser (an allowlisted entry; the
+  lint's restricted imports), its categories read by field name into a `StructureDescription`
+  (`runtimes/mmcif-description.ts`), and that into nodes by `structureNodes` (Seq io), never a converter of its own. Why
+  no mmCIF schema: its size; the description names the few fields read. Why the parser by dynamic import: a viewer that
+  lists the runtime and opens no mmCIF source pays its own code only. BinaryCIF is not read (its decoder's size).
+- **What is read**: entities (`entity`, `entity_poly`'s type and `pdbx_seq_one_letter_code_can`); components a position
+  (`entity_poly_seq`, `pdbx_entity_branch_list` by `num`, `pdbx_entity_nonpoly`; a water one `HOH` a water of its
+  longest unit); identifiers (a non-polymer's `ccd`, a branch's `wurcs` and `linucs` from
+  `pdbx_entity_branch_descriptor`, `prd` from `pdbx_molecule`); units (`struct_asym`, or the assembly asked from
+  `pdbx_struct_assembly_gen`, each chain under each operator, named as Mol\*'s instance ids: `ASM-1`, `ASM-X0-5`);
+  residues a unit from `atom_site`'s first model (a polymer's by `label_seq_id`, a branch's by `auth_seq_id` through
+  `pdbx_branch_scheme`'s `pdb_seq_num`, a water's in order), so `observed` is what was modeled and the `auth` numbering
+  `auth_seq_id` and `pdbx_PDB_ins_code`; links from `struct_conn` (`covale`: `covalent`, or `glycosidic` with a
+  glycosylation role; `disulf`, `metalc`) within one copy, and each branch's `pdbx_entity_branch_link` on each of its
+  units; compounds of the entities read from `chem_comp`, a parent from `mon_nstd_parent_comp_id` else
+  `pdbx_struct_mod_residue`; a molecule's atoms from its first unit (natural order of `label_asym_id`).
+- **Left out, said once** (`seq.io.mmcif.*`): an atom name's second `label_alt_id` (the first read; the others dropped:
+  a position is one atom), a `struct_conn` row with an end on a symmetry mate or on no unit read (a water when waters
+  are not read). A polymer's backbone `covale` (a modified residue to its neighbor) is the chain, not a link, and a
+  branch's own `struct_conn` rows are its list's; neither is said. An assembly the file lacks refuses the source
+  (`seq.io.mmcif.assembly`); bytes past the bound are `seq.source.unreadable`, text that does not parse
+  `seq.source.malformed`. Hydrogens are `structureNodes`' to refuse (EC-64).
+- **Values by `field`**: per residue, over its heavy atoms read: `b_factor` (`B_iso_or_equiv`'s mean), `occupancy` (the
+  mean), and `plddt` from ModelCIF's `ma_qa_metric_local` when a metric of type `pLDDT` is there; the default field the
+  first of `plddt`, `b_factor`. Level 1 only; a unit, level or field it lacks is `not-served`.
+- **Configuration**: `mmcifRuntime(options)` (`MmcifRuntime` is `mmcifRuntime()`); a source's own `assembly` param wins
+  over the runtime's:
+
+  | Item       | Default             | Why the default; the alternatives                                                           |
+  | ---------- | ------------------- | ------------------------------------------------------------------------------------------- |
+  | `assembly` | the deposited model | what the entry is; an assembly id of `pdbx_struct_assembly_gen`                             |
+  | `water`    | `false`             | waters say nothing on an axis (molecules.md); `true`                                        |
+  | `name`     | `description`       | the entity's own words (`pdbx_description`); `composition` for a branch (`NAG2 BMA`)        |
+  | `limits`   | `structureNodes`'   | the description's bounds (Seq io); an assembly's units are made up to `maxUnits`, then said |
+
+- **Tests**: the conformance suite on PDB entries recorded by hand (`examples/scripts/record-structures.ts`, CC0: 1EHZ
+  quick, 1FIN, 4HHB and 3SGJ medium), each against the counts recorded from its file and counted again from its
+  categories by the parser alone, and valid by the language; a small hand-written file for what no entry has (a polymer
+  without canonical letters, an altloc, a hydrogen, two operators, waters, pLDDT, the answers and refusals).
+- **Size**: its own row (its code and Seq io's converter) under 30 kB; the parser's chunk, on first open, apart.
+
 ### Archives
 
 `data/archive.ts` (`readArchive`, `writeArchive`, `archiveReader`): a spec with its data files and an index as one zip,

@@ -65,6 +65,15 @@ const AllCases = [
   { name: 'the viewer, default', entry: 'viewer.ts', target: 1_250_000, unlisted: Runtimes },
   { name: 'viewer, minimal', entry: 'viewer-minimal.ts', target: 880_000, unlisted: Unlisted },
   { name: 'bigWig runtime', entry: 'bigwig.ts', target: 30_000, own: /seq\/core\/src\/runtimes\// },
+  // the mmCIF runtime and Seq io's converter (in no viewer entry); `@molstar/io`'s parser is its lazy chunk, loaded
+  // when the first mmCIF source opens: listed apart (`lazy`), its `@molstar/core` imports counted in no row
+  {
+    name: 'mmCIF runtime',
+    entry: 'mmcif.ts',
+    target: 30_000,
+    own: /seq\/core\/src\/(runtimes|io)\/|(^|\/)packages\/io\/src\//,
+    lazy: true,
+  },
 ];
 
 const Cases = only ? AllCases.filter((c) => c.entry === only) : AllCases;
@@ -75,7 +84,11 @@ const resolveWorkspace = {
   setup(b) {
     b.onResolve({ filter: /^@molstar\// }, async (a) => {
       if (a.pluginData?.skip) return;
-      return b.resolve(a.path, { resolveDir: viewerDir, kind: a.kind, pluginData: { skip: true } });
+      // a package the viewer does not depend on (`@molstar/io`, an opt-in runtime's) from its importer's folder
+      const r = await b.resolve(a.path, { resolveDir: viewerDir, kind: a.kind, pluginData: { skip: true } });
+      return r.errors.length
+        ? b.resolve(a.path, { resolveDir: a.resolveDir, kind: a.kind, pluginData: { skip: true } })
+        : r;
     });
   },
 };
@@ -139,7 +152,11 @@ for (const c of Cases) {
   });
   const chunks = loaded(r.metafile).map((k) => r.outputFiles.find((f) => f.path === join(root, k)).contents);
   const code = Buffer.concat(chunks);
-  rows.push({ ...c, min: code.length, gzip: gzipSync(code, { level: 9 }).length, meta: r.metafile });
+  // the chunks loaded after a dynamic import: what an opt-in runtime loads on first use
+  const first = new Set(loaded(r.metafile));
+  const later = Object.keys(r.metafile.outputs).filter((k) => !first.has(k) && k.endsWith('.js'));
+  const lazy = later.reduce((n, k) => n + r.outputFiles.find((f) => f.path === join(root, k)).contents.length, 0);
+  rows.push({ ...c, min: code.length, gzip: gzipSync(code, { level: 9 }).length, lazyBytes: lazy, meta: r.metafile });
 }
 
 const pad = (s, n) => String(s).padEnd(n);
@@ -148,6 +165,8 @@ for (const r of rows)
   console.log(
     `${pad(r.name, 22)}${pad(kB(r.min), 12)}${pad(kB(r.gzip), 12)}${pad(`< ${kB(r.target)}`, 12)}${r.min < r.target ? 'pass' : 'FAIL'}`,
   );
+for (const r of rows.filter((r) => r.lazy === true))
+  console.log(`${r.name}: ${kB(r.lazyBytes)} more on first use (its lazy chunks, minified)`);
 
 // each entry's unlisted modules: none may have a byte in any chunk (no lazy chunk either: the design has none)
 let held = 0;
