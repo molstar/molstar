@@ -110,6 +110,17 @@ export interface TextBlocks {
   readonly offsets: Float64Array;
   readonly slots: Float64Array;
   readonly gap: number;
+  /**
+   * A block's label inline on its first line (EC-95), px: its label in the label font and a word's gap, the cells it
+   * takes from that line (a chip's is its pill: 0). Its continuation lines have none.
+   */
+  readonly lead: Float64Array;
+}
+
+/** The units block `b`'s inline label takes from its first line at `cell` px a unit (at most all but one). */
+export function leadUnits(tb: TextBlocks, b: number, upl: number, cell: number): number {
+  const px = tb.lead[b];
+  return px > 0 && cell > 0 ? Math.max(0, Math.min(upl - 1, Math.ceil(px / cell))) : 0;
 }
 
 /** A text's blocks for its section: their offsets and chips' slots. */
@@ -121,18 +132,30 @@ export function textBlocks(
 ): TextBlocks {
   const offsets = new Float64Array(blocks.length);
   const slots = new Float64Array(blocks.length);
+  const lead = new Float64Array(blocks.length);
   for (let b = 0; b < blocks.length; b++) {
     offsets[b] = blocks[b].offset ?? 0;
-    slots[b] = isChip(blocks[b]) ? Math.min(avail, chipWidth(text, config, blocks[b].label)) : 0;
+    const chip = isChip(blocks[b]);
+    slots[b] = chip ? Math.min(avail, chipWidth(text, config, blocks[b].label)) : 0;
+    // its label inline, with a word's gap after it (half the label font's size)
+    if (!chip && blocks[b].label)
+      lead[b] = text.measure(config.labelFont, blocks[b].label) + fontSize(config.labelFont) / 2;
   }
-  return { offsets, slots, gap: config.text.groupGap };
+  return { offsets, slots, gap: config.text.groupGap, lead };
 }
 
 /**
  * Each line's first unit in a text of blocks: every block starts a line and is cut into lines of `upl`; a run of
  * chips flows like words, as many on a line as fit `avail` with `gap` between two.
  */
-export function blockStarts(total: number, upl: number, avail: number, gap: number, tb: TextBlocks): Float64Array {
+export function blockStarts(
+  total: number,
+  upl: number,
+  avail: number,
+  gap: number,
+  tb: TextBlocks,
+  cell = 0,
+): Float64Array {
   const out: number[] = [];
   let line = -1;
   const n = tb.offsets.length;
@@ -148,7 +171,9 @@ export function blockStarts(total: number, upl: number, avail: number, gap: numb
       continue;
     }
     line = -1;
-    for (let u = o; u < end; u += upl) out.push(u);
+    // its first line holds its inline label and fewer units (EC-95); the others are whole lines
+    out.push(o);
+    for (let u = o + upl - leadUnits(tb, b, upl, cell); u < end; u += upl) out.push(u);
   }
   return Float64Array.from(out);
 }
@@ -260,7 +285,7 @@ export function textGeometry(
   // a section of blocks: each starts a line, its chips flowing like words; else a piece edge may start one
   const tb = blocks ? textBlocks(blocks, text, config, avail) : undefined;
   const starts = tb
-    ? blockStarts(total, unitsPerLine, avail, tb.gap * cell, tb)
+    ? blockStarts(total, unitsPerLine, avail, tb.gap * cell, tb, cell)
     : t.pieceBreak === 'line'
       ? pieceStarts(total, unitsPerLine, pieces)
       : undefined;
@@ -389,12 +414,19 @@ function lineAxis(base: AxisTransform, g: TextGeometry, u0: number, u1: number):
 }
 
 /** A block's line: its pieces windowed to its units `[b0, b1)`, its groups from the line's first, at the line's x. */
-function blockLineAxis(block: ResolvedBlock, dpr: number, g: TextGeometry, b0: number, b1: number): AxisTransform {
+function blockLineAxis(
+  block: ResolvedBlock,
+  dpr: number,
+  g: TextGeometry,
+  b0: number,
+  b1: number,
+  dx = 0,
+): AxisTransform {
   const ax = block.axis;
   return new AxisTransform(
     ax.system,
     ax.ranges ?? [],
-    g.lineX,
+    g.lineX + dx,
     lineWidthOf(g, b1 - b0),
     dpr,
     { start: b0, end: b1 },
@@ -527,8 +559,10 @@ export const TextLayout: SectionLayoutType<TextPlacement> = {
         y += p.heights[l];
         continue;
       }
+      // a block's first line: its label inline before its letters (EC-95)
+      const lead = tb && u0 === tb.offsets[b] ? leadUnits(tb, b, g.unitsPerLine, g.cell) * g.cell : 0;
       const a = tb
-        ? blockLineAxis(section.blocks![b], ctx.dpr, g, u0 - tb.offsets[b], u1 - tb.offsets[b])
+        ? blockLineAxis(section.blocks![b], ctx.dpr, g, u0 - tb.offsets[b], u1 - tb.offsets[b], lead)
         : lineAxis(ctx.axis, g, u0, u1);
       // the line's units on its axis (a block's: from its first)
       const du = a.u0 - u0;
@@ -587,6 +621,10 @@ export const TextLayout: SectionLayoutType<TextPlacement> = {
       const baseline = ruled
         ? rulerBaseline(strips.bandY[k], strips.bandH[k])
         : strips.bandY[k] + strips.bandH[k] / 2 + labelSize * 0.35;
+      if (lead > 0) {
+        const m = mark(i, section.blocks![b].label, g.lineX, baseline, AnchorStart, config.labelFont, ctx.text);
+        marks.push({ ...m, maxWidth: lead });
+      }
       if (params.numbers === 'start' || params.numbers === 'both') {
         const s = numberAt(a, u0 + du, numbering);
         marks.push(mark(i, s, a.x0 - config.text.numberGap, baseline, AnchorEnd, g.numberFont, ctx.text));
@@ -756,7 +794,7 @@ export const TextNav: SectionNav = {
     const lines = lineOf(g, at) - LineFrac.line - LineFrac.frac;
     // the new breaking's lines (pieces breaking lines: their starts again at the new width)
     const starts = g.blocks
-      ? blockStarts(g.total, upl1, g.avail, g.blocks.gap * cell, g.blocks)
+      ? blockStarts(g.total, upl1, g.avail, g.blocks.gap * cell, g.blocks, cell)
       : g.starts
         ? pieceStarts(g.total, upl1, g.pieces)
         : undefined;

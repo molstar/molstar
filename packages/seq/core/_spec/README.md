@@ -2561,7 +2561,9 @@ numbers): a window move allocates nothing once warm.
 - **Text**: every block starts a line on its own system (its lines from its first unit, `blockStarts`); a run of chips
   flows like words, as many on a line as fit, each its slot (at most a line) with a word's gap (`text.groupGap`)
   between. The placement reads a line's units from its first section unit (`StripPlacement.lineBlocks`), a line's chips
-  by x. Not built yet: a block's label inline on its first line (EC-95).
+  by x. A block's label is inline on its first line (EC-95): its width and a word's gap taken from that line
+  (`TextBlocks.lead`, the line's units fewer, its letters after the label), so it takes part in the breaking; its
+  continuation lines have none. A chip's label is its pill.
 - **Rings**: a block an arc (above); a chip a fixed-angle arc its slot on the outer ring (the frame's px), its letters
   ring a pill, the other blocks sharing the rest of the circle by their lengths.
 - **Follow across systems** is refused: a section of blocks on more than one system neither follows nor is followed

@@ -998,6 +998,32 @@ rows' commands) reads the last frame's rows layers through the behavior context'
   (it runs per pointer move): `preview(patch)` replaces the last, `endPreview(label)` ends it in one step,
   `cancelPreview()` in nothing. `when` says why one cannot run (no such node, no step shown, nothing to cancel).
 
+### Molecules: the interaction matrix's cells
+
+The cells the molecules design names, each built or not and why (the core's "Resolved view", Blocks; "Render", Blocks):
+
+- **A section of a complex**: zoom and pan as its layout; hidden by its tracks; `classes`, `copies`, `arrange` by a
+  patch (`SpecModel.patch`): no `section.set` command yet, because nothing but a host's own menu would run it.
+- **A chip** (`form: whole`): a click selects its block's every residue (its hit's `extent`), Shift+click and
+  Cmd/Ctrl+click as an element; double-click focuses that extent. Not built: a sibling section zooming to the chip's
+  residues or atoms through the atoms map, because the viewer's focus carries a location along static paths only and the
+  atoms map is applied at a path's ends by the model's projection, not by the focus. Zoom and pan: no, a chip is fixed
+  in px and the window skips it (one unit). Hidden: no, by `classes` or the blocks by patch. Its form: the `block.form`
+  command (Commands), no context menu yet.
+- **A modified residue**, **a molecule's residue or atom**: as an element; a modified residue's mark hidden by
+  `modified: none` on the layer (by patch). Atoms collapse onto residues for other sections where the model's projection
+  does it.
+- **A link** (an arc, or a site's mark on a `ranges` layer over links): a click selects the link, both ends lit, each on
+  its row's unit; Shift and Cmd/Ctrl as elements; double-click its extent, two parts on two systems; hidden by its
+  layer's items (`layer.filter`).
+- **A range over blocks with chips**: no drag across a chip in reading order, because a drag on a section of blocks
+  stays in the block it began on (Behaviors, a section of blocks on several systems): a position on the section's units
+  is no system's. Enter focuses the selection.
+- **The selection**: `(filter :test (= (prop modified) true))` and the other forms through the query command; a bookmark
+  by `selection.bookmark`. **The view**: 0 fits, chips keep their px. **A track or layer**: `track.hide`; `modified` by
+  patch. **A bookmark**: `refs.add`, its action run. **A follower**: never a section of several systems
+  (`seq.render.follow.blocks`). **A navigator**: chips skipped as the window skips them.
+
 ## Bindings
 
 `bindings.ts`: the interaction grammar as data, `{ gesture, modifiers, target, action }`.

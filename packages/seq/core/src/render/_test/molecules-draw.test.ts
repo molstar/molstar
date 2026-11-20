@@ -170,4 +170,24 @@ describe('a complex drawn against its data', () => {
     const z = await s.frame({ size: Size, viewport: { start: 6, end: 16 } });
     expect(texts(z, 'labels')).toEqual(expect.arrayContaining(['→ Glycan 1']));
   });
+
+  it('in text, a block’s label inline on its first line, taking part in its breaking; its other lines none (EC-95)', async () => {
+    const s = await settle(moleculesSpec({ layout: 'text', copies: 'each' }));
+    const f = await s.frame({ size: { width: 520, height: 600 } });
+    const p = f.layout.sections[0].placement;
+    const a = (i: number) => p.strips.axes[i];
+    // A's first line, then its continuation lines on the same system, then B's first line
+    const lines = [];
+    for (let i = 0; i < p.strips.n; i++) if (!p.strips.chip[i]) lines.push(i);
+    const onA = lines.filter((i) => a(i).system === '/data/c/A');
+    expect(onA.length).toBeGreaterThan(1);
+    const first = a(onA[0]);
+    const next = a(onA[1]);
+    // the first line starts after its label: fewer units, its letters shifted right by the label
+    expect(first.x0).toBeGreaterThan(next.x0);
+    expect(first.u1 - first.u0).toBeLessThan(next.u1 - next.u0);
+    const labels = texts(f, 'labels');
+    expect(labels.filter((t) => t === 'A')).toHaveLength(1);
+    expect(labels.filter((t) => t === 'B')).toHaveLength(1);
+  });
 });
