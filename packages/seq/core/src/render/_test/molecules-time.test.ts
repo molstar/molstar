@@ -58,7 +58,8 @@ describe('a complex’s frame time', () => {
     for (const i of inputs) await s.frame(i);
     const f = s.renderer.frame(inputs[0]);
     // three pairs on each of the 200 copies, the ends placed once a section
-    const lay = f.layout.sections[0].sectionLays.find((l) => l.lay.key.includes('/within/'))!.lay as PairsLay;
+    const lay = f.layout.sections[0].sectionLays.find((l) => (l.lay as PairsLay).key.includes('/within/'))!
+      .lay as PairsLay;
     expect(lay.prep!.units.get(f.layout.sections[0].section)!.n).toBe(600);
     expect(lay.n).toBeGreaterThan(0);
     const time = () => {
