@@ -108,8 +108,8 @@ checks it cannot express.
   of a run paired, what no run holds unpaired; its runs apart on `to` too: a residue of the structure is one of the
   sequence). A param another method takes, or one missing, is `seq.lang.map.params`; bad runs or status rows
   `seq.lang.map.segments`. Any map's `priority` (an integer, 0 when absent, not filled in) ranks it among maps joining
-  the same systems (Resolve, Paths). Why `unpaired` is not written: it is what no run holds, so it cannot disagree with
-  the runs.
+  the same systems (Resolve, Paths: priorities sorted weakest first, compared in turn). Why `unpaired` is not written:
+  it is what no run holds, so it cannot disagree with the runs.
 - **A section's `via`** (a map, or a list): for that section's paths (its follow, its `direction: { along }`, its
   layers' data, what is projected onto it) the named maps' rivals are left out (Resolve, Paths); refs checked as
   `pieces`' are (`seq.lang.ref.target` at the item). Links carry none: where they land is the sections'. Why per use: a
@@ -1334,16 +1334,18 @@ Seq\* holds pointers and labels: codes and identifiers are strings.
   every question of the path; a protein through a chromosome is as sparse as its coding sequence (EC-27).
 - **Search** (`findPath`): by counted length from 0, at most `maxPathSteps` counted steps, unit steps free, at most one
   codon step (EC-19), each system once. Candidates that pair nothing are dropped; equal compositions count once; of
-  distinct ones the one ranked highest by its weakest map is taken (`pathRank`: the lowest `priority` among the maps it
-  steps through, unit steps none; equal compositions count at their best rank), and a tie is
-  `seq.resolve.path.ambiguous` (EC-23, EC-24: ambiguous unless ranked or named), its hint naming `priority` and `via`.
-  Rank orders candidates of one length only, so a priority never makes a longer path beat a shorter one (EC-22). Why the
-  weakest map, not a sum: a path is as trustworthy as its least trusted step; why no rule ranks kinds or specific over
-  general maps: a wrong map taken quietly is worse than the issue, which teaches. More than `maxPathCandidates` is
-  `seq.resolve.path.limit`; none within the bound is `seq.resolve.path.none`. A path issue's `address` is the system it
-  starts from and its `places` are both systems. The copy rule is in the search: after climbing out of a unit to its
-  molecule a path never steps down to a unit of it, so a longer legal path wins (EC-25); a path ending at a ranged unit
-  is clipped by its step (EC-26).
+  distinct ones the one ranked highest is taken: each candidate's maps' priorities sorted weakest first, compared in
+  turn (`pathRank`, `compareRanks`; unit steps none; equal compositions count at their best rank), so a map the
+  candidates share ties and the maps that differ decide; a full tie is `seq.resolve.path.ambiguous` (EC-23, EC-24:
+  ambiguous unless ranked or named), its hint naming `priority` and `via`. Rank orders candidates of one length only
+  (they step through as many maps), so a priority never makes a longer path beat a shorter one (EC-22). Why sorted
+  priorities (the author, 2026-11-20): weakest first keeps a path as trustworthy as its least trusted step, and an
+  unranked map shared by both (an offset before SIFTS and an alignment) no longer hides the rivals' ranks; why no rule
+  ranks kinds or specific over general maps: a wrong map taken quietly is worse than the issue, which teaches. More than
+  `maxPathCandidates` is `seq.resolve.path.limit`; none within the bound is `seq.resolve.path.none`. A path issue's
+  `address` is the system it starts from and its `places` are both systems. The copy rule is in the search: after
+  climbing out of a unit to its molecule a path never steps down to a unit of it, so a longer legal path wins (EC-25); a
+  path ending at a ranged unit is clipped by its step (EC-26).
 - **Edges**: `edgesFrom(system)` lists the spec's maps from a system, both ways: what a search reads, so the overlay
   searches over them and its own.
 - **Via** (`maps-via.ts`): `path(from, to, via?)` with map addresses leaves out their rivals (other maps joining the

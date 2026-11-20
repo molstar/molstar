@@ -5,7 +5,8 @@
  */
 
 // Two maps joining one pair of systems (structure-syncing.md, Choosing between two maps; _spec/README.md "Resolve",
-// Paths): a map's `priority` ranks the distinct shortest candidates by their weakest map, a tie stays ambiguous; a
+// Paths): a map's `priority` ranks the distinct shortest candidates by their maps' priorities sorted weakest first
+// and compared in turn, a full tie stays ambiguous; a
 // use's `via` leaves out the named maps' rivals. EC-22 to EC-27 on every encoding (implicit, runs, expanded) with a
 // ranked pair, a tie and a `via`; EC-24 as amended: two maps of one pair make paths through them ambiguous unless
 // ranked or named.
@@ -161,6 +162,39 @@ describe('two maps of one pair: priority (EC-22 to EC-27, every encoding)', () =
       expect(p.linear.encoding).not.toBe('expanded');
     });
   }
+});
+
+describe('ranks compared as sorted priorities (EC-24)', () => {
+  /** A gene `g` onto `up` by an unranked offset, then up onto `ent` by `sifts` or `aln`. */
+  function throughOffset(sifts: number, aln: number): StaticModel {
+    const b = createSeqSpec();
+    const g = b.data.sequence('g', { alphabet: 'protein', letters: UP });
+    const up = b.data.sequence('up', { alphabet: 'protein', letters: UP });
+    const ent = b.data.sequence('ent', { alphabet: 'protein', letters: ENT });
+    b.data.map('gu', { from: g, to: up, method: 'offset', by: 0 });
+    b.data.map('sifts', {
+      from: up,
+      to: ent,
+      method: 'segments',
+      segments: { from: [4], to: [2], length: [20] },
+      priority: sifts,
+    });
+    b.data.map('aln', {
+      from: up,
+      to: ent,
+      method: 'segments',
+      segments: { from: [4], to: [3], length: [20] },
+      priority: aln,
+    });
+    return resolveSpec(b.build());
+  }
+
+  it('a shared unranked map ties, and the rival maps decide; a full tie stays ambiguous', () => {
+    // [0, 1] against [0, 0]: the weakest maps tie, the next weakest decide
+    expect(maps(throughOffset(1, 0), '/data/g', '/data/ent')).toEqual(['/data/gu', '/data/sifts']);
+    expect(maps(throughOffset(-1, 0), '/data/g', '/data/ent')).toEqual(['/data/gu', '/data/aln']);
+    expect(maps(throughOffset(2, 2), '/data/g', '/data/ent')).toBe('seq.resolve.path.ambiguous');
+  });
 });
 
 describe('a use’s via (EC-24)', () => {

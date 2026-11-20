@@ -523,7 +523,7 @@ export const SeqLanguage = defineLanguage({
         },
         priority: {
           type: 'integer',
-          doc: 'Its rank among maps joining the same systems (0 when absent): of the shortest paths that map differently, the one whose lowest-ranked map ranks highest is taken; a tie stays ambiguous.',
+          doc: 'Its rank among maps joining the same systems (0 when absent): of the shortest paths that map differently, the one whose maps’ priorities, sorted weakest first and compared in turn, rank highest is taken; a full tie stays ambiguous.',
         },
         exons: {
           type: 'table',

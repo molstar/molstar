@@ -105,7 +105,6 @@ export {
   codingRanges,
   pathDir,
   pathDirection,
-  pathRank,
   pathStatus,
   projectBoundary,
   projectEnd,

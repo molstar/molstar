@@ -39,7 +39,7 @@ export interface Edge {
   readonly linear: Linear;
   /** A unit's step to its molecule (`up`) or from it (`down`): free, never counted, under the copy rule. */
   readonly unit?: 'up' | 'down';
-  /** The map's `priority` (0 when absent): a path ranks as its lowest-ranked map; a unit's step has none. */
+  /** The map's `priority` (0 when absent): a path ranks by its maps' priorities, weakest first; a unit step none. */
   readonly priority?: number;
 }
 
@@ -251,17 +251,28 @@ export type PathSearch =
   | { readonly ok: true; readonly path: Path }
   | { readonly ok: false; readonly why: 'none' | 'ambiguous' | 'limit'; readonly candidates: number };
 
-/** A path's rank: the lowest priority among the maps it steps through (unit steps have none); 0 for none. */
-export function pathRank(p: Path): number {
-  let rank = Infinity;
-  for (const e of p.edges) if (!e.unit) rank = Math.min(rank, e.priority ?? 0);
-  return rank === Infinity ? 0 : rank;
+/** A path's rank: the priorities of the maps it steps through (unit steps have none), sorted weakest first. */
+export function pathRank(p: Path): number[] {
+  const out: number[] = [];
+  for (const e of p.edges) if (!e.unit) out.push(e.priority ?? 0);
+  return out.sort((a, b) => a - b);
+}
+
+/**
+ * Two ranks compared lexicographically, weakest first (the author, 2026-11-20: "Compare sorted priorities"): a map the
+ * two share ties, and the maps that differ decide. Positive when `a` ranks above `b`. Candidates of one length step
+ * through as many maps, so the lists are as long.
+ */
+export function compareRanks(a: readonly number[], b: readonly number[]): number {
+  for (let i = 0; i < Math.min(a.length, b.length); i++) if (a[i] !== b[i]) return a[i] - b[i];
+  return a.length - b.length;
 }
 
 /**
  * The shortest unambiguous path (EC-19 to EC-25): candidates by counted length, unit steps free; at most one codon
  * step; a candidate that pairs nothing is dropped first; equal compositions count once; of those that differ, the
- * one ranked highest by its weakest map (`pathRank`) is taken, and a tie is ambiguous (_spec/README.md "Resolve",
+ * one ranked highest by its maps' priorities sorted weakest first and compared in turn (`pathRank`, `compareRanks`)
+ * is taken, and a tie is ambiguous (_spec/README.md "Resolve",
  * Paths; structure-syncing.md, Choosing between two maps). Rank orders candidates of one length only, so a priority
  * never makes a longer path beat a shorter one. The copy rule is part of the search: no path climbs from a unit to its
  * molecule and down to another unit of it, so a longer legal path beats a shorter illegal one.
@@ -307,17 +318,17 @@ export function findPath(graph: PathGraph, from: string, to: string, bounds: Pat
     if (over) return { ok: false, why: 'limit', candidates: found.length };
     if (!found.length) continue;
     // equal compositions count once, at the best rank among them: the one with the highest rank found first
-    const distinct: { path: Path; rank: number }[] = [];
+    const distinct: { path: Path; rank: number[] }[] = [];
     for (const p of found) {
       const rank = pathRank(p);
       const same = distinct.find((q) => q.path.step === p.step && linearsEqual(q.path.linear, p.linear));
       if (!same) distinct.push({ path: p, rank });
-      else if (rank > same.rank) Object.assign(same, { path: p, rank });
+      else if (compareRanks(rank, same.rank) > 0) Object.assign(same, { path: p, rank });
     }
     if (distinct.length === 1) return { ok: true, path: distinct[0].path };
-    let top = -Infinity;
-    for (const d of distinct) top = Math.max(top, d.rank);
-    const best = distinct.filter((d) => d.rank === top);
+    let top = distinct[0];
+    for (const d of distinct) if (compareRanks(d.rank, top.rank) > 0) top = d;
+    const best = distinct.filter((d) => compareRanks(d.rank, top.rank) === 0);
     if (best.length === 1) return { ok: true, path: best[0].path };
     return { ok: false, why: 'ambiguous', candidates: distinct.length };
   }
