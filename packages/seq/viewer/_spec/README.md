@@ -739,9 +739,13 @@ binding table; per move one hit record and one modifiers record are reused.
   `MaxRowScale`, never past the rows there are), each by the rows the pointer travelled (a floored window reaches every
   row); a drag farther than the rows in view, or a zoom, is one step (`navigator.dragStep`); Esc puts the band back. A
   press that never moved acts at its click: outside the window the rows centre there (a jump), on the window nothing; a
-  double-click nothing more. `]` and `[` (the rows behavior's `rows.zoom-in`, `rows.zoom-out`) zoom the rows; PageDown
-  and PageUp (`cursor.page-down`, `cursor.page-up`, with no cursor shown on rows: as `rows.page-down`, `rows.page-up`)
-  move the window by the rows it shows less one, the page's own key at an end.
+  double-click on the window resets the rows' zoom (`resetZoom`: `rowScale` unset, the band's top row kept; a jump),
+  outside it nothing more. A vertical overview's rows grips (its window's top and bottom bars) are this gesture over its
+  window, never a scroll; a double-click on its window resets zoomed rows the same, else it is the positions' (one
+  gesture, one step). Why: the rows rail and the overview are one window over the rows. `]` and `[` (the rows behavior's
+  `rows.zoom-in`, `rows.zoom-out`) zoom the rows; PageDown and PageUp (`cursor.page-down`, `cursor.page-up`, with no
+  cursor shown on rows: as `rows.page-down`, `rows.page-up`) move the window by the rows it shows less one, the page's
+  own key at an end.
 
 - **Round a ring** (a section whose window `wraps`), the placement read by angle: a zoom keeps the unit under the
   pointer's angle (the turn nearest the window, `RingsNav.zoom`); a pan drag (Space+drag) moves the window by the units

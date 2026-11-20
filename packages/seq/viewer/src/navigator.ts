@@ -16,7 +16,12 @@ import {
   windowText,
 } from '@molstar/seqx-core/render/navigator';
 import { axisTotal, type ResolvedNavigator, type ResolvedView, resolveNavigatorNode } from '@molstar/seqx-core/view';
-import type { NavigateBehavior, NavigatorBehavior } from '@molstar/seqx-viewer/behaviors';
+import type {
+  NavigateBehavior,
+  NavigatorBehavior,
+  RowsBehavior,
+  RowsRailGesture,
+} from '@molstar/seqx-viewer/behaviors';
 // the module, not the barrel: the behaviors' providers make this model (an import cycle through the barrel)
 import { windowIdle } from '@molstar/seqx-viewer/behaviors/window';
 import type { ModifierState } from '@molstar/seqx-viewer/bindings';
@@ -69,6 +74,8 @@ interface Press {
   readonly positions: boolean;
   /** The press drags the rows: their band's track, its scroll at the press, the viewports then (a far drag's step). */
   readonly rows?: { readonly track: string; readonly top: number; readonly before: ViewSnapshot };
+  /** The press is on a rows grip: the rows rail's gesture zooms them about the other end (`RowsRailGesture`). */
+  readonly grip?: RowsRailGesture;
 }
 
 export class NavigatorModel extends ReactiveModel {
@@ -461,6 +468,14 @@ export class NavigatorModel extends ReactiveModel {
     // what the press drags: a rows part its rows, a positions part its positions, a miniature's body both; outside the
     // window a positions press (a click or a sweep), and on rows a press for its click
     const both = nav.axes === 'both' && h.part === 'body';
+    // a rows grip (the window's top or bottom bar) zooms the rows about the other end, as the rows rail's grip does
+    const grip = h.axis === 'rows' && (h.part === 'start' || h.part === 'end') && m & NavWindowFlags.y;
+    const g = grip ? this.pressGrip(h, y) : undefined;
+    if (g) {
+      this.press = { x0: x, y0: y, hit: h, moved: false, positions: false, grip: g };
+      this.changed();
+      return true;
+    }
     let rows: Press['rows'];
     if (inside && (h.axis === 'rows' || both) && m & NavWindowFlags.y) {
       const track = this.rowsTrack(h.section);
@@ -473,6 +488,19 @@ export class NavigatorModel extends ReactiveModel {
     this.press = { x0: x, y0: y, hit: h, moved: false, positions, ...(rows ? { rows } : {}) };
     this.changed();
     return true;
+  }
+
+  /** A press on a rows grip at `y`: the rows behavior's rail gesture over the bound band (none without it). */
+  private pressGrip(h: NavigatorHit, y: number): RowsRailGesture | undefined {
+    const rowsBehavior = this.viewer.behavior<RowsBehavior>('rows');
+    const track = this.rowsTrack(h.section);
+    const w = this.windowOf(h.section);
+    const l = track && rowsBehavior?.lay(track);
+    const at = this.renderer?.rowAt(y);
+    if (!rowsBehavior || !track || !w || !l || at === undefined) return undefined;
+    const g = rowsBehavior.railGesture();
+    const window = { start: w.r0, end: w.r1, total: w.rows, width: Math.max(0, l.box.height - l.pinnedHeight) };
+    return g.press(track, h.part, at, window) ? g : undefined;
   }
 
   private pressPositions(b: NavigatorBehavior, h: NavigatorHit, x: number): boolean {
@@ -489,6 +517,11 @@ export class NavigatorModel extends ReactiveModel {
 
   private dragTo(d: Press, x: number, y: number): void {
     const r = this.renderer!;
+    if (d.grip) {
+      const row = r.rowAt(y);
+      if (row !== undefined) d.grip.dragTo(row);
+      return;
+    }
     if (d.rows && d.hit.part !== 'outside') {
       const row = r.rowAt(y);
       const row0 = r.rowAt(d.y0);
@@ -509,7 +542,11 @@ export class NavigatorModel extends ReactiveModel {
     if (!d) return;
     this.press = undefined;
     const b = this.behavior;
-    if (!d.moved) {
+    if (d.grip) {
+      if (d.moved) d.grip.release();
+      else d.grip.cancel();
+      if (d.moved) this.ownMove = true;
+    } else if (!d.moved) {
       if (d.positions) b?.cancel();
     } else {
       if (d.positions) b?.release();
@@ -563,12 +600,22 @@ export class NavigatorModel extends ReactiveModel {
     return (at !== undefined && b.click(d.hit.section, at, detail)) || moved;
   }
 
-  /** A double-click at a point: fit, or fitted, a window `navigator.zoomPx` navigator px wide there. */
+  /**
+   * A double-click at a point: on a window over zoomed rows, the rows' zoom reset (one jump, the rows rail's
+   * `resetZoom`); else fit, or fitted, a window `navigator.zoomPx` navigator px wide there.
+   */
   doubleClick(x: number, y: number): boolean {
     const b = this.behavior;
     const nav = this.navigator;
     const h = this.hit(x, y);
-    if (!b || !nav || !h || h.context || nav.axes === 'rows' || !(this.moves[h.section] ?? 0)) return false;
+    if (!nav || !h || h.context || !(this.moves[h.section] ?? 0)) return false;
+    const track = nav.axes !== 'positions' && h.part !== 'outside' ? this.rowsTrack(h.section) : undefined;
+    if (track && this.viewer.view.band(track)?.rowScale !== undefined) {
+      const reset = !!this.viewer.behavior<RowsBehavior>('rows')?.railGesture().resetZoom(track);
+      if (reset) this.ownMove = true;
+      return reset;
+    }
+    if (!b || nav.axes === 'rows') return false;
     const r = this.renderer!;
     const at = r.sectionUnitAt(h.section, x);
     const half = this.viewer.config.navigator.zoomPx / 2;
@@ -600,6 +647,7 @@ export class NavigatorModel extends ReactiveModel {
     const d = this.press;
     if (!d) return false;
     this.press = undefined;
+    d.grip?.cancel();
     if (d.rows) this.viewer.view.setBand(d.rows.track, { bandTop: d.rows.top });
     if (d.positions) this.behavior?.cancel();
     this.changed();
