@@ -110,3 +110,24 @@ describe('(atoms), (atom …)', () => {
     expect(codes(run('/data/fc/(atom :name O1G)'))).toEqual(['seq.query.form.prefix']);
   });
 });
+
+describe('the host’s identifier resolver and component names', () => {
+  const host = resolveSpec(spec, {
+    equivalents: (id) => (id === 'chembl:CHEMBL14249' ? ['ccd:ATP'] : []),
+    componentNames: (code) => (code === 'NAG' ? { name: 'N-acetyl-D-glucosamine', class: 'D-saccharide' } : undefined),
+  });
+  const hosted = (address: string) => evaluateQuery(spec, host, address, { limit: 100 });
+
+  it('a molecule by an identifier the host holds the same compound as one of its own', () => {
+    expect(nodes(hosted('/data/(molecule :identifier "chembl:CHEMBL14249")'))).toEqual(['/data/atp']);
+    expect(nodes(run('/data/(molecule :identifier "chembl:CHEMBL14249")'))).toEqual([]);
+  });
+
+  it('a class through the host’s names where no compound node describes the code', () => {
+    expect(loc(hosted('/data/glycan/(component :class saccharide)'), '/data/glycan')).toEqual([0, 2]);
+    expect(loc(run('/data/glycan/(component :class saccharide)'), '/data/glycan')).toEqual([]);
+    expect(host.compound('NAG')?.name).toBe('N-acetyl-D-glucosamine');
+    // a compound node wins over the host's names
+    expect(host.compound('CRO')?.name).toBe('chromophore');
+  });
+});

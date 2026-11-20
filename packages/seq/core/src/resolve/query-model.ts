@@ -79,7 +79,10 @@ export function overlayQueryModel(model: StaticModel, overlay: Overlay, rows?: R
     components: (s) =>
       model.components?.(s) ??
       componentsOf(overlay.molecular, overlay.system(s), (a) => model.systems.get(a) ?? overlay.system(a)),
-    compoundClass: (code) => model.compoundClass?.(code) ?? overlay.molecular.compounds?.get(code)?.class,
+    // a source's compound before the host's names: what the data says beats a lookup
+    compoundClass: (code) =>
+      model.compounds.get(code)?.class ?? overlay.molecular.compounds?.get(code)?.class ?? model.compound(code)?.class,
+    equivalents: (identifier) => model.equivalents?.(identifier) ?? [],
     annotationsOn: (s) => [
       ...(model.annotationsOn?.(s) ?? []),
       ...overlay.nodes.flatMap((n) => {

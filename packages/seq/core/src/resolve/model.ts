@@ -275,6 +275,8 @@ export interface StaticModel extends QueryModel {
   readonly compounds: ReadonlyMap<string, CompoundEntry>;
   /** A sequence's modified index, or a unit's of one; undefined when it has none. */
   modified(system: string): ModifiedIndex | undefined;
+  /** A component described: its `compound` node, else the host's names (`ResolveOptions.componentNames`). */
+  compound(code: string): Omit<CompoundEntry, 'id'> | undefined;
   readonly issues: readonly Issue[];
   /** A system's declared numbering by its id (`kabat`), or undefined: never a built-in (`index`, `ordinal`). */
   numberingOf(system: string, id: string): NumberingEntry | undefined;
@@ -306,6 +308,16 @@ export interface ResolveOptions {
    * "Resolve", Systems). Each is kept by its system and its source node, so a source edited since is unknown again.
    */
   readonly lengths?: Lengths;
+  /**
+   * The host's identifier resolver (its `identifierResolver` entry): the identifiers it holds the same compound as one
+   * (`ccd:ATP`), never the one itself; none by default (exact match only).
+   */
+  readonly equivalents?: (identifier: string) => readonly string[];
+  /**
+   * The host's component names (its `componentNames` entry: a CCD lookup) by code, where no `compound` node describes
+   * one; none by default (the code alone).
+   */
+  readonly componentNames?: (code: string) => Omit<CompoundEntry, 'id'> | undefined;
 }
 
 /**
@@ -558,6 +570,7 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
     issues,
     molecular,
     compounds,
+    { equivalents: options.equivalents, componentNames: options.componentNames },
     carried,
     given,
   );
@@ -1050,6 +1063,7 @@ class Model implements StaticModel {
     readonly issues: readonly Issue[],
     readonly molecular: Molecular = EmptyMolecular,
     readonly compounds: ReadonlyMap<string, CompoundEntry> = new Map(),
+    private readonly host: Pick<ResolveOptions, 'equivalents' | 'componentNames'> = {},
     private readonly carried?: ReadonlyMap<string, PathEntry>,
     lengths: Lengths = new Map(),
   ) {
@@ -1263,7 +1277,15 @@ class Model implements StaticModel {
   }
 
   compoundClass(code: string): string | undefined {
-    return this.compounds.get(code)?.class;
+    return this.compound(code)?.class;
+  }
+
+  compound(code: string): Omit<CompoundEntry, 'id'> | undefined {
+    return this.compounds.get(code) ?? this.host.componentNames?.(code);
+  }
+
+  equivalents(identifier: string): readonly string[] {
+    return this.host.equivalents?.(identifier) ?? [];
   }
 
   annotationsOn(system: string): readonly string[] {
