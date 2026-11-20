@@ -20,14 +20,8 @@ import {
 } from '@molstar/core/repr/tree';
 import { checkLinks, checkUnit, LangIssues } from '@molstar/seqx-core/lang';
 import { labelsNumbering, type Numbering } from '@molstar/seqx-core/query';
-import {
-  type AnnotationEntry,
-  linksEntry,
-  type ResolveConfig,
-  resolveSequenceNode,
-  type SystemEntry,
-  unitsIssue,
-} from './model.js';
+import { type AnnotationEntry, type ResolveConfig, resolveSequenceNode, type SystemEntry } from './model.js';
+import { compoundEntry, linksEntry, unitsIssue } from './model-molecules.js';
 import { ResolveIssues } from './issues.js';
 import type { CompoundEntry, Molecular } from './molecule-query.js';
 import {
@@ -101,16 +95,8 @@ export class DynamicMolecular implements Molecular {
         return true;
       }
       case 'compounds':
-        for (const c of node.children ?? []) {
-          if (c.kind !== 'compound' || c.id === undefined) continue;
-          const cls = c.params?.class;
-          const name = c.params?.name;
-          this.compounds.set(c.id, {
-            id: c.id,
-            ...(typeof name === 'string' ? { name } : {}),
-            ...(typeof cls === 'string' ? { class: cls } : {}),
-          });
-        }
+        for (const c of node.children ?? [])
+          if (c.kind === 'compound' && c.id !== undefined) this.compounds.set(c.id, compoundEntry(c));
         return true;
       case 'complex':
         return this.complex(address, node);
