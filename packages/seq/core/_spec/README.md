@@ -230,7 +230,8 @@ never chemistry: a component code, a SMILES, a GlyTouCan id are strings it match
   order within its positions: `seq.lang.unit.observed`), `chain` (`label_asym_id`), `auth_chain`, `operator`
   (MolViewSpec's `instance_id`), `label`, `group` (a BIRD/PRD instance); its `numbering` children (`auth`) label its own
   positions. A unit is a system whose position i is its molecule's `range[0] + i` (Queries, Numberings and labels; the
-  paths' unit steps). Units of one complex with equal `of` and `range` are copies, derived, never declared (EC-65).
+  paths' unit steps); its built-in `index` and `ordinal` count its own positions, a declared numbering of its molecule
+  is shifted to it. Units of one complex with equal `of` and `range` are copies, derived, never declared (EC-65).
 - **Links** are a `pairs` child of a complex (between its units: `a_unit`, `b_unit` the units' ids, each end on its
   unit's positions) or of a molecule (between its residues); a child names no `a` or `b`, its parent is both
   (`seq.lang.link.target`); unit columns only under a complex, each end naming a unit of it (`seq.lang.link.unit`) and
@@ -458,8 +459,9 @@ is a segment of an address, `/data/p53/(range :from 94 :to 292)`.
   `ordinal`. A declared numbering (a sequence's `numbering` child, Language, Numberings; `labelsNumbering`: an index of
   its labels built on first use, a label found by its spelling, else ignoring case, as the order of labels ignores it;
   no `snap`, so its positions are scanned) is looked up on the system, then on its molecule (`parent`, shifted by the
-  unit's start, clipped to the unit): a unit's own beats its molecule's of the same id. Why: the author's numbering of a
-  chain wins over the entity's. Not across a codon step: that waits for paths.
+  unit's start, clipped to the unit): a unit's own beats its molecule's of the same id. Only a declared numbering is
+  shifted: a unit's `index` and `ordinal` are its own (the ordinal 1 of a unit over `[2, 20)` is its molecule's ordinal
+  3). Why: the author's numbering of a chain wins over the entity's. Not across a codon step: that waits for paths.
 - **A label** is an integer with an optional suffix, letters (`94A`) or `.n` (`"100.1"`), or else a name. One total
   order: by integer; no suffix, then letters (shorter first, then alphabetic ignoring case), then `.n` by n; names after
   every number; spelling breaks the last ties. A `.n` label is written quoted: bare, `100.1` is the number 100.1 (the
