@@ -4,9 +4,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The molecule forms on a resolved spec: positions by component (alternatives, a component over several positions, a
-// class through the compounds, the non-standard ones and the modified-type items beside them), molecules by
-// identifier and class, a complex's units by chain, operator and author chain, atoms by name, the atoms system.
+// The molecule forms on a resolved spec, and `elements` over what the removed `component` and `atom` forms read:
+// positions by component (alternatives, a component over several positions, a class through the compounds, the
+// non-standard ones and the modified-type items beside them), molecules by identifier and class, a complex's units by
+// chain, operator and author chain, atoms by name, the atoms system.
 
 import { type Node, printAddress } from '@molstar/core/repr/tree';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
@@ -42,39 +43,37 @@ const nodes = (r: Evaluation) =>
   r.result?.type === 'nodes' ? r.result.nodes.map((m) => printAddress(m.address)) : r.issues;
 const codes = (r: Evaluation) => r.issues.map((i) => i.code);
 
-describe('(component …)', () => {
+describe('(elements …) over components (the removed `component` form’s cases)', () => {
   it('positions by component: one or several codes, alternatives and a component over several positions', () => {
-    expect(loc(run('/data/fc/(component :id MSE)'), '/data/fc')).toEqual([0, 1]);
-    expect(loc(run('/data/fc/(component :id [CRO MSE])'), '/data/fc')).toEqual([0, 1, 3, 6]);
+    expect(loc(run('/data/fc/(elements :component MSE)'), '/data/fc')).toEqual([0, 1]);
+    expect(loc(run('/data/fc/(elements :component [CRO MSE])'), '/data/fc')).toEqual([0, 1, 3, 6]);
     // a standard position by its letter's standard component; an alternative counts at its position
-    expect(loc(run('/data/trna/(component :id U)'), '/data/trna')).toEqual([5, 8, 11, 13]);
-    expect(loc(run('/data/fc/(component :id LYS)'), '/data/fc')).toEqual([1, 2, 7, 8, 15, 16]);
-    expect(loc(run('/data/glycan/(component :id NAG)'), '/data/glycan')).toEqual([0, 2]);
+    expect(loc(run('/data/trna/(elements :component U)'), '/data/trna')).toEqual([5, 8, 11, 13]);
+    expect(loc(run('/data/fc/(elements :component LYS)'), '/data/fc')).toEqual([1, 2, 7, 8, 15, 16]);
+    expect(loc(run('/data/glycan/(elements :label_comp_id NAG)'), '/data/glycan')).toEqual([0, 2]);
   });
 
-  it('the non-standard positions and the modified-type items of the annotations on the system', () => {
-    expect(loc(run('/data/fc/(component :standard false)'), '/data/fc')).toEqual([0, 1, 3, 6, 8, 9]);
-    expect(loc(run('/data/fc/(component :standard false :annotations false)'), '/data/fc')).toEqual([0, 1, 3, 6]);
+  it('the non-standard positions (standard), and with the modified-type items of the annotations (modified)', () => {
+    expect(loc(run('/data/fc/(elements :modified true)'), '/data/fc')).toEqual([0, 1, 3, 6, 8, 9]);
+    expect(loc(run('/data/fc/(elements :standard false)'), '/data/fc')).toEqual([0, 1, 3, 6]);
     // a unit's are its sequence's, shifted and clipped to it
-    expect(loc(run('/data/c/A/(component :standard false)'), '/data/c/A')).toEqual([0, 1, 3, 6]);
-    expect(loc(run('/data/fc/(except :of (component :standard false :annotations false))'), '/data/fc')).toEqual([
-      1, 3, 6, 22,
-    ]);
-    expect(loc(run('/data/fc/(component :id CRO :standard true)'), '/data/fc')).toEqual([]);
+    expect(loc(run('/data/c/A/(elements :standard false)'), '/data/c/A')).toEqual([0, 1, 3, 6]);
+    expect(loc(run('/data/fc/(except :of (elements :standard false))'), '/data/fc')).toEqual([1, 3, 6, 22]);
+    expect(loc(run('/data/fc/(elements :component CRO :standard true)'), '/data/fc')).toEqual([]);
   });
 
   it('a class through the compound nodes, a word of the class; a code with none is no match', () => {
-    expect(loc(run('/data/fc/(component :class peptide)'), '/data/fc')).toEqual([3, 6]);
-    expect(loc(run('/data/fc/(component :class saccharide)'), '/data/fc')).toEqual([]);
+    expect(loc(run('/data/fc/(elements :component-class peptide)'), '/data/fc')).toEqual([3, 6]);
+    expect(loc(run('/data/fc/(elements :component-class saccharide)'), '/data/fc')).toEqual([]);
   });
 
-  it('refuses a form with nothing to match, and a value of the wrong type', () => {
-    expect(codes(run('/data/fc/(component)'))).toEqual(['seq.query.form.param']);
-    expect(codes(run('/data/fc/(component :standard 1)'))).toEqual(['seq.query.form.param']);
+  it('refuses a field no property has, and a value of the wrong type', () => {
+    expect(codes(run('/data/fc/(elements :class peptide)'))).toEqual(['seq.query.form.param']);
+    expect(codes(run('/data/fc/(elements :standard 1)'))).toEqual(['seq.query.form.type']);
   });
 });
 
-describe('(molecule …), (chain …), (entity …)', () => {
+describe('(molecule …), (chain …)', () => {
   it('molecules by identifier, matched exactly, and by class; under data or a complex', () => {
     expect(nodes(run('/data/(molecule :identifier "ccd:ATP")'))).toEqual(['/data/atp']);
     expect(nodes(run('/data/(molecule :identifier "ccd:atp")'))).toEqual([]);
@@ -91,12 +90,13 @@ describe('(molecule …), (chain …), (entity …)', () => {
     expect(codes(run('/data/c/(chain :operator 1_555)'))).toEqual(['seq.query.form.param']);
   });
 
-  it('an entity is a source’s: a spec complex has none', () => {
-    expect(codes(run('/data/c/(entity :id 1)'))).toEqual(['seq.query.node.missing']);
+  it('an entity is a source’s: a spec complex’s units have none, `(molecule :entity 1)` names nothing', () => {
+    expect(nodes(run('/data/c/(molecule :entity 1)'))).toEqual([]);
+    expect(codes(run('/data/c/(molecule)'))).toEqual(['seq.query.form.param']);
   });
 });
 
-describe('(atoms), (atom …)', () => {
+describe('(atoms), (elements :atom …)', () => {
   it('a molecule’s or a unit’s atoms system, a prefix the location forms read', () => {
     expect(nodes(run('/data/atp/(atoms)'))).toEqual(['/data/atp/(atoms)']);
     expect(loc(run('/data/atp/(atoms)/(range :from 1 :to 2)'), '/data/atp/(atoms)')).toEqual([0, 2]);
@@ -104,10 +104,14 @@ describe('(atoms), (atom …)', () => {
     expect(codes(run('/data/fc/(atoms)'))).toEqual(['seq.query.node.missing']);
   });
 
-  it('atoms by name, on the system’s atoms', () => {
-    expect(loc(run('/data/atp/(atom :name O1G)'), '/data/atp/(atoms)')).toEqual([1, 2]);
-    expect(loc(run('/data/c/L/(atom :name [PG N1])'), '/data/c/L/(atoms)')).toEqual([0, 1, 2, 3]);
-    expect(codes(run('/data/fc/(atom :name O1G)'))).toEqual(['seq.query.form.prefix']);
+  it('atoms by name, on the system’s atoms; a system without atoms lacks them (a warning, nothing)', () => {
+    expect(loc(run('/data/atp/(elements :atom O1G)'), '/data/atp/(atoms)')).toEqual([1, 2]);
+    expect(loc(run('/data/c/L/(elements :atom [PG N1])'), '/data/c/L/(atoms)')).toEqual([0, 1, 2, 3]);
+    const none = run('/data/fc/(elements :atom O1G)');
+    expect([none.result?.type === 'location' && none.result.location.parts.length, codes(none)]).toEqual([
+      0,
+      ['seq.query.property.absent'],
+    ]);
   });
 });
 
@@ -124,8 +128,8 @@ describe('the host’s identifier resolver and component names', () => {
   });
 
   it('a class through the host’s names where no compound node describes the code', () => {
-    expect(loc(hosted('/data/glycan/(component :class saccharide)'), '/data/glycan')).toEqual([0, 2]);
-    expect(loc(run('/data/glycan/(component :class saccharide)'), '/data/glycan')).toEqual([]);
+    expect(loc(hosted('/data/glycan/(elements :component-class saccharide)'), '/data/glycan')).toEqual([0, 2]);
+    expect(loc(run('/data/glycan/(elements :component-class saccharide)'), '/data/glycan')).toEqual([]);
     expect(host.compound('NAG')?.name).toBe('N-acetyl-D-glucosamine');
     // a compound node wins over the host's names
     expect(host.compound('CRO')?.name).toBe('chromophore');

@@ -27,6 +27,7 @@ export {
   defaultAssetsPort,
   type ManagedAssetsPort,
   type PortResult,
+  queryExtensionsOf,
   type ReaderAssetsPort,
   runtimesOf,
   type SeqConfigItem,

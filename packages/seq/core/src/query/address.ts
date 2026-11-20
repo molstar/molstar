@@ -24,6 +24,7 @@ import {
 } from '@molstar/core/repr/tree';
 import { DefaultRefDepth, type FollowedRef, followRef, RefsId, refPrefix } from '@molstar/seqx-core/lang';
 import { AddressIssues } from './address-issues.js';
+import { structureKeyRanges } from './key-extent.js';
 import { type Key, keySet, keysEqual } from './keys.js';
 import { evaluateQuery } from './forms.js';
 import {
@@ -313,7 +314,11 @@ export function locationOfResult(root: Node, model: QueryModel, result: QueryRes
   const parts: { system: string; ranges: number[] }[] = [];
   const itemsOf = (owner: string, keys?: ReadonlySet<string | number>) => {
     const a = model.annotation(owner);
-    if (!a) return;
+    if (!a) {
+      // a structure group's key (`groups`): a system's position, a complex's unit or entity
+      if (keys) parts.push(...(structureKeyRanges(model, owner, keys) ?? []));
+      return;
+    }
     const read = a.items();
     if (read.pending && !isEmptyLocation(read.pending)) complete = false;
     // by system: a pair's two ends may be on two (`QueryItem.system`)

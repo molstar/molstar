@@ -19,14 +19,16 @@ import {
   type FormResolverResult,
   type Issue,
   issueOf,
+  isNode,
   type Named,
   type Node,
+  parseAddress,
   printAddress,
   type Selected,
   selectAddress,
   type Value,
 } from '@molstar/core/repr/tree';
-import { type Key, type Keys, keySet } from './keys.js';
+import { type Key, keySet, subtractKeys } from './keys.js';
 import {
   annotationsOf,
   checkLimit,
@@ -44,15 +46,21 @@ import {
   tick,
 } from './form-kit.js';
 import { Combinators } from './combinators.js';
+import { elements } from './elements-form.js';
+import { NoQueryExtensions, type QueryExtensions, type QueryFormEntry } from './extensions.js';
+import { StructureForms } from './structure-forms.js';
 import { asType, evaluate } from './evaluate.js';
+import { keysExtent } from './key-extent.js';
 import { QueryIssues } from './issues.js';
 import { MoleculeForms } from './molecule-forms.js';
 import { hasLabelSuffix, isNoInsertionCode, readLabel } from './labels.js';
 import {
   EmptyLocation,
+  intersectLocations,
   isPosition,
   type Location,
   location,
+  locationsEqual,
   overlapsRanges,
   partOf,
   rangesLocation,
@@ -87,10 +95,12 @@ export const QueryFormKinds = [
   'merge',
   'intersect',
   'except',
-  'component',
+  'elements',
+  'groups',
+  'filter',
+  'expand',
+  'linked',
   'molecule',
-  'entity',
-  'atom',
   'atoms',
 ] as const;
 
@@ -429,43 +439,10 @@ const row: Resolve = (ctx, form, prefix) => {
   return { type: 'location', location: location({ parts }) };
 };
 
-/** The extent of elements: the union of their items' ranges on each annotation's target. */
-function extentOf(ctx: Ctx, e: Keys): Location {
-  const byOwner = new Map<string, Set<string | number>>();
-  for (const k of e.keys) {
-    let s = byOwner.get(k.owner);
-    if (!s) byOwner.set(k.owner, (s = new Set()));
-    s.add(k.key);
-  }
-  const parts: { system: string; ranges: number[] }[] = [];
-  for (const [owner, keys] of byOwner) {
-    const a = ctx.model.annotation(owner);
-    if (!a) return fail('seq.query.form.prefix', 'An element’s owner is not an annotation', { address: owner });
-    const read = a.items();
-    stage(ctx, read.pending);
-    // by system: a pair's two ends may be on two
-    const bySystem = new Map<string, number[]>([[a.target, []]]);
-    for (const it of read.items) {
-      tick(ctx);
-      if (!keys.has(it.key)) continue;
-      if (!isPosition(it.start) || !isPosition(it.end) || it.start > it.end)
-        fail('seq.query.position.invalid', 'An item’s extent is not 32-bit positions with start ≤ end', {
-          address: owner,
-        });
-      const system = it.system ?? a.target;
-      let ranges = bySystem.get(system);
-      if (!ranges) bySystem.set(system, (ranges = []));
-      ranges.push(it.start, it.end);
-    }
-    for (const [system, ranges] of bySystem) parts.push({ system, ranges });
-  }
-  return location({ parts });
-}
-
 const extent: Resolve = (ctx, form, prefix) => {
   checkParams(form, ['of']);
   const e = asType(evaluate(ctx, required(form, 'of'), prefix), 'keys', 'extent').keys;
-  return { type: 'location', location: extentOf(ctx, e) };
+  return { type: 'location', location: keysExtent(ctx, e) };
 };
 
 // ---- the table ----
@@ -481,28 +458,116 @@ const Forms: Readonly<Record<(typeof QueryFormKinds)[number], Resolve>> = {
   node,
   extent,
   ...Combinators,
+  elements,
+  ...StructureForms,
   ...MoleculeForms,
 };
 
+/** A value's forms: itself and those nested in its params and args. */
+function* formsIn(v: Value): Generator<Node> {
+  if (Array.isArray(v)) for (const x of v as readonly Value[]) yield* formsIn(x);
+  else if (isNode(v)) {
+    yield v;
+    for (const x of Object.values(v.params ?? {}) as Value[]) yield* formsIn(x);
+    for (const x of v.args ?? []) yield* formsIn(x);
+  }
+}
+
+/** The first namespaced kind of an address's forms no resolver has: `seq.query.extension.missing`, else undefined. */
+function missingExtension(address: string, table: Readonly<Record<string, FormResolver>>, ext: QueryExtensions) {
+  for (const s of parseAddress(address).pattern?.segments ?? [])
+    if (typeof s !== 'string')
+      for (const f of formsIn(s)) {
+        const i = f.kind.indexOf(':');
+        if (i > 0 && !Object.hasOwn(table, f.kind) && !ext.operators.has(f.kind) && f.kind !== 'fields')
+          return issueOf(QueryIssues, 'seq.query.extension.missing', `No extension provides the form ${f.kind}`, {
+            hint: `namespace: ${f.kind.slice(0, i)}`,
+          });
+      }
+  return undefined;
+}
+
+/** A positional operand outside an expression form (`seq.query.form.param`): only operators, prop and value take one. */
+function checkNoArgs(form: Node) {
+  if (form.args?.length)
+    fail('seq.query.form.param', `A form of kind ${form.kind} takes keyword params only`, {
+      hint: 'positional operands are an expression’s: (filter :test (> (prop b-factor) 60))',
+    });
+}
+
+/** An extension's form, checked by its role: its result its declared type; a filter's a subset of its prefix. */
+function extensionForm(e: QueryFormEntry): Resolve {
+  return (ctx, form, prefix) => {
+    checkParams(form, e.params);
+    const before: QueryResult =
+      prefix.kind === 'nodes'
+        ? { type: 'nodes', nodes: prefix.matches }
+        : (fromNamed(prefix) ??
+          fail('seq.query.form.prefix', `A form of kind ${form.kind} is given an unknown prefix`));
+    const r = e.resolve({
+      model: ctx.model,
+      form,
+      prefix: before,
+      evaluate: (v) => evaluate(ctx, v, prefix),
+      tick: () => tick(ctx),
+      limit: ctx.input.limit,
+    });
+    if (r.type !== e.result)
+      fail('seq.query.form.type', `A form of kind ${form.kind} gave ${r.type}, and declares ${e.result}`);
+    if (e.role === 'filter' && !isSubset(r, before))
+      fail('seq.query.form.type', `A filter of kind ${form.kind} gave what its prefix does not hold`);
+    if (r.type === 'nodes') checkLimit(ctx, r.nodes.length);
+    if (r.type === 'keys') checkLimit(ctx, r.keys.keys.length);
+    return r;
+  };
+}
+
+function isSubset(r: QueryResult, of: QueryResult): boolean {
+  if (r.type === 'location' && of.type === 'location')
+    return locationsEqual(intersectLocations(r.location, of.location), r.location);
+  if (r.type === 'keys' && of.type === 'keys') return !subtractKeys(r.keys, of.keys).keys.length;
+  if (r.type === 'nodes' && of.type === 'nodes') {
+    const held = new Set(of.nodes.map((n) => printAddress(n.address)));
+    return r.nodes.every((n) => held.has(printAddress(n.address)));
+  }
+  return false;
+}
+
 /**
- * The form-resolver table of the query forms over a model, for `selectAddress` (`SelectOptions.resolvers`). A caller
- * may add its own kinds beside them (`extra`), and nested forms see the whole table; an extra kind that is a query
- * form's is a programmer error and throws: a form's meaning is never replaced silently.
+ * The form-resolver table of the query forms over a model, for `selectAddress` (`SelectOptions.resolvers`): the
+ * built-ins and the registry's (`extensions`, composed by `queryExtensions`). A caller may add its own kinds beside
+ * them (`extra`), and nested forms see the whole table; an extra kind that is a query form's is a programmer error and
+ * throws: a form's meaning is never replaced silently.
  */
 export function queryResolvers(
   model: QueryModel,
   extra?: Readonly<Record<string, FormResolver>>,
+  extensions: QueryExtensions = NoQueryExtensions,
 ): Readonly<Record<string, FormResolver>> {
   const table: Record<string, FormResolver> = { ...extra };
-  for (const kind of QueryFormKinds) {
+  const ext = { properties: extensions.properties, operators: extensions.operators };
+  const kinds: [string, Resolve][] = [
+    ...QueryFormKinds.map((k): [string, Resolve] => [k, Forms[k]]),
+    ...[...extensions.forms.values()].map((e): [string, Resolve] => [e.name, extensionForm(e)]),
+  ];
+  for (const [kind, resolve] of kinds) {
     if (extra && Object.hasOwn(extra, kind)) throw new Error(`A resolver of kind ${kind} clashes with a query form`);
-    const resolve = Forms[kind];
     table[kind] = (input): FormResolverResult => {
       const outer = active;
       const shared = outer ?? { visits: 0, noWrap: false };
       active = shared;
-      const ctx: Ctx = { model, input, resolvers: table, issues: [], shared, complete: true, pending: EmptyLocation };
+      const ctx: Ctx = {
+        model,
+        input,
+        resolvers: table,
+        issues: [],
+        shared,
+        ext,
+        complete: true,
+        pending: EmptyLocation,
+      };
       try {
+        checkNoArgs(input.form);
         const result = toNamed(resolve(ctx, input.form, input.prefix));
         return ctx.complete
           ? { result, issues: ctx.issues }
@@ -532,11 +597,17 @@ export interface QueryOptions {
   readonly maxDepth?: number;
   readonly signal?: AbortSignal;
   readonly deadline?: number;
+  /** The registry's query forms and properties (`queryExtensions`); none by default. */
+  readonly extensions?: QueryExtensions;
 }
 
 /** Evaluates an address with the query forms over a model: `selectAddress` with `queryResolvers`, typed. */
 export function evaluateQuery(root: Node, model: QueryModel, address: string, options: QueryOptions): Evaluation {
-  const sel = selectAddress(root, address, { ...options, resolvers: queryResolvers(model) });
+  const { extensions, ...select } = options;
+  const resolvers = queryResolvers(model, undefined, extensions);
+  const missing = missingExtension(address, resolvers, extensions ?? NoQueryExtensions);
+  if (missing) return { issues: [missing], complete: true, pending: EmptyLocation };
+  const sel = selectAddress(root, address, { ...select, resolvers });
   const failed = sel.issues.some((i) => i.severity === 'error');
   const result = failed
     ? undefined

@@ -78,6 +78,7 @@ import { composeLinear, type Encoding, expand, ImplicitLinear, isEmptyLinear, ty
 import {
   atomsOf,
   type CompoundEntry,
+  complexesUnder,
   componentsOf,
   EmptyMolecular,
   type Molecular,
@@ -1330,6 +1331,10 @@ class Model implements StaticModel {
 
   atoms(system: string) {
     return atomsOf(this.molecular, system);
+  }
+
+  complexes(owner: string) {
+    return complexesUnder(this.molecular, owner);
   }
 }
 

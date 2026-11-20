@@ -118,7 +118,30 @@ export interface QueryModel {
   equivalents?(identifier: string): readonly string[];
   /** The atoms system of a molecule or a unit (its own address for an atoms system), or undefined. */
   atoms?(system: string): QueryAtoms | undefined;
+  /**
+   * The complexes at or under an address (a source's, a data container's), in order: what `elements` and `groups`
+   * read over a prefix that is no complex, unit or molecule.
+   */
+  complexes?(owner: string): readonly string[];
+  /**
+   * A property read per element of one system (_spec/README.md "Queries", Properties; properties.md): a column over
+   * its positions, `'pending'` while what it reads has not arrived (a values channel's tiles: the system is staged),
+   * undefined when the system lacks it. `name` is a property's short name (`b-factor`, `occupancy`: values channels
+   * the mmCIF runtime writes on a unit's atoms) or a values annotation, by its address or its id on the system, with
+   * `field` its channel's field. The forms read the other built-ins from the units, components, numberings and atoms
+   * when the hook does not answer.
+   */
+  property?(system: string, name: string, field?: string): PropertyRead;
 }
+
+/** A property's values over a system's positions: an atom, a set of words, or undefined where the element lacks it. */
+export interface PropertyColumn {
+  readonly length: number;
+  get(i: number): Atom | readonly string[] | undefined;
+}
+
+/** What `QueryModel.property` answers. */
+export type PropertyRead = PropertyColumn | 'pending' | undefined;
 
 /**
  * A system's chemical components (_spec/README.md "Queries", Forms: `component`): a sequence's sparse non-standard
@@ -150,6 +173,8 @@ export interface QueryUnit {
   readonly chain?: string;
   readonly authChain?: string;
   readonly operator?: string;
+  /** Its molecule's entity id in its source (`label_entity_id`); undefined on a spec's inline complex. */
+  readonly entity?: string;
 }
 
 /** A molecule, as `(molecule …)` reads it. */
@@ -162,9 +187,17 @@ export interface QueryMolecule {
   readonly identifiers: readonly string[];
 }
 
-/** An atoms system: its address and each atom's name. */
+/** An atoms system: its address, each atom's name and element, and the residue each belongs to. */
 export interface QueryAtoms {
   readonly address: string;
   readonly length: number;
   readonly names: { get(i: number): string | null };
+  /** Each atom's element symbol (`type_symbol`). */
+  readonly element: { get(i: number): string | null };
+  /** The residues system the atoms group onto (a molecule, or a unit of one). */
+  readonly of: string;
+  /** An atom's residue: a position of `of`. */
+  residue(atom: number): number;
+  /** A residue's atoms, `[start, end)`. */
+  atomsOf(residue: number): readonly [number, number];
 }

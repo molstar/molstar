@@ -8,14 +8,16 @@
 // spec's systems and annotations, then the overlay's (item systems, dynamic annotations), and `(node :key k)` naming a
 // node the store holds. An address of a dynamic node resolves while the node is held and waits while it is not. With
 // the store's tiles, `(row :key k)` also names a row of an alignment read from a source once its rows are held, and
-// waits, asking for them, while they are not.
+// waits, asking for them, while they are not; and a values channel is a property read per position from the tiles
+// (`query-values.ts`), pending while they are not loaded.
 
 import type { Atom, Node } from '@molstar/core/repr/tree';
 import type { CellsTable, DataStore, Want } from '@molstar/seqx-core/data';
 import type { QueryAnnotation, QueryModel, QuerySystem } from '@molstar/seqx-core/query';
 import { pairsQueryAnnotation, queryAnnotation, type StaticModel } from './model.js';
-import { atomsOf, componentsOf, moleculeOf, unitsOf } from './molecule-query.js';
+import { atomsOf, complexesUnder, componentsOf, moleculeOf, unitsOf } from './molecule-query.js';
 import { nodeAddress, type Overlay } from './overlay.js';
+import { valuesProperty } from './query-values.js';
 
 /** What a row form reads of an alignment's rows read from a source: the store's loaded tiles, and how to ask for them. */
 export interface RowsSource {
@@ -93,6 +95,7 @@ export function overlayQueryModel(model: StaticModel, overlay: Overlay, rows?: R
     units: (c) => model.units?.(c) ?? unitsOf(overlay.molecular, c),
     molecule: (a) => model.molecule?.(a) ?? moleculeOf(overlay.molecular, a),
     atoms: (s) => model.atoms?.(s) ?? atomsOf(overlay.molecular, s),
+    complexes: (owner) => [...(model.complexes?.(owner) ?? []), ...complexesUnder(overlay.molecular, owner)],
     node(owner: string, key: Atom): Node | undefined {
       // the store's keys are strings: a number never names one (`1` is not `"1"`)
       return typeof key === 'string' ? overlay.node(nodeAddress(owner, key))?.node : undefined;
@@ -105,6 +108,7 @@ export function overlayQueryModel(model: StaticModel, overlay: Overlay, rows?: R
       return held?.status === 'held' ? rowOf(held.tables, String(key)) : undefined;
     },
     rowsPending: (at) => (rows ? storeRows(model, rows, at)?.status === 'pending' : false),
+    property: valuesProperty(model, overlay, rows),
   };
   byReader.set(rows, q);
   return q;

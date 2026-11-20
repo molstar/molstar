@@ -60,6 +60,29 @@ export {
   unionKeys as unionElements,
 } from './keys.js';
 export { type Evaluation, evaluateQuery, type QueryOptions, QueryFormKinds, queryResolvers } from './forms.js';
+export { ExpressionKinds, type ExprValue } from './expressions.js';
+export {
+  NoQueryExtensions,
+  type QueryExtensionEntry,
+  type QueryExtensions,
+  type QueryFormContext,
+  type QueryFormEntry,
+  type QueryFormRole,
+  type QueryOperatorEntry,
+  type QueryPropertyEntry,
+  queryExtensions,
+} from './extensions.js';
+export { elementsForm, type Items, type ItemsInput, itemsEqual, itemsOf, itemsPredicate, readItems } from './items.js';
+export {
+  BuiltInProperties,
+  BuiltInPropertyTable,
+  type PropertyDef,
+  type PropertyLevel,
+  PropertyLevels,
+  type PropertyTable,
+  type PropertyType,
+  propertyTable,
+} from './properties.js';
 export { type QueryIssueCode, QueryIssues } from './issues.js';
 export {
   compareLabels,
@@ -96,6 +119,8 @@ export type {
   ItemsRead,
   Numbering,
   QueryAnnotation,
+  PropertyColumn,
+  PropertyRead,
   QueryAtoms,
   QueryComponents,
   QueryItem,
