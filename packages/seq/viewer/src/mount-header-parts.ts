@@ -7,8 +7,13 @@
 import { Button } from '@molstar/ui/components/button/button';
 import { Icon } from '@molstar/ui/components/icon/icon';
 import { render } from '@molstar/ui/dom';
-import type { HeaderPartsPortFactory } from './behaviors/headers.js';
-import type { HeaderMenuItem, HeaderPartsHeader, HeaderPartsState, HeaderTarget } from './header-entries.js';
+import type {
+  HeaderMenuItem,
+  HeaderPartsHeader,
+  HeaderPartsPortFactory,
+  HeaderPartsState,
+  HeaderTarget,
+} from './header-entries.js';
 
 // The headers' reference DOM parts (_spec/README.md "Ports", Header parts): `@molstar/ui` buttons over the boxes the
 // layout gives (`viewer.headers`), in the canvas's element: the action slots and the "⋯" of a header whose actions show

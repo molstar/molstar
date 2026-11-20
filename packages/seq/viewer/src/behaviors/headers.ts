@@ -28,18 +28,24 @@ import type { CommandDefinition, CommandResult } from '@molstar/ui/commands/type
 import { DomHost } from '@molstar/ui/dom';
 import { parseChord } from '@molstar/seqx-viewer/bindings';
 import { describerFor, type Place } from '@molstar/seqx-viewer/describe';
-import type {
-  HeaderActionEntry,
-  HeaderEntry,
-  HeaderFacts,
-  HeaderGeometry,
-  HeaderLayerFacts,
-  HeaderMenu,
-  HeaderMenuItem,
-  HeaderPartsHeader,
-  HeaderPartsState,
-  HeaderTarget,
+import {
+  type HeaderActionEntry,
+  type HeaderEntry,
+  type HeaderFacts,
+  type HeaderGeometry,
+  type HeaderLayerFacts,
+  type HeaderMenu,
+  type HeaderMenuItem,
+  type HeaderMenuPlace,
+  type HeaderMenuPort,
+  type HeaderPartsHeader,
+  type HeaderPartsPort,
+  type HeaderPartsState,
+  type HeaderTarget,
+  type HeadersParams,
+  sameGeometry,
 } from '@molstar/seqx-viewer/header-entries';
+import { headerGestures } from '@molstar/seqx-viewer/header-gestures';
 import { headerIcon } from '@molstar/seqx-viewer/header-icons';
 import type { BehaviorContext, BehaviorProvider } from '@molstar/seqx-viewer/viewer-spec';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
@@ -52,45 +58,6 @@ import type { ThemingBehavior } from './theming.js';
 // `contextClick` (Shift+secondary click always the browser's) and the long press, the menu key once per ask (EC-156),
 // the geometry (`viewer.headers`) and a host's DOM parts (`headerParts`), each published on change only. A hover redraws
 // the actions with no layout and nothing published (the geometry is the layout's, compared by identity first).
-
-/** Where a menu is shown: a point in the canvas (CSS px from its top left). */
-export interface HeaderMenuPlace {
-  readonly x: number;
-  readonly y: number;
-}
-
-/** The menu's port (_spec/README.md "Ports", Header menu): shows a menu at a place, one at a time. */
-export interface HeaderMenuPort {
-  show(menu: HeaderMenu, place: HeaderMenuPlace, behavior: HeadersBehavior): void;
-  hide(): void;
-  dispose?(): void;
-  /** false: the host owns it and the viewer never disposes it. */
-  readonly disposeWithViewer?: boolean;
-}
-
-/** Made once a viewer: with the canvas's element when mounted, else none (headless). */
-export type HeaderMenuPortFactory = (container: HTMLElement | undefined) => HeaderMenuPort;
-
-/** A host's DOM parts over the headers' boxes (_spec/README.md "Ports", Header parts). */
-export interface HeaderPartsPort {
-  update(parts: HeaderPartsState): void;
-  /** The keyboard cursor came onto a header: its parts take the focus. */
-  focus?(target: HeaderTarget): void;
-  dispose?(): void;
-  readonly disposeWithViewer?: boolean;
-}
-
-/** Made at the mount, with the canvas's element and the behavior its presses run through. */
-export type HeaderPartsPortFactory = (container: HTMLElement, behavior: HeadersBehavior) => HeaderPartsPort;
-
-export interface HeadersParams {
-  /** The menu's adapter (the default spec gives `@molstar/ui`'s context menu; none: the menu's state moves alone). */
-  readonly menu?: HeaderMenuPortFactory;
-  /** `canvas` (default): slots drawn; a factory: a host's DOM parts over the boxes (the canvas draws the states). */
-  readonly parts?: 'canvas' | HeaderPartsPortFactory;
-  /** What a secondary click opens: `everywhere` (default), `header` (the label column), `none` (the browser's). */
-  readonly contextClick?: 'everywhere' | 'header' | 'none';
-}
 
 /** The menu shown: what, where, and whether the keyboard asked (its focus goes back to the canvas). */
 export interface ShownHeaderMenu {
@@ -144,42 +111,8 @@ export const HeadersMenuCommand = 'headers.menu';
 
 /** How long a secondary click following the menu key is the same ask (EC-156), ms. */
 const AskMs = 1000;
-/** A long press's slop, CSS px. */
-const PressSlop = 8;
 /** The layer types a header's "Color ▸" reads schemes for (their color channel's subjects). */
 const Colored = new Set(['letters', 'ranges', 'values', 'logo', 'variants']);
-
-const sameBox = (a: Box | undefined, b: Box | undefined) =>
-  a === b || (!!a && !!b && a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height);
-
-function sameGeometry(a: readonly HeaderGeometry[], b: readonly HeaderGeometry[]): boolean {
-  if (a.length !== b.length) return false;
-  for (let i = 0; i < a.length; i++) {
-    const x = a[i];
-    const y = b[i];
-    if (
-      x.target.section !== y.target.section ||
-      x.target.track !== y.target.track ||
-      x.shown !== y.shown ||
-      !sameBox(x.line, y.line) ||
-      !sameBox(x.label, y.label) ||
-      !sameBox(x.well, y.well) ||
-      x.slots.length !== y.slots.length ||
-      x.states.length !== y.states.length
-    )
-      return false;
-    for (let k = 0; k < x.slots.length; k++)
-      if (x.slots[k].name !== y.slots[k].name || !sameBox(x.slots[k].box, y.slots[k].box)) return false;
-    for (let k = 0; k < x.states.length; k++)
-      if (
-        x.states[k].name !== y.states[k].name ||
-        x.states[k].text !== y.states[k].text ||
-        !sameBox(x.states[k].box, y.states[k].box)
-      )
-        return false;
-  }
-  return true;
-}
 
 export function headersBehavior(context: BehaviorContext, params: HeadersParams = {}): HeadersBehavior {
   const contextClick = params.contextClick ?? 'everywhere';
@@ -828,50 +761,12 @@ export function headersBehavior(context: BehaviorContext, params: HeadersParams 
         publishedFor = undefined;
         published();
       }
-      // the secondary click (Shift: the browser's) and the long press (touch's context menu)
-      const local = (e: MouseEvent) => {
-        const r = container.getBoundingClientRect();
-        return [e.clientX - r.left, e.clientY - r.top] as const;
-      };
-      const onContext = (e: MouseEvent) => {
-        const [x, y] = local(e);
-        if (contextAt(x, y, e)) e.preventDefault();
-      };
-      let press: { x: number; y: number; timer: unknown } | undefined;
-      const endPress = () => {
-        if (press) DomHost.clearTimeout(press.timer as never);
-        press = undefined;
-      };
-      const onDown = (e: PointerEvent) => {
-        endPress();
-        if (e.pointerType !== 'touch') return;
-        const [x, y] = local(e);
-        press = {
-          x,
-          y,
-          timer: DomHost.setTimeout(() => {
-            press = undefined;
-            if (shownMenu.value) return;
-            if (contextAt(x, y)) askedAt = DomHost.now();
-          }, v.config.header.menu.longPressMs),
-        };
-      };
-      const onMove = (e: PointerEvent) => {
-        if (!press) return;
-        const [x, y] = local(e);
-        if (Math.max(Math.abs(x - press.x), Math.abs(y - press.y)) > PressSlop) endPress();
-      };
-      const listeners: [string, (e: any) => void][] = [
-        ['contextmenu', onContext],
-        ['pointerdown', onDown],
-        ['pointermove', onMove],
-        ['pointerup', endPress],
-        ['pointercancel', endPress],
-      ];
-      for (const [type, fn] of listeners) container.addEventListener(type, fn);
+      // the secondary click (Shift: the browser's) and the long press (touch's context menu, once per ask)
+      const stopGestures = headerGestures(container, v.config.header.menu.longPressMs, contextAt, (x, y) => {
+        if (!shownMenu.value && contextAt(x, y)) askedAt = DomHost.now();
+      });
       return () => {
-        endPress();
-        for (const [type, fn] of listeners) container.removeEventListener(type, fn);
+        stopGestures();
         closeMenu();
         if (menuPort && menuPort.disposeWithViewer !== false) menuPort.dispose?.();
         menuPort = undefined;
@@ -901,13 +796,3 @@ export const HeadersProvider: BehaviorProvider<HeadersParams | undefined, Header
   name: 'headers',
   create: (context, params) => headersBehavior(context, params ?? {}),
 };
-
-/** The menu's data for a target (DOM-free; _spec/README.md "Behaviors", Headers): undefined without the behavior. */
-export function headerMenu(viewer: SeqViewer, target: HeaderTarget): HeaderMenu | undefined {
-  return (viewer.behaviors.get('headers') as HeadersBehavior | undefined)?.menuOf(target);
-}
-
-/** Every shown header's parts (DOM-free): what a parts port is given. */
-export function headerParts(viewer: SeqViewer): HeaderPartsState | undefined {
-  return (viewer.behaviors.get('headers') as HeadersBehavior | undefined)?.partsState();
-}

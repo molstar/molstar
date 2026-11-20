@@ -5,8 +5,7 @@
  */
 
 import { type ContextMenuItem, openContextMenu } from '@molstar/ui/components/context-menu/context-menu';
-import type { HeaderMenuPortFactory } from './behaviors/headers.js';
-import type { HeaderMenuItem } from './header-entries.js';
+import type { HeaderMenuItem, HeaderMenuPortFactory } from './header-entries.js';
 
 // The header menu's default adapter (_spec/README.md "Ports", Header menu): `@molstar/ui`'s context menu in the canvas's
 // element, at the place in the canvas. Its keyboard is the menu's (the first item focused, the arrows, Enter, Esc, a

@@ -56,7 +56,7 @@ const Unlisted = [
   // the structure translation is a host's library, in no viewer's composition
   /seq\/core\/src\/structure\//,
   // the track headers' behavior, its icons and its menu and parts (a host lists it: the default spec does)
-  /seq\/viewer\/src\/(behaviors\/headers|header-icons|mount-header-menu|mount-header-parts)\.ts$/,
+  /seq\/viewer\/src\/(behaviors\/headers|header-icons|header-gestures|mount-header-menu|mount-header-parts)\.ts$/,
 ];
 
 /** The opt-in runtimes: loaded only when a composition lists one. */

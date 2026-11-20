@@ -14,10 +14,16 @@ import type { Node } from '@molstar/core/repr/tree';
 import { SeqCoreConfig } from '@molstar/seqx-core/context';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import type { HeadersBehavior, HeadersParams } from '../behaviors/headers.js';
-import { HeadersProvider, headerMenu, headerParts } from '../behaviors/headers.js';
+import type { HeadersBehavior } from '../behaviors/headers.js';
+import { HeadersProvider } from '../behaviors/headers.js';
 import { DefaultSeqViewerSpec } from '../default-spec.js';
-import type { HeaderEntry, HeaderMenuItem } from '../header-entries.js';
+import {
+  type HeaderEntry,
+  type HeaderMenuItem,
+  type HeadersParams,
+  headerMenu,
+  headerParts,
+} from '../header-entries.js';
 import { type UiHistory, uiHistory } from '../ui-history.js';
 import { createSeqViewer, type SeqViewer } from '../viewer.js';
 import { type Frames, installFrames } from './frames.js';
