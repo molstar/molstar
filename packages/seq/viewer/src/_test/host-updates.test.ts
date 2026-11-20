@@ -22,9 +22,19 @@ const assets = {
 };
 const unit = (length: number): Node => ({ kind: 'sequence', id: 'u', params: { alphabet: 'protein', length } });
 
-/** A host holding units by key, telling its edits; `fail` makes its next opening fail. */
+/**
+ * A host holding units by key, telling its edits (one since a reading was opened, at its subscription); `fail` makes
+ * its next opening fail, `gate` holds an opening after it read the units, until it resolves.
+ */
 function host() {
-  const state = { units: { A: 10, B: 20 } as Record<string, number>, fail: false, opens: 0, listeners: 0 };
+  const state = {
+    units: { A: 10, B: 20 } as Record<string, number>,
+    fail: false,
+    opens: 0,
+    listeners: 0,
+    version: 0,
+    gate: undefined as Promise<void> | undefined,
+  };
   const listeners = new Set<() => void>();
   const runtime: FormatRuntime = {
     name: 'host',
@@ -32,17 +42,16 @@ function host() {
     async open() {
       state.opens++;
       if (state.fail) throw new Error('the host lost its model');
+      const at = state.version;
+      const nodes = Object.entries(state.units).map(([key, length]) => ({ key, node: unit(length) }));
+      await state.gate;
       const opened: OpenedSource = {
-        coverage: {
-          systems: [],
-          shapes: [],
-          levels: [1],
-          nodes: Object.entries(state.units).map(([key, length]) => ({ key, node: unit(length) })),
-        },
+        coverage: { systems: [], shapes: [], levels: [1], nodes },
         read: () => Promise.resolve({ ok: true, tables: {} }),
         changes(fn) {
           listeners.add(fn);
           state.listeners = listeners.size;
+          if (state.version !== at) queueMicrotask(() => listeners.has(fn) && fn());
           return () => {
             listeners.delete(fn);
             state.listeners = listeners.size;
@@ -55,6 +64,7 @@ function host() {
   };
   const edit = (units: Record<string, number>) => {
     state.units = units;
+    state.version++;
     for (const fn of [...listeners]) fn();
   };
   return { runtime, state, edit };
@@ -144,6 +154,34 @@ describe('a host’s updates', () => {
     h.edit({ A: 2 });
     expect(frame.queued).toBe(0);
     expect(h.state.opens).toBe(1);
+    m.retire();
+  });
+
+  it('an edit while the source is being opened, or reopened, is not lost: the latest reading is attached', async () => {
+    const h = host();
+    const frame = frames();
+    const m = new StoreModel();
+    let open!: () => void;
+    h.state.gate = new Promise<void>((r) => (open = r));
+    const syncing = m.sync(model(h.runtime), assets);
+    await Promise.resolve();
+    h.edit({ A: 1 });
+    open();
+    await syncing;
+    await new Promise((r) => setImmediate(r));
+    expect(m.store.getNode('/data/zf', 'A')?.node.params?.length).toBe(10);
+    await frame.run();
+    expect(m.store.getNode('/data/zf', 'A')?.node.params?.length).toBe(1);
+    // during a reopen
+    h.state.gate = new Promise<void>((r) => (open = r));
+    h.edit({ A: 2 });
+    await frame.run();
+    h.edit({ A: 3 });
+    open();
+    await new Promise((r) => setImmediate(r));
+    h.state.gate = undefined;
+    await frame.run();
+    expect(m.store.getNode('/data/zf', 'A')?.node.params?.length).toBe(3);
     m.retire();
   });
 });

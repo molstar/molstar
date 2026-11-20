@@ -22,7 +22,8 @@ import { checkAnswer } from '../tables.js';
 // The source protocol's conformance (_spec/README.md "Data", Protocol): what every adapter, a default one or a host's,
 // is held to. Its coverage is well formed and its nodes are nodes the language takes; every listed shape read at level
 // 1 over a whole system is an answer in the protocol's shape (a failure too), with a values channel asked or not; an
-// aborted read rejects with an `AbortError`; `changes`, when it has it, stops telling once unsubscribed; dispose ends it.
+// aborted read rejects with an `AbortError`; `changes`, when it has it, tells a change made since the opening, and stops
+// telling once unsubscribed; dispose ends it.
 
 export interface AdapterCase {
   readonly runtime: FormatRuntime;
@@ -73,8 +74,12 @@ export async function checkAdapter(c: AdapterCase): Promise<OpenedSource> {
   }
   if (opened.changes) {
     let told = 0;
+    // a change between the opening and the subscription is told too (an edit while it was being attached)
+    c.edit?.();
     const stop = opened.changes(() => told++);
     expect(typeof stop).toBe('function');
+    await Promise.resolve();
+    if (c.edit) expect(told).toBe(1);
     c.edit?.();
     if (c.edit) expect(told).toBeGreaterThan(0);
     stop();

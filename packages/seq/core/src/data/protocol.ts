@@ -244,8 +244,8 @@ export interface OpenedSource {
   /** Rejects with an `AbortError` when `signal` aborts; any other rejection is a `failed` answer. */
   read(request: RegionRequest, signal: AbortSignal): Promise<RegionAnswer>;
   /**
-   * Optional: tells `fn` when the data changed (a host edited its structure), until the returned unsubscribe is called.
-   * Whoever attached the source opens it again and reattaches it in place (the viewer's source sync, coalesced a frame:
+   * Optional: tells `fn` when the data changed (a host edited its structure), until the returned unsubscribe is called;
+   * a change since the source was opened and before `fn` was given is told too, once, soon after. Whoever attached the source opens it again and reattaches it in place (the viewer's source sync, coalesced a frame:
    * _spec/README.md "Data", Protocol). A source read once (a file) has none.
    */
   changes?(fn: () => void): () => void;

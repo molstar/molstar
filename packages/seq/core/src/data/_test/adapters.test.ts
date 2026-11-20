@@ -61,8 +61,10 @@ function fileAssets() {
  */
 function testHost(fallback: FormatRuntime) {
   let description = zincFinger();
+  let version = 0;
   const listeners = new Set<() => void>();
   const serve = (entry: SourceEntry): OpenedSource => {
+    const at = version;
     const read = structureNodes(description, { source: entry.address });
     const values = (field: string) => read.values(field);
     return {
@@ -82,6 +84,8 @@ function testHost(fallback: FormatRuntime) {
       },
       changes(fn) {
         listeners.add(fn);
+        // an edit since this reading was opened is told at once
+        if (version !== at) queueMicrotask(() => listeners.has(fn) && fn());
         return () => listeners.delete(fn);
       },
       dispose() {},
@@ -95,6 +99,7 @@ function testHost(fallback: FormatRuntime) {
   };
   const edit = (next: StructureDescription = description) => {
     description = next;
+    version++;
     for (const fn of [...listeners]) fn();
   };
   return { runtime, edit };

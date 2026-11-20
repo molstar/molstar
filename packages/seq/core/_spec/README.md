@@ -659,8 +659,10 @@ over 20 runs; the heavy lane bounds one sample at 40 ms (`resolve/_test/addressi
 - **Two optional members, every runtime unchanged**: `RegionRequest.field`, the values channel asked (a `values` node's
   `field`: `plddt`, `b_factor`; absent, the source's default value; a source serving one value ignores it), and
   `OpenedSource.changes(fn) → unsubscribe`, the adapter telling that its data changed (a host's edit; whoever attached
-  it reopens it in place: Store, Reattach). A source read once (a file) has no `changes`. Why: one source, one open and
-  one parse serve every channel; a host's edit is a new reading of the same source, not a new source.
+  it reopens it in place: Store, Reattach); a change since the source was opened and before the subscription is told
+  too, so an edit while it is being opened or attached is never lost. A source read once (a file) has no `changes`. Why:
+  one source, one open and one parse serve every channel; a host's edit is a new reading of the same source, not a new
+  source.
 - **Conformance**: every adapter passes one suite (`data/_test/conformance.ts`): a well-formed coverage whose nodes the
   language takes; each listed shape read whole at level 1 an answer in the protocol's shape, with a channel asked or
   not; an aborted read an `AbortError`; `changes` stopping once unsubscribed. Why: a host is code Seq\* does not own.
