@@ -40,10 +40,16 @@ The third slice is closed (2026-11-20; its record in `.seq/records/third-slice/`
   1289.9 / 922.6 kB; the quick-lane folders over 2 s (core, viewer, storybook) are FX3's first item. Submenus from a
   command's select param ("Commands own choices"); T-DM1's CCD ids and the pairs layer's numeric columns ("Both to
   FX3").
+- **Public API changes allowed without stopping** (the author, 2026-11-20: "you can change public api of packages/seq,
+  core/repr, packages/ui if needed. this has no other consumers beyond the work here yet"): a lane may change the
+  public surface of `packages/seq/*`, `@molstar/core`'s `repr`, and `@molstar/ui` where its work needs it, each change
+  in its changelog entry and listed in `gaps.md` for the author's review; `pnpm build` and `check:workspace` at its
+  merge when core or ui changed. The rest of `@molstar/core` and `@molstar/io` still stop the lane.
 - Size targets are bounds once reset after RR (the author, 2026-11-20: "reduce render first, then move the size
   targets"). Moved for the query language: reading a spec 230, headless 820, minimal 920 kB (the author,
   2026-11-20), the default viewer 1,290 kB ("Move to 1290 kB", 2026-11-20); for molecules drawn, headless 830 and
-  minimal 930 kB ("Move to 830 / 930 kB", 2026-11-20).
+  minimal 930 kB ("Move to 830 / 930 kB", 2026-11-20); for the structure link and the rest of the slice, the default
+  viewer 1,330 kB ("Move to 1330 kB", 2026-11-20).
 
 ## In progress
 
@@ -51,9 +57,17 @@ The third slice is closed (2026-11-20; its record in `.seq/records/third-slice/`
 
 ## Next
 
-1. FX3 (strong): `fixes.md`'s open items, the folders' times first; the hover cards' items wait for ST2 (both in the
-   viewer's hover).
-2. ST2 (strong, after HP2), then ST3, HD (after FX3's map onto a described unit), HP3; SV; stage 2's gate.
+1. **Overnight (the author, 2026-11-20: "you can continue with slice 4 too, just don't close it until i review it in
+   the morning")**: the loop runs "Running while the author is away" (loop.md): decisions a gate would ask are made as
+   recommended and listed in `gaps.md`; a public API change past a design in `packages/seq`, core's `repr` or `@molstar/ui` goes ahead (Decided, the
+   author), listed in `gaps.md`; elsewhere in `@molstar/core` or `@molstar/io` the lane stops; the use
+   gates are deferred, not passed. Two lanes at once in all, shared with the fifth slice's stage 0
+   (`../fifth-slice/state.md`, "Overnight"): one fifth-slice draft (or its review) and one fourth-slice lane at a time,
+   while both have work.
+2. The fourth slice's order: merge FX3 and ST2; then ST3 → HD (after FX3's map onto a described unit) → HP3; SV (after
+   ST3); stage 2's and stage 3's gates; stage 4 (EX → CN, LE); the novice pass; M4. **Stop before FINALIZE**: no
+   fold-back, record or close until the author has reviewed (the morning).
+3. In the morning, with the author: the fifth slice's drafts agreed; the fourth slice's review, then its finalize.
 
 ## Findings by lane
 
