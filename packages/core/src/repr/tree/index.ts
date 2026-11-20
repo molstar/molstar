@@ -23,6 +23,7 @@ export {
   isExactAddress,
   matchesAddress,
   matchesForm,
+  OperatorKinds,
   type Named,
   parseAddress,
   parseAddressIn,
