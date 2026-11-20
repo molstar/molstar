@@ -287,7 +287,7 @@ sequence's table of its non-standard positions; `residues` is a molecule's list 
 | `(molecule :identifier "ccd:ATP")`, `(molecule :class ligand)` | `data`, a complex | Nodes: molecules (with the host's resolver, its equivalents) |
 | `(entity :id 3)` | a complex from a source | Nodes: the molecule its source calls entity 3 |
 | `(chain :id A :operator 1_555)`, `(chain :auth B)` | a complex | Nodes: units (the form exists; `:operator` and `:auth` added) |
-| `(atom :name O1G)` | a molecule's `(atoms)`, a unit | Location: one atom |
+| `(atom :name O1G)` | a molecule's `(atoms)`, a unit | Locations: every atom of that name in each element its prefix yields (decided by the author, 2026-11-20: "this is every atom. it needs to work similar to how MolQL does. monadic composition.") |
 | `(atoms)` | a molecule, a unit | Nodes: its atoms system |
 
 ### Reading

@@ -56,6 +56,10 @@ by default. The first forms grow with the examples.
 
 ### The first forms
 
+Forms compose monadically, as MolQL's: a form maps over every element its prefix yields and concatenates what each
+gives; an element with nothing to give yields nothing, never a failure of the whole query (the author, 2026-11-20:
+"it needs to work similar to how MolQL does. monadic composition.").
+
 | Form | Result | Example |
 |---|---|---|
 | `(range :from a :to b :numbering n)` | Location | `/data/p53/(range :from 94 :to 292)` |
