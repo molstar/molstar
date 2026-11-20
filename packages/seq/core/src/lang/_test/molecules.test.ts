@@ -156,6 +156,18 @@ describe('molecules, complexes, units and links', () => {
     expect(codes(b.build())).toEqual(['seq.lang.numbering.length', 'seq.lang.unit.range']);
   });
 
+  it('observed runs are on a unit’s own positions, from 0, and the issue says so', () => {
+    const b = createSeqSpec();
+    const s = b.data.sequence('s', { alphabet: 'protein', letters: 'MKTAYIAK' });
+    b.data.complex('c', {}, (c) => c.unit('A', { of: s, range: [2, 6], observed: { start: [0], end: [4] } }));
+    expect(codes(b.build())).toEqual([]);
+    b.data.complex('d', {}, (c) => c.unit('A', { of: s, range: [2, 6], observed: { start: [2], end: [6] } }));
+    const [issue] = checkSeqSpec(b.build());
+    expect(issue.code).toBe('seq.lang.unit.observed');
+    expect(`${issue.message} ${issue.hint}`).not.toMatch(/range/);
+    expect(issue.hint).toMatch(/own positions/);
+  });
+
   it('links: an intra-unit link and several rows at one site (glycoforms) pass; a link under data names no unit', () => {
     const b = createSeqSpec();
     const s = b.data.sequence('s', { alphabet: 'protein', letters: 'MKTACYAK' });

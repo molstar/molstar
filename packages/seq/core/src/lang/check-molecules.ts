@@ -148,7 +148,7 @@ export function checkUnit(unit: Node, length: number | undefined, say: Say): voi
   const hi = unitLength(unit, length);
   for (let i = 0; i < Math.min(s.length, e.length); i++) {
     if (e[i] < s[i] || s[i] < 0 || (hi !== undefined && e[i] > hi) || (i > 0 && s[i] < e[i - 1])) {
-      say('seq.lang.unit.observed', 'An observed run is out of order or outside the unit', 'observed', 'start', i);
+      say('seq.lang.unit.observed', 'An observed run is out of order or past the unit’s positions', 'observed', 'start', i);
       return;
     }
   }

@@ -272,8 +272,8 @@ export const LangIssues = defineIssues('seq.lang', {
   },
   'seq.lang.unit.observed': {
     severity: 'error',
-    description: 'A unit’s observed runs are not intervals in order within its range',
-    hint: 'List the modeled runs in order, each [start, end) within the unit’s range, none overlapping',
+    description: 'A unit’s observed runs are not intervals in order on its own positions',
+    hint: 'List the modeled runs in order on the unit’s own positions (from 0), each [start, end), none overlapping',
   },
   'seq.lang.link.target': {
     severity: 'error',
