@@ -70,7 +70,7 @@ describe('molecules, complexes, units and links', () => {
     expect((links?.params?.rows as Record<string, unknown>).occupancy).toBeInstanceOf(Float32Array);
   });
 
-  it('diff and patch back: each new param set and unset', () => {
+  it('diff and patch back: a whole spec of the new kinds made from a near-empty one, and back', () => {
     const b = createSeqSpec();
     b.data.sequence('s', { alphabet: 'protein', letters: 'MKTA' });
     const before = b.build();
@@ -82,6 +82,44 @@ describe('molecules, complexes, units and links', () => {
     const back = applyPatch(after, diff(after, before), options);
     expect(back.ok && hashNode(back.root)).toBe(hashNode(before));
   });
+
+  /** Each new param of an existing node: its node's ids, the key. */
+  const NewParams: readonly (readonly [readonly string[], string])[] = [
+    [['data', 'host'], 'ref'],
+    [['data', 'fc'], 'modified'],
+    [['data', 'plddt'], 'field'],
+    [['data', 'atp'], 'atoms'],
+    [['data', 'atp'], 'identifiers'],
+    [['data', 'atp'], 'name'],
+    [['data', 'glycan'], 'class'],
+    [['data', 'compounds', 'CRO'], 'parents'],
+    [['data', 'compounds', 'CRO'], 'class'],
+    [['data', 'c'], 'name'],
+    [['data', 'c', 'A'], 'range'],
+    [['data', 'c', 'A'], 'observed'],
+    [['data', 'c', 'A'], 'chain'],
+    [['data', 'c', 'A'], 'auth_chain'],
+    [['data', 'c', 'A'], 'operator'],
+    [['data', 'c', 'L'], 'group'],
+    [['views', 'v', 'complex'], 'classes'],
+    [['views', 'v', 'blocks', 'atp'], 'form'],
+    [['views', 'v', 'trna', 't', 'marks'], 'modified'],
+  ];
+
+  for (const [at, key] of NewParams)
+    it(`diff and patch back: ${key} of ${at.join('/')} unset on its node, and set again`, () => {
+      const options = { language: SeqLanguage, validate: SeqValidateOptions };
+      const spec = moleculesSpec();
+      const unset = applyPatch(spec, { ops: [{ op: 'unset', at: [...at], key }] }, options);
+      expect(unset.ok && unset.changed).toBe(true);
+      if (!unset.ok) return;
+      const set = diff(unset.root, spec);
+      expect(set.ops.map((o) => o.op)).toEqual(['set']);
+      const back = applyPatch(unset.root, set, options);
+      expect(back.ok && hashNode(back.root)).toBe(hashNode(spec));
+      const again = applyPatch(spec, diff(spec, unset.root), options);
+      expect(again.ok && hashNode(again.root)).toBe(hashNode(unset.root));
+    });
 
   it('take molecules and units as targets, and a complex as a section (EC-48)', () => {
     const b = createSeqSpec();
@@ -196,7 +234,19 @@ describe('molecules, complexes, units and links', () => {
     expect(codes(b.build())).toEqual(['seq.lang.link.unit', 'seq.lang.link.target']);
   });
 
-  it('a ranges layer takes pairs (each end a mark); a form of atoms needs atoms, a unit read through its molecule', () => {
+  it('a ranges layer takes pairs (each end a mark at its site); a values layer does not', () => {
+    const b = createSeqSpec();
+    const s = b.data.sequence('s', { alphabet: 'protein', letters: 'MKTACYAK' });
+    const p = b.data.pairs('p', { a: s, rows: { a_start: [1], a_end: [2], b_start: [5], b_end: [6] } });
+    b.views.view('v', (v) => v.section('s', { of: s }).track('t').layer('sites', { type: 'ranges', data: p }));
+    expect(codes(b.build())).toEqual([]);
+    b.views.view('w', (v) => v.section('s', { of: s }).track('t').layer('bars', { type: 'values', data: p }));
+    expect(checkSeqSpec(b.build()).map((i) => [i.code, i.address])).toEqual([
+      ['seq.lang.layer.data', '/views/w/s/t/bars'],
+    ]);
+  });
+
+  it('a form of atoms needs atoms, a unit read through its molecule', () => {
     const b = createSeqSpec();
     const m = b.data.molecule('m', { residues: ['ATP'] });
     let u = '';
