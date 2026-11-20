@@ -17,6 +17,13 @@ under the author's standing permission (`state.md`, Decided). Each a yes or no q
 
 ## For the author (no default taken)
 
+- **T-DM1's CCD ids** (FX3, item 6, open): the repo holds no CCD data for DM1 or the SMCC/MCC linker. Fetch their
+  chemical component pages from the PDB once (two small files, recorded with their licence), or give the ids? A
+  fetch is asked before it is made.
+- **The viewer's quick-lane folder still over 2 s** (FX3, item 1): 2.78 s, its time imports (28%) and jsdom setup
+  (20%) across 65 files. Fewer jsdom files, a lighter DOM environment, or a viewer-folder budget of 3 s?
+  Recommended: fewer jsdom files first (the next fix lane), the budget unchanged.
+
 - **The link's hover allocation**: a 2OCJ hover allocates 11.3 kB through the link (9.2 kB in `toUnits`, 1.7 kB per
   lit unit; was 31.8 kB), against performance.md's 0 B for warm hover loops; the target and the hover's Location are
   new each hover. Set a target for the link's path (performance.md names none), or ask for pooled results? Recommended:
