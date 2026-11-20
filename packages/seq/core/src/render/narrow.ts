@@ -26,9 +26,11 @@ export interface NarrowColumns {
 }
 
 /**
- * The label column and the tree for a frame `width` px wide whose columns take `fixed` px at their own widths (the
- * label column `labelWidth` of it, the tree `tree`): unchanged while the plot keeps `navigator.overview.minPlotPx`;
- * else the label column gives up to its floor (`labelColumn.min`, or its own width if less), then the tree all of its.
+ * The label column and the tree for a frame `width` px wide whose columns take `fixed` px (the label column
+ * `labelWidth` of it, the tree `tree`; row columns as granted at this width): unchanged while the plot keeps
+ * `navigator.overview.minPlotPx`; else the label column gives up to its floor (`labelColumn.min`, or its own width if
+ * less), then the tree all of its. `columnsPx`: the columns at their own widths, whatever the frame (`fixed` when
+ * absent): what `plotPx` and a navigator beside the frame read, so a width they decide never feeds back.
  */
 export function narrowColumns(
   width: number,
@@ -36,16 +38,17 @@ export function narrowColumns(
   labelWidth: number,
   tree: number,
   config: RenderConfig,
+  columnsPx = fixed,
 ): NarrowColumns {
   const minPlot = config.navigator.overview.minPlotPx;
-  const plotPx = width - fixed;
+  const plotPx = width - columnsPx;
   const floor = Math.min(labelWidth, config.labelColumn.min);
   const minWidth = fixed - (labelWidth - floor) - tree + minPlot;
-  let lack = minPlot - plotPx;
-  if (!(lack > 0)) return { labelWidth, tree, plotPx, columnsPx: fixed, minWidth };
+  let lack = minPlot - (width - fixed);
+  if (!(lack > 0)) return { labelWidth, tree, plotPx, columnsPx, minWidth };
   const label = Math.max(floor, Math.floor(labelWidth - lack));
   lack -= labelWidth - label;
-  return { labelWidth: label, tree: lack > 0 ? 0 : tree, plotPx, columnsPx: fixed, minWidth };
+  return { labelWidth: label, tree: lack > 0 ? 0 : tree, plotPx, columnsPx, minWidth };
 }
 
 /**

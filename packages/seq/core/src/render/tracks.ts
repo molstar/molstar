@@ -135,7 +135,14 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
   const fit = columnsFit(state, viewColumns(input.view), input.size.width, fixed, base, header.rail);
   // a narrow frame: the label column to its floor, then the tree collapsed, the plot kept (narrow.ts)
   const narrow = header.tracks
-    ? narrowColumns(input.size.width, fixed + (fit ? fit.left + fit.right : 0), base.labelWidth, header.tree, base)
+    ? narrowColumns(
+        input.size.width,
+        fixed + (fit ? fit.left + fit.right : 0),
+        base.labelWidth,
+        header.tree,
+        base,
+        fixed + (fit?.own ?? 0),
+      )
     : undefined;
   const config = widened(
     narrow ? measured(given, narrow.labelWidth) : base,

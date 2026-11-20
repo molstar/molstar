@@ -28,7 +28,7 @@ afterEach(() => {
 
 const Letters = 'MEEPQSDPSVEPPLSQETFSDLWKLLPENNVLSPLPSQAMDDLMLSPDDIEQWFTEDPGPDEAPRMPEAAPPVAPAPAA';
 
-function spec(): Node {
+function spec(columns = false): Node {
   const b = createSeqSpec({ title: 'narrow' });
   const n = 30;
   const label = Array.from({ length: n }, (_, i) => `r${i}`);
@@ -36,14 +36,19 @@ function spec(): Node {
   const aln = b.data.alignment('aln', { alphabet: 'protein', rows: { label, letters } });
   b.views.view('v', (v) => {
     const s = v.section('s', { of: aln });
-    s.track('rows', { label: '', height: 100 }).layer('r', { type: 'rows', data: aln });
+    s.track('rows', { label: '', height: 100 }).layer('r', {
+      type: 'rows',
+      data: aln,
+      // a right column wide enough to give way in a narrow frame (its width then depends on the frame's)
+      ...(columns ? { columns: [{ field: 'identity', side: 'right', as: 'bar', width: 160 }] } : {}),
+    } as never);
     v.navigator('nav', overviewNavigator(s));
   });
   return b.build();
 }
 
 /** A viewer in a row `frame` px wide: the overview's room the row, the canvas what the overview leaves. */
-async function inFrame(frame: number, config: readonly (readonly [unknown, unknown])[] = []) {
+async function inFrame(frame: number, config: readonly (readonly [unknown, unknown])[] = [], columns = false) {
   frames?.restore();
   frames = installFrames();
   const viewer = createSeqViewer({
@@ -52,7 +57,7 @@ async function inFrame(frame: number, config: readonly (readonly [unknown, unkno
     config: [[viewerItem('view.jumpMs'), 0], ...config] as never,
   });
   viewers.push(viewer);
-  await viewer.load(spec());
+  await viewer.load(spec(columns));
   viewer.resize(frame - 96);
   await viewer.settle();
   frames.flush();
@@ -113,6 +118,28 @@ describe('a narrow frame: the vertical overview beside the canvas', () => {
     }
     expect(narrow.nav.width).toBe(96);
     expect(narrow.viewer.frame!.layout.sections[0].rowsRails).toBeUndefined();
+  });
+
+  it('at the threshold the overview and the canvas settle: the columns read at their own widths, whatever the frame', async () => {
+    // row columns that give way below a 200 px plot: their granted width depends on the canvas's
+    const wide = await inFrame(1280, [], true);
+    const columns = wide.columns;
+    wide.viewer.resize(420);
+    frames!.flush();
+    wide.viewer.draw();
+    expect(wide.viewer.frame!.layout.narrow!.columnsPx).toBe(columns);
+    for (const room of [columns + 160 + 96, columns + 160 + 48, columns + 160 + 47]) {
+      const v = await inFrame(room, [], true);
+      const widths: number[] = [];
+      for (let i = 0; i < 6; i++) {
+        v.nav.draw();
+        widths.push(v.nav.width);
+        v.viewer.resize(room - v.nav.width);
+        frames!.flush();
+        v.viewer.draw();
+      }
+      expect(new Set(widths).size).toBe(1);
+    }
   });
 
   it('no room given, or a host’s own size, keeps its width', async () => {

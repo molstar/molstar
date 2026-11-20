@@ -1902,9 +1902,9 @@ numbers): a window move allocates nothing once warm.
   wide; (2) below that it is hidden, the rows rail kept (the way to move is never lost); (3) the label column shrinks to
   its floor (`labelColumn.min`, 80, or its own width if less), then the tree collapses (`LayoutContext.treePx`: 0); (4)
   the plot keeps its floor and the frame scrolls: `narrow.minWidth` is the least frame width with the columns at their
-  floors. `narrow.plotPx` and `.columnsPx` are at the columns' own widths, so a navigator reading them beside the canvas
-  never flips with the columns it caused to shrink. A view with a tracks section has it. Why the order: a miniature
-  before names, names before data.
+  floors. `narrow.plotPx` and `.columnsPx` are at the columns' own widths (row columns ungranted too, whatever the
+  frame), so a navigator reading them beside the canvas never flips with the columns it caused to shrink. A view with a
+  tracks section has it. Why the order: a miniature before names, names before data.
 
 ### Rings layout
 
