@@ -244,32 +244,35 @@ describe('performance representatives', () => {
     return b.build();
   }
 
-  itWithin(
-    'a layout with a field theme costs at most 1.1× the same layout uniform (10,000 ranges by a category)',
-    async (within) => {
-      const uniform = await settle(many());
-      const themed = await settle(many(theme.field('category')));
-      // a viewport of its own each frame: every frame lays out
-      const at = (k: number) => ({ size: { width: 1600, height: 240 }, viewport: { start: k, end: N * 8 + k } });
-      for (let k = 0; k < 6; k++) {
-        await uniform.frame(at(k));
-        await themed.frame(at(k));
-      }
-      let k = 10;
-      // the two measured in turn, the themed held to 1.1× the uniform, each its best of seven
-      let f: ReturnType<typeof themed.renderer.frame> | undefined;
-      ratioWithin(
-        within,
-        1.1,
-        () => uniform.renderer.frame(at(k++)),
-        () => {
-          f = themed.renderer.frame(at(k++));
-        },
-        7,
-      );
-      expect(f!.rebuilt).toBe(true);
-      expect((f!.layout.sections[0].tracks[0].layers[0].lay as RangesLay).items).toBeGreaterThan(1000);
-    },
+  // the ratio: medium unbounded (two layouts of 10,000 ranges, a dozen frames each), heavy bounded
+  describe('the field theme’s cost', { tags: ['medium'] }, () =>
+    itWithin(
+      'a layout with a field theme costs at most 1.1× the same layout uniform (10,000 ranges by a category)',
+      async (within) => {
+        const uniform = await settle(many());
+        const themed = await settle(many(theme.field('category')));
+        // a viewport of its own each frame: every frame lays out
+        const at = (k: number) => ({ size: { width: 1600, height: 240 }, viewport: { start: k, end: N * 8 + k } });
+        for (let k = 0; k < 6; k++) {
+          await uniform.frame(at(k));
+          await themed.frame(at(k));
+        }
+        let k = 10;
+        // the two measured in turn, the themed held to 1.1× the uniform, each its best of seven
+        let f: ReturnType<typeof themed.renderer.frame> | undefined;
+        ratioWithin(
+          within,
+          1.1,
+          () => uniform.renderer.frame(at(k++)),
+          () => {
+            f = themed.renderer.frame(at(k++));
+          },
+          7,
+        );
+        expect(f!.rebuilt).toBe(true);
+        expect((f!.layout.sections[0].tracks[0].layers[0].lay as RangesLay).items).toBeGreaterThan(1000);
+      },
+    ),
   );
 
   itWithin('legends for 100 tracks are derived in under 1 ms', (within) => {

@@ -375,20 +375,25 @@ describe('checkSeqChanges through refs', () => {
     expect(change).toEqual(['seq.lang.ref.unresolved|/refs/q|to']);
   });
 
-  it('holds over seeded random patches of refs in chains, along the revisions', () => {
-    const rand = seeded(7);
-    for (let run = 0; run < 40; run++) {
-      let root = chains();
-      for (let step = 0; step < 12; step++) {
-        const p = randomPatch(root, rand);
-        const r = applyPatch(root, p, options);
-        if (!r.ok) continue;
-        const { whole, change } = both(root, p);
-        expect(change, JSON.stringify(p.ops)).toEqual(whole);
-        root = r.root;
+  // 10 runs quick, 40 medium
+  for (const [runs, tags] of [
+    [10, []],
+    [40, ['medium']],
+  ] as [number, string[]][])
+    it(`holds over ${runs} runs of seeded random patches of refs in chains, along the revisions`, { tags }, () => {
+      const rand = seeded(7);
+      for (let run = 0; run < runs; run++) {
+        let root = chains();
+        for (let step = 0; step < 12; step++) {
+          const p = randomPatch(root, rand);
+          const r = applyPatch(root, p, options);
+          if (!r.ok) continue;
+          const { whole, change } = both(root, p);
+          expect(change, JSON.stringify(p.ops)).toEqual(whole);
+          root = r.root;
+        }
       }
-    }
-  });
+    });
 });
 
 describe('checkSeqChanges', () => {

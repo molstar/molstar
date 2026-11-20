@@ -383,25 +383,29 @@ describe('a node built in code', () => {
 });
 
 describe('the patch check keeps its issues as the whole check does', () => {
-  it('lists 10 places of a code and counts the rest, for 20,000 made nodes with a dangling source', () => {
-    const n = 20_000;
-    const kids = Array.from({ length: n }, (_, i) => ({
-      kind: 'sequence',
-      id: `s${i}`,
-      params: { alphabet: 'protein', source: '/data/missing' },
-    })) as Node[];
-    const after = specOf({ kind: 'data', id: 'data', children: kids });
-    const changes: Changes = {
-      made: kids.map((k) => ['data', k.id!]),
-      moved: [],
-      removed: [],
-      params: [],
-      children: [],
-    };
-    const issues = checkSeqChanges(specOf({ kind: 'data', id: 'data' }), after, changes);
-    expect(issues.filter((i) => i.code === 'seq.lang.ref.target')).toHaveLength(10);
-    const summary = issues.filter((i) => i.code === 'seq.lang.bound.issues');
-    expect(summary).toHaveLength(1);
-    expect(summary[0].message).toContain(`${n - 10} more`);
-  });
+  // a few hundred quick, the scale medium
+  for (const [n, tags] of [
+    [200, []],
+    [20_000, ['medium']],
+  ] as [number, string[]][])
+    it(`lists 10 places of a code and counts the rest, for ${n} made nodes with a dangling source`, { tags }, () => {
+      const kids = Array.from({ length: n }, (_, i) => ({
+        kind: 'sequence',
+        id: `s${i}`,
+        params: { alphabet: 'protein', source: '/data/missing' },
+      })) as Node[];
+      const after = specOf({ kind: 'data', id: 'data', children: kids });
+      const changes: Changes = {
+        made: kids.map((k) => ['data', k.id!]),
+        moved: [],
+        removed: [],
+        params: [],
+        children: [],
+      };
+      const issues = checkSeqChanges(specOf({ kind: 'data', id: 'data' }), after, changes);
+      expect(issues.filter((i) => i.code === 'seq.lang.ref.target')).toHaveLength(10);
+      const summary = issues.filter((i) => i.code === 'seq.lang.bound.issues');
+      expect(summary).toHaveLength(1);
+      expect(summary[0].message).toContain(`${n - 10} more`);
+    });
 });

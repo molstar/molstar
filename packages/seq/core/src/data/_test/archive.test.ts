@@ -443,7 +443,12 @@ async function fuzz(runs: number) {
 }
 
 describe('reading an archive: fuzz', () => {
+  // a short fuzz quick, 300 medium, the full size heavy
   it('EC-91: mutated archives are archives or issues, and every name that opens is under the root', async () => {
+    expect(await fuzz(60)).toBeGreaterThan(0);
+  });
+
+  it('EC-91: 300 mutated archives', { tags: ['medium'] }, async () => {
     expect(await fuzz(300)).toBeGreaterThan(0);
   });
 

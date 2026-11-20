@@ -1,4 +1,3 @@
-// @vitest-environment jsdom
 /**
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -43,7 +42,6 @@ afterEach(() => {
   for (const v of viewers.splice(0)) v.retire();
   frames.restore();
   vi.restoreAllMocks();
-  document.body.innerHTML = '';
 });
 
 /** A heavy chain shown twice: a section a numbering, its ruler over its letters. */

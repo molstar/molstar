@@ -7,7 +7,8 @@
 // The navigators' targets (performance.md, navigators): a window move (the picture's key held: the windows and marks
 // drawn again over it) under 0.5 ms; the picture laid out again: a strip of p53's tracks under 4 ms, a chromosome's
 // ideogram of about 60 bands under 1 ms, the 10,000-row overview from its summary grid under 8 ms. Each bound the
-// heavy lane's (`itWithin`, the median of a run, best of three); the quick lane runs them unbounded.
+// heavy lane's (`itWithin`, the median of a run, best of three); the quick lane runs them unbounded, the 10,000
+// rows the medium lane.
 
 import { overviewNavigator, stripNavigator } from '@molstar/seqx-core/lang';
 import { itWithin } from '@molstar/test-harness/timing';
@@ -82,7 +83,10 @@ describe('the navigators’ time', () => {
     const m = within(1 * Frames, () => run());
     console.info(`navigator, an ideogram of 60 bands: median ${m.toFixed(3)} ms`);
   });
+});
 
+// the scale: medium unbounded, heavy bounded
+describe('the navigators’ time, the 10,000-row overview', { tags: ['medium'] }, () => {
   itWithin('the 10,000-row overview from its summary grid, laid out again', async (within) => {
     const s = await settleNavigator(withNavigator(rowsSpec(10_000, true), overviewNavigator('/views/v/s')), 0, [
       Synthetic,

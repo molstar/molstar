@@ -172,10 +172,13 @@ describe('p53 Themes, headless', () => {
     expect(svg).toMatch(/missense/);
   });
 
-  it('the view and the gallery mount with content', () => {
+  it('the view mounts with content', () => {
     const t = mount<HTMLElement>(Themes);
     expect(t.querySelectorAll('*').length).toBeGreaterThan(3);
-    t.remove();
+  });
+
+  // every scheme in both tables under four visions, a swatch a color, in jsdom: a third of a second (a sweep)
+  it('the gallery mounts with content', { tags: ['medium'] }, () => {
     const g = mount<SchemesGalleryRoot>(SchemesGallery);
     expect(g.querySelectorAll('tr').length).toBeGreaterThan(20);
   });
