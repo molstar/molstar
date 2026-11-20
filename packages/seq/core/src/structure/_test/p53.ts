@@ -35,6 +35,8 @@ export interface P53Options {
   readonly reversed?: boolean;
   /** A numbering `auth` on the entity too (one past the units' labels), which the units' own beat (EC-8). */
   readonly entityAuth?: boolean;
+  /** The units' author numbering (true by default; a scale case leaves it out). */
+  readonly auth?: boolean;
   /**
    * A view of P04637: its letters, its domains (a ranges node, colored by `category` when `field`) and a values track
    * (`values[i]` at `i`, NaN at 100), each a layer `colorRuns` reads.
@@ -44,6 +46,11 @@ export interface P53Options {
 
 /** The view's values: `i / UpLength`, none at 100. */
 export const ValueAt = (i: number) => (i === 100 ? Number.NaN : i / UpLength);
+
+/** Each unit's author labels: UniProt's numbers where modeled, `104A` at entity position 10 (an insertion code). */
+const AuthLabels = Array.from({ length: EntLength }, (_, i) =>
+  i < Observed[0] || i >= Observed[1] ? null : i === 10 ? `${EntStart + 1 + i}A` : String(EntStart + 1 + i),
+);
 
 export const chainId = (k: number) => (k < 26 ? String.fromCharCode(65 + k) : `X${k}`);
 
@@ -72,17 +79,9 @@ export function p53Spec(o: P53Options = {}): Node {
       c.unit(
         chain,
         { of: ent, chain, auth_chain: chain, observed: { start: [Observed[0]], end: [Observed[1]] } },
-        (u) =>
-          u.numbering('auth', {
-            method: 'labels',
-            labels: Array.from({ length: EntLength }, (_, i) =>
-              i >= Observed[0] && i < Observed[1]
-                ? i === 10
-                  ? `${EntStart + 1 + i}A`
-                  : String(EntStart + 1 + i)
-                : null,
-            ),
-          }),
+        (u) => {
+          if (o.auth !== false) u.numbering('auth', { method: 'labels', labels: AuthLabels });
+        },
       );
     }
     for (const k of order) c.unit(`Z${chainId(k)}`, { of: zn, chain: `Z${chainId(k)}`, auth_chain: chainId(k) });

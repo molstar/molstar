@@ -95,8 +95,9 @@ export function toUnits(
         );
         continue;
       }
+      const carry = carrier(r, b.via, say);
       for (const u of c.units) {
-        const im = imageOn(r, u, src, b.via, atomsMode, say);
+        const im = imageOn(r, u, src, carry, atomsMode);
         if (!im) continue;
         touched.push(u);
         const observed = observedOf(u, u.end! - u.start);
@@ -134,21 +135,62 @@ export function toUnits(
   return { target: parts.length ? location({ parts }) : EmptyLocation, cut: cutLoc, issues };
 }
 
+/** A part's image on a unit's positions (unclipped), or undefined when no path reaches it. */
+type Carry = (part: number, from: string, ranges: ArrayLike<number>, u: UnitEntry) => ArrayLike<number> | undefined;
+
+/**
+ * Parts carried onto units through their molecule: one search a part and molecule, then the unit's free step down
+ * (its range's start subtracted), so an assembly of thousands of copies searches once, not once a copy (a search from
+ * a sequence reads every unit's step). The copy rule (EC-25) is kept as the search keeps it: a part on a unit of the
+ * molecule, or a path climbing out of one onto it, never steps down to another; a unit with maps of its own is
+ * searched on its own (its map may be the shorter path). The round trip tests it against the model's projection.
+ */
+function carrier(r: StructureReads, via: readonly string[] | undefined, say: (i: Issue) => void): Carry {
+  const onMolecule = new Map<string, ArrayLike<number> | null>();
+  const viaOf = (p: ReturnType<StructureReads['path']>) => {
+    if (p.issue && ForwardedPathCodes.has(p.issue.code)) say(p.issue);
+    return p.path;
+  };
+  return (k, from, ranges, u) => {
+    if (r.model.edgesFrom(u.address).some((e) => !e.unit)) {
+      const p = viaOf(r.path(from, u.address, via));
+      return p && projectRanges(p, ranges);
+    }
+    if (r.unit(from)?.of === u.of) return undefined;
+    let image: ArrayLike<number> | null | undefined;
+    if (from === u.of) image = ranges;
+    else {
+      const key = `${k}\u0000${u.of}`;
+      image = onMolecule.get(key);
+      if (image === undefined) {
+        const p = viaOf(r.path(from, u.of, via));
+        image = p && !p.edges.some((e) => e.unit === 'up' && e.to === u.of) ? projectRanges(p, ranges) : null;
+        onMolecule.set(key, image);
+      }
+    }
+    if (!image) return undefined;
+    if (!u.start) return image;
+    const out = new Array<number>(image.length);
+    for (let i = 0; i < image.length; i++) out[i] = image[i] - u.start;
+    return out;
+  };
+}
+
 /** The image of the parts on one unit: its residues (normalized, within it) and, in atoms mode, its atoms. */
 function imageOn(
   r: StructureReads,
   u: UnitEntry,
   src: readonly LocationPart[],
-  via: readonly string[] | undefined,
+  carry: Carry,
   atomsMode: boolean,
-  say: (i: Issue) => void,
 ): { residues: Int32Array; atoms?: Int32Array } | undefined {
   if (u.end === undefined) return undefined;
   const length = u.end - u.start;
   const unitAtoms = atomsMode && u.class !== 'polymer' ? r.atoms(atomsSystemOf(u.address)) : undefined;
   const residues: number[] = [];
   const atoms: number[] = [];
-  for (const part of src) {
+  for (let k = 0; k < src.length; k++) {
+    const part = src[k];
     if (part.system === u.address) {
       push(residues, part.ranges);
       continue;
@@ -164,9 +206,8 @@ function imageOn(
       push(residues, ranges);
       continue;
     }
-    const p = r.path(from, u.address, via);
-    if (p.path) push(residues, projectRanges(p.path, ranges));
-    else if (p.issue && ForwardedPathCodes.has(p.issue.code)) say(p.issue);
+    const image = carry(k, from, ranges, u);
+    if (image) push(residues, image);
   }
   if (!residues.length && !atoms.length) return undefined;
   let res = HalfOpenRanges.intersect(HalfOpenRanges.normalize(residues), Int32Array.of(0, length));
