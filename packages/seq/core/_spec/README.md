@@ -234,11 +234,12 @@ never chemistry: a component code, a SMILES, a GlyTouCan id are strings it match
 - **Links** are a `pairs` child of a complex (between its units: `a_unit`, `b_unit` the units' ids, each end on its
   unit's positions) or of a molecule (between its residues); a child names no `a` or `b`, its parent is both
   (`seq.lang.link.target`); unit columns only under a complex, each end naming a unit of it (`seq.lang.link.unit`) and
-  lying within it (`seq.lang.link.bounds`); `type` (`covalent`, `disulfide`, `glycosidic`, `metal`, any word), `a_atom`,
-  `b_atom`, `order`, `occupancy` (0 to 1, NaN 1: `seq.lang.link.occupancy`). Both ends on one unit is allowed (a
-  disulfide in a chain); glycoforms and stochastic conjugation are several rows with occupancies. Why a `pairs` node:
-  one shape for links and contacts, drawn by the pairs layer; never a map, so a glycan's selection never selects its
-  site.
+  lying within it (`seq.lang.link.bounds`), each end one position (`seq.lang.link.position`: a link joins an atom of
+  each; a site or contact of several positions is a pairs node under `data`); `type` (`covalent`, `disulfide`,
+  `glycosidic`, `metal`, any word), `a_atom`, `b_atom`, `order`, `occupancy` (0 to 1, NaN 1: `seq.lang.link.occupancy`).
+  Both ends on one unit is allowed (a disulfide in a chain); glycoforms and stochastic conjugation are several rows with
+  occupancies. Why a `pairs` node: one shape for links and contacts, drawn by the pairs layer; never a map, so a
+  glycan's selection never selects its site.
 - **Views of them**: `section.of` takes a complex (a block a unit), `section.classes` the classes shown in order
   (`polymer` a sequence's units, else a molecule's class; `[polymer, branched, ligand, ion]` when absent: water left
   out); `block.form` (`whole`, `residues`, `atoms`; `whole` for a molecule and `residues` for a sequence when absent;

@@ -165,8 +165,8 @@ export interface LinkParent {
 
 /**
  * The checks of a `pairs` node as links: under `data` it names `a`; under a complex or a molecule neither `a` nor `b`
- * (the parent is both ends); unit columns only under a complex, each end naming a unit of it and lying in its range;
- * under a molecule each end within its residues; occupancy 0 to 1.
+ * (the parent is both ends), each end one position; unit columns only under a complex, each end naming a unit of it
+ * and lying within it; under a molecule each end within its residues; occupancy 0 to 1.
  */
 export function checkLinks(pairs: Node, parent: LinkParent, say: Say): void {
   const under = parent.kind === 'complex' || parent.kind === 'molecule';
@@ -193,6 +193,16 @@ export function checkLinks(pairs: Node, parent: LinkParent, say: Say): void {
     const e = ints(rows[`${side}_end`]);
     if (!s || !e) continue;
     const n = Math.min(s.length, e.length);
+    // a link joins two positions (an atom of each): an end of several is a contact or a site, a pairs node under data
+    // (an empty end is the pairs' interval check's)
+    if (under) {
+      for (let i = 0; i < n; i++) {
+        if (e[i] > s[i] + 1) {
+          say('seq.lang.link.position', 'A link’s end is more than one position', 'rows', `${side}_end`, i);
+          break;
+        }
+      }
+    }
     for (let i = 0; i < n; i++) {
       let hi = parent.kind === 'molecule' ? parent.length : undefined;
       if (parent.kind === 'complex') {

@@ -292,6 +292,11 @@ export const LangIssues = defineIssues('seq.lang', {
     description: 'A link’s end lies outside its unit’s range, or past its molecule’s residues',
     hint: 'An end is a position of its unit (or of the molecule it is under)',
   },
+  'seq.lang.link.position': {
+    severity: 'error',
+    description: 'A link’s end (under a complex or a molecule) is more than one position',
+    hint: 'A link joins one position to one position; a site or a contact of several is a pairs node under `data`',
+  },
   'seq.lang.link.occupancy': {
     severity: 'error',
     description: 'A link’s occupancy is not between 0 and 1',

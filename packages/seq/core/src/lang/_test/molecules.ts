@@ -218,6 +218,13 @@ export const MoleculeMisuses: Record<MoleculeCode, () => Node> = {
     });
     return b.build();
   },
+  'seq.lang.link.position': () => {
+    const b = createSeqSpec();
+    b.data.molecule('m', { residues: ['NAG', 'NAG', 'NAG'] }, (m) =>
+      m.links('l', { rows: { a_start: [0], a_end: [2], b_start: [2], b_end: [3] } }),
+    );
+    return b.build();
+  },
   'seq.lang.link.occupancy': () => {
     const b = createSeqSpec();
     b.data.molecule('m', { residues: ['NAG', 'NAG'] }, (m) =>

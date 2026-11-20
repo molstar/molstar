@@ -194,6 +194,24 @@ describe('molecules, complexes, units and links', () => {
     expect(codes(b.build())).toEqual(['seq.lang.molecule.form']);
   });
 
+  it('a link’s end is one position, under a complex or a molecule; pairs under data keep their ranges', () => {
+    const b = createSeqSpec();
+    const s = b.data.sequence('s', { alphabet: 'protein', letters: 'MKTAYIAK' });
+    b.data.pairs('p', { a: s, rows: { a_start: [0], a_end: [3], b_start: [4], b_end: [6] } });
+    expect(codes(b.build())).toEqual([]);
+    b.data.complex('c', {}, (c) => {
+      c.unit('A', { of: s });
+      c.links('l', { rows: { a_unit: ['A'], a_start: [0], a_end: [1], b_unit: ['A'], b_start: [4], b_end: [6] } });
+    });
+    b.data.molecule('m', { residues: ['NAG', 'NAG', 'NAG'] }, (m) =>
+      m.links('l', { rows: { a_start: [0], a_end: [2], b_start: [2], b_end: [3] } }),
+    );
+    expect(checkSeqSpec(b.build()).map((i) => [i.code, i.address, i.path?.slice(-2).join('/')])).toEqual([
+      ['seq.lang.link.position', '/data/c/l', 'b_end/0'],
+      ['seq.lang.link.position', '/data/m/l', 'a_end/0'],
+    ]);
+  });
+
   it('a section’s range is bounded on a unit’s own positions and a molecule’s residues, as on a sequence', () => {
     const b = createSeqSpec();
     const s = b.data.sequence('s', { alphabet: 'protein', letters: 'MKTAYIAK' });
