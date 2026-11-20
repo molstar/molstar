@@ -20,6 +20,8 @@ export interface MoleculesOptions {
   /** The letters layer's `modified`. */
   readonly modified?: 'mark' | 'code' | 'tint' | 'none';
   readonly layout?: 'tracks' | 'text';
+  /** A text's numbers (`numbers`). */
+  readonly numbers?: 'start' | 'end' | 'both';
   /** ATP's block form (by an explicit block list: the complex's units in order, ATP's form as given). */
   readonly atpForm?: 'whole' | 'residues' | 'atoms';
   /** The links' arcs (a pairs track; true but in text). */
@@ -96,6 +98,7 @@ export function moleculesSpec(o: MoleculesOptions = {}): Node {
         ...(o.copies ? { copies: o.copies } : {}),
         ...(o.classes ? { classes: [...o.classes] } : {}),
         ...(o.layout ? { layout: o.layout } : {}),
+        ...(o.numbers ? { numbers: o.numbers } : {}),
       },
       (s) => {
         if (o.atpForm)

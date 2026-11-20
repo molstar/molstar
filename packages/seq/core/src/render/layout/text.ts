@@ -626,8 +626,9 @@ export const TextLayout: SectionLayoutType<TextPlacement> = {
         marks.push({ ...m, maxWidth: lead });
       }
       if (params.numbers === 'start' || params.numbers === 'both') {
+        // in the gutter before the line, as an unlabeled line's: a first line's inline label is after it (EC-95)
         const s = numberAt(a, u0 + du, numbering);
-        marks.push(mark(i, s, a.x0 - config.text.numberGap, baseline, AnchorEnd, g.numberFont, ctx.text));
+        marks.push(mark(i, s, g.lineX - config.text.numberGap, baseline, AnchorEnd, g.numberFont, ctx.text));
       }
       if (params.numbers === 'end' || params.numbers === 'both') {
         const s = numberAt(a, u1 - 1 + du, numbering);

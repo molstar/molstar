@@ -190,4 +190,28 @@ describe('a complex drawn against its data', () => {
     expect(labels.filter((t) => t === 'A')).toHaveLength(1);
     expect(labels.filter((t) => t === 'B')).toHaveLength(1);
   });
+
+  it('in text with numbers, a first line’s start number stays in the gutter, clear of its inline label (EC-95)', async () => {
+    const s = await settle(moleculesSpec({ layout: 'text', copies: 'each', numbers: 'start' }));
+    const f = await s.frame({ size: { width: 520, height: 600 } });
+    // the labels pass's texts with their x, anchor and measured width
+    const marks = recordDrawLists(f.lists, ['labels'])
+      .split('\n')
+      .filter((l) => l.startsWith('text '))
+      .map((l) => {
+        const m = /^text "([^"]*)" ([\d.-]+) ([\d.-]+) (\w+) .* width ([\d.]+)/.exec(l)!;
+        const x = Number(m[2]);
+        const w = Number(m[5]);
+        const [x0, x1] = m[4] === 'end' ? [x - w, x] : m[4] === 'middle' ? [x - w / 2, x + w / 2] : [x, x + w];
+        return { text: m[1], y: Number(m[3]), x0, x1 };
+      });
+    const label = marks.find((m) => m.text === 'A')!;
+    const number = marks.find((m) => m.text === '1' && Math.abs(m.y - label.y) < 1)!;
+    expect(label).toBeDefined();
+    expect(number).toBeDefined();
+    expect(number.x1).toBeLessThanOrEqual(label.x0);
+    const svg = drawListsToSvg(f.lists);
+    expect(svg).toContain('>A<');
+    expect(svg).toContain('>1<');
+  });
 });
