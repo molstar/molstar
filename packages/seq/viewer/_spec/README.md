@@ -1296,8 +1296,8 @@ over the same translation.
   `focus(target, { durationMs })`, and optionally `onHover`, `onSelect`, `onFocus` (each returning its unsubscribe) and
   a `signal`. A target is a Location on units (structured-cloneable).
 - **Out**: on each hover (`hover.version`), the hover's Location through `toUnits` under the hover's limits, sent when
-  its image changes (an unchanged image, an unobserved residue after one cut, sends nothing; nothing left is `null`);
-  the selection's `shown`, one message a frame (a frame callback: a drag moves it every pointer event), under the
+  its image changes (an unchanged image sends nothing; an empty one, an unobserved residue, is `null`, EC-118); the
+  selection's `shown`, one message a frame (a frame callback: a drag moves it every pointer event), under the
   selection's limits; a jump naming a Location (`view.lastJump`, read as `jumps` moves: a focus, a reveal, and back and
   forward when the step kept one and `followJumps`) as `focus` with the jump's duration (the camera and the sections on
   one clock). A fit names none: nothing sent.
