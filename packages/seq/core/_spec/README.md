@@ -981,15 +981,18 @@ over the assets port, with `@molstar/core/util/zip` (never a private zip). Not a
   still brings keep their identity (`<source>#<key>`, so their addresses and systems) and take its content, a new
   version; a key it no longer brings goes at once, whoever holds it (the reading says it is gone: as when a patch
   removes a node; its holders' releases then count down to nothing); every tile of it and of its channels is dropped and
-  the wanted ones asked again; its reports cleared; the old reading disposed. A malformed coverage is an issue and the
-  old reading stays. Why: EC-176's "a conflict keeps the held node" is right for two answers of one reading, wrong for a
-  new reading.
+  the wanted ones asked again; its reports cleared; the old reading disposed. A key the old reading's tiles brought
+  keeps its identity while held: served again by a tile it takes the new content (no conflict), and it goes when the
+  tile that brought it is read again without it (`store-sources.ts`). A malformed coverage is an issue and the old
+  reading stays. Why: EC-176's "a conflict keeps the held node" is right for two answers of one reading, wrong for a new
+  reading.
 - **Channels** (`channels.ts`, internal to the package: not in the `data` entry, read by the resolver and the context
   through `data/channels`): a values node's `field` is read under its own address, `channelAddress(source, field)` (the
-  source's and the field's joined by a control character no address holds), made when first read from the source as
-  attached (`fieldChannel`: each read asks the field, no nodes, its own summaries) and gone with its source; its
-  failures are reported at the source's address. Why its own address: tiles, summaries and entries are the field's, and
-  every reader of a layer's source (render, describe, the query model) reads it unchanged.
+  source's and the field's joined by a control character no address holds), made when a tile of it is first read, from
+  the source as attached (`fieldChannel`: each read asks the field, no nodes, its own summaries), and gone with its
+  source; reading its coverage or its keys makes nothing (the source's own); its failures are reported at the source's
+  address. Why its own address: tiles, summaries and entries are the field's, and every reader of a layer's source
+  (render, describe, the query model) reads it unchanged.
 - Time is a `StoreClock` (real timers by default): tests drive a fake one and never wait.
 
 ## Seq io

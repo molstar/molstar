@@ -6,7 +6,7 @@
 
 import { batch, KeyedState, ReactiveModel, type ReadonlyState, State } from '@molstar/core/reactive';
 import { type Issue, issueOf, type Node, nodesEqual } from '@molstar/core/repr/tree';
-import { channelOf, channelSource, fieldChannel } from './channels.js';
+import { channelSource } from './channels.js';
 import { SourceIssues, StoreIssues } from './issues.js';
 import { DefaultTileBins, dataKey, fitLevel, nodeKey, tileRegion, tileSpan } from './keys.js';
 import {
@@ -20,8 +20,8 @@ import {
   type Shape,
   type Tables,
 } from './protocol.js';
-import { checkCoverage } from './seq-format.js';
-import { DefaultSummarySettings, type SummarySettings, summaryBytes, withSummaries } from './summaries.js';
+import { StoreSources } from './store-sources.js';
+import { DefaultSummarySettings, type SummarySettings } from './summaries.js';
 import {
   answerBytes,
   checkAnswer,
@@ -216,15 +216,6 @@ interface Slot {
   nodes: readonly string[];
 }
 
-interface AttachedSource {
-  readonly opened: OpenedSource;
-  /** As attached, before its summaries: what a values channel of it reads. */
-  readonly raw: OpenedSource;
-  readonly names: ReadonlyMap<string, string>;
-  /** The node keys its coverage brought, held while it is attached. */
-  readonly nodes: readonly string[];
-}
-
 interface Reported {
   readonly source: string;
   readonly id: string;
@@ -242,7 +233,7 @@ const StoreWide = '';
 export class DataStore extends ReactiveModel {
   readonly settings: StoreSettings;
   private readonly _clock: StoreClock;
-  private readonly _sources = new Map<string, AttachedSource>();
+  private readonly _sources: StoreSources;
   /** In least recently used order (a touch moves a slot to the end). */
   private readonly _slots = new Map<string, Slot>();
   private readonly _entries = new KeyedState<string, DataEntry>();
@@ -272,6 +263,7 @@ export class DataStore extends ReactiveModel {
     super();
     this.settings = { ...DefaultStoreSettings, ...options.settings };
     this._clock = options.clock ?? RealClock;
+    this._sources = new StoreSources(this.settings);
     this._live = this.wanter() as WantSet;
   }
 
@@ -307,9 +299,7 @@ export class DataStore extends ReactiveModel {
 
   /** The bytes the attached sources' value pyramids hold: counted against `maxBytes` with the entries'. */
   get summaryBytes(): number {
-    let n = 0;
-    for (const s of this._sources.values()) n += summaryBytes(s.opened);
-    return n;
+    return this._sources.summaryBytes;
   }
 
   /** Requests in flight now. */
@@ -326,7 +316,7 @@ export class DataStore extends ReactiveModel {
   attach(address: string, source: OpenedSource): boolean {
     // a late opening after the store is retired is the caller's to dispose
     if (this.isRetired) return false;
-    if (this._sources.has(address)) this.detach(address);
+    if (this._sources.attached(address)) this.detach(address);
     const prepared = this._prepare(address, source);
     if (!prepared) return false;
     this._run(() => {
@@ -345,7 +335,7 @@ export class DataStore extends ReactiveModel {
    */
   reattach(address: string, source: OpenedSource): boolean {
     if (this.isRetired) return false;
-    const old = this._sources.get(address);
+    const old = this._sources.attached(address);
     if (!old) return this.attach(address, source);
     const prepared = this._prepare(address, source);
     if (!prepared) return false;
@@ -353,13 +343,14 @@ export class DataStore extends ReactiveModel {
       // the new nodes first (replacing content by key), then the old holds let go, so a kept key is never dropped
       const nodes = this._intakeNodes(address, prepared.opened.coverage.nodes, true);
       const kept = new Set(nodes);
-      // what the old reading's tiles brought comes again, as the new reading has it, when they are read again
-      const brought: string[] = [];
+      // what the old reading's tiles brought keeps its identity while held: replaced when served again, gone when the
+      // tile that brought it is read without it
       for (const slot of this._slots.values())
-        if (channelSource(slot.region.source) === address) brought.push(...slot.nodes);
+        if (channelSource(slot.region.source) === address)
+          for (const k of slot.nodes) if (!kept.has(k)) this._sources.markStale(address, k, slot.key);
       this._dropTiles(address);
       for (const k of old.nodes) this._release(k);
-      for (const k of [...old.nodes, ...brought]) if (!kept.has(k)) this._remove(k);
+      for (const k of old.nodes) if (!kept.has(k)) this._remove(k);
       this._sources.set(address, { ...prepared, nodes });
       this._clearReports(address);
       for (const set of this._wanters) set.tiles = this._plan(set.wants);
@@ -369,48 +360,18 @@ export class DataStore extends ReactiveModel {
     return true;
   }
 
-  /** A source checked and summarized, its systems' names; undefined (said) when its coverage is malformed. */
-  private _prepare(address: string, source: OpenedSource): Omit<AttachedSource, 'nodes'> | undefined {
-    const bad = checkCoverage(source.coverage);
-    if (bad) {
-      this._run(() => this._report(address, { ...bad, address }));
-      return undefined;
-    }
-    // a level-1 source's values get a pyramid, so a values layer zoomed out reads a coarse level
-    const summaries = this.settings.summaries;
-    const opened = summaries ? withSummaries(source, summaries, this.settings.maxRows) : source;
-    const names = new Map<string, string>();
-    for (const s of opened.coverage.systems) {
-      names.set(s.name, s.name);
-      for (const a of s.aliases ?? []) if (!names.has(a)) names.set(a, s.name);
-    }
-    return { opened, raw: source, names };
-  }
-
-  /**
-   * The source an address reads: an attached one, or a values channel of one (made when first read, summarized on its
-   * own, gone with its source).
-   */
-  private _source(address: string): AttachedSource | undefined {
-    const at = this._sources.get(address);
-    if (at) return at;
-    const channel = channelOf(address);
-    const base = channel && this._sources.get(channel.source);
-    if (!channel || !base || channelOf(channel.source)) return undefined;
-    const prepared = this._prepare(address, fieldChannel(base.raw, channel.field))!;
-    const made = { ...prepared, nodes: [] };
-    this._sources.set(address, made);
-    return made;
+  /** A source checked and summarized; undefined (said) when its coverage is malformed. */
+  private _prepare(address: string, source: OpenedSource) {
+    const prepared = this._sources.prepare(source);
+    if ('opened' in prepared) return prepared;
+    this._run(() => this._report(address, { ...prepared, address }));
+    return undefined;
   }
 
   /** Drops the tiles of a source and of its channels, and the channels. */
   private _dropTiles(address: string): void {
     for (const slot of [...this._slots.values()]) if (channelSource(slot.region.source) === address) this._drop(slot);
-    for (const [a, s] of [...this._sources])
-      if (a !== address && channelSource(a) === address) {
-        this._sources.delete(a);
-        s.opened.dispose();
-      }
+    this._sources.dropChannels(address);
   }
 
   /**
@@ -419,7 +380,7 @@ export class DataStore extends ReactiveModel {
    * with a source attached under the address.
    */
   detach(address: string): void {
-    const s = this._sources.get(address);
+    const s = this._sources.attached(address);
     if (!s) return;
     this._run(() => {
       this._dropTiles(address);
@@ -431,7 +392,7 @@ export class DataStore extends ReactiveModel {
   }
 
   coverage(address: string): Coverage | undefined {
-    return this._source(address)?.opened.coverage;
+    return this._sources.get(address)?.opened.coverage;
   }
 
   // Entries
@@ -513,7 +474,7 @@ export class DataStore extends ReactiveModel {
   protected override onRetire(): void {
     batch(() => {
       for (const w of [...this._wanters]) w.dispose();
-      for (const address of [...this._sources.keys()]) this.detach(address);
+      for (const address of this._sources.addresses()) this.detach(address);
     });
   }
 
@@ -559,7 +520,7 @@ export class DataStore extends ReactiveModel {
       for (const set of this._wanters)
         for (const [key, t] of set.tiles) {
           // a tile of a source detached since it was planned: no entry pending that nothing can answer
-          if (!this._source(t.region.source)) continue;
+          if (!this._sources.get(t.region.source)) continue;
           const at = merged.get(key);
           if (!at) merged.set(key, { ...t });
           else at.rank = Math.min(at.rank, t.rank);
@@ -601,7 +562,7 @@ export class DataStore extends ReactiveModel {
   // Tiles and slots
 
   private _tiles(w: Want) {
-    const s = this._source(w.source);
+    const s = this._sources.get(w.source);
     const system = s?.names.get(w.system);
     if (!s || system === undefined) return undefined;
     const cov = s.opened.coverage;
@@ -785,7 +746,7 @@ export class DataStore extends ReactiveModel {
   }
 
   private _start(slot: Slot): void {
-    const source = this._source(slot.region.source);
+    const source = this._sources.get(slot.region.source, true);
     // never left queued out of the queue: a slot whose source is gone goes with its pending entry
     if (!source) return this._drop(slot);
     slot.phase = 'flight';
@@ -859,6 +820,7 @@ export class DataStore extends ReactiveModel {
     const held = this._intakeNodes(slot.region.source, nodes);
     this._free(slot);
     slot.nodes = held;
+    for (const k of this._sources.goneWith(slot.key, new Set(held))) this._remove(k);
     const empty = isEmptyAnswer(tables, nodes);
     slot.bytes = empty ? 0 : answerBytes(tables, nodes);
     this._bytes += slot.bytes;
@@ -993,8 +955,10 @@ export class DataStore extends ReactiveModel {
       keys.push(k);
       this._holders.set(k, (this._holders.get(k) ?? 0) + 1);
       const held = this._nodes.get(k);
+      // a key an old reading's tile brought, served again: the new reading's content under its identity
+      const fresh = this._sources.takeStale(k);
       if (held && nodesEqual(held.node, n.node)) continue;
-      if (!held || replace) {
+      if (!held || replace || fresh) {
         const version = this._next();
         this._nodes.set(k, { source, key: n.key, node: n.node, version });
         this._version.set(version);

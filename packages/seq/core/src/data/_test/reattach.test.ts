@@ -96,6 +96,40 @@ describe('reattach: a new reading of a source in place', () => {
     release();
   });
 
+  it('a held node an old tile brought keeps its identity while it is served again: kept as it was, or new content (EC-176)', async () => {
+    const clock = new FakeClock();
+    const store = new DataStore({ clock });
+    let length = 5;
+    const answer = (r: RegionRequest): RegionAnswer => {
+      const a = rangesAnswer(r);
+      return a.ok ? { ...a, nodes: [{ key: 'T', node: unit(length) }] } : a;
+    };
+    store.attach(S, new SyntheticSource(syntheticCoverage(), clock, { delayMs: 1, answer }));
+    store.want([view()]);
+    await clock.advance(1);
+    const release = store.hold(S, 'T');
+    const before = store.getNode(S, 'T');
+    store.reattach(S, new SyntheticSource(syntheticCoverage(), clock, { delayMs: 1, answer }));
+    // between the drop and the answer it stays: held, never gone for a frame
+    expect(store.getNode(S, 'T')).toBe(before);
+    await clock.advance(1);
+    expect(store.getNode(S, 'T')).toBe(before);
+    length = 6;
+    store.reattach(S, new SyntheticSource(syntheticCoverage(), clock, { delayMs: 1, answer }));
+    await clock.advance(1);
+    expect(store.getNode(S, 'T')?.node.params?.length).toBe(6);
+    expect(store.issues.value).toEqual([]);
+    release();
+  });
+
+  it('reading a channel’s coverage makes nothing: the source’s own, until a tile of the channel is read', () => {
+    const { store } = setup({ A: 10 });
+    const plddt = channelAddress(S, 'plddt');
+    expect(store.coverage(plddt)).toBe(store.coverage(S));
+    expect(store.keysOf({ ...view(plddt) })).toHaveLength(1);
+    expect(store.summaryBytes).toBe(0);
+  });
+
   it('refuses a malformed coverage with an issue and keeps the old reading', () => {
     const { clock, store, first } = setup({ A: 10 });
     const bad = new SyntheticSource({ ...syntheticCoverage(), levels: [] }, clock);
