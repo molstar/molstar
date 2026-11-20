@@ -16,6 +16,7 @@ import {
   DataStore,
   type FormatRuntime,
   isAbortError,
+  type OpenedSource,
   type SourceEntry,
   SourceIssues,
   SourceOpenError,
@@ -40,9 +41,24 @@ export const DomHostClock: StoreClock = {
   clearTimeout: (handle) => DomHost.clearTimeout(handle),
 };
 
+/** Why a source could not be opened, at its address. */
+function unopened(e: unknown, address: string): Issue {
+  const issue =
+    e instanceof SourceOpenError && e.issues[0]
+      ? e.issues[0]
+      : issueOf(SourceIssues, 'seq.source.unreadable', `The source could not be opened: ${String(e)}`, { address });
+  return { ...issue, address };
+}
+
 interface Opening {
   readonly entry: SourceEntry;
   readonly abort: AbortController;
+  /** Stops listening to the opened source's `changes`. */
+  stop?: () => void;
+  /** A reopen is asked for the next frame (changes inside one frame reopen once). */
+  asked?: boolean;
+  /** The latest reopen: an earlier one that settles after it is dropped. */
+  reading?: number;
 }
 
 export class StoreModel extends ReactiveModel {
@@ -75,7 +91,10 @@ export class StoreModel extends ReactiveModel {
       this._overlaySources?.dispose();
       for (const held of this._sessionHolds.values()) for (const release of held.values()) release();
       this._sessionHolds.clear();
-      for (const o of this._open.values()) o.abort.abort();
+      for (const o of this._open.values()) {
+        o.stop?.();
+        o.abort.abort();
+      }
       this._open.clear();
       this.store.retire();
     });
@@ -118,6 +137,7 @@ export class StoreModel extends ReactiveModel {
 
     for (const [address, o] of [...this._open]) {
       if (wanted.get(address)?.entry === o.entry) continue;
+      o.stop?.();
       o.abort.abort();
       this._open.delete(address);
       this.store.detach(address);
@@ -229,18 +249,51 @@ export class StoreModel extends ReactiveModel {
       if (!this.store.attach(address, opened)) {
         opened.dispose();
         this._open.delete(address);
-      }
+      } else this._watch(address, o, opened, runtime, assets);
     } catch (e) {
       if (isAbortError(e) || o.abort.signal.aborted) return;
       // forgotten, so a later sync tries again
       if (this._open.get(address) === o) this._open.delete(address);
-      const issue =
-        e instanceof SourceOpenError && e.issues[0]
-          ? e.issues[0]
-          : issueOf(SourceIssues, 'seq.source.unreadable', `The source could not be opened: ${String(e)}`, {
-              address,
-            });
-      this._report(address, { ...issue, address });
+      this._report(address, unopened(e, address));
+    }
+  }
+
+  /**
+   * Listens to an opened source's `changes` (a host's edit): a change asks a reopen for the next frame (`DomHost`'s),
+   * so changes inside one frame reopen once (_spec/README.md "StoreModel", Host updates).
+   */
+  private _watch(address: string, o: Opening, opened: OpenedSource, runtime: FormatRuntime, assets: AssetReader) {
+    o.stop?.();
+    o.stop = opened.changes?.(() => {
+      if (o.asked) return;
+      o.asked = true;
+      DomHost.requestAnimationFrame(() => {
+        o.asked = false;
+        if (this._open.get(address) === o && !o.abort.signal.aborted) void this._reopen(address, o, runtime, assets);
+      });
+    });
+  }
+
+  /**
+   * Opens a source again from its entry and reattaches it in place (`DataStore.reattach`: nodes kept by key, tiles read
+   * again); a failed reopen is an issue at its address and the reading before it stays.
+   */
+  private async _reopen(address: string, o: Opening, runtime: FormatRuntime, assets: AssetReader): Promise<void> {
+    const reading = (o.reading = (o.reading ?? 0) + 1);
+    const current = () => this._open.get(address) === o && !o.abort.signal.aborted && o.reading === reading;
+    try {
+      const { maxRows, maxBytes } = this.store.settings;
+      const opened = await runtime.open(o.entry, { assets, signal: o.abort.signal, limits: { maxRows, maxBytes } });
+      if (!current()) return opened.dispose();
+      this._report(
+        address,
+        opened.issues?.map((i) => ({ ...i, address })),
+      );
+      if (this.store.reattach(address, opened)) this._watch(address, o, opened, runtime, assets);
+      else opened.dispose();
+    } catch (e) {
+      if (isAbortError(e) || !current()) return;
+      this._report(address, unopened(e, address));
     }
   }
 
