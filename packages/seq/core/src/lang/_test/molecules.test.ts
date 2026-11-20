@@ -142,13 +142,18 @@ describe('molecules, complexes, units and links', () => {
     expect(ok([{ position: -1, component: 'MSE' }])).toEqual(['seq.lang.modified.bounds']);
   });
 
-  it('a unit never wraps (EC-13); its numbering labels its molecule’s positions', () => {
+  it('a unit never wraps (EC-13); its positions are its own, from 0: its numbering labels them', () => {
     const b = createSeqSpec();
     const s = b.data.sequence('s', { alphabet: 'protein', letters: 'MKTA' });
     b.data.complex('c', {}, (c) =>
       c.unit('A', { of: s, range: [1, 3] }, (u) => u.numbering('auth', { method: 'labels', labels: ['1', '2'] })),
     );
-    expect(codes(b.build())).toEqual(['seq.lang.numbering.length']);
+    expect(codes(b.build())).toEqual([]);
+    b.data.complex('d', {}, (c) =>
+      c.unit('A', { of: s }, (u) => u.numbering('auth', { method: 'labels', labels: ['1', '2'] })),
+    );
+    b.data.complex('e', {}, (c) => c.unit('A', { of: s, range: [3, 1] }));
+    expect(codes(b.build())).toEqual(['seq.lang.numbering.length', 'seq.lang.unit.range']);
   });
 
   it('links: an intra-unit link and several rows at one site (glycoforms) pass; a link under data names no unit', () => {

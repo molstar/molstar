@@ -32,7 +32,7 @@ import {
   checkUnit,
   inlineLength,
   type LinkParent,
-  unitExtent,
+  unitLength,
 } from './check-molecules.js';
 import { LangIssues } from './issues.js';
 import { SeqLanguage, SeqLanguageVersion, SeqValidateOptions } from './language.js';
@@ -177,10 +177,10 @@ export function checkPlaced(at: Placed, look: SeqLookup, report: Report): void {
   const p = param;
   const target = (x: Node, key: string) => targetOf(x, key, look);
   const say = (code: Code, message: string, ...tail: (string | number)[]) => report(code, message, at, ...tail);
-  /** The extent of a unit a param names (its range's end, else its molecule's inline length). */
+  /** The positions of a unit a param names (its range's, else its molecule's inline length). */
   const length = (key: string) => {
     const t = target(n, key)?.node;
-    return t?.kind === 'unit' ? unitExtent(t, inlineLength(target(t, 'of')?.node)).end : undefined;
+    return t?.kind === 'unit' ? unitLength(t, inlineLength(target(t, 'of')?.node)) : undefined;
   };
   /** The sequence a param names, with what is known of its extent. */
   const systemOf = (x: Node, key: string) => {
@@ -250,9 +250,10 @@ export function checkPlaced(at: Placed, look: SeqLookup, report: Report): void {
       break;
     }
     case 'numbering': {
-      // a unit's positions are its molecule's, never renumbered: its labels are one a position of what it instantiates
-      const owner = at.parent?.kind === 'unit' ? target(at.parent, 'of')?.node : at.parent;
-      checkNumbering(n, inlineLength(owner), (code, message, ...tail) => report(code, message, at, ...tail));
+      // a unit's labels are one a position of its own (its range's, else its molecule's)
+      const u = at.parent?.kind === 'unit' ? at.parent : undefined;
+      const total = u ? unitLength(u, inlineLength(target(u, 'of')?.node)) : inlineLength(at.parent);
+      checkNumbering(n, total, (code, message, ...tail) => report(code, message, at, ...tail));
       break;
     }
     case 'compound':
@@ -426,7 +427,7 @@ function linkParent(at: Placed, look: SeqLookup): LinkParent {
       const u = parent.children?.find((c) => c.kind === 'unit' && c.id === id);
       if (!u) return undefined;
       const of = exactAddress(param(u, 'of'));
-      return unitExtent(u, inlineLength(of === undefined ? undefined : look.get(of)?.node));
+      return { length: unitLength(u, inlineLength(of === undefined ? undefined : look.get(of)?.node)) };
     },
   };
 }

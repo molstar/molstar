@@ -36,7 +36,11 @@ export function inlineLength(n: Node | undefined): number | undefined {
   return undefined;
 }
 
-/** A unit's range as `[start, end]`, or undefined when it has none (all of what it instantiates). */
+/**
+ * A unit's range on what it instantiates, `[start, end]`, or undefined when it has none (all of it). Its own positions
+ * are `[0, end - start)`: its position i is the molecule's `start + i` (_spec/README.md, Queries, Numberings and
+ * labels).
+ */
 export function unitRange(unit: Node): readonly [number, number] | undefined {
   const r = param(unit, 'range');
   return Array.isArray(r) && r.length === 2 ? [r[0] as number, r[1] as number] : undefined;
@@ -131,7 +135,7 @@ export function checkCompound(n: Node, say: Say): void {
 
 /**
  * A unit's checks, given the length of what it instantiates (undefined when not inline): its range never wraps
- * (EC-13) and lies within it; its observed runs in order within its range.
+ * (EC-13) and lies within it; its observed runs, on its own positions, in order within it.
  */
 export function checkUnit(unit: Node, length: number | undefined, say: Say): void {
   const range = unitRange(unit);
@@ -141,21 +145,20 @@ export function checkUnit(unit: Node, length: number | undefined, say: Say): voi
   const s = ints(obs?.start);
   const e = ints(obs?.end);
   if (!s || !e) return;
-  const lo = range?.[0] ?? 0;
-  const hi = range?.[1] ?? length;
+  const hi = unitLength(unit, length);
   for (let i = 0; i < Math.min(s.length, e.length); i++) {
-    if (e[i] < s[i] || s[i] < lo || (hi !== undefined && e[i] > hi) || (i > 0 && s[i] < e[i - 1])) {
+    if (e[i] < s[i] || s[i] < 0 || (hi !== undefined && e[i] > hi) || (i > 0 && s[i] < e[i - 1])) {
       say('seq.lang.unit.observed', 'An observed run is out of order or outside the unit', 'observed', 'start', i);
       return;
     }
   }
 }
 
-/** What a link's checks read of its parent: a complex's unit by id (its positions `[start, end)`), or a molecule. */
+/** What a link's checks read of its parent: a complex's unit by id (how many positions it has), or a molecule. */
 export interface LinkParent {
   readonly kind: 'data' | 'complex' | 'molecule' | string;
-  /** Under a complex: the positions of the unit of an id, `undefined` extent when not known; none when no such unit. */
-  unit?(id: string): { readonly start: number; readonly end: number | undefined } | undefined;
+  /** Under a complex: the unit of an id, its `length` undefined when not known; undefined when there is no such unit. */
+  unit?(id: string): { readonly length: number | undefined } | undefined;
   /** Under a molecule: its residues' count, when inline. */
   readonly length?: number;
 }
@@ -191,7 +194,6 @@ export function checkLinks(pairs: Node, parent: LinkParent, say: Say): void {
     if (!s || !e) continue;
     const n = Math.min(s.length, e.length);
     for (let i = 0; i < n; i++) {
-      let lo = 0;
       let hi = parent.kind === 'molecule' ? parent.length : undefined;
       if (parent.kind === 'complex') {
         const id = units instanceof CategoryColumn ? units.get(i) : null;
@@ -200,10 +202,9 @@ export function checkLinks(pairs: Node, parent: LinkParent, say: Say): void {
           say('seq.lang.link.unit', 'A link’s end names no unit of the complex', 'rows', `${side}_unit`, i);
           break;
         }
-        lo = u.start;
-        hi = u.end;
+        hi = u.length;
       }
-      if (s[i] < lo || (hi !== undefined && e[i] > hi)) {
+      if (hi !== undefined && e[i] > hi) {
         say('seq.lang.link.bounds', 'A link’s end lies outside its unit or molecule', 'rows', `${side}_start`, i);
         break;
       }
@@ -211,10 +212,10 @@ export function checkLinks(pairs: Node, parent: LinkParent, say: Say): void {
   }
 }
 
-/** The extent of a unit: its range, else all of what it instantiates (`length`, when known). */
-export function unitExtent(unit: Node, length: number | undefined): { start: number; end: number | undefined } {
+/** How many positions a unit has: its range's, else what it instantiates has (`length`, when known). */
+export function unitLength(unit: Node, length: number | undefined): number | undefined {
   const r = unitRange(unit);
-  return r ? { start: r[0], end: r[1] } : { start: 0, end: length };
+  return r ? Math.max(0, r[1] - r[0]) : length;
 }
 
 /**

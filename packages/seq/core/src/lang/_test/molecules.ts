@@ -64,7 +64,7 @@ export function moleculesSpec(): Node {
         u.numbering('auth', {
           method: 'labels',
           scheme: 'auth',
-          labels: Array.from({ length: 22 }, (_, i) => (i < 2 ? null : `${i + 230}`)),
+          labels: Array.from({ length: 20 }, (_, i) => (i < 2 ? null : `${i + 230}`)),
         }),
     );
     c.unit('B', { of: fc, range: [0, 20], chain: 'B' });
@@ -185,7 +185,7 @@ export const MoleculeMisuses: Record<MoleculeCode, () => Node> = {
   'seq.lang.unit.observed': () => {
     const b = createSeqSpec();
     const s = b.data.sequence('s', { alphabet: 'protein', letters: fcLetters });
-    b.data.complex('c', {}, (c) => c.unit('A', { of: s, range: [2, 6], observed: { start: [0], end: [3] } }));
+    b.data.complex('c', {}, (c) => c.unit('A', { of: s, range: [2, 6], observed: { start: [1], end: [5] } }));
     return b.build();
   },
   'seq.lang.link.target': () => {

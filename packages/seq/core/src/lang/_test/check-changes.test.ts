@@ -168,11 +168,12 @@ const Cases: { name: string; root: () => Node; patch: Patch; introduces: readonl
     ],
   },
   {
-    name: 'a unit’s range cut: the complex’s links and the ranges on the unit past it',
+    name: 'a unit’s range cut: its numbering, the complex’s links and the ranges on the unit past it',
     root: moleculesSpec,
     patch: { ops: [{ op: 'set', at: ['data', 'c', 'A'], key: 'range', value: [0, 8] }] },
     introduces: [
       'seq.lang.link.bounds|/data/c/links|rows/a_start/0',
+      'seq.lang.numbering.length|/data/c/A/auth|labels',
       'seq.lang.ranges.bounds|/data/sites|rows/end/0',
       'seq.lang.unit.observed|/data/c/A|observed/start/0',
     ],
@@ -190,14 +191,10 @@ const Cases: { name: string; root: () => Node; patch: Patch; introduces: readonl
     introduces: ['seq.lang.link.unit|/data/c/links|rows/b_unit/0'],
   },
   {
-    name: 'a sequence shortened: the units over it, their numbering',
+    name: 'a sequence shortened: the units over it',
     root: moleculesSpec,
     patch: { ops: [{ op: 'set', at: ['data', 'fc'], key: 'letters', value: 'MKTAYIAKQR' }] },
-    introduces: [
-      'seq.lang.numbering.length|/data/c/A/auth|labels',
-      'seq.lang.unit.range|/data/c/A|range',
-      'seq.lang.unit.range|/data/c/B|range',
-    ],
+    introduces: ['seq.lang.unit.range|/data/c/A|range', 'seq.lang.unit.range|/data/c/B|range'],
   },
   {
     name: 'a molecule’s atoms dropped: a block of a unit over it drawn as atoms',

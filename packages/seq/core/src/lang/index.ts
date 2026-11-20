@@ -53,7 +53,7 @@ export {
   checkUnit,
   inlineLength,
   type LinkParent,
-  unitExtent,
+  unitLength,
   unitRange,
 } from './check-molecules.js';
 export { BoundIssues, LangIssues } from './issues.js';
