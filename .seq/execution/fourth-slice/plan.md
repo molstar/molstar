@@ -249,7 +249,7 @@ disagrees with its code writes a drift note and stops.
       `seqx-core` `lang/`); the `seq` format's tables; `source.ref` and `values.field` (seq-data-ports, Decided, gaps 2
       and 4); the 0.5.0 bump opened and owned (`briefs/ml1-language.md`). The core's standard component per letter
       (`@molstar/core`, a base-library row, decided).
-- [ ] DP (strong, after ML1) the seq data ports built (seq-data-ports, Decision and Consequences): `OpenedSource.changes?`
+- [x] DP (merged 2026-11-20) (strong, after ML1) the seq data ports built (seq-data-ports, Decision and Consequences): `OpenedSource.changes?`
       and `RegionRequest.field?`, the store's `reattach` (node content replaced by key), `withAdapter` (one adapter a
       format, conflicts listed), `io/structure` (`StructureDescription`, `structureNodes`), the viewer's store model
       reopening in place; the shared adapter conformance suite (`briefs/dp-data-ports.md`). No package of its own.
@@ -309,7 +309,7 @@ disagrees with its code writes a drift note and stops.
 
 ### Stage 3: data and references (after stage 0; independent of stages 1–2 but for SV's SIFTS, after MK)
 
-- [ ] BW (strong) range reads in `@molstar/core` (the surface accepted first, Gate 0, 4), the bigWig runtime
+- [x] BW (merged 2026-11-20) (strong) range reads in `@molstar/core` (the surface accepted first, Gate 0, 4), the bigWig runtime
       (`runtimes/bigwig`, opt-in) with its levels and synthetic twin, p53's conservation signal over the gene's region
       (`briefs/bw-bigwig.md`). Takes a strong slot after stage 2's gate.
 - [ ] SV (fast, after MK and ST3) services in Storybook: UniProt, PDBe SIFTS, AlphaFold DB as runtimes from recorded

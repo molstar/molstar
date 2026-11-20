@@ -79,7 +79,9 @@
     "./render/_test/*": null,
     "./theme/_test/*": null,
     "./context/_test/*": null,
-    "./story/_test/*": null
+    "./story/_test/*": null,
+    "./io/_test/*": null,
+    "./runtimes/_test/*": null
   },
   "files": [
     "lib",

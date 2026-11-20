@@ -56,6 +56,8 @@ base-library change, below), archives. The Genomes milestone is the fifth.
 
 ## `@molstar/seqx-core`
 
+- **A dynamic (overlay) values node's `field`**: read its source's channel, as a static one does (DP, 2026-11-20).
+
 - **Track heights and labels beside for a source's items** (`render/ranges-content.ts`): a source-backed layer (a
   GFF3, a table, a tiled genome) is not known whole before it is read, so its track keeps its fixed height and has no
   label lane (its labels inside or dropped). A content from what the store holds whole (a small file read in one tile)
