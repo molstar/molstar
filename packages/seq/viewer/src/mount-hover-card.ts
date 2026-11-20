@@ -30,12 +30,19 @@ export function hoverCardOverlay(): HoverCardPortFactory {
       maxWidth: '320px',
       boxShadow: '0 0 0 1px var(--msui-line), var(--msui-shadow-float)',
     });
+    // compact: a card is read at a glance (its title a line, its rows a text line each, the value close to its label)
     const title = doc.createElement('div');
     title.className = 'msui-header';
+    Object.assign(title.style, { height: 'auto', paddingBlock: 'var(--msui-space-1)' });
     const rows = doc.createElement('div');
     rows.className = 'msui-form';
     // the label column as wide as its longest label: a card is narrow
     rows.style.setProperty('--msui-label', 'max-content');
+    Object.assign(rows.style, {
+      gridAutoRows: 'auto',
+      columnGap: 'var(--msui-space-2)',
+      paddingBlockEnd: 'var(--msui-space-1)',
+    });
     card.append(title, rows);
     const pool: [HTMLElement, HTMLElement][] = [];
     container.append(card);
@@ -50,7 +57,7 @@ export function hoverCardOverlay(): HoverCardPortFactory {
             label.className = 'msui-label';
             const value = doc.createElement('span');
             value.className = 'msui-value msui-num';
-            value.style.textAlign = 'start';
+            Object.assign(value.style, { textAlign: 'start', paddingInlineStart: '0' });
             rows.append(label, value);
             pool.push((pair = [label, value]));
           }

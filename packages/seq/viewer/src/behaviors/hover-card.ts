@@ -14,6 +14,7 @@ import { twoAxesLayer } from './two-axes.js';
 import {
   type CardBox,
   CardEstimate,
+  cutItems,
   type HoverCard,
   type HoverCardPlace,
   type HoverCardPort,
@@ -271,8 +272,9 @@ function hoverCardBehavior(context: BehaviorContext, params: HoverCardParams = {
     const placed = placeCard(anchor, pointer, view, CardEstimate);
     const place: HoverCardPlace = { anchor, pointer, view, ...placed };
     showing = by;
+    // the card drawn lists `hover.cardItems` items at most (`cutItems`); the state keeps it whole
     shown.set({ card, place });
-    portOf()?.show(card, place);
+    portOf()?.show(cutItems(card, config.hover.cardItems), place);
   };
 
   const hide = () => {

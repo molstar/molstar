@@ -224,6 +224,28 @@ describe('the hover card’s content, headless on the HoverModel', () => {
     expect(said).toContain('bla (AmpR), pR 91–100, 1–10');
   });
 
+  it('a place’s items are those covering it: an item across the origin is not listed far from both its runs', async () => {
+    const b = createSeqSpec({ title: 'ring' });
+    const ring = b.data.sequence('ring', { alphabet: 'dna', letters: 'ACGT'.repeat(25), cyclic: true, name: 'pR' });
+    const f = b.data.ranges('f', {
+      target: ring,
+      rows: { start: [90, 40], end: [10, 60], id: ['bla', 'ori'], label: ['bla (AmpR)', 'ori'] },
+    });
+    b.views.view('main', (view) => view.section('s', { of: ring }).track('t').layer('l', { type: 'ranges', data: f }));
+    const v = await make(b.build() as never);
+    const { s, l } = layerOf(v, 0, 'ranges');
+    const at = (position: number) =>
+      cardOf(v, { layer: l.key, section: s.section.address, system: '/data/ring', position }).card!.rows.map(
+        (r) => r.label,
+      );
+    // at 50: ori alone (bla runs 91–100 and 1–10)
+    expect(at(50)).toContain('ori');
+    expect(at(50)).not.toContain('bla (AmpR)');
+    // on either run: bla
+    expect(at(95)).toContain('bla (AmpR)');
+    expect(at(5)).toContain('bla (AmpR)');
+  });
+
   it('says not numbered by a numbering with no label at the place', async () => {
     const v = await make(cardSpec());
     const { s, l } = layerOf(v, 0, 'letters');
@@ -256,7 +278,7 @@ describe('the hover card’s content, headless on the HoverModel', () => {
     const val = layerOf(v, 0, 'values');
     const b = cardOf(v, { layer: val.l.key, section: val.s.section.address, system: Heavy, position: 6 });
     expect(b.card!.rows).toContainEqual({ label: 'score', value: '1.5' });
-    expect(b.card!.rows).toContainEqual({ label: 'CDR1', value: 'h 3–8' });
+    expect(b.card!.rows).toContainEqual({ label: 'CDR1', value: 'h 3–8', item: true });
     expect(b.said).toBe(b.card!.text);
     const pair = layerOf(v, 0, 'pairs');
     const c = cardOf(v, {
@@ -311,8 +333,9 @@ describe('the hover card’s content, headless on the HoverModel', () => {
       position: 1,
       target: 'row',
     });
+    // the title names the row once: no row repeats it
     expect(card?.title).toBe('mouse');
-    expect(card?.rows[0]).toEqual({ label: 'Row', value: 'mouse' });
+    expect(card?.rows.map((r) => r.value)).not.toContain('mouse');
     expect(card?.text.startsWith('row mouse')).toBe(true);
     expect(said).toBe(card!.text);
   });
@@ -364,6 +387,43 @@ describe('the hover card’s place and its life', () => {
     expect(overlaps(card, anchor)).toBe(false);
     expect(card.x >= view.x && card.y >= view.y && card.x + card.width <= view.x + view.width).toBe(true);
     expect(card.y + card.height <= view.y + view.height).toBe(true);
+  });
+
+  it('lists `hover.cardItems` items at most, then `+k more`; the shown state and `more` keep every one', async () => {
+    const b = createSeqSpec({ title: 'many' });
+    const seq = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT'.repeat(25) });
+    const n = 12;
+    const f = b.data.ranges('f', {
+      target: seq,
+      rows: {
+        start: Array.from({ length: n }, (_, i) => i),
+        end: Array.from({ length: n }, () => 60),
+        id: Array.from({ length: n }, (_, i) => `f${i}`),
+      },
+    });
+    b.views.view('main', (view) => {
+      const sec = view.section('s', { of: seq });
+      sec.track('letters').layer('letters', { type: 'letters' });
+      sec.track('t').layer('l', { type: 'ranges', data: f });
+    });
+    const r = recorder();
+    const v = await make(b.build() as never, { port: r, config: [[viewerItem('hover.cardItems'), 3]] });
+    // the pointer on the letter at 30: the place's card, every feature under it
+    const sec = v.frame!.layout.sections[0];
+    const lt = sec.tracks[0].box;
+    v.input.move((sec.axis!.x(30) + sec.axis!.x(31)) / 2, lt.y + lt.height / 2);
+    clock += 500;
+    frames.timers.fire();
+    const shown = r.last();
+    if (!shown || shown === 'hide') throw new Error('no card');
+    const items = shown.show.rows.filter((x) => x.item);
+    expect(items).toHaveLength(3);
+    expect(shown.show.rows.at(-1)).toEqual({ label: `+${n - 3} more`, value: '' });
+    expect(shown.show.more).toHaveLength(n - 3);
+    // the state holds the whole card; the live region says every item
+    const whole = v.behavior(HoverCardProvider)!.shown.value!.card;
+    expect(whole.rows.filter((x) => x.item)).toHaveLength(n);
+    expect(whole.text).toContain('f11');
   });
 
   it('placeCard: never over the anchor and inside the view, wherever there is room', () => {
