@@ -205,6 +205,8 @@ export class ViewerFrame {
     // the hover card follows the frame: a cursor's card after the frame that revealed it, none outliving a new layout
     // (by name: a viewer without the card bundles none of it)
     (viewer.behaviors.get('hoverCard') as HoverCardBehavior | undefined)?.framed(rebuilt);
+    // the headers' geometry and parts follow the frame (by name, as the card)
+    viewer.behaviors.get('headers')?.framed();
     this.motion.drawn();
     // the settled picture is drawn: it rests now, once
     this.clock.drawn();

@@ -133,6 +133,8 @@ export interface HeadersBehavior {
   /** A secondary click at a canvas point: true when the menu took it (the browser's menu then prevented). */
   context(x: number, y: number, e?: { readonly shiftKey?: boolean }): boolean;
   composed(viewer: SeqViewer): void;
+  /** A frame was drawn (the viewer's frame, each frame): the geometry and the parts follow it; a hover makes nothing. */
+  framed(): void;
   attach(container: HTMLElement, viewer: SeqViewer): () => void;
   dispose(): void;
 }
@@ -724,9 +726,15 @@ export function headersBehavior(context: BehaviorContext, params: HeadersParams 
 
   /** The headers' order the last layout drew, by section: where the cursor goes when its track is hidden. */
   let order = new Map<string, string[]>();
+  let orderFor: unknown;
   const keepCursor = () => {
-    const c = context.selection.cursor.value;
     const layout = viewer?.frame?.layout;
+    // a frame that kept its layout (a hover's): nothing read, nothing made (the work in a function of its own: what its
+    // closures capture is allocated on entry)
+    if (layout !== orderFor) relaidCursor(layout);
+  };
+  const relaidCursor = (layout: ViewLayout | undefined) => {
+    const c = context.selection.cursor.value;
     if (c?.track !== undefined && c.track !== c.section) {
       const s = sectionOfAddress(c.section);
       if (s && !s.tracks.some((t) => t.address === c.track)) {
@@ -738,6 +746,7 @@ export function headersBehavior(context: BehaviorContext, params: HeadersParams 
       }
     }
     if (!layout) return;
+    orderFor = layout;
     order = new Map();
     for (const s of layout.sections)
       order.set(s.section.address, [
@@ -781,6 +790,11 @@ export function headersBehavior(context: BehaviorContext, params: HeadersParams 
     },
     openMenu,
     closeMenu,
+    framed() {
+      keepCursor();
+      published();
+    },
+
     click,
     context: contextAt,
     composed(v) {
@@ -791,8 +805,6 @@ export function headersBehavior(context: BehaviorContext, params: HeadersParams 
       check(listed, []);
       setEntries(listed);
       describerFor(context).headers = words;
-      stops.push(v.drawn.listen(published));
-      stops.push(v.drawn.listen(keepCursor));
       // a host's DOM parts take the focus when the cursor comes onto a header
       stops.push(
         context.selection.cursor.listen((c) => {

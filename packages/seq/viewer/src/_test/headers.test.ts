@@ -474,3 +474,26 @@ describe('the geometry and the parts', () => {
     ).toBe('Domains, Enter for actions');
   });
 });
+
+describe('the hover path (the quick representative; the allocation case is the storybook tier’s)', () => {
+  it('a pointer down the label column of 200 tracks lays nothing out and publishes nothing', async () => {
+    const b = createSeqSpec({ title: '200 tracks' });
+    const p = b.data.sequence('p', { alphabet: 'protein', letters: 'MEEPQSDPSVEPPLSQETFSDLWKLLPENN' });
+    b.views.view('main', (v) => {
+      const s = v.section('protein', { of: p });
+      for (let i = 0; i < 200; i++) s.track(`t${i}`, { label: `Track ${i}` }).layer('l', { type: 'letters' });
+    });
+    const v = await make(undefined, b.build());
+    const layouts = v.counts.layouts;
+    const sets: unknown[] = [];
+    v.headers!.listen((g) => sets.push(g));
+    const lines = v.headers!.value.filter((g) => g.target.track !== undefined);
+    expect(lines).toHaveLength(200);
+    for (const g of lines) {
+      v.input.move(g.label.x + 2, g.line.y + g.line.height / 2);
+      v.draw();
+    }
+    expect(v.counts.layouts).toBe(layouts);
+    expect(sets).toEqual([]);
+  });
+});
