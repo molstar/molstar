@@ -31,6 +31,8 @@ export interface Derived {
   readonly rowPairs: readonly (readonly [number, number])[];
   /** Each of 1EHZ's positions' column of the seed (-1: aligned to a gap). */
   readonly columns: readonly number[];
+  /** The seed's `SS_cons` pairs on its columns (0-based, `i < j`): the consensus arcs over the alignment. */
+  readonly seedPairs: readonly (readonly [number, number])[];
   /** The covariation at each pair of 1EHZ's positions with at least `MinRows` rows and `MinBits` bits, 3 decimals. */
   readonly covariation: readonly CovariationEntry[];
 }
@@ -147,6 +149,7 @@ export function derive(seed: string, letters: string): Derived {
     rowLetters,
     rowPairs,
     columns,
+    seedPairs: (read.pairs ?? []).map(([a, b]) => [a, b] as const),
     covariation,
   };
 }
@@ -171,6 +174,7 @@ export const DerivedData: Derived = {
   rowLetters: ${JSON.stringify(d.rowLetters)},
   rowPairs: ${arr(d.rowPairs)},
   columns: ${arr(d.columns)},
+  seedPairs: ${arr(d.seedPairs)},
   covariation: ${arr(d.covariation)},
 };
 `;

@@ -135,6 +135,8 @@ export interface LettersLay extends MoleculeLay {
   inks: Map<number, number>;
   /** A chip's label and its font (a one-position block): drawn as a pill over its one cell; '' on any other strip. */
   chip: string;
+  /** Whether the strip is a chip: its pill drawn, with its label or ('' when none fits) without. */
+  isChip: boolean;
   chipFont: string;
   /** The chip label's baseline, its measured width and its ink, made at layout. */
   chipY: number;
@@ -254,6 +256,7 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
       datum: new PlainDatum(),
       inks: new Map(),
       chip: '',
+      isChip: false,
       chipFont: '',
       chipY: 0,
       chipWidth: 0,
@@ -278,10 +281,11 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
     lay.axis = axis;
     lay.tokens = tokens;
     lay.chip = ctx.chip ?? '';
+    lay.isChip = ctx.chip !== undefined;
     lay.chipFont = config.labelFont;
     lay.chipY = lay.chip ? box.y + box.height / 2 + fontSize(config.labelFont) * 0.35 : 0;
     lay.chipWidth = lay.chip ? ctx.text.measure(config.labelFont, lay.chip) : 0;
-    lay.chipExtent = lay.chip ? chipExtent(lay.system, axis.pieces, lay.chipExtent) : undefined;
+    lay.chipExtent = lay.isChip ? chipExtent(lay.system, axis.pieces, lay.chipExtent) : undefined;
     lay.n = 0;
     lay.seen.fill(0);
     lay.three = false;
@@ -308,7 +312,7 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
     const width = prep.through === 'codon' ? 3 : 1;
     const fine = densityStep(axis.scale * width, axis.dpr, config);
     // a chip's cells are always laid out (its pill is its first cell's fill), however many positions share its slot
-    const step = lay.chip && (fine === 'bars' || fine === 'density') ? 'cells' : fine;
+    const step = lay.isChip && (fine === 'bars' || fine === 'density') ? 'cells' : fine;
     lay.step = step;
     const vis = axis.visible([]);
     // the positions in view exactly (walked one by one), read merged across near gaps (one read over short pieces)
@@ -411,7 +415,7 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
     if (prep.through === 'one') gapMarks(src, axis, vis, lay.gaps);
 
     // a chip's label ink: the table's, else black or white, at 4.5:1 against its pill (a label is text, not a letter)
-    if (lay.chip && lay.n) lay.chipInk = chipInk(lay.fill[0], tokens);
+    if (lay.isChip && lay.n) lay.chipInk = chipInk(lay.fill[0], tokens);
     // one size a row: the largest of the scale whose advance fits the cell and whose height fits the row
     lay.fontSize = 0;
     if (step === 'letters') {
@@ -461,7 +465,7 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
     const position = lay.axis.positionAt(x);
     if (position < 0) return undefined;
     // a chip stands for its block's whole range (a molecule's every residue, through them every atom)
-    if (lay.chip !== '' && lay.n > 0) return chipHit(lay, position);
+    if (lay.isChip && lay.n > 0) return chipHit(lay, position);
     if (lay.through !== 'codon' && lay.through !== 'one')
       return { layer: lay.key, section: lay.section, position, system: lay.system };
     // a letter through a path: its data element on `extent`, its parts on the section's system as `hull`

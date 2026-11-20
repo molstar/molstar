@@ -12,6 +12,9 @@ PNG and the render CLI). Next, version 1's third milestone, integration (the fou
 viewer, seq data ports, extension openings, track header parts, services, bigWig with range reads of assets (a
 base-library change, below), archives. The Genomes milestone is the fifth.
 
+- **A component query on a source-backed sequence** (`(elements :component X)`) is pending until the source's letters
+  are read (EC-169); a format with a component index could answer it without the letters.
+
 ## Base library (`@molstar/core`, `@molstar/io`)
 
 - **`repr`**: `checkRefs` (the resolve pass), `composeLanguage`, `descriptors`, issue dedupe, the catalog docs
@@ -57,6 +60,9 @@ base-library change, below), archives. The Genomes milestone is the fifth.
 ## `@molstar/seqx-core`
 
 - **A dynamic (overlay) values node's `field`**: read its source's channel, as a static one does (DP, 2026-11-20).
+- **A pairs layer reads only text fields of its rows** (`resolve/held.ts`, the extra columns `category` keeps): a link's
+  numeric `occupancy` or `order` cannot color an arc by a continuous scale, so the ADC example colors by a text band of
+  occupancy. For the author: hold numeric columns too (MX, 2026-11-20).
 
 - **Track heights and labels beside for a source's items** (`render/ranges-content.ts`): a source-backed layer (a GFF3,
   a table, a tiled genome) is not known whole before it is read, so its track keeps its fixed height and has no label

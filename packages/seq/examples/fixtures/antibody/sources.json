@@ -66,5 +66,21 @@
     "derived": "Kabat’s labels computed from the IMGT labels by src/antibody/numbering.ts (counted between the anchors IMGT 23, 41, 104 and 118; insertions lettered after L27, L95, H35, H52 and H100); SAbDab2 serves IMGT’s numbering alone, so they are not derived from Chothia’s",
     "bytesFixture": 6437,
     "sha256Fixture": "a887ffc63647e99368868d054dda7788388c81ab4bcbb871de24a2c5641872ee"
+  },
+  {
+    "file": "antibody/3AVE.seq",
+    "entry": "PDB 3AVE, a fucosylated human IgG1 Fc with its N297 glycans (Matsumiya et al. 2007), mmCIF",
+    "url": "https://files.rcsb.org/download/3AVE.cif.gz",
+    "recorded": "2026-11-20",
+    "licence": [
+      "CC0-1.0"
+    ],
+    "attribution": "wwPDB, PDB 3AVE, CC0",
+    "trimmed": "the Fc entity (IGHG1_HUMAN P01857 108–330): its canonical letters (entity_poly) and chain A’s helices and strands (struct_conf, struct_sheet_range, label_seq_id) as ranges; coordinates, glycans, zinc and waters dropped (the glycans, links and units are code, checked against the entry by the tests)",
+    "derived": "none",
+    "bytesDownloaded": 757920,
+    "bytesFixture": 1507,
+    "sha256Download": "a018f215035632cdfa429548cda561c608b464774ba91238e2f5ec791a0bc07b",
+    "sha256Fixture": "43ae16d4ce4e41de5cdb668804f6075cc505d12d95e6efe3111bf1f54d9ff514"
   }
 ]

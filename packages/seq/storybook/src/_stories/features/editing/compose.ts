@@ -12,6 +12,7 @@ import type { SeqPorts } from '@molstar/seqx-core/context';
 import type { ExampleView } from '@molstar/seqx-examples';
 import type { EditingBehavior } from '@molstar/seqx-viewer/behaviors';
 import { DefaultSeqViewerSpec } from '@molstar/seqx-viewer/default-spec';
+import type { SeqViewerSpec } from '@molstar/seqx-viewer/viewer-spec';
 import { HistoryParticipants, hostHistory } from '@molstar/seqx-viewer/ui-history';
 import { mountToolbar } from '@molstar/seqx-viewer/mount-toolbar';
 import { createSeqViewer, type SeqViewer } from '@molstar/seqx-viewer/viewer';
@@ -42,6 +43,8 @@ export interface ComposeOptions {
   readonly ports?: SeqPorts;
   /** The delay of the view's delayed sources (the view's own pacing when absent). */
   readonly delayMs?: number;
+  /** Behaviors besides the default spec's (a host's choice the story shows on: `links.hover`). */
+  readonly behaviors?: SeqViewerSpec['behaviors'];
 }
 
 export function composeEditing(view: ExampleView, options: ComposeOptions = {}): EditingSession {
@@ -62,6 +65,7 @@ export function composeEditing(view: ExampleView, options: ComposeOptions = {}):
         ...(view.registry?.(options.delayMs !== undefined ? { delayMs: options.delayMs } : {}) ?? []),
       ],
       history: hostHistory(stack, participants),
+      ...(options.behaviors ? { behaviors: [...base.behaviors, ...options.behaviors] } : {}),
       ...(options.ports ? { ports: options.ports } : {}),
     },
     options.target,

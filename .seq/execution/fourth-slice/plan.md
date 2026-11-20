@@ -280,10 +280,10 @@ disagrees with its code writes a drift note and stops.
       and code, the pairs layer's per-row ends, hover, `links.hover`, `block.form`, ligand chips flowing in text
       (EC-99), a block's label inline on its first text line (EC-95, LB's leftover), the Design page
       (`briefs/mr-molecules-render.md`).
-- [ ] CU (strong, after MR) copy ends on units: CE's parked branch `seq/ce-copy-ends` (`189097018`) and its review's six
+- [x] CU (strong, after MR) copy ends on units: CE's parked branch `seq/ce-copy-ends` (`189097018`) and its review's six
       findings as the cases (Gate 0, 8); grids-and-rows.md's "end on the first copy" and its caret replaced
       (`briefs/cu-copy-ends-units.md`). Parked until units exist, so the branch is not rebased: rewritten, then deleted.
-- [ ] MX (strong, after CU) the examples changed once: DT, DC, DG on the new kinds; the Fc glycan and ADC views; 2OCJ
+- [x] MX (strong, after CU) the examples changed once: DT, DC, DG on the new kinds; the Fc glycan and ADC views; 2OCJ
       recorded for p53 (its units and the fake viewer's chain table from one mmCIF, an `alignment` map of the same
       pair); DC's leftovers (`@molstar/io` as a dev dependency of seqx-examples, a ligand chip coloured on its own);
       stories, twins, drawing against the data (`briefs/mx-examples.md`).

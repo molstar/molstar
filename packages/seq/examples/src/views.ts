@@ -6,7 +6,9 @@
 
 import type { Node } from '@molstar/core/repr/tree';
 import type { SeqRegistryEntry } from '@molstar/seqx-core/context';
+import * as antibodyAdc from './antibody/adc.js';
 import * as antibodyAgainst from './antibody/against.js';
+import * as antibodyFc from './antibody/fc-glycan.js';
 import { registry as antibodyRegistry } from './antibody/data.js';
 import * as antibodySchemes from './antibody/schemes.js';
 import * as complexBlocks from './complex/blocks.js';
@@ -16,6 +18,7 @@ import * as complexGrid from './complex/complex-grid.js';
 import * as complexLigands from './complex/ligands.js';
 import * as complexPae from './complex/pae.js';
 import * as complexText from './complex/text.js';
+import * as complexUnits from './complex/units.js';
 import * as molecules from './molecules/molecules.js';
 import * as trna from './trna/trna.js';
 import * as globinsColumns from './globins/columns.js';
@@ -33,6 +36,7 @@ import * as layers from './p53/layers.js';
 import * as proteinOnGene from './p53/protein-on-gene.js';
 import * as query from './p53/query.js';
 import * as story from './p53/story.js';
+import * as p53Structure from './p53/structure.js';
 import * as themes from './p53/themes.js';
 import * as text from './p53/text.js';
 import * as tracks from './p53/tracks.js';
@@ -182,6 +186,22 @@ export const P53Views: readonly ExampleView[] = [
     summary:
       'The tracks as a story of four steps: the whole protein, its DNA-binding domain (the conservation taller), the R175H hotspot (marked by a track of its own, the domains recolored) and the tetramerization domain (the conservation gone); each a view and a patch over the spec.',
     build: story.build,
+  },
+  {
+    dataset: 'p53',
+    id: 'structure',
+    title: 'Structure (2OCJ)',
+    summary:
+      'P04637 over PDB 2OCJ’s four copies of the DNA-binding domain, merged into one block ×4 with the zinc chip ×4: the ends unobserved gray, author numbers UniProt’s, each zinc’s four ligands as arcs. P04637 maps to the entity by SIFTS’s `structure` map (ranked first) and by an alignment’s `segments` map; hover R175 on P04637: it lights on the chains, and back; hover the zinc: its ligands light.',
+    build: () => p53Structure.build(),
+  },
+  {
+    dataset: 'p53',
+    id: 'structure-split',
+    title: 'Structure, copies split',
+    summary:
+      'The four chains of 2OCJ a block each, each zinc a chip; a hover carried through the alignment’s map (`via`), which agrees with SIFTS’s on this entry.',
+    build: () => p53Structure.build({ copies: 'each', via: 'aln' }),
   },
 ];
 
@@ -384,14 +404,15 @@ export const GlobinsViews: readonly ExampleView[] = [
     id: 'hemoglobin',
     title: 'Hemoglobin, heme chips and copies',
     summary:
-      'PDB 4HHB as blocks: the α chains A and C and the β chains B and D merged into one block each labeled ×2, the four hemes as one chip ×4; the helices A to H from the entry, each heme’s contacting residues (within 4 Å, derived) as arcs and as the heme pocket, bookmarked.',
+      'PDB 4HHB as a complex’s units in blocks: the α chains A and C and the β chains B and D merged into one block each labeled ×2, the four hemes as one chip ×4; the helices A to H from the entry, each heme’s contacting residues (within 4 Å, derived per pair of units) as arcs and as the heme pocket, bookmarked.',
     build: () => hemoglobin.build(),
   },
   {
     dataset: 'globins',
     id: 'hemoglobin-split',
     title: 'Hemoglobin, copies split',
-    summary: 'The same blocks with the copies split (`copies: each`): a block a chain, a chip a heme.',
+    summary:
+      'The same blocks with the copies split (`copies: each`): a block a chain, a chip a heme, each heme’s arcs to the chain it sits in.',
     build: hemoglobin.split,
   },
   {
@@ -527,6 +548,21 @@ export const ComplexViews: readonly ExampleView[] = [
     summary: '1FIN’s first copy as text: CDK2, then cyclin A, then ATP as a chip flowing with the letters like a word.',
     build: () => complexText.build(),
   },
+  {
+    dataset: 'complex',
+    id: 'units',
+    title: '1FIN as a complex',
+    summary:
+      'PDB 1FIN as a complex of its units: CDK2 ×2 and cyclin A ×2 (author numbers: CDK2 from 1, the construct from 173), ATP ×2 a chip colored on its own, and six CC0 entries’ ligands standing for AlphaFill’s transplants, each its resolution as its score; the contacts per pair of units as arcs. The transplants and their contacts come from those other entries (computed against each entry’s CDK2, drawn on 1FIN’s chain A), as their cards and arcs say. Hover ATP: its CDK2 residues light; hover a contact: both ends. The editing view switches ATP between a chip and its 31 heavy atoms (one patch).',
+    build: () => complexUnits.build(),
+  },
+  {
+    dataset: 'complex',
+    id: 'units-atoms',
+    title: '1FIN, ATP by its atoms',
+    summary: 'The same complex with the first ATP by its heavy atoms, each labeled by its element.',
+    build: complexUnits.atoms,
+  },
 ];
 
 /**
@@ -568,6 +604,30 @@ export const AntibodyViews: readonly ExampleView[] = [
     build: antibodySchemes.cdrs,
     registry: antibodyRegistry,
   },
+  {
+    dataset: 'antibody',
+    id: 'fc-glycan',
+    title: 'The Fc and its N297 glycan',
+    summary:
+      'A human IgG1 Fc (PDB 3AVE): its two chains merged into one block ×2, their N-glycans (eight residues, G0F) one chip ×2, the zinc a chip; the glycan on Asn297, the disulfides and the zinc’s histidines as arcs. Hover the glycan: N297 lights; hover N297: the glycan. The editing view switches the glycans between a chip and their residues (one patch).',
+    build: () => antibodyFc.build(),
+  },
+  {
+    dataset: 'antibody',
+    id: 'fc-glycan-residues',
+    title: 'The glycan’s residues',
+    summary:
+      'The same Fc with the glycans by their residues (NAG NAG BMA MAN NAG MAN NAG FUC, each by its code), their seven glycosidic links as arcs over them.',
+    build: antibodyFc.residues,
+  },
+  {
+    dataset: 'antibody',
+    id: 'adc',
+    title: 'T-DM1, an antibody–drug conjugate (generated)',
+    summary:
+      'Trastuzumab emtansine as a construct: trastuzumab’s Fab chains twice (the Fc not held) and the emtansine payload (SMCC–DM1, its CCD ids placeholders), linked to every lysine with occupancies summing to the average DAR of 3.5; the arcs colored by their band of occupancy. Hover the payload: every conjugation site lights.',
+    build: () => antibodyAdc.build(),
+  },
 ];
 
 export const TrnaViews: readonly ExampleView[] = [
@@ -576,7 +636,7 @@ export const TrnaViews: readonly ExampleView[] = [
     id: 'arcs',
     title: 'Base pairs as arcs',
     summary:
-      'tRNA-Phe (PDB 1EHZ, chain A): its 27 base pairs as arcs over the letters, the four stems nested, the six tertiary pairs (four of them crossing the stems’ pairs) over them; colored by kind (canonical, wobble, non-canonical); its 14 modified residues drawn as their parent letters, their codes in a track above. Hover an arc: both ends lit; click: the pair selected.',
+      'tRNA-Phe (PDB 1EHZ, chain A): its 27 base pairs as arcs over the letters, the four stems nested, the six tertiary pairs (four of them crossing the stems’ pairs) over them; colored by kind (canonical, wobble, non-canonical); its 14 modified residues as their parent letters, each marked (its component on hover), their codes in a track above, found by the “Modified residues” bookmark (`(elements :modified true)`). Hover an arc: both ends lit; click: the pair selected.',
     build: () => trna.build(),
   },
   {
@@ -615,8 +675,17 @@ export const TrnaViews: readonly ExampleView[] = [
     id: 'seed',
     title: 'Rfam RF00005 seed',
     summary:
-      'The seed (954 rows of 118 columns, Stockholm as published) under its conservation logo. The `SS_cons` arc and the link from 1EHZ’s residues wait for a pairs node and a map on an alignment’s columns.',
-    build: trna.seed,
+      'The seed (954 rows of 118 columns, Stockholm as published): its `SS_cons` pairs as arcs over its columns (21, the four stems), its conservation logo, its rows. Hover a column: the arcs ending in it light.',
+    build: () => trna.seed(),
+    registry: () => [{ kind: 'format-runtime', runtime: AlignmentFileRuntime }],
+  },
+  {
+    dataset: 'trna',
+    id: 'seed-chain',
+    title: 'The seed and 1EHZ',
+    summary:
+      'The seed with its `SS_cons` arcs, and 1EHZ’s letters below, mapped onto the columns through the seed row of highest identity (a `segments` map, the stopgap of an alignment map). Hover an arc: its two 1EHZ residues light; hover a residue: its column.',
+    build: trna.seedWithChain,
     registry: () => [{ kind: 'format-runtime', runtime: AlignmentFileRuntime }],
   },
 ];

@@ -7,7 +7,7 @@
 import { AlignmentOp, globalAlign } from '@molstar/core/algorithms/sequence/needleman-wunsch';
 import { categoryColumn } from '@molstar/core/repr/tree';
 import type { SeqData } from '@molstar/seqx-core/data';
-import { cifLoop } from '../files/cif.js';
+import { type Cif, cifLoop } from '../files/cif.js';
 
 // What the record script does with the Globins entries (`scripts/record.ts globins`): the Pfam seed cut to the rows
 // nearest human hemoglobin, 4HHB's chains, helices and heme contacts read from its mmCIF. Kept in the package's sources
@@ -132,8 +132,6 @@ export function columnsFromUniprot(uniprotTsv: string, seedText: string): string
   return `${out.join('\n')}\n`;
 }
 
-export { cifLoop };
-
 const OneLetter: Readonly<Record<string, string>> = {
   ALA: 'A',
   ARG: 'R',
@@ -165,7 +163,7 @@ export interface CifChain {
 }
 
 /** The polymer chains, by `asym_id`. */
-export function cifChains(text: string): CifChain[] {
+export function cifChains(text: Cif): CifChain[] {
   const s = cifLoop(text, 'pdbx_poly_seq_scheme');
   const by = new Map<string, { letters: string; authFirst: number }>();
   s.asym_id.forEach((asym, k) => {
@@ -184,7 +182,7 @@ export interface CifHelix {
   readonly end: number;
 }
 
-export function cifHelices(text: string): CifHelix[] {
+export function cifHelices(text: Cif): CifHelix[] {
   const s = cifLoop(text, 'struct_conf');
   return s.id.map((_, k) => ({
     asym: s.beg_label_asym_id[k],
@@ -198,42 +196,58 @@ export function cifHelices(text: string): CifHelix[] {
 export const ContactDistance = 4;
 
 /**
- * Each heme's contacting residues (derived): the residues of the heme's own chain (`auth_asym_id`) with a heavy atom
- * within `ContactDistance` of one of the heme's, as `label_seq_id`s ascending; by the heme's `auth_asym_id`.
+ * The hemes' contacts per pair of units (derived): for each heme (by its `auth_asym_id`) and each chain, the chain's
+ * residues with a heavy atom within `ContactDistance` of one of the heme's, as `label_seq_id`s ascending; the pairs
+ * with a contact, by heme then chain.
  */
-export function hemeContacts(text: string): Map<string, number[]> {
+export function hemeContacts(text: Cif): { heme: string; chain: string; residues: number[] }[] {
   const a = cifLoop(text, 'atom_site');
   const n = a.id.length;
-  const out = new Map<string, number[]>();
-  const hemes = new Map<string, number[]>();
+  const hemes = new Map<string, number[][]>();
+  const xyz = (k: number) => [Number(a.Cartn_x[k]), Number(a.Cartn_y[k]), Number(a.Cartn_z[k])];
   for (let k = 0; k < n; k++)
     if (a.label_comp_id[k] === 'HEM' && a.type_symbol[k] !== 'H') {
       const c = a.auth_asym_id[k];
-      hemes.set(c, [...(hemes.get(c) ?? []), k]);
+      hemes.set(c, [...(hemes.get(c) ?? []), xyz(k)]);
     }
-  const xyz = (k: number) => [Number(a.Cartn_x[k]), Number(a.Cartn_y[k]), Number(a.Cartn_z[k])];
   const d2 = ContactDistance * ContactDistance;
-  for (const [chain, atoms] of hemes) {
-    const ps = atoms.map(xyz);
-    const seen = new Set<number>();
+  const out: { heme: string; chain: string; residues: number[] }[] = [];
+  for (const heme of [...hemes.keys()].sort()) {
+    const ps = hemes.get(heme)!;
+    const seen = new Map<string, Set<number>>();
     for (let k = 0; k < n; k++) {
-      if (a.group_PDB[k] !== 'ATOM' || a.auth_asym_id[k] !== chain || a.type_symbol[k] === 'H') continue;
+      if (a.group_PDB[k] !== 'ATOM' || a.type_symbol[k] === 'H') continue;
       const [x, y, z] = xyz(k);
-      if (ps.some(([u, v, w]) => (x - u) ** 2 + (y - v) ** 2 + (z - w) ** 2 <= d2)) seen.add(Number(a.label_seq_id[k]));
+      if (!ps.some(([u, v, w]) => (x - u) ** 2 + (y - v) ** 2 + (z - w) ** 2 <= d2)) continue;
+      const chain = a.auth_asym_id[k];
+      let s = seen.get(chain);
+      if (!s) seen.set(chain, (s = new Set()));
+      s.add(Number(a.label_seq_id[k]));
     }
-    out.set(
-      chain,
-      [...seen].sort((x, y) => x - y),
-    );
+    for (const chain of [...seen.keys()].sort())
+      out.push({ heme, chain, residues: [...seen.get(chain)!].sort((x, y) => x - y) });
+  }
+  return out;
+}
+
+/** Each heme's heavy atoms by its `label_asym_id`, in `atom_site` order: names and elements (EC-64). */
+export function hemeAtoms(text: Cif): Map<string, { name: string[]; element: string[] }> {
+  const out = new Map<string, { name: string[]; element: string[] }>();
+  for (const r of text.rows('atom_site')) {
+    if (r.label_comp_id !== 'HEM' || r.type_symbol === 'H') continue;
+    let h = out.get(r.label_asym_id);
+    if (!h) out.set(r.label_asym_id, (h = { name: [], element: [] }));
+    h.name.push(r.label_atom_id);
+    h.element.push(r.type_symbol);
   }
   return out;
 }
 
 /**
  * 4HHB as `seq` data: the α and β chains' letters (chains A and B; C and D are their copies) with their helices as
- * ranges (`id` the helix's letter, A to H; `label` `helix A`…), and the heme as a system of one position.
+ * ranges (`id` the helix's letter, A to H; `label` `helix A`…). The hemes are molecules the view writes (`hemes.ts`).
  */
-export function hemoglobinSeq(text: string): SeqData {
+export function hemoglobinSeq(text: Cif): SeqData {
   const chains = cifChains(text);
   const helices = cifHelices(text);
   const systems = [
@@ -259,16 +273,9 @@ export function hemoglobinSeq(text: string): SeqData {
       },
     };
   });
-  pairs.push({
-    request: { system: 'hem', start: 0, end: 1, level: 1, shapes: ['letters'] },
-    answer: { ok: true, tables: { letters: { form: 'letters', start: 0, letters: 'X' } } },
-  });
   return {
     coverage: {
-      systems: [
-        ...systems.map((s) => ({ name: s.name, length: s.letters.length, alphabet: 'protein' })),
-        { name: 'hem', length: 1, alphabet: 'protein' },
-      ],
+      systems: systems.map((s) => ({ name: s.name, length: s.letters.length, alphabet: 'protein' })),
       shapes: [
         ...systems.map((s) => ({ system: s.name, shape: 'letters' as const })),
         ...systems.map((s) => ({
@@ -276,7 +283,6 @@ export function hemoglobinSeq(text: string): SeqData {
           shape: 'ranges' as const,
           fields: [{ name: 'label', type: 'category' as const }],
         })),
-        { system: 'hem', shape: 'letters' as const },
       ],
       levels: [1],
     },

@@ -29,6 +29,12 @@ The third slice is closed (2026-11-20; its record in `.seq/records/third-slice/`
   configurable (`labels.minChars`; the author, 2026-11-20; `fixes.md`).
 - Module size (§module-size, `.seq/_checks/file-size.ts`): lane SZ splits the four files over 1500 lines after FX1,
   while no other lane is in them (the author, 2026-11-20: "Yes, add all three").
+- MX's drifts (the author, 2026-11-20: "ok for the drifts"): a section's `via` counts every path of the section, its
+  projections included (maps.md; MX fixes it with the projection bug); a component query on a source-backed sequence
+  stays pending until the letters arrive (as built; TODO.md).
+- AC's and ST1's drifts (the author, 2026-11-20: "Yes, as recommended"): an alignment's columns named
+  `<alignment>/columns`; a map onto a unit a source describes resolves as an overlay edge, pending until the
+  description arrives. Both to FX3 (`fixes.md`).
 - Size targets are bounds once reset after RR (the author, 2026-11-20: "reduce render first, then move the size
   targets"). Moved for the query language: reading a spec 230, headless 820, minimal 920 kB (the author,
   2026-11-20), the default viewer 1,290 kB ("Move to 1290 kB", 2026-11-20); for molecules drawn, headless 830 and
@@ -36,13 +42,14 @@ The third slice is closed (2026-11-20; its record in `.seq/records/third-slice/`
 
 ## In progress
 
-- 2026-11-20: QE, ST1, AC, HP1 and MR merged. One lane at once (the author). CU (strong; CE's parked
-  `seq/ce-copy-ends`) next.
+- 2026-11-20: QE, ST1, AC, HP1, MR, CU and MX merged: the molecules track done. HP2 (strong, `seq/hp2-lane`) in review.
 
 ## Next
 
-1. CU, then MX and stage 1's gate (QE's heavy `:index` bound; the drift notes; the quick-lane folders over 2 s:
-   core, viewer); then HP2, ST2, ST3, HD, HP3.
+1. Stage 1's gate: the merged tree's checks, medium, heavy (QE's `:index` bound), the tiers, sizes, the matrix cells
+   (molecules.md's), the quick-lane folders over 2 s (core, viewer, storybook), a report to the author.
+2. HP2's fix round and merge; then ST2, ST3, HD, HP3; FX3 after the gate.
+3. For the author: T-DM1's CCD ids (placeholders); the pairs layer reading numeric columns (arcs by occupancy).
 
 ## Findings by lane
 
@@ -67,6 +74,8 @@ One row a merged lane (loop, step 5, record): review findings and look findings 
 | AC | 2026-11-20 | 0 | 2 (the `alignment` map kind owed, a `segments` stopgap; one fixed name for every alignment's columns: drift) | 0 | weak tests (a path compared with itself, a test passing on the parent, the hover's section unchecked, no gap end drawn); EC-48 claimed whole; a duplicated kinds list; the look deferred to MX; core/render 2.28 s at load 8.9 (the gate measures it quiet) |
 | HP1 | 2026-11-20 | 4 (review: slots hit while not drawn; rows tracks' states over the tree; navigator pictures given headers; marks at negative x) | 3 (a label hit for `Emphasis.header`; the "⋯" order and backdrop; marks in a narrow column: the author amended the design) | 0 | `HeaderFacts` renamed; `nodeAt` a private copy of repr/tree; test gaps; no new part visible without a host (HP3's stories); minimal viewer 915.8 of 920 kB |
 | MR | 2026-11-20 | 4 (review: EC-95's label over the start number; the allocation tier order-dependent, a test helper's megamorphic copy; an atoms-form block lit as residues; a view after an edit never opening its end plans) | 1 (`block.form` froze the unit list: a block child overrides one unit, the author) | 3 (look: "Fc A1"; the code mode never shown; the story's data against its text) | sizes past 820 / 920 twice trimmed (lazy molecule letters), the bounds moved to 830 / 930 (the author); three brief items built late |
+| CU | 2026-11-20 | 2 (review: the real example as on the parent, every contact on the first heme; a private copy of the unit step) | 1 (an unnamed pair across split copies: never on a guessed copy, the author) | 1 (look: the split hemoglobin's contacts all on the first heme) | weak issue tests; no tile-edge test; `ResolvedBlock.copy` internal; CE's parked branch deleted |
+| MX | 2026-11-20 | 4 (review: chip pills cut below `labels.minChars`, a core cause; the 1FIN twin counting arcs only; module state in molecule letters; rival vias a silent missing link) | 3 (a section's `via` scope and a component query pending: drifts decided; the pairs layer reads text columns only: TODO, the author's) | 2 (look: "AT…", "2…" chips; transplants' contacts not said to come from other entries) | the projection bug (a blocks section unlinked) fixed in core; half the brief built late; T-DM1's CCD ids placeholders; storybook folder 3.0 s |
 
 ## How to verify
 

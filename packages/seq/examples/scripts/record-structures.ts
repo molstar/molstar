@@ -9,13 +9,16 @@
 // into `fixtures/structures/`, and writes `structures/sources.json` (URL, date, licence, attribution, size, SHA-256).
 // Run it from the package folder:
 //
-//   node --experimental-strip-types scripts/record-structures.ts
+//   node --experimental-strip-types scripts/record-structures.ts [ID ...]
 //
-// The entries: 1EHZ (tRNA-Phe, modified nucleotides), 1FIN (CDK2 and cyclin A, an ATP on each CDK2), 4HHB (human
-// deoxyhaemoglobin, hemes and phosphates) and 3SGJ (an IgG1 Fc with its N-glycans in `pdbx_branch_scheme`), all CC0-1.0.
+// With ids, only those entries are fetched and their rows replaced, the others' kept. The entries: 1EHZ (tRNA-Phe,
+// modified nucleotides), 1FIN (CDK2 and cyclin A, an ATP on each CDK2), 4HHB (human deoxyhaemoglobin, hemes and
+// phosphates), 3SGJ (an IgG1 Fc with its N-glycans in `pdbx_branch_scheme`), 2OCJ (p53's core domain, four chains, a
+// zinc each: p53's structure) and 3AVE (a human IgG1 Fc, fucosylated, its N297 glycans: the Antibody's Fc glycan), all
+// CC0-1.0.
 
 import { createHash } from 'node:crypto';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { gunzipSync } from 'node:zlib';
@@ -28,13 +31,21 @@ const Entries: readonly { readonly id: string; readonly entry: string }[] = [
   { id: '1FIN', entry: 'PDB 1FIN, CDK2 and cyclin A with ATP (Jeffrey et al. 1995), mmCIF' },
   { id: '4HHB', entry: 'PDB 4HHB, human deoxyhaemoglobin (Fermi, Perutz, Shaanan, Fourme 1984), mmCIF' },
   { id: '3SGJ', entry: 'PDB 3SGJ, a human IgG1 Fc with its N-glycans (Ferrara et al. 2011), mmCIF' },
+  { id: '2OCJ', entry: 'PDB 2OCJ, the human p53 core domain, four chains (Wang, Rosengarth, Luecke 2007), mmCIF' },
+  { id: '3AVE', entry: 'PDB 3AVE, a fucosylated human IgG1 Fc with its N297 glycans (Matsumiya et al. 2007), mmCIF' },
 ];
 
 const sha256 = (b: Uint8Array) => createHash('sha256').update(b).digest('hex');
 const recorded = new Date().toISOString().slice(0, 10);
 mkdirSync(out, { recursive: true });
-const rows = [];
-for (const { id, entry } of Entries) {
+const asked = process.argv.slice(2);
+const unknown = asked.filter((id) => !Entries.some((e) => e.id === id));
+if (unknown.length) throw new Error(`Unknown entries: ${unknown.join(', ')}`);
+const sourcesFile = join(out, 'sources.json');
+const kept: { file: string }[] =
+  asked.length && existsSync(sourcesFile) ? JSON.parse(readFileSync(sourcesFile, 'utf8')) : [];
+const rows: { file: string }[] = [];
+for (const { id, entry } of Entries.filter((e) => !asked.length || asked.includes(e.id))) {
   const url = `https://files.rcsb.org/download/${id}.cif.gz`;
   const res = await fetch(url);
   if (!res.ok) throw new Error(`${url}: ${res.status}`);
@@ -57,4 +68,9 @@ for (const { id, entry } of Entries) {
   });
   console.log(`${file}: ${bytes.length} bytes (${text.length} inflated)`);
 }
-writeFileSync(join(out, 'sources.json'), `${JSON.stringify(rows, null, 2)}\n`);
+// in the entries' order: a re-recorded row replaces its own, the others kept as they were
+const all = Entries.map(
+  ({ id }) =>
+    rows.find((r) => r.file === `structures/${id}.cif.gz`) ?? kept.find((r) => r.file === `structures/${id}.cif.gz`),
+).filter((r) => r !== undefined);
+writeFileSync(sourcesFile, `${JSON.stringify(all, null, 2)}\n`);

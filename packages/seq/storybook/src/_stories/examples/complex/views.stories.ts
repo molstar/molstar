@@ -8,7 +8,8 @@ import { ComplexViews, type ExampleView } from '@molstar/seqx-examples';
 import { copiesScale } from '@molstar/seqx-examples/complex/blocks';
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { exampleStory } from '../example-root.js';
-import { hideLigandsPast, setCopies, setPlddtBins } from './compose.js';
+import { LinksHoverProvider } from '@molstar/seqx-viewer/behaviors';
+import { hideLigandsPast, setCopies, setPlddtBins, toggleAtpForm } from './compose.js';
 import { complexEditStory } from './edit-root.js';
 
 const view = (id: string) => ComplexViews.find((v) => v.id === id)!;
@@ -74,4 +75,29 @@ export const Copies: StoryObj = {
         { label: 'Merge the copies', run: (s) => setCopies(s, 'copies', 'merge') },
       ],
     }),
+};
+
+/** The host's choice the stories show on (off in the default viewer): a ligand lights its contacts, a residue its ligand. */
+const LinksHoverOn = [{ provider: LinksHoverProvider, params: undefined }] as const;
+
+/**
+ * PDB 1FIN as a complex of its units: CDK2 ×2 and cyclin A ×2 with their author numbers (the construct from 173), ATP
+ * ×2 a chip colored on its own, then the six CC0 entries' ligands (standing for AlphaFill's transplants) with their
+ * resolution as a score; the contacts per pair of units as arcs. The transplants and their contacts come from those
+ * other entries (computed against each entry's CDK2, drawn on 1FIN's chain A): a transplant's card and its arcs name
+ * its entry. Hover ATP's chip: the CDK2 residues it contacts light (`links.hover`, on here); hover a contact: both
+ * ends. Editing: ATP as a chip or by its heavy atoms (one patch).
+ */
+export const AsAComplex: StoryObj = {
+  render: () =>
+    complexEditStory({
+      view: view('units'),
+      edits: [{ label: 'ATP: chip/atoms', run: (s) => toggleAtpForm(s) }],
+      behaviors: LinksHoverOn,
+    }),
+};
+
+/** The complex with the first ATP by its heavy atoms, each labeled by its element. */
+export const AsAComplexAtpAtoms: StoryObj = {
+  render: () => exampleStory(view('units-atoms'), { behaviors: LinksHoverOn }),
 };

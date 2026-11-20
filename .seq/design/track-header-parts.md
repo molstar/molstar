@@ -122,7 +122,7 @@ It does not cover:
   - no overlay has to follow the layout.
 
   The menu is DOM: a part behind a port (below).
-- **A header entry** is a registry entry of kind `headerActions`, namespaced (`seq:hide`, `myapp:color-by`), listed in
+- **A header entry** is a registry entry of kind `header-action` (kebab-case and singular as the registry's other kinds, `layer-type`; a `SeqExtension` lists them as `headerActions`), namespaced (`seq:hide`, `myapp:color-by`), listed in
   `spec.registry` or registered at run time with its undo ([viewer-composition.md](viewer-composition.md)). Its fields:
 
   ```ts
@@ -369,7 +369,7 @@ Items are `ViewerConfig` unless the table says otherwise.
 
 | Item | Default | Why | Alternatives |
 |---|---|---|---|
-| registry `headerActions` | `BuiltInHeaderEntries` in the default spec | the built-ins are entries like a host's | a host's list; any built-in left out |
+| registry `header-action` | `BuiltInHeaderEntries` in the default spec | the built-ins are entries like a host's | a host's list; any built-in left out |
 | `headers` behavior | listed in the default spec | slots and the menu work out of the box | left out: states only, no slots, no menu |
 | `headers.menu` (behavior param) | `headerMenuOverlay()` (`@molstar/ui`'s context menu) | as the hover card's port | a host's adapter; none: the menu's state moves and nothing is drawn |
 | `headers.parts` (behavior param) | `canvas` | drawn parts scroll and export with the picture | a `HeaderPartsPortFactory`: `headerPartsDom()` or a host's |
@@ -483,7 +483,7 @@ The fourth slice builds it, beside the structure lanes. ST3's "color by this tra
   - `_spec`: Render, Tracks layout (the header line), Filters (the chip through the state entry), Lanes and Hits (the
     targets).
 - **`seqx-viewer`**:
-  - the `headerActions` registry kind with its checks;
+  - the `header-action` registry kind with its checks;
   - `BuiltInHeaderEntries`;
   - `HeaderFacts`, made once a layout;
   - icons read into paths;

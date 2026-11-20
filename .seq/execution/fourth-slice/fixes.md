@@ -7,6 +7,15 @@ queue. Each line: what is seen, where (the story), where it came from, its kind 
 
 ## Open
 
+- **An alignment's columns named by the alignment** (missing design, decided): `<alignment>/columns` instead of the one
+  name `columns` (`resolve/model.ts`, `AlignmentSystems`; a ranges source on an alignment reads its rows by it).
+  building-blocks.md, Alignment. AC's drift, the author: "Yes, as recommended". For FX3; a test with one source shared
+  by two alignments.
+- **A map onto a unit a source describes** (missing design, decided): resolve takes it as an overlay edge once the
+  description has arrived, pending until then (today `seq.resolve.ref.missing`; ST1's test injects the edge by hand).
+  structure-syncing.md, `toUnits`. ST1's drift, the author: "Yes, as recommended". For FX3, before HD (which serves
+  SIFTS per chain); EC-169 for the pending state.
+
 - **Hover cards too loose** (look): every view's card (Globins family: "Row, columns, index"; a ring's features). The
   author, 2026-11-20: "the hover cards should be more compact in general". Tighter row spacing and padding, the key and
   value columns closer; the card's title once (the Globins card repeats the row's name as title and first row).
@@ -32,6 +41,8 @@ queue. Each line: what is seen, where (the story), where it came from, its kind 
   prolly reset the vertical zoom too?". As the horizontal navigator's double-click resets (navigators.md); state it in
   the design and its page with the fix.
 
+- **The storybook folder's quick-lane time over 2 s** (nature, partly): `packages/seq/storybook` at 3.0 s after MX
+  (2.3 s before; one quick twin a new story kept, the rest moved to medium). With core's and viewer's below.
 - **The core folder's quick-lane time over 2 s** (waste or nature): `packages/seq/core` at 2.7-3.4 s before and after
   MR; bigWig 1.0 s, hover-time 0.7 s, mmCIF 0.7 s (MR's review). Fix the waste, move what is slow by nature with a
   quick representative.

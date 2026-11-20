@@ -22,6 +22,7 @@ import {
   type RangesLay,
   recordDrawLists,
 } from '../index.js';
+import { createSeqSpec, theme } from '@molstar/seqx-core/lang';
 import { settle } from './helpers.js';
 import { moleculesSpec } from './molecules-fixtures.js';
 
@@ -78,6 +79,56 @@ describe('a complex drawn against its data', () => {
       const gz = pz.strips.axes.findIndex((a) => a.system === '/data/c/g');
       expect(pz.strips.axes[gz].width).toBeCloseTo(p.strips.axes[g].width, 6);
     });
+
+  it('a ligand chip colored on its own: a theme over the molecule’s fields (component, class), each chip its color', async () => {
+    const color = theme.rules([
+      theme.rule([theme.eq('component', 'ATP')], '#d62728'),
+      theme.rule([theme.eq('class', 'ion')], '#9467bd'),
+    ]);
+    const s = await settle(moleculesSpec({ color }));
+    const f = await s.frame({ size: Size });
+    const p = f.layout.sections[0].placement as BlockPlacement;
+    const pill = (system: string) => {
+      const i = p.strips.axes.findIndex((a) => a.system === system);
+      return lettersLays(f).find((l) => l.strip === i)!.lay.fill[0];
+    };
+    expect([pill('/data/c/l'), pill('/data/c/n')]).toEqual([0xd62728ff, 0x9467bdff]);
+    // a chip no rule names takes the rules' default, neither rule's color
+    expect([0xd62728ff, 0x9467bdff]).not.toContain(pill('/data/c/g'));
+    expect(recordDrawLists(f.lists, ['data'])).toContain('#d62728ff');
+    // the polymers' residues keep the default scheme where letters show: rules no clause of which holds give its
+    // `else`, the layer type's default
+    const zoom = { size: Size, viewport: { start: 0, end: 20 } };
+    const fills = async (spec: Parameters<typeof settle>[0]) => {
+      const z = await (await settle(spec)).frame(zoom);
+      const a = lettersLays(z).find((l) => l.lay.system === '/data/c/A')!.lay;
+      expect(a.step).toBe('letters');
+      return Array.from(a.fill.subarray(0, a.n));
+    };
+    expect(await fills(moleculesSpec({ color }))).toEqual(await fills(moleculesSpec()));
+  });
+
+  it('a unit’s atoms read their unit’s first component, not the molecule’s (a unit over its second residue)', async () => {
+    const b = createSeqSpec();
+    const m = b.data.molecule('m', {
+      residues: ['NAG', 'BMA'],
+      atoms: { residue: [0, 0, 1, 1], name: ['C1', 'O1', 'C1', 'O2'], element: ['C', 'O', 'C', 'O'] },
+    });
+    b.data.complex('c', {}, (c) => c.unit('u', { of: m, range: [1, 2] }));
+    b.views.view('v', (v) => {
+      const s = v.section('s', { of: '/data/c' as never });
+      s.block('u', { form: 'atoms' });
+      s.track('t').layer('l', {
+        type: 'letters',
+        color: theme.rules([theme.rule([theme.eq('component', 'BMA')], '#d62728')]),
+      });
+    });
+    const st = await settle(b.build());
+    const f = await st.frame({ size: Size });
+    const [atoms] = lettersLays(f);
+    expect(atoms.lay.n).toBeGreaterThan(0);
+    expect(atoms.lay.fill[0]).toBe(0xd62728ff);
+  });
 
   it('a chip is hit as its whole block: its every residue', async () => {
     const s = await settle(moleculesSpec());

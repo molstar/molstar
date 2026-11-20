@@ -1549,11 +1549,12 @@ Seq\* holds pointers and labels: codes and identifiers are strings.
   unchanged. A path that steps through none of the named maps is chosen as if the via were absent (`viaPath`: leaving
   out a rival elsewhere never settles a tie the via did not name), and `PathResult.unused` lists the named maps the
   chosen path does not step through, a name that is no map too (the author, 2026-11-20: "Warn"). A section reports each
-  named map on none of its paths (follow, along, layers, grid y, the links onto it) as `seq.resolve.via.unused`, a
-  warning at the section with the map as its place (`viaUnusedIssue`; Resolved view, Via). One entry a pair and `via`
-  set (sorted, deduplicated: `viaList`); its carried search's deps are every map of the systems it read, rivals too.
-  `project(loc, to, { via })` and the overlay's `path(from, to, via?)` take it, and a structure binding's `via`
-  (Structures) is read as a section's: by `toUnits`, `unitRows` and `colorRuns` on that binding's paths.
+  named map on none of its paths (follow, along, layers, grid y, the links onto it and from it) as
+  `seq.resolve.via.unused`, a warning at the section with the map as its place (`viaUnusedIssue`; Resolved view, Via).
+  One entry a pair and `via` set (sorted, deduplicated: `viaList`); its carried search's deps are every map of the
+  systems it read, rivals too. `project(loc, to, { via })` and the overlay's `path(from, to, via?)` take it, and a
+  structure binding's `via` (Structures) is read as a section's: by `toUnits`, `unitRows` and `colorRuns` on that
+  binding's paths.
 - **Kept**: a search is done once per model (the reverse read as the inverse), and carried to the next resolve with the
   map entries of every system it read; it is kept while those are the same objects (entries are kept by hash, a
   `priority` in it, so a changed priority drops the search), so an edit elsewhere keeps the path object. Why: a map
@@ -1647,12 +1648,14 @@ no target.
 - **Via**: a section's `via` (`ResolvedSection.via`, sorted; absent when none) is what its paths take where two maps
   join one pair of systems (Resolve, Paths): its follow, its `direction: { along }` (where the map does not reach its
   system itself), its layers' data (templates' instances too), its grid's y, its navigators' paths, and the links onto
-  it (hover, selection; the viewer's hover fallback and focus hull read it too). A link from a section takes the
-  target's `via`, so two sections of one chain, each naming one map, light different residues for one hover (a
-  comparison); onto a section naming none the pair stays ambiguous and there is no link. Why the target's: what is
-  projected lands on the section that names how. A named map on none of those paths is `seq.resolve.via.unused` (a
-  warning at the section, the map its place), and those paths were chosen as if the via were absent. Why warn: a via
-  that settles nothing is a figure's mistake the reader cannot see.
+  it and from it (hover, selection; the viewer's hover fallback and focus hull read it too). A link takes both ends'
+  `via` (the author, 2026-11-20), so two sections of one chain, each naming one map, light different residues for one
+  hover (a comparison), and a hover on either reaches a section naming none through its map; between two sections naming
+  none the pair stays ambiguous and there is no link; two naming rival maps of one pair leave it tied, so the target's
+  map carries it and `seq.view.via.conflict` says so at the target (never a link gone silently). Why both: a section's
+  via says how its positions meet the others', whichever way the projection runs. A named map on none of those paths is
+  `seq.resolve.via.unused` (a warning at the section, the map its place), and those paths were chosen as if the via were
+  absent. Why warn: a via that settles nothing is a figure's mistake the reader cannot see.
 - **Grids**: a grid section's `y` (`GridAxis`) is its second axis, down the plot: `of_y`'s system whole (`of`'s when
   absent), top down, and what it shows: `follow_y: x` (the default) x's window (`followsX`; through the path from x's
   system when `of_y` is another), a section's region through `follow` (the path from its system), `none` a window of its
@@ -1678,16 +1681,17 @@ no target.
   unit's `label`, else (a molecule) its `name`, else its one component's code (`ATP`), else its id.
 - **Blocks**: each its axis (its system, its `range`, the section's direction), its form, its first display unit in the
   section's (`offset`: 0 in a stack), its label, the blocks it stands for (`members`) and their systems (`systems`: a
-  merged copy's unit, what an end on a copy is drawn on), and each of the section's tracks' layers resolved onto its
-  system (a path a block: placed on each block its data reaches; a layer that reaches no block says why once, by its
-  first block's issue). Copies (the same system, or units of one copy group, with the same range and form) are one block
-  labeled `×N` with `copies: 'merge'` (the default: a copy group's sequence said once, its cost one block's, EC-65,
-  EC-67), a block each with `each`. The section's axis is the blocks' display units in order: on one system in a row (or
-  on a ring), the blocks' pieces end to end (their breaks between them, a follow along one axis); else units
-  `[0, total)` on no system (its `system` the section's address, `pieces: 'blocks'`), the total the sum in a row and the
-  longest block in a stack. Why: a position on them is no block's, so a selection, a focus, a bookmark or a cursor on a
-  system never reads them as its own; a block's hits carry its system and its index (`block`), and a consumer maps them
-  through the block's axis and `offset`. A block that names no system is `seq.view.section.system` and left out.
+  merged copy's unit, what an end on a copy is drawn on), its copy group (`copy`, internal: the pairs layer's), and each
+  of the section's tracks' layers resolved onto its system (a path a block: placed on each block its data reaches; a
+  layer that reaches no block says why once, by its first block's issue). Copies (the same system, or units of one copy
+  group, with the same range and form) are one block labeled `×N` with `copies: 'merge'` (the default: a copy group's
+  sequence said once, its cost one block's, EC-65, EC-67), a block each with `each`. The section's axis is the blocks'
+  display units in order: on one system in a row (or on a ring), the blocks' pieces end to end (their breaks between
+  them, a follow along one axis); else units `[0, total)` on no system (its `system` the section's address,
+  `pieces: 'blocks'`), the total the sum in a row and the longest block in a stack. Why: a position on them is no
+  block's, so a selection, a focus, a bookmark or a cursor on a system never reads them as its own; a block's hits carry
+  its system and its index (`block`), and a consumer maps them through the block's axis and `offset`. A block that names
+  no system is `seq.view.section.system` and left out.
 - **An axis**: its system, its length unless unknown, cyclic, and the positions shown as `[start, end, …]` pieces in
   display order: the whole system, its `range`, or for a cyclic range that wraps the origin two pieces, from its start
   to the origin then on (`[8, 10, 0, 2]`). Without a known length, showing all of the system or wrapping, `ranges` is
@@ -1720,16 +1724,18 @@ no target.
   axis's shape; a piece over a cyclic origin, `start > end`, is split first) to the follower's: the image's hull, or on
   a cyclic follower the shortest arc holding it (EC-12, `arc: 'shortest'`, the default; `'hull'` takes the hull), in the
   axis's shape.
-- **Links**: every ordered pair of the view's sections a static path joins, with the path, composed when the view is
-  resolved so hover and selection never compose; the same system is the identity.
+- **Links**: every ordered pair of the view's sections a static path joins, with the path (`fromSystem`, `toSystem`: the
+  systems it joins), composed when the view is resolved so hover and selection never compose; the same system is the
+  identity. A section of blocks links through each block's system (its own axis is on no system), so what is on a
+  sequence lights the units of a complex's section (EC-25) and back.
 - **Projection** (`projectOntoView(model, view, loc, { close?, own?, linked? })`, `project.ts`): a Location on the
   view's sections' systems (a section of blocks: its blocks' systems), one Location keyed by system (two sections on one
-  system show the same): each part carried along the view's link from a section on its system, else, for a system no
-  section shows, along the model's static path; rects are not carried. `close` closes it first among the view's systems
-  (a hover's: a nucleotide lifts to its codon and gains its residue); `own` keeps the parts already on a section's
-  system (a hover's and a highlight's), else only what it adds where it has no part (a selection's); `linked: false`
-  keeps the own parts alone. Why keyed by system, not a function per section: the renderer reads a part per axis with an
-  indexed loop, nothing called or made per draw.
+  system show the same): each part carried along the view's link from its system to each shown system, else, for a
+  system no section shows, along the model's static path; rects are not carried. `close` closes it first among the
+  view's systems (a hover's: a nucleotide lifts to its codon and gains its residue); `own` keeps the parts already on a
+  section's system (a hover's and a highlight's), else only what it adds where it has no part (a selection's);
+  `linked: false` keeps the own parts alone. Why keyed by system, not a function per section: the renderer reads a part
+  per axis with an indexed loop, nothing called or made per draw.
 - **A track**: its address, its label (its id when absent), its height, and its `template` when it has `for_each`. A
   hidden track (`hidden: true`) is left out of the view, so its row collapses; the spec keeps it.
 - **A layer**: its address (with an id) and index, its type and fallback chain (`LayerTypes`: `secondary` and `variants`
@@ -2556,13 +2562,17 @@ numbers): a window move allocates nothing once warm.
 - **A stack**: the chips share one row after the other blocks', side by side from the first position's x, whatever the
   window. A row's ground and its track labels are drawn once, at its first strip (a later chip's would paint over the
   pill before it).
-- **The pill**: a letters layer on a chip draws its label in a pill over its cell (`LayoutContext.chip`, elided to its
-  slot): the cell's fill with the letter cells' hairline (`seq-cell-edge`, dark), its ink the tokens' when it holds
-  4.5:1 against the fill, else black or white; one pill over a chip's cells. A chip is hit as its whole block (the hit's
-  `extent` its every position, made once a layout: a hover over it is one hover), so a click selects every residue and,
-  through the atoms map, every atom. The label row above a chip is empty only where a pill was drawn (a letter laid out
-  on a band with height); else (no letters track, a pending tile, bars, a collapsed band) the label is there. Another
-  layer draws its mark across the chip where it has something at the position, else nothing.
+- **The pill**: a letters layer on a chip draws its label in a pill over its cell (`LayoutContext.chip`, by the rule of
+  a label inside a mark, `longestCut`: whole, or cut keeping at least `labels.minChars` letters, else the pill without
+  text, its label in the card; the label row above follows the same rule): the cell's fill with the letter cells'
+  hairline (`seq-cell-edge`, dark), its ink the tokens' when it holds 4.5:1 against the fill, else black or white; one
+  pill over a chip's cells. A molecule's cells take the layer's `color` once a block, its theme reading the molecule's
+  fields (`class`, `name`, `component`: its first residue's code), so one letters layer colors each chip on its own
+  (`(rule (eq component ATP) …)`); a rule that holds for none gives the layer's default. A chip is hit as its whole
+  block (the hit's `extent` its every position, made once a layout: a hover over it is one hover), so a click selects
+  every residue and, through the atoms map, every atom. The label row above a chip is empty only where a pill was drawn
+  (a letter laid out on a band with height); else (no letters track, a pending tile, bars, a collapsed band) the label
+  is there. Another layer draws its mark across the chip where it has something at the position, else nothing.
 - **Labels**: a block's label above its tracks is elided to its strip's width, dropped when nothing of it fits: never
   over the next block's. Hit, hover, selection and a link read a chip as its one position; `place` at a unit where one
   strip ends and the next starts gives the next (a chip at its own first unit is the chip). Contacts (where a ligand
@@ -2834,6 +2844,17 @@ numbers): a window move allocates nothing once warm.
 - **A complex's links** (`pairs` under a complex): each end on its row's unit (`PairsData.aUnit`, `bUnit` into the
   entry's `units`), placed on the block showing that unit, or on the block a merged copy of it is merged into (its
   `systems`); its hit's extent on the two units.
+- **Ends on blocks** (`render/pairs-ends.ts`): an end is on the first block showing its system: the block of its system
+  or its row's unit, the block a merged copy of it is merged into, or a block of a unit of it (a sequence or a molecule
+  reaches every unit over it, EC-48, by the resolver's step down to the unit: within its range). A pair whose ends are
+  on one block of one system is drawn again on each copy of that block (`ResolvedBlock.copy`, the resolver's copy
+  groups: one copy group, or one system and one range and form), a caret a copy where its other end is on no block:
+  split copies each show a pair within one molecule, a unit named by the data shows it alone, a zoom block (another
+  range) is no copy. A pair between two systems with an end on split copies its data names no unit of is drawn on no
+  copy, never a guessed one, and `seq.render.pairs.copy` (warning, once a layer) gives the pairs shown so (a filter's
+  left out) and each system with its copies; one whose other end is on no block also says `seq.render.pairs.systems`.
+  Why: the data says a pair within one system holds on every copy; across two it does not say which copies touch, and a
+  contact drawn on the wrong copy states a fact the data does not hold (derive contacts per pair of units).
 - **Bounded by the screen**: past `pairs.maxArcs`, arcs binned by their ends' device columns, one a bin (widest first),
   the rest a density strip of ends, said once (`seq.render.pairs.limit`, info). Ends on two systems that are not the
   section's own report `seq.render.pairs.systems`.
@@ -2859,14 +2880,15 @@ numbers): a window move allocates nothing once warm.
   `seq.render.filter`.
 - **Split order**: at one place the others' closing ends, each self-pair's two ends, then opening ends; equal intervals
   nest: a self-pair, a duplicate and a shared end cross nothing (held against a brute force).
-- **Hit**: candidates by hull over the point's x, then distance to the curve (`pairs.hitPx`); the pair's element, its
-  extent both ends. **Hover**: the hovered pair; as arcs, every pair with an end at a hovered position (a base, or
-  either position of a cell) or in the hover projected onto the section; as dots, the pair at the hovered cell.
-  **Highlight**: the pairs a highlight channel lists by key (`EmphasisHighlight.elements`) drawn over in the channel's
-  color in the `highlight` pass, as the selection's in the accent (a pair two channels list: the later's); the pairs
-  each channel lights are made again only when the channels change (by identity), into a reused array. The pairs pass
-  ignores `EmphasisHighlight.style`: a pair is a stroke over its arc or dot in any style (a tint or a band has no room
-  on a curve).
+- **Hit**: candidates by hull over the point's x, then distance to the curve (`pairs.hitPx`), and the carets by the
+  distance to their boxes, a tie the later drawn (the carets after the arcs); the pair's element, its extent both ends.
+  **Hover**: the hovered pair; as arcs, every pair with an end at a hovered position (a base, or either position of a
+  cell) or in the hover projected onto the section; as dots, the pair at the hovered cell. **Highlight**: the pairs a
+  highlight channel lists by key (`EmphasisHighlight.elements`) drawn over in the channel's color in the `highlight`
+  pass, as the selection's in the accent (a pair two channels list: the later's); the pairs each channel lights are made
+  again only when the channels change (by identity), into a reused array. The pairs pass ignores
+  `EmphasisHighlight.style`: a pair is a stroke over its arc or dot in any style (a tint or a band has no room on a
+  curve).
 
 ### The grid layer
 

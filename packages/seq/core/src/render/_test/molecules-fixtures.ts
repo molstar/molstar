@@ -32,6 +32,10 @@ export interface MoleculesOptions {
   readonly links?: boolean;
   /** The links' sites: a ranges track over the links, each end a mark labeled by the other. */
   readonly sites?: boolean;
+  /** Pairs within the Fc chain on its molecule (no unit named): a pairs track, drawn on each copy split. */
+  readonly within?: boolean;
+  /** The section's letters layer's `color` (a theme form). */
+  readonly color?: Node;
 }
 
 /** The Fc chains' unit ids: `A`, `B`, … */
@@ -73,6 +77,13 @@ export function moleculesSpec(o: MoleculesOptions = {}): Node {
       { position: 15, component: 'U' },
     ]),
   });
+  const within = o.within
+    ? b.data.pairs('within', {
+        a: fc,
+        b: fc,
+        rows: { a_start: [4, 10, 20], a_end: [5, 11, 21], b_start: [70, 40, 30], b_end: [71, 41, 31] },
+      })
+    : undefined;
   b.data.compound('2MG', { name: '2N-methylguanosine-5’-monophosphate', parents: ['G'] });
   const ids = chainIds(o.chains ?? 2);
   const units: Record<string, string> = {};
@@ -110,8 +121,13 @@ export function moleculesSpec(o: MoleculesOptions = {}): Node {
         if (o.atpForm)
           for (const id of [...ids, 'g', 'l', 'n'])
             s.block(id, { of: units[id] as never, ...(id === 'l' ? { form: o.atpForm } : {}) });
-        s.track('letters').layer('letters', { type: 'letters', ...(o.modified ? { modified: o.modified } : {}) });
+        s.track('letters').layer('letters', {
+          type: 'letters',
+          ...(o.modified ? { modified: o.modified } : {}),
+          ...(o.color ? { color: o.color } : {}),
+        });
         if (o.sites) s.track('sites').layer('sites', { type: 'ranges', data: '/data/c/links' as never });
+        if (within) s.track('within').layer('within', { type: 'pairs', data: within });
         if (o.layout !== 'text' && o.links !== false)
           s.track('links').layer('links', { type: 'pairs', data: '/data/c/links' as never });
       },

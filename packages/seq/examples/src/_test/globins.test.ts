@@ -6,6 +6,7 @@
 
 import { BuiltInLayerTypes, BuiltInLayouts } from '@molstar/seqx-core/render/built-ins';
 import { readFileSync } from 'node:fs';
+import { gunzipSync } from 'node:zlib';
 import type { Node } from '@molstar/core/repr/tree';
 import { DataStore, decodeSeq, type FormatRuntime } from '@molstar/seqx-core/data';
 import { AlignmentFileRuntime, readNewick, readStockholm } from '@molstar/seqx-core/data/alignment-readers';
@@ -35,9 +36,10 @@ import {
   seedProfile,
 } from '../globins/data.js';
 import * as globins from '../globins/family.js';
-import { HemeContacts, HemeHistidines } from '../globins/hemes.js';
+import { HemeAtoms, HemeContacts, HemeHistidines, HemeUnitContacts, HemoglobinChains } from '../globins/hemes.js';
+import * as hemoglobin from '../globins/hemoglobin.js';
 import { HemoglobinLengths } from '../globins/hemoglobin.js';
-import { identity, residuesOf } from '../globins/recording.js';
+import { hemeAtoms, hemeContacts, identity, residuesOf } from '../globins/recording.js';
 import { neighborJoining } from '../globins/tree.js';
 import { nodeFixtureAssets, PackageFolder } from '../node-assets.js';
 
@@ -49,6 +51,8 @@ const text = (f: string) => readFileSync(`${PackageFolder}${f}`, 'utf8');
 const seed = readStockholm(text(SeedFile));
 const profile = seedProfile(text(SeedFile));
 const hb = decodeSeq(text(HemoglobinFile)).data!;
+const find = (n: Node, id: string): Node | undefined =>
+  n.id === id ? n : n.children?.reduce<Node | undefined>((a, c) => a ?? find(c, id), undefined);
 const lettersOf = (system: string) => {
   const t = hb.pairs.find((p) => p.request.system === system)!.answer;
   return (t.ok ? (t.tables.letters as { letters: string }).letters : '') as string;
@@ -96,10 +100,22 @@ describe('the Globins fixtures’ anchors', () => {
     expect(tree.leaves.map((n) => tree.label[n]).sort()).toEqual(seed.rows.map((r) => r.label).sort());
   });
 
-  it('4HHB: α 141 and β 146 residues, eight helices A to H a chain, a heme a position', () => {
+  it('4HHB: α 141 and β 146 residues, eight helices A to H a chain; the heme a molecule, HEM and its 43 heavy atoms', () => {
     expect(lettersOf('hba').length).toBe(HemoglobinLengths.hba);
     expect(lettersOf('hbb').length).toBe(HemoglobinLengths.hbb);
-    expect(lettersOf('hem').length).toBe(HemoglobinLengths.hem);
+    expect(hb.coverage.systems.map((s) => s.name)).toEqual(['hba', 'hbb']);
+    const hem = find(hemoglobin.build(), 'hem')!;
+    type Category = { dict: string[]; codes: ArrayLike<number> };
+    const strings = (c: Category) => Array.from(c.codes, (k) => c.dict[k]);
+    const atoms = hem.params!.atoms as unknown as { name: Category; element: Category; residue: ArrayLike<number> };
+    expect([
+      hem.kind,
+      strings(hem.params!.residues as unknown as Category),
+      new Set(Array.from(atoms.residue)),
+    ]).toEqual(['molecule', ['HEM'], new Set([0])]);
+    expect([strings(atoms.name), strings(atoms.element)]).toEqual([HemeAtoms.name, HemeAtoms.element]);
+    expect(HemeAtoms.name).toHaveLength(43);
+    expect(HemeAtoms.element.filter((e) => e === 'FE')).toHaveLength(1);
     for (const system of ['hba', 'hbb']) {
       const a = hb.pairs.find((p) => p.request.system === system)!.answer;
       const ranges = a.ok ? (a.tables.ranges as { id: { dict: readonly string[]; codes: Int32Array } }) : undefined;
@@ -115,6 +131,19 @@ describe('the Globins fixtures’ anchors', () => {
         expect(HemeContacts[c]).toContain(h);
       }
     }
+  });
+
+  // the whole entry parsed: slow by nature, the medium lane (the recorder's mini file is the quick representative)
+  it('4HHB’s heme contacts per pair of units, derived from its atoms: each heme touches its own chain only; every heme’s heavy atoms the molecule’s', {
+    tags: ['medium'],
+  }, async () => {
+    // the parser imported here: only this medium test needs it (the quick lane does not load @molstar/io)
+    const { readCif } = await import('../../scripts/cif.js');
+    const cif = await readCif(gunzipSync(readFileSync(`${PackageFolder}fixtures/structures/4HHB.cif.gz`)));
+    expect(hemeContacts(cif)).toEqual(HemeUnitContacts);
+    const atoms = hemeAtoms(cif);
+    expect([...atoms.keys()]).toEqual(HemoglobinChains.map((c) => c.heme));
+    for (const a of atoms.values()) expect(a).toEqual({ name: HemeAtoms.name, element: HemeAtoms.element });
   });
 
   it('the columns file: a record a row, keyed by its label; UniProt’s organism and class', () => {

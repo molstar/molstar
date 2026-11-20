@@ -8,7 +8,7 @@ import { PCG } from '@molstar/core/data/util/hash-functions';
 import { DerivedData } from './derived-data.js';
 
 // The tRNA dataset: PDB 1EHZ's chain A (yeast tRNA-Phe, 76 nucleotides, 14 modified residues written as their parent
-// letters, with their codes as ranges) and its 27 base pairs, the entry's own table; Rfam RF00005's seed (954 rows,
+// letters, their components the sequence's `modified` table, their codes also as ranges) and its 27 base pairs, the entry's own table; Rfam RF00005's seed (954 rows,
 // 118 columns, Stockholm with `SS_cons`, as published); and what is computed from them (`derive.ts`). The molecule and the
 // seed are read by location, as a published file is; the pairs of the entry are held here (a `pairs` node is inline
 // rows only) and compared with the committed `1EHZ-pairs.seq` by the fixtures test.
@@ -21,6 +21,45 @@ export const SystemName = '1EHZ-A';
 /** 1EHZ's chain A, parent letters (compared with the file's letters by the fixtures test). */
 export const TrnaLetters = 'GCGGAUUUAGCUCAGUUGGGAGAGCGCCAGACUGAAGAUCUGGAGGUCCUGUGUUCGAUCCACAGAAUUCGCACCA';
 export const TrnaLength = TrnaLetters.length;
+
+/**
+ * 1EHZ's modified residues (`pdbx_struct_mod_residue`, 0-based): the component at a position, its letter the parent's
+ * (14 positions, 11 components; compared with the file's ranges by the fixtures test).
+ */
+export const ModifiedResidues: readonly (readonly [position: number, component: string])[] = [
+  [9, '2MG'],
+  [15, 'H2U'],
+  [16, 'H2U'],
+  [25, 'M2G'],
+  [31, 'OMC'],
+  [33, 'OMG'],
+  [36, 'YYG'],
+  [38, 'PSU'],
+  [39, '5MC'],
+  [45, '7MG'],
+  [48, '5MC'],
+  [53, '5MU'],
+  [54, 'PSU'],
+  [57, '1MA'],
+];
+
+/**
+ * Their compounds: each code's name (the entry's `chem_comp.name` in lower case; YYG's its common name, wybutosine, for
+ * the entry's systematic one) and parent.
+ */
+export const ModifiedCompounds: Readonly<Record<string, { readonly name: string; readonly parent: string }>> = {
+  '2MG': { name: "2N-methylguanosine-5'-monophosphate", parent: 'G' },
+  H2U: { name: "5,6-dihydrouridine-5'-monophosphate", parent: 'U' },
+  M2G: { name: "N2-dimethylguanosine-5'-monophosphate", parent: 'G' },
+  OMC: { name: "O2'-methylycytidine-5'-monophosphate", parent: 'C' },
+  OMG: { name: "O2'-methylguanosine-5'-monophosphate", parent: 'G' },
+  YYG: { name: 'wybutosine', parent: 'G' },
+  PSU: { name: "pseudouridine-5'-monophosphate", parent: 'U' },
+  '5MC': { name: "5-methylcytidine-5'-monophosphate", parent: 'C' },
+  '7MG': { name: "7N-methyl-8-hydroguanosine-5'-monophosphate", parent: 'G' },
+  '5MU': { name: "5-methyluridine 5'-monophosphate", parent: 'U' },
+  '1MA': { name: "6-hydro-1-methyladenosine-5'-monophosphate", parent: 'A' },
+};
 
 export type Kind = 'canonical' | 'wobble' | 'non-canonical';
 const KindOf = { C: 'canonical', W: 'wobble', N: 'non-canonical' } as const;

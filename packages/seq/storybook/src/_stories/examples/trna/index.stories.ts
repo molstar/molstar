@@ -18,6 +18,7 @@ const Exports: Record<string, string> = {
   'dot-plot': 'DotPlot',
   'seed-row': 'SeedRow',
   seed: 'Seed',
+  'seed-chain': 'SeedAndChain',
   'dot-plot-scale': 'DotPlotScale',
 };
 
