@@ -72,7 +72,8 @@ describe('molecules and units as systems', () => {
     expect(links.units).toEqual(['/data/c/A', '/data/c/B', '/data/c/G', '/data/c/L']);
     expect(Array.from(links.pairs!.aUnit!)).toEqual([0, 0]);
     expect(Array.from(links.pairs!.bUnit!)).toEqual([2, 1]);
-    expect(links.fields).toEqual(['type', 'a_atom', 'b_atom']);
+    // its numeric `occupancy` a field too
+    expect(links.fields).toEqual(['type', 'a_atom', 'b_atom', 'occupancy']);
     const q = model.annotation('/data/c/links')!;
     expect(q.items().items.map((it) => [it.key, it.system, it.start])).toEqual([
       [0, '/data/c/A', 10],
