@@ -25,6 +25,16 @@ queue. Each line: what is seen, where (the story), where it came from, its kind 
   rows are drawn. The author, 2026-11-20. Check: the plot box against the host's size on resize (grids-and-rows.md: the
   plot box is fixed); the canvas's backing size against its CSS size at a changed devicePixelRatio or zoom; the right
   edge's clip against the end-numbers column; the status text's settle.
+- **The vertical overview went missing from the stories and examples** (bug; first in FX1): the rows rail was to be added
+  beside the vertical overview (the author: "also have the thin slider"), but it replaced it. Globins › Rows › Folded
+  and the other alignments now show only the rail. The author, 2026-11-20: "at the very least we should have stories for
+  this in features/navigation & use it in some examples too". Fix:
+  - Features › Navigators: one story for each vertical form side by side (the rows rail, the vertical overview with its
+    four handles as in `packages/sequences`, both together);
+  - the vertical overview declared again in the examples that had it (Globins Family, Folded and Scale; any other
+    alignment with more rows than fit);
+  - the rail stays the default only where no navigator is declared (navigators.md, the rows rail);
+  - check that the overview's picture and handles still draw and drag (`render/navigator.ts`, `mount-navigator.ts`).
 - **A folded clade's summary row is not named to assistive technology** (bug, only if the author decided item 4 of the
   third slice's `drift/ec-contradictions.md` as recommended: name it by its summary label, "HBA +12"). Third slice's EO.
 - **A disabled toolbar button's dimming not looked at** (look): `@molstar/ui`'s Storybook and Prism, light and dark
