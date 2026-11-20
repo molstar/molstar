@@ -308,13 +308,14 @@ export function unitEntry(
     if (c.kind === 'numbering' && c.id !== undefined && c.id !== 'index' && c.id !== 'ordinal') declared.push(c.id);
   const label = str(p(node, 'label'));
   const s = of.system;
-  // a unit's letters are its sequence's over its range; a source's letters are read on the sequence's name (a unit
-  // starting past 0 on one shows none until units read by region)
+  // a unit's letters are its sequence's over its range: inline, sliced; a source's, its sequence's plan, read on the
+  // sequence's positions through the unit's step (a layer on the unit reads its parent's, `parent`), pending while
+  // unread, never drawn empty (EC-169)
   const letters = s.letters?.slice(start, end);
   const access: AccessPlan =
     letters !== undefined
       ? inlinePlan(address, address, length, { letters: { form: 'letters', start: 0, letters } })
-      : s.access.kind === 'source' && start === 0
+      : s.access.kind === 'source'
         ? s.access
         : inlinePlan(address, address, length, {});
   const system: SystemEntry = {

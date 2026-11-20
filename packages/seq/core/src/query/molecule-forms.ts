@@ -33,7 +33,7 @@ import {
   tick,
 } from './form-kit.js';
 import { QueryIssues } from './issues.js';
-import { EmptyLocation, type Location, location, unionLocations } from './location.js';
+import { EmptyLocation, type Location, location, rangesLocation, unionLocations } from './location.js';
 import type { QueryComponents } from './model.js';
 
 /** A param's atoms: one, or a list's. */
@@ -130,6 +130,10 @@ const component: Resolve = (ctx, form, prefix) => {
       // the sparse rows alone: a protein of 300 residues is not scanned for its handful
       ranges = c.polymer ? modifiedRanges(c) : [];
       if (annotations === true) ranges.push(...modifiedItems(ctx, s.address));
+    } else if (c.pending) {
+      // the letters are a source's and not held: the standard components are unknown, so the form waits
+      stage(ctx, rangesLocation(s.address, [0, c.length]));
+      ranges = [];
     } else {
       const nonStandard =
         c.polymer && standard !== undefined ? new Set(rangesToPositions(modifiedRanges(c))) : undefined;

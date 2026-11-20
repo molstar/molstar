@@ -128,6 +128,8 @@ export interface QueryComponents {
   readonly length: number;
   /** Whether its positions have standard components (a sequence or a unit of one): what `:standard` reads. */
   readonly polymer: boolean;
+  /** Whether its letters are not held (a source's): a form reading standard components waits over the system. */
+  readonly pending?: boolean;
   /** A sequence's non-standard rows, sorted: position, component, the positions it covers. */
   readonly modified?: {
     readonly position: Int32Array;

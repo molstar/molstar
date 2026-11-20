@@ -98,6 +98,8 @@ export function componentsOf(
   return {
     length,
     polymer: true,
+    // a source's letters are not held here: a form reading standard components waits
+    ...(letters === undefined && system.source ? { pending: true } : {}),
     ...(index ? { modified: index } : {}),
     at: (p) => componentsAt(index, system.alphabet, letters, p),
   };
