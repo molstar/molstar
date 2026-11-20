@@ -19,10 +19,10 @@ import { type Frames, installFrames } from './frames.js';
 
 const Ring = '/views/v/ring';
 
-function spec() {
+function spec(count = 13) {
   const n = 2686;
   const rows = { start: [] as number[], end: [] as number[], id: [] as string[], label: [] as string[] };
-  for (let k = 0; k < 13; k++) {
+  for (let k = 0; k < count; k++) {
     rows.start.push(1081 + 4 * k);
     rows.end.push(1085 + 4 * k);
     rows.id.push(`s${k}`);
@@ -46,7 +46,7 @@ afterEach(() => {
   frames = undefined;
 });
 
-async function make() {
+async function make(count = 13) {
   frames = installFrames();
   const v = createSeqViewer({
     ...DefaultSeqViewerSpec(),
@@ -54,7 +54,7 @@ async function make() {
     config: [[viewerItem('viewport.maxPxPerPosition'), 1000]],
   });
   viewer = v;
-  await v.load(spec());
+  await v.load(spec(count));
   v.resize(640);
   await v.settle();
   frames.flush();
@@ -105,7 +105,7 @@ describe('a ring’s grouped label', () => {
   });
 
   it('a pointer on it opens the fan, laying nothing out; the hit reads the hover, with no draw between', async () => {
-    const v = await make();
+    const v = await make(10);
     const p = ringOf(v);
     const at = groupPoint(v);
     const layout = v.frame!.layout;
@@ -121,5 +121,45 @@ describe('a ring’s grouped label', () => {
     // away from it: the grouped form again, the fan's place no hit
     v.input.leave();
     expect(v.hit(pt.x, pt.y)?.element?.key).not.toBe(p.fan.hits[p.fan.members[3]]!.element!.key);
+  });
+
+  it('a fan pivots wider than its own arc about the group’s middle: its leaders a line apart at the bend, from their marks', async () => {
+    const v = await make(10);
+    const p = ringOf(v);
+    const f = p.fan;
+    const g = 0;
+    expect(f.groupSize[g]).toBe(10);
+    const rb = p.r + v.context.renderConfig.rings.labelGap;
+    const angleOf = (x: number, y: number) => Math.atan2(x - p.cx, p.cy - y);
+    const bends: number[] = [];
+    const marks: number[] = [];
+    for (let q = f.groupStart[g]; q < f.groupStart[g + 1]; q++) {
+      const k = f.slot[f.members[q]];
+      expect(k).toBeGreaterThanOrEqual(0);
+      bends.push(angleOf(f.leader[6 * k + 2], f.leader[6 * k + 3]));
+      marks.push(angleOf(f.leader[6 * k], f.leader[6 * k + 1]));
+    }
+    const spread = (a: number[]) => Math.max(...a) - Math.min(...a);
+    // the members' own arc is 36 positions of 2,686 (under 5°); the bends a line apart at the bend's radius
+    const line = p.labelSize + 2;
+    expect(spread(marks)).toBeLessThan((5 * Math.PI) / 180);
+    expect(spread(bends)).toBeGreaterThan((9 * line) / rb - 1e-6);
+    // the leaders start at the members' own angles: every mark within the group's own arc
+    for (const m of marks) expect(Math.abs(m - (Math.min(...marks) + Math.max(...marks)) / 2)).toBeLessThan(0.05);
+  });
+
+  it('a group of more than `rings.cluster.fanMax` (12) opens no fan: its card is the list', async () => {
+    const v = await make(13);
+    const p = ringOf(v);
+    const at = groupPoint(v);
+    v.input.move(at.x, at.y);
+    expect(v.hover.current?.target).toBe('group');
+    // the fan stays closed: no member's fan label is hit, nothing drawn over the labels
+    const slot = p.fan.slot[p.fan.members[3]];
+    const pt = { x: p.fan.right[slot] ? p.fan.x[slot] + 3 : p.fan.x[slot] - 3, y: p.fan.y[slot] - 0.35 * p.labelSize };
+    expect(v.hit(pt.x, pt.y)?.element?.key).not.toBe(p.fan.hits[p.fan.members[3]]!.element!.key);
+    frames!.flush();
+    v.draw();
+    expect(v.frame!.lists.passes.tip.texts.n).toBe(0);
   });
 });

@@ -185,8 +185,11 @@ export interface RenderConfig {
     readonly center: 'title' | 'none';
     readonly labelGap: number;
     readonly leaderBend: number;
-    /** More than `over` outside labels within `degrees` are one grouped label ("13 items"); 0 degrees: never grouped. */
-    readonly cluster: { readonly over: number; readonly degrees: number };
+    /**
+     * More than `over` outside labels within `degrees` are one grouped label ("13 items"); 0 degrees: never grouped. A
+     * hover opens a group of up to `fanMax` as a fan, pivoted wider than its own arc; a larger one is listed in its card.
+     */
+    readonly cluster: { readonly over: number; readonly degrees: number; readonly fanMax: number };
     readonly window: 'followed' | 'always';
   };
   /**
@@ -347,7 +350,7 @@ export const DefaultRenderConfig: RenderConfig = {
     center: 'title',
     labelGap: 8,
     leaderBend: 12,
-    cluster: { over: 6, degrees: 12 },
+    cluster: { over: 6, degrees: 12, fanMax: 12 },
     window: 'followed',
   },
   internedStrings: DefaultMaxStrings,
