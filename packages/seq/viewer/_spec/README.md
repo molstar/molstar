@@ -194,13 +194,13 @@ nothing and tells nothing. Beside `models/view.ts` (the moves and the publish): 
   back and forward. `snapshot()` gives every group's range and band now, as a jump keeps them, and `record(snapshot)`
   pushes one taken earlier as a step (unless the view is there now): a gesture's one step, pushed when it ends (a
   navigator's far drag, of its window or its rows); `jump` pushes through it.
-- **The last jump** (`lastJump`, a state told before `jumps` moves): `{ n, kind, location?, durationMs }`, `n` the count
-  `jumps` moves to, `kind` `focus` (a focus, and a jump that names no kind: a step zoom, a navigator's move), `reveal`,
-  `fit`, `back` or `forward`; `location` the Location a focus or a reveal named (`AddressModel`'s, an address resolved),
-  and on a step back or forward the one the jump that left the view at that step named, kept with the step while no hand
-  moved the view since (a step pushed after a hand's move names none); `durationMs` is `view.jumpMs`. Why: `jumps`
-  counts but says neither where nor how long; a link to a structure viewer, a story's camera and an analytics host read
-  the same record.
+- **The last jump** (`lastJump`, set before `jumps` moves, so a listener of `jumps` reads it):
+  `{ n, kind, location?, durationMs }`, `n` the count `jumps` moves to, `kind` `focus` (a focus, and a jump that names
+  no kind: a step zoom, a navigator's move), `reveal`, `fit`, `back` or `forward`; `location` the Location a focus or a
+  reveal named (`AddressModel`'s, an address resolved), and on a step back or forward the one the jump that left the
+  view at that step named, kept with the step while no hand moved the view since (a step pushed after a hand's move
+  names none); `durationMs` is `view.jumpMs`. Why: `jumps` counts but says neither where nor how long; a link to a
+  structure viewer, a story's camera and an analytics host read the same record.
 - **A source-backed system's length** is the model's once its source opened (SpecModel, its `lengths`): the resolved
   view's axes get their pieces then, so a section on a streamed sequence is placed and its kept intent applies.
 - **Placed** only with a width and a known axis length, else `pending`: a move then is kept as the intent and placed
@@ -1298,9 +1298,9 @@ over the same translation.
 - **Out**: on each hover (`hover.version`), the hover's Location through `toUnits` under the hover's limits, sent when
   its image changes (an unchanged image, an unobserved residue after one cut, sends nothing; nothing left is `null`);
   the selection's `shown`, one message a frame (a frame callback: a drag moves it every pointer event), under the
-  selection's limits; a jump naming a Location (`view.lastJump`: a focus, a reveal, and back and forward when the step
-  kept one and `followJumps`) as `focus` with the jump's duration (the camera and the sections on one clock). A fit
-  names none: nothing sent.
+  selection's limits; a jump naming a Location (`view.lastJump`, read as `jumps` moves: a focus, a reveal, and back and
+  forward when the step kept one and `followJumps`) as `focus` with the jump's duration (the camera and the sections on
+  one clock). A fit names none: nothing sent.
 - **In**: the side's hover as a hover of a Location (`HoverModel.setLocation`) owned by the link: drawn projected, no
   card; the pointer taking the hover takes it, and the side's `null` clears only the link's own (a stale `null` does
   nothing, EC-141); the side's selection through `fromUnits` (atoms kept where a section or block shows a unit's atoms
