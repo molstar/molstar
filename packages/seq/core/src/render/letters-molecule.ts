@@ -223,8 +223,12 @@ export function hideCoded(lay: Cells & MoleculeLay & { step: string }, config: R
   }
 }
 
-/** A modified cell's ink: its letter's, from the cell under the mark (the page's text where none is laid out). */
-function inkUnder(lay: Cells, x: number, tokens: SeqTokens): number {
+/**
+ * A modified cell's ink: its letter's, from the cell under mark `i`'s middle (the page's text where none is laid out).
+ * The mark by its index: a number passed to a call that is not inlined is boxed (a warm draw allocates nothing).
+ */
+function inkUnder(lay: Cells & MoleculeLay, i: number, tokens: SeqTokens): number {
+  const x = (lay.mods[i] + lay.mods[i + 1]) / 2;
   for (let j = 0; j < lay.n; j++) if (x >= lay.x0[j] && x < lay.x1[j]) return lay.ink[j];
   return tokens.colors['msui-text'];
 }
@@ -272,7 +276,7 @@ export function drawModified(
       g[1] = lay.glyphY;
       g[2] = 0;
       g[3] = w;
-      g[4] = inkUnder(lay, (x0 + x1) / 2, tokens);
+      g[4] = inkUnder(lay, i, tokens);
       out.textArgs(lay.modComponents[row] ?? '', AnchorMiddle, lay.font);
       continue;
     }
@@ -294,7 +298,7 @@ export function drawModified(
       g[1] = underline ? box.y + box.height - s - 1 : box.y + 1;
       g[2] = Math.max(w - 2, px);
       g[3] = Math.max(1, s * 0.67);
-      g[4] = inkUnder(lay, (x0 + x1) / 2, tokens);
+      g[4] = inkUnder(lay, i, tokens);
       g[7] = 0;
       g[8] = 0;
     } else {
@@ -304,7 +308,7 @@ export function drawModified(
       g[1] = box.y + 1;
       g[2] = d;
       g[3] = d;
-      g[4] = inkUnder(lay, (x0 + x1) / 2, tokens);
+      g[4] = inkUnder(lay, i, tokens);
       g[7] = d / 2;
       g[8] = 3;
     }

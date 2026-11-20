@@ -18,6 +18,7 @@ export {
   TableFiles,
   GlobinsViews,
   LayerViews,
+  MoleculeViews,
   P53Views,
   PlasmidViews,
   TrnaScaleView,

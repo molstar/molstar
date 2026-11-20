@@ -135,7 +135,7 @@ describe('a complex drawn against its data', () => {
     expect(pairsLay(f).n).toBe(3);
   });
 
-  it('in text, the molecules\' chips flow like words on one line, each labeled (EC-99)', async () => {
+  it("in text, the molecules' chips flow like words on one line, each labeled (EC-99)", async () => {
     const s = await settle(moleculesSpec({ layout: 'text' }));
     const f = await s.frame({ size: Size });
     const p = f.layout.sections[0].placement;

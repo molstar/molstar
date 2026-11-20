@@ -340,11 +340,15 @@ export function createSeqSpec(options: SeqSpecOptions = {}): SeqSpecBuilder {
     },
   } as unknown as DataBuilder;
 
-  /** The inline rows of the data node an address names (a ranges node's), for the layer's theme. */
+  /** The inline rows of the data node an address names (a ranges node's, a complex's links), for the layer's theme. */
   const rowsOf = (handle: unknown): Readonly<Record<string, unknown>> | undefined => {
     if (handle === undefined) return undefined;
     const a = addressOfHandle(handle);
-    const rows = data.children.find((r) => r.address === a)?.params?.rows;
+    // a data node's, or a complex's or a molecule's links (a `pairs` child)
+    const rows = (
+      data.children.find((r) => r.address === a) ??
+      data.children.flatMap((r) => r.children).find((r) => r.address === a && r.kind === 'pairs')
+    )?.params?.rows;
     return rows && typeof rows === 'object' ? (rows as Record<string, unknown>) : undefined;
   };
 

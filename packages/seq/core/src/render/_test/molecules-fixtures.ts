@@ -22,6 +22,8 @@ export interface MoleculesOptions {
   readonly layout?: 'tracks' | 'text';
   /** ATP's block form (by an explicit block list: the complex's units in order, ATP's form as given). */
   readonly atpForm?: 'whole' | 'residues' | 'atoms';
+  /** The links' arcs (a pairs track; true but in text). */
+  readonly links?: boolean;
 }
 
 /** The Fc chains' unit ids: `A`, `B`, … */
@@ -98,7 +100,8 @@ export function moleculesSpec(o: MoleculesOptions = {}): Node {
           for (const id of [...ids, 'g', 'l', 'n'])
             s.block(id, { of: units[id] as never, ...(id === 'l' ? { form: o.atpForm } : {}) });
         s.track('letters').layer('letters', { type: 'letters', ...(o.modified ? { modified: o.modified } : {}) });
-        if (o.layout !== 'text') s.track('links').layer('links', { type: 'pairs', data: '/data/c/links' as never });
+        if (o.layout !== 'text' && o.links !== false)
+          s.track('links').layer('links', { type: 'pairs', data: '/data/c/links' as never });
       },
     );
     v.section('trna', { of: trna }, (s) =>

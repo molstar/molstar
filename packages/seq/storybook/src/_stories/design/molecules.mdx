@@ -34,9 +34,17 @@ strip when zoomed out), or its code in place of the letter (as Mol\*'s sequence 
 the track's choice. None of these widens a cell: the default is compact. A row of markers by kind, as UniProt's feature
 viewers draw, is a ranges track over the sites.
 
-A molecule is a chip in every layout by default (its label, a fixed slot); its residues or atoms by patch. A section of
-a complex lays out polymers first, then molecules; water is left out unless asked. Where a molecule binds, and whether
-hovering it lights its linked sites, is the application's to turn on.
+A molecule is a chip in every layout by default (its label, a fixed slot, however many residues it has); its residues
+(labeled by their codes) or its atoms (by their element symbols) by patch, `block.form`, one undo step. A section of a
+complex lays out a block a unit: polymers first, then glycans, ligands and ions; water is left out unless asked; copies
+are one block, “×200” for a capsid's. A chip is hit, hovered and selected as its whole molecule. Links are arcs, each
+end on its own chain. Where a molecule binds, and whether hovering it lights its linked sites (`linksHover`), is the
+application's to turn on; the examples turn it on. Hovering a residue says its component and name
+(`PSU (pseudouridine)`), an atom its name, element and residue; the hover carries the molecule's identifiers for a
+host's card.
+
+See it in **Features › Molecules**: A section of a complex, Whole, residues, atoms, Modified residues, As text and Two
+hundred copies, each in the light and the dark theme.
 
 ## Reading
 

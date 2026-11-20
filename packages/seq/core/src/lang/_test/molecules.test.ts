@@ -331,3 +331,25 @@ describe('molecules, complexes, units and links', () => {
     }
   });
 });
+
+describe('a layer over a complex’s links', () => {
+  it('a pairs layer naming links gets their kinds listed, as over a pairs node of data (a complete key)', () => {
+    const b = createSeqSpec();
+    const s = b.data.sequence('s', { alphabet: 'protein', letters: 'MKTA' });
+    let links = '';
+    b.data.complex('c', {}, (c) => {
+      c.unit('A', { of: s });
+      links = c.links('links', {
+        rows: { a_unit: ['A'], a_start: [0], a_end: [1], b_unit: ['A'], b_start: [3], b_end: [4], type: ['disulfide'] },
+      });
+    });
+    b.views.view('v', (v) =>
+      v.section('c', { of: '/data/c' as never }, (x) =>
+        x.track('t').layer('l', { type: 'pairs', data: links as never }),
+      ),
+    );
+    const view = b.build().children!.find((n) => n.kind === 'views')!.children![0];
+    const layer = view.children![0].children![0].children![0];
+    expect(JSON.stringify(layer.params?.color)).toContain('disulfide');
+  });
+});
