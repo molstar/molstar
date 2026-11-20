@@ -55,6 +55,18 @@ describe('toUnits', () => {
     expect(ranges(r.target, unit(1))).toEqual([20, 30]);
   });
 
+  it('a map onto one unit: the others are reached only down from the molecule, never up out of that unit (EC-25)', () => {
+    const m = resolveSpec(p53Spec({ perUnit: true }));
+    const r = toUnits(m, rangesLocation('/data/x', [0, 5]));
+    expect(systems(r.target)).toEqual([unit(0)]);
+    expect(ranges(r.target, unit(0))).toEqual([10, 15]);
+    expect(m.path('/data/x', unit(1)).path).toBeUndefined();
+    // a hover on P04637 still reaches every copy, A by its molecule as the others
+    expect(systems(toUnits(m, rangesLocation(Up, [EntStart + 20, EntStart + 21])).target)).toEqual(
+      [0, 1, 2, 3].map(unit),
+    );
+  });
+
   it('a Location on the entity reaches every unit of it (EC-48)', () => {
     const r = toUnits(model, rangesLocation(Ent, [50, 51]));
     expect(systems(r.target)).toEqual([0, 1, 2, 3].map(unit));

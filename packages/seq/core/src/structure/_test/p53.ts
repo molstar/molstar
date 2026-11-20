@@ -35,6 +35,8 @@ export interface P53Options {
   readonly reversed?: boolean;
   /** A numbering `auth` on the entity too (one past the units' labels), which the units' own beat (EC-8). */
   readonly entityAuth?: boolean;
+  /** A sequence `/data/x` with a map onto unit A alone (its own map: EC-25's longer legal path). */
+  readonly perUnit?: boolean;
   /** The units' author numbering (true by default; a scale case leaves it out). */
   readonly auth?: boolean;
   /**
@@ -93,6 +95,10 @@ export function p53Spec(o: P53Options = {}): Node {
     segments: { from: [EntStart], to: [0], length: [EntLength], provenance: ['sifts'] },
     ...(o.sifts !== undefined ? { priority: o.sifts } : {}),
   });
+  if (o.perUnit) {
+    const x = b.data.sequence('x', { alphabet: 'protein', letters: letters(50, 5) });
+    b.data.map('xa', { from: x, to: `${Complex}/A` as never, method: 'offset', by: 10 });
+  }
   if (o.aln !== undefined)
     b.data.map('aln', {
       from: up,
