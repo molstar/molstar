@@ -297,7 +297,7 @@ disagrees with its code writes a drift note and stops.
       port): `structureFacts`, `unitRows`, `toUnits` and `fromUnits` (the size gate, `seq.structure.*` issues),
       `colorRuns`; core's `SeqPorts.structure` stub removed; the round-trip test against DP's `structureNodes`
       (`briefs/st1-structure-core.md`).
-- [ ] HP2 (strong, after ST1) the viewer: the `headerActions` registry kind, built-in entries, the `headers` behavior
+- [x] HP2 (strong, after ST1) the viewer: the `headerActions` registry kind, built-in entries, the `headers` behavior
       (reveal, clicks, the menu and its port, long press, the secondary click param), `headerPartsDom()` over
       `viewer.headers`, the cursor on headers, words (`briefs/hp2-header-behavior.md`).
 - [ ] ST2 (strong, after HP2; smaller: no behavior, no port, nothing in the composition) the viewer's four additions

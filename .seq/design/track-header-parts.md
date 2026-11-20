@@ -193,7 +193,10 @@ It does not cover:
   - a figure at rest shows names and states, not buttons;
   - drawing them is an emphasis pass over the label column, with no layout.
 
-  States are always drawn: they are facts about the picture (ux-foundations section 9).
+  States are always drawn: they are facts about the picture (ux-foundations section 9). Without the `headers` behavior a listed
+  state entry's click runs its command over its layers; the minimal composition lists `seq:filtered` (its clear needs
+  `layer.filter`, the legends behavior's, where a filter is set); other states are facts (the author, 2026-11-20:
+  "Chip clears in minimal").
 - **Slot assignment**: the action entries that apply, by `order` then name, take the slots. The rest, and every entry,
   slotted or not, are in the menu. "⋯" is drawn when the track has any entry. Why every entry in the menu: one place
   lists all, and a slot is a shortcut, never the only way.
