@@ -34,13 +34,14 @@ The third slice is closed (2026-11-20; its record in `.seq/records/third-slice/`
 
 ## In progress
 
-- 2026-11-20: QE merged (d0e354c4c). ST1 (strong; `seq/st1-lane`), HP1 (strong; `seq/hp1-lane`) and AC (strong;
-  `seq/ac-lane`, from d0e354c4c) build in their worktrees.
+- 2026-11-20: QE and ST1 merged. AC (strong; `seq/ac-lane`) after its fix round, to merge; HP1 (strong;
+  `seq/hp1-lane`) in review.
 
 ## Next
 
 1. QE's heavy bound (`:index`, `itWithin` 400 ms) runs at stage 1's gate (the lane could not run the heavy lane).
-2. ST1 and HP1: check, look (HP1's stories), review, fix round, merge, record.
+2. HP1: the review's fix round, merge (the author on `Emphasis.header` and the "⋯" order if the review raises them).
+   The drift notes (`drift/`) asked at stage 1's gate.
 3. HP2 after ST1 and HP1; MR, CU, MX on the molecules track; FX3 after stage 1's gate.
 
 ## Findings by lane
@@ -62,6 +63,7 @@ One row a merged lane (loop, step 5, record): review findings and look findings 
 | MK | 2026-11-20 | 2 (review: provenance on the wrong run; overlaps on `to` unchecked) | 2 (the ranking rule and an unused via, decided) | 0 | a weak property test; model.ts 1483 → 1370 |
 | SZ (2) | 2026-11-20 | 0 | 0 | 0 | review: no behavior change; a test anchored on shims, viewer-motion's viewports, two nits (to the next fix lane) |
 | QE | 2026-11-20 | 3 (review: an empty column printed as everything; a pending property dropped in node filters, EC-169; column lengths unbounded before zipping) | 0 | 0 | `:index` scanned rows × residues (4.2 s → indexed); monadic laws untested; internals exported; PYL; the default viewer 2.7 kB past its bound, moved to 1,290 kB (the author) |
+| ST1 | 2026-11-20 | 6 (review: the entry unresolvable by name; colorRuns not compiled as the track; past the tile bound read complete-empty, EC-169; an overlay unit's maps ignored; the gate lighting unobserved-only units; toUnits quadratic) | 1 (resolve cannot hold a map onto a source's unit: drift) | 0 | test gaps (units past 0, EC-4, atoms); re-exports internal; Seq*'s own surface accepted by the orchestrator; nothing drawn |
 
 ## How to verify
 

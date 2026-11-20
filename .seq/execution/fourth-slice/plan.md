@@ -293,7 +293,7 @@ disagrees with its code writes a drift note and stops.
 
 - [ ] HP1 (strong) core's header line, slots, hits and chips; `TrackLayout.header` replaces `TrackLayout.filter`
       (track-header-parts, Consequences; `briefs/hp1-header-line.md`).
-- [ ] ST1 (strong, after HP1; MK done) the translation library, `@molstar/seqx-core/structure` (a new entry, not a
+- [x] ST1 (strong, after HP1; MK done) the translation library, `@molstar/seqx-core/structure` (a new entry, not a
       port): `structureFacts`, `unitRows`, `toUnits` and `fromUnits` (the size gate, `seq.structure.*` issues),
       `colorRuns`; core's `SeqPorts.structure` stub removed; the round-trip test against DP's `structureNodes`
       (`briefs/st1-structure-core.md`).
