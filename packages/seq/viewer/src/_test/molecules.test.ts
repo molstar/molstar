@@ -142,6 +142,18 @@ describe('molecules in the viewer', async () => {
     v.hover.clear(owner);
   });
 
+  it('a click on a chip selects its every residue', async () => {
+    v.draw();
+    const p = v.frame!.layout.sections[0].placement;
+    const i = p.strips.axes.findIndex((a) => a.system === '/data/c/g');
+    const a = p.strips.axes[i];
+    const hit = v.hit(a.x0 + a.width / 2, p.strips.bandY[i * p.strips.bands] + 2);
+    expect(hit?.system).toBe('/data/c/g');
+    await v.execute('selection.set', { hit });
+    const parts = v.selection.value.value.shown.parts.filter((q) => q.system === '/data/c/g');
+    expect(parts.map((q) => Array.from(q.ranges))).toEqual([[0, 3]]);
+  });
+
   it('block.form: a derived block written out with its form, one undo step; the view otherwise the same', async () => {
     const w = await make(false);
     const before = w.view.resolved.value!.sections[0].blocks!.map((b) => [b.label, b.form]);
