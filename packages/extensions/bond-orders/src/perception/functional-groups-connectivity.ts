@@ -279,10 +279,7 @@ function connectivityOk(c: NeighborConnectivity, isTerminal: boolean) {
 }
 
 export function applyFunctionalGroups(state: State) {
-  const { unitIndices, n, geometry, open } = state;
-  // open valences, kept up to date as patterns write: a neighbour takes a multiple bond only within its own (the
-  // shared N of two guanidines, an O with an explicit H)
-  computeOpenValence(state);
+  const { unitIndices, n, geometry } = state;
   for (let i = 0; i < n; i++) {
     // If the center already has a multiple bond (e.g. a backbone C=O or phosphate
     // P=O from the order table), its pi system is already placed - don't add another.
@@ -338,10 +335,7 @@ export function applyFunctionalGroups(state: State) {
             order,
           );
         if (order < 2) continue;
-        const added = order - getOrder(state.bonds, u, v);
         setBond(state.bonds, u, v, order, 0);
-        open[i] = Math.max(0, open[i] - added);
-        open[j] = Math.max(0, open[j] - added);
       }
       break;
     }
@@ -389,7 +383,7 @@ const tmpPos = Vec3();
  * - higher-order prefer in-ring bonds (Sayle 2001)
  * A neighbour outside the residue is never terminal (an atom of another residue has another heavy neighbour) and
  * fills order-1 slots only: no multiple bond is written across the residue's boundary (_spec §1.11). A neighbour in it
- * fills a higher-order slot only within its open valence.
+ * fills a higher-order slot only without a multiple bond already (the shared N of two guanidines takes one double).
  */
 function assignSlots(state: State, i: number, nb: Candidate[], specs: NeighbourSpec[]): number[] | undefined {
   const m = nb.length;
@@ -416,8 +410,8 @@ function assignSlots(state: State, i: number, nb: Candidate[], specs: NeighbourS
         !matchEl(spec.el, elJ) ||
         !connectivityOk(spec.connectivity, isTerminalHSuppressed) ||
         (outside && spec.order > 1) ||
-        // the neighbour's open valence must allow the order increase
-        (!outside && spec.order > order && state.open[j] < spec.order - order)
+        // one multiple bond per neighbour, an earlier pattern's included
+        (!outside && spec.order > 1 && hasMultipleBond(state, j))
       ) {
         c = Infinity;
       } else {

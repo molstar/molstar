@@ -165,24 +165,6 @@ describe('bond-order perception: basic cases', () => {
     expect(orders.filter((o) => o === 2).length).toBe(1);
   });
 
-  it('a functional group puts no double on an O with an explicit H (its open valence)', async () => {
-    // propanoic acid (its ethyl makes CT connected: the carboxylic acid pattern matches), the H written on the O nearer
-    // to C: the C=O goes to the other O
-    const { rows } = await intraBondOrders(
-      [
-        'HETATM    1  C   LIG A   1       0.000   0.000   0.000  1.00  0.00           C  ',
-        'HETATM    2  CT  LIG A   1      -1.520   0.000   0.000  1.00  0.00           C  ',
-        'HETATM    3  O1  LIG A   1       0.625   1.083   0.000  1.00  0.00           O  ',
-        'HETATM    4  O2  LIG A   1       0.635  -1.100   0.000  1.00  0.00           O  ',
-        'HETATM    5  HO1 LIG A   1       1.580   1.250   0.000  1.00  0.00           H  ',
-        'HETATM    6  CM  LIG A   1      -2.030   1.430   0.000  1.00  0.00           C  ',
-        'END',
-      ].join('\n'),
-    );
-    const order = (a: string, b: string) => rows.find((r) => r.a === a && r.b === b)?.order;
-    expect([order('C', 'O1'), order('C', 'O2')]).toEqual([1, 2]);
-  });
-
   // WBE's 3-amino-5-(methylamino)-1,2,4-triazole (CCD model coordinates): C33 and C34 both match the guanidinium
   // pattern, and N7 ([nH]) is the neighbour they share. The only PDB component with this substructure.
   const WbeTriazole = [
@@ -204,7 +186,7 @@ describe('bond-order perception: basic cases', () => {
     expect([doublesOf(rows, 'C33'), doublesOf(rows, 'C34'), doublesOf(rows, 'N7')]).toEqual([['N9'], ['N8'], []]);
   });
 
-  it('two functional groups sharing a neighbour: one double on it at most (its open valence)', async () => {
+  it('two functional groups sharing a neighbour: one double on it at most', async () => {
     // WBE's triazole, N7 moved to 1.28 Å of both C33 and C34 (N9, N8: 1.31 Å): the nearest N of both guanidiniums
     const distorted = WbeTriazole.map((l) =>
       l.includes(' N7 ') ? 'HETATM    7  N7  WBE A   1       9.175 -13.410  17.921  1.00  0.00           N  ' : l,
