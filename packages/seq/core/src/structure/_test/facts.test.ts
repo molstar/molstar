@@ -73,6 +73,24 @@ describe('structureFacts', () => {
     expect(u.auth!.position('10')).toBe(-1);
   });
 
+  it('negative and zero author numbers, insertion codes, a label given twice naming its first position (EC-1 to EC-8)', () => {
+    const b = createSeqSpec();
+    const s = b.data.sequence('s', { alphabet: 'protein', letters: 'ACDEFGHIK' });
+    const labels = ['-3', '-2', '-1', '0', '1', '1A', '1B', '5', '5'];
+    b.data.complex('c', {}, (c) => c.unit('A', { of: s }, (u) => u.numbering('auth', { method: 'labels', labels })));
+    const u = structureFacts(resolveSpec(b.build()), '/data/c')!.units[0];
+    const r = u.residues!;
+    expect(Array.from(r.authSeqId)).toEqual([-3, -2, -1, 0, 1, 1, 1, 5, 5]);
+    expect(r.insCode).toEqual(['', '', '', '', '', 'A', 'B', '', '']);
+    expect(Array.from(r.labeled)).toEqual([1, 1, 1, 1, 1, 1, 1, 1, 1]);
+    // a repeated label names its first position (EC-4); every label maps back to a position labeled with it
+    expect([u.auth!.position('5'), u.auth!.position('-3'), u.auth!.position('0'), u.auth!.position('1b')]).toEqual([
+      7, 0, 3, 6,
+    ]);
+    for (let p = 0; p < labels.length; p++) expect(labels[u.auth!.position(u.auth!.label(p)!)]).toBe(labels[p]);
+    expect([u.auth!.position('-4'), u.auth!.position('1C'), u.auth!.label(9)]).toEqual([-1, -1, undefined]);
+  });
+
   it('residue rows: the author number and insertion code split, observed flags (EC-118)', () => {
     const r = a.residues!;
     expect([r.length, r.authSeqId[10], r.insCode[10], r.labeled[10], r.observed[10]]).toEqual([

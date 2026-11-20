@@ -92,7 +92,7 @@ export function unitFacts(r: StructureReads, u: UnitEntry): UnitFacts {
   if (f) return f;
   const length = u.end === undefined ? undefined : u.end - u.start;
   const auth = authOf(r, u.address, length);
-  const observed = observedOf(u, length);
+  const observed = observedOf(u);
   f = {
     address: u.address,
     id: u.id,
@@ -132,11 +132,21 @@ function authOf(r: StructureReads, unit: string, length: number | undefined): Au
   };
 }
 
-/** @internal A unit's observed runs, sorted, merged and within it (every position when it names none). */
-export function observedOf(u: UnitEntry, length: number | undefined): Int32Array {
-  if (length === undefined) return new Int32Array(0);
-  if (!u.observed) return Int32Array.of(0, length);
-  return HalfOpenRanges.intersect(HalfOpenRanges.normalize(u.observed), Int32Array.of(0, length));
+const Observed = new WeakMap<UnitEntry, Int32Array>();
+
+/**
+ * @internal A unit's observed runs, sorted, merged and within it (every position when it names none): made once a
+ * unit (a hover a frame reads it for every unit it reaches; the rest of the facts are made when asked).
+ */
+export function observedOf(u: UnitEntry): Int32Array {
+  let o = Observed.get(u);
+  if (o) return o;
+  const length = u.end === undefined ? undefined : u.end - u.start;
+  if (length === undefined) o = new Int32Array(0);
+  else if (!u.observed) o = Int32Array.of(0, length);
+  else o = HalfOpenRanges.intersect(HalfOpenRanges.normalize(u.observed), Int32Array.of(0, length));
+  Observed.set(u, o);
+  return o;
 }
 
 const LabelPattern = /^(-?\d+)(.*)$/;

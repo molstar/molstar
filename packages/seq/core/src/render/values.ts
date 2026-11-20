@@ -9,6 +9,7 @@ import type { StaticModel } from '@molstar/seqx-core/resolve';
 import type { ResolvedLayer } from '@molstar/seqx-core/view';
 import type { AxisTransform } from './axis.js';
 import { type DensityStep, densityStep, perPosition, type RenderConfig } from './config.js';
+import { ValueColorFallback, ValueEnv } from './layer-color.js';
 import { drawPass, grown, NoColor, type PassName, type PassWriter, passDraws } from './draw-lists.js';
 import {
   dataRegions,
@@ -51,9 +52,6 @@ import { channelForms, channelLegends, Extents, type LayerChannels, PlainDatum }
 
 /** How a values layer draws: bars (default), a line, or a line over the area under it. */
 export type ValuesEncoding = 'bars' | 'line' | 'area';
-
-/** The color channel's environment: its one field is the value (made once). */
-const ValueEnv = { numeric: (n: string) => n === 'value' };
 
 /** The line's thickness, CSS px, and the area's opacity (the channels' defaults). */
 const LineWidth = 1.5;
@@ -184,7 +182,7 @@ export const ValuesType: LayerType<ValuesPrep, ValuesLay> = {
     lay.n = 0;
     lay.pending.length = 0;
     lay.failed.length = 0;
-    const color = prep.channels.get('color', 'token:value', ctx, ValueEnv);
+    const color = prep.channels.get('color', ValueColorFallback, ctx, ValueEnv);
     lay.color = color;
     lay.perBar = color.constant === undefined;
     lay.fill = typeof color.constant === 'number' ? color.constant : tokens.colors['seq-value'];

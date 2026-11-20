@@ -9,7 +9,7 @@
 // unobserved ends, a zinc per chain, and optionally an `alignment`-like map of the same pair. Synthetic letters.
 
 import type { Node } from '@molstar/core/repr/tree';
-import { createSeqSpec } from '@molstar/seqx-core/lang';
+import { createSeqSpec, theme } from '@molstar/seqx-core/lang';
 
 export const Up = '/data/p53';
 export const Ent = '/data/ent';
@@ -37,13 +37,16 @@ export interface P53Options {
   readonly entityAuth?: boolean;
   /** A sequence `/data/x` with a map onto unit A alone (its own map: EC-25's longer legal path). */
   readonly perUnit?: boolean;
+  /** A zinc unit per chain (true by default). */
+  readonly zinc?: boolean;
   /** The units' author numbering (true by default; a scale case leaves it out). */
   readonly auth?: boolean;
   /**
-   * A view of P04637: its letters, its domains (a ranges node, colored by `category` when `field`) and a values track
-   * (`values[i]` at `i`, NaN at 100), each a layer `colorRuns` reads.
+   * A view of P04637: its letters (track 0), two colourless ranges layers (`sites`, `more`: 1, 2), the domains by
+   * `category` (3, as a ranges layer with a `category` field is by default), and two values layers on one open scale (`scores`, `values[i]` at `i` and NaN at 100: 4; `higher`:
+   * 5), each a layer `colorRuns` reads.
    */
-  readonly view?: { readonly field?: boolean };
+  readonly view?: boolean;
 }
 
 /** The view's values: `i / UpLength`, none at 100. */
@@ -86,7 +89,8 @@ export function p53Spec(o: P53Options = {}): Node {
         },
       );
     }
-    for (const k of order) c.unit(`Z${chainId(k)}`, { of: zn, chain: `Z${chainId(k)}`, auth_chain: chainId(k) });
+    if (o.zinc !== false)
+      for (const k of order) c.unit(`Z${chainId(k)}`, { of: zn, chain: `Z${chainId(k)}`, auth_chain: chainId(k) });
   });
   b.data.map('sifts', {
     from: up,
@@ -108,28 +112,50 @@ export function p53Spec(o: P53Options = {}): Node {
       priority: o.aln,
     });
   if (o.view) {
+    const sites = b.data.ranges('sites', { target: up, rows: { start: [10, 200], end: [20, 210], id: ['s1', 's2'] } });
+    const more = b.data.ranges('more', { target: up, rows: { start: [150], end: [160], id: ['m1'] } });
     const domains = b.data.ranges('domains', {
       target: up,
       rows: {
-        start: [0, 63, 99, 320],
-        end: [61, 94, 120, 360],
-        id: ['TAD', 'PRR', 'DBD', 'TET'],
-        category: ['activation', 'linker', 'binding', 'binding'],
+        start: [0, 63, 99, 125, 320],
+        end: [61, 94, 120, 140, 360],
+        id: ['TAD', 'PRR', 'DBD', 'L1', 'TET'],
+        category: ['activation', 'linker', 'binding', 'linker', 'binding'],
       },
     });
     const values = b.data.values('scores', {
       target: up,
       values: Array.from({ length: UpLength }, (_, i) => ValueAt(i)),
     });
+    // a second values node on the same scale: the open domain held is the union of both, not one layer's extent
+    const higher = b.data.values('higher', {
+      target: up,
+      values: Array.from({ length: UpLength }, (_, i) => 2 + i / UpLength),
+    });
+    const sc = b.views.scale('sc', { label: 'Scores' });
     b.views.view('main', (v) => {
       const s = v.section('p53', { of: up });
       s.track('letters').layer('letters', { type: 'letters' });
-      s.track('domains').layer('domains', {
+      // two colourless ranges layers: the second takes the second categorical color
+      s.track('sites').layer('sites', { type: 'ranges', data: sites });
+      s.track('more').layer('more', { type: 'ranges', data: more });
+      s.track('categories').layer('categories', {
         type: 'ranges',
         data: domains,
-        ...(o.view?.field ? { color: { kind: 'field', params: { name: 'category' } } } : { color: '#ff0000' }),
+        color: theme.field('category'),
       });
-      s.track('scores').layer('scores', { type: 'values', data: values });
+      s.track('scores').layer('scores', {
+        type: 'values',
+        data: values,
+        scale: sc,
+        color: theme.field('value', { scale: sc }),
+      });
+      s.track('higher').layer('higher', {
+        type: 'values',
+        data: higher,
+        scale: sc,
+        color: theme.field('value', { scale: sc }),
+      });
     });
   }
   return b.build();

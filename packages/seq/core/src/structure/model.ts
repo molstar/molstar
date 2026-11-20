@@ -46,6 +46,10 @@ export interface StructureReads {
   path(from: string, to: string, via?: readonly string[]): PathResult;
   /** The units of a complex that instantiate a molecule (EC-48), in the complex's order. */
   unitsOf(complex: ComplexEntry, molecule: string): readonly UnitEntry[];
+  /** The molecules a complex's units instantiate, each once. */
+  moleculesOf(complex: ComplexEntry): Iterable<string>;
+  /** The units of a complex with a map of their own (a step that is no unit step: the spec's or the overlay's). */
+  ownMapped(complex: ComplexEntry): ReadonlySet<string>;
 }
 
 const Kept = new WeakMap<StaticModel, WeakMap<Overlay | StaticModel, StructureReads>>();
@@ -68,6 +72,20 @@ function makeReads(model: StaticModel, overlay: Overlay | undefined): StructureR
   const query = overlay ? overlayQueryModel(model, overlay) : model;
   let all: ComplexEntry[] | undefined;
   const byMolecule = new WeakMap<ComplexEntry, Map<string, UnitEntry[]>>();
+  const mapped = new WeakMap<ComplexEntry, Set<string>>();
+  const indexOf = (complex: ComplexEntry) => {
+    let index = byMolecule.get(complex);
+    if (!index) {
+      byMolecule.set(complex, (index = new Map()));
+      for (const u of complex.units) {
+        let list = index.get(u.of);
+        if (!list) index.set(u.of, (list = []));
+        list.push(u);
+      }
+    }
+    return index;
+  };
+  const edgesFrom = (s: string) => overlay?.edgesFrom?.(s) ?? model.edgesFrom(s);
   return {
     model,
     unit: (a) => own.units.get(a) ?? dyn?.units.get(a),
@@ -84,17 +102,15 @@ function makeReads(model: StaticModel, overlay: Overlay | undefined): StructureR
     system: (a) => model.systems.get(a) ?? overlay?.system(a),
     querySystem: (a) => query.system(a),
     path: (from, to, via) => (overlay ? overlay.path(from, to, via) : model.path(from, to, via)),
-    unitsOf(complex, molecule) {
-      let index = byMolecule.get(complex);
-      if (!index) {
-        byMolecule.set(complex, (index = new Map()));
-        for (const u of complex.units) {
-          let list = index.get(u.of);
-          if (!list) index.set(u.of, (list = []));
-          list.push(u);
-        }
+    unitsOf: (complex, molecule) => indexOf(complex).get(molecule) ?? [],
+    moleculesOf: (complex) => indexOf(complex).keys(),
+    ownMapped(complex) {
+      let set = mapped.get(complex);
+      if (!set) {
+        mapped.set(complex, (set = new Set()));
+        for (const u of complex.units) if (edgesFrom(u.address).some((e) => !e.unit)) set.add(u.address);
       }
-      return index.get(molecule) ?? [];
+      return set;
     },
   };
 }

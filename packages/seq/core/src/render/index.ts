@@ -72,12 +72,14 @@ export {
   LayerChannels,
   PlainDatum,
   RowDatum,
+  type ChannelContext,
   type ThemeContext,
 } from './channels.js';
+export { type LayerColors, layerColors, type ThemeInput, viewTheme } from './layer-color.js';
 export { LegendBand, layoutLegends, legendsHeight, viewLegends } from './legends.js';
 export { OverlaySources } from './overlay-sources.js';
 export { LaneIndex, StickyLanes } from './lanes.js';
-export { type LayerSource, layerSource } from './layer-data.js';
+export { type LayerSource, layerSource, readTiles, type TileContext, type TileRead } from './layer-data.js';
 export {
   type Box,
   type Emphasis,

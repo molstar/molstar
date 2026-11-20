@@ -12,7 +12,14 @@
 import { HalfOpenRanges } from '@molstar/core/data/int/half-open-ranges';
 import { type Issue, issueOf } from '@molstar/core/repr/tree';
 import { EmptyLocation, type Location, type LocationPart, location, type PartInput } from '@molstar/seqx-core/query';
-import { atomsSystemOf, collapseAtoms, expandAtoms, projectRanges, type UnitEntry } from '@molstar/seqx-core/resolve';
+import {
+  atomsSystemOf,
+  type ComplexEntry,
+  collapseAtoms,
+  expandAtoms,
+  projectRanges,
+  type UnitEntry,
+} from '@molstar/seqx-core/resolve';
 import { observedOf } from './facts.js';
 import { StructureSyncIssues } from './issues.js';
 import {
@@ -73,17 +80,10 @@ export function toUnits(
     said.add(k);
     issues.push(i);
   };
-  const atomsMode = options.ligand === 'atoms';
-  // a rect's sides are positions as any part's
-  const src: readonly LocationPart[] = loc.rects.length
-    ? [...loc.parts, ...loc.rects.flatMap((x) => [x.a, x.b])]
-    : loc.parts;
-  const parts: PartInput[] = [];
-  const cut: PartInput[] = [];
-  const touched: UnitEntry[] = [];
-  let runs = 0;
-  let positions = 0;
-  if (src.length)
+  const limits = options.limits === undefined ? DefaultSyncLimits.select : options.limits;
+  const sources = sourcesOf(r, loc);
+  const out: Out = { parts: [], cut: [], touched: [], runs: 0, positions: 0, over: false };
+  if (sources.length)
     for (const b of bindingsOf(r, complexes)) {
       const c = r.complex(b.complex);
       if (!c) {
@@ -95,141 +95,189 @@ export function toUnits(
         );
         continue;
       }
-      const carry = carrier(r, b.via, say);
+      const images = imagesOn(r, c, sources, b.via, say);
       for (const u of c.units) {
-        const im = imageOn(r, u, src, carry, atomsMode);
-        if (!im) continue;
-        touched.push(u);
-        const observed = observedOf(u, u.end! - u.start);
-        const kept = HalfOpenRanges.intersect(im.residues, observed);
-        const lost = HalfOpenRanges.subtract(im.residues, observed);
-        if (lost.length) cut.push({ system: u.address, ranges: lost });
-        if (im.atoms) {
-          const a = r.atoms(atomsSystemOf(u.address))!;
-          const ranges = HalfOpenRanges.subtract(im.atoms, HalfOpenRanges.normalize(expandAtoms(a, lost)));
-          if (ranges.length) parts.push({ system: a.address, ranges });
-          runs += ranges.length / 2;
-          positions += HalfOpenRanges.size(ranges);
-        } else if (kept.length) {
-          parts.push({ system: u.address, ranges: kept });
-          runs += kept.length / 2;
-          positions += HalfOpenRanges.size(kept);
-        }
+        const im = images.get(u.address);
+        if (im) place(r, u, im, options.ligand === 'atoms', limits, out);
       }
+      if (out.over && limits?.over === 'skip') break;
     }
-  const limits = options.limits === undefined ? DefaultSyncLimits.select : options.limits;
-  const cutLoc = cut.length ? location({ parts: cut }) : EmptyLocation;
-  if (limits && (runs > limits.maxRuns || positions > limits.maxLength)) {
+  const cut = out.cut.length ? location({ parts: out.cut }) : EmptyLocation;
+  if (limits && out.over) {
     say(
       issueOf(
         StructureSyncIssues,
         'seq.structure.gated',
-        `${runs} runs over ${positions} positions are past the gate (${limits.maxRuns} runs, ${limits.maxLength} positions): ${limits.over === 'units' ? 'whole units sent' : 'nothing sent'}`,
+        `More than the gate's ${limits.maxRuns} runs or ${limits.maxLength} positions: ${limits.over === 'units' ? 'whole units sent' : 'nothing sent'}`,
         { hint: StructureSyncIssues.codes['seq.structure.gated'].hint },
       ),
     );
-    if (limits.over === 'skip') return { target: EmptyLocation, cut: cutLoc, gated: 'skip', issues };
-    const whole = touched.map((u) => ({ system: u.address, ranges: observedOf(u, u.end! - u.start) }));
-    return { target: location({ parts: whole }), cut: cutLoc, gated: 'units', issues };
+    if (limits.over === 'skip') return { target: EmptyLocation, cut, gated: 'skip', issues };
+    const whole = out.touched.map((u) => ({ system: u.address, ranges: observedOf(u) }));
+    return { target: location({ parts: whole }), cut, gated: 'units', issues };
   }
-  return { target: parts.length ? location({ parts }) : EmptyLocation, cut: cutLoc, issues };
+  return { target: out.parts.length ? location({ parts: out.parts }) : EmptyLocation, cut, issues };
 }
 
-/** A part's image on a unit's positions (unclipped), or undefined when no path reaches it. */
-type Carry = (part: number, from: string, ranges: ArrayLike<number>, u: UnitEntry) => ArrayLike<number> | undefined;
+/** A part of the Location, read once: its system, its ranges, and its unit or atoms when it is on one. */
+interface Source {
+  readonly system: string;
+  readonly ranges: ArrayLike<number>;
+  /** The unit it is on (its residues, or its atoms collapsed onto them). */
+  readonly unit?: UnitEntry;
+  /** Its atoms' ranges when it is on a unit's atoms. */
+  readonly atoms?: ArrayLike<number>;
+}
+
+/** The parts (a rect's sides as parts), each read once: an atoms part collapsed onto its residues system. */
+function sourcesOf(r: StructureReads, loc: Location): Source[] {
+  const all: LocationPart[] = loc.rects.length
+    ? [...loc.parts, ...loc.rects.flatMap((x) => [x.a, x.b])]
+    : [...loc.parts];
+  const out: Source[] = [];
+  for (const part of all) {
+    const a = r.atoms(part.system);
+    if (!a) {
+      const unit = r.unit(part.system);
+      out.push({ system: part.system, ranges: part.ranges, ...(unit ? { unit } : {}) });
+      continue;
+    }
+    const unit = r.unit(a.of);
+    out.push({ system: a.of, ranges: collapseAtoms(a, part.ranges), ...(unit ? { unit, atoms: part.ranges } : {}) });
+  }
+  return out;
+}
+
+/** One unit's image, unclipped: residues reached (paths and parts on it) and atoms parts on its own atoms. */
+interface Image {
+  residues: number[];
+  atoms?: number[];
+}
 
 /**
- * Parts carried onto units through their molecule: one search a part and molecule, then the unit's free step down
- * (its range's start subtracted), so an assembly of thousands of copies searches once, not once a copy (a search from
- * a sequence reads every unit's step). The copy rule (EC-25) is kept as the search keeps it: a part on a unit of the
- * molecule, or a path climbing out of one onto it, never steps down to another; a unit with maps of its own is
- * searched on its own (its map may be the shorter path). The round trip tests it against the model's projection.
+ * Each part's image on a complex's units, linear in the parts and the units reached (_spec/README.md "Structures", To
+ * units): a part on a unit lights it; carried through each molecule once (one search a part and molecule, then each
+ * unit's free step down, its start subtracted), so an assembly of thousands of copies searches once, not once a copy.
+ * The copy rule (EC-25) as the search keeps it: a part on a unit of the molecule, or a path climbing out of one onto
+ * it, never steps down to another; a unit with maps of its own (the spec's or the overlay's) is searched on its own.
+ * A unit no part reaches makes nothing.
  */
-function carrier(r: StructureReads, via: readonly string[] | undefined, say: (i: Issue) => void): Carry {
-  const onMolecule = new Map<string, ArrayLike<number> | null>();
-  const viaOf = (p: ReturnType<StructureReads['path']>) => {
+function imagesOn(
+  r: StructureReads,
+  c: ComplexEntry,
+  sources: readonly Source[],
+  via: readonly string[] | undefined,
+  say: (i: Issue) => void,
+): Map<string, Image> {
+  const images = new Map<string, Image>();
+  const imageOf = (u: UnitEntry) => {
+    let im = images.get(u.address);
+    if (!im) images.set(u.address, (im = { residues: [] }));
+    return im;
+  };
+  const searched = (from: string, to: string) => {
+    const p = r.path(from, to, via);
     if (p.issue && ForwardedPathCodes.has(p.issue.code)) say(p.issue);
     return p.path;
   };
-  return (k, from, ranges, u) => {
-    if (r.model.edgesFrom(u.address).some((e) => !e.unit)) {
-      const p = viaOf(r.path(from, u.address, via));
-      return p && projectRanges(p, ranges);
+  const own = r.ownMapped(c);
+  for (const s of sources) {
+    if (s.unit && s.unit.complex === c.address) {
+      const im = imageOf(s.unit);
+      // an atoms part is its atoms (its residues, collapsed, are `place`'s to light)
+      if (s.atoms) {
+        im.atoms ??= [];
+        push(im.atoms, s.atoms, 0);
+      } else push(im.residues, s.ranges, 0);
     }
-    if (r.unit(from)?.of === u.of) return undefined;
-    let image: ArrayLike<number> | null | undefined;
-    if (from === u.of) image = ranges;
-    else {
-      const key = `${k}\u0000${u.of}`;
-      image = onMolecule.get(key);
-      if (image === undefined) {
-        const p = viaOf(r.path(from, u.of, via));
-        image = p && !p.edges.some((e) => e.unit === 'up' && e.to === u.of) ? projectRanges(p, ranges) : null;
-        onMolecule.set(key, image);
+    for (const m of r.moleculesOf(c)) {
+      // a part on a unit of this molecule reaches no sibling
+      if (s.unit?.of === m) continue;
+      let image: ArrayLike<number> | undefined;
+      if (s.system === m) image = s.ranges;
+      else {
+        const p = searched(s.system, m);
+        if (p && !p.edges.some((e) => e.unit === 'up' && e.to === m)) image = projectRanges(p, s.ranges);
+      }
+      if (!image?.length) continue;
+      let lo = image[0];
+      let hi = image[1];
+      for (let i = 2; i + 1 < image.length; i += 2) {
+        if (image[i] < lo) lo = image[i];
+        if (image[i + 1] > hi) hi = image[i + 1];
+      }
+      for (const u of r.unitsOf(c, m)) {
+        if (own.has(u.address) || u.end === undefined || hi <= u.start || lo >= u.end) continue;
+        push(imageOf(u).residues, image, u.start);
       }
     }
-    if (!image) return undefined;
-    if (!u.start) return image;
-    const out = new Array<number>(image.length);
-    for (let i = 0; i < image.length; i++) out[i] = image[i] - u.start;
-    return out;
-  };
+    for (const a of own) {
+      const u = r.unit(a)!;
+      if (u === s.unit || s.unit?.of === u.of) continue;
+      const p = searched(s.system, a);
+      if (p) push(imageOf(u).residues, projectRanges(p, s.ranges), 0);
+    }
+  }
+  return images;
 }
 
-/** The image of the parts on one unit: its residues (normalized, within it) and, in atoms mode, its atoms. */
-function imageOn(
-  r: StructureReads,
-  u: UnitEntry,
-  src: readonly LocationPart[],
-  carry: Carry,
-  atomsMode: boolean,
-): { residues: Int32Array; atoms?: Int32Array } | undefined {
-  if (u.end === undefined) return undefined;
+interface Out {
+  readonly parts: PartInput[];
+  readonly cut: PartInput[];
+  /** The units lit (an observed position or atom reached), in order: what `over: units` sends whole. */
+  readonly touched: UnitEntry[];
+  runs: number;
+  positions: number;
+  /** Past the gate: nothing more is counted or kept, only which units are lit. */
+  over: boolean;
+}
+
+/** A unit's image clipped to it, unobserved positions cut, a molecule unit whole or on its atoms; counted for the gate. */
+function place(r: StructureReads, u: UnitEntry, im: Image, atomsMode: boolean, limits: SyncLimits | null, out: Out) {
+  if (u.end === undefined) return;
   const length = u.end - u.start;
-  const unitAtoms = atomsMode && u.class !== 'polymer' ? r.atoms(atomsSystemOf(u.address)) : undefined;
-  const residues: number[] = [];
-  const atoms: number[] = [];
-  for (let k = 0; k < src.length; k++) {
-    const part = src[k];
-    if (part.system === u.address) {
-      push(residues, part.ranges);
-      continue;
-    }
-    if (unitAtoms && part.system === unitAtoms.address) {
-      push(atoms, part.ranges);
-      continue;
-    }
-    const a = r.atoms(part.system);
-    const from = a ? a.of : part.system;
-    const ranges = a ? collapseAtoms(a, part.ranges) : part.ranges;
-    if (from === u.address) {
-      push(residues, ranges);
-      continue;
-    }
-    const image = carry(k, from, ranges, u);
-    if (image) push(residues, image);
+  const whole = Int32Array.of(0, length);
+  const atomsOf = im.atoms || (atomsMode && u.class !== 'polymer') ? r.atoms(atomsSystemOf(u.address)) : undefined;
+  const unitAtoms = atomsMode && u.class !== 'polymer' ? atomsOf : undefined;
+  const reached = HalfOpenRanges.intersect(HalfOpenRanges.normalize(im.residues), whole);
+  const ownAtoms = atomsOf && im.atoms ? HalfOpenRanges.normalize(im.atoms) : undefined;
+  let residues =
+    ownAtoms && atomsOf
+      ? HalfOpenRanges.union(reached, HalfOpenRanges.normalize(collapseAtoms(atomsOf, ownAtoms)))
+      : reached;
+  if (!residues.length) return;
+  if (u.class !== 'polymer' && !unitAtoms) residues = whole;
+  const observed = observedOf(u);
+  const kept = HalfOpenRanges.intersect(residues, observed);
+  const lost = HalfOpenRanges.subtract(residues, observed);
+  if (lost.length) out.cut.push({ system: u.address, ranges: lost });
+  if (!kept.length) return;
+  let system = u.address;
+  let ranges = kept;
+  if (unitAtoms) {
+    // residues reached by a path light their atoms; an atom part its own atoms only; unobserved residues' none
+    const n = Int32Array.of(0, unitAtoms.offsets[unitAtoms.offsets.length - 1]);
+    const fromPaths = HalfOpenRanges.intersect(HalfOpenRanges.normalize(expandAtoms(unitAtoms, reached)), n);
+    const atoms = ownAtoms ? HalfOpenRanges.union(HalfOpenRanges.intersect(ownAtoms, n), fromPaths) : fromPaths;
+    ranges = HalfOpenRanges.subtract(atoms, HalfOpenRanges.normalize(expandAtoms(unitAtoms, lost)));
+    system = unitAtoms.address;
+    if (!ranges.length) return;
   }
-  if (!residues.length && !atoms.length) return undefined;
-  let res = HalfOpenRanges.intersect(HalfOpenRanges.normalize(residues), Int32Array.of(0, length));
-  if (atoms.length && unitAtoms) {
-    // an atom part lights its residues as any part does (for the cut and the whole-unit rule)
-    res = HalfOpenRanges.union(res, HalfOpenRanges.normalize(collapseAtoms(unitAtoms, atoms)));
+  out.touched.push(u);
+  if (out.over) return;
+  out.runs += ranges.length / 2;
+  out.positions += HalfOpenRanges.size(ranges);
+  if (limits && (out.runs > limits.maxRuns || out.positions > limits.maxLength)) {
+    out.over = true;
+    out.parts.length = 0;
+    return;
   }
-  if (!res.length) return undefined;
-  if (u.class !== 'polymer' && !unitAtoms) return { residues: Int32Array.of(0, length) };
-  if (!unitAtoms) return { residues: res };
-  const n = unitAtoms.offsets[unitAtoms.offsets.length - 1];
-  const own = HalfOpenRanges.intersect(HalfOpenRanges.normalize(atoms), Int32Array.of(0, n));
-  // residues reached by a path light their atoms; an atom part lights its own atoms only
-  const fromPaths = HalfOpenRanges.intersect(HalfOpenRanges.normalize(residues), Int32Array.of(0, length));
-  return {
-    residues: res,
-    atoms: HalfOpenRanges.union(own, HalfOpenRanges.normalize(expandAtoms(unitAtoms, fromPaths))),
-  };
+  out.parts.push({ system, ranges });
 }
 
-function push(out: number[], ranges: ArrayLike<number>) {
-  for (let i = 0; i < ranges.length; i++) out.push(ranges[i]);
+/** `ranges` shifted down by `start` onto `out`. */
+function push(out: number[], ranges: ArrayLike<number>, start: number) {
+  for (let i = 0; i < ranges.length; i++) out.push(ranges[i] - start);
 }
 
 export interface FromUnitsOptions {

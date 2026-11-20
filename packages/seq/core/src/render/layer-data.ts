@@ -176,7 +176,12 @@ export interface TileRead {
   /** `[start, end, …]` on the data's system. */
   readonly pending: number[];
   readonly failed: number[];
+  /** Whether a region was past the store's bound on a want's tiles (its positions pending, none listed). */
+  tooMany?: boolean;
 }
+
+/** What reading tiles reads of a layout: its wants and the margin it asks beside them. */
+export type TileContext = Pick<LayoutContext, 'want'> & { readonly config: Pick<LayoutContext['config'], 'margin'> };
 
 /**
  * Wants the regions (the view at `view` priority, a margin each side) and reads the tiles of the view's. A tile not
@@ -184,7 +189,7 @@ export interface TileRead {
  * (not attached yet) is pending over the regions.
  */
 export function readTiles(
-  ctx: LayoutContext,
+  ctx: TileContext,
   data: StoreReader,
   src: LayerSource,
   regions: readonly number[],
@@ -214,6 +219,7 @@ export function readTiles(
     // drawn as empty, at the cost of no key a tile (past a source's end none is listed either: nothing there)
     if (!keys.length && data.tooMany?.(want)) {
       out.pending.push(start, end);
+      out.tooMany = true;
       continue;
     }
     for (const key of keys) {

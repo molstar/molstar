@@ -4,22 +4,16 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// A layer's colors as runs on units (_spec/README.md "Structures", Colors): its color channel compiled as drawing
-// compiles it (its slot's body, else the layer type's default, the built-in tokens light and dark, an open scale's
-// domain the data's extent), evaluated per position (letters, values) or per item (ranges), grouped by color and
-// carried onto the bound units. Unobserved positions cut, uncolored ones in no run, data not held pending (EC-169).
+// A layer's colors as runs on units (_spec/README.md "Structures", Colors): its color channel as its track compiles it
+// (`LayerColors`: the renderer's theme context, its held domains and the reader's substitution, the layer type's
+// default and a colourless layer's categorical place), with the light and the dark tokens, evaluated per position
+// (letters, values) or per item (ranges), grouped by color and carried onto the bound units. Unobserved positions
+// cut, uncolored ones in no run, data not held pending, never an empty run (EC-169).
 
 import { type Atom, type Issue, issueOf } from '@molstar/core/repr/tree';
 import { type Location, location, rangesLocation } from '@molstar/seqx-core/query';
-import { builtInTokens, DefaultThemeContext, layerSource, type SeqTokens } from '@molstar/seqx-core/render';
-import {
-  type Channel,
-  compileChannel,
-  lettersDefault,
-  type ThemeBody,
-  type ThemeDatum,
-  type ThemeEnv,
-} from '@molstar/seqx-core/theme';
+import { builtInTokens, type LayerColors, layerSource, type SeqTokens } from '@molstar/seqx-core/render';
+import type { Channel, ThemeDatum } from '@molstar/seqx-core/theme';
 import type { ResolvedLayer } from '@molstar/seqx-core/view';
 import { StructureSyncIssues } from './issues.js';
 import { type StructureBinding, type StructureModel, structureReads } from './model.js';
@@ -30,23 +24,36 @@ import { type StructureTarget, toUnits } from './units.js';
 export interface ColorRun {
   /** RGBA (`0xRRGGBBAA`) with the light tokens. */
   readonly color: number;
-  /** The same with the dark tokens (a dark variant of a scheme). */
+  /** The same with the dark tokens (a scheme's dark variant). */
   readonly dark: number;
   readonly target: StructureTarget;
 }
 
 export interface ColorRunsResult {
+  /** Nothing pending: every position of the layer's data was read. */
   readonly complete: boolean;
   /** Positions of the layer's data the store does not hold yet. */
   readonly pending: Location;
+  /** Whether the store refused the data's tiles as past its bound (their positions pending). */
+  readonly tooMany: boolean;
   /** By the first position each color has. */
   readonly runs: readonly ColorRun[];
   readonly issues: readonly Issue[];
 }
 
-const Light = builtInTokens('light');
-const Dark = builtInTokens('dark');
+export interface ColorRunsOptions extends HeldOptions {
+  /**
+   * The view's layer colors as its renderer compiles them (`Renderer.layerColors()`); a headless host without a
+   * renderer makes them with `layerColors(view, viewTheme(view, theme, domains))`.
+   */
+  readonly colors: LayerColors;
+  /** The tokens of each theme; absent, the built-in light and dark ones. */
+  readonly tokens?: { readonly light: SeqTokens; readonly dark: SeqTokens };
+}
 
+const BuiltIn = { light: builtInTokens('light'), dark: builtInTokens('dark') };
+
+/** A ranges item's datum: its fields as the layer's rows would give them. */
 class Datum implements ThemeDatum {
   value = Number.NaN;
   letter = '';
@@ -61,31 +68,39 @@ class Datum implements ThemeDatum {
   }
 }
 
+interface Group {
+  readonly color: number;
+  readonly dark: number;
+  readonly at: number;
+  readonly ranges: number[];
+  readonly parts: Location[];
+}
+
 /**
  * The colors of a letters, values or ranges layer (a resolved view's) on the units of the bound complexes. A snapshot:
- * a host rebuilds on the layer's changes when it wants live colors.
+ * a host rebuilds on the layer's changes, or the held domains', when it wants live colors.
  */
 export function colorRuns(
   model: StructureModel,
   store: StoreRead,
   layer: ResolvedLayer,
-  complexes?: readonly StructureBinding[],
-  options: HeldOptions = {},
+  complexes: readonly StructureBinding[] | undefined,
+  options: ColorRunsOptions,
 ): ColorRunsResult {
   const r = structureReads(model);
   const data = layer.data;
+  const tokens = options.tokens ?? BuiltIn;
   const type = [layer.type, ...layer.fallbacks].find((t) => t === 'letters' || t === 'values' || t === 'ranges');
   const none = (why: string): ColorRunsResult => ({
     complete: true,
     pending: rangesLocation(data?.system ?? '', []),
+    tooMany: false,
     runs: [],
     issues: [issueOf(StructureSyncIssues, 'seq.structure.layer', why, { address: layer.address ?? '' })],
   });
   if (!data || !type) return none(`The layer ${layer.address ?? ''} is no letters, values or ranges layer with data`);
-  const body = layer.theme.color as ThemeBody | undefined;
   const datum = new Datum();
-  // per color key: the light and dark colors and their ranges on the data's system, or their items' parts
-  const groups = new Map<string, { color: number; dark: number; at: number; ranges: number[]; parts: Location[] }>();
+  const groups = new Map<string, Group>();
   const put = (light: unknown, dark: unknown, at: number, s: number, e: number, loc?: Location) => {
     if (typeof light !== 'number' || typeof dark !== 'number') return;
     const k = `${light}:${dark}`;
@@ -95,30 +110,34 @@ export function colorRuns(
     else if (g.ranges.length && g.ranges[g.ranges.length - 1] === s) g.ranges[g.ranges.length - 1] = e;
     else g.ranges.push(s, e);
   };
-  let pending: number[] = [];
-  let system = data.system;
+  const channels = (extra: Parameters<LayerColors['channel']>[2]): [Channel, Channel] | undefined => {
+    const light = options.colors.channel(layer, tokens.light, extra);
+    const dark = options.colors.channel(layer, tokens.dark, extra);
+    return light && dark ? [light, dark] : undefined;
+  };
 
   if (type === 'ranges') {
     const read = annotationItems(r, model, store, data.address, options.want);
     if (!read) return none(`The layer ${layer.address ?? ''} reads no ranges or pairs annotation`);
-    const env = { numeric: (n: string) => read.numeric.has(n) };
-    const [light, dark] = channels(body, 'token:range', env, (d) => {
-      for (const it of read.items) {
-        setItem(datum, it);
-        d(datum);
-      }
-    });
+    const ch = channels({ numeric: (n: string) => read.numeric.has(n) });
+    if (!ch) return none(`The layer ${layer.address ?? ''} is in no track of the colors' view`);
     for (const it of read.items) {
-      setItem(datum, it);
-      put(light.at(datum), dark.at(datum), it.start, 0, 0, location({ parts: it.parts }));
+      datum.fields = it.fields;
+      datum.start = it.start;
+      datum.end = it.end;
+      put(ch[0].at(datum), ch[1].at(datum), it.start, 0, 0, location({ parts: it.parts }));
     }
-    return finish(model, groups, read.pending, complexes, options);
+    return finish(model, groups, read.pending, read.tooMany, !read.unknown, complexes, options);
   }
 
   const entry = r.system(data.system);
+  let system = data.system;
+  let length = entry?.length ?? 0;
   let letters: ((p: number) => string) | undefined;
   let values: Float32Array | undefined;
-  let length = entry?.length ?? 0;
+  let pending: number[] = [];
+  let tooMany = false;
+  let known = true;
   if (type === 'letters' && entry?.letters !== undefined) {
     const l = entry.letters;
     letters = (p) => l[p] ?? '';
@@ -127,8 +146,10 @@ export function colorRuns(
     if (!src) return none(`The layer ${layer.address ?? ''} reads no data the store holds`);
     system = src.dataSystem;
     length = src.length ?? 0;
-    const held = readHeld(store, src.source, src.system, src.length, options.want);
+    const held = readHeld(store, src, options.want);
     pending = held.pending;
+    tooMany = held.tooMany;
+    known = !held.unknown;
     if (type === 'letters') {
       const byStart = new Map<number, string>();
       for (const e of held.entries) {
@@ -148,15 +169,8 @@ export function colorRuns(
     }
   }
   const alphabet = r.system(system)?.alphabet ?? entry?.alphabet ?? 'protein';
-  const [light, dark] =
-    type === 'letters'
-      ? channels(body, { kind: 'scheme', params: { name: lettersDefault(alphabet) } }, { alphabet }, () => {})
-      : channels(body, 'token:value', { numeric: (n) => n === 'value' }, (d) => {
-          for (let p = 0; p < length; p++) {
-            datum.value = values![p];
-            d(datum);
-          }
-        });
+  const ch = channels(type === 'letters' ? { alphabet } : {});
+  if (!ch) return none(`The layer ${layer.address ?? ''} is in no track of the colors' view`);
   for (let p = 0; p < length; p++) {
     datum.start = p;
     datum.end = p + 1;
@@ -167,24 +181,10 @@ export function colorRuns(
       datum.value = values![p];
       if (Number.isNaN(datum.value)) continue;
     }
-    put(light.at(datum), dark.at(datum), p, p, p + 1);
+    put(ch[0].at(datum), ch[1].at(datum), p, p, p + 1);
   }
   for (const g of groups.values()) g.parts.push(rangesLocation(system, g.ranges));
-  return finish(
-    model,
-    groups,
-    pending.length ? rangesLocation(system, pending) : rangesLocation(system, []),
-    complexes,
-    options,
-  );
-}
-
-function setItem(d: Datum, it: { fields: Readonly<Record<string, Atom>>; start: number; end: number }) {
-  d.fields = it.fields;
-  d.start = it.start;
-  d.end = it.end;
-  const v = it.fields.value;
-  d.value = typeof v === 'number' ? v : Number.NaN;
+  return finish(model, groups, rangesLocation(system, pending), tooMany, known, complexes, options);
 }
 
 function codes(c: Uint8Array, alphabet: string | undefined): string {
@@ -193,45 +193,12 @@ function codes(c: Uint8Array, alphabet: string | undefined): string {
   return s;
 }
 
-/**
- * The color channel with the light and the dark tokens; an open scale's domain the extent `each` folds (a two-pass
- * compile: the first finds the open domains, the second reads them, as a view's settle holds them).
- */
-function channels(
-  body: ThemeBody | undefined,
-  fallback: ThemeBody,
-  extra: Partial<ThemeEnv>,
-  each: (fold: (d: ThemeDatum) => void) => void,
-): [Channel, Channel] {
-  const compile = (tokens: SeqTokens, domain?: (key: string) => readonly [number, number] | undefined) =>
-    compileChannel('color', body, fallback, {
-      tokens,
-      schemes: DefaultThemeContext.schemes,
-      cvdSafe: false,
-      ...(domain ? { domain } : {}),
-      ...extra,
-    });
-  const first = compile(Light);
-  if (!first.open.length) return [first, compile(Dark)];
-  const lo = new Map<string, number>();
-  const hi = new Map<string, number>();
-  each((d) => {
-    for (const o of first.open) {
-      const v = o.read(d);
-      if (Number.isNaN(v)) continue;
-      lo.set(o.key, Math.min(lo.get(o.key) ?? v, v));
-      hi.set(o.key, Math.max(hi.get(o.key) ?? v, v));
-    }
-  });
-  const domain = (key: string): readonly [number, number] | undefined =>
-    lo.has(key) ? [lo.get(key)!, hi.get(key)!] : undefined;
-  return [compile(Light, domain), compile(Dark, domain)];
-}
-
 function finish(
   model: StructureModel,
-  groups: Map<string, { color: number; dark: number; at: number; parts: Location[] }>,
+  groups: Map<string, Group>,
   pending: Location,
+  tooMany: boolean,
+  known: boolean,
   complexes: readonly StructureBinding[] | undefined,
   options: HeldOptions,
 ): ColorRunsResult {
@@ -247,8 +214,9 @@ function finish(
   }
   runs.sort((a, b) => a.at - b.at);
   return {
-    complete: !pending.parts.length,
+    complete: known && !pending.parts.length,
     pending,
+    tooMany,
     runs: runs.map(({ at: _, ...run }) => run),
     issues,
   };

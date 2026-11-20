@@ -10,7 +10,14 @@
 // EC-169). Ungated: a representation is written once, not a frame.
 
 import { CategoryColumn, type Atom, type Issue, issueOf } from '@molstar/core/repr/tree';
-import type { DataEntry, DataStore, Want } from '@molstar/seqx-core/data';
+import type { Want } from '@molstar/seqx-core/data';
+import {
+  type LayerSource,
+  readTiles,
+  type StoreReader,
+  type TileContext,
+  type TileRead,
+} from '@molstar/seqx-core/render';
 import {
   EmptyLocation,
   type Location,
@@ -24,8 +31,8 @@ import { StructureSyncIssues } from './issues.js';
 import { type StructureBinding, type StructureModel, type StructureReads, structureReads } from './model.js';
 import { type StructureTarget, toUnits } from './units.js';
 
-/** What the translation reads of the store: its coverage and the tiles it holds. */
-export type StoreRead = Pick<DataStore, 'coverage' | 'keysOf' | 'get'>;
+/** What the translation reads of the store: the layers' reader (its coverage, tiles, bound). */
+export type StoreRead = StoreReader;
 
 export interface HeldOptions {
   /** Asks for what is not held (whoever calls asks: the library holds no consumer). */
@@ -46,6 +53,8 @@ export interface UnitRowsResult {
   readonly complete: boolean;
   /** What the store does not hold yet, on the annotation's system. */
   readonly pending: Location;
+  /** Whether the store refused the whole system's tiles as past its bound (its positions in `pending`). */
+  readonly tooMany: boolean;
   /** The items reaching a bound unit, in their order. */
   readonly rows: readonly UnitRow[];
   readonly issues: readonly Issue[];
@@ -81,13 +90,20 @@ export function unitRows(
     for (const i of t.issues) if (!issues.some((j) => j.code === i.code)) issues.push(i);
     if (t.target.parts.length) rows.push({ key: it.key, target: t.target, fields: it.fields });
   }
-  return { complete: !read.pending.parts.length, pending: read.pending, rows, issues };
+  return {
+    complete: !read.pending.parts.length && !read.unknown,
+    pending: read.pending,
+    tooMany: read.tooMany,
+    rows,
+    issues,
+  };
 }
 
 function noRows(annotation: string): UnitRowsResult {
   return {
     complete: true,
     pending: EmptyLocation,
+    tooMany: false,
     rows: [],
     issues: [
       issueOf(StructureSyncIssues, 'seq.structure.rows', `${annotation} is no ranges or pairs annotation`, {
@@ -104,7 +120,7 @@ export function annotationItems(
   store: StoreRead,
   address: string,
   want?: (w: Want) => void,
-): { items: ReadItem[]; pending: Location; numeric: Set<string> } | undefined {
+): { items: ReadItem[]; pending: Location; numeric: Set<string>; tooMany: boolean; unknown: boolean } | undefined {
   const entry: AnnotationEntry | undefined =
     r.model.annotations.get(address) ?? ('overlay' in model ? model.overlay.annotation(address) : undefined);
   if (!entry || (entry.shape !== 'ranges' && entry.shape !== 'pairs')) return undefined;
@@ -121,10 +137,14 @@ export function annotationItems(
   };
   for (const it of answer?.items ?? []) add(it.key, it.system ?? entry.target, it.start, it.end, { ...it.fields });
   let pending = EmptyLocation;
+  let tooMany = false;
+  let unknown = false;
   const access = entry.access;
   if (answer?.pending && access?.kind === 'source' && access.shape === 'ranges') {
     const length = r.system(entry.target)?.length;
-    const held = readHeld(store, access.source, access.system, length, want);
+    const held = readHeld(store, { source: access.source, system: access.system, length }, want);
+    tooMany ||= held.tooMany;
+    unknown ||= held.unknown;
     const seen = new Set<string>();
     for (const e of held.entries) {
       const t = e.tables.ranges;
@@ -146,32 +166,40 @@ export function annotationItems(
     pending = held.pending.length ? rangesLocation(entry.target, held.pending) : EmptyLocation;
   } else if (answer?.pending) pending = answer.pending;
   const numericFields = new Set([...numeric].filter(([, n]) => n).map(([k]) => k));
-  return { items: [...byKey.values()], pending, numeric: numericFields };
+  return { items: [...byKey.values()], pending, numeric: numericFields, tooMany, unknown };
+}
+
+/** What a held read gives: the loaded tiles, the positions not held, and whether the store's bound refused a want. */
+export interface HeldRead {
+  readonly entries: TileRead['entries'];
+  /** `[start, end, …]` on the system: pending, failed, past the bound or not asked (EC-169). */
+  readonly pending: number[];
+  /** Past the store's bound on a want's tiles (`seq.store.too_many_tiles`): pending, never read as empty. */
+  readonly tooMany: boolean;
+  /** The source or the system's length unknown yet: nothing can be held. */
+  readonly unknown: boolean;
 }
 
 /**
- * @internal The tiles a source's system holds at its finest level over `[0, length)` (the whole system), and the
- * positions not held: pending, failed or not asked (EC-169). An unknown source or length is pending whole.
+ * @internal The tiles a source's system holds at its finest level over the whole system, through the layers' own
+ * reading (`readTiles`, _spec/README.md "Render", Data): a tile not held, failed or past the store's bound is pending
+ * (EC-169), never read as empty. `want` asks for the region (no margin: the whole system is asked).
  */
 export function readHeld(
-  store: StoreRead,
-  source: string,
-  system: string,
-  length: number | undefined,
+  store: StoreReader,
+  src: Pick<LayerSource, 'source' | 'system' | 'length'> & Partial<LayerSource>,
   want?: (w: Want) => void,
-): { entries: Extract<DataEntry, { status: 'loaded' }>[]; pending: number[] } {
-  const coverage = store.coverage(source);
-  if (!coverage || length === undefined) return { entries: [], pending: length === undefined ? [] : [0, length] };
-  const w: Want = { source, system, start: 0, end: length, level: coverage.levels[0] ?? 1 };
-  want?.(w);
-  const entries: Extract<DataEntry, { status: 'loaded' }>[] = [];
-  const pending: number[] = [];
-  for (const key of store.keysOf(w)) {
-    const e = store.get(key);
-    if (e?.status === 'loaded') entries.push(e);
-    else if (e?.status === 'empty') continue;
-    else if (e) pending.push(Math.max(0, e.region.start), Math.min(length, e.region.end));
-    else pending.push(0, length);
-  }
-  return { entries, pending };
+): HeldRead {
+  const length = src.length;
+  if (length === undefined) return { entries: [], pending: [], tooMany: false, unknown: true };
+  const level = store.coverage(src.source)?.levels[0] ?? 1;
+  const ctx: TileContext = { want: (w) => want?.(w), config: { margin: 0 } };
+  const full: LayerSource = { dataSystem: src.system, shape: 'ranges', ratio: 1, ...src };
+  const read = readTiles(ctx, store, full, [0, length], level);
+  return {
+    entries: read.entries,
+    pending: [...read.pending, ...read.failed],
+    tooMany: !!read.tooMany,
+    unknown: store.coverage(src.source) === undefined,
+  };
 }

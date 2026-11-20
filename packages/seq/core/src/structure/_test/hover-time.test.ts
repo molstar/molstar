@@ -5,15 +5,16 @@
  */
 
 // The structure translation's representatives (_spec/README.md "Structures", Performance): one 2OCJ hover carried
-// onto its four units a frame (quick, bounded in the heavy lane), and a hover on an assembly of `maxUnits` units
+// onto its four units a frame and a selection on every one of 32,768 copies (quick, bounded in the heavy lane: linear
+// in the parts and the units reached, one search a part and molecule), and a hover on an assembly of `maxUnits` units
 // gated to whole units (EC-167, heavy: the scale).
 
-import { rangesLocation } from '@molstar/seqx-core/query';
+import { positionCount, rangesLocation } from '@molstar/seqx-core/query';
 import { DefaultResolveConfig, resolveSpec } from '@molstar/seqx-core/resolve';
 import { itWithin } from '@molstar/test-harness/timing';
 import { describe, expect } from 'vitest';
 import { DefaultSyncLimits, toUnits } from '../units.js';
-import { EntStart, p53Spec, Up } from './p53.js';
+import { EntStart, Observed, p53Spec, Up } from './p53.js';
 
 const hover = (k: number) => rangesLocation(Up, [EntStart + 20 + (k % 150), EntStart + 21 + (k % 150)]);
 
@@ -33,6 +34,26 @@ describe('a hover a frame', () => {
   });
 });
 
+describe('a selection on every copy', () => {
+  const copies = 32_768;
+
+  itWithin(
+    'a selection on 32,768 copies: past the gate, whole units; ungated, a run on each (EC-167)',
+    (within) => {
+      // made in the body: a try again searches again
+      const model = resolveSpec(p53Spec({ copies, auth: false, zinc: false }));
+      const sel = rangesLocation(Up, [EntStart + 10, EntStart + 60]);
+      // measured: about 70 ms gated (the first: its searches) and 50 ms exact (an M-series laptop); the gate stops counting once over
+      const gated = within(400, () => toUnits(model, sel));
+      expect([gated.gated, gated.target.parts.length]).toEqual(['units', copies]);
+      const exact = within(400, () => toUnits(model, sel, undefined, { limits: null }));
+      expect(positionCount(exact.target)).toBe(copies * 50);
+      expect(positionCount(gated.target)).toBe(copies * (Observed[1] - Observed[0]));
+    },
+    30_000,
+  );
+});
+
 describe('an assembly of maxUnits units', { tags: ['heavy'] }, () => {
   // half the bound in copies of the domain, half in their zincs
   const copies = DefaultResolveConfig.maxUnits / 2;
@@ -42,7 +63,7 @@ describe('an assembly of maxUnits units', { tags: ['heavy'] }, () => {
     (within) => {
       // made in the body: a try again searches again, and no other lane builds it
       const model = resolveSpec(p53Spec({ copies, auth: false }));
-      // measured: about 100 ms each (an M-series laptop: one search a part, then each unit's step); the bounds leave room
+      // measured: about 60 ms each (an M-series laptop: one search a part and molecule, then each unit's step)
       const first = within(1_000, () => toUnits(model, hover(0), undefined, { limits: DefaultSyncLimits.hover }));
       expect([first.gated, first.target.parts.length]).toEqual(['units', copies]);
       // the paths kept: a hover a frame after the first

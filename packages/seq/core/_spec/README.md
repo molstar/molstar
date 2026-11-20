@@ -1308,17 +1308,20 @@ alone.
   collapsed onto its residues) carried onto each bound unit along the model's paths with the binding's `via`; a
   molecule's part reaches every unit of it (EC-48). Through the molecule: a part is carried onto a unit's molecule once
   and steps down to each unit (its start subtracted, clipped to it), so an assembly of `maxUnits` copies searches once a
-  part, not once a copy (a search from a sequence reads every unit's step). The copy rule as the search keeps it
-  (EC-25): a part on a unit of the molecule, or a path climbing out of one onto it, never steps down to another; a unit
-  with maps of its own is searched on its own (its map may be the shorter path). A path ambiguous or past its bound is
-  said once (`seq.resolve.path.*`); one that is none is not (most systems reach no structure). Then: unobserved
-  positions cut (`cut` says them; nothing to light, EC-118); a molecule unit whole (`ligand: whole`, the default) or,
-  with `ligand: atoms`, its atoms (an atoms part its own atoms, a residue its atoms); the size gate.
+  part, not once a copy (a search from a sequence reads every unit's step); linear in the parts and the units reached,
+  each part read once and a unit no part reaches making nothing. The copy rule as the search keeps it (EC-25): a part on
+  a unit of the molecule, or a path climbing out of one onto it, never steps down to another; a unit with maps of its
+  own (a step that is no unit step, the spec's or the overlay's: `Overlay.edgesFrom`) is searched on its own (its map
+  may be the shorter path). A path ambiguous or past its bound is said once (`seq.resolve.path.*`); one that is none is
+  not (most systems reach no structure). Then: unobserved positions cut (`cut` says them; nothing to light, EC-118); a
+  molecule unit whole (`ligand: whole`, the default) or, with `ligand: atoms`, its atoms (an atoms part its own atoms, a
+  residue its atoms); the size gate.
 - **The size gate** (EC-167): past `maxRuns` runs or `maxLength` positions after the cut, whole units (`over: units`:
-  each unit touched, its observed runs) or nothing (`skip`), said as `seq.structure.gated` and in `gated`. Monotone: a
-  bound raised never gates what a lower one passed, and a gated target holds the exact one. `limits: null` gates nothing
-  (rows and colors are written once). Why here: a 4,000-unit assembly's selection must not become 4,000 × n runs a
-  frame, whatever the host.
+  each unit lit, an observed position or atom reached, its observed runs: a unit reached only where nothing was modeled
+  is never sent) or nothing (`skip`); counting stops once over, said as `seq.structure.gated` and in `gated`. Monotone:
+  a bound raised never gates what a lower one passed, and a gated target holds the exact one. `limits: null` gates
+  nothing (rows and colors are written once). Why here: a 4,000-unit assembly's selection must not become 4,000 × n runs
+  a frame, whatever the host.
 - **From units** (`fromUnits(model, target, complexes?, { atoms? })`): a part on a bound unit kept (clipped to it); on a
   unit's atoms collapsed onto its residues unless `atoms` (a section shows the atoms form); on a molecule spread over
   every bound unit of it; the rest counted (`unplaced`, `seq.structure.unplaced` once). Round trips (property tests):
@@ -1326,28 +1329,33 @@ alone.
   `toUnits(fromUnits(t))` is `t`'s observed part.
 - **Rows** (`unitRows(model, store, annotation, complexes?, { want?, ligand? })`): a ranges or pairs annotation's items
   (a range's rows, a pair's two ends) as targets on units with their fields, items reaching no unit left out. Inline
-  rows at once; a source's from the tiles the store holds at its finest level over the whole system, the rest `pending`
-  (never read as empty, EC-169); `want` asks for them (the library holds no consumer). Another kind is
-  `seq.structure.rows`.
-- **Colors** (`colorRuns(model, store, layer, complexes?, { want?, ligand? })`): a letters, values or ranges layer's
-  color channel compiled as drawing compiles it (its slot's body, else the type's default: the alphabet's scheme,
-  `token:value`, `token:range`), with the built-in tokens light and dark (`color`, `dark`: a scheme's dark variant), an
-  open scale's domain the extent of the data read; evaluated per position (letters, values) or per item (ranges),
-  grouped by color, carried onto units ungated, runs in the order of each color's first position. Unobserved positions
-  cut, uncolored ones (a missing value, a letter not held) in no run, data not held `pending`. Another layer is
-  `seq.structure.layer`. A snapshot: a host rebuilds on the layer's changes for live colors. Why the view's compile: a
-  structure colored by a track agrees with the track.
-- **Performance**: a 2OCJ hover onto its four units is a few µs once the paths are kept (quick, bounded in the heavy
-  lane); a hover on a `maxUnits` assembly is one search a part and a unit step each (heavy).
+  rows at once; a source's from the tiles the store holds at its finest level over the whole system, read as the layers
+  read them (`readTiles`, Render, Data): a tile not held, failed or past the store's bound on a want's tiles `pending`
+  (`tooMany` says the bound), never read as empty (EC-169); `want` asks for them (the library holds no consumer).
+  Another kind is `seq.structure.rows`.
+- **Colors** (`colorRuns(model, store, layer, complexes, { colors, tokens?, want?, ligand? })`): a letters, values or
+  ranges layer's color channel as its track compiles it (`colors`: `Renderer.layerColors()`, Render, Layer colors: the
+  renderer's schemes, measures, scales, held domains and the reader's substitution, the type's default and a colourless
+  layer's categorical place), with the light and the dark tokens (the built-in ones unless given; `color`, `dark`: a
+  scheme's dark variant); evaluated per position (letters, values) or per item (ranges), grouped by color, carried onto
+  units ungated, runs in the order of each color's first position. Unobserved positions cut, uncolored ones (a missing
+  value, a letter not held) in no run, data not held `pending` as rows' are. Another layer is `seq.structure.layer`. A
+  snapshot: a host rebuilds on the layer's changes for live colors. Why the view's compile: a structure colored by a
+  track agrees with the track.
+- **Performance**: a 2OCJ hover onto its four units is a few µs once the paths are kept, and a selection on 32,768
+  copies tens of milliseconds (quick, bounded in the heavy lane); a hover on a `maxUnits` assembly is one search a part
+  and molecule and a unit step each (heavy). A unit's observed runs are made once a unit; its other facts when asked.
 
-| Item             | Default                                 | Why the default; the alternatives                                         |
-| ---------------- | --------------------------------------- | ------------------------------------------------------------------------- |
-| `complexes`      | every complex, no `via`                 | the spec names no host's binding; `{ complex, via? }[]`                   |
-| `limits` (hover) | 2,000 runs, 20,000 positions, `units`   | the precedent's bounds, a frame's worth; any; `skip`                      |
-| `limits`         | 20,000 runs, 200,000 positions, `units` | a selection, sent once (`DefaultSyncLimits.select`); `null` gates nothing |
-| `ligand`         | `whole`                                 | a ligand's position is its residue; `atoms`                               |
-| unobserved       | never sent (fixed)                      | nothing to light                                                          |
-| the vocabulary   | Locations on units (fixed)              | a structure viewer's types are the host's adapter's                       |
+| Item               | Default                                 | Why the default; the alternatives                                         |
+| ------------------ | --------------------------------------- | ------------------------------------------------------------------------- |
+| `complexes`        | every complex, no `via`                 | the spec names no host's binding; `{ complex, via? }[]`                   |
+| `limits` (hover)   | 2,000 runs, 20,000 positions, `units`   | the precedent's bounds, a frame's worth; any; `skip`                      |
+| `limits`           | 20,000 runs, 200,000 positions, `units` | a selection, sent once (`DefaultSyncLimits.select`); `null` gates nothing |
+| `ligand`           | `whole`                                 | a ligand's position is its residue; `atoms`                               |
+| a map's `priority` | 0 (Maps)                                | equal maps of one pair stay ambiguous until ranked; any integer           |
+| a binding's `via`  | none                                    | a per-use choice, read as a section's (Paths, Via); a map or a list       |
+| unobserved         | never sent (fixed)                      | nothing to light                                                          |
+| the vocabulary     | Locations on units (fixed)              | a structure viewer's types are the host's adapter's                       |
 
 ### Issues
 
@@ -1589,7 +1597,9 @@ of it (`buildOverlay(model, reader)`; `OverlayBuilder` keeps one a node version 
   ones). Made when something names it or a path is first asked for, never before.
 - **Paths**: between spec systems the static model's own; with a dynamic end, a search over `edgesFrom` and the
   overlay's item maps with the same bounds, kept per overlay. Why per overlay: an arrival may add a shorter path; one
-  search per version, never on hover.
+  search per version, never on hover. `Overlay.edgesFrom(system)` lists what such a search reads from a system (the
+  spec's maps, the overlay's units' steps and item maps): a reader telling a unit with a map of its own (the structure
+  translation) reads the overlay's too.
 - **Nested sources** (EC-179): `nested(needs)` lists the source nodes at a depth some template on their root needs,
   bound to the first runtime that reads their format (`OverlayOptions.runtimes`; none: `seq.resolve.source.runtime`);
   one deeper than `maxNestedDepth` is `seq.resolve.node.depth` and not listed. Why on need: a nested source is a
@@ -2142,6 +2152,18 @@ the y path in Emphasis).
 - **An item's key** is its `id`, else its `row` (a null `id` falls back to `row`), else its tile and index; never its
   extent. A key seen in an earlier tile is that range again and is not drawn twice; within one tile a repeated key is
   another piece of one item (a wrapped row).
+
+### Layer colors
+
+`render/layer-color.ts`: a layer's color channel as its track compiles it, one path for the layer types and any other
+reader (the structure translation's `colorRuns`). The letters, values and ranges types' defaults (the alphabet's scheme,
+`token:value`, a colourless ranges layer's categorical place by its key's first appearance in the view, else
+`token:range`) and the view's theme context (`viewTheme`: its scales, the held domains, the registry's schemes and
+measures, the reader's substitution) are defined there and read by `layoutView` and the types.
+`layerColors(view, theme)` compiles a layer's channel through its kept channels with any tokens;
+`Renderer.layerColors()` is it with the renderer's theme, held domains (another renderer's when it reads those) and its
+last frame's substitution. Why one path: a structure colored by a track agrees with the track, an open scale's domain
+the one the view holds, not the data's extent.
 
 ### Numberings from a source
 
