@@ -7,6 +7,20 @@ queue. Each line: what is seen, where (the story), where it came from, its kind 
 
 ## Open
 
+- **Hover cards too loose** (look): every view's card (Globins family: "Row, columns, index"; a ring's features). The
+  author, 2026-11-20: "the hover cards should be more compact in general". Tighter row spacing and padding, the key and
+  value columns closer; the card's title once (the Globins card repeats the row's name as title and first row).
+- **A hover card with many items lists every one** (missing design): a ring of 200 kb, the card at a position lists
+  20+ features down the page. The author, 2026-11-20: "if there is too many items, should truncate? (app level
+  overridable ... we should have ports anyway)". Proposed: the default card shows the first n items (a `hover.card`
+  param, by count or by the card's height) and "+k more"; the full list stays in the hover record; a host replaces the
+  card through the existing `hoverCard` port. State it in viewer-models.md (or ux-foundations.md's hover) and its page
+  with the fix.
+- **The ring's card lists features that do not cover the hovered position** (bug, to confirm): the same card at
+  131,892 lists features whose ranges wrap the origin (199,690-200,000, 1-24), none containing 131,892. Check the
+  hit or the card's items for wrapping ranges (an `end < start` range read as its complement, or the whole ring).
+  Seen in the author's screenshot, 2026-11-20.
+
 - **The vertical map's resize handle scrolls the view instead of resizing** (bug): the Globins family view (the
   alignment's rows by species, its vertical map with the window and the thin slider beside the rows' labels). Dragging
   the window's vertical resize anchor (the bars on its top and bottom edges) scrolls the rows instead of changing the
