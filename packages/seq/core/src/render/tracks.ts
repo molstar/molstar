@@ -52,7 +52,7 @@ import { walkStripes } from './highlight-stripes.js';
 import { boundedLevel } from './layer-data.js';
 import { EmptyOverlay, sectionId } from './layer-type.js';
 import type { LettersLay } from './letters.js';
-import { breakHit } from './marks.js';
+import { breakHit, partOn, rectOver } from './marks.js';
 import type { ScaleParams } from '@molstar/seqx-core/theme/index';
 import { DefaultThemeContext, type ThemeContext } from './channels.js';
 import { elide, type TextMetrics } from './text.js';
@@ -71,13 +71,11 @@ import {
 import { PlacePoint, StripPlacement, type Strips, WarpKind } from './layout/strips.js';
 import { TranslateWarp } from './layout/warp.js';
 import { chipText } from './layout/blocks.js';
-import { TextLayout } from './layout/text.js';
 import { TracksLayout } from './layout/tracks.js';
-import { GridPlacement } from './layout/grid.js';
+import type { GridPlacement } from './layout/grid.js';
 import type { PlaceContext, Placement, SectionLayoutType } from './layout/types.js';
 import { drawRail, hitRail, placeRail, placeRowsRail, Rail, SlimRailPx } from './rail.js';
-import { RowsLay } from './rows.js';
-import { rectOver } from './grid.js';
+import type { RowsLay } from './rows.js';
 import { columnsRoom, fitRowColumns, RowHeight, type RowColumn, rowColumnsOf } from './rows-model.js';
 import type { ImageCache } from './images.js';
 import { wellClipArgs, wellCorners } from './wells.js';
@@ -1027,7 +1025,8 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
   const config = widened(base, header.tree + first + (fit?.left ?? 0));
   const right = gutter + (fit?.right ?? 0);
   const grants = fit?.grants;
-  // a text section's lines leave the right columns their room
+  // a text section's lines leave the right columns their room (the text layout known by its registered name, as the
+  // rows and grid ones below: never by the built-in's identity, which would bundle it into every composition)
   const textWidth = input.size.width - (fit?.right ?? 0);
   const extents = new Map<string, [number, number]>();
   const theme: ThemeContext = {
@@ -1099,7 +1098,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       return [p.top, p.bottom];
     });
     return layout.followWindow(section, axis, viewport, {
-      width: layout === TextLayout ? textWidth : width,
+      width: layout.name === 'text' ? textWidth : width,
       config,
       text: input.text,
       heights,
@@ -1610,7 +1609,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     let sectionLays: LayerLayout[] = NoSectionLays;
     if (axis) {
       const ctx: PlaceContext = {
-        width: layout === TextLayout ? textWidth : width,
+        width: layout.name === 'text' ? textWidth : width,
         height,
         dpr,
         config,
@@ -1641,7 +1640,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       if (j) by += config.trackGap;
       const track = shown[j];
       // a grid's track is its plot (over blocks: its cells together), its well the plot's grown by its padding
-      const plot = placement instanceof GridPlacement && strips.n ? placement : undefined;
+      const plot = layout.name === 'grid' && strips.n ? (placement as GridPlacement) : undefined;
       const pt = plot ? plot.padTop : strips.n ? strips.padT[j] : pads[2 * j];
       const pb = plot ? plot.padBottom : strips.n ? strips.padB[j] : pads[2 * j + 1];
       const box: Box = {
@@ -1748,7 +1747,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       for (let j = 0; j < tracks.length; j++) {
         const t = tracks[j];
         if (input.rails[t.track.address] === undefined) continue;
-        const l = t.layers.find((x) => x.lay instanceof RowsLay);
+        const l = t.layers.find((x) => x.type.name === 'rows');
         const lay = l?.lay as RowsLay | undefined;
         if (!lay || lay.figure || lay.total === undefined) continue;
         const r = kept?.layout?.rowsRails?.[rowsRails?.length ?? 0] ?? new Rail();
@@ -2494,13 +2493,6 @@ function litBreak(out: PassWriter, axis: AxisTransform, box: Box, p: number) {
   g[7] = 0;
   g[8] = 0;
   out.rectArgs();
-}
-
-/** A Location's part on a system, found with an indexed loop (no iterator, no closure). */
-function partOn(loc: Location | undefined, system: string): LocationPart | undefined {
-  if (!loc) return undefined;
-  for (let i = 0; i < loc.parts.length; i++) if (loc.parts[i].system === system) return loc.parts[i];
-  return undefined;
 }
 
 /**

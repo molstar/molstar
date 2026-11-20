@@ -32,10 +32,11 @@ import { type DrawLists, NoColor, type PassName, type PassWriter } from './draw-
 import type { ImageCache } from './images.js';
 import { RenderIssues } from './issues.js';
 import { layerSource } from './layer-data.js';
+import { partOn } from './marks.js';
 import type { Emphasis, Overlay, StoreReader } from './layer-type.js';
 import type { WindowPart } from './layout/types.js';
 import { Renderer, type RendererOptions } from './renderer.js';
-import { RowsLay } from './rows.js';
+import type { RowsLay } from './rows.js';
 import type { TextMetrics } from './text.js';
 import type { SeqTokens } from './tokens.js';
 import { hitView, type LayoutState, type SectionLayout, type ViewLayout } from './tracks.js';
@@ -864,8 +865,10 @@ export class NavigatorRenderer {
     for (const t of s.tracks) {
       const viewTrack = `${this.navigator.of[0]}${t.track.address.slice(t.track.address.lastIndexOf('/'))}`;
       for (const l of t.layers) {
-        if (l.lay instanceof RowsLay) {
-          if (l.lay.total !== undefined && !l.lay.held && l.lay.total * l.lay.columns > settings.maxBlockValues) {
+        // the rows layer by its registered name, never its class (a composition with no rows bundles none)
+        const lay = l.type.name === 'rows' ? (l.lay as RowsLay) : undefined;
+        if (lay) {
+          if (lay.total !== undefined && !lay.held && lay.total * lay.columns > settings.maxBlockValues) {
             left.add(viewTrack);
             this.say('seq.render.navigator.rows', 'The alignment is not summarized: its rows are left out', l.key);
           }
@@ -1447,7 +1450,7 @@ function rowsLayOf(s: SectionLayout | undefined): RowsLay | undefined {
   const lays = s.lays;
   for (let i = 0; i < lays.length; i++) {
     const l = lays[i];
-    for (let j = 0; j < l.length; j++) if (l[j].lay instanceof RowsLay) return l[j].lay as RowsLay;
+    for (let j = 0; j < l.length; j++) if (l[j].type.name === 'rows') return l[j].lay as RowsLay;
   }
   return undefined;
 }
@@ -1457,12 +1460,6 @@ function foldsOf(view: ViewLayout | undefined, section: string | undefined) {
   const s = view && section ? sectionIn(view, section) : undefined;
   const lay = rowsLayOf(s);
   return lay?.foldsApply ? lay.folds : undefined;
-}
-
-function partOn(loc: Emphasis['selection'], system: string) {
-  if (!loc) return undefined;
-  for (let i = 0; i < loc.parts.length; i++) if (loc.parts[i].system === system) return loc.parts[i];
-  return undefined;
 }
 
 /** Ticks over position ranges at the picture's foot, each at least a device pixel. */
