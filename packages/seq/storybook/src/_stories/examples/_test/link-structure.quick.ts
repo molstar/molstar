@@ -38,7 +38,8 @@ describe('the structure link on the hover’s path', () => {
     const reads = [plainStep, step, plainStep, step].map((s) => measureBytesPerStep(s).bytesPerStep);
     const plain = Math.min(reads[0], reads[2]);
     const linked = Math.min(reads[1], reads[3]);
-    const { r } = quickCase(task, 'viewer hover through a structure link', step);
+    // no leak control: a step's 11 kB vary by tens of bytes a window, as much as the control's leak
+    const { r } = quickCase(task, 'viewer hover through a structure link', step, { control: false });
     expect(side.last?.parts.length).toBe(4);
     off();
     without.retire();
