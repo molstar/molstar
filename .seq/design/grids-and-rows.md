@@ -165,14 +165,14 @@ vertical scale. This design builds on them and adds only:
   placed with `ctx.place`, and the apex the same way as a point in its band's frame (the mid offset at the arc's height)
   mapped through the strip's warp: one curve is an arc over a block, an arc between two lines, a chord through a ring's
   hole, with no layout named in the layer. An end not placed in the view (a chain not shown) leaves a caret at the placed
-  end, never a dangling arc. **An end on a system shown as several split copies**, whose data names no copy (a contact
-  to "the heme" with four hemes shown, `copies: each`), waits for copy addressing (decided, the author, 2026-11-19:
-  "should we wait until we can address copies later?", after CE's caret left the split hemoglobin with no contacts, both
-  ends of every contact being on split copies): until units (pairs with `a_unit`, `b_unit`, [molecules.md](molecules.md),
-  the fourth slice) the end is placed on the first copy as before; then a contact names its copies and draws its real
-  arc. CE's branch (`seq/ce-copy-ends`, a caret and `seq.render.pairs.copy`) and its review are kept for that slice:
-  copies are counted as the resolver groups them (one system, one range), a pair within one split system draws on each
-  copy, and both ends on unnamed copies is decided then. In a grid section the layer is laid out per strip instead, as dots over `ctx.axis` and
+  end, never a dangling arc. **An end on split copies** is placed by unit: on the block of its system or its row's unit (`a_unit`, `b_unit`,
+  [molecules.md](molecules.md)), the block its copy is merged into, or a unit of its molecule (EC-48). A pair within
+  one system is drawn on each copy (the resolver's groups: one system, one range). A pair between two systems shown as
+  split copies whose data names no unit is never placed on a guessed copy: it is drawn on no copy, and
+  `seq.render.pairs.copy` (warning, once, with the count) says its data names no units. Why (the author, 2026-11-20:
+  "the whole point was to show what residue copy has contact with what chain. Imagine having 1tqn assembly. there are
+  also few HEMs, but each has contact with just 1 copy of the chain"): a contact on the wrong copy states a fact the
+  data does not hold. Contacts derived from coordinates are derived per pair of units. In a grid section the layer is laid out per strip instead, as dots over `ctx.axis` and
   `ctx.axisY`.
 - **Arcs**, EC-129: in the band (the layer's `side`: `above`, `below`), never flat; an end past the window taken a quarter
   window past its edge (`reach`, 0.25), so an arc moves continuously on pan; height by span against the widest in
