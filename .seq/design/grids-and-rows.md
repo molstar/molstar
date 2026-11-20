@@ -304,7 +304,7 @@ Rows in view are found by arithmetic, O(1) a row, never a scan.
   is data), never dropped silently (decided at GD's review). Why the exception (decided, the author, 2026-11-19): inner labels are often support values that repeat
   (`((A,B)95,(C,D)95)`), and one name for two clades sends a hover, a fold or `clades.keep` to the wrong one.
 - **Pinned rows**: `pinned` (row keys), drawn in a fixed band at the top of the rows band, and kept in their place in
-  the order too, marked (`rows.pin.inPlace`, true). Why both: the tree stays a tree and clades stay bands.
+  the order too, marked (`rows.pinInPlace`, true). Why both: the tree stays a tree and clades stay bands.
 - **The band**: tracks before the rows track (a ruler, the logo) and after it (a summary) stay fixed; the rows scroll
   in their band (`ctx.bandTop`), which takes the section's room left (the layer's `height`: `fill`, or a number of rows). One
   rows layer a section (`seq.render.rows.second`): the cursor has one row order.
@@ -586,12 +586,12 @@ registry entry, an option of a call, or fixed with its reason).
 | `imageBytes` (grid, rows and navigator tiles) | `RenderConfig` preset | 64 MB | one bounded cache | — |
 | `height`, `summary`, `numbers`, `treeWidth` (rows layer) | spec param | `fill`, `consensus`, `gutters`, 120 px | the rows take the room; one row reads as its clade; numbers per row (EC-39); a readable tree | a number of rows; `logo`, `bar`; `none`; 0 hides the tree |
 | `collapsed`, `pinned`, `hidden`, `order`, `filter` (rows layer) | spec param | none; `data` | the writer's opening state and order | — |
-| `rows.pin.inPlace` | `RenderConfig` preset | true | the tree stays a tree | false: moved only |
+| `rows.pinInPlace` | `RenderConfig` preset | true | the tree stays a tree | false: moved only |
 | `rows.labelMinPx` | `RenderConfig` preset | 8 | a label needs a row | — |
-| `rows.reduce` | `RenderConfig` preset | `theme` | color plurality reads as the theme | `letter` |
+| `rows.reduce` | `RenderConfig` preset | `theme` | color plurality reads as the theme | `letter` (not built: the reducer is the theme's classes only, no item; `packages/seq/TODO.md`) |
 | `scale`, `correction`, `gaps`, `rows` (logo layer) | spec param | `bits`, `none`, `ignore`, `all` | the logo's usual reading; exact for given frequencies; gaps are no letter; the alignment's logo, not the view's | `probability`, `small-sample`, `count`, `shown` |
-| `rows.clades.cutLine` | `ViewerConfig` | true | Jalview's threshold, dragged | false: the command only |
-| `reveal.opensClades` (the `reveal` group) | `ViewerConfig` | true (decided) | a row asked for is shown | false: the summary row focused |
+| `rows.clades.cutLine` | `ViewerConfig` | true | Jalview's threshold, dragged | false: the command only (not built: no cut line, no item; `clades.collapseTo` is; `packages/seq/TODO.md`) |
+| `reveal.opensClades` (the `reveal` group) | `ViewerConfig` | true (decided) | a row asked for is shown | false: the summary row focused (not built: a reveal always opens, no item) |
 | a click on a tree node | `ViewerConfig` (the bindings' preset) | toggles the fold (decided) | a node is chrome, as a group's chevron | a preset binds it to select |
 | keys of `rows.zoom-in`, `rows.zoom-out` | `ViewerConfig` (`view.keys`) | `]`, `[` | each matches only its own `e.key` (above) | any key the host's layout types alone |
 | the folds an export draws | option of `renderSvg` (`folds`) | the layer's `collapsed` | the viewer passes its own | — |

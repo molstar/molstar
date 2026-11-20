@@ -556,7 +556,10 @@ registry entry, an option of a call, or fixed with its reason).
 | `labels` (rings) | spec param | `outside` | EC-108 | `none` |
 | `arrange` (blocks) | spec param | `row` | one axis, one scroll | `stack` |
 | `copies` | spec param | `merge` | a copy group's sequence said once, its cost one block's (EC-65, EC-67) | `each` |
-| `text.groupGap`, `text.lineGap`, `text.bandGap` | `RenderConfig` preset | half a cell; 8, 2 (`figure` 18, 3) | a space between words; a line block reads as one when the line gap is the larger | per preset |
+| `text.scale` | `RenderConfig` preset | 12 px a position | the letter size a text opens at (its zoom; `0` returns to it) | px |
+| `text.groupGap`, `text.lineGap`, `text.bandGap` | `RenderConfig` preset | half a cell; 10, 3 (the defaults audit) | a space between words; a line block reads as one when the line gap is the larger | per preset; a `figure` preset (planned, with presets: not built) |
+| `text.numberGap` | `RenderConfig` preset | 8 px | the gap between a line and its numbers | px |
+| `text.heights` | `RenderConfig` preset | letters 18, ranges 4, values 3, ruler 14, secondary 6, variants 10, frame 14, rows 18, logo 24, pairs 24, grid 120 | a text's tracks thin: a ranges track reads as underlines, a values track as a strip | per type |
 | `text.collapseEmpty` | `RenderConfig` preset | true | an empty band separates what belongs together (EC-96) | false: uniform lines, `end` exact |
 | `text.maxLines` | `RenderConfig` preset | 100,000 | a figure, not a genome; line tops kept per section | larger, at its memory |
 | `text.maxHeight` | `RenderConfig` preset | 600 px | a text in a host page scrolls inside its box past it | px; none (the whole figure) |

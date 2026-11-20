@@ -34,7 +34,9 @@ queue. Each line: what is seen, where (the story), where it came from, its kind 
   "Tetramerization" shown, then the boxes empty a step later, C-terminal cut at the edge). The author, 2026-11-20:
   "should we allow ellipsis (up to a degree) in the boxes instead of the text disappearing as a whole?" Proposed order:
   whole inside; else whole beside when the lane has room; else inside cut with an ellipsis while at least 4 characters
-  (or the whole label, if shorter) and the ellipsis fit; else dropped. The cut keeps the hover card and the address
+  (or the whole label, if shorter) and the ellipsis fit (4 by default, configurable: a layer param beside the
+  label's, `labels.minChars`, decided by the author, 2026-11-20: "4 characters as default is fine, should be
+  configurable"); else dropped. The cut keeps the hover card and the address
   whole; the canvas and the SVG cut alike (text-metrics port). A label cut at the section's edge is placed within it
   (C-terminal), never clipped mid-glyph.
 - **The vertical overview went missing from the stories and examples** (bug; first in FX1): the rows rail was to be added

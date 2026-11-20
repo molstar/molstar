@@ -82,7 +82,7 @@ yet: its area is not built.
 Recorded for what the second slice built: editing (patches, history, previews, story steps), addressing (refs, links),
 selection, highlights and the cursor, the security bounds, MessagePack, followers that lead, the view's history. Places
 in `packages/seq` as above, plus `storybook/src/_stories/{features,examples}/**/_test`; the tree core's in
-`@molstar/core` (`packages/core/src/repr/patch/_test`) and the codec's in `@molstar/io` (`packages/io/src/repr/_test`).
+`@molstar/core` (`packages/core/src/repr/patch/_test`) and the MessagePack codec's in `@molstar/core` (`packages/core/src/repr/codecs/msgpack/_test`).
 
 **Kept**:
 
@@ -107,7 +107,7 @@ in `packages/seq` as above, plus `storybook/src/_stories/{features,examples}/**/
 
 - EC-84: a story step has no base: it applies over whatever the spec is; one that no longer applies is shown as not
   applying, never refused (stories.md); `viewer/_test/spec`, `lang/_test/snapshots`. The player is not built.
-- EC-90: non-finite numbers and −0 are an extension (`0x10`), not nil, so they round-trip exactly; `io` `repr/_test/msgpack`.
+- EC-90: non-finite numbers and −0 are an extension (`0x10`), not nil, so they round-trip exactly; core `repr/codecs/msgpack/_test/msgpack`.
 - EC-114: a follower leads: a move asked of it moves its leader through the follow (the author, 2026-11-18;
   `follow.followerMoves`, `ignore` the catalog's rule); `viewer/_test/follow`.
 - EC-163: one transient preview (a patch over the root) and a story step over it replace the four document layers; a
@@ -117,7 +117,112 @@ in `packages/seq` as above, plus `storybook/src/_stories/{features,examples}/**/
 
 **Not met yet** (open, in `packages/seq/TODO.md`):
 
-- EC-85 (a step's view): steps carry no view yet (stories.md: language fields).
+- EC-85 (a step's view): steps carry no view yet (stories.md: language fields). (Met in the third slice: below.)
 - EC-149: drag snapping to whole codons over nucleotides (items snap).
-- EC-154: the cursor through the codon map only; block gaps and lazy rows wait for those layouts.
+- EC-154: the cursor through the codon map only; block gaps and lazy rows wait for those layouts. (Lazy rows met in the third slice; block gaps not: below.)
 - EC-178 as above.
+
+## Outcomes of the third slice
+
+Recorded for what the third slice built: the axis (direction, letters through a map, collapsed introns), themes, the
+text, blocks and rings layouts, navigators, pairs, grids and dot plots, the logo, the rows layer (columns, clades, lazy
+rows), the files and their readers, the six datasets and p53's chromosome. Places in `packages/seq` as above
+(`core/src/render/_test` is `render/_test`, and so on), plus `examples/src/_test` and
+`storybook/src/_stories/examples/_test` (`…/` below); EC-126's in `cli/seqx-render/src/_test`. Drafted by lane EO
+against the tests, completed by ET's (EC-63, 99, 115, 116, 138, 195), CF's (EC-135), RK's (EC-154, 155) and CS's
+(EC-169 to 175).
+
+**Kept**:
+
+| Items | Outcome | Tests |
+|---|---|---|
+| 11 | kept | `resolve/_test/encodings` "a segment crossing the origin is split when built (EC-11)"; `resolve/_test/model` "an offset map onto a cyclic sequence wraps, split at the origin (EC-11)" |
+| 20 | kept | `resolve/_test/encodings` "maps: one-to-many backward (EC-20)" |
+| 33 | kept (the 16 ms bound in the heavy lane only) | `render/_test/axis-perf` "a pan frame lays out and draws under 16 ms" |
+| 35 | kept | `query/_test/forms` "row: an alignment's rows by key, positions of its rows system"; `render/_test/dynamic` "a nested source is not requested until a template needs it; then its domains show through the codon map" |
+| 38 | kept (A3M's lowercase not built) | `data/_test/alignment-readers` "Stockholm: … insert columns from RF", "aligned FASTA: lowercase-only columns are inserts" |
+| 39 | kept | `data/_test/alignment-readers` "Stockholm: … numbers from labels" |
+| 40 | kept (Clustal not built) | `data/_test/alignment-readers` "a row of another width is said and left out", "the most common width wins", "fuzz: malformed text is reported, never thrown" |
+| 41 | kept | `examples/src/_test/globins` "the lazy 10,000,000 rows: the rows in view read alone, drawn and hit"; `render/_test/source-rows` "waits while the rows have not arrived" |
+| 43 | kept | `data/_test/alignment-readers` "a leaf matches its row by label, else by the label before its last `/` (EC-43)" |
+| 44 | kept, but 1,000 × 2,000 (no test) | `render/_test/rows-time` (heavy); `examples/src/_test/globins` "the 10,000 rows across a tile edge"; `render/_test/properties` (3M positions); `render/_test/text-time` (heavy, 35,000 residues) |
+| 50 | kept | `data/_test/records` "reads values sparse by position or a row each, `__proto__` and `constructor` ordinary names" |
+| 51 | kept | `data/_test/records` "range: past the letters left out or clipped, counted in one issue, hinting the other base" |
+| 57 | kept | `render/_test/values-line` "is a path a run of values …", "a color that changes does so halfway between two positions" |
+| 62 | kept (folding contacts by copy group untested) | `render/_test/pairs-grids` "a cell's hover lights the arcs ending at either position"; `…/pairs-grids-stories` "the contacts as arcs between the chains' blocks: a hover lights both ends" |
+| 64 | kept (one position per heavy atom, hydrogens refused, untested) | `examples/src/_test/complex` "copies merged ×2, the ATPs after the polymers …"; `render/_test/blocks-chips` "a row: the chip hit, hovered and selected as its one position" |
+| 65 | kept | `render/_test/blocks-layout` "copies merged into one block labeled ×N …"; `render/_test/hover-blocks` "CDK2 position … lights the CDK2 copies, no cyclin" |
+| 67 | kept | `render/_test/secondary` "200 identical copies draw what one does", "copies that differ in kind or extent are all drawn" |
+| 85 | met (not met in the second slice) | `story/_test/story` "a view channel pans when the windows overlap …"; `viewer/src/_test/story` "moves every leading section, each its own way" |
+| 87 | kept | `data/_test/records` "one severity a code: every issue has its catalog's (EC-87)" |
+| 94 | kept | `render/_test/text-layout` "lines of whole groups of ten, a number a line, a band collapsed where no layer drew" |
+| 95 | kept | `render/_test/text-layout` "numbers at both ends: … inline group labels in the gap after their group" |
+| 96 | kept | `render/_test/text-layout` "overlapping ranges in a thin band are its density strip …" |
+| 97 | kept | `render/_test/rows` "in text (an alignment figure) every row is on every line …"; `render/_test/rows-layer` "the label column widened by the tree's width …"; `render/_test/rows-columns` "a text figure draws the same columns on every line" |
+| 99 | kept | `render/_test/ec-blocks` "the chips share a line like words, and wrap onto the next line with them when the width runs out" |
+| 100 | kept (a collapsed clade framing its wedge untested) | `render/_test/text-layout` "frames across tracks: … open where a line break cuts it …"; `…/globins-stories` "family and folded" |
+| 101 | kept (own units and the first alignment as default blocks untested) | `examples/src/_test/complex` "copies merged ×2, the ATPs after the polymers" |
+| 102 | kept | `render/_test/blocks-layout` "a row of many blocks: the gaps never take more than a quarter of the width", "a stack: …" |
+| 106 | kept | `render/_test/rows-layer` "a field order …"; `render/_test/rows` "in tree order folds clades from `collapsed` …"; `render/_test/rows-columns` "an order by a column's field …"; `render/_test/filter` "leaves the rows out as the items are read" |
+| 107 | kept | `render/_test/rows-columns` "yield to a narrow view: right ones first …" |
+| 108 | kept | `render/_test/rings-layout` "places the section round its whole axis …", "labels outside, each hit as its item", "no two labels' hit boxes overlap" |
+| 109 | kept (the scrollbar-flicker rule untested) | `render/_test/pairs-grids` "places one strip, the plot … square cells at aspect 1"; `…/pairs-grids-stories` "the plot's x is the letters' x …" |
+| 112 | kept | `viewer/src/_test/view` "a move before the section has a width is kept as an intent, then placed", "a section hidden for lack of width keeps its zoom …" |
+| 113 | kept | `viewer/src/_test/view` "scroll groups and follow (EC-113, EC-114)"; `viewer/src/_test/follow` "the protein follows the gene at scale 1/3 …" |
+| 115 | kept | `render/_test/ec-blocks` "the block under the pointer stays under it through successive zooms in" |
+| 116 | kept | `render/_test/ec-letters-density` "the steps come in order, and the letters step starts where the smallest letter fits its cell", "text for all the columns in view or none: never a lettered few, from the widest to the cells", "then dots a position, then one bar a run: …" |
+| 117 | kept | `render/_test/axis` "three-letter codes where the narrowest part in view has room …" |
+| 118 | kept (the Complex only) | `…/complex-stories` "confidence: … cyclin A2's first 172 gray" |
+| 126 | kept, now whole (in part in the second slice) | `cli/seqx-render/src/_test/cli` "exits 4 …", "exits 1 …", "prints its usage … (exit 2)", "a link that leads outside the root" |
+| 128 | kept | `render/_test/ranges-lines` "each style draws its mark …", "an invalid style is drawn solid and said once a layout" |
+| 129 | kept (labels under an apex in reach untested) | `render/_test/pairs-grids` "nested arcs nest", "an end past the window is taken `reach` past its edge …" |
+| 130 | kept | `render/_test/secondary` "secondary: the arrowhead (EC-130)" |
+| 132 | kept ("+n more" untested) | `theme/_test/theme` "merges legends that say the same …" |
+| 135 | kept | `render/_test/rows-layer` "ESPript's `gaps` reaches the column share (EC-135): …" (the scheme in `lang/theme-language.ts` and `theme/schemes.ts`) |
+| 137 | kept | `render/_test/themes` "the size channel shrinks a mark, never its lane or its hit box" |
+| 145 | kept | `render/_test/pairs-grids` "a hover on a cell: a crosshair …"; `…/complex-stories` "a rect dragged across the chain boundary is split at it" |
+| 155 | kept (as in the second slice); the rows' page keys taken only while a cursor shows | `viewer/src/_test/cursor-rows` "with no cursor shown Page Down is the rows' scroll, Cmd/Ctrl+↓ the page's"; `viewer/src/_test/mount` "Space is the page's when it is no modifier and there is no cursor; …" |
+| 169, 170, 172–175 | kept (as in the first slice); a chromosome read by region asks only for its view and margin | `data/_test/{store,keys}`; `examples/src/_test/chromosome` "opens fit to the chromosome and lays out to TP53's letters, asking only for the view and its margin" |
+| 195 | kept | `resolve/_test/ec-streamed-numbering` "is stated by the model without data: …", "a label is read 1-based by default, …" |
+| 204 | kept | `theme/_test/theme` "derives swatches … says hashed values once" |
+| 206 | kept | `render/_test/pairs-grids` "a stretch runs with its partner when both ends are on one strand …" |
+| 232 | kept | `render/_test/ranges-lines` "`end` is on the mark holding the item's end …" |
+| 233 | kept | `render/_test/axis` "`never` keeps the stored letters on a reversed axis …"; `viewer/src/_test/layouts` "copies a reversed DNA section's letters complemented …" |
+
+**Changed**:
+
+- EC-92: a text cell is kept as written, never trimmed (the RFC's rule, [files.md](files.md): trimming loses meaning,
+  EC-49); a number parses past the spaces around it; a header twice is refused. `data/_test/records` "keeps text cells
+  as written: no trimming …", "reads equal tables from TSV, CSV, JSON and MessagePack", "fuzz".
+- EC-138: a hover from elsewhere (a linked section, a structure) is projected onto every section as the viewer's own
+  ([viewer-models.md](viewer-models.md), Projection: what linking is for), not left undrawn; `render/_test/emphasis` "a
+  hover from elsewhere … is projected onto every section". Its outline holds 3:1 against the surfaces it is drawn on
+  (the page, the track, the sequence's cells, the missing and pending fills), the residue and nucleotide class fills and
+  a range's fill, in both themes: `render/_test/ec-hover-contrast` "seq-hover holds 3:1 against each surface and fill
+  it rings". Against the saturated data fills (the categorical, ramp and secondary colours) it does not: the author's
+  question (below).
+- EC-171: the zoom gate is the store's bound on a want's tiles (`maxTilesPerWant`): a want past it is not asked, said
+  once (`seq.store.too_many_tiles`) and drawn pending, while a coarser level shows density; there is no "load anyway".
+  `data/_test/store` "are bounded: lengths clip, a want over the tile cap is an issue and not asked";
+  `render/_test/inline-tiles` "a view past a shorter source's end is drawn empty, not pending; past the tile bound it is
+  pending".
+
+**Not met yet** (open, in `packages/seq/TODO.md` or the next slices' plans):
+
+- EC-59: two grids on one block pair merged, later over earlier, and a size cap per pair: not built.
+- EC-63: kinds at one cell are drawn as slices, one a kind, each its own hit (`render/_test/ec-pairs-kinds` "the cell
+  is cut into a slice a kind, in order, each slice hit as its own pair"); the design's glyphs and "+" are not built.
+  Slices or glyphs: the author's question.
+- EC-103: track groups and summaries: not built.
+- EC-138's outline against the saturated data fills: above.
+- EC-149: drag snapping to whole codons over nucleotides (as in the second slice).
+- EC-154: the keyboard cursor steps a million lazy rows by index, and hidden and folded rows by the nearest shown
+  (`viewer/src/_test/cursor-rows` "steps by index over rows never read: …", "a fold puts the cursor on the summary row;
+  a hidden row's on the nearest shown: …"), through reversed and collapsed axes (`viewer/src/_test/axis-commands`
+  "through each reader: …"); it does not cross a gap between blocks of different systems
+  (`viewer/src/_test/blocks` "the cursor does not step another system's positions along the section's units").
+- EC-178: as in the first slice.
+- EC-209: the dot plot's y on another section is built; ribbons between sections are the Genomes milestone's (layers
+  across sections, deferred).
+- A folded clade's summary row has no accessible name (`render/rows.ts` `rowItems` skips it), against
+  [grids-and-rows.md](grids-and-rows.md) (Accessibility: a node announced with its state): in `packages/seq/TODO.md`.

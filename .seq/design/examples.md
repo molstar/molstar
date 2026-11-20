@@ -435,8 +435,8 @@ Cells owned by another design say so; this design adds no gesture of its own.
 ## Configuration
 
 Whose, by the rule the axis design states. None is a viewer setting or a spec param: each is an option of a call (a
-builder's, a generator's or the record script's argument, documented in the module that owns it and in the package's
-Configuration table) or a fixed rule of the fixtures, checked by a test.
+builder's, a generator's or the record script's argument, documented in the module that owns it; this table is the one
+list, `seqx-examples` having no `_spec`) or a fixed rule of the fixtures, checked by a test.
 
 | Item | Whose | Default | Why | Alternatives |
 |---|---|---|---|---|
@@ -531,6 +531,7 @@ The claim: **this design covers what a user does with the datasets.**
   for each story composing more than one consumer (the ring and its linear detail, arcs and the dot plot, the PAE and
   the tracks, hemoglobin and its family); each dataset's index lists its views, sources, licences, attributions and
   what is generated or derived; the Design page "Examples" gains the datasets.
-- **`_spec`**: `seqx-core`'s `_spec` gains the readers' sections; the examples package gets a `_spec/README.md`
-  with the fixture rules (provenance, licences, bounds, record-by-hand, generated-and-compared, the instance per edge
-  case) and its Configuration table.
+- **`_spec`**: `seqx-core`'s `_spec` gains the readers' sections; the examples package's fixture rules (provenance,
+  licences, bounds, record-by-hand, generated-and-compared, the instance per edge case) and its configuration stay in
+  this design and the fixtures test, its options in the modules that own them (no `_spec` of its own: built so in the
+  third slice).

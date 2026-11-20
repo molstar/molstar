@@ -5,14 +5,12 @@ What is not built. An item leaves in the commit that builds it; a deferral says 
 ## Next
 
 The first slice built the tree core, the language's first kinds, resolve, draw lists, the SVG and Canvas2D backends, the
-viewer's models and data by region; the second, editing and addressing (patches, history, previews, story steps, refs,
-links, selection, the security bounds, MessagePack). Next, version 1's second milestone, figures, in this order:
-
-- **Layouts**: text and alignment figures, blocks and rings, navigators; then pairs, grids and dot plots, the logo, the
-  rows layer.
-- **The other datasets** and their views, each with an editing view; PNG and the render CLI.
-- Later: **bigWig** with range reads of assets (a base-library change, below); **structures** (the structure port and
-  runtime, structure maps, the Mol\* showcase).
+viewer's models and data by region; the second, editing and addressing; the third, figures (the axis, themes, the text,
+block and ring layouts, navigators, pairs, grids, the logo, the rows layer, the files and their readers, the datasets,
+PNG and the render CLI). Next, version 1's third milestone, integration (the fourth slice's plan): molecules and units
+(language 0.5.0, with copy ends and pairs, ranges and maps on an alignment's columns), structure syncing on a fake 3D
+viewer, seq data ports, extension openings, track header parts, services, bigWig with range reads of assets (a
+base-library change, below), archives. The Genomes milestone is the fifth.
 
 ## Base library (`@molstar/core`, `@molstar/io`)
 
@@ -129,8 +127,7 @@ links, selection, the security bounds, MessagePack). Next, version 1's second mi
   inline annotation: about 114 ms a frame); a letter through a codon path allocates its parts (`projectRanges` sets its
   buffer's length to 0, which lets the storage go: 161 KB a pan frame on the coding gene).
 - **The rows layer** (built: the rows half of grids-and-rows; each item here with its design section):
-  - the cursor's `part` and `y`, ↑↓ over rows (a summary row one stop), Space and Enter at the cursor on a node or a
-    summary row, text crossing line blocks ("Selection", "Opening and closing clades");
+  - the keyboard cursor across text line blocks (its rows, part and a grid's y are built, RK: "Selection");
   - block drag-select (rects) and Shift extension over rows by drag ("Selection");
   - a bound row's projection from its sequence; `(row :key k)` and `(clade :of [a b])` as query forms ("The rows axis",
     "Selection");
@@ -143,8 +140,10 @@ links, selection, the security bounds, MessagePack). Next, version 1's second mi
     cut dragged across the tree), each with its `ViewerConfig` item ("Opening and closing clades");
   - a toggle's motion (the rows' heights animated as a jump's: `view.motion`, `view.jumpMs`); the drag past the band's
     edge scrolling the rows ("Opening and closing clades", "Lazy rows");
-  - accessibility: a tree node announced with its state through the canvas's accessible layer ("Opening and closing
-    clades");
+  - accessibility: a tree node announced with its state through the canvas's accessible layer, and a folded clade's
+    summary row named by its summary label ("HBA +12", as the announcer and the hover card say it): `rowItems` in
+    `render/rows.ts` skips it, so a screen reader cannot reach a folded clade (found by AT; EC outcomes, third slice)
+    ("Opening and closing clades");
   - icons in the header's fixed slots (pin, a bound row's link) and the rows table's data columns ("The rows axis");
   - the renderer's section cache keyed by the export's `folds`; the cell hit's 16 B (a number boxed from the point to
     its column through the axis, every layer's hit) measured by the allocation tier;
@@ -254,7 +253,8 @@ links, selection, the security bounds, MessagePack). Next, version 1's second mi
   alignment's rows are left out now); a navigator over a text section (the positions on its lines in view); the window's
   hover readout as an ARIA live region; a slider per covered axis (one per window, roving by PageDown and PageUp); a
   grid's own y window drawn on a navigator (the view's history keeps it; open until a Hi-C view); the rows rail as a
-  slider for a screen reader (a canvas mark now: `]`, `[` and the wheel are its keys).
+  slider for a screen reader (a canvas mark now: `]`, `[` and the wheel are its keys); `navigator.idle: hidden` (idle is
+  quiet only, no item: until a host asks, navigators.md).
 - Rings in the viewer: the matrix cells of a ring section and a block as binding tests; a drag-select longer than half
   the ring selects the other side (the shorter arc is taken: the drag's swept direction would say which); a reversed
   ring's arcs (`selection.ts` reads an arc on a forward axis only, `dir === 1`).

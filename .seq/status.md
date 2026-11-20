@@ -43,38 +43,64 @@ closes). Started at `fc2bba6ce`; lanes S0, S0b, K, K2, K3, R, R+K, L, M, N, O, P
 - Measured (stage 5): every time and allocation target passes (Node and Chrome at dpr 2); the read bundle 150.6 kB
   against the 160 kB target (the author), headless rendering 267.9 kB.
 
+## Built: the third slice
+
+Version 1's second milestone, figures (work folder `execution/third-slice/`, its record when it closes). Gate 0
+decided 2026-11-18; over sixty lanes merged (C0, AX, SL, TH, TX, TA, TV, TE, RB, G2, SY, RW, CH, PG, RF, NV, GD, SO,
+FS-A1, FS-A2, IZ, CR, HL, PR, QS, LB, RC, DP, DT, SW, AY, OP, DG, DC, NB, CY, TW, DA, QT to QT3, NP, HC, SF, RK, ET, AT,
+CS, SC, MF, CF, MV, UN, PG (PCG32), LP, RX, DB, DS, PZ, PF, LX; the list in `execution/third-slice/state.md`). CE
+(copy ends) is parked unmerged for the fourth slice.
+
+- The axis: a section's direction, another system's letters through a map, collapsed introns of zero width on every
+  layout, reversed pieces; the ruler's numberings (insertions, `unnumbered`, `units`).
+- Themes: the theme sublanguage (field palettes, rules as words, schemes with safe substitutes, `scale` nodes, size
+  channels), legends as data and a part a host places, the reader's color-blind substitution; the lists-free palette
+  module and PCG32 in `@molstar/core`.
+- Layouts: tracks fitting their content (`heights`, the `trackSizing` port), text and alignment figures, blocks and
+  chips, rings with a window and label groups, through one layout interface; navigators (the ruler rail, strips, an
+  ideogram, a vertical overview, a miniature, the zoom strip).
+- Layers: the small layers (ruler, secondary, variants, values as line and area, ranges' styles), pairs (arcs, chords,
+  linked pairs), grids and dot plots with their navigation, the logo, the rows layer (columns, clades, pinned and lazy
+  rows).
+- Data: aligned FASTA, Stockholm, Newick, records (TSV, CSV, JSON, MessagePack, GFF3), a source's own numbering,
+  lengths through resolve; the six datasets and p53's chromosome by region, generated where large.
+- The viewer: stories (the player, a step's view), the keyboard cursor over rows and grids, the hover card (a port) and
+  the keys panel, highlights that overlap, accessibility (an SVG's figure and items, announcements), a minimal viewer
+  composed by the spec's registry.
+- Export: PNG, and the `seqx-render` command line.
+- Measured (stage 7): 175.4 / 712.0 / 1142.4 / 853.1 kB min (reading a spec, headless rendering, the default and the minimal viewer, against
+  the guides 160 / 300 / 600 kB, reset at the close).
+
 Which features are built, partly or not at all: [design/features.md](design/features.md). Which edge cases have an
 outcome: [design/edge-cases.md](design/edge-cases.md), Outcomes.
 
 ## Open
 
-1. **For the author**: the second slice's fold-back (`execution/second-slice/foldback.md`) and its "built but not
-   agreed" queue (`execution/second-slice/gaps.md`: `SizeLimitExceeded`, the redirect option, MessagePack's extra
-   extension codes, io's one-line fix, `ChildIndexThreshold` and the patch tree's layout, `FlatThreshold` 16 and
-   `Vector.indexOf`, `track.hidden`, the selection's look). Still to confirm from before: the selection tint's order
-   (over the data, against "under") and the density units (letters in CSS px, the rest in device px). The first slice's
-   open decisions 1–9 were confirmed at the second slice's Gate 0.
+1. **For the author**: the third slice's fold-back (`execution/third-slice/foldback.md`) and the questions its close
+   left (the drift notes in `execution/third-slice/drift/`: configuration the designs name and the code does not have,
+   EC-63's slices against glyphs, EC-138's outline against saturated fills).
 2. **Range reads of assets**: wait for bigWig ([design/base-library.md](design/base-library.md)); the asset manager's
    options are built.
-3. **Provisional, still to confirm**: the root nouns ([design/building-blocks.md](design/building-blocks.md)), the
-   source protocol's shape beyond the slice ([design/sources.md](design/sources.md)), the UX foundations' numbers
-   ([design/ux-foundations.md](design/ux-foundations.md)). `values.coarser` is 1 (decided at Gate 0).
-4. **Known gaps**: [packages/seq/TODO.md](../packages/seq/TODO.md): one window for all leading sections, a ref's
-   placement in data params and a section's `of`/`follow`, codon snapping of drags, the view history's chrome, the
-   stories library and the animation port, navigators, every template re-expanding on each arrival, and what is
+3. **Provisional, still to confirm**: the root nouns ([design/building-blocks.md](design/building-blocks.md)) and the UX
+   foundations' numbers ([design/ux-foundations.md](design/ux-foundations.md)), confirmed by use where a story shows
+   them. The source protocol's shape is agreed with the files design ([design/files.md](design/files.md)).
+4. **Known gaps**: [packages/seq/TODO.md](../packages/seq/TODO.md) and the third slice's `followups.md`: copy ends with
+   units (CE, parked), the query forms `search`, `onto`, `expand`, `group`, pairs, ranges and maps on an alignment's
+   columns (0.5.0), drags snapped to codons, the cursor across block gaps, track groups and summaries, and what is
    deferred to the Genomes milestone.
 5. **Tooling, optional at gates**: a script that reverts a fix's non-test files on a scratch worktree and expects
    its new test to fail (the fold-back's "a fix's test is shown failing without the fix",
    [principles/README.md](principles/README.md)); until then the report names the command and the reviewer reruns it.
-6. **To decide as the work reaches them**: worker boundaries, structure and map runtimes, accessibility, versioning
-   under 0.x ([design/version-1.md](design/version-1.md), Open).
+6. **To decide as the work reaches them**: worker boundaries, structure and map runtimes, versioning under 0.x
+   ([design/version-1.md](design/version-1.md), Open).
 
 ## Next
 
-The second slice closes: the fold-back with the author's decision, the record, then the third slice's plan rewritten
-from its draft (`execution/third-slice/plan.md`): version 1's second milestone, figures, starting with the axis (a
-section's direction, letters through a map, collapsed introns: the stage 4 gate's findings). Then integration and the
-Genomes milestone ([design/version-1.md](design/version-1.md), Milestones). Design before code for each, as in
+The third slice closes: stage 7's measurements (M3), the fold-back with the author's decision, the record. Then the
+fourth slice (`execution/fourth-slice/plan.md`, its Gate 0 decided 2026-11-20): version 1's third milestone,
+integration (molecules and units, structure syncing on a fake 3D viewer, seq data ports, extension openings, track
+header parts, services, bigWig and range reads, archives). The fifth slice is the Genomes milestone, its genome ring an
+extension ([design/version-1.md](design/version-1.md), Milestones). Design before code for each, as in
 [AGENTS.md](AGENTS.md), How work happens here.
 
 ## Which design to read
@@ -94,5 +120,5 @@ Genomes milestone ([design/version-1.md](design/version-1.md), Milestones). Desi
 
 ## Language version
 
-`0.3.0` (unreleased, pre-release: each kind added moved it, with no migration); not yet versioned for readers outside
-this repository.
+`0.4.0` (unreleased, pre-release: each kind added moved it, with no migration; `0.5.0` is the fourth slice's, with
+molecules); not yet versioned for readers outside this repository.

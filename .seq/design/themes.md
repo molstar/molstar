@@ -149,18 +149,19 @@ and another viewer); a host recolors through `--seq-*` tokens.
 
   ```
   (rules
-    (rule :when [(>= (field plddt) 90)] :value "#0053d6")
-    (rule :when [(>= (field plddt) 70)] :value "#65cbf3")
+    (rule :when [(ge (field plddt) 90)] :value "#0053d6")
+    (rule :when [(ge (field plddt) 70)] :value "#65cbf3")
     (rule :when [(in /refs/dbd)] :value (field :name score))
     :else "token:missing")
   ```
 
-  Clauses: `=`, `!=`, `<`, `<=`, `>`, `>=`, `one-of`, `in` (a location: an element whose position or extent overlaps
+  Clauses: `eq`, `ne`, `lt`, `le`, `gt`, `ge`, `one-of`, `in` (a location: an element whose position or extent overlaps
   it by one position or more) and `within` (an extent contained in it). Measures: `(field <name>)`, `value`, `letter`,
   and the column measures (`share`, `identity`, `matches-reference`), which are the rows layer's ([grids-and-rows.md](grids-and-rows.md)): built with its
   column summaries and registered as measures for themes. A measure that does not apply is NaN and fails its clause
-  (EC-52). **Types**: `=`, `!=` and `one-of` compare text with text (case-sensitive) and numbers with numbers; `<` to
-  `>=` take numbers only; a comparison across types is false, and `seq.lang.theme.type` when the check can see it (a
+  (EC-52). Clause kinds are words, so each is a kind in the language's description; symbol aliases (`=`, `<`, `<=`,
+  …) read as the words are a later addition if a user asks (decided, 2026-11-19). **Types**: `eq`, `ne` and `one-of`
+  compare text with text (case-sensitive) and numbers with numbers; `lt` to `ge` take numbers only; a comparison across types is false, and `seq.lang.theme.type` when the check can see it (a
   literal against a column's declared type). A rule's value is a channel value or a nested form, nesting bounded
   (`SpecBounds.themeDepth`, 4). Several clauses are an `and`; an `or` is two rules. No `:else` gives the layer type's
   default. Why rules, not expressions: data that validates, diffs and prints, as Vega-Lite's conditions without its
@@ -209,7 +210,7 @@ and another viewer); a host recolors through `--seq-*` tokens.
   - **A values layer's y** names a scale too (its `scale` param; its `domain` param stays as the inline form). Its
     color may name the same scale or another: a palette's domain is separate from the y domain (EC-205).
   - **Log** (EC-215): a value at or below zero is missing on a log scale, counted once per layer
-    (`seq.render.scale.log`, info; the scale's `non-positive`: `missing`, or `clamp` to the smallest positive in view).
+    (`seq.render.scale.log`, info; the scale's `non_positive`: `missing`, or `clamp` to the smallest positive in view).
   - Values are drawn at their value; the domain bounds the height and the palette, never the value (EC-55).
 - **Missing is not zero**: NaN, an absent field, an unmapped position take the missing token, distinct from any ramp's
   low end (ux-foundations section 1; a test checks the distance in oklab for every built-in ramp, both themes).
@@ -459,7 +460,7 @@ real use is **fixed**, with its reason. **No new port**: themes need no provider
 | Choice | Whose | Default | Why there |
 |---|---|---|---|
 | a channel's form, palette, scale, domain, rules | spec param (`layer` channels, `scale` nodes) | the layer type's default | the figure's meaning |
-| a scale's `type`, `mid`, `non-positive` | spec param (scale, or inline) | `linear`; a radius `sqrt`; none (continuous); `missing` | the writer's reading of the numbers (EC-215) |
+| a scale's `type`, `mid`, `non_positive` | spec param (scale, or inline) | `linear`; a radius `sqrt`; none (continuous); `missing` | the writer's reading of the numbers (EC-215) |
 | ESPript's `:gaps`, `:similarity`, `:mode` | spec param (the scheme's) | `count`, 0.7, `color` | what the figure claims (EC-135) |
 | `encoding` of values; `style` of secondary | spec param (layer) | `bars`; `blocks` | the figure's form |
 | line style, arrowheads, area opacity | spec param (`line`, `arrow`, `opacity` channels) | `solid`, `none` (EC-232), 0.35 | channels like any other |
@@ -571,7 +572,7 @@ The claim: **this design covers what a user does with themes and legends**.
   new exports and optional fields only, each with its test, so Mol\*'s own themes and MolViewSpec can use them; nothing
   of it kept privately in Seq\*):
   - `util/color/value-palette.ts`: `ValuePaletteLists` a lazy getter (same name and type); optional fields on the
-    continuous and discrete props and specs: `scale` (`linear`, `log`, `sqrt`, with log's non-positive rule) and `mid`
+    continuous and discrete props and specs: `scale` (`linear`, `log`, `sqrt`, with log's `non_positive` rule) and `mid`
     (a diverging center); on the categorical: `unlisted: 'hash'` (FNV-1a over UTF-8 into the list, or `others`) beside
     today's missing color, the default unchanged for MolViewSpec;
   - `util/color/spaces/oklab.ts` (new, beside `lab.ts`): conversions, `Color.interpolateOklab`, oklab distance, and the

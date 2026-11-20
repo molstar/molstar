@@ -371,7 +371,7 @@ registry entry, an option of a call, or fixed with its reason).
 | `navigator.window.floor` | `RenderConfig` preset | `centred` | the drawn window says where (Tensions) | `thumb` |
 | `navigator.trackScale`, `.trackMinPx` | `RenderConfig` preset | 0.25, 2 | a miniature reads as the view; a thinner track is not seen at dpr 1 | any |
 | `navigator.marks` | `RenderConfig` preset | selection, highlights, cursor | where is what I picked | any subset |
-| `navigator.idle` | `RenderConfig` preset | `quiet` | a part that vanishes moves the host's layout | `hidden` |
+| `navigator.idle` | `RenderConfig` preset | `quiet` | a part that vanishes moves the host's layout | `hidden` (not built: idle is quiet only, no item) |
 | `navigator.rail.grownPx`, `navigator.window.touchHitPx` | `RenderConfig` preset | 6, 24 | a target in use; a finger is wider than a pointer | px |
 | the embedded corner button | `SeqViewerSpec.ui` entry (`railToggle`), its state the reader's | on in the embedded layout | a cell's room is the reader's | off |
 | `navigator.form` | `ViewerConfig` | `rail` | a navigator on every linear section at no row's cost (the author's choice, the precedent) | `none` |

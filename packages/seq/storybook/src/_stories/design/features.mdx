@@ -59,93 +59,76 @@ What this version contains and will contain. Each feature links its story here o
   previews, story steps and whole roots (a load rejects with the issues), and its store on tables and nodes: tested, not
   shown in a story.
 
+- **The axis**: a section's direction (`genomic`, `reversed`, following another), another system's letters on a section
+  (a protein a codon wide on its gene), collapsed introns of zero width on every layout:
+  [Features › Coordinates](?path=/story/seq-next-features-coordinates--protein-and-gene-on-one-axis).
+- **Themes and legends**: field palettes, rules, schemes (Clustal X, ESPript, `classes` and its safe substitute), shared
+  domains as `scale` nodes, size channels, a reader's color-blind substitution, legends a host places:
+  [Features › Themes](?path=/story/seq-next-features-themes--themes).
+- **Layouts**: tracks whose heights fit their content, text and alignment figures, blocks (a row, a stack, chips of one
+  position), rings with a window a linear detail follows, through one layout interface:
+  [Features › Text](?path=/story/seq-next-features-text--text),
+  [Examples › Complex › Blocks](?path=/story/seq-next-examples-complex-blocks--row),
+  [Examples › Plasmid › Ring](?path=/story/seq-next-examples-plasmid-ring--ring).
+- **Navigators**: the ruler rail on every linear section, strips, an ideogram, a vertical overview, a miniature, a zoom
+  strip: [Features › Navigators](?path=/story/seq-next-features-navigators--rail).
+- **Pairs, grids and dot plots**: arcs above and below, chords on a ring, crossing pairs split, a grid's own section
+  with its crosshair, rectangles and navigation, linked pairs lit from a hovered or selected range:
+  [Examples › tRNA](?path=/story/seq-next-examples-trna-views--arcs),
+  [Examples › Complex › PAE and contacts](?path=/story/seq-next-examples-complex-pae-and-contacts--pae).
+- **The logo and the rows layer**: a conservation logo, an alignment's rows beside their tree, clades folded to a
+  summary row, row columns (a row's fields, identity, length) ordered by a title's click, pinned rows, 10,000 rows held
+  and millions lazy: [Examples › Globins › Rows](?path=/story/seq-next-examples-globins-rows--family),
+  [Features › Rows](?path=/story/seq-next-features-rows--columns).
+- **Files and formats**: FASTA, aligned FASTA, Stockholm, Newick, and tables as TSV, CSV, JSON, MessagePack and GFF3,
+  one source over several sequences: [Features › Files](?path=/story/seq-next-features-files--uniprot-entry); queries
+  over them: [Features › Query](?path=/story/seq-next-features-query--query-box).
+- **Numbering schemes**: a sequence's declared numbering (Kabat, IMGT) read by queries, addresses, the ruler and the
+  hover, insertions labelled, the positions it does not number marked:
+  [Examples › Antibody](?path=/story/seq-next-examples-antibody-views--schemes).
+- **Interaction**: the keyboard cursor over an alignment's rows and a grid's y; the hover card and the keys panel (a
+  port a host can replace); overlapping highlight channels; copying the selection's letters as shown:
+  [Features › Hover card and keys](?path=/story/seq-next-features-hover-card-and-keys--hover-card),
+  [Features › Highlights](?path=/story/seq-next-features-highlights--overlapping-channels).
+- **Stories**: steps as full states or patches, a player on the application's clock, a step's view:
+  [Features › Story](?path=/story/seq-next-features-story--story).
+- **Export**: SVG and PNG, the same picture as the canvas, with an accessible structure; the `seqx-render` command line.
+- **The datasets**: p53 (its tracks, its gene, a text figure, its chromosome by region), Globins, Plasmid, tRNA, Complex
+  and Antibody, each with an index of its sources and licences:
+  [Examples › p53 › Chromosome](?path=/story/seq-next-examples-p53-chromosome--chromosome).
+- **A minimal viewer**: the layer types and layouts a spec lists, nothing else in its bundle.
+
 ## Planned
 
-- **Language**:
-  - a spec written with a typed builder, stored as JSON (or MessagePack for large inline data), printed as
-    S-expressions;
-  - validation that reports every issue;
-  - versions and migrations;
+- **Language**: validation shown on the Antibody view's invalid labels; versions and migrations; the language's docs and
+  agent skill.
 - **Coordinates and maps**:
-  - indices and labels; numbering schemes beyond labels (offset, segments);
-  - cyclic systems;
-  - map kinds: identity, offset, numbering, segments, pairwise, alignment, codon, structure;
-  - maps written inline, read from a source, or computed by a runtime, and held compressed;
-  - direction on every run; paths and projection; codon tables;
-  - structure maps (SIFTS in abstract form);
-  - a section's direction (reversed, or reading along another system), collapsed introns, another system's letters on a
-    section (a protein a codon wide on its gene): the Axis page.
+  - numbering schemes beyond labels (offset, segments);
+  - map kinds beyond offset and codon (numbering, segments, pairwise, alignment, structure), computed maps;
+  - structure maps (SIFTS in abstract form) and two maps of one pair chosen by `priority` or `via` (the fourth slice);
+  - pairs, ranges and maps on an alignment's columns (the fourth slice, 0.5.0).
 - **Data and sources**:
-  - sequences, units, copies and ligands;
-  - alignments and trees, clades folded to a summary row, 10,000 rows held and millions lazy; row columns beside the
-    headers (a row's own fields, its identity and length, a joined table's), ordered by a title's click;
-  - the six annotation shapes;
-
-  - the text formats: FASTA, alignments, tables, Newick.
-
-- **Streaming and patches**: how state changes. Patches edit the spec and are the only undoable changes; streams bring
-  data and are never undone or saved.
-  - patches by address, all or nothing, with inverses and a correct `diff`; undo and redo, one step a batch;
-  - previews: a gesture's transient change, ending in one patch or a cancel;
-  - snapshots: named patches over the base (leaving a step is navigation, not undo);
-  - stories: a step as a full state or a patch (a delta from another step), a transition planned from the difference and
-    sampled at any time, run on the application's clock (the animation port), scrubbed, followed by another view on the
-    same plans and exported a step at a time: on p53 [Features › Story](?path=/story/seq-next-features-story--story);
-  - patches on streamed things (a bookmark on a transcript that comes and goes), and a command to keep a region on
-    purpose;
-  - patch streams from an agent or a host, applied in order (collaboration later);
-  - every command says whether it edits the spec, changes the session or only navigates;
-  - self-describing sources: format, location, index, assembly, aliases, fields;
-  - one source protocol for inline and streamed data: what a source covers, and a region at a level of detail;
-  - answers that carry nodes as well as tables (transcripts, nested sources, their own coordinate systems), shown by
-    track templates;
-  - a data store with versioned entries, pending never drawn as empty, prefetch, cancellation and byte-bounded eviction;
-  - open value domains computed when the view settles; exports that wait for their data;
-  - format runtimes as registry entries, bigWig as the proof, a synthetic asynchronous source for tests.
-- **Layers and themes**:
-  - values with points, split and log scale, pairs, matrix, grids and dot plots, logo, frames, rows;
-  - fallbacks;
-  - themes, residue schemes, shared domains as scale nodes, legends a host places, size channels, a reader's color-blind
-    substitution: the Themes and legends page;
-  - column measures for alignment schemes (Clustal X, percent identity, ESPript).
-- **Views**:
-  - tracks and text layouts, alignment figures;
-  - blocks, rings with a window a linear detail follows, through one layout interface: the Layouts page;
-  - navigators: the ruler rail on every linear section, strips, ideograms, a vertical overview, a miniature: the
-    Navigators page;
-  - follow and scroll groups, merged copies.
-- **Interaction and editing**:
-  - a configurable gesture grammar;
-  - hover across linked sections, selection, the keyboard cursor;
-  - focus and reveal, highlights;
-  - search and queries;
-  - track and group editing;
-  - copying a selection's letters as shown;
-  - the hover card and a keys panel (the context menu later).
-- **Rendering**:
-  - the resolved view and draw lists as public forms;
-  - Canvas2D, SVG and PNG, the same picture;
-  - a render CLI, a text-metrics port;
-  - the UX foundations.
-- **Ports with default adapters**: assets (Mol\*'s asset manager), text metrics, structure; archives over the assets
-  port.
+  - molecules: `complex` and `unit` kinds, copies addressed by unit (the fourth slice);
+  - A3M and Clustal; the matrix shape (with the Genomes milestone);
+  - patches on streamed things and a command to keep a region; patch streams from an agent or a host;
+  - a source's assembly; bigWig read by region, as proof that a genome format plugs in.
+- **Layers and themes**: fallbacks; kinds of pairs at one cell as glyphs; track groups and summaries.
+- **Interaction and editing**: search and its results; track and group editing beyond hide, reorder and themes; the
+  context menu with track header parts (the fourth slice); drags snapped to whole codons.
+- **Rendering**: a second consumer of the resolved view (the test consumer); the glyph atlas and band copy.
+- **Ports with default adapters**: structure syncing as a library (the fourth slice); archives over the assets port; seq
+  data ports (the fourth slice).
 - **Configuration and extensions**:
   - one typed configuration (settings in layers and a generated form come later);
   - layout and spacing in presets;
-  - extension descriptors;
+  - extension descriptors (the fourth slice);
   - node kinds and custom fields;
   - every registry open.
-- **Addressing**: local, hierarchical ids; addresses as `path/(query :key value)` for nodes, locations, elements and
-  rects; user-defined refs (bookmarks are refs); commands and markdown links act on addresses; copy link. Built: refs
-  and bookmarks (on dynamic nodes too), addresses resolved and printed back, links, the commands, the selection and the
-  focus as addresses (the Features › Addressing stories); highlights are not drawn yet.
-- **Example datasets**: real public entries under permissive licences, their provenance kept as data, large variants
-  generated in code: the Examples page.
+- **Addressing**: rects as addresses; one href driving Mol\* too.
 - **Integration and showcases**:
-  - a second consumer of the resolved view, in tests (it stays general);
-  - bigWig read by region, as proof that a genome format plugs in;
   - an application composing services (UniProt, PDBe, AlphaFold DB) and reading structure files;
-  - the Mol\* link: a lab's position-indexed predictions mapped onto a structure's `label` and `auth` numbering.
+  - the Mol\* link on a fake structure viewer first (the fourth slice): a lab's position-indexed predictions mapped onto
+    a structure's `label` and `auth` numbering.
 
 ## Deferred
 
