@@ -457,8 +457,9 @@ and dark before the merge.
       Creating a viewer): lane MV (strong, after RK: it touches core's renderer and the viewer), `briefs/mv-minimal-viewer.md`.
 - [x] M3 measured (2026-11-20, `measurements.md`): heavy, perf, the browser at dpr 2 pass but for the Storybook
       emphasis frame's 800 B (lane EA), two 100 ms zoom frames on 10,000 rows (fourth slice's fixes) and every size row.
-- [ ] RR (strong, after CL) reduce `seq/core/src/render` before the size targets move (`briefs/rr-render-reduction.md`).
-- [ ] GATE: the author confirms or moves the targets the slice touched. **Decided for sizes** (the author, 2026-11-20:
+- [x] RR (strong; merged 2026-11-20: the minimal viewer 853.3 → 801.7 kB; the other entries hold every built-in by design) reduce `seq/core/src/render` before the size targets move (`briefs/rr-render-reduction.md`).
+- [x] GATE: the author confirms or moves the targets the slice touched. Moved (the author, 2026-11-20: "give the bounds a
+      little wiggle room"): bounds of 195 / 780 / 1250 / 880 kB (performance.md, Size); `sideEffects` not now (TODO). **Decided for sizes** (the author, 2026-11-20:
       "reduce render first, then move the size targets"): RR first, then the targets reset to RR's measured sizes
       with room.
 

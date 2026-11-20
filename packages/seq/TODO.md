@@ -50,6 +50,10 @@ base-library change, below), archives. The Genomes milestone is the fifth.
 - **Type checks of core's tests**: core's other `_test` folders have 73 type errors; `tsconfig.test.json` covers
   `data/immutable` only. Done when every `_test` folder is in it and clean.
 
+- `"sideEffects": false` in `@molstar/core` and `@molstar/ui`: about 14.4 kB off the viewer and 2.5 kB off reading a
+  spec (immutable's unused barrel members, DOM watch and work). Not now (the author, 2026-11-20): a repository-wide
+  change, after an audit of both packages for import-time effects (CSS, registrations) and a build of every app.
+
 ## `@molstar/seqx-core`
 
 - **Track heights and labels beside for a source's items** (`render/ranges.ts` `content`): a source-backed layer (a

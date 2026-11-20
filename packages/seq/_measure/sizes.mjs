@@ -4,6 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+// Bounds since the third slice's close (the author, 2026-11-20: "reduce render first, then move the size targets",
+// "give the bounds a little wiggle room"): its measured sizes after the render reduction, with about 10 % room.
 // The size targets (performance.md, Size): the entries of this folder bundled for the browser, minified, ESM, split
 // (what loads before any dynamic import is measured: the entry chunk and its static imports),
 // from the sources (the `molstar-src` condition), and the table of their sizes, minified and gzipped, against the
@@ -51,11 +53,10 @@ const Unlisted = [
 
 /** Target and entry of each case, bytes (minified). */
 const AllCases = [
-  { name: 'reading a spec', entry: 'spec-read.ts', target: 160_000 },
-  { name: 'headless rendering', entry: 'headless.ts', target: 300_000 },
-  { name: 'the viewer, default', entry: 'viewer.ts', target: 600_000 },
-  // no target of its own yet ("a minimal one could be smaller"): the table shows what it weighs
-  { name: 'viewer, minimal', entry: 'viewer-minimal.ts', target: 600_000, unlisted: Unlisted },
+  { name: 'reading a spec', entry: 'spec-read.ts', target: 195_000 },
+  { name: 'headless rendering', entry: 'headless.ts', target: 780_000 },
+  { name: 'the viewer, default', entry: 'viewer.ts', target: 1_250_000 },
+  { name: 'viewer, minimal', entry: 'viewer-minimal.ts', target: 880_000, unlisted: Unlisted },
 ];
 
 const Cases = only ? AllCases.filter((c) => c.entry === only) : AllCases;

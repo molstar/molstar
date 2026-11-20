@@ -68,8 +68,8 @@ CS, SC, MF, CF, MV, UN, PG (PCG32), LP, RX, DB, DS, PZ, PF, LX; the list in `exe
   the keys panel, highlights that overlap, accessibility (an SVG's figure and items, announcements), a minimal viewer
   composed by the spec's registry.
 - Export: PNG, and the `seqx-render` command line.
-- Measured (stage 7): 175.4 / 712.0 / 1142.4 / 853.1 kB min (reading a spec, headless rendering, the default and the minimal viewer, against
-  the guides 160 / 300 / 600 kB, reset at the close).
+- Sizes (after RR, the render reduction): 175.4 / 711.8 / 1142.5 / 801.7 kB min (reading a spec, headless rendering,
+  the default and the minimal viewer), against bounds of 195 / 780 / 1250 / 880 kB ([performance](design/performance.md), Size).
 
 Which features are built, partly or not at all: [design/features.md](design/features.md). Which edge cases have an
 outcome: [design/edge-cases.md](design/edge-cases.md), Outcomes.

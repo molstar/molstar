@@ -131,11 +131,19 @@ costs up to `f` times the pixels.
 
 ## Size
 
+Bounds, not guides (the author, 2026-11-20: "reduce render first, then move the size targets", "give the bounds a
+little wiggle room"): the third slice's sizes after its render reduction, with about 10 % room, checked at every
+gate; a growth past one is fixed or brought to the author with the feature behind it. Headless rendering and the
+default viewer hold every built-in on purpose: their size is the features; a smaller host composes the minimal viewer.
+`"sideEffects": false` for `@molstar/core` and `@molstar/ui` (about 17 kB) waits for an audit of their import-time
+effects (`TODO.md`).
+
 | What | Target (minified) |
 |---|---|
-| Reading a spec (decode, validate, resolve), no viewer | under 160 kB (150 until the second slice: its security bounds, refs by key and address forms added about 17 kB; the author, 2026-11-18, "Yes, as recommended"; editing is its own entry, `@molstar/seqx-core/lang/changes`) |
-| Headless rendering (the above, layout, draw lists, SVG) | under 300 kB |
-| The viewer, default configuration | under 600 kB (the previous one: 1,040 kB) |
+| Reading a spec (decode, validate, resolve), no viewer | under 195 kB (150 in the first slice, 160 in the second; measured 175.4 at the third slice's close) |
+| Headless rendering (the above, layout, draw lists, SVG) | under 780 kB (300 until the third slice, whose layers, layouts, navigators and rows it holds; measured 711.8) |
+| The viewer, default configuration | under 1,250 kB (600 until the third slice; measured 1,142.5; the previous Seq\*: 1,040 kB) |
+| The viewer, minimal (tracks, letters and ranges) | under 880 kB (measured 801.7) |
 | A format runtime (bigWig) | under 30 kB, loaded only when composed |
 
 ## Scale
