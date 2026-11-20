@@ -34,13 +34,14 @@ The third slice is closed (2026-11-20; its record in `.seq/records/third-slice/`
 
 ## In progress
 
-- 2026-11-20: QE merged. ST1 (strong; `seq/st1-lane`) and HP1 (strong; `seq/hp1-lane`) build in their worktrees.
+- 2026-11-20: QE merged (d0e354c4c). ST1 (strong; `seq/st1-lane`), HP1 (strong; `seq/hp1-lane`) and AC (strong;
+  `seq/ac-lane`, from d0e354c4c) build in their worktrees.
 
 ## Next
 
 1. QE's heavy bound (`:index`, `itWithin` 400 ms) runs at stage 1's gate (the lane could not run the heavy lane).
 2. ST1 and HP1: check, look (HP1's stories), review, fix round, merge, record.
-3. AC (strong, after QE) now; HP2 after ST1 and HP1; MR, CU, MX on the molecules track; FX3 after stage 1's gate.
+3. HP2 after ST1 and HP1; MR, CU, MX on the molecules track; FX3 after stage 1's gate.
 
 ## Findings by lane
 
