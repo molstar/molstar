@@ -180,12 +180,18 @@ coverage, which exists.
   below) takes its share first, fixed.
 - **Small blocks run together**: consecutive blocks each narrower than `blocks.runPx` (2 CSS px, `RenderConfig`) at the
   current scale are drawn as one **run**: one band over their joined extent, no gaps inside, a hairline at each end,
-  labelled when it has room ("2,841 contigs"); its layers draw each block's data at its place as usual (a run is a
-  drawing of gaps and labels, not a merge of data). A hit in a run names the block under the point and the run's count
+  labelled when it has room ("2,841 contigs"). **The joint rule with RR** (region-reads.md, word for word): inside a
+  run a block's layers read and draw its data at its place while the block is at least one device pixel wide
+  (`blocks.readPx`, 1 device px); a block under one device pixel reads nothing at that zoom, and its stretch of the run
+  shows the run's band alone, its hover naming the block and "not read at this zoom". Pairs with an end on an unread
+  block are still read from their other end's tile and drawn at the block's place (`placesOf`); a pair with both ends
+  on unread blocks is not drawn, and the run's hover counts it. Runs and the read set are recomputed on a zoom, never on
+  a pan. A run is a drawing of gaps and labels, not a merge of data. A hit in a run names the block under the point and the run's count
   (its hover: "chrUn_KI270302v1, one of 2,841"); a click selects that block; a double-click fits the run, where its
   blocks part again. Runs are recomputed on a zoom (a prefix sum over blocks, O(blocks)), never on a pan. Why: below
-  two px a block's gap and label are noise and a hairline each is a comb; a run keeps every block's data drawn and hit
-  while the boundaries that cannot be read are not drawn. The same rule on rings, measured at the outer radius.
+  two px a block's gap and label are noise and a hairline each is a comb; data needs one device pixel to be seen, and
+  under it a block's data is more requests than pixels (3,000 contigs × layers), while its pairs, the data a genome view
+  reads across blocks, survive through their other end. The same rule on rings, measured at the outer radius.
 
 ### A direction per block (closing the axis design's tension)
 
@@ -594,6 +600,6 @@ them all. Still open after it, for the gate:
 - A direction per piece inside one block stays open: axis.md's tension is narrowed, not closed; the plan's Done when
   says closed and is reconciled at the gate.
 - Follow between unequal block lists stays refused.
-- Data reads inside a run of sub-pixel blocks are not measured yet.
+- Data reads inside a run (the joint rule with RR, amended in after RR's revision) wait for GC2's measure.
 - `natural` order on worded names stays a tension.
 - The square navigator's bound is agreed with RR's draft at the gate.
