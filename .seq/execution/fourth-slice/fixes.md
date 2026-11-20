@@ -25,6 +25,10 @@ queue. Each line: what is seen, where (the story), where it came from, its kind 
   rows are drawn. The author, 2026-11-20. Check: the plot box against the host's size on resize (grids-and-rows.md: the
   plot box is fixed); the canvas's backing size against its CSS size at a changed devicePixelRatio or zoom; the right
   edge's clip against the end-numbers column; the status text's settle.
+- **Two frames of about 100 ms in every zoom of the 10,000 × 300 alignment** (bug): Globins › Rows › Scale at dpr 2. A
+  frame callback outside the viewer's ticks, most likely the rows' image tiles rebuilt at a new level. Build them
+  across frames and keep the old level drawn meanwhile (performance.md, Levels). From the third slice's M3
+  (`third-slice/measurements.md`).
 - **The vertical overview went missing from the stories and examples** (bug; first in FX1): the rows rail was to be added
   beside the vertical overview (the author: "also have the thin slider"), but it replaced it. Globins › Rows › Folded
   and the other alignments now show only the rail. The author, 2026-11-20: "at the very least we should have stories for
