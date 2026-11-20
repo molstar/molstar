@@ -60,7 +60,7 @@ const Rows = {
   id: ['a', 'b', 'c', 'd', 'e'],
   category: ['activation', 'linker', 'binding', 'linker', 'oligomer'],
 };
-const Filter = '/(not :of (item :category linker))';
+const Filter = '/(except :of (item :category linker))';
 
 /** p53: a letters track, a filtered ranges track (two lines high), a short filtered one, and the tracks `hidden` hides. */
 function spec(hidden: readonly string[] = []): Node {

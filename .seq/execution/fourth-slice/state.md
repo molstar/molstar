@@ -29,18 +29,19 @@ The third slice is closed (2026-11-20; its record in `.seq/records/third-slice/`
 - Module size (§module-size, `.seq/_checks/file-size.ts`): lane SZ splits the four files over 1500 lines after FX1,
   while no other lane is in them (the author, 2026-11-20: "Yes, add all three").
 - Size targets are bounds once reset after RR (the author, 2026-11-20: "reduce render first, then move the size
-  targets").
+  targets"). Moved for the query language: reading a spec 230, headless 820, minimal 920 kB (the author,
+  2026-11-20), the default viewer 1,290 kB ("Move to 1290 kB", 2026-11-20).
 
 ## In progress
 
-- 2026-11-20: the loop started. ML1 (strong; `seq/ml1-lane`), FX1 (strong; `seq/fx-1`; fixes.md's open items but the
-  orchestrator's looks), AR (fast; `seq/ar-lane`), each in its own worktree from `e2769319e`. ML1 builds the
-  `@molstar/core` standard components last, in commits that can be dropped, for the author's acceptance.
+- 2026-11-20: QE, ST1 and AC merged. HP1 (strong; `seq/hp1-lane`) in review.
 
 ## Next
 
-1. On each report: check, look (FX1's and AR's stories), review in its own worktree, fix round, merge, record.
-2. Then each track in the plan's order: DP after ML1; SZ after FX1; MC beside ML2 (after ML1's node shapes).
+1. QE's heavy bound (`:index`, `itWithin` 400 ms) runs at stage 1's gate (the lane could not run the heavy lane).
+2. HP1: the review's fix round, merge (the author on `Emphasis.header` and the "⋯" order if the review raises them).
+   The drift notes (`drift/`) asked at stage 1's gate.
+3. MR (strong, after AC) now on the molecules track; HP2 after HP1; then CU, MX; FX3 after stage 1's gate.
 
 ## Findings by lane
 
@@ -60,6 +61,9 @@ One row a merged lane (loop, step 5, record): review findings and look findings 
 | FX2 | 2026-11-20 | 3 (review: the rail not back when a narrow frame hid the overview; a large group's card cut; a possible resize loop) | 2 (no tree toggle; model issues unwired) | 0 | the ruler's allocation; the look clean |
 | MK | 2026-11-20 | 2 (review: provenance on the wrong run; overlaps on `to` unchecked) | 2 (the ranking rule and an unused via, decided) | 0 | a weak property test; model.ts 1483 → 1370 |
 | SZ (2) | 2026-11-20 | 0 | 0 | 0 | review: no behavior change; a test anchored on shims, viewer-motion's viewports, two nits (to the next fix lane) |
+| QE | 2026-11-20 | 3 (review: an empty column printed as everything; a pending property dropped in node filters, EC-169; column lengths unbounded before zipping) | 0 | 0 | `:index` scanned rows × residues (4.2 s → indexed); monadic laws untested; internals exported; PYL; the default viewer 2.7 kB past its bound, moved to 1,290 kB (the author) |
+| ST1 | 2026-11-20 | 6 (review: the entry unresolvable by name; colorRuns not compiled as the track; past the tile bound read complete-empty, EC-169; an overlay unit's maps ignored; the gate lighting unobserved-only units; toUnits quadratic) | 1 (resolve cannot hold a map onto a source's unit: drift) | 0 | test gaps (units past 0, EC-4, atoms); re-exports internal; Seq*'s own surface accepted by the orchestrator; nothing drawn |
+| AC | 2026-11-20 | 0 | 2 (the `alignment` map kind owed, a `segments` stopgap; one fixed name for every alignment's columns: drift) | 0 | weak tests (a path compared with itself, a test passing on the parent, the hover's section unchecked, no gap end drawn); EC-48 claimed whole; a duplicated kinds list; the look deferred to MX; core/render 2.28 s at load 8.9 (the gate measures it quiet) |
 
 ## How to verify
 

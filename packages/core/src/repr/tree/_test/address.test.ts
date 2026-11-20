@@ -102,7 +102,7 @@ describe('repr/tree: address grammar', () => {
       ['/a//b', 'repr.tree.address.syntax'],
       ['/*/a', 'repr.tree.address.syntax'],
       ['/a/(f :x 1', 'repr.tree.address.syntax'],
-      ['/a/(f x)', 'repr.tree.address.form'],
+      ['/a/(f :x 1 y)', 'repr.tree.address.form'],
       ['/a/(F)', 'repr.tree.node.kind'],
       ['/a/(f :x)', 'repr.tree.address.form'],
       ['/a/(f :x 1 :x 2)', 'repr.tree.address.form'],
@@ -323,5 +323,45 @@ describe('repr/tree: the child index', () => {
     const copy = [{ kind: 'c', id: 'new' }, ...tree.children!];
     expect(childIndex(copy, 'c5')).toBe(6);
     expect(childIndex(tree.children, 'c5')).toBe(5);
+  });
+});
+
+describe('positional values and operator heads', () => {
+  const round = (text: string) => {
+    const p = parseAddress(text);
+    expect(p.issues).toEqual([]);
+    return print(p.pattern!);
+  };
+
+  it('reads positional values before keyword params into args, and prints them back the same', () => {
+    const text = '/data/1fin/(elements :chain A)/(filter :test (> (prop b-factor) 60))';
+    expect(round(text)).toBe(text);
+    const filter = parseAddress(text).pattern!.segments[3] as Node;
+    const test = filter.params!.test as Node;
+    expect(test).toEqual({ kind: '>', args: [{ kind: 'prop', args: ['b-factor'] }, 60] });
+    for (const t of [
+      '/(f :test (and (= (prop chain) A) (in-range (prop seq) 10 20) (not (in (prop component) [NAG MAN]))))',
+      '/(f :test (!= (value /data/x/plddt :field score) nil))',
+      '/(f :test (<= 1 2 "a b"))',
+      '/(groups :by atom :residue-test (>= (prop auth-seq) -3))',
+    ])
+      expect(round(t)).toBe(t);
+  });
+
+  it('a positional value after a keyword, an unknown symbol head: refused with an offset', () => {
+    expect(parseAddress('/(f :a 1 2)').issues.map((i) => [i.code, i.offset])).toEqual([['repr.tree.address.form', 9]]);
+    expect(parseAddress('/(=> 1 2)').issues.map((i) => i.code)).toEqual(['repr.tree.node.kind']);
+  });
+
+  it('every existing address reads and prints as before; a form with values selects no child', () => {
+    for (const t of ['/data/p53/(range :from 94 :to 292)', '/a/(b :c [1 (d :e f)] :g /x/y)/*', '/(item :id "1")'])
+      expect(round(t)).toBe(t);
+    const root: Node = { kind: 'root', children: [{ kind: 'f', id: 'a' }] };
+    expect(selectAddress(root, '/(f)', { limit: 9 }).matches.length).toBe(1);
+    expect(selectAddress(root, '/(f 1)', { limit: 9 }).matches.length).toBe(0);
+    // built in code: checked as text is
+    const seg = { kind: '<', args: [{ kind: 'prop', args: ['x'] }, { kind: 'r' }] } as Segment;
+    expect(printAddress([seg])).toBe('/(< (prop x) (r))');
+    expect(() => printAddress([{ kind: '=', args: [{ v: 1 }] } as never])).toThrow();
   });
 });

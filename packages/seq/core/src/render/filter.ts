@@ -7,7 +7,7 @@
 import type { Node, Value } from '@molstar/core/repr/tree';
 
 // A layer's data filter read row by row (_spec/README.md "Themes", Filters): the query's form after its annotation,
-// as the query sublanguage evaluates it on items (`item` by `:id` or a field, `not`, `and`, `or`), compiled once a
+// as the query sublanguage evaluates it on items (`item` by `:id` or a field, `except`, `intersect`, `merge`), compiled once a
 // prepare to a predicate over a row's key and fields. A form it cannot read row by row filters nothing and is said.
 
 /** A row as a filter reads it: its element key and a field's value. */
@@ -39,13 +39,23 @@ export function compileRowFilter(form: Node): RowFilter | undefined {
         return true;
       };
     }
-    case 'not': {
+    case 'except': {
+      // one operand: the rows it rejects; several: the first's rows the others reject
       const of = params.of;
-      const inner = isNode(of) ? compileRowFilter(of) : undefined;
-      return inner ? (row) => !inner(row) : undefined;
+      const ops = Array.isArray(of) ? of : [of];
+      const parts: RowFilter[] = [];
+      for (const o of ops) {
+        const f = isNode(o) ? compileRowFilter(o) : undefined;
+        if (!f) return undefined;
+        parts.push(f);
+      }
+      if (!parts.length) return undefined;
+      if (parts.length === 1) return (row) => !parts[0](row);
+      const [first, ...rest] = parts;
+      return (row) => first(row) && !rest.some((f) => f(row));
     }
-    case 'and':
-    case 'or': {
+    case 'intersect':
+    case 'merge': {
       const of = params.of;
       if (!Array.isArray(of)) return undefined;
       const parts: RowFilter[] = [];
@@ -54,7 +64,7 @@ export function compileRowFilter(form: Node): RowFilter | undefined {
         if (!f) return undefined;
         parts.push(f);
       }
-      return form.kind === 'and' ? (row) => parts.every((f) => f(row)) : (row) => parts.some((f) => f(row));
+      return form.kind === 'intersect' ? (row) => parts.every((f) => f(row)) : (row) => parts.some((f) => f(row));
     }
     default:
       return undefined;

@@ -27,6 +27,7 @@ export {
   defaultAssetsPort,
   type ManagedAssetsPort,
   type PortResult,
+  queryExtensionsOf,
   type ReaderAssetsPort,
   runtimesOf,
   type SeqConfigItem,
@@ -35,7 +36,6 @@ export {
   SeqCoreConfig,
   type SeqPorts,
   type SeqRegistryEntry,
-  type StructurePort,
   type TextMetricsPort,
   type TrackSizingPort,
 } from './context.js';

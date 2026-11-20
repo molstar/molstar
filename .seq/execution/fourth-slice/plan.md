@@ -246,7 +246,7 @@ disagrees with its code writes a drift note and stops.
 
 ### The query language's elements (strong; `briefs/qe-query-elements.md`; designs: locations-and-queries.md, properties.md)
 
-- [ ] QE after MC (its 3SGJ fixture) and ML2: `elements` and `groups`, a generic `filter` over typed properties with
+- [x] QE after MC (its 3SGJ fixture) and ML2: `elements` and `groups`, a generic `filter` over typed properties with
       positional operands, modifiers and combinators (`merge`/`intersect`/`except`), the `query-form` and
       `query-property` registry kinds, short and long aliases, selections as records or columns; `atom`, `entity` and
       `component` removed (the author, 2026-11-20: "we should not really have (atom), we should have (elements ....)").
@@ -273,7 +273,7 @@ disagrees with its code writes a drift note and stops.
       `priority` and the section's `via` with `StaticModel.path(from, to, via?)` (structure-syncing, Choosing between
       two maps; both params join the bump), a numbering's `offset` and `segments` methods (NB's leftovers); EC-22 to
       EC-27 on every encoding (`briefs/mk-structure-maps.md`).
-- [ ] AC (strong, after MK; followups: "Yes, slice 4 (0.5.0)") pairs, ranges and maps targeting an alignment's columns:
+- [x] AC (strong, after MK; followups: "Yes, slice 4 (0.5.0)") pairs, ranges and maps targeting an alignment's columns:
       the tRNA's `SS_cons` arcs over the alignment, a chain mapped onto its closest seed row
       (`briefs/ac-alignment-targets.md`).
 - [ ] MR (strong, after AC) drawing and interaction: a section of a complex, `form` through the chips, the letters' mark
@@ -293,7 +293,7 @@ disagrees with its code writes a drift note and stops.
 
 - [ ] HP1 (strong) core's header line, slots, hits and chips; `TrackLayout.header` replaces `TrackLayout.filter`
       (track-header-parts, Consequences; `briefs/hp1-header-line.md`).
-- [ ] ST1 (strong, after HP1; MK done) the translation library, `@molstar/seqx-core/structure` (a new entry, not a
+- [x] ST1 (strong, after HP1; MK done) the translation library, `@molstar/seqx-core/structure` (a new entry, not a
       port): `structureFacts`, `unitRows`, `toUnits` and `fromUnits` (the size gate, `seq.structure.*` issues),
       `colorRuns`; core's `SeqPorts.structure` stub removed; the round-trip test against DP's `structureNodes`
       (`briefs/st1-structure-core.md`).

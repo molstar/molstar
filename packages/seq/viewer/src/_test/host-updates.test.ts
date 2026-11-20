@@ -11,7 +11,7 @@
 import type { Node } from '@molstar/core/repr/tree';
 import type { FormatRuntime, OpenedSource } from '@molstar/seqx-core/data';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
-import { elements, location } from '@molstar/seqx-core/query';
+import { keySet, location } from '@molstar/seqx-core/query';
 import { nodeAddress, resolveSpec } from '@molstar/seqx-core/resolve';
 import { DomHost } from '@molstar/ui/dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -198,7 +198,7 @@ describe('a host’s updates', () => {
     const B = nodeAddress('/data/zf', 'B');
     selection.set(
       {
-        elements: elements([{ owner: B, key: 'x' }]),
+        elements: keySet([{ owner: B, key: 'x' }]),
         location: location({
           parts: [
             { system: A, ranges: [0, 2] },

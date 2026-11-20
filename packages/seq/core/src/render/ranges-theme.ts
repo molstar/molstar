@@ -8,7 +8,8 @@ import { CategoryColumn } from '@molstar/core/repr/tree';
 import type { ItemRows } from './items.js';
 import type { Channel } from '@molstar/seqx-core/theme/index';
 import type { LayoutContext } from './layer-type.js';
-import { CategoryCount, withAlpha } from './tokens.js';
+import { rangesColorFallback } from './layer-color.js';
+import { withAlpha } from './tokens.js';
 import type { RangesLay, RangesPrep } from './ranges-lay.js';
 
 // A ranges layer's channels (_spec/README.md "Themes"): each item's fill, size and painted value through its table's
@@ -26,12 +27,7 @@ export function themeItems(lay: RangesLay, prep: RangesPrep, ctx: LayoutContext)
   datum.bind(rows.n ? rows.fields[0] : undefined);
   const extra = datum.env;
   // a layer with no color: the next categorical color by its order in the view (_spec/README.md "Themes")
-  const color = prep.channels.get(
-    'color',
-    ctx.colorIndex === undefined ? 'token:range' : CategoryTokens[ctx.colorIndex % CategoryTokens.length],
-    ctx,
-    extra,
-  );
+  const color = prep.channels.get('color', rangesColorFallback(ctx.colorIndex), ctx, extra);
   const size = prep.channels.get('size', 1, ctx, extra);
   const opacity = prep.channels.get('opacity', 1, ctx, extra);
   lay.color = color;
@@ -82,9 +78,6 @@ export function themeItems(lay: RangesLay, prep: RangesPrep, ctx: LayoutContext)
   }
   lay.extents.flush(ctx.theme);
 }
-
-/** The categorical palette's tokens, a colourless layer's default by its place (`LayoutContext.colorIndex`). */
-const CategoryTokens = Array.from({ length: CategoryCount }, (_, k) => `token:cat-${k}`);
 
 /** The colors of a dictionary's values through a channel that reads one field: index a code. */
 function codeFills(channel: Channel, dict: readonly string[], missing: number, out: Uint32Array): Uint32Array {

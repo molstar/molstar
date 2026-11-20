@@ -64,8 +64,11 @@ const ThemeCodes: Readonly<Record<ThemeIssueCode, true>> = {
   'seq.render.color': true,
 };
 
+/** What compiling a layer's channel reads of a layout: its tokens, the theme context, the layer's key, the report. */
+export type ChannelContext = Pick<LayoutContext, 'tokens' | 'theme' | 'key' | 'report'>;
+
 /** A theme code reported for the layer at `ctx.key`, once a layout (the layout dedupes by code and address). */
-export function reportTheme(ctx: LayoutContext, code: ThemeIssueCode, message: string): void {
+export function reportTheme(ctx: ChannelContext, code: ThemeIssueCode, message: string): void {
   if (!ThemeCodes[code]) return;
   ctx.report(issueOf(RenderIssues, code, message, { address: ctx.key, hint: RenderIssues.codes[code].hint }));
 }
@@ -87,11 +90,11 @@ interface Kept {
 export class LayerChannels {
   private readonly kept = new Map<ChannelName, Kept>();
   /** The layout reading the channels now: what a channel says while drawing goes to it. */
-  private ctx: LayoutContext | undefined;
+  private ctx: ChannelContext | undefined;
   constructor(readonly forms: Readonly<Partial<Record<ChannelName, unknown>>>) {}
 
   /** The channel `name` (its slot's body, else `fallback`, the layer type's default) for this layout. */
-  get(name: ChannelName, fallback: ThemeBody, ctx: LayoutContext, extra: Partial<ThemeEnv> = NoExtra): Channel {
+  get(name: ChannelName, fallback: ThemeBody, ctx: ChannelContext, extra: Partial<ThemeEnv> = NoExtra): Channel {
     this.ctx = ctx;
     const theme = ctx.theme;
     const k = this.kept.get(name);

@@ -12,6 +12,7 @@ import type { StaticModel } from '@molstar/seqx-core/resolve';
 import type { ResolvedView } from '@molstar/seqx-core/view';
 import type { Viewport } from './axis.js';
 import type { ThemeContext } from './channels.js';
+import { type LayerColors, layerColors, viewTheme } from './layer-color.js';
 import { DefaultRenderConfig, type RenderConfig } from './config.js';
 import { DrawLists, EmphasisPasses, type PassName } from './draw-lists.js';
 import { ImageCache } from './images.js';
@@ -273,6 +274,23 @@ export class Renderer {
   /** What the layouts keep between frames (its held domains: a navigator over this view reads them). */
   get layoutState(): LayoutState {
     return this.state;
+  }
+
+  /**
+   * Its view's layers' color channels as its frames compile them (_spec/README.md "Render", Layer colors): its schemes
+   * and measures, the reader's substitution of its last frame, its held domains (another renderer's when it reads
+   * those). What a host colors a structure by a track with (`@molstar/seqx-core/structure`'s `colorRuns`).
+   */
+  layerColors(): LayerColors {
+    const d = this.options.domains;
+    return layerColors(
+      this.options.view,
+      viewTheme(
+        this.options.view,
+        { ...this.options.theme, cvdSafe: this.parts.cvdSafe },
+        d ? (key) => d.state.domains.get(d.map(key)) : (key) => this.state.domains.get(key),
+      ),
+    );
   }
   private readonly config: RenderConfig;
   /** The shared image cache of its frames (every layer's image tiles, one budget). */

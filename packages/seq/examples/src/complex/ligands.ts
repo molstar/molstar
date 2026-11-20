@@ -100,9 +100,9 @@ export function build(options: LigandsOptions = {}, d: Derived = Data): Node {
 /** The color of the `k`th ligand's arcs: the categorical palette's `k`th token (its eight in turn). */
 export const ligandColor = (k: number) => `token:seq-cat-${k % 8}`;
 
-/** A ligand's contacts hidden: every row filtered out (`(not (item :type contact))`). */
+/** A ligand's contacts hidden: every row filtered out (`(except :of (item :type contact))`). */
 export const hiddenData = (pairs: string) =>
-  `${pairs}${printAddress([{ kind: 'not', params: { of: { kind: 'item', params: { type: 'contact' } } } }])}`;
+  `${pairs}${printAddress([{ kind: 'except', params: { of: { kind: 'item', params: { type: 'contact' } } } }])}`;
 
 /** ATP per heavy atom. */
 export const atoms = () => build({ atp: 'atoms' });

@@ -26,6 +26,7 @@ import {
 import { type QueryIssueCode, QueryIssues } from './issues.js';
 import { isEmptyLocation, type Location, unionLocations } from './location.js';
 import type { QueryAnnotation, QueryModel, QuerySystem } from './model.js';
+import type { CompileContext } from './expressions.js';
 import type { QueryResult } from './result.js';
 
 /** An evaluation failed: its issues (at least one error). Thrown inside a resolver, caught at its edge. */
@@ -52,6 +53,8 @@ export interface Ctx {
   readonly resolvers: Readonly<Record<string, FormResolver>>;
   readonly issues: Issue[];
   readonly shared: Shared;
+  /** The properties and operators predicates read: the built-ins and the registry's (`query-extensions.ts`). */
+  readonly ext: CompileContext;
   complete: boolean;
   pending: Location;
 }

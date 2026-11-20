@@ -6,7 +6,7 @@
 
 import type { Issue } from '@molstar/core/repr/tree';
 import type { Coverage, DataEntry, Want } from '@molstar/seqx-core/data';
-import type { ElementKey, Elements, Location } from '@molstar/seqx-core/query';
+import type { Key, Keys, Location } from '@molstar/seqx-core/query';
 import type { Overlay, StaticModel } from '@molstar/seqx-core/resolve';
 import type { Legend } from '@molstar/seqx-core/theme/index';
 import type { ResolvedLayer, ResolvedSection } from '@molstar/seqx-core/view';
@@ -143,7 +143,7 @@ export interface LabelSink {
    * cyclic origin), its element, the hit its placed label gives (the item's, never a second hit at an anchor, EC-108)
    * and its order (what a layout that cannot place every label keeps first: lower first).
    */
-  label(text: string, start: number, end: number, element: ElementKey, hit?: Hit, order?: number): void;
+  label(text: string, start: number, end: number, element: Key, hit?: Hit, order?: number): void;
 }
 
 /**
@@ -153,7 +153,7 @@ export interface LabelSink {
 export interface Hit {
   readonly layer: string;
   readonly section: string;
-  readonly element?: ElementKey;
+  readonly element?: Key;
   /** The element's extent, on its data's system. */
   readonly extent?: Location;
   /**
@@ -237,7 +237,7 @@ export interface EmphasisHighlight {
    * The channel's element keys (_spec/README.md "Render", Emphasis): a layer whose items are keyed draws those it holds
    * in the channel's color (the pairs layer: its arcs, chords and dots), whatever the Location covers.
    */
-  readonly elements?: Elements;
+  readonly elements?: Keys;
   /** `0xRRGGBBAA`: drawn at `emphasis.highlightTint` opacity. */
   readonly color: number;
   /** How it is drawn in its stripe: a `tint` (the default), a `band` along the foot, an `outline`. */
@@ -259,7 +259,7 @@ export interface Emphasis {
    * The selection's element keys: a layer draws those its Location cannot hold (a boundary, an item of zero length, as a
    * hairline, EC-127).
    */
-  readonly elements?: Elements;
+  readonly elements?: Keys;
   /**
    * The keyboard cursor; on a cell of two axes (a rows cell, a grid's) its row too, drawn by the layer of two axes on
    * its own section (`section`, its address: the others mark its column); on rows its `part`, a cell or the header;

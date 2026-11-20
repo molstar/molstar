@@ -71,7 +71,19 @@ export {
 export { structureStatus } from './maps-segments.js';
 export { viaList } from './maps-via.js';
 export type { CompoundEntry, Molecular } from './molecule-query.js';
-export type { AtomsEntry, ComplexEntry, ModifiedIndex, MoleculeEntry, UnitEntry } from './molecules.js';
+export {
+  type AtomsEntry,
+  /** @internal A molecule's atoms system's address: read by the structure translation (`structure/`). */
+  atomsSystemOf,
+  type ComplexEntry,
+  /** @internal The atoms group map at a path's ends: read by the structure translation (`structure/`). */
+  collapseAtoms,
+  /** @internal The atoms group map at a path's ends: read by the structure translation (`structure/`). */
+  expandAtoms,
+  type ModifiedIndex,
+  type MoleculeEntry,
+  type UnitEntry,
+} from './molecules.js';
 export {
   buildOverlay,
   EmptyOverlay,

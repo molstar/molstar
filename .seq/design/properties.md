@@ -23,8 +23,8 @@ apart from its generators and filters.
 |---|---|
 | molecule | `entity` (`label_entity_id`), `molecule-class`, `identifier` (words) |
 | unit | `chain` (`label_asym_id`), `auth-chain` (`auth_asym_id`), `operator` (`instance_id`) |
-| residue | `seq` (`label_seq_id`: 1-based on the unit's molecule), `auth-seq` (`auth_seq_id`), `ins` (`pdbx_PDB_ins_code`), `index` (`residue_index`, 0-based on the unit), `component` (`label_comp_id`, words), `component-class`, `standard`, `modified` (non-standard, or under a `modified`-type annotation item) |
-| atom | `atom` (`label_atom_id`), `element` (`type_symbol`), `atom-index` (`atom_index`), `b-factor` (`B_iso_or_equiv`), `occupancy` |
+| residue | `seq` (`label_seq_id`: 1-based on the unit's molecule), `auth-seq` (`auth_seq_id`), `ins` (`pdbx_PDB_ins_code`), `index` (`residue_index`, 0-based on the unit), `component` (`label_comp_id`, words), `component-class`, `standard`, `modified` (non-standard, or under a `modified`-type annotation item), `b-factor` (`B_iso_or_equiv`), `occupancy` (values channels) |
+| atom | `atom` (`label_atom_id`), `element` (`type_symbol`), `atom-index` (`atom_index`) |
 | any | `(value <values annotation> :field f)`: a values channel on the element's system |
 
   Why short printed: an address is typed and read beside a sequence, and one printed form keeps equal selections equal
@@ -36,10 +36,13 @@ apart from its generators and filters.
   the `QueryModel` hook `property?(system, name): PropertyRead`, `PropertyRead = column | 'pending' | undefined`. Units,
   components, numberings and atoms answer the built-ins (`QueryUnit.entity`; `QueryAtoms.element`, `residue`); a values
   channel reads the store (`values` annotations by region), `pending` staging the system as a numbering not arrived does;
-  `b-factor` and `occupancy` are values channels the mmCIF runtime writes on a unit's atoms, absent otherwise. A residue
-  property on an atom reads its residue's (through the atoms map); the reverse is `seq.query.property.level`.
-- **An element that lacks a property** (`chain` on a lone molecule, `auth-seq` with no `auth` numbering, `atom` without
-  atoms, `entity` on an inline complex): its test is false and it yields nothing, with one warning
+  `b-factor` and `occupancy` are values channels, read where their channel lies (the mmCIF runtime writes them on a
+  unit's residues), absent otherwise. A residue property on an atom reads its residue's (through the atoms map); the
+  reverse is `seq.query.property.level`, except one case: an atom field on a residues system with no atoms held reads
+  its standard component's heavy atoms (a modified residue's parent's), and the result is residues (the author,
+  2026-11-20: "Residues, as a structure viewer reads them").
+- **An element that lacks a property** (`chain` on a lone molecule, `auth-seq` with no `auth` numbering, `atom` on a
+  component with no standard atoms, `entity` on an inline complex): its test is false and it yields nothing, with one warning
   `seq.query.property.absent` naming the property and the count. Why: monadic composition; never the whole query's
   failure.
 - **Extensions add properties** as `query-property` registry entries ([extension-openings.md](extension-openings.md)),

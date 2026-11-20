@@ -39,7 +39,7 @@ import {
   type Tables,
 } from '@molstar/seqx-core/data';
 import { channelAddress, runtimeFor } from '@molstar/seqx-core/data/channels';
-import type { SeqKinds } from '@molstar/seqx-core/lang';
+import { type SeqKinds, SeqLanguage } from '@molstar/seqx-core/lang';
 import {
   type ItemsRead,
   type Location,
@@ -69,6 +69,7 @@ import type { Encoding, Linear } from './linear.js';
 import {
   atomsOf,
   type CompoundEntry,
+  complexesUnder,
   componentsOf,
   EmptyMolecular,
   type Molecular,
@@ -407,8 +408,10 @@ export function resolveSpec(spec: Node, options: ResolveOptions = {}): StaticMod
 const p = (n: Node, key: string): Value | undefined => n.params?.[key];
 
 /** The kinds a data reference to a system takes: a sequence, a molecule's residues, a unit of a complex. */
-const SystemRefs = ['sequence', 'molecule', 'unit'] as const;
+const SystemRefs: readonly string[] = SeqLanguage.kinds.map.params.from.kinds;
 const SystemKinds: ReadonlySet<string> = new Set(SystemRefs);
+/** What `pairs.a`/`b`, `ranges.target` and `map.to` take: a system or an alignment, by its columns (the description's). */
+const ColumnsRefs: readonly string[] = SeqLanguage.kinds.map.params.to.kinds;
 
 function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: ReadonlyMap<string, PathEntry>): Model {
   const config: ResolveConfig = { ...DefaultResolveConfig, ...options.config };
@@ -527,21 +530,9 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
     }
   }
 
-  const maps = new Map<string, MapEntry>();
-  for (const at of data) {
-    if (at.node.kind !== 'map') continue;
-    const from = ref(at, 'from', SystemRefs);
-    const to = ref(at, 'to', SystemRefs);
-    if (!from || !to) continue;
-    const entry = cached(`${at.address}|${key(at, from, to)}|${config.encoding}`, () =>
-      mapEntry(at, systems.get(from.address)!, systems.get(to.address)!, config, molecular.units.get(to.address)),
-    );
-    maps.set(at.address, entry.map);
-    issues.push(...entry.issues);
-  }
-
   const annotations = new Map<string, AnnotationEntry>();
-  // an alignment: its columns and rows systems, its cells an annotation on the columns
+  // an alignment: its columns and rows systems, its cells an annotation on the columns; before what names its columns
+  // (a map's `to`, a pairs node's ends, ranges)
   for (const at of data) {
     if (at.node.kind !== 'alignment') continue;
     const src = p(at.node, 'source') === undefined ? undefined : ref(at, 'source', ['source']);
@@ -553,14 +544,29 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
     systems.set(e.rows.address, e.rows);
     annotations.set(at.address, e.annotation);
   }
+
+  const maps = new Map<string, MapEntry>();
+  for (const at of data) {
+    if (at.node.kind !== 'map') continue;
+    const from = ref(at, 'from', SystemRefs);
+    const to = ref(at, 'to', ColumnsRefs);
+    if (!from || !to) continue;
+    const entry = cached(`${at.address}|${key(at, from, to)}|${config.encoding}`, () =>
+      mapEntry(at, systems.get(from.address)!, systems.get(to.address)!, config, molecular.units.get(to.address)),
+    );
+    maps.set(at.address, entry.map);
+    issues.push(...entry.issues);
+  }
+
   // pairs and grids: held whole on their two systems
   for (const at of data) {
     if (at.node.kind !== 'pairs' && at.node.kind !== 'grid') continue;
     const isPairs = at.node.kind === 'pairs';
-    const x = ref(at, isPairs ? 'a' : 'x', SystemRefs);
+    const kinds = isPairs ? ColumnsRefs : SystemRefs;
+    const x = ref(at, isPairs ? 'a' : 'x', kinds);
     if (!x) continue;
     const yKey = isPairs ? 'b' : 'y';
-    const y = p(at.node, yKey) === undefined ? x : ref(at, yKey, SystemRefs);
+    const y = p(at.node, yKey) === undefined ? x : ref(at, yKey, kinds);
     if (!y) continue;
     const entry = cached(`${at.address}|${key(at, x, y)}`, () =>
       heldEntry(at, systems.get(x.address)!, systems.get(y.address)!),
@@ -570,7 +576,7 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
   }
   for (const at of data) {
     if (at.node.kind !== 'ranges' && at.node.kind !== 'values') continue;
-    const target = ref(at, 'target', SystemRefs);
+    const target = ref(at, 'target', at.node.kind === 'ranges' ? ColumnsRefs : SystemRefs);
     if (!target) continue;
     const src = p(at.node, 'source') === undefined ? undefined : ref(at, 'source', ['source']);
     const entry = cached(`${at.address}|${key(at, target)}`, () =>
@@ -1271,6 +1277,10 @@ class Model implements StaticModel {
 
   atoms(system: string) {
     return atomsOf(this.molecular, system);
+  }
+
+  complexes(owner: string) {
+    return complexesUnder(this.molecular, owner);
   }
 }
 

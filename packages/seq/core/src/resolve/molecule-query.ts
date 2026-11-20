@@ -8,7 +8,8 @@
 // system's components, a complex's units, a molecule, an atoms system. One implementation over the entries of
 // `molecules.ts`, so the static model and the overlay answer alike.
 
-import type { Node } from '@molstar/core/repr/tree';
+import { type Node, parseAddress } from '@molstar/core/repr/tree';
+import { standardComponent } from '@molstar/core/util/sequence-constants';
 import type { Numbering, QueryAtoms, QueryComponents, QueryMolecule, QueryUnit } from '@molstar/seqx-core/query';
 import type { SystemEntry } from './model.js';
 import {
@@ -102,6 +103,8 @@ export function componentsOf(
     ...(letters === undefined && system.source ? { pending: true } : {}),
     ...(index ? { modified: index } : {}),
     at: (p) => componentsAt(index, system.alphabet, letters, p),
+    standard: (p) =>
+      system.alphabet && letters && p < letters.length ? standardComponent(system.alphabet, letters[p]) : undefined,
   };
 }
 
@@ -117,7 +120,22 @@ export function unitsOf(m: Molecular, complex: string): readonly QueryUnit[] | u
     ...(u.chain !== undefined ? { chain: u.chain } : {}),
     ...(u.authChain !== undefined ? { authChain: u.authChain } : {}),
     ...(u.operator !== undefined ? { operator: u.operator } : {}),
+    ...entityOf(u.of),
   }));
+}
+
+/** A source's molecule's entity id: its dynamic node's key (`<source>/(node :key 3)`); none for a spec's molecule. */
+function entityOf(of: string): { entity?: string } {
+  const s = parseAddress(of).pattern?.segments;
+  const last = s?.[s.length - 1];
+  return last && typeof last !== 'string' && last.kind === 'node' ? { entity: String(last.params?.key) } : {};
+}
+
+/** The complexes at or under an address, in the order they were read. */
+export function complexesUnder(m: Molecular, owner: string): string[] {
+  const out: string[] = [];
+  for (const c of m.complexes.keys()) if (c === owner || c.startsWith(owner === '/' ? '/' : `${owner}/`)) out.push(c);
+  return out;
 }
 
 /** A molecule as `(molecule …)` reads it. */
@@ -136,5 +154,25 @@ export function moleculeOf(m: Molecular, address: string): QueryMolecule | undef
 export function atomsOf(m: Molecular, system: string): QueryAtoms | undefined {
   const a = m.atoms.get(system) ?? m.atoms.get(atomsSystemOf(system));
   if (!a) return undefined;
-  return { address: a.address, length: a.offsets[a.offsets.length - 1], names: a.names };
+  const { offsets } = a;
+  const n = offsets.length - 1;
+  return {
+    address: a.address,
+    length: offsets[n],
+    names: a.names,
+    element: a.elements,
+    of: a.of,
+    residue: (atom) => {
+      // the last offset at or before the atom: residues own contiguous runs (`AtomsEntry.offsets`)
+      let lo = 0;
+      let hi = n - 1;
+      while (lo < hi) {
+        const mid = (lo + hi + 1) >> 1;
+        if (offsets[mid] <= atom) lo = mid;
+        else hi = mid - 1;
+      }
+      return lo;
+    },
+    atomsOf: (r) => [offsets[r], offsets[r + 1]],
+  };
 }

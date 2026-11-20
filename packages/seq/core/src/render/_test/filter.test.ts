@@ -47,7 +47,7 @@ async function layout(type: 'ranges' | 'variants', query: string) {
 
 describe('a layer’s data filter', () => {
   it('leaves the rows out as the items are read, and the track counts them', async () => {
-    const f = await layout('ranges', '/(not :of (item :category linker))');
+    const f = await layout('ranges', '/(except :of (item :category linker))');
     const t = f.layout.sections[0].tracks[0];
     const lay = t.layers[0].lay as RangesLay;
     expect(lay.keys.slice(0, lay.items).sort()).toEqual(['a', 'c', 'e']);
@@ -62,7 +62,7 @@ describe('a layer’s data filter', () => {
   it('reads `item` by a list, `or` and `and`, in the other item layers too', async () => {
     const a = await layout('ranges', '/(item :category [linker oligomer])');
     expect((a.layout.sections[0].tracks[0].layers[0].lay as RangesLay).items).toBe(3);
-    const b = await layout('variants', '/(or :of [(item :id a) (item :id e)])');
+    const b = await layout('variants', '/(merge :of [(item :id a) (item :id e)])');
     const v = b.layout.sections[0].tracks[0].layers[0].lay as VariantsLay;
     expect([...v.rows.keys.slice(0, v.rows.n)].sort()).toEqual(['a', 'e']);
     // a lone `or` of items is the track's own rows (the base), not what the user hid: not counted

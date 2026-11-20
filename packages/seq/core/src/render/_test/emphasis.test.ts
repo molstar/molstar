@@ -10,7 +10,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
-import { elements, type Location, rangesLocation } from '@molstar/seqx-core/query';
+import { keySet, type Location, rangesLocation } from '@molstar/seqx-core/query';
 import { projectOntoView } from '@molstar/seqx-core/view';
 import { type DrawLists, type Frame, type PassName, recordDrawLists } from '../index.js';
 import { renderSvg } from '../render-svg.js';
@@ -231,7 +231,7 @@ describe('the composition of hover and selection', () => {
     const s = await settle(b.build());
     const input = { size: Size };
     await s.frame(input);
-    const f = s.renderer.frame({ ...input, emphasis: { elements: elements([{ owner: '/data/sites', key: 'ins' }]) } });
+    const f = s.renderer.frame({ ...input, emphasis: { elements: keySet([{ owner: '/data/sites', key: 'ins' }]) } });
     const lines = rects(f.lists, 'selection').map((r) => r.line);
     expect(lines.length).toBe(1);
     expect(lines[0]).toMatch(/^rect [\d.]+ [\d.]+ 2 14 #8f4c06ff$/);

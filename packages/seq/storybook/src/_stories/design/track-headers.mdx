@@ -11,12 +11,14 @@ above its first track, drawn only when it has something to say, such as hidden t
 
 Every action (hide, color, layers, move) is a registry entry that names a command, the built-ins included. A host adds
 its own (such as "color by this track" for a structure viewer) or leaves a built-in out. Actions show in fixed slots
-while the pointer or the keyboard cursor is on the track; every entry is also in the track's menu.
+while the pointer or the keyboard cursor is on the track, with the "⋯" at the column's end and the slots left of it; on
+touch, a tap on the label shows them and a tap on a slot runs it. Every entry is also in the track's menu.
 
 ## States are chips
 
-What is not shown is a count chip: "12 filtered", "1 layer hidden", "2 hidden". A click undoes it in one step; its menu
-brings back one thing at a time. A section whose tracks are all hidden keeps its header, so nothing goes out of reach.
+What is not shown is a count chip: "12 filtered", "1 layer hidden", "2 hidden". On a short track or in a narrow column
+they become small marks, their words in the track's card. A click undoes one in one step; its menu brings back one thing
+at a time. A section whose tracks are all hidden keeps its header, so nothing goes out of reach.
 
 ## Drawn or the host's own
 

@@ -8,7 +8,7 @@
 // pairs a channel lists drawn over in its color in the `highlight` pass, the others not; arcs over a track, chords on a
 // ring, dots on a grid, and the SVG export alike; the last channel listing a pair wins.
 
-import { EmptyLocation, elements } from '@molstar/seqx-core/query';
+import { EmptyLocation, keySet } from '@molstar/seqx-core/query';
 import { describe, expect, it } from 'vitest';
 import { type EmphasisHighlight, recordDrawLists } from '../index.js';
 import { renderSvg } from '../render-svg.js';
@@ -26,7 +26,7 @@ const Pairs: [number, number][] = [
 const channel = (keys: string[], color: number, owner = '/data/p'): EmphasisHighlight => ({
   location: EmptyLocation,
   color,
-  elements: elements(keys.map((key) => ({ owner, key }))),
+  elements: keySet(keys.map((key) => ({ owner, key }))),
 });
 
 /** The highlight pass's strokes by color: `#rrggbb` → how many marks. */

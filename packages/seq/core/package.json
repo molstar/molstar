@@ -45,6 +45,11 @@
       "types": "./lib/query/index.d.ts",
       "import": "./lib/query/index.js"
     },
+    "./structure": {
+      "molstar-src": "./src/structure/index.ts",
+      "types": "./lib/structure/index.d.ts",
+      "import": "./lib/structure/index.js"
+    },
     "./data": {
       "molstar-src": "./src/data/index.ts",
       "types": "./lib/data/index.d.ts",
@@ -74,6 +79,7 @@
     "./lang/_test/*": null,
     "./query/_test/*": null,
     "./data/_test/*": null,
+    "./structure/_test/*": null,
     "./resolve/_test/*": null,
     "./view/_test/*": null,
     "./render/_test/*": null,

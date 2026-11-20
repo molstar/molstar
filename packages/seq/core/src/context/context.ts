@@ -10,6 +10,15 @@ import type { AssetReader, FormatRuntime } from '@molstar/seqx-core/data';
 import { runtimesByFormat } from '@molstar/seqx-core/data/channels';
 import { checkSeqSpec, type SpecBounds, specBounds } from '@molstar/seqx-core/lang';
 import {
+  type QueryExtensionEntry,
+  type QueryExtensions,
+  type QueryFormEntry,
+  QueryFormKinds,
+  type QueryOperatorEntry,
+  type QueryPropertyEntry,
+  queryExtensions,
+} from '@molstar/seqx-core/query';
+import {
   type RenderConfig,
   type RenderConfigOverrides,
   exportSvg,
@@ -39,13 +48,25 @@ import { type AssetPolicy, HeadlessAssetPolicy, policyAssets } from './assets.js
 /**
  * What a registry holds in this version (_spec/README.md "Context", Registry entries): a format runtime, read by the
  * sources whose `format` it names; a layer type, drawn for the layers of its name (the canvas and the SVG alike); a
- * section layout, placing the sections that name it.
+ * section layout, placing the sections that name it; a query form of a role and a query property, namespaced
+ * (`<id>:<name>`), what every query of the composition reads (`SeqContext.query`).
  */
 export type SeqRegistryEntry =
   | { readonly kind: 'format-runtime'; readonly runtime: FormatRuntime }
   | { readonly kind: 'layer-type'; readonly type: LayerType<any, any> }
   | { readonly kind: 'layout'; readonly layout: SectionLayoutType<any> }
-  | { readonly kind: 'track-sizing'; readonly sizing: TrackSizing };
+  | { readonly kind: 'track-sizing'; readonly sizing: TrackSizing }
+  | QueryFormEntry
+  | QueryOperatorEntry
+  | QueryPropertyEntry;
+
+/** The registry's query forms and properties, composed and checked (names namespaced, no built-in shadowed). */
+export function queryExtensionsOf(registry: readonly SeqRegistryEntry[]): QueryExtensions {
+  return queryExtensions(
+    registry.filter((e): e is QueryExtensionEntry => e.kind === 'query-form' || e.kind === 'query-property'),
+    QueryFormKinds,
+  );
+}
 
 /** A setting: its key, and the type of its value. Items are pairs `[item, value]` in a spec's `config`. */
 export interface SeqConfigItem<T = unknown> {
@@ -97,12 +118,6 @@ export interface TextMetricsPort extends PortResult {
   dispose?(): void;
 }
 
-/** A structure runtime binds structure systems to a structure viewer: no adapter in this version, unset. */
-export interface StructurePort extends PortResult {
-  readonly runtime: unknown;
-  dispose?(): void;
-}
-
 /**
  * The host's last word on track heights (_spec/README.md "Render", Track heights): each section's tracks with their
  * content heights and the named sizing's answer, returning the heights (an application fitting the viewer into a fixed
@@ -117,7 +132,6 @@ export interface TrackSizingPort extends PortResult {
 export interface SeqPorts {
   readonly assets?: () => AssetsPort;
   readonly textMetrics?: () => TextMetricsPort;
-  readonly structure?: () => StructurePort;
   readonly trackSizing?: () => TrackSizingPort;
 }
 
@@ -196,6 +210,8 @@ export interface SeqContext {
   readonly layouts: Readonly<Record<string, SectionLayoutType<any>>>;
   /** The registered track sizings by name (a section's `heights` naming another is said; its tracks fit their content). */
   readonly sizings: Readonly<Record<string, TrackSizing>>;
+  /** The registered query forms and properties: what `evaluateQuery` is given as `extensions`. */
+  readonly query: QueryExtensions;
   /** The `trackSizing` port's answer, when one was bound. */
   readonly trackSizing?: TrackSizingHook;
   readonly renderConfig: RenderConfig;
@@ -207,8 +223,6 @@ export interface SeqContext {
   readonly assets: AssetReader;
   /** The text metrics port. */
   readonly text: TextMetrics;
-  /** The structure port's runtime, when one was bound. */
-  readonly structure: unknown;
   /** The spec's issues (the language's checks). */
   check(spec: Node): Issue[];
   /** The static model of a spec with the registered runtimes. */
@@ -233,6 +247,7 @@ export function composeSeqContext(spec: SeqContextSpec = {}): SeqContext {
   const types = layerTypesOf(registry);
   const layouts = layoutsOf(registry);
   const sizings = sizingsOf(registry);
+  const query = queryExtensionsOf(registry);
   const theme = configValue(spec.config, SeqCoreConfig.theme) ?? 'light';
   const renderCfg = renderConfig(configValue(spec.config, SeqCoreConfig.render));
   const resolveCfg = configValue(spec.config, SeqCoreConfig.resolve) ?? {};
@@ -241,7 +256,6 @@ export function composeSeqContext(spec: SeqContextSpec = {}): SeqContext {
 
   // a factory that throws leaves nothing made behind: the ports already made are disposed, last first
   let assets: AssetReader = NoAssets;
-  let structure: unknown;
   let text: TextMetrics = undefined as never;
   let trackSizing: TrackSizingHook | undefined;
   try {
@@ -261,12 +275,6 @@ export function composeSeqContext(spec: SeqContextSpec = {}): SeqContext {
       text = createTextMetrics((font) => (s) => port.measure(font, s));
       if (port.disposeWithViewer !== false && port.dispose) disposers.push(() => port.dispose!());
     } else text = bundledTextMetrics();
-
-    if (spec.ports?.structure) {
-      const port = spec.ports.structure();
-      structure = port.runtime;
-      if (port.disposeWithViewer !== false && port.dispose) disposers.push(() => port.dispose!());
-    }
 
     if (spec.ports?.trackSizing) {
       const port = spec.ports.trackSizing();
@@ -291,6 +299,7 @@ export function composeSeqContext(spec: SeqContextSpec = {}): SeqContext {
     types,
     layouts,
     sizings,
+    query,
     ...(trackSizing ? { trackSizing } : {}),
     renderConfig: renderCfg,
     resolveConfig: resolveCfg,
@@ -298,7 +307,6 @@ export function composeSeqContext(spec: SeqContextSpec = {}): SeqContext {
     tokens,
     assets,
     text,
-    structure,
     check: (s) => checkSeqSpec(s, bounds),
     resolve: (s) => resolveSpec(s, { runtimes, config: resolveCfg }),
     view: (model, address) => (address ? resolveView(model, address) : resolveViews(model)[0]),

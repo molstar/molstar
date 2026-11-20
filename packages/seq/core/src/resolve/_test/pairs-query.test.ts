@@ -45,7 +45,7 @@ const q = (a: string) => evaluateQuery(Spec, model, a, { limit: 100 });
 const keys = (a: string) => {
   const r = q(a);
   expect(r.issues.filter((i) => i.severity === 'error')).toEqual([]);
-  return r.result?.type === 'elements' ? r.result.elements.keys.map((k) => k.key) : undefined;
+  return r.result?.type === 'keys' ? r.result.keys.keys.map((k) => k.key) : undefined;
 };
 const ranges = (l: Location) => l.parts.map((p) => [p.system, [...p.ranges]]);
 
@@ -75,7 +75,7 @@ describe('pairs answer items', () => {
     // both at once, each pair once
     expect(
       keys(
-        '/data/contacts/(items :overlapping (or :of [/data/x/(range :from 2 :to 2) /data/y/(range :from 4 :to 4)]))',
+        '/data/contacts/(items :overlapping (merge :of [/data/x/(range :from 2 :to 2) /data/y/(range :from 4 :to 4)]))',
       ),
     ).toEqual(['c1']);
     // a system the pairs are on neither of is unreachable, as for ranges
@@ -87,18 +87,20 @@ describe('pairs answer items', () => {
 
   it('reach is each annotation’s own: a pair’s far end is read beside another annotation on that system', () => {
     // the prefix names the pairs (on x and y) and a ranges annotation on y: the pairs are read on y too
-    const both = '/data/(or :of [/data/contacts /data/yf])';
+    const both = '/data/(merge :of [/data/contacts /data/yf])';
     expect(keys(`${both}/(items :overlapping /data/y/(range :from 1 :to 8))`)).toEqual(['c1', 'c3', 'site']);
     // a location on both systems: the pairs read on both
     expect(
-      keys(`${both}/(items :overlapping (or :of [/data/x/(range :from 19 :to 19) /data/y/(range :from 16 :to 16)]))`),
+      keys(
+        `${both}/(items :overlapping (merge :of [/data/x/(range :from 19 :to 19) /data/y/(range :from 16 :to 16)]))`,
+      ),
     ).toEqual(['c2', 'c4']);
   });
 
   it('an empty pairs annotation on two systems reaches both: no unreachable issue', () => {
     const r = q('/data/none/(items :overlapping /data/y/(all))');
     expect(r.issues).toEqual([]);
-    expect(r.result?.type === 'elements' && r.result.elements.keys).toEqual([]);
+    expect(r.result?.type === 'keys' && r.result.keys.keys).toEqual([]);
   });
 
   it('item reads a pair’s fields; extent and a result’s location cover both ends', () => {
