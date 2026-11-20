@@ -17,7 +17,10 @@
 // with `unlisted` modules is checked to hold none of them (bytes in any chunk, a lazy one too): what its composition does
 // not list is not in its bundle (viewer-composition "Injected, opt in"); the script exits 1 when one is.
 //
-// The entries sit outside any package, so `@molstar/*` is resolved from the viewer's folder (a plugin below).
+// The entries sit outside any package, so `@molstar/*` is resolved from the viewer's folder (a plugin below). An entry
+// with `own` (an opt-in runtime) is measured alone: what its code imports from outside the folders `own` names is left
+// out of its bundle (the viewer's already), so its row is what composing it adds. The opt-in runtimes (`runtimes/`)
+// are in no viewer entry, which `unlisted` checks.
 
 import { build } from 'esbuild';
 import { gzipSync } from 'node:zlib';
@@ -49,14 +52,19 @@ const Unlisted = [
   /seq\/core\/src\/render\/built-ins\.ts$/,
   /seq\/core\/src\/context\/default\.ts$/,
   /seq\/core\/src\/render\/render-svg\.ts$/,
+  /seq\/core\/src\/runtimes\//,
 ];
+
+/** The opt-in runtimes: loaded only when a composition lists one. */
+const Runtimes = [/seq\/core\/src\/runtimes\//];
 
 /** Target and entry of each case, bytes (minified). */
 const AllCases = [
   { name: 'reading a spec', entry: 'spec-read.ts', target: 195_000 },
   { name: 'headless rendering', entry: 'headless.ts', target: 780_000 },
-  { name: 'the viewer, default', entry: 'viewer.ts', target: 1_250_000 },
+  { name: 'the viewer, default', entry: 'viewer.ts', target: 1_250_000, unlisted: Runtimes },
   { name: 'viewer, minimal', entry: 'viewer-minimal.ts', target: 880_000, unlisted: Unlisted },
+  { name: 'bigWig runtime', entry: 'bigwig.ts', target: 30_000, own: /seq\/core\/src\/runtimes\// },
 ];
 
 const Cases = only ? AllCases.filter((c) => c.entry === only) : AllCases;
@@ -71,6 +79,18 @@ const resolveWorkspace = {
     });
   },
 };
+
+/** Leaves out what an `own` entry's code imports from outside its folders: it is counted in the viewer's rows. */
+const ownOnly = (own) => ({
+  name: 'own-only',
+  setup(b) {
+    b.onResolve({ filter: /.*/ }, async (a) => {
+      if (a.pluginData?.own || a.kind === 'entry-point' || !own.test(a.importer)) return;
+      const r = await b.resolve(a.path, { resolveDir: a.resolveDir, kind: a.kind, pluginData: { own: true } });
+      return r.errors.length || own.test(r.path) ? r : { path: a.path, external: true };
+    });
+  },
+});
 
 /** The chunks a split build loads before any dynamic import: the entry and what it imports statically, transitively. */
 function loaded(meta) {
@@ -115,7 +135,7 @@ for (const c of Cases) {
     // paid by an entry that never loads it; what loads before any dynamic import is measured
     splitting: true,
     outdir: join(here, 'out'),
-    plugins: [resolveWorkspace],
+    plugins: c.own ? [ownOnly(c.own), resolveWorkspace] : [resolveWorkspace],
   });
   const chunks = loaded(r.metafile).map((k) => r.outputFiles.find((f) => f.path === join(root, k)).contents);
   const code = Buffer.concat(chunks);
