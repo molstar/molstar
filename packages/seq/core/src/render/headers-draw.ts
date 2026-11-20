@@ -203,7 +203,8 @@ export function drawTrackHeader(
   dy: number,
 ) {
   const line = t.header;
-  if (!line) return;
+  // a host's DOM parts draw its parts over their boxes: the chrome draws none
+  if (!line || line.hosted) return;
   // a stack's later rows: their labels only, the states drawn and hit once (on its first)
   if (pass === 'labels') {
     if (dy === 0) drawStates(out, line, s.tokens, s.config, 0);
@@ -214,7 +215,7 @@ export function drawTrackHeader(
 /** A section's header line: its states (labels pass) and its actions when they show (tip pass). */
 export function drawSectionHeader(out: PassWriter, s: SectionLayout, pass: string, emphasis: Emphasis | undefined) {
   const line = s.header;
-  if (!line) return;
+  if (!line || line.hosted) return;
   if (pass === 'labels') drawStates(out, line, s.tokens, s.config, 0);
   else if (pass === 'tip' && line.actions && actionsShown(s.section.address, s.id, emphasis, s.config, false))
     drawActions(out, line, emphasis?.hover, s.tokens, s.config);
@@ -225,8 +226,8 @@ const Actions = new WeakMap<SectionLayout, boolean>();
 export function hasHeaderActions(s: SectionLayout): boolean {
   let has = Actions.get(s);
   if (has === undefined) {
-    has = s.header?.actions !== undefined;
-    for (const t of s.tracks) if (t.header?.actions) has = true;
+    has = s.header?.actions !== undefined && !s.header.hosted;
+    for (const t of s.tracks) if (t.header?.actions && !t.header.hosted) has = true;
     Actions.set(s, has);
   }
   return has;

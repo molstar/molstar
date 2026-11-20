@@ -13,7 +13,7 @@ import type { HeaderMenuItem, HeaderMenuPortFactory } from './header-entries.js'
 // context menu has no nested menus); a scheme previews while its row is focused or hovered, and a menu closed without a
 // choice ends the preview in nothing.
 
-/** `@molstar/ui`'s context menu over the canvas: one at a time (the lazy chunk `headerMenuOverlay()` loads). */
+/** @internal `@molstar/ui`'s context menu over the canvas: one at a time (the lazy chunk `headerMenuOverlay()` loads). */
 export function contextMenuPort(): HeaderMenuPortFactory {
   return (container) => {
     if (!container) return { show() {}, hide() {} };

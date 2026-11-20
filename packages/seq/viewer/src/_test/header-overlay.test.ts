@@ -10,7 +10,9 @@
 // `headerPartsDom()` placing a part at each box of a header whose actions show, a press running its entry (one patch),
 // roving focus, Esc back to the canvas and Tab never captured (EC-155).
 
+import { SeqCoreConfig } from '@molstar/seqx-core/context';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
+import { recordDrawLists } from '@molstar/seqx-core/render';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { type HeadersBehavior, HeadersProvider } from '../behaviors/headers.js';
 import { RecordingContext } from '../canvas/_test/recording.js';
@@ -65,6 +67,8 @@ async function mount(dom: boolean) {
     {
       ...base,
       ui: { canvas: true, history: uiHistory },
+      // a label column of 140 px: the chips in words beside the slots
+      config: [[SeqCoreConfig.render, { labelWidth: 140 }]],
       behaviors: base.behaviors.map((b) =>
         b.provider === HeadersProvider
           ? {
@@ -78,9 +82,8 @@ async function mount(dom: boolean) {
   );
   viewers.push(v);
   await v.load(spec());
+  // the gestures, the icons, the menu's and the parts' DOM are lazy chunks: `settle` waits for them
   await v.settle();
-  // the gestures, the icons, the menu's and the parts' DOM are lazy chunks
-  await vi.dynamicImportSettled();
   frames.flush();
   const container = target.querySelector<HTMLElement>('[role="application"]')!;
   return { v, container, headers: v.behaviors.get('headers') as HeadersBehavior };
@@ -104,7 +107,8 @@ describe('the header menu’s overlay', () => {
     const e = mouse('contextmenu', ...at);
     container.dispatchEvent(e);
     expect(e.defaultPrevented).toBe(true);
-    await vi.dynamicImportSettled();
+    // the menu's DOM (its chunk asked for at the first open)
+    await v.settle();
     const menu = container.querySelector('[role="menu"]')!;
     const labels = [...menu.querySelectorAll('[role^="menuitem"]')].map((b) => b.textContent);
     // the track's items, then the section's (a key quiet at the row's end)
@@ -156,5 +160,22 @@ describe('headerPartsDom()', () => {
     frames.flush();
     expect(v.view.resolved.value!.sections[0].tracks.map((t) => t.address)).toEqual([`${Section}/letters`]);
     expect((v.spec.history as UiHistory).stack.steps.value.length).toBe(steps + 1);
+  });
+
+  it('once its DOM is in place the canvas draws no part in their boxes: the chip is the DOM’s, words and all', async () => {
+    const { v, container } = await mount(true);
+    await v.execute('track.hide', { address: Domains });
+    await v.settle();
+    frames.flush();
+    const line = v.frame!.layout.sections[0].header!;
+    expect(line.hosted).toBe(true);
+    expect(line.states.map((s) => [s.text, s.mark])).toEqual([['1 hidden', false]]);
+    expect(recordDrawLists(v.frame!.lists, ['labels', 'tip'])).not.toContain('"1 hidden"');
+    const chip = container.querySelector<HTMLElement>('.seqx-header-parts [data-part="seq:hidden-tracks"]')!;
+    expect(chip.textContent).toBe('1 hidden');
+    // a click on it: every hidden track shown, one patch
+    chip.click();
+    await v.settle();
+    expect(v.view.resolved.value!.sections[0].tracks).toHaveLength(2);
   });
 });

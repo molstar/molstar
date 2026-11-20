@@ -490,7 +490,8 @@ the rails and navigators (`viewer-rails.ts`), the emphasis (`viewer-emphasis.ts`
   late (the header entries' icons, their menu and DOM parts, the headers' late parts, a runtime such as mmCIF, the
   molecule letters) may load by a dynamic `import()` on first use, which every bundler splits; the size script lists
   each entry's chunks. The first frame does not wait for one: what it would draw is drawn plainly (a slot's letter for
-  its icon) and drawn again when it lands.
+  its icon, core's built-in states before the headers' late parts) and drawn again when it lands; `settle` waits for the
+  chunks asked for.
 - `createSeqViewer(spec, target?)` makes, in this order: the core's context (registry, configuration, ports), the models
   (spec, view, hover, store, selection, highlight, addresses), the history (`spec.history`, else `ui.history()` when
   mounted; bound to the spec), the binding table (the selection's and the rows' actions bound only when their behavior
@@ -631,20 +632,22 @@ The `headers` behavior's params, as the hover card's port is its behavior's.
   headless, given up at the mount): `show(menu, place, behavior)` (`HeaderMenu`: its target and groups of
   `HeaderMenuItem`s: name, kind, label, icon, chip text, key, enabled or `why`, checked, slot, command and args, a
   submenu), `hide()`. A choice runs `behavior.runItem(item)` (`viewer.execute`), a hovered scheme `behavior.preview`, a
-  menu closed without a choice `behavior.closeMenu()` (a preview ends in nothing). `headerMenu(viewer, target)` is the
-  data, DOM-free. The default adapter, `headerMenuOverlay()` (`mount-header-menu.ts`; its DOM, `header-menu-dom.ts`, a
-  lazy chunk loaded at the first open), is `@molstar/ui`'s context menu at the place (an item with a submenu opens it in
-  its place: the context menu has no nested menus); its keyboard is the menu's, and closed the focus goes back to the
-  canvas.
+  menu closed without a choice `behavior.closeMenu()` (a preview ends in nothing); `loaded()`, its DOM's chunk while
+  pending (`settle` waits for it). `headerMenu(viewer, target)` is the data, DOM-free. The default adapter,
+  `headerMenuOverlay()` (`mount-header-menu.ts`; its DOM, `header-menu-dom.ts`, a lazy chunk loaded at the first open),
+  is `@molstar/ui`'s context menu at the place (an item with a submenu opens it in its place: the context menu has no
+  nested menus); its keyboard is the menu's, and closed the focus goes back to the canvas.
 - **The parts** (`parts`: `canvas`, the default, or a `HeaderPartsPortFactory` given the canvas's element and the
-  behavior): the layout still lays out every header; the canvas draws the states (the export's) and no slot and no "⋯";
-  the port is given `headerParts(viewer)` (`HeaderPartsState`: each shown header's geometry, whether its actions show,
-  and the items `headerMenu` gives it) on change, and `focus(target)` when the keyboard cursor comes onto a header. A
-  press runs `behavior.run(name, target)`, the slot click's path. `headerPartsDom()` (`mount-header-menu.ts`;
+  behavior): the layout lays out every header as the canvas's (the same boxes); once the port's `loaded()` resolves (the
+  DOM in place) the lines are `hosted` and the canvas draws nothing in their slot, "⋯" and chip boxes (until then it
+  draws them; an export draws the states). Why: the parts are the DOM's alone, never a button over a drawn chip. The
+  port is given `headerParts(viewer)` (`HeaderPartsState`: each shown header's geometry, whether its actions show, and
+  the items `headerMenu` gives it) on change, and `focus(target)` when the keyboard cursor comes onto a header. A press
+  runs `behavior.run(name, target)`, the slot click's path. `headerPartsDom()` (`mount-header-menu.ts`;
   `header-parts-dom.ts` a lazy chunk loaded at the first update: `@molstar/ui` buttons and icons): a part at each slot
-  box of a header whose actions show and a transparent button over each chip; one tab stop a header (← → between its
-  parts, Enter or Space runs, Esc back to the canvas); Tab never captured (EC-155); its events stopped at its root (the
-  canvas sees no press there).
+  box of a header whose actions show and a chip at each state's box (its words, or a mark's squircle); one tab stop a
+  header (← → between its parts, Enter or Space runs, Esc back to the canvas); Tab never captured (EC-155); its events
+  stopped at its root (the canvas sees no press there).
 - **Ownership** as the hover card's (`disposeWithViewer`).
 
 ### History
@@ -1025,29 +1028,36 @@ rows' commands) reads the last frame's rows layers through the behavior context'
   its first. A pair or a position hovered is the pairs layer's own rule (its partners light), never the channel. Why a
   behavior: a host chooses an analysis, and the same query serves the selection.
 - `headers` (`HeadersProvider`, `behaviors/headers.ts`, in the default spec; left out: states only, no slots, no menu):
-  the track headers' entries and gestures (core's Track headers draws and hits them). Its eager part is the hover path's
-  (the entries made into slots and chips, a run, the menu's state); its late parts (`header-extras.ts`, a lazy chunk
-  asked for once composed: the menu's data, the geometry and the parts, a click's and a secondary click's target, the
-  words, the cursor on headers) work once they land: until then a chip's click is the input's (the "n filtered" chip
-  clears its filter in one step), a click on another header part is taken and does nothing, and nothing is published.
-  Its lazy chunks are its handle's `loaded()`, which `settle` waits for; one landing after the viewer is retired is
-  ignored. Why: a settled picture is the whole one, and no import outlives a test's viewer.
+  the track headers' entries and gestures (core's Track headers draws and hits them). Its eager part holds the entries
+  (their checks and `register`), the menu's state, the ports and a click's way in; its late parts (`header-extras.ts`, a
+  lazy chunk asked for once composed: the facts and the layout's parts, the menu's data, its opening and the runs, the
+  geometry and the parts' state, the secondary click and the menu key, the words, the cursor on headers) work once they
+  land. Until then the headers draw core's built-in states, a click on a header part is kept and run once they land
+  (one, the last: never lost), and nothing is published. Its lazy chunks (the late parts, the icons, the gestures, the
+  ports' DOM) are its handle's `loaded()`, which `settle` waits for; one landing after the viewer is retired is ignored.
+  Why: a settled picture is the whole one, and no import outlives a test's viewer. A header part's click is the
+  behavior's only (the input's way in, `Input`): one path, a viewer without the behavior draws states that a click does
+  nothing on. Internal (`@internal`, no entry exports them): the late parts, the DOM ports' modules, the icons' reader,
+  `headersBehavior` (the provider is the way in), and the handle's `partsOf`, `framed`, `click`, `context`, `loaded` and
+  `preview`.
   - **Entries** (`header-entries.ts`): `HeaderEntry` (`name` namespaced `<id>:<name>`, `on` `track`, `section` or
     `element`, `kind` `action` or `state`, `icon` `@molstar/ui`'s, `label`, `when`, `command`, `args`, `text`, `order`,
-    `slot`, `items` a submenu), listed in the registry as `{ kind: 'header-action', entry }` (`SeqViewerRegistryEntry`)
-    or registered at run time (`register(...entries)`, returning its undo). Registration is atomic: every problem in one
-    error before anything changes (a name twice, no namespace, a command the viewer lacks, `seq.viewer.header.command`);
-    the registry's are checked once every behavior is made (`BehaviorHandle.composed`). The label and icon default to
-    the command's. Why entries: one list for a slot, a menu item, a DOM part, a key and an agent; the registry's rules
-    (atomic, undoable, namespaced) for free.
+    `slot`, `items` a submenu: pending at the gate, the author's: a submenu's choices are the menu's and the parts'
+    only, not the palette's nor an agent's), listed in the registry as `{ kind: 'header-action', entry }`
+    (`SeqViewerRegistryEntry`) or registered at run time (`register(...entries)`, returning its undo). Registration is
+    atomic: every problem in one error before anything changes (a name twice, no namespace, a command the viewer lacks,
+    `seq.viewer.header.command`); the registry's are checked once every behavior is made (`BehaviorHandle.composed`).
+    The label and icon default to the command's. Why entries: one list for a slot, a menu item, a DOM part, a key and an
+    agent; the registry's rules (atomic, undoable, namespaced) for free.
   - **Built-ins** (`BuiltInHeaderEntries`, in the default spec's registry; a host leaves one out to remove it):
     `seq:hide` (`eye-off`, `track.hide`), `seq:color` (`palette`, the first shown layer with more than one fitting
     scheme: its schemes a submenu of `layer.channel`, previewed while focused or hovered), `seq:layers` (more than one
     addressable layer: a checked item a layer, `layer.hide` or `layer.show`), `seq:move-up`, `seq:move-down`
-    (`track.move`, a sibling there), the states `seq:filtered` (`layer.filter` clears), `seq:hidden-layers`
-    (`layer.show` of every hidden layer, one patch; its list each) and the section's `seq:hidden-tracks` (`track.show`
-    of every hidden track, one patch; its list each, then "Show all"), the section's `seq:reverse` and `seq:collapse`.
-    `seq:pending` is not built (the TODO).
+    (`track.move`, a sibling there), the states `seq:filtered` (its count the track's, every thinned layer's rows;
+    `layer.filter` clears every thinned layer's filter, one patch), `seq:hidden-layers` (`layer.show` of every hidden
+    layer, one patch; its list each) and the section's `seq:hidden-tracks` (`track.show` of every hidden track, one
+    patch; its list each, then "Show all"), the section's `seq:reverse` and `seq:collapse`. `seq:pending` is not built
+    (the TODO).
   - **`HeaderFacts`**: plain data from the resolved view, the spec and the last layout (the address, label, section,
     system, linear, the section's track ids, the track's layers with type, label, hidden, filtered rows, color and
     fitting schemes, the hidden tracks, the element). Entries' functions are pure over them, run once a layout a shown
@@ -1137,9 +1147,9 @@ The cells the molecules design names, each built or not and why (the core's "Res
   (`break`, the render hit's `target`): no default binding but the hover, so a double-click on it does nothing (the
   pointer aimed at the break; showing its stretch is `section.collapse`, a spec change). A header's parts are targets
   too (`header-slot`, `header-state`, `header-label`, `section-header`: core's Track headers): never a selection's (a
-  click there selects and clears nothing; with the `headers` behavior a slot or a chip runs its entry, else the "n
-  filtered" chip clears its filter), and a drag on a track's label line pans as its track (`header-label`, in
-  `default`). A slot is hit only while its header's actions show.
+  click there selects and clears nothing; with the `headers` behavior a slot or a chip runs its entry, the one path:
+  without it the states are facts and a click on them does nothing), and a drag on a track's label line pans as its
+  track (`header-label`, in `default`). A slot is hit only while its header's actions show.
 - **Actions must exist**: a model method (`hover`, `pan`, `zoom`, `drag-select`, `drag-add`, `drag-subtract`,
   `drag-extend`) or a command the viewer defines (`DefaultActions`, or the `actions` given). A binding to another is
   reported (`seq.viewer.binding.action`) and left out, so the gesture does nothing.
@@ -1230,16 +1240,16 @@ settle: a legend that changes during a pan reads as noise, and its cost stays of
   or form set or unset, on one layer or several in one patch), `scale.set` (a scale's params; `null` reopens a domain's
   end), `theme.value-color` (one value's color in a field form's palette, the listed values keeping theirs; refused on a
   scheme, rules or any other form: never replaced), `layer.filter` (a value's items hidden or shown again: one patch of
-  the layer's `data`, a trailing `(not …)` of the values hidden; no value: cleared, as a click on the track's "n
-  filtered" chip). The user's filter is only that trailing `(not …)` (`dataFilter`): what leads it, the annotation and a
-  leading run of item forms (`<annotation>/(item :category Domain)`, a layer a feature type), is the layer's base, kept
-  when the filter is set, toggled or cleared, its rejected rows not counted as filtered (core's Render, Filters:
-  `splitDataForms` is the one parser). A legend entry's items are the base's forms and `(item :<field> v)` in one query
-  (`itemsAddress`: one item form holding every param, or an `and` when the base has `and` or `or`), `legend.select`
-  (session: the items whose field has the value; Cmd/Ctrl toggles), `legend.hover` (session: a highlight named
-  `legend`), `theme.cvd-safe` (session). `fittingSchemes(layer)` is what a menu offers (the schemes whose subject and
-  measures fit the layer); `preview(layer, channel, value)` shows one hovered (a preview, ended by `layer.channel` or
-  Esc).
+  the layer's `data`, a trailing `(not …)` of the values hidden; no value: cleared, every layer of `addresses` in one
+  patch, as a click on the track's "n filtered" chip). The user's filter is only that trailing `(not …)` (`dataFilter`):
+  what leads it, the annotation and a leading run of item forms (`<annotation>/(item :category Domain)`, a layer a
+  feature type), is the layer's base, kept when the filter is set, toggled or cleared, its rejected rows not counted as
+  filtered (core's Render, Filters: `splitDataForms` is the one parser). A legend entry's items are the base's forms and
+  `(item :<field> v)` in one query (`itemsAddress`: one item form holding every param, or an `and` when the base has
+  `and` or `or`), `legend.select` (session: the items whose field has the value; Cmd/Ctrl toggles), `legend.hover`
+  (session: a highlight named `legend`), `theme.cvd-safe` (session). `fittingSchemes(layer)` is what a menu offers (the
+  schemes whose subject and measures fit the layer); `preview(layer, channel, value)` shows one hovered (a preview,
+  ended by `layer.channel` or Esc).
 - **The Legend part's groups run one a line** (a column, 12 px apart; each title muted, 600, 11 px: grouping is seen
   without reading) and **its channels row keeps its place**: the row is outside the listbox (a listbox holds options),
   one line (`nowrap`, the first two channels named, the rest a `+n` chip), and `channels: reserve` (the default) holds

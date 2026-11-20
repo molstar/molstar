@@ -10,7 +10,7 @@ import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { keySet, rangesLocation } from '@molstar/seqx-core/query';
 import { type PassName, recordDrawLists } from '@molstar/seqx-core/render';
 import { nodeAddress } from '@molstar/seqx-core/resolve';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import type { EditingBehavior } from '../behaviors/editing.js';
 import { viewerItem } from '../config.js';
 import { CanvasBackend } from '../canvas/backend.js';
@@ -72,9 +72,8 @@ async function make(root: Node = spec(), config: readonly (readonly [any, unknow
   viewer.input.mac = false;
   await viewer.load(root);
   viewer.resize(600);
+  // the headers' late parts (a lazy chunk: the chips' clicks, the cursor on headers): `settle` waits for them
   await viewer.settle();
-  // the headers' late parts (a lazy chunk: the chips' clicks, the cursor on headers)
-  await vi.dynamicImportSettled();
   frames.flush();
   return viewer;
 }

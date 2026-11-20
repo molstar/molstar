@@ -13,7 +13,7 @@
 import type { Node } from '@molstar/core/repr/tree';
 import { SeqCoreConfig } from '@molstar/seqx-core/context';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { HeadersBehavior } from '../behaviors/headers.js';
 import { HeadersProvider } from '../behaviors/headers.js';
 import { DefaultSeqViewerSpec } from '../default-spec.js';
@@ -76,9 +76,8 @@ async function make(params?: HeadersParams, root = spec()): Promise<SeqViewer> {
   viewers.push(v);
   await v.load(root);
   v.resize(600);
+  // the headers' late parts (a lazy chunk): `settle` waits for them
   await v.settle();
-  // the headers' late parts (a lazy chunk)
-  await vi.dynamicImportSettled();
   frames.flush();
   return v;
 }
@@ -292,7 +291,6 @@ describe('a host’s entries', () => {
     await v.load(spec());
     v.resize(600);
     await v.settle();
-    await vi.dynamicImportSettled();
     frames.flush();
     expect(items(v, More).map((i) => i.name)).not.toContain('seq:hide');
     // block.form has no block here: its own `when` says why
@@ -447,8 +445,10 @@ describe('the geometry and the parts', () => {
     await settled(a.execute('track.hide', { address: More }));
     const b = await make({ parts: () => ({ update() {} }) }, root);
     await settled(b.execute('track.hide', { address: More }));
-    // with DOM parts the canvas lays out no slots and no "⋯"
-    expect(b.frame!.layout.sections[0].tracks[0].header!.slots).toEqual([]);
+    // with DOM parts the same boxes are laid out (the parts are placed over them)
+    expect(b.frame!.layout.sections[0].tracks[0].header!.slots.map((s) => s.x)).toEqual(
+      a.frame!.layout.sections[0].tracks[0].header!.slots.map((s) => s.x),
+    );
     expect((await b.renderSvg()).svg).toBe((await a.renderSvg()).svg);
   });
 

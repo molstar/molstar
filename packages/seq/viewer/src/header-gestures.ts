@@ -14,7 +14,7 @@ import { DomHost } from '@molstar/ui/dom/host';
 const PressSlop = 8;
 
 /**
- * Listens for the secondary click and the long press on `container`: `context(x, y, e)` answers whether the menu took
+ * @internal Listens for the secondary click and the long press on `container`: `context(x, y, e)` answers whether the menu took
  * the click; `pressed(x, y)` runs after `longPressMs` of a finger that did not move.
  */
 export function headerGestures(

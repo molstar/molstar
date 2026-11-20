@@ -13,10 +13,8 @@ import {
   type Rail,
   RowsRail,
   railUnitAt,
-  HeaderStateNames,
   type Hit as RenderHit,
   type SectionLayout,
-  type ViewLayout,
   type WindowPart,
 } from '@molstar/seqx-core/render';
 import { type PartCursor, partCursor } from './part-cursor.js';
@@ -692,13 +690,11 @@ export class ViewerInput {
       void this.viewer.execute('rows.tree', { track: trackOfLayer(chip.layer) });
       return true;
     }
-    // a header's parts are never a selection's (_spec/README.md "Input"): the `headers` behavior's (by name: a viewer
-    // without it bundles none of it), else the "n filtered" chip clears its layer's filter (one patch)
+    // a header's parts are never a selection's (_spec/README.md "Input"): the `headers` behavior's, the one path (by
+    // name: a viewer without it bundles none of it, its states facts a click does nothing on)
     const t = chip?.target;
     if (chip && (t === 'header-state' || t === 'header-slot' || t === 'header-label' || t === 'section-header')) {
-      if (this.viewer.behaviors.get('headers')?.click(x, y, this._touch)) return true;
-      const layer = chip.state === HeaderStateNames.filtered && filteredLayer(this.viewer.frame?.layout, chip);
-      if (layer) void this.viewer.execute('layer.filter', { address: layer });
+      this.viewer.behaviors.get('headers')?.click(x, y, this._touch);
       return true;
     }
     // a tree node's click: its bound command (toggles the clade's fold by default), unless it is a selection's
@@ -1109,12 +1105,3 @@ function railDrawn(rail: Rail, viewer: SeqViewer): readonly [number, number] | u
 }
 
 const RailEnds = new Float64Array(4);
-
-/** The layer a track's "n filtered" chip (its `seq:filtered` state) is about, in the layout it was hit in. */
-function filteredLayer(layout: ViewLayout | undefined, hit: RenderHit): string | undefined {
-  for (const s of layout?.sections ?? [])
-    for (const t of s.tracks)
-      if (t.track.address === hit.layer)
-        for (const st of t.header?.states ?? []) if (st.name === hit.state) return st.address;
-  return undefined;
-}

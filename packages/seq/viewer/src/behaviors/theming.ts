@@ -72,7 +72,7 @@ import type { LegendModel } from '@molstar/seqx-viewer/legends';
 export interface ThemingContext {
   /** The layer (`layer.channel`, `theme.value-color`, `legend.*`) or the scale (`scale.set`). */
   readonly address?: string;
-  /** `layer.channel`: several layers at once, one patch. */
+  /** `layer.channel`, `layer.filter` cleared (no `entry`): several layers at once, one patch. */
   readonly addresses?: readonly string[];
   /** `layer.channel`: the channel (`color` when absent). */
   readonly channel?: string;
@@ -270,13 +270,25 @@ export function themingBehavior(
       id: ThemingCommandIds.filter,
       title: 'Hide a value’s items',
       category: 'Legend',
-      when: live((ctx) => (node(ctx.address, 'layer') ? true : 'No layer there')),
+      // a value hidden on one layer (`address`); no value: every listed layer's filter cleared in one patch (`addresses`:
+      // a track's "n filtered" chip)
+      when: live((ctx) =>
+        layers(ctx).length && layers(ctx).every((a) => node(a, 'layer')) && (ctx.entry === undefined || !ctx.addresses)
+          ? true
+          : 'No layer there',
+      ),
       run: (_, ctx) => {
-        const ops = filterOps(ctx.address!, ctx.entry);
+        let ops: Op[] | string = 'Not filtered';
+        for (const a of layers(ctx)) {
+          const o = filterOps(a, ctx.entry);
+          if (typeof o !== 'string') ops = typeof ops === 'string' ? o : [...ops, ...o];
+          else if (layers(ctx).length === 1) ops = o;
+        }
         if (typeof ops === 'string') return { message: ops };
+        const all = ops;
         return edit(
           ctx.entry === undefined ? 'Clear a filter' : 'Filter a layer',
-          () => ops,
+          () => all,
           ctx,
           ctx.entry === undefined ? 'Filter cleared' : 'Filtered',
         );

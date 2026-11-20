@@ -2655,26 +2655,31 @@ numbers): a window move allocates nothing once warm.
 - **Parts given, geometry laid out.** A header is a track's line in the label column, or a section's line above its
   first track. Its parts come from `LayoutInput.headers` (`HeaderPartsOf`: facts in, parts out, once a layout a header;
   part of the key by identity, `FrameInput.headers`, `RenderSvgOptions.headers`): `slots` (an entry's name, label, icon
-  as path data in a 24-unit box, enabled), `states` (name, text, count, the address it is about) and `menu` (any entry
-  applies). The facts (`HeaderInputFacts`; the viewer's own facts are its entries') are DOM-free: the layers a filter
-  thinned with their counts, the hidden layers, the section's hidden tracks read from the spec (each once, in spec
-  order). Absent, `builtInHeaderStates`: a track's `seq:filtered` ("n filtered", its first thinned layer) and
-  `seq:hidden-layers` ("1 layer hidden", "n layers hidden"), a section's `seq:hidden-tracks` ("n hidden"); no slots, no
-  menu. Why given: which entries apply and whether they run is the viewer's (its registry and commands); where they go
-  is the layout's, so a canvas and a host's DOM parts agree. A navigator's picture lays out no header.
+  as path data in a 24-unit box, enabled), `states` (name, text, count, the address it is about), `menu` (any entry
+  applies) and `hosted` (a host's DOM parts draw them over the laid-out boxes). The facts (`HeaderInputFacts`; the
+  viewer's own facts are its entries') are DOM-free: the layers a filter thinned with their counts, the hidden layers,
+  the section's hidden tracks read from the spec (each once, in spec order). Absent, `builtInHeaderStates`: a track's
+  `seq:filtered` ("n filtered", every thinned layer's rows) and `seq:hidden-layers` ("1 layer hidden", "n layers
+  hidden"), a section's `seq:hidden-tracks` ("n hidden"); no slots, no menu. Why given: which entries apply and whether
+  they run is the viewer's (its registry and commands); where they go is the layout's, so a canvas and a host's DOM
+  parts agree. A navigator's picture lays out no header.
 - **Where** (`header.*`): `actionColumns`: the "⋯" at the label column's right end, `header.slots` columns of
   `header.slotPx` left of it, as many slots as leave three columns of label (an 80 px column holds one), none under
-  `header.actions.show: never`; one set a view, so a slot's x is never the label's. Why the "⋯" last: a kebab menu is
-  looked for at the row's end (Mol\*'s order; the author's). The slots are the first given (`HeaderSlotBox.part`); the
-  "⋯" when `menu`. A track under `header.minHeightPx` (`short`) takes no slots and its states are marks (6 px accent
-  squircles, their words the card's). States beside the label end before the action columns when the header has actions,
-  else at the column's end, the last nearest; a state with no room left is a mark, so a slot never overlaps a state: **a
-  narrow column draws its states as marks** (decided: an 80 px column with actions holds one slot, its chips marks), and
-  a mark with no room left in the column is left out (never left of it; its words the card's). On a track two lines high
-  the states take a line of their own under the label (the label whole, the two lines centred together; lower by the
-  slot's half when the header has actions, so the line clears them). The label fades before what is beside it
-  (`HeaderLine.label`). **A rows track** draws no states and no slots and gives no label hit: its label column is its
-  tree and row labels, hit as before; its header is its title row's (not built, the TODO).
+  `header.actions.show: never`; one set a view, counted from the "⋯" leftwards (the first slot next to it), so a slot's
+  x is never the label's and every track's eye is in one column whatever its line's count. Why the "⋯" last: a kebab
+  menu is looked for at the row's end (Mol\*'s order; the author's). The slots are the first given
+  (`HeaderSlotBox.part`); the "⋯" when `menu`. A line reserves only the slots it has (`HeaderLine.actions`: its slots
+  and the "⋯"): a line with none (a section's, whose built-ins are menu only) has its chips up to the "⋯". Why: at the
+  default 112 px a reservation of every column left "1 hidden" a mark. A track under `header.minHeightPx` (`short`)
+  takes no slots and its states are marks (6 px accent squircles, their words the card's). States beside the label end
+  before the line's own actions when it has any, else at the column's end, the last nearest; a state with no room left
+  is a mark, so a slot never overlaps a state: **a narrow column draws its states as marks** (decided: an 80 px column
+  with actions holds one slot, its chips marks), and a mark with no room left in the column is left out (never left of
+  it; its words the card's). On a track two lines high the states take a line of their own under the label (the label
+  whole, the two lines centred together; lower by the slot's half when the header has actions, so the line clears them).
+  The label fades before what is beside it (`HeaderLine.label`). **A rows track** draws no states and no slots and gives
+  no label hit: its label column is its tree and row labels, hit as before; its header is its title row's (not built,
+  the TODO).
 - **The section's line** (`section.header`: `auto` when its parts have a state or a slot, `always`, `none`):
   `header.sectionPx` high above its first track, the tracks moved down by it (`SectionLayout.header`); kept when every
   track of the section is hidden. Why `auto`: no line that says nothing, records without hidden tracks unchanged.
@@ -2686,7 +2691,9 @@ numbers): a window move allocates nothing once warm.
   slots, its states, its data; a section's line only its own hits) and the cursor's header (`cursor.part: 'header'`,
   `cursor.track`): an emphasis redraw, no layout, nothing allocated (`headers.quick.ts`). No emphasis field of its own:
   the hover drives it. A header's hover lights none of its track's items (EC-146: refused by default). A figure
-  (`figure`) lays out no slots and no "⋯"; its states as drawn, none with `header.states.export: none`.
+  (`figure`) lays out no slots and no "⋯"; its states as drawn, none with `header.states.export: none`. A `hosted` line
+  (a host's DOM parts) draws nothing in its slot, "⋯" and chip boxes (the parts are the DOM's); a figure of it draws its
+  states.
 - **Hit** (`hitChrome(section, x, y, hover)`, before the bands): a slot or the "⋯" `header-slot` **only while its
   track's actions show** (by the hover `hitView` is given: the label line hovered first, then the slot), a state
   `header-state` (`count` its count), elsewhere on a track's line `header-label` (no `state`), on a section's line

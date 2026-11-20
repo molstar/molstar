@@ -289,8 +289,9 @@ export const BuiltInHeaderEntries: readonly HeaderActionEntry[] = (
       label: 'Clear the filter',
       command: 'layer.filter',
       when: (f) => isTrack(f) && f.layers.some((l) => l.filtered > 0),
-      args: (f) => ({ address: f.layers.find((l) => l.filtered > 0)!.address }),
-      text: (f) => `${f.layers.find((l) => l.filtered > 0)!.filtered} filtered`,
+      // the track's count (every thinned layer's rows) and every layer's filter cleared in one patch
+      args: (f) => ({ addresses: f.layers.filter((l) => l.filtered > 0).map((l) => l.address) }),
+      text: (f) => `${f.layers.reduce((n, l) => n + l.filtered, 0)} filtered`,
     },
     {
       name: HeaderEntryNames.hiddenLayers,
@@ -351,6 +352,8 @@ export interface HeaderMenuPlace {
 export interface HeaderMenuPort {
   show(menu: HeaderMenu, place: HeaderMenuPlace, behavior: HeadersBehavior): void;
   hide(): void;
+  /** Its DOM's chunk asked for and not landed (the default's at its first open): `settle` waits for it. */
+  loaded?(): Promise<void> | undefined;
   dispose?(): void;
   /** false: the host owns it and the viewer never disposes it. */
   readonly disposeWithViewer?: boolean;
@@ -362,6 +365,11 @@ export type HeaderMenuPortFactory = (container: HTMLElement | undefined) => Head
 /** A host's DOM parts over the headers' boxes (_spec/README.md "Ports", Header parts). */
 export interface HeaderPartsPort {
   update(parts: HeaderPartsState): void;
+  /**
+   * Resolves once its DOM is in place (the default's lazy chunk, asked for here): the canvas draws the parts until
+   * then, and nothing in their boxes after (absent: at once). `settle` waits for it.
+   */
+  loaded?(): Promise<void>;
   /** The keyboard cursor came onto a header: its parts take the focus. */
   focus?(target: HeaderTarget): void;
   dispose?(): void;
@@ -374,7 +382,10 @@ export type HeaderPartsPortFactory = (container: HTMLElement, behavior: HeadersB
 export interface HeadersParams {
   /** The menu's adapter (the default spec gives `@molstar/ui`'s context menu; none: the menu's state moves alone). */
   readonly menu?: HeaderMenuPortFactory;
-  /** `canvas` (default): slots drawn; a factory: a host's DOM parts over the boxes (the canvas draws the states). */
+  /**
+   * `canvas` (default): the parts drawn; a factory: a host's DOM parts over the laid-out boxes (the slots, the "⋯" and
+   * the chips; the canvas draws none of them once the port's `loaded` resolved, and an export draws the states).
+   */
   readonly parts?: 'canvas' | HeaderPartsPortFactory;
   /** What a secondary click opens: `everywhere` (default), `header` (the label column), `none` (the browser's). */
   readonly contextClick?: 'everywhere' | 'header' | 'none';
@@ -382,38 +393,6 @@ export interface HeadersParams {
   readonly longPressMs?: number;
   /** A count chip's click: `all` (default) shows every hidden thing in one patch; `menu` lists them. */
   readonly hiddenChip?: 'all' | 'menu';
-}
-
-const sameBox = (a: Box | undefined, b: Box | undefined) =>
-  a === b || (!!a && !!b && a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height);
-
-export function sameGeometry(a: readonly HeaderGeometry[], b: readonly HeaderGeometry[]): boolean {
-  if (a.length !== b.length) return false;
-  for (let i = 0; i < a.length; i++) {
-    const x = a[i];
-    const y = b[i];
-    if (
-      x.target.section !== y.target.section ||
-      x.target.track !== y.target.track ||
-      x.shown !== y.shown ||
-      !sameBox(x.line, y.line) ||
-      !sameBox(x.label, y.label) ||
-      !sameBox(x.well, y.well) ||
-      x.slots.length !== y.slots.length ||
-      x.states.length !== y.states.length
-    )
-      return false;
-    for (let k = 0; k < x.slots.length; k++)
-      if (x.slots[k].name !== y.slots[k].name || !sameBox(x.slots[k].box, y.slots[k].box)) return false;
-    for (let k = 0; k < x.states.length; k++)
-      if (
-        x.states[k].name !== y.states[k].name ||
-        x.states[k].text !== y.states[k].text ||
-        !sameBox(x.states[k].box, y.states[k].box)
-      )
-        return false;
-  }
-  return true;
 }
 
 /** The menu's data for a target (DOM-free; _spec/README.md "Behaviors", Headers): undefined without the behavior. */

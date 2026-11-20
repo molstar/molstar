@@ -35,7 +35,7 @@ const at = (el: HTMLElement, b: { x: number; y: number; width: number; height: n
 
 const sameTarget = (a: HeaderTarget, b: HeaderTarget) => a.section === b.section && a.track === b.track;
 
-/** `@molstar/ui` buttons over the headers' boxes (the lazy chunk `headerPartsDom()` loads). */
+/** @internal `@molstar/ui` buttons over the headers' boxes (the lazy chunk `headerPartsDom()` loads). */
 export function partsDomPort(): HeaderPartsPortFactory {
   return (container, behavior) => {
     const doc = container.ownerDocument;
@@ -94,10 +94,18 @@ export function partsDomPort(): HeaderPartsPortFactory {
             b.type = 'button';
             b.dataset.part = s.name;
             b.setAttribute('aria-label', it?.command ? `${s.text}: ${it.label}` : s.text);
-            // over the chip the canvas draws: the canvas's picture stays the export's
+            // the chip itself (the canvas draws nothing in its box): its words, or a mark's squircle where the column
+            // leaves no room for them (an export draws the canvas's)
+            if (!s.mark) b.textContent = s.text;
             Object.assign(b.style, {
-              background: 'transparent',
+              background: s.mark ? 'var(--msui-accent)' : 'transparent',
+              color: 'var(--msui-accent)',
               border: '0',
+              borderRadius: s.mark ? '2px' : '0',
+              padding: '0',
+              font: 'inherit',
+              fontSize: '11px',
+              whiteSpace: 'nowrap',
               cursor: it?.command ? 'pointer' : 'default',
             });
             at(b, s.box);

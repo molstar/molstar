@@ -50,7 +50,7 @@ function headerStep(viewer: SeqViewer, c: Cursor, delta: -1 | 1): Cursor | undef
 }
 
 /**
- * The cursor's moves taken over, in the viewer's command list: `menu` opens the header's menu (Enter). Returns what the
+ * @internal The cursor's moves taken over, in the viewer's command list: `menu` opens the header's menu (Enter). Returns what the
  * frame calls: a layout that no longer has the cursor's track moves it to the next track's header, else the previous
  * one's, else the section's line.
  */

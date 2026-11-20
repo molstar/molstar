@@ -19,7 +19,7 @@ const BuiltIn: Readonly<Record<string, string>> = { 'eye-off': lucideEyeOff, pal
 
 const Cache = new Map<string, HeaderIcon | null>();
 
-/** An icon's paths (its markup, else a built-in's by name), read once; undefined when no path reads it. */
+/** @internal An icon's paths (its markup, else a built-in's by name), read once; undefined when no path reads it. */
 export function headerIcon(name: string | undefined, markup?: string): HeaderIcon | undefined {
   const text = markup ?? (name === undefined ? undefined : BuiltIn[name]);
   if (text === undefined) return undefined;
@@ -52,7 +52,7 @@ class Out {
   }
 }
 
-/** The markup's elements read into one path; undefined at an element it does not read. */
+/** @internal The markup's elements read into one path; undefined at an element it does not read. */
 export function readMarkup(markup: string): HeaderIcon | undefined {
   const out = new Out();
   for (const m of markup.matchAll(/<(\w+)([^>]*)\/?>/g)) {

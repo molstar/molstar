@@ -38,6 +38,7 @@ export function headerMenuOverlay(): HeaderMenuPortFactory {
         asked++;
         port?.hide();
       },
+      loaded: () => loading?.then(() => undefined),
       dispose() {
         gone = true;
         port?.dispose?.();
@@ -53,15 +54,17 @@ export function headerPartsDom(): HeaderPartsPortFactory {
     let loading: Promise<HeaderPartsPort> | undefined;
     let last: Parameters<HeaderPartsPort['update']>[0] | undefined;
     let gone = false;
+    const load = () =>
+      (loading ??= import('./header-parts-dom.js').then((m) => (port = m.partsDomPort()(container, behavior))));
     return {
       update(parts) {
         last = parts;
         if (port) return port.update(parts);
-        loading ??= import('./header-parts-dom.js').then((m) => (port = m.partsDomPort()(container, behavior)));
-        void loading.then((p) => {
+        void load().then((p) => {
           if (!gone && last) p.update(last);
         });
       },
+      loaded: () => load().then(() => undefined),
       focus(target) {
         port?.focus?.(target);
       },
