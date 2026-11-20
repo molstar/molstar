@@ -635,3 +635,4 @@ in GA's draft word for word. Still open after it, for the gate:
 - A `.hic` without a whole-assembly level still makes up to 1,024 requests.
 - Reads inside runs wait for GC2's measure.
 - GF's revision (genome-formats.md, "Where this differs…") asks for text here: sided pairs sources, items at tile size for every list shape, item extents and span rows with `measure`, genotype-class `codes`; taken at the gate.
+- LX's revision (across-sections.md, "Where this differs…") asks for text here; taken at the gate.

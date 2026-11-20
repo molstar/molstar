@@ -839,3 +839,4 @@ open after it:
 - One source over several files (1000 Genomes and gnomAD ship one per chromosome) is not designed.
 - Phasing, breakends as pairs, name search over tabix sources (trix), the VCF anchor base, `itemRgb`.
 - PIF's swapped I/D is to be verified in PF.
+- LX's revision (across-sections.md, "Where this differs…") asks for text here; taken at the gate.

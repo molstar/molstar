@@ -604,3 +604,4 @@ them all. Still open after it, for the gate:
 - `natural` order on worded names stays a tension.
 - The square navigator's bound is agreed with RR's draft at the gate.
 - GF's revision (genome-formats.md, "Where this differs…") asks for `assembly.sizes` (a chrom.sizes) with `seq.resolve.assembly.lengths` here; taken at the gate.
+- LX's revision (across-sections.md, "Where this differs…") asks for text here; taken at the gate.

@@ -43,7 +43,7 @@ move together, a grid whose two axes are two different sections of blocks, and a
 | JBrowse 2's linear synteny view: two (or more) linear views stacked, a "level" between each consecutive pair holding synteny tracks; each feature a filled band (a quadrilateral with curved sides) from its query extent on the upper view to its target extent on the lower; drawn at the true x even off screen; colour and alpha by strand or a field; a minimum width; "link views" (pan and zoom both by the same delta); "square" (equal zoom); click a feature for its card | the level as a `bridge` between neighbours in the stack; a ribbon a pair, its sides cubics with vertical tangents; ends at their true x, off-screen ends leaving sideways; a minimum width; `lock: px` (link views); a ribbon's card; levels chained for three genomes | a synteny view as its own view type (here a bridge in any tracks view); per-level renderer settings beyond the layer's params |
 | JBrowse 2's dot plot view: two assemblies on x and y, each a list of displayed regions, PAF lines as segments, a diagonal by strand | a grid section whose x and y follow two sections of blocks (GA), the built `pairs` dots and diagonal segments, RR's bins as dots | the dot plot's own region editor (here the sections' blocks) |
 | Circos: links and ribbons between ideogram positions inside one circle, twisted ribbons, colour by chromosome, a ribbon's thickness from its ends | twist (GA's rule), colour by the a end's block (EC-218), ribbons wide by their ends | ribbons between two circles: Circos draws every link inside one circle; so does every ring precedent (Rondo, pyCirclize): a ring's links stay the section's (`pairs` chords; RN's `rondo:ribbons`) |
-| UCSC chain and net tracks: a chain drawn in one assembly's coordinates as boxes (aligned blocks) joined by lines (gaps), coloured by the other assembly's chromosome; nets as nested fills; liftOver with `minMatch` (0.95) refusing a location that maps less | the chain track as the `pairs` layer's `ranges` fallback on one side, coloured by `b_system` (RR's column) over GA's block-ordered domain; liftover as projection through the chain's map (GA, GF), the mapped share reported by `mapSummary` | nets (levels of fills and gaps); `minMatch` as a refusal (here the share is read, never a cut) |
+| UCSC chain and net tracks: a chain drawn in one assembly's coordinates as boxes (aligned blocks) joined by lines (gaps), coloured by the other assembly's chromosome; nets as nested fills; liftOver with `minMatch` (0.95) refusing a location that maps less | the chain track as the `pairs` layer's `ranges` fallback on one side, coloured by `b_system` (RR's column) over GA's block-ordered domain; liftover as projection through the chain's map (GA, GF), a mapped share for a host's readout deferred (Liftover) | nets (levels of fills and gaps); `minMatch` as a refusal |
 | Juicebox: one map, x and y each a chromosome chosen from a list ("chr1 vs chr4"), "All" for the genome, 1D tracks along the top and down the left, a control map in the other triangle | x and y following two sections (a chromosome each, or an assembly each), "All" as RR's whole-assembly level, the control in the other triangle (EC-59, built) | tracks down the left of a map (a section beside another: [layouts](../../../design/layouts.md) "side by side later"; a Gap) |
 | HiGlass: views side by side with zoom and location locks, a viewport projection (one view's region drawn as a rectangle on another), 2D annotations | the lock (`lock: px`, for two genomes; a follow for one); a projection is a navigator's window (navigators.md) | views side by side (stacked here) |
 | This codebase: sections stacked, `scope: 'section'` layers placed by `ctx.place`, a grid section's `follow` and `follow_y`, a grid over a section of blocks (one leader for both axes), the rows layer's labels and `order`, projection along links, `via` | a bridge laid out after its two sides from their placements; `follow_y` naming a second section of blocks; a categorical axis drawing the rows layer's labels in the rows layer's `order` | a fourth section layout: a bridge has no axis of its own, so it is not a section |
@@ -67,7 +67,7 @@ move together, a grid whose two axes are two different sections of blocks, and a
 | a dot plot, zoom into a block pair (JBrowse, Juicebox) | built: the grid section's gestures, the square navigator (GA) |
 | choose a chromosome for x and one for y (Juicebox) | built: two sections, each a chromosome; a host's lists patch their `of` |
 | tracks down the left of a contact map (Juicebox, HiGlass) | refused this slice: sections stack; side by side is layouts' later (Gaps, 13) |
-| liftOver a region (UCSC) | built: projection through the chain's map; the readout is `mapSummary`, a host's text |
+| liftOver a region (UCSC) | built: projection through the chain's map, every image lit; a readout of the share mapped deferred (Gaps, 15) |
 
 ## Decision
 
@@ -97,9 +97,10 @@ over a bridge does is the viewer's.
   position is anywhere in its box, a stack's block anywhere in its rows, so the ribbon would cross the side's own
   tracks. Links inside one ring stay that ring's (`pairs` chords, RN's ribbons, GA's two assemblies on one ring,
   EC-210): every ring precedent draws them so.
-- **Its layers** are `pairs` layers (below) or an extension type with `scope: 'bridge'`. Another type is
-  `seq.view.bridge.layer` (warning) and not drawn. Why: a bridge has no axis, so a type that draws along one has
-  nowhere to draw.
+- **Its layers** are `pairs` layers (below). Another type is `seq.view.bridge.layer` (warning) and drawn as its
+  fallback chain's first `pairs`, else not drawn. Why: a bridge has no axis, so a type that draws along one has nowhere
+  to draw. The layer contract's `scope: 'bridge'` is internal this slice, not in the extension entry: no extension
+  draws in a bridge yet (RN's ribbons are a ring's), and the entry is what a review must freeze (Gaps, 16).
 - **Its data**: a `pairs` node (inline, or `pairs.source` read by region, RR), or **a `map` with `method: segments`**
   (inline `segments`, or `map.source`, GF) read as pairs: a run is a pair of equal length, `a` its `from` range,
   `b` its `to` range, `b_strand` its strand. So a chain file is drawn and projected through from one node (the
@@ -123,20 +124,34 @@ over a bridge does is the viewer's.
 - **Placed after its sides**: `layoutView` places each section (as built), then each bridge in the box between its
   sides (its `height`, plus the sections' gap above and below). A bridge's **placement** (`BridgePlacement`) holds its
   box and its two sides (`BridgeSide`: the side's `Placement`, the y of its edge facing the bridge (the side's box's
-  bottom when above, top when below), and `placesOf` over its blocks). Lazy: the bridge layout and ribbons load as a
-  chunk when a view has a bridge (the plan's risk: the default viewer at its bound).
+  bottom when above, top when below), and `placesOf` over its blocks).
+- **Lazy, all but the language and the resolved view** (the plan's risk: the default viewer at its bound): the bridge
+  layout, the ribbons, and the viewer's bridge parts (the band's pointer, the lock's carrying, `bridge.align`,
+  `bridge.selectAcross`, the cursor across a band, the resize grip) load as one chunk when a resolved view has a
+  bridge, the viewer's parts as a `BehaviorProvider` registered then. Eager: the `bridge` kind in the language,
+  `ResolvedView.bridges` and `.stack` (resolve reads them; a view without a bridge has an empty list) and `Hit.bridge`
+  (one number). Measured at LA's gate against the default viewer's bound; past it, the resolved parts move into the
+  chunk with the view module's bridge pass, and the author decides.
+- **Height by drag** (JBrowse's levels): the band's lower edge is a grip (4 CSS px, `row-resize`); a drag previews and
+  ends in one patch of `height` (one undo step), Esc cancels. Why: synteny readers resize the band to unflatten long
+  ribbons.
 - **The key**: a bridge's key is its own params and both sides' keys (viewport, the key's reads); a pan of one side
   relays that side and the bridge only. Why: a ribbon's ends are wherever its sides draw them.
 - **A layer of scope `bridge`** (a third value of `LayerType.scope`) is laid out once a bridge with a `BridgeContext`:
   `ctx.box` the bridge's band, `ctx.sides` the two `BridgeSide`s (each end's page x from `placesOf` then the strip's
-  transform and warp), the store and theme as any layer's. Exported in the extension entry
-  ([extension-openings](../../../design/extension-openings.md)). Why a scope and not `section`: a section layer reads
-  one placement; a bridge layer reads two.
+  transform and warp), the store and theme as any layer's. Internal this slice (above). Why a scope and not `section`:
+  a section layer reads one placement; a bridge layer reads two.
 - **An end's x**: its extent on each block that shows it (GA: every place of an overlapping block, each counted against
   `pairs.maxArcs`); a reversed block gives the end's first position the larger x. **Off the window** (a side's window
-  shows neither end of the range): the end at its true x, clamped one data-box width past the side's edge, so the
-  ribbon leaves the bridge sideways at the angle it has and moves continuously on pan (JBrowse; EC-129's continuity).
-  **No place** (its system shown, its position on a block not shown: a sequence `include` left out, GA): a **stub**, a
+  shows none of the range): the end is placed toward its true x, clamped to one data-box width past the side's edge
+  (JBrowse draws the true x; the clamp keeps a curve from a far chromosome from going flat), so the ribbon leaves the
+  band sideways and moves continuously on pan until the clamp (EC-129's continuity).
+  **In a hidden stretch** (a side with `pieces`, a collapsed intron, EC-31, EC-32): the part of an end in a hidden
+  stretch is drawn at its break's hairline, at `ribbons.minPx`, and the card names it ("chr2:…, in a hidden stretch");
+  an end wholly hidden keeps the ribbon (its foot on the break), never drops it. Why: a hidden stretch is a layout map,
+  not data (EC-31); the ribbon's partner is still true. An end outside a block's `range` has no place (below).
+  **No place** (its system shown, its position on no block: a sequence `include` left out, outside a block's
+  `range`, GA): a **stub** (core's, in a bridge; a ring's outward stub stays RN's), a
   ribbon from the placed end tapering into the bridge for `ribbons.stubShare` (a quarter) of its height, hovered as the
   pair ("→ chr7:12,000,001–12,250,000, not shown"). **On an unread block inside a run** (GA's and RR's joint rule): at
   the block's place in its run, read from its other end's tile.
@@ -151,28 +166,53 @@ over a bridge does is the viewer's.
   that width draws as one curve (`shape: line`'s look). `shape` (the pairs layer's param, read in a bridge only:
   `ribbon`, absent; `line`, a curve between the ends' middles) forces lines. Why: a 10 kb run on a 3 Gb side is a
   hundredth of a pixel and must still be seen; a line is what an arc diagram draws.
+- **An alignment's blocks merge under a pixel** (whole-genome scale): consecutive blocks of one alignment (rows sharing
+  `row`, GF) of one strand whose gaps are under one device pixel on both sides are drawn as **one ribbon**, the hull of
+  those blocks on each side; where a gap reaches a pixel, the ribbon parts there. Recomputed on a zoom, never on a pan
+  (as GA's runs). Why: a chromosome-scale alignment is thousands of gapless blocks; at the fit they are one band, and
+  thousands of slivers would spend the cull on one alignment.
 - **Fill and order**: filled at `ribbons.fillOpacity` (0.35) in the layer's colour, no outline; drawn widest first
   (by the sum of its ends' widths), so narrow ones lie on top and stay hittable. **Colour**: by default `field block`,
-  the a end's block label over GA's block-ordered domain (EC-218, chromosome painting: each chromosome of A one hue,
-  carried to B); a side with no blocks has one block, so one colour. Twist already shows the strand.
+  the block of the ribbon's end on the **bridge's** `a` side (whichever of the data's ends that is) over GA's
+  block-ordered domain (EC-218, chromosome painting: each chromosome of the upper genome one hue, carried to the
+  other); a side with no blocks has one block, so one colour. Twist already shows the strand.
 
 ### What is read, and at which level
 
 - **Each side reads its own view** (RR's pairs, 1D tiles by either end, a pairs tile holding every pair with an end in
-  it): side `a`'s wants over its window's blocks, side `b`'s over its, each at the level its own px pick (RR's rule:
-  bins at the coarsest level no wider than `pairs.binPx`, items at a tile size). A pair or bin read from one side whose
-  other end lies in the other side's window is left to that side's read. So every ribbon is drawn once, from the side
-  whose read holds it at that side's level, and a side zoomed in draws fine bins or items while the other draws coarse
-  bins. Why not one level for both: a level fine enough for the zoomed side is thousands of tiles on the other, and a
-  coarse one is a single bin across the zoomed window.
-- **The gate**: items are asked on both sides when the bin pairs left after that rule sum to at most `pairs.maxArcs`,
-  kept to `pairs.itemsHysteresis` × it (RR, unchanged); both sides' wants together within `maxTilesPerLayer`. Items
-  dedupe by RR's identity rule.
-- **Bins in a bridge** are ribbons of their bins' widths, opacity by count (`ribbons.binOpacity`, 0.15 to 0.8 on a
-  square-root scale over the counts in view), crossed by the bin's strand. Why opacity, not width: a bin's ends are
-  positions (its width is its bin), and its count is the strength (RR draws it as an arc's stroke).
-- **Past `pairs.maxArcs`**: RR's cull (bins by count, items widest first, ties by span), the rest a density strip of
-  ends along each edge of the band (the built strip, laid along the edge). Said once (`seq.render.pairs.limit`).
+  it), each side at the level its own px pick (RR's rule: bins at the coarsest level no wider than `pairs.binPx`,
+  items at a tile size; items count as the finest level). Why not one level for both: a level fine enough for the
+  zoomed side is thousands of tiles on the other, and a coarse one is a single bin across the zoomed window.
+- **Each pair drawn exactly once, by ownership**: the **near side** is the finer of the two (the fewer positions a
+  device px over its window; items finer than any bins), a tie the bridge's `a`; the other is the **far side**. A pair
+  or bin belongs to a side by its end's **anchor** there (the end's first position, the one RR bins it by). The near
+  side **owns the region `R`**: its window on each of its systems widened outward to the far side's bin boundaries (the
+  far level's grid on the near side's systems; with the far side on items, `R` is the window itself).
+  - The near side reads `R`: its window at its own level, the widening (at most one far bin each side) at the coarsest
+    level whose tiles fit `maxTilesPerWant`, never coarser than the far level; it draws every pair or bin anchored in
+    `R`, wherever its far end is (off the far window: leaving sideways).
+  - The far side reads its window at its own level and draws every pair or bin anchored in its window whose near
+    anchor is **outside `R`**.
+  - Exact: levels are a factor apart (RR's `summaries.factor`, a source's listed levels nested), so `R` is a union of
+    whole far bins and every coarser bin a union of finer ones; no far bin straddles `R`'s edge, and a pair anchored
+    in `R` is the near side's alone. A pair anchored in both windows is drawn by the near side; anchored in neither, by
+    none (it is in neither view). A source whose levels are not nested (a format's own) widens `R` to the far bins
+    that touch it, the same rule.
+  - Why the finer side: it holds the detail the reader zoomed for; the far side's coarse bins fill only what the near
+    side does not show.
+- **The gate, per side**: each side asks items when the bins it draws (after ownership) sum to at most `pairs.maxArcs`,
+  kept to `pairs.itemsHysteresis` × it (RR's rule, per side), so a side at the fit with thousands of bins never keeps
+  the zoomed side off items. Both sides' wants together within `maxTilesPerLayer`. Items dedupe by RR's identity rule.
+- **Bins in a bridge** are ribbons of their bins' widths, crossed by the bin's strand, **opacity by aligned length**:
+  the bridge asks RR's `sum` of the source's aligned length (`block_length` of a PAF row, a run's length for a map's
+  runs; else the count), its share of the bin's width on the narrower side, on a square-root scale over the bins in
+  view (`ribbons.binOpacity`, 0.15 to 0.8). Why aligned length, not count: one chromosome-scale alignment is thousands
+  of blocks, many short ones are few bases; the bases aligned are what synteny shows.
+- **One cull over both sides** past `pairs.maxArcs`: every ribbon drawn (items, merged blocks, bins, stubs) ranked by
+  aligned length in positions (an item its length or `matches`, a merged ribbon its blocks' sum, a bin its `sum`),
+  ties by span, the first `maxArcs` drawn, the rest a density strip of ends along each edge of the band (the built
+  strip, laid along the edge). Said once (`seq.render.pairs.limit`). Why one unit: bins and items then compare as the
+  bases they carry.
 - **Pending** (EC-169): a side's tiles not loaded draw the held coarser bins; with none held, the band's pending hatch
   over the stretch of its edge in view on that side, never empty. **Failed**: the placeholder with its issue.
 
@@ -186,9 +226,14 @@ over a bridge does is the viewer's.
   4, for a thin one). A linear scan over the drawn ribbons (bounded by `pairs.maxArcs`), last drawn first (the
   narrowest on top): about 4,096 multiply-adds, inside the hover's 2 ms. A stub is hit by its taper the same way. Why
   not an index: the ribbons' x at a height changes with `u`, and the scan is already bounded by the screen.
-- **What a hit is**: the pair's element (built: `target: 'item'`, the pair's key, its extent both ends); for an
-  alignment's blocks (GF: rows sharing `row`), the alignment, its block named in the card; for a map's run, the run as
-  a row of the map's segments table, `(item :row k)` under the map (or the pairs source's row under `map.source`).
+- **What a hit is: the drawn run, one rule** (GA: "a ribbon's hit is its run (its two blocks and ranges)"; GF: "click:
+  the block"; RR: "what is drawn is what is selected"): a hit names the ribbon as drawn, its two ranges on its two
+  blocks: an item (a pair, a map's run, one block of an alignment), a merged ribbon (the blocks of one alignment drawn
+  as one, above: their hull on each side), a bin pair, a stub (its placed range and its unshown end). Its element is
+  the rect form `(rect :a <range on a's system> :b <range on b's system>)` (built for grids, RR's for bins), selected
+  as a Location of two parts; the card names what it belongs to (the alignment by its `row` or `id`, the map's run by
+  its row, the bin's level). An item's own address (`(item :row k)` under its node) is the card's link, not the hit.
+  Why one rule: a click must select what the reader sees under the pointer, whatever the zoom merged or binned.
 - **Checked as the inverse of drawing**: property tests over random ribbons, both directions, reversed blocks, off-window
   ends and stubs: a point inside the drawn polygon (sampled finely) hits exactly the topmost ribbon covering it.
 
@@ -203,18 +248,21 @@ over a bridge does is the viewer's.
   end at the hovered position** are lit with their far ends (as arcs light the pairs ending at a hovered base). Why both:
   a map projects positions; pairs that are not a map (BEDPE, Hi-C links) reach the other side only through their
   ribbons.
-- **Select a ribbon**: click selects the pair (both ends, a Location of two parts, built); Shift+click extends from the
-  anchor end on its system; Cmd/Ctrl+click toggles. **Double-click** focuses each side on its end (one jump, both
-  viewports in one history step); again, back.
+- **Select a ribbon**: click selects its drawn run (above: both ranges); Shift+click extends from the anchor end on its
+  system; Cmd/Ctrl+click toggles. **Double-click** focuses each side on the hull of what the ribbon belongs to (GF: an
+  alignment's hull on each side; a lone pair, its ends; a bin, its two bins), one jump, both viewports in one history
+  step; again, back.
 - **A selection on a side**: projected onto the other along the links (as built); the ribbons with an end inside it
-  drawn in the selection's accent. **`bridge.selectAcross`** (the bridge's menu, the context menu over a side next to a
-  bridge; no key by default): adds the far ends of those ribbons to the selection (one selection change). Why a command
-  and not automatic: a selection is what the user chose; partners are added when asked.
+  drawn in the selection's accent. **`bridge.selectAcross`** (the bridge's menu: across that bridge; the context menu
+  over a side: across every bridge touching it, so a middle genome with a bridge above and below gains both; no key by
+  default): adds the far ends of those ribbons to the selection (one selection change). Why a command and not
+  automatic: a selection is what the user chose; partners are added when asked.
 - **The keyboard cursor** crosses sections with ↑ and ↓ (built: tracks have one line); **across a bridge** it lands on
   the image of its position: through the topmost ribbon covering the cursor's position (its corresponding position on
   the far end), else through the view's link when a map joins the systems, else the far side's window centre; announced
-  with the side and the way ("grape chr5:880,123, through a reversed ribbon"). Why: following a ribbon must have a
-  keyboard way, and ↓ already moves to the next section.
+  with the side and the way ("grape chr5:880,123, through a reversed ribbon"). ↓ crosses the bridge below, ↑ the one
+  above, so a middle section is never ambiguous. Why: following a ribbon must have a keyboard way, and ↓ already moves
+  to the next section.
 - **ARIA**: a bridge is a group labelled by its `label` (else "a to b"), its description the count in view ("1,204
   ribbons between peach and grape in view"), set when the frame settles; ribbons are not focusable one by one (there are
   thousands); the cursor's announcement reads them.
@@ -222,36 +270,50 @@ over a bridge does is the viewer's.
 ### Moving two sections joined by a bridge (follow, lock, align)
 
 - **No follow across a bridge**: GA refuses a follow between unequal block lists and through a map read by region
-  (EC-211); taken. Each side is a leading section, moved alone by default (JBrowse's default).
+  (EC-211); taken. Each side is a leading section, moved alone by default (JBrowse's default). Two sides joined by a
+  follow (GA lifts it for equal block lists: one genome against itself) or one scroll group already move together.
 - **`lock: px`** (a bridge param, a patch): a pan of either side by dx CSS px pans the other by dx; a zoom by a factor
   about a page x zooms the other by that factor about the same page x. Why px and not positions: blocks of two
   assemblies, scales and gaps differ; the same px keeps the ribbons' slant as the reader moved them (JBrowse's link
   views, HiGlass's locks). A lock is a relation of its own beside follows and scroll groups
   ([viewer-models](../../../design/viewer-models.md)): it never derives one viewport from the other, so it never reads
-  the data; a side that also follows or is grouped moves its leader or group as built, and the lock carries the move.
-  A cycle of locks cannot occur (bridges join neighbours in a stack); a locked chain of three moves all three.
-- **A drag or a wheel over the bridge's band** moves both sides (the px rule, whatever `lock`), Cmd/Ctrl+wheel and pinch
-  zoom both about the pointer's x. Why: the band belongs to both, and a drag there selects nothing (no axis). Bound by
-  `bridge.pointer` (`ViewerConfig`: `both`, the default; `none`).
-- **`bridge.align`** (a jump, one history step; Shift+A with the cursor or pointer on a side next to a bridge, aligning
-  the other side to it; the bridge's menu has both directions): the other side reveals the image of this side's window,
-  the hull on the far system holding the most aligned length among the ribbons with their near end in the window
-  (through the view's link when a map joins them and no ribbon is read). Nothing in view: no move, said in the readout
-  ("nothing aligned in view"). Why a jump and not a follow: it reads the ribbons held now, once, so a map arriving by
-  region never moves a viewport under the reader (EC-211).
+  the data.
+- **One move a section a gesture**: a gesture's move is carried through follows (to a leader, `lead`, built), scroll
+  groups and locks as one closure over the view's sections, each section moved **once**, by the first relation that
+  reaches it in that order (follow, group, lock); a section reached again is skipped. So a lock between a leader and
+  its follower moves nothing twice (the follow carries it; the lock is then redundant, `seq.view.bridge.lock`, info),
+  and a cycle through follows, groups and locks ends where it began. Why one closure: three relations each moving a
+  section would move it two or three times for one gesture.
+- **A drag or a wheel over the bridge's band** moves both sides (the px rule, whatever `lock`, through the same
+  closure), Cmd/Ctrl+wheel and pinch zoom both about the pointer's x. Why: the band belongs to both, and a drag there
+  selects nothing (no axis). Bound by `bridge.pointer` (`ViewerConfig`: `both`, the default; `none`). Its lower edge's
+  grip resizes it (Layout, above).
+- **`bridge.align`** (a jump, one history step; Shift+A with the cursor or pointer on a side: every neighbour across a
+  bridge touching that side is aligned to it, a middle genome's both in one step; the bridge's menu has each direction
+  alone): the other side reveals the image of this side's window, the hull on the far system holding the most aligned
+  length among the ribbons with their near end in the window (through the view's link when a map joins them and no
+  ribbon is read). Nothing in view: no move, said in the readout ("nothing aligned in view"). Why a jump and not a
+  follow: it reads the ribbons held now, once, so a map arriving by region never moves a viewport under the reader
+  (EC-211).
 
-### A liftover by chain file (EC-212)
+### A liftover by chain file (EC-212; cut last, Gate 0, 1)
 
-- **The figure**: a section of the old assembly (or one chromosome), a bridge whose `pairs` layer's data is the chain's
-  map (GF's `map.source` over the `chain` runtime), a section of the new assembly; the old assembly's annotations drawn
-  on the new section through the same map (a layer's data along a path, as built; by region, GA, EC-211); hover and
-  selection projected through it. Unaligned stretches are gaps in the ribbons; a part of an item that maps nowhere is not
-  drawn on the new side (EC-21).
-- **`mapSummary(model, location, to, via?)`** (a library function, no state, beside `gridSummary`): the image's parts,
-  the share of the location's positions mapped, and the unmapped ranges, over the runs held for the location's region
-  (pending when not held). A host's readout ("chr17:7,668,402–7,687,550 → chr17:7,571,720–7,590,868 · 100 % mapped ·
-  1 run"). Why a function: UCSC's `minMatch` is a refusal policy; here the share is reported and the policy is the
-  host's.
+- **The figure**, from the nodes above with nothing of its own: a section of the old assembly (or one chromosome), a
+  bridge whose `pairs` layer's data is the chain's map (GF's `map.source` over the `chain` runtime), a section of the
+  new assembly; the old assembly's annotations drawn on the new section through the same map (a layer's data along a
+  path, as built; by region, GA, EC-211); hover and selection projected through it. Unaligned stretches are gaps in
+  the ribbons; a part of an item that maps nowhere is not drawn on the new side (EC-21).
+- **Runs read by either side**: the new section's layers and its projections need the runs whose `to` range falls in
+  its window, where GF reads `map.source` by the `from` side. A map's runs are a pairs source's rows, tiled by either
+  end (RR), so a run is asked by region of `from` or of `to` (`RegionRequest.side`, GF): forward projection reads by
+  `from`, a layer drawn on the `to` section by `to`. The chain runtime is read whole and indexed by both ends (GF), so
+  this costs no second read (text for GF below).
+- **Many to one, one to many** (chains overlap on `to` after a duplication; a deletion maps nowhere): a projection is
+  the union of every image, as built (EC-20); the card of a projected hover lists the images ("2 places").
+- **Deferred**: `mapSummary` (a mapped share and the unmapped ranges for a host's readout) and the builder's
+  `liftover(old, chain, new)`. Why: the liftover is cut last (Gate 0, 1), the figure needs neither, and "the share
+  mapped" is ambiguous where positions have several images (a share of the location with at least one image, or with
+  exactly one?), a question for when a host asks (Gaps, 15).
 
 ### Contact maps and dot plots across sections (EC-209, EC-223; RR's tiles)
 
@@ -277,7 +339,7 @@ over a bridge does is the viewer's.
   system; a sample × sample kinship, a gene × sample expression grid with positions on x). Why rows systems: they are
   systems already (EC-35), addressed, selected and ordered as rows, so a member selected on the grid lights its row in a
   matrix layer (the same system) with no map.
-- **Its axis is one unit a member** in an order: the grid section's `order` (x) and `order_y` (y), the rows layer's
+- **Its axis is one unit a member** in an order: the grid section's `member_order` (x) and `member_order_y` (y; named apart from the rows layer's `order` and an assembly's `order`, which the grid section also reads through its sides), the rows layer's
   values (`data`, `tree`, `{ field, direction }`, [grids-and-rows](../../../design/grids-and-rows.md), Order), absent
   `data`. The axis transform holds the order's permutation (as the rows layer's: an `Int32Array` display offset to
   member and its inverse), so the grid's cells, its shared 2D reduction and its hits read members through it; a reorder
@@ -293,17 +355,17 @@ over a bridge does is the viewer's.
 
 ### Ribbons in other places (for RN and the rest)
 
-- **A ring's links stay inside the ring**: core's `pairs` chords (RR's bins as chords stroked by count), RN's
-  `rondo:ribbons` with fallback `pairs`. A `rondo:` type in a bridge is RN's to declare (`scope: 'bridge'`); without it
-  the bridge draws its fallback `pairs` ribbons.
-- **Ribbons inside one row** (an arc with width between two blocks of one section): not core's; `pairs` draws arcs, and
-  an extension may draw ribbons there (`scope: 'section'`). Why: no Genomes view asks for it (the synteny views are
-  across sections, the ring is RN's).
+- **Where ribbons and stubs live, one rule**: core draws ribbons and stubs **in a bridge only** (`pairs` there); in a
+  section core's `pairs` draws arcs and chords (a bin pair one arc stroked by count, RR); ribbons and outward stubs on a
+  ring are RN's (`rondo:ribbons`, fallback `pairs`). An extension type in a bridge falls back to `pairs` ribbons this
+  slice (`scope: 'bridge'` internal, Gaps, 16).
+- **Ribbons inside one row** (an arc with width between two blocks of one section): not core's; an extension may draw
+  them (`scope: 'section'`). Why: no Genomes view asks for it (the synteny views are across sections, the ring is RN's).
 
 ## Edge cases this design takes or assigns
 
 - **Taken here**: EC-209 (both halves: ribbons between sections, and a grid whose x and y follow two sections of
-  blocks), EC-206 (the twist by corresponding positions, GA's rule), EC-212 (the liftover figure, `mapSummary`; the
+  blocks), EC-206 (the twist by corresponding positions, GA's rule), EC-212 (the liftover figure; the
   chain's reading GF's, its projection GA's), EC-223 (contact maps across two sections of blocks; tiles RR's), EC-129
   (an off-window end moves continuously: ribbons leave sideways at their true x), EC-169 (pending in a bridge: held
   coarser bins, else the hatch along the edge), EC-235 and EC-238 to EC-244 (a reader without bridges drops them, the
@@ -373,15 +435,15 @@ Cells this design fills; the others stand as GA, RR, grids-and-rows and ux-found
 
 | | select | extend | add / remove | focus | back | zoom | pan | hide | edit |
 |---|---|---|---|---|---|---|---|---|---|
-| **an element: a ribbon** (a pair, a run, a bin, a stub) | click: the pair, both ends | Shift+click: from the anchor end | Cmd/Ctrl+click | double-click: each side to its end, one jump | double-click again, Alt+Left | — | — | no: a data filter (length, MAPQ, `type`) | no: data |
+| **an element: a ribbon** (a pair, a run, merged blocks, a bin, a stub) | click: the drawn run, `(rect :a … :b …)`, both ends lit | Shift+click: from the anchor end | Cmd/Ctrl+click | double-click: each side to the hull of what it belongs to (an alignment, a pair, a bin), one jump | double-click again, Alt+Left | — | — | no: a data filter (length, MAPQ, `type`) | no: data |
 | **a bridge** (its band) | no: a bridge is not selected | — | — | Shift+A at a side: `bridge.align` (a jump); the menu has both ways | Alt+Left | Cmd/Ctrl+wheel, pinch over it: both sides about the pointer's x | drag or wheel over it: both sides (`bridge.pointer`) | `layer.hidden`; `hidden` (patch) | `lock`, `height`, `label` by patch; its menu toggles `lock` (one undo step) |
 | **a section beside a bridge** | as built | as built | as built | as built | as built | alone; with `lock: px` both | alone; with `lock: px` both | as built | as built |
 | **the selection** across a bridge | — | — | `bridge.selectAcross`: the far ends of its ribbons (menu, no key) | Enter: as built | Alt+Left | — | — | — | as built |
 | **the keyboard cursor** at a side's last track | — | Shift+↓: no (a range is on one system) | — | ↓ or ↑ across a bridge: the image of its position, announced | Alt+Left | — | — | — | — |
 | **a grid over two sections of blocks** | as built (a cell, a rect) | as built | as built | double-click: a zoom step (built); on a block's label: that axis to the block (GA) | Alt+Left | as built (both axes) | as built | as built | `follow`, `follow_y` by patch |
 | **an element: a categorical member** (a label) | click: the member (`row`) | Shift+click: the run in display order | Cmd/Ctrl+click | double-click: the member's row and column shown | Alt+Left | — | — | no (a filter of the rows) | no |
-| **a categorical axis** | — | — | — | — | Alt+Left | as the grid's: members | as the grid's: members | — | `order`, `order_y` by patch |
-| **a bookmark or link** to a ribbon | — | — | the pair as a ref (both ends' positions) | runs it: each side to its end | Alt+Left | — | — | — | its label (planned) |
+| **a categorical axis** | — | — | — | — | Alt+Left | as the grid's: members | as the grid's: members | — | `member_order`, `member_order_y` by patch |
+| **a bookmark or link** to a ribbon | — | — | the drawn run's rect as a ref (positions, never the level or the merge) | runs it: each side to its range | Alt+Left | — | — | — | its label (planned) |
 
 ## Configuration
 
@@ -402,7 +464,13 @@ Cells this design fills; the others stand as GA, RR, grids-and-rows and ux-found
 | `bridge.pointer` | `ViewerConfig` | `both` | the band belongs to both sides; `none` |
 | key of `bridge.align` | `ViewerConfig` (`view.keys`) | Shift+A | a keyboard way to bring the other genome over; any (checked against the bindings at LA) |
 | `follow_y` a second section of blocks | spec param (grid section) | `x` (built) | a section of blocks: the grid's y over its blocks |
-| `order`, `order_y` (grid section, categorical axes) | spec params | `data` | the members' own order; `tree`, `{ field, direction }` (the rows layer's) |
+| `member_order`, `member_order_y` (grid section, categorical axes) | spec params | `data` | the members' own order; `tree`, `{ field, direction }` (the rows layer's values) |
+| `of`, `of_y` a rows system (grid section) | spec params | — | a categorical axis; a positions system as built |
+| `bridge.hidden` | spec param | false | kept in the spec, its room collapsed; true |
+| keys of `bridge.selectAcross`, the lock toggle | `ViewerConfig` (`view.keys`) | none (menus) | rare acts, and keys are scarce; any |
+| `bridge.resize` grip | `RenderConfig` preset (`bridges.gripPx`) | 4 CSS px | JBrowse's resizable levels; 0 for none |
+| categorical x labels at 45° | fixed | — | upright labels overlap at a member a few px wide; vertical ones read sideways |
+| `aspect` with `follow_y` a second section | spec param (built) | 1 | the box fixed from the width, as built; the cells rectangles when the two windows differ in span (built) |
 | the colour of a ribbon | the layer's channel | `field block` (the a end's block) | chromosome painting (EC-218); `strand`, a field, `b_system` |
 | ends placed by system, `a` to `a` when both sides show it; no path for pairs | fixed | — | the reasons in the Decision |
 | a bridge's sides neighbours and rows | fixed | — | a ribbon must not cross a side's tracks |
@@ -421,7 +489,8 @@ Not built: every row (LA; `follow_y`'s second section and categorical axes LA to
 - **Neighbours only**: A against C across B needs a reorder. Standing.
 - **Long translocations are nearly horizontal** in a 96 px band and overdraw others. Accepted: `height` is the figure's,
   colour by block tells them apart, the cull keeps the widest.
-- **Two levels in one band**: a zoomed side's items beside the other side's coarse bins read as two densities.
+- **Two levels in one band**: the near side's items or fine bins beside the far side's coarse bins read as two
+  densities, and the near side's region is widened by up to a far bin each side (read coarser there).
   Accepted: each is true at its scale; the card says which is a bin.
 - **A bridge reads two want sets**, up to twice a layer's tiles. Bounded by `maxTilesPerLayer` (RR); measured in LA on
   the whole-genome fixture.
@@ -460,7 +529,7 @@ The claim: **this design covers what a user does with layers across sections.**
 - **`seqx-core`** (LA, stage 3, after PF; its language part declared by GC1's bump, as GF's: Gaps, 12):
   - language: the `bridge` kind (`a`, `b`, `label`, `height`, `lock`, `hidden`; children `layer`); `pairs.shape`; a
     `pairs` layer's `data` a segments `map`; a grid section's `follow_y` a second section of blocks, `of`/`of_y` a rows
-    system, `order`, `order_y`; the builder's `synteny(a, b, data)` and `liftover(old, chain, new)`; issues
+    system, `member_order`, `member_order_y`; the builder's `synteny(a, b, data)`; issues `seq.view.bridge.lock`,
     `seq.lang.bridge.sides`, `seq.view.bridge.neighbours`, `seq.view.bridge.layout`, `seq.view.bridge.layer`,
     `seq.view.bridge`, `seq.render.bridge.unplaced`.
   - resolved view: `ResolvedView.bridges` (`ResolvedBridge`: address, `a`, `b`, label, height, lock, layers, issues) and
@@ -470,7 +539,7 @@ The claim: **this design covers what a user does with layers across sections.**
     `LayerType.scope: 'bridge'` and `BridgeContext`; `pairs-ribbons.ts` (ribbons, stubs, bins, the per-side reads and
     the drawn-once rule, the closed-form hit, emphasis); `Hit.bridge`; the categorical axis (permutation transform,
     labels, the pyramid's key); export (a bridge a group, `data-bridge`, `data-a`, `data-b`; ribbons as cubic paths);
-    `mapSummary`; the extension entry's `BridgeContext` and `BridgeSide`. A lazy chunk.
+    nothing in the extension entry (`scope: 'bridge'`, `BridgeContext` internal). Lazy as the Layout says.
 - **`seqx-viewer`**: the bridge's pointer (drag and wheel both), `lock` carried in the `ViewModel` beside follows and
   groups, `bridge.align` (`navigate`), `bridge.selectAcross` (`select`), the lock toggle (`patch`), the cursor across a
   bridge, the cards, ARIA.
@@ -481,6 +550,7 @@ The claim: **this design covers what a user does with layers across sections.**
   its headless twin on a fake clock (tiles arriving per side).
 - **Tests**: property tests (the closed-form hit equals the drawn polygon's topmost cover; the twist by geometry equals
   GA's three-direction rule over every combination of block and section directions; each pair drawn exactly once
+  (items and bins, every pair of levels on two sides, windows overlapping or not, a tie in scale)
   across two sides at two levels; a bridge's reads equal the whole read clipped to either window; `lock` moves round
   trip; `align` lands on the hull it names); drawing against the data (every ribbon's ends at its data's positions on
   each side, at the fit, across a tile edge, across a block gap, inside a run, reversed blocks); EC-129, EC-169,
@@ -503,19 +573,37 @@ The claim: **this design covers what a user does with layers across sections.**
 
 ## Where this differs from GA's, RR's and GF's drafts, and the text they take
 
-- **GA**: nothing redesigned. The twist rule is drawn by corresponding positions, equal to GA's formula (a property
-  test holds them equal); `placesOf` is read on two sections; follow between unequal block lists stays refused, with
-  `lock` and `align` as LX's answer to "synteny sections move on their own (LX)". One sentence for GA's "A hue per
-  block", taken word for word:
-  > A pair drawn between two places (a ribbon, an arc, a chord) takes the `block` of its `a` end.
-- **RR**: bins in a bridge are ribbons with opacity by count (core's arcs keep the stroke by count). One paragraph for
-  RR's "How a level is chosen at a zoom", after **Pairs**, word for word:
-  > **In a bridge** (LX's across-sections design), each side reads its own window at its own level; a pair or bin read
-  > from one side whose other end lies in the other side's window is left to that side's read, so each is drawn once;
-  > the gate counts the bin pairs left after that rule, on both sides together, and both sides' wants count against
-  > `maxTilesPerLayer`.
-- **GF**: no change. Its `map.source` makes a chain one node for ribbons and projection; its side `a` is placed by
-  system, so the bridge's `a` need not be the alignment's from side.
+Each quoted text replaces or joins the named place, word for word.
+
+- **GA** (nothing redesigned; the twist is drawn by corresponding positions, a property test holding it equal to GA's
+  formula; follow between unequal block lists stays refused, `lock` and `align` LX's answer):
+  - "Hit tests are per drawn run" (genome-coordinates.md, What layers across blocks and sections read), replaced by:
+    > **Hit tests are per drawn run**: a ribbon's hit is the run as drawn, its two blocks and ranges (one block, the
+    > blocks of one alignment merged under a pixel, or a bin pair), selected as its `(rect :a … :b …)`; one map's
+    > thousands of runs are hit one by one, through the layer's density cull as `pairs` today.
+  - In "From a system and a position to its places", "the ribbon's end is a stub (RN's outward stub)" replaced by:
+    > the ribbon's end is a stub (in a bridge, core's: LX; on a ring, RN's outward stub)
+  - After "A hue per block":
+    > A pair drawn between two places takes the `block` of its end on the first place's side: in a bridge, the
+    > bridge's `a` side; on one section, the data's `a` end.
+- **RR**:
+  - Gap 12 and "The core `pairs` layer at a bins level", the sentence "Why one arc and not a ribbon: …" followed by:
+    > In a bridge (LX) the same bin pair is a ribbon of its two bins, its opacity by the aligned length summed; on a
+    > ring ribbons stay RN's.
+  - "How a level is chosen at a zoom", after **Pairs**:
+    > **In a bridge** (LX), each side reads its own window at its own level. The finer side (a tie: the bridge's `a`)
+    > owns its window widened to the other side's bin grid, reading the widening at most as coarse as the other's
+    > level; it draws every pair or bin anchored (by the end RR bins it by) in that region, and the other side draws
+    > only those anchored outside it, so each pair is drawn once. Each side gates items on its own drawn bins; both
+    > sides' wants count against `maxTilesPerLayer`; one cull ranks bins and items by aligned length.
+- **GF**:
+  - Matrix cell "an element: an alignment's block (PAF, chain)", select and focus, replaced by:
+    > click: the block as drawn (blocks merged under a pixel are one), both ends lit; double-click: the alignment's
+    > hull on each side
+  - "As a map (`map.source`, …)", "read by region of the `from` side" replaced by:
+    > read by region of either side (`RegionRequest.side`): the `from` side for projection forward, the `to` side for
+    > a layer drawn on the `to` section (a liftover's old genes on the new assembly); the runtime indexes both ends
+    > once, so it is one read
 
 ## Gaps for the author
 
@@ -536,7 +624,25 @@ Each a yes or no; the recommendation first.
 10. **`bridge.selectAcross`** (the far ends added on asking, never automatically): yes.
 11. **Ribbons coloured by the a end's block by default** (chromosome painting), the twist showing the strand: yes.
 12. **LX's language additions ride GC1's bump** (`bridge`, `pairs.shape`, a map as data, `follow_y` a second section,
-    a rows system on a grid axis, `order`, `order_y`), so the language changes once: yes.
+    a rows system on a grid axis, `member_order`, `member_order_y`), so the language changes once: yes.
 13. **Tracks beside a grid** (Juicebox's left tracks): not this slice, with sections side by side: yes, defer.
 14. **Categorical grid axes as rows systems** with the rows layer's `order` and labels: yes.
-15. **`mapSummary`** (a library function, the mapped share reported, no `minMatch` refusal): yes.
+15. **`mapSummary` and the `liftover()` builder deferred** (the liftover is cut last; "the share mapped" is ambiguous
+    with several images): yes, defer.
+16. **`scope: 'bridge'` and `BridgeContext` internal**, not in the extension entry, until an extension draws in a
+    bridge: yes.
+17. **Ownership by the finer side, `a` on a tie** (each pair drawn once; the far side's bins cut at the near side's
+    region widened to the far grid): yes.
+18. **A hit is the drawn run** (a block, blocks merged under a pixel, a bin), selected as its rect; the alignment named
+    in the card and focused by double-click: yes.
+19. **One closure moves each section once a gesture** (follows, groups, locks): yes.
+
+## Review, unresolved
+
+The independent review (2026-11-21) found two blocking issues (the "drawn once" rule dropping a pair whose ends sit in
+each other's windows, the hit target against GA's and GF's) and eight to fix; the revision took them all. The text GA,
+RR and GF must take (section "Where this differs…") is carried to them at the gate. Still open after it:
+- No follow across a bridge (lock and align instead).
+- A bridge's sides must be rows and neighbours.
+- Tracks beside a grid wait for sections side by side.
+- The eager parts' size (the kind, `ResolvedView.bridges`/`.stack`, `Hit.bridge`) is measured at LA's gate.
