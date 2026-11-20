@@ -39,8 +39,8 @@ export interface HeaderStatePart {
   readonly name: string;
   readonly text: string;
   readonly count?: number;
-  /** What the state is about when not the header's own target (the filtered layer). */
-  readonly address?: string;
+  /** The layers it is about when not the header's own target (the filtered ones: what "n filtered" clears). */
+  readonly addresses?: readonly string[];
 }
 
 /**
@@ -101,7 +101,7 @@ export const builtInHeaderStates: HeaderPartsOf = (f) => {
         name: HeaderStateNames.filtered,
         text: `${rows} filtered`,
         count: rows,
-        ...(f.filtered.length === 1 ? { address: f.filtered[0].layer } : {}),
+        addresses: f.filtered.map((t) => t.layer),
       });
     const n = f.hiddenLayers.length;
     if (n)
@@ -135,7 +135,7 @@ export interface HeaderStateBox {
   readonly name: string;
   readonly text: string;
   readonly count?: number;
-  readonly address?: string;
+  readonly addresses?: readonly string[];
   readonly mark: boolean;
   readonly x: number;
   readonly y: number;
@@ -388,7 +388,7 @@ function stateBox(
     name: p.name,
     text: p.text,
     ...(p.count !== undefined ? { count: p.count } : {}),
-    ...(p.address !== undefined ? { address: p.address } : {}),
+    ...(p.addresses !== undefined ? { addresses: p.addresses } : {}),
     mark,
     x,
     y,

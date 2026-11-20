@@ -9,6 +9,7 @@ import type { SeqRegistryEntry } from '@molstar/seqx-core/context';
 import { type Box, HeaderStateNames, type HiddenTrack } from '@molstar/seqx-core/render';
 import type { IconName } from '@molstar/ui/components/icon/icon';
 import type { HeadersBehavior } from './behaviors/headers.js';
+import { FilteredHeaderEntry } from './filter-chip.js';
 import type { SeqViewer } from './viewer.js';
 
 // A track's and a section's header entries (_spec/README.md "Behaviors", Headers): registry entries of kind
@@ -186,7 +187,6 @@ export interface HeaderPartsState {
 
 // ---- the built-ins ----
 
-const isTrack = (f: HeaderFacts) => f.on === 'track';
 /** The layer "Color ▸" acts on: the first with more than one fitting scheme. */
 const colorLayer = (f: HeaderFacts) => f.layers.find((l) => l.schemes.length > 1 && !l.hidden);
 const schemeOf = (c: Value | undefined) =>
@@ -220,7 +220,7 @@ export const HeaderEntryNames = {
  * The built-in header entries (_spec/README.md "Behaviors", Headers), registry entries like a host's: in
  * `DefaultSeqViewerSpec().registry`; a host leaves one out of the registry it spreads to remove it.
  */
-export const BuiltInHeaderEntries: readonly HeaderActionEntry[] = (
+export const BuiltInHeaderEntries: readonly HeaderActionEntry[] = /* @__PURE__ */ (
   [
     { name: HeaderEntryNames.hide, on: 'track', icon: 'eye-off', label: 'Hide track', command: 'track.hide', order: 1 },
     {
@@ -282,17 +282,7 @@ export const BuiltInHeaderEntries: readonly HeaderActionEntry[] = (
       when: (f) => moveAfter(f, 1) !== undefined,
       args: (f) => ({ address: f.address, after: moveAfter(f, 1) }),
     },
-    {
-      name: HeaderEntryNames.filtered,
-      on: 'track',
-      kind: 'state',
-      label: 'Clear the filter',
-      command: 'layer.filter',
-      when: (f) => isTrack(f) && f.layers.some((l) => l.filtered > 0),
-      // the track's count (every thinned layer's rows) and every layer's filter cleared in one patch
-      args: (f) => ({ addresses: f.layers.filter((l) => l.filtered > 0).map((l) => l.address) }),
-      text: (f) => `${f.layers.reduce((n, l) => n + l.filtered, 0)} filtered`,
-    },
+    FilteredHeaderEntry,
     {
       name: HeaderEntryNames.hiddenLayers,
       on: 'track',

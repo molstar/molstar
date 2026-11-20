@@ -13,6 +13,7 @@ import { LettersType, RangesType, TracksLayout } from '@molstar/seqx-core/render
 import { createSeqViewer } from '@molstar/seqx-viewer';
 import { frameAnimation } from '@molstar/seqx-viewer/animation';
 import { HoverProvider, NavigateProvider } from '@molstar/seqx-viewer/behaviors';
+import { FilteredHeaderEntry } from '@molstar/seqx-viewer/filter-chip';
 import { defaultPorts } from '@molstar/seqx-viewer/ports';
 
 export const create = (target: HTMLElement) =>
@@ -23,6 +24,8 @@ export const create = (target: HTMLElement) =>
         { kind: 'layer-type', type: LettersType },
         { kind: 'layer-type', type: RangesType },
         { kind: 'layout', layout: TracksLayout },
+        // the "n filtered" chip's click (no `headers` behavior: its other states are facts)
+        { kind: 'header-action', entry: FilteredHeaderEntry },
       ],
       behaviors: [{ provider: HoverProvider }, { provider: NavigateProvider }],
       ports: defaultPorts(),

@@ -52,7 +52,7 @@ describe('a layer’s data filter', () => {
     const lay = t.layers[0].lay as RangesLay;
     expect(lay.keys.slice(0, lay.items).sort()).toEqual(['a', 'c', 'e']);
     const chip = filtered(t)!;
-    expect(chip).toMatchObject({ count: 2, text: '2 filtered', address: '/views/main/p/t/l', mark: false });
+    expect(chip).toMatchObject({ count: 2, text: '2 filtered', addresses: ['/views/main/p/t/l'], mark: false });
     // on a line of its own under the label (the track is two lines high)
     expect(chip.y).toBeGreaterThan(t.labelY);
     const hit = hitView(f.layout, chip.x + 1, chip.box.y + chip.box.height / 2);

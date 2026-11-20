@@ -17,6 +17,7 @@ import {
   type SectionLayout,
   type WindowPart,
 } from '@molstar/seqx-core/render';
+import type { HeaderActionEntry } from './header-entries.js';
 import { type PartCursor, partCursor } from './part-cursor.js';
 import { cancelFrameCallback, requestFrameCallback } from '@molstar/ui/dom/frame';
 import { DomHost } from '@molstar/ui/dom/host';
@@ -678,10 +679,6 @@ export class ViewerInput {
       this._restoreCleared();
       return false;
     }
-    const select = this.selectBehavior;
-    if (!select) return false;
-    const section = this.sectionAt(y);
-    // the track's "n filtered" chip: its click clears the layer's filter (one patch)
     const chip = this.viewer.hit(x, y);
     // the hidden-columns chip: its hover names them, a click does nothing
     if (chip?.target === 'columns-hidden') return true;
@@ -690,13 +687,30 @@ export class ViewerInput {
       void this.viewer.execute('rows.tree', { track: trackOfLayer(chip.layer) });
       return true;
     }
-    // a header's parts are never a selection's (_spec/README.md "Input"): the `headers` behavior's, the one path (by
-    // name: a viewer without it bundles none of it, its states facts a click does nothing on)
+    // a header's parts are never a selection's (_spec/README.md "Input"): the `headers` behavior's (by name: a viewer
+    // without it bundles none of it); without it a state listed as an entry with the layers it is about runs that
+    // entry's command over them (the "n filtered" chip clears its layers' filters), the other states are facts
     const t = chip?.target;
     if (chip && (t === 'header-state' || t === 'header-slot' || t === 'header-label' || t === 'section-header')) {
-      this.viewer.behaviors.get('headers')?.click(x, y, this._touch);
+      const headers = this.viewer.behaviors.get('headers');
+      if (headers) headers.click(x, y, this._touch);
+      else if (t === 'header-state') {
+        const command = this.viewer.registry.find(
+          (r): r is HeaderActionEntry =>
+            r.kind === 'header-action' && (r as HeaderActionEntry).entry.name === chip.state,
+        )?.entry.command;
+        const st = this.viewer.frame?.layout.sections
+          .flatMap((s) => s.tracks)
+          .find((x) => x.track.address === chip.layer)
+          ?.header?.states.find((s) => s.name === chip.state);
+        if (command && st?.addresses) void this.viewer.execute(command, { addresses: st.addresses });
+      }
       return true;
     }
+    // the rest is a selection's (none without the select behavior)
+    const select = this.selectBehavior;
+    if (!select) return false;
+    const section = this.sectionAt(y);
     // a tree node's click: its bound command (toggles the clade's fold by default), unless it is a selection's
     if (chip?.target === 'tree-node' && chip.element) {
       const action = this.viewer.bindings.resolve('click', this._modifiers(e), 'tree-node');

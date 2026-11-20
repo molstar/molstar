@@ -1035,11 +1035,11 @@ rows' commands) reads the last frame's rows layers through the behavior context'
   land. Until then the headers draw core's built-in states, a click on a header part is kept and run once they land
   (one, the last: never lost), and nothing is published. Its lazy chunks (the late parts, the icons, the gestures, the
   ports' DOM) are its handle's `loaded()`, which `settle` waits for; one landing after the viewer is retired is ignored.
-  Why: a settled picture is the whole one, and no import outlives a test's viewer. A header part's click is the
-  behavior's only (the input's way in, `Input`): one path, a viewer without the behavior draws states that a click does
-  nothing on. Internal (`@internal`, no entry exports them): the late parts, the DOM ports' modules, the icons' reader,
-  `headersBehavior` (the provider is the way in), and the handle's `partsOf`, `framed`, `click`, `context`, `loaded` and
-  `preview`.
+  Why: a settled picture is the whole one, and no import outlives a test's viewer. A header part's click runs its
+  entry's command (one path, `Input`): through the behavior, or without it for a state listed as an entry with the
+  layers it is about. Internal (`@internal`, no entry exports them): the late parts, the DOM ports' modules, the icons'
+  reader, `headersBehavior` (the provider is the way in), and the handle's `partsOf`, `framed`, `click`, `context`,
+  `loaded` and `preview`.
   - **Entries** (`header-entries.ts`): `HeaderEntry` (`name` namespaced `<id>:<name>`, `on` `track`, `section` or
     `element`, `kind` `action` or `state`, `icon` `@molstar/ui`'s, `label`, `when`, `command`, `args`, `text`, `order`,
     `slot`, `items` a submenu: pending at the gate, the author's: a submenu's choices are the menu's and the parts'
@@ -1147,9 +1147,13 @@ The cells the molecules design names, each built or not and why (the core's "Res
   (`break`, the render hit's `target`): no default binding but the hover, so a double-click on it does nothing (the
   pointer aimed at the break; showing its stretch is `section.collapse`, a spec change). A header's parts are targets
   too (`header-slot`, `header-state`, `header-label`, `section-header`: core's Track headers): never a selection's (a
-  click there selects and clears nothing; with the `headers` behavior a slot or a chip runs its entry, the one path:
-  without it the states are facts and a click on them does nothing), and a drag on a track's label line pans as its
-  track (`header-label`, in `default`). A slot is hit only while its header's actions show.
+  click there selects and clears nothing; with the `headers` behavior a slot or a chip runs its entry; without it a
+  state listed as a `header-action` entry runs that entry's command over the layers it is about (core's state
+  `addresses`: the "n filtered" chip, `FilteredHeaderEntry` in `filter-chip.ts`, clears every filtered layer in one
+  patch, the minimal composition lists it), the other states are facts a click does nothing on. Why: the chip has
+  cleared its filter since the third slice, with or without the menu's behavior; one command, the entry's, either way.
+  Not the select behavior's: a viewer without it still takes a header's click), and a drag on a track's label line pans
+  as its track (`header-label`, in `default`). A slot is hit only while its header's actions show.
 - **Actions must exist**: a model method (`hover`, `pan`, `zoom`, `drag-select`, `drag-add`, `drag-subtract`,
   `drag-extend`) or a command the viewer defines (`DefaultActions`, or the `actions` given). A binding to another is
   reported (`seq.viewer.binding.action`) and left out, so the gesture does nothing.
