@@ -102,12 +102,14 @@ checks it cannot express.
   it.
 - **Maps** (`map`, `from` and `to` systems): `method` `offset` (`by`), `codon` (`exons`, `strand`, `table`), `segments`
   (a `segments` table: `from`, `to`, `length` a run, `from + i ↦ to + i`, or `to − i` with `strand` `-`; runs apart on
-  `from`, each at least a position) and `structure` (a sequence onto a unit or the entity's molecule, SIFTS in abstract
-  form: `segments` with a `provenance` word a run, `sifts`, `alignment`, `author`; and a `status` table, `start`, `end`
-  on `to` and `conflict` or `unobserved`: the rest of a run paired, what no run holds unpaired). A param another method
-  takes, or one missing, is `seq.lang.map.params`; bad runs or status rows `seq.lang.map.segments`. Any map's `priority`
-  (an integer, 0 when absent, not filled in) ranks it among maps joining the same systems (Resolve, Paths). Why
-  `unpaired` is not written: it is what no run holds, so it cannot disagree with the runs.
+  `from`, each at least a position; many-to-one on `to` allowed: a fusion onto its part, EC-20) and `structure` (a
+  sequence onto a unit or the entity's molecule, SIFTS in abstract form: `segments` with a `provenance` word a run,
+  `sifts`, `alignment`, `author`; and a `status` table, `start`, `end` on `to` and `conflict` or `unobserved`: the rest
+  of a run paired, what no run holds unpaired; its runs apart on `to` too: a residue of the structure is one of the
+  sequence). A param another method takes, or one missing, is `seq.lang.map.params`; bad runs or status rows
+  `seq.lang.map.segments`. Any map's `priority` (an integer, 0 when absent, not filled in) ranks it among maps joining
+  the same systems (Resolve, Paths). Why `unpaired` is not written: it is what no run holds, so it cannot disagree with
+  the runs.
 - **A section's `via`** (a map, or a list): for that section's paths (its follow, its `direction: { along }`, its
   layers' data, what is projected onto it) the named maps' rivals are left out (Resolve, Paths); refs checked as
   `pieces`' are (`seq.lang.ref.target` at the item). Links carry none: where they land is the sections'. Why per use: a
