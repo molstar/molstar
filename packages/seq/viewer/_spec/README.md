@@ -194,6 +194,15 @@ nothing and tells nothing. Beside `models/view.ts` (the moves and the publish): 
   back and forward. `snapshot()` gives every group's range and band now, as a jump keeps them, and `record(snapshot)`
   pushes one taken earlier as a step (unless the view is there now): a gesture's one step, pushed when it ends (a
   navigator's far drag, of its window or its rows); `jump` pushes through it.
+- **The last jump** (`lastJump`, set before `jumps` moves, so a listener of `jumps` reads it):
+  `{ n, kind, location?, durationMs }`, `n` the count `jumps` moves to, `kind` `focus` (an address's or a Location's,
+  the cursor's Enter, a double-click on an element or a cell), `reveal`, `fit`, `zoom` (a step zoom, a grid cell's
+  double-click), `move` (a navigator's or a rows rail's move, a bulk fold; a jump that names no kind), `back` or
+  `forward`; `location` the Location a focus or a reveal named (`AddressModel`'s, an address resolved; a double-click's
+  element extent or position), and on a step back or forward the one the jump that left the view at that step named,
+  kept with the step while no hand moved the view since (a step pushed after a hand's move names none); `durationMs` is
+  `view.jumpMs`. Why: `jumps` counts but says neither where nor how long; a link to a structure viewer, a story's camera
+  and an analytics host read the same record.
 - **A source-backed system's length** is the model's once its source opened (SpecModel, its `lengths`): the resolved
   view's axes get their pieces then, so a section on a streamed sequence is placed and its kept intent applies.
 - **Placed** only with a width and a known axis length, else `pending`: a move then is kept as the intent and placed
@@ -261,6 +270,11 @@ the region (a press there says it too, a tap's hover).
   told for the same hit. An element is the same hover by its key, whatever extent object comes with it. One owner at a
   time: another owner's `set` takes it; `clear(owner)` by a stale owner does nothing (EC-141); an undefined owner is
   refused.
+- **A Location** (`setLocation(loc, owner)`): a hover with no hit (a structure viewer's hover a link carries in): the
+  record holds the Location as its extent with no layer, section or system, so it is drawn as a projected hover on every
+  section it reaches (`projectedAll`), with no card, no words and no address; owned as a hit is (another owner's `set`
+  takes it, a stale owner's clear does nothing, EC-141); an empty Location clears it; the same Location object for the
+  same owner tells nothing. Why: without it a link falls back to a highlight channel's tint, which reads as a bookmark.
 - **Projection** is lazy: `location()` (the extent, else the position, with the cell's y part when the hit has one: a
   grid cell is two positions, so linked sections light both) and `projected(section)` are computed when asked and kept
   for the version (and the view and model). The location is closed first (`hover.closeCodons`: a nucleotide gains its
@@ -371,7 +385,9 @@ then resolves.
   else a focus), `select`, `highlightAddress` (a channel, `links.highlightChannel` by default), `hoverAddress` (the
   links' own channel, `links.hoverChannel`, EC-182: the pointer's hover is left alone), `unhover`,
   `clearHighlight(channel?)` (one channel or all). Each answers an outcome: done, the resolution's status, a message,
-  its issues.
+  its issues. `focusLocation(loc)` and `revealLocation(loc)` move to a Location as `focus` and `reveal` move to an
+  address's (`moved`, `pending`, `none`); every focus and reveal names its Location to the view's last jump (ViewModel,
+  History).
 - **A focus that waits** (an address of a node not held, data not loaded) is kept and runs when the address resolves:
   retried on the refs' state, the store's version and its node version; another focus replaces it. A focus whose section
   is not placed yet (no width, no length) is kept as the view's intent and reported not done
@@ -549,7 +565,10 @@ the rails and navigators (`viewer-rails.ts`), the emphasis (`viewer-emphasis.ts`
 - **Retire** (`retire()`): the viewer is marked retired first (its disposer is registered last, so it runs first), so
   the teardown that follows asks for no frame; the frame callback and the settle timer are cancelled, then the mounted
   UI, the behaviors, the want set, the models and the context's owned ports go. After it no frame is pending and input
-  is ignored. A spec that fails to compose (a behavior listed twice) retires what it made.
+  is ignored. A spec that fails to compose (a behavior listed twice) retires what it made. `retiredSignal` (an
+  `AbortSignal`) is aborted as the viewer is marked retired, before its models go: a helper over the viewer (a structure
+  link) ends on it and clears what it set while the models stand. Why: `retired` is a getter and the dispose hooks are
+  protected; any helper needs the end.
 - **Composed** (`BehaviorHandle.composed(viewer)`): called once every behavior and the frame are made, before the UI;
   what reads the viewer's commands or registry (the header entries' checks). A throw retires what was made.
   `viewer.headers` is the `headers` behavior's geometry (undefined without it).
@@ -1265,6 +1284,53 @@ settle: a legend that changes during a pan reads as noise, and its cost stays of
   its color change (a channel moved to other positions redraws nothing), and on a token change (the colors); a focused
   Clear keeps its focus across the redraw. A style that is not `tint`, `band` or `outline` is a tint, reported once
   (`seq.viewer.highlight.style`); an unset style is a tint, so setting `tint` is no change.
+
+## Structure link
+
+`link-structure.ts` (`@molstar/seqx-viewer/link-structure`): `linkStructure(viewer, side, options?)` wires a viewer to a
+structure viewer its host translates for, both ways, and returns the disposer. A library over the viewer's public models
+and the core's translation (`@molstar/seqx-core/structure`, Structures): no behavior, no port, nothing in the
+composition, so a host that never calls it carries none of it. Why a helper: what it adds over the viewer's events
+(echoes, throttling, clearing) is per link, and a viewer may have none or two; a host with other needs writes its own
+over the same translation.
+
+- **The side** (`StructureSide`, plain data, the host's): `highlight(target | null)`, `select(target | null)`,
+  `focus(target, { durationMs })`, and optionally `onHover`, `onSelect`, `onFocus` (each returning its unsubscribe) and
+  a `signal`. A target is a Location on units (structured-cloneable).
+- **Out**: on each hover (`hover.version`), the hover's Location through `toUnits` under the hover's limits, sent when
+  its image changes (an unchanged image sends nothing; an empty one, an unobserved residue, is `null`, EC-118); the
+  selection's `shown`, one message a frame (a frame callback: a drag moves it every pointer event), under the
+  selection's limits; a jump naming a Location (`view.lastJump`, read as `jumps` moves: a focus, a reveal, and back and
+  forward when the step kept one and `followJumps`) as `focus` with the jump's duration (the camera and the sections on
+  one clock). A fit names none: nothing sent.
+- **In**: the side's hover as a hover of a Location (`HoverModel.setLocation`) owned by the link: drawn projected, no
+  card; the pointer taking the hover takes it, and the side's `null` clears only the link's own (a stale `null` does
+  nothing, EC-141); the side's selection through `fromUnits` (a unit's atoms kept where a section or block shows its
+  atoms form, collapsed onto its residues elsewhere, unit by unit) into `selection.set`, then revealed
+  (`revealOnSelect`: `revealLocation`, the zoom kept; `focus`; `none`); a `null` clears it; its focus as `focusLocation`
+  (one jump).
+- **Echoes** never go back: the link's own hover is not sent (it only ends the pointer's hover sent before it, with
+  `null`, sent from inside the side's `onHover` call); a selection equal (`locationsEqual`) to the one last set from the
+  side is not sent; a jump made while a message from the side is applied (its selection's reveal, its focus) is not
+  sent. So a host keeps Seq\*'s highlight apart from its own hover: a `highlight(null)` arriving while it reports its
+  own hover clears what Seq\* lit earlier, never the side's hover. Of the jumps, only those naming a Location go out
+  (`focus`, `reveal`, and back and forward over them); `fit`, `zoom` and `move` name none.
+- **The model** translated against is the spec's static model with the store's current overlay
+  (`StoreModel.currentOverlay`; an empty one before the first frame reads as the model alone, core's Structures).
+- **Clearing**: the disposer, the side's `signal` or the viewer retiring (`retiredSignal`) ends the link once: its
+  subscriptions and a waiting selection message dropped, `highlight(null)` and `select(null)` sent for the directions
+  sent out, the link's hover cleared. A signal aborted before the call ends the link at once.
+
+| Option           | Default                                 | Why the default; the alternatives                                    |
+| ---------------- | --------------------------------------- | -------------------------------------------------------------------- |
+| `complexes`      | every complex, no `via`                 | the spec names no host's binding; `{ complex, via? }[]` (Paths, Via) |
+| `hover`          | `both`                                  | the precedents link all three both ways; `out`, `in`, `none`         |
+| `select`         | `both`                                  | as `hover`                                                           |
+| `focus`          | `both`                                  | as `hover`                                                           |
+| `revealOnSelect` | `reveal`                                | a selection from the structure keeps the zoom; `focus`, `none`       |
+| `followJumps`    | `true`                                  | back and forward bring the camera; `false`                           |
+| `limits`         | `DefaultSyncLimits` (`hover`, `select`) | a hover a frame is smaller than a selection; any, `over: skip`       |
+| `ligand`         | `whole`                                 | a ligand's position is its residue; `atoms`                          |
 
 ## Configuration
 

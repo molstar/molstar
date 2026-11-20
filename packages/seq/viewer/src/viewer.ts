@@ -92,6 +92,11 @@ export class SeqViewer extends ReactiveModel {
   readonly legends: LegendModel;
   /** Addresses in the spec shown: resolved, acted on, linked; the refs; the selection and the focus as addresses. */
   readonly addresses: AddressModel;
+  /**
+   * Aborted when the viewer retires (_spec/README.md "Composition", Retire), before its models are: what a helper over
+   * the viewer (`linkStructure`) ends with.
+   */
+  readonly retiredSignal: AbortSignal;
   readonly bindings: BindingTable;
   readonly input: ViewerInput;
   /** The behaviors' handles by provider name. */
@@ -172,6 +177,8 @@ export class SeqViewer extends ReactiveModel {
     // (what the composition calls often, named once)
     const listen = <T>(source: Listenable<T>, fn: (value: T) => void) => this.listenPermanently(source, fn);
     const onRetire = (dispose: () => void) => this.registerPermanentDispose(dispose);
+    const ended = new AbortController();
+    this.retiredSignal = ended.signal;
     const schedule = () => this.schedule();
     const config = (this.config = viewerConfigOf(viewerSpec.config));
     // the headless pieces first: the registry, the configuration and the ports
@@ -346,6 +353,8 @@ export class SeqViewer extends ReactiveModel {
     // while the viewer is retired, and none of it asks for a frame
     onRetire(() => {
       this._retired = true;
+      // a helper over the viewer ends first, while the models it clears still stand
+      ended.abort();
       clock.dispose();
       frame.dispose();
       for (const u of this._viewportListeners) u();

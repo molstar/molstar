@@ -124,11 +124,15 @@ export function rowsBehavior(
   const folded = (track: string, l: RowsLay): readonly string[] => bandFolds(view, track, l);
   /** A bulk fold: a jump (back restores the folds and the rows' window together). */
   const jumpFolds = (track: string, names: readonly string[], done: string): CommandResult => {
-    const o = view.jump(() => {
-      const before = view.band(track);
-      setFolds(track, names);
-      return view.band(track) !== before;
-    });
+    const o = view.jump(
+      () => {
+        const before = view.band(track);
+        setFolds(track, names);
+        return view.band(track) !== before;
+      },
+      true,
+      'move',
+    );
     return {
       message: o === 'none' || o === 'same' ? 'Already so' : done,
     };

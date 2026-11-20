@@ -73,11 +73,11 @@ export function toUnits(
 ): UnitsResult {
   const r = structureReads(model);
   const issues: Issue[] = [];
-  const said = new Set<string>();
+  let said: Set<string> | undefined;
   const say = (i: Issue) => {
     const k = `${i.code}\u0000${i.address ?? ''}`;
-    if (said.has(k)) return;
-    said.add(k);
+    if (said?.has(k)) return;
+    (said ??= new Set()).add(k);
     issues.push(i);
   };
   const limits = options.limits === undefined ? DefaultSyncLimits.select : options.limits;
@@ -197,7 +197,8 @@ function imagesOn(
       if (s.system === m) image = s.ranges;
       else {
         const p = searched(s.system, m);
-        if (p && !p.edges.some((e) => e.unit === 'up' && e.to === m)) image = projectRanges(p, s.ranges);
+        // the scratch: an image is pushed onto the units it reaches, never kept
+        if (p && !p.edges.some((e) => e.unit === 'up' && e.to === m)) image = projectRanges(p, s.ranges, Scratch);
       }
       if (!image?.length) continue;
       let lo = image[0];
@@ -215,7 +216,7 @@ function imagesOn(
       const u = r.unit(a)!;
       if (u === s.unit || s.unit?.of === u.of) continue;
       const p = searched(s.system, a);
-      if (p) push(imageOf(u).residues, projectRanges(p, s.ranges), 0);
+      if (p) push(imageOf(u).residues, projectRanges(p, s.ranges, Scratch), 0);
     }
   }
   return images;
@@ -236,20 +237,21 @@ interface Out {
 function place(r: StructureReads, u: UnitEntry, im: Image, atomsMode: boolean, limits: SyncLimits | null, out: Out) {
   if (u.end === undefined) return;
   const length = u.end - u.start;
-  const whole = Int32Array.of(0, length);
   const atomsOf = im.atoms || (atomsMode && u.class !== 'polymer') ? r.atoms(atomsSystemOf(u.address)) : undefined;
   const unitAtoms = atomsMode && u.class !== 'polymer' ? atomsOf : undefined;
-  const reached = HalfOpenRanges.intersect(HalfOpenRanges.normalize(im.residues), whole);
+  const reached = clip(normalized(im.residues), length);
   const ownAtoms = atomsOf && im.atoms ? HalfOpenRanges.normalize(im.atoms) : undefined;
   let residues =
     ownAtoms && atomsOf
       ? HalfOpenRanges.union(reached, HalfOpenRanges.normalize(collapseAtoms(atomsOf, ownAtoms)))
       : reached;
   if (!residues.length) return;
-  if (u.class !== 'polymer' && !unitAtoms) residues = whole;
+  if (u.class !== 'polymer' && !unitAtoms) residues = Int32Array.of(0, length);
   const observed = observedOf(u);
-  const kept = HalfOpenRanges.intersect(residues, observed);
-  const lost = HalfOpenRanges.subtract(residues, observed);
+  // all reached observed (a hover inside the modeled residues, the common case): nothing to cut, nothing made
+  const all = inside(residues, observed);
+  const kept = all ? residues : HalfOpenRanges.intersect(residues, observed);
+  const lost = all ? HalfOpenRanges.Empty : HalfOpenRanges.subtract(residues, observed);
   if (lost.length) out.cut.push({ system: u.address, ranges: lost });
   if (!kept.length) return;
   let system = u.address;
@@ -273,6 +275,34 @@ function place(r: StructureReads, u: UnitEntry, im: Image, atomsMode: boolean, l
     return;
   }
   out.parts.push({ system, ranges });
+}
+
+/** The projections' scratch (an image is read at once, pushed onto units, never kept). */
+const Scratch: number[] = [];
+
+/** Ranges normalized: copied once when they already are (sorted, disjoint, non-empty runs), else `normalize`d. */
+function normalized(r: ArrayLike<number>): Int32Array {
+  if (r.length % 2) return HalfOpenRanges.normalize(r);
+  for (let i = 0; i + 1 < r.length; i += 2)
+    if (r[i + 1] <= r[i] || (i > 0 && r[i] <= r[i - 1])) return HalfOpenRanges.normalize(r);
+  return Int32Array.from(r);
+}
+
+/** Normalized ranges clipped to `[0, length)`: the same array when they lie within it. */
+function clip(r: Int32Array, length: number): Int32Array {
+  return !r.length || (r[0] >= 0 && r[r.length - 1] <= length)
+    ? r
+    : HalfOpenRanges.intersect(r, Int32Array.of(0, length));
+}
+
+/** Whether every run of `a` lies in a run of `b` (both normalized). */
+function inside(a: ArrayLike<number>, b: ArrayLike<number>): boolean {
+  let j = 0;
+  for (let i = 0; i + 1 < a.length; i += 2) {
+    while (j + 1 < b.length && b[j + 1] <= a[i]) j += 2;
+    if (j + 1 >= b.length || b[j] > a[i] || b[j + 1] < a[i + 1]) return false;
+  }
+  return true;
 }
 
 /** `ranges` shifted down by `start` onto `out`. */

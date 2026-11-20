@@ -15,6 +15,7 @@ import type { CommandDefinition, CommandResult } from '@molstar/ui/commands/type
 import { cancelFrameCallback, requestFrameCallback } from '@molstar/ui/dom/frame';
 import { type BindingTable, type KeyChord, type ModifierState, parseChord } from '@molstar/seqx-viewer/bindings';
 import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
+import type { Location } from '@molstar/seqx-core/query';
 import type { HitTarget, ViewModel } from '@molstar/seqx-viewer/models';
 
 /**
@@ -25,6 +26,8 @@ import type { HitTarget, ViewModel } from '@molstar/seqx-viewer/models';
 export interface NavigateContext {
   readonly section: string | undefined;
   readonly focus?: { readonly start: number; readonly end: number };
+  /** What the focus names (an element's extent, a position), told to the view's last jump: a host reads it. */
+  readonly location?: Location;
   readonly at?: number;
   readonly atY?: number;
   readonly cell?: boolean;
@@ -155,7 +158,7 @@ export function navigateBehavior(
       const c = cursorAt?.(section);
       if (c !== undefined && c >= v.start && c <= v.end) anchor = c;
     }
-    return view.jump(() => view.zoom(section, factor, anchor), false) !== 'none';
+    return view.jump(() => view.zoom(section, factor, anchor), false, 'zoom') !== 'none';
   };
 
   /**
@@ -165,8 +168,8 @@ export function navigateBehavior(
    */
   const focus = (section: string, ctx: NavigateContext): boolean | string => {
     if (ctx.cell && ctx.at !== undefined)
-      return view.jump(() => view.zoom(section, ctx.step ?? wheelZoomStep, ctx.at, ctx.atY)) !== 'none';
-    const r = view.jump(() => view.setRange(section, ctx.focus!.start, ctx.focus!.end));
+      return view.jump(() => view.zoom(section, ctx.step ?? wheelZoomStep, ctx.at, ctx.atY), true, 'zoom') !== 'none';
+    const r = view.jump(() => view.setRange(section, ctx.focus!.start, ctx.focus!.end), true, 'focus', ctx.location);
     if (r === 'same' && config.view.backOnFocused && view.canBack) return view.back() ? 'Back' : false;
     return r !== 'none';
   };
@@ -190,7 +193,7 @@ export function navigateBehavior(
     command(
       'view.fit',
       'Fit the view',
-      (s) => view.jump(() => view.fit(s)) !== 'none',
+      (s) => view.jump(() => view.fit(s), true, 'fit') !== 'none',
       'Fitted',
       (ctx) => (ctx.section === undefined ? 'No section to fit' : true),
     ),
