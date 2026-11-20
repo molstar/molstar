@@ -111,18 +111,22 @@ const hasRows = (t: Node) => (t.children ?? []).some((l) => l.kind === 'layer' &
 
 /**
  * A track copied small: its height scaled (`navigator.trackScale`, at least `trackMinPx`), no label, a rows layer
- * with no header (its tree and numbers are the view's) filling what is left.
+ * with no header (its tree, numbers and row columns are the view's: a picture's narrow column would hide the columns
+ * and draw their chip over its top) filling what is left.
  */
 function smallTrack(t: Node, config: RenderConfig): Node {
   const h = t.params?.height;
   const params: Record<string, Value> = { ...t.params, label: '' };
   if (typeof h === 'number') params.height = Math.max(config.navigator.trackMinPx, h * config.navigator.trackScale);
-  const children = (t.children ?? []).map((l) =>
-    l.kind === 'layer' && l.params?.type === 'rows'
-      ? { ...l, params: { ...l.params, tree_width: 0, numbers: 'none', height: 'fill' } }
-      : l,
-  );
+  const children = (t.children ?? []).map((l) => (l.kind === 'layer' && l.params?.type === 'rows' ? smallRows(l) : l));
   return { ...t, params, children };
+}
+
+/** A rows layer with no header: no tree, no numbers, no row columns, filling its track. */
+function smallRows(l: Node): Node {
+  const params: Record<string, Value> = { ...l.params, tree_width: 0, numbers: 'none', height: 'fill' };
+  delete params.columns;
+  return { ...l, params };
 }
 
 /** A small track's height: its own, else its first layer type's default, both at the picture's scale. */

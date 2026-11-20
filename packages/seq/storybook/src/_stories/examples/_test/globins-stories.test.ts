@@ -13,6 +13,7 @@ import {
   type PairsLay,
   type RangesLay,
   type RowsLay,
+  recordDrawLists,
 } from '@molstar/seqx-core/render';
 import { FeatureViews, GlobinsViews } from '@molstar/seqx-examples';
 import { readFileSync } from 'node:fs';
@@ -221,4 +222,23 @@ describe('Globins stories, headless', () => {
       expect(w.axes).toBe(3);
       expect(nav.width).toBe(96);
     });
+
+  it('folded at 1280 px: the overview’s picture draws no row columns, so no "2 hidden" chip over its top', async () => {
+    viewer = await openExample(GlobinsViews.find((v) => v.id === 'folded')!, { fixtures: true });
+    const v = viewer;
+    v.resize(1280 - 96);
+    await vi.advanceTimersByTimeAsync(600);
+    v.draw();
+    // the canvas's rows keep their columns, every one shown at this width
+    const lay = rowsLay(v)!;
+    expect(lay.cols.width.length).toBeGreaterThan(0);
+    expect(lay.cols.chip).toBe('');
+    const nav = v.navigatorModel('overview')!;
+    nav.draw();
+    await vi.advanceTimersByTimeAsync(600);
+    v.draw();
+    // the picture (96 px): the rows summarized, no header, no columns and no chip naming the columns it would hide
+    const picture = recordDrawLists(nav.draw()!.lists);
+    expect(picture).not.toContain('hidden');
+  });
 });

@@ -1814,12 +1814,13 @@ numbers): a window move allocates nothing once warm.
   (`resolveViewNode`), through the tracks layout with its own renderer and lists (no inset, label column or direction
   mark; the view's image cache, `images`): `axis` no track, `tracks` the section's tracks (`tracks`, else all but
   rulers) at `navigator.trackScale` of their height and lanes (at least `trackMinPx`) with no labels, `bands` one
-  `bands` track filling it, `rows` the section's first rows track with no header filling what the other tracks leave (an
-  overview's whole column), its rows fitted to the band (`rowScale` the band's height over the rows shown, the view's
-  folds); a picture that fills is made again for another height. The same system with no `system` param: the bound
-  section's own axis. Colors are the view's: the picture reads the view's renderer's held domains (`domains`, its
-  `layoutState`, a picture key mapped to the view's), never a domain of its own over the whole axis, so a value has one
-  color in both. Why the layout interface: a miniature drawn by other code drifts from the view it summarizes.
+  `bands` track filling it, `rows` the section's first rows track with no header (no tree, numbers or row columns: a
+  narrow picture would hide the columns and draw their chip) filling what the other tracks leave (an overview's whole
+  column), its rows fitted to the band (`rowScale` the band's height over the rows shown, the view's folds); a picture
+  that fills is made again for another height. The same system with no `system` param: the bound section's own axis.
+  Colors are the view's: the picture reads the view's renderer's held domains (`domains`, its `layoutState`, a picture
+  key mapped to the view's), never a domain of its own over the whole axis, so a value has one color in both. Why the
+  layout interface: a miniature drawn by other code drifts from the view it summarizes.
 - **What no summary serves is left out, said once**: a lazy alignment's rows (`seq.render.navigator.rows`: left out), a
   ranges layer on a source with no coarse level whose whole axis passes the store's tile bound (the store's settings,
   `storeSettings`; `seq.render.navigator.layer`); a ranges layer reads its coarse level when the source serves one. Its
