@@ -138,6 +138,20 @@ describe('structure maps: provenance and residue status', () => {
     expect(Array.from(partOf(r, '/data/c/A')?.ranges ?? [])).toEqual([8, 9]);
   });
 
+  it('a run’s provenance is its own row’s, past a row that holds nothing (an unchecked spec)', () => {
+    const b = createSeqSpec();
+    const up = b.data.sequence('up', { alphabet: 'protein', letters: 'MEEPQSDPSVEPPLSQ' });
+    const ent = b.data.sequence('ent', { alphabet: 'protein', letters: 'GSHMEEPQSDPSVEPP' });
+    b.data.map('m', {
+      from: up,
+      to: ent,
+      method: 'structure',
+      segments: { from: [0, 0, 4], to: [0, 3, 7], length: [0, 4, 9], provenance: ['none', 'alignment', 'sifts'] },
+    });
+    const map = resolveSpec(b.build()).maps.get('/data/m')!;
+    expect([0, 5].map((k) => structureProvenance(map.structure!, k))).toEqual(['alignment', 'sifts']);
+  });
+
   it('a map’s unobserved residues that are not the unit’s are reported once; the unit wins', () => {
     const m = resolveSpec(structureSpec({ start: [9], end: [12] }));
     expect(m.issues.map((i) => i.code)).toEqual(['seq.resolve.map.observed']);

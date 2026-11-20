@@ -38,19 +38,24 @@ export function strings(v: Value | undefined): Strings | undefined {
   return { get: (i: number) => (typeof v[i] === 'string' ? (v[i] as string) : null) };
 }
 
-/** A `segments` table's runs, in the order written. */
-export function segmentRuns(table: Record<string, Value> | undefined): Run[] {
+/** A `segments` table's runs in the order written, each with its row (a row holding nothing is left out). */
+function segmentRows(table: Record<string, Value> | undefined): { run: Run; row: number }[] {
   if (!table || !isColumn(table.from) || !isColumn(table.to) || !isColumn(table.length)) return [];
   const from = table.from as ArrayLike<number>;
   const to = table.to as ArrayLike<number>;
   const length = table.length as ArrayLike<number>;
   const strand = strings(table.strand);
-  const out: Run[] = [];
+  const out: { run: Run; row: number }[] = [];
   for (let i = 0; i < Math.min(from.length, to.length, length.length); i++) {
     if (length[i] < 1) continue;
-    out.push({ from: from[i], to: to[i], length: length[i], dir: strand?.get(i) === '-' ? -1 : 1 });
+    out.push({ run: { from: from[i], to: to[i], length: length[i], dir: strand?.get(i) === '-' ? -1 : 1 }, row: i });
   }
   return out;
+}
+
+/** A `segments` table's runs, in the order written. */
+export function segmentRuns(table: Record<string, Value> | undefined): Run[] {
+  return segmentRows(table).map((r) => r.run);
 }
 
 /**
@@ -85,10 +90,10 @@ export function structureData(
   segments: Record<string, Value> | undefined,
   status: Value | undefined,
 ): StructureMapData {
-  const runs = segmentRuns(segments);
   const words = strings(segments?.provenance);
-  const provenance = runs
-    .map((r, i) => ({ start: r.from, end: r.from + r.length, word: words?.get(i) ?? null }))
+  // each run's own row: a row left out (holding nothing) shifts no word onto the next run
+  const provenance = segmentRows(segments)
+    .map(({ run: r, row }) => ({ start: r.from, end: r.from + r.length, word: words?.get(row) ?? null }))
     .sort((a, b) => a.start - b.start);
   const conflict: number[] = [];
   const unobserved: number[] = [];
