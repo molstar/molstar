@@ -179,14 +179,16 @@ It does not cover:
 
 ### The track header's geometry: fixed slots
 
-- **The line**: the label column (`labelWidth`, `inset`), the track's label line (centred on its well, as built). From
-  the column's right end leftward:
-  - the **action slots**: `header.slots` (2) columns of `header.slotPx` (20, an icon of 14), then the "⋯" slot. Their x
-    is fixed by the column, not by the label, so every track's eye is in one column of the view.
+- **The line**: the label column (`labelWidth`, `inset`), the track's label line (centred on its well, as built). At
+  the column's right end the "⋯" slot; left of it:
+  - the **action slots**: `header.slots` (2) columns of `header.slotPx` (20, an icon of 14). Their x is fixed by the
+    column, not by the label, so every track's eye is in one column of the view, and the "⋯" is where a kebab menu is
+    looked for (Mol\*'s order; the author, 2026-11-20: "Amend the design").
   - the **state chips**, ending where the action columns begin. On a track of two lines' height they move to a line of
     their own under the label (as the filter chip does today), and the label stays whole.
 - **Actions show on hover** (`header.actions.show: hover`): while the pointer is over the track (its header or its
-  data), or the keyboard cursor is on its header, its slots are drawn over a backdrop in the well's color. The backdrop
+  data), or the keyboard cursor is on its header, its slots are drawn over a backdrop in the label column's
+  background (the column has no well). The backdrop
   covers the label's tail and does not move it. Why:
   - a figure at rest shows names and states, not buttons;
   - drawing them is an emphasis pass over the label column, with no layout.
@@ -198,7 +200,8 @@ It does not cover:
 - **Short tracks**: a track shorter than `header.minHeightPx` (16) draws no slots, and its states become marks (a 6 px
   accent squircle per state, its words in its card). Its entries are reached by the menu: a secondary click on it, or
   the menu key on its header. Why: an 8 px feature row cannot hold a 14 px icon, and a slot overlapping the next
-  track's label is worse.
+  track's label is worse. **A narrow column** (one where the slots leave the chips no room, an 80 px column with actions
+  holding one slot) draws its states as marks too (the author, 2026-11-20: "Marks when narrow").
 - **Layouts**:
   - **tracks, text** (the first line's bands) **and grid** (its track's label) have a label column and take the slots;
   - **blocks** take them once a row, as their labels;
@@ -287,7 +290,10 @@ It does not cover:
 
 - **Hits**: a slot is `target: 'header-slot'`, a chip `target: 'header-state'` (the filter chip's `filter` becomes
   one), with the entry's `name` in the hit's `state`, the track's address in `layer`, the section's in `section`. A
-  section header's line is `target: 'section-header'`. The bindings take them as any target ([ux-foundations.md](ux-foundations.md)
+  section header's line is `target: 'section-header'`, and a track's label line (the label, outside its slots and
+  chips) `target: 'header-label'` (the author, 2026-11-20: "Add a label hit"): its hover shows the track's card and
+  drives which header's actions show (no emphasis field of its own); on touch, a tap on it shows the slots, and a tap
+  on a slot then runs it. A slot is hit only while its actions show. The bindings take them as any target ([ux-foundations.md](ux-foundations.md)
   section 8): click on a slot or a chip runs its entry, and the hover shows its card. They are never selection or
   navigation targets: a click there never clears the selection, and a drag from there neither selects nor pans.
 - **The keyboard cursor reaches headers**, as it reaches a row's header:
