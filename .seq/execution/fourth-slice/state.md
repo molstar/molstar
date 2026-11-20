@@ -33,14 +33,17 @@ The third slice is closed (2026-11-20; its record in `.seq/records/third-slice/`
 
 ## In progress
 
-- 2026-11-20: the loop started. ML1 (strong; `seq/ml1-lane`), FX1 (strong; `seq/fx-1`; fixes.md's open items but the
-  orchestrator's looks), AR (fast; `seq/ar-lane`), each in its own worktree from `e2769319e`. ML1 builds the
-  `@molstar/core` standard components last, in commits that can be dropped, for the author's acceptance.
+- 2026-11-20: QE (strong; `seq/qe-lane`, head `935d692a4`) reported done; its independent review runs in its own
+  worktree. ST1 (strong; `seq/st1-lane`) and HP1 (strong; `seq/hp1-lane`) build in theirs. The properties design took
+  QE's later decisions (e07976393).
 
 ## Next
 
-1. On each report: check, look (FX1's and AR's stories), review in its own worktree, fix round, merge, record.
-2. Then each track in the plan's order: DP after ML1; SZ after FX1; MC beside ML2 (after ML1's node shapes).
+1. QE: the review's fix round, merge; at the merge the size bounds to 820 / 920 kB (`sizes.mjs`, performance.md and
+   its page), core's changelog line (address forms: positional values, operator heads), Seq\*'s entry, `pnpm build`
+   and `check:workspace` (core changed), the row and the tick.
+2. ST1 and HP1: check, look (HP1's stories), review, fix round, merge, record.
+3. Then AC (after QE); HP2 after ST1 and HP1; MR, CU, MX on the molecules track; FX3 after stage 1's gate.
 
 ## Findings by lane
 
