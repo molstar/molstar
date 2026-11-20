@@ -164,8 +164,8 @@ checks it cannot express.
   what it makes and of the keys of `params` or `custom` it sets (only those keys are walked) against `maxBytes`; a moved
   subtree is walked for depth, not counted. Why: one rule for the two consumers, and the cost of the incremental check
   stays the change's. The table's other rows: nested sources are `maxNestedDepth` (Resolve), a column's length and a
-  block's values the data's (Data, Tables), regular expressions in search and archives wait for the features that read
-  them (TODO).
+  block's values the data's (Data, Tables) and an archive's the archive's (Data, Archives); regular expressions in
+  search wait for the feature that reads them (TODO).
 - **The theme slots** are the `seq.theme` sublanguage ("Themes"); a query in a layer's `data` waits for its sublanguage
   (TODO).
 - **A source's transform** (its params besides `format`, `uri`, `index`, `value`, `assembly`): what the file's columns
@@ -780,6 +780,38 @@ by fuzz tests (mutated text read without a throw).
   32 segments, ten places an issue and `limits` (the store's settings) bound the work.
 - **Performance**: 100,000 TSV rows read under 300 ms (`records-time.test.ts`, heavy lane, best of three); 10,000 in the
   quick lane.
+
+### Archives
+
+`data/archive.ts` (`readArchive`, `writeArchive`, `archiveReader`): a spec with its data files and an index as one zip,
+over the assets port, with `@molstar/core/util/zip` (never a private zip). Not a port of its own: functions over
+`AssetReader`.
+
+- **Layout**: `index.json` (`{ archive: 'seqx', version: 1, spec, files }`), the spec's entry (`spec.json`, the JSON
+  codec's text) and the files the index lists, by the path the spec's sources name them under. An entry the index does
+  not list is never inflated. Why: the index is what the writer meant, so a reader never trusts the archive's own
+  listing for what is data.
+- **Written**: each `uri` and `index` of a `source` is read through the given reader (its policy decides what may be
+  read), once a location, and saved under its own path when that is a path under the root, else `data/<n>-<name>`; the
+  written spec names the entries. `keep(uri)` leaves a location its host's runtime serves (`generated:`) as written and
+  unread. A file that cannot be read, or a bound, stops the write with issues and no bytes: an archive that lacks a file
+  its spec names is not the view saved. Why: a partial archive opens to a broken view with no sign of it. Stored, not
+  deflated: `.msgpack`, `.gz`, `.bgz`, `.zip`, `.bw`, `.bigwig`, images.
+- **Read**: never throws on bytes (`seq.archive.*` issues: `unreadable`, `bounds`, `name`, `index`, `spec`, `data`); a
+  spec the reader opens is as written, not yet checked against the language (`checkSeqSpec` is the viewer's). The reader
+  serves the files by name (`archiveReader`; `./` dropped; a location not an entry is `ArchiveEntryMissing`, so an
+  archive's spec reads nothing of the network or the disk). Why: the archive is the only place its view reads from.
+- **Bounds** (EC-91, `ArchiveLimits`; a host raises them for a trusted archive; security.md): `maxEntries` 1,000,
+  `maxBytes` 256 MB (the archive's own bytes and the entries' declared sizes together), `maxEntryBytes` 64 MB (the bound
+  of a file parsed whole), `maxRatio` 200 for an entry over `ratioFloor` (64 KB), `maxNameLength` 256, the spec within
+  `SpecBounds.maxBytes` and its checks. All but the spec are read from the central directory before anything is inflated
+  (core's `unzip` limits, and the listing), so a bomb is refused by its declared sizes; a declared size that lies is
+  caught by core (the inflated length and CRC-32 must match). Why: the declared sizes are what allocates.
+- **Names**: a path under the root only: no empty name, control character, backslash, drive, absolute path, empty, `.`
+  or `..` segment; two entries that differ in case or normalization only are refused as one name (a reader on a
+  case-folding disk would write one over the other). A trailing `/` is a directory.
+- **Known limits**: a runtime that reads files its source does not name (a profile in a `value`) is not saved by the
+  writer; two central entries of one name keep the last (core's `unzip` returns a map).
 
 ### Store
 
