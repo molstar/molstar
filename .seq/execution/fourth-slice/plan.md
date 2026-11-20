@@ -47,6 +47,10 @@ Provisional, from the third slice's `state.md`; replaced by its decided fold-bac
   high findings.
 - **A lane's public API is accepted by the author before merge** (MV, DB): a brief names the public surface it expects;
   anything past it stops the lane.
+- **Small findings collect in [fixes.md](fixes.md)** (the author, 2026-11-20: "maybe add a fix phase where we accumulate
+  these things"): a look or a bug that needs no design is listed there, not given a lane of its own on arrival; a fix
+  lane (FX) takes the open ones at each fix point. Why: the third slice's twenty finding lanes each cost a brief, a
+  review and a merge.
 - **Read-only fast lanes prepare the author's questions and the close** (SR, EO, DA, GR): cheap, kept.
 - **Use gates do not block the loop**: the author's use comes when they are back, its findings fixed after; the novice
   pass runs before the close.
@@ -192,6 +196,12 @@ tests, read-only).
       slice's drift left open at its close, if any.
 - [ ] GATE: the designs agreed (each with its self-check and its matrix cells), UT merged.
 
+### Fix points (fast; [fixes.md](fixes.md))
+
+- [ ] FX1 before stage 1: the third slice's carried looks and the ring letters.
+- [ ] FX2, FX3, FX4 after stages 1, 2 and 3's gates; FX5 before M4 (the use gates' findings). A fix point with nothing
+      open is skipped.
+
 ### Stage 1: molecules, maps and copies (strong, in order; [molecules](../../design/molecules.md), The fourth slice's lanes)
 
 - [ ] ML1 (strong, first) the language: the kinds, params, checks and builder; the `seq` format's tables; the 0.5.0
@@ -270,8 +280,8 @@ tests, read-only).
 
 ## Order and parallelism
 
-One lane at a time: DR → SP → XD (UT between) → stage 0's gate → ML1 → ML2 → MC → MK → AC → MR → CU → MX → gate →
-HP1 → ST1 → HP2 → ST2 → ST3 → HP3 → use gate → gate → BW → SV → AR → NG → gate → EX → CN → LE → gate → novice pass →
+One lane at a time: DR → SP → XD (UT between) → stage 0's gate → FX1 → ML1 → ML2 → MC → MK → AC → MR → CU → MX → gate → FX2 →
+HP1 → ST1 → HP2 → ST2 → ST3 → HP3 → use gate → gate → FX3 → BW → SV → AR → NG → gate → FX4 → EX → CN → LE → gate → novice pass → FX5 →
 M4 → finalize. The author's findings queue as fast lanes between them.
 
 If the author allows two (one strong, one fast, as "1+1"):
@@ -280,6 +290,7 @@ If the author allows two (one strong, one fast, as "1+1"):
 - BW beside any stage 1–2 strong lane (its files are core's assets and a new runtime);
 - HP1 beside ML2 or MK (the header line against the language and resolve);
 - AR, NG and SV (after ST3) beside any strong lane.
+An FX lane runs beside a strong lane when its files are not that lane's.
 Never two lanes on the language at once (ML1, AC and MK's params go through the bump in turn).
 
 ## Hot files (the orchestrator's only)
