@@ -96,3 +96,12 @@ export function heldLines(viewer: SeqViewer): string[] {
     return `${node.kind} ${key}`;
   });
 }
+
+/**
+ * What the viewer says of the source's data, as lines (`code at address: message`): the model's (a unit a section names
+ * is gone from the source: `seq.resolve.system.unnamed`) and the layout's (the section has no length to draw).
+ */
+export function issueLines(viewer: SeqViewer): string[] {
+  const all = [...viewer.modelIssues.value, ...viewer.layoutIssues.value];
+  return all.length ? all.map((i) => `${i.severity} ${i.code} at ${i.address ?? '-'}: ${i.message}`) : ['no issues'];
+}

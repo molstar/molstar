@@ -59,6 +59,13 @@ describe('one adapter a format', () => {
     ).toEqual(['host']);
   });
 
+  it('withAdapter keeps an entry that names the kind format-runtime without a runtime, as it is, and does not throw', () => {
+    const odd = { kind: 'format-runtime', note: 'a host’s own entry' } as const;
+    const registry = withAdapter([odd, entry(rt('mmcif', 'mmcif'))], rt('host', 'mmcif'));
+    expect(registry[0]).toBe(odd);
+    expect(registry).toHaveLength(2);
+  });
+
   it('a runtime listed twice is narrowed once, and an adapter may share the name of the runtime it narrows', () => {
     const records = rt('records', 'tsv', 'json');
     const twice = runtimesOf(withAdapter([entry(records), entry(records)], rt('host', 'json')));

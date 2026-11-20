@@ -15,6 +15,7 @@ import { fakeStructureElement } from '../../support/fake-structure/fake-view.js'
 import { FakeStructureViewer } from '../../support/fake-structure/fake-viewer.js';
 import {
   heldLines,
+  issueLines,
   hostDataSpec,
   hostTableOf,
   HostFile,
@@ -79,6 +80,7 @@ class HostDataRoot extends UiElement<HostDataStory> {
     let fake: FakeStructureViewer | undefined;
     let by: 'fake' | 'default' = 'fake';
     let reads: string[] = [];
+    // what ends with a mounting (the viewer's listeners, the fake's edit listener)
     const offs: (() => void)[] = [];
     let table: ReturnType<typeof hostTableOf> | undefined;
     let edits = 0;
@@ -93,6 +95,8 @@ class HostDataRoot extends UiElement<HostDataStory> {
         `Edits the fake told: ${edits}`,
         '',
         ...heldLines(viewer),
+        '',
+        ...issueLines(viewer),
       ].join('\n');
     };
 
@@ -113,23 +117,34 @@ class HostDataRoot extends UiElement<HostDataStory> {
       };
     };
 
+    // a mounting starts from the table as recorded: a new fake, so an edit made under one adapter never meets the other
     const mount = async (next: 'fake' | 'default') => {
       for (const off of offs.splice(0)) off();
       viewer?.retire();
+      fake?.dispose();
       by = next;
       reads = [];
-      if (!table || !fake) return;
+      edits = 0;
+      if (!table) return;
+      const f = (fake = new FakeStructureViewer(table));
+      fakeHost.replaceChildren(fakeStructureElement(f));
+      offs.push(
+        f.onEdit(() => {
+          edits++;
+          show();
+        }),
+      );
       const base = DefaultSeqViewerSpec();
       const v = (viewer = createSeqViewer(
         {
           ...base,
           ui: { ...base.ui, toolbar: mountToolbar },
-          registry: by === 'fake' ? withFakeHost(base.registry ?? [], fake) : withDefaultMmcif(base.registry ?? []),
+          registry: by === 'fake' ? withFakeHost(base.registry ?? [], f) : withDefaultMmcif(base.registry ?? []),
           ports: { ...base.ports, assets },
         },
         canvasHost,
       ));
-      offs.push(v.store.store.nodeVersion.listen(show));
+      offs.push(v.store.store.nodeVersion.listen(show), v.modelIssues.listen(show), v.layoutIssues.listen(show));
       show();
       await v.load(hostDataSpec());
       show();
@@ -143,11 +158,13 @@ class HostDataRoot extends UiElement<HostDataStory> {
     });
 
     const toggle = Button({
-      children: 'Read the file instead (the default adapter)',
+      children: 'Read the file instead (the default adapter; resets the fake)',
       onClick: () => {
         const next = by === 'fake' ? 'default' : 'fake';
         (toggle as HTMLElement).textContent =
-          next === 'fake' ? 'Read the file instead (the default adapter)' : 'Ask the fake again (its adapter)';
+          next === 'fake'
+            ? 'Read the file instead (the default adapter; resets the fake)'
+            : 'Ask the fake again (its adapter; resets the fake)';
         void mount(next);
       },
     }) as HTMLElement;
@@ -157,14 +174,6 @@ class HostDataRoot extends UiElement<HostDataStory> {
       const text = await fetch(HostTableFile).then((r) => (r.ok ? r.text() : Promise.reject(new Error(`${r.status}`))));
       if (gone) return;
       table = hostTableOf(text);
-      fake = new FakeStructureViewer(table);
-      fakeHost.replaceChildren(fakeStructureElement(fake));
-      offs.push(
-        fake.onEdit(() => {
-          edits++;
-          show();
-        }),
-      );
       await mount('fake');
     })().catch((e) => {
       held.textContent = `The story could not start (${HostFile}): ${e instanceof Error ? e.message : e}`;

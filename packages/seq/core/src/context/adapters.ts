@@ -27,7 +27,8 @@ export function withAdapter<E extends { readonly kind: string }>(
   const narrowings = new Map<FormatRuntime, FormatRuntime>();
   const out: (E | FormatRuntimeEntry)[] = [];
   for (const e of registry) {
-    if (e.kind !== 'format-runtime') {
+    // an entry of a host's own kind, or one that names the kind without a runtime, is not a runtime: kept as it is
+    if (e.kind !== 'format-runtime' || !Array.isArray((e as Partial<FormatRuntimeEntry>).runtime?.formats)) {
       out.push(e);
       continue;
     }
