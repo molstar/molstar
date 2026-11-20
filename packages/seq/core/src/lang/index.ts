@@ -10,10 +10,16 @@
 export {
   type Address,
   type Addressed,
+  type ComplexBuilder,
   createSeqSpec,
   type DataBuilder,
+  identifiers,
   ideogramNavigator,
+  type LinkParams,
+  type MoleculeBuilder,
+  type ModifiedRow,
   miniatureNavigator,
+  modified,
   type NavigatorOf,
   type NavigatorParams,
   overviewNavigator,
@@ -28,6 +34,7 @@ export {
   type SnapshotsBuilder,
   stripNavigator,
   type TrackBuilder,
+  type UnitBuilder,
   type ViewBuilder,
   type ViewsBuilder,
 } from './builder.js';
@@ -41,6 +48,14 @@ export {
   specBounds,
 } from './bounds.js';
 export { checkDataNode, checkSeqLang, checkSeqSpec, type DataNodeTargets } from './check.js';
+export {
+  checkLinks,
+  checkUnit,
+  inlineLength,
+  type LinkParent,
+  unitExtent,
+  unitRange,
+} from './check-molecules.js';
 export { BoundIssues, LangIssues } from './issues.js';
 export {
   type SeqKinds,

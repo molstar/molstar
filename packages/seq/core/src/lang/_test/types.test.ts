@@ -34,6 +34,27 @@ const wrongKinds = [
       sec.track('t').layer('ranges', { type: 'ranges', data: b.data.source('x', { format: 'fasta' }) });
     });
   },
+  () => {
+    const b = createSeqSpec();
+    const s = b.data.sequence('s', { alphabet: 'protein', letters: 'MK' });
+    const r = b.data.ranges('r', { target: s, rows: { start: [0], end: [1] } });
+    const c = b.data.complex('c', {}, (cx) => {
+      // @ts-expect-error a ranges handle where a sequence or molecule is taken
+      cx.unit('A', { of: r });
+      // @ts-expect-error links name no `a`: their parent is both ends
+      cx.links('l', { a: s, rows: { a_start: [0], a_end: [1], b_start: [1], b_end: [2] } });
+    });
+    b.views.view('v', (v) =>
+      v.section('a', {}, (sec) => {
+        // @ts-expect-error a complex where a block's system is taken
+        sec.block('b', { of: c });
+        // @ts-expect-error not a form
+        sec.block('b2', { of: s, form: 'chip' });
+      }),
+    );
+    // @ts-expect-error not a way to draw modified residues
+    b.views.view('w', (v) => v.section('a', { of: s }).track('t').layer('l', { type: 'letters', modified: 'dot' }));
+  },
 ];
 
 const fine = [
@@ -46,6 +67,14 @@ const fine = [
     const address: string = `/data/${'s'}`;
     b.data.values('v', { target: address });
     const id: string = b.data.source('x', { format: 'fasta' });
+    // molecules and units stand where a system does; a complex where a section's system does
+    const m = b.data.molecule('m', { residues: ['ATP'] });
+    const units: string[] = [];
+    const c = b.data.complex('c', {}, (cx) => {
+      units.push(cx.unit('A', { of: m }, (unit) => unit.numbering('auth', { method: 'labels', labels: ['1'] })));
+    });
+    b.data.ranges('r3', { target: m, rows: { start: [0], end: [1] } });
+    b.views.view('v', (v) => v.section('a', { of: c, classes: ['polymer', 'ligand'] }));
     return id;
   },
 ];
@@ -66,6 +95,6 @@ const wrongParams = [
 
 describe('the builder types', () => {
   it('are checked by tsc -p tsconfig.test.json', () => {
-    expect(wrongKinds.length + fine.length + wrongParams.length).toBe(3);
+    expect(wrongKinds.length + fine.length + wrongParams.length).toBe(4);
   });
 });

@@ -23,7 +23,8 @@ export const LangIssues = defineIssues('seq.lang', {
   },
   'seq.lang.container.id': {
     severity: 'error',
-    description: 'A `data`, `views` or `refs` container has an id other than its kind (`data`, `views`, `refs`)',
+    description:
+      'A container (`data`, `views`, `refs`, `snapshots`, `navigators`, `compounds`) has an id other than its kind',
     hint: 'The containers have reserved ids',
   },
   'seq.lang.source.index': {
@@ -33,8 +34,9 @@ export const LangIssues = defineIssues('seq.lang', {
   },
   'seq.lang.source.content': {
     severity: 'error',
-    description: 'A source has both a `uri` and an inline `value`, or neither',
-    hint: 'Give one of `uri` and `value`',
+    description:
+      'A source has both a `uri` and an inline `value`, or neither (nor a host’s `ref`), or a `ref` beside a `value`',
+    hint: 'Give one of `uri` and `value`; a host’s `ref` beside a `uri`, or alone; inline data is never a host’s',
   },
   'seq.lang.snapshot.content': {
     severity: 'error',
@@ -98,8 +100,8 @@ export const LangIssues = defineIssues('seq.lang', {
   },
   'seq.lang.values.content': {
     severity: 'error',
-    description: 'A values node has both `values` and a `source`, or neither',
-    hint: 'Give one of `values` and `source`',
+    description: 'A values node has both `values` and a `source`, or neither, or a `field` without a `source`',
+    hint: 'Give one of `values` and `source`; `field` names the source’s column of values',
   },
   'seq.lang.values.length': {
     severity: 'error',
@@ -216,6 +218,84 @@ export const LangIssues = defineIssues('seq.lang', {
     severity: 'error',
     description: 'A navigator draws `bands` and names no annotation of bands',
     hint: 'Name the bands (`bands`: a ranges node with a `stain` field), or draw another `content`',
+  },
+  'seq.lang.source.host_only': {
+    severity: 'info',
+    description:
+      'A source is named by a host’s `ref` alone: without that host it is unavailable, so the spec is not portable (EC-185)',
+    hint: 'Give the data’s `uri` beside the `ref` where there is one',
+  },
+  'seq.lang.modified.order': {
+    severity: 'error',
+    description: 'A sequence’s modified positions are not in order (rows at one position are alternatives)',
+    hint: 'List the rows by position, ascending',
+  },
+  'seq.lang.modified.bounds': {
+    severity: 'error',
+    description: 'A modified position starts before 0, or it (with its `length`) ends past the inline letters',
+    hint: 'A row’s position and length lie within the sequence',
+  },
+  'seq.lang.modified.length': {
+    severity: 'error',
+    description: 'A modified row’s `length` is less than 1, or its component runs into the next row’s position',
+    hint: 'A component covers its `length` positions (1 when absent), up to the next row',
+  },
+  'seq.lang.molecule.content': {
+    severity: 'error',
+    description: 'A molecule has both `residues` and a `source`, or neither, or `atoms` without inline `residues`',
+    hint: 'Give one of `residues` and `source`; its atoms beside its residues',
+  },
+  'seq.lang.molecule.atoms': {
+    severity: 'error',
+    description: 'A molecule’s atoms name a residue it does not have, or their residues decrease',
+    hint: 'Each atom’s `residue` is a position of `residues`, the column non-decreasing: a residue’s atoms are a run',
+  },
+  'seq.lang.molecule.hydrogen': {
+    severity: 'error',
+    description: 'A molecule’s atoms hold a hydrogen: they are heavy atoms only (EC-64)',
+    hint: 'Leave the hydrogens out: they are often absent or model-dependent, so lengths would not line up',
+  },
+  'seq.lang.molecule.identifier': {
+    severity: 'error',
+    description: 'An identifier’s namespace is not an open lowercase word (`ccd`, `smiles`, a host’s own)',
+    hint: 'Write the namespace lowercase: a letter, then letters, digits, `_` or `-`',
+  },
+  'seq.lang.molecule.form': {
+    severity: 'error',
+    description: 'A block is drawn as `atoms`, and its system has no atoms (a sequence, or a molecule without them)',
+    hint: 'Give the molecule its `atoms`, or draw the block `whole` or by `residues`',
+  },
+  'seq.lang.unit.range': {
+    severity: 'error',
+    description: 'A unit’s range ends before it starts (a unit never wraps, EC-13), or runs past its molecule',
+    hint: 'A unit’s range is [start, end) within the positions of what it instantiates',
+  },
+  'seq.lang.unit.observed': {
+    severity: 'error',
+    description: 'A unit’s observed runs are not intervals in order within its range',
+    hint: 'List the modeled runs in order, each [start, end) within the unit’s range, none overlapping',
+  },
+  'seq.lang.link.target': {
+    severity: 'error',
+    description:
+      'A pairs node under `data` names no `a`, or links (a child of a complex or a molecule) name an `a` or `b`',
+    hint: 'Under `data` give `a`; under a complex or a molecule, the parent is both ends',
+  },
+  'seq.lang.link.unit': {
+    severity: 'error',
+    description:
+      'A link of a complex names no unit of it at an end, or a pairs node not under a complex has a unit column',
+    hint: 'Give each row its `a_unit` and `b_unit`, ids of the complex’s units; elsewhere the ends are the node’s',
+  },
+  'seq.lang.link.bounds': {
+    severity: 'error',
+    description: 'A link’s end lies outside its unit’s range, or past its molecule’s residues',
+    hint: 'An end is a position of its unit (or of the molecule it is under)',
+  },
+  'seq.lang.link.occupancy': {
+    severity: 'error',
+    description: 'A link’s occupancy is not between 0 and 1',
+    hint: 'Occupancy is the share of copies a link is in: 0 to 1 (NaN: 1)',
   },
 });
 

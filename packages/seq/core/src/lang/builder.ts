@@ -54,6 +54,53 @@ export interface DataBuilder {
   tree(id: string, params: Params<'tree'>): Address<'tree'>;
   pairs(id: string, params: Params<'pairs'>): Address<'pairs'>;
   grid(id: string, params: Params<'grid'>): Address<'grid'>;
+  /** A molecule (a ligand, a glycan, a drug); the links between its residues are written in `body`. */
+  molecule(id: string, params: Params<'molecule'>, body?: (molecule: MoleculeBuilder) => void): Address<'molecule'>;
+  /** A complex: its units and the links between them are written in `body`. */
+  complex(id: string, params: Params<'complex'>, body?: (complex: ComplexBuilder) => void): Address<'complex'>;
+  /** A compound described (`/data/compounds/<code>`), the `compounds` container made with the first. */
+  compound(id: string, params: Params<'compound'>): Address<'compound'>;
+}
+
+/** Links' params: a pairs node's but `a` and `b`, which are its parent (_spec/README.md, Language, Molecules and complexes). */
+export type LinkParams = Omit<Params<'pairs'>, 'a' | 'b'>;
+
+export interface MoleculeBuilder extends Addressed<'molecule'> {
+  /** The links between its residues (a glycosidic bond): a `pairs` child, a row a link. */
+  links(id: string, params: LinkParams): Address<'pairs'>;
+}
+
+export interface ComplexBuilder extends Addressed<'complex'> {
+  /** A unit (`<complex>/<id>`): an instance of a sequence or a molecule; its numberings written in `body`. */
+  unit(id: string, params: Params<'unit'>, body?: (unit: UnitBuilder) => void): Address<'unit'>;
+  /** The links between its units (`a_unit`, `b_unit` their ids): a `pairs` child, a row a link. */
+  links(id: string, params: LinkParams): Address<'pairs'>;
+}
+
+export interface UnitBuilder extends Addressed<'unit'> {
+  /** A numbering of the unit's positions (the author's: `auth`), a label a position of what it instantiates. */
+  numbering(id: string, params: Params<'numbering'>): Address<'numbering'>;
+}
+
+/** A row of a sequence's `modified` table: a component at a position (over `length` positions, 1 when absent). */
+export interface ModifiedRow {
+  readonly position: number;
+  readonly component: string;
+  readonly length?: number;
+}
+
+/** A sequence's `modified` table from its rows, in order (a `length` column only when one row has one). */
+export function modified(rows: readonly ModifiedRow[]): NonNullable<Params<'sequence'>['modified']> {
+  const out = { position: rows.map((r) => r.position), component: rows.map((r) => r.component) };
+  return rows.some((r) => r.length !== undefined) ? { ...out, length: rows.map((r) => r.length ?? 1) } : out;
+}
+
+/** An `identifiers` table from namespaces and values (`{ ccd: 'ATP', smiles: '…' }`, or pairs for a namespace twice). */
+export function identifiers(
+  of: Readonly<Record<string, string>> | readonly (readonly [string, string])[],
+): NonNullable<Params<'molecule'>['identifiers']> {
+  const entries: readonly (readonly [string, string])[] = Array.isArray(of) ? of : Object.entries(of);
+  return { namespace: entries.map((e) => e[0]), value: entries.map((e) => e[1]) };
 }
 
 export interface SequenceBuilder extends Addressed<'sequence'> {
@@ -240,6 +287,7 @@ export function createSeqSpec(options: SeqSpecOptions = {}): SeqSpecBuilder {
     return rec;
   }
 
+  let compounds: Rec | undefined;
   const dataKind = (kind: string) => (id: string, params: unknown) => add(data, kind, id, params).address;
   const dataBuilder = {
     source: dataKind('source'),
@@ -259,6 +307,37 @@ export function createSeqSpec(options: SeqSpecOptions = {}): SeqSpecBuilder {
     tree: dataKind('tree'),
     pairs: dataKind('pairs'),
     grid: dataKind('grid'),
+    molecule(id: string, params: unknown, body?: (m: MoleculeBuilder) => void) {
+      const rec = add(data, 'molecule', id, params);
+      body?.({
+        address: rec.address as Address<'molecule'>,
+        links: (lid, lparams) => add(rec, 'pairs', lid, lparams).address as Address<'pairs'>,
+        toString: () => rec.address,
+      });
+      return rec.address;
+    },
+    complex(id: string, params: unknown, body?: (c: ComplexBuilder) => void) {
+      const rec = add(data, 'complex', id, params);
+      body?.({
+        address: rec.address as Address<'complex'>,
+        unit(uid, uparams, ubody) {
+          const u = add(rec, 'unit', uid, uparams);
+          ubody?.({
+            address: u.address as Address<'unit'>,
+            numbering: (nid, nparams) => add(u, 'numbering', nid, nparams).address as Address<'numbering'>,
+            toString: () => u.address,
+          });
+          return u.address as Address<'unit'>;
+        },
+        links: (lid, lparams) => add(rec, 'pairs', lid, lparams).address as Address<'pairs'>,
+        toString: () => rec.address,
+      });
+      return rec.address;
+    },
+    compound(id: string, params: unknown) {
+      compounds ??= add(data, 'compounds', 'compounds', undefined);
+      return add(compounds, 'compound', id, params).address;
+    },
   } as unknown as DataBuilder;
 
   /** The inline rows of the data node an address names (a ranges node's), for the layer's theme. */
