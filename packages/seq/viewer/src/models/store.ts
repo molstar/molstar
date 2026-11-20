@@ -10,7 +10,7 @@
 // hash), opened again when it changes, detached when it goes. Retired with the viewer.
 
 import { ReactiveModel, type ReadonlyState, State } from '@molstar/core/reactive';
-import { type Issue, issueOf } from '@molstar/core/repr/tree';
+import { type Issue, issueOf, type Node } from '@molstar/core/repr/tree';
 import {
   type AssetReader,
   DataStore,
@@ -25,6 +25,7 @@ import {
 import { OverlaySources } from '@molstar/seqx-core/render';
 import {
   EmptyOverlay,
+  nodeAddress,
   type Overlay,
   OverlayBuilder,
   type OverlayNode,
@@ -33,6 +34,7 @@ import {
 import type { ResolvedView } from '@molstar/seqx-core/view';
 import { DomHost } from '@molstar/ui/dom';
 import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
+import { ViewerIssues } from '@molstar/seqx-viewer/issues';
 
 /** The store's time through `DomHost`, read at each call. */
 export const DomHostClock: StoreClock = {
@@ -40,6 +42,28 @@ export const DomHostClock: StoreClock = {
   setTimeout: (fn, ms) => DomHost.setTimeout(fn, ms),
   clearTimeout: (handle) => DomHost.clearTimeout(handle),
 };
+
+/** A source's nodes the store holds now, by key. */
+function nodesOf(store: DataStore, source: string): Map<string, Node> {
+  const out = new Map<string, Node>();
+  for (const n of store.nodes.values()) if (n.source === source) out.set(n.key, n.node);
+  return out;
+}
+
+/** The addresses of the nodes gone between two readings, and of the children (units) a kept node lost. */
+function goneSince(before: ReadonlyMap<string, Node>, after: ReadonlyMap<string, Node>, source: string): string[] {
+  const out: string[] = [];
+  for (const [key, node] of before) {
+    const address = nodeAddress(source, key);
+    const now = after.get(key);
+    if (!now) out.push(address);
+    else if (now !== node) {
+      const ids = new Set((now.children ?? []).map((c) => c.id));
+      for (const c of node.children ?? []) if (c.id !== undefined && !ids.has(c.id)) out.push(`${address}/${c.id}`);
+    }
+  }
+  return out;
+}
 
 /** Why a source could not be opened, at its address. */
 function unopened(e: unknown, address: string): Issue {
@@ -74,7 +98,14 @@ export class StoreModel extends ReactiveModel {
    * out); the store's own reports are `store.issues`. */
   readonly issues: ReadonlyState<readonly Issue[]> = this._issues.asReadonly;
 
-  constructor(config: ViewerConfig = DefaultViewerConfig, options: { clock?: StoreClock } = {}) {
+  /**
+   * `removed`: told the addresses of the nodes a host's update removed (and of the children a kept node lost), it takes
+   * them out of the session's state and says whether something was (then one issue at the source).
+   */
+  constructor(
+    config: ViewerConfig = DefaultViewerConfig,
+    private readonly options: { clock?: StoreClock; removed?: (gone: readonly string[]) => boolean } = {},
+  ) {
     super();
     this.store = new DataStore({
       settings: {
@@ -84,7 +115,7 @@ export class StoreModel extends ReactiveModel {
         maxColumnLength: config.bounds.maxColumnLength,
         maxBlockValues: config.bounds.maxBlockValues,
       },
-      clock: options.clock ?? DomHostClock,
+      clock: this.options.clock ?? DomHostClock,
     });
     this.registerPermanentDispose(() => {
       // the overlay's openings first: one that settles later is disposed, never attached
@@ -289,8 +320,20 @@ export class StoreModel extends ReactiveModel {
         address,
         opened.issues?.map((i) => ({ ...i, address })),
       );
-      if (this.store.reattach(address, opened)) this._watch(address, o, opened, runtime, assets);
-      else opened.dispose();
+      const before = nodesOf(this.store, address);
+      if (!this.store.reattach(address, opened)) return opened.dispose();
+      this._watch(address, o, opened, runtime, assets);
+      const gone = goneSince(before, nodesOf(this.store, address), address);
+      if (gone.length && this.options.removed?.(gone))
+        this._report(address, [
+          ...(opened.issues?.map((i) => ({ ...i, address })) ?? []),
+          issueOf(
+            ViewerIssues,
+            'seq.viewer.selection.dropped',
+            `The source’s update removed ${gone.length === 1 ? 'a node' : `${gone.length} nodes`} the selection named: dropped from it`,
+            { address },
+          ),
+        ]);
     } catch (e) {
       if (isAbortError(e) || !current()) return;
       this._report(address, unopened(e, address));

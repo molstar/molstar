@@ -35,6 +35,11 @@ export const ViewerIssues = defineIssues('seq.viewer', {
     description: 'A highlight names a style that is not `tint`, `band` or `outline`; the channel is a tint',
     hint: 'tint, band or outline',
   },
+  'seq.viewer.selection.dropped': {
+    severity: 'info',
+    description:
+      'A host’s update removed nodes the selection named (a unit, a transcript): those parts are dropped from it, as when a patch removes a node',
+  },
   'seq.viewer.preview.dropped': {
     severity: 'warning',
     description: 'A preview no longer applies over the new root (an edit landed during the gesture): it is dropped',

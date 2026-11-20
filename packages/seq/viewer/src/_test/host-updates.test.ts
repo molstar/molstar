@@ -11,9 +11,11 @@
 import type { Node } from '@molstar/core/repr/tree';
 import type { FormatRuntime, OpenedSource } from '@molstar/seqx-core/data';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
-import { resolveSpec } from '@molstar/seqx-core/resolve';
+import { elements, location } from '@molstar/seqx-core/query';
+import { nodeAddress, resolveSpec } from '@molstar/seqx-core/resolve';
 import { DomHost } from '@molstar/ui/dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { SelectionModel } from '../models/selection.js';
 import { StoreModel } from '../models/store.js';
 
 const assets = {
@@ -182,6 +184,51 @@ describe('a host’s updates', () => {
     h.state.gate = undefined;
     await frame.run();
     expect(m.store.getNode('/data/zf', 'A')?.node.params?.length).toBe(3);
+    m.retire();
+  });
+
+  it('a selection on a removed node is dropped (its elements, parts, anchor and cursor), the rest kept, with one issue', async () => {
+    const h = host();
+    const frame = frames();
+    // as the viewer composes them
+    const selection = new SelectionModel();
+    const m = new StoreModel(undefined, { removed: (gone) => selection.dropGone(gone) });
+    await m.sync(model(h.runtime), assets);
+    const A = nodeAddress('/data/zf', 'A');
+    const B = nodeAddress('/data/zf', 'B');
+    selection.set(
+      {
+        elements: elements([{ owner: B, key: 'x' }]),
+        location: location({
+          parts: [
+            { system: A, ranges: [0, 2] },
+            { system: `${B}/u`, ranges: [1, 3] },
+          ],
+        }),
+        shown: location({
+          parts: [
+            { system: A, ranges: [0, 2] },
+            { system: B, ranges: [1, 3] },
+          ],
+        }),
+      },
+      { system: B, start: 1, end: 3 },
+    );
+    selection.setCursor({ section: '/views/v/s', system: B, position: 1 });
+    h.edit({ A: 10 });
+    await frame.run();
+    const v = selection.value.value;
+    expect(v.elements.keys).toEqual([]);
+    expect(v.location.parts.map((p) => p.system)).toEqual([A]);
+    expect(v.shown.parts.map((p) => p.system)).toEqual([A]);
+    expect(selection.anchor).toBeUndefined();
+    expect(selection.cursor.value).toBeUndefined();
+    expect(m.issues.value.map((i) => [i.code, i.address])).toEqual([['seq.viewer.selection.dropped', '/data/zf']]);
+    // an update that removes nothing the selection names says nothing
+    h.edit({ A: 11, C: 1 });
+    await frame.run();
+    expect(m.issues.value).toEqual([]);
+    expect(selection.value.value.location.parts.map((p) => p.system)).toEqual([A]);
     m.retire();
   });
 });

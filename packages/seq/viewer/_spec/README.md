@@ -398,6 +398,12 @@ owner, the store with it.
   (`DataStore.reattach`: nodes kept by key, tiles read again); a reopen that fails is an issue at its address and the
   reading before it stays; an earlier reopen settling after a later one is dropped. A source gone or retired stops
   listening. Why: a host edits in bursts, and the sequences follow its edit without a second source.
+  - **What referred to what went**: the addresses of the nodes a reopen removed, and of the children (units) a kept node
+    lost, go to the store model's `removed` option; the viewer's takes them out of the selection
+    (`SelectionModel.dropGone`: elements, parts and rects on or under them, the anchor and the cursor on one) and, when
+    something was, one issue at the source (`seq.viewer.selection.dropped`, info). A bookmark or a ref naming one is as
+    when a patch removes that node: it resolves to nothing, said by the addresses' own issue. Why: a host's edit is
+    data, not an edit of the spec; the session state follows it, the spec is not patched.
 - **Session holds** (`holdSession(name, model, addresses)`): the dynamic nodes a session state names, with what they
   name (`Overlay.holds`), held in the store under the name, those it no longer names let go; retired with the model.
 - **The overlay** (tier 2): `overlay(model, view, { runtimes, assets })` gives a frame the overlay of the store's
