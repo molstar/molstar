@@ -263,7 +263,12 @@ sequence's table of its non-standard positions; `residues` is a molecule's list 
   the section's `classes` (default `[polymer, branched, ligand, ion]`; water and any class not listed left out),
   polymers in the complex's order, then each class in order (EC-101). Why left out: hundreds of waters say nothing on a
   sequence axis; a writer lists `water` to show them.
-- **Explicit `block` children** still win: a writer picks units, forms and order.
+- **Explicit `block` children** still win: a writer picks units, forms and order. **A `block` child whose id is a
+  derived unit's** (`A`, `glycan`; a merged copies block by its first unit's id) overrides that unit only (its `form`,
+  its `label`), and the rest stay derived from the complex and its `classes`; a section whose `block` children are all
+  overrides lists every unit the complex derives, now and as units are added. `block.form` on a derived block writes
+  that one child (the author, 2026-11-20: "Override one unit"). Why: switching one chip's form must not freeze the
+  section's unit list.
 - **Follow**: a section of units on several systems neither follows nor is followed (`seq.render.follow.blocks`,
   unchanged).
 
