@@ -15,7 +15,9 @@ import {
   openRanges,
   type RangeReadOptions,
 } from '../assets.js';
-import { getFS, setFSModule } from '../data-source.js';
+import * as DataSource from '../data-source.js';
+import * as RangeModule from '../assets-range.js';
+import { getFS } from '../internal/fs.js';
 
 // Range reads (`_spec/assets.md` §10) against a fake `fetch` serving one buffer: nothing reaches the network. The
 // server's toggles: an honest 206, one that ignores `Range` (200), a `Content-Range` other than asked, a total or an
@@ -521,7 +523,7 @@ describe('range reads of a file', () => {
       },
     };
     try {
-      setFSModule(fs as unknown as Parameters<typeof setFSModule>[0]);
+      DataSource.setFSModule(fs as unknown as Parameters<typeof DataSource.setFSModule>[0]);
       const m = new DefaultAssetManager();
       await expect(
         open(m, Asset.Url('file:///data/x.bw'), { ...opts, maxBytes: data.length - 1 }),
@@ -533,7 +535,7 @@ describe('range reads of a file', () => {
       expect(reads).toEqual([[2 * Page, Page]]);
       r.dispose();
     } finally {
-      setFSModule(prev as unknown as Parameters<typeof setFSModule>[0]);
+      DataSource.setFSModule(prev as unknown as Parameters<typeof DataSource.setFSModule>[0]);
     }
   });
 });
@@ -564,5 +566,13 @@ describe('openRanges', () => {
     expect(r.size).toBe(100);
     expect(log[0].range).toBeUndefined();
     r.dispose();
+  });
+});
+
+describe('the published surface', () => {
+  it('the range module publishes its public names only; the internals are in a module the package does not export', () => {
+    expect(Object.keys(RangeModule).sort()).toEqual(['AssetRangeError', 'openRanges']);
+    expect('getFS' in DataSource).toBe(false);
+    expect('defaultRanges' in RangeModule).toBe(false);
   });
 });

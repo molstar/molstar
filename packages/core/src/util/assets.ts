@@ -20,7 +20,8 @@ import { Task, type RuntimeContext } from '@molstar/core/task';
 import { File_ as File } from './nodejs-shims.js';
 import { iterableToArray } from '@molstar/core/data/util/array';
 import { gzipDeclaredSize, isGzip, ungzip } from './zip/zip.js';
-import { type AssetRangeReader, defaultRanges, type RangeReadOptions } from './assets-range.js';
+import type { AssetRangeReader, RangeReadOptions } from './assets-range.js';
+import { defaultRanges } from './internal/range-pages.js';
 
 export { AssetManager, DefaultAssetManager, Asset, SizeLimitExceeded };
 export {

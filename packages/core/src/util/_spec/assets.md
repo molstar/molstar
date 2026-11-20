@@ -160,4 +160,7 @@ The code is the truth for how; this file records the rules the code relies on, e
 - Files: a file whose bytes the manager holds (a `shared` read) is served from them; otherwise `Blob.slice` a run of
   pages, never the whole file. `maxBytes` is checked against the file's size.
 - `file://` URLs in Node.js: `stat` against `maxBytes` before any byte, then reads at an offset with the module
-  `setFSModule` set (`getFS`, internal).
+  `setFSModule` set (held in `internal/fs.ts`).
+- The implementation is in `util/internal/` (`range-pages.ts`: the page stores and the whole-asset fallback; `fs.ts`:
+  the module `setFSModule` sets), which the package does not export (`"./util/internal/*": null`): only the names above
+  are public. Why: `DefaultAssetManager` needs the stores, and core's `./*` would otherwise publish them.
