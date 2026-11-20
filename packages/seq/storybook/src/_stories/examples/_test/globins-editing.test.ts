@@ -7,8 +7,9 @@
 import { readFileSync } from 'node:fs';
 import { hashNode, resolveAddress } from '@molstar/core/repr/tree';
 import { theme } from '@molstar/seqx-core/lang';
-import type { BlockPlacement, RowsLay } from '@molstar/seqx-core/render';
+import { type BlockPlacement, type PairsLay, PlacePoint, type RowsLay } from '@molstar/seqx-core/render';
 import { GlobinsViews } from '@molstar/seqx-examples';
+import { HemeContacts } from '@molstar/seqx-examples/globins/hemes';
 import { PackageFolder } from '@molstar/seqx-examples/node-assets';
 import { DomHost } from '@molstar/ui/dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -74,6 +75,35 @@ async function drawn(s: EditingSession) {
   return s.viewer.frame!.layout.sections[0];
 }
 
+const Pt = new PlacePoint();
+
+/**
+ * Every heme contact's arc at its data: its feet on the first block showing the heme and its chain (split, the data
+ * names no copy; merged, the ×4 and ×2 blocks), the chain's at the contact's residue.
+ */
+function contactsAtData(sec: Awaited<ReturnType<typeof drawn>>) {
+  const blocks = sec.section.blocks!;
+  const x = (system: string, p: number) => {
+    const b = blocks.find((q) => q.axis.system === system)!;
+    expect(sec.placement.place(b.offset! + (b.form === 'whole' ? 0.5 : p + 0.5), Pt)).toBe(true);
+    return Pt.x;
+  };
+  let n = 0;
+  for (const l of sec.sectionLays) {
+    if (l.type.name !== 'pairs') continue;
+    const lay = l.lay as PairsLay;
+    const d = lay.prep!.data!;
+    for (let i = 0; i < lay.n; i++, n++) {
+      const k = lay.pair[i];
+      const want = [x(lay.prep!.aSystem, d.aStart[k]), x(lay.prep!.bSystem, d.bStart[k])].sort((a, b) => a - b);
+      const got = [lay.curve[8 * i], lay.curve[8 * i + 6]].sort((a, b) => a - b);
+      expect(got[0]).toBeCloseTo(want[0], 6);
+      expect(got[1]).toBeCloseTo(want[1], 6);
+    }
+  }
+  expect(n).toBe(HemeContacts.hba.length + HemeContacts.hbb.length);
+}
+
 const hash = (s: EditingSession) => hashNode(s.viewer.spec.root.value);
 
 describe('Globins editing views, headless', () => {
@@ -114,16 +144,21 @@ describe('Globins editing views, headless', () => {
     expect(hash(s)).toBe(start);
   });
 
-  it('hemoglobin: the copies split (one patch) and merged again by undo', async () => {
+  it('hemoglobin: the copies split (one patch) and merged again by undo, every heme contact an arc at its data', async () => {
     const s = await open('hemoglobin');
     const start = hash(s);
     const labels = async () => ((await drawn(s)).placement as BlockPlacement).labels;
     expect(await labels()).toEqual(['α (A) ×2', 'β (B) ×2', 'heme ×4']);
+    contactsAtData(await drawn(s));
     expect(await toggleCopies(s)).toBe('Split');
     expect(copiesOf(s)).toBe('each');
     expect(await labels()).toEqual(['α (A)', 'β (B)', 'α (C)', 'β (D)', 'heme', 'heme', 'heme', 'heme']);
+    // the split hemoglobin keeps every contact (on the first copy: its data names none)
+    contactsAtData(await drawn(s));
+    expect(s.viewer.layoutIssues.value).toEqual([]);
     await s.stack.undo();
     expect(hash(s)).toBe(start);
     expect(await labels()).toEqual(['α (A) ×2', 'β (B) ×2', 'heme ×4']);
+    contactsAtData(await drawn(s));
   });
 });

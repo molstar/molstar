@@ -264,13 +264,13 @@ describe('a pair’s ends on copies (EC-48, EC-65)', () => {
   });
 
   it('(5) a caret is hit as its pair, a tie to the later drawn; the layout again allocates no entries', async () => {
-    // α's pairs with one end on no block: 2–10 on a section of α's 0–8 copies (10 out of every block's range)
+    // α's pairs with one end on no block (α's 0–8 twice): x and y at one place, z beside them
     const b = createSeqSpec();
     const hba = b.data.sequence('hba', { alphabet: 'protein', letters: Hba });
     const p = b.data.pairs('p', {
       a: hba,
       b: hba,
-      rows: { a_start: [2, 3], a_end: [3, 4], b_start: [10, 12], b_end: [11, 13], id: ['x', 'y'] },
+      rows: { a_start: [2, 2, 4], a_end: [3, 3, 5], b_start: [10, 12, 14], b_end: [11, 13, 15], id: ['x', 'y', 'z'] },
     });
     b.views.view('v', (v) =>
       v.section('s', { of: hba, copies: 'each' }, (s) => {
@@ -283,14 +283,14 @@ describe('a pair’s ends on copies (EC-48, EC-65)', () => {
     const f = await s.frame({ size: Size });
     const lay = pairsLay(f);
     expect(lay.n).toBe(0);
-    // a caret a pair on each copy: 2 pairs × 2 copies; the caret of 3 beside 2's: each hit as its own pair
-    expect(lay.carets.length / 4).toBe(4);
+    // a caret a pair on each copy: x's and y's at one place hit as y (drawn later), z's as z
+    expect(lay.carets.length / 4).toBe(6);
     const keys = [];
     for (let i = 0; i + 3 < lay.carets.length; i += 4) {
       const y = lay.carets[i + 1] + (lay.carets[i + 2] > 0 ? -3 : 3);
       keys.push(hitView(f.layout, lay.carets[i], y)?.element?.key);
     }
-    expect(keys).toEqual(['x', 'x', 'y', 'y']);
+    expect(keys).toEqual(['y', 'y', 'y', 'y', 'z', 'z']);
     // the ends are kept by the section: a second layout reads them again
     const prep = lay.prep!;
     const ends = prep.units.get(f.layout.sections[0].section);
