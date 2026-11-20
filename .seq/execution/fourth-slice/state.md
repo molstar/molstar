@@ -51,9 +51,12 @@ The third slice is closed (2026-11-20; its record in `.seq/records/third-slice/`
 
 ## Next
 
-1. FX3 (strong): `fixes.md`'s open items, the folders' times first; the hover cards' items wait for ST2 (both in the
-   viewer's hover).
-2. ST2 (strong, after HP2), then ST3, HD (after FX3's map onto a described unit), HP3; SV; stage 2's gate.
+1. **Overnight (the author, 2026-11-20)**: merge FX3 and ST2 when they report (check, look, review, fix round, as
+   always); then start **no new fourth-slice lane**: run the fifth slice's stage 0 drafts and reviews by
+   `../fifth-slice/state.md`, "Overnight", two lanes at a time. The author wakes the loop in the morning (wakes at
+   1:25 and 6:25 after the usage limit's reset).
+2. In the morning, with the author: the fifth slice's drafts agreed; then ST3, HD (after FX3's map onto a described
+   unit), HP3, SV, stage 2's gate, stage 4 (EX, CN, LE), the novice pass, M4, finalize.
 
 ## Findings by lane
 

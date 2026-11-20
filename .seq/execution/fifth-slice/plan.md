@@ -69,7 +69,9 @@ From the fourth slice's state and loop, to be checked against its fold-back:
 
 ## Gate 0 (the author, before any build lane)
 
-Each with a recommendation; "Accept all" takes them.
+**Decided (the author, 2026-11-20: "the recommendation make sense")**: every question as recommended. Stage 0's
+drafts run overnight with their reviews, before the fourth slice's close; their agreement comes after (the author:
+"we can do the design drafts and their reviews before we close slice 4 in the morning").
 1. **Cut order** if the slice runs long: MAF first, then contact maps, then the liftover. Recommended: as listed; the
    ring, synteny and the formats are the milestone.
 2. **BGZF and tabix**: in the base library (`@molstar/io`, a public API addition, its surface agreed in stage 0) or
