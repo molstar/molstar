@@ -133,7 +133,8 @@ describe('the cursor says the gesture', () => {
         expect(nav.cursor).toBe('default');
       }
       v.view.setRange(S, 20, 60);
-      v.view.setBand(RowsTrack, { bandTop: 10 });
+      // the rows grips zoomed the rows: back to their default zoom
+      v.view.setBand(RowsTrack, { bandTop: 10, rowScale: undefined });
       v.draw();
       nav.draw();
       const g = nav.draw()!.windows[0];
