@@ -311,9 +311,14 @@ export class SeqViewer extends ReactiveModel {
     listen(spec.head, () => motion.headMoved());
     // a story step entered by a command or a host is a transition too (its view is a snapshot's: a jump)
     listen(spec.step, () => motion.stepChanged());
+    let resolvedFor = spec.model.value;
     listen(view.resolved, () => {
       this._followViewports();
       this._applyWidths();
+      // another view of the same model: what it asks the model to build (a ranges layer's links' ends, core's _spec
+      // "Render", Layer types: ranges) is opened by a sync, as the model listener's is for a new model
+      if (spec.model.value === resolvedFor) void this._sync();
+      resolvedFor = spec.model.value;
       this.schedule();
     });
     this._followViewports();

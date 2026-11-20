@@ -1018,8 +1018,9 @@ function layerOf(
   }
   // a ranges layer over links: their ends on the section's (or the block's) system, a mark each (Render, Layer types)
   if (data.shape === 'pairs' && layerType.shape === 'ranges') {
-    const ends = model.annotations.get(data.address)?.ends;
-    if (ends?.has(system)) return { ...base, data: { ...data, system }, placed: true };
+    // its plan built here, on first ask (resolve's LinkEnds)
+    if (model.annotations.get(data.address)?.ends?.plan(system))
+      return { ...base, data: { ...data, system }, placed: true };
     report('seq.view.layer.unplaced', 'The links have no end on the section’s system', at);
     return { ...base, data, placed: false };
   }

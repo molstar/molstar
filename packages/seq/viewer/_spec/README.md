@@ -400,15 +400,16 @@ then resolves.
 
 `models/store.ts`: the viewer's one `DataStore`, made with `store.cacheBytes`, `store.inFlight`, `store.tileBins` and
 timed by `DomHost` (`DomHostClock`). `sync(model, assets)` opens the static model's sources (each bound to a runtime,
-and each inline access plan) with the store's `limits` (its `maxRows` and `maxBytes`) and attaches them under their
-addresses; a source whose entry is the object it was opened from is kept (the resolver keeps entries by hash), a changed
-one is opened again, one gone is detached and its issue cleared. `detachStale(model)` does that detaching alone, at once
-on a model change (the viewer, before its sync), so no frame reads an edited source's old file;
-`openedCoverage(model, address)` is a source's coverage only when it was opened from the model's own entry (what
-`sourceLengths` reads). A source that cannot be opened is an issue at its address (`issues`), and an opened source's own
-`issues` (the rows a file of records left out, each with its count, places and hint) are reported there too; a failed
-opening, or a coverage the store refuses (its own report), is forgotten so the next sync tries again. Retired with its
-owner, the store with it.
+and each inline access plan, of a links' ends the ones built: core's `LinkEnds`) with the store's `limits` (its
+`maxRows` and `maxBytes`) and attaches them under their addresses; a source whose entry is the object it was opened from
+is kept (the resolver keeps entries by hash), a changed one is opened again, one gone is detached and its issue cleared.
+`detachStale(model)` does that detaching alone, at once on a model change (the viewer, before its sync), so no frame
+reads an edited source's old file; the viewer syncs again when another view of the same model resolves (the plans that
+view built: a ranges layer's links' ends); `openedCoverage(model, address)` is a source's coverage only when it was
+opened from the model's own entry (what `sourceLengths` reads). A source that cannot be opened is an issue at its
+address (`issues`), and an opened source's own `issues` (the rows a file of records left out, each with its count,
+places and hint) are reported there too; a failed opening, or a coverage the store refuses (its own report), is
+forgotten so the next sync tries again. Retired with its owner, the store with it.
 
 - **Host updates**: an opened source's `changes` (core's Data, Protocol) ask a reopen for the next frame (`DomHost`'s),
   so changes inside one frame reopen once; the source is opened again from its entry and reattached in place

@@ -53,7 +53,7 @@ export function layerSource(model: StaticModel, layer: ResolvedLayer): LayerSour
     // a query reads the annotation it starts at; its form after it filters the rows (`filter`)
     if (!a) for (const [address, entry] of model.annotations) if (data.address.startsWith(`${address}/`)) a = entry;
     // a ranges layer over links reads their ends on its system (_spec/README.md "Render", Layer types: ranges)
-    access = a?.shape === 'pairs' && layer.type !== 'pairs' ? a.ends?.get(data.system) : a?.access;
+    access = a?.shape === 'pairs' && layer.type !== 'pairs' ? a.ends?.plan(data.system) : a?.access;
   }
   if (!access) return undefined;
   const plan =

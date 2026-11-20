@@ -234,11 +234,22 @@ export interface AnnotationEntry {
   readonly reference?: string;
   /** A complex's links: the units their rows' ends are on (`PairsData.aUnit`, `bUnit` index it), by address. */
   readonly units?: readonly string[];
-  /**
-   * Links' ends on each system as inline ranges (a `ranges` layer over links reads them), by system; opened into the
-   * store as every inline plan is.
-   */
-  readonly ends?: ReadonlyMap<string, AccessPlan>;
+  /** A complex's links' ends on each system as inline ranges: what a `ranges` layer over links reads (`LinkEnds`). */
+  readonly ends?: LinkEnds;
+}
+
+/**
+ * Links' ends on each system as inline ranges plans (_spec/README.md "Render", Layer types: ranges), each built on first
+ * ask: the view's `layerOf` asks for a ranges layer over links on its system. Why lazy: most complexes' links are drawn
+ * as arcs only, and the plan encodes a table. The store and the export open the plans built (`built`).
+ */
+export interface LinkEnds {
+  /** The systems with an end. */
+  readonly systems: ReadonlySet<string>;
+  /** The plan of the ends on `system`, built once; undefined where none is. */
+  plan(system: string): AccessPlan | undefined;
+  /** The plans asked for so far. */
+  built(): Iterable<AccessPlan>;
 }
 
 /**

@@ -60,6 +60,12 @@ function spec(): Node {
     v.section('complex', { of: '/data/c' }, (s) => s.track('letters').layer('letters', { type: 'letters' }));
     v.section('trna', { of: trna }, (s) => s.track('t').layer('letters', { type: 'letters' }));
   });
+  // the links' sites as ranges: their ends plans built when this view resolves
+  b.views.view('sites', (v) =>
+    v.section('complex', { of: '/data/c' }, (s) =>
+      s.track('sites').layer('sites', { type: 'ranges', data: '/data/c/links' as never }),
+    ),
+  );
   return b.build();
 }
 
@@ -194,6 +200,22 @@ describe('molecules in the viewer', async () => {
     const back = w.highlight.get(LinksHoverChannel)?.location.parts.map((p) => [p.system, Array.from(p.ranges)]);
     expect(back).toEqual([['/data/c/n', [0, 1]]]);
     w.hover.clear(owner);
+  });
+
+  it('a view shown later with a ranges layer over the links: its ends plans built then, and opened into the store', async () => {
+    const w = await make(false);
+    w.view.show('/views/v');
+    // an edit while another view is shown: a model whose plans no view has asked for
+    await w.spec.patch('Rename', { ops: [{ op: 'set', at: ['data', 'c'], key: 'name', value: 'Fc' }] });
+    await w.settle();
+    const ends = w.spec.model.value.annotations.get('/data/c/links')!.ends!;
+    expect([...ends.built()]).toEqual([]);
+    const opened = () => w.store.store.coverage('/data/c/links#/data/c/A') !== undefined;
+    expect(opened()).toBe(false);
+    w.view.show('/views/sites');
+    await w.settle();
+    expect(w.view.resolved.value!.sections[0].blocks![0].layers[0][0].placed).toBe(true);
+    expect(opened()).toBe(true);
   });
 
   it('a click on a chip selects its every residue', async () => {

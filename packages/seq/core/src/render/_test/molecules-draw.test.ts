@@ -171,6 +171,18 @@ describe('a complex drawn against its data', () => {
     expect(texts(z, 'labels')).toEqual(expect.arrayContaining(['→ Glycan 1']));
   });
 
+  it('the links’ ends plans are built where a ranges layer over them asks, on its systems only', async () => {
+    const arcs = await settle(moleculesSpec({}));
+    const ends = arcs.model.annotations.get('/data/c/links')!.ends!;
+    expect([...ends.systems].sort()).toEqual(['/data/c/A', '/data/c/B', '/data/c/g', '/data/c/l']);
+    // arcs only: none built
+    expect([...ends.built()]).toEqual([]);
+    // a ranges layer over them on a section of the chains only: the chains' two
+    const sites = await settle(moleculesSpec({ copies: 'each', sites: true, classes: ['polymer'] }));
+    const built = [...sites.model.annotations.get('/data/c/links')!.ends!.built()].map((p) => p.system).sort();
+    expect(built).toEqual(['/data/c/A', '/data/c/B']);
+  });
+
   it('in text, a block’s label inline on its first line, taking part in its breaking; its other lines none (EC-95)', async () => {
     const s = await settle(moleculesSpec({ layout: 'text', copies: 'each' }));
     const f = await s.frame({ size: { width: 520, height: 600 } });
