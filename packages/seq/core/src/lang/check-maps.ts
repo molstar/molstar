@@ -14,8 +14,11 @@ type Say = (code: Code, message: string, ...tail: (string | number)[]) => void;
 
 const p = (n: Node, key: string): Value | undefined => n.params?.[key];
 
-/** A column of strings as the normalized spec holds it: a category column, or an array where it has nulls. */
-function strings(v: Value | undefined): { get(i: number): string | null } | undefined {
+/**
+ * A column of strings as the normalized spec holds it: a category column, or an array where it has nulls (the one
+ * reader of `segments`' and `status`' word columns, the checks' and resolve's).
+ */
+export function strings(v: Value | undefined): { get(i: number): string | null } | undefined {
   if (v instanceof CategoryColumn) return v;
   if (!Array.isArray(v)) return undefined;
   return { get: (i: number) => (typeof v[i] === 'string' ? (v[i] as string) : null) };

@@ -10,7 +10,8 @@
 // unit's own fact: where a structure map onto a unit says otherwise, it is reported once and the unit wins.
 
 import { HalfOpenRanges } from '@molstar/core/data/int/half-open-ranges';
-import { CategoryColumn, isColumn, type Value } from '@molstar/core/repr/tree';
+import { isColumn, type Value } from '@molstar/core/repr/tree';
+import { strings } from '@molstar/seqx-core/lang/check-maps';
 import { composeLinear, ImplicitLinear, type Linear, type Run, RunsLinear, runTargets, wrapRun } from './linear.js';
 
 /** A structure map's own facts beside its runs. */
@@ -28,14 +29,6 @@ export type StructureStatus = 'paired' | 'conflict' | 'unpaired' | 'unobserved';
 interface Ends {
   readonly length?: number;
   readonly cyclic: boolean;
-}
-
-type Strings = { get(i: number): string | null };
-/** A column of strings as the normalized spec holds it: a category column, or an array where it has nulls. */
-export function strings(v: Value | undefined): Strings | undefined {
-  if (v instanceof CategoryColumn) return v;
-  if (!Array.isArray(v)) return undefined;
-  return { get: (i: number) => (typeof v[i] === 'string' ? (v[i] as string) : null) };
 }
 
 /** A `segments` table's runs in the order written, each with its row (a row holding nothing is left out). */

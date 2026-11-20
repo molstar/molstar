@@ -10,7 +10,7 @@
 
 import { isColumn, type Value } from '@molstar/core/repr/tree';
 import { type Numbering, sequentialNumbering } from '@molstar/seqx-core/query';
-import { strings } from './maps-segments.js';
+import { strings } from '@molstar/seqx-core/lang/check-maps';
 
 /** A numbering of `length` positions, position `i` labelled `i + by`. */
 export function offsetNumbering(id: string, length: number, by: number): Numbering {

@@ -384,8 +384,9 @@ export function checkFollow(at: Placed, look: SeqLookup, report: Report): void {
 
 /**
  * A numbering's own checks (_spec/README.md, Language, Numberings): params that fit its method (`labels`: one of
- * `labels` and `source`, `field` with a source only; `offset`: `by`; `segments`: runs apart), an id no built-in has (the forms read `index` and `ordinal` as theirs), inline labels one a position
- * of inline letters, and a label at two positions said once (it names the first: the queries' rule).
+ * `labels` and `source`, `field` with a source only; `offset`: `by`; `segments`: runs apart), an id no built-in
+ * has (the forms read `index` and `ordinal` as theirs), inline labels one a position of inline letters, and a label
+ * at two positions said once (it names the first: the queries' rule).
  */
 function checkNumbering(
   n: Node,
