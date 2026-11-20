@@ -6,7 +6,7 @@
 
 import type { Value } from '@molstar/core/repr/tree';
 import type { SeqRegistryEntry } from '@molstar/seqx-core/context';
-import { type Box, HeaderStateNames, type HiddenTrack } from '@molstar/seqx-core/render';
+import { type Box, HeaderMenuName, HeaderStateNames, type HiddenTrack } from '@molstar/seqx-core/render';
 import type { IconName } from '@molstar/ui/components/icon/icon';
 import type { HeadersBehavior } from './behaviors/headers.js';
 import type { SeqViewer } from './viewer.js';
@@ -419,4 +419,37 @@ export function headerMenu(viewer: SeqViewer, target: HeaderTarget): HeaderMenu 
 /** Every shown header's parts (DOM-free): what a parts port is given. */
 export function headerParts(viewer: SeqViewer): HeaderPartsState | undefined {
   return (viewer.behaviors.get('headers') as HeadersBehavior | undefined)?.partsState();
+}
+
+/**
+ * The words of a header's part (_spec/README.md "Behaviors", Headers: Words): a slot its entry's label and key, and why
+ * not; a chip its text and what a click does; a label its track's label, its states, and its layers (the card) or the
+ * key that opens its actions (the cursor, `state: 'cursor'`).
+ */
+export function headerWords(
+  place: { readonly target?: string | undefined; readonly state?: string | undefined },
+  f: HeaderFacts,
+  items: readonly HeaderMenuItem[],
+): { title: string; text: string } | undefined {
+  const t = place.target;
+  if (t === 'header-slot') {
+    if (place.state === HeaderMenuName) return { title: 'Actions', text: `Actions of ${f.label}` };
+    const it = items.find((i) => i.name === place.state);
+    if (!it) return undefined;
+    const title = it.key ? `${it.label} (${it.key})` : it.label;
+    return { title, text: it.why ? `${title}, unavailable: ${it.why}` : title };
+  }
+  if (t === 'header-state') {
+    const it = items.find((i) => i.name === place.state);
+    if (!it?.text) return undefined;
+    return { title: it.text, text: it.command ? `${it.text}: click ${it.label.toLowerCase()}` : it.text };
+  }
+  if (t === 'header-label' || t === 'section-header') {
+    const states = items.filter((i) => i.kind === 'state' && i.text).map((i) => i.text!);
+    const cursor = place.state === 'cursor';
+    const layers = f.layers.filter((l) => !l.hidden).map((l) => l.label);
+    const said = [f.label, ...states, ...(cursor ? ['Enter for actions'] : [])];
+    return { title: f.label, text: (cursor || !layers.length ? said : [...said, ...layers]).join(', ') };
+  }
+  return undefined;
 }

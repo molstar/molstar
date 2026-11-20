@@ -43,6 +43,7 @@ import {
   type HeaderPartsState,
   type HeaderTarget,
   type HeadersParams,
+  headerWords,
   sameGeometry,
 } from '@molstar/seqx-viewer/header-entries';
 import type { HeaderIcon } from '@molstar/seqx-core/render';
@@ -610,32 +611,11 @@ export function headersBehavior(context: BehaviorContext, params: HeadersParams 
   /** The words of a header's part (a slot, a chip, a label): its entry's label and key, why not, what a click does. */
   const words = (place: Place): { title: string; text: string } | undefined => {
     if (!viewer || place.layer === undefined) return undefined;
-    const t = place.target;
     const target = headerTarget({ layer: place.layer } as RenderHit, viewer.frame?.layout);
     if (!target) return undefined;
     const f = factsOf(target);
     if (!f) return undefined;
-    const items = itemsOf(f, target.track ? 'track' : 'section');
-    if (t === 'header-slot') {
-      if (place.state === HeaderMenuName) return { title: 'Actions', text: `Actions of ${f.label}` };
-      const it = items.find((i) => i.name === place.state);
-      if (!it) return undefined;
-      const title = it.key ? `${it.label} (${it.key})` : it.label;
-      return { title, text: it.why ? `${title}, unavailable: ${it.why}` : title };
-    }
-    if (t === 'header-state') {
-      const it = items.find((i) => i.name === place.state);
-      if (!it?.text) return undefined;
-      return { title: it.text, text: it.command ? `${it.text}: click ${it.label.toLowerCase()}` : it.text };
-    }
-    if (t === 'header-label' || t === 'section-header') {
-      const states = items.filter((i) => i.kind === 'state' && i.text).map((i) => i.text!);
-      const cursor = place.state === 'cursor';
-      const layers = f.layers.filter((l) => !l.hidden).map((l) => l.label);
-      const said = [f.label, ...states, ...(cursor ? ['Enter for actions'] : [])];
-      return { title: f.label, text: (cursor || !layers.length ? said : [...said, ...layers]).join(', ') };
-    }
-    return undefined;
+    return headerWords(place, f, itemsOf(f, target.track ? 'track' : 'section'));
   };
 
   // ---- the menu key ----
@@ -668,38 +648,8 @@ export function headersBehavior(context: BehaviorContext, params: HeadersParams 
     },
   ];
 
-  // ---- the cursor off what was hidden ----
-
-  /** The headers' order the last layout drew, by section: where the cursor goes when its track is hidden. */
-  let order = new Map<string, string[]>();
-  let orderFor: unknown;
-  const keepCursor = () => {
-    const layout = viewer?.frame?.layout;
-    // a frame that kept its layout (a hover's): nothing read, nothing made (the work in a function of its own: what its
-    // closures capture is allocated on entry)
-    if (layout !== orderFor) relaidCursor(layout);
-  };
-  const relaidCursor = (layout: ViewLayout | undefined) => {
-    const c = context.selection.cursor.value;
-    if (c?.track !== undefined && c.track !== c.section) {
-      const s = sectionOfAddress(c.section);
-      if (s && !s.tracks.some((t) => t.address === c.track)) {
-        const was = order.get(c.section) ?? [];
-        const i = was.indexOf(c.track);
-        const there = (a: string) => a === c.section || s.tracks.some((t) => t.address === a);
-        const next = was.slice(i + 1).find(there) ?? was.slice(0, Math.max(0, i)).reverse().find(there) ?? c.section;
-        context.selection.setCursor({ ...c, track: next });
-      }
-    }
-    if (!layout) return;
-    orderFor = layout;
-    order = new Map();
-    for (const s of layout.sections)
-      order.set(s.section.address, [
-        ...(s.header ? [s.section.address] : []),
-        ...s.tracks.filter((t) => t.header?.hit).map((t) => t.track.address),
-      ]);
-  };
+  // the cursor off what was hidden (by the frame, after a layout)
+  let keepCursor: () => void = () => {};
 
   const behavior: HeadersBehavior = {
     commands,
@@ -752,7 +702,7 @@ export function headersBehavior(context: BehaviorContext, params: HeadersParams 
       setEntries(listed);
       describerFor(context).headers = words;
       // the cursor's moves onto and between headers (Enter on one opens its menu)
-      headerCursor(v, menuAtCursor);
+      keepCursor = headerCursor(v, menuAtCursor);
       // a host's DOM parts take the focus when the cursor comes onto a header
       stops.push(
         context.selection.cursor.listen((c) => {

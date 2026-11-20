@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import type { ViewLayout } from '@molstar/seqx-core/render';
 import type { CommandDefinition, CommandResult } from '@molstar/ui/commands/types';
 import { elementAt, type Cursor } from '@molstar/seqx-viewer/models';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
@@ -48,8 +49,12 @@ function headerStep(viewer: SeqViewer, c: Cursor, delta: -1 | 1): Cursor | undef
   return undefined;
 }
 
-/** The cursor's moves taken over, in the viewer's command list: `menu` opens the header's menu (Enter). */
-export function headerCursor(viewer: SeqViewer, menu: () => CommandResult): void {
+/**
+ * The cursor's moves taken over, in the viewer's command list: `menu` opens the header's menu (Enter). Returns what the
+ * frame calls: a layout that no longer has the cursor's track moves it to the next track's header, else the previous
+ * one's, else the section's line.
+ */
+export function headerCursor(viewer: SeqViewer, menu: () => CommandResult): () => void {
   const selection = viewer.selection;
   const moved = (c: Cursor | undefined): CommandResult => {
     if (c) selection.setCursor({ ...c, keyboard: true });
@@ -91,4 +96,29 @@ export function headerCursor(viewer: SeqViewer, menu: () => CommandResult): void
   }
   over('cursor.toggle', nothing);
   over('cursor.focus', menu);
+
+  /** The headers' order the last layout drew, by section: where the cursor goes when its track is hidden. */
+  let order = new Map<string, string[]>();
+  let orderFor: unknown;
+  const relaid = (layout: ViewLayout | undefined) => {
+    const c = selection.cursor.value;
+    const s = c && viewer.view.resolved.value?.sections.find((x) => x.address === c.section);
+    if (c?.track !== undefined && c.track !== c.section && s && !s.tracks.some((t) => t.address === c.track)) {
+      const was = order.get(c.section) ?? [];
+      const i = was.indexOf(c.track);
+      const there = (a: string) => a === c.section || s.tracks.some((t) => t.address === a);
+      const next = was.slice(i + 1).find(there) ?? was.slice(0, Math.max(0, i)).reverse().find(there) ?? c.section;
+      selection.setCursor({ ...c, track: next });
+    }
+    if (!layout) return;
+    orderFor = layout;
+    order = new Map();
+    for (const x of layout.sections) order.set(x.section.address, headersOf(viewer, x.section.address));
+  };
+  // a frame that kept its layout (a hover's): nothing read, nothing made (the work in a function of its own: what its
+  // closures capture is allocated on entry)
+  return () => {
+    const layout = viewer.frame?.layout;
+    if (layout !== orderFor) relaid(layout);
+  };
 }

@@ -628,17 +628,19 @@ The `headers` behavior's params, as the hover card's port is its behavior's.
   `HeaderMenuItem`s: name, kind, label, icon, chip text, key, enabled or `why`, checked, slot, command and args, a
   submenu), `hide()`. A choice runs `behavior.runItem(item)` (`viewer.execute`), a hovered scheme `behavior.preview`, a
   menu closed without a choice `behavior.closeMenu()` (a preview ends in nothing). `headerMenu(viewer, target)` is the
-  data, DOM-free. The default adapter, `headerMenuOverlay()` (`mount-header-menu.ts`), is `@molstar/ui`'s context menu
-  at the place (an item with a submenu opens it in its place: the context menu has no nested menus); its keyboard is the
-  menu's, and closed the focus goes back to the canvas.
+  data, DOM-free. The default adapter, `headerMenuOverlay()` (`mount-header-menu.ts`; its DOM, `header-menu-dom.ts`, a
+  lazy chunk loaded at the first open), is `@molstar/ui`'s context menu at the place (an item with a submenu opens it in
+  its place: the context menu has no nested menus); its keyboard is the menu's, and closed the focus goes back to the
+  canvas.
 - **The parts** (`parts`: `canvas`, the default, or a `HeaderPartsPortFactory` given the canvas's element and the
   behavior): the layout still lays out every header; the canvas draws the states (the export's) and no slot and no "⋯";
   the port is given `headerParts(viewer)` (`HeaderPartsState`: each shown header's geometry, whether its actions show,
   and the items `headerMenu` gives it) on change, and `focus(target)` when the keyboard cursor comes onto a header. A
-  press runs `behavior.run(name, target)`, the slot click's path. `headerPartsDom()` (`mount-header-parts.ts`,
-  `@molstar/ui` buttons and icons): a part at each slot box of a header whose actions show and a transparent button over
-  each chip; one tab stop a header (← → between its parts, Enter or Space runs, Esc back to the canvas); Tab never
-  captured (EC-155); its events stopped at its root (the canvas sees no press there).
+  press runs `behavior.run(name, target)`, the slot click's path. `headerPartsDom()` (`mount-header-menu.ts`;
+  `header-parts-dom.ts` a lazy chunk loaded at the first update: `@molstar/ui` buttons and icons): a part at each slot
+  box of a header whose actions show and a transparent button over each chip; one tab stop a header (← → between its
+  parts, Enter or Space runs, Esc back to the canvas); Tab never captured (EC-155); its events stopped at its root (the
+  canvas sees no press there).
 - **Ownership** as the hover card's (`disposeWithViewer`).
 
 ### History
@@ -896,11 +898,13 @@ rows' commands) reads the last frame's rows layers through the behavior context'
   `write` (`SelectProvider`'s param; the platform's clipboard when there is one); the message is a count ("Copied 393
   letters"): a message is shown and announced, never a sequence. Why what is shown: what a reader selected is what they
   saw (the author's decision).
-- **The cursor on track headers** (`cursor-moves.ts`): `cursor.prev` at a section's first position goes onto its first
-  track's header (`part: 'header'`, `track` its address; the section's line its section's address), drawn with its
-  actions (`Emphasis.cursor.track`); ↑ ↓ step between the section's headers (its line first), then on to the next
-  section's; → back to the data where it left; Space and the extends do nothing there; Enter is `headers.menu`
-  (`cursor.focus` refuses there). A rows track has no header line: its rows' header is the rows' own.
+- **The cursor on track headers** (the `headers` behavior's, `behaviors/header-cursor.ts`: it takes the `cursor`
+  behavior's moves over once composed, so a viewer without it carries none of it): `cursor.prev` at a section's first
+  position goes onto its first track's header (`part: 'header'`, `track` its address; the section's line its section's
+  address), drawn with its actions (`Emphasis.cursor.track`); ↑ ↓ step between the section's headers (its line first),
+  then on to the next section's; → back to the data where it left; Space and the extends do nothing there; Enter opens
+  its menu. After a layout that hid the cursor's track the cursor goes to the next track's header, else the previous
+  one's, else the section's line. A rows track has no header line: its rows' header is the rows' own.
 - `cursor`: the keyboard cursor's commands, on the cursor's section (else the context's, else the first; the first key
   places the cursor at the section's first position shown): `cursor.prev`, `cursor.next` (a cell in display order,
   whatever the direction, clamped to the axis, across breaks: a step over one says what it crossed, "crossed a break,
@@ -1022,10 +1026,10 @@ rows' commands) reads the last frame's rows layers through the behavior context'
     `element`, `kind` `action` or `state`, `icon` `@molstar/ui`'s, `label`, `when`, `command`, `args`, `text`, `order`,
     `slot`, `items` a submenu), listed in the registry as `{ kind: 'header-action', entry }` (`SeqViewerRegistryEntry`)
     or registered at run time (`register(...entries)`, returning its undo). Registration is atomic: every problem in one
-    error before anything changes (a name twice, no namespace, a command the viewer lacks, `seq.viewer.header.command`;
-    an icon no path reads, `seq.viewer.header.icon`); the registry's are checked once every behavior is made
-    (`BehaviorHandle.composed`). The label and icon default to the command's. Why entries: one list for a slot, a menu
-    item, a DOM part, a key and an agent; the registry's rules (atomic, undoable, namespaced) for free.
+    error before anything changes (a name twice, no namespace, a command the viewer lacks, `seq.viewer.header.command`);
+    the registry's are checked once every behavior is made (`BehaviorHandle.composed`). The label and icon default to
+    the command's. Why entries: one list for a slot, a menu item, a DOM part, a key and an agent; the registry's rules
+    (atomic, undoable, namespaced) for free.
   - **Built-ins** (`BuiltInHeaderEntries`, in the default spec's registry; a host leaves one out to remove it):
     `seq:hide` (`eye-off`, `track.hide`), `seq:color` (`palette`, the first shown layer with more than one fitting
     scheme: its schemes a submenu of `layer.channel`, previewed while focused or hovered), `seq:layers` (more than one
@@ -1041,19 +1045,22 @@ rows' commands) reads the last frame's rows layers through the behavior context'
     opens.
   - **Shown or enabled**: an entry's `when` decides whether it shows, its command's `when` whether it runs (a disabled
     item muted, its reason its `why`). An action with `items` opens them (its slot opens the menu at it); a state's
-    click runs it, its secondary click lists its items, then itself (`header.hiddenChip.click: menu`: the click lists
+    click runs it, its secondary click lists its items, then itself (the `hiddenChip: menu` param: the click lists
     them).
   - **Slots** are the applying actions with an icon (or `slot: true`), by `order` then name, the first
     `actionColumns(…).n`; every entry is in the menu. A slot's icon is read once into path data (`header-icons.ts`: the
-    Lucide markup's `path`, `line`, `circle`, `ellipse`, `polyline`, `polygon`, `rect`; arcs and quadratics as cubics).
+    Lucide markup's `path`, `line`, `circle`, `ellipse`, `polyline`, `polygon`, `rect`; arcs and quadratics as cubics),
+    a lazy chunk with `@molstar/ui`'s icon markup (one map of every icon), loaded once an entry has an icon: until it
+    lands, and for an icon no path reads, the slot draws its label's first letter; then the headers are laid out again.
   - **Gestures**: a click on a slot runs it (the "⋯" opens the menu), on a chip runs its state, on a label nothing (on
     touch it shows the slots, as a hover there, so a second tap on a slot runs it); never a selection's. A secondary
     click (`contextmenu` on the mounted canvas) opens the menu under `contextClick` (`everywhere`, the default spec's:
     at what it hits, an element's entries first, then its track's and its section's; `header`, the label column only;
-    `none`, the browser's); Shift+secondary click is always the browser's. A long press (touch,
-    `header.menu.longPressMs`) opens it. The menu key, Shift+F10 and Enter on a header (`headers.menu`, `view.keys`)
-    open it at the cursor's header (its section's first track's on data), once per ask: the browser's secondary click
-    that follows within a second is taken and opens nothing (EC-156).
+    `none`, the browser's); Shift+secondary click is always the browser's. A long press (touch, the `longPressMs`
+    param, 500) opens it. The gestures are a lazy chunk loaded at the mount (`header-gestures.ts`). The menu key and
+    Shift+F10 (`headers.menu`, `view.keys`) and Enter on a header open it at the cursor's header (its section's first
+    track's on data), once per ask: the browser's secondary click that follows within a second is taken and opens
+    nothing (EC-156).
   - **The cursor off what was hidden**: a frame whose layout no longer has the cursor's track moves it to the next
     track's header, else the previous one's, else the section's line.
   - **Published on change** (by name from the frame, `framed()`: no listener; a frame that kept its layout reads one
