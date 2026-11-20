@@ -14,21 +14,17 @@ import { PCG } from '@molstar/core/data/util/hash-functions';
 import { type Atom, type Node, parseAddress, printAddress } from '@molstar/core/repr/tree';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import {
-  BuiltInPropertyTable,
-  elementsForm,
-  type Items,
-  itemsEqual,
-  itemsOf,
-  itemsPredicate,
+  evaluateQuery,
   location,
   locationsEqual,
   type QueryModel,
   type QueryUnit,
-  readItems,
   unionLocations,
 } from '@molstar/seqx-core/query';
 import { resolveSpec } from '@molstar/seqx-core/resolve';
 import { describe, expect, it } from 'vitest';
+import { elementsForm, type Items, itemsEqual, itemsOf, itemsPredicate, readItems } from '../items.js';
+import { BuiltInPropertyTable } from '../properties.js';
 import { codes, count, ex, glycanSpec, loc, prop, specRun } from './structures.js';
 
 const T = BuiltInPropertyTable;
@@ -108,6 +104,53 @@ describe('items: one table however written', () => {
     expect(err('(elements :items [(fields :chain A :label_asym_id A)])')).toBe('seq.query.form.param');
     expect(err('(elements :seq A)')).toBe('seq.query.form.type');
     expect(err('(elements :"af:plddt" 3)')).toBe('seq.query.extension.missing');
+  });
+});
+
+describe('items: an empty selection, and the rows bounded first', () => {
+  it('no row selects nothing and prints so; print∘parse = id over random selections, empty ones included', () => {
+    const none = itemsOf(T, { chain: [] });
+    expect(none.rows).toBe(0);
+    expect(printed(none)).toBe('(elements :items [])');
+    expect(count(g.run(`/data/c/${printed(none)}`))).toBe(0);
+    expect(count(g.run('/data/c/(elements)'))).toBe(17);
+    const rng = new PCG(53);
+    for (let trial = 0; trial < 60; trial++) {
+      const n = rng.int() % 4;
+      const cols: Record<string, Atom[]> = {};
+      if (rng.float() < 0.7) cols.chain = Array.from({ length: n }, () => (rng.float() < 0.5 ? 'A' : 'D'));
+      if (rng.float() < 0.5) cols.seq = Array.from({ length: n }, () => 1 + (rng.int() % 9));
+      if (rng.float() < 0.4) cols.atom = Array.from({ length: n }, () => (rng.float() < 0.3 ? null : 'C1'));
+      const a = itemsOf(T, cols.chain || cols.seq || cols.atom ? cols : { chain: [] });
+      const text = printed(a);
+      const back = items(text);
+      expect(itemsEqual(back, a), text).toBe(true);
+      expect(printed(back)).toBe(text);
+      // and what it selects is what the table selects
+      if (!a.rows) expect(count(g.run(`/data/c/${text}`)), text).toBe(0);
+    }
+  });
+
+  it('more rows than the limit: refused before they are read, a column’s length or the records', () => {
+    const over = (f: () => unknown) => {
+      try {
+        f();
+        return 'none';
+      } catch (e) {
+        return (e as { issues: { code: string }[] }).issues[0].code;
+      }
+    };
+    expect(over(() => items('(elements :seq [1 2 3 4 5])'))).toBe('none');
+    expect(over(() => readItems(T, formOf('(elements :seq [1 2 3 4 5])'), 3))).toBe('repr.tree.address.limit_exceeded');
+    expect(over(() => readItems(T, formOf('(elements :items [(fields :seq 1) (fields :seq 2)])'), 1))).toBe(
+      'repr.tree.address.limit_exceeded',
+    );
+    expect(over(() => itemsOf(T, { seq: Array.from({ length: 10 }, (_, i) => i + 1) }, 9))).toBe(
+      'repr.tree.address.limit_exceeded',
+    );
+    const seqs = Array.from({ length: 50 }, (_, i) => i + 1).join(' ');
+    const r = evaluateQuery(g.spec, g.query, `/data/c/(elements :seq [${seqs}])`, { limit: 20 });
+    expect(codes(r)).toEqual(['repr.tree.address.limit_exceeded']);
   });
 });
 
@@ -229,7 +272,6 @@ describe('the index walk (the quick representative)', () => {
   it('rows grouped by their unit fields, each unit looked up once: rows plus matches, never rows × units', async () => {
     const n = 200;
     const { model, spec, reads } = manyUnits(n);
-    const { evaluateQuery } = await import('@molstar/seqx-core/query');
     const chains = Array.from({ length: n }, (_, i) => `U${i}`).join(' ');
     const seqs = Array.from({ length: n }, (_, i) => 1 + (i % 10)).join(' ');
     const r = evaluateQuery(spec, model, `/data/c/(elements :chain [${chains}] :seq [${seqs}])`, { limit: 10000 });

@@ -12,9 +12,9 @@
 // names read as the short one, a field absent in every row dropped, a row given twice once) and printed in the shorter
 // layout (one item as params, else columns or records, ties to columns), so `parse(print(a))` equals `a` as a value.
 
-import { type Atom, isNode, type Node, printAddress, type Value } from '@molstar/core/repr/tree';
+import { type Atom, issueOf, isNode, type Node, printAddress, TreeIssues, type Value } from '@molstar/core/repr/tree';
 import { coerce } from './expressions.js';
-import { fail } from './form-kit.js';
+import { Failure, fail } from './form-kit.js';
 import { findProperty, levelRank, type PropertyDef, type PropertyTable } from './properties.js';
 
 /** The range fields: not properties, the sugar of `in-range` over `seq` and over `auth-seq` in the numbering's order. */
@@ -100,8 +100,19 @@ function normalize(t: PropertyTable, rows: readonly Readonly<Record<string, Valu
   return Object.freeze({ rows: count, fields: Object.freeze(fields), columns: Object.freeze(columns) });
 }
 
+/** More rows than the evaluation's limit, refused before any is read (a column's length, a list of records). */
+function bound(rows: number, limit: number) {
+  if (rows <= limit) return;
+  throw new Failure([
+    issueOf(TreeIssues, 'repr.tree.address.limit_exceeded', `More than ${limit} rows`, {
+      hint: 'narrow the selection, or raise the limit',
+    }),
+  ]);
+}
+
 /** Columns as rows: lists of one length zipped, scalars repeated; unequal lengths are a form error. */
-function zip(columns: Readonly<Record<string, Value>>): Record<string, Value>[] {
+function zip(columns: Readonly<Record<string, Value>>, limit: number): Record<string, Value>[] {
+  for (const v of Object.values(columns)) if (Array.isArray(v)) bound(v.length, limit);
   let n: number | undefined;
   for (const [k, v] of Object.entries(columns))
     if (Array.isArray(v)) {
@@ -118,16 +129,17 @@ function zip(columns: Readonly<Record<string, Value>>): Record<string, Value>[] 
   return rows;
 }
 
-/** An `elements` form's items: its params, or its `:items` records (alone). */
-export function readItems(t: PropertyTable, form: Node): Items {
+/** An `elements` form's items: its params, or its `:items` records (alone); more rows than `limit` refused first. */
+export function readItems(t: PropertyTable, form: Node, limit = Number.POSITIVE_INFINITY): Items {
   const params = form.params ?? {};
-  if (!Object.hasOwn(params, 'items')) return normalize(t, zip(params));
+  if (!Object.hasOwn(params, 'items')) return normalize(t, zip(params, limit));
   if (Object.keys(params).length > 1)
     fail('seq.query.form.param', 'A form of kind elements takes :items alone', {
       hint: '(elements :items [(fields …) …])',
     });
   const list = params.items;
   if (!Array.isArray(list)) return fail('seq.query.form.param', ':items takes a list of (fields …) records');
+  bound(list.length, limit);
   return normalize(
     t,
     list.map((r: Value, i) => {
@@ -138,10 +150,13 @@ export function readItems(t: PropertyTable, form: Node): Items {
   );
 }
 
-/** Items from JSON or the builder's object or records. */
-export function itemsOf(t: PropertyTable, input: ItemsInput): Items {
-  if (Array.isArray(input)) return normalize(t, input as readonly Readonly<Record<string, Value>>[]);
-  return normalize(t, zip(input as Readonly<Record<string, Value>>));
+/** Items from JSON or the builder's object or records; more rows than `limit` refused first. */
+export function itemsOf(t: PropertyTable, input: ItemsInput, limit = Number.POSITIVE_INFINITY): Items {
+  if (Array.isArray(input)) {
+    bound(input.length, limit);
+    return normalize(t, input as readonly Readonly<Record<string, Value>>[]);
+  }
+  return normalize(t, zip(input as Readonly<Record<string, Value>>, limit));
 }
 
 export function itemsEqual(a: Items, b: Items): boolean {
@@ -162,6 +177,8 @@ export function itemsEqual(a: Items, b: Items): boolean {
  */
 export function elementsForm(items: Items): Node {
   const { rows, fields, columns } = items;
+  // no row selects nothing: printed as no record, never as `(elements)`, which is one empty row (everything)
+  if (rows === 0) return { kind: 'elements', params: { items: [] } };
   if (rows === 1) {
     const params: Record<string, Value> = {};
     for (const f of fields) params[f] = columns[f][0];

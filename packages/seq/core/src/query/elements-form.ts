@@ -305,6 +305,6 @@ export function elementsOver(ctx: Ctx, frames: readonly Frame[], items: Items): 
 }
 
 export const elements: Resolve = (ctx, form, prefix) => {
-  const items = readItems(ctx.ext.properties, form);
+  const items = readItems(ctx.ext.properties, form, ctx.input.limit);
   return { type: 'location', location: elementsOver(ctx, framesOf(ctx, prefix, 'elements'), items) };
 };
