@@ -31,7 +31,7 @@ the morning").
 
 | Draft | Lane | Drafted | Reviewed | Revised | Committed |
 | --- | --- | --- | --- | --- | --- |
-| genome-coordinates | GA | | | | |
+| genome-coordinates | GA | started 2026-11-20 | | | |
 | region-reads | RR | | | | |
 | genome-formats | GF | | | | |
 | across-sections | LX | | | | |
