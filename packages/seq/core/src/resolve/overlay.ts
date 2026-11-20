@@ -32,6 +32,7 @@ import {
   type StaticModel,
   type SystemEntry,
 } from './model.js';
+import { pathKey, viaList, viaPath, viaRivals, withoutRivals } from './maps-via.js';
 import { EmptyMolecular, type Molecular } from './molecule-query.js';
 import { DynamicMolecular } from './overlay-molecules.js';
 import { type Edge, findPath, type Step } from './paths.js';
@@ -97,8 +98,11 @@ export interface Overlay {
    */
   system(address: string): SystemEntry | undefined;
   annotation(address: string): AnnotationEntry | undefined;
-  /** A path with a dynamic end over the spec's maps and the overlay's; between spec systems, the static model's. */
-  path(from: string, to: string): PathResult;
+  /**
+   * A path with a dynamic end over the spec's maps and the overlay's; between spec systems, the static model's. With
+   * `via`, the named maps' rivals are left out (maps-via.ts).
+   */
+  path(from: string, to: string, via?: readonly string[]): PathResult;
   /**
    * The source nodes to open: those at a depth some template on their root needs (`needs`: root → depth), within
    * `maxNestedDepth`; deeper ones are an issue and not listed.
@@ -462,17 +466,22 @@ class DynamicOverlay implements Overlay {
     return edges;
   }
 
-  path(from: string, to: string): PathResult {
-    if (this.model.systems.has(from) && this.model.systems.has(to)) return this.model.path(from, to);
-    const k = `${from}\u0000${to}`;
+  path(from: string, to: string, via?: readonly string[]): PathResult {
+    if (this.model.systems.has(from) && this.model.systems.has(to)) return this.model.path(from, to, via);
+    const named = via?.length ? viaList(via) : [];
+    const k = pathKey(from, to, named);
     let r = this.paths.get(k);
     if (r) return r;
     const dynamic = this.dynamicEdges();
-    const found = findPath({ edgesFrom: (s) => [...this.model.edgesFrom(s), ...(dynamic.get(s) ?? [])] }, from, to, {
-      maxSteps: this.config.maxPathSteps,
-      maxCandidates: this.config.maxPathCandidates,
+    const graph = { edgesFrom: (s: string) => [...this.model.edgesFrom(s), ...(dynamic.get(s) ?? [])] };
+    r = viaPath(named, (v) => {
+      const rivals = v.length ? viaRivals(v, this.model.maps.values()) : new Set<string>();
+      const found = findPath(withoutRivals(graph, rivals), from, to, {
+        maxSteps: this.config.maxPathSteps,
+        maxCandidates: this.config.maxPathCandidates,
+      });
+      return found.ok ? { path: found.path } : { issue: pathIssue(found.why, from, to) };
     });
-    r = found.ok ? { path: found.path } : { issue: pathIssue(found.why, from, to) };
     this.paths.set(k, r);
     return r;
   }

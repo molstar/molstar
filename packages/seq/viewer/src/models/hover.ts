@@ -299,7 +299,8 @@ export class HoverModel extends ReactiveModel {
       }
     const to = view?.sections.find((s) => s.address === section);
     if (!to || view?.sections.some((s) => s.axis.system === system)) return undefined;
-    return this._spec.model.value.path(system, to.axis.system).path;
+    // what is projected onto a section takes its `via`
+    return this._spec.model.value.path(system, to.axis.system, to.via).path;
   }
 
   /** The section a layer is in: the view's section whose address starts its address. */

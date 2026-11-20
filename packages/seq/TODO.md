@@ -91,12 +91,14 @@ base-library change, below), archives. The Genomes milestone is the fifth.
   gives Elements today, so `/refs/t1/(item :id T1)/(range …)` fails); rects projected for a focus; a whole Location's
   size bound.
 
-- **Language**: a numbering's other methods (`offset`, `segments`, the design's) and a source's labels keyed by
-  something other than a position; a union of a ref and a query slot for `layer.data` (loose today); a strand column
-  check; codon exons checked against the protein's length (stop codons); a section's `range` as a Location; refs
-  followed in data nodes' params and a section's `of` and `follow` (a layer's `data` follows them); a `label` param on
-  nodes (an instance's label is the template's plus its top ancestor's key); `seq.lang.ref.target` overlaps what resolve
-  reports: keep one; the package index re-exports `SeqLanguageVersion` as `LanguageVersion`: one definition.
+- **Language**: a source's labels keyed by something other than a position (a numbering's `offset` and `segments` are
+  built, MK); a structure map's `unpaired` status written (derived from the runs today); a `segments` or `structure` map
+  from a source (inline only); `via` on the overlay's own item maps (a spec map's rivals only); a union of a ref and a
+  query slot for `layer.data` (loose today); a strand column check; codon exons checked against the protein's length
+  (stop codons); a section's `range` as a Location; refs followed in data nodes' params and a section's `of` and
+  `follow` (a layer's `data` follows them); a `label` param on nodes (an instance's label is the template's plus its top
+  ancestor's key); `seq.lang.ref.target` overlaps what resolve reports: keep one; the package index re-exports
+  `SeqLanguageVersion` as `LanguageVersion`: one definition.
 - **Queries**: dynamic nodes in `not`'s universe; open or streamed systems in `(all)` and `not` (a pending length on
   `QuerySystem` instead of `openQueryLength`); a Location limit (what it counts); a label lookup across a codon step (a
   unit's numbering does not cross one).

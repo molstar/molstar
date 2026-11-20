@@ -34,6 +34,7 @@ import {
   type LinkParent,
   unitLength,
 } from './check-molecules.js';
+import { checkMapSegments, checkNumberingSegments, mapParamsFit, numberingParamsFit } from './check-maps.js';
 import { LangIssues } from './issues.js';
 import { SeqLanguage, SeqLanguageVersion, SeqValidateOptions } from './language.js';
 import { followRef, refAddresses } from './refs.js';
@@ -339,6 +340,9 @@ export function checkPlaced(at: Placed, look: SeqLookup, report: Report): void {
       const direction = p(n, 'direction');
       if (direction && typeof direction === 'object' && !Array.isArray(direction))
         named((direction as Record<string, Value>).along, ['sequence', 'map'], 'direction', 'along');
+      const via = p(n, 'via');
+      if (Array.isArray(via)) via.forEach((x, i) => named(x, ['map'], 'via', i));
+      else named(via, ['map'], 'via');
       for (const key of ['pieces', 'collapsed']) {
         const v = p(n, key);
         if (Array.isArray(v)) v.forEach((x, i) => named(x, ['ranges', 'map'], key, i));
@@ -379,9 +383,10 @@ export function checkFollow(at: Placed, look: SeqLookup, report: Report): void {
 }
 
 /**
- * A numbering's own checks (_spec/README.md, Language, Numberings): one of `labels` and `source` (`field` with a
- * source only), an id no built-in has (the forms read `index` and `ordinal` as theirs), inline labels one a position
- * of inline letters, and a label at two positions said once (it names the first: the queries' rule).
+ * A numbering's own checks (_spec/README.md, Language, Numberings): params that fit its method (`labels`: one of
+ * `labels` and `source`, `field` with a source only; `offset`: `by`; `segments`: runs apart), an id no built-in
+ * has (the forms read `index` and `ordinal` as theirs), inline labels one a position of inline letters, and a label
+ * at two positions said once (it names the first: the queries' rule).
  */
 function checkNumbering(
   n: Node,
@@ -389,9 +394,8 @@ function checkNumbering(
   say: (code: Code, message: string, ...tail: (string | number)[]) => void,
 ): void {
   const labels = param(n, 'labels');
-  const source = param(n, 'source');
-  if ((labels === undefined) === (source === undefined) || (param(n, 'field') !== undefined && source === undefined))
-    say('seq.lang.numbering.content', 'A numbering has one of `labels` and `source`, and `field` only with a source');
+  if (!numberingParamsFit(n)) say('seq.lang.numbering.content', 'The numbering’s params do not fit its method');
+  checkNumberingSegments(n, say);
   if (n.id === 'index' || n.id === 'ordinal') say('seq.lang.numbering.id', `\`${n.id}\` is a built-in numbering`);
   if (!(labels instanceof CategoryColumn)) return;
   if (total !== undefined && labels.length !== total)
@@ -572,12 +576,8 @@ export function checkDataNode(
     }
     case 'map': {
       const method = p(n, 'method');
-      const has = (k: string) => p(n, k) !== undefined;
-      const fits =
-        method === 'offset'
-          ? has('by') && !has('exons') && !has('strand') && !has('table')
-          : has('exons') && has('strand') && !has('by');
-      if (!fits) say('seq.lang.map.params', 'The params do not fit the method');
+      if (!mapParamsFit(n)) say('seq.lang.map.params', 'The params do not fit the method');
+      checkMapSegments(n, say);
       const exons = p(n, 'exons') as Record<string, Value> | undefined;
       if (exons && isColumn(exons.start) && isColumn(exons.end)) {
         const s = exons.start as ArrayLike<number>;

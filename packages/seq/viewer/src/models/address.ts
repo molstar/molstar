@@ -523,7 +523,7 @@ export class AddressModel extends ReactiveModel {
       }
       if (!part) {
         const projected = model.systems.has(axis.system)
-          ? model.project(positions, axis.system).location.parts.find((p) => p.system === axis.system)
+          ? model.project(positions, axis.system, { via: s.via }).location.parts.find((p) => p.system === axis.system)
           : undefined;
         part = projected;
       }

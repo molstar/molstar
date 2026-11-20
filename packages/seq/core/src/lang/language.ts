@@ -264,9 +264,28 @@ export const SeqLanguage = defineLanguage({
       params: {
         method: {
           type: 'string',
-          enum: ['labels'],
+          enum: ['labels', 'offset', 'segments'],
           required: true,
-          doc: 'How the labels are given: `labels`, one a position (inline or from a source).',
+          doc: 'How the labels are given: `labels`, one a position (inline or from a source); `offset`, a position plus `by`; `segments`, runs of consecutive numbers.',
+        },
+        by: {
+          type: 'integer',
+          doc: 'For `offset`: what is added to a position to give its label (1: numbered from 1).',
+        },
+        segments: {
+          type: 'table',
+          columns: {
+            start: { type: 'column', of: 'int32', required: true, doc: 'The first position of each run.' },
+            end: { type: 'column', of: 'int32', required: true, doc: 'The position after the last.' },
+            first: { type: 'column', of: 'int32', required: true, doc: 'The number of its first position.' },
+            insertion: {
+              type: 'column',
+              of: 'category',
+              missing: true,
+              doc: 'An insertion code after each run’s numbers (`52A`), for a run of one position.',
+            },
+          },
+          doc: 'For `segments`: runs of positions numbered `first`, `first + 1`, …, not overlapping; a position in no run has no label.',
         },
         labels: {
           type: 'column',
@@ -463,11 +482,49 @@ export const SeqLanguage = defineLanguage({
         to: { type: 'ref', kinds: SystemKinds, required: true, doc: 'The system the map ends on.' },
         method: {
           type: 'string',
-          enum: ['offset', 'codon'],
+          enum: ['offset', 'codon', 'segments', 'structure'],
           required: true,
-          doc: '`offset`: a position plus `by`; `codon`: a protein on its gene through `exons`.',
+          doc: '`offset`: a position plus `by`; `codon`: a protein on its gene through `exons`; `segments`: runs of positions (`segments`); `structure`: a sequence onto a structure’s residues (a unit or the entity’s molecule), SIFTS in abstract form: `segments` with each one’s `provenance`, and the residues’ `status`.',
         },
         by: { type: 'integer', doc: 'For `offset`: what is added to a position of `from`.' },
+        segments: {
+          type: 'table',
+          columns: {
+            from: { type: 'column', of: 'int32', required: true, doc: 'The first position of each run on `from`.' },
+            to: { type: 'column', of: 'int32', required: true, doc: 'Its image on `to`.' },
+            length: { type: 'column', of: 'int32', required: true, doc: 'The positions the run holds (at least 1).' },
+            strand: {
+              type: 'column',
+              of: 'category',
+              doc: 'Which way the run reads on `to`: `+` (when absent: `from + i` is `to + i`) or `-` (`to - i`).',
+            },
+            provenance: {
+              type: 'column',
+              of: 'category',
+              missing: true,
+              doc: 'For `structure`: where each run comes from, an open word (`sifts`, `alignment`, `author`).',
+            },
+          },
+          doc: 'For `segments` and `structure`: the runs, not overlapping on `from`; what no run holds maps nowhere.',
+        },
+        status: {
+          type: 'table',
+          columns: {
+            start: { type: 'column', of: 'int32', required: true, doc: 'The first residue on `to`.' },
+            end: { type: 'column', of: 'int32', required: true, doc: 'The residue after the last.' },
+            status: {
+              type: 'column',
+              of: 'category',
+              required: true,
+              doc: '`conflict` (paired, but not the same residue: an engineered mutation, a microheterogeneity) or `unobserved` (modeled by no atoms; a unit’s `observed` wins).',
+            },
+          },
+          doc: 'For `structure`: the residues of `to` that are not plainly paired; the rest of a run is paired, what no run holds unpaired (an expression tag, a linker).',
+        },
+        priority: {
+          type: 'integer',
+          doc: 'Its rank among maps joining the same systems (0 when absent): of the shortest paths that map differently, the one whose maps’ priorities, sorted weakest first and compared in turn, rank highest is taken; a full tie stays ambiguous.',
+        },
         exons: {
           type: 'table',
           columns: {
@@ -626,6 +683,14 @@ export const SeqLanguage = defineLanguage({
             },
           ],
           doc: 'Which way positions run left to right: `genomic` (up), `reversed` (down), `follow` (the way the leader reads, through the follow path), or `{ along: <system or map> }` (the way that system reads here). `follow` for a section that follows another, else `genomic`, when absent; never inferred from what the section draws.',
+        },
+        via: {
+          type: 'union',
+          of: [
+            { type: 'ref', kinds: ['map'] },
+            { type: 'list', of: { type: 'ref', kinds: ['map'], doc: 'A map.' }, 'min-length': 1 },
+          ],
+          doc: 'The map, or maps, this section’s paths take where other maps join the same two systems: its follow, its `direction: { along }` and what is projected onto it (hover, selection, the focus hull) leave out their rivals; other paths are unchanged.',
         },
         pieces: {
           type: 'union',
