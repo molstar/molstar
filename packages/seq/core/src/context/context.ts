@@ -6,7 +6,8 @@
 
 import type { Issue, Node } from '@molstar/core/repr/tree';
 import { type AssetManager, DefaultAssetManager } from '@molstar/core/util/assets';
-import { type AssetReader, type FormatRuntime, runtimesByFormat } from '@molstar/seqx-core/data';
+import type { AssetReader, FormatRuntime } from '@molstar/seqx-core/data';
+import { runtimesByFormat } from '@molstar/seqx-core/data/channels';
 import { checkSeqSpec, type SpecBounds, specBounds } from '@molstar/seqx-core/lang';
 import {
   type RenderConfig,

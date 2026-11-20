@@ -8,7 +8,8 @@
 // listed; `withAdapter` replaces a default for its formats; the resolver and the overlay bind by format with no order;
 // a source's `ref` reaches the adapter (EC-185) and a values node's `field` reads its own channel.
 
-import { channelAddress, type FormatRuntime, SeqRuntime } from '@molstar/seqx-core/data';
+import { type FormatRuntime, SeqRuntime } from '@molstar/seqx-core/data';
+import { channelAddress } from '@molstar/seqx-core/data/channels';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { resolveSpec } from '@molstar/seqx-core/resolve';
 import { describe, expect, it } from 'vitest';

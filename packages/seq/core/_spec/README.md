@@ -984,8 +984,9 @@ over the assets port, with `@molstar/core/util/zip` (never a private zip). Not a
   the wanted ones asked again; its reports cleared; the old reading disposed. A malformed coverage is an issue and the
   old reading stays. Why: EC-176's "a conflict keeps the held node" is right for two answers of one reading, wrong for a
   new reading.
-- **Channels** (`channels.ts`): a values node's `field` is read under its own address, `channelAddress(source, field)`
-  (the source's and the field's joined by a control character no address holds), made when first read from the source as
+- **Channels** (`channels.ts`, internal to the package: not in the `data` entry, read by the resolver and the context
+  through `data/channels`): a values node's `field` is read under its own address, `channelAddress(source, field)` (the
+  source's and the field's joined by a control character no address holds), made when first read from the source as
   attached (`fieldChannel`: each read asks the field, no nodes, its own summaries) and gone with its source; its
   failures are reported at the source's address. Why its own address: tiles, summaries and entries are the field's, and
   every reader of a layer's source (render, describe, the query model) reads it unchanged.

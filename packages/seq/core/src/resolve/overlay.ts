@@ -15,7 +15,8 @@ import {
   type Segment,
   type Value,
 } from '@molstar/core/repr/tree';
-import { type FormatRuntime, type NodeEntry, runtimeFor } from '@molstar/seqx-core/data';
+import type { FormatRuntime, NodeEntry } from '@molstar/seqx-core/data';
+import { runtimeFor } from '@molstar/seqx-core/data/channels';
 import { checkDataNode, LangIssues, SeqLanguage, SeqLanguageVersion } from '@molstar/seqx-core/lang';
 import { ResolveIssues } from './issues.js';
 import {

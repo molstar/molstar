@@ -28,18 +28,17 @@ import {
   AlignmentRuntime,
   AlignmentSystems,
   type Coverage,
-  channelAddress,
   type FormatRuntime,
   inlineSeq,
   type RangesField,
   type RangesList,
-  runtimeFor,
   SeqRuntime,
   type Shape,
   type SourceEntry,
   seqToValue,
   type Tables,
 } from '@molstar/seqx-core/data';
+import { channelAddress, runtimeFor } from '@molstar/seqx-core/data/channels';
 import type { SeqKinds } from '@molstar/seqx-core/lang';
 import {
   type ItemsRead,

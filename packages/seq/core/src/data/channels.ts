@@ -6,7 +6,8 @@
 
 import type { Coverage, FormatRuntime, OpenedSource } from './protocol.js';
 
-// Values channels (_spec/README.md "Data", Store, Channels): a `values` node's `field` reads one column of a source
+// Internal to the package (the store, the resolver, the context read it; no other package does). Values channels
+// (_spec/README.md "Data", Store, Channels): a `values` node's `field` reads one column of a source
 // opened once. The store holds a channel as a source of its own address, `<source>` and the field joined by a
 // separator no address holds, so its tiles, its summaries and its entries are the field's alone, and every reader of a
 // layer's source (render, describe, the query model) reads it by that address unchanged.
