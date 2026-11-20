@@ -517,7 +517,7 @@ describe('the pairs layer: arcs', () => {
     const red = (await lay(build('', '#ff0000'))).lay;
     for (let i = 0; i < red.n; i++) expect(red.color[i]).toBe(0xff0000ff);
     // the filter: the tertiary pair left out, counted
-    const { f, lay: some } = await lay(build('/(not :of (item :type tertiary))'));
+    const { f, lay: some } = await lay(build('/(except :of (item :type tertiary))'));
     expect(some.n).toBe(3);
     expect([...some.pair.slice(0, some.n)].sort()).toEqual([0, 1, 3]);
     expect(f.layout.issues).toEqual([]);

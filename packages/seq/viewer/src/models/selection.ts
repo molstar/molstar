@@ -12,12 +12,12 @@
 
 import { KeyedState, type ReadonlyState, ReactiveModel, State } from '@molstar/core/reactive';
 import {
-  type ElementKey,
-  type Elements,
-  EmptyElements,
+  type Key,
+  type Keys,
+  EmptyKeys,
   EmptyLocation,
-  elements,
-  elementsEqual,
+  keySet,
+  keysEqual,
   isEmptyLocation,
   type Location,
   location,
@@ -35,7 +35,7 @@ import type { Hit } from './hover.js';
 
 /** What is selected or highlighted: element keys, positions, and the positions drawn (theirs and the elements' extents). */
 export interface Emphasized {
-  readonly elements: Elements;
+  readonly elements: Keys;
   readonly location: Location;
   /** What is drawn: the location and the elements' extents. */
   readonly shown: Location;
@@ -46,7 +46,7 @@ export interface Emphasized {
 }
 
 export const Nothing: Emphasized = Object.freeze({
-  elements: EmptyElements,
+  elements: EmptyKeys,
   location: EmptyLocation,
   shown: EmptyLocation,
 });
@@ -55,7 +55,7 @@ const same = (a: Emphasized, b: Emphasized) =>
   a === b ||
   (a.address === b.address &&
     (a.style ?? 'tint') === (b.style ?? 'tint') &&
-    elementsEqual(a.elements, b.elements) &&
+    keysEqual(a.elements, b.elements) &&
     locationsEqual(a.location, b.location) &&
     locationsEqual(a.shown, b.shown));
 
@@ -99,7 +99,7 @@ const sameCursor = (a: Cursor | undefined, b: Cursor | undefined) =>
     (a.part ?? 'cell') === (b.part ?? 'cell') &&
     !!a.keyboard === !!b.keyboard);
 
-const keyId = (k: ElementKey) => `${typeof k.key === 'number' ? 'n' : 's'}${k.key}\u0000${k.owner}`;
+const keyId = (k: Key) => `${typeof k.key === 'number' ? 'n' : 's'}${k.key}\u0000${k.owner}`;
 
 /**
  * The positions a hit covers on its own system, in display order on `axis` (an item over a cyclic origin starts at its
@@ -254,11 +254,11 @@ export interface SelectionOptions {
 
 /** What an extend keeps: the selection less the range the anchor is in, set when the anchor is. */
 interface Rest {
-  readonly elements: Elements;
+  readonly elements: Keys;
   readonly location: Location;
 }
 
-const NoRest: Rest = Object.freeze({ elements: EmptyElements, location: EmptyLocation });
+const NoRest: Rest = Object.freeze({ elements: EmptyKeys, location: EmptyLocation });
 
 export class SelectionModel extends ReactiveModel {
   private readonly _value = new State<Emphasized>(Nothing, same);
@@ -293,7 +293,7 @@ export class SelectionModel extends ReactiveModel {
    * addresses resolve it. Without one, an element with no known extent is held and not drawn.
    */
   constructor(
-    private readonly extentOf?: (elements: Elements) => Location,
+    private readonly extentOf?: (elements: Keys) => Location,
     options: SelectionOptions = {},
   ) {
     super();
@@ -342,7 +342,7 @@ export class SelectionModel extends ReactiveModel {
     }
     const next = this._ofHit(hit, range, axis);
     // what is selected, wherever it was set from (a link's DBD clears on the first click on it)
-    if (elementsEqual(next.elements, before.elements) && locationsEqual(next.location, before.location)) this.clear();
+    if (keysEqual(next.elements, before.elements) && locationsEqual(next.location, before.location)) this.clear();
     else {
       this._anchor = range;
       this._rest = NoRest;
@@ -354,15 +354,15 @@ export class SelectionModel extends ReactiveModel {
   /** A group's click: its members' elements, all (the same again clears, as a click on one item does). */
   private _selectGroup(members: readonly Hit[]): boolean {
     const before = this._value.value;
-    const keys: ElementKey[] = [];
+    const keys: Key[] = [];
     for (const m of members) {
       if (!m.element) continue;
       this._extentOfHit(m);
       keys.push(m.element);
     }
     if (!keys.length) return false;
-    const next = this._compose(elements(keys), EmptyLocation);
-    if (elementsEqual(next.elements, before.elements) && locationsEqual(next.location, before.location)) this.clear();
+    const next = this._compose(keySet(keys), EmptyLocation);
+    if (keysEqual(next.elements, before.elements) && locationsEqual(next.location, before.location)) this.clear();
     else {
       this._anchor = undefined;
       this._rest = NoRest;
@@ -395,7 +395,7 @@ export class SelectionModel extends ReactiveModel {
     let cell = EmptyLocation;
     if (hit.element) {
       const has = els.keys.some((k) => k.owner === hit.element!.owner && k.key === hit.element!.key);
-      els = elements(
+      els = keySet(
         has
           ? els.keys.filter((k) => k.owner !== hit.element!.owner || k.key !== hit.element!.key)
           : [...els.keys, hit.element],
@@ -409,7 +409,7 @@ export class SelectionModel extends ReactiveModel {
     // an extend from here keeps the rest: all but what was hit
     const el = hit.element;
     this._rest = {
-      elements: el ? elements(els.keys.filter((k) => k.owner !== el.owner || k.key !== el.key)) : els,
+      elements: el ? keySet(els.keys.filter((k) => k.owner !== el.owner || k.key !== el.key)) : els,
       location: subtractLocations(loc, cell),
     };
     this._value.set(this._compose(els, loc));
@@ -493,7 +493,7 @@ export class SelectionModel extends ReactiveModel {
       case 'replace':
         this._anchor = a;
         this._rest = NoRest;
-        this._value.set({ elements: EmptyElements, location: loc, shown: loc });
+        this._value.set({ elements: EmptyKeys, location: loc, shown: loc });
         break;
       case 'add':
         this._anchor = a;
@@ -544,7 +544,7 @@ export class SelectionModel extends ReactiveModel {
     const a = this._cellAnchor;
     if (how === 'extend' && a && a.system === cell.system && a.ySystem === cell.ySystem) {
       const r = cellsRect(a, cell);
-      this._value.set({ elements: EmptyElements, location: r, shown: r });
+      this._value.set({ elements: EmptyKeys, location: r, shown: r });
       return before !== this._value.value;
     }
     const r = cellsRect(cell, cell);
@@ -557,7 +557,7 @@ export class SelectionModel extends ReactiveModel {
         rectInside(r, loc) ? this._without(before, r) : this._compose(before.elements, unionLocations(loc, r)),
       );
     } else if (locationsEqual(before.location, r) && !before.elements.keys.length) this.clear();
-    else this._value.set({ elements: EmptyElements, location: r, shown: r });
+    else this._value.set({ elements: EmptyKeys, location: r, shown: r });
     return before !== this._value.value;
   }
 
@@ -585,7 +585,7 @@ export class SelectionModel extends ReactiveModel {
     switch (d.mode) {
       case 'replace':
       case 'extend':
-        this._value.set({ elements: EmptyElements, location: r, shown: r });
+        this._value.set({ elements: EmptyKeys, location: r, shown: r });
         break;
       case 'add':
         this._value.set(this._compose(d.before.elements, unionLocations(d.before.location, r)));
@@ -657,27 +657,27 @@ export class SelectionModel extends ReactiveModel {
   private _extended(loc: Location): Emphasized {
     const r = this._rest;
     if (this._scope === 'selection' || (!r.elements.keys.length && isEmptyLocation(r.location)))
-      return { elements: EmptyElements, location: loc, shown: loc };
+      return { elements: EmptyKeys, location: loc, shown: loc };
     return this._compose(r.elements, unionLocations(r.location, loc));
   }
 
   /** A value less some positions: an element they cut becomes what is left of its extent; one they miss stays. */
   private _without(value: Emphasized, loc: Location): Emphasized {
     let positions = subtractLocations(value.location, loc);
-    const keep: ElementKey[] = [];
+    const keep: Key[] = [];
     for (const k of value.elements.keys) {
-      const e = this._extents.get(keyId(k)) ?? this.extentOf?.(elements([k]));
+      const e = this._extents.get(keyId(k)) ?? this.extentOf?.(keySet([k]));
       const left = e ? subtractLocations(e, loc) : undefined;
       if (!e || !left || locationsEqual(left, e)) keep.push(k);
       else positions = unionLocations(positions, left);
     }
-    return this._compose(keep.length === value.elements.keys.length ? value.elements : elements(keep), positions);
+    return this._compose(keep.length === value.elements.keys.length ? value.elements : keySet(keep), positions);
   }
 
   private _ofHit(hit: Hit, range: Anchor | undefined, axis: Axis | undefined): Emphasized {
-    if (hit.element) return this._compose(elements([hit.element]), EmptyLocation);
+    if (hit.element) return this._compose(keySet([hit.element]), EmptyLocation);
     const loc = spanLocation(range!, axis);
-    return { elements: EmptyElements, location: loc, shown: loc };
+    return { elements: EmptyKeys, location: loc, shown: loc };
   }
 
   /** An item's whole extent for a hit (`_extentOfHit`), kept while it is selected; undefined for a cell. */
@@ -700,22 +700,22 @@ export class SelectionModel extends ReactiveModel {
     )
       return kept;
     let e = hit.extent ?? EmptyLocation;
-    if (this.extentOf) e = unionLocations(e, this.extentOf(elements([el])));
+    if (this.extentOf) e = unionLocations(e, this.extentOf(keySet([el])));
     if (isEmptyLocation(e)) return hit.extent;
     this._extents.set(id, e);
     return e;
   }
 
   /** A value of elements and positions: what is drawn is the positions and each element's extent. */
-  private _compose(els: Elements, loc: Location): Emphasized {
+  private _compose(els: Keys, loc: Location): Emphasized {
     let shown = loc;
-    const unknown: ElementKey[] = [];
+    const unknown: Key[] = [];
     for (const k of els.keys) {
       const e = this._extents.get(keyId(k));
       if (e) shown = unionLocations(shown, e);
       else unknown.push(k);
     }
-    if (unknown.length && this.extentOf) shown = unionLocations(shown, this.extentOf(elements(unknown)));
+    if (unknown.length && this.extentOf) shown = unionLocations(shown, this.extentOf(keySet(unknown)));
     // the extents kept are those still selected
     if (this._extents.size > els.keys.length) {
       const keep = new Set(els.keys.map(keyId));

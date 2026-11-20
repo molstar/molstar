@@ -7,7 +7,7 @@
 import type { Node } from '@molstar/core/repr/tree';
 import { type SeqData, seqToValue } from '@molstar/seqx-core/data';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
-import { elements, rangesLocation } from '@molstar/seqx-core/query';
+import { keySet, rangesLocation } from '@molstar/seqx-core/query';
 import { type PassName, recordDrawLists } from '@molstar/seqx-core/render';
 import { nodeAddress } from '@molstar/seqx-core/resolve';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -806,7 +806,7 @@ describe('the selection holds its nodes', () => {
     const v = await make(dynamicSpec());
     const owner = nodeAddress(Genes, 'T1');
     v.selection.set({
-      elements: elements([{ owner, key: 'T1' }]),
+      elements: keySet([{ owner, key: 'T1' }]),
       location: rangesLocation('/data/gene', [10, 40]),
       shown: rangesLocation('/data/gene', [10, 40]),
     });

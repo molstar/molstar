@@ -138,8 +138,8 @@ function resolveQuery(viewer: SeqViewer, text: string, emphasis: Emphasis): Quer
   const size =
     r.type === 'nodes'
       ? plural(r.nodes.length, 'node')
-      : r.type === 'elements'
-        ? `${plural(r.elements.keys.length, 'element')} (${r.elements.keys.map((k) => k.key).join(', ')})`
+      : r.type === 'keys'
+        ? `${plural(r.keys.keys.length, 'element')} (${r.keys.keys.map((k) => k.key).join(', ')})`
         : [
             r.location.parts.length
               ? `${plural(positionCount(r.location), 'position')} on ${plural(r.location.parts.length, 'system')}`
@@ -248,7 +248,7 @@ export const QueryExamples: readonly QueryExample[] = [
     title: 'Items by category',
     view: 'query',
     about:
-      'An item form picks the items of an annotation by a field: its id, its label or its category. A list of values matches any of them, and the result is Elements (keys of what the data makes), drawn by their extents.',
+      'An item form picks the items of an annotation by a field: its id, its label or its category. A list of values matches any of them, and the result is Keys (keys of what the data makes), drawn by their extents.',
     emphasis: 'select',
     queries: [
       { label: 'DNA-binding domain', query: '/data/domains/(item :label DNA-binding)' },
@@ -280,26 +280,29 @@ export const QueryExamples: readonly QueryExample[] = [
     queries: [
       { label: 'The DNA-binding domain', query: '/data/domains/(item :id DBD)' },
       { label: 'Residues 94 to 292', query: '/data/p53/(range :from 94 :to 292)' },
-      { label: 'Three hotspots', query: '/data/p53/(or :of [(at :label 175) (at :label 248) (at :label 273)])' },
+      { label: 'Three hotspots', query: '/data/p53/(merge :of [(at :label 175) (at :label 248) (at :label 273)])' },
     ],
   },
   {
     id: 'combined',
-    title: 'And, or, not',
+    title: 'Merge, intersect, except',
     view: 'query',
     about:
-      'Combinators work on one result type: positions here. `and` intersects, `or` joins and `not` takes the complement within the system. Joining elements with positions is an issue, not a guess: convert with `extent` first.',
+      'Combinators work on one result type: positions here. `intersect` intersects, `merge` joins and `except` takes the rest away (one operand: the complement within the system). Joining keys with positions is an issue, not a guess: convert with `extent` first.',
     emphasis: 'highlight',
     queries: [
       {
         label: 'The domain less a stretch',
-        query: '/data/p53/(and :of [(range :from 94 :to 292) (not :of (range :from 150 :to 200))])',
+        query: '/data/p53/(except :of [(range :from 94 :to 292) (range :from 150 :to 200)])',
       },
-      { label: 'Two ranges', query: '/data/p53/(or :of [(range :from 1 :to 40) (range :from 320 :to 360)])' },
-      { label: 'Where two overlap', query: '/data/p53/(and :of [(range :from 94 :to 292) (range :from 250 :to 360)])' },
+      { label: 'Two ranges', query: '/data/p53/(merge :of [(range :from 1 :to 40) (range :from 320 :to 360)])' },
+      {
+        label: 'Where two overlap',
+        query: '/data/p53/(intersect :of [(range :from 94 :to 292) (range :from 250 :to 360)])',
+      },
       {
         label: 'Mixed types (an issue)',
-        query: '/data/domains/(or :of [(item :id TET) (extent :of (item :id TET))])',
+        query: '/data/domains/(merge :of [(item :id TET) (extent :of (item :id TET))])',
         issue: true,
       },
     ],

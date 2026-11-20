@@ -170,12 +170,12 @@ describe('Query, headless', () => {
     category: [
       {
         query: '/data/domains/(item :label DNA-binding)',
-        kind: 'elements',
+        kind: 'keys',
         systems: [{ system: P, ranges: [[93, 292]] }],
       },
       {
         query: '/data/domains/(item :category [binding oligomer])',
-        kind: 'elements',
+        kind: 'keys',
         systems: [
           {
             system: P,
@@ -188,7 +188,7 @@ describe('Query, headless', () => {
       },
       {
         query: '/data/domains/(item :id [TAD CTD])',
-        kind: 'elements',
+        kind: 'keys',
         systems: [
           {
             system: P,
@@ -215,10 +215,10 @@ describe('Query, headless', () => {
       },
     ],
     'on-gene': [
-      { query: '/data/domains/(item :id DBD)', kind: 'elements', systems: [{ system: P, ranges: [[93, 292]] }] },
+      { query: '/data/domains/(item :id DBD)', kind: 'keys', systems: [{ system: P, ranges: [[93, 292]] }] },
       { query: '/data/p53/(range :from 94 :to 292)', kind: 'location', systems: [{ system: P, ranges: [[93, 292]] }] },
       {
-        query: '/data/p53/(or :of [(at :label 175) (at :label 248) (at :label 273)])',
+        query: '/data/p53/(merge :of [(at :label 175) (at :label 248) (at :label 273)])',
         kind: 'location',
         systems: [
           {
@@ -234,7 +234,7 @@ describe('Query, headless', () => {
     ],
     combined: [
       {
-        query: '/data/p53/(and :of [(range :from 94 :to 292) (not :of (range :from 150 :to 200))])',
+        query: '/data/p53/(except :of [(range :from 94 :to 292) (range :from 150 :to 200)])',
         kind: 'location',
         systems: [
           {
@@ -247,7 +247,7 @@ describe('Query, headless', () => {
         ],
       },
       {
-        query: '/data/p53/(or :of [(range :from 1 :to 40) (range :from 320 :to 360)])',
+        query: '/data/p53/(merge :of [(range :from 1 :to 40) (range :from 320 :to 360)])',
         kind: 'location',
         systems: [
           {
@@ -260,7 +260,7 @@ describe('Query, headless', () => {
         ],
       },
       {
-        query: '/data/p53/(and :of [(range :from 94 :to 292) (range :from 250 :to 360)])',
+        query: '/data/p53/(intersect :of [(range :from 94 :to 292) (range :from 250 :to 360)])',
         kind: 'location',
         systems: [{ system: P, ranges: [[249, 292]] }],
       },

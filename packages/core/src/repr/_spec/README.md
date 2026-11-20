@@ -78,10 +78,15 @@ quantities need no quotes, and no units table is needed to read them (locations-
 ## Addresses
 
 - **Grammar** (addressing.md): `address = "/" | ("/" step)+ ["/*"]`, `step = id | form`,
-  `form = "(" kind (":" key value)* ")"`, `value = atom | list | form | address`. Read by the tree's own small reader
-  (no codec), printed canonically on one line, a form's keys sorted: `(range :from 94 :to 292)` whatever order it was
-  written in, so equal addresses print alike. `parse(print(a)) = a` up to key order. Messages never quote the address:
-  an offset says where.
+  `form = "(" head value* (":" key value)* ")"`, `head = kind | operator`, `value = atom | list | form | address`. Read
+  by the tree's own small reader (no codec), printed canonically on one line, a form's keys sorted:
+  `(range :from 94 :to 292)` whatever order it was written in, so equal addresses print alike. `parse(print(a)) = a` up
+  to key order. Messages never quote the address: an offset says where.
+- **Positional values** (a form's `args`) come before its keyword params, in order: an expression's operands,
+  `(filter :test (> (prop b-factor) 60))` (decided by Seq\*'s author, 2026-11-20, "Accept the core change"). Which forms
+  take them is the language's that reads the form; the tree reads and prints them. A positional value after a keyword is
+  `repr.tree.address.form`. **Operator heads**: `OperatorKinds` (`=`, `!=`, `<`, `<=`, `>`, `>=`) head a form beside a
+  kind; never a node's kind in a tree (`KindPattern` is unchanged). Why: a predicate nests deep and reads as MolQL's.
 - **A numeric-looking key is a number**: `(chain :id 1)` compares the number 1 and never matches a string id `"1"`;
   quote it to match one, `(chain :id "1")`. The atoms' rule decides, not the param's type (a form is read without a
   language).

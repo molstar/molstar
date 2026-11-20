@@ -5,14 +5,7 @@
  */
 
 import { parseAddress, printAddress, type Segment } from '@molstar/core/repr/tree';
-import {
-  type ElementKey,
-  type Elements,
-  EmptyElements,
-  EmptyLocation,
-  type Location,
-  unionElements,
-} from '@molstar/seqx-core/query';
+import { type Key, type Keys, EmptyKeys, EmptyLocation, type Location, unionKeys } from '@molstar/seqx-core/query';
 import type { ResolvedLayer, ResolvedView } from '@molstar/seqx-core/view';
 import type { Emphasized } from '@molstar/seqx-viewer/models';
 import type { BehaviorContext, BehaviorProvider } from '@molstar/seqx-viewer/viewer-spec';
@@ -41,7 +34,7 @@ export interface LinkedPairsBehavior {
   /** The highlight channel it writes (`linked-pairs`). */
   readonly channel: string;
   /** The pairs lit now (the channel's keys): the hover's and the selection's. */
-  lit(): Elements;
+  lit(): Keys;
   dispose(): void;
 }
 
@@ -50,7 +43,7 @@ export const LinkedPairsChannel = 'linked-pairs';
 
 const BothSources: readonly LinkedPairsSource[] = ['hover', 'selection'];
 
-/** A pairs layer's annotation: its data's address up to its first form (`<pairs>/(not …)` reads `<pairs>`). */
+/** A pairs layer's annotation: its data's address up to its first form (`<pairs>/(except …)` reads `<pairs>`). */
 function annotationOf(layer: ResolvedLayer): string | undefined {
   const address = layer.data?.address;
   const segments = address ? parseAddress(address).pattern?.segments : undefined;
@@ -82,7 +75,7 @@ function pairsOf(view: ResolvedView, layers: readonly string[] | undefined): str
  * Where an element is, as a location form: its extent's ranges as index ranges on their systems (a hit's extent: what a
  * layer read, a source's item too), else the extent of its item form (`(extent :of <owner>/(item :id <key>))`).
  */
-function extentForm(k: ElementKey, extent: Location | undefined): string | undefined {
+function extentForm(k: Key, extent: Location | undefined): string | undefined {
   if (extent?.parts.length) {
     const ranges: string[] = [];
     // a zero-length range (a boundary) has no index range: left to the item form, whose extent the forms read
@@ -90,7 +83,7 @@ function extentForm(k: ElementKey, extent: Location | undefined): string | undef
       for (let i = 0; i + 1 < p.ranges.length; i += 2)
         if (p.ranges[i + 1] > p.ranges[i])
           ranges.push(`${p.system}/(range :from ${p.ranges[i]} :to ${p.ranges[i + 1] - 1} :numbering index)`);
-    if (ranges.length) return ranges.length === 1 ? ranges[0] : `(or :of [${ranges.join(' ')}])`;
+    if (ranges.length) return ranges.length === 1 ? ranges[0] : `(merge :of [${ranges.join(' ')}])`;
   }
   const owner = parseAddress(k.owner).pattern?.segments;
   if (!owner) return undefined;
@@ -116,9 +109,9 @@ export function linkedPairsBehavior(ctx: BehaviorContext, params: LinkedPairsPar
   let pairs: readonly string[] = [];
   const owners = new Set<string>();
   /** The pairs lit by an element, by its owner and key. */
-  const byElement = new Map<string, Map<string | number, Elements>>();
+  const byElement = new Map<string, Map<string | number, Keys>>();
   /** The channel's value for each set of keys written (by identity: a hover back on an element writes the same). */
-  let values = new WeakMap<Elements, Emphasized>();
+  let values = new WeakMap<Keys, Emphasized>();
 
   const fresh = () => {
     const v = view.resolved.value;
@@ -130,11 +123,11 @@ export function linkedPairsBehavior(ctx: BehaviorContext, params: LinkedPairsPar
     for (const p of pairs) owners.add(p);
     byElement.clear();
     values = new WeakMap();
-    selectionFor = [undefined, EmptyElements];
+    selectionFor = [undefined, EmptyKeys];
   };
 
   /** The pairs with an end in an element's extent, on every pairs annotation drawn; cached by its owner and key. */
-  const litBy = (k: ElementKey, extent?: Location): { lit: Elements; waiting: boolean } => {
+  const litBy = (k: Key, extent?: Location): { lit: Keys; waiting: boolean } => {
     let byKey = byElement.get(k.owner);
     const kept = byKey?.get(k.key);
     if (kept) return { lit: kept, waiting: false };
@@ -147,33 +140,33 @@ export function linkedPairsBehavior(ctx: BehaviorContext, params: LinkedPairsPar
   };
 
   /** The pairs with an end in a location form, on every pairs annotation drawn, and whether a query waits. */
-  const query = (where: string | undefined): { lit: Elements; waiting: boolean } => {
-    let lit = EmptyElements;
+  const query = (where: string | undefined): { lit: Keys; waiting: boolean } => {
+    let lit = EmptyKeys;
     let waiting = false;
     if (where !== undefined)
       for (const p of pairs) {
         const r = addresses.resolve(`${p}/(items :overlapping ${where})`);
-        if (r.result?.type === 'elements') lit = unionElements(lit, r.result.elements);
+        if (r.result?.type === 'keys') lit = unionKeys(lit, r.result.keys);
         else if (r.status === 'waiting') waiting = true;
       }
     return { lit, waiting };
   };
 
   /** The selection's last query: what it was made of (its value) and what it lit. */
-  let selectionFor: [unknown, Elements] = [undefined, EmptyElements];
+  let selectionFor: [unknown, Keys] = [undefined, EmptyKeys];
 
-  let hoverLit = EmptyElements;
-  let selectionLit = EmptyElements;
+  let hoverLit = EmptyKeys;
+  let selectionLit = EmptyKeys;
   /** The union last made, and of what. */
-  let both: [Elements, Elements, Elements] = [EmptyElements, EmptyElements, EmptyElements];
+  let both: [Keys, Keys, Keys] = [EmptyKeys, EmptyKeys, EmptyKeys];
 
   const write = () => {
-    let keys: Elements;
+    let keys: Keys;
     if (!hoverLit.keys.length) keys = selectionLit;
     else if (!selectionLit.keys.length) keys = hoverLit;
     else {
       if (both[0] !== hoverLit || both[1] !== selectionLit)
-        both = [hoverLit, selectionLit, unionElements(hoverLit, selectionLit)];
+        both = [hoverLit, selectionLit, unionKeys(hoverLit, selectionLit)];
       keys = both[2];
     }
     if (!keys.keys.length) {
@@ -191,7 +184,7 @@ export function linkedPairsBehavior(ctx: BehaviorContext, params: LinkedPairsPar
     const r = hover.current;
     const el = r.owner === undefined ? undefined : r.element;
     // a pair hovered is the pairs layer's own (its arc lights); a position is the layer's rule (its partners)
-    hoverLit = el && pairs.length && !owners.has(el.owner) ? litBy(el, r.extent).lit : EmptyElements;
+    hoverLit = el && pairs.length && !owners.has(el.owner) ? litBy(el, r.extent).lit : EmptyKeys;
   };
 
   const readSelection = () => {
@@ -199,8 +192,8 @@ export function linkedPairsBehavior(ctx: BehaviorContext, params: LinkedPairsPar
     fresh();
     const sel = selection.value.value;
     const keys = sel.elements.keys;
-    let out = EmptyElements;
-    if (!pairs.length || !keys.some((k) => !owners.has(k.owner))) out = EmptyElements;
+    let out = EmptyKeys;
+    if (!pairs.length || !keys.some((k) => !owners.has(k.owner))) out = EmptyKeys;
     else if (selectionFor[0] === sel) out = selectionFor[1];
     else {
       let waiting = false;
@@ -215,11 +208,11 @@ export function linkedPairsBehavior(ctx: BehaviorContext, params: LinkedPairsPar
         for (const k of keys) {
           if (owners.has(k.owner)) continue;
           const r = litBy(k);
-          out = unionElements(out, r.lit);
+          out = unionKeys(out, r.lit);
           waiting ||= r.waiting;
         }
       // what waited is asked again on the next change
-      selectionFor = waiting ? [undefined, EmptyElements] : [sel, out];
+      selectionFor = waiting ? [undefined, EmptyKeys] : [sel, out];
     }
     selectionLit = out;
   };
@@ -250,7 +243,7 @@ export function linkedPairsBehavior(ctx: BehaviorContext, params: LinkedPairsPar
 
   return {
     channel: LinkedPairsChannel,
-    lit: () => highlight.get(LinkedPairsChannel)?.elements ?? EmptyElements,
+    lit: () => highlight.get(LinkedPairsChannel)?.elements ?? EmptyKeys,
     dispose() {
       for (const s of stops) s();
       stops.length = 0;

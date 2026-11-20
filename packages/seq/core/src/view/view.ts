@@ -120,12 +120,12 @@ export interface LayerData {
   readonly access?: AccessPlan;
   readonly length?: number;
   /**
-   * A query's form after its annotation (`<annotation>/(not :of (item :consequence missense))`): the filter its rows
-   * pass, read row by row by the layers (_spec/README.md "Themes", Filters): the user's, a trailing `(not …)` or any
+   * A query's form after its annotation (`<annotation>/(except :of (item :consequence missense))`): the filter its rows
+   * pass, read row by row by the layers (_spec/README.md "Themes", Filters): the user's, a trailing `(except …)` or any
    * lone form but an item form; counted ("n filtered").
    */
   readonly filter?: Node;
-  /** A leading item form (`<annotation>/(item :category Domain)/(not …)`): what the track is, its rejected rows not counted. */
+  /** A leading item form (`<annotation>/(item :category Domain)/(except …)`): what the track is, its rejected rows not counted. */
   readonly base?: Node;
   /** The forms after the annotation are none the layers read row by row (`seq.render.filter`). */
   readonly unread?: boolean;
@@ -136,17 +136,17 @@ export interface DataForms {
   /** The leading forms as one (`item` alone, else `and` of them): rows they reject are not counted. */
   readonly base?: Node;
   readonly lead: readonly Node[];
-  /** A trailing `(not …)`: counted. */
+  /** A trailing `(except …)`: counted. */
   readonly filter?: Node;
   /** Forms that are neither (a segment that is an id, a location form in the base): read as no filter, and said. */
   readonly unread?: boolean;
 }
 
-const BaseKinds = new Set(['item', 'and', 'or']);
+const BaseKinds = new Set(['item', 'intersect', 'merge']);
 
 /**
  * The one rule for a layer's data after its annotation (_spec/README.md "Themes", Filters): a leading run of item forms
- * (`and` and `or` of them too) is the base, a trailing `(not …)` the user's filter, a lone form of another kind the
+ * (`intersect` and `merge` of them too) is the base, a trailing `(except …)` the user's filter, a lone form of another kind the
  * filter (said unread by the layers); any other mix is `unread`.
  */
 export function splitDataForms(rest: readonly (string | Node)[]): DataForms {
@@ -154,13 +154,13 @@ export function splitDataForms(rest: readonly (string | Node)[]): DataForms {
   if (rest.some((f) => typeof f === 'string')) return { lead: [], unread: true };
   const forms = rest as Node[];
   const last = forms[forms.length - 1];
-  const filter = last.kind === 'not' ? last : undefined;
+  const filter = last.kind === 'except' ? last : undefined;
   const lead = filter ? forms.slice(0, -1) : forms;
   // a lone form that is none of these stays the layer's filter: the layers say they cannot read it (`seq.render.filter`)
   if (forms.length === 1 && !filter && !BaseKinds.has(last.kind)) return { lead: [], filter: last };
   if (!lead.every((f) => BaseKinds.has(f.kind))) return { lead: [], unread: true };
   const base =
-    lead.length === 0 ? undefined : lead.length === 1 ? lead[0] : ({ kind: 'and', params: { of: lead } } as Node);
+    lead.length === 0 ? undefined : lead.length === 1 ? lead[0] : ({ kind: 'intersect', params: { of: lead } } as Node);
   return { lead, ...(base ? { base } : {}), ...(filter ? { filter } : {}) };
 }
 
@@ -1136,7 +1136,7 @@ function dataOf(model: StaticModel, value: Value | undefined, type: string, sect
   if (model.systems.has(prefix))
     return { kind, address, system: prefix, ...(kind === 'address' ? { shape: 'letters' as const } : {}) };
   const rest = parsed.segments.slice(ids.length);
-  // the forms after the annotation: a leading run of item forms is the layer's base, a trailing `(not …)` the user's
+  // the forms after the annotation: a leading run of item forms is the layer's base, a trailing `(except …)` the user's
   // filter (`splitDataForms`, one parser for the viewer's filter too)
   const split = kind === 'query' ? splitDataForms(rest) : undefined;
   const base = split?.base;

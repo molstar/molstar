@@ -25,7 +25,7 @@ const rows = {
 };
 
 const Item = '(item :label k1)';
-const forms = { item: Item, and: `(and :of [${Item}])` };
+const forms = { item: Item, and: `(intersect :of [${Item}])` };
 
 function spec(lead: string): Node {
   const b = createSeqSpec();
@@ -74,11 +74,11 @@ describe('the legend on a track with a leading form', () => {
     expect(itemsAddress('/data/f/(item :label k1)', 'category', 'binding')).toBe(
       '/data/f/(item :category binding :label k1)',
     );
-    expect(itemsAddress('/data/f/(item :label k1)/(not :of (item :id x))', 'category', ['a', 'b c'])).toBe(
+    expect(itemsAddress('/data/f/(item :label k1)/(except :of (item :id x))', 'category', ['a', 'b c'])).toBe(
       '/data/f/(item :category [a "b c"] :label k1)',
     );
-    expect(itemsAddress('/data/f/(and :of [(item :label k1)])', 'category', 'binding')).toBe(
-      '/data/f/(and :of [(and :of [(item :label k1)]) (item :category binding)])',
+    expect(itemsAddress('/data/f/(intersect :of [(item :label k1)])', 'category', 'binding')).toBe(
+      '/data/f/(intersect :of [(intersect :of [(item :label k1)]) (item :category binding)])',
     );
     expect(itemsAddress('/data/f/(range :from 1 :to 3)/(item :a b)', 'category', 'x')).toBeUndefined();
   });
@@ -97,7 +97,7 @@ describe('the legend on a track with a leading form', () => {
   it.each(Object.entries(forms))('hides a value on it: the base kept (%s)', async (_, lead) => {
     const v = await make(lead);
     await v.execute('layer.filter', { address: Layer, entry: 'linker' });
-    expect(data(v)).toBe(`/data/domains/${lead}/(not :of (item :category linker))`);
+    expect(data(v)).toBe(`/data/domains/${lead}/(except :of (item :category linker))`);
     expect(dataFilter(data(v), 'category')).toEqual({ base: `/data/domains/${lead}`, hidden: ['linker'] });
     await v.execute('layer.filter', { address: Layer });
     expect(data(v)).toBe(`/data/domains/${lead}`);

@@ -5,17 +5,17 @@
  */
 
 // The three result types (_spec/README.md "Queries", Result types): Nodes (exact addresses of spec nodes and held
-// dynamic nodes), Elements (keys of what data makes) and Location (positions on systems). A query gives one of them;
+// dynamic nodes), Keys (keys of what data makes) and Location (positions on systems). A query gives one of them;
 // conversions between them are forms of their own (`extent`, `items`), never implicit. In a selection they travel as
 // the tree's `Named`: nodes as nodes, the others as `{ kind: 'other', type, value }`.
 
 import type { Named, Selected } from '@molstar/core/repr/tree';
-import type { Elements } from './elements.js';
+import type { Keys } from './keys.js';
 import type { Location } from './location.js';
 
 export type QueryResult =
   | { readonly type: 'nodes'; readonly nodes: readonly Selected[] }
-  | { readonly type: 'elements'; readonly elements: Elements }
+  | { readonly type: 'keys'; readonly keys: Keys }
   | { readonly type: 'location'; readonly location: Location };
 
 export type QueryResultType = QueryResult['type'];
@@ -25,8 +25,8 @@ export function toNamed(r: QueryResult): Named {
   switch (r.type) {
     case 'nodes':
       return { kind: 'nodes', matches: r.nodes };
-    case 'elements':
-      return { kind: 'other', type: 'elements', value: r.elements };
+    case 'keys':
+      return { kind: 'other', type: 'keys', value: r.keys };
     case 'location':
       return { kind: 'other', type: 'location', value: r.location };
   }
@@ -41,8 +41,8 @@ function isLocation(v: unknown): v is Location {
   return v.parts.every(part) && v.rects.every((r: unknown) => isObject(r) && part(r.a) && part(r.b));
 }
 
-/** Whether a value has Elements' shape: keys, each an owner and a string or number key. */
-function isElements(v: unknown): v is Elements {
+/** Whether a value has Keys' shape: keys, each an owner and a string or number key. */
+function isKeys(v: unknown): v is Keys {
   if (!isObject(v) || !Array.isArray(v.keys)) return false;
   return v.keys.every(
     (k: unknown) =>
@@ -56,7 +56,7 @@ function isElements(v: unknown): v is Elements {
  */
 export function fromNamed(n: Named): QueryResult | undefined {
   if (n.kind === 'nodes') return { type: 'nodes', nodes: n.matches };
-  if (n.type === 'elements' && isElements(n.value)) return { type: 'elements', elements: n.value };
+  if (n.type === 'keys' && isKeys(n.value)) return { type: 'keys', keys: n.value };
   if (n.type === 'location' && isLocation(n.value)) return { type: 'location', location: n.value };
   return undefined;
 }

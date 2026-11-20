@@ -11,7 +11,7 @@
 
 import type { Node } from '@molstar/core/repr/tree';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
-import { EmptyLocation, elements, type Location } from '@molstar/seqx-core/query';
+import { EmptyLocation, keySet, type Location } from '@molstar/seqx-core/query';
 import { recordDrawLists } from '@molstar/seqx-core/render';
 import { afterEach, describe, expect, it } from 'vitest';
 import { LinkedPairsChannel, type LinkedPairsParams, LinkedPairsProvider } from '../behaviors/linked-pairs.js';
@@ -133,7 +133,7 @@ describe('linkedPairs', () => {
   it('a selection of several range elements none of whose extents is known lights each one’s pairs', async () => {
     const v = await make();
     v.selection.set({
-      elements: elements([
+      elements: keySet([
         { owner: '/data/f', key: 'loop' },
         { owner: '/data/f', key: 'stem' },
       ]),

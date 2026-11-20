@@ -19,7 +19,7 @@
 // `mirror` at (b, a) too; kinds at one cell side by side.
 
 import { issueOf } from '@molstar/core/repr/tree';
-import { type ElementKey, type Location, location } from '@molstar/seqx-core/query';
+import { type Key, type Location, location } from '@molstar/seqx-core/query';
 import { theme as themeForm } from '@molstar/seqx-core/lang';
 import type { PairsData, StaticModel } from '@molstar/seqx-core/resolve';
 import type { Channel, ChannelName, ThemeDatum } from '@molstar/seqx-core/theme/index';
@@ -137,7 +137,7 @@ export interface PairsPrep {
   /** Each pair's index by its key. */
   readonly index: ReadonlyMap<string | number, number>;
   /** Each pair's element and extent (both ends), made when first hit. */
-  readonly elements: (ElementKey | undefined)[];
+  readonly elements: (Key | undefined)[];
   readonly extents: (Location | undefined)[];
   /** Each pair's two ends' centres as display units of a section (NaN: not on it), by section. */
   readonly units: WeakMap<

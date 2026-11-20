@@ -23,7 +23,7 @@
 // Cmd/Ctrl+↑ ↓ go to its ends, its y shown by the least move.
 
 import {
-  EmptyElements,
+  EmptyKeys,
   EmptyLocation,
   type Location,
   location,
@@ -417,7 +417,7 @@ export function createCursor(
     const rect = blockRect(block.from, next);
     if (!rect) return false;
     const loc = unionLocations(block.base, rect);
-    selection.set({ elements: EmptyElements, location: loc, shown: loc });
+    selection.set({ elements: EmptyKeys, location: loc, shown: loc });
     block.made = selection.value.value;
     return true;
   };
@@ -467,8 +467,7 @@ export function createCursor(
         const a = selection.anchor;
         // a new range at the cursor, the others kept; else from the anchor (none on this system: the cursor's cell)
         if (select === 'add') selection.add(cell, anchor);
-        else if (!a || a.system !== system)
-          selection.set({ elements: EmptyElements, location: cell, shown: cell }, anchor);
+        else if (!a || a.system !== system) selection.set({ elements: EmptyKeys, location: cell, shown: cell }, anchor);
         selection.extend({ system, position: q }, axis);
       }
       moveTo(next);

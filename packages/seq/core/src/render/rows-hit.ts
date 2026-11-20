@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { type ElementKey, type Location, rangesLocation } from '@molstar/seqx-core/query';
+import { type Key, type Location, rangesLocation } from '@molstar/seqx-core/query';
 import type { Hit, HitTarget } from './layer-type.js';
 import { TreeHitPx } from './rows-model.js';
 import type { RowsLay } from './rows-lay.js';
@@ -75,7 +75,7 @@ export function writeHit(
   position: number | undefined,
   yPosition: number | undefined,
   target: HitTarget,
-  clade?: { element: ElementKey; extent: Location },
+  clade?: { element: Key; extent: Location },
 ): Hit {
   const h = lay.scratch;
   h.layer = lay.key;
@@ -104,7 +104,7 @@ export function named(lay: RowsLay, h: Hit, q: number): Hit {
  * A clade's element and its rows as a Location on the rows system (its shown rows when folded at display row `i`),
  * made once a display.
  */
-export function cladeHit(lay: RowsLay, c: number, i?: number): { element: ElementKey; extent: Location } {
+export function cladeHit(lay: RowsLay, c: number, i?: number): { element: Key; extent: Location } {
   if (lay.cladeHitsOf !== lay.display.version) {
     lay.cladeHitsOf = lay.display.version;
     lay.cladeHits.clear();

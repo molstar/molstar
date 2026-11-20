@@ -15,9 +15,13 @@
 //
 //   address = "/" | ("/" step)+ ["/*"]
 //   step    = id | form
-//   form    = "(" kind (":" key value)* ")"
+//   form    = "(" head value* (":" key value)* ")"
+//   head    = kind | operator
 //   value   = atom | list | form | address
 //   list    = "[" value* "]"
+//
+// Positional values (a form's `args`) come before its keyword params: an expression's operands (`(> (prop b) 60)`),
+// which the language reading the form accepts or refuses; operator symbols (`OperatorKinds`) are heads too.
 //
 // Written from meso*'s tree core. Changed: forms are read here by their own small reader (the tree knows no codec;
 // the S-expression codec reads an address word through this one), values may be lists, strings and addresses, atoms
@@ -57,7 +61,17 @@ type Code = keyof typeof TreeIssues.codes;
 const issue = (code: Code, message: string, offset?: number, hint?: string): Issue =>
   issueOf(TreeIssues, code, message, { offset, hint });
 
-const FormHint = '(kind :key value …): values are atoms, lists, addresses or nested forms; no id, no children';
+const FormHint =
+  '(kind value … :key value …): positional values first; values are atoms, lists, addresses or nested forms; no id, no children';
+
+/**
+ * The operator symbols an address form may have as its head beside a kind (`(> (prop b-factor) 60)`): comparisons, an
+ * expression language's (locations-and-queries.md, The language). Forms only: never a node's kind in a tree.
+ */
+export const OperatorKinds: ReadonlySet<string> = new Set(['=', '!=', '<', '<=', '>', '>=']);
+
+/** Whether a form's head is a kind or an operator symbol. */
+const isHead = (head: string) => KindPattern.test(head) || OperatorKinds.has(head);
 
 /** Whether a pattern is only ids: it then names at most one node (or one subtree), found in O(depth × fan-out). */
 export function isExactAddress(pattern: AddressPattern): boolean {
@@ -85,6 +99,7 @@ export function printAddress(segments: readonly Segment[], subtree = false): str
 /** A query form on one line: `(range :from 94 :to 292)`. */
 function printForm(form: Node): string {
   let out = `(${form.kind}`;
+  for (const v of form.args ?? []) out += ` ${printFormValue(v)}`;
   const params = form.params ?? {};
   // keys sorted: a form's canonical spelling does not depend on the order it was written in
   for (const key of Object.keys(params).sort()) {
@@ -107,13 +122,19 @@ export function printAddressAtom(v: Atom): string {
 }
 
 /**
- * Why a value is not a query form, or undefined: a node whose kind is a word, no id, no children, no args, no custom
- * data, no reserved key, values atoms, lists of form values, or nested query forms (no records, no columns).
+ * Why a value is not a query form, or undefined: a node whose kind is a word or an operator symbol, no id, no
+ * children, no custom data, no reserved key, positional values (`args`) and params atoms, lists of form values, or
+ * nested query forms (no records, no columns).
  */
 function formIssue(form: unknown): string | undefined {
-  if (!isNode(form) || !KindPattern.test(form.kind)) return 'A query form is a node whose kind is a word';
+  if (!isNode(form) || !isHead(form.kind)) return 'A query form is a node whose kind is a word or an operator';
   if (form.id !== undefined) return 'A query form has no id: an id is a segment of its own';
-  if (form.children?.length || form.args?.length || form.custom) return 'A query form has params only';
+  if (form.children?.length || form.custom) return 'A query form has values and params only';
+  if (form.args !== undefined && !Array.isArray(form.args)) return 'A query form’s positional values are a list';
+  for (const v of form.args ?? []) {
+    const why = formValueIssue(v);
+    if (why) return why;
+  }
   const params = form.params ?? {};
   for (const key of Object.keys(params)) {
     if (isReservedKey(key)) return 'A query form names a reserved key';
@@ -272,10 +293,11 @@ function readForm(text: string, i: number, end: number, depth: number): Read<{ f
   const head = text.slice(i, headEnd);
   if (!head || head.startsWith(':'))
     return { issue: issue('repr.tree.address.form', 'A query form opens with its kind', i, FormHint) };
-  if (!KindPattern.test(head))
+  if (!isHead(head))
     return { issue: issueOf(TreeIssues, 'repr.tree.node.kind', 'Not a kind', { offset: i, hint: KindHint }) };
   i = headEnd;
   let params: Record<string, Value> | undefined;
+  let args: Value[] | undefined;
   for (;;) {
     i = skipSpace(text, i, end);
     if (i >= end) return syntax('An unclosed query form', open);
@@ -283,8 +305,16 @@ function readForm(text: string, i: number, end: number, depth: number): Read<{ f
       i++;
       break;
     }
-    if (text[i] !== ':')
-      return { issue: issue('repr.tree.address.form', 'A query form holds keyword params only', i, FormHint) };
+    if (text[i] !== ':') {
+      // a positional value: before every keyword param
+      if (params)
+        return { issue: issue('repr.tree.address.form', 'A positional value after a keyword param', i, FormHint) };
+      const v = readValue(text, i, end, depth);
+      if ('issue' in v) return v;
+      (args ??= []).push(v.value);
+      i = v.next;
+      continue;
+    }
     const keyAt = i;
     let key: string;
     if (text[i + 1] === '"') {
@@ -314,7 +344,7 @@ function readForm(text: string, i: number, end: number, depth: number): Read<{ f
     params[key] = v.value;
     i = v.next;
   }
-  const form: Node = params ? { kind: head, params } : { kind: head };
+  const form: Node = { kind: head, ...(args ? { args } : {}), ...(params ? { params } : {}) };
   return { form, next: i };
 }
 
@@ -451,7 +481,8 @@ export function addressOf(root: Node, target: Node): Address | undefined {
  * name, the node's id and its children are not looked at; defaults are not applied.
  */
 export function matchesForm(form: Node, node: Node): boolean {
-  if (node.kind !== form.kind) return false;
+  // positional values are an expression's, never a child's params: such a form selects no child
+  if (node.kind !== form.kind || form.args?.length) return false;
   const params = form.params;
   if (!params) return true;
   for (const key in params) {
