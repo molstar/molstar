@@ -16,6 +16,7 @@ import { type Key, EmptyLocation, type Location, location } from '@molstar/seqx-
 import { projectRanges, type Path } from '@molstar/seqx-core/resolve';
 import { projectOntoView } from '@molstar/seqx-core/view';
 import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
+import { moleculeOfSystem, type PlaceMolecule } from '@molstar/seqx-viewer/describe-molecules';
 import type { SpecModel } from './spec.js';
 import type { ViewModel } from './view.js';
 
@@ -113,6 +114,8 @@ export class HoverModel extends ReactiveModel {
   private _location: Location | undefined;
   private _closed: Location | undefined;
   private _all: Location | undefined;
+  /** The hovered molecule: null for none, undefined until asked. */
+  private _molecule: PlaceMolecule | null | undefined;
   private readonly _projected = new Map<string, Location>();
   private readonly _buffer: number[] = [];
   private readonly _view: ViewModel;
@@ -219,6 +222,22 @@ export class HoverModel extends ReactiveModel {
   }
 
   /**
+   * The molecule the hover is on (_spec/README.md "HoverModel", Molecules): a molecule's residue or atom, a unit of one,
+   * a chip; its address, name, class and identifiers (what a host's card draws a structure from: a SMILES, a CCD
+   * code). Undefined on a sequence or when nothing is hovered; computed when asked and kept for the version.
+   */
+  molecule(): PlaceMolecule | undefined {
+    this._fresh();
+    const system = this._record.system;
+    if (this._molecule === null) return undefined;
+    if (this._molecule === undefined) {
+      const m = system === undefined ? undefined : moleculeOfSystem(this._spec.model.value, system);
+      this._molecule = m ?? null;
+    }
+    return this._molecule ?? undefined;
+  }
+
+  /**
    * The hover as a section draws it, computed when asked and kept for this version: the closed Location's parts on the
    * section's system, and the others carried along the view's links (when `hover.projectLinked`). Empty when the
    * section is not linked; undefined when nothing is hovered.
@@ -280,6 +299,7 @@ export class HoverModel extends ReactiveModel {
     this._location = undefined;
     this._closed = undefined;
     this._all = undefined;
+    this._molecule = undefined;
     this._projected.clear();
   }
 

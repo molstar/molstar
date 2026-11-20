@@ -24,6 +24,7 @@ import {
 } from '@molstar/seqx-core/render';
 import type { StaticModel } from '@molstar/seqx-core/resolve';
 import type { AddressModel, Cursor, SpecModel, StoreModel, ViewModel } from '@molstar/seqx-viewer/models';
+import { chemistryRows } from './describe-molecules.js';
 import type { HoverCard, HoverCardRow } from './hover-card.js';
 
 // What a place is, in words (_spec/README.md "Input", Announcements; "Hover card"): one description that the live
@@ -166,8 +167,11 @@ const PairSection: CardSection = {
     const k = d.keys.indexOf(el.key);
     if (k < 0) return;
     const label = d.labels?.[k] || String(el.key);
-    const x = `${at.words.systemName(a.target)} ${spanText(d.aStart[k], d.aEnd[k])}`;
-    const y = `${at.words.systemName(a.ySystem ?? a.target)} ${spanText(d.bStart[k], d.bEnd[k])}`;
+    // a complex's link: each end on its row's unit
+    const as = (a.units && d.aUnit && a.units[d.aUnit[k]]) || a.target;
+    const bs = (a.units && d.bUnit && a.units[d.bUnit[k]]) || (a.ySystem ?? a.target);
+    const x = `${at.words.systemName(as)} ${spanText(d.aStart[k], d.aEnd[k])}`;
+    const y = `${at.words.systemName(bs)} ${spanText(d.bStart[k], d.bEnd[k])}`;
     const kind = d.kinds[d.kind[k]];
     out.title = label;
     out.row('From', x);
@@ -341,6 +345,11 @@ const PlaceSection: CardSection = {
     if (letter) {
       out.row('Letter', letter);
       out.words.push(`letter ${letter}`);
+    }
+    // a modified residue's component, its alternatives; a molecule's residue; an atom and its residue
+    for (const r of chemistryRows(at.model, system, position)) {
+      out.row(r.label, r.value);
+      out.words.push(r.words);
     }
     for (const [label, value] of w.valuesAt(at.section, position)) {
       out.row(label, value);

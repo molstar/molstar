@@ -31,6 +31,8 @@ export interface EditingContext {
   readonly color?: Value;
   /** `refs.label`: the bookmark's label ('' removes it: its id is shown). */
   readonly label?: string;
+  /** `block.form`: the block's form (`whole`, `residues`, `atoms`). */
+  readonly form?: 'whole' | 'residues' | 'atoms';
   /** `step.enter`: the story step's id. */
   readonly step?: string;
   /** Who edits (`person` when absent; an agent's turn joins one step). */
@@ -52,6 +54,7 @@ export const EditingCommandIds = {
   labelRef: 'refs.label',
   reverseSection: 'section.reverse',
   collapseSection: 'section.collapse',
+  formBlock: 'block.form',
   enterStep: 'step.enter',
   leaveStep: 'step.leave',
   cancelPreview: 'preview.cancel',
@@ -119,7 +122,65 @@ export function editingBehavior(spec: SpecModel, axis?: AxisReaders): EditingBeh
   const resolvedDir = (address: string): 1 | -1 =>
     axis?.view.resolved.value?.sections.find((x) => x.address === address)?.axis.dir ?? 1;
 
+  /**
+   * A block's node to patch: a `block` child, or a block a section of a complex derives from its units (its address
+   * `<section>/<unit id>`), which the patch writes out first as the section's children (every block it shows, in
+   * order, copies a block each so `copies` still merges them): explicit blocks win, so the view is the same but the form.
+   */
+  const blockEdit = (address: string, form: string): Op[] | undefined => {
+    const root = spec.root.value;
+    if (nodeOf(root, address, 'block')) return [{ op: 'set', at: ids(address), key: 'form', value: form }];
+    const path = ids(address);
+    const sectionAt = `/${path.slice(0, -1).join('/')}`;
+    const section = axis?.view.resolved.value?.sections.find((x) => x.address === sectionAt);
+    if (!section?.blocks || !nodeOf(root, sectionAt, 'section')) return undefined;
+    const ops: Op[] = [];
+    let found = false;
+    let before: string | null = null;
+    for (const b of section.blocks)
+      for (let i = 0; i < b.members.length; i++) {
+        const id = b.members[i].slice(sectionAt.length + 1);
+        const of = unitOf(b.systems[i]);
+        const mine = b.members[i] === address || b.address === address;
+        if (mine) found = true;
+        const params: Record<string, Value> = { of };
+        if (mine) params.form = form;
+        else if (b.form !== 'residues' && b.form !== defaultForm(b.systems[i])) params.form = b.form;
+        ops.push({
+          op: 'insert',
+          parent: ids(sectionAt),
+          place: { after: before },
+          node: { kind: 'block', id, params },
+        });
+        before = id;
+      }
+    return found ? ops : undefined;
+  };
+  /** A block's unit: an atoms system's residues system (a block of form `atoms` shows its unit's atoms). */
+  const unitOf = (system: string) => (system.endsWith('/(atoms)') ? system.slice(0, -'/(atoms)'.length) : system);
+  /** The form a block on a system has when it names none: `whole` for a molecule's unit, `residues` else. */
+  const defaultForm = (system: string) => {
+    const m = spec.model.value.molecular;
+    const u = m.units.get(unitOf(system));
+    return m.molecules.has(u ? u.of : unitOf(system)) ? 'whole' : 'residues';
+  };
+
   const commands: CommandDefinition<EditingContext>[] = [
+    {
+      id: EditingCommandIds.formBlock,
+      title: 'Show a block as',
+      category: 'Edit',
+      when: (ctx) =>
+        disposed
+          ? 'The viewer is retired'
+          : ctx.address === undefined || ctx.form === undefined
+            ? 'No block or form given'
+            : blockEdit(ctx.address, ctx.form)
+              ? true
+              : 'No block there',
+      run: (_, ctx) =>
+        edit('Show a block as', () => blockEdit(ctx.address!, ctx.form!) ?? [], ctx, `Shown as ${ctx.form}`),
+    },
     {
       id: EditingCommandIds.reverseSection,
       title: 'Reverse a section',

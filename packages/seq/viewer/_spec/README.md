@@ -269,6 +269,14 @@ the region (a press there says it too, a tap's hover).
   parts on the section's own system. `projectedAll()` is the same for every section at once (the core's
   `projectOntoView`, one Location keyed by system), what the frame draws (Emphasis).
 
+- **Molecules** (`describe-molecules.ts`): `molecule()` is the molecule the hover is on (a molecule's residue or atom, a
+  unit of one, a chip): its address, name, class, `identifiers` and unit, computed when asked and kept for the version;
+  undefined on a sequence. Why identifiers: a host's card draws a structure from a SMILES or a CCD code; no depiction
+  port (one consumer, the host's card, already has what it needs). The hover's words (the card and the announcer) add a
+  modified residue's component with its name (`Component: PSU (pseudouridine)`, the spec's `compound` node or the host's
+  `componentNames`), its alternatives (`Components: H2U | U`), a molecule's residue by its code, an atom by its name and
+  element with its residue (`Atom: O1G (O)`, `Residue: ATP 1`); a pair of a complex's links names each end's unit.
+
 ### SelectionModel and HighlightModel
 
 `models/selection.ts`: session state as addresses and Locations, never in the spec.
@@ -974,6 +982,13 @@ rows' commands) reads the last frame's rows layers through the behavior context'
   address still waits is asked again), and the channel's value per set of keys: a hover allocates nothing a frame past
   its first. A pair or a position hovered is the pairs layer's own rule (its partners light), never the channel. Why a
   behavior: a host chooses an analysis, and the same query serves the selection.
+- `linksHover` (`LinksHoverProvider`, `links-hover.ts`; not in the default spec: how events from different parts compose
+  is the application's, the examples list it): hovering a molecule (a chip, a residue, an atom) lights the positions its
+  links reach (a complex's `pairs` children, each end on its row's unit); hovering a linked site lights the molecule's
+  whole unit (a link between two polymers, a disulfide: the other end). Written to its own highlight channel (`linked`),
+  cleared when the hover goes; a merged block's hover is each of its copies', and an end on a merged copy is lit on the
+  block it is merged into. A link is never a map: nothing is projected across it. Contacts get no such behavior (a layer
+  the host adds).
 - `editing`: edits of the spec as commands, each one patch made against the revision read (`SpecModel.patch`, one step):
   `layer.hide`, `layer.show` (the `hidden` key set or unset), `layer.color` (the layer's theme), `track.hide` and
   `track.show` (the track's own `hidden`: its layers keep theirs, so hide then show is a round trip), `track.move`
@@ -1041,6 +1056,12 @@ selection's gestures and the cursor's moves are session state; the cursor's focu
   absent), with no memory of an earlier form. On the section named (`address`), else the keyboard cursor's, else the
   first leading one; their keys are `view.keys`' (Shift+R, Shift+C). Why patches: direction and pieces are what the
   figure is, so undo (not back) returns them and the export says the same.
+- **`block.form`** (the `editing` behavior's, a patch, one undo step; what a context menu lists for a block, as
+  `copies`; no default key): sets a block's `form` (`whole`, `residues`, `atoms`; `address` the block, `form`). A block
+  a section of a complex derives from its units has no node: the patch first writes out every block the section shows as
+  its `block` children, in order, a merged copy a block each (so `copies` still merges them), each block's form kept
+  where it is not its default, then the one named with its form. Why written out: explicit blocks win (the core's
+  Resolved view), so the view is the same but the form, and undo returns the derived blocks.
 
 - **The rows' commands** (the `rows` behavior's, `behaviors/rows.ts`, on a track's rows layer, the first when none is
   named): folds are session state (the band's `folds`: no undo step): `clades.toggle` (a hand's move, no history step),

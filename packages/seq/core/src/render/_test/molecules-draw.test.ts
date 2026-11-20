@@ -134,4 +134,18 @@ describe('a complex drawn against its data', () => {
     const f = await s.frame({ size: Size });
     expect(pairsLay(f).n).toBe(3);
   });
+
+  it('in text, the molecules\' chips flow like words on one line, each labeled (EC-99)', async () => {
+    const s = await settle(moleculesSpec({ layout: 'text' }));
+    const f = await s.frame({ size: Size });
+    const p = f.layout.sections[0].placement;
+    const chips: number[] = [];
+    for (let i = 0; i < p.strips.n; i++) if (p.strips.chip[i]) chips.push(i);
+    expect(chips.length).toBe(3);
+    // one line: the same top, left to right
+    expect(new Set(chips.map((i) => p.strips.top[i])).size).toBe(1);
+    for (let k = 1; k < chips.length; k++)
+      expect(p.strips.axes[chips[k]].x0).toBeGreaterThan(p.strips.axes[chips[k - 1]].x0);
+    expect(texts(f)).toEqual(expect.arrayContaining(['Glycan', 'ATP', 'NA']));
+  });
 });
