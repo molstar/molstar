@@ -15,6 +15,12 @@ export const ResolveIssues = defineIssues('seq.resolve', {
     description: 'A reference the resolve pass follows names no node of a kind it takes (the spec was not checked)',
     hint: 'Check the spec first: checkSeqSpec reports what it names',
   },
+  'seq.resolve.ref.system': {
+    severity: 'warning',
+    description:
+      'A reference names a sequence, molecule or unit that made no system (a unit of a refused complex, or of nothing held); what reads it is left out',
+    hint: 'Name a system the model holds: a unit of a complex within `maxUnits`, whose `of` is held',
+  },
   'seq.resolve.source.format': {
     severity: 'error',
     description: 'A source names no format (the spec was not checked); it is unavailable',

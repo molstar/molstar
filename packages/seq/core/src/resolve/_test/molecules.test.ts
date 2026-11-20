@@ -177,6 +177,52 @@ describe('paths through units', () => {
   });
 });
 
+describe('a reference to a unit that made no system', () => {
+  /** A complex of two units of `s` (or of a source's node), and a ranges, a map and pairs naming its unit A. */
+  function namingUnit(of?: string): Node {
+    const b = createSeqSpec();
+    const s = b.data.sequence('s', { alphabet: 'protein', letters: 'ABCDEFGHIK' });
+    b.data.source('src', { format: 'mmcif', uri: 'x.cif' });
+    b.data.complex('c', {}, (c) => {
+      c.unit('A', { of: (of ?? s) as never });
+      c.unit('B', { of: s });
+    });
+    b.data.ranges('r', { target: '/data/c/A' as never, rows: { start: [0], end: [1] } });
+    b.data.map('m', { from: '/data/c/A' as never, to: s, method: 'offset', by: 0 });
+    b.data.pairs('p', { a: '/data/c/A' as never, rows: { a_start: [0], a_end: [1], b_start: [2], b_end: [3] } });
+    return b.build();
+  }
+
+  const codes = (m: ReturnType<typeof resolveSpec>) =>
+    m.issues.filter((i) => i.code !== 'seq.resolve.source.runtime').map((i) => [i.code, i.address]);
+
+  it('a unit of a complex refused past maxUnits: what names it is left out with an issue, never a throw', () => {
+    const m = resolveSpec(namingUnit(), { config: { maxUnits: 1 } });
+    expect([m.annotations.has('/data/r'), m.maps.has('/data/m'), m.annotations.has('/data/p')]).toEqual([
+      false,
+      false,
+      false,
+    ]);
+    expect(codes(m)).toEqual([
+      ['seq.resolve.complex.units', '/data/c'],
+      ['seq.resolve.ref.system', '/data/m'],
+      ['seq.resolve.ref.system', '/data/p'],
+      ['seq.resolve.ref.system', '/data/r'],
+    ]);
+  });
+
+  it('a unit whose `of` names nothing held (a source’s dynamic node) is no system either', () => {
+    const m = resolveSpec(namingUnit('/data/src/(node :key "1")'));
+    expect(m.systems.has('/data/c/A')).toBe(false);
+    expect(m.annotations.has('/data/r')).toBe(false);
+    expect(codes(m).filter(([c]) => c === 'seq.resolve.ref.system')).toEqual([
+      ['seq.resolve.ref.system', '/data/m'],
+      ['seq.resolve.ref.system', '/data/p'],
+      ['seq.resolve.ref.system', '/data/r'],
+    ]);
+  });
+});
+
 describe('the atoms group map, at a path’s ends only', () => {
   const model = resolveSpec(moleculesSpec());
 

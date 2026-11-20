@@ -386,6 +386,7 @@ const p = (n: Node, key: string): Value | undefined => n.params?.[key];
 
 /** The kinds a data reference to a system takes: a sequence, a molecule's residues, a unit of a complex. */
 const SystemRefs = ['sequence', 'molecule', 'unit'] as const;
+const SystemKinds: ReadonlySet<string> = new Set(SystemRefs);
 
 function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: ReadonlyMap<string, PathEntry>): Model {
   const config: ResolveConfig = { ...DefaultResolveConfig, ...options.config };
@@ -402,10 +403,22 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
     }
   }
   const inner = placeChildren(data, byAddress);
+  const systems = new Map<string, SystemEntry>();
   const ref = (at: Placed, key: string, kinds: readonly string[]): Placed | undefined => {
     const a = exactAddress(p(at.node, key));
     const t = a === undefined ? undefined : byAddress.get(a);
-    if (t && kinds.includes(t.node.kind)) return t;
+    // a system's node that made no system (a unit of a refused complex, or of nothing held) is named, not taken
+    if (t && kinds.includes(t.node.kind) && (SystemKinds.has(t.node.kind) ? systems.has(t.address) : true)) return t;
+    if (t && kinds.includes(t.node.kind)) {
+      issues.push(
+        issueOf(ResolveIssues, 'seq.resolve.ref.system', 'The reference names a node that is no system', {
+          address: at.address,
+          path: ['params', key],
+          hint: ResolveIssues.codes['seq.resolve.ref.system'].hint,
+        }),
+      );
+      return undefined;
+    }
     issues.push(
       issueOf(ResolveIssues, 'seq.resolve.ref.missing', 'The reference names no node of a kind it takes', {
         address: at.address,
@@ -444,7 +457,6 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
     sources.set(at.address, bound.binding);
   }
 
-  const systems = new Map<string, SystemEntry>();
   for (const at of data) {
     if (at.node.kind !== 'sequence') continue;
     const src = p(at.node, 'source') === undefined ? undefined : ref(at, 'source', ['source']);
