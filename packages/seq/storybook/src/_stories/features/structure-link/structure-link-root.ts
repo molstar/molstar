@@ -14,8 +14,8 @@ import { Button } from '@molstar/ui/components/button/button';
 import { defineElements, onCleanup } from '@molstar/ui/dom';
 import { UiElement } from '@molstar/ui/elements/ui-element';
 import { fakeStructureElement } from '../../support/fake-structure/fake-view.js';
-import { ColorByEntry, colorByBehavior, colorByLayer } from '../../support/host-adapter.js';
-import { chainTableOf, Datasets, type DatasetName, type FakeLink, linkFake } from './compose.js';
+import { ColorByEntry, colorByBehavior } from '../../support/host-adapter.js';
+import { chainTableOf, colorRunner, Datasets, type DatasetName, type FakeLink, linkFake } from './compose.js';
 
 // The structure link's stories (structure-syncing): a Seq* view above the fake structure viewer, linked by
 // `linkStructure` through the host's adapter. The fake is a small viewer of its own (chains as rows of residue cells, a
@@ -104,9 +104,12 @@ class StructureLinkRoot extends UiElement<StructureLinkStory> {
           ...(story.colorBy
             ? [
                 colorByBehavior((layer) =>
-                  linked
-                    ? colorByLayer(viewer, linked.fake, linked.adapter, layer, schemeOf(root), bindings())
-                    : 'The structure is not linked yet',
+                  colorRunner(
+                    viewer,
+                    () => linked,
+                    () => schemeOf(root),
+                    bindings,
+                  )(layer),
                 ),
               ]
             : []),
@@ -114,12 +117,15 @@ class StructureLinkRoot extends UiElement<StructureLinkStory> {
       },
       canvasHost,
     );
+    let gone = false;
+    let unlog: (() => void) | undefined;
     onCleanup(() => {
+      gone = true;
+      unlog?.();
       linked?.dispose();
       viewer.retire();
     });
 
-    let unlog: (() => void) | undefined;
     const link = (table: Parameters<typeof linkFake>[1]) => {
       linked?.dispose();
       unlog?.();
@@ -157,6 +163,7 @@ class StructureLinkRoot extends UiElement<StructureLinkStory> {
         fetch(dataset.tableFile).then((r) => (r.ok ? r.text() : Promise.reject(new Error(`${r.status}`)))),
         viewer.load(story.view.build()).then(() => viewer.settle()),
       ]);
+      if (gone) return;
       table = chainTableOf(text);
       link(table);
     })().catch((e) => {

@@ -13,8 +13,10 @@ import { ChainTableFile, EntityStart, EntityLength, StructureAddresses } from '@
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { Cell, ChainTable, Span } from '../../../support/fake-structure/chain-table.js';
-import { ColorByEntry, colorByBehavior, colorByLayer, viewerModel } from '../../../support/host-adapter.js';
-import { type FakeLink, linkFake } from '../compose.js';
+import { type HeadersBehavior, HeadersProvider } from '@molstar/seqx-viewer/behaviors/headers';
+import { BaseColor } from '../../../support/fake-structure/mvs-state.js';
+import { ColorByEntry, colorByBehavior, viewerModel } from '../../../support/host-adapter.js';
+import { colorRunner, type FakeLink, linkFake } from '../compose.js';
 import { fakeClock, openView, tableOf } from './open.js';
 
 // The structure link's stories, headless on a fake clock, composed as the stories compose them (compose.ts): p53 and
@@ -95,7 +97,7 @@ describe('Hover both ways', () => {
     );
   });
 
-  it('and back: a cell of the fake is Seq*’s hover on its own chain and P04637 alone, never a sibling copy (EC-65)', () => {
+  it('and back: a cell of the fake is Seq*’s hover on its own chain and, projected, on P04637 at its author number, never a sibling copy (EC-65)', async () => {
     const { v, fake } = open();
     for (const row of fake.rows.filter((r) => r.polymer))
       for (let index = 0; index < row.residues.length; index += 9) {
@@ -106,7 +108,14 @@ describe('Hover both ways', () => {
         // the hovered residue: author number `auth`, position `auth - 1` on P04637, the chain's unit position `index`
         expect(unit.map((p) => [p.system, ...p.ranges])).toEqual([[`${Complex}/${row.asym}`, index, index + 1]]);
         expect(v.hover.active).toBe(true);
-        void 0;
+        if (index % 27 === 0) {
+          v.draw();
+          const on = v.emphasis.projected?.hover?.parts.find((p) => p.system === Protein);
+          expect(Array.from(on?.ranges ?? []), `${row.asym} ${row.residues[index].auth}`).toEqual([
+            Number(row.residues[index].auth) - 1,
+            Number(row.residues[index].auth),
+          ]);
+        }
       }
     fake.pointerOver(null);
   });
@@ -140,6 +149,39 @@ describe('Hover both ways', () => {
     expect(cellsOf(fake, fake.highlight.value).map((c) => c.res.auth)).toEqual(
       Array(4).fill(String(EntityStart + 121)),
     );
+  });
+});
+
+describe('Hover with latency, the other way', () => {
+  it('a late hover of the fake, older than the pointer’s own, is dropped; a newer one is taken (EC-141)', async () => {
+    const { v, fake } = open(600);
+    // the pointer sweeps across the fake (its hover is on the way) and back onto P04637 within the latency
+    fake.pointerOver({ row: 0, index: 80 });
+    await vi.advanceTimersByTimeAsync(200);
+    hoverUp(v, EntityStart + 120);
+    const pointerAt = v.hover.location()!;
+    await vi.advanceTimersByTimeAsync(500);
+    // the stale message arrived: it took nothing
+    expect(fake.sent.map((m) => m.kind)).toEqual(['hover']);
+    expect(v.hover.owner).toBe(pointer);
+    expect(locationsEqual(v.hover.location()!, pointerAt)).toBe(true);
+    // a hover of the fake after the pointer's last is taken, when it arrives
+    fake.pointerOver({ row: 1, index: 90 });
+    await vi.advanceTimersByTimeAsync(600);
+    expect(v.hover.owner).not.toBe(pointer);
+    expect(v.hover.location()!.parts.map((p) => [p.system, ...p.ranges])).toEqual([[`${Complex}/B`, 90, 91]]);
+  });
+});
+
+describe('The adapter’s words', () => {
+  it('a selector it places is a target; one with a field it does not place is none, never widened to every unit', () => {
+    const { fake } = open();
+    const { adapter } = link!;
+    const t = adapter.targetOfSelectors([{ label_asym_id: 'A', beg_label_seq_id: 3, end_label_seq_id: 5 }]);
+    expect(t!.parts.map((p) => [p.system, ...p.ranges])).toEqual([[`${Complex}/A`, 2, 5]]);
+    for (const sel of [{ label_entity_id: '1' }, { auth_asym_id: 'A' }, { label_asym_id: 'A', auth_seq_id: 100 }])
+      expect(adapter.targetOfSelectors([sel]), JSON.stringify(sel)).toBeNull();
+    expect(fake.rows.length).toBeGreaterThan(0);
   });
 });
 
@@ -201,8 +243,15 @@ describe('Focus and back', () => {
     // back: the step before named a location (the double-click’s): the camera goes there
     v.view.back();
     await vi.advanceTimersByTimeAsync(20);
-    expect(fake.camera.value).not.toBe(cam);
     expect(v.view.lastJump!.kind).toBe('back');
+    // the step before named the double-clicked cell (a unit's residue): the camera is on it, row 2, cell 60, again
+    expect(fake.camera.value!.spans).toEqual([{ row: 2, start: 60, end: 61 }]);
+    v.view.forward();
+    await vi.advanceTimersByTimeAsync(20);
+    expect(v.view.lastJump!.kind).toBe('forward');
+    expect(cellsOf(fake, fake.camera.value!.spans).map((c) => c.res.auth)).toEqual(
+      Array(4).fill(String(EntityStart + 151)),
+    );
   });
 });
 
@@ -240,7 +289,11 @@ describe('Color by this track', () => {
       registry: [ColorByEntry],
       behaviors: [
         colorByBehavior((layer) =>
-          colorLink ? colorByLayer(colored, colorLink.fake, colorLink.adapter, layer, 'light') : 'not linked',
+          colorRunner(
+            colored,
+            () => colorLink,
+            () => 'light',
+          )(layer),
         ),
       ],
     });
@@ -252,9 +305,19 @@ describe('Color by this track', () => {
     colored.draw();
     colorLink = link = linkFake(colored, table, Complex);
     const { fake } = link;
-    const layer = colored.view.resolved.value!.sections[0].tracks.find((t) => t.label === 'P04637')!.layers[0];
-    expect(colored.commands.some((c) => c.id === 'fake-host.color-by')).toBe(true);
-    expect(colored.runCommand('fake-host.color-by', { layer: layer.address })).toMatch(/^Colored \d+ runs$/);
+    const track = colored.view.resolved.value!.sections[0].tracks.find((t) => t.label === 'P04637')!;
+    const layer = track.layers[0];
+    // through the header entry: its `when` and `args` make the command's context, as a click on its slot does
+    const headers = colored.behavior<HeadersBehavior>(HeadersProvider)!;
+    const target = { section: Section, track: track.address };
+    expect(
+      headers
+        .menuOf(target)!
+        .groups.flat()
+        .map((i) => i.name),
+    ).toContain('fake-host:color-by');
+    expect(headers.run('fake-host:color-by', target)).toMatch(/^Colored \d+ runs$/);
+    expect(link.log.value.at(-1)).toMatch(/^→ color .*: Colored \d+ runs$/);
     const colors = colored.renderer!.layerColors();
     const runs = colorRuns(viewerModel(colored), colored.store.store, layer, undefined, { colors }).runs;
     const channel = colors.channel(layer, LightTokens)!;
@@ -285,6 +348,9 @@ describe('Color by this track', () => {
       });
     }
     expect(checked).toBe(4 * 194);
+    // the same track again: back to the base state
+    expect(headers.run('fake-host:color-by', target)).toBe('Restored the base colors');
+    expect(fake.colorOf(0, 20)).toBe(BaseColor);
     colorLink = undefined;
   });
 });

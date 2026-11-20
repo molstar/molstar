@@ -13,6 +13,7 @@ import {
   selectorsOfSpans,
   spansOfSelector,
 } from '../chain-table.js';
+import { frameBox } from '../frame-box.js';
 import { FakeStructureViewer } from '../fake-viewer.js';
 import { colorNodesOf, stateIssues, structureState } from '../mvs-state.js';
 
@@ -116,7 +117,7 @@ describe('the fake structure viewer’s grammar and latency', () => {
     expect(told).toHaveLength(2);
   });
 
-  it('"select chain" is the chain’s observed cells and "within 5 Å" grows by its neighbors and the chain’s ligand', () => {
+  it('"select chain" is the selection’s chains’ observed cells and "within 5 Å" grows by its neighbors and the chain’s ligand', () => {
     const fake = new FakeStructureViewer(table);
     fake.click({ row: 0, index: 2 });
     fake.within();
@@ -124,7 +125,40 @@ describe('the fake structure viewer’s grammar and latency', () => {
       { row: 0, start: 1, end: 5 },
       { row: 2, start: 0, end: 1 },
     ]);
+    // the selection's chains: A, and the ligand chain B it reached
     fake.selectChain();
-    expect(fake.selection.value).toEqual([{ row: 0, start: 1, end: 5 }]);
+    expect(fake.selection.value).toEqual([
+      { row: 0, start: 1, end: 5 },
+      { row: 2, start: 0, end: 1 },
+    ]);
+  });
+});
+
+describe('the fake structure viewer’s camera frame', () => {
+  it('is placed against its container, cell rectangles scrolled, so a cell of the third row is on the third row', () => {
+    const cells = [
+      { left: 130, top: 90, right: 134, bottom: 104 },
+      { left: 150, top: 90, right: 154, bottom: 104 },
+    ];
+    const container = { left: 20, top: 40, right: 800, bottom: 200 };
+    expect(frameBox(cells, container, { left: 0, top: 0 }, 6)).toEqual({ left: 104, top: 44, width: 36, height: 26 });
+    expect(frameBox(cells, container, { left: 10, top: 5 }, 6).left).toBe(114);
+  });
+});
+
+describe('the fake structure viewer’s other selections', () => {
+  it('"select chain" takes every chain of the selection, "within 5 Å" the ligand of the selection’s copy alone', () => {
+    const fake = new FakeStructureViewer(table);
+    fake.click({ row: 0, index: 2 });
+    fake.click({ row: 1, index: 2 }, true);
+    fake.selectChain();
+    expect(fake.selection.value).toEqual([
+      { row: 0, start: 1, end: 5 },
+      { row: 1, start: 1, end: 5 },
+    ]);
+    // the ligand is of copy 1_555: a selection on copy 2_555 alone does not take it
+    fake.click({ row: 1, index: 2 });
+    fake.within();
+    expect(fake.selection.value).toEqual([{ row: 1, start: 1, end: 5 }]);
   });
 });

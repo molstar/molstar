@@ -8,6 +8,7 @@ import { Button } from '@molstar/ui/components/button/button';
 import { defineElements, onCleanup } from '@molstar/ui/dom';
 import { UiElement } from '@molstar/ui/elements/ui-element';
 import type { Cell, Span } from './chain-table.js';
+import { frameBox } from './frame-box.js';
 import type { FakeStructureViewer } from './fake-viewer.js';
 
 // The fake structure viewer's view (a thin one: the model is `fake-viewer.ts`): a chain instance a row, a residue a
@@ -124,22 +125,20 @@ class FakeStructureElement extends UiElement<FakeStructureViewer> {
         frame.style.display = 'none';
         return;
       }
-      const boxes = cam.spans.map((s) => {
-        const a = cells[s.row][s.start];
-        const b = cells[s.row][s.end - 1];
-        return { l: a.offsetLeft, t: a.offsetTop, r: b.offsetLeft + b.offsetWidth, b: b.offsetTop + b.offsetHeight };
-      });
-      const pad = 6;
-      const l = Math.min(...boxes.map((x) => x.l)) - pad;
-      const t = Math.min(...boxes.map((x) => x.t)) - pad;
-      const r = Math.max(...boxes.map((x) => x.r)) + pad;
-      const b = Math.max(...boxes.map((x) => x.b)) + pad;
+      const rect = (el: HTMLElement) => el.getBoundingClientRect();
+      const boxes = cam.spans.flatMap((s) => [rect(cells[s.row][s.start]), rect(cells[s.row][s.end - 1])]);
+      const { left, top, width, height } = frameBox(
+        boxes,
+        rect(rowsEl),
+        { left: rowsEl.scrollLeft, top: rowsEl.scrollTop },
+        6,
+      );
       frame.style.transition = `left ${cam.durationMs}ms, top ${cam.durationMs}ms, width ${cam.durationMs}ms, height ${cam.durationMs}ms`;
       frame.style.display = 'block';
-      frame.style.left = `${l}px`;
-      frame.style.top = `${t}px`;
-      frame.style.width = `${r - l}px`;
-      frame.style.height = `${b - t}px`;
+      frame.style.left = `${left}px`;
+      frame.style.top = `${top}px`;
+      frame.style.width = `${width}px`;
+      frame.style.height = `${height}px`;
     };
     draw();
     place();

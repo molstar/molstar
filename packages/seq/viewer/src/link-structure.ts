@@ -39,7 +39,11 @@ export interface StructureSide {
   select(target: StructureTarget | null): void;
   focus(target: StructureTarget, options: { readonly durationMs: number }): void;
   /** The structure viewer's own events, translated by the host; each returns its unsubscribe. */
-  onHover?(fn: (target: StructureTarget | null) => void): () => void;
+  /**
+   * `at` is when the structure viewer's hover happened (`performance.now()`); absent, it is taken as now. A hover older
+   * than the pointer's last own hover is dropped (a late message never takes the hover from the pointer).
+   */
+  onHover?(fn: (target: StructureTarget | null, at?: number) => void): () => void;
   onSelect?(fn: (target: StructureTarget | null) => void): () => void;
   onFocus?(fn: (target: StructureTarget) => void): () => void;
   /** Aborted when the structure viewer goes: the link clears and disposes itself. */
@@ -100,6 +104,8 @@ export function linkStructure(viewer: SeqViewer, side: StructureSide, options: L
   };
   /** Whether the last hover and selection sent wait for a described map (EC-169): sent again once it resolves. */
   let waitingHover = false;
+  /** When the hover last changed other than by the side's (the pointer's own, or its leaving). */
+  let lastOwnHover = Number.NEGATIVE_INFINITY;
   let waitingSelection = false;
   /** A Location on units, and whether a described map it could take waits for its description. */
   const unitsOf = (loc: Location, limits: SyncLimits): { t: StructureTarget | null; pending: boolean } => {
@@ -155,7 +161,13 @@ export function linkStructure(viewer: SeqViewer, side: StructureSide, options: L
     sentHover = t;
     side.highlight(t);
   };
-  if (out(options.hover)) offs.push(viewer.hover.version.listen(sendHover));
+  if (out(options.hover))
+    offs.push(
+      viewer.hover.version.listen(() => {
+        if (viewer.hover.owner !== owner) lastOwnHover = performance.now();
+        sendHover();
+      }),
+    );
 
   const sendSelection = () => {
     selectionDue = undefined;
@@ -204,8 +216,10 @@ export function linkStructure(viewer: SeqViewer, side: StructureSide, options: L
 
   if (inward(options.hover) && side.onHover)
     offs.push(
-      side.onHover((target) =>
+      side.onHover((target, at = performance.now()) =>
         apply(() => {
+          // a hover the pointer has since overtaken (it happened before the pointer's last own hover) is stale
+          if (at < lastOwnHover) return;
           const loc = target ? onSequences(target) : undefined;
           // a stale null (the pointer took the hover since) clears nothing: only the link's own
           if (loc && !isEmptyLocation(loc)) viewer.hover.setLocation(loc, owner);

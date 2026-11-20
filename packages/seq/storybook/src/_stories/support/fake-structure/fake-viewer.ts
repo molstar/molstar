@@ -64,9 +64,9 @@ export class FakeStructureViewer {
   readonly mvs: State<MVSData>;
   private _colors = new Map<number, string>();
   private _base: string = BaseColor;
-  private readonly _hoverFns = new Set<(s: Selectors) => void>();
-  private readonly _selectFns = new Set<(s: Selectors) => void>();
-  private readonly _focusFns = new Set<(s: Selectors) => void>();
+  private readonly _hoverFns = new Set<(s: Selectors, at: number) => void>();
+  private readonly _selectFns = new Set<(s: Selectors, at: number) => void>();
+  private readonly _focusFns = new Set<(s: Selectors, at: number) => void>();
   private readonly _timers = new Set<ReturnType<typeof setTimeout>>();
   private readonly _abort = new AbortController();
   private readonly _focusMs: number;
@@ -132,25 +132,31 @@ export class FakeStructureViewer {
 
   // ---- its own events, told to the host ----
 
-  onHover(fn: (s: Selectors) => void): () => void {
+  onHover(fn: (s: Selectors, at: number) => void): () => void {
     this._hoverFns.add(fn);
     return () => void this._hoverFns.delete(fn);
   }
-  onSelect(fn: (s: Selectors) => void): () => void {
+  onSelect(fn: (s: Selectors, at: number) => void): () => void {
     this._selectFns.add(fn);
     return () => void this._selectFns.delete(fn);
   }
-  onFocus(fn: (s: Selectors) => void): () => void {
+  onFocus(fn: (s: Selectors, at: number) => void): () => void {
     this._focusFns.add(fn);
     return () => void this._focusFns.delete(fn);
   }
 
-  private tell(kind: 'hover' | 'select' | 'focus', spans: readonly Span[], fns: Set<(s: Selectors) => void>) {
+  private tell(
+    kind: 'hover' | 'select' | 'focus',
+    spans: readonly Span[],
+    fns: Set<(s: Selectors, at: number) => void>,
+  ) {
     const selectors = selectorsOfSpans(this.rows, spans);
+    // when it happened: a late message says so (a host drops what its pointer has overtaken)
+    const at = performance.now();
     const send = () => {
       if (this._abort.signal.aborted) return;
       this.sent.push({ kind, selectors });
-      for (const f of [...fns]) f(selectors);
+      for (const f of [...fns]) f(selectors, at);
     };
     if (this.latency <= 0) return send();
     const t = setTimeout(() => {
@@ -191,11 +197,12 @@ export class FakeStructureViewer {
     this.tell('focus', spans, this._focusFns);
   }
 
-  /** "Select chain": every observed residue of the rows of the selection's chains (one chain, with none: the first). */
+  /** "Select chain": every observed residue of the rows of the selection's chains (with none: the hovered cell's, else the first). */
   selectChain() {
-    const first = this.selection.value[0]?.row ?? this.hover.value[0]?.row ?? 0;
-    const row = this.rows[first];
-    const same = this.rows.filter((r) => r.asym === row.asym && r.operator === row.operator);
+    const picked = this.selection.value.length ? this.selection.value : this.hover.value;
+    const rows = new Set(picked.map((s) => s.row));
+    const chains = [...(rows.size ? rows : [0])].map((r) => this.rows[r]);
+    const same = this.rows.filter((r) => chains.some((c) => c.asym === r.asym && c.operator === r.operator));
     this.setSpans(
       observedSpans(
         this.rows,
@@ -205,8 +212,8 @@ export class FakeStructureViewer {
   }
 
   /**
-   * "Within 5 Å": the selection grown by `RadiusCells` residues along each row, and by the ligands of its chain (the
-   * fake has no coordinates, so a neighbor is a neighbor along the chain).
+   * "Within 5 Å": the selection grown by `RadiusCells` residues along each row, and by the ligands of its chain in its
+   * copy (the fake has no coordinates, so a neighbor is a neighbor along the chain).
    */
   within() {
     const sel = this.selection.value;
@@ -216,9 +223,10 @@ export class FakeStructureViewer {
       start: Math.max(0, s.start - RadiusCells),
       end: Math.min(this.rows[s.row].residues.length, s.end + RadiusCells),
     }));
-    const auths = new Set(sel.map((s) => this.rows[s.row].auth));
+    const copies = new Set(sel.map((s) => `${this.rows[s.row].auth} ${this.rows[s.row].operator}`));
     for (const r of this.rows)
-      if (!r.polymer && auths.has(r.auth)) grown.push({ row: r.index, start: 0, end: r.residues.length });
+      if (!r.polymer && copies.has(`${r.auth} ${r.operator}`))
+        grown.push({ row: r.index, start: 0, end: r.residues.length });
     this.setSpans(observedSpans(this.rows, normalizeSpans(grown)));
   }
 

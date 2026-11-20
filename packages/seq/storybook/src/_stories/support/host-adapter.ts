@@ -4,8 +4,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { lucideBox } from '@molstar/ui/components/icon/_generated/lucide/box';
 import type { ComponentExpressionT, HexColorT } from '@molstar/mvs-builder/tree/mvs/param-types';
-import { EmptyLocation, type Location, location } from '@molstar/seqx-core/query';
+import { location } from '@molstar/seqx-core/query';
 import {
   type ColorRun,
   colorRuns,
@@ -39,6 +40,9 @@ export interface HostAdapter {
   targetOfSelectors(selectors: Selectors): StructureTarget | null;
 }
 
+/** The selector fields the adapter places. */
+const Placed = new Set(['label_asym_id', 'instance_id', 'label_seq_id', 'beg_label_seq_id', 'end_label_seq_id']);
+
 /** A unit's start on its molecule, the base `label_seq_id` counts from; a ligand has one residue. */
 const baseOf = (u: UnitFacts) => (u.kind === 'polymer' ? u.start : 0);
 
@@ -69,6 +73,8 @@ export function hostAdapter(fake: FakeStructureViewer, facts: StructureFacts): H
 
   const targetOfSelectors = (selectors: Selectors): StructureTarget | null => {
     const parts: { system: string; ranges: number[] }[] = [];
+    // a field this adapter does not place would widen the target silently: the whole is not placed
+    if (selectors.some((s) => Object.keys(s).some((k) => !Placed.has(k)))) return null;
     for (const s of selectors) {
       for (const u of facts.units) {
         if (s.label_asym_id !== undefined && s.label_asym_id !== u.chain) continue;
@@ -84,15 +90,14 @@ export function hostAdapter(fake: FakeStructureViewer, facts: StructureFacts): H
         }
       }
     }
-    const t: Location = parts.length ? location({ parts }) : EmptyLocation;
-    return parts.length ? t : null;
+    return parts.length ? location({ parts }) : null;
   };
 
   const side: StructureSide = {
     highlight: (t) => fake.setHighlight(t ? selectorsOfTarget(t) : null),
     select: (t) => fake.setSelection(t ? selectorsOfTarget(t) : null),
     focus: (t, { durationMs }) => fake.focusOn(selectorsOfTarget(t), durationMs),
-    onHover: (fn) => fake.onHover((s) => fn(targetOfSelectors(s))),
+    onHover: (fn) => fake.onHover((s, at) => fn(targetOfSelectors(s), at)),
     onSelect: (fn) => fake.onSelect((s) => fn(targetOfSelectors(s))),
     onFocus: (fn) =>
       fake.onFocus((s) => {
@@ -129,10 +134,13 @@ export function colorNodesOfRuns(
   }));
 }
 
+/** The track each fake is colored by (a snapshot of it). */
+const ColoredBy = new WeakMap<FakeStructureViewer, string>();
+
 /**
  * "Color by this track": the layer's colors as runs on the units (`colorRuns`, the drawn track's: the viewer's renderer
  * compiles them), written as the fake's MolViewSpec state and taken by it. A snapshot: it does not follow the track.
- * Returns the message of what happened.
+ * Run again on the same track it restores the base colors. Returns the message of what happened.
  */
 export function colorByLayer(
   viewer: SeqViewer,
@@ -149,9 +157,17 @@ export function colorByLayer(
     .flatMap((s) => s.tracks.flatMap((t) => t.layers))
     .find((l) => l.address === layerAddress);
   if (!layer) return `No layer ${layerAddress}`;
+  // the same track again: back to the base state
+  if (ColoredBy.get(fake) === layerAddress) {
+    ColoredBy.delete(fake);
+    fake.setState(structureState(fake.entry, []));
+    return `Restored the base colors`;
+  }
   const r = colorRuns(viewerModel(viewer), viewer.store.store, layer, complexes, { colors: renderer.layerColors() });
   const issues = fake.setState(structureState(fake.entry, colorNodesOfRuns(adapter, r.runs, scheme), layerAddress));
-  return issues ? `The structure refused the state: ${issues[0]}` : `Colored ${r.runs.length} runs`;
+  if (issues) return `The structure refused the state: ${issues[0]}`;
+  ColoredBy.set(fake, layerAddress);
+  return `Colored ${r.runs.length} runs${r.complete ? '' : ' (some of the track’s data is still pending)'}`;
 }
 
 const ColorByCommand = 'fake-host.color-by';
@@ -182,6 +198,7 @@ export const ColorByEntry: HeaderActionEntry = {
     name: 'fake-host:color-by',
     on: 'track',
     icon: 'box',
+    iconMarkup: lucideBox,
     label: 'Color the structure by this track',
     command: ColorByCommand,
     order: 0,

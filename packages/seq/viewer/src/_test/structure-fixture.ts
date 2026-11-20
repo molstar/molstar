@@ -89,7 +89,7 @@ export type Told =
 export interface RecordingSide extends StructureSide {
   readonly told: Told[];
   readonly abort: AbortController;
-  hover(target: StructureTarget | null): void;
+  hover(target: StructureTarget | null, at?: number): void;
   click(target: StructureTarget | null): void;
   doubleClick(target: StructureTarget): void;
   /** How many listeners the link left subscribed. */
@@ -99,7 +99,7 @@ export interface RecordingSide extends StructureSide {
 export function recordingSide(): RecordingSide {
   const told: Told[] = [];
   const abort = new AbortController();
-  const hovers = new Set<(t: StructureTarget | null) => void>();
+  const hovers = new Set<(t: StructureTarget | null, at?: number) => void>();
   const selects = new Set<(t: StructureTarget | null) => void>();
   const focuses = new Set<(t: StructureTarget) => void>();
   const sub = <F>(set: Set<F>, fn: F) => {
@@ -116,8 +116,8 @@ export function recordingSide(): RecordingSide {
     onHover: (fn) => sub(hovers, fn),
     onSelect: (fn) => sub(selects, fn),
     onFocus: (fn) => sub(focuses, fn),
-    hover: (t) => {
-      for (const f of hovers) f(t);
+    hover: (t, at) => {
+      for (const f of hovers) f(t, at);
     },
     click: (t) => {
       for (const f of selects) f(t);

@@ -8,11 +8,11 @@ import { State } from '@molstar/core/reactive';
 import { ChainTableFile as P53ChainTableFile, StructureAddresses } from '@molstar/seqx-examples/p53/structure';
 import { ComplexAddress } from '@molstar/seqx-examples/complex/units';
 import { readChainTable } from '@molstar/seqx-examples/p53/structure-record';
-import { type LinkStructureOptions, linkStructure } from '@molstar/seqx-viewer/link-structure';
+import { type LinkStructureOptions, linkStructure, type StructureBinding } from '@molstar/seqx-viewer/link-structure';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import type { ChainTable } from '../../support/fake-structure/chain-table.js';
 import { FakeStructureViewer, type Selectors } from '../../support/fake-structure/fake-viewer.js';
-import { type HostAdapter, hostAdapter, viewerFacts } from '../../support/host-adapter.js';
+import { colorByLayer, type HostAdapter, hostAdapter, viewerFacts } from '../../support/host-adapter.js';
 
 // The structure link's stories, DOM-free (the stories and their headless twins call these): a fake structure viewer on
 // a recorded chain table, its host's adapter over the viewer's complex, and `linkStructure` between them, with a log of
@@ -53,6 +53,8 @@ export interface FakeLink {
   readonly adapter: HostAdapter;
   /** The last messages in either direction, newest last: `→` what Seq* told the fake, `←` what the fake told. */
   readonly log: State<readonly string[]>;
+  /** Adds a line of the host's own (the color command's). */
+  say(line: string): void;
   /** Ends the link and the fake. */
   dispose(): void;
 }
@@ -101,10 +103,30 @@ export function linkFake(
     fake,
     adapter,
     log,
+    say: push,
     dispose() {
       unlink();
       for (const off of told) off();
       fake.dispose();
     },
+  };
+}
+
+/**
+ * What the host's color command runs (`colorByBehavior`): the viewer's track colored onto the current link's fake, the
+ * message logged as a line of the link's own (`→ color …`).
+ */
+export function colorRunner(
+  viewer: SeqViewer,
+  current: () => FakeLink | undefined,
+  scheme: () => 'light' | 'dark',
+  bindings: () => readonly StructureBinding[] | undefined = () => undefined,
+): (layer: string) => string {
+  return (layer) => {
+    const l = current();
+    if (!l) return 'The structure is not linked yet';
+    const message = colorByLayer(viewer, l.fake, l.adapter, layer, scheme(), bindings());
+    l.say(`→ color ${layer}: ${message}`);
+    return message;
   };
 }
