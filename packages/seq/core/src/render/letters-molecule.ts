@@ -12,10 +12,13 @@
 // the cell outlined in `seq-modified`; `none`). No value changes a cell's width (compact by default).
 
 import { projectRanges, type ModifiedIndex, type StaticModel } from '@molstar/seqx-core/resolve';
+import type { ResolvedLayer } from '@molstar/seqx-core/view';
 import type { AxisTransform } from './axis.js';
 import type { RenderConfig } from './config.js';
-import { Anchor, grown, NoColor, type PassWriter } from './draw-lists.js';
+import { Anchor, grown, NoColor, type PassName, type PassWriter } from './draw-lists.js';
 import type { LayerSource } from './layer-data.js';
+import type { Emphasis, LayerType } from './layer-type.js';
+import { chipInk, type LettersLay, type LettersPrep, LettersType } from './letters.js';
 import { inkOn, type SeqTokens } from './tokens.js';
 
 const AnchorMiddle: number = Anchor.middle;
@@ -321,3 +324,65 @@ export function drawModified(
     out.rectArgs();
   }
 }
+
+/**
+ * The letters layer with molecules (_spec/README.md "Render", Layer types: letters, Molecules): the core letters, and
+ * on a molecule's residues or atoms its labels, on a modified position its mark. A composition registers it in the
+ * letters' place (`letters` by name): the default viewer does, an export loads it when its model holds molecules or
+ * modified residues (`renderSvg`); a minimal composition need not, and a view of plain letters never reads it.
+ */
+export const MoleculeLettersType: LayerType<LettersPrep, LettersLay> = {
+  ...LettersType,
+
+  prepare(layer: ResolvedLayer, model: StaticModel): LettersPrep {
+    const prep = LettersType.prepare(layer, model);
+    const dataSystem = prep.src?.dataSystem ?? layer.data?.address;
+    const molecule = dataSystem === undefined ? undefined : moleculeLabels(model, dataSystem);
+    const modified = modifiedStyle(layer.params.modified);
+    // a modified position's mark: on the section's own letters or through a one-to-one path (never a codon's parts)
+    const marks =
+      modified !== 'none' && dataSystem !== undefined && (prep.through === 'own' || prep.through === 'one')
+        ? model.modified(dataSystem)
+        : undefined;
+    const longMarks = marks && longRows(marks);
+    return {
+      ...prep,
+      ...(molecule ? { molecule } : {}),
+      modified,
+      ...(marks?.position.length ? { marks } : {}),
+      ...(longMarks ? { longMarks } : {}),
+    };
+  },
+
+  layout(prep, ctx, data, overlay, prev) {
+    const lay = LettersType.layout(prep, ctx, data, overlay, prev);
+    lay.modStyle = prep.modified ?? 'mark';
+    lay.modComponents = prep.marks?.component ?? [];
+    lay.modLong = prep.longMarks;
+    const { axis, box, config, tokens } = ctx;
+    // every modified position in view has its mark, whatever the step (a tick below the cells)
+    if (prep.marks && prep.src) modifiedSpans(prep.marks, prep.src, axis, lay.mods);
+    if (prep.molecule) {
+      // a molecule's residues or atoms: a cell a position, labeled by its code or element where it fits
+      lay.labels = prep.molecule.labels;
+      if (lay.step === 'bars' || lay.step === 'density') return lay;
+      const c = prep.channels.forms.color === undefined ? undefined : prep.channels.get('color', 'token:sequence', ctx);
+      const fill = typeof c?.constant === 'number' ? c.constant : tokens.colors['seq-sequence'];
+      lay.n = 0;
+      lay.pending.length = 0;
+      const vis = axis.visible([]);
+      layMoleculeCells(lay, prep.molecule.labels, axis, vis, box, config, tokens, fill, lay.step === 'letters');
+      if (lay.chip && lay.n) lay.chipInk = chipInk(lay.fill[0], tokens);
+      return lay;
+    }
+    if (lay.mods.length) hideCoded(lay, config);
+    return lay;
+  },
+
+  draw(lay, pass: PassName, out: PassWriter, emphasis?: Emphasis) {
+    LettersType.draw(lay, pass, out, emphasis);
+    if (pass !== 'data') return;
+    if (lay.labels && lay.step === 'letters' && lay.fontSize > 0 && lay.n && !lay.chip) drawMoleculeLabels(lay, out);
+    if (lay.mods.length && !(lay.chip && lay.n)) drawModified(lay, out, lay.tokens, lay.config);
+  },
+};

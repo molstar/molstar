@@ -37,19 +37,7 @@ import { Black, type Channel, contrastRgba, inkAgainst, White } from '@molstar/s
 import { channelForms, channelLegends, type LayerChannels, PlainDatum } from './channels.js';
 import { LettersColorFallback, LettersEnv } from './layer-color.js';
 import { drawFailed, drawSpans, hoverCell } from './marks.js';
-import {
-  drawModified,
-  drawMoleculeLabels,
-  hideCoded,
-  layMoleculeCells,
-  longRows,
-  type MoleculeLabels,
-  type MoleculeLay,
-  type ModifiedStyle,
-  modifiedSpans,
-  modifiedStyle,
-  moleculeLabels,
-} from './letters-molecule.js';
+import type { MoleculeLabels, MoleculeLay, ModifiedStyle } from './letters-molecule.js';
 import { inkOn, type SeqTokens } from './tokens.js';
 
 // the anchor a number read once: a draw reads no property of an imported object (that site's feedback, cleared, made
@@ -85,10 +73,13 @@ export interface LettersPrep {
   /** Across a codon step: the section's own letters (each codon's status) and the map's genetic code. */
   readonly sectionSrc?: LayerSource;
   readonly genetic?: GeneticCode;
-  /** On a molecule's residues or atoms: its labels (codes, element symbols) instead of letters. */
+  /**
+   * On a molecule's residues or atoms: its labels (codes, element symbols) instead of letters; how a modified position
+   * is drawn and the data system's modified rows. Set by the molecules' letters (`MoleculeLettersType`), which a
+   * composition registers in this type's place; absent here.
+   */
   readonly molecule?: MoleculeLabels;
-  /** How a modified position is drawn, and the data system's modified rows (none: no mark). */
-  readonly modified: ModifiedStyle;
+  readonly modified?: ModifiedStyle;
   readonly marks?: ModifiedIndex;
   readonly longMarks?: Uint8Array;
 }
@@ -243,15 +234,6 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
     const through = throughOf(src);
     const complement = layer.params.complement;
     const code = layer.params.code;
-    const dataSystem = src?.dataSystem ?? layer.data?.address;
-    const molecule = dataSystem === undefined ? undefined : moleculeLabels(model, dataSystem);
-    const modified = modifiedStyle(layer.params.modified);
-    // a modified position's mark: on the section's own letters or through a one-to-one path (never a codon's parts)
-    const marks =
-      modified !== 'none' && dataSystem !== undefined && (through === 'own' || through === 'one')
-        ? model.modified(dataSystem)
-        : undefined;
-    const longMarks = marks && longRows(marks);
     let sectionSrc: LayerSource | undefined;
     let genetic: GeneticCode | undefined;
     if (through === 'codon' && src?.path) {
@@ -273,10 +255,6 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
       code: code === 'one' || code === 'three' ? code : 'auto',
       ...(sectionSrc ? { sectionSrc } : {}),
       ...(genetic ? { genetic } : {}),
-      ...(molecule ? { molecule } : {}),
-      modified,
-      ...(marks?.position.length ? { marks } : {}),
-      ...(longMarks ? { longMarks } : {}),
     };
   },
 
@@ -359,12 +337,9 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
     lay.carets.length = 0;
     lay.conflicts.length = 0;
     lay.mods.length = 0;
-    lay.labels = prep.molecule?.labels;
-    lay.modStyle = prep.modified;
-    lay.modComponents = prep.marks?.component ?? [];
-    lay.modLong = prep.longMarks;
+    lay.labels = undefined;
     const src = prep.src;
-    if (!src && !prep.molecule) return lay;
+    if (!src) return lay;
     if (prep.through === 'refused') {
       ctx.report(
         issueOf(RenderIssues, 'seq.render.layer.letters', Refused, {
@@ -381,21 +356,6 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
     const step = lay.chip && (fine === 'bars' || fine === 'density') ? 'cells' : fine;
     lay.step = step;
     const vis = axis.visible([]);
-    // every modified position in view has its mark, whatever the step (a tick below the cells)
-    if (prep.marks && src) modifiedSpans(prep.marks, src, axis, lay.mods);
-    if (prep.molecule) {
-      // a molecule's residues or atoms: a cell a position, labeled by its code or element where it fits
-      const c = prep.channels.forms.color === undefined ? undefined : prep.channels.get('color', 'token:sequence', ctx);
-      const fill = typeof c?.constant === 'number' ? c.constant : tokens.colors['seq-sequence'];
-      if (step === 'bars' || step === 'density') {
-        for (let i = 0; i + 1 < vis.length; i += 2) axis.spans(vis[i], vis[i + 1], lay.bars);
-        return lay;
-      }
-      layMoleculeCells(lay, prep.molecule.labels, axis, vis, box, config, tokens, fill, step === 'letters');
-      if (lay.chip && lay.n) lay.chipInk = chipInk(lay.fill[0], tokens);
-      return lay;
-    }
-    if (!src) return lay;
     // the positions in view exactly (walked one by one), read merged across near gaps (one read over short pieces)
     const regions = prep.through === 'own' ? vis : dataRegions(src, axis, false, false);
     if (step === 'bars' || step === 'density') {
@@ -519,7 +479,6 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
       if (prep.through === 'codon' && prep.alphabet === 'protein')
         lay.three = prep.code === 'three' || (prep.code === 'auto' && narrowest >= 3 * advance + 2);
       if (lay.three) for (let j = 0; j < lay.n; j++) lay.show[j] = lay.x1[j] - lay.x0[j] >= 3 * advance + 1 ? 1 : 0;
-      if (lay.mods.length) hideCoded(lay, config);
     }
     return lay;
   },
@@ -773,10 +732,8 @@ function drawCells(lay: LettersLay, out: PassWriter, _emphasis: Emphasis | undef
   }
   if (lay.conflicts.length) drawConflicts(lay, out);
   if (lay.step !== 'letters' || !(lay.fontSize > 0) || !lay.n) return;
-  if (lay.labels) {
-    drawMoleculeLabels(lay, out);
-    return;
-  }
+  // a molecule's cells carry no letter: their labels are the molecules' letters' to draw
+  if (lay.labels) return;
   if (lay.three) {
     drawThree(lay, out);
     return;
@@ -888,7 +845,7 @@ function drawChip(lay: LettersLay, out: PassWriter) {
 }
 
 /** A chip's label ink against its fill: the tokens' ink when it holds 4.5:1, else black or white, the higher. */
-function chipInk(fill: number, tokens: SeqTokens): number {
+export function chipInk(fill: number, tokens: SeqTokens): number {
   const ink = inkOn(fill, tokens);
   if (contrastRgba(ink, fill) >= 4.5) return ink;
   return contrastRgba(Black, fill) >= contrastRgba(White, fill) ? Black : White;
@@ -984,13 +941,7 @@ function drawChipHover(lay: LettersLay, out: PassWriter, emphasis: Emphasis | un
   out.rectArgs();
 }
 
-/** The data pass: the cells and their letters, then the modified positions' marks over them. */
-function drawData(lay: LettersLay, out: PassWriter, emphasis: Emphasis | undefined) {
-  drawCells(lay, out, emphasis);
-  if (lay.mods.length && !(lay.chip && lay.n)) drawModified(lay, out, lay.tokens, lay.config);
-}
-
-const LettersDraws = passDraws<LettersLay, Emphasis | undefined>({ data: drawData, hover: drawHover });
+const LettersDraws = passDraws<LettersLay, Emphasis | undefined>({ data: drawCells, hover: drawHover });
 
 /**
  * A letter's ink: `auto` follows its fill (the table's inks at 4.5:1); a themed ink is held at 3:1 against its fill,

@@ -10,6 +10,7 @@ import { SizeLimitExceeded } from '@molstar/core/util/assets';
 import { type FormatRuntime, SeqRuntime } from '@molstar/seqx-core/data';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { DefaultRenderConfig, LettersType, TextLayout } from '@molstar/seqx-core/render';
+import { MoleculeLettersType } from '@molstar/seqx-core/render/letters-molecule';
 import { BuiltInLayerTypes, BuiltInLayouts } from '@molstar/seqx-core/render/built-ins';
 import { describe, expect, it, vi } from 'vitest';
 import {
@@ -413,7 +414,8 @@ describe('layer types and layouts in the registry', () => {
 
   it('createSeqContext lists the built-ins first: every layer and layout drawn, nothing said', async () => {
     const ctx = createSeqContext();
-    expect(ctx.types).toEqual(BuiltInLayerTypes);
+    // the letters with molecules in the core letters' place (_spec/README.md "Render", Layer types: letters)
+    expect(ctx.types).toEqual({ ...BuiltInLayerTypes, letters: MoleculeLettersType });
     expect(ctx.layouts).toEqual(BuiltInLayouts);
     expect(BuiltInRenderRegistry.length).toBe(
       Object.keys(BuiltInLayerTypes).length + Object.keys(BuiltInLayouts).length,
@@ -423,7 +425,7 @@ describe('layer types and layouts in the registry', () => {
   });
 
   it('the same type again is counted; another under one name is an error listing all, the context not made', () => {
-    const letters = { kind: 'layer-type', type: LettersType } as const;
+    const letters = { kind: 'layer-type', type: MoleculeLettersType } as const;
     expect(Object.keys(createSeqContext({ registry: [letters, letters] }).types).length).toBe(
       Object.keys(BuiltInLayerTypes).length,
     );

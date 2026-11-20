@@ -2073,12 +2073,15 @@ the y path in Emphasis).
   position (a part) colored by class, letters on them, a tick a position at `dots`, one bar a piece in view at `bars`
   and `density` (presence needs no data). A hit through a path carries the data's element as `extent` (the residue on
   its protein) and its parts on the section's system as `hull` (its codon); its hover outlines each part. **Molecules**
-  (`render/letters-molecule.ts`): on a molecule's residues (or a unit of one) a cell a residue labeled by its component
-  code, on an atoms system a cell an atom labeled by its element symbol, where the label fits at the letter sizes (no
-  letters are read: the labels are the model's); the cells' fill `seq-sequence` or a uniform `color`. **Modified
-  positions** (`modified`, on the section's own letters or through a one-to-one path; the data system's modified index,
-  alternatives one mark): `mark` (the default) a dot at the cell's top right in its letter's ink
-  (`letters.modifiedMark`), a bar over a component of several positions (CRO), a tick at the strip's top below the
+  (`render/letters-molecule.ts`, `MoleculeLettersType`: the letters wrapped, registered under `letters` in the core
+  letters' place by the default compositions, `BuiltInRenderRegistry`; `renderSvg` loads it as a chunk of its own only
+  for a spec with molecules, complexes or modified residues; `BuiltInLayerTypes` and a minimal composition keep the core
+  letters, so a view of plain letters never reads it): on a molecule's residues (or a unit of one) a cell a residue
+  labeled by its component code, on an atoms system a cell an atom labeled by its element symbol, where the label fits
+  at the letter sizes (no letters are read: the labels are the model's); the cells' fill `seq-sequence` or a uniform
+  `color`. **Modified positions** (`modified`, on the section's own letters or through a one-to-one path; the data
+  system's modified index, alternatives one mark): `mark` (the default) a dot at the cell's top right in its letter's
+  ink (`letters.modifiedMark`), a bar over a component of several positions (CRO), a tick at the strip's top below the
   cells; `code` the component's code in place of the letter where the cell has room for three letters (the mark
   elsewhere, EC-117); `tint` the cell outlined in `seq-modified`; `none`. No value changes a cell's width; every
   modified position in view has its mark at every step. A modification's color is never the residue scheme's.

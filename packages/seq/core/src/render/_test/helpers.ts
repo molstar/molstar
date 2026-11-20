@@ -8,6 +8,7 @@
 // primitives counted per track (each track's data is one clip block).
 
 import { BuiltInLayerTypes, BuiltInLayouts } from '../built-ins.js';
+import { MoleculeLettersType } from '../letters-molecule.js';
 import type { Node } from '@molstar/core/repr/tree';
 import { DataStore, type FormatRuntime } from '@molstar/seqx-core/data';
 import type { StaticModel } from '@molstar/seqx-core/resolve';
@@ -46,7 +47,8 @@ export async function settle(
   const { model, view: opened } = await openModel(spec, store, { runtimes });
   const view = opened!;
   const renderer = new Renderer({
-    types: BuiltInLayerTypes,
+    // the letters with molecules, as the default compositions register them
+    types: { ...BuiltInLayerTypes, letters: MoleculeLettersType },
     layouts: BuiltInLayouts,
     model,
     view,
