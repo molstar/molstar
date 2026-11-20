@@ -5,11 +5,21 @@
  */
 
 import type { ComponentExpressionT } from '@molstar/mvs-builder/tree/mvs/param-types';
+import type { HostModel } from '@molstar/seqx-examples/p53/structure-record';
+
+export type {
+  HostModel,
+  ModelAtoms,
+  ModelBond,
+  ModelBondEnd,
+  ModelCompound,
+  ModelEntity,
+} from '@molstar/seqx-examples/p53/structure-record';
 
 // The fake structure viewer's own structure: a recorded chain table (a chain's ids, entity and operators, and per
-// residue its label and author numbers, component and whether it was modeled), read from the mmCIF by the examples'
+// residue its label and author numbers, component and whether it was modeled, and the model it holds beside them), read from the mmCIF by the examples'
 // recorder and held apart from anything of Seq*: the mapping crosses two independently held representations, as it
-// does with a real viewer. Nothing here imports Seq*. A chain instance is a row; a cell is a residue on a row; the
+// does with a real viewer. Nothing here imports Seq* (the recorded model's types are the examples'). A chain instance is a row; a cell is a residue on a row; the
 // fake's words for places are spans of cells and MolViewSpec's selectors.
 
 /** A residue of a chain instance. */
@@ -21,6 +31,9 @@ export interface ChainResidue {
   readonly ins: string;
   readonly comp: string;
   readonly observed: boolean;
+  /** The model's per-residue values a host serves by name: the mean heavy-atom B-factor, a prediction's pLDDT. */
+  readonly b?: number;
+  readonly plddt?: number;
 }
 
 /** A chain as the mmCIF names it: its ids, entity, operators (a row each) and residues. */
@@ -35,6 +48,25 @@ export interface ChainEntry {
 export interface ChainTable {
   readonly entry: string;
   readonly chains: readonly ChainEntry[];
+  /** What the host holds beside its chains (entities, compounds, bonds, a molecule's atoms), as recorded. */
+  readonly model?: HostModel;
+}
+
+/**
+ * The table without the chains whose `auth_asym_id` is `auth` (a chain and what is bound to it: its ligands share its
+ * author chain id), as when the host's user drops a chain. Its entities and the model's bonds of the chains kept stay.
+ */
+export function withoutAuthChain(table: ChainTable, auth: string): ChainTable {
+  const gone = new Set(table.chains.filter((c) => c.auth_asym_id === auth).map((c) => c.label_asym_id));
+  if (!gone.size) return table;
+  const model = table.model;
+  return {
+    ...table,
+    chains: table.chains.filter((c) => !gone.has(c.label_asym_id)),
+    ...(model
+      ? { model: { ...model, bonds: model.bonds.filter((b) => !gone.has(b.a.asym) && !gone.has(b.b.asym)) } }
+      : {}),
+  };
 }
 
 /** A chain instance, drawn as a row: a chain under one operator. */

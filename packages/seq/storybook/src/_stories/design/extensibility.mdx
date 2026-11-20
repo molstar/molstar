@@ -85,6 +85,7 @@ move content.
 | Node kinds                        | new kinds anywhere in the spec, described like the built-ins, with a fallback                           |
 | Custom fields                     | namespaced fields on any node and extra columns on any table, kept by readers that don't own them       |
 | Formats                           | readers (a file format onto the one protocol) and writers (FASTA, SVG, PDF, a session for another tool) |
+| Data adapters                     | a host's own reader of a format, answering from memory (`withAdapter` replaces the default)             |
 | Layer types                       | a way to draw: params, layout, hit-testing, and a fallback                                              |
 | Themes, palettes, residue schemes | how a channel is computed                                                                               |
 | Map runtimes                      | a way to compute a map (align, SIFTS lookup, gene model to codons)                                      |
@@ -94,6 +95,16 @@ move content.
 | Backends, text metrics            | where draw lists go                                                                                     |
 | Structure runtimes                | binding structures to a structure viewer such as Mol\*                                                  |
 | Chrome parts                      | track header actions, context menu items, hover card sections, panels                                   |
+
+## Data adapters
+
+A format has one reader, an adapter: the core's readers are the defaults, a host's replaces one. The host wraps the
+default (it answers for the entries it holds and hands the rest on), then lists its adapter with
+`withAdapter(registry, adapter)`, which takes the default's place for the adapter's formats and leaves every other entry
+as it was. Two adapters for one format are an error when the viewer is composed, never an order. The spec does not
+change: it names the data by its file, and a viewer composed with the default reads the file. An adapter may tell that
+its data changed (`changes`), and the source is read again in place, the nodes of what stayed kept by key. The
+Storybook's fake structure viewer is one: [Host data](?path=/story/seq-next-features-host-data--served-by-the-fake).
 
 ## How an extension plugs in
 

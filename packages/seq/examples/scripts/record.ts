@@ -743,7 +743,7 @@ const p53Structure = () =>
       [
         'p53/2OCJ-chains.json',
         chainTableJson(chainTable(cif, '2OCJ')),
-        'the fake structure viewer’s chain table: every chain instance but the waters (struct_asym), its residues’ label and author numbers, components and whether modeled (pdbx_poly_seq_scheme, pdbx_nonpoly_scheme, atom_site of model 1); coordinates dropped',
+        'the fake structure viewer’s chain table: every chain instance but the waters (struct_asym), its residues’ label and author numbers, components and whether modeled (pdbx_poly_seq_scheme, pdbx_nonpoly_scheme, atom_site of model 1), each modeled residue’s mean heavy-atom B-factor, and the model beside them (entity, entity_poly, chem_comp, struct_conn, a non-polymer’s atoms); coordinates dropped',
       ],
     ],
   );
@@ -754,7 +754,7 @@ const complexStructure = () =>
     [
       'complex/1FIN-chains.json',
       chainTableJson(chainTable(cif, '1FIN')),
-      'the fake structure viewer’s chain table: every chain instance but the waters (struct_asym), its residues’ label and author numbers, components and whether modeled (pdbx_poly_seq_scheme, pdbx_nonpoly_scheme, atom_site of model 1); coordinates dropped',
+      'the fake structure viewer’s chain table: every chain instance but the waters (struct_asym), its residues’ label and author numbers, components and whether modeled (pdbx_poly_seq_scheme, pdbx_nonpoly_scheme, atom_site of model 1), each modeled residue’s mean heavy-atom B-factor, and the model beside them (entity, entity_poly, chem_comp, struct_conn, a non-polymer’s atoms); coordinates dropped',
     ],
   ]);
 
