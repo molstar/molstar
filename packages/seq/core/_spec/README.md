@@ -2256,8 +2256,11 @@ numbers): a window move allocates nothing once warm.
 
 ### The rows layer
 
-`render/rows.ts` (the layer) and `render/rows-model.ts` (what it computes without drawing: clades, display rows,
-measures, consensus, the profile). An alignment's rows over its columns, its own y inside its band (`axes: 2`).
+`render/rows.ts` (the layer type) and `render/rows-model.ts` (what it computes without drawing: clades, display rows,
+measures, consensus, the profile); beside them, a concern each, `rows-lay.ts` (what the layer keeps, its rows'
+transform), `rows-read.ts` (held, lazy, joined), `rows-cells.ts`, `rows-header.ts` (the tree, labels, numbers),
+`rows-hit.ts`, `rows-draw.ts`, `rows-emphasis.ts` (Emphasis along y), `rows-columns.ts` (Row columns). An alignment's
+rows over its columns, its own y inside its band (`axes: 2`).
 
 - **Data**: the alignment's `cells` on its rows system. Held when rows × columns is within `maxBlockValues` (2^24: the
   10,000 × 300 alignment is held): every tile wanted at level 1 and joined once (kept by the entries' versions); larger
