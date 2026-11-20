@@ -553,7 +553,7 @@ export const ComplexViews: readonly ExampleView[] = [
     id: 'units',
     title: '1FIN as a complex',
     summary:
-      'PDB 1FIN as a complex of its units: CDK2 ×2 and cyclin A ×2 (author numbers: CDK2 from 1, the construct from 173), ATP ×2 a chip colored on its own, and six CC0 entries’ ligands standing for AlphaFill’s transplants, each its resolution as its score; the contacts per pair of units as arcs. Hover ATP: its CDK2 residues light; hover a contact: both ends. The editing view switches ATP between a chip and its 31 heavy atoms (one patch).',
+      'PDB 1FIN as a complex of its units: CDK2 ×2 and cyclin A ×2 (author numbers: CDK2 from 1, the construct from 173), ATP ×2 a chip colored on its own, and six CC0 entries’ ligands standing for AlphaFill’s transplants, each its resolution as its score; the contacts per pair of units as arcs. The transplants and their contacts come from those other entries (computed against each entry’s CDK2, drawn on 1FIN’s chain A), as their cards and arcs say. Hover ATP: its CDK2 residues light; hover a contact: both ends. The editing view switches ATP between a chip and its 31 heavy atoms (one patch).',
     build: () => complexUnits.build(),
   },
   {

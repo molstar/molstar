@@ -15,9 +15,11 @@ import { crystal, Data, entryLigands, Lengths, ligand } from './data.js';
 // with its `auth` numbering (CDK2's from 1, the construct's from 173: P20248's), an ATP on each CDK2 (the ATP molecule
 // with its 31 heavy atoms: `whole`, a chip, or `atoms`, one patch), and the ligands of six CC0 entries of CDK2 standing
 // for AlphaFill's transplants (not taken: no CC BY 4.0 or looser licence), each a molecule placed as a unit on chain A
-// with its entry's resolution as its score (a ranges row over the molecule). The contacts (heavy atoms within 4 Å,
-// derived at recording) are the complex's `contacts`, per pair of units: CDK2 to cyclin A in each copy, each ATP to its
-// CDK2, each transplant to chain A; a `pairs` layer draws them. ATP's chip is colored on its own.
+// with its entry's resolution as its score (a ranges row over the molecule). A transplant and its contacts come from
+// its own entry (computed there against that entry's CDK2, drawn on 1FIN's chain A): its card and its arcs say so. The
+// contacts (heavy atoms within 4 Å, derived at recording) are the complex's `contacts`, per pair of units: CDK2 to
+// cyclin A in each copy, each ATP to its CDK2, each transplant to chain A; a `pairs` layer draws them. ATP's chip is
+// colored on its own.
 
 export const title = 'Complex: 1FIN as a complex';
 
@@ -62,7 +64,8 @@ export function build(options: ComplexUnitsOptions = {}, d: Derived = Data): Nod
     l,
     unit: transplantUnit(l.entry),
     molecule: b.data.molecule(`lig-${l.entry.toLowerCase()}`, {
-      name: `${l.comp} (${l.entry})`,
+      // where it and its contacts come from, said on its card: another entry, not 1FIN
+      name: `${l.comp} from ${l.entry} (contacts in ${l.entry}'s entry)`,
       residues: [l.comp],
       identifiers: identifiers([['ccd', l.comp]]),
     }),
@@ -93,12 +96,20 @@ export function build(options: ComplexUnitsOptions = {}, d: Derived = Data): Nod
       );
     for (const a of AtpUnits) c.unit(a.id, { of: atp, chain: a.label, auth_chain: a.chain });
     for (const t of transplants) c.unit(t.unit, { of: t.molecule, chain: t.unit, auth_chain: 'A', label: t.l.comp });
-    const rows: { a: string; ap: number; b: string; bp: number }[] = [];
+    const rows: { a: string; ap: number; b: string; bp: number; label: string }[] = [];
     for (const [copy, cdk2, cyclin] of d.contacts)
-      rows.push({ a: chainOf(copy, 'cdk2'), ap: cdk2, b: chainOf(copy, 'cyclin'), bp: cyclin });
+      rows.push({
+        a: chainOf(copy, 'cdk2'),
+        ap: cdk2,
+        b: chainOf(copy, 'cyclin'),
+        bp: cyclin,
+        label: 'contact in 1FIN',
+      });
+    // a transplant's contacts were computed in its own entry, against that entry's CDK2: its arcs say so
     const ligandRows = (unit: string, chain: string, l: Derived['ligands'][number]) => {
+      const label = l.entry === '1FIN' ? `${l.comp} contact in 1FIN` : `${l.comp} contact in ${l.entry}'s entry`;
       for (const r of [...new Set(l.contacts.map(([res]) => res))].sort((p, q) => p - q))
-        rows.push({ a: unit, ap: 0, b: chain, bp: r });
+        rows.push({ a: unit, ap: 0, b: chain, bp: r, label });
     };
     const atps = d.ligands.filter((l) => l.comp === 'ATP' && l.entry === '1FIN');
     for (const a of AtpUnits) ligandRows(a.id, a.chain, atps.find((l) => l.chain === a.chain)!);
@@ -112,6 +123,7 @@ export function build(options: ComplexUnitsOptions = {}, d: Derived = Data): Nod
         b_start: rows.map((r) => r.bp),
         b_end: rows.map((r) => r.bp + 1),
         type: rows.map(() => 'contact'),
+        label: rows.map((r) => r.label),
       },
     });
   });

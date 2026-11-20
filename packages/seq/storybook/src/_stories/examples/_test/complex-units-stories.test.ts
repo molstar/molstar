@@ -7,7 +7,8 @@
 // 1FIN as a complex (the Complex's AsAComplex stories), headless on a fake clock, composed as the stories compose them
 // (the editing view's viewer with `links.hover` and the host's stack; the atoms view and its SVG export): the blocks and
 // chips, every contact (per pair of units) an arc, ATP's chip colored on its own, ATP lighting its CDK2 residues and
-// back, a contact's ends on the copy it is in, the author numbers, ATP switched to its atoms by one patch and undone.
+// back, every contact's ends at its data on the copy it is in (at the fit view and across a tile edge), a transplant's
+// card and arcs naming its entry, the author numbers, ATP switched to its atoms by one patch and undone.
 
 import { readFileSync } from 'node:fs';
 import { DomHost } from '@molstar/ui/dom';
@@ -16,6 +17,7 @@ import {
   DarkTokens,
   type LettersLay,
   type PairsLay,
+  PlacePoint,
   recordDrawLists,
 } from '@molstar/seqx-core/render';
 import { ComplexViews } from '@molstar/seqx-examples';
@@ -88,6 +90,39 @@ const Contacts =
   atpResidues('C').length +
   entryLigands().reduce((n, l) => n + new Set(l.contacts.map(([r]) => r)).size, 0);
 
+const Pt = new PlacePoint();
+
+/**
+ * Each drawn arc's feet at its data: at its end units' blocks (a merged copy's on the block showing it), at its
+ * residue (a chip's middle); a foot out of the window is not checked. The number of arcs checked.
+ */
+function contactsAtData(v: SeqViewer): number {
+  const sec = v.frame!.layout.sections[0];
+  const blocks = sec.section.blocks!;
+  const blockOf = (unit: string) => blocks.findIndex((q) => q.systems.includes(unit));
+  const x = (b: number, p: number) => {
+    const q = blocks[b];
+    return sec.placement.place(q.offset! + (q.form === 'whole' ? 0.5 : p + 0.5), Pt) ? Pt.x : undefined;
+  };
+  let n = 0;
+  for (const l of sec.sectionLays) {
+    if (l.type.name !== 'pairs') continue;
+    const lay = l.lay as PairsLay;
+    const d = lay.prep!.data!;
+    const units = lay.prep!.endUnits!;
+    for (let i = 0; i < lay.n; i++) {
+      const k = lay.pair[i];
+      const a = x(blockOf(units[d.aUnit![k]]), d.aStart[k]);
+      const b = x(blockOf(units[d.bUnit![k]]), d.bStart[k]);
+      const feet = [lay.curve[8 * i], lay.curve[8 * i + 6]];
+      for (const want of [a, b])
+        if (want !== undefined) expect(Math.min(...feet.map((f) => Math.abs(f - want)))).toBeLessThan(1e-6);
+      n++;
+    }
+  }
+  return n;
+}
+
 describe('1FIN as a complex, headless', () => {
   it('the chains ×2, ATP a chip ×2 colored on its own, the transplants chips; every contact an arc; ATP’s atoms one patch, undone', async () => {
     const s = await edit();
@@ -101,6 +136,24 @@ describe('1FIN as a complex, headless', () => {
       ...entryLigands().map((l) => [`/data/1fin/${transplantUnit(l.entry)}`, 1]),
     ]);
     expect(arcs(v)).toBe(Contacts);
+    // each arc's ends at its data: on the copy it is in, at the fit view and across an image tile's edge (256)
+    expect(contactsAtData(v)).toBe(Contacts);
+    const fit = { ...v.view.get(Section)! };
+    v.view.setRange(Section, 240, 272);
+    await vi.advanceTimersByTimeAsync(50);
+    v.draw();
+    expect(contactsAtData(v)).toBeGreaterThan(0);
+    v.view.setRange(Section, fit.start, fit.end);
+    await vi.advanceTimersByTimeAsync(50);
+    v.draw();
+    // a transplant says where it and its contacts come from: its card's name, its arcs' label
+    const t = entryLigands()[0];
+    const d = (v.frame!.layout.sections[0].sectionLays.find((l) => l.type.name === 'pairs')!.lay as PairsLay).prep!
+      .data!;
+    expect(d.labels).toContain(`${t.comp} contact in ${t.entry}'s entry`);
+    expect(v.spec.model.value.molecular.molecules.get(`/data/lig-${t.entry.toLowerCase()}`)?.name).toBe(
+      `${t.comp} from ${t.entry} (contacts in ${t.entry}'s entry)`,
+    );
     // ATP's pill its own color, the transplants' the layer's default
     const lays = v.frame!.layout.sections[0].lays;
     const pill = (system: string) => {

@@ -83,8 +83,10 @@ const LinksHoverOn = [{ provider: LinksHoverProvider, params: undefined }] as co
 /**
  * PDB 1FIN as a complex of its units: CDK2 ×2 and cyclin A ×2 with their author numbers (the construct from 173), ATP
  * ×2 a chip colored on its own, then the six CC0 entries' ligands (standing for AlphaFill's transplants) with their
- * resolution as a score; the contacts per pair of units as arcs. Hover ATP's chip: the CDK2 residues it contacts light
- * (`links.hover`, on here); hover a contact: both ends. Editing: ATP as a chip or by its heavy atoms (one patch).
+ * resolution as a score; the contacts per pair of units as arcs. The transplants and their contacts come from those
+ * other entries (computed against each entry's CDK2, drawn on 1FIN's chain A): a transplant's card and its arcs name
+ * its entry. Hover ATP's chip: the CDK2 residues it contacts light (`links.hover`, on here); hover a contact: both
+ * ends. Editing: ATP as a chip or by its heavy atoms (one patch).
  */
 export const AsAComplex: StoryObj = {
   render: () =>

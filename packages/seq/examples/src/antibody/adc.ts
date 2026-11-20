@@ -15,8 +15,9 @@ import { Data } from './data.js';
 // Fab chains (PDB 1N8Z's light and heavy chains, the Fc not held), two of each; its payload, emtansine (DM1 through an
 // SMCC linker), a molecule named by its components. Lysine conjugation is stochastic: the payload linked to every
 // lysine of every chain, each link's occupancy a share of the average drug-to-antibody ratio (3.5) by a generated
-// weight, so the occupancies sum to the DAR; the arcs colored by a band of occupancy (a field of the links' rows). The payload's CCD component ids are placeholders (`UNL`,
-// the CCD's unknown ligand) until the author names them: no id is guessed.
+// weight, so the occupancies sum to the DAR; the arcs colored by a band of occupancy (a field of the links' rows). The
+// payload's CCD component ids are placeholders (`UNL`, the CCD's unknown ligand) until the author names them: no id is
+// guessed.
 
 export const title = 'T-DM1: trastuzumab emtansine (generated)';
 

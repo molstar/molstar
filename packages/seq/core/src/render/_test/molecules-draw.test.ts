@@ -96,6 +96,16 @@ describe('a complex drawn against its data', () => {
     // a chip no rule names takes the rules' default, neither rule's color
     expect([0xd62728ff, 0x9467bdff]).not.toContain(pill('/data/c/g'));
     expect(recordDrawLists(f.lists, ['data'])).toContain('#d62728ff');
+    // the polymers' residues keep the default scheme where letters show: rules no clause of which holds give its
+    // `else`, the layer type's default
+    const zoom = { size: Size, viewport: { start: 0, end: 20 } };
+    const fills = async (spec: Parameters<typeof settle>[0]) => {
+      const z = await (await settle(spec)).frame(zoom);
+      const a = lettersLays(z).find((l) => l.lay.system === '/data/c/A')!.lay;
+      expect(a.step).toBe('letters');
+      return Array.from(a.fill.subarray(0, a.n));
+    };
+    expect(await fills(moleculesSpec({ color }))).toEqual(await fills(moleculesSpec()));
   });
 
   it('a unit’s atoms read their unit’s first component, not the molecule’s (a unit over its second residue)', async () => {
