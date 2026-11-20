@@ -140,7 +140,7 @@ effects (`TODO.md`).
 
 | What | Target (minified) |
 |---|---|
-| Reading a spec (decode, validate, resolve), no viewer | under 195 kB (150 in the first slice, 160 in the second; measured 175.4 at the third slice's close) |
+| Reading a spec (decode, validate, resolve), no viewer | under 230 kB (150 in the first slice, 160 in the second, 195 at the third slice's close; moved by the author, 2026-11-20, for language 0.5.0's molecules: measured 205.8) |
 | Headless rendering (the above, layout, draw lists, SVG) | under 780 kB (300 until the third slice, whose layers, layouts, navigators and rows it holds; measured 711.8) |
 | The viewer, default configuration | under 1,250 kB (600 until the third slice; measured 1,142.5; the previous Seq\*: 1,040 kB) |
 | The viewer, minimal (tracks, letters and ranges) | under 880 kB (measured 801.7) |

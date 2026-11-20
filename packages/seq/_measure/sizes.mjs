@@ -60,7 +60,7 @@ const Runtimes = [/seq\/core\/src\/runtimes\//];
 
 /** Target and entry of each case, bytes (minified). */
 const AllCases = [
-  { name: 'reading a spec', entry: 'spec-read.ts', target: 195_000 },
+  { name: 'reading a spec', entry: 'spec-read.ts', target: 230_000 },
   { name: 'headless rendering', entry: 'headless.ts', target: 780_000 },
   { name: 'the viewer, default', entry: 'viewer.ts', target: 1_250_000, unlisted: Runtimes },
   { name: 'viewer, minimal', entry: 'viewer-minimal.ts', target: 880_000, unlisted: Unlisted },

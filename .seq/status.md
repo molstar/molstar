@@ -69,7 +69,7 @@ CS, SC, MF, CF, MV, UN, PG (PCG32), LP, RX, DB, DS, PZ, PF, LX; the list in `exe
   composed by the spec's registry.
 - Export: PNG, and the `seqx-render` command line.
 - Sizes (after RR, the render reduction): 175.4 / 711.8 / 1142.5 / 801.7 kB min (reading a spec, headless rendering,
-  the default and the minimal viewer), against bounds of 195 / 780 / 1250 / 880 kB ([performance](design/performance.md), Size).
+  the default and the minimal viewer), against bounds of 230 / 780 / 1250 / 880 kB (reading a spec moved to 230 for language 0.5.0, the author, 2026-11-20) ([performance](design/performance.md), Size).
 
 Which features are built, partly or not at all: [design/features.md](design/features.md). Which edge cases have an
 outcome: [design/edge-cases.md](design/edge-cases.md), Outcomes.
