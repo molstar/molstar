@@ -402,7 +402,10 @@ describe('where a header draws no parts', () => {
       ),
     );
     const s = await settle(b.build());
-    const f = await s.frame({ size: Size, settled: true, headers: Host });
+    // a host giving every track a state, slots and the menu
+    const bound: HeaderPartsOf = (x) =>
+      x.track ? { ...Host(x), states: [{ name: 'host:bound', text: 'bound' }] } : undefined;
+    const f = await s.frame({ size: Size, settled: true, headers: bound });
     const t = f.layout.sections[0].tracks[0];
     expect(t.header!.states).toEqual([]);
     expect(t.header!.slots).toEqual([]);
