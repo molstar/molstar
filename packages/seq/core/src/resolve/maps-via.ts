@@ -9,7 +9,9 @@
 // same two systems, and paths that never reach such a pair are unchanged.
 
 import type { Value } from '@molstar/core/repr/tree';
-import { exactAddress } from '@molstar/core/repr/tree';
+import { exactAddress, type Issue, issueOf } from '@molstar/core/repr/tree';
+import { ResolveIssues } from './issues.js';
+import type { PathResult } from './model.js';
 import type { Edge, PathGraph } from './paths.js';
 
 /** The maps a `via` names, sorted and deduplicated (a key part); empty for none. */
@@ -32,7 +34,7 @@ const pairKey = (a: string, b: string) => (a < b ? `${a}\u0000${b}` : `${b}\u000
 
 /**
  * The rivals of the named maps: every other map joining the same two systems (either way). A name that is no map
- * leaves nothing out.
+ * has none (`viaPath` names it unused).
  */
 export function viaRivals(
   via: readonly string[],
@@ -53,4 +55,34 @@ export function withoutRivals(graph: PathGraph, rivals: ReadonlySet<string>): Pa
   if (!rivals.size) return graph;
   const kept = (e: Edge) => e.unit !== undefined || !rivals.has(e.map);
   return { edgesFrom: (s) => graph.edgesFrom(s).filter(kept) };
+}
+
+/**
+ * A path for a use with `via` (the author, 2026-11-20: "Warn"): the search without the named maps' rivals; when the
+ * path it finds steps through none of the named maps, the via settled nothing on its pair, so the path is chosen as if
+ * it were absent. `unused` lists the named maps the chosen path does not step through (a name that is no map too):
+ * what the use reports as `seq.resolve.via.unused`. A search that finds no path keeps its issue and names none.
+ */
+export function viaPath(named: readonly string[], search: (via: readonly string[]) => PathResult): PathResult {
+  if (!named.length) return search(named);
+  const r = search(named);
+  if (!r.path) return r;
+  const on = new Set(r.path.edges.map((e) => e.map));
+  const unused = named.filter((m) => !on.has(m));
+  if (!unused.length) return r;
+  const chosen = unused.length === named.length ? search([]) : r;
+  return { ...chosen, unused };
+}
+
+/** A use's `via` map that joins no pair on its paths: a warning at the use (a section), naming the map. */
+export function viaUnusedIssue(use: string, map: string): Issue {
+  const code = 'seq.resolve.via.unused';
+  return {
+    ...issueOf(ResolveIssues, code, `The via names ${map}, which joins no pair on the paths`, {
+      address: use,
+      path: ['params', 'via'],
+      hint: ResolveIssues.codes[code].hint,
+    }),
+    places: [{ address: map }],
+  };
 }

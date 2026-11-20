@@ -78,7 +78,7 @@ import {
 } from './molecule-query.js';
 import { mapEntry, numberingEntry } from './maps-entry.js';
 import type { StructureMapData } from './maps-segments.js';
-import { pathKey, viaList, viaRivals, withoutRivals } from './maps-via.js';
+import { pathKey, viaList, viaPath, viaRivals, withoutRivals } from './maps-via.js';
 import { collapseAtoms, expandAtoms, type ModifiedIndex, type UnitEntry, unitEdges } from './molecules.js';
 import { composeEdges, type Edge, findPath, inversePath, type Path, projectRanges, type Step } from './paths.js';
 
@@ -247,6 +247,8 @@ export function rowsSystemOf(alignment: string): string {
 export interface PathResult {
   readonly path?: Path;
   readonly issue?: Issue;
+  /** With `via`: the named maps the path does not step through (`seq.resolve.via.unused`, maps-via.ts `viaPath`). */
+  readonly unused?: readonly string[];
 }
 
 export interface Projection {
@@ -1106,13 +1108,18 @@ class Model implements StaticModel {
     const k = pathKey(from, to, named);
     let r = this.results.get(k);
     if (r) return r;
-    // a path read the other way is the inverse of the one found
-    const back = this.pathEntries.get(pathKey(to, from, named));
-    const e = back && !this.pathEntries.has(k) ? back : this.entry(from, to, named);
-    if ('path' in e.found) r = { path: e === back ? inversePath(e.found.path) : e.found.path };
-    else r = { issue: pathIssue(e.found.why, from, to) };
+    r = viaPath(named, (v) => this.searched(from, to, v));
     this.results.set(k, r);
     return r;
+  }
+
+  /** One search's result, a pair and `via` set: a path read the other way is the inverse of the one found. */
+  private searched(from: string, to: string, named: readonly string[]): PathResult {
+    const k = pathKey(from, to, named);
+    const back = this.pathEntries.get(pathKey(to, from, named));
+    const e = back && !this.pathEntries.has(k) ? back : this.entry(from, to, named);
+    if ('path' in e.found) return { path: e === back ? inversePath(e.found.path) : e.found.path };
+    return { issue: pathIssue(e.found.why, from, to) };
   }
 
   project(loc: Location, to: string, options: { close?: boolean; via?: readonly string[] } = {}): Projection {

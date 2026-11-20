@@ -1353,9 +1353,13 @@ Seq\* holds pointers and labels: codes and identifiers are strings.
   searches over them and its own.
 - **Via** (`maps-via.ts`): `path(from, to, via?)` with map addresses leaves out their rivals (other maps joining the
   same two systems, either way; `viaRivals`, `withoutRivals`) for that search; paths that reach no such pair are
-  unchanged, a name that is no map leaves nothing out. One entry a pair and `via` set (sorted, deduplicated: `viaList`);
-  its carried search's deps are every map of the systems it read, rivals too. `project(loc, to, { via })` and the
-  overlay's `path(from, to, via?)` take it.
+  unchanged. A path that steps through none of the named maps is chosen as if the via were absent (`viaPath`: leaving
+  out a rival elsewhere never settles a tie the via did not name), and `PathResult.unused` lists the named maps the
+  chosen path does not step through, a name that is no map too (the author, 2026-11-20: "Warn"). A section reports each
+  named map on none of its paths (follow, along, layers, grid y, the links onto it) as `seq.resolve.via.unused`, a
+  warning at the section with the map as its place (`viaUnusedIssue`; Resolved view, Via). One entry a pair and `via`
+  set (sorted, deduplicated: `viaList`); its carried search's deps are every map of the systems it read, rivals too.
+  `project(loc, to, { via })` and the overlay's `path(from, to, via?)` take it.
 - **Kept**: a search is done once per model (the reverse read as the inverse), and carried to the next resolve with the
   map entries of every system it read; it is kept while those are the same objects (entries are kept by hash, a
   `priority` in it, so a changed priority drops the search), so an edit elsewhere keeps the path object. Why: a map
@@ -1386,10 +1390,10 @@ Seq\* holds pointers and labels: codes and identifiers are strings.
 ### Issues
 
 `seq.resolve.*` (`ResolveIssues`): `ref.missing` and `source.format` (a spec not checked), `source.runtime`,
-`map.empty`, `map.observed`, `map.codon_length`, `map.table`, `length.unknown`, `system.unnamed`, `path.none`,
-`path.ambiguous`, `path.limit`, `complex.units`, `ref.system` (a reference to a sequence, molecule or unit that made no
-system: a unit of a refused complex or of nothing held; what reads it is left out), and the overlay's `node.invalid`,
-`node.ref`, `node.depth`. A test checks the catalog against the sources.
+`map.empty`, `map.observed`, `via.unused`, `map.codon_length`, `map.table`, `length.unknown`, `system.unnamed`,
+`path.none`, `path.ambiguous`, `path.limit`, `complex.units`, `ref.system` (a reference to a sequence, molecule or unit
+that made no system: a unit of a refused complex or of nothing held; what reads it is left out), and the overlay's
+`node.invalid`, `node.ref`, `node.depth`. A test checks the catalog against the sources.
 
 ## Overlay
 
@@ -1450,7 +1454,9 @@ no target.
   it (hover, selection; the viewer's hover fallback and focus hull read it too). A link from a section takes the
   target's `via`, so two sections of one chain, each naming one map, light different residues for one hover (a
   comparison); onto a section naming none the pair stays ambiguous and there is no link. Why the target's: what is
-  projected lands on the section that names how.
+  projected lands on the section that names how. A named map on none of those paths is `seq.resolve.via.unused` (a
+  warning at the section, the map its place), and those paths were chosen as if the via were absent. Why warn: a via
+  that settles nothing is a figure's mistake the reader cannot see.
 - **Grids**: a grid section's `y` (`GridAxis`) is its second axis, down the plot: `of_y`'s system whole (`of`'s when
   absent), top down, and what it shows: `follow_y: x` (the default) x's window (`followsX`; through the path from x's
   system when `of_y` is another), a section's region through `follow` (the path from its system), `none` a window of its

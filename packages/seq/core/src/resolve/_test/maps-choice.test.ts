@@ -228,6 +228,33 @@ describe('a use’s via (EC-24)', () => {
   });
 });
 
+describe('a via naming a map that joins no pair on the path (the author: "Warn")', () => {
+  /** s → t through a (m1, m2) or b (m3, m4), mapping differently; m5 a rival of m1 that pairs nothing. */
+  function detour(): StaticModel {
+    const b = createSeqSpec();
+    const seq = (id: string) => b.data.sequence(id, { alphabet: 'protein', letters: 'MEEPQSDPSV' });
+    const [s, a, x, t] = [seq('s'), seq('a'), seq('b'), seq('t')];
+    b.data.map('m1', { from: s, to: a, method: 'offset', by: 0 });
+    b.data.map('m2', { from: a, to: t, method: 'offset', by: 1 });
+    b.data.map('m3', { from: s, to: x, method: 'offset', by: 0 });
+    b.data.map('m4', { from: x, to: t, method: 'offset', by: 2 });
+    b.data.map('m5', { from: s, to: a, method: 'offset', by: 20 });
+    return resolveSpec(b.build());
+  }
+
+  it('is chosen as if the via were absent, and names the map unused', () => {
+    const m = detour();
+    // leaving m1 out would settle the tie through b, a path m5 is not on: as if no via, ambiguous
+    const r = m.path('/data/s', '/data/t', ['/data/m5']);
+    expect(r.issue?.code).toBe('seq.resolve.path.ambiguous');
+    expect(r.unused).toEqual(['/data/m5']);
+    // a map on the path is used; a name that is no map is unused
+    const used = resolveSpec(choiceSpec()).path('/data/up', '/data/ent', ['/data/aln', '/data/none']);
+    expect(used.path?.edges.map((e) => e.map)).toEqual(['/data/aln']);
+    expect(used.unused).toEqual(['/data/none']);
+  });
+});
+
 describe('a carried search and priority', () => {
   it('is dropped when a priority changes (the param is in the map entry’s hash), kept on an edit elsewhere', () => {
     const r = createResolver();

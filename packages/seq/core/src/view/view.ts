@@ -35,6 +35,7 @@ import {
   type StaticModel,
   viaList,
 } from '@molstar/seqx-core/resolve';
+import { viaUnusedIssue } from '@molstar/seqx-core/resolve/maps-via';
 import { followRef } from '@molstar/seqx-core/lang';
 import { type AxisShape, axisTotal, nearestOffsetOf, positionAt, wholePieces } from './axis.js';
 import { ViewIssues } from './issues.js';
@@ -594,6 +595,7 @@ function build(model: StaticModel, view: Node, address: string): ResolvedView {
           : model.path(a.axis.system, b.axis.system, b.via).path;
       if (path) links.push({ from: a.address, to: b.address, path });
     }
+  for (const s of sections) if (s.via) issues.push(...unusedVia(s, along.get(s.address), links));
   const scales: Record<string, Readonly<Record<string, Value>>> = {};
   for (const c of model.spec.children ?? [])
     if (c.kind === 'views' && c.id !== undefined)
@@ -674,6 +676,25 @@ export function resolveNavigatorNode(
     hidden: param(n, 'hidden') === true,
     paths,
   };
+}
+
+/**
+ * A section's `via` maps that join no pair on any of its paths (its follow, its along, its layers' and blocks' data,
+ * its grid's y, the links onto it): each a `seq.resolve.via.unused` warning at the section naming the map (the author,
+ * 2026-11-20: "Warn"); its paths were chosen as if the via were absent (maps-via.ts `viaPath`).
+ */
+function unusedVia(s: ResolvedSection, along: Path | undefined, links: readonly ViewLink[]): Issue[] {
+  const used = new Set<string>();
+  const take = (p: Path | undefined) => {
+    for (const e of p?.edges ?? []) used.add(e.map);
+  };
+  take(s.follow?.path);
+  take(along);
+  take(s.y?.follow?.path);
+  for (const t of s.tracks) for (const l of t.layers) take(l.path);
+  for (const b of s.blocks ?? []) for (const t of b.layers) for (const l of t) take(l.path);
+  for (const l of links) if (l.to === s.address) take(l.path);
+  return (s.via ?? []).filter((m) => !used.has(m)).map((m) => viaUnusedIssue(s.address, m));
 }
 
 /** A grid section's y (`GridAxis`): its system whole, and what it follows. */

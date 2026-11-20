@@ -86,6 +86,25 @@ describe('a section’s via (EC-24)', () => {
     expect(link('by-sifts', 'by-aln')?.path.edges).toEqual([]);
   });
 
+  it('warns of a via naming a map that joins no pair on any of its paths, naming the map', () => {
+    const b = createSeqSpec();
+    const up = b.data.sequence('up', { alphabet: 'protein', letters: 'MEEPQSDPSV' });
+    const ent = b.data.sequence('ent', { alphabet: 'protein', letters: 'EPQSDPSV' });
+    const other = b.data.sequence('other', { alphabet: 'protein', letters: 'MEEP' });
+    const m = b.data.map('m', { from: up, to: ent, method: 'offset', by: -2 });
+    b.views.view('v', (v) => {
+      const lead = v.section('lead', { of: up });
+      v.section('used', { of: ent, follow: lead, via: m });
+      v.section('elsewhere', { of: other, via: m });
+    });
+    const v = resolveView(resolveSpec(b.build()), '/views/v')!;
+    const unused = v.issues.filter((i) => i.code === 'seq.resolve.via.unused');
+    expect(unused.map((i) => [i.address, i.severity, i.places?.map((p) => p.address)])).toEqual([
+      ['/views/v/elsewhere', 'warning', ['/data/m']],
+    ]);
+    expect(unused[0].message).toContain('/data/m');
+  });
+
   it('reads `direction: { along }` through its via where the map does not reach its system itself', () => {
     expect(section('by-aln').axis.dir).toBe(1);
     expect(section('by-aln').axis.along).toBe('/data/sifts');

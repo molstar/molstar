@@ -32,7 +32,7 @@ import {
   type StaticModel,
   type SystemEntry,
 } from './model.js';
-import { pathKey, viaList, viaRivals, withoutRivals } from './maps-via.js';
+import { pathKey, viaList, viaPath, viaRivals, withoutRivals } from './maps-via.js';
 import { EmptyMolecular, type Molecular } from './molecule-query.js';
 import { DynamicMolecular } from './overlay-molecules.js';
 import { type Edge, findPath, type Step } from './paths.js';
@@ -474,12 +474,14 @@ class DynamicOverlay implements Overlay {
     if (r) return r;
     const dynamic = this.dynamicEdges();
     const graph = { edgesFrom: (s: string) => [...this.model.edgesFrom(s), ...(dynamic.get(s) ?? [])] };
-    const rivals = named.length ? viaRivals(named, this.model.maps.values()) : new Set<string>();
-    const found = findPath(withoutRivals(graph, rivals), from, to, {
-      maxSteps: this.config.maxPathSteps,
-      maxCandidates: this.config.maxPathCandidates,
+    r = viaPath(named, (v) => {
+      const rivals = v.length ? viaRivals(v, this.model.maps.values()) : new Set<string>();
+      const found = findPath(withoutRivals(graph, rivals), from, to, {
+        maxSteps: this.config.maxPathSteps,
+        maxCandidates: this.config.maxPathCandidates,
+      });
+      return found.ok ? { path: found.path } : { issue: pathIssue(found.why, from, to) };
     });
-    r = found.ok ? { path: found.path } : { issue: pathIssue(found.why, from, to) };
     this.paths.set(k, r);
     return r;
   }

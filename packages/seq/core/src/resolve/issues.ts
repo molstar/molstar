@@ -81,6 +81,12 @@ export const ResolveIssues = defineIssues('seq.resolve', {
     description: 'Several shortest paths join two systems and map them differently; none is taken',
     hint: 'Two maps join the same systems: rank one above the other with the map’s `priority`, or name one with the section’s `via`',
   },
+  'seq.resolve.via.unused': {
+    severity: 'warning',
+    description:
+      'A section’s `via` names a map that joins no pair on any of its paths (or no map); its paths are chosen as if the via were absent',
+    hint: 'Name a map between systems the section’s paths go through, or remove it from `via`',
+  },
   'seq.resolve.path.limit': {
     severity: 'warning',
     description: 'More shortest paths join two systems than the search compares; none is taken',
