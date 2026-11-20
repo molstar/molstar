@@ -100,6 +100,10 @@ function spec(o: { onChain?: boolean } = {}): Node {
   return b.build();
 }
 
+// one settled family a file: the cases read it, none changes it
+let shared: ReturnType<typeof settle> | undefined;
+const settled = () => (shared ??= settle(spec(), [Family]));
+
 const arcs = (s: SectionLayout) => s.sectionLays[0].lay as PairsLay;
 
 /** The middle of track `t`'s band. */
@@ -118,7 +122,7 @@ function feet(lay: PairsLay): Map<string, [number, number]> {
 
 describe('pairs on an alignment’s columns, over its rows', () => {
   it('at the fit view and across an image tile’s edge: each foot over the column its pair names', async () => {
-    const st = await settle(spec(), [Family]);
+    const st = await settled();
     for (const viewport of [undefined, { start: 240, end: 272 }, { start: ImageTile - 3, end: ImageTile + 3 }]) {
       const f = await st.frame({ size: Size, ...(viewport ? { viewport } : {}) });
       expect(f.layout.issues).toEqual([]);
@@ -140,7 +144,7 @@ describe('pairs on an alignment’s columns, over its rows', () => {
   });
 
   it('a hover on a cell lights the arcs ending in its column; a hover on an arc and on a residue, carried through the map', async () => {
-    const st = await settle(spec(), [Family]);
+    const st = await settled();
     const f = await st.frame({ size: Size });
     const sec = f.layout.sections[0];
     const lay = arcs(sec);
@@ -205,7 +209,7 @@ describe('pairs on an alignment’s columns, over its rows', () => {
   });
 
   it('a selected pair is drawn in the accent; a selection on the columns draws over the rows', async () => {
-    const st = await settle(spec(), [Family]);
+    const st = await settled();
     const f = await st.frame({ size: Size });
     const lists = new DrawLists();
     const elements = keySet([{ owner: '/data/ss', key: '250-262' }]);
@@ -216,7 +220,7 @@ describe('pairs on an alignment’s columns, over its rows', () => {
   });
 
   it('a chain’s ranges drawn on the columns its seed row puts its residues at', async () => {
-    const st = await settle(spec(), [Family]);
+    const st = await settled();
     const f = await st.frame({ size: Size, viewport: { start: 0, end: 40 } });
     const sec = f.layout.sections[0];
     const y = bandMiddle(sec, 2);
