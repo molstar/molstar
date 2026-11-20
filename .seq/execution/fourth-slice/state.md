@@ -35,6 +35,11 @@ The third slice is closed (2026-11-20; its record in `.seq/records/third-slice/`
 - AC's and ST1's drifts (the author, 2026-11-20: "Yes, as recommended"): an alignment's columns named
   `<alignment>/columns`; a map onto a unit a source describes resolves as an overlay edge, pending until the
   description arrives. Both to FX3 (`fixes.md`).
+- Stage 1's gate passed (the author, 2026-11-20: "Pass, FX3 fixes times"): checks green on the merged tree, medium,
+  heavy on a quiet machine (122, QE's `:index` bound in it), the tiers, build, workspace, sizes 221.3 / 824.8 /
+  1289.9 / 922.6 kB; the quick-lane folders over 2 s (core, viewer, storybook) are FX3's first item. Submenus from a
+  command's select param ("Commands own choices"); T-DM1's CCD ids and the pairs layer's numeric columns ("Both to
+  FX3").
 - Size targets are bounds once reset after RR (the author, 2026-11-20: "reduce render first, then move the size
   targets"). Moved for the query language: reading a spec 230, headless 820, minimal 920 kB (the author,
   2026-11-20), the default viewer 1,290 kB ("Move to 1290 kB", 2026-11-20); for molecules drawn, headless 830 and
@@ -42,15 +47,13 @@ The third slice is closed (2026-11-20; its record in `.seq/records/third-slice/`
 
 ## In progress
 
-- 2026-11-20: the molecules track and HP2 merged. Stage 1's gate: the heavy lane reruns on a quiet machine (the first
-  run at load 22 is no evidence).
+- 2026-11-20: stage 1's gate passed. Next: FX3 and ST2, two lanes.
 
 ## Next
 
-1. Stage 1's gate report to the author: checks, the heavy lane, the tiers, sizes (the default viewer at 1289.9 of
-   1290), the matrix cells, the quick-lane folders over 2 s, decisions (submenus from items; T-DM1's CCD ids; numeric
-   columns in the pairs layer).
-2. Then ST2, ST3, HD, HP3; FX3 after the gate.
+1. FX3 (strong): `fixes.md`'s open items, the folders' times first; the hover cards' items wait for ST2 (both in the
+   viewer's hover).
+2. ST2 (strong, after HP2), then ST3, HD (after FX3's map onto a described unit), HP3; SV; stage 2's gate.
 
 ## Findings by lane
 

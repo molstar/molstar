@@ -287,7 +287,7 @@ disagrees with its code writes a drift note and stops.
       recorded for p53 (its units and the fake viewer's chain table from one mmCIF, an `alignment` map of the same
       pair); DC's leftovers (`@molstar/io` as a dev dependency of seqx-examples, a ligand chip coloured on its own);
       stories, twins, drawing against the data (`briefs/mx-examples.md`).
-- [ ] GATE: merged, reviewed, checks green, sizes (`runtimes/mmcif` its own row), gaps, matrix cells (molecules.md's).
+- [x] GATE: merged, reviewed, checks green, sizes (`runtimes/mmcif` its own row), gaps, matrix cells (molecules.md's).
 
 ### Stage 2: structure syncing and track headers (after stage 1; the agreed designs' lanes)
 

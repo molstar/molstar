@@ -7,6 +7,19 @@ queue. Each line: what is seen, where (the story), where it came from, its kind 
 
 ## Open
 
+- **FX3's first item: the quick-lane folders over 2 s** (stage 1's gate, the author, 2026-11-20: "Pass, FX3 fixes
+  times"): core 2.8 s, viewer 2.7 s, storybook 2.3 s on a quiet machine (examples 1.6 s; all 8.2 s). The items below
+  for each folder (core, viewer, storybook) are its notes: waste fixed, nature moved with a quick representative.
+- **Submenus from a command's select param** (missing build, the design holds it: track-header-parts.md, "A command
+  whose one param is a select is a submenu"): HP2 builds them from an entry's `items` because `layer.channel` has no
+  select param. The author, 2026-11-20: "Commands own choices": `layer.channel` declares its choices, and the menu,
+  the palette and an agent read them from it; the entries' `items` go.
+- **T-DM1's CCD ids** (examples): DM1 and the SMCC/MCC linker are `UNL` placeholders (`examples/.../antibody/adc.ts`).
+  Look them up in the repo's CCD data first; a fetch of the PDB's chemical component pages is asked before it is made.
+  The author, 2026-11-20: "Both to FX3".
+- **The pairs layer reads text columns only** (`resolve/held.ts:57`): numeric extra columns kept, so the ADC's arcs
+  color by `occupancy` directly (the bands go). The author, 2026-11-20: "Both to FX3".
+
 - **An alignment's columns named by the alignment** (missing design, decided): `<alignment>/columns` instead of the one
   name `columns` (`resolve/model.ts`, `AlignmentSystems`; a ranges source on an alignment reads its rows by it).
   building-blocks.md, Alignment. AC's drift, the author: "Yes, as recommended". For FX3; a test with one source shared
