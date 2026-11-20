@@ -21,6 +21,7 @@ import {
 } from './protocol.js';
 import { decodeSeq, readSeq, type SeqData, type SeqPair } from './seq-format.js';
 import { joinTables, sliceTable } from './tables.js';
+import { sourceNameOf } from './system-names.js';
 
 // The `seq` format's runtime (_spec/README.md "Data", The seq format): a source of request/answer pairs answers a
 // region by joining the pairs of its system and level that overlap it, each cut to its part of the region.
@@ -71,7 +72,7 @@ export function openSeq(data: SeqData): OpenedSource {
   }
 
   const answer = (request: RegionRequest): RegionAnswer => {
-    const system = names.get(request.system);
+    const system = sourceNameOf(names, request.system);
     if (system === undefined) return notServed('a system the coverage does not list');
     if (!data.coverage.levels.includes(request.level)) return notServed('a level the coverage does not list');
     const { start, end, level } = request;

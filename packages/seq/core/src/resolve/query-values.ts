@@ -14,6 +14,7 @@ import type { PropertyColumn, PropertyRead } from '@molstar/seqx-core/query';
 import type { AnnotationEntry, StaticModel } from './model.js';
 import type { Overlay } from './overlay.js';
 import type { RowsSource } from './query-model.js';
+import { coverageSystemOf } from '@molstar/seqx-core/data/system-names';
 
 /** The values channels' fields of the built-in properties. */
 const ChannelFields: Readonly<Record<string, string>> = { 'b-factor': 'b_factor', occupancy: 'occupancy' };
@@ -63,7 +64,7 @@ export function valuesProperty(
     if (!a?.access) return undefined;
     if (!src) return 'pending';
     const source = a.access.kind === 'source' ? a.access.source : a.access.source.address;
-    const n = src.data.coverage(source)?.systems.find((s) => s.name === a.access!.system)?.length;
+    const n = coverageSystemOf(src.data.coverage(source)?.systems ?? [], a.access!.system)?.length;
     if (n === undefined) return 'pending';
     const want = { source, system: a.access.system, start: 0, end: n, level: 1 };
     src.want?.(want);

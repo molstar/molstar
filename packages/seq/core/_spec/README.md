@@ -1403,8 +1403,11 @@ store. `resolveSpec(spec, { runtimes, config })`, or `createResolver` to keep en
   `to`) takes any of a sequence, a molecule and a unit; `pairs.a`/`b`, `ranges.target` and `map.to` an alignment's
   columns too (its address). An alignment's systems are made before the maps, pairs and ranges, which read them. An
   alignment's columns system is named by its alignment, `<id>/columns` (a ranges source on an alignment reads its
-  records on that name; its own source, one alignment's file, says `columns`: `SystemEntry.aliases`, `isSystemInfo`).
-  Why: a source's records shared by several alignments (one Stockholm file of many families) say whose columns they are.
+  records on that name). `columns` is their alias, kept for old sources: an alignment's own file and a records source
+  written before this name say `columns`, and every place a source is matched to a system serves the alias last
+  (`sourceNameOf`, `coverageSystemOf`, `data/system-names.ts`: the store, the `seq` reader, summaries, numberings,
+  values; `SystemEntry.aliases`, `isSystemInfo` for the lengths). Why: a source's records shared by several alignments
+  (one Stockholm file of many families) say whose columns they are.
 - **Numberings**: each `numbering` child of a sequence or a unit (`numberings`, by its address;
   `numberingOf(system, id)`): inline labels, an `offset` (`sequentialNumbering`, so labels snap with no scan) and
   `segments` (`maps-numbering.ts`, arithmetic a run, scanned by the forms) a numbering at once (over the open length
