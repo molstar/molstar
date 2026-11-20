@@ -11,7 +11,7 @@
 import type { Node } from '@molstar/core/repr/tree';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { describe, expect, it } from 'vitest';
-import { hitView, type RangesLay } from '../index.js';
+import { hitView, type RangesLay, RangesType } from '../index.js';
 import { settle } from './helpers.js';
 import { layerLay, readPaths, readRects, rng } from './small-helpers.js';
 
@@ -190,6 +190,30 @@ describe('ranges: labels', () => {
     expect(tet.x + tet.w).toBeLessThanOrEqual(lay.mx1[j] - 3 + 1e-6);
     // beside, whole
     expect(t.map((x) => x.text)).toContain('Nuclear localization');
+  });
+
+  it('a cut label’s item keeps its whole label: its description (what the hover card and the live region read) and its hit', async () => {
+    const f = await (await settle(spec(LONG as never, {}))).frame({ size: SIZE });
+    const lay = layerLay<RangesLay>(f, 0);
+    const j = Array.from({ length: lay.m }, (_, k) => k).find((k) => lay.keys[lay.mitem[k]] === 'tet')!;
+    expect(lay.mcut[j]).toBeGreaterThan(0);
+    const item = RangesType.items!(lay as never).find((d) => d.key === 'tet')!;
+    expect(item.label).toBe('Tetramerization domain');
+    // a press on the cut label hits its item, by its key: the address names it whole (`(item :id tet)`)
+    const t = texts(f).find((x) => x.text.startsWith('Tetr'))!;
+    expect(hitView(f.layout, t.x + t.w / 2, lay.laneY + lay.laneHeight / 2)?.element?.key).toBe('tet');
+  });
+
+  it('a label of at most `labels.minChars` letters is never cut: whole, or dropped', async () => {
+    // the last 3 of 400 positions (about 5 px): no room for "Nucl" whole, inside or beside
+    const rows = { start: [397], end: [400], id: ['n'], label: ['Nucl'] };
+    const f = await (await settle(spec(rows as never, {}))).frame({ size: SIZE });
+    const lay = layerLay<RangesLay>(f, 0);
+    for (let j = 0; j < lay.m; j++) expect(lay.mcut[j]).toBe(0);
+    expect(texts(f).filter((x) => x.text.startsWith('N'))).toEqual([]);
+    // with `minChars` 2 the same label is cut (were there room) or dropped, never cut below 2 letters
+    const g = await (await settle(spec(rows as never, {}), [], { labels: { minChars: 2 } })).frame({ size: SIZE });
+    for (const x of texts(g)) if (x.text.endsWith('…')) expect(x.text.length - 1).toBeGreaterThanOrEqual(2);
   });
 
   it('a larger `labels.minChars` keeps more letters or none: the label dropped', async () => {
