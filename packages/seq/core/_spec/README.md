@@ -36,8 +36,9 @@ is added in the change that builds what it describes.
   and units and a section's `of` to a complex, a block's `form`, a section's `classes`, a layer's `modified`, a `ranges`
   layer taking `pairs`, a source's `ref` and a values node's `field`; a map's `priority`, its methods `segments` and
   `structure` with `segments` and `status`, a section's `via`, and a numbering's methods `offset` and `segments` with
-  `by` and `segments`). A spec in an earlier `0.x` reads as one in this one, and is reported where it no longer fits: a
-  `0.4.0` spec reads unchanged (every addition is optional, and every kind a reference took it still takes).
+  `by` and `segments`; `pairs.a`/`b`, `ranges.target` and `map.to` naming an alignment, its columns). A spec in an
+  earlier `0.x` reads as one in this one, and is reported where it no longer fits: a `0.4.0` spec reads unchanged (every
+  addition is optional, and every kind a reference took it still takes).
 
 ## Language
 
@@ -141,6 +142,13 @@ checks it cannot express.
   for every coordinate the language writes.
 - **Systems** a data reference takes (`ranges.target`, `values.target`, `pairs.a`/`b`, `grid.x`/`y`, `map.from`/`to`,
   `block.of`): a sequence, a molecule (its residues) or a unit; `section.of` a complex too (Molecules and complexes).
+  `pairs.a`/`b`, `ranges.target` and `map.to` also take an alignment, meaning its columns system (EC-48's "an alignment
+  its columns"): a family's consensus pairs (Stockholm's `SS_cons`) drawn over its rows, a chain mapped onto the columns
+  through the seed row it is closest to (a `segments` map, a run a stretch of the row with no gap: a stopgap until the
+  design's `alignment` map kind, the gapped row itself, is built; TODO.md). An inline alignment's width bounds their
+  ends and ranges (`seq.lang.pairs.bounds`, `seq.lang.ranges.bounds`; a change to its rows checks them again). Why these
+  four: they are what a family's annotation and a structure's link to it name; `map.from`, `values`, `grid` and
+  `block.of` wait for a use (a map from the columns is the same map read back).
 - **Defaults in params**: a codon map's `table` is the NCBI genetic code, 1 when absent; a sequence's `name` is the
   record its source knows it by, its id when absent. Neither is filled in by normalization, so a spec that leaves them
   out hashes as it did.
@@ -1387,7 +1395,11 @@ store. `resolveSpec(spec, { runtimes, config })`, or `createResolver` to keep en
   its letters are inline; else the length is unknown, pending until the source is opened, never a guess. Why: nothing in
   tier 1 waits, and nothing lays out on a made-up length. A molecule's residues and atoms and a complex's units are
   systems too (Molecules and units); a data reference to a system (`target`, `a`, `b`, `x`, `y`, a map's `from` and
-  `to`) takes any of a sequence, a molecule and a unit.
+  `to`) takes any of a sequence, a molecule and a unit; `pairs.a`/`b`, `ranges.target` and `map.to` an alignment's
+  columns too (its address). An alignment's systems are made before the maps, pairs and ranges, which read them. A
+  ranges source on an alignment is read on the system named `columns` (its columns system's name, as an alignment
+  source's coverage says it; a records source names it so with `system`): pending the author's decision (a source shared
+  by two alignments cannot tell their columns apart; TODO.md).
 - **Numberings**: each `numbering` child of a sequence or a unit (`numberings`, by its address;
   `numberingOf(system, id)`): inline labels, an `offset` (`sequentialNumbering`, so labels snap with no scan) and
   `segments` (`maps-numbering.ts`, arithmetic a run, scanned by the forms) a numbering at once (over the open length
@@ -2733,6 +2745,12 @@ numbers): a window move allocates nothing once warm.
 - **Feet**: on the band's edge toward the sequence (`above`: its bottom, the arcs rising; `below`: its top), inset by
   the stroke so the whole arc is in its band; with `split`, on the band's middle, each side half the band. A view puts
   the pairs track on the letters' side (the tRNA's: over its letters).
+- **On an alignment's columns** (`pairs.a` an alignment, a family's `SS_cons`): the section of the alignment is the
+  pairs' own system, so its arcs stand over the rows, a foot over the column each end names (the rows' hit there names
+  it, at any zoom and across an image tile's edge); a hover on a rows cell lights the arcs ending in its column, and a
+  pair's extent is on the columns, carried to a chain's section through its map onto a seed row (and a residue's hover
+  back onto the arcs); a chain's ranges show on the columns along that map, as any layer's data on its path. Pairs are
+  not projected: on another system's section they are `seq.render.pairs.systems`.
 - **Dots** (with `ctx.axisY`, in a grid): a rect a pair of single positions at every zoom, at least 4 CSS px, outlined
   in the text's ink (it reads over any cell color in both themes); a diagonal segment a stretch, with its partner when
   both ends are on one strand (`a_strand`, `b_strand`), against it otherwise; `mirror` (false: a pair is drawn where its

@@ -452,9 +452,10 @@ export function checkDataNode(
 ): void {
   const p = (x: Node, key: string): Value | undefined => x.params?.[key];
   const xor = (a: boolean, b: boolean) => a !== b;
-  // a sequence, a molecule's residues or a unit: what is known of its extent
+  // a sequence, a molecule's residues, a unit or an alignment's columns: what is known of its extent
   const systemOf = (key: string) => {
     const t = ctx.target(key);
+    if (t?.kind === 'alignment') return { cyclic: false, length: alignmentWidth(t) };
     if (t?.kind !== 'sequence' && t?.kind !== 'molecule' && t?.kind !== 'unit') return undefined;
     const length = inlineLength(t) ?? ctx.length?.(key);
     return { cyclic: p(t, 'cyclic') === true, length };
@@ -606,4 +607,10 @@ export function checkDataNode(
       break;
     }
   }
+}
+
+/** An inline alignment's columns: its first row's width; undefined for a source's (known once it opens). */
+function alignmentWidth(n: Node): number | undefined {
+  const letters = (n.params?.rows as { letters?: Value } | undefined)?.letters;
+  return Array.isArray(letters) && typeof letters[0] === 'string' ? letters[0].length : undefined;
 }

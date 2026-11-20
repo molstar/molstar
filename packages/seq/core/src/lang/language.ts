@@ -28,6 +28,12 @@ import { ScaleParamsDescription, ThemeLanguage, ThemeLanguageId } from './theme-
 export const SeqLanguageVersion = '0.5.0';
 
 /**
+ * What `pairs.a`/`b`, `ranges.target` and `map.to` take: a system, or an alignment by its columns system (its address;
+ * _spec/README.md, Language, Systems).
+ */
+const ColumnsTargetKinds = [...SystemKinds, 'alignment'] as const;
+
+/**
  * A channel slot (_spec/README.md "Themes", Forms): a string (the `uniform` form: a color, a token, a word), a number
  * (a uniform size or opacity), or a node of `seq.theme`, read and printed in place.
  */
@@ -316,9 +322,9 @@ export const SeqLanguage = defineLanguage({
       params: {
         target: {
           type: 'ref',
-          kinds: SystemKinds,
+          kinds: ColumnsTargetKinds,
           required: true,
-          doc: 'The system the ranges are on: a sequence, a molecule’s residues (every unit over it too), a unit.',
+          doc: 'The system the ranges are on: a sequence, a molecule’s residues (every unit over it too), a unit, an alignment’s columns.',
         },
         rows: {
           type: 'table',
@@ -423,12 +429,12 @@ export const SeqLanguage = defineLanguage({
       params: {
         a: {
           type: 'ref',
-          kinds: SystemKinds,
-          doc: 'The system each pair’s first end is on; required under `data`, none under a complex or a molecule.',
+          kinds: ColumnsTargetKinds,
+          doc: 'The system each pair’s first end is on (an alignment: its columns, a family’s `SS_cons`); required under `data`, none under a complex or a molecule.',
         },
         b: {
           type: 'ref',
-          kinds: SystemKinds,
+          kinds: ColumnsTargetKinds,
           doc: 'The system each pair’s second end is on (`a` when absent: pairs within one system).',
         },
         rows: {
@@ -479,7 +485,12 @@ export const SeqLanguage = defineLanguage({
       ids: 'required',
       params: {
         from: { type: 'ref', kinds: SystemKinds, required: true, doc: 'The system the map starts on.' },
-        to: { type: 'ref', kinds: SystemKinds, required: true, doc: 'The system the map ends on.' },
+        to: {
+          type: 'ref',
+          kinds: ColumnsTargetKinds,
+          required: true,
+          doc: 'The system the map ends on (an alignment: its columns, a chain onto the row it is closest to).',
+        },
         method: {
           type: 'string',
           enum: ['offset', 'codon', 'segments', 'structure'],

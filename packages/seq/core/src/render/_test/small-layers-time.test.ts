@@ -19,7 +19,7 @@ const Size = { width: 1440, height: 200 } as const;
 
 type Builder = ReturnType<typeof createSeqSpec>;
 
-function spec(layer: (b: Builder, p53: Parameters<Builder['data']['ranges']>[1]['target']) => Record<string, unknown>) {
+function spec(layer: (b: Builder, p53: Parameters<Builder['data']['values']>[1]['target']) => Record<string, unknown>) {
   const b = createSeqSpec({ title: 'frame' });
   const p53 = b.data.sequence('p53', { alphabet: 'protein', letters: P53 });
   const params = layer(b, p53);
