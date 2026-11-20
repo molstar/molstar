@@ -68,6 +68,19 @@ export {
   type SystemEntry,
   sourceLengths,
 } from './model.js';
+export { type CompoundEntry, EmptyMolecular, type Molecular } from './molecule-query.js';
+export {
+  type AtomsEntry,
+  atomsSystemOf,
+  type ComplexEntry,
+  collapseAtoms,
+  componentsAt,
+  expandAtoms,
+  type ModifiedIndex,
+  type MoleculeEntry,
+  modifiedAt,
+  type UnitEntry,
+} from './molecules.js';
 export {
   buildOverlay,
   EmptyOverlay,
