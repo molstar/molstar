@@ -255,10 +255,22 @@ describe('the mmCIF runtime', () => {
   });
 
   it('operator expressions as Mol*’s instance ids: lists, ranges, products, bounded', () => {
-    expect(operatorGroups('1,2')).toEqual([['1', '2']]);
-    expect(operatorGroups('(1-3)')).toEqual([['1', '2', '3']]);
-    expect(assemblyOperators('(X0)(1-2)', 10)).toEqual(['ASM-X0-1', 'ASM-X0-2']);
-    expect(assemblyOperators('(1-60)(61-88)', 5).length).toBe(5);
+    expect(operatorGroups('1,2', 10)).toEqual({ groups: [['1', '2']], bounded: false });
+    expect(operatorGroups('(1-3)', 10)).toEqual({ groups: [['1', '2', '3']], bounded: false });
+    expect(assemblyOperators('(X0)(1-2)', 10)).toEqual({ operators: ['ASM-X0-1', 'ASM-X0-2'], bounded: false });
+    expect(assemblyOperators('(1-60)(61-88)', 5)).toMatchObject({ bounded: true });
+    expect(assemblyOperators('(1-60)(61-88)', 5).operators.length).toBe(5);
+  });
+
+  it('a crafted operator expression is bounded as it is expanded, never made whole, and said', async () => {
+    const crafted = Array.from({ length: 20 }, () => '1-999999').join(',');
+    expect(crafted.length).toBe(179);
+    const { groups, bounded } = operatorGroups(crafted, 10_001);
+    expect([groups.flat().length, bounded]).toEqual([10_001, true]);
+    const s = await open({ assembly: '1' }, Small.replace("1 '(1-2)' A,B", `1 '${crafted}' A,B`));
+    expect(s.issues?.map((i) => i.code)).toContain('seq.io.mmcif.operators');
+    expect(s.issues?.map((i) => i.code)).toContain('seq.io.structure.bounds');
+    expect(s.coverage.systems.length).toBe(10_000);
   });
 
   it('serves values by field over a unit’s positions: pLDDT the default, B-factor the heavy atoms’ mean, NaN where unmodeled', async () => {

@@ -23,6 +23,11 @@ export const MmcifIssues = defineIssues('seq.io.mmcif', {
     description: 'The assembly asked is not in the file: the source is not read',
     hint: 'Name an assembly of `pdbx_struct_assembly_gen`, or none for the deposited model',
   },
+  'seq.io.mmcif.operators': {
+    severity: 'warning',
+    description:
+      'An assembly’s operator expression names more operators than the units bound (`limits.maxUnits`): the ids past it are never made, the rest left out',
+  },
   'seq.io.mmcif.altloc': {
     severity: 'info',
     description:
@@ -66,35 +71,60 @@ const fieldOf = (c: CifCategory | undefined, name: string): Field => c?.getField
 const has = (f: Field, row: number) => f !== undefined && f.valueKind(row) === Present;
 const strOf = (f: Field, row: number) => (has(f, row) ? f!.str(row) : undefined);
 
-/** The groups of an operator expression (`1`, `1,2`, `(1-60)`, `(X0)(1-5)`): each a list of operator ids. */
-export function operatorGroups(expression: string): string[][] {
-  const groups = expression.includes('(') ? [...expression.matchAll(/\(([^)]*)\)/g)].map((m) => m[1]) : [expression];
-  return groups.map((g) =>
-    g
-      .split(',')
-      .map((s) => s.trim())
-      .filter((s) => s)
-      .flatMap((s) => {
-        const m = /^(-?\d+)-(-?\d+)$/.exec(s);
-        if (!m) return [s];
-        const [a, b] = [Number(m[1]), Number(m[2])];
-        const out: string[] = [];
-        for (let i = a; i <= b && out.length <= 1_000_000; i++) out.push(String(i));
-        return out;
-      }),
-  );
+/**
+ * The groups of an operator expression (`1`, `1,2`, `(1-60)`, `(X0)(1-5)`): each a list of operator ids, at most `max`
+ * ids across the groups, counted as they are made (a crafted range is never expanded past it); `bounded` when some
+ * were left out.
+ */
+export function operatorGroups(expression: string, max: number): { groups: string[][]; bounded: boolean } {
+  const parts = expression.includes('(') ? [...expression.matchAll(/\(([^)]*)\)/g)].map((m) => m[1]) : [expression];
+  let total = 0;
+  let bounded = false;
+  const groups: string[][] = [];
+  for (const part of parts) {
+    const g: string[] = [];
+    for (const raw of part.split(',')) {
+      const s = raw.trim();
+      if (!s) continue;
+      const m = /^(-?\d+)-(-?\d+)$/.exec(s);
+      const [a, b] = m ? [Number(m[1]), Number(m[2])] : [0, 0];
+      for (let i = a; i <= b; i++) {
+        if (total >= max) {
+          bounded = true;
+          break;
+        }
+        g.push(m ? String(i) : s);
+        total++;
+      }
+      if (bounded) break;
+    }
+    groups.push(g);
+    if (bounded) break;
+  }
+  return { groups, bounded };
 }
 
-/** The operators of an expression as Mol\*'s instance ids (`ASM-1`, `ASM-X0-5`), at most `max`. */
-export function assemblyOperators(expression: string, max: number): string[] {
-  const groups = operatorGroups(expression);
+/**
+ * The operators of an expression as Mol\*'s instance ids (`ASM-1`, `ASM-X0-5`), at most `max`; `bounded` when the
+ * expression names more (its ids or their products).
+ */
+export function assemblyOperators(expression: string, max: number): { operators: string[]; bounded: boolean } {
+  const { groups, bounded } = operatorGroups(expression, max);
+  let cut = bounded;
   let combos: string[][] = [[]];
   for (const g of groups) {
     const next: string[][] = [];
-    for (const c of combos) for (const id of g) if (next.length < max) next.push([...c, id]);
+    for (const c of combos)
+      for (const id of g) {
+        if (next.length >= max) {
+          cut = true;
+          break;
+        }
+        next.push([...c, id]);
+      }
     combos = next;
   }
-  return combos.filter((c) => c.length).map((c) => `ASM-${c.join('-')}`);
+  return { operators: combos.filter((c) => c.length).map((c) => `ASM-${c.join('-')}`), bounded: cut };
 }
 
 /** Residues of one asym, by position: their author numbers and the values read from their atoms. */
@@ -372,7 +402,17 @@ export function mmcifDescription(frame: CifFrame, options: MmcifReadOptions, add
     for (let i = 0; i < (gen?.rowCount ?? 0); i++) {
       if (strOf(fieldOf(gen, 'assembly_id'), i) !== options.assembly) continue;
       found = true;
-      const operators = assemblyOperators(strOf(fieldOf(gen, 'oper_expression'), i) ?? '', max);
+      const expression = strOf(fieldOf(gen, 'oper_expression'), i) ?? '';
+      const { operators, bounded } = assemblyOperators(expression, max);
+      if (bounded)
+        issues.push(
+          issueOf(
+            MmcifIssues,
+            'seq.io.mmcif.operators',
+            `The assembly ${JSON.stringify(options.assembly)} names more than ${max - 1} operators: the rest left out`,
+            { address },
+          ),
+        );
       const asyms = (strOf(fieldOf(gen, 'asym_id_list'), i) ?? '').split(',').map((s) => s.trim());
       for (const operator of operators)
         for (const asym of asyms) {
