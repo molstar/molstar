@@ -42,7 +42,8 @@ is the section's `heights` param: `content` (this, the default), `uniform`, `fix
 
 - Tracks become rings, the first outermost; the origin at `rotation` (the top by default), positions clockwise.
 - Labels inside their mark when they fit, else beside: outside the ring with a leader, or in a lane above a linear
-  track; one rule and one text style in both views, placed once when laid out; a label is hit as its item.
+  track; one rule and one text style in both views, placed once when laid out; a label is hit as its item. A label that
+  fits neither whole is cut inside with an ellipsis, keeping at least `labels.minChars` letters (4), else dropped.
 - The ring's **window** is what a linear detail follows: drag it to move the detail, drag a grip to resize it; a pan of
   the detail moves the window. Either section can lead.
 - A feature across the origin is one arc, selected as two runs, focused by its shortest arc.

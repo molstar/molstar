@@ -94,7 +94,7 @@ limits (they were sort of self-imposed and estimate), but obviously try to minim
   | rail (the default) | `positions` | `axis` as a hairline, the window a thicker segment | a 12 px row just below the pinned ruler's bottom border on the canvas with rails on, none in an export (`ruler` rail); 12 px (`slim` rail, a section with no ruler) | every linear section |
   | strip | `positions` | `axis`, or `tracks` (a navigation track with the section's tracks small) | 20 px (`axis`), 48 (`tracks`) | any long section |
   | ideogram | `positions` | `bands` over a chromosome | 24 px | a genomic section |
-  | vertical overview | `rows` (positions summarized, the window full width) | `rows`, columns compressed across | 96 px wide | an alignment's rows, the Globins 10,000-row view |
+  | vertical overview | `both` (the window's rows and columns, four grips; the fourth slice's FX1, as the previous implementation's) | `rows`, columns compressed across | 96 px wide | an alignment's rows, the Globins 10,000-row view |
   | miniature | `both` | `tracks` and `rows`, both axes whole | 160 × 96 px | a section with tracks and rows that both scroll |
 
   Why one part: the window's geometry, gestures, idle rule, floor, keys and announcements are the same along any axis;

@@ -482,7 +482,7 @@ interface Placement {
   (never on a window move or a hover), sorted by angle or position, spread a line apart, upright; those a side or lane
   cannot hold are dropped by the same priority in both (the layer's order, then the longer item). The same text style
   (size, weight) in both; the ink is the contrast colour against the mark's fill inside, the text colour beside
-  (decided, the author, 2026-11-19: "contrast inside, text beside"). A leader never crosses another label or mark (a label that cannot be placed so is dropped). Neighbouring items of
+  (decided, the author, 2026-11-19: "contrast inside, text beside"). A label that fits neither whole inside nor whole beside is cut inside with an ellipsis while at least `labels.minChars` letters (4 by default, a `RenderConfig` key; the whole label when it is shorter) and the ellipsis fit, else dropped; the hover card and the address keep it whole, the canvas and the SVG cut alike, and a label at the section's edge stays within it (decided by the author, 2026-11-20: "4 characters as default is fine, should be configurable"). A leader never crosses another label or mark (a label that cannot be placed so is dropped). Neighbouring items of
   one layer with the same label, less than a label's width apart, are labelled once at the run's start, no leader to
   each (decided, the author, 2026-11-20: "Label a run once"; the hover card still names each). A placed label's hit is its item's. Why: one feature read two ways
   in two views of one map is two rules to learn; inside first keeps the label on its mark where there is room.

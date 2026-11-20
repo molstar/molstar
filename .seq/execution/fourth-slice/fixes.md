@@ -12,17 +12,9 @@ queue. Each line: what is seen, where (the story), where it came from, its kind 
   fanned up to 12 (`rings.cluster.fanMax`), `seq.resolve.system.unnamed` and `length.unknown` held while pending; and
   the fixes the drafts found (the Reverse track's label lane per track, the ruler's insertion labels, an empty label).
 - **The "2 hidden" chip overlaps the vertical overview's top** (look): Globins › Rows › Folded at 1280 px. FX1's look.
-
-- **Ring letters off their cells** (look): on a ring the letters drift from the cells they name, unevenly spaced and
-  crowding in places (UUUAG near 10, GGGAG near 20), not centred on their cell's angle and the track's mid radius. Where:
-  tRNA › Views › Chords (and every ring with letters). The author, 2026-11-20. Check the placement against the cell's
-  centre angle and the glyph's centre (not its baseline start), in the canvas and the SVG.
 - **The Reverse track reserves an empty label lane** (look): Plasmid › Ring › Detail with a strip. Third slice's DS look.
 - **Dense leaders when a ring group opens** (look): Plasmid, a group of more than 6 labels hovered. Third slice's DS look.
 - **The Antibody's IMGT label reads as a second line** (look): Antibody, the ruler's numbering label. Third slice's look.
-- **A moved label of an item in a lower lane is dropped** (bug): leaders exist for lane 0 only (LX). Third slice's LX
-  review.
-
 - **Alignment Rows And Columns collapses when the frame's size changes** (bug; look if the cause is only the story's
   sizing): Features › Query › Alignment Rows And Columns. When the Storybook zoom slider changes the frame's size, the
   plot collapses: at a small zoom the rows shrink into the top of a much larger, empty canvas; at a middle zoom the rows
@@ -30,21 +22,7 @@ queue. Each line: what is seen, where (the story), where it came from, its kind 
   end numbers (N, (, A half drawn). The status line under it says "The alignment's rows have not arrived" while the
   rows are drawn. The author, 2026-11-20. Check: the plot box against the host's size on resize (grids-and-rows.md: the
   plot box is fixed); the canvas's backing size against its CSS size at a changed devicePixelRatio or zoom; the right
-  edge's clip against the end-numbers column; the status text's settle.
-- **Two frames of about 100 ms in every zoom of the 10,000 × 300 alignment** (bug): Globins › Rows › Scale at dpr 2. A
-  frame callback outside the viewer's ticks, most likely the rows' image tiles rebuilt at a new level. Build them
-  across frames and keep the old level drawn meanwhile (performance.md, Levels). From the third slice's M3
-  (`third-slice/measurements.md`).
-- **A label that does not fit its box disappears whole; an ellipsis inside first** (look, a rule added to layouts.md
-  "Labels inside if they fit, else beside"): p53's domain track at a mid zoom ("Nuclear localization", "C-terminal",
-  "Tetramerization" shown, then the boxes empty a step later, C-terminal cut at the edge). The author, 2026-11-20:
-  "should we allow ellipsis (up to a degree) in the boxes instead of the text disappearing as a whole?" Proposed order:
-  whole inside; else whole beside when the lane has room; else inside cut with an ellipsis while at least 4 characters
-  (or the whole label, if shorter) and the ellipsis fit (4 by default, configurable: a layer param beside the
-  label's, `labels.minChars`, decided by the author, 2026-11-20: "4 characters as default is fine, should be
-  configurable"); else dropped. The cut keeps the hover card and the address
-  whole; the canvas and the SVG cut alike (text-metrics port). A label cut at the section's edge is placed within it
-  (C-terminal), never clipped mid-glyph.
+  edge's clip against the end-numbers column; the status text's settle. **FX1** (`51682eebc`) fixed the collapse and the status line; left for FX2: the last column's letters cut under the end numbers at 100% (not reproduced headlessly).
 - **The vertical overview went missing from the stories and examples** (bug; first in FX1): the rows rail was to be added
   beside the vertical overview (the author: "also have the thin slider"), but it replaced it. Globins › Rows › Folded
   and the other alignments now show only the rail. The author, 2026-11-20: "at the very least we should have stories for
@@ -54,20 +32,14 @@ queue. Each line: what is seen, where (the story), where it came from, its kind 
   - the vertical overview declared again in the examples that had it (Globins Family, Folded and Scale; any other
     alignment with more rows than fit);
   - the rail stays the default only where no navigator is declared (navigators.md, the rows rail);
-  - check that the overview's picture and handles still draw and drag (`render/navigator.ts`, `mount-navigator.ts`).
-- **A folded clade's summary row is not named to assistive technology** (bug, only if the author decided item 4 of the
-  third slice's `drift/ec-contradictions.md` as recommended: name it by its summary label, "HBA +12"). Third slice's EO.
+  - check that the overview's picture and handles still draw and drag (`render/navigator.ts`, `mount-navigator.ts`). **FX1** (`68ab75210`) declared it again in Globins Family, Folded and Scale, with the RowsRail and VerticalOverview stories; left for FX2: both together (`navigator.rowsRail`, decided).
 - **A disabled toolbar button's dimming not looked at** (look): `@molstar/ui`'s Storybook and Prism, light and dark
   (computed at 1.7-1.9:1, not seen). Third slice's SF leftover.
-- **The frame-time test's max bound flaked once** (bug in a test): `render/_test/frame-time.test.ts`, 18.8 ms against
-  16, passing on the rerun; best of three or a percentile. Third slice's gate.
-- **A cursor card is replaced when a zoom re-hits the hover** (bug): the card should stay while the hit is the same.
-  Third slice's HC leftover.
 - **A ruler naming its chain stays labelled; an empty track label is still drawn as empty text** (look): the Complex and
-  the Antibody's against view (rulers); core `tracks.ts` (the label). Third slice's HC leftovers.
+  the Antibody's against view (rulers); core `tracks.ts` (the label). Third slice's HC leftovers. **FX1** (`e6487e46e`) draws no empty label; the ruler naming its chain is intended (two rulers need names, `drafts/fx-designs.md` 7): one line in layouts.md at FX2.
 - **An inline `strand` of null breaks core's model** (bug): `strand.get is not a function`; a null reads as no strand.
   A section over a source sequence needs the sequence named after the source's system, else its length is unknown and
-  nothing lays out, and nothing says so: an issue naming it. Third slice's SC leftovers.
+  nothing lays out, and nothing says so: an issue naming it. Third slice's SC leftovers. **FX1** (`666e3464c`) made a null read as none; left for FX2: the issue naming an unnamed source system (`seq.resolve.system.unnamed`, decided).
 - **`seq.resolve.length.unknown` before open** (look): quieter in the viewer, which says it while a source opens.
   Third slice's CY leftover.
 - **Antibody: IMGT 112.1 never on the ruler at the closest zoom** (three insertion labels a residue apart); short CDR
@@ -78,4 +50,36 @@ queue. Each line: what is seen, where (the story), where it came from, its kind 
 
 ## Fixed
 
-(none yet; each line moves here with its lane and commit)
+- **Ring letters off their cells** (look): on a ring the letters drift from the cells they name, unevenly spaced and
+  crowding in places (UUUAG near 10, GGGAG near 20), not centred on their cell's angle and the track's mid radius. Where:
+  tRNA › Views › Chords (and every ring with letters). The author, 2026-11-20. Check the placement against the cell's
+  centre angle and the glyph's centre (not its baseline start), in the canvas and the SVG.
+  Fixed by FX1: `ef7db02cf`.
+- **A moved label of an item in a lower lane is dropped** (bug): leaders exist for lane 0 only (LX). Third slice's LX
+  review.
+  Fixed by FX1: `1e638edd4`.
+- **Two frames of about 100 ms in every zoom of the 10,000 × 300 alignment** (bug): Globins › Rows › Scale at dpr 2. A
+  frame callback outside the viewer's ticks, most likely the rows' image tiles rebuilt at a new level. Build them
+  across frames and keep the old level drawn meanwhile (performance.md, Levels). From the third slice's M3
+  (`third-slice/measurements.md`).
+  Fixed by FX1: `ac41ad4f5`, `4562016a3`, `ae15f49f6`, `b615e3137`.
+- **A label that does not fit its box disappears whole; an ellipsis inside first** (look, a rule added to layouts.md
+  "Labels inside if they fit, else beside"): p53's domain track at a mid zoom ("Nuclear localization", "C-terminal",
+  "Tetramerization" shown, then the boxes empty a step later, C-terminal cut at the edge). The author, 2026-11-20:
+  "should we allow ellipsis (up to a degree) in the boxes instead of the text disappearing as a whole?" Proposed order:
+  whole inside; else whole beside when the lane has room; else inside cut with an ellipsis while at least 4 characters
+  (or the whole label, if shorter) and the ellipsis fit (4 by default, configurable: a layer param beside the
+  label's, `labels.minChars`, decided by the author, 2026-11-20: "4 characters as default is fine, should be
+  configurable"); else dropped. The cut keeps the hover card and the address
+  whole; the canvas and the SVG cut alike (text-metrics port). A label cut at the section's edge is placed within it
+  (C-terminal), never clipped mid-glyph.
+  Fixed by FX1: `7651d491a` (`labels.minChars`, a `RenderConfig` key).
+- **A folded clade's summary row is not named to assistive technology** (bug, only if the author decided item 4 of the
+  third slice's `drift/ec-contradictions.md` as recommended: name it by its summary label, "HBA +12"). Third slice's EO.
+  Fixed by FX1: `4c4470716`.
+- **The frame-time test's max bound flaked once** (bug in a test): `render/_test/frame-time.test.ts`, 18.8 ms against
+  16, passing on the rerun; best of three or a percentile. Third slice's gate.
+  Fixed by FX1: `b022e2330` (the third slice, best of three).
+- **A cursor card is replaced when a zoom re-hits the hover** (bug): the card should stay while the hit is the same.
+  Third slice's HC leftover.
+  Fixed by FX1: `64f5d5ca0`, `1bdc2b9f0`.
