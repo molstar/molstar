@@ -74,6 +74,7 @@ const TargetWords: Readonly<Record<string, string>> = {
   filter: 'on a filter',
   window: 'on a window',
   'tree-node': 'on a tree node',
+  'tree-toggle': 'on the tree’s toggle',
   'summary-row': 'on a folded clade',
   'column-title': 'on a column title',
   'columns-hidden': 'on the hidden columns',

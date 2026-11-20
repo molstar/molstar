@@ -317,6 +317,8 @@ export const DefaultViewerConfig: ViewerConfig = {
       'cursor.last-row': ['Mod+ArrowDown'],
       // the keyboard's way to the column titles' click: the next column, ascending then descending
       'rows.order-next': ['Shift+O'],
+      // a narrow frame's collapsed tree opened, or closed to its toggle again (the toggle's click)
+      'rows.tree': ['Shift+T'],
       // the keys panel: what the view answers to (a printable key: whatever Shift types it)
       'help.keys': ['?'],
     },

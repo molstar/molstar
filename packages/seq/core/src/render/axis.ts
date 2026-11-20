@@ -51,6 +51,8 @@ export interface BandViewport {
   readonly bandTop: number;
   readonly rowScale?: number;
   readonly folds?: readonly string[];
+  /** The reader opened the tree a narrow frame collapsed to its toggle (session state): kept, the frame scrolls. */
+  readonly tree?: boolean;
 }
 
 /** `unitAt` and `inGap`'s point through `unitInto` and `inGapOf` (one body each): read at once, never kept. */

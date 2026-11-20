@@ -66,6 +66,7 @@ export const RowsCommandIds = {
   zoomOut: 'rows.zoom-out',
   pageDown: 'rows.page-down',
   pageUp: 'rows.page-up',
+  tree: 'rows.tree',
 } as const;
 
 /** The actions a binding may name when the viewer has the behavior (a tree node's click). */
@@ -194,6 +195,24 @@ export function rowsBehavior(
   });
 
   const commands: CommandDefinition<RowsContext>[] = [
+    {
+      // a narrow frame's collapsed tree (its toggle): opened whole, the frame scrolling; again, back to its toggle
+      id: RowsCommandIds.tree,
+      title: 'Show or hide the tree in a narrow frame',
+      category: 'Rows',
+      when: (ctx) => {
+        const ok = needs(true)(ctx);
+        if (ok !== true) return ok;
+        const track = trackOf(ctx)!;
+        return lay(track)!.toggleX >= 0 || view.band(track)?.tree ? true : 'The tree is shown whole';
+      },
+      run: (_, ctx): CommandResult => {
+        const track = trackOf(ctx)!;
+        const open = !view.band(track)?.tree;
+        view.setBand(track, { tree: open });
+        return { message: open ? 'Tree shown' : 'Tree folded to its toggle' };
+      },
+    },
     {
       id: RowsCommandIds.toggle,
       title: 'Fold or unfold a clade',

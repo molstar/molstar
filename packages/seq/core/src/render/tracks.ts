@@ -27,7 +27,7 @@ import { chipText } from './layout/blocks.js';
 import { TracksLayout } from './layout/tracks.js';
 import type { GridPlacement } from './layout/grid.js';
 import type { PlaceContext, Placement, SectionLayoutType } from './layout/types.js';
-import { narrowColumns } from './narrow.js';
+import { narrowColumns, treeKept } from './narrow.js';
 import { placeRail, placeRowsRail, Rail, SlimRailPx } from './rail.js';
 import type { RowsLay } from './rows.js';
 import { rowsCount, rowsFillHeight, rowsShown } from './rows-fill.js';
@@ -142,6 +142,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         header.tree,
         base,
         fixed + (fit?.own ?? 0),
+        treeKept(input.viewports),
       )
     : undefined;
   const config = widened(

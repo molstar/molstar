@@ -270,6 +270,8 @@ const Cases: Record<string, { ctx: unknown; before?: (v: SeqViewer) => unknown }
   'rows.page-down': { ctx: { track: RowsTrack } },
   // from a page down (a page up at the top has nowhere to go)
   'rows.page-up': { ctx: { track: RowsTrack }, before: (v) => v.runCommand('rows.page-down', { track: RowsTrack }) },
+  // opened in a wide frame by hand: the command folds it back to its toggle
+  'rows.tree': { ctx: { track: RowsTrack }, before: (v) => v.view.setBand(RowsTrack, { tree: true }) },
   'preview.cancel': {
     ctx: {},
     before: (v) =>

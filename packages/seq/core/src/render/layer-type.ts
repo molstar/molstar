@@ -215,6 +215,7 @@ export type HitTarget =
   | 'summary-row'
   | 'column-title'
   | 'columns-hidden'
+  | 'tree-toggle'
   | 'group';
 
 /** A section's id: the last step of its address. */

@@ -676,6 +676,11 @@ export class ViewerInput {
     const chip = this.viewer.hit(x, y);
     // the hidden-columns chip: its hover names them, a click does nothing
     if (chip?.target === 'columns-hidden') return true;
+    // a narrow frame's tree toggle: the tree opened (session state, `rows.tree`)
+    if (chip?.target === 'tree-toggle') {
+      void this.viewer.execute('rows.tree', { track: trackOfLayer(chip.layer) });
+      return true;
+    }
     if (chip?.target === 'filter') {
       void this.viewer.execute('layer.filter', { address: chip.layer });
       return true;

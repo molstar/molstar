@@ -29,7 +29,8 @@ export interface NarrowColumns {
  * The label column and the tree for a frame `width` px wide whose columns take `fixed` px (the label column
  * `labelWidth` of it, the tree `tree`; row columns as granted at this width): unchanged while the plot keeps
  * `navigator.overview.minPlotPx`; else the label column gives up to its floor (`labelColumn.min`, or its own width if
- * less), then the tree all of its. `columnsPx`: the columns at their own widths, whatever the frame (`fixed` when
+ * less), then the tree all of its (to its toggle, `keepTree` false: a tree the reader opened stays whole and the frame
+ * scrolls). `columnsPx`: the columns at their own widths, whatever the frame (`fixed` when
  * absent): what `plotPx` and a navigator beside the frame read, so a width they decide never feeds back.
  */
 export function narrowColumns(
@@ -39,16 +40,31 @@ export function narrowColumns(
   tree: number,
   config: RenderConfig,
   columnsPx = fixed,
+  keepTree = false,
 ): NarrowColumns {
   const minPlot = config.navigator.overview.minPlotPx;
   const plotPx = width - columnsPx;
   const floor = Math.min(labelWidth, config.labelColumn.min);
-  const minWidth = fixed - (labelWidth - floor) - tree + minPlot;
+  const minWidth = fixed - (labelWidth - floor) - (keepTree ? 0 : tree) + minPlot;
   let lack = minPlot - (width - fixed);
   if (!(lack > 0)) return { labelWidth, tree, plotPx, columnsPx, minWidth };
   const label = Math.max(floor, Math.floor(labelWidth - lack));
   lack -= labelWidth - label;
-  return { labelWidth: label, tree: lack > 0 ? 0 : tree, plotPx, columnsPx, minWidth };
+  return { labelWidth: label, tree: lack > 0 && !keepTree ? 0 : tree, plotPx, columnsPx, minWidth };
+}
+
+/** Whether the reader opened a tree a narrow frame collapsed (a band's `tree`, session state): it is kept then. */
+export function treeKept(
+  viewports:
+    | Readonly<Record<string, { readonly bands?: Readonly<Record<string, { readonly tree?: boolean }>> }>>
+    | undefined,
+): boolean {
+  if (!viewports) return false;
+  for (const s in viewports) {
+    const bands = viewports[s].bands;
+    if (bands) for (const t in bands) if (bands[t].tree) return true;
+  }
+  return false;
 }
 
 /**

@@ -1025,6 +1025,7 @@ export class SeqViewer extends ReactiveModel {
         bandTop: f.bandTop ?? o?.bandTop ?? 0,
         ...((f.rowScale ?? o?.rowScale) !== undefined ? { rowScale: f.rowScale ?? o?.rowScale } : {}),
         ...(o?.folds !== undefined ? { folds: o.folds } : {}),
+        ...(o?.tree ? { tree: true } : {}),
       };
     }
     this._bandsMerged.set(section, [own, framed, out]);

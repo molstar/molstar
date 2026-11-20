@@ -7,6 +7,7 @@
 import { Anchor, NoColor, type PassWriter } from './draw-lists.js';
 import { cellEdge } from './letters.js';
 import { drawColumnCells, drawTitles } from './rows-columns.js';
+import { TogglePx } from './rows-header.js';
 import type { Clades } from './rows-model.js';
 import type { RowsLay } from './rows-lay.js';
 
@@ -160,6 +161,7 @@ export function drawHeader(lay: RowsLay, out: PassWriter) {
   branchWidth(lay, 1);
   for (let k = 0; k + 3 < t.length; k += 4) branchRect(lay, out, k, ink);
   if (lay.wedges.length) drawWedges(lay, out, ink, -1, false);
+  if (lay.toggleX >= 0) drawToggle(lay, out, ink);
   const text = tokens.colors['msui-text'];
   for (let k = 0; k < lay.labelText.length; k++) {
     g[0] = lay.labelX;
@@ -235,8 +237,7 @@ const BranchW = new Float64Array(2);
  * its centre's pixel run of the branch's width, along it from each end less half the width to the end plus half (so a
  * branch and its node's vertical meet square, and every branch draws one width).
  */
-export function branchRect(lay: RowsLay, out: PassWriter, k: number, ink: number) {
-  const tr = lay.tree;
+export function branchRect(lay: RowsLay, out: PassWriter, k: number, ink: number, tr: ArrayLike<number> = lay.tree) {
   const g = out.args;
   const dpr = lay.axis.dpr;
   const w = BranchW[0];
@@ -258,6 +259,38 @@ export function branchRect(lay: RowsLay, out: PassWriter, k: number, ink: number
   g[8] = 0;
   out.rectArgs();
 }
+
+/**
+ * The tree's toggle (a narrow frame's collapsed tree): a small tree in the branches' ink and width, a stem and three
+ * branches, in the glyph's box; snapped to the device grid as the branches are.
+ */
+function drawToggle(lay: RowsLay, out: PassWriter, ink: number) {
+  const x = lay.toggleX;
+  const y = lay.toggleY;
+  const s = TogglePx;
+  const t = ToggleSegments;
+  // the segments as a tree's (x0, y0, x1, y1), drawn by the branches' own rect
+  t[0] = x + 2;
+  t[1] = y + 2;
+  t[2] = x + 2;
+  t[3] = y + s - 2;
+  t[4] = x + 2;
+  t[5] = y + 2;
+  t[6] = x + s - 2;
+  t[7] = y + 2;
+  t[8] = x + 2;
+  t[9] = y + s / 2;
+  t[10] = x + s - 4;
+  t[11] = y + s / 2;
+  t[12] = x + 2;
+  t[13] = y + s - 2;
+  t[14] = x + s - 2;
+  t[15] = y + s - 2;
+  for (let k = 0; k < 16; k += 4) branchRect(lay, out, k, ink, t);
+}
+
+/** The toggle's segments, reused. */
+const ToggleSegments = new Float64Array(16);
 
 /** A wedge's corners and its outline with each corner softened (3 corners, 4 points each: two cuts, two between). */
 const WedgeCorners = new Float64Array(6);

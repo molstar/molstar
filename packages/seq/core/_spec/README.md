@@ -1900,11 +1900,14 @@ numbers): a window move allocates nothing once warm.
   ruler's: never a column squeezed to nothing), cheapest first: (1) a vertical overview at its form's size beside the
   canvas narrows from 96 toward `navigator.overview.minPx` (48) to keep the plot `navigator.overview.minPlotPx` (160)
   wide; (2) below that it is hidden, the rows rail kept (the way to move is never lost); (3) the label column shrinks to
-  its floor (`labelColumn.min`, 80, or its own width if less), then the tree collapses (`LayoutContext.treePx`: 0); (4)
-  the plot keeps its floor and the frame scrolls: `narrow.minWidth` is the least frame width with the columns at their
-  floors. `narrow.plotPx` and `.columnsPx` are at the columns' own widths (row columns ungranted too, whatever the
-  frame), so a navigator reading them beside the canvas never flips with the columns it caused to shrink. A view with a
-  tracks section has it. Why the order: a miniature before names, names before data.
+  its floor (`labelColumn.min`, 80, or its own width if less), then the tree collapses to its toggle
+  (`LayoutContext.treePx`: 0; `RowsLay.toggleX`: a small tree in the branches' ink and width at the band's top, the
+  labels after it, hit as `tree-toggle`; a band's `tree`, the reader's opening, session state, keeps the tree whole:
+  `treeKept`, the least width then holding it); (4) the plot keeps its floor and the frame scrolls: `narrow.minWidth` is
+  the least frame width with the columns at their floors. `narrow.plotPx` and `.columnsPx` are at the columns' own
+  widths (row columns ungranted too, whatever the frame), so a navigator reading them beside the canvas never flips with
+  the columns it caused to shrink. A view with a tracks section has it. Why the order: a miniature before names, names
+  before data.
 
 ### Rings layout
 

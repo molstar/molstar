@@ -6,6 +6,7 @@
 
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { describe, expect, it } from 'vitest';
+import { hitView } from '../index.js';
 import { DefaultRenderConfig, renderConfig } from '../config.js';
 import { narrowColumns, overviewWidth } from '../narrow.js';
 import type { RowsLay } from '../rows.js';
@@ -31,9 +32,16 @@ function spec() {
   return b.build();
 }
 
-async function laid(width: number) {
+async function laid(width: number, treeOpen = false) {
   const s = await settle(spec());
-  const f = await s.frame({ size: { width, height: 200 }, dpr: 1, settled: true });
+  const f = await s.frame({
+    size: { width, height: 200 },
+    dpr: 1,
+    settled: true,
+    ...(treeOpen
+      ? { viewports: { '/views/v/s': { start: 0, end: 6, bands: { '/views/v/s/rows': { bandTop: 0, tree: true } } } } }
+      : {}),
+  });
   let lay: RowsLay | undefined;
   for (const l of f.layout.sections[0].lays)
     for (const x of l ?? []) if (x.type.name === 'rows') lay = x.lay as RowsLay;
@@ -94,5 +102,24 @@ describe('a narrow frame', () => {
     expect(layout.narrow!.minWidth).toBe(columns - (112 - 80) - 120 + 160);
     const least = await laid(Math.ceil(layout.narrow!.minWidth));
     expect(least.box.width).toBeGreaterThanOrEqual(160 - 1);
+  });
+
+  it('a collapsed tree leaves its toggle in its place: a small tree glyph, hit as `tree-toggle`; opened (a band’s `tree`), whole', async () => {
+    const wide = await laid(1280);
+    const columns = wide.layout.narrow!.columnsPx;
+    expect(wide.lay.toggleX).toBe(-1);
+    const narrow = await laid(columns - 32 + 160 - 40);
+    expect(narrow.layout.narrow!.tree).toBe(0);
+    const { lay } = narrow;
+    expect(lay.toggleX).toBeGreaterThanOrEqual(0);
+    // the labels after it, never under it
+    expect(lay.labelX).toBeGreaterThanOrEqual(lay.toggleX + 12);
+    expect(hitView(narrow.layout, lay.toggleX + 6, lay.toggleY + 6)).toMatchObject({ target: 'tree-toggle' });
+    // the reader opened it: the tree whole, no toggle, the least width holding it (the frame scrolls)
+    const open = await laid(columns - 32 + 160 - 40, true);
+    expect(open.layout.narrow!.tree).toBe(120);
+    expect(open.lay.toggleX).toBe(-1);
+    expect(open.lay.treeX1 - open.lay.treeX0).toBe(120);
+    expect(open.layout.narrow!.minWidth).toBe(narrow.layout.narrow!.minWidth + 120);
   });
 });
