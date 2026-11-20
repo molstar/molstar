@@ -195,6 +195,61 @@ all of it"). Each extends the package rule it cites, and stands here until the p
   The author: "we should be folding the things we are adding to the designs section in the storybook too". Why: the
   scaffold is deleted once the package stands on its own, and the pages are what readers see meanwhile.
 
+## Folded back from the third slice (the author, 2026-11-20)
+
+Rules learned in the third slice (over sixty lanes, figures; its fold-back in `execution/third-slice/foldback.md`),
+merged by the author ("and then you can apply the foldback"). Each extends the package rule it cites, and stands here
+until the package's home takes it. B10 (module and bundle sizes) went to the package as §module-size.
+
+- **Defaults are designed with a picture** {#defaults-designed} (extends §design-first; amends "Defaults are confirmed
+  from tables" and the self-check on every design, above): a design that adds a layer, a layout or a part has a
+  Defaults section, what a reader sees with no setting (heights, labels, colors, legends; empty, crowded, at the fit
+  view and the closest zoom, in dark), each with a sketch or a reference picture, and its gate reviews it. Why: eleven
+  of the author's thirteen missing designs and looks in the third slice were defaults nobody had drawn ("feel empty",
+  "really good defaults for everything"), costing an audit and four lanes; the self-check's negation found inverses,
+  not defaults.
+- **Configuration tables are checked** {#config-tables-checked} (extends "Defaults are confirmed from tables", above,
+  and §mechanical-drift-checks): each package's test compares its default configuration's items with its `_spec`'s
+  Configuration table, both ways (`seqx-core`'s `src/_test/config-table.test.ts`, `seqx-viewer`'s likewise); a design's
+  Configuration row names an item the code has, or says "not built". Why: the close found seventeen rows missing and
+  six items the designs named and the code never had.
+- **A drift note is a gap** {#drift-notes-are-gaps} (amends "Gaps are asked at every gate", above; extends
+  §gaps-queue): each gate's message to the author lists the open items of `drift/` beside the gaps, each a yes or no
+  with its recommendation; an item leaves its note when asked or resolved, never parked for the close. Why: two lanes'
+  design questions waited from their report to the close unasked.
+- **An edge case is tested by name** {#ec-tested-by-name} (extends §whole-composition-tested): a lane's test of a
+  catalog item names it (`(EC-43)` in its title or a comment of its file); `.seq/_checks/ec-ids.ts` fails a feature
+  marked `done` whose items have neither a test naming them nor an outcome, and `--worklist` lists a built row's items
+  no test names. Why: the close reconstructed 56 outcomes by reading tests for their behavior, and two test-only lanes
+  then found an edge case not wired.
+- **The Features page moves with the merges** {#features-move-with-merges} (amends "The Storybook's Design pages follow
+  the designs", above): a lane that builds a feature moves its row in `design/features.md` and its line on the Design
+  page "Features" to built, with its story's link, in its own change. Why: at the close the page still listed under
+  Planned most of what the slice built.
+- **A seeded generator is checked against its published algorithm** {#seeded-generators-checked} (extends
+  §conformance-suites): reference outputs and an independent oracle (BigInt for a 64-bit generator) over many seeds,
+  every carry reached; a generated dataset's tests state the statistics they rely on. Why: core's `PCG` was biased, and
+  its fix changed Mol\*'s distinct colors, a stored snapshot and every seeded fixture at once.
+- **A changed test expectation is explained** {#test-expectation-explained} (amends "A fix's test is shown failing
+  without the fix", above): a lane that changes an existing test's expected value says why in its report, and the
+  reviewer checks it against the design. Why: a test was changed to fit the code (tracks not wrapping on a cyclic
+  axis) and only a review restored it.
+- **A matrix cell is built when a test names its gesture** {#matrix-cell-by-test} (amends "Interaction is a matrix",
+  above): a gate checks a cell by the test that exercises it, not by the design's word. Why: the cursor's rows were
+  marked built while the cursor was column-only.
+- **Use is continuous** {#use-continuous} (amends "Precedents cover interactions, and a novice pass precedes the
+  author's use", above): the author's use as lanes merge is the use gate, its findings counted by kind as they come,
+  with a look at what changed before the close; no fixed early gate. The novice pass stays, its task script fitted to
+  the slice (a host's integration task where the slice builds for hosts). Why: the early gate was deferred twice and the
+  author's use as lanes merged found what it would have; the novice pass found 21 before the author.
+- **The heavy lane runs alone, at two workers** {#heavy-lane-alone} (amends "Bounds are the best of three, and heavy
+  runs never overlap", above): no other test run beside it, `maxWorkers: 2` in heavy mode. Why: bounds failed in full
+  runs under load and passed alone; two workers measured 1/3 to 5/6 passing in the same wall time.
+- **A hot loop's quick representative is in every package that composes it** {#hot-loop-representatives} (amends "A
+  performance target names its path and its test", above): the viewer's warm emphasis frame has its own case in the
+  Storybook's perf tier at the stage that builds it, not only the core's draw loop. Why: stage 7 found the viewer's
+  emphasis frame at 800 B while every core case passed.
+
 ## For the package's home
 
 Fold-back proposals for the oz package, from this instance (2026-11-18); until merged there they stand as the
@@ -245,6 +300,13 @@ adaptations above.
 - Standing tension "proportional review", later evidence (an adopting project, 2026-11-18): three reviews with one
   reviewer each (3, 5 and 8 findings), every finding citing a line and every fixed one confirmed by a test failing on
   the parent; none refuted. One reviewer whose findings each come with a failing test needed no skeptic.
+
+- From the third slice (2026-11-20): §design-first, a Defaults section with a picture in every design that adds
+  something drawn, reviewed at its gate; §gaps-queue, open drift notes are gaps asked at the next gate;
+  §whole-composition-tested, a test names the catalog item it tests and a check fails a done feature with an item
+  neither tested by name nor given an outcome; §whole-composition-tested, a changed test expectation is explained and
+  checked against the design; §used-before-done, the author's use is continuous and counted by kind, the novice pass's
+  task fitted to the slice.
 
 ## Open items
 

@@ -10,7 +10,9 @@ what the version contains, so scope never grows or shrinks silently (the author,
 
 - **Status**: `planned` (in this version, not built), `building`, `done`, `deferred` (not in this version, with its
   trigger). A feature is `done` when its example view runs ([examples.md](examples.md)) and every edge case it covers
-  has an outcome. A `building` row says after a colon what is built so far (the first three slices, lanes named where it helps); the rest of its What is not.
+  is named by a test or has an outcome (checked: `.seq/_checks/ec-ids.ts`, §ec-tested-by-name). A `building` row says after a colon what is built so far (the first three slices, lanes named where it helps); the rest of its What is not.
+- **Moved with the merges** (§features-move-with-merges): the lane that builds a feature moves its row here and its
+  line on the Storybook's Design page "Features" (with its story's link) in its own change.
 - **Changes are decisions**: moving a row to or from `deferred` is the author's call, with the reason in its row.
 - **Sources**: the previous implementation's features page, the designs here, the JBrowse reply. A feature the
   previous implementation had that is not listed is an omission to fix, not a decision.

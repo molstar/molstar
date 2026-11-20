@@ -73,7 +73,7 @@ Written anew in core with their tests, the previous code read as a guide.
 | a worker pool | `@molstar/core/task` | when the compute port comes ([ports.md](ports.md)) |
 | a ring buffer | `@molstar/core/data/util` | input and frame history without allocation |
 | genomic unit formatting and tick steps | `@molstar/core/util/number` | kb and Mb, nice tick steps for rulers |
-| a fixed seeded generator | `@molstar/core/data/util/hash-functions` (`PCG`) | decided, the author, 2026-11-19: "Fix PCG in core": today's `PCG` keeps 32 bits of state with a 64-bit output step and is biased (CS: G 33%, C 20% over 1 Mb; consecutive draws correlated). A real PCG32 (64-bit state, its `int()`/`float()` kept); Mol*'s `distinct.ts` colors and every seeded Seq\* fixture regenerated once, reviewed as a diff; a behavior change in `breaking-v6-changes.md` |
+| a fixed seeded generator | `@molstar/core/data/util/hash-functions` (`PCG`) | decided, the author, 2026-11-19: "Fix PCG in core": today's `PCG` keeps 32 bits of state with a 64-bit output step and is biased (CS: G 33%, C 20% over 1 Mb; consecutive draws correlated). A real PCG32 (64-bit state, its `int()`/`float()` kept); Mol*'s `distinct.ts` colors and every seeded Seq\* fixture regenerated once, reviewed as a diff; a behavior change in `breaking-v6-changes.md`. Built (PG): its tests match the reference's outputs and a BigInt oracle of the published algorithm over many seeds, the rare low-to-high carry included (§seeded-generators-checked) |
 | SIFTS tables | `@molstar/io` | SIFTS residue tables read outside mmCIF, for the structure map's source ([maps.md](maps.md)) |
 
 ## Duplicates to remove on the way

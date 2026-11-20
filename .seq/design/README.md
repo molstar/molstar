@@ -2,7 +2,9 @@
 
 One file per topic. A design says what is true and why: intent, precedents, tensions, the decision, rejected
 alternatives, consequences (§design-first). No status field: what is here is agreed. A section marked **Provisional**
-is the agreed direction with its details still open; it says what would settle them.
+is the agreed direction with its details still open; it says what would settle them. A design that adds a layer, a
+layout or a part has a **Defaults** section: what a reader sees with no setting, with a sketch or a reference picture
+(§defaults-designed).
 
 | Design | Covers |
 |---|---|

@@ -34,7 +34,8 @@ events the viewer should expose normally ... not call it a port"): translation a
 
 ## What the third slice changes in how this one runs
 
-Provisional, from the third slice's `state.md`; replaced by its decided fold-back.
+From the third slice's state and its fold-back (decided by the author, 2026-11-20: merged; the rules in the
+principles, "Folded back from the third slice"); the bullets below are checked against them.
 - **Lanes: one strong and one or two fast at once** (the author, 2026-11-20, Gate 0: "Accept all"; "default is 1+1-2",
   2026-11-19): the strong lanes run one after another; fast lanes (FX, stories, tests, read-only) run beside them when
   their files are not the strong lane's. Never two strong lanes, never two heavy test runs at once. A lane's review and
@@ -52,8 +53,32 @@ Provisional, from the third slice's `state.md`; replaced by its decided fold-bac
 - **Read-only fast lanes prepare the author's questions and the close** (SR, EO, DA, GR): cheap, kept.
 - **Use gates do not block the loop**: the author's use comes when they are back, its findings fixed after; the novice
   pass runs before the close.
-- **Fold-back of the third slice: applied at its close.** (Placeholder, 2026-11-20: the orchestrator replaces this
-  line with the decided rules, and the bullets above are checked against them.)
+- **The third slice's fold-back, applied** (principles, "Folded back from the third slice"):
+  - *Defaults designed with a picture* (§defaults-designed): each stage 0 design that adds something drawn (the
+    molecules' sections, the header parts, the fake 3D viewer) has a Defaults section, reviewed at stage 0's gate.
+  - *Drift notes are gaps* (§drift-notes-are-gaps): every gate's message lists `drift/`'s open items with the gaps.
+  - *Edge cases tested by name* (§ec-tested-by-name): a lane's tests name the catalog items they test;
+    `node .seq/_checks/ec-ids.ts` runs with the gate's checks, `--worklist` at the close.
+  - *Configuration tables checked* (§config-tables-checked): the core's and the viewer's `config-table` tests run in the
+    quick lane; a lane adding a config item adds its row.
+  - *Features move with the merges* (§features-move-with-merges); *a changed test expectation explained*
+    (§test-expectation-explained); *a matrix cell built when a test names its gesture* (§matrix-cell-by-test).
+  - *Use is continuous* (§use-continuous): the author's use counted by kind as it comes; the novice pass before the
+    close plays a host's integration task (sync a selection with the fake 3D view, wire a seq data port), not a
+    reader's.
+  - *The heavy lane alone, at two workers* (§heavy-lane-alone); *a hot loop's representative in every package that
+    composes it* (§hot-loop-representatives).
+  - **The findings table is kept per lane** (B6): the merge step adds the lane's row (bug, missing design, look; review,
+    look, use) to `state.md`'s table before the merge note, for every lane, not only the early stages. Why: the third
+    slice's table stopped at stage 4 and its last forty lanes could not be counted at the close.
+  - **Each lane keeps its own quick-lane time** (B7): a lane's checks include its packages' quick-lane time against the
+    2 s guide; a lane over it moves its own slow tests to medium (a quick representative kept) before its review. Why:
+    three lanes (QT, QT2, QT3) moved what earlier lanes had added.
+  - **Reviewers in their own worktrees** (B8): every reviewer and every lane works in a worktree of its own, never in
+    another lane's. Why: a reviewer switched another lane's worktree in the third slice.
+  - **The lane limit is one line** (B8): `loop.md` holds the author's current limit as one line, edited when the
+    author changes it (now: one strong lane and one or two fast); `resume.md`'s shape is the template for any pause.
+    Why: the author changed the limit five times in the third slice.
 
 ## Done when
 
