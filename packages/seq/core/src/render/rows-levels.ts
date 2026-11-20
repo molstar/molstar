@@ -7,14 +7,8 @@
 import type { Pyramid, PyramidLevel } from './pyramid.js';
 
 // The level pair the rows draw their image tiles from (_spec/README.md "Render", The rows layer; performance.md,
-// Levels): while the view moves, a level not built yet is built a budget of cells a frame and the level drawn last
+// Levels): while the view moves, a level not built yet is built `rows.buildBudget` cells a frame and the level drawn last
 // stays drawn meanwhile (its tiles placed at the new zoom); a settled frame builds the rest.
-
-/**
- * The cells a moving frame reads to build a level (2^18: about 4 ms; a 10,000 × 300 level from its base, three
- * million cells, took two frames of about 100 ms at dpr 2, each zoom).
- */
-export const RowsBuildCells = 1 << 18;
 
 /** The level pair each pyramid drew last: its base's version, row level and column level (kept, reused). */
 const Drawn = new WeakMap<Pyramid, Int32Array>();
@@ -25,7 +19,7 @@ export function rowsLevel(
   rowLevel: number,
   columnLevel: number,
   settled: boolean,
-  cells = RowsBuildCells,
+  cells: number,
 ): PyramidLevel {
   let drawn = Drawn.get(pyr);
   if (!drawn) Drawn.set(pyr, (drawn = new Int32Array([-1, 0, 0])));

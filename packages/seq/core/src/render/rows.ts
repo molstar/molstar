@@ -1429,7 +1429,7 @@ function layoutImages(lay: RowsLay, ctx: LayoutContext, c0: number, c1: number) 
   const dpr = axis.dpr;
   const rowLevel = pyramidLevelFor(1 / (lay.rowScale * dpr), 4);
   const colLevel = pyramidLevelFor(1 / axis.devicePx, 4);
-  const level = rowsLevel(pyr, rowLevel, colLevel, ctx.settled);
+  const level = rowsLevel(pyr, rowLevel, colLevel, ctx.settled, ctx.config.rows.buildBudget);
   const fr = 4 ** level.rowLevel;
   const fc = 4 ** level.columnLevel;
   const s0 = Math.floor((lay.first - P) / fr);

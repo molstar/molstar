@@ -49,4 +49,17 @@ describe('the rows’ levels across frames', () => {
     const g = rowsLay(s.renderer.frame(at(0.05, Columns, true)));
     expect(g.pyramid!.isBuilt(r, c)).toBe(true);
   });
+
+  it('the budget is the config’s `rows.buildBudget`: a level a default frame would build whole waits for a smaller one', async () => {
+    // 500 × 300 base cells: within the default budget, past 20,000
+    const frame = async (budget?: number) => {
+      const s = await settle(spec(500, true), [Synthetic], (budget ? { rows: { buildBudget: budget } } : {}) as never);
+      await s.frame(at(0.4, Columns, true));
+      const lay = rowsLay(s.renderer.frame(at(0.05, Columns, false)));
+      const [r, c] = wanted(lay, 0.05);
+      return lay.pyramid!.isBuilt(r, c);
+    };
+    expect(await frame()).toBe(true);
+    expect(await frame(20_000)).toBe(false);
+  });
 });
