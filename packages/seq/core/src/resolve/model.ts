@@ -85,6 +85,15 @@ import {
   moleculeOf,
   unitsOf,
 } from './molecule-query.js';
+import { offsetNumbering, segmentsNumbering } from './maps-numbering.js';
+import {
+  observedDisagrees,
+  type StructureMapData,
+  segmentRuns,
+  segmentsLinear,
+  structureData,
+} from './maps-segments.js';
+import { pathKey, viaList, viaRivals, withoutRivals } from './maps-via.js';
 import { collapseAtoms, expandAtoms, type ModifiedIndex, type UnitEntry, unitEdges } from './molecules.js';
 import { composeEdges, type Edge, findPath, inversePath, type Path, projectRanges, type Step } from './paths.js';
 
@@ -169,7 +178,7 @@ export interface NumberingEntry {
 /** A map, resolved: its kind, its encoding, and its linear part (fine places of the residue side for a codon map). */
 export interface MapEntry {
   readonly address: string;
-  readonly kind: 'offset' | 'codon';
+  readonly kind: 'offset' | 'codon' | 'segments' | 'structure';
   readonly from: string;
   readonly to: string;
   readonly encoding: Encoding;
@@ -177,6 +186,10 @@ export interface MapEntry {
   readonly linear: Linear;
   /** A codon map's genetic code: its `table`, 1 when absent; undefined when that code is not built. */
   readonly code?: GeneticCode;
+  /** Its rank among maps joining the same systems (`priority`, 0 when absent; _spec/README.md "Resolve", Paths). */
+  readonly priority: number;
+  /** A structure map's provenance and residue status (`structureStatus`). */
+  readonly structure?: StructureMapData;
 }
 
 /** The language's params of a source: one definition, the description's. */
@@ -280,17 +293,20 @@ export interface StaticModel extends QueryModel {
   readonly issues: readonly Issue[];
   /** A system's declared numbering by its id (`kabat`), or undefined: never a built-in (`index`, `ordinal`). */
   numberingOf(system: string, id: string): NumberingEntry | undefined;
-  /** The shortest unambiguous path, composed once and kept (across resolves while the maps its search read hold). */
-  path(from: string, to: string): PathResult;
+  /**
+   * The shortest unambiguous path, composed once and kept (across resolves while the maps its search read hold); one
+   * entry a pair and `via` set: with `via` (map addresses) the named maps' rivals are left out (maps-via.ts).
+   */
+  path(from: string, to: string, via?: readonly string[]): PathResult;
   /** The steps from a system along the spec's maps, both ways: what a path search reads (the overlay adds its own). */
   edgesFrom(system: string): readonly Edge[];
   /**
    * A Location carried onto a system: each part along its path (rects are not carried yet); a part with no path is
    * left out with the path's issue. With `close`, the location is first closed (`close`). The atoms group map applies
    * at the ends only: a part on atoms is collapsed onto their residues first, and onto an atoms system the image on
-   * its residues is expanded last.
+   * its residues is expanded last. With `via`, each part's path is `path(from, to, via)`'s.
    */
-  project(loc: Location, to: string, options?: { close?: boolean }): Projection;
+  project(loc: Location, to: string, options?: { close?: boolean; via?: readonly string[] }): Projection;
   /**
    * Closure, one step (EC-30): nucleotides gain their residues and lift to their whole codons, through each codon map
    * between the systems named (every system when none are), along the map itself.
@@ -517,8 +533,8 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
       const src = p(c, 'source') === undefined ? undefined : ref(placed, 'source', ['source']);
       numberings.set(
         placed.address,
-        cached(`${placed.address}|${key(placed, at)}|${system.name}`, () =>
-          numberingEntry(placed, system, src?.address),
+        cached(`${placed.address}|${key(placed, at)}|${system.name}|${system.length ?? ''}`, () =>
+          numberingEntry(placed, system, src?.address, system.length ?? config.openQueryLength),
         ),
       );
     }
@@ -531,7 +547,7 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
     const to = ref(at, 'to', SystemRefs);
     if (!from || !to) continue;
     const entry = cached(`${at.address}|${key(at, from, to)}|${config.encoding}`, () =>
-      mapEntry(at, systems.get(from.address)!, systems.get(to.address)!, config),
+      mapEntry(at, systems.get(from.address)!, systems.get(to.address)!, config, molecular.units.get(to.address)),
     );
     maps.set(at.address, entry.map);
     issues.push(...entry.issues);
@@ -715,13 +731,20 @@ function addressIds(address: string): string[] {
   return address.split('/').filter(Boolean);
 }
 
-/** A declared numbering: inline labels as a numbering of the system; a source's, where the source's rows are. */
-function numberingEntry(at: Placed, system: SystemEntry, source: string | undefined): NumberingEntry {
+/**
+ * A declared numbering: inline labels, an offset or runs as a numbering of the system (`length` its positions, the
+ * open length while unknown); a source's, where the source's rows are.
+ */
+function numberingEntry(at: Placed, system: SystemEntry, source: string | undefined, length: number): NumberingEntry {
   const labels = p(at.node, 'labels');
   const scheme = p(at.node, 'scheme');
   const field = p(at.node, 'field');
   const id = at.node.id ?? '';
   const base = { address: at.address, system: system.address, id, ...(typeof scheme === 'string' ? { scheme } : {}) };
+  const method = p(at.node, 'method');
+  if (method === 'offset') return { ...base, numbering: offsetNumbering(id, length, Number(p(at.node, 'by') ?? 0)) };
+  if (method === 'segments')
+    return { ...base, numbering: segmentsNumbering(id, length, p(at.node, 'segments') as Record<string, Value>) };
   if (labels instanceof CategoryColumn) return { ...base, numbering: labelsNumbering(id, labels) };
   if (!source) return base;
   return {
@@ -832,6 +855,7 @@ function rowsFields(rows: Record<string, Value> | undefined): Record<string, unk
 
 type MapCode =
   | 'seq.resolve.map.empty'
+  | 'seq.resolve.map.observed'
   | 'seq.resolve.map.codon_length'
   | 'seq.resolve.map.table'
   | 'seq.resolve.length.unknown';
@@ -841,6 +865,7 @@ function mapEntry(
   from: SystemEntry,
   to: SystemEntry,
   config: ResolveConfig,
+  unit?: UnitEntry,
 ): { map: MapEntry; issues: Issue[] } {
   const issues: Issue[] = [];
   const report = (code: MapCode, message: string) =>
@@ -849,7 +874,15 @@ function mapEntry(
   let linear: Linear;
   let step: Step = 0;
   let code: GeneticCode | undefined;
-  if (method === 'codon') {
+  let structure: StructureMapData | undefined;
+  if (method === 'segments' || method === 'structure') {
+    const table = p(at.node, 'segments') as Record<string, Value> | undefined;
+    linear = segmentsLinear(segmentRuns(table), from, to);
+    if (method === 'structure') structure = structureData(table, p(at.node, 'status'));
+    // unobserved is the unit's own fact: a map onto a unit that says otherwise is reported, the unit winning
+    if (structure && unit && observedDisagrees(structure, linear, { length: to.length, observed: unit.observed }))
+      report('seq.resolve.map.observed', 'The map’s unobserved residues are not its unit’s');
+  } else if (method === 'codon') {
     step = 1;
     const exons = p(at.node, 'exons') as unknown as { start: ArrayLike<number>; end: ArrayLike<number> };
     const strand = p(at.node, 'strand') === '-' ? '-' : '+';
@@ -878,15 +911,18 @@ function mapEntry(
   if (isEmptyLinear(linear)) report('seq.resolve.map.empty', 'The map pairs no position');
   if (config.encoding !== 'cheapest' && linear.runs())
     linear = config.encoding === 'runs' ? toRuns(linear) : expand(linear, linear.lo, linear.hi);
+  const priority = p(at.node, 'priority');
   const map: MapEntry = {
     address: at.address,
-    kind: method === 'codon' ? 'codon' : 'offset',
+    kind: method === 'codon' || method === 'segments' || method === 'structure' ? method : 'offset',
     from: from.address,
     to: to.address,
     encoding: linear.encoding,
     step,
     linear,
     ...(code ? { code } : {}),
+    priority: typeof priority === 'number' ? priority : 0,
+    ...(structure ? { structure } : {}),
   };
   return { map, issues };
 }
@@ -1114,7 +1150,16 @@ class Model implements StaticModel {
     // a unit's steps up to its molecule and down from it: free, under the copy rule (_spec/README.md "Resolve", Paths)
     for (const u of molecular.units.values()) for (const e of unitEdges(u)) add(e, u);
     for (const m of maps.values()) {
-      const fwd: Edge = { map: m.address, from: m.from, to: m.to, backward: false, step: m.step, linear: m.linear };
+      const rank = m.priority ? { priority: m.priority } : {};
+      const fwd: Edge = {
+        map: m.address,
+        from: m.from,
+        to: m.to,
+        backward: false,
+        step: m.step,
+        linear: m.linear,
+        ...rank,
+      };
       const back: Edge = {
         map: m.address,
         from: m.to,
@@ -1122,6 +1167,7 @@ class Model implements StaticModel {
         backward: true,
         step: -m.step as Step,
         linear: m.linear.inverse(),
+        ...rank,
       };
       for (const e of [fwd, back]) add(e, m);
       if (m.step !== 0)
@@ -1143,45 +1189,46 @@ class Model implements StaticModel {
     return true;
   }
 
-  private entry(from: string, to: string): PathEntry {
-    const k = `${from}\u0000${to}`;
+  private entry(from: string, to: string, via: readonly string[]): PathEntry {
+    const k = pathKey(from, to, via);
     let e = this.pathEntries.get(k);
     if (e) return e;
     const old = this.carried?.get(k);
     if (old && this.valid(old)) e = old;
     else {
       const deps = new Map<string, readonly (MapEntry | UnitEntry)[]>();
-      const r = findPath(
-        {
-          edgesFrom: (s) => {
-            if (!deps.has(s)) deps.set(s, this.edgeMaps.get(s) ?? []);
-            return this.edges.get(s) ?? [];
-          },
+      // a use's `via` leaves out the named maps' rivals; what the search read is every map, rivals too
+      const graph = {
+        edgesFrom: (s: string) => {
+          if (!deps.has(s)) deps.set(s, this.edgeMaps.get(s) ?? []);
+          return this.edges.get(s) ?? [];
         },
-        from,
-        to,
-        { maxSteps: this.config.maxPathSteps, maxCandidates: this.config.maxPathCandidates },
-      );
+      };
+      const r = findPath(via.length ? withoutRivals(graph, viaRivals(via, this.maps.values())) : graph, from, to, {
+        maxSteps: this.config.maxPathSteps,
+        maxCandidates: this.config.maxPathCandidates,
+      });
       e = { found: r.ok ? { path: r.path } : { why: r.why }, deps };
     }
     this.pathEntries.set(k, e);
     return e;
   }
 
-  path(from: string, to: string): PathResult {
-    const k = `${from}\u0000${to}`;
+  path(from: string, to: string, via?: readonly string[]): PathResult {
+    const named = via?.length ? viaList(via) : [];
+    const k = pathKey(from, to, named);
     let r = this.results.get(k);
     if (r) return r;
     // a path read the other way is the inverse of the one found
-    const back = this.pathEntries.get(`${to}\u0000${from}`);
-    const e = back && !this.pathEntries.has(k) ? back : this.entry(from, to);
+    const back = this.pathEntries.get(pathKey(to, from, named));
+    const e = back && !this.pathEntries.has(k) ? back : this.entry(from, to, named);
     if ('path' in e.found) r = { path: e === back ? inversePath(e.found.path) : e.found.path };
     else r = { issue: pathIssue(e.found.why, from, to) };
     this.results.set(k, r);
     return r;
   }
 
-  project(loc: Location, to: string, options: { close?: boolean } = {}): Projection {
+  project(loc: Location, to: string, options: { close?: boolean; via?: readonly string[] } = {}): Projection {
     const src = options.close ? this.close(loc) : loc;
     const issues: Issue[] = [];
     const parts: { system: string; ranges: number[] }[] = [];
@@ -1196,7 +1243,7 @@ class Model implements StaticModel {
         parts.push({ system: to, ranges: Array.from(part.ranges) });
         continue;
       }
-      const r = this.path(from, end);
+      const r = this.path(from, end, options.via);
       if (!r.path) {
         if (r.issue) issues.push(r.issue);
         continue;

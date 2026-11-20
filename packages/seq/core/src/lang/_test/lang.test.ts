@@ -241,6 +241,19 @@ const Misuses: Record<keyof typeof LangIssues.codes, () => Node> = {
     b.data.map('m', { from: s, to: s, method: 'offset' });
     return b.build();
   },
+  'seq.lang.map.segments': () => {
+    const b = createSeqSpec();
+    const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGTACGT' });
+    b.data.map('m', { from: s, to: s, method: 'segments', segments: { from: [0, 2], to: [4, 0], length: [3, 2] } });
+    return b.build();
+  },
+  'seq.lang.numbering.segments': () => {
+    const b = createSeqSpec();
+    b.data.sequence('s', { alphabet: 'protein', letters: 'MEEP' }, (s) =>
+      s.numbering('auth', { method: 'segments', segments: { start: [0, 1], end: [2, 4], first: [1, 10] } }),
+    );
+    return b.build();
+  },
   'seq.lang.map.alphabet': () => {
     const b = createSeqSpec();
     const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT' });

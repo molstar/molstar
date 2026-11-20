@@ -110,8 +110,15 @@ export const LangIssues = defineIssues('seq.lang', {
   },
   'seq.lang.numbering.content': {
     severity: 'error',
-    description: 'A numbering has both `labels` and a `source`, or neither, or a `field` without a `source`',
-    hint: 'Give one of `labels` and `source`; `field` names the source’s column of labels',
+    description:
+      'A numbering’s params do not fit its method: `labels` with both `labels` and a `source`, or neither, or a `field` without a `source`; `offset` without `by`; `segments` without `segments`; or a param another method takes',
+    hint: '`labels` takes one of `labels` and `source` (`field` names the source’s column); `offset` takes `by`; `segments` takes `segments`',
+  },
+  'seq.lang.numbering.segments': {
+    severity: 'error',
+    description:
+      'A numbering’s run ends before it starts or overlaps another, or one with an insertion code holds more than one position',
+    hint: 'Give each run `[start, end)` apart from the others; an insertion code (`52A`) numbers one position',
   },
   'seq.lang.numbering.id': {
     severity: 'error',
@@ -131,7 +138,13 @@ export const LangIssues = defineIssues('seq.lang', {
   'seq.lang.map.params': {
     severity: 'error',
     description: 'A map has params its method does not take, or lacks one it needs',
-    hint: '`offset` takes `by`; `codon` takes `exons` and `strand`',
+    hint: '`offset` takes `by`; `codon` takes `exons` and `strand`; `segments` takes `segments`; `structure` takes `segments` (with `provenance`) and `status`',
+  },
+  'seq.lang.map.segments': {
+    severity: 'error',
+    description:
+      'A map’s run holds no position, overlaps another on `from`, or has a strand other than `+` and `-`; or a status row ends before it starts or says other than `conflict` and `unobserved`',
+    hint: 'Give each run a length of at least 1, apart from the others on `from`; a status row says `conflict` or `unobserved`',
   },
   'seq.lang.map.alphabet': {
     severity: 'error',

@@ -39,6 +39,8 @@ export interface Edge {
   readonly linear: Linear;
   /** A unit's step to its molecule (`up`) or from it (`down`): free, never counted, under the copy rule. */
   readonly unit?: 'up' | 'down';
+  /** The map's `priority` (0 when absent): a path ranks as its lowest-ranked map; a unit's step has none. */
+  readonly priority?: number;
 }
 
 /** A composed path: one linear map between the systems' positions, or fine places on the side of a codon step. */
@@ -249,11 +251,20 @@ export type PathSearch =
   | { readonly ok: true; readonly path: Path }
   | { readonly ok: false; readonly why: 'none' | 'ambiguous' | 'limit'; readonly candidates: number };
 
+/** A path's rank: the lowest priority among the maps it steps through (unit steps have none); 0 for none. */
+export function pathRank(p: Path): number {
+  let rank = Infinity;
+  for (const e of p.edges) if (!e.unit) rank = Math.min(rank, e.priority ?? 0);
+  return rank === Infinity ? 0 : rank;
+}
+
 /**
  * The shortest unambiguous path (EC-19 to EC-25): candidates by counted length, unit steps free; at most one codon
- * step; a candidate that pairs nothing is dropped first; equal compositions count once; two that differ are
- * ambiguous. The copy rule is part of the search: no path climbs from a unit to its molecule and down to another
- * unit of it, so a longer legal path beats a shorter illegal one.
+ * step; a candidate that pairs nothing is dropped first; equal compositions count once; of those that differ, the
+ * one ranked highest by its weakest map (`pathRank`) is taken, and a tie is ambiguous (_spec/README.md "Resolve",
+ * Paths; structure-syncing.md, Choosing between two maps). Rank orders candidates of one length only, so a priority
+ * never makes a longer path beat a shorter one. The copy rule is part of the search: no path climbs from a unit to its
+ * molecule and down to another unit of it, so a longer legal path beats a shorter illegal one.
  */
 export function findPath(graph: PathGraph, from: string, to: string, bounds: PathBounds = {}): PathSearch {
   if (from === to) return { ok: true, path: identityPath(from) };
@@ -295,10 +306,19 @@ export function findPath(graph: PathGraph, from: string, to: string, bounds: Pat
     go(from, 0, false);
     if (over) return { ok: false, why: 'limit', candidates: found.length };
     if (!found.length) continue;
-    const distinct: Path[] = [];
-    for (const p of found)
-      if (!distinct.some((q) => q.step === p.step && linearsEqual(q.linear, p.linear))) distinct.push(p);
-    if (distinct.length === 1) return { ok: true, path: distinct[0] };
+    // equal compositions count once, at the best rank among them: the one with the highest rank found first
+    const distinct: { path: Path; rank: number }[] = [];
+    for (const p of found) {
+      const rank = pathRank(p);
+      const same = distinct.find((q) => q.path.step === p.step && linearsEqual(q.path.linear, p.linear));
+      if (!same) distinct.push({ path: p, rank });
+      else if (rank > same.rank) Object.assign(same, { path: p, rank });
+    }
+    if (distinct.length === 1) return { ok: true, path: distinct[0].path };
+    let top = -Infinity;
+    for (const d of distinct) top = Math.max(top, d.rank);
+    const best = distinct.filter((d) => d.rank === top);
+    if (best.length === 1) return { ok: true, path: best[0].path };
     return { ok: false, why: 'ambiguous', candidates: distinct.length };
   }
   return { ok: false, why: 'none', candidates: 0 };

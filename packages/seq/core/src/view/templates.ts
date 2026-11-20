@@ -71,6 +71,7 @@ function instanceLayer(
   node: OverlayNode,
   track: string,
   section: string,
+  via?: readonly string[],
 ): ResolvedLayer {
   const address = layer.address ? `${track}/${layer.address.slice(layer.address.lastIndexOf('/') + 1)}` : undefined;
   const { address: _, ...rest } = layer;
@@ -87,7 +88,7 @@ function instanceLayer(
     ...(length !== undefined ? { length } : {}),
   };
   if (a.target === section) return { ...base, data, placed: true };
-  const path = overlay.path(a.target, section).path;
+  const path = overlay.path(a.target, section, via).path;
   return path ? { ...base, data, path, placed: true } : { ...base, data, placed: false };
 }
 
@@ -115,7 +116,7 @@ export function expandTemplate(
   for (const node of templateNodes(track, overlay).slice(0, max)) {
     const address = printAddress([...segments, { kind: 'node', params: { at: node.address } }]);
     const layers = track.layers.map((l) =>
-      l.placed || l.data ? l : instanceLayer(model, overlay, l, node, address, section.axis.system),
+      l.placed || l.data ? l : instanceLayer(model, overlay, l, node, address, section.axis.system, section.via),
     );
     const { template: _, ...rest } = track;
     out.push({ ...rest, address, label: `${track.label} ${rootKey(overlay, node)}`, layers });
