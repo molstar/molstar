@@ -1935,8 +1935,9 @@ numbers): a window move allocates nothing once warm.
   the grouped form. Why precomputed: the layout never runs on a hover, and nothing else moves. A fan opens for a group
   of up to `rings.cluster.fanMax` members (12) and pivots about the group's middle angle: its members a line apart at
   the bend (`labelLine / (r + labelGap)` radians, or their own spacing if wider), in their order along the ring, each
-  leader from its member's own angle; a larger group opens no fan, its card lists the members. Why: a dozen leaders over
-  the group's own few degrees run together; past a dozen lines a fan cannot be read.
+  leader from its member's own angle; a larger group opens no fan, its card lists every member (no "more": the card is
+  its only opening). Why: a dozen leaders over the group's own few degrees run together; past a dozen lines a fan cannot
+  be read.
 - **The hole holds the title** (`rings.center: 'title'`): the system's name and its length (`bp`, `aa`; a section of
   blocks its id and its units).
 - **The window** (`window` on the layout type, set on a kept placement too): the section's viewport (a ring that

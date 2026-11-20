@@ -92,9 +92,11 @@ describe('a ring’s grouped label', () => {
     });
     const card = words.describe(v.hover.current)!;
     expect(card.title).toBe('13 items');
+    // every member listed (the group is past `fanMax`: the card is its only opening), none left to a "more"
     expect(card.rows.length).toBe(13);
     expect(card.rows[0].label).toBe('Site0');
-    expect(card.rows[12]).toEqual({ label: 'More', value: '1 more' });
+    expect(card.rows[12].label).toBe('Site12');
+    expect(card.text).toContain('Site12');
     expect(card.text).toContain('13 items: Site0');
     v.input.leave();
     // a click selects every member
