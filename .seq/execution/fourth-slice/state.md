@@ -29,21 +29,18 @@ The third slice is closed (2026-11-20; its record in `.seq/records/third-slice/`
 - Module size (§module-size, `.seq/_checks/file-size.ts`): lane SZ splits the four files over 1500 lines after FX1,
   while no other lane is in them (the author, 2026-11-20: "Yes, add all three").
 - Size targets are bounds once reset after RR (the author, 2026-11-20: "reduce render first, then move the size
-  targets").
+  targets"). Moved for the query language: reading a spec 230, headless 820, minimal 920 kB (the author,
+  2026-11-20), the default viewer 1,290 kB ("Move to 1290 kB", 2026-11-20).
 
 ## In progress
 
-- 2026-11-20: QE (strong; `seq/qe-lane`, head `935d692a4`) reported done; its independent review runs in its own
-  worktree. ST1 (strong; `seq/st1-lane`) and HP1 (strong; `seq/hp1-lane`) build in theirs. The properties design took
-  QE's later decisions (e07976393).
+- 2026-11-20: QE merged. ST1 (strong; `seq/st1-lane`) and HP1 (strong; `seq/hp1-lane`) build in their worktrees.
 
 ## Next
 
-1. QE: the review's fix round, merge; at the merge the size bounds to 820 / 920 kB (`sizes.mjs`, performance.md and
-   its page), core's changelog line (address forms: positional values, operator heads), Seq\*'s entry, `pnpm build`
-   and `check:workspace` (core changed), the row and the tick.
+1. QE's heavy bound (`:index`, `itWithin` 400 ms) runs at stage 1's gate (the lane could not run the heavy lane).
 2. ST1 and HP1: check, look (HP1's stories), review, fix round, merge, record.
-3. Then AC (after QE); HP2 after ST1 and HP1; MR, CU, MX on the molecules track; FX3 after stage 1's gate.
+3. AC (strong, after QE) now; HP2 after ST1 and HP1; MR, CU, MX on the molecules track; FX3 after stage 1's gate.
 
 ## Findings by lane
 
@@ -63,6 +60,7 @@ One row a merged lane (loop, step 5, record): review findings and look findings 
 | FX2 | 2026-11-20 | 3 (review: the rail not back when a narrow frame hid the overview; a large group's card cut; a possible resize loop) | 2 (no tree toggle; model issues unwired) | 0 | the ruler's allocation; the look clean |
 | MK | 2026-11-20 | 2 (review: provenance on the wrong run; overlaps on `to` unchecked) | 2 (the ranking rule and an unused via, decided) | 0 | a weak property test; model.ts 1483 → 1370 |
 | SZ (2) | 2026-11-20 | 0 | 0 | 0 | review: no behavior change; a test anchored on shims, viewer-motion's viewports, two nits (to the next fix lane) |
+| QE | 2026-11-20 | 3 (review: an empty column printed as everything; a pending property dropped in node filters, EC-169; column lengths unbounded before zipping) | 0 | 0 | `:index` scanned rows × residues (4.2 s → indexed); monadic laws untested; internals exported; PYL; the default viewer 2.7 kB past its bound, moved to 1,290 kB (the author) |
 
 ## How to verify
 
