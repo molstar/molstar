@@ -62,7 +62,7 @@ import {
   rotatedAnnotations,
   seqText,
 } from '../lib/plasmid/derive.js';
-import { HemeContacts } from '../lib/globins/hemes.js';
+import { HemeUnitContacts } from '../lib/globins/hemes.js';
 import { kabatFromImgt } from '../lib/antibody/numbering.js';
 import {
   Entry as FabEntry,
@@ -506,14 +506,10 @@ async function globins(): Promise<Row[]> {
   const accessions = [...seedAccessions(cut.text).values()];
   const uniprotUrl = `https://rest.uniprot.org/uniprotkb/accessions?accessions=${accessions.join(',')}&format=tsv&fields=accession,id,organism_name,length,lineage&size=500`;
   const uniprot = await fetchText(uniprotUrl, 'text/plain', 'uniprot.tsv');
-  // the contacts the views draw are code (derived): the entry must still give them
+  // the contacts the views draw are code (derived per pair of units): the entry must still give them
   const contacts = hemeContacts(cif);
-  for (const [name, asym] of [
-    ['hba', 'A'],
-    ['hbb', 'B'],
-  ] as const)
-    if (JSON.stringify(contacts.get(asym)) !== JSON.stringify(HemeContacts[name]))
-      throw new Error(`4HHB chain ${asym}'s heme contacts are ${contacts.get(asym)}, not hemes.ts's`);
+  if (JSON.stringify(contacts) !== JSON.stringify(HemeUnitContacts))
+    throw new Error(`4HHB's heme contacts are ${JSON.stringify(contacts)}, not hemes.ts's`);
   const { encodeSeq } = await import('@molstar/seqx-core/data');
   const files = {
     seed: join(dir, 'PF00042-seed.sto'),
@@ -564,7 +560,7 @@ async function globins(): Promise<Row[]> {
       attribution: 'wwPDB, PDB 4HHB, CC0',
       trimmed:
         'chains A (α) and B (β) only, C and D their copies: their letters (pdbx_poly_seq_scheme) and helices (struct_conf, label_seq_id); the heme a position; coordinates, waters and phosphates dropped',
-      derived: `the hemes' contacting residues (heavy atoms within ${ContactDistance} Å, the heme's own chain) are code (src/globins/hemes.ts), checked against the entry here`,
+      derived: `the hemes' contacting residues per pair of units (heavy atoms within ${ContactDistance} Å) are code (src/globins/hemes.ts), checked against the entry here`,
       bytesDownloaded: bytesOf(cif),
       bytesFixture: bytesOf(written.hb),
       sha256Download: sha256(cif),

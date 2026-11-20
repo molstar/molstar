@@ -19,7 +19,7 @@ import { FeatureViews, GlobinsViews } from '@molstar/seqx-examples';
 import { readFileSync } from 'node:fs';
 import { readStockholm } from '@molstar/seqx-core/data/alignment-readers';
 import { ColumnsFile, ReferenceRow, SeedFile } from '@molstar/seqx-examples/globins/data';
-import { HemeContacts } from '@molstar/seqx-examples/globins/hemes';
+import { HemeUnitContacts } from '@molstar/seqx-examples/globins/hemes';
 import { PackageFolder } from '@molstar/seqx-examples/node-assets';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -40,7 +40,7 @@ function rowsLay(v: SeqViewer): RowsLay | undefined {
 }
 
 describe('Globins stories, headless', () => {
-  it('hemoglobin: the chains merged ×2, the hemes one chip ×4; eight helices a molecule, every heme contact an arc; both themes', async () => {
+  it('hemoglobin: the chains merged ×2, the hemes one chip ×4; eight helices a molecule, every heme contact an arc (per pair of units); both themes', async () => {
     viewer = await openExample(GlobinsViews.find((v) => v.id === 'hemoglobin')!, { fixtures: true });
     const v = viewer;
     expect(v.layoutIssues.value).toEqual([]);
@@ -48,9 +48,9 @@ describe('Globins stories, headless', () => {
     const p = sec.placement as BlockPlacement;
     expect(p.labels).toEqual(['α (A) ×2', 'β (B) ×2', 'heme ×4']);
     expect(p.strips.axes.map((a, i) => [a.system, p.strips.chip[i]])).toEqual([
-      ['/data/hba', 0],
-      ['/data/hbb', 0],
-      ['/data/hem', 1],
+      ['/data/hb/A', 0],
+      ['/data/hb/B', 0],
+      ['/data/hb/hem-a', 1],
     ]);
     // every block's lays (a block a strip)
     const lays = (track: string, type: string) =>
@@ -62,7 +62,7 @@ describe('Globins stories, headless', () => {
     expect(helices.length).toBe(16);
     // a pairs layer across blocks is the section's (its arcs between the blocks' strips)
     const arcs = sec.sectionLays.reduce((n, l) => n + (l.type.name === 'pairs' ? (l.lay as PairsLay).n : 0), 0);
-    expect(arcs).toBe(HemeContacts.hba.length + HemeContacts.hbb.length);
+    expect(arcs).toBe(HemeUnitContacts.reduce((n, c) => n + c.residues.length, 0));
     // the bookmarks the builder wrote: each molecule's heme pocket
     expect(v.addresses.refs.value.map((r) => r.id)).toEqual(['pocket-a', 'pocket-b']);
     for (const tokens of [undefined, DarkTokens]) {

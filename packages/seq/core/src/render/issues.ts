@@ -84,6 +84,12 @@ export const RenderIssues = defineIssues('seq.render', {
     description: 'A pairs layer’s ends are not on the systems its section shows: those pairs are not drawn',
     hint: 'Show the pairs’ systems in the section (blocks, or a grid’s two axes)',
   },
+  'seq.render.pairs.copy': {
+    severity: 'warning',
+    description:
+      'Pairs between two systems with an end on split copies whose data names no units: drawn on no copy, never a guessed one',
+    hint: 'Name each end’s unit (`a_unit`, `b_unit`: the pairs of a complex, derived per pair of units), or merge the copies (`copies: merge`)',
+  },
   'seq.render.pairs.limit': {
     severity: 'info',
     description:

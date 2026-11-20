@@ -8,14 +8,16 @@ import { applyPatch, type Patch } from '@molstar/core/repr/patch';
 import type { Node } from '@molstar/core/repr/tree';
 import { addRefPatch, createSeqSpec, type RefInput, SeqLanguage } from '@molstar/seqx-core/lang';
 import { HemoglobinFile } from './data.js';
-import { HemeContacts } from './hemes.js';
+import { HemeContacts, HemeUnitContacts, HemoglobinChains } from './hemes.js';
 
-// Hemoglobin (examples.md, Globins; EC-64, EC-65): PDB 4HHB, α2β2, as blocks of one section: the α chains A and C
-// and the β chains B and D (two molecules, four units: a copy group each), then the four hemes, each a one-position
-// sequence drawn as a chip; the chains' helices A to H from the entry; each heme's contacts (heavy atoms within 4 Å,
-// derived) as arcs to its chain and as the "heme pocket" ranges, bookmarked. The copies merged into one block labeled
-// ×2 (`copies: 'merge'`, the default) or split (`each`), a patch each way. The heme per heavy atom and the units' link
-// to their rows in the family wait: a heme is one position this slice, and the language has no alignment map.
+// Hemoglobin (examples.md, Globins; EC-64, EC-65): PDB 4HHB, α2β2, a complex of eight units: the α chains A and C
+// and the β chains B and D (two sequences, a copy group each), and the four hemes, each a unit of a one-position
+// sequence drawn as a chip; blocks of one section in that order. The chains' helices A to H from the entry; the hemes'
+// contacts (heavy atoms within 4 Å, derived per pair of units) as the complex's pairs between units, so each heme's
+// arcs reach the chain it sits in; each molecule's heme pocket as ranges, bookmarked. The copies merged into one block
+// labeled ×2 (`copies: 'merge'`, the default) or split (`each`), a patch each way. The heme per heavy atom and the
+// units' link to their rows in the family wait: a heme is one position this slice, and the language has no alignment
+// map.
 
 export const title = 'Hemoglobin (4HHB)';
 
@@ -33,14 +35,22 @@ const pocket = (residues: readonly number[]) => ({
   id: residues.map((r) => `r${r}`),
 });
 
-/** Contacts from the heme (its one position) to its chain's residues. */
-const contacts = (residues: readonly number[]) => ({
-  a_start: residues.map(() => 0),
-  a_end: residues.map(() => 1),
-  b_start: residues.map((r) => r - 1),
-  b_end: residues.map((r) => r),
-  type: residues.map(() => 'contact'),
-});
+/** The hemes' contacts as the complex's pairs: a row a residue, from the heme's unit (its one position) to its chain's. */
+function contacts() {
+  const rows = HemeUnitContacts.flatMap((c) => c.residues.map((r) => ({ heme: hemeUnit(c.heme), chain: c.chain, r })));
+  return {
+    a_unit: rows.map((x) => x.heme),
+    a_start: rows.map(() => 0),
+    a_end: rows.map(() => 1),
+    b_unit: rows.map((x) => x.chain),
+    b_start: rows.map((x) => x.r - 1),
+    b_end: rows.map((x) => x.r),
+    type: rows.map(() => 'contact'),
+  };
+}
+
+/** A heme's unit id by its chain: `hem-a` … */
+const hemeUnit = (chain: string) => `hem-${chain.toLowerCase()}`;
 
 /** The bookmarks the builder writes: each molecule's heme pocket. */
 export const PocketRefs: readonly RefInput[] = [
@@ -68,20 +78,28 @@ export function build(options: HemoglobinOptions = {}): Node {
   const helicesB = b.data.ranges('hbb-helices', { target: hbb, source: file });
   const pocketA = b.data.ranges('hba-pocket', { target: hba, rows: pocket(HemeContacts.hba) });
   const pocketB = b.data.ranges('hbb-pocket', { target: hbb, rows: pocket(HemeContacts.hbb) });
-  const contactsA = b.data.pairs('hba-contacts', { a: hem, b: hba, rows: contacts(HemeContacts.hba) });
-  const contactsB = b.data.pairs('hbb-contacts', { a: hem, b: hbb, rows: contacts(HemeContacts.hbb) });
+  const sequences = { hba, hbb };
+  const units: Record<string, string> = {};
+  b.data.complex('hb', { name: 'Hemoglobin (4HHB)' }, (c) => {
+    for (const ch of HemoglobinChains)
+      units[ch.chain] = c.unit(ch.chain, { of: sequences[ch.of], chain: ch.chain, auth_chain: ch.chain });
+    for (const ch of HemoglobinChains)
+      units[hemeUnit(ch.chain)] = c.unit(hemeUnit(ch.chain), { of: hem, chain: ch.heme, auth_chain: ch.chain });
+    c.links('contacts', { rows: contacts() });
+  });
   b.views.view('main', (v) => {
     const s = v.section('hb', options.copies ? { copies: options.copies } : {});
     // each block its whole chain: the lengths the file gives once it is open
-    s.block('a', { of: hba, label: 'α (A)' });
-    s.block('b', { of: hbb, label: 'β (B)' });
-    s.block('c', { of: hba, label: 'α (C)' });
-    s.block('d', { of: hbb, label: 'β (D)' });
-    for (const c of ['a', 'b', 'c', 'd']) s.block(`hem-${c}`, { of: hem, label: 'heme' });
-    s.track('contacts', { label: 'Heme contacts' }, (t) => {
-      t.layer('a', { type: 'pairs', data: contactsA });
-      t.layer('b', { type: 'pairs', data: contactsB });
-    });
+    for (const ch of HemoglobinChains)
+      s.block(ch.chain.toLowerCase(), {
+        of: units[ch.chain] as never,
+        label: `${ch.of === 'hba' ? 'α' : 'β'} (${ch.chain})`,
+      });
+    for (const ch of HemoglobinChains)
+      s.block(hemeUnit(ch.chain), { of: units[hemeUnit(ch.chain)] as never, label: 'heme' });
+    s.track('contacts', { label: 'Heme contacts' }, (t) =>
+      t.layer('contacts', { type: 'pairs', data: '/data/hb/contacts' as never }),
+    );
     s.track('helices', { label: 'Helices' }, (t) => {
       t.layer('a', { type: 'ranges', data: helicesA });
       t.layer('b', { type: 'ranges', data: helicesB });

@@ -7,8 +7,9 @@
 import { readFileSync } from 'node:fs';
 import { hashNode, resolveAddress } from '@molstar/core/repr/tree';
 import { theme } from '@molstar/seqx-core/lang';
-import type { BlockPlacement, RowsLay } from '@molstar/seqx-core/render';
+import { type BlockPlacement, type PairsLay, PlacePoint, type RowsLay } from '@molstar/seqx-core/render';
 import { GlobinsViews } from '@molstar/seqx-examples';
+import { HemeUnitContacts } from '@molstar/seqx-examples/globins/hemes';
 import { PackageFolder } from '@molstar/seqx-examples/node-assets';
 import { DomHost } from '@molstar/ui/dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -74,6 +75,58 @@ async function drawn(s: EditingSession) {
   return s.viewer.frame!.layout.sections[0];
 }
 
+const Pt = new PlacePoint();
+
+/**
+ * Each heme block's arcs reach exactly one chain block, the heme's own chain's (merged, the heme ×4's reach α ×2 and
+ * β ×2); every heme contact's arc at its data (the complex's pairs, derived per pair of units): its feet on the blocks
+ * showing its heme's unit and its chain's, the chain's at its residue.
+ */
+function contactsAtData(sec: Awaited<ReturnType<typeof drawn>>) {
+  const blocks = sec.section.blocks!;
+  const x = (b: number, p: number) => {
+    const q = blocks[b];
+    expect(sec.placement.place(q.offset! + (q.form === 'whole' ? 0.5 : p + 0.5), Pt)).toBe(true);
+    return Pt.x;
+  };
+  const last = (q: (typeof blocks)[number]) => (q.form === 'whole' ? 0 : q.axis.ranges![1] - q.axis.ranges![0] - 1);
+  const blockAt = (px: number) => blocks.findIndex((q, b) => x(b, 0) - 1 <= px && px <= x(b, last(q)) + 1);
+  const lays = sec.sectionLays.filter((l) => l.type.name === 'pairs').map((l) => l.lay as PairsLay);
+  // the drawing: each heme block's arcs reach exactly one chain block (split: the heme's own chain's, in order)
+  const reached = new Map<number, Set<number>>();
+  for (const lay of lays)
+    for (let i = 0; i < lay.n; i++) {
+      const feet = [blockAt(lay.curve[8 * i]), blockAt(lay.curve[8 * i + 6])];
+      const heme = feet.find((b) => blocks[b].form === 'whole' || blocks[b].label.startsWith('heme'))!;
+      let r = reached.get(heme);
+      if (!r) reached.set(heme, (r = new Set()));
+      r.add(feet[0] === heme ? feet[1] : feet[0]);
+    }
+  const hemes = blocks.map((q, b) => (q.label.startsWith('heme') ? b : -1)).filter((b) => b >= 0);
+  expect([...reached.keys()].sort()).toEqual(hemes);
+  for (const [heme, chains] of reached) {
+    const own = blocks.length === 8 ? [hemes.indexOf(heme)] : [0, 1];
+    expect([...chains].sort()).toEqual(own);
+  }
+  // the data: each arc's feet at its heme's unit and its chain's residue
+  let n = 0;
+  const blockOf = (unit: string) => blocks.findIndex((q) => q.systems.includes(unit));
+  for (const lay of lays) {
+    const d = lay.prep!.data!;
+    expect(lay.prep!.endUnits, 'the contacts name their units').toBeDefined();
+    const units = lay.prep!.endUnits!;
+    for (let i = 0; i < lay.n; i++, n++) {
+      const k = lay.pair[i];
+      const want = [x(blockOf(units[d.aUnit![k]]), d.aStart[k]), x(blockOf(units[d.bUnit![k]]), d.bStart[k])];
+      const got = [lay.curve[8 * i], lay.curve[8 * i + 6]].sort((a, b) => a - b);
+      want.sort((a, b) => a - b);
+      expect(got[0]).toBeCloseTo(want[0], 6);
+      expect(got[1]).toBeCloseTo(want[1], 6);
+    }
+  }
+  expect(n).toBe(HemeUnitContacts.reduce((m, c) => m + c.residues.length, 0));
+}
+
 const hash = (s: EditingSession) => hashNode(s.viewer.spec.root.value);
 
 describe('Globins editing views, headless', () => {
@@ -114,16 +167,21 @@ describe('Globins editing views, headless', () => {
     expect(hash(s)).toBe(start);
   });
 
-  it('hemoglobin: the copies split (one patch) and merged again by undo', async () => {
+  it('hemoglobin: the copies split (one patch) and merged again by undo, every heme contact an arc at its data', async () => {
     const s = await open('hemoglobin');
     const start = hash(s);
     const labels = async () => ((await drawn(s)).placement as BlockPlacement).labels;
     expect(await labels()).toEqual(['α (A) ×2', 'β (B) ×2', 'heme ×4']);
+    contactsAtData(await drawn(s));
     expect(await toggleCopies(s)).toBe('Split');
     expect(copiesOf(s)).toBe('each');
     expect(await labels()).toEqual(['α (A)', 'β (B)', 'α (C)', 'β (D)', 'heme', 'heme', 'heme', 'heme']);
+    // split: each heme's arcs reach the chain it sits in, and only it
+    contactsAtData(await drawn(s));
+    expect(s.viewer.layoutIssues.value).toEqual([]);
     await s.stack.undo();
     expect(hash(s)).toBe(start);
     expect(await labels()).toEqual(['α (A) ×2', 'β (B) ×2', 'heme ×4']);
+    contactsAtData(await drawn(s));
   });
 });

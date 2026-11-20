@@ -189,6 +189,7 @@ export function blockAxes(
       ...(start !== undefined ? { offset: start } : {}),
       members: g.members,
       systems: g.systems,
+      copy: g.key,
     };
   });
   const first = groups[0]?.axis;

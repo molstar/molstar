@@ -273,6 +273,12 @@ export interface ResolvedBlock {
   readonly members: readonly string[];
   /** Each member's system (a merged copy's unit), in `members`' order: what an end on a copy is drawn on. */
   readonly systems: readonly string[];
+  /**
+   * @internal Its copy group's key, read by the pairs layer alone (each copy of a pair within one system): blocks of one
+   * key are copies (units of one copy group, or the same system, with the same range and form), the key `copies:
+   * 'merge'` merges by, so the rule is written once.
+   */
+  readonly copy: string;
   /** Each of the section's tracks' layers on this block, by the track's index. */
   readonly layers: readonly (readonly ResolvedLayer[])[];
 }

@@ -116,7 +116,7 @@ describe('the Globins recorder’s rules', () => {
     expect(() => columnsFromUniprot(tsv.split('\n').slice(0, 2).join('\n'), seed)).toThrow(/P02200/);
   });
 
-  it('a mini mmCIF: its chains, helices and heme contacts (heavy atoms within 4 Å, the heme’s chain), and its seq', () => {
+  it('a mini mmCIF: its chains, helices and heme contacts (heavy atoms within 4 Å, per pair of units), and its seq', () => {
     expect(cifChains(MiniCif)).toEqual([
       { asym: 'A', letters: 'VHL', authFirst: 1 },
       { asym: 'B', letters: 'GH', authFirst: 1 },
@@ -125,8 +125,11 @@ describe('the Globins recorder’s rules', () => {
       { asym: 'A', name: 'AA', start: 1, end: 3 },
       { asym: 'B', name: 'BA', start: 1, end: 2 },
     ]);
-    // A's His at 2 Å; its H (at 0.5 Å) not heavy, so Val and Leu out of reach stay out; B's His is not the heme's chain
-    expect([...hemeContacts(MiniCif)]).toEqual([['A', [2]]]);
+    // per pair of units: A's His at 2 Å (its H at 0.5 Å not heavy; Val and Leu out of reach), B's His at 1 Å
+    expect(hemeContacts(MiniCif)).toEqual([
+      { heme: 'A', chain: 'A', residues: [2] },
+      { heme: 'A', chain: 'B', residues: [2] },
+    ]);
     const seq = hemoglobinSeq(MiniCif);
     expect(seq.coverage.systems).toEqual([
       { name: 'hba', length: 3, alphabet: 'protein' },

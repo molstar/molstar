@@ -384,14 +384,15 @@ export const GlobinsViews: readonly ExampleView[] = [
     id: 'hemoglobin',
     title: 'Hemoglobin, heme chips and copies',
     summary:
-      'PDB 4HHB as blocks: the α chains A and C and the β chains B and D merged into one block each labeled ×2, the four hemes as one chip ×4; the helices A to H from the entry, each heme’s contacting residues (within 4 Å, derived) as arcs and as the heme pocket, bookmarked.',
+      'PDB 4HHB as a complex’s units in blocks: the α chains A and C and the β chains B and D merged into one block each labeled ×2, the four hemes as one chip ×4; the helices A to H from the entry, each heme’s contacting residues (within 4 Å, derived per pair of units) as arcs and as the heme pocket, bookmarked.',
     build: () => hemoglobin.build(),
   },
   {
     dataset: 'globins',
     id: 'hemoglobin-split',
     title: 'Hemoglobin, copies split',
-    summary: 'The same blocks with the copies split (`copies: each`): a block a chain, a chip a heme.',
+    summary:
+      'The same blocks with the copies split (`copies: each`): a block a chain, a chip a heme, each heme’s arcs to the chain it sits in.',
     build: hemoglobin.split,
   },
   {
