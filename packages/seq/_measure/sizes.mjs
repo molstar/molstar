@@ -53,10 +53,12 @@ const Unlisted = [
   /seq\/core\/src\/context\/default\.ts$/,
   /seq\/core\/src\/render\/render-svg\.ts$/,
   /seq\/core\/src\/runtimes\//,
+  // the structure translation is a host's library, in no viewer's composition
+  /seq\/core\/src\/structure\//,
 ];
 
 /** The opt-in runtimes: loaded only when a composition lists one. */
-const Runtimes = [/seq\/core\/src\/runtimes\//];
+const Runtimes = [/seq\/core\/src\/runtimes\//, /seq\/core\/src\/structure\//];
 
 /** Target and entry of each case, bytes (minified). */
 const AllCases = [
