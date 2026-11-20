@@ -17,6 +17,35 @@ queue. Each line: what is seen, where (the story), where it came from, its kind 
 - **A moved label of an item in a lower lane is dropped** (bug): leaders exist for lane 0 only (LX). Third slice's LX
   review.
 
+- **Alignment Rows And Columns collapses when the frame's size changes** (bug; look if the cause is only the story's
+  sizing): Features › Query › Alignment Rows And Columns. When the Storybook zoom slider changes the frame's size, the
+  plot collapses: at a small zoom the rows shrink into the top of a much larger, empty canvas; at a middle zoom the rows
+  end two thirds down with an empty well below; at 100% the last column's letters are cut at the right edge under the
+  end numbers (N, (, A half drawn). The status line under it says "The alignment's rows have not arrived" while the
+  rows are drawn. The author, 2026-11-20. Check: the plot box against the host's size on resize (grids-and-rows.md: the
+  plot box is fixed); the canvas's backing size against its CSS size at a changed devicePixelRatio or zoom; the right
+  edge's clip against the end-numbers column; the status text's settle.
+- **A folded clade's summary row is not named to assistive technology** (bug, only if the author decided item 4 of the
+  third slice's `drift/ec-contradictions.md` as recommended: name it by its summary label, "HBA +12"). Third slice's EO.
+- **A disabled toolbar button's dimming not looked at** (look): `@molstar/ui`'s Storybook and Prism, light and dark
+  (computed at 1.7-1.9:1, not seen). Third slice's SF leftover.
+- **The frame-time test's max bound flaked once** (bug in a test): `render/_test/frame-time.test.ts`, 18.8 ms against
+  16, passing on the rerun; best of three or a percentile. Third slice's gate.
+- **A cursor card is replaced when a zoom re-hits the hover** (bug): the card should stay while the hit is the same.
+  Third slice's HC leftover.
+- **A ruler naming its chain stays labelled; an empty track label is still drawn as empty text** (look): the Complex and
+  the Antibody's against view (rulers); core `tracks.ts` (the label). Third slice's HC leftovers.
+- **An inline `strand` of null breaks core's model** (bug): `strand.get is not a function`; a null reads as no strand.
+  A section over a source sequence needs the sequence named after the source's system, else its length is unknown and
+  nothing lays out, and nothing says so: an issue naming it. Third slice's SC leftovers.
+- **`seq.resolve.length.unknown` before open** (look): quieter in the viewer, which says it while a source opens.
+  Third slice's CY leftover.
+- **Antibody: IMGT 112.1 never on the ruler at the closest zoom** (three insertion labels a residue apart); short CDR
+  labels at the fit view (H1 by Kabat, L1 and L2 by IMGT); the against view's gaps faint at the fit (look). Third
+  slice's DA leftovers.
+- **Not looked at past the lanes' own screenshots** (look, for the use gate's look): the Antibody's insertions at the
+  closest zoom and the rail's row (CF), the rows layer (RX).
+
 ## Fixed
 
 (none yet; each line moves here with its lane and commit)

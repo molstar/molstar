@@ -1,15 +1,16 @@
 # Plan: the fourth slice
 
-**A draft (2026-11-19), written while the third slice runs its last lanes** (DB, DS, PZ, its use gate's look, M3,
-finalize). Gate 0 below is for the author; nothing here is decided until they answer it. The section "What the third
-slice changes" is provisional until the third slice's `foldback.md` is decided, and is rewritten from it then.
+**Reconciled 2026-11-20, after the third slice's last lanes merged** (its use gate's look, M3 and finalize remain).
+Stage 0 is done and Gate 0 is decided (below); the build starts when the third slice closes. "What the third slice
+changes in how this one runs" is provisional until the third slice's `foldback.md` is decided, and is rewritten from it
+then.
 
 Work id `fourth-slice`. Version 1's third milestone, **integration** ([version-1](../../design/version-1.md)): structure
 maps and the structure showcase (on a fake 3D viewer, decided), services, bigWig and range reads, the resolved view's test consumer (Nightingale
 dropped), archives. With it, what the third slice and the author carried here: the molecules design built
-([molecules](../../design/molecules.md): units, copies, the 0.5.0 bump), copy ends on units (CE's parked branch), the
-two drafts revised (DR) and built (structure syncing, track header parts), the seq data ports design, and `ext:` layer
-kinds if Gate 0 places them here.
+([molecules](../../design/molecules.md): units, copies, the 0.5.0 bump), copy ends on units (CE's parked branch and its review), the designs
+agreed in stage 0 and built here (structure syncing as a library, track header parts, seq data ports, the extension
+openings: `ext:` kinds, custom navigators, legends' surface).
 
 ## Where this is heading
 
@@ -17,8 +18,8 @@ kinds if Gate 0 places them here.
 |---|---|---|
 | first (closed) | the end-to-end slice | the tree core, the language, resolve, draw lists, Canvas2D and SVG, the viewer's models, data by region, measured |
 | second (closed) | 1, core editing and addressing | patches, history, previews, addresses, refs and links, selection, security bounds, MessagePack, navigation |
-| third (closing) | 2, figures | the axis, text, ring and block layouts, alignments, dot plots, arcs and logos, themes and legends, stories, navigators, PNG and the CLI, the datasets |
-| **fourth (this plan)** | 3, integration | molecules and units, structure maps and syncing on a fake 3D viewer, track header parts, seq data ports, services, bigWig with range reads, the resolved view's test consumer, archives, `ext:` kinds |
+| third (closing: use gate's look, M3, finalize) | 2, figures | the axis, text, ring and block layouts, alignments, dot plots, arcs and logos, themes and legends, stories, navigators, PNG and the CLI, the datasets |
+| **fourth (this plan)** | 3, integration | molecules and units, structure maps and syncing (a library) on a fake 3D viewer, track header parts, seq data ports, services, bigWig with range reads, the resolved view's test consumer, archives, extension kinds, custom navigators, legends |
 | fifth | 4, Genomes | layers across sections, synteny, contact maps, MAF, two assemblies on one axis, the genome formats, the Rondo-like ring as an extension package |
 
 **No Mol\* adapters, no live 3D view** (decided, the author, 2026-11-19: "let's only do a demo with fake 3D viewer ...
@@ -34,26 +35,25 @@ events the viewer should expose normally ... not call it a port"): translation a
 ## What the third slice changes in how this one runs
 
 Provisional, from the third slice's `state.md`; replaced by its decided fold-back.
-- **One lane at a time by default** (the author, 2026-11-19: "slow down to just 1 lane", usage): one lane runs; its
-  review and fix round run before the next starts. When the author allows more ("you can also run another 1-2 lanes"),
-  the pairs under Order and parallelism run together, never two heavy test runs at once. Why: usage limits paused the
-  third slice once, mid-lane.
+- **Lanes: one strong and one or two fast at once** (the author, 2026-11-20, Gate 0: "Accept all"; "default is 1+1-2",
+  2026-11-19): the strong lanes run one after another; fast lanes (FX, stories, tests, read-only) run beside them when
+  their files are not the strong lane's. Never two strong lanes, never two heavy test runs at once. A lane's review and
+  fix round run before the next lane that builds on it starts. Why: usage limits paused the third slice once,
+  mid-lane.
 - **Designs agreed before their lanes**: the third slice's stages 1–4 ran unattended on agreed designs; its later
-  items waited on drafts. Here every design is drafted, self-checked and decided in stage 0, before a build lane.
-- **The author's findings arrive mid-slice and become lanes** (the third slice: about twenty lanes, CH to DB, from use;
-  counted bug 6, missing design 7, look 6 by the end). Each queues as a fast lane with its own brief between the
-  strong lanes; the plan is edited, not bypassed.
+  items waited on drafts. Here every design was drafted, self-checked and decided in stage 0, before a build lane.
+- **The author's findings arrive mid-slice**: a finding that needs a design goes to a stage 0 style draft; one that needs
+  none goes to [fixes.md](fixes.md) and is taken by the next FX lane (below). Why: the third slice's twenty finding
+  lanes (CH to DB; bug 6, missing design 7, look 6 by the end) each cost a brief, a review and a merge.
 - **A lane whose fix needs an unbuilt design is parked, unmerged, with its review kept** (CE), not merged with known
   high findings.
 - **A lane's public API is accepted by the author before merge** (MV, DB): a brief names the public surface it expects;
   anything past it stops the lane.
-- **Small findings collect in [fixes.md](fixes.md)** (the author, 2026-11-20: "maybe add a fix phase where we accumulate
-  these things"): a look or a bug that needs no design is listed there, not given a lane of its own on arrival; a fix
-  lane (FX) takes the open ones at each fix point. Why: the third slice's twenty finding lanes each cost a brief, a
-  review and a merge.
 - **Read-only fast lanes prepare the author's questions and the close** (SR, EO, DA, GR): cheap, kept.
 - **Use gates do not block the loop**: the author's use comes when they are back, its findings fixed after; the novice
   pass runs before the close.
+- **Fold-back of the third slice: applied at its close.** (Placeholder, 2026-11-20: the orchestrator replaces this
+  line with the decided rules, and the bullets above are checked against them.)
 
 ## Done when
 
@@ -64,24 +64,37 @@ Provisional, from the third slice's `state.md`; replaced by its decided fold-bac
   once), the Fc glycan and ADC views ([molecules](../../design/molecules.md), Consequences).
 - **Copy ends on units**: a pair's end on split copies by unit, every finding of CE's review a test (hemoglobin split
   keeps its contacts; copies counted as the resolver's).
-- **Structure maps**: the `structure` map kind kept (decided), `segments` built, a way to choose between two maps
-  joining one pair of systems (DR's gap, as decided); EC-22 to EC-27 on every encoding.
-- **Structure syncing** (the revised draft, agreed): hover, selection and focus both ways, "color by this track", a
-  structure's chains mapped onto sequences, on the fake structure viewer; p53 with 2OCJ and the Complex with 1FIN; the
-  stories with headless twins on a fake clock (one with latency).
-- **Track header parts** (the revised draft, agreed): entries in fixed slots drawn on the canvas and a host's DOM parts
-  over the same geometry, the hidden-tracks chip, the menu behind its port, the secondary click a behavior param, the
-  cursor on headers; `Features/Track headers`.
-- **Seq data ports**: designed (a fake host's adapter reading Seq\*'s nodes from its in-memory representation, and
-  annotations given back as the host's), the package layering decided; built as far as Gate 0 says.
+- **Structure maps**: the `structure` map kind kept (decided), `segments` built, a map's `priority` and a section's
+  `via` to choose between two maps joining one pair of systems ([structure-syncing](../../design/structure-syncing.md),
+  Choosing between two maps; `StaticModel.path(from, to, via?)`); EC-22 to EC-27 on every encoding with a ranked pair,
+  a tie and a `via`.
+- **Structure syncing as a library** ([structure-syncing](../../design/structure-syncing.md): not a port, no behavior):
+  `@molstar/seqx-core/structure` (`structureFacts`, `unitRows`, `toUnits`, `fromUnits`, `colorRuns`) and
+  `@molstar/seqx-viewer/link-structure` (`linkStructure`), with the viewer's four additions (`HoverModel.setLocation`,
+  `AddressModel.revealLocation`, `view.lastJump`, `viewer.retiredSignal`); hover, selection and focus both ways, "color
+  by this track", a structure's chains mapped onto sequences, on the fake structure viewer (its own chain table, its
+  host's adapter translating to MolViewSpec); p53 with 2OCJ and the Complex with 1FIN; the stories with headless twins
+  on a fake clock (one with latency). No MolViewSpec types in Seq\*.
+- **Track header parts** ([track-header-parts](../../design/track-header-parts.md)): entries in fixed slots drawn on
+  the canvas and a host's DOM parts over the same geometry (`headerPartsDom()`), the hidden-tracks chip, the menu
+  behind its port, the secondary click a behavior param, the cursor on headers; `Features/Track headers`.
+- **Seq data ports** ([seq-data-ports](../../design/seq-data-ports.md)): Seq\*'s own reading is the default adapter
+  of the one source protocol; `withAdapter` replaces one per format; `source.ref`, `values.field`, `changes` and
+  `reattach` (a host's updates reopen a source in place, keys kept); `StructureDescription` and `structureNodes` in
+  `seqx-core`'s `io/structure` (shared with MC's converter); the fake host's adapter and a `Host data` story. No
+  Mol\* adapter, no package of its own.
 - **Data**: bigWig read by region and zoom level through range reads of assets (p53's conservation signal over the
   gene's region); services (UniProt, PDBe SIFTS, AlphaFold DB) composed in Storybook from recorded fixtures with a live
   switch; archives read and written over the assets port with EC-91's bounds; the predictions-onto-a-structure and
   addressing showcases ([examples](../../design/examples.md), Showcases).
 - **The resolved view's second consumer**: a test-only plain-SVG consumer draws a subset from the resolved view and
-  the store alone (EC-183); Nightingale dropped (decided, the author, 2026-11-19).
-- **`ext:` layer kinds** (if Gate 0 says here): an extension's layer named in a spec, drawn, its fallback when absent
-  (EC-235), registered atomically through a descriptor.
+  the store alone (EC-183). Nightingale is dropped (decided, the author, 2026-11-19): nothing of it is a dependency, a
+  story or a lane.
+- **Extension openings** ([extension-openings](../../design/extension-openings.md)): part 1, a `SeqExtension`
+  descriptor and namespaced layer types (`<id>:<name>`; plain params on an extension's own type, `<id>:<name>` keys on
+  others' nodes), registered atomically with undo, the fallback drawn and said when absent (EC-235); part 2 (cut first),
+  a navigator's picture as a registry entry with the window and `NavigatorModel` public; part 3 (cut second), legends'
+  library surface (the `legend` layer param, `mountLegend`'s options, a compact form).
 - Measured: a hover message for 2OCJ, `maxUnits`-scale hover, a bigWig region decoded, a header pointer move over 200
   tracks, the bundles (the mmCIF and bigWig runtimes as their own rows, the minimal viewer not grown).
 
@@ -93,9 +106,9 @@ or two fast at once (not one at a time).
 1. **When it starts.** The build lanes after the third slice closes (finalize, fold-back, record); DR and the stage 0
    designs before, since they write only this folder. DR copies the two drafts into `fourth-slice/drafts/` and revises
    them there (the third slice's folder is closed after its record). Recommend **yes**.
-2. **Scope under the one-lane limit.** About 25 lanes at one at a time is long. Keep milestone 3 and the carried items,
-   and if usage runs short cut in this order: custom navigators (CN), legends' surface (LE), the resolved view's test
-   consumer (NG), archives' writer (AR's write half). Recommend **this order**.
+2. **Scope under the lane limit.** About 30 lanes, the strong ones one after another, is long. Keep milestone 3 and
+   the carried items, and if usage runs short cut in this order: custom navigators (CN), legends' surface (LE), the
+   resolved view's test consumer (NG), archives' writer (AR's write half). Recommend **this order**.
 3. **`ext:` layer kinds here** (version-1: "`ext:` layer kinds ... land before" Genomes' ring; GR's question 3): an
    extension descriptor and `ext:` layer kinds with their fallback, as lane EX near the end, so the fifth slice opens on
    its datasets. Recommend **yes, here**. **Answered** by XD's design (2026-11-20): here, as lane EX on
@@ -118,7 +131,8 @@ or two fast at once (not one at a time).
    Recommend **design and the fake adapter only**. **Answered** by SP's design (2026-11-20): the design and the fake
    adapter only; MC reads through the shared `StructureDescription` converter.
 10. **The third slice's not-met edge cases** (`ec-outcomes-draft.md`): EC-115, 116, 135 and 195 (built, untested) to
-    lane UT; EC-99 (ligand chips flowing in text) to MR; EC-59 (two grids on one block pair) and EC-209 (ribbons
+    lane UT (**removed 2026-11-20: all four are tested**: EC-115, 116 and 195 by ET, merged `50956fce0`, EC-135 by the rows
+    layer's tests); EC-99 (ligand chips flowing in text) to MR; EC-59 (two grids on one block pair) and EC-209 (ribbons
     between sections) to the fifth slice (contact maps, layers across sections); EC-63 as the third slice's drift note
     decides (slices kept, glyphs to `TODO.md`); EC-103 (track groups and summaries) see 11. Recommend **as listed**.
 11. **Version 1's planned rows outside milestone 3**: track groups and summaries (EC-103), search and results, the
@@ -164,143 +178,195 @@ examples.
 
 ## Stages and lanes
 
-Each lane: a brief in `briefs/` (named below), its `_spec` and Configuration table kept, a v6 changelog entry (in its
-report), an independent review and one fix round, the look in a visible pane in light and dark before the merge.
-Strong: the strongest model, high effort (design, model, ambiguous). Fast: the fast model (well specified, stories,
-tests, read-only).
+Each lane: a brief in `briefs/` (named below; every lane of stages 1–5 has one), its `_spec` and Configuration table
+kept, a v6 changelog entry (in its report), an independent review and one fix round, the look in a visible pane in
+light and dark before the merge. Briefs in `briefs/` (all written 2026-11-20): `sp-seq-data-ports`, `xd-extension-drafts` (stage 0, done); `fx-fix-lane`; `ml1-language`, `dp-data-ports`, `ml2-model`, `mc-mmcif`, `mk-structure-maps`, `ac-alignment-targets`, `mr-molecules-render`, `cu-copy-ends-units`, `mx-examples`; `hp1-header-line`, `st1-structure-core`, `hp2-header-behavior`, `st2-structure-link`, `st3-fake-viewer`, `hd-host-data`, `hp3-header-stories`; `bw-bigwig`, `sv-services`, `ar-archives`, `ng-test-consumer`; `ex-ext-kinds`, `cn-custom-navigators`, `le-legends`; `novice-pass`. Strong: the strongest model, high effort (design, model, ambiguous). Fast: the fast
+model (well specified, stories, tests, read-only). Each brief cites the design sections it builds; a lane whose design
+disagrees with its code writes a drift note and stops.
 
-### Stage 0: designs and carried tests (before the build; the author decides each design)
+### Stage 0: designs (done)
 
-- [x] DR (done 2026-11-20: structure syncing (as a library) and track header parts promoted; strong; `briefs/dr-drafts-revision.md`, carried, retargeted to this folder) the two drafts revised by their
-      "Decided by the author" sections: structure syncing without MVS types (the port on Seq\*'s locations, the host's
-      adapter translating; the `structure` kind kept; the MVS writer moves out of Seq\* and out of the seq data ports),
-      and a design for choosing between two maps of one pair of systems (EC-22 to EC-27) as one new gap; track header
-      parts with canvas slots and DOM parts over the geometry, the secondary click a param. Self-checked; agreed into
-      `design/` with their Design pages.
-- [x] SP (strong, design only, after DR; `briefs/sp-seq-data-ports.md`) seq data ports: Seq\*'s nodes read from a
-      host's in-memory representation (sequences, entities, components, units) and annotations given back as the
-      host's, as registry entries by representation kind (ports.md's rule); the layering against `@molstar/io` and
-      `@molstar/model` (a package of its own or not); whether MC's converter is shared; a fake host's adapter.
-      Reads: molecules.md (gap 11, Tensions), the revised structure syncing. **Done 2026-11-20**: agreed as
-      [seq-data-ports](../../design/seq-data-ports.md) (gaps decided: `FormatRuntime` kept, one adapter a format with
-      `withAdapter`, no package, `source.ref`, `changes` and `reattach`, `values.field`; MC's converter shared).
-- [x] XD (strong, design only; `briefs/xd-extension-drafts.md`) the extension openings, one draft: the extension
-      descriptor and `ext:` layer kinds with their fallback (extensibility.md, EC-235; GR's research); a navigator's
-      picture as a registry entry with the window public (`render/window.ts`, `NavigatorModel`); legends' library
-      surface (placement, hiding, a compact form; editing stays the application's). Each part cut by Gate 0's answer 2.
-      **Done 2026-11-20**: agreed as [extension-openings](../../design/extension-openings.md) (gaps 1, 3–8 yes; 9 no,
-      no extension loading in the CLI; 2 changed: no `custom.<id>`, plain params on an extension's own type and
-      `<id>:<name>` keys on others' nodes).
-- [ ] UT (fast, beside the designs; `briefs/ut-untested-ecs.md`) tests for the built, untested edge cases: EC-115 (a
-      stack's zoom about a point), EC-116 (a row's text for all its columns or none), EC-135, EC-195; and the third
-      slice's drift left open at its close, if any.
-- [ ] GATE: the designs agreed (each with its self-check and its matrix cells), UT merged.
+- [x] DR (done 2026-11-19, `3e1cc3320`; promoted 2026-11-19 `b85b59e6d`, structure syncing again as a library
+      2026-11-20 `64dd776ca`; strong; `../third-slice/briefs/dr-drafts-revision.md`) the two drafts revised by the
+      author's decisions and agreed: [structure-syncing](../../design/structure-syncing.md) (a library, no port, no MVS
+      types; the `structure` kind kept; `priority` and `via` for two maps of one pair) and
+      [track-header-parts](../../design/track-header-parts.md) (canvas slots and DOM parts, the secondary click a param).
+- [x] SP (done 2026-11-20, gaps decided `f8561bb26`, promoted `2fb469bc5`; strong; `briefs/sp-seq-data-ports.md`):
+      [seq-data-ports](../../design/seq-data-ports.md) (`FormatRuntime` kept, one adapter a format with `withAdapter`,
+      no package, `source.ref`, `changes` and `reattach`, `values.field`; MC's converter shared).
+- [x] XD (done 2026-11-20, `f8561bb26`, promoted `2fb469bc5`; strong; `briefs/xd-extension-drafts.md`):
+      [extension-openings](../../design/extension-openings.md) (gaps 1, 3–8 yes; 9 no, no extension loading in the CLI;
+      2 changed: no `custom.<id>`, plain params on an extension's own type, `<id>:<name>` keys on others' nodes).
+- [x] UT **removed** (2026-11-20): EC-115, 116 and 195 are tested by ET (`50956fce0`), EC-135 by the rows layer's tests
+      (`rows-layer.test.ts`, `rows-model.test.ts`). The third slice's drift left open at its close, if any, goes to
+      [fixes.md](fixes.md) (FX1) or the stage it touches.
+- [x] GATE (2026-11-20): the three designs agreed; Gate 0 decided (`cb740554d`). Nothing of stage 0 remains but the
+      third slice's close (finalize, fold-back, record), which opens stage 1.
 
-### Fix points (fast; [fixes.md](fixes.md))
+### Fix points (fast; [fixes.md](fixes.md); `briefs/fx-fix-lane.md`)
 
-- [ ] FX1 before stage 1: the third slice's carried looks and the ring letters.
+- [ ] FX1 before stage 1 (beside ML1 when its files are not the language's): the open items of fixes.md (the ring
+      letters, the three DS looks, LX's dropped label) and the third slice's use gate's findings.
 - [ ] FX2, FX3, FX4 after stages 1, 2 and 3's gates; FX5 before M4 (the use gates' findings). A fix point with nothing
-      open is skipped.
+      open is skipped. An FX lane takes only what needs no design.
 
-### Stage 1: molecules, maps and copies (strong, in order; [molecules](../../design/molecules.md), The fourth slice's lanes)
+### Stage 1: molecules, maps and copies (strong lanes in order; [molecules](../../design/molecules.md), The fourth slice's lanes)
 
-- [ ] ML1 (strong, first) the language: the kinds, params, checks and builder; the `seq` format's tables; the 0.5.0
-      bump opened (`briefs/ml1-language.md`). The core's standard component per letter (a base-library row, decided).
-- [ ] ML2 (strong, after ML1) the model: unit and atoms systems, the atoms map at a path's ends, held pairs with per-row
-      units, copy groups, the modified index, `maxUnits`, the query forms (`briefs/ml2-model.md`).
-- [ ] MC (strong, after ML1 and SP) the mmCIF converter and runtime as SP decides: the allowlist, the tables read, the
-      conformance suite, the fixtures re-recorded (`briefs/mc-mmcif.md`).
-- [ ] MK (strong, after ML2) structure maps: `segments`, the `structure` kind with per-residue status, the map choice
-      as DR's gap decides, a numbering's `offset` and `segments` methods (NB's leftovers); EC-22 to EC-27 on every
-      encoding (`briefs/mk-structure-maps.md`).
+- [ ] ML1 (strong, first) the language: the kinds, params, checks and builder (molecules.md, Decision and Consequences,
+      `seqx-core` `lang/`); the `seq` format's tables; `source.ref` and `values.field` (seq-data-ports, Decided, gaps 2
+      and 4); the 0.5.0 bump opened and owned (`briefs/ml1-language.md`). The core's standard component per letter
+      (`@molstar/core`, a base-library row, decided).
+- [ ] DP (strong, after ML1) the seq data ports built (seq-data-ports, Decision and Consequences): `OpenedSource.changes?`
+      and `RegionRequest.field?`, the store's `reattach` (node content replaced by key), `withAdapter` (one adapter a
+      format, conflicts listed), `io/structure` (`StructureDescription`, `structureNodes`), the viewer's store model
+      reopening in place; the shared adapter conformance suite (`briefs/dp-data-ports.md`). No package of its own.
+- [ ] ML2 (strong, after DP: both touch resolve and the store) the model: unit and atoms systems, the atoms map at a
+      path's ends, held pairs with per-row units, copy groups, the modified index, `maxUnits`, the query forms
+      (`briefs/ml2-model.md`).
+- [ ] MC (strong, after ML2 and DP) the mmCIF runtime (`runtimes/mmcif`, opt-in): CIF categories to
+      `StructureDescription` to `structureNodes`, `values` by `field` (B-factor, pLDDT), the allowlist, the conformance
+      suite split as seq-data-ports says, the fixtures re-recorded (`briefs/mc-mmcif.md`). Parallel with ML2 is gone:
+      two strong lanes at once break the lane limit.
+- [ ] MK (strong, after MC) structure maps: `segments`, the `structure` kind with per-residue status, the map's
+      `priority` and the section's `via` with `StaticModel.path(from, to, via?)` (structure-syncing, Choosing between
+      two maps; both params join the bump), a numbering's `offset` and `segments` methods (NB's leftovers); EC-22 to
+      EC-27 on every encoding (`briefs/mk-structure-maps.md`).
 - [ ] AC (strong, after MK; followups: "Yes, slice 4 (0.5.0)") pairs, ranges and maps targeting an alignment's columns:
-      the tRNA's `SS_cons` arcs over the alignment, a chain mapped onto its closest seed row (`briefs/ac-alignment-targets.md`).
-- [ ] MR (strong, after ML2 and MC) drawing and interaction: a section of a complex, `form` through the chips, the
-      letters' mark and code, the pairs layer's per-row ends, hover, `links.hover`, `block.form`, ligand chips flowing
-      in text (EC-99), the Design page (`briefs/mr-molecules-render.md`).
-- [ ] CU (strong, after MR) copy ends on units: CE's branch and review as the cases (Gate 0, 8); grids-and-rows.md's
-      "end on the first copy" replaced (`briefs/cu-copy-ends-units.md`).
+      the tRNA's `SS_cons` arcs over the alignment, a chain mapped onto its closest seed row
+      (`briefs/ac-alignment-targets.md`).
+- [ ] MR (strong, after AC) drawing and interaction: a section of a complex, `form` through the chips, the letters' mark
+      and code, the pairs layer's per-row ends, hover, `links.hover`, `block.form`, ligand chips flowing in text
+      (EC-99), a block's label inline on its first text line (EC-95, LB's leftover), the Design page
+      (`briefs/mr-molecules-render.md`).
+- [ ] CU (strong, after MR) copy ends on units: CE's parked branch `seq/ce-copy-ends` (`189097018`) and its review's six
+      findings as the cases (Gate 0, 8); grids-and-rows.md's "end on the first copy" and its caret replaced
+      (`briefs/cu-copy-ends-units.md`). Parked until units exist, so the branch is not rebased: rewritten, then deleted.
 - [ ] MX (strong, after CU) the examples changed once: DT, DC, DG on the new kinds; the Fc glycan and ADC views; 2OCJ
-      recorded for p53 (its units and the fake viewer's chain table from one mmCIF); stories, twins, drawing against
-      the data (`briefs/mx-examples.md`).
+      recorded for p53 (its units and the fake viewer's chain table from one mmCIF, an `alignment` map of the same
+      pair); DC's leftovers (`@molstar/io` as a dev dependency of seqx-examples, a ligand chip coloured on its own);
+      stories, twins, drawing against the data (`briefs/mx-examples.md`).
 - [ ] GATE: merged, reviewed, checks green, sizes (`runtimes/mmcif` its own row), gaps, matrix cells (molecules.md's).
 
-### Stage 2: structure syncing and track headers (after stage 1; the revised drafts' lanes)
+### Stage 2: structure syncing and track headers (after stage 1; the agreed designs' lanes)
 
-- [ ] HP1 (strong) core's header line, slots, hits and chips; `TrackLayout.header` (`briefs/hp1-header-line.md`).
-- [ ] ST1 (strong, after MK) the translation library, `@molstar/seqx-core/structure` (a new entry): `structureFacts`,
-      `unitRows`, `toUnits` and `fromUnits` (the size gate, `seq.structure.*` issues), `colorRuns`; core's
-      `SeqPorts.structure` stub removed (`briefs/st1-structure-core.md`).
-- [ ] HP2 (strong, after HP1) the viewer: the `headerActions` registry kind, built-in entries, the `headers` behavior
-      (reveal, clicks, the menu and its port, long press, the secondary click param), DOM parts over `viewer.headers`,
-      the cursor on headers, words (`briefs/hp2-header-behavior.md`).
-- [ ] ST2 (strong, after ST1; smaller: no behavior, no port, nothing in the composition) the viewer's API gaps the
-      design lists, as the author decides them (`HoverModel.setLocation`, `revealLocation`, `view.lastJump`, a retire
-      signal; each public surface accepted before merge), then `@molstar/seqx-viewer/link-structure`: `linkStructure`
-      with echoes, coalescing, clearing on either end, focus with the jump's duration (`briefs/st2-structure-link.md`).
-- [ ] ST3 (fast, after ST2 and HP2) the fake structure viewer (`_stories/support/`, importing nothing of Seq\*) with its
-      host's adapter (MVS translation on `structureFacts` and `unitRows`, its `side` for `linkStructure`); the stories: hover, selection, focus, chain maps, "color by this track" as a
-      host's header entry; twins; the Design page (`briefs/st3-fake-viewer.md`).
+- [ ] HP1 (strong) core's header line, slots, hits and chips; `TrackLayout.header` replaces `TrackLayout.filter`
+      (track-header-parts, Consequences; `briefs/hp1-header-line.md`).
+- [ ] ST1 (strong, after HP1; MK done) the translation library, `@molstar/seqx-core/structure` (a new entry, not a
+      port): `structureFacts`, `unitRows`, `toUnits` and `fromUnits` (the size gate, `seq.structure.*` issues),
+      `colorRuns`; core's `SeqPorts.structure` stub removed; the round-trip test against DP's `structureNodes`
+      (`briefs/st1-structure-core.md`).
+- [ ] HP2 (strong, after ST1) the viewer: the `headerActions` registry kind, built-in entries, the `headers` behavior
+      (reveal, clicks, the menu and its port, long press, the secondary click param), `headerPartsDom()` over
+      `viewer.headers`, the cursor on headers, words (`briefs/hp2-header-behavior.md`).
+- [ ] ST2 (strong, after HP2; smaller: no behavior, no port, nothing in the composition) the viewer's four additions
+      (`HoverModel.setLocation`, `AddressModel.revealLocation`, `view.lastJump`, `viewer.retiredSignal`; accepted as
+      the design lists them), then `@molstar/seqx-viewer/link-structure`: `linkStructure` with echoes, coalescing,
+      clearing on either end, focus with the jump's duration, `via` (`briefs/st2-structure-link.md`).
+- [ ] ST3 (fast, after ST2; HP2 done) the fake structure viewer (`_stories/support/`, importing nothing of Seq\*, its
+      own chain table, MolViewSpec validated by `mvs-builder`) with its host's adapter (translation on `structureFacts`
+      and `unitRows`, its `side` for `linkStructure`); the stories: hover, selection, focus, chain maps (SIFTS against an
+      alignment by `priority` and `via`), "color by this track" as a host's header entry; twins; the Design page
+      (`briefs/st3-fake-viewer.md`).
+- [ ] HD (fast, after ST3 and DP) the fake host's data adapter beside the fake viewer (it serves 2OCJ and a pLDDT track
+      from its chain table through `withAdapter`) and the `Host data` story with its twin (no asset read; equal nodes
+      to the default adapter); the Extensibility page's adapter list (`briefs/hd-host-data.md`).
 - [ ] HP3 (fast, after ST3) `Features/Track headers` and its twins, the Design page (`briefs/hp3-header-stories.md`).
 - [ ] USE GATE (short, not blocking): the author tries the structure and header stories; findings counted by kind.
-- [ ] GATE: merged, reviewed, checks green, sizes (the minimal viewer), gaps, matrix cells (both drafts').
+- [ ] GATE: merged, reviewed, checks green, sizes (the minimal viewer), gaps, matrix cells (both designs').
 
 ### Stage 3: data and references (after stage 0; independent of stages 1–2 but for SV's SIFTS, after MK)
 
-- [ ] BW (strong) range reads in `@molstar/core` (the surface accepted first, Gate 0, 4), the bigWig runtime with its
-      levels and synthetic twin, p53's conservation signal over the gene's region (`briefs/bw-bigwig.md`).
+- [ ] BW (strong) range reads in `@molstar/core` (the surface accepted first, Gate 0, 4), the bigWig runtime
+      (`runtimes/bigwig`, opt-in) with its levels and synthetic twin, p53's conservation signal over the gene's region
+      (`briefs/bw-bigwig.md`). Takes a strong slot after stage 2's gate.
 - [ ] SV (fast, after MK and ST3) services in Storybook: UniProt, PDBe SIFTS, AlphaFold DB as runtimes from recorded
       fixtures with a live switch; the predictions-onto-a-structure and addressing showcases on the fake viewer; a
       user's own file (Gate 0, 12) (`briefs/sv-services.md`).
-- [ ] AR (fast) archives over the assets port: read and write zip with `@molstar/core/util/zip`, entries resolved as
-      assets, EC-91's bounds; every dataset saved and opened (`briefs/ar-archives.md`).
-- [ ] NG (fast) the resolved view's second consumer (the author, 2026-11-19: Nightingale dropped, "our own test
-      consumer only"): a test-only plain-SVG consumer of letters, ranges, values and variants from the resolved view and
-      the store alone; the field test (EC-183) (`briefs/ng-test-consumer.md`).
+- [ ] AR (fast, any time after stage 0) archives over the assets port: read and write zip with `@molstar/core/util/zip`,
+      entries resolved as assets, EC-91's bounds; every dataset saved and opened (`briefs/ar-archives.md`).
+- [ ] NG (fast, any time after stage 0) the resolved view's second consumer (the author, 2026-11-19: Nightingale
+      dropped, "our own test consumer only"): a test-only plain-SVG consumer of letters, ranges, values and variants
+      from the resolved view and the store alone; the field test (EC-183) (`briefs/ng-test-consumer.md`).
 - [ ] GATE: merged, reviewed, checks green, `pnpm build` and `check:workspace` (core changed), sizes, gaps.
 
-### Stage 4: extension points (after XD's design and HP2's registry kind)
+### Stage 4: extension openings (after stage 0; after HP2's registry kind)
 
-- [ ] EX (strong) the extension descriptor and `ext:` layer kinds: named in a spec, registered atomically with undo,
-      the fallback drawn and said when absent (EC-235); an example extension layer in `Features/Extensibility`
-      (`briefs/ex-ext-kinds.md`).
-- [ ] CN (strong, after EX; cut first) a navigator's picture as a registry entry; the window, gestures and keys public
-      (`briefs/cn-custom-navigators.md`).
-- [ ] LE (fast, after EX; cut second) legends' library surface as XD decides (`briefs/le-legends.md`).
+- [ ] EX (strong) part 1: `SeqExtension` and namespaced layer types (`<id>:<name>`, plain params, namespaced keys on
+      others' nodes), registered atomically with undo, the fallback drawn and said when absent (EC-235), the
+      `@molstar/seqx-core/extension` entry; `Features/Extensibility` with an example extension (`briefs/ex-ext-kinds.md`).
+- [ ] CN (strong, after EX; cut first) part 2: a navigator's picture as a `navigator-picture` entry; `NavigatorModel`
+      and the window public; the four built-ins as entries (`briefs/cn-custom-navigators.md`).
+- [ ] LE (fast, after EX; cut second; beside CN) part 3: legends' library surface, the `legend` layer param (a language
+      change through the bump's owner, after CN has none open), `mountLegend`'s options, the compact form
+      (`briefs/le-legends.md`).
 - [ ] GATE: merged, reviewed, checks green, sizes, gaps.
 
 ### Stage 5: use, measure, finalize
 
-- [ ] NOVICE PASS (fast) a task script per new story (structure syncing both ways, headers, services, archives).
+- [ ] NOVICE PASS (fast; `briefs/novice-pass.md`, the third slice's shape) a task script per new story (structure
+      syncing both ways, headers, host data, services, archives).
 - [ ] USE GATE (not blocking; at finalize a look at what changed): findings fixed or placed, counted by kind.
 - [ ] M4 the heavy lane and the opt-in tiers; the browser at dpr 2 (a 2OCJ hover round trip, a complex of 200 copies,
-      a bigWig pan); the bundles; the targets confirmed or moved by the author.
+      a bigWig pan); the bundles; the targets confirmed or moved by the author (below: the minimal viewer's size).
 - [ ] FINALIZE: reconcile (designs, `_spec`s, status, features, edge cases' outcomes, `TODO.md`, drift emptied); the
-      fold-back; the record; the fifth slice's plan (Genomes, on `ext:` kinds).
+      fold-back; the record; the fifth slice's plan (Genomes, on extension kinds).
+
+### The third slice's carried items, placed
+
+| Item | Placed |
+|---|---|
+| CE, parked (`seq/ce-copy-ends`, `189097018`), its review's six findings | CU (after MR); the findings are CU's cases, its brief lists them |
+| DR, the drafts revision | done (stage 0) |
+| Structure integration; track header parts; seq data ports; custom navigators; legends' surface | ST, HP, DP and HD, CN, LE (the third slice's followups, "decided for the fourth slice") |
+| Pairs, ranges and maps on an alignment's columns | AC |
+| NB's leftovers: `offset` and `segments` methods | MK; the rest (a text section's numbers in a source's numbering, labels keyed other than by position, a records runtime converting labels) stays in `TODO.md` |
+| DC's leftovers (`@molstar/io` dev dependency, a ligand chip coloured on its own) | MX |
+| LB's leftover: a block's label inline on its first text line (EC-95) | MR |
+| EC-99 (ligand chips in text) | MR |
+| EC-59 and EC-209 | the fifth slice |
+| Query forms `search`, `onto`, `expand`, `group`; EC-29's indel carets; track groups and summaries (EC-103) | none here (Gate 0, 11) |
+| Small looks and bugs from the third slice (disabled toolbar look, HC's, SC's, CY's, DA's) | [fixes.md](fixes.md) |
+| `render/_test/frame-time.test.ts`'s flaky max bound | fixes.md (test fix) |
+| QT2's `itWithin` option, DA's ANARCI oracle, OP's font and `image-rendering` checks, AY's coarser naming, CS's strand and p53 gene link, the toolbar's `ToolbarItem.title` | the author's call or `TODO.md`; not lanes here |
+| The third slice's size failure | below |
+
+**Open target question, for the author at the third slice's M3 gate (not decided here):** the minimal viewer is about
+850 kB (830 kB after MV, 2026-11-19) against the 600 kB guide, and the default viewer about 1 MB; the third slice's
+gate moves or confirms the targets. This slice adds the structure library and the `headers` behavior as opt-in entries
+and `runtimes/mmcif` and `runtimes/bigwig` as their own rows; its sizes gate reads "not grown" against whatever the M3
+gate decides. If M3 leaves the target open, M4 asks again.
 
 ## Order and parallelism
 
-One lane at a time: DR → SP → XD (UT between) → stage 0's gate → FX1 → ML1 → ML2 → MC → MK → AC → MR → CU → MX → gate → FX2 →
-HP1 → ST1 → HP2 → ST2 → ST3 → HP3 → use gate → gate → FX3 → BW → SV → AR → NG → gate → FX4 → EX → CN → LE → gate → novice pass → FX5 →
-M4 → finalize. The author's findings queue as fast lanes between them.
+The lane limit is one strong and one or two fast at once ("1+1-2", the author, 2026-11-20). The strong lanes run one
+after another:
 
-If the author allows two (one strong, one fast, as "1+1"):
-- UT beside DR, SP or XD;
-- MC beside ML2 (molecules.md: it needs only the node shapes);
-- BW beside any stage 1–2 strong lane (its files are core's assets and a new runtime);
-- HP1 beside ML2 or MK (the header line against the language and resolve);
-- AR, NG and SV (after ST3) beside any strong lane.
-An FX lane runs beside a strong lane when its files are not that lane's.
-Never two lanes on the language at once (ML1, AC and MK's params go through the bump in turn).
+ML1 → DP → ML2 → MC → MK → AC → MR → CU → MX → gate → HP1 → ST1 → HP2 → ST2 → gate → BW → gate → EX → CN → gate →
+M4 → finalize.
+
+Fast lanes beside them, when their files are not the strong lane's:
+- FX1 beside ML1; FX2 beside HP1; FX3 beside BW; FX4 beside EX; FX5 before M4;
+- AR and NG (no dependency) beside ML1, DP, ML2, MC, MK or AC (their files are core's assets and zip, and a test
+  package), after the third slice closes; a second fast lane beside one of them;
+- ST3 after ST2 (beside BW); HD and HP3 after ST3 (beside BW and the stage 3 gate); SV after ST3 (beside EX);
+- LE beside CN; the novice pass after the stage 4 gate.
+
+Never two lanes on the language at once: ML1, MK (`priority`, `via`), AC, EX (the extension params) and LE (`legend`)
+go through the 0.5.0 bump in turn, each added by the lane that owns it. Never two lanes on core's store or resolve
+(DP, ML2, MK). The author's findings queue as fast lanes or fixes.md lines between them. Removed from the earlier draft:
+"MC beside ML2", "HP1 beside ML2 or MK" and "BW beside any strong lane" (two strong lanes at once).
 
 ## Hot files (the orchestrator's only)
 
 - `pnpm-lock.yaml`, `scripts/workspace/inventory.json`, the root `tsconfig.json`, `biome.json`, `vitest.config.ts`;
 - `storybook/packages.ts`, `.v6/changelogs/`;
-- `packages/seq/*/package.json` and `tsconfig*.json` (MC's and BW's opt-in entries, NG's dependency),
-  `packages/core/package.json`, `packages/io/package.json`;
-- a new package's inventory entry (if SP decides one);
+- `packages/seq/*/package.json` and `tsconfig*.json` (the new `./structure`, `./io/structure`, `./extension` and
+  `./runtimes/mmcif`, `./runtimes/bigwig` entries of seqx-core, the `./link-structure` entry of seqx-viewer, NG's dev
+  dependency, `sideEffects` listings), `packages/core/package.json`, `packages/io/package.json`;
+- `packages/seq/*/_spec/README.md` sections shared by lanes (Language, Context, Configuration): each lane edits only
+  its own sections; the bump's owner merges the Language section;
 - `.seq/`.
+No new package is planned (seq-data-ports: no package; structure syncing and extensions are entries).
 
 ## Known risks
 
@@ -310,9 +376,11 @@ Never two lanes on the language at once (ML1, AC and MK's params go through the 
   (`recordDrawLists`) change once, named in MX's report.
 - **A public API change in `@molstar/core`** (range reads, the standard components): stopped for the author before the
   lane builds past the surface.
-- **Designing for the fake viewer**: the port is plain data and minimal, so the new mol viewer can implement it; the
+- **Designing for the fake viewer**: the library is plain data and minimal (translation and wiring, no port), so the new mol viewer can use it; the
   fake viewer imports nothing of Seq\* and holds its own chain table, so the mapping crosses two representations.
-- **Length**: about 25 lanes at one a time; Gate 0's cut order decides what goes first.
+- **Length**: about 30 lanes, the 16 strong ones one after another; Gate 0's cut order decides what goes first.
+- **The third slice's size failure**: see "The third slice's carried items, placed"; the sizes gates wait on the M3 gate's answer.
+- **Two lanes on the store** (DP, ML2): ordered, not parallel, because both change what a source's nodes are keyed by.
 - **The third slice's tail**: DB, DS, PZ and M3 may move the files stage 1 touches (layout heights, labels); the first
   briefs take their base after the third slice's close.
 
