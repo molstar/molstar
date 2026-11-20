@@ -455,7 +455,12 @@ and dark before the merge.
       or lazy by default, those pieces imported lazily, `sideEffects: false`) changes defaults or public API: the
       author's call before the lane. **Decided** (the author, 2026-11-19: "Injectable, opt-in"; viewer-composition.md,
       Creating a viewer): lane MV (strong, after RK: it touches core's renderer and the viewer), `briefs/mv-minimal-viewer.md`.
-- [ ] GATE: the author confirms or moves the targets the slice touched.
+- [x] M3 measured (2026-11-20, `measurements.md`): heavy, perf, the browser at dpr 2 pass but for the Storybook
+      emphasis frame's 800 B (lane EA), two 100 ms zoom frames on 10,000 rows (fourth slice's fixes) and every size row.
+- [ ] RR (strong, after CL) reduce `seq/core/src/render` before the size targets move (`briefs/rr-render-reduction.md`).
+- [ ] GATE: the author confirms or moves the targets the slice touched. **Decided for sizes** (the author, 2026-11-20:
+      "reduce render first, then move the size targets"): RR first, then the targets reset to RR's measured sizes
+      with room.
 
 ### Finalize
 

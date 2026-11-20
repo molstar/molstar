@@ -174,3 +174,7 @@ When every item is ticked:
 4. Write the record in `.seq/records/third-slice/`, end `state.md` with "Closed <date>: <record file>", and edit
    nothing in this folder after that.
 5. Write `fourth-slice/plan.md` with what this slice taught.
+6. **Clean up the worktrees** (the author, 2026-11-20: "part of the slice finalize should be cleanup of the
+   worktrees"): every lane's worktree and branch whose work is merged is removed (`git worktree remove`, then the
+   branch deleted when `git branch --merged` lists it); a parked lane's (CE) is kept and named in the record; nothing
+   unmerged is deleted without the author's word.
