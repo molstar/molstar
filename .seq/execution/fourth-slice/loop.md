@@ -6,9 +6,12 @@ applied (the third slice's `foldback.md`, merged by the author, 2026-11-20) and 
 
 ## Lanes at once
 
-**One strong lane and one or two fast ones** (the author, 2026-11-20: "1+1-2"). The author changes this line; the loop
-never does. Never two heavy test runs at once; never two lanes on the language or the store at once (plan, Order and
-parallelism). The order of independent strong lanes is the orchestrator's (the author: "order doesn't really matter").
+**Two or three lanes at once, each strong or fast by its work** (the author, 2026-11-20: "2-3 lanes, all either heavy
+or light depending on context. that way we can do things in parallel better"). Strong (the strongest model, high
+effort) for design, a model or anything ambiguous; fast (the fast model) for specified work: fixes, stories, tests,
+read-only. The author changes this line; the loop never does. What runs together is limited by files, not by kind
+(plan, Order and parallelism): never two lanes on the language or on core's store and resolve, never two in one file,
+never two heavy test runs at once. A lane's reviewer and fix round count as that lane.
 
 ## Each step
 

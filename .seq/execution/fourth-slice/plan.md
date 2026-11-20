@@ -36,11 +36,12 @@ events the viewer should expose normally ... not call it a port"): translation a
 
 From the third slice's state and its fold-back (decided by the author, 2026-11-20: merged; the rules in the
 principles, "Folded back from the third slice"); the bullets below are checked against them.
-- **Lanes: one strong and one or two fast at once** (the author, 2026-11-20, Gate 0: "Accept all"; "default is 1+1-2",
-  2026-11-19): the strong lanes run one after another; fast lanes (FX, stories, tests, read-only) run beside them when
-  their files are not the strong lane's. Never two strong lanes, never two heavy test runs at once. A lane's review and
-  fix round run before the next lane that builds on it starts. Why: usage limits paused the third slice once,
-  mid-lane.
+- **Lanes: two or three at once, each strong or fast by its work** (the author, 2026-11-20: "2-3 lanes, all either
+  heavy or light depending on context. that way we can do things in parallel better"; it replaces "1+1-2"): a lane
+  is strong when its work is design, a model or ambiguous, fast when it is specified (FX, stories, tests, read-only).
+  What runs together is limited by files, not by kind: never two lanes on the language, never two on core's store or
+  resolve, never two touching one file, never two heavy test runs at once. A lane's review and fix round count as that
+  lane; they run before a lane that builds on it starts.
 - **Designs agreed before their lanes**: the third slice's stages 1–4 ran unattended on agreed designs; its later
   items waited on drafts. Here every design was drafted, self-checked and decided in stage 0, before a build lane.
 - **The author's findings arrive mid-slice**: a finding that needs a design goes to a stage 0 style draft; one that needs
@@ -77,7 +78,7 @@ principles, "Folded back from the third slice"); the bullets below are checked a
   - **Reviewers in their own worktrees** (B8): every reviewer and every lane works in a worktree of its own, never in
     another lane's. Why: a reviewer switched another lane's worktree in the third slice.
   - **The lane limit is one line** (B8): `loop.md` holds the author's current limit as one line, edited when the
-    author changes it (now: one strong lane and one or two fast); `resume.md`'s shape is the template for any pause.
+    author changes it (now: two or three lanes, each strong or fast by its work); `resume.md`'s shape is the template for any pause.
     Why: the author changed the limit five times in the third slice.
 
 ## Done when
@@ -237,7 +238,7 @@ disagrees with its code writes a drift note and stops.
 
 ### Module split (strong; §module-size; `briefs/sz-module-split.md`)
 
-- [ ] SZ after stage 1's gate, before HP1 (the molecules lanes are out of these files, the header lanes not yet in):
+- [ ] SZ after FX1 and before HP1, while no molecules lane is in the files it splits (else after stage 1's gate):
       the four files over 1500 lines (`render/tracks.ts`, `render/rows.ts`, `render/ranges.ts`, `viewer/viewer.ts`)
       split by what changes together, and `models/view.ts` (1466) looked at; behavior unchanged, the baseline lowered
       by the orchestrator (`file-size.ts --update`) at the merge. The author, 2026-11-20: "Yes, add all three".
@@ -370,23 +371,23 @@ gate decides. If M3 leaves the target open, M4 asks again.
 
 ## Order and parallelism
 
-The lane limit is one strong and one or two fast at once ("1+1-2", the author, 2026-11-20). The strong lanes run one
-after another:
+Two or three lanes at once, each strong or fast by its work (the author, 2026-11-20; loop, Lanes at once). Three
+tracks, each in order, run beside each other; a lane waits only for its own track and the named dependencies:
 
-ML1 → DP → ML2 → MC → MK → AC → MR → CU → MX → gate → SZ → HP1 → ST1 → HP2 → ST2 → gate → BW → gate → EX → CN → gate →
-M4 → finalize.
+- **Molecules** (the language and the store, one at a time): ML1 → DP → ML2 → MK → AC → MR → CU → MX → stage 1's gate.
+- **Formats and data** (core's assets, runtimes, test packages): MC after ML1's node shapes (beside ML2); BW (stops at
+  its `@molstar/core` surface for the author); AR; NG. Any of them beside any molecules lane.
+- **Views** (render and the viewer): FX1 first (its files are render's and the stories'); SZ after FX1 and before any
+  header lane (it splits the files they touch), beside the molecules track when stage 1 is not in those files; then
+  HP1 → HP2 → HP3; ST1 after MK (map priority) → ST2 → ST3; HD after ST3; SV after ST3 and MK.
 
-Fast lanes beside them, when their files are not the strong lane's:
-- FX1 beside ML1; FX2 beside HP1; FX3 beside BW; FX4 beside EX; FX5 before M4;
-- AR and NG (no dependency) beside ML1, DP, ML2, MC, MK or AC (their files are core's assets and zip, and a test
-  package), after the third slice closes; a second fast lane beside one of them;
-- ST3 after ST2 (beside BW); HD and HP3 after ST3 (beside BW and the stage 3 gate); SV after ST3 (beside EX);
-- LE beside CN; the novice pass after the stage 4 gate.
+Then EX (after the language bump's lanes) → CN, LE beside CN; FX2–FX5 at their fix points beside whatever runs; the
+novice pass after stage 4's gate; M4 → finalize.
 
 Never two lanes on the language at once: ML1, MK (`priority`, `via`), AC, EX (the extension params) and LE (`legend`)
 go through the 0.5.0 bump in turn, each added by the lane that owns it. Never two lanes on core's store or resolve
-(DP, ML2, MK). The author's findings queue as fast lanes or fixes.md lines between them. Removed from the earlier draft:
-"MC beside ML2", "HP1 beside ML2 or MK" and "BW beside any strong lane" (two strong lanes at once).
+(DP, ML2, MK). Never two lanes in one file: SZ runs alone in the files it splits. The author's findings queue as
+fixes.md lines for the next fix point.
 
 ## Hot files (the orchestrator's only)
 

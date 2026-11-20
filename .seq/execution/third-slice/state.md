@@ -482,3 +482,8 @@ None.
   a moved label's leader exists for lane 0 only, so a moved label of an item in a lower lane is dropped). Checks on the
   merged head: 2463 quick, 110 medium, tsc, lint, format. Every stage 6 lane is done; left: the use gate's look at what
   changed (the author), stage 7 (M3, the targets gate), finalize.
+- Closed out (2026-11-20): M3 measured (`measurements.md`), EA and RR merged, the size bounds set, the reconcile and the
+  fold-back applied (merged by the author), the gate green (quick 2465, medium 110, heavy 109, build, workspace), the
+  worktrees cleaned (CE's kept; TX's branch kept, its work in through TV), the fourth slice's loop and state written.
+
+Closed 2026-11-20: .seq/records/third-slice/2026-11-20-third-slice.md

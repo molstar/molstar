@@ -1,10 +1,10 @@
 # State: the fourth slice
 
-## Not started: waiting on the third slice's close
+## Ready to start
 
-The loop starts when the third slice is closed (its `loop.md`, Finalize): lane RR (the render reduction) merged and
-the size targets reset to its measured sizes with room; the fold-back applied; the record written; the worktrees
-cleaned. Then run `/loop run .seq/execution/fourth-slice/loop.md`.
+The third slice is closed (2026-11-20; its record in `.seq/records/third-slice/`): RR merged, the size bounds set
+(195 / 780 / 1250 / 880 kB), its fold-back applied, its worktrees cleaned (CE's kept, parked). Start with
+`/loop run .seq/execution/fourth-slice/loop.md`.
 
 **Base**: `packages-seq`. Every brief's base is set to its head when the lane starts.
 
@@ -13,7 +13,9 @@ cleaned. Then run `/loop run .seq/execution/fourth-slice/loop.md`.
 - Gate 0 (the author, 2026-11-19): "Accept all" (plan, Gate 0).
 - Stage 0's designs agreed and promoted: structure syncing (a library, not a port), track header parts, seq data ports,
   extension openings (DR, SP, XD; plan, Stage 0).
-- Lanes at once: one strong and one or two fast (the author, 2026-11-20: "1+1-2").
+- Lanes at once: two or three, each strong or fast by its work (the author, 2026-11-20: "2-3 lanes, all either heavy
+  or light depending on context"); limited by files: three tracks (molecules, formats and data, views; plan, Order and
+  parallelism).
 - DP kept as a strong lane (nothing else builds the seq data ports); the order of HP1 and ST1 is the orchestrator's
   (the author, 2026-11-20: "order doesn't really matter, decisions as recommended").
 - A public API change in `@molstar/core` (BW's range reads, the standard components) and the first fetch of a
@@ -22,15 +24,15 @@ cleaned. Then run `/loop run .seq/execution/fourth-slice/loop.md`.
   there as they come (the author, 2026-11-20).
 - A label that does not fit its box: an ellipsis inside before it is dropped, at least 4 characters by default,
   configurable (`labels.minChars`; the author, 2026-11-20; `fixes.md`).
-- Module size (§module-size, `.seq/_checks/file-size.ts`): lane SZ splits the four files over 1500 lines after stage
-  1's gate (the author, 2026-11-20: "Yes, add all three").
+- Module size (§module-size, `.seq/_checks/file-size.ts`): lane SZ splits the four files over 1500 lines after FX1,
+  while no other lane is in them (the author, 2026-11-20: "Yes, add all three").
 - Size targets are bounds once reset after RR (the author, 2026-11-20: "reduce render first, then move the size
   targets").
 
 ## Next
 
-1. FX1 (fast; `fixes.md`'s open items and the author's third-slice findings) beside ML1 (strong; `briefs/ml1-*.md`).
-2. Then the plan's order: DP, ML2, MC, MK, AC, MR, CU, MX, stage 1's gate, SZ, the header and syncing lanes.
+1. ML1 (molecules), FX1 (views) and AR or NG (formats and data), one lane a track.
+2. Then each track in the plan's order (Order and parallelism).
 
 ## Findings by lane
 

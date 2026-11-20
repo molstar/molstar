@@ -438,7 +438,7 @@ and dark before the merge.
       muted at rest, ring label clusters, contrast (`briefs/ds-defaults-small.md`).
 - [x] PF (merged; fast) PZ's follow-up: gaps zoom, the wheel over the data box, block rows snapped.
 - [x] LX (merged d4fe8931a; fast; the author, 2026-11-20) leaders never cross; same-label runs once (`briefs/lx-label-runs.md`).
-- [ ] USE GATE (the author's use so far counts, 2026-11-19; at finalize only a look at what changed since) (deferred: the loop does not wait; finalize does): the author uses the views; findings fixed or placed,
+- [x] USE GATE (placed, 2026-11-20: the author's look at what changed goes to the fourth slice's fix stage, "for 'slice 3' fixes we will add them to the fix stage of slice 4 as i check this") (the author's use so far counts, 2026-11-19; at finalize only a look at what changed since) (deferred: the loop does not wait; finalize does): the author uses the views; findings fixed or placed,
       counted by kind.
 
 ### Stage 7: measure (orchestrator, light)
@@ -465,7 +465,7 @@ and dark before the merge.
 
 ### Finalize
 
-- [ ] FINALIZE: reconcile (designs, `_spec`s, status, features, edge cases, `TODO.md`, drift emptied); the fold-back
+- [x] FINALIZE (2026-11-20; the record `.seq/records/third-slice/2026-11-20-third-slice.md`): reconcile (designs, `_spec`s, status, features, edge cases, `TODO.md`, drift emptied); the fold-back
       as its own step (this slice's lessons, the earlier fold-backs' rules against this slice's evidence, the count of
       what each gate found by kind, the self-check), decided by the author; the record; the fourth slice's plan.
 

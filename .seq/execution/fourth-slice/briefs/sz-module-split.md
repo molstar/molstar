@@ -13,7 +13,7 @@ header (the moved code's authors kept) and a first comment saying its concern.
 **Output**: the splits, one commit a file; every file under 1500 (aim under 800 where a concern allows); the `_spec`s'
 module lists updated. The baseline is the orchestrator's (`file-size.ts --update` at the merge).
 
-**Model**: strong. **Where**: a worktree, branch `seq/sz-module-split`, after stage 1's gate and RR's merge.
+**Model**: strong. **Where**: a worktree, branch `seq/sz-module-split`, after FX1 and before the header lanes, while no other lane is in the files it splits (plan, Order and parallelism).
 
 **Report**: under 250 words: each file's concerns and the modules it became (lines each), anything left whole and why,
 the checks.
