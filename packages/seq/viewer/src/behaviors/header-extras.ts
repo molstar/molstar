@@ -37,6 +37,7 @@ import type {
   HeaderMenuPlace,
   HeaderPartsHeader,
   HeaderPartsState,
+  HeaderSubEntry,
   HeaderTarget,
 } from '@molstar/seqx-viewer/header-entries';
 import { headerCursor } from './header-cursor.js';
@@ -181,6 +182,26 @@ export function headerExtras(inner: HeaderShared): HeaderExtras {
   const slotted = (e: HeaderEntry) =>
     (e.kind ?? 'action') === 'action' && (e.slot ?? (e.icon ?? commandOf(e.command)?.icon) !== undefined);
   const argsOf = (e: HeaderEntry, f: HeaderFacts) => e.args?.(f) ?? { address: f.address };
+  /**
+   * An entry's submenu: its `items`, else its command's choices when the command's one param is a select (its options,
+   * each the entry's args with the choice by the param's name; the default checked).
+   */
+  const subsOf = (e: HeaderEntry, f: HeaderFacts): readonly HeaderSubEntry[] | undefined => {
+    if (e.items) return e.items(f);
+    const c = commandOf(e.command);
+    if (!c?.params) return undefined;
+    const args = argsOf(e, f);
+    const ps = c.params(args, {});
+    const names = Object.keys(ps);
+    const p = names.length === 1 ? ps[names[0]] : undefined;
+    if (p?.type !== 'select') return undefined;
+    return p.options.map(([value, label]) => ({
+      label: String(label),
+      command: e.command!,
+      args: { ...args, [names[0]]: value },
+      checked: value === p.defaultValue,
+    }));
+  };
   const whyNot = (command: string | undefined, args: Readonly<Record<string, unknown>>): string | undefined => {
     if (command === undefined) return undefined;
     const c = commandOf(command);
@@ -224,7 +245,7 @@ export function headerExtras(inner: HeaderShared): HeaderExtras {
         const command = commandOf(e.command);
         const label = typeof e.label === 'function' ? e.label(f) : (e.label ?? command?.title ?? e.name);
         // an action with a submenu opens it: enabled when any of its items runs
-        const enabled = !!e.items?.(f)?.length || whyNot(e.command, argsOf(e, f)) === undefined;
+        const enabled = !!subsOf(e, f)?.length || whyNot(e.command, argsOf(e, f)) === undefined;
         const icon = iconOf?.(e.icon ?? command?.icon, e.iconMarkup);
         (slots ??= []).push({ name: e.name, label, ...(icon ? { icon } : {}), enabled });
       }
@@ -250,7 +271,7 @@ export function headerExtras(inner: HeaderShared): HeaderExtras {
   const itemOf = (e: HeaderEntry, f: HeaderFacts, slot = false): HeaderMenuItem => {
     const command = commandOf(e.command);
     const args = argsOf(e, f);
-    const subs = e.items?.(f);
+    const subs = subsOf(e, f);
     // an action with a submenu opens it: enabled when any of its items runs
     const why = subs?.length && (e.kind ?? 'action') === 'action' ? undefined : whyNot(e.command, args);
     const label = typeof e.label === 'function' ? e.label(f) : (e.label ?? command?.title ?? e.name);
@@ -343,11 +364,11 @@ export function headerExtras(inner: HeaderShared): HeaderExtras {
     inner.previewed = false;
     return viewer.execute(item.command, item.args ?? {});
   };
+  // a choice hovered: its command's preview (`layer.channel`'s through the theming behavior), when it has one
   const preview = (item: HeaderMenuItem): boolean => {
-    const legend = viewer.behaviors.get('legend') as ThemingBehavior | undefined;
-    const a = item.args;
-    if (!legend || item.command !== 'layer.channel' || typeof a?.address !== 'string') return false;
-    inner.previewed = legend.preview(a.address, typeof a.channel === 'string' ? a.channel : 'color', a.value as never);
+    const c = commandOf(item.command);
+    if (!c?.preview || !item.args || whyNot(item.command, item.args) !== undefined) return false;
+    inner.previewed = c.preview({}, item.args) === true;
     return inner.previewed;
   };
 
@@ -454,7 +475,7 @@ export function headerExtras(inner: HeaderShared): HeaderExtras {
     if (!e) return;
     // an action with a submenu opens it at its slot; a chip lists what it hides under `hiddenChip: menu`
     const f = factsOf(target);
-    const subs = f && e.items?.(f);
+    const subs = f && subsOf(e, f);
     if (subs?.length && (e.kind !== 'state' || inner.params.hiddenChip === 'menu'))
       return void openMenu(target, at, e.name);
     void run(e.name, target);

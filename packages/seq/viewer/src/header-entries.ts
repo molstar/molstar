@@ -98,8 +98,10 @@ export interface HeaderEntry {
   /** false: the menu only (default: true when it has an icon). */
   readonly slot?: boolean;
   /**
-   * A submenu (a layer's checkboxes, a scheme choice, a chip's list of what it hides): each runs its own command. Its
-   * slot opens the menu at it; a chip's secondary click lists them before the entry itself ("Show all").
+   * A submenu of other commands or args (a layer's checkboxes, a chip's list of what it hides): each runs its own
+   * command. Its slot opens the menu at it; a chip's secondary click lists them before the entry itself ("Show all").
+   * Without it, a command whose one param is a select makes the submenu: its options, each the entry's args with the
+   * choice (the command owns its choices: the menu, a palette and an agent read the same).
    */
   readonly items?: (f: HeaderFacts) => readonly HeaderSubEntry[];
 }
@@ -189,10 +191,6 @@ export interface HeaderPartsState {
 
 /** The layer "Color ▸" acts on: the first with more than one fitting scheme. */
 const colorLayer = (f: HeaderFacts) => f.layers.find((l) => l.schemes.length > 1 && !l.hidden);
-const schemeOf = (c: Value | undefined) =>
-  typeof c === 'object' && c !== null && !Array.isArray(c) && (c as { kind?: unknown }).kind === 'scheme'
-    ? (c as { params?: { name?: unknown } }).params?.name
-    : undefined;
 /** A track's place among its siblings, by id, and the id the move puts it after (null: first). */
 const moveAfter = (f: HeaderFacts, delta: -1 | 1): string | null | undefined => {
   const id = f.address.slice(f.address.lastIndexOf('/') + 1);
@@ -231,17 +229,8 @@ export const BuiltInHeaderEntries: readonly HeaderActionEntry[] = /* @__PURE__ *
       command: 'layer.channel',
       order: 2,
       when: (f) => colorLayer(f) !== undefined,
+      // its submenu: the command's choices (`layer.channel`'s select param, the layer's fitting schemes)
       args: (f) => ({ address: colorLayer(f)!.address, channel: 'color' }),
-      items: (f) => {
-        const l = colorLayer(f)!;
-        const now = schemeOf(l.color);
-        return l.schemes.map((s) => ({
-          label: s.label,
-          command: 'layer.channel',
-          args: { address: l.address, channel: 'color', value: { kind: 'scheme', params: { name: s.name } } },
-          checked: s.name === now,
-        }));
-      },
     },
     {
       name: HeaderEntryNames.layers,

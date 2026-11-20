@@ -662,9 +662,11 @@ describe('the keys panel', () => {
     const target = document.createElement('div');
     document.body.append(target);
     const v = await make(cardSpec(), { target });
-    const panel = target.querySelector<HTMLElement>('.seqx-keys-panel')!;
-    expect(panel.style.display).toBe('none');
+    // its DOM a lazy chunk, asked for at the first open
+    expect(target.querySelector('.seqx-keys-panel')).toBeNull();
     expect(v.input.key({ key: '?', shiftKey: true })).toBe(true);
+    await v.settle();
+    const panel = target.querySelector<HTMLElement>('.seqx-keys-panel')!;
     expect(panel.style.display).toBe('');
     expect(panel.getAttribute('aria-label')).toBe('Keys and gestures');
     expect(panel.textContent).toContain('Zoom in');
@@ -680,12 +682,13 @@ describe('the keys panel', () => {
     document.body.append(target);
     const v = await make(cardSpec(), { target });
     const container = target.querySelector<HTMLElement>('[role="application"]')!;
-    const panel = target.querySelector<HTMLElement>('.seqx-keys-panel')!;
     const key = (el: Element, k: string) =>
       el.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true }));
-    // opened from the canvas: its Close button takes the focus
+    // opened from the canvas: its Close button takes the focus (once its DOM landed)
     container.focus();
     key(container, '?');
+    await v.settle();
+    const panel = target.querySelector<HTMLElement>('.seqx-keys-panel')!;
     expect(panel.style.display).toBe('');
     const close = panel.querySelector('button')!;
     expect(document.activeElement).toBe(close);

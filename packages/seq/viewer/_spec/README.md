@@ -1014,7 +1014,9 @@ rows' commands) reads the last frame's rows layers through the behavior context'
   closed is the reader's (`none`: nothing in the models changes). Non-modal: opened, it takes the focus (its Close
   button); closed, it gives the focus back to what opened it (the canvas, a toolbar's button), else to the canvas; the
   focus may leave it (no trap). Its events are its own: no pointer event or key in it reaches the canvas (an arrow moves
-  no cursor, Enter on Close runs no command), and Esc on it closes it wherever the focus came from.
+  no cursor, Enter on Close runs no command), and Esc on it closes it wherever the focus came from. Its DOM is a lazy
+  chunk (`keys-panel-dom.ts`) asked for at the first open (`loaded`, which `settle` waits for). Why: a reader opens it
+  rarely, and the default viewer's size has no room for what it does not draw.
 - `linkedPairs` (`LinkedPairsProvider`, in the default spec, removed to opt out; `linked-pairs.ts`): on a hovered or
   selected range element (a feature, a CDR), the pairs with an end in its extent, on every pairs layer of the view
   (`layers`: those named by address, all when absent), written to its own highlight channel (`linked-pairs`, element
@@ -1042,16 +1044,19 @@ rows' commands) reads the last frame's rows layers through the behavior context'
   `loaded` and `preview`.
   - **Entries** (`header-entries.ts`): `HeaderEntry` (`name` namespaced `<id>:<name>`, `on` `track`, `section` or
     `element`, `kind` `action` or `state`, `icon` `@molstar/ui`'s, `label`, `when`, `command`, `args`, `text`, `order`,
-    `slot`, `items` a submenu: pending at the gate, the author's: a submenu's choices are the menu's and the parts'
-    only, not the palette's nor an agent's), listed in the registry as `{ kind: 'header-action', entry }`
+    `slot`, `items` a submenu of other commands or args: a layer's checkboxes, a chip's list), listed in the registry as `{ kind: 'header-action', entry }`
     (`SeqViewerRegistryEntry`) or registered at run time (`register(...entries)`, returning its undo). Registration is
     atomic: every problem in one error before anything changes (a name twice, no namespace, a command the viewer lacks,
     `seq.viewer.header.command`); the registry's are checked once every behavior is made (`BehaviorHandle.composed`).
-    The label and icon default to the command's. Why entries: one list for a slot, a menu item, a DOM part, a key and an
+    The label and icon default to the command's. **A command whose one param is a select is a submenu** of its options
+    (an entry with no `items`): each item the entry's args with the choice under the param's name, the param's default
+    checked, previewed while hovered through the command's `preview`; a command reads the choice from its args (a
+    palette's) or its context (`viewer.execute`'s). Why: the command owns its choices, so the menu, a palette and an
+    agent offer the same. Why entries: one list for a slot, a menu item, a DOM part, a key and an
     agent; the registry's rules (atomic, undoable, namespaced) for free.
   - **Built-ins** (`BuiltInHeaderEntries`, in the default spec's registry; a host leaves one out to remove it):
     `seq:hide` (`eye-off`, `track.hide`), `seq:color` (`palette`, the first shown layer with more than one fitting
-    scheme: its schemes a submenu of `layer.channel`, previewed while focused or hovered), `seq:layers` (more than one
+    scheme: `layer.channel`'s choices a submenu, previewed while focused or hovered), `seq:layers` (more than one
     addressable layer: a checked item a layer, `layer.hide` or `layer.show`), `seq:move-up`, `seq:move-down`
     (`track.move`, a sibling there), the states `seq:filtered` (its count the track's, every thinned layer's rows;
     `layer.filter` clears every thinned layer's filter, one patch), `seq:hidden-layers` (`layer.show` of every hidden
@@ -1241,7 +1246,9 @@ legend, its entries with accessible names (`<title>: <value>`), the entries past
 settle: a legend that changes during a pan reads as noise, and its cost stays off the frame.
 
 - **The legend behavior's commands** (`behaviors/theming.ts`, patches unless said): `layer.channel` (a channel's value
-  or form set or unset, on one layer or several in one patch), `scale.set` (a scale's params; `null` reopens a domain's
+  or form set or unset, on one layer or several in one patch; on one layer's color its choices are a select param,
+  `scheme`, the layer's fitting schemes, its default the layer's scheme: read when no `value` is given; its `preview`
+  the gesture's preview), `scale.set` (a scale's params; `null` reopens a domain's
   end), `theme.value-color` (one value's color in a field form's palette, the listed values keeping theirs; refused on a
   scheme, rules or any other form: never replaced), `layer.filter` (a value's items hidden or shown again: one patch of
   the layer's `data`, a trailing `(not …)` of the values hidden; no value: cleared, every layer of `addresses` in one

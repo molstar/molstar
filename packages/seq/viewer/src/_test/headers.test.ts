@@ -148,11 +148,30 @@ describe('the built-in entries: a slot, a menu item and the command alike', () =
     expect(stack(v).steps.value.length).toBe(steps + 1);
     const color = v.spec.root.value.children!.find((c) => c.kind === 'views')!.children![0].children![0].children![0]
       .children![0].params?.color as { params: { name: string } };
-    expect(color.params.name).toBe((schemes[1].args!.value as { params: { name: string } }).params.name);
+    expect(color.params.name).toBe(schemes[1].args!.scheme);
     // the full menu's "Color ▸" holds the same items, the scheme now checked
     const sub = item(v, Letters, 'seq:color').items!;
     expect(sub.map((s) => s.label)).toEqual(schemes.map((s) => s.label));
     expect(sub[1].checked).toBe(true);
+  });
+
+  it('seq:color: the submenu is the command’s choices: `layer.channel`’s one select param, read alike by a palette or an agent', async () => {
+    const v = await make();
+    const channel = v.commands.find((c) => c.id === 'layer.channel')!;
+    const ctx = item(v, Letters, 'seq:color').args!;
+    const params = channel.params!(ctx as never, {});
+    expect(Object.keys(params)).toEqual(['scheme']);
+    const scheme = params.scheme as { type: string; options: readonly (readonly [string, string])[] };
+    expect(scheme.type).toBe('select');
+    const sub = item(v, Letters, 'seq:color').items!;
+    expect(sub.map((s) => s.label)).toEqual(scheme.options.map(([, label]) => label));
+    expect(sub.map((s) => s.args!.scheme)).toEqual(scheme.options.map(([name]) => name));
+    // a palette runs it with the param's value (its args), as the menu's item does through its context
+    const name = scheme.options[2][0];
+    await settled(channel.run({ scheme: name }, ctx as never, new AbortController().signal) as never);
+    expect(item(v, Letters, 'seq:color').items!.find((s) => s.checked)?.args!.scheme).toBe(name);
+    // several layers, or a channel other than color: no choices (the command's value is the context's)
+    expect(channel.params!({ ...ctx, channel: 'opacity' } as never, {})).toEqual({});
   });
 
   it('seq:layers: a checked item a layer, hidden and shown by layer.hide and layer.show; the chip shows all (one patch)', async () => {
