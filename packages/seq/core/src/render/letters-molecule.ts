@@ -422,7 +422,7 @@ export const MoleculeLettersType: LayerType<LettersPrep, LettersLay> = {
       lay.pending.length = 0;
       const vis = axis.visible([]);
       layMoleculeCells(lay, prep.molecule.labels, axis, vis, box, config, tokens, fill, lay.step === 'letters');
-      if (lay.chip && lay.n) lay.chipInk = chipInk(lay.fill[0], tokens);
+      if (lay.isChip && lay.n) lay.chipInk = chipInk(lay.fill[0], tokens);
       return lay;
     }
     if (lay.mods.length) hideCoded(lay, config);
@@ -432,7 +432,7 @@ export const MoleculeLettersType: LayerType<LettersPrep, LettersLay> = {
   draw(lay, pass: PassName, out: PassWriter, emphasis?: Emphasis) {
     LettersType.draw(lay, pass, out, emphasis);
     if (pass !== 'data') return;
-    if (lay.labels && lay.step === 'letters' && lay.fontSize > 0 && lay.n && !lay.chip) drawMoleculeLabels(lay, out);
-    if (lay.mods.length && !(lay.chip && lay.n)) drawModified(lay, out, lay.tokens, lay.config);
+    if (lay.labels && lay.step === 'letters' && lay.fontSize > 0 && lay.n && !lay.isChip) drawMoleculeLabels(lay, out);
+    if (lay.mods.length && !(lay.isChip && lay.n)) drawModified(lay, out, lay.tokens, lay.config);
   },
 };

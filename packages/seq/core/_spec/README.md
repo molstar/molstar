@@ -2561,16 +2561,17 @@ numbers): a window move allocates nothing once warm.
 - **A stack**: the chips share one row after the other blocks', side by side from the first position's x, whatever the
   window. A row's ground and its track labels are drawn once, at its first strip (a later chip's would paint over the
   pill before it).
-- **The pill**: a letters layer on a chip draws its label in a pill over its cell (`LayoutContext.chip`, elided to its
-  slot): the cell's fill with the letter cells' hairline (`seq-cell-edge`, dark), its ink the tokens' when it holds
-  4.5:1 against the fill, else black or white; one pill over a chip's cells. A molecule's cells take the layer's `color`
-  once a block, its theme reading the molecule's fields (`class`, `name`, `component`: its first residue's code), so one
-  letters layer colors each chip on its own (`(rule (eq component ATP) …)`); a rule that holds for none gives the
-  layer's default. A chip is hit as its whole block (the hit's `extent` its every position, made once a layout: a hover
-  over it is one hover), so a click selects every residue and, through the atoms map, every atom. The label row above a
-  chip is empty only where a pill was drawn (a letter laid out on a band with height); else (no letters track, a pending
-  tile, bars, a collapsed band) the label is there. Another layer draws its mark across the chip where it has something
-  at the position, else nothing.
+- **The pill**: a letters layer on a chip draws its label in a pill over its cell (`LayoutContext.chip`, by the rule of
+  a label inside a mark, `longestCut`: whole, or cut keeping at least `labels.minChars` letters, else the pill without
+  text, its label in the card; the label row above follows the same rule): the cell's fill with the letter cells'
+  hairline (`seq-cell-edge`, dark), its ink the tokens' when it holds 4.5:1 against the fill, else black or white; one
+  pill over a chip's cells. A molecule's cells take the layer's `color` once a block, its theme reading the molecule's
+  fields (`class`, `name`, `component`: its first residue's code), so one letters layer colors each chip on its own
+  (`(rule (eq component ATP) …)`); a rule that holds for none gives the layer's default. A chip is hit as its whole
+  block (the hit's `extent` its every position, made once a layout: a hover over it is one hover), so a click selects
+  every residue and, through the atoms map, every atom. The label row above a chip is empty only where a pill was drawn
+  (a letter laid out on a band with height); else (no letters track, a pending tile, bars, a collapsed band) the label
+  is there. Another layer draws its mark across the chip where it has something at the position, else nothing.
 - **Labels**: a block's label above its tracks is elided to its strip's width, dropped when nothing of it fits: never
   over the next block's. Hit, hover, selection and a link read a chip as its one position; `place` at a unit where one
   strip ends and the next starts gives the next (a chip at its own first unit is the chip). Contacts (where a ligand
