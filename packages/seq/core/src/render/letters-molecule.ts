@@ -39,9 +39,38 @@ export function modifiedStyle(v: unknown): ModifiedStyle {
 export interface MoleculeLabels {
   readonly kind: 'residues' | 'atoms';
   readonly labels: readonly string[];
+  /** Its molecule's class, name and first component: the fields a chip's color reads (`class`, `name`, `component`). */
+  readonly class: string;
+  readonly name: string;
+  readonly component: string;
 }
 
 const Labels = new WeakMap<StaticModel, Map<string, MoleculeLabels | null>>();
+
+/** The datum a molecule's color is read at (one, reused: a layout makes none): its fields, no letter or value. */
+const Datum = {
+  of: undefined as MoleculeLabels | undefined,
+  field(name: string): string | undefined {
+    const m = this.of;
+    return !m
+      ? undefined
+      : name === 'class'
+        ? m.class
+        : name === 'name'
+          ? m.name
+          : name === 'component'
+            ? m.component
+            : undefined;
+  },
+  value: Number.NaN,
+  letter: '',
+  start: 0,
+  end: 1,
+};
+const moleculeDatum = (m: MoleculeLabels) => {
+  Datum.of = m;
+  return Datum;
+};
 
 /** A system's molecule labels (made once a model and system), or undefined when it is no molecule's. */
 export function moleculeLabels(model: StaticModel, system: string): MoleculeLabels | undefined {
@@ -55,19 +84,36 @@ export function moleculeLabels(model: StaticModel, system: string): MoleculeLabe
 function makeLabels(model: StaticModel, system: string): MoleculeLabels | undefined {
   const s = model.systems.get(system);
   const m = model.molecular;
+  const fields = (address: string) => {
+    const unit = m.units.get(address);
+    const molecule = m.molecules.get(unit ? unit.of : address);
+    return { molecule, unit };
+  };
   if (s?.kind === 'atoms') {
     const a = m.atoms.get(system);
     if (!a) return undefined;
     const n = a.offsets[a.offsets.length - 1];
-    return { kind: 'atoms', labels: Array.from({ length: n }, (_, i) => a.elements.get(i) ?? '') };
+    const { molecule } = fields(a.of);
+    return {
+      kind: 'atoms',
+      labels: Array.from({ length: n }, (_, i) => a.elements.get(i) ?? ''),
+      class: molecule?.class ?? 'ligand',
+      name: molecule?.name ?? '',
+      component: molecule?.residues?.[0] ?? '',
+    };
   }
-  const unit = m.units.get(system);
-  const molecule = m.molecules.get(unit ? unit.of : system);
+  const { molecule, unit } = fields(system);
   const residues = molecule?.residues;
-  if (!residues) return undefined;
+  if (!molecule || !residues) return undefined;
   const start = unit?.start ?? 0;
   const end = unit?.end ?? residues.length;
-  return { kind: 'residues', labels: residues.slice(start, end) };
+  return {
+    kind: 'residues',
+    labels: residues.slice(start, end),
+    class: molecule.class,
+    name: molecule.name ?? '',
+    component: residues[start] ?? '',
+  };
 }
 
 /** What a letters layout keeps for molecules and modified positions. */
@@ -368,7 +414,10 @@ export const MoleculeLettersType: LayerType<LettersPrep, LettersLay> = {
       lay.labels = prep.molecule.labels;
       if (lay.step === 'bars' || lay.step === 'density') return lay;
       const c = prep.channels.forms.color === undefined ? undefined : prep.channels.get('color', 'token:sequence', ctx);
-      const fill = typeof c?.constant === 'number' ? c.constant : tokens.colors['seq-sequence'];
+      // a chip colored on its own: a theme over the molecule's fields (its class, name, component), once a block
+      const own = c && c.constant === undefined ? c.at(moleculeDatum(prep.molecule)) : undefined;
+      const fill =
+        typeof c?.constant === 'number' ? c.constant : typeof own === 'number' ? own : tokens.colors['seq-sequence'];
       lay.n = 0;
       lay.pending.length = 0;
       const vis = axis.visible([]);

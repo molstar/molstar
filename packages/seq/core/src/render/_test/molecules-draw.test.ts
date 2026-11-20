@@ -22,6 +22,7 @@ import {
   type RangesLay,
   recordDrawLists,
 } from '../index.js';
+import { theme } from '@molstar/seqx-core/lang';
 import { settle } from './helpers.js';
 import { moleculesSpec } from './molecules-fixtures.js';
 
@@ -78,6 +79,24 @@ describe('a complex drawn against its data', () => {
       const gz = pz.strips.axes.findIndex((a) => a.system === '/data/c/g');
       expect(pz.strips.axes[gz].width).toBeCloseTo(p.strips.axes[g].width, 6);
     });
+
+  it('a ligand chip colored on its own: a theme over the molecule’s fields (component, class), each chip its color', async () => {
+    const color = theme.rules([
+      theme.rule([theme.eq('component', 'ATP')], '#d62728'),
+      theme.rule([theme.eq('class', 'ion')], '#9467bd'),
+    ]);
+    const s = await settle(moleculesSpec({ color }));
+    const f = await s.frame({ size: Size });
+    const p = f.layout.sections[0].placement as BlockPlacement;
+    const pill = (system: string) => {
+      const i = p.strips.axes.findIndex((a) => a.system === system);
+      return lettersLays(f).find((l) => l.strip === i)!.lay.fill[0];
+    };
+    expect([pill('/data/c/l'), pill('/data/c/n')]).toEqual([0xd62728ff, 0x9467bdff]);
+    // a chip no rule names takes the rules' default, neither rule's color
+    expect([0xd62728ff, 0x9467bdff]).not.toContain(pill('/data/c/g'));
+    expect(recordDrawLists(f.lists, ['data'])).toContain('#d62728ff');
+  });
 
   it('a chip is hit as its whole block: its every residue', async () => {
     const s = await settle(moleculesSpec());

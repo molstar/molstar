@@ -2562,7 +2562,10 @@ numbers): a window move allocates nothing once warm.
   pill before it).
 - **The pill**: a letters layer on a chip draws its label in a pill over its cell (`LayoutContext.chip`, elided to its
   slot): the cell's fill with the letter cells' hairline (`seq-cell-edge`, dark), its ink the tokens' when it holds
-  4.5:1 against the fill, else black or white; one pill over a chip's cells. A chip is hit as its whole block (the hit's
+  4.5:1 against the fill, else black or white; one pill over a chip's cells. A molecule's cells take the layer's
+  `color` once a block, its theme reading the molecule's fields (`class`, `name`, `component`: its first residue's
+  code), so one letters layer colors each chip on its own (`(rule (eq component ATP) …)`); a rule that holds for none
+  gives the layer's default. A chip is hit as its whole block (the hit's
   `extent` its every position, made once a layout: a hover over it is one hover), so a click selects every residue and,
   through the atoms map, every atom. The label row above a chip is empty only where a pill was drawn (a letter laid out
   on a band with height); else (no letters track, a pending tile, bars, a collapsed band) the label is there. Another
