@@ -8,6 +8,7 @@
 // structure's units, for a host wiring a structure viewer beside a sequence view. A library, not a port: plain data in
 // and out, no structure viewer's types, nothing registered. Named re-exports only.
 
+export { type ColorRun, type ColorRunsResult, colorRuns } from './colors.js';
 export {
   type AuthNumbering,
   type ResidueRows,
@@ -18,6 +19,7 @@ export {
 } from './facts.js';
 export { StructureSyncIssues } from './issues.js';
 export type { StructureBinding, StructureModel } from './model.js';
+export { type HeldOptions, type StoreRead, type UnitRow, type UnitRowsResult, unitRows } from './rows.js';
 export {
   DefaultSyncLimits,
   type FromUnitsOptions,

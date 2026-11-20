@@ -35,7 +35,15 @@ export interface P53Options {
   readonly reversed?: boolean;
   /** A numbering `auth` on the entity too (one past the units' labels), which the units' own beat (EC-8). */
   readonly entityAuth?: boolean;
+  /**
+   * A view of P04637: its letters, its domains (a ranges node, colored by `category` when `field`) and a values track
+   * (`values[i]` at `i`, NaN at 100), each a layer `colorRuns` reads.
+   */
+  readonly view?: { readonly field?: boolean };
 }
+
+/** The view's values: `i / UpLength`, none at 100. */
+export const ValueAt = (i: number) => (i === 100 ? Number.NaN : i / UpLength);
 
 export const chainId = (k: number) => (k < 26 ? String.fromCharCode(65 + k) : `X${k}`);
 
@@ -94,5 +102,30 @@ export function p53Spec(o: P53Options = {}): Node {
       segments: { from: [EntStart + 1], to: [0], length: [EntLength - 1] },
       priority: o.aln,
     });
+  if (o.view) {
+    const domains = b.data.ranges('domains', {
+      target: up,
+      rows: {
+        start: [0, 63, 99, 320],
+        end: [61, 94, 120, 360],
+        id: ['TAD', 'PRR', 'DBD', 'TET'],
+        category: ['activation', 'linker', 'binding', 'binding'],
+      },
+    });
+    const values = b.data.values('scores', {
+      target: up,
+      values: Array.from({ length: UpLength }, (_, i) => ValueAt(i)),
+    });
+    b.views.view('main', (v) => {
+      const s = v.section('p53', { of: up });
+      s.track('letters').layer('letters', { type: 'letters' });
+      s.track('domains').layer('domains', {
+        type: 'ranges',
+        data: domains,
+        ...(o.view?.field ? { color: { kind: 'field', params: { name: 'category' } } } : { color: '#ff0000' }),
+      });
+      s.track('scores').layer('scores', { type: 'values', data: values });
+    });
+  }
   return b.build();
 }

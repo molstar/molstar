@@ -24,6 +24,10 @@ export const StructureSyncIssues = defineIssues('seq.structure', {
     description:
       'Positions a structure viewer sent are on no unit, unit atoms or molecule of the bound complexes: left out',
   },
+  'seq.structure.rows': {
+    severity: 'warning',
+    description: 'An annotation whose rows are asked is no ranges or pairs annotation of the model: no rows',
+  },
   'seq.structure.layer': {
     severity: 'warning',
     description: 'A layer whose colors are asked is no letters, values or ranges layer, or reads no data: no runs',
