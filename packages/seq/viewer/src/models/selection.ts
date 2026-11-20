@@ -30,6 +30,7 @@ import {
 import type { HighlightStyle } from '@molstar/seqx-core/render';
 import type { Axis } from '@molstar/seqx-core/view';
 import { axisTotal, cellOffset, positionAt } from './axis.js';
+import { isUnder, withoutGone } from './dropped.js';
 import type { Hit } from './hover.js';
 
 /** What is selected or highlighted: element keys, positions, and the positions drawn (theirs and the elements' extents). */
@@ -607,6 +608,23 @@ export class SelectionModel extends ReactiveModel {
 
   get rectDragging(): boolean {
     return this._rectDrag !== undefined;
+  }
+
+  /**
+   * Takes out what a host's update removed (addresses of nodes gone, and what is under them): the elements and parts
+   * on them, the anchor and the cursor on one (_spec/README.md "StoreModel", Host updates). True when something was.
+   */
+  dropGone(gone: readonly string[]): boolean {
+    const value = this._value.value;
+    const next = withoutGone(value, gone);
+    const anchor = this._anchor && isUnder(this._anchor.system, gone) ? undefined : this._anchor;
+    const cursor = this._cursor.value;
+    const cursorGone =
+      !!cursor && (isUnder(cursor.system, gone) || (!!cursor.ySystem && isUnder(cursor.ySystem, gone)));
+    if (next === value && anchor === this._anchor && !cursorGone) return false;
+    if (next !== value || anchor !== this._anchor) this.set(next, anchor);
+    if (cursorGone) this._cursor.set(undefined);
+    return true;
   }
 
   // ---- the cursor ----

@@ -147,6 +147,16 @@ describe('the overlay', () => {
     expect(o.issues).toEqual([]);
   });
 
+  it('binds a nested source to the one runtime of its format; two for it bind none, said as several', () => {
+    const a = nodeAddress(S, 'a');
+    const twin = { ...SeqRuntime, name: 'twin' };
+    const o = buildOverlay(model(), reader([[S, 'a', source()]]), { runtimes: [SeqRuntime, twin] });
+    expect(o.nested(new Map([[S, 1]])).map((n) => [n.address, n.runtime])).toEqual([[a, undefined]]);
+    expect(o.issues.map((i) => [i.code, i.message])).toEqual([
+      ['seq.resolve.source.runtime', 'Several runtimes read the format of the source'],
+    ]);
+  });
+
   it('lists a nested source only when a template needs its depth, never past the limit (EC-179)', () => {
     const a = nodeAddress(S, 'a');
     const b = nodeAddress(a, 'b');

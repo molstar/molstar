@@ -297,7 +297,7 @@ export class SeqViewer extends ReactiveModel {
       minScale: textMinScale(this.context.renderConfig),
     });
     this.hover = new HoverModel(this.spec, this.view, this.config);
-    this.store = new StoreModel(this.config);
+    this.store = new StoreModel(this.config, { removed: (gone) => this.selection.dropGone(gone) });
     // an element selected by an address and then toggled is drawn by its extent, resolved over what is shown
     this.selection = new SelectionModel(
       (els) =>

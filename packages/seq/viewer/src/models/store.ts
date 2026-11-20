@@ -10,12 +10,13 @@
 // hash), opened again when it changes, detached when it goes. Retired with the viewer.
 
 import { ReactiveModel, type ReadonlyState, State } from '@molstar/core/reactive';
-import { type Issue, issueOf } from '@molstar/core/repr/tree';
+import { type Issue, issueOf, type Node } from '@molstar/core/repr/tree';
 import {
   type AssetReader,
   DataStore,
   type FormatRuntime,
   isAbortError,
+  type OpenedSource,
   type SourceEntry,
   SourceIssues,
   SourceOpenError,
@@ -24,6 +25,7 @@ import {
 import { OverlaySources } from '@molstar/seqx-core/render';
 import {
   EmptyOverlay,
+  nodeAddress,
   type Overlay,
   OverlayBuilder,
   type OverlayNode,
@@ -32,6 +34,7 @@ import {
 import type { ResolvedView } from '@molstar/seqx-core/view';
 import { DomHost } from '@molstar/ui/dom';
 import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
+import { ViewerIssues } from '@molstar/seqx-viewer/issues';
 
 /** The store's time through `DomHost`, read at each call. */
 export const DomHostClock: StoreClock = {
@@ -40,9 +43,46 @@ export const DomHostClock: StoreClock = {
   clearTimeout: (handle) => DomHost.clearTimeout(handle),
 };
 
+/** A source's nodes the store holds now, by key. */
+function nodesOf(store: DataStore, source: string): Map<string, Node> {
+  const out = new Map<string, Node>();
+  for (const n of store.nodes.values()) if (n.source === source) out.set(n.key, n.node);
+  return out;
+}
+
+/** The addresses of the nodes gone between two readings, and of the children (units) a kept node lost. */
+function goneSince(before: ReadonlyMap<string, Node>, after: ReadonlyMap<string, Node>, source: string): string[] {
+  const out: string[] = [];
+  for (const [key, node] of before) {
+    const address = nodeAddress(source, key);
+    const now = after.get(key);
+    if (!now) out.push(address);
+    else if (now !== node) {
+      const ids = new Set((now.children ?? []).map((c) => c.id));
+      for (const c of node.children ?? []) if (c.id !== undefined && !ids.has(c.id)) out.push(`${address}/${c.id}`);
+    }
+  }
+  return out;
+}
+
+/** Why a source could not be opened, at its address. */
+function unopened(e: unknown, address: string): Issue {
+  const issue =
+    e instanceof SourceOpenError && e.issues[0]
+      ? e.issues[0]
+      : issueOf(SourceIssues, 'seq.source.unreadable', `The source could not be opened: ${String(e)}`, { address });
+  return { ...issue, address };
+}
+
 interface Opening {
   readonly entry: SourceEntry;
   readonly abort: AbortController;
+  /** Stops listening to the opened source's `changes`. */
+  stop?: () => void;
+  /** A reopen is asked for the next frame (changes inside one frame reopen once). */
+  asked?: boolean;
+  /** The latest reopen: an earlier one that settles after it is dropped. */
+  reading?: number;
 }
 
 export class StoreModel extends ReactiveModel {
@@ -58,7 +98,14 @@ export class StoreModel extends ReactiveModel {
    * out); the store's own reports are `store.issues`. */
   readonly issues: ReadonlyState<readonly Issue[]> = this._issues.asReadonly;
 
-  constructor(config: ViewerConfig = DefaultViewerConfig, options: { clock?: StoreClock } = {}) {
+  /**
+   * `removed`: told the addresses of the nodes a host's update removed (and of the children a kept node lost), it takes
+   * them out of the session's state and says whether something was (then one issue at the source).
+   */
+  constructor(
+    config: ViewerConfig = DefaultViewerConfig,
+    private readonly options: { clock?: StoreClock; removed?: (gone: readonly string[]) => boolean } = {},
+  ) {
     super();
     this.store = new DataStore({
       settings: {
@@ -68,14 +115,17 @@ export class StoreModel extends ReactiveModel {
         maxColumnLength: config.bounds.maxColumnLength,
         maxBlockValues: config.bounds.maxBlockValues,
       },
-      clock: options.clock ?? DomHostClock,
+      clock: this.options.clock ?? DomHostClock,
     });
     this.registerPermanentDispose(() => {
       // the overlay's openings first: one that settles later is disposed, never attached
       this._overlaySources?.dispose();
       for (const held of this._sessionHolds.values()) for (const release of held.values()) release();
       this._sessionHolds.clear();
-      for (const o of this._open.values()) o.abort.abort();
+      for (const o of this._open.values()) {
+        o.stop?.();
+        o.abort.abort();
+      }
       this._open.clear();
       this.store.retire();
     });
@@ -118,6 +168,7 @@ export class StoreModel extends ReactiveModel {
 
     for (const [address, o] of [...this._open]) {
       if (wanted.get(address)?.entry === o.entry) continue;
+      o.stop?.();
       o.abort.abort();
       this._open.delete(address);
       this.store.detach(address);
@@ -229,18 +280,63 @@ export class StoreModel extends ReactiveModel {
       if (!this.store.attach(address, opened)) {
         opened.dispose();
         this._open.delete(address);
-      }
+      } else this._watch(address, o, opened, runtime, assets);
     } catch (e) {
       if (isAbortError(e) || o.abort.signal.aborted) return;
       // forgotten, so a later sync tries again
       if (this._open.get(address) === o) this._open.delete(address);
-      const issue =
-        e instanceof SourceOpenError && e.issues[0]
-          ? e.issues[0]
-          : issueOf(SourceIssues, 'seq.source.unreadable', `The source could not be opened: ${String(e)}`, {
-              address,
-            });
-      this._report(address, { ...issue, address });
+      this._report(address, unopened(e, address));
+    }
+  }
+
+  /**
+   * Listens to an opened source's `changes` (a host's edit): a change asks a reopen for the next frame (`DomHost`'s),
+   * so changes inside one frame reopen once (_spec/README.md "StoreModel", Host updates).
+   */
+  private _watch(address: string, o: Opening, opened: OpenedSource, runtime: FormatRuntime, assets: AssetReader) {
+    o.stop?.();
+    o.stop = opened.changes?.(() => {
+      if (o.asked) return;
+      o.asked = true;
+      DomHost.requestAnimationFrame(() => {
+        o.asked = false;
+        if (this._open.get(address) === o && !o.abort.signal.aborted) void this._reopen(address, o, runtime, assets);
+      });
+    });
+  }
+
+  /**
+   * Opens a source again from its entry and reattaches it in place (`DataStore.reattach`: nodes kept by key, tiles read
+   * again); a failed reopen is an issue at its address and the reading before it stays.
+   */
+  private async _reopen(address: string, o: Opening, runtime: FormatRuntime, assets: AssetReader): Promise<void> {
+    const reading = (o.reading = (o.reading ?? 0) + 1);
+    const current = () => this._open.get(address) === o && !o.abort.signal.aborted && o.reading === reading;
+    try {
+      const { maxRows, maxBytes } = this.store.settings;
+      const opened = await runtime.open(o.entry, { assets, signal: o.abort.signal, limits: { maxRows, maxBytes } });
+      if (!current()) return opened.dispose();
+      this._report(
+        address,
+        opened.issues?.map((i) => ({ ...i, address })),
+      );
+      const before = nodesOf(this.store, address);
+      if (!this.store.reattach(address, opened)) return opened.dispose();
+      this._watch(address, o, opened, runtime, assets);
+      const gone = goneSince(before, nodesOf(this.store, address), address);
+      if (gone.length && this.options.removed?.(gone))
+        this._report(address, [
+          ...(opened.issues?.map((i) => ({ ...i, address })) ?? []),
+          issueOf(
+            ViewerIssues,
+            'seq.viewer.selection.dropped',
+            `The source’s update removed ${gone.length === 1 ? 'a node' : `${gone.length} nodes`} the selection named: dropped from it`,
+            { address },
+          ),
+        ]);
+    } catch (e) {
+      if (isAbortError(e) || !current()) return;
+      this._report(address, unopened(e, address));
     }
   }
 

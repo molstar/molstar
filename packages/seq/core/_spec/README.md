@@ -650,6 +650,22 @@ over 20 runs; the heavy lane bounds one sample at 40 ms (`resolve/_test/addressi
   or a failure: `failed` (retried with backoff), `malformed` (fails at once, with a cooldown), `not-served` and
   `too-large` (never retried; too large asks a coarser level). Cancellation rejects with an `AbortError`, never an error
   state; an `AbortError` the store did not ask for is the source's failure.
+- **A data adapter is a format runtime**: the core's runtimes are the default adapters of a family, "seq data ports"; a
+  host's adapter (a structure viewer serving what it holds in memory) is another runtime for the same formats, put in
+  place of the default by `withAdapter` (Context, Registry entries). Why: reading by region, waiting, issues and node
+  identity are already the protocol's; a second mechanism would duplicate each. A host's adapter for a source it does
+  not hold hands it to the default (its fallback); a source's `ref` (a host's name for data with no file) rides on the
+  entry for it, never read by a default adapter (EC-185).
+- **Two optional members, every runtime unchanged**: `RegionRequest.field`, the values channel asked (a `values` node's
+  `field`: `plddt`, `b_factor`; absent, the source's default value; a source serving one value ignores it), and
+  `OpenedSource.changes(fn) → unsubscribe`, the adapter telling that its data changed (a host's edit; whoever attached
+  it reopens it in place: Store, Reattach); a change since the source was opened and before the subscription is told
+  too, so an edit while it is being opened or attached is never lost. A source read once (a file) has no `changes`. Why:
+  one source, one open and one parse serve every channel; a host's edit is a new reading of the same source, not a new
+  source.
+- **Conformance**: every adapter passes one suite (`data/_test/conformance.ts`): a well-formed coverage whose nodes the
+  language takes; each listed shape read whole at level 1 an answer in the protocol's shape, with a channel asked or
+  not; an aborted read an `AbortError`; `changes` stopping once unsubscribed. Why: a host is code Seq\* does not own.
 
 ### Tables
 
@@ -963,7 +979,71 @@ over the assets port, with `@molstar/core/util/zip` (never a private zip). Not a
   held per holder and goes only when the last lets go; each is tested with two consumers interleaved, one ending while
   the other reads. Why: the viewer and an export share a store, and one consumer's end must not take what the other
   still shows.
+- **Reattach** (`reattach(address, opened)`: a new reading of an attached source, a host's edit): nodes of a key it
+  still brings keep their identity (`<source>#<key>`, so their addresses and systems) and take its content, a new
+  version; a key it no longer brings goes at once, whoever holds it (the reading says it is gone: as when a patch
+  removes a node; its holders' releases then count down to nothing); every tile of it and of its channels is dropped and
+  the wanted ones asked again; its reports cleared; the old reading disposed. A key the old reading's tiles brought
+  keeps its identity while held: served again by a tile it takes the new content (no conflict), and it goes when the
+  tile that brought it is read again without it (`store-sources.ts`). A malformed coverage is an issue and the old
+  reading stays. Why: EC-176's "a conflict keeps the held node" is right for two answers of one reading, wrong for a new
+  reading.
+- **Channels** (`channels.ts`, internal to the package: not in the `data` entry, read by the resolver and the context
+  through `data/channels`): a values node's `field` is read under its own address, `channelAddress(source, field)` (the
+  source's and the field's joined by a control character no address holds), made when a tile of it is first read, from
+  the source as attached (`fieldChannel`: each read asks the field, no nodes, its own summaries), and gone with its
+  source; reading its coverage or its keys makes nothing (the source's own); its failures are reported at the source's
+  address. Why its own address: tiles, summaries and entries are the field's, and every reader of a layer's source
+  (render, describe, the query model) reads it unchanged.
 - Time is a `StoreClock` (real timers by default): tests drive a fake one and never wait.
+
+## Seq io
+
+`src/io/` (`@molstar/seqx-core/io/structure`, `@molstar/core` only): a structure's host-neutral description and the one
+converter from it to the nodes molecules are read as (Language, Molecules and complexes), shared by every adapter of a
+structure (a file's runtime, a host holding its model). Neither imports `@molstar/model` or `@molstar/io`. Its public
+names: `StructureDescription` and its table types, `structureNodes` (with `StructureNodes`, its options and
+`StructureLimits`, `DefaultStructureLimits`) and `StructureIssues`.
+
+- **`StructureDescription`**: tables of columns named in mmCIF's words, rows referencing other tables' rows by index:
+  `entities` (`id`, `type`, the polymer's type, `name`, canonical letters), `components` (a row a position of an entity,
+  several at one its alternatives, the first giving the letter), `identifiers`, `chains` (the units: `label_asym_id`,
+  `auth_asym_id`, entity, `operator`), `residues` (a chain's positions with `auth_seq_id`, `ins_code`, `observed`),
+  `links`, `compounds` (`parents`), a molecule's heavy `atoms`, named per-residue `values`. Why columns and indices: a
+  host fills them from its own model without a CIF frame, and a description is format-neutral.
+- **`structureNodes(description, { source, water?, complex?, limits? })`**: a sequence per polymer entity (letters
+  given, else each position's first component's standard letter, else its one parent's, else `X` or `N`, said once:
+  `seq.io.structure.letters`; `modified` the positions whose component is not their letter's standard one and every row
+  of a position with alternatives), a molecule per other entity (`class` `branched`, `water`, else `ion` for one atom,
+  else `ligand`), the `compounds`, and a complex of units (`of` the entity's node, `chain`, `auth_chain`, `operator`,
+  `observed` runs when a position was not, an `auth` numbering from `auth_seq_id` and `ins_code`) with a `links` child;
+  water only when asked. It also gives the units' systems (their ids and lengths) and `values(field)`, a named value
+  over each kept unit's positions from that unit's own residue rows: what a source serves for a `values` node's `field`.
+  Why on the result: the values follow the units the reading kept, by the same keys.
+- **Checked and bounded** (`structure-read.ts`; a host is code Seq\* does not own): every table and every cell is read
+  as its type before anything is sized by it; what does not read is said at the source's address and left out, never
+  thrown. A table missing, of another type or with a column of another length is left out (`seq.io.structure.columns`);
+  a row with a cell of another type, naming no row of another table, a position past its unit, or a position listed
+  twice in a unit (no row wins by order) is left out (`seq.io.structure.rows`); rows, an entity's positions and units
+  past their limits are left out (`seq.io.structure.bounds`); hydrogens are left out (`seq.io.structure.hydrogen`,
+  EC-64). A seeded fuzz holds it.
+- **Keys from identifiers, never indices or row order**: an entity by its `id`, the compounds `compounds`, the complex
+  `complex` (`options.complex`); a unit's id its chain and its operator joined by `-` (`A-1_555`; the chain alone
+  without one). A chain holding `-` or a character no id takes, an operator holding one, or a key given twice (an
+  entity, a unit, a compound) is refused, every row of it (`seq.io.structure.id`): never made into another id, never the
+  first row kept, so no two descriptions' rows can meet under one key. Entities, compounds and units are in their ids'
+  natural order, links by their ends, identifiers by namespace and value, atoms by residue and name; only a position's
+  alternatives keep their rows' order (it is data). Why: every adapter of one structure gives equal nodes, so a
+  selection, a bookmark or a ref made with the file holds with the host; and a removed chain, or rows in another order,
+  change nothing else (a seeded property over every table).
+
+| Item               | Default    | Why the default; the alternatives                                                   |
+| ------------------ | ---------- | ----------------------------------------------------------------------------------- |
+| `limits.maxLength` | 1,000,000  | positions of one entity: titin's 35,000 with room; a description is untrusted input |
+| `limits.maxUnits`  | 10,000     | units of the complex: a large assembly's chains under its operators                 |
+| `limits.maxRows`   | 10,000,000 | rows of one table: a ribosome's residues under its operators with room              |
+| `water`            | `false`    | waters say nothing on an axis (molecules.md); `true`                                |
+| `complex`          | `complex`  | the complex's id and key; any id                                                    |
 
 ## Resolve
 
@@ -2654,13 +2734,21 @@ same pieces. Nothing registers on import and there is no global registry.
   exports (`NavigatorSvgExport`). `retire()` disposes what the context made or was told to dispose. Why two: what a
   composition does not list is not in its bundle (a viewer composes the base), and the headless default draws
   everything.
+- **Data adapters, one a format**: a format two registered runtimes read is an error listing every conflict
+  (`runtimesOf`), so which one reads a source never depends on the order they are listed in;
+  `withAdapter(registry, adapter)` puts a host's adapter in place of the defaults for its formats (a runtime left with
+  other formats keeps them under its name, one narrowing however often it is listed). Format runtimes are keyed by their
+  formats and their identity, not by name: a narrowed runtime and an adapter may share one. The resolver and the overlay
+  bind a source to the one runtime of its format (`runtimeFor`); a list given them with two for a format binds none
+  (`seq.resolve.source.runtime`). Why: extensibility's "never resolved by order".
 - **Registry entries** are data: `{ kind: 'format-runtime', runtime }`, `{ kind: 'layer-type', type }`,
   `{ kind: 'layout', layout }` and `{ kind: 'track-sizing', sizing }` (an `ext:` sizing a section's `heights` names:
-  Render, Track heights), each keyed by its provider's `name`. The same object again is no change; another under one
-  name is an error listing every conflict (nothing registered), so a host's own type of a built-in's name goes in
-  `composeSeqContext`. The canvas and the SVG export draw the same registry's layer types: a layer of a type not listed
-  is said (`seq.render.layer.type`) and not drawn, a section of a layout not listed is said (`seq.render.layout`) and
-  laid out as tracks. Run-time, atomic and undoable registration is the viewer's followup.
+  Render, Track heights), each keyed by its provider's `name` (a format runtime by its formats, above). The same object
+  again is no change; another under one name is an error listing every conflict (nothing registered), so a host's own
+  type of a built-in's name goes in `composeSeqContext`. The canvas and the SVG export draw the same registry's layer
+  types: a layer of a type not listed is said (`seq.render.layer.type`) and not drawn, a section of a layout not listed
+  is said (`seq.render.layout`) and laid out as tracks. Run-time, atomic and undoable registration is the viewer's
+  followup.
 - **The tracks layout is the one fixed fallback**: a section whose layout is not listed (or every section, with no
   layouts given) is laid out as tracks, and the viewer's navigation reads tracks likewise; tracks needs no entry. Why:
   the tracks layout is the frame's own (the label column, the rails, the bands), a section must be placed somehow, and

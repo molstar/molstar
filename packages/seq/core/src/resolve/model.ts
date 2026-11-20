@@ -38,6 +38,7 @@ import {
   seqToValue,
   type Tables,
 } from '@molstar/seqx-core/data';
+import { channelAddress, runtimeFor } from '@molstar/seqx-core/data/channels';
 import type { SeqKinds } from '@molstar/seqx-core/lang';
 import {
   type ItemsRead,
@@ -499,6 +500,7 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
 // the transform's params (the records runtime's: _spec/README.md "Data", Records) ride on the entry
 const SourceKeys = [
   'uri',
+  'ref',
   'value',
   'index',
   'fields',
@@ -533,15 +535,16 @@ function bindSource(at: Placed, runtimes: readonly FormatRuntime[]): { binding: 
         ),
       ],
     };
-  const runtime = runtimes.find((r) => r.formats.includes(format));
-  if (runtime) return { binding: { address: at.address, entry: bound, runtime }, issues: [] };
+  // one runtime a format (_spec/README.md "Context", Registry entries): several bind none, whatever their order
+  const runtime = runtimeFor(runtimes, format);
+  if (runtime && runtime !== 'conflict') return { binding: { address: at.address, entry: bound, runtime }, issues: [] };
   return {
     binding: { address: at.address, entry: bound },
     issues: [
       issueOf(
         ResolveIssues,
         'seq.resolve.source.runtime',
-        'No runtime reads the format of the source',
+        runtime ? 'Several runtimes read the format of the source' : 'No runtime reads the format of the source',
         place('seq.resolve.source.runtime'),
       ),
     ],
@@ -821,8 +824,11 @@ function annotationEntry(
 ): { annotation: AnnotationEntry; issues: Issue[] } {
   const shape = at.node.kind as 'ranges' | 'values';
   const base = { address: at.address, shape, target: target.address };
+  // a values channel (`field`) reads its own address of the source (_spec/README.md "Data", Store, Channels)
+  const field = p(at.node, 'field');
+  const read = source && shape === 'values' && typeof field === 'string' ? channelAddress(source, field) : source;
   const bySource = (s: Shape) => ({
-    annotation: { ...base, fields: [], access: sourcePlan(source ?? '', target.name, s) },
+    annotation: { ...base, fields: [], access: sourcePlan(read ?? '', target.name, s) },
     issues: [],
   });
   if (shape === 'values') {
