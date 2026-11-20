@@ -203,6 +203,14 @@ export const P53Views: readonly ExampleView[] = [
       'The four chains of 2OCJ a block each, each zinc a chip; a hover carried through the alignment’s map (`via`), which agrees with SIFTS’s on this entry.',
     build: () => p53Structure.build({ copies: 'each', via: 'aln' }),
   },
+  {
+    dataset: 'p53',
+    id: 'structure-compare',
+    title: 'Structure, two maps of one pair',
+    summary:
+      'P04637 onto 2OCJ’s entity by SIFTS’s `structure` map (ranked first) and by an alignment’s `segments` map shifted by one residue; the first section of the complex follows the ranked map, the second goes `via` the alignment’s: one residue hovered on P04637 lights two neighbors.',
+    build: p53Structure.compare,
+  },
 ];
 
 /** Views made for a feature's stories (`Features/…`), over the same datasets. */

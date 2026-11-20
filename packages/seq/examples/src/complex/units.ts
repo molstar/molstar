@@ -34,7 +34,7 @@ export const transplantUnit = (entry: string) => `t-${entry.toLowerCase()}`;
 /** The ATP units: each on its copy's CDK2 (the ligands' list holds 1FIN's two). */
 export const AtpUnits = [
   { id: 'atp-a', chain: 'A', label: 'E' },
-  { id: 'atp-c', chain: 'C', label: 'G' },
+  { id: 'atp-c', chain: 'C', label: 'F' },
 ] as const;
 
 export interface ComplexUnitsOptions {
