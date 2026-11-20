@@ -12,6 +12,7 @@ import { PCG } from '@molstar/core/data/util/hash-functions';
 import { type Node, printAddress, parseAddress } from '@molstar/core/repr/tree';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { location, partOf, rangesLocation, subtractLocations, isEmptyLocation } from '@molstar/seqx-core/query';
+import { itWithin } from '@molstar/test-harness/timing';
 import { describe, expect, it } from 'vitest';
 import { moleculesSpec } from '../../lang/_test/molecules.js';
 import { linearsEqual } from '../linear.js';
@@ -291,5 +292,45 @@ describe('properties of molecules and units', () => {
         ranges(plain.project(loc, '/data/c/U').location, '/data/c/U'),
       );
     }
+  });
+});
+
+describe('200 merged copies (EC-67)', () => {
+  /** A chain in `copies` units over one range, one copy group, and a glycan on each. */
+  function copiesSpec(copies: number): Node {
+    const b = createSeqSpec();
+    const s = b.data.sequence('s', { alphabet: 'protein', letters: 'MKTAYIAKQRQISFVKSHFSRQ'.repeat(10) });
+    const g = b.data.molecule('g', { class: 'branched', residues: ['NAG', 'NAG', 'BMA'] });
+    b.data.complex('c', {}, (c) => {
+      for (let i = 0; i < copies; i++) c.unit(`A${i}`, { of: s, range: [10, 200], chain: `A${i}` });
+      for (let i = 0; i < copies; i++) c.unit(`G${i}`, { of: g, chain: `G${i}` });
+    });
+    return b.build();
+  }
+
+  /** Resolves the copies and carries one hover on the sequence onto every unit of it. */
+  function hoverAll(spec: Node) {
+    const m = resolveSpec(spec);
+    const hover = rangesLocation('/data/s', [40, 41]);
+    let lit = 0;
+    for (const u of m.molecular.complexes.get('/data/c')!.units)
+      if (u.class === 'polymer') lit += ranges(m.project(hover, u.address).location, u.address).length / 2;
+    return { m, lit };
+  }
+
+  it('two copy groups of 200; a hover on the sequence lights each copy once, on its own positions', () => {
+    const { m, lit } = hoverAll(copiesSpec(200));
+    expect([...m.molecular.complexes.get('/data/c')!.copies.values()].map((g) => g.length)).toEqual([200, 200]);
+    expect(lit).toBe(200);
+    expect(ranges(m.project(rangesLocation('/data/s', [40, 41]), '/data/c/A7').location, '/data/c/A7')).toEqual([
+      30, 31,
+    ]);
+  });
+
+  itWithin('resolving 200 copies and carrying a hover onto each', (within) => {
+    const spec = copiesSpec(200);
+    hoverAll(spec); // warm
+    // measured: a few ms (an M-series laptop); 40 ms leaves room for a collection and a parallel heavy run
+    expect(within(40, () => hoverAll(spec)).lit).toBe(200);
   });
 });
