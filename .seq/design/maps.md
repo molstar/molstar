@@ -49,11 +49,11 @@ to structural data .. basically SIFTS, but in abstract form."
     unobserved is the unit's `observed`, and a map's unobserved status that disagrees is reported, the unit winning.
 - **Two maps of one pair of systems** (SIFTS and an alignment of one chain; decided, the author, 2026-11-19: "priority
   + via", language 0.5.0):
-  - a map's `priority` (an integer, default 0): among distinct shortest candidates the one whose weakest map ranks
-    highest is taken; a tie stays ambiguous (EC-23, EC-24); shortest still first (EC-22). Why: one answer for every
+  - a map's `priority` (an integer, default 0): among distinct shortest candidates the one whose maps' priorities,
+    sorted weakest first, compare highest (the weakest, then the next) is taken (decided by the author, 2026-11-20: "Compare sorted priorities": a shared unranked map ties and the rival maps decide); a full tie stays ambiguous (EC-23, EC-24); shortest still first (EC-22). Why: one answer for every
     use, and the path cache stays keyed by its pair (the param is in the map entry's hash);
   - a use's `via` (a section's, a structure binding's: a map or a list): for that use the search leaves out the named
-    maps' rivals (other maps of the same pair). Why: a figure comparing two maps shows both, a section each;
+    maps' rivals (other maps of the same pair); a `via` naming a map that joins no pair on the path is a warning (decided by the author, 2026-11-20: "Warn"). Why: a figure comparing two maps shows both, a section each;
   - no silent rule ranks kinds or specific over general maps: a wrong map taken quietly is worse than the issue.
 
 ## Consequences

@@ -125,6 +125,12 @@ Handles are addresses (`p53` is `/data/p53`), so a builder value can stand where
 
 - **Namespaces**: `repr.*` (tree, schema, patch, codec), `seq.lang.*` (checks the description cannot express), `seq.query.*`,
   `seq.resolve.*`, `seq.source.*`, `seq.store.*`, `seq.view.*`, `seq.render.*`, `seq.address.*`.
+- **Resolve codes of the fourth slice** (decided by the author, 2026-11-20): `seq.resolve.system.unnamed` (a section over
+  a source sequence names no sequence after the source's system, so its length is unknown and nothing lays out: an
+  error, a spec fault, never data-dependent, its hint saying to name the sequence), and `seq.resolve.ref.system` (a
+  reference to a unit or molecule that made no system is left out, never a throw). `seq.resolve.length.unknown` stays
+  the transient warning of a source not yet open: the viewer holds it back while the address is pending
+  ([viewer-models.md](viewer-models.md)).
 - **First-slice choices**: `sequence.letters` are checked against the alphabet (protein `A-Z`, `a-z`, `*`, `-`; DNA the
   IUPAC codes and `-`; RNA the same with `U`); `layer.color` is an `any` param and `layer.data` a `ref` until the theme
   and query sublanguages land, then a theme slot and a union of a ref and a query slot (the forms above are the target).

@@ -48,7 +48,9 @@ export function wantTemplate(
       const target = overlay.systemNamed(s.name, nested.parent);
       if (!target) continue;
       const path =
-        target.address === section.axis.system ? undefined : overlay.path(section.axis.system, target.address).path;
+        target.address === section.axis.system
+          ? undefined
+          : overlay.path(section.axis.system, target.address, section.via).path;
       if (!path && target.address !== section.axis.system) continue;
       const ranges = HalfOpenRanges.normalize(path ? projectRanges(path, pieces) : pieces);
       const ratio = path?.step === 1 ? 3 : path?.step === -1 ? 1 / 3 : 1;

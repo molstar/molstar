@@ -57,6 +57,9 @@ One row a merged lane (loop, step 5, record): review findings and look findings 
 | BW | 2026-11-20 | 6 (review: range reads unused by any host; memory exhaustion on malformed files; If-Range breaking servers; an abort shared across readers; maxPages not a memory bound; offsets past 2^53) | 0 | 0 | core helper reuse left (new public names) |
 | ML2 | 2026-11-20 | 2 (review: a reference to a unit without a system threw; a ranged unit over a source drew no letters) | 2 (the atom form's meaning, decided: monadic, then `elements`/`groups`; equivalents hooks) | 0 | internals exported; model.ts 1410 lines |
 | MC | 2026-11-20 | 5 (review: a crafted operator expression exhausted memory; quadratic lookups and a rethrown error; branch links on the complex; PO4 classed by what was modeled; the fuzz's own crash) | 0 | 0 | the io allowlist narrowed; the re-count made independent; the lazy chunk's imports reported (90 kB) |
+| FX2 | 2026-11-20 | 3 (review: the rail not back when a narrow frame hid the overview; a large group's card cut; a possible resize loop) | 2 (no tree toggle; model issues unwired) | 0 | the ruler's allocation; the look clean |
+| MK | 2026-11-20 | 2 (review: provenance on the wrong run; overlaps on `to` unchecked) | 2 (the ranking rule and an unused via, decided) | 0 | a weak property test; model.ts 1483 → 1370 |
+| SZ (2) | 2026-11-20 | 0 | 0 | 0 | review: no behavior change; a test anchored on shims, viewer-motion's viewports, two nits (to the next fix lane) |
 
 ## How to verify
 

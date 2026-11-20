@@ -98,7 +98,9 @@ recompiles the entries whose nodes (or the nodes they read) it changed and a vie
 `models/view.ts`, `models/axis.ts`: the view shown (`show(address)`, the first view by default) and its resolved view; a
 viewport per section, told per section (`viewport(section)`, a keyed state). Every change is written in one batch,
 leaders before followers, so a listener of one section reads the others consistent; a viewport equal to the last makes
-nothing and tells nothing.
+nothing and tells nothing. Beside `models/view.ts` (the moves and the publish): the scroll groups across updates
+(`view-groups.ts`), the bands (`view-bands.ts`), the follows' arithmetic (`view-follow.ts`) and the history's steps
+(`view-history.ts`).
 
 - **A viewport** is `{ start, end, top, width, pending, leader?, pieces?, scale?, y? }` (`y`: a grid's own y window):
   `[start, end)` in offsets along the axis in display order (0 at the first position shown), fractional. Why offsets: a
@@ -324,7 +326,7 @@ the region (a press there says it too, a tap's hover).
 
 ### Emphasis
 
-`models/projection.ts`, `viewer.ts`: what the emphasis passes draw, one reused record set before each frame.
+`models/projection.ts`, `viewer-emphasis.ts`: what the emphasis passes draw, one reused record set before each frame.
 
 - **The selection** (its `shown`) and **its projection** onto the linked sections (`Projector.of`: the core's
   `projectOntoView`, only the systems it has no part on), **the cursor**, **the highlight channels** in the order first
@@ -424,6 +426,10 @@ owner, the store with it.
 ## Composition
 
 `viewer-spec.ts`, `viewer.ts`, `default-spec.ts`: a viewer is composed from an explicit spec, as a Mol* plugin is.
+`viewer.ts` composes and wires; each concern is a module beside it: the behaviors (`viewer-behaviors.ts`), the frame
+clock (`viewer-clock.ts`), motion, the frame slot and the viewports a frame reads as it shows them (`viewer-motion.ts`),
+the rails and navigators (`viewer-rails.ts`), the emphasis (`viewer-emphasis.ts`), what a selection moves
+(`viewer-selection.ts`) and the frame (`viewer-frame.ts`).
 
 - **Navigators** (`mount-navigator.ts`): parts the host places, like the legends. `mountNavigator(element, viewer, id)`
   draws one navigator (a declared node's id, or a host's `viewer.navigator(def)`) into an element the host owns: its own

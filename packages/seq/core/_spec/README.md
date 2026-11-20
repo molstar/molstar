@@ -34,9 +34,10 @@ is added in the change that builds what it describes.
   `numbering` under a unit, `pairs` under a complex or a molecule with the link columns `a_unit`, `b_unit`, `a_atom`,
   `b_atom`, `order`, `occupancy` and its `a` optional, a sequence's `modified`, the data references widened to molecules
   and units and a section's `of` to a complex, a block's `form`, a section's `classes`, a layer's `modified`, a `ranges`
-  layer taking `pairs`, a source's `ref` and a values node's `field`). A spec in an earlier `0.x` reads as one in this
-  one, and is reported where it no longer fits: a `0.4.0` spec reads unchanged (every addition is optional, and every
-  kind a reference took it still takes).
+  layer taking `pairs`, a source's `ref` and a values node's `field`; a map's `priority`, its methods `segments` and
+  `structure` with `segments` and `status`, a section's `via`, and a numbering's methods `offset` and `segments` with
+  `by` and `segments`). A spec in an earlier `0.x` reads as one in this one, and is reported where it no longer fits: a
+  `0.4.0` spec reads unchanged (every addition is optional, and every kind a reference took it still takes).
 
 ## Language
 
@@ -84,19 +85,35 @@ checks it cannot express.
   as top-level refs are, and a change's check reaches them (its reverse index walks a union's record member). Why: the
   composition is the application's.
 - **Numberings** (`<sequence>/<id>`, a `numbering` child of a sequence): a label a position of its sequence, its id the
-  name the forms read (`:numbering kabat`, Queries, Numberings and labels). `method` is `labels` (the one built: an
-  offset and segments wait for the examples that need them); `labels` inline, a category column one a position in index
-  order, `null` no label there; or `source` and `field` (absent: `label`): a source's rows, a row a position (its
-  `position`, or its `start`), on the sequence by its name (Render, Numberings from a source); `scheme` an open word,
-  lowercase (`^[a-z][a-z0-9_-]*$`: `kabat`, `imgt`, `chothia`, `uniprot`, `auth`), that says what the labels follow and
-  changes none of them; any such word is accepted (a lab's own scheme too). Labels need no order (IMGT, EC-7) and carry
-  insertion codes (`100A`, `111.1`). Checks: one of `labels` and `source`, `field` with a source only
-  (`seq.lang.numbering.content`); an id no built-in has (`seq.lang.numbering.id`: the forms read `index` and `ordinal`
-  as theirs, so one declared so would never be read); inline labels one a position of inline letters
+  name the forms read (`:numbering kabat`, Queries, Numberings and labels). `method` is `labels`, `offset` (a position
+  plus `by`: UniProt's from 1, an author numbering from 94) or `segments` (runs `start`, `end`, `first`: a position in
+  no run unlabelled, an `insertion` code on a run of one, `52A`; runs apart, `seq.lang.numbering.segments`); for
+  `labels`, `labels` inline, a category column one a position in index order, `null` no label there; or `source` and
+  `field` (absent: `label`): a source's rows, a row a position (its `position`, or its `start`), on the sequence by its
+  name (Render, Numberings from a source); `scheme` an open word, lowercase (`^[a-z][a-z0-9_-]*$`: `kabat`, `imgt`,
+  `chothia`, `uniprot`, `auth`), that says what the labels follow and changes none of them; any such word is accepted (a
+  lab's own scheme too). Labels need no order (IMGT, EC-7) and carry insertion codes (`100A`, `111.1`). Checks: one of
+  `labels` and `source`, `field` with a source only (`seq.lang.numbering.content`, which also says a param another
+  method takes, or `by` or `segments` missing); an id no built-in has (`seq.lang.numbering.id`: the forms read `index`
+  and `ordinal` as theirs, so one declared so would never be read); inline labels one a position of inline letters
   (`seq.lang.numbering.length`, error); a label at two positions said once (`seq.lang.numbering.duplicate`, warning: it
   names the first, the queries' rule). A change to a sequence checks its numberings again (Checks of a change). Why a
   child of the sequence: a numbering is the sequence's, and moving or removing the sequence takes its numberings with
   it.
+- **Maps** (`map`, `from` and `to` systems): `method` `offset` (`by`), `codon` (`exons`, `strand`, `table`), `segments`
+  (a `segments` table: `from`, `to`, `length` a run, `from + i ↦ to + i`, or `to − i` with `strand` `-`; runs apart on
+  `from`, each at least a position; many-to-one on `to` allowed: a fusion onto its part, EC-20) and `structure` (a
+  sequence onto a unit or the entity's molecule, SIFTS in abstract form: `segments` with a `provenance` word a run,
+  `sifts`, `alignment`, `author`; and a `status` table, `start`, `end` on `to` and `conflict` or `unobserved`: the rest
+  of a run paired, what no run holds unpaired; its runs apart on `to` too: a residue of the structure is one of the
+  sequence). A param another method takes, or one missing, is `seq.lang.map.params`; bad runs or status rows
+  `seq.lang.map.segments`. Any map's `priority` (an integer, 0 when absent, not filled in) ranks it among maps joining
+  the same systems (Resolve, Paths: priorities sorted weakest first, compared in turn). Why `unpaired` is not written:
+  it is what no run holds, so it cannot disagree with the runs.
+- **A section's `via`** (a map, or a list): for that section's paths (its follow, its `direction: { along }`, its
+  layers' data, what is projected onto it) the named maps' rivals are left out (Resolve, Paths); refs checked as
+  `pieces`' are (`seq.lang.ref.target` at the item). Links carry none: where they land is the sections'. Why per use: a
+  figure comparing SIFTS with an alignment shows both, a section each.
 - **A source named by a host** (`ref`): a host's name for data with no file (an edited or predicted model), read by a
   host's adapter only. Beside a `uri` it is portable (a reader without the host opens the `uri`); alone it is allowed
   and said once (`seq.lang.source.host_only`, info, EC-185); beside an inline `value` it is `seq.lang.source.content`
@@ -1288,7 +1305,9 @@ store. `resolveSpec(spec, { runtimes, config })`, or `createResolver` to keep en
   systems too (Molecules and units); a data reference to a system (`target`, `a`, `b`, `x`, `y`, a map's `from` and
   `to`) takes any of a sequence, a molecule and a unit.
 - **Numberings**: each `numbering` child of a sequence or a unit (`numberings`, by its address;
-  `numberingOf(system, id)`): inline labels a numbering at once, which the system's query form answers (`numbering(id)`,
+  `numberingOf(system, id)`): inline labels, an `offset` (`sequentialNumbering`, so labels snap with no scan) and
+  `segments` (`maps-numbering.ts`, arithmetic a run, scanned by the forms) a numbering at once (over the open length
+  while the system's is unknown, the length in the entry's key), which the system's query form answers (`numbering(id)`,
   `numberingIds`); a source's holds its source, its field and an access plan on the sequence's name, its labels tier 2's
   (Render, Numberings from a source). Why not in tier 1: nothing there waits for a source.
 - **A length from coverage**: once a source is open, the length its coverage gives a system (by name or alias, an
@@ -1394,6 +1413,18 @@ Seq\* holds pointers and labels: codes and identifiers are strings.
   letter stands for its set of bases and the codon pairs with every amino acid of the codons it stands for, an unknown
   residue (X) pairs with any codon, a first codon pairs with M where the code starts there, TGA pairs with U and TAG
   with O, other stops pair with nothing; a minus-strand codon is read on the complement (EC-16).
+- **Segments** (`maps-segments.ts`): the runs as written, clipped to `from` and to a non-cyclic `to` (EC-21), split at a
+  cyclic `to`'s origin (EC-11); one run within its target is implicit, else runs.
+- **Structure**: a segments map plus `MapEntry.structure` (each run's provenance on `from`, the `conflict` and
+  `unobserved` residues on `to`); `structureStatus(map, k, observed?)` is a residue's: `unobserved` by the unit's
+  `observed` when given (the unit wins), else the map's; then `conflict`; then `paired` where a run holds it, else
+  `unpaired`; `structureProvenance(data, k)` a position's run's word. A structure map onto a unit whose `unobserved`
+  rows are not the unit's (on the residues it pairs) is `seq.resolve.map.observed`, once. Why the unit wins: observed is
+  the structure's own fact. Status changes no path: a projection through a run pairs its unobserved and conflicting
+  residues as any other (a hover on the sequence lights an unobserved residue in Seq\*); cutting what has no atoms is
+  the structure translation's (`toUnits`; maps.md, structure-syncing.md: unobserved positions never sent). Why: one path
+  for every use, and a residue missing from the model is still the sequence's.
+- **Priority**: `MapEntry.priority` (0 when absent), on each of its edges.
 - A map that pairs nothing is `seq.resolve.map.empty`; a partial one is no issue.
 
 ### Paths
@@ -1402,18 +1433,34 @@ Seq\* holds pointers and labels: codes and identifiers are strings.
   codon step the residue side is in fine places (`3k + j`), every map on it scaled by 3. Why: one linear map answers
   every question of the path; a protein through a chromosome is as sparse as its coding sequence (EC-27).
 - **Search** (`findPath`): by counted length from 0, at most `maxPathSteps` counted steps, unit steps free, at most one
-  codon step (EC-19), each system once. Candidates that pair nothing are dropped; equal compositions count once;
-  distinct ones are `seq.resolve.path.ambiguous` (EC-23, EC-24); more than `maxPathCandidates` is
-  `seq.resolve.path.limit`; none within the bound is `seq.resolve.path.none`. A path issue's `address` is the system it
-  starts from and its `places` are both systems. The copy rule is in the search: after climbing out of a unit to its
-  molecule a path never steps down to a unit of it, so a longer legal path wins (EC-25); a path ending at a ranged unit
-  is clipped by its step (EC-26).
+  codon step (EC-19), each system once. Candidates that pair nothing are dropped; equal compositions count once; of
+  distinct ones the one ranked highest is taken: each candidate's maps' priorities sorted weakest first, compared in
+  turn (`pathRank`, `compareRanks`; unit steps none; equal compositions count at their best rank), so a map the
+  candidates share ties and the maps that differ decide; a full tie is `seq.resolve.path.ambiguous` (EC-23, EC-24:
+  ambiguous unless ranked or named), its hint naming `priority` and `via`. Rank orders candidates of one length only
+  (they step through as many maps), so a priority never makes a longer path beat a shorter one (EC-22). Why sorted
+  priorities (the author, 2026-11-20): weakest first keeps a path as trustworthy as its least trusted step, and an
+  unranked map shared by both (an offset before SIFTS and an alignment) no longer hides the rivals' ranks; why no rule
+  ranks kinds or specific over general maps: a wrong map taken quietly is worse than the issue, which teaches. More than
+  `maxPathCandidates` is `seq.resolve.path.limit`; none within the bound is `seq.resolve.path.none`. A path issue's
+  `address` is the system it starts from and its `places` are both systems. The copy rule is in the search: after
+  climbing out of a unit to its molecule a path never steps down to a unit of it, so a longer legal path wins (EC-25); a
+  path ending at a ranged unit is clipped by its step (EC-26).
 - **Edges**: `edgesFrom(system)` lists the spec's maps from a system, both ways: what a search reads, so the overlay
   searches over them and its own.
+- **Via** (`maps-via.ts`): `path(from, to, via?)` with map addresses leaves out their rivals (other maps joining the
+  same two systems, either way; `viaRivals`, `withoutRivals`) for that search; paths that reach no such pair are
+  unchanged. A path that steps through none of the named maps is chosen as if the via were absent (`viaPath`: leaving
+  out a rival elsewhere never settles a tie the via did not name), and `PathResult.unused` lists the named maps the
+  chosen path does not step through, a name that is no map too (the author, 2026-11-20: "Warn"). A section reports each
+  named map on none of its paths (follow, along, layers, grid y, the links onto it) as `seq.resolve.via.unused`, a
+  warning at the section with the map as its place (`viaUnusedIssue`; Resolved view, Via). One entry a pair and `via`
+  set (sorted, deduplicated: `viaList`); its carried search's deps are every map of the systems it read, rivals too.
+  `project(loc, to, { via })` and the overlay's `path(from, to, via?)` take it.
 - **Kept**: a search is done once per model (the reverse read as the inverse), and carried to the next resolve with the
-  map entries of every system it read; it is kept while those are the same objects (entries are kept by hash), so an
-  edit elsewhere keeps the path object. Why: a map added or changed where the search looked can make it shorter or
-  ambiguous; nothing else can.
+  map entries of every system it read; it is kept while those are the same objects (entries are kept by hash, a
+  `priority` in it, so a changed priority drops the search), so an edit elsewhere keeps the path object. Why: a map
+  added or changed where the search looked can make it shorter or ambiguous; nothing else can.
 - **Projection** (`projectRanges(path, ranges, out?)`, `StaticModel.project`): ranges along the path, into the caller's
   buffer when given; from nucleotides to residues, the residues they touch (EC-18). A part with no path is left out with
   its issue; rects are not projected yet. `project` applies the atoms group map at the ends (Molecules and units).
@@ -1440,10 +1487,10 @@ Seq\* holds pointers and labels: codes and identifiers are strings.
 ### Issues
 
 `seq.resolve.*` (`ResolveIssues`): `ref.missing` and `source.format` (a spec not checked), `source.runtime`,
-`map.empty`, `map.codon_length`, `map.table`, `length.unknown`, `system.unnamed`, `path.none`, `path.ambiguous`,
-`path.limit`, `complex.units`, `ref.system` (a reference to a sequence, molecule or unit that made no system: a unit of
-a refused complex or of nothing held; what reads it is left out), and the overlay's `node.invalid`, `node.ref`,
-`node.depth`. A test checks the catalog against the sources.
+`map.empty`, `map.observed`, `via.unused`, `map.codon_length`, `map.table`, `length.unknown`, `system.unnamed`,
+`path.none`, `path.ambiguous`, `path.limit`, `complex.units`, `ref.system` (a reference to a sequence, molecule or unit
+that made no system: a unit of a refused complex or of nothing held; what reads it is left out), and the overlay's
+`node.invalid`, `node.ref`, `node.depth`. A test checks the catalog against the sources.
 
 ## Overlay
 
@@ -1498,6 +1545,15 @@ no target.
   ring and its linear detail; a text figure under a tracks overview). What the figure means (group size, numbers) is the
   spec's; spacing is the render config's.
 - **A section**: an axis, its tracks, and its follow; its `blocks` when it has `block` children; a grid section its `y`.
+- **Via**: a section's `via` (`ResolvedSection.via`, sorted; absent when none) is what its paths take where two maps
+  join one pair of systems (Resolve, Paths): its follow, its `direction: { along }` (where the map does not reach its
+  system itself), its layers' data (templates' instances too), its grid's y, its navigators' paths, and the links onto
+  it (hover, selection; the viewer's hover fallback and focus hull read it too). A link from a section takes the
+  target's `via`, so two sections of one chain, each naming one map, light different residues for one hover (a
+  comparison); onto a section naming none the pair stays ambiguous and there is no link. Why the target's: what is
+  projected lands on the section that names how. A named map on none of those paths is `seq.resolve.via.unused` (a
+  warning at the section, the map its place), and those paths were chosen as if the via were absent. Why warn: a via
+  that settles nothing is a figure's mistake the reader cannot see.
 - **Grids**: a grid section's `y` (`GridAxis`) is its second axis, down the plot: `of_y`'s system whole (`of`'s when
   absent), top down, and what it shows: `follow_y: x` (the default) x's window (`followsX`; through the path from x's
   system when `of_y` is another), a section's region through `follow` (the path from its system), `none` a window of its

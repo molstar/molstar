@@ -33,7 +33,9 @@ import {
   projectPoint,
   projectRanges,
   type StaticModel,
+  viaList,
 } from '@molstar/seqx-core/resolve';
+import { viaUnusedIssue } from '@molstar/seqx-core/resolve/maps-via';
 import { followRef } from '@molstar/seqx-core/lang';
 import { type AxisShape, axisTotal, nearestOffsetOf, positionAt, wholePieces } from './axis.js';
 import { ViewIssues } from './issues.js';
@@ -232,6 +234,11 @@ export interface ResolvedSection {
   readonly blocks?: readonly ResolvedBlock[];
   /** A grid section's second axis (_spec/README.md "Resolved view", Grids): down the plot. */
   readonly y?: GridAxis;
+  /**
+   * The maps its `via` names (sorted; absent when none): its follow, its `direction: { along }`, its layers' data and
+   * what is projected onto it take `model.path(from, to, via)` (_spec/README.md "Resolved view", Via).
+   */
+  readonly via?: readonly string[];
 }
 
 /**
@@ -404,6 +411,8 @@ function build(model: StaticModel, view: Node, address: string): ResolvedView {
   const byAddress = new Map<string, Node>();
   const systemOf = new Map<string, string>();
   for (const s of sectionNodes) byAddress.set(`${address}/${s.id}`, s);
+  // a section's `via`: the maps its paths take where rivals join the same systems
+  const viaOf = (at: string) => viaList(param(byAddress.get(at)!, 'via'));
   // a grid section with no system of its own that follows a section of blocks: a grid over them (`blocksGrid`)
   const overBlocks = new Map<string, string>();
   for (const s of sectionNodes) {
@@ -443,7 +452,7 @@ function build(model: StaticModel, view: Node, address: string): ResolvedView {
     const system = systemOf.get(at)!;
     const ls = leader === undefined ? undefined : systemOf.get(leader);
     if (leader === undefined || ls === undefined || !model.systems.has(system) || !model.systems.has(ls)) continue;
-    const r = model.path(ls, system);
+    const r = model.path(ls, system, viaOf(at));
     if (r.path) follows.set(at, { leader, path: r.path });
     else report('seq.view.follow.unplaced', 'The section cannot follow its leader', at, r.issue);
   }
@@ -453,8 +462,16 @@ function build(model: StaticModel, view: Node, address: string): ResolvedView {
   const dirOf = (at: string, depth = 0): 1 | -1 => {
     const known = dirs.get(at);
     if (known !== undefined) return known;
-    const d = resolveDirection(model, at, byAddress.get(at)!, systemOf.get(at)!, follows.get(at), along, report, (l) =>
-      depth < byAddress.size ? dirOf(l, depth + 1) : 1,
+    const d = resolveDirection(
+      model,
+      at,
+      byAddress.get(at)!,
+      systemOf.get(at)!,
+      follows.get(at),
+      along,
+      report,
+      (l) => (depth < byAddress.size ? dirOf(l, depth + 1) : 1),
+      viaOf(at),
     );
     dirs.set(at, d);
     return d;
@@ -492,6 +509,7 @@ function build(model: StaticModel, view: Node, address: string): ResolvedView {
     const at = `${address}/${s.id}`;
     const axis = axes.get(at) ?? { system: at, cyclic: false, dir: 1, pieces: 'blocks' };
     const known = model.systems.has(axis.system);
+    const via = viaOf(at);
     let follow: Follow | undefined;
     const f = follows.get(at);
     const leaderAxis = f && axes.get(f.leader);
@@ -511,14 +529,14 @@ function build(model: StaticModel, view: Node, address: string): ResolvedView {
         if (l.kind !== 'layer') return;
         if (!ba) {
           const system = known ? axis.system : undefined;
-          layers.push(layerOf(model, l, index, ta, system, report, template !== undefined));
+          layers.push(layerOf(model, l, index, ta, system, report, template !== undefined, via));
           return;
         }
         // a path a block: placed on each block its data reaches; said only when it reaches none
         const said: Parameters<Report>[] = [];
         let placed: ResolvedLayer | undefined;
         for (let k = 0; k < ba.blocks.length; k++) {
-          const r = layerOf(model, l, index, ta, ba.blocks[k].axis.system, (...a) => said.push(a), !!template);
+          const r = layerOf(model, l, index, ta, ba.blocks[k].axis.system, (...a) => said.push(a), !!template, via);
           perBlock[k].push(r);
           placed ??= r.placed ? r : undefined;
         }
@@ -550,7 +568,7 @@ function build(model: StaticModel, view: Node, address: string): ResolvedView {
       (typeof own === 'string' ? own : viewLayout) === 'grid'
         ? overBlocks.has(at)
           ? { axis, followsX: true }
-          : gridAxis(model, s, at, axis, axes, systemOf, report)
+          : gridAxis(model, s, at, axis, axes, systemOf, report, via)
         : undefined;
     sections.push({
       address: at,
@@ -561,6 +579,7 @@ function build(model: StaticModel, view: Node, address: string): ResolvedView {
       params,
       ...(blocks ? { blocks } : {}),
       ...(y ? { y } : {}),
+      ...(via.length ? { via } : {}),
     });
   }
 
@@ -569,10 +588,14 @@ function build(model: StaticModel, view: Node, address: string): ResolvedView {
   for (const a of sections)
     for (const b of sections) {
       if (a === b || !model.systems.has(a.axis.system) || !model.systems.has(b.axis.system)) continue;
+      // what is projected onto a section takes its `via`
       const path =
-        a.axis.system === b.axis.system ? identityPath(a.axis.system) : model.path(a.axis.system, b.axis.system).path;
+        a.axis.system === b.axis.system
+          ? identityPath(a.axis.system)
+          : model.path(a.axis.system, b.axis.system, b.via).path;
       if (path) links.push({ from: a.address, to: b.address, path });
     }
+  for (const s of sections) if (s.via) issues.push(...unusedVia(s, along.get(s.address), links));
   const scales: Record<string, Readonly<Record<string, Value>>> = {};
   for (const c of model.spec.children ?? [])
     if (c.kind === 'views' && c.id !== undefined)
@@ -629,7 +652,7 @@ export function resolveNavigatorNode(
   for (const a of of) {
     const s = sections.find((x) => x.address === a)!;
     if (system === undefined || !model.systems.has(system) || !model.systems.has(s.axis.system)) continue;
-    const path = s.axis.system === system ? identityPath(system) : model.path(s.axis.system, system).path;
+    const path = s.axis.system === system ? identityPath(system) : model.path(s.axis.system, system, s.via).path;
     if (path) paths[a] = path;
   }
   const tracks = param(n, 'tracks');
@@ -655,6 +678,25 @@ export function resolveNavigatorNode(
   };
 }
 
+/**
+ * A section's `via` maps that join no pair on any of its paths (its follow, its along, its layers' and blocks' data,
+ * its grid's y, the links onto it): each a `seq.resolve.via.unused` warning at the section naming the map (the author,
+ * 2026-11-20: "Warn"); its paths were chosen as if the via were absent (maps-via.ts `viaPath`).
+ */
+function unusedVia(s: ResolvedSection, along: Path | undefined, links: readonly ViewLink[]): Issue[] {
+  const used = new Set<string>();
+  const take = (p: Path | undefined) => {
+    for (const e of p?.edges ?? []) used.add(e.map);
+  };
+  take(s.follow?.path);
+  take(along);
+  take(s.y?.follow?.path);
+  for (const t of s.tracks) for (const l of t.layers) take(l.path);
+  for (const b of s.blocks ?? []) for (const t of b.layers) for (const l of t) take(l.path);
+  for (const l of links) if (l.to === s.address) take(l.path);
+  return (s.via ?? []).filter((m) => !used.has(m)).map((m) => viaUnusedIssue(s.address, m));
+}
+
 /** A grid section's y (`GridAxis`): its system whole, and what it follows. */
 function gridAxis(
   model: StaticModel,
@@ -664,6 +706,7 @@ function gridAxis(
   axes: ReadonlyMap<string, Axis>,
   systemOf: ReadonlyMap<string, string>,
   report: Report,
+  via: readonly string[],
 ): GridAxis | undefined {
   const system = exactAddress(param(s, 'of_y')) ?? x.system;
   const entry = model.systems.get(system);
@@ -689,7 +732,7 @@ function gridAxis(
     return { axis, followsX: false };
   }
   if (written === 'x' && from === system) return { axis, followsX: true };
-  const r = model.path(from, system);
+  const r = model.path(from, system, via);
   if (!r.path) {
     report('seq.view.follow.unplaced', 'The grid’s y cannot follow: no path joins the systems', at, r.issue);
     return { axis, followsX: false };
@@ -724,6 +767,7 @@ function resolveDirection(
   along: Map<string, Path>,
   report: Report,
   leaderDir: (leader: string) => 1 | -1,
+  via: readonly string[],
 ): 1 | -1 {
   const written = param(node, 'direction');
   const value = written ?? (param(node, 'follow') !== undefined ? 'follow' : 'genomic');
@@ -745,7 +789,7 @@ function resolveDirection(
     value && typeof value === 'object' && !Array.isArray(value)
       ? exactAddress((value as Record<string, Value>).along)
       : '';
-  const path = ref ? pathAlong(model, ref, system) : undefined;
+  const path = ref ? pathAlong(model, ref, system, via) : undefined;
   if (!path) {
     report('seq.view.direction.unresolved', 'No path reaches the section from what it reads along', at);
     return 1;
@@ -760,16 +804,16 @@ function mapPath(map: MapEntry): Path {
   return { from: map.from, to: map.to, step: map.step, linear: map.linear, edges: [] };
 }
 
-function pathAlong(model: StaticModel, ref: string, system: string): Path | undefined {
+function pathAlong(model: StaticModel, ref: string, system: string, via: readonly string[]): Path | undefined {
   const map = model.maps.get(ref);
   if (map) {
     const forward = mapPath(map);
     if (map.to === system) return forward;
     if (map.from === system) return inversePath(forward);
-    return model.path(map.from, system).path;
+    return model.path(map.from, system, via).path;
   }
   if (!model.systems.has(ref) || !model.systems.has(system)) return undefined;
-  return ref === system ? identityPath(system) : model.path(ref, system).path;
+  return ref === system ? identityPath(system) : model.path(ref, system, via).path;
 }
 
 /** A section's `block` children with ids, in order. */
@@ -1008,6 +1052,7 @@ function layerOf(
   system: string | undefined,
   report: Report,
   template = false,
+  via: readonly string[] = [],
 ): ResolvedLayer {
   const type = String(param(l, 'type'));
   const address = l.id === undefined ? undefined : `${track}/${l.id}`;
@@ -1048,7 +1093,7 @@ function layerOf(
     return { ...base, data, placed: false };
   }
   if (data.system === system) return { ...base, data, placed: true };
-  const r = model.path(data.system, system);
+  const r = model.path(data.system, system, via);
   if (!r.path) {
     report('seq.view.layer.unplaced', 'The layer’s data does not reach its section', at, r.issue);
     return { ...base, data, placed: false };

@@ -40,6 +40,12 @@ is the section's `heights` param: `content` (this, the default), `uniform`, `fix
 
 ## Rings
 
+- Tracks of one kind share their mark lanes, each with its own label lane (decided by the author, 2026-11-20), so a
+  strand with no labels beside its marks reserves none. A ruler is unlabelled unless its spec names it; with more than
+  one ruler in a view, the name is the only sign whose numbers are which.
+- A ring group fans its labels up to `rings.cluster.fanMax` (12); a larger group stays one label and its hover card
+  lists every member (decided by the author, 2026-11-20).
+
 - Tracks become rings, the first outermost; the origin at `rotation` (the top by default), positions clockwise.
 - Labels inside their mark when they fit, else beside: outside the ring with a leader, or in a lane above a linear
   track; one rule and one text style in both views, placed once when laid out; a label is hit as its item. A label that

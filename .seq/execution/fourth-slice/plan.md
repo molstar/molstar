@@ -233,12 +233,13 @@ disagrees with its code writes a drift note and stops.
 
 - [x] FX1 (merged 2026-11-20) before stage 1 (beside ML1 when its files are not the language's): the open items of fixes.md (the ring
       letters, the three DS looks, LX's dropped label) and the third slice's use gate's findings.
-- [ ] FX2, FX3, FX4 after stages 1, 2 and 3's gates; FX5 before M4 (the use gates' findings). A fix point with nothing
+- [x] FX2 (merged 2026-11-20, `05fe74453`: the author's four decided designs and the drafts' fixes)
+- [ ] FX3, FX4 after stages 1, 2 and 3's gates; FX5 before M4 (the use gates' findings). A fix point with nothing
       open is skipped. An FX lane takes only what needs no design.
 
 ### Module split (strong; §module-size; `briefs/sz-module-split.md`)
 
-- [ ] SZ (part one merged 2026-11-20: tracks.ts 2871 → 865, rows.ts 2520 → 413, ranges.ts 1521 → 464; part two, `viewer.ts`, after DP) after FX1 and before HP1, while no molecules lane is in the files it splits (else after stage 1's gate):
+- [x] SZ (part two merged 2026-11-20: viewer.ts 1568 → 687, models/view.ts 1476 → 880; the size baseline empty; part one merged 2026-11-20: tracks.ts 2871 → 865, rows.ts 2520 → 413, ranges.ts 1521 → 464; part two, `viewer.ts`, after DP) after FX1 and before HP1, while no molecules lane is in the files it splits (else after stage 1's gate):
       the four files over 1500 lines (`render/tracks.ts`, `render/rows.ts`, `render/ranges.ts`, `viewer/viewer.ts`)
       split by what changes together, and `models/view.ts` (1466) looked at; behavior unchanged, the baseline lowered
       by the orchestrator (`file-size.ts --update`) at the merge. The author, 2026-11-20: "Yes, add all three".
@@ -268,7 +269,7 @@ disagrees with its code writes a drift note and stops.
       `StructureDescription` to `structureNodes`, `values` by `field` (B-factor, pLDDT), the allowlist, the conformance
       suite split as seq-data-ports says, the fixtures re-recorded (`briefs/mc-mmcif.md`). Parallel with ML2 is gone:
       two strong lanes at once break the lane limit.
-- [ ] MK (strong, after MC) structure maps: `segments`, the `structure` kind with per-residue status, the map's
+- [x] MK (merged 2026-11-20) (strong, after MC) structure maps: `segments`, the `structure` kind with per-residue status, the map's
       `priority` and the section's `via` with `StaticModel.path(from, to, via?)` (structure-syncing, Choosing between
       two maps; both params join the bump), a numbering's `offset` and `segments` methods (NB's leftovers); EC-22 to
       EC-27 on every encoding (`briefs/mk-structure-maps.md`).

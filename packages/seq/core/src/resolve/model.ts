@@ -42,7 +42,6 @@ import { channelAddress, runtimeFor } from '@molstar/seqx-core/data/channels';
 import type { SeqKinds } from '@molstar/seqx-core/lang';
 import {
   type ItemsRead,
-  labelsNumbering,
   type Location,
   location,
   type Numbering,
@@ -55,15 +54,7 @@ import {
   rangesLocation,
   unionLocations,
 } from '@molstar/seqx-core/query';
-import {
-  codingLength,
-  codonLinear,
-  codonRuns,
-  DefaultGeneticCode,
-  type GeneticCode,
-  GeneticCodes,
-  hasUnsplitExon,
-} from './codon.js';
+import type { GeneticCode } from './codon.js';
 import { type GridData, type PairsData, readGrid, readPairs } from './held.js';
 import {
   buildLinks,
@@ -74,7 +65,7 @@ import {
   placeChildren,
 } from './model-molecules.js';
 import { ResolveIssues } from './issues.js';
-import { composeLinear, type Encoding, expand, ImplicitLinear, isEmptyLinear, type Linear, toRuns } from './linear.js';
+import type { Encoding, Linear } from './linear.js';
 import {
   atomsOf,
   type CompoundEntry,
@@ -86,6 +77,9 @@ import {
   moleculeOf,
   unitsOf,
 } from './molecule-query.js';
+import { mapEntry, numberingEntry } from './maps-entry.js';
+import type { StructureMapData } from './maps-segments.js';
+import { pathKey, viaList, viaPath, viaRivals, withoutRivals } from './maps-via.js';
 import { collapseAtoms, expandAtoms, type ModifiedIndex, type UnitEntry, unitEdges } from './molecules.js';
 import { composeEdges, type Edge, findPath, inversePath, type Path, projectRanges, type Step } from './paths.js';
 
@@ -170,7 +164,7 @@ export interface NumberingEntry {
 /** A map, resolved: its kind, its encoding, and its linear part (fine places of the residue side for a codon map). */
 export interface MapEntry {
   readonly address: string;
-  readonly kind: 'offset' | 'codon';
+  readonly kind: 'offset' | 'codon' | 'segments' | 'structure';
   readonly from: string;
   readonly to: string;
   readonly encoding: Encoding;
@@ -178,6 +172,10 @@ export interface MapEntry {
   readonly linear: Linear;
   /** A codon map's genetic code: its `table`, 1 when absent; undefined when that code is not built. */
   readonly code?: GeneticCode;
+  /** Its rank among maps joining the same systems (`priority`, 0 when absent; _spec/README.md "Resolve", Paths). */
+  readonly priority: number;
+  /** A structure map's provenance and residue status (`structureStatus`). */
+  readonly structure?: StructureMapData;
 }
 
 /** The language's params of a source: one definition, the description's. */
@@ -250,6 +248,8 @@ export function rowsSystemOf(alignment: string): string {
 export interface PathResult {
   readonly path?: Path;
   readonly issue?: Issue;
+  /** With `via`: the named maps the path does not step through (`seq.resolve.via.unused`, maps-via.ts `viaPath`). */
+  readonly unused?: readonly string[];
 }
 
 export interface Projection {
@@ -281,17 +281,20 @@ export interface StaticModel extends QueryModel {
   readonly issues: readonly Issue[];
   /** A system's declared numbering by its id (`kabat`), or undefined: never a built-in (`index`, `ordinal`). */
   numberingOf(system: string, id: string): NumberingEntry | undefined;
-  /** The shortest unambiguous path, composed once and kept (across resolves while the maps its search read hold). */
-  path(from: string, to: string): PathResult;
+  /**
+   * The shortest unambiguous path, composed once and kept (across resolves while the maps its search read hold); one
+   * entry a pair and `via` set: with `via` (map addresses) the named maps' rivals are left out (maps-via.ts).
+   */
+  path(from: string, to: string, via?: readonly string[]): PathResult;
   /** The steps from a system along the spec's maps, both ways: what a path search reads (the overlay adds its own). */
   edgesFrom(system: string): readonly Edge[];
   /**
    * A Location carried onto a system: each part along its path (rects are not carried yet); a part with no path is
    * left out with the path's issue. With `close`, the location is first closed (`close`). The atoms group map applies
    * at the ends only: a part on atoms is collapsed onto their residues first, and onto an atoms system the image on
-   * its residues is expanded last.
+   * its residues is expanded last. With `via`, each part's path is `path(from, to, via)`'s.
    */
-  project(loc: Location, to: string, options?: { close?: boolean }): Projection;
+  project(loc: Location, to: string, options?: { close?: boolean; via?: readonly string[] }): Projection;
   /**
    * Closure, one step (EC-30): nucleotides gain their residues and lift to their whole codons, through each codon map
    * between the systems named (every system when none are), along the map itself.
@@ -518,8 +521,8 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
       const src = p(c, 'source') === undefined ? undefined : ref(placed, 'source', ['source']);
       numberings.set(
         placed.address,
-        cached(`${placed.address}|${key(placed, at)}|${system.name}`, () =>
-          numberingEntry(placed, system, src?.address),
+        cached(`${placed.address}|${key(placed, at)}|${system.name}|${system.length ?? ''}`, () =>
+          numberingEntry(placed, system, src?.address, system.length ?? config.openQueryLength),
         ),
       );
     }
@@ -532,7 +535,7 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
     const to = ref(at, 'to', SystemRefs);
     if (!from || !to) continue;
     const entry = cached(`${at.address}|${key(at, from, to)}|${config.encoding}`, () =>
-      mapEntry(at, systems.get(from.address)!, systems.get(to.address)!, config),
+      mapEntry(at, systems.get(from.address)!, systems.get(to.address)!, config, molecular.units.get(to.address)),
     );
     maps.set(at.address, entry.map);
     issues.push(...entry.issues);
@@ -716,23 +719,6 @@ function addressIds(address: string): string[] {
   return address.split('/').filter(Boolean);
 }
 
-/** A declared numbering: inline labels as a numbering of the system; a source's, where the source's rows are. */
-function numberingEntry(at: Placed, system: SystemEntry, source: string | undefined): NumberingEntry {
-  const labels = p(at.node, 'labels');
-  const scheme = p(at.node, 'scheme');
-  const field = p(at.node, 'field');
-  const id = at.node.id ?? '';
-  const base = { address: at.address, system: system.address, id, ...(typeof scheme === 'string' ? { scheme } : {}) };
-  if (labels instanceof CategoryColumn) return { ...base, numbering: labelsNumbering(id, labels) };
-  if (!source) return base;
-  return {
-    ...base,
-    source,
-    field: typeof field === 'string' ? field : 'label',
-    access: sourcePlan(source, system.name, 'ranges'),
-  };
-}
-
 /** An alignment's two systems and its cells, inline (read through `alignment`) or from a source by region. */
 function alignmentEntry(
   at: Placed,
@@ -829,67 +815,6 @@ function rowsFields(rows: Record<string, Value> | undefined): Record<string, unk
     if (list) (out ??= Object.create(null) as Record<string, unknown[]>)[key] = list;
   }
   return out;
-}
-
-type MapCode =
-  | 'seq.resolve.map.empty'
-  | 'seq.resolve.map.codon_length'
-  | 'seq.resolve.map.table'
-  | 'seq.resolve.length.unknown';
-
-function mapEntry(
-  at: Placed,
-  from: SystemEntry,
-  to: SystemEntry,
-  config: ResolveConfig,
-): { map: MapEntry; issues: Issue[] } {
-  const issues: Issue[] = [];
-  const report = (code: MapCode, message: string) =>
-    issues.push(issueOf(ResolveIssues, code, message, { address: at.address, hint: ResolveIssues.codes[code].hint }));
-  const method = p(at.node, 'method');
-  let linear: Linear;
-  let step: Step = 0;
-  let code: GeneticCode | undefined;
-  if (method === 'codon') {
-    step = 1;
-    const exons = p(at.node, 'exons') as unknown as { start: ArrayLike<number>; end: ArrayLike<number> };
-    const strand = p(at.node, 'strand') === '-' ? '-' : '+';
-    const size = to.cyclic ? to.length : undefined;
-    const unsplit = hasUnsplitExon(exons.start, exons.end, size);
-    if (unsplit) report('seq.resolve.length.unknown', 'An exon crosses the origin of a gene of unknown length');
-    const coding = codingLength(codonRuns(exons.start, exons.end, strand, size));
-    const n = from.length;
-    // a coding sequence missing a piece is not judged until it is whole
-    if (!unsplit && (coding % 3 !== 0 || (n !== undefined && coding !== 3 * n && coding !== 3 * n + 3)))
-      report('seq.resolve.map.codon_length', 'The exons are not three nucleotides a residue');
-    const table = p(at.node, 'table');
-    code = GeneticCodes[typeof table === 'number' ? table : DefaultGeneticCode];
-    if (!code) report('seq.resolve.map.table', 'The genetic code of the map is not built');
-    linear = codonLinear(exons.start, exons.end, strand, size);
-    // what lies past either sequence maps nowhere (EC-21)
-    if (to.length !== undefined) linear = composeLinear(linear, new ImplicitLinear(0, 1, 0, to.length));
-    if (n !== undefined) linear = composeLinear(new ImplicitLinear(0, 1, 0, 3 * n), linear);
-  } else {
-    const by = Number(p(at.node, 'by') ?? 0);
-    const lf = from.length ?? Infinity;
-    if (to.cyclic && to.length !== undefined && Number.isFinite(lf))
-      linear = new ImplicitLinear(by, 1, 0, lf, to.length);
-    else linear = new ImplicitLinear(by, 1, Math.max(0, -by), Math.min(lf, (to.length ?? Infinity) - by));
-  }
-  if (isEmptyLinear(linear)) report('seq.resolve.map.empty', 'The map pairs no position');
-  if (config.encoding !== 'cheapest' && linear.runs())
-    linear = config.encoding === 'runs' ? toRuns(linear) : expand(linear, linear.lo, linear.hi);
-  const map: MapEntry = {
-    address: at.address,
-    kind: method === 'codon' ? 'codon' : 'offset',
-    from: from.address,
-    to: to.address,
-    encoding: linear.encoding,
-    step,
-    linear,
-    ...(code ? { code } : {}),
-  };
-  return { map, issues };
 }
 
 /** A `sequence` node as a system (the overlay's dynamic sequences are resolved so). */
@@ -1115,7 +1040,16 @@ class Model implements StaticModel {
     // a unit's steps up to its molecule and down from it: free, under the copy rule (_spec/README.md "Resolve", Paths)
     for (const u of molecular.units.values()) for (const e of unitEdges(u)) add(e, u);
     for (const m of maps.values()) {
-      const fwd: Edge = { map: m.address, from: m.from, to: m.to, backward: false, step: m.step, linear: m.linear };
+      const rank = m.priority ? { priority: m.priority } : {};
+      const fwd: Edge = {
+        map: m.address,
+        from: m.from,
+        to: m.to,
+        backward: false,
+        step: m.step,
+        linear: m.linear,
+        ...rank,
+      };
       const back: Edge = {
         map: m.address,
         from: m.to,
@@ -1123,6 +1057,7 @@ class Model implements StaticModel {
         backward: true,
         step: -m.step as Step,
         linear: m.linear.inverse(),
+        ...rank,
       };
       for (const e of [fwd, back]) add(e, m);
       if (m.step !== 0)
@@ -1144,45 +1079,51 @@ class Model implements StaticModel {
     return true;
   }
 
-  private entry(from: string, to: string): PathEntry {
-    const k = `${from}\u0000${to}`;
+  private entry(from: string, to: string, via: readonly string[]): PathEntry {
+    const k = pathKey(from, to, via);
     let e = this.pathEntries.get(k);
     if (e) return e;
     const old = this.carried?.get(k);
     if (old && this.valid(old)) e = old;
     else {
       const deps = new Map<string, readonly (MapEntry | UnitEntry)[]>();
-      const r = findPath(
-        {
-          edgesFrom: (s) => {
-            if (!deps.has(s)) deps.set(s, this.edgeMaps.get(s) ?? []);
-            return this.edges.get(s) ?? [];
-          },
+      // a use's `via` leaves out the named maps' rivals; what the search read is every map, rivals too
+      const graph = {
+        edgesFrom: (s: string) => {
+          if (!deps.has(s)) deps.set(s, this.edgeMaps.get(s) ?? []);
+          return this.edges.get(s) ?? [];
         },
-        from,
-        to,
-        { maxSteps: this.config.maxPathSteps, maxCandidates: this.config.maxPathCandidates },
-      );
+      };
+      const r = findPath(via.length ? withoutRivals(graph, viaRivals(via, this.maps.values())) : graph, from, to, {
+        maxSteps: this.config.maxPathSteps,
+        maxCandidates: this.config.maxPathCandidates,
+      });
       e = { found: r.ok ? { path: r.path } : { why: r.why }, deps };
     }
     this.pathEntries.set(k, e);
     return e;
   }
 
-  path(from: string, to: string): PathResult {
-    const k = `${from}\u0000${to}`;
+  path(from: string, to: string, via?: readonly string[]): PathResult {
+    const named = via?.length ? viaList(via) : [];
+    const k = pathKey(from, to, named);
     let r = this.results.get(k);
     if (r) return r;
-    // a path read the other way is the inverse of the one found
-    const back = this.pathEntries.get(`${to}\u0000${from}`);
-    const e = back && !this.pathEntries.has(k) ? back : this.entry(from, to);
-    if ('path' in e.found) r = { path: e === back ? inversePath(e.found.path) : e.found.path };
-    else r = { issue: pathIssue(e.found.why, from, to) };
+    r = viaPath(named, (v) => this.searched(from, to, v));
     this.results.set(k, r);
     return r;
   }
 
-  project(loc: Location, to: string, options: { close?: boolean } = {}): Projection {
+  /** One search's result, a pair and `via` set: a path read the other way is the inverse of the one found. */
+  private searched(from: string, to: string, named: readonly string[]): PathResult {
+    const k = pathKey(from, to, named);
+    const back = this.pathEntries.get(pathKey(to, from, named));
+    const e = back && !this.pathEntries.has(k) ? back : this.entry(from, to, named);
+    if ('path' in e.found) return { path: e === back ? inversePath(e.found.path) : e.found.path };
+    return { issue: pathIssue(e.found.why, from, to) };
+  }
+
+  project(loc: Location, to: string, options: { close?: boolean; via?: readonly string[] } = {}): Projection {
     const src = options.close ? this.close(loc) : loc;
     const issues: Issue[] = [];
     const parts: { system: string; ranges: number[] }[] = [];
@@ -1197,7 +1138,7 @@ class Model implements StaticModel {
         parts.push({ system: to, ranges: Array.from(part.ranges) });
         continue;
       }
-      const r = this.path(from, end);
+      const r = this.path(from, end, options.via);
       if (!r.path) {
         if (r.issue) issues.push(r.issue);
         continue;

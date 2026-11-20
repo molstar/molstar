@@ -45,6 +45,9 @@ depends on the pixels on screen, not the amount of data.
 - The keyboard cursor steps columns and rows: ↑ ↓ a row (a folded clade one stop, rows never loaded stepped over), Page
   Up and Page Down a page with the rows, Cmd/Ctrl+↑ ↓ the first and last row, ← onto a row's label and → back,
   Shift+arrows a block; Space toggles a cell or folds the row's clade, Enter opens a folded clade.
+- **A narrow frame gives way in one order** (decided by the author, 2026-11-20): the vertical overview narrows (96 to 48
+  px) and hides, the label column shrinks to its floor, the tree collapses to its toggle glyph (a click or Shift+T opens
+  it again for the session), then the frame scrolls; a miniature before names, names before data.
 - **Row columns**: a row's annotations (species, description, length, identity to the reference, a field joined from a
   file) as columns on the left of the alignment or on its right, as text, numbers, bars or chips; their titles above the
   rows order the rows by them, and they give way to a narrow view before the labels do, a chip naming the ones hidden
