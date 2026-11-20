@@ -1549,7 +1549,7 @@ Seq\* holds pointers and labels: codes and identifiers are strings.
   unchanged. A path that steps through none of the named maps is chosen as if the via were absent (`viaPath`: leaving
   out a rival elsewhere never settles a tie the via did not name), and `PathResult.unused` lists the named maps the
   chosen path does not step through, a name that is no map too (the author, 2026-11-20: "Warn"). A section reports each
-  named map on none of its paths (follow, along, layers, grid y, the links onto it) as `seq.resolve.via.unused`, a
+  named map on none of its paths (follow, along, layers, grid y, the links onto it and from it) as `seq.resolve.via.unused`, a
   warning at the section with the map as its place (`viaUnusedIssue`; Resolved view, Via). One entry a pair and `via`
   set (sorted, deduplicated: `viaList`); its carried search's deps are every map of the systems it read, rivals too.
   `project(loc, to, { via })` and the overlay's `path(from, to, via?)` take it, and a structure binding's `via`
@@ -1647,10 +1647,11 @@ no target.
 - **Via**: a section's `via` (`ResolvedSection.via`, sorted; absent when none) is what its paths take where two maps
   join one pair of systems (Resolve, Paths): its follow, its `direction: { along }` (where the map does not reach its
   system itself), its layers' data (templates' instances too), its grid's y, its navigators' paths, and the links onto
-  it (hover, selection; the viewer's hover fallback and focus hull read it too). A link from a section takes the
-  target's `via`, so two sections of one chain, each naming one map, light different residues for one hover (a
-  comparison); onto a section naming none the pair stays ambiguous and there is no link. Why the target's: what is
-  projected lands on the section that names how. A named map on none of those paths is `seq.resolve.via.unused` (a
+  it and from it (hover, selection; the viewer's hover fallback and focus hull read it too). A link takes both ends'
+  `via` (the author, 2026-11-20), so two sections of one chain, each naming one map, light different residues for one
+  hover (a comparison), and a hover on either reaches a section naming none through its map; between two sections
+  naming none the pair stays ambiguous and there is no link. Why both: a section's via says how its positions meet the
+  others', whichever way the projection runs. A named map on none of those paths is `seq.resolve.via.unused` (a
   warning at the section, the map its place), and those paths were chosen as if the via were absent. Why warn: a via
   that settles nothing is a figure's mistake the reader cannot see.
 - **Grids**: a grid section's `y` (`GridAxis`) is its second axis, down the plot: `of_y`'s system whole (`of`'s when
@@ -1721,11 +1722,13 @@ no target.
   axis's shape; a piece over a cyclic origin, `start > end`, is split first) to the follower's: the image's hull, or on
   a cyclic follower the shortest arc holding it (EC-12, `arc: 'shortest'`, the default; `'hull'` takes the hull), in the
   axis's shape.
-- **Links**: every ordered pair of the view's sections a static path joins, with the path, composed when the view is
-  resolved so hover and selection never compose; the same system is the identity.
+- **Links**: every ordered pair of the view's sections a static path joins, with the path (`fromSystem`, `toSystem`:
+  the systems it joins), composed when the view is resolved so hover and selection never compose; the same system is
+  the identity. A section of blocks links through each block's system (its own axis is on no system), so what is on a
+  sequence lights the units of a complex's section (EC-25) and back.
 - **Projection** (`projectOntoView(model, view, loc, { close?, own?, linked? })`, `project.ts`): a Location on the
   view's sections' systems (a section of blocks: its blocks' systems), one Location keyed by system (two sections on one
-  system show the same): each part carried along the view's link from a section on its system, else, for a system no
+  system show the same): each part carried along the view's link from its system to each shown system, else, for a system no
   section shows, along the model's static path; rects are not carried. `close` closes it first among the view's systems
   (a hover's: a nucleotide lifts to its codon and gains its residue); `own` keeps the parts already on a section's
   system (a hover's and a highlight's), else only what it adds where it has no part (a selection's); `linked: false`

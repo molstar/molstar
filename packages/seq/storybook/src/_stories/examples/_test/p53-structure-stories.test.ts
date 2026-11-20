@@ -6,7 +6,8 @@
 
 // p53's structure stories (2OCJ), headless on a fake clock, composed as the stories compose them (a viewer of the view
 // with `links.hover` listed, and its SVG export): the blocks and chips, every zinc link with both ends in view an arc at
-// its data, a zinc's chip lighting its four ligands, the alignment's map taken by `via` (no issue), both themes alike
+// its data, R175 on P04637 lit on the chains and back (a section of blocks projected through its blocks' systems), a
+// zinc's chip lighting its four ligands, the alignment's map taken by `via` (no issue), both themes alike
 // in the SVG.
 
 import { type BlockPlacement, DarkTokens, type PairsLay, recordDrawLists } from '@molstar/seqx-core/render';
@@ -65,6 +66,22 @@ describe('p53’s structure stories, headless', () => {
     ]);
     expect(arcs(v)).toBe(Chains.length * ZincSites.length);
   });
+
+  for (const id of ['structure', 'structure-split'])
+    it(`${id}: R175 on P04637 lights on the chains (EC-25), and a chain's R175 lights P04637`, async () => {
+      const v = await open(id);
+      expect(v.layoutIssues.value).toEqual([]);
+      const owner = {};
+      const r175 = positionOf(175);
+      v.hover.set({ section: '/views/main/protein', system: '/data/p53', position: 174 }, owner);
+      const all = v.hover.projectedAll()!;
+      const units = id === 'structure' ? ['A'] : Chains.map((c) => c.chain);
+      for (const u of units)
+        expect(runs(all.parts.find((q) => q.system === `/data/2ocj/${u}`)!.ranges)).toEqual([r175, r175 + 1]);
+      v.hover.set({ section: Section, system: '/data/2ocj/C', position: r175 }, owner);
+      expect(runs(v.hover.projectedAll()!.parts.find((q) => q.system === '/data/p53')!.ranges)).toEqual([174, 175]);
+      v.hover.clear(owner);
+    });
 
   it('the zinc’s chip lights its four ligands, C176 the zinc', async () => {
     const v = await open('structure-split');

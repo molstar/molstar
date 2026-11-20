@@ -14,8 +14,9 @@ import { addDomains, P53 } from './data.js';
 // UniProt's) and the zincs E–H (`ZN`, author numbers 501–504), each zinc's four metal links (C176, H179, C238, C242)
 // the complex's. P04637 onto the entity by a `structure` map (SIFTS's one segment, ranked first) and by a `segments`
 // map of the same pair (the global alignment of the two, the stopgap of an `alignment` map, ranked lower): the
-// section's paths (P04637's domains drawn on the chains) take either by `via`. The units, their observed runs, their author numbers and the zinc sites are the entry's, held
-// here and checked against the committed chain table (`2OCJ-chains.json`, the fake structure viewer's own) by a test.
+// section's paths (a hover on P04637 lit on the chains, and back) take either by `via`. The units, their observed
+// runs, their author numbers and the zinc sites are the entry's, held here and checked against the committed chain
+// table (`2OCJ-chains.json`, the fake structure viewer's own) by a test.
 
 export const title = 'p53 and PDB 2OCJ';
 
@@ -66,7 +67,7 @@ export const StructureAddresses = {
 
 /**
  * P04637 and 2OCJ's units: P04637's domains and letters, then a section of the complex (copies merged by default) with
- * the zincs' links, P04637's domains on the chains, the entity's secondary structure and letters.
+ * the zincs' links, the entity's secondary structure and letters.
  */
 export function build(options: StructureOptions = {}): Node {
   const b = createSeqSpec({ title });
@@ -143,8 +144,6 @@ export function build(options: StructureOptions = {}): Node {
       type: 'pairs',
       data: `${StructureAddresses.complex}/links` as never,
     });
-    // P04637's domains on the chains: through the map the section takes (SIFTS's, or the one `via` names)
-    s.track('domains', { label: 'Domains' }).layer('domains', { type: 'ranges', data: domains });
     s.track('secondary', { label: 'Secondary structure' }).layer('secondary', { type: 'ranges', data: secondary });
     s.track('letters', { label: '2OCJ' }).layer('letters', { type: 'letters' });
   });

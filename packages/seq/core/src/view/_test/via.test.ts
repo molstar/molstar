@@ -74,13 +74,14 @@ describe('a section’s via (EC-24)', () => {
     expect(placed('by-aln')).toEqual([7, 9]);
   });
 
-  it('what is projected onto it takes its via: one hover lights different residues in the two sections', () => {
+  it('what is projected onto it or from it takes its via: one hover lights different residues in the two sections', () => {
     const link = (from: string, to: string) =>
       view.links.find((l) => l.from === `/views/v/${from}` && l.to === `/views/v/${to}`);
     expect(Array.from(projectRanges(link('lead', 'by-sifts')!.path, [10, 11]))).toEqual([8, 9]);
     expect(Array.from(projectRanges(link('lead', 'by-aln')!.path, [10, 11]))).toEqual([7, 8]);
-    // onto the lead (no via of its own) from the chain: two maps, none taken
-    expect(link('by-sifts', 'lead')).toBeUndefined();
+    // from it too (the author, 2026-11-20): onto the lead (no via of its own) from the chain, through its map
+    expect(Array.from(projectRanges(link('by-sifts', 'lead')!.path, [8, 9]))).toEqual([10, 11]);
+    expect(Array.from(projectRanges(link('by-aln', 'lead')!.path, [7, 8]))).toEqual([10, 11]);
     expect(link('lead', 'neither')).toBeUndefined();
     // between sections of one system: the identity
     expect(link('by-sifts', 'by-aln')?.path.edges).toEqual([]);

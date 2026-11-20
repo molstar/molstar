@@ -302,10 +302,15 @@ const LayoutParams = [
   'heights',
 ] as const;
 
-/** A path between two sections of a view, precomposed: hover and selection are projected along it. */
+/**
+ * A path between two sections of a view, precomposed: hover and selection are projected along it. A section of blocks
+ * links through each of its blocks' systems (`fromSystem`, `toSystem`: the systems the path joins).
+ */
 export interface ViewLink {
   readonly from: string;
   readonly to: string;
+  readonly fromSystem: string;
+  readonly toSystem: string;
   readonly path: Path;
 }
 
@@ -610,17 +615,21 @@ function build(model: StaticModel, view: Node, address: string): ResolvedView {
     });
   }
 
-  // every path between the view's sections, composed now so hover never composes
+  // every path between the view's sections, composed now so hover never composes; a section of blocks shows its
+  // blocks' systems (its own axis is their units, on no system), each one linked
   const links: ViewLink[] = [];
+  const shown = (s: ResolvedSection) => [...new Set(s.blocks ? s.blocks.map((b) => b.axis.system) : [s.axis.system])];
   for (const a of sections)
     for (const b of sections) {
-      if (a === b || !model.systems.has(a.axis.system) || !model.systems.has(b.axis.system)) continue;
-      // what is projected onto a section takes its `via`
-      const path =
-        a.axis.system === b.axis.system
-          ? identityPath(a.axis.system)
-          : model.path(a.axis.system, b.axis.system, b.via).path;
-      if (path) links.push({ from: a.address, to: b.address, path });
+      if (a === b) continue;
+      for (const from of shown(a))
+        for (const to of shown(b)) {
+          if (!model.systems.has(from) || !model.systems.has(to)) continue;
+          // what is projected onto a section or from it takes its `via` (both ends' named maps)
+          const via = a.via && b.via ? [...new Set([...a.via, ...b.via])] : (b.via ?? a.via);
+          const path = from === to ? identityPath(from) : model.path(from, to, via).path;
+          if (path) links.push({ from: a.address, to: b.address, fromSystem: from, toSystem: to, path });
+        }
     }
   for (const s of sections) if (s.via) issues.push(...unusedVia(s, along.get(s.address), links));
   const scales: Record<string, Readonly<Record<string, Value>>> = {};
@@ -707,8 +716,9 @@ export function resolveNavigatorNode(
 
 /**
  * A section's `via` maps that join no pair on any of its paths (its follow, its along, its layers' and blocks' data,
- * its grid's y, the links onto it): each a `seq.resolve.via.unused` warning at the section naming the map (the author,
- * 2026-11-20: "Warn"); its paths were chosen as if the via were absent (maps-via.ts `viaPath`).
+ * its grid's y, the links onto it and from it: what hover, selection and the focus hull are projected along): each a
+ * `seq.resolve.via.unused` warning at the section naming the map (the author, 2026-11-20: "Warn"); its paths were
+ * chosen as if the via were absent (maps-via.ts `viaPath`).
  */
 function unusedVia(s: ResolvedSection, along: Path | undefined, links: readonly ViewLink[]): Issue[] {
   const used = new Set<string>();
@@ -720,7 +730,7 @@ function unusedVia(s: ResolvedSection, along: Path | undefined, links: readonly 
   take(s.y?.follow?.path);
   for (const t of s.tracks) for (const l of t.layers) take(l.path);
   for (const b of s.blocks ?? []) for (const t of b.layers) for (const l of t) take(l.path);
-  for (const l of links) if (l.to === s.address) take(l.path);
+  for (const l of links) if (l.to === s.address || l.from === s.address) take(l.path);
   return (s.via ?? []).filter((m) => !used.has(m)).map((m) => viaUnusedIssue(s.address, m));
 }
 

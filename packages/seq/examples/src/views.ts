@@ -190,7 +190,7 @@ export const P53Views: readonly ExampleView[] = [
     id: 'structure',
     title: 'Structure (2OCJ)',
     summary:
-      'P04637 over PDB 2OCJ’s four copies of the DNA-binding domain, merged into one block ×4 with the zinc chip ×4: the ends unobserved gray, author numbers UniProt’s, each zinc’s four ligands as arcs. P04637 maps to the entity by SIFTS’s `structure` map (ranked first) and by an alignment’s `segments` map, its domains drawn on the chains through it; hover the zinc: its ligands light.',
+      'P04637 over PDB 2OCJ’s four copies of the DNA-binding domain, merged into one block ×4 with the zinc chip ×4: the ends unobserved gray, author numbers UniProt’s, each zinc’s four ligands as arcs. P04637 maps to the entity by SIFTS’s `structure` map (ranked first) and by an alignment’s `segments` map; hover R175 on P04637: it lights on the chains, and back; hover the zinc: its ligands light.',
     build: () => p53Structure.build(),
   },
   {
@@ -198,7 +198,7 @@ export const P53Views: readonly ExampleView[] = [
     id: 'structure-split',
     title: 'Structure, copies split',
     summary:
-      'The four chains of 2OCJ a block each, each zinc a chip, the section’s paths through the alignment’s map (`via`).',
+      'The four chains of 2OCJ a block each, each zinc a chip; a hover carried through the alignment’s map (`via`), which agrees with SIFTS’s on this entry.',
     build: () => p53Structure.build({ copies: 'each', via: 'aln' }),
   },
 ];

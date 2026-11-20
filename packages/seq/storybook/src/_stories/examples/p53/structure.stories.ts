@@ -19,13 +19,13 @@ const LinksHoverOn = [{ provider: LinksHoverProvider, params: undefined }] as co
 
 /**
  * P04637 over PDB 2OCJ: the four copies of the DNA-binding domain merged into one block ×4, the zincs one chip ×4;
- * the ends (94–95, 290–312) unobserved and gray; P04637's domains on the chains through SIFTS's map, the entity's
- * helices and strands, each zinc's four ligands as arcs. Hover the zinc's chip: C176, H179, C238 and C242 light
- * (`links.hover`, on here); hover C176: the zinc lights.
+ * the ends (94–95, 290–312) unobserved and gray; the entity's helices and strands, each zinc's four ligands as arcs.
+ * Hover R175 on P04637: it lights on the chains through SIFTS's map, and back. Hover the zinc's chip: C176, H179, C238
+ * and C242 light (`links.hover`, on here); hover C176: the zinc lights.
  */
 export const Structure: StoryObj = { render: () => exampleStory(view('structure'), { behaviors: LinksHoverOn }) };
 
-/** The copies split: a block a chain, a chip a zinc; P04637's domains through the alignment's map (`via`). */
+/** The copies split: a block a chain, a chip a zinc; a hover carried through the alignment's map (`via`). */
 export const CopiesSplit: StoryObj = {
   render: () => exampleStory(view('structure-split'), { behaviors: LinksHoverOn }),
 };

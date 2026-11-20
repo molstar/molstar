@@ -9,10 +9,12 @@
 // each block's form (`whole` for a molecule, `residues` for a polymer, `atoms` on the atoms system) and its label (a
 // molecule's name, else its one component, else its id).
 
+import { createSeqSpec } from '@molstar/seqx-core/lang';
+import { type Location, location } from '@molstar/seqx-core/query';
 import { resolveSpec } from '@molstar/seqx-core/resolve';
 import { describe, expect, it } from 'vitest';
 import { moleculesSpec } from '../../render/_test/molecules-fixtures.js';
-import { resolveView } from '../index.js';
+import { projectOntoView, resolveView } from '../index.js';
 
 const blocksOf = (spec: Parameters<typeof resolveSpec>[0]) => {
   const model = resolveSpec(spec);
@@ -75,5 +77,70 @@ describe('a section of a complex', () => {
   it('a unit added to the complex after an override is listed (merged with its copy)', () => {
     const { blocks } = blocksOf(moleculesSpec({ overrides: { g: { form: 'residues' } }, extraIon: true }));
     expect(blocks.map((b) => b.label)).toEqual(['A ×2', 'Glycan', 'ATP', 'NA ×2']);
+  });
+});
+
+describe('a section of blocks in projection', () => {
+  // a sequence mapped onto the entity of a complex's units, a section of each: what is on one section shows on the
+  // other through each block's system (the copy rule: down from the entity onto every unit, EC-25)
+  const spec = () => {
+    const b = createSeqSpec();
+    const p = b.data.sequence('p', { alphabet: 'protein', letters: 'MACDEFGHIKLMNPQ' });
+    const ent = b.data.sequence('ent', { alphabet: 'protein', letters: 'DEFGHIKL' });
+    b.data.complex('c', {}, (c) => {
+      c.unit('A', { of: ent });
+      c.unit('B', { of: ent });
+    });
+    b.data.map('m', { from: p, to: ent, method: 'offset', by: -4 });
+    b.views.view('v', (v) => {
+      v.section('p', { of: p }).track('t').layer('l', { type: 'letters' });
+      v.section('c', { of: '/data/c' as never, copies: 'each' })
+        .track('t')
+        .layer('l', { type: 'letters' });
+    });
+    return b.build();
+  };
+  const parts = (l: Location) => l.parts.map((q) => [q.system, Array.from(q.ranges)]);
+
+  it('a position on the sequence lights every unit’s block; a unit’s position lights the sequence (EC-25)', () => {
+    const model = resolveSpec(spec());
+    const view = resolveView(model, '/views/v')!;
+    expect(view.issues).toEqual([]);
+    const onP = location({ parts: [{ system: '/data/p', ranges: [6, 7] }] });
+    expect(parts(projectOntoView(model, view, onP))).toEqual([
+      ['/data/c/A', [2, 3]],
+      ['/data/c/B', [2, 3]],
+    ]);
+    const onA = location({ parts: [{ system: '/data/c/A', ranges: [2, 3] }] });
+    expect(parts(projectOntoView(model, view, onA))).toEqual([['/data/p', [6, 7]]]);
+  });
+
+  it('a section of blocks with `via` and no layer of data on another system: no warning, projected through its map', () => {
+    // two maps of one pair, ranked: the section names the lower one
+    const b = createSeqSpec();
+    const p = b.data.sequence('p', { alphabet: 'protein', letters: 'MACDEFGHIKLMNPQ' });
+    const ent = b.data.sequence('ent', { alphabet: 'protein', letters: 'DEFGHIKL' });
+    b.data.complex('c', {}, (c) => {
+      c.unit('A', { of: ent });
+      c.unit('B', { of: ent });
+    });
+    b.data.map('sifts', { from: p, to: ent, method: 'offset', by: -4, priority: 1 });
+    const aln = b.data.map('aln', { from: p, to: ent, method: 'offset', by: -5 });
+    b.views.view('v', (v) => {
+      v.section('p', { of: p }).track('t').layer('l', { type: 'letters' });
+      v.section('c', { of: '/data/c' as never, copies: 'each', via: aln })
+        .track('t')
+        .layer('l', { type: 'letters' });
+    });
+    const model = resolveSpec(b.build());
+    const view = resolveView(model, '/views/v')!;
+    expect(view.issues).toEqual([]);
+    const onP = location({ parts: [{ system: '/data/p', ranges: [6, 7] }] });
+    expect(parts(projectOntoView(model, view, onP))).toEqual([
+      ['/data/c/A', [1, 2]],
+      ['/data/c/B', [1, 2]],
+    ]);
+    const onA = location({ parts: [{ system: '/data/c/A', ranges: [1, 2] }] });
+    expect(parts(projectOntoView(model, view, onA))).toEqual([['/data/p', [6, 7]]]);
   });
 });
