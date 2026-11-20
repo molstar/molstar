@@ -39,9 +39,36 @@ export function modifiedStyle(v: unknown): ModifiedStyle {
 export interface MoleculeLabels {
   readonly kind: 'residues' | 'atoms';
   readonly labels: readonly string[];
+  /** Its molecule's class, name and first component: the fields a chip's color reads (`class`, `name`, `component`). */
+  readonly class: string;
+  readonly name: string;
+  readonly component: string;
+  /** The datum its color is read at. */
+  readonly datum: MoleculeDatum;
 }
 
 const Labels = new WeakMap<StaticModel, Map<string, MoleculeLabels | null>>();
+
+/**
+ * The datum a molecule's color is read at, made once with its labels (kept by the model, so it goes with it): its
+ * fields (`class`, `name`, `component`), no letter or value.
+ */
+class MoleculeDatum {
+  readonly value = Number.NaN;
+  readonly letter = '';
+  readonly start = 0;
+  readonly end = 1;
+  constructor(private readonly m: { readonly class: string; readonly name: string; readonly component: string }) {}
+  field(name: string): string | undefined {
+    const m = this.m;
+    return name === 'class' ? m.class : name === 'name' ? m.name : name === 'component' ? m.component : undefined;
+  }
+}
+
+/** Labels with their datum. */
+function withDatum(l: Omit<MoleculeLabels, 'datum'>): MoleculeLabels {
+  return { ...l, datum: new MoleculeDatum(l) };
+}
 
 /** A system's molecule labels (made once a model and system), or undefined when it is no molecule's. */
 export function moleculeLabels(model: StaticModel, system: string): MoleculeLabels | undefined {
@@ -55,19 +82,37 @@ export function moleculeLabels(model: StaticModel, system: string): MoleculeLabe
 function makeLabels(model: StaticModel, system: string): MoleculeLabels | undefined {
   const s = model.systems.get(system);
   const m = model.molecular;
+  const fields = (address: string) => {
+    const unit = m.units.get(address);
+    const molecule = m.molecules.get(unit ? unit.of : address);
+    return { molecule, unit };
+  };
   if (s?.kind === 'atoms') {
     const a = m.atoms.get(system);
     if (!a) return undefined;
     const n = a.offsets[a.offsets.length - 1];
-    return { kind: 'atoms', labels: Array.from({ length: n }, (_, i) => a.elements.get(i) ?? '') };
+    const { molecule, unit } = fields(a.of);
+    return withDatum({
+      kind: 'atoms',
+      labels: Array.from({ length: n }, (_, i) => a.elements.get(i) ?? ''),
+      class: molecule?.class ?? 'ligand',
+      name: molecule?.name ?? '',
+      // a unit's atoms: its first residue's component, the unit's start on its molecule
+      component: molecule?.residues?.[unit?.start ?? 0] ?? '',
+    });
   }
-  const unit = m.units.get(system);
-  const molecule = m.molecules.get(unit ? unit.of : system);
+  const { molecule, unit } = fields(system);
   const residues = molecule?.residues;
-  if (!residues) return undefined;
+  if (!molecule || !residues) return undefined;
   const start = unit?.start ?? 0;
   const end = unit?.end ?? residues.length;
-  return { kind: 'residues', labels: residues.slice(start, end) };
+  return withDatum({
+    kind: 'residues',
+    labels: residues.slice(start, end),
+    class: molecule.class,
+    name: molecule.name ?? '',
+    component: residues[start] ?? '',
+  });
 }
 
 /** What a letters layout keeps for molecules and modified positions. */
@@ -368,12 +413,15 @@ export const MoleculeLettersType: LayerType<LettersPrep, LettersLay> = {
       lay.labels = prep.molecule.labels;
       if (lay.step === 'bars' || lay.step === 'density') return lay;
       const c = prep.channels.forms.color === undefined ? undefined : prep.channels.get('color', 'token:sequence', ctx);
-      const fill = typeof c?.constant === 'number' ? c.constant : tokens.colors['seq-sequence'];
+      // a chip colored on its own: a theme over the molecule's fields (its class, name, component), once a block
+      const own = c && c.constant === undefined ? c.at(prep.molecule.datum) : undefined;
+      const fill =
+        typeof c?.constant === 'number' ? c.constant : typeof own === 'number' ? own : tokens.colors['seq-sequence'];
       lay.n = 0;
       lay.pending.length = 0;
       const vis = axis.visible([]);
       layMoleculeCells(lay, prep.molecule.labels, axis, vis, box, config, tokens, fill, lay.step === 'letters');
-      if (lay.chip && lay.n) lay.chipInk = chipInk(lay.fill[0], tokens);
+      if (lay.isChip && lay.n) lay.chipInk = chipInk(lay.fill[0], tokens);
       return lay;
     }
     if (lay.mods.length) hideCoded(lay, config);
@@ -383,7 +431,7 @@ export const MoleculeLettersType: LayerType<LettersPrep, LettersLay> = {
   draw(lay, pass: PassName, out: PassWriter, emphasis?: Emphasis) {
     LettersType.draw(lay, pass, out, emphasis);
     if (pass !== 'data') return;
-    if (lay.labels && lay.step === 'letters' && lay.fontSize > 0 && lay.n && !lay.chip) drawMoleculeLabels(lay, out);
-    if (lay.mods.length && !(lay.chip && lay.n)) drawModified(lay, out, lay.tokens, lay.config);
+    if (lay.labels && lay.step === 'letters' && lay.fontSize > 0 && lay.n && !lay.isChip) drawMoleculeLabels(lay, out);
+    if (lay.mods.length && !(lay.isChip && lay.n)) drawModified(lay, out, lay.tokens, lay.config);
   },
 };

@@ -100,6 +100,21 @@ export function cutLabel(label: string, n: number): string {
   return (e.cuts[n] ??= `${label.slice(0, n)}…`);
 }
 
+/**
+ * The most letters of `label` kept that fit `w` px with the ellipsis, at least `minChars` (0: no such cut): the one rule
+ * a label cut inside a mark follows, a range's or a chip's pill. @internal
+ */
+export function longestCut(text: TextMetrics, font: string, label: string, w: number, minChars: number): number {
+  let lo = minChars - 1;
+  let hi = label.length - 1;
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1;
+    if (text.measure(font, cutLabel(label, mid)) <= w) lo = mid;
+    else hi = mid - 1;
+  }
+  return lo >= minChars && lo > 0 ? lo : 0;
+}
+
 /** The text a mark's label draws: its item's label whole, or cut. */
 export function labelText(lay: LabelMarks, j: number): string {
   const label = lay.labels[lay.mitem[j]] as string;
@@ -130,16 +145,8 @@ export function labelsInside(lay: LabelMarks, text: TextMetrics, tokens: SeqToke
       if (m > w) continue;
     } else {
       if (label.length <= minChars || (minChars + 1) * glyph > w) continue;
-      // the most letters kept that fit with the ellipsis, at least `minChars`
-      let lo = minChars - 1;
-      let hi = label.length - 1;
-      while (lo < hi) {
-        const mid = (lo + hi + 1) >> 1;
-        if (text.measure(lay.font, cutLabel(label, mid)) <= w) lo = mid;
-        else hi = mid - 1;
-      }
-      if (lo < minChars) continue;
-      cut = lo;
+      cut = longestCut(text, lay.font, label, w, minChars);
+      if (!cut) continue;
       m = text.measure(lay.font, cutLabel(label, cut));
     }
     lay.mlabel[j] = m;

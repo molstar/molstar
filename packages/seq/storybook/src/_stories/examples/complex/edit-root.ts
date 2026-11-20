@@ -17,6 +17,7 @@ import {
 } from '../../features/editing/compose.js';
 import { followSvg } from '../../follow-svg.js';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
+import type { SeqViewerSpec } from '@molstar/seqx-viewer/viewer-spec';
 import { holdReadout, readout } from './compose.js';
 
 // A Complex view with its edits (examples.md, "Editing experiences are views too"): the viewer, a button an edit (one
@@ -38,6 +39,8 @@ export interface ComplexEditModel {
   readonly readout?: boolean;
   /** Another dataset's panel instead: its lines, from what the pointer is over and what is selected. */
   readonly lines?: (viewer: SeqViewer) => readonly string[];
+  /** Behaviors besides the default spec's (`links.hover`). */
+  readonly behaviors?: SeqViewerSpec['behaviors'];
 }
 
 const Row = 'display: flex; gap: var(--msui-space-2); align-items: center; flex-wrap: wrap;';
@@ -64,7 +67,10 @@ class ComplexEditRoot extends UiElement<ComplexEditModel> {
         status.textContent = m;
       });
 
-    const s = composeEditing(model.view, { target: canvasHost });
+    const s = composeEditing(model.view, {
+      target: canvasHost,
+      ...(model.behaviors ? { behaviors: model.behaviors } : {}),
+    });
     onCleanup(() => s.dispose());
 
     const tools = document.createElement('div');

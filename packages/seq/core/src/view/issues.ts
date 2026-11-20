@@ -34,6 +34,12 @@ export const ViewIssues = defineIssues('seq.view', {
     description: 'A layer’s data is on a system no static path joins to its section’s; it is not drawn',
     hint: 'Add a map between the systems, or show the data in a section of its own system',
   },
+  'seq.view.via.conflict': {
+    severity: 'warning',
+    description:
+      'Two sections name rival maps of one pair in their `via`: what is carried between them takes the target’s map',
+    hint: 'Name the same map in both sections, or drop the `via` from one',
+  },
   'seq.view.follow.unplaced': {
     severity: 'warning',
     description: 'A section follows one whose system no static path joins to its own; it does not follow',

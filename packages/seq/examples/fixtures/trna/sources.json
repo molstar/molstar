@@ -12,8 +12,8 @@
     "attribution": "computed by src/trna/derive.ts from trna/1EHZ.seq and trna/RF00005.sto (sha256Download: the two joined)",
     "trimmed": "none",
     "derived": "the seed row of highest identity to 1EHZ (a pairwise alignment, core’s globalAlign), 1EHZ’s positions’ columns in it, mutual information over those columns less the Miller–Madow correction (at least 30 rows, 0.05 bits), the row’s letters and its SS_cons pairs",
-    "bytesFixture": 9190,
-    "sha256Fixture": "b70c3e4ad40cf566ec896bb2450b0755bdbe61fcd501c76fec3884058e7311a2"
+    "bytesFixture": 9509,
+    "sha256Fixture": "776fdc210fac97d6c9b5a69bd7f8923beafd79100b514d53ac12ee8e05df6cdf"
   },
   {
     "recorded": "2026-11-19",

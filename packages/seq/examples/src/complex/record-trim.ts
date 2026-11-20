@@ -6,7 +6,7 @@
 
 import { categoryColumn } from '@molstar/core/repr/tree';
 import { encodeSeq, inlineSeq, type SeqData } from '@molstar/seqx-core/data';
-import { cifRows } from '../files/cif.js';
+import { type Cif, cifRows } from '../files/cif.js';
 
 // What the record script keeps of PDB 1FIN's mmCIF and of the CDK2 entries its ligands come from (`scripts/record.ts
 // complex`): the chains' letters and secondary structure, and what is derived from the coordinates (residue contacts
@@ -30,7 +30,7 @@ interface Atom {
 }
 
 /** The heavy atoms of the first model, the first alternate location of each. */
-function atoms(cif: string): Atom[] {
+function atoms(cif: Cif): Atom[] {
   const out: Atom[] = [];
   for (const r of cifRows(cif, '_atom_site')) {
     if (r.type_symbol === 'H' || r.type_symbol === 'D' || r.label_comp_id === 'HOH') continue;
@@ -112,10 +112,10 @@ export interface Trimmed1fin {
   readonly resolution: number;
 }
 
-const resolutionOf = (cif: string) => Number(cifRows(cif, '_refine')[0]?.ls_d_res_high);
+const resolutionOf = (cif: Cif) => Number(cifRows(cif, '_refine')[0]?.ls_d_res_high);
 
 /** The entity whose sequence is CDK2's (the entity a chain of the ligand's contacts is on, its id). */
-function lettersOf(cif: string): Map<string, { letters: string; chains: string[] }> {
+function lettersOf(cif: Cif): Map<string, { letters: string; chains: string[] }> {
   const out = new Map<string, { letters: string; chains: string[] }>();
   for (const r of cifRows(cif, '_entity_poly'))
     out.set(r.entity_id, {
@@ -144,7 +144,7 @@ function ligandOn(all: readonly Atom[], asym: string, chain: string): { atoms: s
 }
 
 /** 1FIN's chains, their letters and secondary structure, the contacts across each copy and each copy's ATP's. */
-export function trim1fin(cif: string): Trimmed1fin {
+export function trim1fin(cif: Cif): Trimmed1fin {
   const entities = lettersOf(cif);
   const [cdk2, cyclin] = [entities.get('1')!, entities.get('2')!];
   const all = atoms(cif);
@@ -208,7 +208,7 @@ export function trim1fin(cif: string): Trimmed1fin {
 }
 
 /** A label asym id's author chain. */
-function authChain(cif: string, asym: string): string | undefined {
+function authChain(cif: Cif, asym: string): string | undefined {
   return cifRows(cif, '_pdbx_poly_seq_scheme').find((r) => r.asym_id === asym)?.pdb_strand_id;
 }
 
@@ -216,7 +216,7 @@ function authChain(cif: string, asym: string): string | undefined {
  * A ligand of an entry of CDK2: the first instance of component `comp` and the CDK2 chain it touches most, its
  * contacts on CDK2's numbering (the entries number CDK2 as UniProt P24941 does: checked against `cdk2`'s letters).
  */
-export function trimLigand(cif: string, entry: string, comp: string, cdk2: string): Ligand {
+export function trimLigand(cif: Cif, entry: string, comp: string, cdk2: string): Ligand {
   const all = atoms(cif);
   const entities = lettersOf(cif);
   const kinase = [...entities.values()].find((e) => e.letters.includes(cdk2.slice(20, 60)));

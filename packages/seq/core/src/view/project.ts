@@ -68,17 +68,22 @@ export function projectOntoView(
   return parts.length ? location({ parts }) : EmptyLocation;
 }
 
-/** The view's link from a section on the part's system to one on `system`; else the model's static path (a system no section shows). */
+/**
+ * The view's link from a section showing the part's system to one showing `system` (a section of blocks shows each
+ * block's); else the model's static path (a system no section shows).
+ */
 function pathOf(model: StaticModel, view: ResolvedView, part: LocationPart, system: string): Path | undefined {
   let shown = false;
   for (const l of view.links) {
-    const from = view.sections.find((s) => s.address === l.from);
-    if (from?.axis.system !== part.system) continue;
+    if (l.fromSystem !== part.system) continue;
     shown = true;
-    const to = view.sections.find((s) => s.address === l.to);
-    if (to?.axis.system === system) return l.path;
+    if (l.toSystem === system) return l.path;
   }
-  if (shown || view.sections.some((s) => s.axis.system === part.system)) return undefined;
+  if (shown || view.sections.some((s) => shows(s, part.system))) return undefined;
   if (!model.systems.has(part.system) || !model.systems.has(system)) return undefined;
   return model.path(part.system, system).path;
 }
+
+/** Whether a section shows a system: its axis's, or one of its blocks'. */
+const shows = (s: ResolvedView['sections'][number], system: string) =>
+  s.blocks ? s.blocks.some((b) => b.axis.system === system) : s.axis.system === system;

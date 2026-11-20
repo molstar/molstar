@@ -6,23 +6,25 @@
 
 import { applyPatch, type Patch } from '@molstar/core/repr/patch';
 import type { Node } from '@molstar/core/repr/tree';
-import { addRefPatch, createSeqSpec, type RefInput, SeqLanguage } from '@molstar/seqx-core/lang';
+import { addRefPatch, createSeqSpec, identifiers, type RefInput, SeqLanguage } from '@molstar/seqx-core/lang';
 import { HemoglobinFile } from './data.js';
-import { HemeContacts, HemeUnitContacts, HemoglobinChains } from './hemes.js';
+import { HemeAtoms, HemeContacts, HemeUnitContacts, HemoglobinChains } from './hemes.js';
 
 // Hemoglobin (examples.md, Globins; EC-64, EC-65): PDB 4HHB, α2β2, a complex of eight units: the α chains A and C
-// and the β chains B and D (two sequences, a copy group each), and the four hemes, each a unit of a one-position
-// sequence drawn as a chip; blocks of one section in that order. The chains' helices A to H from the entry; the hemes'
-// contacts (heavy atoms within 4 Å, derived per pair of units) as the complex's pairs between units, so each heme's
-// arcs reach the chain it sits in; each molecule's heme pocket as ranges, bookmarked. The copies merged into one block
-// labeled ×2 (`copies: 'merge'`, the default) or split (`each`), a patch each way. The heme per heavy atom and the
-// units' link to their rows in the family wait: a heme is one position this slice, and the language has no alignment
-// map.
+// and the β chains B and D (two sequences, a copy group each), and the four hemes, each a unit of the heme molecule
+// (`HEM`, its 43 heavy atoms, its author number) drawn as a chip (its `whole` form); blocks of one section in that
+// order. The chains' helices A to H from the entry; the hemes' contacts (heavy atoms within 4 Å, derived per pair of
+// units) as the complex's pairs between units, so each heme's arcs reach the chain it sits in; each molecule's heme
+// pocket as ranges, bookmarked. The copies merged into one block labeled ×2 (`copies: 'merge'`, the default) or split
+// (`each`), a patch each way. The units' link to their rows in the family waits for the `alignment` map kind.
 
 export const title = 'Hemoglobin (4HHB)';
 
 /** The chains' lengths (anchors: 141 and 146 residues, the heme one position): the file's, which the blocks read. */
 export const HemoglobinLengths = { hba: 141, hbb: 146, hem: 1 } as const;
+
+/** The heme molecule's address: its one residue, `HEM`, and its atoms. */
+export const HemeMolecule = '/data/hem';
 
 /** The section's address and its path (what a patch names). */
 export const HemoglobinSection = '/views/main/hb';
@@ -73,7 +75,12 @@ export function build(options: HemoglobinOptions = {}): Node {
   });
   const hba = b.data.sequence('hba', { alphabet: 'protein', source: file, name: 'hba' });
   const hbb = b.data.sequence('hbb', { alphabet: 'protein', source: file, name: 'hbb' });
-  const hem = b.data.sequence('hem', { alphabet: 'protein', source: file, name: 'hem' });
+  const hem = b.data.molecule('hem', {
+    name: 'heme',
+    residues: ['HEM'],
+    atoms: { residue: HemeAtoms.name.map(() => 0), name: [...HemeAtoms.name], element: [...HemeAtoms.element] },
+    identifiers: identifiers([['ccd', 'HEM']]),
+  });
   const helicesA = b.data.ranges('hba-helices', { target: hba, source: file });
   const helicesB = b.data.ranges('hbb-helices', { target: hbb, source: file });
   const pocketA = b.data.ranges('hba-pocket', { target: hba, rows: pocket(HemeContacts.hba) });
@@ -84,7 +91,9 @@ export function build(options: HemoglobinOptions = {}): Node {
     for (const ch of HemoglobinChains)
       units[ch.chain] = c.unit(ch.chain, { of: sequences[ch.of], chain: ch.chain, auth_chain: ch.chain });
     for (const ch of HemoglobinChains)
-      units[hemeUnit(ch.chain)] = c.unit(hemeUnit(ch.chain), { of: hem, chain: ch.heme, auth_chain: ch.chain });
+      units[hemeUnit(ch.chain)] = c.unit(hemeUnit(ch.chain), { of: hem, chain: ch.heme, auth_chain: ch.chain }, (u) =>
+        u.numbering('auth', { method: 'labels', labels: [ch.hemeAuth] }),
+      );
     c.links('contacts', { rows: contacts() });
   });
   b.views.view('main', (v) => {

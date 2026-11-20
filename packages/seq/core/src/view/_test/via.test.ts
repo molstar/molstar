@@ -74,13 +74,14 @@ describe('a section’s via (EC-24)', () => {
     expect(placed('by-aln')).toEqual([7, 9]);
   });
 
-  it('what is projected onto it takes its via: one hover lights different residues in the two sections', () => {
+  it('what is projected onto it or from it takes its via: one hover lights different residues in the two sections', () => {
     const link = (from: string, to: string) =>
       view.links.find((l) => l.from === `/views/v/${from}` && l.to === `/views/v/${to}`);
     expect(Array.from(projectRanges(link('lead', 'by-sifts')!.path, [10, 11]))).toEqual([8, 9]);
     expect(Array.from(projectRanges(link('lead', 'by-aln')!.path, [10, 11]))).toEqual([7, 8]);
-    // onto the lead (no via of its own) from the chain: two maps, none taken
-    expect(link('by-sifts', 'lead')).toBeUndefined();
+    // from it too (the author, 2026-11-20): onto the lead (no via of its own) from the chain, through its map
+    expect(Array.from(projectRanges(link('by-sifts', 'lead')!.path, [8, 9]))).toEqual([10, 11]);
+    expect(Array.from(projectRanges(link('by-aln', 'lead')!.path, [7, 8]))).toEqual([10, 11]);
     expect(link('lead', 'neither')).toBeUndefined();
     // between sections of one system: the identity
     expect(link('by-sifts', 'by-aln')?.path.edges).toEqual([]);
@@ -109,5 +110,30 @@ describe('a section’s via (EC-24)', () => {
     expect(section('by-aln').axis.dir).toBe(1);
     expect(section('by-aln').axis.along).toBe('/data/sifts');
     expect(view.issues.some((i) => i.code === 'seq.view.direction.unresolved')).toBe(false);
+  });
+});
+
+describe('two sections naming rival maps of one pair', () => {
+  it('the link between them takes the target’s map and says so (seq.view.via.conflict); it never vanishes', () => {
+    const b = createSeqSpec();
+    const up = b.data.sequence('up', { alphabet: 'protein', letters: 'MEEPQSDPSVEPPLSQETFS' });
+    const ent = b.data.sequence('ent', { alphabet: 'protein', letters: 'EPQSDPSVEPPLSQET' });
+    const sifts = b.data.map('sifts', { from: up, to: ent, method: 'offset', by: -2 });
+    const aln = b.data.map('aln', { from: up, to: ent, method: 'offset', by: -3 });
+    const site = b.data.ranges('site', { target: up, rows: { start: [10], end: [12] } });
+    b.views.view('v', (v) => {
+      v.section('up', { of: up, via: sifts }, (s) => s.track('t').layer('l', { type: 'ranges', data: site }));
+      v.section('ent', { of: ent, via: aln }, (s) => s.track('t').layer('l', { type: 'ranges', data: site }));
+    });
+    const view = resolveView(resolveSpec(b.build()), '/views/v')!;
+    const link = (from: string, to: string) =>
+      view.links.find((l) => l.from === `/views/v/${from}` && l.to === `/views/v/${to}`);
+    // onto `ent`: its map (aln, by -3); onto `up`: its map (sifts, from ent by +2)
+    expect(Array.from(projectRanges(link('up', 'ent')!.path, [10, 11]))).toEqual([7, 8]);
+    expect(Array.from(projectRanges(link('ent', 'up')!.path, [8, 9]))).toEqual([10, 11]);
+    expect(view.issues.filter((i) => i.code === 'seq.view.via.conflict').map((i) => i.address)).toEqual([
+      '/views/v/ent',
+      '/views/v/up',
+    ]);
   });
 });

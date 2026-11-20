@@ -96,7 +96,12 @@ describe('the fixtures', () => {
       sha256Fixture: string;
       bytesFixture: number;
     }[];
-    expect(rows.map((r) => r.file).sort()).toEqual(['p53/P04637-variation.json', 'p53/P04637.json']);
+    expect(rows.map((r) => r.file).sort()).toEqual([
+      'p53/2OCJ-chains.json',
+      'p53/2OCJ.seq',
+      'p53/P04637-variation.json',
+      'p53/P04637.json',
+    ]);
     let total = 0;
     for (const r of rows) {
       const bytes = readFileSync(`${PackageFolder}fixtures/${r.file}`);

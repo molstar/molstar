@@ -19,8 +19,9 @@ import { FeatureViews, GlobinsViews } from '@molstar/seqx-examples';
 import { readFileSync } from 'node:fs';
 import { readStockholm } from '@molstar/seqx-core/data/alignment-readers';
 import { ColumnsFile, ReferenceRow, SeedFile } from '@molstar/seqx-examples/globins/data';
-import { HemeUnitContacts } from '@molstar/seqx-examples/globins/hemes';
+import { HemeHistidines, HemeUnitContacts } from '@molstar/seqx-examples/globins/hemes';
 import { PackageFolder } from '@molstar/seqx-examples/node-assets';
+import { LinksHoverChannel, LinksHoverProvider } from '@molstar/seqx-viewer/behaviors';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { openExample } from './draw-checks.js';
@@ -40,6 +41,30 @@ function rowsLay(v: SeqViewer): RowsLay | undefined {
 }
 
 describe('Globins stories, headless', () => {
+  it('hemoglobin with `links.hover` on, as its story: a heme’s chip lights the residues it contacts, its proximal histidine lights the heme', async () => {
+    viewer = await openExample(GlobinsViews.find((v) => v.id === 'hemoglobin')!, {
+      fixtures: true,
+      behaviors: [{ provider: LinksHoverProvider, params: undefined }],
+    });
+    const v = viewer;
+    const owner = {};
+    const section = '/views/main/hb';
+    const lit = () => v.highlight.get(LinksHoverChannel)?.location.parts.map((p) => [p.system, Array.from(p.ranges)]);
+    v.hover.set({ section, system: '/data/hb/hem-a', position: 0 }, owner);
+    // the contacts are the complex's links: each residue a run of one, 0-based
+    const a = HemeUnitContacts.find((c) => c.heme === 'A')!.residues;
+    const runs = lit()!;
+    expect(runs.map((r) => r[0])).toEqual(['/data/hb/A']);
+    const positions = new Set<number>();
+    const r = runs[0][1] as number[];
+    for (let k = 0; k < r.length; k += 2) for (let i = r[k]; i < r[k + 1]; i++) positions.add(i);
+    expect([...positions].sort((x, y) => x - y)).toEqual(a.map((n) => n - 1));
+    // the proximal histidine (His87 of α): the heme it holds
+    v.hover.set({ section, system: '/data/hb/A', position: HemeHistidines.hba.proximal - 1 }, owner);
+    expect(lit()).toEqual([['/data/hb/hem-a', [0, 1]]]);
+    v.hover.clear(owner);
+  });
+
   it('hemoglobin: the chains merged ×2, the hemes one chip ×4; eight helices a molecule, every heme contact an arc (per pair of units); both themes', async () => {
     viewer = await openExample(GlobinsViews.find((v) => v.id === 'hemoglobin')!, { fixtures: true });
     const v = viewer;

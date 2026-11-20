@@ -63,7 +63,7 @@ function drawCells(lay: LettersLay, out: PassWriter, _emphasis: Emphasis | undef
   // a path's gap marks and carets, and three-letter codes, each in a function of its own: this one stays small enough to
   // have its calls inlined (a call that is not boxes the numbers it is passed); every number through `args`
   if (lay.gaps.length || lay.carets.length) drawPathMarks(lay, out);
-  if (lay.chip && lay.n) {
+  if (lay.isChip && lay.n) {
     drawChip(lay, out);
     return;
   }
@@ -199,6 +199,8 @@ function drawChip(lay: LettersLay, out: PassWriter) {
   g[7] = h / 2;
   g[8] = 3;
   out.rectArgs();
+  // no label fits the slot (one of `labels.minChars` letters or fewer, or not even a cut of so many): the pill alone
+  if (!lay.chip) return;
   g[0] = (lo + hi) / 2;
   g[1] = lay.chipY;
   g[2] = lay.chipWidth;
@@ -237,7 +239,7 @@ function drawThree(lay: LettersLay, out: PassWriter) {
 function drawHover(lay: LettersLay, out: PassWriter, emphasis: Emphasis | undefined) {
   const h = emphasis?.hover;
   if (!h || h.layer !== lay.key) return;
-  if (lay.chip !== '' && lay.n > 0) {
+  if (lay.isChip && lay.n > 0) {
     drawChipHover(lay, out, emphasis);
     return;
   }

@@ -14,9 +14,12 @@
 //   node --experimental-strip-types scripts/record.ts p53
 //
 // (Node maps no `.js` import to a `.ts` file, so the rules are never imported from `src/`; run with no dataset, it
-// loads every recorder and stops at its usage line before fetching anything.) The
-// datasets: `p53`, UniProt P04637's REST entry (CC-BY-4.0) and the Proteins API's variants of it, those of UniProt's
-// own and ClinVar's sources; `globins`, the Pfam PF00042 seed (CC0-1.0) cut to 60 rows, UniProt's organisms of its
+// loads every recorder and stops at its usage line before fetching anything.) mmCIF is read by `@molstar/io`'s text
+// CIF parser (`cif.ts`, the examples' one reader). The datasets: `p53`,
+// UniProt P04637's REST entry (CC-BY-4.0) and the Proteins API's variants of it, those of UniProt's own and ClinVar's
+// sources; `p53-structure`, PDB 2OCJ's committed mmCIF (CC0-1.0, no fetch) as the entity's `seq` and the fake structure
+// viewer's chain table; `antibody-structure`, PDB 3AVE's committed mmCIF (CC0-1.0, no fetch) as its Fc's `seq`;
+// `globins`, the Pfam PF00042 seed (CC0-1.0) cut to 60 rows, UniProt's organisms of its
 // rows (CC-BY-4.0) and PDB 4HHB (CC0-1.0); `plasmid`, INSDC L09137.2 (pUC19c) as ENA serves it in FASTA, converted to
 // the `seq` format, its letters also as a module of the examples (what the features and sites are derived from in code
 // when a view is built; the views read the letters from the `seq` files), and the rotated variant's features and sites,
@@ -32,6 +35,9 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { gunzipSync } from 'node:zlib';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readCif } from './cif.ts';
+import type { Cif } from '../src/files/cif.ts';
+import { FcSystem } from '../lib/antibody/fc-glycan.js';
 import { writeDerived } from '../lib/trna/generated.js';
 import { moleculeSeq, pairsSeq, trimEntry as trimCif } from '../lib/trna/record-trim.js';
 import {
@@ -62,7 +68,8 @@ import {
   rotatedAnnotations,
   seqText,
 } from '../lib/plasmid/derive.js';
-import { HemeUnitContacts } from '../lib/globins/hemes.js';
+import { HemeAtoms, HemeUnitContacts } from '../lib/globins/hemes.js';
+import { chainTable, chainTableJson, structureSeq } from '../lib/p53/structure-record.js';
 import { kabatFromImgt } from '../lib/antibody/numbering.js';
 import {
   Entry as FabEntry,
@@ -78,6 +85,7 @@ import {
   cifChains,
   columnsFromUniprot,
   cutSeed,
+  hemeAtoms,
   hemeContacts,
   hemoglobinSeq,
   SeedRows,
@@ -198,13 +206,13 @@ async function complex(): Promise<Row[]> {
   };
   const pdb = (id: string) => `https://files.rcsb.org/download/${id}.cif`;
   const fin = await fetchText(pdb('1FIN'), 'text/plain', '1FIN.cif');
-  const t = trim1fin(fin);
+  const t = trim1fin(await readCif(fin));
   const ligands: Ligand[] = [];
   const sources: { id: string; text: string }[] = [];
   for (const [id, comp] of LigandEntries) {
     const text = await fetchText(pdb(id), 'text/plain', `${id}.cif`);
     sources.push({ id, text });
-    ligands.push(trimLigand(text, id, comp, t.cdk2));
+    ligands.push(trimLigand(await readCif(text), id, comp, t.cdk2));
   }
   const molecule = write('1FIN.seq', complexSeq(t));
   const contacts = write('contacts.seq', contactsSeq(t, ligands));
@@ -393,7 +401,7 @@ async function trna(): Promise<Row[]> {
   const readmeUrl = 'https://ftp.ebi.ac.uk/pub/databases/Rfam/CURRENT/README';
   const release = /^Release\s+(\S+)/m.exec(await fetchText(readmeUrl, 'text/plain', 'rfam-README.txt'))?.[1];
   if (!release) throw new Error(`${readmeUrl}: no release line`);
-  const trimmed = trimCif(cif);
+  const trimmed = trimCif(await readCif(cif));
   const bytes = (s: string) => new TextEncoder().encode(s).byteLength;
   const files: [string, string][] = [
     ['1EHZ.seq', moleculeSeq(trimmed)],
@@ -484,7 +492,7 @@ async function trna(): Promise<Row[]> {
 /**
  * The Globins: the Pfam seed (InterPro's, gzipped Stockholm) cut to the rows nearest 4HHB's α and β chains; the
  * UniProt entries of the rows kept (their organisms and classes, a columns file joined by row key); 4HHB's mmCIF as
- * `seq` (its chains' letters and helices, the heme a position) and its heme contacts checked against `hemes.ts`.
+ * `seq` (its chains' letters and helices) and its heme contacts and atoms checked against `hemes.ts`.
  */
 async function globins(): Promise<Row[]> {
   const dir = join(Folder, 'fixtures', 'globins');
@@ -500,16 +508,20 @@ async function globins(): Promise<Row[]> {
   const version = seedVersion(seed);
   if (!version) throw new Error('the seed has no #=GF AC line');
   const cif = await fetchText(cifUrl, 'text/plain', '4hhb.cif');
-  const chains = cifChains(cif);
+  const parsed = await readCif(cif);
+  const chains = cifChains(parsed);
   const human = ['A', 'B'].map((a) => chains.find((c) => c.asym === a)!.letters);
   const cut = cutSeed(seed, human);
   const accessions = [...seedAccessions(cut.text).values()];
   const uniprotUrl = `https://rest.uniprot.org/uniprotkb/accessions?accessions=${accessions.join(',')}&format=tsv&fields=accession,id,organism_name,length,lineage&size=500`;
   const uniprot = await fetchText(uniprotUrl, 'text/plain', 'uniprot.tsv');
   // the contacts the views draw are code (derived per pair of units): the entry must still give them
-  const contacts = hemeContacts(cif);
+  const contacts = hemeContacts(parsed);
   if (JSON.stringify(contacts) !== JSON.stringify(HemeUnitContacts))
     throw new Error(`4HHB's heme contacts are ${JSON.stringify(contacts)}, not hemes.ts's`);
+  for (const [asym, atoms] of hemeAtoms(parsed))
+    if (JSON.stringify(atoms) !== JSON.stringify(HemeAtoms))
+      throw new Error(`4HHB's heme ${asym} has the atoms ${JSON.stringify(atoms)}, not hemes.ts's`);
   const { encodeSeq } = await import('@molstar/seqx-core/data');
   const files = {
     seed: join(dir, 'PF00042-seed.sto'),
@@ -518,7 +530,7 @@ async function globins(): Promise<Row[]> {
   };
   writeFileSync(files.seed, cut.text);
   writeFileSync(files.columns, columnsFromUniprot(uniprot, cut.text));
-  writeFileSync(files.hb, `${encodeSeq(hemoglobinSeq(cif))}\n`);
+  writeFileSync(files.hb, `${encodeSeq(hemoglobinSeq(parsed))}\n`);
   const written = Object.fromEntries(Object.entries(files).map(([k, f]) => [k, readFileSync(f, 'utf8')]));
   return [
     {
@@ -559,7 +571,7 @@ async function globins(): Promise<Row[]> {
       licence: ['CC0-1.0'],
       attribution: 'wwPDB, PDB 4HHB, CC0',
       trimmed:
-        'chains A (α) and B (β) only, C and D their copies: their letters (pdbx_poly_seq_scheme) and helices (struct_conf, label_seq_id); the heme a position; coordinates, waters and phosphates dropped',
+        'chains A (α) and B (β) only, C and D their copies: their letters (pdbx_poly_seq_scheme) and helices (struct_conf, label_seq_id); the hemes are molecules the view writes, their atoms and contacts checked here; coordinates, waters and phosphates dropped',
       derived: `the hemes' contacting residues per pair of units (heavy atoms within ${ContactDistance} Å) are code (src/globins/hemes.ts), checked against the entry here`,
       bytesDownloaded: bytesOf(cif),
       bytesFixture: bytesOf(written.hb),
@@ -585,7 +597,7 @@ async function antibody(): Promise<Row[]> {
   const day = new Date().toISOString().slice(0, 10);
   const cifUrl = `https://files.rcsb.org/download/${FabEntry}.cif`;
   const cif = await fetchText(cifUrl, 'text/plain', `${FabEntry}.cif`);
-  const chains = fabChains(cif);
+  const chains = fabChains(await readCif(cif));
   const pdbId = `pdb_0000${FabEntry.toLowerCase()}`;
   const entryUrl = `${SabdabApi}/pdb/${pdbId}`;
   const entryText = await fetchText(entryUrl, 'application/json', 'sabdab-entry.json');
@@ -678,12 +690,95 @@ async function antibody(): Promise<Row[]> {
   ];
 }
 
-const Datasets: Readonly<Record<string, () => Promise<Row[]>>> = { p53, globins, plasmid, trna, complex, antibody };
+/**
+ * Files written from an mmCIF as `record-structures.ts` committed it (no fetch here: one file, read by both), checked
+ * against its recorded checksum; each file's row says what was kept.
+ */
+async function fromStructure(
+  id: string,
+  entry: string,
+  files: (cif: Cif) => [file: string, out: string, trimmed: string][],
+): Promise<Row[]> {
+  const entries = JSON.parse(readFileSync(join(Folder, 'fixtures/structures/sources.json'), 'utf8')) as {
+    file: string;
+    url: string;
+    recorded: string;
+    sha256Inflated: string;
+  }[];
+  const recorded = entries.find((e) => e.file === `structures/${id}.cif.gz`)!;
+  const text = gunzipSync(readFileSync(join(Folder, 'fixtures', recorded.file)));
+  if (sha256(text) !== recorded.sha256Inflated) throw new Error(`${recorded.file} is not the file recorded`);
+  const cif = await readCif(text);
+  return files(cif).map(([file, out, trimmed]) => {
+    writeFileSync(join(Folder, 'fixtures', file), out);
+    return {
+      file,
+      entry,
+      url: recorded.url,
+      recorded: recorded.recorded,
+      licence: ['CC0-1.0'],
+      attribution: `wwPDB, PDB ${id}, CC0`,
+      trimmed,
+      derived: 'none',
+      bytesDownloaded: text.length,
+      bytesFixture: bytesOf(out),
+      sha256Download: recorded.sha256Inflated,
+      sha256Fixture: sha256(out),
+    };
+  });
+}
+
+/** p53's structure: PDB 2OCJ's entity as `seq`, the fake structure viewer's chain table (`p53/structure-record.ts`). */
+const p53Structure = () =>
+  fromStructure(
+    '2OCJ',
+    'PDB 2OCJ, the human p53 core domain, four chains (Wang, Rosengarth, Luecke 2007), mmCIF',
+    (cif) => [
+      [
+        'p53/2OCJ.seq',
+        structureSeq(cif),
+        'the one polymer entity (P04637 94–312): its canonical letters (entity_poly) and chain A’s helices and strands (struct_conf, struct_sheet_range, label_seq_id) as ranges; coordinates, waters and zinc dropped',
+      ],
+      [
+        'p53/2OCJ-chains.json',
+        chainTableJson(chainTable(cif, '2OCJ')),
+        'the fake structure viewer’s chain table: every chain instance but the waters (struct_asym), its residues’ label and author numbers, components and whether modeled (pdbx_poly_seq_scheme, pdbx_nonpoly_scheme, atom_site of model 1); coordinates dropped',
+      ],
+    ],
+  );
+
+/** The Antibody's Fc: PDB 3AVE's Fc entity as `seq` (its glycans, links and units: `antibody/fc-glycan.ts`). */
+const antibodyStructure = () =>
+  fromStructure(
+    '3AVE',
+    'PDB 3AVE, a fucosylated human IgG1 Fc with its N297 glycans (Matsumiya et al. 2007), mmCIF',
+    (cif) => [
+      [
+        'antibody/3AVE.seq',
+        structureSeq(cif, FcSystem),
+        'the Fc entity (IGHG1_HUMAN P01857 108–330): its canonical letters (entity_poly) and chain A’s helices and strands (struct_conf, struct_sheet_range, label_seq_id) as ranges; coordinates, glycans, zinc and waters dropped (the glycans, links and units are code, checked against the entry by the tests)',
+      ],
+    ],
+  );
+
+const Datasets: Readonly<Record<string, () => Promise<Row[]>>> = {
+  p53,
+  'p53-structure': p53Structure,
+  'antibody-structure': antibodyStructure,
+  globins,
+  plasmid,
+  trna,
+  complex,
+  antibody,
+};
+
+/** A dataset's fixtures folder, when not its name. */
+const Folders: Readonly<Record<string, string>> = { 'p53-structure': 'p53', 'antibody-structure': 'antibody' };
 
 async function main(name: string | undefined) {
   if (!name || !Datasets[name]) throw new Error(`usage: record.ts ${Object.keys(Datasets).join(' | ')}`);
   const rows = await Datasets[name]();
-  const file = join(Folder, 'fixtures', name, 'sources.json');
+  const file = join(Folder, 'fixtures', Folders[name] ?? name, 'sources.json');
   let existing: Row[] = [];
   try {
     existing = JSON.parse(readFileSync(file, 'utf8')) as Row[];

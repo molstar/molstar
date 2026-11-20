@@ -6,7 +6,7 @@
 
 import { categoryColumn } from '@molstar/core/repr/tree';
 import { encodeSeq, inlineSeq, type SeqData } from '@molstar/seqx-core/data';
-import { cifRows } from '../files/cif.js';
+import { type Cif, cifRows } from '../files/cif.js';
 import type { Chain, Labels } from './numbering.js';
 
 // What the record script keeps (`scripts/record.ts antibody`): PDB 1N8Z's light and heavy chains (A, B) as FASTA, their
@@ -24,7 +24,7 @@ export const FabChains: Readonly<Record<Chain, { readonly asym: string; readonly
 };
 
 /** The two chains' letters and the entities' descriptions, as the entry's `_entity_poly` and `_entity` give them. */
-export function fabChains(cif: string): Record<Chain, { readonly letters: string; readonly description: string }> {
+export function fabChains(cif: Cif): Record<Chain, { readonly letters: string; readonly description: string }> {
   const entities = new Map(cifRows(cif, '_entity').map((r) => [r.id, r.pdbx_description]));
   const poly = cifRows(cif, '_entity_poly');
   const of = (asym: string) => {

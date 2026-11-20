@@ -16,6 +16,8 @@ import { derive, mutualInformation } from '../trna/derive.js';
 import { writeDerived } from '../trna/generated.js';
 import {
   covariationGrid,
+  ModifiedCompounds,
+  ModifiedResidues,
   MoleculeFile,
   PairsFile,
   Pairs,
@@ -25,7 +27,8 @@ import {
   TrnaLength,
   TrnaLetters,
 } from '../trna/data.js';
-import { cifRows, kindOfSaenger } from '../trna/record-trim.js';
+import { readCif } from '../../scripts/cif.js';
+import { kindOfSaenger } from '../trna/record-trim.js';
 
 // The tRNA fixtures (examples.md, tRNA): what the recorder wrote is what the dataset's code holds, its checksums are
 // the sources file's, the Rfam seed is as large as it was recorded, and what is computed from them is what is committed
@@ -59,6 +62,10 @@ describe('the tRNA fixtures', () => {
     expect(field(r, 'category').every((p: string, k: number) => p === letters[r.start[k]])).toBe(true);
     expect(letters.slice(33, 36)).toBe('GAA');
     expect(decodeSeq(text(MoleculeFile)).data!.coverage.systems[0].name).toBe(SystemName);
+    // the sequence's `modified` table the views write is the file's: each component at its position, its parent the letter
+    expect(ModifiedResidues.map((m) => m[0])).toEqual(Array.from(r.start as Int32Array));
+    expect(ModifiedResidues.map((m) => m[1])).toEqual(field(r, 'label'));
+    for (const [p, code] of ModifiedResidues) expect(ModifiedCompounds[code].parent).toBe(letters[p]);
   });
 
   it('the pairs the code holds are the file’s: 27, six tertiary, the kinds from the entry’s own classes', () => {
@@ -227,7 +234,7 @@ describe('mutual information', () => {
   });
 });
 
-describe('the mmCIF reader', () => {
+describe('the record scripts’ mmCIF reader (`@molstar/io`’s parser)', () => {
   const cif = [
     'data_x',
     '_entity_poly.entity_id 1',
@@ -247,7 +254,9 @@ describe('the mmCIF reader', () => {
     '#',
   ].join('\n');
 
-  it('reads a category of items and a loop, quoted values and text blocks', () => {
+  it('reads a category of items and a loop, quoted values and text blocks, `.` and `?` as written', async () => {
+    const parsed = await readCif(cif);
+    const cifRows = (_: string, c: string) => parsed.rows(c);
     const e = cifRows(cif, '_entity_poly')[0];
     expect(e.pdbx_seq_one_letter_code_can).toBe('GCGA');
     expect(e.pdbx_seq_one_letter_code).toBe('GC(2MG)A');

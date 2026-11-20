@@ -17,6 +17,7 @@ import { AxisTransform, type Viewport } from '../axis.js';
 import { fontSize, type RenderConfig } from '../config.js';
 import { Anchor, grown, NoColor, type PassName, type PassWriter } from '../draw-lists.js';
 import type { LettersLay } from '../letters.js';
+import { cutLabel, longestCut } from '../range-labels.js';
 import { elide, type TextMetrics } from '../text.js';
 import { wellCorners } from '../wells.js';
 import type { SectionLayout } from '../tracks.js';
@@ -95,9 +96,22 @@ export function chipSlots(
   return slots;
 }
 
-/** A chip's label as its pill shows it in a slot of `slot` px: elided past the slot less its padding. */
+/**
+ * A chip's label as its pill shows it in a slot of `slot` px (less its padding), by the one rule of a label inside a mark
+ * (`labelsInside`'s, layouts.md): whole; else cut with an ellipsis keeping at least `labels.minChars` letters (a label
+ * of so many or fewer only whole); else none, the pill without text (its label in the label row and its card).
+ */
 export function chipText(text: TextMetrics, config: RenderConfig, label: string, slot: number): string {
-  return elide(text, config.labelFont, label, slot - 2 * BlockMetrics.chipPad);
+  return fitLabel(text, config, label, slot - 2 * BlockMetrics.chipPad);
+}
+
+/** A label in `w` px by the rule of a label inside a mark: whole, cut keeping `labels.minChars` letters, or ''. */
+function fitLabel(text: TextMetrics, config: RenderConfig, label: string, w: number): string {
+  if (text.measure(config.labelFont, label) <= w) return label;
+  const minChars = config.labels.minChars;
+  if (label.length <= minChars) return '';
+  const cut = longestCut(text, config.labelFont, label, w, Math.max(1, minChars));
+  return cut ? cutLabel(label, cut) : '';
 }
 
 /**
@@ -480,8 +494,11 @@ export function placeBlocks(section: ResolvedSection, ctx: PlaceContext, prev?: 
       const i = strips.add(a, b, 0, 0, o);
       if (chip) strips.chip[i] = 1;
       p.labels[i] = block.label;
-      // a label that does not fit its block is elided, or dropped when nothing of it does
-      p.shown[i] = elide(ctx.text, config.labelFont, block.label, chip ? Math.min(a.width, slots[b]) : a.width);
+      // a label that does not fit its block is elided, or dropped when nothing of it does; a chip's by the pill's rule
+      // (whole, or cut keeping `labels.minChars` letters, or none)
+      p.shown[i] = chip
+        ? fitLabel(ctx.text, config, block.label, Math.min(a.width, slots[b]))
+        : elide(ctx.text, config.labelFont, block.label, a.width);
       strips.top[i] = rowTop;
       strips.height[i] = rows;
       let by = rowTop + p.labelRow;

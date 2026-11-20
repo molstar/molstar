@@ -34,6 +34,8 @@ export interface MoleculesOptions {
   readonly sites?: boolean;
   /** Pairs within the Fc chain on its molecule (no unit named): a pairs track, drawn on each copy split. */
   readonly within?: boolean;
+  /** The section's letters layer's `color` (a theme form). */
+  readonly color?: Node;
 }
 
 /** The Fc chains' unit ids: `A`, `B`, … */
@@ -119,7 +121,11 @@ export function moleculesSpec(o: MoleculesOptions = {}): Node {
         if (o.atpForm)
           for (const id of [...ids, 'g', 'l', 'n'])
             s.block(id, { of: units[id] as never, ...(id === 'l' ? { form: o.atpForm } : {}) });
-        s.track('letters').layer('letters', { type: 'letters', ...(o.modified ? { modified: o.modified } : {}) });
+        s.track('letters').layer('letters', {
+          type: 'letters',
+          ...(o.modified ? { modified: o.modified } : {}),
+          ...(o.color ? { color: o.color } : {}),
+        });
         if (o.sites) s.track('sites').layer('sites', { type: 'ranges', data: '/data/c/links' as never });
         if (within) s.track('within').layer('within', { type: 'pairs', data: within });
         if (o.layout !== 'text' && o.links !== false)

@@ -8,9 +8,11 @@ import { createSeqContext } from '@molstar/seqx-core/context/default';
 import { SeqRuntime } from '@molstar/seqx-core/data';
 import { AlignmentFileRuntime } from '@molstar/seqx-core/data/alignment-readers';
 import { theme } from '@molstar/seqx-core/lang';
+import { evaluateQuery, partOf } from '@molstar/seqx-core/query';
 import {
   DarkTokens,
   type GridLay,
+  type LettersLay,
   LightTokens,
   type PairsLay,
   type RangesLay,
@@ -21,7 +23,8 @@ import {
 import { TrnaViews } from '@molstar/seqx-examples';
 import { nodeFixtureAssets } from '@molstar/seqx-examples/node-assets';
 import { DerivedData } from '@molstar/seqx-examples/trna/derived-data';
-import { without } from '@molstar/seqx-examples/trna/trna';
+import { ModifiedResidues } from '@molstar/seqx-examples/trna/data';
+import { ModifiedRef, without } from '@molstar/seqx-examples/trna/trna';
 import type { UiHistory } from '@molstar/seqx-viewer/ui-history';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -137,6 +140,45 @@ describe('tRNA: 1EHZ’s arcs against its anchors', () => {
       expect(other.svg).not.toBe(r.svg);
       ctx.retire();
     });
+});
+
+describe('tRNA: 1EHZ’s modified residues marked and found', () => {
+  /** The modified positions the letters lay marks (its `mods`: x0, x1 and the row of the sequence's table). */
+  const marked = (v: SeqViewer) => {
+    const track = v.frame!.layout.sections[0].tracks.find((t) => t.track.label === '1EHZ')!;
+    const lay = track.layers.find((l) => l.type.name === 'letters')!.lay as LettersLay;
+    const out: number[] = [];
+    for (let i = 0; i + 2 < lay.mods.length; i += 3) out.push(ModifiedResidues[lay.mods[i + 2]][0]);
+    return out;
+  };
+
+  it('every modified position in view has its mark, at the fit view and in a window its edges cut', async () => {
+    viewer = await openExample(trna('arcs'), { gene: '' });
+    expect(marked(viewer)).toEqual(ModifiedResidues.map((m) => m[0]));
+    viewer.view.setRange('/views/main/trna', 30.5, 50.5);
+    await vi.advanceTimersByTimeAsync(50);
+    viewer.draw();
+    // 31 (OMC32) cut by the left edge, 48 (5MC49) and 49 by the right one: those in view, the cut ones included
+    const within = ModifiedResidues.map((m) => m[0]).filter((p) => p + 1 > 30.5 && p < 50.5);
+    expect(marked(viewer)).toEqual(within);
+  });
+
+  it('found by query: the bookmark’s `(elements :modified true)` is the 14 positions (the sequence’s table alone: no letters read)', async () => {
+    viewer = await openExample(trna('arcs'), { gene: '' });
+    expect(viewer.addresses.refs.value.map((r) => [r.id, r.to])).toEqual([[ModifiedRef.id, [ModifiedRef.to]]]);
+    const spec = viewer.spec.shown.value;
+    const model = viewer.spec.model.value;
+    const run = (address: string) => {
+      const r = evaluateQuery(spec, model, address, { limit: 100 });
+      return r.result?.type === 'location'
+        ? Array.from(partOf(r.result.location, '/data/trna')?.ranges ?? [])
+        : r.issues;
+    };
+    const runs = run(ModifiedRef.to as string) as number[];
+    const positions: number[] = [];
+    for (let k = 0; k < runs.length; k += 2) for (let i = runs[k]; i < runs[k + 1]; i++) positions.push(i);
+    expect(positions).toEqual(ModifiedResidues.map((m) => m[0]));
+  });
 });
 
 describe('tRNA: the arcs’ legend and the modified residues’ codes', () => {
@@ -264,6 +306,49 @@ describe('tRNA: the seed row and the seed', () => {
     const items = legend.entries.kind === 'swatches' ? legend.entries.items.map((i) => i.label) : [];
     expect(items).toContain('U');
     expect(items).not.toContain('T');
+  });
+});
+
+describe('tRNA: the seed’s SS_cons arcs over its columns', () => {
+  /** Each drawn arc's pair, by its columns: `i-j`. */
+  const drawn = (lay: PairsLay) => {
+    const d = lay.prep!.data!;
+    return Array.from({ length: lay.n }, (_, k) => `${d.aStart[lay.pair[k]]}-${d.bStart[lay.pair[k]]}`).sort();
+  };
+  const all = DerivedData.seedPairs.map(([i, j]) => `${i}-${j}`).sort();
+
+  it('every SS_cons pair an arc at the fit view; in a window its edges cut, those reaching it', async () => {
+    viewer = await openExample(trna('seed'), { gene: '' });
+    const v = viewer;
+    expect(v.frame!.layout.issues).toEqual([]);
+    expect(all).toHaveLength(21);
+    expect(drawn(arcsOf(v))).toEqual(all);
+    v.view.setRange('/views/main/family', 30.5, 60.5);
+    await vi.advanceTimersByTimeAsync(50);
+    v.draw();
+    // an arc with an end in view, or over the whole window (its span crosses it)
+    const want = DerivedData.seedPairs
+      .filter(([i, j]) => i < 60.5 && j + 1 > 30.5)
+      .map(([i, j]) => `${i}-${j}`)
+      .sort();
+    expect(want.length).toBeLessThan(all.length);
+    expect(drawn(arcsOf(v))).toEqual(want);
+  });
+
+  it('with 1EHZ below: a column’s hover reaches its residue; 1EHZ’s anticodon stem residue reaches its column', async () => {
+    viewer = await openExample(trna('seed-chain'), { gene: '' });
+    const v = viewer;
+    expect(v.frame!.layout.issues).toEqual([]);
+    const owner = {};
+    // 1EHZ's first residue sits on column columns[0]; its partner's column the pair's other end
+    const c0 = DerivedData.columns[0];
+    v.hover.set({ section: '/views/main/family', system: '/data/seed', position: c0 }, owner);
+    const on = v.hover.projectedAll()!.parts.find((q) => q.system === '/data/trna');
+    expect(Array.from(on!.ranges)).toEqual([0, 1]);
+    v.hover.set({ section: '/views/main/ehz', system: '/data/trna', position: 0 }, owner);
+    const col = v.hover.projectedAll()!.parts.find((q) => q.system === '/data/seed');
+    expect(Array.from(col!.ranges)).toEqual([c0, c0 + 1]);
+    v.hover.clear(owner);
   });
 });
 

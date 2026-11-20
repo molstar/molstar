@@ -18,6 +18,7 @@ import {
   BlockMetrics,
   bundledTextMetrics,
   DarkTokens,
+  DefaultRenderConfig,
   drawListsToSvg,
   type Frame,
   LightTokens,
@@ -319,7 +320,7 @@ describe('a pill on a ring', () => {
 });
 
 describe('the chips’ floor', () => {
-  it('many chips take at most half the width, shrunk to no less than the least, their labels elided', async () => {
+  it('many chips take at most half the width, shrunk to no less than the least, their labels whole, cut keeping `minChars` letters, or none', async () => {
     const ligands = Array.from({ length: 12 }, (_, k) => `Ligand number ${k}`);
     const s = await settle(chipsSpec({ ligands }));
     const f = await s.frame({ size: Size });
@@ -335,14 +336,34 @@ describe('the chips’ floor', () => {
     expect(sum).toBeLessThanOrEqual(axis.width / 2 + 1e-6);
     // the polymers keep the rest
     expect(p.strips.axes[0].width + p.strips.axes[1].width).toBeGreaterThan(axis.width / 2 - 0.25 * axis.width);
-    // each pill's label fits its slot (elided), never past it
+    // each pill's label fits its slot, never past it; a cut keeps at least `labels.minChars` letters (layouts.md)
     for (const l of texts(f, 'data')) {
       const w = Number(/ width ([\d.]+)/.exec(l)![1]);
       const max = Number(/ max ([\d.]+)/.exec(l)![1]);
       expect(w).toBeLessThanOrEqual(max);
+      const t = /^text "([^"]*)"/.exec(l)![1];
+      if (t.endsWith('…')) expect(t.length - 1).toBeGreaterThanOrEqual(DefaultRenderConfig.labels.minChars);
     }
-    expect(texts(f, 'data').some((l) => l.includes('…'))).toBe(true);
   });
+
+  // a pill's label follows the rule of a label inside a mark (labelsInside's): whole, or cut keeping `minChars` letters,
+  // or none (the pill alone, its label in the label row); never a cut of fewer, at any width, canvas and SVG alike
+  for (const width of [560, 1400])
+    it(`at ${width} px, seven chips: every pill's text whole or kept to at least \`minChars\` letters, the SVG the same`, async () => {
+      const ligands = ['ATP', '2AN', 'PYZ', '4SP', 'Staurosporine', 'LZ1 analogue', 'B49'];
+      const s = await settle(chipsSpec({ ligands }));
+      const f = await s.frame({ size: { width, height: Size.height } });
+      const pills = texts(f, 'data').map((l) => /^text "([^"]*)"/.exec(l)![1]);
+      for (const t of pills) {
+        if (t.endsWith('…')) expect(t.length - 1, t).toBeGreaterThanOrEqual(DefaultRenderConfig.labels.minChars);
+        else expect(ligands, t).toContain(t);
+      }
+      // the short codes are whole or not drawn: never "AT…" or "2…"
+      expect(pills.filter((t) => /^.{1,3}…$/.test(t))).toEqual([]);
+      const svg = drawListsToSvg(f.lists);
+      for (const t of pills) expect(svg).toContain(`>${t}<`);
+      expect(svg).not.toMatch(/>[^<]{1,3}…</);
+    });
 });
 
 describe('the pill', () => {

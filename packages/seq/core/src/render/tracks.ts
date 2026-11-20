@@ -560,7 +560,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
           out.push(l);
           if (type.name === 'letters' && strips.chip[i]) {
             const ll = l.lay as LettersLay;
-            if (ll.chip !== '' && ll.n > 0) pill = true;
+            if (ll.isChip && ll.chip !== '' && ll.n > 0) pill = true;
           }
         }
       }

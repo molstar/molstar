@@ -15,9 +15,10 @@ export default meta;
 
 /**
  * tRNA-Phe (PDB 1EHZ, chain A): its 27 base pairs as arcs over the letters, the four stems nested and the six tertiary
- * pairs among them (four cross the stems' pairs), colored by kind (canonical, wobble, non-canonical); its 14 modified residues as their parent
- * letters with their codes in a track. Hover a base: the arc to its partner lights. Click an arc: both bases are
- * selected. Pan: an arc whose end leaves the window moves continuously. Editing: hide the tertiary pairs (a filter by
+ * pairs among them (four cross the stems' pairs), colored by kind (canonical, wobble, non-canonical); its 14 modified
+ * residues (11 components) as their parent letters, each with a dot at its cell's top right (hover: `U · PSU` and its
+ * name), their codes also in a track; the bookmarks list's “Modified residues” runs `(elements :modified true)` and
+ * highlights the 14. Hover a base: the arc to its partner lights. Click an arc: both bases are selected. Pan: an arc whose end leaves the window moves continuously. Editing: hide the tertiary pairs (a filter by
  * that field in the arcs' `data`, a patch).
  */
 export const Arcs: StoryObj = { render: () => exampleStory(view('arcs')) };
@@ -40,10 +41,16 @@ export const DotPlot: StoryObj = { render: () => exampleStory(view('dot-plot')) 
 export const SeedRow: StoryObj = { render: () => exampleStory(view('seed-row')) };
 
 /**
- * Rfam RF00005's seed, 954 rows of 118 columns, under its conservation logo. The `SS_cons` arc and the link from
- * 1EHZ's residues need a pairs node and a map on an alignment's columns, which the language does not have yet.
+ * Rfam RF00005's seed, 954 rows of 118 columns: its `SS_cons` pairs as arcs over its columns (the four stems), its
+ * conservation logo, its rows. Hover a column: the arcs ending in it light.
  */
 export const Seed: StoryObj = { render: () => exampleStory(view('seed')) };
+
+/**
+ * The seed with its `SS_cons` arcs and 1EHZ's letters below, mapped onto the columns through the seed row of highest
+ * identity (a `segments` map). Hover an arc: its two 1EHZ residues light; hover a residue: its column and its arcs.
+ */
+export const SeedAndChain: StoryObj = { render: () => exampleStory(view('seed-chain')) };
 
 /** The dot plot at 4,000 × 4,000: a generated grid, the plot alone, at the frame target. */
 export const DotPlotScale: StoryObj = { render: () => exampleStory(TrnaScaleView) };

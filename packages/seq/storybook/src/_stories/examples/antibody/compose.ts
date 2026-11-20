@@ -5,7 +5,9 @@
  */
 
 import type { Patch } from '@molstar/core/repr/patch';
+import { resolveAddress } from '@molstar/core/repr/tree';
 import { cdrAddress, wildType } from '@molstar/seqx-examples/antibody/data';
+import { glycanFormPatch } from '@molstar/seqx-examples/antibody/fc-glycan';
 import type { Chain } from '@molstar/seqx-examples/antibody/numbering';
 import { RulerLayer, rulerLabel } from '@molstar/seqx-examples/antibody/schemes';
 import { findNumbering } from '@molstar/seqx-core/query';
@@ -96,3 +98,18 @@ export const remove = (s: EditingSession, id: string) =>
 /** The bookmarks as the spec holds them: id, label, color. */
 export const bookmarks = (s: EditingSession) =>
   s.viewer.addresses.refs.value.map((r) => ({ id: r.id, label: r.label, color: r.color }));
+
+/** The Fc glycans' form as the spec has it (`whole` when the block writes none). */
+export function glycanForm(s: EditingSession): 'whole' | 'residues' {
+  const block = resolveAddress(s.viewer.spec.root.value, ['views', 'main', 'fc', 'C']);
+  return (block?.params?.form as 'whole' | 'residues' | undefined) ?? 'whole';
+}
+
+/** The Fc glycans as chips or by their residues: one patch (the glycan block's `form`). */
+export async function toggleGlycanForm(s: EditingSession): Promise<string> {
+  const next = glycanForm(s) === 'whole' ? 'residues' : 'whole';
+  const editing = s.viewer.behaviors.get('editing') as EditingBehavior;
+  if (!editing.preview(glycanFormPatch(next))) return 'Refused';
+  await editing.endPreview(next === 'residues' ? 'The glycans by their residues' : 'The glycans as chips');
+  return next === 'residues' ? 'Residues' : 'Chips';
+}

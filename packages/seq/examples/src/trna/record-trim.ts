@@ -6,14 +6,11 @@
 
 import { categoryColumn } from '@molstar/core/repr/tree';
 import { encodeSeq, inlineSeq, type SeqData } from '@molstar/seqx-core/data';
-import { cifRows } from '../files/cif.js';
+import { type Cif, cifRows } from '../files/cif.js';
 
 // What the record script keeps of PDB 1EHZ's mmCIF (`scripts/record.ts trna`): chain A's sequence, its modified residues
 // and the entry's own base-pair table (`ndb_struct_na_base_pair`), nothing renamed. Kept here, in the package's
 // sources, so a unit test holds the rules; the script imports them.
-
-/** The mmCIF reader the record scripts share (here for the tests that read it from this module). */
-export { cifRows };
 
 /**
  * The six tertiary pairs of the structure (1-based): those outside the cloverleaf's four stems that hold the L-shape
@@ -57,7 +54,7 @@ export interface Trimmed {
 }
 
 /** Chain A's canonical sequence (parent letters), its modified residues and its base pairs, from the entry's text. */
-export function trimEntry(cif: string, chain = 'A'): Trimmed {
+export function trimEntry(cif: Cif, chain = 'A'): Trimmed {
   const poly = cifRows(cif, '_entity_poly')[0];
   const letters = poly.pdbx_seq_one_letter_code_can.replaceAll(/\s/g, '');
   const modified = cifRows(cif, '_pdbx_struct_mod_residue')

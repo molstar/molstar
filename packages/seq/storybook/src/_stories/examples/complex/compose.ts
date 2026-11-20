@@ -5,12 +5,13 @@
  */
 
 import type { Patch } from '@molstar/core/repr/patch';
-import type { Node } from '@molstar/core/repr/tree';
+import { type Node, resolveAddress } from '@molstar/core/repr/tree';
 import { Data, entryLigands, ligand } from '@molstar/seqx-examples/complex/data';
 import { hiddenData, ligandId } from '@molstar/seqx-examples/complex/ligands';
 import { plddtColor } from '@molstar/seqx-examples/complex/confidence';
 import type { Wanter } from '@molstar/seqx-core/data';
 import { readoutWants, rectReadout } from '@molstar/seqx-examples/complex/readout';
+import { atpFormPatch } from '@molstar/seqx-examples/complex/units';
 import type { EditingBehavior } from '@molstar/seqx-viewer/behaviors/editing';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import type { EditingSession } from '../../features/editing/compose.js';
@@ -123,3 +124,18 @@ export function readout(viewer: SeqViewer): { readonly rect: string } {
 
 /** The data the views hold, for a story's text (the chains, their copies). */
 export const ComplexData = Data;
+
+/** The complex's first ATP form as the spec has it (`whole` when the block writes none). */
+export function atpForm(s: EditingSession): 'whole' | 'atoms' {
+  const block = resolveAddress(s.viewer.spec.root.value, ['views', 'main', 'complex', 'atp-a']);
+  return (block?.params?.form as 'whole' | 'atoms' | undefined) ?? 'whole';
+}
+
+/** The complex's first ATP as a chip or by its heavy atoms: one patch (its block's `form`). */
+export async function toggleAtpForm(s: EditingSession): Promise<string> {
+  const next = atpForm(s) === 'whole' ? 'atoms' : 'whole';
+  const editing = s.viewer.behaviors.get('editing') as EditingBehavior;
+  if (!editing.preview(atpFormPatch(next))) return 'Refused';
+  await editing.endPreview(next === 'atoms' ? 'ATP by its atoms' : 'ATP as a chip');
+  return next === 'atoms' ? 'Atoms' : 'Chip';
+}
