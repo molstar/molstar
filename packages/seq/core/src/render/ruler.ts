@@ -23,7 +23,7 @@ import { type Box, type Emphasis, type Hit, type LayerType, type LayoutContext, 
 import { readSourceNumbering } from './numberings.js';
 import { mutedInk, type SeqTokens, withAlpha } from './tokens.js';
 
-// the anchor a number read once (see ranges.ts)
+// the anchor a number read once (see ranges-draw.ts)
 const AnchorMiddle: number = Anchor.middle;
 const AnchorStart: number = Anchor.start;
 

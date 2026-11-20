@@ -17,7 +17,7 @@ import { dataRegions, type LayerSource, layerLevel, placeholderSpans, readTiles,
 import type { FilterRow, RowFilter } from './filter.js';
 import type { Box, Hit, ItemDescription, LayoutContext, StoreReader } from './layer-type.js';
 import { breakHit } from './marks.js';
-import { addToStrip, paintStrip, resetStrip, type StripBuffers } from './ranges.js';
+import { addToStrip, paintStrip, resetStrip, type StripBuffers } from './ranges-density.js';
 import { sectionId } from './layer-type.js';
 import type { SeqTokens } from './tokens.js';
 

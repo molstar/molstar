@@ -1415,8 +1415,8 @@ the UX foundations' numbers, CSS px, settled by the foundation stories; where no
 
 ### Emphasis
 
-`Emphasis` (`layer-type.ts`), drawn by the view (`tracks.ts`) in the emphasis passes, a strip at a time in its frame
-through its warp (Section layouts), over the strip's **band column** (its bands and the gaps between them;
+`Emphasis` (`layer-type.ts`), drawn by the view (`tracks-emphasis.ts`) in the emphasis passes, a strip at a time in its
+frame through its warp (Section layouts), over the strip's **band column** (its bands and the gaps between them;
 `SectionLayout.columns`, in tracks `SectionLayout.band`; the shape `column`, the default) or over each band's box
 (`tracks`), `emphasis.selectionShape`, on the strip's transform and system. Why `column` by default: a selection is of
 positions, not of a track, and one band reads as one selection; why a strip: the selection is one look in every layout
@@ -1515,6 +1515,11 @@ no layout named: `used?(lay)` (the height it used on the strip, 0 for nothing; t
 collapses a band no layer used, and only the layer knows its lanes), `scope` (`strip`, the default, laid out a strip at
 a time; `section`, once a section, drawn in page coordinates: what crosses strips), `axes` (2: a second axis of its own,
 the y path in Emphasis).
+
+- **The ranges layer's modules**: `render/ranges.ts` (the layer type: its prepared form, lanes and marks, hit, legend)
+  and beside it, a concern each, `ranges-lay.ts` (what it keeps), `ranges-content.ts` (its content: Track heights),
+  `ranges-beside.ts` (labels beside), `ranges-draw.ts`, `ranges-density.ts` (the heat strip) and `ranges-theme.ts` (its
+  channels).
 
 - **Channels a type reads** ("Themes"): `letters` `color` (the alphabet's scheme by default) and `ink`; `ranges`
   `color`, `size` (a share of the lane, the mark shrunk about its middle, its lane and hit box kept: EC-137) and
@@ -1980,6 +1985,11 @@ numbers): a window move allocates nothing once warm.
 
 ### Tracks layout
 
+- **Its modules**: `render/tracks.ts` (the layout pass, `layoutView`, and the public names) and beside it, a concern
+  each, `tracks-types.ts` (its input, its layouts, `LayoutState`), `tracks-axes.ts` (a section's axis, a follower's),
+  `tracks-cache.ts` (a section's reuse), `tracks-strips.ts`, `tracks-columns.ts` (the label column),
+  `tracks-templates.ts`, `tracks-heights.ts` (Track heights), `tracks-draw.ts`, `tracks-emphasis.ts` (Emphasis) and
+  `tracks-hit.ts`.
 - **A cyclic axis's window past its total** (a linear view panned across its origin, `wraps`): the transform takes the
   whole system twice, so the window's units go on over the origin (two runs, no break between); a follower of it wraps
   as of a ring's window.
@@ -2251,8 +2261,11 @@ numbers): a window move allocates nothing once warm.
 
 ### The rows layer
 
-`render/rows.ts` (the layer) and `render/rows-model.ts` (what it computes without drawing: clades, display rows,
-measures, consensus, the profile). An alignment's rows over its columns, its own y inside its band (`axes: 2`).
+`render/rows.ts` (the layer type) and `render/rows-model.ts` (what it computes without drawing: clades, display rows,
+measures, consensus, the profile); beside them, a concern each, `rows-lay.ts` (what the layer keeps, its rows'
+transform), `rows-read.ts` (held, lazy, joined), `rows-cells.ts`, `rows-header.ts` (the tree, labels, numbers),
+`rows-hit.ts`, `rows-draw.ts`, `rows-emphasis.ts` (Emphasis along y), `rows-columns.ts` (Row columns). An alignment's
+rows over its columns, its own y inside its band (`axes: 2`).
 
 - **Data**: the alignment's `cells` on its rows system. Held when rows × columns is within `maxBlockValues` (2^24: the
   10,000 × 300 alignment is held): every tile wanted at level 1 and joined once (kept by the entries' versions); larger
