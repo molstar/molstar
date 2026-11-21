@@ -104,8 +104,10 @@ nothing and tells nothing. Beside `models/view.ts` (the moves and the publish): 
 
 - **The model it resolves over** (`model`): the spec's, or for a spec with a section of a source's complex
   (`opensComplexes`) the opened model over the store's overlay (`StoreModel.overlayOf`, the frame's one a node version;
-  core's Overlay, Opened sources). The view, the frame's renderer, the hover and the highlights read it, so an update
-  reflows the section once a version and a frame or a hover resolves nothing.
+  core's Overlay, Opened sources), keyed as the frame's overlay is: the node version and the runtimes
+  (`StoreModel.runtimes`, the context's; a late extension's set them again). The view, the frame's renderer, the store's
+  sync (a held unit's inline letters attached), the hover, the highlights, the describer (hover card, live region) and
+  copy read it, so an update reflows the section once a version and a frame or a hover resolves nothing.
 - **A viewport** is `{ start, end, top, width, pending, leader?, pieces?, scale?, y? }` (`y`: a grid's own y window):
   `[start, end)` in offsets along the axis in display order (0 at the first position shown), fractional. Why offsets: a
   section's `range`, a cyclic range over the origin, a reversed axis and collapsed pieces read like a whole system; the

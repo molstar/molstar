@@ -1906,8 +1906,10 @@ Overlay, Opened sources), kept per model and view. No data, no dynamic node, no 
   `openedComplex`): resolved over the opened model (Overlay, Opened sources), as a spec's complex, once the source holds
   it; pending before (no block, no issue: an axis of no length, as an assembly before its chunk). An update reflows it
   (a new overlay, a new opened model, the view resolved again: one a node version): a unit dropped leaves its place, an
-  override of it goes with it (over a source's complex a `block` naming no other system is an override, held or not),
-  one gained takes its place. A complex its source no longer holds while it holds other nodes is
+  override of it goes with it (over a source's complex a `block` naming no other system is an override, held or not; its
+  `of` as exact or as the source's address of the unit), one gained takes its place. An override naming a unit no opened
+  model over the spec has held (`StaticModel.heldUnits`) is `seq.view.block.unit` (a warning at the block: a mistyped
+  id); a dropped unit's stays silent. A complex its source no longer holds while it holds other nodes is
   `seq.view.section.complex` (a warning, once, at the section). Why pending, not missing: a source opens later than the
   spec reads, as a genome's chunk lands later. No history entry: data, not an edit of the spec.
 - **A block's form** (`form`): as written, else `whole` for a molecule or a unit of one and `residues` for a sequence or
@@ -2031,9 +2033,9 @@ Overlay, Opened sources), kept per model and view. No data, no dynamic node, no 
   in the code), the row filter (`compileRowFilter` is not exported: a consumer cannot apply a layer's query), the
   complement of a nucleotide on a reversed axis and the item key that drops a range seen in an earlier tile (both spec
   text, read again). Not drawn: a layer behind a path (the maps are public, `projectRanges`; not built).
-- `seq.view.*` (`ViewIssues`): `section.system`, `section.complex`, `layer.type`, `layer.data`, `layer.shape`,
-  `layer.unplaced`, `follow.unplaced`, `section.pieces`, `direction.unresolved`, `direction.mixed` (info); a test checks
-  the catalog.
+- `seq.view.*` (`ViewIssues`): `section.system`, `section.complex`, `block.unit`, `layer.type`, `layer.data`,
+  `layer.shape`, `layer.unplaced`, `follow.unplaced`, `section.pieces`, `direction.unresolved`, `direction.mixed`
+  (info); a test checks the catalog.
 
 ## Render
 

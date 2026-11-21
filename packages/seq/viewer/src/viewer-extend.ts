@@ -32,6 +32,7 @@ function kindsChanged(viewer: SeqViewer, x: ViewerExtensions): void {
   for (const e of x.extended.keys()) spec = e.composeViewer?.(spec) ?? spec;
   viewer.bindings = x.bind(spec);
   viewer.view.setKinds(viewer.context.kinds);
+  viewer.store.setRuntimes(viewer.context.runtimes);
 }
 
 /**

@@ -249,8 +249,10 @@ export class SeqViewer extends ReactiveModel {
     const store = (this.store = new StoreModel(config, { removed: (gone) => this.selection.dropGone(gone) }));
     // a section of a source's complex is resolved over the store's overlay, one a node version (core's _spec
     // "Overlay", Opened sources); a spec without one reads none
-    const overlay = derive([spec.model, store.store.nodeVersion], (m) =>
-      opensComplexes(m) ? store.overlayOf(m, context.runtimes) : EmptyOverlay,
+    // keyed as the frame's overlay: the node version and the runtimes (a late extension's)
+    store.setRuntimes(context.runtimes);
+    const overlay = derive([spec.model, store.store.nodeVersion, store.runtimes], (m) =>
+      opensComplexes(m) ? store.overlayOf(m) : EmptyOverlay,
     );
     const view = (this.view = new ViewModel(spec, config, context.kinds, overlay));
     // a section's moves are its layout's arithmetic over its placement in the last frame (_spec/README.md "ViewModel")
@@ -262,7 +264,7 @@ export class SeqViewer extends ReactiveModel {
       },
       minScale: textMinScale(context.renderConfig),
     });
-    const hover = (this.hover = new HoverModel(spec, view, config));
+    const hover = (this.hover = new HoverModel(view, config));
     this.modelIssues = modelIssuesState(this);
     this.hiddenTracks = hiddenTracksState(spec.model);
     // an element selected by an address and then toggled is drawn by its extent, resolved over what is shown

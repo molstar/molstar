@@ -10,6 +10,7 @@ import { keySet, location } from '@molstar/seqx-core/query';
 import { type Frame, recordDrawLists } from '@molstar/seqx-core/render';
 import { PackageFolder } from '@molstar/seqx-examples/node-assets';
 import type { SeqViewerRegistryEntry } from '@molstar/seqx-viewer/header-entries';
+import { openedModel } from '@molstar/seqx-core/resolve';
 import { HoverCardProvider } from '@molstar/seqx-viewer/behaviors';
 import { DefaultSeqViewerSpec } from '@molstar/seqx-viewer/default-spec';
 import { createSeqViewer, type SeqViewer } from '@molstar/seqx-viewer/viewer';
@@ -342,5 +343,19 @@ describe('Host data: a held unit’s letters, names and copy (the opened model r
     await v.execute('selection.add', { range: { system: unitAddress('A'), start: 10, end: 25 } });
     expect(await v.execute('selection.copy-letters', {})).toBe('Copied 15 letters');
     expect(copied.at(-1)).toBe(letters.slice(10, 25));
+  });
+
+  it('the view’s overlay and the frame’s are one: keyed by the node version and the runtimes alike', async () => {
+    const { v } = await open('fake', hostComplexSpec());
+    const opened = () => openedModel(v.spec.model.value, v.store.currentOverlay(v.spec.model.value));
+    expect(v.view.model.value).toBe(opened());
+    const before = v.view.model.value;
+    // another set of runtimes (a late extension's): another builder, the view re-keyed with it
+    v.store.setRuntimes([...v.context.runtimes]);
+    expect(v.view.model.value).not.toBe(before);
+    expect(v.view.model.value).toBe(opened());
+    // the frame's runtimes (the context's) back: one overlay again, the frame's and the view's
+    v.draw();
+    expect(v.view.model.value).toBe(opened());
   });
 });
