@@ -93,6 +93,17 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   this story (298 × 298 grid) and bound a box drag to the frame budget, 0 bytes warm, in the perf tier. Same family as
   the readout covering the active control above.
 
+- **A selection's boxes on the grid don't meet the cells' edges** (the author, 2026-11-21, Examples › Complex › PAE and
+  contacts › Over the complex, a range selected on cyclin A2's pLDDT: "mis-alignments on the boxes on the PAE plot (see
+  the gaps at the edges)"). From the screenshot: the row band on the cyclin row runs from about x 597 to 1131 while the
+  CDK2 cell spans 600–1128, so it overhangs a few px into the blocks' gap on both sides; the column band's ends and its
+  grip run past the grid's top and bottom; the column and row bands overlap on the cyclin × cyclin cell (double
+  shading). Likely the mirrored box is placed in the grid's whole extent (or with its stroke centred on the edge)
+  rather than clipped to each cell the blocks' gaps cut it into (the story's text promises "a dragged rectangle split
+  at the boundaries"). Each piece is clipped to its cell, its stroke inside, the intersection of a row and a column band
+  drawn once; a twin test (canvas and SVG) that every selection piece's box lies inside its cell's box, at both a block
+  boundary and the grid's outer edge. Not measured in the browser yet: the fix lane measures first.
+
 - **A stacked block repeats tracks that hold nothing for it** (the author, 2026-11-21, Examples › Complex › Blocks ›
   Stacked: "another view with empty tracks"): with `arrange: 'stack'` each block is a row of every track, so the ATP
   block (`complex/blocks.ts:69`, a one-position block drawn as a chip) gets empty Features, Interface and Secondary
