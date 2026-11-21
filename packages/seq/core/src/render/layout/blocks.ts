@@ -61,9 +61,51 @@ export function blockLength(block: ResolvedBlock): number {
  * reads right to left (`chr4 ←`, `axis.directionMark`) and its scale where it is not 1 (`chr17 ×10`).
  */
 export function blockLabel(block: ResolvedBlock, config: RenderConfig): string {
-  const mark = config.axis.directionMark !== 'none' && block.axis.dir === -1 ? ' ←' : '';
+  const l = labelParts(block, config.axis.directionMark !== 'none');
+  return l.whole;
+}
+
+/** A block's label's parts, made once per resolved block and mark setting (a layout builds no string). */
+interface LabelParts {
+  readonly whole: string;
+  /** What is never cut: the direction mark and the scale (` ←`, ` ×10`). */
+  readonly suffix: string;
+  /** Its name cut to `n` letters with the suffix, by `n`: made once. */
+  readonly cuts: string[];
+}
+const Labels = [new WeakMap<ResolvedBlock, LabelParts>(), new WeakMap<ResolvedBlock, LabelParts>()];
+
+function labelParts(block: ResolvedBlock, marked: boolean): LabelParts {
+  const kept = Labels[marked ? 1 : 0];
+  let l = kept.get(block);
+  if (l) return l;
+  const mark = marked && block.axis.dir === -1 ? ' ←' : '';
   const scale = block.scale !== undefined && block.scale !== 1 ? ` ×${+block.scale.toPrecision(3)}` : '';
-  return mark || scale ? `${block.label}${mark}${scale}` : block.label;
+  const suffix = mark + scale;
+  l = { whole: suffix ? `${block.label}${suffix}` : block.label, suffix, cuts: [] };
+  kept.set(block, l);
+  return l;
+}
+
+/** The least letters a block's name keeps when cut (a short name, `chr10`, is whole or hidden: "c…" says nothing). */
+const NameKeep = 6;
+
+/**
+ * A block's label in `w` px (_spec/README.md "Render", Blocks): whole; else its name cut keeping at least
+ * `max(labels.minChars, 6)` letters, its direction mark and scale kept whole after it (`HLA-A*01… ←`); else none (a
+ * label that cannot show its name hides).
+ */
+export function fitBlockLabel(text: TextMetrics, config: RenderConfig, block: ResolvedBlock, w: number): string {
+  const l = labelParts(block, config.axis.directionMark !== 'none');
+  const font = config.labelFont;
+  if (text.measure(font, l.whole) <= w) return l.whole;
+  const keep = Math.max(config.labels.minChars, NameKeep);
+  const name = block.label;
+  if (name.length <= keep) return '';
+  const room = w - (l.suffix ? text.measure(font, l.suffix) : 0);
+  const cut = room > 0 ? longestCut(text, font, name, room, keep) : 0;
+  if (!cut) return '';
+  return l.suffix ? (l.cuts[cut] ??= `${cutLabel(name, cut)}${l.suffix}`) : cutLabel(name, cut);
 }
 
 /** A count as a run's label says it ("2,841 contigs"). */
@@ -638,13 +680,13 @@ export function placeBlocks(section: ResolvedSection, ctx: PlaceContext, prev?: 
       else strips.scale[i] = sc;
       const label = blockLabel(block, config);
       p.labels[i] = label;
-      // a label that does not fit its block is elided, or dropped when nothing of it does; a chip's by the pill's rule
-      // (whole, or cut keeping `labels.minChars` letters, or none); a block in a run has none (the run's label)
+      // a label that does not fit its block is cut keeping its name readable and its mark, else hidden; a chip's by the
+      // pill's rule (whole, or cut keeping `labels.minChars` letters, or none); a block in a run has none (the run's)
       p.shown[i] = chip
         ? fitLabel(ctx.text, config, label, Math.min(a.width, slots[b]))
         : !p.stacked && row.run[b] >= 0
           ? ''
-          : elide(ctx.text, config.labelFont, label, a.width);
+          : fitBlockLabel(ctx.text, config, block, a.width);
       strips.top[i] = rowTop;
       strips.height[i] = rows;
       let by = rowTop + p.labelRow;

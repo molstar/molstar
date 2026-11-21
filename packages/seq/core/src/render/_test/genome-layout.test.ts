@@ -23,8 +23,9 @@ import {
   LightTokens,
   PlacePoint,
   type RingPlacement,
+  renderConfig,
 } from '../index.js';
-import { BlockRow } from '../layout/blocks.js';
+import { BlockRow, fitBlockLabel } from '../layout/blocks.js';
 import { renderSvg } from '../render-svg.js';
 import type { RangesLay } from '../ranges-lay.js';
 import { dna, genomeSpec, MixedFeatures, mixedSpec, toyGenome, twoGenomesSpec } from './genome-fixtures.js';
@@ -93,6 +94,34 @@ describe('a block’s own direction and scale (EC-206)', () => {
     // block 2: 100 positions at scale 3 against block 0's 150 at 1: twice its width
     expect(a[2].width / a[0].width).toBeCloseTo(2, 1);
     expect(p.labels).toEqual(['b0', 'b1 ←', 'b2 ×3', 'b3 ← ×0.5']);
+  });
+
+  it('a label that cannot show its name hides; a cut name keeps its direction mark', async () => {
+    const s = await settle(genomeSpec(toyGenome(25, 0), { reversed: ['chr2'] }));
+    const f = await s.frame({ size: { width: 720, height: 300 } });
+    const p = placementOf(f.layout);
+    const names = new Set(toyGenome(25, 0).map((x) => x.name));
+    names.add('chr2 ←');
+    const shown = p.shown.slice(0, p.strips.n).filter((x) => x !== '');
+    expect(shown.length).toBeGreaterThan(5);
+    for (const l of shown) expect(names.has(l), l).toBe(true);
+    // a long reversed name in a narrow block: cut, its mark kept whole after the cut
+    const m = await settle(
+      mixedSpec([
+        { seq: 0, range: [0, 4000 - 3600], direction: 'reversed' },
+        { seq: 1, range: [0, 300], scale: 30 },
+      ]),
+    );
+    const g = await m.frame({ size: { width: 520, height: 300 } });
+    const q = placementOf(g.layout);
+    expect(q.labels[0]).toBe('b0 ←');
+    const block = g.layout.sections[0].section.blocks![0];
+    const long = { ...block, label: 'HLA-A*01:01:01:01' };
+    const text = bundledTextMetrics();
+    const config = renderConfig();
+    const w = text.measure(config.labelFont, 'HLA-A*01… ←') + 0.5;
+    expect(fitBlockLabel(text, config, long, w)).toBe('HLA-A*01… ←');
+    expect(fitBlockLabel(text, config, { ...block, label: 'chr10' }, 20)).toBe('');
   });
 
   it('draws against the data on a reversed and a scaled block: each feature hit at its place (EC-206)', async () => {
