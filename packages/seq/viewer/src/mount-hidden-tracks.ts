@@ -83,7 +83,23 @@ export function mountHiddenTracks(
       ...(options.menuSide ? { menuSide: options.menuSide } : {}),
     });
   }, host);
+  // the count as a badge on the button (a face's title is read by a tooltip only): shown with a track hidden, so the
+  // button looks different with and without; it takes no room (positioned over the button's corner)
+  const badge = doc.createElement('span');
+  badge.className = 'seqx-hidden-tracks-badge';
+  badge.setAttribute('aria-hidden', 'true');
+  badge.style.cssText =
+    'position: absolute; top: 2px; right: 2px; min-width: 14px; height: 14px; padding: 0 3px; box-sizing: border-box; border-radius: 7px; font: 600 10px/14px var(--msui-font-sans, sans-serif); text-align: center; pointer-events: none; background: var(--msui-accent, #2563eb); color: var(--msui-on-accent, #fff);';
+  host.append(badge);
+  const showCount = (list: readonly unknown[]) => {
+    badge.textContent = list.length ? String(list.length) : '';
+    badge.style.display = list.length ? '' : 'none';
+    host.dataset.count = String(list.length);
+  };
+  showCount(hidden.value);
+  const stop = hidden.listen(showCount);
   return () => {
+    stop();
     dispose();
     host.remove();
   };

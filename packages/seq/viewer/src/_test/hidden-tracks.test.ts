@@ -172,10 +172,14 @@ describe('mountHiddenTracks', () => {
     const off = mountHiddenTracks(v, el);
     expect(button(el).getAttribute('aria-disabled')).toBe('true');
     expect(button(el).getAttribute('aria-label')).toBe('Hidden tracks');
+    const badge = () => el.querySelector<HTMLElement>('.seqx-hidden-tracks-badge')!;
+    expect([badge().textContent, badge().style.display]).toEqual(['', 'none']);
     await v.execute('track.hide', { address: A });
     await v.execute('track.hide', { address: C });
     expect(button(el).getAttribute('aria-disabled')).not.toBe('true');
     expect(button(el).getAttribute('aria-label')).toBe('Hidden tracks (2): show');
+    // the count shows on the button
+    expect([badge().textContent, badge().style.display]).toEqual(['2', '']);
     // taken away by what it returns
     off();
     expect(el.childElementCount).toBe(0);
