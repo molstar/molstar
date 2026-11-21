@@ -29,6 +29,11 @@
   promotion; the fifth slice's plan reconciled with the drafts when written (no BD, SQ or PF lanes; axis.md's tension
   "narrowed"); GTF names indexed beside GFF3's (`runtimes/gff`).
 
+- **BZ's two core changes past the surface accepted** (the author, 2026-11-21: "we don't need to touch prism; we will be
+  rewriting that. the other accept"): core's internal `_inflateMember` export; `ungzip` throws on a truncated gzip
+  instead of returning partial bytes (Mol*'s plugin fetch, core's assets and data source see it; Prism is left as it is,
+  to be rewritten), recorded in `.v6/plans/breaking-v6-changes.md`.
+
 ## Overnight: stage 0 (run by the fourth slice's loop)
 
 The fourth slice's loop runs this while the author sleeps (its `state.md`, Next, points here). The lane limit is the
@@ -87,4 +92,4 @@ fourth slice's) and `briefs/gc1-genome-language.md`, and starts FX1 beside BZ or
 ## In progress
 
 - 2026-11-21: the loop started (`/loop run .seq/execution/fifth-slice/loop.md`). Running (B3): FX1 (fast; started
-  with this commit) and BZ (strong; same). Downloads stay asked before they are made (plan, How this slice runs).
+  with this commit) and BZ (strong; same). Both reported; BZ's reviewer running; FX1's reviewer next. Downloads stay asked before they are made (plan, How this slice runs).
