@@ -84,4 +84,26 @@ describe('the example root’s twin', () => {
     expect(after).not.toBe(before);
     expect(after).toBe(fresh);
   });
+
+  it('Family: a selection set and then cleared is drawn, then gone, by the twin as by the canvas', async () => {
+    const { openExample } = await import('./draw-checks.js');
+    const { GlobinsViews } = await import('@molstar/seqx-examples');
+    const v = (opened = await openExample(GlobinsViews.find((x) => x.id === 'family')!, { fixtures: true }));
+    const host = { innerHTML: '' } as unknown as HTMLElement;
+    const svg = (followed = followSvg(v, host, { prefix: 't' }));
+    await svg.draw();
+    const fresh = async () =>
+      strip((await Promise.all([v.renderSvg({ idPrefix: 't1-' }), vi.advanceTimersByTimeAsync(400)]))[0].svg);
+    const none = strip(host.innerHTML);
+    const system = v.view.resolved.value!.sections[0].axis.system;
+    await v.execute('selection.add', { range: { system, start: 10, end: 30 } });
+    await vi.advanceTimersByTimeAsync(v.config.canvas.settleMs / 2);
+    const selected = strip(host.innerHTML);
+    expect(selected).not.toBe(none);
+    expect(selected).toBe(await fresh());
+    await v.execute('selection.clear', {});
+    await vi.advanceTimersByTimeAsync(v.config.canvas.settleMs / 2);
+    expect(strip(host.innerHTML)).toBe(none);
+    expect(strip(host.innerHTML)).toBe(await fresh());
+  });
 });
