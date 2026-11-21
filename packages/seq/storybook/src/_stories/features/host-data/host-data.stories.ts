@@ -24,6 +24,6 @@ export default meta;
 export const ServedByTheFake: StoryObj = {
   render: () =>
     hostDataStory({
-      hint: 'Seq* shows the B-factors of chains A and D of PDB 2OCJ, read from the fake structure viewer’s memory: no file is read. Click "Drop chain" in the fake: the source reopens a frame later; the listing under it follows, and chain D’s track empties with an issue that says its unit is gone. "Read the file instead" composes the same spec with the default adapter and starts the fake again.',
+      hint: 'Seq* shows the B-factors of chains A and D of PDB 2OCJ, read from the fake structure viewer’s memory: no file is read. The legend under the view says the bars' scale (Å²) and why the tracks end short of the sequence (the data). Click "Drop chain" in the fake: the source reopens a frame later; the listing under it follows, and chain D’s track empties with an issue that says its unit is gone. "Read the file instead" composes the same spec with the default adapter and starts the fake again.',
     }),
 };
