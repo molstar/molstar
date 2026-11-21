@@ -14,8 +14,10 @@ The view, one gene section on the plus strand, in genomic order with the whole f
 collapsed: `pieces: 'whole'`), top to bottom: the ruler; the DNA's letters; the protein's letters a codon wide (through
 a `codon` map with the two coding pieces as exons, as `case14`'s `cds`: 12–46 and 76–105, 0-based half-open; the
 protein translated from them, the stop excluded); the exons as ranges (`Exon 1` 0–46, `Exon 2` 76–120), coloured by
-exon; a domain (residues 5–14, 1-based) through the map, cut at the intron (if the design draws a connector across a
-cut item, it shows; if not, say so in the report — do not invent one); a phosphosite at residue 17 (`pS17`) as a mark
+exon; a domain (residues 5–14, 1-based) through the map, cut at the intron and **joined by a connector** across it
+(axis.md, "An item split by a path is joined by a connector", added by the author 2026-11-21: build it in the `ranges`
+layer if it is not built, in the draw lists so the canvas and the SVG draw it alike; a hit on it is the item's; tests for
+a split item, an item across a collapsed break (no connector) and an item in one run (none)); a phosphosite at residue 17 (`pS17`) as a mark
 (the `variants` layer, or whichever built-in draws a point feature). Labels: DNA, Protein, Exons, Domain, Phosphosite.
 
 Check against the data at the fit view (every residue over its three nucleotides; the intron with no protein letters;

@@ -178,6 +178,12 @@ nothing without a use; the fixed behaviors below are fixed partly so.
   projected hover, a selection, a highlight) lights the break. Why: drawing is checked against the data, and an item in
   view with no mark is a lost item; one tick a lane keeps the marks bounded by the screen.
 - **Marks cut by a break are square there** (the frame rule): a domain across an intron, a projected selection band.
+- **An item split by a path is joined by a connector** (the author, 2026-11-21: "if there's no connector, add one"): an
+  item projected through a path into runs with shown positions between them that the path does not reach (a domain
+  through the codon map over a gene whose intron is shown) draws a hairline at its mid-height, in its colour, from one
+  run's end to the next's start; the runs' ends there stay square. It is part of the item: hovering it is hovering the
+  item, and its emphasis follows the item's. Across a break (zero units wide) nothing is drawn. Why: a gene model's
+  convention, so the pieces read as one item, not as several.
 
 ### Letters through a path
 
