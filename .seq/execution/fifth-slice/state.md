@@ -121,7 +121,7 @@ order:
 2. **GB** (stage 2, after VC): write `briefs/gb-genbank.md` from the plan's GB entry; the genome-formats.md
    "GenBank" section agreed in the brief first; ask before downloading L09137.2's flat file. Strong model.
 3. **Stage 2's GATE** (plan): `pnpm build`, `pnpm check:workspace`, each runtime's size row.
-4. **Stage 1's GATE, the author's**: the novice questions F3, F9, F11, F14, F25 (`fourth-slice/novice-findings.md`),
+4. **Stage 1's GATE, the author's**: the look is done (2026-11-21, every story; findings in `fixes.md`); left: the novice questions F3, F9, F11, F14, F25 (`fourth-slice/novice-findings.md`),
    each a yes or no with a recommendation.
 5. **RG** (stage 3, strong, alone in the store), then FR, LA; GX and RX in stage 4.
 6. **Fix lanes** on Sonnet (Decided; the two class items in `fixes.md`, the hover contract and the empty well, on the strong model) as `fixes.md` gathers items; open now: the hover card (placement, wrapping, the density row's highlight, bare row labels), the navigator's readout covering the control, track sizing with a cap and its own scroll (a design first), the navigator's window and zoom strip (a look design first), the square's sweep without feedback, the palette control (shown where it does nothing, twice, its arrow), the overview cut at the right on a wide page, the tree's leftmost line the 3,000-contig speed (M5).

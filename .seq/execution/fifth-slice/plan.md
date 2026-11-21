@@ -171,7 +171,9 @@ fix point with nothing open is skipped. A finding that needs a design is a drift
       square over blocks × blocks, `navigator.switch`; `navigate.acrossBlocks`, the cursor across blocks (EC-154
       amended), `block.next`, `.previous`, `.reverse`, `section.include` commands, the label menu's entries; history
       by `{ system, position }`; the locus box's fallback to `findNames` (after BZ's types).
-- [ ] **GATE**, with the **novice design questions** from the fourth slice's pass (`packages/seq/TODO.md`), each a yes
+- [ ] **GATE** (the author's look done 2026-11-21: every story walked, "these are the things i noticed, so i guess
+      we can consider this the gate for stage 1"; its findings in `fixes.md`, five as class items with sweeps), with the
+      **novice design questions** from the fourth slice's pass (`packages/seq/TODO.md`), each a yes
       or no with a recommendation: F3 (the fake's "Within 5 Å" on a selection already the chain), F9 (a marked state
       for the track the structure is coloured by), F11 (an empty section saying its issue on the view, beside SC), F14
       (the "n filtered" card naming the filter, its click saying it clears), F25 (a navigator window at the fit drawn
