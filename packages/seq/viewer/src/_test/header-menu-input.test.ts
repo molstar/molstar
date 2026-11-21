@@ -9,7 +9,7 @@
 // view, driven by the event sequences a browser sends (pointermove, pointerdown, pointerup, click; the container's
 // pointer capture retargeting the release and the click to it, as browsers do). Each item applies its command, a click
 // on an item selects nothing under it, the pointer over the menu leaves the view (no hover, no card), keys in the menu
-// move no cursor, and `Color ▸` opens its submenu by a click.
+// move no cursor, and `Color ▸` opens its submenu by click, hover and ArrowRight.
 
 import { SeqCoreConfig } from '@molstar/seqx-core/context';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
@@ -235,5 +235,35 @@ describe('Color ▸', () => {
     press(row(await openMenu(v, headers, container, Letters), /^Color/));
     await v.settle();
     expect(container.querySelector('[role="menu"] [aria-checked="true"]')?.textContent).toBe(name);
+  });
+
+  it('opens its submenu by ArrowRight; ArrowLeft goes back to the menu', async () => {
+    const { v, container, headers } = await mount();
+    const color = row(await openMenu(v, headers, container, Letters), /^Color/);
+    color.focus();
+    color.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
+    await v.settle();
+    expect(labels(container)).not.toContain('Hide track');
+    expect(container.querySelectorAll('[role="menuitemradio"]').length).toBeGreaterThan(1);
+    expect(container.querySelector('[role="menu"]')!.contains(document.activeElement)).toBe(true);
+    expect(headers.menu.value).toBeDefined();
+    document.activeElement!.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true, cancelable: true }),
+    );
+    expect(labels(container)).toContain('Hide track');
+    expect(headers.menu.value).toBeDefined();
+  });
+
+  it('opens its submenu by hover, once the pointer rests on it', async () => {
+    const { v, container, headers, pointer } = await mount();
+    const color = row(await openMenu(v, headers, container, Letters), /^Color/);
+    fakeTimers();
+    pointer('pointerover', color);
+    pointer('pointermove', color);
+    expect(labels(container)).toContain('Hide track');
+    runTimers();
+    await v.settle();
+    expect(labels(container)).not.toContain('Hide track');
+    expect(container.querySelectorAll('[role="menuitemradio"]').length).toBeGreaterThan(1);
   });
 });

@@ -690,7 +690,8 @@ The `headers` behavior's params, as the hover card's port is its behavior's.
   pending (`settle` waits for it). `headerMenu(viewer, target)` is the data, DOM-free. The default adapter,
   `headerMenuOverlay()` (`mount-header-menu.ts`; its DOM, `header-menu-dom.ts`, a lazy chunk loaded at the first open),
   is `@molstar/ui`'s context menu at the place (an item with a submenu opens it in its place: the context menu has no
-  nested menus); its keyboard is the menu's, and closed the focus goes back to the canvas.
+  nested menus) by a click, by → and by the pointer resting on its row (300 ms); ← in a submenu so opened goes back to
+  its menu; its keyboard is the menu's, and closed the focus goes back to the canvas.
 - **The parts** (`parts`: `canvas`, the default, or a `HeaderPartsPortFactory` given the canvas's element and the
   behavior): the layout lays out every header as the canvas's (the same boxes); once the port's `loaded()` resolves (the
   DOM in place) the lines are `hosted` and the canvas draws nothing in their slot, "⋯" and chip boxes (until then it
