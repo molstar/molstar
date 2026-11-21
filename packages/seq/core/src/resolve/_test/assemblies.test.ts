@@ -204,6 +204,21 @@ describe('an assembly’s derived sequences', () => {
     expect([s.cyclic, s.label]).toEqual([true, 'mitochondrion']);
   });
 
+  it('keeps the whole assembly in its order before `include`: the `system` domain (EC-191, its model part)', () => {
+    const m = resolveSpec(spec({ include: ['chr2'], order: 'length' }));
+    const a = m.assemblies.get(A)!;
+    expect(a.systems).toEqual(['/data/hg38/(sequence :name chr2)']);
+    expect(a.order.map((i) => a.sequences[i].name)).toEqual([
+      'chr1',
+      'chr2',
+      'chrX',
+      'chr10',
+      'HLA-A*01:01:01:01',
+      'chrUn_KI270302v1',
+      'chrM',
+    ]);
+  });
+
   it('keeps `include`, orders by `length` or a list', () => {
     const m = resolveSpec(spec({ include: { min_length: 1500 }, order: 'length' }));
     expect(m.assemblies.get(A)!.systems.map((s) => s.split(':name ')[1])).toEqual(['chr1)', 'chr2)', 'chrX)']);
@@ -211,7 +226,7 @@ describe('an assembly’s derived sequences', () => {
     expect(listed.assemblies.get(A)!.systems.map((s) => s.split(':name ')[1])).toEqual(['chrX)', 'chr10)', 'chr1)']);
   });
 
-  it('is pending until its source opens, then joins its coverage through the names rule (EC-112, EC-188)', () => {
+  it('is pending until its source opens, then joins its coverage through the names rule (EC-112, EC-186, EC-188)', () => {
     const b = createSeqSpec();
     b.data.source('sizes', { format: 'chrom-sizes', uri: 'hg38.chrom.sizes' });
     b.data.assembly('hg38', { name: 'GRCh38', source: '/data/sizes', sequences: { name: ['chr1'], length: [3000] } });
@@ -445,7 +460,7 @@ describe('a block’s direction', () => {
 
   // What the model reads of an override is the derived block's params (`blockNodes`); drawing a reversed block is
   // GC2's (`blockAxes` does not read `direction` yet: seq.view.param.unread), so the property is on the params.
-  it('an override flipped twice derives the same blocks, flipped once only its own block changes (property)', () => {
+  it('an override flipped twice derives the same blocks, flipped once only its own block changes (EC-206, property)', () => {
     const rng = new PCG(3);
     const model = resolveSpec(spec());
     const section = (children: Node[]): Node => ({ kind: 'section', id: 'g', params: { of: A }, children });
@@ -522,7 +537,7 @@ describe('a map between assemblies', () => {
     expect(m.path(a1, '/data/b/(sequence :name chr1)').path).toBeUndefined();
   });
 
-  it('carries a location across it, each run in its own direction (EC-212)', () => {
+  it('carries a location across it, each run in its own direction (EC-206, EC-212)', () => {
     const m = resolveSpec(synteny());
     const p = m.project(
       { parts: [{ system: '/data/a/(sequence :name chr1)', ranges: new Int32Array([0, 5, 50, 52]) }], rects: [] },
