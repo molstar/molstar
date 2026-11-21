@@ -96,6 +96,11 @@ export const QueryIssues = defineIssues('seq.query', {
     description: 'No row of the alignment has the key',
     hint: 'a row key is its label',
   },
+  'seq.query.locus.name': {
+    severity: 'error',
+    description: 'A locus names no sequence of its assembly',
+    hint: 'chr17:7,668,402-7,687,550',
+  },
   'seq.query.row.pending': {
     severity: 'info',
     description: 'The rows of an alignment read from a source have not arrived: the form waits for them',

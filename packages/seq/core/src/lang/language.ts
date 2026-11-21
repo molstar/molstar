@@ -25,13 +25,60 @@ import { ScaleParamsDescription, ThemeLanguage, ThemeLanguageId } from './theme-
  * The version of the language this description is (the package's `LanguageVersion` is the same). Pre-release (`0.x`):
  * a change moves it with no migration (_spec/README.md, Versions).
  */
-export const SeqLanguageVersion = '0.5.0';
+export const SeqLanguageVersion = '0.6.0';
 
 /**
  * What `pairs.a`/`b`, `ranges.target` and `map.to` take: a system, or an alignment by its columns system (its address;
  * _spec/README.md, Language, Systems).
  */
 const ColumnsTargetKinds = [...SystemKinds, 'alignment'] as const;
+
+/** What a data reference over a genome takes: a system, or an assembly (a row on the sequence its target names). */
+const GenomeKinds = [...SystemKinds, 'assembly'] as const;
+
+/** What a section's `of` names when it is one node (a list names assemblies). */
+export const SectionOfKinds = ['sequence', 'alignment', 'molecule', 'unit', 'complex', 'assembly', 'matrix'] as const;
+
+/** An assembly's or a section's `include` (_spec/README.md, Language, Assemblies): names and patterns, a length floor. */
+const Include = {
+  type: 'union',
+  of: [
+    { type: 'list', of: { type: 'string' } },
+    {
+      type: 'record',
+      fields: {
+        names: { type: 'list', of: { type: 'string' }, doc: 'Names and patterns `^…$`.' },
+        min_length: { type: 'integer', min: 0, doc: 'The least length kept.' },
+      },
+    },
+  ],
+} as const satisfies ParamType;
+
+/** The order of rows or of a categorical axis's members: `data`, `tree`, or a field of the rows table. */
+const MemberOrder = {
+  type: 'union',
+  of: [
+    { type: 'string', enum: ['data', 'tree'] },
+    {
+      type: 'record',
+      fields: {
+        field: {
+          type: 'string',
+          required: true,
+          doc: 'A field of the rows table (`label`, `first`, an own field, a measure, a joined field).',
+        },
+        direction: { type: 'string', enum: ['ascending', 'descending'], doc: '`ascending` when absent.' },
+      },
+    },
+  ],
+} as const satisfies ParamType;
+
+/** A `source` read by region instead of inline data, and the column read from it. */
+const fromSource = (instead: string) =>
+  ({
+    source: { type: 'ref', kinds: ['source'], doc: `The source read by region (instead of \`${instead}\`).` },
+    field: { type: 'string', doc: 'With `source`: the column read; its default when absent.' },
+  }) as const;
 
 /**
  * An extension's name, `<id>:<name>` (_spec/README.md, Language, Extensions): its id the namespace (`seq` is
@@ -267,18 +314,27 @@ export const SeqLanguage = defineLanguage({
         },
         attribution: { type: 'string', doc: 'The data’s attribution line.' },
         licence: { type: 'string', doc: 'The data’s licence id (`CC-BY-4.0`).' },
+        features: {
+          type: 'string',
+          enum: ['transcripts', 'genes', 'rows'],
+          doc: 'GFF3, GTF: `transcripts` (absent), `genes` or `rows`.',
+        },
+        samples: {
+          type: 'list',
+          of: { type: 'string', doc: 'A sample.' },
+          doc: 'VCF: the samples read.',
+        },
       },
     },
     sequence: {
-      doc: 'A sequence: letters of an alphabet, inline or from a source; a coordinate system.',
-      parents: ['data'],
+      doc: 'A sequence: letters of an alphabet, inline or from a source (under an assembly: an override).',
+      parents: ['data', 'assembly'],
       ids: 'required',
       params: {
         alphabet: {
           type: 'string',
           enum: ['protein', 'dna', 'rna'],
-          required: true,
-          doc: 'The alphabet of its letters.',
+          doc: 'The alphabet of its letters (or its assembly’s).',
         },
         letters: { type: 'string', doc: 'The letters inline (instead of `source`).' },
         source: { type: 'ref', kinds: ['source'], doc: 'The source that holds the letters (instead of `letters`).' },
@@ -288,6 +344,7 @@ export const SeqLanguage = defineLanguage({
           doc: 'The name its source knows it by (a FASTA record, a chromosome); the node’s id when absent.',
         },
         modified: ModifiedParam,
+        label: { type: 'string', doc: 'A label for people (its name when absent).' },
       },
     },
     numbering: {
@@ -349,9 +406,9 @@ export const SeqLanguage = defineLanguage({
       params: {
         target: {
           type: 'ref',
-          kinds: ColumnsTargetKinds,
+          kinds: [...ColumnsTargetKinds, 'assembly'],
           required: true,
-          doc: 'The system the ranges are on: a sequence, a molecule’s residues (every unit over it too), a unit, an alignment’s columns.',
+          doc: 'The system the ranges are on: a sequence, a molecule’s residues (every unit over it too), a unit, an alignment’s columns, an assembly.',
         },
         rows: {
           type: 'table',
@@ -380,9 +437,9 @@ export const SeqLanguage = defineLanguage({
       params: {
         target: {
           type: 'ref',
-          kinds: SystemKinds,
+          kinds: GenomeKinds,
           required: true,
-          doc: 'The system the values are on: a sequence, a molecule’s residues, a unit.',
+          doc: 'The system the values are on: a sequence, residues, a unit, an assembly.',
         },
         values: {
           type: 'column',
@@ -456,12 +513,12 @@ export const SeqLanguage = defineLanguage({
       params: {
         a: {
           type: 'ref',
-          kinds: ColumnsTargetKinds,
+          kinds: [...ColumnsTargetKinds, 'assembly'],
           doc: 'The system each pair’s first end is on (an alignment: its columns, a family’s `SS_cons`); required under `data`, none under a complex or a molecule.',
         },
         b: {
           type: 'ref',
-          kinds: ColumnsTargetKinds,
+          kinds: [...ColumnsTargetKinds, 'assembly'],
           doc: 'The system each pair’s second end is on (`a` when absent: pairs within one system).',
         },
         rows: {
@@ -482,9 +539,9 @@ export const SeqLanguage = defineLanguage({
             b_strand: { type: 'column', of: 'category', doc: 'The strand of each second end: `+` or `-`.' },
             ...LinkColumns,
           },
-          required: true,
-          doc: 'The pairs inline, a column for each field; an end never wraps. Any other category column rides along as a field of the pairs a data filter reads (`(item :tertiary yes)`).',
+          doc: 'The pairs inline (or `source`), a column a field; an end never wraps. Other columns ride along as fields (`(item :tertiary yes)`).',
         },
+        ...fromSource('rows'),
       },
     },
     grid: {
@@ -492,18 +549,18 @@ export const SeqLanguage = defineLanguage({
       parents: ['data'],
       ids: 'required',
       params: {
-        x: { type: 'ref', kinds: SystemKinds, required: true, doc: 'The system of the grid’s first axis.' },
+        x: { type: 'ref', kinds: GenomeKinds, required: true, doc: 'The system of the grid’s first axis.' },
         y: {
           type: 'ref',
-          kinds: SystemKinds,
+          kinds: GenomeKinds,
           doc: 'The system of its second axis (`x` when absent).',
         },
         values: {
           type: 'column',
           of: 'float32',
-          required: true,
-          doc: 'One value per pair, `x`-major (the value at x i, y j is at i × |y| + j); NaN is missing.',
+          doc: 'One value per pair, `x`-major; NaN missing (or `source`).',
         },
+        ...fromSource('values'),
       },
     },
     map: {
@@ -511,10 +568,10 @@ export const SeqLanguage = defineLanguage({
       parents: ['data'],
       ids: 'required',
       params: {
-        from: { type: 'ref', kinds: SystemKinds, required: true, doc: 'The system the map starts on.' },
+        from: { type: 'ref', kinds: GenomeKinds, required: true, doc: 'The system the map starts on.' },
         to: {
           type: 'ref',
-          kinds: ColumnsTargetKinds,
+          kinds: [...ColumnsTargetKinds, 'assembly'],
           required: true,
           doc: 'The system the map ends on (an alignment: its columns, a chain onto the row it is closest to).',
         },
@@ -536,6 +593,8 @@ export const SeqLanguage = defineLanguage({
               of: 'category',
               doc: 'Which way the run reads on `to`: `+` (when absent: `from + i` is `to + i`) or `-` (`to - i`).',
             },
+            from_name: { type: 'column', of: 'category', doc: 'Each run’s sequence on `from`.' },
+            to_name: { type: 'column', of: 'category', doc: 'Its sequence on `to`.' },
             provenance: {
               type: 'column',
               of: 'category',
@@ -544,6 +603,11 @@ export const SeqLanguage = defineLanguage({
             },
           },
           doc: 'For `segments` and `structure`: the runs, not overlapping on `from`; what no run holds maps nowhere.',
+        },
+        source: {
+          type: 'ref',
+          kinds: ['source'],
+          doc: 'For `segments`: a pairs source of runs (or `segments`).',
         },
         status: {
           type: 'table',
@@ -577,6 +641,59 @@ export const SeqLanguage = defineLanguage({
           min: 1,
           doc: 'For `codon`: the NCBI genetic code the codons are read with; 1 (the standard code) when absent.',
         },
+      },
+    },
+    assembly: {
+      doc: 'A genome assembly: a system a sequence.',
+      parents: ['data'],
+      ids: 'required',
+      params: {
+        name: { type: 'string', doc: 'Its accession or name (`GRCh38`).' },
+        aliases: { type: 'list', of: { type: 'string', doc: 'A name.' }, doc: 'Its other names (`hg38`).' },
+        source: { type: 'ref', kinds: ['source'], doc: 'Lists its sequences and lengths.' },
+        sequences: {
+          type: 'table',
+          columns: {
+            name: { type: 'list', of: { type: 'string', doc: 'A name.' }, required: true, doc: 'Each one’s name.' },
+            length: { type: 'column', of: 'int32', required: true, doc: 'Each one’s length.' },
+            aliases: {
+              type: 'list',
+              of: { type: 'list', of: { type: 'string', doc: 'A name.' }, doc: 'Its aliases.' },
+              doc: 'Each one’s other names.',
+            },
+            cyclic: { type: 'list', of: { type: 'boolean', doc: 'Cyclic.' }, doc: 'Whether each wraps around.' },
+          },
+          doc: 'Its sequences inline.',
+        },
+        alias_source: { type: 'ref', kinds: ['source'], doc: 'A table of aliases (chromAlias).' },
+        names: { type: 'string', doc: 'The naming printed: a column of `alias_source`.' },
+        alphabet: { type: 'string', enum: ['protein', 'dna', 'rna'], doc: 'Its letters’ alphabet; `dna` when absent.' },
+        order: {
+          type: 'union',
+          of: [
+            { type: 'string', enum: ['natural', 'length', 'source'] },
+            { type: 'list', of: { type: 'string', doc: 'A name.' } },
+          ],
+          doc: '`natural` (absent), `length`, `source`, or names.',
+        },
+        include: { ...Include, doc: 'The sequences kept; all when absent.' },
+        match: {
+          type: 'string',
+          enum: ['chr', 'exact'],
+          doc: '`chr` (absent: the prefix optional) or `exact`.',
+        },
+      },
+    },
+    matrix: {
+      doc: 'A value or a code per item and state.',
+      parents: ['data'],
+      ids: 'required',
+      params: {
+        target: { type: 'ref', kinds: GenomeKinds, required: true, doc: 'The system its items are on.' },
+        values: { type: 'column', of: 'float32', doc: 'Values inline, item-major.' },
+        codes: { type: 'column', of: 'uint8', doc: 'Codes inline, item-major.' },
+        states: { type: 'list', of: { type: 'string', doc: 'A state.' }, doc: 'The states’ names, in order.' },
+        ...fromSource('values'),
       },
     },
     ...MoleculeKinds,
@@ -656,8 +773,13 @@ export const SeqLanguage = defineLanguage({
         },
         system: {
           type: 'ref',
-          kinds: ['sequence'],
-          doc: 'The system it draws when not the section’s (a chromosome under a region of it).',
+          kinds: ['sequence', 'assembly'],
+          doc: 'The system it draws when not the section’s.',
+        },
+        switch: {
+          type: 'string',
+          enum: ['none', 'include'],
+          doc: 'A click centres (`none`, absent) or sets `include`.',
         },
         place: {
           type: 'string',
@@ -675,6 +797,19 @@ export const SeqLanguage = defineLanguage({
         hidden: { type: 'boolean', default: false, doc: 'Whether it is hidden: kept in the spec, not drawn.' },
       },
     },
+    bridge: {
+      doc: 'A band of pairs between two sections.',
+      parents: ['view'],
+      ids: 'required',
+      params: {
+        a: { type: 'ref', kinds: ['section'], required: true, doc: 'One side.' },
+        b: { type: 'ref', kinds: ['section'], required: true, doc: 'The other side.' },
+        label: { type: 'string', doc: 'A label for people.' },
+        height: { type: 'number', min: 0, doc: 'Its height in px.' },
+        lock: { type: 'string', enum: ['none', 'px'], doc: '`none` (absent) or `px`: a pan moves both.' },
+        hidden: { type: 'boolean', default: false, doc: 'Whether it is hidden: kept in the spec, not drawn.' },
+      },
+    },
     scale: {
       doc: 'A shared scale: layers whose themes name it share its domain and palette (an open end: the union over their data in view).',
       parents: ['views'],
@@ -687,10 +822,14 @@ export const SeqLanguage = defineLanguage({
       ids: 'required',
       params: {
         of: {
-          type: 'ref',
-          kinds: ['sequence', 'alignment', 'molecule', 'unit', 'complex'],
-          doc: 'The coordinate system the section shows (an alignment: its columns), or a complex (a block a unit, copies merged by `copies`, ordered by `classes`); required unless the section has `block` children.',
+          type: 'union',
+          of: [
+            { type: 'ref', kinds: SectionOfKinds },
+            { type: 'list', of: { type: 'ref', kinds: ['assembly'], doc: 'An assembly.' }, 'min-length': 1 },
+          ],
+          doc: 'The system shown, a complex (a block a unit), an assembly (a block a sequence) or a list; required unless it has blocks.',
         },
+        include: { ...Include, doc: 'Of assemblies: the blocks shown; all when absent.' },
         range: {
           type: 'list',
           of: { type: 'integer', min: 0, doc: 'A position.' },
@@ -769,9 +908,11 @@ export const SeqLanguage = defineLanguage({
         ),
         of_y: {
           type: 'ref',
-          kinds: ['sequence'],
-          doc: 'Grid: the coordinate system down the plot (`of` when absent).',
+          kinds: ['sequence', 'alignment', 'matrix'],
+          doc: 'Grid: the system down the plot (`of` when absent).',
         },
+        member_order: { ...MemberOrder, doc: 'Grid: the members’ order across.' },
+        member_order_y: { ...MemberOrder, doc: 'Grid: the members’ order down.' },
         follow_y: {
           type: 'union',
           of: [
@@ -863,6 +1004,12 @@ export const SeqLanguage = defineLanguage({
         },
         label: { type: 'string', doc: 'The block’s label (its id when absent).' },
         form: BlockForm,
+        direction: {
+          type: 'string',
+          enum: ['section', 'reversed'],
+          doc: '`section` (absent) or `reversed`.',
+        },
+        scale: { type: 'number', min: 0, doc: 'Its length’s factor on screen; 1 when absent.' },
       },
     },
     track: {
@@ -927,8 +1074,8 @@ export const SeqLanguage = defineLanguage({
       },
     },
     layer: {
-      doc: 'A layer of a track: data drawn as one type of mark.',
-      parents: ['track'],
+      doc: 'A layer of a track or bridge: data drawn as one type of mark.',
+      parents: ['track', 'bridge'],
       ids: 'required',
       // an extension's type (`rondo:ribbons`) reads plain params beside these: kept, checked by the extension
       extensionParam: 'type',
@@ -941,7 +1088,7 @@ export const SeqLanguage = defineLanguage({
           type: 'string',
           pattern: '^([a-z][a-z0-9_-]*:)?[a-z][a-z0-9_-]*$',
           required: true,
-          doc: 'What it draws (an extension’s `<id>:<name>` too): the letters of the system, ranges, values, the ruler of the section’s axis, secondary structure (ranges whose `kind` field says helix, strand or turn), variants (ranges of one position each), frames (ranges outlined across the tracks `across` names, titled by their labels), an alignment’s rows (`rows`) or its conservation logo (`logo`), pairs (`pairs`: arcs over a track, chords on a ring, dots on a grid), a grid of values (`grid`, in a grid section) or a chromosome’s stained bands (`bands`, an ideogram: ranges with a `stain` field, colored by the `giemsa` scheme, the centromere’s two `acen` bands as triangles); `secondary`, `variants` and `bands` draw `ranges` where a reader lacks them, `pairs` draws its ends as `ranges`.',
+          doc: 'What it draws (an extension’s `<id>:<name>` too): the letters of the system, ranges, values, the ruler of the section’s axis, secondary structure (ranges whose `kind` field says helix, strand or turn), variants (ranges of one position each), frames (ranges outlined across the tracks `across` names, titled by their labels), an alignment’s rows (`rows`) or its conservation logo (`logo`), pairs (`pairs`: arcs over a track, chords on a ring, dots on a grid), a grid of values (`grid`, in a grid section), a `matrix` or a chromosome’s stained bands (`bands`, an ideogram: ranges with a `stain` field, colored by the `giemsa` scheme, the centromere’s two `acen` bands as triangles); `secondary`, `variants` and `bands` draw `ranges` where a reader lacks them, `pairs` draws its ends as `ranges`.',
         },
         fallback: {
           type: 'string',
@@ -955,7 +1102,7 @@ export const SeqLanguage = defineLanguage({
         },
         data: {
           type: 'ref',
-          kinds: ['sequence', 'ranges', 'values', 'alignment', 'pairs', 'grid'],
+          kinds: ['sequence', 'ranges', 'values', 'alignment', 'pairs', 'grid', 'map', 'matrix'],
           doc: 'The data it draws (the letters of the section for `letters`, its axis for `ruler`; a `ranges` layer takes `pairs` too: each end a mark at its site).',
         },
         color: channel('The marks’ color: a color, a token, `light-dark(a, b)`, or a theme form.'),
@@ -963,7 +1110,7 @@ export const SeqLanguage = defineLanguage({
         size: channel('The marks’ size in the layer’s unit (a share of the slot, or px), or a theme form.'),
         opacity: channel('The marks’ opacity, 0 to 1 (never a way to hide: a filter hides), or a theme form.'),
         line: channel(
-          '`ranges`: how an item is drawn as a line: `solid`, `dashed`, `dotted`, `wavy`, `double`, `box` or `highlight`; blocks when absent. Any other value is drawn solid and said once (`seq.render.line-style`).',
+          '`ranges`: how an item is drawn as a line: `solid`, `dashed`, `dotted`, `wavy`, `double`, `box`, `highlight` or `gene` (exons as boxes, thick between `thick_start` and `thick_end`); blocks when absent. Any other value is drawn solid and said once (`seq.render.line-style`).',
         ),
         arrow: channel(
           '`ranges`: an arrowhead on the item’s end, start or both (`end`, `start`, `both`), on the piece holding that end, never on a cut one; `none` when absent.',
@@ -973,7 +1120,9 @@ export const SeqLanguage = defineLanguage({
           enum: ['line', 'none'],
           doc: '`ranges`: a hairline joining an item’s pieces across the shown positions the path does not reach (a domain over a gene whose intron is shown): `line` (when absent) or `none`. Across a collapsed break nothing is drawn.',
         },
-        shape: channel('`variants`: the head’s shape (`circle`, `square`, `triangle`, `diamond`).'),
+        shape: channel(
+          '`variants`: the head’s shape (`circle`, `square`, `triangle`, `diamond`); `pairs` in a bridge: `ribbon` (absent) or `line`.',
+        ),
         scale: {
           type: 'ref',
           kinds: ['scale'],
@@ -1033,21 +1182,7 @@ export const SeqLanguage = defineLanguage({
           doc: 'For `rows`: the tree drawn beside the rows and read by `order: tree`.',
         },
         order: {
-          type: 'union',
-          of: [
-            { type: 'string', enum: ['data', 'tree'] },
-            {
-              type: 'record',
-              fields: {
-                field: {
-                  type: 'string',
-                  required: true,
-                  doc: 'A field of the rows table (`label`, `first`, an own field, a measure, a joined field).',
-                },
-                direction: { type: 'string', enum: ['ascending', 'descending'], doc: '`ascending` when absent.' },
-              },
-            },
-          ],
+          ...MemberOrder,
           doc: 'For `rows`: the rows’ order: `data` (when absent), `tree` (the tree’s leaf order; clades fold only there), or a field of the rows table (missing last, ties in data order).',
         },
         collapsed: {

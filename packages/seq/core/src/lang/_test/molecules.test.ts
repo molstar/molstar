@@ -33,8 +33,8 @@ function rng(seed: number) {
 describe('molecules, complexes, units and links', () => {
   const spec = moleculesSpec();
 
-  it('are valid with every new param, the host-only note aside (0.5.0)', () => {
-    expect(SeqLanguageVersion).toBe('0.5.0');
+  it('are valid with every new param, the host-only note aside (0.5.0’s, read at 0.6.0)', () => {
+    expect(SeqLanguageVersion).toBe('0.6.0');
     expect(checkSeqSpec(spec)).toEqual([]);
   });
 

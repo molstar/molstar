@@ -110,6 +110,16 @@ export const ResolveIssues = defineIssues('seq.resolve', {
     description: 'A complex has more units than the configuration allows (`maxUnits`); it is left out',
     hint: 'Read a subset of the assembly (fewer operators or chains), or raise `maxUnits` at its memory',
   },
+  'seq.resolve.param.unread': {
+    severity: 'info',
+    description: 'A param this version reads nowhere yet',
+    hint: 'Drawn without it',
+  },
+  'seq.resolve.genome.load': {
+    severity: 'error',
+    description: 'The genome chunk did not load',
+    hint: 'Reload',
+  },
   'seq.resolve.node.depth': {
     severity: 'warning',
     description: 'A nested source is deeper than the nesting the configuration allows (EC-179); it is not requested',

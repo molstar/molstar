@@ -36,7 +36,7 @@ import {
 } from './check-molecules.js';
 import { checkMapSegments, checkNumberingSegments, mapParamsFit, numberingParamsFit } from './check-maps.js';
 import { LangIssues } from './issues.js';
-import { isExtensionName, SeqLanguage, SeqLanguageVersion, SeqValidateOptions } from './language.js';
+import { isExtensionName, SectionOfKinds, SeqLanguage, SeqLanguageVersion, SeqValidateOptions } from './language.js';
 import { followRef, refAddresses } from './refs.js';
 import { checkLayerThemes, rowTypes } from './theme-check.js';
 
@@ -268,6 +268,16 @@ export function checkPlaced(at: Placed, look: SeqLookup, report: Report): void {
     case 'block': {
       const of = target(n, 'of')?.node;
       checkBlockForm(n, of?.kind === 'unit' ? target(of, 'of')?.node : of, say);
+      const scale = p(n, 'scale');
+      // a negative scale is the description's (`min`): one issue, never two
+      if (scale === 0) say('seq.lang.block.scale', 'The scale is not positive', 'scale');
+      break;
+    }
+    case 'bridge': {
+      // the sections named, however written (an address, a ref standing for it)
+      const a = target(n, 'a');
+      if (a !== undefined && a === target(n, 'b'))
+        say('seq.lang.bridge.sides', 'The bridge joins a section to itself', 'b');
       break;
     }
     case 'source':
@@ -279,6 +289,8 @@ export function checkPlaced(at: Placed, look: SeqLookup, report: Report): void {
     case 'alignment':
     case 'pairs':
     case 'grid':
+    case 'assembly':
+    case 'matrix':
       checkDataNode(n, { target: (key) => target(n, key)?.node, length, parent: linkParent(at, look) }, say);
       break;
     case 'layer': {
@@ -312,15 +324,16 @@ export function checkPlaced(at: Placed, look: SeqLookup, report: Report): void {
         const want =
           type === 'letters' || type === 'ruler'
             ? 'sequence'
-            : type === 'values'
-              ? 'values'
+            : type === 'values' || type === 'matrix'
+              ? type
               : type === 'rows' || type === 'logo'
                 ? 'alignment'
                 : type === 'pairs' || type === 'grid'
                   ? type
                   : 'ranges';
         // a `ranges` layer takes `pairs` too: each end a mark at its site
-        const fits = kind === want || (type === 'ranges' && kind === 'pairs');
+        // a `pairs` layer takes a segments map: a run a pair (its method the resolved view's, `seq.view.layer.shape`)
+        const fits = kind === want || (type === 'ranges' && kind === 'pairs') || (type === 'pairs' && kind === 'map');
         if (kind !== undefined && fieldsOf('layer')?.data?.kinds?.includes(kind) && !fits)
           report('seq.lang.layer.data', 'The data is not what the type draws', at, 'data');
       }
@@ -343,6 +356,13 @@ export function checkPlaced(at: Placed, look: SeqLookup, report: Report): void {
         if (!t || !kinds.includes(t.node.kind))
           report('seq.lang.ref.target', 'The reference names no node of a kind this param takes', at, ...tail);
       };
+      // `of`: one system, or a list of assemblies (a group each)
+      const of = p(n, 'of');
+      if (Array.isArray(of)) of.forEach((x, i) => named(x, ['assembly'], 'of', i));
+      else named(of, SectionOfKinds, 'of');
+      checkInclude(p(n, 'include'), say);
+      if (p(n, 'include') !== undefined && !Array.isArray(of) && target(n, 'of')?.node.kind !== 'assembly')
+        say('seq.lang.section.include', 'The section is of no assembly: `include` is ignored', 'include');
       const direction = p(n, 'direction');
       if (direction && typeof direction === 'object' && !Array.isArray(direction))
         named((direction as Record<string, Value>).along, ['sequence', 'map'], 'direction', 'along');
@@ -500,10 +520,21 @@ export function checkDataNode(
       break;
     }
     case 'sequence': {
-      if (!xor(p(n, 'letters') !== undefined, p(n, 'source') !== undefined))
-        say('seq.lang.sequence.content', 'A sequence has one of `letters` and `source`');
+      // under an assembly: an override of a derived sequence (its `cyclic`, `label`, `alphabet`); its letters are the
+      // assembly's source's, so an override's own `letters` or `source` is refused, never read
+      const derived = ctx.parent?.kind === 'assembly';
+      const has = p(n, 'letters') !== undefined || p(n, 'source') !== undefined;
+      if (derived ? has : !xor(p(n, 'letters') !== undefined, p(n, 'source') !== undefined))
+        say(
+          'seq.lang.sequence.content',
+          derived
+            ? 'An override under an assembly takes no `letters` or `source`'
+            : 'A sequence has one of `letters` and `source`',
+        );
+      if (!derived && p(n, 'alphabet') === undefined)
+        say('seq.lang.sequence.alphabet', 'The sequence has no alphabet', 'alphabet');
       const letters = p(n, 'letters');
-      if (typeof letters === 'string' && !Letters[String(p(n, 'alphabet'))]?.test(letters))
+      if (!derived && typeof letters === 'string' && !Letters[String(p(n, 'alphabet'))]?.test(letters))
         say('seq.lang.sequence.letters', 'The letters are not of the alphabet', 'letters');
       checkModified(n, say);
       break;
@@ -542,6 +573,8 @@ export function checkDataNode(
     case 'pairs': {
       checkLinks(n, ctx.parent ?? { kind: 'data' }, say);
       const rows = p(n, 'rows') as Record<string, Value> | undefined;
+      if (!xor(rows !== undefined, p(n, 'source') !== undefined) || (p(n, 'field') !== undefined && !p(n, 'source')))
+        say('seq.lang.pairs.content', 'A pairs node has one of `rows` and `source`, `field` with a source');
       if (!rows) break;
       // each end an interval within its system, never wrapping (EC-10)
       for (const side of ['a', 'b'] as const) {
@@ -564,8 +597,29 @@ export function checkDataNode(
       }
       break;
     }
+    case 'assembly':
+      checkInclude(p(n, 'include'), say);
+      if (
+        (p(n, 'sequences') === undefined && p(n, 'source') === undefined) ||
+        (p(n, 'names') !== undefined && p(n, 'alias_source') === undefined)
+      )
+        say('seq.lang.assembly.content', 'An assembly lists no sequences, or names a naming with no alias source');
+      break;
+    case 'matrix': {
+      const inline = Number(p(n, 'values') !== undefined) + Number(p(n, 'codes') !== undefined);
+      const source = p(n, 'source') !== undefined;
+      if (
+        inline + Number(source) !== 1 ||
+        (inline && p(n, 'states') === undefined) ||
+        (p(n, 'field') !== undefined && !source)
+      )
+        say('seq.lang.matrix.content', 'A matrix has one of `values`, `codes` and `source`, inline cells their states');
+      break;
+    }
     case 'grid': {
       const values = p(n, 'values');
+      if (!xor(values !== undefined, p(n, 'source') !== undefined) || (p(n, 'field') !== undefined && !p(n, 'source')))
+        say('seq.lang.grid.content', 'A grid has one of `values` and `source`, `field` with a source');
       const x = systemOf('x')?.length;
       const y = p(n, 'y') === undefined ? x : systemOf('y')?.length;
       if (isColumn(values) && x !== undefined && y !== undefined && (values as ArrayLike<number>).length !== x * y)
@@ -613,6 +667,26 @@ export function checkDataNode(
       break;
     }
   }
+}
+
+/**
+ * The grammar of an `include` pattern (`include-pattern.ts`, which matches them, in the genome chunk): `^`, then atoms
+ * (a class, an escape, a character other than `()|{}?*+$^`), each with at most one `?`, `*`, `+`, then `$`. Bounded
+ * input (256 characters) and no nested repeat of a repeat, so this test is linear too.
+ */
+const IncludeGrammar = /^\^(?:(?:\[\^?(?:\\.|[^\]\\])+\]|\\[^a-zA-Z0-9]|\\[dw]|[^()|{}?*+$^\\[\]])[?*+]?)*\$?$/;
+
+/** An `include`'s patterns (strings starting with `^`) each one the language takes (`IncludeGrammar`). */
+function checkInclude(
+  include: Value | undefined,
+  say: (code: Code, message: string, ...tail: (string | number)[]) => void,
+) {
+  const list = Array.isArray(include) ? include : (include as { names?: Value } | undefined)?.names;
+  if (!Array.isArray(list)) return;
+  list.forEach((x, i) => {
+    if (typeof x === 'string' && x.startsWith('^') && !(x.length <= 256 && IncludeGrammar.test(x)))
+      say('seq.lang.include.pattern', `Not a pattern this language takes: ${x}`, 'include', i);
+  });
 }
 
 /** An inline alignment's columns: its first row's width; undefined for a source's (known once it opens). */

@@ -22,6 +22,8 @@ export {
   residuesOf,
   translateCodon,
 } from './codon.js';
+export { type AssemblyEntry, type AssemblySequence, genomeLoaded, genomeLoadFailure, loadGenome } from './genome.js';
+export type { AssemblyNames, IncludeValue, NamedSequence, NameMatch } from './assembly-names.js';
 export { type GridData, type PairsData } from './held.js';
 export { ResolveIssues } from './issues.js';
 export {

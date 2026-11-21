@@ -224,11 +224,19 @@ export async function openModel(spec: Node, store: DataStore, options: OpenModel
   const scoped = (m: StaticModel, v: ResolvedView | undefined) =>
     options.scope === 'view' && v ? viewSources(m, v) : undefined;
   let model = options.model ?? resolveSpec(spec, resolveOptions);
+  // a lazy part the spec needs (the genome chunk): resolved again once it lands, never drawn without it
+  if (model.loading) {
+    // never rejects (a failed load is the next model's `seq.resolve.genome.load`); caught all the same
+    await model.loading.catch(() => undefined);
+    model = resolveSpec(spec, resolveOptions);
+  }
   let view = viewOf(model);
   const shown = scoped(model, view);
   const first = new Set(
     [...model.systems.values()].flatMap((s) => (s.source && (!shown || shown.has(s.source)) ? [s.source] : [])),
   );
+  // an assembly's sources list its sequences: opened first, so its systems derive at the next resolve
+  for (const a of model.assemblies.values()) for (const s of [a.source, a.aliasSource]) if (s) first.add(s);
   const attach = (m: StaticModel, only: Set<string> | undefined) => {
     const { only: _o, ...rest } = options;
     return attachSources(m, store, { ...rest, ...(only ? { only } : {}) });

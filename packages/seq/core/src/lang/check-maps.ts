@@ -28,14 +28,13 @@ export function strings(v: Value | undefined): { get(i: number): string | null }
 const MapParams: Readonly<Record<string, readonly string[]>> = {
   offset: ['by'],
   codon: ['exons', 'strand', 'table'],
-  segments: ['segments'],
+  segments: ['segments', 'source'],
   structure: ['segments', 'status'],
 };
 /** The params each method needs. */
 const MapNeeds: Readonly<Record<string, readonly string[]>> = {
   offset: ['by'],
   codon: ['exons', 'strand'],
-  segments: ['segments'],
   structure: ['segments'],
 };
 const MethodParams = new Set(Object.values(MapParams).flat());
@@ -46,6 +45,8 @@ export function mapParamsFit(n: Node): boolean {
   const takes = MapParams[method] ?? [];
   for (const k of MapNeeds[method] ?? []) if (p(n, k) === undefined) return false;
   for (const k of MethodParams) if (!takes.includes(k) && p(n, k) !== undefined) return false;
+  // a segments map's runs inline or a pairs source's, one of the two
+  if (method === 'segments' && (p(n, 'segments') === undefined) === (p(n, 'source') === undefined)) return false;
   // a segment's provenance is a structure map's
   const segments = p(n, 'segments') as Record<string, Value> | undefined;
   return method === 'structure' || segments?.provenance === undefined;

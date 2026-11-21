@@ -101,6 +101,8 @@ export function overlayQueryModel(model: StaticModel, overlay: Overlay, rows?: R
       return typeof key === 'string' ? overlay.node(nodeAddress(owner, key))?.node : undefined;
     },
     chain: () => undefined,
+    assemblySequence: (a, n) => model.assemblySequence?.(a, n),
+    isAssembly: (a) => model.isAssembly?.(a) ?? false,
     row: (at, key) => {
       const own = model.row?.(at, key);
       if (own !== undefined || !rows) return own;

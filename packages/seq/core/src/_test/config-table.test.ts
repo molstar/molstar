@@ -13,6 +13,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { DefaultRenderConfig } from '../render/config.js';
+import { DefaultResolveConfig } from '../resolve/model.js';
 
 /** The items a Markdown table names in its first column, after the heading matching `heading`. */
 function tableItems(md: string, heading: RegExp): string[] {
@@ -59,5 +60,13 @@ describe('the Configuration table of RenderConfig', () => {
     const rows = tableItems(md.slice(md.indexOf('\n## Render\n')), /^### Configuration$/);
     expect(rows.length).toBeGreaterThan(40);
     expect(tableDrift(configItems(DefaultRenderConfig), rows)).toEqual({ missing: [], unknown: [] });
+  });
+});
+
+describe('the Configuration table of ResolveConfig', () => {
+  it('has a row for every item of DefaultResolveConfig, and names none it lacks', () => {
+    const md = readFileSync(fileURLToPath(new URL('../../_spec/README.md', import.meta.url)), 'utf8');
+    const rows = tableItems(md.slice(md.indexOf('\n## Resolve\n')), /^### Configuration$/);
+    expect(tableDrift(configItems(DefaultResolveConfig), rows)).toEqual({ missing: [], unknown: [] });
   });
 });

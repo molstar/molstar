@@ -38,7 +38,15 @@ import {
 import { viaUnusedIssue } from '@molstar/seqx-core/resolve/maps-via';
 import { followRef } from '@molstar/seqx-core/lang';
 import { type AxisShape, axisTotal, nearestOffsetOf, positionAt, wholePieces } from './axis.js';
-import { type BlockAxes, blockAxes, blockNodes, sectionComplex } from './blocks.js';
+import {
+  assemblyBlocks,
+  type BlockAxes,
+  blockAxes,
+  blockNodes,
+  sectionAssemblies,
+  sectionComplex,
+  systemRef,
+} from './blocks.js';
 import { ViewIssues } from './issues.js';
 
 /** The six shapes a layer reads (an extension's type reads one of them: _spec/README.md "Context", Extensions). */
@@ -520,12 +528,33 @@ function build(model: StaticModel, view: Node, address: string, layerKinds: Laye
   const viaOf = (at: string) => viaList(param(byAddress.get(at)!, 'via'));
   // a grid section with no system of its own that follows a section of blocks: a grid over them (`blocksGrid`)
   const overBlocks = new Map<string, string>();
+  // each section's block nodes, derived once a build (an assembly's blocks are a walk of its sequences)
+  const nodesOf = new Map<string, Node[]>();
+  const blocksAt = (at: string): Node[] => {
+    let bs = nodesOf.get(at);
+    if (!bs) nodesOf.set(at, (bs = blockNodes(model, byAddress.get(at)!, at)));
+    return bs;
+  };
   for (const s of sectionNodes) {
     const at = `${address}/${s.id}`;
     // a section of blocks with no `of` (or `of` a complex) is on its first block's system
-    const first = blockNodes(model, s)[0];
-    const own = sectionComplex(model, s) === undefined ? param(s, 'of') : undefined;
-    const system = exactAddress(own ?? (first ? param(first, 'of') : undefined));
+    const assemblies = sectionAssemblies(model, s);
+    const derived = assemblies && assemblyBlocks(model, s, assemblies, at);
+    if (derived && derived.total > derived.nodes.length)
+      report(
+        'seq.view.section.blocks',
+        `${derived.total - derived.nodes.length} of ${derived.total} blocks are past \`maxAssemblyBlocks\``,
+        at,
+      );
+    if (derived) nodesOf.set(at, derived.nodes);
+    const first = blocksAt(at)[0];
+    // an assembly not yet open has no blocks: pending, never a missing system
+    if (assemblies && !first && assemblies.some((a) => a.pending)) {
+      systemOf.set(at, '');
+      continue;
+    }
+    const own = sectionComplex(model, s) === undefined && !assemblies ? param(s, 'of') : undefined;
+    const system = systemRef(model, own ?? (first ? param(first, 'of') : undefined));
     const leader = exactAddress(param(s, 'follow'));
     const lead = leader === undefined ? undefined : byAddress.get(leader);
     const grid = (param(s, 'layout') ?? viewLayout) === 'grid';
@@ -535,7 +564,7 @@ function build(model: StaticModel, view: Node, address: string, layerKinds: Laye
       systemOf.set(at, '');
       continue;
     }
-    if (grid && param(s, 'of') === undefined && leader !== undefined && lead && blockNodes(model, lead).length) {
+    if (grid && param(s, 'of') === undefined && leader !== undefined && lead && blocksAt(leader).length) {
       // the leader's blocks in a row (the plot's axes are their units): not a stack, not a ring
       const leadLayout = param(lead, 'layout') ?? viewLayout;
       if (param(lead, 'arrange') === 'stack' || leadLayout !== 'tracks') {
@@ -586,7 +615,7 @@ function build(model: StaticModel, view: Node, address: string, layerKinds: Laye
   for (const [at, s] of byAddress) {
     if (overBlocks.has(at)) continue;
     const dir = dirOf(at);
-    const bs = blockNodes(model, s);
+    const bs = blocksAt(at);
     if (bs.length) {
       const b = blockAxes(
         model,

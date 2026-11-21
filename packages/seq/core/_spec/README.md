@@ -15,7 +15,7 @@ is added in the change that builds what it describes.
 
 ## Versions
 
-- The language has one version, `LanguageVersion` (`0.5.0`). Why: one language, one description, one number for readers
+- The language has one version, `LanguageVersion` (`0.6.0`). Why: one language, one description, one number for readers
   to check.
 - **Pre-release** (`0.x`): a change to the language moves the version with no migration (`0.1.0`: every child of the
   spec has an id, `layer` included; `0.2.0`: the `refs` container and the `ref` kind; `0.3.0`: the `snapshots` container
@@ -39,9 +39,17 @@ is added in the change that builds what it describes.
   and a numbering's methods `offset` and `segments` with `by` and `segments`; `pairs.a`/`b`, `ranges.target` and
   `map.to` naming an alignment, its columns; extensions (Language, Extensions): the spec's `extensions`, a layer's
   `fallback`, `layer.type` a word (a built-in's or `<id>:<name>`), `layout`, `heights` and `content` a built-in's or
-  `<id>:<name>`, and keys in an extension's namespace carried on any node; a layer's `legend`, `auto` or `none`). A spec
-  in an earlier `0.x` reads as one in this one, and is reported where it no longer fits: a `0.4.0` spec reads unchanged
-  (every addition is optional, and every kind a reference took it still takes).
+  `<id>:<name>`, and keys in an extension's namespace carried on any node; a layer's `legend`, `auto` or `none`;
+  `0.6.0`: genomes (Language, Assemblies): the `assembly` kind, a `sequence` under an assembly (an override, its
+  `alphabet` then optional, a sequence's `label`), `section.of` an assembly or a list of them, `section.include`,
+  `block.direction`, `block.scale`, `navigator.switch`, `navigator.system` an assembly, `target`, `a`, `b`, `x`, `y`,
+  `from`, `to` an assembly, a segments table's `from_name` and `to_name`; declared for the lanes that read them: the
+  `bridge` kind (a layer under it), the `matrix` kind and layer type, `pairs.source`, `pairs.field`, `grid.source`,
+  `grid.field` (`rows` and `values` then optional), `map.source`, a layer's `data` a segments `map` or a `matrix`, a
+  grid section's `of_y` a rows system, `member_order`, `member_order_y`, a source's `features` and `samples`, the `line`
+  word `gene` and the `shape` words `ribbon` and `line`). A spec in an earlier `0.x` reads as one in this one, and is
+  reported where it no longer fits: a `0.5.0` spec reads unchanged (every addition is optional, and every kind a
+  reference took it still takes), but an extension's `requires: '0.5'` no longer covers it (0.x: the minor).
 
 ## Language
 
@@ -295,6 +303,51 @@ never chemistry: a component code, a SMILES, a GlyTouCan id are strings it match
 | `field` (`values`)     | the source's default value                                                          | one source, many channels                                                                |
 | hydrogens in `atoms`   | refused (fixed)                                                                     | lengths and per-atom data line up across entries (EC-64)                                 |
 
+### Assemblies
+
+- **The kind** (`/data/<id>`, `assembly`): a genome's sequences, named and ordered, a system each, derived as a
+  complex's units are (Resolve, Assemblies). Params: `name` (its accession or name, `GRCh38`, EC-187) and `aliases`
+  (`hg38`), what `source.assembly` is checked against; `source` (a source listing its sequences with their lengths: a
+  `chrom-sizes` table, a FASTA read whole, a host's adapter) and `sequences` (inline: `name`, `length`, `aliases` a list
+  a row, `cyclic`), one or both (`seq.lang.assembly.content`); `alias_source` (a chromAlias-like table) and `names` (its
+  column printed; with `alias_source` only); `alphabet` (`dna` when absent); `order` (`natural` when absent, `length`,
+  `source`, or a list of names first); `include` (names and patterns `^…`, or `{ names, min_length }`; every sequence
+  when absent); `match` (`chr` when absent: a leading `chr` added or dropped; `exact`). A `sequence` child overrides the
+  derived one its `name` (else its id) is, through the names rule: `cyclic`, `label`, `alphabet` (the assembly's when
+  absent, so `seq.lang.sequence.alphabet` applies under `data` only); its own `letters` or `source` is refused
+  (`seq.lang.sequence.content`: its letters are the assembly's source's). Why a kind: a genome's hundreds of sequences
+  written as nodes is a manifest by hand.
+- **Over an assembly**: `ranges.target`, `values.target`, `pairs.a`/`b`, `grid.x`/`y`, `matrix.target`, `map.from`/`to`
+  and `navigator.system` may name one; a row is on the sequence its `target` field names (Resolve). A section `of` an
+  assembly, or a list of them (a group each, EC-210), has a block a derived sequence; its `include` (the assembly's
+  grammar, within the assembly's own) keeps some (`seq.lang.section.include`, a warning, on a section of none). A
+  block's `direction` (`section` when absent, `reversed`) and `scale` (1 when absent, positive: `seq.lang.block.scale`)
+  are the figure's; a block child overrides a derived block by its `of` (the derived sequence's address), or by an id
+  that is the sequence's name. `navigator.switch` (`none` when absent, `include`).
+- **Declared, read by later lanes** (a reader that lacks one says so by the existing issue, never silently): the
+  `bridge` kind under a view (`a`, `b` two sections, `seq.lang.bridge.sides`; `label`, `height`, `lock` `none` or `px`,
+  `hidden`; its children layers); `pairs.source` and `grid.source` with `field` (one of `rows`/`values` and `source`:
+  `seq.lang.pairs.content`, `seq.lang.grid.content`); the `matrix` kind (`target`, inline `values` or `codes` with
+  `states`, or `source` and `field`: `seq.lang.matrix.content`) and the `matrix` layer type (its data a matrix);
+  `map.source` (a `segments` map's runs from a pairs source, instead of `segments`: `seq.lang.map.params`); a `pairs`
+  layer's data a segments `map`; a grid section's `of_y` a rows system (an alignment's, a matrix's states),
+  `member_order`, `member_order_y` (the rows layer's order values); a source's `features` (`transcripts` when absent,
+  `genes`, `rows`) and `samples`; BED's columns named by number through `fields` (`{ stain: '4' }`); the `line` word
+  `gene` and, in a bridge, the `shape` words `ribbon` and `line`.
+
+| Item                                                                       | Whose       | Default                                                   | Why the default; the alternatives                                           |
+| -------------------------------------------------------------------------- | ----------- | --------------------------------------------------------- | --------------------------------------------------------------------------- |
+| `assembly.name`, `aliases`, `source`, `sequences`, `alias_source`, `names` | spec params | — (`source` or `sequences`; every sequence with a length) | what the genome is (EC-186 to EC-189)                                       |
+| `assembly.order`                                                           | spec param  | `natural` (numbers, X, Y, W, Z, M, MT, the rest)          | one genome draws in one order whatever the file; `length`, `source`, a list |
+| `assembly.include`                                                         | spec param  | every sequence                                            | which contigs matter is the figure's; names, patterns, `{ min_length }`     |
+| `assembly.match`                                                           | spec param  | `chr`                                                     | UCSC's and Ensembl's names differ by the prefix; `exact`                    |
+| `section.of`                                                               | spec param  | —                                                         | a system, a complex, an assembly, or a list of assemblies                   |
+| `section.include`                                                          | spec param  | every block of `of`                                       | the chromosome or pair a section shows                                      |
+| `navigator.switch`                                                         | spec param  | `none`                                                    | a click centres; `include` sets the bound section's `include`               |
+| `block.direction`                                                          | spec param  | `section`                                                 | the section reads one way unless told; `reversed`                           |
+| `block.scale`                                                              | spec param  | 1                                                         | lengths true unless the figure says; any positive number, labelled          |
+| the locus text (1-based inclusive, commas, longest name first)             | fixed       | —                                                         | the precedents' text, typed as readers know it                              |
+
 ### Extensions
 
 - **Names**: an extension's name is `<id>:<name>` (`ExtensionNamePattern`), its id the namespace (`seq` reserved);
@@ -371,6 +424,15 @@ of it.
   `b.data.complex(id, params, (c) => { c.unit(id, params, (u) => u.numbering(id, params)); c.links(id, params) })`
   (links' params are a pairs node's but `a` and `b`), `b.data.compound(id, params)` (the `compounds` container made with
   the first); `modified(rows)` and `identifiers(record or pairs)` write the tables from rows.
+- **Genomes**: `b.data.assembly(id, params, (a) => a.sequence(id, override))`, `b.data.matrix`,
+  `view.bridge(id, params, (br) => br.layer(…))`; and the helpers in their own module (`lang/genome-builder.ts`,
+  exported from `lang`, so a writer that writes no genome bundles none of them): `assembly(name, sequences, extra)` (an
+  assembly's params from rows), `genome(view, id, of, { include, layout, bands })` (a section of the assemblies with a
+  ruler in bases and, given bands, an ideogram navigator: spelled, never inferred) and
+  `colinearBlocks(runs, of, { minLength })` (the blocks of `of` in the order of a map's runs read once: a block a run of
+  at least `minLength`, 100 kb by default, shorter runs merged into the block before as their hull, `reversed` where a
+  run is; explicit data, exported as drawn). Why a helper and not a block's `{ along }`: a map read by region would turn
+  a block over as regions arrive.
 - **Misuse** that types do not reach (an id twice under one parent, a malformed id) throws where it is written; the rest
   is found by `check`. Calls are recorded and replayed on the engine of `@molstar/core/repr/builder` at `build`.
 - **Type tests** (`_test/types.test.ts`) mark wrong kinds and params with `@ts-expect-error`; they are checked by
@@ -544,25 +606,28 @@ address, `/data/p53/(range :from 94 :to 292)`.
 
 ### Forms
 
-| Form                                                                        | Prefix                  | Result                                                                                                          |
-| --------------------------------------------------------------------------- | ----------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `(range :from l :to l :numbering n)`                                        | systems                 | Location                                                                                                        |
-| `(at :label l :ins c :numbering n)`                                         | systems                 | Location (one position)                                                                                         |
-| `(all)`                                                                     | systems                 | Location                                                                                                        |
-| `(rect :a <location> :b <location>)`                                        | as its sides need       | Location (one rect; each side one system; sides never wrap, `seq.query.range.wrap`)                             |
-| `(row :key k)`, `(row :key [k …])`                                          | alignments              | Location: the rows by key (label), positions of its rows system (`seq.query.row.unknown`, `.pending`): a side   |
-| `(item :id k)`, `(item :<field> v …)`                                       | annotations             | Keys (every param matches; a list param matches any of its atoms; a field the annotations lack is an issue)     |
-| `(items :overlapping <location>)`                                           | annotations             | Keys (every item without `:overlapping`)                                                                        |
-| `(node :key k)`                                                             | nodes                   | Nodes, addressed by the form itself (`/data/1tup/(node :key T1)`), so location forms may follow a node          |
-| `(chain :id A :operator 1_555)`, `(chain :auth B)`                          | a complex               | Nodes: its units by chain, operator and author chain, each by its id; elsewhere a chain data makes, by the form |
-| `(molecule :identifier "ccd:ATP")`, `:class ligand`, `:entity 3`            | `data`, a complex       | Nodes: molecules (a complex's: its units', by their entity)                                                     |
-| `(atoms)`                                                                   | a molecule, a unit      | Nodes: its atoms system, `<system>/(atoms)`                                                                     |
-| `(elements <items>)`                                                        | structures (Language)   | Location: the schema selection, residues or atoms by its finest field                                           |
-| `(groups :residue-test p … :by level)`                                      | structures              | Keys: a key a group                                                                                             |
-| `(filter :test p)`                                                          | a Location, Keys, nodes | the prefix's type, a subset                                                                                     |
-| `(expand :to residue \| unit \| molecule)`, `(linked :via <pairs> :type w)` | a Location, Keys        | Location                                                                                                        |
-| `(extent :of <keys>)`                                                       | any                     | Location                                                                                                        |
-| `(merge :of […])`, `(intersect :of […])`, `(except :of [a b …])`            | any                     | the operands' one type                                                                                          |
+| Form                                                                        | Prefix                               | Result                                                                                                          |
+| --------------------------------------------------------------------------- | ------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
+| `(range :from l :to l :numbering n)`                                        | systems                              | Location                                                                                                        |
+| `(at :label l :ins c :numbering n)`                                         | systems                              | Location (one position)                                                                                         |
+| `(all)`                                                                     | systems                              | Location                                                                                                        |
+| `(rect :a <location> :b <location>)`                                        | as its sides need                    | Location (one rect; each side one system; sides never wrap, `seq.query.range.wrap`)                             |
+| `(row :key k)`, `(row :key [k …])`                                          | alignments                           | Location: the rows by key (label), positions of its rows system (`seq.query.row.unknown`, `.pending`): a side   |
+| `(item :id k)`, `(item :<field> v …)`                                       | annotations                          | Keys (every param matches; a list param matches any of its atoms; a field the annotations lack is an issue)     |
+| `(items :overlapping <location>)`                                           | annotations                          | Keys (every item without `:overlapping`)                                                                        |
+| `(node :key k)`                                                             | nodes                                | Nodes, addressed by the form itself (`/data/1tup/(node :key T1)`), so location forms may follow a node          |
+| `(chain :id A :operator 1_555)`, `(chain :auth B)`                          | a complex                            | Nodes: its units by chain, operator and author chain, each by its id; elsewhere a chain data makes, by the form |
+| `(molecule :identifier "ccd:ATP")`, `:class ligand`, `:entity 3`            | `data`, a complex                    | Nodes: molecules (a complex's: its units', by their entity)                                                     |
+| `(atoms)`                                                                   | a molecule, a unit                   | Nodes: its atoms system, `<system>/(atoms)`                                                                     |
+| `(sequence :name n)`                                                        | an assembly                          | Nodes: its derived sequence by any name or alias, addressed by the form with its printed name (EC-200)          |
+| `(locus :text "chr17:7,668,402-7,687,550")`                                 | an assembly, a section of assemblies | Location: `name`, `name:p` or `name:a-b` (1-based, inclusive, commas), the name longest first                   |
+| `(block :name n)`                                                           | a section of assemblies              | Location: the derived block's sequence, whole                                                                   |
+| `(elements <items>)`                                                        | structures (Language)                | Location: the schema selection, residues or atoms by its finest field                                           |
+| `(groups :residue-test p … :by level)`                                      | structures                           | Keys: a key a group                                                                                             |
+| `(filter :test p)`                                                          | a Location, Keys, nodes              | the prefix's type, a subset                                                                                     |
+| `(expand :to residue \| unit \| molecule)`, `(linked :via <pairs> :type w)` | a Location, Keys                     | Location                                                                                                        |
+| `(extent :of <keys>)`                                                       | any                                  | Location                                                                                                        |
+| `(merge :of […])`, `(intersect :of […])`, `(except :of [a b …])`            | any                                  | the operands' one type                                                                                          |
 
 - **Combinators take `:of`** (`query/combinators.ts`), renamed from `or`, `and`, `not` (the author, 2026-11-20,
   "Rename"; MolQL's names, `and`, `or`, `not` being predicate logic): `merge` and `intersect` a list; `except` its first
@@ -570,6 +635,15 @@ address, `/data/p53/(range :from 94 :to 292)`.
   its systems' positions, its annotations' items, its nodes' children with ids. Dynamic nodes are not in that universe
   yet. A rect has no complement; `(except :of [<rect> <rect>])` is a rect less a rect, exact (Location). Operands of
   different types are `seq.query.form.type`. A layer's data filter is a trailing `(except :of …)` (Themes, Filters).
+- **The genome forms** (`sequence`, `locus`, `block`; `query/genome-forms.ts`) are loaded the first time a query names
+  one or a spec holds an assembly (`loadGenomeForms`; `query/genome-door.ts` the door): until then, and while their
+  assembly's source has not opened (`QueryModel.assemblySequence` answers `pending`), the form waits (incomplete, its
+  address `waiting`), never unknown. A name no sequence has is `seq.query.locus.name`, said whole: a locus reads a
+  position only after a known name (`HLA-A*01:01:01:02` is one unknown name, not `HLA-A*01:01:01` at 2); positions that
+  do not parse `seq.query.position.invalid`; a range past the sequence is clamped to it. A bare number as a name is
+  `seq.query.form.param` (the reader made `01` the number 1, its text lost: quote it); `(block :name …)` under a section
+  not of assemblies is `seq.query.form.prefix`. Why a form: a link, a bookmark and a host's box carry the text the
+  reader typed; it prints as the canonical `(sequence :name …)` and range.
 - **`row`** reads the model's `row(rows, key)`: an inline alignment's labels, else a source's rows the query model holds
   (Overlay); while `rowsPending(rows)` the form waits over the whole rows system (`seq.query.row.pending`, the address
   `waiting`); a key no held row has is `seq.query.row.unknown`.
@@ -1470,6 +1544,7 @@ an alignment's systems, a held pairs or grid node, an annotation), importing the
 | `openQueryLength`   | int32's max | what the query forms read on a system of unknown length, so labels resolve before its source opens; layout never reads it (an axis of unknown length is pending)      |
 | `maxNestedDepth`    | 4           | the levels of nested sources the overlay requests (EC-179): a spec's sources are untrusted                                                                            |
 | `maxUnits`          | 65,536      | the units a complex holds (a large capsid's assembly); a complex past it is refused whole (`seq.resolve.complex.units`), a source's or a spec's; larger at its memory |
+| `maxAssemblyBlocks` | 4,096       | the blocks a section of assemblies derives after `include` (GRCh38 with its alternates and decoys); past it `seq.view.section.blocks`; complexes keep `maxUnits`      |
 
 ### Systems, sources, annotations
 
@@ -1569,6 +1644,54 @@ Seq\* holds pointers and labels: codes and identifiers are strings.
   `compound(code)` falls back to the host's names (`ResolveOptions.componentNames`, the `componentNames` entry's
   lookup). A host's identifier resolver is `ResolveOptions.equivalents` (the `identifierResolver` entry): the
   identifiers it holds the same compound as one, which `(molecule :identifier …)` adds; none by default.
+
+### Assemblies
+
+- **Loaded when used** (the author, 2026-11-21): assembly resolve, the names rule, derived sequences and the map between
+  assemblies are one chunk (`resolve/genome-chunk.ts`: `assemblies.ts`, `assembly-names.ts`, `genome-model.ts`),
+  imported by `loadGenome` (`resolve/genome.ts`, the door) the first time a spec holds an `assembly`, the genome query
+  forms with it. Until it lands each assembly is pending (`pendingAssembly`: its sources named so they open meanwhile,
+  nothing derived, no issue) and `StaticModel.loading` is the promise; the model's hash says so, so a resolve after it
+  lands builds again. `openModel`, the viewer's spec model and `settle` resolve again when it settles. Why: a reader
+  that never opens a genome pays nothing for it (the size script checks that no entry loads these modules first; an
+  import-graph test, that no static import of the eager entries reaches them).
+- **Derived sequences** (`AssemblyEntry`, `StaticModel.assemblies`): from `sequences`, then the source's coverage joined
+  through the names rule (a sequence the coverage names under another name or alias takes its source name), each a
+  system addressed by the form, `/data/hg38/(sequence :name chr17)` (never an id step: one address a system), its `name`
+  the one its source lists it by and its printed name an alias, so coverage matches either way. In `order`, after
+  `include`; `AssemblyEntry.sequences` and `order` keep every one (the `system` theme's domain, before any `include`). A
+  sequence with no length makes the assembly unavailable (`seq.resolve.assembly.lengths`, error, naming the first
+  three): never drawn with a guessed length. An assembly with a source is pending until it opens (EC-112).
+- **The coverage enters resolve with the lengths**: `sourceLengths` keeps an assembly's source's (and alias source's)
+  systems in the `Lengths` it returns (opaque: they ride along), its key's value the coverage's content hash, computed
+  once when the source opens; so the model's hash changes when the file does, never per resolve.
+- **The names rule** (`assembly-names.ts`, one `Map` an assembly, built once a coverage): a name exactly, then the alias
+  table's aliases, then each sequence's, then with `match: chr` a leading `chr` added or dropped (`1` is `chr1`, `M` is
+  `chrM`, `MT` never `M`). An exact name always wins; an alias naming two sequences, or another sequence's name with a
+  different length (hg19's `chrM`, GRCh37's `MT`), is dropped and said (`seq.resolve.assembly.alias`). `natural` ranks
+  the name less a leading `chr`: whole numbers, X, Y, W, Z, M, MT, then the rest as listed. `include` patterns are a
+  safe subset (`lang/include-pattern.ts`: `^`, characters, `.`, `[…]`, `\d`, `\w`, each with `?`, `*` or `+`, an
+  optional `$`; no groups, alternation, backreferences or counted repeats; at most 256 characters), matched by a table
+  over the name and the atoms, never a backtracking search: a spec is untrusted and a pattern runs over 100,000 names.
+  One outside it is `seq.lang.include.pattern` (error) and reads as a name.
+- **Data over an assembly**: resolve says a source naming another assembly (`seq.resolve.assembly.mismatch`) and inline
+  rows whose `target` names no sequence, counted once with the first (`seq.resolve.assembly.name`); reading such data by
+  sequence is the store's and the view's (Genomes milestone). Pairs, grids and maps read from a source are not held.
+- **A map between assemblies** is one map over every sequence pair: its inline runs grouped by `from_name` and `to_name`
+  into one entry a pair, each keyed apart and stepping as the map (`Edge.map` its address), so a path between two
+  sequences is one step of it and the ambiguity rules read one map (EC-207); a run naming no sequence is left out
+  (`seq.resolve.assembly.name`). A liftover is projection through it (EC-212).
+- **Linear**: each sequence once; a section's copy groups by a `Map` (Resolved view, Blocks). A quick representative of
+  100,000 sequences resolved with `include` to 25 is held under 50 ms.
+
+### Unread params
+
+- **Said, never dropped in silence** (`resolve/unread.ts`): a param the language declares and this version reads nowhere
+  is `seq.resolve.param.unread` (info), one a node, naming the lane that reads it: `map.source` (FR), `pairs.source` and
+  `grid.source` (RG), data over an assembly (GC2), `navigator.switch` (GC3), `block.direction` and `block.scale` (GC2:
+  carried on a derived block's params, not drawn), `section.member_order` and `member_order_y` (LA), a `bridge` (LA),
+  `assembly.names` (GF: the printed names stay the assembly's). The lane that reads one drops it from `Unread`. Why: a
+  reader shown a spec drawn without what it says should be told why.
 
 ### Maps
 
@@ -1673,8 +1796,10 @@ Seq\* holds pointers and labels: codes and identifiers are strings.
 `seq.resolve.*` (`ResolveIssues`): `ref.missing` and `source.format` (a spec not checked), `source.runtime`,
 `map.empty`, `map.observed`, `via.unused`, `map.codon_length`, `map.table`, `length.unknown`, `system.unnamed`,
 `path.none`, `path.ambiguous`, `path.limit`, `complex.units`, `ref.system` (a reference to a sequence, molecule or unit
-that made no system: a unit of a refused complex or of nothing held; what reads it is left out), and the overlay's
-`node.invalid`, `node.ref`, `node.depth`. A test checks the catalog against the sources.
+that made no system: a unit of a refused complex or of nothing held; what reads it is left out), `assembly.lengths`,
+`assembly.duplicate` (a name twice: the later dropped), `genome.load`, `assembly.alias`, `assembly.mismatch`,
+`assembly.name` (Assemblies), `param.unread` (Unread params), and the overlay's `node.invalid`, `node.ref`,
+`node.depth`. A test checks the catalog against the sources.
 
 ## Overlay
 
@@ -1772,6 +1897,12 @@ no target.
   a unit of one; `atoms` puts its axis on the atoms system (`<unit>/(atoms)`), its `range` the atoms of the residues in
   range, and falls back to the default where there is none (the language says so). **Its label**: as written, else its
   unit's `label`, else (a molecule) its `name`, else its one component's code (`ATP`), else its id.
+- **A section of assemblies' blocks** (`assemblyBlocks`): a block a derived sequence, each assembly's in its order and
+  after its `include`, then the section's `include`; at most `maxAssemblyBlocks`, the rest said
+  (`seq.view.section.blocks`; their closing run is the layout's). A derived block has no id: its address is the keyed
+  form under its section, `/views/v/genome/(block :name chrM)`. A block child overrides one by its `of`, or by an id
+  that is its name. A section whose assembly is pending has no blocks and no issue (pending, never a missing system).
+  Copy groups are found through a `Map` (linear in the blocks).
 - **Blocks**: each its axis (its system, its `range`, the section's direction), its form, its first display unit in the
   section's (`offset`: 0 in a stack), its label, the blocks it stands for (`members`) and their systems (`systems`: a
   merged copy's unit, what an end on a copy is drawn on), its copy group (`copy`, internal: the pairs layer's), and each

@@ -82,8 +82,8 @@ const fine = [
 const wrongParams = [
   () => {
     const b = createSeqSpec();
-    // @ts-expect-error alphabet is required
-    b.data.sequence('s', { letters: 'ACGT' });
+    // @ts-expect-error a ranges node's target is required
+    b.data.ranges('r', { rows: { start: [0], end: [1] } });
     // @ts-expect-error not an alphabet
     b.data.sequence('s', { alphabet: 'cat', letters: 'ACGT' });
     // @ts-expect-error not a param of sequence

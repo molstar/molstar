@@ -316,6 +316,60 @@ const Misuses: Record<keyof typeof LangIssues.codes, () => Node> = {
     });
     return b.build();
   },
+  'seq.lang.assembly.content': () => {
+    const b = createSeqSpec();
+    b.data.assembly('g', { name: 'GRCh38' });
+    return b.build();
+  },
+  'seq.lang.sequence.alphabet': () => {
+    const b = createSeqSpec();
+    b.data.sequence('s', { letters: 'ACGT' });
+    return b.build();
+  },
+  'seq.lang.block.scale': () => {
+    const b = createSeqSpec();
+    const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT' });
+    b.views.view('v', (v) => v.section('sec', {}, (sec) => sec.block('b', { of: s, scale: 0 })));
+    return b.build();
+  },
+  'seq.lang.bridge.sides': () => {
+    const b = createSeqSpec();
+    const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT' });
+    b.views.view('v', (v) => {
+      const a = v.section('a', { of: s });
+      v.bridge('x', { a, b: a });
+    });
+    return b.build();
+  },
+  'seq.lang.section.include': () => {
+    const b = createSeqSpec();
+    const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT' });
+    b.views.view('v', (v) => v.section('a', { of: s, include: ['chr1'] }));
+    return b.build();
+  },
+  'seq.lang.include.pattern': () => {
+    const b = createSeqSpec();
+    b.data.assembly('g', { name: 'toy', sequences: { name: ['a'], length: [1] }, include: ['^(a+)+$'] });
+    return b.build();
+  },
+  'seq.lang.pairs.content': () => {
+    const b = createSeqSpec();
+    const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT' });
+    b.data.pairs('p', { a: s });
+    return b.build();
+  },
+  'seq.lang.grid.content': () => {
+    const b = createSeqSpec();
+    const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT' });
+    b.data.grid('g', { x: s, field: 'balanced' });
+    return b.build();
+  },
+  'seq.lang.matrix.content': () => {
+    const b = createSeqSpec();
+    const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT' });
+    b.data.matrix('m', { target: s, values: [0.5] });
+    return b.build();
+  },
   'seq.lang.navigator.bands': () => {
     const b = createSeqSpec();
     const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT' });
@@ -533,12 +587,20 @@ describe('the misuses', () => {
     expect(b.check()).toEqual([]);
   });
 
+  it('refuse an override’s own letters under an assembly, never misread them against an alphabet', () => {
+    const b = createSeqSpec();
+    b.data.assembly('g', { name: 'toy', sequences: { name: ['chr1'], length: [4] } }, (a) =>
+      a.sequence('o', { name: 'chr1', letters: 'ACGT' }),
+    );
+    expect(b.check().map((i) => i.code)).toEqual(['seq.lang.sequence.content']);
+  });
+
   it('give the description’s codes first, and the language’s on a valid tree only', () => {
     const bad = createSeqSpec();
     bad.data.sequence('s', { alphabet: 'cat' } as never);
     expect(bad.check().map((i) => i.code)).toEqual(['repr.schema.param.enum']);
     const missing = createSeqSpec();
-    missing.data.sequence('s', {} as never);
+    missing.data.ranges('r', { rows: { start: [0], end: [1] } } as never);
     expect(missing.check().map((i) => i.code)).toEqual(['repr.schema.param.missing']);
   });
 

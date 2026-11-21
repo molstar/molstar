@@ -52,6 +52,7 @@ import { StructureForms } from './structure-forms.js';
 import { asType, evaluate } from './evaluate.js';
 import { keysExtent } from './key-extent.js';
 import { QueryIssues } from './issues.js';
+import { GenomeForms } from './genome-door.js';
 import { MoleculeForms } from './molecule-forms.js';
 import { hasLabelSuffix, isNoInsertionCode, readLabel } from './labels.js';
 import {
@@ -91,6 +92,9 @@ export const QueryFormKinds = [
   'items',
   'node',
   'chain',
+  'sequence',
+  'locus',
+  'block',
   'extent',
   'merge',
   'intersect',
@@ -461,6 +465,7 @@ const Forms: Readonly<Record<(typeof QueryFormKinds)[number], Resolve>> = {
   elements,
   ...StructureForms,
   ...MoleculeForms,
+  ...GenomeForms,
 };
 
 /** A value's forms: itself and those nested in its params and args. */

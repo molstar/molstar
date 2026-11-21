@@ -59,6 +59,16 @@ const Unlisted = [
   /seq\/viewer\/src\/(behaviors\/header[-a-z]*|header-[-a-z]+|mount-header-menu)\.ts$/,
 ];
 
+/**
+ * What loads only when used (a dynamic import): in no entry's first chunks, whatever it lists. The genome chunk and
+ * its query forms, the first time a spec holds an assembly (or a query names a locus or a block).
+ */
+const Deferred = [
+  /seq\/core\/src\/resolve\/(assemblies|assembly-names|genome-model|genome-chunk|genome-resolve|genome-issues)\.ts$/,
+  /seq\/core\/src\/query\/genome-forms\.ts$/,
+  /seq\/core\/src\/lang\/include-pattern\.ts$/,
+];
+
 /** The opt-in runtimes: loaded only when a composition lists one. */
 const Runtimes = [/seq\/core\/src\/runtimes\//, /seq\/core\/src\/structure\//];
 
@@ -242,6 +252,14 @@ for (const r of rows) {
   held += found.length;
   console.log(`\n${r.name}: unlisted modules ${found.length ? 'FOUND' : 'none'}`);
   for (const [f, n] of found) console.log(`  ${pad(kB(n), 10)}${f}`);
+}
+
+// each entry's deferred modules: none may be in the chunks it loads first
+for (const r of rows) {
+  if (r.own) continue;
+  const found = [...new Set(loadedInputs(r.meta).map(([f]) => f))].filter((f) => Deferred.some((p) => p.test(f)));
+  held += found.length;
+  if (found.length) console.log(`\n${r.name}: deferred modules loaded first: ${found.join(', ')}`);
 }
 
 for (const r of rows) {

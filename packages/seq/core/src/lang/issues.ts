@@ -45,8 +45,8 @@ export const LangIssues = defineIssues('seq.lang', {
   },
   'seq.lang.sequence.content': {
     severity: 'error',
-    description: 'A sequence has both `letters` and a `source`, or neither',
-    hint: 'Give one of `letters` and `source`',
+    description: 'A sequence has both `letters` and a `source`, or neither (an override under an assembly: either)',
+    hint: 'Give one of `letters` and `source`; an override reads its assembly’s',
   },
   'seq.lang.alignment.content': {
     severity: 'error',
@@ -314,6 +314,51 @@ export const LangIssues = defineIssues('seq.lang', {
     severity: 'error',
     description: 'A link’s end (under a complex or a molecule) is more than one position',
     hint: 'A link joins one position to one position; a site or a contact of several is a pairs node under `data`',
+  },
+  'seq.lang.assembly.content': {
+    severity: 'error',
+    description: 'An assembly has no `sequences` or `source`, or `names` alone',
+    hint: 'Give one',
+  },
+  'seq.lang.sequence.alphabet': {
+    severity: 'error',
+    description: 'A sequence has no `alphabet`',
+    hint: 'Give one',
+  },
+  'seq.lang.block.scale': {
+    severity: 'error',
+    description: 'A block’s `scale` is 0',
+    hint: 'Give a positive number',
+  },
+  'seq.lang.bridge.sides': {
+    severity: 'error',
+    description: 'A bridge joins a section to itself',
+    hint: 'Name two sections',
+  },
+  'seq.lang.section.include': {
+    severity: 'warning',
+    description: '`include` on a section of no assembly is ignored',
+    hint: 'Drop it',
+  },
+  'seq.lang.include.pattern': {
+    severity: 'error',
+    description: 'An `include` pattern outside the language',
+    hint: '`^`, `.`, `[…]`, `?`, `*`, `+`, `$`',
+  },
+  'seq.lang.pairs.content': {
+    severity: 'error',
+    description: 'A pairs node has not one of `rows` and `source`',
+    hint: 'Give one',
+  },
+  'seq.lang.grid.content': {
+    severity: 'error',
+    description: 'A grid has not one of `values` and `source`',
+    hint: 'Give one',
+  },
+  'seq.lang.matrix.content': {
+    severity: 'error',
+    description: 'A matrix has not one of its cells and `source`',
+    hint: 'Give one',
   },
   'seq.lang.link.occupancy': {
     severity: 'error',

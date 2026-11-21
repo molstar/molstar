@@ -102,6 +102,16 @@ export interface QueryModel {
    * undefined: what `(row :key k)` reads (rows are positions, EC-35).
    */
   row?(rows: string, key: Atom): number | undefined;
+  /**
+   * An assembly's derived sequence by a name (through its names, aliases and the `chr` prefix): its system's address
+   * and its printed name; undefined when the assembly lacks it (`(sequence :name …)`, `(locus …)`, `(block :name …)`).
+   */
+  assemblySequence?(
+    assembly: string,
+    name: string,
+  ): { readonly address: string; readonly name: string } | 'pending' | undefined;
+  /** Whether an address is an assembly's (what `(block :name …)` asks of its section's `of`). */
+  isAssembly?(address: string): boolean;
   /** Whether an alignment's rows are not held yet (read from a source): a row form then waits, never unknown. */
   rowsPending?(rows: string): boolean;
   /** A system's components (a sequence's, a molecule's residues, a unit's): what `(component …)` reads. */
