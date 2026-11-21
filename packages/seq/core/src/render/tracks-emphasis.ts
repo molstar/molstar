@@ -9,7 +9,7 @@ import { axisBreaks, breakHolding } from '@molstar/seqx-core/view';
 import { AxisTransform, Cut } from './axis.js';
 import type { RenderConfig } from './config.js';
 import { NoColor, type PassWriter, Round } from './draw-lists.js';
-import type { Box, Emphasis, EmphasisHighlight } from './layer-type.js';
+import type { Box, Emphasis, EmphasisHighlight, Hit, LayerType } from './layer-type.js';
 import { walkStripes } from './highlight-stripes.js';
 import { partOn, rectOver } from './marks.js';
 import type { SeqTokens } from './tokens.js';
@@ -320,6 +320,48 @@ function drawProjectedHover(
   Paint[4] = config.emphasis.hoverOffset;
   Paint[5] = 0;
   paintRanges(out, axis, box, part, config);
+}
+
+/** The least width of an extension item's hover outline, px (fixed, as hit slops are). */
+const ExtensionHoverMin = 8;
+
+/**
+ * The hover of an item of an extension's layer type (_spec/README.md "Render", Emphasis): the type draws its marks and
+ * names its items (`items`), the view outlines the hovered one, `emphasis.hoverOffset` outside its extent across its
+ * band (or the item's own rows `y` and `height`), in the hover ink, as a built-in's hover looks. At least
+ * `emphasis.hoverMin` wide, centred, so a mark narrower than its extent (a lollipop's head) is still ringed.
+ */
+export function drawExtensionHover(
+  out: PassWriter,
+  type: LayerType<any, any>,
+  lay: unknown,
+  hover: Hit,
+  box: Box,
+  tokens: SeqTokens,
+  config: RenderConfig,
+) {
+  const key = hover.element?.key;
+  if (key === undefined || !type.items) return;
+  const items = type.items(lay);
+  const half = config.outline.hover / 2 + config.emphasis.hoverOffset;
+  const g = out.args;
+  for (let i = 0; i < items.length; i++) {
+    const it = items[i];
+    if (it.key !== key) continue;
+    const w = Math.max(it.x1 - it.x0, ExtensionHoverMin);
+    const y = it.y ?? box.y;
+    const h = it.height ?? box.height;
+    g[0] = (it.x0 + it.x1) / 2 - w / 2 - half;
+    g[1] = y - half;
+    g[2] = w + 2 * half;
+    g[3] = h + 2 * half;
+    g[4] = NoColor;
+    g[5] = tokens.colors['seq-hover'];
+    g[6] = config.outline.hover;
+    g[7] = Math.min(config.squircleMax, (w + 2 * half) / 2, (h + 2 * half) / 2);
+    g[8] = Round.both;
+    out.rectArgs();
+  }
 }
 
 /** A mutable box: one stripe of a band (reused: a stripe makes no object). */

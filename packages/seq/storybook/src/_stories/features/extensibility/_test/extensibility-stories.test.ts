@@ -85,6 +85,25 @@ describe('the Extensibility story', () => {
     expect(v.commands.some((c) => c.id === FocusSites)).toBe(false);
   });
 
+  it('outlines a hovered lollipop as a built-in item is, in the hover ink', async () => {
+    const v = await open();
+    await v.extend(DemoExtension);
+    await settle(v);
+    const layer = v
+      .frame!.layout.sections.flatMap((s) => s.tracks.flatMap((t) => t.layers))
+      .find((l) => l.type.name === 'demo:lollipops')!;
+    const s6 = layer.type.items!(layer.lay).find((i) => i.key === 'S6')!;
+    // the head is at the extent's middle, at the stems' top: a point on it, whichever layout the story gives
+    const at = [...Array(60).keys()]
+      .map((k) => ({ x: (s6.x0 + s6.x1) / 2, y: k * 2 }))
+      .find((p) => v.hit(p.x, p.y)?.element?.key === 'S6')!;
+    expect(at).toBeDefined();
+    expect(recordDrawLists(v.frame!.lists, ['hover'])).not.toContain('rect');
+    v.input.move(at.x, at.y);
+    await settle(v);
+    expect(recordDrawLists(v.frame!.lists, ['hover'])).toContain('rect');
+  });
+
   it('colors the domains by the warm scheme only where it is composed', async () => {
     const spec = extensibilitySpec();
     const color = (ctx: ReturnType<typeof createSeqContext>) =>

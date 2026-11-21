@@ -13,7 +13,7 @@ import { TranslateWarp } from './layout/warp.js';
 import { drawRail } from './rail.js';
 import { wellClipArgs, wellCorners } from './wells.js';
 import type { SectionLayout, ViewLayout } from './tracks-types.js';
-import { drawSectionEmphasis, drawTints, emphasisPart, Part } from './tracks-emphasis.js';
+import { drawExtensionHover, drawSectionEmphasis, drawTints, emphasisPart, Part } from './tracks-emphasis.js';
 import { hasHeaderActions } from './headers-draw.js';
 
 // The view's draw (_spec/README.md "Render", Tracks layout): its passes, the background (the page and the wells), each
@@ -268,6 +268,9 @@ function drawStrips(
         for (let li = 0; li < lays.length; li++) {
           const l = lays[li];
           l.type.draw(l.lay, pass, w, emphasis);
+          // an extension's layer type is given the hover's look by the view: its item's outline (Emphasis)
+          if (pass === 'hover' && emphasis?.hover?.layer === l.key && l.type.name.includes(':'))
+            drawExtensionHover(w, l.type, l.lay, emphasis.hover, box, layout.tokens, layout.config);
         }
         if (clip) w.unclip();
       }
