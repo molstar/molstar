@@ -51,8 +51,13 @@ extensible/configurable?" Yes, by the rule that what can be configurable is ([ex
 ## 2. Type
 
 - **Letters** are set in one monospaced data face with tabular metrics, centered in their cells on the cap height, in
-  sizes on a short scale tied to the cell (section 3). Two ink weights only: regular, and strong for a reference row or
-  an emphasized letter.
+  sizes on a short scale tied to the cell (section 3), **capped at the chrome's label size** (`letters.maxPx`, the
+  label font's size by default): optically matched, so a letter's cap height equals a label's (about 0.9× the label
+  size for the mono face). Past the cap a wider cell adds room around the letter, never a bigger letter; the cell's
+  color, emphasis and hit area still fill it. Why: letters larger than their labels out-shout the chrome (the author,
+  2026-11-21: "using bigger font for the sequence letters than the surrounding UI looks bad"); a host that wants big
+  letters (teaching, slides) sets `letters.maxPx` to follow the cell. Two ink weights only: regular by default, and
+  strong for a reference row, the cursor or a conflict.
 - **Labels and numbers** in the chrome use `@molstar/ui`'s type scale; rulers and numbering use tabular figures and
   never overlap (a label that does not fit is skipped, not shrunk).
 - **One letter, one size per row**: a row shows letters for all its positions or none (EC-116).

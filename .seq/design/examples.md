@@ -111,7 +111,7 @@ On the review of the decisions: "ok" to its recommendations.
   | **Plasmid** | a cyclic construct (about 2.7 kb): features crossing the origin on both strands, a CDS across the origin, restriction sites |
   | **tRNA** | a tRNA with base pairs (pairs on one system, nested and crossing), modified bases, a covariance alignment |
   | **Complex** (the author, 2026-11-18: "a protein complex, with PPIs; and perhaps a ligand as well (maybe something from AlphaFill?)"; CDK2 with cyclin A confirmed the same day) | CDK2 with cyclin A (UniProt P24941, P20248): a crystal structure of the complex with ATP (two copies of the complex, so copy groups; unobserved loops); a predicted model of the complex with per-residue confidence and its predicted aligned error (PAE) between the chains; the interface (residues per side, residue–residue contacts across the chains); the ligands: ATP from the crystal and the ligands AlphaFill transplants into the AlphaFold DB model of CDK2 (each with its source entry and fit scores), their contacting residues; features (the PSTAIRE helix, the activation loop, the T160 phosphosite) |
-  | **Genomes** (the fifth slice, [version-1.md](version-1.md); the author, 2026-11-19) | two small toy assemblies with synteny (an inversion, a translocation, a gap), name aliases and an HLA-style contig name; genes with transcripts (three levels), a name index; multi-sample signal in one file, GWAS points, a per-pair LD table, a variant matrix by sample with a long deletion, methylation with missing values, transcript-level results keyed by id; FASTA with an index and values read by region |
+  | **Genomes** (the fifth slice, [version-1.md](version-1.md); the author, 2026-11-19; reconciled 2026-11-21, [below](#genomes-the-fifth-slice-promoted-2026-11-21)) | two small toy assemblies with synteny (an inversion, a translocation, a gap), name aliases and an HLA-style contig name; their alignment and a liftover in the `seq` format; genes with transcripts (three levels, GFF3 and GTF), a name index; a bedGraph signal, a VCF of 40 samples with a long deletion, methylation with missing values; a Hi-C and a dot plot grid; 12,000 links over GRCh38 with real cytobands; FASTA and values read by region (the GWAS points, LD table and keyed results deferred to the close-out slice) |
 
 - **Views per dataset** (the first list; each names the edge cases it carries):
 
@@ -123,7 +123,7 @@ On the review of the decisions: "ok" to its recommendations.
   | Plasmid | ring with a linear detail following its window (EC-108, 114), features as arrows by strand (the builder sets `arrow`, EC-232); a feature across the origin selected and focused by shortest arc (EC-9 to 14); the rotated linear view |
   | tRNA | arcs nested and crossing (EC-129); base-pair matrix as a dot plot with crosshair hover and rectangle selection (EC-109, 145); covariance alignment with pairs |
   | Complex | the chains as blocks with the interface residues and the contacts as arcs across the chains, folded by copy group (EC-35, 62, 65); the PAE as a dot plot over the same window as the tracks, crosshair hover lighting both residues, a dragged rectangle selecting two ranges (EC-109, 145); confidence and secondary structure tracks, unobserved residues gray (EC-118); the ligands as blocks after the polymers, ATP as one position and per heavy atom, AlphaFill's transplants listed with their scores, and the residues contacting a chosen ligand highlighted (EC-64, 101); a text figure with ligand chips flowing like words (EC-99); copies merged into one block labeled ×2 and split again (EC-65); the interface bookmarked as a ref, with undo (EC-162) |
-  | Genomes (fifth slice) | a genome ring like Rondo's (rondo.app): chromosomes as blocks with their cytobands, crosslinks bundled into ribbons wide by their count, one chromosome as its own ring, built as an extension package (the author, 2026-11-19: "Rondo-like, extension"; research in the third slice's `research-genome-ring.md`); synteny ribbons with an inversion (direction on segments, EC-206); a dot plot of one genome against the other; both genomes on one ring (EC-210); signal by region with an open domain and with a one-sided domain (EC-169 to 175, EC-201, EC-202); many signals split from one file, log scale (EC-214, EC-215); a Manhattan plot of points with a threshold line, colored by LD to a chosen lead (EC-216, EC-217, EC-219); samples' variants as rows with the deletion solid (EC-222); methylation matrix by region (EC-220); transcripts colored by joined results gated on padj (EC-224); open on a gene by name (EC-228); a liftover by chain file (EC-212); the genome by region from FASTA with its index, names aliased (EC-186 to EC-189) |
+  | Genomes (fifth slice) | a genome ring like Rondo's (rondo.app): chromosomes as blocks with their cytobands, crosslinks bundled into ribbons wide by their count, one chromosome as its own ring, built as an extension package (the author, 2026-11-19: "Rondo-like, extension"; research in the third slice's `research-genome-ring.md`); synteny ribbons with an inversion (direction on segments, EC-206); a dot plot of one genome against the other; both genomes on one ring (EC-210); signal by region with an open domain and with a one-sided domain (EC-169 to 175, EC-201, EC-202); signal by region on a log scale (EC-215); samples' variants as rows with the deletion solid (EC-222); the genotype matrix; methylation matrix by region (EC-220); transcripts in three levels (EC-227, EC-229); a contact map; open on a gene by name (EC-228); a liftover over a map in the `seq` format (EC-212; cut last); the genome by region from FASTA with its index, names aliased (EC-186 to EC-189); deferred to the close-out slice: many signals from one file, the Manhattan family, transcripts by joined results (EC-214, EC-216, EC-217, EC-219, EC-224) |
 
 - **Showcases at the application layer**, in the storybook package (they compose what an application would, and are
   not core features):
@@ -171,6 +171,10 @@ On the review of the decisions: "ok" to its recommendations.
   ([security.md](security.md), the test adapter). Built with the first new dataset (Globins), with the `sources.json`
   test and the seeded generator on core's `PCG` (below); the later datasets add their entries to it. Why: the precedent's rule;
   recording is the only step that trusts a remote host.
+- **A real slice of a large indexed file is recorded as pages** ([genome-formats](genome-formats.md), Real slices to
+  record; the fifth slice): core's 64 KiB pages the runtime read, keyed by file and page, so the container written by
+  the real tools is what the test reads; a read the recording did not make fails naming its page, and a change to a
+  runtime's reads is a re-recording. Why: a trimmed file would test the trimming, not the BGZF blocks and the index.
 - **Provenance is data**: `fixtures/<dataset>/sources.json` lists every file of the folder: the entry and its version
   (PDB id, Pfam and Rfam release, AFDB model version, INSDC accession.version), the URL, the date recorded, the SHA-256
   of the download and of the fixture, the licence as an SPDX id or a `LicenseRef-` id, the attribution line, what was
@@ -410,10 +414,133 @@ Views:
 | text figure with ligand chips (EC-99) | 1FIN | select across a chip; a chip's hover as a ligand's | none of its own |
 | copies merged to `×2` and split (EC-65) | 1FIN; the 200 copies for the scale | hover the merged block: every member lit | merge, split: one patch each |
 
+#### Genomes (the fifth slice; promoted 2026-11-21)
+
+Lane GD's design (the fifth slice, stage 0; agreed by the author 2026-11-21, promoted from its draft in
+`execution/fifth-slice/drafts/genomes-dataset.md`), on the five genome designs: [genome-coordinates](genome-coordinates.md)
+(GA), [region-reads](region-reads.md) (RR), [genome-formats](genome-formats.md) (GF),
+[across-sections](across-sections.md) (LX), [ring-extension](ring-extension.md) (RN), and the decisions of 2026-11-21
+(three formats built: BED, GFF, VCF; the alignment views read the `seq` format; the Manhattan family, `split` and the
+keyed-results join deferred to the close-out slice; MAF cut). A design owner is named per need.
+
+One dataset, `genomes` in `packages/seq/examples`, that every view of the milestone reads: committed fixtures a few
+hundred kB each (the examples' `fixtures.maxFileBytes` 1 MB and `maxDatasetBytes` 2 MB, kept), generated by a seeded
+module and written by the record script; one real slice for each built format's conformance suite (Gate 0, 7); and a
+performance fixture that is never stored (a whole human genome by region, heavy). The views are builder modules as in
+the other datasets; each view's test drives the cells of the interaction matrix it names.
+
+##### The views and what each needs
+
+Cut order (Gate 0, 1): contact maps, then the liftover (MAF is cut).
+
+| View | Data (generated unless marked) | Read through | Designs' pieces | Edge cases |
+|---|---|---|---|---|
+| **Genome ring** (Rondo-like: blocks with cytobands, bundled ribbons wide by count, one chromosome or a pair as its own ring, the square navigator, outward stubs) | GRCh38's 23 chromosomes typed as `assembly.sequences`; 12,000 seeded links (60 % within a chromosome with distance decay, 40 % between, a dozen hub pairs), held and as BEDPE (one picture); **cytobands: real** (UCSC `cytoBandIdeo`, fetch 1), `syntheticBands` (RN) in tests | `runtimes/bed`: BEDPE read whole and indexed by both ends, BED with `fields: { stain: '4' }` | GA `assembly`, `system` field, `section.include`, `navigator.switch`, the square; RR pairs level, `binPairs`, `coarsenBins`, `PairsReader`; RN `rondo:ribbons`, stems, stubs | 108, 169, 171, 206, 210, 218, 225, 235 |
+| **Synteny ribbons** (toy A over toy B: an inversion drawn reversed, a translocation, a gap) | the two toy assemblies; their alignment as sided pairs of equal-length runs, written in the `seq` format from one alignment truth in code | the `seq` runtime (sided, either end, GF) | GA direction per block, one map over sequence pairs; LX `bridge`, ribbons coloured by the `a` side's block; RR sides | 206, 207, 208, 209, 218 |
+| **Both genomes on one ring** | the toy assemblies, one section `of` both | as above | GA two assemblies on one section, group gap; RR pairs on a ring; RN stubs | 210 |
+| **Dot plot of one genome against the other** | the alignment as pairs, and as grid tiles (binned from it, two levels) | the `seq` runtime: pairs, and a grid (as the Hi-C example, region-reads, Decided 10) | LX grid over two sections of blocks (`follow_y` a second section); RR 2D tiles, grid summaries; GA's square | 109, 145, 209, 223 |
+| **Contact map** (Hi-C over the toy genome, symmetric) | the links binned into two levels, and a one-level twin for the summaries | the `seq` runtime: grid | RR 2D tiles, symmetric, whole-assembly level; LX between two chromosome sections | 223 |
+| **Signal by region** (open domain, one-sided domain), log scale | one bedGraph over both toy genomes, 100 bp bins, a TPM-like column 0 to 10^4, a gap of missing values | `runtimes/bed` (bedGraph), by region with tabix | values layers (built); themes' log (built, EC-215) | 169 to 175, 201, 202, 215 |
+| **Samples' variants as rows, long deletion solid**, and the **genotype matrix** | a VCF, 40 samples, 2,000 sites, one 600 bp deletion over 12 SNPs, a haploid call, a no-call, phased and unphased calls | `runtimes/vcf` with tabix, BGZF | GF VCF (genotype classes), RR `matrix` shape and layer; `samples` narrows | 220, 222 |
+| **Methylation matrix by region**, and a **gene-by-sample heatmap** | 20 samples by 250 CpG, `value` with NaN missing, wide and long forms; the same layer over 150 genes | wide: the `seq` format's matrix; long: records, pivoted by RR's records transform at open | RR `matrix` (`value` float32, NaN missing) | 220, 221 |
+| **Transcripts, three levels** | 150 genes on toy A, 1 to 4 transcripts each, 3 to 12 exons, both strands; GFF3 and GTF of one model | `runtimes/gff` (`features: transcripts`), whole and by region | GF `assembleTranscripts`, span rows, `line: 'gene'` | 227, 229 |
+| **Open on a gene by name** | the GFF3's `Name` and `ID` attributes | `findNames` over the GFF3 (or GTF) read whole | GF name index; GA's locus fallback | 228 |
+| **Genome by region, names aliased** | letters of both toys from an in-memory adapter on the seed; lengths as `chrom-sizes`; one small FASTA (toy A's `chrM`, 16,569, and `HLA-A*01:01:01:01`, 3,503) for the built FASTA reader; an alias table (`1`, `chr1`, an `NC_`-style accession; `MT` against `chrM` refused) | the adapter (`withAdapter`), `runtimes/bed` (`chrom-sizes`), the built `fasta` | GA names rule, `match: chr`, `(block :name …)` quoted, `seq.resolve.assembly.lengths` | 186 to 189, 200 |
+| **A liftover** (cut last) | toy A's map to a revised toy A′ (an insertion, a deletion, a duplicated run), runs in the `seq` format, and positions with truths computed in code | the `seq` runtime (`map.source`, read by either side) | LX liftover (a bridge over the map, A's genes drawn on A′); GA projection by region | 211, 212 |
+
+**Deferred to the close-out slice** (the decisions of 2026-11-21): the **Manhattan family** (points at a height, a
+reference line, whole genome by chromosome, LD colouring, a coarse bin keeping its one significant SNP: EC-214, 216,
+217, 219), **many signals from one file** (`split` on values, EC-214), and **transcripts coloured by joined results**
+(the keyed join, EC-224; RR's `rows` shape is its data). Their generator steps go with them.
+
+##### The generator: outline
+
+`packages/seq/examples/src/genomes/` (modules under 800 lines, §module-size), one `generateGenomes(options)` returning
+bytes and truths, one record script case `genomes` (`scripts/record.ts`, run by hand) writing the fixtures and their
+`sources.json` rows with licence `LicenseRef-seqx-generated`, and the real slices as their own rows. Randomness only
+from core's `PCG` and `hash3` (as `p53/chromosome-data.ts`), a stream per concern seeded by `(seed, concern, index)`, so
+adding a concern never moves another's bytes; no clock, no `Math.random`. Output byte-identical on every run, checked by
+a test comparing checksums to the committed fixtures (as the other datasets' fixture tests).
+
+Steps (each a module, each exporting its truth for the tests):
+1. **Assemblies**: toy A: `chr1` 300,000, `chr2` 200,000, `chr3` 120,000, `chrM` 16,569 (cyclic), `HLA-A*01:01:01:01`
+   3,503, a 20,000 gap of N inside chr1; toy B: the same names unprefixed (`1`, `2`, `3`, `MT`) so the alias rule is
+   exercised, an 80,000 inversion on chr1, a 60,000 translocation from chr3 to chr2; toy A′ for the liftover. Letters
+   by region from `hash3(seed, sequence, tile)` (GC share by region, a few repeats; aligned runs share a base sequence
+   with 1 % substitutions and small indels), served by an in-memory adapter; lengths written as `chrom-sizes`.
+2. **Alignment truth**: runs (a, b, strand, gaps), written as sided pairs in the `seq` format (rows sharing `row` the
+   blocks of one alignment), and the dot plot's grid; the liftover's runs and truth positions.
+3. **Genes**: 150 on A, 3 levels (gene, transcript, exon), both strands, names (`TOY0001`...); GFF3 and GTF forms of one
+   model, bgzipped and tabix-indexed beside the plain files.
+4. **Signal**: a bedGraph with a TPM-like column, smooth waves plus noise, a gap of missing values; bgzipped and indexed.
+5. **Variants**: 40 samples by 2,000 sites, the deletion, the haploid, the no-call; bgzipped and tabix-indexed.
+6. **Methylation**: 20 samples by 250 CpG, 8 % missing, wide (`seq` format) and long (records).
+7. **Links** (the ring): 12,000 BEDPE from the typed GRCh38 lengths, generated at load (about 700 kB as a file: over
+   the dataset's share), a 1,000-link BEDPE committed for the reader's tests.
+8. **Hi-C and dot plot grids**: the links and the alignment binned into two levels in the `seq` format.
+
+Sizes (committed, estimated; the generator's test asserts each under bound): small FASTA 20 kB; `chrom-sizes` and
+aliases 1 kB; alignment and liftover in the `seq` format 25 kB; grids 60 kB; GFF3 plus GTF 90 kB; bedGraph (bgzipped,
+tabix) 120 kB; VCF bgzipped with `.tbi` 60 kB; methylation 70 kB; BEDPE of 1,000 links 60 kB; cytobands 4 kB (real).
+Total about 0.5 MB, under the 2 MB dataset bound. The real slices are recorded as pages in the formats' own `_test`
+fixtures, each its own row; their sizes asked with the fetch.
+
+Heavy performance fixture, never stored: a whole human genome by region (the plan's M5, performance.md): GRCh38's 24
+lengths summing to 3.1 Gb as an adapter in the style of `p53/chromosome-data.ts` generalised from one chromosome:
+letters a 64 KiB tile at a time from `hash3(seed, chrom, tile)`, about 20,000 genes from the same stream, a GC signal
+with exact bin means and a 12,000-link set by region. Tests per chromosome (heavy, `itWithin`), a whole-genome fit under
+`maxAssemblyBlocks` (GA), and a quick representative at 3 Mb.
+
+##### Real slices to fetch (each asked before the fetch, Gate 0, 7; none made)
+
+Around TP53 (GRCh38 chr17:7,668,402-7,687,550), recorded as pages (GF). URLs, sizes and licences are checked at the ask.
+
+| # | Format | URL (to confirm at the ask) | Expected download and kept | Licence to check |
+|---|---|---|---|---|
+| 1 | cytobands (BED) | `https://hgdownload.soe.ucsc.edu/goldenPath/hg38/database/cytoBandIdeo.txt.gz` | a few kB, whole | UCSC conditions of use for database tables; NCBI's public-domain ideogram if refused |
+| 2 | VCF sites | `https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/archive_2.0/2024/clinvar_20240107.vcf.gz` and `.tbi` | ranged reads of a file of about 170 MB; kept: the `.tbi` whole (about 520 kB: the per-view byte bound tested at the fit from it), the header, TP53's chunks | NCBI, public domain |
+| 7 | GFF3 | Ensembl GRCh38 `Homo_sapiens.GRCh38.<release>.chr.gff3.gz` | about 50 MB whole; kept TP53's lines, `##sequence-region` | Ensembl |
+| 8 | GTF | GENCODE `gencode.v<N>.annotation.gtf.gz` | about 50 MB; kept TP53's lines | GENCODE (open) |
+
+Four fetches (the numbers are the first list's): the cytobands serve the showcase (RN), the other three the built
+runtimes' conformance suites (GF). Cut: 3 (the 1000 Genomes panel), 4 (bigBed), 5 (2bit), 6 (bgzipped FASTA), 9
+(chain), 10 (PAF): their runtimes are designed only, or the generated data covers them.
+
+##### Edge cases this dataset takes
+
+| Edge cases | Where |
+|---|---|
+| EC-108, 169, 171, 206 to 212, 215, 218, 220 to 223, 225, 227 to 229, 235 | a view above each, named by a test of that view |
+| EC-186 to 189, 200 | the names view (aliases, the `chr` rule, the HLA contig, a sequence without a length) |
+| EC-214, 216, 217, 219, 224 | deferred to the close-out slice with their views |
+| EC-213 | cut with MAF |
+| EC-226 | themes' Ranges (deferred there); no view here |
+
+##### Configuration
+
+| Item | Whose | Default | Why | Alternatives |
+|---|---|---|---|---|
+| `genomes.seed` | option of the generator | one fixed value | byte-identical fixtures | another |
+| `genomes.toy.lengths` | option of the generator | 300,000, 200,000, 120,000 | fixtures under 1 MB | larger (heavy) |
+| `genomes.links` | option of the generator | 12,000 | RN's frame-time claim | 100,000 (heavy) |
+| `genomes.samples`, `.sites` | option of the generator | 40, 2,000 | a screen of rows; a tile of sites | 2,504 samples (heavy) |
+| `genomes.whole.length`, `.genes` | option of the adapter | 3.1 Gb in 24 chromosomes, 20,000 | performance.md | none |
+
+##### Decided by the author
+
+2026-11-21, as recommended (the author: "generally reasonable and we can fold in the reviews"; reviewed in [gd-review](../execution/fifth-slice/reviews/gd-review.md) before promotion, the whole-designs review's twelfth recommendation).
+
+1. **Toy B unprefixed, toy A prefixed**, so the alias rule is exercised: **decided yes**.
+2. **The 12,000 links generated at load**, a 1,000-link BEDPE committed for the reader: **decided yes**.
+3. **The toys' letters from an in-memory adapter**, one small FASTA committed for the built reader and the HLA name:
+   **decided yes**.
+
 ### What is not here
 
-- **The Genomes dataset** (the fifth slice, [version-1.md](version-1.md)): its toy assemblies are generated when that
-  milestone comes. A single chromosome by region is here (p53's chromosome).
+- **The Genomes dataset's deferred views** (the author, 2026-11-21): the Manhattan family (EC-214, 216, 217, 219),
+  many signals split from one file (EC-214) and transcripts coloured by joined results (EC-224) go to version 1's
+  close-out slice with their generator steps; MAF is cut (EC-213); the alignment views read the `seq` format, not PAF or
+  chain files ([genome-formats](genome-formats.md), Appendix: designed only).
 - **Loading by URI in the Storybook** (public files read live): settled with the source protocol
   ([sources.md](sources.md)); every view here reads committed fixtures only.
 

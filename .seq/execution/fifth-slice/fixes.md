@@ -12,4 +12,11 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   legible over data, one line (truncate with an ellipsis before wrapping), and a space after the colon. Check every
   navigator form (bar, strip, rows map, ring) in light and dark.
 
+- **Letters larger than their labels** (decided design; the author, 2026-11-21: "yes, do that"): ux-foundations
+  section 2 now caps a letter at the chrome's label size, optically matched (cap heights equal; about 0.9× for the mono
+  face), regular weight by default. Build `letters.maxPx` (a `RenderConfig` key, default the label size; a host can
+  make it follow the cell) in every letters path (tracks, text, blocks, rows, rings, the logo's letters if any), canvas
+  and SVG alike; its row in core's Configuration table; a test that a letter never exceeds the label size at the
+  closest zoom. Look across every example with letters, light and dark, at the fit and the closest zoom.
+
 ## Fixed

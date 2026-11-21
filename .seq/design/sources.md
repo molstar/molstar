@@ -37,7 +37,12 @@ standardized, and we convert other formats onto it".
   that turns a format into the protocol. The core ships the protocol, the `seq` format and the small text formats
   (FASTA, alignments, tables, Newick; the tables, JSON, MessagePack and GFF3 through one records runtime whose
   transform is params of the `source` node, [files.md](files.md)); binary and indexed genome formats are runtimes an
-  application adds. A source
+  application adds. The genome runtimes ([genome-formats](genome-formats.md), the fifth slice), each an opt-in entry
+  of `seqx-core` like `runtimes/mmcif` and `runtimes/bigwig`: `runtimes/bed` (BED, bedGraph, BEDPE, chrom.sizes),
+  `runtimes/gff` (GFF3 and GTF as transcripts) and `runtimes/vcf`, reading BGZF and tabix from `@molstar/io`; the `seq`
+  runtime serves sided pairs from either end and a map's runs. Designed only, no runtime (a host brings its own through
+  `withAdapter`): bigBed, 2bit, FASTA by region with `.fai` or `.gzi`, PAF and PIF, chain files (genome-formats,
+  Appendix). A source
   whose format has no runtime is unavailable, with an issue; the rest of the spec opens.
 - **No whole-data manifest in the meaning**: a value domain left open means the data in view, computed when the view settles ([data-store.md](data-store.md)); a categorical value not
   listed in the theme takes a color by a stable hash of the value; lengths come from the source's coverage answer.

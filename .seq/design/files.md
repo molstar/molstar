@@ -79,7 +79,8 @@ what the file's columns mean (the transform), where that runs, and how the examp
 - **Read whole at open**, converted once into `seq` data (a coverage and one pair a system over the whole system at
   level 1), then answered by region by the `seq` runtime's join (`openSeq`). Why: these files are small (a fixture is
   under 1 MB; a protein's features a few hundred rows), "formats converted at the edge" ([sources.md](sources.md)), and
-  one answering path is already tested. Files read by region (tabix, BGZF) wait for the Genomes milestone.
+  one answering path is already tested. Files read by region (BGZF and tabix in `@molstar/io`) are the genome runtimes'
+  (`runtimes/bed`, `runtimes/gff`, `runtimes/vcf`: [genome-formats](genome-formats.md), the fifth slice).
 - **What a source serves**: `ranges` (rows with a start and an end, or one position), `values` (a value a position),
   and `letters` when the source names them (`letters`, below). One source serves any of them; the reading node asks for
   its shape.
@@ -126,8 +127,11 @@ what the file's columns mean (the transform), where that runs, and how the examp
   directives read past, everything after `##FASTA` ignored, `.` missing, base 1, ends inclusive; `attributes`
   (`key=value;…`, percent-decoded) become fields by their key (`ID` the `id`, `Name`, `Parent`, `product`, `gene`, …;
   a multi-valued one its text). `Parent` is kept as a field; no hierarchy is assembled. Why GFF3 now: NCBI serves an
-  INSDC record's features as GFF3, so a plasmid's are read as published (Gaps). **BED** waits for a dataset that has
-  one (the Genomes milestone): the same reader with `base: 0`, `ends: exclusive` and BED12's blocks as pieces.
+  INSDC record's features as GFF3, so a plasmid's are read as published (Gaps). The genome runtimes (the fifth slice,
+  [genome-formats](genome-formats.md)) add **GFF3 and GTF as transcripts** (`runtimes/gff`: the `Parent` chain
+  assembled by `source.features`, `transcripts` by default) and **BED** (`runtimes/bed`: `base: 0`, `ends: exclusive`,
+  BED12's blocks as pieces, extra columns named by `fields` with a column number, `{ stain: '4' }`); `gff3` here stays
+  the default records preset, the runtime taken by `withAdapter`.
 - **A feature across the origin of a cyclic system** (pUC19c's, DP): GFF3 writes it with an end past the length, or as
   pieces sharing an `ID`. The runtime keeps the row as written; the row reader, which knows the target's length and
   `cyclic`, wraps a row ending past the length into two rows of one item (the language's wrapped range, EC-9), and on a
@@ -260,6 +264,9 @@ one. Two ways, for the author (Gaps):
   by `maxBytes`).
 - Recommendation: **(b)** if built this slice (smaller, held kinds stay tier 1's); and build it only if DG's tree must
   be read from its Newick file this slice, else defer with the tree inline (generated, as now).
+- **Pairs from files** (the fifth slice, [region-reads](region-reads.md)): `pairs.source` is read by region (pairs tiled
+  in 1D by either end; a source indexed on one end or none read whole and indexed by both ends), so (a) is not needed
+  for pairs; trees and inline grids keep this choice.
 
 ### MessagePack everywhere a JSON file is read
 
@@ -343,8 +350,9 @@ Files add no gesture: what a file holds is drawn by the layers that read it, as 
 - **No preview of a transform's edit**: a writer fixing `base` sees the result only once applied (undo is one step).
   The alternative, a params hash in the store's source key, reopens a preview beside the live source; it changes
   `keys.ts` and the store's attach, for an edit made rarely.
-- **GFF3 without its hierarchy**: a gene's mRNAs and exons are flat rows; a transcript as one item needs the `Parent`
-  chain assembled. Open until a dataset draws transcripts from GFF3 (the Genomes milestone).
+- **GFF3 without its hierarchy** (closed by [genome-formats](genome-formats.md), the fifth slice): the records preset keeps
+  a gene's mRNAs and exons as flat rows; `runtimes/gff` assembles the `Parent` chain into transcripts
+  (`source.features`).
 - **A track's subset lives in its layer, not in the data**: with a leading item form, "the domains" is no node of its
   own; two layers that show it repeat the form. Accepted while no query or scale needs the subset as a node; `where`
   is the alternative (Gaps).
@@ -372,7 +380,8 @@ The claim: **this design covers what a user does with files as sources.**
    the Files stories printing the file's head and a misread-file story; `target` with `system` for the empty target, the
    isoform's rows on their own system; wrapping a row past a cyclic system's length in the row reader, pieces by `ID`,
    tested on pUC19c; `limits.maxBytes` before the parse; the attribution and licence params carried into an exported
-   spec. Planned: region reads (tabix, BGZF, bigBed) and BED with the Genomes milestone; a file written from Seq\* (the
+   spec. Region reads (BGZF, tabix) and BED, GFF3, GTF and VCF: the fifth slice ([genome-formats](genome-formats.md); bigBed
+   designed only); a file written from Seq\* (the
    inverse transform) with the fourth slice's writers, if a host asks. Standing: one annotation over many files; reload
    by a patch of `uri` only; the declarative transform's limit (Tensions).
 
