@@ -95,6 +95,9 @@ The third slice is closed (2026-11-20; its record in `.seq/records/third-slice/`
 - 2026-11-21: FX5, SV, PC, FX6, HT and FX7 merged; stage 3's gate passed (quick, medium, heavy, both tiers, build,
   workspace, sizes). FINALIZE's reconcile done and `foldback.md` written: waiting for the author's review. M4's browser
   measurements next.
+- 2026-11-21: M4 measured; the fold-back merged (the author: "All 11"), applied in the fifth slice's `loop.md`; the
+  edge-case outcomes pasted. The gate once more: green but one quick test flaky (services-app, "draws what it has,
+  waits for SIFTS": failed 2 of 3 full runs) → FX8. Running: FX8 (started 11:25), the record's writer (11:25).
 
 ## Next
 
