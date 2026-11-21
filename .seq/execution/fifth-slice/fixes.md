@@ -6,6 +6,12 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
 
 ## Open
 
+- **The navigator's readout covers the control in use** (the author, 2026-11-21, BED cytobands: "the tooltip appears
+  on top of currently active control. quite disruptive"): while the window is dragged, its readout
+  ("chr17:36,190,896–62,395,127 of chr17") is drawn over the window and its grip. The readout never covers the window,
+  its grips or the pointer: placed beside the window on the side with room, else above or below the navigator's
+  strip. Test: during a drag the readout's box does not intersect the window's or the pointer's.
+
 - **The navigator's window and zoom strip look inconsistent and rough** (the author, 2026-11-21, a ring that switches:
   "i don't understand why chr6 gets a 'box' and the other 'sub-section'"; "the 'subsection visual' is really ugly,
   with different line thicknesses"). Why it differs: a window wider than `navigator.zoomStrip.minPx` (48 px) is drawn
@@ -54,11 +60,14 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   chr22 selected on the row, mirrored on the ring): profile the drag's frames (the selection's blocks and their
   emphasis on both views), bound a drag across 12 blocks to the frame budget at 0 bytes warm.
 
-- **The Transcripts track's spacing** (FX2 `e678d2dbc`: lanes start at a tall band's top; left open: the
-  first row unlabelled and the blank below the lanes, a source-backed track's fixed height) (my look at GG's fix round; the author, 2026-11-21: "the spacing around the
-  transcripts is weird"): about 100 px of blank lanes above the first transcript in gff3--tp-53 and as many below the last (the track
-  taller than its lanes, the lanes centred in it), the first row
-  unlabelled, and lanes packed unevenly around the labels; a tall track's lanes start at its top, evenly spaced.
+- **Sizing a track of many lanes: content height, a cap, then its own scroll** (the author, 2026-11-21, gff3--tp-53:
+  "can we do a better job at the track sizing for the transcripts in general? what if that section needs a scroll?";
+  earlier: blank lanes above and below, the first row unlabelled). Needs a short design before a fix lane (Ranges,
+  ux-foundations' heights): a ranges track sizes to its lanes as they are known (growing as a source's rows arrive,
+  never a blank band), up to a cap (`track.maxPx` or a share of the view); past the cap its lanes scroll inside the
+  track (the wheel over it scrolls lanes, a slim vertical rail like the rows', the header and labels fixed); the
+  first row labelled. The fixed height of source-backed tracks (TODO, "Track heights … for a source's items") is the
+  rule this revisits.
 - **A bare number as a block name** (`:name 01`): GC1 refuses it with "quote it" (`seq.query.form.param`), since core's
   address reader turns `01` into 1 before Seq* sees it. Keeping the text would need a raw-token surface in core repr
   (allowed: repr's public API is open to this work); take it only if a real name set needs it.
