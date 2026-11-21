@@ -21,14 +21,15 @@ const headers = view('headers');
 /**
  * The built-ins on p53, drawn on the canvas: point at a track's label for its hide slot and the "⋯", which opens
  * the menu with the rest (color, layers, move). The column holds one slot, so the domains track's two states ("1
- * filtered", "1 layer hidden") are marks, their words in the card; the section's header says "2 hidden". A click on a
+ * filtered", "1 layer hidden") are marks, their words in the card. The two hidden tracks are the application's: the view
+ * draws nothing for them (no line, no chip), the toolbar's eye button lists them. A click on a
  * state undoes it in one step (the story's Cmd/Ctrl+Z, Shift for redo, puts it back; the toolbar's Back is the view's own history, not edits).
  */
 export const BuiltIns: StoryObj = {
   render: () =>
     trackHeadersStory({
       view: headers,
-      hint: 'Point at a track’s label: its hide slot and the “⋯” menu appear (Color and the rest are in the menu). The marks on Domains are “1 filtered” and “1 layer hidden” (hover one for its words); click a mark or “2 hidden”: the state is undone, and Cmd/Ctrl+Z (Shift+Cmd/Ctrl+Z redoes) brings it back; the toolbar’s Back is for jumps of the view, not edits. A secondary click on “2 hidden” lists what it hides.',
+      hint: 'Point at a track’s label: its hide slot and the “⋯” menu appear (Color and the rest are in the menu). The marks on Domains are “1 filtered” and “1 layer hidden” (hover one for its words); click a mark: the state is undone, and Cmd/Ctrl+Z (Shift+Cmd/Ctrl+Z redoes) brings it back; the toolbar’s Back is for jumps of the view, not edits. Nothing in the view says two tracks are hidden: the toolbar’s eye button (“Hidden tracks (2)”) lists them, and the “⋯” menu of the section’s tracks has “Show hidden”.',
     }),
 };
 
@@ -62,14 +63,14 @@ export const HostEntryAndALeftOutBuiltIn: StoryObj = {
 };
 
 /**
- * A section whose tracks are all hidden keeps its header, with "2 hidden": a click shows them in order, one step; a
- * secondary click lists them to show one at a time.
+ * A section whose tracks are all hidden collapses with them, and nothing takes its place: no header, no chip. The
+ * application lists the hidden tracks (the toolbar's eye button, `mountHiddenTracks`) and restores one or all.
  */
-export const HiddenTracksChip: StoryObj = {
+export const HiddenTracksList: StoryObj = {
   render: () =>
     trackHeadersStory({
       view: view('headers-hidden'),
-      hint: 'The first section has no track left to draw, only its header with “2 hidden”. Click it: both come back. Cmd/Ctrl+Z hides them again. A secondary click on it lists them (“Show Domains”, “Show Conservation”).',
+      hint: 'The first section has no track left to draw and shows nothing for it: hiding never adds chrome or moves the view. The toolbar’s eye button lists the hidden tracks (“Domains”, “Conservation”, then “Show all”); a row brings one back, Show all both, in one step. Cmd/Ctrl+Z hides them again.',
     }),
 };
 

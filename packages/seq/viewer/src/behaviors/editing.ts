@@ -10,11 +10,13 @@
 // entered and left (navigation); and a gesture's preview, a model method and never a command (it runs per pointer
 // move), that ends in one patch (`endPreview`) or nothing (`cancelPreview`, Esc).
 
+import { collapsedSection } from '@molstar/seqx-core/render';
 import type { Op, Patch } from '@molstar/core/repr/patch';
 import { type Node, resolveAddress, type Value } from '@molstar/core/repr/tree';
 import type { CommandDefinition, CommandResult } from '@molstar/ui/commands/types';
 import type { EditOutcome, SelectionModel, SpecModel, ViewModel } from '@molstar/seqx-viewer/models';
 import type { EditContext, EditOrigin } from '@molstar/seqx-viewer/ports';
+import { hiddenTracksOf } from '@molstar/seqx-viewer/models/hidden-tracks';
 
 /** What an editing command is given: the node it edits, and what each needs. */
 export interface EditingContext {
@@ -25,6 +27,8 @@ export interface EditingContext {
   readonly address?: string;
   /** `track.show`, `layer.show`: several at once, one patch (a header's chip shows every hidden one). */
   readonly addresses?: readonly string[];
+  /** `track.show`: every hidden track (of the section `address` names, else of the spec), one patch, one undo step. */
+  readonly all?: boolean;
   /** `track.move`, `track.add`: the sibling it goes after; null: first (`track.add`: last when absent). */
   readonly after?: string | null;
   /** `track.add`: the track to insert (its id is its place among the section's tracks). */
@@ -115,12 +119,20 @@ export function editingBehavior(spec: SpecModel, axis?: AxisReaders): EditingBeh
     if (ctx.address !== undefined) return nodeOf(root, ctx.address, 'section') ? ctx.address : undefined;
     const c = axis?.selection.cursor.value?.section;
     if (c !== undefined && nodeOf(root, c, 'section')) return c;
-    const first = axis?.view.resolved.value?.sections.find((x) => !x.follow) ?? axis?.view.resolved.value?.sections[0];
+    const sections = axis?.view.resolved.value?.sections.filter((x) => !collapsedSection(x));
+    const first = sections?.find((x) => !x.follow) ?? sections?.[0];
     return first?.address;
   };
   /** The nodes a show acts on (`addresses`, else `address`): each of the kind, else why not. */
   const shownOf = (ctx: EditingContext): readonly string[] =>
     ctx.addresses ?? (ctx.address !== undefined ? [ctx.address] : []);
+  /** Every track the spec hides, in order (those of the section `within`, else of every section). */
+  const hiddenTrackAddresses = (within?: string): string[] =>
+    hiddenTracksOf(spec.root.value)
+      .filter((t) => within === undefined || t.section === within)
+      .map((t) => t.address);
+  const showTracks = (ctx: EditingContext): EditingContext =>
+    ctx.all ? { ...ctx, addresses: hiddenTrackAddresses(ctx.address) } : ctx;
   const allNeed =
     (kind: string, what: string) =>
     (ctx: EditingContext): true | string => {
@@ -257,8 +269,15 @@ export function editingBehavior(spec: SpecModel, axis?: AxisReaders): EditingBeh
       id: EditingCommandIds.showTrack,
       title: 'Show a track',
       category: 'Edit',
-      when: allNeed('track', 'track'),
-      run: (_, ctx) => edit('Show a track', unhide(ctx), ctx, 'Shown'),
+      when: (ctx) =>
+        disposed
+          ? 'The viewer is retired'
+          : ctx.all
+            ? hiddenTrackAddresses(ctx.address).length
+              ? true
+              : 'No hidden tracks'
+            : allNeed('track', 'track')(ctx),
+      run: (_, ctx) => edit('Show a track', unhide(showTracks(ctx)), ctx, 'Shown'),
     },
     {
       id: EditingCommandIds.moveTrack,

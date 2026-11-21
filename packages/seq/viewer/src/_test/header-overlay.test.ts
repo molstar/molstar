@@ -181,21 +181,19 @@ describe('headerPartsDom()', () => {
     expect(inGroup(Domains).contains(document.activeElement)).toBe(true);
   });
 
-  it('once its DOM is in place the canvas draws no part in their boxes: the chip is the DOM’s, words and all', async () => {
+  it('a hidden track adds no part: no section line, no chip in the canvas or the DOM; the application’s list restores it', async () => {
     const { v, container } = await mount(true);
     await v.execute('track.hide', { address: Domains });
     await v.settle();
     frames.flush();
-    const line = v.frame!.layout.sections[0].header!;
-    expect(line.hosted).toBe(true);
-    expect(line.states.map((s) => [s.text, s.mark])).toEqual([['1 hidden', false]]);
-    expect(recordDrawLists(v.frame!.lists, ['labels', 'tip'])).not.toContain('"1 hidden"');
-    const chip = container.querySelector<HTMLElement>('.seqx-header-parts [data-part="seq:hidden-tracks"]')!;
-    expect(chip.textContent).toBe('1 hidden');
-    // a click on it: every hidden track shown, one patch
-    chip.click();
+    expect(v.frame!.layout.sections[0].header).toBeUndefined();
+    expect(recordDrawLists(v.frame!.lists, ['labels', 'tip'])).not.toContain('hidden"');
+    expect(container.querySelector('[data-part="seq:hidden-tracks"]')).toBeNull();
+    expect(v.hiddenTracks.value).toEqual([{ address: Domains, label: expect.any(String), section: Section }]);
+    await v.execute('track.show', { all: true });
     await v.settle();
     expect(v.view.resolved.value!.sections[0].tracks).toHaveLength(2);
+    expect(v.hiddenTracks.value).toEqual([]);
   });
 });
 

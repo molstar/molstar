@@ -5,7 +5,8 @@ import { Meta } from '@storybook/addon-docs/blocks';
 # Track headers
 
 A track's header is its line in the label column: its name, its states and its actions. A section's header is a line
-above its first track, drawn only when it has something to say, such as hidden tracks.
+above its first track, drawn only when a section entry gives it a slot. Hidden tracks are the application's: the view
+draws nothing for them.
 
 ## Actions are entries
 
@@ -16,10 +17,11 @@ touch, a tap on the label shows them and a tap on a slot runs it. Every entry is
 
 ## States are chips
 
-What is not shown is a count chip: "12 filtered", "1 layer hidden", "2 hidden". On a short track or in a narrow column
-they become small marks, all of them or none, their words in the mark's card. A click undoes one in one step (the "n
-filtered" chip even in a viewer without the header actions); its menu brings back one thing at a time. A section whose
-tracks are all hidden keeps its header, so nothing goes out of reach.
+What is not shown is a count chip: "12 filtered", "1 layer hidden". On a short track or in a narrow column they become
+small marks, all of them or none, their words in the mark's card. A click undoes one in one step (the "n filtered" chip
+even in a viewer without the header actions); its menu brings back one thing at a time. A hidden track leaves no chip
+and no line (hiding never moves the view): the application lists the hidden tracks and restores them (the toolbar's eye
+button, `mountHiddenTracks`), and the menu's "Show hidden" does too.
 
 ## Drawn or the host's own
 
@@ -36,5 +38,5 @@ it is always the browser's own menu.
 ## Stories
 
 See them under Features / Track headers: the built-ins drawn and as DOM parts, a host's entry beside a built-in left
-out, the hidden-tracks chip, short tracks, a ring through its menu, a host's own widget placed from the published
+out, the hidden tracks' list, short tracks, a ring through its menu, a host's own widget placed from the published
 geometry, and "Color by this track" with the fake structure viewer (shared with Features / Structure link).

@@ -212,7 +212,7 @@ export const HeaderEntryNames = {
   moveDown: 'seq:move-down',
   filtered: HeaderStateNames.filtered,
   hiddenLayers: HeaderStateNames.hiddenLayers,
-  hiddenTracks: HeaderStateNames.hiddenTracks,
+  hiddenTracks: 'seq:hidden-tracks',
   reverse: 'seq:reverse',
   collapse: 'seq:collapse',
 } as const;
@@ -290,16 +290,21 @@ export const BuiltInHeaderEntries: readonly HeaderActionEntry[] = /* @__PURE__ *
           .map((l) => ({ label: `Show ${l.label}`, command: 'layer.show', args: { address: l.address } })),
     },
     {
+      // menu only: nothing in the view says a track is hidden (the application lists them, `mountHiddenTracks`)
       name: HeaderEntryNames.hiddenTracks,
       on: 'section',
-      kind: 'state',
-      label: 'Show all',
+      order: 5.5,
+      label: 'Show hidden',
       command: 'track.show',
+      slot: false,
       when: (f) => f.hiddenTracks.length > 0,
       args: (f) => ({ addresses: f.hiddenTracks.map((t) => t.address) }),
-      text: (f) => `${f.hiddenTracks.length} hidden`,
-      items: (f) =>
-        f.hiddenTracks.map((t) => ({ label: `Show ${t.label}`, command: 'track.show', args: { address: t.address } })),
+      items: (f) => [
+        ...f.hiddenTracks.map((t) => ({ label: t.label, command: 'track.show', args: { address: t.address } })),
+        ...(f.hiddenTracks.length > 1
+          ? [{ label: 'Show all', command: 'track.show', args: { addresses: f.hiddenTracks.map((t) => t.address) } }]
+          : []),
+      ],
     },
     {
       name: HeaderEntryNames.reverse,
@@ -374,8 +379,10 @@ export interface HeadersParams {
   /** A long press opens the menu after this many ms (500: touch's context menu). */
   readonly longPressMs?: number;
   /**
-   * A submenu opens after the pointer rests on its row this many ms (300: long enough that a pointer passing over the
-   * row on its way down the menu opens nothing, short enough to feel like hover; a click and → open it at once).
+   * A submenu's flyout opens after the pointer rests on its row this many ms (300: long enough that a pointer passing
+   * over the row on its way down the menu opens nothing, short enough to feel like hover; a click, →, Enter and Space
+   * open it at once); the same rest on another row of the menu closes it, so a diagonal move into it keeps it. 0 turns
+   * resting off.
    */
   readonly submenuRestMs?: number;
   /** A count chip's click: `all` (default) shows every hidden thing in one patch; `menu` lists them. */

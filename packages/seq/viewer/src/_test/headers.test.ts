@@ -205,25 +205,30 @@ describe('the built-in entries: a slot, a menu item and the command alike', () =
     expect(tracks(v)).toEqual([Letters, More, Domains]);
   });
 
-  it('seq:hidden-tracks: the section’s chip shows every hidden track in one patch; its list shows one (EC-237)', async () => {
+  it('seq:hidden-tracks: a menu-only section entry, "Show hidden ▸": each hidden track, then Show all in one patch (EC-237)', async () => {
     const v = await make();
+    expect(items(v).map((i) => i.name)).not.toContain('seq:hidden-tracks');
     await settled(v.execute('track.hide', { address: Domains }));
     await settled(v.execute('track.hide', { address: More }));
-    expect(geo(v, undefined).states.map((s) => s.text)).toEqual(['2 hidden']);
-    // its secondary click lists each, then all
-    const chip = geo(v, undefined).states[0].box;
-    expect(headers(v).context(chip.x + 2, chip.y + chip.height / 2)).toBe(true);
-    expect(
-      headers(v)
-        .menu.value!.menu.groups.flat()
-        .map((i) => i.label),
-    ).toEqual(['Show Domains', 'Show More', 'Show all']);
-    headers(v).closeMenu();
+    // nothing in the view: no line, no chip
+    expect(v.frame!.layout.sections[0].header).toBeUndefined();
+    expect(v.headers!.value.find((g) => g.target.track === undefined)).toBeUndefined();
+    const it = item(v, undefined, 'seq:hidden-tracks');
+    expect(it).toMatchObject({ label: 'Show hidden', kind: 'action', enabled: true });
+    expect(it.items!.map((i) => i.label)).toEqual(['Domains', 'More', 'Show all']);
+    // one shows one
+    await settled(headers(v).runItem(it.items![1]));
+    expect(tracks(v)).toEqual([Letters, More]);
+    await settled(v.execute('track.hide', { address: Letters }));
+    // all, one patch, one undo step
     const steps = stack(v).steps.value.length;
-    expect(clickPart(v, undefined, 'seq:hidden-tracks', 'states')).toBe(true);
-    await settled(undefined);
+    const again = item(v, undefined, 'seq:hidden-tracks');
+    expect(again.items!.map((i) => i.label)).toEqual(['Letters', 'Domains', 'Show all']);
+    await settled(headers(v).runItem(again.items![2]));
     expect(stack(v).steps.value.length).toBe(steps + 1);
     expect(tracks(v)).toEqual([Letters, Domains, More]);
+    await settled(stack(v).undo());
+    expect(tracks(v)).toEqual([More]);
   });
 
   it('seq:filtered: the chip clears the filter as layer.filter does', async () => {
@@ -487,16 +492,6 @@ describe('the geometry and the parts', () => {
         state: 'seq:hide',
       }),
     ).toBe('Hide track');
-    expect(
-      d.text({
-        section: Section,
-        layer: Section,
-        system: undefined,
-        position: Number.NaN,
-        target: 'header-state',
-        state: 'seq:hidden-tracks',
-      }),
-    ).toBe('1 hidden: click show all');
     expect(
       d.text({ cursor: { section: Section, system: '/data/p', position: 0, part: 'header', track: Domains } }),
     ).toBe('Domains, Enter for actions');

@@ -30,7 +30,7 @@ afterEach(() => {
 });
 
 describe('the story’s DOM parts', () => {
-  it('a button a chip with its words (a mark none), a press shows the hidden tracks in one patch', async () => {
+  it('a button a chip with its words (a mark none); the section has no part: its hidden tracks are the application’s', async () => {
     const view = ExampleViews.find((v) => v.id === 'headers')!;
     const v = (viewer = createSeqViewer({
       ...headersSpec({ parts: 'dom' }),
@@ -44,12 +44,12 @@ describe('the story’s DOM parts', () => {
     document.body.append(container);
     const port = partsDomPort()(container, headersOf(v));
     port.update(headersOf(v).partsState());
-    const group = (track?: string) =>
-      container.querySelector<HTMLElement>(
-        track ? `[role="group"][data-track="/views/main/protein/${track}"]` : '[role="group"]:not([data-track])',
-      )!;
-    // the section's "2 hidden" is a chip in words; Domains' two states are marks (the column holds one slot)
-    expect(group()!.textContent).toBe('2 hidden');
+    const group = (track: string) =>
+      container.querySelector<HTMLElement>(`[role="group"][data-track="/views/main/protein/${track}"]`)!;
+    // no group for the section (nothing in the view for a hidden track); Domains' two states are marks (the column
+    // holds one slot)
+    expect(container.querySelector('[role="group"]:not([data-track])')).toBeNull();
+    expect(container.querySelector('[data-part="seq:hidden-tracks"]')).toBeNull();
     const marks = [...group('domains').querySelectorAll('button')];
     expect(marks.map((b) => b.dataset.part)).toEqual(['seq:filtered', 'seq:hidden-layers']);
     expect(marks.map((b) => b.textContent)).toEqual(['', '']);
@@ -57,11 +57,45 @@ describe('the story’s DOM parts', () => {
       '1 filtered: Clear the filter',
       '1 layer hidden: Show every layer',
     ]);
-    // one patch: the press runs the chip's entry
-    group()!.querySelector<HTMLElement>('button')!.click();
-    await v.settle();
-    expect(v.view.resolved.value!.sections[0].tracks).toHaveLength(5);
     port.dispose?.();
+  });
+
+  it('an update between pointerdown and click does not lose the click: the pressed button stays until the press ends', async () => {
+    vi.useFakeTimers();
+    try {
+      const view = ExampleViews.find((v) => v.id === 'headers')!;
+      const v = (viewer = createSeqViewer({ ...headersSpec({ parts: 'dom' }), ui: undefined, history: uiHistory() }));
+      v.resize(1440);
+      await v.load(view.build());
+      await v.settle();
+      const container = document.createElement('div');
+      document.body.append(container);
+      const port = partsDomPort()(container, headersOf(v));
+      const withActions = () => {
+        const state = headersOf(v).partsState();
+        return { headers: state.headers.map((h) => ({ ...h, actions: true })) };
+      };
+      port.update(withActions());
+      const hide = () =>
+        container.querySelector<HTMLElement>('[role="group"][data-track$="/domains"] [data-part="seq:hide"]')!;
+      const button = hide();
+      const before = v.view.resolved.value!.sections[0].tracks.length;
+      button.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 1 }));
+      // the parts update (the pointer moved onto the part: a hover's geometry): the pressed button is still in place
+      port.update(withActions());
+      expect(button.isConnected).toBe(true);
+      expect(hide()).toBe(button);
+      button.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 1 }));
+      button.click();
+      await v.settle();
+      expect(v.view.resolved.value!.sections[0].tracks.length).toBe(before - 1);
+      // after the press the held update is drawn
+      vi.advanceTimersByTime(1);
+      expect(hide()).not.toBe(button);
+      port.dispose?.();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('the actions of a header have a backdrop over the label, with the ellipsis the canvas draws where the label is cut', async () => {

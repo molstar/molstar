@@ -17,6 +17,7 @@ import type { AxisTransform, Viewport } from './axis.js';
 import type { RenderConfig } from './config.js';
 import type { PassWriter } from './draw-lists.js';
 import type { Box, Emphasis, Hit, HitTarget } from './layer-type.js';
+import { collapsedSection } from './headers.js';
 import type { WindowPart } from './layout/types.js';
 import type { RowsLay } from './rows.js';
 import type { SeqTokens } from './tokens.js';
@@ -378,7 +379,7 @@ export function railSections(view: ResolvedView, hosted: readonly ResolvedNaviga
   for (const list of [view.navigators, hosted])
     for (const n of list) if (!n.hidden && n.axes !== 'rows') for (const a of n.of) bound.add(a);
   return view.sections
-    .filter((s) => (s.layout ?? view.layout) === 'tracks' && !bound.has(s.address))
+    .filter((s) => (s.layout ?? view.layout) === 'tracks' && !bound.has(s.address) && !collapsedSection(s))
     .map((s) => s.address);
 }
 

@@ -42,10 +42,20 @@ const Text = bundledTextMetrics();
 /** A cross: two strokes in the 24-unit box. */
 const Cross: HeaderIcon = { commands: [0, 1, 0, 1], points: [4, 4, 20, 20, 4, 20, 20, 4] };
 
-/** A host's entries: two slots and the menu on every track, the built-in states, a slot on a section with a state. */
+/**
+ * A host's entries: two slots and the menu on every track, the built-in states; on a section with a hidden track a slot
+ * and a state of its own (the built-ins give a section none: the view draws nothing for a hidden track).
+ */
 const Host: HeaderPartsOf = (f) => {
   const own = builtInHeaderStates(f);
-  if (!f.track) return own && { ...own, menu: true };
+  if (!f.track)
+    return f.hiddenTracks.length
+      ? {
+          slots: [{ name: 'host:section', label: 'Section', enabled: true }],
+          states: [{ name: 'host:note', text: `${f.hiddenTracks.length} hidden`, count: f.hiddenTracks.length }],
+          menu: true,
+        }
+      : undefined;
   return {
     slots: [
       { name: 'seq:hide', label: 'Hide track', icon: Cross, enabled: true },
@@ -277,25 +287,36 @@ describe('the states', () => {
   });
 });
 
-describe('the section’s header line (EC-237: hidden tracks kept in the spec, counted where they were)', () => {
-  it('every hidden track is counted once in its section’s chip; the line only while one is hidden (`auto`)', async () => {
+describe('the section’s header line (hidden tracks are the application’s: the view draws nothing for them)', () => {
+  it('a hidden track adds no line and no chip: the tracks above keep their y, those below move by exactly its height', async () => {
+    const ids = ['seq', 'dom', 'thin', 'more'];
+    const base = (await frame([])).f.layout.sections[0];
+    expect(base.header).toBeUndefined();
+    const ys = base.tracks.map((t) => t.box.y);
+    for (let i = 0; i < ids.length; i++) {
+      const { f } = await frame([ids[i]]);
+      const s = f.layout.sections[0];
+      expect(s.header).toBeUndefined();
+      expect(s.tracks.map((t) => t.track.address.split('/').pop())).toEqual(ids.filter((_, j) => j !== i));
+      const height = (i + 1 < ys.length ? ys[i + 1] : base.tracks[i].box.y + base.tracks[i].box.height) - ys[i];
+      s.tracks.forEach((t, k) => {
+        const j = k < i ? k : k + 1;
+        expect(t.box.y).toBeCloseTo(ys[j] - (j > i ? height : 0), 9);
+        // no chip about it anywhere
+        expect(t.header?.states.map((x) => x.name) ?? []).not.toContain('seq:hidden-tracks');
+      });
+    }
+  });
+
+  it('every subset: no section line, no chip; a section with every track hidden collapses to nothing', async () => {
     const ids = ['seq', 'dom', 'thin', 'more'];
     for (let mask = 0; mask < 16; mask++) {
       const hidden = ids.filter((_, i) => mask & (1 << i));
       const { f } = await frame(hidden);
       const s = f.layout.sections[0];
       expect(s.tracks.length).toBe(4 - hidden.length);
-      if (!hidden.length) {
-        expect(s.header).toBeUndefined();
-        continue;
-      }
-      expect(s.header!.states).toHaveLength(1);
-      expect(s.header!.states[0]).toMatchObject({ name: 'seq:hidden-tracks', count: hidden.length });
-      expect(s.header!.states[0].text).toBe(`${hidden.length} hidden`);
-      // the line above the first track, `header.sectionPx` high; a section with every track hidden keeps it
-      expect(s.header!.line.height).toBe(f.layout.config.header.sectionPx);
-      if (s.tracks.length) expect(s.tracks[0].well.y).toBeGreaterThanOrEqual(s.header!.line.y + s.header!.line.height);
-      expect(s.height).toBeGreaterThanOrEqual(s.header!.line.height);
+      expect(s.header).toBeUndefined();
+      if (!s.tracks.length) expect(s.height).toBe(0);
     }
   });
 
@@ -310,11 +331,14 @@ describe('the section’s header line (EC-237: hidden tracks kept in the spec, c
       states: [],
       hit: { target: 'section-header' },
     });
-    const hidden: HeaderParts = { states: [{ name: 'seq:hidden-tracks', text: '1 hidden' }] };
+    const slotted: HeaderParts = { slots: [{ name: 'host:x', label: 'X', enabled: true }] };
+    const stated: HeaderParts = { states: [{ name: 'host:y', text: 'y' }], menu: true };
     expect(drawsSectionHeader(undefined, config('always'))).toBe(true);
     expect(drawsSectionHeader(undefined, config('auto'))).toBe(false);
-    expect(drawsSectionHeader(hidden, config('auto'))).toBe(true);
-    expect(drawsSectionHeader(hidden, config('none'))).toBe(false);
+    // `auto`: a section entry with a slot only; a state or a menu-only entry draws no line
+    expect(drawsSectionHeader(stated, config('auto'))).toBe(false);
+    expect(drawsSectionHeader(slotted, config('auto'))).toBe(true);
+    expect(drawsSectionHeader(slotted, config('none'))).toBe(false);
   });
 });
 
@@ -402,7 +426,7 @@ describe('drawn alike, hit as laid out', () => {
     const chip = sec.header!.states[0];
     expect(hitView(f.layout, chip.box.x + 1, chip.box.y + chip.box.height / 2)).toMatchObject({
       target: 'header-state',
-      state: 'seq:hidden-tracks',
+      state: 'host:note',
       layer: '/views/main/p',
       count: 1,
     });

@@ -6,7 +6,7 @@
 
 import type { ExampleView } from '@molstar/seqx-examples';
 import type { HeaderTarget } from '@molstar/seqx-viewer/header-entries';
-import { mountToolbar } from '@molstar/seqx-viewer/mount-toolbar';
+import { toolbarWithHiddenTracks } from '../../support/toolbar.js';
 import { createSeqViewer, type SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { Button } from '@molstar/ui/components/button/button';
 import { defineElements, onCleanup } from '@molstar/ui/dom';
@@ -63,7 +63,7 @@ class TrackHeadersRoot extends UiElement<TrackHeadersStory> {
         log.textContent = lines.slice(-8).join('\n');
       },
     });
-    const viewer = createSeqViewer({ ...spec, ui: { ...spec.ui, toolbar: mountToolbar } }, canvasHost);
+    const viewer = createSeqViewer({ ...spec, ui: { ...spec.ui, toolbar: toolbarWithHiddenTracks } }, canvasHost);
     let off: (() => void) | undefined;
     // the host's Undo and Redo keys, on this story's own root (a click anywhere in it leaves the focus in it: the root
     // takes the focus a part does not); never in a field, and never another story's on a page of several

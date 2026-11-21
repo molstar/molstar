@@ -12,6 +12,7 @@
 
 import { derive, type ReadonlyState, ReactiveModel, State } from '@molstar/core/reactive';
 import { type Issue, issueOf, parseAddress, printAddress, type Segment } from '@molstar/core/repr/tree';
+import { hiddenTracksOf, onlyOnHiddenTracks } from './hidden-tracks.js';
 import { addRefPatch, RefsId, type RefInput, refAddresses } from '@molstar/seqx-core/lang';
 import {
   type AddressResolution,
@@ -112,6 +113,9 @@ function sameRefs(a: readonly RefEntry[], b: readonly RefEntry[]): boolean {
 
 /** A focus's outcome when what it names is wholly in a hidden stretch: at its break, and how to show it. */
 export const HiddenMessage = 'At its break: hidden by collapsed introns (section.collapse shows them)';
+
+/** A focus's outcome when what it names lies only on hidden tracks (the application restores them: `track.show`). */
+export const HiddenTrackMessage = 'On a hidden track: show it to see it';
 
 export class AddressModel extends ReactiveModel {
   readonly config: ViewerConfig;
@@ -391,6 +395,24 @@ export class AddressModel extends ReactiveModel {
   /** Whether the last move found what it moved to wholly in a hidden stretch (and moved to its break). */
   private _hidden = false;
 
+  /**
+   * Whether an address names only what is on hidden tracks: nodes every one on a hidden track (a track or inside one),
+   * or item keys whose data is drawn by layers of hidden tracks alone (resolved over the whole spec, not the view).
+   */
+  private _onHiddenTrack(resolution: AddressResolution): boolean {
+    const r = resolution.result;
+    const root = this.spec.model.value.spec;
+    if (r?.type === 'keys')
+      return !!r.keys.keys.length && onlyOnHiddenTracks(root, new Set(r.keys.keys.map((k) => k.owner)));
+    if (r?.type !== 'nodes' || !r.nodes.length) return false;
+    const hidden = hiddenTracksOf(root);
+    if (!hidden.length) return false;
+    return r.nodes.every((n) => {
+      const a = printAddress(n.address);
+      return hidden.some((t) => a === t.address || a.startsWith(`${t.address}/`));
+    });
+  }
+
   /** Whether the last focus or reveal moved to a break: what it names is hidden by collapsed pieces. */
   get movedToBreak(): boolean {
     return this._hidden;
@@ -416,6 +438,7 @@ export class AddressModel extends ReactiveModel {
     this._landing?.stop();
     if (resolution.status !== 'resolved') return this._outcome(resolution, false, 'Nothing to focus');
     this._pendingFocus = undefined;
+    if (this._onHiddenTrack(resolution)) return this._outcome(resolution, false, HiddenTrackMessage);
     const r = this._moveTo(loc, reveal, section);
     // a section not placed yet (no width, an axis waiting for its length) keeps the move as its intent: not done yet
     if (r === 'pending') {

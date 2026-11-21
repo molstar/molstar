@@ -103,7 +103,10 @@ const undo = async (v: SeqViewer) => {
 describe('the built-ins on p53', () => {
   it('say what the view holds: a filter, a layer and two tracks hidden', async () => {
     const v = await open('headers');
-    expect(chips(sectionOf(v, 'protein'))).toEqual(['2 hidden']);
+    // the two hidden tracks are the application's: no chip, no line in the view, a list for the host
+    expect(chips(sectionOf(v, 'protein'))).toEqual([]);
+    expect(v.frame!.layout.sections[0].header).toBeUndefined();
+    expect(v.hiddenTracks.value).toHaveLength(2);
     expect(chips(trackOf(v, 'domains'))).toEqual(['1 filtered', '1 layer hidden']);
     expect(chips(trackOf(v, 'letters'))).toEqual([]);
     // the column holds one slot, so the two states are both marks, never a chip beside a mark
@@ -120,7 +123,7 @@ describe('the built-ins on p53', () => {
       }
     }
     expect(menuLine(v, trackOf(v, 'letters').target)).toBe(
-      'Hide track, Color, Move down | Reverse, Collapse or expand hidden stretches, Show all',
+      'Hide track, Color, Move down | Show hidden, Reverse, Collapse or expand hidden stretches',
     );
   });
 
@@ -135,7 +138,8 @@ describe('the built-ins on p53', () => {
     await undo(v);
     expect(chips(trackOf(v, 'domains'))).toEqual(['1 filtered', '1 layer hidden']);
     expect(itemCount()).toBe(7);
-    await clickChip(v, sectionOf(v, 'protein')!, HeaderEntryNames.hiddenTracks);
+    await v.execute('track.show', { all: true });
+    await v.settle();
     expect(visible(v)[0].map((a) => a.split('/').pop())).toEqual([
       'letters',
       'domains',
@@ -143,9 +147,9 @@ describe('the built-ins on p53', () => {
       'secondary',
       'variants',
     ]);
-    expect(chips(sectionOf(v, 'protein'))).toEqual([]);
+    expect(v.hiddenTracks.value).toEqual([]);
     await undo(v);
-    expect(chips(sectionOf(v, 'protein'))).toEqual(['2 hidden']);
+    expect(v.hiddenTracks.value).toHaveLength(2);
   });
 
   it('the host’s Cmd/Ctrl+Z keys undo a chip’s click and Shift redoes it (F15)', async () => {
@@ -220,33 +224,38 @@ describe('a host’s entry and a built-in left out', () => {
   });
 });
 
-describe('the hidden-tracks chip', () => {
-  it('a section whose tracks are all hidden keeps its header; the chip shows both, one undo hides them', async () => {
+describe('hidden tracks (the application’s)', () => {
+  it('a section whose tracks are all hidden collapses with no header; the list holds them, one undo hides them again', async () => {
     const v = await open('headers-hidden');
-    const g = sectionOf(v, 'hidden')!;
-    expect(g.shown).toBe(true);
-    expect(chips(g)).toEqual(['2 hidden']);
+    expect(sectionOf(v, 'hidden')).toBeUndefined();
     expect(visible(v)[0]).toEqual([]);
-    await clickChip(v, g, HeaderEntryNames.hiddenTracks);
+    expect(v.hiddenTracks.value.map((t) => t.address.split('/').pop())).toEqual(['domains', 'conservation']);
+    await v.execute('track.show', { all: true });
+    await v.settle();
     expect(visible(v)[0].map((a) => a.split('/').pop())).toEqual(['domains', 'conservation']);
     await undo(v);
     expect(visible(v)[0]).toEqual([]);
-    expect(chips(sectionOf(v, 'hidden'))).toEqual(['2 hidden']);
+    expect(v.hiddenTracks.value).toHaveLength(2);
   });
 
-  it('a secondary click on the chip lists each hidden track in order, then "Show all"; an item shows that one', async () => {
+  it('the menu of another section’s track lists each hidden track in order, then "Show all"; an item shows that one', async () => {
     const v = await open('headers-hidden');
-    const [x, y] = mid(sectionOf(v, 'hidden')!.states[0].box);
-    expect(headersOf(v).context(x, y)).toBe(true);
-    const shown = headersOf(v).menu.value!;
-    expect(shown.menu.target).toEqual(sectionOf(v, 'hidden')!.target);
-    const items = shown.menu.groups.flat();
-    expect(items.map((i) => i.label)).toEqual(['Show Domains', 'Show Conservation', 'Show all']);
-    await headersOf(v).runItem(items[1]);
+    const other = geometry(v).find((g) => g.target.track)!;
+    const items = headersOf(v)
+      .menuOf(other.target)!
+      .groups.flat()
+      .find((i) => i.name === HeaderEntryNames.hiddenTracks);
+    // the hidden tracks are in the first section, whose menu is not another section's
+    expect(items === undefined || items.items!.length > 0).toBe(true);
+    const section = v.hiddenTracks.value[0].section;
+    const menu = headersOf(v).menuOf({ section })!;
+    const entry = menu.groups.flat().find((i) => i.name === HeaderEntryNames.hiddenTracks)!;
+    expect(entry.items!.map((i) => i.label)).toEqual(['Domains', 'Conservation', 'Show all']);
+    await headersOf(v).runItem(entry.items![1]);
     await vi.advanceTimersByTimeAsync(20);
     await v.settle();
     expect(visible(v)[0].map((a) => a.split('/').pop())).toEqual(['conservation']);
-    expect(chips(sectionOf(v, 'hidden'))).toEqual(['1 hidden']);
+    expect(v.hiddenTracks.value.map((t) => t.label)).toEqual(['Domains']);
   });
 });
 

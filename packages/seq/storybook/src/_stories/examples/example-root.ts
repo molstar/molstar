@@ -8,7 +8,7 @@ import { printSexpr } from '@molstar/core/repr/codecs/sexpr';
 import { SeqLanguage } from '@molstar/seqx-core/lang';
 import type { ExampleView } from '@molstar/seqx-examples';
 import { DefaultSeqViewerSpec } from '@molstar/seqx-viewer/default-spec';
-import { mountToolbar } from '@molstar/seqx-viewer/mount-toolbar';
+import { toolbarWithHiddenTracks } from '../support/toolbar.js';
 import { createSeqViewer, type SeqViewer } from '@molstar/seqx-viewer/viewer';
 import type { SeqViewerSpec } from '@molstar/seqx-viewer/viewer-spec';
 import { defineElements, onCleanup } from '@molstar/ui/dom';
@@ -86,7 +86,7 @@ class ExampleRoot extends UiElement<ExampleModel> {
     const viewer = createSeqViewer(
       {
         ...base,
-        ui: { ...base.ui, toolbar: mountToolbar },
+        ui: { ...base.ui, toolbar: toolbarWithHiddenTracks },
         registry: [...(base.registry ?? []), ...extra],
         ...(view.config ? { config: [...(base.config ?? []), ...view.config] } : {}),
         ...(view.behaviors ? { behaviors: [...base.behaviors, ...view.behaviors] } : {}),

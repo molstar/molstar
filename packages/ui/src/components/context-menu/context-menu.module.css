@@ -49,6 +49,8 @@
   }
 
   &:hover:not([aria-disabled="true"]),
+  /* the row whose flyout is open stays marked */
+    &[aria-expanded="true"],
   &:focus-visible {
     background: var(--msui-control-hover);
     color: var(--msui-text);

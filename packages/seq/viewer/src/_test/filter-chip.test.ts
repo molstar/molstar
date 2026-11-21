@@ -7,7 +7,7 @@
 // The "n filtered" chip in a viewer without the `headers` behavior (_spec/README.md "Input"; "Behaviors", Headers:
 // Entries): a minimal composition listing the one entry `FilteredHeaderEntry` (and the `layer.filter` command's
 // behavior): a click on the chip clears every filtered layer's filter in one patch, undone in one step; the section's
-// "1 hidden" chip, no entry listed for it, is a fact a click does nothing on.
+// hidden track draws nothing (the application lists it).
 
 import { SeqRuntime } from '@molstar/seqx-core/data';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
@@ -95,12 +95,9 @@ describe('the "n filtered" chip without the `headers` behavior', () => {
     const before = layersData(v);
     const stack = (v.spec.history as UiHistory).stack;
     const steps = stack.steps.value.length;
-    // the section's "1 hidden": no entry listed, a click does nothing
-    const hidden = s.header!.states[0];
-    expect(hidden.text).toBe('1 hidden');
-    v.input.click(...(mid(hidden.box) as [number, number]));
-    await v.settle();
-    expect(stack.steps.value.length).toBe(steps);
+    // the hidden track: the view says nothing of it (no section line, no chip); the application's list restores it
+    expect(s.header).toBeUndefined();
+    expect(v.hiddenTracks.value.map((t) => t.label)).toHaveLength(1);
     expect(v.view.resolved.value!.sections[0].tracks).toHaveLength(2);
     // the chip: both layers' filters cleared, one step
     v.input.click(...(mid(chip.box) as [number, number]));

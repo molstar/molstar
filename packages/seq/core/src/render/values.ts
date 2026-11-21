@@ -254,7 +254,7 @@ export const ValuesType: LayerType<ValuesPrep, ValuesLay> = {
         lay.lo[j] = minmax ? colLo[c] : colHi[c];
         lay.v[j] = colHi[c];
       }
-    if (lay.perBar) colorBars(lay, color);
+    if (lay.perBar) colorBars(lay, color, ctx);
     lay.domain = yDomain(prep, ctx, lay);
     if (lay.encoding !== 'bars') orderLine(lay);
     return lay;
@@ -597,7 +597,7 @@ function flush(
 }
 
 /** Each bar's color by its value (missing: the missing token) into `col`, the open extents of the color's domain folded. */
-function colorBars(lay: ValuesLay, color: Channel) {
+function colorBars(lay: ValuesLay, color: Channel, ctx: LayoutContext) {
   const d = lay.datum;
   const missing = lay.tokens.colors['seq-missing'];
   if (lay.col.length < lay.n) lay.col = new Uint32Array(Math.max(lay.n, 2 * lay.col.length));
@@ -608,6 +608,8 @@ function colorBars(lay: ValuesLay, color: Channel) {
     lay.col[j] = typeof c === 'number' ? c : missing;
     if (lay.extents.any) lay.extents.add(d);
   }
+  // held, so a ramp's open domain is the data's extent (a menu's Viridis on 0 to 100 data), not [0, 1]
+  if (lay.extents.any) lay.extents.flush(ctx.theme);
 }
 
 /**

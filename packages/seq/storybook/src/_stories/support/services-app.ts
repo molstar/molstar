@@ -14,7 +14,7 @@ import * as predictions from '@molstar/seqx-examples/services/predictions';
 import { parseSifts, type SiftsMapping, siftsIssues, siftsSegments } from '@molstar/seqx-examples/services/sifts';
 import { EmptyKeys, location } from '@molstar/seqx-core/query';
 import { DefaultSeqViewerSpec } from '@molstar/seqx-viewer/default-spec';
-import { mountToolbar } from '@molstar/seqx-viewer/mount-toolbar';
+import { toolbarWithHiddenTracks } from './toolbar.js';
 import { createSeqViewer, type SeqViewer } from '@molstar/seqx-viewer/viewer';
 import type { SeqViewerSpec } from '@molstar/seqx-viewer/viewer-spec';
 import { type FakeLink, linkFake } from '../features/structure-link/compose.js';
@@ -129,7 +129,7 @@ export class ServicesApp {
     const viewer: SeqViewer = (this.viewer = createSeqViewer(
       {
         ...base,
-        ui: o.target ? { ...base.ui, toolbar: mountToolbar } : undefined,
+        ui: o.target ? { ...base.ui, toolbar: toolbarWithHiddenTracks } : undefined,
         registry: [
           ...(base.registry ?? []),
           { kind: 'format-runtime', runtime: MmcifRuntime },
