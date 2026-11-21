@@ -19,7 +19,7 @@ export const ViewIssues = defineIssues('seq.view', {
   'seq.view.section.blocks': {
     severity: 'warning',
     description: 'A section of assemblies has more blocks than `maxAssemblyBlocks`',
-    hint: 'Keep fewer by `include`',
+    hint: 'Keep fewer by `include: { min_length }`, or the largest first by `order: length`',
   },
   'seq.view.layer.type': {
     severity: 'warning',
