@@ -73,12 +73,7 @@ class ArchiveRoot extends UiElement<ArchiveModel> {
     tools.style.cssText = 'display: flex; gap: var(--msui-space-2); align-items: baseline; flex-wrap: wrap;';
     const status = document.createElement('span');
     status.style.cssText = 'color: var(--msui-text-muted);';
-    root.append(
-      summary,
-      tools,
-      titled('The archive', listing),
-      titled('Drawn from the archive alone', canvasHost),
-    );
+    root.append(summary, tools, titled('The archive', listing), titled('Drawn from the archive alone', canvasHost));
     let retired = false;
     let viewer: SeqViewer | undefined;
     let bytes: Uint8Array | undefined;

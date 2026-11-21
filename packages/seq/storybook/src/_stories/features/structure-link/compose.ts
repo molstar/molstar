@@ -48,7 +48,9 @@ export function litLine(fake: FakeStructureViewer): string {
   const cells = spans.map((s) => {
     const row = fake.rows[s.row];
     const first = row.residues[s.start]?.auth ?? '?';
-    return s.end - s.start > 1 ? `${row.asym} ${first}–${row.residues[s.end - 1]?.auth ?? '?'}` : `${row.asym} ${first}`;
+    return s.end - s.start > 1
+      ? `${row.asym} ${first}–${row.residues[s.end - 1]?.auth ?? '?'}`
+      : `${row.asym} ${first}`;
   });
   return `Lit in the fake: ${cells.join(', ')}`;
 }

@@ -20,7 +20,15 @@ import { createSeqViewer, type SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ColorByEntry, colorByBehavior } from '../../../support/host-adapter.js';
 import { fakeClock } from '../../structure-link/_test/open.js';
-import { headerLabel, headersOf, headersSpec, type HeadersComposition, menuLine, undoKey, widgetPlaces } from '../compose.js';
+import {
+  headerLabel,
+  headersOf,
+  headersSpec,
+  type HeadersComposition,
+  menuLine,
+  undoKey,
+  widgetPlaces,
+} from '../compose.js';
 
 // The track headers' stories, headless on a fake clock, composed as the stories compose them (compose.ts): the p53
 // views with a filter, a hidden layer and hidden tracks, the plasmid's ring. The witnesses are facts of the view (what

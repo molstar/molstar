@@ -121,13 +121,21 @@ export interface HostPicture {
 }
 
 /** The block under a point of the host's picture (x, y in the navigator's px, `height` its height), or undefined. */
-export function blockAt(pic: HostPicture, x: number, y: number, height: number): HostPicture['blocks'][number] | undefined {
+export function blockAt(
+  pic: HostPicture,
+  x: number,
+  y: number,
+  height: number,
+): HostPicture['blocks'][number] | undefined {
   const lane = (height - 16) / pic.lanes;
   return pic.blocks.find((b) => x >= b.x && x < b.x + b.width && y >= 8 + b.lane * lane && y < 8 + (b.lane + 1) * lane);
 }
 
 /** The readout of a hovered block: its name and residues, then the model's own words about the pointer's place. */
-export function blockReadout(block: HostPicture['blocks'][number] | undefined, modelReadout: string | undefined): string {
+export function blockReadout(
+  block: HostPicture['blocks'][number] | undefined,
+  modelReadout: string | undefined,
+): string {
   if (!block) return modelReadout ?? 'Hover the navigator';
   return `${block.name} (${block.label}), residues ${block.first}–${block.last}${modelReadout ? ` · ${modelReadout}` : ''}`;
 }

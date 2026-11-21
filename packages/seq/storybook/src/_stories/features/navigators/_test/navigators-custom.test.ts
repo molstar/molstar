@@ -76,7 +76,7 @@ describe('the custom navigators’ stories, headless', () => {
     // the readout names the hovered range, not the window (F28)
     const dbd = pic.blocks.find((b) => b.label === 'DBD')!;
     const dbdMid = dbd.x + dbd.width / 2;
-    const row = 8 + (36 - 16) / pic.lanes * dbd.lane + 2;
+    const row = 8 + ((36 - 16) / pic.lanes) * dbd.lane + 2;
     expect(blockAt(pic, dbdMid, row, 36)).toBe(dbd);
     expect(blockAt(pic, -5, row, 36)).toBeUndefined();
     expect(blockReadout(dbd, 'p53:101')).toBe('DNA-binding (DBD), residues 94–292 · p53:101');

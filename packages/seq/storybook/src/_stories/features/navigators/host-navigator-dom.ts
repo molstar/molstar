@@ -72,7 +72,12 @@ export function wireHostNavigator(
     if (frame === undefined) frame = requestFrameCallback(paint);
   };
   const speak = () => nav.setAttribute('aria-valuetext', model.values.value[model.focused.value]?.text ?? '');
-  const offs = [model.version.listen(schedule), viewer.drawn.listen(schedule), model.values.listen(speak), model.readout.listen(say)];
+  const offs = [
+    model.version.listen(schedule),
+    viewer.drawn.listen(schedule),
+    model.values.listen(speak),
+    model.readout.listen(say),
+  ];
 
   const at = (e: MouseEvent) => {
     const r = nav.getBoundingClientRect();
