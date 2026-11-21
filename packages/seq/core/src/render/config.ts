@@ -101,7 +101,15 @@ export interface RenderConfig {
    * `size` px at the cell's top right (`shape: 'dot'`) or a bar along its bottom (`underline`), in the letter's ink; a
    * bar over a component of several positions, a tick at a strip's top below the cells.
    */
-  readonly letters: { readonly modifiedMark: { readonly shape: 'dot' | 'underline'; readonly size: number } };
+  readonly letters: {
+    readonly modifiedMark: { readonly shape: 'dot' | 'underline'; readonly size: number };
+    /**
+     * The largest letter size, CSS px of the mono face: a letter is never larger than the chrome's label (cap heights
+     * equal: 0, the default, is `LabelCapRatio` of the label font's size, so it follows `labelFont`). A host that
+     * wants letters to follow the cell (teaching, slides) sets it past the scale's largest size.
+     */
+    readonly maxPx: number;
+  };
   /** How far past its max width a text fades out, CSS px. */
   readonly fade: number;
   /** Squircle corners: radius a third of the height, capped; none below `squircleMin` in either dimension. */
@@ -345,7 +353,7 @@ export const DefaultRenderConfig: RenderConfig = {
   labelFont: '12px sans',
   itemFont: '10px sans',
   labels: { minChars: 4 },
-  letters: { modifiedMark: { shape: 'dot', size: 3 } },
+  letters: { modifiedMark: { shape: 'dot', size: 3 }, maxPx: 0 },
   fade: 12,
   squircleRatio: 1 / 3,
   squircleMax: 8,
@@ -474,7 +482,10 @@ export function renderConfig(over: RenderConfigOverrides = {}): RenderConfig {
       ...over.ranges,
       connector: { ...DefaultRenderConfig.ranges.connector, ...over.ranges?.connector },
     },
-    letters: { modifiedMark: { ...DefaultRenderConfig.letters.modifiedMark, ...over.letters?.modifiedMark } },
+    letters: {
+      modifiedMark: { ...DefaultRenderConfig.letters.modifiedMark, ...over.letters?.modifiedMark },
+      maxPx: over.letters?.maxPx ?? DefaultRenderConfig.letters.maxPx,
+    },
     values: { ...DefaultRenderConfig.values, ...over.values },
     ruler: { ...DefaultRenderConfig.ruler, ...over.ruler },
     rings: { ...DefaultRenderConfig.rings, ...over.rings },
@@ -513,6 +524,26 @@ export function densityStep(cssPx: number, dpr: number, config: RenderConfig): D
   if (at('dots') >= t.dots) return 'dots';
   if (at('bars') >= t.bars) return 'bars';
   return 'density';
+}
+
+/** A letter's size against the label's, for the same cap height: the mono face's capitals are a little taller per em. */
+export const LabelCapRatio = 0.9;
+
+/** The largest letter size: `letters.maxPx`, else (0) the label font's size less the mono face's optical difference. */
+export function letterCap(config: RenderConfig): number {
+  return config.letters.maxPx > 0 ? config.letters.maxPx : fontSize(config.labelFont) * LabelCapRatio;
+}
+
+/**
+ * One size for a row of letters: the largest of the scale that is within the cap, whose advance fits `cell` (px) and
+ * that fits `room` (px, the height it may take). The smallest size when none does (the step starts where it fits a
+ * cell, so a short row still shows its letters), never past the cap.
+ */
+export function letterSize(config: RenderConfig, cell: number, room: number): number {
+  const cap = letterCap(config);
+  let size = 0;
+  for (const s of config.letterSizes) if (s <= cap && s * config.monoAdvance <= cell - 2 && s <= room) size = s;
+  return size || Math.min(config.letterSizes[0] ?? 9, cap);
 }
 
 /** The size of a font's shorthand in px (12 when it names none). */

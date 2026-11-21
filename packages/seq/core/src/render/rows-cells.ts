@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { letterSize } from './config.js';
 import { grown, NoColor } from './draw-lists.js';
 import { ImageTile } from './images.js';
 import { rowsLevel, rowsPending } from './rows-levels.js';
@@ -39,10 +40,7 @@ export function layoutCells(lay: RowsLay, prep: RowsPrep, ctx: LayoutContext) {
     const lettersStep = axis.scale >= config.density.letters && lay.rowScale >= config.density.letters;
     lay.letters = lettersStep;
     if (lettersStep) {
-      let size = 0;
-      for (const s of config.letterSizes)
-        if (s * config.monoAdvance <= axis.scale - 2 && s <= lay.rowScale * 0.75) size = s;
-      lay.fontSize = size || (config.letterSizes[0] ?? 9);
+      lay.fontSize = letterSize(config, axis.scale, lay.rowScale * 0.75);
       lay.font = `${lay.fontSize}px mono`;
     }
     for (let i = lay.first; i < lay.last; i++) addRow(lay, i, c0, c1, held, C, missing, tokens, prep);

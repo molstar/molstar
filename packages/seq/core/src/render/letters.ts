@@ -19,7 +19,7 @@ import {
 } from '@molstar/seqx-core/resolve';
 import type { ResolvedLayer } from '@molstar/seqx-core/view';
 import type { AxisTransform } from './axis.js';
-import { type DensityStep, densityStep, fontSize, type RenderConfig } from './config.js';
+import { type DensityStep, densityStep, fontSize, letterSize, type RenderConfig } from './config.js';
 import { drawPass, grown, type PassName, type PassWriter } from './draw-lists.js';
 import { RenderIssues } from './issues.js';
 import { dataRegions, type LayerSource, layerSource, mergeNear, placeholderSpans, readTiles } from './layer-data.js';
@@ -420,10 +420,8 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
     lay.fontSize = 0;
     if (step === 'letters') {
       const cell = axis.scale * width;
-      for (const s of config.letterSizes)
-        if (s * config.monoAdvance <= cell - 2 && s <= box.height * 0.75) lay.fontSize = s;
-      // the step starts where the smallest size fits the cell: a short row still shows its letters
-      if (!lay.fontSize) lay.fontSize = config.letterSizes[0] ?? 9;
+      // (never past the cap, `letters.maxPx`; the smallest where none fits: a short row still shows its letters)
+      lay.fontSize = letterSize(config, cell, box.height * 0.75);
       lay.font = `${lay.fontSize}px mono`;
       lay.glyphY = box.y + box.height / 2 + lay.fontSize * 0.35;
       // each part names its residue where it has room (EC-117); three-letter codes where the narrowest part in view

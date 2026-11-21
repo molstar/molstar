@@ -486,28 +486,28 @@ selection moves (`viewer-selection.ts`) and the frame (`viewer-frame.ts`).
   draws one navigator (a declared node's id, or a host's `viewer.navigator(def)`) into an element the host owns: its own
   canvases sized by the element (its form's thickness where the element has no height), its listeners on it alone, one
   tab stop (`role="slider"`, its focused window's `aria-valuetext` and `aria-disabled` as the model says them, never a
-  frame; its focus told to the model), its readout (a chrome surface at the part's top right, the hover card's inset and backdrop so it reads over data, one
-  line cut by an ellipsis, absent while it says nothing; a position as `name: 1,234`), its clicks with their count; its
-  disposer takes it away.
-  `ui.navigators` (`navigatorsMount`, on in the default spec) places the view's shown navigators by `place` around the
-  canvas (top before it, bottom after it, left and right beside it in a row) through the same call, again when they
-  change; each side part's room is the row less the other side parts (`NavigatorModel.setRoom`: a vertical overview of
-  its form's size narrows and hides by the plot it leaves, core's "Render", A narrow frame; one hidden so counts as
-  hidden for the rows rail, `narrowed.ts`, so under `unlessOverview` the rail comes back), and the canvas keeps the
-  layout's least width (`narrow.minWidth`, its `min-width`), the middle of the row scrolling only past it. What a
-  navigator draws is its picture, a registry entry (`navigator-picture`: the default spec lists the core's four, a host
-  adds its own `<id>:<name>`; core's "Render", Navigators, Pictures); a host that draws its navigator itself mounts none
-  and calls its `NavigatorModel` (Models, NavigatorModel: the contract). `ui.railToggle` (`railToggleMount`; for a
-  viewer embedded in a host's cell) puts a button in the canvas's corner that hides and shows the ruler rails
-  (`setRailsShown`, `railsShown`: the reader's session, never the spec). The rails (`navigator.form: rail`, the
-  default): every linear section no shown navigator binds along its positions, the view's declared ones and a host's
-  (`viewer.navigator(def)`) alike, a hidden one bringing the rail back (`railSections`); each active while the
-  `navigator` behavior is listed and its window is not idle, found again after the layout placed the view (an idle flip
-  drawn in the same frame, the window pass alone). Each rows layer's band has a rows rail (`rowsRailTracks`, by its
-  track: beside a shown overview or miniature over its section, `navigator.rowsRail`), live while the behavior is
-  listed, idle only while every row shows and would at the zoom-in limit too (the layout's: navigators' idle rule, so a
-  rail zoomed out to the whole band keeps its grips). The viewer's export leaves the rails out with its navigators (its
-  picture without its chrome: no slim row); with `navigators: include` they are drawn plain.
+  frame; its focus told to the model), its readout (a chrome surface at the part's top right, the hover card's inset and
+  backdrop so it reads over data, one line cut by an ellipsis, absent while it says nothing; a position as
+  `name: 1,234`), its clicks with their count; its disposer takes it away. `ui.navigators` (`navigatorsMount`, on in the
+  default spec) places the view's shown navigators by `place` around the canvas (top before it, bottom after it, left
+  and right beside it in a row) through the same call, again when they change; each side part's room is the row less the
+  other side parts (`NavigatorModel.setRoom`: a vertical overview of its form's size narrows and hides by the plot it
+  leaves, core's "Render", A narrow frame; one hidden so counts as hidden for the rows rail, `narrowed.ts`, so under
+  `unlessOverview` the rail comes back), and the canvas keeps the layout's least width (`narrow.minWidth`, its
+  `min-width`), the middle of the row scrolling only past it. What a navigator draws is its picture, a registry entry
+  (`navigator-picture`: the default spec lists the core's four, a host adds its own `<id>:<name>`; core's "Render",
+  Navigators, Pictures); a host that draws its navigator itself mounts none and calls its `NavigatorModel` (Models,
+  NavigatorModel: the contract). `ui.railToggle` (`railToggleMount`; for a viewer embedded in a host's cell) puts a
+  button in the canvas's corner that hides and shows the ruler rails (`setRailsShown`, `railsShown`: the reader's
+  session, never the spec). The rails (`navigator.form: rail`, the default): every linear section no shown navigator
+  binds along its positions, the view's declared ones and a host's (`viewer.navigator(def)`) alike, a hidden one
+  bringing the rail back (`railSections`); each active while the `navigator` behavior is listed and its window is not
+  idle, found again after the layout placed the view (an idle flip drawn in the same frame, the window pass alone). Each
+  rows layer's band has a rows rail (`rowsRailTracks`, by its track: beside a shown overview or miniature over its
+  section, `navigator.rowsRail`), live while the behavior is listed, idle only while every row shows and would at the
+  zoom-in limit too (the layout's: navigators' idle rule, so a rail zoomed out to the whole band keeps its grips). The
+  viewer's export leaves the rails out with its navigators (its picture without its chrome: no slim row); with
+  `navigators: include` they are drawn plain.
 - `SeqViewerSpec`: `registry` (the core's entries: format runtimes, layer types, layouts; and the viewer's own kind,
   `header-action`, the `headers` behavior's, left out of the core's context; `viewer.registry` as listed), `behaviors`
   (a provider and its params), `bindings` (a preset, override layers, extra action ids), `config` (`[item, value]`
