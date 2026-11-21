@@ -46,6 +46,9 @@ export interface ItemRows {
   /** Each row's table fields and its row in that table: what a theme's channels read (a field, a measure). */
   fields: (RangesList['fields'] | undefined)[];
   row: number[];
+  /** Each row's item's whole extent when its table says it (`RangesList.itemStart`, `itemEnd`), else −1. */
+  itemStarts: number[];
+  itemEnds: number[];
 }
 
 export function newItemRows(): ItemRows {
@@ -63,6 +66,8 @@ export function newItemRows(): ItemRows {
     occ: [],
     fields: [],
     row: [],
+    itemStarts: [],
+    itemEnds: [],
   };
 }
 
@@ -205,6 +210,8 @@ export function collectItems(
         rows.occ[j] = k + piece;
         rows.fields[j] = t.fields;
         rows.row[j] = i;
+        rows.itemStarts[j] = t.itemStart ? t.itemStart[i] : -1;
+        rows.itemEnds[j] = t.itemEnd ? t.itemEnd[i] : -1;
       }
     }
     for (let j = from; j < rows.n; j++) {
@@ -515,7 +522,9 @@ export function itemExtents(model: StaticModel, layer: ResolvedLayer): ItemExten
  * `last` the row holding its end, `first` the one holding its start, found among all the item's rows (`known`). Across
  * the origin of a cyclic system the row that starts at it comes last (the longest, if several) and the one that ends
  * there first; otherwise the row ending last and the row starting first. An item whose rows are not known (a tiled
- * source's: the rest may be outside what was read) has no end marked. `first` and `last` are written for rows `0..n`.
+ * source's: the rest may be outside what was read) has its ends from its rows' item extent when its table gives one
+ * (the row ending at the item's end, the one starting at its start), else none. `first` and `last` are written for rows
+ * `0..n`.
  */
 export function markEnds(
   rows: ItemRows,
@@ -525,13 +534,19 @@ export function markEnds(
   first: Uint8Array,
   last: Uint8Array,
 ) {
-  const { keys, starts, ends, n } = rows;
+  const { keys, starts, ends, n, itemStarts, itemEnds } = rows;
   const decided = new Map<string | number, [number, number, number, number]>();
   for (let i = 0; i < n; i++) {
     first[i] = 0;
     last[i] = 0;
     const g = known?.get(keys[i]);
-    if (!g) continue;
+    if (!g) {
+      if (itemEnds[i] >= 0) {
+        if (ends[i] === itemEnds[i]) last[i] = 1;
+        if (starts[i] === itemStarts[i]) first[i] = 1;
+      }
+      continue;
+    }
     let d = decided.get(keys[i]);
     if (!d) {
       const across = cyclic && g.length > 1 && g.some((r) => r.end === length) && g.some((r) => r.start === 0);

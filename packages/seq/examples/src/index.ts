@@ -16,6 +16,7 @@ export {
   type ExampleView,
   FeatureViews,
   FilesViews,
+  GenomeFormatsViews,
   TableFiles,
   GlobinsViews,
   LayerViews,
@@ -25,3 +26,4 @@ export {
   TrnaScaleView,
   TrnaViews,
 } from './views.js';
+export { RecordedFiles } from './genomes/files.js';

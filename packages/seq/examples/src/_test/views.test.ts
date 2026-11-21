@@ -50,8 +50,11 @@ describe('the fixtures', () => {
   });
 });
 
-/** The issues a view is known to report (the code is the one allowed), by `dataset/id`: none today. */
-const Known: Readonly<Record<string, readonly string[]>> = {};
+/** The issues a view is known to report (the code is the one allowed), by `dataset/id`. */
+const Known: Readonly<Record<string, readonly string[]>> = {
+  // the misread BED's faults, said as the story shows them
+  'genomes/bed-misread': ['seq.source.bed.line', 'seq.source.bed.cells', 'seq.source.bed.whitespace'],
+};
 
 /** The views whose drawing takes over 40 ms: `dataset/id`. */
 const SlowToRender = new Set([

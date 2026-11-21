@@ -15,6 +15,8 @@ export const AllowedLicences = [
   'LicenseRef-NCBI-public-data',
   'LicenseRef-EMBL-EBI-terms',
   'LicenseRef-seqx-generated',
+  // UCSC's hgdownload directories: "freely usable for any purpose" (their README.txt)
+  'LicenseRef-UCSC-freely-usable',
 ] as const;
 
 type Json = null | boolean | number | string | Json[] | { [key: string]: Json };

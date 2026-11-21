@@ -8,7 +8,10 @@ import { decodeMsgPack } from '@molstar/core/data/msgpack';
 import { msgPackColumnDecoder } from '@molstar/core/repr/codecs/msgpack';
 import { printSexpr } from '@molstar/core/repr/codecs/sexpr';
 import type { Node } from '@molstar/core/repr/tree';
+import type { AssetReader } from '@molstar/seqx-core/data';
 import { SeqLanguage } from '@molstar/seqx-core/lang';
+import { RecordedFiles } from '@molstar/seqx-examples';
+import { recordedAssets } from '@molstar/seqx-examples/recorded-pages';
 
 // What the Files stories print beside a view: the head of the file the view reads (the text as it is, or a MessagePack
 // file decoded to the JSON it holds, a compact JSON file indented), and the `source` nodes of its spec: the file and
@@ -45,6 +48,18 @@ export function fileHead(bytes: Uint8Array, format: string): string {
   const lines = text.split(/\r\n|\r|\n/);
   const shown = lines.slice(0, HeadLines).map(clip);
   return `${prefix}${shown.join('\n')}${lines.length > HeadLines ? '\n…' : ''}`;
+}
+
+/**
+ * A file's bytes as its view reads them: from its recording (`<uri>.pages.json`) when the examples declare one
+ * (`RecordedFiles`; no other file is asked for a recording), gzip inflated (a
+ * genome file's text), so its head is the text the runtime parses.
+ */
+export async function fileBytes(reader: AssetReader, uri: string, signal: AbortSignal): Promise<Uint8Array> {
+  const bytes = await recordedAssets(reader, RecordedFiles).readBytes(uri, signal);
+  if (bytes[0] !== 0x1f || bytes[1] !== 0x8b) return bytes;
+  const stream = new Blob([bytes as Uint8Array<ArrayBuffer>]).stream().pipeThrough(new DecompressionStream('gzip'));
+  return new Uint8Array(await new Response(stream).arrayBuffer());
 }
 
 /** The `source` nodes of a spec. */

@@ -209,7 +209,10 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
     }
     const maxLanes = laneGeometry(lay, ctx);
     let row = false;
-    if (step !== 'density' && !densities.length) {
+    // at the density step a list of few rows (at most one a CSS pixel of the band) stays items: each its own mark, so
+    // wide ones keep their labels, hits and arrows (a chromosome's bands at its fit); more rows are the density strip
+    const dense = step === 'density' && n > box.width;
+    if (!dense && !densities.length) {
       lay.order = grown(lay.order, n);
       const order = lay.order.subarray(0, n);
       for (let i = 0; i < n; i++) order[i] = i;
@@ -236,8 +239,7 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
         lay.laneY = box.y + (box.height - Math.min(lay.seen, maxLanes) * lay.laneHeight) / 2;
       }
     }
-    lay.mode =
-      step === 'density' || densities.length || (lay.overflow && !row) ? 'density' : step === 'bars' ? 'bars' : 'items';
+    lay.mode = dense || densities.length || (lay.overflow && !row) ? 'density' : step === 'bars' ? 'bars' : 'items';
     // below a position a pixel a run has no ends, no dash and no wave: a plain line or block
     if (lay.mode !== 'items' && lay.style >= 2 && lay.style <= 5) lay.style = Solid;
     // an arrowhead is an item's, by its own width (below): a run of bars keeps the arrows of the items wide enough

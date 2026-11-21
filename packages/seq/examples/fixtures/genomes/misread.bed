@@ -1,0 +1,8 @@
+# a BED6 with faults
+chrG	100	900	good1	500	+
+chrG	1000	800	end-before-start	0	+
+chrG	ten	2000	not-a-number	0	-
+chrG	2100	2600	bad-strand	0	*
+chrG	3000	3600	bad-score	high	-
+chrG 4000 4800 spaces 10 +
+chrG	5000	5900	good2	700	-	extra
