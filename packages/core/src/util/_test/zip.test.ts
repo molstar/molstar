@@ -183,6 +183,19 @@ describe('zip', () => {
       expect(allocated).toBeLessThan(2 << 20);
     });
 
+    it('skips zero padding after the last member, as gzip(1) does', async () => {
+      const a = text(300, 'first');
+      const b = text(200, 'second');
+      const padded = join([gzipSync(a), gzipSync(b), new Uint8Array(512)]);
+      expect(await ungzip(SyncRuntimeContext, padded)).toEqual(join([a, b]));
+      const blocks = join([bgzfMember(a), bgzfMember(b), bgzfMember(new Uint8Array(0)), new Uint8Array(100)]);
+      expect(await ungzip(SyncRuntimeContext, blocks)).toEqual(join([a, b]));
+      // padding then more bytes is not padding
+      await expect(
+        ungzip(SyncRuntimeContext, join([gzipSync(a), gzipSync(b), new Uint8Array(8), new Uint8Array([7])])),
+      ).rejects.toThrow(/no gzip member/);
+    });
+
     it("never inflates past the caller's buffer", async () => {
       const data = text(5000, 'bgzf');
       await expect(ungzip(SyncRuntimeContext, bgzf(data, 10000), new Uint8Array(data.length - 1))).rejects.toThrow(

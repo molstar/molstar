@@ -275,6 +275,12 @@ function gzipMemberHeader(file: Uint8Array, o: number): GzipMemberHeader | undef
   return { data: at, bsize };
 }
 
+/** Whether every byte from `o` on is 0 (padding after the last member). */
+function zerosFrom(file: Uint8Array, o: number) {
+  for (let i = o; i < file.length; i++) if (file[i] !== 0) return false;
+  return true;
+}
+
 /**
  * Each member found (by BGZF's BSIZE when present, else where the JS inflater's deflate stream of the member ends),
  * inflated as one member with its own ISIZE, into one output: the caller's buffer, a buffer of the ISIZEs' sum (BGZF),
@@ -285,14 +291,14 @@ async function ungzipMembers(runtime: RuntimeContext, file: Uint8Array<ArrayBuff
   if (!buf) {
     let total = 0;
     let o = 0;
-    while (o < file.length) {
+    while (o < file.length && !zerosFrom(file, o)) {
       const h = gzipMemberHeader(file, o);
       if (h?.bsize === undefined || o + h.bsize + 1 > file.length) break;
       const end = o + h.bsize + 1;
       total += readUint(file, end - 4);
       o = end;
     }
-    if (o === file.length && o > 0) {
+    if ((o === file.length || zerosFrom(file, o)) && o > 0) {
       if (total > file.length * MaxDeflateRatio + 1024) {
         throw new Error(`gzip members declare ${total} bytes inflated, more than ${file.length} bytes can hold`);
       }
@@ -311,6 +317,8 @@ async function ungzipMembers(runtime: RuntimeContext, file: Uint8Array<ArrayBuff
   };
   let o = 0;
   while (o < file.length) {
+    // zero padding after the last member (a tape block's, a tool's) is skipped, as gzip(1) does
+    if (zerosFrom(file, o)) break;
     const h = gzipMemberHeader(file, o);
     if (!h) throw new Error(`no gzip member at byte ${o}`);
     const start = out.off;
