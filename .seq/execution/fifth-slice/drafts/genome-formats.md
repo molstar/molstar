@@ -59,7 +59,7 @@ The bigBed, 2bit, FASTA, PAF, PIF and chain rows serve the appendix's designs.
 | filter variants by an INFO value (`CLNSIG`, `AF > 0.01`) (JBrowse) | built: the layer's data filter (the query sublanguage, EC-225) |
 | genotypes of many samples, sorted by a field (IGV) | built: RR's `matrix` layer over the VCF's matrix; `samples` narrows them (new) |
 | "zoom in to see features" past a visibility window (IGV, JBrowse) | built: a tabix source's coarsest level (listed per file from its index's bytes) and a view's read cost (RR's `maxBytesPerLayer`), past either the layer's too-many-tiles state, never an estimate |
-| search a gene by name (IGV, JBrowse's trix, UCSC) | built in data: `findNames` over a GFF3 read whole; the box and the jump are GA's locus fallback (GC3) |
+| search a gene by name (IGV, JBrowse's trix, UCSC) | built in data: `findNames` over a GFF3 or GTF read whole; the box and the jump are GA's locus fallback (GC3) |
 | show N gaps and soft-masked repeats (UCSC) | designed only: a 2bit's N and mask blocks as `ranges` (appendix) |
 | lift a region from one assembly to another (UCSC liftOver) | built in data: a pairs source's equal-length runs as a map (`map.source`: the `seq` runtime, a host's chain adapter); the figure LX's |
 | colour items by `itemRgb` (UCSC) | refused here: a field; a theme reading an RGB text is themes' (Tensions) |
@@ -398,8 +398,9 @@ alignment truth in code (GD); PAF and chain runtimes are designed only (appendix
 - **A capability, not a shape**: `OpenedSource.findNames?(text, { max, prefix }, signal): Promise<NameHit[]>`, with
   `Coverage.names` (the fields searched) and `NameHit { system, start, end, id?, label, field }`. Case-insensitive,
   exact first, then by prefix when asked; at most `max` (20) hits.
-- **Who serves it**: a GFF3 read whole (its `Name`, `ID` and `Alias` attributes), from a map built once at open. BED,
-  VCF and GTF names are not indexed this slice, nor a tabix source (a text index such as trix is a later format), so
+- **Who serves it**: a GFF3 or GTF read whole (GFF3's `Name`, `ID` and `Alias`; GTF's `gene_name`, `gene_id`,
+  `transcript_name`, `transcript_id`), from a map built once at open (the author, 2026-11-21). BED and VCF names are
+  not indexed this slice, nor a tabix source (a text index such as trix is a later format), so
   a GFF3 past `limits.maxRows` (a human GENCODE GFF3 is about 3M lines) finds nothing by name (Tensions).
 - **Who calls it**: `findNames(sources, text, options, signal)` (`data/names.ts`, a function over the opened sources
   a viewer's source sync holds: not in `store.ts`, so no store lane is touched), merging hits in source order; GA's
@@ -454,7 +455,7 @@ region), `seq.source.too_large` at open.
   EC-92 (every reader fuzzed without a throw), EC-51 (a row past a known length clipped, counted), EC-86 and EC-87
   (issues), EC-169 and EC-174 (pending, failed and `AssetRangeError`), EC-171 (its outcome for tabix: exact counts
   within bytes, a view's read cost bounded, else "zoom in").
-- **Its data part here, the rest assigned**: EC-228 (`findNames` over a GFF3 here; the box and the focus GA's locus
+- **Its data part here, the rest assigned**: EC-228 (`findNames` over a GFF3 or GTF here; the box and the focus GA's locus
   fallback, GC3), EC-189 (a file's names here; aliases GA's names rule), EC-207 (a pairs source as one map's runs,
   `map.source`, here; paths GA's, GC1), EC-212 (the runs read by either side here; the projection GA's, the figure
   LX's), EC-209 and EC-210 (data here; ribbons LX's).

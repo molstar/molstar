@@ -25,6 +25,10 @@
   cut; RN's gene detail on GFF and `coarsenBins`; GD reviewed before promotion. Folded into the drafts with their
   reviews.
 
+- **The fold-in's three** (the author, 2026-11-21: "yes"): each draft's "Gaps for the author" becomes "Decided" at
+  promotion; the fifth slice's plan reconciled with the drafts when written (no BD, SQ or PF lanes; axis.md's tension
+  "narrowed"); GTF names indexed beside GFF3's (`runtimes/gff`).
+
 ## Overnight: stage 0 (run by the fourth slice's loop)
 
 The fourth slice's loop runs this while the author sleeps (its `state.md`, Next, points here). The lane limit is the
