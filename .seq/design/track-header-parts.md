@@ -380,7 +380,7 @@ Items are `ViewerConfig` unless the table says otherwise.
 | `headers.parts` (behavior param) | `canvas` | drawn parts scroll and export with the picture | a `HeaderPartsPortFactory`: `headerPartsDom()` or a host's |
 | `headers.contextClick` (behavior param) | `everywhere` in the default spec | IGV's and JBrowse's right-click over a track; the composing app's call (decided) | `header` (the label column), `none` (the browser's) |
 | `header.actions.show` | `hover` (the pointer over the track, the cursor on its header, a tap) | a figure at rest shows names and states, not buttons | `always`; `never` (the menu only) |
-| `header.slots` | 2 | the eye and the color fit beside a label in 112 px | 0 to 4 |
+| `header.slots` | 2 | at most two; the measured column (80–160 px) usually leaves one (`floor(width/20) − 3`), the eye, and the menu holds every entry: a wider column costs every view (HP3; the author, 2026-11-21) | 0 to 4 |
 | `header.slotPx` | 20 (an icon of 14) | a target of 20 px on a 24 px row | any |
 | `header.minHeightPx` | 16 | below it an icon overlaps the next track | any |
 | `header.menu.longPressMs` | 500 (the platform's when it says) | touch's context menu | any |

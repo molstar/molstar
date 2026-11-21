@@ -119,6 +119,7 @@ costs up to `f` times the pixels.
 | What | Target |
 |---|---|
 | Draw and hover loops, warm | 0 bytes allocated a frame (guarded) |
+| A hover through the structure link | at most 2 kB a lit unit (the target and its Location are new each hover; pooled if a large assembly shows it; the author, 2026-11-21) |
 | Layout, warm, at a fixed screen | bounded a frame, independent of the data's size (guarded); not zero |
 | Resolved model of inline data | at most 2× the data's MessagePack size, multi-resolution summaries included (a third of their base at most) |
 | Draw lists | bounded by the screen (device columns × lanes), never by the data |
@@ -143,7 +144,7 @@ effects (`TODO.md`).
 | Reading a spec (decode, validate, resolve), no viewer | under 230 kB (150 in the first slice, 160 in the second, 195 at the third slice's close; moved by the author, 2026-11-20, for language 0.5.0's molecules: measured 205.8) |
 | Headless rendering (the above, layout, draw lists, SVG) | under 830 kB (300 until the third slice, whose layers, layouts, navigators and rows it holds; 780 until the fourth slice's query language, 820 until molecules drawn, the author, 2026-11-20; measured 820.9) |
 | The viewer, default configuration | under 1,330 kB (600 until the third slice, 1,250 until the query language, 1,290 until the structure link, the author, 2026-11-20: "Move to 1330 kB", room for the rest of the fourth slice; measured 1,290.4; the previous Seq\*: 1,040 kB) |
-| The viewer, minimal (tracks, letters and ranges) | under 930 kB (880 until the query language, 920 until molecules drawn, the author, 2026-11-20; measured 922.0) |
+| The viewer, minimal (tracks, letters and ranges) | under 940 kB (880 until the query language, 920 until molecules drawn, 930 until the extension fallback, the author, 2026-11-20 and 2026-11-21; measured 929.9) |
 | A format runtime (bigWig) | under 30 kB, loaded only when composed |
 
 ## Scale

@@ -1,5 +1,9 @@
 # Gaps: for the author's review (the fourth slice, overnight)
 
+**Decided** (the author, 2026-11-21: "for gaps go as recommended. download what you need for fixtures etc"): every
+recommendation below taken; the public surfaces kept; the fetches allowed (SV's services, T-DM1's CCD ids, the
+fifth slice's data slices, each with its licence recorded).
+
 Decisions made while the author is away (loop.md, "Running while the author is away"), and public API changes made
 under the author's standing permission (`state.md`, Decided). Each a yes or no question with what was done.
 

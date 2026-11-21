@@ -51,6 +51,16 @@ The third slice is closed (2026-11-20; its record in `.seq/records/third-slice/`
   minimal 930 kB ("Move to 830 / 930 kB", 2026-11-20); for the structure link and the rest of the slice, the default
   viewer 1,330 kB ("Move to 1330 kB", 2026-11-20).
 
+- **The overnight gaps** (the author, 2026-11-21: "for gaps go as recommended. download what you need for fixtures
+  etc"): every `gaps.md` recommendation taken. The minimal viewer's bound 940 kB; a hover through the structure link at
+  most 2 kB a lit unit (performance.md); `header.slots`' rationale amended (one slot in the measured column); HD's drift
+  to the next slice's view-model work (TODO), the issue until then; the viewer folder's budget unchanged, fewer jsdom
+  files in a fix lane; F1 and F22 (the hover card on the structure stories' viewers and compact legends) to FX5, the
+  other novice questions to the fifth slice's gate; F5 kept. Fetches allowed: SV's first service fetch, T-DM1's CCD
+  ids, real PAE data, each with its licence recorded. The fifth slice's drafts still wait for the author.
+- **The author's look, 2026-11-21** (to FX5): the extension's lollipops show the card but no hover emphasis; the PAE in
+  AlphaFold DB's colours, on real data where a permissive one exists.
+
 ## In progress
 
 - 2026-11-20: stage 1's gate passed. Next: FX3 and ST2, two lanes.
@@ -66,6 +76,8 @@ The third slice is closed (2026-11-20; its record in `.seq/records/third-slice/`
 - 2026-11-21: the novice pass (29 findings) and NP merged (`34a944a17`). The overnight work is done: what is left
   waits for the author — SV's first service fetch and stage 3's gate, M4's targets (the minimal viewer at 929.9 of
   930 kB), the use gates, `gaps.md`, the fifth slice's drafts; then FINALIZE.
+- 2026-11-21 (morning): the author took the gaps as recommended and allowed the fetches. Next: FX5 (the author's look,
+  F1/F22, T-DM1) and SV, two lanes; then stage 3's gate and M4; the fifth slice's drafts wait for the author.
 
 ## Next
 
