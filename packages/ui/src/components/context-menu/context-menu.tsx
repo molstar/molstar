@@ -205,7 +205,25 @@ function openMenu(
         onPointerLeave={stopTimer}
       >
         {list.map((item) => {
-          const row = (
+          let row!: HTMLElement;
+          const rest = () => {
+            if (restMs <= 0) return;
+            const open = flyouts[depth];
+            if (open?.row === row) return stopTimer();
+            if (timerRow === row) return;
+            stopTimer();
+            const sub = !item.disabled && item.items?.length ? item : undefined;
+            // a row with a submenu opens it on rest; another row closes this level's flyout on rest (a diagonal
+            // move into the flyout cancels it)
+            if (!sub && !open) return;
+            timerRow = row;
+            timer = DomHost.setTimeout(() => {
+              timer = timerRow = undefined;
+              if (sub) openFlyout(sub, row, depth, false);
+              else closeFlyouts(depth);
+            }, restMs);
+          };
+          row = (
             <button
               type="button"
               role={item.checked === undefined ? 'menuitem' : 'menuitemradio'}
@@ -221,22 +239,10 @@ function openMenu(
               onFocus={() => item.onActive?.()}
               onPointerOver={() => {
                 if (!item.disabled) item.onActive?.();
-                if (restMs <= 0) return;
-                const open = flyouts[depth];
-                if (open?.row === row) return stopTimer();
-                if (timerRow === row) return;
-                stopTimer();
-                const sub = !item.disabled && item.items?.length ? item : undefined;
-                // a row with a submenu opens it on rest; another row closes this level's flyout on rest (a diagonal
-                // move into the flyout cancels it)
-                if (!sub && !open) return;
-                timerRow = row;
-                timer = DomHost.setTimeout(() => {
-                  timer = timerRow = undefined;
-                  if (sub) openFlyout(sub, row, depth, false);
-                  else closeFlyouts(depth);
-                }, restMs);
+                rest();
               }}
+              // a menu that opened under a still pointer gets no pointerover for its row: the first move is the rest's start
+              onPointerMove={rest}
             >
               {icons ? <span class={classes.slot}>{item.icon ? <Icon name={item.icon} /> : null}</span> : null}
               <span class={classes.label}>{item.label}</span>

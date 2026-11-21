@@ -315,6 +315,19 @@ describe('a submenu (a flyout)', () => {
     }
   });
 
+  it('a menu that opened under a still pointer: its first move on the row (no pointerover came) starts the rest', () => {
+    vi.useFakeTimers();
+    try {
+      const { menus, color } = setup();
+      color.dispatchEvent(new PointerEvent('pointermove', { bubbles: true }));
+      color.dispatchEvent(new PointerEvent('pointermove', { bubbles: true }));
+      vi.advanceTimersByTime(300);
+      expect(menus()).toHaveLength(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('opens when the pointer rests on the row', () => {
     vi.useFakeTimers();
     try {
