@@ -149,7 +149,7 @@ export function structureSection(v: ViewBuilder, c: Composed, follow: string) {
       ...(c.via ? { via: c.via as never } : {}),
     },
     (s) => {
-      s.track('ruler', { label: `${Entry} chain ${c.asym} (PDBe, author numbers)` }).layer('ruler', {
+      s.track('ruler', { label: `${Entry} ${c.asym}, author numbers` }).layer('ruler', {
         type: 'ruler',
         numbering: 'auth',
       });
