@@ -6,6 +6,19 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
 
 ## Open
 
+- **The hover card: placement, wrapping, and the density row's missing highlight** (the author, 2026-11-21, Files ›
+  UniProt entry: "hovering the bottom 'regions' … is missing a highlight", "the hover placement is quite
+  inconsistent"):
+  - the Regions track's bottom row (its density row of overlapping regions) shows a card but draws no hover mark: the
+    density row lights the hovered stretch (or the items under it);
+  - the card jumps between below and above the pointer and covers the rows being read: one placement rule (beside
+    the pointer on the side with room, never over the hovered row, the same side while the pointer stays in a track);
+  - the card's width changes from one hover to the next and wraps values ("P04637 100–" / "370"): a value never
+    wraps inside a range; the card sizes to its longest row up to a cap, then truncates the name, not the value;
+  - unnamed features are labelled by a bare row number ("152", "153"): fall back to the feature's type and range.
+  Tests: the density row's hover draws a mark; the card's box never intersects the hovered row; a range value on
+  one line.
+
 - **The navigator's readout covers the control in use** (the author, 2026-11-21, BED cytobands: "the tooltip appears
   on top of currently active control. quite disruptive"): while the window is dragged, its readout
   ("chr17:36,190,896–62,395,127 of chr17") is drawn over the window and its grip. The readout never covers the window,
