@@ -38,7 +38,15 @@ import {
 import { viaUnusedIssue } from '@molstar/seqx-core/resolve/maps-via';
 import { followRef } from '@molstar/seqx-core/lang';
 import { type AxisShape, axisTotal, nearestOffsetOf, positionAt, wholePieces } from './axis.js';
-import { assemblyBlocks, type BlockAxes, blockAxes, blockNodes, sectionAssemblies, sectionComplex } from './blocks.js';
+import {
+  assemblyBlocks,
+  type BlockAxes,
+  blockAxes,
+  blockNodes,
+  sectionAssemblies,
+  sectionComplex,
+  systemRef,
+} from './blocks.js';
 import { ViewIssues } from './issues.js';
 
 /** The six shapes a layer reads (an extension's type reads one of them: _spec/README.md "Context", Extensions). */
@@ -538,7 +546,7 @@ function build(model: StaticModel, view: Node, address: string, layerKinds: Laye
       continue;
     }
     const own = sectionComplex(model, s) === undefined && !assemblies ? param(s, 'of') : undefined;
-    const system = exactAddress(own ?? (first ? param(first, 'of') : undefined));
+    const system = systemRef(model, own ?? (first ? param(first, 'of') : undefined));
     const leader = exactAddress(param(s, 'follow'));
     const lead = leader === undefined ? undefined : byAddress.get(leader);
     const grid = (param(s, 'layout') ?? viewLayout) === 'grid';

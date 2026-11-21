@@ -32,6 +32,14 @@ export function sectionAssemblies(model: StaticModel, section: Node): AssemblyEn
   return list.length && list.every((a) => a !== undefined) ? (list as AssemblyEntry[]) : undefined;
 }
 
+/**
+ * The system a block's `of` names: an exact address, or a derived sequence's (`/data/hg38/(sequence :name chr1)`, a
+ * form no exact address reads).
+ */
+export function systemRef(model: StaticModel, of: Value | undefined): string | undefined {
+  return typeof of === 'string' && model.systems.has(of) ? of : exactAddress(of);
+}
+
 /** A derived block's address: the keyed form under its section, never an id step (it has no id). */
 const DerivedAddress = new WeakMap<Node, string>();
 
@@ -53,7 +61,7 @@ export function assemblyBlocks(
     const params: Record<string, Value> = {};
     for (const k of ['direction', 'scale', 'label', 'range', 'form'] as const)
       if (param(c, k) !== undefined) params[k] = param(c, k)!;
-    const of = exactAddress(param(c, 'of'));
+    const of = systemRef(model, param(c, 'of'));
     if (of !== undefined) over.set(of, params);
     else if (c.id !== undefined)
       for (const a of assemblies) {
@@ -216,7 +224,7 @@ export function blockAxes(
   const byKey = new Map<string, Group>();
   for (const n of nodes) {
     const address = DerivedAddress.get(n) ?? `${at}/${n.id}`;
-    const of = exactAddress(param(n, 'of'));
+    const of = systemRef(model, param(n, 'of'));
     if (of === undefined || !model.systems.has(of)) {
       report('The block shows no system of the spec', address);
       continue;
