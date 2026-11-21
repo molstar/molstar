@@ -58,6 +58,14 @@ export {
   unitLength,
   unitRange,
 } from './check-molecules.js';
+export {
+  type AssemblySequenceRow,
+  assembly,
+  colinearBlocks,
+  type GenomeOptions,
+  genome,
+  type Runs,
+} from './genome-builder.js';
 export { BoundIssues, LangIssues } from './issues.js';
 export {
   isExtensionName,

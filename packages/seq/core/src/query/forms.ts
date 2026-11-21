@@ -52,7 +52,7 @@ import { StructureForms } from './structure-forms.js';
 import { asType, evaluate } from './evaluate.js';
 import { keysExtent } from './key-extent.js';
 import { QueryIssues } from './issues.js';
-import { GenomeForms } from './genome-forms.js';
+import { GenomeForms } from './genome-door.js';
 import { MoleculeForms } from './molecule-forms.js';
 import { hasLabelSuffix, isNoInsertionCode, readLabel } from './labels.js';
 import {

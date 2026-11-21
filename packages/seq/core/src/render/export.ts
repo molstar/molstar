@@ -224,6 +224,11 @@ export async function openModel(spec: Node, store: DataStore, options: OpenModel
   const scoped = (m: StaticModel, v: ResolvedView | undefined) =>
     options.scope === 'view' && v ? viewSources(m, v) : undefined;
   let model = options.model ?? resolveSpec(spec, resolveOptions);
+  // a lazy part the spec needs (the genome chunk): resolved again once it lands, never drawn without it
+  if (model.loading) {
+    await model.loading;
+    model = resolveSpec(spec, resolveOptions);
+  }
   let view = viewOf(model);
   const shown = scoped(model, view);
   const first = new Set(

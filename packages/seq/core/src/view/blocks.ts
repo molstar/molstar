@@ -10,14 +10,7 @@
 // copies merged (EC-65); the section's axis over them.
 
 import { exactAddress, type Node, printAddress, type Value } from '@molstar/core/repr/tree';
-import {
-  type AssemblyEntry,
-  atomsSystemOf,
-  type IncludeValue,
-  includeFilter,
-  type StaticModel,
-  type UnitEntry,
-} from '@molstar/seqx-core/resolve';
+import { type AssemblyEntry, atomsSystemOf, type StaticModel, type UnitEntry } from '@molstar/seqx-core/resolve';
 import { axisTotal } from './axis.js';
 import type { Axis, BlockForm, ResolvedBlock } from './view.js';
 
@@ -64,7 +57,7 @@ export function assemblyBlocks(
     if (of !== undefined) over.set(of, params);
     else if (c.id !== undefined)
       for (const a of assemblies) {
-        const s = a.systemAt[a.lookup.index.get(c.id) ?? -1];
+        const s = a.systemAt[a.find(c.id) ?? -1];
         if (s) over.set(s, params);
       }
   }
@@ -72,7 +65,7 @@ export function assemblyBlocks(
   let total = 0;
   const max = model.config.maxAssemblyBlocks;
   for (const a of assemblies) {
-    const keep = includeFilter(param(section, 'include') as IncludeValue | undefined, a.lookup);
+    const keep = a.include(param(section, 'include'));
     for (const i of a.order) {
       const system = a.systemAt[i];
       const s = a.sequences[i];

@@ -45,8 +45,7 @@ import {
   unionLocations,
 } from '@molstar/seqx-core/query';
 import { hashString } from '@molstar/core/data/util/hash-functions';
-import { type AssemblyEntry, assemblyEntry, assemblySystem } from './assemblies.js';
-import { lookupName } from './assembly-names.js';
+import { type AssemblyEntry, genomeLoaded, loadGenome, pendingAssembly } from './genome.js';
 import type { GeneticCode } from './codon.js';
 import { type GridData, type PairsData } from './held.js';
 import {
@@ -290,6 +289,11 @@ export interface StaticModel extends QueryModel {
   readonly annotations: ReadonlyMap<string, AnnotationEntry>;
   /** The assemblies by address: their sequences derived, a system each (`systems`). */
   readonly assemblies: ReadonlyMap<string, AssemblyEntry>;
+  /**
+   * Set while a lazy part this model needs is loading (the genome chunk, for a spec holding an assembly): what reads
+   * it is pending until then; resolve again once it settles (_spec/README.md "Resolve", Assemblies).
+   */
+  readonly loading?: Promise<unknown>;
   /** The declared numberings, by the numbering node's address. */
   readonly numberings: ReadonlyMap<string, NumberingEntry>;
   /** Whether a declared numbering's labels are a source's (read by tier 2): what wraps a query model checks first. */
@@ -570,6 +574,7 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
 
   // assemblies: their sequences derived, a system each, from inline `sequences` and their source's coverage
   const assemblies = new Map<string, AssemblyEntry>();
+  let loading: Promise<unknown> | undefined;
   const listed = Coverages.get(given);
   for (const at of data) {
     if (at.node.kind !== 'assembly') continue;
@@ -581,9 +586,14 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
     };
     const c = coverageOf(src);
     const t = coverageOf(alias);
-    const e = cached(`${at.address}|${key(at)}|${c?.hash ?? ''}|${t?.hash ?? ''}`, () =>
-      assemblyEntry(at, src, alias, c?.systems, t?.systems),
-    );
+    // the genome chunk loads the first time a spec holds an assembly: until then the assembly is pending
+    const genome = genomeLoaded();
+    if (!genome) loading ??= loadGenome();
+    const e = genome
+      ? cached(`${at.address}|${key(at)}|${c?.hash ?? ''}|${t?.hash ?? ''}`, () =>
+          genome.assemblyEntry(at, src, alias, c?.systems, t?.systems),
+        )
+      : pendingAssembly(at, src, alias);
     assemblies.set(at.address, e.entry);
     for (const s of e.systems) systems.set(s.address, s);
     issues.push(...e.issues);
@@ -645,7 +655,7 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
     const assemblyTo = assemblies.get(exactAddress(p(at.node, 'to')) ?? '');
     if (assemblyFrom || assemblyTo) {
       // a map between assemblies: one map over every sequence pair, an entry a pair, each step the map's own
-      for (const pair of assemblyPairs(at, assemblyFrom, assemblyTo, systems, issues)) {
+      for (const pair of genomeLoaded()?.assemblyPairs(at, assemblyFrom, assemblyTo, systems, issues) ?? []) {
         const entry = cached(`${at.address}|${pair.key}|${key(at)}|${config.encoding}`, () =>
           mapEntry(pair.at, systems.get(pair.from)!, systems.get(pair.to)!, config),
         );
@@ -664,7 +674,7 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
     issues.push(...entry.issues);
   }
 
-  checkAssemblyData(data, assemblies, byAddress, issues);
+  genomeLoaded()?.checkAssemblyData(data, assemblies, byAddress, issues);
 
   // pairs and grids: held whole on their two systems
   for (const at of data) {
@@ -721,6 +731,7 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
     given,
     describedMaps,
     assemblies,
+    loading,
   );
   SourceHashes.set(model, sourceHashes);
   return model;
@@ -729,117 +740,9 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
 // the entries: model-entries.ts
 
 /** Whether a data node is over an assembly (its reads by sequence are the store's: _spec/README.md "Resolve"). */
-function overAssembly(n: Node, assemblies: ReadonlyMap<string, AssemblyEntry>): boolean {
+export function overAssembly(n: Node, assemblies: ReadonlyMap<string, AssemblyEntry>): boolean {
   for (const k of ['target', 'a', 'b', 'x', 'y']) if (assemblies.has(exactAddress(p(n, k)) ?? '')) return true;
   return false;
-}
-
-/**
- * What resolve says of data over an assembly: a source naming another assembly (`seq.resolve.assembly.mismatch`), and
- * inline rows naming no sequence of it, counted once with the first (`seq.resolve.assembly.name`).
- */
-function checkAssemblyData(
-  data: readonly Placed[],
-  assemblies: ReadonlyMap<string, AssemblyEntry>,
-  byAddress: ReadonlyMap<string, Placed>,
-  issues: Issue[],
-): void {
-  const say = (code: 'seq.resolve.assembly.mismatch' | 'seq.resolve.assembly.name', message: string, at: Placed) =>
-    issues.push(issueOf(ResolveIssues, code, message, { address: at.address, hint: ResolveIssues.codes[code].hint }));
-  for (const at of data) {
-    if (!overAssembly(at.node, assemblies)) continue;
-    const a = assemblies.get(exactAddress(p(at.node, 'target') ?? p(at.node, 'a') ?? p(at.node, 'x')) ?? '');
-    const src = byAddress.get(exactAddress(p(at.node, 'source')) ?? '')?.node;
-    const says = src && p(src, 'assembly');
-    if (a && typeof says === 'string' && a.names.length && !a.names.includes(says))
-      say('seq.resolve.assembly.mismatch', `The source is on ${says}, not ${a.names[0]}`, at);
-    const target = (p(at.node, 'rows') as Record<string, Value> | undefined)?.target;
-    if (!a || a.pending || !a.lookup.index.size || !target) continue;
-    const names = target as { length: number; get?(i: number): string | null } & ArrayLike<string>;
-    const unknown = new Set<string>();
-    for (let i = 0; i < names.length; i++) {
-      const name = names.get ? names.get(i) : names[i];
-      if (typeof name === 'string' && assemblySystem(a, name) === undefined && !a.lookup.index.has(name))
-        unknown.add(name);
-    }
-    if (unknown.size)
-      say(
-        'seq.resolve.assembly.name',
-        `Rows name ${unknown.size} sequences the assembly lacks (${[...unknown].slice(0, 3).join(', ')})`,
-        at,
-      );
-  }
-}
-
-/**
- * A map between assemblies (or an assembly and a sequence) as its pairs of sequences: its inline runs grouped by their
- * `from_name` and `to_name` (an end on a sequence needs none), each pair one entry over the two systems. A run naming
- * no sequence of its side is left out (the map's `seq.resolve.assembly.name`). A map read from a source is the store's.
- */
-function assemblyPairs(
-  at: Placed,
-  from: AssemblyEntry | undefined,
-  to: AssemblyEntry | undefined,
-  systems: ReadonlyMap<string, SystemEntry>,
-  issues: Issue[],
-): { key: string; from: string; to: string; at: Placed }[] {
-  const table = p(at.node, 'segments') as Record<string, Value> | undefined;
-  if (!table || p(at.node, 'method') !== 'segments') return [];
-  const column = (v: Value | undefined) => v as { length: number; get?(i: number): string | null } | undefined;
-  const fromNames = column(table.from_name);
-  const toNames = column(table.to_name);
-  const side = (e: AssemblyEntry | undefined, names: typeof fromNames, end: string, i: number) => {
-    if (!e) return systems.has(end) ? end : undefined;
-    const name = names?.get?.(i) ?? (names as unknown as string[] | undefined)?.[i];
-    return typeof name === 'string' ? assemblySystem(e, name) : undefined;
-  };
-  const rows = (table.from as ArrayLike<number> | undefined)?.length ?? 0;
-  const groups = new Map<string, { from: string; to: string; rows: number[] }>();
-  let unknown = 0;
-  for (let i = 0; i < rows; i++) {
-    const f = side(from, fromNames, exactAddress(p(at.node, 'from')) ?? '', i);
-    const t = side(to, toNames, exactAddress(p(at.node, 'to')) ?? '', i);
-    if (f === undefined || t === undefined) {
-      unknown++;
-      continue;
-    }
-    const k = `${f}|${t}`;
-    let g = groups.get(k);
-    if (!g) groups.set(k, (g = { from: f, to: t, rows: [] }));
-    g.rows.push(i);
-  }
-  if (unknown && !(from?.pending || to?.pending))
-    issues.push(
-      issueOf(ResolveIssues, 'seq.resolve.assembly.name', `${unknown} runs name no sequence of their assembly`, {
-        address: at.address,
-        hint: ResolveIssues.codes['seq.resolve.assembly.name'].hint,
-      }),
-    );
-  return [...groups].map(([k, g]) => {
-    const segments: Record<string, Value> = {};
-    for (const [c, v] of Object.entries(table)) segments[c] = pick(v, g.rows);
-    return {
-      key: k,
-      from: g.from,
-      to: g.to,
-      at: { address: at.address, node: { ...at.node, params: { ...at.node.params, segments } } },
-    };
-  });
-}
-
-/** A table column's rows `rows`, in its own form (a typed array, a category column read out, a list). */
-function pick(v: Value, rows: readonly number[]): Value {
-  const c = v as unknown as {
-    get?(i: number): unknown;
-    constructor: new (n: number) => ArrayLike<number> & Record<number, number>;
-  };
-  if (ArrayBuffer.isView(v)) {
-    const out = new c.constructor(rows.length);
-    rows.forEach((r, j) => (out[j] = (v as unknown as ArrayLike<number>)[r]));
-    return out as unknown as Value;
-  }
-  if (typeof c.get === 'function') return rows.map((r) => c.get!(r)) as Value;
-  return Array.isArray(v) ? (rows.map((r) => v[r]) as Value) : v;
 }
 
 // ---- the model ----
@@ -881,8 +784,10 @@ class Model implements StaticModel {
     lengths: Lengths = new Map(),
     readonly describedMaps: ReadonlyMap<string, DescribedMap> = new Map(),
     readonly assemblies: ReadonlyMap<string, AssemblyEntry> = new Map(),
+    readonly loading?: Promise<unknown>,
   ) {
-    this.hash = `${hashNode(spec)}${lengthsKey(lengths)}`;
+    // a model waiting for the genome chunk is never the one after it: a resolve after it lands builds again
+    this.hash = `${hashNode(spec)}${lengthsKey(lengths)}${loading ? '|loading' : ''}`;
     let fromSource = false;
     for (const n of numberings.values()) {
       if (n.source) fromSource = true;
@@ -1094,9 +999,10 @@ class Model implements StaticModel {
     return undefined;
   }
 
-  assemblySequence(assembly: string, name: string): { address: string; name: string } | undefined {
+  assemblySequence(assembly: string, name: string): { address: string; name: string } | 'pending' | undefined {
     const a = this.assemblies.get(assembly);
-    const i = a && lookupName(a.lookup, name);
+    if (a?.pending) return 'pending';
+    const i = a?.find(name);
     const address = i === undefined ? undefined : a!.systemAt[i];
     return address === undefined ? undefined : { address, name: a!.sequences[i!].name };
   }

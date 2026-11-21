@@ -29,13 +29,27 @@ function assembliesOf(m: Selected): string[] {
   return (Array.isArray(of) ? of : [of]).filter((x): x is string => typeof x === 'string');
 }
 
-/** The derived sequence a name is under one of `assemblies`, else undefined. */
+/**
+ * The derived sequence a name is under one of `assemblies`; `pending` while an assembly's source has not opened (the
+ * form waits: incomplete, never unknown); else undefined.
+ */
 function find(ctx: Ctx, assemblies: readonly string[], name: string) {
+  let pending = false;
   for (const a of assemblies) {
     const s = ctx.model.assemblySequence?.(a, name);
-    if (s) return s;
+    if (s === 'pending') pending = true;
+    else if (s) return s;
   }
-  return undefined;
+  if (pending) ctx.complete = false;
+  return pending ? 'pending' : undefined;
+}
+
+type Found = Exclude<ReturnType<typeof find>, 'pending' | undefined>;
+
+/** A name found, or the form's issue; undefined while its assembly is pending. */
+function named(ctx: Ctx, assemblies: readonly string[], name: string, at: string): Found | undefined {
+  const s = find(ctx, assemblies, name);
+  return s === 'pending' ? undefined : (s ?? unknown(name, at));
 }
 
 const unknown = (name: string, address: string): never =>
@@ -48,7 +62,8 @@ const sequence: Resolve = (ctx, form, prefix) => {
   const out: Selected[] = [];
   for (const m of prefixNodes(prefix, 'sequence')) {
     tick(ctx);
-    const s = find(ctx, [printAddress(m.address)], name) ?? unknown(name, printAddress(m.address));
+    const s = named(ctx, [printAddress(m.address)], name, printAddress(m.address));
+    if (!s) continue;
     const node: Node = { kind: 'sequence', params: { name: s.name } };
     out.push({ node, address: [...m.address, node] });
   }
@@ -85,9 +100,10 @@ const locus: Resolve = (ctx, form, prefix) => {
     tick(ctx);
     const at = printAddress(m.address);
     const assemblies = assembliesOf(m);
-    const read = parseLocus(text, (n) => find(ctx, assemblies, n) !== undefined);
+    const read = parseLocus(text, (n) => typeof find(ctx, assemblies, n) === 'object');
     if (!read) return fail('seq.query.position.invalid', `Not a locus: ${text}`, { address: at });
-    const s = find(ctx, assemblies, read.name) ?? unknown(read.name, at);
+    const s = named(ctx, assemblies, read.name, at);
+    if (!s) continue;
     parts.push({ system: s.address, ranges: [...rangeOn(ctx, s.address, read.range)] });
   }
   return { type: 'location', location: location({ parts }) as Location };
@@ -103,7 +119,8 @@ const block: Resolve = (ctx, form, prefix) => {
     const at = printAddress(m.address);
     if (m.node.kind !== 'section')
       return fail('seq.query.form.prefix', 'A block form is under a section', { address: at });
-    const s = find(ctx, assembliesOf(m), name) ?? unknown(name, at);
+    const s = named(ctx, assembliesOf(m), name, at);
+    if (!s) continue;
     parts.push({ system: s.address, ranges: [...rangeOn(ctx, s.address)] });
   }
   return { type: 'location', location: location({ parts }) as Location };

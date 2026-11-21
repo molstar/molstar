@@ -263,7 +263,13 @@ export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
     this.changed = this._changed.asReadonly;
     this.boundsIssues = this._boundsIssues.asReadonly;
     const resolver = createResolver(options);
-    this.model = derive([this.shown, lengths], (s, l) => resolver.resolve(s, l));
+    // a lazy part the spec needs (the genome chunk): the model is resolved again once it lands
+    const landed = new State(0);
+    this.model = derive([this.shown, lengths, landed], (s, l) => {
+      const m = resolver.resolve(s, l);
+      m.loading?.then(() => landed.set(landed.value + 1));
+      return m;
+    });
   }
 
   // ---- revisions ----

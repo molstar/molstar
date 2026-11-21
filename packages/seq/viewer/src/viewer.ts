@@ -485,6 +485,11 @@ export class SeqViewer extends ReactiveModel {
    * stories that wait for the picture.
    */
   async settle(timeoutMs = 10_000): Promise<boolean> {
+    // a lazy part the spec needs (the genome chunk): its model resolves again when it lands, then syncs
+    for (let m = this.spec.model.value; m.loading && !this._retired; m = this.spec.model.value) {
+      await m.loading;
+      await this._syncing;
+    }
     await this._syncing;
     for (const h of this.behaviors.values() as Iterable<BehaviorHandle | undefined>) await h?.loaded?.();
     const until = DomHost.now() + timeoutMs;

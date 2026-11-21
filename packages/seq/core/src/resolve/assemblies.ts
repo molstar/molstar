@@ -16,39 +16,14 @@ import {
   type IncludeValue,
   includeFilter,
   lookupName,
-  type NamedSequence,
   type NameMatch,
   naturalOrder,
 } from './assembly-names.js';
 import { ResolveIssues } from './issues.js';
 import { sourcePlan } from './model-entries.js';
+import type { AssemblyEntry, AssemblySequence } from './genome.js';
 import type { Placed } from './model-molecules.js';
 import type { SystemEntry } from './model.js';
-
-/** An assembly's sequence as derived: its printed name, the name its source knows it by, and its own settings. */
-export interface AssemblySequence extends NamedSequence {
-  /** The name its source lists it by (the printed name when inline only). */
-  readonly sourceName?: string;
-  readonly cyclic?: boolean;
-}
-
-export interface AssemblyEntry {
-  readonly address: string;
-  /** Its accession or name, and its other names: what `source.assembly` is checked against. */
-  readonly names: readonly string[];
-  readonly source?: string;
-  readonly aliasSource?: string;
-  /** Its source has not opened: no sequence is derived yet (a section of it is pending, EC-112). */
-  readonly pending: boolean;
-  /** Its sequences, in its `order` before `include`: what `system`'s categorical domain reads. */
-  readonly sequences: readonly AssemblySequence[];
-  readonly order: readonly number[];
-  /** The systems derived (after `include`), in order; a sequence left out has none. */
-  readonly systems: readonly string[];
-  /** Each sequence's system by its index, or undefined when `include` leaves it out. */
-  readonly systemAt: readonly (string | undefined)[];
-  readonly lookup: AssemblyNames;
-}
 
 /** The address of an assembly's derived sequence: always the form, never an id step (_spec/README.md "Addressing"). */
 export function assemblySequenceAddress(assembly: string, name: string): string {
@@ -57,7 +32,7 @@ export function assemblySequenceAddress(assembly: string, name: string): string 
 
 /** The system a name is in an assembly (its names, aliases, the `chr` prefix), or undefined. */
 export function assemblySystem(entry: AssemblyEntry, name: string): string | undefined {
-  const i = lookupName(entry.lookup, name);
+  const i = entry.find(name);
   return i === undefined ? undefined : entry.systemAt[i];
 }
 
@@ -121,6 +96,8 @@ export function assemblyEntry(
       systems: [],
       systemAt: [],
       lookup,
+      find: (name: string) => lookupName(lookup, name),
+      include: (v: unknown) => includeFilter(v as IncludeValue | undefined, lookup),
     },
     systems: [],
     issues,

@@ -35,6 +35,7 @@ export {
   printLink,
 } from './links.js';
 export { EmptyKeys, type Key, type Keys, keySet, keysEqual, unionKeys } from './keys.js';
+export { loadGenomeForms } from './genome-door.js';
 export { type Evaluation, evaluateQuery, type QueryOptions, QueryFormKinds, queryResolvers } from './forms.js';
 export type { ExprValue } from './expressions.js';
 export {
