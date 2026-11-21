@@ -9,6 +9,8 @@ queue. Each line: what is seen, where (the story), where it came from, its kind 
 
 - **The `⋯` menu's Color submenu does nothing** (bug; the author, 2026-11-21, on Examples/Services): `Color ▸`
   highlights but no submenu opens or applies. FX6.
+- **A header menu's actions do nothing, and a click on an item goes to the canvas under it** (bug; the author,
+  2026-11-21). FX6.
 - **The pointer over a menu still hovers the view under it** (bug; the author, 2026-11-21): the hover card and the
   hover emphasis follow the canvas beneath an open header menu. FX6.
 
