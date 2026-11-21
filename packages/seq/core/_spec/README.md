@@ -852,6 +852,19 @@ over 20 runs; the heavy lane bounds one sample at 40 ms (`resolve/_test/addressi
   language takes; each listed shape read whole at level 1 an answer in the protocol's shape, with a channel asked or
   not; an aborted read an `AbortError`; `changes` stopping once unsubscribed. Why: a host is code Seq\* does not own.
 
+### Names
+
+- **A capability, not a shape** (EC-228): `OpenedSource.findNames?(text, { max, prefix }, signal)` gives `NameHit`s
+  (`system`, `start`, `end`: the item's whole extent; `id` when it has one; `label`; the `field` matched), the exact
+  ones first, then by prefix when asked, case-insensitive, at most `max` (20). `Coverage.names` lists the fields
+  searched (strings, checked with the coverage). Why optional: a source that holds no names (a tabix source, a BED)
+  serves none, and no store or language change follows.
+- **Who calls it**: `findNames(sources, text, options, signal)` (`data/names.ts`), over the opened sources a viewer's
+  source sync holds (`{ address, source }`), asks those that serve it in parallel and merges their hits in source order,
+  each with its source's address, at most `max` together. A source that fails is left out, never failing the find; an
+  abort rejects with an `AbortError`; blank text finds nothing. Why not in the store: no tile, key or cache is involved,
+  and the store's lane stays untouched.
+
 ### Tables
 
 - Typed columns, each table with a `form`: `letters` (`start`, a string or uint8 codes with an alphabet); `ranges` as a

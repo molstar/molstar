@@ -176,6 +176,7 @@ function readCoverage(v: unknown, path: TreePath): Coverage {
   for (let i = 1; i < levels.length; i++)
     if (levels[i] <= levels[i - 1]) fail([...path, 'levels', i], 'levels are not ascending');
   readNodes(r, path);
+  opt(r, 'names', path, (x, p) => list(x, p).forEach((n, i) => str(n, [...p, i])));
   return r as unknown as Coverage;
 }
 
