@@ -42,7 +42,9 @@ export interface ContextMenuOptions {
   /**
    * How long the pointer rests on a submenu's row before its flyout opens, and on another row of its level before the
    * flyout closes (the time to travel into it: arriving in the flyout cancels it); default 300 ms. 0 turns resting
-   * off: a click or a key opens a flyout, and it stays until another opens or it is closed.
+   * off: a click or a key opens a flyout, and it stays until another opens or it is closed. The tolerance for a
+   * diagonal move into a flyout is this time window, not a geometric triangle: crossing the rows between the row and
+   * the flyout inside it keeps the flyout, taking longer closes it.
    */
   readonly restMs?: number;
   /** A flyout closed alone (← or Escape, or the rest on another row), the menu still open. */
@@ -114,6 +116,9 @@ interface Flyout {
   readonly dispose: () => void;
 }
 
+/** Ids for the flyouts and their rows. */
+let flyoutIds = 0;
+
 const firstRow = (el: HTMLElement) =>
   el.querySelector<HTMLElement>('[role^="menuitem"]:not([aria-disabled="true"])') ??
   el.querySelector<HTMLElement>('[role^="menuitem"]');
@@ -152,10 +157,13 @@ function openMenu(
     if (closed) return;
     closed = true;
     stopTimer();
+    // the focus in a flyout (a choice there, Tab) is lost with it: put back all the same
+    const active = menu.ownerDocument.activeElement;
+    const hadFocus = !!active && (menu.contains(active) || flyouts.some((f) => f.el.contains(active)));
     closeFlyouts(0, false);
     // Its listeners go with its scope.
     dispose();
-    restore(menu);
+    restore(hadFocus ? menu.ownerDocument.body : menu);
     menu.remove();
     onClose?.();
   };
@@ -193,10 +201,8 @@ function openMenu(
         }}
         onContextMenu={(e: Event) => e.preventDefault()}
         onPointerEnter={stopTimer}
-        onPointerLeave={() => {
-          // off the level: a rest that has not run yet goes (a flyout stays until the pointer is back on a row)
-          if (flyouts[depth] === undefined) stopTimer();
-        }}
+        // off the level (into its flyout, whose own enter takes over, or away): no rest runs after
+        onPointerLeave={stopTimer}
       >
         {list.map((item) => {
           const row = (
@@ -271,13 +277,22 @@ function openMenu(
         layer: () => el,
         anchor: row,
         outside: false,
-        tab: false,
-        close: () => closeFlyouts(depth),
+        // Tab in a flyout closes the whole menu (its rows are no Tab stops; the focus goes back where it was)
+        tab: true,
+        close: (reason) => (reason === 'tab' ? close() : closeFlyouts(depth)),
         refocus: () => row,
         ownsKey: (e) => isInside(e, parent),
       });
     });
+    // a long list scrolls inside the window
+    el.style.maxHeight = `${window.innerHeight - 8}px`;
+    el.style.overflowY = 'auto';
     root.append(el);
+    // the row names what it opens, the flyout what it came from (ARIA's menu button pattern)
+    row.id ||= `msui-cm-row-${++flyoutIds}`;
+    el.id = `msui-cm-sub-${flyoutIds}`;
+    el.setAttribute('aria-labelledby', row.id);
+    row.setAttribute('aria-controls', el.id);
     row.setAttribute('aria-expanded', 'true');
     flyouts[depth] = { el, row, dispose: stop };
     // Beside the row, the menu staying: right of the parent, its top at the row's (less the menu's padding); left of

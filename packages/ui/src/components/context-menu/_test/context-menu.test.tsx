@@ -266,6 +266,55 @@ describe('a submenu (a flyout)', () => {
     expect(closed).toHaveBeenCalledTimes(1);
   });
 
+  it('Tab in a flyout closes the whole menu, the focus back where it was', () => {
+    const before = document.createElement('button');
+    document.body.append(before);
+    before.focus();
+    const { menus, color, closed } = setup();
+    color.focus();
+    key(color, 'ArrowRight');
+    expect(menus()[1].contains(document.activeElement)).toBe(true);
+    key(document.activeElement!, 'Tab');
+    expect(menus()).toHaveLength(0);
+    expect(closed).toHaveBeenCalledTimes(1);
+    expect(document.activeElement).toBe(before);
+  });
+
+  it('a choice in a flyout puts the focus back too', () => {
+    const before = document.createElement('button');
+    document.body.append(before);
+    before.focus();
+    const { menus, color } = setup();
+    color.click();
+    (menus()[1].querySelector('[role="menuitem"]') as HTMLElement).focus();
+    (menus()[1].querySelector('[role="menuitem"]') as HTMLElement).click();
+    expect(document.activeElement).toBe(before);
+  });
+
+  it('names its pair for assistive technology: the row controls the flyout, the flyout is labelled by the row; it scrolls inside the window', () => {
+    const { menus, color } = setup();
+    color.click();
+    const flyout = menus()[1];
+    expect(color.getAttribute('aria-controls')).toBe(flyout.id);
+    expect(flyout.getAttribute('aria-labelledby')).toBe(color.id);
+    expect(color.id).not.toBe('');
+    expect(flyout.style.overflowY).toBe('auto');
+    expect(flyout.style.maxHeight).toBe(`${window.innerHeight - 8}px`);
+  });
+
+  it('leaving the menu stops a pending rest: nothing opens after the pointer is gone', () => {
+    vi.useFakeTimers();
+    try {
+      const { menus, color } = setup();
+      color.dispatchEvent(new PointerEvent('pointerover', { bubbles: true }));
+      menus()[0].dispatchEvent(new PointerEvent('pointerleave'));
+      vi.advanceTimersByTime(400);
+      expect(menus()).toHaveLength(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('opens when the pointer rests on the row', () => {
     vi.useFakeTimers();
     try {

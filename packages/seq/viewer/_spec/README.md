@@ -698,7 +698,9 @@ The `headers` behavior's params, as the hover card's port is its behavior's.
   left of the menu where there is no room, inside the window), the parent staying open and its row `aria-expanded`:
   never in the parent's place. A click, →, Enter, Space or the pointer resting on the row (`submenuRestMs`,
   Configuration) opens it; the same rest on another row closes it, arriving in the flyout cancels that (a diagonal move
-  keeps it); ← or Esc in it closes it alone, the focus on its row (a preview ends: `behavior.cancelPreview`), Esc again
+  keeps it: the tolerance is that time window, not a geometric triangle; leaving the menu stops any rest); Tab in a
+  flyout closes the whole menu; the row `aria-controls` its flyout, the flyout is `aria-labelledby` its row and scrolls
+  inside the window; ← or Esc in it closes it alone, the focus on its row (a preview ends: `behavior.cancelPreview`), Esc again
   the menu; a choice closes all, a press outside closes all. The flyouts are `@molstar/ui`'s `ContextMenuItem.items`
   (`openContextMenu`), each a dismiss layer of its own; its keyboard is the menu's, and closed the focus goes back to
   the canvas. The view resolving again (a source's answer, an edit, a scheme previewed in the menu, an undo) keeps the
