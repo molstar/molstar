@@ -6,6 +6,9 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
 
 ## Open
 
+- **A ring's own hover draws no mark** (the author, 2026-11-21, three-thousand-contigs): hovering the ring shows the
+  card but no position box on the ring, while hovering the row draws it there; sent to FX2 as its item 9.
+
 - **Block rulers unnumbered at the fit** (the author, 2026-11-21, the-hosts-complex): chain blocks about 180 px wide
   show tick marks and no numbers at the fit (numbered before GC2 and GC3); sent to FX2 as its item 8.
 - **Clearing a rows sort** (the author, 2026-11-21, Globins rows, family): a third click clears the column's sort; the
