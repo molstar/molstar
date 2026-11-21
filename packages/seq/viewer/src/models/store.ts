@@ -199,10 +199,7 @@ export class StoreModel extends ReactiveModel {
    * with their nodes. What cannot be opened is an issue here, as a source of the model's.
    */
   overlay(model: StaticModel, view: ResolvedView, ctx: { runtimes: readonly FormatRuntime[]; assets: AssetReader }) {
-    // the model's configuration is read through the model; other runtimes make another builder
-    if (this._overlays?.options.runtimes !== ctx.runtimes)
-      this._overlays = new OverlayBuilder({ runtimes: ctx.runtimes });
-    const overlay = this._overlays.of(model, this.store);
+    const overlay = this.overlayOf(model, ctx.runtimes);
     if (this._synced?.overlay !== overlay || this._synced.view !== view) {
       this._synced = { overlay, view };
       this._overlaySources ??= new OverlaySources(this.store, ctx.assets);
@@ -218,6 +215,16 @@ export class StoreModel extends ReactiveModel {
       });
     }
     return overlay;
+  }
+
+  /**
+   * The overlay of the nodes the store holds now over `model` (one a node version), without syncing its sources: the
+   * frame's, so a view resolved over it (a section of a source's complex) and the frame read one overlay.
+   */
+  overlayOf(model: StaticModel, runtimes: readonly FormatRuntime[]): Overlay {
+    // the model's configuration is read through the model; other runtimes make another builder
+    if (this._overlays?.options.runtimes !== runtimes) this._overlays = new OverlayBuilder({ runtimes });
+    return this._overlays.of(model, this.store);
   }
 
   /**
