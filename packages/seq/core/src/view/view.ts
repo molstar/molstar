@@ -41,7 +41,9 @@ import { type AxisShape, axisTotal, nearestOffsetOf, positionAt, wholePieces } f
 import { type BlockAxes, blockAxes, blockNodes, sectionComplex } from './blocks.js';
 import { ViewIssues } from './issues.js';
 
-type Shape = 'letters' | 'ranges' | 'values' | 'cells' | 'pairs' | 'grid';
+/** The six shapes a layer reads (an extension's type reads one of them: _spec/README.md "Context", Extensions). */
+export type LayerShape = 'letters' | 'ranges' | 'values' | 'cells' | 'pairs' | 'grid';
+type Shape = LayerShape;
 
 /** A layer type: what it draws and the simpler type a reader that lacks it draws instead. */
 export interface LayerType {
@@ -71,6 +73,24 @@ export const LayerTypes: Readonly<Record<string, LayerType>> = {
   pairs: { shape: 'pairs', fallback: 'ranges' },
   grid: { shape: 'grid' },
 };
+
+/**
+ * The layer kinds a reader knows (_spec/README.md "Resolved view", Layer kinds): the built-ins' (`LayerTypes`) and its
+ * composition's extensions' types, each its shape and fallback, and the extensions composed by id with how each reads a version
+ * (what the spec's `extensions` is read against). A composition makes one (`SeqContext.kinds`); resolving without one
+ * reads the built-ins'.
+ */
+export interface LayerKinds {
+  readonly types: Readonly<Record<string, LayerType>>;
+  /** Each extension composed, by id: how it reads a spec's `extensions` version for it (`old`, `newer`). */
+  readonly extensions?: Readonly<Record<string, (want: string) => 'old' | 'newer' | undefined>>;
+}
+
+/**
+ * The built-in layer kinds: what a view resolved without a composition reads.
+ * @internal
+ */
+export const BuiltInLayerKinds: LayerKinds = { types: LayerTypes };
 
 /**
  * An axis: a system, its direction and the positions shown, `[start, end, …]` pieces (start below end) in display
@@ -173,9 +193,18 @@ export interface ResolvedLayer {
   readonly address?: string;
   readonly index: number;
   readonly type: string;
-  /** Its type, then the fallbacks a reader without it draws, in order. */
+  /**
+   * Its type, then the fallbacks a reader without it draws, in order: its `fallback` param after its type (an
+   * extension's type without one: none), then the built-ins' chain from there. The type of an extension this reader has
+   * at an older major (0.x: minor) than the spec's `extensions` says is left out (its fallbacks drawn).
+   */
   readonly fallbacks: readonly string[];
-  /** Its params other than `type` and `data`, as written. */
+  /** The shape the first of its fallbacks this reader knows reads; absent when it knows none. */
+  readonly shape?: LayerShape;
+  /**
+   * Its params other than `type` and `data`, as written: an extension's type's plain params and the namespaced keys of
+   * extensions (`rondo:bundle`) included, carried untouched.
+   */
   readonly params: Readonly<Record<string, Value>>;
   /**
    * Its channels' theme forms as written (_spec/README.md "Resolved view"; "Themes"): a slot's body is read by the
@@ -228,7 +257,8 @@ export interface ResolvedSection {
   readonly layout: string;
   /**
    * Its layout's params as written (text: `group`, `numbers`, `group_labels`, `align`, `max_width`, `height`; rings:
-   * `rotation`, `labels`, `height`; blocks: `arrange`, `copies`; tracks and rings: `heights`, the track sizing).
+   * `rotation`, `labels`, `height`; blocks: `arrange`, `copies`; tracks and rings: `heights`, the track sizing), and the
+   * extensions' namespaced keys (`rondo:bundle`), carried for the extension that reads them.
    */
   readonly params: Readonly<Record<string, Value>>;
   /** Its blocks in order (copies merged by `copies`), when it has `block` children. */
@@ -358,27 +388,36 @@ export interface ResolvedView {
   readonly issues: readonly Issue[];
 }
 
-const cache = new WeakMap<StaticModel, Map<string, ResolvedView>>();
+const caches = new WeakMap<LayerKinds, WeakMap<StaticModel, Map<string, ResolvedView>>>();
 
-/** The resolved views of a model's spec, in spec order; kept per model and view. */
-export function resolveViews(model: StaticModel): ResolvedView[] {
+/** The resolved views of a model's spec, in spec order; kept per layer kinds, model and view. */
+export function resolveViews(model: StaticModel, kinds: LayerKinds = BuiltInLayerKinds): ResolvedView[] {
   const out: ResolvedView[] = [];
   for (const c of model.spec.children ?? [])
     if (c.kind === 'views' && c.id !== undefined)
       for (const v of c.children ?? [])
-        if (v.kind === 'view' && v.id !== undefined) out.push(resolveView(model, printAddress([c.id, v.id]))!);
+        if (v.kind === 'view' && v.id !== undefined) out.push(resolveView(model, printAddress([c.id, v.id]), kinds)!);
   return out;
 }
 
-/** A view resolved over the static model, or undefined when the spec has no view at the address. */
-export function resolveView(model: StaticModel, address: string): ResolvedView | undefined {
+/**
+ * A view resolved over the static model with the layer kinds a reader knows (the built-ins' by default), or undefined
+ * when the spec has no view at the address.
+ */
+export function resolveView(
+  model: StaticModel,
+  address: string,
+  kinds: LayerKinds = BuiltInLayerKinds,
+): ResolvedView | undefined {
+  let cache = caches.get(kinds);
+  if (!cache) caches.set(kinds, (cache = new WeakMap()));
   let views = cache.get(model);
   if (!views) cache.set(model, (views = new Map()));
   const hit = views.get(address);
   if (hit) return hit;
   const node = nodeAt(model.spec, address);
   if (node?.kind !== 'view') return undefined;
-  const v = build(model, node, address);
+  const v = build(model, node, address, kinds);
   views.set(address, v);
   return v;
 }
@@ -387,8 +426,13 @@ export function resolveView(model: StaticModel, address: string): ResolvedView |
  * A view node resolved over the model as if it were at `address`, uncached: what a navigator lays its picture out
  * through (a view of its own over the spec's data, never in the spec).
  */
-export function resolveViewNode(model: StaticModel, node: Node, address: string): ResolvedView {
-  return build(model, node, address);
+export function resolveViewNode(
+  model: StaticModel,
+  node: Node,
+  address: string,
+  kinds: LayerKinds = BuiltInLayerKinds,
+): ResolvedView {
+  return build(model, node, address, kinds);
 }
 
 function nodeAt(root: Node, address: string): Node | undefined {
@@ -418,7 +462,32 @@ function paddingOf(v: Value | undefined): { top: number; bottom: number } | unde
 
 type Report = (code: keyof typeof ViewIssues.codes, message: string, at: string, cause?: Issue) => void;
 
-function build(model: StaticModel, view: Node, address: string): ResolvedView {
+/**
+ * What resolving a view's layers reads of the reader (its layer kinds, the extensions it has too old) and collects:
+ * the layers of each extension's types it lacks, by namespace, each address with what it is drawn as.
+ */
+interface Kinds {
+  readonly types: Readonly<Record<string, LayerType>>;
+  readonly outdated: ReadonlySet<string>;
+  readonly needs: Map<string, Map<string, string | undefined>>;
+}
+
+/**
+ * The spec's `extensions` against the reader's (_spec/README.md "Resolved view", Layer kinds): one the reader has at an
+ * older major (0.x: minor) is outdated, its types drawn as their fallbacks; at an older minor of the same major they are
+ * drawn and that is said (`seq.view.extension.version`, info). Each extension reads the version itself (`reads`).
+ */
+function outdatedOf(wants: Value | undefined, kinds: LayerKinds, at: string, report: Report): Set<string> {
+  const out = new Set<string>();
+  for (const [id, want] of Object.entries(wants && typeof wants === 'object' ? wants : {})) {
+    const r = typeof want === 'string' ? kinds.extensions?.[id]?.(want) : undefined;
+    if (r === 'old') out.add(id);
+    else if (r) report('seq.view.extension.version', `\`${id}\` ${want} is newer than this reader’s`, at);
+  }
+  return out;
+}
+
+function build(model: StaticModel, view: Node, address: string, layerKinds: LayerKinds): ResolvedView {
   const issues: Issue[] = [];
   const report: Report = (code, message, at, cause) =>
     issues.push(
@@ -427,6 +496,12 @@ function build(model: StaticModel, view: Node, address: string): ResolvedView {
         hint: cause ? `${cause.message}: ${cause.hint ?? ''}`.trim() : ViewIssues.codes[code].hint,
       }),
     );
+  const wants = model.spec.params?.extensions as Readonly<Record<string, Value>> | undefined;
+  const kinds: Kinds = {
+    types: layerKinds.types,
+    outdated: outdatedOf(wants, layerKinds, address, report),
+    needs: new Map(),
+  };
   const sectionNodes = (view.children ?? []).filter((c) => c.kind === 'section' && c.id !== undefined);
   const written = param(view, 'layout');
   const viewLayout = typeof written === 'string' ? written : 'tracks';
@@ -561,14 +636,15 @@ function build(model: StaticModel, view: Node, address: string): ResolvedView {
         if (l.kind !== 'layer') return;
         if (!ba) {
           const system = known ? axis.system : undefined;
-          layers.push(layerOf(model, l, index, ta, system, report, template !== undefined, via));
+          layers.push(layerOf(model, kinds, l, index, ta, system, report, template !== undefined, via));
           return;
         }
         // a path a block: placed on each block its data reaches; said only when it reaches none
         const said: Parameters<Report>[] = [];
         let placed: ResolvedLayer | undefined;
         for (let k = 0; k < ba.blocks.length; k++) {
-          const r = layerOf(model, l, index, ta, ba.blocks[k].axis.system, (...a) => said.push(a), !!template, via);
+          const system = ba.blocks[k].axis.system;
+          const r = layerOf(model, kinds, l, index, ta, system, (...a) => said.push(a), !!template, via);
           perBlock[k].push(r);
           placed ??= r.placed ? r : undefined;
         }
@@ -595,6 +671,8 @@ function build(model: StaticModel, view: Node, address: string): ResolvedView {
       const v = param(s, k);
       if (v !== undefined) params[k] = v;
     }
+    // an extension's keys on the section (`rondo:bundle`): carried for the extension that reads them
+    for (const [k, v] of Object.entries(s.params ?? {})) if (k.includes(':')) params[k] = v;
     const blocks = ba?.blocks.map((b, k) => ({ ...b, layers: blockLayers[k] }));
     const y =
       (typeof own === 'string' ? own : viewLayout) === 'grid'
@@ -642,6 +720,15 @@ function build(model: StaticModel, view: Node, address: string): ResolvedView {
         }
     }
   for (const s of sections) if (s.via) issues.push(...unusedVia(s, along.get(s.address), links));
+  // each extension the layers need and this reader lacks (or has too old), said once a namespace
+  for (const [id, layers] of kinds.needs) {
+    const as = [...new Set(layers.values())].map((t) => (t ? `drawn as \`${t}\`` : 'not drawn'));
+    report(
+      'seq.view.layer.extension',
+      `${layers.size} layer(s) need \`${id}\`${wants?.[id] ? ` ${wants[id]}` : ''}: ${as}`,
+      address,
+    );
+  }
   const scales: Record<string, Readonly<Record<string, Value>>> = {};
   for (const c of model.spec.children ?? [])
     if (c.kind === 'views' && c.id !== undefined)
@@ -655,7 +742,7 @@ function build(model: StaticModel, view: Node, address: string): ResolvedView {
     ...(ex && typeof ex === 'object' && !Array.isArray(ex) ? { export: ex as Record<string, Value> } : {}),
     sections,
     links,
-    navigators: navigatorsOf(model, view, address, sections),
+    navigators: navigatorsOf(model, view, address, sections, report),
     issues,
   };
 }
@@ -666,13 +753,20 @@ function navigatorsOf(
   view: Node,
   address: string,
   sections: readonly ResolvedSection[],
+  report: Report,
 ): ResolvedNavigator[] {
   const out: ResolvedNavigator[] = [];
   for (const c of view.children ?? []) {
     if (c.kind !== 'navigators') continue;
     for (const n of c.children ?? [])
-      if (n.kind === 'navigator' && n.id !== undefined)
-        out.push(resolveNavigatorNode(model, sections, n, `${address}/${c.id}/${n.id}`));
+      if (n.kind === 'navigator' && n.id !== undefined) {
+        const nav = resolveNavigatorNode(model, sections, n, `${address}/${c.id}/${n.id}`);
+        out.push(nav);
+        // a picture this reader lacks (an extension's) is drawn as the axis, and said
+        const content = param(n, 'content');
+        if (content !== undefined && content !== nav.content)
+          report('seq.view.layer.extension', `No picture \`${content}\` here: drawn as the axis`, nav.address);
+      }
   }
   return out;
 }
@@ -710,7 +804,8 @@ export function resolveNavigatorNode(
     of,
     missing: named.filter((a) => !of.includes(a)),
     axes,
-    content: (param(n, 'content') as ResolvedNavigator['content'] | undefined) ?? 'axis',
+    // a picture this reader lacks (an extension's `<id>:<name>`) draws the axis (pictures as entries: a followup)
+    content: (['tracks', 'bands', 'rows'] as const).find((c) => c === param(n, 'content')) ?? 'axis',
     ...(Array.isArray(tracks)
       ? { tracks: tracks.map((t) => exactAddress(t)).filter((t): t is string => t !== undefined) }
       : {}),
@@ -1000,6 +1095,7 @@ function templateOf(v: Value | undefined): TrackTemplate | undefined {
 
 function layerOf(
   model: StaticModel,
+  kinds: Kinds,
   l: Node,
   index: number,
   track: string,
@@ -1011,9 +1107,19 @@ function layerOf(
   const type = String(param(l, 'type'));
   const address = l.id === undefined ? undefined : `${track}/${l.id}`;
   const at = address ?? `${track}`;
-  const fallbacks: string[] = [];
-  for (let t: string | undefined = type; t !== undefined && !fallbacks.includes(t); t = LayerTypes[t]?.fallback)
-    fallbacks.push(t);
+  // its chain (_spec/README.md "Resolved view", Layer kinds): its type, its `fallback` (an extension's type without
+  // one: none), then the built-ins' chain from there; the first this reader knows is what it is placed as
+  const types = kinds.types;
+  const ns = type.includes(':') ? type.slice(0, type.indexOf(':')) : undefined;
+  const written = param(l, 'fallback');
+  const chain: string[] = [];
+  for (let t: string | undefined = type; t !== undefined && t !== 'none' && !chain.includes(t); ) {
+    chain.push(t);
+    t = t === type && (typeof written === 'string' || ns) ? (written as string | undefined) : types[t]?.fallback;
+  }
+  const fallbacks = ns && kinds.outdated.has(ns) ? chain.slice(1) : chain;
+  const drawn = fallbacks.find((t) => types[t]);
+  const layerType = drawn === undefined ? undefined : types[drawn];
   const params: Record<string, Value> = {};
   for (const [k, v] of Object.entries(l.params ?? {})) if (k !== 'type' && k !== 'data') params[k] = v;
   const theme: Record<string, Value> = {};
@@ -1023,21 +1129,26 @@ function layerOf(
     index,
     type,
     fallbacks,
+    ...(layerType ? { shape: layerType.shape } : {}),
     params,
     theme,
   };
-  const layerType = LayerTypes[type];
-  if (!layerType) {
-    report('seq.view.layer.type', 'The layer’s type is not one this version draws', at);
-    return { ...base, placed: false };
+  if (drawn !== type) {
+    // an extension's type is said once a namespace (`build`), a bare one (a newer built-in's) each layer
+    if (ns) {
+      let layers = kinds.needs.get(ns);
+      if (!layers) kinds.needs.set(ns, (layers = new Map()));
+      layers.set(at, drawn);
+    } else report('seq.view.layer.type', 'The layer’s type is not one this version draws', at);
   }
+  if (!layerType) return { ...base, placed: false };
   // a section with no system was reported; its layers are not placed
   if (system === undefined) return { ...base, placed: false };
   // a template's layer without data is placed by each instance on its node
-  if (template && param(l, 'data') === undefined && type !== 'letters' && type !== 'ruler')
+  if (template && param(l, 'data') === undefined && drawn !== 'letters' && drawn !== 'ruler')
     return { ...base, placed: false };
 
-  const data = dataOf(model, layerData(model.spec, param(l, 'data')), type, system);
+  const data = dataOf(model, layerData(model.spec, param(l, 'data')), drawn!, system);
   if (!data) {
     report('seq.view.layer.data', 'The layer’s data names nothing the static model holds', at);
     return { ...base, placed: false };

@@ -6,7 +6,7 @@
 
 import { parseAddress, printAddress, type Value } from '@molstar/core/repr/tree';
 import type { Overlay, OverlayNode, StaticModel } from '@molstar/seqx-core/resolve';
-import { LayerTypes, type ResolvedLayer, type ResolvedSection, type ResolvedTrack, type ResolvedView } from './view.js';
+import { type ResolvedLayer, type ResolvedSection, type ResolvedTrack, type ResolvedView } from './view.js';
 
 // Track templates (_spec/README.md "Resolved view", Templates): the resolved view holds a template, never its expansion;
 // at layout a template is expanded over the overlay into a track per matching node, in order. An instance's layers
@@ -77,7 +77,7 @@ function instanceLayer(
   const { address: _, ...rest } = layer;
   const base = { ...rest, ...(address ? { address } : {}) };
   const a = overlay.annotation(node.address);
-  if (!a || LayerTypes[layer.type]?.shape !== a.shape) return { ...base, placed: false };
+  if (!a || layer.shape !== a.shape) return { ...base, placed: false };
   const length = (model.systems.get(a.target) ?? overlay.system(a.target))?.length;
   const data = {
     kind: 'address' as const,

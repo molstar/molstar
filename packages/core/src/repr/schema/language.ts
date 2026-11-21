@@ -108,6 +108,18 @@ export interface KindSpec {
   readonly data?: DataSpec;
   /** A built-in kind (or the language's own word for one, a layer type) a reader without this kind uses instead. */
   readonly fallback?: string;
+  /**
+   * The param whose value, when it is in a foreign namespace (`rondo:ribbons`), makes the node an extension's: params
+   * the kind does not declare are then kept and not reported (the extension's own, checked by it). Why: an extension's
+   * layer type reads plain params beside the built-in ones (_spec/README.md "Validation", Extension params).
+   */
+  readonly extensionParam?: string;
+  /**
+   * The param whose presence keeps the node's undeclared params unchecked too: a node naming what a reader without its
+   * type draws (`fallback`) may carry a newer type's params, which an older reader keeps (a warning elsewhere, never an
+   * error here).
+   */
+  readonly fallbackParam?: string;
 }
 
 export interface Language {

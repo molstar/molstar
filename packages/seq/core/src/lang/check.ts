@@ -295,6 +295,12 @@ export function checkPlaced(at: Placed, look: SeqLookup, report: Report): void {
         },
         (code, message, ...tail) => report(code, message, at, ...tail),
       );
+      // an extension's type (`<id>:<name>`): what it draws is its own, so its data is checked by the resolved view's
+      // shape (`seq.view.layer.shape`) through its fallback; a reader without it draws the fallback (`none` when absent)
+      if (String(type).includes(':')) {
+        if (p(n, 'fallback') === undefined) report('seq.lang.layer.fallback', 'No fallback', at, 'type');
+        break;
+      }
       if (p(n, 'data') === undefined) {
         // a template's layer without data draws each instance's node
         const template = at.parent?.kind === 'track' && p(at.parent, 'for_each') !== undefined;

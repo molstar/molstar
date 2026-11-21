@@ -24,7 +24,15 @@ import {
 } from '@molstar/seqx-core/render';
 import type { Location } from '@molstar/seqx-core/query';
 import type { BandViewport } from '@molstar/seqx-core/render';
-import { type Axis, followWindow, type ResolvedView, resolveView, resolveViews } from '@molstar/seqx-core/view';
+import {
+  type Axis,
+  BuiltInLayerKinds,
+  followWindow,
+  type LayerKinds,
+  type ResolvedView,
+  resolveView,
+  resolveViews,
+} from '@molstar/seqx-core/view';
 import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
 import { axisTotal } from './axis.js';
 import type { SpecModel } from './spec.js';
@@ -125,16 +133,28 @@ export class ViewModel extends ReactiveModel {
   /** Where a section's placement comes from: its moves are then its layout's arithmetic (`setLayoutSource`). */
   private _layouts: LayoutSource | undefined;
 
-  constructor(spec: SpecModel, config: ViewerConfig = DefaultViewerConfig) {
+  /** The layer kinds the view is resolved with (the composition's: `setKinds` when an extension comes or goes). */
+  private readonly _kinds: State<LayerKinds>;
+
+  constructor(spec: SpecModel, config: ViewerConfig = DefaultViewerConfig, kinds: LayerKinds = BuiltInLayerKinds) {
     super();
     this._spec = spec;
     this.config = config;
+    this._kinds = new State(kinds);
     // a source-backed system's length is the model's once its source opened (`SpecModel.setLengths`)
-    this.resolved = derive([spec.model, this._view], (model, address) =>
-      address === undefined ? resolveViews(model)[0] : resolveView(model, address),
+    this.resolved = derive([spec.model, this._view, this._kinds], (model, address, k) =>
+      address === undefined ? resolveViews(model, k)[0] : resolveView(model, address, k),
     );
     this._update(this.resolved.value);
     this.listenPermanently(this.resolved, (v) => this._update(v));
+  }
+
+  /**
+   * The layer kinds the view is resolved with: the view is resolved again (a new `resolved`) when they change.
+   * @internal
+   */
+  setKinds(kinds: LayerKinds): void {
+    this._kinds.set(kinds);
   }
 
   /**

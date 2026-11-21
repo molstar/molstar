@@ -16,7 +16,6 @@ import {
   type StaticModel,
 } from '@molstar/seqx-core/resolve';
 import {
-  LayerTypes,
   nearestOffsetOf,
   offsetOf,
   positionAt,
@@ -878,7 +877,7 @@ export class NavigatorRenderer {
           }
           continue;
         }
-        if (LayerTypes[l.layer.type]?.shape !== 'ranges') continue;
+        if (l.layer.shape !== 'ranges') continue;
         const src = layerSource(this.options.model, l.layer);
         if (!src || !this.options.model.sources.has(src.source)) continue;
         const levels = this.options.data.coverage(src.source)?.levels ?? [1];

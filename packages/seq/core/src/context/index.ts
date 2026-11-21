@@ -39,3 +39,4 @@ export {
   type TextMetricsPort,
   type TrackSizingPort,
 } from './context.js';
+export type { ExtensionTables, SeqExtension } from './extension.js';

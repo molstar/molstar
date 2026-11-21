@@ -22,5 +22,6 @@ export {
   type SeqViewerBehavior,
   type SeqViewerBindings,
   type SeqViewerSpec,
+  type SeqViewerExtension,
   type SeqViewerUI,
 } from './viewer-spec.js';

@@ -33,6 +33,7 @@ import {
   sourceLengths,
 } from '@molstar/seqx-core/resolve';
 import {
+  type LayerKinds,
   nearestOffsetOf,
   projectOntoView,
   type ResolvedView,
@@ -193,6 +194,8 @@ export interface OpenModelOptions extends AttachOptions {
   readonly scope?: 'view' | 'all';
   /** The spec's first resolve, when the caller made it already. */
   readonly model?: StaticModel;
+  /** The layer kinds its view is resolved with (the built-ins' when absent): a composition's (`SeqContext.kinds`). */
+  readonly kinds?: LayerKinds;
 }
 
 export interface OpenedModel {
@@ -215,7 +218,8 @@ export async function openModel(spec: Node, store: DataStore, options: OpenModel
     ...(options.runtimes ? { runtimes: options.runtimes } : {}),
     ...(options.config ? { config: options.config } : {}),
   };
-  const viewOf = (m: StaticModel) => (options.view ? resolveView(m, options.view) : resolveViews(m)[0]);
+  const viewOf = (m: StaticModel) =>
+    options.view ? resolveView(m, options.view, options.kinds) : resolveViews(m, options.kinds)[0];
   const scoped = (m: StaticModel, v: ResolvedView | undefined) =>
     options.scope === 'view' && v ? viewSources(m, v) : undefined;
   let model = options.model ?? resolveSpec(spec, resolveOptions);
@@ -270,6 +274,8 @@ export interface RenderSvgOptions {
   readonly viewports?: Readonly<Record<string, Viewport>>;
   /** The format runtimes the application composed (inline data always reads through `seq`). */
   readonly runtimes?: readonly FormatRuntime[];
+  /** The layer kinds the view is resolved with (the built-ins' when absent): a composition's (`SeqContext.kinds`). */
+  readonly kinds?: LayerKinds;
   /** The bounds the spec's check holds (`DefaultSpecBounds` when absent). */
   readonly bounds?: SpecBounds;
   /** The view's address; the spec's first view when absent. */
@@ -402,7 +408,9 @@ export async function exportSvg(spec: Node, options: RenderSvgOptions): Promise<
     config: options.resolve ?? {},
   };
   let model = resolveSpec(spec, resolveOptions);
-  const firstView = options.view ? resolveView(model, options.view) : resolveViews(model)[0];
+  const firstView = options.view
+    ? resolveView(model, options.view, options.kinds)
+    : resolveViews(model, options.kinds)[0];
   if (!firstView) {
     issues.push(...model.issues);
     issues.push(
@@ -443,6 +451,7 @@ export async function exportSvg(spec: Node, options: RenderSvgOptions): Promise<
         ...resolveOptions,
         ...(options.assets ? { assets: options.assets } : {}),
         ...(options.view ? { view: options.view } : {}),
+        ...(options.kinds ? { kinds: options.kinds } : {}),
         signal: controller.signal,
         attached,
         scope: 'view',

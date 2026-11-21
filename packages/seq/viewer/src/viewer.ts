@@ -7,7 +7,12 @@
 import { type Listenable, ReactiveModel, type ReadonlyState, State } from '@molstar/core/reactive';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import type { Issue, Node } from '@molstar/core/repr/tree';
-import { composeSeqContext, type SeqContext, type SeqRegistryEntry } from '@molstar/seqx-core/context';
+import {
+  composeSeqContext,
+  type SeqContext,
+  type SeqExtension,
+  type SeqRegistryEntry,
+} from '@molstar/seqx-core/context';
 import {
   type Emphasis,
   type Frame,
@@ -49,8 +54,15 @@ import { frameAnimation } from './animation.js';
 import { ViewerInput } from './input.js';
 import { LegendModel } from './legends.js';
 import { modelIssuesState } from './model-issues.js';
-import type { BehaviorContext, BehaviorHandle, BehaviorProvider, SeqViewerSpec } from './viewer-spec.js';
+import type {
+  BehaviorContext,
+  BehaviorHandle,
+  BehaviorProvider,
+  SeqViewerExtension,
+  SeqViewerSpec,
+} from './viewer-spec.js';
 import type { HeaderGeometry, SeqViewerRegistryEntry } from './header-entries.js';
+import type { ViewerExtensions } from './viewer-extend.js';
 import { mountCanvas } from './mount.js';
 import type { NavigatorDef, NavigatorModel } from './navigator.js';
 import { behaviorOf, createBehaviors, listedActions } from './viewer-behaviors.js';
@@ -98,7 +110,8 @@ export class SeqViewer extends ReactiveModel {
    * the viewer (`linkStructure`) ends with.
    */
   readonly retiredSignal: AbortSignal;
-  readonly bindings: BindingTable;
+  /** The binding table: the spec's, and a layer for each extension's bindings (`extend` makes it again). */
+  bindings: BindingTable;
   readonly input: ViewerInput;
   /** The behaviors' handles by provider name. */
   readonly behaviors = new Map<string, any>();
@@ -133,10 +146,12 @@ export class SeqViewer extends ReactiveModel {
   /** The device pixel ratio of the last frame. */
   dpr = 1;
   /**
-   * The section layouts by name, the spec's registry's: one map the frames draw with and the view's moves navigate by
-   * (a section naming another is laid out as tracks, and said).
+   * The section layouts by name, the spec's registry's (and its extensions'): one map the frames draw with and the
+   * view's moves navigate by (a section naming another is laid out as tracks, and said).
    */
-  readonly layouts: RendererOptions['layouts'];
+  get layouts(): RendererOptions['layouts'] {
+    return this.context.layouts;
+  }
   /** Frames drawn and layouts made: what a test or a profile reads. */
   readonly counts = { frames: 0, layouts: 0 };
   /** Bumped after every frame drawn: a navigator redraws over it. */
@@ -171,6 +186,12 @@ export class SeqViewer extends ReactiveModel {
   private readonly _frame: ViewerFrame;
   private readonly _viewports: ViewerViewports;
   private _retired = false;
+  /**
+   * What `extend` (its chunk) reads: the extensions it registered with their counts, the bindings made with them, the
+   * behaviors' context.
+   * @internal
+   */
+  readonly _ext: ViewerExtensions;
   private _syncing: Promise<void> = Promise.resolve();
   private _viewportListeners: (() => void)[] = [];
 
@@ -185,17 +206,22 @@ export class SeqViewer extends ReactiveModel {
     const config = (this.config = viewerConfigOf(viewerSpec.config));
     // the headless pieces first: the registry, the configuration and the ports
     // the registry as listed: what the canvas and the SVG draw (_spec/README.md "Composition", Injected, opt in)
+    // extensions (_spec/README.md "Composition", Extensions): the core's checks and entries the context's, the viewer's
+    // kinds after the spec's own
+    const exts = (viewerSpec.extensions ?? []) as readonly SeqViewerExtension[];
+    // each one's viewer parts added by its maker (`defineViewerExtension`; `defineExtension` refuses viewer parts)
+    for (const e of exts) viewerSpec = e.composeViewer?.(viewerSpec) ?? viewerSpec;
     this.registry = viewerSpec.registry ?? [];
     const context = (this.context = composeSeqContext({
       // the core's kinds (the viewer's own, the header entries, are its behaviors')
       ...(viewerSpec.registry
         ? { registry: viewerSpec.registry.filter((e): e is SeqRegistryEntry => e.kind !== 'header-action') }
         : {}),
+      extensions: exts,
       ...(viewerSpec.config ? { config: viewerSpec.config } : {}),
       ...(viewerSpec.ports ? { ports: viewerSpec.ports } : {}),
     }));
     onRetire(() => context.retire());
-    this.layouts = context.layouts;
     const clock = (this._clock = new FrameClock(this));
     const rails = (this._rails = new ViewerRails(this, viewerSpec.navigators, this._behaviorIssues, onRetire));
     this.layoutIssues = this._issues.asReadonly;
@@ -214,11 +240,14 @@ export class SeqViewer extends ReactiveModel {
       this._lengths.asReadonly,
       viewerSpec.story ? { story: viewerSpec.story } : {},
     ));
-    const view = (this.view = new ViewModel(spec, config));
+    const view = (this.view = new ViewModel(spec, config, context.kinds));
     // a section's moves are its layout's arithmetic over its placement in the last frame (_spec/README.md "ViewModel")
     view.setLayoutSource({
       placement: (section) => this.placementOf(section),
-      layouts: this.layouts,
+      // the context's, as `extend` leaves them
+      get layouts() {
+        return context.layouts;
+      },
       minScale: textMinScale(context.renderConfig),
     });
     const hover = (this.hover = new HoverModel(spec, view, config));
@@ -247,12 +276,12 @@ export class SeqViewer extends ReactiveModel {
     const history = viewerSpec.history ?? (target && viewerSpec.ui?.history ? viewerSpec.ui.history() : undefined);
     if (history) spec.attachHistory(history);
 
-    const preset = viewerSpec.bindings?.preset ?? BindingPresets[config.bindings.preset];
-    const extraActions = viewerSpec.bindings?.actions ?? [];
-    const bindings = (this.bindings = bindingTable(preset, viewerSpec.bindings?.overrides ?? [], {
-      actions: [...DefaultActions, ...listedActions(viewerSpec.behaviors), ...extraActions],
-      keys: config.view.keys,
-    }));
+    const bind = (vs: SeqViewerSpec) =>
+      bindingTable(vs.bindings?.preset ?? BindingPresets[config.bindings.preset], vs.bindings?.overrides ?? [], {
+        actions: [...DefaultActions, ...listedActions(vs.behaviors), ...(vs.bindings?.actions ?? [])],
+        keys: config.view.keys,
+      });
+    const bindings = (this.bindings = bind(viewerSpec));
 
     // behaviors, after the models; one of each name
     const behaviorContext: BehaviorContext = {
@@ -267,6 +296,14 @@ export class SeqViewer extends ReactiveModel {
       bindings,
       legends,
       layout: () => this._frame?.frame?.layout,
+    };
+    this._ext = {
+      extended: new Map(),
+      spec: viewerSpec,
+      bind,
+      context: behaviorContext,
+      onRetire,
+      create: createBehaviors,
     };
     try {
       createBehaviors(viewerSpec.behaviors, behaviorContext, this.behaviors, this.commands, onRetire);
@@ -649,6 +686,20 @@ export class SeqViewer extends ReactiveModel {
   hit(x: number, y: number, touch = false): RenderHit | undefined {
     const frame = this._frame.frame;
     return frame ? hitView(frame.layout, x, y, touch, this._emphasis.hoverHit()) : undefined;
+  }
+
+  // ---- extensions ----
+
+  /**
+   * Registers an extension at run time (_spec/README.md "Composition", Extensions) and resolves to its undo: the
+   * context's checks and entries (nothing changed on an error), then its behaviors, commands and bindings; the view is
+   * resolved again with the new layer kinds, so a layer drawn as its fallback is drawn as its type, and as the fallback
+   * again after the undo (behaviors disposed, entries removed). The same descriptor again is counted. A lazy chunk:
+   * registering late is rare, and a composition that never does bundles none of it.
+   */
+  async extend(extension: SeqExtension | SeqViewerExtension): Promise<() => void> {
+    const { extendViewer } = await import('./viewer-extend.js');
+    return extendViewer(this, extension as SeqViewerExtension, this._ext);
   }
 
   // ---- commands ----

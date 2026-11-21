@@ -8,6 +8,8 @@
 
 import { defineIssues } from '@molstar/core/repr/tree';
 
+const Compose = 'Compose the extension';
+
 export const ViewIssues = defineIssues('seq.view', {
   'seq.view.section.system': {
     severity: 'error',
@@ -17,7 +19,17 @@ export const ViewIssues = defineIssues('seq.view', {
   'seq.view.layer.type': {
     severity: 'warning',
     description: 'A layer’s type is not one this version draws, and it has no fallback that is',
-    hint: 'Types drawn: letters, ranges, values',
+    hint: 'Give it a `fallback`',
+  },
+  'seq.view.layer.extension': {
+    severity: 'warning',
+    description: 'What an extension this reader lacks (or has too old) draws is drawn as its fallback',
+    hint: Compose,
+  },
+  'seq.view.extension.version': {
+    severity: 'info',
+    description: 'The spec names a newer minor of an extension',
+    hint: Compose,
   },
   'seq.view.layer.shape': {
     severity: 'error',

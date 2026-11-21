@@ -106,7 +106,9 @@ export class ViewerFrame {
         tokens: viewer.tokens,
         text: context.text,
         config: context.renderConfig,
+        // the context's as they stand: an extension's coming or going resolves the view again, so a new renderer
         types: context.types,
+        ...(context.schemes ? { theme: { schemes: context.schemes } } : {}),
         layouts: viewer.layouts,
         sizings: context.sizings,
         ...(context.trackSizing ? { trackSizing: context.trackSizing } : {}),

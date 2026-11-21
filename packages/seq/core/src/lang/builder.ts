@@ -222,6 +222,11 @@ export interface SeqSpecOptions {
   readonly title?: string;
   /** The language version the spec says; this one by default. */
   readonly version?: string;
+  /**
+   * The extensions the spec is written with (an extension's descriptor fits): the spec's `extensions` lists each, at
+   * its version's `major.minor` (the least a reader needs to draw it as written).
+   */
+  readonly extensions?: readonly { readonly id: string; readonly version: string }[];
 }
 
 interface Rec {
@@ -427,7 +432,16 @@ export function createSeqSpec(options: SeqSpecOptions = {}): SeqSpecBuilder {
   }
 
   function build(): Node {
-    return engine.root({ version: options.version ?? SeqLanguageVersion, title: options.title }, (root) => {
+    // the spec's `extensions`: each extension the writer composes, at its version's `major.minor`
+    const extensions = options.extensions?.length
+      ? Object.fromEntries(options.extensions.map((e) => [e.id, e.version.split('.').slice(0, 2).join('.')]))
+      : undefined;
+    const head = {
+      version: options.version ?? SeqLanguageVersion,
+      title: options.title,
+      ...(extensions ? { extensions } : {}),
+    };
+    return engine.root(head, (root) => {
       const r = root as unknown as Engine;
       for (const container of [data, views, refs, snapshots]) if (container.children.length) emit(r, container);
     });

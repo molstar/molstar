@@ -112,7 +112,8 @@ const ownOnly = (own) => ({
 
 /** The chunks a split build loads before any dynamic import: the entry and what it imports statically, transitively. */
 function loaded(meta) {
-  const entry = Object.keys(meta.outputs).find((k) => meta.outputs[k].entryPoint !== undefined);
+  // the measured entry (this folder's), never a dynamic import's chunk, which esbuild marks as an entry point too
+  const entry = Object.keys(meta.outputs).find((k) => meta.outputs[k].entryPoint?.includes('_measure/'));
   const out = new Set([entry]);
   for (const k of out)
     for (const i of meta.outputs[k].imports) if (i.kind === 'import-statement' && !i.external) out.add(i.path);

@@ -299,6 +299,14 @@ const Misuses: Record<keyof typeof LangIssues.codes, () => Node> = {
     });
     return b.build();
   },
+  'seq.lang.layer.fallback': () => {
+    const b = createSeqSpec();
+    const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT' });
+    b.views.view('v', (v) => {
+      v.section('sec', { of: s }).track('t').layer('x', { type: 'demo:x' });
+    });
+    return b.build();
+  },
   'seq.lang.section.follow': () => {
     const b = createSeqSpec();
     const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT' });

@@ -178,6 +178,11 @@ export const LangIssues = defineIssues('seq.lang', {
       'A layer’s data does not fit its type: `ranges` draws ranges, `values` draws values, `letters` draws letters',
     hint: 'Give data of the kind the type draws',
   },
+  'seq.lang.layer.fallback': {
+    severity: 'warning',
+    description: 'A layer of an extension’s type has no `fallback` (read as `none`)',
+    hint: 'Give a built-in type, or `none`',
+  },
   'seq.lang.section.range': {
     severity: 'error',
     description:
