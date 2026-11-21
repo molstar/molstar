@@ -6,6 +6,15 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
 
 ## Open
 
+- **The navigator's window and zoom strip look inconsistent and rough** (the author, 2026-11-21, a ring that switches:
+  "i don't understand why chr6 gets a 'box' and the other 'sub-section'"; "the 'subsection visual' is really ugly,
+  with different line thicknesses"). Why it differs: a window wider than `navigator.zoomStrip.minPx` (48 px) is drawn
+  as the box with grips (chr6, about 85 px), a narrower one (chr13) gets the zoom strip under the navigator, with its
+  funnel lines. Needs a short look design before a fix lane: one rule a reader can see (the strip when the window is
+  too small to grab, or always for a section of one block), one stroke weight for the window, the funnel and the
+  strip, the strip's fill and border from the same tokens as the window's (ux-foundations: the loudest mark at rest),
+  the funnel thin and muted or dropped; its picture in navigators.md, then the fix.
+
 - **The square navigator's sweep has no feedback while dragging** (the author, 2026-11-21, the square over blocks ×
   blocks): a drag across cells zooms both axes to the swept rectangle on release, but nothing is drawn during the
   drag. Draw the sweep's rectangle live (as the linear navigator's sweep does), snapped to the cells it will fit, and

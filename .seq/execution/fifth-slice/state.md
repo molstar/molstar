@@ -119,7 +119,7 @@ order:
 3. **Stage 1's GATE, the author's**: the novice questions F3, F9, F11, F14, F25 (`fourth-slice/novice-findings.md`),
    each a yes or no with a recommendation.
 4. **RG** (stage 3, strong, alone in the store), then FR, LA; GX and RX in stage 4.
-5. **Fix lanes** on Sonnet (Decided) as `fixes.md` gathers items; open now: the square's sweep without feedback, the palette control (shown where it does nothing, twice, its arrow), the overview cut at the right on a wide page, the tree's leftmost line, the Transcripts
+5. **Fix lanes** on Sonnet (Decided) as `fixes.md` gathers items; open now: the navigator's window and zoom strip (a look design first), the square's sweep without feedback, the palette control (shown where it does nothing, twice, its arrow), the overview cut at the right on a wide page, the tree's leftmost line, the Transcripts
    track's spacing (a design question: a source-backed track's fixed height), the 3,000-contig speed (M5).
 
 Agents: one at a time while usage is tight (Decided); the orchestrator's look and checks gate every merge.
