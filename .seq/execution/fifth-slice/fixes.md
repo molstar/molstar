@@ -11,8 +11,12 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   would be empty. The button is drawn only when at least one entry applies to that track (built-ins that apply, the
   host's, an extension's), decided per track and per state; the fourth slice fixed one case of this (the author: "some
   views show the 3 dot menu icon, but no menu is there"), so find why it is back and test every header kind.
-- **The Transcripts track's empty band** (my look at GG's fix round): about 100 px of blank lanes above the first
-  transcript in gff3--tp-53.
+- **The Transcripts track's spacing** (my look at GG's fix round; the author, 2026-11-21: "the spacing around the
+  transcripts is weird"): about 100 px of blank lanes above the first transcript in gff3--tp-53, the first row
+  unlabelled, and lanes packed unevenly around the labels; a tall track's lanes start at its top, evenly spaced.
+- **The hover card far from the pointer** (the author, 2026-11-21, gff3--tp-53: "the hover card appears at a weird
+  place"): hovering TP53-227 deep in the tall Transcripts track puts the card at the track's top, over the Genes track.
+  The card anchors by the hovered item's row (or the pointer), not the track's top, in every tall track.
 
 - **A double-click on a long sequence jumps to bases** (my look at BE's cytobands, 2026-11-21): chr17 at the fit (83
   Mb) to about 20 bases in one double-click; GC2's row did the same. A double-click should zoom one step (or fit the
