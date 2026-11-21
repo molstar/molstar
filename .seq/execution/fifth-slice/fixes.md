@@ -6,6 +6,12 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
 
 ## Open
 
+- **The rows layout has no horizontal rail** (the author, 2026-11-21, Globins rows, family: "it's weird this view is
+  lacking the 'horizontal rail'. probably should be at the 'navigator' or at the bottom. in general, configurable"):
+  the tracks layout has its default rail under the ruler; the rows layout has the vertical overview and no horizontal
+  rail. Needs a short design before a fix lane: the rail's place as a setting (`rail.place`: under the ruler, with the
+  navigator, at the bottom, none), the same for every layout that has a horizontal axis, its default per layout.
+
 - **The SVG not repainted when the selection is cleared** (the author, 2026-11-21, gff3--tp-53): the SVG twin keeps
   the cleared selection's line drawn while the canvas drops it. Every story's SVG redraws on every change the canvas
   does (selection set, cleared, hover where shown); test it in a twin: clear, then the SVG holds no selection mark.
