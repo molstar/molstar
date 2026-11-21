@@ -348,6 +348,20 @@ export function continuousLut(colors: readonly number[], at: readonly number[]):
   return lut;
 }
 
+/** A categorical palette's color function over a domain known up front, by the domain's identity and the spec. */
+const SharedByDomain = new WeakMap<
+  readonly string[],
+  Map<string, { colorOf?: (v: string | number | undefined) => number | undefined }>
+>();
+
+function sharedOf(domain: readonly string[], key: string) {
+  let bySpec = SharedByDomain.get(domain);
+  if (!bySpec) SharedByDomain.set(domain, (bySpec = new Map()));
+  let e = bySpec.get(key);
+  if (!e) bySpec.set(key, (e = {}));
+  return e;
+}
+
 function categorical(
   node: ThemeNode,
   tokens: TokenTable,
@@ -356,7 +370,8 @@ function categorical(
 ): Palette {
   const raw = param(node, 'colors') ?? 'categories';
   // the values as listed, else a domain known up front (a section's blocks in order)
-  const values = (param(node, 'values') as string[] | undefined)?.map(String) ?? categories?.slice();
+  const listed = (param(node, 'values') as string[] | undefined)?.map(String);
+  const values = listed ?? categories;
   const hashed = (param(node, 'unlisted') ?? 'hash') === 'hash';
   const dict = typeof raw === 'object' && raw !== null && !Array.isArray(raw) && !isThemeNode(raw);
   let spec: ValuePaletteSpec;
@@ -384,7 +399,23 @@ function categorical(
       ...(others !== undefined ? { others: colorList(others, tokens, report).map(mol) } : {}),
     };
   }
-  const f: ValuePaletteFunction = makeValuePaletteFunction(valuePalettePropsFromSpec(spec, Defaults), values ?? []);
+  // over a domain known up front, one value function and memo per domain and spec: a layer compiles a channel per
+  // block's strip, and a copy and dedup of 3,000 contigs' names per compile was O(n²) (_spec/README.md "Themes")
+  const shared = !listed && categories ? sharedOf(categories, JSON.stringify(spec)) : undefined;
+  if (shared?.colorOf)
+    return {
+      kind: 'categorical',
+      colors,
+      values: categories!,
+      hashed,
+      scale: 'linear',
+      color: shared.colorOf,
+      num: shared.colorOf,
+    };
+  const f: ValuePaletteFunction = makeValuePaletteFunction(
+    valuePalettePropsFromSpec(spec, Defaults),
+    values ? values.slice() : [],
+  );
   const memo = new Map<string | number, number | undefined>();
   const colorOf = (v: string | number | undefined) => {
     if (v === undefined || (typeof v === 'number' && Number.isNaN(v))) return undefined;
@@ -396,6 +427,7 @@ function categorical(
     }
     return c;
   };
+  if (shared) shared.colorOf = colorOf;
   return {
     kind: 'categorical',
     colors,

@@ -2516,7 +2516,11 @@ the one the view holds, not the data's extent.
   kept channel is compiled again for another block). A categorical palette that lists no values over them takes the
   section's domain (`ThemeEnv.categories`, `ResolvedSection.domains`): the blocks in order, an assembly's names in its
   order before any `include`, so a sequence has one hue on every section of its assembly, never by first occurrence by
-  region (EC-191). A pair's field between two places (its `a` end's) is LX's and RN's.
+  region (EC-191). Compiles over one domain (by identity) and one palette spec share one color function and memo (the
+  domain neither copied nor deduped again): a channel is compiled per block's strip, and per compile it was O(n²) at
+  3,000 contigs. A pair's field between two places (its `a` end's) is LX's and RN's. Why `builtIn` and `categories` are
+  public on `ThemeEnv` (and `categories` on `PaletteOptions`): LX's ribbons and RN's chords color by `block` and
+  `system` through the same compile, from their own layers.
 
 ### Numberings from a source
 
