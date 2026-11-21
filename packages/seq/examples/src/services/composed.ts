@@ -7,11 +7,12 @@
 import type { Node } from '@molstar/core/repr/tree';
 import { createSeqSpec, type SeqSpecBuilder, type ViewBuilder } from '@molstar/seqx-core/lang';
 import { nodeAddress } from '@molstar/seqx-core/resolve';
-import { plddtColor } from '../complex/confidence.js';
+import { plddtColor, Unobserved } from '../complex/confidence.js';
+import { Observed } from '../p53/structure.js';
 import { afdbConfidence } from '../complex/data.js';
 import { uniprotEntry } from '../files/uniprot.js';
 import { Pdbe, serviceUrl } from './endpoints.js';
-import { addSiftsMaps, chainsOf, isOneToOne, type SiftsMapping, siftsSegments } from './sifts.js';
+import { addSiftsMaps, chainsOf, hasAuthorRun, isOneToOne, type SiftsMapping, siftsSegments } from './sifts.js';
 
 // An application composing services (examples.md, Showcases): p53 (P04637) from UniProt, its per-residue confidence from
 // AlphaFold DB, PDB 2OCJ from PDBe, and PDBe's SIFTS mappings between them, each by the location its service answers at
@@ -65,6 +66,10 @@ export interface Composed {
   /** The unit the structure section shows (`struct_asym_id`), and the static map the section follows through. */
   readonly asym?: string;
   readonly via?: string;
+  /** The numbering the unit's ruler counts by (author's where SIFTS gives a plain run, else UniProt's). */
+  readonly numbering?: 'auth' | 'uniprot';
+  /** The ranges chain A does not hold (the entity's ends before and after its modeled run), drawn gray. */
+  readonly unobserved?: string;
 }
 
 /** The nodes every scenario shares: the three services' data and, when SIFTS has answered, its maps. */
@@ -98,18 +103,22 @@ export function compose(b: SeqSpecBuilder, options: ComposedOptions = {}): Compo
     : undefined;
   // the units are `struct_asym_id`'s (what the mmCIF source calls them), never the author's `chain_id`
   const asyms = [...new Set(siftsSegments(rows).map((s) => s.asym))];
-  // each unit is numbered by the author's numbers of its mapped run (SIFTS's, else UniProt's: 2OCJ's author numbers are
-  // UniProt's), so its ruler counts 94–312 under P04637's, never the entity's own 1–219
+  // each unit is numbered by the author's numbers of its runs where SIFTS gives them as a plain count (`hasAuthorRun`),
+  // else by UniProt's (the run's own, `from + i`): so its ruler counts 94–312 under P04637's, never the entity's own
+  // 1–219, and its label says which numbers it counts
+  const numberingOf = new Map<string, 'auth' | 'uniprot'>();
   for (const asym of asyms) {
     const runs = rows.filter((m) => m.asym === asym && isOneToOne(m));
+    const author = runs.length > 0 && runs.every(hasAuthorRun);
+    numberingOf.set(asym, author ? 'auth' : 'uniprot');
     b.data.sequence(`2ocj-${asym}`, { alphabet: 'protein', source: pdb, name: asym }, (s) => {
-      s.numbering('auth', {
+      s.numbering(author ? 'auth' : 'uniprot', {
         method: 'segments',
-        scheme: 'auth',
+        scheme: author ? 'auth' : 'uniprot',
         segments: {
           start: runs.map((m) => m.start - 1),
           end: runs.map((m) => m.end),
-          first: runs.map((m) => m.authStart ?? m.unpStart),
+          first: runs.map((m) => (author ? (m.authStart as number) : m.unpStart)),
         },
       } as never);
     });
@@ -123,9 +132,25 @@ export function compose(b: SeqSpecBuilder, options: ComposedOptions = {}): Compo
   const bfactor = asym
     ? b.data.values('bfactor', { target: chainAddress(asym) as never, source: pdb, field: 'b_factor' })
     : undefined;
+  // what chain A does not hold, gray (the entity's ends before and after its modeled run: the entry's, `Observed`, checked
+  // against the committed chain table; the B-factors above read PDBe's mmCIF, which has none there)
+  const run = rows.find((m) => m.asym === asym && isOneToOne(m));
+  const unobserved =
+    asym && run
+      ? b.data.ranges('unobserved', {
+          target: chainAddress(asym) as never,
+          rows: {
+            start: [run.start - 1, run.start - 1 + Observed[1]],
+            end: [run.start - 1 + Observed[0], run.end],
+            id: ['not observed (start)', 'not observed (end)'],
+            label: [`not observed in ${Entry}`, `not observed in ${Entry}`],
+          },
+        })
+      : undefined;
   return {
     protein: uniprot.protein,
     plddt,
+    ...(unobserved && asym ? { unobserved, numbering: numberingOf.get(asym) as 'auth' | 'uniprot' } : {}),
     ...(coverage ? { coverage } : {}),
     features: uniprot.data,
     structure: rows.some(isOneToOne),
@@ -149,14 +174,14 @@ export function structureSection(v: ViewBuilder, c: Composed, follow: string) {
       ...(c.via ? { via: c.via as never } : {}),
     },
     (s) => {
-      s.track('ruler', { label: `${Entry} ${c.asym}, author numbers` }).layer('ruler', {
-        type: 'ruler',
-        numbering: 'auth',
-      });
-      s.track('bfactor', { label: 'B-factor (Å²)' }).layer('bfactor', {
-        type: 'values',
-        data: c.bfactor!,
-        domain: [0, 80],
+      const numbering = c.numbering ?? 'uniprot';
+      s.track('ruler', { label: `${Entry} ${c.asym}, ${numbering === 'auth' ? 'author' : 'UniProt'} numbers` }).layer(
+        'ruler',
+        { type: 'ruler', numbering },
+      );
+      s.track('bfactor', { label: 'B-factor (Å²)' }, (t) => {
+        t.layer('bfactor', { type: 'values', data: c.bfactor!, domain: [0, 80] });
+        if (c.unobserved) t.layer('unobserved', { type: 'ranges', data: c.unobserved, color: Unobserved });
       });
     },
   );
