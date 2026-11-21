@@ -53,7 +53,9 @@ export const RadiusCells = 3;
 export class FakeStructureViewer {
   private _rows: readonly Row[];
   private _table: ChainTable;
-  /** Counts the table's edits (`dropChain`); `onEdit` tells a host that holds the model. */
+  /** The table as given: what `restore` goes back to. */
+  private readonly _given: ChainTable;
+  /** Counts the table's edits (`dropChain`, `restore`); `onEdit` tells a host that holds the model. */
   readonly edits = new State(0);
   private readonly _editFns = new Set<() => void>();
   readonly entry: string;
@@ -80,6 +82,7 @@ export class FakeStructureViewer {
 
   constructor(table: ChainTable, options: FakeStructureOptions = {}) {
     this._table = table;
+    this._given = table;
     this._rows = rowsOf(table);
     this.entry = table.entry;
     this.latency = options.latency ?? 0;
@@ -116,7 +119,7 @@ export class FakeStructureViewer {
 
   // ---- its own edits, told to a host that holds its model ----
 
-  /** Tells `fn` after each edit of the table (`dropChain`); returns the unsubscribe. */
+  /** Tells `fn` after each edit of the table (`dropChain`, `restore`); returns the unsubscribe. */
   onEdit(fn: () => void): () => void {
     this._editFns.add(fn);
     return () => void this._editFns.delete(fn);
@@ -128,7 +131,23 @@ export class FakeStructureViewer {
    * Returns false for a chain it does not hold.
    */
   dropChain(auth: string): boolean {
-    const next = withoutAuthChain(this._table, auth);
+    return this._edit(withoutAuthChain(this._table, auth));
+  }
+
+  /**
+   * "Restore": the table as it was given, the chains dropped since back (the host's edit that gains a chain). Returns
+   * false when nothing was dropped.
+   */
+  restore(): boolean {
+    return this._edit(this._given);
+  }
+
+  /** Whether a chain was dropped since the table was given. */
+  get edited(): boolean {
+    return this._table !== this._given;
+  }
+
+  private _edit(next: ChainTable): boolean {
     if (next === this._table) return false;
     this._table = next;
     this._rows = rowsOf(next);

@@ -16,6 +16,9 @@ import { DomHost } from '@molstar/ui/dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { FakeStructureViewer } from '../../../support/fake-structure/fake-viewer.js';
 import {
+  blockLines,
+  ComplexSection,
+  hostComplexSpec,
   HostFile,
   HostSource,
   heldLines,
@@ -49,7 +52,7 @@ afterEach(() => {
 const table = () => hostTableOf(readFileSync(`${PackageFolder}${HostTableFile}`, 'utf8'));
 
 /** A settled viewer of the spec, by the fake host or by the default adapter, and what its assets port read. */
-async function open(by: 'fake' | 'default') {
+async function open(by: 'fake' | 'default', spec = hostDataSpec()) {
   vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date', 'performance'] });
   // a frame is a timer 16 ms on: what a host's edit is reopened by
   vi.spyOn(DomHost, 'requestAnimationFrame').mockImplementation((fn) => {
@@ -93,7 +96,7 @@ async function open(by: 'fake' | 'default') {
   });
   viewers.push(v);
   v.resize(1100);
-  await v.load(hostDataSpec());
+  await v.load(spec);
   await vi.advanceTimersByTimeAsync(500);
   await v.settle();
   v.draw();
@@ -219,5 +222,61 @@ describe('Host data: the fake serving 2OCJ', () => {
     expect(unitsOf(v)).toEqual(['A', 'E']);
     expect(selected()).toEqual([]);
     expect(v.store.issues.value.filter((i) => i.code === 'seq.viewer.selection.dropped')).toHaveLength(1);
+  });
+});
+
+describe('Host data: the host’s complex as a section (a section of a source’s complex)', () => {
+  /** The residues' track drawn a block (its clip: a chain's band, an ion's chip). */
+  const residueBands = (v: SeqViewer) => drawn(v).match(/^clip [\d.]+ 62 /gm)?.length ?? 0;
+  it('pending before the source opens (no issue), a block a unit once it holds the complex; the residues drawn', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date', 'performance'] });
+    const fake = new FakeStructureViewer(table());
+    fakes.push(fake);
+    const base = DefaultSeqViewerSpec();
+    const v = createSeqViewer({ ...base, ui: undefined, registry: withFakeHost(base.registry ?? [], fake) });
+    viewers.push(v);
+    v.resize(1100);
+    void v.load(hostComplexSpec());
+    expect(blockLines(v)).toEqual(['pending: the source holds no complex yet']);
+    expect(v.view.resolved.value?.issues).toEqual([]);
+    expect(checkSeqSpec(hostComplexSpec())).toEqual([]);
+    const { v: open2 } = await open('fake', hostComplexSpec());
+    expect(open2.view.resolved.value?.issues).toEqual([]);
+    expect(open2.modelIssues.value).toEqual([]);
+    expect(open2.layoutIssues.value).toEqual([]);
+    expect(blockLines(open2).map((l) => l.split(': ')[1])).toEqual(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']);
+    // the residues drawn: a band a chain's block (zoomed out), a chip an ion's (its name)
+    expect(residueBands(open2)).toBe(8);
+    expect(drawn(open2).match(/^text "ZINC ION"/gm)).toHaveLength(4);
+  });
+
+  it('Drop chain and Restore: the section reflows a frame later, one resolve a node version, none a frame', async () => {
+    const { v, fake, reads } = await open('fake', hostComplexSpec());
+    const units = () => blockLines(v).map((l) => l.split(': ')[1]);
+    expect(units()).toEqual(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']);
+    let resolves = 0;
+    let versions = 0;
+    const offs = [v.view.resolved.listen(() => resolves++), v.store.store.nodeVersion.listen(() => versions++)];
+    fake.dropChain('D');
+    await follow(v);
+    expect(units()).toEqual(['A', 'B', 'C', 'E', 'F', 'G']);
+    expect(residueBands(v)).toBe(6);
+    expect(v.view.resolved.value?.issues).toEqual([]);
+    expect(v.layoutIssues.value).toEqual([]);
+    expect(resolves).toBeGreaterThan(0);
+    expect(resolves).toBeLessThanOrEqual(versions);
+    // frames and a hover read the view resolved for the version: no new one
+    const shown = v.view.resolved.value;
+    const layouts = v.counts.layouts;
+    for (let i = 0; i < 3; i++) v.draw();
+    expect(v.view.resolved.value).toBe(shown);
+    expect(v.counts.layouts).toBe(layouts);
+    expect(fake.restore()).toBe(true);
+    await follow(v);
+    expect(units()).toEqual(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']);
+    expect(residueBands(v)).toBe(8);
+    expect(reads).toEqual([]);
+    for (const off of offs) off();
+    expect(ComplexSection).toBe(v.view.resolved.value?.sections[0].address);
   });
 });

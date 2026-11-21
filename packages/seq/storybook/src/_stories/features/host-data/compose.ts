@@ -32,6 +32,9 @@ export const HostChains = ['A', 'D'] as const;
 export const BFactorDomain: readonly [number, number] = [0, 80];
 /** The story's legend of the B-factor tracks: what a bar’s height is, and why they end short of the sequence. */
 export const BFactorLegend = `B-factor (Å²): a bar’s height, from ${BFactorDomain[0]} (nothing) to ${BFactorDomain[1]} (full). The tracks stop short at each end: the crystal has no atoms for residues 1–2 and 197–219, and a residue without atoms has no B-factor.`;
+/** The legend of the complex's section: what a block is, and what the host's edits do to them. */
+export const ComplexLegend =
+  'A block a unit of the complex the host holds: chains A to D (their residues), then their zinc ions. "Drop chain" in the fake removes a chain and its zinc: its blocks leave their places a frame later; "Restore the chains" brings them back.';
 /** A unit of the complex: its address. */
 export const unitAddress = (chain: string) => `${HostComplex}/${chain}`;
 
@@ -73,6 +76,37 @@ export function hostDataSpec(): Node {
       });
   });
   return b.build();
+}
+
+/** The section of the host's complex (`hostComplexSpec`): its address. */
+export const ComplexSection = '/views/main/complex';
+
+/**
+ * The spec of the host's own complex: the source by its file and one section `of` the complex the source holds (its
+ * dynamic node, `<source>/(node :key "complex")`), a block a unit (`copies: 'each'`: the four chains apart, then their
+ * zinc ions), each with its residues. Pending until the source opens; a host's edit that drops or restores a chain
+ * reflows it (core's _spec "Resolved view", A section of a source's complex).
+ */
+export function hostComplexSpec(): Node {
+  const b = createSeqSpec({ title: 'Host data: the complex of PDB 2OCJ' });
+  b.data.source('2ocj', { format: 'mmcif', uri: HostFile });
+  b.views.view('main', (v) =>
+    v.section('complex', { of: HostComplex, copies: 'each' }, (s) => {
+      s.track('ruler', { label: 'Positions' }).layer('ruler', { type: 'ruler' });
+      s.track('residues', { label: 'Residues' }).layer('residues', { type: 'letters' });
+    }),
+  );
+  return b.build();
+}
+
+/**
+ * The blocks the section of the host's complex shows, as lines (`label: unit`): what the story prints beside the view
+ * and a twin reads; `pending` while the source holds nothing.
+ */
+export function blockLines(viewer: SeqViewer): string[] {
+  const section = viewer.view.resolved.value?.sections.find((s) => s.address === ComplexSection);
+  if (!section?.blocks) return ['pending: the source holds no complex yet'];
+  return section.blocks.map((b) => `${b.label}: ${b.systems.map((s) => s.slice(HostComplex.length + 1)).join(' ')}`);
 }
 
 /**
