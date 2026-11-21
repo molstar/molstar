@@ -134,11 +134,20 @@ describe('the navigator part', () => {
     viewer.draw();
     frames.flush();
     expect(readout.textContent).toMatch(/^p: [\d,]+$/);
-    expect(readout.style.display).toBe('block');
+    expect(readout.style.display).toBe('flex');
     // the surface's inset and backdrop (`msui-surface`), one line cut by an ellipsis, inside the part's box
     expect(readout.classList.contains('msui-surface')).toBe(true);
-    expect(readout.style).toMatchObject({ whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' });
+    expect(readout.style).toMatchObject({ whiteSpace: 'nowrap', overflow: 'hidden', display: 'flex' });
     expect(readout.style.maxWidth).toContain('100%');
+    // the number is the information: the name shrinks (ellipsis, no minimum), the value never
+    const [name, value] = [...readout.children] as HTMLElement[];
+    expect(name.textContent).toBe('p: ');
+    expect(value.textContent).toMatch(/^[\d,]+$/);
+    expect(name.style.minWidth).toMatch(/^0(px)?$/);
+    expect(name.style.overflow).toBe('hidden');
+    expect(name.style.textOverflow).toBe('ellipsis');
+    expect(name.style.flex).toBe('0 1 auto');
+    expect(value.style.flex).toMatch(/^(none|0 0 auto)$/);
     part.dispatchEvent(new MouseEvent('pointerleave', { bubbles: true }) as unknown as PointerEvent);
     viewer.draw();
     frames.flush();
