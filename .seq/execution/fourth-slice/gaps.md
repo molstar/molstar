@@ -27,6 +27,14 @@ under the author's standing permission (`state.md`, Decided). Each a yes or no q
   `maxItems`), `selectLegends`, `legendRows` taking it, `LegendEntryRow.ends`/`step`; `LegendPartOptions.form`
   (`full`, `compact`) and `orient` (`vertical`, `horizontal`), an unknown value thrown as `channels` is. Keep?
   Recommended yes.
+- **CN**: the `navigator-picture` registry entry, `NavigatorPicture`, `NavigatorPictureContext`, `NavigatorPictureTracks`,
+  `BuiltInNavigatorPictures`, `NavigatorRenderer.entry`/`.readout()`/`.xRangeOf`/`.positionAtX`,
+  `RenderSvgOptions.pictures`, `SeqContext.pictures`, `LayerKinds.pictures`; `ResolvedNavigator.content` a string plus
+  `params`; `navigatorBox`'s `pictures` required; viewer `NavigatorDef.content` a string plus `params`,
+  `NavigatorModel.xRange`/`positionAt`; the issue `seq.view.navigator.picture`; language 0.5.0 `navigator.content` an
+  extension param. Drifts: `pictures` required (no renderer falls back to a built-in table); `fills`, `left`, `rows`
+  in the picture contract; a host's picture listed in the registry counts as known without an extension. Keep?
+  Recommended yes.
 
 ## Decisions as recommended
 

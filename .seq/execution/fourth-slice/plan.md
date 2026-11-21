@@ -336,7 +336,7 @@ disagrees with its code writes a drift note and stops.
 - [x] EX (strong) part 1: `SeqExtension` and namespaced layer types (`<id>:<name>`, plain params, namespaced keys on
       others' nodes), registered atomically with undo, the fallback drawn and said when absent (EC-235), the
       `@molstar/seqx-core/extension` entry; `Features/Extensibility` with an example extension (`briefs/ex-ext-kinds.md`).
-- [ ] CN (strong, after EX; cut first) part 2: a navigator's picture as a `navigator-picture` entry; `NavigatorModel`
+- [x] CN (strong, after EX; cut first) part 2: a navigator's picture as a `navigator-picture` entry; `NavigatorModel`
       and the window public; the four built-ins as entries (`briefs/cn-custom-navigators.md`).
 - [x] LE (fast, after EX; cut second; beside CN) part 3: legends' library surface, the `legend` layer param (a language
       change through the bump's owner, after CN has none open), `mountLegend`'s options, the compact form
