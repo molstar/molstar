@@ -946,6 +946,11 @@ over 20 runs; the heavy lane bounds one sample at 40 ms (`resolve/_test/addressi
   (`bin` int32, `count` float32, `category`); `values` as `positions` at level 1 (`value` float32 from `start`) or
   `bins` above it (`min`, `max`, `mean`, `count` float32 from `start`, aligned to the level). Why a `form`: one shape
   has two encodings by level. Why fields as a list: any name, `kind` and `$x` too, in memory and in a file.
+- **An item's extent on its pieces** (`RangesList.itemStart`, `itemEnd`, int32, optional): when rows are pieces of one
+  item (BED12's blocks), each row carries its item's whole extent, so a reader of region data knows an item's ends from
+  any tile. Served by the BED runtime; `sliceTable`, `joinTables` and the store do not carry them yet (region-reads,
+  RG's). **`PairsList`** (both ends' systems, positions and strands, `id`, `row`, `fields`) is a type only: no `Shape`
+  serves pairs yet, and the BEDPE source answers it by its own `pairs` read (BED family).
 - **A row's identity** is its `id`, else its `row`: a range over a tile's edge is in each tile it touches, with its own
   start, and readers dedupe by identity and start; rows of one id with other starts are pieces of one item (the exons of
   a transcript, read in different tiles).
@@ -1224,8 +1229,73 @@ runtimes only).
   `seq.source.unreadable` (a file or index not read), `seq.source.malformed` (an index that is not one),
   `seq.source.too_large` (past a bound). Why one line source: a format has one line parser for both reads, so "a region
   read equals the whole read clipped" is a property of the lines.
+- **Lines read whole** live in `whole-lines.ts` (re-exported by `lines.ts`), so a runtime reading files whole loads none
+  of io's region readers; `MaxLineBytes` is io's `DefaultTabixLimits.maxLineBytes` (16 MiB) written again for that.
+- **The first data line** (`IndexedLines.head`): from the least chunk start the index lists, block by block (a block's
+  end by its `BSIZE`) to its newline, within `maxLineBytes`; what a format whose columns are told by its first line
+  (BED's `N`) reads at open.
+- **Shared codes** (`issues.ts`): `seq.source.bgzf.eof` (warning: a BGZF file without its EOF block, read as it is).
 - **Tests**: on files from the shared test-only writer (`@molstar/test-harness/genome/bgzf-writer`: BGZF blocks, TBI and
   CSI as htslib builds them, BED and VCF generated from a seed), the one io's tests use.
+
+### BED family
+
+`runtimes/bed.ts` (`@molstar/seqx-core/runtimes/bed`, opt in: `BedRuntime`, `bedRuntime(over)`, `BedOptions`,
+`DefaultBedOptions`, `BedpeSource`, `PairsAnswer`, `BedIssues`, `BedFormats`): a format runtime of `bed`, `bedgraph`,
+`bedpe` and `chrom-sizes` over the internals above; `bed-parse.ts` (the one line parser), `bed-pairs.ts` (BEDPE's
+index), `bed-read.ts` (what whole and region reads share), `bed-indexed.ts` (by region, loaded when the first indexed
+source opens).
+
+- **Conventions fixed** (EC-195): base 0, ends exclusive; a source's `base` or `ends` is not read, said once
+  (`seq.source.bed.transform`, info). `track`, `browser` and `#` lines are read past; a line without a tab is split on
+  spaces (said once, `.whitespace`). Bytes to text by magic (plain, gzip, BGZF), U+FFFD said once (`.encoding`).
+- **Whole or by region**: `bed` and `bedgraph` with an `index` (a `.tbi` or `.csi` the source names, never `<uri>.tbi`:
+  EC-186) read by region at level 1 through `openIndexedLines`; without one they are read whole within `limits`. One
+  parser either way, so a region read equals the whole read clipped (the property test). Read whole, a BED's items are
+  served at level 1 and at the level whose one tile holds its longest system (`wholeLevel`, the inline rule), so a
+  navigator reads a chromosome's bands in one tile. A region's line issues are not said (no place in an answer); the
+  whole read says them.
+- **BED** (BED3 to BED12): the first data line's column count is the file's `N` (by region: `IndexedLines.head`).
+  Columns past the third by BED's names (`name`, `score` float32, `strand` the role, `thick_start`, `thick_end` int32,
+  `item_rgb`, then `col<k>` categories past twelve); a source's `fields` names a column by its 0-based number or BED
+  name (`{ stain: '4' }`, EC-190), `name` and `strand` the roles, `types` its type; a column a mapping reads is not read
+  under BED's name; a mapping naming no column, a position or one past the first line's is refused
+  (`seq.source.bed.field`, error). **BED12's blocks are pieces** (a row a block, the item's extent in `itemStart`,
+  `itemEnd`), counts equal to `block_count`, sorted, apart and inside the item, else the line left out. **Identity**
+  (EC-196): `id` is `name@start-end` (the name BED's fourth column, empty when absent or `.`), `#2`, `#3` on a later
+  identical key in read order (identical lines meet the same regions, so the suffix is stable by region). A line whose
+  positions are not whole numbers to 2^31 − 1, or whose end is before its start, is left out (`.line`, warning); a cell
+  its field cannot hold is missing (`.cells`, info); every cause one issue with its count and first ten places (EC-86).
+- **bedGraph**: `chrom start end value` as `values` a position from the region's start to the last position an interval
+  there covers (NaN between, a later interval over an earlier); coarse levels the store's summaries.
+- **BEDPE** (EC-206, EC-208): read whole (an `index` said, `.index`, and not read), its rows (each end's system as
+  uint8, uint16 or int32 by the systems' count, positions int32, strands int8, name, fields) **indexed by both ends**:
+  two `Int32Array` orders, each by system (a counting sort) then start (float64 keys `start × 2^21 + row`, sorted
+  natively; a comparison sort past 2^21 rows). `pairs(system, start, end)` gives every row with an end meeting the
+  region once (a row found from its second end is skipped when its first end met it too), in file order, as a
+  `PairsList` (`id` the name, `.` none; `row`). Coverage: the systems, no shape. Held bytes (`summaryBytes`, counted by
+  the store) against `maxPairsBytes` (16 MiB: 600,000 six-column rows), checked from the line count before a row is
+  parsed and exactly after; past it `seq.source.too_large`, hinting pairix or a levelled pairs format.
+- **chrom.sizes** (EC-188): `name length` lines, a coverage of systems and lengths, no shapes; a length past 2^31 − 1
+  refused by name (`seq.source.too_large`), a name again left out.
+- **Bounds**: a whole read's bytes after inflating (`limits.maxBytes`) and lines (`limits.maxRows`) before the lines are
+  spanned; a BED's pieces (BED12's blocks counted each) and a region's lines and rows within `limits.maxRows`; a
+  bedGraph answer's positions too; io's tabix bounds by region (`BedOptions.tabix`).
+- **Configuration**:
+
+  | Item            | Default              | Why the default; the alternatives                                          |
+  | --------------- | -------------------- | -------------------------------------------------------------------------- |
+  | `maxPairsBytes` | 16 MiB               | region-reads' `summaries.maxBytes`: a BEDPE's held rows and orders; any    |
+  | `tabix`         | `DefaultTabixLimits` | io's bounds of a read by region (`maxRegionBytes`, `maxLineBytes`, …); any |
+
+- **Tests**: the source suite on generated files (plain, gzip, BGZF; whole and by region, with and without range reads)
+  and on the recorded real slice (UCSC hg38 `cytoBandIdeo.txt.gz`, examples' `fixtures/genomes/`); a region read equal
+  to the whole read clipped over generated files and random regions; fuzzed and truncated files (whole and by region)
+  without a throw; BED12 pieces, `fields` by number, identities, chrom.sizes, BEDPE from either end once and its byte
+  bound; its synthetic twin is `delayedRuntime(BedRuntime)`.
+- **Performance**: 600,000 BEDPE rows indexed by both ends under 300 ms (heavy, `itWithin`; about 100 ms measured),
+  12,000 in the quick lane. Size: its own row under 30 kB (28.6 kB minified, io's BGZF reader in it), its by-region
+  chunk (io's tabix, the region lines: 14.1 kB) loaded on the first indexed open; in no viewer bundle.
 
 ### mmCIF
 
