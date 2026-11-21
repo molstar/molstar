@@ -277,15 +277,9 @@ function gzipMemberHeader(file: Uint8Array, o: number): GzipMemberHeader | undef
 
 /**
  * Each member found (by BGZF's BSIZE when present, else where the JS inflater's deflate stream of the member ends),
- * inflated as one member with its own ISIZE, the outputs joined within the caller's buffer, never by growing one.
+ * inflated as one member with its own ISIZE, into one output: the caller's buffer, a buffer of the ISIZEs' sum (BGZF),
+ * else one grown by doubling (amortized, never a buffer a member).
  */
-/** A member's deflate stream inflated in JS (into `into` when given) and the bytes it took. */
-async function memberJs(runtime: RuntimeContext, data: Uint8Array<ArrayBuffer>, into?: Uint8Array<ArrayBuffer>) {
-  const out = { buf: into ?? new Uint8Array((data.length >>> 2) << 3), off: 0 };
-  const { used } = await inflateMember(runtime, data, out, !into);
-  return { bytes: out.buf.subarray(0, out.off), used };
-}
-
 async function ungzipMembers(runtime: RuntimeContext, file: Uint8Array<ArrayBuffer>, buf?: Uint8Array<ArrayBuffer>) {
   // When every member has its BSIZE (BGZF), the whole size is the sum of their ISIZEs, known before inflating
   if (!buf) {
@@ -305,22 +299,22 @@ async function ungzipMembers(runtime: RuntimeContext, file: Uint8Array<ArrayBuff
       buf = new Uint8Array(total);
     }
   }
-  const parts: Uint8Array<ArrayBuffer>[] = [];
-  let total = 0;
+  const growable = !buf;
+  // the output and how much of it is written; a growable one starts at a few times the file, at most 1 MiB
+  const out = { buf: buf ?? new Uint8Array(Math.min(file.length * 4, 1 << 20)), off: 0 };
+  const reserve = (n: number) => {
+    if (out.off + n <= out.buf.length) return;
+    if (!growable) throw new Error(`inflates past its declared ${out.buf.length} bytes`);
+    const next = new Uint8Array(Math.max(out.buf.length * 2, out.off + n));
+    next.set(out.buf.subarray(0, out.off));
+    out.buf = next;
+  };
   let o = 0;
-  const only = (end: number) => o === 0 && end === file.length;
   while (o < file.length) {
     const h = gzipMemberHeader(file, o);
     if (!h) throw new Error(`no gzip member at byte ${o}`);
-    const into = (size?: number) =>
-      buf
-        ? buf.subarray(total, size === undefined ? buf.length : total + size)
-        : size === undefined
-          ? undefined
-          : new Uint8Array(size);
-    let bytes: Uint8Array<ArrayBuffer>;
+    const start = out.off;
     let end: number;
-    let crc32: number;
     if (h.bsize !== undefined) {
       end = o + h.bsize + 1;
       if (end > file.length || end - 8 < h.data) throw new Error(`the gzip member at byte ${o} is cut short`);
@@ -328,41 +322,36 @@ async function ungzipMembers(runtime: RuntimeContext, file: Uint8Array<ArrayBuff
       if (isize > (end - o) * MaxDeflateRatio + 1024) {
         throw new Error(`the gzip member at byte ${o} declares ${isize} bytes, more than it can hold`);
       }
-      if (buf && total + isize > buf.length) throw new Error(`inflates past its declared ${buf.length} bytes`);
-      crc32 = readUint(file, end - 8);
+      reserve(isize);
+      const into = out.buf.subarray(start, start + isize);
       if (checkCompressionStreamSupport('gzip')) {
         // the platform checks the member's CRC-32 and ISIZE
-        bytes = await inflateStream(runtime, file.subarray(o, end), 'gzip', into(isize));
-        if (bytes.length !== isize) throw new Error(`the gzip member at byte ${o} is cut short`);
-        parts.push(bytes);
-        total += bytes.length;
+        const got = await inflateStream(runtime, file.subarray(o, end), 'gzip', into);
+        if (got.length !== isize) throw new Error(`the gzip member at byte ${o} is cut short`);
+        out.off += isize;
         o = end;
         continue;
       }
-      bytes = (await memberJs(runtime, file.subarray(h.data, end - 8), into(isize))).bytes;
+      const member = { buf: into, off: 0 };
+      await inflateMember(runtime, file.subarray(h.data, end - 8), member, false);
+      out.off += member.off;
     } else {
-      const r = await memberJs(runtime, file.subarray(h.data), into());
-      bytes = r.bytes;
-      end = h.data + r.used + 8;
+      const { used } = await inflateMember(runtime, file.subarray(h.data), out, growable);
+      end = h.data + used + 8;
       if (end > file.length) throw new Error(`the gzip member at byte ${o} is cut short`);
-      crc32 = readUint(file, end - 8);
     }
+    const bytes = out.buf.subarray(start, out.off);
     const isize = readUint(file, end - 4);
-    const crcValue = crc(bytes, 0, bytes.length) >>> 0;
-    if (crcValue !== crc32 || bytes.length % 2 ** 32 !== isize) {
+    if (crc(bytes, 0, bytes.length) >>> 0 !== readUint(file, end - 8) || bytes.length % 2 ** 32 !== isize) {
       // One member read as it always was: a wrong CRC-32 logged, its bytes given
-      if (!only(end)) throw new Error(`the gzip member at byte ${o} fails its CRC-32 or size: the file is damaged`);
+      if (!(o === 0 && end === file.length)) {
+        throw new Error(`the gzip member at byte ${o} fails its CRC-32 or size: the file is damaged`);
+      }
       console.error("ungzip: checksums don't match");
     }
-    parts.push(bytes);
-    total += bytes.length;
     o = end;
   }
-  if (buf) return total < buf.length ? buf.subarray(0, total) : buf;
-  if (parts.length === 1) return parts[0];
-  const out = new Uint8Array(total);
-  for (let i = 0, at = 0; i < parts.length; at += parts[i].length, i++) out.set(parts[i], at);
-  return out;
+  return out.off < out.buf.length ? out.buf.subarray(0, out.off) : out.buf;
 }
 
 export async function deflate(

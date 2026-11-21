@@ -157,6 +157,32 @@ describe('zip', () => {
       }
     });
 
+    it('many small plain members share one output: allocation bounded by the output, not members × file', async () => {
+      const members = Array.from({ length: 400 }, (_, i) => text(5, `member ${i}`));
+      const file = join(members.map((m) => gzipSync(m)));
+      const expected = join(members);
+      let allocated = 0;
+      const Native = globalThis.Uint8Array;
+      vi.stubGlobal(
+        'Uint8Array',
+        class extends Native {
+          constructor(...args: ConstructorParameters<typeof Native>) {
+            super(...args);
+            allocated += this.byteLength;
+          }
+        },
+      );
+      let got: Uint8Array;
+      try {
+        got = await ungzip(SyncRuntimeContext, file);
+      } finally {
+        vi.unstubAllGlobals();
+      }
+      expect(Native.from(got)).toEqual(expected);
+      // each member allocating twice the rest of the file, or a 128 KiB block's headroom, is tens of MB here
+      expect(allocated).toBeLessThan(2 << 20);
+    });
+
     it("never inflates past the caller's buffer", async () => {
       const data = text(5000, 'bgzf');
       await expect(ungzip(SyncRuntimeContext, bgzf(data, 10000), new Uint8Array(data.length - 1))).rejects.toThrow(
