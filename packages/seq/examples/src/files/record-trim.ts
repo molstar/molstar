@@ -13,6 +13,7 @@ export const AllowedLicences = [
   'CC0-1.0',
   'CC-BY-4.0',
   'LicenseRef-NCBI-public-data',
+  'LicenseRef-EMBL-EBI-terms',
   'LicenseRef-seqx-generated',
 ] as const;
 
