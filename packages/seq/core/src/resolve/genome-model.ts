@@ -41,8 +41,8 @@ export function checkAssemblyData(
     const unknown = new Set<string>();
     for (let i = 0; i < names.length; i++) {
       const name = names.get ? names.get(i) : names[i];
-      if (typeof name === 'string' && assemblySystem(a, name) === undefined && !a.lookup.index.has(name))
-        unknown.add(name);
+      // a name of the assembly by the names rule (an `include` leaving its sequence out is no unknown name)
+      if (typeof name === 'string' && a.find(name) === undefined) unknown.add(name);
     }
     if (unknown.size)
       say(

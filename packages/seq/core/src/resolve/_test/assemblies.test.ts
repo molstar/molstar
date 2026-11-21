@@ -234,6 +234,19 @@ describe('resolve at genome scale', () => {
   });
 });
 
+describe('rows over an assembly with `include`', () => {
+  it('a row on a sequence `include` leaves out is no unknown name, by its name or its alias alike', () => {
+    const root = spec({ include: ['chr2'] }, (b) =>
+      b.data.ranges('rows', {
+        target: A,
+        rows: { start: [0, 0, 0], end: [1, 1, 1], target: ['chr1', '1', 'chr99'] } as never,
+      }),
+    );
+    const said = resolveSpec(root).issues.filter((i) => i.code === 'seq.resolve.assembly.name');
+    expect(said.map((i) => i.message)).toEqual(['Rows name 1 sequences the assembly lacks (chr99)']);
+  });
+});
+
 describe('the genome forms', () => {
   const root = spec();
   // resolved inside the tests: the genome chunk loads before them (`beforeAll`)
