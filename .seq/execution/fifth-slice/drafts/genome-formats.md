@@ -3,7 +3,7 @@
 Draft of lane GF (the fifth slice, stage 0) for Gate 0's agreement; on agreement it moves to `design/` and amends
 [files](../../../design/files.md) (BED, GFF3's tension closed, `fields` by column number), [sources](../../../design/sources.md)
 (the genome runtimes), [base-library](../../../design/base-library.md) (BGZF and tabix in `@molstar/io`),
-[protocol](../../../design/protocol.md) (an item's extent, a density's measure, names), [security](../../../design/security.md)
+[protocol](../../../design/protocol.md) (an item's extent, a tile's read cost, names), [security](../../../design/security.md)
 (the formats' bounds), [performance](../../../design/performance.md) (their rows) and RR's draft
 ([region-reads](region-reads.md): sided pairs sources, items at a tile size for ranges and matrices) (below,
 Consequences). Built on Gate 0's answers as recommended ([plan](../plan.md)): BGZF and tabix in `@molstar/io`, beside its
@@ -24,9 +24,14 @@ dataset that has one … BED12's blocks as pieces", and its Tension "GFF3 withou
 draws transcripts from GFF3". The JBrowse reply's first ask is the same list ("bigWig, bigBed, 2bit, VCF with a tabix
 index, FASTA with fai, GFF3, … PAF", EC-185 to EC-190). What a user does with these files: open a genome by region, see
 its genes as transcripts, its variants and genotypes, its gaps and letters, find a gene by name (EC-228), and compare two
-genomes through a PAF or a chain file (LX's figures). Cost follows pixels ([performance](../../../design/performance.md)):
-a region read costs the region, every claim a file makes is bounded before it allocates
-([security](../../../design/security.md)).
+genomes through an alignment's pairs (LX's figures). Cost follows pixels ([performance](../../../design/performance.md)):
+a region read costs the region, a view's reads are bounded together, every claim a file makes is bounded before it
+allocates ([security](../../../design/security.md)).
+
+**Three runtimes are built**: `runtimes/bed`, `runtimes/gff` and `runtimes/vcf`, with BGZF and tabix in `@molstar/io`;
+the built `seq` runtime gains sided pairs read from either end. bigBed, 2bit, indexed and bgzipped FASTA, PAF, PIF and
+chain files are designed only (the appendix), no runtime until a use asks. Why: a runtime is maintenance and fixtures,
+and a host brings its own through `withAdapter` (the author, 2026-11-21: "Yes, those three").
 
 ## Precedents
 
@@ -39,22 +44,24 @@ a region read costs the region, every claim a file makes is bounded before it al
 | JBrowse 2's readers (`@gmod/bgzf-filehandle`, `@gmod/tabix`, `@gmod/vcf`, `@gmod/gff`, `@gmod/bbi`, `@gmod/twobit`, `@gmod/indexedfasta`; the PAF, PIF and chain adapters; trix name search) | an adapter a format; GFF's `Parent` assembled into nested features, discontinuous features by `ID`; genotypes parsed only when asked; bigBed's `searchExtraIndex`; bgzipped FASTA with `.fai` and `.gzi` | the byte-size estimate before a read ("force load", EC-171; RR refuses it too); trix (a later format, Gaps) |
 | igv.js: tabix and BGZF of its own, a feature's `visibilityWindow` (VCF and BED zoomed out show "zoom in"), GFF and GTF combined into transcripts by `Parent` and `transcript_id`, an indel drawn without its anchor base | the visibility window as each tabix source's coarsest level; GTF's `transcript_id` and `gene_id` hierarchy | trimming the anchor base (here the record's REF extent, the index's rule: Decision, VCF) |
 | The current Seq\* (`stream/gmod`): 2bit, bigWig, bigBed and tabix VCF over range reads, its bounds (a BGZF block at most 64 KB with its ISIZE checked, a `.tbi` run at most 256 MB, 2bit's mask blocks found by binary search on disk), ids `name@start-end` and `pos:ref>alt`, a VCF's `estimate` from the index's bytes, recorded ranges of hg38 files | the readers' rules and bounds, the ids, recording real files by the ranges read | the estimate drawn as density (what is drawn is checked against the data); a range recording keyed by its old reads (here core's pages) |
-| This codebase: the bigWig runtime (BBI header, chromosome tree, R-tree, `walk`'s bounds, `BigWigLimits`, `DecompressionStream`), core's range reads (`openRanges`, 64 KiB pages, `AssetRangeError`), core's `inflateStream` and `ungzip`, the FASTA runtime (`.fai` checked), the records runtime and its GFF3 preset, `withAdapter`, the `seq` runtime's join, `delayedRuntime` | the BBI code shared by bigWig and bigBed; one adapter a format through `withAdapter`; the records' issue rules (EC-86) and `limits` | a second inflater, a second page cache |
+| This codebase: the bigWig runtime (BBI header, chromosome tree, R-tree, `walk`'s bounds, `BigWigLimits`, `DecompressionStream`), core's range reads (`openRanges`, 64 KiB pages, `AssetRangeError`), core's `inflateStream` and `ungzip`, the FASTA runtime (`.fai` checked), the records runtime and its GFF3 preset, `withAdapter`, the `seq` runtime's join, `delayedRuntime` | one adapter a format through `withAdapter`; the records' issue rules (EC-86) and `limits`; the `seq` runtime for sided pairs | a second inflater, a second page cache |
+
+The bigBed, 2bit, FASTA, PAF, PIF and chain rows serve the appendix's designs.
 
 ### Interactions in the precedents
 
 | What a user does there | Here |
 |---|---|
-| open a file by URL with its index (all) | built: a `source` with `uri` and `index` (`.tbi`, `.csi`, `.fai`), never `<uri>.tbi` assumed (EC-186); a `.gzi` by `block_index` (new) |
+| open a file by URL with its index (all) | built: a `source` with `uri` and `index` (`.tbi`, `.csi`), never `<uri>.tbi` assumed (EC-186) |
 | see a gene's transcripts, exons, CDS and UTRs (JBrowse, IGV, UCSC) | built: GFF3 and GTF as transcripts (`features: transcripts`), drawn by the ranges layer's `line: gene` (GG) |
 | collapse transcripts to genes, or expand (IGV's collapsed and expanded, JBrowse's display modes) | built: `features: genes` or `transcripts` by patch; `rows` for the file's lines |
 | click a variant: its INFO in a popup (all) | built: the hover card reads the fields (built) |
 | filter variants by an INFO value (`CLNSIG`, `AF > 0.01`) (JBrowse) | built: the layer's data filter (the query sublanguage, EC-225) |
 | genotypes of many samples, sorted by a field (IGV) | built: RR's `matrix` layer over the VCF's matrix; `samples` narrows them (new) |
-| "zoom in to see features" past a visibility window (IGV, JBrowse) | built: a tabix source's coarsest level (listed per file from its index's bytes), past it the layer's too-many-tiles state, never an estimate |
-| search a gene by name (IGV, JBrowse's trix, UCSC) | built in data: `findNames` on sources that index names (read whole, bigBed's `extraIndex`); the box and the jump are GA's locus fallback (GC3) |
-| show N gaps and soft-masked repeats (UCSC) | built: a 2bit serves its N and mask blocks as `ranges` |
-| lift a region from one assembly to another (UCSC liftOver) | built in data: a chain source as a map's runs (`map.source`); the figure LX's |
+| "zoom in to see features" past a visibility window (IGV, JBrowse) | built: a tabix source's coarsest level (listed per file from its index's bytes) and a view's read cost (RR's `maxBytesPerLayer`), past either the layer's too-many-tiles state, never an estimate |
+| search a gene by name (IGV, JBrowse's trix, UCSC) | built in data: `findNames` over a GFF3 read whole; the box and the jump are GA's locus fallback (GC3) |
+| show N gaps and soft-masked repeats (UCSC) | designed only: a 2bit's N and mask blocks as `ranges` (appendix) |
+| lift a region from one assembly to another (UCSC liftOver) | built in data: a pairs source's equal-length runs as a map (`map.source`: the `seq` runtime, a host's chain adapter); the figure LX's |
 | colour items by `itemRgb` (UCSC) | refused here: a field; a theme reading an RGB text is themes' (Tensions) |
 | export the features in view (JBrowse) | refused: data export is a host's |
 
@@ -70,36 +77,28 @@ is a registry entry of the existing kind ([sources](../../../design/sources.md),
 
 ### One runtime a format family, each an opt-in entry
 
-**Built in the fifth slice: `runtimes/bed`, `runtimes/gff`, `runtimes/vcf`** (with BGZF and tabix in `@molstar/io`);
-the other entries below are designed only, no runtime until a use asks (the author, 2026-11-21: "Yes, those three").
-
 | Entry (`@molstar/seqx-core/…`) | Exports | Formats | Shapes | Read |
 |---|---|---|---|---|
 | `runtimes/bed` | `BedRuntime`, `bedRuntime` | `bed`, `bedgraph`, `bedpe`, `chrom-sizes` | ranges; values; pairs; coverage only | whole, or by region with a tabix `index` (not `bedpe`, not `chrom-sizes`) |
-| `runtimes/bigbed` | `BigBedRuntime`, `bigBedRuntime`, `openBigBed` | `bigbed` | ranges (items, coverage density) | by region (range reads) |
-| `runtimes/twobit` | `TwoBitRuntime`, `twoBitRuntime`, `openTwoBit` | `2bit` | letters; ranges (N and mask blocks) | by region |
-| `runtimes/fasta` | `IndexedFastaRuntime`, `indexedFastaRuntime` | `fasta` (in place of the default by `withAdapter`) | letters | by region with `index` (`.fai`), bgzipped with `block_index` (`.gzi`) |
 | `runtimes/gff` | `GffRuntime`, `gffRuntime`, `assembleTranscripts` | `gff3` (in place of the records preset by `withAdapter`), `gtf` | ranges | whole, or by region with a tabix `index` |
 | `runtimes/vcf` | `VcfRuntime`, `vcfRuntime`, `readVcfHeader` | `vcf` | ranges (a row an ALT allele); matrix (genotypes, FORMAT values) | by region with `index`; whole without |
-| `runtimes/paf` | `PafRuntime`, `pafRuntime` | `paf`, `pif` | pairs (a map's runs when equal-length) | `paf` whole; `pif` by region from either end |
-| `runtimes/chain` | `ChainRuntime`, `chainRuntime` | `chain` | pairs (a map's runs) | whole |
+| `seq` (built, amended) | as built | `seq` | pairs, sided, found from either end; grid; matrix | whole, indexed by both ends (below) |
 
 - **Why an entry a family, opt in**: a reader of a spec, the minimal viewer and the default viewer pay for none
   ([performance](../../../design/performance.md), Size: "a format runtime … loaded only when composed"; the plan: "the
   minimal viewer not grown"). A host lists what it reads, as `BigWigRuntime` today. Why families: BED, bedGraph, BEDPE
-  and chrom.sizes share one tab-line reader and one row of size; PAF and chain do not share one (two small entries).
-- **Two formats the default viewer already reads** (`fasta` whole, `gff3` flat through the records preset) are taken
-  over by the genome runtime when a host composes it with `withAdapter` (built: one adapter a format, the default
-  narrowed, never order-dependent). Without it the built behavior stands. Why not change the defaults: the default
-  viewer is at its size bound, and a protein's FASTA or a plasmid's GFF3 needs no region read or hierarchy.
-- **Internals shared, not published**: `runtimes/internal/bbi.ts` (the BBI container: header, zoom headers, chromosome
-  B+ tree, R-tree `walk`, block inflation; bigWig is moved onto it, no change to its surface),
-  `runtimes/internal/lines.ts` (a tab-line source read whole or by region through tabix, below),
-  `runtimes/internal/text.ts` (bytes to text: plain, gzip or BGZF by magic, bounded). The package exports
-  `"./runtimes/internal/*": null`, as core's `util/internal`. Why: core's `./*` rule publishes every file otherwise.
+  and chrom.sizes share one tab-line reader and one row of size.
+- **A format the default viewer already reads** (`gff3` flat, through the records preset) is taken over by the genome
+  runtime when a host composes it with `withAdapter` (built: one adapter a format, the default narrowed, never
+  order-dependent). Without it the built behavior stands. Why not change the defaults: the default viewer is at its
+  size bound, and a plasmid's GFF3 needs no region read or hierarchy.
+- **Internals shared, not published**: `runtimes/internal/lines.ts` (a tab-line source read whole or by region through
+  tabix, below), `runtimes/internal/text.ts` (bytes to text: plain, gzip or BGZF by magic, bounded). The package
+  exports `"./runtimes/internal/*": null`, as core's `util/internal`. Why: core's `./*` rule publishes every file
+  otherwise.
 - **Each with its synthetic twin** (`delayedRuntime(<Runtime>)` on a fake clock), as sources.md requires.
 
-### BGZF and tabix in `@molstar/io` (Gate 0, 2): the public surface proposed for the gate
+### BGZF and tabix in `@molstar/io` (Gate 0, 2): the public surface
 
 Two modules beside io's containers (`src/common/`, where `binary-cif`, `msgpack` and `netcdf` are), types over core's
 `AssetRangeReader` (io depends on core; a type import), inflating each block with core's `inflateStream(…, 'gzip', buf)`
@@ -129,13 +128,9 @@ export class BgzfError extends Error { readonly kind: 'malformed' | 'too-large' 
 export function isBgzf(bytes: Uint8Array): boolean;                    // gzip, FEXTRA, a `BC` subfield
 /** A BGZF file read whole (a `.tbi`, an unindexed `.vcf.gz`): every block inflated in turn, joined. */
 export function inflateBgzf(bytes: Uint8Array, limits?: Partial<BgzfLimits>, signal?: AbortSignal): Promise<Uint8Array>;
-export interface GziIndex { readonly compressed: Float64Array; readonly uncompressed: Float64Array }
-export function parseGzi(bytes: Uint8Array, maxEntries: number): GziIndex;
 export interface BgzfReader {
   /** Inflated bytes from `begin` to `end` (the end block read for its first `within(end)` bytes). */
   read(begin: VirtualOffset, end: VirtualOffset, signal?: AbortSignal): Promise<Uint8Array>;
-  /** Inflated bytes `[start, end)` of the uncompressed stream, by a `.gzi` (bgzipped FASTA). */
-  readUncompressed(gzi: GziIndex, start: number, end: number, signal?: AbortSignal): Promise<Uint8Array>;
   /** Whether the file ends with the 28-byte EOF block (one read of its last bytes; false: perhaps cut short). */
   hasEof(signal?: AbortSignal): Promise<boolean>;
   dispose(): void;
@@ -159,7 +154,7 @@ export interface TabixIndex {
 export interface TabixLimits extends BgzfLimits {
   readonly maxIndexBytes: number;              // an index inflated (64 MiB)
   readonly maxRegionBytes: number;             // a region's chunks, compressed, together (8 MiB)
-  readonly maxLineBytes: number;               // one line (16 MiB: a VCF line of 100,000 samples' GT:AD:DP:GQ:PL)
+  readonly maxLineBytes: number;               // one line (16 MiB: a VCF line of 100,000 samples at 160 bytes each)
   readonly maxHeaderBytes: number;             // the header lines (16 MiB)
 }
 export const DefaultTabixLimits: TabixLimits;
@@ -184,6 +179,8 @@ export function readHeaderLines(reader: BgzfReader, index: TabixIndex, limits?: 
   signal?: AbortSignal): Promise<TabixLines>;
 ```
 
+- **No `.gzi` reader**: a `.gzi` (bgzipped FASTA by uncompressed offset) serves only the designed-only FASTA runtime,
+  so `parseGzi`, `GziIndex` and `readUncompressed` are not in io's surface (appendix). Why: a public name is a promise.
 - **Internal to io**: the block walk (`BSIZE`) and `reg2bins` are not exported; tests reach them through the module's
   `_test` folder. Why: a public name is a promise, and no caller outside the readers needs them.
 - **Lines as bytes**, not strings: io's rule (text is tokenized as bytes, io's spec, Decisions), and a region's lines
@@ -202,10 +199,10 @@ export function readHeaderLines(reader: BgzfReader, index: TabixIndex, limits?: 
   put it beside io's readers; it reads files (offsets, indexes, lines), which is io's, and core's zip is a codec. It
   reuses core's `inflateStream` and `ungzip`, never a second inflater.
 - **What it amends elsewhere**: base-library.md's BGZF row moves to `@molstar/io/common/bgzf` and gains tabix; io's
-  `_spec` gains `bgzf.md` (BGZF, `.gzi`, TBI, CSI: their rules and bounds); `seqx-core`'s restricted imports
+  `_spec` gains `bgzf.md` (BGZF, TBI, CSI: their rules and bounds); `seqx-core`'s restricted imports
   (`biome.json`) gain the two entries beside the text CIF parser: an architecture rule widened by the gate's decision,
   not to make an import pass. A v6 changelog entry (an addition, no break).
-- **Core's `ungzip` fails on a multi-member stream** (the review verified it): `gzipDeclaredSize` reads the last
+- **Core's `ungzip` fails on a multi-member stream** (verified): `gzipDeclaredSize` reads the last
   member's ISIZE (BGZF's EOF block: 0), so the platform path throws on its first chunk; the platform decoders refuse
   concatenated members anyway (Node: "trailing junk"); the fallback `ungzipBlocks` goes through `_inflate`'s raw path
   and throws too. Only where `DecompressionStream` is missing does it come back short (the first member). **The fix
@@ -227,7 +224,7 @@ export function readHeaderLines(reader: BgzfReader, index: TabixIndex, limits?: 
   for that region, never rows in the wrong place.
 - **Levels of a tab-line source by region, per source, from its index's bytes**: candidate levels `1, 16, 256, 4096`
   (up to the runtime option `maxLevel`, 4,096: 4 Mb tiles), each a tile width for items (RR's items read at a tile
-  size, extended to `ranges` and `matrix`: below, for RR word for word), and above 1 a `density` (ranges) or `bins`
+  size, extended to `ranges` and `matrix`: RR's), and above 1 a `density` (ranges) or `bins`
   (matrix) **counted exactly from the records of that tile**. At open the runtime lists a level only when **every tile
   of it on every system fits `maxRegionBytes`** (`regionBytes`: the chunks' compressed bytes, read from the index,
   never from the data). So ClinVar (about 30 bytes a kb) lists all four; a 1000 Genomes chromosome (tens of MB a Mb,
@@ -236,7 +233,12 @@ export function readHeaderLines(reader: BgzfReader, index: TabixIndex, limits?: 
   dense files, and the bytes a tile costs are known exactly before a read, where its rows are not. **Why counts exact
   or absent**: a density estimated from the index's bytes (the current Seq\*'s `estimate`, JBrowse's gate) would draw a
   guess as data; the listed coarsest level is igv's visibility window, made per file. A dense file's sites wider than
-  that are a bigBed's (a host converts; Tensions). `samples` narrows the states held, not the bytes read (genotypes are
+  that are a host's bigWig of their density (built; Tensions).
+- **A view's tiles together are bounded too**: the source gives each tile's cost before reading it
+  (`readCost(request)`: `regionBytes`, the chunks' compressed bytes from the index), and the store sums a layer's tiles
+  within `maxBytesPerLayer` (16 MiB, RR); past it the layer reads coarser, then shows "zoom in". So ClinVar at the fit,
+  every tile of whose four levels fits `maxRegionBytes` but whose tiles together are its whole file (about 90 MB), is
+  "zoom in" until the view is a few hundred Mb wide. Why: a bound per tile does not bound a view. `samples` narrows the states held, not the bytes read (genotypes are
   inside the compressed lines); a tile's states stay within RR's `maxTileBytes`.
 - **Issues** (`seq.source.<format>.*`, one a cause with a count and the first ten places, EC-86; severities EC-87): a
   line that does not parse is left out (`.line`, warning, with the line number or virtual offset); a structure that
@@ -245,13 +247,13 @@ export function readHeaderLines(reader: BgzfReader, index: TabixIndex, limits?: 
 - **Range reads**: `AssetReader.openRange` (built); a host without it reads the file whole within `limits.maxBytes`
   (bigWig's rule). A failed range read (`AssetRangeError`: the file changed under the reader) fails the region
   (`failed`, EC-174), never wrong rows.
-- **A format's conventions are fixed** (`bed`, `bedgraph`, `bedpe`, `vcf`, `gff3`, `gtf`, `paf`, `pif`, `chain`): the
+- **A format's conventions are fixed** (`bed`, `bedgraph`, `bedpe`, `vcf`, `gff3`, `gtf`): the
   source's built `base` and `ends` (files' defaults `1` and `inclusive`) are not read for them, said once if written
   (`seq.source.<format>.transform`, info), as the GFF3 preset already does. Why: a writer setting `base: 1` on a BED
   would move every row by one (EC-195).
 - **Names are the file's**: a source's systems are the names its file writes (`1` or `chr1`); GA's names rule maps
   them onto an assembly (EC-188, EC-189). A system's length is the file's where it says (`##contig`,
-  `##sequence-region`, 2bit, `.fai`, BBI), else absent: the assembly's stands.
+  `##sequence-region`, a chrom.sizes), else absent: the assembly's stands.
 
 ### BED, bedGraph, BEDPE, chrom.sizes (`runtimes/bed`)
 
@@ -271,58 +273,15 @@ export function readHeaderLines(reader: BgzfReader, index: TabixIndex, limits?: 
 - **bedGraph**: `chrom start end value`, served as `values` (sparse positions, NaN between); coarse levels the store's
   summaries (read whole) or bins counted from the tile (by region), `mean`, `min`, `max`, `count` as `ValuesBins`.
 - **BEDPE**: `chrom1 start1 end1 chrom2 start2 end2 name score strand1 strand2` and `fields` by number past them, as RR's
-  `pairs` list; **read whole**, an `index` ignored and said (RR's one-end rule: a `.tbi` finds a pair by its first end
-  only); within `limits`, then RR's pairs summaries. `id` the name unless `.` (RR: `.` is no identity), else `row`.
-- **chrom.sizes**: `name length` lines; a coverage of systems and lengths, no shapes. Why here: GA's assembly takes "a
-  chrom.sizes table" as its `source`, and a draft genome's 2bit is too many record headers to read (2bit, below).
-
-### bigBed (`runtimes/bigbed`)
-
-- **The BBI container** shared with bigWig (`internal/bbi.ts`): magic `0x8789F2EB` either way round, the chromosome
-  tree, the R-tree, blocks inflated one after another within `maxInflatedBytes` (bigWig's bounds and reasons, unchanged).
-- **Items**: `chromId, start, end, rest` with `rest` a NUL-terminated tab-separated string; fields named and typed by
-  the file's autoSql (`uint`, `int` int32; `float`, `double` float32; `string`, `lstring`, `char[n]` categories; a
-  list type (`int[blockCount]`) its text, BED12's lists read as pieces), else by BED's names and `fields` by number. A `fields`
-  map renames as for any source (EC-190: `{ label: 'geneName' }`). Pieces, ids and `thick_*` as BED12.
-- **Levels**: `1` and items at any listed level as a tile width (RR's items rule, amended); the file's zoom levels at
-  their reductions as `density` with **`measure: 'coverage'`** (new, below): a zoom record covers bases (its summed
-  depth prorated over the bins it meets, bigWig's rule), not items. Why say so: a density strip of coverage read as a
-  count of items would lie by the items' lengths; the hover says "coverage", the strip draws either.
-- **Name index**: each `extraIndex` B+ tree (`bedToBigBed -extraIndex=name`) is a `findNames` field (below).
-
-### 2bit (`runtimes/twobit`)
-
-- **Header and index**: the signature read either way round; versions 0 (32-bit offsets) and 1 (64-bit, files over
-  4 GiB) both read; the index (`nameSize`, name, offset) read in one call within `maxIndexBytes`.
-- **Lengths** live in each record's header (its first 4 bytes), not the index: **every sequence's is read at open**,
-  in offset order, in batches of 1,024 headers a call, through a range reader of 4 KiB pages (`AssetReader.openRange`
-  gains `{ pageSize }`, a `packages/seq` addition passed to core's `RangeReadOptions`, built), so a header costs a 4 KiB
-  page, and neighbouring small scaffolds share one. Bounded by `maxLengthBytes` (16 MiB of pages: 4,096 pages; hg38's
-  455 sequences about 1.8 MB, a draft of 100,000 small scaffolds packed in a few hundred pages). **Past the bound no
-  length is listed** (never half a list): the coverage names every sequence without a length, said
-  (`seq.source.twobit.lengths`, warning: "give its chrom.sizes as the assembly's `sizes`"), and its letters are still
-  served by region. **An assembly never draws without lengths**: GA gains `sizes` and an error when a sequence has none
-  (below, word for word). Why every length: GA's remedies for a draft (`include: { minLength }`, `order: length`, the
-  closing run) need them all; a 2bit for letters and a chrom.sizes for lengths is UCSC's own pair.
-- **Letters by region**: the packed bases of `[start, end)` (four a byte, `T C A G`, the first in the high bits), N
-  blocks applied (`N`), upper case. A record's N blocks are read with its header (hundreds); its **mask blocks are
-  found by binary search on disk** (chr1 of hg38 has 331,893: 2.7 MB never read whole).
-- **Ranges**: `N` blocks (category `gap`) and mask blocks (category `masked`) served as `ranges` on request, so a
-  genome's gaps and repeats are a track of their own. Why not lower case in the letters: the letters are one alphabet
-  for every reader (schemes, translation, search); the mask is data.
-
-### FASTA by region (`runtimes/fasta`)
-
-- **With an `index`** (`.fai`) and range reads: a region is `offset + ⌊s / lineBases⌋ · lineWidth + s mod lineBases`
-  to the same for `e`, line breaks removed. The index is parsed as built (`parseFai`); since the file is not read whole,
-  **each read checks the line structure it spans** (a line break exactly where the index puts one, none elsewhere),
-  else that region is `malformed` (a stale index), and at open the first record's header line ends where its offset
-  starts (one small read). Coverage from the `.fai` alone, so a FASTA index is an assembly's `source` (GA) without a
-  byte of the FASTA.
-- **Bgzipped** (`.fa.gz` with `.fai` and `.gzi`, as Ensembl's `dna_index` publishes): the `.fai`'s offsets are of the
-  uncompressed stream; `block_index` (new source param) names the `.gzi`; read through `readUncompressed`. A bgzipped
-  FASTA without a `.gzi` is read whole within `limits`.
-- **Without an index** the built runtime's behavior: read whole, the index built (`faidx`).
+  `pairs` list; **read whole** within `limits`, an `index` ignored and said (a `.tbi` finds a pair by its first end
+  only), then **indexed by both ends** once: each row's position in two orders, by its first end and by its second,
+  sorted by system and start (two `Int32Array` permutations), so a region read finds every pair with either end in it
+  (RR's contract). Its rows, both orders and RR's pairs summaries count together against `summaries.maxBytes` (16 MB,
+  about 600,000 pairs); past it `too-large`, hinting pairix or a levelled pairs format (the Hi-C route, later). No
+  doubled BEDPE (each line twice under tabix) is read: 12,000 links is the milestone. `id` the name unless `.` (RR:
+  `.` is no identity), else `row`.
+- **chrom.sizes**: `name length` lines; a coverage of systems and lengths, no shapes. Why here: an assembly's lengths
+  come inline or from a chrom.sizes (GA).
 
 ### GFF3 and GTF: transcripts (`runtimes/gff`; files.md's tension closed)
 
@@ -407,55 +366,41 @@ export function readHeaderLines(reader: BgzfReader, index: TabixIndex, limits?: 
   from the tile (majority and share, `mean`), as ranges. Bounded by RR's `maxTileBytes`. A long deletion is one item
   across the SNPs it covers (EC-222).
 - **Without an index**: a plain or bgzipped VCF read whole within `limits`.
-- **Dense files** (1000 Genomes, a biobank): the levels the index's bytes allow (above), so a dense chromosome is read
-  in 16 kb tiles of a few hundred kB; a wider view is "zoom in", never an 80 MB read. Genotypes are parsed only for a
+- **Dense files** (1000 Genomes, a biobank): the levels the index's bytes allow and the view's read cost (above), so a
+  dense chromosome is read in 16 kb tiles of a few hundred kB; a wider view is "zoom in", never an 80 MB read. Genotypes are parsed only for a
   `matrix` request, and only for the `samples` held; the line's bytes are read either way (they are in the compressed
   block), which the level rule already counts.
 - **One file a chromosome** (1000 Genomes, gnomAD) is one source a file this slice; a source over several files is
   open (Tensions).
 
-### PAF and chain files: pairs, and a map's runs (`runtimes/paf`, `runtimes/chain`)
+### The `seq` runtime: sided pairs found from either end, a map's runs
 
-- **Side `a` is the side the alignment maps from**: PAF's query (`minimap2 target query` maps query onto target),
-  chain's `t` (liftOver's chain files are written old-to-new, `tName` the old assembly). Why one rule: a map read from
-  either is `from` side `a` `to` side `b` with no per-format flag.
-- **An alignment is an item, its ungapped blocks its pieces**: a pairs row a block (`aStart`, `aEnd`, `bStart`, `bEnd`
-  of equal length, `aStrand` 1, `bStrand` ±1), all of one alignment sharing `row` (amends RR: rows sharing `row` with
-  other starts are blocks of one alignment, as ranges' pieces); fields: PAF's `matches`, `block_length`, `mapq`, `tp`;
-  chain's `score`, `chain_id`. A PAF line without `cg:Z` is one row of unequal ends (a pair, never a run: a map refuses
-  it, `seq.source.paf.cigar`). CIGAR operations `M`, `=`, `X` are runs, `I`, `D` gaps, `N` a gap on `b`, `S` and `H`
-  outside the aligned range (EC-212); at most `maxCigarOps` (1,048,576) a line, which fits `maxLineBytes` (16 MiB).
-  **On strand `-`** the CIGAR walks the target forward from `tStart` and the query backwards from `qEnd` (minimap2's
-  rule; PAF's query coordinates are of the forward strand), so each run is `[qEnd − q − len, qEnd − q)` on `a` against
-  `[tStart + t, + len)` on `b`, strand −1.
-- **PIF's `t` lines** carry the line with query and target swapped, and their CIGAR with `I` and `D` swapped (JBrowse's
-  PIF writer; PF verifies it on a PIF made from a PAF before relying on it); the runtime swaps both back, so either
-  copy gives the same row with side `a` the query, and a pair met from both ends is one row (RR's dedupe).
-- **Chain arithmetic**: blocks `size dt dq` walked from `tStart`, `qStart`; `qStrand -` counts `q` on the reverse
-  strand (`qSize − end`, `qSize − start`); every block inside `[tStart, tEnd)` and `[qStart, qEnd)` and within the sizes,
-  else the chain left out (`.line`). Each chain header's `tSize` and `qSize` are its systems' lengths.
-- **Read whole** within `limits` (a chain file is small: hg19ToHg38's is about a megabyte gzipped), indexed by both
-  ends once (RR's one-end rule), then RR's pairs summaries (its pyramid within `summaries.maxBytes`). **`pif`** reads by
-  region from either end (each line twice, `q` and `t` prefixed, under tabix): the large PAF's path.
-- **Sided systems** (amends RR): a pairs source between two genomes may name `chr1` on both sides, distinct
-  sequences. Its coverage marks each system's side (`SystemInfo.side: 'a' | 'b'`), a request names the side it reads
-  (`RegionRequest.side`), and the store's key carries it in its system part. A `pairs` node's `a` and `b` (RR's spec
-  params, an assembly each) map each side's names through GA's names rule. A source over one genome (BEDPE, self
-  synteny, Hi-C) is unsided, as RR has it.
+The dataset's synteny, dot plot and liftover views read their alignment from the `seq` format, written from the
+alignment truth in code (GD); PAF and chain runtimes are designed only (appendix).
+
+- **Side `a` is the side the alignment maps from** (RR's sided sources): a map read from the source is `from` side `a`
+  `to` side `b` with no per-format flag; a host's PAF adapter puts the query on `a`, a chain adapter its `t`.
+- **Sided pairs, found from either end**: a pairs table in the `seq` format may mark each system's side
+  (`SystemInfo.side`, RR); the runtime reads it whole and indexes it by both ends as BEDPE (above), each side's
+  systems apart, within RR's `summaries.maxBytes`, and answers a request by its `side` and region from either end.
+  Rows sharing `row` are the blocks of one alignment (its pieces: a hit names the alignment). Fields as written
+  (`matches`, `block_length`, `score`).
 - **As a map** (`map.source`, new language param): a `map` with `method: segments` may name a pairs source instead of
-  inline `segments`; its runs are the source's rows of equal-length ends, read by region of the `from` side as any
-  large map (building-blocks.md: "a genome-scale map is held by region"; GA: one map over every sequence pair). A row
-  of unequal ends is refused as a run (counted). Why the pairs shape: a run is a pair of equal length, so one runtime
-  serves the ribbons (LX) and the liftover (EC-212) from one read.
+  inline `segments`; its runs are the source's rows of equal-length ends, read by region of either side
+  (`RegionRequest.side`): the `from` side for projection forward, the `to` side for a layer drawn on the `to` section
+  (a liftover's old genes on the new assembly); the runtime indexes both ends once, so it is one read
+  (building-blocks.md: "a genome-scale map is held by region"; GA: one map over every sequence pair). A row of unequal
+  ends is refused as a run (counted, `seq.source.seq.run`). Why the pairs shape: a run is a pair of equal length, so one
+  source serves the ribbons (LX) and the liftover (EC-212) from one read.
 
 ### A name index (EC-228)
 
 - **A capability, not a shape**: `OpenedSource.findNames?(text, { max, prefix }, signal): Promise<NameHit[]>`, with
   `Coverage.names` (the fields searched) and `NameHit { system, start, end, id?, label, field }`. Case-insensitive,
   exact first, then by prefix when asked; at most `max` (20) hits.
-- **Who serves it**: a source read whole (BED's `name`, GFF's `Name`, `ID`, `Alias`, `gene_name`, `transcript_name`,
-  `gene_id`, `transcript_id`; VCF's `ID`), from a map built once at open; bigBed by its `extraIndex` B+ trees (a key
-  read and its block filtered). A tabix source serves none (a text index such as trix is a later format: Gaps, 12).
+- **Who serves it**: a GFF3 read whole (its `Name`, `ID` and `Alias` attributes), from a map built once at open. BED,
+  VCF and GTF names are not indexed this slice, nor a tabix source (a text index such as trix is a later format), so
+  a GFF3 past `limits.maxRows` (a human GENCODE GFF3 is about 3M lines) finds nothing by name (Tensions).
 - **Who calls it**: `findNames(sources, text, options, signal)` (`data/names.ts`, a function over the opened sources
   a viewer's source sync holds: not in `store.ts`, so no store lane is touched), merging hits in source order; GA's
   `(locus :text …)` falls back to it when no sequence matches (GC3's: an asynchronous focus, cancelled by the next),
@@ -463,24 +408,22 @@ export function readHeaderLines(reader: BgzfReader, index: TabixIndex, limits?: 
 
 ### Protocol additions (`packages/seq`, public API, recorded in the lanes' changelog entries)
 
-Each with its owning lane (below, Lanes and the plan's amendment):
+Each with its owning lane (below, Lanes):
 
 - `RangesList.itemStart?`, `itemEnd?` (`Int32Array`): each row's item's whole extent, when rows are pieces (BED12,
   transcripts); and **span rows** (`start = end` with an extent: the item, no piece in this tile), which `sliceTable`
   emits for an item whose pieces lie outside the slice. Why: a reader of region data knows an item's ends from any
   tile (today `extents` exist for inline data only, so region items get no arrowhead), and an intron-only tile still
-  draws its transcript (EC-229: flanks of streamed genes need the extent). RG (tables and `checkAnswer`).
-- `RangesDensity.measure?: 'items' | 'coverage'` (absent: items): what `count` counts. RG.
-- `SystemInfo.side?`, `RegionRequest.side?`, the key's sided system part (RR amended). RG.
+  draws its transcript (EC-229: flanks of streamed genes need the extent). RR's text; RG (tables and `checkAnswer`).
+- `SystemInfo.side?`, `RegionRequest.side?`, the key's sided system part (RR's). RG.
 - RR's `RegionRequest.items` for `ranges` and `matrix` lists too (keys change: RR's `i<level>` part). RG.
+- `OpenedSource.readCost?(request)` and the store's `maxBytesPerLayer` (RR's). RG; the tabix sources give it in FR.
 - `OpenedSource.findNames?`, `Coverage.names?`, `NameHit` (types in `protocol.ts`, no store change) and
   `data/names.ts`. BZ (types only, before RG; RG merges over them).
-- `AssetReader.openRange(uri, signal, options?: { pageSize })`. BZ.
 - Field names fixed by convention and documented in the Data spec: `thick_start`, `thick_end`, `cds_phase`, `phase`,
   `item_rgb`, `gene`, `gene_name`, `category`, `name`.
-- Language (GC1's bump, the only lane on the language in stage 1): a source's `features`, `samples`, `block_index`;
-  an assembly's `sizes` (GA's); `map.source`; the ranges layer's `line: 'gene'`. Declared, documented and checked by
-  GC1; read by the format lanes after GC1 merges.
+- Language (GC1's bump, the only lane on the language in stage 1): a source's `features`, `samples`; `map.source`; the
+  ranges layer's `line: 'gene'`. Declared, documented and checked by GC1; read by the format lanes after GC1 merges.
 
 ### Bounds (security.md: a file is untrusted input)
 
@@ -493,31 +436,31 @@ region), `seq.source.too_large` at open.
 | BGZF | a read's inflated bytes, its blocks together | `maxInflatedBytes` 64 MiB | too-large |
 | tabix | the index inflated; its references; a reference's bins (TBI: 37,450 and the metadata pseudo-bin), chunks, a chunk `begin ≤ end` and inside the file | `maxIndexBytes` 64 MiB; `limits.maxRows` | malformed (the source refused) |
 | tabix | a region's chunks, compressed, together (a level not listed when any of its tiles passes it); one line; the lines of an answer | `maxRegionBytes` 8 MiB; `maxLineBytes` 16 MiB; `limits.maxRows` | too-large; malformed; too-large |
+| tabix | a layer's tiles in view, their chunks' compressed bytes together (`readCost`) | RR's `maxBytesPerLayer` 16 MiB | a coarser level, else "zoom in" |
 | all | a sequence's length | 2^31 − 1 (int32 positions) | that sequence refused at open, said |
 | VCF | the header; samples; ALT alleles a record; INFO fields | `maxHeaderBytes` 16 MiB; 100,000 (a line of them within `maxLineBytes`); 256; 256 | malformed; malformed; the record left out; the rest not fields (said) |
-| bigBed | bigWig's (`BigWigLimits`); the autoSql; fields; a BED12 item's blocks | as built; 64 KiB; 256; 10,000 | as built; malformed; malformed; the item left out |
-| 2bit | the index; sequences; the pages read for lengths; a record's N blocks; a region's packed bytes | `maxIndexBytes` 8 MiB; `limits.maxRows`; `maxLengthBytes` 16 MiB; `limits.maxRows`; `limits.maxBytes` | malformed; malformed; no lengths listed (said; GA's `sizes`); malformed; too-large |
-| FASTA | `.fai` and `.gzi` lines; a region's bytes | `limits.maxRows`; `limits.maxBytes` | malformed; too-large |
-| GFF, BED, PAF, chain read whole | bytes (after inflating), lines | `limits.maxBytes` 64 MB, `limits.maxRows` 1,000,000 | `seq.source.too_large`, hinting an index (`pif` for a PAF) |
+| GFF, BED, VCF read whole | bytes (after inflating), lines | `limits.maxBytes` 64 MB, `limits.maxRows` 1,000,000 | `seq.source.too_large`, hinting an index |
+| BEDPE, the `seq` format's pairs | rows held with both orders and their pyramid | RR's `summaries.maxBytes` 16 MB (about 600,000 pairs) | `seq.source.too_large`, hinting pairix or a levelled pairs format |
 | GFF | a `Parent` chain's depth; attributes a row | 16; 256 | rows kept flat (said); the rest dropped (said) |
-| PAF | CIGAR operations a line | 1,048,576 | the line left out |
 
 ## Edge cases this design takes or assigns
 
-- **Taken here**: EC-186 (an index named, never `<uri>.tbi`; `.gzi` by `block_index`), EC-188 (lengths from
-  `##contig`, `##sequence-region`, 2bit, `.fai`, chain headers, chrom.sizes), EC-190 (`fields` by name or column number, autoSql),
-  EC-195 (a format's base fixed, converted at the edge, EC-1), EC-196 (ids `name@start-end`, `pos:ref>alt`, a row a
-  BED12 block and an ALT allele), EC-206 (strand on every pairs row: PAF's, chain's `qStrand`), EC-208 (pairs read by
-  region: `pif`; PAF and BEDPE whole within bounds), EC-212 (chains and CIGARs with `S`, `H`, `N`), EC-220 and EC-222
-  (the VCF's matrix: missing as 255, a long deletion one item), EC-227 (gene, transcript, exon), EC-40 and EC-92
-  (every reader fuzzed without a throw), EC-51 (a row past a known length clipped, counted), EC-86 and EC-87 (issues),
-  EC-169 and EC-174 (pending, failed and `AssetRangeError`), EC-171 (its outcome for tabix: exact counts within bytes,
-  else "zoom in").
-- **Its data part here, the rest assigned**: EC-228 (`findNames` here; the box and the focus GA's locus fallback,
-  GC3), EC-189 (a file's names here; aliases GA's names rule), EC-207 (a chain as one map's runs here; paths GA's,
-  GC1), EC-209 and EC-210 (data here; ribbons LX's).
-- **Assigned**: EC-213 (MAF: cut first, Gate 0, 1), EC-223 (`.hic`, `.mcool`: not in the formats, RR's Gaps 10),
-  EC-224 (keyed results: RR's `rows`), EC-216 and EC-219 (GWAS points and LD: GD's data, a BED or TSV here).
+- **Taken here**: EC-186 (an index named, never `<uri>.tbi`), EC-188 (lengths from `##contig`, `##sequence-region`,
+  chrom.sizes), EC-190 (`fields` by name or column number), EC-195 (a format's base fixed, converted at the edge,
+  EC-1), EC-196 (ids `name@start-end`, `pos:ref>alt`, a row a BED12 block and an ALT allele), EC-206 (strand on every
+  pairs row: BEDPE's, the `seq` format's), EC-208 (pairs read by region from either end: BEDPE and the `seq` format's
+  pairs read whole and indexed by both ends within a byte budget), EC-220 and EC-222 (the VCF's matrix: missing as 255,
+  a long deletion one item), EC-227 and EC-229 (gene, transcript, exon; a span row in an intron-only tile), EC-40 and
+  EC-92 (every reader fuzzed without a throw), EC-51 (a row past a known length clipped, counted), EC-86 and EC-87
+  (issues), EC-169 and EC-174 (pending, failed and `AssetRangeError`), EC-171 (its outcome for tabix: exact counts
+  within bytes, a view's read cost bounded, else "zoom in").
+- **Its data part here, the rest assigned**: EC-228 (`findNames` over a GFF3 here; the box and the focus GA's locus
+  fallback, GC3), EC-189 (a file's names here; aliases GA's names rule), EC-207 (a pairs source as one map's runs,
+  `map.source`, here; paths GA's, GC1), EC-212 (the runs read by either side here; the projection GA's, the figure
+  LX's), EC-209 and EC-210 (data here; ribbons LX's).
+- **Assigned**: EC-213 (MAF: cut), EC-223 (`.hic`, `.mcool`: not in the formats, RR's Gaps 10), EC-224 (keyed results:
+  RR's `rows`; the join deferred to the close-out slice), EC-216 and EC-219 (GWAS points and LD: the Manhattan family,
+  deferred to the close-out slice).
 
 ## Defaults, with a picture
 
@@ -535,20 +478,13 @@ What a reader sees with a source of the format and one layer over it, nothing el
    ```
    ▏ ▌  ▌▌    ███████   ▌  ▏   SNV ▌, deletion ███
    ```
-3. **VCF past its coarsest level** (`[1, 16, 256]`: a view wider than about 67 Mb): the layer's too-many-tiles state
-   (built: the band hatched, "zoom in to read this track"), never an estimate.
-4. **bigBed zoomed out**: the zoom levels' coverage as a density strip, its hover "coverage 12.3 kb in 1 Mb";
-   zoomed in, items as BED12 genes (picture 1).
-5. **2bit**: letters at letter zoom; with a ranges layer over its gaps and masks, `gap` and `masked` bars.
-   ```
-   ACGTNNNNNNNNNNACGTACGT…
-       ████████████            gap
-                   ▬▬▬▬▬▬▬     masked
-   ```
-6. **BED with `fields: { stain: '4' }`** under a `bands` layer: the ideogram (navigators.md's picture).
-7. **Pending**: as built (the band's pending hatch); **failed** (a range read refused, a changed file): the placeholder
+3. **VCF past its coarsest level** (`[1, 16, 256]`: a view wider than about 67 Mb) **or past the view's read cost**
+   (ClinVar wider than a few hundred Mb): the layer's too-many-tiles state (built: the band hatched, "zoom in to read
+   this track"), never an estimate.
+4. **BED with `fields: { stain: '4' }`** under a `bands` layer: the ideogram (navigators.md's picture).
+5. **Pending**: as built (the band's pending hatch); **failed** (a range read refused, a changed file): the placeholder
    with its issue; **malformed** region: the placeholder, the issue naming the virtual offset or line.
-8. **Dark**: tokens only; nothing a format adds is a colour.
+6. **Dark**: tokens only; nothing a format adds is a colour.
 
 ## The interaction matrix's cells
 
@@ -559,7 +495,7 @@ they change:
 |---|---|---|---|---|---|---|---|---|---|
 | **an element: a transcript** | click: the transcript (every piece, `(item :id …)` on its source) | Shift+click: the hull to another | Cmd/Ctrl+click | double-click: its extent (`itemStart`, `itemEnd`) | Alt+Left | — | — | no: a filter | no: data |
 | **an element: a variant allele** | click: the allele's REF extent | Shift+click | Cmd/Ctrl+click | double-click: its extent | Alt+Left | — | — | no: a filter on `category`, `filter`, INFO | no |
-| **an element: an alignment's block** (PAF, chain) | click: the block, both ends lit | Shift+click | Cmd/Ctrl+click | double-click: the alignment's hull on each side | Alt+Left | — | — | no | no |
+| **an element: an alignment's block** (the `seq` format's pairs) | click: the block as drawn (blocks merged under a pixel are one), both ends lit | Shift+click | Cmd/Ctrl+click | double-click: the alignment's hull on each side | Alt+Left | — | — | no | no |
 | **a track or layer** | as built | as built | `track.add` as built | as built | as built | — | — | `layer.hidden`; the data filter | the source's `features`, `samples`, `fields`: a patch, one undo step, the source reopened in place (files.md) |
 | **a bookmark or link** | — | — | as built | an item's address (`(item :id ENST…)`) waits for its region (dynamic-nodes' rule) and survives a `features` switch only for `transcripts` ↔ `rows` ids it keeps (a Tension) | as built | — | — | — | — |
 | **the view** | — | — | — | a name typed (a host's box, the locus text) finds through `findNames`, then focuses (GC3) | Alt+Left | — | — | — | — |
@@ -569,28 +505,26 @@ they change:
 | Item | Whose | Default | Why the default; the alternatives |
 |---|---|---|---|
 | each runtime | registry entry | not listed | opt in: a viewer pays for what it reads; listed by a host |
-| `fasta`, `gff3` by the genome runtimes | `withAdapter` | the defaults (whole, flat) | the built behavior; the genome runtimes by composition |
-| `source.index` (built), `source.block_index` | spec params | none | where the index is (EC-186); `.tbi`, `.csi`, `.fai`; `.gzi` |
+| `gff3` by the genome runtime | `withAdapter` | the default (flat) | the built behavior; the genome runtime by composition |
+| `source.index` (built) | spec param | none | where the index is (EC-186); `.tbi`, `.csi` |
 | `source.fields` by column number (built param, new reading) | spec param | BED's names by place | a `bed N+M` file names its own columns |
 | `source.features` | spec param | `transcripts` | a gene model (EC-227); `genes`, `rows` |
 | `source.samples` | spec param | every sample | a figure's subset; a list of names |
 | `source.fields`, `types` (built) | spec params | the format's names and types | renames (EC-190) |
-| `map.source` | spec param | — (inline `segments`) | a chain or PAF's runs by region |
+| `map.source` | spec param | — (inline `segments`) | a pairs source's equal-length runs, read by region of either side |
 | `maxLevel` of a tab-line source by region | runtime option | 4,096 | the coarsest candidate (4 Mb tiles); the levels listed are those the file's index says fit `maxRegionBytes` |
+| `maxBytesPerLayer` (RR's) | `StoreSettings` | 16 MiB of read cost | a view's tiles together, from `readCost`; past it coarser, then "zoom in" |
 | `transcriptTypes` (GFF, GTF) | runtime option | the SO transcript types above, and `*_transcript` | a line's role by its type, so a tile reads as the whole; a list |
 | `maxRegionBytes` | runtime option (`TabixLimits`) | 8 MiB compressed | a tile's read stays a few hundred ms remote; any |
 | `maxInflatedBytes` | runtime option | 64 MiB | the store's answer bound |
-| `maxIndexBytes` (tabix; 2bit) | runtime option | 64 MiB; 8 MiB | a dbSNP `.tbi` fits; any |
-| `maxLineBytes`, `maxHeaderBytes` | runtime option | 16 MiB; 16 MiB | a line of 100,000 samples' `GT:AD:DP:GQ:PL`, a PIF line of 1M CIGAR operations; gnomAD's header a few hundred kB |
+| `maxIndexBytes` | runtime option | 64 MiB | a dbSNP `.tbi` fits; any |
+| `maxLineBytes`, `maxHeaderBytes` | runtime option | 16 MiB; 16 MiB | a VCF line of 100,000 samples at about 160 bytes each (`GT:AD:DP:GQ:PL` of a multi-allelic site); gnomAD's header a few hundred kB |
 | `maxInfoFields`, `maxSamples`, `maxAlleles` (VCF) | runtime option | 256; 100,000; 256 | bounded columns and states |
-| `maxLengthBytes` (2bit) | runtime option | 16 MiB of 4 KiB pages | every length read at open; past it none listed and GA's `sizes` |
-| `assembly.sizes` (GA's) | spec param | none | a chrom.sizes or `.fai` for lengths beside a 2bit |
-| `maxCigarOps` (PAF) | runtime option | 1,048,576 | a chromosome-scale alignment's CIGAR |
 | `cacheBlocks` (BGZF) | runtime option | 16 | a pan back without a read |
 | `findNames`' `max`, `prefix` | option of the call | 20; false | a list a box shows; prefix for typing |
 | a format's base and ends; side `a` the map's from side; the anchor base kept; a line's extent by the index's rule | fixed | — | the reasons in the Decision |
 
-Not built: all of it (BZ, BD, SQ, GG, VC, PF); bigWig's BBI moves onto `internal/bbi.ts` in BD.
+Not built: all of it (BZ, BE, GG, VC, FR).
 
 ## Tensions
 
@@ -599,26 +533,26 @@ Not built: all of it (BZ, BD, SQ, GG, VC, PF); bigWig's BBI moves onto `internal
   index); a `trimmed` drawing is the variants layer's later, if the use gate asks.
 - **Phasing**: `0|1` and `1|0` give one dosage; haplotypes as two rows a sample need a states system twice the
   samples. Open until a view asks (a phased panel's figure).
-- **No density past the coarsest level of a tabix source**: ClinVar at the whole genome draws "zoom in", where a
-  bigBed of the same data draws its coverage. Accepted: honest and bounded; a host converts a large VCF to bigBed or
-  converts a large VCF to bigBed for its genome view.
+- **No density past the coarsest level of a tabix source or its view's read cost**: ClinVar at the whole genome draws
+  "zoom in". Accepted: honest and bounded; the whole-genome remedy for a 1D layer is a host's bigWig of its density
+  (the built runtime), drawn beside or instead.
 - **Breakends** (`N[chr2:321682[`) are one-position items with their mate in `alt`; served as `pairs` they would draw
   as links. Open until an SV view asks (a later lane, the pairs shape exists).
 - **`itemRgb`** is a field, not a colour: a theme reading `r,g,b` text is the themes design's (a `token:value` form
   over a field). Open.
-- **2bit lengths past 16 MiB of pages** need a chrom.sizes (`sizes`): a draft genome's 2bit alone lists names without
-  lengths, and its assembly says so. Accepted; the issue names the remedy.
 - **GTF without transcript lines by region** has partial extents (the tiles' hull) and draws nothing in an intron-only
   tile. Accepted, said; read whole for exact extents.
 - **A type outside `transcriptTypes`** with exon children reads as a transcript only where its pieces cover it by
   region. Accepted, said once by type; the list is a runtime option.
 - **A source over several files** (one VCF a chromosome: 1000 Genomes, gnomAD): one source a file this slice. Open: a
-  `uri` template by system, if GD's views need it.
+  `uri` template by system, when a view asks (GD's do not).
 - **Genotype classes** lose the copy count past diploid (`1/1/1/0` and `0/0/0/1` are both `1`); the count is `field: 'GT'`.
   Accepted.
 - **A bookmark of an item across `features`**: a gene's id in `genes` is not a transcript's; switching modes leaves a
   bookmark of the other mode waiting. Accepted: bookmarks of positions survive (files.md's rule).
-- **Name search over tabix sources** has no index: a host's large GFF finds nothing by name. Open until trix (Gaps, 12).
+- **Name search reads a GFF3 whole**: within `limits.maxRows` (1M lines); a human GENCODE GFF3 (about 3M) is
+  `too-large` and finds nothing, and tabix sources have no name index. Open: a host's adapter serving `findNames`, or a
+  text index (trix) later.
 - **A GFF3 child outside its parent's extent** differs by region from the whole read (its fields absent in the tile).
   Accepted: malformed GFF3, said.
 
@@ -627,9 +561,9 @@ Not built: all of it (BZ, BD, SQ, GG, VC, PF); bigWig's BBI moves onto `internal
 The claim: **this design covers what a user does with genome files.**
 
 1. **Assume it holds.** A host composes the runtimes it reads; each opens its file by range, reads a region within
-   bounds into the protocol's tables, transcripts and variants and genotypes and pairs and letters; a name finds its
+   bounds into the protocol's tables, transcripts and variants and genotypes and pairs; a name finds its
    item; the files' conventions are converted at the edge.
-2. **What it rests on, negated.** (a) Files are indexed; negated: a plain VCF, a PAF, a GFF without `.tbi`. (b) Files
+2. **What it rests on, negated.** (a) Files are indexed; negated: a plain VCF, a BEDPE, a GFF without `.tbi`. (b) Files
    are well formed; negated: crafted headers, stale indexes, a file replaced under the reader, a truncated BGZF. (c) A
    file is read by position; inverse: found by name. (d) Features are flat; negated: a three-level hierarchy, a shared
    exon, a GTF without transcript lines, a prokaryote's gene with a CDS. (e) One sample; plural: thousands. (f) One
@@ -637,42 +571,39 @@ The claim: **this design covers what a user does with genome files.**
    genome, or one so dense a tile is megabytes. (h) Names match the assembly; negated: `1` against `chr1`, contigs the
    assembly lacks. (i) The platform inflates gzip as one stream; negated: BGZF's members, no `DecompressionStream`. (j)
    What is drawn is counted; negated: an estimate. (k) A format's conventions are one; negated: BED 0, GFF 1, VCF's
-   REF extent, chain's reverse-strand counting.
-3. **The negated world.** (a) whole reads within bounds, a hint to index, `pif` for PAFs; (b) bounds before
-   allocation, a line check per FASTA read, EOF said, `AssetRangeError` failing the region; (c) `findNames`; (d)
-   `assembleTranscripts` by children, not types, a piece of each parent, hulls; (e) `samples`, genotypes parsed only
-   when asked, RR's byte bound; (f) sided systems; (g) levels listed per file from its index's bytes, exact counts, `maxRegionBytes`;
-   (h) the file's names kept, GA's rule maps them; (i) io's block reader and core's `ungzip` fixed; (j) no estimate;
-   (k) conventions fixed per format and converted once.
+   REF extent. (l) A bounded tile is a bounded view; negated: every tile fits and the view is the whole file.
+3. **The negated world.** (a) whole reads within bounds, a hint to index, BEDPE and the `seq` format's pairs indexed by
+   both ends after the read; (b) bounds before allocation, EOF said, `AssetRangeError` failing the region; (c)
+   `findNames`; (d) `assembleTranscripts` by type, a piece of each parent, span rows, hulls; (e) `samples`, genotypes
+   parsed only when asked, RR's byte bound; (f) sided systems (the `seq` runtime); (g) levels listed per file from its
+   index's bytes, exact counts, `maxRegionBytes`; (h) the file's names kept, GA's rule maps them; (i) io's block reader
+   and core's `ungzip` fixed; (j) no estimate; (k) conventions fixed per format and converted once; (l) a view's read
+   cost bounded (`readCost`, `maxBytesPerLayer`).
 4. **Both held.** Integrated: every item of 3 in the Decision. Standing: phasing (e); breakends as pairs; name search
-   over tabix sources (c); no density past a tabix source's coarsest level (g); the anchor base (k); 2bit lengths past
-   the page bound (h); GTF without transcript lines by region (d).
+   past a GFF3 read whole (c); no density past a tabix source's coarsest level or its view's cost (g, l: a host's
+   bigWig); the anchor base (k); GTF without transcript lines by region (d).
 
 ## Consequences
 
 - **`@molstar/io`** (BZ): `common/bgzf.ts`, `common/tabix.ts` (the surface above), tests in `common/_test/` (blocks
-  across a read's edge, the EOF block, a `.gzi`, TBI and CSI, `reg2bins` against the specification's table, a region's
-  lines equal to a whole inflate filtered, every bound refused before it allocates, fuzzed blocks and indexes without a
-  throw); `_spec/bgzf.md`; a v6 changelog entry.
+  across a read's edge, the EOF block, TBI and CSI, `reg2bins` against the specification's table, a region's lines
+  equal to a whole inflate filtered, `regionBytes` equal to the chunks' sum, every bound refused before it allocates,
+  fuzzed blocks and indexes without a throw); `_spec/bgzf.md`; a v6 changelog entry.
 - **`@molstar/core`** (BZ): `ungzip` over a multi-member stream (every member, within its bound), its test; a v6
   changelog entry (a fix).
 - **`biome.json`** (the orchestrator's): `seqx-core`'s allowlist of `@molstar/io` gains `common/bgzf` and
   `common/tabix`.
 - **`seqx-core`**:
-  - `runtimes/` entries (above) and `runtimes/internal/`; the package's exports `"./runtimes/internal/*": null` (hot
-    file); bigWig onto `internal/bbi.ts`.
-  - protocol (`data/protocol.ts`): `itemStart`, `itemEnd`, `measure`, `findNames`, `names`, `NameHit`, `side`; the
-    `data/names.ts`; RG's part (span rows, `measure`, `side`, items for ranges and matrices, `checkAnswer`, `sliceTable`)
-    as the lanes below.
-  - language (GC1's bump): `source.features`, `samples`, `block_index`; `assembly.sizes`; `map.source`; `line: 'gene'`;
-    issues `seq.source.{bgzf,tabix,bed,bigbed,twobit,fasta,gff,vcf,paf,chain}.*`.
-  - render: the ranges layer's `gene` line (GG), item extents from `itemStart`/`itemEnd` for region data, the density
-    hover's measure.
-- **`seqx-viewer`**: nothing but a host composing the runtimes (`withAdapter` for `fasta`, `gff3`); the find box is
-  GC3's.
-- **`seqx-examples`**: the test-only writers (BGZF and tabix, bigBed on bigWig's writer, 2bit, `.fai` and `.gzi`) on
-  core's `PCG`, which GD's generator uses for the toy assemblies' files; the recording script for the real slices
-  (below); `sources.json` rows with licences.
+  - `runtimes/bed`, `runtimes/gff`, `runtimes/vcf` and `runtimes/internal/` (text, lines); the package's exports
+    `"./runtimes/internal/*": null` (hot file); the `seq` runtime's sided pairs, its index of both ends, `map.source`.
+  - protocol (`data/protocol.ts`): `findNames`, `names`, `NameHit`, `data/names.ts` (BZ); RR's part (span rows and item
+    extents, `side`, items for ranges and matrices, `readCost`, `checkAnswer`, `sliceTable`) in RG.
+  - language (GC1's bump): `source.features`, `samples`; `map.source`; `line: 'gene'`; issues
+    `seq.source.{bgzf,tabix,bed,gff,vcf,seq}.*`.
+  - render: the ranges layer's `gene` line (GG), item extents from `itemStart`/`itemEnd` for region data.
+- **`seqx-viewer`**: nothing but a host composing the runtimes (`withAdapter` for `gff3`); the find box is GC3's.
+- **`seqx-examples`**: the test-only BGZF and tabix writer on core's `PCG`, which GD's generator uses for its bgzipped
+  files; the recording script for the real slices (below); `sources.json` rows with licences.
 - **Storybook**: `Features/Genome formats/<format>` (the file's head or its index's summary and the source node beside
   the canvas and the SVG, a misread file and its issues), each with its headless twin on recorded or generated files;
   a Design page "Genome formats".
@@ -680,117 +611,74 @@ The claim: **this design covers what a user does with genome files.**
   regions, cancellation) on a generated fixture and on its recorded real slice; **a region read equals the whole read
   clipped** at every level (a property over generated files and random regions, items deduped across tiles); fuzzed
   and truncated files read without a throw, every bound refused before it allocates; per format: BED12 pieces and
-  `fields` by column number; bigBed's autoSql and `extraIndex`; 2bit's N and mask blocks against a naive decode, both versions and
-  byte orders; FASTA's stale index refused per region, bgzipped with `.gzi`; `assembleTranscripts` (three levels, a
-  shared exon, CDS-only, GTF with and without transcript lines, a cycle, a prokaryote's gene, a type outside the list)
-  and its region twin: **a tile inside an intron gives the transcript's span row**, every tiling of a generated GFF
-  equal to the whole read clipped (EC-227, EC-229); VCF's extent equal to `tbx_parse1`'s per line (an `END=` on a SNV
-  line too), genotype classes (haploid, partial, multi-allelic), ids of duplicates and long SVs; levels listed from a
-  dense and a sparse generated index; 2bit lengths through 4 KiB pages within the bound and none past it; VCF's alleles,
-  INFO types and `Number`s, dosage codes, a long deletion; PAF's CIGAR runs, chain's reverse strand, a liftover of the
-  recorded chain against UCSC's own coordinates recorded at fetch; EC-186, 188, 190, 195, 196, 206, 208, 212, 220, 222,
-  227, 228 named by tests.
+  `fields` by column number; BEDPE and the `seq` format's sided pairs found from either end and either side, deduped
+  once, past the byte budget `too-large`; `assembleTranscripts` (three levels, a shared exon, CDS-only, GTF with and
+  without transcript lines, a cycle, a prokaryote's gene, a type outside the list) and its region twin: **a tile inside
+  an intron gives the transcript's span row**, every tiling of a generated GFF equal to the whole read clipped (EC-227,
+  EC-229); VCF's extent equal to `tbx_parse1`'s per line (an `END=` on a SNV line too), genotype classes (haploid,
+  partial, multi-allelic), ids of duplicates and long SVs, alleles, INFO types and `Number`s, a long deletion; levels
+  listed from a dense and a sparse generated index; the view's read cost past `maxBytesPerLayer` at the fit of the
+  recorded ClinVar index ("zoom in", no data read); a map's runs read by either side; EC-186, 188, 190, 195, 196, 206,
+  208, 212, 220, 222, 227, 228, 229 named by tests.
 - **Performance** (each with its path): a BGZF region of 64 blocks inflated, quick; a `.tbi` of ClinVar's size parsed
   under 50 ms (heavy, `itWithin`); **a VCF region of 10,000 records decoded under 100 ms**, sites, and with 100
-  samples' genotypes under 200 ms (heavy; 1,000 records quick); a bigBed region at the level that fits under 50 ms
-  (heavy, as bigWig); a 2bit megabyte of letters under 20 ms (heavy; 64 kb quick); 100,000 GFF3 lines assembled under
-  500 ms (heavy; 10,000 quick); 100,000 chain blocks read under 300 ms (heavy); the whole genome by region (M5).
-- **Size**, each its own row under 30 kB and in no bundle that does not list it: `bed` about 12 kB, `bigbed` about
-  10 kB (with the shared BBI, bigWig's row unchanged), `twobit` about 6 kB, `fasta` about 5 kB, `gff` about 12 kB,
-  `vcf` about 15 kB, `paf` about 6 kB, `chain` about 4 kB, each with io's BGZF and tabix (about 8 kB) where it reads
-  them; measured at the gate. The minimal and default viewers unchanged.
-- **`_spec` sections that change**: core Data (a section a runtime family: BGZF and tabix, BED, bigBed, 2bit, FASTA by
-  region, GFF and GTF, VCF, PAF and chain; Protocol's additions; names), Language (the params), Render (the ranges
-  layer's `gene` line), Configuration; io's `_spec` (`bgzf.md`).
+  samples' genotypes under 200 ms (heavy; 1,000 records quick); 100,000 GFF3 lines assembled under 500 ms (heavy;
+  10,000 quick); 600,000 BEDPE rows indexed by both ends under 300 ms of slices (heavy; 12,000 quick); the whole genome
+  by region (M5).
+- **Size**, each its own row under 30 kB and in no bundle that does not list it: `bed` about 12 kB, `gff` about 12 kB,
+  `vcf` about 15 kB, each with io's BGZF and tabix (about 8 kB) where it reads them; measured at the gate. The minimal
+  and default viewers unchanged.
+- **`_spec` sections that change**: core Data (a section a runtime family: BGZF and tabix, BED, GFF and GTF, VCF; the
+  `seq` runtime's sided pairs; Protocol's additions; names), Language (the params), Render (the ranges layer's `gene`
+  line), Configuration; io's `_spec` (`bgzf.md`).
 - **Other designs amended**: [files](../../../design/files.md) (BED built; GFF3's Tension closed by `features`; region
-  reads; `fields` by column number, `names` still refused); [sources](../../../design/sources.md) (the runtimes listed);
-  [base-library](../../../design/base-library.md) (BGZF to io with tabix; core's `ungzip`);
-  [protocol](../../../design/protocol.md) (the additions); [security](../../../design/security.md) (the bounds table's
-  formats rows); [performance](../../../design/performance.md) (the time and size rows);
-  [examples](../../../design/examples.md) (the fixture rule: real slices as recorded pages); RR's draft (sided pairs
-  sources; pieces of an alignment; items at a tile size for ranges and matrices); GA's draft (the locus fallback's
-  `findNames`).
-- **Lanes, and the plan's amendment** (the plan's rules: the format lanes touch runtimes, not the language; RG runs
-  alone in the store; one lane at a time on the language):
-  - **GC1** (stage 1, its language bump) declares GF's params (`features`, `samples`, `block_index`, `map.source`,
-    `line: 'gene'`) and GA's `assembly.sizes`, with their docs and checks; no reader. The format lanes reading a new
-    param start after GC1 merges (BD's bigBed and SQ's 2bit need none and start at once).
+  reads; `fields` by column number, `names` still refused); [sources](../../../design/sources.md) (the runtimes listed,
+  the designed-only ones named); [base-library](../../../design/base-library.md) (BGZF to io with tabix; core's
+  `ungzip`); [protocol](../../../design/protocol.md) (the additions); [security](../../../design/security.md) (the
+  bounds table's formats rows); [performance](../../../design/performance.md) (the time and size rows);
+  [examples](../../../design/examples.md) (the fixture rule: real slices as recorded pages).
+- **Lanes** (the plan's rules: the format lanes touch runtimes, not the language; RG runs alone in the store; one lane
+  at a time on the language):
+  - **GC1** (stage 1, its language bump) declares GF's params (`features`, `samples`, `map.source`, `line: 'gene'`),
+    with their docs and checks; no reader. The format lanes reading a new param start after GC1 merges.
   - **Stage 2, runtimes only**: **BZ** (strong, first) io's BGZF and tabix, core's `ungzip`, the allowlist,
-    `runtimes/internal/` (text, lines, BBI), `findNames`' types and `data/names.ts`, `openRange`'s `pageSize`; then
-    beside each other **BD** BED family (whole and by region at level 1, the built `list` and `density` forms) and
-    bigBed (bigWig onto BBI, density without `measure` until RG); **SQ** 2bit and FASTA by region; **GG** GFF3 and GTF
-    read whole (`assembleTranscripts`, `features`) and `line: 'gene'` (render) after GC1; **VC** VCF sites at level 1.
-  - **RG** (stage 3, alone in the store) takes GF's protocol and keys part, as RR's draft (below, word for word): span
-    rows and item extents in `tables.ts`, `measure`, `side` in keys, items at a tile size for every list shape.
-  - **FR** (new, strong, after RG, before LA): the format lanes' by-region rest on RG's protocol: tabix levels from the
-    index's bytes with exact coarse counts (BED, GFF, VCF), GFF's span rows by region, VCF's matrix and genotype
-    classes, bigBed's `measure` and items at a tile size; then **PF** PAF, PIF and chain (pairs, `side`, a map's runs).
-  - **LA after PF** (its liftover reads the chain runtime), so stage 3 is RG → FR → PF → LA; the GATE of stage 2 checks
-    BZ to VC, stage 3's checks FR and PF.
+    `runtimes/internal/` (text, lines), `findNames`' types and `data/names.ts`; then beside each other **BE** the BED
+    family (whole and by region at level 1, the built `list` and `density` forms; BEDPE read whole and indexed by both
+    ends); **GG** GFF3 and GTF read whole (`assembleTranscripts`, `features`, `findNames`) and `line: 'gene'` (render)
+    after GC1; **VC** VCF sites at level 1. bigBed, 2bit, FASTA by region, PAF and chain have no lane (appendix).
+  - **RG** (stage 3, alone in the store) takes the protocol and keys part (RR's): span rows and item extents in
+    `tables.ts`, `side` in keys, items at a tile size for every list shape, `readCost` and `maxBytesPerLayer`.
+  - **FR** (strong, after RG): the format lanes' by-region rest on RG's protocol: tabix levels from the index's bytes
+    with exact coarse counts and `readCost` (BED, GFF, VCF), GFF's span rows by region, VCF's matrix and genotype
+    classes; the `seq` runtime's sided pairs found from either end and `map.source` read by either side.
+  - **LA after RG and FR** (its synteny and liftover read the `seq` runtime's sided pairs), so stage 3 is RG → FR → LA;
+    the GATE of stage 2 checks BZ to VC, stage 3's checks FR.
 
 ## Real slices to record (each fetch asked first, Gate 0, 7)
 
 Recorded as **pages** of the published file (core's 64 KiB pages the runtime read, keyed by file and page; a read the
 recording did not make fails naming its page), so the container written by the real tools is what the test reads; a
 change to a runtime's reads is a re-recording. Each with its `sources.json` row and licence, checked when asked. Around
-TP53 (GRCh38 chr17:7,668,402-7,687,550), the p53 dataset's gene.
+TP53 (GRCh38 chr17:7,668,402-7,687,550), the p53 dataset's gene. Four fetches, numbered as GD's.
 
-| Format | File to fetch | Pages | Licence to check |
-|---|---|---|---|
-| VCF sites | NCBI ClinVar `clinvar_20240107.vcf.gz` and `.tbi` (GRCh38 archive) | the `.tbi` whole (about 520 kB), the header, TP53's chunks | NCBI, public domain |
-| VCF genotypes | 1000 Genomes 30x on GRCh38, chr17's phased panel `.vcf.gz` and `.tbi` (IGSR) | the header, a 10 kb region's chunks (about 300 records × 2,504 samples) | IGSR's terms |
-| bigBed | UCSC hg38 GENCODE `.bb` (the `knownGene` track) | header, chromosome tree, TP53's R-tree path and blocks, the `name` extraIndex path for `TP53` | GENCODE and UCSC's terms |
-| 2bit | UCSC `hg38.2bit` | header, index, chr17's record header, the mask pages TP53's search reads, its bases | UCSC (GRC sequence) |
-| FASTA, bgzipped | Ensembl `dna_index` GRCh38 toplevel `.fa.gz` with `.fai` and `.gzi` | the indexes whole, TP53's blocks | Ensembl, no restrictions |
-| GFF3 | Ensembl GRCh38 `.chr.gff3.gz` | TP53's gene lines cut by the script (a small whole file, `##sequence-region` kept) | Ensembl |
-| GTF | GENCODE `annotation.gtf.gz` | TP53's lines cut | GENCODE |
-| chain | UCSC `hg19ToHg38.over.chain.gz` | the chains touching chr17 cut, and UCSC liftOver's TP53 coordinates recorded beside | UCSC |
-| PAF | a published PAF between two small genomes (JBrowse's grape–peach demo the candidate, GA's peach and grape) | a whole small file or its region | to check; generated if it fails |
-| BED | UCSC hg38 `cytoBandIdeo.txt.gz` (already Gate 0, 6's ask) | whole (a few kB) | UCSC |
+| # | Format | File to fetch | Pages | Licence to check |
+|---|---|---|---|---|
+| 1 | BED | UCSC hg38 `cytoBandIdeo.txt.gz` (Gate 0, 6's ask) | whole (a few kB) | UCSC |
+| 2 | VCF sites | NCBI ClinVar `clinvar_20240107.vcf.gz` and `.tbi` (GRCh38 archive) | the `.tbi` whole (about 520 kB), the header, TP53's chunks | NCBI, public domain |
+| 7 | GFF3 | Ensembl GRCh38 `.chr.gff3.gz` | TP53's gene lines cut by the script (a small whole file, `##sequence-region` kept) | Ensembl |
+| 8 | GTF | GENCODE `annotation.gtf.gz` | TP53's lines cut | GENCODE |
 
-The repository already holds the current Seq\*'s recordings of hg38's 2bit, GENCODE bigBed and ClinVar (by its own
-reads); they cannot serve page reads as recorded, so they are not reused (Gaps, 16).
-
-## Where this differs from GA's and RR's drafts, and the text they take word for word
-
-- **For RR's draft, Pairs (after "Pairs are tiled in 1D, by either end")**:
-  > **A pairs source between two genomes is sided.** Its coverage marks each system's side (`SystemInfo.side: 'a' |
-  > 'b'`), so `chr1` may be listed once a side; a request on it names the side it reads (`RegionRequest.side`), and the
-  > store's key carries it in its system part (`a:chr1`, escaped as built). Side `a` is the side the alignment maps
-  > from (PAF's query, a chain's `t`). A `pairs` node's `a` and `b` map each side's names through GA's names rule. A
-  > source over one genome (BEDPE, self-synteny, Hi-C) is unsided. Rows sharing `row` with other starts are the blocks
-  > of one alignment (its pieces): a hit names the alignment.
-- **For RR's draft, "Items are read at a tile size, not a bin"**, its first sentence replaced by:
-  > **Items are read at a tile size, not a bin, for every list shape** (`pairs`, `ranges`, `matrix`): the `list` form
-  > (and a matrix's `items`) may be asked at any listed level, the level then only the tile's width.
-- **For RR's draft, the Tables and the store** (a new bullet under The answer shapes):
-  > **A ranges row may carry its item's whole extent** (`RangesList.itemStart`, `itemEnd`) when rows are pieces; a
-  > **span row** (`start = end`, with an extent) is an item with no piece in the tile, drawn as its connecting line and
-  > hit as the item. `sliceTable` emits a span row for an item whose pieces lie outside the slice, so a region read and
-  > the whole read clipped agree. `RangesDensity.measure` (`items`, the default, or `coverage`) says what `count`
-  > counts.
-- **For RR's draft, the matrix's `codes`** ("genotypes `0`, `1`, `2`, 255 missing") replaced by:
-  > `codes` (uint8: a genotype class of the item's allele: `0` no copy, `1` some but not every copy, `2` every copy, a
-  > haploid call included, `3` partly called, `255` uncalled; the copy count is a `value` channel, `field: 'GT'`)
-- **For GA's draft, An assembly** (after `alias_source`'s bullet):
-  > **`sizes`** (a ref: a source whose coverage lists the sequences' lengths, a chrom.sizes or a `.fai`): read before
-  > `source`, its lengths winning; absent, `source`'s. A derived sequence with no length from either makes the
-  > assembly unavailable (`seq.resolve.assembly.lengths`, error, naming the sequences and `sizes`), never drawn with a
-  > guessed length. Why: a large 2bit lists names without lengths past its read bound, and UCSC ships its chrom.sizes
-  > beside it.
-- **GA's map between assemblies** is read by region; its data here is a pairs source's equal-length rows
-  (`map.source`); the projection by region stays GA's (GC1) and the figure LX's. No text change asked.
+The repository's current Seq\* recording of ClinVar (by its own reads) cannot serve page reads as recorded, so it is
+not reused.
 
 ## Gaps for the author
 
 Each a yes or no; the recommendation first.
 
 1. **BGZF and tabix (TBI and CSI) in `@molstar/io/common/bgzf` and `common/tabix`** with the surface above (lines as
-   bytes, extents by the index's rule), and `seqx-core`'s io allowlist widened to them: yes.
-2. **Core's `ungzip` fixed for multi-member streams by splitting members** (verified failing: the ISIZE of the EOF
-   block, the platforms' refusal of trailing members; BZ's test first): yes.
-3. **One opt-in entry a format family**, `fasta` and `gff3` taken from the defaults by `withAdapter` (the defaults
-   unchanged): yes.
+   bytes, extents by the index's rule, no `.gzi`), and `seqx-core`'s io allowlist widened to them: yes.
+2. **Core's `ungzip` fixed for multi-member streams by splitting members** (BZ's test first): yes.
+3. **One opt-in entry a format family**, `gff3` taken from the default by `withAdapter` (the default unchanged): yes.
 4. **BED's extra columns named by the built `fields` with a column number** (`{ stain: '4' }`), no new param: yes.
 5. **`source.features`** (`transcripts` by default, `genes`, `rows`), a line's role by its type (`transcriptTypes`), an
    intron-only tile giving a span row; a GTF without transcript lines exact only when read whole: yes.
@@ -798,48 +686,40 @@ Each a yes or no; the recommendation first.
 7. **No dynamic transcript nodes with codon maps from a GFF** this slice (transcripts are items): yes.
 8. **Coarse counts of a tabix source exact or absent**, its levels listed per file from its index's bytes (a level
    only when every tile fits `maxRegionBytes`), no estimate drawn: yes.
-9. **bigBed's zoom levels as coverage density** (`measure: 'coverage'`): yes.
-10. **Sided pairs sources** (`side` on systems and requests; side `a` the map's from side: PAF's query, chain's `t`),
-    amending RR: yes.
-11. **GF's language additions ride GC1's bump** (`features`, `samples`, `block_index`, GA's `sizes`, `map.source`,
-    `line: 'gene'`), so the language changes once: yes.
-12. **`findNames` as an optional capability** (read-whole sources and bigBed's `extraIndex`; tabix sources none, trix
-    later): yes.
-13. **`pif`** (a PAF indexed from both ends through tabix) in PF: yes; else large PAFs only whole within `limits`.
-14. **The plan amended**: GC1 declares GF's and GA's params; stage 2 runtimes only (BZ, BD, SQ, GG, VC sites); RG takes
-    the protocol and keys part; a new lane **FR** after RG for the by-region rest; PF after FR; LA after PF: yes.
-15. **Every 2bit length read at open through 4 KiB pages within 16 MiB**, else none listed and GA's `assembly.sizes`
-    (a chrom.sizes, `chrom-sizes` in the BED entry) required: yes.
-16. **Real slices as recorded pages** of the files listed, each fetch asked, the current Seq\*'s recordings not reused:
-    yes.
-17. **bgzipped FASTA with `.gzi`** (`block_index`) in SQ: yes, cut first if SQ runs long.
-18. **The anchor base kept** in a VCF allele's extent (the index's rule; igv trims): yes.
-19. **Genotype classes** (`0`, `1`, `2` with a haploid call, `3` partly called, `255`) in RR's matrix codes, the copy
+9. **GF's language additions ride GC1's bump** (`features`, `samples`, `map.source`, `line: 'gene'`): yes.
+10. **`findNames` as an optional capability**, served by a GFF3 read whole; tabix sources none, trix later: yes.
+11. **Real slices as recorded pages** of the four files listed, each fetch asked: yes.
+12. **The anchor base kept** in a VCF allele's extent (the index's rule; igv trims): yes.
+13. **Genotype classes** (`0`, `1`, `2` with a haploid call, `3` partly called, `255`) in RR's matrix codes, the copy
     count a `field: 'GT'` value: yes.
-20. **VCF levels per file from its index's bytes** (a dense file read in 16 kb tiles, no `levels` per source to
-    write): yes.
 
-## Review, unresolved
+Taken (the author, 2026-11-21): the three runtimes built and the rest designed only; no `.gzi` in io; BEDPE indexed by
+both ends after a whole read, its held rows within a byte budget, no doubled BEDPE; the `seq` runtime's sided pairs
+from either end; a view's read cost bounded; a host's bigWig as the whole-genome remedy; the lanes BZ → BE, GG, VC →
+RG → FR → LA.
 
-The independent review (2026-11-21) found three blocking issues (GFF by region inside an intron, 2bit lengths past a
-bound against GA's draft remedies, the lane order against the plan's rules) and the rest to fix; the revision took
-them all. Still open after it, for the gate:
-- A GTF without transcript lines read by region has partial extents (said; exact when read whole).
-- A dense VCF's sites past its listed levels draw "zoom in" (a bigBed is the remedy), and a source over several
-  files (one a chromosome) is not designed.
-- Phasing, breakends as pairs, name search over tabix sources (trix), the anchor base, `itemRgb` as a colour.
-- PIF's `I`/`D` swap on `t` lines is taken from JBrowse's writer, verified in PF before it is relied on.
-- RR's and GA's drafts take the texts above word for word, or the gate reconciles them.
+## Appendix: designed only
 
-## Review, unresolved
+No runtime this slice; a host brings its own through `withAdapter`, or a later slice builds one when a use asks. What
+each would take, in short:
 
-The independent review (2026-11-21) found three blocking issues (GFF read by region inside an intron, 2bit lengths past
-4,096 sequences against GA's `minLength`, the lane order against the plan's rules) and eight to fix; the revision took
-them all. The text RR's and GA's drafts must take (section "Where this differs…") is carried to them at the gate. Still
-open after it:
-- A GTF without transcript lines has exact extents only when read whole.
-- Dense VCFs show "zoom in" past their levels.
-- One source over several files (1000 Genomes and gnomAD ship one per chromosome) is not designed.
-- Phasing, breakends as pairs, name search over tabix sources (trix), the VCF anchor base, `itemRgb`.
-- PIF's swapped I/D is to be verified in PF.
-- LX's revision (across-sections.md, "Where this differs…") asks for text here; taken at the gate.
+- **bigBed** (`runtimes/bigbed`): the BBI container shared with bigWig (moved to `runtimes/internal/bbi.ts` then);
+  items `chromId, start, end, rest`, fields typed by the autoSql (else BED's names and `fields` by number), BED12's
+  lists as pieces; items at any listed level as a tile width; `extraIndex` B+ trees as `findNames`. Its zoom levels
+  count covered bases, not items, so a density from them needs a `measure` on `RangesDensity` (`items`, `coverage`),
+  added with the runtime.
+- **2bit** (`runtimes/twobit`): versions 0 and 1, either byte order; lengths live in each record's header, so every
+  length at open costs a read a header (4 KiB pages through `openRange`'s page size, bounded; past the bound none
+  listed, the assembly's lengths inline or `chrom-sizes`); letters by region with N blocks applied; mask blocks found
+  by binary search on disk; N and mask blocks served as `ranges` (`gap`, `masked`).
+- **FASTA by region** (`runtimes/fasta`, in place of the built one by `withAdapter`): a `.fai`'s offsets, each read
+  checking the line structure it spans (a stale index `malformed` for that region); bgzipped with a `.gzi`, which
+  needs io's `parseGzi` and `BgzfReader.readUncompressed` (added with the runtime, through a source's `block_index`).
+- **PAF and PIF** (`runtimes/paf`): side `a` the query; an alignment an item, its ungapped blocks its pieces (rows
+  sharing `row`); CIGAR `M`, `=`, `X` runs, `I`, `D` gaps, `N` a gap on `b`, `S`, `H` outside the range (EC-212), at
+  most `maxCigarOps` a line; on strand `-` the query walked backwards from `qEnd`; a line without `cg:Z` one row of
+  unequal ends, never a run. PIF (each line twice under tabix, `q` and `t` prefixed, `t` lines with `I` and `D`
+  swapped: to verify on a PIF made from a PAF) reads by region from either end.
+- **Chain** (`runtimes/chain`): side `a` the `t`; blocks `size dt dq` walked from `tStart`, `qStart`; `qStrand -`
+  counted on the reverse strand; every block inside its ranges and sizes, else the chain left out; read whole and
+  indexed by both ends, as BEDPE.

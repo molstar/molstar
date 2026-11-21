@@ -3,17 +3,18 @@
 Draft of lane RN (the fifth slice, stage 0) for Gate 0's agreement; on agreement it moves to `design/` and amends
 [extension-openings](../../../design/extension-openings.md) (Part 1's "Enough for the genome ring?", the entry's
 exports, extension bindings), [layouts](../../../design/layouts.md) (Rings: the hole's title as a spec param) and
-[themes](../../../design/themes.md) (an extension's scheme), and asks text of GA's and RR's drafts (below, "Where this
-differs…"). Built on Gate 0's answers as recommended ([plan](../plan.md)): its own package `packages/seq/ext-rondo` (3);
-bundling over **core's pairs level** (4); ring zoom as **a cut to a second section** (5); cytobands synthetic in tests,
+[themes](../../../design/themes.md) (an extension's scheme); what it needs of the core is in GA's and RR's designs
+(`section.include`, `navigator.switch`, the `system` domain before `include`, `pairsLevels`' arguments, `coarsenBins`,
+a filter's rebuild). Built on Gate 0's answers as recommended ([plan](../plan.md)): its own package `packages/seq/ext-rondo` (3);
+bundling over **core's pairs level** (4); ring zoom as **a cut** (5: `section.include` in place, a second section as the builder's option); cytobands synthetic in tests,
 UCSC's in the showcase if its licence allows, asked before the fetch (6); the navigator over several systems core's (8).
 Built on the four committed drafts and taking what they decided: [genome-coordinates](genome-coordinates.md) (GA:
 assemblies, blocks, `placesOf`, runs, a ribbon's twist, the `block` and `system` fields' block-ordered domain, the
 square's two-axis window over blocks × blocks, stubs on a ring RN's), [region-reads](region-reads.md) (RR: pairs tiled
 in 1D by either end, the pairs level of bin-pair counts by strand, `PairsReader` over held and region pairs, items gated
 by counts with hysteresis, "a lattice, not a clustering: clustering over bins is RN's picture"),
-[genome-formats](genome-formats.md) (GF: BED's `fields` by column number for cytobands, sided pairs, the real-slice
-table), [across-sections](across-sections.md) (LX: ribbons and stubs are core's in a bridge only, on a ring RN's; the
+[genome-formats](genome-formats.md) (GF: BED's `fields` by column number for cytobands, BEDPE read whole and indexed
+by both ends, GFF by region for a host's gene detail, the real-slice table), [across-sections](across-sections.md) (LX: ribbons and stubs are core's in a bridge only, on a ring RN's; the
 twist drawn by corresponding positions; one hit rule, the drawn run as a `rect`; the `ribbons.*` look). On the extension
 contract as the fourth slice's EX builds it ([extension-openings](../../../design/extension-openings.md), Part 1: the
 descriptor, namespaced types with plain params and a `fallback`, one `extension` entry) and CN (Part 2: navigator
@@ -49,14 +50,14 @@ honestly simpler.
 |---|---|
 | hover a chromosome: its links lit, the rest faded (Rondo, d3-chord) | built: hover a block's arc or its stems; an emphasis wash over the rest of the hole |
 | hover a ribbon: its two clusters and count (Rondo, Circos tooltips) | built: the card (Decision, Hover) |
-| click a chromosome to open it as its own ring (Rondo) | built: a block label's menu "Show only chr4" (core's `section.include`, GA amended), the square's click, or a double-click on a stem with `opens` (Gaps, 7) |
+| click a chromosome to open it as its own ring (Rondo) | built: a block label's menu "Show only chr4" (core's `section.include`, GA's), the square's click, or a double-click on a stem with `opens` (Gaps, 7) |
 | open a pair of chromosomes (Rondo's square) | built: the square's cell click (`navigator.switch: include`) |
 | back to the whole genome (Rondo) | built: undo (one patch), the square's title click, the label menu's "Show all" |
 | see a cluster's own links by zooming in (Rondo) | built: the chromosome's ring reads finer bins, then items, and the stems part |
 | filter by a minimum number of connections (Rondo) | built: the layer's data filter on `count` (EC-225) |
 | filter by Q-value (Rondo) | partly: on items, and on bins only where the pyramid is rebuilt for the filter (Gaps, 8) |
 | filter by region (Rondo) | built: `section.include`, or a selection's ribbons in the accent |
-| gene detail from about 1 Mb (Rondo) | refused as a default: a host adds a genes track (GF's bigBed) to the chromosome's ring |
+| gene detail from about 1 Mb (Rondo) | refused as a default: a host adds a genes track (a GFF by region, GF's `gff` runtime) to the chromosome's ring |
 | export SVG, PNG (Rondo, Circos) | built: the export draws the ribbons and stems as paths |
 | export PDF, BEDPE, BED, a matrix (Rondo) | refused here: a host's |
 | rotate the ring (Circos) | built: the section's `rotation` (layouts) |
@@ -98,7 +99,7 @@ store, the placement and the theme through the `extension` entry.
 | Entry | Kind | Fallback | Reads |
 |---|---|---|---|
 | `rondo:ribbons` | layer type, `scope: 'section'`, on `rings` (and a `tracks` row, below) | `pairs` (written by `rondoRing`) | `pairs` (RR's `PairsReader`: bins at a level, items in a region) |
-| `rondo:cells` | layer type for the square's picture: block × block cells | `none` (written for the rule; unreachable, since a reader without `rondo` draws the whole picture as `axis`) | `pairs` bins at the coarsest level, by block (RR, "Where this differs from GA's") |
+| `rondo:cells` | layer type for the square's picture: block × block cells | `none` (written for the rule; unreachable, since a reader without `rondo` draws the whole picture as `axis`) | `pairs` bins at the coarsest level, by block (GA's square) |
 | `rondo:square` | navigator picture, `axes: both` | `axis` (the lattice and labels, fixed) | its tracks: one `rondo:cells` layer over the bound layer's data |
 | `rondo:hues` | scheme over categories: n hues evenly round the oklch wheel, n the domain's size | the layer type's default colour | — |
 | `rondo:partner` | command (`navigate`) | — | the stem under the cursor |
@@ -122,7 +123,7 @@ No node kind, no data shape, no format runtime (extension-openings, Part 1): RR'
   what it draws. Held and region pairs alike (`PairsReader`).
 - **On blocks**: ends placed by GA's `placesOf` (every block that shows the position, each place counted against the
   bound), runs and unread blocks by the joint rule (an end on an unread block at its place, read from its other end's
-  tile). Two assemblies on one ring (EC-210) read a sided source by each side's assembly (GF).
+  tile). Two assemblies on one ring (EC-210) read a sided source by each side's assembly (RR's sides).
 
 ### Stems: a coarser level of the pyramid (the trumpets)
 
@@ -131,8 +132,8 @@ No node kind, no data shape, no format runtime (extension-openings, Part 1): RR'
   `rondo.stemPx` (16 CSS px) of positions at the ring's outer circumference in **CSS px of the section's layout**, never
   device px. Stem bins are aligned on position 0 of each system, so a stem is a union of whole `L` bins and its counts
   are exact sums (RR's levels are nested). Why a level and not a clustering by gaps: dense data leaves no gaps, so
-  gap clustering cuts fixed chunks arbitrarily; a level is exact, cached by level (one `binPairs` reduction of `L` by
-  `2^j`, kept by the entry's version), the same on screen, in the SVG and at any DPR, and changes on a resize only
+  gap clustering cuts fixed chunks arbitrarily; a level is exact, cached by level (one `coarsenBins` reduction of the
+  `L` bins by `2^j`, RR: bins to bins, kept by the entry's version), the same on screen, in the SVG and at any DPR, and changes on a resize only
   when the target crosses a power of two. RR's Tension ("a lattice, not a clustering") stays: a cluster across a stem
   edge is two stems, accepted for exactness (Tensions).
 - **Its counts are sums**: a stem's count is the pairs with an end in it (each pair once: RR's dedupe across tiles and
@@ -195,9 +196,9 @@ No node kind, no data shape, no format runtime (extension-openings, Part 1): RR'
 ### Colour: a hue per block
 
 - **The default channel is `(field :name system)`** of the data's `a` end (LX's rule for one section, taken), stems by
-  their own block's. GA gives `system` a domain of the assembly's names in order; RN asks that this domain be taken
-  **before `include`** (theirs and the section's, below), so chr7 has one hue on the genome's ring, on chr4's ring and
-  on a stub pointing at it (text for GA below). Why `system`, not `block`: a block's domain is the section's blocks, and
+  their own block's. GA gives `system` a domain of the assembly's names in the assembly's order, taken
+  **before `include`** (the assembly's and the section's), so chr7 has one hue on the genome's ring, on chr4's ring and
+  on a stub pointing at it. Why `system`, not `block`: a block's domain is the section's blocks, and
   a chromosome's ring has one. This amends EC-191's block-ordered domain (GA) for `system`: the assembly's order,
   never the section's blocks.
 - **The palette**: the layer's default is the theme's default categorical palette (`categories`, 8 tokens, safe in both
@@ -224,9 +225,9 @@ No node kind, no data shape, no format runtime (extension-openings, Part 1): RR'
 ### The ring zoom: a cut, by `section.include` (Gate 0, 5)
 
 - **Opening a chromosome changes which blocks a section shows**, not a viewport: a ring shows its whole axis and its
-  key never holds a viewport (layouts, GA). So RN asks GA for **`section.include`** on a section of an assembly (the
-  assembly's `include` grammar: names, patterns, `{ minLength }`; intersected with the assembly's own) and a core
-  command `section.include` (change kind `patch`, one undo step): "show only chr4" patches `include: ['chr4']`, a pair
+  key never holds a viewport (layouts, GA). So the ring reads GA's **`section.include`** on a section of an assembly (the
+  assembly's `include` grammar: names, patterns, `{ minLength }`; intersected with the assembly's own) and its core
+  command (change kind `patch`, one undo step): "show only chr4" patches `include: ['chr4']`, a pair
   `['chr4', 'chr7']`, "show all" removes it. Why a section param and not new `block` nodes: one param to patch and to
   undo, the same grammar as the assembly's, the hue domain and `order` untouched; and it gives GA's standing
   "switching on a section of one chromosome" its answer for rows too (UCSC's one chromosome at a time).
@@ -244,19 +245,18 @@ No node kind, no data shape, no format runtime (extension-openings, Part 1): RR'
 - **Core's square** (GA, Gate 0, 8): a navigator with `axes: both` over an assembly's blocks × blocks, its lattice laid
   out by the run rule. **Its lattice is the assembly's** (after the assembly's `include`, never the bound section's),
   so after "Show only chr4" the square stays 23 × 23 with every cell but chr4 × chr4 washed, and **washed cells stay
-  clickable under `switch: include`** (the wash says "not shown", not "unreachable"). RN asks GA for two things (text below): a navigator may
-  bind **one section on both axes** (`of: [ring, ring]`: its reachable cells are the section's block pairs, the rest
+  clickable under `switch: include`** (the wash says "not shown", not "unreachable"). GA's square gives the two things the ring needs: a navigator
+  may bind **one section on both axes** (`of: [ring, ring]`: its reachable cells are the section's block pairs, the rest
   washed), and **`navigator.switch`** (`none`, the default; `include`): a click on a block or a cell runs
   `section.include` on the bound section with that block or pair (a click on the cell of what it already shows: no
   change), a click on the navigator's title (the assembly's name) or Home on its focus removes the `include`. Why in
   core: a ring's window is idle unless followed, so a centring click does nothing there, and switching a section of
-  one chromosome is GA's open tension for rows too; the extension only draws.
+  one chromosome is wanted on rows too; the extension only draws.
 - **`rondo:square` draws the cells**: a picture (CN's contract) returning one track with a `rondo:cells` layer over the
   bound `rondo:ribbons` layer's data (named by the picture's `of_layer` param, else the first `pairs`-shaped layer of
   the bound section): a cell a block pair coloured by its count on a square-root ramp (`seq-ramp-*`), the diagonal
   (links within a chromosome) included, upper and lower mirrored for unsided data; sided data (two assemblies) fills
-  both triangles from its own sides. Read as RR's revision has it ("Where this differs from GA's"): pairs have no 2D
-  summary, so one want a block at the coarsest pairs level (a tile holds every pair with an end in it), summed into one
+  both triangles from its own sides. Read as GA's square reads pairs: no 2D summary, so one want a block at the coarsest pairs level (a tile holds every pair with an end in it), summed into one
   image of block × block cells, reduced to its pixels by the shared reduction; its cost is the blocks, not their
   square, and the image is always drawn. `navigator.square.maxCells` (4,096) is GA's: past it the lattice's lines are
   not drawn, never a cap on what is read. Hover: "chr4 × chr7 · 37 links"; the window outline over the cells
@@ -328,7 +328,7 @@ navigator with `content: 'rondo:square'`, `switch: 'include'`, `of: [ring, ring]
 ### The hole
 
 The ribbons fill the hole, where the ring draws its title (`rings.center: 'title' | 'none'`, a `RenderConfig` preset,
-built). RN asks layouts to **promote it to a section spec param `center`** (the same values; absent: the preset), written `none` by `rondoRing`, the
+built). Layouts' preset is **promoted to a section spec param `center`** (the same values; absent: the preset), written `none` by `rondoRing`, the
 assembly's name and length then in the section's label line. Why a spec param: the title over ribbons is the figure's
 choice, and a reader without the extension draws chords there too.
 
@@ -358,7 +358,8 @@ choice, and a reader without the extension draws chords there too.
 - **Taken from the drafts, not redesigned**: EC-62 and EC-208 (RR: pairs read by region from either end), EC-102 and
   EC-184 (GA: gaps at scale, runs; switching chromosomes, here by `section.include`), EC-110 (navigators: the idle
   window of a ring nobody follows), EC-12 (the shortest arc on a focus).
-- **Assigned**: a Q-value filter at the bins level (RR, Gaps, 8); gene detail (a host's track over GF's runtimes).
+- **Assigned**: a Q-value filter at the bins level (RR's rebuild of held and summarized pyramids, Gaps, 8); gene
+  detail (a host's genes track over GF's `gff` runtime by region).
 
 ## Defaults, with a picture
 
@@ -436,9 +437,9 @@ Cells this design fills; the others stand as layouts, GA, RR and LX give them.
 | `stubs` | spec param (plain) | `partner` | "where else does it go"; `none` (core's caret) |
 | `opens` | spec param (plain) | absent | a section whose `include` a double-click sets (Gaps, 7) |
 | the colour channel | spec param (theme slot) | `(field :name system)` of the `a` end, `categories` | a hue per chromosome, safe; `rondo:hues` named by the writer |
-| `section.include` (GA amended) | spec param | absent (every block of `of`) | the chromosome or pair shown; names, patterns, `{ minLength }` |
+| `section.include` (GA's) | spec param | absent (every block of `of`) | the chromosome or pair shown; names, patterns, `{ minLength }` |
 | `section.center` (layouts amended) | spec param | the preset (`title`) | `none` under ribbons |
-| `navigator.switch` (GA amended) | spec param | `none` | `include` on the square over a ring |
+| `navigator.switch` (GA's) | spec param | `none` | `include` on the square over a ring |
 | `content: 'rondo:square'`, `of_layer` | spec params | the first pairs-shaped layer of the bound section | the cells read the ring's data |
 | `rondo.stemPx` | extension config | 16 CSS px of the layout, never device px | a stem a mouth a reader can point at; the stem level the largest `2^j` × a listed level under it |
 | `rondo.stemDepth` | extension config | 0.12 of the hole's radius | room for the flare before ribbons part; any |
@@ -524,8 +525,8 @@ The claim: **this design covers what a user does with a Rondo-like genome ring, 
     hover under 2 ms (heavy, `itWithin`); the draw and hover loops at 0 bytes warm (the allocation tier, the plan's
     "a ribbon frame"); the ring in the browser at DPR 2 (M5).
 - **`seqx-core`**: `section.include` and its resolve (GC1's bump, GA's text); `section.center` (GC2); the `system`
-  field's domain before `include` (GC2); the `extension` entry exports RR's `PairsReader`, the bins' types and the level
-  rule (`pairsLevels` with `binPx` and `gate` arguments), GA's `placesOf`, and the polar warp (`PolarWarp`, already
+  field's domain before `include` (GC2); the `extension` entry exports RR's `PairsReader`, the bins' types, the level
+  rule (`pairsLevels` with `binPx` and `gate` arguments) and `coarsenBins`, GA's `placesOf`, and the polar warp (`PolarWarp`, already
   listed); the `LayerType` hooks `describe`, `summary`, `announce` (EX amended); `navigator.switch`, the square bound
   to one section on both axes, its lattice the assembly's (GC3); `rings.center` promoted to `section.center` (GC2).
 - **`seqx-viewer`**: the `section.include` command (`patch`) and the label menu's "Show only" and "Show all" (GC3);
@@ -537,58 +538,22 @@ The claim: **this design covers what a user does with a Rondo-like genome ring, 
   headless twin on a fake clock (bins landing, then items in chr4's ring); the same story with the extension removed.
 - **`_spec` sections that change**: core Language (section `include`, `center`; navigator `switch`), Resolved view,
   Render (Rings: the title; Navigators: the switch; the extension entry); viewer Commands, Menus, Bindings.
-- **Other designs amended**: [extension-openings](../../../design/extension-openings.md) (Part 1's "Enough for the
-  genome ring?" replaced, below; the entry's exports; extension bindings scoped to their layer's hits);
+- **Other designs amended**: [extension-openings](../../../design/extension-openings.md) (the entry's exports;
+  extension bindings scoped to their layer's hits; Part 1's "Enough for the genome ring?" replaced by the text below);
   [layouts](../../../design/layouts.md) (Rings: `center` a spec param; the zoomed ring a section's `include`);
   [themes](../../../design/themes.md) (an extension's unsafe scheme with its substitute, `rondo:hues` as the example);
   [features](../../../design/features.md) (the genome ring row planned with RX); [navigators](../../../design/navigators.md)
   through GA (the switch).
 
-## Where this differs from GA's, RR's and LX's drafts, and the text they take
-
-Each quoted text joins or replaces the named place, word for word. GF's needs nothing (its cytoband row and BED
-`fields` are taken as written).
-
-- **GA** (genome-coordinates.md):
-  - In "A section of an assembly: chromosomes as blocks", a new bullet after `section.of`:
-    > **`section.include`** (spec param, on a section of an assembly or a list of them): which of the derived blocks the
-    > section shows, in the assembly's `include` grammar (names, patterns, `{ minLength }`), intersected with the
-    > assembly's own; absent, every block. A command `section.include` (`patch`, one undo step) sets or removes it; a
-    > block label's menu has "Show only <name>" and "Show all". So a ring of one chromosome or of a pair is the
-    > genome's section with one param changed, a cut (stories), and a section of one chromosome can switch.
-  - In "A hue per block" (amending EC-191's domain for `system`), after "and `system` the same over an assembly's names":
-    > , in the assembly's `order` before any `include` (the assembly's or a section's), so a sequence has one hue on
-    > every section of its assembly, a ring of one chromosome and a stub pointing at it included.
-  - In "Two axes over blocks (the square)", after "draws blocks × blocks":
-    > A navigator may bind one section on both axes (`of: [s, s]`). Its lattice is the assembly's (after the
-    > assembly's `include`, never the section's), its cells the section shows drawn plain and the rest washed ("not
-    > shown"), every cell still clickable under the switch. **`navigator.switch`** (`none`, the default; `include`): a click on a block or a cell runs
-    > `section.include` on the bound section with that block or pair, a click on the navigator's title or Home on its
-    > focus removes it; the window, where the bound section has one, keeps its gestures.
-  - Tensions, "Switching on a section of one chromosome": replaced by "answered by `section.include` and
-    `navigator.switch`".
-- **RR** (region-reads.md), in "How a level is chosen at a zoom", after **Pairs**:
-  > The pairs rule's numbers are its arguments (`pairsLevels(view, { binPx, gate })`, `pairs.binPx` and
-  > `pairs.maxArcs` by default), so a layer that draws fewer items than arcs (an extension's ribbons) gates at what it
-  > draws; the hysteresis is `pairs.itemsHysteresis` × its gate.
-- **RR** (region-reads.md), in "Summaries", after "Held pairs get the same levels":
-  > **A data filter on an item's field** (a Q-value) narrows the bins only where they are built from items: held pairs
-  > and a one-level source summarized whole rebuild their pyramid for the filter (its version in the key); a source's
-  > own levels apply it to items only, its bins said once (`seq.render.pairs.filter`, info: "the filter applies when
-  > zoomed in"). A filter on `count` or `type` applies to bins as to items.
-- **LX** (across-sections.md): nothing redesigned; its `ribbons.fillOpacity` and `ribbons.minPx` are read by
-  `rondo:ribbons` (one look; its `stubShare`, of a bridge's band, is not); its twist rule restated for a ring by low and
-  high edges (Ribbons, above), which equals GA's formula.
-- **extension-openings.md**, Part 1, "Enough for the genome ring?", replaced by:
-  > **Enough for the genome ring** (the fifth slice's `rondo`): `rondo:ribbons` (a `scope: 'section'` layer over core's
-  > pairs level, Gate 0, 4, on `rings` through the warp), `rondo:cells` and the `rondo:square` picture on core's square,
-  > `rondo:hues`, two commands and a binding; the ring zoom is core's `section.include` (a cut), the square's switch
-  > core's. The entry exports `PairsReader`, the pairs bins' types, `pairsLevels` and `placesOf` beside the warp. A
-  > `LayerType` may give `describe(hit, lay)` (the hover card's lines), `summary(lay)` (its group's ARIA description)
-  > and `announce(lay, system, position)` (what the keyboard cursor adds there); the viewer calls them, its own text
-  > after. An extension binding may be scoped to its own layer type's hits, and then wins over the grammar's default
-  > there. One `seq.view.layer.extension` a namespace and view says every part drawn as its fallback (layers,
-  > pictures, schemes).
+> **Enough for the genome ring** (the fifth slice's `rondo`): `rondo:ribbons` (a `scope: 'section'` layer over core's
+> pairs level, Gate 0, 4, on `rings` through the warp), `rondo:cells` and the `rondo:square` picture on core's square,
+> `rondo:hues`, two commands and a binding; the ring zoom is core's `section.include` (a cut), the square's switch
+> core's. The entry exports `PairsReader`, the pairs bins' types, `pairsLevels`, `coarsenBins` and `placesOf` beside
+> the warp. A `LayerType` may give `describe(hit, lay)` (the hover card's lines), `summary(lay)` (its group's ARIA
+> description) and `announce(lay, system, position)` (what the keyboard cursor adds there); the viewer calls them, its
+> own text after. An extension binding may be scoped to its own layer type's hits, and then wins over the grammar's
+> default there. One `seq.view.layer.extension` a namespace and view says every part drawn as its fallback (layers,
+> pictures, schemes).
 
 ## Gaps for the author
 
@@ -600,7 +565,7 @@ Each a yes or no; the recommendation first.
    neck is always the sum (the cap and additivity hold; the floor gives): yes.
 3. **The ring zoom as `section.include`** (a core spec param and `patch` command, in GA), in place by default, a
    second ring below as the builder's option; back by undo: yes.
-4. **The square bound to one section on both axes, with `navigator.switch: include`** (core, GA amended), RN drawing
+4. **The square bound to one section on both axes, with `navigator.switch: include`** (core, GA's), RN drawing
    only its cells: yes.
 5. **The layer's default palette the safe `categories`** (repeating past 8); `rondo:hues` (24 distinct, not safe,
    substitute `categories`) named by the showcase spec: yes.
@@ -609,28 +574,16 @@ Each a yes or no; the recommendation first.
    scoped to its layer's hits that wins over the grammar's focus there (extension-openings amended): yes (else menus
    and the square only).
 8. **A data filter on an item field rebuilds held and summarized pyramids**; a source's own levels filter items only,
-   said (RR amended): yes.
+   said (RR's): yes.
 9. **`rings.center` promoted to a section spec param `center`** (`title`, `none`) so ribbons own the hole: yes.
 10. **Cytobands**: ask UCSC's licence for `cytoBandIdeo.txt.gz`, then fetch it once into `seqx-examples` with its
     script and `sources.json` row (not the current Seq\*'s unlicensed copy); NCBI's public-domain ideogram if UCSC's
     terms refuse: yes.
-11. **`rondo.maxRibbons` 1,024 as both the items gate and the drawn bound** (`pairsLevels`' `gate`, RR amended),
+11. **`rondo.maxRibbons` 1,024 as both the items gate and the drawn bound** (`pairsLevels`' `gate`, RR's),
     fans only for ribbons under a device px or past the bound at the bins level: yes.
 12. **Two entries** (`@molstar/seqx-ext-rondo` headless, `/viewer` with commands and the binding), importing only the
     `extension` entry: yes.
 13. **Ribbons on a `tracks` row too** (filled arcs between stems), text and grids refused: yes.
 14. **Three optional `LayerType` hooks** (`describe`, `summary`, `announce`) for the hover card, ARIA and the cursor
     (EX amended): yes.
-15. **The square's lattice the assembly's**, washed cells clickable under the switch (GA amended): yes.
-
-## Review, unresolved
-
-The independent review (2026-11-21) found two blocking issues (necks not adding up past 48 partner ribbons, the items
-gate at `maxArcs` while 1,024 ribbons are drawn) and seven to fix; the revision took them all. It assumes EX's
-extension surface, not yet built. The text GA, RR and extension-openings must take (section "Where this differs…") is
-carried to them at the gate. Still open after it:
-- Q-value filtering at the bins level.
-- No animated zoom.
-- Eight safe colours: hues repeat inside a two-chromosome view.
-- Stems follow a fixed grid of a coarser level rather than clustering.
-- The cytoband file: ask about UCSC's conditions, then fetch once (the repository's copy has no licence row).
+15. **The square's lattice the assembly's**, washed cells clickable under the switch (GA's): yes.

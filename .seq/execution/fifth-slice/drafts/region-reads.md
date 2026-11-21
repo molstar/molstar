@@ -6,7 +6,7 @@ data rules, Tensions), [data-store](../../../design/data-store.md) (summaries), 
 (an image on a ring), [performance](../../../design/performance.md) (structures, scale) and
 [files](../../../design/files.md) (held pairs from files) (below, Consequences). Built on Gate 0's answers as
 recommended ([plan](../plan.md)): bundling is **core's pairs level**, which the ring extension reads (4); MAF is cut
-first (1), so wide alignments are here only as what falls out; public API changes stay in `packages/seq` (no
+(1), so wide alignments are not designed here; public API changes stay in `packages/seq` (no
 `@molstar/core` or `@molstar/io` change). Built on GA's draft ([genome-coordinates](genome-coordinates.md)): assemblies,
 blocks, the places index (`placesOf`), runs of sub-pixel blocks, the twist rule, the square navigator's coordinates.
 
@@ -16,7 +16,7 @@ The protocol deferred four answer shapes to Genomes ([protocol](../../../design/
 `grid`, `rows`: with the Genomes milestone"); grids-and-rows deferred "a request's second axis (`RegionRequest.y`), 2D
 tiles, the store's grid summaries, pairs and grids read by region (EC-208, EC-223)", and the ring refuses images
 ("dense matrices on rings wait for the Genomes milestone", [layouts](../../../design/layouts.md), Rings). The milestone
-needs them for: synteny pairs from a PAF or BEDPE over a whole genome (EC-208), a Hi-C map by region and level
+needs them for: synteny pairs over a whole genome (the `seq` format's sided pairs, a BEDPE, a host's PAF: EC-208), a Hi-C map by region and level
 (EC-223), samples × positions (genotypes, methylation, expression: EC-220 to EC-222), results keyed by id (EC-224's
 data, not its join), and the ring's 12,000 links bundled by count (research-genome-ring, Q2: "a `pairs` level read by
 region"). Cost follows pixels ([performance](../../../design/performance.md)): each read below is bounded by the screen,
@@ -29,7 +29,7 @@ never by the data.
 | HiGlass and Clodius: 2D tiles of 256 × 256 bins (`uuid.z.x.y`), zoom levels a factor 2 apart, a tileset-info answer (bounds, resolutions), the upper triangle served and mirrored | 2D tiles of 256 bins a side, square levels, a store tile one image tile, symmetric grids served once | a preprocessing server before anything shows; tiles by zoom index (here bin widths in positions, the protocol's levels) |
 | cooler (`.cool`, `.mcool`): a bin table and a sparse pixel table (`bin1_id`, `bin2_id`, `count`, upper triangle), resolutions coarsened by summing, balancing weights per bin | the sparse form (`xBin`, `yBin`, `value`) with its `fill`; coarse levels by `sum` for counts; a balanced value as a channel (`field`) | bins of uneven width (restriction fragments): bins here are a level's width |
 | Juicebox and `.hic` (straw): a matrix per chromosome pair, resolutions in bp (2.5 Mb … 5 kb), normalizations (`NONE`, `KR`, `VC`, `SCALE`) and observed/expected chosen per read | a grid over blocks read by block pair; the normalization and `oe` as `RegionRequest.field`; the source's own levels as listed | a resolution picker as the reader's control (here the level fits the pixels; a host may still pin one through the source) |
-| pairix and 4DN `.pairs`, BEDPE with tabix: pairs indexed by both ends (pairix) or by the first only (tabix) | "a pairs tile holds every pair with either end in it": the runtime's contract; one indexed by one end reads whole at open | a 2D index for pairs in the protocol (pairs are tiled in 1D here) |
+| pairix and 4DN `.pairs`, BEDPE with tabix: pairs indexed by both ends (pairix) or by the first only (tabix) | "a pairs tile holds every pair with either end in it": the runtime's contract; one indexed by one end or none is read whole and indexed by both ends | a 2D index for pairs in the protocol (pairs are tiled in 1D here); pairix itself (the Hi-C route, later) |
 | Rondo: connections clustered hierarchically, precomputed at several resolutions, a cluster's own links shown only zoomed in | the pairs level: bin-pair counts at each level, items only where they fit | the clustering itself (RN's picture, over the bins) |
 | JBrowse: "zoom in to see features" by a byte estimate from the index; EC-171's zoom gate | items gated by the counts of the level above, measured, not estimated | "force load" (refused: below) |
 | Circos heatmap tracks: a sector a bin a row on a ring | a matrix on a ring as sector runs, one run a device column a row at most | a polar bitmap (a second drawing path; a Tension) |
@@ -101,8 +101,15 @@ interface RowsKeyed  { form: 'keyed'; start: number; key: CategoryColumn; fields
   tiles and readers dedupe it by **its row's identity and both ends** (`row`, else `id`, with both ends' systems and
   starts: BEDPE writes `.` for every unnamed pair, so an `id` alone would merge distinct rows; an `id` of `.` or empty is
   never an identity); bins by their whole key (both systems, both bins, strand, category).
-- **Items are read at a tile size, not a bin.** The `list` form may be asked at **any listed level**: the level is then
-  only the tile's width (`level × tileBins` positions), and the answer is every item with an end in that tile, uncut.
+- **A pairs source between two genomes is sided.** Its coverage marks each system's side (`SystemInfo.side: 'a' |
+  'b'`), so `chr1` may be listed once a side; a request on it names the side it reads (`RegionRequest.side`), and the
+  store's key carries it in its system part (`a:chr1`, escaped as built). Side `a` is the `from` side of the map the
+  pairs serve (a host's PAF adapter: its query; a chain: its `t`). A `pairs` node's `a` and `b` map each side's names
+  through GA's names rule. A source over one genome (BEDPE, self-synteny, Hi-C) is unsided. Rows sharing `row` with
+  other starts are the blocks of one alignment (its pieces): a hit names the alignment. The `seq` runtime serves sided
+  pairs found from either end (GF), which the synteny, dot plot and liftover views read.
+- **Items are read at a tile size, not a bin, for every list shape** (`pairs`, `ranges`, `matrix`): the `list` form
+  (and a matrix's `items`) may be asked at **any listed level**: the level is then only the tile's width (`level × tileBins` positions), and the answer is every item with an end in that tile, uncut.
   The request says so (`RegionRequest.items: true`, the key's level part `i<level>`, so an items tile and a bins tile at
   one level never share a key). The reader asks items at the **finest level whose tiles over the view fit
   `maxTilesPerWant`** (`boundedLevel` with no pixel floor): a 10 Mb view reads items in 10 tiles of 1,024 kb, not
@@ -111,9 +118,17 @@ interface RowsKeyed  { form: 'keyed'; start: number; key: CategoryColumn; fields
   level as a bin only, the gate opened over a wide view asked past the tile bound and stayed pending for good. Why 1D: a ring, an arc track and a ribbon read pairs by the region of
   one end, and a whole genome's pairs over 25 chromosomes are 25 tiles, not 625; a dot plot of pairs in a grid section
   filters the x tiles by its y window (pairs are sparse: a tile's rows are few where a grid's cells are not). Why
-  both ends: a pair is seen from either end (an arc from chr4 must show the link to chr1). **A runtime indexed by one
-  end** (tabix over BEDPE) serves the other by reading whole at open, within the open's bounds (`limits.maxRows`, `limits.maxBytes`, built), and indexing both (GF's
-  runtimes; else `too-large` with the hint).
+  both ends: a pair is seen from either end (an arc from chr4 must show the link to chr1). **A source indexed by one
+  end or none** (BEDPE, tabix over BEDPE, a pairs table in the `seq` format) is read whole at open within the open's
+  bounds (`limits.maxRows`, `limits.maxBytes`, built) and indexed by both ends once (GF's runtimes); its **held rows
+  count with their pyramid against `summaries.maxBytes`** (16 MB, about 600,000 pairs), owned by the attached source.
+  Past it the source is `too-large`, hinting a format indexed by both ends (pairix, a levelled pairs format: the Hi-C
+  route, later). Why a byte budget: rows held outside the store's cache are memory no other bound sees.
+- **A ranges row may carry its item's whole extent** (`RangesList.itemStart`, `itemEnd`) when rows are pieces (BED12,
+  transcripts); a **span row** (`start = end`, with an extent) is an item with no piece in the tile, drawn as its
+  connecting line and hit as the item. `sliceTable` emits a span row for an item whose pieces lie outside the slice, so
+  a region read and the whole read clipped agree. Why: a reader of region data knows an item's ends from any tile, and
+  a tile inside an intron still draws its transcript (EC-229).
 - **The pairs level is bin-pair counts.** At a level coarser than the finest a source lists, `pairs` answers `bins`:
   each bin pair with at least one pair, its count, by relative strand (so a ribbon's twist, GA's rule, is a bin's own:
   straight and reversed runs of one bin pair never merge) and by `type` when the coverage lists it (`ShapeInfo.binBy`),
@@ -141,7 +156,8 @@ interface RowsKeyed  { form: 'keyed'; start: number; key: CategoryColumn; fields
 - **A matrix is cells' mirror**: positions tiled, states whole. A tile at the finest level is the items over the region
   (a variant, a CpG, a gene: each a column with its own `start` and `end`, so a long deletion is one item across the
   SNPs it covers, EC-222) × every state, `value` (float32, NaN missing: methylation, expression, EC-220, EC-221) or
-  `codes` (uint8: genotypes `0`, `1`, `2`, 255 missing); at a coarser level a bin per column, `mean`/`min`/`max`/`count`
+  `codes` (uint8: a genotype class of the item's allele: `0` no copy, `1` some but not every copy, `2` every copy, a
+  haploid call included, `3` partly called, `255` uncalled; the copy count is a `value` channel, `field: 'GT'`); at a coarser level a bin per column, `mean`/`min`/`max`/`count`
   for values, majority `classes` and `shares` for codes (cells' coarse form). The states are a system (as an
   alignment's rows, EC-35), its names from the coverage (`ShapeInfo.states`), so a sample is addressed, selected and
   ordered as a row is. Bounded **in bytes**: a tile within `maxTileBytes` (16 MB: about 4,000 states of float values
@@ -150,10 +166,7 @@ interface RowsKeyed  { form: 'keyed'; start: number; key: CategoryColumn; fields
 - **`rows` are keyed records** on the source's records system (a position a record, in the source's order): `key` and
   fields, read by region of that system, held whole within `summaries.maxBytes` when something joins by key. Why a system: the
   store reads and evicts it as any 1D shape, and the key index is built once from the held tiles. The join itself
-  (EC-224: results keyed by id colored onto transcripts) is not here: a theme or a query reading a key (Gaps, 8).
-- **Wide alignments fall out, built only if MAF stays** (Gate 0, 1: cut first): `cells` may tile its columns instead
-  of its rows (`ShapeInfo.tile: 'columns'`), rows whole, exactly the matrix's tiling; a MAF block over a genome is then
-  a few dozen species × 1,024 columns a tile. Nothing else is designed for it.
+  (EC-224: results keyed by id coloured onto transcripts) is deferred to the close-out slice.
 
 ### Bounds are bytes, for every shape
 
@@ -175,12 +188,11 @@ never empties it. `maxRows` and `maxBlockValues` stay as the parse's guards befo
 
 `ShapeInfo` gains, all optional: `y` (the grid's second systems: a list, or `'*'`, every system of the coverage: a
 genome's 25² pairs are not listed one by one); `symmetric`; `aggregate` (`sum`, `mean`); `binBy` (a category the pairs
-bins keep: `type`); `states` (a matrix's state names, in order); `tile` (`cells` only: `'rows'` or `'columns'`);
-`fields` (as built: a grid's or matrix's channels, a pairs field that can be summed); `whole` (a grid's or pairs'
+bins keep: `type`); `states` (a matrix's state names, in order); `fields` (as built: a grid's or matrix's channels, a pairs field that can be summed); `whole` (a grid's or pairs'
 **whole-assembly system**: `{ system, sequences }`, a system whose positions are the listed sequences end to end in
 that order, served at the coarse levels only: Juicebox's "All", below). Why on the shape: one source (a
-`.hic`) serves one grid over every pair; a VCF serves ranges and a matrix over the same systems. `Coverage.levels` stays
-the source's; a format's own (`.hic`'s nine resolutions) are listed as they are.
+`.hic`) serves one grid over every pair; a VCF serves ranges and a matrix over the same systems. `SystemInfo` gains
+`side` (above). `Coverage.levels` stays the source's; a format's own (`.hic`'s nine resolutions) are listed as they are.
 
 ### The store: keys, tiles, wants
 
@@ -196,6 +208,11 @@ the source's; a format's own (`.hic`'s nine resolutions) are listed as they are.
   block pair, each within `maxTilesPerWant`, and their sum is bounded too; past it the layer reads coarser, and past
   the coarsest it reads the whole-assembly level (below), else `seq.store.too_many_tiles`. Why: a whole-genome Hi-C at
   the fit is about 325 block-pair wants (4,096 under the square), thousands of range requests on one `.hic` file.
+- **A bound on a layer's read cost** (`maxBytesPerLayer`, 16 MiB): a source that knows a tile's cost before reading it
+  (`OpenedSource.readCost?(request)`: compressed bytes, a tabix source's `regionBytes`, GF) has its tiles over a
+  layer's wants summed; past the bound the layer reads coarser, and past the coarsest listed level it shows its
+  too-many-tiles state ("zoom in"), never the read. Why: tiles bounded one by one still let one view read a whole file
+  (ClinVar at the fit, about 90 MB over its tiles); the cost is known exactly from the index, never estimated.
 - **The whole-assembly level** (Juicebox's "All"): a source over an assembly may list a `whole` system (Coverage); a
   grid or pairs layer over blocks reads it, one want for the section, whenever the level that fits is at or coarser
   than the whole system's finest level, or the block wants pass `maxTilesPerLayer`. The layer cuts each block pair's
@@ -224,8 +241,8 @@ counted against `maxBytes`, gone with it:
   port exists"), `summaries.sliceMs` (4 ms) a frame, the source's coarse levels pending meanwhile (bins drawn as they
   land); a 600,000-pair pyramid or a 4M-cell grid is a few dozen slices, never one long task.
 - **Pairs**: a source whose items read whole fit `summaries.maxBytes` (16 MB, about 600,000 pairs) is read whole once
-  at its level (every system's region), each coarser level's bins (`summaries.factor`, 16, as values) built from the
-  items in one pass a level, then the items let go (the source serves them again by region, as items tiles). **Only
+  at its level (every system's region), the first coarser level's bins (`summaries.factor`, 16, as values) built from
+  the items in one pass (`binPairs`), each further level from the one below (`coarsenBins`), then the items let go (the source serves them again by region, as items tiles). **Only
   the levels that halve the bins are kept**: a level whose bin pairs are more than half the level below's (or, for the
   first, half the items) is dropped from the coverage the wrapper gives, since fine levels of sparse pairs barely
   compress and would cost bytes and a read for nothing; the reader then takes the next kept level. More pairs: a coarse
@@ -240,10 +257,18 @@ counted against `maxBytes`, gone with it:
   page). Why factor 2 for grids: a factor-16 step in cells is a factor 4 a side, and the view would hold up to 16 times
   its pixels in cells between levels.
 - **Held pairs get the same levels** (inline pairs, a tRNA's, a complex's links, a small generated genome's):
-  `binPairs(data, level)`, the function the store's summaries call, computed once per level from the held
-  `PairsData` and kept by its version. One reader interface over both backings (`PairsReader`: items in a region, bins
-  at a level), so the pairs layer and RN's ribbons read held and region pairs alike. Why: the ring's 12,000 links are
-  as likely inline (generated) as a file, and the bundled picture must not depend on where they came from.
+  `binPairs(data, level)` (items to bins), the function the store's summaries call, computed once per level from the
+  held `PairsData` and kept by its version. One reader interface over both backings (`PairsReader`: items in a region,
+  bins at a level), so the pairs layer and RN's ribbons read held and region pairs alike. Why: the ring's 12,000 links
+  are as likely inline (generated) as a file, and the bundled picture must not depend on where they came from.
+- **Bins to coarser bins** (`coarsenBins(bins, factor)`): a level's bins summed into bins `factor` times wider, keyed
+  as bins (both systems, both bins, strand, category; `sum` summed), exact because levels are nested (bins aligned on
+  position 0). The summaries' further levels and RN's stems call it. Why apart from `binPairs`: a coarser level from
+  the one below reads bins, never the items again.
+- **A data filter on an item's field** (a Q-value) narrows the bins only where they are built from items: held pairs
+  and a one-level source summarized whole rebuild their pyramid for the filter (its version in the key); a source's
+  own levels apply it to items only, its bins said once (`seq.render.pairs.filter`, info: "the filter applies when
+  zoomed in"). A filter on `count` or `type` applies to bins as to items.
 
 ### How a level is chosen at a zoom
 
@@ -265,7 +290,14 @@ One rule a shape, each in `render/layer-data.ts` beside `layerLevel`, each bound
   the bins already read, where EC-171's gate guessed from tiles; and a zoom into a cluster shows its links as soon as
   they fit the screen, Rondo's behaviour. Why hysteresis: a pan at the threshold would otherwise flip bins and arcs
   every frame. **EC-171's outcome**: its catalog's "load anyway forces" is refused; bins show what is there, and items
-  past the screen's bound would be culled again.
+  past the screen's bound would be culled again. The rule's numbers are its arguments (`pairsLevels(view, { binPx,
+  gate })`, `pairs.binPx` and `pairs.maxArcs` by default), so a layer that draws fewer items than arcs (RN's ribbons)
+  gates at what it draws; the hysteresis is `pairs.itemsHysteresis` × its gate.
+- **In a bridge** (LX), each side reads its own window at its own level. The finer side (a tie: the bridge's `a`) owns
+  its window widened to the other side's bin grid, reading the widening at most as coarse as the other's level; it
+  draws every pair or bin anchored (by the end it is binned by) in that region, and the other side draws only those
+  anchored outside it, so each pair is drawn once. Each side gates items on its own drawn bins; both sides' wants count
+  against `maxTilesPerLayer`; one cull ranks bins and items by aligned length.
 - **Past `pairs.maxArcs`, the built cull orders by strength**: the pairs layer's device-column binning (built: past
   `maxArcs`, one arc a bin of end columns, the rest a density strip) stays for items between `maxArcs` and the
   hysteresis bound and for held pairs; for bins it keeps the strongest bin pairs (by count, ties by span) up to
@@ -278,7 +310,7 @@ One rule a shape, each in `render/layer-data.ts` beside `layerLevel`, each bound
   layers are more wants than pixels.
 - **On a ring**: the device columns are the outer circumference's (EC-108), as built.
 
-### Small blocks: drawn in runs, read while a device pixel wide (the joint rule, for GA's draft word for word)
+### Small blocks: drawn in runs, read while a device pixel wide (the joint rule, shared with GA)
 
 > **Small blocks run together, and are read while they have a pixel.** Consecutive blocks each narrower than
 > `blocks.runPx` (2 CSS px, `RenderConfig`) at the current scale are drawn as one run: one band over their joined
@@ -313,7 +345,8 @@ does not own, read through the same bounds.
   theme (`count` is a field the theme reads). Each end is placed at every block showing its bin (GA's places index;
   a bin cut by a block's edge is clipped to each block). `pairs.maxArcs` still bounds what is drawn. Why one arc and
   not a ribbon: the ribbon, its trumpets and its bundling are RN's picture over the same bins; core draws the honest
-  minimum a viewer without the extension shows.
+  minimum a viewer without the extension shows. In a bridge (LX) the same bin pair is a ribbon of its two bins, its
+  opacity by the aligned length summed; on a ring ribbons stay RN's.
 - **The grid layer over a region grid** draws each store tile as one image tile (its cells coloured by the value
   theme, `fill` honoured, NaN transparent), cached in the shared image LRU by (layer, the entry's key and version, the
   colours' version, the triangle); a pending tile draws the held coarser tile under it, never empty; a failed one its
@@ -365,17 +398,18 @@ does not own, read through the same bounds.
   EC-173 (2D wants ordered and cancelled as 1D), EC-125 (an export waits for 2D tiles as for any), EC-108 (a ring's
   columns and an image on it), EC-59 (two region grids on one pair merge later over earlier, as held ones; its size cap
   per block pair is `maxTileBytes` a tile and `summaries.maxBytes` a whole read).
-- **Its data part here, the rest assigned**: EC-224 (the `rows` shape here; the join a theme's or a query's: Gaps, 8),
-  EC-209 (a contact map's tiles here; the layer across sections LX's), EC-213 (the column tiling falls out; MAF cut
-  first, Gate 0, 1), EC-225 (a minimum count as the data filter's numeric form, the query sublanguage's).
+- **Its data part here, the rest assigned**: EC-224 (the `rows` shape here; the join deferred to the close-out slice),
+  EC-209 (a contact map's tiles here; the layer across sections LX's), EC-225 (a minimum count as the data filter's
+  numeric form, the query sublanguage's; a filter on an item's field narrows bins only where they are built from
+  items), EC-229 (span rows and item extents here; GFF's by region GF's).
 - **Assigned**: the bundled picture of the pairs level (RN's `rondo:ribbons`), each format's reads and bounds (GF's
-  runtimes: `.hic` and `.mcool` are not in the plan's formats list; a Gap, 10).
+  runtimes: `.hic` and `.mcool` are not in the plan's formats list; a Gap, 10), EC-213 (MAF: cut).
 
 ## Defaults, with a picture
 
 What a reader sees with no setting but the data's `source` and a layer.
 
-1. **Pairs zoomed in** (a few Mb of a synteny PAF, under 4,096 pairs in view): items as arcs, as built.
+1. **Pairs zoomed in** (a few Mb of a synteny alignment, under 4,096 pairs in view): items as arcs, as built.
    ```
      ╭───────────╮      ╭──╮
    ──┴──────┬────┴──────┴──┴───  chr4
@@ -461,8 +495,9 @@ Cells this design fills or changes; the others stand as grids-and-rows and GA gi
 | `maxTileBytes` | `StoreSettings` | 16 MB | one answer never more than a quarter of the cache; any |
 | `summaries.maxBytes` | `StoreSettings` (`summaries`) | 16 MB | a whole read for a pyramid (about 600,000 pairs, 4M grid cells), a quarter of the cache; more: per tile |
 | `summaries.sliceMs` | `StoreSettings` (`summaries`) | 4 ms a frame | a pyramid built in slices on the main thread; any |
-| the one-end index's whole read (GF's runtimes) | `OpenLimits` (`maxRows`, `maxBytes`, built) | 1,000,000 rows; 64 MB | the open's bounds as built; past them `too-large` |
+| a pairs source read whole and indexed by both ends (BEDPE, the `seq` format's pairs) | `OpenLimits` (`maxRows`, `maxBytes`, built) for the read; `summaries.maxBytes` for its held rows and pyramid | 1,000,000 rows, 64 MB; 16 MB | the open's bounds as built; rows held outside the cache counted; past either `too-large` |
 | `maxTilesPerLayer` | `StoreSettings` | 1,024 | a layer's wants over blocks together; past it coarser, then the whole-assembly level |
+| `maxBytesPerLayer` | `StoreSettings` | 16 MiB of read cost | a view's tiles of a source that knows their cost (tabix's `regionBytes`) together; past it coarser, then "zoom in" |
 | `grid.marginTiles` | `RenderConfig` preset | 1 (a ring of tiles) | a pan's next tiles, evicted first; 0 |
 | `pairs.itemsHysteresis` | `RenderConfig` preset | 1.25 | items kept to 1.25 × `maxArcs`: no flip at the threshold; ≥ 1 |
 | `blocks.readPx` (joint with GA) | `RenderConfig` preset | 1 device px | a block's data is read while it can be seen; 0 reads every block |
@@ -491,8 +526,9 @@ Not built: every row above but `pairs.maxArcs`, `summaries.factor` and the `Open
   draw meanwhile, and the margin's bins are read ahead.
 - **A matrix's states are whole**: past about 4,000 float states (16,000 codes) a tile is `too-large`. Open: a states window (`y` on a matrix
   request, the 2D key) when a dataset asks (a biobank).
-- **One-end indexes**: a BEDPE under tabix is read whole at open for its other end; a large one is `too-large` and needs
-  a pairix-like or a levelled format. Standing; GF's.
+- **Pairs read whole**: a BEDPE or a `seq` pairs table is read whole and indexed by both ends within
+  `summaries.maxBytes` (about 600,000 pairs); past it `too-large`, and real Hi-C contacts have no path this slice.
+  Standing: pairix or a levelled pairs format is the Hi-C route, later (12,000 links is the milestone).
 - **Images on rings as runs** cost more than a polar bitmap at full density. Recommendation: runs (one path, the
   export's), measured in RG against `rings.imageRuns`; the bitmap if the measure says so.
 - **Images in SVG** (grids-and-rows' Tension) grow with region grids: an export of a Hi-C view is runs of rects a tile.
@@ -525,7 +561,8 @@ The claim: **this design covers what a user does with pairs and grids read by re
    (b) summaries for pairs and grids; (c) bins keyed by both systems, ends placed through GA's index, the twist kept by
    a bin's strand; (d) the pairs level, items gated by counts, blocks under a pixel unread; (e) the matrix, states
    whole, cells' mirror; (f) `symmetric` declared, never inferred, two grids by `triangle`; (g) `aggregate` and `fill`;
-   (h) coarse tiles under pending ones, `too-large` with a hint, a one-end index read whole; (i) one key family and
+   (h) coarse tiles under pending ones, `too-large` with a hint, a one-end index read whole and indexed by both ends
+   within a byte budget, a view's read cost bounded; (i) one key family and
    want sets shared (built), the square reading by block; (j) a hover that says the bin, its count and its level, a
    selection of the bin's rect; (k) images on rings as runs.
 4. **Both held.** Integrated: every item above in the Decision. Standing: no `max` across region grid levels (g);
@@ -535,16 +572,18 @@ The claim: **this design covers what a user does with pairs and grids read by re
 ## Consequences
 
 - **`seqx-core`** (RG, stage 3, alone in the store):
-  - data: `protocol.ts` (the shapes and forms above, `RegionRequest.y`, `ShapeInfo`'s new members), `keys.ts` (the 2D
-    key, `tileSpan` for 2D, symmetric folding), `store.ts` (`Want.y`, `keysOf` and `tooMany` over the product, the
-    margin ring, bytes of the new forms), `summaries.ts` (pairs bins and grid levels, `binPairs`), `tables.ts`
-    (`checkTables`, `checkAnswer`, `sliceTable`, `joinTables` for each new form; bins and cells within the region and
-    the level), `seq-format.ts` (the new shapes round trip), the conformance suite (a region read equal to the whole
-    read clipped, at every level, for each shape; either end found).
+  - data: `protocol.ts` (the shapes and forms above, `RegionRequest.y`, `.side`, `.items`, `SystemInfo.side`,
+    `RangesList.itemStart`, `itemEnd`, `OpenedSource.readCost`, `ShapeInfo`'s new members), `keys.ts` (the 2D key,
+    the sided system part, the items level part, `tileSpan` for 2D, symmetric folding), `store.ts` (`Want.y`, `keysOf`
+    and `tooMany` over the product, `maxTilesPerLayer`, `maxBytesPerLayer`, the margin ring, bytes of the new forms),
+    `summaries.ts` (pairs bins and grid levels, `binPairs`, `coarsenBins`, the filter's rebuild), `tables.ts`
+    (`checkTables`, `checkAnswer`, `sliceTable` with span rows, `joinTables` for each new form; bins and cells within
+    the region and the level), `seq-format.ts` (the new shapes round trip, sided pairs), the conformance suite (a
+    region read equal to the whole read clipped, at every level, for each shape; either end found).
   - language (a minor version): `pairs.source`, `pairs.field`, `grid.source`, `grid.field`, `rows` and `values` then
     optional; the `matrix` kind (`target`, `source`, inline `values` or `codes` with `states`, `field`); the `matrix`
     layer type; `target`s an assembly (GA). Issues `seq.store.pairs.levels`, `seq.store.grid.levels`,
-    `seq.render.matrix.states`; `seq.render.ring.image` moved to info for rows.
+    `seq.render.matrix.states`, `seq.render.pairs.filter`; `seq.render.ring.image` moved to info for rows.
   - resolve: access plans for `pairs`, `grid`, `matrix` by source (held ones unchanged); the states system from the
     coverage (as GA's derived sequences enter resolve, `ResolveOptions`).
   - render: `layer-data.ts` (`gridLevel`, `pairsLevels`, `readTiles` with `y`, the bins-then-items read), `pairs.ts`
@@ -553,8 +592,8 @@ The claim: **this design covers what a user does with pairs and grids read by re
     layer's band machinery), the hover texts.
 - **`seqx-viewer`**: the hover card's bin and matrix texts; nothing else (gestures as built).
 - **`seqx-examples`** (GD's): a generated Hi-C over the toy assemblies (symmetric, two levels and a one-level twin for
-  the summaries), a synteny PAF by region, 12,000 generated links (held and as a source: one picture), a genotype
-  matrix with a long deletion, methylation with missing values.
+  the summaries), a synteny alignment as sided pairs in the `seq` format, 12,000 generated links (held and as BEDPE:
+  one picture), a genotype matrix with a long deletion, methylation with missing values.
 - **Storybook**: a Design page "Region reads"; stories per default above, light and dark, canvas and SVG, each with
   its headless twin on a fake clock (tiles arriving coarse to fine).
 - **Tests**: property tests (a region read equals the whole read clipped at every level, every shape; the pairs
@@ -582,25 +621,12 @@ The claim: **this design covers what a user does with pairs and grids read by re
   as cells' mirror, grids 2D tiles; Scale: a Hi-C over a genome); [features](../../../design/features.md) (Contact
   maps, Annotations' matrix, Keyed tables' data part).
 
-## Where this differs from GA's draft
-
-- **The square navigator's picture** (GA: "reads RR's 2D summary of the whole at its coarsest level"): for pairs there
-  is no 2D summary; the square reads the pairs level's coarsest tiles **by block** (one want a block: a pairs tile holds
-  every pair with an end in it), so its cost is the blocks, not their square, and sums the bins into one image of
-  block × block cells, reduced to its pixels by the shared reduction. For a grid source it reads the coarsest 2D tiles
-  by block pair, the upper triangle when symmetric, at most `navigator.square.maxCells` (4,096) block or run pairs:
-  agreed with GA's bound, which then bounds the wants, not only the lattice's lines.
-- **Small blocks**: GA's run "keeps every block's data drawn"; the first draft here read nothing under one device
-  pixel. The joint rule above (runs at `blocks.runPx`, 2 CSS px; data read while at least `blocks.readPx`, 1 device
-  px; pairs through their other end) replaces both, for GA's draft word for word. The measure stays GC2's.
-- **Pairs across blocks**: agreed, no new owner; this draft adds that a bin cut by a block's edge is clipped to each
-  block, and that a bin's strand carries GA's twist.
-
 ## Gaps for the author
 
 Each a yes or no; the recommendation first.
 
-1. **Pairs tiled in 1D by either end** (not 2D tiles; a runtime indexed on one end reads whole at open): yes.
+1. **Pairs tiled in 1D by either end** (not 2D tiles; a source indexed on one end or none read whole and indexed by
+   both ends, its held rows within `summaries.maxBytes`; pairix the Hi-C route, later): yes.
 2. **The pairs level is bin-pair counts** (by strand, by `type` when listed, a field summed), in the protocol and the
    store's summaries: yes.
 3. **Items gated by the counts of the bins in view** (`pairs.maxArcs`), no "load anyway": yes.
@@ -608,32 +634,21 @@ Each a yes or no; the recommendation first.
 5. **A grid's level: the finest whose bin is at least a device pixel** (the other way from values): yes.
 6. **One value a grid cell**, coarse levels by the source's `sum` or `mean`, normalizations as `field`: yes.
 7. **Held pairs get the same bin levels** (`binPairs`, one reader over held and region pairs): yes.
-8. **`rows` as keyed records only** (the shape and its key index); the join (EC-224) designed elsewhere (GD's views or a
-   themes amendment): yes.
+8. **`rows` as keyed records only** (the shape and its key index); the join (EC-224) deferred to the close-out slice
+   (the author, 2026-11-21).
 9. **The `matrix` shape and a `matrix` layer** (items × states, states whole, on the rows layer's band) built in RG,
-   placed in Gate 0's cut order after contact maps (MAF, contact maps, the matrix layer, the liftover): yes.
+   placed in Gate 0's cut order after contact maps (contact maps, the matrix layer, the liftover; MAF is cut): yes.
 10. **`.hic` and `.mcool` runtimes**: not in the plan's formats; the Hi-C example generated in the `seq` format with two
     levels, a real format left to a later slice: yes.
 11. **Images on rings as sector runs** (`seq.render.ring.image` kept for grids only): yes.
 12. **Core's pairs layer draws a bin pair as one arc stroked by count** (ribbons RN's): yes.
 13. **The joint small-blocks rule with GA** (runs under 2 CSS px; data read while a block is at least one device pixel;
-    pairs to an unread block through their other end), in both drafts word for word: yes.
+    pairs to an unread block through their other end), one text in both designs: yes.
 14. **A whole-assembly coarse level** (Juicebox's "All": a `whole` system in the coverage, built by the summaries for a
     one-level source) and a bound on a layer's wants together (`maxTilesPerLayer`, 1,024): yes.
 15. **Bounds in bytes for every shape** (`maxTileBytes` and `summaries.maxBytes`, 16 MB each: a quarter of the cache),
     counts staying only as the parse's guards: yes.
-
-## Review, unresolved
-
-The independent review (2026-11-21) found two blocking issues (items unreadable past `maxTilesPerWant` at the finest
-level, byte bounds counted in cells) and eight to fix; the revision took them all, and the joint small-block rule is now
-in GA's draft word for word. Still open after it, for the gate:
-- No `max` across a region grid's levels.
-- A matrix's states are read whole: about 4,000 float or 16,000 code states at most.
-- A source indexed on one end only is read whole.
-- Images on rings drawn as runs are not measured yet.
-- A `.hic` without a whole-assembly level still makes up to 1,024 requests.
-- Reads inside runs wait for GC2's measure.
-- GF's revision (genome-formats.md, "Where this differs…") asks for text here: sided pairs sources, items at tile size for every list shape, item extents and span rows with `measure`, genotype-class `codes`; taken at the gate.
-- LX's revision (across-sections.md, "Where this differs…") asks for text here; taken at the gate.
-- RN's revision (ring-extension.md, "Where this differs…") asks for text here; taken at the gate.
+16. **A layer's read cost bounded** (`maxBytesPerLayer`, 16 MiB, from a source's `readCost`: tabix's `regionBytes`),
+    past it coarser, then "zoom in" (the author, 2026-11-21).
+17. **Bins coarsened from bins** (`coarsenBins`, beside `binPairs`), for the summaries' further levels and RN's stems
+    (the author, 2026-11-21).
