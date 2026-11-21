@@ -307,6 +307,11 @@ export interface RenderConfig {
     readonly marks: readonly ('selection' | 'highlights' | 'cursor')[];
     readonly rail: { readonly grownPx: number; readonly grabShare: number };
     readonly overview: { readonly minPlotPx: number; readonly minPx: number };
+    /**
+     * The square (two axes over blocks × blocks): past `maxCells` block (or run) pairs (4,096) its lattice's lines are
+     * not drawn, said once; its picture is always drawn.
+     */
+    readonly square: { readonly maxCells: number };
   };
   /**
    * The pairs layer (_spec/README.md "Render", The pairs layer): the most arcs drawn (`maxArcs`, 4,096: bounded by the
@@ -439,6 +444,7 @@ export const DefaultRenderConfig: RenderConfig = {
     marks: ['selection', 'highlights', 'cursor'],
     rail: { grownPx: 6, grabShare: 0.4 },
     overview: { minPlotPx: 160, minPx: 48 },
+    square: { maxCells: 4096 },
   },
   pairs: { maxArcs: 4096, hitPx: 4 },
   grid: { rectMinPx: 12, buildBudget: 65_536 },
@@ -529,6 +535,7 @@ export function renderConfig(over: RenderConfigOverrides = {}): RenderConfig {
       window: { ...DefaultRenderConfig.navigator.window, ...over.navigator?.window },
       rail: { ...DefaultRenderConfig.navigator.rail, ...over.navigator?.rail },
       overview: { ...DefaultRenderConfig.navigator.overview, ...over.navigator?.overview },
+      square: { ...DefaultRenderConfig.navigator.square, ...over.navigator?.square },
     },
     pairs: { ...DefaultRenderConfig.pairs, ...over.pairs },
     grid: { ...DefaultRenderConfig.grid, ...over.grid },

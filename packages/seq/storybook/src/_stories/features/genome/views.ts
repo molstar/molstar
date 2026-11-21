@@ -8,6 +8,9 @@ import { PCG } from '@molstar/core/data/util/hash-functions';
 import type { Node } from '@molstar/core/repr/tree';
 import { assembly, createSeqSpec, genome } from '@molstar/seqx-core/lang';
 import type { ExampleView } from '@molstar/seqx-examples';
+import { blockSpan } from '@molstar/seqx-core/view';
+import { viewerItem } from '@molstar/seqx-viewer/config';
+import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 
 // Toy genomes generated here, seeded (no downloads: the real dataset is the examples'), for the Genome coordinates
 // stories: one assembly in a row and on a ring, two assemblies on one ring, one genome's chromosome in another's order
@@ -123,6 +126,74 @@ function contigs(): Node {
   return b.build();
 }
 
+/**
+ * One chromosome at a time (the story's viewer config): a pan, a zoom and a fit kept in the chromosome the window is in
+ * (IGV's, UCSC's); the navigator's zoom strip under a window narrower than 200 px (a chromosome's at the stop, so the
+ * strip shows the chromosome in view).
+ */
+export const OneAtATime = [
+  [viewerItem('navigate.acrossBlocks'), 'stop'],
+  [viewerItem('navigator.zoomStrip'), { minPx: 200, heightPx: 16 }],
+] as const;
+
+/**
+ * A chromosome at a time: the genome's section with a navigator over its blocks (every chromosome and its label, a click
+ * on one a jump there; under it the zoom strip of the chromosome holding the window); the viewer's
+ * `navigate.acrossBlocks: stop` keeps a pan and a zoom in the chromosome. (An ideogram's bands over every chromosome wait
+ * for data over an assembly read by sequence.)
+ */
+function chromosomeAtATime(): Node {
+  const b = createSeqSpec({ title: 'A chromosome at a time' });
+  const g = b.data.assembly('toy', assembly(AssemblyName, toyKaryotype()));
+  b.views.view('main', (v) => {
+    const s = genome(v, 'genome', g);
+    v.navigator('genome-nav', { of: s, axes: 'positions', content: 'axis', size: 28 } as never);
+  });
+  return b.build();
+}
+
+/** Where the square opens: its view on chr3 (a window off the whole, so a click on another cell centres there). */
+export function openSquare(viewer: SeqViewer): void {
+  const s = viewer.view.resolved.value?.sections[0];
+  const b = s?.blocks?.[2];
+  if (s && b) viewer.view.setRange(s.address, b.offset ?? 0, (b.offset ?? 0) + blockSpan(b));
+}
+
+/**
+ * The square over blocks × blocks: one section on both axes (`of: [s, s]`), its navigator drawing the assembly's
+ * chromosome pairs as a lattice, the cells the section shows plain and the rest washed, the window one rectangle.
+ */
+function squareOverBlocks(): Node {
+  const b = createSeqSpec({ title: 'The square over blocks × blocks' });
+  const g = b.data.assembly('toy', assembly(AssemblyName, toyKaryotype().slice(0, 12)));
+  b.views.view('main', (v) => {
+    const s = genome(v, 'genome', g);
+    v.navigator('square', { of: [s, s], axes: 'both', system: g, size: [220, 220] } as never);
+  });
+  return b.build();
+}
+
+/**
+ * A ring with `navigator.switch: include`: the genome's ring and a navigator over the assembly; a click on a chromosome
+ * shows it alone on the ring (`section.include`, one undo step), a click on the navigator's title or Home all again.
+ */
+function ringSwitch(): Node {
+  const b = createSeqSpec({ title: 'A ring that switches' });
+  const g = b.data.assembly('toy', assembly(AssemblyName, toyKaryotype()));
+  b.views.view('main', (v) => {
+    const s = genome(v, 'ring', g, { layout: 'rings' });
+    v.navigator('chromosomes', {
+      of: s,
+      axes: 'positions',
+      content: 'axis',
+      system: g,
+      switch: 'include',
+      size: 28,
+    } as never);
+  });
+  return b.build();
+}
+
 export const GenomeViews: readonly ExampleView[] = [
   {
     dataset: 'genome',
@@ -163,5 +234,29 @@ export const GenomeViews: readonly ExampleView[] = [
     summary:
       'A draft of 24 chromosomes and 2,976 contigs on a ring and in a row: the contigs under 2 px a run, its count where it has room; a contig a device pixel wide is still read and drawn.',
     build: contigs,
+  },
+  {
+    dataset: 'genome',
+    id: 'chromosome-at-a-time',
+    title: 'A chromosome at a time',
+    summary:
+      'A navigator over the genome’s blocks (every chromosome and its name; bands wait for data read by sequence): a click on one a jump there, the zoom strip of the chromosome in view under it; the readout names the chromosome and the position.',
+    build: chromosomeAtATime,
+  },
+  {
+    dataset: 'genome',
+    id: 'square',
+    title: 'The square over blocks × blocks',
+    summary:
+      'A navigator on both axes over the genome’s twelve chromosomes: their pairs as a lattice sized by length, named on both axes, the window one rectangle; a click centres there, a double-click fits a cell’s pair. Its cells’ reads are region reads’ (not drawn yet).',
+    build: squareOverBlocks,
+  },
+  {
+    dataset: 'genome',
+    id: 'ring-switch',
+    title: 'A ring that switches',
+    summary:
+      'The genome’s ring and a navigator over the assembly with `switch: include`: a click on a chromosome shows it alone on the ring (one undo step); its title or Home shows every one again.',
+    build: ringSwitch,
   },
 ];

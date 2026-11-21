@@ -11,6 +11,7 @@
 // move), that ends in one patch (`endPreview`) or nothing (`cancelPreview`, Esc).
 
 import { collapsedSection } from '@molstar/seqx-core/render';
+import { blockOverridesOf } from '@molstar/seqx-core/view';
 import type { Op, Patch } from '@molstar/core/repr/patch';
 import { type Node, resolveAddress, type Value } from '@molstar/core/repr/tree';
 import type { CommandDefinition, CommandResult } from '@molstar/ui/commands/types';
@@ -39,6 +40,11 @@ export interface EditingContext {
   readonly label?: string;
   /** `block.form`: the block's form (`whole`, `residues`, `atoms`). */
   readonly form?: 'whole' | 'residues' | 'atoms';
+  /**
+   * `section.include`: the blocks a section of assemblies shows (names, patterns, `{ min_length }`: the assembly's
+   * `include` grammar); absent or null removes it (every block).
+   */
+  readonly include?: Value | null;
   /** `step.enter`: the story step's id. */
   readonly step?: string;
   /** Who edits (`person` when absent; an agent's turn joins one step). */
@@ -61,6 +67,8 @@ export const EditingCommandIds = {
   reverseSection: 'section.reverse',
   collapseSection: 'section.collapse',
   formBlock: 'block.form',
+  reverseBlock: 'block.reverse',
+  includeSection: 'section.include',
   enterStep: 'step.enter',
   leaveStep: 'step.leave',
   cancelPreview: 'preview.cancel',
@@ -166,7 +174,82 @@ export function editingBehavior(spec: SpecModel, axis?: AxisReaders): EditingBeh
     return [{ op: 'insert', parent: ids(sectionAt), place: { last: true }, node }];
   };
 
+  /** A resolved block by its address (a node's, or a derived block's keyed form) and its section. */
+  const resolvedBlock = (address: string | undefined) => {
+    if (address === undefined) return undefined;
+    for (const s of axis?.view.resolved.value?.sections ?? [])
+      for (const b of s.blocks ?? []) if (b.address === address) return { section: s, block: b };
+    return undefined;
+  };
+
+  /**
+   * A block's direction turned (`block.reverse`, genome coordinates): its `block` node's `direction` (`reversed` and
+   * back, unset); a derived block's override (a `block` child whose `of` is its sequence) the same, or one inserted
+   * (`direction: reversed`, its id from the sequence's name): the rest stay derived.
+   */
+  const reverseEdit = (address: string): Op[] | undefined => {
+    const root = spec.root.value;
+    const node = nodeOf(root, address, 'block');
+    const flip = (at: string[], n: Node): Op =>
+      n.params?.direction === 'reversed'
+        ? { op: 'unset', at, key: 'direction' }
+        : { op: 'set', at, key: 'direction', value: 'reversed' };
+    if (node) return [flip(ids(address), node)];
+    const found = resolvedBlock(address);
+    if (!found) return undefined;
+    const sectionAt = found.section.address;
+    const section = nodeOf(root, sectionAt, 'section');
+    if (!section) return undefined;
+    const system = found.block.axis.system;
+    // the override already written, however spelled (its `of` an alias or a sequence's form, or its id the name): the
+    // last one, the one that applies (core's blockOverridesOf, the rule the blocks are derived by)
+    const own = blockOverridesOf(spec.model.value, section, system)
+      .filter((c) => c.id !== undefined)
+      .pop();
+    if (own) return [flip([...ids(sectionAt), own.id!], own)];
+    const taken = new Set((section.children ?? []).map((c) => c.id));
+    const base = `reversed_${found.block.label.replace(/[^A-Za-z0-9_]/g, '_')}`;
+    let id = base;
+    for (let k = 2; taken.has(id); k++) id = `${base}_${k}`;
+    const n: Node = { kind: 'block', id, params: { of: system, direction: 'reversed' } };
+    return [{ op: 'insert', parent: ids(sectionAt), place: { last: true }, node: n }];
+  };
+
   const commands: CommandDefinition<EditingContext>[] = [
+    {
+      id: EditingCommandIds.reverseBlock,
+      title: 'Reverse a block',
+      category: 'Edit',
+      when: (ctx) =>
+        disposed
+          ? 'The viewer is retired'
+          : ctx.address !== undefined && reverseEdit(ctx.address)
+            ? true
+            : 'No block there',
+      run: (_, ctx) => edit('Reverse a block', () => reverseEdit(ctx.address!) ?? [], ctx, 'Reversed'),
+    },
+    {
+      id: EditingCommandIds.includeSection,
+      title: 'Show only some blocks',
+      category: 'Edit',
+      when: (ctx) => {
+        if (disposed) return 'The viewer is retired';
+        const at = sectionOf(ctx);
+        const node = at === undefined ? undefined : nodeOf(spec.root.value, at, 'section');
+        if (!node) return 'No section there';
+        const none = ctx.include === undefined || ctx.include === null;
+        if (none && node.params?.include === undefined) return 'Every block is shown';
+        return true;
+      },
+      run: (_, ctx) => {
+        const at = sectionOf(ctx)!;
+        const none = ctx.include === undefined || ctx.include === null;
+        const op: Op = none
+          ? { op: 'unset', at: ids(at), key: 'include' }
+          : { op: 'set', at: ids(at), key: 'include', value: ctx.include as Value };
+        return edit(none ? 'Show every block' : 'Show only some blocks', () => [op], ctx, none ? 'All shown' : 'Shown');
+      },
+    },
     {
       id: EditingCommandIds.formBlock,
       title: 'Show a block as',

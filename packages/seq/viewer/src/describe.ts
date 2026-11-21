@@ -77,6 +77,8 @@ export interface Place {
   readonly state?: string | undefined;
   /** A ring's grouped label: the hits of the items it stands for (`target` `group`). */
   readonly members?: readonly { readonly element?: Key | undefined }[] | undefined;
+  /** A run's blocks (`target` `run`). */
+  readonly count?: number | undefined;
 }
 
 /** The parts a description collects. */
@@ -132,6 +134,18 @@ const BlockSection: CardSection = {
     const blocks = at.section.section.blocks;
     const k = at.place.block;
     if (!blocks || k === undefined || !blocks[k]) return;
+    // a run of small blocks: the block under the point, which of the run, not read at this zoom (genome coordinates)
+    if (at.place.target === 'run' || at.place.count !== undefined) {
+      const block = blocks[k];
+      const of = `one of ${(at.place.count ?? 0).toLocaleString('en-US')}`;
+      out.title = block.label;
+      out.row(blockKindName(at.model, block.axis.system), block.label);
+      out.row('Run', of);
+      if (at.place.state) out.row('Data', at.place.state);
+      out.words.push(`${block.label}, ${of}${at.place.state ? `, ${at.place.state}` : ''}`);
+      out.whole = true;
+      return;
+    }
     const say = (b: number, which: string) => {
       const block = blocks[b];
       if (!block) return;
@@ -145,13 +159,25 @@ const BlockSection: CardSection = {
       if (copy) out.row('Copy', copy);
       out.words.push(`${which.toLowerCase()} ${block.label}${copy ? `, ${copy}` : ''}`);
     };
+    // the row is named by the block's system: an assembly's sequence (a chromosome, a contig) is a sequence, a
+    // complex's unit or a chain's sequence a chain
+    const name = blockKindName(at.model, blocks[k].axis.system);
     const y = at.place.yBlock;
     if (y !== undefined && y !== k) {
-      say(k, 'Chain x');
-      say(y, 'Chain y');
-    } else say(k, 'Chain');
+      say(k, `${name} x`);
+      say(y, `${blockKindName(at.model, blocks[y].axis.system)} y`);
+    } else say(k, name);
   },
 };
+
+/**
+ * What a block's row is called by its system: `Chain` for a complex's (a unit, a molecule, its atoms) or a protein's,
+ * `Sequence` for a nucleic sequence (an assembly's chromosome, a plain DNA or RNA sequence).
+ */
+function blockKindName(model: StaticModel, system: string): string {
+  const e = model.systems.get(system);
+  return !e || e.kind !== 'sequence' || e.alphabet === 'protein' ? 'Chain' : 'Sequence';
+}
 
 /** A pairs layer's pair: its label, its two ends, its kind. */
 const PairSection: CardSection = {
@@ -487,7 +513,8 @@ class Words {
       yPosition:
         place.yPosition === undefined || Number.isNaN(place.yPosition) ? Number.NaN : Math.floor(place.yPosition),
     };
-    for (const s of Sections) s.describe(at, out);
+    // a run of small blocks says its block and the run alone
+    for (const s of Sections) if ((t !== 'run' && place.count === undefined) || s === BlockSection) s.describe(at, out);
     if (!out.words.length) return undefined;
     return { title: out.title || out.words[0], rows: out.rows, text: out.words.join(', ') };
   }

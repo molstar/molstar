@@ -70,8 +70,11 @@ interface LabelParts {
   readonly whole: string;
   /** What is never cut: the direction mark and the scale (` ←`, ` ×10`). */
   readonly suffix: string;
-  /** Its name cut to `n` letters with the suffix, by `n`: made once. */
-  readonly cuts: string[];
+  /** Its first word with the suffix (`chr2 ←` of `chr2 inv ←`), '' for a name of one word. */
+  readonly word: string;
+  /** Its name less the section's shared prefix with the suffix (`11 ←`), for `shortOf`: made once. */
+  short?: string;
+  shortOf?: string;
 }
 const Labels = [new WeakMap<ResolvedBlock, LabelParts>(), new WeakMap<ResolvedBlock, LabelParts>()];
 
@@ -82,30 +85,130 @@ function labelParts(block: ResolvedBlock, marked: boolean): LabelParts {
   const mark = marked && block.axis.dir === -1 ? ' ←' : '';
   const scale = block.scale !== undefined && block.scale !== 1 ? ` ×${+block.scale.toPrecision(3)}` : '';
   const suffix = mark + scale;
-  l = { whole: suffix ? `${block.label}${suffix}` : block.label, suffix, cuts: [] };
+  const name = block.label;
+  const sp = name.indexOf(' ');
+  l = { whole: suffix ? `${name}${suffix}` : name, suffix, word: sp > 0 ? `${name.slice(0, sp)}${suffix}` : '' };
   kept.set(block, l);
   return l;
 }
 
-/** The least letters a block's name keeps when cut (a short name, `chr10`, is whole or hidden: "c…" says nothing). */
-const NameKeep = 6;
+const Prefixes = new WeakMap<readonly ResolvedBlock[], string>();
 
 /**
- * A block's label in `w` px (_spec/README.md "Render", Blocks): whole; else its name cut keeping at least
- * `max(labels.minChars, 6)` letters, its direction mark and scale kept whole after it (`HLA-A*01… ←`); else none (a
- * label that cannot show its name hides).
+ * The prefix a section's block names share (`chr` of `chr1`…`chrM`, `Pp` of `Pp01`…), letters only (never a digit of
+ * a name: `chr1` and `chr12` share `chr`), and only where every name's tail is non-empty and the tails tell the names
+ * apart; '' otherwise. Made once a block list.
  */
-export function fitBlockLabel(text: TextMetrics, config: RenderConfig, block: ResolvedBlock, w: number): string {
+export function blockNamePrefix(blocks: readonly ResolvedBlock[]): string {
+  const known = Prefixes.get(blocks);
+  if (known !== undefined) return known;
+  const names = [...new Set(blocks.map((b) => b.label))];
+  let p = names.length > 1 ? names[0] : '';
+  for (const n of names) while (p && !n.startsWith(p)) p = p.slice(0, -1);
+  p = p.replace(/[^A-Za-z]+$/, '');
+  if (
+    p &&
+    (names.some((n) => n.length <= p.length) || new Set(names.map((n) => n.slice(p.length))).size < names.length)
+  )
+    p = '';
+  Prefixes.set(blocks, p);
+  return p;
+}
+
+/** A block's short label: its name less `prefix`, its direction mark and scale kept (`11 ←`); '' without a prefix. */
+export function shortBlockLabel(block: ResolvedBlock, config: RenderConfig, prefix: string): string {
+  if (!prefix || !block.label.startsWith(prefix)) return '';
+  const l = labelParts(block, config.axis.directionMark !== 'none');
+  if (l.shortOf !== prefix) {
+    l.shortOf = prefix;
+    const tail = block.label.slice(prefix.length);
+    const sp = tail.indexOf(' ');
+    l.short = `${sp > 0 ? tail.slice(0, sp) : tail}${l.suffix}`;
+  }
+  return l.short!;
+}
+
+/**
+ * A block's label in `w` px (_spec/README.md "Render", Blocks; the author, 2026-11-21: never a cut label): whole; else
+ * its first word (`chr2 ←` of `chr2 inv ←`); else short, its name less the names' shared prefix (`11`, `X ←`); else
+ * none here (the row's stride may still show it past its block: `thinLabels`). The direction mark and the scale are
+ * kept whole after the name.
+ */
+export function fitBlockLabel(
+  text: TextMetrics,
+  config: RenderConfig,
+  block: ResolvedBlock,
+  w: number,
+  prefix = '',
+): string {
   const l = labelParts(block, config.axis.directionMark !== 'none');
   const font = config.labelFont;
   if (text.measure(font, l.whole) <= w) return l.whole;
-  const keep = Math.max(config.labels.minChars, NameKeep);
-  const name = block.label;
-  if (name.length <= keep) return '';
-  const room = w - (l.suffix ? text.measure(font, l.suffix) : 0);
-  const cut = room > 0 ? longestCut(text, font, name, room, keep) : 0;
-  if (!cut) return '';
-  return l.suffix ? (l.cuts[cut] ??= `${cutLabel(name, cut)}${l.suffix}`) : cutLabel(name, cut);
+  if (l.word && text.measure(font, l.word) <= w) return l.word;
+  const short = shortBlockLabel(block, config, prefix);
+  return short && text.measure(font, short) <= w ? short : '';
+}
+
+/** The least px between a label shown by the stride and the next label. */
+const StrideGap = 6;
+
+/**
+ * The labels a row's blocks are too narrow for, thinned by a regular stride (_spec/README.md "Render", Blocks; the
+ * author, 2026-11-21): the smallest stride of block indices (1, 2, 4 …) whose labels (short, else whole) each have room
+ * to the next label shown, a fitted one or another the stride picks, is shown past its block; the rest hidden. By block
+ * index, so a pan never makes another block's label show. Never a cut label.
+ */
+function thinLabels(
+  p: BlockPlacement,
+  blocks: readonly ResolvedBlock[],
+  text: TextMetrics,
+  config: RenderConfig,
+  prefix: string,
+): void {
+  const strips = p.strips;
+  const n = strips.n;
+  let hidden = 0;
+  for (let i = 0; i < n; i++) if (p.strideable[i] && !p.shown[i]) hidden++;
+  if (!hidden) return;
+  const font = config.labelFont;
+  const end = p.row.x0 + p.row.width;
+  const want = (i: number) => {
+    const b = blocks[strips.block[i]];
+    return shortBlockLabel(b, config, prefix) || blockLabel(b, config);
+  };
+  // each run of hidden labels between two shown (or the row's ends) by its own stride: a run of narrow chromosomes
+  // thins, the wide ones around it keep theirs
+  for (let a = 0; a < n; ) {
+    if (!p.strideable[a] || p.shown[a]) {
+      a++;
+      continue;
+    }
+    let e = a;
+    while (e + 1 < n && p.strideable[e + 1] && !p.shown[e + 1]) e++;
+    const limit = e + 1 < n ? strips.axes[e + 1].x0 : end;
+    // the stride from the run's first; its last pick may lack room at the run's end (the row's edge): hidden alone
+    let last = -1;
+    const nextAt = (i: number, k: number) => {
+      for (let j = i + k; j <= e; j += k) if (j !== last) return strips.axes[j].x0;
+      return limit;
+    };
+    const room = (i: number, k: number) => nextAt(i, k) - strips.axes[i].x0;
+    for (let k = 1; k <= 2 * (e - a + 1); k *= 2) {
+      last = a + Math.floor((e - a) / k) * k;
+      if (text.measure(font, want(last)) + StrideGap <= room(last, k)) last = -1;
+      let fits = true;
+      for (let i = a; i <= e && fits; i += k)
+        if (i !== last) fits = text.measure(font, want(i)) + StrideGap <= room(i, k);
+      if (!fits) continue;
+      for (let i = a; i <= e; i += k) {
+        if (i === last) continue;
+        p.labelRoom[i] = room(i, k) - StrideGap;
+        p.shown[i] = want(i);
+      }
+      break;
+    }
+    a = e + 1;
+  }
 }
 
 /** A count as a run's label says it ("2,841 contigs"). */
@@ -367,11 +470,36 @@ export class BlockRow {
     for (let b = 0; b < this.n; b++) {
       const vs = this.vs[b];
       const ve = this.ve[b];
-      if (ve <= vs || u < vs || (u >= ve && u < this.u1)) continue;
+      // the window's end is the last block's in view (a block before it read past its own end: x past the row)
+      if (ve <= vs || u < vs || (u >= ve && ve < this.u1)) continue;
       // the block's own px per unit as laid: its edges snapped to the device grid move them off the row's scale
       return this.x[b] + ((u - vs) * this.w[b]) / (ve - vs);
     }
     return this.x0 + this.width;
+  }
+
+  /**
+   * `xOf(u)` written into `out[k]` (a hot loop's: a number returned from a call not inlined is boxed, a typed array's
+   * slot never is).
+   */
+  xInto(u: number, out: Float64Array, k: number): void {
+    // `xOf`'s arithmetic inline (a call returning a number would box it where the compiler does not inline it)
+    if (u < this.u0) {
+      out[k] = this.x0 - (this.u0 - u) * this.scale;
+      return;
+    }
+    if (u > this.u1) {
+      out[k] = this.x0 + this.width + (u - this.u1) * this.scale;
+      return;
+    }
+    for (let b = 0; b < this.n; b++) {
+      const vs = this.vs[b];
+      const ve = this.ve[b];
+      if (ve <= vs || u < vs || (u >= ve && ve < this.u1)) continue;
+      out[k] = this.x[b] + ((u - vs) * this.w[b]) / (ve - vs);
+      return;
+    }
+    out[k] = this.x0 + this.width;
   }
 
   /** The section unit at x as last laid (in a gap: the next block's first). */
@@ -427,6 +555,10 @@ export class BlockPlacement extends StripPlacement {
   labels: string[] = [];
   /** Each strip's label as drawn: elided to its strip's width ('' when nothing fits: dropped); a chip's in its slot. */
   shown: string[] = [];
+  /** Each strip's label's room (px from its x: its block's width, or to the next label shown when the stride shows it). */
+  labelRoom = new Float64Array(4);
+  /** Whether a strip's label may be shown past its block by the stride (1: not a chip's, not in a run). */
+  strideable = new Uint8Array(4);
   /** A row's arithmetic (pan and zoom through its inverse). */
   readonly row = new BlockRow();
   private slots: Float64Array = new Float64Array(4);
@@ -596,7 +728,8 @@ export function placeBlocks(section: ResolvedSection, ctx: PlaceContext, prev?: 
   p.labels.length = 0;
   p.shown.length = 0;
   p.stacked = section.params.arrange === 'stack';
-  p.labelRow = fontSize(config.labelFont) + 4;
+  // `labels: none` (a navigator's zoom strip, whose context names its blocks): no label row
+  p.labelRow = section.params.labels === 'none' ? 0 : fontSize(config.labelFont) + 4;
   const top = ctx.box.y;
   const u0 = axis.u0;
   const u1 = axis.u1;
@@ -604,6 +737,10 @@ export function placeBlocks(section: ResolvedSection, ctx: PlaceContext, prev?: 
   const width = axis.width;
   // the chips' slots: at most half the width together
   const slots = p.slotsFor(ctx, blocks, width);
+  // the names' shared prefix (`chr`): a narrow block's label drops it (`11`, `X`)
+  const prefix = blockNamePrefix(blocks);
+  p.labelRoom = grown(p.labelRoom, blocks.length + 1);
+  p.strideable = grown(p.strideable, blocks.length + 1);
   const row = p.row;
   rowBlocks(row, blocks, config);
   // a stack has no runs: every block its own row
@@ -680,13 +817,17 @@ export function placeBlocks(section: ResolvedSection, ctx: PlaceContext, prev?: 
       else strips.scale[i] = sc;
       const label = blockLabel(block, config);
       p.labels[i] = label;
-      // a label that does not fit its block is cut keeping its name readable and its mark, else hidden; a chip's by the
-      // pill's rule (whole, or cut keeping `labels.minChars` letters, or none); a block in a run has none (the run's)
+      // a label whole, its first word or short (its name less the names' shared prefix) where it fits its block, else
+      // the stride's below (never cut); a chip's by the pill's rule (whole, or cut keeping `labels.minChars` letters, or
+      // none); a block in a run has none (the run's)
+      const inRun = !p.stacked && row.run[b] >= 0;
       p.shown[i] = chip
         ? fitLabel(ctx.text, config, label, Math.min(a.width, slots[b]))
-        : !p.stacked && row.run[b] >= 0
+        : inRun
           ? ''
-          : fitBlockLabel(ctx.text, config, block, a.width);
+          : fitBlockLabel(ctx.text, config, block, a.width, prefix);
+      p.labelRoom[i] = a.width;
+      p.strideable[i] = chip || inRun || p.stacked ? 0 : 1;
       strips.top[i] = rowTop;
       strips.height[i] = rows;
       let by = rowTop + p.labelRow;
@@ -702,6 +843,7 @@ export function placeBlocks(section: ResolvedSection, ctx: PlaceContext, prev?: 
         by += pt + ctx.heights[j] + pb;
       }
     }
+  if (!p.stacked && p.labelRow) thinLabels(p, blocks, ctx.text, config, prefix);
   p.tracksTop = top + p.labelRow;
   p.tracksBottom = top + rows;
   // the runs in view, their labels where they have room; the groups' brackets and the closing run in a row under
@@ -820,7 +962,7 @@ export function blockChrome(
     drawRuns(s, p, out);
     return;
   }
-  if (pass !== 'labels') return;
+  if (pass !== 'labels' || !p.labelRow) return;
   const g = out.args;
   // the label font's size as the layout read it (its row less 4 px): a draw parses no font (a regex's match allocates)
   const size = p.labelRow - 4;
@@ -834,7 +976,7 @@ export function blockChrome(
     g[0] = a.x0;
     g[1] = strips.top[i] + size;
     g[2] = 0;
-    g[3] = Math.max(0, a.width);
+    g[3] = Math.max(0, p.labelRoom[i]);
     g[4] = s.tokens.colors['msui-text-muted'];
     out.textArgs(label, AnchorStart, s.config.labelFont);
   }

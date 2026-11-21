@@ -90,6 +90,8 @@ export class Rail {
   active = false;
   /** In a figure (an export): a plain segment, never idle. */
   figure = false;
+  /** Along the rail, the last place hit outside the window (at the fit its body): its hover's position mark. */
+  markAt = Number.NaN;
   /** Each collapsed break's display unit. */
   breaks: number[] = [];
   /** A section of blocks' blocks: a unit's place is a block's system and position (never the section's units). */
@@ -301,7 +303,9 @@ export function drawRail(
   const lit = h?.target === 'window' && h.navigator === own && h.layer === rail.key ? h.part : undefined;
   const dragged = d !== undefined && d.navigator === own && d.layer === rail.key;
   const plain = rail.active || rail.figure;
-  const grown = rail.active && (lit !== undefined || dragged);
+  // a place hovered outside the window (at the fit, its whole body): its position marked, the rail never grown or lit
+  const place = lit === 'outside' && !dragged && !Number.isNaN(rail.markAt);
+  const grown = rail.active && ((lit !== undefined && !place) || dragged);
   // at rest (usable, not hovered or dragged, not in a figure): 1 px and muted, the accent only while used
   const rest = rail.active && !rail.figure && !grown;
   const t = grown ? config.navigator.rail.grownPx : rest ? Line : plain ? Rest : Line;
@@ -324,6 +328,14 @@ export function drawRail(
     emit(out, rail.vertical);
   }
   if (!rail.active) return;
+  if (place) {
+    g[0] = Math.max(rail.x, Math.min(rail.x + rail.width, rail.markAt)) - 0.75;
+    g[1] = rail.y - (Line + 2 * GripRise) / 2;
+    g[2] = 1.5;
+    g[3] = Line + 2 * GripRise;
+    g[4] = ink;
+    emit(out, rail.vertical);
+  }
   const grip = tokens.colors['seq-grip'];
   const part = dragged ? d.part : lit;
   const gh = t + 2 * GripRise;
@@ -361,9 +373,11 @@ export function hitRail(rail: Rail, px: number, py: number, config: RenderConfig
     }
   }
   if (!part) return undefined;
-  // a window over the whole axis (the fit) has no body to drag: the ruler under it takes the pointer (its hover names
-  // the place, a double-click zooms there); its grips still resize it
-  if (part === 'body' && rail.start <= 0 && rail.end >= rail.total) return undefined;
+  // a window over the whole axis (the fit) has no body to drag, but the rail stays a target: its body is a place as
+  // outside a window is (the hover names the place and marks it, never the whole rail lit; a sweep zooms to the region,
+  // a click as elsewhere); its grips still resize it
+  if (part === 'body' && rail.start <= 0 && rail.end >= rail.total) part = 'outside';
+  rail.markAt = part === 'outside' ? x : Number.NaN;
   const h = rail.hit;
   h.section = rail.id;
   h.system = rail.system;

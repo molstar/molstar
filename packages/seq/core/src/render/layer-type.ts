@@ -184,7 +184,8 @@ export interface Hit {
   /**
    * `break`: a collapsed break (within 3 CSS px of its notch, or on a tick of the items it hides): `position` the
    * section's position at its edge (the last shown before it in display order), `extent` the hidden stretch on the
-   * section's system, `layer` the section's address, `count` the hidden items a tick stands for.
+   * section's system, `layer` the section's address, `count` the hidden items a tick stands for. `run`: a run of small
+   * blocks over its band (no strip there): `block` the block under the point, `system` its, `count` the run's blocks.
    */
   readonly target?: HitTarget;
   readonly count?: number;
@@ -234,7 +235,8 @@ export type HitTarget =
   | 'column-title'
   | 'columns-hidden'
   | 'tree-toggle'
-  | 'group';
+  | 'group'
+  | 'run';
 
 /** A section's id: the last step of its address. */
 export function sectionId(section: { readonly address: string }): string {
@@ -293,6 +295,12 @@ export interface Emphasis {
    * submenu is open, wherever the pointer is (_spec/README.md "Behaviors", Headers).
    */
   readonly menu?: string;
+  /**
+   * The track whose row the pointer is in (its header, its bands, a gap between its blocks, a rail over it): its
+   * header's actions stay shown anywhere in the row and go only when the pointer leaves it (_spec/README.md "Behaviors",
+   * Headers), whatever the hover hits there.
+   */
+  readonly row?: string;
   /** The highlight channels in the order they were set: each a tint of its color (the `highlight` pass). */
   readonly highlights?: readonly EmphasisHighlight[];
   /** The window being dragged (its hit): a rail is drawn grown while its drag runs, wherever the pointer goes. */

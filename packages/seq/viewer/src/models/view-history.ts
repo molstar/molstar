@@ -4,9 +4,17 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { hash2, hashString } from '@molstar/core/data/util/hash-functions';
 import { type ReadonlyState, State } from '@molstar/core/reactive';
 import type { Location } from '@molstar/seqx-core/query';
 import type { BandViewport } from '@molstar/seqx-core/render';
+import {
+  placeOfUnit,
+  type ResolvedBlock,
+  type ResolvedSection,
+  type SystemPosition,
+  unitOfPlace,
+} from '@molstar/seqx-core/view';
 import { axisKey, axisTotal, positionAt } from './axis.js';
 import type { ViewBands } from './view-bands.js';
 import { centerOffset, DetachedPrefix, type Group, type SectionState } from './view-groups.js';
@@ -29,6 +37,11 @@ interface Kept {
   readonly center?: number;
   readonly members?: readonly string[];
   readonly scale?: number;
+  /**
+   * On a section of blocks, its ends as `{ system, position }` (never units): a step over a changed block list (an
+   * `include`, an order, a scale) is restored by them, an end on a block no longer shown at the nearest shown.
+   */
+  readonly ends?: readonly [SystemPosition, SystemPosition];
 }
 
 /**
@@ -117,12 +130,16 @@ export function snapshotOf(
   const out = new Map<string, Kept>();
   for (const g of groups.values()) {
     const center = g.axis.ranges ? positionAt(g.axis, (g.start + g.end) / 2) : undefined;
+    const blocks = blocksOf(g, sections);
+    const a = blocks && placeOfUnit(blocks, g.start, 'start');
+    const b = blocks && placeOfUnit(blocks, g.end, 'end');
     out.set(g.key, {
       start: g.start,
       end: g.end,
       fitted: g.fitted,
-      sig: sigOf(g),
+      sig: sigOf(g, sections),
       ...(center !== undefined ? { center } : {}),
+      ...(a && b ? { ends: [a, b] as const } : {}),
       members: g.members,
       ...(g.scale !== undefined ? { scale: g.scale } : {}),
     });
@@ -144,7 +161,7 @@ export function snapshotOf(
  * axis of another signature, restored by position: the centre and the zoom, the centre clamped to what is drawn (a
  * centre now hidden goes to its break). Undefined when the step has none of it.
  */
-function keptOf(snap: Snapshot, g: Group): Kept | undefined {
+function keptOf(snap: Snapshot, g: Group, sections: ReadonlyMap<string, SectionState>): Kept | undefined {
   let v = snap.groups.get(g.key);
   if (!v)
     for (const w of snap.groups.values())
@@ -152,12 +169,21 @@ function keptOf(snap: Snapshot, g: Group): Kept | undefined {
         v = w;
         break;
       }
-  const sig = sigOf(g);
+  const sig = sigOf(g, sections);
   if (!v || v.sig === undefined || v.sig === sig) return v;
   // the letter size is kept within one layout only (a text's, across a reverse or a collapse)
   const scale = v.scale !== undefined && layoutOfSig(v.sig) === g.layout ? { scale: v.scale } : {};
   const total = axisTotal(g.axis);
   if (v.fitted || total === undefined) return { start: 0, end: total ?? v.end, fitted: true, sig, ...scale };
+  // a section of blocks: its ends by system and position onto the blocks now (clamped to what is drawn)
+  const blocks = v.ends && blocksOf(g, sections);
+  if (blocks && v.ends) {
+    const a = unitOfPlace(blocks, v.ends[0]);
+    const b = unitOfPlace(blocks, v.ends[1], a);
+    // a reversed block since maps the ends mirrored (b before a): the range is their hull either way
+    if (a !== undefined && b !== undefined && a !== b)
+      return { start: Math.min(a, b), end: Math.max(a, b), fitted: false, sig, ...scale };
+  }
   const c = v.center === undefined ? undefined : centerOffset(g.axis, v.center);
   if (c === undefined) return { start: 0, end: total, fitted: true, sig, ...scale };
   // the centre and the zoom: a window's middle, a text's lines in view (its anchor and its estimated end) alike
@@ -178,14 +204,14 @@ export function restoredOf(
 ): Snapshot {
   const out = new Map<string, Kept>();
   for (const g of groups.values()) {
-    const v = keptOf(snap, g);
-    if (v) out.set(g.key, { ...v, sig: sigOf(g) });
+    const v = keptOf(snap, g, sections);
+    if (v) out.set(g.key, { ...v, sig: sigOf(g, sections) });
     else if (!g.key.startsWith(DetachedPrefix))
       out.set(g.key, {
         start: g.start,
         end: g.end,
         fitted: g.fitted,
-        sig: sigOf(g),
+        sig: sigOf(g, sections),
         ...(g.scale !== undefined ? { scale: g.scale } : {}),
       });
   }
@@ -216,7 +242,7 @@ export function restoreInto(
   }
   if (map.size || bands.value.size) bands.replace(map);
   for (const [key, g] of [...groups]) {
-    const v = keptOf(snap, g);
+    const v = keptOf(snap, g, sections);
     if (v) {
       g.start = v.start;
       g.end = v.end;
@@ -260,13 +286,49 @@ function detachable(sections: ReadonlyMap<string, SectionState>, key: string): S
   return s?.section.follow ? s : undefined;
 }
 
-/** A group's signature in a step of the history: its axis's and its layout (a step over either is restored by position). */
-function sigOf(g: Group): string {
-  return `${axisKey(g.axis)}#${g.layout}`;
+/**
+ * A group's signature in a step of the history: its axis's and its layout, and on a section of blocks its blocks'
+ * systems, directions, scales and offsets (a step over any is restored by position), hashed: a few bytes a step
+ * whatever the blocks (3,000 contigs were ~150 kB a step written out), memoized by the blocks list.
+ */
+function sigOf(g: Group, sections: ReadonlyMap<string, SectionState>): string {
+  const blocks = blocksOf(g, sections)?.blocks;
+  return `${axisKey(g.axis)}#${g.layout}${blocks ? `#${blocksSig(blocks)}` : ''}`;
+}
+
+const BlocksSigs = new WeakMap<readonly ResolvedBlock[], string>();
+
+/** A blocks list's signature: its count and two 32-bit hashes of each block's system, direction, scale and offset. */
+export function blocksSig(blocks: readonly ResolvedBlock[]): string {
+  const known = BlocksSigs.get(blocks);
+  if (known !== undefined) return known;
+  let h1 = 0;
+  let h2 = 0x9e3779b9 | 0;
+  for (const b of blocks) {
+    const s = hashString(b.axis.system);
+    const d = b.axis.dir === -1 ? 1 : 0;
+    const o = Math.round((b.offset ?? 0) * 1024) | 0;
+    const k = Math.round((b.scale ?? 1) * 1e6) | 0;
+    h1 = hash2(hash2(h1, s), hash2(hash2(d, k), o)) | 0;
+    h2 = (Math.imul(h2 ^ s, 0x01000193) + Math.imul(o ^ (k << 1) ^ d, 0x5bd1e995)) | 0;
+  }
+  const sig = `|${blocks.length}:${(h1 >>> 0).toString(36)}:${(h2 >>> 0).toString(36)}`;
+  BlocksSigs.set(blocks, sig);
+  return sig;
+}
+
+/** A group's section of blocks (its first member's), when it is one. */
+function blocksOf(g: Group, sections: ReadonlyMap<string, SectionState>): ResolvedSection | undefined {
+  const s = sections.get(g.members[0])?.section;
+  return s?.blocks?.length ? s : undefined;
 }
 
 function layoutOfSig(sig: string): string {
-  return sig.slice(sig.lastIndexOf('#') + 1);
+  // the layout after the axis's key, before a blocks' key
+  const parts = sig.split('#');
+  return parts.length > 2 && parts[parts.length - 1].startsWith('|')
+    ? parts[parts.length - 2]
+    : parts[parts.length - 1];
 }
 
 /** The steps back and forward: what `jump` and `record` push, `back` and `forward` take. */

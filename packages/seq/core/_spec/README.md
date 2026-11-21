@@ -1421,7 +1421,8 @@ over the assets port, with `@molstar/core/util/zip` (never a private zip). Not a
   its tiles (a reader reads it as pending, never as empty): work is bounded before it starts, a key a tile included. A
   tile is asked for every shape its system serves: the key has no shapes.
 - **Sources** are checked on `attach`: a malformed coverage is an issue and the source unavailable. `detach` cancels its
-  requests, drops its entries, releases its holds and clears its reports.
+  requests, drops its entries, releases its holds and clears its reports. `named()` lists the attached sources by
+  address, as attached: what `findNames` asks (a locus box's fallback to a name).
 - **Entries** are `pending`, `loaded`, `empty` (no rows, no nodes), `failed` (kind and issue) or `evicted` (wanted,
   dropped for the bound), values of a `KeyedState`, so only what reads an entry is told. Each change has a new version
   from one counter; the store's `version` moves with any; an unchanged entry keeps its object. Pending is never empty
@@ -1774,10 +1775,9 @@ Seq\* holds pointers and labels: codes and identifiers are strings.
 
 - **Said, never dropped in silence** (`resolve/unread.ts`): a param the language declares and this version reads nowhere
   is `seq.resolve.param.unread` (info), one a node, naming the lane that reads it: `map.source` (FR), `pairs.source` and
-  `grid.source` (RG), data over an assembly (GC2: its rows by sequence not read yet), `navigator.switch` (GC3),
-  `section.member_order` and `member_order_y` (LA), a `bridge` (LA), `assembly.names` (GF: the printed names stay the
-  assembly's). The lane that reads one drops it from `Unread`. Why: a reader shown a spec drawn without what it says
-  should be told why.
+  `grid.source` (RG), data over an assembly (GC2: its rows by sequence not read yet), `section.member_order` and
+  `member_order_y` (LA), a `bridge` (LA), `assembly.names` (GF: the printed names stay the assembly's). The lane that
+  reads one drops it from `Unread`. Why: a reader shown a spec drawn without what it says should be told why.
 
 ### Maps
 
@@ -2137,7 +2137,9 @@ Overlay, Opened sources), kept per model and view. No data, no dynamic node, no 
   (`axes` `positions`, `content` `axis`, `place` `top`, `right` for rows; `content` one of the reader's pictures, else
   `axis`: Layer kinds), its params as written (`params`: a picture's own), the system it draws (`system`, else its first
   section's; `sectionAxis` when it draws that section's own axis: its range, pieces and direction) and the static path
-  from each bound section's system to it (identity, a region into its chromosome, a protein into its gene).
+  from each bound section's system to it (identity, a region into its chromosome, a protein into its gene). Over blocks
+  (`blocks`: no `system` over a section of blocks, or `system` an assembly, `assemblies`) each bound section's path is
+  its own identity, its window carried by places (Render, Navigators); `switch` (`none`, `include`).
 - **A second consumer** (EC-183; `packages/seq/examples/src/_test/consumer/`, tests only): letters, ranges, values and
   variants of a section drawn as plain SVG, compared with core's SVG as positions, text, heights and colours, forward,
   reversed and across a tile edge. What an outside drawer needs is public: the resolved view, the model, the store, the
@@ -2234,6 +2236,7 @@ the UX foundations' numbers, CSS px, settled by the foundation stories; where no
 | `navigator.marks`                                              | selection, highlights, cursor                                                                                          | where is what I picked; any subset                                                                                                                                                                                                                                                                                                                                                                                        |
 | `navigator.rail.grownPx`, `.grabShare`                         | 6 px, 0.4                                                                                                              | a target in use; an alignment ruler's labels select columns, its bottom pans                                                                                                                                                                                                                                                                                                                                              |
 | `navigator.overview.minPlotPx`, `.minPx`                       | 160, 48 px                                                                                                             | a narrow frame gives way by the plot's width: the overview narrows to `minPx` to keep the plot `minPlotPx` wide, hides below it (the rows rail kept), then the label column and the tree, then the frame scrolls (the author's choice); any px, `minPlotPx` 0 never hides                                                                                                                                                 |
+| `navigator.square.maxCells`                                    | 4,096                                                                                                                  | the square's lattice lines stay readable and a grid source's block-pair wants bounded (region reads); past it the lines are not drawn, said once; the picture always drawn                                                                                                                                                                                                                                                |
 | `internedStrings`                                              | 4,096                                                                                                                  | strings draw lists keep interned across frames, so a frame drawn again interns nothing; past it a full redraw starts the table again                                                                                                                                                                                                                                                                                      |
 | `imageBytes`                                                   | 64 MB                                                                                                                  | the shared image cache: every `image` tile a layer draws (grid, rows, navigators) in one LRU, since two caches could not lend each other room (The shared reduction)                                                                                                                                                                                                                                                      |
 | `rows.labelMinPx`                                              | 8 px                                                                                                                   | the least row height a label, a number, a chip or an icon is drawn at; below it the label column is empty (the rows layer, decided)                                                                                                                                                                                                                                                                                       |
@@ -2785,7 +2788,8 @@ numbers): a window move allocates nothing once warm.
 
 ### Navigators
 
-`render/navigator.ts` (`NavigatorRenderer`, `navigatorBox`, `railSections`, `rowsRailTracks`, `windowText`),
+`render/navigator.ts` (`NavigatorRenderer`, `railSections`, `rowsRailTracks`), `render/navigator-parts.ts` (its picture
+made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what changes together),
 `render/navigator-picture.ts` (`NavigatorPicture`, the built-in pictures) and `render/rail.ts`:
 
 - **Pictures** (`NavigatorPicture`, a `navigator-picture` registry entry; `navigator.content` names one): a picture says
@@ -2801,11 +2805,47 @@ numbers): a window move allocates nothing once warm.
   (the composition's, required) and resolves its picture with `kinds` (the composition's: a picture's track of an
   extension's layer type is drawn as that type, never as its fallback). A picture the table lacks is the axis (the fixed
   fallback: every system has an axis; the resolved view says it); a picture that draws nothing here (`undefined`) the
-  axis, its zoom strip's `undefined` the axis there. Refused: a navigator over several systems (a window per system pair
-  is new geometry). Why tracks, not a draw function: as tracks a picture reads at `view` priority, colors by the view's
-  held domains, draws any registered layer type and exports with no draw code of its own; a miniature drawn by other
-  code drifts from the view it summarizes. A host drawing its own marks places them through the picture:
-  `xRangeOf(start, end)` (a range's x, in display order, x0 ≤ x1) and `positionAtX(x)`.
+  axis, its zoom strip's `undefined` the axis there. Why tracks, not a draw function: as tracks a picture reads at
+  `view` priority, colors by the view's held domains, draws any registered layer type and exports with no draw code of
+  its own; a miniature drawn by other code drifts from the view it summarizes. A host drawing its own marks places them
+  through the picture: `xRangeOf(start, end)` (a range's x, in display order, x0 ≤ x1) and `positionAtX(x)`.
+- **A navigator over blocks** (`ResolvedNavigator.blocks`; genome coordinates, EC-184): with no `system` over a section
+  of blocks, or `system` an assembly, its picture is a section of blocks laid out as a row (gaps, chips and runs by the
+  row's arithmetic, `BlockPlacement.row`): the bound section's own `of`, `classes`, `include` and block children (the
+  same block list), or the assembly's lattice whole (a bound section of it lends its block children, never its
+  `include`). A window is carried by places, never along a path: identity in units where the block lists are equal
+  (`sameBlocks`: a window across two chromosomes is one window over the gap), else each end's `{ system, position }`
+  (`placeOfUnit`, `unitOfPlace`), the blocks the section does not reach washed (a section of one chromosome, a ring
+  showing one by `include`). Its ends' systems and positions are the window's (`NavigatorWindow.s0`, `.s1`, `p0`, `p1`):
+  its text names the block and the assembly, `chr17: 7,668,402–7,687,550 of GRCh38`, across blocks both ends
+  `chr16:90,100,000 – chr17:1,200,000`. A hit names the block under the point, its system and the position there
+  (`NavigatorHit.system`, `.block`; on the context too). The zoom strip comes when the window, not the reachable span,
+  is narrower than `minPx` on the context, and shows the blocks the window touches (their hull: the block holding it,
+  IGV's chromosome ideogram under the genome's); `markText` names them. `blockAt(section, x, context?)` gives the bound
+  section's units of the block under x (a double-click fits it, a switch shows it alone). The marks (the selection's and
+  highlights' ticks, the cursor) are drawn at every block showing their positions. Allocation-free on a window move
+  where the lists are equal (a binary search over the blocks' offsets). Not built: `system` as a list of assemblies; an
+  ideogram's bands over every chromosome (data over an assembly is read by sequence later: a `bands` picture over blocks
+  draws what its one annotation reaches).
+- **The square** (`render/navigator-square.ts`, `SquareNavigator`, `isSquareNavigator`: a navigator over blocks with
+  `axes: both` bound to two sections of blocks, or one section on both axes, `of: [s, s]`): its lattice the assembly's
+  blocks on both axes (after the assembly's `include`, never a section's; no `system`: the first bound section's `of`),
+  proportional to their display units (a cell as long as its chromosomes), each block's name above its column and left
+  of its row where it fits (along x without the names' shared prefix where the column is narrow: `7`), a line at each
+  block's edge; the cells a bound section does not show washed (`seq-wash`) by runs (`washRuns`: a column run of blocks
+  the x section leaves out, a row run the y section leaves out over each run of shown columns; no cell twice, at most as
+  many rectangles as cells), the rest plain. Past `navigator.square.maxCells` block pairs (4,096) neither lattice nor
+  wash is drawn, said once (`seq.render.navigator.square`): never n² rectangles. The base (background, wash, lattice,
+  names) is drawn once a size and tokens; a window move redraws the window pass alone (`rebuilt: false`). The window the
+  first section's range along x and the second's along y as one rectangle (one section on both axes: on the diagonal);
+  its title names its ends as places (`chr3: 1–198,295,559 of GRCh38`). A hit names the cell's two blocks and systems
+  (`block`, `yBlock`, `system`, `ySystem`), its part `outside` off the window's rectangle; `pairAt` gives the hull of
+  the cell's two blocks on a bound section (what a double-click fits), `cellAt` the cell, `sectionUnitAtY` a second
+  section's unit along y. **What region reads add** (RG, stage 3): the cells' content: for pairs, the pairs level's
+  coarsest tiles read by block (one want a block), summed into one image of block × block cells and reduced to its
+  pixels by the shared reduction; for a grid source, its coarsest 2D tiles by block pair (the upper triangle when
+  symmetric), at most `maxCells` wants, past it the whole-assembly level; until then the square is the lattice and what
+  static data gives. Not built: its grips and drags per axis.
 - **The window stays the navigator's**, whatever the picture: its geometry, floor, parts, gestures, keys, idle rule,
   zoom strip and announcements. A host that draws its own navigator keeps them through the viewer's `NavigatorModel`.
 - **The picture**: a navigator lays its system whole out (the fit window, in the bound section's display order;
@@ -2843,10 +2883,12 @@ numbers): a window move allocates nothing once warm.
   picture's view gets a second section, the same form over the same system (an ideogram's bands; else the axis, a
   ruler), its viewport the span's units (over a cyclic origin past the total: its pieces twice, the strip runs on over
   the origin), laid out below the box at the box's bottom whatever the context's content (`zoomHeight`, exactly
-  `heightPx`: a gap of at most `ZoomGapPx`, 6, and at most half, then the strip's track; `heightPx: 0` is off; the
-  frame's `size` is the box, the lists the box and the strip; an export stacks both). The windows, their wash, floor,
-  grips, marks, hits and `sectionUnitAt` are the zoom strip's (a drag moves the view at its scale); the context draws
-  the span as a mark in the `window` pass (an outline at least `window.minPx` wide, always centred on the truth whatever
+  `heightPx`: a gap of at most `ZoomGapPx`, 6, and at most half, then the strip's track; over blocks the track at least
+  a ruler's height, `heights.ruler`, and the strip's section `labels: none`: its ruler in bases, ticks and labels inside
+  it, the context naming the blocks; the author, 2026-11-21: nothing clipped; `heightPx: 0` is off; the frame's `size`
+  is the box, the lists the box and the strip; an export stacks both). The windows, their wash, floor, grips, marks,
+  hits and `sectionUnitAt` are the zoom strip's (a drag moves the view at its scale); the context draws the span as a
+  mark in the `window` pass (an outline at least `window.minPx` wide, always centred on the truth whatever
   `window.floor`, so the truth is inside it, its hairline at the truth; over a cyclic origin two pieces; no grips, no
   wash) and two connector hairlines (`seq-window`) from its ends to the strip's; a hit on the context is `context`
   (`mark` over it, else `outside`), part `outside`, no target; the gap below the context is the strip's (a finger a few
@@ -2874,8 +2916,10 @@ numbers): a window move allocates nothing once warm.
   columns), the slim row whole; grown (`grownPx`) while hovered or dragged (`Emphasis.drag`); idle (not active) a quiet
   hairline with no grips and no target (at the fit it reads as the line); in a figure (an export) a plain segment, no
   grips, no idle state. Its hit is the `window` target with `navigator: 'rail'` (touch the wider hit: `hitView`'s
-  `touch`), its unit `railUnitAt`; a window over the whole axis (the fit) has no body to drag, so there only its grips
-  are targets and the ruler under it takes the pointer (its hover names the place, a double-click zooms there). On a
+  `touch`), its unit `railUnitAt`; a window over the whole axis (the fit) has no body to drag, so its body is a place as
+  outside a window (part `outside`; the author, 2026-11-21: the rail stays interactive at the fit): its hover marks the
+  position (a 1.5 px tick, `Rail.markAt`) and names it, never the rail grown or lit; a sweep zooms to the region; its
+  grips keep their own hover. Over a run of small blocks the rail's place carries the run's `count` and `state`. On a
   section of blocks its hit names the block under the unit, its system and its position (`block`), never the section's
   units. Rails are part of a section's key by identity (a slim row takes room); which can move is not: the renderer sets
   it on the rails each frame, an emphasis redraw too (an idle flip redraws the window pass alone).
@@ -3037,9 +3081,14 @@ numbers): a window move allocates nothing once warm.
   counts down within a reversed block and at its own density in a scaled one, its letters complement by the axis's rule
   per strip, and on a ring it runs counterclockwise within its arc. Its label says it (`blockLabel`): the direction mark
   `←` where it reads right to left (`axis.directionMark`), `×N` where its scale is not 1 (`chr4 ←`, `chr17 ×10`). In a
-  row a label is whole, else its name cut keeping at least six letters with the mark and scale whole after it, else
-  hidden (`fitBlockLabel`: "c…" says nothing); its strings made once per resolved block. A block's ruler takes ticks as
-  close as half its width (at least 24 px, at most `ruler.labelGap`), so a block a few labels wide still counts its own
+  row a label is whole, else its first word (`chr2 inv ←` as `chr2 ←`), else short: its name less the prefix the
+  section's names share (`blockNamePrefix`, letters only and only where the tails are non-empty and distinct: `chr`,
+  `Pp`), the mark and scale whole after it (`11`, `X ←`); never cut (the author, 2026-11-21: precedents' ideograms show
+  `11`, `X`); where even that does not fit, each run of such blocks is thinned by a regular stride from its first (1, 2,
+  4 …: `thinLabels`), a strided label shown past its block up to the next label shown (`labelRoom`), never two
+  colliding; the rest hidden. A ring's label is short where its arc is narrower than its whole label. The hover card and
+  the readout keep the whole name. Its strings made once per resolved block. A block's ruler takes ticks as close as
+  half its width (at least 24 px, at most `ruler.labelGap`), so a block a few labels wide still counts its own
   positions.
 - **Gaps at scale, one rule for rows and rings** (EC-102): the gaps in view share at most `blocks.gapShare` of the row
   (`rings.gapShare` of the circle), each at most the layout's gap (12 px; `rings.blockGap`, 1°), so
@@ -3052,15 +3101,18 @@ numbers): a window move allocates nothing once warm.
   room ("2,841 contigs"; a ring's among its outside labels). Found again on a zoom (a walk over the blocks, O(blocks)),
   never on a pan (the zoom is the window's width over its span). **The joint rule with region reads**: inside a run a
   block is laid out, read and drawn while at least `blocks.readPx` device px wide (1); under it it has no strip (nothing
-  read, nothing hit but the run's band: `BlockPlacement.runAt` names the block under a point and the run's count for a
-  hover, "one of 2,841"). A block in a run has no label of its own. Why: below two px a gap and a label are noise, and
-  under a device pixel a block's data is more requests than pixels; pairs survive through their other end (RR).
+  read, nothing hit but the run's band: `BlockPlacement.runAt` names the block under a point and the run's count, the
+  hit `target: 'run'` with `block` and `count`, its hover "chrUn_KI270302v1, one of 2,841, not read at this zoom"). A
+  block in a run has no label of its own. Why: below two px a gap and a label are noise, and under a device pixel a
+  block's data is more requests than pixels; pairs survive through their other end (RR).
 - **Groups** (a section of several assemblies, EC-210): a row draws a bracket a group under its tracks (a hairline, a
   tick at each end, the assembly's name below, `msui-text` on `msui-text-muted`); a ring an arc just outside its outer
-  ring and the name upright in a band of its own there (`RingMetrics.groupBand`, 16 px, the label font in `msui-text`),
-  the block labels and their leaders starting past it, so the two never collide; the ring's hole the assemblies' names
-  and their total length in bases (`3.1 Gb`). **The closing run** past `maxAssemblyBlocks` is said at the row's end
-  under its tracks ("+96,312 sequences not shown") and in a ring's subtitle.
+  ring (the block labels and their leaders starting past a band of `RingMetrics.groupBand`, 16 px) and the name upright
+  in the label font in `msui-text`, at the arc's middle angle, out along it to the first place its box meets no placed
+  block label, no other name and no arc (the ring keeps as much again of room outside its labels for it), so a name
+  never sits over an arc or among the block labels; the ring's hole the assemblies' names and their total length in
+  bases (`3.1 Gb`). **The closing run** past `maxAssemblyBlocks` is said at the row's end under its tracks ("+96,312
+  sequences not shown") and in a ring's subtitle.
 - **Follow**: sections whose block lists are equal (`sameBlocks`: systems, ranges, directions, scales in order) follow
   by identity in units: the follower's window is the leader's (a ring of the genome and its linear detail, two sections
   of one assembly). A section of blocks on more than one system with an unequal list neither follows nor is followed

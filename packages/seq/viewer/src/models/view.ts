@@ -26,6 +26,7 @@ import type { Location } from '@molstar/seqx-core/query';
 import type { BandViewport } from '@molstar/seqx-core/render';
 import {
   type Axis,
+  blockSpan,
   BuiltInLayerKinds,
   followWindow,
   type LayerKinds,
@@ -261,6 +262,7 @@ export class ViewModel extends ReactiveModel {
     if (!Number.isFinite(v.start) || !Number.isFinite(v.end) || this.isFollowing(section)) return false;
     const g = this._movable(section);
     if (!g) return false;
+    this._stopFree = true;
     this._take(g, {
       start: Math.min(v.start, v.end),
       end: Math.max(v.start, v.end),
@@ -284,6 +286,8 @@ export class ViewModel extends ReactiveModel {
     const g = this._movable(section);
     if (!g) return false;
     const [s, e] = [Math.min(start, end), Math.max(start, end)];
+    // a range set (a jump, a story step) may move to another block under `navigate.acrossBlocks: stop`
+    this._stopFree = true;
     const c = this._navContext(section, g);
     const focus = c && this._navOf(g.layout).focus;
     if (c && focus) this._take(g, focus(c, rangeOf(g), s, e));
@@ -856,6 +860,8 @@ export class ViewModel extends ReactiveModel {
         if (g.fitted) {
           g.start = 0;
           g.end = w ? Math.min(total, Math.max(1, w.end - w.start)) : total;
+          // one block at a time: the fit is its block's
+          if (this._stopIn(g, true)) g.fitted = false;
           continue;
         }
         // the layout's clamp (a window within its axis and the most px a position; a text's anchor and size)
@@ -865,6 +871,7 @@ export class ViewModel extends ReactiveModel {
           g.end = v.end;
           if (v.scale !== undefined) g.scale = v.scale;
           if (w) g.end = Math.min(total, g.start + Math.max(1, w.end - w.start));
+          this._stopIn(g, false);
         } else {
           const w = Math.min(Math.max(g.end - g.start, Math.min(width / maxPxPerPosition, total)), total);
           const m = (g.start + g.end) / 2;
@@ -881,7 +888,54 @@ export class ViewModel extends ReactiveModel {
           this._set(address, g.start, g.end, s, pending, undefined, undefined, g.scale);
         } else this._follow(s);
       }
+      this._stopFree = false;
     });
+  }
+
+  /**
+   * Each group's block under `navigate.acrossBlocks: stop` (the one its window was last kept in), by its group's first section (a group made again over a new block list keeps it): its copy
+   * key (system, range, form) and its index then.
+   */
+  private readonly _stopBlock = new Map<string, { readonly copy: string; readonly index: number }>();
+  /** The next publish follows a range set (a jump): under `stop` its window may move to the block holding it. */
+  private _stopFree = false;
+
+  /**
+   * `navigate.acrossBlocks: stop` on a row of blocks (_spec/README.md "ViewModel", Blocks): the window kept in one
+   * block: after a jump the block holding its centre, else the one it was kept in, else its start's; its
+   * width at most the block's, its ends inside it (a fit: the whole block). True when it applies.
+   */
+  private _stopIn(g: Group, fit: boolean): boolean {
+    if (this.config.navigate.acrossBlocks !== 'stop') return false;
+    const section = this._sections.get(g.members[0])?.section;
+    const blocks = section?.blocks;
+    if (!blocks || blocks.length < 2 || section.params.arrange === 'stack') return false;
+    const at = (u: number) => {
+      let lo = 0;
+      let hi = blocks.length - 1;
+      while (lo < hi) {
+        const mid = (lo + hi + 1) >> 1;
+        if ((blocks[mid].offset ?? 0) <= u) lo = mid;
+        else hi = mid - 1;
+      }
+      return lo;
+    };
+    // the kept block found again by its copy key (at its index, else wherever it now is: `section.include` and a
+    // reverse change the list under it), never whichever block now sits at its old index
+    const k = this._stopBlock.get(g.members[0]);
+    let kept = k && blocks[k.index]?.copy === k.copy ? k.index : -1;
+    if (k && kept < 0) kept = blocks.findIndex((x) => x.copy === k.copy);
+    // a jump (a click on another chromosome, a range set) moves to the block holding its centre; a pan, a zoom and a
+    // fit keep the block the window was in; the first time, the block at its start
+    const b = !fit && this._stopFree ? at((g.start + g.end) / 2) : kept >= 0 ? kept : at(g.start);
+    const lo = blocks[b].offset ?? 0;
+    const hi = lo + blockSpan(blocks[b]);
+    const width = fit ? hi - lo : Math.min(g.end - g.start, hi - lo);
+    const start = fit ? lo : Math.min(Math.max(g.start, lo), hi - width);
+    g.start = start;
+    g.end = start + width;
+    this._stopBlock.set(g.members[0], { copy: blocks[b].copy, index: b });
+    return true;
   }
 
   /** Writes a viewport, comparing first: an equal one makes nothing and tells nothing. */

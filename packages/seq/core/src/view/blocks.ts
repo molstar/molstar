@@ -124,6 +124,33 @@ export interface BlockGroup {
   readonly count: number;
 }
 
+/** The derived systems a section of assemblies' `block` child overrides: its `of`'s system, else each its id names. */
+function overrideSystems(model: StaticModel, c: Node, assemblies: readonly AssemblyEntry[]): string[] {
+  const of = systemRef(model, param(c, 'of'));
+  if (of !== undefined) return [of];
+  const out: string[] = [];
+  if (c.id !== undefined)
+    for (const a of assemblies) {
+      const s = a.systemAt[a.find(c.id) ?? -1];
+      if (s) out.push(s);
+    }
+  return out;
+}
+
+/**
+ * The `block` children of a section of assemblies that override a derived system (_spec/README.md "Resolved view",
+ * Blocks): one whose `of` names it (an exact address or a sequence's form, an alias too), or with no `of` whose id names
+ * it (a name or an alias by the assembly's names rule); the rule `assemblyBlocks` applies, so an editor finds the
+ * override already written, whatever its spelling. Empty when the section is not of assemblies.
+ */
+export function blockOverridesOf(model: StaticModel, section: Node, system: string): Node[] {
+  const assemblies = sectionAssemblies(model, section);
+  if (!assemblies) return [];
+  return (section.children ?? []).filter(
+    (c) => c.kind === 'block' && overrideSystems(model, c, assemblies).includes(system),
+  );
+}
+
 /**
  * A section of assemblies' blocks (_spec/README.md "Resolved view", Blocks): a block a derived system, each assembly's
  * in its order and after its `include`, then the section's `include`; a `block` child whose `of` is a derived system
@@ -142,13 +169,7 @@ export function assemblyBlocks(
     const params: Record<string, Value> = {};
     for (const k of ['direction', 'scale', 'label', 'range', 'form'] as const)
       if (param(c, k) !== undefined) params[k] = param(c, k)!;
-    const of = systemRef(model, param(c, 'of'));
-    if (of !== undefined) over.set(of, params);
-    else if (c.id !== undefined)
-      for (const a of assemblies) {
-        const s = a.systemAt[a.find(c.id) ?? -1];
-        if (s) over.set(s, params);
-      }
+    for (const s of overrideSystems(model, c, assemblies)) over.set(s, params);
   }
   const nodes: Node[] = [];
   let total = 0;

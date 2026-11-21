@@ -107,7 +107,12 @@ export const AxisPicture: NavigatorPicture = {
   name: 'axis',
   axes: ['positions'],
   size: NavigatorSizes.axis,
-  picture: (c) => ({ tracks: [fill('axis', c.height, { type: 'ruler' })] }),
+  // a zoom strip over a genome's blocks counts in bases (`20 Mb`), as a genome's rulers do
+  picture: (c) => ({
+    tracks: [
+      fill('axis', c.height, c.zoom && c.navigator.blocks ? { type: 'ruler', units: 'bases' } : { type: 'ruler' }),
+    ],
+  }),
 };
 
 /** A chromosome's bands (an ideogram), filling the navigator and its zoom strip; none without `bands`. */

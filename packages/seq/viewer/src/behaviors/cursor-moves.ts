@@ -31,7 +31,7 @@ import {
   unionLocations,
 } from '@molstar/seqx-core/query';
 import { collapsedSection, type GridLay, type RowsLay, type ViewLayout } from '@molstar/seqx-core/render';
-import { type Axis, projectOntoView } from '@molstar/seqx-core/view';
+import { type Axis, blockSpan, placesOf, projectOntoView, type ResolvedSection } from '@molstar/seqx-core/view';
 import type { CommandDefinition, CommandResult } from '@molstar/ui/commands/types';
 import type { ViewerConfig } from '@molstar/seqx-viewer/config';
 import {
@@ -85,6 +85,17 @@ export function createCursor(
    * step or a click left it on); a cursor with none stands on its row's own (`RowsLay.cursorRow`).
    */
   const standsOn = new WeakMap<Cursor, number>();
+  /**
+   * The block each cursor is on in a section of blocks, by the cursor (a position two copies show: the copy a step left
+   * it on, so the next step, the reveal and the announcement stay on that copy); none: the first block showing it.
+   */
+  const onBlock = new WeakMap<Cursor, number>();
+  /** The cursor's place on its section of blocks: on the block it is on when that still shows it, else the first. */
+  const placeOf = (section: ResolvedSection, c: Cursor) => {
+    const places = placesOf(section, c.system, c.position);
+    const k = onBlock.get(c);
+    return places.find((p) => p.block === k) ?? places[0];
+  };
   /** Whether display row `i` shows data row `y` (its own row, or a summary row holding it). */
   const shows = (r: RowsOf, i: number, y: number) => {
     const d = r.lay.display;
@@ -267,9 +278,11 @@ export function createCursor(
    * piece to the next goes over the break between them (_spec/README.md "Behaviors", Cursor).
    */
   const stepped = (c: Cursor, delta: number): Cursor | undefined => {
-    const axis = sectionOf(c.section)?.axis;
-    // a section of blocks on several systems: its units are no system's positions (stepping across blocks is open)
-    if (axis?.pieces === 'blocks' && axis.system !== c.system) return undefined;
+    const section = sectionOf(c.section);
+    const axis = section?.axis;
+    // a section of blocks on several systems: a step along the cursor's block, and past its end onto the next block's
+    // first position (before its start, the previous block's last) in display order (EC-154, amended)
+    if (axis?.pieces === 'blocks' && axis.system !== c.system) return blockStepped(c, delta);
     const total = axis && axisTotal(axis);
     const o = axis && cellOffset(axis, c.position);
     if (!axis || total === undefined || o === undefined) return undefined;
@@ -277,6 +290,35 @@ export function createCursor(
     const p = elementAt(axis, next);
     return p === undefined ? undefined : { ...c, position: p };
   };
+  /**
+   * A step of the cursor on a section of blocks (EC-154, amended: the cursor crosses blocks): along its block in display
+   * order; past the block's last position the next block's first (a block with no positions skipped), before its first
+   * the previous block's last; at the section's ends it stays.
+   */
+  const blockStepped = (c: Cursor, delta: number): Cursor | undefined => {
+    const blocks = sectionOf(c.section)?.blocks;
+    const at = blocks && placeOf(sectionOf(c.section)!, c);
+    if (!blocks || !at) return undefined;
+    let b = at.block;
+    const o = cellOffset(blocks[b].axis, c.position);
+    const n = axisTotal(blocks[b].axis);
+    if (o === undefined || n === undefined) return undefined;
+    let next = o + delta;
+    while (next < 0 || next >= (axisTotal(blocks[b].axis) ?? 0)) {
+      const nb = next < 0 ? b - 1 : b + 1;
+      if (nb < 0 || nb >= blocks.length) return { ...c };
+      // what is left of the step past this block's end goes on in the next one
+      next = next < 0 ? next + (axisTotal(blocks[nb].axis) ?? 0) : next - (axisTotal(blocks[b].axis) ?? 0);
+      b = nb;
+      if (!(blockSpan(blocks[b]) > 0)) next = delta < 0 ? -1 : 0;
+    }
+    const p = elementAt(blocks[b].axis, next);
+    if (p === undefined) return undefined;
+    const out = { ...c, system: blocks[b].axis.system, position: p };
+    onBlock.set(out, b);
+    return out;
+  };
+
   /** ← on rows: from the first column onto the row's header (a step back elsewhere); on the header it stays. */
   const back = (c: Cursor): Cursor | undefined => {
     if (c.part === 'header') return c;
@@ -294,6 +336,14 @@ export function createCursor(
   const crossed = (a: Cursor, b: Cursor): string => {
     const axis = sectionOf(b.section)?.axis;
     if (!axis || a.section !== b.section) return '';
+    // onto another block (another system, or another copy of the same: by the block each is on): its name and the
+    // position there (`chr18, 1`)
+    const s = sectionOf(b.section);
+    const other =
+      a.system !== b.system ||
+      (!!s?.blocks && onBlock.has(b) && (onBlock.get(a) ?? placeOf(s, a)?.block) !== onBlock.get(b));
+    if (other && axis.pieces === 'blocks')
+      return `, ${spec.model.value.systems.get(b.system)?.name ?? b.system}, ${(b.position + 1).toLocaleString('en-US')}`;
     const oa = cellOffset(axis, a.position);
     const ob = cellOffset(axis, b.position);
     if (oa === undefined || ob === undefined) return '';
@@ -318,9 +368,15 @@ export function createCursor(
     const now = selection.cursor.value;
     const i = standsOn.get(c);
     if (now && i !== undefined) standsOn.set(now, i);
+    const k = onBlock.get(c);
+    if (now && k !== undefined) onBlock.set(now, k);
     if (c.part !== 'header') {
-      const axis = sectionOf(c.section)?.axis;
-      const o = axis && cellOffset(axis, c.position);
+      const section = sectionOf(c.section);
+      const axis = section?.axis;
+      // on a section of blocks the cursor's unit is its block's place
+      const place =
+        section?.blocks && axis?.pieces === 'blocks' && axis.system !== c.system ? placeOf(section, c) : undefined;
+      const o = place ? place.unit : axis && cellOffset(axis, c.position);
       if (o !== undefined) reveal(c.section, o);
     }
     revealRow(c, top);

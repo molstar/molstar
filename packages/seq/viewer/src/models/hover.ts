@@ -39,7 +39,8 @@ export type HitTarget =
   | 'column-title'
   | 'columns-hidden'
   | 'tree-toggle'
-  | 'group';
+  | 'group'
+  | 'run';
 
 /**
  * What the pointer is over, as the layout's hit test gives it: the layer, an element key and its extent, or a
@@ -83,6 +84,8 @@ export interface HoverRecord {
   readonly state: string | undefined;
   /** A `group` hit's members (a ring's grouped label): the hits it stands for. */
   readonly members: readonly RenderHit[] | undefined;
+  /** A `run` hit's count (the run's blocks), a break's hidden items; undefined when none. */
+  readonly count: number | undefined;
 }
 
 type MutableRecord = { -readonly [K in keyof HoverRecord]: HoverRecord[K] };
@@ -107,6 +110,7 @@ export class HoverModel extends ReactiveModel {
     yBlock: undefined,
     state: undefined,
     members: undefined,
+    count: undefined,
   };
   /** The version, the view and the model the caches are for. */
   private _cacheKey: [number, unknown, unknown] = [-1, undefined, undefined];
@@ -164,6 +168,7 @@ export class HoverModel extends ReactiveModel {
       r.yBlock === hit.yBlock &&
       r.state === hit.state &&
       r.members === hit.members &&
+      r.count === hit.count &&
       (r.yPosition === yPosition || (Number.isNaN(r.yPosition) && Number.isNaN(yPosition))) &&
       keysEqual(r.element, hit.element) &&
       (hit.element !== undefined || r.extent === hit.extent)
@@ -183,6 +188,7 @@ export class HoverModel extends ReactiveModel {
     r.yBlock = hit.yBlock;
     r.state = hit.state;
     r.members = hit.members;
+    r.count = hit.count;
     this._version.set(this._version.value + 1);
     return true;
   }
@@ -203,7 +209,7 @@ export class HoverModel extends ReactiveModel {
     const r = this._record;
     if (r.owner === undefined || r.owner !== owner) return false;
     r.owner = r.layer = r.section = r.system = r.element = r.extent = r.ySystem = r.target = undefined;
-    r.block = r.yBlock = r.state = r.members = undefined;
+    r.block = r.yBlock = r.state = r.members = r.count = undefined;
     r.position = r.yPosition = Number.NaN;
     this._version.set(this._version.value + 1);
     return true;

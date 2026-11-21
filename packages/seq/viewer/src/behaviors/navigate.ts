@@ -16,6 +16,8 @@ import { cancelFrameCallback, requestFrameCallback } from '@molstar/ui/dom/frame
 import { type BindingTable, type KeyChord, type ModifierState, parseChord } from '@molstar/seqx-viewer/bindings';
 import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
 import type { Location } from '@molstar/seqx-core/query';
+import { blockSpan } from '@molstar/seqx-core/view';
+import { blockOfUnit, blockSwitchRange } from '@molstar/seqx-viewer/block-switch';
 import type { HitTarget, ViewModel } from '@molstar/seqx-viewer/models';
 
 /**
@@ -189,6 +191,34 @@ export function navigateBehavior(
     return view.pan(section, to - from);
   };
 
+  /** A section's blocks in a row (a genome's chromosomes): none for a stack or a section of one system. */
+  const rowBlocks = (section: string | undefined) => {
+    const s = section === undefined ? undefined : view.resolved.value?.sections.find((x) => x.address === section);
+    return s?.blocks && s.blocks.length > 1 && s.params.arrange !== 'stack' ? s.blocks : undefined;
+  };
+
+  /**
+   * The next or the previous block of a row (`block.next`, `block.previous`; genome coordinates): from the block holding
+   * the window's centre, a jump to that block by the switching rule (`blockSwitchRange`: from a block shown whole the
+   * next whole, zoomed in the same width at the same relative place; a step of the history); none past the last or
+   * before the first.
+   */
+  const blockStep = (section: string, dir: 1 | -1): boolean | string => {
+    const blocks = rowBlocks(section);
+    const v = view.get(section);
+    if (!blocks || !v) return false;
+    const b = blockOfUnit(blocks, (v.start + v.end) / 2);
+    let n = b + dir;
+    while (n >= 0 && n < blocks.length && !(blockSpan(blocks[n]) > 0)) n += dir;
+    if (n < 0 || n >= blocks.length) return dir > 0 ? 'At the last block' : 'At the first block';
+    const r = blockSwitchRange(blocks, v, n, v.width > 0 ? (v.end - v.start) / v.width : 0);
+    return view.jump(() => view.setRange(section, r[0], r[1]), true, 'move') !== 'none';
+  };
+  const hasBlocks = (ctx: NavigateContext): true | string => {
+    const m = movable(ctx);
+    return m !== true ? m : rowBlocks(ctx.section) ? true : 'No row of blocks here';
+  };
+
   const commands: CommandDefinition<NavigateContext>[] = [
     command(
       'view.fit',
@@ -220,6 +250,8 @@ export function navigateBehavior(
     // a line in a layout of lines (a text scrolls a line); a window has one line, so nothing
     command('view.pan-up', 'Scroll a line up', (s) => lineBy(s, 'up'), 'Scrolled up'),
     command('view.pan-down', 'Scroll a line down', (s) => lineBy(s, 'down'), 'Scrolled down'),
+    command('block.next', 'Next block', (s) => blockStep(s, 1), 'Next block', hasBlocks),
+    command('block.previous', 'Previous block', (s) => blockStep(s, -1), 'Previous block', hasBlocks),
   ];
 
   return {

@@ -89,6 +89,7 @@ export class ViewerEmphasis {
         | undefined
     )?.menu?.value?.menu.target;
     e.menu = menu ? (menu.track ?? menu.section) : undefined;
+    e.row = viewer.input.row;
     this.updateHighlights();
     e.projected = p;
     p.hover = viewer.hover.projectedAll();

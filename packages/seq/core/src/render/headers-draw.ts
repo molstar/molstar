@@ -53,6 +53,8 @@ export function actionsShown(
   if (c && c.part === 'header' && c.track === address) return true;
   // an open menu keeps its header's actions (the pointer on its way to the menu leaves the line)
   if (emphasis.menu === address) return true;
+  // the pointer anywhere in a track's row (a gap between blocks, a rail over it): its actions, never a flicker
+  if (within && emphasis.row === address) return true;
   const h = emphasis.hover;
   if (!h || h.section !== section) return false;
   const l = h.layer;

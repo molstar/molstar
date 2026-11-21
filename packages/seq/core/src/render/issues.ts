@@ -63,6 +63,12 @@ export const RenderIssues = defineIssues('seq.render', {
       'A layer of a navigator’s tracks is left out: its source serves no coarse level and its whole axis passes the store’s bound on tiles',
     hint: 'Serve the annotation at a coarse level, or name the navigator’s `tracks`',
   },
+  'seq.render.navigator.square': {
+    severity: 'info',
+    description:
+      'The square has more block pairs than `navigator.square.maxCells`: its lattice and wash are not drawn, only its window',
+    hint: 'Show fewer blocks (an `include`), or raise `navigator.square.maxCells`',
+  },
   'seq.render.rows.lazy': {
     severity: 'info',
     description:

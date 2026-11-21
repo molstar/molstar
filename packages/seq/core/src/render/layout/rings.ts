@@ -26,7 +26,16 @@ import type { TextMetrics } from '../text.js';
 import type { SeqTokens } from '../tokens.js';
 import type { SectionLayout } from '../tracks.js';
 import { drawWindowArgs, floorExtent, WindowFill, windowPart } from '../window.js';
-import { blockLabel, blockLength, chipSlots, isChip, type ResolvedBlock, runLabel } from './blocks.js';
+import {
+  blockLabel,
+  blockLength,
+  blockNamePrefix,
+  chipSlots,
+  isChip,
+  type ResolvedBlock,
+  runLabel,
+  shortBlockLabel,
+} from './blocks.js';
 import { PlacePoint, Strips, WarpKind } from './strips.js';
 import { clampWindow, TracksNav } from './tracks.js';
 import type { NavContext, Placement, PlaceContext, SectionLayoutType, SectionNav } from './types.js';
@@ -186,6 +195,12 @@ export class RingPlacement implements Placement {
   groupW = new Float64Array(4);
   /** The groups' names, drawn in their band outside the outer ring (never among the block labels). */
   groupText: string[] = [];
+  /**
+   * Each group's name's centre on the page (`groupLayout`): on its arc's middle angle, past the arcs and the block
+   * labels there (never over an arc or a label).
+   */
+  groupTX = new Float64Array(4);
+  groupTY = new Float64Array(4);
   /** The band outside the outer ring the groups' arcs and names take (0 without groups): the labels start past it. */
   groupBand = 0;
 
@@ -494,6 +509,61 @@ function layGroupArcs(
   }
 }
 
+/**
+ * Each group's name (EC-210): at its arc's middle angle, out along it from the arcs to the first place where its box
+ * meets no placed block label, no other group's name and no arc (its nearest point past the arcs), inside the section's
+ * box; with none there, the farthest place inside the box along the angle. Laid out with the labels, never on a hover.
+ */
+function placeGroupNames(p: RingPlacement, text: TextMetrics, font: string): void {
+  if (p.groupTX.length < p.groupN) {
+    p.groupTX = grown(p.groupTX, p.groupN);
+    p.groupTY = grown(p.groupTY, p.groupN);
+  }
+  const l = p.labels;
+  const h = p.titleSize + 2;
+  const lh = labelLine(p.labelSize) / 2;
+  const box = p.box;
+  const clear = p.r + 6;
+  for (let k = 0; k < p.groupN; k++) {
+    const w = text.measure(font, p.groupText[k]) + 4;
+    const t = angleOf(p, p.groupX[k] + p.groupW[k] / 2);
+    const sx = Math.sin(t);
+    const sy = -Math.cos(t);
+    let best = -1;
+    let last = -1;
+    for (let d = 0; d < 4 * (box.width + box.height); d += 2) {
+      const cx = p.cx + d * sx;
+      const cy = p.cy + d * sy;
+      const x0 = cx - w / 2;
+      const y0 = cy - h / 2;
+      // inside the section's box
+      if (x0 < box.x || x0 + w > box.x + box.width || y0 < box.y || y0 + h > box.y + box.height) {
+        if (last >= 0) break;
+        continue;
+      }
+      // its nearest point past the arcs
+      const nx = Math.max(x0, Math.min(p.cx, x0 + w)) - p.cx;
+      const ny = Math.max(y0, Math.min(p.cy, y0 + h)) - p.cy;
+      if (nx * nx + ny * ny < clear * clear) continue;
+      last = d;
+      let hit = false;
+      for (let q = 0; q < l.m && !hit; q++) {
+        const lx = l.right[q] ? l.x[q] : l.x[q] - l.width[q];
+        const ly = l.y[q] - 0.35 * p.labelSize;
+        hit = lx < x0 + w && lx + l.width[q] > x0 && ly - lh < y0 + h && ly + lh > y0;
+      }
+      for (let q = 0; q < k && !hit; q++) hit = Math.abs(p.groupTX[q] - cx) < w && Math.abs(p.groupTY[q] - cy) < h;
+      if (!hit) {
+        best = d;
+        break;
+      }
+    }
+    const d = best >= 0 ? best : Math.max(0, last);
+    p.groupTX[k] = p.cx + d * sx;
+    p.groupTY[k] = p.cy + d * sy;
+  }
+}
+
 /** Rings outside in: the section's tracks as rings round its whole axis, a block an arc. */
 export const RingsLayout: SectionLayoutType<RingPlacement> = {
   name: 'rings',
@@ -512,18 +582,22 @@ export const RingsLayout: SectionLayoutType<RingPlacement> = {
     p.labels.reset();
     p.labelFont = config.itemFont;
     p.groupBand = section.groups && section.groups.length > 1 && outside ? RingMetrics.groupBand : 0;
+    // the groups' names past the block labels: a band of their own outside them, as much again
+    const names = p.groupBand ? RingMetrics.groupBand : 0;
     const size = fontSize(config.itemFont);
     p.labelSize = size;
     p.titleSize = fontSize(config.labelFont);
     // the diameter fits the box's width (its labels' room aside), capped
     const side = outside
-      ? rc.labelGap + p.groupBand + rc.leaderBend + RingMetrics.labelRoom
+      ? rc.labelGap + p.groupBand + rc.leaderBend + RingMetrics.labelRoom + names
       : RingMetrics.margin + RingMetrics.rim;
     const written = section.params.height;
     const avail = Math.max(48, ctx.width - 2 * config.inset - 2 * side);
     const d = Math.min(rc.maxDiameter, typeof written === 'number' && written > 0 ? written : avail, avail);
     const r = d / 2;
-    const margin = outside ? rc.labelGap + p.groupBand + rc.leaderBend + size : RingMetrics.margin + RingMetrics.rim;
+    const margin = outside
+      ? rc.labelGap + p.groupBand + rc.leaderBend + size + names
+      : RingMetrics.margin + RingMetrics.rim;
     const top = ctx.box.y;
     p.box = { x: config.inset, y: top, width: ctx.width - 2 * config.inset, height: d + 2 * margin };
     p.contentHeight = p.box.height;
@@ -659,6 +733,7 @@ export const RingsLayout: SectionLayoutType<RingPlacement> = {
       first += len;
     }
     // the strips' layers, their labels into the sink (placed below, once the ring is laid out)
+    const prefix = blocks ? blockNamePrefix(blocks) : '';
     for (let i = 0; i < strips.n; i++) {
       Sink.at(p, i);
       const pill = ctx.layStrip(p, i, outside ? Sink : undefined);
@@ -667,7 +742,11 @@ export const RingsLayout: SectionLayoutType<RingPlacement> = {
       const b = blocks?.[bi];
       if (b && outside && !pill && !(runs && runs[bi] >= 0)) {
         const a = strips.axes[i];
-        p.labels.add(blockLabel(b, config), angleOf(p, a.x0 + a.width / 2), Infinity, -1, undefined);
+        // whole where its arc holds it, else short (its name less the names' shared prefix: `11`, `X`), as a row's
+        const whole = blockLabel(b, config);
+        const short =
+          whole && ctx.text.measure(config.labelFont, whole) > a.width ? shortBlockLabel(b, config, prefix) : '';
+        p.labels.add(short || whole, angleOf(p, a.x0 + a.width / 2), Infinity, -1, undefined);
       }
     }
     // a run's label where it has room, then the groups' names outside the labels (EC-210)
@@ -678,6 +757,7 @@ export const RingsLayout: SectionLayoutType<RingPlacement> = {
       }
     if (outside) layoutLabels(p, config, size, ctx.text);
     layGroupArcs(p, section, blocks, x);
+    if (outside) placeGroupNames(p, ctx.text, config.labelFont);
     const [title, sub] = rc.center === 'title' ? ringTitle(section, ctx, total) : ['', ''];
     p.title = title;
     p.subtitle = sub;
@@ -1187,12 +1267,11 @@ function drawRingLabels(p: RingPlacement, out: PassWriter, tokens: SeqTokens, co
     g[4] = ink;
     out.textArgs(l.text[l.placed[k]], l.right[k] ? AnchorStart : AnchorEnd, config.itemFont);
   }
-  // each group's name in its band outside the outer ring, at its arc's middle, upright, in the label font and ink
-  // (the block labels are the item font, muted, past the band)
+  // each group's name past the arcs and the block labels at its arc's middle angle (`placeGroupNames`), upright, in
+  // the label font and ink (the block labels are the item font, muted)
   for (let k = 0; k < p.groupN; k++) {
-    p.warp.map(p.groupX[k] + p.groupW[k] / 2, -3 - p.groupBand / 2);
-    g[0] = p.warp.px;
-    g[1] = p.warp.py + p.titleSize * 0.35;
+    g[0] = p.groupTX[k];
+    g[1] = p.groupTY[k] + p.titleSize * 0.35;
     g[2] = 0;
     g[3] = Math.max(0, p.groupW[k]);
     g[4] = ink;

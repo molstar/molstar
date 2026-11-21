@@ -328,6 +328,14 @@ export class DataStore extends ReactiveModel {
   }
 
   /**
+   * The attached sources by their addresses, as attached (before their summaries): what `findNames` asks (a locus box's
+   * fallback to a name, EC-228).
+   */
+  *named(): IterableIterator<{ readonly address: string; readonly source: OpenedSource }> {
+    for (const [address, a] of this._sources.all()) yield { address, source: a.raw };
+  }
+
+  /**
    * A new reading of an attached source (a host's edit, _spec/README.md "Data", Store, Reattach): nodes of a key it
    * still brings keep their identity and take its content (version moved); keys it no longer brings go, whoever holds
    * them (the reading says they are gone); every tile of it and its channels is dropped and asked again while wanted.
