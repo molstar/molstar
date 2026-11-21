@@ -6,7 +6,7 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
 
 ## Open
 
-- **GC2's leftovers from my second look** (2026-11-21, after its fix round):
+- **GC2's leftovers from my second look** (2026-11-21, after its fix round; taken by GC3's brief):
   - a double-click on the 25-block row zooms to bases (161,976,790) instead of fitting the block;
   - B in A's order: the reversed middle block of chr2 shows no label at all, though "chr2 ←" fits;
   - the hover card calls a chromosome a "Chain" (`Chain chr3`, `Chain chr2 inv`): the row's name for a block's system;
