@@ -13,7 +13,8 @@
 
 import { writeUint, writeUshort, sizeUTF8, writeUTF8, readUshort, readUint, readUTF8 } from './bin.js';
 import { crc, adler } from './checksum.js';
-import { _inflate, _inflateMember, inflateStream } from './inflate.js';
+import { _inflate, inflateStream } from './inflate.js';
+import { inflateMember } from '../internal/inflate-blocks.js';
 import { checkCompressionStreamSupport } from './util.js';
 import { _deflateRaw } from './deflate.js';
 import { type RuntimeContext, Task } from '@molstar/core/task';
@@ -278,6 +279,13 @@ function gzipMemberHeader(file: Uint8Array, o: number): GzipMemberHeader | undef
  * Each member found (by BGZF's BSIZE when present, else where the JS inflater's deflate stream of the member ends),
  * inflated as one member with its own ISIZE, the outputs joined within the caller's buffer, never by growing one.
  */
+/** A member's deflate stream inflated in JS (into `into` when given) and the bytes it took. */
+async function memberJs(runtime: RuntimeContext, data: Uint8Array<ArrayBuffer>, into?: Uint8Array<ArrayBuffer>) {
+  const out = { buf: into ?? new Uint8Array((data.length >>> 2) << 3), off: 0 };
+  const { used } = await inflateMember(runtime, data, out, !into);
+  return { bytes: out.buf.subarray(0, out.off), used };
+}
+
 async function ungzipMembers(runtime: RuntimeContext, file: Uint8Array<ArrayBuffer>, buf?: Uint8Array<ArrayBuffer>) {
   // When every member has its BSIZE (BGZF), the whole size is the sum of their ISIZEs, known before inflating
   if (!buf) {
@@ -331,9 +339,9 @@ async function ungzipMembers(runtime: RuntimeContext, file: Uint8Array<ArrayBuff
         o = end;
         continue;
       }
-      bytes = (await _inflateMember(runtime, file.subarray(h.data, end - 8), into(isize))).bytes;
+      bytes = (await memberJs(runtime, file.subarray(h.data, end - 8), into(isize))).bytes;
     } else {
-      const r = await _inflateMember(runtime, file.subarray(h.data), into());
+      const r = await memberJs(runtime, file.subarray(h.data), into());
       bytes = r.bytes;
       end = h.data + r.used + 8;
       if (end > file.length) throw new Error(`the gzip member at byte ${o} is cut short`);

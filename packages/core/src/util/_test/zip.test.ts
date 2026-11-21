@@ -5,11 +5,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { deflateRawSync, gzipSync } from 'node:zlib';
+import { gzipSync } from 'node:zlib';
 import { describe, expect, it, vi } from 'vitest';
 import { deflate, inflate, ungzip, unzip, zip, type UnzipLimits } from '../zip/zip.js';
 import { SyncRuntimeContext } from '@molstar/core/task/execution/synchronous';
-import { _inflateMember } from '../zip/inflate.js';
 
 describe('zip', () => {
   it('roundtrip deflate/inflate', async () => {
@@ -141,20 +140,21 @@ describe('zip', () => {
       await expect(ungzip(SyncRuntimeContext, blocks.subarray(0, blocks.length - 28 - 30))).rejects.toThrow();
     });
 
-    it('the JS inflater says where a deflate stream ends, and refuses one cut short (never reading zeros on)', async () => {
+    it('finds where each plain member ends (its deflate stream), through ungzip: junk after a member, members cut short', async () => {
       const a = text(300, 'first');
-      const raw = deflateRawSync(a);
-      const withTail = new Uint8Array(raw.length + 5);
-      withTail.set(raw);
-      const r = await _inflateMember(SyncRuntimeContext, withTail);
-      expect(r.bytes).toEqual(a);
-      expect(r.used).toBe(raw.length);
-      for (const cut of [1, 3, Math.floor(raw.length / 2)]) {
+      const b = text(200, 'second');
+      const two = join([gzipSync(a), gzipSync(b)]);
+      expect(await ungzip(SyncRuntimeContext, two)).toEqual(join([a, b]));
+      // bytes after a member that are not one: refused, never read as data
+      await expect(ungzip(SyncRuntimeContext, join([two, new Uint8Array([1, 2, 3, 4, 5])]))).rejects.toThrow(
+        /no gzip member at byte/,
+      );
+      const first = gzipSync(a);
+      for (const cut of [1, 3, 9, Math.floor(first.length / 2)]) {
         await expect(
-          _inflateMember(SyncRuntimeContext, new Uint8Array(raw.subarray(0, raw.length - cut))),
+          ungzip(SyncRuntimeContext, join([first.subarray(0, first.length - cut), gzipSync(b)])),
         ).rejects.toThrow();
       }
-      await expect(_inflateMember(SyncRuntimeContext, new Uint8Array(raw), new Uint8Array(10))).rejects.toThrow(/past/);
     });
 
     it("never inflates past the caller's buffer", async () => {
