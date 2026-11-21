@@ -56,7 +56,9 @@ extensible/configurable?" Yes, by the rule that what can be configurable is ([ex
   size for the mono face). Past the cap a wider cell adds room around the letter, never a bigger letter; the cell's
   color, emphasis and hit area still fill it. Why: letters larger than their labels out-shout the chrome (the author,
   2026-11-21: "using bigger font for the sequence letters than the surrounding UI looks bad"); a host that wants big
-  letters (teaching, slides) sets `letters.maxPx` to follow the cell. Two ink weights only: regular by default, and
+  letters (teaching, slides) sets `letters.maxPx` to follow the cell. Measured, not a ratio: the mono face's and the
+  label face's cap heights, once per configuration. Not capped: a logo's letters (their height is data) and a text
+  section's body (a text figure is read as text, at its own size). Two ink weights only: regular by default, and
   strong for a reference row, the cursor or a conflict.
 - **Labels and numbers** in the chrome use `@molstar/ui`'s type scale; rulers and numbering use tabular figures and
   never overlap (a label that does not fit is skipped, not shrunk).
