@@ -187,13 +187,15 @@ describe('repr/schema: validation', () => {
   it("carries an extension's params: a key in a foreign namespace, and every undeclared one on an extension's node", () => {
     const Open: Language = {
       ...Mini,
-      kinds: { ...Mini.kinds, ranges: { ...Mini.kinds.ranges, extensionParam: 'style' } },
+      kinds: { ...Mini.kinds, ranges: { ...Mini.kinds.ranges, extensionParam: 'style', fallbackParam: 'fb' } },
     };
     const r = (extra: Record<string, unknown>) => domains({ start: [0], end: [1] }, extra);
     expect(codes(spec(p53, r({ 'rondo:bundle': true })), Open)).toEqual([]);
     // the language's own namespace is not foreign
     expect(codes(spec(p53, r({ 'mini:bundle': true })), Open)).toEqual(['repr.schema.param.unknown']);
     expect(codes(spec(p53, r({ bundle: 1 })), Open)).toEqual(['repr.schema.param.unknown']);
+    // a node giving its `fallbackParam` (a newer type with new params) keeps them too
+    expect(codes(spec(p53, r({ fb: 'ranges', curvature: 1 })), Open)).toEqual([]);
     // a namespaced `extensionParam`: its node's undeclared params are the extension's (the declared ones still checked)
     const ext = { ...r({}), params: { ...r({}).params, style: 'rondo:ribbons', bundle: 0.8 } } as Node;
     expect(codes(spec(p53, ext), Open).filter((c) => c === 'repr.schema.param.unknown')).toEqual([]);

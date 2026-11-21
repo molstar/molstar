@@ -44,7 +44,6 @@ export {
   type LayerKinds,
   type LayerShape,
   BuiltInLayerKinds,
-  versionParts,
   type ResolvedLayer,
   type GridAxis,
   type ResolvedSection,

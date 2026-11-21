@@ -38,17 +38,17 @@ import {
   NoAssets,
 } from '@molstar/seqx-core/render';
 import { type ResolveConfig, resolveSpec, type StaticModel } from '@molstar/seqx-core/resolve';
-import { type SchemeEntry, SchemeRegistry, builtInSchemes } from '@molstar/seqx-core/theme';
+import type { SchemeEntry, SchemeRegistry } from '@molstar/seqx-core/theme';
 import {
+  BuiltInLayerKinds,
   type LayerKinds,
-  LayerTypes,
   type ResolvedSection,
   type ResolvedView,
   resolveView,
   resolveViews,
 } from '@molstar/seqx-core/view';
 import { type AssetPolicy, HeadlessAssetPolicy, policyAssets } from './assets.js';
-import { checkExtensions, type SeqExtension } from './extension.js';
+import { checkExtensions, type ExtensionTables, type SeqExtension } from './extension.js';
 
 // The headless composition (_spec/README.md "Context"): what a render needs, listed in one place: the registry (the
 // format runtimes a spec's sources are read with), the configuration and the ports. No global registry, nothing
@@ -217,55 +217,29 @@ export function configValue<T>(
   return out;
 }
 
-/** The registry's tables, composed from its entries and its extensions': what `extend` and its undo swap whole. */
-interface Tables {
-  readonly runtimes: readonly FormatRuntime[];
-  readonly types: Readonly<Record<string, LayerType<any, any>>>;
-  readonly layouts: Readonly<Record<string, SectionLayoutType<any>>>;
-  readonly sizings: Readonly<Record<string, TrackSizing>>;
-  readonly query: QueryExtensions;
-  readonly schemes?: SchemeRegistry;
-  readonly kinds: LayerKinds;
-  readonly extensions: readonly SeqExtension[];
-  readonly version: number;
-}
-
-const TableKeys = [
-  'runtimes',
-  'types',
-  'layouts',
-  'sizings',
-  'query',
-  'schemes',
-  'kinds',
-  'extensions',
-  'version',
-] as const;
+/** The registry's tables, composed from its entries and its extensions': what `_extend` swaps whole. */
+type Tables = Pick<
+  SeqContext,
+  'runtimes' | 'types' | 'layouts' | 'sizings' | 'query' | 'schemes' | 'kinds' | 'extensions'
+>;
 
 /**
- * The tables of a registry and its checked extensions: every conflict across them found first, one error, nothing
- * changed. The layer kinds are the built-ins' and each registered type's past them that says its `shape`.
+ * The tables of a registry and its checked extensions: every conflict across their entries found first, one error,
+ * nothing changed; then what each extension adds (`defined.compose`: its layer kinds, its schemes).
  */
-function tablesOf(registry: readonly SeqRegistryEntry[], extensions: readonly SeqExtension[], version: number): Tables {
+function tablesOf(registry: readonly SeqRegistryEntry[], extensions: readonly SeqExtension[]): Tables {
   const all = [...registry, ...extensions.flatMap((e) => e.registry)];
-  const types = layerTypesOf(all);
-  const schemes = all.flatMap((e) => (e.kind === 'scheme' ? [e.scheme] : []));
-  // a type past the built-ins is its own kind (its `shape` and `fallback`)
-  const kindTypes: Record<string, unknown> = { ...LayerTypes };
-  for (const [name, t] of Object.entries(types)) if (!LayerTypes[name] && t.shape) kindTypes[name] = t;
+  let added: ExtensionTables = { kinds: BuiltInLayerKinds };
+  for (const e of extensions) added = e.defined!.compose(added);
   return {
     runtimes: runtimesOf(all),
-    types,
+    types: layerTypesOf(all),
     layouts: layoutsOf(all),
     sizings: sizingsOf(all),
     query: queryExtensionsOf(all),
-    ...(schemes.length ? { schemes: new SchemeRegistry([...builtInSchemes().list(), ...schemes]) } : {}),
-    kinds: {
-      types: kindTypes as LayerKinds['types'],
-      extensions: Object.fromEntries(extensions.map((e) => [e.id, e.version])),
-    },
+    schemes: undefined,
+    ...added,
     extensions,
-    version,
   };
 }
 
@@ -281,11 +255,11 @@ export interface SeqContext {
   readonly query: QueryExtensions;
   /** The schemes the themes read, when the registry adds any to the built-ins (undefined: the built-ins). */
   readonly schemes?: SchemeRegistry;
-  /** The layer kinds a view is resolved with: the built-ins' and the registered types' (_spec/README.md "Resolved view"). */
+  /** The layer kinds a view is resolved with: the built-ins', and the extensions' (_spec/README.md "Resolved view"). */
   readonly kinds: LayerKinds;
   /** The extensions composed, each once. */
   readonly extensions: readonly SeqExtension[];
-  /** The tables' version: moves each time `_extend` changes them (what a frame's key holds). */
+  /** The tables' version: moves each time `_extend` swaps them (an extension registered late, or its undo). */
   readonly version: number;
   /** The `trackSizing` port's answer, when one was bound. */
   readonly trackSizing?: TrackSizingHook;
@@ -324,7 +298,7 @@ export interface SeqContext {
  */
 export function composeSeqContext(spec: SeqContextSpec = {}): SeqContext {
   const registry = spec.registry ?? [];
-  let t = tablesOf(registry, checkExtensions(spec.extensions ?? []), 0);
+  let t = tablesOf(registry, checkExtensions(spec.extensions ?? []));
   const theme = configValue(spec.config, SeqCoreConfig.theme) ?? 'light';
   const renderCfg = renderConfig(configValue(spec.config, SeqCoreConfig.render));
   const resolveCfg = configValue(spec.config, SeqCoreConfig.resolve) ?? {};
@@ -371,7 +345,9 @@ export function composeSeqContext(spec: SeqContextSpec = {}): SeqContext {
 
   const tokens = builtInTokens(theme);
   let retired = false;
-  const context = {
+  const context: SeqContext = {
+    ...t,
+    version: 0,
     ...(trackSizing ? { trackSizing } : {}),
     renderConfig: renderCfg,
     resolveConfig: resolveCfg,
@@ -379,7 +355,7 @@ export function composeSeqContext(spec: SeqContextSpec = {}): SeqContext {
     tokens,
     assets,
     text,
-    check: (s: Node) => [...checkSeqSpec(s, bounds), ...t.extensions.flatMap((e) => e.check?.(s) ?? [])],
+    check: (s) => [...checkSeqSpec(s, bounds), ...t.extensions.flatMap((e) => e.check?.(s) ?? [])],
     resolve: (s) => resolveSpec(s, { runtimes: t.runtimes, config: resolveCfg }),
     view: (model, address) => (address ? resolveView(model, address, t.kinds) : resolveViews(model, t.kinds)[0]),
     renderSvg: (s, options) =>
@@ -400,8 +376,9 @@ export function composeSeqContext(spec: SeqContextSpec = {}): SeqContext {
         resolve: resolveCfg,
         ...options,
       }),
-    _extend(next: readonly SeqExtension[]) {
-      t = tablesOf(registry, checkExtensions(next), t.version + 1);
+    _extend(next) {
+      t = tablesOf(registry, checkExtensions(next));
+      Object.assign(context, t, { version: context.version + 1 });
     },
     retire() {
       if (retired) return;
@@ -409,9 +386,7 @@ export function composeSeqContext(spec: SeqContextSpec = {}): SeqContext {
       for (const d of disposers) d();
       disposers.length = 0;
     },
-  } as Omit<SeqContext, keyof Tables> as SeqContext;
-  // the tables read as they stand: `extend` and its undo swap them whole
-  for (const k of TableKeys) Object.defineProperty(context, k, { get: () => t[k], enumerable: true });
+  };
   return context;
 }
 

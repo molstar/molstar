@@ -18,7 +18,13 @@ import { createSeqContext } from '@molstar/seqx-core/context/default';
 import { createSeqSpec, SeqLanguage, SeqValidateOptions } from '@molstar/seqx-core/lang';
 import { RangesType } from '@molstar/seqx-core/render';
 import { describe, expect, it } from 'vitest';
-import { defineExtension, type Hit, type LayerType, type SeqExtension } from '@molstar/seqx-core/extension';
+import {
+  defineExtension,
+  type Hit,
+  type LayerType,
+  requiresCovers,
+  type SeqExtension,
+} from '@molstar/seqx-core/extension';
 
 /** A dot at each range's middle (inline ranges only): the smallest layer type an extension can ship. */
 interface DotsPrep {
@@ -154,7 +160,8 @@ describe('extensions: a namespaced layer type', () => {
 
   it('checks the shape its data has against the shape the type reads', () => {
     const Values: LayerType = { ...DotsType, name: 'demo:dots', shape: 'values' } as LayerType;
-    const ctx = createSeqContext({ extensions: [{ ...Demo, registry: [{ kind: 'layer-type', type: Values }] }] });
+    const values = defineExtension({ ...Demo, defined: undefined, registry: [{ kind: 'layer-type', type: Values }] });
+    const ctx = createSeqContext({ extensions: [values] });
     const v = ctx.view(ctx.resolve(spec()))!;
     expect(v.sections[0].tracks[0].layers[0].placed).toBe(false);
     expect(codes(v.issues)).toEqual(['seq.view.layer.shape']);
@@ -167,13 +174,34 @@ describe('extensions: a namespaced layer type', () => {
     b.views.view('v', (v) =>
       v.section('sec', { of: s }).track('t').layer('l', { type: 'arcs', fallback: 'ranges', data: r }),
     );
-    const root = b.build();
-    expect(b.check()).toEqual([]);
+    // a newer type's own param, kept by this reader (its `fallback` given): no error
+    const at = ['views', 'v', 'sec', 't', 'l'];
+    const set = applyPatch(b.build(), { ops: [{ op: 'set', at, key: 'curvature', value: 1 }] } as never);
+    if (!set.ok) throw new Error('patch');
+    const root = set.root;
+    expect(createSeqContext().check(root)).toEqual([]);
     const ctx = createSeqContext();
     const v = ctx.view(ctx.resolve(root))!;
     const layer = v.sections[0].tracks[0].layers[0];
     expect([layer.fallbacks, layer.placed]).toEqual([['arcs', 'ranges'], true]);
     expect(v.issues.map((i) => [i.code, i.severity])).toEqual([['seq.view.layer.type', 'warning']]);
+    expect(layer.params.curvature).toBe(1);
+  });
+
+  it('says a navigator picture this reader lacks, and draws the axis', () => {
+    const b = createSeqSpec();
+    const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGTACGT' });
+    b.views.view('v', (v) => {
+      const sec = v.section('sec', { of: s });
+      sec.track('t').layer('l', { type: 'letters' });
+      v.navigator('nav', { of: sec, content: 'demo:square' } as never);
+    });
+    const ctx = createSeqContext();
+    const v = ctx.view(ctx.resolve(b.build()))!;
+    expect(v.navigators[0].content).toBe('axis');
+    expect(v.issues.map((i) => [i.code, i.address, i.message])).toEqual([
+      ['seq.view.layer.extension', '/views/v/navigators/nav', 'No picture `demo:square` here: drawn as the axis'],
+    ]);
   });
 
   it('checks its own params where it is registered, and carries them unchecked where not', () => {
@@ -184,27 +212,55 @@ describe('extensions: a namespaced layer type', () => {
 });
 
 describe('extensions: registration', () => {
-  const other: SeqExtension = { id: 'other', version: '1.0.0', requires: '0.5', registry: [] };
+  const other = defineExtension({ id: 'other', version: '1.0.0', requires: '0.5', registry: [] });
+  const runtime = (name: string) => ({ name, formats: ['shared'], open: () => Promise.reject(new Error('none')) });
 
-  it('is atomic over two extensions: every offender in one error, nothing registered', () => {
-    const stray: SeqExtension = { ...other, registry: [{ kind: 'layer-type', type: { ...DotsType, name: 'dots' } }] };
-    expect(() => createSeqContext({ extensions: [Demo, stray] })).toThrow(
-      /seq.context.extension.namespace: .*other: dots/,
+  it('checks a descriptor where it is defined: every offender in one error', () => {
+    const stray = {
+      ...other,
+      defined: undefined,
+      registry: [{ kind: 'layer-type' as const, type: { ...DotsType, name: 'dots' } }],
+    };
+    expect(() => defineExtension({ ...stray, config: [{ key: 'other.ok' }, { key: 'loose' }] })).toThrow(
+      /seq.context.extension.namespace: other: dots, other: loose/,
     );
-    const ctx = createSeqContext({ extensions: [other] });
+    expect(() => defineExtension({ ...other, id: 'seq' })).toThrow(/namespace/);
+    // a viewer's parts are its maker's: the core's would drop them unread
+    expect(() => defineExtension({ ...other, behaviors: [] } as SeqExtension)).toThrow(/viewer parts/);
+    // a composition takes only defined descriptors
+    expect(() => createSeqContext({ extensions: [stray] })).toThrow(/not made by defineExtension/);
+  });
+
+  it('is atomic over two extensions: their entries’ conflicts in one error, nothing registered', () => {
+    const a = defineExtension({ ...other, id: 'a', registry: [{ kind: 'format-runtime', runtime: runtime('a:x') }] });
+    const b = defineExtension({ ...other, id: 'b', registry: [{ kind: 'format-runtime', runtime: runtime('b:y') }] });
+    expect(() => createSeqContext({ extensions: [a, b] })).toThrow(/shared \(a:x, b:y\)/);
+    const ctx = createSeqContext({ extensions: [a] });
     const before = ctx.types;
-    expect(() => ctx._extend([other, Demo, stray])).toThrow(/namespace/);
-    expect([ctx.types === before, ctx.version, ctx.extensions]).toEqual([true, 0, [other]]);
-    // another descriptor under one id, and the same one twice (counted)
-    expect(() => createSeqContext({ extensions: [Demo, { ...Demo }] })).toThrow(/namespace: demo \(twice\)/);
+    expect(() => ctx._extend([a, b])).toThrow(/shared/);
+    expect([ctx.types === before, ctx.version, ctx.extensions]).toEqual([true, 0, [a]]);
+    // another descriptor under one id, and the same one twice (one)
+    expect(() => createSeqContext({ extensions: [Demo, defineExtension({ ...Demo })] })).toThrow(/twice: demo/);
     expect(createSeqContext({ extensions: [Demo, Demo] }).extensions).toEqual([Demo]);
   });
 
-  it('refuses a `requires` that does not cover the language', () => {
-    expect(() => createSeqContext({ extensions: [{ ...other, requires: '0.4' }] })).toThrow(
-      /seq.context.extension.version: .*other requires 0.4/,
+  it('reads versions by their major, 0.x by its minor, never mixing them', () => {
+    expect(() => defineExtension({ ...other, requires: '0.4' })).toThrow(
+      /seq.context.extension.version: other requires 0.4/,
     );
-    expect(() => createSeqContext({ extensions: [{ ...other, id: 'seq' }] })).toThrow(/namespace/);
+    expect([
+      requiresCovers('0.5', '0.5.3'),
+      requiresCovers('5', '0.5.0'),
+      requiresCovers('0.1', '1.0.0'),
+      requiresCovers('1.2', '1.3.0'),
+      requiresCovers('1.2', '1.1.0'),
+    ]).toEqual([true, false, false, true, false]);
+    // a reader at 0.9 of a spec written for 1.0: the old contract, so the fallback, said
+    const old = createSeqContext({ extensions: [defineExtension({ ...Demo, version: '0.9.0' })] });
+    const root = spec();
+    const v = old.view(old.resolve({ ...root, params: { ...root.params, extensions: { demo: '1.0' } } }))!;
+    expect(v.sections[0].tracks[0].layers[0].fallbacks).toEqual(['ranges']);
+    expect(codes(v.issues)).toEqual(['seq.view.layer.extension']);
   });
 
   it('swaps the tables whole at run time, their version moved (the viewer’s `extend`)', () => {
@@ -212,7 +268,7 @@ describe('extensions: registration', () => {
     const root = spec();
     expect(ctx.view(ctx.resolve(root))!.issues.length).toBe(1);
     ctx._extend([Demo]);
-    expect([ctx.version, 'demo:dots' in ctx.types, ctx.kinds.extensions]).toEqual([1, true, { demo: '0.2.0' }]);
+    expect([ctx.version, 'demo:dots' in ctx.types, Object.keys(ctx.kinds.extensions!)]).toEqual([1, true, ['demo']]);
     expect(ctx.view(ctx.resolve(root))!.issues).toEqual([]);
     ctx._extend([]);
     expect([ctx.version, 'demo:dots' in ctx.types]).toEqual([2, false]);
@@ -220,11 +276,11 @@ describe('extensions: registration', () => {
   });
 
   it('draws the fallback where the reader has the extension at an older major, and says an older minor', () => {
-    const old = createSeqContext({ extensions: [{ ...Demo, version: '0.1.4' }] });
+    const old = createSeqContext({ extensions: [defineExtension({ ...Demo, version: '0.1.4' })] });
     const v = old.view(old.resolve(spec()))!;
     expect(v.sections[0].tracks[0].layers[0].fallbacks).toEqual(['ranges']);
     expect(codes(v.issues)).toEqual(['seq.view.layer.extension']);
-    const minor = createSeqContext({ extensions: [{ ...Demo, version: '1.0.0' }] });
+    const minor = createSeqContext({ extensions: [defineExtension({ ...Demo, version: '1.0.0' })] });
     const root = spec();
     const newer = { ...root, params: { ...root.params, extensions: { demo: '1.2' } } };
     const m = minor.view(minor.resolve(newer))!;
@@ -256,6 +312,10 @@ describe('extensions: a spec with one reads, prints, patches and diffs the same 
       // the language's checks: the same with and without (the extension's own params apart)
       const strip = (is: Issue[]) => codes(is).filter((c) => !c.startsWith('repr.schema.param'));
       expect(strip(withIt.check(next))).toEqual(strip(without.check(next)));
+      // read the same: every layer's type and params as written, whichever type draws it
+      const read = (ctx: typeof withIt) =>
+        ctx.view(ctx.resolve(next))!.sections[0].tracks.map((t) => t.layers.map((l) => [l.type, l.params]));
+      expect(read(withIt)).toEqual(read(without));
       // printed and read back unchanged; a diff applied gives the same tree
       expect(parseSexpr(printSexpr(next)).node).toEqual(next);
       const d = diff(root, next);

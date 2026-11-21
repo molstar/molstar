@@ -237,9 +237,13 @@ export function validateChanges(
 const foreignKey = (lang: string, key: unknown): boolean =>
   typeof key === 'string' && !!kindNamespace(key) && kindNamespace(key) !== lang;
 
-/** Whether a node is an extension's by its kind's `extensionParam` (its value in a foreign namespace). */
+/**
+ * Whether a node's undeclared params are kept: its kind's `extensionParam` in a foreign namespace (an extension's), or
+ * its `fallbackParam` given (a type this reader may lack, a newer built-in's).
+ */
 const extensionNode = (lang: string, spec: KindSpec, n: Node): boolean =>
-  !!spec.extensionParam && foreignKey(lang, n.params?.[spec.extensionParam]);
+  (!!spec.extensionParam && foreignKey(lang, n.params?.[spec.extensionParam])) ||
+  (!!spec.fallbackParam && n.params?.[spec.fallbackParam] !== undefined);
 
 const infinite = (x: number) => x === Number.POSITIVE_INFINITY || x === Number.NEGATIVE_INFINITY;
 

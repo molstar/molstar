@@ -39,9 +39,9 @@ is added in the change that builds what it describes.
   and a numbering's methods `offset` and `segments` with `by` and `segments`; `pairs.a`/`b`, `ranges.target` and
   `map.to` naming an alignment, its columns; extensions (Language, Extensions): the spec's `extensions`, a layer's
   `fallback`, `layer.type` a word (a built-in's or `<id>:<name>`), `layout`, `heights` and `content` a built-in's or
-  `<id>:<name>`, and keys in an extension's namespace carried on any node). A spec in an earlier `0.x` reads as one in this one, and is reported where
-  it no longer fits: a `0.4.0` spec reads unchanged (every addition is optional, and every kind a reference took it
-  still takes).
+  `<id>:<name>`, and keys in an extension's namespace carried on any node). A spec in an earlier `0.x` reads as one in
+  this one, and is reported where it no longer fits: a `0.4.0` spec reads unchanged (every addition is optional, and
+  every kind a reference took it still takes).
 
 ## Language
 
@@ -303,9 +303,10 @@ never chemistry: a component code, a SMILES, a GlyTouCan id are strings it match
   extension's type without one is `seq.lang.layer.fallback` (warning) and read as `none`. Why the writer's and not the
   descriptor's: a reader without the extension knows nothing of it.
 - **Params**: an extension's type takes plain params beside the built-in ones (`layer`'s `extensionParam` is `type`:
-  `repr` keeps them unchecked); on another's node an extension's param is a key in its namespace (`'rondo:bundle'`),
-  carried on any kind. Both are checked only where the extension is composed (`SeqExtension.check`). Why: a reader
-  without the extension keeps them, so a spec prints, patches and diffs the same with and without it.
+  `repr` keeps them unchecked; so does a given `fallback`, `fallbackParam`, for a newer built-in's params); on another's
+  node an extension's param is a key in its namespace (`'rondo:bundle'`), carried on any kind. Both are checked only
+  where the extension is composed (`SeqExtension.check`). Why: a reader without the extension keeps them, so a spec
+  prints, patches and diffs the same with and without it.
 - **The spec's `extensions`**: a map of id to the least version written for (`{ rondo: '1.2' }`), written by the builder
   for the extensions it is given (`createSeqSpec({ extensions })`, at `major.minor`); read by the resolved view (Layer
   kinds).
@@ -1782,13 +1783,14 @@ no target.
 - **A track**: its address, its label (its id when absent), its height, and its `template` when it has `for_each`. A
   hidden track (`hidden: true`) is left out of the view, so its row collapses; the spec keeps it.
 - **A layer**: its address (with an id) and index, its type and fallback chain (Layer kinds, below), the `shape` its
-  first known type reads, its other params as written (an extension's plain params and namespaced keys included), its theme channels as
-  written (`color`, `ink`, `size`, `opacity`, `line`, `arrow`, `shape`), its data and the static path from the data's
-  system to the section's (none when the same). Data is the section's letters for a `letters` layer without data, an
-  address (`kind: 'address'`), or a query kept as written (`kind: 'query'`) on the system its first node is on, with the
-  shape of that node (none for a query on a sequence). A layer none of whose chain this reader knows is not placed; data
-  naming nothing is `seq.view.layer.data`; data of a shape the type does not draw is `seq.view.layer.shape`; data no
-  static path brings to the section is `seq.view.layer.unplaced`. Each leaves the layer not placed.
+  first known type reads, its other params as written (an extension's plain params and namespaced keys included), its
+  theme channels as written (`color`, `ink`, `size`, `opacity`, `line`, `arrow`, `shape`), its data and the static path
+  from the data's system to the section's (none when the same). Data is the section's letters for a `letters` layer
+  without data, an address (`kind: 'address'`), or a query kept as written (`kind: 'query'`) on the system its first
+  node is on, with the shape of that node (none for a query on a sequence). A layer none of whose chain this reader
+  knows is not placed; data naming nothing is `seq.view.layer.data`; data of a shape the type does not draw is
+  `seq.view.layer.shape`; data no static path brings to the section is `seq.view.layer.unplaced`. Each leaves the layer
+  not placed.
 - **Layer kinds** (`LayerKinds`: the types a reader knows, each its shape and fallback, and its extensions by id with
   their versions; `resolveView(model, address, kinds?)`, kept per kinds, model and view; the built-ins' `LayerTypes`
   when absent; a composition's is `SeqContext.kinds`): a layer's chain is its type, its `fallback` (an extension's type
@@ -1796,10 +1798,12 @@ no target.
   it is placed as, its shape checked against its data. A bare type this reader lacks (a newer built-in) is
   `seq.view.layer.type` (warning) at the layer; an extension's types it lacks are `seq.view.layer.extension` (warning)
   once an extension a view ("3 layer(s) need `rondo` 1.2: drawn as `pairs`", or "not drawn"). The spec's `extensions`
-  against the reader's: an extension at an older major (0.x: minor) has its types left out of the chain (drawn as
-  their fallbacks, said as above); at an older minor of the same major they are drawn and `seq.view.extension.version`
-  (info) says so. A section's `params` carry the extensions' namespaced keys; a navigator's `content` this reader lacks
-  is `axis`. Why in the resolved view: the same for every renderer, and the issue names the package a spec needs.
+  against the reader's: an extension at an older major (0.x: minor) has its types left out of the chain (drawn as their
+  fallbacks, said as above); at an older minor of the same major they are drawn and `seq.view.extension.version` (info)
+  says so. A section's `params` carry the extensions' namespaced keys; a navigator's `content` this reader lacks is
+  `axis`, said (`seq.view.layer.extension` at the navigator). Versions compare by major, a 0.x by its minor, ranked
+  below every 1.x (`5` and `0.5` never match). Why in the resolved view: the same for every renderer, and the issue
+  names the package a spec needs.
 - **Templates** (`templates.ts`): a template is `{ source, kind, depth, order, filter }` (`depth` 0, `order` `key` when
   absent); its layers without data are not placed (no issue). `templateNeeds(view)` is the depth each template source
   needs. `templateNodes` selects the overlay's nodes of the kind at the depth under the source whose params equal the
@@ -2095,19 +2099,18 @@ strip's.
 
 `LayerType<Prep, Lay>`: `name`, `fallback?`, `shape?` (the shape it reads: required of a type past the built-ins, an
 extension's, which the resolved view places by; one without it is unknown there and drawn as its fallback),
-`prepare(layer, model)` (tier 1, cached per resolved layer),
-`layout(prep, ctx, data, overlay, prev?)` (per viewport; `prev` is its last layout, to reuse buffers and keep lanes),
-`draw(lay, pass, out, emphasis?)`, `hit(lay, at)` (the point in `at[0]`, `at[1]`: an array, so a hit boxes no number),
-`legend?(lay, { title })` (its channels' legends), `domain?(lay)` (the y domain it drew). `LayoutContext`: the band's
-box and the strip's transform (in the strip's frame), the section, the layer's key, the device pixel ratio, the config,
-the tokens, the text port, whether the view settled, `want`, `report` and `theme` (the schemes, the measures, the scales
-and their held domains, the reader's substitution), and per strip `strip`, `span` (the union of the strip's bands: what
-a frame with `across` outlines), `place` (the section's placement, for a `section` layer), `labels` (`inside`, or a sink
-a layout collects labels into: rings), `bandTop` and `rowScale` (a band that scrolls its own rows). Generic additions,
-no layout named: `used?(lay)` (the height it used on the strip, 0 for nothing; the band's height when absent: text
-collapses a band no layer used, and only the layer knows its lanes), `scope` (`strip`, the default, laid out a strip at
-a time; `section`, once a section, drawn in page coordinates: what crosses strips), `axes` (2: a second axis of its own,
-the y path in Emphasis).
+`prepare(layer, model)` (tier 1, cached per resolved layer), `layout(prep, ctx, data, overlay, prev?)` (per viewport;
+`prev` is its last layout, to reuse buffers and keep lanes), `draw(lay, pass, out, emphasis?)`, `hit(lay, at)` (the
+point in `at[0]`, `at[1]`: an array, so a hit boxes no number), `legend?(lay, { title })` (its channels' legends),
+`domain?(lay)` (the y domain it drew). `LayoutContext`: the band's box and the strip's transform (in the strip's frame),
+the section, the layer's key, the device pixel ratio, the config, the tokens, the text port, whether the view settled,
+`want`, `report` and `theme` (the schemes, the measures, the scales and their held domains, the reader's substitution),
+and per strip `strip`, `span` (the union of the strip's bands: what a frame with `across` outlines), `place` (the
+section's placement, for a `section` layer), `labels` (`inside`, or a sink a layout collects labels into: rings),
+`bandTop` and `rowScale` (a band that scrolls its own rows). Generic additions, no layout named: `used?(lay)` (the
+height it used on the strip, 0 for nothing; the band's height when absent: text collapses a band no layer used, and only
+the layer knows its lanes), `scope` (`strip`, the default, laid out a strip at a time; `section`, once a section, drawn
+in page coordinates: what crosses strips), `axes` (2: a second axis of its own, the y path in Emphasis).
 
 - **The ranges layer's modules**: `render/ranges.ts` (the layer type: its prepared form, lanes and marks, hit, legend)
   and beside it, a concern each, `ranges-lay.ts` (what it keeps), `ranges-content.ts` (its content: Track heights),
@@ -2774,12 +2777,12 @@ numbers): a window move allocates nothing once warm.
 - **The section's `heights` names the sizing**: `content` (the default: tracks of one kind, their shown layers' types in
   order, share the tallest lanes, each with its own label lane, `SizedTrack.label`: a Reverse strand whose labels all
   fit inside reserves no empty lane beside a Forward one's), `uniform` (every content-sized track the section's
-  tallest), `fixed` (each its types' fixed height, `heights` above), or an extension's `<id>:<name>` sizing (`TrackSizing`, a
-  `track-sizing` registry entry; one not registered is `seq.render.heights` and the tracks fit their content;
-  `ContentSizing` is public for one to wrap). A track's `height` overrides any. **The host's `trackSizing` port**
-  (`TrackSizingHook`: the section, its `SizedTrack`s with their content heights, the named answer) has the last word; an
-  answer of another length is ignored. Text keeps its own thin bands. A navigator's picture sizes its tracks with the
-  view's sizings and port, and has no label lane.
+  tallest), `fixed` (each its types' fixed height, `heights` above), or an extension's `<id>:<name>` sizing
+  (`TrackSizing`, a `track-sizing` registry entry; one not registered is `seq.render.heights` and the tracks fit their
+  content; `ContentSizing` is public for one to wrap). A track's `height` overrides any. **The host's `trackSizing`
+  port** (`TrackSizingHook`: the section, its `SizedTrack`s with their content heights, the named answer) has the last
+  word; an answer of another length is ignored. Text keeps its own thin bands. A navigator's picture sizes its tracks
+  with the view's sizings and port, and has no label lane.
 - **Kept while their key is**: a section's heights and its tracks' contents are kept in the layout state by the section
   (its shown tracks, the px a position of its extent, the config, the layout, the metrics' version, the registry, the
   port), so a pan runs neither the sizing nor the port; a layer's content is kept by its prep (its label check by the
@@ -3402,9 +3405,9 @@ same pieces. Nothing registers on import and there is no global registry.
   source to the one runtime of its format (`runtimeFor`); a list given them with two for a format binds none
   (`seq.resolve.source.runtime`). Why: extensibility's "never resolved by order".
 - **Registry entries** are data: `{ kind: 'format-runtime', runtime }`, `{ kind: 'layer-type', type }`,
-  `{ kind: 'layout', layout }` and `{ kind: 'track-sizing', sizing }` (a `<id>:<name>` sizing a section's `heights` names:
-  Render, Track heights), each keyed by its provider's `name` (a format runtime by its formats, above); and the query
-  language's `{ kind: 'query-form', … }` and `{ kind: 'query-property', … }` (Queries, Extensions), composed into
+  `{ kind: 'layout', layout }` and `{ kind: 'track-sizing', sizing }` (a `<id>:<name>` sizing a section's `heights`
+  names: Render, Track heights), each keyed by its provider's `name` (a format runtime by its formats, above); and the
+  query language's `{ kind: 'query-form', … }` and `{ kind: 'query-property', … }` (Queries, Extensions), composed into
   `SeqContext.query` (`queryExtensionsOf`), what a host passes `evaluateQuery` as `extensions` (the viewer's address
   model does not yet: a followup). The same object again is no change; another under one name is an error listing every
   conflict (nothing registered), so a host's own type of a built-in's name goes in `composeSeqContext`. The canvas and
@@ -3413,19 +3416,21 @@ same pieces. Nothing registers on import and there is no global registry.
   and undoable registration is the viewer's (`SeqViewer.extend`).
 - **Extensions** (`SeqExtension`, `@molstar/seqx-core/context`; `SeqContextSpec.extensions`): a descriptor (`id`, its
   namespace; `version`; `requires`, the language versions it targets, 0.x: the minor is the major; `registry`; `params`
-  by the type that reads them; `config`; `check`), registered with the registry's entries, the descriptors whole:
-  `checkExtensions` dedupes a descriptor given twice, and refuses another under one id, an entry or setting outside its
-  namespace (`seq.context.extension.namespace`, every offender in one error) and a `requires` that does not cover the
-  language (`seq.context.extension.version`); then the tables' conflicts across them all, one error, nothing
-  registered. An extension may ship layer types (with a `shape`, one of the six: Render, Layer types), layouts,
-  sizings, schemes (`{ kind: 'scheme', scheme }`: `SeqContext.schemes`, the built-ins and these), format runtimes and
-  query entries; no node kinds or data shapes. `defineExtension` writes its `check` from its `params` (its issues are
-  `repr.schema.*`, the message naming it); the context's `check` adds them. The context's tables are read as they
-  stand (`_extend`, internal, swaps them whole and moves `version`): run-time registration is the viewer's
-  (`SeqViewer.extend`). **The contract an extension imports is one entry**, `@molstar/seqx-core/extension` (the
-  descriptor, `defineExtension`, `LayerType` and what it is given, `SectionLayoutType`, `Placement` and the warps,
-  `FormatRuntime`, `SchemeEntry`, `Legend`, the resolved layer and section); the rest may change in a 0.x minor. Why a
-  descriptor: the namespace check, the version check and the undo need the extension as one thing.
+  by the type that reads them; `config`; `check`; `defined`), made by `defineExtension`
+  (`@molstar/seqx-core/extension`), which refuses an entry or setting outside its namespace or the id `seq`
+  (`seq.context.extension.namespace`, every offender in one error) and a `requires` that does not cover the language
+  (`seq.context.extension.version`), and writes `defined.compose` (its layer kinds and version reading, its schemes) and
+  `check` (from `params`). Why there: a composition with no extension bundles none of it. A composition takes defined
+  descriptors only, a descriptor given twice once, another under one id refused; then its entries' conflicts across them
+  all, one error, nothing registered. An extension may ship layer types (with a `shape`, one of the six: Render, Layer
+  types), layouts, sizings, schemes (`{ kind: 'scheme', scheme }` in its registry: `SeqContext.schemes`, the built-ins
+  and these), format runtimes and query entries; no node kinds or data shapes. Its `check`'s issues are `repr.schema.*`,
+  the message naming it; the context's `check` adds them. The context's tables are read as they stand (`_extend`,
+  internal, swaps them whole and moves `version`): run-time registration is the viewer's (`SeqViewer.extend`). **The
+  contract an extension imports is one entry**, `@molstar/seqx-core/extension` (the descriptor, `defineExtension`,
+  `LayerType` and what it is given, `SectionLayoutType`, `Placement` and the warps, `FormatRuntime`, `SchemeEntry`,
+  `Legend`, the resolved layer and section); the rest may change in a 0.x minor. Why a descriptor: the namespace check,
+  the version check and the undo need the extension as one thing.
 - **The tracks layout is the one fixed fallback**: a section whose layout is not listed (or every section, with no
   layouts given) is laid out as tracks, and the viewer's navigation reads tracks likewise; tracks needs no entry. Why:
   the tracks layout is the frame's own (the label column, the rails, the bands), a section must be placed somehow, and

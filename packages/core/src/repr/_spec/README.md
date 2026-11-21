@@ -155,8 +155,10 @@ quantities need no quotes, and no units table is needed to read them (locations-
 - **Extension params**: a param key in a namespace other than the language's (`rondo:bundle`) is an extension's: kept,
   carried and not checked, on any kind. A kind's `extensionParam` names the param whose value, when namespaced
   (`type: 'rondo:ribbons'`), makes the node an extension's: its undeclared params are then kept unchecked too (the
-  declared ones are checked as ever). Why: an extension's params ride on the language's nodes, checked by the extension
-  that owns the namespace; a reader without it keeps them, so a spec prints and patches the same with and without it.
+  declared ones are checked as ever); so does its `fallbackParam` when given (`fallback`: a newer type's params kept by
+  an older reader, which warns elsewhere). Why: an extension's params ride on the language's nodes, checked by the
+  extension that owns the namespace; a reader without it keeps them, so a spec prints and patches the same with and
+  without it.
 - **A union** reads a node by the member that takes its kind, anything else by the first member it fits quietly.
 - **Refs**: their spelling only (an address that parses, or an id). What they name is a resolve pass's, not built.
 

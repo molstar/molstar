@@ -14,10 +14,9 @@ export {
   type SeqConfigItem,
   type SeqExtension,
   type SeqRegistryEntry,
-  requiresCovers,
 } from '@molstar/seqx-core/context';
 export type { FormatRuntime } from '@molstar/seqx-core/data';
-export { defineExtension, extensionParamIssues } from '@molstar/seqx-core/context/define';
+export { defineExtension, requiresCovers } from '@molstar/seqx-core/context/define';
 export type { Key, Keys, Location } from '@molstar/seqx-core/query';
 export type { Overlay, StaticModel } from '@molstar/seqx-core/resolve';
 export {

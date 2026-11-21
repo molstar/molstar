@@ -209,10 +209,9 @@ export class SeqViewer extends ReactiveModel {
     // extensions (_spec/README.md "Composition", Extensions): the core's checks and entries the context's, the viewer's
     // kinds after the spec's own
     const exts = (viewerSpec.extensions ?? []) as readonly SeqViewerExtension[];
-    this.registry = [
-      ...(viewerSpec.registry ?? []),
-      ...exts.flatMap((e) => (e.headerActions ?? []).map((entry) => ({ kind: 'header-action' as const, entry }))),
-    ];
+    // each one's viewer parts added by its maker (`defineViewerExtension`; `defineExtension` refuses viewer parts)
+    for (const e of exts) viewerSpec = e.composeViewer?.(viewerSpec) ?? viewerSpec;
+    this.registry = viewerSpec.registry ?? [];
     const context = (this.context = composeSeqContext({
       // the core's kinds (the viewer's own, the header entries, are its behaviors')
       ...(viewerSpec.registry
@@ -277,25 +276,12 @@ export class SeqViewer extends ReactiveModel {
     const history = viewerSpec.history ?? (target && viewerSpec.ui?.history ? viewerSpec.ui.history() : undefined);
     if (history) spec.attachHistory(history);
 
-    const preset = viewerSpec.bindings?.preset ?? BindingPresets[config.bindings.preset];
-    const actions = [
-      ...DefaultActions,
-      ...listedActions(viewerSpec.behaviors),
-      ...(viewerSpec.bindings?.actions ?? []),
-    ];
-    // an extension's bindings a layer over the spec's, naming the viewer's actions or its own (`<id>:…`: its commands,
-    // its behaviors', made after the table)
-    const bind = (late: readonly SeqViewerExtension[]) => {
-      const es = [...exts, ...late];
-      return bindingTable(preset, [...(viewerSpec.bindings?.overrides ?? []), ...es.map((e) => e.bindings ?? [])], {
-        actions: [
-          ...actions,
-          ...es.flatMap((e) => (e.bindings ?? []).flatMap((b) => (b.action?.startsWith(`${e.id}:`) ? [b.action] : []))),
-        ],
+    const bind = (vs: SeqViewerSpec) =>
+      bindingTable(vs.bindings?.preset ?? BindingPresets[config.bindings.preset], vs.bindings?.overrides ?? [], {
+        actions: [...DefaultActions, ...listedActions(vs.behaviors), ...(vs.bindings?.actions ?? [])],
         keys: config.view.keys,
       });
-    };
-    const bindings = (this.bindings = bind([]));
+    const bindings = (this.bindings = bind(viewerSpec));
 
     // behaviors, after the models; one of each name
     const behaviorContext: BehaviorContext = {
@@ -311,11 +297,16 @@ export class SeqViewer extends ReactiveModel {
       legends,
       layout: () => this._frame?.frame?.layout,
     };
-    this._ext = { extended: new Map(), bind, context: behaviorContext, onRetire, create: createBehaviors };
+    this._ext = {
+      extended: new Map(),
+      spec: viewerSpec,
+      bind,
+      context: behaviorContext,
+      onRetire,
+      create: createBehaviors,
+    };
     try {
-      const behaviors = [...viewerSpec.behaviors, ...exts.flatMap((e) => e.behaviors ?? [])];
-      createBehaviors(behaviors, behaviorContext, this.behaviors, this.commands, onRetire);
-      this.commands.push(...exts.flatMap((e) => e.commands ?? []));
+      createBehaviors(viewerSpec.behaviors, behaviorContext, this.behaviors, this.commands, onRetire);
       this.input = new ViewerInput(this);
     } catch (e) {
       // what was made is not left behind

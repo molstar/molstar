@@ -34,8 +34,8 @@ export const SeqLanguageVersion = '0.5.0';
 const ColumnsTargetKinds = [...SystemKinds, 'alignment'] as const;
 
 /**
- * An extension's name, `<id>:<name>` (_spec/README.md, Language, Extensions): its id the namespace, never `seq`
- * (reserved: the check says so), so two extensions cannot collide and no built-in is shadowed.
+ * An extension's name, `<id>:<name>` (_spec/README.md, Language, Extensions): its id the namespace (`seq` is
+ * reserved: `defineExtension` refuses the id), so two extensions cannot collide and no built-in is shadowed.
  */
 export const ExtensionNamePattern = '^[a-z][a-z0-9_-]*:[a-z][a-z0-9_-]*$';
 
@@ -635,7 +635,7 @@ export const SeqLanguage = defineLanguage({
         },
         content: builtInOr(
           ['axis', 'tracks', 'bands', 'rows'],
-          'What it draws of the whole: the `axis` as a hairline (when absent), the section’s `tracks` small, the `bands` of a chromosome (an ideogram), the section’s `rows` (summarized),.',
+          'What it draws of the whole: the `axis` as a hairline (when absent), the section’s `tracks` small, the `bands` of a chromosome (an ideogram), or the section’s `rows` (summarized).',
         ),
         tracks: {
           type: 'list',
@@ -925,6 +925,8 @@ export const SeqLanguage = defineLanguage({
       ids: 'required',
       // an extension's type (`rondo:ribbons`) reads plain params beside these: kept, checked by the extension
       extensionParam: 'type',
+      // a newer built-in's type with its fallback: its params kept too (an older reader warns, never refuses)
+      fallbackParam: 'fallback',
       params: {
         type: {
           // a word, not an enum: a type this reader lacks (an extension's, a newer built-in) is drawn as its fallback and

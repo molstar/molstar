@@ -14,6 +14,7 @@ import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { type LayerType, RangesType, TracksLayout } from '@molstar/seqx-core/render';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { HoverProvider } from '../behaviors/providers.js';
+import { defineViewerExtension } from '../extension.js';
 import type { SeqViewerExtension, SeqViewerSpec } from '../viewer-spec.js';
 import { createSeqViewer, type SeqViewer, type ViewerCommand } from '../viewer.js';
 import { type Frames, installFrames } from './frames.js';
@@ -42,7 +43,7 @@ function demo() {
     category: 'Demo',
     run: () => (ran(), { message: 'hello' }),
   } as unknown as ViewerCommand;
-  const ext: SeqViewerExtension = {
+  const base: SeqViewerExtension = {
     id: 'demo',
     version: '0.1.0',
     requires: '0.5',
@@ -51,7 +52,10 @@ function demo() {
     commands: [command],
     bindings: [{ gesture: 'double-click', modifiers: ['alt'], target: 'any', action: 'demo:hello' }],
   };
-  return { ext, disposed, ran };
+  const ext = defineViewerExtension(base);
+  /** Another descriptor of it, made again with some fields changed. */
+  const with_ = (over: Partial<SeqViewerExtension>) => defineViewerExtension({ ...base, ...over });
+  return { ext, with_, disposed, ran };
 }
 
 let frames: Frames | undefined;
@@ -131,11 +135,36 @@ describe('a viewer’s extensions', () => {
 
   it('refuses what it cannot register late, and one that does not check, leaving the viewer as it was', async () => {
     const v = await make();
-    const { ext } = demo();
-    await expect(v.extend({ ...ext, requires: '0.4' })).rejects.toThrow(/seq.context.extension.version/);
-    await expect(
-      v.extend({ ...ext, registry: [{ kind: 'format-runtime', runtime: { ...SeqRuntime, name: 'demo:x' } }] }),
-    ).rejects.toThrow(/composed, not registered late/);
-    expect([v.context.extensions, v.behaviors.has('demo:behavior'), drawn(v)]).toEqual([[], false, ['ranges']]);
+    const { with_ } = demo();
+    expect(() => with_({ requires: '0.4' })).toThrow(/seq.context.extension.version/);
+    const late = [
+      with_({ registry: [{ kind: 'format-runtime', runtime: { ...SeqRuntime, name: 'demo:x' } }] }),
+      with_({ config: [{ key: 'demo.size' }] }),
+      with_({ headerActions: [{ name: 'demo:act' } as never] }),
+      // a part over the canvas would never be attached on a viewer already mounted
+      with_({ behaviors: [{ provider: { name: 'demo:part', create: () => ({ attach: () => () => {} }) } }] }),
+    ];
+    for (const ext of late) await expect(v.extend(ext)).rejects.toThrow(/composed, not registered late/);
+    expect([v.context.extensions, v.behaviors.has('demo:part'), drawn(v)]).toEqual([[], false, ['ranges']]);
+    // an extension without its viewer maker loses no part silently
+    await expect(v.extend({ ...with_({}), composeViewer: undefined })).rejects.toThrow(/defineViewerExtension/);
+  });
+
+  it('a failed registration takes away only what it made, never the viewer’s own behaviors', async () => {
+    const v = await make();
+    const { with_ } = demo();
+    const hover = v.behaviors.get('hover');
+    const clash = with_({
+      behaviors: [
+        { provider: { name: 'demo:first', create: () => ({}) } },
+        { provider: { name: 'hover', create: () => ({}) } },
+      ],
+    });
+    await expect(v.extend(clash)).rejects.toThrow(/listed twice/);
+    expect([v.behaviors.get('hover') === hover, v.behaviors.has('demo:first'), v.context.extensions]).toEqual([
+      true,
+      false,
+      [],
+    ]);
   });
 });

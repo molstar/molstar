@@ -4,18 +4,13 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import {
-  defineExtension,
-  type Hit,
-  type ItemDescription,
-  type LayerType,
-  type SchemeEntry,
-} from '@molstar/seqx-core/extension';
+import { type Hit, type ItemDescription, type LayerType, type SchemeEntry } from '@molstar/seqx-core/extension';
 import type { BehaviorProvider, SeqViewerExtension } from '@molstar/seqx-viewer';
+import { defineViewerExtension } from '@molstar/seqx-viewer/extension';
 
 // An example extension, written as an outside package writes one (the core's contract from its one entry,
-// `@molstar/seqx-core/extension`, and the viewer's descriptor type): a layer type with a plain param, a key it reads on
-// a built-in section, a scheme, a command (from its behavior) and a binding. Its id, `demo`, is its namespace.
+// `@molstar/seqx-core/extension`; the viewer's maker and descriptor type): a layer type with a plain param, a key it
+// reads on a built-in section, a scheme, a command (from its behavior) and a binding. Its id, `demo`, its namespace.
 
 /** What the lollipops read of their data: each item's extent and key (inline ranges). */
 interface LollipopsPrep {
@@ -133,7 +128,7 @@ export const LollipopsType: LayerType<LollipopsPrep, LollipopsLay> = {
   },
 };
 
-/** `demo:warm`: a category a warm color (a categories scheme a built-in layer's theme names). */
+/** `demo:warm`: a warm color for each category it knows (a categories scheme a built-in layer's theme names). */
 export const WarmScheme: SchemeEntry = {
   name: 'demo:warm',
   label: 'Warm',
@@ -144,7 +139,14 @@ export const WarmScheme: SchemeEntry = {
     kind: 'field',
     params: {
       name: typeof p.field === 'string' ? p.field : 'category',
-      palette: { kind: 'categorical', params: { colors: ['#d9480f', '#f59f00', '#c2255c', '#e8590c'] } },
+      // a color by category, never by the order values are met (the legend and the marks agree whatever the data)
+      palette: {
+        kind: 'categorical',
+        params: {
+          colors: { transactivation: '#d9480f', 'proline-rich': '#f59f00', 'dna-binding': '#c2255c' },
+          unlisted: 'hash',
+        },
+      },
     },
   }),
 };
@@ -170,7 +172,7 @@ const DemoBehavior: BehaviorProvider = {
 };
 
 /** The example extension: everything it ships named `demo:…`, its params checked where it is composed. */
-export const DemoExtension: SeqViewerExtension = defineExtension({
+export const DemoExtension: SeqViewerExtension = defineViewerExtension({
   id: 'demo',
   version: '0.1.0',
   requires: '0.5',

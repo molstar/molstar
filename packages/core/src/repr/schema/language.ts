@@ -114,6 +114,12 @@ export interface KindSpec {
    * layer type reads plain params beside the built-in ones (_spec/README.md "Validation", Extension params).
    */
   readonly extensionParam?: string;
+  /**
+   * The param whose presence keeps the node's undeclared params unchecked too: a node naming what a reader without its
+   * type draws (`fallback`) may carry a newer type's params, which an older reader keeps (a warning elsewhere, never an
+   * error here).
+   */
+  readonly fallbackParam?: string;
 }
 
 export interface Language {

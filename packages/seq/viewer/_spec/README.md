@@ -456,18 +456,20 @@ clock (`viewer-clock.ts`), motion and the frame slot (`viewer-motion.ts`), the v
 them (`viewer-viewports.ts`), the rails and navigators (`viewer-rails.ts`), the emphasis (`viewer-emphasis.ts`), what a
 selection moves (`viewer-selection.ts`) and the frame (`viewer-frame.ts`).
 
-- **Extensions** (`SeqViewerSpec.extensions`, `SeqViewerExtension`: the core's descriptor, core's "Context",
-  Extensions, and the viewer's kinds as the built-ins': `behaviors`, `commands`, `bindings`, `headerActions`):
-  composed, its entries are the context's (its checks), its behaviors made after the spec's, its commands the
-  viewer's, its bindings a layer over the spec's naming the viewer's actions or its own (`<id>:…`), its header entries
-  beside the built-ins'. `viewer.extend(ext)` registers one at run time and resolves to its undo: the context's checks
-  (nothing changed on an error; a format runtime or a query entry is refused, since it changes what the open spec
-  resolves to), its behaviors (`composed` called), commands and bindings; the view is resolved again with the new layer
-  kinds (`ViewModel.setKinds`), so the frame is a new renderer's and a layer drawn as its fallback is drawn as its type;
-  the undo takes them away in reverse (behaviors disposed) and the fallback comes back. The same descriptor again is
-  counted; one composed is the viewer's. Header entries are read when composed only (the `headers` behavior reads its
-  entries then). A lazy chunk (`viewer-extend.ts`): registering late is rare, and a composition that never does
-  bundles none of it.
+- **Extensions** (`SeqViewerSpec.extensions`, `SeqViewerExtension`: the core's descriptor, core's "Context", Extensions,
+  and the viewer's kinds as the built-ins': `behaviors`, `commands`, `bindings`, `headerActions`), made by
+  `defineViewerExtension` (`@molstar/seqx-viewer/extension`, so a viewer with none bundles none of it), which writes
+  `composeViewer`: composed, its entries are the context's, its behaviors after the spec's (its commands a behavior's,
+  `<id>:commands`), its bindings a layer over the spec's naming the viewer's actions or its own (`<id>:…`), its header
+  entries beside the built-ins'; one with viewer parts and no `composeViewer` is refused (they would be dropped).
+  `viewer.extend(ext)` registers one at run time and resolves to its undo: the context's checks (nothing changed on an
+  error; a format runtime or a query entry is refused, since it changes what the open spec resolves to; so are header
+  entries, settings and a behavior with a part over the canvas, `attach`, since nothing reads them late), its behaviors
+  (`composed` called), commands and bindings; a failure takes away only what it made; the view is resolved again with
+  the new layer kinds (`ViewModel.setKinds`), so the frame is a new renderer's and a layer drawn as its fallback is
+  drawn as its type; the undo takes them away in reverse (behaviors disposed) and the fallback comes back. The same
+  descriptor again is counted; one composed is the viewer's. A lazy chunk (`viewer-extend.ts`): registering late is
+  rare, and a composition that never does bundles none of it.
 
 - **Navigators** (`mount-navigator.ts`): parts the host places, like the legends. `mountNavigator(element, viewer, id)`
   draws one navigator (a declared node's id, or a host's `viewer.navigator(def)`) into an element the host owns: its own

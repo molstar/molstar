@@ -23,7 +23,7 @@ export const ViewIssues = defineIssues('seq.view', {
   },
   'seq.view.layer.extension': {
     severity: 'warning',
-    description: 'Layers of an extension this reader lacks (or has too old) draw their fallbacks',
+    description: 'What an extension this reader lacks (or has too old) draws is drawn as its fallback',
     hint: Compose,
   },
   'seq.view.extension.version': {

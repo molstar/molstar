@@ -139,6 +139,8 @@ export interface SeqViewerExtension extends SeqExtension {
   readonly bindings?: readonly GestureBinding[];
   /** Header entries beside the built-ins' (read when the viewer is composed: not by `extend`). */
   readonly headerActions?: readonly HeaderEntry[];
+  /** Written by `defineViewerExtension` (`@molstar/seqx-viewer/extension`): a viewer's spec with its viewer parts added. */
+  readonly composeViewer?: (spec: SeqViewerSpec) => SeqViewerSpec;
 }
 
 export interface SeqViewerSpec {

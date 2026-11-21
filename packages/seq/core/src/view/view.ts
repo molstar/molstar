@@ -76,16 +76,20 @@ export const LayerTypes: Readonly<Record<string, LayerType>> = {
 
 /**
  * The layer kinds a reader knows (_spec/README.md "Resolved view", Layer kinds): the built-ins' (`LayerTypes`) and its
- * composition's extensions' types, each its shape and fallback, and the extensions composed by id with their versions
+ * composition's extensions' types, each its shape and fallback, and the extensions composed by id with how each reads a version
  * (what the spec's `extensions` is read against). A composition makes one (`SeqContext.kinds`); resolving without one
  * reads the built-ins'.
  */
 export interface LayerKinds {
   readonly types: Readonly<Record<string, LayerType>>;
-  readonly extensions?: Readonly<Record<string, string>>;
+  /** Each extension composed, by id: how it reads a spec's `extensions` version for it (`old`, `newer`). */
+  readonly extensions?: Readonly<Record<string, (want: string) => 'old' | 'newer' | undefined>>;
 }
 
-/** The built-in layer kinds: what a view resolved without a composition reads. */
+/**
+ * The built-in layer kinds: what a view resolved without a composition reads.
+ * @internal
+ */
 export const BuiltInLayerKinds: LayerKinds = { types: LayerTypes };
 
 /**
@@ -468,26 +472,17 @@ interface Kinds {
   readonly needs: Map<string, Map<string, string | undefined>>;
 }
 
-/** A version's major as compared and its minor (0.x: the minor and the patch), each 0 when absent. */
-export function versionParts(v: string): [number, number] {
-  const [a, b = 0, c = 0] = v.split('.').map(Number);
-  return a ? [a, b] : [b, c];
-}
-
 /**
  * The spec's `extensions` against the reader's (_spec/README.md "Resolved view", Layer kinds): one the reader has at an
  * older major (0.x: minor) is outdated, its types drawn as their fallbacks; at an older minor of the same major they are
- * drawn and that is said (`seq.view.extension.version`, info).
+ * drawn and that is said (`seq.view.extension.version`, info). Each extension reads the version itself (`reads`).
  */
 function outdatedOf(wants: Value | undefined, kinds: LayerKinds, at: string, report: Report): Set<string> {
   const out = new Set<string>();
   for (const [id, want] of Object.entries(wants && typeof wants === 'object' ? wants : {})) {
-    const has = kinds.extensions?.[id];
-    if (typeof want !== 'string' || has === undefined) continue;
-    const [wm, wn] = versionParts(want);
-    const [hm, hn] = versionParts(has);
-    if (hm < wm) out.add(id);
-    else if (hm === wm && hn < wn) report('seq.view.extension.version', `\`${id}\` ${want}, read with ${has}`, at);
+    const r = typeof want === 'string' ? kinds.extensions?.[id]?.(want) : undefined;
+    if (r === 'old') out.add(id);
+    else if (r) report('seq.view.extension.version', `\`${id}\` ${want} is newer than this reader’s`, at);
   }
   return out;
 }
@@ -747,7 +742,7 @@ function build(model: StaticModel, view: Node, address: string, layerKinds: Laye
     ...(ex && typeof ex === 'object' && !Array.isArray(ex) ? { export: ex as Record<string, Value> } : {}),
     sections,
     links,
-    navigators: navigatorsOf(model, view, address, sections),
+    navigators: navigatorsOf(model, view, address, sections, report),
     issues,
   };
 }
@@ -758,13 +753,20 @@ function navigatorsOf(
   view: Node,
   address: string,
   sections: readonly ResolvedSection[],
+  report: Report,
 ): ResolvedNavigator[] {
   const out: ResolvedNavigator[] = [];
   for (const c of view.children ?? []) {
     if (c.kind !== 'navigators') continue;
     for (const n of c.children ?? [])
-      if (n.kind === 'navigator' && n.id !== undefined)
-        out.push(resolveNavigatorNode(model, sections, n, `${address}/${c.id}/${n.id}`));
+      if (n.kind === 'navigator' && n.id !== undefined) {
+        const nav = resolveNavigatorNode(model, sections, n, `${address}/${c.id}/${n.id}`);
+        out.push(nav);
+        // a picture this reader lacks (an extension's) is drawn as the axis, and said
+        const content = param(n, 'content');
+        if (content !== undefined && content !== nav.content)
+          report('seq.view.layer.extension', `No picture \`${content}\` here: drawn as the axis`, nav.address);
+      }
   }
   return out;
 }

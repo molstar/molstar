@@ -82,6 +82,12 @@ describe('the Extensibility story', () => {
     expect(await color(createSeqContext())).toContain('seq.render.theme.scheme');
     expect(await color(createSeqContext({ extensions: [DemoExtension] }))).not.toContain('seq.render.theme.scheme');
     expect(DomainsLayer).toMatch(/domains$/);
+    // by category, never by the order met: TAD1 (transactivation) and TAD2 (proline-rich) their own colors
+    const { svg } = await createSeqContext({ extensions: [DemoExtension] }).renderSvg(spec, {
+      size: { width: 600, height: 'auto' },
+    });
+    const fills = [...svg.matchAll(/<path d="M [^"]*" fill="(#[0-9a-f]{6})"/g)].map((m) => m[1]);
+    expect(fills.filter((f) => f === '#d9480f' || f === '#f59f00')).toEqual(['#d9480f', '#f59f00']);
   });
 
   it('checks its params where it is composed, and carries them where not', () => {

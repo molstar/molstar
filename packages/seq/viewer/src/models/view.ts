@@ -149,7 +149,10 @@ export class ViewModel extends ReactiveModel {
     this.listenPermanently(this.resolved, (v) => this._update(v));
   }
 
-  /** The layer kinds the view is resolved with: the view is resolved again (a new `resolved`) when they change. */
+  /**
+   * The layer kinds the view is resolved with: the view is resolved again (a new `resolved`) when they change.
+   * @internal
+   */
   setKinds(kinds: LayerKinds): void {
     this._kinds.set(kinds);
   }
