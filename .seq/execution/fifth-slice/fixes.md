@@ -6,6 +6,12 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
 
 ## Open
 
+- **The vertical overview cut at the right on a wide page** (the author, 2026-11-21, Globins rows family-rail-pinned):
+  at full width the story's canvas runs past the page's right edge, so the vertical overview is clipped (a narrow
+  page, where canvas and SVG stack differently, shows it whole). The story's layout gives the canvas its measured width
+  at every page width, the overview inside it; a story-layout test at a wide and a narrow width that the overview's box
+  lies inside the canvas and the canvas inside the page.
+
 - **The tree's leftmost vertical line is thinner** (the author, 2026-11-21, Globins rows family): the root's vertical
   stroke at the tree column's left edge looks about half the width of the others, likely half of it clipped at the
   column's edge (a stroke centred on x = 0). Inset the tree by half a stroke (or snap strokes inside the column); a twin
