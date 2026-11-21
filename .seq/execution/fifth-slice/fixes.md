@@ -119,6 +119,16 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   from its profile); the neutral fill and the issue only when the source declares no row levels. Tests: the rail can't
   pass the floor on a source without levels; with levels, a window of the whole 10 M rows reads tiles of one level
   only, bounded by the screen.
+  **The limits, and making them the host's** (the author, same day: "what are the limits of this? seems like this
+  needs to be configurable (e.g. disable the resizing for certain views)"). Today the rows' zoom bounds are fixed
+  constants in core, `MinRowScale` 1/64 px and `MaxRowScale` 40 px a row (`core/src/render/rail.ts:53`), the same for
+  every view and source, read by the zoom keys (`viewer/src/behaviors/rows.ts:180`), the rail's grips and its idle
+  rule; nothing turns the zoom off (the columns' axis has `viewport.maxPxPerPosition`, 32, configurable). Proposed, in
+  the same design: `rows.zoom` in `ViewerConfig` (`minPx`, `maxPx`, `enabled`, defaults today's) and a band's own
+  override in the spec (a fixed row height, or zoom off for that band); zoom off keeps the rail as a pan-only bar (no
+  grips, the keys and wheel-with-modifier inert, scroll kept); the effective floor the larger of `minPx` and the
+  source's (a device pixel a row for a lazy source without row levels, part 1 above). The library rule (memory: the
+  host configures optional behaviour) and grids-and-rows.md's zoom rows updated with it.
 
 - **A tree opened from its toggle has no way back on screen** (the author, 2026-11-21, Examples › Globins › Rows ›
   Scale: "when i expand the tree, there doesn't seem to be a way to collapse it back. another port for app level
