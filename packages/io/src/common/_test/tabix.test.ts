@@ -129,6 +129,29 @@ describe('tabix index', () => {
     expect(vcf.index).toMatchObject({ kind: 'csi', format: 'vcf', zeroBased: false, columns: { end: 0 } });
   });
 
+  it("a chunk starting before the region's least offset begins there (htslib's reg2intervals)", async () => {
+    // three lines in one 128 kb bin, one chunk; the region meets only the third's window
+    const rows = [
+      [10_000, 30_000],
+      [50_000, 70_000],
+      [110_000, 125_000],
+    ];
+    const enc = new TextEncoder();
+    let at = 0;
+    const lines = rows.map(([b, e], i) => {
+      const t = `chr1\t${b}\t${e}\tl${i}\n`;
+      const line = { seq: 0, begin: b, end: e, start: at, stop: at + t.length, text: t };
+      at += t.length;
+      return line;
+    });
+    const file = bgzip(enc.encode(lines.map((l) => l.text).join('')));
+    const index = await readTabixIndex(tabixIndex(lines, file, { ...bedOptions('tbi'), names: ['chr1'] }));
+    expect(regionChunks(index, 'chr1', 0, 200_000)).toEqual([{ begin: 0, end: file.voffset(at) }]);
+    expect(regionChunks(index, 'chr1', 115_000, 116_000)).toEqual([
+      { begin: file.voffset(lines[2].start), end: file.voffset(at) },
+    ]);
+  });
+
   it('regionBytes is the sum of the chunks regionChunks gives', async () => {
     const { index } = await fixture(generateBed(3000, names), bedOptions('tbi'), 1500);
     const rng = new PCG(9);

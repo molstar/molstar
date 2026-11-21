@@ -50,8 +50,9 @@ is in `src/common/internal/` (not published): `bgzf-blocks.ts` (the block walk, 
 
 - **Chunks** (`regionChunks`, 0-based half-open): the bins `reg2bins` gives (htslib's, by division so a CSI may pass
   2^31), each chunk ending past the region's least offset (TBI: the linear index at the region's window, a zero entry
-  taking the last nonzero before it; CSI: the `loffset` of the smallest bin holding the start, up the tree), sorted,
-  overlapping chunks and chunks meeting in one block merged (each line read once).
+  taking the last nonzero before it; CSI: the `loffset` of the smallest bin holding the start, up the tree), each begun
+  no earlier than that offset (htslib's `reg2intervals`), sorted, overlapping chunks and chunks meeting in one block
+  merged (each line read once).
 - **Cost** (`regionBytes`): each merged chunk from its first block's start to its last block's start, as the index's
   offsets say (the last block's own bytes, at most 64 KiB a chunk, are not in the index). A read over `maxRegionBytes`
   is `too-large` before a byte is read; the chunks inflated together stay within `maxInflatedBytes`.

@@ -339,7 +339,8 @@ export function regionChunks(index: TabixIndex, name: string, start: number, end
     const b = ref.bins.get(bin);
     if (!b) continue;
     for (let k = 0; k < b.chunks.length; k += 2) {
-      if (b.chunks[k + 1] > min) found.push({ begin: Math.max(b.chunks[k], 0), end: b.chunks[k + 1] });
+      // a chunk ending past the least offset is read from there (htslib's reg2intervals)
+      if (b.chunks[k + 1] > min) found.push({ begin: Math.max(b.chunks[k], min), end: b.chunks[k + 1] });
     }
   }
   found.sort((a, b) => a.begin - b.begin || a.end - b.end);
