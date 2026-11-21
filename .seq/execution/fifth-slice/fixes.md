@@ -41,6 +41,15 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   plasmid's GFF3 with promoters or a Sites track, place the strip by the detail) go in the same lane. A strong-model
   lane, like the hover contract.
 
+- **"Try pUC19.gb" looks like it does nothing** (the author, 2026-11-21, Examples › Services › Your own file:
+  "pUC19.gb doesn't load anything"). By design today: GenBank is out of the slice's scope (plan, Out of scope), and
+  `dropped-file.ts:71` refuses `.gb`/`.gbk` with "GenBank files are not read yet"; the story's "Try pUC19.gb" button
+  (`drop-root.ts:30`, its sample in fact `sources.json`) exists to show that refusal. But the refusal is a small grey
+  line above the buttons and the box stays empty, so it reads as broken. Drop the "Try" button for a format that isn't
+  read (a Try button promises a load), keep the refusal for a dropped `.gb` file, shown as a notice in the box (the
+  file's name, "GenBank is not read yet", the formats that are); a story test that every Try button loads a view.
+  Whether GenBank itself comes into scope is the author's (asked 2026-11-21).
+
 - **The hover card: placement, wrapping, and the density row's missing highlight** (the highlight part closed by the hover contract above; the author, 2026-11-21, Files ›
   UniProt entry: "hovering the bottom 'regions' … is missing a highlight", "the hover placement is quite
   inconsistent"):
