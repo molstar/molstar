@@ -23,6 +23,8 @@ import {
   piecesSpec,
   smallLayersSpec,
 } from './fixtures.js';
+import { GffRuntime } from '../../runtimes/gff.js';
+import { geneModelsSpec } from './gene-fixtures.js';
 import { type Settled, settle } from './helpers.js';
 import { moleculesSpec } from './molecules-fixtures.js';
 
@@ -94,6 +96,16 @@ export const Scenarios: readonly Scenario[] = [
     width: 91,
     center: 45.5,
     panStep: 0.25,
+  },
+  // gene models (the gene line): a generated GFF3's transcripts over 2 Mb, a window of 60 kb (a few genes, their
+  // boxes, hairlines and chevrons; below a position a pixel, never merged)
+  {
+    name: 'gene models (60 kb)',
+    spec: geneModelsSpec,
+    runtimes: [GffRuntime],
+    width: 60_000,
+    center: 400_000,
+    panStep: 60,
   },
   {
     name: '3M letters (120 positions)',

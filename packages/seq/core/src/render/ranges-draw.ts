@@ -10,7 +10,7 @@ import type { Emphasis } from './layer-type.js';
 import { drawConnectors, hoverConnectors, selectConnectors } from './ranges-connector.js';
 import { arrowArgs, drawFailed, drawSpans } from './marks.js';
 import { labelText, labelX } from './range-labels.js';
-import { type RangesLay, Solid } from './ranges-lay.js';
+import { Gene, type RangesLay, Solid } from './ranges-lay.js';
 
 // A ranges layer's draw (_spec/README.md "Render", Layer types; Shapes): its marks as squircles, lines or arrows, its
 // labels inside and beside with their leaders, the hovered item's outline and a selected boundary's hairline.
@@ -25,6 +25,9 @@ const Dot = 2;
 export const WaveStep = 3;
 const WaveAmplitude = 2;
 const LineWidth = 2;
+
+/** A gene line's thin box (a UTR's): this share of a thick one's height, about its lane's middle. */
+const ThinShare = 0.5;
 
 /** A highlight's alpha: 0.35 of 255, the channel's default. */
 const HighlightAlpha = 89;
@@ -104,6 +107,21 @@ function drawStyled(lay: RangesLay, out: PassWriter) {
     const x1 = lay.mx1[j];
     const tips = lay.mtip[j];
     const head = Math.min(h * 0.9, x1 - x0);
+    if (style === Gene) {
+      // a box: full between the thick part's ends, thin outside (no arrowheads: the hairline's chevrons say the strand)
+      const t = lay.mthin[j] ? h * ThinShare : h;
+      a[0] = x0;
+      a[1] = y + (h - t) / 2;
+      a[2] = x1 - x0;
+      a[3] = t;
+      a[4] = fill;
+      a[5] = NoColor;
+      a[6] = 0;
+      a[7] = 0;
+      a[8] = 0;
+      out.rectArgs();
+      continue;
+    }
     if (style === 0 || style === 7) {
       // a block (a highlight is a translucent one); a tip makes it an arrow, both tips two overlapping ones
       const color = style === 0 ? fill : ((fill & 0xffffff00) | HighlightAlpha) >>> 0;

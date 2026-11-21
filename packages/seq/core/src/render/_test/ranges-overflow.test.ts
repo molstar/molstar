@@ -19,7 +19,7 @@ import { layerLay } from './small-helpers.js';
 const SIZE = { width: 1000, height: 120 } as const;
 
 describe('a source’s items past the lanes', () => {
-  for (const line of ['blocks'])
+  for (const line of ['blocks', 'gene'])
     it(`${line}: a source’s items past its lanes: every lane inside the band, the last the density row`, async () => {
       // 12 transcripts over one another in a band of a few lanes: the rest go to the density row
       const lines = ['##gff-version 3', '##sequence-region c 1 2000'];
