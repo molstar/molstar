@@ -955,6 +955,10 @@ class Model implements StaticModel {
     return address === undefined ? undefined : { address, name: a!.sequences[i!].name };
   }
 
+  isAssembly(address: string): boolean {
+    return this.assemblies.has(address);
+  }
+
   /** Chains are a complex's units (`units`): no chain addressed by its form in the static model. */
   chain(): Node | undefined {
     return undefined;

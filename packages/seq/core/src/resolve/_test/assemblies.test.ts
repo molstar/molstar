@@ -307,7 +307,7 @@ describe('the genome forms', () => {
   };
 
   it('names a derived sequence by any of its names, printing the assembly’s (EC-200)', () => {
-    const r = at('/data/hg38/(sequence :name 1)');
+    const r = at('/data/hg38/(sequence :name "1")');
     expect(r.status).toBe('resolved');
     expect(r.result?.type === 'nodes' && r.result.nodes[0].address).toBeTruthy();
     expect(loc('/data/hg38/(sequence :name NC_000001.11)/(all)')).toEqual({
@@ -338,6 +338,25 @@ describe('the genome forms', () => {
     expect(loc('/data/hg38/(locus :text "chr99:1-2")')).toContain('seq.query.locus.name');
     expect(loc('/data/hg38/(locus :text "MT")')).toContain('seq.query.locus.name');
     expect(loc('/data/hg38/(locus :text "chr1:x-y")')).toContain('seq.query.position.invalid');
+  });
+
+  it('says an unknown name whole, never a shorter one at a position, and never reads a bare number as a name', () => {
+    const said = (address: string) => at(address).issues.map((i) => `${i.code}: ${i.message}`);
+    expect(said('/data/hg38/(locus :text "HLA-A*01:01:01:02")')).toEqual([
+      'seq.query.locus.name: No sequence of the assembly is named HLA-A*01:01:01:02',
+    ]);
+    // `01` reads as the number 1 (chr1's alias): refused, its text lost
+    expect(codes(at('/data/hg38/(sequence :name 01)').issues)).toEqual(['seq.query.form.param']);
+    expect(at('/data/hg38/(sequence :name "01")').issues.map((i) => i.code)).toEqual(['seq.query.locus.name']);
+  });
+
+  it('takes `(block :name …)` under a section of assemblies alone', () => {
+    const r = spec({}, (b) => {
+      const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT' });
+      b.views.view('v', (v) => v.section('plain', { of: s }, (sec) => sec.block('b', { of: s })));
+    });
+    const l = resolveAddressIn(r, overlayQueryModel(resolveSpec(r), EmptyOverlay), '/views/v/plain/(block :name s)');
+    expect(codes(l.issues)).toEqual(['seq.query.form.prefix']);
   });
 
   it('names a derived block of a section of assemblies by its sequence’s name (EC-200)', () => {

@@ -638,9 +638,12 @@ address, `/data/p53/(range :from 94 :to 292)`.
 - **The genome forms** (`sequence`, `locus`, `block`; `query/genome-forms.ts`) are loaded the first time a query names
   one or a spec holds an assembly (`loadGenomeForms`; `query/genome-door.ts` the door): until then, and while their
   assembly's source has not opened (`QueryModel.assemblySequence` answers `pending`), the form waits (incomplete, its
-  address `waiting`), never unknown. A name no sequence has is `seq.query.locus.name`; positions that do not parse
-  `seq.query.position.invalid`; a range past the sequence is clamped to it. Why a form: a link, a bookmark and a host's
-  box carry the text the reader typed; it prints as the canonical `(sequence :name …)` and range.
+  address `waiting`), never unknown. A name no sequence has is `seq.query.locus.name`, said whole: a locus reads a
+  position only after a known name (`HLA-A*01:01:01:02` is one unknown name, not `HLA-A*01:01:01` at 2); positions that
+  do not parse `seq.query.position.invalid`; a range past the sequence is clamped to it. A bare number as a name is
+  `seq.query.form.param` (the reader made `01` the number 1, its text lost: quote it); `(block :name …)` under a section
+  not of assemblies is `seq.query.form.prefix`. Why a form: a link, a bookmark and a host's box carry the text the
+  reader typed; it prints as the canonical `(sequence :name …)` and range.
 - **`row`** reads the model's `row(rows, key)`: an inline alignment's labels, else a source's rows the query model holds
   (Overlay); while `rowsPending(rows)` the form waits over the whole rows system (`seq.query.row.pending`, the address
   `waiting`); a key no held row has is `seq.query.row.unknown`.

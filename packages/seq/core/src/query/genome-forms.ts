@@ -14,12 +14,16 @@ import { type Node, printAddress, type Selected, type Value } from '@molstar/cor
 import { checkParams, type Ctx, fail, prefixNodes, type Resolve, required, tick } from './form-kit.js';
 import { type Location, location } from './location.js';
 
-/** A form's name: a word or a number (`:name 1` reads as a number), as a string. */
+/**
+ * A form's name, a word or a string. A bare number is refused, never printed back: the address reader has made it a
+ * number and its text is lost (`:name 01` reads as 1), so a name taken from it could be another sequence's.
+ */
 function nameOf(form: Node, key: string): string {
   const v = required(form, key);
-  if (typeof v !== 'string' && typeof v !== 'number')
-    fail('seq.query.form.param', `A form of kind ${form.kind} takes a name for :${key}`);
-  return String(v);
+  if (typeof v === 'number')
+    fail('seq.query.form.param', `A name for :${key} reads as the number ${v}`, { hint: `Quote it: :${key} "…"` });
+  if (typeof v !== 'string') fail('seq.query.form.param', `A form of kind ${form.kind} takes a name for :${key}`);
+  return v as string;
 }
 
 /** The assemblies a prefix node stands for: itself (an assembly), or a section's `of` (one or a list). */
@@ -71,8 +75,8 @@ const sequence: Resolve = (ctx, form, prefix) => {
 };
 
 /**
- * A locus's text read (_spec/README.md "Addressing"): the whole text a name first, else the name before the last `:`
- * and its positions (`7668402` or `7,668,402-7,687,550`, 1-based and inclusive) as `[start, end)`; undefined when the
+ * A locus's text read (_spec/README.md "Addressing"): the whole text a name first, else a known name before the last
+ * `:` and its positions (`7668402` or `7,668,402-7,687,550`, 1-based and inclusive) as `[start, end)`; undefined when the
  * positions do not parse.
  */
 export function parseLocus(
@@ -82,7 +86,8 @@ export function parseLocus(
   const t = text.trim();
   if (known(t)) return { name: t };
   const colon = t.lastIndexOf(':');
-  if (colon <= 0) return { name: t };
+  // the name before the colon unknown too: the whole text is the name said unknown, never a shorter one at a position
+  if (colon <= 0 || !known(t.slice(0, colon))) return { name: t };
   const m = /^(\d[\d,]*)(?:\s*[-–]\s*(\d[\d,]*))?$/.exec(t.slice(colon + 1).trim());
   if (!m) return undefined;
   const a = Number(m[1].replaceAll(',', ''));
@@ -117,9 +122,10 @@ const block: Resolve = (ctx, form, prefix) => {
   for (const m of prefixNodes(prefix, 'block')) {
     tick(ctx);
     const at = printAddress(m.address);
-    if (m.node.kind !== 'section')
-      return fail('seq.query.form.prefix', 'A block form is under a section', { address: at });
-    const s = named(ctx, assembliesOf(m), name, at);
+    const assemblies = m.node.kind === 'section' ? assembliesOf(m) : [];
+    if (!assemblies.length || !assemblies.every((a) => ctx.model.isAssembly?.(a)))
+      return fail('seq.query.form.prefix', 'A block form is under a section of assemblies', { address: at });
+    const s = named(ctx, assemblies, name, at);
     if (!s) continue;
     parts.push({ system: s.address, ranges: [...rangeOn(ctx, s.address)] });
   }
