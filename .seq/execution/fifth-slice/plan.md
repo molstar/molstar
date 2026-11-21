@@ -184,7 +184,7 @@ fix point with nothing open is skipped. A finding that needs a design is a drift
 - [ ] Then beside each other, after BZ (and after GC1 for a new param):
   - [x] **BE** (merged 2026-11-21, `98028d3f6`) (`briefs/be-bed.md`) the BED family: BED, bedGraph, BEDPE (read whole, indexed by both ends, held rows
         in a byte budget), chrom.sizes; whole and by region at level 1.
-  - [ ] **GG** (`briefs/gg-gff.md`) GFF3 and GTF read whole: `assembleTranscripts`, `source.features`, `findNames`
+  - [x] **GG** (merged 2026-11-21, `9b8cf675b`) (`briefs/gg-gff.md`) GFF3 and GTF read whole: `assembleTranscripts`, `source.features`, `findNames`
         over both (GFF3's `Name`, `ID`, `Alias`; GTF's `gene_name`, `gene_id`, `transcript_name`, `transcript_id`);
         the ranges layer's `line: 'gene'`.
   - [ ] **VC** (`briefs/vc-vcf.md`) VCF sites at level 1, extents by the index's rule, the anchor base kept.

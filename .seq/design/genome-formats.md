@@ -525,7 +525,7 @@ they change:
 | `findNames`' `max`, `prefix` | option of the call | 20; false | a list a box shows; prefix for typing |
 | a format's base and ends; side `a` the map's from side; the anchor base kept; a line's extent by the index's rule | fixed | — | the reasons in the Decision |
 
-Not built: all of it (BZ, BE, GG, VC, FR).
+Not built: VC (VCF) and FR (the formats by region); BZ, BE and GG built (GFF3 and GTF read whole).
 
 ## Tensions
 

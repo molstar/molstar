@@ -351,7 +351,7 @@ Files add no gesture: what a file holds is drawn by the layers that read it, as 
 - **No preview of a transform's edit**: a writer fixing `base` sees the result only once applied (undo is one step).
   The alternative, a params hash in the store's source key, reopens a preview beside the live source; it changes
   `keys.ts` and the store's attach, for an edit made rarely.
-- **GFF3 without its hierarchy** (closed by [genome-formats](genome-formats.md), the fifth slice): the records preset keeps
+- **GFF3 without its hierarchy** (closed by [genome-formats](genome-formats.md), the fifth slice; built by GG): the records preset keeps
   a gene's mRNAs and exons as flat rows; `runtimes/gff` assembles the `Parent` chain into transcripts
   (`source.features`).
 - **A track's subset lives in its layer, not in the data**: with a leading item form, "the domains" is no node of its

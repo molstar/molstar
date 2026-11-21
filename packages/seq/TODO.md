@@ -13,6 +13,8 @@ reads of assets, archives, a test consumer of the resolved view). Next, the Geno
 built so far: BGZF and tabix in io, language 0.6.0 with assemblies and genome resolve loaded when used, sections over a
 source's complex, the genome axis and layouts), on extension kinds.
 
+- **GFF's follow-ups** (GG, 2026-11-21): a name hit focuses its range, not its item address (the item waits for its data
+  after open); the GFF row is 25.8 kB (the design's 12 kB was low); by region is FR's.
 - **Genome navigators' follow-ups** (GC3, 2026-11-21): bands on the ideogram navigator wait for data over an assembly
   read by sequence (RG); the square's cells and grips (RG); the label menu's genome entries are static (about 0.6 kB:
   `extend` refuses late header entries by design); Shift+arrows extending a selection across blocks.
