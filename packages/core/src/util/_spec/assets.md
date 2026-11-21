@@ -52,6 +52,12 @@ The code is the truth for how; this file records the rules the code relies on, e
 - A gzip that declares (ISIZE) more than its data can hold (deflate shrinks at most ~1032×) is refused before its buffer
   is allocated. The inflate never writes past the declared size, so a stream over 4 GiB (ISIZE is modulo 2^32) fails, as
   before.
+- `ungzip` reads every member of a multi-member stream (BGZF's blocks, concatenated `.gz` files), joined. Members are
+  split, never one buffer grown: each found by BGZF's `BC` field (BSIZE) when present, else where the JS inflater's
+  deflate stream ends, and inflated as one member with its own ISIZE, within the caller's buffer (a whole BGZF file's
+  size is the sum of its blocks' ISIZEs, known before inflating). A member cut short, a damaged member among several,
+  or bytes after a member that are not one throw; a lone member's wrong CRC-32 is logged, as before. Why: the platform
+  decoders refuse concatenated members, and the last member's ISIZE (BGZF's EOF block: 0) is not the whole size.
 - The inflate of held bytes runs in the first reader's task; when that task is aborted, another reader takes over, as a
   waiter of an aborted download does (§2).
 - A custom manager may not inflate (`decompresses` unset): `AssetManager.resolveData`, which `Download`, `ReadFile` and

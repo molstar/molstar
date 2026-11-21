@@ -5,10 +5,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { gzipSync } from 'node:zlib';
+import { deflateRawSync, gzipSync } from 'node:zlib';
 import { describe, expect, it, vi } from 'vitest';
 import { deflate, inflate, ungzip, unzip, zip, type UnzipLimits } from '../zip/zip.js';
 import { SyncRuntimeContext } from '@molstar/core/task/execution/synchronous';
+import { _inflateMember } from '../zip/inflate.js';
 
 describe('zip', () => {
   it('roundtrip deflate/inflate', async () => {
@@ -81,6 +82,90 @@ describe('zip', () => {
     const error = vi.spyOn(console, 'error').mockImplementation(() => {});
     expect(await ungzip(SyncRuntimeContext, gz)).toEqual(data);
     expect(error).toHaveBeenCalledWith("ungzip: checksums don't match");
+  });
+
+  describe('ungzip over a multi-member stream', () => {
+    const text = (n: number, seed: string) => new TextEncoder().encode(`${seed} line\n`.repeat(n));
+    function join(parts: Uint8Array[]) {
+      const out = new Uint8Array(parts.reduce((n, p) => n + p.length, 0));
+      let at = 0;
+      for (const p of parts) {
+        out.set(p, at);
+        at += p.length;
+      }
+      return out;
+    }
+    /** A gzip member with BGZF's `BC` extra subfield (BSIZE − 1), as bgzip writes a block. */
+    function bgzfMember(chunk: Uint8Array) {
+      const gz = gzipSync(chunk);
+      const out = new Uint8Array(gz.length + 8);
+      out.set(gz.subarray(0, 10));
+      out[3] |= 4; // FLG.FEXTRA
+      const view = new DataView(out.buffer);
+      view.setUint16(10, 6, true);
+      out.set([66, 67, 2, 0], 12);
+      view.setUint16(16, out.length - 1, true);
+      out.set(gz.subarray(10), 18);
+      return out;
+    }
+    /** A BGZF file: a member a block, the empty EOF block last. */
+    function bgzf(data: Uint8Array, blockSize: number) {
+      const parts: Uint8Array[] = [];
+      for (let at = 0; at < data.length; at += blockSize) parts.push(bgzfMember(data.subarray(at, at + blockSize)));
+      parts.push(bgzfMember(new Uint8Array(0)));
+      return join(parts);
+    }
+
+    it('reads every block of a BGZF file, its EOF block last (ISIZE 0)', async () => {
+      const data = text(5000, 'bgzf');
+      const file = bgzf(data, 10000);
+      expect(await ungzip(SyncRuntimeContext, file)).toEqual(data);
+      // into a buffer the caller sized: filled exactly
+      expect(await ungzip(SyncRuntimeContext, file, new Uint8Array(data.length))).toEqual(data);
+    });
+
+    it('reads two plain members (no `BC` field), joined', async () => {
+      const a = text(300, 'first');
+      const b = text(200, 'second');
+      const file = join([gzipSync(a), gzipSync(b)]);
+      expect(await ungzip(SyncRuntimeContext, file)).toEqual(join([a, b]));
+    });
+
+    it('refuses a member cut short, never answering the members before it alone', async () => {
+      const a = text(300, 'first');
+      const b = text(200, 'second');
+      const plain = join([gzipSync(a), gzipSync(b)]);
+      await expect(ungzip(SyncRuntimeContext, plain.subarray(0, plain.length - 12))).rejects.toThrow();
+      const blocks = bgzf(text(5000, 'bgzf'), 10000);
+      // the last data block cut, the EOF block gone
+      await expect(ungzip(SyncRuntimeContext, blocks.subarray(0, blocks.length - 28 - 30))).rejects.toThrow();
+    });
+
+    it('the JS inflater says where a deflate stream ends, and refuses one cut short (never reading zeros on)', async () => {
+      const a = text(300, 'first');
+      const raw = deflateRawSync(a);
+      const withTail = new Uint8Array(raw.length + 5);
+      withTail.set(raw);
+      const r = await _inflateMember(SyncRuntimeContext, withTail);
+      expect(r.bytes).toEqual(a);
+      expect(r.used).toBe(raw.length);
+      for (const cut of [1, 3, Math.floor(raw.length / 2)]) {
+        await expect(
+          _inflateMember(SyncRuntimeContext, new Uint8Array(raw.subarray(0, raw.length - cut))),
+        ).rejects.toThrow();
+      }
+      await expect(_inflateMember(SyncRuntimeContext, new Uint8Array(raw), new Uint8Array(10))).rejects.toThrow(/past/);
+    });
+
+    it("never inflates past the caller's buffer", async () => {
+      const data = text(5000, 'bgzf');
+      await expect(ungzip(SyncRuntimeContext, bgzf(data, 10000), new Uint8Array(data.length - 1))).rejects.toThrow(
+        /past/,
+      );
+      const a = text(300, 'first');
+      const file = join([gzipSync(a), gzipSync(a)]);
+      await expect(ungzip(SyncRuntimeContext, file, new Uint8Array(a.length))).rejects.toThrow(/past/);
+    });
   });
 
   describe('untrusted archives', () => {

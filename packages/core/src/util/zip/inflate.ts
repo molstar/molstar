@@ -26,9 +26,16 @@ function InflateContext(data: Uint8Array<ArrayBuffer>, buf?: Uint8Array<ArrayBuf
 }
 type InflateContext = ReturnType<typeof InflateContext>;
 
+/** A deflate stream cut short: the inflater would read past its data (zeros), and could do so without end. */
+function cutShort(): never {
+  throw new Error('the deflate stream is cut short');
+}
+
 function inflateBlocks(ctx: InflateContext, count: number) {
   const { data, noBuf } = ctx;
   let { buf, BFINAL, off, pos } = ctx;
+  // A valid stream never reads past its last bit; a cut one reads zeros, which may decode as literals forever
+  const maxPos = data.length * 8;
 
   let iBlock = 0;
 
@@ -47,6 +54,7 @@ function inflateBlocks(ctx: InflateContext, count: number) {
       if ((pos & 7) !== 0) pos += 8 - (pos & 7);
       const p8 = (pos >>> 3) + 4;
       const len = data[p8 - 4] | (data[p8 - 3] << 8);
+      if ((p8 + len) * 8 > maxPos) cutShort();
       if (noBuf) buf = _check(buf, off + len);
       buf.set(new Uint8Array(data.buffer, data.byteOffset + p8, len), off);
       pos = (p8 + len) << 3;
@@ -103,6 +111,7 @@ function inflateBlocks(ctx: InflateContext, count: number) {
     }
 
     while (true) {
+      if (pos > maxPos) cutShort();
       const code = lmap[_get17(data, pos) & ML];
       pos += code & 15;
       const lit = code >>> 4;
@@ -228,6 +237,36 @@ export async function _inflate(
     inflateBlocks(ctx, 100);
   }
   return ctx.buf.length === ctx.off ? ctx.buf : ctx.buf.slice(0, ctx.off);
+}
+
+/**
+ * One deflate stream at the start of `data`, inflated in JS, and where it ends: `used`, the bytes it took (what follows
+ * is the gzip member's trailer). Into `buf` when given, never past it (a longer stream throws); for `ungzip`'s members
+ * (a member without BGZF's `BC` field ends where its deflate stream does). Throws when the stream is cut short.
+ * @internal
+ */
+export async function _inflateMember(
+  runtime: RuntimeContext,
+  data: Uint8Array<ArrayBuffer>,
+  buf?: Uint8Array<ArrayBuffer>,
+): Promise<{ bytes: Uint8Array<ArrayBuffer>; used: number }> {
+  const ctx = InflateContext(data, buf);
+  while (ctx.BFINAL === 0) {
+    if (runtime.shouldUpdate) {
+      await runtime.update({ message: 'Inflating blocks...', current: ctx.pos, max: data.length });
+    }
+    try {
+      inflateBlocks(ctx, 100);
+    } catch (e) {
+      // a stored block past a buffer given: `set` throws a RangeError
+      if (buf && e instanceof RangeError) throw new Error(`inflates past its declared ${buf.length} bytes`);
+      throw e;
+    }
+    // writes past a buffer given are dropped by the typed array; the count still moves
+    if (buf && ctx.off > buf.length) throw new Error(`inflates past its declared ${buf.length} bytes`);
+  }
+  const bytes = ctx.buf.length === ctx.off ? ctx.buf : ctx.buf.subarray(0, ctx.off);
+  return { bytes, used: (ctx.pos + 7) >>> 3 };
 }
 
 function _check(buf: Uint8Array<ArrayBuffer>, len: number) {
