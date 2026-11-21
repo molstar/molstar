@@ -84,6 +84,15 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   line from the ring's centre through the follower's window wedge, and the wedge wider than the detail's span; check
   with the fix.
 
+- **The hover card follows a drag on the grid and makes it laggy** (the author, 2026-11-21, Examples › Complex › PAE
+  and contacts › CDK2 monomer: "showing the hover when dragging on the PAE plot makes the view feel really laggy"):
+  while a drag sweeps a box on the PAE grid, the hover card (x, y, value) and the crosshair are re-resolved and redrawn
+  on every move, on top of the selection box and its mirror on the section above. During any drag (a grid's box, a
+  track's range, a rail, a navigator's window) the hover card is hidden and its lookup skipped, shown again on release
+  where the pointer rests (the drag's own readout is what it shows meanwhile); then profile the remaining drag frames on
+  this story (298 × 298 grid) and bound a box drag to the frame budget, 0 bytes warm, in the perf tier. Same family as
+  the readout covering the active control above.
+
 - **A stacked block repeats tracks that hold nothing for it** (the author, 2026-11-21, Examples › Complex › Blocks ›
   Stacked: "another view with empty tracks"): with `arrange: 'stack'` each block is a row of every track, so the ATP
   block (`complex/blocks.ts:69`, a one-position block drawn as a chip) gets empty Features, Interface and Secondary
