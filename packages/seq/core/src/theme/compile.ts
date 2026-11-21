@@ -61,6 +61,13 @@ export interface ThemeEnv {
   domain?(key: string): readonly [number, number] | undefined;
   /** Whether a field holds numbers (its column's declared type, never its values); undefined: text. */
   numeric?(field: string): boolean | undefined;
+  /**
+   * A built-in field's value for every mark of the layer (`block`, `system`: its block's label, its system's name;
+   * _spec/README.md "Themes", Built-in fields): a datum's own field of the name wins.
+   */
+  builtIn?(field: string): string | undefined;
+  /** A field's categorical domain known up front (`block`, `system`: the section's blocks in order), else undefined. */
+  categories?(field: string): readonly string[] | undefined;
   /** A location's ranges on the layer's data system, `[start, end, ...]`, for `in` and `within`. */
   locate?(address: string): readonly number[] | undefined;
   /** The layer's alphabet (a letters layer: which schemes fit). */
@@ -237,9 +244,11 @@ export function compileChannel(
       (param(b, 'palette') as ThemeNode | undefined) ??
       sc.palette ??
       defaultPalette(env.numeric?.(fieldName) === true, sc.mid);
+    const categories = env.categories?.(fieldName);
     const palette = compilePalette(isThemeNode(node) ? node : defaultPalette(false), {
       tokens: env.tokens,
       domain: domain.value,
+      ...(categories ? { categories } : {}),
       scale: sc,
       report: (what, v) =>
         report(
@@ -284,6 +293,8 @@ export function compileChannel(
   const fieldReader = (n: string) => {
     if (n === 'value') return (d: ThemeDatum) => d.value as string | number | undefined;
     if (n === 'letter') return (d: ThemeDatum) => d.letter as string | number | undefined;
+    const v = env.builtIn?.(n);
+    if (v !== undefined) return (d: ThemeDatum) => d.field(n) ?? v;
     return (d: ThemeDatum) => d.field(n);
   };
 

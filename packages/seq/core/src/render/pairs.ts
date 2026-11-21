@@ -494,7 +494,7 @@ function frameX(place: Placement, u: number, pt: PlacePoint): number {
   const s = place.strips;
   const i = pt.strip;
   // a polar strip's point is on the page: its frame x from the strip's first unit (a ring's arcs)
-  if (s.warp[i] === WarpKind.polar) return s.axes[i].xOfUnit(u - s.first[i]);
+  if (s.warp[i] === WarpKind.polar) return s.axes[i].xOfUnit((u - s.first[i]) / s.scale[i]);
   return pt.x - s.dx[i];
 }
 
@@ -667,7 +667,7 @@ function layoutArcs(lay: PairsLay, prep: PairsPrep, ctx: LayoutContext, place: P
     toPage(place, sb, xb, base, c, o + 6);
     // the control: the mid offset at the arc's height in its strip's frame (one strip: between the ends)
     if (sa === sb) {
-      const mid = polar ? s.axes[sa].xOfUnit(Raw[4 * i + 2] - s.first[sa]) : (xa + xb) / 2;
+      const mid = polar ? s.axes[sa].xOfUnit((Raw[4 * i + 2] - s.first[sa]) / s.scale[sa]) : (xa + xb) / 2;
       toPage(place, sa, mid, cy, c, o + 2);
     } else {
       const mx = frameX(place, Raw[4 * i + 2], PM);

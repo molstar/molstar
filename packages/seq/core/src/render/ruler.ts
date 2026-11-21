@@ -234,7 +234,12 @@ export const RulerType: LayerType<RulerPrep, RulerLay> = {
           { address: ctx.key, hint: RenderIssues.codes['seq.render.numbering.fallback'].hint },
         ),
       );
-    const step = labelStep(axis.scale, config.ruler.labelGap);
+    // a block's ruler in a row of many (a genome's chromosomes, _spec/README.md "Render", Blocks): ticks as close as half
+    // its width, so a block a few labels wide still counts its own positions (its labels still clear each other)
+    const gap = ctx.section.blocks
+      ? Math.min(config.ruler.labelGap, Math.max(axis.width / 2, 24))
+      : config.ruler.labelGap;
+    const step = labelStep(axis.scale, gap);
     const ranges = axis.visible([]);
     const bases = prep.bases === true;
     // a numbering of its own (not a built-in, which labels every position) may not reach the whole system: the head

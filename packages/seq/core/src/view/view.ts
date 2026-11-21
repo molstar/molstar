@@ -41,6 +41,7 @@ import { type AxisShape, axisTotal, nearestOffsetOf, positionAt, wholePieces } f
 import {
   assemblyBlocks,
   type BlockAxes,
+  type BlockGroup,
   blockAxes,
   blockNodes,
   openedComplex,
@@ -278,6 +279,16 @@ export interface ResolvedSection {
   readonly params: Readonly<Record<string, Value>>;
   /** Its blocks in order (copies merged by `copies`), when it has `block` children. */
   readonly blocks?: readonly ResolvedBlock[];
+  /** A section of several assemblies: a group each, its blocks a run (EC-210; a wider gap and a label in the layouts). */
+  readonly groups?: readonly BlockGroup[];
+  /** A section of assemblies: the blocks past `maxAssemblyBlocks`, drawn as one closing run (absent when none). */
+  readonly more?: number;
+  /**
+   * The categorical domains of the built-in fields (_spec/README.md "Themes", Built-in fields; EC-218, EC-191): `block`
+   * its blocks' labels in order, `system` its blocks' systems' names, over assemblies their names in each assembly's
+   * `order` before any `include` (a sequence one hue on every section of its assembly).
+   */
+  readonly domains?: { readonly block: readonly string[]; readonly system: readonly string[] };
   /** A grid section's second axis (_spec/README.md "Resolved view", Grids): down the plot. */
   readonly y?: GridAxis;
   /**
@@ -326,6 +337,12 @@ export interface ResolvedBlock {
   readonly copy: string;
   /** Each of the section's tracks' layers on this block, by the track's index. */
   readonly layers: readonly (readonly ResolvedLayer[])[];
+  /** Its display units a position (`block.scale`, absent: 1): its units in the section are its positions times it. */
+  readonly scale?: number;
+  /** Its group's index in the section's `groups` (a section of several assemblies). */
+  readonly group?: number;
+  /** Its system's name (the `system` field's value: a derived sequence's printed name). */
+  readonly name?: string;
 }
 
 /** A block's form (_spec/README.md "Resolved view", Blocks). */
@@ -405,6 +422,9 @@ export interface ResolvedView {
   readonly navigators: readonly ResolvedNavigator[];
   readonly issues: readonly Issue[];
 }
+
+/** No systems: what an unmapped system links to besides itself. */
+const NoSystems: readonly string[] = [];
 
 const caches = new WeakMap<LayerKinds, WeakMap<StaticModel, Map<string, ResolvedView>>>();
 
@@ -532,6 +552,8 @@ function build(model: StaticModel, view: Node, address: string, layerKinds: Laye
   const overBlocks = new Map<string, string>();
   // each section's block nodes, derived once a build (an assembly's blocks are a walk of its sequences)
   const nodesOf = new Map<string, Node[]>();
+  // a section of assemblies' blocks past `maxAssemblyBlocks`: its closing run's count
+  const moreOf = new Map<string, number>();
   const blocksAt = (at: string): Node[] => {
     let bs = nodesOf.get(at);
     if (!bs) nodesOf.set(at, (bs = blockNodes(model, byAddress.get(at)!, at)));
@@ -549,6 +571,7 @@ function build(model: StaticModel, view: Node, address: string, layerKinds: Laye
         at,
       );
     if (derived) nodesOf.set(at, derived.nodes);
+    if (derived && derived.total > derived.nodes.length) moreOf.set(at, derived.total - derived.nodes.length);
     const first = blocksAt(at)[0];
     for (const id of unknownOverrides(model, s))
       report('seq.view.block.unit', 'The block overrides no unit the source’s complex has held', `${at}/${id}`);
@@ -635,7 +658,7 @@ function build(model: StaticModel, view: Node, address: string, layerKinds: Laye
         at,
         dir,
         (param(s, 'layout') ?? viewLayout) === 'rings',
-        (n, a, system) => axisOf(model, n, a, system, dir, undefined, undefined, report),
+        (n, a, system, d) => axisOf(model, n, a, system, d, undefined, undefined, report),
         (message, a) => report('seq.view.section.system', message, a),
       );
       blocksOf.set(at, b);
@@ -722,6 +745,15 @@ function build(model: StaticModel, view: Node, address: string, layerKinds: Laye
     // an extension's keys on the section (`rondo:bundle`): carried for the extension that reads them
     for (const [k, v] of Object.entries(s.params ?? {})) if (k.includes(':')) params[k] = v;
     const blocks = ba?.blocks.map((b, k) => ({ ...b, layers: blockLayers[k] }));
+    const more = moreOf.get(at);
+    const assemblies = blocks && sectionAssemblies(model, s);
+    const domains = blocks && {
+      block: blocks.map((b) => b.label),
+      // over assemblies their names in each one's `order` before any `include` (EC-191)
+      system: assemblies
+        ? assemblies.flatMap((a) => a.order.map((i) => a.sequences[i].name))
+        : [...new Set(blocks.map((b) => b.name ?? b.axis.system))],
+    };
     const y =
       (typeof own === 'string' ? own : viewLayout) === 'grid'
         ? overBlocks.has(at)
@@ -736,6 +768,9 @@ function build(model: StaticModel, view: Node, address: string, layerKinds: Laye
       layout: typeof own === 'string' ? own : viewLayout,
       params,
       ...(blocks ? { blocks } : {}),
+      ...(ba?.groups ? { groups: ba.groups } : {}),
+      ...(more ? { more } : {}),
+      ...(domains ? { domains } : {}),
       ...(y ? { y } : {}),
       ...(via.length ? { via } : {}),
     });
@@ -745,11 +780,19 @@ function build(model: StaticModel, view: Node, address: string, layerKinds: Laye
   // blocks' systems (its own axis is their units, on no system), each one linked
   const links: ViewLink[] = [];
   const shown = (s: ResolvedSection) => [...new Set(s.blocks ? s.blocks.map((b) => b.axis.system) : [s.axis.system])];
+  // linear in the blocks: a system with no map joins only itself (a genome's thousands of contigs on two sections
+  // are their identities, never every pair asked for a path)
+  const shownOf = new Map(sections.map((s) => [s, shown(s)]));
+  const shownSet = new Map(sections.map((s) => [s, new Set(shownOf.get(s))]));
   for (const a of sections)
     for (const b of sections) {
       if (a === b) continue;
-      for (const from of shown(a))
-        for (const to of shown(b)) {
+      for (const from of shownOf.get(a)!)
+        for (const to of model.systems.has(from) && model.edgesFrom(from).length > 0
+          ? shownOf.get(b)!
+          : shownSet.get(b)!.has(from)
+            ? [from]
+            : NoSystems) {
           if (!model.systems.has(from) || !model.systems.has(to)) continue;
           // what is projected onto a section or from it takes its `via` (both ends' named maps)
           const via = a.via && b.via ? [...new Set([...a.via, ...b.via])] : (b.via ?? a.via);

@@ -1689,10 +1689,10 @@ Seq\* holds pointers and labels: codes and identifiers are strings.
 
 - **Said, never dropped in silence** (`resolve/unread.ts`): a param the language declares and this version reads nowhere
   is `seq.resolve.param.unread` (info), one a node, naming the lane that reads it: `map.source` (FR), `pairs.source` and
-  `grid.source` (RG), data over an assembly (GC2), `navigator.switch` (GC3), `block.direction` and `block.scale` (GC2:
-  carried on a derived block's params, not drawn), `section.member_order` and `member_order_y` (LA), a `bridge` (LA),
-  `assembly.names` (GF: the printed names stay the assembly's). The lane that reads one drops it from `Unread`. Why: a
-  reader shown a spec drawn without what it says should be told why.
+  `grid.source` (RG), data over an assembly (GC2: its rows by sequence not read yet), `navigator.switch` (GC3),
+  `section.member_order` and `member_order_y` (LA), a `bridge` (LA), `assembly.names` (GF: the printed names stay the
+  assembly's). The lane that reads one drops it from `Unread`. Why: a reader shown a spec drawn without what it says
+  should be told why.
 
 ### Maps
 
@@ -1921,20 +1921,49 @@ Overlay, Opened sources), kept per model and view. No data, no dynamic node, no 
   (`seq.view.section.blocks`; their closing run is the layout's). A derived block has no id: its address is the keyed
   form under its section, `/views/v/genome/(block :name chrM)`. A block child overrides one by its `of`, or by an id
   that is its name. A section whose assembly is pending has no blocks and no issue (pending, never a missing system).
-  Copy groups are found through a `Map` (linear in the blocks).
-- **Blocks**: each its axis (its system, its `range`, the section's direction), its form, its first display unit in the
-  section's (`offset`: 0 in a stack), its label, the blocks it stands for (`members`) and their systems (`systems`: a
-  merged copy's unit, what an end on a copy is drawn on), its copy group (`copy`, internal: the pairs layer's), and each
-  of the section's tracks' layers resolved onto its system (a path a block: placed on each block its data reaches; a
-  layer that reaches no block says why once, by its first block's issue). Copies (the same system, or units of one copy
-  group, with the same range and form) are one block labeled `×N` with `copies: 'merge'` (the default: a copy group's
-  sequence said once, its cost one block's, EC-65, EC-67), a block each with `each`. The section's axis is the blocks'
-  display units in order: on one system in a row (or on a ring), the blocks' pieces end to end (their breaks between
-  them, a follow along one axis); else units `[0, total)` on no system (its `system` the section's address,
-  `pieces: 'blocks'`), the total the sum in a row and the longest block in a stack. Why: a position on them is no
-  block's, so a selection, a focus, a bookmark or a cursor on a system never reads them as its own; a block's hits carry
-  its system and its index (`block`), and a consumer maps them through the block's axis and `offset`. A block that names
-  no system is `seq.view.section.system` and left out.
+  Copy groups are found through a `Map` (linear in the blocks). Each assembly is a **group** (`groups`: its address, its
+  name, its blocks' run; `ResolvedBlock.group`), so a section of several draws a wider gap and a label between them
+  (EC-210); the blocks past `maxAssemblyBlocks` are counted (`more`) for the layout's closing run.
+- **A block's direction and scale** (`block.direction`, `block.scale`): its axis's direction is the section's times its
+  own (`reversed` turns it against the section: `section.reverse` flips every block, the block order kept); its display
+  units are its positions times its `scale` (`ResolvedBlock.scale`, absent: 1; a chip one unit at any scale), so its
+  `offset`s and the section's total are in those units. Blocks of one system are one axis only when every one reads the
+  section's way at scale 1; else they are blocks on no system. Copies merge on equal direction and scale too. Why per
+  block: every strip already has its own transform and direction; an inversion between genomes is a block cut at its
+  edges and reversed (EC-206), a direction per piece inside one block stays open.
+- **The built-in fields' domains** (`domains`): `block` the blocks' labels in order, `system` their systems' names (a
+  section of assemblies: each assembly's names in its `order` before any `include`), the categorical domain a theme over
+  them reads (EC-218, EC-191; Render, Layer colors); each block carries its system's `name`.
+- **Places** (`places.ts`, exported): `placesOf(section, system, position)` gives every block showing a position and the
+  section unit there (overlapping blocks: each, the merged-copies rule; none where no block shows it), by an index by
+  system of the blocks sorted by their first position with a running greatest end (a query is a binary search and a walk
+  back while that end reaches the position: log n plus the answers), built once per resolved section (what LX's ribbon
+  ends, RR's pair ends and RN's chords read per end). `placesInto(section, system, position, blocks, units)` writes the
+  answers into the caller's arrays and allocates nothing (`places.quick.ts`: 0 bytes a query); `placesOf` wraps it.
+  `blockUnitOf`, `blockPositionAt`, `blockElementAt` map a block's positions and units (its direction and scale);
+  `placeOfUnit` a section unit to `{ system, position }` (on a block's edge: the next block's first as a start, the one
+  before's last as an end) and `unitOfPlace` back (a position no block shows: the nearest shown edge on its system), so
+  a viewport, a history step and a saved view carry positions, never units. `sameBlocks(a, b)`: equal block lists
+  (systems, ranges, directions, scales in order), what follows by identity. Why exported from `/view`: LX's ribbon ends,
+  RR's pair ends and RN's chords place by `placesInto`/`placesOf` and `blockUnitOf`; GC3's viewer reads
+  `blockElementAt`, `blockPositionAt`, `blockSpan` (a double-click fits a block, the rail's hover names
+  `{system, position}`) and `placeOfUnit`/`unitOfPlace` (a history step, a saved view); `BlockGroup` is the type of a
+  resolved section's `groups`; `sameBlocks` the follow rule a host's linked views check. Nothing else of the genome
+  parts is public (no `withGenome`, `genomeBlocks()`, `angleOf`, `blockAtUnit`, `blockScaleOf` or `view/places` subpath:
+  the drawing is not split lazy, only the assembly parsing is).
+- **Blocks**: each its axis (its system, its `range`, the section's direction times its own), its form, its first
+  display unit in the section's (`offset`: 0 in a stack), its label, the blocks it stands for (`members`) and their
+  systems (`systems`: a merged copy's unit, what an end on a copy is drawn on), its copy group (`copy`, internal: the
+  pairs layer's), and each of the section's tracks' layers resolved onto its system (a path a block: placed on each
+  block its data reaches; a layer that reaches no block says why once, by its first block's issue). Copies (the same
+  system, or units of one copy group, with the same range and form) are one block labeled `×N` with `copies: 'merge'`
+  (the default: a copy group's sequence said once, its cost one block's, EC-65, EC-67), a block each with `each`. The
+  section's axis is the blocks' display units in order: on one system in a row (or on a ring), the blocks' pieces end to
+  end (their breaks between them, a follow along one axis); else units `[0, total)` on no system (its `system` the
+  section's address, `pieces: 'blocks'`), the total the sum in a row and the longest block in a stack. Why: a position
+  on them is no block's, so a selection, a focus, a bookmark or a cursor on a system never reads them as its own; a
+  block's hits carry its system and its index (`block`), and a consumer maps them through the block's axis and `offset`.
+  A block that names no system is `seq.view.section.system` and left out.
 - **An axis**: its system, its length unless unknown, cyclic, and the positions shown as `[start, end, …]` pieces in
   display order: the whole system, its `range`, or for a cyclic range that wraps the origin two pieces, from its start
   to the origin then on (`[8, 10, 0, 2]`). Without a known length, showing all of the system or wrapping, `ranges` is
@@ -1943,8 +1972,8 @@ Overlay, Opened sources), kept per model and view. No data, no dynamic node, no 
   section over): `genomic` 1, `reversed` −1, `follow` the leader's direction times the follow path's (`pathDirection`,
   the majority of a path both ways, `seq.view.direction.mixed`), `{ along }` the direction of the path from that system
   (a map: its own linear part) to the section's. One that cannot be resolved (`follow` written with no placed leader,
-  `along` a system no path reaches) is `seq.view.direction.unresolved` and `genomic`. One direction an axis (a direction
-  a piece is a tension until Genomes).
+  `along` a system no path reaches) is `seq.view.direction.unresolved` and `genomic`. One direction an axis; a block's
+  own direction is its block's (Blocks, above), a direction per piece inside one block stays open.
 - **Its pieces** (`pieces`, the form as written for an export, and `ranges`): `whole`; `coding`, the coding ranges of
   the follow path, else of the path it reads along; a ranges node's inline items on its system, a codon map's coding
   ranges onto it, or their union; widened by `pad` each side (merged), within `range`. Start below end, in display
@@ -1969,8 +1998,10 @@ Overlay, Opened sources), kept per model and view. No data, no dynamic node, no 
   axis's shape.
 - **Links**: every ordered pair of the view's sections a static path joins, with the path (`fromSystem`, `toSystem`: the
   systems it joins), composed when the view is resolved so hover and selection never compose; the same system is the
-  identity. A section of blocks links through each block's system (its own axis is on no system), so what is on a
-  sequence lights the units of a complex's section (EC-25) and back.
+  identity. Linear in the blocks: a system no map joins (`edgesFrom` empty) links to itself alone, so two sections of a
+  genome's 3,000 contigs are 6,000 identities, never 9 million pairs asked for a path. A section of blocks links through
+  each block's system (its own axis is on no system), so what is on a sequence lights the units of a complex's section
+  (EC-25) and back.
 - **Projection** (`projectOntoView(model, view, loc, { close?, own?, linked? })`, `project.ts`): a Location on the
   view's sections' systems (a section of blocks: its blocks' systems), one Location keyed by system (two sections on one
   system show the same): each part carried along the view's link from its system to each shown system, else, for a
@@ -2093,6 +2124,8 @@ the UX foundations' numbers, CSS px, settled by the foundation stories; where no
 | `values.coarser`                                               | 1                                                                                                                      | the coarsest level whose bin is no wider than k device pixels' positions (below)                                                                                                                                                                                                                                                                                                                                          |
 | `values.direct`                                                | true                                                                                                                   | data on the section's own system placed with no mapping (below); false: the general mapping, the same lists                                                                                                                                                                                                                                                                                                               |
 | `ruler.labelGap`                                               | 48 px                                                                                                                  | the least between two ticks (the foundations' number); labels clear each other by an eighth of it                                                                                                                                                                                                                                                                                                                         |
+| `blocks.gapShare`, `blocks.groupGap`                           | 0.25; 3 block gaps                                                                                                     | the gaps between blocks in view share at most a quarter of the row (positions keep three quarters at any count, each gap at most 12 px); a boundary between two assemblies reads wider (Circos), taken first, fixed                                                                                                                                                                                                       |
+| `blocks.runPx`, `blocks.readPx`                                | 2 CSS px; 1 device px                                                                                                  | below 2 px a block's gap and label are noise: consecutive ones are one run (a band, its count); inside a run a block is read and drawn while it can be seen (the joint rule with region reads); 0 for never and for every block                                                                                                                                                                                           |
 | `text.scale`, `text.groupGap`                                  | 12 px a position, half a cell                                                                                          | the letter size a text opens at (its zoom); a space between words                                                                                                                                                                                                                                                                                                                                                         |
 | `text.lineGap`, `text.bandGap`                                 | 10, 3                                                                                                                  | a line block reads as one when the line gap is the larger (10 and 3, the audit; were 8 and 2)                                                                                                                                                                                                                                                                                                                             |
 | `text.collapseEmpty`                                           | true                                                                                                                   | an empty band separates what belongs together (EC-96); false: uniform lines                                                                                                                                                                                                                                                                                                                                               |
@@ -2101,6 +2134,7 @@ the UX foundations' numbers, CSS px, settled by the foundation stories; where no
 | `text.heights`                                                 | letters 18, ranges 4, values 3, ruler 14, secondary 6, variants 10, frame 14, rows 18, logo 24, pairs 24, grid 120     | a text's tracks thin: a ranges track reads as underlines, a values track as a strip                                                                                                                                                                                                                                                                                                                                       |
 | `rings.hole`, `rings.maxDiameter`                              | 0.35 of the radius; 720 px                                                                                             | room for the title, chords readable; a map, not a wall (`RenderConfig` preset; 0 to 0.8; px)                                                                                                                                                                                                                                                                                                                              |
 | `rings.blockGap`                                               | 1°                                                                                                                     | a gap between blocks reads as a boundary (Circos)                                                                                                                                                                                                                                                                                                                                                                         |
+| `rings.gapShare`, `rings.groupGap`                             | 0.25; 4°                                                                                                               | the rows' rule on the circle: at 3,000 blocks the gaps are 0.03° each and three quarters of the circle stays positions; a group gap taken first                                                                                                                                                                                                                                                                           |
 | `rings.letters`                                                | `upright`                                                                                                              | readable at any angle; `tangent`                                                                                                                                                                                                                                                                                                                                                                                          |
 | `rings.center`                                                 | `title`                                                                                                                | the name and length in the hole; `none`                                                                                                                                                                                                                                                                                                                                                                                   |
 | `rings.labelGap`, `rings.leaderBend`                           | 8, 12 px                                                                                                               | leaders fan out over the ruler, never through one point                                                                                                                                                                                                                                                                                                                                                                   |
@@ -2503,6 +2537,18 @@ measures, the reader's substitution) are defined there and read by `layoutView` 
 last frame's substitution. Why one path: a structure colored by a track agrees with the track, an open scale's domain
 the one the view holds, not the data's extent.
 
+- **Built-in fields** (EC-218): every mark drawn on a block's strip has the fields `block` (its block's label) and
+  `system` (its system's name; a datum's own field of the name wins), read through the theme environment
+  (`ThemeEnv.builtIn`) the layer's channels compile in on that strip (`ChannelContext`'s section, strip and placement; a
+  kept channel is compiled again for another block). A categorical palette that lists no values over them takes the
+  section's domain (`ThemeEnv.categories`, `ResolvedSection.domains`): the blocks in order, an assembly's names in its
+  order before any `include`, so a sequence has one hue on every section of its assembly, never by first occurrence by
+  region (EC-191). Compiles over one domain (by identity) and one palette spec share one color function and memo (the
+  domain neither copied nor deduped again): a channel is compiled per block's strip, and per compile it was O(n²) at
+  3,000 contigs. A pair's field between two places (its `a` end's) is LX's and RN's. Why `builtIn` and `categories` are
+  public on `ThemeEnv` (and `categories` on `PaletteOptions`): LX's ribbons and RN's chords color by `block` and
+  `system` through the same compile, from their own layers.
+
 ### Numberings from a source
 
 `render/numberings.ts`: a declared numbering whose labels are a source's rows (Language, Numberings).
@@ -2741,10 +2787,13 @@ numbers): a window move allocates nothing once warm.
   columns), the slim row whole; grown (`grownPx`) while hovered or dragged (`Emphasis.drag`); idle (not active) a quiet
   hairline with no grips and no target (at the fit it reads as the line); in a figure (an export) a plain segment, no
   grips, no idle state. Its hit is the `window` target with `navigator: 'rail'` (touch the wider hit: `hitView`'s
-  `touch`), its unit `railUnitAt`. Rails are part of a section's key by identity (a slim row takes room); which can move
-  is not: the renderer sets it on the rails each frame, an emphasis redraw too (an idle flip redraws the window pass
-  alone). `railSections(view, hosted)`: every tracks section no shown navigator binds along its positions: a declared
-  navigator and a host's replace its rail, a hidden one brings it back.
+  `touch`), its unit `railUnitAt`; a window over the whole axis (the fit) has no body to drag, so there only its grips
+  are targets and the ruler under it takes the pointer (its hover names the place, a double-click zooms there). On a
+  section of blocks its hit names the block under the unit, its system and its position (`block`), never the section's
+  units. Rails are part of a section's key by identity (a slim row takes room); which can move is not: the renderer sets
+  it on the rails each frame, an emphasis redraw too (an idle flip redraws the window pass alone).
+  `railSections(view, hosted)`: every tracks section no shown navigator binds along its positions: a declared navigator
+  and a host's replace its rail, a hidden one brings it back.
 - **The rows rail** (`placeRowsRail`, `SectionLayout.rowsRails`; `FrameInput.rails` by the rows track's address): the
   same `Rail` upright (`vertical`: along the page's y, its line and grab zone across on x; one geometry, drawn and hit
   by the same code, the coordinates turned at the rect and at the hit), `SlimRailPx` wide at the right edge (right of
@@ -2786,8 +2835,10 @@ numbers): a window move allocates nothing once warm.
   counterclockwise).
 - **A strip a block, one warp**: the unrolled frame is the outer circumference wide (so a layer reduces per angular
   column at the outer ring; inner rings are finer than their pixels, never coarser), x the arc length from the origin,
-  so every strip shares one `PolarWarp`. Blocks are arcs with `rings.blockGap` between them; a whole cyclic section is
-  the full circle with no gap, its seam no break. A collapsed piece edge is zero width, its hairline marking it.
+  so every strip shares one `PolarWarp`. Blocks are arcs with gaps between them by the share rule (Blocks: at most
+  `rings.blockGap` each, at most `rings.gapShare` of the circle together, a group's `rings.groupGap` first, none inside
+  a run); a whole cyclic section is the full circle with no gap, its seam no break. A collapsed piece edge is zero
+  width, its hairline marking it.
 - **Labels outside with leaders**: the strips' layers give their items' labels to the layout's sink (`ctx.labels`: text,
   extent on the strip's system, element, the item's hit, order); placed when the ring is laid out (never on a window
   move or a hover): each at its item's middle angle (an item over the origin, its rows meeting there, one arc), per side
@@ -2808,7 +2859,8 @@ numbers): a window move allocates nothing once warm.
   its only opening). Why: a dozen leaders over the group's own few degrees run together; past a dozen lines a fan cannot
   be read.
 - **The hole holds the title** (`rings.center: 'title'`): the system's name and its length (`bp`, `aa`; a section of
-  blocks its id and its units).
+  assemblies their names and the blocks' length in bases, `GRCh38`, `3.1 Gb`; another section of blocks its id and its
+  units).
 - **The window** (`window` on the layout type, set on a kept placement too): the section's viewport (a ring that
   follows, its leader's range on its own axis), drawn in the `window` pass through the warp: a faint sector over the
   rings, and on a 12 px rim outside the outer ring (the design's least hit) its body and grips (`render/window.ts`), hit
@@ -2854,14 +2906,16 @@ numbers): a window move allocates nothing once warm.
   only when even that would pass the half), their labels elided; the polymers keep the rest.
 - **A row** (`BlockRow`): each block's edges in view on the device grid (`snap`, a chip's kept: its slot is its label's
   width), as a grid's row under it, so the two align at any dpr; a block left none wide has no strip (nothing of it
-  drawn or hit; a hit beside it names the block next to it). A chip stands where its block does (a ligand after the
-  chains). The chips in view take their px from the width as the gaps do, so the row's x is not linear over a chip
-  (EC-102); the window, the rail and the navigators read the section's units, a chip one unit, as across a gap. The row
-  is continuous in its window: a chip partly in view takes px by the part of it in view, a gap by its boundary's
-  distance to the nearer edge (none at the edge, whole 12 px in), so a pan moves nothing by a jump. **Pan and zoom go
-  through the row's inverse** (`rowPan`, `rowZoom`, by bisection on the window's start): a pan brings the unit `dx` px
-  from a reference point (the middle less half the move, moved past a gap) to it, so what is under the pointer moves
-  with it while nothing enters or leaves; a zoom keeps its anchor's px as chips and gaps enter or leave. Why: a linear
+  drawn or hit; a hit beside it names the block next to it). The row's x of a unit and unit of an x read each block's
+  own px per unit as laid (its snapped width over its units), what its strip's transform reads: on the row's scale a
+  block of a few px in a run read past its end. A chip stands where its block does (a ligand after the chains). The
+  chips in view take their px from the width as the gaps do, so the row's x is not linear over a chip (EC-102); the
+  window, the rail and the navigators read the section's units, a chip one unit, as across a gap. The row is continuous
+  in its window: a chip partly in view takes px by the part of it in view, a gap by its boundary's distance to the
+  nearer edge (none at the edge, whole 12 px in), so a pan moves nothing by a jump. **Pan and zoom go through the row's
+  inverse** (`rowPan`, `rowZoom`, by bisection on the window's start): a pan brings the unit `dx` px from a reference
+  point (the middle less half the move, moved past a gap) to it, so what is under the pointer moves with it while
+  nothing enters or leaves; a zoom keeps its anchor's px as chips and gaps enter or leave. Why: a linear
   `dx · span / width` jumps over a chip.
 - **A stack**: the chips share one row after the other blocks', side by side from the first position's x, whatever the
   window. A row's ground and its track labels are drawn once, at its first strip (a later chip's would paint over the
@@ -2888,10 +2942,43 @@ numbers): a window move allocates nothing once warm.
   (`TextBlocks.lead`, the line's units fewer, its letters after the label), so it takes part in the breaking; its
   continuation lines have none. A chip's label is its pill.
 - **Rings**: a block an arc (above); a chip a fixed-angle arc its slot on the outer ring (the frame's px), its letters
-  ring a pill, the other blocks sharing the rest of the circle by their lengths.
-- **Follow across systems** is refused: a section of blocks on more than one system neither follows nor is followed
-  (`seq.render.follow.blocks`, it shows its own range). Why: which block's map a follow would carry is undecided. Blocks
-  on one system follow as one axis.
+  ring a pill, the other blocks sharing the rest of the circle by their display units (their lengths times their
+  scales), the gaps by the share rule above.
+- **A block's own direction and scale** (Resolved view, Blocks): its strip's transform is over its positions in its
+  direction, its window those of the section's units it shows divided by its scale (`Strips.scale`, what `at`,
+  `offsetIn`, `place` and a ring's frame read: a section unit `u` is the strip's `(u − first) / scale`). So its ruler
+  counts down within a reversed block and at its own density in a scaled one, its letters complement by the axis's rule
+  per strip, and on a ring it runs counterclockwise within its arc. Its label says it (`blockLabel`): the direction mark
+  `←` where it reads right to left (`axis.directionMark`), `×N` where its scale is not 1 (`chr4 ←`, `chr17 ×10`). In a
+  row a label is whole, else its name cut keeping at least six letters with the mark and scale whole after it, else
+  hidden (`fitBlockLabel`: "c…" says nothing); its strings made once per resolved block. A block's ruler takes ticks as
+  close as half its width (at least 24 px, at most `ruler.labelGap`), so a block a few labels wide still counts its own
+  positions.
+- **Gaps at scale, one rule for rows and rings** (EC-102): the gaps in view share at most `blocks.gapShare` of the row
+  (`rings.gapShare` of the circle), each at most the layout's gap (12 px; `rings.blockGap`, 1°), so
+  `gap = min(max, share × length / gaps in view)` with no floor: at 3,000 blocks a ring's gaps are 0.03° each and three
+  quarters of the circle stays positions. A group's boundary (two assemblies) takes `blocks.groupGap` block gaps
+  (`rings.groupGap`, 4°) first, fixed.
+- **Runs of small blocks** (both layouts): two or more consecutive blocks of one group, no chips, each under
+  `blocks.runPx` (2 CSS px) at the zoom (on a ring at the outer radius) are one run: no gaps inside, one band in
+  `seq-wash` over their extent with a hairline at each end under the tracks' data, labelled with its count where it has
+  room ("2,841 contigs"; a ring's among its outside labels). Found again on a zoom (a walk over the blocks, O(blocks)),
+  never on a pan (the zoom is the window's width over its span). **The joint rule with region reads**: inside a run a
+  block is laid out, read and drawn while at least `blocks.readPx` device px wide (1); under it it has no strip (nothing
+  read, nothing hit but the run's band: `BlockPlacement.runAt` names the block under a point and the run's count for a
+  hover, "one of 2,841"). A block in a run has no label of its own. Why: below two px a gap and a label are noise, and
+  under a device pixel a block's data is more requests than pixels; pairs survive through their other end (RR).
+- **Groups** (a section of several assemblies, EC-210): a row draws a bracket a group under its tracks (a hairline, a
+  tick at each end, the assembly's name below, `msui-text` on `msui-text-muted`); a ring an arc just outside its outer
+  ring and the name upright in a band of its own there (`RingMetrics.groupBand`, 16 px, the label font in `msui-text`),
+  the block labels and their leaders starting past it, so the two never collide; the ring's hole the assemblies' names
+  and their total length in bases (`3.1 Gb`). **The closing run** past `maxAssemblyBlocks` is said at the row's end
+  under its tracks ("+96,312 sequences not shown") and in a ring's subtitle.
+- **Follow**: sections whose block lists are equal (`sameBlocks`: systems, ranges, directions, scales in order) follow
+  by identity in units: the follower's window is the leader's (a ring of the genome and its linear detail, two sections
+  of one assembly). A section of blocks on more than one system with an unequal list neither follows nor is followed
+  (`seq.render.follow.blocks`, it shows its own range): which block's map a window carries is a figure's choice no rule
+  makes. Blocks on one system follow as one axis.
 
 ### Tracks layout
 
@@ -3571,11 +3658,15 @@ under the point as the hit's `state`. It reads every row (a logo of the rows sho
   gives `emphasis.projected.selection`: the export shows on the gene what a viewer shows there.
 - **A viewport in positions** (`viewport: { positions: { <section>: [start, end] } }`): each section's window read
   through its axis (`nearestOffsetOf`, its direction and pieces), so a caller (the render CLI) needs no knowledge of
-  them; the frame's `viewports` by section address. Offsets (`{ start, end }`) as before.
+  them; the frame's `viewports` by section address. A section of blocks takes `{ system, position }` ends
+  (`[{ system: chr16, position: 90.1e6 }, { system: chr17, position: 1.2e6 }]`), read through its places (`unitOfPlace`:
+  a position no block shows, the nearest shown edge). Offsets (`{ start, end }`) as before.
 - It answers `{ svg, settled, issues, lists }`; the SVG records whether it settled and the open domains it computed, an
   empty `<g data-section data-direction data-pieces data-y data-height>` a section (the draw lists are grouped by pass,
-  not by section: these say what each axis is), and its ids take a prefix (`idPrefix`, by default `s` and a hash of the
-  spec). On a shared store it reports only the issues of the sources it attached.
+  not by section: these say what each axis is), a section of blocks' holding an empty
+  `<g data-block data-system data-direction data-scale>` a block (`data-assembly` its assembly's address on a section of
+  assemblies), and its ids take a prefix (`idPrefix`, by default `s` and a hash of the spec). On a shared store it
+  reports only the issues of the sources it attached.
 - **Folds** (`folds`, by a rows layer's track address): the clades the export folds (a viewer passes its own, as it
   passes the selection), else the layer's `collapsed`; a frame's `FrameInput.folds`, part of its key by identity.
 - **A ring's window** (`window`, the view's `export.window` when absent, false): an export is a figure (`figure`), so a

@@ -16,9 +16,10 @@
 // line in it (a hairline only where two blocks touch with no gap), the blocks' labels on both axes.
 
 import { AxisTransform, type Viewport } from '../axis.js';
+import type { RenderConfig } from '../config.js';
 import { Anchor, grown, type PassName, type PassWriter } from '../draw-lists.js';
 import type { SectionLayout } from '../tracks.js';
-import { BlockRow, blockLength, type ResolvedBlock } from './blocks.js';
+import { BlockRow, type ResolvedBlock, rowBlocks } from './blocks.js';
 import { type PlacePoint, StripPlacement } from './strips.js';
 import { clampWindow, sameWindow, TracksNav } from './tracks.js';
 import type { ResolvedSection } from '@molstar/seqx-core/view';
@@ -77,7 +78,7 @@ export class GridPlacement extends StripPlacement {
           break;
         }
       out.kind = out.band < 0 ? 'gap' : 'data';
-      if (out.band >= 0) out.offset = s.first[i] + a.unitAt(x);
+      if (out.band >= 0) out.offset = s.first[i] + a.unitAt(x) * s.scale[i];
       return true;
     }
     out.kind = s.n && x < s.axes[0].x0 ? 'gutter' : 'gap';
@@ -100,17 +101,15 @@ function blockRow(
   u0: number,
   u1: number,
   dpr: number,
+  config: RenderConfig,
 ) {
-  row.reset(blocks.length);
+  // the tracks' row's rules (groups, gaps, runs), so the plot's columns align with the blocks above
+  rowBlocks(row, blocks, config);
   // no chips on a plot's axes: every block a position's share
   row.chip = grown(row.chip, blocks.length);
   row.chip.fill(0);
   row.x0 = x0;
   row.width = width;
-  for (let b = 0; b < blocks.length; b++) {
-    row.offset[b] = blocks[b].offset ?? 0;
-    row.len[b] = blockLength(blocks[b]);
-  }
   row.lay(u0, u1);
   // each block's edges on the device grid, as the tracks' row above: its cells' clip and its tiles' edges meet exactly
   row.snap(dpr);
@@ -135,9 +134,9 @@ function placeBlocksGrid(
   const x = ctx.axis;
   const xr = (p.xRow ??= new BlockRow());
   const yr = (p.yRow ??= new BlockRow());
-  blockRow(xr, blocks, x.x0, x.width, x.u0, x.u1, ctx.dpr);
+  blockRow(xr, blocks, x.x0, x.width, x.u0, x.u1, ctx.dpr, ctx.config);
   const yv = ctx.y?.viewport ?? { start: x.u0, end: x.u1 };
-  blockRow(yr, blocks, top, h, yv.start, yv.end, ctx.dpr);
+  blockRow(yr, blocks, top, h, yv.start, yv.end, ctx.dpr, ctx.config);
   const ys = p.yAxes;
   ys.length = blocks.length;
   for (let c = 0; c < blocks.length; c++) {
@@ -145,8 +144,8 @@ function placeBlocksGrid(
     ys[c] =
       yr.ve[c] > yr.vs[c] && yr.w[c] > 0 && blocks[c].axis.ranges
         ? AxisTransform.on(blocks[c].axis, blocks[c].axis.ranges!, yr.x[c], yr.w[c], ctx.dpr, {
-            start: yr.vs[c] - oc,
-            end: yr.ve[c] - oc,
+            start: (yr.vs[c] - oc) / (blocks[c].scale ?? 1),
+            end: (yr.ve[c] - oc) / (blocks[c].scale ?? 1),
           })
         : undefined;
   }
@@ -154,15 +153,17 @@ function placeBlocksGrid(
     // a block in view whose snapped width is none has no strip: nothing of it is drawn or hit
     if (xr.ve[b] <= xr.vs[b] || xr.w[b] <= 0 || !blocks[b].axis.ranges) continue;
     const ob = xr.offset[b];
+    const sb = blocks[b].scale ?? 1;
     const ax = AxisTransform.on(blocks[b].axis, blocks[b].axis.ranges!, xr.x[b], xr.w[b], ctx.dpr, {
-      start: xr.vs[b] - ob,
-      end: xr.ve[b] - ob,
+      start: (xr.vs[b] - ob) / sb,
+      end: (xr.ve[b] - ob) / sb,
     });
     for (let c = 0; c < blocks.length; c++) {
       const ay = ys[c];
       if (!ay) continue;
       const oc = yr.offset[c];
       const i = strips.add(ax, b, 0, 0, ob);
+      strips.scale[i] = sb;
       strips.ys[i] = ay;
       strips.yBlock[i] = c;
       strips.yFirst[i] = oc;

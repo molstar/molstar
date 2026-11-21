@@ -115,6 +115,21 @@ describe('palettes: properties', () => {
     expect(b.color('y')).toBe(list[1]);
   });
 
+  it('compiles over one domain known up front share its colors: one copy a section, not one a block’s channel', () => {
+    // a block's strip compiles its channels; 3,000 contigs each copying and deduping the domain was O(n²)
+    const domain = Array.from({ length: 3000 }, (_, i) => `contig${i}`);
+    const node = { kind: 'categorical', params: {} } as const;
+    const a = compilePalette(node, { tokens: LightTokens, categories: domain });
+    const b = compilePalette(node, { tokens: LightTokens, categories: domain });
+    expect(b.values).toBe(domain);
+    expect(b.color).toBe(a.color);
+    expect(a.color('contig1')).toBe(
+      compilePalette(node, { tokens: LightTokens, categories: domain.slice() }).color('contig1'),
+    );
+    // another spec (other tokens) is its own
+    expect(compilePalette(node, { tokens: DarkTokens, categories: domain }).color).not.toBe(a.color);
+  });
+
   it('a dictionary-coded value’s color is its value’s', () => {
     const column = categoryColumn(['b', 'a', 'b', 'c', 'a']);
     const d = new RowDatum();

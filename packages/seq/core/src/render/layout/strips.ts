@@ -39,6 +39,11 @@ export class Strips {
   height = new Float64Array(4);
   /** Its first display unit: its lays are kept by it while it is in view. */
   first = new Float64Array(4);
+  /**
+   * Its section's display units a unit of its transform (a block's `scale`, 1 by default): a section unit `u` is the
+   * strip's `(u − first) / scale` (_spec/README.md "Render", Blocks).
+   */
+  scale = new Float64Array(4);
   /** A grid over blocks: the strip's y block (its index in the section) and that block's first unit, else 0. */
   yBlock = new Int32Array(4);
   yFirst = new Float64Array(4);
@@ -74,6 +79,7 @@ export class Strips {
       this.top = grown(this.top, need);
       this.height = grown(this.height, need);
       this.first = grown(this.first, need);
+      this.scale = grown(this.scale, need);
       this.yBlock = grown(this.yBlock, need);
       this.yFirst = grown(this.yFirst, need);
     }
@@ -95,6 +101,7 @@ export class Strips {
     this.top[i] = dy;
     this.height[i] = 0;
     this.first[i] = first;
+    this.scale[i] = 1;
     this.yBlock[i] = 0;
     this.yFirst[i] = 0;
     for (let j = i * this.bands; j < nb; j++) {
@@ -134,9 +141,10 @@ export class Strips {
   /** The section's display unit at frame x on strip `i`: its window's edge past its data box. */
   offsetIn(i: number, x: number): number {
     const a = this.axes[i];
-    if (x < a.x0) return this.first[i] + a.u0;
-    if (x >= a.x0 + a.width) return this.first[i] + a.u1;
-    return this.first[i] + a.unitAt(x);
+    const k = this.scale[i];
+    if (x < a.x0) return this.first[i] + a.u0 * k;
+    if (x >= a.x0 + a.width) return this.first[i] + a.u1 * k;
+    return this.first[i] + a.unitAt(x) * k;
   }
 
   /** The first band of strip `i` with height (a collapsed band holds nothing), or −1. */
@@ -156,7 +164,7 @@ export class Strips {
     let at = -1;
     for (let i = 0; i < this.n; i++) {
       const a = this.axes[i];
-      const u = offset - this.first[i];
+      const u = (offset - this.first[i]) / this.scale[i];
       if (u < a.u0 || u > a.u1) continue;
       if (u < a.u1) {
         at = i;
@@ -170,7 +178,7 @@ export class Strips {
     out.strip = at;
     out.band = band;
     out.offset = offset;
-    out.x = this.axes[at].xOfUnit(offset - this.first[at]);
+    out.x = this.axes[at].xOfUnit((offset - this.first[at]) / this.scale[at]);
     out.y = band < 0 ? this.top[at] : this.bandY[k] + this.bandH[k] / 2;
     out.kind = band < 0 ? 'gap' : 'data';
     return true;

@@ -11,6 +11,7 @@ import {
   type ResolvedLayer,
   type ResolvedSection,
   type ResolvedTrack,
+  sameBlocks,
   templateNodes,
 } from '@molstar/seqx-core/view';
 import { AxisTransform, type Viewport } from './axis.js';
@@ -234,14 +235,31 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
             },
           ),
         );
+      } else if (sameBlocks(section, leaderSection) && section.axis.system !== leaderSection.axis.system) {
+        // equal block lists follow by identity in units (_spec/README.md "Render", Blocks): the leader's window is the
+        // follower's (a ring of the genome and its linear detail, two sections of one assembly)
+        visiting.add(at);
+        const leader = axisOf(leaderSection);
+        visiting.delete(at);
+        const own = ownPieces(section, input.model, input.data);
+        if (leader && own) {
+          const window = leaderWindow(leaderSection, leader);
+          made = { pieces: own, viewport: window };
+          if (layoutOf(section).window) {
+            followed ??= new Map();
+            followed.set(at, window);
+            made = { pieces: own };
+          }
+        }
       } else if (
         (multiSystem(section) || multiSystem(leaderSection)) &&
         section.axis.system !== leaderSection.axis.system
       ) {
-        // which block's map a follow would carry is undecided (_spec/README.md "Render", Blocks); a grid over a section
-        // of blocks is on the blocks' own units, its follow the identity ("The grid layout", A grid over blocks)
+        // which block's map a follow would carry is a figure's choice no rule makes (_spec/README.md "Render",
+        // Blocks); a grid over a section of blocks is on the blocks' own units, its follow the identity ("The grid
+        // layout", A grid over blocks)
         report(
-          issueOf(RenderIssues, 'seq.render.follow.blocks', 'A section of blocks on several systems cannot follow', {
+          issueOf(RenderIssues, 'seq.render.follow.blocks', 'Sections of unequal block lists cannot follow', {
             address: at,
             hint: RenderIssues.codes['seq.render.follow.blocks'].hint,
           }),
