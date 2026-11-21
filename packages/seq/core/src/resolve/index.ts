@@ -72,7 +72,7 @@ export {
   type SystemEntry,
   sourceLengths,
 } from './model.js';
-export { type DescribedMap, pendingMaps } from './maps-described.js';
+export { type DescribedMap, describedAddress, pendingMaps } from './maps-described.js';
 export { structureStatus } from './maps-segments.js';
 export { viaList } from './maps-via.js';
 export type { CompoundEntry, Molecular } from './molecule-query.js';
@@ -101,6 +101,7 @@ export {
   type OverlayNode,
   type OverlayOptions,
 } from './overlay.js';
+export { openedModel } from './opened.js';
 export { overlayQueryModel, type RowsSource } from './query-model.js';
 export {
   composeEdges,

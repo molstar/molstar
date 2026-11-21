@@ -73,7 +73,7 @@ describe('a unit read as a system (EC-35)', () => {
   it('hover projection: a residue of the unit lights its sequence’s, and back; a copy is never reached (EC-25)', () => {
     const spec0 = new SpecModel(spec());
     const view = new ViewModel(spec0, viewerConfig());
-    const hover = new HoverModel(spec0, view, viewerConfig());
+    const hover = new HoverModel(view, viewerConfig());
     const onUnit: Hit = { layer: `${UnitSection}/letters/l`, system: Unit, position: 3 };
     hover.set(onUnit, 'p');
     expect(partsOf(hover.projected(ProteinSection))).toEqual([[Protein, [13, 14]]]);

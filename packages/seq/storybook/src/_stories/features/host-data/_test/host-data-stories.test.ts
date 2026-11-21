@@ -10,12 +10,17 @@ import { keySet, location } from '@molstar/seqx-core/query';
 import { type Frame, recordDrawLists } from '@molstar/seqx-core/render';
 import { PackageFolder } from '@molstar/seqx-examples/node-assets';
 import type { SeqViewerRegistryEntry } from '@molstar/seqx-viewer/header-entries';
+import { openedModel } from '@molstar/seqx-core/resolve';
+import { HoverCardProvider } from '@molstar/seqx-viewer/behaviors';
 import { DefaultSeqViewerSpec } from '@molstar/seqx-viewer/default-spec';
 import { createSeqViewer, type SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { DomHost } from '@molstar/ui/dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { FakeStructureViewer } from '../../../support/fake-structure/fake-viewer.js';
 import {
+  blockLines,
+  ComplexSection,
+  hostComplexSpec,
   HostFile,
   HostSource,
   heldLines,
@@ -49,7 +54,7 @@ afterEach(() => {
 const table = () => hostTableOf(readFileSync(`${PackageFolder}${HostTableFile}`, 'utf8'));
 
 /** A settled viewer of the spec, by the fake host or by the default adapter, and what its assets port read. */
-async function open(by: 'fake' | 'default') {
+async function open(by: 'fake' | 'default', spec = hostDataSpec()) {
   vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date', 'performance'] });
   // a frame is a timer 16 ms on: what a host's edit is reopened by
   vi.spyOn(DomHost, 'requestAnimationFrame').mockImplementation((fn) => {
@@ -93,7 +98,7 @@ async function open(by: 'fake' | 'default') {
   });
   viewers.push(v);
   v.resize(1100);
-  await v.load(hostDataSpec());
+  await v.load(spec);
   await vi.advanceTimersByTimeAsync(500);
   await v.settle();
   v.draw();
@@ -219,5 +224,138 @@ describe('Host data: the fake serving 2OCJ', () => {
     expect(unitsOf(v)).toEqual(['A', 'E']);
     expect(selected()).toEqual([]);
     expect(v.store.issues.value.filter((i) => i.code === 'seq.viewer.selection.dropped')).toHaveLength(1);
+  });
+});
+
+describe('Host data: the host’s complex as a section (a section of a source’s complex)', () => {
+  /** The residues' track drawn a block (its clip: a chain's band, an ion's chip). */
+  const residueBands = (v: SeqViewer) => drawn(v).match(/^clip [\d.]+ 62 /gm)?.length ?? 0;
+  it('pending before the source opens (no issue), a block a unit once it holds the complex; the residues drawn', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date', 'performance'] });
+    const fake = new FakeStructureViewer(table());
+    fakes.push(fake);
+    const base = DefaultSeqViewerSpec();
+    const v = createSeqViewer({ ...base, ui: undefined, registry: withFakeHost(base.registry ?? [], fake) });
+    viewers.push(v);
+    v.resize(1100);
+    void v.load(hostComplexSpec());
+    expect(blockLines(v)).toEqual(['pending: the source holds no complex yet']);
+    expect(v.view.resolved.value?.issues).toEqual([]);
+    expect(checkSeqSpec(hostComplexSpec())).toEqual([]);
+    const { v: open2 } = await open('fake', hostComplexSpec());
+    expect(open2.view.resolved.value?.issues).toEqual([]);
+    expect(open2.modelIssues.value).toEqual([]);
+    expect(open2.layoutIssues.value).toEqual([]);
+    expect(blockLines(open2).map((l) => l.split(': ')[1])).toEqual(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']);
+    // the residues drawn: a band a chain's block (zoomed out), a chip an ion's (its name)
+    expect(residueBands(open2)).toBe(8);
+    expect(drawn(open2).match(/^text "ZINC ION"/gm)).toHaveLength(4);
+  });
+
+  it('Drop chain and Restore: the section reflows a frame later, one resolve a node version, none a frame', async () => {
+    const { v, fake, reads } = await open('fake', hostComplexSpec());
+    const units = () => blockLines(v).map((l) => l.split(': ')[1]);
+    expect(units()).toEqual(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']);
+    let resolves = 0;
+    let versions = 0;
+    const offs = [v.view.resolved.listen(() => resolves++), v.store.store.nodeVersion.listen(() => versions++)];
+    fake.dropChain('D');
+    await follow(v);
+    expect(units()).toEqual(['A', 'B', 'C', 'E', 'F', 'G']);
+    expect(residueBands(v)).toBe(6);
+    expect(v.view.resolved.value?.issues).toEqual([]);
+    expect(v.layoutIssues.value).toEqual([]);
+    expect(resolves).toBeGreaterThan(0);
+    expect(resolves).toBeLessThanOrEqual(versions);
+    // frames and a hover read the view resolved for the version: no new one
+    const shown = v.view.resolved.value;
+    const layouts = v.counts.layouts;
+    for (let i = 0; i < 3; i++) v.draw();
+    expect(v.view.resolved.value).toBe(shown);
+    expect(v.counts.layouts).toBe(layouts);
+    expect(fake.restore()).toBe(true);
+    await follow(v);
+    expect(units()).toEqual(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']);
+    expect(residueBands(v)).toBe(8);
+    expect(reads).toEqual([]);
+    for (const off of offs) off();
+    expect(ComplexSection).toBe(v.view.resolved.value?.sections[0].address);
+  });
+});
+
+describe('Host data: a held unit’s letters, names and copy (the opened model read everywhere the view is)', () => {
+  /** The letters drawn on the residues track (its glyph runs). */
+  const glyphs = (v: SeqViewer) =>
+    (drawn(v).match(/^glyphs .*$/gm) ?? []).join(' ').match(/ [A-Z] [\d.]+ #/g)?.length ?? 0;
+  /** The residues track's fills (cells, ticks, bars) by colour. */
+  const fills = (v: SeqViewer) =>
+    new Set((drawn(v).match(/^rect [\d.]+ 6[2-9] .* (#[0-9a-f]{8})/gm) ?? []).map((l) => l.split(' ')[5]));
+  /** A block's bar under a pixel a residue, and a cell whose letter is not held (`seq-missing`). */
+  const Bars = '#c4c9cfff';
+  const Missing = '#dedad3ff';
+
+  it('the residues track draws the chain’s letters zoomed in, the same before a drop and after; zoomed out its colours, never the missing fill', async () => {
+    const { v, fake } = await open('fake', hostComplexSpec());
+    const zoomed = async () => {
+      v.view.setRange(ComplexSection, 84, 104);
+      await follow(v);
+      v.draw();
+      return glyphs(v);
+    };
+    const out = async () => {
+      v.view.fit(ComplexSection);
+      await follow(v);
+      v.draw();
+      return [...fills(v)];
+    };
+    const before = await zoomed();
+    expect(before).toBeGreaterThan(10);
+    // eight blocks at the fit: under a pixel a residue, a bar a block (presence, no data read: the density step)
+    expect(await out()).toEqual([Bars]);
+    fake.dropChain('D');
+    await follow(v);
+    // six blocks: over a pixel a residue, the residues' colours, never the missing fill (letters not held)
+    const after = await out();
+    expect(after).not.toContain(Missing);
+    expect(after.filter((c) => c !== Bars).length).toBeGreaterThan(2);
+    expect(await zoomed()).toBe(before);
+  });
+
+  it('the hover card names a held unit’s residue as its chain (A 109), never its address', async () => {
+    const { v } = await open('fake', hostComplexSpec());
+    v.view.setRange(ComplexSection, 100, 120);
+    await follow(v);
+    v.draw();
+    const s = v.frame!.layout.sections[0];
+    const t = s.tracks[1];
+    v.input.move((s.axis!.x(108) + s.axis!.x(109)) / 2, t.box.y + t.box.height / 2);
+    await vi.advanceTimersByTimeAsync(600);
+    const card = v.behavior(HoverCardProvider)!.shown.value!.card;
+    expect(card.title).not.toContain('(node');
+    expect(card.title).toMatch(/^A\b/);
+  });
+
+  it('copies a held unit’s letters (selection.copyLetters over the opened model)', async () => {
+    const copied: string[] = [];
+    vi.stubGlobal('navigator', { clipboard: { writeText: async (t: string) => void copied.push(t) } });
+    const { v } = await open('fake', hostComplexSpec());
+    const letters = String(nodesOf(v).find((n) => n.key === '1')!.node.params!.letters);
+    await v.execute('selection.add', { range: { system: unitAddress('A'), start: 10, end: 25 } });
+    expect(await v.execute('selection.copy-letters', {})).toBe('Copied 15 letters');
+    expect(copied.at(-1)).toBe(letters.slice(10, 25));
+  });
+
+  it('the view’s overlay and the frame’s are one: keyed by the node version and the runtimes alike', async () => {
+    const { v } = await open('fake', hostComplexSpec());
+    const opened = () => openedModel(v.spec.model.value, v.store.currentOverlay(v.spec.model.value));
+    expect(v.view.model.value).toBe(opened());
+    const before = v.view.model.value;
+    // another set of runtimes (a late extension's): another builder, the view re-keyed with it
+    v.store.setRuntimes([...v.context.runtimes]);
+    expect(v.view.model.value).not.toBe(before);
+    expect(v.view.model.value).toBe(opened());
+    // the frame's runtimes (the context's) back: one overlay again, the frame's and the view's
+    v.draw();
+    expect(v.view.model.value).toBe(opened());
   });
 });

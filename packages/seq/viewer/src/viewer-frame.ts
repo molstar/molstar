@@ -91,7 +91,8 @@ export class ViewerFrame {
   draw(): Frame | undefined {
     const viewer = this.viewer;
     if (viewer.retired) return undefined;
-    const model = viewer.spec.model.value;
+    // the model the view is resolved over (a source's complexes in it: core's _spec "Overlay", Opened sources)
+    const model = viewer.view.model.value;
     const resolved = viewer.view.resolved.value;
     if (!resolved || viewer.width <= 0) return undefined;
     const config = viewer.config;
@@ -155,7 +156,7 @@ export class ViewerFrame {
     if (headers) input.headers = headers;
     else if (input.headers) delete input.headers;
     // tier 2: the store's dynamic nodes (its version is part of the frame's key)
-    input.overlay = store.overlay(model, resolved, context);
+    input.overlay = store.overlay(viewer.spec.model.value, resolved, context);
 
     let frame = renderer.frame(input);
     let rebuilt = frame.rebuilt;

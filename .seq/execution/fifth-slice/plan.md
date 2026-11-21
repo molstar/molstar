@@ -158,7 +158,7 @@ fix point with nothing open is skipped. A finding that needs a design is a drift
       `line: 'gene'`), LX's (`bridge`, `pairs.shape`, a map as pairs data, `follow_y` a second section, a rows system
       on a grid axis, `member_order`, `member_order_y`) and RR's (`pairs.source`, `grid.source`, the `matrix` kind and
       layer type: the author, 2026-11-21, "Yes, in GC1").
-- [ ] **SC** (`briefs/sc-complex-sections.md`; strong, after GC1: resolve) **sections over a source's complex** (HD's
+- [x] **SC** (merged 2026-11-21, `2fdc44e76`) (`briefs/sc-complex-sections.md`; strong, after GC1: resolve) **sections over a source's complex** (HD's
       drift, decided 2026-11-21, `packages/seq/TODO.md`): a section `of` a dynamic complex, resolved when the source
       opens and reflowed on its `changes`; the static-model rule's exception for opened sources (seq-data-ports' matrix
       row "a section of a complex after an update: reflows"); its `_spec` and the TODO line closed.

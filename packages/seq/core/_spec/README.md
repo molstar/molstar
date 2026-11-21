@@ -1528,9 +1528,10 @@ alone.
 ## Resolve
 
 `src/resolve/` (`@molstar/seqx-core/resolve`): the static model, tier 1: pure, over a checked spec, nothing from the
-store. `resolveSpec(spec, { runtimes, config })`, or `createResolver` to keep entries and paths between specs.
-`model.ts` builds and holds the model; `model-entries.ts` makes each node's entry (a source's binding, a sequence's and
-an alignment's systems, a held pairs or grid node, an annotation), importing the model's types alone.
+store (one exception: a source's opened complexes, read by the opened model, Overlay).
+`resolveSpec(spec, { runtimes, config })`, or `createResolver` to keep entries and paths between specs. `model.ts`
+builds and holds the model; `model-entries.ts` makes each node's entry (a source's binding, a sequence's and an
+alignment's systems, a held pairs or grid node, an annotation), importing the model's types alone.
 
 ### Configuration
 
@@ -1849,12 +1850,20 @@ of it (`buildOverlay(model, reader)`; `OverlayBuilder` keeps one a node version 
   whose `of` names nothing held is `seq.resolve.node.ref`. A complex past `maxUnits` units is refused whole. A
   structure's unit names its entity's node by a string key (`(node :key "1")`), as `nodeAddress` prints it: a number
   never names a node.
+- **Opened sources** (`opened.ts`, `openedModel(model, overlay)`): the static model with the overlay's molecules,
+  complexes, units and their systems read as its own (`systems`, `molecular`; paths with a dynamic end over the
+  overlay's steps, its query forms `overlayQueryModel`'s, `opened` the sources holding a node), the model itself while
+  the overlay holds none; kept per model and overlay, so one a node version. The one exception to the static model's
+  rule: what reads it (a resolved view, a frame) sees a host's complex as a spec's. Why: a section `of` a source's
+  complex needs its units as blocks, and the overlay is already one a version (no rebuild a frame or a hover). Why not
+  in resolve: the reading path stays the spec's alone (its size bound), and only a view with such a section pays
+  (`opensComplexes`). `project` and `close` stay the spec's: a Location crosses sections by the view's links.
 
 ## Resolved view
 
 `src/view/` (`@molstar/seqx-core/view`): the public, renderer-independent form (`resolveView(model, address)`,
-`resolveViews(model)`), built over the static model alone, kept per model and view. No data, no dynamic node, no pixels,
-no target.
+`resolveViews(model)`), built over the static model alone (or the opened model, for a section of a source's complex:
+Overlay, Opened sources), kept per model and view. No data, no dynamic node, no pixels, no target.
 
 - **A view**: its address, its `layout`, its sections in order, its links, its issues.
 - **A section's layout**: its own `layout`, else its view's (`tracks`, `text`, `rings`, `grid`), with its layout's
@@ -1893,6 +1902,16 @@ no target.
   `classes`, units added later included. When every `block` child is an override the section lists every derived unit;
   otherwise the `block` children win (a writer picks units, forms and order). Why: one form switched (`block.form`) must
   not freeze the list of units (the author's decision, "override one unit").
+- **A section of a source's complex** (`of` a complex node a spec source holds, `<source>/(node :key <key>)`;
+  `openedComplex`): resolved over the opened model (Overlay, Opened sources), as a spec's complex, once the source holds
+  it; pending before (no block, no issue: an axis of no length, as an assembly before its chunk). An update reflows it
+  (a new overlay, a new opened model, the view resolved again: one a node version): a unit dropped leaves its place, an
+  override of it goes with it (over a source's complex a `block` naming no other system is an override, held or not; its
+  `of` as exact or as the source's address of the unit), one gained takes its place. An override naming a unit no opened
+  model over the spec has held (`StaticModel.heldUnits`) is `seq.view.block.unit` (a warning at the block: a mistyped
+  id); a dropped unit's stays silent. A complex its source no longer holds while it holds other nodes is
+  `seq.view.section.complex` (a warning, once, at the section). Why pending, not missing: a source opens later than the
+  spec reads, as a genome's chunk lands later. No history entry: data, not an edit of the spec.
 - **A block's form** (`form`): as written, else `whole` for a molecule or a unit of one and `residues` for a sequence or
   a unit of one; `atoms` puts its axis on the atoms system (`<unit>/(atoms)`), its `range` the atoms of the residues in
   range, and falls back to the default where there is none (the language says so). **Its label**: as written, else its
@@ -2038,8 +2057,9 @@ no target.
   in the code), the row filter (`compileRowFilter` is not exported: a consumer cannot apply a layer's query), the
   complement of a nucleotide on a reversed axis and the item key that drops a range seen in an earlier tile (both spec
   text, read again). Not drawn: a layer behind a path (the maps are public, `projectRanges`; not built).
-- `seq.view.*` (`ViewIssues`): `section.system`, `layer.type`, `layer.data`, `layer.shape`, `layer.unplaced`,
-  `follow.unplaced`, `section.pieces`, `direction.unresolved`, `direction.mixed` (info); a test checks the catalog.
+- `seq.view.*` (`ViewIssues`): `section.system`, `section.complex`, `block.unit`, `layer.type`, `layer.data`,
+  `layer.shape`, `layer.unplaced`, `follow.unplaced`, `section.pieces`, `direction.unresolved`, `direction.mixed`
+  (info); a test checks the catalog.
 
 ## Render
 

@@ -44,6 +44,8 @@ import {
   type BlockGroup,
   blockAxes,
   blockNodes,
+  openedComplex,
+  unknownOverrides,
   sectionAssemblies,
   sectionComplex,
   systemRef,
@@ -571,6 +573,8 @@ function build(model: StaticModel, view: Node, address: string, layerKinds: Laye
     if (derived) nodesOf.set(at, derived.nodes);
     if (derived && derived.total > derived.nodes.length) moreOf.set(at, derived.total - derived.nodes.length);
     const first = blocksAt(at)[0];
+    for (const id of unknownOverrides(model, s))
+      report('seq.view.block.unit', 'The block overrides no unit the source’s complex has held', `${at}/${id}`);
     // an assembly not yet open has no blocks: pending, never a missing system
     if (assemblies && !first && assemblies.some((a) => a.pending)) {
       systemOf.set(at, '');
@@ -596,6 +600,13 @@ function build(model: StaticModel, view: Node, address: string, layerKinds: Laye
         continue;
       }
       overBlocks.set(at, leader);
+      systemOf.set(at, '');
+      continue;
+    }
+    // a source's complex not held: pending while its source holds nothing, said once it holds other nodes
+    const source = first || own === undefined ? undefined : openedComplex(model, s);
+    if (source !== undefined) {
+      if (model.opened?.has(source)) report('seq.view.section.complex', 'The source holds no such complex', at);
       systemOf.set(at, '');
       continue;
     }

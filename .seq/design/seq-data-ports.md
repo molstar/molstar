@@ -166,7 +166,7 @@ A data path adds few gestures; rows it changes:
 | **an element** on a host-served unit | as the grammar | as the grammar | as the grammar | as the grammar | as the grammar | as the grammar | as the grammar | no: data | no: the host's (its edit fires `changes`) |
 | **a track or layer** over a host's values | as the grammar | — | — | — | — | — | — | `track.hide` | `field` by patch (another channel, one undo step) |
 | **the selection** across a host's update | kept by key | — | parts on removed units dropped, said once | — | Alt+Left: history as built | — | — | — | — |
-| **a section of a complex** after an update | as [molecules.md](molecules.md) | — | — | — | — | — | — | — | reflows; no history entry (data, not an edit of the spec) |
+| **a section of a complex** after an update | as [molecules.md](molecules.md) | — | — | — | — | — | — | — | reflows; no history entry (data, not an edit of the spec); built (SC: `view/_test/opened-complex.test.ts`, `host-data-stories.test.ts`) |
 
 Every other cell: no, because a data adapter carries no gesture.
 

@@ -7,12 +7,12 @@
 // `selection.copyLetters` (_spec/README.md "Behaviors", Copy): the selection's letters as a section shows them, in its
 // reading order (its display order, a reversed section's included), complemented as drawn, only the positions shown (a
 // collapsed stretch's are not), a run of consecutive display units a line; a section of several letters rows gives
-// them as FASTA lines (`>label`, then the row's letters). With `stored`, the stored letters of the selection's span on
+// them as FASTA lines (`>label`, then the row's letters); a section of blocks copies from the block the selection is on. With `stored`, the stored letters of the selection's span on
 // the section's system, in position order, as stored. The section: the cursor's, else the first the selection projects
 // onto with letters. Letters not held yet are loaded first; the text is written through the behavior's `write` (the
 // platform's clipboard by default), the command's message says how many letters ("Copied 393 letters").
 
-import { type ResolvedLayer, type ResolvedSection, projectOntoView } from '@molstar/seqx-core/view';
+import { type Axis, type ResolvedLayer, type ResolvedSection, projectOntoView } from '@molstar/seqx-core/view';
 import type { Want } from '@molstar/seqx-core/data';
 import { LettersType, shownLetters } from '@molstar/seqx-core/render';
 import type { CommandDefinition, CommandResult } from '@molstar/ui/commands/types';
@@ -53,31 +53,38 @@ export function copyLettersCommand(
   },
   write: CopyWrite = clipboardWrite,
 ): CommandDefinition<SelectContext> {
-  const { spec, view, store, selection } = deps;
+  const { view, store, selection } = deps;
   const shortcut = parseChord(deps.config.view.keys['selection.copy-letters']?.[0] ?? '');
 
-  const lettersLayers = (s: ResolvedSection) => {
-    const out: { label: string; layer: ResolvedLayer }[] = [];
-    for (const t of s.tracks)
-      for (const l of t.layers) if (l.placed && l.type === 'letters') out.push({ label: t.label, layer: l });
+  type Rows = { label: string; layer: ResolvedLayer }[];
+  const lettersOfLayers = (s: ResolvedSection, layers: (i: number) => readonly ResolvedLayer[]) => {
+    const out: Rows = [];
+    s.tracks.forEach((t, i) => {
+      for (const l of layers(i)) if (l.placed && l.type === 'letters') out.push({ label: t.label, layer: l });
+    });
     return out;
   };
+  /** What a section copies from: its axis and letters layers, or a section of blocks' each block's (its system's). */
+  const targetsOf = (s: ResolvedSection): { axis: Axis; rows: Rows }[] =>
+    s.blocks
+      ? s.blocks.map((b) => ({ axis: b.axis, rows: lettersOfLayers(s, (i) => b.layers[i] ?? []) }))
+      : [{ axis: s.axis, rows: lettersOfLayers(s, (i) => s.tracks[i].layers) }];
 
   /** The positions to copy on a section: runs in reading order, or the span in position order (`stored`). */
-  const runsOf = (s: ResolvedSection, ranges: ArrayLike<number>, stored: boolean): number[][] => {
+  const runsOf = (axis: Axis, ranges: ArrayLike<number>, stored: boolean): number[][] => {
     if (stored) {
       const span: number[] = [];
       for (let p = ranges[0]; p < ranges[ranges.length - 1]; p++) span.push(p);
       return [span];
     }
-    const total = axisTotal(s.axis);
+    const total = axisTotal(axis);
     if (total === undefined) return [];
     // the display units the selection's hull spans, walked in display order: a unit is copied when its position is
     // selected; a unit not copied ends a run
     let lo = Infinity;
     let hi = -Infinity;
     for (let i = 0; i < ranges.length; i++) {
-      const o = nearestOffsetOf(s.axis, ranges[i]);
+      const o = nearestOffsetOf(axis, ranges[i]);
       if (o === undefined) continue;
       lo = Math.min(lo, o);
       hi = Math.max(hi, o);
@@ -85,7 +92,7 @@ export function copyLettersCommand(
     const runs: number[][] = [];
     let run: number[] | undefined;
     for (let u = Math.max(0, Math.floor(lo) - 1); u <= Math.min(total - 1, Math.ceil(hi)); u++) {
-      const p = elementAt(s.axis, u);
+      const p = elementAt(axis, u);
       if (p !== undefined && inRanges(ranges, p)) {
         if (!run) runs.push((run = []));
         run.push(p);
@@ -99,15 +106,15 @@ export function copyLettersCommand(
     const shown = selection.value.value.shown;
     const resolved = view.resolved.value;
     if (!resolved || !shown.parts.length) return undefined;
-    const model = spec.model.value;
+    // the model the view resolves over: a held unit's letters (a section of a source's complex) are its
+    const model = view.model.value;
     const loc = projectOntoView(model, resolved, shown, { own: true });
     const cursor = selection.cursor.value?.section;
     const order = [...resolved.sections].sort((a, b) => (a.address === cursor ? -1 : b.address === cursor ? 1 : 0));
-    for (const s of order) {
-      const part = loc.parts.find((p) => p.system === s.axis.system);
-      const rows = lettersLayers(s);
+    for (const { axis, rows } of order.flatMap(targetsOf)) {
+      const part = loc.parts.find((p) => p.system === axis.system);
       if (!part?.ranges.length || !rows.length) continue;
-      const runs = runsOf(s, part.ranges, stored);
+      const runs = runsOf(axis, part.ranges, stored);
       if (!runs.length) continue;
       const preps = rows.map((r) => LettersType.prepare(r.layer, model));
       for (let round = 0; ; round++) {
@@ -115,7 +122,7 @@ export function copyLettersCommand(
         const texts = preps.map((prep) =>
           runs
             .map((positions) => {
-              const r = shownLetters(prep, s.axis.dir, store.store, positions, stored);
+              const r = shownLetters(prep, axis.dir, store.store, positions, stored);
               wants.push(...r.wants);
               return r.text;
             })
