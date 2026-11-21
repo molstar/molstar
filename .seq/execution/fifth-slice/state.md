@@ -53,6 +53,9 @@
 - **A Nightingale showcase as a storybook dev dependency** (the author, 2026-11-21: "yes, we can do a dev dependency
   version. maybe add a phase for this to slice 5?"): lane NS in stage 4; the npm install is approved with it; the
   fourth slice's "Nightingale dropped" stands for the packages (no dependency, no lane there).
+- **Sonnet for well-scoped lanes** (the author, 2026-11-21: "maybe use this more in general for well-scoped
+  subtasks?"): fix lanes, storybook-only lanes, pure splits and fast reviews run on a Sonnet subagent; lanes building
+  a design's core and their strong reviews keep the strong model; the orchestrator's look and checks gate both.
 
 ## Overnight: stage 0 (run by the fourth slice's loop)
 
