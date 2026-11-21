@@ -143,7 +143,7 @@ export function compose(b: SeqSpecBuilder, options: ComposedOptions = {}): Compo
             start: [run.start - 1, run.start - 1 + Observed[1]],
             end: [run.start - 1 + Observed[0], run.end],
             id: ['not observed (start)', 'not observed (end)'],
-            label: [`not observed in ${Entry}`, `not observed in ${Entry}`],
+            label: ['', ''],
           },
         })
       : undefined;
