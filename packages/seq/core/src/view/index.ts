@@ -30,10 +30,8 @@ export {
 export { type BlockGroup, blockUnits, opensComplexes } from './blocks.js';
 export {
   type BlockPlace,
-  blockAtUnit,
   blockElementAt,
   blockPositionAt,
-  blockScaleOf,
   blockSpan,
   blockUnitOf,
   placeOfUnit,

@@ -1939,11 +1939,18 @@ Overlay, Opened sources), kept per model and view. No data, no dynamic node, no 
   system of the blocks sorted by their first position with a running greatest end (a query is a binary search and a walk
   back while that end reaches the position: log n plus the answers), built once per resolved section (what LX's ribbon
   ends, RR's pair ends and RN's chords read per end). `placesInto(section, system, position, blocks, units)` writes the
-  answers into the caller's arrays and allocates nothing (`places.quick.ts`: 0 bytes a query); `placesOf` wraps it. `blockUnitOf`, `blockPositionAt`, `blockElementAt` map a block's positions and units (its
-  direction and scale); `placeOfUnit` a section unit to `{ system, position }` (on a block's edge: the next block's
-  first as a start, the one before's last as an end) and `unitOfPlace` back (a position no block shows: the nearest
-  shown edge on its system), so a viewport, a history step and a saved view carry positions, never units.
-  `sameBlocks(a, b)`: equal block lists (systems, ranges, directions, scales in order), what follows by identity.
+  answers into the caller's arrays and allocates nothing (`places.quick.ts`: 0 bytes a query); `placesOf` wraps it.
+  `blockUnitOf`, `blockPositionAt`, `blockElementAt` map a block's positions and units (its direction and scale);
+  `placeOfUnit` a section unit to `{ system, position }` (on a block's edge: the next block's first as a start, the one
+  before's last as an end) and `unitOfPlace` back (a position no block shows: the nearest shown edge on its system), so
+  a viewport, a history step and a saved view carry positions, never units. `sameBlocks(a, b)`: equal block lists
+  (systems, ranges, directions, scales in order), what follows by identity. Why exported from `/view`: LX's ribbon ends,
+  RR's pair ends and RN's chords place by `placesInto`/`placesOf` and `blockUnitOf`; GC3's viewer reads
+  `blockElementAt`, `blockPositionAt`, `blockSpan` (a double-click fits a block, the rail's hover names
+  `{system, position}`) and `placeOfUnit`/`unitOfPlace` (a history step, a saved view); `BlockGroup` is the type of a
+  resolved section's `groups`; `sameBlocks` the follow rule a host's linked views check. Nothing else of the genome
+  parts is public (no `withGenome`, `genomeBlocks()`, `angleOf`, `blockAtUnit`, `blockScaleOf` or `view/places` subpath:
+  the drawing is not split lazy, only the assembly parsing is).
 - **Blocks**: each its axis (its system, its `range`, the section's direction times its own), its form, its first
   display unit in the section's (`offset`: 0 in a stack), its label, the blocks it stands for (`members`) and their
   systems (`systems`: a merged copy's unit, what an end on a copy is drawn on), its copy group (`copy`, internal: the
@@ -2901,14 +2908,14 @@ numbers): a window move allocates nothing once warm.
   width), as a grid's row under it, so the two align at any dpr; a block left none wide has no strip (nothing of it
   drawn or hit; a hit beside it names the block next to it). The row's x of a unit and unit of an x read each block's
   own px per unit as laid (its snapped width over its units), what its strip's transform reads: on the row's scale a
-  block of a few px in a run read past its end. A chip stands where its block does (a ligand after the
-  chains). The chips in view take their px from the width as the gaps do, so the row's x is not linear over a chip
-  (EC-102); the window, the rail and the navigators read the section's units, a chip one unit, as across a gap. The row
-  is continuous in its window: a chip partly in view takes px by the part of it in view, a gap by its boundary's
-  distance to the nearer edge (none at the edge, whole 12 px in), so a pan moves nothing by a jump. **Pan and zoom go
-  through the row's inverse** (`rowPan`, `rowZoom`, by bisection on the window's start): a pan brings the unit `dx` px
-  from a reference point (the middle less half the move, moved past a gap) to it, so what is under the pointer moves
-  with it while nothing enters or leaves; a zoom keeps its anchor's px as chips and gaps enter or leave. Why: a linear
+  block of a few px in a run read past its end. A chip stands where its block does (a ligand after the chains). The
+  chips in view take their px from the width as the gaps do, so the row's x is not linear over a chip (EC-102); the
+  window, the rail and the navigators read the section's units, a chip one unit, as across a gap. The row is continuous
+  in its window: a chip partly in view takes px by the part of it in view, a gap by its boundary's distance to the
+  nearer edge (none at the edge, whole 12 px in), so a pan moves nothing by a jump. **Pan and zoom go through the row's
+  inverse** (`rowPan`, `rowZoom`, by bisection on the window's start): a pan brings the unit `dx` px from a reference
+  point (the middle less half the move, moved past a gap) to it, so what is under the pointer moves with it while
+  nothing enters or leaves; a zoom keeps its anchor's px as chips and gaps enter or leave. Why: a linear
   `dx · span / width` jumps over a chip.
 - **A stack**: the chips share one row after the other blocks', side by side from the first position's x, whatever the
   window. A row's ground and its track labels are drawn once, at its first strip (a later chip's would paint over the
