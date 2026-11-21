@@ -68,6 +68,22 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   column's edge (a stroke centred on x = 0). Inset the tree by half a stroke (or snap strokes inside the column); a twin
   test that every vertical's stroke lies inside the tree column's box.
 
+- **A follower's rail turns a window over the cyclic origin into its complement** (the author, 2026-11-21, Files ›
+  Plasmid GFF3, dragging the detail's rail: the bar leaves the pointer, grows to most of the axis, then jumps to the
+  start; "maybe a symptom of a bigger problem"). `core/src/render/rail.ts:186`: a follower's window is read back from
+  its two end positions and ordered with `min`/`max`; when the window crosses pUC19c's origin (end position < start
+  position), that gives the rest of the ring (e.g. 60–2600) instead of 2600–60. The non-follower branch just below
+  already keeps `end > total` over a cyclic origin and the rail already draws such a window as two pieces
+  (`rail.ts:34`, `window.ts:43`); the follower branch should do the same (the end past the total when it runs over the
+  origin), and a drag across the end wrap the bar through its two pieces, the pointer's offset kept modulo the total.
+  **The bigger problem**: ordering two ends with `min`/`max` is wrong on any cyclic axis; audit every site that does it
+  on positions or units that can be cyclic: `navigator.ts:517`, `:1163`, `navigator-parts.ts:255`, `:349`,
+  `export.ts:400–405`, `items.ts:711`, `viewer/src/input.ts:1079` (a selection or export across the origin likely
+  inverts the same way), fixing each through one shared helper (a cyclic interval from its start and end, the core
+  `util` rule) and a twin test per site with a window across pUC19c's origin. Also in the same screenshot: a straight
+  line from the ring's centre through the follower's window wedge, and the wedge wider than the detail's span; check
+  with the fix.
+
 - **The Promoters track is empty** (the author, 2026-11-21, Files › Plasmid GFF3: "feels weird the promoters track is
   empty"): `files/plasmid-gff.ts`'s `GffTracks` declares a `promoter` track (on the ring and the detail), but the
   fixture `plasmid/pUC19c-rotated-features.gff3` has no promoter row: it is generated (`record.ts`, `gff3Text`) from
