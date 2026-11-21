@@ -24,12 +24,15 @@
     "@molstar/ui": "workspace:*"
   },
   "devDependencies": {
+    "@molstar/mvs-builder": "workspace:*",
+    "@molstar/test-harness": "workspace:*",
+    "@nightingale-elements/nightingale-linegraph-track": "5.11.0",
+    "@nightingale-elements/nightingale-sequence": "5.11.0",
+    "@nightingale-elements/nightingale-track": "5.11.0",
     "@storybook/addon-docs": "catalog:",
     "@storybook/web-components-vite": "catalog:",
     "@types/node": "catalog:",
     "typescript": "catalog:",
-    "vitest": "catalog:",
-    "@molstar/test-harness": "workspace:*",
-    "@molstar/mvs-builder": "workspace:*"
+    "vitest": "catalog:"
   }
 }

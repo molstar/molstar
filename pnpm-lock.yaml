@@ -3428,6 +3428,15 @@ importers:
       '@molstar/test-harness':
         specifier: workspace:*
         version: link:../../../test-harness
+      '@nightingale-elements/nightingale-linegraph-track':
+        specifier: 5.11.0
+        version: 5.11.0
+      '@nightingale-elements/nightingale-sequence':
+        specifier: 5.11.0
+        version: 5.11.0
+      '@nightingale-elements/nightingale-track':
+        specifier: 5.11.0
+        version: 5.11.0
       '@storybook/addon-docs':
         specifier: 'catalog:'
         version: 10.6.5(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(storybook@10.6.5(@types/react@18.3.31)(prettier@3.9.9)(react@18.3.1))
@@ -4954,6 +4963,9 @@ packages:
 
   '@nightingale-elements/nightingale-track-canvas@5.11.1':
     resolution: {integrity: sha512-9DGbdTeBH9Vfd+fAVZobCEYXbyyzOAL0Q3fDePj81uVahURLy5O6/JG9FHjiueFWOvv6YAW+HgsfUX2C9zXWZA==}
+
+  '@nightingale-elements/nightingale-track@5.11.0':
+    resolution: {integrity: sha512-J0VrYRxE8azcymT1LQVZGRCPnTlZGGF8+mD6VCmYj4ftRyzj9E2JXtaECaH9BCAGdOfiOamj3H1fbtWIpyT0kQ==}
 
   '@nightingale-elements/nightingale-track@5.11.1':
     resolution: {integrity: sha512-tEJjOfvJmsicaT3cdtWQUJC2b0EBuCIfNqdlFHYGx6toohwoaKN0ww1X9rg+ypkZ6ExSuTAcLemego9pSKFgSw==}
@@ -9475,6 +9487,12 @@ snapshots:
       '@nightingale-elements/nightingale-new-core': 5.11.0
       '@nightingale-elements/nightingale-track': 5.11.1
       d3: 7.9.0
+
+  '@nightingale-elements/nightingale-track@5.11.0':
+    dependencies:
+      '@nightingale-elements/nightingale-new-core': 5.11.0
+      d3: 7.9.0
+      lodash-es: 4.18.1
 
   '@nightingale-elements/nightingale-track@5.11.1':
     dependencies:
