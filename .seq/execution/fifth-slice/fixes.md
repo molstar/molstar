@@ -24,6 +24,23 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   score box, these bands) are checked by it and closed with it. A strong-model lane (it is a rule across layer types,
   not a closed list), its brief naming the items it closes.
 
+- **No track drawn as an empty well, and a sweep that holds it** (the author, 2026-11-21: "Yes, group them", after
+  the Promoters track, the stacked ATP block's tracks and the plasmid's strip each showed a blank band). Three causes,
+  one symptom: (a) the data has nothing for a declared track (Promoters: a fixture gap, the story's fault); (b) a
+  layout repeats tracks for a block or section that has no items there (stacked blocks: the library's); (c) a
+  navigator or strip declared with no content (the plasmid's strip: the library's default). **The rule** (into
+  ux-foundations.md and composition.md, with navigators.md for strips): a track with no items in what it covers never
+  draws a full-height blank well. By default it collapses to a one-line row naming it with a quiet "no items" (so a
+  host's "none found" stays visible); a stacked block's track with nothing for that block is left out of that block;
+  a strip with no `content` draws its system's ticks. Configurable as the host's (`track.empty: 'note' | 'collapse' |
+  'keep'`, `blocks.emptyTracks`), the defaults above. A track still waiting for its source is pending, never empty.
+  **The sweep**: one test (medium lane, canvas and SVG) over every story's settled spec: every track, block row and
+  strip draws at least one mark besides its chrome, or is collapsed by the rule; a story that means an empty track
+  says so (`expectEmpty`), so a fixture gap like Promoters fails the sweep. The three items below (the Promoters
+  track, the stacked block, the plasmid's strip) are its instances, closed with it; their story fixes (re-record the
+  plasmid's GFF3 with promoters or a Sites track, place the strip by the detail) go in the same lane. A strong-model
+  lane, like the hover contract.
+
 - **The hover card: placement, wrapping, and the density row's missing highlight** (the highlight part closed by the hover contract above; the author, 2026-11-21, Files ›
   UniProt entry: "hovering the bottom 'regions' … is missing a highlight", "the hover placement is quite
   inconsistent"):
@@ -122,7 +139,7 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   drawn once; a twin test (canvas and SVG) that every selection piece's box lies inside its cell's box, at both a block
   boundary and the grid's outer edge. Not measured in the browser yet: the fix lane measures first.
 
-- **The plasmid's strip is an empty bar at the top** (the author, 2026-11-21, Examples › Plasmid › Ring › Detail with
+- **The plasmid's strip is an empty bar at the top** (an instance of the empty-well rule above; the author, 2026-11-21, Examples › Plasmid › Ring › Detail with
   a strip: "feels quite weird to have the empty strip on the top"). `plasmidStrip` (`examples/src/navigators.ts:218`)
   declares `stripNavigator('/views/main/detail', { system })` with no `content`, so the strip draws only its window
   (here nearly the whole construct) over a blank well, no ticks or features; and it sits at the frame's top, above the
@@ -185,7 +202,7 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   residue, copies merged like the rest: an arc an ATP–residue contact of either copy), the story's text naming both
   kinds, and a story test that the ATP block has arcs.
 
-- **A stacked block repeats tracks that hold nothing for it** (the author, 2026-11-21, Examples › Complex › Blocks ›
+- **A stacked block repeats tracks that hold nothing for it** (an instance of the empty-well rule above; the author, 2026-11-21, Examples › Complex › Blocks ›
   Stacked: "another view with empty tracks"): with `arrange: 'stack'` each block is a row of every track, so the ATP
   block (`complex/blocks.ts:69`, a one-position block drawn as a chip) gets empty Features, Interface and Secondary
   bands, three tall blank wells above one chip; its row also has no heading where the polymers have "CDK2 (A) ×2".
@@ -196,7 +213,7 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   with the Promoters item just below: the same family (a declared track drawn empty), here a library rule, there a
   fixture.
 
-- **The Promoters track is empty** (the author, 2026-11-21, Files › Plasmid GFF3: "feels weird the promoters track is
+- **The Promoters track is empty** (an instance of the empty-well rule above; the author, 2026-11-21, Files › Plasmid GFF3: "feels weird the promoters track is
   empty"): `files/plasmid-gff.ts`'s `GffTracks` declares a `promoter` track (on the ring and the detail), but the
   fixture `plasmid/pUC19c-rotated-features.gff3` has no promoter row: it is generated (`record.ts`, `gff3Text`) from
   `plasmid/derive.ts`, whose features are all found in the sequence (examples.md, Plasmid: none taken from another
