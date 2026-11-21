@@ -68,6 +68,16 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   column's edge (a stroke centred on x = 0). Inset the tree by half a stroke (or snap strokes inside the column); a twin
   test that every vertical's stroke lies inside the tree column's box.
 
+- **The Promoters track is empty** (the author, 2026-11-21, Files › Plasmid GFF3: "feels weird the promoters track is
+  empty"): `files/plasmid-gff.ts`'s `GffTracks` declares a `promoter` track (on the ring and the detail), but the
+  fixture `plasmid/pUC19c-rotated-features.gff3` has no promoter row: it is generated (`record.ts`, `gff3Text`) from
+  `plasmid/derive.ts`, whose features are all found in the sequence (examples.md, Plasmid: none taken from another
+  record), and no promoter is derived. Also the file's 14 `restriction_enzyme_recognition_site` rows have no track.
+  Either derive the two promoters (lac: its -35/-10 boxes upstream of lacZα; AmpR's upstream of bla, across the origin
+  like bla) and keep the track, or drop the track and add a Sites track for the rows the file holds (the better
+  showcase of a type with many short items); re-record the fixture, and a story test that every declared track of the
+  story has at least one item.
+
 - **The 3,000-contig story could be faster** (the author, 2026-11-21, on packages-seq's build: "better perf ... although
   still could be faster"): my measure, 40 hover steps along the row each drawn within two frames (about 33 ms, no
   drops). Take it at M5: profile hover and pan on three-thousand-contigs (ring and row), find the per-frame cost, and
