@@ -1128,6 +1128,31 @@ by fuzz tests (mutated text read without a throw).
 - **Performance**: a region at the zoom level that fits, from a local file, decoded under 50 ms (heavy, `itWithin`).
   Size: its own row, under 30 kB, in no bundle that does not list it.
 
+### Genome runtimes' internals
+
+`runtimes/internal/` (not published: `"./runtimes/internal/*": null`): what the BED, GFF and VCF runtimes share, over
+`@molstar/io`'s BGZF and tabix (io's `_spec/bgzf.md`; the allowlist names `common/bgzf` and `common/tabix` for these
+runtimes only).
+
+- **Bytes to text** (`text.ts`, `textBytes`): plain, gzip or BGZF told by the magic, never the extension; bounded by
+  `maxBytes` before and after inflating (BGZF's ISIZEs summed, gzip's declared size, both before the buffer is
+  allocated). Gzip is one member through the platform's decoder (a damaged file `malformed`, not logged), core's
+  `ungzip` where it has none; several plain members are `malformed` (bgzip the file). `decodeText`: UTF-8, and whether
+  U+FFFD is in it (said once a file). A result, never a throw for a file's content.
+- **Lines read whole** (`lines.ts`, `wholeLines`): lines as byte spans (`\n`, a `\r` before it dropped, blank lines left
+  out) with 1-based numbers; the header lines at the top (`meta`, the first `skip`) apart. Counted before the spans are
+  allocated: a line over `maxLineBytes` is `malformed`, more than `maxLines` (`limits.maxRows`) `too-large`.
+- **Lines by region** (`openIndexedLines(uri, indexUri, ctx)`): the file by range (`openRange`; a host without it reads
+  it whole within `limits.maxBytes`), the index through `readBytes`, the EOF block checked once (`eof`: false, the
+  runtime says the file may be cut short and reads it). `region(name, start, end)` gives io's lines with their extents,
+  or a failure kind: io's `malformed` and `too-large`, a range read's `failed`; an abort rejects with an `AbortError`.
+  `cost` is io's `regionBytes` (a tile's read cost, nothing read). Opening fails with `SourceOpenError`:
+  `seq.source.unreadable` (a file or index not read), `seq.source.malformed` (an index that is not one),
+  `seq.source.too_large` (past a bound). Why one line source: a format has one line parser for both reads, so "a region
+  read equals the whole read clipped" is a property of the lines.
+- **Tests**: on files from a test-only writer (`runtimes/_test/genome-writer.ts`: BGZF blocks, TBI and CSI as htslib
+  builds them, BED and VCF generated on core's `PCG`), io's tests having its twin.
+
 ### mmCIF
 
 `runtimes/mmcif.ts` (`@molstar/seqx-core/runtimes/mmcif`, opt in: `MmcifRuntime`, `mmcifRuntime`, `openMmcif`,
