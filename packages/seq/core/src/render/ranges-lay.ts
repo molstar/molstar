@@ -9,6 +9,7 @@ import { type ItemExtents, type ItemsBase, type ItemsPrep, newItemsBase } from '
 import type { Channel } from '@molstar/seqx-core/theme/index';
 import { Extents, type LayerChannels, RowDatum } from './channels.js';
 import { LaneIndex, StickyLanes } from './lanes.js';
+import { type GeneScratch, newGeneScratch } from './ranges-gene.js';
 import type { LayoutContext } from './layer-type.js';
 
 // What a ranges layer keeps frame to frame (_spec/README.md "Render", Layer types): its prepared form, its items in
@@ -16,11 +17,23 @@ import type { LayoutContext } from './layer-type.js';
 
 /**
  * How an item is drawn: a block (0, the default), or a line (`line` param): solid, dashed, dotted, wavy, double, a box
- * or a highlight. The dash and the wave are anchored to the content: they start at the item's own start (a piece's),
+ * a highlight, or a gene model (`gene`: `ranges-gene.ts`). The dash and the wave are anchored to the content: they start at the item's own start (a piece's),
  * so they move with it when the view pans. A style that is none of these is drawn solid and said once.
  */
-export const LineStyles = ['blocks', 'solid', 'dashed', 'dotted', 'wavy', 'double', 'box', 'highlight'] as const;
+export const LineStyles = [
+  'blocks',
+  'solid',
+  'dashed',
+  'dotted',
+  'wavy',
+  'double',
+  'box',
+  'highlight',
+  'gene',
+] as const;
 export const Solid = 1;
+/** The gene line's index in `LineStyles`. */
+export const Gene = 8;
 
 export interface RangesPrep extends ItemsPrep {
   /** The rows of every item when the data is inline (an item's ends are known), else undefined: no arrowhead. */
@@ -89,6 +102,8 @@ export interface RangesLay extends ItemsBase {
   /** Each mark's arrowheads (1: tip on the left, 2: on the right) and, for a line, where its content starts, px. */
   mtip: Uint8Array;
   manchor: Float64Array;
+  /** Each mark's thinness (the gene line: 1 a thin box, outside the item's thick part). */
+  mthin: Uint8Array;
   /**
    * The hit marks (`hn` of them): each item's own marks, before `bars` merges a lane's runs (a run of several items is
    * drawn as one mark, hit and outlined by the item under the pointer); the drawn marks at `items`. The arrays are the
@@ -152,9 +167,15 @@ export interface RangesLay extends ItemsBase {
   cx1: Float32Array;
   clane: Int32Array;
   citem: Int32Array;
+  /** Each connector's chevrons (the gene line's strand on the screen): 0 none, 1 pointing right, 2 left. */
+  cdir: Uint8Array;
+  /** Where each gene line's hairline starts on the screen, unclipped: its chevrons run from it, so a pan moves them. */
+  canchor: Float64Array;
   cwidth: number;
   cink: number;
   calpha: number;
+  /** The gene line's scratch: the items' rows grouped, their extents, the thick part's columns. */
+  gene: GeneScratch;
   /** Scratch: an item's leftmost mark's x, the candidates by priority. */
   left: Float32Array;
   right: Float32Array;
@@ -203,6 +224,7 @@ export function newLay(ctx: LayoutContext, prep: RangesPrep): RangesLay {
     mink: new Uint32Array(64),
     mtip: new Uint8Array(64),
     manchor: new Float64Array(64),
+    mthin: new Uint8Array(64),
     style: 0,
     arrow: 0,
     first: new Uint8Array(64),
@@ -242,6 +264,8 @@ export function newLay(ctx: LayoutContext, prep: RangesPrep): RangesLay {
     cx1: new Float32Array(8),
     clane: new Int32Array(8),
     citem: new Int32Array(8),
+    cdir: new Uint8Array(8),
+    canchor: new Float64Array(8),
     cwidth: 1,
     cink: 0,
     calpha: 0,
@@ -251,6 +275,7 @@ export function newLay(ctx: LayoutContext, prep: RangesPrep): RangesLay {
     lw: new Float32Array(16),
     lwant: new Float32Array(16),
     litem: new Int32Array(16),
+    gene: newGeneScratch(),
     left: new Float32Array(64),
     right: new Float32Array(64),
     cand: new Int32Array(64),

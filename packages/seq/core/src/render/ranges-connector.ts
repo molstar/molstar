@@ -58,11 +58,14 @@ export function connect(
       lay.cx1 = grown(lay.cx1, j + 1);
       lay.clane = grown(lay.clane, j + 1);
       lay.citem = grown(lay.citem, j + 1);
+      lay.cdir = grown(lay.cdir, j + 1);
+      lay.canchor = grown(lay.canchor, j + 1);
     }
     lay.cx0[j] = x0;
     lay.cx1[j] = x1;
     lay.clane[j] = lane;
     lay.citem[j] = item;
+    lay.cdir[j] = 0;
   }
 }
 
@@ -72,15 +75,45 @@ export function connectorAt(lay: RangesLay, lane: number, x: number): number {
   return -1;
 }
 
-/** The data pass: each connector a line `cwidth` thick at its lane's middle, on the device grid, in its item's colour. */
+/** Chevrons along a hairline: one every this many CSS px, this far from its ends. */
+const ChevronStep = 12;
+/** A chevron's three points, written per chevron (kept). */
+const Chevron = new Float64Array(6);
+
+/**
+ * The data pass: each connector a line `cwidth` thick at its lane's middle, on the device grid, in its item's colour;
+ * a gene line's with chevrons pointing along its strand (`cdir`), where the lane is tall enough to read them.
+ */
 export function drawConnectors(lay: RangesLay, out: PassWriter): void {
   const dpr = lay.axis.dpr;
   const w = Math.max(lay.cwidth, 1 / dpr);
+  const half = Math.min(3, lay.laneHeight / 4);
+  const a = out.args;
   for (let j = 0; j < lay.cn; j++) {
     const base = lay.cink !== 0 ? lay.cink : lay.fills[lay.citem[j]];
     const color = ((base & 0xffffff00) | Math.round((base & 255) * lay.calpha)) >>> 0;
     const y = Math.round((lay.laneY + lay.clane[j] * lay.laneHeight + (lay.laneHeight - w) / 2) * dpr) / dpr;
     out.fill(lay.cx0[j], y, lay.cx1[j] - lay.cx0[j], w, color);
+    const dir = lay.cdir[j];
+    if (dir === 0 || half < 1.5) continue;
+    const cy = y + w / 2;
+    // anchored to the hairline's content (its unclipped left end on the screen): a chevron every step, inside the line
+    const tip = dir === 1 ? half : -half;
+    const from = lay.canchor[j] + ChevronStep / 2;
+    const skip = Math.max(0, Math.ceil((lay.cx0[j] + half - from) / ChevronStep));
+    for (let x = from + skip * ChevronStep; x + half <= lay.cx1[j] - half; x += ChevronStep) {
+      Chevron[0] = x - tip / 2;
+      Chevron[1] = cy - half;
+      Chevron[2] = x + tip / 2;
+      Chevron[3] = cy;
+      Chevron[4] = x - tip / 2;
+      Chevron[5] = cy + half;
+      a[4] = 0;
+      a[5] = color;
+      a[6] = 1;
+      a[7] = 0;
+      out.pathArgs(Chevron, 3, false);
+    }
   }
 }
 

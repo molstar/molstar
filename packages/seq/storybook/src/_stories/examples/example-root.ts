@@ -15,6 +15,7 @@ import { defineElements, onCleanup } from '@molstar/ui/dom';
 import { UiElement } from '@molstar/ui/elements/ui-element';
 import { followSvg } from '../follow-svg.js';
 import { statusIssues } from './status-issues.js';
+import { withViewRegistry } from './view-registry.js';
 import { fileBytes, filesOf, fileHead, printSources } from '../features/files/file-head.js';
 
 // A story of an example view (examples-and-stories.md): the view's `build()` shown by a viewer composed from the default
@@ -32,6 +33,15 @@ type ExampleModel = ExampleView & {
   readonly stacked?: boolean;
   /** What the story does once the view is placed (a move to the region it opens on). */
   readonly opening?: (viewer: SeqViewer) => unknown;
+  /**
+   * A find box above the view (a name typed, a Find button): `run` finds the text and says what it found and where the
+   * view went, printed under the box; `initial` is found once the view is placed.
+   */
+  readonly find?: {
+    readonly title: string;
+    readonly initial: string;
+    readonly run: (viewer: SeqViewer, text: string) => Promise<string>;
+  };
   /** The viewer's config items (`[item, value]` pairs) over the default spec's. */
   readonly config?: SeqViewerSpec['config'];
   /** Behaviors besides the default spec's (a host's choice the story shows on: `links.hover`). */
@@ -78,7 +88,29 @@ class ExampleRoot extends UiElement<ExampleModel> {
     const pair = document.createElement('div');
     pair.style.cssText = `display: grid; grid-template-columns: ${view.stacked ? '1fr' : 'repeat(auto-fit, minmax(420px, 1fr))'}; gap: var(--msui-space-5);`;
     pair.append(section('Canvas', canvasHost), section('SVG', svgHost));
-    root.append(summary, pair, status);
+    const found = document.createElement('pre');
+    const input = document.createElement('input');
+    const button = document.createElement('button');
+    if (view.find) {
+      const box = document.createElement('div');
+      box.style.cssText = 'display: flex; gap: var(--msui-space-2); align-items: center;';
+      input.type = 'search';
+      input.value = view.find.initial;
+      input.setAttribute('aria-label', view.find.title);
+      input.style.cssText =
+        'font: inherit; padding: var(--msui-space-1) var(--msui-space-2); min-width: 16ch; color: var(--msui-text); background: var(--msui-bg); border: 1px solid var(--msui-line); border-radius: 4px;';
+      button.textContent = 'Find';
+      button.style.cssText =
+        'font: inherit; padding: var(--msui-space-1) var(--msui-space-3); color: var(--msui-text); background: var(--msui-surface, transparent); border: 1px solid var(--msui-line); border-radius: 4px; cursor: pointer;';
+      found.style.cssText =
+        'margin: 0; padding: var(--msui-space-3); overflow: auto; font: var(--msui-text-xs) / var(--msui-leading-xs) var(--msui-font-mono); background: var(--msui-surface, transparent); border: 1px solid var(--msui-line);';
+      found.textContent = 'Opening the file…';
+      box.append(input, button);
+      const wrap = document.createElement('div');
+      wrap.style.cssText = Box;
+      wrap.append(box, found);
+      root.append(summary, section(view.find.title, wrap), pair, status);
+    } else root.append(summary, pair, status);
     if (view.files) root.append(...fileSections(view.build()));
     root.append(section('Spec', printed));
 
@@ -89,7 +121,7 @@ class ExampleRoot extends UiElement<ExampleModel> {
       {
         ...base,
         ui: { ...base.ui, toolbar: toolbarWithHiddenTracks },
-        registry: [...(base.registry ?? []), ...extra],
+        registry: withViewRegistry(base.registry ?? [], extra),
         ...(view.config ? { config: [...(base.config ?? []), ...view.config] } : {}),
         ...(view.behaviors ? { behaviors: [...base.behaviors, ...view.behaviors] } : {}),
       },
@@ -119,10 +151,22 @@ class ExampleRoot extends UiElement<ExampleModel> {
       },
     });
     onCleanup(() => svg.dispose());
+    const find = async () => {
+      if (!view.find) return;
+      found.textContent = `Finding “${input.value}”…`;
+      found.textContent = await view.find.run(viewer, input.value).catch((e) => `${e?.message ?? e}`);
+    };
+    if (view.find) {
+      button.onclick = () => void find();
+      input.onkeydown = (e) => {
+        if (e.key === 'Enter') void find();
+      };
+    }
     void viewer
       .load(spec)
       .then(() => viewer.settle())
       .then(() => view.opening?.(viewer))
+      .then(find)
       .then(() => svg.draw());
     return root;
   }
@@ -176,6 +220,8 @@ export function exampleStory(
     readonly sourceIssues?: boolean;
     readonly stacked?: boolean;
     readonly opening?: (viewer: SeqViewer) => unknown;
+    readonly find?: ExampleModel['find'];
+    readonly summary?: string;
     readonly config?: SeqViewerSpec['config'];
     readonly behaviors?: SeqViewerSpec['behaviors'];
   } = {},
@@ -187,6 +233,8 @@ export function exampleStory(
     options.sourceIssues ||
     options.stacked ||
     options.opening ||
+    options.find ||
+    options.summary ||
     options.config ||
     options.behaviors
       ? { ...view, ...options }

@@ -33,7 +33,7 @@ export type ChannelKind = (typeof ThemeChannels)[ChannelName];
 
 /** The words a word channel takes. */
 export const ChannelWords: Readonly<Record<'line' | 'arrow' | 'shape', readonly string[]>> = {
-  line: ['solid', 'dashed', 'dotted', 'wavy', 'double', 'box', 'highlight'],
+  line: ['solid', 'dashed', 'dotted', 'wavy', 'double', 'box', 'highlight', 'gene'],
   arrow: ['none', 'end', 'start', 'both'],
   shape: ['circle', 'square', 'triangle', 'diamond'],
 };

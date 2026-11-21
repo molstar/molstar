@@ -58,6 +58,8 @@ const LayoutBound: Record<string, number> = {
   'p53 on its gene, coding': 240_000,
   // 272 KB (313 KB run first): the breaks and pieces in view, 1,000 of each
   'reversed, 150,000 pieces': 470_000,
+  // 121.6 KB (pan; zoom 110.4 KB, 2026-11-21): the transcripts in view, their lanes by item, boxes and hairlines
+  'gene models (60 kb)': 182_000,
   // 27.9 KB
   '3M letters (120 positions)': 48_000,
   // 37.3 KB

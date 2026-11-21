@@ -54,6 +54,9 @@ describe('the fixtures', () => {
 const Known: Readonly<Record<string, readonly string[]>> = {
   // the misread BED's faults, said as the story shows them
   'genomes/bed-misread': ['seq.source.bed.line', 'seq.source.bed.cells', 'seq.source.bed.whitespace'],
+  // the misread GFF3's faults, and the real slices' chromosome line read as its description
+  'genomes/gff-misread': ['seq.source.gff.line', 'seq.source.gff.parent', 'seq.source.gff.type'],
+  'genomes/gff-tp53': ['seq.source.gff.region'],
 };
 
 /** The views whose drawing takes over 40 ms: `dataset/id`. */

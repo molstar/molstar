@@ -67,6 +67,8 @@ const SourceKeys = [
   'base',
   'ends',
   'types',
+  // a GFF's items (transcripts, genes or the file's lines): the format runtime reads it
+  'features',
 ] as const;
 
 /** A source's entry from its params, bound to the first runtime that reads its format; none is an issue. */

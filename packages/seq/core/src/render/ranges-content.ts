@@ -68,6 +68,16 @@ function contentRows(prep: RangesPrep): QueryItem[] | undefined {
   return out;
 }
 
+/** An item a lane (the gene line's): each key's rows as one row over their hull. */
+function itemHulls(rows: readonly QueryItem[]): QueryItem[] {
+  const hulls = new Map<string | number, QueryItem>();
+  for (const r of rows) {
+    const h = hulls.get(r.key);
+    hulls.set(r.key, h ? { ...h, start: Math.min(h.start, r.start), end: Math.max(h.end, r.end) } : r);
+  }
+  return [...hulls.values()];
+}
+
 /** The lanes first-fit by start needs (as few as the most rows over one position: intervals pack greedily). */
 function packedLanes(rows: readonly QueryItem[]): number {
   const order = rows.map((_, k) => k).sort((a, b) => rows[a].start - rows[b].start);
@@ -121,10 +131,12 @@ export function rangesContent(prep: RangesPrep, ctx: ContentContext): LayerConte
   if (lanes === undefined) {
     rows = contentRows(prep);
     if (!rows) return undefined;
-    lanes = packedLanes(rows);
+    // the gene line lays an item's pieces in one lane, by its extent
+    lanes = packedLanes(prep.line === 'gene' ? itemHulls(rows) : rows);
     Lanes.set(prep, lanes);
   }
-  if (!ctx.labelLane || !(ctx.fit > 0)) return lanesOnly(prep, lanes);
+  // a gene model's label is beside it in its own lane (`ranges-gene.ts`): no label lane
+  if (!ctx.labelLane || !(ctx.fit > 0) || prep.line === 'gene') return lanesOnly(prep, lanes);
   const font = ctx.config.itemFont;
   const kept = Beside.get(prep);
   // kept while the fit, the font and the metrics are (a web font arriving measures again)

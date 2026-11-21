@@ -28,7 +28,9 @@ import { channelForms, channelLegends } from './channels.js';
 import { layerSource, toSection } from './layer-data.js';
 import type { Emphasis, Hit, LayerType, LayoutContext, Overlay, StoreReader } from './layer-type.js';
 import { squircleRadius } from './squircle.js';
+import { geneGroups, geneLabelAt, geneMarks, placeGeneLabels } from './ranges-gene.js';
 import {
+  Gene,
   itemPiece,
   laneId,
   LineStyles,
@@ -67,7 +69,7 @@ const ArrowMinPx = 4;
  * The next mark's index, its arrays grown to hold it and its label, radius and ink cleared; the caller writes its extent,
  * lane, item and ends (a number passed to a call that is not inlined is boxed: an allocation a mark).
  */
-function nextMark(lay: RangesLay): number {
+export function nextMark(lay: RangesLay): number {
   const j = lay.m++;
   if (j >= lay.mx0.length) {
     lay.mx0 = grown(lay.mx0, j + 1);
@@ -81,7 +83,9 @@ function nextMark(lay: RangesLay): number {
     lay.mink = grown(lay.mink, j + 1);
     lay.mtip = grown(lay.mtip, j + 1);
     lay.manchor = grown(lay.manchor, j + 1);
+    lay.mthin = grown(lay.mthin, j + 1);
   }
+  lay.mthin[j] = 0;
   lay.mlabel[j] = 0;
   lay.mradius[j] = 0;
   lay.mink[j] = 0;
@@ -212,18 +216,39 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
     // at the density step a list of few rows (at most one a CSS pixel of the band) stays items: each its own mark, so
     // wide ones keep their labels, hits and arrows (a chromosome's bands at its fit); more rows are the density strip
     const dense = step === 'density' && n > box.width;
+    // the gene line lays an item's rows in one lane, by its whole extent (`ranges-gene.ts`)
+    const gene = lay.style === Gene;
     if (!dense && !densities.length) {
       lay.order = grown(lay.order, n);
-      const order = lay.order.subarray(0, n);
-      for (let i = 0; i < n; i++) order[i] = i;
-      const starts = lay.starts;
-      sortArrayRange(order, 0, n, (o, a, b) => starts[o[a]] - starts[o[b]] || o[a] - o[b]);
+      let count = n;
+      if (gene) {
+        // a label's room before each item: positions a CSS px on the data's system (the path's step, `ratio`)
+        const perPx = ((axis.u1 - axis.u0) * src.ratio) / Math.max(1, box.width);
+        const text = ctx.text;
+        const font = config.itemFont;
+        count = geneGroups(
+          lay,
+          n,
+          lay.order,
+          perPx,
+          lay.laneHeight >= 10 && (ctx.labels === undefined || ctx.labels === 'inside')
+            ? (l) => text.measure(font, l)
+            : undefined,
+        );
+      } else for (let i = 0; i < n; i++) lay.order[i] = i;
+      const order = lay.order.subarray(0, count);
+      const starts: ArrayLike<number> = gene ? lay.gene.packStart : lay.starts;
+      const ends: ArrayLike<number> = gene ? lay.gene.gEnd : lay.ends;
+      sortArrayRange(order, 0, count, (o, a, b) => starts[o[a]] - starts[o[b]] || o[a] - o[b]);
       lay.lanes = grown(lay.lanes, n);
       const lanes = lay.lanes.subarray(0, n);
+      const repOf = lay.gene.repOf;
       const assign = (cap: number, fresh: boolean) => {
-        lay.laneCount = lay.sticky.assign(lay.ids, lay.starts, lay.ends, order, cap, fresh, lanes);
+        lay.laneCount = lay.sticky.assign(lay.ids, starts, ends, order, cap, fresh, lanes);
+        // an item's other rows take its lane
+        if (gene) for (let i = 0; i < n; i++) if (repOf[i] !== i) lanes[i] = lanes[repOf[i]];
         lay.overflow = 0;
-        for (let i = 0; i < n; i++) if (lanes[i] < 0) lay.overflow++;
+        for (let k = 0; k < count; k++) if (lanes[order[k]] < 0) lay.overflow++;
       };
       assign(maxLanes, ctx.settled);
       // the whole data packs in its lanes: a sticky lane that leaves an item out is packed fresh before any overflow
@@ -233,9 +258,11 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
         assign(maxLanes - 1, ctx.settled);
         row = true;
       }
-      // the whole data's lanes not known (a tiled source's): centred by the most lanes the layer has shown
-      if (!ctx.content && lay.laneHeight === config.laneHeight && !row && lay.laneCount > lay.seen) {
-        lay.seen = lay.laneCount;
+      // the whole data's lanes not known (a tiled source's): centred by the most lanes the layer has shown, every lane
+      // when the last is the density row (else the lanes stay centred by the first frame's and run past the band)
+      const shown = row ? maxLanes : lay.laneCount;
+      if (!ctx.content && lay.laneHeight === config.laneHeight && shown > lay.seen) {
+        lay.seen = shown;
         lay.laneY = box.y + (box.height - Math.min(lay.seen, maxLanes) * lay.laneHeight) / 2;
       }
     }
@@ -261,64 +288,70 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
     // marks: each item's pieces on the section, square where cut, round where the item really ends (on its own
     // system an item is its one piece: no mapping and no array an item)
     const px = 1 / axis.dpr;
-    for (let i = 0; i < n; i++) {
-      const lane = lay.lanes[i];
-      if (lane < 0) continue;
-      let pieces = itemPiece;
-      if (src.path) pieces = toSection(src, lay.starts[i], lay.ends[i], mappedPieces);
-      else {
-        itemPiece[0] = lay.starts[i];
-        itemPiece[1] = lay.ends[i];
-      }
-      let lo = Number.POSITIVE_INFINITY;
-      let hi = Number.NEGATIVE_INFINITY;
-      for (let k = 0; k + 1 < pieces.length; k += 2) {
-        lo = Math.min(lo, pieces[k]);
-        hi = Math.max(hi, pieces[k + 1]);
-      }
-      const marks = lay.m;
-      // the arrowheads go on the piece holding the end (the start) the item really has, in reading order
-      const atEnd = (lay.arrow & 1) !== 0 && lay.last[i] === 1;
-      const atStart = (lay.arrow & 2) !== 0 && lay.first[i] === 1;
-      const images = (rowImages ??= new RowImages());
-      if (atEnd || atStart) images.set(src, lay.starts[i], lay.ends[i]);
-      for (let k = 0; k + 1 < pieces.length; k += 2) {
-        axis.piecesIn(pieces[k], pieces[k + 1]);
-        const ka = axis.ka;
-        const kb = axis.kb;
-        for (let a = ka; a <= kb; a++) {
-          if (!axis.spanIn(a, pieces[k], pieces[k + 1])) continue;
-          // an end the item really has is round; on a reversed axis its start is on the right
-          const atLo = pieces[k] === lo;
-          const atHi = pieces[k + 1] === hi;
-          let round = 0;
-          if (!(axis.scut & Cut.left) && (axis.dir === -1 ? atHi : atLo)) round |= Round.left;
-          if (!(axis.scut & Cut.right) && (axis.dir === -1 ? atLo : atHi)) round |= Round.right;
-          const x0 = axis.snap(axis.sx0);
-          const j = nextMark(lay);
-          lay.mx0[j] = x0;
-          lay.mx1[j] = Math.max(axis.snap(axis.sx1), x0 + px);
-          lay.mlane[j] = lane;
-          lay.mitem[j] = i;
-          lay.mround[j] = round;
-          if (lay.style > 0) lay.manchor[j] = anchorOf(axis, a, pieces[k], pieces[k + 1]);
-          if ((atEnd || atStart) && lay.mx1[j] - x0 >= ArrowMinPx) {
-            let tips = 0;
-            const pa = Math.max(pieces[k], axis.pieces[2 * a]);
-            const pb = Math.min(pieces[k + 1], axis.pieces[2 * a + 1]);
-            const t = atEnd ? images.tip(axis, box, pa, pb, true) : 0;
-            const u = atStart ? images.tip(axis, box, pa, pb, false) : 0;
-            if (t) tips |= t === 1 ? 2 : 1;
-            if (u) tips |= u === 1 ? 2 : 1;
-            lay.mtip[j] = tips;
+    if (gene) geneMarks(lay, axis, src, n, box.x, box.x + box.width, nextMark);
+    else
+      for (let i = 0; i < n; i++) {
+        const lane = lay.lanes[i];
+        if (lane < 0) continue;
+        // a span row (an item with no piece in its tile) is no mark: its item is drawn by its other rows
+        if (lay.ends[i] <= lay.starts[i] && rows.itemStarts[i] >= 0 && rows.itemStarts[i] < rows.itemEnds[i]) continue;
+        let pieces = itemPiece;
+        if (src.path) pieces = toSection(src, lay.starts[i], lay.ends[i], mappedPieces);
+        else {
+          itemPiece[0] = lay.starts[i];
+          itemPiece[1] = lay.ends[i];
+        }
+        let lo = Number.POSITIVE_INFINITY;
+        let hi = Number.NEGATIVE_INFINITY;
+        for (let k = 0; k + 1 < pieces.length; k += 2) {
+          lo = Math.min(lo, pieces[k]);
+          hi = Math.max(hi, pieces[k + 1]);
+        }
+        const marks = lay.m;
+        // the arrowheads go on the piece holding the end (the start) the item really has, in reading order
+        const atEnd = (lay.arrow & 1) !== 0 && lay.last[i] === 1;
+        const atStart = (lay.arrow & 2) !== 0 && lay.first[i] === 1;
+        const images = (rowImages ??= new RowImages());
+        if (atEnd || atStart) images.set(src, lay.starts[i], lay.ends[i]);
+        for (let k = 0; k + 1 < pieces.length; k += 2) {
+          axis.piecesIn(pieces[k], pieces[k + 1]);
+          const ka = axis.ka;
+          const kb = axis.kb;
+          for (let a = ka; a <= kb; a++) {
+            if (!axis.spanIn(a, pieces[k], pieces[k + 1])) continue;
+            // an end the item really has is round; on a reversed axis its start is on the right
+            const atLo = pieces[k] === lo;
+            const atHi = pieces[k + 1] === hi;
+            let round = 0;
+            if (!(axis.scut & Cut.left) && (axis.dir === -1 ? atHi : atLo)) round |= Round.left;
+            if (!(axis.scut & Cut.right) && (axis.dir === -1 ? atLo : atHi)) round |= Round.right;
+            const x0 = axis.snap(axis.sx0);
+            const j = nextMark(lay);
+            lay.mx0[j] = x0;
+            lay.mx1[j] = Math.max(axis.snap(axis.sx1), x0 + px);
+            lay.mlane[j] = lane;
+            lay.mitem[j] = i;
+            lay.mround[j] = round;
+            if (lay.style > 0) lay.manchor[j] = anchorOf(axis, a, pieces[k], pieces[k + 1]);
+            if ((atEnd || atStart) && lay.mx1[j] - x0 >= ArrowMinPx) {
+              let tips = 0;
+              const pa = Math.max(pieces[k], axis.pieces[2 * a]);
+              const pb = Math.min(pieces[k + 1], axis.pieces[2 * a + 1]);
+              const t = atEnd ? images.tip(axis, box, pa, pb, true) : 0;
+              const u = atStart ? images.tip(axis, box, pa, pb, false) : 0;
+              if (t) tips |= t === 1 ? 2 : 1;
+              if (u) tips |= u === 1 ? 2 : 1;
+              lay.mtip[j] = tips;
+            }
           }
         }
+        if (lay.mode === 'items' && pieces.length > 2) connect(lay, axis, pieces, lane, i, box.x, box.x + box.width);
+        // an item wholly in a hidden stretch: its break's tick in its lane
+        if (lay.m === marks && pieces.length >= 2) tickOn(lay, axis, pieces[0], lane);
       }
-      if (lay.mode === 'items' && pieces.length > 2) connect(lay, axis, pieces, lane, i, box.x, box.x + box.width);
-      // an item wholly in a hidden stretch: its break's tick in its lane
-      if (lay.m === marks && pieces.length >= 2) tickOn(lay, axis, pieces[0], lane);
-    }
-    if (lay.mode === 'bars') mergeRuns(lay, px);
+    // the gene line's boxes are never merged: a box an exon's part, thick or thin, at every step but the density's
+    const merged = lay.mode === 'bars' && !gene;
+    if (merged) mergeRuns(lay, px);
     // a layout's label sink (rings: placed outside with leaders) takes every shown item's label, an item once, with its
     // hit; else each label inside its marks where it fits whole (a modified residue's code over its one position too),
     // else beside in the label lane (drawn in the labels pass)
@@ -332,7 +365,7 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
       if (lay.mround[j])
         lay.mradius[j] = squircleRadius(lay.mx1[j] - lay.mx0[j], h, lay.radius.ratio, lay.radius.max, lay.radius.min);
     // the hit marks: an item's own marks, also inside a run merged with others (_spec/README.md "Render", Lanes and Hits)
-    if (lay.mode === 'bars') {
+    if (merged) {
       const s = lay.merge;
       for (let k = 0; k < lay.hn; k++)
         s.radius[k] = s.round[k]
@@ -353,11 +386,15 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
       lay.hitem = lay.mitem;
       lay.hround = lay.mround;
       lay.hradius = lay.mradius;
-      lay.hslack = 0;
+      lay.hslack = lay.mode === 'bars' ? px : 0;
     }
     lay.index.build(lay.hn, lay.hlane, lay.hx0, lay.hx1, lay.laneCount);
     // below a position a pixel too: a run's items keep their labels beside (their own marks are the hit marks)
-    if (!sink && lay.laneHeight >= 10) placeLabels(lay, ctx);
+    // the gene line's labels are text beside its models (`ranges-gene.ts`), never inside a box
+    if (gene) {
+      lay.gene.ln = 0;
+      if (!sink) placeGeneLabels(lay, n, box.x, lay.fontSize);
+    } else if (!sink && lay.laneHeight >= 10) placeLabels(lay, ctx);
     return lay;
   },
 
@@ -382,6 +419,11 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
           return itemHit(base, lay, lay.keys[i], lay.starts[i], lay.ends[i]);
         }
       return base;
+    }
+    // a gene model's label is its item's
+    if (lay.gene.ln) {
+      const i = geneLabelAt(lay, x, y);
+      if (i >= 0) return itemHit(base, lay, lay.keys[i], lay.starts[i], lay.ends[i]);
     }
     const lane = Math.floor((y - lay.laneY) / lay.laneHeight);
     // a hidden items' tick is hit as its break (within the break's slop), the count of what it hides with it
