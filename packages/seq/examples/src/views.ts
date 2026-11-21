@@ -37,6 +37,7 @@ import * as proteinOnGene from './p53/protein-on-gene.js';
 import * as query from './p53/query.js';
 import * as story from './p53/story.js';
 import * as p53Structure from './p53/structure.js';
+import * as p53Headers from './p53/headers.js';
 import * as themes from './p53/themes.js';
 import * as text from './p53/text.js';
 import * as tracks from './p53/tracks.js';
@@ -215,6 +216,30 @@ export const P53Views: readonly ExampleView[] = [
 
 /** Views made for a feature's stories (`Features/…`), over the same datasets. */
 export const FeatureViews: readonly ExampleView[] = [
+  {
+    dataset: 'p53',
+    id: 'headers',
+    title: 'Track headers',
+    summary:
+      'p53 with something to say in its headers: the domains track has a filter (an "n filtered" chip) and a hidden layer ("1 layer hidden"), and two tracks are hidden (the section’s "2 hidden" chip). Point at a track’s label for its actions.',
+    build: p53Headers.build,
+  },
+  {
+    dataset: 'p53',
+    id: 'headers-hidden',
+    title: 'Track headers, a section with every track hidden',
+    summary:
+      'Two sections of p53: the first has every track hidden, so only its header remains, with "2 hidden"; its click shows them again.',
+    build: p53Headers.allHidden,
+  },
+  {
+    dataset: 'p53',
+    id: 'headers-short',
+    title: 'Track headers, short tracks',
+    summary:
+      'Tracks of 14 px beside a tall one: where a chip does not fit, the state is a small mark, its words in the track’s card.',
+    build: p53Headers.short,
+  },
   {
     dataset: 'p53',
     id: 'addressing',
