@@ -1650,12 +1650,11 @@ Seq\* holds pointers and labels: codes and identifiers are strings.
 - **Loaded when used** (the author, 2026-11-21): assembly resolve, the names rule, derived sequences and the map between
   assemblies are one chunk (`resolve/genome-chunk.ts`: `assemblies.ts`, `assembly-names.ts`, `genome-model.ts`),
   imported by `loadGenome` (`resolve/genome.ts`, the door) the first time a spec holds an `assembly`, the genome query
-  forms with it, and what registered to land with it (`withGenome`: the renderer's genome drawing). Until it lands each
-  assembly is pending (`pendingAssembly`: its sources named so they open meanwhile, nothing derived, no issue) and
-  `StaticModel.loading` is the promise; the model's hash says so, so a resolve after it lands builds again. `openModel`,
-  the viewer's spec model and `settle` resolve again when it settles. Why: a reader that never opens a genome pays
-  nothing for it (the size script checks that no entry loads these modules first; an import-graph test, that no static
-  import of the eager entries reaches them).
+  forms with it. Until it lands each assembly is pending (`pendingAssembly`: its sources named so they open meanwhile,
+  nothing derived, no issue) and `StaticModel.loading` is the promise; the model's hash says so, so a resolve after it
+  lands builds again. `openModel`, the viewer's spec model and `settle` resolve again when it settles. Why: a reader
+  that never opens a genome pays nothing for it (the size script checks that no entry loads these modules first; an
+  import-graph test, that no static import of the eager entries reaches them).
 - **Derived sequences** (`AssemblyEntry`, `StaticModel.assemblies`): from `sequences`, then the source's coverage joined
   through the names rule (a sequence the coverage names under another name or alias takes its source name), each a
   system addressed by the form, `/data/hg38/(sequence :name chr17)` (never an id step: one address a system), its `name`
@@ -1916,15 +1915,14 @@ no target.
 - **The built-in fields' domains** (`domains`): `block` the blocks' labels in order, `system` their systems' names (a
   section of assemblies: each assembly's names in its `order` before any `include`), the categorical domain a theme over
   them reads (EC-218, EC-191; Render, Layer colors); each block carries its system's `name`.
-- **Places** (`@molstar/seqx-core/view/places`, its own entry: in no first chunk): `placesOf(section, system, position)`
-  gives every block showing a position and the section unit there (overlapping blocks: each, the merged-copies rule;
-  none where no block shows it), by an index by system of the blocks sorted by their first position, built once per
-  resolved section (what LX's ribbon ends, RR's pair ends and RN's chords read). `blockUnitOf`, `blockPositionAt`,
-  `blockElementAt` map a block's positions and units (its direction and scale); `placeOfUnit` a section unit to
-  `{ system, position }` (on a block's edge: the next block's first as a start, the one before's last as an end) and
-  `unitOfPlace` back (a position no block shows: the nearest shown edge on its system), so a viewport, a history step
-  and a saved view carry positions, never units. `sameBlocks(a, b)`: equal block lists (systems, ranges, directions,
-  scales in order), what follows by identity.
+- **Places** (`places.ts`, exported): `placesOf(section, system, position)` gives every block showing a position and the
+  section unit there (overlapping blocks: each, the merged-copies rule; none where no block shows it), by an index by
+  system of the blocks sorted by their first position, built once per resolved section (what LX's ribbon ends, RR's pair
+  ends and RN's chords read). `blockUnitOf`, `blockPositionAt`, `blockElementAt` map a block's positions and units (its
+  direction and scale); `placeOfUnit` a section unit to `{ system, position }` (on a block's edge: the next block's
+  first as a start, the one before's last as an end) and `unitOfPlace` back (a position no block shows: the nearest
+  shown edge on its system), so a viewport, a history step and a saved view carry positions, never units.
+  `sameBlocks(a, b)`: equal block lists (systems, ranges, directions, scales in order), what follows by identity.
 - **Blocks**: each its axis (its system, its `range`, the section's direction times its own), its form, its first
   display unit in the section's (`offset`: 0 in a stack), its label, the blocks it stands for (`members`) and their
   systems (`systems`: a merged copy's unit, what an end on a copy is drawn on), its copy group (`copy`, internal: the
@@ -2919,9 +2917,6 @@ numbers): a window move allocates nothing once warm.
   `gap = min(max, share × length / gaps in view)` with no floor: at 3,000 blocks a ring's gaps are 0.03° each and three
   quarters of the circle stays positions. A group's boundary (two assemblies) takes `blocks.groupGap` block gaps
   (`rings.groupGap`, 4°) first, fixed.
-- **The genome drawing** (`layout/genome-blocks.ts`: runs, groups, the closing run, the ring's title over assemblies) is
-  a chunk that lands with the genome chunk (`withGenome`, Resolve's Assemblies): a section of assemblies is pending
-  until both have; a spec with no assembly draws no runs and pays nothing for them.
 - **Runs of small blocks** (both layouts): two or more consecutive blocks of one group, no chips, each under
   `blocks.runPx` (2 CSS px) at the zoom (on a ring at the outer radius) are one run: no gaps inside, one band in
   `seq-wash` over their extent with a hairline at each end under the tracks' data, labelled with its count where it has

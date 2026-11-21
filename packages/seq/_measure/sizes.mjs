@@ -60,16 +60,12 @@ const Unlisted = [
 ];
 
 /**
- * What loads only when used (a dynamic import): in no entry's first chunks, whatever it lists. The genome chunk, its
- * query forms and the genome drawing, the first time a spec holds an assembly (or a query names a locus or a block).
+ * What loads only when used (a dynamic import): in no entry's first chunks, whatever it lists. The genome chunk and
+ * its query forms, the first time a spec holds an assembly (or a query names a locus or a block).
  */
 const Deferred = [
   /seq\/core\/src\/resolve\/(assemblies|assembly-names|genome-model|genome-chunk|genome-resolve|genome-issues)\.ts$/,
   /seq\/core\/src\/query\/genome-forms\.ts$/,
-  // the genome drawing (runs, groups, the closing run) lands with the genome chunk; the places' reader with an export's
-  // viewport by `{ system, position }`
-  /seq\/core\/src\/render\/layout\/genome-blocks\.ts$/,
-  /seq\/core\/src\/view\/places\.ts$/,
   /seq\/core\/src\/lang\/include-pattern\.ts$/,
 ];
 

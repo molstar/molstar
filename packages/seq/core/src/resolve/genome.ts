@@ -57,27 +57,15 @@ export function genomeLoadFailure(): unknown {
   return failed;
 }
 
-/** What lands with the genome chunk (a renderer's genome drawing, `withGenome`): each loaded with it. */
-const companions: (() => Promise<unknown>)[] = [];
-
 /**
- * A chunk that lands with the genome chunk (render's genome drawing registers one): loaded with it, so a section of
- * assemblies, pending until the chunk lands, is never drawn before it; loaded at once when the chunk already has.
- */
-export function withGenome(load: () => Promise<unknown>): void {
-  companions.push(load);
-  if (chunk) void load();
-}
-
-/**
- * Loads the genome chunk, the genome query forms and its companions (`withGenome`), once while it is in flight. The promise never rejects: a failed
+ * Loads the genome chunk and the genome query forms, once while it is in flight. The promise never rejects: a failed
  * import is kept (`genomeLoadFailure`) and the next call tries again, so a model never waits on a rejected load, and no
  * resolve retries by itself (a reader asks again: `loadGenome`).
  */
 export function loadGenome(): Promise<void> {
   if (chunk) return Promise.resolve();
   failed = undefined;
-  loading ??= Promise.all([import('./genome-chunk.js'), loadGenomeForms(), ...companions.map((f) => f())]).then(
+  loading ??= Promise.all([import('./genome-chunk.js'), loadGenomeForms()]).then(
     ([m]) => {
       chunk = m.Genome;
       loading = undefined;

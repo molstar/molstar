@@ -40,8 +40,9 @@ import {
   type ResolvedView,
   resolveView,
   resolveViews,
+  type SystemPosition,
+  unitOfPlace,
 } from '@molstar/seqx-core/view';
-import type { SystemPosition } from '@molstar/seqx-core/view/places';
 import type { Viewport } from './axis.js';
 import { type RenderConfigOverrides, renderConfig } from './config.js';
 import { accessibleOf, locationText } from './accessibility.js';
@@ -382,22 +383,8 @@ function contentHeight(layout: ViewLayout): number {
   return Math.ceil(last ? last.y + last.height + layout.config.inset : 2 * layout.config.inset);
 }
 
-/**
- * The places' reader a positions viewport needs when an end is a `{ system, position }` (a section of blocks), loaded
- * then (its module is in no first chunk); a stub otherwise.
- */
-async function placesOfView(v: PositionsViewport) {
-  for (const r of Object.values(v.positions))
-    if (typeof r[0] === 'object' || typeof r[1] === 'object') return (await import('./viewport-places.js')).unitOfPlace;
-  return () => undefined;
-}
-
 /** A positions viewport as each section's window of display units (an axis waiting for its length: from 0). */
-function offsetsOf(
-  view: ResolvedView,
-  v: PositionsViewport,
-  unitOfPlace: (s: ResolvedView['sections'][number], at: SystemPosition, near?: number) => number | undefined,
-): Record<string, Viewport> {
+function offsetsOf(view: ResolvedView, v: PositionsViewport): Record<string, Viewport> {
   const out: Record<string, Viewport> = {};
   for (const s of view.sections) {
     const r = v.positions[s.address];
@@ -569,7 +556,7 @@ export async function exportSvg(spec: Node, given: RenderSvgOptions): Promise<Re
       figure: true,
       ...(windows ? { windows: true } : {}),
       ...(given && 'positions' in given
-        ? { viewports: { ...offsetsOf(view, given, await placesOfView(given)), ...options.viewports } }
+        ? { viewports: { ...offsetsOf(view, given), ...options.viewports } }
         : {
             ...(given ? { viewport: given } : {}),
             ...(options.viewports ? { viewports: options.viewports } : {}),

@@ -26,7 +26,7 @@ import type { TextMetrics } from '../text.js';
 import type { SeqTokens } from '../tokens.js';
 import type { SectionLayout } from '../tracks.js';
 import { drawWindowArgs, floorExtent, WindowFill, windowPart } from '../window.js';
-import { blockLabel, blockLength, chipSlots, genomeBlocks } from './blocks.js';
+import { blockLabel, blockLength, chipSlots, isChip, type ResolvedBlock, runLabel } from './blocks.js';
 import { PlacePoint, Strips, WarpKind } from './strips.js';
 import { clampWindow, TracksNav } from './tracks.js';
 import type { NavContext, Placement, PlaceContext, SectionLayoutType, SectionNav } from './types.js';
@@ -372,17 +372,122 @@ export const RingsNav: SectionNav = {
   clamp: clampWindow,
 };
 
+/** A length in bases as a genome's title says it: `3.1 Gb`, `48 Mb`, `16.6 kb`, `950 bp`. */
+export function basesText(n: number): string {
+  const units: [number, string][] = [
+    [1e9, 'Gb'],
+    [1e6, 'Mb'],
+    [1e3, 'kb'],
+  ];
+  for (const [k, u] of units) if (n >= k) return `${+(n / k).toPrecision(n / k >= 100 ? 3 : 2)} ${u}`;
+  return `${Math.round(n)} bp`;
+}
+
 /**
  * A ring's title: its system's name (a section of blocks: its id) and its length; a section of one assembly its name
  * and its blocks' total length in bases (`GRCh38`, `3.1 Gb`), of several their names; the closing run's count after.
  */
 function ringTitle(section: ResolvedSection, ctx: PlaceContext, total: number): [string, string] {
   const system = ctx.model?.systems.get(section.axis.system);
-  const genome = genomeBlocks();
-  if (section.groups?.length && section.blocks && genome) return genome.groupTitle(section);
+  const groups = section.groups;
+  if (groups?.length && section.blocks) {
+    let bases = 0;
+    for (const b of section.blocks) bases += piecesTotal(b.axis.ranges ?? []) * b.members.length;
+    const more = section.more ? ` (+${section.more.toLocaleString('en-US')} not shown)` : '';
+    return [groups.map((g) => g.label).join(' · '), `${basesText(bases)}${more}`];
+  }
   const name = section.blocks ? sectionId(section) : (system?.name ?? sectionId(section));
   const unit = section.blocks ? '' : system?.alphabet === 'protein' ? ' aa' : ' bp';
   return [name, `${Math.round(total).toLocaleString('en-US')}${unit}`];
+}
+
+/**
+ * A ring's runs at the outer radius's zoom (px a unit): two or more consecutive blocks of one group, no chips, each
+ * under `blocks.runPx` (_spec/README.md "Render", Rings layout); each block's run start or −1, undefined with none.
+ */
+function ringRuns(
+  p: RingPlacement,
+  blocks: readonly ResolvedBlock[] | undefined,
+  config: RenderConfig,
+  zoom: number,
+): Int32Array | undefined {
+  const small = config.blocks.runPx;
+  if (!blocks || !(small > 0)) return undefined;
+  const n = blocks.length;
+  p.run = grown(p.run, n);
+  const tiny = (b: number) => !isChip(blocks[b]) && blockLength(blocks[b]) * zoom < small;
+  let any = false;
+  let b = 0;
+  while (b < n) {
+    if (!tiny(b)) {
+      p.run[b++] = -1;
+      continue;
+    }
+    let e = b + 1;
+    while (e < n && tiny(e) && (blocks[e].group ?? -1) === (blocks[b].group ?? -1)) e++;
+    const v = e - b > 1 ? b : -1;
+    if (v >= 0) any = true;
+    for (let k = b; k < e; k++) p.run[k] = v;
+    b = e;
+  }
+  return any ? p.run : undefined;
+}
+
+/** A block of a run laid at frame x: its run's extent grown (a run's first block opens it). */
+function addRun(p: RingPlacement, start: number, b: number, x: number, w: number): void {
+  if (start === b) {
+    const r = p.runN++;
+    if (r >= p.runFirst.length) {
+      p.runFirst = grown(p.runFirst, r + 1);
+      p.runLast = grown(p.runLast, r + 1);
+      p.runX = grown(p.runX, r + 1);
+      p.runW = grown(p.runW, r + 1);
+    }
+    p.runFirst[r] = b;
+    p.runX[r] = x;
+    p.runW[r] = 0;
+  }
+  const r = p.runN - 1;
+  p.runLast[r] = b;
+  p.runW[r] = x + w - p.runX[r];
+}
+
+/** The groups' arcs of a section of several assemblies (EC-210): each its blocks' frame extent. */
+function layGroupArcs(
+  p: RingPlacement,
+  section: ResolvedSection,
+  blocks: readonly ResolvedBlock[] | undefined,
+  _end: number,
+): void {
+  p.groupN = 0;
+  const groups = section.groups;
+  if (!groups || groups.length < 2 || !blocks) return;
+  const s = p.strips;
+  for (const g of groups) {
+    let x0 = Infinity;
+    let x1 = -Infinity;
+    for (let i = 0; i < s.n; i++) {
+      const b = s.block[i];
+      if (b < g.first || b >= g.first + g.count) continue;
+      x0 = Math.min(x0, s.axes[i].x0);
+      x1 = Math.max(x1, s.axes[i].x0 + s.axes[i].width);
+    }
+    for (let r = 0; r < p.runN; r++)
+      if (p.runFirst[r] >= g.first && p.runFirst[r] < g.first + g.count) {
+        x0 = Math.min(x0, p.runX[r]);
+        x1 = Math.max(x1, p.runX[r] + p.runW[r]);
+      }
+    if (!(x1 > x0)) continue;
+    const k = p.groupN++;
+    if (k >= p.groupX.length) {
+      p.groupX = grown(p.groupX, k + 1);
+      p.groupW = grown(p.groupW, k + 1);
+    }
+    p.groupX[k] = x0;
+    p.groupW[k] = x1 - x0;
+    // its name outside, at its middle angle: placed with the blocks' labels, before them
+    p.labels.add(g.label, angleOf(p, (x0 + x1) / 2), Infinity, -2, undefined);
+  }
 }
 
 /** Rings outside in: the section's tracks as rings round its whole axis, a block an arc. */
@@ -445,8 +550,7 @@ export const RingsLayout: SectionLayoutType<RingPlacement> = {
       p.bx = grown(p.bx, nBlocks);
       p.bw = grown(p.bw, nBlocks);
     }
-    const genome = genomeBlocks();
-    const runs = genome?.ringRuns(p, blocks, config, total > 0 ? circ / total : 0);
+    const runs = ringRuns(p, blocks, config, total > 0 ? circ / total : 0);
     let inner = 0;
     let groupBounds = 0;
     if (!whole)
@@ -519,7 +623,7 @@ export const RingsLayout: SectionLayoutType<RingPlacement> = {
         p.bx[bi] = x;
         p.bw[bi] = width;
       }
-      if (inRun) genome!.addRun(p, runs[bi], bi, x, width);
+      if (inRun) addRun(p, runs[bi], bi, x, width);
       // inside a run a block under `readPx` device px is not read nor drawn: the run's band alone (the joint rule)
       if (inRun && width * ctx.dpr < config.blocks.readPx) {
         x += width + after * r;
@@ -559,10 +663,14 @@ export const RingsLayout: SectionLayoutType<RingPlacement> = {
         p.labels.add(blockLabel(b, config), angleOf(p, a.x0 + a.width / 2), Infinity, -1, undefined);
       }
     }
-    // a run's label, then the groups' arcs and names outside the labels (EC-210): the genome drawing's
-    p.groupN = 0;
-    if (genome) genome.ringRunsAndGroups(p, section, blocks, outside);
+    // a run's label where it has room, then the groups' names outside the labels (EC-210)
+    if (outside)
+      for (let k = 0; k < p.runN; k++) {
+        const n = p.runLast[k] - p.runFirst[k] + 1;
+        p.labels.add(runLabel(n), angleOf(p, p.runX[k] + p.runW[k] / 2), Infinity, -1, undefined);
+      }
     if (outside) layoutLabels(p, config, size, ctx.text);
+    layGroupArcs(p, section, blocks, x);
     const [title, sub] = rc.center === 'title' ? ringTitle(section, ctx, total) : ['', ''];
     p.title = title;
     p.subtitle = sub;
@@ -609,7 +717,7 @@ export const RingsLayout: SectionLayoutType<RingPlacement> = {
     }
     if (pass === 'data') {
       p.warp.refused = 0;
-      if (p.runN || p.groupN) genomeBlocks()?.drawRingRuns(p, out, tokens);
+      if (p.runN || p.groupN) drawRingRuns(p, out, tokens);
     } else if (pass === 'window') drawRingWindow(p, s, out, emphasis, tokens);
     else if (pass === 'labels') drawRingLabels(p, out, tokens, config);
     else if (pass === 'tip') drawRingFan(p, out, emphasis, tokens, config);
@@ -637,13 +745,52 @@ export const RingsLayout: SectionLayoutType<RingPlacement> = {
   },
 };
 
+/**
+ * A ring's runs (a band in `seq-wash` over each run's arc through the rings, a hairline at each end) and its groups'
+ * arcs (a hairline just outside the outer ring), through the warp in the data pass (_spec/README.md "Render", Rings
+ * layout); through `args`, nothing boxed.
+ */
+function drawRingRuns(p: RingPlacement, page: PassWriter, tokens: SeqTokens): void {
+  const out = p.warp.writer(page);
+  const g = out.args;
+  g[5] = NoColor;
+  g[6] = 0;
+  g[7] = 0;
+  g[8] = 0;
+  for (let r = 0; r < p.runN; r++) {
+    g[0] = p.runX[r];
+    g[1] = 0;
+    g[2] = p.runW[r];
+    g[3] = p.depth;
+    g[4] = tokens.colors['seq-wash'];
+    out.rectArgs();
+    for (let e = 0; e < 2; e++) {
+      g[0] = e ? p.runX[r] + p.runW[r] - 0.75 : p.runX[r];
+      g[1] = 0;
+      g[2] = 0.75;
+      g[3] = p.depth;
+      g[4] = tokens.colors['msui-text-muted'];
+      out.rectArgs();
+    }
+  }
+  for (let k = 0; k < p.groupN; k++) {
+    g[0] = p.groupX[k];
+    g[1] = -4;
+    g[2] = p.groupW[k];
+    g[3] = 1.5;
+    g[4] = tokens.colors['msui-text-muted'];
+    out.rectArgs();
+  }
+  p.warp.close(page);
+}
+
 /** A ring label's line: what two labels on a side are spaced by, and each one's hit box's height. */
 function labelLine(size: number): number {
   return size + 2;
 }
 
 /** The angle of frame x, in [0, 2π), clockwise from the top. */
-export function angleOf(p: RingPlacement, x: number): number {
+function angleOf(p: RingPlacement, x: number): number {
   const t = p.warp.angleAt(x);
   return ((t % TwoPi) + TwoPi) % TwoPi;
 }

@@ -12,7 +12,6 @@
 // and its first unit, so a pan keeps them. A one-position block is a chip: a fixed slot its label's width, never a
 // position's share (zoom does not scale it), where it stands in a row, in a stack on one row the chips share.
 
-import { withGenome } from '@molstar/seqx-core/resolve';
 import { blockSpan, piecesTotal, type ResolvedSection } from '@molstar/seqx-core/view';
 import { AxisTransform, type Viewport } from '../axis.js';
 import { fontSize, type RenderConfig } from '../config.js';
@@ -30,23 +29,8 @@ export type ResolvedBlock = NonNullable<ResolvedSection['blocks']>[number];
 
 // the anchor a number read once: a draw reads no property of an imported object (_spec/README.md "Render", Draw lists)
 const AnchorStart: number = Anchor.start;
-
-/**
- * The genome drawing (_spec/README.md "Render", Blocks: runs, groups, the closing run; on rings too), a chunk that lands
- * with the genome chunk (`withGenome`): a section of assemblies is pending until both have, and a reader that never
- * opens a genome pays nothing for them.
- */
-let Genome: typeof import('./genome-blocks.js') | undefined;
-withGenome(() =>
-  import('./genome-blocks.js').then((m) => {
-    Genome = m;
-  }),
-);
-
-/** The genome drawing once it has landed, else undefined (no runs, no groups' brackets). */
-export function genomeBlocks(): typeof import('./genome-blocks.js') | undefined {
-  return Genome;
-}
+const AnchorMiddle: number = Anchor.middle;
+const AnchorEnd: number = Anchor.end;
 
 /**
  * Fixed sizes (CSS px): the gap between two blocks in a row at most (a boundary that reads), the share of the width
@@ -82,13 +66,22 @@ export function blockLabel(block: ResolvedBlock, config: RenderConfig): string {
   return mark || scale ? `${block.label}${mark}${scale}` : block.label;
 }
 
+/** A count as a run's label says it ("2,841 contigs"). */
+export function runLabel(count: number): string {
+  return `${count.toLocaleString('en-US')} ${count === 1 ? 'contig' : 'contigs'}`;
+}
+
+/** The closing run's label past `maxAssemblyBlocks` ("+96,312 sequences not shown"). */
+export function moreLabel(count: number): string {
+  return `+${count.toLocaleString('en-US')} ${count === 1 ? 'sequence' : 'sequences'} not shown`;
+}
+
 /** A row's blocks and its config: offsets, lengths (scaled), groups, the gap share, the run and group rules. */
 export function rowBlocks(row: BlockRow, blocks: readonly ResolvedBlock[], config: RenderConfig): void {
   row.reset(blocks.length);
   row.gapShare = config.blocks.gapShare;
   row.groupGap = config.blocks.groupGap;
-  // runs are the genome drawing's (a chunk loaded with the genome's): none before it lands
-  row.runPx = Genome ? config.blocks.runPx : 0;
+  row.runPx = config.blocks.runPx;
   for (let b = 0; b < blocks.length; b++) {
     row.offset[b] = blocks[b].offset ?? 0;
     row.len[b] = blockLength(blocks[b]);
@@ -665,18 +658,86 @@ export function placeBlocks(section: ResolvedSection, ctx: PlaceContext, prev?: 
   p.tracksTop = top + p.labelRow;
   p.tracksBottom = top + rows;
   // the runs in view, their labels where they have room; the groups' brackets and the closing run in a row under
-  const g = Genome;
-  p.runN = 0;
-  p.groupN = 0;
-  p.moreText = '';
-  if (g) g.layRuns(p, ctx, blocks);
-  const foot = p.stacked || !g ? 0 : g.layFoot(p, section, ctx, blocks);
+  layRuns(p, ctx, blocks);
+  const foot = p.stacked ? 0 : layFoot(p, section, ctx, blocks);
   p.footRow = foot;
   const height = (p.stacked ? y - top : rows) + foot;
   p.contentHeight = height;
   p.box = { x: config.inset, y: top, width: ctx.width - 2 * config.inset, height };
   for (let i = 0; i < strips.n; i++) ctx.layStrip(p, i);
   return p;
+}
+
+/** The runs in view as laid (a row's): each its blocks, extent and label ('' when it has no room). */
+function layRuns(p: BlockPlacement, ctx: PlaceContext, blocks: readonly ResolvedBlock[]): void {
+  const row = p.row;
+  p.runN = 0;
+  if (p.stacked) return;
+  for (let b = 0; b < blocks.length; b++) {
+    if (row.run[b] !== b) continue;
+    let e = b;
+    while (e + 1 < blocks.length && row.run[e + 1] === b) e++;
+    // its extent in view: its first block in view to its last
+    let x0 = Infinity;
+    let x1 = -Infinity;
+    for (let k = b; k <= e; k++) {
+      if (row.ve[k] <= row.vs[k]) continue;
+      x0 = Math.min(x0, row.x[k]);
+      x1 = Math.max(x1, row.x[k] + row.w[k]);
+    }
+    if (!(x1 > x0)) continue;
+    const r = p.runN++;
+    if (r >= p.runFirst.length) {
+      p.runFirst = grown(p.runFirst, r + 1);
+      p.runLast = grown(p.runLast, r + 1);
+      p.runX = grown(p.runX, r + 1);
+      p.runW = grown(p.runW, r + 1);
+    }
+    p.runFirst[r] = b;
+    p.runLast[r] = e;
+    p.runX[r] = x0;
+    p.runW[r] = x1 - x0;
+    const text = runLabel(e - b + 1);
+    p.runText[r] = ctx.text.measure(ctx.config.labelFont, text) + 8 <= x1 - x0 ? text : '';
+  }
+}
+
+/**
+ * The row under a row of blocks (_spec/README.md "Render", Blocks): a bracket a group in view with its assembly's name
+ * (a section of several assemblies, EC-210), and the closing run's label past `maxAssemblyBlocks` at its end. Its
+ * height (0 when it has neither).
+ */
+function layFoot(
+  p: BlockPlacement,
+  section: ResolvedSection,
+  ctx: PlaceContext,
+  blocks: readonly ResolvedBlock[],
+): number {
+  const row = p.row;
+  const groups = section.groups;
+  p.groupN = 0;
+  p.groupText.length = 0;
+  p.moreText = section.more ? moreLabel(section.more) : '';
+  if (groups && groups.length > 1)
+    for (const g of groups) {
+      let x0 = Infinity;
+      let x1 = -Infinity;
+      for (let k = g.first; k < g.first + g.count && k < blocks.length; k++) {
+        if (row.ve[k] <= row.vs[k]) continue;
+        x0 = Math.min(x0, row.x[k]);
+        x1 = Math.max(x1, row.x[k] + row.w[k]);
+      }
+      if (!(x1 > x0)) continue;
+      const i = p.groupN++;
+      if (i >= p.groupX.length) {
+        p.groupX = grown(p.groupX, i + 1);
+        p.groupW = grown(p.groupW, i + 1);
+      }
+      p.groupX[i] = x0;
+      p.groupW[i] = x1 - x0;
+      p.groupText[i] = elide(ctx.text, ctx.config.labelFont, g.label, Math.max(0, x1 - x0 - 8));
+    }
+  return p.groupN || p.moreText ? fontSize(ctx.config.labelFont) + 10 : 0;
 }
 
 /** A block's label above its tracks (the labels pass), faded at its strip's width; a stack's rows filled as tracks. */
@@ -709,14 +770,14 @@ export function blockChrome(
   }
   if (band >= 0) return;
   if (pass === 'data' && strip < 0) {
-    Genome?.drawRuns(s, p, out);
+    drawRuns(s, p, out);
     return;
   }
   if (pass !== 'labels') return;
   const g = out.args;
   // the label font's size as the layout read it (its row less 4 px): a draw parses no font (a regex's match allocates)
   const size = p.labelRow - 4;
-  if (strip < 0) Genome?.drawRunLabels(s, p, out, size);
+  if (strip < 0) drawRunLabels(s, p, out, size);
   for (let i = 0; i < strips.n; i++) {
     // a chip's label is in its letters' pill where the pill is drawn
     if (strips.chip[i] && hasPill(s, i)) continue;
@@ -729,6 +790,95 @@ export function blockChrome(
     g[3] = Math.max(0, a.width);
     g[4] = s.tokens.colors['msui-text-muted'];
     out.textArgs(label, AnchorStart, s.config.labelFont);
+  }
+}
+
+/**
+ * The runs' bands under the tracks' data (the data pass, once a section): each a band in `seq-wash` over its extent with a
+ * hairline at each end (_spec/README.md "Render", Blocks); through `args`, nothing boxed.
+ */
+function drawRuns(s: SectionLayout, p: BlockPlacement, out: PassWriter): void {
+  const g = out.args;
+  const h = p.tracksBottom - p.tracksTop;
+  if (!(h > 0)) return;
+  for (let r = 0; r < p.runN; r++) {
+    g[0] = p.runX[r];
+    g[1] = p.tracksTop;
+    g[2] = p.runW[r];
+    g[3] = h;
+    g[4] = s.tokens.colors['seq-wash'];
+    g[5] = NoColor;
+    g[6] = 0;
+    g[7] = 0;
+    out.rectArgs();
+    for (let e = 0; e < 2; e++) {
+      g[0] = e ? p.runX[r] + p.runW[r] - 1 : p.runX[r];
+      g[1] = p.tracksTop;
+      g[2] = 1;
+      g[3] = h;
+      g[4] = s.tokens.colors['msui-text-muted'];
+      g[7] = 0;
+      out.rectArgs();
+    }
+  }
+}
+
+/**
+ * The runs' labels in the label row, the groups' brackets with their assemblies' names and the closing run's label in
+ * the row under the tracks (the labels pass, once a section).
+ */
+function drawRunLabels(s: SectionLayout, p: BlockPlacement, out: PassWriter, size: number): void {
+  const g = out.args;
+  const muted = s.tokens.colors['msui-text-muted'];
+  const font = s.config.labelFont;
+  for (let r = 0; r < p.runN; r++) {
+    const text = p.runText[r];
+    if (!text) continue;
+    g[0] = p.runX[r] + 4;
+    g[1] = p.tracksTop - p.labelRow + size;
+    g[2] = 0;
+    g[3] = Math.max(0, p.runW[r] - 8);
+    g[4] = muted;
+    out.textArgs(text, AnchorStart, font);
+  }
+  if (!p.footRow) return;
+  const y = p.tracksBottom + 4;
+  for (let i = 0; i < p.groupN; i++) {
+    // a bracket: a hairline across the group, a tick up at each end, its name in the middle below it
+    g[0] = p.groupX[i];
+    g[1] = y;
+    g[2] = p.groupW[i];
+    g[3] = 1;
+    g[4] = muted;
+    g[5] = NoColor;
+    g[6] = 0;
+    g[7] = 0;
+    out.rectArgs();
+    for (let e = 0; e < 2; e++) {
+      g[0] = e ? p.groupX[i] + p.groupW[i] - 1 : p.groupX[i];
+      g[1] = y - 4;
+      g[2] = 1;
+      g[3] = 5;
+      g[4] = muted;
+      g[7] = 0;
+      out.rectArgs();
+    }
+    if (!p.groupText[i]) continue;
+    g[0] = p.groupX[i] + p.groupW[i] / 2;
+    g[1] = y + size + 3;
+    g[2] = 0;
+    g[3] = p.groupW[i];
+    g[4] = s.tokens.colors['msui-text'];
+    out.textArgs(p.groupText[i], AnchorMiddle, font);
+  }
+  if (p.moreText) {
+    const a = p.row;
+    g[0] = a.x0 + a.width;
+    g[1] = y + size + 3;
+    g[2] = 0;
+    g[3] = a.width;
+    g[4] = muted;
+    out.textArgs(p.moreText, AnchorEnd, font);
   }
 }
 
