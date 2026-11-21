@@ -35,11 +35,6 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   the cleared selection's line drawn while the canvas drops it. Every story's SVG redraws on every change the canvas
   does (selection set, cleared, hover where shown); test it in a twin: clear, then the SVG holds no selection mark.
 
-- **The "…" actions button with no actions** (the author, 2026-11-21, on GG's GFF3 story: "could we stop showing the
-  ... actions button if there are no actions registered?"): a track header shows "…" (tooltip "Actions") when its menu
-  would be empty. The button is drawn only when at least one entry applies to that track (built-ins that apply, the
-  host's, an extension's), decided per track and per state; the fourth slice fixed one case of this (the author: "some
-  views show the 3 dot menu icon, but no menu is there"), so find why it is back and test every header kind.
 - **The Transcripts track's spacing** (my look at GG's fix round; the author, 2026-11-21: "the spacing around the
   transcripts is weird"): about 100 px of blank lanes above the first transcript in gff3--tp-53 and as many below the last (the track
   taller than its lanes, the lanes centred in it), the first row
@@ -65,6 +60,9 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   (allowed: repr's public API is open to this work); take it only if a real name set needs it.
 
 ## Fixed
+
+- **The "…" actions button with no actions**: not reproduced on packages-seq (FX2, the orchestrator's look: the Genes
+  menu holds its built-ins); the author, 2026-11-21: "might have been on older version and it got fixed already".
 
 - **The navigator's readout; letters larger than their labels; a legend hover sticking**: FX1 (`2afb32e91`): a
   padded one-line readout whose number never truncates; letters capped by measured cap heights (`letters.maxPx`,
