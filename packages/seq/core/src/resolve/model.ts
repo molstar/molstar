@@ -57,6 +57,7 @@ import {
   placeChildren,
 } from './model-molecules.js';
 import { ResolveIssues } from './issues.js';
+import { unreadParams } from './unread.js';
 import type { Encoding, Linear } from './linear.js';
 import {
   atomsOf,
@@ -656,6 +657,7 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
   }
 
   buildLinks(inner, molecular, systems, annotations, cached, key);
+  unreadParams(spec, (n) => overAssembly(n, assemblies), issues);
 
   const compounds = new Map<string, CompoundEntry>();
   for (const at of data)

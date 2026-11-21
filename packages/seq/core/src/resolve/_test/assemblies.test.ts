@@ -370,6 +370,33 @@ describe('the genome forms', () => {
   });
 });
 
+describe('unread params', () => {
+  it('are said, one info a node, naming the lane that reads each', () => {
+    const b = createSeqSpec();
+    const g = b.data.assembly('g', { ...assembly('g', hg38), names: 'ucsc' } as never);
+    b.data.ranges('over', { target: g, rows: { start: [0], end: [1], target: ['chr1'] } } as never);
+    b.views.view('v', (v) => {
+      v.section('a', { of: g, member_order: 'x' } as never, (s) =>
+        s.block('b', { of: '/data/g/(sequence :name chr1)', direction: 'reversed', scale: 2 } as never),
+      );
+      v.section('c', { of: g });
+      v.bridge('br', { a: '/views/v/a', b: '/views/v/c' } as never);
+    });
+    const said = resolveSpec(b.build())
+      .issues.filter((i) => i.code === 'seq.resolve.param.unread')
+      .map((i) => `${i.address} ${i.message}`);
+    expect(said).toEqual([
+      '/data/g `assembly.names`: read by lane GF',
+      '/data/over A ranges over an assembly: read by lane GC2',
+      '/views/v/a `section.member_order`: read by lane LA',
+      '/views/v/a/b `block.direction`: read by lane GC2',
+      '/views/v/a/b `block.scale`: read by lane GC2',
+      '/views/v/br A bridge: read by lane LA',
+    ]);
+    expect(resolveSpec(spec()).issues.filter((i) => i.code === 'seq.resolve.param.unread')).toEqual([]);
+  });
+});
+
 describe('sections of assemblies', () => {
   it('derive a block a sequence, two assemblies in turn, keyed by name (EC-200, EC-210)', () => {
     const b = createSeqSpec();

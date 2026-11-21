@@ -327,7 +327,7 @@ export const SeqLanguage = defineLanguage({
       },
     },
     sequence: {
-      doc: 'A sequence: letters of an alphabet, inline or from a source; a coordinate system (under an assembly: an override by `name`).',
+      doc: 'A sequence: letters of an alphabet, inline or from a source (under an assembly: an override).',
       parents: ['data', 'assembly'],
       ids: 'required',
       params: {
@@ -408,7 +408,7 @@ export const SeqLanguage = defineLanguage({
           type: 'ref',
           kinds: [...ColumnsTargetKinds, 'assembly'],
           required: true,
-          doc: 'The system the ranges are on: a sequence, a molecule’s residues (every unit over it too), a unit, an alignment’s columns, an assembly (by each row’s `target`).',
+          doc: 'The system the ranges are on: a sequence, a molecule’s residues (every unit over it too), a unit, an alignment’s columns, an assembly.',
         },
         rows: {
           type: 'table',
@@ -439,7 +439,7 @@ export const SeqLanguage = defineLanguage({
           type: 'ref',
           kinds: GenomeKinds,
           required: true,
-          doc: 'The system the values are on: a sequence, a molecule’s residues, a unit, an assembly.',
+          doc: 'The system the values are on: a sequence, residues, a unit, an assembly.',
         },
         values: {
           type: 'column',
@@ -539,7 +539,7 @@ export const SeqLanguage = defineLanguage({
             b_strand: { type: 'column', of: 'category', doc: 'The strand of each second end: `+` or `-`.' },
             ...LinkColumns,
           },
-          doc: 'The pairs inline, a column a field (or `source`); an end never wraps. Any other category column rides along as a field of the pairs a data filter reads (`(item :tertiary yes)`).',
+          doc: 'The pairs inline (or `source`), a column a field; an end never wraps. Other columns ride along as fields (`(item :tertiary yes)`).',
         },
         ...fromSource('rows'),
       },
@@ -558,7 +558,7 @@ export const SeqLanguage = defineLanguage({
         values: {
           type: 'column',
           of: 'float32',
-          doc: 'One value per pair, `x`-major (x i, y j at i × |y| + j); NaN missing (or `source`).',
+          doc: 'One value per pair, `x`-major; NaN missing (or `source`).',
         },
         ...fromSource('values'),
       },
@@ -644,7 +644,7 @@ export const SeqLanguage = defineLanguage({
       },
     },
     assembly: {
-      doc: 'A genome assembly: its sequences, a system each, from `sequences` or its source.',
+      doc: 'A genome assembly: a system a sequence.',
       parents: ['data'],
       ids: 'required',
       params: {
@@ -685,7 +685,7 @@ export const SeqLanguage = defineLanguage({
       },
     },
     matrix: {
-      doc: 'A value or a code per item and state (genotypes, methylation).',
+      doc: 'A value or a code per item and state.',
       parents: ['data'],
       ids: 'required',
       params: {
@@ -774,7 +774,7 @@ export const SeqLanguage = defineLanguage({
         system: {
           type: 'ref',
           kinds: ['sequence', 'assembly'],
-          doc: 'The system it draws when not the section’s (a chromosome, an assembly).',
+          doc: 'The system it draws when not the section’s.',
         },
         switch: {
           type: 'string',
@@ -798,7 +798,7 @@ export const SeqLanguage = defineLanguage({
       },
     },
     bridge: {
-      doc: 'A band between two neighbouring sections, drawing pairs across.',
+      doc: 'A band of pairs between two sections.',
       parents: ['view'],
       ids: 'required',
       params: {
@@ -827,7 +827,7 @@ export const SeqLanguage = defineLanguage({
             { type: 'ref', kinds: SectionOfKinds },
             { type: 'list', of: { type: 'ref', kinds: ['assembly'], doc: 'An assembly.' }, 'min-length': 1 },
           ],
-          doc: 'The system shown (an alignment: its columns; a rows system: `<node>/(rows)`), a complex (a block a unit, by `classes`, copies by `copies`), an assembly (a block a sequence) or a list (a group each); required unless it has blocks.',
+          doc: 'The system shown, a complex (a block a unit), an assembly (a block a sequence) or a list; required unless it has blocks.',
         },
         include: { ...Include, doc: 'Of assemblies: the blocks shown; all when absent.' },
         range: {
@@ -919,7 +919,7 @@ export const SeqLanguage = defineLanguage({
             { type: 'string', enum: ['x', 'none'] },
             { type: 'ref', kinds: ['section'] },
           ],
-          doc: 'Grid: what y shows: `x` (when absent: x’s window, so cells are square at aspect 1), a section whose region it shows (mapped onto `of_y`; of blocks: its blocks), or `none` (a window of its own).',
+          doc: 'Grid: what y shows: `x` (when absent: x’s window, so cells are square at aspect 1), a section whose region it shows (mapped onto `of_y`), or `none` (a window of its own).',
         },
         aspect: {
           type: 'union',
@@ -1074,7 +1074,7 @@ export const SeqLanguage = defineLanguage({
       },
     },
     layer: {
-      doc: 'A layer of a track, or of a bridge: data drawn as one type of mark.',
+      doc: 'A layer of a track or bridge: data drawn as one type of mark.',
       parents: ['track', 'bridge'],
       ids: 'required',
       // an extension's type (`rondo:ribbons`) reads plain params beside these: kept, checked by the extension
@@ -1103,7 +1103,7 @@ export const SeqLanguage = defineLanguage({
         data: {
           type: 'ref',
           kinds: ['sequence', 'ranges', 'values', 'alignment', 'pairs', 'grid', 'map', 'matrix'],
-          doc: 'The data it draws (the letters of the section for `letters`, its axis for `ruler`; a `ranges` layer takes `pairs` too: each end a mark at its site; `pairs` a segments `map`).',
+          doc: 'The data it draws (the letters of the section for `letters`, its axis for `ruler`; a `ranges` layer takes `pairs` too: each end a mark at its site).',
         },
         color: channel('The marks’ color: a color, a token, `light-dark(a, b)`, or a theme form.'),
         ink: channel('`letters`: the letters’ color (`auto`: follows its fill, 4.5:1), or a theme form.'),

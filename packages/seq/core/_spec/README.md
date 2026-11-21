@@ -1684,6 +1684,15 @@ Seq\* holds pointers and labels: codes and identifiers are strings.
 - **Linear**: each sequence once; a section's copy groups by a `Map` (Resolved view, Blocks). A quick representative of
   100,000 sequences resolved with `include` to 25 is held under 50 ms.
 
+### Unread params
+
+- **Said, never dropped in silence** (`resolve/unread.ts`): a param the language declares and this version reads nowhere
+  is `seq.resolve.param.unread` (info), one a node, naming the lane that reads it: `map.source` (FR), `pairs.source` and
+  `grid.source` (RG), data over an assembly (GC2), `navigator.switch` (GC3), `block.direction` and `block.scale` (GC2:
+  carried on a derived block's params, not drawn), `section.member_order` and `member_order_y` (LA), a `bridge` (LA),
+  `assembly.names` (GF: the printed names stay the assembly's). The lane that reads one drops it from `Unread`. Why: a
+  reader shown a spec drawn without what it says should be told why.
+
 ### Maps
 
 - **One interface** (`Linear`): the image of `[start, end)` forward and back as runs (`from`, `to`, `length`, `dir`:
@@ -1789,8 +1798,8 @@ Seq\* holds pointers and labels: codes and identifiers are strings.
 `path.none`, `path.ambiguous`, `path.limit`, `complex.units`, `ref.system` (a reference to a sequence, molecule or unit
 that made no system: a unit of a refused complex or of nothing held; what reads it is left out), `assembly.lengths`,
 `assembly.duplicate` (a name twice: the later dropped), `genome.load`, `assembly.alias`, `assembly.mismatch`,
-`assembly.name` (Assemblies), and the overlay's `node.invalid`, `node.ref`, `node.depth`. A test checks the catalog
-against the sources.
+`assembly.name` (Assemblies), `param.unread` (Unread params), and the overlay's `node.invalid`, `node.ref`,
+`node.depth`. A test checks the catalog against the sources.
 
 ## Overlay
 
