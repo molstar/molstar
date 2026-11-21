@@ -354,6 +354,22 @@ describe('canvasTextMetrics', () => {
     expect(sets).toEqual([cssFont('12px sans'), cssFont('bold 10px mono')]);
   });
 
+  it('reads a font\u2019s cap height from the ascent of H, in the font it is set in', () => {
+    let font = '';
+    const ctx = {
+      set font(v: string) {
+        font = v;
+      },
+      measureText: (t: string) => ({
+        width: 0,
+        actualBoundingBoxAscent: t === 'H' ? (font.includes('mono') ? 70 : 72) : 0,
+      }),
+    };
+    const port = canvasTextMetrics(ctx as never, { sans: 'sans-serif', mono: 'monospace' } as never);
+    expect(port.capHeight!('100px sans')).toBe(72);
+    expect(port.capHeight!('100px mono')).toBe(70);
+  });
+
   it('the tip pass is drawn above the labels: on a canvas of its own, redrawn alone with the hover; else on the overlay', () => {
     const base = new FakeCanvas();
     const overlay = new FakeCanvas();
