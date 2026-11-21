@@ -23,6 +23,9 @@ const Chunk = [
   'resolve/assembly-names.ts',
   'resolve/genome-model.ts',
   'resolve/genome-chunk.ts',
+  'resolve/genome-resolve.ts',
+  'resolve/genome-issues.ts',
+  'lang/include-pattern.ts',
   'query/genome-forms.ts',
 ];
 

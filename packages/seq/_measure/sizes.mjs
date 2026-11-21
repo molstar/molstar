@@ -64,8 +64,9 @@ const Unlisted = [
  * its query forms, the first time a spec holds an assembly (or a query names a locus or a block).
  */
 const Deferred = [
-  /seq\/core\/src\/resolve\/(assemblies|assembly-names|genome-model|genome-chunk)\.ts$/,
+  /seq\/core\/src\/resolve\/(assemblies|assembly-names|genome-model|genome-chunk|genome-resolve|genome-issues)\.ts$/,
   /seq\/core\/src\/query\/genome-forms\.ts$/,
+  /seq\/core\/src\/lang\/include-pattern\.ts$/,
 ];
 
 /** The opt-in runtimes: loaded only when a composition lists one. */

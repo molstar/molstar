@@ -19,7 +19,7 @@ import {
   type NameMatch,
   naturalOrder,
 } from './assembly-names.js';
-import { ResolveIssues } from './issues.js';
+import { GenomeIssues } from './genome-issues.js';
 import { sourcePlan } from './model-entries.js';
 import type { AssemblyEntry, AssemblySequence } from './genome.js';
 import type { Placed } from './model-molecules.js';
@@ -53,12 +53,12 @@ export function assemblyEntry(
 ): { entry: AssemblyEntry; systems: SystemEntry[]; issues: Issue[] } {
   const n = at.node;
   const issues: Issue[] = [];
-  const say = (code: keyof typeof ResolveIssues.codes, message: string, key: string) =>
+  const say = (code: keyof typeof GenomeIssues.codes, message: string, key: string) =>
     issues.push(
-      issueOf(ResolveIssues, code, message, {
+      issueOf(GenomeIssues, code, message, {
         address: at.address,
         path: ['params', key],
-        hint: ResolveIssues.codes[code].hint,
+        hint: GenomeIssues.codes[code].hint,
       }),
     );
   const match = (p(n, 'match') ?? 'chr') as NameMatch;

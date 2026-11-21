@@ -112,33 +112,8 @@ export const ResolveIssues = defineIssues('seq.resolve', {
   },
   'seq.resolve.genome.load': {
     severity: 'error',
-    description: 'The genome chunk (assembly resolve) did not load; the assemblies stay pending',
-    hint: 'Check the network and reload, or ask again (`loadGenome`)',
-  },
-  'seq.resolve.assembly.lengths': {
-    severity: 'error',
-    description: 'An assembly’s sequence has no length; the assembly is unavailable',
-    hint: 'Give lengths inline or a `chrom-sizes` source',
-  },
-  'seq.resolve.assembly.duplicate': {
-    severity: 'warning',
-    description: 'Two sequences of an assembly have one name; the later is dropped',
-    hint: 'Give each sequence its own name',
-  },
-  'seq.resolve.assembly.alias': {
-    severity: 'warning',
-    description: 'An alias names two sequences, or two of different lengths; it is dropped',
-    hint: 'Give each alias to one sequence',
-  },
-  'seq.resolve.assembly.mismatch': {
-    severity: 'warning',
-    description: 'A source over an assembly says another (`source.assembly`); still drawn',
-    hint: 'Give the assembly that alias',
-  },
-  'seq.resolve.assembly.name': {
-    severity: 'info',
-    description: 'Rows name sequences the assembly lacks; they are left out',
-    hint: 'Add aliases',
+    description: 'The genome chunk did not load',
+    hint: 'Reload',
   },
   'seq.resolve.node.depth': {
     severity: 'warning',

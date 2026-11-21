@@ -8,5 +8,6 @@
 
 import { assemblyEntry } from './assemblies.js';
 import { assemblyPairs, checkAssemblyData } from './genome-model.js';
+import { assemblyLengths, resolveAssemblies } from './genome-resolve.js';
 
-export const Genome = { assemblyEntry, assemblyPairs, checkAssemblyData };
+export const Genome = { assemblyEntry, assemblyLengths, assemblyPairs, checkAssemblyData, resolveAssemblies };

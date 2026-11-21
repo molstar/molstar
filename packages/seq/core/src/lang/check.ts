@@ -35,7 +35,6 @@ import {
   unitLength,
 } from './check-molecules.js';
 import { checkMapSegments, checkNumberingSegments, mapParamsFit, numberingParamsFit } from './check-maps.js';
-import { includeAtoms } from './include-pattern.js';
 import { LangIssues } from './issues.js';
 import { isExtensionName, SectionOfKinds, SeqLanguage, SeqLanguageVersion, SeqValidateOptions } from './language.js';
 import { followRef, refAddresses } from './refs.js';
@@ -670,7 +669,14 @@ export function checkDataNode(
   }
 }
 
-/** An `include`'s patterns (strings starting with `^`) each one the language takes (`includeAtoms`). */
+/**
+ * The grammar of an `include` pattern (`include-pattern.ts`, which matches them, in the genome chunk): `^`, then atoms
+ * (a class, an escape, a character other than `()|{}?*+$^`), each with at most one `?`, `*`, `+`, then `$`. Bounded
+ * input (256 characters) and no nested repeat of a repeat, so this test is linear too.
+ */
+const IncludeGrammar = /^\^(?:(?:\[\^?(?:\\.|[^\]\\])+\]|\\[^a-zA-Z0-9]|\\[dw]|[^()|{}?*+$^\\[\]])[?*+]?)*\$?$/;
+
+/** An `include`'s patterns (strings starting with `^`) each one the language takes (`IncludeGrammar`). */
 function checkInclude(
   include: Value | undefined,
   say: (code: Code, message: string, ...tail: (string | number)[]) => void,
@@ -678,7 +684,7 @@ function checkInclude(
   const list = Array.isArray(include) ? include : (include as { names?: Value } | undefined)?.names;
   if (!Array.isArray(list)) return;
   list.forEach((x, i) => {
-    if (typeof x === 'string' && x.startsWith('^') && !includeAtoms(x))
+    if (typeof x === 'string' && x.startsWith('^') && !(x.length <= 256 && IncludeGrammar.test(x)))
       say('seq.lang.include.pattern', `Not a pattern this language takes: ${x}`, 'include', i);
   });
 }

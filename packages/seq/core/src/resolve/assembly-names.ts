@@ -9,7 +9,7 @@
 // sequence's), then with `match: chr` with a leading `chr` added or dropped; an exact name always wins, an alias that
 // names two sequences (or joins two of different lengths) is dropped and said, never guessed.
 
-import { includePattern } from '@molstar/seqx-core/lang';
+import { includePattern } from '@molstar/seqx-core/lang/include-pattern';
 
 /** A sequence as the names rule reads it: its name, its length when known, its own aliases. */
 export interface NamedSequence {

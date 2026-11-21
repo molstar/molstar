@@ -8,8 +8,10 @@
 // a query names one (or a spec holds an assembly: resolve's genome chunk loads them with it). Until they land the form
 // waits (incomplete, so its address is `waiting`), never unknown.
 
-import { fail, type Resolve } from './form-kit.js';
+import { issueOf } from '@molstar/core/repr/tree';
+import type { Resolve } from './form-kit.js';
 import type { GenomeForms as Loaded } from './genome-forms.js';
+import { QueryIssues } from './issues.js';
 import { EmptyLocation } from './location.js';
 
 let forms: typeof Loaded | undefined;
@@ -44,7 +46,8 @@ const door =
     // a failed load is the form's error (asked again by the next form); else it waits for the forms
     if (failed) {
       failed = false;
-      return fail('seq.query.form.unsupported', 'The genome forms did not load');
+      ctx.issues.push(issueOf(QueryIssues, 'seq.query.form.unsupported', 'The genome forms did not load'));
+      return kind === 'sequence' ? { type: 'nodes', nodes: [] } : { type: 'location', location: EmptyLocation };
     }
     loadGenomeForms().catch(() => undefined);
     ctx.complete = false;

@@ -10,7 +10,7 @@
 import { exactAddress, type Issue, issueOf, type Node, type Value } from '@molstar/core/repr/tree';
 import { assemblySystem } from './assemblies.js';
 import type { AssemblyEntry } from './genome.js';
-import { ResolveIssues } from './issues.js';
+import { GenomeIssues } from './genome-issues.js';
 import type { Placed } from './model-molecules.js';
 import { overAssembly, type SystemEntry } from './model.js';
 
@@ -27,7 +27,7 @@ export function checkAssemblyData(
   issues: Issue[],
 ): void {
   const say = (code: 'seq.resolve.assembly.mismatch' | 'seq.resolve.assembly.name', message: string, at: Placed) =>
-    issues.push(issueOf(ResolveIssues, code, message, { address: at.address, hint: ResolveIssues.codes[code].hint }));
+    issues.push(issueOf(GenomeIssues, code, message, { address: at.address, hint: GenomeIssues.codes[code].hint }));
   for (const at of data) {
     if (!overAssembly(at.node, assemblies)) continue;
     const a = assemblies.get(exactAddress(p(at.node, 'target') ?? p(at.node, 'a') ?? p(at.node, 'x')) ?? '');
@@ -92,9 +92,9 @@ export function assemblyPairs(
   }
   if (unknown && !(from?.pending || to?.pending))
     issues.push(
-      issueOf(ResolveIssues, 'seq.resolve.assembly.name', `${unknown} runs name no sequence of their assembly`, {
+      issueOf(GenomeIssues, 'seq.resolve.assembly.name', `${unknown} runs name no sequence of their assembly`, {
         address: at.address,
-        hint: ResolveIssues.codes['seq.resolve.assembly.name'].hint,
+        hint: GenomeIssues.codes['seq.resolve.assembly.name'].hint,
       }),
     );
   return [...groups].map(([k, g]) => {
