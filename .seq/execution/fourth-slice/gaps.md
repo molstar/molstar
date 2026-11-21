@@ -46,6 +46,9 @@ under the author's standing permission (`state.md`, Decided). Each a yes or no q
 - **PC** (to merge): the `ranges` layer's `connector` param (`line`, `none`; language 0.5.0) and the `ranges.connector`
   render preset (axis.md, the author's).
 
+- **FX6**: `HeadersParams.submenuRestMs` and `HeadersBehavior.submenuRestMs` (300 ms); core `hitChrome`'s optional
+  `touch`. Keep? Recommended yes.
+
 ## Decisions as recommended
 
 - **ST2**: the link sends every jump that names a Location (`focus`, `reveal`, and back/forward over them); `fit`,

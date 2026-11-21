@@ -7,12 +7,7 @@ queue. Each line: what is seen, where (the story), where it came from, its kind 
 
 ## Open
 
-- **The `⋯` menu's Color submenu does nothing** (bug; the author, 2026-11-21, on Examples/Services): `Color ▸`
-  highlights but no submenu opens or applies. FX6.
-- **A header menu's actions do nothing, and a click on an item goes to the canvas under it** (bug; the author,
-  2026-11-21). FX6.
-- **The pointer over a menu still hovers the view under it** (bug; the author, 2026-11-21): the hover card and the
-  hover emphasis follow the canvas beneath an open header menu. FX6.
+- **A services story test failed once under load** (FX6's run; five runs green alone): watch at the gate's runs.
 
 - **FX3's first item: the quick-lane folders over 2 s** (stage 1's gate, the author, 2026-11-20: "Pass, FX3 fixes
   times"): core 2.8 s, viewer 2.7 s, storybook 2.3 s on a quiet machine (examples 1.6 s; all 8.2 s). The items below
@@ -35,6 +30,9 @@ queue. Each line: what is seen, where (the story), where it came from, its kind 
   visible gap needs `gap_marks` on the rows layer (a gap list in `RowsLay`, canvas and SVG, the image-tile step).
 
 ## Fixed
+
+- **The header menus** (the author's five: items not applied, clicks and hover reaching the view, `Color ▸`, `⋯`
+  opening nothing): FX6 (`c1fc7530a`); a track's default colour no longer moved by another's scheme.
 
 - **A header's submenu closing on the way to it**: an open menu keeps its header's actions shown, FX5 (`fd3b13b01`).
 - **The extension's sites without hover emphasis; at the wrong residues**: FX5 (`fd3b13b01`).
