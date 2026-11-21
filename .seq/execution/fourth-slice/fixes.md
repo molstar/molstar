@@ -7,6 +7,10 @@ queue. Each line: what is seen, where (the story), where it came from, its kind 
 
 ## Open
 
+- **A header's submenu closes before the pointer reaches it** (bug; the author, 2026-11-21): hover a header, click the
+  palette; moving down into the submenu un-reveals the slots and the menu goes with them (seen on SV's services story;
+  the cause in the viewer's header parts and menu). FX5, item 10.
+
 - **FX3's first item: the quick-lane folders over 2 s** (stage 1's gate, the author, 2026-11-20: "Pass, FX3 fixes
   times"): core 2.8 s, viewer 2.7 s, storybook 2.3 s on a quiet machine (examples 1.6 s; all 8.2 s). The items below
   for each folder (core, viewer, storybook) are its notes: waste fixed, nature moved with a quick representative.
