@@ -20,16 +20,75 @@ export interface ItemField {
   readonly value: (item: GffItem) => string | number | null;
 }
 
-/** One sequence's items: pieces sorted by start, each with its item; items sorted by start. */
+/**
+ * Intervals found by a region: the short ones sorted by start with the longest of them (one meeting `start` starts at
+ * `start − maxShort` or later: a binary search and a scan of what is near), the long ones apart (checked each read:
+ * few). Why apart: one chromosome-long feature would make every read scan from the sequence's start (a running
+ * greatest end reaches every region past it).
+ */
+export interface IntervalIndex {
+  /** The short intervals' numbers, by start. */
+  readonly order: Int32Array;
+  readonly starts: Int32Array;
+  readonly maxShort: number;
+  /** The long intervals' numbers. */
+  readonly long: Int32Array;
+}
+
+/** A span past which an interval is long: 64 times the median, at least 4,096 positions. */
+function longSpan(s: ArrayLike<number>, e: ArrayLike<number>): number {
+  if (!s.length) return 4096;
+  const spans = Float64Array.from({ length: s.length }, (_, i) => e[i] - s[i]).sort();
+  return Math.max(4096, 64 * spans[spans.length >> 1]);
+}
+
+export function intervalIndex(s: ArrayLike<number>, e: ArrayLike<number>): IntervalIndex {
+  const limit = longSpan(s, e);
+  const short: number[] = [];
+  const long: number[] = [];
+  let maxShort = 1;
+  for (let i = 0; i < s.length; i++) {
+    if (e[i] - s[i] > limit) long.push(i);
+    else {
+      short.push(i);
+      maxShort = Math.max(maxShort, e[i] - s[i]);
+    }
+  }
+  const order = Int32Array.from(short).sort((a, b) => s[a] - s[b] || a - b);
+  return { order, starts: Int32Array.from(order, (i) => s[i]), maxShort, long: Int32Array.from(long) };
+}
+
+/** Calls `fn` for each interval meeting `[start, end)` (a short one in order of start, then the long ones). */
+function eachMeeting(
+  ix: IntervalIndex,
+  s: ArrayLike<number>,
+  e: ArrayLike<number>,
+  start: number,
+  end: number,
+  fn: (i: number) => void,
+) {
+  const { order, starts } = ix;
+  for (let k = lowerBound(starts.length, (k) => starts[k], start - ix.maxShort); k < starts.length; k++) {
+    if (starts[k] >= end) break;
+    const i = order[k];
+    if (meets(s[i], e[i], start, end)) fn(i);
+  }
+  for (let k = 0; k < ix.long.length; k++) {
+    const i = ix.long[k];
+    if (meets(s[i], e[i], start, end)) fn(i);
+  }
+}
+
+/** One sequence's items: their pieces and the items found by a region (`IntervalIndex` each). */
 export interface SystemItems {
   readonly items: readonly GffItem[];
   readonly pStart: Int32Array;
   readonly pEnd: Int32Array;
   readonly pItem: Int32Array;
-  readonly maxPiece: number;
-  /** Items by start, and the longest item (an item meeting `start` starts at `start − maxItem` or later). */
-  readonly iOrder: Int32Array;
-  readonly maxItem: number;
+  readonly pieces: IntervalIndex;
+  readonly iStart: Int32Array;
+  readonly iEnd: Int32Array;
+  readonly itemsBy: IntervalIndex;
   readonly maxEnd: number;
 }
 
@@ -44,34 +103,34 @@ function orderBy(n: number, key: (i: number) => number): Int32Array {
 export function systemItems(items: readonly GffItem[]): SystemItems {
   let n = 0;
   for (const it of items) n += it.pieces.length / 2;
-  const s: number[] = [];
-  const e: number[] = [];
-  const owner: number[] = [];
-  let maxPiece = 1;
-  let maxItem = 1;
-  let maxEnd = 0;
-  for (let i = 0; i < items.length; i++) {
-    const p = items[i].pieces;
-    for (let k = 0; k + 1 < p.length; k += 2) {
-      s.push(p[k]);
-      e.push(p[k + 1]);
-      owner.push(i);
-      maxPiece = Math.max(maxPiece, p[k + 1] - p[k]);
-    }
-    maxItem = Math.max(maxItem, items[i].end - items[i].start);
-    maxEnd = Math.max(maxEnd, items[i].end);
-  }
-  const order = orderBy(n, (i) => s[i]);
   const pStart = new Int32Array(n);
   const pEnd = new Int32Array(n);
   const pItem = new Int32Array(n);
-  for (let k = 0; k < n; k++) {
-    pStart[k] = s[order[k]];
-    pEnd[k] = e[order[k]];
-    pItem[k] = owner[order[k]];
+  const iStart = new Int32Array(items.length);
+  const iEnd = new Int32Array(items.length);
+  let maxEnd = 0;
+  for (let i = 0, j = 0; i < items.length; i++) {
+    const p = items[i].pieces;
+    for (let k = 0; k + 1 < p.length; k += 2, j++) {
+      pStart[j] = p[k];
+      pEnd[j] = p[k + 1];
+      pItem[j] = i;
+    }
+    iStart[i] = items[i].start;
+    iEnd[i] = items[i].end;
+    maxEnd = Math.max(maxEnd, items[i].end);
   }
-  const iOrder = orderBy(items.length, (i) => items[i].start);
-  return { items, pStart, pEnd, pItem, maxPiece, iOrder, maxItem, maxEnd };
+  return {
+    items,
+    pStart,
+    pEnd,
+    pItem,
+    pieces: intervalIndex(pStart, pEnd),
+    iStart,
+    iEnd,
+    itemsBy: intervalIndex(iStart, iEnd),
+    maxEnd,
+  };
 }
 
 /** The first index of `sorted` (by `at`) whose value is at least `v`. */
@@ -95,26 +154,21 @@ const meets = (s: number, e: number, start: number, end: number) => s < end && M
 export function rowsIn(sys: SystemItems, start: number, end: number): number[] {
   const out: number[] = [];
   if (end <= start) return out;
-  const { pStart, pEnd, pItem, items, iOrder } = sys;
+  const { pStart, pEnd, pItem, iStart, iEnd } = sys;
   const held = new Set<number>();
-  for (let k = lowerBound(pStart.length, (k) => pStart[k], start - sys.maxPiece); k < pStart.length; k++) {
-    if (pStart[k] >= end) break;
-    if (!meets(pStart[k], pEnd[k], start, end)) continue;
+  eachMeeting(sys.pieces, pStart, pEnd, start, end, (k) => {
     out.push(pStart[k], pEnd[k], pItem[k]);
     held.add(pItem[k]);
-  }
+  });
   const spans: number[] = [];
-  for (let k = lowerBound(iOrder.length, (k) => items[iOrder[k]].start, start - sys.maxItem); k < iOrder.length; k++) {
-    const i = iOrder[k];
-    const it = items[i];
-    if (it.start >= end) break;
-    if (held.has(i) || !meets(it.start, it.end, start, end)) continue;
-    const at = Math.max(start, it.start);
+  eachMeeting(sys.itemsBy, iStart, iEnd, start, end, (i) => {
+    if (held.has(i)) return;
+    const at = Math.max(start, iStart[i]);
     spans.push(at, at, i);
-  }
-  if (!spans.length) return out;
-  // merged by start (a span row beside the pieces of others)
-  const all = [...out, ...spans];
+  });
+  // in order of start (a long piece or a span row beside the pieces of others)
+  if (!spans.length && !sys.pieces.long.length) return out;
+  const all = spans.length ? out.concat(spans) : out;
   const order = orderBy(all.length / 3, (r) => all[3 * r]);
   const merged: number[] = [];
   for (const r of order) merged.push(all[3 * r], all[3 * r + 1], all[3 * r + 2]);
@@ -166,6 +220,12 @@ export function fieldInfos(fields: readonly ItemField[]): FieldInfo[] {
   return [...fields.map((f) => ({ name: f.name, type: f.type })), { name: 'strand', type: 'int8' as const }];
 }
 
+/** An item's label: GFF3's `Name`, a gene's `gene_name` or a transcript's `transcript_name` (GTF), else its id. */
+export function labelOf(it: GffItem): string {
+  const a = it.attributes;
+  return a.Name ?? (it.role === 'gene' ? a.gene_name : (a.transcript_name ?? a.gene_name)) ?? it.id;
+}
+
 /** An entry of the name index: a name's item, the field it was found in. */
 interface NameEntry {
   readonly item: GffItem;
@@ -190,9 +250,13 @@ export class NameIndex {
   ) {
     for (const item of items)
       for (const field of fields) {
+        // GTF writes its gene's names on every line: a transcript's `gene_name` and `gene_id` name its gene, not it
+        if ((field === 'gene_name' || field === 'gene_id') && item.role === 'transcript' && item.gene !== undefined)
+          continue;
         const v = item.attributes[field] ?? (field === 'ID' && item.role !== 'feature' ? item.id : undefined);
         if (v === undefined) continue;
-        for (const name of field === 'Alias' ? v.split(',') : [v]) {
+        // a multi-valued attribute by its values (split before decoding: an encoded comma is part of a name)
+        for (const name of item.lists?.[field] ?? [v]) {
           const key = name.trim().toLowerCase();
           if (!key) continue;
           let list = this.byName.get(key);
@@ -218,7 +282,7 @@ export class NameIndex {
         const key = `${it.id}|${it.seqid}|${it.start}|${it.end}|${e.field}`;
         if (seen.has(key)) continue;
         seen.add(key);
-        const label = it.attributes.Name ?? it.attributes.transcript_name ?? it.attributes.gene_name ?? e.value;
+        const label = labelOf(it);
         out.push({
           system: it.seqid,
           start: it.start,

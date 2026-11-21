@@ -29,7 +29,16 @@ import {
 } from './gff-assemble.js';
 import { GffCauses } from './gff-issues.js';
 import { type GffFormat, type GffRow, MaxAttributes, parseGff } from './gff-parse.js';
-import { fieldInfos, type ItemField, NameIndex, rangesOf, rowsIn, type SystemItems, systemItems } from './gff-read.js';
+import {
+  fieldInfos,
+  type ItemField,
+  labelOf,
+  NameIndex,
+  rangesOf,
+  rowsIn,
+  type SystemItems,
+  systemItems,
+} from './gff-read.js';
 import { decodeText, textBytes } from './internal/text.js';
 
 // GFF3 and GTF (_spec/README.md "Data", GFF3 and GTF), the opt-in runtime `@molstar/seqx-core/runtimes/gff`: a file read
@@ -97,31 +106,23 @@ function failure(kind: FailureKind, message: string): RegionAnswer & { ok: false
   return { ok: false, kind, issue: issueOf(SourceIssues, code, message) };
 }
 
-/** An item's label: GFF3's `Name`, GTF's `transcript_name` or `gene_name`, else its id. */
-function labelOf(it: GffItem): string {
-  const a = it.attributes;
-  return a.Name ?? (it.role === 'gene' ? a.gene_name : (a.transcript_name ?? a.gene_name)) ?? it.id;
-}
-
-/** The items of the file's lines (`features: rows`): rows sharing an `ID` one item, its pieces those rows. */
+/** The items of the file's lines (`features: rows`): rows sharing an `ID` one item, its pieces those rows, collected
+ * once and merged once (linear in the lines). */
 function rowItems(rows: readonly GffRow[]): (GffItem & { readonly row: GffRow })[] {
   const out: (GffItem & { readonly row: GffRow })[] = [];
-  const byId = new Map<string, number>();
+  /** An `ID`'s item and the pieces its rows gave, merged at the end. */
+  const byId = new Map<string, { k: number; start: number; end: number; pieces: number[] }>();
   const seen = new Map<string, number>();
   for (const r of rows) {
     if (r.id !== undefined) {
-      const k = byId.get(r.id);
-      if (k !== undefined) {
-        const it = out[k];
-        out[k] = {
-          ...it,
-          start: Math.min(it.start, r.start),
-          end: Math.max(it.end, r.end),
-          pieces: mergeIntervals([...it.pieces, r.start, r.end]),
-        };
+      const g = byId.get(r.id);
+      if (g !== undefined) {
+        g.start = Math.min(g.start, r.start);
+        g.end = Math.max(g.end, r.end);
+        g.pieces.push(r.start, r.end);
         continue;
       }
-      byId.set(r.id, out.length);
+      byId.set(r.id, { k: out.length, start: r.start, end: r.end, pieces: [r.start, r.end] });
     }
     const base = r.id ?? `${r.type}:${r.start + 1}-${r.end}`;
     const k = (seen.get(base) ?? 0) + 1;
@@ -136,10 +137,13 @@ function rowItems(rows: readonly GffRow[]): (GffItem & { readonly row: GffRow })
       strand: r.strand,
       pieces: [r.start, r.end],
       attributes: r.attributes,
+      ...(r.lists ? { lists: r.lists } : {}),
       line: r.line,
       row: r,
     });
   }
+  for (const g of byId.values())
+    if (g.pieces.length > 2) out[g.k] = { ...out[g.k], start: g.start, end: g.end, pieces: mergeIntervals(g.pieces) };
   return out;
 }
 
@@ -147,8 +151,9 @@ function rowItems(rows: readonly GffRow[]): (GffItem & { readonly row: GffRow })
 function itemsOf(features: GffFeatures, a: Assembly, rows: readonly GffRow[]): GffItem[] {
   if (features === 'rows') return rowItems(rows);
   if (features === 'transcripts') return [...a.transcripts, ...a.features];
+  // one model a gene: the genes, and the transcripts with none (a gene-level item of their own); no other feature
   const genes = new Set(a.genes.map((g) => g.id));
-  return [...a.genes, ...a.transcripts.filter((t) => t.gene === undefined || !genes.has(t.gene)), ...a.features];
+  return [...a.genes, ...a.transcripts.filter((t) => t.gene === undefined || !genes.has(t.gene))];
 }
 
 /** The fields of the items: the fixed ones, then the attributes in order of first use, at most `MaxAttributes`. */

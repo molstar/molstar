@@ -1327,38 +1327,47 @@ answers, the name index). `gff3` stays the records preset's (flat) unless a host
   (`.fasta`, info). An `index` is said (`.index`) and the file read whole: by region is to come.
 - **Lines**: nine tab-separated columns, else left out (`.line`, warning, with its number; GTF's `seq.source.gtf.line`),
   as are positions not whole numbers from 1 to 2^31 − 1 and an end before its start. GFF3's attributes `key=value;`,
-  percent-decoded (`Parent` and `Alias` lists by `,`); GTF's `key "value";` (unquoted numbers too, a `;` inside quotes
-  kept, a key repeated joined by `,`: GENCODE's `tag`). At most 256 attributes a row (`MaxAttributes`), the rest dropped
-  (`.attributes`). Identity and parents by the format: GFF3's `ID`, `Parent`; GTF's `gene_id` (a gene line's id, a
-  transcript line's parent), `transcript_id` (a transcript line's id, the other lines' parent).
+  percent-decoded (the multi-valued `Parent`, `Alias`, `Dbxref`, `Ontology_term` split on `,` before decoding: `%2C` is
+  part of a value; walked, never split whole, as are a line's tabs, counted before it is split); GTF's `key "value";`
+  (unquoted numbers too, a `;` inside quotes kept, a key repeated joined by `,`: GENCODE's `tag`). At most 256
+  attributes a row (`MaxAttributes`), the rest dropped (`.attributes`). Identity and parents by the format: GFF3's `ID`,
+  `Parent`; GTF's `gene_id` (a gene line's id, a transcript line's parent), `transcript_id` (a transcript line's id, the
+  other lines' parent).
 - **The hierarchy** (`assembleTranscripts(rows, { transcriptTypes })`, pure, tested alone; EC-227): rows sharing an `ID`
   are one feature. A feature is a **transcript** when its type is one of `transcriptTypes` (`DefaultTranscriptTypes`:
   the SO types Ensembl, GENCODE, NCBI and Prokka write; any `*_transcript` too), a row a **piece** when its type is one
   of `PieceTypes` (`exon`, `CDS`, the UTRs, GTF's codons), a **gene** when a transcript names it as parent. A piece
   whose parent is of another type (a prokaryote's gene → CDS) makes the parent a transcript, counted by type (`.type`,
-  info: add it to `transcriptTypes`). A piece naming several parents is a piece of each. A `Parent` cycle or a chain
-  deeper than 16 (`MaxDepth`) leaves those rows items of their own (`.parent`, warning), as does a parent no line has in
+  info: add it to `transcriptTypes`). A piece naming several parents is a piece of each. A gene of a transcript is never
+  made a transcript by a piece naming it directly (the mRNA keeps its gene; the piece is a feature of its own). A
+  `Parent` cycle or a chain deeper than 16 (`MaxDepth`, found by an explicit stack: a chain of any length never
+  overflows the call stack) leaves those rows items of their own (`.parent`, warning), as does a parent no line has in
   GFF3; in GTF a transcript or gene with no line is made from its rows (its extent their hull: exact read whole; with an
   `index`, `seq.source.gtf.extent` warns that by region it would be partial). A child outside its parent's extent is
   said (`.extent`). A transcript's pieces are its exons, else its CDS and UTRs merged; `thick_start`, `thick_end` the
   hull of its CDS and codons (GTF writes the stop codon after the CDS); `cds_phase` its first CDS's phase in its
   direction; its extent its own line's. A gene's item merges its transcripts' pieces and thick parts. Every other
   feature an item by `ID` (its rows its pieces), else the line alone (`type:start-end`, `#2` on a repeat).
-- **`features`** (a source param): `transcripts` (absent: the transcripts and the other features), `genes` (a gene's
-  item, transcripts without a gene, the others) or `rows` (the file's lines, rows sharing an `ID` one item). A `region`,
-  `chromosome` or `supercontig` feature from a sequence's first position to its length describes the sequence (its
-  length when no directive says it), never an item (`.region`, info): Ensembl writes one a chromosome.
+- **`features`** (a source param): `transcripts` (absent: the transcripts and the other features), `genes` (one model a
+  gene: a gene's item and the transcripts without a gene, no other feature) or `rows` (the file's lines, rows sharing an
+  `ID` one item). A `region`, `chromosome` or `supercontig` feature from a sequence's first position to its length
+  describes the sequence (its length when no directive says it), never an item (`.region`, info): Ensembl writes one a
+  chromosome.
 - **Tables**: `ranges` lists at level 1 and at the level whose one tile holds the longest system (`wholeLevel`). Each
   row a piece with its item's `id`, `strand` (and a field `strand`), `itemStart`, `itemEnd`, and fields `label` (`Name`,
   GTF's `transcript_name` or `gene_name`, else the id), `type`, `gene`, `gene_name`, `thick_start`, `thick_end`
   (float64, NaN none), `cds_phase` (int8, −1 none), then the attributes as categories in order of first use, at most 256
   names (`ID` and `Parent` not fields); `rows` has `source`, `score` (float32) and `phase` (int8) instead of the gene's.
   A region meeting an item with no piece in it (inside an intron) gives one **span row** (`start = end` at the region's
-  clipped start of the item, with its extent: EC-229).
+  clipped start of the item, with its extent: EC-229). Pieces and items are found by a region from an index by start of
+  the short ones (a binary search, then what is near) and a list of the long ones (past 64 times the median span, at
+  least 4,096), so one chromosome-long feature never makes every read scan the sequence.
 - **Names** (EC-228): a map from each lowercased value of GFF3's `Name`, `ID`, `Alias` or GTF's `gene_name`, `gene_id`,
   `transcript_name`, `transcript_id` to its items (genes, transcripts and features, whatever `features` serves), built
   once at open; `findNames` gives the exact names, then by prefix from the sorted names, each item once a field; a hit's
-  `id` is the item's only when `features` serves it (else its range addresses it); `Coverage.names` the fields.
+  `id` is the item's only when `features` serves it (else its range addresses it); `Coverage.names` the fields. GTF's
+  `gene_name` and `gene_id` are a gene's names, not its transcripts' (GTF writes them on every line); a hit's label by
+  the items' label rule.
 - **Bounds**: bytes after inflating (`limits.maxBytes`), data lines (`limits.maxRows`, counted as they are read,
   `seq.source.too_large`), attributes a row and attribute names (256), the chain's depth (16), a region's rows.
 - **Configuration**:
@@ -1373,8 +1382,10 @@ answers, the name index). `gff3` stays the records preset's (flat) unless a host
   `assembleTranscripts` alone (three levels, a shared exon, CDS only, GTF with and without transcript lines, a cycle, a
   chain past 16, a prokaryote's gene, a type outside the list, attributes past 256); span rows; lengths; the name index;
   fuzzed and truncated files without a throw. Its synthetic twin is `delayedRuntime(GffRuntime)`.
-- **Performance**: 100,000 GFF3 lines assembled under 500 ms (heavy, `itWithin`), 10,000 in the quick lane. Size: its
-  own row under 30 kB (24.3 kB minified, io's BGZF reader in it); in no viewer bundle.
+- **Performance**: 100,000 GFF3 lines assembled under 500 ms (heavy, `itWithin`), 10,000 in the quick lane;
+  `features: rows` of 40,000 lines of one `ID` under 500 ms, 2,000 region reads beside a chromosome-long feature under
+  200 ms, 50 lines of a million tabs refused under 200 ms (heavy). Size: its own row under 30 kB (24.3 kB minified, io's
+  BGZF reader in it); in no viewer bundle.
 
 ### mmCIF
 

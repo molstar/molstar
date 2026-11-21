@@ -317,8 +317,9 @@ describe('the runtime', () => {
 
   it('genes: one item a gene, its transcripts’ exons merged, its CDS hull; rows: the file’s lines', async () => {
     const g = await read(await open({ features: 'genes' } as never), 'c', 0, 1000);
-    expect(columnValues(g.id!)).toEqual(['g1', 'g1', 'g1', 'repeat_region:950-990']);
-    expect(Array.from(g.start)).toEqual([99, 599, 799, 949]);
+    // one model a gene: the repeat region is no item of `genes`
+    expect(columnValues(g.id!)).toEqual(['g1', 'g1', 'g1']);
+    expect(Array.from(g.start)).toEqual([99, 599, 799]);
     expect(field(g, 'thick_start')[0]).toBe(149);
     const r = await read(await open({ features: 'rows' } as never), 'c', 0, 1000);
     expect(r.start.length).toBe(9);

@@ -74,6 +74,8 @@ export interface GffItem {
   readonly geneName?: string;
   /** Its line's attributes (a synthesized one's: its first child's). */
   readonly attributes: Readonly<Record<string, string>>;
+  /** Its line's multi-valued attributes (GFF3's `Alias`, …), each value decoded after the split. */
+  readonly lists?: Readonly<Record<string, readonly string[]>>;
   /** Its first line. */
   readonly line: number;
   /** Made from its children: no line of its own (GTF 2.2's transcripts, a missing parent). */
@@ -186,25 +188,37 @@ export function assembleTranscripts(rows: readonly GffRow[], options: AssembleOp
   const flat = new Set<string>();
   const cycles: number[] = [];
   const deep: number[] = [];
+  // a feature's depth by an explicit stack (a chain of 20,000 never overflows the call stack), saturated past
+  // `MaxDepth` (deeper is flat whatever its depth); −1 in or under a cycle
   const onPath = new Set<string>();
-  const visit = (id: string): number => {
-    const known = depth.get(id);
+  const stack: { id: string; next: number; d: number }[] = [];
+  const visit = (root: string): number => {
+    const known = depth.get(root);
     if (known !== undefined) return known;
-    if (onPath.has(id)) return -1;
-    onPath.add(id);
-    let d = 0;
-    for (const p of parentsOf(id)) {
-      if (!byId.has(p)) continue;
-      const pd = visit(p);
-      if (pd < 0) {
-        d = -1;
-        break;
+    stack.push({ id: root, next: 0, d: 0 });
+    onPath.add(root);
+    while (stack.length) {
+      const f = stack[stack.length - 1];
+      const ps = parentsOf(f.id);
+      if (f.d >= 0 && f.next < ps.length) {
+        const p = ps[f.next++];
+        if (!byId.has(p)) continue;
+        const pd = depth.get(p);
+        if (pd !== undefined) f.d = pd < 0 ? -1 : Math.max(f.d, Math.min(pd + 1, MaxDepth + 1));
+        else if (onPath.has(p)) f.d = -1;
+        else {
+          stack.push({ id: p, next: 0, d: 0 });
+          onPath.add(p);
+        }
+        continue;
       }
-      d = Math.max(d, pd + 1);
+      stack.pop();
+      onPath.delete(f.id);
+      depth.set(f.id, f.d);
+      const child = stack[stack.length - 1];
+      if (child) child.d = f.d < 0 || child.d < 0 ? -1 : Math.max(child.d, Math.min(f.d + 1, MaxDepth + 1));
     }
-    onPath.delete(id);
-    depth.set(id, d);
-    return d;
+    return depth.get(root)!;
   };
   for (const id of byId.keys()) {
     const d = visit(id);
@@ -226,13 +240,21 @@ export function assembleTranscripts(rows: readonly GffRow[], options: AssembleOp
   const promoted = new Map<string, number>();
   const transcriptIds = new Set<string>();
   const used = new Set<number>();
-  for (const [id, f] of byId) if (!flat.has(id) && isTranscript(rows[f.rows[0]].type)) transcriptIds.add(id);
+  // the live parents of transcripts are genes: a piece naming one directly never makes it a transcript (its mRNA
+  // keeps its gene); the piece is a feature of its own
+  const genesOf = new Set<string>();
+  for (const [id, f] of byId) {
+    if (flat.has(id) || !isTranscript(rows[f.rows[0]].type)) continue;
+    transcriptIds.add(id);
+    for (const p of rows[f.rows[0]].parents) if (live(p)) genesOf.add(p);
+  }
   for (let i = 0; i < rows.length; i++) {
     const r = rows[i];
     if (!isPiece.has(r.type) || (r.id !== undefined && flat.has(r.id))) continue;
     let any = false;
     for (const p of r.parents) {
       if (live(p)) {
+        if (genesOf.has(p) && !transcriptIds.has(p)) continue;
         if (!transcriptIds.has(p)) {
           // a prokaryote's gene → CDS: the parent a transcript-level item
           const t = rows[byId.get(p)!.rows[0]].type;
@@ -305,6 +327,7 @@ export function assembleTranscripts(rows: readonly GffRow[], options: AssembleOp
       ...got,
       ...(gene ? { gene } : {}),
       attributes: head.attributes,
+      ...(head.lists ? { lists: head.lists } : {}),
       line: head.line,
     });
     for (const r of f.rows) used.add(r);
@@ -332,7 +355,8 @@ export function assembleTranscripts(rows: readonly GffRow[], options: AssembleOp
     let start = Number.POSITIVE_INFINITY;
     let end = Number.NEGATIVE_INFINITY;
     for (const t of ts) {
-      all.push(...t.pieces);
+      // no spread: a transcript of 200,000 exons passes no 400,000 arguments
+      for (let k = 0; k < t.pieces.length; k++) all.push(t.pieces[k]);
       if (t.thickStart !== undefined) {
         ts0 = Math.min(ts0, t.thickStart);
         te0 = Math.max(te0, t.thickEnd!);
@@ -356,6 +380,7 @@ export function assembleTranscripts(rows: readonly GffRow[], options: AssembleOp
       gene: id,
       ...(name !== undefined ? { geneName: name } : {}),
       attributes,
+      ...(head?.lists ? { lists: head.lists } : {}),
       line: head?.line ?? ts[0].line,
       ...(f ? {} : { synthetic: true }),
     });
@@ -405,6 +430,7 @@ function featureItem(r: GffRow, id: string, start: number, end: number, pieces: 
     strand: r.strand,
     pieces,
     attributes: r.attributes,
+    ...(r.lists ? { lists: r.lists } : {}),
     line: r.line,
   };
 }

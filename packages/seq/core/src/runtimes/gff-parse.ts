@@ -34,6 +34,8 @@ export interface GffRow {
   readonly phase: number;
   /** In file order, values decoded; a GTF key repeated joined by `,`. */
   readonly attributes: Readonly<Record<string, string>>;
+  /** GFF3's multi-valued attributes (`MultiValued`) as their values, each decoded after the split. */
+  readonly lists?: Readonly<Record<string, readonly string[]>>;
   /** GFF3's `ID`; GTF's `gene_id` on a gene line, `transcript_id` on a transcript line. */
   readonly id?: string;
   /** GFF3's `Parent` list; GTF's `gene_id` of a transcript line, `transcript_id` of the others. */
@@ -74,20 +76,52 @@ function positionOf(cell: string): number | undefined {
   return v >= 1 && v <= MaxPosition ? v : undefined;
 }
 
-/** GFF3's attributes: `key=value` pairs by `;`, decoded; a key written twice keeps the last. */
-function gff3Attributes(cell: string, keep: (count: number) => boolean): Record<string, string> {
-  const a: Record<string, string> = Object.create(null);
-  if (cell === '.' || cell === '') return a;
-  let count = 0;
-  for (const part of cell.split(';')) {
-    const eq = part.indexOf('=');
-    if (eq <= 0) continue;
-    const key = part.slice(0, eq).trim();
-    if (!key) continue;
-    if (!(key in a) && !keep(++count)) continue;
-    a[key] = gffDecode(part.slice(eq + 1));
+/** GFF3's attributes of several values (the specification's), split on `,` before each value is decoded. */
+export const MultiValued: ReadonlySet<string> = new Set(['Parent', 'Alias', 'Dbxref', 'Ontology_term']);
+
+/** A multi-valued attribute's values: split on `,` (at most `MaxAttributes`), each decoded, empty ones dropped. */
+function values(raw: string): string[] {
+  const out: string[] = [];
+  for (let s = 0; s <= raw.length && out.length < MaxAttributes; ) {
+    let e = raw.indexOf(',', s);
+    if (e < 0) e = raw.length;
+    if (e > s) out.push(gffDecode(raw.slice(s, e)));
+    s = e + 1;
   }
-  return a;
+  return out;
+}
+
+/**
+ * GFF3's attributes: `key=value` pairs by `;` (walked, never split whole: a cell of a million `;` allocates no list),
+ * decoded; a key written twice keeps the last; the multi-valued ones split on `,` before decoding (an encoded comma,
+ * `%2C`, is part of a value). Past `MaxAttributes` keys the walk stops.
+ */
+function gff3Attributes(
+  cell: string,
+  keep: (count: number) => boolean,
+): { a: Record<string, string>; lists?: Record<string, string[]> } {
+  const a: Record<string, string> = Object.create(null);
+  let lists: Record<string, string[]> | undefined;
+  if (cell === '.' || cell === '') return { a };
+  let count = 0;
+  for (let s = 0; s < cell.length; ) {
+    let e = cell.indexOf(';', s);
+    if (e < 0) e = cell.length;
+    const eq = cell.indexOf('=', s);
+    const at = s;
+    s = e + 1;
+    if (eq < 0 || eq >= e || eq === at) continue;
+    const key = cell.slice(at, eq).trim();
+    if (!key) continue;
+    if (!(key in a) && !keep(++count)) break;
+    const raw = cell.slice(eq + 1, e);
+    if (MultiValued.has(key)) {
+      const v = values(raw);
+      (lists ??= Object.create(null) as Record<string, string[]>)[key] = v;
+      a[key] = v.join(',');
+    } else a[key] = gffDecode(raw);
+  }
+  return lists ? { a, lists } : { a };
 }
 
 /**
@@ -124,6 +158,7 @@ function gtfAttributes(cell: string, keep: (count: number) => boolean): Record<s
     if (i < n && cell.charCodeAt(i) !== 59) return undefined;
     if (key in a) a[key] = `${a[key]},${value}`;
     else if (keep(++count)) a[key] = value;
+    else break;
   }
   return a;
 }
@@ -180,7 +215,10 @@ export function parseGff(
       causes.add('seq.source.gff.encoding', 'Replacement characters (U+FFFD)', `line ${line}`);
     }
     const place = `line ${line}`;
-    const cells = l.split('\t');
+    // the tabs counted before the line is split: a line of a million tabs allocates no list
+    let tabs = 0;
+    for (let t = l.indexOf('\t'); t >= 0 && tabs < 9; t = l.indexOf('\t', t + 1)) tabs++;
+    const cells = tabs === 8 ? l.split('\t') : [];
     if (cells.length !== 9) {
       causes.add(lineCode, `Not nine tab-separated columns`, place);
       continue;
@@ -207,7 +245,9 @@ export function parseGff(
       dropped = true;
       return false;
     };
-    const attributes = format === 'gtf' ? gtfAttributes(cells[8], keep) : gff3Attributes(cells[8], keep);
+    const read = format === 'gtf' ? { a: gtfAttributes(cells[8], keep) } : gff3Attributes(cells[8], keep);
+    const attributes = read.a;
+    const lists = 'lists' in read ? read.lists : undefined;
     if (!attributes) {
       causes.add(lineCode, 'Attributes that are not `key "value";`', place);
       continue;
@@ -219,8 +259,7 @@ export function parseGff(
     let parents: string[];
     if (format === 'gff3') {
       id = attributes.ID;
-      const p = attributes.Parent;
-      parents = p ? p.split(',').filter((x) => x.length > 0) : [];
+      parents = lists?.Parent ?? [];
     } else if (type === 'gene') {
       id = attributes.gene_id;
       parents = [];
@@ -241,6 +280,7 @@ export function parseGff(
       strand,
       phase,
       attributes,
+      ...(lists ? { lists } : {}),
       ...(id ? { id } : {}),
       parents,
       line,
