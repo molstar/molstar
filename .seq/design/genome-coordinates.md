@@ -342,7 +342,9 @@ opens a genome pays nothing for it, and the minimal and headless entries keep th
 - **The window** is the bound section's viewport carried along its path, as before: the same block list, identity in
   units (a window across two chromosomes one window over the gap); a section of one chromosome, into that chromosome's
   block, the other blocks washed (unreachable, as built). So **switching chromosomes is a jump on a section of the
-  assembly**: a click on another chromosome centres the view there (`navigator.center`), a sweep zooms to the region
+  assembly**: a click on another chromosome jumps there, from a chromosome shown whole to the picked one whole, zoomed
+  in to the same width at the same relative place, whole where wider (the author, 2026-11-21: "feels weird to go from
+  longer to shorter chromosome"; `block.next`, `.previous` and the square the same), a sweep zooms to the region
   swept, Alt+Left returns; a section of one chromosome cannot switch (its `of` is the figure's), and its navigator says
   so by the wash.
 - **The zoom strip over several systems**: on a navigator over blocks, when the window is narrower than
@@ -496,7 +498,7 @@ Cells this design fills or changes; the others stand as the axis, layouts and na
 | a block's ruler at its own density; overlapping blocks lit together; a ribbon's twist by the three directions | fixed | — | the reasons in the Decision |
 | the hue per block's domain (the blocks in order) | fixed | — | known up front, never by region (EC-191) |
 
-Not built: the navigator rows, `navigate.acrossBlocks`, the keys, `navigator.switch` (GC3); data over an assembly read by sequence (its unread info stays).
+Not built: `system` as a list of assemblies; an ideogram's bands over every chromosome and data over an assembly read by sequence (its unread info stays); the square's cells (RG) and its grips.
 
 ## Tensions
 

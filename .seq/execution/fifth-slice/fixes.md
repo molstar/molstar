@@ -10,7 +10,7 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   Mb) to about 20 bases in one double-click; GC2's row did the same. A double-click should zoom one step (or fit the
   item under the pointer), not to the closest zoom. GC3 takes it on blocks; the plain section's case is the fix lane's.
 
-- **GC2's leftovers from my second look** (2026-11-21, after its fix round; taken by GC3's brief):
+- **GC2's leftovers from my second look** (2026-11-21, after its fix round; fixed by GC3, `61e71891b`):
   - a double-click on the 25-block row zooms to bases (161,976,790) instead of fitting the block;
   - B in A's order: the reversed middle block of chr2 shows no label at all, though "chr2 ←" fits;
   - the hover card calls a chromosome a "Chain" (`Chain chr3`, `Chain chr2 inv`): the row's name for a block's system;

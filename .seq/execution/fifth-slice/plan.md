@@ -165,7 +165,7 @@ fix point with nothing open is skipped. A finding that needs a design is a drift
 - [x] **GC2** (merged 2026-11-21, `db2364d09`) (`briefs/gc2-genome-axis.md`; after GC1, beside SC: render only) the axis and layouts: blocks with their
       own direction and scale (rulers, the direction mark, `×N`), the gap share on rows and rings, runs of small blocks,
       group gaps and labels, `section.center`, the `block` and `system` fields' domain, export attributes.
-- [ ] **GC3** (`briefs/gc3-genome-navigators.md`; after GC2 and SC) navigators and the viewer: windows over blocks, the
+- [x] **GC3** (merged 2026-11-21, `61e71891b`) (`briefs/gc3-genome-navigators.md`; after GC2 and SC) navigators and the viewer: windows over blocks, the
       square over blocks × blocks, `navigator.switch`; `navigate.acrossBlocks`, the cursor across blocks (EC-154
       amended), `block.next`, `.previous`, `.reverse`, `section.include` commands, the label menu's entries; history
       by `{ system, position }`; the locus box's fallback to `findNames` (after BZ's types).
