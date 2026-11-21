@@ -184,7 +184,10 @@ nothing without a use; the fixed behaviors below are fixed partly so.
   run's end to the next's start; the runs' ends there stay square. It is part of the item: hovering it is hovering the
   item, and its emphasis follows the item's. Across a break (zero units wide) nothing is drawn. Why: a gene model's
   convention, so the pieces read as one item, not as several. Configurable (Configuration: `layer.connector`, `none`
-  turns it off; its width and ink a `RenderConfig` preset).
+  turns it off; its width and ink a `RenderConfig` preset). With `pad`, a gap that holds shown positions on both sides of a collapsed break is one
+  gap: the connector runs through it, the break's hairline drawn over it. Only a hover that lifts a residue through a
+  codon map lights its own section (its codon on the section's letters tracks); an item through a path lights its
+  outline and its connector, nothing else (ux-foundations: "nothing else changes").
 
 ### Letters through a path
 
