@@ -36,7 +36,7 @@ interface Row {
 
 const Fixtures = join(PackageFolder, 'fixtures');
 /** The datasets recorded by the script (the `files` folder is the Files feature's own tables). */
-const Datasets = ['p53', 'globins', 'complex', 'antibody', 'services'];
+const Datasets = ['p53', 'globins', 'complex', 'antibody', 'services', 'genomes'];
 /** Files a generator writes, compared with it by a test (not recorded): by their path under `fixtures/`. */
 const Generated = new Set([GeneFile, RegionFile, ConservationFile].map((f) => f.slice('fixtures/'.length)));
 

@@ -1,0 +1,18 @@
+[
+  {
+    "file": "genomes/cytoBandIdeo.txt.gz.pages.json",
+    "entry": "UCSC hg38 cytoBandIdeo: chromosome bands for ideograms (chrom, start, end, name, gieStain)",
+    "url": "https://hgdownload.soe.ucsc.edu/goldenPath/hg38/database/cytoBandIdeo.txt.gz",
+    "recorded": "2026-11-21",
+    "licence": [
+      "LicenseRef-UCSC-freely-usable"
+    ],
+    "attribution": "UCSC Genome Browser, hg38 cytoBandIdeo (Karolchik et al. 2004); the directory's README: freely usable for any purpose",
+    "trimmed": "none: every page (1 of 65536 bytes), byte for byte, as recorded pages",
+    "derived": "none",
+    "bytesDownloaded": 12122,
+    "bytesFixture": 16266,
+    "sha256Download": "c092fd7f0c1d0a3a543d1d826b3ae07a55bc9c8a9818580232ff9c8f13c60865",
+    "sha256Fixture": "007def41bcf2a3b213bad86c46c96e504b2e02e9ecc065349b61acdb568b02dc"
+  }
+]
