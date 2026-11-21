@@ -84,13 +84,18 @@ export interface LayerKinds {
   readonly types: Readonly<Record<string, LayerType>>;
   /** Each extension composed, by id: how it reads a spec's `extensions` version for it (`old`, `newer`). */
   readonly extensions?: Readonly<Record<string, (want: string) => 'old' | 'newer' | undefined>>;
+  /**
+   * The navigator pictures it draws, by name (its `navigator-picture` entries): a `content` it lacks is the axis, said
+   * (none when absent). The axis is always drawn (the fixed fallback).
+   */
+  readonly pictures?: readonly string[];
 }
 
 /**
  * The built-in layer kinds: what a view resolved without a composition reads.
  * @internal
  */
-export const BuiltInLayerKinds: LayerKinds = { types: LayerTypes };
+export const BuiltInLayerKinds: LayerKinds = { types: LayerTypes, pictures: ['tracks', 'bands', 'rows'] };
 
 /**
  * An axis: a system, its direction and the positions shown, `[start, end, …]` pieces (start below end) in display
@@ -358,7 +363,10 @@ export interface ResolvedNavigator {
   readonly of: readonly string[];
   readonly missing: readonly string[];
   readonly axes: 'positions' | 'rows' | 'both';
-  readonly content: 'axis' | 'tracks' | 'bands' | 'rows';
+  /** The picture it draws: the one `content` names where the reader has it, else `axis`. */
+  readonly content: string;
+  /** Its params as written (a namespaced picture's own, plain: what its entry reads). */
+  readonly params: Readonly<Record<string, Value>>;
   /** The tracks drawn small (`content: tracks`), by address; the section's but its rulers when absent. */
   readonly tracks?: readonly string[];
   readonly bands?: string;
@@ -742,7 +750,7 @@ function build(model: StaticModel, view: Node, address: string, layerKinds: Laye
     ...(ex && typeof ex === 'object' && !Array.isArray(ex) ? { export: ex as Record<string, Value> } : {}),
     sections,
     links,
-    navigators: navigatorsOf(model, view, address, sections, report),
+    navigators: navigatorsOf(model, view, address, sections, report, layerKinds),
     issues,
   };
 }
@@ -754,18 +762,19 @@ function navigatorsOf(
   address: string,
   sections: readonly ResolvedSection[],
   report: Report,
+  kinds: LayerKinds,
 ): ResolvedNavigator[] {
   const out: ResolvedNavigator[] = [];
   for (const c of view.children ?? []) {
     if (c.kind !== 'navigators') continue;
     for (const n of c.children ?? [])
       if (n.kind === 'navigator' && n.id !== undefined) {
-        const nav = resolveNavigatorNode(model, sections, n, `${address}/${c.id}/${n.id}`);
+        const nav = resolveNavigatorNode(model, sections, n, `${address}/${c.id}/${n.id}`, kinds);
         out.push(nav);
         // a picture this reader lacks (an extension's) is drawn as the axis, and said
         const content = param(n, 'content');
         if (content !== undefined && content !== nav.content)
-          report('seq.view.layer.extension', `No picture \`${content}\` here: drawn as the axis`, nav.address);
+          report('seq.view.navigator.picture', `No picture \`${content}\` here: drawn as the axis`, nav.address);
       }
   }
   return out;
@@ -773,13 +782,14 @@ function navigatorsOf(
 
 /**
  * A `navigator` node resolved against a view's sections, as if at `at`: a node of the spec, or a host's definition of
- * the same shape (never saved).
+ * the same shape (never saved); its picture one of the reader's (`kinds.pictures`), else the axis.
  */
 export function resolveNavigatorNode(
   model: StaticModel,
   sections: readonly ResolvedSection[],
   n: Node,
   at: string,
+  kinds: LayerKinds = BuiltInLayerKinds,
 ): ResolvedNavigator {
   const written = param(n, 'of');
   const named = (Array.isArray(written) ? written : [written])
@@ -798,14 +808,16 @@ export function resolveNavigatorNode(
   const tracks = param(n, 'tracks');
   const axes = (param(n, 'axes') as ResolvedNavigator['axes'] | undefined) ?? 'positions';
   const size = param(n, 'size');
+  const content = param(n, 'content');
   return {
     address: at,
     id: n.id ?? at.slice(at.lastIndexOf('/') + 1),
     of,
     missing: named.filter((a) => !of.includes(a)),
     axes,
-    // a picture this reader lacks (an extension's `<id>:<name>`) draws the axis (pictures as entries: a followup)
-    content: (['tracks', 'bands', 'rows'] as const).find((c) => c === param(n, 'content')) ?? 'axis',
+    // a picture this reader lacks (an extension's `<id>:<name>`, one its composition does not list) draws the axis
+    content: kinds.pictures?.includes(content as string) ? (content as string) : 'axis',
+    params: n.params ?? {},
     ...(Array.isArray(tracks)
       ? { tracks: tracks.map((t) => exactAddress(t)).filter((t): t is string => t !== undefined) }
       : {}),

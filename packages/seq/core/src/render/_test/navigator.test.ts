@@ -23,6 +23,7 @@ import {
   type ValuesLay,
 } from '../index.js';
 import { navigatorBox } from '../navigator.js';
+import { BuiltInNavigatorPictures } from '../navigator-picture.js';
 import { P53, p53GeneSpec } from './fixtures.js';
 import { Bands, ideogramSpec, settleNavigator } from './navigator-fixtures.js';
 import { rowsSpec, Synthetic } from './rows-fixtures.js';
@@ -64,7 +65,7 @@ describe('the navigator node', () => {
     expect(n.system).toBe('/data/p53');
     expect(n.paths['/views/v/protein'].edges).toEqual([]);
     expect([n.axes, n.content, n.place, n.hidden]).toEqual(['positions', 'tracks', 'top', false]);
-    expect(navigatorBox(n, 800, 300)).toEqual({ width: 800, height: 48 });
+    expect(navigatorBox(n, 800, 300, BuiltInNavigatorPictures)).toEqual({ width: 800, height: 48 });
   });
 
   it('a section it names that the view lacks is said, and no window is drawn for it', async () => {
@@ -81,13 +82,28 @@ describe('the navigator node', () => {
     const [view] = resolveViews(model);
     const base = { ...view.navigators[0], of: [], missing: [], paths: {}, hidden: false } as never;
     expect(
-      navigatorBox({ ...(base as object), axes: 'rows', content: 'rows', place: 'right' } as never, 800, 300),
+      navigatorBox(
+        { ...(base as object), axes: 'rows', content: 'rows', place: 'right' } as never,
+        800,
+        300,
+        BuiltInNavigatorPictures,
+      ),
     ).toEqual({ width: 96, height: 300 });
     expect(
-      navigatorBox({ ...(base as object), axes: 'both', content: 'tracks', place: 'top' } as never, 800, 300),
+      navigatorBox(
+        { ...(base as object), axes: 'both', content: 'tracks', place: 'top' } as never,
+        800,
+        300,
+        BuiltInNavigatorPictures,
+      ),
     ).toEqual({ width: 160, height: 96 });
     expect(
-      navigatorBox({ ...(base as object), axes: 'positions', content: 'bands', place: 'top' } as never, 800, 300),
+      navigatorBox(
+        { ...(base as object), axes: 'positions', content: 'bands', place: 'top' } as never,
+        800,
+        300,
+        BuiltInNavigatorPictures,
+      ),
     ).toEqual({ width: 800, height: 24 });
   });
 });

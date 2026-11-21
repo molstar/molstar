@@ -618,6 +618,8 @@ export const SeqLanguage = defineLanguage({
       doc: 'A navigator: a part over a section’s axis, its rows or both, drawing the whole and the section’s window in it; a drag on the window moves the section. Placed by the host (`place` a hint).',
       parents: ['navigators'],
       ids: 'required',
+      // an extension's or a host's picture (`rondo:square`) reads plain params beside these: kept, checked by its extension
+      extensionParam: 'content',
       params: {
         of: {
           type: 'union',
@@ -626,7 +628,7 @@ export const SeqLanguage = defineLanguage({
             { type: 'list', of: { type: 'ref', kinds: ['section'], doc: 'A section.' }, 'min-length': 1 },
           ],
           required: true,
-          doc: 'The section, or sections, whose windows it draws and moves (a window each leading section; a follower’s window its leader’s carried along the follow).',
+          doc: 'The section, or sections, whose windows it draws and moves.',
         },
         axes: {
           type: 'string',
@@ -635,7 +637,7 @@ export const SeqLanguage = defineLanguage({
         },
         content: builtInOr(
           ['axis', 'tracks', 'bands', 'rows'],
-          'What it draws of the whole: the `axis` as a hairline (when absent), the section’s `tracks` small, the `bands` of a chromosome (an ideogram), or the section’s `rows` (summarized).',
+          'Its picture: `axis` (when absent), `tracks`, `bands`, `rows` or `<id>:<name>`.',
         ),
         tracks: {
           type: 'list',
@@ -650,7 +652,7 @@ export const SeqLanguage = defineLanguage({
         system: {
           type: 'ref',
           kinds: ['sequence'],
-          doc: 'The system it draws when not the section’s: a chromosome under a section on a region of it, a gene under its protein. The section’s when absent.',
+          doc: 'The system it draws when not the section’s (a chromosome under a region of it).',
         },
         place: {
           type: 'string',
@@ -663,7 +665,7 @@ export const SeqLanguage = defineLanguage({
             { type: 'number', min: 1 },
             { type: 'list', of: { type: 'number', min: 1 }, 'min-length': 2, 'max-length': 2 },
           ],
-          doc: 'Its thickness in px (across its axis), or `[width, height]`: its form’s when absent (20 for an axis strip, 48 for tracks, 24 for bands, 96 for rows, 160 × 96 for both axes).',
+          doc: 'Its thickness in px, or `[width, height]`; its picture’s when absent.',
         },
         hidden: { type: 'boolean', default: false, doc: 'Whether it is hidden: kept in the spec, not drawn.' },
       },

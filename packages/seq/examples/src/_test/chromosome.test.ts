@@ -11,6 +11,7 @@
 // window on the ideogram. The frame at 83 Mb against the gene view's (the Performance page's flat frame time) is heavy.
 
 import { BuiltInLayerTypes, BuiltInLayouts } from '@molstar/seqx-core/render/built-ins';
+import { BuiltInNavigatorPictures } from '@molstar/seqx-core/render/navigator-picture';
 import { readFileSync } from 'node:fs';
 import {
   DataStore,
@@ -160,6 +161,7 @@ async function open(settings: { maxBytes?: number } = {}, wrap = (r: FormatRunti
   const common = {
     types: BuiltInLayerTypes,
     layouts: BuiltInLayouts,
+    pictures: BuiltInNavigatorPictures,
     model,
     view,
     data: store,

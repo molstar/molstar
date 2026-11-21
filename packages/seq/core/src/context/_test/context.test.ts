@@ -12,6 +12,7 @@ import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { DefaultRenderConfig, LettersType, TextLayout } from '@molstar/seqx-core/render';
 import { MoleculeLettersType } from '@molstar/seqx-core/render/letters-molecule';
 import { BuiltInLayerTypes, BuiltInLayouts } from '@molstar/seqx-core/render/built-ins';
+import { BuiltInNavigatorPictures } from '@molstar/seqx-core/render/navigator-picture';
 import { describe, expect, it, vi } from 'vitest';
 import {
   AssetRefused,
@@ -412,13 +413,16 @@ describe('layer types and layouts in the registry', () => {
     expect(none.lists.passes.data.glyphs.n + none.lists.passes.data.texts.n).toBe(0);
   });
 
-  it('createSeqContext lists the built-ins first: every layer and layout drawn, nothing said', async () => {
+  it('createSeqContext lists the built-ins first: every layer, layout and picture drawn, nothing said', async () => {
     const ctx = createSeqContext();
     // the letters with molecules in the core letters' place (_spec/README.md "Render", Layer types: letters)
     expect(ctx.types).toEqual({ ...BuiltInLayerTypes, letters: MoleculeLettersType });
     expect(ctx.layouts).toEqual(BuiltInLayouts);
+    expect(ctx.pictures).toEqual(BuiltInNavigatorPictures);
     expect(BuiltInRenderRegistry.length).toBe(
-      Object.keys(BuiltInLayerTypes).length + Object.keys(BuiltInLayouts).length,
+      Object.keys(BuiltInLayerTypes).length +
+        Object.keys(BuiltInLayouts).length +
+        Object.keys(BuiltInNavigatorPictures).length,
     );
     const r = await ctx.renderSvg(twoLayouts(), { size: { width: 400, height: 200 } });
     expect(r.issues).toEqual([]);

@@ -7,13 +7,14 @@
 import { BuiltInLayerTypes, BuiltInLayouts } from '@molstar/seqx-core/render/built-ins';
 import { MoleculeLettersType } from '@molstar/seqx-core/render/letters-molecule';
 import { NavigatorSvgExport } from '@molstar/seqx-core/render/navigator-export';
+import { BuiltInNavigatorPictures } from '@molstar/seqx-core/render/navigator-picture';
 import { composeSeqContext, type SeqContext, type SeqContextSpec, type SeqRegistryEntry } from './context.js';
 
 // The default headless composition (_spec/README.md "Context"): the core's layer types and layouts listed before the
 // spec's own registry, and its navigators in the SVG export. A smaller composition calls `composeSeqContext` with its
 // own list and bundles only that.
 
-/** The core's layer types and section layouts as registry entries: what the default compositions list. */
+/** The core's layer types, section layouts and navigator pictures as registry entries: what the default compositions list. */
 export const BuiltInRenderRegistry: readonly SeqRegistryEntry[] = [
   // the letters with molecules (their labels, modified residues' marks) in the core letters' place
   ...Object.values({ ...BuiltInLayerTypes, letters: MoleculeLettersType }).map((type) => ({
@@ -21,6 +22,8 @@ export const BuiltInRenderRegistry: readonly SeqRegistryEntry[] = [
     type,
   })),
   ...Object.values(BuiltInLayouts).map((layout) => ({ kind: 'layout' as const, layout })),
+  // the navigators' pictures (_spec/README.md "Render", Navigators): the axis, the tracks small, the bands, the rows
+  ...Object.values(BuiltInNavigatorPictures).map((picture) => ({ kind: 'navigator-picture' as const, picture })),
 ];
 
 /**

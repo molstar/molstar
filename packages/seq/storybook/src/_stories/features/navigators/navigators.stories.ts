@@ -8,12 +8,14 @@ import { FeatureViews, GlobinsViews, P53Views } from '@molstar/seqx-examples';
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { viewerItem } from '@molstar/seqx-viewer/config';
 import { exampleStory } from '../../examples/example-root.js';
-import { openStrip } from './compose.js';
+import { CoverageView, openStrip } from './compose.js';
+import { hostNavigatorStory } from './host-navigator-root.js';
 
 // Navigators as such (the navigators design): the ruler rail every linear section has by default, and a declared strip
 // that replaces it; on p53, whose tracks show both best; a strip with a follower, and the ideogram of a chromosome over
-// a gene's region; the vertical forms over the Globins' rows (the rows rail, the vertical overview, both). The other datasets'
-// strips are drawn in their own examples.
+// a gene's region; the vertical forms over the Globins' rows (the rows rail, the vertical overview, both); a host's
+// own picture (a coverage strip), and a navigator the host draws itself in DOM. The other datasets' strips are drawn in
+// their own examples.
 
 const meta: Meta = { title: 'Features/Navigators' };
 export default meta;
@@ -94,4 +96,27 @@ export const VerticalOverview: StoryObj = {
  */
 export const RowsRailAndOverview: StoryObj = {
   render: () => exampleStory(GlobinsViews.find((v) => v.id === 'family')!, { navigators: 'include' }),
+};
+
+/**
+ * A host's picture: `host:coverage`, registered with the viewer (a `navigator-picture` entry) and drawn as spec tracks
+ * by the navigator's own renderer: p53's conservation filling the strip, colored as the view's. The window, its grips,
+ * gestures and keys are the navigator's, whatever the picture; hover it for the picture's readout (the residue and its
+ * conservation). A reader without the picture draws the axis and says so. The SVG includes it.
+ */
+export const CoverageStrip: StoryObj = {
+  render: () => exampleStory(CoverageView, { navigators: 'include' }),
+};
+
+/**
+ * A navigator the host draws itself in DOM elements, no canvas: p53's domains and the window placed from the viewer's
+ * `NavigatorModel` (`viewer.navigator(def)`), which holds every rule. Drag the window to pan, an end to zoom, click
+ * beside it to centre there, double-click to fit, the wheel to zoom; focus it and use the arrows, Shift+arrows, Home and
+ * End. Each of the host's events is one of the model's methods.
+ */
+export const HostDrawn: StoryObj = {
+  render: () =>
+    hostNavigatorStory({
+      hint: 'A navigator the host draws in DOM elements: its gestures, keys, readout and slider value are the viewer’s NavigatorModel’s.',
+    }),
 };

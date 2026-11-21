@@ -5,8 +5,9 @@
  */
 
 // @molstar/seqx-core/extension (this file, through the package's `./*` export): the one entry an extension imports
-// (_spec/README.md "Context", Extensions): the descriptor and `defineExtension`, the layer-type and layout contracts
-// and what they are given, the format runtime's, the scheme's. What it re-exports is the contract a review reads before
+// (_spec/README.md "Context", Extensions): the descriptor and `defineExtension`, the layer-type, layout and navigator-picture
+// contracts and what they are given (the window's geometry and drawing for one that draws a window of its own), the
+// format runtime's, the scheme's. What it re-exports is the contract a review reads before
 // a break; everything else is internal and may change in a 0.x minor. Named re-exports only.
 
 export {
@@ -26,7 +27,14 @@ export {
   type Hit,
   type ItemDescription,
   type LayerType,
+  drawNavigatorWindow,
+  floorExtent,
   type LayoutContext,
+  type NavigatorPicture,
+  type NavigatorPictureContext,
+  type NavigatorPictureTracks,
+  navigatorPart,
+  NavWindowFlags,
   type PassName,
   type PassWriter,
   type Placement,
@@ -38,4 +46,5 @@ export {
   TranslateWarp,
 } from '@molstar/seqx-core/render';
 export type { Legend, SchemeEntry, SchemeSubject } from '@molstar/seqx-core/theme';
+export type { NavigatorWindow } from '@molstar/seqx-core/render/navigator';
 export type { LayerShape, ResolvedLayer, ResolvedSection } from '@molstar/seqx-core/view';

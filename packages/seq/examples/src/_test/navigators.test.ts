@@ -11,6 +11,7 @@
 // exported with `navigators: include`, titled, settled, with no issue.
 
 import { BuiltInLayerTypes, BuiltInLayouts } from '@molstar/seqx-core/render/built-ins';
+import { BuiltInNavigatorPictures } from '@molstar/seqx-core/render/navigator-picture';
 import { createSeqContext } from '@molstar/seqx-core/context/default';
 import { DataStore, DefaultStoreSettings, SeqRuntime } from '@molstar/seqx-core/data';
 import { RecordsRuntime } from '@molstar/seqx-core/data/records';
@@ -53,6 +54,7 @@ async function settled(
   const common = {
     types: BuiltInLayerTypes,
     layouts: BuiltInLayouts,
+    pictures: BuiltInNavigatorPictures,
     model,
     view,
     data: store,

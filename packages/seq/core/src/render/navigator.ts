@@ -16,6 +16,8 @@ import {
   type StaticModel,
 } from '@molstar/seqx-core/resolve';
 import {
+  cellOffset,
+  type LayerKinds,
   nearestOffsetOf,
   offsetOf,
   positionAt,
@@ -34,6 +36,14 @@ import { layerSource } from './layer-data.js';
 import { partOn } from './marks.js';
 import type { Emphasis, Overlay, StoreReader } from './layer-type.js';
 import type { WindowPart } from './layout/types.js';
+import {
+  AxisPicture,
+  hasRows,
+  type NavigatorPicture,
+  NavigatorSizes,
+  navigatorPicture,
+  smallHeight,
+} from './navigator-picture.js';
 import { Renderer, type RendererOptions } from './renderer.js';
 import type { RowsLay } from './rows.js';
 import type { TextMetrics } from './text.js';
@@ -57,9 +67,6 @@ import {
 // emphasis passes, the `window` pass first (the windows, their wash, their grips), then the marks (the selection's and
 // the highlights' ticks, the keyboard cursor and the pointer's hairline). Never in a section's lists.
 
-/** A navigator's default thickness by its form (CSS px), and a miniature's box. */
-export const NavigatorSizes = { axis: 20, tracks: 48, bands: 24, rows: 96, both: [160, 96] } as const;
-
 /** The gap between the context and the zoom strip, where the connectors run (CSS px, fixed: a look). */
 const ZoomGapPx = 6;
 
@@ -69,23 +76,20 @@ const ZoomHysteresisPx = 8;
 /** The zoom strip's section in the picture's view. */
 const ZoomId = 'zoom';
 
-/** A navigator's box for a view of `width` × `height` (its `size`, else its form's, along or across the view). */
+/**
+ * A navigator's box for a view of `width` × `height`: its `size`, else its picture's (a thickness along or across the
+ * view, or a miniature's box); over both axes a picture's thickness gives way to the miniature's default box.
+ */
 export function navigatorBox(
   nav: ResolvedNavigator,
   width: number,
   height: number,
+  pictures: Readonly<Record<string, NavigatorPicture>>,
 ): { readonly width: number; readonly height: number } {
-  const size = nav.size;
+  const own = navigatorPicture(nav, pictures).size;
+  const size = nav.size ?? (nav.axes === 'both' && !Array.isArray(own) ? NavigatorSizes.both : own);
   if (Array.isArray(size)) return { width: size[0], height: size[1] };
-  if (size === undefined && nav.axes === 'both')
-    return { width: NavigatorSizes.both[0], height: NavigatorSizes.both[1] };
-  const t =
-    (size as number | undefined) ??
-    (nav.axes === 'rows'
-      ? NavigatorSizes.rows
-      : nav.content === 'axis'
-        ? NavigatorSizes.axis
-        : NavigatorSizes[nav.content]);
+  const t = size as number;
   return nav.place === 'left' || nav.place === 'right' ? { width: t, height } : { width, height: t };
 }
 
@@ -105,39 +109,6 @@ function nodeAt(root: Node, address: string): Node | undefined {
   return n;
 }
 
-const isRuler = (t: Node) => (t.children ?? []).every((l) => l.kind !== 'layer' || l.params?.type === 'ruler');
-const hasRows = (t: Node) => (t.children ?? []).some((l) => l.kind === 'layer' && l.params?.type === 'rows');
-
-/**
- * A track copied small: its height scaled (`navigator.trackScale`, at least `trackMinPx`), no label, a rows layer
- * with no header (its tree, numbers and row columns are the view's: a picture's narrow column would hide the columns
- * and draw their chip over its top) filling what is left.
- */
-function smallTrack(t: Node, config: RenderConfig): Node {
-  const h = t.params?.height;
-  const params: Record<string, Value> = { ...t.params, label: '' };
-  if (typeof h === 'number') params.height = Math.max(config.navigator.trackMinPx, h * config.navigator.trackScale);
-  const children = (t.children ?? []).map((l) => (l.kind === 'layer' && l.params?.type === 'rows' ? smallRows(l) : l));
-  return { ...t, params, children };
-}
-
-/** A rows layer with no header: no tree, no numbers, no row columns, filling its track. */
-function smallRows(l: Node): Node {
-  const params: Record<string, Value> = { ...l.params, tree_width: 0, numbers: 'none', height: 'fill' };
-  delete params.columns;
-  return { ...l, params };
-}
-
-/** A small track's height: its own, else its first layer type's default, both at the picture's scale. */
-function smallHeight(t: Node, config: RenderConfig): number {
-  const h = t.params?.height;
-  if (typeof h === 'number') return h;
-  const type = t.children?.find((l) => l.kind === 'layer')?.params?.type;
-  const heights = config.heights as Readonly<Record<string, number>>;
-  const base = (typeof type === 'string' ? heights[type] : undefined) ?? config.heights.ranges;
-  return Math.max(config.navigator.trackMinPx, base * config.navigator.trackScale);
-}
-
 /**
  * The navigator's picture (_spec/README.md "Render", Navigators): a view of one section over its system whole, in the
  * bound section's display order, holding what its `content` draws; `left` the tracks it leaves out (what no summary
@@ -147,6 +118,8 @@ function pictureOf(
   model: StaticModel,
   view: ResolvedView,
   nav: ResolvedNavigator,
+  entry: NavigatorPicture,
+  kinds: LayerKinds | undefined,
   config: RenderConfig,
   left: ReadonlySet<string>,
   height: number,
@@ -160,35 +133,13 @@ function pictureOf(
   const dir = direction === 'genomic' ? 1 : bound.axis.dir;
   const params: Record<string, Value> = { of: nav.system, direction: dir === -1 ? 'reversed' : 'genomic' };
   const blocks = same ? (node?.children ?? []).filter((c) => c.kind === 'block') : [];
-  const tracks: Node[] = [];
-  let rows: Picture['rows'];
-  const content = nav.axes === 'rows' ? 'rows' : nav.content;
-  if (content === 'axis')
-    // the axis: a ruler filling the navigator (its ticks and numbers at the picture's scale)
-    tracks.push({
-      kind: 'track',
-      id: 'axis',
-      params: { label: '', height: Math.max(1, height) },
-      children: [{ kind: 'layer', id: 'axis', params: { type: 'ruler' } }],
-    });
-  else if (content === 'bands' && nav.bands)
-    tracks.push({
-      kind: 'track',
-      id: 'bands',
-      // the bands fill the navigator
-      params: { label: '', height: Math.max(1, height) },
-      children: [{ kind: 'layer', id: 'bands', params: { type: 'bands', data: nav.bands } }],
-    });
-  else if (content === 'tracks' || content === 'rows')
-    for (const t of node?.children ?? []) {
-      if (t.kind !== 'track' || t.id === undefined || t.params?.hidden === true) continue;
-      const address = `${bound.address}/${t.id}`;
-      if (left.has(address)) continue;
-      const wanted = content === 'rows' ? hasRows(t) && !rows : nav.tracks ? nav.tracks.includes(address) : !isRuler(t);
-      if (!wanted) continue;
-      if (hasRows(t) && !rows) rows = { view: address, picture: `${nav.address}/${PictureId}/${t.id}` };
-      tracks.push(smallTrack(t, config));
-    }
+  const ctx = { model, view, navigator: nav, bound, boundNode: node, height, zoom: false, config, left };
+  // a picture that draws nothing here is the axis (the fixed fallback)
+  const drawn = entry.picture(ctx) ?? AxisPicture.picture(ctx)!;
+  const tracks = [...drawn.tracks];
+  const rows: Picture['rows'] = drawn.rows
+    ? { view: `${bound.address}/${drawn.rows}`, picture: `${nav.address}/${PictureId}/${drawn.rows}` }
+    : undefined;
   // the rows fill what the other tracks leave of the navigator's height (an overview's whole column)
   const rowsAt = tracks.findIndex(hasRows);
   if (rowsAt >= 0 && height > 0) {
@@ -198,31 +149,15 @@ function pictureOf(
     tracks[rowsAt] = { ...t, params: { ...t.params, height: Math.max(config.navigator.trackMinPx, rest) } };
   }
   const sections: Node[] = [{ kind: 'section', id: PictureId, params, children: [...blocks, ...tracks] }];
-  // the zoom strip: the same form over the reachable span alone (its viewport), its bands, else the axis
-  if (zoom > 0)
-    sections.push({
-      kind: 'section',
-      id: ZoomId,
-      params,
-      children: [
-        ...blocks,
-        content === 'bands' && nav.bands
-          ? {
-              kind: 'track',
-              id: 'bands',
-              params: { label: '', height: zoom },
-              children: [{ kind: 'layer', id: 'bands', params: { type: 'bands', data: nav.bands } }],
-            }
-          : {
-              kind: 'track',
-              id: 'axis',
-              params: { label: '', height: zoom },
-              children: [{ kind: 'layer', id: 'axis', params: { type: 'ruler' } }],
-            },
-      ],
-    });
+  // the zoom strip: the picture's own over the reachable span alone (its viewport), else the axis
+  if (zoom > 0) {
+    const z = { ...ctx, height: zoom, zoom: true };
+    const strip = entry.picture(z) ?? AxisPicture.picture(z)!;
+    sections.push({ kind: 'section', id: ZoomId, params, children: [...blocks, ...strip.tracks] });
+  }
   const viewNode: Node = { kind: 'view', id: nav.id, params: { layout: 'tracks' }, children: sections };
-  const resolved = resolveViewNode(model, viewNode, nav.address);
+  // with the composition's layer kinds: a picture's track of an extension's type is drawn as that type
+  const resolved = resolveViewNode(model, viewNode, nav.address, kinds);
   // the same system: the bound section's own axis (its pieces, collapsed introns and direction), never a guess
   const own = (s: ResolvedSection) =>
     same && !bound.blocks ? { ...s, axis: dir === bound.axis.dir ? bound.axis : genomicAxis(bound.axis) } : s;
@@ -352,6 +287,13 @@ export interface NavigatorRendererOptions {
   /** The layer types and section layouts its picture draws with: the view's renderer's (the composition's registry). */
   readonly types: RendererOptions['types'];
   readonly layouts: RendererOptions['layouts'];
+  /** The pictures `content` names (the composition's `navigator-picture` entries): one the table lacks draws the axis. */
+  readonly pictures: Readonly<Record<string, NavigatorPicture>>;
+  /**
+   * The layer kinds its picture is resolved with (the composition's, `SeqContext.kinds`): a picture's track of an
+   * extension's type is drawn as that type; the built-ins' when absent.
+   */
+  readonly kinds?: LayerKinds;
   /** The track sizings and the host's port its picture sizes tracks with: the view's renderer's. */
   readonly sizings?: RendererOptions['sizings'];
   readonly trackSizing?: RendererOptions['trackSizing'];
@@ -433,6 +375,8 @@ const Seen: number[] = [];
  */
 export class NavigatorRenderer {
   readonly navigator: ResolvedNavigator;
+  /** The picture it draws (the entry `content` names, else the axis). */
+  readonly entry: NavigatorPicture;
   readonly config: RenderConfig;
   private readonly pictureConfig: RenderConfig;
   private zoomConfig: RenderConfig | undefined;
@@ -494,6 +438,7 @@ export class NavigatorRenderer {
 
   constructor(readonly options: NavigatorRendererOptions) {
     this.navigator = options.navigator;
+    this.entry = navigatorPicture(options.navigator, options.pictures);
     this.config = options.config ?? DefaultRenderConfig;
     this.pictureConfig = pictureConfig(this.config);
     this.zoomStrip = options.zoomStrip ?? DefaultZoomStrip;
@@ -544,11 +489,9 @@ export class NavigatorRenderer {
     return `${this.navigator.of[0]}/`;
   }
 
-  /** Whether the picture fills the navigator's height (a `bands` track, the rows). */
+  /** Whether the picture fills the navigator's height (its entry's `fills`: a `bands` track, the rows). */
   private get fills(): boolean {
-    return (
-      this.navigator.content === 'bands' || this.navigator.content === 'rows' || this.navigator.axes !== 'positions'
-    );
+    return !!this.entry.fills || this.navigator.axes !== 'positions';
   }
 
   /** The height the picture was made for (a `bands` track or the rows fill it). */
@@ -563,6 +506,8 @@ export class NavigatorRenderer {
       o.model,
       o.view,
       this.navigator,
+      this.entry,
+      o.kinds,
       this.config,
       this.left,
       height,
@@ -626,6 +571,36 @@ export class NavigatorRenderer {
     // over a cyclic origin the arc, from its start on past the origin to its end
     if (this.wraps) return arcText(this.options.model, this.navigator, this.reach[2], this.reach[3]);
     return spanText(this.options.model, this.navigator, this.reach[2], this.reach[3]);
+  }
+
+  /**
+   * x on the picture (the context, with a zoom strip) of positions `[start, end)` of the navigator's system, in its
+   * display order (a reversed axis's, collapsed introns' nearest): `[x0, x1]`, x0 ≤ x1; undefined before the picture is
+   * laid out, or where none of it is shown. What a host drawing its own navigator places its marks with.
+   */
+  xRangeOf(start: number, end: number): readonly [number, number] | undefined {
+    const axis = this.pictureSection?.axis;
+    if (!axis || !(end > start)) return undefined;
+    // each end's cell, its left edge in display order (a collapsed intron's: the nearest shown)
+    const a = cellOffset(axis, start) ?? nearestOffsetOf(axis, start);
+    const b = cellOffset(axis, end - 1) ?? nearestOffsetOf(axis, end - 1);
+    if (a === undefined || b === undefined) return undefined;
+    const x0 = axis.xOfUnit(Math.min(a, b));
+    const x1 = axis.xOfUnit(Math.max(a, b) + 1);
+    return [Math.min(x0, x1), Math.max(x0, x1)];
+  }
+
+  /** The position of the navigator's system at x on the picture (the context), clamped to it; undefined before a layout. */
+  positionAtX(x: number): number | undefined {
+    const axis = this.pictureSection?.axis;
+    if (!axis) return undefined;
+    const p = axis.positionAt(Math.max(axis.x0, Math.min(axis.x0 + axis.width - 1e-9, x)));
+    return p >= 0 ? p : undefined;
+  }
+
+  /** What the picture says at a position of the navigator's system (its entry's `readout`); undefined: the label's. */
+  readout(position: number): string | undefined {
+    return this.entry.readout?.(position, { model: this.options.model, navigator: this.navigator });
   }
 
   /** The context's axis's total (the picture's units), and whether the reachable span runs over its cyclic origin. */

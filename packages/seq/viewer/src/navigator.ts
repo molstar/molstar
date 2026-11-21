@@ -5,7 +5,7 @@
  */
 
 import { ReactiveModel, type ReadonlyState, State } from '@molstar/core/reactive';
-import type { Node } from '@molstar/core/repr/tree';
+import { type Issue, issueOf, type Node, type Value } from '@molstar/core/repr/tree';
 import type { Want } from '@molstar/seqx-core/data';
 import { NavWindowFlags, overviewWidth, type WindowPart } from '@molstar/seqx-core/render';
 import {
@@ -15,7 +15,13 @@ import {
   navigatorBox,
   windowText,
 } from '@molstar/seqx-core/render/navigator';
-import { axisTotal, type ResolvedNavigator, type ResolvedView, resolveNavigatorNode } from '@molstar/seqx-core/view';
+import {
+  axisTotal,
+  type ResolvedNavigator,
+  type ResolvedView,
+  resolveNavigatorNode,
+  ViewIssues,
+} from '@molstar/seqx-core/view';
 import type {
   NavigateBehavior,
   NavigatorBehavior,
@@ -44,12 +50,15 @@ export interface NavigatorDef {
   readonly id: string;
   readonly of: string | readonly string[];
   readonly axes?: 'positions' | 'rows' | 'both';
-  readonly content?: 'axis' | 'tracks' | 'bands' | 'rows';
+  /** Its picture: a built-in's name or a registered `<id>:<name>` (the axis when the composition lacks it). */
+  readonly content?: string;
   readonly tracks?: readonly string[];
   readonly bands?: string;
   readonly system?: string;
   readonly place?: 'top' | 'bottom' | 'left' | 'right';
   readonly size?: number | readonly [number, number];
+  /** Its picture's own params, plain (a host's or an extension's picture reads them as written in a spec). */
+  readonly params?: Readonly<Record<string, Value>>;
 }
 
 /** A window as its slider says it (its `aria-valuetext`): set when the view settles, never a frame. */
@@ -140,18 +149,29 @@ export class NavigatorModel extends ReactiveModel {
   }
 
   private hosted: [ResolvedView, ResolvedNavigator] | undefined;
+  /** A host's picture the composition lacks, said as a declared navigator's is (the view's code). */
+  private pictureIssue: Issue | undefined;
 
   private hostNavigator(view: ResolvedView): ResolvedNavigator {
     if (this.hosted?.[0] === view) return this.hosted[1];
-    const { id, ...params } = this.def!;
-    const node: Node = { kind: 'navigator', id, params: params as never };
+    const { id, params: own, ...params } = this.def!;
+    const node: Node = { kind: 'navigator', id, params: { ...own, ...params } as never };
     const n = resolveNavigatorNode(
       this.viewer.spec.model.value,
       view.sections,
       node,
       `${view.address}/navigators/${id}`,
+      this.viewer.context.kinds,
     );
     this.hosted = [view, n];
+    const content = this.def!.content;
+    this.pictureIssue =
+      content !== undefined && content !== n.content
+        ? issueOf(ViewIssues, 'seq.view.navigator.picture', `No picture \`${content}\` here: drawn as the axis`, {
+            address: n.address,
+            hint: ViewIssues.codes['seq.view.navigator.picture'].hint,
+          })
+        : undefined;
     return n;
   }
 
@@ -190,7 +210,7 @@ export class NavigatorModel extends ReactiveModel {
   private place(): void {
     const nav = this.navigator;
     if (!nav) return;
-    const b = navigatorBox(nav, this.hostWidth || this.viewer.width, this.viewer.height);
+    const b = navigatorBox(nav, this.hostWidth || this.viewer.width, this.viewer.height, this.viewer.context.pictures);
     const zoom = this.renderer?.zoomHeight ?? 0;
     this.width = this.hostWidth || b.width;
     // a vertical overview at its form's size beside the canvas gives way to the plot (A narrow frame)
@@ -224,6 +244,9 @@ export class NavigatorModel extends ReactiveModel {
         config: this.viewer.context.renderConfig,
         types: this.viewer.context.types,
         layouts: this.viewer.context.layouts,
+        // the composition's pictures and layer kinds: a picture's track of an extension's type drawn as that type
+        pictures: this.viewer.context.pictures,
+        kinds: this.viewer.context.kinds,
         sizings: this.viewer.context.sizings,
         ...(this.viewer.context.trackSizing ? { trackSizing: this.viewer.context.trackSizing } : {}),
         direction: this.viewer.config.navigator.direction,
@@ -322,8 +345,23 @@ export class NavigatorModel extends ReactiveModel {
   }
 
   /** The issues the navigator met (its bindings, what it left out, its picture's). */
-  get issues() {
-    return this.renderer?.allIssues ?? [];
+  get issues(): readonly Issue[] {
+    const own = this.renderer?.allIssues ?? [];
+    return this.pictureIssue ? [this.pictureIssue, ...own] : own;
+  }
+
+  /**
+   * x on the navigator of positions `[start, end)` of its system, `[x0, x1]` in its display order (a reversed axis's,
+   * collapsed introns' nearest), after a `draw`; undefined before, or where none is shown. What a host drawing its own
+   * navigator places its marks with.
+   */
+  xRange(start: number, end: number): readonly [number, number] | undefined {
+    return this.renderer?.xRangeOf(start, end);
+  }
+
+  /** The position of the navigator's system at x (its own px), clamped to its picture; undefined before a `draw`. */
+  positionAt(x: number): number | undefined {
+    return this.renderer?.positionAtX(x);
   }
 
   /** The part took or lost the keyboard focus (its host's element): losing it, its sliders say where the view is. */
@@ -413,7 +451,8 @@ export class NavigatorModel extends ReactiveModel {
     if (nav && w?.shown) return windowText(this.viewer.spec.model.value, nav, w);
     const name = (nav?.system && this.viewer.spec.model.value.systems.get(nav.system)?.name) ?? '';
     const parts: string[] = [];
-    if (h.position !== undefined) parts.push(`${name}:${(h.position + 1).toLocaleString('en-US')}`);
+    if (h.position !== undefined)
+      parts.push(this.renderer?.readout(h.position) ?? `${name}:${(h.position + 1).toLocaleString('en-US')}`);
     if (h.row !== undefined) parts.push(`row ${(Math.floor(h.row) + 1).toLocaleString('en-US')}`);
     if (h.band !== undefined) parts.push(h.band);
     return parts.join(' · ');

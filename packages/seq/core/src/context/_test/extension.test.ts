@@ -200,7 +200,7 @@ describe('extensions: a namespaced layer type', () => {
     const v = ctx.view(ctx.resolve(b.build()))!;
     expect(v.navigators[0].content).toBe('axis');
     expect(v.issues.map((i) => [i.code, i.address, i.message])).toEqual([
-      ['seq.view.layer.extension', '/views/v/navigators/nav', 'No picture `demo:square` here: drawn as the axis'],
+      ['seq.view.navigator.picture', '/views/v/navigators/nav', 'No picture `demo:square` here: drawn as the axis'],
     ]);
   });
 

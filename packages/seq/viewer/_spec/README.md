@@ -226,34 +226,45 @@ nothing and tells nothing. Beside `models/view.ts` (the moves and the publish): 
 ### NavigatorModel
 
 `navigator.ts` (`NavigatorModel`, `viewer.navigatorModel(id)`, `viewer.navigator(def)`): DOM-free, one a navigator (a
-declared node by its id or address, or a host's definition of the same shape, never saved). It holds its picture (a core
-`NavigatorRenderer` over the viewer's store, theme, image cache and held domains: the view renderer's,
-`viewer.renderer`), draws it over the viewer's last frame (`draw`, after each frame the viewer draws: `viewer.drawn`),
-wants what it reads through a want set of its own, and holds the lit part, idle per window and axis (`windowIdle`: the
-whole axis at the zoom limit, or the section cannot move; rows: every row shown), the gesture in progress, the focused
-slider (`focused`) and the readout (`readout`: the position, the row, a band's name; never the viewer's hover). Its size
-is the host's (`resize`), each side the form's box for the view where the host gives none. Its pointer (`move`, `down`,
-`up`, `click` with the platform's count, `doubleClick`, `wheel`, `cancel`) and keys (`key`) are in its own px, carried
-to the bound section's display units through the picture and run through the `navigator` behavior. A press on a window
-focuses its slider; a press that never moves acts at its click (outside the window it centres there, a miniature's both
-axes); a miniature's body drags both axes; a rows drag is clamped to the rows less those in view, and pushes the rows at
-its press when it went farther than the rows in view (`navigator.dragStep`). Its sliders' values (`values`,
-`aria-valuetext` as positions on the navigator's system and rows, `disabled` when idle) are set when the view rests
-(`viewer.rested`) after this part's own gesture or key, or while the part has no focus (`setFocus`, the host's): a move
-made elsewhere announces nothing (the design: noise), its value said when the focus leaves; never during a drag, never a
-frame. Keys while focused (one tab stop, the windows a roving slider: PageDown and PageUp move the focus to the next and
-the previous window; why those: arrows, Home and End are the slider's own, Tab the page's): arrows pan (Up and Down on
-rows, clamped), Shift+arrows resize about the centre, Home and End go to the ends (jumps), Enter centres on the
-readout's position, `=`, `-`, `0` act on the focused window's section; Alt+Left and Alt+Right walk the history even
-while the window is idle; Esc cancels a gesture. The wheel acts as over the bound section, zooming about the window's
-centre, never the pointer. A navigator with a zoom strip (core's "Render", Navigators, The zoom strip:
-`navigator.zoomStrip`) is one model: its height the box's and the strip's (`zoomStrip.heightPx` more, set by the frame
-that brings or drops it), or a height the host fixes holding both (the strip out of it, the context the rest: drawn
-again in the same call, nothing overflows); a side part (`left`, `right`) has none; `viewer.renderSvg` passes
-`navigator.zoomStrip` and `navigator.direction` to the export (its `navigator` option), so the SVG is what the parts
-show; its windows, grips and gestures are the zoom strip's; its context is no target (a hit's `context`: nothing lit,
-the default cursor, a press no gesture, a double-click nothing), its readout the band and position there, over the mark
-the region (a press there says it too, a tap's hover).
+declared node by its id or address, or a host's definition of the same shape, never saved; its picture's own params in
+`def.params`). **The contract of a navigator a host draws itself** (DOM, WebGL; public, so a rename is a recorded
+break): `frame.windows` (each window's true and drawn ends, axes, positions and rows, after `draw`), `values`,
+`readout`, `focused`, `cursor`, `version`, `issues`, the picture's geometry for the host's own marks
+(`xRange(start, end)`, a range's x in display order whatever the direction, pieces or collapsed introns;
+`positionAt(x)`), and the input methods `resize`, `hit`, `move`, `down`, `up`, `click`, `doubleClick`, `wheel`, `key`,
+`cancel`, `leave`, `setFocus`, `focusNext`: the host maps its events to them and draws what the frame says; every rule
+(geometry, floor, gestures, keys, idle, announcements) stays the model's. Why: the model already holds every rule,
+tested headless; a host replacing the canvas keeps them by calling it. Its picture is the composition's
+(`context.pictures`, resolved with `context.kinds`: core's "Render", Navigators, Pictures); a host's `content` the
+composition lacks is the axis, said in `issues` (`seq.view.navigator.picture`, as a declared one's is in the view's);
+the readout at a position is the picture's `readout` when it gives one. It holds its picture (a core `NavigatorRenderer`
+over the viewer's store, theme, image cache and held domains: the view renderer's, `viewer.renderer`), draws it over the
+viewer's last frame (`draw`, after each frame the viewer draws: `viewer.drawn`), wants what it reads through a want set
+of its own, and holds the lit part, idle per window and axis (`windowIdle`: the whole axis at the zoom limit, or the
+section cannot move; rows: every row shown), the gesture in progress, the focused slider (`focused`) and the readout
+(`readout`: the position, the row, a band's name; never the viewer's hover). Its size is the host's (`resize`), each
+side the form's box for the view where the host gives none. Its pointer (`move`, `down`, `up`, `click` with the
+platform's count, `doubleClick`, `wheel`, `cancel`) and keys (`key`) are in its own px, carried to the bound section's
+display units through the picture and run through the `navigator` behavior. A press on a window focuses its slider; a
+press that never moves acts at its click (outside the window it centres there, a miniature's both axes); a miniature's
+body drags both axes; a rows drag is clamped to the rows less those in view, and pushes the rows at its press when it
+went farther than the rows in view (`navigator.dragStep`). Its sliders' values (`values`, `aria-valuetext` as positions
+on the navigator's system and rows, `disabled` when idle) are set when the view rests (`viewer.rested`) after this
+part's own gesture or key, or while the part has no focus (`setFocus`, the host's): a move made elsewhere announces
+nothing (the design: noise), its value said when the focus leaves; never during a drag, never a frame. Keys while
+focused (one tab stop, the windows a roving slider: PageDown and PageUp move the focus to the next and the previous
+window; why those: arrows, Home and End are the slider's own, Tab the page's): arrows pan (Up and Down on rows,
+clamped), Shift+arrows resize about the centre, Home and End go to the ends (jumps), Enter centres on the readout's
+position, `=`, `-`, `0` act on the focused window's section; Alt+Left and Alt+Right walk the history even while the
+window is idle; Esc cancels a gesture. The wheel acts as over the bound section, zooming about the window's centre,
+never the pointer. A navigator with a zoom strip (core's "Render", Navigators, The zoom strip: `navigator.zoomStrip`) is
+one model: its height the box's and the strip's (`zoomStrip.heightPx` more, set by the frame that brings or drops it),
+or a height the host fixes holding both (the strip out of it, the context the rest: drawn again in the same call,
+nothing overflows); a side part (`left`, `right`) has none; `viewer.renderSvg` passes `navigator.zoomStrip` and
+`navigator.direction` to the export (its `navigator` option), so the SVG is what the parts show; its windows, grips and
+gestures are the zoom strip's; its context is no target (a hit's `context`: nothing lit, the default cursor, a press no
+gesture, a double-click nothing), its readout the band and position there, over the mark the region (a press there says
+it too, a tap's hover).
 
 ### HoverModel
 
@@ -481,18 +492,20 @@ selection moves (`viewer-selection.ts`) and the frame (`viewer-frame.ts`).
   change; each side part's room is the row less the other side parts (`NavigatorModel.setRoom`: a vertical overview of
   its form's size narrows and hides by the plot it leaves, core's "Render", A narrow frame; one hidden so counts as
   hidden for the rows rail, `narrowed.ts`, so under `unlessOverview` the rail comes back), and the canvas keeps the
-  layout's least width (`narrow.minWidth`, its `min-width`), the middle of the row scrolling only past it.
-  `ui.railToggle` (`railToggleMount`; for a viewer embedded in a host's cell) puts a button in the canvas's corner that
-  hides and shows the ruler rails (`setRailsShown`, `railsShown`: the reader's session, never the spec). The rails
-  (`navigator.form: rail`, the default): every linear section no shown navigator binds along its positions, the view's
-  declared ones and a host's (`viewer.navigator(def)`) alike, a hidden one bringing the rail back (`railSections`); each
-  active while the `navigator` behavior is listed and its window is not idle, found again after the layout placed the
-  view (an idle flip drawn in the same frame, the window pass alone). Each rows layer's band has a rows rail
-  (`rowsRailTracks`, by its track: beside a shown overview or miniature over its section, `navigator.rowsRail`), live
-  while the behavior is listed, idle only while every row shows and would at the zoom-in limit too (the layout's:
-  navigators' idle rule, so a rail zoomed out to the whole band keeps its grips). The viewer's export leaves the rails
-  out with its navigators (its picture without its chrome: no slim row); with `navigators: include` they are drawn
-  plain.
+  layout's least width (`narrow.minWidth`, its `min-width`), the middle of the row scrolling only past it. What a
+  navigator draws is its picture, a registry entry (`navigator-picture`: the default spec lists the core's four, a host
+  adds its own `<id>:<name>`; core's "Render", Navigators, Pictures); a host that draws its navigator itself mounts none
+  and calls its `NavigatorModel` (Models, NavigatorModel: the contract). `ui.railToggle` (`railToggleMount`; for a
+  viewer embedded in a host's cell) puts a button in the canvas's corner that hides and shows the ruler rails
+  (`setRailsShown`, `railsShown`: the reader's session, never the spec). The rails (`navigator.form: rail`, the
+  default): every linear section no shown navigator binds along its positions, the view's declared ones and a host's
+  (`viewer.navigator(def)`) alike, a hidden one bringing the rail back (`railSections`); each active while the
+  `navigator` behavior is listed and its window is not idle, found again after the layout placed the view (an idle flip
+  drawn in the same frame, the window pass alone). Each rows layer's band has a rows rail (`rowsRailTracks`, by its
+  track: beside a shown overview or miniature over its section, `navigator.rowsRail`), live while the behavior is
+  listed, idle only while every row shows and would at the zoom-in limit too (the layout's: navigators' idle rule, so a
+  rail zoomed out to the whole band keeps its grips). The viewer's export leaves the rails out with its navigators (its
+  picture without its chrome: no slim row); with `navigators: include` they are drawn plain.
 - `SeqViewerSpec`: `registry` (the core's entries: format runtimes, layer types, layouts; and the viewer's own kind,
   `header-action`, the `headers` behavior's, left out of the core's context; `viewer.registry` as listed), `behaviors`
   (a provider and its params), `bindings` (a preset, override layers, extra action ids), `config` (`[item, value]`
