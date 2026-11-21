@@ -138,6 +138,7 @@ One row a merged lane (loop, step 5, record): review findings and look findings 
 | LE | 2026-11-21 | 3 (review: the compact form's names unread by keyboard, pre-existing; the 0.5.0 history missing `legend`; the shared-legend rule untested) | 0 | 1 (the story's keys shown twice) | compact steps untested (the binned params unconfirmed); the minimal 929.5, headless 829.1 |
 | CN | 2026-11-21 | 4 (review: the minimal viewer at its bound with LE; no public position↔x for a host navigator; exportSvg's two sources of pictures; a host navigator's missing picture unsaid) | 0 | 1 (the host bar's drag: not reproduced in jsdom, pans after the fix round) | headless 829.8 → 806.0 (navigators lazy in renderSvg); the minimal 929.5 (docs trimmed from language.ts) |
 | NP | 2026-11-21 | 4 (review: the channel suffix before the merge; the Mol* converter's title; the DOM backdrop untested and without the ellipsis; the specs) | 0 | 0 | 5 bugs and 9 stories from the novice pass; F5 as designed, F7 not reproduced; the minimal viewer 929.9 of 930 |
+| SV | 2026-11-21 | 5 (review: a dropped file's rows and length trusted; no size check before reading; maps keyed on the author's chain, not `label_asym_id`; my look: the structure section unaligned with P04637; the back hover asserted missing where the spec's per-chain sequences serve it) | 2 (SIFTS lengths unchecked; the drop target by name only) | 1 (the hint naming the wrong icon) | fixtures 28 kB with licences; the structure section's fit alignment to the TODO; no core change |
 
 ## How to verify
 

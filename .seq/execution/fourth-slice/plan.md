@@ -321,7 +321,7 @@ disagrees with its code writes a drift note and stops.
 - [x] BW (merged 2026-11-20) (strong) range reads in `@molstar/core` (the surface accepted first, Gate 0, 4), the bigWig runtime
       (`runtimes/bigwig`, opt-in) with its levels and synthetic twin, p53's conservation signal over the gene's region
       (`briefs/bw-bigwig.md`). Takes a strong slot after stage 2's gate.
-- [ ] SV (fast, after MK and ST3) services in Storybook: UniProt, PDBe SIFTS, AlphaFold DB as runtimes from recorded
+- [x] SV (merged 2026-11-21, `17b52cab9`) (fast, after MK and ST3) services in Storybook: UniProt, PDBe SIFTS, AlphaFold DB as runtimes from recorded
       fixtures with a live switch; the predictions-onto-a-structure and addressing showcases on the fake viewer; a
       user's own file (Gate 0, 12) (`briefs/sv-services.md`).
 - [x] AR (merged 2026-11-20) (fast, any time after stage 0) archives over the assets port: read and write zip with `@molstar/core/util/zip`,

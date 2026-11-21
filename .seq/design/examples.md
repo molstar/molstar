@@ -43,6 +43,8 @@ each feeds, with what a user does in each view and its editing view. How fixture
   taken, and nothing of their annotations either (coordinates included). The sequence comes from the INSDC record; its
   features are found in code.
 - **GtRNAdb**: its licence is not stated; not taken. The tRNA comes from the PDB, its family from Rfam.
+- **PDBe SIFTS** (EMBL-EBI's terms of use, `LicenseRef-EMBL-EBI-terms`, free reuse with attribution): taken for the
+  services showcases' chain mappings (2OCJ, 1FIN), as published (SV, 2026-11-21).
 - **RCSB/PDBe entries** (CC0) and **AlphaFold DB** (CC BY 4.0): taken, converted at recording to what the views read,
   never the coordinates whole.
 
