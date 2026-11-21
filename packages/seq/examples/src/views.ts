@@ -15,6 +15,7 @@ import * as codingDna from './coordinates/coding-dna.js';
 import * as complexBlocks from './complex/blocks.js';
 import * as navigators from './navigators.js';
 import * as genomeBed from './genomes/bed.js';
+import * as genomeGff from './genomes/gff.js';
 import * as complexConfidence from './complex/confidence.js';
 import * as complexGrid from './complex/complex-grid.js';
 import * as complexLigands from './complex/ligands.js';
@@ -894,6 +895,33 @@ export const GenomeFormatsViews: readonly ExampleView[] = [
       'A BED6 with faults: an end before its start, a position that is no number (both left out), a strand and a score that are not ones (read as missing), a line split on spaces and one with an extra column; each said once with its line number, the rest drawn.',
     build: genomeBed.misread,
     registry: genomeBed.registry,
+  },
+  {
+    dataset: 'genomes',
+    id: 'gff-tp53',
+    title: 'TP53 from Ensembl’s GFF3',
+    summary:
+      'TP53’s region of Ensembl GRCh38 release 116’s GFF3 (the recorded slice, gzip), read whole by the opt-in `gff` runtime: its transcripts as gene models (exons as boxes, the CDS thick, the UTRs thin, a hairline with chevrons for the minus strand) and, from the same file with `features: genes`, one model a gene (TP53 and WRAP53’s start). chr17’s length from the file’s `##sequence-region`. Hover a transcript: every exon lights.',
+    build: genomeGff.tp53Gff3,
+    registry: genomeGff.registry,
+  },
+  {
+    dataset: 'genomes',
+    id: 'gtf-tp53',
+    title: 'TP53 from GENCODE’s GTF',
+    summary:
+      'TP53’s region of GENCODE v50’s GTF (the recorded slice, gzip): the same gene models from GTF’s `transcript_id` and `gene_id`, the thick part to the stop codon GTF writes after the CDS; chr17’s length from an inline chrom.sizes.',
+    build: genomeGff.tp53Gtf,
+    registry: genomeGff.registry,
+  },
+  {
+    dataset: 'genomes',
+    id: 'gff-misread',
+    title: 'A misread GFF3',
+    summary:
+      'A GFF3 with faults: an end before its start, a position that is no number and a short line (left out), an exon whose parent no line has, two transcripts each other’s parent (kept flat), a gene with a CDS and no transcript (read as one, said by type); each said once with its line number, the rest drawn as gene models.',
+    build: genomeGff.misread,
+    registry: genomeGff.registry,
   },
 ];
 

@@ -15,6 +15,7 @@ import { defineElements, onCleanup } from '@molstar/ui/dom';
 import { UiElement } from '@molstar/ui/elements/ui-element';
 import { followSvg } from '../follow-svg.js';
 import { statusIssues } from './status-issues.js';
+import { withViewRegistry } from './view-registry.js';
 import { fileBytes, filesOf, fileHead, printSources } from '../features/files/file-head.js';
 
 // A story of an example view (examples-and-stories.md): the view's `build()` shown by a viewer composed from the default
@@ -32,6 +33,8 @@ type ExampleModel = ExampleView & {
   readonly stacked?: boolean;
   /** What the story does once the view is placed (a move to the region it opens on). */
   readonly opening?: (viewer: SeqViewer) => unknown;
+  /** A section printed under the status line once the view is placed: its title and its text (a name's hits). */
+  readonly aside?: { readonly title: string; readonly text: (viewer: SeqViewer) => Promise<string> };
   /** The viewer's config items (`[item, value]` pairs) over the default spec's. */
   readonly config?: SeqViewerSpec['config'];
   /** Behaviors besides the default spec's (a host's choice the story shows on: `links.hover`). */
@@ -79,6 +82,13 @@ class ExampleRoot extends UiElement<ExampleModel> {
     pair.style.cssText = `display: grid; grid-template-columns: ${view.stacked ? '1fr' : 'repeat(auto-fit, minmax(420px, 1fr))'}; gap: var(--msui-space-5);`;
     pair.append(section('Canvas', canvasHost), section('SVG', svgHost));
     root.append(summary, pair, status);
+    const aside = document.createElement('pre');
+    if (view.aside) {
+      aside.style.cssText =
+        'margin: 0; padding: var(--msui-space-3); overflow: auto; font: var(--msui-text-xs) / var(--msui-leading-xs) var(--msui-font-mono); background: var(--msui-surface, transparent); border: 1px solid var(--msui-line);';
+      aside.textContent = 'Finding…';
+      root.append(section(view.aside.title, aside));
+    }
     if (view.files) root.append(...fileSections(view.build()));
     root.append(section('Spec', printed));
 
@@ -89,7 +99,7 @@ class ExampleRoot extends UiElement<ExampleModel> {
       {
         ...base,
         ui: { ...base.ui, toolbar: toolbarWithHiddenTracks },
-        registry: [...(base.registry ?? []), ...extra],
+        registry: withViewRegistry(base.registry ?? [], extra),
         ...(view.config ? { config: [...(base.config ?? []), ...view.config] } : {}),
         ...(view.behaviors ? { behaviors: [...base.behaviors, ...view.behaviors] } : {}),
       },
@@ -123,6 +133,9 @@ class ExampleRoot extends UiElement<ExampleModel> {
       .load(spec)
       .then(() => viewer.settle())
       .then(() => view.opening?.(viewer))
+      .then(async () => {
+        if (view.aside) aside.textContent = await view.aside.text(viewer).catch((e) => `${e?.message ?? e}`);
+      })
       .then(() => svg.draw());
     return root;
   }
@@ -176,6 +189,7 @@ export function exampleStory(
     readonly sourceIssues?: boolean;
     readonly stacked?: boolean;
     readonly opening?: (viewer: SeqViewer) => unknown;
+    readonly aside?: ExampleModel['aside'];
     readonly config?: SeqViewerSpec['config'];
     readonly behaviors?: SeqViewerSpec['behaviors'];
   } = {},
@@ -187,6 +201,7 @@ export function exampleStory(
     options.sourceIssues ||
     options.stacked ||
     options.opening ||
+    options.aside ||
     options.config ||
     options.behaviors
       ? { ...view, ...options }
