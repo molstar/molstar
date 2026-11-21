@@ -48,10 +48,9 @@ export function assemblyNames(
     if (alias === sequences[i].name) return;
     const named = names.has(alias) ? index.get(alias)! : undefined;
     if (named !== undefined) {
-      // a name of another sequence: the name wins; an alias joining two of different known lengths is said
-      const a = sequences[named].length;
-      const b = sequences[i].length;
-      if (named !== i && a !== undefined && b !== undefined && a !== b) bad.add(alias);
+      // a name of another sequence: the name wins, and the alias is said dropped whatever the lengths (it would join
+      // two sequences; with different lengths, hg19's `chrM` and GRCh37's `MT`, never one)
+      if (named !== i) bad.add(alias);
       return;
     }
     const was = claims.get(alias);

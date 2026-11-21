@@ -79,6 +79,16 @@ describe('the names rule (EC-189)', () => {
     expect(lookupName(joined, 'MT')).toBe(1);
   });
 
+  it('says an alias that is another sequence’s name dropped, whatever the lengths (EC-189)', () => {
+    const r = assemblyNames([
+      { name: 'chr1', length: 10, aliases: ['x'] },
+      { name: 'x', length: 10 },
+      { name: 'chr2', aliases: ['chr1'] },
+    ]);
+    expect(r.dropped).toEqual(['x', 'chr1']);
+    expect([lookupName(r, 'x'), lookupName(r, 'chr1')]).toEqual([1, 0]);
+  });
+
   it('never maps an alias to two sequences, over random alias tables (property)', () => {
     const rng = new PCG(7);
     for (let round = 0; round < 50; round++) {
