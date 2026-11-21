@@ -212,6 +212,11 @@ fix point with nothing open is skipped. A finding that needs a design is a drift
       descriptor, `rondo:ribbons`, `rondo:cells`, the `rondo:square` picture, `rondo:hues`, commands and the binding,
       `rondoRing`; the entry's exports and the `LayerType` hooks in core; the fallback; its stories (hot: the new
       package's files, inventory row, root reference).
+- [ ] **NS** (`briefs/ns-nightingale-showcase.md`; fast, any time, alone: storybook only) **a Nightingale showcase**
+      (the author, 2026-11-21: "yes, we can do a dev dependency version. maybe add a phase for this to slice 5?";
+      reverses the fourth slice's "dropped" for stories only): Nightingale's web components a dev dependency of the
+      Seq* storybook alone, a few stories feeding its tracks from the resolved view and the store, the NG consumer
+      beside them; no package of Seq* depends on it.
 - [ ] **USE GATE** (not blocking): the author tries the genome views and the ring; findings fixed or placed.
 - [ ] **GATE**.
 

@@ -50,6 +50,9 @@
 - **One lane at a time** (the author, 2026-11-21: "slow down to just 1 active lane after current batch finishes, we
   are nearing usage limit"): after GC3 and GG finish, one agent at a time (a lane, then its reviewer, then its fix
   round), never two; VC waits for both.
+- **A Nightingale showcase as a storybook dev dependency** (the author, 2026-11-21: "yes, we can do a dev dependency
+  version. maybe add a phase for this to slice 5?"): lane NS in stage 4; the npm install is approved with it; the
+  fourth slice's "Nightingale dropped" stands for the packages (no dependency, no lane there).
 
 ## Overnight: stage 0 (run by the fourth slice's loop)
 
