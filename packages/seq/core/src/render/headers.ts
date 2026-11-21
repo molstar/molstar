@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { resolveAddress } from '@molstar/core/repr/tree';
+import { type Node, resolveAddress } from '@molstar/core/repr/tree';
 import { idRunOf } from '@molstar/seqx-core/lang/check';
 import type { StaticModel } from '@molstar/seqx-core/resolve';
 import type { ResolvedSection, ResolvedTrack } from '@molstar/seqx-core/view';
@@ -500,6 +500,27 @@ export function collapsedSection(section: ResolvedSection): boolean {
   return !section.tracks.length && !section.blocks && !section.y;
 }
 
+/**
+ * The name a hidden track is listed by (_spec/README.md, Hidden tracks): its label (its id without one), else, for an empty label, its first layer's `label` or
+ * `title`, else its layer's type as a word ("Ruler", "Rows"), else its id. A header's label may be empty (a ruler's, the
+ * rows'): the list has no header to read it from.
+ */
+export function hiddenTrackName(track: Node): string {
+  const text = (v: unknown) => (typeof v === 'string' && v.trim() ? v : undefined);
+  const own = track.params?.label;
+  // no label: the header reads the track's id; an empty one is the author's choice of none
+  if (own === undefined) return track.id ?? 'Track';
+  if (text(own)) return own as string;
+  for (const l of track.children ?? []) {
+    if (l.kind !== 'layer') continue;
+    const named = text(l.params?.label) ?? text(l.params?.title);
+    if (named) return named;
+    const type = text(l.params?.type);
+    if (type) return type[0].toUpperCase() + type.slice(1);
+  }
+  return track.id ?? 'Track';
+}
+
 const Hidden = new WeakMap<ResolvedSection, readonly HiddenTrack[]>();
 const NoHidden: readonly HiddenTrack[] = [];
 
@@ -510,8 +531,7 @@ export function hiddenTracksOf(model: StaticModel, section: ResolvedSection): re
   let found: HiddenTrack[] | undefined;
   for (const t of resolveAddress(model.spec, idRunOf(section.address))?.children ?? []) {
     if (t.kind !== 'track' || t.id === undefined || t.params?.hidden !== true) continue;
-    const label = t.params?.label;
-    (found ??= []).push({ address: `${section.address}/${t.id}`, label: typeof label === 'string' ? label : t.id });
+    (found ??= []).push({ address: `${section.address}/${t.id}`, label: hiddenTrackName(t) });
   }
   out = found ?? NoHidden;
   Hidden.set(section, out);

@@ -1457,6 +1457,9 @@ derived on settle: a legend that changes during a pan reads as noise, and its co
   Storybook composition mounts it in its toolbar (`toolbarWithHiddenTracks`), the minimal viewer none. Why: a library's
   view never decides where a host's controls go, and chrome that appears on a hide moves what the user was looking at; a
   host that mounts no list leaves its hidden tracks reachable only by the menu, the palette and the spec.
+  Every entry is listed by a name (`hiddenTrackName`): its label, its id without one, and for an empty label (a ruler's,
+  the rows': the author's) its layer's `label` or `title`, else its type as a word ("Ruler", "Rows"); the list and the
+  menu share it. Why: the list has no header to read a label from.
 - **The Legend part lists the active highlight channels** after the legends: a row a channel (`data-highlight`) with a
   swatch in the channel's color (`highlightColorOf`, beside the legend rows) shaped by its style, and a Clear, which
   runs `highlight.clear` with the channel's name. The rows are redrawn only when the channel names, a channel's style or
