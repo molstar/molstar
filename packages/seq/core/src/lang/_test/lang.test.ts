@@ -582,6 +582,14 @@ describe('the misuses', () => {
     expect(b.check()).toEqual([]);
   });
 
+  it('refuse an override’s own letters under an assembly, never misread them against an alphabet', () => {
+    const b = createSeqSpec();
+    b.data.assembly('g', { name: 'toy', sequences: { name: ['chr1'], length: [4] } }, (a) =>
+      a.sequence('o', { name: 'chr1', letters: 'ACGT' }),
+    );
+    expect(b.check().map((i) => i.code)).toEqual(['seq.lang.sequence.content']);
+  });
+
   it('give the description’s codes first, and the language’s on a valid tree only', () => {
     const bad = createSeqSpec();
     bad.data.sequence('s', { alphabet: 'cat' } as never);

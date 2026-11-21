@@ -519,14 +519,21 @@ export function checkDataNode(
       break;
     }
     case 'sequence': {
-      // under an assembly: an override of a derived sequence, its letters and alphabet the assembly's when absent
+      // under an assembly: an override of a derived sequence (its `cyclic`, `label`, `alphabet`); its letters are the
+      // assembly's source's, so an override's own `letters` or `source` is refused, never read
       const derived = ctx.parent?.kind === 'assembly';
-      if (!derived && !xor(p(n, 'letters') !== undefined, p(n, 'source') !== undefined))
-        say('seq.lang.sequence.content', 'A sequence has one of `letters` and `source`');
+      const has = p(n, 'letters') !== undefined || p(n, 'source') !== undefined;
+      if (derived ? has : !xor(p(n, 'letters') !== undefined, p(n, 'source') !== undefined))
+        say(
+          'seq.lang.sequence.content',
+          derived
+            ? 'An override under an assembly takes no `letters` or `source`'
+            : 'A sequence has one of `letters` and `source`',
+        );
       if (!derived && p(n, 'alphabet') === undefined)
         say('seq.lang.sequence.alphabet', 'The sequence has no alphabet', 'alphabet');
       const letters = p(n, 'letters');
-      if (typeof letters === 'string' && !Letters[String(p(n, 'alphabet'))]?.test(letters))
+      if (!derived && typeof letters === 'string' && !Letters[String(p(n, 'alphabet'))]?.test(letters))
         say('seq.lang.sequence.letters', 'The letters are not of the alphabet', 'letters');
       checkModified(n, say);
       break;

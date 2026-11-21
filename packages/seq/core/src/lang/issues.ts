@@ -45,8 +45,8 @@ export const LangIssues = defineIssues('seq.lang', {
   },
   'seq.lang.sequence.content': {
     severity: 'error',
-    description: 'A sequence has both `letters` and a `source`, or neither',
-    hint: 'Give one of `letters` and `source`',
+    description: 'A sequence has both `letters` and a `source`, or neither (an override under an assembly: either)',
+    hint: 'Give one of `letters` and `source`; an override reads its assembly’s',
   },
   'seq.lang.alignment.content': {
     severity: 'error',

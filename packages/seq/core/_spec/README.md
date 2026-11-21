@@ -314,8 +314,9 @@ never chemistry: a component code, a SMILES, a GlyTouCan id are strings it match
   `source`, or a list of names first); `include` (names and patterns `^…`, or `{ names, min_length }`; every sequence
   when absent); `match` (`chr` when absent: a leading `chr` added or dropped; `exact`). A `sequence` child overrides the
   derived one its `name` (else its id) is, through the names rule: `cyclic`, `label`, `alphabet` (the assembly's when
-  absent, so `seq.lang.sequence.alphabet` and `.content` apply under `data` only). Why a kind: a genome's hundreds of
-  sequences written as nodes is a manifest by hand.
+  absent, so `seq.lang.sequence.alphabet` applies under `data` only); its own `letters` or `source` is refused
+  (`seq.lang.sequence.content`: its letters are the assembly's source's). Why a kind: a genome's hundreds of sequences
+  written as nodes is a manifest by hand.
 - **Over an assembly**: `ranges.target`, `values.target`, `pairs.a`/`b`, `grid.x`/`y`, `matrix.target`, `map.from`/`to`
   and `navigator.system` may name one; a row is on the sequence its `target` field names (Resolve). A section `of` an
   assembly, or a list of them (a group each, EC-210), has a block a derived sequence; its `include` (the assembly's
