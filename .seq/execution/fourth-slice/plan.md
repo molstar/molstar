@@ -341,7 +341,7 @@ disagrees with its code writes a drift note and stops.
 - [x] LE (fast, after EX; cut second; beside CN) part 3: legends' library surface, the `legend` layer param (a language
       change through the bump's owner, after CN has none open), `mountLegend`'s options, the compact form
       (`briefs/le-legends.md`).
-- [ ] GATE: merged, reviewed, checks green, sizes, gaps.
+- [x] GATE (2026-11-21, overnight, as recommended): merged, reviewed, checks green, sizes, gaps.
 
 ### Stage 5: use, measure, finalize
 

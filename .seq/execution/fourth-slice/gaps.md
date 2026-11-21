@@ -74,3 +74,6 @@ under the author's standing permission (`state.md`, Decided). Each a yes or no q
   `defineExtension`, late `extend` lazy. 0.7 kB is left under the bound, and CN and LE come next. Accept and move the
   minimal bound (e.g. 940 kB), or trim design items (the info-level version notice, the navigator issue, the builder's
   `extensions`)? Recommended: accept, move the bound to 940 kB (a reader without the extension must say what it lacks).
+- **The chromosome view's pan frame near its ratio bound** (stage 4's gate): 1.97× against 1.9× once at load 4.9,
+  passing alone and in the full heavy run at load 2.6. Watch at M4 on a quiet machine; if it repeats, find whether EX's
+  kinds lookup or CN's pictures added work per frame. Recommended: re-measure at M4, no change now.

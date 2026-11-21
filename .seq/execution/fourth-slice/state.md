@@ -59,6 +59,10 @@ The third slice is closed (2026-11-20; its record in `.seq/records/third-slice/`
   gaps in `gaps.md`; matrix cells checked by each lane's review. Its use gate deferred to the author. The fifth slice's
   stage 0 done (six drafts). Next: FX4 (the fix point after stage 2's gate) and EX, two lanes; SV waits for the author
   (its first service fetch is asked).
+- 2026-11-21: FX4, EX, LE, CN merged; stage 4's gate passed (overnight, as recommended): quick, medium, heavy (123 at
+  load 2.6; the chromosome view's pan-frame ratio missed its 1.9× once at load 4.9, 1.97×, and passed alone and in the
+  full run after), both perf tiers; sizes 223.1 / 806.0 / 1296.4 / 929.5 kB. Next: the novice pass and M4's
+  measurements without the browser's fetches; SV and stage 3's gate wait for the author; stop before FINALIZE.
 
 ## Next
 
