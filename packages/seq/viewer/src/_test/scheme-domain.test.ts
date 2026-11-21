@@ -8,7 +8,6 @@ import { createSeqSpec, theme } from '@molstar/seqx-core/lang';
 import { afterEach, describe, expect, it } from 'vitest';
 import { viewerItem } from '../config.js';
 import { DefaultSeqViewerSpec } from '../default-spec.js';
-import { legendRows } from '../legends.js';
 import { createSeqViewer, type SeqViewer } from '../viewer.js';
 import { type Frames, installFrames } from './frames.js';
 
