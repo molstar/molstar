@@ -618,6 +618,8 @@ export const SeqLanguage = defineLanguage({
       doc: 'A navigator: a part over a section’s axis, its rows or both, drawing the whole and the section’s window in it; a drag on the window moves the section. Placed by the host (`place` a hint).',
       parents: ['navigators'],
       ids: 'required',
+      // an extension's or a host's picture (`rondo:square`) reads plain params beside these: kept, checked by its extension
+      extensionParam: 'content',
       params: {
         of: {
           type: 'union',
@@ -635,7 +637,7 @@ export const SeqLanguage = defineLanguage({
         },
         content: builtInOr(
           ['axis', 'tracks', 'bands', 'rows'],
-          'What it draws of the whole: the `axis` as a hairline (when absent), the section’s `tracks` small, the `bands` of a chromosome (an ideogram), or the section’s `rows` (summarized).',
+          'What it draws of the whole: the `axis` as a hairline (when absent), the section’s `tracks` small, the `bands` of a chromosome (an ideogram), the section’s `rows` (summarized), or a picture `<id>:<name>` (its params plain).',
         ),
         tracks: {
           type: 'list',

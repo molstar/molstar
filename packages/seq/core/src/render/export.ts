@@ -350,6 +350,8 @@ export interface RenderSvgOptions {
    * How included navigators are drawn (`NavigatorSvgExport` of `render/navigator-export`): `renderSvg`'s default; none
    * in `exportSvg` when absent (an export asked to include navigators then says it left them out).
    */
+  /** The navigators' pictures (the composition's `navigator-picture` entries): the axis alone when absent. */
+  readonly pictures?: NavigatorRendererOptions['pictures'];
   readonly navigatorExport?: NavigatorExport;
 }
 
@@ -501,6 +503,9 @@ export async function exportSvg(spec: Node, options: RenderSvgOptions): Promise<
             config,
             types: renderer.options.types,
             layouts: renderer.options.layouts,
+            // none of a picture not given (each navigator the axis)
+            pictures: options.pictures ?? {},
+            ...(options.kinds ? { kinds: options.kinds } : {}),
             ...(options.registry ? { theme: options.registry } : {}),
             images: renderer.images,
             domains: renderer.layoutState,

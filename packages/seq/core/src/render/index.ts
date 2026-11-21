@@ -8,7 +8,7 @@
 // section layouts (strips, warps, placements, navigation) and the tracks layout, the window mark, draw lists in passes, hit-testing, the token table, the text metrics port, the recording and SVG
 // backends. Named re-exports only; what a minimal composition does not ask for is on its own entry:
 // `render/render-svg` (`renderSvg`, the built-ins), `render/export-png`, `render/built-ins`, `render/navigator`,
-// `render/navigator-export`.
+// `render/navigator-picture` (the built-in pictures), `render/navigator-export`.
 
 export { AxisTransform, type BandViewport, Cut, type Viewport } from './axis.js';
 export {
@@ -149,6 +149,7 @@ export {
   WindowFill,
   windowPart,
 } from './window.js';
+export type { NavigatorPicture, NavigatorPictureContext, NavigatorPictureTracks } from './navigator-picture.js';
 export { type NarrowColumns, narrowColumns, overviewWidth } from './narrow.js';
 export { type SourceLabelsOptions, withSourceNumberings } from './numberings.js';
 export {

@@ -20,7 +20,7 @@ export interface ExtensionTables {
   readonly schemes?: SchemeRegistry;
 }
 
-/** An extension: what an outside package ships (layer types, layouts, sizings, schemes, formats, query entries). */
+/** An extension: what an outside package ships (layer types, layouts, sizings, navigator pictures, schemes, formats, query entries). */
 export interface SeqExtension {
   /** Its namespace: a lowercase word (`rondo`), never `seq` (reserved). */
   readonly id: string;
@@ -32,9 +32,9 @@ export interface SeqExtension {
   /** Its entries, each named `<id>:<name>`. */
   readonly registry: readonly SeqRegistryEntry[];
   /**
-   * The params it reads, by the type that reads them: its own types' plain params (`'rondo:ribbons': { bundle }`), and
-   * under a built-in kind the namespaced keys it reads on others' nodes (`section: { 'rondo:bundle' }`); checked by
-   * `check` (`defineExtension` of `@molstar/seqx-core/extension` writes it from these).
+   * The params it reads, by the type that reads them: its own types' and pictures' plain params
+   * (`'rondo:ribbons': { bundle }`), and under a built-in kind the namespaced keys it reads on others' nodes
+   * (`section: { 'rondo:bundle' }`); checked by `check` (`defineExtension` of `@molstar/seqx-core/extension` writes it from these).
    */
   readonly params?: Readonly<Record<string, Fields>>;
   /** Its params' issues on a spec: what the context's `check` adds where the extension is composed. */

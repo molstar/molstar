@@ -23,6 +23,7 @@ import {
   type RenderConfigOverrides,
   exportSvg,
   type LayerType,
+  type NavigatorPicture,
   type RenderSvgOptions,
   type RenderSvgResult,
   renderConfig,
@@ -66,6 +67,7 @@ export type SeqRegistryEntry =
   | { readonly kind: 'layout'; readonly layout: SectionLayoutType<any> }
   | { readonly kind: 'track-sizing'; readonly sizing: TrackSizing }
   | { readonly kind: 'scheme'; readonly scheme: SchemeEntry }
+  | { readonly kind: 'navigator-picture'; readonly picture: NavigatorPicture }
   | QueryFormEntry
   | QueryOperatorEntry
   | QueryPropertyEntry;
@@ -182,6 +184,11 @@ function sizingsOf(registry: readonly SeqRegistryEntry[]): Readonly<Record<strin
   return Object.fromEntries(byName(registry, 'track-sizing', 'track sizings', (e) => e.sizing));
 }
 
+/** The registered navigator pictures by name, as `runtimesOf`. */
+function picturesOf(registry: readonly SeqRegistryEntry[]): Readonly<Record<string, NavigatorPicture>> {
+  return Object.fromEntries(byName(registry, 'navigator-picture', 'navigator pictures', (e) => e.picture));
+}
+
 /** The registered section layouts by name, as `runtimesOf`. */
 function layoutsOf(registry: readonly SeqRegistryEntry[]): Readonly<Record<string, SectionLayoutType<any>>> {
   return Object.fromEntries(byName(registry, 'layout', 'layouts', (e) => e.layout));
@@ -220,7 +227,7 @@ export function configValue<T>(
 /** The registry's tables, composed from its entries and its extensions': what `_extend` swaps whole. */
 type Tables = Pick<
   SeqContext,
-  'runtimes' | 'types' | 'layouts' | 'sizings' | 'query' | 'schemes' | 'kinds' | 'extensions'
+  'runtimes' | 'types' | 'layouts' | 'sizings' | 'pictures' | 'query' | 'schemes' | 'kinds' | 'extensions'
 >;
 
 /**
@@ -231,14 +238,18 @@ function tablesOf(registry: readonly SeqRegistryEntry[], extensions: readonly Se
   const all = [...registry, ...extensions.flatMap((e) => e.registry)];
   let added: ExtensionTables = { kinds: BuiltInLayerKinds };
   for (const e of extensions) added = e.defined!.compose(added);
+  const pictures = picturesOf(all);
   return {
     runtimes: runtimesOf(all),
     types: layerTypesOf(all),
     layouts: layoutsOf(all),
     sizings: sizingsOf(all),
+    pictures,
     query: queryExtensionsOf(all),
     schemes: undefined,
     ...added,
+    // the pictures a navigator's `content` may name: the registry's (the axis always drawn)
+    kinds: { ...added.kinds, pictures: Object.keys(pictures) },
     extensions,
   };
 }
@@ -251,6 +262,8 @@ export interface SeqContext {
   readonly layouts: Readonly<Record<string, SectionLayoutType<any>>>;
   /** The registered track sizings by name (a section's `heights` naming another is said; its tracks fit their content). */
   readonly sizings: Readonly<Record<string, TrackSizing>>;
+  /** The registered navigator pictures by name (a `content` naming another is said, and drawn as the axis). */
+  readonly pictures: Readonly<Record<string, NavigatorPicture>>;
   /** The registered query forms and properties: what `evaluateQuery` is given as `extensions`. */
   readonly query: QueryExtensions;
   /** The schemes the themes read, when the registry adds any to the built-ins (undefined: the built-ins). */
@@ -364,6 +377,7 @@ export function composeSeqContext(spec: SeqContextSpec = {}): SeqContext {
         types: t.types,
         layouts: t.layouts,
         sizings: t.sizings,
+        pictures: t.pictures,
         kinds: t.kinds,
         ...(t.schemes ? { registry: { schemes: t.schemes } } : {}),
         ...(trackSizing ? { trackSizing } : {}),

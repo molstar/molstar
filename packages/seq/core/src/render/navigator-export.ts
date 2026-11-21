@@ -63,7 +63,7 @@ export const NavigatorSvgExport: NavigatorExport = (input) => {
     frames(layout, settled) {
       const frames = navs.map((n) =>
         n.frame({
-          size: navigatorBox(n.navigator, layout.width, layout.height),
+          size: navigatorBox(n.navigator, layout.width, layout.height, options.pictures),
           dpr,
           settled,
           overlay: overlay(),
@@ -95,7 +95,7 @@ function withNavigators(
   const vh = lists.height;
   // each navigator's box, a zoom strip's height below it
   const boxes = navs.map((n) => {
-    const b = navigatorBox(n.navigator, vw, vh);
+    const b = navigatorBox(n.navigator, vw, vh, n.options.pictures);
     return { width: b.width, height: b.height + n.zoomHeight };
   });
   const sum = (p: string, k: 'width' | 'height') =>

@@ -5,7 +5,7 @@
  */
 
 import type { Node } from '@molstar/core/repr/tree';
-import { BuiltInLayerTypes, BuiltInLayouts } from './built-ins.js';
+import { BuiltInLayerTypes, BuiltInLayouts, BuiltInNavigatorPictures } from './built-ins.js';
 import { exportSvg, type RenderSvgOptions, type RenderSvgResult } from './export.js';
 import { NavigatorSvgExport } from './navigator-export.js';
 
@@ -33,6 +33,7 @@ export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<
   return exportSvg(spec, {
     types,
     layouts: BuiltInLayouts,
+    pictures: BuiltInNavigatorPictures,
     navigatorExport: NavigatorSvgExport,
     ...options,
   });

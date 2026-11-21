@@ -62,8 +62,8 @@ export function defineExtension<E extends SeqExtension>(extension: E, viewer = f
   const kinds: Record<string, { shape: LayerShape; fallback?: string }> = {};
   const schemes: SchemeEntry[] = [];
   for (const r of extension.registry as any[]) {
-    // each entry's provider by its name (a format runtime's, a layer type's, a scheme's; a query entry's own)
-    const p = r.runtime ?? r.layout ?? r.sizing ?? r.scheme ?? (r.kind === 'layer-type' ? r.type : r);
+    // each entry's provider by its name (a format runtime's, a layer type's, a scheme's, a picture's; a query entry's own)
+    const p = r.runtime ?? r.layout ?? r.sizing ?? r.scheme ?? r.picture ?? (r.kind === 'layer-type' ? r.type : r);
     ns(p.name);
     if (r.kind === 'layer-type' && p.shape)
       kinds[p.name] = { shape: p.shape, ...(p.fallback ? { fallback: p.fallback } : {}) };
@@ -103,7 +103,8 @@ function extensionParamIssues(spec: Node, extension: SeqExtension): Issue[] {
   const id = extension.id;
   const walk = (n: Node, path: TreePath) => {
     for (const [by, fields] of read) {
-      const own = n.kind === 'layer' && n.params?.type === by;
+      // its own layer type's or navigator picture's node
+      const own = (n.kind === 'layer' && n.params?.type === by) || (n.kind === 'navigator' && n.params?.content === by);
       if (!own && n.kind !== by) continue;
       // its own type's params it declares, or its keys on another's node
       const params: Record<string, unknown> = {};
