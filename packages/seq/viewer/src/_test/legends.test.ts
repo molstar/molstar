@@ -16,6 +16,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import type { ThemingBehavior } from '../behaviors/theming.js';
 import { viewerItem } from '../config.js';
 import { DefaultSeqViewerSpec } from '../default-spec.js';
+import { toMolLegend } from '@molstar/seqx-core/theme';
 import { legendRows } from '../legends.js';
 import { createSeqViewer, type SeqViewer } from '../viewer.js';
 import { type Frames, installFrames } from './frames.js';
@@ -102,6 +103,54 @@ describe('legends', () => {
     expect(v.highlight.names.value).toContain('legend');
     await v.execute('legend.hover', {});
     expect(v.highlight.names.value).not.toContain('legend');
+  });
+});
+
+describe('a layer with a color and a size channel (F23)', () => {
+  it('two tracks’ legends merged, the one title of two channels says its channel; its two legends are titled apart, and the size key has a mark of the channel’s size on each entry', async () => {
+    frames = installFrames();
+    const b = createSeqSpec();
+    const p = b.data.sequence('p', { alphabet: 'protein', letters: 'MEEPQSDPSVEPPLSQETFSDLWKLL' });
+    const vars = b.data.ranges('vars', {
+      target: p,
+      rows: {
+        start: new Int32Array([2, 8, 14]),
+        end: new Int32Array([3, 9, 15]),
+        id: ['a', 'b', 'c'],
+        consequence: ['missense', 'nonsense', 'missense'],
+        frequency: Float32Array.from([1e-6, 0.001, 0.1]),
+      },
+    });
+    b.views.view('main', (v) => {
+      const section = v.section('p', { of: p });
+      for (const label of ['gnomAD exomes', 'gnomAD genomes'])
+        section.track(label.split(' ')[1], { label, height: 40 }).layer('variants', {
+          type: 'variants',
+          data: vars,
+          color: theme.field('consequence'),
+          size: theme.field('frequency', { type: 'log', domain: [1e-6, 0.1], range: [0.3, 1] }),
+        });
+    });
+    const viewer = createSeqViewer({ ...DefaultSeqViewerSpec(), ui: undefined });
+    viewers.push(viewer);
+    await viewer.load(b.build());
+    viewer.resize(600);
+    await viewer.settle();
+    frames.flush();
+    const rows = legendRows(viewer);
+    // the two tracks' legends merge (same keys: title by the words they share), and the one title of two channels says
+    // its channel after the merge
+    expect(rows.map((r) => r.title)).toEqual(['gnomAD (color)', 'gnomAD (size)']);
+    expect(rows[1].entries[0].name).toBe('gnomAD (size): 0.000001');
+    // the Mol* converter keeps the track's title (it has none): sizes drop, the colors convert
+    const legends = viewer.legends.legends.value;
+    expect(legends.map((l) => l.title)).toEqual(['gnomAD', 'gnomAD']);
+    expect(legends.map((l) => toMolLegend(l)?.kind)).toEqual(['table-legend', undefined]);
+    const sizes = rows[1].entries.map((e) => e.size!);
+    expect(sizes).toHaveLength(3);
+    expect(sizes[0]).toBeCloseTo(0.3);
+    expect(sizes[2]).toBeCloseTo(1);
+    expect(rows[0].entries.every((e) => e.size === undefined)).toBe(true);
   });
 });
 

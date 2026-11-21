@@ -28,6 +28,10 @@ export const HostSource = '/data/2ocj';
 export const HostComplex = nodeAddress(HostSource, 'complex');
 /** The chains the view shows: the first and the last of the entry's four. */
 export const HostChains = ['A', 'D'] as const;
+/** The B-factors' bar scale, Å² (the chains' range is 10–75): full height at its top. */
+export const BFactorDomain: readonly [number, number] = [0, 80];
+/** The story's legend of the B-factor tracks: what a bar’s height is, and why they end short of the sequence. */
+export const BFactorLegend = `B-factor (Å²): a bar’s height, from ${BFactorDomain[0]} (nothing) to ${BFactorDomain[1]} (full). The tracks stop short at each end: the crystal has no atoms for residues 1–2 and 197–219, and a residue without atoms has no B-factor.`;
 /** A unit of the complex: its address. */
 export const unitAddress = (chain: string) => `${HostComplex}/${chain}`;
 
@@ -59,7 +63,13 @@ export function hostDataSpec(): Node {
     for (const { chain, sequence, values } of chains)
       v.section(`chain-${chain}`, { of: sequence }, (s) => {
         s.track('ruler', { label: `Chain ${chain}` }).layer('ruler', { type: 'ruler' });
-        s.track('bfactor', { label: 'B-factor' }).layer('bfactor', { type: 'values', data: values });
+        // the bars' full height is `BFactorDomain` (the story's legend says so); the ends of the chain the crystal has no
+        // atoms for (residues 1–2 and 197–219 of 2OCJ) have no B-factor: the gap is the data
+        s.track('bfactor', { label: 'B-factor (Å²)' }).layer('bfactor', {
+          type: 'values',
+          data: values,
+          domain: BFactorDomain,
+        });
       });
   });
   return b.build();

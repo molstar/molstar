@@ -54,6 +54,22 @@ export interface Legend {
   readonly notes: readonly ('unlisted' | 'substituted')[];
   /** The layers (keys) it keys. */
   readonly layers: readonly string[];
+  /**
+   * The channel that tells it from another legend of the same title (a layer's colors and sizes, `Variants` twice): set
+   * after the merge, only where one title has legends of more than one channel. `title` itself stays the track's.
+   */
+  readonly qualifier?: string;
+}
+
+/** The title a legend is shown under: its `title`, then its channel in brackets where it has a `qualifier`. */
+export const legendTitle = (l: Pick<Legend, 'title' | 'qualifier'>): string =>
+  l.qualifier ? `${l.title} (${l.qualifier})` : l.title;
+
+/** Legends after their merge: those that share a title with a legend of another channel say their channel. */
+export function qualifyLegends(legends: readonly Legend[]): Legend[] {
+  return legends.map((l) =>
+    legends.some((o) => o.title === l.title && o.channel !== l.channel) ? { ...l, qualifier: l.channel } : l,
+  );
 }
 
 export interface LegendOptions {
@@ -210,10 +226,10 @@ export function mergeLegends(legends: readonly Legend[]): Legend[] {
       out.push(g[0]);
       continue;
     }
-    const titles = g.map((l) => l.title.split(/\s+/));
-    const shared: string[] = [];
-    for (let i = 0; i < titles[0].length && titles.every((t) => t[i] === titles[0][i]); i++) shared.push(titles[0][i]);
-    out.push({ ...g[0], title: shared.join(' ') || g[0].title, layers: g.flatMap((l) => l.layers) });
+    const words = g.map((l) => l.title.split(/\s+/));
+    let n = 0;
+    while (words.every((t) => t[n] !== undefined && t[n] === words[0][n])) n++;
+    out.push({ ...g[0], title: words[0].slice(0, n).join(' ') || g[0].title, layers: g.flatMap((l) => l.layers) });
   }
   return out;
 }
@@ -223,7 +239,11 @@ export function formatValue(v: number): string {
   return Number.isInteger(v) ? String(v) : String(Number(v.toPrecision(4)));
 }
 
-/** The legend as Mol*'s: a ramp as a `ScaleLegend`, steps and swatches as a `TableLegend`; sizes have none. */
+/**
+ * The legend as Mol*'s: a ramp as a `ScaleLegend`, steps and swatches as a `TableLegend`; sizes have none. A Mol*
+ * legend has no title: the host titles it with the legend's `title`, the track's, never the channel-qualified one (the
+ * size legend it drops is not there to tell it from).
+ */
 export function toMolLegend(legend: Legend): MolLegend | undefined {
   const e = legend.entries;
   if (e.kind === 'ramp') {
@@ -251,6 +271,7 @@ export function legendsEqual(a: readonly Legend[], b: readonly Legend[]): boolea
     if (
       a[i].key !== b[i].key ||
       a[i].title !== b[i].title ||
+      a[i].qualifier !== b[i].qualifier ||
       a[i].more !== b[i].more ||
       a[i].layers.join() !== b[i].layers.join()
     )

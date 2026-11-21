@@ -15,7 +15,7 @@ import { defineElements, onCleanup } from '@molstar/ui/dom';
 import { UiElement } from '@molstar/ui/elements/ui-element';
 import { fakeStructureElement } from '../../support/fake-structure/fake-view.js';
 import { ColorByEntry, colorByBehavior } from '../../support/host-adapter.js';
-import { chainTableOf, colorRunner, Datasets, type DatasetName, type FakeLink, linkFake } from './compose.js';
+import { chainTableOf, colorRunner, Datasets, type DatasetName, type FakeLink, linkFake, litLine } from './compose.js';
 
 // The structure link's stories (structure-syncing): a Seq* view above the fake structure viewer, linked by
 // `linkStructure` through the host's adapter. The fake is a small viewer of its own (chains as rows of residue cells, a
@@ -68,6 +68,8 @@ class StructureLinkRoot extends UiElement<StructureLinkStory> {
     const canvasHost = document.createElement('div');
     canvasHost.style.cssText = 'min-width: 0;';
     const fakeHost = document.createElement('div');
+    const lit = document.createElement('p');
+    lit.style.cssText = 'margin: 0; font: var(--msui-text-xs) / var(--msui-leading-xs) var(--msui-font-mono);';
     const status = document.createElement('p');
     status.style.cssText = 'margin: 0; color: var(--msui-text-muted);';
     const logEl = document.createElement('pre');
@@ -79,7 +81,7 @@ class StructureLinkRoot extends UiElement<StructureLinkStory> {
       hint,
       tools,
       titled('Seq*', canvasHost),
-      titled('The structure viewer (a fake)', fakeHost),
+      titled('The structure viewer (a fake)', lit, fakeHost),
       titled('Messages', logEl),
       status,
     );
@@ -119,9 +121,11 @@ class StructureLinkRoot extends UiElement<StructureLinkStory> {
     );
     let gone = false;
     let unlog: (() => void) | undefined;
+    let unlit: (() => void) | undefined;
     onCleanup(() => {
       gone = true;
       unlog?.();
+      unlit?.();
       linked?.dispose();
       viewer.retire();
     });
@@ -129,6 +133,7 @@ class StructureLinkRoot extends UiElement<StructureLinkStory> {
     const link = (table: Parameters<typeof linkFake>[1]) => {
       linked?.dispose();
       unlog?.();
+      unlit?.();
       const l = (linked = linkFake(viewer, table, dataset.complex, {
         latency: story.latency ?? 0,
         ...(bindings() ? { link: { complexes: bindings()! } } : {}),
@@ -138,6 +143,11 @@ class StructureLinkRoot extends UiElement<StructureLinkStory> {
       };
       show();
       unlog = l.log.listen(show);
+      const showLit = () => {
+        lit.textContent = litLine(l.fake);
+      };
+      showLit();
+      unlit = l.fake.highlight.listen(showLit);
       fakeHost.replaceChildren(fakeStructureElement(l.fake));
       status.textContent = `${table.entry}: ${l.adapter.facts.units.length} units in ${dataset.complex}; messages delayed ${story.latency ?? 0} ms; the link goes through ${through === 'ranked' ? 'the ranked map' : 'the alignment (via)'}.`;
     };

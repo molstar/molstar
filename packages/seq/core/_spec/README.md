@@ -424,12 +424,14 @@ layout per token table, held domains and the reader's substitution (`LayerChanne
   scale: one legend), and converted to Mol*'s legends. A letters form's swatches name their letters: a letters layer
   passes the letters it laid out (`painted`), so its key lists only those (an RNA's U, never its T; no gap swatch where
   there is no gap), then a color once; before any is drawn, every letter. A view's legends (`viewLegends`) are its
-  tracks' layers' and its sections' own layers' (a pairs layer's arcs and dots), titled by the track holding the layer.
-  **A layer's `legend` param** (`auto`, the default; `none`) is the figure's say on its key: `viewLegends` skips a layer
-  that says `none` (a constant color that says nothing), so the viewer's legends, the export's band and the Mol* legends
-  follow; a legend two layers share stays while one of them keys it (the items of the `none` layer then no longer
-  outline that entry on hover: the entry is the keyed layers'). Why the layer's: what a figure keys is the figure's (a
-  spec's), where a key sits is the host's, and no session command hides one (language 0.5.0).
+  tracks' layers' and its sections' own layers' (a pairs layer's arcs and dots), titled by the track holding the layer;
+  after the merge, legends of one title but of different channels (a layer's colors and sizes) carry `qualifier` (the
+  channel; `legendTitle`: "Variants (size)"), `title` staying the track's (the Mol* converter has no title and drops
+  sizes). **A layer's `legend` param** (`auto`, the default; `none`) is the figure's say on its key: `viewLegends` skips
+  a layer that says `none` (a constant color that says nothing), so the viewer's legends, the export's band and the Mol*
+  legends follow; a legend two layers share stays while one of them keys it (the items of the `none` layer then no
+  longer outline that entry on hover: the entry is the keyed layers'). Why the layer's: what a figure keys is the
+  figure's (a spec's), where a key sits is the host's, and no session command hides one (language 0.5.0).
 - **Builder**: `theme.uniform|field|rules|scheme|letters|categorical|…` and `measure.*`; a layer's `field` form over an
   inline table's text column gets the column's values listed (the legend is the vocabulary); a `ranges` layer over a
   `category` column, a `variants` one over a `consequence` column and a `pairs` one over a `type` column default to a
@@ -2773,15 +2775,16 @@ numbers): a window move allocates nothing once warm.
   track of the section is hidden. Why `auto`: no line that says nothing, records without hidden tracks unchanged.
 - **Drawn**: the states in the labels pass (always: facts about the picture; a stack of blocks draws them once, on a
   track's first row, where they are hit), the actions in the tip pass over a backdrop of the label column's background
-  (`msui-bg`: the column has no well) covering the label's tail (the label never moves): each slot's icon stroked in the
-  muted ink (an entry not enabled in the line ink, the hovered one in the accent; no icon: its label's first letter),
-  the "⋯" three dots. Actions show for `always`, or on `hover` for the track the hover's hit is in (its label line, its
-  slots, its states, its data; a section's line only its own hits) and the cursor's header (`cursor.part: 'header'`,
-  `cursor.track`): an emphasis redraw, no layout, nothing allocated (`headers.quick.ts`). No emphasis field of its own:
-  the hover drives it. A header's hover lights none of its track's items (EC-146: refused by default). A figure
-  (`figure`) lays out no slots and no "⋯"; its states as drawn, none with `header.states.export: none`. A `hosted` line
-  (a host's DOM parts) draws nothing in its slot, "⋯" and chip boxes (the parts are the DOM's); a figure of it draws its
-  states.
+  (`msui-bg`: the column has no well) covering the label's tail (the label never moves; where the backdrop cuts the
+  label's text it makes room for an ellipsis in the label font on its left and draws one, `HeaderLine.ellipsis`; the
+  viewer's DOM parts do the same from `HeaderGeometry.labelEnd`): each slot's icon stroked in the muted ink (an entry
+  not enabled in the line ink, the hovered one in the accent; no icon: its label's first letter), the "⋯" three dots.
+  Actions show for `always`, or on `hover` for the track the hover's hit is in (its label line, its slots, its states,
+  its data; a section's line only its own hits) and the cursor's header (`cursor.part: 'header'`, `cursor.track`): an
+  emphasis redraw, no layout, nothing allocated (`headers.quick.ts`). No emphasis field of its own: the hover drives it.
+  A header's hover lights none of its track's items (EC-146: refused by default). A figure (`figure`) lays out no slots
+  and no "⋯"; its states as drawn, none with `header.states.export: none`. A `hosted` line (a host's DOM parts) draws
+  nothing in its slot, "⋯" and chip boxes (the parts are the DOM's); a figure of it draws its states.
 - **Hit** (`hitChrome(section, x, y, hover)`, before the bands): a slot or the "⋯" `header-slot` **only while its
   track's actions show** (by the hover `hitView` is given: the label line hovered first, then the slot), a state
   `header-state` (`count` its count), elsewhere on a track's line `header-label` (no `state`), on a section's line

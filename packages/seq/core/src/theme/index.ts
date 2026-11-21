@@ -59,6 +59,8 @@ export {
   type LegendOptions,
   legendOf,
   legendsEqual,
+  legendTitle,
+  qualifyLegends,
   mergeLegends,
   niceTicks,
   toMolLegend,

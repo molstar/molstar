@@ -5,6 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { legendTitle } from '@molstar/seqx-core/theme';
 import { DomHost } from '@molstar/ui/dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { placementsOf, trackOf } from '../legends-compose.js';
@@ -74,7 +75,7 @@ describe('Legends placements, headless', () => {
     await vi.advanceTimersByTimeAsync(600);
     const s = el.session!;
     const hosts = el.hosts!;
-    const all = s.viewer.legends.legends.value.map((l) => l.title);
+    const all = s.viewer.legends.legends.value.map(legendTitle);
     expect(all.length).toBeGreaterThan(1);
     const p = placementsOf(s.viewer)!;
     // the header's one track, compact (labels are names, not text)

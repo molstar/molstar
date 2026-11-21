@@ -13,7 +13,7 @@ import { DefaultSeqViewerSpec } from '@molstar/seqx-viewer/default-spec';
 import { createSeqViewer, type SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { openExample } from '../../../examples/_test/draw-checks.js';
-import { CoverageView, HostSection, hostDrawnSpec, hostPicture } from '../compose.js';
+import { blockAt, blockReadout, CoverageView, HostSection, hostDrawnSpec, hostPicture } from '../compose.js';
 
 let viewer: SeqViewer | undefined;
 
@@ -65,7 +65,22 @@ describe('the custom navigators’ stories, headless', () => {
     v.draw();
     model.draw();
     const pic = hostPicture(model);
-    expect(pic.blocks.map((b) => b.label)).toEqual(['TAD', 'PRR', 'DBD', 'NLS', 'TET', 'CTD']);
+    expect(pic.blocks.map((b) => b.label).sort()).toEqual(['CTD', 'DBD', 'NLS', 'PRR', 'TAD', 'TET']);
+    // blocks that overlap are in lanes of their own (NLS and TET: one domain inside another), the rest share the first (F27)
+    const lanes = Object.fromEntries(pic.blocks.map((b) => [b.label, b.lane]));
+    expect(lanes.NLS).not.toBe(lanes.TET);
+    for (const a of pic.blocks)
+      for (const b of pic.blocks)
+        if (a !== b && a.lane === b.lane) expect(a.x + a.width <= b.x || b.x + b.width <= a.x).toBe(true);
+    expect(pic.lanes).toBe(Math.max(...pic.blocks.map((b) => b.lane)) + 1);
+    // the readout names the hovered range, not the window (F28)
+    const dbd = pic.blocks.find((b) => b.label === 'DBD')!;
+    const dbdMid = dbd.x + dbd.width / 2;
+    const row = 8 + ((36 - 16) / pic.lanes) * dbd.lane + 2;
+    expect(blockAt(pic, dbdMid, row, 36)).toBe(dbd);
+    expect(blockAt(pic, -5, row, 36)).toBeUndefined();
+    expect(blockReadout(dbd, 'p53:101')).toBe('DNA-binding (DBD), residues 94–292 · p53:101');
+    expect(blockReadout(undefined, undefined)).toBe('Hover the navigator');
     expect(pic.windows.length).toBe(1);
     const w = pic.windows[0];
     expect(w.x).toBeCloseTo((100 / 393) * 600, 0);

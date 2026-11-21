@@ -56,4 +56,21 @@ describe('the Complex story’s link', { tags: ['medium'] }, () => {
     link.dispose();
     restore();
   });
+
+  it('Back before the first focus names no residue: nothing is sent and the fake’s frame stays (F5, the story says so)', async () => {
+    const restore = fakeClock();
+    const link = linkFake(viewer, table, ComplexAddress);
+    link.fake.doubleClick({ row: 0, index: 10 });
+    await vi.advanceTimersByTimeAsync(20);
+    const frame = link.fake.camera.value;
+    const told = link.log.value.length;
+    viewer.view.back();
+    await vi.advanceTimersByTimeAsync(20);
+    expect(viewer.view.lastJump).toMatchObject({ kind: 'back' });
+    expect(viewer.view.lastJump?.location).toBeUndefined();
+    expect(link.log.value).toHaveLength(told);
+    expect(link.fake.camera.value).toBe(frame);
+    link.dispose();
+    restore();
+  });
 });

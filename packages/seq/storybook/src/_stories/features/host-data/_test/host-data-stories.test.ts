@@ -20,6 +20,8 @@ import {
   HostSource,
   heldLines,
   issueLines,
+  BFactorLegend,
+  HostChains,
   HostTableFile,
   hostDataSpec,
   hostTableOf,
@@ -131,6 +133,16 @@ describe('Host data: the fake serving 2OCJ', () => {
     const lists = drawn(host.v);
     expect(lists.match(/^rect .* #5b7c99ff$/gm)?.length ?? 0).toBeGreaterThan(100);
     expect(lists).toBe(drawn(file.v));
+  });
+
+  it('the legend’s words about the ends are the table’s: chains A and D have no B-factor at residues 1–2 and 197–219 (F12)', () => {
+    const fake = new FakeStructureViewer(table());
+    for (const asym of HostChains) {
+      const row = fake.rows.find((r) => r.asym === asym)!;
+      const seen = row.residues.flatMap((r, i) => (r.observed ? [i + 1] : []));
+      expect([seen[0], seen[seen.length - 1], row.residues.length]).toEqual([3, 196, 219]);
+    }
+    expect(BFactorLegend).toContain('residues 1–2 and 197–219');
   });
 
   it('Drop chain: the sequences follow a frame later through `changes` and `reattach`; the other nodes kept, no asset read', async () => {

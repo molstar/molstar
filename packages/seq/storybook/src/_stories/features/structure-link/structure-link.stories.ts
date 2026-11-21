@@ -64,14 +64,14 @@ export const SelectionBothWays: StoryObj = {
 /**
  * Double-click a cell of the fake: its camera frame moves over 400 ms and Seq* focuses the residue. Focus a residue in
  * Seq* (double-click, or Enter on a selection): the fake's frame follows over the same time; Alt+Left goes back, and
- * the fake's frame with it.
+ * the fake's frame with it to the previous focus; back past the first focus names no residue, so the frame stays.
  */
 export const FocusAndBack: StoryObj = {
   render: () =>
     structureLinkStory({
       view: complex('units'),
       dataset: 'complex',
-      hint: '1FIN: CDK2 and cyclin A, two copies, an ATP on each CDK2. Double-click a residue in either view to focus it; Alt+Left goes back. The dashed frame in the fake is its camera; it moves over the time the jump took.',
+      hint: '1FIN: CDK2 and cyclin A, two copies, an ATP on each CDK2. Double-click a residue in either view to focus it; Alt+Left goes back to the previous focus (the fake’s frame follows); before the first focus there is no residue to name, so it stays. The dashed frame in the fake is its camera; it moves over the time the jump took.',
     }),
 };
 
@@ -87,7 +87,7 @@ export const ChainMaps: StoryObj = {
       view: p53('structure-compare'),
       dataset: 'p53',
       chooseMap: true,
-      hint: 'Hover a residue of P04637: the two sections of the complex light neighbors (one follows SIFTS, the other the alignment, shifted by one). The fake lights what the link’s map says; the toggle changes the map the link goes through.',
+      hint: 'Hover a residue of P04637: the two sections of the complex light neighbors (one follows SIFTS, the other the alignment, shifted by one). The fake lights what the link’s map says, and the line above it names the residues lit (a cell there is 4 px: read the numbers; the alignment’s map puts each one number lower); the toggle changes the map the link goes through.',
     }),
 };
 

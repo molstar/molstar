@@ -4,11 +4,13 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { resolveAddress } from '@molstar/core/repr/tree';
 import { SeqCoreConfig } from '@molstar/seqx-core/context';
 import { HeadersProvider, type HeadersBehavior } from '@molstar/seqx-viewer/behaviors/headers';
 import { DefaultSeqViewerSpec } from '@molstar/seqx-viewer/default-spec';
 import type { HeaderActionEntry, HeaderEntry, HeaderGeometry, HeaderTarget } from '@molstar/seqx-viewer/header-entries';
 import { headerMenuOverlay, headerPartsDom } from '@molstar/seqx-viewer/mount-header-menu';
+import { type UiHistory } from '@molstar/seqx-viewer/ui-history';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import type { BehaviorProvider, SeqViewerBehavior, SeqViewerSpec } from '@molstar/seqx-viewer/viewer-spec';
 import { lucideCopy } from '@molstar/ui/components/icon/_generated/lucide/copy';
@@ -138,8 +140,32 @@ export function widgetPlaces(geometry: readonly HeaderGeometry[], size = 18): Wi
     }));
 }
 
+/** The label of a header's track (its section's id for a section's own header), read from the spec the viewer shows. */
+export function headerLabel(viewer: SeqViewer, target: HeaderTarget): string {
+  const node = resolveAddress(viewer.spec.root.value, (target.track ?? target.section).split('/').filter(Boolean));
+  const label = node?.params?.label;
+  return typeof label === 'string' && label ? label : (node?.id ?? target.track ?? target.section);
+}
+
 /** A line of text about the menu's entries for a track, as the story prints it: the items of its groups by label. */
 export function menuLine(viewer: SeqViewer, target: HeaderTarget): string {
   const menu = headersOf(viewer).menuOf(target);
   return menu ? menu.groups.map((g) => g.map((i) => i.label).join(', ')).join(' | ') : 'no menu';
+}
+
+/**
+ * The host's Undo and Redo keys over the viewer's stack (Seq\* binds none: the host owns the keys): Cmd/Ctrl+Z undoes,
+ * with Shift (or Ctrl+Y) redoes. The step's promise when the key was one of them (the page's own handling is then the story's to
+ * stop), else false. Why the host's: a key bound by the canvas alone would not reach after a click on a header's part.
+ */
+export function undoKey(
+  viewer: SeqViewer,
+  e: { readonly key: string; readonly metaKey?: boolean; readonly ctrlKey?: boolean; readonly shiftKey?: boolean },
+): Promise<unknown> | false {
+  const stack = (viewer.spec.history as UiHistory | undefined)?.stack;
+  if (!stack || !(e.metaKey || e.ctrlKey)) return false;
+  const key = e.key.toLowerCase();
+  if (key === 'z') return e.shiftKey ? stack.redo() : stack.undo();
+  if (key === 'y' && !e.metaKey) return stack.redo();
+  return false;
 }

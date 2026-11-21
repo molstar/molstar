@@ -116,6 +116,7 @@ export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: Le
       // a group's title: muted, 600, 11 px (_spec/README.md "Legends")
       title.style.cssText = `color: var(--msui-text-muted, gray); font-weight: 600; font-size: 11px;${compact ? ' margin-right: 6px;' : ''}`;
       group.append(title);
+      const largest = Math.max(1e-9, ...row.entries.map((x) => x.size ?? 0));
       for (const e of row.entries) {
         const item = doc.createElement('span');
         item.setAttribute('role', 'option');
@@ -128,7 +129,10 @@ export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: Le
         item.style.cssText = `display: inline-flex; align-items: center; gap: 4px; cursor: ${e.value !== undefined ? 'pointer' : 'default'}; border-radius: 3px; padding: 0 2px;${e.hovered ? ' outline: 2px solid var(--msui-accent, currentColor);' : ''}`;
         const swatch = doc.createElement('span');
         // the swatches match the canvas: never forced (forced colors keep data colors)
-        swatch.style.cssText = `forced-color-adjust: none; display: inline-block; width: ${e.ramp ? (compact ? 40 : 64) : 10}px; height: 10px; background: ${e.ramp ? `linear-gradient(to right, ${e.ramp.map((c) => colorHex(c)).join(', ')})` : e.color !== undefined ? colorHex(e.color) : 'transparent'};`;
+        // a size key's mark is a circle, its size relative to the row's largest (14 px across, in a 14 px cell): the
+        // channel's range is in the layer's own units (a factor, a radius), so the key shows the ratio
+        const dot = e.size === undefined ? 0 : Math.max(3, Math.round((14 * e.size) / largest));
+        swatch.style.cssText = `forced-color-adjust: none; display: inline-block; width: ${dot || (e.ramp ? (compact ? 40 : 64) : 10)}px; height: ${dot || 10}px; ${dot ? `margin: ${(14 - dot) / 2}px 2px; border-radius: 50%; background: var(--msui-text-muted, gray)` : `background: ${e.ramp ? `linear-gradient(to right, ${e.ramp.map((c) => colorHex(c)).join(', ')})` : e.color !== undefined ? colorHex(e.color) : 'transparent'}`};`;
         if (!compact) item.append(swatch, doc.createTextNode(e.label));
         else if (e.ends) item.append(doc.createTextNode(e.ends[0]), swatch, doc.createTextNode(e.ends[1]));
         else item.append(swatch);

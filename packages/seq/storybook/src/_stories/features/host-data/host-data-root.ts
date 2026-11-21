@@ -15,6 +15,7 @@ import { fakeStructureElement } from '../../support/fake-structure/fake-view.js'
 import { FakeStructureViewer } from '../../support/fake-structure/fake-viewer.js';
 import {
   heldLines,
+  BFactorLegend,
   issueLines,
   hostDataSpec,
   hostTableOf,
@@ -61,6 +62,9 @@ class HostDataRoot extends UiElement<HostDataStory> {
     hint.textContent = story.hint;
     const canvasHost = document.createElement('div');
     canvasHost.style.cssText = 'min-width: 0;';
+    const legend = document.createElement('p');
+    legend.style.cssText = 'margin: 0; color: var(--msui-text-muted); font-size: var(--msui-text-xs); max-width: 72ch;';
+    legend.textContent = BFactorLegend;
     const fakeHost = document.createElement('div');
     const held = document.createElement('pre');
     held.style.cssText =
@@ -70,7 +74,7 @@ class HostDataRoot extends UiElement<HostDataStory> {
     root.append(
       hint,
       tools,
-      titled('Seq*', canvasHost),
+      titled('Seq*', canvasHost, legend),
       titled('The structure viewer (a fake)', fakeHost),
       titled('What Seq* holds of PDB 2OCJ', held),
     );

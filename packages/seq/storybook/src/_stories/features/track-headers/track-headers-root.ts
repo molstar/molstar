@@ -11,7 +11,7 @@ import { createSeqViewer, type SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { Button } from '@molstar/ui/components/button/button';
 import { defineElements, onCleanup } from '@molstar/ui/dom';
 import { UiElement } from '@molstar/ui/elements/ui-element';
-import { type HeadersComposition, headersOf, headersSpec, widgetPlaces } from './compose.js';
+import { type HeadersComposition, headerLabel, headersOf, headersSpec, undoKey, widgetPlaces } from './compose.js';
 
 // The track headers' stories (track-header-parts.md): a Seq* view composed by `headersSpec`, a hint, buttons that open a
 // header's menu (the only way to a ring track's), and a host's own widgets placed from `viewer.headers`. The element is
@@ -65,19 +65,40 @@ class TrackHeadersRoot extends UiElement<TrackHeadersStory> {
     });
     const viewer = createSeqViewer({ ...spec, ui: { ...spec.ui, toolbar: mountToolbar } }, canvasHost);
     let off: (() => void) | undefined;
+    // the host's Undo and Redo keys, on this story's own root (a click anywhere in it leaves the focus in it: the root
+    // takes the focus a part does not); never in a field, and never another story's on a page of several
+    root.tabIndex = -1;
+    root.style.outline = 'none';
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target;
+      const field =
+        t instanceof HTMLInputElement ||
+        t instanceof HTMLTextAreaElement ||
+        (t instanceof HTMLElement && t.isContentEditable);
+      if (!field && undoKey(viewer, e)) e.preventDefault();
+    };
+    root.addEventListener('keydown', onKey);
     onCleanup(() => {
+      root.removeEventListener('keydown', onKey);
       off?.();
       viewer.retire();
     });
 
+    // a ring track has no line to point at: the menu opens at the canvas's top left, and this line names its track
+    const menuOf = document.createElement('span');
+    menuOf.style.cssText = 'color: var(--msui-text-muted);';
     for (const m of story.menus ?? []) {
       tools.append(
         Button({
           children: m.label,
-          onClick: () => void headersOf(viewer).openMenu(m.target, { x: 120, y: 60 }),
+          onClick: () => {
+            menuOf.textContent = `The menu open is the track “${headerLabel(viewer, m.target)}”’s (${m.target.track}).`;
+            void headersOf(viewer).openMenu(m.target, { x: 120, y: 60 });
+          },
         }) as HTMLElement,
       );
     }
+    if (story.menus?.length) tools.append(menuOf);
     if (story.widgets) off = placeWidgets(viewer, stage, widgetLayer);
     void viewer.load(story.view.build()).then(() => viewer.settle());
     return root;

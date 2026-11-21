@@ -1299,10 +1299,11 @@ selection's gestures and the cursor's moves are session state; the cursor's focu
 
 `legends.ts`: `LegendModel`, derived when the view settles (never per frame: `viewLegends` over the settled layout,
 merged), the entry under the hover (`updateHover`: a mark's value), and the reader's substitution (`cvdSafe`, from
-`theme.cvdSafe`, part of the frame's key). `legendRows(viewer, { of, omit, maxItems })` is what a view of them shows
-(`of` an address or a list, then `omit` removes those; `selectLegends` is the one rule): a row a legend, its entries
-with accessible names (`<title>: <value>`), the entries past `maxItems` counted. Why derived on settle: a legend that
-changes during a pan reads as noise, and its cost stays off the frame.
+`theme.cvdSafe`, part of the frame's key). `legendRows(viewer, { of, omit, maxItems })` is what a view of them shows (a
+size entry's `size` is the channel's value in the layer's own units; the part draws circles by ratio to the row's
+largest; titles by `legendTitle`) (`of` an address or a list, then `omit` removes those; `selectLegends` is the one
+rule): a row a legend, its entries with accessible names (`<title>: <value>`), the entries past `maxItems` counted. Why
+derived on settle: a legend that changes during a pan reads as noise, and its cost stays off the frame.
 
 - **The legend behavior's commands** (`behaviors/theming.ts`, patches unless said): `layer.channel` (a channel's value
   or form set or unset, on one layer or several in one patch; on one layer's color its choices are a select param,

@@ -22,13 +22,13 @@ const headers = view('headers');
  * The built-ins on p53, drawn on the canvas: point at a track's label for its hide slot and the "⋯", which opens
  * the menu with the rest (color, layers, move). The column holds one slot, so the domains track's two states ("1
  * filtered", "1 layer hidden") are marks, their words in the card; the section's header says "2 hidden". A click on a
- * state undoes it in one step (Cmd/Ctrl+Z puts it back).
+ * state undoes it in one step (the story's Cmd/Ctrl+Z, Shift for redo, puts it back; the toolbar's Back is the view's own history, not edits).
  */
 export const BuiltIns: StoryObj = {
   render: () =>
     trackHeadersStory({
       view: headers,
-      hint: 'Point at a track’s label: its hide slot and the “⋯” menu appear (Color and the rest are in the menu). The marks on Domains are “1 filtered” and “1 layer hidden” (hover one for its words); click a mark or “2 hidden”: the state is undone, and Cmd/Ctrl+Z brings it back. A secondary click on “2 hidden” lists what it hides.',
+      hint: 'Point at a track’s label: its hide slot and the “⋯” menu appear (Color and the rest are in the menu). The marks on Domains are “1 filtered” and “1 layer hidden” (hover one for its words); click a mark or “2 hidden”: the state is undone, and Cmd/Ctrl+Z (Shift+Cmd/Ctrl+Z redoes) brings it back; the toolbar’s Back is for jumps of the view, not edits. A secondary click on “2 hidden” lists what it hides.',
     }),
 };
 
@@ -69,7 +69,7 @@ export const HiddenTracksChip: StoryObj = {
   render: () =>
     trackHeadersStory({
       view: view('headers-hidden'),
-      hint: 'The first section has no track left to draw, only its header with “2 hidden”. Click it: both come back. Undo hides them again. A secondary click on it lists them (“Show Domains”, “Show Conservation”).',
+      hint: 'The first section has no track left to draw, only its header with “2 hidden”. Click it: both come back. Cmd/Ctrl+Z hides them again. A secondary click on it lists them (“Show Domains”, “Show Conservation”).',
     }),
 };
 
@@ -114,7 +114,7 @@ export const HostWidgetFromTheGeometry: StoryObj = {
     trackHeadersStory({
       view: headers,
       widgets: true,
-      hint: 'The numbered badges are the host’s own buttons, placed from the geometry `viewer.headers` publishes. Hide a track, or move one down: the badges follow. A click on a badge opens that track’s menu.',
+      hint: 'The numbered buttons at the left of each track are the page’s own, not Seq*’s: the page places each from the box the viewer publishes for that track’s header, so they stay with their tracks. Click one to open that track’s menu (Hide, Color, Move up or down: choose “Move down” or “Hide track” and the buttons follow). The menu opens over the data to the right of the button.',
     }),
 };
 

@@ -319,6 +319,22 @@ describe('the section’s header line (EC-237: hidden tracks kept in the spec, c
 });
 
 describe('drawn alike, hit as laid out', () => {
+  it('a label the actions cut ends in an ellipsis on their backdrop; one they leave whole has none (F13)', async () => {
+    const lit = async (min: number) => {
+      const s = await settle(spec(), [], { labelColumn: { min }, header: { actions: { show: 'always' } } });
+      const f = await s.frame({ size: Size, settled: true, headers: Host });
+      const tracks = f.layout.sections[0].tracks.filter((t) => t.header?.actions);
+      const cut = tracks.filter((t) => f.layout.config.inset + t.labelWidth > t.header!.actions!.x - 2).length;
+      return { n: tracks.length, cut, marks: recordDrawLists(f.lists, ['tip']).match(/"…"/g)?.length ?? 0 };
+    };
+    // the least column (80 px): every label runs under its slots, each cut drawn with its ellipsis
+    const narrow = await lit(80);
+    expect(narrow.cut).toBeGreaterThan(0);
+    expect(narrow.marks).toBe(narrow.cut);
+    // a column with room: nothing cut, no ellipsis
+    expect(await lit(200)).toMatchObject({ cut: 0, marks: 0 });
+  });
+
   it('the draw lists and their SVG draw the states, and the actions of the hovered track only (two consumers)', async () => {
     const { s, f, input } = await frame(['more'], Host);
     const sec = f.layout.sections[0];

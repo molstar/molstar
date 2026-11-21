@@ -5,7 +5,15 @@
  */
 
 import { type Issue, issueOf } from '@molstar/core/repr/tree';
-import { continuousLut, formatValue, type Legend, LutSize, mergeLegends } from '@molstar/seqx-core/theme/index';
+import {
+  continuousLut,
+  formatValue,
+  type Legend,
+  legendTitle,
+  LutSize,
+  mergeLegends,
+  qualifyLegends,
+} from '@molstar/seqx-core/theme/index';
 import { Anchor, type PassWriter } from './draw-lists.js';
 import { RenderIssues } from './issues.js';
 import type { Box } from './layer-type.js';
@@ -31,7 +39,8 @@ export function viewLegends(layout: ViewLayout, maxItems = 12): { legends: Legen
     // a section's own layers (pairs' arcs and dots), titled by the track that holds them
     for (const l of s.sectionLays) add(l, s.section.tracks.find((t) => t.layers.includes(l.layer))?.label ?? '');
   }
-  const legends = mergeLegends(all);
+  // after the merge: legends of one title but of different channels say their channel (`Variants (size)`)
+  const legends = qualifyLegends(mergeLegends(all));
   const issues: Issue[] = [];
   for (const l of legends)
     if (l.notes.includes('unlisted'))
@@ -88,7 +97,7 @@ export function layoutLegends(
         x = box.x + B.gap * 2;
       }
     };
-    label(`${l.title}${l.open ? ' (in view)' : ''}`, muted);
+    label(`${legendTitle(l)}${l.open ? ' (in view)' : ''}`, muted);
     const e = l.entries;
     const top = y + (B.row - B.swatch) / 2;
     if (e.kind === 'swatches') {

@@ -99,7 +99,19 @@ export const HostSection = '/views/main/protein';
 
 /** What a host draws of its navigator: its domains as blocks and the windows, x in the navigator's px. */
 export interface HostPicture {
-  readonly blocks: readonly { readonly x: number; readonly width: number; readonly label: string }[];
+  /** A block's lane: the first free one at its x, so blocks that overlap (a domain inside another) never share one. */
+  readonly blocks: readonly {
+    readonly x: number;
+    readonly width: number;
+    readonly label: string;
+    /** What it is called in full, and the residues it covers (1-based, inclusive). */
+    readonly name: string;
+    readonly first: number;
+    readonly last: number;
+    readonly lane: number;
+  }[];
+  /** The lanes the blocks use (the host divides its height by them). */
+  readonly lanes: number;
   readonly windows: readonly {
     readonly section: string;
     readonly x: number;
@@ -108,16 +120,57 @@ export interface HostPicture {
   }[];
 }
 
+/** The block under a point of the host's picture (x, y in the navigator's px, `height` its height), or undefined. */
+export function blockAt(
+  pic: HostPicture,
+  x: number,
+  y: number,
+  height: number,
+): HostPicture['blocks'][number] | undefined {
+  const lane = (height - 16) / pic.lanes;
+  return pic.blocks.find((b) => x >= b.x && x < b.x + b.width && y >= 8 + b.lane * lane && y < 8 + (b.lane + 1) * lane);
+}
+
+/** The readout of a hovered block: its name and residues, then the model's own words about the pointer's place. */
+export function blockReadout(
+  block: HostPicture['blocks'][number] | undefined,
+  modelReadout: string | undefined,
+): string {
+  if (!block) return modelReadout ?? 'Hover the navigator';
+  return `${block.name} (${block.label}), residues ${block.first}–${block.last}${modelReadout ? ` · ${modelReadout}` : ''}`;
+}
+
 /**
  * The host's own picture of the navigator after a `draw`: p53's domains placed through the model (`xRange`: the
  * navigator's display order, whatever the direction or the pieces) and each window as the model's last frame placed it
  * (its drawn ends: the floor applied), idle as its slider says.
  */
 export function hostPicture(model: NavigatorModel): HostPicture {
-  const blocks = Domains.id.flatMap((label, i) => {
+  const placed = Domains.id.flatMap((label, i) => {
     const r = model.xRange(Domains.start[i], Domains.end[i]);
-    return r ? [{ x: r[0], width: r[1] - r[0], label }] : [];
+    return r
+      ? [
+          {
+            x: r[0],
+            width: r[1] - r[0],
+            label,
+            name: Domains.label[i],
+            first: Domains.start[i] + 1,
+            last: Domains.end[i],
+          },
+        ]
+      : [];
   });
+  // each block the first lane whose last block ended before it: overlapping labels never overprint (F27)
+  const ends: number[] = [];
+  const blocks = [...placed]
+    .sort((a, b) => a.x - b.x)
+    .map((b) => {
+      let lane = ends.findIndex((end) => end <= b.x);
+      if (lane < 0) lane = ends.length;
+      ends[lane] = b.x + b.width;
+      return { ...b, lane };
+    });
   const windows = (model.frame?.windows ?? [])
     .filter((w) => w.shown)
     .map((w) => ({
@@ -126,5 +179,5 @@ export function hostPicture(model: NavigatorModel): HostPicture {
       width: w.dx1 - w.dx0,
       idle: model.values.value.find((v) => v.section === w.section)?.disabled ?? false,
     }));
-  return { blocks, windows };
+  return { blocks, lanes: Math.max(1, ends.length), windows };
 }
