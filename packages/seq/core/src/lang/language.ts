@@ -963,6 +963,11 @@ export const SeqLanguage = defineLanguage({
         arrow: channel(
           '`ranges`: an arrowhead on the item’s end, start or both (`end`, `start`, `both`), on the piece holding that end, never on a cut one; `none` when absent.',
         ),
+        connector: {
+          type: 'string',
+          enum: ['line', 'none'],
+          doc: '`ranges`: a hairline joining an item’s pieces across the shown positions the path does not reach (a domain over a gene whose intron is shown): `line` (when absent) or `none`. Across a collapsed break nothing is drawn.',
+        },
         shape: channel('`variants`: the head’s shape (`circle`, `square`, `triangle`, `diamond`).'),
         scale: {
           type: 'ref',

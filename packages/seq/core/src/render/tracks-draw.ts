@@ -201,6 +201,26 @@ function hasRows(s: SectionLayout): boolean {
   return has;
 }
 
+/**
+ * Whether the hover is lifted through a path (its element's extent on another system than the section's: a residue
+ * over its codon): its image then lights the hover's own section too, not only the linked ones.
+ */
+function liftedHover(emphasis: Emphasis): boolean {
+  const h = emphasis.hover;
+  return !!h && !!h.extent && h.extent.parts.length > 0 && h.extent.parts[0].system !== h.system;
+}
+
+/**
+ * Whether the projected hover stays off a track's box on the hover's own section: the box holds the hovered layer
+ * (which outlines it), or the hover is no lift through a path.
+ */
+function hoveredIn(lays: readonly { readonly lay: unknown }[] | undefined, emphasis: Emphasis): boolean {
+  if (!liftedHover(emphasis)) return true;
+  const layer = emphasis.hover!.layer;
+  if (lays) for (let i = 0; i < lays.length; i++) if ((lays[i].lay as { key?: string }).key === layer) return true;
+  return false;
+}
+
 /** A section's strips of a pass, each through its warp (`drawTracks`). */
 function drawStrips(
   layout: ViewLayout,
@@ -230,7 +250,7 @@ function drawStrips(
         g[3] = pb.height;
         w.clipArgs();
       }
-      if (column && emphasis && col) drawSectionEmphasis(w, s, a, col, emphasis, layout);
+      if (column && emphasis && col) drawSectionEmphasis(w, s, a, col, emphasis, layout, !liftedHover(emphasis));
       for (let j = 0; j < nb; j++) {
         const k = i * nb + j;
         const box = s.boxes[k];
@@ -249,12 +269,12 @@ function drawStrips(
             wellClipArgs(w.args, s, i, j, box);
             w.clipSquircleArgs();
             emphasisPart(Part.tints);
-            drawSectionEmphasis(w, s, a, box, emphasis, layout);
+            drawSectionEmphasis(w, s, a, box, emphasis, layout, hoveredIn(s.lays[k], emphasis));
             w.unclip();
             emphasisPart(Part.outlines);
-            drawSectionEmphasis(w, s, a, box, emphasis, layout);
+            drawSectionEmphasis(w, s, a, box, emphasis, layout, hoveredIn(s.lays[k], emphasis));
             emphasisPart(Part.all);
-          } else drawSectionEmphasis(w, s, a, box, emphasis, layout);
+          } else drawSectionEmphasis(w, s, a, box, emphasis, layout, hoveredIn(s.lays[k], emphasis));
         }
         const lays = s.lays[k];
         // the window pass is the layouts' own (their chrome): no layer draws there, so a hover's redraw walks none

@@ -63,6 +63,7 @@ export function drawSectionEmphasis(
   box: Box,
   emphasis: Emphasis,
   layout: ViewLayout,
+  hovered = true,
 ) {
   const { tokens, config } = layout;
   const over = config.emphasis.selectionPlace === 'over';
@@ -78,7 +79,7 @@ export function drawSectionEmphasis(
       break;
     }
     case 'hover':
-      if (emphasis.projected?.hover && emphasis.projected.hoverSection !== s.section.address)
+      if (emphasis.projected?.hover && (emphasis.projected.hoverSection !== s.section.address || !hovered))
         drawProjectedHover(out, axis, box, emphasis.projected.hover, tokens, config);
       break;
     case 'cursor':

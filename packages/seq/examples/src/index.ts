@@ -11,6 +11,7 @@
 export {
   AntibodyViews,
   ComplexViews,
+  CoordinatesViews,
   ExampleViews,
   type ExampleView,
   FeatureViews,

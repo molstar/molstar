@@ -11,6 +11,7 @@ import * as antibodyAgainst from './antibody/against.js';
 import * as antibodyFc from './antibody/fc-glycan.js';
 import { registry as antibodyRegistry } from './antibody/data.js';
 import * as antibodySchemes from './antibody/schemes.js';
+import * as codingDna from './coordinates/coding-dna.js';
 import * as complexBlocks from './complex/blocks.js';
 import * as navigators from './navigators.js';
 import * as complexConfidence from './complex/confidence.js';
@@ -349,6 +350,18 @@ export const LayerViews: readonly ExampleView[] = [
     summary:
       'Each track in its well, a squircle its data is clipped to; the letters padded on top, the domains top and bottom, the conservation not at all: the data sits inside the padding, the well’s top stays where it was.',
     build: layers.wells,
+  },
+];
+
+/** The coordinate model's views beside the p53 ones (Features › Coordinates): one axis read through a map. */
+export const CoordinatesViews: readonly ExampleView[] = [
+  {
+    dataset: 'coordinates',
+    id: 'coding-dna',
+    title: 'A protein over its coding DNA',
+    summary:
+      'One gene section on the plus strand in genomic order, the whole fragment shown: the DNA, the protein’s letters a codon wide through a codon map, the exons, a domain cut at the intron and joined across it by a connector, and a phosphosite.',
+    build: codingDna.build,
   },
 ];
 
@@ -836,6 +849,7 @@ export const ExampleViews: readonly ExampleView[] = [
   ...P53Views,
   ...FilesViews,
   ...FeatureViews,
+  ...CoordinatesViews,
   ...LayerViews,
   ...PlasmidViews,
   ...ComplexViews,
