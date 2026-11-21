@@ -4,7 +4,8 @@
 
 The author, 2026-11-19 ("Fourth slice"): header actions are registry entries (icon, label, when, command), drawn in the
 header's fixed slots, hit and announced. The built-ins (hide, color, filter) use the same entries. A host adds or
-removes its own. A hidden-tracks chip in the section header shows a hidden track again. The headers' geometry is an API
+removes its own. Showing hidden tracks again is the application's (the author, 2026-11-21: "give this to control of
+the app layer and that is then responsible to showing the hidden tracks and ability to restore them"). The headers' geometry is an API
 that a host's own widget can use later. The story and its test, also the author's: a "color by this track" header
 action on a fake 3D viewer. The click hands the track's color runs to the host, which builds its viewer's state. The
 action is a host's registry entry, not built into Seq\* ([structure-syncing.md](structure-syncing.md)). On drawn against
@@ -162,7 +163,7 @@ It does not cover:
   | `seq:filtered` | track | state | — (a text chip) | `layer.filter` (no value: cleared) | a layer with a user filter ("12 filtered", as today) |
   | `seq:hidden-layers` | track | state | — (a text chip) | `layer.show` (every hidden layer, one patch) | a hidden layer ("1 layer hidden") |
   | `seq:pending` | track | state, no command | `loader-circle` | — | data pending in view (no click; it says "loading") |
-  | `seq:hidden-tracks` | section | state | — (a text chip) | `track.show` (every hidden track, one patch) | a hidden track ("2 hidden") |
+  | `seq:hidden-tracks` | section | action, menu only | — | `track.show` (one, or every hidden track, one patch) | a hidden track ("Show hidden ▸") |
   | `seq:reverse`, `seq:collapse` | section | action, menu only | — | `section.reverse`, `section.collapse` | a linear section; pieces to collapse |
 
 - **A host adds, replaces or removes**:
@@ -240,21 +241,31 @@ It does not cover:
 
 ### The section header
 
-- **Drawn when it has something to say** (`section.header: auto`): a hidden track, or a section entry with a slot that
+- **Hidden tracks are the application's** (the author, 2026-11-21): a hidden track's row collapses and nothing in the
+  view takes its place: no chip, no line, no stub, so hiding never adds or moves chrome. The viewer gives the host what
+  it needs to show and restore them: the hidden tracks of each section, read from the spec in its order (address,
+  label, section), with a change event, and the commands `track.show` (one, several or all, one patch, one undo step)
+  and `track.hide`; the menu's "Show hidden ▸" (`seq:hidden-tracks` as a menu-only section entry listing each, then
+  "Show all") so the keyboard and the palette reach them. A ready part, `mountHiddenTracks(viewer, el, options?)`
+  (`@molstar/ui`'s list, as `mountLegend`), is placed by the host outside the view (a toolbar, a panel); the default
+  viewer's composition mounts it in its toolbar, the minimal viewer none. Why: a library's view never decides where a
+  host's controls go, and chrome that appears on a hide moves what the user was looking at.
+- **Drawn when it has something to say** (`section.header: auto`): a section entry with a slot that
   applies. Then it is a line of `header.sectionPx` (20) above the section's first track, holding the section's label
-  (when it has one), the hidden-tracks chip and the section's slots, in the label column. `always` draws it for every
+  (when it has one) and the section's slots, in the label column. `always` draws it for every
   section, and `none` never draws it (its chip's work then falls to the menu). Why `auto`: no line appears that says
-  nothing, and records without hidden tracks do not change. ux-foundations section 9's "section headers are
+  nothing. ux-foundations section 9's "section headers are
   `@molstar/ui` headers (32px)" changes to this rule when agreed.
-- **A section whose tracks are all hidden** keeps its header line (with "3 hidden"), so it never vanishes beyond reach.
+- **A section whose tracks are all hidden** collapses with them; the host's list holds them, and a jump to an item
+  there says "on a hidden track" (the matrix, (g)).
 
 ### Chips: one rule for hidden and filtered
 
 - **A count chip** (a squircle pill, ux-foundations section 5, in `msui-accent` text, as the filter chip) says a state
-  of what is not shown: "12 filtered", "1 layer hidden", "2 hidden". Its click undoes the state in one patch:
+  of what is not shown in a track's own header line: "12 filtered", "1 layer hidden". Its click undoes the state in one
+  patch:
   - the filter cleared;
   - the hidden layers shown;
-  - every hidden track of the section shown, in order (`header.hiddenChip.click: all`).
 
   One undo step brings it back.
 - **Its menu** (a secondary click on the chip, or the menu key) lists each hidden thing by its label as an item that
@@ -384,9 +395,10 @@ Items are `ViewerConfig` unless the table says otherwise.
 | `header.slotPx` | 20 (an icon of 14) | a target of 20 px on a 24 px row | any |
 | `header.minHeightPx` | 16 | below it an icon overlaps the next track | any |
 | `header.menu.longPressMs` | 500 (the platform's when it says) | touch's context menu | any |
-| `header.hiddenChip.click` | `all` (one patch) | one rule with the rows' and the filter chip | `menu` (the list) |
+| `header.hiddenChip.click` | `all` (one patch) | one rule with the rows' and the filter chip (a track's chips) | `menu` (the list) |
+| where hidden tracks are shown again | the host (`mountHiddenTracks` in the default viewer's toolbar; the menu's "Show hidden ▸") | the view never moves on a hide (the author, 2026-11-21) | a host's own list from the hidden tracks and their event |
 | `header.states.export` | `include` | as the filter chip is exported today | `none` |
-| `section.header` | `auto` (when hidden tracks or a slotted section entry) | no empty line; records without hidden tracks unchanged | `always`, `none` |
+| `section.header` | `auto` (when a slotted section entry applies) | no empty line | `always`, `none` |
 | `header.sectionPx` | 20 | a line of the label font | any |
 | `rows.titleRow` | `auto` (columns, or an entry applies) | a rows track's header line | `always`, `none` |
 | Shift+secondary click | fixed: the browser's | the page's menu always reachable | — |
@@ -411,9 +423,9 @@ Items are `ViewerConfig` unless the table says otherwise.
   (show all, hide two) or opens the menu. All, for one rule across chips (decided); the menu shows one. Standing.
 - **The secondary click is Seq\*'s in the default spec.** Decided: the `headers` behavior's param, Shift+secondary click
   always the browser's; `everywhere` in the default spec (decided). Standing: a page's own menu needs Shift there.
-- **The section header line moves content.** Hiding a section's first hidden track removes its row and adds a 20 px
-  line, so the section shrinks by less than the track. Accepted: `auto` keeps the line absent in every view that hides
-  nothing. Standing.
+- **Nothing in the view says a track is hidden.** A host that mounts no list leaves its hidden tracks reachable only by
+  the menu, the palette and the spec. Accepted (the author): the view never moves on a hide; the default viewer mounts
+  the list.
 - **Element actions in the menu, not the card.** The current Seq\* put item actions in the hover card (and
   structure-syncing's "show in 3D" is now an `on: 'element'` entry). The card is `aria-hidden` and goes when the pointer moves to reach it.
   Recommended: the menu, opened on the element. A host's card port may still draw actions from `headerMenu` data.

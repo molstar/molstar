@@ -70,6 +70,11 @@ The third slice is closed (2026-11-20; its record in `.seq/records/third-slice/`
   review the foldback.md file before we apply it"): FX5, SV and PC merged, stage 3's gate, M4, FINALIZE; it stops once
   `foldback.md` is written, for the author's review, then applies it, writes the record and closes.
 
+- **Hidden tracks are the application's** (the author, 2026-11-21: "hiding a track moves the UI around. we need a
+  better way" … "give this to control of the app layer and that is then responsible to showing the hidden tracks and
+  ability to restore them"): track-header-parts.md amended (no chip or line in the view; the hidden tracks and their
+  event, `track.show`, the menu's "Show hidden ▸", `mountHiddenTracks` placed by the host). Lane HT after FX6.
+
 ## In progress
 
 - 2026-11-20: stage 1's gate passed. Next: FX3 and ST2, two lanes.
