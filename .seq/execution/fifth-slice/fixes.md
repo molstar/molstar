@@ -19,4 +19,9 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   and SVG alike; its row in core's Configuration table; a test that a letter never exceeds the label size at the
   closest zoom. Look across every example with letters, light and dark, at the fit and the closest zoom.
 
+- **A legend hover sticks after a fast pass** (bug; the author, 2026-11-21, on Protein Over Its Coding DNA): moving fast
+  across the legend sometimes leaves a legend entry's highlight on the view ("Highlight: legend Clear" stays, exon-2's
+  region tinted); only hovering that entry again clears it. Likely a `pointerleave` lost when the legend redraws under
+  the pointer (`viewer/src/mount-legend.ts`'s per-item listeners). FX1, item 8.
+
 ## Fixed

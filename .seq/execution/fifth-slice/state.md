@@ -93,3 +93,11 @@ fourth slice's) and `briefs/gc1-genome-language.md`, and starts FX1 beside BZ or
 
 - 2026-11-21: the loop started (`/loop run .seq/execution/fifth-slice/loop.md`). Running (B3): FX1 (fast; started
   with this commit) and BZ (strong; same). Both reported; BZ's reviewer running; FX1's reviewer next. Downloads stay asked before they are made (plan, How this slice runs).
+
+## Findings by lane
+
+One row a merged lane (loop, step 5, record): review and look findings by kind, and who looked (B2).
+
+| Lane | Merged | Bug | Missing design | Look | Who looked | Notes |
+| --- | --- | --- | --- | --- | --- | --- |
+| BZ | 2026-11-21 | 6 (review: plain members allocating the rest of the file each; a quadratic header scan; chunks before `min_off`; a one-block chunk costing 0; cached blocks aliased; internal folders published) | 2 (`_inflateMember` past the surface, made private; the generic index's end rule credited to `tbx_parse1`) | 0 | nothing drawn | the author accepted the truncated-gzip throw; Prism untouched; no htslib fixture (not installed) |

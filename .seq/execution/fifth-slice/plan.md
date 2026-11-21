@@ -177,7 +177,7 @@ fix point with nothing open is skipped. A finding that needs a design is a drift
 
 ### Stage 2: formats (runtimes, not the language; beside stage 1)
 
-- [ ] **BZ** (`briefs/bz-bgzf-tabix.md`; strong, first) BGZF and tabix in `@molstar/io` (`common/bgzf`,
+- [x] **BZ** (merged 2026-11-21, `167d24491`) (`briefs/bz-bgzf-tabix.md`; strong, first) BGZF and tabix in `@molstar/io` (`common/bgzf`,
       `common/tabix`, `_spec/bgzf.md`), core's `ungzip` over multi-member streams, `seqx-core`'s io allowlist (hot:
       `biome.json`), `runtimes/internal/` (text, lines), `findNames`' types and `data/names.ts`. Stops at the surface
       genome-formats agreed.

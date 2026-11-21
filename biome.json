@@ -1035,6 +1035,39 @@
       }
     },
     {
+      "includes": [
+        "packages/seq/core/src/runtimes/internal/**",
+        "packages/seq/core/src/runtimes/bed*.ts",
+        "packages/seq/core/src/runtimes/gff*.ts",
+        "packages/seq/core/src/runtimes/vcf*.ts",
+        "packages/seq/core/src/runtimes/_test/bed*.ts",
+        "packages/seq/core/src/runtimes/_test/gff*.ts",
+        "packages/seq/core/src/runtimes/_test/vcf*.ts",
+        "packages/seq/core/src/runtimes/_test/genome*.ts"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["zod", "zod/**"],
+                    "message": "zod is the AI package's own: declare tool inputs as field shapes (packages/ai/_spec/tools.md §2)."
+                  },
+                  {
+                    "group": ["@molstar/io", "@molstar/io/**", "!@molstar/io/common/bgzf", "!@molstar/io/common/tabix"],
+                    "message": "The genome runtimes' allowlist of @molstar/io (genome-formats design, Gate 0, 2): BGZF and tabix only."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
       "includes": ["packages/seq/storybook/src/_stories/features/extensibility/demo-extension.ts"],
       "linter": {
         "rules": {

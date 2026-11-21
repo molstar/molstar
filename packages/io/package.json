@@ -14,6 +14,7 @@
       "import": "./lib/*.js"
     },
     "./common/_test/*": null,
+    "./common/internal/*": null,
     "./common/binary-cif/_test/*": null,
     "./reader/_test/*": null,
     "./reader/cif/binary/_test/*": null,

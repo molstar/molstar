@@ -87,7 +87,8 @@
     "./context/_test/*": null,
     "./story/_test/*": null,
     "./io/_test/*": null,
-    "./runtimes/_test/*": null
+    "./runtimes/_test/*": null,
+    "./runtimes/internal/*": null
   },
   "files": [
     "lib",

@@ -1586,3 +1586,11 @@ set by an app draws about 1.58 times as large as before: divide it by 1.58 for t
   stream 54, matching the reference implementation). Code or stored data depending on its exact outputs must be
   regenerated. `getDistinctGroupColors` for a grayscale base color returns different gray shades; SSAO's noise,
   volume dots and streamlines seeded by it differ.
+
+## `ungzip` reads every member and refuses a damaged one
+
+`ungzip` (`@molstar/core/util/zip/zip`) reads every member of a multi-member gzip stream (BGZF, concatenated `.gz`)
+instead of the first only, so a concatenated file now yields all its bytes. A member that is cut short or damaged
+throws, among several as well as alone; trailing zero padding after the last member is skipped. A caller that relied
+on getting the first member's bytes alone, or partial bytes from a damaged file, gets the whole content or an error
+(Mol\*'s plugin fetch, core's assets and data source).
