@@ -92,6 +92,23 @@ export class FakeStructureViewer {
     return this._rows;
   }
 
+  /**
+   * What the hovered cells are called, for a card beside them (a first user looks for the names: `A 12 GLY`, a range
+   * `A 12 GLY to 15 ALA`, the unobserved ones said so): the first span's, undefined with no hover.
+   */
+  hoverName(): string | undefined {
+    const span = this.hover.value[0];
+    if (!span) return undefined;
+    const { residues, asym } = this._rows[span.row];
+    const name = (i: number) => {
+      const r = residues[i];
+      return `${r.auth}${r.ins} ${r.comp}${r.observed ? '' : ' (not modeled)'}`;
+    };
+    return span.end - span.start > 1
+      ? `${asym} ${name(span.start)} to ${name(span.end - 1)}`
+      : `${asym} ${name(span.start)}`;
+  }
+
   /** The chain table now (the host's adapter reads its model from it). */
   get table(): ChainTable {
     return this._table;

@@ -5,6 +5,7 @@
  */
 
 import { BuiltInLayerTypes, BuiltInLayouts } from '@molstar/seqx-core/render/built-ins';
+import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Node } from '@molstar/core/repr/tree';
@@ -40,6 +41,7 @@ import {
   Lengths,
   prediction,
 } from '../complex/data.js';
+import { cdk2Pae } from '../complex/pae-monomer.js';
 import { cellReadout, readoutWants, rectReadout } from '../complex/readout.js';
 import { nodeFixtureAssets, PackageFolder } from '../node-assets.js';
 import { ComplexViews } from '../views.js';
@@ -53,6 +55,8 @@ const Folder = join(PackageFolder, 'fixtures', 'complex');
 
 interface SourceRow {
   readonly file: string;
+  readonly sha256Download: string;
+  readonly bytesDownloaded: number;
 }
 
 const sources = JSON.parse(readFileSync(join(Folder, 'sources.json'), 'utf8')) as SourceRow[];
@@ -442,5 +446,24 @@ describe('the Complex views over the grid builder', () => {
 
   it('the fixtures’ locations are the files', () => {
     for (const f of Object.values(Files)) expect(sources.some((r) => `fixtures/${r.file}` === f)).toBe(true);
+  });
+});
+
+describe('CDK2’s PAE from AlphaFold DB (real)', () => {
+  it('is AlphaFold DB’s download, rebuilt byte for byte from the digits (its sha256 as recorded)', () => {
+    const n = Lengths.cdk2;
+    const values = Array.from(cdk2Pae());
+    const rows = Array.from({ length: n }, (_, i) => values.slice(i * n, (i + 1) * n));
+    const text = JSON.stringify([{ predicted_aligned_error: rows, max_predicted_aligned_error: 31.75 }]);
+    const row = sources.find((r) => r.file.endsWith('cdk2-pae-data.ts'))!;
+    expect(createHash('sha256').update(text).digest('hex')).toBe(row.sha256Download);
+    expect(text.length).toBe(row.bytesDownloaded);
+  });
+
+  it('is a view of its own, labeled as AlphaFold DB’s (no synthetic value in its plot)', () => {
+    const view = ComplexViews.find((v) => v.id === 'pae-monomer')!;
+    const text = JSON.stringify(view.build());
+    expect(text).toContain('AlphaFold DB v6');
+    expect(text).not.toContain('synthetic');
   });
 });

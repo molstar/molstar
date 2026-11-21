@@ -39,6 +39,11 @@ const ColumnsTargetKinds = [...SystemKinds, 'alignment'] as const;
  */
 export const ExtensionNamePattern = '^[a-z][a-z0-9_-]*:[a-z][a-z0-9_-]*$';
 
+const ExtensionName = new RegExp(ExtensionNamePattern);
+
+/** Whether a name is an extension's (`<id>:<name>`, both words): the one test the checks, the registry and the view share. */
+export const isExtensionName = (name: string): boolean => ExtensionName.test(name);
+
 /** A built-in name or an extension's (`layout`, `heights`, `content`): the built-ins' enum or a namespaced name. */
 const builtInOr = (names: readonly string[], doc: string) =>
   ({

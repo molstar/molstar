@@ -11,7 +11,8 @@
 // (aliases too), no built-in shadowed, every conflict across the entries listed in one error. Checked by role when
 // evaluated: a filter's result a subset of its prefix, of its type; a combinator's operands one type.
 
-import { KindPattern, type Node, type Value } from '@molstar/core/repr/tree';
+import type { Node, Value } from '@molstar/core/repr/tree';
+import { isExtensionName } from '@molstar/seqx-core/lang';
 import { ExpressionKinds, type ExprValue, type QueryOperator } from './expressions.js';
 import type { QueryModel, PropertyRead } from './model.js';
 import {
@@ -88,9 +89,6 @@ export const NoQueryExtensions: QueryExtensions = Object.freeze({
   properties: propertyTable([]),
 });
 
-/** A namespaced name: `<id>:<name>`, both words. */
-const isNamespaced = (n: string) => n.includes(':') && KindPattern.test(n);
-
 /**
  * The query entries of a registry composed (`seq.context.extension.namespace` and every conflict in one error): a
  * name not namespaced, one a built-in has, or two different entries under one name. The same entry twice is one.
@@ -106,7 +104,7 @@ export function queryExtensions(entries: readonly QueryExtensionEntry[], builtIn
   ]);
   for (const e of new Set(entries)) {
     for (const n of [e.name, ...(e.kind === 'query-property' ? (e.aliases ?? []) : [])]) {
-      if (!isNamespaced(n)) problems.push(`${n} is not namespaced (<id>:<name>): seq.context.extension.namespace`);
+      if (!isExtensionName(n)) problems.push(`${n} is not namespaced (<id>:<name>): seq.context.extension.namespace`);
       else if (reserved.has(n)) problems.push(`${n} shadows a built-in`);
       else if (taken.has(n) && taken.get(n) !== e) problems.push(`${n} is registered twice`);
       taken.set(n, e);

@@ -16,8 +16,9 @@ import { Data } from './data.js';
 // SMCC linker), a molecule named by its components. Lysine conjugation is stochastic: the payload linked to every
 // lysine of every chain, each link's occupancy a share of the average drug-to-antibody ratio (3.5) by a generated
 // weight, so the occupancies sum to the DAR; the arcs colored by their occupancy (a number of the links' rows). The
-// payload's CCD component ids are placeholders (`UNL`, the CCD's unknown ligand) until the author names them: no id is
-// guessed.
+// payload has no CCD component id to name (looked up 2026-11-21 at RCSB: `DM1` is daunomycin, `MCC` is no component, a
+// search for maytansine finds `3GT` maytansine and `BKL` maytansinol, neither the thioether DM1 nor the MCC-linked one),
+// so both stay `UNL`, the CCD's unknown ligand: no id is guessed.
 
 export const title = 'T-DM1: trastuzumab emtansine (generated)';
 
@@ -25,12 +26,13 @@ export const title = 'T-DM1: trastuzumab emtansine (generated)';
 export const Dar = 3.5;
 
 /**
- * The payload's components as data, a placeholder each (`UNL`): the SMCC linker's (MCC once attached) and DM1's CCD
- * ids are not named here until checked.
+ * The payload's components as data, `UNL` each: the CCD has no component for the SMCC linker (MCC once attached) nor for
+ * DM1 (mertansine; its own `DM1` code is daunomycin), checked 2026-11-21 (https://data.rcsb.org/rest/v1/core/chemcomp/MCC
+ * is a 404, .../DM1 is DAUNOMYCIN; the nearest are `3GT`, maytansine, and `BKL`, maytansinol, which are not DM1).
  */
 export const PayloadComponents = [
-  { code: 'UNL', name: 'MCC linker (from SMCC), CCD id to be named' },
-  { code: 'UNL', name: 'DM1 (maytansinoid), CCD id to be named' },
+  { code: 'UNL', name: 'MCC linker (from SMCC), no CCD component' },
+  { code: 'UNL', name: 'DM1 (mertansine, a maytansinoid), no CCD component' },
 ] as const;
 
 /** The construct's chains: two light and two heavy, each a unit of the Fab's chain. */

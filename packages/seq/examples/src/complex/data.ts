@@ -139,6 +139,32 @@ export function crystal(b: SeqSpecBuilder, uri: string = Files.molecule) {
   return { source, cdk2, cyclin, cdk2Secondary, cyclinSecondary };
 }
 
+/**
+ * AlphaFold DB's per-residue confidence file (`AF-<accession>-F1-confidence_v6.json`) as a `values` node on `target`: the
+ * source reads the file as published (`residueNumber`, `confidenceScore`), the node is the values over the protein. The
+ * services showcase reads the same file through it.
+ */
+export function afdbConfidence(
+  b: SeqSpecBuilder,
+  o: {
+    readonly source: string;
+    readonly values: string;
+    readonly accession: string;
+    readonly uri: string;
+    readonly target: string;
+  },
+): string {
+  const source = b.data.source(o.source, {
+    format: 'json',
+    uri: o.uri,
+    fields: { position: 'residueNumber', value: 'confidenceScore' },
+    system: o.accession,
+    attribution: `AlphaFold DB AF-${o.accession}-F1 v6`,
+    licence: 'CC-BY-4.0',
+  });
+  return b.data.values(o.values, { target: o.target as never, source });
+}
+
 /** The prediction's chains: UniProt's entries (their letters and features read by location) and AlphaFold DB's confidence. */
 export function prediction(b: SeqSpecBuilder) {
   const chain = (id: 'cdk2' | 'cyclin', accession: 'P24941' | 'P20248', uri: string, confidence: string) => {
@@ -151,15 +177,13 @@ export function prediction(b: SeqSpecBuilder) {
     });
     const protein = b.data.sequence(`${id}-protein`, { alphabet: 'protein', source: entry, name: accession });
     const features = b.data.ranges(`${id}-features`, { target: protein, source: entry });
-    const source = b.data.source(`${id}-plddt`, {
-      format: 'json',
+    const plddt = afdbConfidence(b, {
+      source: `${id}-plddt`,
+      values: `${id}-confidence`,
+      accession,
       uri: confidence,
-      fields: { position: 'residueNumber', value: 'confidenceScore' },
-      system: accession,
-      attribution: `AlphaFold DB AF-${accession}-F1 v6`,
-      licence: 'CC-BY-4.0',
+      target: protein,
     });
-    const plddt = b.data.values(`${id}-confidence`, { target: protein, source });
     /** The data of a layer of one feature type (`Helix`, `Beta strand`). */
     const data = (type: string): string => `${features}${printAddress([{ kind: 'item', params: { category: type } }])}`;
     return { entry, protein, features, plddt, data };

@@ -7,12 +7,16 @@ queue. Each line: what is seen, where (the story), where it came from, its kind 
 
 ## Open
 
+- **The `⋯` menu's Color submenu does nothing** (bug; the author, 2026-11-21, on Examples/Services): `Color ▸`
+  highlights but no submenu opens or applies. FX6.
+- **A header menu's actions do nothing, and a click on an item goes to the canvas under it** (bug; the author,
+  2026-11-21). FX6.
+- **The pointer over a menu still hovers the view under it** (bug; the author, 2026-11-21): the hover card and the
+  hover emphasis follow the canvas beneath an open header menu. FX6.
+
 - **FX3's first item: the quick-lane folders over 2 s** (stage 1's gate, the author, 2026-11-20: "Pass, FX3 fixes
   times"): core 2.8 s, viewer 2.7 s, storybook 2.3 s on a quiet machine (examples 1.6 s; all 8.2 s). The items below
   for each folder (core, viewer, storybook) are its notes: waste fixed, nature moved with a quick representative.
-- **T-DM1's CCD ids** (examples): DM1 and the SMCC/MCC linker are `UNL` placeholders (`examples/.../antibody/adc.ts`).
-  Look them up in the repo's CCD data first; a fetch of the PDB's chemical component pages is asked before it is made.
-  The author, 2026-11-20: "Both to FX3".
 - **Alignment Rows And Columns collapses when the frame's size changes** (bug; look if the cause is only the story's
   sizing): Features › Query › Alignment Rows And Columns. When the Storybook zoom slider changes the frame's size, the
   plot collapses: at a small zoom the rows shrink into the top of a much larger, empty canvas; at a middle zoom the rows
@@ -31,6 +35,13 @@ queue. Each line: what is seen, where (the story), where it came from, its kind 
   visible gap needs `gap_marks` on the rows layer (a gap list in `RowsLay`, canvas and SVG, the image-tile step).
 
 ## Fixed
+
+- **A header's submenu closing on the way to it**: an open menu keeps its header's actions shown, FX5 (`fd3b13b01`).
+- **The extension's sites without hover emphasis; at the wrong residues**: FX5 (`fd3b13b01`).
+- **The PAE in AlphaFold DB's colours, on real data**: FX5 (`greens-r`; CDK2's real PAE beside the synthetic complex).
+
+- **T-DM1's CCD ids**: none exists for DM1 or the MCC linker (FX5's lookup, `c918b6655`); `UNL` kept, the author,
+  2026-11-21: "keep UNL placeholders".
 
 - **The novice pass's five bugs** (novice-findings.md): F13 a cut header label ends in an ellipsis, F15 the story binds
   its own Undo (Seq* binds none: the host's stack), F23 legends qualified by channel after the merge and size legends

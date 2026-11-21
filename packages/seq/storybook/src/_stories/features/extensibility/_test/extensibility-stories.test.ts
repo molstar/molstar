@@ -11,8 +11,17 @@ import { recordDrawLists } from '@molstar/seqx-core/render';
 import { createSeqViewer, type SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { DomHost } from '@molstar/ui/dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { DemoExtension, DomainsLayer, extensibilityComposition, extensibilitySpec, issueLines } from '../compose.js';
-import { FocusSites } from '../demo-extension.js';
+import {
+  DemoExtension,
+  DomainsLayer,
+  Letters,
+  SiteStarts,
+  extensibilityComposition,
+  extensibilitySpec,
+  issueLines,
+} from '../compose.js';
+import { FocusSites, LollipopsType, WarmScheme } from '../demo-extension.js';
+import { defineViewerExtension } from '@molstar/seqx-viewer/extension';
 
 // The Extensibility story, headless on a fake clock, composed as the story composes it (compose.ts): the viewer
 // without the example extension draws the sites as their fallback and says so; `extend` draws them as lollipops on the
@@ -52,6 +61,20 @@ const types = (v: SeqViewer) =>
 const codes = (v: SeqViewer) => issueLines(v).map((l) => l.split(' ')[1]);
 
 describe('the Extensibility story', () => {
+  it('has each site (S6, S15, S33, S46) on a serine of p53, its label its residue number', async () => {
+    expect(SiteStarts.map((i) => Letters[i])).toEqual(['S', 'S', 'S', 'S']);
+    const v = await open();
+    await v.extend(DemoExtension);
+    await settle(v);
+    const layer = v
+      .frame!.layout.sections.flatMap((s) => s.tracks.flatMap((t) => t.layers))
+      .find((l) => l.type.name === 'demo:lollipops')!;
+    const items = layer.type.items!(layer.lay);
+    // each site's label names its residue (1-based) and its extent is that residue
+    expect(items.map((i) => [i.label, i.start])).toEqual(SiteStarts.map((x) => [`S${x + 1}`, x]));
+    expect(items.map((i) => Letters[i.start])).toEqual(['S', 'S', 'S', 'S']);
+  });
+
   it('draws the fallback without the extension, the lollipops with it, the fallback again after its undo', async () => {
     const v = await open();
     expect(types(v)).toEqual(['letters', 'ranges', 'ranges']);
@@ -83,6 +106,58 @@ describe('the Extensibility story', () => {
     expect(codes(v)).toContain('seq.view.layer.extension');
     expect((await v.renderSvg()).issues.map((i) => i.code)).toContain('seq.view.layer.extension');
     expect(v.commands.some((c) => c.id === FocusSites)).toBe(false);
+  });
+
+  /** The point on S6's head and the hover pass's rects after the pointer rests there. */
+  async function hoverS6(ext: typeof DemoExtension) {
+    const v = await open();
+    await v.extend(ext);
+    await settle(v);
+    const layer = v
+      .frame!.layout.sections.flatMap((s) => s.tracks.flatMap((t) => t.layers))
+      .find((l) => l.type.name === 'demo:lollipops')!;
+    const s6 = layer.type.items!(layer.lay).find((i) => i.key === 'S6')!;
+    // the head is at the extent's middle, at the stems' top: a point on it, whichever layout the story gives
+    const at = [...Array(60).keys()]
+      .map((k) => ({ x: (s6.x0 + s6.x1) / 2, y: k * 2 }))
+      .find((p) => v.hit(p.x, p.y)?.element?.key === 'S6')!;
+    expect(at).toBeDefined();
+    expect(recordDrawLists(v.frame!.lists, ['hover'])).not.toContain('rect');
+    const mark = { x: 0, y: 0, width: 0, height: 0 };
+    expect(layer.type.mark!(layer.lay, v.hit(at.x, at.y)!.element!, mark)).toBe(true);
+    v.input.move(at.x, at.y);
+    await settle(v);
+    const ink = (v.frame!.layout.tokens.colors['seq-hover'] >>> 8).toString(16).padStart(6, '0');
+    const rects = recordDrawLists(v.frame!.lists, ['hover'])
+      .split('\n')
+      .filter((l) => l.startsWith('rect') && l.includes(`stroke #${ink}`));
+    return { rects, mark };
+  }
+
+  it('outlines a hovered lollipop as a built-in item is: the hover ink, outside its head and round', async () => {
+    const { rects, mark } = await hoverS6(DemoExtension);
+    // the section's own outline (the head's) is one of them: it contains the head with the offset to spare
+    const boxes = rects.map((r) => r.split(' ').slice(1, 5).map(Number));
+    const around = boxes.find(
+      ([x, y, w, h]) => x < mark.x && y < mark.y && x + w > mark.x + mark.width && y + h > mark.y + mark.height,
+    );
+    expect(around, rects.join('\n')).toBeDefined();
+    // concentric with the head, not widened to the band: a head's width plus its offset and line, not the extent's
+    expect(around![2]).toBeLessThan(mark.width + 6);
+    expect(rects.some((r) => r.includes('r'))).toBe(true);
+  });
+
+  it('draws no outline for a type that draws its own hover (`ownHover`)', async () => {
+    const own = defineViewerExtension({
+      ...DemoExtension,
+      registry: [
+        { kind: 'layer-type', type: { ...LollipopsType, ownHover: true } },
+        { kind: 'scheme', scheme: WarmScheme },
+      ],
+    });
+    const { rects } = await hoverS6(DemoExtension);
+    const { rects: none } = await hoverS6(own);
+    expect(rects.length - none.length).toBe(1);
   });
 
   it('colors the domains by the warm scheme only where it is composed', async () => {

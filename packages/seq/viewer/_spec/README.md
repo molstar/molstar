@@ -1222,6 +1222,9 @@ The cells the molecules design names, each built or not and why (the core's "Res
   cleared its filter since the third slice, with or without the menu's behavior; one command, the entry's, either way.
   Not the select behavior's: a viewer without it still takes a header's click), and a drag on a track's label line pans
   as its track (`header-label`, in `default`). A slot is hit only while its header's actions show.
+- **An open menu keeps its header's actions shown** (`Emphasis.menu`: the address of the header whose menu or submenu is
+  open), canvas and DOM parts alike, wherever the pointer is. Why: the pointer leaves the line on its way to the menu,
+  and the menu's anchor must not go with the hover. It closes as the menu does (Esc, a press outside, a choice).
 - **Actions must exist**: a model method (`hover`, `pan`, `zoom`, `drag-select`, `drag-add`, `drag-subtract`,
   `drag-extend`) or a command the viewer defines (`DefaultActions`, or the `actions` given). A binding to another is
   reported (`seq.viewer.binding.action`) and left out, so the gesture does nothing.

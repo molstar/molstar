@@ -403,10 +403,10 @@ layout per token table, held domains and the reader's substitution (`LayerChanne
   unlisted hash; the module without Mol\*'s named lists, which `value-palette` re-exports with them), converted both
   ways with MolViewSpec's palettes, their scale with them (`toMvsPalette`; `fromMvsPalette` and `fromMvsScale`: type,
   domain, center, `non_positive`, the colors past the ends). Why: one palette model across Mol\*. A named list is one
-  the schemes use (`NamedLists`: viridis, cividis, magma, blues, rd-bu, okabe-ito, tableau10, category10) or a token
-  list (ramp, diverging, categories); no other of Mol\*'s lists. Why: a spec reads the same wherever Seq\* runs, and a
-  list added to Mol\* is not one here until named. Each is imported by its constant (`ColorListViridis`, …), never
-  through `ColorLists`: a bundle ships those eight lists, none of Mol\*'s others.
+  the schemes use (`NamedLists`: viridis, cividis, magma, blues, greens, greens-r (greens dark to light), rd-bu,
+  okabe-ito, tableau10, category10) or a token list (ramp, diverging, categories); no other of Mol\*'s lists. Why: a
+  spec reads the same wherever Seq\* runs, and a list added to Mol\* is not one here until named. Each is imported by
+  its constant (`ColorListViridis`, …), never through `ColorLists`: a bundle ships those lists, none of Mol\*'s others.
 - **Schemes** (`SchemeRegistry`, `builtInSchemes()`): residue schemes as data from core (Clustal X, Zappo, Taylor,
   hydrophobicity, helix, strand, turn, buried), nucleotide ones, ramps and categories (viridis, cividis, magma, blues,
   rd-bu, pLDDT's bands, Okabe–Ito, Tableau 10), secondary structure, Giemsa; each says its subject, the measures it
@@ -2072,6 +2072,14 @@ strip's.
   a strand or a turn square), a band's (square at the view's edge), a rows cell's (square where the view or its band
   cuts it); a grid's hovered or selected cell by its size, its crosshair's column and row square (they end at the plot:
   a cut).
+- **An extension's layer type** (`isExtensionName`: `<id>:<name>`) is given the hover's look by the view, not by a hook
+  of its own: after its `draw`, the hovered item's mark (`LayerType.mark(lay, key, out)`: its bounds in the strip's
+  frame, written into the view's one reused box, and the radius of its corners) is outlined `emphasis.hoverOffset`
+  outside it and concentric (its radius plus the offset), in the hover ink; round on the sides the strip does not cut,
+  square where the mark meets the strip's edge. Why: every layer type has the hover, as ux-foundations asks, and a warm
+  frame allocates nothing. A type with no `mark` gets none (its card and the projected hover remain); one that draws its
+  own hover in its `hover` pass sets `ownHover: true` and the view draws none, so it is never outlined twice. The
+  selection is the view's already (a Location's band column).
 - `cursor`: a 1 px outline of its cell (`outline.cursor`) over the band, in a neutral ink (`emphasis.cursorInk`,
   `msui-text`), never the accent (the `cursor` pass); a squircle by the cell over the band, inside it by half its width
   (concentric), square on a side the view cuts. Whether it is shown is the caller's (a viewer shows it once the keyboard

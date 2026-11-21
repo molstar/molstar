@@ -294,6 +294,11 @@ base-library change, below), archives. The Genomes milestone is the fifth.
 
 ## `@molstar/seqx-examples`, `@molstar/seqx-storybook`
 
+- **The services' structure section at the fit** (SV, 2026-11-21): it follows P04637 through SIFTS when zoomed, but at
+  the fit its ruler counts the unit's own 1–219, unaligned with P04637's 94–312; either a follower at the fit takes the
+  leader's mapped window, or the B-factor values drawn in P04637's section through the map. Its ruler by author
+  numbering at least.
+
 - The Plasmid and the Complex are stand-ins (generated letters at the entries' lengths, features at the published
   layout's places, named as such): pUC19c and 1FIN recorded with their dataset lanes replace them, the ring's record
   written again.

@@ -61,6 +61,15 @@ The third slice is closed (2026-11-20; its record in `.seq/records/third-slice/`
 - **The author's look, 2026-11-21** (to FX5): the extension's lollipops show the card but no hover emphasis; the PAE in
   AlphaFold DB's colours, on real data where a permissive one exists.
 
+- **T-DM1's placeholders kept** (the author, 2026-11-21: "keep UNL placeholders"): no CCD component exists for DM1
+  or the MCC linker (FX5's lookup); `UNL` stays, the finding and its source in `adc.ts`.
+- **The use gates passed** (the author, 2026-11-21: "i have looked at things here and there in the storybook, so for
+  now user gates passed -- we will need to do followups anyway as small things appear"): stages 2 and 5's; findings
+  from here on are follow-ups (`fixes.md`).
+- **The loop runs to the close** (the author, 2026-11-21: "you can run slice 4 loop all the way to the close. I will
+  review the foldback.md file before we apply it"): FX5, SV and PC merged, stage 3's gate, M4, FINALIZE; it stops once
+  `foldback.md` is written, for the author's review, then applies it, writes the record and closes.
+
 ## In progress
 
 - 2026-11-20: stage 1's gate passed. Next: FX3 and ST2, two lanes.
@@ -129,6 +138,8 @@ One row a merged lane (loop, step 5, record): review findings and look findings 
 | LE | 2026-11-21 | 3 (review: the compact form's names unread by keyboard, pre-existing; the 0.5.0 history missing `legend`; the shared-legend rule untested) | 0 | 1 (the story's keys shown twice) | compact steps untested (the binned params unconfirmed); the minimal 929.5, headless 829.1 |
 | CN | 2026-11-21 | 4 (review: the minimal viewer at its bound with LE; no public position↔x for a host navigator; exportSvg's two sources of pictures; a host navigator's missing picture unsaid) | 0 | 1 (the host bar's drag: not reproduced in jsdom, pans after the fix round) | headless 829.8 → 806.0 (navigators lazy in renderSvg); the minimal 929.5 (docs trimmed from language.ts) |
 | NP | 2026-11-21 | 4 (review: the channel suffix before the merge; the Mol* converter's title; the DOM backdrop untested and without the ellipsis; the specs) | 0 | 0 | 5 bugs and 9 stories from the novice pass; F5 as designed, F7 not reproduced; the minimal viewer 929.9 of 930 |
+| SV | 2026-11-21 | 5 (review: a dropped file's rows and length trusted; no size check before reading; maps keyed on the author's chain, not `label_asym_id`; my look: the structure section unaligned with P04637; the back hover asserted missing where the spec's per-chain sequences serve it) | 2 (SIFTS lengths unchecked; the drop target by name only) | 1 (the hint naming the wrong icon) | fixtures 28 kB with licences; the structure section's fit alignment to the TODO; no core change |
+| FX5 | 2026-11-21 | 7 (review: the warm hover frame allocating through `items()`; the outline across the band, not the mark; round at a cut; my look: the sites at the wrong residues; the PAE fixture stored twice; the fake viewer's card untested in the DOM; the author: a header menu closing on the way to it) | 3 (an extension's own hover outlined twice: `ownHover`; `LayerType.mark`; `greens` palettes) | 0 | T-DM1 `UNL` kept (no CCD component); real CDK2 PAE (AFDB v6, CC BY 4.0); two perf cases red on the base too (headers.quick, core's grid hit), for the gate on a quiet machine |
 
 ## How to verify
 

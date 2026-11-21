@@ -36,7 +36,7 @@ interface Row {
 
 const Fixtures = join(PackageFolder, 'fixtures');
 /** The datasets recorded by the script (the `files` folder is the Files feature's own tables). */
-const Datasets = ['p53', 'globins', 'complex', 'antibody'];
+const Datasets = ['p53', 'globins', 'complex', 'antibody', 'services'];
 /** Files a generator writes, compared with it by a test (not recorded): by their path under `fixtures/`. */
 const Generated = new Set([GeneFile, RegionFile, ConservationFile].map((f) => f.slice('fixtures/'.length)));
 
@@ -53,7 +53,13 @@ describe.each(Datasets)('fixtures/%s/sources.json', (dataset) => {
       .map((f) => `${dataset}/${f}`)
       .filter((f) => !Generated.has(f))
       .sort();
-    expect(rows.map((r) => r.file).sort()).toEqual(files);
+    // a row whose file is `../src/…` is held in a source module (not a file of the folder), its checksum the module's
+    expect(
+      rows
+        .map((r) => r.file)
+        .filter((f) => !f.startsWith('../'))
+        .sort(),
+    ).toEqual(files);
   });
 
   it('each row: its provenance said, a licence allowed, its size and checksum the file’s', () => {

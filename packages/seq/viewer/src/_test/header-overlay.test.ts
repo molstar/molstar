@@ -198,3 +198,36 @@ describe('headerPartsDom()', () => {
     expect(v.view.resolved.value!.sections[0].tracks).toHaveLength(2);
   });
 });
+
+describe('an open header menu', () => {
+  it('keeps its header’s parts shown while the pointer goes to it, and a choice in it is applied', async () => {
+    const { v, container, headers } = await mount(true);
+    const layer = container.querySelector<HTMLElement>('.seqx-header-parts')!;
+    const g = geo(v, Domains);
+    const move = (x: number, y: number) =>
+      container.dispatchEvent(new PointerEvent('pointermove', { clientX: x, clientY: y, bubbles: true }));
+    // the pointer on the header: its slots show; its Color slot opens the submenu below
+    move(g.label.x + 2, g.line.y + 4);
+    frames.flush();
+    expect(layer.querySelectorAll('[data-part="seq:hide"]')).toHaveLength(1);
+    const menu = headers.menuOf(g.target)!;
+    const color = menu.groups.flat().find((i) => i.items)!;
+    expect(headers.openMenu(g.target, { x: g.line.x, y: g.line.y + g.line.height }, color.name)).toBe(true);
+    await v.settle();
+    frames.flush();
+    expect(container.querySelector('[role="menu"]')).not.toBeNull();
+    // the pointer leaves the header's line on its way down to the menu: the header stays revealed, the menu open
+    move(g.label.x + 2, g.line.y + g.line.height + 60);
+    frames.flush();
+    await v.settle();
+    expect(container.querySelector('[role="menu"]')).not.toBeNull();
+    expect(headers.menu.value).toBeDefined();
+    expect(layer.querySelectorAll('[data-part="seq:hide"]')).toHaveLength(1);
+    // a choice runs and closes it (the parts follow the pointer again)
+    const row = container.querySelector<HTMLElement>('[role="menu"] [role^="menuitem"]')!;
+    row.click();
+    await v.settle();
+    expect(headers.menu.value).toBeUndefined();
+    expect(container.querySelector('[role="menu"]')).toBeNull();
+  });
+});

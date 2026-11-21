@@ -88,6 +88,7 @@ export {
   HighlightStyles,
   EmptyOverlay,
   type Hit,
+  type HitMark,
   type HitTarget,
   type LabelSink,
   type ItemDescription,
