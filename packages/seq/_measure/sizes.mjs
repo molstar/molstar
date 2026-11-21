@@ -88,6 +88,13 @@ const AllCases = [
     own: /seq\/core\/src\/runtimes\/|(^|\/)packages\/io\/src\/common\//,
     lazy: true,
   },
+  // GFF3 and GTF read whole (no viewer bundles it): its own code and io's BGZF (a bgzipped file read whole)
+  {
+    name: 'GFF runtime',
+    entry: 'gff.ts',
+    target: 30_000,
+    own: /seq\/core\/src\/runtimes\/|(^|\/)packages\/io\/src\/common\//,
+  },
   // the mmCIF runtime and Seq io's converter (in no viewer entry); `@molstar/io`'s parser is its lazy chunk, loaded
   // when the first mmCIF source opens: listed apart (`lazy`), measured with every import it brings that the default
   // viewer's bundle does not hold (its `@molstar/core` imports too): what a host pays on first open
