@@ -245,8 +245,8 @@ export const RenderIssues = defineIssues('seq.render', {
   'seq.render.follow.blocks': {
     severity: 'warning',
     description:
-      'A section with blocks on more than one system follows or is followed: which block’s map a follow would carry is undecided, so it shows its own range',
-    hint: 'Follow one block’s section of its own, or put the blocks on one system',
+      'A section of blocks on more than one system follows or is followed by one whose block list differs (systems, ranges, directions, scales in order): which block’s map a window carries is a figure’s choice no rule makes, so it shows its own range',
+    hint: 'Give both sections the same blocks, or let them move on their own (a navigator or the selection links them)',
   },
   'seq.render.ring.image': {
     severity: 'warning',

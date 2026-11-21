@@ -209,6 +209,19 @@ export interface RenderConfig {
    */
   readonly ruler: { readonly labelGap: number };
   /**
+   * Blocks in a row and on a ring (_spec/README.md "Render", Blocks): the gaps in view share at most `gapShare` of the
+   * length (0.25, each at most the layout's gap: 12 px, 1°); consecutive blocks each narrower than `runPx` (2 CSS px) are
+   * one run (a band, no gaps inside, labelled when it has room; 0: never); inside a run a block is read and drawn while
+   * at least `readPx` device px wide (1; 0 reads every block); a gap between two assemblies' groups is `groupGap` block
+   * gaps (3, taken first, fixed).
+   */
+  readonly blocks: {
+    readonly gapShare: number;
+    readonly runPx: number;
+    readonly readPx: number;
+    readonly groupGap: number;
+  };
+  /**
    * Rings (_spec/README.md "Render", Rings layout): the hole a share of the radius at least (0.35: room for the title,
    * chords readable), the diameter's cap (720 px: a map, not a wall), the gap between blocks (1°: a boundary, Circos),
    * letters `upright` or along the ring (`tangent`), the hole's title (`title`: the name and length; `none`), the
@@ -220,6 +233,12 @@ export interface RenderConfig {
     readonly hole: number;
     readonly maxDiameter: number;
     readonly blockGap: number;
+    /**
+     * The share of the circle the gaps between blocks may take together (0.25: positions keep three quarters at any
+     * count, each gap at most `blockGap`), and the gap between two assemblies' groups (4°, taken first, fixed).
+     */
+    readonly gapShare: number;
+    readonly groupGap: number;
     readonly letters: 'upright' | 'tangent';
     readonly center: 'title' | 'none';
     readonly labelGap: number;
@@ -391,10 +410,13 @@ export const DefaultRenderConfig: RenderConfig = {
   ranges: { overflow: 'extra-lanes', connector: { width: 1, ink: 'item', alpha: 0.6 } },
   values: { aggregate: 'minmax', coarser: 1, direct: true },
   ruler: { labelGap: 48 },
+  blocks: { gapShare: 0.25, runPx: 2, readPx: 1, groupGap: 3 },
   rings: {
     hole: 0.35,
     maxDiameter: 720,
     blockGap: 1,
+    gapShare: 0.25,
+    groupGap: 4,
     letters: 'upright',
     center: 'title',
     labelGap: 8,
@@ -491,6 +513,7 @@ export function renderConfig(over: RenderConfigOverrides = {}): RenderConfig {
     },
     values: { ...DefaultRenderConfig.values, ...over.values },
     ruler: { ...DefaultRenderConfig.ruler, ...over.ruler },
+    blocks: { ...DefaultRenderConfig.blocks, ...over.blocks },
     rings: { ...DefaultRenderConfig.rings, ...over.rings },
     outline: { ...DefaultRenderConfig.outline, ...over.outline },
     emphasis: { ...DefaultRenderConfig.emphasis, ...over.emphasis },

@@ -404,8 +404,6 @@ describe('unread params', () => {
       '/data/g `assembly.names`: read by lane GF',
       '/data/over A ranges over an assembly: read by lane GC2',
       '/views/v/a `section.member_order`: read by lane LA',
-      '/views/v/a/b `block.direction`: read by lane GC2',
-      '/views/v/a/b `block.scale`: read by lane GC2',
       '/views/v/br A bridge: read by lane LA',
     ]);
     expect(resolveSpec(spec()).issues.filter((i) => i.code === 'seq.resolve.param.unread')).toEqual([]);
@@ -458,8 +456,8 @@ describe('a block’s direction', () => {
     params: { ...n.params, direction: n.params?.direction === 'reversed' ? 'section' : 'reversed' },
   });
 
-  // What the model reads of an override is the derived block's params (`blockNodes`); drawing a reversed block is
-  // GC2's (`blockAxes` does not read `direction` yet: seq.view.param.unread), so the property is on the params.
+  // What the model reads of an override is the derived block's params (`blockNodes`); the view's block axes read them
+  // (`view/_test/genome-blocks.test.ts`), so the property is on the params.
   it('an override flipped twice derives the same blocks, flipped once only its own block changes (EC-206, property)', () => {
     const rng = new PCG(3);
     const model = resolveSpec(spec());

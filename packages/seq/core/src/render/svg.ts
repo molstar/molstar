@@ -128,6 +128,18 @@ export interface SvgOptions {
     readonly pieces: string;
     readonly y: number;
     readonly height: number;
+    /**
+     * A section of blocks' blocks: each an empty group inside its section's with its address, system, direction and
+     * scale, and a section of assemblies' its assembly (`data-block`, `data-system`, `data-direction`, `data-scale`,
+     * `data-assembly`).
+     */
+    readonly blocks?: readonly {
+      readonly address: string;
+      readonly system: string;
+      readonly direction: string;
+      readonly scale: number;
+      readonly assembly?: string;
+    }[];
   }[];
 }
 
@@ -248,10 +260,19 @@ export function drawListsToSvg(lists: DrawLists, options: SvgOptions = {}): stri
       body.push('</g>');
     },
   };
-  for (const sec of options.sections ?? [])
-    body.push(
-      `<g data-section="${escapeXml(sec.address)}" data-direction="${escapeXml(sec.direction)}" data-pieces="${escapeXml(sec.pieces)}" data-y="${fmt(sec.y)}" data-height="${fmt(sec.height)}"/>`,
-    );
+  for (const sec of options.sections ?? []) {
+    const head = `<g data-section="${escapeXml(sec.address)}" data-direction="${escapeXml(sec.direction)}" data-pieces="${escapeXml(sec.pieces)}" data-y="${fmt(sec.y)}" data-height="${fmt(sec.height)}"`;
+    if (!sec.blocks?.length) {
+      body.push(`${head}/>`);
+      continue;
+    }
+    body.push(`${head}>`);
+    for (const b of sec.blocks)
+      body.push(
+        `<g data-block="${escapeXml(b.address)}" data-system="${escapeXml(b.system)}" data-direction="${escapeXml(b.direction)}" data-scale="${fmt(b.scale)}"${b.assembly !== undefined ? ` data-assembly="${escapeXml(b.assembly)}"` : ''}/>`,
+      );
+    body.push('</g>');
+  }
   for (const name of Passes) {
     const pass = lists.passes[name];
     if (!pass.size) continue;

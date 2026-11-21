@@ -7,7 +7,7 @@
 // A section's blocks (_spec/README.md "Resolved view", Blocks): its `block` children, else a complex's units (a section
 // `of` a complex: ordered by `classes`, polymers in the complex's order, then each class, EC-101); each block's form
 // (`whole`, `residues`, `atoms`), its label (a chip's: its molecule's name, else its one component, else its id), its
-// copies merged (EC-65); the section's axis over them.
+// direction and scale, its copies merged (EC-65), its group (an assembly of several); the section's axis over them.
 
 import { exactAddress, type Node, printAddress, type Value } from '@molstar/core/repr/tree';
 import { type AssemblyEntry, atomsSystemOf, type StaticModel, type UnitEntry } from '@molstar/seqx-core/resolve';
@@ -42,6 +42,19 @@ export function systemRef(model: StaticModel, of: Value | undefined): string | u
 
 /** A derived block's address: the keyed form under its section, never an id step (it has no id). */
 const DerivedAddress = new WeakMap<Node, string>();
+/** A derived block's sequence's printed name (the `system` field's value). */
+const DerivedName = new WeakMap<Node, string>();
+/** A derived block's group: its assembly's index in the section's `of` (one assembly one group; a list a group each, EC-210). */
+const DerivedGroup = new WeakMap<Node, number>();
+
+/** A group of a section of assemblies' blocks: its assembly, its label (the assembly's name), its blocks' run. */
+export interface BlockGroup {
+  readonly assembly: string;
+  readonly label: string;
+  /** Its first block's index in the section's blocks, and how many it has. */
+  readonly first: number;
+  readonly count: number;
+}
 
 /**
  * A section of assemblies' blocks (_spec/README.md "Resolved view", Blocks): a block a derived system, each assembly's
@@ -72,7 +85,8 @@ export function assemblyBlocks(
   const nodes: Node[] = [];
   let total = 0;
   const max = model.config.maxAssemblyBlocks;
-  for (const a of assemblies) {
+  for (let g = 0; g < assemblies.length; g++) {
+    const a = assemblies[g];
     const keep = a.include(param(section, 'include'));
     for (const i of a.order) {
       const system = a.systemAt[i];
@@ -86,6 +100,8 @@ export function assemblyBlocks(
         n,
         printAddress([...at.split('/').filter(Boolean), { kind: 'block', params: { name: s.name } }]),
       );
+      DerivedName.set(n, s.name);
+      DerivedGroup.set(n, g);
       nodes.push(n);
     }
   }
@@ -144,9 +160,17 @@ export function blockUnits(block: { readonly form?: string; readonly axis: Axis 
 export interface BlockAxes {
   readonly axis: Axis;
   readonly blocks: readonly Omit<ResolvedBlock, 'layers'>[];
+  /** A section of several assemblies' groups, in order (EC-210). */
+  readonly groups?: readonly BlockGroup[];
 }
 
-type AxisOf = (node: Node, at: string, system: string) => Axis;
+/** A block's scale as written: a positive number, else 1 (_spec/README.md "Resolved view", Blocks). */
+export function blockScale(node: Node): number {
+  const s = param(node, 'scale');
+  return typeof s === 'number' && s > 0 && Number.isFinite(s) ? s : 1;
+}
+
+type AxisOf = (node: Node, at: string, system: string, dir: 1 | -1) => Axis;
 type Report = (message: string, at: string) => void;
 
 /**
@@ -192,11 +216,12 @@ function labelOf(model: StaticModel, node: Node, system: string, unit: UnitEntry
 
 /**
  * A section's blocks (_spec/README.md "Resolved view", Blocks): each its axis (its system, its `range`, the section's
- * direction) and form; copies (units of one copy group, or the same system, with the same range and form) merged into
- * the first's place with `copies: 'merge'` (the default), labeled `×N`; the section's axis their display units in
- * order: on one system in a row (or on a ring) the blocks' pieces end to end, else units on no system (the section's
- * address, `pieces: 'blocks'`), their total the sum in a row and the longest block in a stack. A block with no system
- * is reported and left out.
+ * direction times its own `direction`) and form, its `scale` (its display units its positions times it); copies (units
+ * of one copy group, or the same system, with the same range, form, direction and scale) merged into the first's place
+ * with `copies: 'merge'` (the default), labeled `×N`; the section's axis their display units in order: on one system in
+ * a row (or on a ring), each block the section's direction at scale 1, the blocks' pieces end to end, else units on no
+ * system (the section's address, `pieces: 'blocks'`), their total the sum in a row and the longest block in a stack;
+ * a section of several assemblies' groups. A block with no system is reported and left out.
  */
 export function blockAxes(
   model: StaticModel,
@@ -209,6 +234,9 @@ export function blockAxes(
   report: Report,
 ): BlockAxes {
   const merge = param(section, 'copies') !== 'each';
+  const assemblies = sectionAssemblies(model, section);
+  const assemblyOf = (g: number) => assemblies?.[g]?.address ?? '';
+  const assemblyLabel = (g: number) => assemblies?.[g]?.names[0] ?? assemblyOf(g);
   type Group = {
     node: Node;
     address: string;
@@ -218,6 +246,10 @@ export function blockAxes(
     systems: string[];
     form: BlockForm;
     label: string;
+    dir: 1 | -1;
+    scale: number;
+    group: number | undefined;
+    name: string;
   };
   const groups: Group[] = [];
   // copy groups by key: linear in the blocks (an assembly's thousands of contigs)
@@ -232,17 +264,35 @@ export function blockAxes(
     const unit = model.molecular.units.get(of);
     const { form, system, node } = formOf(model, n, of);
     const range = param(node, 'range');
-    // units of one copy group are copies whatever their systems (EC-65): equal `of` and range
-    const key = `${unit ? unit.copy : system}|${form}|${Array.isArray(range) ? range.join(',') : 'all'}`;
+    // a block's direction against the section's, its scale (_spec/README.md "Resolved view", Blocks)
+    const own: 1 | -1 = param(n, 'direction') === 'reversed' ? (-dir as 1 | -1) : dir;
+    const scale = blockScale(n);
+    // units of one copy group are copies whatever their systems (EC-65): equal `of`, range, direction and scale
+    const key = `${unit ? unit.copy : system}|${form}|${Array.isArray(range) ? range.join(',') : 'all'}${own === dir ? '' : '|r'}${scale === 1 ? '' : `|x${scale}`}`;
     const copy = merge ? byKey.get(key) : undefined;
     if (copy) {
       copy.members.push(address);
       copy.systems.push(system);
       continue;
     }
-    const axis = axisOf(node, address, system);
+    const axis = axisOf(node, address, system, own);
     const label = labelOf(model, n, of, unit);
-    const g = { node, address, axis, key, members: [address], systems: [system], form, label };
+    const group = DerivedGroup.get(n);
+    const name = DerivedName.get(n) ?? model.systems.get(of)?.name ?? of;
+    const g = {
+      node,
+      address,
+      axis,
+      key,
+      members: [address],
+      systems: [system],
+      form,
+      label,
+      dir: own,
+      scale,
+      group,
+      name,
+    };
     groups.push(g);
     if (!byKey.has(key)) byKey.set(key, g);
   }
@@ -251,7 +301,10 @@ export function blockAxes(
   let longest = 0;
   const blocks = groups.map((g) => {
     // a chip is one unit, however many residues it stands for
-    const total = blockUnits(g);
+    const units = blockUnits(g);
+    // a chip (a `whole` block, one position) is one unit at any scale: its slot is fixed
+    if (g.form === 'whole' || units === 1) g.scale = 1;
+    const total = units === undefined ? undefined : units * g.scale;
     const start = stack ? 0 : offset;
     if (offset !== undefined) offset = total === undefined ? undefined : offset + total;
     if (total !== undefined) longest = Math.max(longest, total);
@@ -264,12 +317,31 @@ export function blockAxes(
       members: g.members,
       systems: g.systems,
       copy: g.key,
+      name: g.name,
+      ...(g.scale !== 1 ? { scale: g.scale } : {}),
+      ...(g.group !== undefined ? { group: g.group } : {}),
     };
   });
+  // a section of several assemblies: a group each, its blocks a run in order (EC-210)
+  let groupList: BlockGroup[] | undefined;
+  for (let k = 0; k < blocks.length; k++) {
+    const gi = groups[k].group;
+    if (gi === undefined) continue;
+    groupList ??= [];
+    const last = groupList[groupList.length - 1];
+    if (last && last.assembly === assemblyOf(gi)) (last as { count: number }).count++;
+    else groupList.push({ assembly: assemblyOf(gi), label: assemblyLabel(gi), first: k, count: 1 });
+  }
   const first = groups[0]?.axis;
   const system = first?.system ?? '';
   const pending = groups.some((g) => !g.axis.ranges);
-  if (first && !stack && groups.every((g) => g.axis.system === system && g.form !== 'whole')) {
+  // one system's blocks are one axis only when they read one way, the section's, at their own length (genome-coordinates:
+  // blocks on one system merge only on one direction)
+  if (
+    first &&
+    !stack &&
+    groups.every((g) => g.axis.system === system && g.form !== 'whole' && g.dir === dir && g.scale === 1)
+  ) {
     // pieces of one sequence: one axis, its breaks between the blocks
     const ranges = pending ? undefined : groups.flatMap((g) => g.axis.ranges!);
     return {
@@ -282,6 +354,7 @@ export function blockAxes(
         ...(ranges ? { ranges } : {}),
       },
       blocks,
+      ...(groupList ? { groups: groupList } : {}),
     };
   }
   // units of the section, on no system: a position on them is no block's (a selection, a focus, a bookmark or a cursor
@@ -296,5 +369,6 @@ export function blockAxes(
       pieces: 'blocks',
     },
     blocks,
+    ...(groupList ? { groups: groupList } : {}),
   };
 }

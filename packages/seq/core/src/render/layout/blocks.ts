@@ -12,7 +12,7 @@
 // and its first unit, so a pan keeps them. A one-position block is a chip: a fixed slot its label's width, never a
 // position's share (zoom does not scale it), where it stands in a row, in a stack on one row the chips share.
 
-import { blockUnits, piecesTotal, type ResolvedSection } from '@molstar/seqx-core/view';
+import { blockSpan, piecesTotal, type ResolvedSection } from '@molstar/seqx-core/view';
 import { AxisTransform, type Viewport } from '../axis.js';
 import { fontSize, type RenderConfig } from '../config.js';
 import { Anchor, grown, NoColor, type PassName, type PassWriter } from '../draw-lists.js';
@@ -29,6 +29,8 @@ export type ResolvedBlock = NonNullable<ResolvedSection['blocks']>[number];
 
 // the anchor a number read once: a draw reads no property of an imported object (_spec/README.md "Render", Draw lists)
 const AnchorStart: number = Anchor.start;
+const AnchorMiddle: number = Anchor.middle;
+const AnchorEnd: number = Anchor.end;
 
 /**
  * Fixed sizes (CSS px): the gap between two blocks in a row at most (a boundary that reads), the share of the width
@@ -49,9 +51,42 @@ export function isChip(block: {
   return !!block.axis.ranges && (block.form === 'whole' || piecesTotal(block.axis.ranges) === 1);
 }
 
-/** A block's display units (a chip one, `blockUnits`; 0 while pending). */
+/** A block's display units: its positions times its `scale` (a chip one at any scale, `blockSpan`; 0 while pending). */
 export function blockLength(block: ResolvedBlock): number {
-  return blockUnits(block) ?? 0;
+  return blockSpan(block);
+}
+
+/**
+ * A block's label as a row or a ring draws it (_spec/README.md "Render", Blocks): with the direction mark where it
+ * reads right to left (`chr4 ←`, `axis.directionMark`) and its scale where it is not 1 (`chr17 ×10`).
+ */
+export function blockLabel(block: ResolvedBlock, config: RenderConfig): string {
+  const mark = config.axis.directionMark !== 'none' && block.axis.dir === -1 ? ' ←' : '';
+  const scale = block.scale !== undefined && block.scale !== 1 ? ` ×${+block.scale.toPrecision(3)}` : '';
+  return mark || scale ? `${block.label}${mark}${scale}` : block.label;
+}
+
+/** A count as a run's label says it ("2,841 contigs"). */
+export function runLabel(count: number): string {
+  return `${count.toLocaleString('en-US')} ${count === 1 ? 'contig' : 'contigs'}`;
+}
+
+/** The closing run's label past `maxAssemblyBlocks` ("+96,312 sequences not shown"). */
+export function moreLabel(count: number): string {
+  return `+${count.toLocaleString('en-US')} ${count === 1 ? 'sequence' : 'sequences'} not shown`;
+}
+
+/** A row's blocks and its config: offsets, lengths (scaled), groups, the gap share, the run and group rules. */
+export function rowBlocks(row: BlockRow, blocks: readonly ResolvedBlock[], config: RenderConfig): void {
+  row.reset(blocks.length);
+  row.gapShare = config.blocks.gapShare;
+  row.groupGap = config.blocks.groupGap;
+  row.runPx = config.blocks.runPx;
+  for (let b = 0; b < blocks.length; b++) {
+    row.offset[b] = blocks[b].offset ?? 0;
+    row.len[b] = blockLength(blocks[b]);
+    row.group[b] = blocks[b].group ?? -1;
+  }
 }
 
 /** A chip's width, CSS px: its label (its `×N` too) in the label font, `chipPad` either side; zoom never scales it. */
@@ -126,14 +161,28 @@ export class BlockRow {
   len = new Float64Array(4);
   /** A chip's px a unit (its slot over its positions: one but for a `whole` chip of several), 0 for no chip. */
   chip = new Float64Array(4);
+  /** Each block's group (an assembly of several, EC-210), −1 for none: a wider gap between two groups. */
+  group = new Int32Array(4);
   x0 = 0;
   width = 0;
+  /** The share of the width the gaps in view take at most, and a group gap in block gaps (`RenderConfig.blocks`). */
+  gapShare: number = BlockMetrics.gapShare;
+  groupGap = 3;
+  /** Below this many px a block is in a run (0: never, `RenderConfig.blocks.runPx`). */
+  runPx = 0;
   /** From `lay`: each block's units in view `[vs, ve)` (none when `ve <= vs`), its x and width, its gap's share. */
   vs = new Float64Array(4);
   ve = new Float64Array(4);
   x = new Float64Array(4);
   w = new Float64Array(4);
   f = new Float64Array(4);
+  /**
+   * Each block's run: the index of its run's first block, −1 when in none (_spec/README.md "Render", Blocks: two or more
+   * consecutive blocks each narrower than `runPx` at the zoom, no gaps inside). Recomputed on a zoom, never on a pan.
+   */
+  run = new Int32Array(4);
+  /** The zoom the runs were found at (px a unit of the window), NaN before. */
+  private runScale = Number.NaN;
   /** From `lay`: px a position of the blocks that are no chips, the window. */
   scale = 0;
   u0 = 0;
@@ -143,11 +192,40 @@ export class BlockRow {
     this.n = n;
     this.offset = grown(this.offset, n);
     this.len = grown(this.len, n);
+    this.group = grown(this.group, n);
     this.vs = grown(this.vs, n);
     this.ve = grown(this.ve, n);
     this.x = grown(this.x, n);
     this.w = grown(this.w, n);
     this.f = grown(this.f, n);
+    this.run = grown(this.run, n);
+    this.group.fill(-1, 0, n);
+    this.runScale = Number.NaN;
+  }
+
+  /**
+   * The runs at a zoom (px a unit, the window's width over its span: the same on a pan): two or more consecutive
+   * blocks, no chips, each under `runPx` (a prefix walk over the blocks, O(blocks)).
+   */
+  private runs(zoom: number): void {
+    if (zoom === this.runScale) return;
+    this.runScale = zoom;
+    const n = this.n;
+    const small = this.runPx;
+    const tiny = (b: number) => small > 0 && this.chip[b] === 0 && this.len[b] * zoom < small;
+    let b = 0;
+    while (b < n) {
+      if (!tiny(b)) {
+        this.run[b++] = -1;
+        continue;
+      }
+      let e = b + 1;
+      while (e < n && tiny(e) && this.group[e] === this.group[b]) e++;
+      // a run is two or more: a lone small block keeps its gaps
+      const v = e - b > 1 ? b : -1;
+      for (let k = b; k < e; k++) this.run[k] = v;
+      b = e;
+    }
   }
 
   /** Places the blocks for window `[u0, u1)`: into `vs`, `ve`, `x`, `w`, `scale`. */
@@ -156,6 +234,7 @@ export class BlockRow {
     this.u1 = u1;
     const width = this.width;
     const span = Math.max(u1 - u0, 1e-9);
+    this.runs(width / span);
     let chipPx = 0;
     let chipU = 0;
     for (let b = 0; b < this.n; b++) {
@@ -169,34 +248,42 @@ export class BlockRow {
         chipU += ve - vs;
       }
     }
-    // a gap by its boundary's distance to the nearer edge at the chips' provisional scale: whole 12 px in
+    // a gap by its boundary's distance to the nearer edge at the chips' provisional scale: whole 12 px in; none inside
+    // a run; a group's boundary `groupGap` gaps, taken first, fixed
     const prov = Math.max(width - chipPx, 1e-9) / Math.max(span - chipU, 1e-9);
+    const groupPx = this.groupGap * BlockMetrics.gap;
     let inner = 0;
+    let fixed = 0;
     let cu = 0;
     let cp = 0;
     for (let b = 0; b < this.n; b++) {
       const o = this.offset[b];
       let f = 0;
-      if (b > 0 && o > u0 && o < u1) {
+      if (b > 0 && o > u0 && o < u1 && !(this.run[b] >= 0 && this.run[b] === this.run[b - 1])) {
         const left = (o - u0 - cu) * prov + cp;
         f = Math.min(1, Math.max(0, Math.min(left, width - left) / BlockMetrics.gap));
       }
+      // a group boundary: a negative share marks it (its px fixed)
+      if (f > 0 && this.group[b] !== this.group[b - 1]) {
+        fixed += f * groupPx;
+        f = -f;
+      } else inner += f;
       this.f[b] = f;
-      inner += f;
       if (this.chip[b] > 0 && this.ve[b] > this.vs[b]) {
         cu += this.ve[b] - this.vs[b];
         cp += this.chip[b] * (this.ve[b] - this.vs[b]);
       }
     }
-    // the gaps in view share a quarter of the width, at most 12 px each
-    const gap = Math.min(BlockMetrics.gap, (BlockMetrics.gapShare * width) / Math.max(1, inner));
-    const scale = Math.max(width - inner * gap - chipPx, 1e-9) / Math.max(span - chipU, 1e-9);
+    // the gaps in view share at most `gapShare` of the width (the groups' first), at most 12 px each
+    const gap = Math.min(BlockMetrics.gap, Math.max(0, this.gapShare * width - fixed) / Math.max(1, inner));
+    const scale = Math.max(width - inner * gap - fixed - chipPx, 1e-9) / Math.max(span - chipU, 1e-9);
     this.scale = scale;
     let gaps = 0;
     let chipsU = 0;
     let chipsPx = 0;
     for (let b = 0; b < this.n; b++) {
-      gaps += this.f[b] * gap;
+      const f = this.f[b];
+      gaps += f < 0 ? -f * groupPx : f * gap;
       const vs = this.vs[b];
       const ve = this.ve[b];
       this.x[b] = this.x0 + (vs - u0 - chipsU) * scale + gaps + chipsPx;
@@ -250,6 +337,16 @@ export class BlockRow {
     return this.u1;
   }
 
+  /** The block under x as last laid, a block in a run too (strip or none), or −1 in a gap or outside. */
+  blockAt(x: number): number {
+    for (let b = 0; b < this.n; b++) {
+      if (this.ve[b] <= this.vs[b]) continue;
+      if (x < this.x[b]) return -1;
+      if (x < this.x[b] + this.w[b]) return b;
+    }
+    return -1;
+  }
+
   /** The px from x to the next block's first when x is in a gap as last laid (0 on a block). */
   gapAfter(x: number): number {
     for (let b = 0; b < this.n; b++) {
@@ -286,6 +383,42 @@ export class BlockPlacement extends StripPlacement {
   /** A row's arithmetic (pan and zoom through its inverse). */
   readonly row = new BlockRow();
   private slots: Float64Array = new Float64Array(4);
+  /** The tracks' top and bottom on the page (below the label row): where a run's band is drawn. */
+  tracksTop = 0;
+  tracksBottom = 0;
+  /**
+   * The runs in view as laid: each its first and last block, its x and width, its label as drawn ('' when it has no
+   * room); kept frame to frame.
+   */
+  runN = 0;
+  runFirst = new Int32Array(4);
+  runLast = new Int32Array(4);
+  runX = new Float64Array(4);
+  runW = new Float64Array(4);
+  runText: string[] = [];
+  /** The row under the tracks for group brackets and the closing run (0 when none), and what it draws. */
+  footRow = 0;
+  groupN = 0;
+  groupX = new Float64Array(4);
+  groupW = new Float64Array(4);
+  groupText: string[] = [];
+  moreText = '';
+
+  /**
+   * The block under a page point inside a run, and the run's count (_spec/README.md "Render", Blocks: its hover names
+   * the block, "one of 2,841"): into `out` (`[block, count]`), false when the point is in no run.
+   */
+  runAt(x: number, out: Int32Array | number[]): boolean {
+    if (this.stacked) return false;
+    for (let r = 0; r < this.runN; r++) {
+      if (x < this.runX[r] || x >= this.runX[r] + this.runW[r]) continue;
+      const b = this.row.blockAt(x);
+      out[0] = b >= 0 ? b : this.runFirst[r];
+      out[1] = this.runLast[r] - this.runFirst[r] + 1;
+      return true;
+    }
+    return false;
+  }
 
   /** Whether strip `i` starts its row (a stack's chips share one): its row's fill and track labels drawn once. */
   rowStart(i: number): boolean {
@@ -339,7 +472,7 @@ export class BlockPlacement extends StripPlacement {
     else if (out.band < 0) out.kind = 'gap';
     else {
       out.kind = 'data';
-      out.offset = s.first[i] + a.unitAt(x);
+      out.offset = s.first[i] + a.unitAt(x) * s.scale[i];
     }
     return true;
   }
@@ -425,13 +558,11 @@ export function placeBlocks(section: ResolvedSection, ctx: PlaceContext, prev?: 
   // the chips' slots: at most half the width together
   const slots = p.slotsFor(ctx, blocks, width);
   const row = p.row;
-  row.reset(blocks.length);
+  rowBlocks(row, blocks, config);
+  // a stack has no runs: every block its own row
+  if (p.stacked) row.runPx = 0;
   row.x0 = x0;
   row.width = width;
-  for (let b = 0; b < blocks.length; b++) {
-    row.offset[b] = blocks[b].offset ?? 0;
-    row.len[b] = blockLength(blocks[b]);
-  }
   row.chip = grown(row.chip, blocks.length);
   // a chip's slot shared by its positions (a `whole` chip of several: each a part of its one slot)
   for (let b = 0; b < blocks.length; b++) row.chip[b] = slots[b] > 0 ? slots[b] / Math.max(1, row.len[b]) : 0;
@@ -457,6 +588,7 @@ export function placeBlocks(section: ResolvedSection, ctx: PlaceContext, prev?: 
     for (let b = 0; b < blocks.length; b++) {
       const block = blocks[b];
       const chip = slots[b] > 0;
+      const sc = block.scale ?? 1;
       if (p.stacked && chip !== (round === 1)) continue;
       let rowTop = y;
       if (p.stacked && (!chip || chipRow < 0)) {
@@ -477,28 +609,37 @@ export function placeBlocks(section: ResolvedSection, ctx: PlaceContext, prev?: 
         const ve = Math.min(u1, row.len[b]);
         if (ve <= vs) continue;
         a = AxisTransform.on(block.axis, block.axis.ranges, x0 + (vs - u0) * scale, (ve - vs) * scale, ctx.dpr, {
-          start: vs,
-          end: ve,
+          start: vs / sc,
+          end: ve / sc,
         });
       } else {
         const vs = row.vs[b];
         const ve = row.ve[b];
         // in view but none wide once snapped: no strip (nothing of it is drawn or hit)
         if (ve <= vs || row.w[b] <= 0) continue;
-        // a chip partly in view takes px by the part of it in view (a pan moves it continuously)
+        // inside a run a block is read and drawn while at least `readPx` device px wide (the joint rule): under it,
+        // its stretch of the run shows the run's band alone
+        if (row.run[b] >= 0 && row.w[b] * ctx.dpr < config.blocks.readPx) continue;
+        // a chip partly in view takes px by the part of it in view (a pan moves it continuously); a block's
+        // transform over its positions, its units those times its scale
+        const k = chip ? 1 : sc;
         a = AxisTransform.on(block.axis, block.axis.ranges, row.x[b], row.w[b], ctx.dpr, {
-          start: vs - o,
-          end: ve - o,
+          start: (vs - o) / k,
+          end: (ve - o) / k,
         });
       }
       const i = strips.add(a, b, 0, 0, o);
       if (chip) strips.chip[i] = 1;
-      p.labels[i] = block.label;
+      else strips.scale[i] = sc;
+      const label = blockLabel(block, config);
+      p.labels[i] = label;
       // a label that does not fit its block is elided, or dropped when nothing of it does; a chip's by the pill's rule
-      // (whole, or cut keeping `labels.minChars` letters, or none)
+      // (whole, or cut keeping `labels.minChars` letters, or none); a block in a run has none (the run's label)
       p.shown[i] = chip
-        ? fitLabel(ctx.text, config, block.label, Math.min(a.width, slots[b]))
-        : elide(ctx.text, config.labelFont, block.label, a.width);
+        ? fitLabel(ctx.text, config, label, Math.min(a.width, slots[b]))
+        : !p.stacked && row.run[b] >= 0
+          ? ''
+          : elide(ctx.text, config.labelFont, label, a.width);
       strips.top[i] = rowTop;
       strips.height[i] = rows;
       let by = rowTop + p.labelRow;
@@ -514,11 +655,89 @@ export function placeBlocks(section: ResolvedSection, ctx: PlaceContext, prev?: 
         by += pt + ctx.heights[j] + pb;
       }
     }
-  const height = p.stacked ? y - top : rows;
+  p.tracksTop = top + p.labelRow;
+  p.tracksBottom = top + rows;
+  // the runs in view, their labels where they have room; the groups' brackets and the closing run in a row under
+  layRuns(p, ctx, blocks);
+  const foot = p.stacked ? 0 : layFoot(p, section, ctx, blocks);
+  p.footRow = foot;
+  const height = (p.stacked ? y - top : rows) + foot;
   p.contentHeight = height;
   p.box = { x: config.inset, y: top, width: ctx.width - 2 * config.inset, height };
   for (let i = 0; i < strips.n; i++) ctx.layStrip(p, i);
   return p;
+}
+
+/** The runs in view as laid (a row's): each its blocks, extent and label ('' when it has no room). */
+function layRuns(p: BlockPlacement, ctx: PlaceContext, blocks: readonly ResolvedBlock[]): void {
+  const row = p.row;
+  p.runN = 0;
+  if (p.stacked) return;
+  for (let b = 0; b < blocks.length; b++) {
+    if (row.run[b] !== b) continue;
+    let e = b;
+    while (e + 1 < blocks.length && row.run[e + 1] === b) e++;
+    // its extent in view: its first block in view to its last
+    let x0 = Infinity;
+    let x1 = -Infinity;
+    for (let k = b; k <= e; k++) {
+      if (row.ve[k] <= row.vs[k]) continue;
+      x0 = Math.min(x0, row.x[k]);
+      x1 = Math.max(x1, row.x[k] + row.w[k]);
+    }
+    if (!(x1 > x0)) continue;
+    const r = p.runN++;
+    if (r >= p.runFirst.length) {
+      p.runFirst = grown(p.runFirst, r + 1);
+      p.runLast = grown(p.runLast, r + 1);
+      p.runX = grown(p.runX, r + 1);
+      p.runW = grown(p.runW, r + 1);
+    }
+    p.runFirst[r] = b;
+    p.runLast[r] = e;
+    p.runX[r] = x0;
+    p.runW[r] = x1 - x0;
+    const text = runLabel(e - b + 1);
+    p.runText[r] = ctx.text.measure(ctx.config.labelFont, text) + 8 <= x1 - x0 ? text : '';
+  }
+}
+
+/**
+ * The row under a row of blocks (_spec/README.md "Render", Blocks): a bracket a group in view with its assembly's name
+ * (a section of several assemblies, EC-210), and the closing run's label past `maxAssemblyBlocks` at its end. Its
+ * height (0 when it has neither).
+ */
+function layFoot(
+  p: BlockPlacement,
+  section: ResolvedSection,
+  ctx: PlaceContext,
+  blocks: readonly ResolvedBlock[],
+): number {
+  const row = p.row;
+  const groups = section.groups;
+  p.groupN = 0;
+  p.groupText.length = 0;
+  p.moreText = section.more ? moreLabel(section.more) : '';
+  if (groups && groups.length > 1)
+    for (const g of groups) {
+      let x0 = Infinity;
+      let x1 = -Infinity;
+      for (let k = g.first; k < g.first + g.count && k < blocks.length; k++) {
+        if (row.ve[k] <= row.vs[k]) continue;
+        x0 = Math.min(x0, row.x[k]);
+        x1 = Math.max(x1, row.x[k] + row.w[k]);
+      }
+      if (!(x1 > x0)) continue;
+      const i = p.groupN++;
+      if (i >= p.groupX.length) {
+        p.groupX = grown(p.groupX, i + 1);
+        p.groupW = grown(p.groupW, i + 1);
+      }
+      p.groupX[i] = x0;
+      p.groupW[i] = x1 - x0;
+      p.groupText[i] = elide(ctx.text, ctx.config.labelFont, g.label, Math.max(0, x1 - x0 - 8));
+    }
+  return p.groupN || p.moreText ? fontSize(ctx.config.labelFont) + 10 : 0;
 }
 
 /** A block's label above its tracks (the labels pass), faded at its strip's width; a stack's rows filled as tracks. */
@@ -549,10 +768,16 @@ export function blockChrome(
     out.rectArgs();
     return;
   }
-  if (pass !== 'labels' || band >= 0) return;
+  if (band >= 0) return;
+  if (pass === 'data' && strip < 0) {
+    drawRuns(s, p, out);
+    return;
+  }
+  if (pass !== 'labels') return;
   const g = out.args;
   // the label font's size as the layout read it (its row less 4 px): a draw parses no font (a regex's match allocates)
   const size = p.labelRow - 4;
+  if (strip < 0) drawRunLabels(s, p, out, size);
   for (let i = 0; i < strips.n; i++) {
     // a chip's label is in its letters' pill where the pill is drawn
     if (strips.chip[i] && hasPill(s, i)) continue;
@@ -565,6 +790,95 @@ export function blockChrome(
     g[3] = Math.max(0, a.width);
     g[4] = s.tokens.colors['msui-text-muted'];
     out.textArgs(label, AnchorStart, s.config.labelFont);
+  }
+}
+
+/**
+ * The runs' bands under the tracks' data (the data pass, once a section): each a band in `seq-wash` over its extent with a
+ * hairline at each end (_spec/README.md "Render", Blocks); through `args`, nothing boxed.
+ */
+function drawRuns(s: SectionLayout, p: BlockPlacement, out: PassWriter): void {
+  const g = out.args;
+  const h = p.tracksBottom - p.tracksTop;
+  if (!(h > 0)) return;
+  for (let r = 0; r < p.runN; r++) {
+    g[0] = p.runX[r];
+    g[1] = p.tracksTop;
+    g[2] = p.runW[r];
+    g[3] = h;
+    g[4] = s.tokens.colors['seq-wash'];
+    g[5] = NoColor;
+    g[6] = 0;
+    g[7] = 0;
+    out.rectArgs();
+    for (let e = 0; e < 2; e++) {
+      g[0] = e ? p.runX[r] + p.runW[r] - 1 : p.runX[r];
+      g[1] = p.tracksTop;
+      g[2] = 1;
+      g[3] = h;
+      g[4] = s.tokens.colors['msui-text-muted'];
+      g[7] = 0;
+      out.rectArgs();
+    }
+  }
+}
+
+/**
+ * The runs' labels in the label row, the groups' brackets with their assemblies' names and the closing run's label in
+ * the row under the tracks (the labels pass, once a section).
+ */
+function drawRunLabels(s: SectionLayout, p: BlockPlacement, out: PassWriter, size: number): void {
+  const g = out.args;
+  const muted = s.tokens.colors['msui-text-muted'];
+  const font = s.config.labelFont;
+  for (let r = 0; r < p.runN; r++) {
+    const text = p.runText[r];
+    if (!text) continue;
+    g[0] = p.runX[r] + 4;
+    g[1] = p.tracksTop - p.labelRow + size;
+    g[2] = 0;
+    g[3] = Math.max(0, p.runW[r] - 8);
+    g[4] = muted;
+    out.textArgs(text, AnchorStart, font);
+  }
+  if (!p.footRow) return;
+  const y = p.tracksBottom + 4;
+  for (let i = 0; i < p.groupN; i++) {
+    // a bracket: a hairline across the group, a tick up at each end, its name in the middle below it
+    g[0] = p.groupX[i];
+    g[1] = y;
+    g[2] = p.groupW[i];
+    g[3] = 1;
+    g[4] = muted;
+    g[5] = NoColor;
+    g[6] = 0;
+    g[7] = 0;
+    out.rectArgs();
+    for (let e = 0; e < 2; e++) {
+      g[0] = e ? p.groupX[i] + p.groupW[i] - 1 : p.groupX[i];
+      g[1] = y - 4;
+      g[2] = 1;
+      g[3] = 5;
+      g[4] = muted;
+      g[7] = 0;
+      out.rectArgs();
+    }
+    if (!p.groupText[i]) continue;
+    g[0] = p.groupX[i] + p.groupW[i] / 2;
+    g[1] = y + size + 3;
+    g[2] = 0;
+    g[3] = p.groupW[i];
+    g[4] = s.tokens.colors['msui-text'];
+    out.textArgs(p.groupText[i], AnchorMiddle, font);
+  }
+  if (p.moreText) {
+    const a = p.row;
+    g[0] = a.x0 + a.width;
+    g[1] = y + size + 3;
+    g[2] = 0;
+    g[3] = a.width;
+    g[4] = muted;
+    out.textArgs(p.moreText, AnchorEnd, font);
   }
 }
 

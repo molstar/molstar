@@ -173,6 +173,8 @@ export interface PaletteOptions {
   readonly domain?: readonly [number, number];
   readonly scale?: ScaleParams;
   readonly report?: PaletteReport;
+  /** A categorical palette's domain when it lists no values: its colors taken in this order (EC-218, EC-191). */
+  readonly categories?: readonly string[];
 }
 
 /**
@@ -202,7 +204,7 @@ export function compilePalette(node: ThemeNode, options: PaletteOptions): Palett
       num: () => undefined,
     };
   }
-  if (node.kind === 'categorical') return categorical(node, tokens, report);
+  if (node.kind === 'categorical') return categorical(node, tokens, report, options.categories);
   const domain = options.domain ?? [0, 1];
   const under = param(node, 'under');
   const over = param(node, 'over');
@@ -346,9 +348,15 @@ export function continuousLut(colors: readonly number[], at: readonly number[]):
   return lut;
 }
 
-function categorical(node: ThemeNode, tokens: TokenTable, report: PaletteReport): Palette {
+function categorical(
+  node: ThemeNode,
+  tokens: TokenTable,
+  report: PaletteReport,
+  categories?: readonly string[],
+): Palette {
   const raw = param(node, 'colors') ?? 'categories';
-  const values = (param(node, 'values') as string[] | undefined)?.map(String);
+  // the values as listed, else a domain known up front (a section's blocks in order)
+  const values = (param(node, 'values') as string[] | undefined)?.map(String) ?? categories?.slice();
   const hashed = (param(node, 'unlisted') ?? 'hash') === 'hash';
   const dict = typeof raw === 'object' && raw !== null && !Array.isArray(raw) && !isThemeNode(raw);
   let spec: ValuePaletteSpec;

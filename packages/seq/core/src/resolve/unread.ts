@@ -16,7 +16,6 @@ const Unread: Readonly<Record<string, string>> = {
   pairs: 'source RG',
   grid: 'source RG',
   navigator: 'switch GC3',
-  block: 'direction GC2 scale GC2',
   section: 'member_order LA member_order_y LA',
   bridge: '* LA',
   assembly: 'names GF',

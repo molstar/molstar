@@ -27,7 +27,21 @@ export {
   positionAt,
   wholePieces,
 } from './axis.js';
-export { blockUnits } from './blocks.js';
+export { type BlockGroup, blockUnits } from './blocks.js';
+export {
+  type BlockPlace,
+  blockAtUnit,
+  blockElementAt,
+  blockPositionAt,
+  blockScaleOf,
+  blockSpan,
+  blockUnitOf,
+  placeOfUnit,
+  placesOf,
+  sameBlocks,
+  type SystemPosition,
+  unitOfPlace,
+} from './places.js';
 export { ViewIssues } from './issues.js';
 export {
   type Axis,
@@ -46,6 +60,7 @@ export {
   BuiltInLayerKinds,
   type ResolvedLayer,
   type GridAxis,
+  type ResolvedBlock,
   type ResolvedSection,
   type ResolvedTrack,
   type ResolvedNavigator,

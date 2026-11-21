@@ -64,8 +64,35 @@ const ThemeCodes: Readonly<Record<ThemeIssueCode, true>> = {
   'seq.render.color': true,
 };
 
-/** What compiling a layer's channel reads of a layout: its tokens, the theme context, the layer's key, the report. */
-export type ChannelContext = Pick<LayoutContext, 'tokens' | 'theme' | 'key' | 'report'>;
+/**
+ * What compiling a layer's channel reads of a layout: its tokens, the theme context, the layer's key, the report; and,
+ * on a strip of a block, the section, the strip and the placement (the built-in fields `block` and `system`).
+ */
+export type ChannelContext = Pick<LayoutContext, 'tokens' | 'theme' | 'key' | 'report'> &
+  Partial<Pick<LayoutContext, 'section' | 'strip' | 'place'>>;
+
+type Block = NonNullable<LayoutContext['section']['blocks']>[number];
+
+/** The block a layout's strip shows, when its section has blocks. */
+function blockOf(ctx: ChannelContext): Block | undefined {
+  const blocks = ctx.section?.blocks;
+  if (!blocks || ctx.strip === undefined || !ctx.place) return undefined;
+  return blocks[ctx.place.strips.block[ctx.strip]];
+}
+
+/**
+ * The built-in fields of a block's marks (_spec/README.md "Themes", Built-in fields; EC-218): `block` its label, `system`
+ * its system's name, each a categorical domain known up front (the section's blocks in order; over an assembly its
+ * names in its order before `include`), never by first occurrence.
+ */
+function blockEnv(ctx: ChannelContext, block: Block): Partial<ThemeEnv> {
+  const domains = ctx.section!.domains;
+  const name = block.name ?? block.axis.system;
+  return {
+    builtIn: (f) => (f === 'block' ? block.label : f === 'system' ? name : undefined),
+    categories: (f) => (f === 'block' ? domains?.block : f === 'system' ? domains?.system : undefined),
+  };
+}
 
 /** A theme code reported for the layer at `ctx.key`, once a layout (the layout dedupes by code and address). */
 export function reportTheme(ctx: ChannelContext, code: ThemeIssueCode, message: string): void {
@@ -84,6 +111,8 @@ interface Kept {
   readonly domains: Float64Array;
   /** What it said (compiling, and drawing since): said again in each layout that reads it. */
   readonly said: [ThemeIssueCode, string][];
+  /** The block it was compiled for (its built-in fields), when on a block's strip. */
+  readonly block: Block | undefined;
 }
 
 /** A layer's channels, compiled from its slots and kept while the tokens, the held domains and the reader agree. */
@@ -98,7 +127,14 @@ export class LayerChannels {
     this.ctx = ctx;
     const theme = ctx.theme;
     const k = this.kept.get(name);
-    if (k && k.version === ctx.tokens.version && k.cvd === theme.cvdSafe && sameDomains(k.channel, k.domains, theme)) {
+    const block = blockOf(ctx);
+    if (
+      k &&
+      k.version === ctx.tokens.version &&
+      k.cvd === theme.cvdSafe &&
+      k.block === block &&
+      sameDomains(k.channel, k.domains, theme)
+    ) {
       for (const [code, message] of k.said) reportTheme(ctx, code, message);
       return k.channel;
     }
@@ -111,6 +147,7 @@ export class LayerChannels {
       domain: (key) => theme.domain(key),
       cvdSafe: theme.cvdSafe,
       key: ctx.key,
+      ...(block ? blockEnv(ctx, block) : {}),
       report: (code, message) => {
         said.push([code, message]);
         if (this.ctx) reportTheme(this.ctx, code, message);
@@ -123,6 +160,7 @@ export class LayerChannels {
       cvd: theme.cvdSafe,
       domains: heldDomains(channel, theme),
       said,
+      block,
     });
     return channel;
   }

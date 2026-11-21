@@ -40,6 +40,8 @@ import {
   type ResolvedView,
   resolveView,
   resolveViews,
+  type SystemPosition,
+  unitOfPlace,
 } from '@molstar/seqx-core/view';
 import type { Viewport } from './axis.js';
 import { type RenderConfigOverrides, renderConfig } from './config.js';
@@ -269,7 +271,11 @@ export async function openModel(spec: Node, store: DataStore, options: OpenModel
  * axis (its direction and pieces), so a caller needs no knowledge of them.
  */
 export interface PositionsViewport {
-  readonly positions: Readonly<Record<string, readonly [number, number]>>;
+  /**
+   * Each section's window: `[start, end)` on its system, or for a section of blocks each end a system and a position
+   * (`{ system, position }`, _spec/README.md "Resolved view", Places): never units.
+   */
+  readonly positions: Readonly<Record<string, readonly [number, number] | readonly [SystemPosition, SystemPosition]>>;
 }
 
 export interface RenderSvgOptions {
@@ -383,6 +389,14 @@ function offsetsOf(view: ResolvedView, v: PositionsViewport): Record<string, Vie
   for (const s of view.sections) {
     const r = v.positions[s.address];
     if (!r) continue;
+    if (typeof r[0] === 'object' || typeof r[1] === 'object') {
+      // ends by system and position: each through the blocks' places (a position no block shows: the nearest edge)
+      const a = typeof r[0] === 'object' ? unitOfPlace(s, r[0]) : undefined;
+      const b = typeof r[1] === 'object' ? unitOfPlace(s, r[1], a) : undefined;
+      if (a === undefined || b === undefined) continue;
+      out[s.address] = { start: Math.min(a, b), end: Math.max(a, b) };
+      continue;
+    }
     const a = s.axis.ranges ? (nearestOffsetOf(s.axis, r[0]) ?? r[0]) : r[0];
     const b = s.axis.ranges ? (nearestOffsetOf(s.axis, r[1]) ?? r[1]) : r[1];
     out[s.address] = { start: Math.min(a, b), end: Math.max(a, b) };
@@ -706,6 +720,20 @@ export async function exportSvg(spec: Node, given: RenderSvgOptions): Promise<Re
         pieces: s.section.axis.pieces,
         y: s.y,
         height: s.height,
+        ...(s.section.blocks
+          ? {
+              blocks: s.section.blocks.map((b) => {
+                const g = b.group !== undefined ? s.section.groups?.[b.group] : s.section.groups?.[0];
+                return {
+                  address: b.address,
+                  system: b.axis.system,
+                  direction: b.axis.dir === -1 ? 'reversed' : 'genomic',
+                  scale: b.scale ?? 1,
+                  ...(g ? { assembly: g.assembly } : {}),
+                };
+              }),
+            }
+          : {}),
       })),
     });
     if (navs?.count) {
