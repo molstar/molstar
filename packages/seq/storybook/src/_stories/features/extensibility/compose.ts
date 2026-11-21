@@ -16,7 +16,10 @@ import { DemoExtension } from './demo-extension.js';
 // viewer composed without the extension, which `extend` registers at run time and its undo takes away.
 
 /** The first 60 residues of p53. */
-const Letters = 'MEEPQSDPSVEPPLSQETFSDLWKLLPENNVLSPLPSQAMDDLMLSPDDIEQWFTEDPGP';
+export const Letters = 'MEEPQSDPSVEPPLSQETFSDLWKLLPENNVLSPLPSQAMDDLMLSPDDIEQWFTEDPGP';
+
+/** The sites' starts (0-based): S6, S15, S33, S46 of p53's N terminus, each a serine of `Letters`. */
+export const SiteStarts = [5, 14, 32, 45] as const;
 
 export const SitesLayer = '/views/main/protein/sites/lollipops';
 export const DomainsLayer = '/views/main/protein/domains/domains';
@@ -28,8 +31,8 @@ export function extensibilitySpec(): Node {
   const sites = b.data.ranges('sites', {
     target: p,
     rows: {
-      start: new Int32Array([5, 18, 33, 47]),
-      end: new Int32Array([6, 19, 34, 48]),
+      start: new Int32Array(SiteStarts),
+      end: new Int32Array(SiteStarts.map((x) => x + 1)),
       id: ['S6', 'S15', 'S33', 'S46'],
       label: ['S6', 'S15', 'S33', 'S46'],
     },

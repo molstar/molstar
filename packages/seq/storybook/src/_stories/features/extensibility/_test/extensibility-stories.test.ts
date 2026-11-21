@@ -11,7 +11,15 @@ import { recordDrawLists } from '@molstar/seqx-core/render';
 import { createSeqViewer, type SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { DomHost } from '@molstar/ui/dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { DemoExtension, DomainsLayer, extensibilityComposition, extensibilitySpec, issueLines } from '../compose.js';
+import {
+  DemoExtension,
+  DomainsLayer,
+  Letters,
+  SiteStarts,
+  extensibilityComposition,
+  extensibilitySpec,
+  issueLines,
+} from '../compose.js';
 import { FocusSites } from '../demo-extension.js';
 
 // The Extensibility story, headless on a fake clock, composed as the story composes it (compose.ts): the viewer
@@ -52,6 +60,20 @@ const types = (v: SeqViewer) =>
 const codes = (v: SeqViewer) => issueLines(v).map((l) => l.split(' ')[1]);
 
 describe('the Extensibility story', () => {
+  it('has each site (S6, S15, S33, S46) on a serine of p53, its label its residue number', async () => {
+    expect(SiteStarts.map((i) => Letters[i])).toEqual(['S', 'S', 'S', 'S']);
+    const v = await open();
+    await v.extend(DemoExtension);
+    await settle(v);
+    const layer = v
+      .frame!.layout.sections.flatMap((s) => s.tracks.flatMap((t) => t.layers))
+      .find((l) => l.type.name === 'demo:lollipops')!;
+    const items = layer.type.items!(layer.lay);
+    // each site's label names its residue (1-based) and its extent is that residue
+    expect(items.map((i) => [i.label, i.start])).toEqual(SiteStarts.map((x) => [`S${x + 1}`, x]));
+    expect(items.map((i) => Letters[i.start])).toEqual(['S', 'S', 'S', 'S']);
+  });
+
   it('draws the fallback without the extension, the lollipops with it, the fallback again after its undo', async () => {
     const v = await open();
     expect(types(v)).toEqual(['letters', 'ranges', 'ranges']);
