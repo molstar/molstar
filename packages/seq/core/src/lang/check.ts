@@ -35,6 +35,7 @@ import {
   unitLength,
 } from './check-molecules.js';
 import { checkMapSegments, checkNumberingSegments, mapParamsFit, numberingParamsFit } from './check-maps.js';
+import { includeAtoms } from './include-pattern.js';
 import { LangIssues } from './issues.js';
 import { isExtensionName, SectionOfKinds, SeqLanguage, SeqLanguageVersion, SeqValidateOptions } from './language.js';
 import { followRef, refAddresses } from './refs.js';
@@ -360,6 +361,7 @@ export function checkPlaced(at: Placed, look: SeqLookup, report: Report): void {
       const of = p(n, 'of');
       if (Array.isArray(of)) of.forEach((x, i) => named(x, ['assembly'], 'of', i));
       else named(of, SectionOfKinds, 'of');
+      checkInclude(p(n, 'include'), say);
       if (p(n, 'include') !== undefined && !Array.isArray(of) && target(n, 'of')?.node.kind !== 'assembly')
         say('seq.lang.section.include', 'The section is of no assembly: `include` is ignored', 'include');
       const direction = p(n, 'direction');
@@ -597,6 +599,7 @@ export function checkDataNode(
       break;
     }
     case 'assembly':
+      checkInclude(p(n, 'include'), say);
       if (
         (p(n, 'sequences') === undefined && p(n, 'source') === undefined) ||
         (p(n, 'names') !== undefined && p(n, 'alias_source') === undefined)
@@ -665,6 +668,19 @@ export function checkDataNode(
       break;
     }
   }
+}
+
+/** An `include`'s patterns (strings starting with `^`) each one the language takes (`includeAtoms`). */
+function checkInclude(
+  include: Value | undefined,
+  say: (code: Code, message: string, ...tail: (string | number)[]) => void,
+) {
+  const list = Array.isArray(include) ? include : (include as { names?: Value } | undefined)?.names;
+  if (!Array.isArray(list)) return;
+  list.forEach((x, i) => {
+    if (typeof x === 'string' && x.startsWith('^') && !includeAtoms(x))
+      say('seq.lang.include.pattern', `Not a pattern this language takes: ${x}`, 'include', i);
+  });
 }
 
 /** An inline alignment's columns: its first row's width; undefined for a source's (known once it opens). */

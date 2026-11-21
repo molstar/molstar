@@ -66,6 +66,7 @@ export {
   genome,
   type Runs,
 } from './genome-builder.js';
+export { includePattern, MaxIncludePattern } from './include-pattern.js';
 export { BoundIssues, LangIssues } from './issues.js';
 export {
   isExtensionName,

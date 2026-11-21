@@ -340,6 +340,11 @@ export const LangIssues = defineIssues('seq.lang', {
     description: 'A section’s `include` is ignored: it is of no assembly',
     hint: 'Drop it',
   },
+  'seq.lang.include.pattern': {
+    severity: 'error',
+    description: 'An `include` pattern is not one the language takes (groups, alternation, counted repeats)',
+    hint: '`^`, characters, `.`, `[…]`, `\\d`, `\\w`, each with `?`, `*` or `+`, and `$`',
+  },
   'seq.lang.pairs.content': {
     severity: 'error',
     description: 'A pairs node has not one of `rows` and `source`, or `field` with no `source`',

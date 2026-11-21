@@ -1666,8 +1666,11 @@ Seq\* holds pointers and labels: codes and identifiers are strings.
   table's aliases, then each sequence's, then with `match: chr` a leading `chr` added or dropped (`1` is `chr1`, `M` is
   `chrM`, `MT` never `M`). An exact name always wins; an alias naming two sequences, or another sequence's name with a
   different length (hg19's `chrM`, GRCh37's `MT`), is dropped and said (`seq.resolve.assembly.alias`). `natural` ranks
-  the name less a leading `chr`: whole numbers, X, Y, W, Z, M, MT, then the rest as listed. `include` patterns are at
-  most 256 characters (a spec is untrusted); one that does not compile reads as a name.
+  the name less a leading `chr`: whole numbers, X, Y, W, Z, M, MT, then the rest as listed. `include` patterns are a
+  safe subset (`lang/include-pattern.ts`: `^`, characters, `.`, `[…]`, `\d`, `\w`, each with `?`, `*` or `+`, an
+  optional `$`; no groups, alternation, backreferences or counted repeats; at most 256 characters), matched by a table
+  over the name and the atoms, never a backtracking search: a spec is untrusted and a pattern runs over 100,000 names.
+  One outside it is `seq.lang.include.pattern` (error) and reads as a name.
 - **Data over an assembly**: resolve says a source naming another assembly (`seq.resolve.assembly.mismatch`) and inline
   rows whose `target` names no sequence, counted once with the first (`seq.resolve.assembly.name`); reading such data by
   sequence is the store's and the view's (Genomes milestone). Pairs, grids and maps read from a source are not held.

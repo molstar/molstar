@@ -347,6 +347,11 @@ const Misuses: Record<keyof typeof LangIssues.codes, () => Node> = {
     b.views.view('v', (v) => v.section('a', { of: s, include: ['chr1'] }));
     return b.build();
   },
+  'seq.lang.include.pattern': () => {
+    const b = createSeqSpec();
+    b.data.assembly('g', { name: 'toy', sequences: { name: ['a'], length: [1] }, include: ['^(a+)+$'] });
+    return b.build();
+  },
   'seq.lang.pairs.content': () => {
     const b = createSeqSpec();
     const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT' });

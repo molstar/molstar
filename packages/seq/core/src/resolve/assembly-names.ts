@@ -9,6 +9,8 @@
 // sequence's), then with `match: chr` with a leading `chr` added or dropped; an exact name always wins, an alias that
 // names two sequences (or joins two of different lengths) is dropped and said, never guessed.
 
+import { includePattern } from '@molstar/seqx-core/lang';
+
 /** A sequence as the names rule reads it: its name, its length when known, its own aliases. */
 export interface NamedSequence {
   readonly name: string;
@@ -96,15 +98,13 @@ export function naturalOrder(names: readonly string[]): number[] {
   return names.map((_, i) => i).sort((a, b) => ranks[a][0] - ranks[b][0] || ranks[a][1] - ranks[b][1] || a - b);
 }
 
-/** The longest pattern an `include` takes: a spec is untrusted, so a pattern is bounded before it is compiled. */
-export const MaxIncludePattern = 256;
-
 /** An `include` as the language writes it: names and patterns (`^…`), or `{ names?, min_length? }`. */
 export type IncludeValue = readonly string[] | { readonly names?: readonly string[]; readonly min_length?: number };
 
 /**
  * Whether a sequence is kept by `include` (absent: every one): a name through the names rule, or a pattern (a string
- * starting with `^`, at most `MaxIncludePattern` long; one that does not compile is read as a name), and a length floor.
+ * starting with `^`, `includePattern`'s language: matched by a table, never a backtracking search; one it does not take
+ * is the language check's `seq.lang.include.pattern`, read here as a name), and a length floor.
  */
 export function includeFilter(
   include: IncludeValue | undefined,
@@ -114,9 +114,9 @@ export function includeFilter(
   const list = Array.isArray(include) ? include : ((include as { names?: readonly string[] }).names ?? undefined);
   const floor = Array.isArray(include) ? undefined : (include as { min_length?: number }).min_length;
   const ids = new Set<number>();
-  const patterns: RegExp[] = [];
+  const patterns: ((name: string) => boolean)[] = [];
   for (const x of list ?? []) {
-    const re = x.startsWith('^') && x.length <= MaxIncludePattern ? compile(x) : undefined;
+    const re = x.startsWith('^') ? includePattern(x) : undefined;
     if (re) patterns.push(re);
     else {
       const i = lookupName(names, x);
@@ -124,14 +124,6 @@ export function includeFilter(
     }
   }
   return (i, s) =>
-    (list === undefined || ids.has(i) || patterns.some((re) => re.test(s.name))) &&
+    (list === undefined || ids.has(i) || patterns.some((re) => re(s.name))) &&
     (floor === undefined || (s.length ?? 0) >= floor);
-}
-
-function compile(pattern: string): RegExp | undefined {
-  try {
-    return new RegExp(pattern);
-  } catch {
-    return undefined;
-  }
 }

@@ -8,7 +8,7 @@ import { PCG } from '@molstar/core/data/util/hash-functions';
 import type { Node } from '@molstar/core/repr/tree';
 import { itWithin } from '@molstar/test-harness/timing';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { assembly, colinearBlocks, createSeqSpec, genome } from '@molstar/seqx-core/lang';
+import { assembly, colinearBlocks, createSeqSpec, genome, includePattern } from '@molstar/seqx-core/lang';
 import { locationOfResult, resolveAddressIn } from '@molstar/seqx-core/query';
 import { resolveView } from '@molstar/seqx-core/view';
 import { assemblyNames, includeFilter, lookupName, naturalOrder } from '../assembly-names.js';
@@ -123,6 +123,28 @@ describe('order and include', () => {
     expect(kept(['^chr[0-9]+$'])).toEqual(['chr2', 'chr10', 'chr1']);
     expect(kept({ min_length: 1500 })).toEqual(['chr2', 'chr1', 'chrX']);
     expect(includeFilter(undefined, names)).toBeUndefined();
+  });
+});
+
+describe('include patterns', () => {
+  it('take the design’s forms and refuse groups, alternation and counted repeats', () => {
+    const names = ['chr1', 'chr22', 'chrX', 'chrM', 'chrUn_KI270302v1', 'chr1_KI270706v1_random', 'HLA-A*01:01'];
+    const kept = (pattern: string) => names.filter(includePattern(pattern)!);
+    expect(kept('^chr[0-9XYM]+$')).toEqual(['chr1', 'chr22', 'chrX', 'chrM']);
+    expect(kept('^chrUn_')).toEqual(['chrUn_KI270302v1']);
+    expect(kept('^chr\\d+_.*_random$')).toEqual(['chr1_KI270706v1_random']);
+    expect(kept('^HLA-A\\*')).toEqual(['HLA-A*01:01']);
+    for (const bad of ['^(a+)+$', '^a|b', '^a{2,}', '^(chr)1', 'chr1', '^[z-a]'])
+      expect(includePattern(bad), bad).toBeUndefined();
+  });
+
+  it('match 100,000 untrusted names in a table, never a backtracking search (no ReDoS)', () => {
+    const list = Array.from({ length: 100_000 }, (_, i) => ({ name: `${'a'.repeat(40)}${i}!`, length: 1 }));
+    const names = assemblyNames(list.slice(0, 10));
+    // a nested quantifier is no pattern (the language check refuses it): read as a name, matching none
+    expect(list.filter((x, i) => includeFilter(['^(a+)+$'], names)!(i, x)).length).toBe(0);
+    const keep = includeFilter(['^a*a*a*a*a*a*b$'], names)!;
+    expect(list.filter((x, i) => keep(i, x)).length).toBe(0);
   });
 });
 
