@@ -700,13 +700,13 @@ The `headers` behavior's params, as the hover card's port is its behavior's.
   Configuration) opens it; the same rest on another row closes it, arriving in the flyout cancels that (a diagonal move
   keeps it: the tolerance is that time window, not a geometric triangle; leaving the menu stops any rest); Tab in a
   flyout closes the whole menu; the row `aria-controls` its flyout, the flyout is `aria-labelledby` its row and scrolls
-  inside the window; ← or Esc in it closes it alone, the focus on its row (a preview ends: `behavior.cancelPreview`), Esc again
-  the menu; a choice closes all, a press outside closes all. The flyouts are `@molstar/ui`'s `ContextMenuItem.items`
-  (`openContextMenu`), each a dismiss layer of its own; its keyboard is the menu's, and closed the focus goes back to
-  the canvas. The view resolving again (a source's answer, an edit, a scheme previewed in the menu, an undo) keeps the
-  menu while its header is shown, and closes it when its section or track is gone or hidden. Why: a load landing just
-  after the menu opened, or its own preview, closed it at once (the menu opened nothing, a submenu closed at its first
-  hovered row).
+  inside the window; ← or Esc in it closes it alone, the focus on its row (a preview ends: `behavior.cancelPreview`),
+  Esc again the menu; a choice closes all, a press outside closes all. The flyouts are `@molstar/ui`'s
+  `ContextMenuItem.items` (`openContextMenu`), each a dismiss layer of its own; its keyboard is the menu's, and closed
+  the focus goes back to the canvas. The view resolving again (a source's answer, an edit, a scheme previewed in the
+  menu, an undo) keeps the menu while its header is shown, and closes it when its section or track is gone or hidden.
+  Why: a load landing just after the menu opened, or its own preview, closed it at once (the menu opened nothing, a
+  submenu closed at its first hovered row).
 - **The parts** (`parts`: `canvas`, the default, or a `HeaderPartsPortFactory` given the canvas's element and the
   behavior): the layout lays out every header as the canvas's (the same boxes); once the port's `loaded()` resolves (the
   DOM in place) the lines are `hosted` and the canvas draws nothing in their slot, "⋯" and chip boxes (until then it
@@ -1369,7 +1369,10 @@ derived on settle: a legend that changes during a pan reads as noise, and its co
 - **Hidden tracks** (the author, 2026-11-21: "hiding a track moves the UI around … give this to control of the app
   layer"): the view draws nothing for a track the spec hides (`hidden: true`): no section line, no chip, no stub, so a
   hide moves only the tracks below it, by its height (core's Track headers); a section whose tracks are all hidden
-  collapses, and a jump to an item there says "on a hidden track". The viewer gives the application what it needs:
+  collapses fully (`collapsedSection`: no height, gap, line or rail; the navigator rails, the cursor and the toolbar's
+  commands skip it), and a jump to what is only on hidden tracks (a track or its nodes, or an item key every layer
+  drawing it lies on a hidden track of, resolved over the whole spec) says "On a hidden track: show it to see it" and
+  moves nothing; a key also drawn on a shown track jumps there. The viewer gives the application what it needs:
   **`viewer.hiddenTracks`** (`ReadonlyState<HiddenTrackEntry[]>`: address, label, section, each section's in spec order,
   read from the spec, so a section with none left is listed; its `listen` is the change event, told when the list
   changed), the command **`track.show`** (`address`, `addresses` or `all: true`, with `all` limited to the section

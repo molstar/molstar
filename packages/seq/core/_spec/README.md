@@ -2793,6 +2793,9 @@ numbers): a window move allocates nothing once warm.
   slot's half when the header has actions, so the line clears them). The label fades before what is beside it
   (`HeaderLine.label`). **A rows track** draws no states and no slots and gives no label hit: its label column is its
   tree and row labels, hit as before; its header is its title row's (not built, the TODO).
+- **A collapsed section** (`collapsedSection`: no track left in the view, no blocks, no grid axis: every track hidden)
+  takes no room: height 0, no gap before it, no line (even under `always`), no rail; what lies below moves up by what
+  the section had.
 - **The section's line** (`section.header`: `auto` when a section entry gives it a slot (a state or a menu-only entry
   never draws one), `always`, `none`): `header.sectionPx` high above its first track, the tracks moved down by it
   (`SectionLayout.header`). Why `auto`: no line that says nothing, and a hidden track never adds one (the author,

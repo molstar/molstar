@@ -35,7 +35,9 @@ async function make() {
     s.track('conf', { label: 'pLDDT' }).layer('v', {
       type: 'values',
       data: conf,
-      color: theme.field('value', { palette: theme.binned({ edges: [0, 50, 70, 90, 100], colors: ['#ff7d45', '#ffdb13', '#65cbf3', '#0053d6'] }) }),
+      color: theme.field('value', {
+        palette: theme.binned({ edges: [0, 50, 70, 90, 100], colors: ['#ff7d45', '#ffdb13', '#65cbf3', '#0053d6'] }),
+      }),
     });
   });
   const v = createSeqViewer({

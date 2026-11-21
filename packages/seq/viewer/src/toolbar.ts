@@ -5,6 +5,7 @@
  */
 
 import { derive, type ReadonlyState, State } from '@molstar/core/reactive';
+import { collapsedSection } from '@molstar/seqx-core/render';
 import { formatChord } from '@molstar/ui/commands/keys';
 import { parseChord } from './bindings.js';
 import type { SeqViewer } from './viewer.js';
@@ -69,7 +70,10 @@ export function toolbarButtons(viewer: SeqViewer, commands: readonly string[] = 
       key,
       title: key ? `${known.label} (${key})` : known.label,
       disabled,
-      run: () => viewer.execute(command, { section: viewer.view.resolved.value?.sections[0]?.address }),
+      run: () =>
+        viewer.execute(command, {
+          section: viewer.view.resolved.value?.sections.find((s) => !collapsedSection(s))?.address,
+        }),
     });
   }
   return out;

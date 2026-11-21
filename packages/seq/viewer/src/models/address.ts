@@ -12,7 +12,7 @@
 
 import { derive, type ReadonlyState, ReactiveModel, State } from '@molstar/core/reactive';
 import { type Issue, issueOf, parseAddress, printAddress, type Segment } from '@molstar/core/repr/tree';
-import { hiddenTracksOf } from './hidden-tracks.js';
+import { hiddenTracksOf, onlyOnHiddenTracks } from './hidden-tracks.js';
 import { addRefPatch, RefsId, type RefInput, refAddresses } from '@molstar/seqx-core/lang';
 import {
   type AddressResolution,
@@ -395,11 +395,17 @@ export class AddressModel extends ReactiveModel {
   /** Whether the last move found what it moved to wholly in a hidden stretch (and moved to its break). */
   private _hidden = false;
 
-  /** Whether an address names nodes, every one on a hidden track (a track or what is inside it). */
+  /**
+   * Whether an address names only what is on hidden tracks: nodes every one on a hidden track (a track or inside one),
+   * or item keys whose data is drawn by layers of hidden tracks alone (resolved over the whole spec, not the view).
+   */
   private _onHiddenTrack(resolution: AddressResolution): boolean {
     const r = resolution.result;
+    const root = this.spec.model.value.spec;
+    if (r?.type === 'keys')
+      return !!r.keys.keys.length && onlyOnHiddenTracks(root, new Set(r.keys.keys.map((k) => k.owner)));
     if (r?.type !== 'nodes' || !r.nodes.length) return false;
-    const hidden = hiddenTracksOf(this.spec.model.value.spec);
+    const hidden = hiddenTracksOf(root);
     if (!hidden.length) return false;
     return r.nodes.every((n) => {
       const a = printAddress(n.address);

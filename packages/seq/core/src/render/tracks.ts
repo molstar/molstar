@@ -55,6 +55,7 @@ import {
 import { instanceInView, wantTemplate } from './tracks-templates.js';
 import { bandHeights, firstType, rowsFill, rulerTrack } from './tracks-heights.js';
 import { sectionHeaderOf, trackHeaderOf } from './tracks-headers.js';
+import { collapsedSection } from './headers.js';
 
 export { multiSystem, sectionLayoutName } from './tracks-axes.js';
 export { labelColumnWidth, layerKey } from './tracks-columns.js';
@@ -304,8 +305,12 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
   const sinks: FrameSinks = { wants, report, theme, used, showing };
   const colors = defaultColors(input.view);
   let y = config.inset;
+  // a section whose every track is hidden collapses fully (the application lists them): no gap, no line, no rail
+  let anyShown = false;
   for (const section of input.view.sections) {
-    if (sections.length) y += config.sectionGap;
+    const collapsed = collapsedSection(section);
+    if (anyShown && !collapsed) y += config.sectionGap;
+    if (!collapsed) anyShown = true;
     const axis = axes.get(section.address);
     if (!axis)
       report(
@@ -339,11 +344,13 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     const sectionTop = y;
     // a ruler rail on a linear section (tracks, not a stack of blocks); a slim row of its own when no ruler is shown
     const railable = layout === TracksLayout && !(section.blocks && section.params.arrange === 'stack');
-    const railOn = input.rails?.[section.address] !== undefined && railable;
+    const railOn = input.rails?.[section.address] !== undefined && railable && !collapsed;
     // its header line above its first track, in a layout that draws track headers (_spec/README.md "Render", Track
     // headers)
     const sectionHeader =
-      layout === TracksLayout ? sectionHeaderOf(input, section, sectionId(section), y, config) : undefined;
+      layout === TracksLayout && !collapsed
+        ? sectionHeaderOf(input, section, sectionId(section), y, config)
+        : undefined;
     const top = sectionHeader ? y + config.header.sectionPx : y;
     // a template is expanded here, over the overlay, into a track per node it selects; its source's region in view is
     // wanted, so the nodes it brings arrive

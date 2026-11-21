@@ -223,6 +223,7 @@ export {
 export {
   actionColumns,
   builtInHeaderStates,
+  collapsedSection,
   type ActionColumns,
   type HeaderInputFacts,
   type HeaderIcon,

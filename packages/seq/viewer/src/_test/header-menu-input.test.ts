@@ -517,24 +517,35 @@ describe('Show hidden ▸ (the application’s way back to a hidden track), the 
 
   it('with several hidden: each in spec order, then Show all (one patch, one undo step)', async () => {
     const { v, container, headers } = await mount();
+    // a third track stays shown: a section with every track hidden has no header to open a menu from
+    const b = createSeqSpec({ title: 'three' });
+    const p = b.data.sequence('p', { alphabet: 'protein', letters: 'MEEPQSDPSVEPPLSQETFSDLWKLLPENN' });
+    b.views.view('main', (w) => {
+      const s = w.section('protein', { of: p });
+      for (const id of ['letters', 'domains', 'more']) s.track(id).layer('l', { type: 'letters' });
+    });
+    await v.load(b.build());
+    await v.settle();
+    frames.flush();
+    const More = `${Section}/more`;
     await v.execute('track.hide', { address: Domains });
     await v.execute('track.hide', { address: Letters });
     await v.settle();
     frames.flush();
-    expect(tracks(v)).toEqual([]);
+    expect(tracks(v)).toEqual([More]);
     expect(v.hiddenTracks.value.map((t) => t.address)).toEqual([Letters, Domains]);
-    expect(headers.openMenu({ section: Section }, { x: 0, y: 0 })).toBe(true);
+    expect(headers.openMenu({ section: Section, track: More }, { x: 0, y: 0 })).toBe(true);
     await v.settle();
     frames.flush();
     const hidden = row(menusOf(container)[0], /^Show hidden/);
     hidden.focus();
     key(hidden, 'ArrowRight');
     await v.settle();
-    expect(levels(container)[1]).toEqual(['Letters', 'Domains', 'Show all']);
+    expect(levels(container)[1]).toEqual(['letters', 'domains', 'Show all']);
     const steps = (v.spec.history as UiHistory).stack.steps.value.length;
     row(menusOf(container)[1], /^Show all/).click();
     await v.settle();
-    expect(tracks(v)).toEqual([Letters, Domains]);
+    expect(tracks(v)).toEqual([Letters, Domains, More]);
     expect((v.spec.history as UiHistory).stack.steps.value.length).toBe(steps + 1);
   });
 });

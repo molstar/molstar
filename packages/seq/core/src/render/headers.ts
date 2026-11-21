@@ -492,6 +492,14 @@ export function sectionHeaderLine(
   };
 }
 
+/**
+ * Whether a section has collapsed: no track left in the view (every one hidden, the application lists them), no blocks
+ * and no grid axis. It takes no room (no gap, line or rail), and the navigator rails, the cursor and the focus skip it.
+ */
+export function collapsedSection(section: ResolvedSection): boolean {
+  return !section.tracks.length && !section.blocks && !section.y;
+}
+
 const Hidden = new WeakMap<ResolvedSection, readonly HiddenTrack[]>();
 const NoHidden: readonly HiddenTrack[] = [];
 

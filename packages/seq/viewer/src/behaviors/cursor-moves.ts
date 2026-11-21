@@ -30,7 +30,7 @@ import {
   rangesLocation,
   unionLocations,
 } from '@molstar/seqx-core/query';
-import type { GridLay, RowsLay, ViewLayout } from '@molstar/seqx-core/render';
+import { collapsedSection, type GridLay, type RowsLay, type ViewLayout } from '@molstar/seqx-core/render';
 import { type Axis, projectOntoView } from '@molstar/seqx-core/view';
 import type { CommandDefinition, CommandResult } from '@molstar/ui/commands/types';
 import type { ViewerConfig } from '@molstar/seqx-viewer/config';
@@ -148,7 +148,7 @@ export function createCursor(
   const current = (ctx: CursorContext): Cursor | undefined => {
     const c = selection.cursor.value;
     if (c && sectionOf(c.section)) return c;
-    const section = sectionOf(ctx.section) ?? view.resolved.value?.sections[0];
+    const section = sectionOf(ctx.section) ?? view.resolved.value?.sections.find((s) => !collapsedSection(s));
     const v = section && view.get(section.address);
     if (!section || !v || v.pending) return undefined;
     const p = elementAt(section.axis, Math.ceil(v.start));
@@ -332,7 +332,10 @@ export function createCursor(
     const resolved = view.resolved.value;
     if (!resolved) return undefined;
     const i = resolved.sections.findIndex((s) => s.address === c.section);
-    const to = resolved.sections[i + delta];
+    // past a collapsed section (every track hidden): it has no stop for the cursor
+    let k = i + delta;
+    while (i >= 0 && resolved.sections[k] && collapsedSection(resolved.sections[k])) k += delta;
+    const to = resolved.sections[k];
     if (i < 0 || !to) return undefined;
     // onto its rows (or a grid's y) from the side it came in by: the first row shown going down, the last going up
     const which = delta > 0 ? 'first' : 'last';

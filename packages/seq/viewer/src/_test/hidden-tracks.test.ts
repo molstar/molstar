@@ -7,6 +7,7 @@
 
 import { SeqCoreConfig } from '@molstar/seqx-core/context';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
+import { railSections } from '@molstar/seqx-core/render';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { RecordingContext } from '../canvas/_test/recording.js';
 import { DefaultSeqViewerSpec } from '../default-spec.js';
@@ -111,6 +112,48 @@ describe('viewer.hiddenTracks', () => {
   });
 });
 
+describe('a section with every track hidden collapses fully', () => {
+  async function threeSections() {
+    const v = viewer ?? (await make());
+    const b = createSeqSpec({ title: 'three sections' });
+    const p = b.data.sequence('p', { alphabet: 'protein', letters: 'MEEPQSDPSVEPPLSQETFSDLWKLLPENN' });
+    b.views.view('main', (w) => {
+      w.section('one', { of: p }).track('a').layer('l', { type: 'letters' });
+      const two = w.section('two', { of: p });
+      two.track('c').layer('l', { type: 'letters' });
+      two.track('d').layer('l', { type: 'letters' });
+      w.section('three', { of: p }).track('e').layer('l', { type: 'letters' });
+    });
+    await v.load(b.build());
+    await v.settle();
+    frames.flush();
+    return v;
+  }
+
+  it('no gap, no line, no rail, no cursor stop: the sections around it close up', async () => {
+    const v = await threeSections();
+    const gapped = v.frame!.layout.sections.map((s) => [s.y, s.height]);
+    expect(gapped[1][1]).toBeGreaterThan(0);
+    await v.execute('track.hide', { address: '/views/main/two/c' });
+    await v.execute('track.hide', { address: '/views/main/two/d' });
+    await v.settle();
+    frames.flush();
+    const [one, two, three] = v.frame!.layout.sections;
+    const config = v.frame!.layout.config;
+    expect([two.height, two.header]).toEqual([0, undefined]);
+    // the gap is the one between the two sections that remain
+    expect(three.y).toBe(one.y + one.height + config.sectionGap);
+    // the navigator rails skip it
+    expect(railSections(v.view.resolved.value!)).toEqual(['/views/main/one', '/views/main/three']);
+    // the cursor goes from one to three
+    v.selection.setCursor({ section: '/views/main/one', system: '/data/p', position: 5 });
+    await v.execute('cursor.down', { section: '/views/main/one' });
+    expect(v.selection.cursor.value?.section).toBe('/views/main/three');
+    await v.execute('cursor.up', { section: '/views/main/three' });
+    expect(v.selection.cursor.value?.section).toBe('/views/main/one');
+  });
+});
+
 describe('a jump into a hidden track', () => {
   it('says "on a hidden track" and moves nothing; a shown track is focused as before', async () => {
     const v = await make();
@@ -123,6 +166,48 @@ describe('a jump into a hidden track', () => {
     await v.execute('track.show', { all: true });
     await v.settle();
     expect(v.addresses.focus(C).message).not.toBe('On a hidden track: show it to see it');
+  });
+});
+
+describe('a jump to an item whose key is drawn only on hidden tracks', () => {
+  async function withItems() {
+    const v = viewer ?? (await make());
+    const b = createSeqSpec({ title: 'items' });
+    const p = b.data.sequence('p', { alphabet: 'protein', letters: 'MEEPQSDPSVEPPLSQETFSDLWKLLPENN' });
+    const d = b.data.ranges('d', {
+      target: p,
+      rows: { start: new Int32Array([0, 12]), end: new Int32Array([10, 18]), id: ['A', 'B'] },
+    });
+    b.views.view('main', (w) => {
+      const s = w.section('one', { of: p });
+      s.track('x', { label: 'X' }).layer('l', { type: 'ranges', data: d });
+      s.track('y', { label: 'Y' }).layer('l', { type: 'ranges', data: d });
+      s.track('z').layer('l', { type: 'letters' });
+    });
+    await v.load(b.build());
+    await v.settle();
+    frames.flush();
+    return v;
+  }
+  const Item = '/data/d/(item :id B)';
+  const Said = 'On a hidden track: show it to see it';
+
+  it('says so and moves nothing; with a shown track drawing it too, it jumps there', async () => {
+    const v = await withItems();
+    expect(v.addresses.focus(Item).message).not.toBe(Said);
+    await v.execute('track.hide', { address: '/views/main/one/x' });
+    await v.settle();
+    // still drawn on y: a jump
+    expect(v.addresses.focus(Item).message).not.toBe(Said);
+    await v.execute('track.hide', { address: '/views/main/one/y' });
+    await v.settle();
+    const before = v.view.get('/views/main/one');
+    expect(v.addresses.focus(Item)).toMatchObject({ done: false, message: Said });
+    expect(v.addresses.reveal(Item).message).toBe(Said);
+    expect(v.view.get('/views/main/one')).toEqual(before);
+    await v.execute('track.show', { address: '/views/main/one/y' });
+    await v.settle();
+    expect(v.addresses.focus(Item).message).not.toBe(Said);
   });
 });
 

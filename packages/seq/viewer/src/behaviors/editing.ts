@@ -10,6 +10,7 @@
 // entered and left (navigation); and a gesture's preview, a model method and never a command (it runs per pointer
 // move), that ends in one patch (`endPreview`) or nothing (`cancelPreview`, Esc).
 
+import { collapsedSection } from '@molstar/seqx-core/render';
 import type { Op, Patch } from '@molstar/core/repr/patch';
 import { type Node, resolveAddress, type Value } from '@molstar/core/repr/tree';
 import type { CommandDefinition, CommandResult } from '@molstar/ui/commands/types';
@@ -118,7 +119,8 @@ export function editingBehavior(spec: SpecModel, axis?: AxisReaders): EditingBeh
     if (ctx.address !== undefined) return nodeOf(root, ctx.address, 'section') ? ctx.address : undefined;
     const c = axis?.selection.cursor.value?.section;
     if (c !== undefined && nodeOf(root, c, 'section')) return c;
-    const first = axis?.view.resolved.value?.sections.find((x) => !x.follow) ?? axis?.view.resolved.value?.sections[0];
+    const sections = axis?.view.resolved.value?.sections.filter((x) => !collapsedSection(x));
+    const first = sections?.find((x) => !x.follow) ?? sections?.[0];
     return first?.address;
   };
   /** The nodes a show acts on (`addresses`, else `address`): each of the kind, else why not. */
