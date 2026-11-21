@@ -12,6 +12,7 @@ import {
   DefaultBgzfLimits,
   inflateBgzf,
   isBgzf,
+  MaxBlockBytes,
   VirtualOffset,
 } from './internal/bgzf-blocks.js';
 import { binCount, binFirst, binParent, metaBin, reg2bins } from './internal/tabix-bins.js';
@@ -357,17 +358,23 @@ export function regionChunks(index: TabixIndex, name: string, start: number, end
   return merged;
 }
 
-/** The compressed bytes of chunks: each from its first block's start to its last block's start (the index's offsets). */
+/**
+ * The compressed bytes of chunks, conservatively: each from its first block's start to its last block's start (the
+ * index's offsets), the last block counted at its bound (`MaxBlockBytes`) when some of it is read, since its size is
+ * not in the index.
+ */
 function chunksBytes(chunks: readonly Chunk[]) {
   let total = 0;
-  for (const c of chunks) total += VirtualOffset.block(c.end) - VirtualOffset.block(c.begin);
+  for (const c of chunks) {
+    total += VirtualOffset.block(c.end) - VirtualOffset.block(c.begin);
+    if (VirtualOffset.within(c.end) > 0) total += MaxBlockBytes;
+  }
   return total;
 }
 
 /**
- * The compressed bytes of the chunks `regionChunks` gives, without reading them (a level's cost): each chunk from its
- * first block's start to its last block's start, as the index's offsets say (the last block's own bytes, at most
- * 64 KiB a chunk, are not in the index).
+ * The compressed bytes of the chunks `regionChunks` gives, without reading them (a level's cost), conservatively: each
+ * chunk from its first block's start to its last block's start, the last block at its bound (64 KiB) when read.
  */
 export function regionBytes(index: TabixIndex, name: string, start: number, end: number): number {
   return chunksBytes(regionChunks(index, name, start, end));

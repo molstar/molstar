@@ -152,6 +152,14 @@ describe('tabix index', () => {
     ]);
   });
 
+  it('a chunk inside one block costs that block at its bound, never nothing', async () => {
+    const { index } = await fixture(generateBed(50, names), bedOptions('tbi'), 65280);
+    const chunks = regionChunks(index, 'chr1', 0, 2 ** 29);
+    expect(chunks.length).toBe(1);
+    expect(Math.floor(chunks[0].begin / 65536)).toBe(Math.floor(chunks[0].end / 65536));
+    expect(regionBytes(index, 'chr1', 0, 2 ** 29)).toBe(65536);
+  });
+
   it('regionBytes is the sum of the chunks regionChunks gives', async () => {
     const { index } = await fixture(generateBed(3000, names), bedOptions('tbi'), 1500);
     const rng = new PCG(9);
@@ -159,7 +167,11 @@ describe('tabix index', () => {
       const start = Math.floor(rng.float() * 2_000_000);
       const end = start + Math.floor(rng.float() * 300_000);
       const chunks = regionChunks(index, 'chr2', start, end);
-      const sum = chunks.reduce((n, c) => n + Math.floor(c.end / 65536) - Math.floor(c.begin / 65536), 0);
+      // each chunk from its first block to its last, the last counted at its bound when read (its size is not in the index)
+      const sum = chunks.reduce(
+        (n, c) => n + Math.floor(c.end / 65536) - Math.floor(c.begin / 65536) + (c.end % 65536 > 0 ? 65536 : 0),
+        0,
+      );
       expect(regionBytes(index, 'chr2', start, end)).toBe(sum);
       // merged: sorted, apart
       for (let i = 1; i < chunks.length; i++) expect(chunks[i].begin).toBeGreaterThan(chunks[i - 1].end);

@@ -53,9 +53,10 @@ is in `src/common/internal/` (not published): `bgzf-blocks.ts` (the block walk, 
   taking the last nonzero before it; CSI: the `loffset` of the smallest bin holding the start, up the tree), each begun
   no earlier than that offset (htslib's `reg2intervals`), sorted, overlapping chunks and chunks meeting in one block
   merged (each line read once).
-- **Cost** (`regionBytes`): each merged chunk from its first block's start to its last block's start, as the index's
-  offsets say (the last block's own bytes, at most 64 KiB a chunk, are not in the index). A read over `maxRegionBytes`
-  is `too-large` before a byte is read; the chunks inflated together stay within `maxInflatedBytes`.
+- **Cost** (`regionBytes`), conservative: each merged chunk from its first block's start to its last block's start, as
+  the index's offsets say, plus the last block at its bound (64 KiB) when some of it is read: its size is not in the
+  index, so a chunk inside one block costs a block, never nothing. A read over `maxRegionBytes` is `too-large` before a
+  byte is read; the chunks inflated together stay within `maxInflatedBytes`.
 - **Lines as bytes** (io's rule: text is tokenized as bytes): each line's span (a `\r` before its `\n` dropped) and its
   extent, 0-based half-open, by htslib's `tbx_parse1`: generic `begin` (− 1 unless 0-based) to the end column, or
   `begin + 1` without one; SAM `POS − 1` plus the CIGAR's reference length (M, D, N, =, X); VCF `POS − 1` to `INFO/END`
