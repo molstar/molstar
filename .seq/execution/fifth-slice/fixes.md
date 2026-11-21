@@ -6,6 +6,12 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
 
 ## Open
 
+- **The square navigator's sweep has no feedback while dragging** (the author, 2026-11-21, the square over blocks ×
+  blocks): a drag across cells zooms both axes to the swept rectangle on release, but nothing is drawn during the
+  drag. Draw the sweep's rectangle live (as the linear navigator's sweep does), snapped to the cells it will fit, and
+  clear it on release or Escape. Test: a pointer down and move draws a sweep mark in the navigator's draw list at the
+  swept cells; release fits both axes to them; Escape cancels with no change.
+
 - **The palette control** (the author, 2026-11-21, Structure link › Hover both ways, the 2OCJ track):
   - picking a palette does not always change the track (the residue letters keep their colours): the palette entry
     shows only on a track whose layer reads a categorical palette (a ranges or category theme), never on one that
