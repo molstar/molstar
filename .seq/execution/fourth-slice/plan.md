@@ -313,7 +313,7 @@ disagrees with its code writes a drift note and stops.
       from its chain table through `withAdapter`) and the `Host data` story with its twin (no asset read; equal nodes
       to the default adapter); the Extensibility page's adapter list (`briefs/hd-host-data.md`).
 - [x] HP3 (fast, after ST3) `Features/Track headers` and its twins, the Design page (`briefs/hp3-header-stories.md`).
-- [ ] USE GATE (short, not blocking): the author tries the structure and header stories; findings counted by kind.
+- [x] USE GATE (2026-11-21, the author: passed; follow-ups as they appear) (short, not blocking): the author tries the structure and header stories; findings counted by kind.
 - [x] GATE (2026-11-21, overnight, as recommended; use gate deferred): merged, reviewed, checks green, sizes (the minimal viewer), gaps, matrix cells (both designs').
 
 ### Stage 3: data and references (after stage 0; independent of stages 1–2 but for SV's SIFTS, after MK)
@@ -347,7 +347,7 @@ disagrees with its code writes a drift note and stops.
 
 - [x] NOVICE PASS (2026-11-21: 29 findings, 5 bugs, 11 missing design, 13 look; novice-findings.md) (fast; `briefs/novice-pass.md`, the third slice's shape) a task script per new story (structure
       syncing both ways, headers, host data, services, archives).
-- [ ] USE GATE (not blocking; at finalize a look at what changed): findings fixed or placed, counted by kind.
+- [x] USE GATE (2026-11-21, the author: passed; follow-ups as they appear) (not blocking; at finalize a look at what changed): findings fixed or placed, counted by kind.
 - [ ] M4 the heavy lane and the opt-in tiers; the browser at dpr 2 (a 2OCJ hover round trip, a complex of 200 copies,
       a bigWig pan); the bundles; the targets confirmed or moved by the author (below: the minimal viewer's size).
 - [ ] FINALIZE: reconcile (designs, `_spec`s, status, features, edge cases' outcomes, `TODO.md`, drift emptied); the

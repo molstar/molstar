@@ -61,6 +61,15 @@ The third slice is closed (2026-11-20; its record in `.seq/records/third-slice/`
 - **The author's look, 2026-11-21** (to FX5): the extension's lollipops show the card but no hover emphasis; the PAE in
   AlphaFold DB's colours, on real data where a permissive one exists.
 
+- **T-DM1's placeholders kept** (the author, 2026-11-21: "keep UNL placeholders"): no CCD component exists for DM1
+  or the MCC linker (FX5's lookup); `UNL` stays, the finding and its source in `adc.ts`.
+- **The use gates passed** (the author, 2026-11-21: "i have looked at things here and there in the storybook, so for
+  now user gates passed -- we will need to do followups anyway as small things appear"): stages 2 and 5's; findings
+  from here on are follow-ups (`fixes.md`).
+- **The loop runs to the close** (the author, 2026-11-21: "you can run slice 4 loop all the way to the close. I will
+  review the foldback.md file before we apply it"): FX5, SV and PC merged, stage 3's gate, M4, FINALIZE; it stops once
+  `foldback.md` is written, for the author's review, then applies it, writes the record and closes.
+
 ## In progress
 
 - 2026-11-20: stage 1's gate passed. Next: FX3 and ST2, two lanes.
