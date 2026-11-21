@@ -7,6 +7,10 @@ queue. Each line: what is seen, where (the story), where it came from, its kind 
 
 ## Open
 
+- **A submenu replaces its menu on hover** (bug; the author, 2026-11-21, after FX6): `Color ▸` must open beside its
+  parent (a flyout), by click, →, or resting; the parent stays. HT, first item. The orchestrator merged FX6 on the
+  lane's own browser check without looking at the submenu: a look is the orchestrator's, every time.
+
 - **A services story test failed once under load** (FX6's run; five runs green alone): watch at the gate's runs.
 
 - **FX3's first item: the quick-lane folders over 2 s** (stage 1's gate, the author, 2026-11-20: "Pass, FX3 fixes
