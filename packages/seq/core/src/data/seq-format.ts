@@ -272,7 +272,7 @@ const WholeFactor = 16;
  * The level whose one tile (`tileBins` bins) covers `length` positions: the least power of 16 that does, 1 for a
  * system within a tile at level 1.
  */
-function wholeLevel(length: number, tileBins = DefaultTileBins): number {
+export function wholeLevel(length: number, tileBins = DefaultTileBins): number {
   let level = 1;
   while (level * tileBins < length) level *= WholeFactor;
   return level;

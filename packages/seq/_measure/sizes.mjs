@@ -79,6 +79,15 @@ const AllCases = [
   { name: 'the viewer, default', entry: 'viewer.ts', target: 1_400_000, unlisted: Runtimes },
   { name: 'viewer, minimal', entry: 'viewer-minimal.ts', target: 1_000_000, unlisted: Unlisted },
   { name: 'bigWig runtime', entry: 'bigwig.ts', target: 30_000, own: /seq\/core\/src\/runtimes\// },
+  // the BED family's runtime with io's BGZF (no viewer bundles it); its reads by region (io's tabix, the region lines)
+  // are its lazy chunk, loaded when the first indexed source opens: listed apart (`lazy`)
+  {
+    name: 'BED runtime',
+    entry: 'bed.ts',
+    target: 30_000,
+    own: /seq\/core\/src\/runtimes\/|(^|\/)packages\/io\/src\/common\//,
+    lazy: true,
+  },
   // the mmCIF runtime and Seq io's converter (in no viewer entry); `@molstar/io`'s parser is its lazy chunk, loaded
   // when the first mmCIF source opens: listed apart (`lazy`), measured with every import it brings that the default
   // viewer's bundle does not hold (its `@molstar/core` imports too): what a host pays on first open

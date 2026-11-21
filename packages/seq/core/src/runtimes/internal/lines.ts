@@ -6,9 +6,10 @@
 
 import { issueOf } from '@molstar/core/repr/tree';
 import type { AssetRangeReader } from '@molstar/core/util/assets';
-import { type BgzfReader, bgzfReader } from '@molstar/io/common/bgzf';
+import { type BgzfReader, bgzfReader, VirtualOffset } from '@molstar/io/common/bgzf';
 import {
   DefaultTabixLimits,
+  regionChunks,
   readHeaderLines,
   readRegion,
   readTabixIndex,
@@ -27,94 +28,13 @@ import { SourceOpenError } from '../../data/seq-runtime.js';
 
 export type { TabixLines } from '@molstar/io/common/tabix';
 
-/** The lines of a file read whole: its header lines (`meta`, the first `skip`) and the rest, with 1-based numbers. */
-export interface WholeLines {
-  readonly header: LineSpans;
-  readonly lines: LineSpans;
-}
-
-export interface LineSpans {
-  readonly bytes: Uint8Array;
-  readonly lineStart: Uint32Array;
-  readonly lineEnd: Uint32Array;
-  /** Each line's number in the file, 1-based (an issue's place). */
-  readonly lineNumber: Uint32Array;
-}
-
-export interface LineOptions {
-  /** A header line's first character (`#`); empty: none. */
-  readonly meta: string;
-  /** Lines skipped at the top as header. */
-  readonly skip?: number;
-  /** One line's bound (`DefaultTabixLimits.maxLineBytes`, 16 MiB). */
-  readonly maxLineBytes?: number;
-  /** Lines a file may hold (`limits.maxRows`). */
-  readonly maxLines?: number;
-}
-
-export type LinesResult<T> =
-  | { readonly ok: true; readonly value: T }
-  | { readonly ok: false; readonly kind: 'too-large' | 'malformed'; readonly message: string };
-
-/**
- * A text read whole split into lines (`\n`, a `\r` before it dropped; blank lines left out): the header lines at the top
- * (those starting with `meta`, and the first `skip`), then the rest, a `meta` line among them kept as a comment's
- * place is the format's. A line over `maxLineBytes` is `malformed`, more than `maxLines` lines `too-large`; the spans
- * are counted before they are allocated.
- */
-export function wholeLines(bytes: Uint8Array, options: LineOptions): LinesResult<WholeLines> {
-  const maxLine = options.maxLineBytes ?? DefaultTabixLimits.maxLineBytes;
-  const maxLines = options.maxLines ?? Number.POSITIVE_INFINITY;
-  const skip = options.skip ?? 0;
-  const meta = options.meta ? options.meta.charCodeAt(0) : -1;
-  /** Calls `line` for each line kept (the blank ones left out but a skipped one), the header ones first. */
-  const scan = (line: (s: number, e: number, number: number, header: boolean) => boolean | undefined) => {
-    let inHeader = true;
-    for (let s = 0, number = 1; s < bytes.length; number++) {
-      let e = bytes.indexOf(10, s);
-      if (e < 0) e = bytes.length;
-      const next = e + 1;
-      if (e > s && bytes[e - 1] === 13) e--;
-      if (inHeader && !(number <= skip || (e > s && bytes[s] === meta))) inHeader = false;
-      if ((e > s || (inHeader && number <= skip)) && line(s, e, number, inHeader) === false) return;
-      s = next;
-    }
-  };
-  // counted first, so the spans are allocated once and a bound is refused before they are
-  let headerCount = 0;
-  let count = 0;
-  let failure: LinesResult<WholeLines> | undefined;
-  scan((s, e, number, header) => {
-    if (e - s > maxLine) {
-      failure = { ok: false, kind: 'malformed', message: `Line ${number} is over ${maxLine} bytes` };
-      return false;
-    }
-    if (header) headerCount++;
-    else if (count - headerCount >= maxLines) {
-      failure = { ok: false, kind: 'too-large', message: `The file has more than ${maxLines} lines` };
-      return false;
-    }
-    count++;
-  });
-  if (failure) return failure;
-  const starts = new Uint32Array(count);
-  const ends = new Uint32Array(count);
-  const numbers = new Uint32Array(count);
-  let n = 0;
-  scan((s, e, number) => {
-    starts[n] = s;
-    ends[n] = e;
-    numbers[n] = number;
-    n++;
-  });
-  const spans = (from: number, to: number): LineSpans => ({
-    bytes,
-    lineStart: starts.subarray(from, to),
-    lineEnd: ends.subarray(from, to),
-    lineNumber: numbers.subarray(from, to),
-  });
-  return { ok: true, value: { header: spans(0, headerCount), lines: spans(headerCount, n) } };
-}
+export {
+  type LineOptions,
+  type LineSpans,
+  type LinesResult,
+  type WholeLines,
+  wholeLines,
+} from './whole-lines.js';
 
 /** A region's lines, or why there are none: a `FailureKind` the runtime answers with, and a message. */
 export type RegionLines =
@@ -130,6 +50,13 @@ export interface IndexedLines {
   header(signal: AbortSignal): Promise<RegionLines>;
   /** Lines meeting `[start, end)` (0-based, half-open) of the sequence `name`, each with its extent by the index. */
   region(name: string, start: number, end: number, signal: AbortSignal): Promise<RegionLines>;
+  /**
+   * The file's first data line (its bytes, without the newline), or undefined when the index lists none: what a format
+   * whose columns are told by its first line (BED's `N`) reads at open. Within `maxLineBytes`.
+   */
+  head(
+    signal: AbortSignal,
+  ): Promise<{ readonly ok: true; readonly line?: Uint8Array } | Exclude<RegionLines, { ok: true }>>;
   /** A region's compressed bytes from the index, nothing read (`regionBytes`): a tile's read cost. */
   cost(name: string, start: number, end: number): number;
   dispose(): void;
@@ -177,6 +104,50 @@ function openError(
   message: string,
 ) {
   return new SourceOpenError([issueOf(SourceIssues, code, message, { address })]);
+}
+
+/**
+ * The first data line: from the least chunk start the index lists (htslib's first line), block by block (each block's
+ * end told by its `BSIZE`, read from the file's bytes) until a newline, within `maxLine` bytes.
+ */
+async function firstLine(
+  reader: BgzfReader,
+  ranges: AssetRangeReader,
+  index: TabixIndex,
+  maxLine: number,
+  signal: AbortSignal,
+): Promise<Uint8Array | undefined> {
+  let first = Number.POSITIVE_INFINITY;
+  // the index's whole span (a .tbi's 2^29), never past int32
+  const span = Math.min(2 ** (index.minShift + 3 * index.depth), 0x7fffffff);
+  for (const name of index.names) {
+    const c = regionChunks(index, name, 0, span)[0];
+    if (c && c.begin < first) first = c.begin;
+  }
+  if (!Number.isFinite(first)) return undefined;
+  const parts: Uint8Array[] = [];
+  let total = 0;
+  for (let at = first; total <= maxLine; ) {
+    const block = VirtualOffset.block(at);
+    if (block + 18 > ranges.size) break;
+    const [h] = await ranges.read([{ offset: block, length: 18 }], signal);
+    if (h.length < 18) break;
+    const next = block + (h[16] | (h[17] << 8)) + 1;
+    const bytes = await reader.read(at, VirtualOffset.of(next, 0), signal);
+    const nl = bytes.indexOf(10);
+    parts.push(nl < 0 ? bytes : bytes.subarray(0, nl));
+    total += nl < 0 ? bytes.length : nl;
+    if (nl >= 0 || next >= ranges.size || bytes.length === 0) break;
+    at = VirtualOffset.of(next, 0);
+  }
+  if (total > maxLine)
+    throw Object.assign(new Error(`The first line is over ${maxLine} bytes`), {
+      name: 'TabixError',
+      kind: 'malformed',
+    });
+  const out = new Uint8Array(total);
+  for (let i = 0, o = 0; i < parts.length; o += parts[i].length, i++) out.set(parts[i], o);
+  return out.length && out[out.length - 1] === 13 ? out.subarray(0, out.length - 1) : out;
 }
 
 export interface IndexedLinesContext {
@@ -255,6 +226,12 @@ export async function openIndexedLines(uri: string, indexUri: string, ctx: Index
       header: async (s) => answer(await guarded(s, () => readHeaderLines(r, index, tabix, s))),
       region: async (name, start, end, s) =>
         answer(await guarded(s, () => readRegion(r, index, name, start, end, tabix, s))),
+      head: async (s) => {
+        const got = await guarded(s, () => firstLine(r, ranges, index, tabix.maxLineBytes, s));
+        return got instanceof Uint8Array || got === undefined
+          ? { ok: true, ...(got && { line: got }) }
+          : { ok: false, ...got.failure };
+      },
       cost: (name, start, end) => regionBytes(index, name, start, end),
       dispose() {
         r.dispose();

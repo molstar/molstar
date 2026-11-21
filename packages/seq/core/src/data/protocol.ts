@@ -128,6 +128,34 @@ export interface RangesList {
   readonly id?: CategoryColumn;
   readonly row?: Int32Array;
   readonly fields?: readonly RangesField[];
+  /**
+   * Each row's item's whole extent, when rows are pieces of one item (BED12's blocks, a transcript's exons): a reader of
+   * region data knows an item's ends from any tile (_spec/README.md "Data", Protocol).
+   */
+  readonly itemStart?: Int32Array;
+  readonly itemEnd?: Int32Array;
+}
+
+/**
+ * Pairs as a list (_spec/README.md "Data", Protocol): both ends of each row, every pair with an end in the region asked,
+ * the other end anywhere. A type only: no `Shape` serves it yet; the BEDPE source answers it by its own `pairs` read.
+ */
+export interface PairsList {
+  readonly form: 'list';
+  /** Each end's system (absent: both ends on the requested system). */
+  readonly aSystem?: CategoryColumn;
+  readonly bSystem?: CategoryColumn;
+  readonly aStart: Int32Array;
+  readonly aEnd: Int32Array;
+  readonly bStart: Int32Array;
+  readonly bEnd: Int32Array;
+  /** −1, 0, 1 (EC-206). */
+  readonly aStrand?: Int8Array;
+  readonly bStrand?: Int8Array;
+  readonly type?: CategoryColumn;
+  readonly id?: CategoryColumn;
+  readonly row?: Int32Array;
+  readonly fields?: readonly RangesField[];
 }
 
 /** `ranges` at a coarse level as density: a count per bin (bin index on the system, at the level's width). */
