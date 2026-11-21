@@ -64,14 +64,14 @@ export const SelectionBothWays: StoryObj = {
 /**
  * Double-click a cell of the fake: its camera frame moves over 400 ms and Seq* focuses the residue. Focus a residue in
  * Seq* (double-click, or Enter on a selection): the fake's frame follows over the same time; Alt+Left goes back, and
- * the fake's frame with it.
+ * the fake's frame with it to the previous focus; back past the first focus names no residue, so the frame stays.
  */
 export const FocusAndBack: StoryObj = {
   render: () =>
     structureLinkStory({
       view: complex('units'),
       dataset: 'complex',
-      hint: '1FIN: CDK2 and cyclin A, two copies, an ATP on each CDK2. Double-click a residue in either view to focus it; Alt+Left goes back. The dashed frame in the fake is its camera; it moves over the time the jump took.',
+      hint: '1FIN: CDK2 and cyclin A, two copies, an ATP on each CDK2. Double-click a residue in either view to focus it; Alt+Left goes back to the previous focus (the fake’s frame follows); before the first focus there is no residue to name, so it stays. The dashed frame in the fake is its camera; it moves over the time the jump took.',
     }),
 };
 
