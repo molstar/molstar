@@ -16,6 +16,7 @@ import {
 } from '@molstar/seqx-viewer/canvas';
 import { Announcer } from './announcer.js';
 import { createDragSession } from './drag-session.js';
+import { isViewEvent } from './overlay-events.js';
 import type { SeqViewer } from './viewer.js';
 import type { BehaviorHandle } from './viewer-spec.js';
 
@@ -97,6 +98,11 @@ export function mountCanvas(viewer: SeqViewer, target: HTMLElement): () => void 
     input.up();
     cursor();
   });
+  // an overlay in the container (the header menu, the parts, the keys panel) owns its events: the pointer over it has left
+  // the view (its hover and card go, once), and its presses, clicks, wheel and keys never reach the view
+  // (_spec/README.md "Input", Overlays); the release and the losses of the pointer still end the view's drag
+  const own = (e: Event) => isViewEvent(container, e);
+  let overOverlay = false;
   const local = (e: MouseEvent) => {
     const r = container.getBoundingClientRect();
     return [e.clientX - r.left, e.clientY - r.top] as const;
@@ -105,16 +111,25 @@ export function mountCanvas(viewer: SeqViewer, target: HTMLElement): () => void 
     [
       'pointermove',
       (e: PointerEvent) => {
+        if (!own(e)) {
+          if (!overOverlay) {
+            overOverlay = true;
+            input.leave();
+          }
+          return;
+        }
+        overOverlay = false;
         const [x, y] = local(e);
         input.move(x, y, e);
         cursor();
       },
       undefined,
     ],
-    ['pointerleave', () => input.leave(), undefined],
+    ['pointerleave', () => ((overOverlay = false), input.leave()), undefined],
     [
       'pointerdown',
       (e: PointerEvent) => {
+        if (!own(e)) return;
         // a mouse's side buttons (3: back, 4: forward) go through the bindings; taken, the page does not go back
         if (e.button === 3 || e.button === 4) {
           const [x, y] = local(e);
@@ -148,6 +163,7 @@ export function mountCanvas(viewer: SeqViewer, target: HTMLElement): () => void 
     [
       'mouseup',
       (e: MouseEvent) => {
+        if (!own(e)) return;
         if ((e.button === 3 || e.button === 4) && input.sideButtonTaken(e.button === 3 ? 'back' : 'forward'))
           e.preventDefault();
       },
@@ -159,6 +175,7 @@ export function mountCanvas(viewer: SeqViewer, target: HTMLElement): () => void 
     [
       'wheel',
       (e: WheelEvent) => {
+        if (!own(e)) return;
         const [x, y] = local(e);
         if (input.wheel(x, y, e)) e.preventDefault();
       },
@@ -167,7 +184,7 @@ export function mountCanvas(viewer: SeqViewer, target: HTMLElement): () => void 
     [
       'click',
       (e: MouseEvent) => {
-        if (e.button !== 0) return;
+        if (e.button !== 0 || !own(e)) return;
         const [x, y] = local(e);
         input.click(x, y, e);
       },
@@ -176,6 +193,7 @@ export function mountCanvas(viewer: SeqViewer, target: HTMLElement): () => void 
     [
       'dblclick',
       (e: MouseEvent) => {
+        if (!own(e)) return;
         const [x, y] = local(e);
         input.doubleClick(x, y, e);
       },
@@ -184,6 +202,7 @@ export function mountCanvas(viewer: SeqViewer, target: HTMLElement): () => void 
     [
       'keydown',
       (e: KeyboardEvent) => {
+        if (!own(e)) return;
         if (e.key === ' ') {
           if (!e.repeat) input.setSpace(true);
           // Space is the viewer's while it is a modifier or a tap toggles the cursor's cell: the page does not scroll
@@ -193,7 +212,7 @@ export function mountCanvas(viewer: SeqViewer, target: HTMLElement): () => void 
       },
       undefined,
     ],
-    ['keyup', (e: KeyboardEvent) => e.key === ' ' && input.spaceUp(e), undefined],
+    ['keyup', (e: KeyboardEvent) => own(e) && e.key === ' ' && input.spaceUp(e), undefined],
     ['blur', () => input.setSpace(false), undefined],
   ];
   for (const [type, fn, options] of listeners) container.addEventListener(type, fn, options);
