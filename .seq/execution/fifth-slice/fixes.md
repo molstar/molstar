@@ -6,6 +6,10 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
 
 ## Open
 
+- **The rail's place as a list, and a pinned place** (the author, 2026-11-21; designed in navigators.md, "A list, and
+  a pinned place"): `railPlace` takes one place or a list; `pinned` keeps a rail at the bottom edge of the visible
+  frame at any scroll. For FX4, on FX3's `railRows`.
+
 - **The 3,000-contig story could be faster** (the author, 2026-11-21, on packages-seq's build: "better perf ... although
   still could be faster"): my measure, 40 hover steps along the row each drawn within two frames (about 33 ms, no
   drops). Take it at M5: profile hover and pan on three-thousand-contigs (ring and row), find the per-frame cost, and
