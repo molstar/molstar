@@ -22,8 +22,8 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
 - **The rows layout has no horizontal rail** (the author, 2026-11-21, Globins rows, family: "it's weird this view is
   lacking the 'horizontal rail'. probably should be at the 'navigator' or at the bottom. in general, configurable"):
   the tracks layout has its default rail under the ruler; the rows layout has the vertical overview and no horizontal
-  rail. Needs a short design before a fix lane: the rail's place as a setting (`rail.place`: under the ruler, with the
-  navigator, at the bottom, none), the same for every layout that has a horizontal axis, its default per layout.
+  rail. Designed 2026-11-21 (navigators.md, "The positions rail beside a declared navigator, and its place":
+  `navigator.positionsRail` `always`, `navigator.railPlace` `ruler` | `bottom` | `navigator`); for FX3.
 
 - **The Transcripts track's spacing** (FX2 `e678d2dbc`: lanes start at a tall band's top; left open: the
   first row unlabelled and the blank below the lanes, a source-backed track's fixed height) (my look at GG's fix round; the author, 2026-11-21: "the spacing around the
