@@ -80,7 +80,10 @@ export function drawSectionEmphasis(
       break;
     }
     case 'hover':
-      if (emphasis.projected?.hover && (emphasis.projected.hoverSection !== s.section.address || !hovered))
+      if (
+        emphasis.projected?.hover &&
+        (emphasis.projected.hoverSection !== s.section.address || !hovered || onRuler(s, emphasis.hover?.layer))
+      )
         drawProjectedHover(out, axis, box, emphasis.projected.hover, tokens, config);
       break;
     case 'cursor':
@@ -94,6 +97,19 @@ export function drawSectionEmphasis(
         drawCursor(out, axis, box, emphasis.cursor, tokens, config);
       break;
   }
+}
+
+/**
+ * Whether the hover's layer is a ruler of this section: a ruler draws no mark of its own, so the view the pointer is on
+ * draws the hover's position as it draws one carried from a linked section (the ring's and the row's alike).
+ */
+function onRuler(s: SectionLayout, layer: string | undefined): boolean {
+  if (layer === undefined) return false;
+  for (let i = 0; i < s.tracks.length; i++) {
+    const ls = s.tracks[i].layers;
+    for (let j = 0; j < ls.length; j++) if (ls[j].layer.address === layer) return ls[j].type.name === 'ruler';
+  }
+  return false;
 }
 
 // The cursor and the emphasis marks take the layout, not its numbers: a number passed to a call that is not inlined

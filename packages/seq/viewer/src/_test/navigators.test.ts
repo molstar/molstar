@@ -824,10 +824,11 @@ describe('the ruler rail on the canvas', () => {
     expect(w.frame!.layout.sections[0].rail).toBeUndefined();
   });
 
-  it('a declared navigator over the section replaces its rail, and a host’s does; hidden, the rail is back', async () => {
-    const v = await make(spec({ ruler: true }));
+  it('under `positionsRail: unlessNavigator` a declared navigator over the section replaces its rail, and a host’s does; hidden, the rail is back', async () => {
+    const old = [[viewerItem('navigator.positionsRail'), 'unlessNavigator']] as const;
+    const v = await make(spec({ ruler: true }), old);
     expect(v.frame!.layout.sections[0].rail).toBeUndefined();
-    const w = await make(spec({ ruler: true, strip: false }));
+    const w = await make(spec({ ruler: true, strip: false }), old);
     expect(w.frame!.layout.sections[0].rail).toBeDefined();
     w.navigator({ id: 'host', of: P });
     frames!.flush();

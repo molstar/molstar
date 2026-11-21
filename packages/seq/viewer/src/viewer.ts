@@ -790,7 +790,11 @@ export class SeqViewer extends ReactiveModel {
       dpr: this.dpr,
       tokens: this.tokens,
       // the navigators as the parts draw them (an included one's zoom strip, its direction)
-      navigator: { zoomStrip: this.config.navigator.zoomStrip, direction: this.config.navigator.direction },
+      navigator: {
+        zoomStrip: this.config.navigator.zoomStrip,
+        direction: this.config.navigator.direction,
+        positionsRail: this.config.navigator.positionsRail,
+      },
       // the navigators part: a viewer that lists none exports none (and says so when asked)
       ...(navigators ? { navigatorExport: navigators.svgExport } : {}),
       // what the canvas shows of the session: the selection, as its address when it has one (the export resolves it

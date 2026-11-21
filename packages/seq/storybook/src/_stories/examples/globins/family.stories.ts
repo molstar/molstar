@@ -5,6 +5,7 @@
  */
 
 import { GlobinsViews } from '@molstar/seqx-examples';
+import { viewerItem } from '@molstar/seqx-viewer/config';
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { exampleStory } from '../example-root.js';
 
@@ -20,6 +21,15 @@ export default meta;
  * `[` zoom them.
  */
 export const Family: StoryObj = { render: () => exampleStory(view('family')) };
+
+/**
+ * The family with its positions rail under the last track (`navigator.railPlace: bottom`), the other place beside the
+ * default one (under the ruler): the rail is the precise horizontal control beside the vertical overview's picture;
+ * drag either, the other follows. `navigator.positionsRail: unlessNavigator` takes it away again.
+ */
+export const FamilyRailAtBottom: StoryObj = {
+  render: () => exampleStory(view('family'), { config: [[viewerItem('navigator.railPlace'), 'bottom']] as never }),
+};
 
 /** Two clades folded from the spec (`collapsed`): a summary row each, its consensus opaque by its share, a tree wedge. */
 export const Folded: StoryObj = { render: () => exampleStory(view('folded')) };

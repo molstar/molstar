@@ -63,10 +63,10 @@ describe('the navigators’ examples, headless', () => {
     expect(r.svg).toContain('<title>Window: chr17:');
   });
 
-  it('p53’s tracks with a strip: the strip replaces the rail; a drag on its window pans', async () => {
+  it('p53’s tracks with a strip: the rail stays beside it; a drag on the strip’s window pans', async () => {
     viewer = await openExample(P53Views.find((v) => v.id === 'tracks-strip')!, { gene: '' });
     const v = viewer;
-    expect(v.frame!.layout.sections[0].rail).toBeUndefined();
+    expect(v.frame!.layout.sections[0].rail).toBeDefined();
     v.view.setRange('/views/main/protein', 100, 150);
     v.draw();
     const { nav, f } = await navigator(v, 'strip');

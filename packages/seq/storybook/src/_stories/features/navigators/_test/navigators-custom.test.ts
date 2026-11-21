@@ -91,7 +91,7 @@ describe('the custom navigators’ stories, headless', () => {
     model.move(mid + (40 / 393) * 600, 18);
     model.up();
     expect(v.view.get(HostSection)!.start).toBeCloseTo(140, 0);
-    // the declared rail it replaces is gone: a host's navigator binds the section
-    expect(v.frame!.layout.sections[0].rail).toBeUndefined();
+    // the rail stays beside a host's navigator (`navigator.positionsRail: always`)
+    expect(v.frame!.layout.sections[0].rail).toBeDefined();
   });
 });
