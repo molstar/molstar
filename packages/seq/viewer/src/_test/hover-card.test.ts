@@ -843,6 +843,25 @@ describe('the keys panel', () => {
     expect(document.activeElement).toBe(button);
   });
 
+  it('the pointer onto the panel leaves the view: its hover cleared (overlays own their events)', async () => {
+    vi.stubGlobal('ResizeObserver', undefined);
+    const target = document.createElement('div');
+    document.body.append(target);
+    const v = await make(cardSpec(), { target });
+    const container = target.querySelector<HTMLElement>('[role="application"]')!;
+    await v.execute('help.keys', {});
+    await v.settle();
+    const panel = target.querySelector<HTMLElement>('.seqx-keys-panel')!;
+    const r = container.getBoundingClientRect();
+    const [x, y] = letterPoint(v, 4);
+    const move = (el: Element) =>
+      el.dispatchEvent(new PointerEvent('pointermove', { clientX: r.left + x, clientY: r.top + y, bubbles: true }));
+    move(container);
+    expect(v.hover.current.section).toBeDefined();
+    move(panel.querySelector('button')!);
+    expect(v.hover.current.section).toBeUndefined();
+  });
+
   it('Esc cancels a running drag before it closes the panel', async () => {
     const v = await make(cardSpec());
     const keys = v.behavior(KeysPanelProvider)!;

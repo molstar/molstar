@@ -37,9 +37,10 @@ export function mountKeysPanel(
     boxShadow: '0 0 0 1px var(--msui-line), var(--msui-shadow-float)',
   });
   // the panel's events are its own: the canvas under it takes none of them, keys included (an arrow in the panel moves
-  // no cursor, Enter on Close runs no command); Esc is the panel's own: it closes it, wherever the focus came from
+  // no cursor, Enter on Close runs no command); Esc is the panel's own: it closes it, wherever the focus came from.
+  // A move goes on to the mount, which reads it as the view's leave (`overlay-events.ts`: the hover and card go)
   const own = (e: Event) => e.stopPropagation();
-  const types = ['pointerdown', 'pointermove', 'pointerup', 'click', 'dblclick', 'wheel', 'keyup'];
+  const types = ['pointerdown', 'pointerup', 'click', 'dblclick', 'wheel', 'keyup'];
   for (const t of types) panel.addEventListener(t, own);
   const onKey = (e: KeyboardEvent) => {
     e.stopPropagation();

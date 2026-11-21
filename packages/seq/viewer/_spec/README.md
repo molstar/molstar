@@ -786,11 +786,12 @@ binding table; per move one hit record and one modifiers record are reused.
 - **Overlays own their events** (`overlay-events.ts`, `isViewEvent`): an event is the view's only when it happened on
   the container or one of its canvases; in any other element inside the container (the header menu, the header parts,
   the keys panel, a part a behavior attaches) it is the overlay's. The pointer moving onto an overlay is a `leave` for
-  the view (its hover cleared, the card gone, once), and the overlay's presses, clicks, double-clicks, wheel, keys and
-  secondary click (`header-gestures.ts`) never reach the view; a release and the losses of the pointer still end the
-  view's drag. Why: the overlays live in the container (its tokens, its place) so their events bubble to its listeners;
-  a press on a menu item over the data began the view's drag and captured the pointer, so its click went to the
-  container (the item never ran) and selected what was under it.
+  the view (its hover cleared, the card gone, once), except onto the header parts (they stop the move: the pointer on
+  them is still on their header, which keeps its actions shown), and the overlay's presses, clicks, double-clicks,
+  wheel, keys and secondary click (`header-gestures.ts`) never reach the view; a release and the losses of the pointer
+  still end the view's drag. Why: the overlays live in the container (its tokens, its place) so their events bubble to
+  its listeners; a press on a menu item over the data began the view's drag and captured the pointer, so its click went
+  to the container (the item never ran) and selected what was under it.
 - **A window's part under the pointer** (a ring's, a rail's) is lit (`windowHit`, drawn as the emphasis's hover), and
   the window being dragged grows its rail wherever the pointer goes (`dragHit`, `Emphasis.drag`); the cursor follows the
   part (`partCursor`, `cursor` set by the mounted canvas, `NavigatorModel.cursor` alike): a grip `ew-resize`
