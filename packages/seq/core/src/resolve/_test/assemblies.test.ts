@@ -146,6 +146,21 @@ describe('an assembly’s derived sequences', () => {
     expect(codes(m.issues)).toEqual([]);
   });
 
+  it('drops a sequence named twice and says so, the first kept', () => {
+    const b = createSeqSpec();
+    b.data.assembly(
+      'g',
+      assembly('toy', [
+        { name: 'chr1', length: 10 },
+        { name: 'chr1', length: 99 },
+      ]),
+    );
+    const m = resolveSpec(b.build());
+    expect(m.assemblies.get('/data/g')!.systems).toEqual(['/data/g/(sequence :name chr1)']);
+    expect(m.systems.get('/data/g/(sequence :name chr1)')!.length).toBe(10);
+    expect(codes(m.issues)).toEqual(['seq.resolve.assembly.duplicate']);
+  });
+
   it('applies an override found through the names rule', () => {
     const b = createSeqSpec();
     b.data.assembly('hg38', assembly('GRCh38', hg38), (a) =>

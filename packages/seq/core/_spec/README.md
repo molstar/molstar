@@ -1782,8 +1782,9 @@ Seq\* holds pointers and labels: codes and identifiers are strings.
 `map.empty`, `map.observed`, `via.unused`, `map.codon_length`, `map.table`, `length.unknown`, `system.unnamed`,
 `path.none`, `path.ambiguous`, `path.limit`, `complex.units`, `ref.system` (a reference to a sequence, molecule or unit
 that made no system: a unit of a refused complex or of nothing held; what reads it is left out), `assembly.lengths`,
-`assembly.alias`, `assembly.mismatch`, `assembly.name` (Assemblies), and the overlay's `node.invalid`, `node.ref`,
-`node.depth`. A test checks the catalog against the sources.
+`assembly.duplicate` (a name twice: the later dropped), `genome.load`, `assembly.alias`, `assembly.mismatch`,
+`assembly.name` (Assemblies), and the overlay's `node.invalid`, `node.ref`, `node.depth`. A test checks the catalog
+against the sources.
 
 ## Overlay
 

@@ -64,7 +64,7 @@ export function assemblyEntry(
   const match = (p(n, 'match') ?? 'chr') as NameMatch;
   const own = [p(n, 'name'), ...strs(p(n, 'aliases'))].filter((x): x is string => typeof x === 'string');
   const pending = source !== undefined && coverage === undefined;
-  const sequences: AssemblySequence[] = [];
+  let sequences: AssemblySequence[] = [];
   const rows = p(n, 'sequences') as Record<string, Value> | undefined;
   if (rows) {
     const name = strs(rows.name);
@@ -84,6 +84,16 @@ export function assemblyEntry(
       else sequences[i] = { ...sequences[i], length: sequences[i].length ?? s.length, sourceName: s.name };
     }
   }
+  // one sequence a name: a later one of a name already given is dropped and said, never written over the first
+  const seen = new Set<string>();
+  const twice: string[] = [];
+  sequences = sequences.filter((s) => (seen.has(s.name) ? (twice.push(s.name), false) : (seen.add(s.name), true)));
+  if (twice.length)
+    say(
+      'seq.resolve.assembly.duplicate',
+      `Sequences named twice: ${twice.slice(0, 3).join(', ')}`,
+      rows ? 'sequences' : 'source',
+    );
   const empty = (lookup: AssemblyNames, order: number[] = []) => ({
     entry: {
       address: at.address,

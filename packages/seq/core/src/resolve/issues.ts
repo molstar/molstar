@@ -120,6 +120,11 @@ export const ResolveIssues = defineIssues('seq.resolve', {
     description: 'An assembly’s sequence has no length; the assembly is unavailable',
     hint: 'Give lengths inline or a `chrom-sizes` source',
   },
+  'seq.resolve.assembly.duplicate': {
+    severity: 'warning',
+    description: 'Two sequences of an assembly have one name; the later is dropped',
+    hint: 'Give each sequence its own name',
+  },
   'seq.resolve.assembly.alias': {
     severity: 'warning',
     description: 'An alias names two sequences, or two of different lengths; it is dropped',
