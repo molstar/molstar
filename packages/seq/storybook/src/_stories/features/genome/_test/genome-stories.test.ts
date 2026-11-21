@@ -5,7 +5,13 @@
  */
 
 import { createSeqContext } from '@molstar/seqx-core/context/default';
-import { type BlockPlacement, DarkTokens, LightTokens, type RingPlacement } from '@molstar/seqx-core/render';
+import {
+  type BlockPlacement,
+  DarkTokens,
+  LightTokens,
+  type RingPlacement,
+  recordDrawLists,
+} from '@molstar/seqx-core/render';
 import { actionsShown } from '@molstar/seqx-core/render/headers-draw';
 import { Describer } from '@molstar/seqx-viewer/describe';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
@@ -287,6 +293,35 @@ describe('Genome coordinates stories, headless', () => {
     expect(p.strips.n).toBeLessThan(400);
     const r = await exported(v, true);
     expect(r.settled).toBe(true);
+  });
+
+  it('3,000 contigs: a hover on the ring draws its position box on the ring, one on the row on the row (each view draws its own)', async () => {
+    const v = await open('contigs');
+    const [ring, row] = v.frame!.layout.sections;
+    // the y of the hover pass's marks: a path's first point, a rect's corner
+    const marks = () =>
+      recordDrawLists(v.frame!.lists, ['hover'])
+        .split('\n')
+        .filter((l) => l.startsWith('path ') || l.startsWith('rect '))
+        .map((l) => Number(l.startsWith('path ') ? l.split(' ')[3] : l.split(' ')[2]));
+    const within = (y: number, s: typeof ring) => y >= s.y && y <= s.y + s.height;
+    const pointOn = (s: typeof ring) => {
+      for (let y = s.y; y < s.y + s.height; y += 3)
+        for (let x = 0; x < 720; x += 3) {
+          const h = v.hit(x, y);
+          if (h?.section === s.section.address.split('/').pop() && h.position != null) return [x, y];
+        }
+      return undefined;
+    };
+    for (const s of [ring, row]) {
+      const [x, y] = pointOn(s)!;
+      v.input.move(x, y);
+      v.draw();
+      expect(
+        marks().some((m) => within(m, s)),
+        s.section.address,
+      ).toBe(true);
+    }
   });
 
   it('every story’s view renders headless with no issue (the export alone, a context of its own)', async () => {

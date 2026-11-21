@@ -2452,10 +2452,11 @@ strip's.
   marks), an outline `emphasis.hoverOffset` (1 px) outside the mark, concentric, so it never touches the selection's
   outline under it, in the hover ink (`seq-hover`: dark on light, light on dark); `projected.hover` is drawn the same
   way at `emphasis.projected` on every section but `projected.hoverSection` (the hover's own section's address), so a
-  hover from elsewhere (a structure, no layer) is drawn on every section (the `hover` pass); a letters hit lifted
-  through a codon map (a residue over its codon) is drawn on its own section too, over each of its own-system letters
-  tracks (the DNA), never as a column, so a residue and its codon light together; an item through a path lights its
-  outline and its connector, nothing else. Every hover a squircle (Shapes): a cell's (letters, logo, values) by the
+  hover from elsewhere (a structure, no layer) is drawn on every section (the `hover` pass); on the hover's own section
+  too when its layer is a ruler, which draws no mark of its own (a ring's or a row's own position box); a letters hit
+  lifted through a codon map (a residue over its codon) is drawn on its own section too, over each of its own-system
+  letters tracks (the DNA), never as a column, so a residue and its codon light together; an item through a path lights
+  its outline and its connector, nothing else. Every hover a squircle (Shapes): a cell's (letters, logo, values) by the
   cell's size, square on a side the view cuts and below the minimum, its radius the cell's plus the offset; a letter's
   codon parts round on the element's outer sides alone; a chip's concentric with its pill; the projected hover round
   where its range really ends; a secondary structure's mark (its radius plus the offset, its round ends: a helix round,
