@@ -205,7 +205,8 @@ function headersBehavior(context: BehaviorContext, params: HeadersParams = {}): 
     if (!partsPort || !extras) return;
     // the parts follow the hover only when the header whose actions show changed (a key of its address)
     const c = viewer.selection.cursor.value;
-    const key = `${viewer.hover.current.layer ?? ''}|${c?.track ?? ''}`;
+    const m = shownMenu.value?.menu.target;
+    const key = `${viewer.hover.current.layer ?? ''}|${c?.track ?? ''}|${m ? (m.track ?? m.section) : ''}`;
     if (!relaid && key === showingKey) return focusPending();
     showingKey = key;
     const next = extras.partsState();

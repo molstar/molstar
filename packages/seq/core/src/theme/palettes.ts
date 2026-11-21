@@ -9,6 +9,7 @@ import {
   ColorListBlues,
   ColorListCategory10,
   ColorListCividis,
+  ColorListGreens,
   ColorListMagma,
   ColorListOkabeIto,
   ColorListRedBlue,
@@ -53,6 +54,9 @@ export const NamedLists: Readonly<Record<string, ColorList>> = {
   cividis: ColorListCividis,
   magma: ColorListMagma,
   blues: ColorListBlues,
+  greens: ColorListGreens,
+  // the same stops, dark to light (a confident low end dark: AlphaFold DB's PAE plot)
+  'greens-r': { ...ColorListGreens, list: [...ColorListGreens.list].reverse() },
   'rd-bu': ColorListRedBlue,
   'okabe-ito': ColorListOkabeIto,
   tableau10: ColorListTableau10,

@@ -36,7 +36,7 @@ function inBox(b: { x: number; y: number; width: number; height: number }, x: nu
 
 /**
  * Whether a header's actions show (`header.actions.show`): `always`; on `hover` the track a hover's hit is in (its label
- * line, its slots, its states, its data: `within`; a section's line only its own hits), the cursor's header. A slot is
+ * line, its slots, its states, its data: `within`; a section's line only its own hits), the cursor's header, the header whose menu is open. A slot is
  * hit only while they show.
  */
 export function actionsShown(
@@ -51,6 +51,8 @@ export function actionsShown(
   if (show === 'never' || !emphasis) return false;
   const c = emphasis.cursor;
   if (c && c.part === 'header' && c.track === address) return true;
+  // an open menu keeps its header's actions (the pointer on its way to the menu leaves the line)
+  if (emphasis.menu === address) return true;
   const h = emphasis.hover;
   if (!h || h.section !== section) return false;
   const l = h.layer;

@@ -17,6 +17,7 @@ import * as complexConfidence from './complex/confidence.js';
 import * as complexGrid from './complex/complex-grid.js';
 import * as complexLigands from './complex/ligands.js';
 import * as complexPae from './complex/pae.js';
+import * as complexPaeMonomer from './complex/pae-monomer.js';
 import * as complexText from './complex/text.js';
 import * as complexUnits from './complex/units.js';
 import * as molecules from './molecules/molecules.js';
@@ -539,6 +540,15 @@ export const ComplexViews: readonly ExampleView[] = [
       'A section a chain of the prediction (UniProt P24941, P20248) and a synthetic predicted aligned error between them as a grid (low across 1FIN’s interface, high where cyclin A2 is disordered): its x follows CDK2’s section, its y cyclin A’s; 1FIN’s contacts as dots on it. Hover a cell: both residues light in their sections.',
     registry: records,
     build: () => complexPae.build(),
+  },
+  {
+    dataset: 'complex',
+    id: 'pae-monomer',
+    title: 'CDK2’s PAE from AlphaFold DB',
+    summary:
+      'CDK2’s own predicted aligned error, real values as AlphaFold DB publishes them (AF-P24941-F1, v6), the whole chain, in the colors of AlphaFold DB’s plot (green, dark where confident) so it compares with its page side by side; the grid follows CDK2’s section on both axes.',
+    registry: records,
+    build: () => complexPaeMonomer.build(),
   },
   {
     dataset: 'complex',

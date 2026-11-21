@@ -9,7 +9,7 @@ import { axisBreaks, breakHolding } from '@molstar/seqx-core/view';
 import { AxisTransform, Cut } from './axis.js';
 import type { RenderConfig } from './config.js';
 import { NoColor, type PassWriter, Round } from './draw-lists.js';
-import type { Box, Emphasis, EmphasisHighlight } from './layer-type.js';
+import type { Box, Emphasis, EmphasisHighlight, Hit, HitMark, LayerType } from './layer-type.js';
 import { walkStripes } from './highlight-stripes.js';
 import { partOn, rectOver } from './marks.js';
 import type { SeqTokens } from './tokens.js';
@@ -320,6 +320,55 @@ function drawProjectedHover(
   Paint[4] = config.emphasis.hoverOffset;
   Paint[5] = 0;
   paintRanges(out, axis, box, part, config);
+}
+
+const HoverMark: HitMark = { x: 0, y: 0, width: 0, height: 0 };
+
+/**
+ * The hover of an item of an extension's layer type (_spec/README.md "Render", Emphasis): the outline around the mark
+ * the type reports (`LayerType.mark`), `emphasis.hoverOffset` outside it and concentric (its radius plus the offset),
+ * in the hover ink, as a built-in's hover looks. Round on the sides the view does not cut, square where the mark meets
+ * the strip's edge. Nothing allocated: the mark is written into one reused box.
+ */
+export function drawExtensionHover(
+  out: PassWriter,
+  type: LayerType<any, any>,
+  lay: unknown,
+  hover: Hit,
+  axis: AxisTransform,
+  tokens: SeqTokens,
+  config: RenderConfig,
+) {
+  const key = hover.element;
+  if (!type.mark || !key) return;
+  const m = HoverMark;
+  m.radius = 0;
+  if (!type.mark(lay, key, m)) return;
+  return drawMarkOutline(out, m, axis, tokens, config);
+}
+
+/** An outline around a mark's bounds (`drawExtensionHover`). */
+export function drawMarkOutline(
+  out: PassWriter,
+  m: HitMark,
+  axis: AxisTransform,
+  tokens: SeqTokens,
+  config: RenderConfig,
+) {
+  const half = config.outline.hover / 2 + config.emphasis.hoverOffset;
+  const r = m.radius ?? 0;
+  const g = out.args;
+  g[0] = m.x - half;
+  g[1] = m.y - half;
+  g[2] = m.width + 2 * half;
+  g[3] = m.height + 2 * half;
+  g[4] = NoColor;
+  g[5] = tokens.colors['seq-hover'];
+  g[6] = config.outline.hover;
+  g[7] = r > 0 ? r + half : 0;
+  // a side the strip cuts is square
+  g[8] = (m.x > axis.x0 ? Round.left : 0) | (m.x + m.width < axis.x0 + axis.width ? Round.right : 0);
+  out.rectArgs();
 }
 
 /** A mutable box: one stripe of a band (reused: a stripe makes no object). */

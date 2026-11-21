@@ -36,7 +36,7 @@ import {
 } from './check-molecules.js';
 import { checkMapSegments, checkNumberingSegments, mapParamsFit, numberingParamsFit } from './check-maps.js';
 import { LangIssues } from './issues.js';
-import { SeqLanguage, SeqLanguageVersion, SeqValidateOptions } from './language.js';
+import { isExtensionName, SeqLanguage, SeqLanguageVersion, SeqValidateOptions } from './language.js';
 import { followRef, refAddresses } from './refs.js';
 import { checkLayerThemes, rowTypes } from './theme-check.js';
 
@@ -297,7 +297,7 @@ export function checkPlaced(at: Placed, look: SeqLookup, report: Report): void {
       );
       // an extension's type (`<id>:<name>`): what it draws is its own, so its data is checked by the resolved view's
       // shape (`seq.view.layer.shape`) through its fallback; a reader without it draws the fallback (`none` when absent)
-      if (String(type).includes(':')) {
+      if (isExtensionName(String(type))) {
         if (p(n, 'fallback') === undefined) report('seq.lang.layer.fallback', 'No fallback', at, 'type');
         break;
       }

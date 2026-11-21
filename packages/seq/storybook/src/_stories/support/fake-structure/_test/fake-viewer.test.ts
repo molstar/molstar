@@ -44,6 +44,19 @@ const table: ChainTable = {
 
 afterEach(() => vi.useRealTimers());
 
+describe('the fake structure viewer’s hover name', () => {
+  it('names the hovered residue, a hovered range by its ends, and nothing without a hover', () => {
+    const fake = new FakeStructureViewer(table);
+    expect(fake.hoverName()).toBeUndefined();
+    fake.pointerOver({ row: 0, index: 2 });
+    expect(fake.hoverName()).toBe('A 3 ALA');
+    fake.hover.set([{ row: 0, start: 1, end: 4 }]);
+    expect(fake.hoverName()).toBe('A 2 ALA to 4 ALA');
+    fake.pointerOver(null);
+    expect(fake.hoverName()).toBeUndefined();
+  });
+});
+
 describe('the fake structure viewer’s selectors', () => {
   it('spans in selectors and back are the same observed cells; a copy is a row of its own', () => {
     const rows = rowsOf(table);

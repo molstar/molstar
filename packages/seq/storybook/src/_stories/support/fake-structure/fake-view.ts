@@ -36,6 +36,7 @@ const Css = `
 .fv-cell[data-hover] { box-shadow: 0 0 0 2px var(--msui-text); position: relative; z-index: 2; }
 .fv-cell[data-lit] { box-shadow: 0 0 0 2px var(--msui-accent, #d6336c); position: relative; z-index: 1; }
 .fv-cell[data-selected] { border-bottom: 3px solid var(--msui-text); }
+.fv-card { position: absolute; display: none; pointer-events: none; z-index: 4; padding: 2px 6px; white-space: nowrap; font-family: var(--msui-font-mono); box-shadow: 0 0 0 1px var(--msui-line), var(--msui-shadow-float); }
 .fv-frame { position: absolute; pointer-events: none; box-sizing: border-box; border: 2px dashed var(--msui-accent, #d6336c); border-radius: 4px; z-index: 3; }
 `;
 
@@ -80,6 +81,9 @@ class FakeStructureElement extends UiElement<FakeStructureViewer> {
     rowsEl.className = 'fv-rows';
     const frame = document.createElement('div');
     frame.className = 'fv-frame';
+    const card = document.createElement('div');
+    card.className = 'fv-card msui-surface';
+    card.setAttribute('aria-hidden', 'true');
     let cells: HTMLElement[][] = [];
     // the rows as the table has them now (an edit builds them again)
     const buildRows = () => {
@@ -100,7 +104,6 @@ class FakeStructureElement extends UiElement<FakeStructureViewer> {
           c.className = 'fv-cell';
           c.dataset.row = String(row.index);
           c.dataset.index = String(index);
-          c.title = `${row.asym} ${res.auth}${res.ins} ${res.comp}${res.observed ? '' : ' (not modeled)'}`;
           if (!res.observed) c.dataset.gap = '';
           if (!row.polymer) {
             c.dataset.chip = '';
@@ -113,7 +116,7 @@ class FakeStructureElement extends UiElement<FakeStructureViewer> {
         r.append(label, line);
         children.push(r);
       }
-      rowsEl.replaceChildren(...children, frame);
+      rowsEl.replaceChildren(...children, frame, card);
     };
     buildRows();
     root.append(style, tools, rowsEl);
@@ -133,6 +136,18 @@ class FakeStructureElement extends UiElement<FakeStructureViewer> {
           c.toggleAttribute('data-selected', within(sel, row.index, i));
         });
       });
+      // the card names the hovered residue, whoever hovered it (the pointer here, the host's: a first user looked for names)
+      const name = fake.hoverName();
+      const at = fake.hover.value[0];
+      const cell = at ? cells[at.row]?.[at.start] : undefined;
+      if (name && cell) {
+        const box = cell.getBoundingClientRect();
+        const host = rowsEl.getBoundingClientRect();
+        card.textContent = name;
+        card.style.display = 'block';
+        card.style.left = `${box.left - host.left + rowsEl.scrollLeft}px`;
+        card.style.top = `${box.bottom - host.top + rowsEl.scrollTop + 4}px`;
+      } else card.style.display = 'none';
       status.textContent = `${fake.entry}: ${fake.rows.length} rows, ${sel.reduce((n, s) => n + s.end - s.start, 0)} selected`;
     };
     const place = () => {

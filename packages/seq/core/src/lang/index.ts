@@ -58,6 +58,7 @@ export {
 } from './check-molecules.js';
 export { BoundIssues, LangIssues } from './issues.js';
 export {
+  isExtensionName,
   type SeqKinds,
   SeqLanguage,
   type SeqLanguageType,

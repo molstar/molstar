@@ -11,14 +11,23 @@ import { complexPae, constructOffset, contactRows, Data, prediction } from './da
 
 // The Complex's prediction: CDK2 and cyclin A2 as UniProt has them (P24941, P20248), a section a chain, and the
 // synthetic predicted aligned error between them (`complexPae`'s CDK2 × cyclin A block: low across 1FIN's interface,
-// high where cyclin A2 is disordered) as a grid section whose x follows CDK2's section and y cyclin A's; 1FIN's contacts
-// (both copies, shifted onto P20248 by the construct's offset) as dots on it.
+// high where cyclin A2 is disordered) in AlphaFold DB's PAE colors, as a grid section whose x follows CDK2's section and
+// y cyclin A's; 1FIN's contacts (both copies, shifted onto P20248 by the construct's offset) as dots on it.
 
 export const title = 'Complex: PAE across the chains (synthetic)';
 
-/** The PAE's color: viridis over 0 to 30 Å, low (confident) dark. */
+/**
+ * AlphaFold DB's PAE colors: ColorBrewer Greens (Brewer) reversed, confident dark green at 0 Å to near white, over 0 to
+ * 31.75 Å (the files' `max_predicted_aligned_error`). Read from AlphaFold DB's own PAE image of AF-P24941-F1 (v6:
+ * https://alphafold.ebi.ac.uk/files/AF-P24941-F1-predicted_aligned_error_v6.png, 2026-11-21): the image's palette,
+ * matched to the file's values, is these stops (`greens-r`). Seq* interpolates in Oklab, AlphaFold DB's matplotlib image
+ * in sRGB, so the midtones differ slightly.
+ */
 export const PaeColor = () =>
-  theme.field('value', { domain: [0, 30], unit: 'Å', palette: theme.continuous({ colors: 'viridis' }) });
+  theme.field('value', { domain: [0, 31.75], unit: 'Å', palette: theme.continuous({ colors: 'greens-r' }) });
+
+/** The contacts' color on the PAE: orange, which reads on the dark green of the interface and the near white of the rest. */
+export const ContactColor = '#e8590c';
 
 /** The prediction's data nodes: the entries, the confidence, the PAE's four blocks and the contacts on P20248. */
 export function predictionData(b: SeqSpecBuilder, d: Derived = Data) {
@@ -54,8 +63,8 @@ export function build(d: Derived = Data): Node {
     }).track('pae', { label: 'PAE (Å, synthetic)' }, (t) => {
       // the least error a sample holds when zoomed out: a confident pair is never averaged away
       t.layer('pae', { type: 'grid', data: pae, aggregate: 'min', color: PaeColor() });
-      // the contacts in white, outlined: on viridis's dark low end (the interface) in both themes
-      t.layer('contacts', { type: 'pairs', data: p.contacts, color: '#ffffff' });
+      // the contacts in orange: on the dark green of the interface and the near white of the rest, in both themes
+      t.layer('contacts', { type: 'pairs', data: p.contacts, color: ContactColor });
     });
   });
   return b.build();
