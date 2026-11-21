@@ -16,6 +16,15 @@
   views read the alignment from the `seq` format (written from the alignment truth in code); "open by name" reads GFF3
   names only; fetches 4, 5, 6, 9 and 10 dropped.
 
+- **The whole-designs review's twelve recommendations taken** (the author, 2026-11-21: "yes with the
+  recommendations"; `reviews/whole-designs.md`): GF's dropped runtimes to a "designed only" appendix and their
+  additions dropped; no `gzi` in io; the `seq` runtime serves sided systems and pairs from either end (LA after RG and
+  FR); BEDPE indexed by both ends after a whole read, held rows in a byte budget; no doubled BEDPE (pairix noted for
+  Hi-C); a per-view byte bound for tabix levels; a host's bigWig as the whole-genome remedy for 1D layers; the Manhattan
+  family, `split` and EC-224's join to the close-out slice; MAF cut, EC-221 to the matrix, EC-226 to themes; fetch 3
+  cut; RN's gene detail on GFF and `coarsenBins`; GD reviewed before promotion. Folded into the drafts with their
+  reviews.
+
 ## Overnight: stage 0 (run by the fourth slice's loop)
 
 The fourth slice's loop runs this while the author sleeps (its `state.md`, Next, points here). The lane limit is the

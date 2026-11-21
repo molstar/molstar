@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { P53Views } from '@molstar/seqx-examples';
+import { CoordinatesViews, P53Views } from '@molstar/seqx-examples';
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { exampleStory } from '../../examples/example-root.js';
 
@@ -35,3 +35,14 @@ export const GenomicFollower: StoryObj = { render: () => exampleStory(view('geno
  * complement). Shift+C collapses the introns to hairlines; Shift+R turns it back.
  */
 export const ReversedGene: StoryObj = { render: () => exampleStory(view('reversed-gene')) };
+
+/**
+ * A protein over its coding DNA (a short made-up gene, plus strand, genomic order, nothing collapsed): each residue sits
+ * over its three nucleotides (the intron has no protein letters), the exons are coloured, the domain is cut at the
+ * intron and joined across it by a connector, and a phosphosite marks residue 17. Hover a residue: it and its codon
+ * light, the card names the residue and its codon positions.
+ */
+export const ProteinOverItsCodingDna: StoryObj = {
+  name: 'Protein Over Its Coding DNA',
+  render: () => exampleStory(CoordinatesViews.find((v) => v.id === 'coding-dna')!, { stacked: true }),
+};

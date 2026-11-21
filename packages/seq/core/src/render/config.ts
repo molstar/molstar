@@ -177,8 +177,15 @@ export interface RenderConfig {
    * system a shown layer goes through, and what those name), for its owner to hold in the store (`ViewLayout.shown`).
    */
   readonly nodes: { readonly holdShown: boolean };
-  /** Ranges: items past the lanes collapse into a density row at the bottom (`extra-lanes`), or the whole layer does. */
-  readonly ranges: { readonly overflow: 'extra-lanes' | 'layer' };
+  /**
+   * Ranges: items past the lanes collapse into a density row at the bottom (`extra-lanes`), or the whole layer does;
+   * the connector joining an item's pieces across shown positions (axis.md, An item split by a path): `width` CSS px
+   * (1), `ink` the item's own colour (`item`) or the muted ink (`muted`), at `alpha` of it (0.6).
+   */
+  readonly ranges: {
+    readonly overflow: 'extra-lanes' | 'layer';
+    readonly connector: { readonly width: number; readonly ink: 'item' | 'muted'; readonly alpha: number };
+  };
   /**
    * Values: below a device pixel a position, each column's extent (`minmax`, negative extremes show) or its maximum;
    * how many times a device pixel's positions a level's bin may be (`coarser`, 1 by default: the coarsest bin no wider than a
@@ -371,7 +378,7 @@ export const DefaultRenderConfig: RenderConfig = {
   maxTemplateTracks: 200,
   maxNumberingPositions: 1 << 18,
   nodes: { holdShown: true },
-  ranges: { overflow: 'extra-lanes' },
+  ranges: { overflow: 'extra-lanes', connector: { width: 1, ink: 'item', alpha: 0.6 } },
   values: { aggregate: 'minmax', coarser: 1, direct: true },
   ruler: { labelGap: 48 },
   rings: {
@@ -462,7 +469,11 @@ export function renderConfig(over: RenderConfigOverrides = {}): RenderConfig {
     heights: { ...DefaultRenderConfig.heights, ...over.heights },
     density: { ...DefaultRenderConfig.density, ...over.density },
     densityUnits: { ...DefaultRenderConfig.densityUnits, ...over.densityUnits },
-    ranges: { ...DefaultRenderConfig.ranges, ...over.ranges },
+    ranges: {
+      ...DefaultRenderConfig.ranges,
+      ...over.ranges,
+      connector: { ...DefaultRenderConfig.ranges.connector, ...over.ranges?.connector },
+    },
     letters: { modifiedMark: { ...DefaultRenderConfig.letters.modifiedMark, ...over.letters?.modifiedMark } },
     values: { ...DefaultRenderConfig.values, ...over.values },
     ruler: { ...DefaultRenderConfig.ruler, ...over.ruler },

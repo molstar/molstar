@@ -26,6 +26,8 @@ import { filesOf, fileHead, printSources } from '../features/files/file-head.js'
 type ExampleModel = ExampleView & {
   readonly navigators?: 'omit' | 'include';
   readonly files?: boolean;
+  /** The canvas above the SVG, each at the full width (a figure whose letters need it), not side by side. */
+  readonly stacked?: boolean;
   /** What the story does once the view is placed (a move to the region it opens on). */
   readonly opening?: (viewer: SeqViewer) => unknown;
   /** The viewer's config items (`[item, value]` pairs) over the default spec's. */
@@ -72,8 +74,7 @@ class ExampleRoot extends UiElement<ExampleModel> {
     status.style.cssText = 'margin: 0; color: var(--msui-text-muted);';
 
     const pair = document.createElement('div');
-    pair.style.cssText =
-      'display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: var(--msui-space-5);';
+    pair.style.cssText = `display: grid; grid-template-columns: ${view.stacked ? '1fr' : 'repeat(auto-fit, minmax(420px, 1fr))'}; gap: var(--msui-space-5);`;
     pair.append(section('Canvas', canvasHost), section('SVG', svgHost));
     root.append(summary, pair, status);
     if (view.files) root.append(...fileSections(view.build()));
@@ -158,6 +159,7 @@ export function exampleStory(
   options: {
     readonly navigators?: 'omit' | 'include';
     readonly files?: boolean;
+    readonly stacked?: boolean;
     readonly opening?: (viewer: SeqViewer) => unknown;
     readonly config?: SeqViewerSpec['config'];
     readonly behaviors?: SeqViewerSpec['behaviors'];
@@ -165,7 +167,7 @@ export function exampleStory(
 ): HTMLElement {
   const el = document.createElement(ExampleRoot.tag) as ExampleRoot;
   el.model =
-    options.navigators || options.files || options.opening || options.config || options.behaviors
+    options.navigators || options.files || options.stacked || options.opening || options.config || options.behaviors
       ? { ...view, ...options }
       : view;
   return el;

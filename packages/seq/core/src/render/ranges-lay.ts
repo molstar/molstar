@@ -29,6 +29,8 @@ export interface RangesPrep extends ItemsPrep {
   readonly line?: string;
   /** An arrowhead on the item's `end`, `start`, or both: bits 1 and 2 (none: 0). */
   readonly arrow: number;
+  /** Whether an item's pieces are joined across the positions between them (the `connector` param: `line` or `none`). */
+  readonly connector: boolean;
   readonly cyclic: boolean;
   /** Its channels (`color`, `size`, `opacity`), compiled per layout's tokens. */
   readonly channels: LayerChannels;
@@ -140,6 +142,19 @@ export interface RangesLay extends ItemsBase {
   lw: Float32Array;
   lwant: Float32Array;
   litem: Int32Array;
+  /**
+   * The connectors (`cn` of them; axis.md, An item split by a path): the hairline between two pieces of one item with
+   * shown positions between them, its x extent clipped to the box, lane and item, with the line's width, ink and alpha
+   * as the layout read them (`cwidth`, `cink`, `calpha`: 0 alpha draws none).
+   */
+  cn: number;
+  cx0: Float32Array;
+  cx1: Float32Array;
+  clane: Int32Array;
+  citem: Int32Array;
+  cwidth: number;
+  cink: number;
+  calpha: number;
   /** Scratch: an item's leftmost mark's x, the candidates by priority. */
   left: Float32Array;
   right: Float32Array;
@@ -222,6 +237,14 @@ export function newLay(ctx: LayoutContext, prep: RangesPrep): RangesLay {
     idCache: new Map(),
     order: new Int32Array(64),
     seen: 0,
+    cn: 0,
+    cx0: new Float32Array(8),
+    cx1: new Float32Array(8),
+    clane: new Int32Array(8),
+    citem: new Int32Array(8),
+    cwidth: 1,
+    cink: 0,
+    calpha: 0,
     labelY: -1,
     ln: 0,
     lx: new Float32Array(16),
