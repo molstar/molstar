@@ -104,6 +104,15 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   drawn once; a twin test (canvas and SVG) that every selection piece's box lies inside its cell's box, at both a block
   boundary and the grid's outer edge. Not measured in the browser yet: the fix lane measures first.
 
+- **Hovering a ligand's score box lights its residues but not its arcs** (the author, 2026-11-21, Examples › Complex ›
+  Views › As a complex: "mouse on empty patch highlights arcs, but on box only the columns"). Over the score track's
+  empty band at PYZ's position, the hover resolves to the position (card "PYZ 1"), its contact arcs light dark and the
+  linked CDK2 columns light. Over PYZ's score box itself (a ranges row over the molecule), the box gets its outline and
+  the linked columns light, but no arc lights and no card shows. A ranges item's emphasis should reach every layer the
+  positions it covers reach (the pairs layer's arcs with an end in it), the same as hovering those positions, and its
+  card show (the item's fields: entry, resolution). A test on this story: hovering the box and hovering the empty band
+  at the same position light the same arcs, and the box shows a card.
+
 - **The blocks' Contacts track leaves ATP out** (the author, 2026-11-21, Examples › Complex › PAE and contacts ›
   Contacts: "does ATP really have 0 contacts here?"). It has: the recording (`complex/derived-data.ts`, `ligands`) holds
   ATP A's 43 heavy-atom contacts with 15 CDK2 residues and ATP C's 48 with 14, and the units stories draw them; but
