@@ -7,7 +7,7 @@
 import { PCG } from '@molstar/core/data/util/hash-functions';
 import type { Node } from '@molstar/core/repr/tree';
 import { itWithin } from '@molstar/test-harness/timing';
-import { beforeAll, describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { assembly, colinearBlocks, createSeqSpec, genome } from '@molstar/seqx-core/lang';
 import { includePattern } from '@molstar/seqx-core/lang/include-pattern';
 import { locationOfResult, resolveAddressIn } from '@molstar/seqx-core/query';
@@ -389,6 +389,14 @@ describe('sections of assemblies', () => {
       '/views/v/two/(block :name chr1)',
     ]);
     expect(s.axis.length).toBe(23);
+  });
+
+  it('derive their blocks once a build', () => {
+    const root = spec({}, (b) => b.views.view('v', (v) => genome(v, 'g', A)));
+    const model = resolveSpec(root);
+    const include = vi.spyOn(model.assemblies.get(A)!, 'include');
+    expect(resolveView(model, '/views/v')!.sections[0].blocks?.length).toBe(7);
+    expect(include).toHaveBeenCalledTimes(1);
   });
 
   it('show their `include` and say past `maxAssemblyBlocks` (EC-210)', () => {

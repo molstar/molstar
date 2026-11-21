@@ -528,6 +528,13 @@ function build(model: StaticModel, view: Node, address: string, layerKinds: Laye
   const viaOf = (at: string) => viaList(param(byAddress.get(at)!, 'via'));
   // a grid section with no system of its own that follows a section of blocks: a grid over them (`blocksGrid`)
   const overBlocks = new Map<string, string>();
+  // each section's block nodes, derived once a build (an assembly's blocks are a walk of its sequences)
+  const nodesOf = new Map<string, Node[]>();
+  const blocksAt = (at: string): Node[] => {
+    let bs = nodesOf.get(at);
+    if (!bs) nodesOf.set(at, (bs = blockNodes(model, byAddress.get(at)!, at)));
+    return bs;
+  };
   for (const s of sectionNodes) {
     const at = `${address}/${s.id}`;
     // a section of blocks with no `of` (or `of` a complex) is on its first block's system
@@ -539,7 +546,8 @@ function build(model: StaticModel, view: Node, address: string, layerKinds: Laye
         `${derived.total - derived.nodes.length} of ${derived.total} blocks are past \`maxAssemblyBlocks\``,
         at,
       );
-    const first = derived ? derived.nodes[0] : blockNodes(model, s)[0];
+    if (derived) nodesOf.set(at, derived.nodes);
+    const first = blocksAt(at)[0];
     // an assembly not yet open has no blocks: pending, never a missing system
     if (assemblies && !first && assemblies.some((a) => a.pending)) {
       systemOf.set(at, '');
@@ -556,7 +564,7 @@ function build(model: StaticModel, view: Node, address: string, layerKinds: Laye
       systemOf.set(at, '');
       continue;
     }
-    if (grid && param(s, 'of') === undefined && leader !== undefined && lead && blockNodes(model, lead).length) {
+    if (grid && param(s, 'of') === undefined && leader !== undefined && lead && blocksAt(leader).length) {
       // the leader's blocks in a row (the plot's axes are their units): not a stack, not a ring
       const leadLayout = param(lead, 'layout') ?? viewLayout;
       if (param(lead, 'arrange') === 'stack' || leadLayout !== 'tracks') {
@@ -607,7 +615,7 @@ function build(model: StaticModel, view: Node, address: string, layerKinds: Laye
   for (const [at, s] of byAddress) {
     if (overBlocks.has(at)) continue;
     const dir = dirOf(at);
-    const bs = blockNodes(model, s, at);
+    const bs = blocksAt(at);
     if (bs.length) {
       const b = blockAxes(
         model,
