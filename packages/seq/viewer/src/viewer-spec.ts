@@ -5,15 +5,15 @@
  */
 
 import type { ViewLayout } from '@molstar/seqx-core/render';
-import type { SeqConfigItem, SeqPorts } from '@molstar/seqx-core/context';
+import type { SeqConfigItem, SeqExtension, SeqPorts } from '@molstar/seqx-core/context';
 import type { BindingTable, GestureBinding } from '@molstar/seqx-viewer/bindings';
 import type { ViewerConfig } from '@molstar/seqx-viewer/config';
 import type { SeqAnimationPort, SeqHistoryPort } from '@molstar/seqx-viewer/ports';
-import type { SeqViewerRegistryEntry } from './header-entries.js';
+import type { HeaderEntry, SeqViewerRegistryEntry } from './header-entries.js';
 import type { LegendModel } from './legends.js';
 import type { SeqNavigatorsPart } from './navigators.js';
 import type { SeqStoryPart } from './story.js';
-import type { SeqViewer } from './viewer.js';
+import type { SeqViewer, ViewerCommand } from './viewer.js';
 import type {
   AddressModel,
   HighlightModel,
@@ -49,6 +49,8 @@ export interface BehaviorContext {
 /** What every behavior's handle may have: its end, and its part over a mounted canvas. */
 export interface BehaviorHandle {
   dispose?(): void;
+  /** The commands it provides: the viewer's (`SeqViewer.commands`) while it stands. */
+  readonly commands?: readonly ViewerCommand[];
   /**
    * Its part over the canvas (the hover card's adapter, the keys panel): `mountCanvas` calls it with the canvas's
    * element; the function it returns takes the part away. A headless viewer never calls it.
@@ -122,6 +124,23 @@ export interface SeqViewerUI {
   readonly railToggle?: ToolbarMount;
 }
 
+/**
+ * An extension of the viewer (_spec/README.md "Composition", Extensions): the core's descriptor (its entries, params,
+ * settings) and the viewer's kinds, as the built-ins' are: behaviors, commands, bindings (their actions its commands'
+ * ids, or the viewer's), header entries. Its behaviors' and commands' names are its own (`<id>:<name>` by convention).
+ */
+export interface SeqViewerExtension extends SeqExtension {
+  readonly behaviors?: readonly SeqViewerBehavior[];
+  readonly commands?: readonly ViewerCommand[];
+  /**
+   * A layer over the spec's bindings (each replacing the binding of the same gesture, modifiers and target), naming the
+   * viewer's actions or its own (`<id>:…`).
+   */
+  readonly bindings?: readonly GestureBinding[];
+  /** Header entries beside the built-ins' (read when the viewer is composed: not by `extend`). */
+  readonly headerActions?: readonly HeaderEntry[];
+}
+
 export interface SeqViewerSpec {
   /**
    * Registry entries, in order: what the viewer can read, compute and draw (the core's kinds), and its header entries
@@ -130,6 +149,11 @@ export interface SeqViewerSpec {
   readonly registry?: readonly SeqViewerRegistryEntry[];
   /** Behaviors with their params, initialized after the registry. */
   readonly behaviors: readonly SeqViewerBehavior[];
+  /**
+   * Extensions (_spec/README.md "Composition", Extensions): the core's or the viewer's descriptors, each registered whole
+   * with the registry (the core's checks) and its behaviors, commands, bindings and header entries after the spec's.
+   */
+  readonly extensions?: readonly (SeqExtension | SeqViewerExtension)[];
   readonly bindings?: SeqViewerBindings;
   /** Settings as `[item, value]` pairs. */
   readonly config?: readonly (readonly [SeqConfigItem<any>, unknown])[];
