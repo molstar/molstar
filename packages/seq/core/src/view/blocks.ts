@@ -299,7 +299,20 @@ export function blockAxes(
   const stack = !ring && param(section, 'arrange') === 'stack';
   let offset: number | undefined = 0;
   let longest = 0;
-  const blocks = groups.map((g) => {
+  // a section of assemblies: a group each with blocks, its blocks a run in order (EC-210); a block's `group` its index
+  // in that list (an assembly that `include` leaves without blocks has no group)
+  let groupList: BlockGroup[] | undefined;
+  const groupOf: (number | undefined)[] = [];
+  for (let k = 0; k < groups.length; k++) {
+    const gi = groups[k].group;
+    if (gi === undefined) continue;
+    groupList ??= [];
+    const last = groupList[groupList.length - 1];
+    if (last && last.assembly === assemblyOf(gi)) (last as { count: number }).count++;
+    else groupList.push({ assembly: assemblyOf(gi), label: assemblyLabel(gi), first: k, count: 1 });
+    groupOf[k] = groupList.length - 1;
+  }
+  const blocks = groups.map((g, k) => {
     // a chip is one unit, however many residues it stands for
     const units = blockUnits(g);
     // a chip (a `whole` block, one position) is one unit at any scale: its slot is fixed
@@ -319,19 +332,9 @@ export function blockAxes(
       copy: g.key,
       name: g.name,
       ...(g.scale !== 1 ? { scale: g.scale } : {}),
-      ...(g.group !== undefined ? { group: g.group } : {}),
+      ...(groupOf[k] !== undefined ? { group: groupOf[k] } : {}),
     };
   });
-  // a section of several assemblies: a group each, its blocks a run in order (EC-210)
-  let groupList: BlockGroup[] | undefined;
-  for (let k = 0; k < blocks.length; k++) {
-    const gi = groups[k].group;
-    if (gi === undefined) continue;
-    groupList ??= [];
-    const last = groupList[groupList.length - 1];
-    if (last && last.assembly === assemblyOf(gi)) (last as { count: number }).count++;
-    else groupList.push({ assembly: assemblyOf(gi), label: assemblyLabel(gi), first: k, count: 1 });
-  }
   const first = groups[0]?.axis;
   const system = first?.system ?? '';
   const pending = groups.some((g) => !g.axis.ranges);

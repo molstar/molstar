@@ -140,6 +140,16 @@ describe('a section of several assemblies (EC-210)', () => {
     expect(s.blocks!.map((b) => b.group)).toEqual([0, 0, 1, 1]);
   });
 
+  it('a block’s group indexes the section’s groups: an assembly `include` empties has none', () => {
+    const b = createSeqSpec();
+    b.data.assembly('peach', assembly('peach', peach));
+    b.data.assembly('grape', assembly('grape', grape));
+    b.views.view('v', (v) => genome(v, 'two', ['/data/peach', '/data/grape'], { include: ['chr1'] }));
+    const s = sectionOf(b.build());
+    expect(s.groups?.map((g) => g.assembly)).toEqual(['/data/grape']);
+    expect(s.blocks!.map((x) => [x.name, x.group])).toEqual([['chr1', 0]]);
+  });
+
   it('a section of one assembly is one group (its name the ring’s title)', () => {
     const b = createSeqSpec();
     b.data.assembly('g', assembly('GRCh38', grape));
