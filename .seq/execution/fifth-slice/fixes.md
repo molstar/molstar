@@ -104,6 +104,14 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   drawn once; a twin test (canvas and SVG) that every selection piece's box lies inside its cell's box, at both a block
   boundary and the grid's outer edge. Not measured in the browser yet: the fix lane measures first.
 
+- **The blocks' Contacts track leaves ATP out** (the author, 2026-11-21, Examples › Complex › PAE and contacts ›
+  Contacts: "does ATP really have 0 contacts here?"). It has: the recording (`complex/derived-data.ts`, `ligands`) holds
+  ATP A's 43 heavy-atom contacts with 15 CDK2 residues and ATP C's 48 with 14, and the units stories draw them; but
+  `crystalData` (`complex/blocks.ts:46`) builds the one pairs node `a: cdk2, b: cyclin`, so the ATP block shows as a
+  chip with no arc. Add ATP's contacts to the blocks' Contacts track (a second pairs layer, or rows of ATP to CDK2 by
+  residue, copies merged like the rest: an arc an ATP–residue contact of either copy), the story's text naming both
+  kinds, and a story test that the ATP block has arcs.
+
 - **A stacked block repeats tracks that hold nothing for it** (the author, 2026-11-21, Examples › Complex › Blocks ›
   Stacked: "another view with empty tracks"): with `arrange: 'stack'` each block is a row of every track, so the ATP
   block (`complex/blocks.ts:69`, a one-position block drawn as a chip) gets empty Features, Interface and Secondary
