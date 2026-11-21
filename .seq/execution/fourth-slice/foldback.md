@@ -201,7 +201,7 @@ interaction is a matrix (*held*, B1 amends the look); the fold-back is a step of
    measurements to the fifth slice?
 2. The edge-case outcomes (`ec-outcomes-draft.md`): paste as drafted into `design/edge-cases.md`?
 
-Decided by the author, 2026-11-21: merged ("All 11"). B1–B5 and B7–B11 applied in the fifth slice's `loop.md`; B1's
+Decided by the author, 2026-11-21: merged: "All 11". B1–B5 and B7–B11 applied in the fifth slice's `loop.md`; B1's
 overlay rule in the viewer `_spec` (Input, "Overlays own their events", FX6); B6's and B7's checks built by the fifth
 slice's first fix lane (its plan). Questions: stage 3's gate and M4 were run before the close (M4's bigWig pan, real-vsync
 frames and the split patch carried to the fifth slice); the edge-case outcomes pasted into `design/edge-cases.md`.

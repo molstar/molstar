@@ -290,24 +290,9 @@ on extension kinds.
 
 ## `@molstar/seqx-examples`, `@molstar/seqx-storybook`
 
-- **The services' structure section at the fit** (SV, 2026-11-21): it follows P04637 through SIFTS when zoomed, but at
-  the fit its ruler counts the unit's own 1–219, unaligned with P04637's 94–312; either a follower at the fit takes the
-  leader's mapped window, or the B-factor values drawn in P04637's section through the map. Its ruler by author
-  numbering at least.
-
-- **Watched at the gates' runs**: a services story test failed once under load (FX6's run; five runs green alone), and
-  Prism's `commands.test.ts` and `collapse.test.tsx` once each in a combined run (HT's): a second failure is a fix
-  lane's item, with the load it ran at.
-- **The quick lane's folders**: core 2.14 s and storybook 2.24 s after FX3, the viewer about 2.8 s (its imports and
-  jsdom setup across 65 files; the budget unchanged, the author 2026-11-21): fewer jsdom files in the next fix lane.
-- **Looks not taken in a browser**: Features › Query › Alignment Rows And Columns' last column cut under the end numbers
-  at 100% (not reproduced headlessly: a look at a fractional dpr); `@molstar/ui`'s disabled toolbar button's dimming
-  (computed 1.7–1.9:1); the Antibody's insertions at the closest zoom with the rail's row, and the rows layer past the
-  lanes' own screenshots.
-- **The fourth slice's novice pass, design questions** (for the fifth slice's gate, the author 2026-11-21): the fake's
-  "Within 5 Å" on a selection that is already the chain (F3); a marked state for the track the structure is colored by
-  (F9); an empty section saying its issue on the view (F11, with sections over a source's complex above); the "n
-  filtered" card naming the filter, its click saying it clears (F14); a navigator window at the fit drawn as one (F25).
+- **Watched at the gates' runs**: `@molstar/ui`'s `playback.test.tsx:112` failed once in a combined run (FX1's; 12 runs
+  green alone). The services story test (fixed by FX8) and Prism's `commands.test.ts` and `collapse.test.tsx` (6 of 6
+  green, FX1) are off the list. A second failure is a fix lane's item, with the load it ran at.
 
 - The Plasmid and the Complex are stand-ins (generated letters at the entries' lengths, features at the published
   layout's places, named as such): pUC19c and 1FIN recorded with their dataset lanes replace them, the ring's record

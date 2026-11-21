@@ -146,6 +146,8 @@ node .seq/oz/_checks/merge-gate.ts --package .seq/oz --instance .seq
 node .seq/_checks/ec-ids.ts
 node .seq/_checks/closed-work.ts
 node .seq/_checks/file-size.ts
+node .seq/_checks/defaults-designed.ts
+node .seq/_checks/features-planned.ts --plan .seq/execution/fifth-slice/plan.md
 ```
 
 The third slice's fold-back added two of these: the config keys against the `_spec` tables are quick tests

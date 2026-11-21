@@ -135,7 +135,7 @@ The fix phase (the author, 2026-11-21: "lets have a 'fix phase' for slice 5 too 
 things?"): small findings that need no design collect in `fixes.md`; an FX lane takes its open items at each point. A
 fix point with nothing open is skipped. A finding that needs a design is a drift note, never an FX item.
 
-- [ ] **FX1** (first, before stage 1's lanes; beside BZ when their files differ):
+- [x] **FX1** (merged 2026-11-21, `2afb32e91`) (first, before stage 1's lanes; beside BZ when their files differ):
   - the fourth slice's fold-back checks: **B6** a design promoted from now on whose Consequences name a layer, a layout
     or a part has a `Defaults` heading (§defaults-designed; the five designs above are the first it reads); **B7** a
     `features.md` row still "planned" for a lane `plan.md` marks merged fails; both in `.seq/_checks/`, added to the
