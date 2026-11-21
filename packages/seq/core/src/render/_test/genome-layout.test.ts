@@ -14,7 +14,7 @@ import { PCG } from '@molstar/core/data/util/hash-functions';
 import type { Node } from '@molstar/core/repr/tree';
 import { createSeqSpec, theme } from '@molstar/seqx-core/lang';
 import { loadGenome } from '@molstar/seqx-core/resolve';
-import { blockElementAt, placesOf } from '@molstar/seqx-core/view';
+import { blockElementAt, placesOf } from '@molstar/seqx-core/view/places';
 import { beforeAll, describe, expect, it } from 'vitest';
 import {
   type BlockPlacement,

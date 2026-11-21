@@ -12,7 +12,7 @@
 import { exactAddress, type Node, printAddress, type Value } from '@molstar/core/repr/tree';
 import { type AssemblyEntry, atomsSystemOf, type StaticModel, type UnitEntry } from '@molstar/seqx-core/resolve';
 import { axisTotal } from './axis.js';
-import type { Axis, BlockForm, ResolvedBlock } from './view.js';
+import type { Axis, BlockForm, ResolvedBlock, ResolvedSection } from './view.js';
 
 const param = (n: Node, key: string): Value | undefined => n.params?.[key];
 
@@ -154,6 +154,12 @@ export function blockNodes(model: StaticModel, section: Node, at = ''): Node[] {
 export function blockUnits(block: { readonly form?: string; readonly axis: Axis }): number | undefined {
   if (block.form === 'whole' && block.axis.ranges) return 1;
   return axisTotal(block.axis);
+}
+
+/** A block's display units in its section (its positions times its scale; a chip one), 0 while pending. */
+export function blockSpan(block: { readonly form?: string; readonly axis: Axis; readonly scale?: number }): number {
+  const u = blockUnits(block);
+  return u === undefined ? 0 : block.form === 'whole' ? u : u * (block.scale ?? 1);
 }
 
 /** A section's blocks before their layers, and the section's axis over them. */
@@ -371,4 +377,27 @@ export function blockAxes(
     blocks,
     ...(groupList ? { groups: groupList } : {}),
   };
+}
+
+/**
+ * Whether two sections show equal block lists: the same systems, ranges, directions and scales in order (_spec/README.md
+ * "Resolved view", Places). Such sections follow by identity in units (two sections of one assembly, a ring of the
+ * genome and its linear detail); unequal lists do not follow (`seq.render.follow.blocks`).
+ */
+export function sameBlocks(a: ResolvedSection, b: ResolvedSection): boolean {
+  const x = a.blocks;
+  const y = b.blocks;
+  if (!x || !y || x.length !== y.length) return false;
+  for (let i = 0; i < x.length; i++) {
+    const p = x[i];
+    const q = y[i];
+    if (p.axis.system !== q.axis.system || p.axis.dir !== q.axis.dir || (p.scale ?? 1) !== (q.scale ?? 1)) return false;
+    if (p.offset !== q.offset || p.form !== q.form) return false;
+    const r = p.axis.ranges;
+    const s = q.axis.ranges;
+    if (r === s) continue;
+    if (!r || !s || r.length !== s.length) return false;
+    for (let k = 0; k < r.length; k++) if (r[k] !== s[k]) return false;
+  }
+  return true;
 }

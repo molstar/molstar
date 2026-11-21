@@ -14,16 +14,8 @@ import { assembly, createSeqSpec, genome } from '@molstar/seqx-core/lang';
 import { loadGenome } from '@molstar/seqx-core/resolve';
 import { resolveSpec } from '@molstar/seqx-core/resolve';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
-import {
-  blockPositionAt,
-  blockUnitOf,
-  placeOfUnit,
-  placesOf,
-  type ResolvedSection,
-  resolveView,
-  sameBlocks,
-  unitOfPlace,
-} from '../index.js';
+import { type ResolvedSection, resolveView, sameBlocks } from '../index.js';
+import { blockPositionAt, blockUnitOf, placeOfUnit, placesOf, unitOfPlace } from '../places.js';
 
 beforeAll(async () => {
   await loadGenome();

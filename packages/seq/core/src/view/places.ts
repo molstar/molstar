@@ -10,7 +10,7 @@
 // section, so `placesOf` is a binary search and a scan of the blocks over the position (overlapping blocks: every one).
 
 import { axisTotal, elementAt, offsetOf, pieceOffsets, positionAt } from './axis.js';
-import { blockUnits } from './blocks.js';
+import { blockSpan } from './blocks.js';
 import type { ResolvedSection } from './view.js';
 
 type Block = NonNullable<ResolvedSection['blocks']>[number];
@@ -48,12 +48,6 @@ export function blockPositionAt(block: Block, unit: number, side: 'start' | 'end
 /** The element (a whole position) at a section unit on a block, or undefined while it is pending. */
 export function blockElementAt(block: Block, unit: number): number | undefined {
   return elementAt(block.axis, (unit - (block.offset ?? 0)) / blockScaleOf(block));
-}
-
-/** A block's display units in its section (its positions times its scale; a chip one), 0 while pending. */
-export function blockSpan(block: Block): number {
-  const u = blockUnits(block);
-  return u === undefined ? 0 : block.form === 'whole' ? u : u * (block.scale ?? 1);
 }
 
 /** The index of a section's blocks by system: each system's blocks sorted by their least shown position. */
@@ -202,28 +196,4 @@ export function unitOfPlace(section: ResolvedSection, at: SystemPosition, near?:
   if (best !== undefined) return best;
   if (!blocks.length || blocks[0].offset === undefined) return undefined;
   return near === undefined ? 0 : near;
-}
-
-/**
- * Whether two sections show equal block lists: the same systems, ranges, directions and scales in order (_spec/README.md
- * "Resolved view", Places). Such sections follow by identity in units (two sections of one assembly, a ring of the
- * genome and its linear detail); unequal lists do not follow (`seq.render.follow.blocks`).
- */
-export function sameBlocks(a: ResolvedSection, b: ResolvedSection): boolean {
-  const x = a.blocks;
-  const y = b.blocks;
-  if (!x || !y || x.length !== y.length) return false;
-  for (let i = 0; i < x.length; i++) {
-    const p = x[i];
-    const q = y[i];
-    if (p.axis.system !== q.axis.system || p.axis.dir !== q.axis.dir || blockScaleOf(p) !== blockScaleOf(q))
-      return false;
-    if (p.offset !== q.offset || p.form !== q.form) return false;
-    const r = p.axis.ranges;
-    const s = q.axis.ranges;
-    if (r === s) continue;
-    if (!r || !s || r.length !== s.length) return false;
-    for (let k = 0; k < r.length; k++) if (r[k] !== s[k]) return false;
-  }
-  return true;
 }
