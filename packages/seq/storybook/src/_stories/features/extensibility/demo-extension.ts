@@ -23,6 +23,11 @@ interface LollipopsLay {
   readonly prep: LollipopsPrep;
   /** Each item's head centre (x), its stem's top, and its extent's x in view; NaN where out of view. */
   xs: number[];
+  /** Each item's label (its key: the fallback's words) and its measured width, in the muted ink after its head. */
+  labels: string[];
+  widths: number[];
+  font: string;
+  ink: number;
   x0: number[];
   x1: number[];
   stemTop: number;
@@ -60,6 +65,10 @@ export const LollipopsType: LayerType<LollipopsPrep, LollipopsLay> = {
         : {
             prep,
             xs: [],
+            labels: [],
+            widths: [],
+            font: '',
+            ink: 0,
             x0: [],
             x1: [],
             stemTop: 0,
@@ -72,8 +81,13 @@ export const LollipopsType: LayerType<LollipopsPrep, LollipopsLay> = {
             system: '',
           };
     const { box, axis, section, tokens } = ctx;
-    lay.xs.length = lay.x0.length = lay.x1.length = 0;
+    lay.xs.length = lay.x0.length = lay.x1.length = lay.labels.length = lay.widths.length = 0;
+    lay.font = ctx.config.labelFont;
+    lay.ink = tokens.colors['msui-text-muted'];
     for (const it of prep.items) {
+      const label = String(it.key);
+      lay.labels.push(label);
+      lay.widths.push(ctx.text.measure(lay.font, label));
       const a = axis.x(it.start);
       const b = axis.x(it.end);
       const lo = Math.min(a, b);
@@ -95,6 +109,20 @@ export const LollipopsType: LayerType<LollipopsPrep, LollipopsLay> = {
     return lay;
   },
   draw(lay, pass, out) {
+    if (pass === 'labels') {
+      // each head keeps its label (the fallback's words), after the head at its height
+      const g = out.args;
+      for (let i = 0; i < lay.xs.length; i++) {
+        if (Number.isNaN(lay.xs[i])) continue;
+        g[0] = lay.xs[i] + lay.r + 3;
+        g[1] = lay.stemTop + 4;
+        g[2] = lay.widths[i];
+        g[3] = lay.widths[i];
+        g[4] = lay.ink;
+        out.textArgs(lay.labels[i], 0, lay.font);
+      }
+      return;
+    }
     if (pass !== 'data') return;
     const r = lay.r;
     for (const x of lay.xs) {
@@ -143,7 +171,8 @@ export const WarmScheme: SchemeEntry = {
       palette: {
         kind: 'categorical',
         params: {
-          colors: { transactivation: '#d9480f', 'proline-rich': '#f59f00', 'dna-binding': '#c2255c' },
+          // the categories the story's domains have: the legend lists these, never one the view does not show
+          colors: { transactivation: '#d9480f', 'proline-rich': '#f59f00' },
           unlisted: 'hash',
         },
       },
@@ -151,7 +180,7 @@ export const WarmScheme: SchemeEntry = {
   }),
 };
 
-/** The command it adds: shows the sites (focuses their data), from its behavior (which holds the viewer's models). */
+/** The command it adds: zooms to the sites (focuses their data), from its behavior (which holds the viewer's models). */
 export const FocusSites = 'demo:focus-sites';
 
 const DemoBehavior: BehaviorProvider = {
@@ -164,7 +193,7 @@ const DemoBehavior: BehaviorProvider = {
         category: 'Demo',
         run: () => {
           ctx.addresses.focus('/data/sites');
-          return { message: 'The sites are shown' };
+          return { message: 'Zoomed to the sites (S6 to S46)' };
         },
       },
     ],
@@ -176,7 +205,7 @@ export const DemoExtension: SeqViewerExtension = defineViewerExtension({
   id: 'demo',
   version: '0.1.0',
   requires: '0.5',
-  doc: 'Lollipops, a warm scheme, and a command that shows the sites (Alt+double-click).',
+  doc: 'Lollipops, a warm scheme, and a command that zooms to the sites (Alt+double-click).',
   registry: [
     { kind: 'layer-type', type: LollipopsType },
     { kind: 'scheme', scheme: WarmScheme },

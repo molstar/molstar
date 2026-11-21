@@ -18,12 +18,12 @@ export default meta;
  * domains draw in the layer type's default colors since the `demo:warm` scheme is unknown, and the listing under the
  * canvas says both (`seq.view.layer.extension` once for the extension, `seq.render.theme.scheme`). "Register the
  * extension" adds it at run time: the sites become lollipops (short stems: the section's `demo:stems` key), the domains
- * turn warm, the issues go, and Alt+double-click anywhere runs its command (the sites are shown). "Take the extension
+ * turn warm, the issues go, and Alt+double-click anywhere runs its command (it zooms to the sites, S6 to S46). "Take the extension
  * away" is its undo: the fallback and the issues come back.
  */
 export const ToggledAtRunTime: StoryObj = {
   render: () =>
     extensibilityStory({
-      hint: 'A spec that names an extension’s layer type, its key on a section and its scheme, in a viewer without it: the sites are drawn as their fallback (ranges) and the listing says what is missing. Register the extension: the sites become lollipops and the domains warm; Alt+double-click shows the sites. Take it away: the fallback comes back.',
+      hint: 'A spec that names an extension’s layer type, its key on a section and its scheme, in a viewer without it: the sites are drawn as their fallback (ranges) and the listing says what is missing. Register the extension: the sites become lollipops (each keeps its label) and the domains warm; Alt+double-click zooms to the sites, S6 to S46. Take it away: the fallback comes back.',
     }),
 };
