@@ -22,7 +22,11 @@ export function geneModelsSpec(): Node {
   b.views.view('main', (v) => {
     const s = v.section('chr1', { of: chr });
     s.track('ruler', { label: '' }).layer('ruler', { type: 'ruler', units: 'bases' });
-    s.track('tx', { label: 'Transcripts' }).layer('tx', { type: 'ranges', data: tx, line: 'gene' } as never);
+    s.track('tx', { label: 'Transcripts', height: 120 } as never).layer('tx', {
+      type: 'ranges',
+      data: tx,
+      line: 'gene',
+    } as never);
   });
   return b.build();
 }
