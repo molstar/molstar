@@ -16,10 +16,17 @@ export default meta;
 
 /**
  * A section a chain of the prediction (CDK2 P24941, cyclin A2 P20248) and the synthetic predicted aligned error between
- * them as a grid: its x follows CDK2's section, its y cyclin A's, so zooming either chain zooms that axis of the plot.
+ * them (AlphaFold DB's colors; no real one of the complex exists to show) as a grid: its x follows CDK2's section, its y cyclin A's, so zooming either chain zooms that axis of the plot.
  * 1FIN's contacts are dots on it. Hover a cell: a crosshair, and both residues lit in their sections.
  */
 export const Pae: StoryObj = { render: () => exampleStory(view('pae')) };
+
+/**
+ * CDK2's own PAE, real values as AlphaFold DB publishes them (AF-P24941-F1, model version 6), in the colors of AlphaFold
+ * DB's plot: open https://alphafold.ebi.ac.uk/entry/P24941 beside it to compare. Hover a cell: both residues light in
+ * the sections (x the aligned residue, as in AlphaFold DB's plot).
+ */
+export const Cdk2Monomer: StoryObj = { render: () => exampleStory(view('pae-monomer')) };
 
 /**
  * The PAE over the whole complex (synthetic, AlphaFold-shaped): the chains side by side as blocks, the plot following

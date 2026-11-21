@@ -40,6 +40,8 @@ import {
   Lengths,
   prediction,
 } from '../complex/data.js';
+import { cdk2Pae } from '../complex/pae-monomer.js';
+import { AlphaFoldPae } from '../complex/pae.js';
 import { cellReadout, readoutWants, rectReadout } from '../complex/readout.js';
 import { nodeFixtureAssets, PackageFolder } from '../node-assets.js';
 import { ComplexViews } from '../views.js';
@@ -442,5 +444,26 @@ describe('the Complex views over the grid builder', () => {
 
   it('the fixtures’ locations are the files', () => {
     for (const f of Object.values(Files)) expect(sources.some((r) => `fixtures/${r.file}` === f)).toBe(true);
+  });
+});
+
+describe('CDK2’s PAE from AlphaFold DB (real)', () => {
+  it('is the fixture’s matrix, whole, in AlphaFold DB’s colors over its maximum', () => {
+    const doc = JSON.parse(
+      readFileSync(join(PackageFolder, 'fixtures/complex/AF-P24941-F1-predicted_aligned_error_v6.json'), 'utf8'),
+    );
+    const rows = doc[0].predicted_aligned_error as number[][];
+    expect(rows.length).toBe(Lengths.cdk2);
+    expect(Array.from(cdk2Pae())).toEqual(rows.flat());
+    // the plot's palette: Greens reversed, dark green at 0 to near white; domain AlphaFold DB's max
+    expect([AlphaFoldPae[0], AlphaFoldPae[8]]).toEqual(['#00441b', '#f7fcf5']);
+    expect(doc[0].max_predicted_aligned_error).toBe(31.75);
+  });
+
+  it('is a view of its own, labeled as AlphaFold DB’s (no synthetic value in its plot)', () => {
+    const view = ComplexViews.find((v) => v.id === 'pae-monomer')!;
+    const text = JSON.stringify(view.build());
+    expect(text).toContain('AlphaFold DB v6');
+    expect(text).not.toContain('synthetic');
   });
 });
