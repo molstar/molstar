@@ -145,13 +145,22 @@ const BlockSection: CardSection = {
       if (copy) out.row('Copy', copy);
       out.words.push(`${which.toLowerCase()} ${block.label}${copy ? `, ${copy}` : ''}`);
     };
+    // the row is named by the block's system: an assembly's sequence (a chromosome, a contig) is a sequence, a
+    // complex's unit or a chain's sequence a chain
+    const name = blockKindName(at.model, blocks[k].axis.system);
     const y = at.place.yBlock;
     if (y !== undefined && y !== k) {
-      say(k, 'Chain x');
-      say(y, 'Chain y');
-    } else say(k, 'Chain');
+      say(k, `${name} x`);
+      say(y, `${blockKindName(at.model, blocks[y].axis.system)} y`);
+    } else say(k, name);
   },
 };
+
+/** What a block's row is called by its system: `Sequence` for an assembly's derived sequence, else `Chain`. */
+function blockKindName(model: StaticModel, system: string): string {
+  const at = system.lastIndexOf('/(sequence ');
+  return at > 0 && model.assemblies.has(system.slice(0, at)) ? 'Sequence' : 'Chain';
+}
 
 /** A pairs layer's pair: its label, its two ends, its kind. */
 const PairSection: CardSection = {

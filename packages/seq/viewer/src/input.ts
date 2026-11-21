@@ -888,11 +888,18 @@ export class ViewerInput {
     // jump to its two residues; on a grid whose y follows x the point keeps its place on x, y following
     const cell = inPlot && at >= 0;
     const atY = cell ? this.offsetYAt(section, x, y) : undefined;
+    // on a block with nothing under the point (its label, its band's ground) or only a position (a ruler, letters, a
+    // value: no item to focus): fit it, and from that fit the whole (`navigator.doubleClick: toggle-fit`, one level
+    // deeper; never a zoom to one base of a chromosome)
+    const positional = !!hit && !hit.element && !hit.extent && !hit.hull;
     const hull = hit ? this._focusOf(section, hit) : undefined;
-    // on a block with nothing under the point (its label, its band's ground): fit it, and from that fit the whole
-    // (genome coordinates: "double-click on a block's label: fit to it, again: the whole")
-    const block = !hull && !cell && action === 'view.fit' ? this._blockFit(section, p, x, y) : undefined;
-    if (block) {
+    const block =
+      !cell && ((!hull && action === 'view.fit') || positional) ? this._blockFit(section, p, x, y) : undefined;
+    if (block === 'whole' && positional) {
+      this.viewer.runCommand('view.fit', { section });
+      return true;
+    }
+    if (block && block !== 'whole') {
       this.viewer.runCommand('view.focus', { section, focus: block });
       return true;
     }
@@ -954,15 +961,15 @@ export class ViewerInput {
   }
 
   /**
-   * The units of the block under a point of a row of blocks (its strip, or a run's block), unless the window shows it
-   * already (then a fit of the whole); undefined elsewhere.
+   * The units of the block under a point of a row of blocks (its strip, or a run's block), `whole` when the window
+   * shows it already (then a fit of the whole); undefined elsewhere.
    */
   private _blockFit(
     section: string,
     p: Placement | undefined,
     x: number,
     y: number,
-  ): { start: number; end: number } | undefined {
+  ): { start: number; end: number } | 'whole' | undefined {
     const s = this.viewer.view.resolved.value?.sections.find((v) => v.address === section);
     if (!s?.blocks || !(p instanceof BlockPlacement) || p.stacked) return undefined;
     const pt = this._point;
@@ -974,7 +981,7 @@ export class ViewerInput {
     const end = start + blockSpan(block);
     const r = p.row;
     // already this block (within a unit either side): the whole, as a fit
-    if (Math.abs(r.u0 - start) <= 1 && Math.abs(r.u1 - end) <= 1) return undefined;
+    if (Math.abs(r.u0 - start) <= 1 && Math.abs(r.u1 - end) <= 1) return 'whole';
     return { start, end };
   }
 

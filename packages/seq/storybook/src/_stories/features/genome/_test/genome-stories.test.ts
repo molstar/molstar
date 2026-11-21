@@ -6,6 +6,7 @@
 
 import { createSeqContext } from '@molstar/seqx-core/context/default';
 import { type BlockPlacement, DarkTokens, LightTokens, type RingPlacement } from '@molstar/seqx-core/render';
+import { Describer } from '@molstar/seqx-viewer/describe';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { loadGenome } from '@molstar/seqx-core/resolve';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -106,6 +107,50 @@ describe('Genome coordinates stories, headless', () => {
     expect(v.frame!.layout.sections[0].axis!.u1 - v.frame!.layout.sections[0].axis!.u0).toBe(total);
   });
 
+  it('One assembly in a row: a double-click on a block’s ruler fits the block, again the whole (never one base)', async () => {
+    const v = await open('row');
+    const s = v.frame!.layout.sections[0];
+    const p = s.placement as BlockPlacement;
+    const a = p.strips.axes[2];
+    const x = a.x0 + a.width / 2;
+    // on the ruler's band: a position under the point, no item
+    const y = p.strips.bandY[0] + 4;
+    expect(v.hit(x, y)?.element).toBeUndefined();
+    const total = s.axis!.u1 - s.axis!.u0;
+    const chr3 = s.section.blocks![2];
+    v.input.doubleClick(x, y);
+    await vi.advanceTimersByTimeAsync(1000);
+    v.draw();
+    const fitted = v.frame!.layout.sections[0].axis!;
+    expect([fitted.u0, fitted.u1]).toEqual([chr3.offset, chr3.offset! + chr3.axis.ranges![1]]);
+    const p2 = v.frame!.layout.sections[0].placement as BlockPlacement;
+    v.input.doubleClick(fitted.x0 + fitted.width / 2, p2.strips.bandY[0] + 4);
+    await vi.advanceTimersByTimeAsync(1000);
+    v.draw();
+    const back = v.frame!.layout.sections[0].axis!;
+    expect(back.u1 - back.u0).toBe(total);
+  });
+
+  it('B in A’s order: the hover card names a block’s row by its system (a sequence, never a chain)', async () => {
+    const v = await open('b-in-a-order');
+    const s = v.frame!.layout.sections[1];
+    const owner = {};
+    v.hover.set(
+      { section: s.section.address, system: s.section.blocks![2].axis.system, position: 5e7, block: 2 } as never,
+      owner,
+    );
+    const card = new Describer({
+      spec: v.spec,
+      store: v.store,
+      addresses: v.addresses,
+      view: v.view,
+      layout: () => v.frame?.layout,
+    }).describe(v.hover.current);
+    v.hover.clear(owner);
+    expect(card?.rows).toContainEqual({ label: 'Sequence', value: 'chr2 inv' });
+    expect(card?.rows.some((r) => r.label === 'Chain')).toBe(false);
+  });
+
   it('One assembly on a ring: its title, and the detail following its window with no issue', async () => {
     const v = await open('ring');
     const [ring, detail] = v.frame!.layout.sections;
@@ -128,6 +173,23 @@ describe('Genome coordinates stories, headless', () => {
     const p = v.frame!.layout.sections[0].placement as RingPlacement;
     expect(p.groupN).toBe(2);
     expect(p.title).toBe('peach · grape');
+    // each group's name past the arcs and the block labels: its box meets no placed label and stays off the arcs
+    // ("peach" and "grape" straddled their arcs among the block labels)
+    for (let k = 0; k < p.groupN; k++) {
+      const [cx, cy] = [p.groupTX[k], p.groupTY[k]];
+      const w = 6.7 * p.groupText[k].length;
+      const h = p.titleSize;
+      const nx = Math.max(cx - w / 2, Math.min(p.cx, cx + w / 2)) - p.cx;
+      const ny = Math.max(cy - h / 2, Math.min(p.cy, cy + h / 2)) - p.cy;
+      expect(Math.hypot(nx, ny), p.groupText[k]).toBeGreaterThan(p.r + 3);
+      for (let q = 0; q < p.labels.m; q++) {
+        const lx = p.labels.right[q] ? p.labels.x[q] : p.labels.x[q] - p.labels.width[q];
+        const ly = p.labels.y[q] - 0.35 * p.labelSize;
+        const meets =
+          lx < cx + w / 2 && lx + p.labels.width[q] > cx - w / 2 && ly - 6 < cy + h / 2 && ly + 6 > cy - h / 2;
+        expect(meets, `${p.groupText[k]} over label ${q}`).toBe(false);
+      }
+    }
     const r = await exported(v, false);
     expect(r.svg).toContain('data-assembly="/data/peach"');
     expect(r.svg).toContain('data-assembly="/data/grape"');

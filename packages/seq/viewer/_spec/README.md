@@ -823,8 +823,10 @@ binding table; per move one hit record and one modifiers record are reused.
   idle rail is no target: the press falls through to the ruler (on an alignment's columns, a column pick above the grab
   zone).
 - **A double-click on a block** of a row with nothing under the point (its label, its band's ground; where the binding
-  is a fit) fits that block (`view.focus` with its units), and from that fit the whole (genome coordinates' "fit to it,
-  again: the whole").
+  is a fit) or only a position (a ruler, letters, a value: no item to focus) fits that block (`view.focus` with its
+  units), and from that fit the whole (`toggle-fit`, one level deeper: never a zoom to one base of a chromosome). An
+  item under the point is focused as anywhere. The hover card names a block's row by its system: `Sequence` for an
+  assembly's sequence (a chromosome, a contig), else `Chain`.
 - **The rows rail** (`RowsRailGesture`, `behaviors/rows-rail.ts`): a press on its grab zone, in display rows at the
   rail's scale (`railUnitAt` of the page's y): its body scrolls the rows (`bandTop`, clamped to the last rows), a grip
   zooms them about the other end, which stays (`rowScale` within the rows' bounds, core's `MinRowScale` to

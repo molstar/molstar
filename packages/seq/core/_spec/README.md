@@ -2951,9 +2951,10 @@ numbers): a window move allocates nothing once warm.
   per strip, and on a ring it runs counterclockwise within its arc. Its label says it (`blockLabel`): the direction mark
   `←` where it reads right to left (`axis.directionMark`), `×N` where its scale is not 1 (`chr4 ←`, `chr17 ×10`). In a
   row a label is whole, else its name cut keeping at least six letters with the mark and scale whole after it, else
-  hidden (`fitBlockLabel`: "c…" says nothing); its strings made once per resolved block. A block's ruler takes ticks as
-  close as half its width (at least 24 px, at most `ruler.labelGap`), so a block a few labels wide still counts its own
-  positions.
+  hidden (`fitBlockLabel`: "c…" says nothing); a name of words may keep its first words whole instead, however short
+  (`chr2 inv ←` as `chr2… ←`, at the least `chr2 ←`); its strings made once per resolved block. A block's ruler takes
+  ticks as close as half its width (at least 24 px, at most `ruler.labelGap`), so a block a few labels wide still counts
+  its own positions.
 - **Gaps at scale, one rule for rows and rings** (EC-102): the gaps in view share at most `blocks.gapShare` of the row
   (`rings.gapShare` of the circle), each at most the layout's gap (12 px; `rings.blockGap`, 1°), so
   `gap = min(max, share × length / gaps in view)` with no floor: at 3,000 blocks a ring's gaps are 0.03° each and three
@@ -2970,10 +2971,12 @@ numbers): a window move allocates nothing once warm.
   under a device pixel a block's data is more requests than pixels; pairs survive through their other end (RR).
 - **Groups** (a section of several assemblies, EC-210): a row draws a bracket a group under its tracks (a hairline, a
   tick at each end, the assembly's name below, `msui-text` on `msui-text-muted`); a ring an arc just outside its outer
-  ring and the name upright in a band of its own there (`RingMetrics.groupBand`, 16 px, the label font in `msui-text`),
-  the block labels and their leaders starting past it, so the two never collide; the ring's hole the assemblies' names
-  and their total length in bases (`3.1 Gb`). **The closing run** past `maxAssemblyBlocks` is said at the row's end
-  under its tracks ("+96,312 sequences not shown") and in a ring's subtitle.
+  ring (the block labels and their leaders starting past a band of `RingMetrics.groupBand`, 16 px) and the name upright
+  in the label font in `msui-text`, at the arc's middle angle, out along it to the first place its box meets no placed
+  block label, no other name and no arc (the ring keeps as much again of room outside its labels for it), so a name
+  never sits over an arc or among the block labels; the ring's hole the assemblies' names and their total length in
+  bases (`3.1 Gb`). **The closing run** past `maxAssemblyBlocks` is said at the row's end under its tracks ("+96,312
+  sequences not shown") and in a ring's subtitle.
 - **Follow**: sections whose block lists are equal (`sameBlocks`: systems, ranges, directions, scales in order) follow
   by identity in units: the follower's window is the leader's (a ring of the genome and its linear detail, two sections
   of one assembly). A section of blocks on more than one system with an unequal list neither follows nor is followed

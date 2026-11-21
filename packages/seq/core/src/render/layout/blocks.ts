@@ -72,6 +72,8 @@ interface LabelParts {
   readonly suffix: string;
   /** Its name cut to `n` letters with the suffix, by `n`: made once. */
   readonly cuts: string[];
+  /** Its name cut at a word's end (`at` a space) with an ellipsis and the suffix, by `at`; `[0]` its first word bare. */
+  readonly words: string[];
 }
 const Labels = [new WeakMap<ResolvedBlock, LabelParts>(), new WeakMap<ResolvedBlock, LabelParts>()];
 
@@ -82,7 +84,7 @@ function labelParts(block: ResolvedBlock, marked: boolean): LabelParts {
   const mark = marked && block.axis.dir === -1 ? ' ←' : '';
   const scale = block.scale !== undefined && block.scale !== 1 ? ` ×${+block.scale.toPrecision(3)}` : '';
   const suffix = mark + scale;
-  l = { whole: suffix ? `${block.label}${suffix}` : block.label, suffix, cuts: [] };
+  l = { whole: suffix ? `${block.label}${suffix}` : block.label, suffix, cuts: [], words: [] };
   kept.set(block, l);
   return l;
 }
@@ -104,8 +106,17 @@ export function fitBlockLabel(text: TextMetrics, config: RenderConfig, block: Re
   if (name.length <= keep) return '';
   const room = w - (l.suffix ? text.measure(font, l.suffix) : 0);
   const cut = room > 0 ? longestCut(text, font, name, room, keep) : 0;
-  if (!cut) return '';
-  return l.suffix ? (l.cuts[cut] ??= `${cutLabel(name, cut)}${l.suffix}`) : cutLabel(name, cut);
+  if (cut) return l.suffix ? (l.cuts[cut] ??= `${cutLabel(name, cut)}${l.suffix}`) : cutLabel(name, cut);
+  // a name of words keeps its first words whole, however short (`chr2 inv ←` as `chr2… ←`, at the least `chr2 ←`): a
+  // word says what six letters of a word would; the mark and scale whole after it
+  for (let at = name.lastIndexOf(' '); at >= Math.max(1, config.labels.minChars); at = name.lastIndexOf(' ', at - 1)) {
+    const s = (l.words[at] ??= `${name.slice(0, at)}…${l.suffix}`);
+    if (text.measure(font, s) <= w) return s;
+  }
+  const first = name.indexOf(' ');
+  if (first < Math.max(1, config.labels.minChars)) return '';
+  const s = (l.words[0] ??= `${name.slice(0, first)}${l.suffix}`);
+  return text.measure(font, s) <= w ? s : '';
 }
 
 /** A count as a run's label says it ("2,841 contigs"). */

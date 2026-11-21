@@ -170,6 +170,12 @@ describe('a block’s own direction and scale (EC-206)', () => {
     const w = text.measure(config.labelFont, 'HLA-A*01… ←') + 0.5;
     expect(fitBlockLabel(text, config, long, w)).toBe('HLA-A*01… ←');
     expect(fitBlockLabel(text, config, { ...block, label: 'chr10' }, 20)).toBe('');
+    // a name of words keeps its first word whole with the mark (B in A's order's `chr2 inv ←` in a 34 px block showed
+    // nothing though `chr2 ←` fits)
+    const words = { ...block, label: 'chr2 inv' };
+    expect(fitBlockLabel(text, config, words, text.measure(config.labelFont, 'chr2 ←') + 0.5)).toBe('chr2 ←');
+    expect(fitBlockLabel(text, config, words, text.measure(config.labelFont, 'chr2… ←') + 0.5)).toBe('chr2… ←');
+    expect(fitBlockLabel(text, config, words, text.measure(config.labelFont, 'chr2 ←') - 1)).toBe('');
   });
 
   it('draws against the data on a reversed and a scaled block: each feature hit at its place (EC-206)', async () => {
