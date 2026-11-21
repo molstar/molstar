@@ -20,7 +20,11 @@ export default meta;
  * never asked for the file again.
  */
 export const PlasmidSaved: StoryObj = {
-  render: () => archiveStory(view('plasmid'), 'The plasmid view, saved with its data and opened from the archive.'),
+  render: () =>
+    archiveStory(
+      view('plasmid'),
+      'The plasmid view, saved with its data and opened from the archive. “Save the archive” downloads the zip; “Open an archive…” draws the view from a zip you pick (the one you saved, or another) and lists it.',
+    ),
 };
 
 /** p53 on its gene: the gene’s file is the entry the spec’s source names, under the path it had. */
@@ -37,4 +41,10 @@ export const P53OnItsGeneSaved: StoryObj = {
  * zeros in a few hundred bytes by its ratio, more entries than the bound by the count: each before anything is
  * inflated, with the issue the reader gives.
  */
-export const Refused: StoryObj = { render: () => refusalStory(HostileArchives) };
+export const Refused: StoryObj = {
+  render: () =>
+    refusalStory(
+      HostileArchives,
+      'Four archives a reader refuses, each before anything is inflated: a path above the root, an absolute path, a megabyte of zeros in a few hundred bytes, and more entries than the bound. Under each, what the reader says.',
+    ),
+};

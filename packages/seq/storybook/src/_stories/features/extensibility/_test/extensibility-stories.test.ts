@@ -69,8 +69,11 @@ describe('the Extensibility story', () => {
     for (const site of ['S6', 'S15', 'S33', 'S46']) expect(withIt.svg).toContain(site);
     expect(recordDrawLists(v.frame!.lists, ['labels'])).toContain('"S6"');
     const domains = v.legends.legends.value.find((l) => l.title === 'Domains')!;
-    expect(domains.entries).toMatchObject({ items: [{ label: 'transactivation' }, { label: 'proline-rich' }] });
-    expect((domains.entries as { items: unknown[] }).items).toHaveLength(2);
+    expect(domains.entries.kind).toBe('swatches');
+    expect(domains.entries.kind === 'swatches' ? domains.entries.items.map((i) => i.label) : []).toEqual([
+      'transactivation',
+      'proline-rich',
+    ]);
     // the binding runs the extension's command
     expect(v.bindings.resolve('double-click', { alt: true }, 'cell')).toBe(FocusSites);
     expect(v.runCommand(FocusSites, {})).toBe('Zoomed to the sites (S6 to S46)');
