@@ -268,7 +268,7 @@ function drawSelectionTint(
   Paint[3] = 1;
   Paint[4] = 0;
   Paint[5] = 0;
-  paintRanges(out, axis, box, part, config);
+  paintRanges(out, axis, boxed(box), part, config);
 }
 
 /**
@@ -295,7 +295,7 @@ function drawSelectionOutline(
   Paint[3] = 1;
   Paint[4] = 0;
   Paint[5] = 0;
-  paintRanges(out, axis, box, part, config);
+  paintRanges(out, axis, boxed(box), part, config);
 }
 
 /**
@@ -321,10 +321,22 @@ function drawProjectedHover(
   Paint[3] = 1;
   Paint[4] = config.emphasis.hoverOffset;
   Paint[5] = 0;
-  paintRanges(out, axis, box, part, config);
+  paintRanges(out, axis, boxed(box), part, config);
 }
 
-const HoverMark: HitMark = { x: 0, y: 0, width: 0, height: 0 };
+/**
+ * The mark an extension's type writes its hovered item's bounds into: an instance of its own class (an object literal
+ * of this shape shares its map with every other such literal, whose fields may hold other values: a number written into
+ * one is then boxed, a warm hover allocating).
+ */
+class MarkBox implements HitMark {
+  x = 0.5;
+  y = 0.5;
+  width = 0.5;
+  height = 0.5;
+  radius = 0.5;
+}
+const HoverMark: HitMark = new MarkBox();
 
 /**
  * The hover of an item of an extension's layer type (_spec/README.md "Render", Emphasis): the outline around the mark
@@ -381,6 +393,18 @@ class StripeBox implements Box {
   height = 0;
 }
 const Stripe = new StripeBox();
+/**
+ * A box copied into one of `paintRanges`' own (a strip's box, a stripe): it reads one class of box, so its loads stay
+ * monomorphic and a warm redraw boxes no number (a load merged over boxes of several shapes did, 16 bytes a call).
+ */
+const PaintBox = new StripeBox();
+function boxed(box: Box): Box {
+  PaintBox.x = box.x;
+  PaintBox.y = box.y;
+  PaintBox.width = box.width;
+  PaintBox.height = box.height;
+  return PaintBox;
+}
 /** The one `[start, end)` range of a highlight run, as a part (reused). */
 const RunRanges = new Int32Array(2);
 const RunPart: LocationPart = { system: '', ranges: RunRanges };
