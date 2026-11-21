@@ -6,6 +6,11 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
 
 ## Open
 
+- **The 3,000-contig story could be faster** (the author, 2026-11-21, on packages-seq's build: "better perf ... although
+  still could be faster"): my measure, 40 hover steps along the row each drawn within two frames (about 33 ms, no
+  drops). Take it at M5: profile hover and pan on three-thousand-contigs (ring and row), find the per-frame cost, and
+  set a bound in the perf tier.
+
 - **A ring's own hover draws no mark** (the author, 2026-11-21, three-thousand-contigs): hovering the ring shows the
   card but no position box on the ring, while hovering the row draws it there; sent to FX2 as its item 9.
 
