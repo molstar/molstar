@@ -71,6 +71,18 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   itself comes into the slice (the author, 2026-11-21: "Add a GenBank lane"; plan, GB): after GB, "Try pUC19.gb"
   loads the recorded GenBank file and `.gb` leaves the refused list; until then the button goes.
 
+- **The canvas and the SVG of one spec lay out differently** (the author, 2026-11-21, tRNA › Views › Seed and chain:
+  "seems like a layout issue. the canvas is big, svg small"). Same spec, two sizes: on the canvas the seed's rows band
+  grows to every row (the page scrolls, the 1EHZ chain track pushed out of sight below it); on the SVG the band stops
+  at about twelve rows with its own scroll and 1EHZ shows under it. In both, the first row is half hidden under the
+  Conservation track (its top cut). The two renderers are twins over one layout (core `_spec`, Render); one of them
+  takes a different height: likely the story frame giving the canvas its content's height and the SVG a fixed one,
+  or the rows band's cap read on one side only. A class, by the rule above (fold-back B2): **the twin sweep**, one
+  test (medium lane) over every story's spec, laying it out for the canvas and for the SVG at the same frame size and
+  asserting every section's, track's and band's box equal (and the scroll state), so a story frame or a renderer that
+  sizes on its own fails at once. With it the rows band's height follows the track-sizing design (content height to a
+  cap, then its own scroll; the item below), the same on both, and the first row starts below the track above it.
+
 - **The hover card: placement, wrapping, and the density row's missing highlight** (the highlight part closed by the hover contract above; the author, 2026-11-21, Files ›
   UniProt entry: "hovering the bottom 'regions' … is missing a highlight", "the hover placement is quite
   inconsistent"):
