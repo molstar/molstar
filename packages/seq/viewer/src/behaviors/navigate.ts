@@ -17,6 +17,7 @@ import { type BindingTable, type KeyChord, type ModifierState, parseChord } from
 import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
 import type { Location } from '@molstar/seqx-core/query';
 import { blockSpan } from '@molstar/seqx-core/view';
+import { blockOfUnit, blockSwitchRange } from '@molstar/seqx-viewer/block-switch';
 import type { HitTarget, ViewModel } from '@molstar/seqx-viewer/models';
 
 /**
@@ -198,20 +199,20 @@ export function navigateBehavior(
 
   /**
    * The next or the previous block of a row (`block.next`, `block.previous`; genome coordinates): from the block holding
-   * the window's centre, a jump fitting that block (a step of the history); none past the last or before the first.
+   * the window's centre, a jump to that block by the switching rule (`blockSwitchRange`: from a block shown whole the
+   * next whole, zoomed in the same width at the same relative place; a step of the history); none past the last or
+   * before the first.
    */
   const blockStep = (section: string, dir: 1 | -1): boolean | string => {
     const blocks = rowBlocks(section);
     const v = view.get(section);
     if (!blocks || !v) return false;
-    const c = (v.start + v.end) / 2;
-    let b = 0;
-    while (b + 1 < blocks.length && (blocks[b + 1].offset ?? 0) <= c) b++;
+    const b = blockOfUnit(blocks, (v.start + v.end) / 2);
     let n = b + dir;
     while (n >= 0 && n < blocks.length && !(blockSpan(blocks[n]) > 0)) n += dir;
     if (n < 0 || n >= blocks.length) return dir > 0 ? 'At the last block' : 'At the first block';
-    const start = blocks[n].offset ?? 0;
-    return view.jump(() => view.setRange(section, start, start + blockSpan(blocks[n])), true, 'move') !== 'none';
+    const r = blockSwitchRange(blocks, v, n, v.width > 0 ? (v.end - v.start) / v.width : 0);
+    return view.jump(() => view.setRange(section, r[0], r[1]), true, 'move') !== 'none';
   };
   const hasBlocks = (ctx: NavigateContext): true | string => {
     const m = movable(ctx);

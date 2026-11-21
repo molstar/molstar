@@ -26,7 +26,16 @@ import type { TextMetrics } from '../text.js';
 import type { SeqTokens } from '../tokens.js';
 import type { SectionLayout } from '../tracks.js';
 import { drawWindowArgs, floorExtent, WindowFill, windowPart } from '../window.js';
-import { blockLabel, blockLength, chipSlots, isChip, type ResolvedBlock, runLabel } from './blocks.js';
+import {
+  blockLabel,
+  blockLength,
+  blockNamePrefix,
+  chipSlots,
+  isChip,
+  type ResolvedBlock,
+  runLabel,
+  shortBlockLabel,
+} from './blocks.js';
 import { PlacePoint, Strips, WarpKind } from './strips.js';
 import { clampWindow, TracksNav } from './tracks.js';
 import type { NavContext, Placement, PlaceContext, SectionLayoutType, SectionNav } from './types.js';
@@ -724,6 +733,7 @@ export const RingsLayout: SectionLayoutType<RingPlacement> = {
       first += len;
     }
     // the strips' layers, their labels into the sink (placed below, once the ring is laid out)
+    const prefix = blocks ? blockNamePrefix(blocks) : '';
     for (let i = 0; i < strips.n; i++) {
       Sink.at(p, i);
       const pill = ctx.layStrip(p, i, outside ? Sink : undefined);
@@ -732,7 +742,11 @@ export const RingsLayout: SectionLayoutType<RingPlacement> = {
       const b = blocks?.[bi];
       if (b && outside && !pill && !(runs && runs[bi] >= 0)) {
         const a = strips.axes[i];
-        p.labels.add(blockLabel(b, config), angleOf(p, a.x0 + a.width / 2), Infinity, -1, undefined);
+        // whole where its arc holds it, else short (its name less the names' shared prefix: `11`, `X`), as a row's
+        const whole = blockLabel(b, config);
+        const short =
+          whole && ctx.text.measure(config.labelFont, whole) > a.width ? shortBlockLabel(b, config, prefix) : '';
+        p.labels.add(short || whole, angleOf(p, a.x0 + a.width / 2), Infinity, -1, undefined);
       }
     }
     // a run's label where it has room, then the groups' names outside the labels (EC-210)

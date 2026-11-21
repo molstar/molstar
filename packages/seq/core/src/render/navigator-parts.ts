@@ -128,7 +128,9 @@ export function pictureOf(
   if (zoom > 0) {
     const z = { ...ctx, height: zoom, zoom: true };
     const strip = entry.picture(z) ?? AxisPicture.picture(z)!;
-    sections.push({ kind: 'section', id: ZoomId, params, children: [...blocks, ...strip.tracks] });
+    // over blocks the strip has no label row (its context names the blocks, its mark the span): its height the track's
+    const zp = nav.blocks ? { ...params, labels: 'none' } : params;
+    sections.push({ kind: 'section', id: ZoomId, params: zp, children: [...blocks, ...strip.tracks] });
   }
   const viewNode: Node = { kind: 'view', id: nav.id, params: { layout: 'tracks' }, children: sections };
   // with the composition's layer kinds: a picture's track of an extension's type is drawn as that type
@@ -278,13 +280,6 @@ export function partOf(
 }
 
 export type Block = NonNullable<ResolvedSection['blocks']>[number];
-
-/** A window's x over blocks, on the work section and the context (scratch). */
-export const BlockXs = new Float64Array(4);
-
-/** Scratch for the places of a position (the cursor over blocks): allocation-free. */
-export const PlaceBlocks = new Int32Array(64);
-export const PlaceUnits = new Float64Array(64);
 
 /**
  * The block holding a section unit (the last starting at or before it); on a block's edge as a `start` the next one, as

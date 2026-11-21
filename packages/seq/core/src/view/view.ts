@@ -415,8 +415,11 @@ export interface ResolvedNavigator {
   readonly blocks?: true;
   /** The assemblies `system` names (one or a list), the picture `of` them; absent: the bound section's blocks. */
   readonly assemblies?: readonly string[];
-  /** `navigator.switch` (`none`, the default; `include`: a click on a block runs `section.include` on the bound section). */
-  readonly switch: 'none' | 'include';
+  /**
+   * `navigator.switch: include` (a click on a block runs `section.include` on the bound section); absent: `none`, the
+   * default (optional: a host's own navigator record needs none).
+   */
+  readonly switch?: 'include';
 }
 
 export interface ResolvedView {
@@ -934,7 +937,7 @@ export function resolveNavigatorNode(
     paths,
     ...(blocks ? { blocks: true as const } : {}),
     ...(assemblies ? { assemblies } : {}),
-    switch: param(n, 'switch') === 'include' ? 'include' : 'none',
+    ...(param(n, 'switch') === 'include' ? { switch: 'include' as const } : {}),
   };
 }
 

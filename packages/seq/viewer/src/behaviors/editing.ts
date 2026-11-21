@@ -11,6 +11,7 @@
 // move), that ends in one patch (`endPreview`) or nothing (`cancelPreview`, Esc).
 
 import { collapsedSection } from '@molstar/seqx-core/render';
+import { blockOverridesOf } from '@molstar/seqx-core/view';
 import type { Op, Patch } from '@molstar/core/repr/patch';
 import { type Node, resolveAddress, type Value } from '@molstar/core/repr/tree';
 import type { CommandDefinition, CommandResult } from '@molstar/ui/commands/types';
@@ -200,7 +201,11 @@ export function editingBehavior(spec: SpecModel, axis?: AxisReaders): EditingBeh
     const section = nodeOf(root, sectionAt, 'section');
     if (!section) return undefined;
     const system = found.block.axis.system;
-    const own = (section.children ?? []).find((c) => c.kind === 'block' && c.params?.of === system && c.id);
+    // the override already written, however spelled (its `of` an alias or a sequence's form, or its id the name): the
+    // last one, the one that applies (core's blockOverridesOf, the rule the blocks are derived by)
+    const own = blockOverridesOf(spec.model.value, section, system)
+      .filter((c) => c.id !== undefined)
+      .pop();
     if (own) return [flip([...ids(sectionAt), own.id!], own)];
     const taken = new Set((section.children ?? []).map((c) => c.id));
     const base = `reversed_${found.block.label.replace(/[^A-Za-z0-9_]/g, '_')}`;

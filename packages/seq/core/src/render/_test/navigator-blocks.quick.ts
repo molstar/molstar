@@ -28,8 +28,11 @@ beforeAll(async () => {
 });
 
 /** The genome with its navigator, and four view layouts of windows `w` units wide moving across chr3 into chr4. */
-async function navigatorOver(w: number) {
-  const spec = () => withNavigator(genomeSpec(toyGenome(25, 0)), { of: Section, axes: 'positions', content: 'axis' });
+async function navigatorOver(w: number, turned = false) {
+  // turned: chr3 reversed and chr4 at twice its length (the window moves across a reversed block into a scaled one)
+  const options = turned ? { reversed: ['chr3'], scaled: { chr4: 2 } } : {};
+  const spec = () =>
+    withNavigator(genomeSpec(toyGenome(25, 0), options), { of: Section, axes: 'positions', content: 'axis' });
   const s = await settleNavigator(spec());
   const gap = s.view.sections[0].blocks![3].offset!;
   const views: ViewLayout[] = [];
@@ -84,8 +87,23 @@ describe('a navigator over 25 chromosomes moves its window with nothing allocate
     console.info(
       `navigator over blocks, zoom strip: ${r.bytesPerStep.toFixed(0)} bytes, ${ms.toFixed(3)} ms (${r.note})`,
     );
-    // measured 16 B a frame (one number boxed on the strip's path, not found yet: TODO), bounded here
-    expect(r.bytesPerStep, r.note).toBeLessThanOrEqual(Math.max(inject('perfThreshold'), 32));
+    // 16 B a frame were the mark's `wraps` read through a getter returning the genome's total (boxed): inline now
+    expect(r.bytesPerStep, r.note).toBeLessThanOrEqual(inject('perfThreshold'));
     expect(ms).toBeLessThanOrEqual(0.5);
+  });
+
+  it('over a reversed and a scaled block (chr3 reversed, chr4 ×2), with and without the zoom strip', async ({
+    task,
+  }) => {
+    for (const w of [3e8, 2e6]) {
+      const { s, inputs } = await navigatorOver(w, true);
+      const { r } = quickCase(task, `navigator over turned blocks ${w}`, (i) => s.nav.frame(inputs[i & 3]), {});
+      const ms = msPerFrame((i) => s.nav.frame(inputs[i & 3]));
+      console.info(
+        `navigator over turned blocks (${w}): ${r.bytesPerStep.toFixed(0)} bytes, ${ms.toFixed(3)} ms (${r.note})`,
+      );
+      expect(r.bytesPerStep, r.note).toBeLessThanOrEqual(inject('perfThreshold'));
+      expect(ms).toBeLessThanOrEqual(0.5);
+    }
   });
 });

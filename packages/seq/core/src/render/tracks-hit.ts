@@ -44,6 +44,12 @@ export function hitView(layout: ViewLayout, x: number, y: number, touch = false,
   // a run of small blocks (_spec/README.md "Render", Blocks): over its band, what names no item (a ruler's place, its
   // band's ground) is the run's: the block under the point and the run's count, its hover "one of 2,841"; a block too
   // narrow to be read says so
+  // the ruler rail's place (outside its window: at the fit its whole body) over a run keeps the rail's target (its
+  // gestures) and carries the run's count and state (its card "one of 2,841")
+  if (h?.target === 'window' && h.part === 'outside' && h.block !== undefined) {
+    const r = runHit(layout, x, y);
+    return r ? { ...h, block: r.block, system: r.system, count: r.count, ...(r.state ? { state: r.state } : {}) } : h;
+  }
   if (h?.element || (h?.target !== undefined && h.target !== 'run')) return h;
   const r = runHit(layout, x, y);
   if (!r) return h;

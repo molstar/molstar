@@ -7,11 +7,12 @@
 import { PCG } from '@molstar/core/data/util/hash-functions';
 import type { NameHit, OpenedSource } from '@molstar/seqx-core/data';
 import { assembly, createSeqSpec, genome } from '@molstar/seqx-core/lang';
-import { EmptyKeys, rangesLocation } from '@molstar/seqx-core/query';
+import { EmptyKeys } from '@molstar/seqx-core/query';
 import { loadGenome } from '@molstar/seqx-core/resolve';
 import { blockPositionAt, blockSpan, placeOfUnit, type ResolvedSection } from '@molstar/seqx-core/view';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { acrossBlocks } from '../behaviors/select.js';
+import { viewerItem } from '../config.js';
 import { DefaultSeqViewerSpec } from '../default-spec.js';
 import { BuiltInHeaderEntries, type HeaderFacts, HeaderEntryNames } from '../header-entries.js';
 import { goToLocus } from '../locus.js';
@@ -133,6 +134,80 @@ describe('a genome in the viewer', () => {
     expect(v.selection.cursor.value).toMatchObject({ system: name(4), position: 249 });
   });
 
+  it('a block of a plain sequence is named a Sequence on its card, never a Chain', async () => {
+    frames = installFrames();
+    const viewer = createSeqViewer({ ...DefaultSeqViewerSpec(), ui: undefined });
+    viewers.push(viewer);
+    const b = createSeqSpec({ title: 'plain' });
+    b.data.sequence('s1', { alphabet: 'dna', letters: 'ACGT'.repeat(50) });
+    b.data.sequence('s2', { alphabet: 'dna', letters: 'TTGA'.repeat(50) });
+    b.views.view('v', (v) => {
+      v.section('plain', {}, (s) => {
+        s.block('a', { of: '/data/s1' } as never);
+        s.block('b', { of: '/data/s2' } as never);
+        s.track('ruler').layer('ruler', { type: 'ruler' } as never);
+      });
+    });
+    await viewer.load(b.build());
+    viewer.resize(900);
+    await viewer.settle();
+    frames.flush();
+    viewer.draw();
+    const p = viewer.frame!.layout.sections[0].placement as import('@molstar/seqx-core/render').BlockPlacement;
+    const a = p.strips.axes[1];
+    viewer.input.move(a.x0 + a.width / 2, p.strips.bandY[p.strips.bands] + p.strips.bandH[p.strips.bands] / 2);
+    const { Describer } = await import('../describe.js');
+    const card = new Describer({
+      spec: viewer.spec,
+      store: viewer.store,
+      addresses: viewer.addresses,
+      view: viewer.view,
+      layout: () => viewer.frame?.layout,
+    }).describe(viewer.hover.current)!;
+    expect(card.rows.find((r) => r.value === 'b' || r.value === 's2')?.label).toBe('Sequence');
+    expect(card.rows.some((r) => r.label === 'Chain')).toBe(false);
+  });
+
+  it('the keyboard cursor stays on the copy it is on: two copies of chr1, then chr2', async () => {
+    frames = installFrames();
+    const viewer = createSeqViewer({ ...DefaultSeqViewerSpec(), ui: undefined });
+    viewers.push(viewer);
+    const b = createSeqSpec({ title: 'copies' });
+    const g = b.data.assembly(
+      'g',
+      assembly(
+        'Small',
+        Lengths.map((length, i) => ({ name: `chr${i + 1}`, length })),
+      ),
+    );
+    const seq = (n: number) => `/data/g/(sequence :name chr${n})`;
+    b.views.view('v', (v) => {
+      v.section('copies', { copies: 'each' } as never, (s) => {
+        s.block('a', { of: seq(1), range: [0, 100] } as never);
+        s.block('b', { of: seq(1), range: [0, 100], label: 'chr1 again' } as never);
+        s.block('c', { of: seq(2), range: [0, 50] } as never);
+        s.track('ruler').layer('ruler', { type: 'ruler' } as never);
+      });
+    });
+    void g;
+    await viewer.load(b.build());
+    viewer.resize(900);
+    await viewer.settle();
+    frames.flush();
+    viewer.draw();
+    const Copies = '/views/v/copies';
+    expect(sectionOf(viewer, Copies).blocks!.length).toBe(3);
+    viewer.selection.setCursor({ section: Copies, system: name(1), position: 99 });
+    // onto the second copy: named as another block
+    expect(viewer.runCommand('cursor.next', {})).toBe('Moved, chr1, 1');
+    expect(viewer.selection.cursor.value).toMatchObject({ system: name(1), position: 0 });
+    // along the second copy to its end, then onto chr2 (never back into the first copy)
+    for (let k = 0; k < 99; k++) viewer.runCommand('cursor.next', {});
+    expect(viewer.selection.cursor.value).toMatchObject({ system: name(1), position: 99 });
+    viewer.runCommand('cursor.next', {});
+    expect(viewer.selection.cursor.value).toMatchObject({ system: name(2), position: 0 });
+  });
+
   it('a drag across blocks selects exactly the shown positions between, a part a system (property)', async () => {
     const v = await make();
     const s = sectionOf(v, Mixed);
@@ -165,16 +240,23 @@ describe('a genome in the viewer', () => {
     expect(checked).toBeGreaterThan(100);
   });
 
-  it('switching blocks keeps the selection’s addresses (property: next, previous, reverse, include)', async () => {
+  it('switching blocks keeps the selection: its positions, what it shows, its address (property: next, previous, reverse, include)', async () => {
     const v = await make();
     const rng = new PCG(9);
-    v.selection.set({
-      elements: EmptyKeys,
-      location: rangesLocation(name(2), [10, 40]),
-      shown: rangesLocation(name(2), [10, 40]),
-    });
-    const before = v.addresses.selectionAddress();
+    // a drag across chr1's end into chr2 on the genome: exactly the positions shown between
+    const s0 = sectionOf(v, Genome);
+    const end1 = blockSpan(s0.blocks![0]);
+    const loc = acrossBlocks(s0, 0, end1 - 30, (s0.blocks![1].offset ?? 0) + 40)!;
+    expect(setOf(loc)).toEqual(
+      new Map([
+        [name(1), new Set(Array.from({ length: 30 }, (_, i) => end1 - 30 + i))],
+        [name(2), new Set(Array.from({ length: 41 }, (_, i) => i))],
+      ]),
+    );
+    v.selection.set({ elements: EmptyKeys, location: loc, shown: loc });
+    const before = v.addresses.selectionAddress()!;
     expect(before).toBeDefined();
+    const selected = setOf(loc);
     const ops = ['block.next', 'block.previous', 'block.reverse', 'section.include'] as const;
     for (let n = 0; n < 24; n++) {
       const op = ops[rng.int() % ops.length];
@@ -186,7 +268,23 @@ describe('a genome in the viewer', () => {
       else await v.execute(op, { section: Genome });
       await v.settle();
       frames!.flush();
+      const now = v.selection.value.value;
+      // its positions and what it shows: the same, whatever blocks show them now
+      expect(setOf(now.location), `${n}: ${op}`).toEqual(selected);
+      expect(setOf(now.shown), `${n}: ${op}`).toEqual(selected);
+      // its address the same, and read back the same positions
       expect(v.addresses.selectionAddress(), `${n}: ${op}`).toBe(before);
+      expect(setOf(v.addresses.locate(before).location), `${n}: ${op}`).toEqual(selected);
+      // drawn: the cells of the blocks now showing a selected system are selected exactly at the selected positions
+      const s = sectionOf(v, Genome);
+      for (const b of s.blocks!) {
+        const want = selected.get(b.axis.system);
+        if (!want) continue;
+        const drawn = shownBetween({ ...s, blocks: [b] }, -Infinity, Infinity).get(b.axis.system)!;
+        const hit = new Set([...drawn].filter((p) => want.has(p)));
+        expect(hit, `${n}: ${op} ${b.label}`).toEqual(new Set([...want].filter((p) => drawn.has(p))));
+        expect(hit.size, `${n}: ${op} ${b.label}`).toBe(want.size);
+      }
     }
   });
 
@@ -209,7 +307,10 @@ describe('a genome in the viewer', () => {
       const at = v.view.get(Genome)!;
       const ends = [placeOfUnit(s, at.start, 'start'), placeOfUnit(s, at.end, 'end')];
       v.view.jump(() => v.view.fit(Genome), true, 'fit');
-      await v.execute('section.include', { address: Genome, include: ['chr2', 'chr3', 'chr4'] });
+      // every other step the window's own block reversed instead (its ends then map mirrored: the window their hull)
+      const reverse = n % 2 === 1;
+      if (reverse) await v.execute('block.reverse', { address: b.address });
+      else await v.execute('section.include', { address: Genome, include: ['chr2', 'chr3', 'chr4'] });
       await v.settle();
       frames!.flush();
       expect(v.view.back()).toBe(true);
@@ -217,10 +318,112 @@ describe('a genome in the viewer', () => {
       const now = v.view.get(Genome)!;
       const s2 = sectionOf(v, Genome);
       const back = [placeOfUnit(s2, now.start, 'start'), placeOfUnit(s2, now.end, 'end')];
-      expect(back[0]?.system).toBe(ends[0]?.system);
-      expect(back[0]!.position).toBeCloseTo(ends[0]!.position, 3);
-      expect(back[1]!.position).toBeCloseTo(ends[1]!.position, 3);
+      const sorted = (p: typeof back) => p.map((x) => x!.position).sort((x, y) => x - y);
+      expect(back[0]?.system, `${n}`).toBe(ends[0]?.system);
+      expect(back[1]?.system, `${n}`).toBe(ends[1]?.system);
+      const [a0, a1] = sorted(ends);
+      const [b0, b1] = sorted(back);
+      expect(b0, `${n} ${reverse ? 'reverse' : 'include'}`).toBeCloseTo(a0, 0);
+      expect(b1, `${n} ${reverse ? 'reverse' : 'include'}`).toBeCloseTo(a1, 0);
+      // the block turned back for the next step
+      if (reverse) {
+        await v.execute('block.reverse', {
+          address: sectionOf(v, Genome).blocks!.find((x) => x.axis.dir === -1)!.address,
+        });
+        await v.settle();
+        frames!.flush();
+      }
     }
+  });
+
+  it('the history signature is a few bytes a step whatever the blocks (3,000 contigs)', async () => {
+    const { blocksSig } = await import('../models/view-history.js');
+    const blocks = Array.from({ length: 3000 }, (_, i) => ({
+      axis: { system: `/data/g/(sequence :name ctg${i})`, dir: 1 },
+      offset: i * 1000,
+    })) as never[];
+    const a = blocksSig(blocks);
+    expect(a.length).toBeLessThan(32);
+    // one block's direction, or two swapped: another signature
+    const turned = blocks.map((b: { axis: object }, i) => (i === 7 ? { ...b, axis: { ...b.axis, dir: -1 } } : b));
+    expect(blocksSig(turned as never[])).not.toBe(a);
+    const swapped = [...blocks];
+    [swapped[3], swapped[4]] = [swapped[4], swapped[3]];
+    expect(blocksSig(swapped)).not.toBe(a);
+    expect(blocksSig([...blocks])).toBe(a);
+  });
+
+  it('acrossBlocks stop keeps the chromosome by its system: a block list changed under it never moves the window to another', async () => {
+    frames = installFrames();
+    const viewer = createSeqViewer({
+      ...DefaultSeqViewerSpec(),
+      ui: undefined,
+      config: [[viewerItem('navigate.acrossBlocks'), 'stop']],
+    });
+    viewers.push(viewer);
+    await viewer.load(spec());
+    viewer.resize(900);
+    await viewer.settle();
+    frames.flush();
+    viewer.draw();
+    const s = sectionOf(viewer, Genome);
+    const chr3 = s.blocks![2];
+    viewer.view.setRange(Genome, chr3.offset! + 20, chr3.offset! + 60);
+    frames.flush();
+    // chr2 left out: chr3 is now the second block (the third index is chr4's)
+    await viewer.execute('section.include', { address: Genome, include: ['chr1', 'chr3', 'chr4'] });
+    await viewer.settle();
+    frames.flush();
+    const s2 = sectionOf(viewer, Genome);
+    const at = viewer.view.get(Genome)!;
+    // (no jump since: the stop kept the window on chr3 over the new block list)
+    expect(placeOfUnit(s2, (at.start + at.end) / 2)?.system).toBe(name(3));
+    // a pan past chr3's end stops there: the window stays on chr3, never chr4
+    viewer.view.pan(Genome, 500);
+    frames.flush();
+    const now = viewer.view.get(Genome)!;
+    const placeA = placeOfUnit(s2, now.start, 'start');
+    const placeB = placeOfUnit(s2, now.end, 'end');
+    expect([placeA?.system, placeB?.system]).toEqual([name(3), name(3)]);
+    // a zoom out keeps it on chr3 whole
+    viewer.view.zoom(Genome, 1 / 1000);
+    frames.flush();
+    const z = viewer.view.get(Genome)!;
+    expect([z.start, z.end]).toEqual([s2.blocks![1].offset, (s2.blocks![1].offset ?? 0) + blockSpan(s2.blocks![1])]);
+    void at;
+  });
+
+  it('block.reverse flips the override already written, however spelled (its id the name, no `of`): never a second', async () => {
+    // an override written by its id alone (the name), as a writer would
+    const written = spec() as { children?: { kind: string; id?: string; children?: unknown[] }[] };
+    const views = written.children!.find((c) => c.kind === 'views') as {
+      children: { children: { id?: string; children?: unknown[] }[] }[];
+    };
+    const genomeNode = views.children[0].children.find((c) => c.id === 'genome')!;
+    genomeNode.children = [
+      ...(genomeNode.children ?? []),
+      { kind: 'block', id: 'chr2', params: { direction: 'reversed' } },
+    ];
+    frames = installFrames();
+    const v = createSeqViewer({ ...DefaultSeqViewerSpec(), ui: undefined });
+    viewers.push(v);
+    await v.load(written as never);
+    v.resize(900);
+    await v.settle();
+    frames.flush();
+    const blocks = () => sectionOf(v, Genome).blocks!;
+    const overrides = () =>
+      v.spec.root.value
+        .children!.find((c) => c.kind === 'views')!
+        .children![0].children!.find((c) => c.id === 'genome')!
+        .children!.filter((c) => c.kind === 'block');
+    if (blocks()[1].axis.dir !== -1) return expect.unreachable('the id override applies');
+    expect(overrides().length).toBe(1);
+    await v.execute('block.reverse', { address: blocks()[1].address });
+    await v.settle();
+    expect(blocks()[1].axis.dir).toBe(1);
+    expect(overrides().length).toBe(1);
+    expect(overrides()[0].params?.direction).toBeUndefined();
   });
 
   it('a block’s menu: Reverse, Show only, Show all; a derived block reversed by an override, one undo step', async () => {
@@ -280,11 +483,12 @@ describe('a genome in the viewer', () => {
     const p = viewer.frame!.layout.sections[0].placement as import('@molstar/seqx-core/render').BlockPlacement;
     expect(p.runN).toBe(1);
     const x = p.runX[0] + p.runW[0] / 2;
+    // over the ruler at the fit the rail is the target (its gestures), carrying the run's count and state
     const h = viewer.hit(x, (p.tracksTop + p.tracksBottom) / 2)!;
-    expect(h).toMatchObject({ target: 'run', count: 400 });
+    expect(h).toMatchObject({ target: 'window', part: 'outside', count: 400 });
     expect(viewer.view.resolved.value!.sections[0].blocks![h.block!].label).toMatch(/^ctg\d+$/);
     viewer.input.move(x, (p.tracksTop + p.tracksBottom) / 2);
-    expect(viewer.hover.current).toMatchObject({ target: 'run', count: 400, section: '/views/v/genome' });
+    expect(viewer.hover.current).toMatchObject({ target: 'window', count: 400, section: '/views/v/genome' });
     const { Describer } = await import('../describe.js');
     const card = new Describer({
       spec: viewer.spec,
@@ -342,5 +546,62 @@ describe('a genome in the viewer', () => {
     expect(c.position).toBeGreaterThanOrEqual(100);
     expect(c.position).toBeLessThan(140);
     expect(await goToLocus(v, 'nothing-here')).toEqual({ kind: 'none', message: 'Nothing is named nothing-here' });
+  });
+
+  it('the locus box: an aborted name search settles as cancelled; a hit on a sequence no section shows is said, not focused', async () => {
+    // the genome alone (no other section shows chr4)
+    frames = installFrames();
+    const v = createSeqViewer({ ...DefaultSeqViewerSpec(), ui: undefined });
+    viewers.push(v);
+    const b = createSeqSpec({ title: 'genome alone' });
+    const g = b.data.assembly(
+      'g',
+      assembly(
+        'Small',
+        Lengths.map((length, i) => ({ name: `chr${i + 1}`, length })),
+      ),
+    );
+    b.views.view('v', (w) => genome(w, 'genome', g));
+    await v.load(b.build());
+    v.resize(900);
+    await v.settle();
+    frames.flush();
+    let release: () => void = () => {};
+    const genes: OpenedSource = {
+      coverage: {
+        systems: [{ name: 'chr4', length: 250 }],
+        shapes: [{ system: 'chr4', shape: 'ranges' }],
+        levels: [1],
+        names: ['Name'],
+      },
+      read: () => Promise.reject(new Error('not read here')),
+      dispose() {},
+      findNames: (text, _o, signal) =>
+        text === 'SLOW'
+          ? new Promise((resolve, reject) => {
+              release = () => resolve([]);
+              signal.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')));
+            })
+          : Promise.resolve(
+              text === 'TP53'
+                ? [{ system: 'chr4', start: 100, end: 140, id: 'g1', label: 'TP53', field: 'Name' } satisfies NameHit]
+                : [],
+            ),
+    };
+    expect(v.store.store.attach('/data/genes', genes)).toBe(true);
+    const ac = new AbortController();
+    const slow = goToLocus(v, 'SLOW', { signal: ac.signal });
+    ac.abort();
+    await expect(slow).resolves.toEqual({ kind: 'cancelled' });
+    release();
+    // chr4 left out of the only section showing it: the hit is said, the view stays
+    await v.execute('section.include', { address: Genome, include: ['chr1', 'chr2'] });
+    await v.settle();
+    frames!.flush();
+    const before = v.view.get(Genome)!;
+    const r = await goToLocus(v, 'TP53');
+    expect(r).toMatchObject({ kind: 'hidden', message: 'TP53 is on chr4, which no section shows' });
+    frames!.flush();
+    expect(v.view.get(Genome)).toEqual(before);
   });
 });

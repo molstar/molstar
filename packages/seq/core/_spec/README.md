@@ -2743,16 +2743,22 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
 - **The square** (`render/navigator-square.ts`, `SquareNavigator`, `isSquareNavigator`: a navigator over blocks with
   `axes: both` bound to two sections of blocks, or one section on both axes, `of: [s, s]`): its lattice the assembly's
   blocks on both axes (after the assembly's `include`, never a section's; no `system`: the first bound section's `of`),
-  proportional to their display units, a line at each block's edge (none past `navigator.square.maxCells` block pairs,
-  4,096, said once: `seq.render.navigator.layer`); the cells a bound section does not show washed (`seq-wash`), the rest
-  plain; the window the first section's range along x and the second's along y as one rectangle (one section on both
-  axes: on the diagonal). A hit names the cell's two blocks and systems (`block`, `yBlock`, `system`, `ySystem`);
-  `pairAt` gives the hull of the cell's two blocks on a bound section (what a double-click fits), `cellAt` the cell.
-  **What region reads add** (RG, stage 3): the cells' content: for pairs, the pairs level's coarsest tiles read by block
-  (one want a block), summed into one image of block × block cells and reduced to its pixels by the shared reduction;
-  for a grid source, its coarsest 2D tiles by block pair (the upper triangle when symmetric), at most `maxCells` wants,
-  past it the whole-assembly level; until then the square is the lattice and what static data gives. Not built: its
-  grips and drags per axis (a click centres x, a double-click fits a pair).
+  proportional to their display units (a cell as long as its chromosomes), each block's name above its column and left
+  of its row where it fits (along x without the names' shared prefix where the column is narrow: `7`), a line at each
+  block's edge; the cells a bound section does not show washed (`seq-wash`) by runs (`washRuns`: a column run of blocks
+  the x section leaves out, a row run the y section leaves out over each run of shown columns; no cell twice, at most as
+  many rectangles as cells), the rest plain. Past `navigator.square.maxCells` block pairs (4,096) neither lattice nor
+  wash is drawn, said once (`seq.render.navigator.square`): never n² rectangles. The base (background, wash, lattice,
+  names) is drawn once a size and tokens; a window move redraws the window pass alone (`rebuilt: false`). The window the
+  first section's range along x and the second's along y as one rectangle (one section on both axes: on the diagonal);
+  its title names its ends as places (`chr3: 1–198,295,559 of GRCh38`). A hit names the cell's two blocks and systems
+  (`block`, `yBlock`, `system`, `ySystem`), its part `outside` off the window's rectangle; `pairAt` gives the hull of
+  the cell's two blocks on a bound section (what a double-click fits), `cellAt` the cell, `sectionUnitAtY` a second
+  section's unit along y. **What region reads add** (RG, stage 3): the cells' content: for pairs, the pairs level's
+  coarsest tiles read by block (one want a block), summed into one image of block × block cells and reduced to its
+  pixels by the shared reduction; for a grid source, its coarsest 2D tiles by block pair (the upper triangle when
+  symmetric), at most `maxCells` wants, past it the whole-assembly level; until then the square is the lattice and what
+  static data gives. Not built: its grips and drags per axis.
 - **The window stays the navigator's**, whatever the picture: its geometry, floor, parts, gestures, keys, idle rule,
   zoom strip and announcements. A host that draws its own navigator keeps them through the viewer's `NavigatorModel`.
 - **The picture**: a navigator lays its system whole out (the fit window, in the bound section's display order;
@@ -2790,10 +2796,12 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
   picture's view gets a second section, the same form over the same system (an ideogram's bands; else the axis, a
   ruler), its viewport the span's units (over a cyclic origin past the total: its pieces twice, the strip runs on over
   the origin), laid out below the box at the box's bottom whatever the context's content (`zoomHeight`, exactly
-  `heightPx`: a gap of at most `ZoomGapPx`, 6, and at most half, then the strip's track; `heightPx: 0` is off; the
-  frame's `size` is the box, the lists the box and the strip; an export stacks both). The windows, their wash, floor,
-  grips, marks, hits and `sectionUnitAt` are the zoom strip's (a drag moves the view at its scale); the context draws
-  the span as a mark in the `window` pass (an outline at least `window.minPx` wide, always centred on the truth whatever
+  `heightPx`: a gap of at most `ZoomGapPx`, 6, and at most half, then the strip's track; over blocks the track at least
+  a ruler's height, `heights.ruler`, and the strip's section `labels: none`: its ruler in bases, ticks and labels inside
+  it, the context naming the blocks; the author, 2026-11-21: nothing clipped; `heightPx: 0` is off; the frame's `size`
+  is the box, the lists the box and the strip; an export stacks both). The windows, their wash, floor, grips, marks,
+  hits and `sectionUnitAt` are the zoom strip's (a drag moves the view at its scale); the context draws the span as a
+  mark in the `window` pass (an outline at least `window.minPx` wide, always centred on the truth whatever
   `window.floor`, so the truth is inside it, its hairline at the truth; over a cyclic origin two pieces; no grips, no
   wash) and two connector hairlines (`seq-window`) from its ends to the strip's; a hit on the context is `context`
   (`mark` over it, else `outside`), part `outside`, no target; the gap below the context is the strip's (a finger a few
@@ -2821,8 +2829,10 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
   columns), the slim row whole; grown (`grownPx`) while hovered or dragged (`Emphasis.drag`); idle (not active) a quiet
   hairline with no grips and no target (at the fit it reads as the line); in a figure (an export) a plain segment, no
   grips, no idle state. Its hit is the `window` target with `navigator: 'rail'` (touch the wider hit: `hitView`'s
-  `touch`), its unit `railUnitAt`; a window over the whole axis (the fit) has no body to drag, so there only its grips
-  are targets and the ruler under it takes the pointer (its hover names the place, a double-click zooms there). On a
+  `touch`), its unit `railUnitAt`; a window over the whole axis (the fit) has no body to drag, so its body is a place as
+  outside a window (part `outside`; the author, 2026-11-21: the rail stays interactive at the fit): its hover marks the
+  position (a 1.5 px tick, `Rail.markAt`) and names it, never the rail grown or lit; a sweep zooms to the region; its
+  grips keep their own hover. Over a run of small blocks the rail's place carries the run's `count` and `state`. On a
   section of blocks its hit names the block under the unit, its system and its position (`block`), never the section's
   units. Rails are part of a section's key by identity (a slim row takes room); which can move is not: the renderer sets
   it on the rails each frame, an emphasis redraw too (an idle flip redraws the window pass alone).
@@ -2984,11 +2994,15 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
   counts down within a reversed block and at its own density in a scaled one, its letters complement by the axis's rule
   per strip, and on a ring it runs counterclockwise within its arc. Its label says it (`blockLabel`): the direction mark
   `←` where it reads right to left (`axis.directionMark`), `×N` where its scale is not 1 (`chr4 ←`, `chr17 ×10`). In a
-  row a label is whole, else its name cut keeping at least six letters with the mark and scale whole after it, else
-  hidden (`fitBlockLabel`: "c…" says nothing); a name of words may keep its first words whole instead, however short
-  (`chr2 inv ←` as `chr2… ←`, at the least `chr2 ←`); its strings made once per resolved block. A block's ruler takes
-  ticks as close as half its width (at least 24 px, at most `ruler.labelGap`), so a block a few labels wide still counts
-  its own positions.
+  row a label is whole, else its first word (`chr2 inv ←` as `chr2 ←`), else short: its name less the prefix the
+  section's names share (`blockNamePrefix`, letters only and only where the tails are non-empty and distinct: `chr`,
+  `Pp`), the mark and scale whole after it (`11`, `X ←`); never cut (the author, 2026-11-21: precedents' ideograms show
+  `11`, `X`); where even that does not fit, each run of such blocks is thinned by a regular stride from its first (1, 2,
+  4 …: `thinLabels`), a strided label shown past its block up to the next label shown (`labelRoom`), never two
+  colliding; the rest hidden. A ring's label is short where its arc is narrower than its whole label. The hover card and
+  the readout keep the whole name. Its strings made once per resolved block. A block's ruler takes ticks as close as
+  half its width (at least 24 px, at most `ruler.labelGap`), so a block a few labels wide still counts its own
+  positions.
 - **Gaps at scale, one rule for rows and rings** (EC-102): the gaps in view share at most `blocks.gapShare` of the row
   (`rings.gapShare` of the circle), each at most the layout's gap (12 px; `rings.blockGap`, 1°), so
   `gap = min(max, share × length / gaps in view)` with no floor: at 3,000 blocks a ring's gaps are 0.03° each and three

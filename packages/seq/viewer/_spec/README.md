@@ -276,14 +276,20 @@ gesture, a double-click nothing), its readout the band and position there, over 
 it too, a tap's hover). **Over blocks** (core's navigator over blocks: a genome's chromosomes): the readout names the
 block and the position there (`chr17: 7,668,402`), the slider the block and the assembly
 (`chr17: 7,668,402–7,687,550 of GRCh38`, across blocks both ends); the context above a zoom strip is the genome and a
-target: a click there centres the view in that block (a jump); a double-click fits the block under the pointer, from
-that fit the whole (`navigator.doubleClick: toggle-fit`, at the fit too, its window idle); PageDown and PageUp on its
-slider are `block.next` and `block.previous` (ARIA's large step). **`navigator.switch: include`**: a click that never
-moved runs `section.include` with the block under it on the bound section (on the window too; a drag keeps its gestures;
-on what the section already shows alone, nothing), Home (and `showAll()`, a host's title) removes it. **The square**
-(core's `SquareNavigator`: two axes over blocks × blocks): the same model draws it; a double-click fits a cell's pair
-(one section on both axes: the hull of its two blocks), again the whole; a click with a switch shows the cell's two
-blocks. Not built on the square: its grips and drags per axis.
+target: a click on another block switches to it, one on the view's own block centres there (jumps; **Switching blocks**
+below); a double-click fits the block under the pointer, from that fit the whole (`navigator.doubleClick: toggle-fit`,
+at the fit too, its window idle); PageDown and PageUp on its slider are `block.next` and `block.previous` (ARIA's large
+step). **`navigator.switch: include`**: a click that never moved runs `section.include` with the block under it on the
+bound section (on the window too; a drag keeps its gestures; on what the section already shows alone, nothing), Home
+(and `showAll()`, a host's title) removes it. **The square** (core's `SquareNavigator`: two axes over blocks × blocks):
+the same model draws it; a click on a cell off the window moves each axis by the switching rule (one section on both
+axes: by the x block), one step; a double-click fits a cell's pair (one section on both axes: the hull of its two
+blocks), again the whole; a click with a switch shows the cell's two blocks. Not built on the square: its grips and
+drags per axis. **Switching blocks** (`blockSwitchRange`, `block-switch.ts`; the author, 2026-11-21, IGV's: a picked
+chromosome whole): from a view showing its block whole (within a pixel) the new block whole; zoomed inside a block, the
+same width centred at the same relative place in the new block, clamped to its ends; a width past the new block's
+length, the new block whole. One rule for a click on the navigator, `block.next` and `block.previous`, and the square's
+click.
 
 ### HoverModel
 
@@ -838,8 +844,9 @@ binding table; per move one hit record and one modifiers record are reused.
 - **A double-click on a block** of a row with nothing under the point (its label, its band's ground; where the binding
   is a fit) or only a position (a ruler, letters, a value: no item to focus) fits that block (`view.focus` with its
   units), and from that fit the whole (`toggle-fit`, one level deeper: never a zoom to one base of a chromosome). An
-  item under the point is focused as anywhere. The hover card names a block's row by its system: `Sequence` for an
-  assembly's sequence (a chromosome, a contig), else `Chain`.
+  item under the point is focused as anywhere. The hover card names a block's row by its system: `Sequence` for a
+  nucleic sequence (an assembly's chromosome or contig, a plain DNA or RNA sequence), `Chain` for a complex's or a
+  protein's.
 - **The rows rail** (`RowsRailGesture`, `behaviors/rows-rail.ts`): a press on its grab zone, in display rows at the
   rail's scale (`railUnitAt` of the page's y): its body scrolls the rows (`bandTop`, clamped to the last rows), a grip
   zooms them about the other end, which stays (`rowScale` within the rows' bounds, core's `MinRowScale` to
@@ -971,13 +978,17 @@ rows' commands) reads the last frame's rows layers through the behavior context'
   double-click and a focus move to the block's offsets, a bookmark of the view names none. **The keyboard cursor crosses
   blocks** (EC-154, amended): a step goes along its block in display order, past the block's last position onto the next
   block's first (before its first, the previous block's last; a block with no positions skipped), at the section's ends
-  it stays; the step's message names the block and the position (`Moved, chr18, 1`); revealed at its block's place. A
-  run of small blocks hits as `run` (its band with no strip: the block under the point, the run's count), its card
+  it stays; the step's message names the block and the position (`Moved, chr18, 1`); revealed at its block's place. The
+  cursor stays on the copy it is on (a position two blocks show: the block a step left it on, kept by the cursor), its
+  next step, reveal and message too. A run of small blocks hits as `run` (its band with no strip: the block under the
+  point, the run's count; under the ruler rail the rail's place carries its `count` and `state`), its card
   "chrUn_KI270302v1 · Run: one of 2,841 · not read at this zoom".
 - **`navigate.acrossBlocks`** (`ViewModel`, a row of blocks): `cross` (the default) one viewport over the blocks end to
   end; `stop` keeps the window in one block: after each move it is clamped to the block it was kept in (its width at
-  most the block's), a range set (a jump, a story step) wholly inside another block moves there, a fit is the block's.
-  Why: a position on the section's units is no system's (core `_spec` "Resolved view", Blocks).
+  most the block's), a range set (a jump, a story step, a click on the navigator) moves to the block holding its centre,
+  a fit is the block's. The kept block is remembered by its copy key (system, range, form) per section, so a block list
+  changed under it (`section.include`, a reverse) keeps the same chromosome, never whichever block takes its index. Why:
+  a position on the section's units is no system's (core `_spec` "Resolved view", Blocks).
 
 - `hover`: a move over a hit whose hover gesture is bound to `hover` sets the hover for its owner token; a move over
   nothing or a leave clears what that owner holds only. A host's other hover sources use their own tokens.
@@ -1279,6 +1290,10 @@ The cells the molecules design names, each built or not and why (the core's "Res
   cleared its filter since the third slice, with or without the menu's behavior; one command, the entry's, either way.
   Not the select behavior's: a viewer without it still takes a header's click), and a drag on a track's label line pans
   as its track (`header-label`, in `default`). A slot is hit only while its header's actions show.
+- **A track's row keeps its header's actions shown** (`Emphasis.row`, `ViewerInput.row`: the track whose row the pointer
+  is in, the nearest track's in the section's gaps, the rail under a ruler included): anywhere in the row, a gap between
+  blocks too, they stay; they go when the pointer leaves the row. Why: a hover that hits nothing in a gap made them
+  blink (the author, 2026-11-21).
 - **An open menu keeps its header's actions shown** (`Emphasis.menu`: the address of the header whose menu or submenu is
   open), canvas and DOM parts alike, wherever the pointer is. Why: the pointer leaves the line on its way to the menu,
   and the menu's anchor must not go with the hover. It closes as the menu does (Esc, a press outside, a choice).
@@ -1327,22 +1342,24 @@ selection's gestures and the cursor's moves are session state; the cursor's focu
   first leading one; their keys are `view.keys`' (Shift+R, Shift+C). Why patches: direction and pieces are what the
   figure is, so undo (not back) returns them and the export says the same.
 - **A block's commands** (genome coordinates): `block.next` and `block.previous` (the `navigate` behavior's, jumps: a
-  step of the view's history) fit the next or the previous block of a row in display order from the block holding the
-  window's centre (one with no positions skipped; at the ends they say so), keys `Alt+PageDown`, `Alt+PageUp` in
-  `view.keys` (no Shift: Alt+Shift types a character on macOS, EC-155); `block.reverse` (the `editing` behavior's, a
-  patch, one undo step; `address` the block, a node's or a derived block's keyed form) turns a block over: its node's
-  `direction` set to `reversed` or unset, a derived block's override (a `block` child whose `of` is its sequence)
-  likewise or one inserted (its id from the sequence's name), the rest still derived; `section.include` (a patch) sets a
-  section's `include` (`include`: names, patterns, `{ min_length }`), or removes it (`include` absent or null: every
-  block). Reached from a block's menu (a secondary click on a block's label or band, Shift+F10 at the cursor: "Reverse
-  chr2", "Show only chr2" on a section of assemblies, "Show all" where an `include` is set: built-in header entries
-  `on: 'section'` reading `HeaderFacts.block`, `assemblies`, `included`).
+  step of the view's history) go to the next or the previous block of a row in display order from the block holding the
+  window's centre, by the switching rule (whole from whole, else the zoom kept) (one with no positions skipped; at the
+  ends they say so), keys `Alt+PageDown`, `Alt+PageUp` in `view.keys` (no Shift: Alt+Shift types a character on macOS,
+  EC-155); `block.reverse` (the `editing` behavior's, a patch, one undo step; `address` the block, a node's or a derived
+  block's keyed form) turns a block over: its node's `direction` set to `reversed` or unset, a derived block's override
+  (core's `blockOverridesOf`: a `block` child whose `of` names its sequence, an alias too, or whose id is its name; the
+  last, the one that applies) likewise or one inserted (its id from the sequence's name), the rest still derived;
+  `section.include` (a patch) sets a section's `include` (`include`: names, patterns, `{ min_length }`), or removes it
+  (`include` absent or null: every block). Reached from a block's menu (a secondary click on a block's label or band,
+  Shift+F10 at the cursor: "Reverse chr2", "Show only chr2" on a section of assemblies, "Show all" where an `include` is
+  set: built-in header entries `on: 'section'` reading `HeaderFacts.block`, `assemblies`, `included`).
 - **A locus** (`goToLocus(viewer, text, { section })`, `locus.ts`: what a host's locus box calls): the text as a locus
   first (`(locus :text …)` under the section, the first section of assemblies when none is named:
   `chr17:7,668,402- 7,687,550`, `17:7668402`, a name or an alias), its Location focused (a jump); a text no sequence is
   named (`seq.query.locus.name`) falls back to the sources' names (core's `findNames` over `store.named()`: a GFF3's
-  `Name`, `ID`, `Alias`, EC-228), its first hit's extent focused, its system read through the assemblies' names rule;
-  else `none` with why.
+  `Name`, `ID`, `Alias`, EC-228), the first hit a section shows focused, its system read through the assemblies' names
+  rule; a hit only on a sequence no section shows is `hidden` with why, never focused unseen; an aborted search
+  (`signal`) settles as `cancelled`, never an error; else `none` with why.
 - **`block.form`** (the `editing` behavior's, a patch, one undo step; a command only, in no built-in menu: a host's
   `on: 'element'` header entry may name it; no default key): sets a block's `form` (`whole`, `residues`, `atoms`;
   `address` the block, `form`). A block a section of a complex derives from its units has no node: the patch inserts one

@@ -27,7 +27,7 @@ export {
   positionAt,
   wholePieces,
 } from './axis.js';
-export { type BlockGroup, blockUnits, opensComplexes } from './blocks.js';
+export { type BlockGroup, blockOverridesOf, blockUnits, opensComplexes } from './blocks.js';
 export {
   type BlockPlace,
   blockElementAt,

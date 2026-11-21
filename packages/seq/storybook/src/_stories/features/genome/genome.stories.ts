@@ -4,10 +4,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { viewerItem } from '@molstar/seqx-viewer/config';
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { exampleStory } from '../../examples/example-root.js';
-import { GenomeViews } from './views.js';
+import { GenomeViews, OneAtATime, openSquare } from './views.js';
 
 // Genome coordinates (Design › Genome coordinates): chromosomes as blocks of one section, a direction and a scale per
 // block, gaps by a share and small blocks in runs, two assemblies as groups. Toy assemblies generated in the story;
@@ -54,9 +53,6 @@ export const ThreeThousandContigs: StoryObj = {
   render: () => exampleStory(view('contigs'), { stacked: true }),
 };
 
-/** One chromosome at a time: a pan, a zoom and a fit kept in the chromosome the window is in (IGV's, UCSC's). */
-const OneAtATime = [[viewerItem('navigate.acrossBlocks'), 'stop']] as const;
-
 /**
  * A chromosome at a time: a navigator over the genome's blocks above the view. Click a chromosome to jump there (Alt+Left
  * goes back), double-click one to fit it (again: the whole genome); zoomed in, the zoom strip under the genome shows the
@@ -71,13 +67,14 @@ export const AChromosomeAtATime: StoryObj = {
 };
 
 /**
- * The square over blocks × blocks: one section on both axes, its navigator the twelve chromosomes' pairs as a lattice,
- * the window on the diagonal. Double-click a cell to fit its two chromosomes, again the whole; what the cells hold
+ * The square over blocks × blocks: one section on both axes, its navigator the twelve chromosomes' pairs as a lattice
+ * sized by length and named on both axes, the window on the diagonal (it opens on chr3). Click a cell to centre there,
+ * double-click one to fit its two chromosomes, again the whole; what the cells hold
  * (pairs by block, a contact map's tiles by block pair) comes with region reads.
  */
 export const TheSquare: StoryObj = {
   name: 'The Square Over Blocks × Blocks',
-  render: () => exampleStory(view('square'), { stacked: true, navigators: 'include' }),
+  render: () => exampleStory(view('square'), { stacked: true, navigators: 'include', opening: openSquare }),
 };
 
 /**

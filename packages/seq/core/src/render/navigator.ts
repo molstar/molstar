@@ -60,15 +60,12 @@ import {
 import {
   arcText,
   type NavigatorHit,
-  BlockXs,
   blockIndexAt,
   blockUnitAtPosition,
   foldsOf,
   NavigatorWindow,
   type Picture,
   PictureId,
-  PlaceBlocks,
-  PlaceUnits,
   partOf,
   pictureConfig,
   pictureOf,
@@ -181,7 +178,14 @@ export interface NavigatorFrame {
 /** The passes the navigator draws itself over its picture's. */
 const OwnPasses: readonly PassName[] = ['window', 'highlight', 'selection', 'hover', 'cursor'];
 
+/** A window's x over blocks, on the work section and the context (scratch, module-private). */
+const BlockXs = new Float64Array(4);
+/** Scratch for the places of a position (the cursor over blocks): allocation-free, module-private. */
+const PlaceBlocks = new Int32Array(64);
+const PlaceUnits = new Float64Array(64);
 const Ext = new Float64Array(8);
+/** The context mark's pieces' ends in units (two pieces over a cyclic origin). */
+const MarkUs = new Float64Array(4);
 /** A connector's two points (x, y pairs). */
 const Line = new Float64Array(4);
 const FlagNoStart: number = NavWindowFlags.noStart;
@@ -277,7 +281,10 @@ export class NavigatorRenderer {
     // a small `heightPx` takes its gap first: the strip never lays out taller than it
     const h = Math.max(0, this.zoomStrip.heightPx);
     this.zoomGap = Math.min(ZoomGapPx, Math.floor(h / 2));
-    this.zoomTrack = h - this.zoomGap;
+    // over blocks the strip is a genome's ruler, its labels in bases above its ticks: at least a ruler's height (the
+    // view's, `heights.ruler`), so its labels and body are inside it, never clipped (`heightPx: 0` still off)
+    this.zoomTrack =
+      h > 0 && this.overBlocks ? Math.max(h - this.zoomGap, this.config.heights.ruler) : h - this.zoomGap;
     this.sectionGap = this.zoomGap;
     this.tokens = options.tokens;
     this.windows = this.navigator.of.map(() => new NavigatorWindow());
@@ -380,6 +387,13 @@ export class NavigatorRenderer {
   }
 
   /** `xOn` into `out[k]` (a window move's: nothing boxed). */
+  /** `xInto` of the unit `src[i]` (read here: a unit passed on would be boxed). */
+  private xIntoFrom(s: SectionLayout, src: Float64Array, i: number, out: Float64Array, k: number): void {
+    const p = s.placement;
+    if (p instanceof BlockPlacement && !p.stacked) p.row.xInto(src[i], out, k);
+    else out[k] = s.axis!.xOfUnit(src[i]);
+  }
+
   private xInto(s: SectionLayout, u: number, out: Float64Array, k: number): void {
     const p = s.placement;
     if (p instanceof BlockPlacement && !p.stacked) p.row.xInto(u, out, k);
@@ -1088,13 +1102,19 @@ export class NavigatorRenderer {
     if (!axis || !(this.reach[1] > this.reach[0])) return;
     const t = axis.total;
     // over a cyclic origin two pieces: the arc's start to the axis's end, its start to the arc's end
-    const wraps = this.wraps;
+    // inline, never `this.wraps`: its `turn` getter returns a genome's total (past a small integer: boxed, 16 B a frame)
+    const wraps = t > 0 && this.reach[1] > t + 1e-9;
+    // the ends through `MarkUs` (a number chosen by a conditional is boxed when passed on)
+    const U = MarkUs;
+    U[0] = this.reach[0];
+    U[1] = wraps ? t : this.reach[1];
+    U[2] = 0;
+    U[3] = this.reach[1] - t;
     for (let k = 0; k < (wraps ? 2 : 1); k++) {
-      const u0 = k === 0 ? this.reach[0] : 0;
-      const u1 = wraps ? (k === 0 ? t : this.reach[1] - t) : this.reach[1];
-      this.xInto(ctx, u0, BlockXs, 0);
-      this.xInto(ctx, u1, BlockXs, 1);
-      this.drawMark(out, BlockXs[0], BlockXs[1], ctx, k, dpr, c, tokens);
+      this.xIntoFrom(ctx, U, 2 * k, BlockXs, 0);
+      this.xIntoFrom(ctx, U, 2 * k + 1, BlockXs, 1);
+      // the piece's ends through `BlockXs` (two fractional numbers passed to a call that is not inlined are boxed)
+      this.drawMark(out, ctx, k, dpr, c, tokens);
     }
     // the connectors: from the mark's foot to the zoom strip's top, its start to the strip's start, its end to its end
     // (over the origin the first piece's start, the second's end)
@@ -1115,14 +1135,12 @@ export class NavigatorRenderer {
   }
 
   /**
-   * A piece of the mark between `a` and `b` on the context: an outline at least `window.minPx` wide, always centred on
+   * A piece of the mark between `BlockXs[0]` and `BlockXs[1]` on the context: an outline at least `window.minPx` wide, always centred on
    * the truth (whatever `window.floor`: the mark says where) and clamped inside the picture, so the truth is inside it;
    * its hairline at the truth. Its drawn ends into `markX` (piece `k`).
    */
   private drawMark(
     out: PassWriter,
-    a: number,
-    b: number,
     ctx: SectionLayout,
     k: number,
     dpr: number,
@@ -1130,8 +1148,10 @@ export class NavigatorRenderer {
     tokens: SeqTokens,
   ): void {
     const box = ctx.placement.box;
-    Ext[0] = Math.min(a, b);
-    Ext[1] = Math.max(a, b);
+    const a = BlockXs[0];
+    const b = BlockXs[1];
+    Ext[0] = a < b ? a : b;
+    Ext[1] = a < b ? b : a;
     Ext[2] = box.x;
     Ext[3] = box.x + box.width;
     floorExtent(Ext, 0, this.markConfig(c));

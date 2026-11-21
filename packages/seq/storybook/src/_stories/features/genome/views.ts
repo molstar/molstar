@@ -8,6 +8,9 @@ import { PCG } from '@molstar/core/data/util/hash-functions';
 import type { Node } from '@molstar/core/repr/tree';
 import { assembly, createSeqSpec, genome } from '@molstar/seqx-core/lang';
 import type { ExampleView } from '@molstar/seqx-examples';
+import { blockSpan } from '@molstar/seqx-core/view';
+import { viewerItem } from '@molstar/seqx-viewer/config';
+import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 
 // Toy genomes generated here, seeded (no downloads: the real dataset is the examples'), for the Genome coordinates
 // stories: one assembly in a row and on a ring, two assemblies on one ring, one genome's chromosome in another's order
@@ -124,6 +127,16 @@ function contigs(): Node {
 }
 
 /**
+ * One chromosome at a time (the story's viewer config): a pan, a zoom and a fit kept in the chromosome the window is in
+ * (IGV's, UCSC's); the navigator's zoom strip under a window narrower than 200 px (a chromosome's at the stop, so the
+ * strip shows the chromosome in view).
+ */
+export const OneAtATime = [
+  [viewerItem('navigate.acrossBlocks'), 'stop'],
+  [viewerItem('navigator.zoomStrip'), { minPx: 200, heightPx: 16 }],
+] as const;
+
+/**
  * A chromosome at a time: the genome's section with a navigator over its blocks (every chromosome and its label, a click
  * on one a jump there; under it the zoom strip of the chromosome holding the window); the viewer's
  * `navigate.acrossBlocks: stop` keeps a pan and a zoom in the chromosome. (An ideogram's bands over every chromosome wait
@@ -137,6 +150,13 @@ function chromosomeAtATime(): Node {
     v.navigator('genome-nav', { of: s, axes: 'positions', content: 'axis', size: 28 } as never);
   });
   return b.build();
+}
+
+/** Where the square opens: its view on chr3 (a window off the whole, so a click on another cell centres there). */
+export function openSquare(viewer: SeqViewer): void {
+  const s = viewer.view.resolved.value?.sections[0];
+  const b = s?.blocks?.[2];
+  if (s && b) viewer.view.setRange(s.address, b.offset ?? 0, (b.offset ?? 0) + blockSpan(b));
 }
 
 /**
@@ -220,7 +240,7 @@ export const GenomeViews: readonly ExampleView[] = [
     id: 'chromosome-at-a-time',
     title: 'A chromosome at a time',
     summary:
-      'An ideogram navigator over the genome’s blocks: every chromosome’s bands, a click on one a jump there, the zoom strip of the chromosome holding the window; the readout names the chromosome and the position.',
+      'A navigator over the genome’s blocks (every chromosome and its name; bands wait for data read by sequence): a click on one a jump there, the zoom strip of the chromosome in view under it; the readout names the chromosome and the position.',
     build: chromosomeAtATime,
   },
   {
@@ -228,7 +248,7 @@ export const GenomeViews: readonly ExampleView[] = [
     id: 'square',
     title: 'The square over blocks × blocks',
     summary:
-      'A navigator on both axes over the genome’s twelve chromosomes: their pairs as a lattice, the window one rectangle; its cells’ reads are region reads’ (not drawn yet).',
+      'A navigator on both axes over the genome’s twelve chromosomes: their pairs as a lattice sized by length, named on both axes, the window one rectangle; a click centres there, a double-click fits a cell’s pair. Its cells’ reads are region reads’ (not drawn yet).',
     build: squareOverBlocks,
   },
   {

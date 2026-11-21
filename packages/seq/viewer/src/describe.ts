@@ -135,7 +135,7 @@ const BlockSection: CardSection = {
     const k = at.place.block;
     if (!blocks || k === undefined || !blocks[k]) return;
     // a run of small blocks: the block under the point, which of the run, not read at this zoom (genome coordinates)
-    if (at.place.target === 'run') {
+    if (at.place.target === 'run' || at.place.count !== undefined) {
       const block = blocks[k];
       const of = `one of ${(at.place.count ?? 0).toLocaleString('en-US')}`;
       out.title = block.label;
@@ -170,10 +170,13 @@ const BlockSection: CardSection = {
   },
 };
 
-/** What a block's row is called by its system: `Sequence` for an assembly's derived sequence, else `Chain`. */
+/**
+ * What a block's row is called by its system: `Chain` for a complex's (a unit, a molecule, its atoms) or a protein's,
+ * `Sequence` for a nucleic sequence (an assembly's chromosome, a plain DNA or RNA sequence).
+ */
 function blockKindName(model: StaticModel, system: string): string {
-  const at = system.lastIndexOf('/(sequence ');
-  return at > 0 && model.assemblies.has(system.slice(0, at)) ? 'Sequence' : 'Chain';
+  const e = model.systems.get(system);
+  return !e || e.kind !== 'sequence' || e.alphabet === 'protein' ? 'Chain' : 'Sequence';
 }
 
 /** A pairs layer's pair: its label, its two ends, its kind. */
@@ -511,7 +514,7 @@ class Words {
         place.yPosition === undefined || Number.isNaN(place.yPosition) ? Number.NaN : Math.floor(place.yPosition),
     };
     // a run of small blocks says its block and the run alone
-    for (const s of Sections) if (t !== 'run' || s === BlockSection) s.describe(at, out);
+    for (const s of Sections) if ((t !== 'run' && place.count === undefined) || s === BlockSection) s.describe(at, out);
     if (!out.words.length) return undefined;
     return { title: out.title || out.words[0], rows: out.rows, text: out.words.join(', ') };
   }

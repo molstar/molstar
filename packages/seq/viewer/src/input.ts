@@ -123,6 +123,48 @@ export class ViewerInput {
   /** The pointer's last place while it rests over the canvas (EC-143's re-hit reads it). */
   private _x = Number.NaN;
   private _y = Number.NaN;
+  private _row: string | undefined;
+
+  /**
+   * The track whose row the resting pointer is in (its header, its bands, a gap between its blocks, a rail over it),
+   * by address; undefined off every track. Its header's actions stay shown anywhere in the row (_spec/README.md
+   * "Behaviors", Headers): a hover that hits nothing in a gap is no reason for them to go.
+   */
+  get row(): string | undefined {
+    return this._row;
+  }
+
+  /** The track whose row holds a y in the last frame's layout (no string made: an address the layout holds). */
+  private _rowAt(y: number): string | undefined {
+    const layout = this.viewer.frame?.layout;
+    if (!layout || Number.isNaN(y)) return undefined;
+    for (const s of layout.sections) {
+      if (y < s.y || y >= s.y + s.height) continue;
+      // in a track's box, else the nearest's (the rail under a ruler, the gap between two tracks, the block labels)
+      let best: string | undefined;
+      let d = Number.POSITIVE_INFINITY;
+      for (const t of s.tracks) {
+        const top = t.box.y;
+        const bottom = t.box.y + t.box.height;
+        if (y >= top && y < bottom) return t.track.address;
+        const e = y < top ? top - y : y - bottom;
+        if (e < d) {
+          d = e;
+          best = t.track.address;
+        }
+      }
+      return best;
+    }
+    return undefined;
+  }
+
+  /** The row under the pointer moved to another track (or off every one): the next frame draws its actions. */
+  private _setRow(row: string | undefined): void {
+    if (row === this._row) return;
+    this._row = row;
+    this.viewer.schedule();
+  }
+
   private _drag:
     | {
         x: number;
@@ -418,12 +460,13 @@ export class ViewerInput {
       t === 'group' ||
       t === 'run' ||
       t === 'header-slot' ||
-      t === 'header-state'
+      t === 'header-state' ||
+      (t === 'window' && h.count !== undefined)
         ? h.state
         : undefined;
     out.members = h.members;
-    // a run's count (its blocks: "one of 2,841")
-    out.count = t === 'run' ? h.count : undefined;
+    // a run's count (its blocks: "one of 2,841"; the ruler rail's place over a run too)
+    out.count = t === 'run' || t === 'window' ? h.count : undefined;
     return this._hit;
   }
 
@@ -441,6 +484,7 @@ export class ViewerInput {
     const d = this._drag;
     const hit = this._hitAt(x, y);
     this._windowHover(this._renderHit);
+    this._setRow(this._rowAt(y));
     if (d) {
       if (!d.moved && Math.max(Math.abs(x - d.x0), Math.abs(y - d.y0)) >= DragSlop) d.moved = true;
       if (d.rowsRail) {
@@ -487,6 +531,7 @@ export class ViewerInput {
   /** The pointer left the canvas: the hover it owned goes, and no re-hit follows. */
   leave(): void {
     this._x = this._y = Number.NaN;
+    this._setRow(undefined);
     this.hoverBehavior?.leave();
     this.cardBehavior?.leave();
   }

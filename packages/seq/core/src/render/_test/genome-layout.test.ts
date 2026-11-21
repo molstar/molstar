@@ -25,7 +25,7 @@ import {
   type RingPlacement,
   renderConfig,
 } from '../index.js';
-import { BlockRow, fitBlockLabel } from '../layout/blocks.js';
+import { BlockRow, blockNamePrefix, fitBlockLabel } from '../layout/blocks.js';
 import { renderSvg } from '../render-svg.js';
 import type { RangesLay } from '../ranges-lay.js';
 import { dna, genomeSpec, MixedFeatures, mixedSpec, toyGenome, twoGenomesSpec } from './genome-fixtures.js';
@@ -144,16 +144,17 @@ describe('a block’s own direction and scale (EC-206)', () => {
     expect(labelled).toBeGreaterThanOrEqual(6);
   });
 
-  it('a label that cannot show its name hides; a cut name keeps its direction mark', async () => {
+  it('a block label is whole, its first word or short, never cut; the mark kept whole after the name', async () => {
     const s = await settle(genomeSpec(toyGenome(25, 0), { reversed: ['chr2'] }));
     const f = await s.frame({ size: { width: 720, height: 300 } });
     const p = placementOf(f.layout);
-    const names = new Set(toyGenome(25, 0).map((x) => x.name));
+    const names = new Set(toyGenome(25, 0).flatMap((x) => [x.name, x.name.replace(/^chr/, '')]));
     names.add('chr2 ←');
+    names.add('2 ←');
     const shown = p.shown.slice(0, p.strips.n).filter((x) => x !== '');
     expect(shown.length).toBeGreaterThan(5);
     for (const l of shown) expect(names.has(l), l).toBe(true);
-    // a long reversed name in a narrow block: cut, its mark kept whole after the cut
+    // a long reversed name in a narrow block: hidden here, never cut
     const m = await settle(
       mixedSpec([
         { seq: 0, range: [0, 4000 - 3600], direction: 'reversed' },
@@ -168,14 +169,72 @@ describe('a block’s own direction and scale (EC-206)', () => {
     const text = bundledTextMetrics();
     const config = renderConfig();
     const w = text.measure(config.labelFont, 'HLA-A*01… ←') + 0.5;
-    expect(fitBlockLabel(text, config, long, w)).toBe('HLA-A*01… ←');
+    expect(fitBlockLabel(text, config, long, w)).toBe('');
     expect(fitBlockLabel(text, config, { ...block, label: 'chr10' }, 20)).toBe('');
+    // short: the name less the names' shared prefix, the mark kept (`10 ←`)
+    expect(
+      fitBlockLabel(text, config, { ...block, label: 'chr10' }, text.measure(config.labelFont, '10 ←') + 0.5, 'chr'),
+    ).toBe('10 ←');
     // a name of words keeps its first word whole with the mark (B in A's order's `chr2 inv ←` in a 34 px block showed
-    // nothing though `chr2 ←` fits)
+    // nothing though `chr2 ←` fits); never `chr2… ←`
     const words = { ...block, label: 'chr2 inv' };
     expect(fitBlockLabel(text, config, words, text.measure(config.labelFont, 'chr2 ←') + 0.5)).toBe('chr2 ←');
-    expect(fitBlockLabel(text, config, words, text.measure(config.labelFont, 'chr2… ←') + 0.5)).toBe('chr2… ←');
     expect(fitBlockLabel(text, config, words, text.measure(config.labelFont, 'chr2 ←') - 1)).toBe('');
+    expect(fitBlockLabel(text, config, words, text.measure(config.labelFont, '2 ←') + 0.5, 'chr')).toBe('2 ←');
+  });
+
+  it('labels every block whole or short at 800 px, the stride thins them at 300 px; never an ellipsis, never two overlapping', async () => {
+    const font = renderConfig().labelFont;
+    const text = bundledTextMetrics();
+    for (const width of [800, 300]) {
+      const s = await settle(genomeSpec(toyGenome(25, 0)));
+      const f = await s.frame({ size: { width, height: 300 } });
+      const p = placementOf(f.layout);
+      const blocks = f.layout.sections[0].section.blocks!;
+      const boxes: [number, number, string][] = [];
+      let shown = 0;
+      for (let i = 0; i < p.strips.n; i++) {
+        const l = p.shown[i];
+        if (!l) continue;
+        shown++;
+        expect(l.includes('…'), l).toBe(false);
+        const name = blocks[p.strips.block[i]].label;
+        expect([name, name.replace(/^chr/, '')], l).toContain(l);
+        const x0 = p.strips.axes[i].x0;
+        const w = text.measure(font, l);
+        expect(w, l).toBeLessThanOrEqual(p.labelRoom[i] + 1e-6);
+        boxes.push([x0, x0 + w, l]);
+      }
+      for (let k = 1; k < boxes.length; k++)
+        expect(boxes[k][0], `${boxes[k - 1][2]} ${boxes[k][2]}`).toBeGreaterThan(boxes[k - 1][1]);
+      const visible = blocks.filter((_, b) => {
+        for (let i = 0; i < p.strips.n; i++) if (p.strips.block[i] === b && p.strips.axes[i].width >= 1) return true;
+        return false;
+      }).length;
+      // every block whose short name fits it is labelled, and those that do not by a stride (at most every second at
+      // 800 px: chr19–22, Y and M are narrower than two digits of the 12 px font there); at 300 px a coarser stride
+      const prefix = blockNamePrefix(blocks);
+      for (let i = 0; i < p.strips.n; i++) {
+        const b = blocks[p.strips.block[i]];
+        const short = b.label.slice(prefix.length);
+        if (text.measure(font, short) <= p.strips.axes[i].width) expect(p.shown[i], b.label).not.toBe('');
+      }
+      if (width === 800) expect(shown).toBeGreaterThanOrEqual(Math.ceil(visible * 0.75));
+      else {
+        expect(shown).toBeGreaterThan(6);
+        expect(shown).toBeLessThan(visible);
+      }
+    }
+  });
+
+  it('shortens by a common prefix only where it leaves non-empty distinct tails', () => {
+    const b = (label: string) => ({ label }) as never;
+    expect(blockNamePrefix(['chr1', 'chr2', 'chrX', 'chrM'].map(b))).toBe('chr');
+    expect(blockNamePrefix(['Pp01', 'Pp02', 'Pp11'].map(b))).toBe('Pp');
+    // a tail empty (`chr` itself), or tails alike: none
+    expect(blockNamePrefix(['chr', 'chr1'].map(b))).toBe('');
+    expect(blockNamePrefix(['scaffold_1'].map(b))).toBe('');
+    expect(blockNamePrefix(['alpha', 'beta'].map(b))).toBe('');
   });
 
   it('draws against the data on a reversed and a scaled block: each feature hit at its place (EC-206)', async () => {

@@ -892,14 +892,17 @@ export class ViewModel extends ReactiveModel {
     });
   }
 
-  /** Each group's block under `navigate.acrossBlocks: stop` (the one its window was last kept in), by group key. */
-  private readonly _stopBlock = new Map<string, number>();
+  /**
+   * Each group's block under `navigate.acrossBlocks: stop` (the one its window was last kept in), by its group's first section (a group made again over a new block list keeps it): its copy
+   * key (system, range, form) and its index then.
+   */
+  private readonly _stopBlock = new Map<string, { readonly copy: string; readonly index: number }>();
   /** The next publish follows a range set (a jump): under `stop` its window may move to the block holding it. */
   private _stopFree = false;
 
   /**
    * `navigate.acrossBlocks: stop` on a row of blocks (_spec/README.md "ViewModel", Blocks): the window kept in one
-   * block: the block holding the whole window (a jump moved there), else the one it was kept in, else its centre's; its
+   * block: after a jump the block holding its centre, else the one it was kept in, else its start's; its
    * width at most the block's, its ends inside it (a fit: the whole block). True when it applies.
    */
   private _stopIn(g: Group, fit: boolean): boolean {
@@ -917,22 +920,21 @@ export class ViewModel extends ReactiveModel {
       }
       return lo;
     };
-    const a = at(g.start);
-    const kept = this._stopBlock.get(g.key);
-    // a jump wholly inside a block moves there; a pan, a zoom and a fit keep the block the window was in
-    const b =
-      (!fit && this._stopFree && a === at(Math.max(g.start, g.end - 1e-6))) || kept === undefined
-        ? a
-        : kept !== undefined && kept < blocks.length
-          ? kept
-          : at((g.start + g.end) / 2);
+    // the kept block found again by its copy key (at its index, else wherever it now is: `section.include` and a
+    // reverse change the list under it), never whichever block now sits at its old index
+    const k = this._stopBlock.get(g.members[0]);
+    let kept = k && blocks[k.index]?.copy === k.copy ? k.index : -1;
+    if (k && kept < 0) kept = blocks.findIndex((x) => x.copy === k.copy);
+    // a jump (a click on another chromosome, a range set) moves to the block holding its centre; a pan, a zoom and a
+    // fit keep the block the window was in; the first time, the block at its start
+    const b = !fit && this._stopFree ? at((g.start + g.end) / 2) : kept >= 0 ? kept : at(g.start);
     const lo = blocks[b].offset ?? 0;
     const hi = lo + blockSpan(blocks[b]);
     const width = fit ? hi - lo : Math.min(g.end - g.start, hi - lo);
     const start = fit ? lo : Math.min(Math.max(g.start, lo), hi - width);
     g.start = start;
     g.end = start + width;
-    this._stopBlock.set(g.key, b);
+    this._stopBlock.set(g.members[0], { copy: blocks[b].copy, index: b });
     return true;
   }
 

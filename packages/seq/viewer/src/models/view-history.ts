@@ -4,10 +4,17 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { hash2, hashString } from '@molstar/core/data/util/hash-functions';
 import { type ReadonlyState, State } from '@molstar/core/reactive';
 import type { Location } from '@molstar/seqx-core/query';
 import type { BandViewport } from '@molstar/seqx-core/render';
-import { placeOfUnit, type ResolvedSection, type SystemPosition, unitOfPlace } from '@molstar/seqx-core/view';
+import {
+  placeOfUnit,
+  type ResolvedBlock,
+  type ResolvedSection,
+  type SystemPosition,
+  unitOfPlace,
+} from '@molstar/seqx-core/view';
 import { axisKey, axisTotal, positionAt } from './axis.js';
 import type { ViewBands } from './view-bands.js';
 import { centerOffset, DetachedPrefix, type Group, type SectionState } from './view-groups.js';
@@ -173,7 +180,9 @@ function keptOf(snap: Snapshot, g: Group, sections: ReadonlyMap<string, SectionS
   if (blocks && v.ends) {
     const a = unitOfPlace(blocks, v.ends[0]);
     const b = unitOfPlace(blocks, v.ends[1], a);
-    if (a !== undefined && b !== undefined && b > a) return { start: a, end: b, fitted: false, sig, ...scale };
+    // a reversed block since maps the ends mirrored (b before a): the range is their hull either way
+    if (a !== undefined && b !== undefined && a !== b)
+      return { start: Math.min(a, b), end: Math.max(a, b), fitted: false, sig, ...scale };
   }
   const c = v.center === undefined ? undefined : centerOffset(g.axis, v.center);
   if (c === undefined) return { start: 0, end: total, fitted: true, sig, ...scale };
@@ -279,13 +288,33 @@ function detachable(sections: ReadonlyMap<string, SectionState>, key: string): S
 
 /**
  * A group's signature in a step of the history: its axis's and its layout, and on a section of blocks its blocks'
- * systems, directions, scales and offsets (a step over any is restored by position).
+ * systems, directions, scales and offsets (a step over any is restored by position), hashed: a few bytes a step
+ * whatever the blocks (3,000 contigs were ~150 kB a step written out), memoized by the blocks list.
  */
 function sigOf(g: Group, sections: ReadonlyMap<string, SectionState>): string {
   const blocks = blocksOf(g, sections)?.blocks;
-  let key = '';
-  if (blocks) for (const b of blocks) key += `|${b.axis.system}:${b.axis.dir}:${b.scale ?? 1}:${b.offset ?? 0}`;
-  return `${axisKey(g.axis)}#${g.layout}${key ? `#${key}` : ''}`;
+  return `${axisKey(g.axis)}#${g.layout}${blocks ? `#${blocksSig(blocks)}` : ''}`;
+}
+
+const BlocksSigs = new WeakMap<readonly ResolvedBlock[], string>();
+
+/** A blocks list's signature: its count and two 32-bit hashes of each block's system, direction, scale and offset. */
+export function blocksSig(blocks: readonly ResolvedBlock[]): string {
+  const known = BlocksSigs.get(blocks);
+  if (known !== undefined) return known;
+  let h1 = 0;
+  let h2 = 0x9e3779b9 | 0;
+  for (const b of blocks) {
+    const s = hashString(b.axis.system);
+    const d = b.axis.dir === -1 ? 1 : 0;
+    const o = Math.round((b.offset ?? 0) * 1024) | 0;
+    const k = Math.round((b.scale ?? 1) * 1e6) | 0;
+    h1 = hash2(hash2(h1, s), hash2(hash2(d, k), o)) | 0;
+    h2 = (Math.imul(h2 ^ s, 0x01000193) + Math.imul(o ^ (k << 1) ^ d, 0x5bd1e995)) | 0;
+  }
+  const sig = `|${blocks.length}:${(h1 >>> 0).toString(36)}:${(h2 >>> 0).toString(36)}`;
+  BlocksSigs.set(blocks, sig);
+  return sig;
 }
 
 /** A group's section of blocks (its first member's), when it is one. */

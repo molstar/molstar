@@ -6,6 +6,7 @@
 
 import { createSeqContext } from '@molstar/seqx-core/context/default';
 import { type BlockPlacement, DarkTokens, LightTokens, type RingPlacement } from '@molstar/seqx-core/render';
+import { actionsShown } from '@molstar/seqx-core/render/headers-draw';
 import { Describer } from '@molstar/seqx-viewer/describe';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { loadGenome } from '@molstar/seqx-core/resolve';
@@ -73,9 +74,46 @@ describe('Genome coordinates stories, headless', () => {
     // the ruler band's foot: inside the rail's grab zone too
     const y = Math.min(p.strips.bandY[2 * p.strips.bands] + p.strips.bandH[2 * p.strips.bands] - 2, r.bottom - 2);
     expect(y).toBeGreaterThanOrEqual(r.top);
+    // at the fit the rail stays a target: its body a place (as outside a window), never the whole window lit
     const fit = v.hit(x, y)!;
-    expect([fit.target, fit.system, fit.block]).toEqual([undefined, '/data/toy/(sequence :name chr3)', 2]);
+    expect([fit.target, fit.part, fit.system, fit.block]).toEqual([
+      'window',
+      'outside',
+      '/data/toy/(sequence :name chr3)',
+      2,
+    ]);
     expect(fit.position! > 0 && fit.position! < 230e6).toBe(true);
+    v.input.move(x, y);
+    v.draw();
+    expect(v.hover.current).toMatchObject({ target: 'window', system: '/data/toy/(sequence :name chr3)', block: 2 });
+    expect(v.emphasis.hover?.part).toBe('outside');
+    // drawn: the position mark (1.5 px across the line at the pointer), the rail never grown
+    const rects = v.frame!.lists.passes.window.rects;
+    const grownPx = v.context.renderConfig.navigator.rail.grownPx;
+    let marks = 0;
+    for (let i = 0; i < rects.n; i++) {
+      expect(rects.h[i]).not.toBe(grownPx);
+      if (rects.w[i] === 1.5 && Math.abs(rects.x[i] + 0.75 - x) < 1e-6) marks++;
+    }
+    expect(marks).toBe(1);
+    // a sweep across it at the fit zooms to the swept region
+    const x2 = p.strips.axes[4].x0 + p.strips.axes[4].width / 2;
+    const u0 = v.view.get('/views/main/genome')!;
+    expect(v.input.down(x, y)).toBe(true);
+    v.input.move((x + x2) / 2, y);
+    v.input.move(x2, y);
+    v.input.up();
+    await vi.advanceTimersByTimeAsync(1000);
+    v.draw();
+    const swept = v.view.get('/views/main/genome')!;
+    const b2 = s.section.blocks![2];
+    const b4 = s.section.blocks![4];
+    expect(swept.end - swept.start).toBeLessThan((u0.end - u0.start) / 2);
+    expect(swept.start).toBeGreaterThan(b2.offset!);
+    expect(swept.end).toBeLessThan(b4.offset! + b4.axis.ranges![1]);
+    v.view.fit('/views/main/genome');
+    await vi.advanceTimersByTimeAsync(50);
+    v.draw();
     // zoomed in: the rail is a target, and it names the block's system and position too, never the section's units
     v.view.setRange('/views/main/genome', 4e8, 9e8);
     await vi.advanceTimersByTimeAsync(50);
@@ -85,6 +123,37 @@ describe('Genome coordinates stories, headless', () => {
     expect(h.navigator).toBe('rail');
     expect(h.system).toMatch(/^\/data\/toy\/\(sequence :name chr\d+\)$/);
     expect(h.position!).toBeLessThan(260e6);
+  });
+
+  it('a pointer sweep along a ruler’s row keeps its header’s actions shown on every step (gaps, the rail, its header)', async () => {
+    for (const id of ['row', 'b-in-a-order', 'square']) {
+      const v = await open(id);
+      const s = v.frame!.layout.sections.find((x) => x.tracks.some((t) => t.track.address.endsWith('/ruler')))!;
+      const t = s.tracks.find((x) => x.track.address.endsWith('/ruler'))!;
+      const config = v.context.renderConfig;
+      for (const y of [
+        t.box.y + 1,
+        t.box.y + t.box.height / 2,
+        t.box.y + t.box.height - 1,
+        ...(s.rail ? [s.rail.y] : []),
+      ]) {
+        let steps = 0;
+        for (let x = 2; x < v.width - 2; x += 3) {
+          v.input.move(x, y);
+          v.draw();
+          expect(actionsShown(t.track.address, s.id, v.emphasis, config, true), `${id} ${x},${y}`).toBe(true);
+          steps++;
+        }
+        expect(steps).toBeGreaterThan(100);
+      }
+      // off the row: they go
+      v.input.move(5, s.y + s.height + 40);
+      v.draw();
+      expect(actionsShown(t.track.address, s.id, v.emphasis, config, true)).toBe(false);
+      v.input.leave();
+      v.retire();
+      viewer = undefined;
+    }
   });
 
   it('One assembly in a row: a double-click on a block’s label fits it, again the whole', async () => {

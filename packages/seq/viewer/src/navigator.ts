@@ -34,6 +34,7 @@ import { windowIdle } from '@molstar/seqx-viewer/behaviors/window';
 import type { ModifierState } from '@molstar/seqx-viewer/bindings';
 import type { ViewSnapshot } from '@molstar/seqx-viewer/models';
 import type { StaticModel } from '@molstar/seqx-core/resolve';
+import { blockOfUnit, blockSwitchRange } from './block-switch.js';
 import { DragSlop } from './input.js';
 import { setNarrowed } from './narrowed.js';
 import { type PartCursor, partCursor } from './part-cursor.js';
@@ -676,13 +677,17 @@ export class NavigatorModel extends ReactiveModel {
     // the square: a click on a cell shows its two blocks with a switch, else centres the section on the x block
     const square = this.renderer instanceof SquareNavigator ? this.renderer : undefined;
     if (square && nav.switch === 'include') return this.switchToPair(square, d.hit.section, x, y);
+    // the square: a click on a cell outside the window centres both axes there (one step; one section on both axes:
+    // its window on the x block's place); on the window nothing
+    if (square) return d.hit.part === 'outside' && this.centreSquare(square, b, x, y);
     // a click that never moved switches, on the window too (a drag of it keeps its gestures)
     if (nav.switch === 'include' && nav.blocks) return this.switchTo(d.hit.section, x, ctx);
     // over blocks, a click on the context (the genome above a zoom strip) centres there: a jump to that block
     if (ctx) {
       const at = this.renderer?.sectionUnitAt(d.hit.section, x, true);
       this.ownMove = true;
-      return at !== undefined && b.click(d.hit.section, at, detail);
+      if (at === undefined) return false;
+      return this.switchBlock(b, d.hit.section, at) ?? b.click(d.hit.section, at, detail);
     }
     if (d.hit.part !== 'outside') {
       b.click(d.hit.section, undefined);
@@ -708,7 +713,50 @@ export class NavigatorModel extends ReactiveModel {
       if (nav.axes === 'rows') return moved;
     }
     const at = this.renderer?.sectionUnitAt(d.hit.section, x);
-    return (at !== undefined && b.click(d.hit.section, at, detail)) || moved;
+    if (at === undefined) return moved;
+    // over blocks a click on another block switches to it by the rule (whole from whole, else the zoom kept)
+    const switched = nav.blocks ? this.switchBlock(b, d.hit.section, at) : undefined;
+    return (switched ?? b.click(d.hit.section, at, detail)) || moved;
+  }
+
+  /**
+   * A click at unit `at` over blocks on a block other than the view's (the one holding its centre): a jump by the
+   * switching rule (`blockSwitchRange`); undefined on the view's own block (a click centres there).
+   */
+  private switchBlock(b: NavigatorBehavior, section: string, at: number): boolean | undefined {
+    const s = this.viewer.view.resolved.value?.sections.find((x) => x.address === section);
+    const blocks = s?.blocks;
+    const v = this.viewer.view.get(section);
+    if (!blocks || blocks.length < 2 || !v || s.params.arrange === 'stack') return undefined;
+    const to = blockOfUnit(blocks, at);
+    if (to === blockOfUnit(blocks, (v.start + v.end) / 2)) return undefined;
+    const r = blockSwitchRange(blocks, v, to, v.width > 0 ? (v.end - v.start) / v.width : 0);
+    this.ownMove = true;
+    return b.zoomTo(section, r[0], r[1]);
+  }
+
+  /** The square's click: the x section centred on the cell's x place, a second section on its y place (one step). */
+  private centreSquare(square: SquareNavigator, b: NavigatorBehavior, x: number, y: number): boolean {
+    const [sx, sy] = this.navigator!.of;
+    const ux = square.sectionUnitAt(sx, x);
+    const uy = sy !== undefined && sy !== sx ? square.sectionUnitAtY(sy, y) : undefined;
+    this.ownMove = true;
+    // each axis by the switching rule on another block (whole from whole, else the zoom kept), else centred there
+    const go = (s: string, u: number, record: boolean) => {
+      const v = this.viewer.view.get(s);
+      const blocks = this.viewer.view.resolved.value?.sections.find((x) => x.address === s)?.blocks;
+      if (v && blocks && blocks.length > 1) {
+        const to = blockOfUnit(blocks, u);
+        if (to !== blockOfUnit(blocks, (v.start + v.end) / 2)) {
+          const r = blockSwitchRange(blocks, v, to, v.width > 0 ? (v.end - v.start) / v.width : 0);
+          return b.zoomTo(s, r[0], r[1], record);
+        }
+      }
+      return b.center(s, u, record);
+    };
+    const movedX = ux !== undefined && go(sx, ux, true);
+    const movedY = uy !== undefined && go(sy!, uy, !movedX);
+    return movedX || movedY;
   }
 
   /**
