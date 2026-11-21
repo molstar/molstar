@@ -98,7 +98,22 @@ export function compose(b: SeqSpecBuilder, options: ComposedOptions = {}): Compo
     : undefined;
   // the units are `struct_asym_id`'s (what the mmCIF source calls them), never the author's `chain_id`
   const asyms = [...new Set(siftsSegments(rows).map((s) => s.asym))];
-  for (const asym of asyms) b.data.sequence(`2ocj-${asym}`, { alphabet: 'protein', source: pdb, name: asym });
+  // each unit is numbered by the author's numbers of its mapped run (SIFTS's, else UniProt's: 2OCJ's author numbers are
+  // UniProt's), so its ruler counts 94–312 under P04637's, never the entity's own 1–219
+  for (const asym of asyms) {
+    const runs = rows.filter((m) => m.asym === asym && isOneToOne(m));
+    b.data.sequence(`2ocj-${asym}`, { alphabet: 'protein', source: pdb, name: asym }, (s) => {
+      s.numbering('auth', {
+        method: 'segments',
+        scheme: 'auth',
+        segments: {
+          start: runs.map((m) => m.start - 1),
+          end: runs.map((m) => m.end),
+          first: runs.map((m) => m.authStart ?? m.unpStart),
+        },
+      } as never);
+    });
+  }
   // two sets of maps, one a chain: onto the units the structure link translates to (a described end, pending until the
   // structure has arrived), and onto the spec's own sequences of the units, which the sections show and the hover and the
   // selection coming back from the structure are projected through (the static model holds those, not the units)
@@ -125,7 +140,7 @@ export function compose(b: SeqSpecBuilder, options: ComposedOptions = {}): Compo
 export function structureSection(v: ViewBuilder, c: Composed, follow: string) {
   if (!c.structure || !c.bfactor || !c.asym) return;
   // the section follows `follow` (the protein's, or the lab's) through SIFTS's map: the B-factors read under the residues
-  // of P04637 they are paired with, the ruler counting the unit's own positions
+  // of P04637 they are paired with, the ruler counting the author's numbers, which are P04637's
   v.section(
     'structure',
     {
@@ -134,7 +149,10 @@ export function structureSection(v: ViewBuilder, c: Composed, follow: string) {
       ...(c.via ? { via: c.via as never } : {}),
     },
     (s) => {
-      s.track('ruler', { label: `${Entry} chain ${c.asym} (PDBe)` }).layer('ruler', { type: 'ruler' });
+      s.track('ruler', { label: `${Entry} chain ${c.asym} (PDBe, author numbers)` }).layer('ruler', {
+        type: 'ruler',
+        numbering: 'auth',
+      });
       s.track('bfactor', { label: 'B-factor (Å²)' }).layer('bfactor', {
         type: 'values',
         data: c.bfactor!,

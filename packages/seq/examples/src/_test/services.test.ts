@@ -144,4 +144,20 @@ describe('SIFTS in the spec', () => {
     expect(s.params.follow).toBe('/views/main/protein');
     expect(s.params.via).toBe('/data/sifts-2ocj-p04637-a-seq');
   });
+
+  it('the structure section’s ruler counts the author’s numbers of the mapped run (94–312), not the unit’s own 1–219', () => {
+    const spec = composed({ sifts: sifts('2OCJ') });
+    const find = (n: any, pred: (n: any) => boolean): any =>
+      pred(n) ? n : (n.children ?? []).map((c: any) => find(c, pred)).find(Boolean);
+    const numbering = find(spec, (n) => n.kind === 'numbering' && n.id === 'auth');
+    expect(numbering.params.method).toBe('segments');
+    const { start, end, first } = numbering.params.segments;
+    expect([Array.from(start), Array.from(end), Array.from(first)]).toEqual([[0], [219], [94]]);
+    const ruler = find(
+      find(spec, (n) => n.kind === 'section' && n.id === 'structure'),
+      (n) => n.kind === 'layer' && n.params.type === 'ruler',
+    );
+    expect(ruler.params.numbering).toBe('auth');
+    expect(resolveSpec(spec).issues.filter((i) => i.severity === 'error')).toEqual([]);
+  });
 });
