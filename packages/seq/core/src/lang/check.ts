@@ -36,7 +36,7 @@ import {
 } from './check-molecules.js';
 import { checkMapSegments, checkNumberingSegments, mapParamsFit, numberingParamsFit } from './check-maps.js';
 import { LangIssues } from './issues.js';
-import { isExtensionName, SeqLanguage, SeqLanguageVersion, SeqValidateOptions } from './language.js';
+import { isExtensionName, SectionOfKinds, SeqLanguage, SeqLanguageVersion, SeqValidateOptions } from './language.js';
 import { followRef, refAddresses } from './refs.js';
 import { checkLayerThemes, rowTypes } from './theme-check.js';
 
@@ -268,8 +268,14 @@ export function checkPlaced(at: Placed, look: SeqLookup, report: Report): void {
     case 'block': {
       const of = target(n, 'of')?.node;
       checkBlockForm(n, of?.kind === 'unit' ? target(of, 'of')?.node : of, say);
+      const scale = p(n, 'scale');
+      if (typeof scale === 'number' && !(scale > 0)) say('seq.lang.block.scale', 'The scale is not positive', 'scale');
       break;
     }
+    case 'bridge':
+      if (p(n, 'a') !== undefined && p(n, 'a') === p(n, 'b'))
+        say('seq.lang.bridge.sides', 'The bridge joins a section to itself', 'b');
+      break;
     case 'source':
     case 'sequence':
     case 'molecule':
@@ -279,6 +285,8 @@ export function checkPlaced(at: Placed, look: SeqLookup, report: Report): void {
     case 'alignment':
     case 'pairs':
     case 'grid':
+    case 'assembly':
+    case 'matrix':
       checkDataNode(n, { target: (key) => target(n, key)?.node, length, parent: linkParent(at, look) }, say);
       break;
     case 'layer': {
@@ -312,15 +320,16 @@ export function checkPlaced(at: Placed, look: SeqLookup, report: Report): void {
         const want =
           type === 'letters' || type === 'ruler'
             ? 'sequence'
-            : type === 'values'
-              ? 'values'
+            : type === 'values' || type === 'matrix'
+              ? type
               : type === 'rows' || type === 'logo'
                 ? 'alignment'
                 : type === 'pairs' || type === 'grid'
                   ? type
                   : 'ranges';
         // a `ranges` layer takes `pairs` too: each end a mark at its site
-        const fits = kind === want || (type === 'ranges' && kind === 'pairs');
+        // a `pairs` layer takes a segments map: a run a pair (its method the resolved view's, `seq.view.layer.shape`)
+        const fits = kind === want || (type === 'ranges' && kind === 'pairs') || (type === 'pairs' && kind === 'map');
         if (kind !== undefined && fieldsOf('layer')?.data?.kinds?.includes(kind) && !fits)
           report('seq.lang.layer.data', 'The data is not what the type draws', at, 'data');
       }
@@ -343,6 +352,12 @@ export function checkPlaced(at: Placed, look: SeqLookup, report: Report): void {
         if (!t || !kinds.includes(t.node.kind))
           report('seq.lang.ref.target', 'The reference names no node of a kind this param takes', at, ...tail);
       };
+      // `of`: one system, or a list of assemblies (a group each)
+      const of = p(n, 'of');
+      if (Array.isArray(of)) of.forEach((x, i) => named(x, ['assembly'], 'of', i));
+      else named(of, SectionOfKinds, 'of');
+      if (p(n, 'include') !== undefined && !Array.isArray(of) && target(n, 'of')?.node.kind !== 'assembly')
+        say('seq.lang.section.include', 'The section is of no assembly: `include` is ignored', 'include');
       const direction = p(n, 'direction');
       if (direction && typeof direction === 'object' && !Array.isArray(direction))
         named((direction as Record<string, Value>).along, ['sequence', 'map'], 'direction', 'along');
@@ -500,8 +515,12 @@ export function checkDataNode(
       break;
     }
     case 'sequence': {
-      if (!xor(p(n, 'letters') !== undefined, p(n, 'source') !== undefined))
+      // under an assembly: an override of a derived sequence, its letters and alphabet the assembly's when absent
+      const derived = ctx.parent?.kind === 'assembly';
+      if (!derived && !xor(p(n, 'letters') !== undefined, p(n, 'source') !== undefined))
         say('seq.lang.sequence.content', 'A sequence has one of `letters` and `source`');
+      if (!derived && p(n, 'alphabet') === undefined)
+        say('seq.lang.sequence.alphabet', 'The sequence has no alphabet', 'alphabet');
       const letters = p(n, 'letters');
       if (typeof letters === 'string' && !Letters[String(p(n, 'alphabet'))]?.test(letters))
         say('seq.lang.sequence.letters', 'The letters are not of the alphabet', 'letters');
@@ -542,6 +561,8 @@ export function checkDataNode(
     case 'pairs': {
       checkLinks(n, ctx.parent ?? { kind: 'data' }, say);
       const rows = p(n, 'rows') as Record<string, Value> | undefined;
+      if (!xor(rows !== undefined, p(n, 'source') !== undefined) || (p(n, 'field') !== undefined && !p(n, 'source')))
+        say('seq.lang.pairs.content', 'A pairs node has one of `rows` and `source`, `field` with a source');
       if (!rows) break;
       // each end an interval within its system, never wrapping (EC-10)
       for (const side of ['a', 'b'] as const) {
@@ -564,8 +585,28 @@ export function checkDataNode(
       }
       break;
     }
+    case 'assembly':
+      if (
+        (p(n, 'sequences') === undefined && p(n, 'source') === undefined) ||
+        (p(n, 'names') !== undefined && p(n, 'alias_source') === undefined)
+      )
+        say('seq.lang.assembly.content', 'An assembly lists no sequences, or names a naming with no alias source');
+      break;
+    case 'matrix': {
+      const inline = Number(p(n, 'values') !== undefined) + Number(p(n, 'codes') !== undefined);
+      const source = p(n, 'source') !== undefined;
+      if (
+        inline + Number(source) !== 1 ||
+        (inline && p(n, 'states') === undefined) ||
+        (p(n, 'field') !== undefined && !source)
+      )
+        say('seq.lang.matrix.content', 'A matrix has one of `values`, `codes` and `source`, inline cells their states');
+      break;
+    }
     case 'grid': {
       const values = p(n, 'values');
+      if (!xor(values !== undefined, p(n, 'source') !== undefined) || (p(n, 'field') !== undefined && !p(n, 'source')))
+        say('seq.lang.grid.content', 'A grid has one of `values` and `source`, `field` with a source');
       const x = systemOf('x')?.length;
       const y = p(n, 'y') === undefined ? x : systemOf('y')?.length;
       if (isColumn(values) && x !== undefined && y !== undefined && (values as ArrayLike<number>).length !== x * y)

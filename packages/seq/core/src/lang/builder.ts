@@ -60,6 +60,18 @@ export interface DataBuilder {
   complex(id: string, params: Params<'complex'>, body?: (complex: ComplexBuilder) => void): Address<'complex'>;
   /** A compound described (`/data/compounds/<code>`), the `compounds` container made with the first. */
   compound(id: string, params: Params<'compound'>): Address<'compound'>;
+  /**
+   * A genome assembly: its sequences derived from `sequences` or its source; overrides of derived ones (a cyclic
+   * mitochondrion, a label) written in `body`, each matched by its `name`.
+   */
+  assembly(id: string, params: Params<'assembly'>, body?: (assembly: AssemblyBuilder) => void): Address<'assembly'>;
+  /** A matrix: a value or a code per item and state (genotypes, methylation). */
+  matrix(id: string, params: Params<'matrix'>): Address<'matrix'>;
+}
+
+export interface AssemblyBuilder extends Addressed<'assembly'> {
+  /** An override of the derived sequence named `params.name` (its alphabet the assembly's when absent). */
+  sequence(id: string, params: Params<'sequence'>): Address<'sequence'>;
 }
 
 /** Links' params: a pairs node's but `a` and `b`, which are its parent (_spec/README.md, Language, Molecules and complexes). */
@@ -122,6 +134,12 @@ export interface ViewBuilder extends Addressed<'view'> {
   section(id: string, params: Params<'section'>, body?: (section: SectionBuilder) => void): SectionBuilder;
   /** A navigator (`<view>/navigators/<id>`): its params, or a form's (`stripNavigator`, `ideogramNavigator`, …). */
   navigator(id: string, params: NavigatorParams): Address<'navigator'>;
+  /** A bridge between two neighbouring sections: its layers (pairs) written in `body`. */
+  bridge(id: string, params: Params<'bridge'>, body?: (bridge: BridgeBuilder) => void): Address<'bridge'>;
+}
+
+export interface BridgeBuilder extends Addressed<'bridge'> {
+  layer(id: string, params: Params<'layer'>): Address<'layer'>;
 }
 
 /** The sections a navigator binds: one, or several (a handle or an address each). */
@@ -339,6 +357,16 @@ export function createSeqSpec(options: SeqSpecOptions = {}): SeqSpecBuilder {
       });
       return rec.address;
     },
+    assembly(id: string, params: unknown, body?: (a: AssemblyBuilder) => void) {
+      const rec = add(data, 'assembly', id, params);
+      body?.({
+        address: rec.address as Address<'assembly'>,
+        sequence: (sid, sparams) => add(rec, 'sequence', sid, sparams).address as Address<'sequence'>,
+        toString: () => rec.address,
+      });
+      return rec.address;
+    },
+    matrix: dataKind('matrix'),
     compound(id: string, params: unknown) {
       compounds ??= add(data, 'compounds', 'compounds', undefined);
       return add(compounds, 'compound', id, params).address;
@@ -357,6 +385,7 @@ export function createSeqSpec(options: SeqSpecOptions = {}): SeqSpecBuilder {
     return rows && typeof rows === 'object' ? (rows as Record<string, unknown>) : undefined;
   };
 
+  /** A track's layers, or a bridge's (written the same way). */
   function trackBuilder(rec: Rec): TrackBuilder {
     return {
       address: rec.address as Address<'track'>,
@@ -392,6 +421,11 @@ export function createSeqSpec(options: SeqSpecOptions = {}): SeqSpecBuilder {
       navigator(id, params) {
         navigators ??= add(rec, 'navigators', 'navigators', undefined);
         return add(navigators, 'navigator', id, params).address as Address<'navigator'>;
+      },
+      bridge(id, params, body) {
+        const b = trackBuilder(add(rec, 'bridge', id, params)) as unknown as BridgeBuilder;
+        body?.(b);
+        return b.address;
       },
       toString: () => rec.address,
     };

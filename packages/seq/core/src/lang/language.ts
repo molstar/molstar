@@ -36,6 +36,9 @@ const ColumnsTargetKinds = [...SystemKinds, 'alignment'] as const;
 /** What a data reference over a genome takes: a system, or an assembly (a row on the sequence its target names). */
 const GenomeKinds = [...SystemKinds, 'assembly'] as const;
 
+/** What a section's `of` names when it is one node (a list names assemblies). */
+export const SectionOfKinds = ['sequence', 'alignment', 'molecule', 'unit', 'complex', 'assembly', 'matrix'] as const;
+
 /** An assembly's or a section's `include` (_spec/README.md, Language, Assemblies): names and patterns, a length floor. */
 const Include = {
   type: 'union',
@@ -316,7 +319,11 @@ export const SeqLanguage = defineLanguage({
           enum: ['transcripts', 'genes', 'rows'],
           doc: 'A gene model’s items (GFF3, GTF): `transcripts` (absent), `genes` or the file’s `rows`.',
         },
-        samples: { type: 'list', of: { type: 'string', doc: 'A sample.' }, doc: 'The samples read (VCF); all when absent.' },
+        samples: {
+          type: 'list',
+          of: { type: 'string', doc: 'A sample.' },
+          doc: 'The samples read (VCF); all when absent.',
+        },
       },
     },
     sequence: {
@@ -327,8 +334,7 @@ export const SeqLanguage = defineLanguage({
         alphabet: {
           type: 'string',
           enum: ['protein', 'dna', 'rna'],
-          required: true,
-          doc: 'The alphabet of its letters.',
+          doc: 'The alphabet of its letters (under an assembly: the assembly’s when absent).',
         },
         letters: { type: 'string', doc: 'The letters inline (instead of `source`).' },
         source: { type: 'ref', kinds: ['source'], doc: 'The source that holds the letters (instead of `letters`).' },
@@ -816,7 +822,7 @@ export const SeqLanguage = defineLanguage({
         of: {
           type: 'union',
           of: [
-            { type: 'ref', kinds: ['sequence', 'alignment', 'molecule', 'unit', 'complex', 'assembly', 'matrix'] },
+            { type: 'ref', kinds: SectionOfKinds },
             { type: 'list', of: { type: 'ref', kinds: ['assembly'], doc: 'An assembly.' }, 'min-length': 1 },
           ],
           doc: 'The coordinate system the section shows (an alignment: its columns; a grid’s rows system: `<node>/(rows)`), a complex (a block a unit, copies merged by `copies`, ordered by `classes`), an assembly (a block a sequence) or a list of them (a group each); required unless the section has `block` children.',

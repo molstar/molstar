@@ -10,6 +10,8 @@
 export {
   type Address,
   type Addressed,
+  type AssemblyBuilder,
+  type BridgeBuilder,
   type ComplexBuilder,
   createSeqSpec,
   type DataBuilder,

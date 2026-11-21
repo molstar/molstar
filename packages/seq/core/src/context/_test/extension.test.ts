@@ -80,7 +80,7 @@ const DotsType: LayerType<DotsPrep, DotsLay> = {
 const Demo: SeqExtension = defineExtension({
   id: 'demo',
   version: '0.2.0',
-  requires: '0.5',
+  requires: '0.6',
   registry: [{ kind: 'layer-type', type: DotsType }],
   params: { 'demo:dots': { radius: { type: 'number', min: 0, doc: 'The dots’ radius, px.' } } },
 });
@@ -212,7 +212,7 @@ describe('extensions: a namespaced layer type', () => {
 });
 
 describe('extensions: registration', () => {
-  const other = defineExtension({ id: 'other', version: '1.0.0', requires: '0.5', registry: [] });
+  const other = defineExtension({ id: 'other', version: '1.0.0', requires: '0.6', registry: [] });
   const runtime = (name: string) => ({ name, formats: ['shared'], open: () => Promise.reject(new Error('none')) });
 
   it('checks a descriptor where it is defined: every offender in one error', () => {
