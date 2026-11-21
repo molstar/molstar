@@ -280,6 +280,10 @@ const Cases: Record<string, { ctx: unknown; before?: (v: SeqViewer) => unknown }
   'rows.show': { ctx: { track: RowsTrack }, before: (v) => run(v, 'rows.hide', { track: RowsTrack, rows: [1] }) },
   'rows.order': { ctx: { track: RowsTrack, order: 'data' } },
   'rows.order-next': { ctx: { track: RowsTrack } },
+  'rows.unsort': {
+    ctx: { track: RowsTrack },
+    before: (v) => run(v, 'rows.order', { track: RowsTrack, order: { field: 'label', direction: 'ascending' } }),
+  },
   'rows.zoom-in': { ctx: { track: RowsTrack } },
   'rows.zoom-out': { ctx: { track: RowsTrack } },
   'rows.page-down': { ctx: { track: RowsTrack } },

@@ -713,11 +713,15 @@ export class ViewerInput {
       let n: SpecNode | undefined = this.viewer.spec.root.value;
       for (const id of title.layer.split('/').filter(Boolean)) n = n?.children?.find((c) => c.id === id);
       const now = n?.params?.order as { field?: unknown; direction?: unknown } | undefined;
-      const flip = typeof now === 'object' && now?.field === title.state && now.direction !== 'descending';
-      void this.viewer.execute('rows.order', {
-        track: trackOfLayer(title.layer),
-        order: { field: title.state, direction: flip ? 'descending' : 'ascending' },
-      });
+      const here = typeof now === 'object' && now?.field === title.state;
+      // ascending, descending, then none: the third click clears this column's sort
+      if (here && now!.direction === 'descending')
+        void this.viewer.execute('rows.unsort', { track: trackOfLayer(title.layer) });
+      else
+        void this.viewer.execute('rows.order', {
+          track: trackOfLayer(title.layer),
+          order: { field: title.state, direction: here ? 'descending' : 'ascending' },
+        });
       this._suppressClick = false;
       return true;
     }

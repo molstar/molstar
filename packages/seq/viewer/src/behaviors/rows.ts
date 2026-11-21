@@ -14,6 +14,7 @@
 
 import type { Op } from '@molstar/core/repr/patch';
 import type { Node, Value } from '@molstar/core/repr/tree';
+import { sortOf } from '../models/row-sort.js';
 import {
   allClades,
   cladesAtDepth,
@@ -61,6 +62,7 @@ export const RowsCommandIds = {
   hide: 'rows.hide',
   show: 'rows.show',
   order: 'rows.order',
+  unsort: 'rows.unsort',
   orderNext: 'rows.order-next',
   zoomIn: 'rows.zoom-in',
   zoomOut: 'rows.zoom-out',
@@ -153,6 +155,18 @@ export function rowsBehavior(
     return o instanceof Promise ? o.then(said(done)) : said(done)(o);
   };
   const at = (l: RowsLay) => l.key.split('/').filter(Boolean);
+  /** What a layer's `order` was before the first sort by a column (`rows.unsort` restores it; absent: unset). */
+  const unsorted = new Map<string, Value | undefined>();
+  const orderOf = (l: RowsLay): Value | undefined => {
+    let n: Node | undefined = spec.root.value;
+    for (const id of at(l)) n = n?.children?.find((c) => c.id === id);
+    return (n?.params?.order ?? l.params?.order) as Value | undefined;
+  };
+  /** An order set: a sort by a column remembers the order it replaces, once. */
+  const orderOp = (l: RowsLay, value: Value): Op => {
+    if (sortOf(value) && !sortOf(orderOf(l))) unsorted.set(l.key, orderOf(l));
+    return { op: 'set', at: at(l), key: 'order', value };
+  };
   const labelsOf = (l: RowsLay, rows: readonly number[]) => rows.map((r) => l.label(r));
   /** A list param of the rows layer as the spec has it now (a command acts on the current spec, not the last frame). */
   const listParam = (l: RowsLay, key: string): string[] => {
@@ -370,7 +384,27 @@ export function rowsBehavior(
       },
       run: (_, ctx) => {
         const l = lay(trackOf(ctx))!;
-        return edit('Order the rows', l, [{ op: 'set', at: at(l), key: 'order', value: ctx.order! }], ctx, 'Ordered');
+        return edit('Order the rows', l, [orderOp(l, ctx.order!)], ctx, 'Ordered');
+      },
+    },
+    {
+      // a column title's third click and the host's "Clear sort": the order before any sort by a column
+      id: RowsCommandIds.unsort,
+      title: 'Clear the rows’ sort',
+      category: 'Rows',
+      when: (ctx) => {
+        const ok = needs(false)(ctx);
+        if (ok !== true) return ok;
+        return sortOf(orderOf(lay(trackOf(ctx))!)) ? true : 'The rows are not sorted';
+      },
+      run: (_, ctx) => {
+        const l = lay(trackOf(ctx))!;
+        const before = unsorted.get(l.key);
+        const op: Op =
+          before === undefined
+            ? { op: 'unset', at: at(l), key: 'order' }
+            : { op: 'set', at: at(l), key: 'order', value: before };
+        return edit('Clear the rows’ sort', l, [op], ctx, 'Sort cleared');
       },
     },
     {
@@ -400,7 +434,7 @@ export function rowsBehavior(
         return edit(
           'Order the rows',
           l,
-          [{ op: 'set', at: at(l), key: 'order', value: { field: column.field, direction } }],
+          [orderOp(l, { field: column.field, direction })],
           ctx,
           `Ordered by ${column.title}, ${direction}`,
         );
