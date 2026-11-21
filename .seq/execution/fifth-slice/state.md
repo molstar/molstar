@@ -92,7 +92,7 @@ fourth slice's) and `briefs/gc1-genome-language.md`, and starts FX1 beside BZ or
 ## In progress
 
 - 2026-11-21: the loop started (`/loop run .seq/execution/fifth-slice/loop.md`). Running (B3): FX1 (fast; started
-  with this commit) and BZ (strong; same). Both reported; BZ's reviewer running; FX1's reviewer next. Downloads stay asked before they are made (plan, How this slice runs).
+  with this commit) and BZ (strong; same). Both merged (BZ `167d24491`, FX1 `2afb32e91`). Running now: GC1 (strong; started with the brief's commit) alone — BE, GG and VC wait for GC1's params, SC and GC2 for its resolve. Downloads stay asked before they are made (plan, How this slice runs).
 
 ## Findings by lane
 
