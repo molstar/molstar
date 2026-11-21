@@ -30,12 +30,6 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   transcripts is weird"): about 100 px of blank lanes above the first transcript in gff3--tp-53 and as many below the last (the track
   taller than its lanes, the lanes centred in it), the first row
   unlabelled, and lanes packed unevenly around the labels; a tall track's lanes start at its top, evenly spaced.
-- **GC2's leftovers from my second look** (2026-11-21, after its fix round; fixed by GC3, `61e71891b`):
-  - a double-click on the 25-block row zooms to bases (161,976,790) instead of fitting the block;
-  - B in A's order: the reversed middle block of chr2 shows no label at all, though "chr2 ←" fits;
-  - the hover card calls a chromosome a "Chain" (`Chain chr3`, `Chain chr2 inv`): the row's name for a block's system;
-  - the ring's group labels ("peach", "grape") still straddle the group arc and sit among the block labels.
-
 - **An assembly `sequence` override naming no sequence is dropped without a word** (GC1, found in its fix round): it
   should say `seq.resolve.assembly.*` like an alias that names nothing does.
 - **A bare number as a block name** (`:name 01`): GC1 refuses it with "quote it" (`seq.query.form.param`), since core's
@@ -43,6 +37,12 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   (allowed: repr's public API is open to this work); take it only if a real name set needs it.
 
 ## Fixed
+
+- **GC2's leftovers from my second look** (2026-11-21, after its fix round; fixed by GC3, `61e71891b`):
+  - a double-click on the 25-block row zooms to bases (161,976,790) instead of fitting the block;
+  - B in A's order: the reversed middle block of chr2 shows no label at all, though "chr2 ←" fits;
+  - the hover card calls a chromosome a "Chain" (`Chain chr3`, `Chain chr2 inv`): the row's name for a block's system;
+  - the ring's group labels ("peach", "grape") still straddle the group arc and sit among the block labels.
 
 - **A double-click on a long sequence jumping to bases**: FX2 (`e678d2dbc`), one zoom step about the pointer.
 
