@@ -155,6 +155,27 @@ const over = (el: HTMLElement, x: number, y: number) => {
 };
 
 describe('the header menu over the view', () => {
+  it('a click on a "⋯" with no move before it (the pointer elsewhere) opens its menu', async () => {
+    const { v, container, headers, pointer } = await mount();
+    const r = container.getBoundingClientRect();
+    // the pointer on another track's line: its actions show, not these
+    const g = geo(v, Letters);
+    pointer('pointermove', container, {
+      clientX: r.left + g.label.x + 2,
+      clientY: r.top + g.line.y + g.line.height / 2,
+    });
+    frames.flush();
+    const dots = geo(v, Domains).slots.find((s) => s.name === 'seq:menu')!.box;
+    const xy = { clientX: r.left + dots.x + dots.width / 2, clientY: r.top + dots.y + dots.height / 2 };
+    const canvas = container.querySelector('canvas')!;
+    pointer('pointerdown', canvas, xy);
+    const t = container.hasPointerCapture(1) ? container : canvas;
+    pointer('pointerup', t, xy);
+    t.dispatchEvent(new MouseEvent('click', { ...xy, bubbles: true, cancelable: true, button: 0, detail: 1 }));
+    await v.settle();
+    expect(headers.menu.value?.menu.target.track).toBe(Domains);
+  });
+
   it('the pointer onto a header, then a click on its "⋯" as a browser clicks: the menu opens', async () => {
     const { v, container, headers, pointer, press } = await mount();
     const r = container.getBoundingClientRect();

@@ -2806,12 +2806,14 @@ numbers): a window move allocates nothing once warm.
   A header's hover lights none of its track's items (EC-146: refused by default). A figure (`figure`) lays out no slots
   and no "⋯"; its states as drawn, none with `header.states.export: none`. A `hosted` line (a host's DOM parts) draws
   nothing in its slot, "⋯" and chip boxes (the parts are the DOM's); a figure of it draws its states.
-- **Hit** (`hitChrome(section, x, y, hover)`, before the bands): a slot or the "⋯" `header-slot` **only while its
-  track's actions show** (by the hover `hitView` is given: the label line hovered first, then the slot), a state
-  `header-state` (`count` its count), elsewhere on a track's line `header-label` (no `state`), on a section's line
-  `section-header`; `state` the entry's name (`HeaderMenuName` the "⋯"), `layer` the track's address (a section's for
-  its line), `section` its section. Each hit is laid out with its part (`hit`, a line's `HeaderLine.hit`): a hover makes
-  no object.
+- **Hit** (`hitChrome(section, x, y, hover, touch)`, before the bands): a slot or the "⋯" `header-slot` wherever a mouse
+  is (its point is on its own line, whatever the last hover was), a finger's only while its track's actions show (by the
+  hover `hitView` is given: a tap on the label reveals them, the next tap runs one); none under
+  `header.actions.show: never`. Why: a press that came before the hover's frame (no move first, or the slots shown by
+  the cursor or an open menu) hit the label and did nothing, though the "⋯" was drawn there. A state `header-state`
+  (`count` its count), elsewhere on a track's line `header-label` (no `state`), on a section's line `section-header`;
+  `state` the entry's name (`HeaderMenuName` the "⋯"), `layer` the track's address (a section's for its line), `section`
+  its section. Each hit is laid out with its part (`hit`, a line's `HeaderLine.hit`): a hover makes no object.
 
 ### Track heights
 
