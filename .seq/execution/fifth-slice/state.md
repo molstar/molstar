@@ -47,6 +47,10 @@
 - **Sizes for GC2's genome axis** (the author, 2026-11-21: "raise the bound, even 10% is still fine"): headless
   870 kB (was 830), the default viewer 1,400 (was 1,330), the minimal viewer 1,000 (was 960), about 5 % each, room for
   the slice; reading stays at 240. GC2 measured 833.6, 1,332.3 and 964.4 kB.
+- **One lane at a time** (the author, 2026-11-21: "slow down to just 1 active lane after current batch finishes, we
+  are nearing usage limit"): after GC3 and GG finish, one agent at a time (a lane, then its reviewer, then its fix
+  round), never two; VC waits for both.
+
 ## Overnight: stage 0 (run by the fourth slice's loop)
 
 The fourth slice's loop runs this while the author sleeps (its `state.md`, Next, points here). The lane limit is the
