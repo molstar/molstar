@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { PCG } from '@molstar/core/data/util/hash-functions';
 import { itWithin } from '@molstar/test-harness/timing';
 import { bgzfReader, inflateBgzf } from '../bgzf.js';
@@ -342,6 +342,36 @@ describe('bounds and malformed files', () => {
       }
     }
     expect(TabixError.name).toBe('TabixError');
+  });
+});
+
+describe('header lines with no line indexed', () => {
+  it('scans each block once: allocation bounded by the header, not blocks × header', async () => {
+    const header = Array.from({ length: 4000 }, (_, i) => `##meta line ${i} ${'x'.repeat(40)}`);
+    const text = new TextEncoder().encode(header.map((h) => `${h}\n`).join(''));
+    const file = bgzip(text, 500);
+    const index = await readTabixIndex(tabixIndex([], file, vcfOptions('tbi')));
+    const reader = bgzfReader(memoryRanges(file.bytes), { cacheBlocks: 1 });
+    let allocated = 0;
+    const Native = globalThis.Uint8Array;
+    vi.stubGlobal(
+      'Uint8Array',
+      class extends Native {
+        constructor(...args: ConstructorParameters<typeof Native>) {
+          super(...args);
+          allocated += this.byteLength;
+        }
+      },
+    );
+    let got: TabixLines;
+    try {
+      got = await readHeaderLines(reader, index);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+    expect(got.lineStart.length).toBe(header.length);
+    // the header is about 200 kB in about 400 blocks: joining all after each block is tens of MB
+    expect(allocated).toBeLessThan(8 * text.length);
   });
 });
 

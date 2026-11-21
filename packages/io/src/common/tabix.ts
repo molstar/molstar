@@ -497,9 +497,15 @@ export async function readHeaderLines(
   if (firstLine !== undefined) {
     bytes = await readBounded(reader, 0, firstLine, l.maxHeaderBytes, signal);
   } else if (reader instanceof BgzfRangeReader) {
+    // block by block until a line that is not a header line starts; each block scanned once (a line is told by its
+    // first byte, so nothing of a line is carried over a block's edge but whether one starts there)
     const parts: Uint8Array[] = [];
     let total = 0;
-    for (let at: number | undefined = 0; at !== undefined; ) {
+    const meta = index.meta ? index.meta.charCodeAt(0) : -1;
+    let line = 0;
+    let atStart = true;
+    let done = false;
+    for (let at: number | undefined = 0; at !== undefined && !done; ) {
       const block = await reader.blockAt(at, signal);
       if (!block) break;
       if (total + block.bytes.length > l.maxHeaderBytes) {
@@ -508,8 +514,21 @@ export async function readHeaderLines(
       parts.push(block.bytes);
       total += block.bytes.length;
       at = block.next;
-      // stop at a block holding a line that is not a header line
-      if (block.bytes.length && !allHeader(join(parts, total), index)) break;
+      const b = block.bytes;
+      for (let i = 0; i < b.length; ) {
+        if (atStart) {
+          if (!(line < index.skip || b[i] === meta)) {
+            done = true;
+            break;
+          }
+          atStart = false;
+        }
+        const nl = b.indexOf(10, i);
+        if (nl < 0) break;
+        i = nl + 1;
+        line++;
+        atStart = true;
+      }
     }
     bytes = join(parts, total);
   } else {
@@ -535,17 +554,4 @@ export async function readHeaderLines(
     begin: none,
     end: none.slice(),
   };
-}
-
-/** Whether every complete line of `bytes` is a header line. */
-function allHeader(bytes: Uint8Array, index: TabixIndex) {
-  const meta = index.meta ? index.meta.charCodeAt(0) : -1;
-  let line = 0;
-  for (let s = 0; s < bytes.length; line++) {
-    const e = bytes.indexOf(10, s);
-    if (e < 0) return true;
-    if (line >= index.skip && bytes[s] !== meta) return false;
-    s = e + 1;
-  }
-  return true;
 }
