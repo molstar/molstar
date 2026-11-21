@@ -11,7 +11,7 @@ import { createSeqViewer, type SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { Button } from '@molstar/ui/components/button/button';
 import { defineElements, onCleanup } from '@molstar/ui/dom';
 import { UiElement } from '@molstar/ui/elements/ui-element';
-import { type HeadersComposition, headersOf, headersSpec, widgetPlaces } from './compose.js';
+import { type HeadersComposition, headersOf, headersSpec, undoKey, widgetPlaces } from './compose.js';
 
 // The track headers' stories (track-header-parts.md): a Seq* view composed by `headersSpec`, a hint, buttons that open a
 // header's menu (the only way to a ring track's), and a host's own widgets placed from `viewer.headers`. The element is
@@ -65,7 +65,13 @@ class TrackHeadersRoot extends UiElement<TrackHeadersStory> {
     });
     const viewer = createSeqViewer({ ...spec, ui: { ...spec.ui, toolbar: mountToolbar } }, canvasHost);
     let off: (() => void) | undefined;
+    // the host's Undo and Redo keys, on the page: a click on a header's part leaves the focus off the canvas
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.target instanceof HTMLInputElement) && undoKey(viewer, e)) e.preventDefault();
+    };
+    document.addEventListener('keydown', onKey);
     onCleanup(() => {
+      document.removeEventListener('keydown', onKey);
       off?.();
       viewer.retire();
     });

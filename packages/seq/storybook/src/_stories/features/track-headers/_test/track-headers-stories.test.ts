@@ -20,7 +20,7 @@ import { createSeqViewer, type SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ColorByEntry, colorByBehavior } from '../../../support/host-adapter.js';
 import { fakeClock } from '../../structure-link/_test/open.js';
-import { headersOf, headersSpec, type HeadersComposition, menuLine, widgetPlaces } from '../compose.js';
+import { headersOf, headersSpec, type HeadersComposition, menuLine, undoKey, widgetPlaces } from '../compose.js';
 
 // The track headers' stories, headless on a fake clock, composed as the stories compose them (compose.ts): the p53
 // views with a filter, a hidden layer and hidden tracks, the plasmid's ring. The witnesses are facts of the view (what
@@ -138,6 +138,23 @@ describe('the built-ins on p53', () => {
     expect(chips(sectionOf(v, 'protein'))).toEqual([]);
     await undo(v);
     expect(chips(sectionOf(v, 'protein'))).toEqual(['2 hidden']);
+  });
+
+  it('the host’s Cmd/Ctrl+Z keys undo a chip’s click and Shift redoes it (F15)', async () => {
+    const v = await open('headers');
+    const domains = () => chips(trackOf(v, 'domains'));
+    await clickChip(v, trackOf(v, 'domains'), HeaderEntryNames.filtered);
+    expect(domains()).toEqual(['1 layer hidden']);
+    expect(undoKey(v, { key: 'a', metaKey: true })).toBe(false);
+    expect(undoKey(v, { key: 'z' })).toBe(false);
+    await undoKey(v, { key: 'z', metaKey: true });
+    await vi.advanceTimersByTimeAsync(20);
+    await v.settle();
+    expect(domains()).toEqual(['1 filtered', '1 layer hidden']);
+    await undoKey(v, { key: 'Z', ctrlKey: true, shiftKey: true });
+    await vi.advanceTimersByTimeAsync(20);
+    await v.settle();
+    expect(domains()).toEqual(['1 layer hidden']);
   });
 
   it('the DOM parts are a composition of the same behavior: the parts port is the story arg, nothing else differs', async () => {
