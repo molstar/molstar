@@ -1,0 +1,59 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Design/Genome coordinates" />
+
+# Genome coordinates
+
+A genome is an **assembly**: its sequences, named, ordered, with their aliases. A section `of` an assembly shows its
+chromosomes as **blocks** end to end, in a row or on a ring; a section `of` a list of assemblies shows each as a
+**group**. A position is always a system's, whatever a block's direction or scale: nothing stored or exported is in
+display order or in display units.
+
+## A direction and a scale per block
+
+- **`block.direction`**: `section` (the default) or `reversed`, against the section's direction, so `section.reverse`
+  turns every block (the block order is kept). A reversed block's ruler counts down, its label carries the mark
+  (`chr4 ←`), its letters are complemented under `auto`, and on a ring it runs counterclockwise within its arc.
+- **`block.scale`**: its display units are its positions times its scale, so a region takes more of the row or the
+  circle. Its label says so (`chr17 ×10`) and its ruler counts its own positions at its own density.
+- **An inversion between genomes** is a block cut at its edges and reversed: B in A's order is explicit blocks (the
+  builder's `colinearBlocks`), exported as drawn. A direction per piece inside one block stays open.
+
+## Gaps at scale, and runs
+
+- **One rule for rows and rings**: the gaps in view share at most a quarter of the length, each at most the layout's gap
+  (12 px; 1° on a ring), so at 3,000 blocks a ring's gaps are 0.03° each and three quarters of the circle stays
+  positions. A gap between two assemblies is wider (3 block gaps; 4° on a ring), taken first.
+- **Small blocks run together**: consecutive blocks each narrower than 2 px are one band ("2,976 contigs"), no gaps
+  inside. Inside a run a block is still read and drawn while it is a device pixel wide; under that its stretch shows the
+  run's band alone. Runs are found again on a zoom, never on a pan.
+
+## Places and units
+
+Each section of blocks keeps an index of the blocks that show a system, so a position on a system has its **places**:
+every block that shows it (overlapping blocks: each). A viewport, a history step, a saved view and an export's viewport
+carry `{ system, position }` ends, never units. Two sections with equal block lists (a ring of the genome and its linear
+detail) follow each other by identity; unequal lists do not follow.
+
+## A hue per block
+
+Every mark on a block has the built-in fields `block` (its label) and `system` (its sequence's name). A categorical
+theme over them takes the section's blocks in order as its domain (over an assembly its names in its order, before any
+`include`), so a sequence has one hue on every section of its assembly.
+
+## Stories
+
+Toy assemblies generated in the story, each the canvas and the SVG of one view, light and dark by the toolbar's theme:
+
+- [One assembly in a row](?path=/story/seq-next-features-genome-coordinates--one-assembly-in-a-row)
+- [One assembly on a ring](?path=/story/seq-next-features-genome-coordinates--one-assembly-on-a-ring), its linear detail
+  following its window
+- [Two assemblies on one ring](?path=/story/seq-next-features-genome-coordinates--two-assemblies-on-one-ring)
+- [B in A's order](?path=/story/seq-next-features-genome-coordinates--b-in-as-order), an inverted block reversed and a
+  scaled block
+- [3,000 contigs](?path=/story/seq-next-features-genome-coordinates--three-thousand-contigs) in runs, on a ring and in a
+  row
+
+Not yet built: the navigator over an assembly and its zoom strip, `navigate.acrossBlocks: stop`, the cursor crossing
+blocks, `block.reverse` and `section.include` as commands, and a run's hover card (the viewer's part); data over an
+assembly read by sequence.
