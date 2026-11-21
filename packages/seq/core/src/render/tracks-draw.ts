@@ -13,6 +13,7 @@ import { TranslateWarp } from './layout/warp.js';
 import { drawRail } from './rail.js';
 import { wellClipArgs, wellCorners } from './wells.js';
 import type { SectionLayout, ViewLayout } from './tracks-types.js';
+import { isExtensionName } from '@molstar/seqx-core/lang';
 import { drawExtensionHover, drawSectionEmphasis, drawTints, emphasisPart, Part } from './tracks-emphasis.js';
 import { hasHeaderActions } from './headers-draw.js';
 
@@ -23,6 +24,14 @@ import { hasHeaderActions } from './headers-draw.js';
 export const BreakSlop = 3;
 /** A break's notch above the band: its width and height, CSS px. */
 export const Notch = { width: 5, height: 3 };
+
+/** Whether a layer type's name is an extension's, kept by name: the test allocates, a warm hover frame does not. */
+const Extensions = new Map<string, boolean>();
+function extensionType(name: string): boolean {
+  let x = Extensions.get(name);
+  if (x === undefined) Extensions.set(name, (x = isExtensionName(name)));
+  return x;
+}
 
 /** Draws the layout's passes (all, or those named, e.g. the emphasis alone) into the lists, cleared first. */
 export function drawView(
@@ -268,9 +277,9 @@ function drawStrips(
         for (let li = 0; li < lays.length; li++) {
           const l = lays[li];
           l.type.draw(l.lay, pass, w, emphasis);
-          // an extension's layer type is given the hover's look by the view: its item's outline (Emphasis)
-          if (pass === 'hover' && emphasis?.hover?.layer === l.key && l.type.name.includes(':'))
-            drawExtensionHover(w, l.type, l.lay, emphasis.hover, box, layout.tokens, layout.config);
+          // an extension's layer type is given the hover's look by the view (Emphasis), unless it draws its own
+          if (pass === 'hover' && emphasis?.hover?.layer === l.key && !l.type.ownHover && extensionType(l.type.name))
+            drawExtensionHover(w, l.type, l.lay, emphasis.hover, a, layout.tokens, layout.config);
         }
         if (clip) w.unclip();
       }

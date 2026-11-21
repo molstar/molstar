@@ -147,6 +147,22 @@ export const LollipopsType: LayerType<LollipopsPrep, LollipopsLay> = {
     }
     return undefined;
   },
+  mark(lay, key, out) {
+    // the head: a circle of radius r at the stem's top
+    // a loop, not a closure: nothing allocated on the hover's frame
+    let i = -1;
+    for (let j = 0; j < lay.prep.items.length; j++)
+      if (lay.prep.items[j].key === key.key) {
+        i = j;
+        break;
+      }
+    if (i < 0 || Number.isNaN(lay.xs[i])) return false;
+    out.x = lay.xs[i] - lay.r;
+    out.y = lay.stemTop - lay.r;
+    out.width = out.height = 2 * lay.r;
+    out.radius = lay.r;
+    return true;
+  },
   items(lay): readonly ItemDescription[] {
     return lay.prep.items.flatMap((it, i) =>
       Number.isNaN(lay.xs[i])

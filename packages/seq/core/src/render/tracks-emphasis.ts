@@ -9,7 +9,7 @@ import { axisBreaks, breakHolding } from '@molstar/seqx-core/view';
 import { AxisTransform, Cut } from './axis.js';
 import type { RenderConfig } from './config.js';
 import { NoColor, type PassWriter, Round } from './draw-lists.js';
-import type { Box, Emphasis, EmphasisHighlight, Hit, LayerType } from './layer-type.js';
+import type { Box, Emphasis, EmphasisHighlight, Hit, HitMark, LayerType } from './layer-type.js';
 import { walkStripes } from './highlight-stripes.js';
 import { partOn, rectOver } from './marks.js';
 import type { SeqTokens } from './tokens.js';
@@ -322,46 +322,53 @@ function drawProjectedHover(
   paintRanges(out, axis, box, part, config);
 }
 
-/** The least width of an extension item's hover outline, px (fixed, as hit slops are). */
-const ExtensionHoverMin = 8;
+const HoverMark: HitMark = { x: 0, y: 0, width: 0, height: 0 };
 
 /**
- * The hover of an item of an extension's layer type (_spec/README.md "Render", Emphasis): the type draws its marks and
- * names its items (`items`), the view outlines the hovered one, `emphasis.hoverOffset` outside its extent across its
- * band (or the item's own rows `y` and `height`), in the hover ink, as a built-in's hover looks. At least
- * `emphasis.hoverMin` wide, centred, so a mark narrower than its extent (a lollipop's head) is still ringed.
+ * The hover of an item of an extension's layer type (_spec/README.md "Render", Emphasis): the outline around the mark
+ * the type reports (`LayerType.mark`), `emphasis.hoverOffset` outside it and concentric (its radius plus the offset),
+ * in the hover ink, as a built-in's hover looks. Round on the sides the view does not cut, square where the mark meets
+ * the strip's edge. Nothing allocated: the mark is written into one reused box.
  */
 export function drawExtensionHover(
   out: PassWriter,
   type: LayerType<any, any>,
   lay: unknown,
   hover: Hit,
-  box: Box,
+  axis: AxisTransform,
   tokens: SeqTokens,
   config: RenderConfig,
 ) {
-  const key = hover.element?.key;
-  if (key === undefined || !type.items) return;
-  const items = type.items(lay);
+  const key = hover.element;
+  if (!type.mark || !key) return;
+  const m = HoverMark;
+  m.radius = 0;
+  if (!type.mark(lay, key, m)) return;
+  return drawMarkOutline(out, m, axis, tokens, config);
+}
+
+/** An outline around a mark's bounds (`drawExtensionHover`). */
+export function drawMarkOutline(
+  out: PassWriter,
+  m: HitMark,
+  axis: AxisTransform,
+  tokens: SeqTokens,
+  config: RenderConfig,
+) {
   const half = config.outline.hover / 2 + config.emphasis.hoverOffset;
+  const r = m.radius ?? 0;
   const g = out.args;
-  for (let i = 0; i < items.length; i++) {
-    const it = items[i];
-    if (it.key !== key) continue;
-    const w = Math.max(it.x1 - it.x0, ExtensionHoverMin);
-    const y = it.y ?? box.y;
-    const h = it.height ?? box.height;
-    g[0] = (it.x0 + it.x1) / 2 - w / 2 - half;
-    g[1] = y - half;
-    g[2] = w + 2 * half;
-    g[3] = h + 2 * half;
-    g[4] = NoColor;
-    g[5] = tokens.colors['seq-hover'];
-    g[6] = config.outline.hover;
-    g[7] = Math.min(config.squircleMax, (w + 2 * half) / 2, (h + 2 * half) / 2);
-    g[8] = Round.both;
-    out.rectArgs();
-  }
+  g[0] = m.x - half;
+  g[1] = m.y - half;
+  g[2] = m.width + 2 * half;
+  g[3] = m.height + 2 * half;
+  g[4] = NoColor;
+  g[5] = tokens.colors['seq-hover'];
+  g[6] = config.outline.hover;
+  g[7] = r > 0 ? r + half : 0;
+  // a side the strip cuts is square
+  g[8] = (m.x > axis.x0 ? Round.left : 0) | (m.x + m.width < axis.x0 + axis.width ? Round.right : 0);
+  out.rectArgs();
 }
 
 /** A mutable box: one stripe of a band (reused: a stripe makes no object). */

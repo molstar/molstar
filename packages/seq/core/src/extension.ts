@@ -25,6 +25,7 @@ export {
   type ContentContext,
   type Emphasis,
   type Hit,
+  type HitMark,
   type ItemDescription,
   type LayerType,
   drawNavigatorWindow,

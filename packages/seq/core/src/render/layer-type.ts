@@ -147,6 +147,18 @@ export interface LabelSink {
 }
 
 /**
+ * A mark's bounds, in the strip's frame, and the radius of its round corners (0 or absent: square): what `LayerType.mark`
+ * writes.
+ */
+export interface HitMark {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  radius?: number;
+}
+
+/**
  * What is under a point: a layer, its section (the section's id), and the element (an item's key, with its extent when
  * the layer knows it) or the position there, on the section's system.
  */
@@ -331,6 +343,18 @@ export interface LayerType<Prep = unknown, Lay = unknown> {
    * their fallbacks; a built-in's is the language's (`LayerTypes`).
    */
   readonly shape?: LayerShape;
+  /**
+   * The type draws its own hover (in its `draw`'s `hover` pass): the view then draws none. Absent, an extension's type
+   * (`<id>:<name>`) is given the hover's outline around its hit's `mark` (_spec/README.md "Render", Emphasis); a
+   * built-in draws its own.
+   */
+  readonly ownHover?: true;
+  /**
+   * The bounds of an item's mark (the hovered element's key), written into `out` (the view's box, reused: nothing
+   * allocated) in the strip's frame; false when the item has none in view. What the view outlines for the hover of an
+   * extension's type that has no `ownHover` (_spec/README.md "Render", Emphasis).
+   */
+  mark?(lay: Lay, key: Key, out: HitMark): boolean;
   prepare(layer: ResolvedLayer, model: StaticModel): Prep;
   /**
    * What its items need over the whole data, never the view (_spec/README.md "Render", Track heights): their lanes and
