@@ -314,7 +314,7 @@ disagrees with its code writes a drift note and stops.
       to the default adapter); the Extensibility page's adapter list (`briefs/hd-host-data.md`).
 - [x] HP3 (fast, after ST3) `Features/Track headers` and its twins, the Design page (`briefs/hp3-header-stories.md`).
 - [ ] USE GATE (short, not blocking): the author tries the structure and header stories; findings counted by kind.
-- [ ] GATE: merged, reviewed, checks green, sizes (the minimal viewer), gaps, matrix cells (both designs').
+- [x] GATE (2026-11-21, overnight, as recommended; use gate deferred): merged, reviewed, checks green, sizes (the minimal viewer), gaps, matrix cells (both designs').
 
 ### Stage 3: data and references (after stage 0; independent of stages 1–2 but for SV's SIFTS, after MK)
 

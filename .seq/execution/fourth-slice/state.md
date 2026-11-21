@@ -54,6 +54,11 @@ The third slice is closed (2026-11-20; its record in `.seq/records/third-slice/`
 ## In progress
 
 - 2026-11-20: stage 1's gate passed. Next: FX3 and ST2, two lanes.
+- 2026-11-21: stage 2's gate passed (overnight, as recommended): ST1–ST3, HD, HP1–HP3 merged and reviewed; quick,
+  medium, heavy (123, load 3.7) and both perf tiers green; sizes 222.4 / 826.5 / 1289.3 / 925.3 kB under their bounds;
+  gaps in `gaps.md`; matrix cells checked by each lane's review. Its use gate deferred to the author. The fifth slice's
+  stage 0 done (six drafts). Next: FX4 (the fix point after stage 2's gate) and EX, two lanes; SV waits for the author
+  (its first service fetch is asked).
 
 ## Next
 
