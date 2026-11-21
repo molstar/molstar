@@ -35,7 +35,7 @@ honestly simpler.
 
 | Precedent | Taken | Not taken |
 |---|---|---|
-| Rondo (CSIRO Data61, Garvan; research-genome-ring): chromosomes on a ring, connections clustered hierarchically at several resolutions, ribbons cluster to cluster thick by count, trumpets as cluster stems, a cluster's own links only zoomed in, one chromosome as its own ring, gene detail from about 1 Mb, filters by region, Q-value and minimum connections, the square navigator | stems as clusters over bins, ribbons stem to stem by count, links inside a stem shown only when the level parts it, one chromosome (or a pair) as its own ring, the square over chromosome pairs, a minimum count by the data filter | gene detail by default (a host's track: "a library, not a viewer"); a Q-value filter at the bins level (RR's bins do not keep it: a Tension); BEDPE, BED, matrix export (a host's) |
+| Rondo (CSIRO Data61, Garvan; research-genome-ring): chromosomes on a ring, connections clustered hierarchically at several resolutions, ribbons cluster to cluster thick by count, trumpets as cluster stems, a cluster's own links only zoomed in, one chromosome as its own ring, gene detail from about 1 Mb, filters by region, Q-value and minimum connections, the square navigator | stems as a coarser level of the bins (Rondo's resolutions), ribbons stem to stem by count, links inside a stem shown only when the level parts it, one chromosome (or a pair) as its own ring, the square over chromosome pairs, a minimum count by the data filter | gene detail by default (a host's track: "a library, not a viewer"); a Q-value filter at the bins level (RR's bins do not keep it: a Tension); BEDPE, BED, matrix export (a host's) |
 | Circos: ideograms as arcs with gaps, cytobands, ribbons with twist, links coloured by chromosome, ribbons sorted at their ends, a large inner radius | the ideogram ring of bands, ribbons sorted by their partner's angle at each end, twist (GA's rule, LX's geometry), the hue a chromosome | static figures; rule blocks by regex |
 | d3-chord and d3.ribbon (Bostock's chord diagram): groups as arcs, ribbons through the centre, hover on a group fades the rest | the ribbon through the hole as cubics, the fade on hover of a group (an emphasis wash) | the matrix as the only input (here pairs and bins) |
 | Hierarchical edge bundling (Holten 2006; d3's `curveBundle` β) | `bundle` (β, 0 to 1): how far a ribbon is pulled toward the centre, so ribbons of one stem stay together longer | a hierarchy given by the data (here the stems are the hierarchy: block, stem, bin) |
@@ -86,13 +86,19 @@ store, the placement and the theme through the `extension` entry.
   (`spec.extensions: [rondoViewer]`) or registers it late (`viewer.extend`); never in the minimal or default viewer.
 - **Its own size row**: under 30 kB minified (GR's estimate: 650 to 950 lines), the minimal and default viewers not
   grown. No lazy chunk inside: the package is itself the opt-in.
+- **What it costs the core and the viewer** (the default viewer is a few hundred bytes under its bound): `section.include`
+  in the language and resolve (about 0.5 kB, in reading a spec: every reader needs it), `section.center` (about
+  0.1 kB), the hooks below (about 0.3 kB: three optional members and their callers); `navigator.switch`, the
+  `section.include` command and the label menu's two entries (about 1 kB) **lazy**, in the chunk that loads with a
+  two-axis navigator over blocks (GC3's) and the label menu's (HP2's menu chunk). Each a row measured at GC2's and
+  GC3's gates; past a bound, to the author with the feature (plan, Sizes).
 
 ### What it ships
 
 | Entry | Kind | Fallback | Reads |
 |---|---|---|---|
 | `rondo:ribbons` | layer type, `scope: 'section'`, on `rings` (and a `tracks` row, below) | `pairs` (written by `rondoRing`) | `pairs` (RR's `PairsReader`: bins at a level, items in a region) |
-| `rondo:cells` | layer type for the square's picture: block × block cells | `pairs` (dots, built in a grid strip) | `pairs` bins at the coarsest level, by block (RR, "Where this differs from GA's") |
+| `rondo:cells` | layer type for the square's picture: block × block cells | `none` (written for the rule; unreachable, since a reader without `rondo` draws the whole picture as `axis`) | `pairs` bins at the coarsest level, by block (RR, "Where this differs from GA's") |
 | `rondo:square` | navigator picture, `axes: both` | `axis` (the lattice and labels, fixed) | its tracks: one `rondo:cells` layer over the bound layer's data |
 | `rondo:hues` | scheme over categories: n hues evenly round the oklch wheel, n the domain's size | the layer type's default colour | — |
 | `rondo:partner` | command (`navigate`) | — | the stem under the cursor |
@@ -104,60 +110,73 @@ No node kind, no data shape, no format runtime (extension-openings, Part 1): RR'
 
 ### `rondo:ribbons`: what it reads
 
-- **Two reads, RR's**: bins at the coarsest level no wider than `pairs.binPx` (2 device px) on the ring's outer
-  circumference (EC-108), always; items at a tile size when the bin pairs with an end in view sum to at most
-  `pairs.maxArcs`, kept to `pairs.itemsHysteresis` × it, bins drawing until they land (EC-169). Held and region pairs
-  alike (`PairsReader`). Why RR's rule unchanged: one level choice for core's chords and the ribbons, so the fallback
-  draws the same bins.
+- **The extension surface is EX's design, not yet built**: no `./extension` export or `SeqExtension` exists today
+  (the fourth slice's EX is pending); this draft assumes extension-openings Part 1 as agreed and lists below, as core
+  changes, the hooks it needs beyond it (Consequences, `seqx-core`).
+- **Two reads, RR's rule with this layer's numbers**: bins at the **stem level** (below), always; items at a tile size
+  when the stem pairs with an end in view sum to at most `rondo.maxRibbons` (1,024), kept to `pairs.itemsHysteresis`
+  × it (1,280), bins drawing until they land (EC-169). So RR's level function takes the gate and the bin width as
+  arguments (`pairsLevels(view, { binPx, gate })`, exported; RR's numbers its defaults). Why its own gate: every item
+  is one count, so past the drawn bound the cull could only rank items by span and would fan out links for no visible
+  reason; at the gate every item read is drawn. The fallback `pairs` keeps RR's 4,096: two readers, each gating at
+  what it draws. Held and region pairs alike (`PairsReader`).
 - **On blocks**: ends placed by GA's `placesOf` (every block that shows the position, each place counted against the
   bound), runs and unread blocks by the joint rule (an end on an unread block at its place, read from its other end's
   tile). Two assemblies on one ring (EC-210) read a sided source by each side's assembly (GF).
 
-### Stems: clusters over bins (the trumpets)
+### Stems: a coarser level of the pyramid (the trumpets)
 
-- **A stem is a run of neighbouring bins on one block**, clustered at layout: walking each block's non-empty bins (bins
-  with at least one end, after the data filter) in display order, a bin joins the current stem while the gap from the
-  stem's last bin is under `rondo.stemGapPx` (4 CSS px at the outer radius) and the stem stays under
-  `rondo.stemMaxPx` (32 CSS px); else it starts one. A block narrower than `rondo.stemMaxPx` is one stem. O(bins), no
-  sort past the bins' own order. Why clustering here and not in the protocol: RR's lattice is exact and sums across
-  levels; a cluster across a bin edge is the picture's question (RR, Tensions: "clustering over bins is RN's
-  picture"), and a stem is a union of whole bins, so its count is exact.
-- **Its counts are sums**: a stem's count is its bins' (each pair once: RR's dedupe across tiles and blocks); a stem
-  pair's count is the sum over the bin pairs between them, by strand (straight and reversed never merge, so the twist
-  survives). Checked: a stem's count equals the pairs with an end in its bins (the pyramid's check, one level up).
-- **Recomputed** on a ring's layout and when a tile lands, never on hover or on its window's move (a ring is not laid out
-  again for those: layouts, "The ring under a moving window"). Deterministic: the same bins and px give the same stems.
-- **The trumpet**: from its mouth (the stem's arc on the band's inner edge, the hull of its ends: items' extents when
-  held, else its bins') to its neck at `rondo.stemDepth` (0.12 of the hole's radius) inward, two cubics flaring from
-  the mouth's width to the neck's (the sum of its ribbons' widths, below), filled in its block's hue at
-  `ribbons.fillOpacity`. Narrower at the neck than at the mouth is the usual trumpet; a dense narrow cluster flares
-  inward, the same geometry. Why: the stem reads "these links leave from here" before any ribbon is followed.
-- **Links inside one stem** (both ends in its bins) are not ribbons at that level: counted in its card ("+12 within"),
-  drawn once the stem parts at a finer level (Rondo: "internal connections shown only zoomed in").
-- **`stems`** (param): `cluster` (the default), `bins` (a stem a bin, no merging), `none` (no trumpets: ribbons from
-  the band's edge, Circos's look).
+- **A stem is one bin of the stem level**, clipped to its block: the stem level is `2^j` × a level the source lists
+  (the finest listed level `L` at most the target, then the largest `2^j · L` at most the target), the target being
+  `rondo.stemPx` (16 CSS px) of positions at the ring's outer circumference in **CSS px of the section's layout**, never
+  device px. Stem bins are aligned on position 0 of each system, so a stem is a union of whole `L` bins and its counts
+  are exact sums (RR's levels are nested). Why a level and not a clustering by gaps: dense data leaves no gaps, so
+  gap clustering cuts fixed chunks arbitrarily; a level is exact, cached by level (one `binPairs` reduction of `L` by
+  `2^j`, kept by the entry's version), the same on screen, in the SVG and at any DPR, and changes on a resize only
+  when the target crosses a power of two. RR's Tension ("a lattice, not a clustering") stays: a cluster across a stem
+  edge is two stems, accepted for exactness (Tensions).
+- **Its counts are sums**: a stem's count is the pairs with an end in it (each pair once: RR's dedupe across tiles and
+  blocks); a stem pair's count the sum over the `L` bin pairs between them, by strand (straight and reversed never
+  merge). Empty stems are not drawn.
+- **Recomputed** when the stem level changes (a resize past a power of two, `section.include`) and when a tile lands,
+  never on hover or on its window's move (layouts, "The ring under a moving window").
+- **The trumpet**: from its mouth (the stem's arc on the band's inner edge, clipped to its block) to its neck at
+  `rondo.stemDepth` (0.12 of the hole's radius) inward, two cubics flaring from the mouth's width to the neck's (below),
+  filled in its block's hue at `ribbons.fillOpacity`. A dense narrow stem flares inward, the same geometry.
+- **Links inside one stem** (both ends in it) are not ribbons at that level: counted in its card ("+12 within"), drawn
+  once a finer stem level parts them (Rondo: "internal connections shown only zoomed in").
+- **`stems`** (param): `level` (the default, above), `none` (no trumpets: ribbons from the band's edge at the stem
+  level's bins, Circos's look).
 
 ### Ribbons: stem to stem, wide by count
 
 - **A ribbon a stem pair a strand**, from neck to neck through the hole: each side a cubic whose control points sit at
   `(1 − bundle)` of the neck's radius along each neck's angle (`bundle`, β, 0.7: Holten's strength; 1 passes through
-  the centre as d3.ribbon, 0 a straight chord). Sides join **corresponding positions** (LX's rule): crossed exactly when
-  `strand × display direction of A × display direction of B = −1` (GA), so reversing a block untwists its ribbons; a
-  bin of strand 0 (Hi-C, mixed) is never crossed.
-- **Width linear in count** (`width`: `count`, or a field summed, RR's `sum`: a PAF's `block_length`), so a neck is the
-  sum of its ribbons and a stem's count reads as its neck: px a pair = `rondo.maxWidthPx` (24 CSS px) over the widest
-  neck in view, each ribbon at least `ribbons.minPx` (1 device px). Why linear, not square root: additivity is the
-  check a reader makes (two ribbons merging into a neck); RR's arcs use square root for strokes that never add.
-- **Order at a neck**: a stem's ribbons side by side in the order of their partner necks' angles, clockwise from the
-  stem (Circos's sorting), stubs last by the partner's `order`. Fixed: it is the order that keeps ribbons of one stem
-  from crossing near it.
-- **Items** (the chromosome's ring zoomed past the gate): each pair a ribbon of one count from its ends' own extents
-  (Circos's link), still grouped into its stems' necks by the clustering over the bins above it, so the bundle holds
-  while its members show.
-- **Bounded**: at most `rondo.maxRibbons` (1,024) drawn, the strongest by count (ties by span, then by key: stable);
-  the rest stay in their stems' necks as one faint fan a stem ("+212 weaker links", hit as the stem), said once
-  (`seq.render.pairs.limit`, built). Why below `pairs.maxArcs`: a filled band costs more than a stroke, and past a
-  thousand ribbons the hole is one colour; stems keep the totals exact.
+  the centre as d3.ribbon, 0 a straight chord).
+- **Width: one px a count in the view, no floor inside a neck.** `k = rondo.maxWidthPx (24 CSS px) / the largest stem
+  count in view`; a neck is `k ×` its stem's count, at least `ribbons.minPx` (1 device px) as a whole; inside it, each
+  ribbon whose `k × count` is at least `ribbons.minPx` is drawn at exactly that width, and the stem's ribbons under it
+  are one **fan** of their summed width (exact, however thin), hit as the stem ("+212 weaker links to 31 stems"). So
+  a neck is always the sum of its ribbons and its fan, and a hub stem with hundreds of partners keeps its width and its
+  count. Why this gives and not the cap or additivity: the cap keeps the hole readable, additivity is the check a
+  reader makes; the floor is only for being seen, which the fan serves. Why linear: RR's arcs use square root for
+  strokes that never add. (`width`: `count`, or a field summed, RR's `sum`.)
+- **The twist at a neck** (LX's rule restated for a ring): a ribbon's slice of a neck has a **low edge** and a **high
+  edge**, toward lower and higher positions in its block's display direction (a slice is a share of the count, not
+  positions, so the edges stand for the slice's ends of the stem). On a ring two arcs face each other with opposite
+  tangents, so an uncrossed ribbon joins A's low edge to B's high edge and A's high to B's low (d3.ribbon's and
+  Circos's flat ribbon). With `s = strand × display direction of A × display direction of B` (GA): `s = +1` uncrossed,
+  `s = −1` crossed (low to low, high to high), strand 0 uncrossed. Items, whose ends are positions, use their extents'
+  ends the same way, so LX's "corresponding positions" holds for items exactly and for bins by this rule; a property
+  test holds it equal to GA's formula over every direction combination.
+- **Order in a neck**: its ribbons side by side in the order of their partner necks' angles clockwise from the stem
+  (Circos's sorting), then its stubs by the partner's `order`, then its fan last. Fixed: it keeps ribbons of one stem
+  from crossing near it, and the fan where the weakest would sit.
+- **Items** (past the gate, a chromosome's ring): each pair a ribbon of one count from its ends' own extents, still
+  grouped into its stems' necks, so the bundle holds while its members show.
+- **Bounded**: at most `rondo.maxRibbons` (1,024) ribbons, the strongest by count across the view (ties by span, then
+  key), the rest in their stems' fans; said once (`rondo.ribbons.limit`, info: "612 links drawn in fans"), not core's
+  `seq.render.pairs.limit`, whose words are arcs and a density strip. Below the items gate nothing is culled.
 - **Drawn widest first**, so narrow ribbons lie on top and stay hittable (LX's rule); fill at `ribbons.fillOpacity`
   (0.35), no outline.
 
@@ -165,11 +184,11 @@ No node kind, no data shape, no format runtime (extension-openings, Part 1): RR'
 
 - **An end with no place** (its system not in the section: another chromosome on a chromosome's ring; a contig
   `include` left out) makes its pairs **stubs**, aggregated a stem a partner sequence: one tapered ribbon from the neck
-  toward the centre for `ribbons.stubShare` (0.25) of the hole's radius, in the partner's hue, its width by count as a
-  ribbon's, labelled at its tip with the partner's name and count when it has room ("chr7 · 37"). Why inward: the
-  labels own the outside of the ring; a stub reads as a ribbon that leaves, and its hue says where (the hue's domain is
-  the assembly's, below). Why aggregated: a chromosome's ring may have thousands of outward pairs; one stub a partner a
-  stem is what the reader asks ("where else does this cluster go?").
+  toward the centre for `rondo.stubShare` (0.2 of the hole's radius; LX's `ribbons.stubShare` is a share of a bridge's
+  band, so not reused), in the partner's hue, its width by count in the neck as a ribbon's (a fan member when under the
+  floor), labelled at its tip with the partner's name and count when the tip has `rondo.stubLabelPx` (24 CSS px) of
+  room ("chr7 · 37"). Why inward: the labels own the outside of the ring. Why aggregated: a chromosome's ring may have
+  thousands of outward pairs; one stub a partner a stem is the question asked.
 - **Hit as the drawn run** (LX): `(rect :a <the stem's range> :b <the hull of the partner ends>)`; hovered as "→ chr7 ·
   37 links, not shown". **`stubs`** (param): `partner` (the default), `none` (core's caret instead).
 
@@ -179,9 +198,13 @@ No node kind, no data shape, no format runtime (extension-openings, Part 1): RR'
   their own block's. GA gives `system` a domain of the assembly's names in order; RN asks that this domain be taken
   **before `include`** (theirs and the section's, below), so chr7 has one hue on the genome's ring, on chr4's ring and
   on a stub pointing at it (text for GA below). Why `system`, not `block`: a block's domain is the section's blocks, and
-  a chromosome's ring has one.
+  a chromosome's ring has one. This amends EC-191's block-ordered domain (GA) for `system`: the assembly's order,
+  never the section's blocks.
 - **The palette**: the layer's default is the theme's default categorical palette (`categories`, 8 tokens, safe in both
-  themes; repeating, so chr1, chr9 and chr17 share a hue, eight blocks apart round the ring, neighbours always distinct). `rondo:hues` (n hues evenly round
+  themes, `repeat` true). On the whole ring neighbours are always distinct (chr1, chr9 and chr17 share a hue, eight
+  apart); **on a subset they may not be**: a pair eight apart (chr1 and chr9, chr4 and chr12) draws in one hue. Stated,
+  not fixed: re-deriving the domain from the blocks shown would give chr7 two hues across two sections, which is worse;
+  the pair's arcs are labelled, its stubs named at their tips, and `rondo:hues` has no repeat. `rondo:hues` (n hues evenly round
   the oklch wheel at the categorical tokens' lightness and chroma, its dark variant derived) is offered for 24
   chromosomes, **not colour-blind safe** (adjacent hues 15° apart), so the picker says so and its substitute is
   `categories` (themes, Schemes); the showcase spec names it, the layer never defaults to it (Gaps, 5).
@@ -213,13 +236,15 @@ No node kind, no data shape, no format runtime (extension-openings, Part 1): RR'
   no tween (Gate 0, 5: a channel only if the use gate asks). A story step "zoom into chr4" is a step whose patch sets
   `include`; "back" the reverse step.
 - **At the chromosome's scale** the same reads pick finer bins (chr4's 190 Mb on the circumference is about 42 kb a
-  device px: 64 kb bins), then items once its pairs in view fit `pairs.maxArcs`; links to other chromosomes become
+  device px), its stems about 1 Mb, then items once its stem pairs in view fit `rondo.maxRibbons`; links to other chromosomes become
   stubs. History: viewports by `{ system, position }` (GA) survive the change; the selection's addresses unchanged.
 
 ### The square navigator
 
 - **Core's square** (GA, Gate 0, 8): a navigator with `axes: both` over an assembly's blocks × blocks, its lattice laid
-  out by the run rule, bounded by `navigator.square.maxCells`. RN asks GA for two things (text below): a navigator may
+  out by the run rule. **Its lattice is the assembly's** (after the assembly's `include`, never the bound section's),
+  so after "Show only chr4" the square stays 23 × 23 with every cell but chr4 × chr4 washed, and **washed cells stay
+  clickable under `switch: include`** (the wash says "not shown", not "unreachable"). RN asks GA for two things (text below): a navigator may
   bind **one section on both axes** (`of: [ring, ring]`: its reachable cells are the section's block pairs, the rest
   washed), and **`navigator.switch`** (`none`, the default; `include`): a click on a block or a cell runs
   `section.include` on the bound section with that block or pair (a click on the cell of what it already shows: no
@@ -230,14 +255,23 @@ No node kind, no data shape, no format runtime (extension-openings, Part 1): RR'
   bound `rondo:ribbons` layer's data (named by the picture's `of_layer` param, else the first `pairs`-shaped layer of
   the bound section): a cell a block pair coloured by its count on a square-root ramp (`seq-ramp-*`), the diagonal
   (links within a chromosome) included, upper and lower mirrored for unsided data; sided data (two assemblies) fills
-  both triangles from its own sides. Read as RR has it: the coarsest pairs tiles a block, summed into block × block, at
-  most `navigator.square.maxCells` (4,096) cells. Hover: "chr4 × chr7 · 37 links"; the window outline over the cells
+  both triangles from its own sides. Read as RR's revision has it ("Where this differs from GA's"): pairs have no 2D
+  summary, so one want a block at the coarsest pairs level (a tile holds every pair with an end in it), summed into one
+  image of block × block cells, reduced to its pixels by the shared reduction; its cost is the blocks, not their
+  square, and the image is always drawn. `navigator.square.maxCells` (4,096) is GA's: past it the lattice's lines are
+  not drawn, never a cap on what is read. Hover: "chr4 × chr7 · 37 links"; the window outline over the cells
   the section shows.
 - **Without CN** (Part 2 cut in the fourth slice): the square draws core's `axis` picture (the lattice and labels) with
   the same switch; `rondo:square` is dropped from the package, not rebuilt privately.
 
 ### Hover, selection, emphasis, the keyboard
 
+- **Hooks the extension needs in core** (beyond EX's contract; each an optional `LayerType` member, so built-ins need
+  nothing): `describe?(hit, lay): readonly string[]`, the hover card's lines for a hit of the layer (the card's
+  `viewer/src/describe.ts` is private; it calls the hook first, its own text after); `summary?(lay): string`, the
+  layer group's ARIA description, set when the frame settles; `announce?(lay, system, position): string | undefined`,
+  what the keyboard cursor adds at a position (today a layer offers only `items()`). Why hooks and not exports: the
+  card, ARIA and the cursor stay the viewer's; a layer only supplies its words.
 - **Hover a ribbon**: its two stems' ends lit on the ring (a pair closes to its ends), the ribbon at full opacity with
   `seq-hover`'s outline; card "chr1:12–28 Mb ↔ chr17:40–52 Mb · 140 links (contact) · 1 Mb bins · zoom in to see
   them" (RR's bin text; items: the pair's own). **Hover a stem**: its ribbons lit and the rest of the hole washed
@@ -246,7 +280,7 @@ No node kind, no data shape, no format runtime (extension-openings, Part 1): RR'
   again.
 - **Hits** (closed, extension-openings): a ribbon is its drawn run, `(rect :a … :b …)` (LX's one rule); a stem its
   range on its system; a stub as above. Polygons flattened at layout (each cubic `rondo.flatten`, 12 segments), a
-  uniform grid over the hole (16 CSS px cells) listing candidates, tested topmost first: under 2 ms, 0 bytes warm.
+  uniform grid over the hole (`rondo.hitCellPx`, 16 CSS px cells) listing candidates, tested topmost first: under 2 ms, 0 bytes warm.
 - **Select**: click selects the hit's element (a ribbon both ranges; a stem its range); the selection's ribbons (with an
   end inside it) drawn in the accent; `rondo:select-partners` adds their far ends (one selection change). Why a
   command: partners are added when asked (LX's `selectAcross`).
@@ -278,8 +312,10 @@ No node kind, no data shape, no format runtime (extension-openings, Part 1): RR'
 | cytobands, the hue ring, `section.include`, the zoom | core's, unchanged |
 | the stem menu, `rondo:partner`, `opens` | absent; the label menu's "Show only" (core) remains |
 
-Said once a view: `seq.view.layer.extension` ("2 layers need `rondo` 0.1: drawn as `pairs`"); the spec's `extensions:
-{ rondo: '0.1' }` written by `rondoRing`. Why this is honest: the fallback draws the same bins in the same colours;
+Said once a view and namespace, one issue for every part (EX's rule): `seq.view.layer.extension` ("`rondo` 0.1 missing:
+1 layer drawn as `pairs`, 1 navigator picture as `axis`, 1 scheme as the default"); the spec's `extensions:
+{ rondo: '0.1' }` written by `rondoRing`, which also writes the colour channel explicitly (`(field :name system)`
+with its palette), so the fallback's colours are the same by the spec, not by two defaults agreeing. Why this is honest: the fallback draws the same bins in the same colours;
 only the bundling and the stems are missing.
 
 ### The builder helper
@@ -291,8 +327,8 @@ navigator with `content: 'rondo:square'`, `switch: 'include'`, `of: [ring, ring]
 
 ### The hole
 
-The ribbons fill the hole, where the ring draws its title (`rings.center: title`, a `RenderConfig` preset). RN asks
-layouts for a section param **`center`** (`title`, `none`; absent: the preset), written `none` by `rondoRing`, the
+The ribbons fill the hole, where the ring draws its title (`rings.center: 'title' | 'none'`, a `RenderConfig` preset,
+built). RN asks layouts to **promote it to a section spec param `center`** (the same values; absent: the preset), written `none` by `rondoRing`, the
 assembly's name and length then in the section's label line. Why a spec param: the title over ribbons is the figure's
 choice, and a reader without the extension draws chords there too.
 
@@ -395,7 +431,7 @@ Cells this design fills; the others stand as layouts, GA, RR and LX give them.
 |---|---|---|---|
 | `type: 'rondo:ribbons'`, `fallback`, `data` | spec params | `fallback: pairs` (written by `rondoRing`) | the chords a reader without it draws |
 | `width` | spec param (plain) | `count` | links counted; a field summed (RR's `sum`) |
-| `stems` | spec param (plain) | `cluster` | Rondo's trumpets; `bins`, `none` |
+| `stems` | spec param (plain) | `level` | Rondo's trumpets; `none` |
 | `bundle` | spec param (plain) | 0.7 | ribbons of a stem stay together into the hole; 0 to 1 |
 | `stubs` | spec param (plain) | `partner` | "where else does it go"; `none` (core's caret) |
 | `opens` | spec param (plain) | absent | a section whose `include` a double-click sets (Gaps, 7) |
@@ -404,23 +440,29 @@ Cells this design fills; the others stand as layouts, GA, RR and LX give them.
 | `section.center` (layouts amended) | spec param | the preset (`title`) | `none` under ribbons |
 | `navigator.switch` (GA amended) | spec param | `none` | `include` on the square over a ring |
 | `content: 'rondo:square'`, `of_layer` | spec params | the first pairs-shaped layer of the bound section | the cells read the ring's data |
-| `rondo.stemGapPx`, `rondo.stemMaxPx` | extension config | 4, 32 CSS px | a cluster reads as one mouth; any |
+| `rondo.stemPx` | extension config | 16 CSS px of the layout, never device px | a stem a mouth a reader can point at; the stem level the largest `2^j` × a listed level under it |
 | `rondo.stemDepth` | extension config | 0.12 of the hole's radius | room for the flare before ribbons part; any |
-| `rondo.maxWidthPx` | extension config | 24 CSS px, the widest neck in view | strong links read strong, a single link at 1 device px |
-| `rondo.maxRibbons` | extension config | 1,024 | past it the hole is one colour; the stems keep totals |
+| `rondo.maxWidthPx` | extension config | 24 CSS px, the largest stem in view | one px a count for the view; ribbons under `ribbons.minPx` go to the stem's fan |
+| `rondo.maxRibbons` | extension config | 1,024 | the items gate and the drawn bound in one: past it the hole is one colour; fans keep totals |
+| `rondo.stubShare`, `rondo.stubLabelPx` | extension config | 0.2 of the hole's radius; 24 CSS px of room at the tip | a stub says "elsewhere" short of the centre; a label only where it reads |
+| `rondo.hitCellPx` | extension config | 16 CSS px | the hit grid's cell over the hole; candidates few at 1,024 ribbons |
 | `rondo.fade` | extension config | 0.6 | the hovered stem's ribbons read over the rest; 0 for none |
 | `rondo.flatten` | extension config | 12 segments a cubic | hit within a device px at 720 px; any |
-| `ribbons.fillOpacity`, `ribbons.minPx`, `ribbons.stubShare` | `RenderConfig` presets (LX's) | 0.35, 1 device px, 0.25 | one look for ribbons in bridges and rings |
-| `pairs.binPx`, `pairs.maxArcs`, `pairs.itemsHysteresis` | `RenderConfig` presets (RR's) | 2, 4,096, 1.25 | the level rules unchanged; the fallback reads the same bins |
+| `ribbons.fillOpacity`, `ribbons.minPx` | `RenderConfig` presets (LX's) | 0.35, 1 device px | one look for ribbons in bridges and rings |
+| `pairs.itemsHysteresis` | `RenderConfig` preset (RR's) | 1.25 | no flip at this layer's gate either |
 | keys of `rondo:partner` | `ViewerConfig` (`view.keys`) | `.` and `,` | a keyboard way along the links; checked at RX |
-| ribbon order at a neck; the twist by corresponding positions; width linear | fixed | — | the reasons in the Decision |
+| neck order (partners by angle, stubs, the fan last); the twist by low and high edges; width linear, no floor inside a neck | fixed | — | the reasons in the Decision |
 
 Not built: every row (RX; `section.include`, `navigator.switch` in GC3; `center` in GC2).
 
 ## Tensions
 
-- **Stems from a fixed lattice, clustered in px**: a stem's extent depends on the ring's size and the bins held; a
-  resize may cluster differently. Accepted: counts stay exact, the stems are a picture; a figure size fixes it.
+- **Stems are a lattice, not clusters**: a cluster across a stem edge is two stems, and a resize past a power of two
+  changes the stem level. Accepted: exact counts, the same stems on screen, in the SVG and at any DPR; a clustering
+  over the lattice (by partner) is a later param if the use gate asks.
+- **Two items gates in one figure**: core's chords gate at 4,096, the ribbons at 1,024, so a chromosome's ring with
+  2,000 links shows items without the extension and bins with it. Accepted: each draws every item it reads.
+- **Repeated hues on a subset** (chr4 and chr12 as a pair): stated in the Decision; `rondo:hues` avoids it.
 - **The colour of a ribbon is one end's**: a symmetric Hi-C's `a` end is the upper triangle's, so a ribbon takes the
   earlier chromosome's hue. Accepted (LX's rule); a gradient needs a draw-list form no other layer asks for.
 - **24 chromosomes, 8 safe hues**: the safe default repeats; distinct hues are unsafe. Standing; the writer chooses
@@ -431,34 +473,35 @@ Not built: every row (RX; `section.include`, `navigator.switch` in GC3; `center`
   (Gate 0, 5).
 - **The square over a ring is a picker, not a window**: its window is idle there; the switch is the click. Accepted:
   the same navigator over a grid section is GA's two-axis window.
-- **One cull over ribbons, none over stems**: past `rondo.maxRibbons` the weak links vanish into faint fans; their
-  partners are named only in the stem's card and menu. Accepted: the card lists them by count.
+- **Fans hide partners**: ribbons under a device px or past `rondo.maxRibbons` are drawn as their stem's fan; their
+  partners are named only in the stem's card and menu. Accepted: the card lists them by count, the neck stays exact.
 
 ## Self-check
 
 The claim: **this design covers what a user does with a Rondo-like genome ring, and what every other reader draws.**
 
-1. **Assume it holds.** A ring of chromosomes with bands and hues; stems clustered over RR's bins, ribbons stem to stem
+1. **Assume it holds.** A ring of chromosomes with bands and hues; stems as a coarser level of RR's bins, ribbons stem to stem
    by count, stubs for partners not shown; opening a chromosome or a pair by `section.include` from a label, the
    square or a double-click; the keyboard and a screen reader reach the links; a reader without the extension draws
    chords over the same bins.
 2. **What it rests on, negated.** (a) One genome, two dozen blocks; plural: two assemblies, 3,000 contigs. (b) Links fit
-   a lattice; negated: a cluster across a bin edge, a partner not shown, both ends in one cluster. (c) The reader has
+   a lattice; negated: a cluster across a stem edge, dense data with no gaps, a partner not shown, both ends in one
+   stem, a hub with hundreds of partners. (c) The reader has
    the extension; negated: none, an older one, no CN. (d) Zoom is continuous; negated: a cut; inverse: back. (e) The
    user points; negated: the keyboard, a screen reader. (f) Counts are the weight; negated: aligned bases, a score, a
    Q-value filter. (g) Data is held; negated: tiles arriving, pending, too many ribbons. (h) The ring leads nothing;
    symmetric: a linear detail following its window. (i) Colour tells chromosomes apart; negated: a colour-blind reader,
-   more chromosomes than hues. (j) What is drawn is true; negated: a neck wider than its ribbons, a ribbon at the wrong
-   stem, twisted wrongly, drawn twice.
-3. **The negated world.** (a) sided ends and GA's group gap; runs and unread blocks; (b) stems as clusters of whole
-   bins, stubs aggregated by partner, links within a stem counted and shown finer; (c) the fallback table, the version
+   more chromosomes than hues, a pair eight apart. (j) What is drawn is true; negated: a neck wider than its ribbons,
+   a ribbon at the wrong stem, twisted wrongly, drawn twice, a stem that differs between screen and SVG.
+3. **The negated world.** (a) sided ends and GA's group gap; runs and unread blocks; (b) stems as a nested level (exact, DPR-free),
+   stubs aggregated by partner, links within a stem counted and shown finer, the fan holding a hub's weak partners; (c) the fallback table, the version
    said, the square on core's `axis` picture; (d) `section.include` as one patch, undo as back, a story step's patch;
    (e) the cursor's stem, `rondo:partner`, counts in ARIA; (f) `width` a summed field, the bins filter gap; (g) bins
-   until items, the hatch, `rondo.maxRibbons` with faint fans; (h) core's follow of a ring's window, unchanged; (i)
-   the safe default and `rondo:hues` with its substitute; (j) additive widths checked, stems as unions of bins,
-   corresponding positions, one hit rule.
+   until items, gated at what is drawn (`rondo.maxRibbons`), the hatch, fans; (h) core's follow of a ring's window, unchanged; (i)
+   the safe default, `rondo:hues` with its substitute, the subset's repeat stated; (j) a neck the exact sum of its
+   ribbons and fan (no floor inside), stems as unions of bins in CSS px, the twist by low and high edges, one hit rule.
 4. **Both held.** Integrated: every item of (a) to (j) in the Decision. Standing: the Q-value filter at bins (f, Gaps
-   8); the cut's missing tween (d); distinct safe hues past eight (i); stems that move with the ring's size (b).
+   8); the cut's missing tween (d); distinct safe hues past eight and the subset's repeat (i); a lattice, not clusters (b).
 
 ## Consequences
 
@@ -466,10 +509,11 @@ The claim: **this design covers what a user does with a Rondo-like genome ring, 
   layer types, picture, scheme, commands, menu entries, binding; `rondoRing`; `_spec/README.md` (the stems, ribbons,
   stubs, the fallback table, its Configuration table); its `noRestrictedImports`; its inventory row and size row; a
   changelog entry file in `.v6/changelogs/` (an addition). Tests (quick lane, `_test/`, exports `null`):
-  - drawing against the data: every bin pair in view in exactly one ribbon or fan; a neck's width the sum of its
-    ribbons'; a stem's count the pairs with an end in its bins; a ribbon's ends inside its stems' mouths; stubs only
+  - drawing against the data: every bin pair in view in exactly one ribbon, stub or fan; a neck's width `k ×` its
+    stem's count and the sum of its ribbons, stubs and fan (a hub stem of 300 partners included); a stem's count the pairs with an end in its bins; a ribbon's ends inside its stems' mouths; stubs only
     for ends with no place, one a stem a partner; at the fit and across a tile edge, a reversed block, two assemblies;
-  - property tests: clustering deterministic and a partition of the non-empty bins; widths additive; the twist by
+  - property tests: stems a partition of the non-empty bins, the same at DPR 1, 2 and in the SVG; widths additive;
+    items asked only at or under `rondo.maxRibbons` (no fan below the gate); the twist by
     geometry equal to GA's rule over every direction combination; the closed hit equal to the drawn polygon's topmost
     cover (sampled); held and region pairs give the same stems;
   - the fallback: the same spec drawn without the extension (canvas and SVG alike), the issue once, the version said;
@@ -481,10 +525,12 @@ The claim: **this design covers what a user does with a Rondo-like genome ring, 
     "a ribbon frame"); the ring in the browser at DPR 2 (M5).
 - **`seqx-core`**: `section.include` and its resolve (GC1's bump, GA's text); `section.center` (GC2); the `system`
   field's domain before `include` (GC2); the `extension` entry exports RR's `PairsReader`, the bins' types and the level
-  rule (`pairsLevels`), GA's `placesOf`, and the polar warp (`PolarWarp`, already listed); `navigator.switch` and the
-  square bound to one section on both axes (GC3).
+  rule (`pairsLevels` with `binPx` and `gate` arguments), GA's `placesOf`, and the polar warp (`PolarWarp`, already
+  listed); the `LayerType` hooks `describe`, `summary`, `announce` (EX amended); `navigator.switch`, the square bound
+  to one section on both axes, its lattice the assembly's (GC3); `rings.center` promoted to `section.center` (GC2).
 - **`seqx-viewer`**: the `section.include` command (`patch`) and the label menu's "Show only" and "Show all" (GC3);
-  extension bindings scoped to a layer type's hits (EX amended, Gaps, 7).
+  extension bindings scoped to a layer type's hits (EX amended, Gaps, 7); the hover card, ARIA and cursor calling the
+  hooks.
 - **`seqx-examples`** (GD's): the GRCh38 assembly by inline lengths, the seeded links generator (held and BEDPE),
   `syntheticBands`, the recorded cytobands once their licence is agreed; the showcase spec through `rondoRing`.
 - **Storybook**: a Design page "Genome ring"; a story per default above, light and dark, canvas and SVG, each with its
@@ -510,36 +556,48 @@ Each quoted text joins or replaces the named place, word for word. GF's needs no
     > assembly's own; absent, every block. A command `section.include` (`patch`, one undo step) sets or removes it; a
     > block label's menu has "Show only <name>" and "Show all". So a ring of one chromosome or of a pair is the
     > genome's section with one param changed, a cut (stories), and a section of one chromosome can switch.
-  - In "A hue per block", after "and `system` the same over an assembly's names":
+  - In "A hue per block" (amending EC-191's domain for `system`), after "and `system` the same over an assembly's names":
     > , in the assembly's `order` before any `include` (the assembly's or a section's), so a sequence has one hue on
     > every section of its assembly, a ring of one chromosome and a stub pointing at it included.
   - In "Two axes over blocks (the square)", after "draws blocks × blocks":
-    > A navigator may bind one section on both axes (`of: [s, s]`): its reachable cells are the section's block pairs,
-    > the rest washed. **`navigator.switch`** (`none`, the default; `include`): a click on a block or a cell runs
+    > A navigator may bind one section on both axes (`of: [s, s]`). Its lattice is the assembly's (after the
+    > assembly's `include`, never the section's), its cells the section shows drawn plain and the rest washed ("not
+    > shown"), every cell still clickable under the switch. **`navigator.switch`** (`none`, the default; `include`): a click on a block or a cell runs
     > `section.include` on the bound section with that block or pair, a click on the navigator's title or Home on its
     > focus removes it; the window, where the bound section has one, keeps its gestures.
   - Tensions, "Switching on a section of one chromosome": replaced by "answered by `section.include` and
     `navigator.switch`".
+- **RR** (region-reads.md), in "How a level is chosen at a zoom", after **Pairs**:
+  > The pairs rule's numbers are its arguments (`pairsLevels(view, { binPx, gate })`, `pairs.binPx` and
+  > `pairs.maxArcs` by default), so a layer that draws fewer items than arcs (an extension's ribbons) gates at what it
+  > draws; the hysteresis is `pairs.itemsHysteresis` × its gate.
 - **RR** (region-reads.md), in "Summaries", after "Held pairs get the same levels":
   > **A data filter on an item's field** (a Q-value) narrows the bins only where they are built from items: held pairs
   > and a one-level source summarized whole rebuild their pyramid for the filter (its version in the key); a source's
   > own levels apply it to items only, its bins said once (`seq.render.pairs.filter`, info: "the filter applies when
   > zoomed in"). A filter on `count` or `type` applies to bins as to items.
-- **LX** (across-sections.md): nothing redesigned; its `ribbons.fillOpacity`, `ribbons.minPx` and `ribbons.stubShare`
-  are read by `rondo:ribbons` (one look), and its geometry rule (corresponding positions) drawn through the hole.
+- **LX** (across-sections.md): nothing redesigned; its `ribbons.fillOpacity` and `ribbons.minPx` are read by
+  `rondo:ribbons` (one look; its `stubShare`, of a bridge's band, is not); its twist rule restated for a ring by low and
+  high edges (Ribbons, above), which equals GA's formula.
 - **extension-openings.md**, Part 1, "Enough for the genome ring?", replaced by:
   > **Enough for the genome ring** (the fifth slice's `rondo`): `rondo:ribbons` (a `scope: 'section'` layer over core's
   > pairs level, Gate 0, 4, on `rings` through the warp), `rondo:cells` and the `rondo:square` picture on core's square,
   > `rondo:hues`, two commands and a binding; the ring zoom is core's `section.include` (a cut), the square's switch
-  > core's. The entry exports `PairsReader`, the pairs bins' types, `pairsLevels` and `placesOf` beside the warp. An
-  > extension binding may be scoped to its own layer type's hits, and then wins over the grammar's default there.
+  > core's. The entry exports `PairsReader`, the pairs bins' types, `pairsLevels` and `placesOf` beside the warp. A
+  > `LayerType` may give `describe(hit, lay)` (the hover card's lines), `summary(lay)` (its group's ARIA description)
+  > and `announce(lay, system, position)` (what the keyboard cursor adds there); the viewer calls them, its own text
+  > after. An extension binding may be scoped to its own layer type's hits, and then wins over the grammar's default
+  > there. One `seq.view.layer.extension` a namespace and view says every part drawn as its fallback (layers,
+  > pictures, schemes).
 
 ## Gaps for the author
 
 Each a yes or no; the recommendation first.
 
-1. **Stems clustered over RR's bins by px** (whole bins, exact counts), not a core clustering level: yes.
-2. **Ribbon width linear in count** (necks additive), scaled to the widest neck in view: yes.
+1. **A stem is a bin of a nested coarser level** (`2^j` × a listed level under `rondo.stemPx` in CSS px: exact,
+   cached, the same on screen and in the SVG), not a clustering by gaps: yes.
+2. **Width one px a count for the view, no floor inside a neck**: ribbons under a device px go to the stem's fan, so a
+   neck is always the sum (the cap and additivity hold; the floor gives): yes.
 3. **The ring zoom as `section.include`** (a core spec param and `patch` command, in GA), in place by default, a
    second ring below as the builder's option; back by undo: yes.
 4. **The square bound to one section on both axes, with `navigator.switch: include`** (core, GA amended), RN drawing
@@ -552,11 +610,27 @@ Each a yes or no; the recommendation first.
    and the square only).
 8. **A data filter on an item field rebuilds held and summarized pyramids**; a source's own levels filter items only,
    said (RR amended): yes.
-9. **`section.center`** a spec param (`title`, `none`) so ribbons own the hole: yes.
+9. **`rings.center` promoted to a section spec param `center`** (`title`, `none`) so ribbons own the hole: yes.
 10. **Cytobands**: ask UCSC's licence for `cytoBandIdeo.txt.gz`, then fetch it once into `seqx-examples` with its
     script and `sources.json` row (not the current Seq\*'s unlicensed copy); NCBI's public-domain ideogram if UCSC's
     terms refuse: yes.
-11. **`rondo.maxRibbons` 1,024** with faint fans for the rest (stems keep totals): yes.
+11. **`rondo.maxRibbons` 1,024 as both the items gate and the drawn bound** (`pairsLevels`' `gate`, RR amended),
+    fans only for ribbons under a device px or past the bound at the bins level: yes.
 12. **Two entries** (`@molstar/seqx-ext-rondo` headless, `/viewer` with commands and the binding), importing only the
     `extension` entry: yes.
 13. **Ribbons on a `tracks` row too** (filled arcs between stems), text and grids refused: yes.
+14. **Three optional `LayerType` hooks** (`describe`, `summary`, `announce`) for the hover card, ARIA and the cursor
+    (EX amended): yes.
+15. **The square's lattice the assembly's**, washed cells clickable under the switch (GA amended): yes.
+
+## Review, unresolved
+
+The independent review (2026-11-21) found two blocking issues (necks not adding up past 48 partner ribbons, the items
+gate at `maxArcs` while 1,024 ribbons are drawn) and seven to fix; the revision took them all. It assumes EX's
+extension surface, not yet built. The text GA, RR and extension-openings must take (section "Where this differs…") is
+carried to them at the gate. Still open after it:
+- Q-value filtering at the bins level.
+- No animated zoom.
+- Eight safe colours: hues repeat inside a two-chromosome view.
+- Stems follow a fixed grid of a coarser level rather than clustering.
+- The cytoband file: ask about UCSC's conditions, then fetch once (the repository's copy has no licence row).
