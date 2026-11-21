@@ -6,6 +6,10 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
 
 ## Open
 
+- **A hidden navigator track has no name in the hidden-tracks menu** (the author, 2026-11-21, Globins rows, family):
+  the entry is an eye with an empty label; every hidden track is listed by a name (its label, its layer's or
+  navigator's title, else its kind). Sent to FX2 as its item 6.
+
 - **The rows layout has no horizontal rail** (the author, 2026-11-21, Globins rows, family: "it's weird this view is
   lacking the 'horizontal rail'. probably should be at the 'navigator' or at the bottom. in general, configurable"):
   the tracks layout has its default rail under the ruler; the rows layout has the vertical overview and no horizontal
