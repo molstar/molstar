@@ -1,16 +1,31 @@
 // The defaults-designed check (§defaults-designed; the fourth slice's fold-back, B6): a design under `.seq/design/`
 // whose `## Consequences` section names a layer, a layout or a part has a `## Defaults` heading (what a reader sees
-// with no setting). It reads the designs promoted from the fifth slice on, listed in `PROMOTED`: older designs are
-// exempt until they are touched (then they are added to the list). `--worklist` prints every design that fails,
-// listed or not, so the close can see what is owed.
+// with no setting). Every design is checked except the ones in `EXEMPT`, those that failed when the check was written
+// (2026-11-21): the list only shrinks, a design leaves it when it gets its Defaults section. `--worklist` prints every
+// design that fails, exempt or not, so the close can see what is owed.
 // Usage: defaults-designed.ts [root] [--worklist]
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { args, finish, trackedFiles } from "../oz/_checks/lib.ts";
 
 const DESIGNS = ".seq/design/";
-/** Designs promoted from the fifth slice on (file names without `.md`). */
-const PROMOTED = new Set(["genome-coordinates", "region-reads", "genome-formats", "across-sections", "ring-extension"]);
+/** Designs without a Defaults heading when the check was written (file names without `.md`). Only ever shrinks. */
+const EXEMPT = new Set([
+  "axis",
+  "composition",
+  "edge-cases",
+  "extensibility",
+  "files",
+  "grids-and-rows",
+  "layout-and-draw-lists",
+  "layouts",
+  "molecules",
+  "navigators",
+  "seq-data-ports",
+  "testing",
+  "themes",
+  "track-header-parts",
+]);
 
 const argv = process.argv.slice(2);
 const WORKLIST = argv.includes("--worklist");
@@ -38,9 +53,11 @@ for (const f of trackedFiles(ROOT)) {
   if (consequences === undefined || !NAMES_A_DRAWN_THING.test(consequences)) continue;
   if (section(text, /^Defaults\b/) !== undefined) continue;
   worklist.push(f);
-  if (PROMOTED.has(id))
+  if (!EXEMPT.has(id))
     problems.push(`${f}: its Consequences name a layer, a layout or a part but it has no "## Defaults" heading`);
 }
 if (WORKLIST)
   console.log(`defaults-designed: designs with no Defaults heading\n${worklist.map((w) => `  - ${w}`).join("\n")}`);
+for (const id of EXEMPT)
+  if (!worklist.includes(`${DESIGNS}${id}.md`)) problems.push(`${DESIGNS}${id}.md: passes now: drop it from EXEMPT`);
 finish("defaults-designed", problems);
