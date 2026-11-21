@@ -17,7 +17,11 @@ protein translated from them, the stop excluded); the exons as ranges (`Exon 1` 
 exon; a domain (residues 5–14, 1-based) through the map, cut at the intron and **joined by a connector** across it
 (axis.md, "An item split by a path is joined by a connector", added by the author 2026-11-21: build it in the `ranges`
 layer if it is not built, in the draw lists so the canvas and the SVG draw it alike; a hit on it is the item's; tests for
-a split item, an item across a collapsed break (no connector) and an item in one run (none)); a phosphosite at residue 17 (`pS17`) as a mark
+a split item, an item across a collapsed break (no connector) and an item in one run (none); **configurable** as the
+library's other choices are (the author, 2026-11-21): the `ranges` layer's `connector` param (`line` default, `none`)
+through the language (0.5.0's owner is the orchestrator: list the language change in the report if the bump needs
+a hot file) and a `RenderConfig` preset for its width, ink and alpha, both rows in the core `_spec`'s Configuration
+table (the config-keys test) and a test that `none` draws none); a phosphosite at residue 17 (`pS17`) as a mark
 (the `variants` layer, or whichever built-in draws a point feature). Labels: DNA, Protein, Exons, Domain, Phosphosite.
 
 Check against the data at the fit view (every residue over its three nucleotides; the intron with no protein letters;

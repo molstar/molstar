@@ -183,7 +183,8 @@ nothing without a use; the fixed behaviors below are fixed partly so.
   through the codon map over a gene whose intron is shown) draws a hairline at its mid-height, in its colour, from one
   run's end to the next's start; the runs' ends there stay square. It is part of the item: hovering it is hovering the
   item, and its emphasis follows the item's. Across a break (zero units wide) nothing is drawn. Why: a gene model's
-  convention, so the pieces read as one item, not as several.
+  convention, so the pieces read as one item, not as several. Configurable (Configuration: `layer.connector`, `none`
+  turns it off; its width and ink a `RenderConfig` preset).
 
 ### Letters through a path
 
@@ -287,6 +288,8 @@ Cells this design fills or changes ([ux-foundations.md](ux-foundations.md), sect
 | `letters.complement` | spec param | `auto` | read along the strand shown (decided); `always` (IGV, UCSC), `never` (EC-233's rule) |
 | `letters.code` | spec param | `auto` | three letters where the narrowest part has room (EC-117); `one`, `three` |
 | `axis.directionMark` | `RenderConfig` preset | `label` | the picture and the export say "reversed"; `none` for a host's own chrome |
+| `layer.connector` (ranges) | spec param | `line` | a gene model's convention, the pieces one item (the author, 2026-11-21); `none` |
+| `ranges.connector` (width, ink, its alpha) | `RenderConfig` preset | 1 CSS px, the item's colour, 0.6 | a hairline under the runs' weight; a host's own (a dashed or a muted ink) |
 | `selection.acrossBreaks` | `ViewerConfig` (the reader's) | `shown` (decided) | what is selected is what is seen; `span` |
 | keys of `section.reverse`, `section.collapse` | `ViewerConfig` (`view.keys`) | Shift+R, Shift+C | a keyboard way for each (ux-foundations section 8); any key the host prefers |
 | a viewport in positions | option of `renderSvg` (`viewport`) | offsets, as today | a caller with no knowledge of the axis |
