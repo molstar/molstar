@@ -10,7 +10,13 @@
 // copies merged (EC-65); the section's axis over them.
 
 import { exactAddress, type Node, printAddress, type Value } from '@molstar/core/repr/tree';
-import { type AssemblyEntry, atomsSystemOf, type StaticModel, type UnitEntry } from '@molstar/seqx-core/resolve';
+import {
+  type AssemblyEntry,
+  atomsSystemOf,
+  describedAddress,
+  type StaticModel,
+  type UnitEntry,
+} from '@molstar/seqx-core/resolve';
 import { axisTotal } from './axis.js';
 import type { Axis, BlockForm, ResolvedBlock } from './view.js';
 
@@ -19,10 +25,45 @@ const param = (n: Node, key: string): Value | undefined => n.params?.[key];
 /** The classes a section of a complex shows when it names none: water left out (EC-101). */
 export const DefaultSectionClasses: readonly string[] = ['polymer', 'branched', 'ligand', 'ion'];
 
-/** The complex a section is `of`, when it is one. */
+/** A section's `of` as an address: an exact one, or a node a spec source holds (`<source>/(node :key <key>)`). */
+function sectionOf(model: StaticModel, section: Node): string | undefined {
+  const of = param(section, 'of');
+  return exactAddress(of) ?? describedAddress(of, (a) => model.sources.has(a));
+}
+
+/** The complex a section is `of`, when it is one (a source's while held: an opened model's). */
 export function sectionComplex(model: StaticModel, section: Node): string | undefined {
-  const of = exactAddress(param(section, 'of'));
+  const of = sectionOf(model, section);
   return of !== undefined && model.molecular.complexes.has(of) ? of : undefined;
+}
+
+/**
+ * The source a section's `of` names a complex of when that complex is a node the source holds, or will
+ * (`<source>/(node :key <key>)`, the source the spec's): read while it is held (an opened model), pending before
+ * (_spec/README.md "Resolved view", A section of a source's complex).
+ */
+export function openedComplex(model: StaticModel, section: Node): string | undefined {
+  const of = sectionOf(model, section);
+  const at = of?.indexOf('/(node ') ?? -1;
+  const source = at > 0 ? of!.slice(0, at) : undefined;
+  return source !== undefined && model.sources.has(source) ? source : undefined;
+}
+
+const Opens = new WeakMap<StaticModel, boolean>();
+
+/**
+ * Whether a view of the spec has a section `of` a source's complex (`openedComplex`): what resolves its views over the
+ * opened model (`openedModel`); kept per model. A spec without one never reads the overlay.
+ */
+export function opensComplexes(model: StaticModel): boolean {
+  let opens = Opens.get(model);
+  if (opens !== undefined) return opens;
+  opens = false;
+  for (const c of model.spec.children ?? [])
+    for (const v of c.kind === 'views' ? (c.children ?? []) : [])
+      for (const s of v.children ?? []) if (s.kind === 'section' && openedComplex(model, s)) opens = true;
+  Opens.set(model, opens);
+  return opens;
 }
 
 /** The assemblies a section is `of` (one, or a list: a group each), when it is of assemblies. */
@@ -105,19 +146,24 @@ export function blockNodes(model: StaticModel, section: Node, at = ''): Node[] {
   const own = (section.children ?? []).filter((c) => c.kind === 'block' && c.id !== undefined);
   const complex = sectionComplex(model, section);
   const units = complex === undefined ? undefined : model.molecular.complexes.get(complex)?.units;
-  if (!units) return own;
+  // a source's complex not held (yet, or any more): no block, its overrides waiting
+  const opened = openedComplex(model, section) !== undefined;
+  if (!units) return opened ? [] : own;
   const byId = new Map(units.map((u) => [u.id, u]));
+  // over a source's complex a block naming no other system overrides its unit, held or not: a unit an update drops
+  // takes its override with it, never turning the rest into a list
   const override = (n: Node) => {
     const u = byId.get(n.id!);
     const of = param(n, 'of');
-    return u !== undefined && (of === undefined || exactAddress(of) === u.address);
+    return (u !== undefined || opened) && (of === undefined || exactAddress(of) === `${complex}/${n.id}`);
   };
   if (own.length && !own.every(override)) return own;
   // each override's params by the units it reaches: its unit, or with merged copies its unit's copy group
   const merge = param(section, 'copies') !== 'each';
   const over = new Map<string, Record<string, Value>>();
   for (const n of own) {
-    const u = byId.get(n.id!)!;
+    const u = byId.get(n.id!);
+    if (!u) continue;
     const params: Record<string, Value> = {};
     for (const k of ['form', 'label'] as const) if (param(n, k) !== undefined) params[k] = param(n, k)!;
     for (const v of units) if (v === u || (merge && v.copy === u.copy)) over.set(v.id, params);

@@ -43,6 +43,7 @@ import {
   type BlockAxes,
   blockAxes,
   blockNodes,
+  openedComplex,
   sectionAssemblies,
   sectionComplex,
   systemRef,
@@ -573,6 +574,13 @@ function build(model: StaticModel, view: Node, address: string, layerKinds: Laye
         continue;
       }
       overBlocks.set(at, leader);
+      systemOf.set(at, '');
+      continue;
+    }
+    // a source's complex not held: pending while its source holds nothing, said once it holds other nodes
+    const source = first || own === undefined ? undefined : openedComplex(model, s);
+    if (source !== undefined) {
+      if (model.opened?.has(source)) report('seq.view.section.complex', 'The source holds no such complex', at);
       systemOf.set(at, '');
       continue;
     }
