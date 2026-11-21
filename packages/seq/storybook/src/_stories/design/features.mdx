@@ -104,6 +104,10 @@ What this version contains and will contain. Each feature links its story here o
 - **Track headers**: actions beside a track's label (drawn or as DOM parts), the state chips and marks, a host's entry
   and widget: [Features › Track headers](?path=/story/seq-next-features-track-headers--built-ins).
 - **A minimal viewer**: the layer types and layouts a spec lists, nothing else in its bundle.
+- **Extensions**: an extension's descriptor (its id the namespace of everything it ships), a layer type named
+  `<id>:<name>` with its fallback, its plain params and its keys on built-in nodes, a scheme, a command and a binding;
+  a reader without it draws the fallback and says which extension the figure needs; registered and taken away at run
+  time: [Features › Extensibility](?path=/story/seq-next-features-extensibility--toggled-at-run-time).
 
 ## Planned
 
@@ -119,7 +123,7 @@ What this version contains and will contain. Each feature links its story here o
   - A3M and Clustal; the matrix shape (with the Genomes milestone);
   - patches on streamed things and a command to keep a region; patch streams from an agent or a host;
   - a source's assembly; bigWig read by region, as proof that a genome format plugs in.
-- **Layers and themes**: fallbacks; track groups and summaries.
+- **Layers and themes**: track groups and summaries.
 - **Interaction and editing**: search and its results; track and group editing beyond hide, reorder and themes; the
   context menu with track header parts (the fourth slice); drags snapped to whole codons.
 - **Rendering**: a second consumer of the resolved view (the test consumer); the glyph atlas and band copy.
@@ -128,7 +132,6 @@ What this version contains and will contain. Each feature links its story here o
 - **Configuration and extensions**:
   - one typed configuration (settings in layers and a generated form come later);
   - layout and spacing in presets;
-  - extension descriptors (the fourth slice);
   - node kinds and custom fields;
   - every registry open.
 - **Addressing**: rects as addresses; one href driving Mol\* too.
