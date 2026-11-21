@@ -6,6 +6,11 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
 
 ## Open
 
+- **Block rulers unnumbered at the fit** (the author, 2026-11-21, the-hosts-complex): chain blocks about 180 px wide
+  show tick marks and no numbers at the fit (numbered before GC2 and GC3); sent to FX2 as its item 8.
+- **Clearing a rows sort** (the author, 2026-11-21, Globins rows, family): a third click clears the column's sort; the
+  sort is viewer state with an event and a clear command, its clear control the host's; sent to FX2 as its item 7.
+
 - **A hidden navigator track has no name in the hidden-tracks menu** (the author, 2026-11-21, Globins rows, family):
   the entry is an eye with an empty label; every hidden track is listed by a name (its label, its layer's or
   navigator's title, else its kind). Sent to FX2 as its item 6.
