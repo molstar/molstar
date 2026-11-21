@@ -37,6 +37,16 @@ export const DropRuntimes: readonly FormatRuntime[] = [
 /** The most sequences or units a dropped file's view shows: one section each. */
 export const MaxSections = 8;
 
+/** The longest sequence a dropped table of rows may ask for (its largest end). */
+export const MaxLength = 1_000_000;
+
+/** Why a file of `size` bytes is not read at all (past the store's bound on a file read whole), or undefined. */
+export function refuseSize(name: string, size: number): string | undefined {
+  return size > DefaultOpenLimits.maxBytes
+    ? `${name} is ${size} bytes: files past ${DefaultOpenLimits.maxBytes} bytes are not read`
+    : undefined;
+}
+
 /** The alphabet a source names, narrowed to the ones a node takes (protein when none). */
 const alphabetOf = (a: string | undefined): 'dna' | 'rna' | 'protein' => (a === 'dna' || a === 'rna' ? a : 'protein');
 
@@ -69,6 +79,35 @@ export function formatOfName(name: string): { readonly format: string } | { read
 export type Dropped =
   | { readonly spec: Node; readonly format: string; readonly summary: string }
   | { readonly refused: string };
+
+const isGzip = (b: Uint8Array) => b.length >= 2 && b[0] === 0x1f && b[1] === 0x8b;
+
+/**
+ * A cheap look at the content before a runtime is picked: the name says the format, the first bytes must agree (gzip's
+ * magic only on mmCIF, `# STOCKHOLM`, `>` of FASTA, `data_` of mmCIF, a JSON value). The reason says what was found.
+ */
+export function sniff(name: string, format: string, bytes: Uint8Array): string | undefined {
+  if (isGzip(bytes)) return format === 'mmcif' ? undefined : `${name} is gzipped: only mmCIF files are read compressed`;
+  if (format === 'msgpack' || format === 'seq' || format === 'tsv' || format === 'csv' || format === 'gff3')
+    return undefined;
+  const head = new TextDecoder()
+    .decode(bytes.subarray(0, 4096))
+    .replace(/^\uFEFF/, '')
+    .trimStart();
+  const refuse = (want: string) => `${name} is not ${format}: it should start with ${want}`;
+  switch (format) {
+    case 'stockholm':
+      return head.startsWith('# STOCKHOLM') ? undefined : refuse('"# STOCKHOLM"');
+    case 'fasta':
+    case 'aligned-fasta':
+      return head.startsWith('>') ? undefined : refuse('">" and a name');
+    case 'json':
+      return head.startsWith('{') || head.startsWith('[') ? undefined : refuse('"{" or "["');
+    case 'mmcif':
+      return /^data_/m.test(head) ? undefined : refuse('"data_"');
+  }
+  return undefined;
+}
 
 const readerOf = (bytes: Uint8Array): AssetReader => ({
   readText: async () => new TextDecoder().decode(bytes),
@@ -133,6 +172,8 @@ export async function specOfDropped(name: string, bytes: Uint8Array): Promise<Dr
   const named = formatOfName(name);
   if ('refused' in named) return named;
   const { format } = named;
+  const mismatch = sniff(name, format, bytes);
+  if (mismatch) return { refused: mismatch };
   const opened = await openDropped(name, format, bytes);
   if (isRefusal(opened)) return opened;
   const b = createSeqSpec({ title: name });
@@ -168,7 +209,12 @@ export async function specOfDropped(name: string, bytes: Uint8Array): Promise<Dr
   dispose(opened);
   const ends = read.ok && read.tables.ranges?.form === 'list' ? read.tables.ranges.end : undefined;
   if (!ends?.length) return { refused: `${name} holds no rows of ranges (a table with start and end columns)` };
-  const length = Math.max(...ends);
+  // a loop, not `Math.max(...ends)` (a spread of a million rows overflows the stack); a row's end is the file's word, so
+  // the sequence it needs is bounded before it is made
+  let length = 0;
+  for (const e of ends) if (e > length) length = e;
+  if (length > MaxLength)
+    return { refused: `${name} has a row ending at ${length}: past ${MaxLength} positions the rows are not shown` };
   const system = b.data.source('file', { ...common, system: 'target' });
   const target = b.data.sequence('target', { alphabet: 'protein', letters: 'X'.repeat(length) });
   const ranges = b.data.ranges('rows', { target, source: system });

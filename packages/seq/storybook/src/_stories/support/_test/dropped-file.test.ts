@@ -9,7 +9,16 @@ import { PackageFolder } from '@molstar/seqx-examples/node-assets';
 import { DefaultSeqViewerSpec } from '@molstar/seqx-viewer/default-spec';
 import { createSeqViewer } from '@molstar/seqx-viewer/viewer';
 import { describe, expect, it } from 'vitest';
-import { droppedUri, DropRuntimes, formatOfName, specOfDropped } from '../dropped-file.js';
+import { DefaultOpenLimits } from '@molstar/seqx-core/data';
+import {
+  droppedUri,
+  DropRuntimes,
+  formatOfName,
+  MaxLength,
+  refuseSize,
+  sniff,
+  specOfDropped,
+} from '../dropped-file.js';
 
 // A file dropped on a view, for each format built: named, opened by its runtime, its spec shown by a headless viewer whose
 // assets port answers the dropped bytes only (nothing is read from anywhere else), laid out with no issue and rendered.
@@ -75,7 +84,7 @@ describe('a dropped file', () => {
     expect([...new Set(r.reads)]).toEqual([droppedUri(name)]);
   });
 
-  it('GenBank is refused, saying so; an unknown extension names what is read; a file that does not parse is refused with the reason', async () => {
+  it('GenBank is refused, saying so (no EC: a format not built); an unknown extension names what is read; a file that does not parse is refused with the reason, never thrown (EC-77)', async () => {
     expect(formatOfName('pUC19.gb')).toEqual({ refused: 'GenBank files are not read yet' });
     expect(
       'refused' in formatOfName('notes.txt') && (formatOfName('notes.txt') as { refused: string }).refused,
@@ -86,7 +95,41 @@ describe('a dropped file', () => {
     expect('refused' in empty).toBe(true);
   });
 
-  it('a name with characters of a URL is one location', () => {
+  it('a name with characters of a URL is one location (EC-200: names cover real names)', () => {
     expect(droppedUri('my file #1.seq')).toBe('dropped/my%20file%20%231.seq');
+  });
+
+  it('a table whose row ends at a million rows reads without a stack overflow; one ending past the cap is refused, said', async () => {
+    const n = 300_000;
+    const rows = ['start\tend'];
+    for (let i = 0; i < n; i++) rows.push(`${i + 1}\t${i + 1}`);
+    const big = await specOfDropped('big.tsv', new TextEncoder().encode(rows.join('\n')));
+    expect('refused' in big, JSON.stringify('refused' in big && big.refused)).toBe(false);
+    const far = await specOfDropped('far.tsv', new TextEncoder().encode(`start\tend\n1\t${MaxLength + 1}\n`));
+    expect('refused' in far && far.refused).toContain(String(MaxLength));
+  });
+
+  it('a file past the store’s bound is refused before a byte is read', () => {
+    expect(refuseSize('big.cif', DefaultOpenLimits.maxBytes + 1)).toContain('big.cif');
+    expect(refuseSize('ok.cif', 1000)).toBeUndefined();
+  });
+
+  it.each([
+    ['a.sto', 'not a stockholm file\n', '# STOCKHOLM'],
+    ['a.fasta', 'ACGT\n', '>'],
+    ['a.json', 'name,x\n', '{'],
+    ['a.cif', 'loop_\n', 'data_'],
+  ])(
+    '%s with the wrong content is refused by its first bytes, saying what it should start with',
+    async (name, text, want) => {
+      const r = await specOfDropped(name, new TextEncoder().encode(text));
+      expect('refused' in r && r.refused).toContain(want);
+    },
+  );
+
+  it('gzip is read only as mmCIF', async () => {
+    const gz = new Uint8Array([0x1f, 0x8b, 8, 0]);
+    expect(sniff('a.tsv', 'tsv', gz)).toContain('gzipped');
+    expect(sniff('a.cif.gz', 'mmcif', gz)).toBeUndefined();
   });
 });

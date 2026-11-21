@@ -10,7 +10,7 @@ import { createSeqViewer, type SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { Button } from '@molstar/ui/components/button/button';
 import { defineElements, onCleanup } from '@molstar/ui/dom';
 import { UiElement } from '@molstar/ui/elements/ui-element';
-import { DropRuntimes, droppedUri, specOfDropped } from '../../support/dropped-file.js';
+import { DropRuntimes, droppedUri, refuseSize, specOfDropped } from '../../support/dropped-file.js';
 
 // Your own file (examples.md, Showcases): drop a file onto the view, or pick one, and it is shown: `.seq`, FASTA, Stockholm,
 // aligned FASTA, TSV, CSV, JSON, MessagePack, GFF3 and mmCIF files; GenBank says it is not read yet. The page's assets port
@@ -105,7 +105,15 @@ class DropRoot extends UiElement<DropStory> {
       message.textContent = `${name} — ${dropped.summary}`;
     };
 
-    const showFile = async (file: File) => show(file.name, new Uint8Array(await file.arrayBuffer()));
+    const showFile = async (file: File) => {
+      // the size is the file's own word: checked before a byte is read
+      const refused = refuseSize(file.name, file.size);
+      if (refused) {
+        message.textContent = refused;
+        return;
+      }
+      await show(file.name, new Uint8Array(await file.arrayBuffer()));
+    };
     zone.addEventListener('dragover', (e) => {
       e.preventDefault();
       zone.style.borderColor = 'var(--msui-accent)';
