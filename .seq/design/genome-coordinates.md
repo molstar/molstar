@@ -87,7 +87,7 @@ coverage, which exists.
   complex's rule, [molecules](molecules.md)).
 - **Every sequence has a length**: a derived sequence with none (a source listing names only) makes the assembly
   unavailable (`seq.resolve.assembly.lengths`, error, naming the sequences and the remedy: inline `sequences` or a
-  `chrom-sizes` source), never drawn with a guessed length. Why: `include: { minLength }`, `order: length`, the gaps'
+  `chrom-sizes` source), never drawn with a guessed length. Why: `include: { min_length }`, `order: length`, the gaps'
   share and the closing run all read lengths.
 - **Static, after open**: the derived sequences enter the static model as the sources' lengths already do, an input of
   resolve (`ResolveOptions` gains the assemblies' coverage beside `lengths`, hashed with it), so the resolved view stays
@@ -130,14 +130,14 @@ coverage, which exists.
   Why `natural`: the source's order differs by format for one assembly (a FASTA index, a 2bit, a chrom.sizes sorted by
   length), so the same genome would draw in three orders; a sort over names is a rule, not an inference from data.
 - **`include`** (spec param): every sequence (the default), a list of names and patterns (`^chr[0-9XYM]+$`), or
-  `{ names?, minLength? }` (patterns and a length floor: `{ minLength: 1000000 }` keeps a draft's chromosomes and drops
+  `{ names?, min_length? }` (patterns and a length floor: `{ min_length: 1000000 }` keeps a draft's chromosomes and drops
   its scaffolds). Why all by default: which contigs matter is the figure's (a library, not a viewer); the examples and
   the builder spell the primary set.
 - **Bounded, for assemblies only**: `ResolveConfig.maxAssemblyBlocks` (4,096: GRCh38 with its alternates and decoys is
   about 3,400) bounds the blocks a section of assemblies derives after `include`; complexes keep their own
   `maxUnits` (65,536, refused whole). Past it the section draws the first 4,096 in `order` and **one closing run** for
   the rest, labelled with what is missing ("+96,312 sequences not shown"), never silently; `seq.view.section.blocks`
-  (warning) names the count and the remedy (`include: { minLength }`, `order: length`). Why not refused whole: a draft
+  (warning) names the count and the remedy (`include: { min_length }`, `order: length`). Why not refused whole: a draft
   assembly with 100,000 scaffolds still has a figure in its largest, and the run says what is left out.
 - **Resolve's cost at this scale** (100,000 sequences listed, a few thousand derived): linear in the sequences, each
   once. `blockAxes`' copy groups go through a `Map` by key (today a linear `groups.find` per block: quadratic); an
@@ -165,7 +165,7 @@ coverage, which exists.
   carry a system, an axis and layers each, a strip each in every layout, rings included (built: the ring of blocks,
   `rings-fixtures`); an assembly adds no layout.
 - **`section.include`** (spec param, on a section of an assembly or a list of them): which of the derived blocks the
-  section shows, in the assembly's `include` grammar (names, patterns, `{ minLength }`), intersected with the
+  section shows, in the assembly's `include` grammar (names, patterns, `{ min_length }`), intersected with the
   assembly's own; absent, every block. A command `section.include` (`patch`, one undo step) sets or removes it; a
   block label's menu has "Show only <name>" and "Show all". So a ring of one chromosome or of a pair is the genome's
   section with one param changed, a cut (stories), and a section of one chromosome can switch. Why a section param and
@@ -224,8 +224,8 @@ coverage, which exists.
 - **Overlapping blocks on one system** (a duplication shown twice to line up with two partners): allowed; a Location
   on the system lights every block that shows it (the merged-copies rule), a hit names its block. Why: a synteny figure
   shows a duplicated segment once per partner.
-- **The builder's `colinearBlocks(map, of, along, { minLength })`** writes the blocks of one sequence in another's
-  order from a held map's runs (a block a run of at least `minLength`, 100 kb by default, shorter runs merged into
+- **The builder's `colinearBlocks(map, of, along, { min_length })`** writes the blocks of one sequence in another's
+  order from a held map's runs (a block a run of at least `min_length`, 100 kb by default, shorter runs merged into
   their neighbour; its direction `reversed` where the run is), so a figure "B in A's order" is explicit data, exported
   as drawn. Why a helper and not `pieces: { along: map }`: an axis derived from a map read by region
   would change length as regions arrive (EC-211); the helper reads the map once, the spec keeps the result.
@@ -467,10 +467,10 @@ Cells this design fills or changes; the others stand as the axis, layouts and na
 |---|---|---|---|
 | `assembly.name`, `aliases`, `source`, `sequences`, `alias_source`, `names` | spec params | — (one of `source`, `sequences` required; every sequence with a length) | what the genome is (EC-186 to EC-189); lengths inline or from a `chrom-sizes` source |
 | `assembly.order` | spec param | `natural` (numbers, X, Y, M, MT, the rest) | one genome draws in one order whatever the file; `length`, `source`, a list |
-| `assembly.include` | spec param | every sequence | which contigs matter is the figure's; names, patterns, `{ minLength }` |
+| `assembly.include` | spec param | every sequence | which contigs matter is the figure's; names, patterns, `{ min_length }` |
 | `assembly.match` | spec param | `chr` | UCSC and Ensembl names differ by the prefix; `exact` |
 | `section.of` | spec param | — | a system, a complex, an assembly, or a list of assemblies (new) |
-| `section.include` | spec param | absent (every block of `of`) | the chromosome or pair a section shows; names, patterns, `{ minLength }` |
+| `section.include` | spec param | absent (every block of `of`) | the chromosome or pair a section shows; names, patterns, `{ min_length }` |
 | `navigator.switch` | spec param | `none` | a click centres; `include` sets the bound section's `include` (the square over a ring) |
 | `block.direction` | spec param | `section` | the section reads one way unless told; `reversed` |
 | `block.scale` | spec param | 1 | lengths true unless the figure says; any positive number, labelled |
@@ -483,7 +483,7 @@ Cells this design fills or changes; the others stand as the axis, layouts and na
 | `navigate.acrossBlocks` | `ViewerConfig` | `cross` | as built, JBrowse; `stop` (IGV, UCSC) |
 | keys of `block.next`, `block.previous` | `ViewerConfig` (`view.keys`) | Alt+PageDown, Alt+PageUp | a keyboard way to the next chromosome; any |
 | `ResolveConfig.maxAssemblyBlocks` | `ResolveConfig` bound, sections of assemblies only | 4,096 | GRCh38 with alternates and decoys; past it a closing run and an issue; complexes keep `maxUnits` |
-| `colinearBlocks`' `minLength` | option of a builder call | 100 kb | shorter runs merged into a neighbour, so a chain's thousands of runs give tens of blocks; any |
+| `colinearBlocks`' `min_length` | option of a builder call | 100 kb | shorter runs merged into a neighbour, so a chain's thousands of runs give tens of blocks; any |
 | the locus text's grammar (1-based inclusive, commas, longest name first) | fixed | — | the precedents' text, typed by readers as they know it |
 | a block's ruler at its own density; overlapping blocks lit together; a ribbon's twist by the three directions | fixed | — | the reasons in the Decision |
 | the hue per block's domain (the blocks in order) | fixed | — | known up front, never by region (EC-191) |
@@ -535,7 +535,7 @@ The claim: **this design covers what a user does with genome coordinates.**
    the gap, the zoom strip of the current chromosome, the square bounded by runs; (h) a follow between unequal block
    lists has no one map to carry; (i) a block turning over as regions arrive.
 4. **Both held.** Integrated: `navigate.acrossBlocks: stop` (a); `of` a list, groups, the share rule for gaps on rows
-   and rings, `include: { minLength }`, `order: length`, `maxAssemblyBlocks` with its closing run, linear resolve (b);
+   and rings, `include: { min_length }`, `order: length`, `maxAssemblyBlocks` with its closing run, linear resolve (b);
    `colinearBlocks`, a reversed block, the ribbon's twist rule and the places index for LX (c); resolve's coverage
    input and the pending section, `alias_source`, `match`, the length check, `(block :name …)`, `(locus …)`, group
    labels, `seq.resolve.assembly.name` (d); `×N` labels, runs (e); `{ system, position }` ends and the one history rule

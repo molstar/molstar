@@ -141,10 +141,10 @@ effects (`TODO.md`).
 
 | What | Target (minified) |
 |---|---|
-| Reading a spec (decode, validate, resolve), no viewer | under 230 kB (150 in the first slice, 160 in the second, 195 at the third slice's close; moved by the author, 2026-11-20, for language 0.5.0's molecules: measured 205.8) |
+| Reading a spec (decode, validate, resolve), no viewer | under 240 kB (150 in the first slice, 160 in the second, 195 at the third slice's close, 230 for language 0.5.0's molecules; moved by the author, 2026-11-21, for language 0.6.0's genomes: measured 223.4 before it) |
 | Headless rendering (the above, layout, draw lists, SVG) | under 830 kB (300 until the third slice, whose layers, layouts, navigators and rows it holds; 780 until the fourth slice's query language, 820 until molecules drawn, the author, 2026-11-20; measured 820.9) |
 | The viewer, default configuration | under 1,330 kB (600 until the third slice, 1,250 until the query language, 1,290 until the structure link, the author, 2026-11-20: "Move to 1330 kB", room for the rest of the fourth slice; measured 1,290.4; the previous Seq\*: 1,040 kB) |
-| The viewer, minimal (tracks, letters and ranges) | under 940 kB (880 until the query language, 920 until molecules drawn, 930 until the extension fallback, the author, 2026-11-20 and 2026-11-21; measured 929.9) |
+| The viewer, minimal (tracks, letters and ranges) | under 960 kB (880 until the query language, 920 until molecules drawn, 930 until the extension fallback, 940 until language 0.6.0's genomes, the author, 2026-11-20 and 2026-11-21: "Raise the bounds"; measured 939.4 before it) |
 | A format runtime (bigWig) | under 30 kB, loaded only when composed |
 
 ## Scale

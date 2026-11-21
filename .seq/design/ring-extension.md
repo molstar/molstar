@@ -226,7 +226,7 @@ No node kind, no data shape, no format runtime (extension-openings, Part 1): RR'
 
 - **Opening a chromosome changes which blocks a section shows**, not a viewport: a ring shows its whole axis and its
   key never holds a viewport (layouts, GA). So the ring reads GA's **`section.include`** on a section of an assembly (the
-  assembly's `include` grammar: names, patterns, `{ minLength }`; intersected with the assembly's own) and its core
+  assembly's `include` grammar: names, patterns, `{ min_length }`; intersected with the assembly's own) and its core
   command (change kind `patch`, one undo step): "show only chr4" patches `include: ['chr4']`, a pair
   `['chr4', 'chr7']`, "show all" removes it. Why a section param and not new `block` nodes: one param to patch and to
   undo, the same grammar as the assembly's, the hue domain and `order` untouched; and it gives GA's standing
@@ -437,7 +437,7 @@ Cells this design fills; the others stand as layouts, GA, RR and LX give them.
 | `stubs` | spec param (plain) | `partner` | "where else does it go"; `none` (core's caret) |
 | `opens` | spec param (plain) | absent | a section whose `include` a double-click sets (Decided, 7) |
 | the colour channel | spec param (theme slot) | `(field :name system)` of the `a` end, `categories` | a hue per chromosome, safe; `rondo:hues` named by the writer |
-| `section.include` (GA's) | spec param | absent (every block of `of`) | the chromosome or pair shown; names, patterns, `{ minLength }` |
+| `section.include` (GA's) | spec param | absent (every block of `of`) | the chromosome or pair shown; names, patterns, `{ min_length }` |
 | `section.center` (layouts amended) | spec param | the preset (`title`) | `none` under ribbons |
 | `navigator.switch` (GA's) | spec param | `none` | `include` on the square over a ring |
 | `content: 'rondo:square'`, `of_layer` | spec params | the first pairs-shaped layer of the bound section | the cells read the ring's data |
