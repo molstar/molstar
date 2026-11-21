@@ -6,6 +6,14 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
 
 ## Open
 
+- **The "…" actions button with no actions** (the author, 2026-11-21, on GG's GFF3 story: "could we stop showing the
+  ... actions button if there are no actions registered?"): a track header shows "…" (tooltip "Actions") when its menu
+  would be empty. The button is drawn only when at least one entry applies to that track (built-ins that apply, the
+  host's, an extension's), decided per track and per state; the fourth slice fixed one case of this (the author: "some
+  views show the 3 dot menu icon, but no menu is there"), so find why it is back and test every header kind.
+- **The Transcripts track's empty band** (my look at GG's fix round): about 100 px of blank lanes above the first
+  transcript in gff3--tp-53.
+
 - **A double-click on a long sequence jumps to bases** (my look at BE's cytobands, 2026-11-21): chr17 at the fit (83
   Mb) to about 20 bases in one double-click; GC2's row did the same. A double-click should zoom one step (or fit the
   item under the pointer), not to the closest zoom. GC3 takes it on blocks; the plain section's case is the fix lane's.
