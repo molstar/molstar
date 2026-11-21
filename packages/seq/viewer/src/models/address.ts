@@ -12,7 +12,7 @@
 
 import { derive, type ReadonlyState, ReactiveModel, State } from '@molstar/core/reactive';
 import { type Issue, issueOf, parseAddress, printAddress, type Segment } from '@molstar/core/repr/tree';
-import { hiddenTracksOf } from '../hidden-tracks.js';
+import { hiddenTracksOf } from './hidden-tracks.js';
 import { addRefPatch, RefsId, type RefInput, refAddresses } from '@molstar/seqx-core/lang';
 import {
   type AddressResolution,

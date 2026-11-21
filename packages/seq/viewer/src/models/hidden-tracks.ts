@@ -7,7 +7,7 @@
 import { derive, type ReadonlyState } from '@molstar/core/reactive';
 import type { Node } from '@molstar/core/repr/tree';
 import type { HiddenTrack } from '@molstar/seqx-core/render';
-import type { SeqViewer } from './viewer.js';
+import type { StaticModel } from '@molstar/seqx-core/resolve';
 
 /** A track the spec hides, with the section it is in (`SeqViewer.hiddenTracks`). */
 export interface HiddenTrackEntry extends HiddenTrack {
@@ -55,6 +55,6 @@ export function hiddenTracksOf(root: Node): readonly HiddenTrackEntry[] {
  * The hidden tracks of the spec shown (_spec/README.md "Hidden tracks"): the application's to list and restore, never
  * drawn by the view. It reads the spec, not the layout: a section whose tracks are all hidden has none to read there.
  */
-export function hiddenTracksState(viewer: SeqViewer): ReadonlyState<readonly HiddenTrackEntry[]> {
-  return derive([viewer.spec.model], (model) => hiddenTracksOf(model.spec), sameEntries);
+export function hiddenTracksState(model: ReadonlyState<StaticModel>): ReadonlyState<readonly HiddenTrackEntry[]> {
+  return derive([model], (m) => hiddenTracksOf(m.spec), sameEntries);
 }

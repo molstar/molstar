@@ -60,6 +60,44 @@ describe('the story’s DOM parts', () => {
     port.dispose?.();
   });
 
+  it('an update between pointerdown and click does not lose the click: the pressed button stays until the press ends', async () => {
+    vi.useFakeTimers();
+    try {
+      const view = ExampleViews.find((v) => v.id === 'headers')!;
+      const v = (viewer = createSeqViewer({ ...headersSpec({ parts: 'dom' }), ui: undefined, history: uiHistory() }));
+      v.resize(1440);
+      await v.load(view.build());
+      await v.settle();
+      const container = document.createElement('div');
+      document.body.append(container);
+      const port = partsDomPort()(container, headersOf(v));
+      const withActions = () => {
+        const state = headersOf(v).partsState();
+        return { headers: state.headers.map((h) => ({ ...h, actions: true })) };
+      };
+      port.update(withActions());
+      const hide = () =>
+        container.querySelector<HTMLElement>('[role="group"][data-track$="/domains"] [data-part="seq:hide"]')!;
+      const button = hide();
+      const before = v.view.resolved.value!.sections[0].tracks.length;
+      button.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 1 }));
+      // the parts update (the pointer moved onto the part: a hover's geometry): the pressed button is still in place
+      port.update(withActions());
+      expect(button.isConnected).toBe(true);
+      expect(hide()).toBe(button);
+      button.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 1 }));
+      button.click();
+      await v.settle();
+      expect(v.view.resolved.value!.sections[0].tracks.length).toBe(before - 1);
+      // after the press the held update is drawn
+      vi.advanceTimersByTime(1);
+      expect(hide()).not.toBe(button);
+      port.dispose?.();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('the actions of a header have a backdrop over the label, with the ellipsis the canvas draws where the label is cut', async () => {
     const view = ExampleViews.find((v) => v.id === 'headers')!;
     const v = (viewer = createSeqViewer({ ...headersSpec({ parts: 'dom' }), ui: undefined, history: uiHistory() }));

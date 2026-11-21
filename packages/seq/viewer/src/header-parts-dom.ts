@@ -6,6 +6,7 @@
 
 import { Button } from '@molstar/ui/components/button/button';
 import { Icon } from '@molstar/ui/components/icon/icon';
+import { DomHost } from '@molstar/ui/dom/host';
 import { render } from '@molstar/ui/dom/render';
 import type {
   HeaderMenuItem,
@@ -20,7 +21,8 @@ import type {
 // (a hover, the cursor; so a 200-track view holds a few buttons, not 600), and a button over each chip the canvas draws.
 // A press runs the slot's entry as the canvas's click does (`HeadersBehavior.run`); the "⋯" and a slot with a submenu
 // open the menu at it. Keyboard: the cursor on a header moves the focus into its parts (one tab stop, roving: ← → between
-// them, Enter or Space runs), Esc gives it back to the canvas, the cursor where it was. Tab is never captured.
+// them, Enter or Space runs), Esc gives it back to the canvas, the cursor where it was. Tab is never captured. An
+// update during a press (pointerdown to click) waits for it: the rebuilt buttons would lose the click.
 
 const at = (el: HTMLElement, b: { x: number; y: number; width: number; height: number }) =>
   Object.assign(el.style, {
@@ -159,10 +161,32 @@ export function partsDomPort(): HeaderPartsPortFactory {
         return out;
       }, layer);
     };
+    // A press is pointerdown to click: the buttons are rebuilt on each update, so one that came between would detach the
+    // pressed button and lose the click (a hover's parts update right after the pointer moved onto it). An update
+    // during a press waits for it to end (the click is a task after the pointer's release: a timer past it).
+    let pressing = false;
+    let pending: HeaderPartsState | undefined;
+    const win = doc.defaultView;
+    const endPress = () => {
+      if (!pressing) return;
+      DomHost.setTimeout(() => {
+        pressing = false;
+        const next = pending;
+        pending = undefined;
+        if (next) draw(next);
+      }, 0);
+    };
+    const begin = () => {
+      pressing = true;
+    };
+    layer.addEventListener('pointerdown', begin);
+    win?.addEventListener('pointerup', endPress, true);
+    win?.addEventListener('pointercancel', endPress, true);
     return {
       update(state) {
         last = state;
-        draw(state);
+        if (pressing) pending = state;
+        else draw(state);
       },
       focus(target) {
         const h = last.headers.find((x) => sameTarget(x.geometry.target, target));
@@ -174,6 +198,9 @@ export function partsDomPort(): HeaderPartsPortFactory {
       },
       dispose() {
         dispose?.();
+        layer.removeEventListener('pointerdown', begin);
+        win?.removeEventListener('pointerup', endPress, true);
+        win?.removeEventListener('pointercancel', endPress, true);
         for (const type of types) layer.removeEventListener(type, own);
         layer.remove();
       },

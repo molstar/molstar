@@ -15,6 +15,7 @@ import { type Node, resolveAddress, type Value } from '@molstar/core/repr/tree';
 import type { CommandDefinition, CommandResult } from '@molstar/ui/commands/types';
 import type { EditOutcome, SelectionModel, SpecModel, ViewModel } from '@molstar/seqx-viewer/models';
 import type { EditContext, EditOrigin } from '@molstar/seqx-viewer/ports';
+import { hiddenTracksOf } from '@molstar/seqx-viewer/models/hidden-tracks';
 
 /** What an editing command is given: the node it edits, and what each needs. */
 export interface EditingContext {
@@ -123,22 +124,11 @@ export function editingBehavior(spec: SpecModel, axis?: AxisReaders): EditingBeh
   /** The nodes a show acts on (`addresses`, else `address`): each of the kind, else why not. */
   const shownOf = (ctx: EditingContext): readonly string[] =>
     ctx.addresses ?? (ctx.address !== undefined ? [ctx.address] : []);
-  /** Every track the spec hides, in order (under the section `within`, else everywhere). */
-  const hiddenTrackAddresses = (within?: string): string[] => {
-    const out: string[] = [];
-    const walk = (node: Node, path: readonly string[]) => {
-      for (const c of node.children ?? []) {
-        if (c.id === undefined) continue;
-        const at = [...path, c.id];
-        if (c.kind === 'track') {
-          if (c.params?.hidden === true) out.push(`/${at.join('/')}`);
-        } else walk(c, at);
-      }
-    };
-    const start = within === undefined ? spec.root.value : nodeOf(spec.root.value, within, 'section');
-    if (start) walk(start, within === undefined ? [] : ids(within));
-    return out;
-  };
+  /** Every track the spec hides, in order (those of the section `within`, else of every section). */
+  const hiddenTrackAddresses = (within?: string): string[] =>
+    hiddenTracksOf(spec.root.value)
+      .filter((t) => within === undefined || t.section === within)
+      .map((t) => t.address);
   const showTracks = (ctx: EditingContext): EditingContext =>
     ctx.all ? { ...ctx, addresses: hiddenTrackAddresses(ctx.address) } : ctx;
   const allNeed =
@@ -277,7 +267,14 @@ export function editingBehavior(spec: SpecModel, axis?: AxisReaders): EditingBeh
       id: EditingCommandIds.showTrack,
       title: 'Show a track',
       category: 'Edit',
-      when: (ctx) => (ctx.all ? (disposed ? 'The viewer is retired' : true) : allNeed('track', 'track')(ctx)),
+      when: (ctx) =>
+        disposed
+          ? 'The viewer is retired'
+          : ctx.all
+            ? hiddenTrackAddresses(ctx.address).length
+              ? true
+              : 'No hidden tracks'
+            : allNeed('track', 'track')(ctx),
       run: (_, ctx) => edit('Show a track', unhide(showTracks(ctx)), ctx, 'Shown'),
     },
     {

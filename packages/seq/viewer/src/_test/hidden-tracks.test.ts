@@ -153,6 +153,19 @@ describe('track.show', () => {
     expect(hidden()).toEqual([A, B, C]);
   });
 
+  it('all with nothing hidden, or at an address that is no section, is refused: no empty undo step', async () => {
+    const v = await make();
+    const n = steps(v);
+    expect(await v.execute('track.show', { all: true })).toBe('No hidden tracks');
+    await v.execute('track.hide', { address: A });
+    await v.settle();
+    const m = steps(v);
+    expect(await v.execute('track.show', { all: true, address: '/views/main/two' })).toBe('No hidden tracks');
+    expect(await v.execute('track.show', { all: true, address: A })).toBe('No hidden tracks');
+    expect(steps(v)).toBe(m);
+    expect(m).toBe(n + 1);
+  });
+
   it('all within a section: the other section’s stay hidden', async () => {
     const v = await make();
     for (const a of [A, B, C]) await v.execute('track.hide', { address: a });

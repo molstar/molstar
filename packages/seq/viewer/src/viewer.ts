@@ -53,7 +53,7 @@ import type { SeqAnimationParticipant } from '@molstar/seqx-viewer/ports';
 import { frameAnimation } from './animation.js';
 import { ViewerInput } from './input.js';
 import { LegendModel } from './legends.js';
-import { type HiddenTrackEntry, hiddenTracksState } from './hidden-tracks.js';
+import { type HiddenTrackEntry, hiddenTracksState } from './models/hidden-tracks.js';
 import { modelIssuesState } from './model-issues.js';
 import type {
   BehaviorContext,
@@ -259,7 +259,7 @@ export class SeqViewer extends ReactiveModel {
     const hover = (this.hover = new HoverModel(spec, view, config));
     const store = (this.store = new StoreModel(config, { removed: (gone) => this.selection.dropGone(gone) }));
     this.modelIssues = modelIssuesState(this);
-    this.hiddenTracks = hiddenTracksState(this);
+    this.hiddenTracks = hiddenTracksState(spec.model);
     // an element selected by an address and then toggled is drawn by its extent, resolved over what is shown
     const selection = (this.selection = new SelectionModel(
       (els) => locationOfResult(spec.shown.value, this.addresses.queryModel(), { type: 'keys', keys: els }).location,
