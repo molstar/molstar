@@ -1150,8 +1150,8 @@ runtimes only).
   `seq.source.unreadable` (a file or index not read), `seq.source.malformed` (an index that is not one),
   `seq.source.too_large` (past a bound). Why one line source: a format has one line parser for both reads, so "a region
   read equals the whole read clipped" is a property of the lines.
-- **Tests**: on files from a test-only writer (`runtimes/_test/genome-writer.ts`: BGZF blocks, TBI and CSI as htslib
-  builds them, BED and VCF generated on core's `PCG`), io's tests having its twin.
+- **Tests**: on files from the shared test-only writer (`@molstar/test-harness/genome/bgzf-writer`: BGZF blocks, TBI and
+  CSI as htslib builds them, BED and VCF generated from a seed), the one io's tests use.
 
 ### mmCIF
 

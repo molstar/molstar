@@ -10,7 +10,7 @@ import { PCG } from '@molstar/core/data/util/hash-functions';
 import { itWithin } from '@molstar/test-harness/timing';
 import { BgzfError, bgzfReader, inflateBgzf, isBgzf, VirtualOffset } from '../bgzf.js';
 import { blockHeader, walkBlocks } from '../internal/bgzf-blocks.js';
-import { bgzip, memoryRanges } from './bgzf-writer.js';
+import { bgzip, memoryRanges } from '@molstar/test-harness/genome/bgzf-writer';
 
 const text = (n: number) => {
   const rng = new PCG(7);

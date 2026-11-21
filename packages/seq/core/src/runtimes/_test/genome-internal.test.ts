@@ -19,7 +19,7 @@ import {
   join,
   memoryRanges,
   tabixIndex,
-} from './genome-writer.js';
+} from '@molstar/test-harness/genome/bgzf-writer';
 
 const names = ['chr1', 'chr2'];
 const bed: IndexOptions = { kind: 'tbi', format: 0, zeroBased: true, columns: [1, 2, 3], meta: '#', skip: 0, names };

@@ -28,7 +28,7 @@ import {
   memoryRanges,
   tabixIndex,
   tabixIndexRaw,
-} from './bgzf-writer.js';
+} from '@molstar/test-harness/genome/bgzf-writer';
 
 const names = ['chr1', 'chr2', 'chrX'];
 const bedOptions = (kind: 'tbi' | 'csi'): IndexOptions => ({

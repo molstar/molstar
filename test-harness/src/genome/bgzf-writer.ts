@@ -4,15 +4,64 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { deflateRawSync } from 'node:zlib';
-import { PCG } from '@molstar/core/data/util/hash-functions';
-import { crc } from '@molstar/core/util/zip/checksum';
-import type { AssetRangeReader } from '@molstar/core/util/assets-range';
-import { EofBlock, VirtualOffset } from '../internal/bgzf-blocks.js';
-import { reg2bin } from '../internal/tabix-bins.js';
+import { crc32, deflateRawSync } from 'node:zlib';
 
 // A test-only BGZF and tabix writer: blocks as bgzip writes them, TBI and CSI as htslib builds them (bins with their
-// chunks, the linear index, the metadata pseudo-bin). Fixtures are generated, never downloaded.
+// chunks, the linear index, the metadata pseudo-bin), and generated BED- and VCF-like files. Fixtures are generated,
+// never downloaded. Shared by `@molstar/io`'s tests and the genome runtimes'; it depends on Node alone (the harness
+// imports no Mol* package: they depend on it), so its CRC-32 is zlib's and its generator a seeded one of its own.
+
+/** A block's file offset × 2^16 + an offset into its inflated bytes (io's `VirtualOffset`). */
+export type VirtualOffset = number;
+
+function voffsetOf(block: number, within: number): VirtualOffset {
+  return block * 0x10000 + within;
+}
+
+/** The 28-byte EOF block bgzip writes last. */
+export const EofBlock = new Uint8Array([
+  0x1f, 0x8b, 0x08, 0x04, 0, 0, 0, 0, 0, 0xff, 0x06, 0, 0x42, 0x43, 0x02, 0, 0x1b, 0, 0x03, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+]);
+
+/** The smallest bin holding `[beg, end)`: htslib's `hts_reg2bin`. */
+function reg2bin(beg: number, end: number, minShift: number, depth: number): number {
+  end -= 1;
+  let s = minShift;
+  let t = (8 ** depth - 1) / 7;
+  for (let l = depth; l > 0; l--) {
+    const size = 2 ** s;
+    if (Math.floor(beg / size) === Math.floor(end / size)) return t + Math.floor(beg / size);
+    s += 3;
+    t -= 8 ** (l - 1);
+  }
+  return 0;
+}
+
+/** A seeded generator (mulberry32): `float()` in [0, 1). */
+class Seeded {
+  private state: number;
+  constructor(seed: number) {
+    this.state = seed >>> 0;
+  }
+  float() {
+    this.state = (this.state + 0x6d2b79f5) >>> 0;
+    let t = this.state;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  }
+}
+
+/** A range reader's shape (core's `AssetRangeReader`). */
+export interface MemoryRanges {
+  readonly size: number;
+  reads: number;
+  read(
+    ranges: readonly { readonly offset: number; readonly length: number }[],
+    signal?: AbortSignal,
+  ): Promise<Uint8Array[]>;
+  dispose(): void;
+}
 
 export interface Bgzipped {
   readonly bytes: Uint8Array;
@@ -30,7 +79,7 @@ function block(chunk: Uint8Array, level = 6): Uint8Array {
   out.set([0x1f, 0x8b, 0x08, 0x04, 0, 0, 0, 0, 0, 0xff, 6, 0, 66, 67, 2, 0]);
   view.setUint16(16, out.length - 1, true);
   out.set(deflated, 18);
-  view.setUint32(18 + deflated.length, crc(chunk, 0, chunk.length) >>> 0, true);
+  view.setUint32(18 + deflated.length, crc32(chunk) >>> 0, true);
   view.setUint32(22 + deflated.length, chunk.length, true);
   return out;
 }
@@ -56,7 +105,7 @@ export function bgzip(text: Uint8Array, blockSize = 65280, eof = true): Bgzipped
     blockOffsets,
     blockStarts,
     voffset(p) {
-      if (p >= text.length) return VirtualOffset.of(end, 0);
+      if (p >= text.length) return voffsetOf(end, 0);
       let lo = 0;
       let hi = blockStarts.length - 1;
       while (lo < hi) {
@@ -64,7 +113,7 @@ export function bgzip(text: Uint8Array, blockSize = 65280, eof = true): Bgzipped
         if (blockStarts[mid] <= p) lo = mid;
         else hi = mid - 1;
       }
-      return VirtualOffset.of(blockOffsets[lo], p - blockStarts[lo]);
+      return voffsetOf(blockOffsets[lo], p - blockStarts[lo]);
     },
   };
 }
@@ -215,11 +264,11 @@ export function tabixIndex(lines: readonly IndexedLine[], file: Bgzipped, o: Ind
 }
 
 /** A range reader over bytes in memory, counting its reads. */
-export function memoryRanges(bytes: Uint8Array): AssetRangeReader & { reads: number } {
+export function memoryRanges(bytes: Uint8Array): MemoryRanges {
   const r = {
     reads: 0,
     size: bytes.length,
-    read(ranges: readonly { offset: number; length: number }[]) {
+    read(ranges: readonly { readonly offset: number; readonly length: number }[]) {
       r.reads++;
       return Promise.resolve(ranges.map((g) => bytes.subarray(g.offset, Math.min(g.offset + g.length, bytes.length))));
     },
@@ -246,7 +295,7 @@ export function generateBed(
   maxLength = 3000,
   offset = 0,
 ): GeneratedFile {
-  const rng = new PCG(seed);
+  const rng = new Seeded(seed);
   const header = ['#track name=generated', '#chrom\tstart\tend\tname'];
   const rows: { seq: number; begin: number; end: number }[] = [];
   for (let i = 0; i < n; i++) {
@@ -267,7 +316,7 @@ export function generateBed(
  * `END=` in INFO (an SV's, and one on an SNV line: the index takes it whatever the alleles).
  */
 export function generateVcf(n: number, names: readonly string[], seed = 2): GeneratedFile {
-  const rng = new PCG(seed);
+  const rng = new Seeded(seed);
   const header = [
     '##fileformat=VCFv4.2',
     '##INFO=<ID=END,Number=1,Type=Integer>',
