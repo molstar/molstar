@@ -24,6 +24,7 @@ import {
   PlacePoint,
   type RingPlacement,
 } from '../index.js';
+import { BlockRow } from '../layout/blocks.js';
 import { renderSvg } from '../render-svg.js';
 import type { RangesLay } from '../ranges-lay.js';
 import { dna, genomeSpec, MixedFeatures, mixedSpec, toyGenome, twoGenomesSpec } from './genome-fixtures.js';
@@ -249,6 +250,23 @@ describe('two assemblies on one section (EC-210)', () => {
     expect(gapAt(8)).toBeGreaterThan(gapAt(4) * 2);
     expect(p.groupText.slice(0, p.groupN)).toEqual(['peach', 'grape']);
     expect(p.footRow).toBeGreaterThan(0);
+  });
+
+  it('a row’s group gaps are capped by the gap share: 20 assemblies in 400 px keep their blocks', () => {
+    const r = new BlockRow();
+    r.reset(40);
+    for (let b = 0; b < 40; b++) {
+      r.offset[b] = b * 1e6;
+      r.len[b] = 1e6;
+      r.group[b] = b >> 1;
+    }
+    r.x0 = 0;
+    r.width = 400;
+    r.lay(0, 40e6);
+    let gaps = 0;
+    for (let b = 1; b < 40; b++) gaps += r.x[b] - (r.x[b - 1] + r.w[b - 1]);
+    expect(gaps).toBeLessThanOrEqual(100 + 1e-6);
+    for (let b = 0; b < 40; b++) expect(r.w[b]).toBeGreaterThan(5);
   });
 
   it('a ring: a 4° group gap each side, the groups’ names placed outside', async () => {

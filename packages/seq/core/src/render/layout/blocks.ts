@@ -274,8 +274,13 @@ export class BlockRow {
         cp += this.chip[b] * (this.ve[b] - this.vs[b]);
       }
     }
-    // the gaps in view share at most `gapShare` of the width (the groups' first), at most 12 px each
-    const gap = Math.min(BlockMetrics.gap, Math.max(0, this.gapShare * width - fixed) / Math.max(1, inner));
+    // the groups' gaps first, together within `gapShare` of the width (as a ring's); the rest share what is left of
+    // it, at most 12 px each
+    const room = this.gapShare * width;
+    const groupScale = fixed > room ? room / fixed : 1;
+    fixed *= groupScale;
+    const groupGap = groupPx * groupScale;
+    const gap = Math.min(BlockMetrics.gap, Math.max(0, room - fixed) / Math.max(1, inner));
     const scale = Math.max(width - inner * gap - fixed - chipPx, 1e-9) / Math.max(span - chipU, 1e-9);
     this.scale = scale;
     let gaps = 0;
@@ -283,7 +288,7 @@ export class BlockRow {
     let chipsPx = 0;
     for (let b = 0; b < this.n; b++) {
       const f = this.f[b];
-      gaps += f < 0 ? -f * groupPx : f * gap;
+      gaps += f < 0 ? -f * groupGap : f * gap;
       const vs = this.vs[b];
       const ve = this.ve[b];
       this.x[b] = this.x0 + (vs - u0 - chipsU) * scale + gaps + chipsPx;
