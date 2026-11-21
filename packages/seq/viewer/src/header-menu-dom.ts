@@ -26,9 +26,10 @@ export function contextMenuPort(): HeaderMenuPortFactory {
     // the menu a submenu opened from its row came from (← goes back to it); the pointer's rest on a submenu's row
     let parent: { menu: HeaderMenu; place: HeaderMenuPlace } | undefined;
     let rest: unknown;
+    let restRow: HeaderMenuItem | undefined;
     const stopRest = () => {
       if (rest !== undefined) DomHost.clearTimeout(rest);
-      rest = undefined;
+      rest = restRow = undefined;
     };
     return {
       show(menu, place, behavior) {
@@ -60,6 +61,9 @@ export function contextMenuPort(): HeaderMenuPortFactory {
           if (done) return;
           done = true;
           close = undefined;
+          // however it closed (Esc, a press outside, a choice): no rest opens a submenu after it
+          stopRest();
+          parent = undefined;
           behavior.closeMenu();
         });
         // a row focused or hovered previews its choice (a scheme), when its command has a preview
@@ -77,10 +81,17 @@ export function contextMenuPort(): HeaderMenuPortFactory {
           el.addEventListener('focusin', onRow);
           el.addEventListener('pointerover', onRow);
           // the pointer resting on a submenu's row opens it; moving on to another row (or off the menu) does not
+          // (a move onto a child of the same row keeps its rest)
           el.addEventListener('pointerover', (e) => {
             const it = rowOf(e);
+            if (it && it === restRow) return;
             stopRest();
-            if (it?.items && it.enabled) rest = DomHost.setTimeout(() => ((rest = undefined), sub(it)), SubmenuRestMs);
+            if (!it?.items || !it.enabled) return;
+            restRow = it;
+            rest = DomHost.setTimeout(() => {
+              rest = restRow = undefined;
+              sub(it);
+            }, SubmenuRestMs);
           });
           el.addEventListener('pointerleave', stopRest);
           // → on a submenu's row opens it, ← in a submenu goes back to its menu

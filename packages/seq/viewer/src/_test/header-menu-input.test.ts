@@ -40,11 +40,12 @@ function spec() {
 }
 
 let frames: Frames;
-let timers: (() => void)[];
+let timers: Map<number, () => void>;
+let timerId = 0;
 const viewers: SeqViewer[] = [];
 beforeEach(() => {
   frames = installFrames();
-  timers = [];
+  timers = new Map();
   vi.stubGlobal(
     'ResizeObserver',
     class {
@@ -66,13 +67,18 @@ afterEach(() => {
 
 /** The rests (the card's, the announcer's, a submenu's) on a fake clock from here on: run when the test says. */
 const fakeTimers = () => {
-  vi.spyOn(DomHost, 'setTimeout').mockImplementation((fn) => (timers.push(fn), timers.length));
+  vi.spyOn(DomHost, 'setTimeout').mockImplementation((fn) => {
+    timers.set(++timerId, fn);
+    return timerId;
+  });
   vi.spyOn(DomHost, 'clearTimeout').mockImplementation((id) => {
-    if (typeof id === 'number' && id > 0) timers[id - 1] = () => {};
+    timers.delete(id as number);
   });
 };
 const runTimers = () => {
-  for (const fn of timers.splice(0)) fn();
+  const due = [...timers.values()];
+  timers.clear();
+  for (const fn of due) fn();
 };
 
 async function mount() {
@@ -292,5 +298,38 @@ describe('Color ▸', () => {
     await v.settle();
     expect(labels(container)).not.toContain('Hide track');
     expect(container.querySelectorAll('[role="menuitemradio"]').length).toBeGreaterThan(1);
+  });
+
+  it('a menu dismissed while the pointer rests on it opens nothing after', async () => {
+    const { v, container, headers, pointer } = await mount();
+    for (const dismiss of ['Escape', 'outside', 'choice'] as const) {
+      const menu = await openMenu(v, headers, container, Letters);
+      const color = row(menu, /^Color/);
+      fakeTimers();
+      pointer('pointerover', color);
+      if (dismiss === 'Escape')
+        color.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+      else if (dismiss === 'outside') pointer('pointerdown', document.body);
+      else row(menu, /^Reverse/).click();
+      await v.settle();
+      expect(container.querySelector('[role="menu"]')).toBeNull();
+      runTimers();
+      await v.settle();
+      expect(container.querySelector('[role="menu"]'), dismiss).toBeNull();
+      expect(headers.menu.value).toBeUndefined();
+      vi.mocked(DomHost.setTimeout).mockRestore();
+      vi.mocked(DomHost.clearTimeout).mockRestore();
+    }
+  });
+
+  it('a move within a submenu’s row keeps its rest: it opens at the first rest, not later', async () => {
+    const { v, container, headers, pointer } = await mount();
+    const color = row(await openMenu(v, headers, container, Letters), /^Color/);
+    fakeTimers();
+    pointer('pointerover', color);
+    const n = [...timers.keys()];
+    // onto the row's label (a child of the same row)
+    pointer('pointerover', color.querySelector('span:not(:empty)') ?? color.lastElementChild!);
+    expect([...timers.keys()]).toEqual(n);
   });
 });
