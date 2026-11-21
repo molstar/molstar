@@ -18,7 +18,7 @@ import { type FixtureOptions, Gene, GeneSection, Protein, ProteinSection, partsO
 function setup(options: FixtureOptions = {}, config = viewerConfig()) {
   const spec = new SpecModel(proteinOnGene(options));
   const view = new ViewModel(spec, config);
-  const hover = new HoverModel(spec, view, config);
+  const hover = new HoverModel(view, config);
   return { spec, view, hover };
 }
 

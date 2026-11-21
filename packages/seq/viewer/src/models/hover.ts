@@ -17,7 +17,6 @@ import { projectRanges, type Path } from '@molstar/seqx-core/resolve';
 import { projectOntoView } from '@molstar/seqx-core/view';
 import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
 import { moleculeOfSystem, type PlaceMolecule } from '@molstar/seqx-viewer/describe-molecules';
-import type { SpecModel } from './spec.js';
 import type { ViewModel } from './view.js';
 
 /** What a hit's target is, for the gesture bindings (_spec/README.md "Bindings"): the granularity comes from the hit. */
@@ -126,7 +125,7 @@ export class HoverModel extends ReactiveModel {
   readonly current: HoverRecord = this._record;
 
   /** The spec's model is read through the view's (`ViewModel.model`: a source's complexes in it once held). */
-  constructor(_spec: SpecModel, view: ViewModel, config: ViewerConfig = DefaultViewerConfig) {
+  constructor(view: ViewModel, config: ViewerConfig = DefaultViewerConfig) {
     super();
     this._view = view;
     this.config = config;
