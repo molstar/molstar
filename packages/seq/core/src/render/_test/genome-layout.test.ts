@@ -14,7 +14,7 @@ import { PCG } from '@molstar/core/data/util/hash-functions';
 import type { Node } from '@molstar/core/repr/tree';
 import { createSeqSpec, theme } from '@molstar/seqx-core/lang';
 import { loadGenome } from '@molstar/seqx-core/resolve';
-import { blockElementAt, placesOf } from '@molstar/seqx-core/view';
+import { blockElementAt, blockSpan, placesOf } from '@molstar/seqx-core/view';
 import { beforeAll, describe, expect, it } from 'vitest';
 import {
   type BlockPlacement,
@@ -80,6 +80,39 @@ describe('a block’s own direction and scale (EC-206)', () => {
       const f = await s.frame({ size: Size, ...(viewport ? { viewport } : {}) });
       expect(inverse(f.layout, rng)).toBeGreaterThan(100);
     }
+  });
+
+  it('…and over runs of small blocks at dpr 2: a strip in a run, and a point on a run names the block whose units hold it', async () => {
+    const tiny = Array.from({ length: 40 }, (_, k) => ({ seq: 1, range: [k * 5, k * 5 + 5] as const }));
+    const s = await settle(mixedSpec([{ seq: 0, range: [0, 400], scale: 10 }, ...tiny, { seq: 0, range: [400, 800] }]));
+    const rng = new PCG(7);
+    const out = new Int32Array(2);
+    let inRuns = 0;
+    for (const viewport of [undefined, { start: 3_900, end: 4_300 }, { start: 3_990, end: 4_120 }]) {
+      const f = await s.frame({ size: Size, dpr: 2, ...(viewport ? { viewport } : {}) });
+      const sec = f.layout.sections[0];
+      const p = sec.placement as BlockPlacement;
+      const blocks = sec.section.blocks!;
+      if (!viewport) expect(p.runN).toBeGreaterThan(0);
+      expect(inverse(f.layout, rng, 200)).toBeGreaterThan(20);
+      for (let r = 0; r < p.runN; r++) {
+        for (let n = 0; n < 50; n++) {
+          const x = p.runX[r] + ((rng.int() % 10_000) / 10_000) * p.runW[r] * 0.999;
+          expect(p.runAt(x, out)).toBe(true);
+          expect(out[1]).toBe(p.runLast[r] - p.runFirst[r] + 1);
+          const b = p.row.blockAt(x);
+          if (b < 0) continue; // a gap inside the run
+          expect(out[0]).toBe(b);
+          const u = p.row.unitAt(x);
+          const block = blocks[b];
+          expect(u).toBeGreaterThanOrEqual(block.offset!);
+          expect(u).toBeLessThanOrEqual(block.offset! + blockSpan(block));
+          expect(p.row.xOf(u)).toBeCloseTo(x, 6);
+          inRuns++;
+        }
+      }
+    }
+    expect(inRuns).toBeGreaterThanOrEqual(40);
   });
 
   it('a reversed block reads right to left, a scaled one takes its scale’s share; labels say so', async () => {
@@ -385,7 +418,8 @@ describe('the export', () => {
         },
       },
     });
-    // 300 on the reversed block [150, 400) is unit 150 + 99 = 249; 50 on the ×3 block is 400 + 150 = 550
+    // 300 on the reversed block [150, 400) is unit 150 + (399 - 300) = 249, a start at its left edge 250; 50 on the
+    // ×3 block is 400 + 150 = 550
     const byUnits = await renderSvg(mixedSpec(), {
       size: Size,
       idPrefix: 'v',
@@ -417,6 +451,30 @@ describe('equal block lists follow', () => {
     expect(f.layout.issues.map((i) => i.code)).not.toContain('seq.render.follow.blocks');
     const d = f.layout.sections.find((x) => x.section.address === '/views/v/detail')!;
     expect([d.axis!.u0, d.axis!.u1]).toEqual([1e6, 5e7]);
+  });
+
+  it('unequal block lists are refused: an `include` of five of six chromosomes does not follow the six', async () => {
+    const b = createSeqSpec();
+    const { assembly, genome } = await import('@molstar/seqx-core/lang');
+    b.data.assembly('g', assembly('g', toyGenome(6, 0)));
+    b.views.view('v', (v) => {
+      genome(v, 'ring', '/data/g', { layout: 'rings' });
+      genome(v, 'detail', '/data/g', { include: ['chr1', 'chr2', 'chr3', 'chr4', 'chr5'] });
+    });
+    const spec = b.build();
+    const views = spec.children!.find((c) => c.kind === 'views')!.children![0];
+    const detail = views.children!.find((c) => c.id === 'detail')!;
+    (detail as { params?: Node['params'] }).params = { ...detail.params, follow: '/views/v/ring' };
+    const st = await settle(spec);
+    const f = await st.frame({
+      size: { width: 800, height: 900 },
+      viewports: { '/views/v/ring': { start: 1e6, end: 5e7 } },
+    });
+    const issue = f.layout.issues.find((i) => i.code === 'seq.render.follow.blocks');
+    expect(issue?.address).toBe('/views/v/detail');
+    // the detail keeps its own window (the fit), not the ring's
+    const d = f.layout.sections.find((x) => x.section.address === '/views/v/detail')!;
+    expect([d.axis!.u0, d.axis!.u1]).not.toEqual([1e6, 5e7]);
   });
 });
 

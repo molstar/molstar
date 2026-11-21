@@ -368,7 +368,8 @@ export class BlockRow {
       const vs = this.vs[b];
       const ve = this.ve[b];
       if (ve <= vs || u < vs || (u >= ve && u < this.u1)) continue;
-      return this.x[b] + (u - vs) * (this.chip[b] > 0 ? this.chip[b] : this.scale);
+      // the block's own px per unit as laid: its edges snapped to the device grid move them off the row's scale
+      return this.x[b] + ((u - vs) * this.w[b]) / (ve - vs);
     }
     return this.x0 + this.width;
   }
@@ -378,8 +379,7 @@ export class BlockRow {
     for (let b = 0; b < this.n; b++) {
       if (this.ve[b] <= this.vs[b]) continue;
       if (x < this.x[b]) return this.vs[b];
-      if (x < this.x[b] + this.w[b])
-        return this.vs[b] + (x - this.x[b]) / (this.chip[b] > 0 ? this.chip[b] : this.scale);
+      if (x < this.x[b] + this.w[b]) return this.vs[b] + ((x - this.x[b]) * (this.ve[b] - this.vs[b])) / this.w[b];
     }
     return this.u1;
   }

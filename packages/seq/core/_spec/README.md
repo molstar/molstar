@@ -2879,7 +2879,9 @@ numbers): a window move allocates nothing once warm.
   only when even that would pass the half), their labels elided; the polymers keep the rest.
 - **A row** (`BlockRow`): each block's edges in view on the device grid (`snap`, a chip's kept: its slot is its label's
   width), as a grid's row under it, so the two align at any dpr; a block left none wide has no strip (nothing of it
-  drawn or hit; a hit beside it names the block next to it). A chip stands where its block does (a ligand after the
+  drawn or hit; a hit beside it names the block next to it). The row's x of a unit and unit of an x read each block's
+  own px per unit as laid (its snapped width over its units), what its strip's transform reads: on the row's scale a
+  block of a few px in a run read past its end. A chip stands where its block does (a ligand after the
   chains). The chips in view take their px from the width as the gaps do, so the row's x is not linear over a chip
   (EC-102); the window, the rail and the navigators read the section's units, a chip one unit, as across a gap. The row
   is continuous in its window: a chip partly in view takes px by the part of it in view, a gap by its boundary's
