@@ -57,7 +57,7 @@ each feeds, with what a user does in each view and its editing view. How fixture
 | Jalview: select columns by the ruler, hide columns | select: built (a range on the axis); hiding columns: waits, no command this slice (decided) |
 | Jalview: edit gaps (slide residues), realign | refused: data is not edited in the viewer (ux-foundations, the matrix); the Antibody design is a second sequence, not an edit |
 | Jalview: color by Clustal, by conservation threshold | planned, [themes.md](themes.md) (residue schemes, rules) |
-| Jalview: a structure linked to its rows (hover and select both ways) | the fourth slice (structures); here the link is a map from the chains to their rows |
+| Jalview: a structure linked to its rows (hover and select both ways) | built (the fourth slice, on a fake structure viewer: Features › Structure link); here the link is a map from the chains to their rows |
 | ESPript: a figure of the alignment, secondary structure above, frames on conserved columns | planned, [layouts.md](layouts.md) (no interaction: a figure) |
 | SnapGene, Benchling: click a feature to select it; select across the origin; double-click to zoom to it | planned, [layouts.md](layouts.md) (a feature across the origin by its shortest arc, EC-12) |
 | SnapGene: rotate the map, set a new origin | planned, [layouts.md](layouts.md) (the linear view's start on a cyclic system, a section param, patched) |

@@ -114,36 +114,48 @@ What this version contains and will contain. Each feature links its story here o
   reader without it draws the fallback and says which extension the figure needs; registered and taken away at run time:
   [Features › Extensibility](?path=/story/seq-next-features-extensibility--toggled-at-run-time).
 
+- **Molecules**: complexes of units sharing molecules, copies addressed by unit, a section of a complex as blocks, whole
+  residues or atoms (`block.form`), modified residues marked, links drawn as arcs:
+  [Features › Molecules](?path=/story/seq-next-features-molecules--section-of-a-complex); the examples on the new kinds
+  (4HHB's hemes, 1EHZ's modified residues, 3AVE's Fc glycan, an antibody-drug conjugate):
+  [Examples › Globins › Hemoglobin](?path=/story/seq-next-examples-globins-hemoglobin--hemoglobin).
+- **Maps between structures and sequences**: numberings by `offset` and `segments`, `segments` and `structure` maps with
+  per-residue status, two maps of one pair chosen by `priority` or `via`, pairs, ranges and maps on an alignment's
+  columns: [Examples › p53 › Structure](?path=/story/seq-next-examples-p53-structure--structure); a protein over its
+  coding DNA, the codon connector:
+  [Features › Coordinates](?path=/story/seq-next-features-coordinates--protein-over-its-coding-dna).
+- **Queries by role**: elements and groups, a filter over typed properties, `expand` and `linked`, `merge`, `intersect`
+  and `except`: [Features › Query](?path=/story/seq-next-features-query--items-by-category).
+- **Services and structure files**: UniProt, PDBe SIFTS and AlphaFold DB from recorded fixtures, a structure file
+  dropped on the view, an opt-in mmCIF reader:
+  [Examples › Services](?path=/story/seq-next-examples-services--composing-services).
+- **Archives**: a spec with its data files saved and opened as a zip over the assets port, bounded:
+  [Features › Archives](?path=/story/seq-next-features-archives--plasmid-saved).
+- **Range reads and bigWig**: range reads of assets in `@molstar/core` and an opt-in bigWig reader: tested, not shown in
+  a story.
+- **A second consumer of the resolved view**: a test-only renderer from the resolved view and the store alone: tested.
+
 ## Planned
 
 - **Language**: validation shown on the Antibody view's invalid labels; versions and migrations; the language's docs and
   agent skill.
-- **Coordinates and maps**:
-  - numbering schemes beyond labels (offset, segments);
-  - map kinds beyond offset and codon (numbering, segments, pairwise, alignment, structure), computed maps;
-  - structure maps (SIFTS in abstract form) and two maps of one pair chosen by `priority` or `via` (the fourth slice);
-  - pairs, ranges and maps on an alignment's columns (the fourth slice, 0.5.0).
+- **Coordinates and maps**: the `pairwise` and `alignment` map kinds, computed maps.
 - **Data and sources**:
-  - molecules: `complex` and `unit` kinds, copies addressed by unit (the fourth slice);
   - A3M and Clustal; the matrix shape (with the Genomes milestone);
   - patches on streamed things and a command to keep a region; patch streams from an agent or a host;
-  - a source's assembly; bigWig read by region, as proof that a genome format plugs in.
+  - a source's assembly; a bigWig view (its reader is built).
 - **Layers and themes**: track groups and summaries.
-- **Interaction and editing**: search and its results; track and group editing beyond hide, reorder and themes; the
-  context menu with track header parts (the fourth slice); drags snapped to whole codons.
-- **Rendering**: a second consumer of the resolved view (the test consumer); the glyph atlas and band copy.
-- **Ports with default adapters**: structure syncing as a library (the fourth slice); archives over the assets port; seq
-  data ports (the fourth slice).
+- **Interaction and editing**: search and its results; track and group editing beyond hide, reorder and themes; drags
+  snapped to whole codons.
+- **Rendering**: the glyph atlas and band copy.
 - **Configuration and extensions**:
   - one typed configuration (settings in layers and a generated form come later);
   - layout and spacing in presets;
-  - node kinds and custom fields;
-  - every registry open.
+  - node kinds beyond an extension's layer types;
+  - every registry open (built: formats, layer types, layouts, header actions, schemes, navigator pictures).
 - **Addressing**: rects as addresses; one href driving Mol\* too.
-- **Integration and showcases**:
-  - an application composing services (UniProt, PDBe, AlphaFold DB) and reading structure files;
-  - the Mol\* link on a fake structure viewer first (the fourth slice): a lab's position-indexed predictions mapped onto
-    a structure's `label` and `auth` numbering.
+- **Integration and showcases**: the structure link on Mol\*'s new viewer (the fake one is built); services live
+  (recorded ones are built); BinaryCIF and Mol\*'s readers.
 
 ## Deferred
 

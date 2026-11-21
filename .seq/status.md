@@ -49,7 +49,7 @@ Version 1's second milestone, figures (work folder `execution/third-slice/`, its
 decided 2026-11-18; over sixty lanes merged (C0, AX, SL, TH, TX, TA, TV, TE, RB, G2, SY, RW, CH, PG, RF, NV, GD, SO,
 FS-A1, FS-A2, IZ, CR, HL, PR, QS, LB, RC, DP, DT, SW, AY, OP, DG, DC, NB, CY, TW, DA, QT to QT3, NP, HC, SF, RK, ET, AT,
 CS, SC, MF, CF, MV, UN, PG (PCG32), LP, RX, DB, DS, PZ, PF, LX; the list in `execution/third-slice/state.md`). CE
-(copy ends) is parked unmerged for the fourth slice.
+(copy ends) was parked unmerged, then merged by the fourth slice's CU.
 
 - The axis: a section's direction, another system's letters through a map, collapsed introns of zero width on every
   layout, reversed pieces; the ruler's numberings (insertions, `unnumbered`, `units`).
@@ -71,37 +71,66 @@ CS, SC, MF, CF, MV, UN, PG (PCG32), LP, RX, DB, DS, PZ, PF, LX; the list in `exe
 - Sizes (after RR, the render reduction): 175.4 / 711.8 / 1142.5 / 801.7 kB min (reading a spec, headless rendering,
   the default and the minimal viewer), against bounds of 230 / 780 / 1250 / 880 kB (reading a spec moved to 230 for language 0.5.0, the author, 2026-11-20) ([performance](design/performance.md), Size).
 
+## Built: the fourth slice
+
+Version 1's third milestone, integration (work folder `execution/fourth-slice/`, its record when it closes). Gate 0
+decided 2026-11-20; lanes AR, NG, ML1, FX1, SZ, DP, BW, ML2, MC, FX2, MK, QE, ST1, AC, HP1, MR, CU, MX, HP2, ST2, FX3,
+ST3, HD, HP3, FX4, EX, LE, CN, NP, SV, FX5, PC, FX6, HT merged (the findings by lane in its `state.md`).
+
+- Molecules: language 0.5.0 (molecules, compounds, complexes, units, links, modified positions; `source.ref`,
+  `values.field`), the model (unit, molecule and atoms systems, copies, links per unit, `maxUnits`), a section of a
+  complex drawn as blocks with block forms, molecule letters, modified marks, links as arcs, a pair's ends on split
+  copies by unit; the examples on the new kinds (4HHB, 1EHZ, p53 over 2OCJ, 3AVE, 1FIN, the tRNA seed, a T-DM1 ADC);
+  `@molstar/core`'s standard components.
+- Maps: numberings by `offset` and `segments`, `segments` and `structure` maps, two maps of one pair by `priority` and
+  `via`; pairs, ranges and maps on an alignment's columns; a protein over its coding DNA with the codon connector.
+- Queries by role: `elements` and `groups`, `filter` over typed properties, `expand`, `linked`, `merge`, `intersect`,
+  `except`, Keys.
+- Structures: `@molstar/seqx-core/structure` (`structureFacts`, `toUnits`/`fromUnits` with the size gate, colors by
+  run), the viewer's wiring and `linkStructure`, a fake structure viewer and its stories; an opt-in mmCIF runtime.
+- Data: seq data ports (`changes`, `withAdapter`, `io/structure`, the viewer reopening in place; the fake host's
+  adapter), range reads of assets in `@molstar/core` and an opt-in bigWig runtime, archives over the assets port,
+  services (UniProt, PDBe SIFTS, AlphaFold DB) from recorded fixtures in the Storybook.
+- The viewer: track headers (core's header line, the `header-action` registry kind, the `headers` behavior with its
+  menu and parts ports, flyout submenus; hidden tracks listed and restored by the host), extensions (`SeqExtension`,
+  `<id>:<name>` types with fallbacks, `extend()` at run time), custom navigator pictures and a host-drawn navigator,
+  legends' library surface.
+- Rendering: a test-only second consumer of the resolved view; `render/tracks.ts`, `rows.ts`, `ranges.ts`,
+  `viewer.ts` and `models/view.ts` split under §module-size (the size baseline empty).
+- Sizes at stage 4's gate: 223.1 / 806.0 / 1296.4 / 929.5 kB min (reading a spec, headless rendering, the default and
+  the minimal viewer) against bounds of 230 / 830 / 1330 / 940 kB, each bound moved by the author with the feature
+  behind it ([performance](design/performance.md), Size). Not measured since FX5, SV, PC, FX6 and HT merged: the
+  finalize's gate.
+
 Which features are built, partly or not at all: [design/features.md](design/features.md). Which edge cases have an
 outcome: [design/edge-cases.md](design/edge-cases.md), Outcomes.
 
 ## Open
 
-1. **For the author**: the third slice's fold-back (`execution/third-slice/foldback.md`) and the questions its close
-   left (the drift notes in `execution/third-slice/drift/`: configuration the designs name and the code does not have,
-   EC-63's slices against glyphs, EC-138's outline against saturated fills).
-2. **Range reads of assets**: wait for bigWig ([design/base-library.md](design/base-library.md)); the asset manager's
-   options are built.
+1. **For the author**: the fourth slice's fold-back (`execution/fourth-slice/foldback.md`) and its edge-case outcomes
+   (`execution/fourth-slice/ec-outcomes-draft.md`, for `design/edge-cases.md`); then the fourth slice's record.
+2. **Not done in the fourth slice's plan**: stage 3's gate (services, archives and the test consumer merged and
+   reviewed, the gate itself not run as one) and M4 (the browser measurements at dpr 2, the heavy lane and the tiers on
+   a quiet machine): the finalize's gate run stands for the first; M4 is open.
 3. **Provisional, still to confirm**: the root nouns ([design/building-blocks.md](design/building-blocks.md)) and the UX
    foundations' numbers ([design/ux-foundations.md](design/ux-foundations.md)), confirmed by use where a story shows
-   them. The source protocol's shape is agreed with the files design ([design/files.md](design/files.md)).
-4. **Known gaps**: [packages/seq/TODO.md](../packages/seq/TODO.md) and the third slice's `followups.md`: copy ends with
-   units (CE, parked), the query forms `search`, `onto`, `expand`, `group`, pairs, ranges and maps on an alignment's
-   columns (0.5.0), drags snapped to codons, the cursor across block gaps, track groups and summaries, and what is
+   them.
+4. **Known gaps**: [packages/seq/TODO.md](../packages/seq/TODO.md): sections over a source's complex, the structure
+   section at the fit in the services story, the `pairwise` and `alignment` map kinds, the query forms `search`, `onto`,
+   `group`, drags snapped to codons, track groups and summaries, the novice pass's design questions, and what is
    deferred to the Genomes milestone.
 5. **Tooling, optional at gates**: a script that reverts a fix's non-test files on a scratch worktree and expects
    its new test to fail (the fold-back's "a fix's test is shown failing without the fix",
    [principles/README.md](principles/README.md)); until then the report names the command and the reviewer reruns it.
-6. **To decide as the work reaches them**: worker boundaries, structure and map runtimes, versioning under 0.x
+6. **To decide as the work reaches them**: worker boundaries, versioning under 0.x
    ([design/version-1.md](design/version-1.md), Open).
 
 ## Next
 
-The third slice closes: stage 7's measurements (M3), the fold-back with the author's decision, the record. Then the
-fourth slice (`execution/fourth-slice/plan.md`, its Gate 0 decided 2026-11-20): version 1's third milestone,
-integration (molecules and units, structure syncing on a fake 3D viewer, seq data ports, extension openings, track
-header parts, services, bigWig and range reads, archives). The fifth slice is the Genomes milestone, its genome ring an
-extension ([design/version-1.md](design/version-1.md), Milestones). Design before code for each, as in
-[AGENTS.md](AGENTS.md), How work happens here.
+The fourth slice closes: the fold-back with the author's decision, the gate once more, the record. Then the fifth slice
+(`execution/fifth-slice/plan.md`): the Genomes milestone, on extension kinds (`ext:`), its genome ring an extension
+([design/version-1.md](design/version-1.md), Milestones). Design before code, as in [AGENTS.md](AGENTS.md), How work
+happens here.
 
 ## Which design to read
 
@@ -120,5 +149,5 @@ extension ([design/version-1.md](design/version-1.md), Milestones). Design befor
 
 ## Language version
 
-`0.4.0` (unreleased, pre-release: each kind added moved it, with no migration; `0.5.0` is the fourth slice's, with
-molecules); not yet versioned for readers outside this repository.
+`0.5.0` (unreleased, pre-release: the fourth slice's one bump, molecules, extensions, legends' and navigators' params,
+the ranges' connector, with no migration); not yet versioned for readers outside this repository.

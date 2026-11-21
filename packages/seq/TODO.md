@@ -7,10 +7,10 @@ What is not built. An item leaves in the commit that builds it; a deferral says 
 The first slice built the tree core, the language's first kinds, resolve, draw lists, the SVG and Canvas2D backends, the
 viewer's models and data by region; the second, editing and addressing; the third, figures (the axis, themes, the text,
 block and ring layouts, navigators, pairs, grids, the logo, the rows layer, the files and their readers, the datasets,
-PNG and the render CLI). Next, version 1's third milestone, integration (the fourth slice's plan): molecules and units
-(language 0.5.0, with copy ends and pairs, ranges and maps on an alignment's columns), structure syncing on a fake 3D
-viewer, seq data ports, extension openings, track header parts, services, bigWig with range reads of assets (a
-base-library change, below), archives. The Genomes milestone is the fifth.
+PNG and the render CLI); the fourth, integration (molecules and units in language 0.5.0, structure maps and the
+structure link on a fake 3D viewer, seq data ports, extension openings, track header parts, services, bigWig with range
+reads of assets, archives, a test consumer of the resolved view). Next, the Genomes milestone (the fifth slice's plan),
+on extension kinds.
 
 - **A component query on a source-backed sequence** (`(elements :component X)`) is pending until the source's letters
   are read (EC-169); a format with a component index could answer it without the letters.
@@ -47,10 +47,9 @@ base-library change, below), archives. The Genomes milestone is the fifth.
 - **MessagePack** (`@molstar/core/data/msgpack`): a duplicate map key keeps the last silently (JSON reports it): an
   option; payload alignment is by position: encoder padding when zero-copy decoding matters more; a canonical-category
   fast path; key-order determinism shared with JSON. Each when a measured use asks.
-- **The asset manager**: range reads (a page cache by asset and page, `Blob.slice` for files), with bigWig. `maxBytes`
-  is ignored on `file://` reads in Node (`fetchData`'s file path ignores the four options): done when the file path
-  honors them and the conformance suite covers it. The suite sees a manager through `fetch` only; a manager that
-  downloads by other means is outside it.
+- **The asset manager**: `maxBytes` is ignored on `file://` reads in Node (`fetchData`'s file path ignores the four
+  options): done when the file path honors them and the conformance suite covers it. The suite sees a manager through
+  `fetch` only; a manager that downloads by other means is outside it.
 - **`util/data-source`**: a `file:` URL's path is opened without percent-decoding, so a root or file with a space or a
   non-ASCII character is unreadable and Windows paths open as `/C:/…` (fails safe). When it moves to `fileURLToPath`,
   the headless policy's file check is reviewed again for Windows segments ending in a dot or space, device names and `:`
@@ -132,16 +131,16 @@ base-library change, below), archives. The Genomes milestone is the fifth.
 - **Data**: `summaries` in `ViewerConfig`; summaries for systems of unknown length or past `maxLength`; byte dedupe
   across tiles; `SourceEntry` carries only `address`, `format`, `uri`, `value`.
 - **Render**: a summary pyramid for inline values zoomed out (inline data is level 1 only, so a large one zoomed out
-  hits the tile cap); a legend's place in the chrome; the Nightingale reference adapter; a `types` option on
-  `renderSvg`, then layer-type, theme and palette registry entries, atomic, counted and undoable at run time; `query`
-  layers read the whole annotation (filtering comes with the query sublanguage); `values` line and area, points and
-  split; the ranges layout's allocation an item in view (the `earlier` and `occurrences` sets, `StickyLanes.keep`'s map,
-  keys of tiles without ids, `placeholderSpans` and `dataRegions` arrays: about 300 B an item); the values direct path
-  for linear maps (offset paths) too; the renderer's rebuild sorts the reads and builds the key's text each layout
-  (bounded by tiles in view); `render/export.ts` still requests data for hidden layers (done when an export of a spec
-  with a hidden layer reads nothing for it); the ranges layout walks every row of the entries it reads (a 150,000-row
-  inline annotation: about 114 ms a frame); a letter through a codon path allocates its parts (`projectRanges` sets its
-  buffer's length to 0, which lets the storage go: 161 KB a pan frame on the coding gene).
+  hits the tile cap); a legend's place in the chrome; palette registry entries (layer types and schemes are an
+  extension's, atomic and undoable at run time); `query` layers read the whole annotation (filtering comes with the
+  query sublanguage); `values` line and area, points and split; the ranges layout's allocation an item in view (the
+  `earlier` and `occurrences` sets, `StickyLanes.keep`'s map, keys of tiles without ids, `placeholderSpans` and
+  `dataRegions` arrays: about 300 B an item); the values direct path for linear maps (offset paths) too; the renderer's
+  rebuild sorts the reads and builds the key's text each layout (bounded by tiles in view); `render/export.ts` still
+  requests data for hidden layers (done when an export of a spec with a hidden layer reads nothing for it); the ranges
+  layout walks every row of the entries it reads (a 150,000-row inline annotation: about 114 ms a frame); a letter
+  through a codon path allocates its parts (`projectRanges` sets its buffer's length to 0, which lets the storage go:
+  161 KB a pan frame on the coding gene).
 - **The rows layer** (built: the rows half of grids-and-rows; each item here with its design section):
   - the keyboard cursor across text line blocks (its rows, part and a grid's y are built, RK: "Selection");
   - block drag-select (rects) and Shift extension over rows by drag ("Selection");
@@ -166,8 +165,7 @@ base-library change, below), archives. The Genomes milestone is the fifth.
     a ring's menu (the core lays it out in the tracks layout only, its blocks' first row included);
   - the track headers' `seq:pending` state (`loader-circle`, data pending in view: no per-track pending fact yet), a
     run's message said by the live region, a header entry's widget slot (`kind: 'widget'`, when a host asks), a template
-    instance's hide (the template's), and a jump onto a hidden track said with its section's chip (the viewer's
-    `headers` behavior);
+    instance's hide (the template's);
   - the renderer's section cache keyed by the export's `folds`; the cell hit's 16 B (a number boxed from the point to
     its column through the axis, every layer's hit) measured by the allocation tier;
   - a Design page (the Pfam globin seed and its tree are recorded: the seed as published, the tree by neighbor joining,
@@ -181,8 +179,6 @@ base-library change, below), archives. The Genomes milestone is the fifth.
   - the text layout's `chrome` throws when an alignment's source has not opened (`render/layout/text.ts`, its
     placement's `marks` undefined: a figure over a seed whose runtime is missing).
 - **Rings and blocks** (built: the rings layout with labels, the title and the window; blocks in tracks and on rings):
-  - blocks in the text layout (a block starting a line, its label inline on its first line; one-position blocks as chips
-    flowing after the chains, EC-99): waits for the text layout on this branch;
   - the ring's track labels (no label column on a ring), its ruler's ticks across the ruler ring only;
   - a copy group is the same system and range here: the complex kind's molecules and units name it once they exist
     (EC-65), and a merged block's hover then lights every member's system;
@@ -285,8 +281,8 @@ base-library change, below), archives. The Genomes milestone is the fifth.
 - Rings in the viewer: the matrix cells of a ring section and a block as binding tests; a drag-select longer than half
   the ring selects the other side (the shorter arc is taken: the drag's swept direction would say which); a reversed
   ring's arcs (`selection.ts` reads an arc on a forward axis only, `dir === 1`).
-- Touch pinch (two pointers); the Mol\* structure port; the `@molstar/ui` keymap and command manager, replacing the
-  shortcut match scoped to the container; `ParamDefinition`s for the config items.
+- Touch pinch (two pointers); the `@molstar/ui` keymap and command manager, replacing the shortcut match scoped to the
+  container; `ParamDefinition`s for the config items.
 - An allocation tier for the viewer (`test:perf`: the Canvas2D draw, `store.overlay`, `_viewport`, `hover.set`, the
   bindings' resolve); an allocation check by hand of the canvas draw and hover loops.
 - Browser measurements: canvas frame times (draw included) and first paint; the Gene by region story rechecked in a
@@ -298,6 +294,20 @@ base-library change, below), archives. The Genomes milestone is the fifth.
   the fit its ruler counts the unit's own 1–219, unaligned with P04637's 94–312; either a follower at the fit takes the
   leader's mapped window, or the B-factor values drawn in P04637's section through the map. Its ruler by author
   numbering at least.
+
+- **Watched at the gates' runs**: a services story test failed once under load (FX6's run; five runs green alone), and
+  Prism's `commands.test.ts` and `collapse.test.tsx` once each in a combined run (HT's): a second failure is a fix
+  lane's item, with the load it ran at.
+- **The quick lane's folders**: core 2.14 s and storybook 2.24 s after FX3, the viewer about 2.8 s (its imports and
+  jsdom setup across 65 files; the budget unchanged, the author 2026-11-21): fewer jsdom files in the next fix lane.
+- **Looks not taken in a browser**: Features › Query › Alignment Rows And Columns' last column cut under the end numbers
+  at 100% (not reproduced headlessly: a look at a fractional dpr); `@molstar/ui`'s disabled toolbar button's dimming
+  (computed 1.7–1.9:1); the Antibody's insertions at the closest zoom with the rail's row, and the rows layer past the
+  lanes' own screenshots.
+- **The fourth slice's novice pass, design questions** (for the fifth slice's gate, the author 2026-11-21): the fake's
+  "Within 5 Å" on a selection that is already the chain (F3); a marked state for the track the structure is colored by
+  (F9); an empty section saying its issue on the view (F11, with sections over a source's complex above); the "n
+  filtered" card naming the filter, its click saying it clears (F14); a navigator window at the fit drawn as one (F25).
 
 - The Plasmid and the Complex are stand-ins (generated letters at the entries' lengths, features at the published
   layout's places, named as such): pUC19c and 1FIN recorded with their dataset lanes replace them, the ring's record

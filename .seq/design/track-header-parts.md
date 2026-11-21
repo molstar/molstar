@@ -70,7 +70,7 @@ It does not cover:
   - the close as a hide;
   - menu items from extensions;
   - a feature's own menu (`on: 'element'`);
-  - a list for showing tracks again: the chip's menu.
+  - a list for showing tracks again: the host's (`mountHiddenTracks`) and the menu's "Show hidden ▸".
 
   Not taken:
   - the track selector as a panel: tracks are in the spec, and a hidden one is listed where it was;
@@ -80,8 +80,8 @@ It does not cover:
   entirely to the host.
 - **Mol\*'s structure component rows**: an eye toggle and a "⋯" menu of actions per row. Taken: the eye in the first
   slot and "⋯" for the rest.
-- **Jalview**: hidden rows and columns marked where they were, "show all hidden" in the menu. Taken: the chip where the
-  tracks were, its click showing all.
+- **Jalview**: hidden rows and columns marked where they were, "show all hidden" in the menu. Taken: "Show all" in
+  the menu. Not taken: a mark where the tracks were (hiding would move the view; the author, 2026-11-21).
 - **This codebase**:
   - the "n filtered" chip (core's Render, Filters) and the hidden-rows chip ("3 hidden", `rows.show`): one count chip
     whose click undoes the state;
@@ -95,7 +95,7 @@ It does not cover:
 | What a user does | Where | Here |
 |---|---|---|
 | hides a track from its header | JBrowse (×), Mol\* (eye), the current Seq\* (menu) | built: the `seq:hide` slot, `track.hide` |
-| shows hidden tracks again | JBrowse (track selector), the current Seq\* (hidden chips), Jalview | built: the hidden-tracks chip (a click shows all; its menu shows one) |
+| shows hidden tracks again | JBrowse (track selector), the current Seq\* (hidden chips), Jalview | built: the host's list (`mountHiddenTracks`, the default viewer's toolbar) and the menu's "Show hidden ▸" (one, or all); the view draws nothing for a hidden track (HT) |
 | opens a track's menu (gear, kebab, right-click) | IGV, JBrowse, the current Seq\* | built: the "⋯" slot, a secondary click on the track (the `headers` behavior's `contextClick`), the menu key on its header |
 | colors a track, a scheme from its menu | IGV, Jalview, the current Seq\* | built: `seq:color`, "Color ▸" with the fitting schemes, each previewed while hovered ([themes.md](themes.md)) |
 | hides one layer of a track, and shows it again | Mol\* (a representation's eye) | built: "Layers ▸" in the menu (`layer.hide`, `layer.show`); the hidden-layers chip |
@@ -269,7 +269,7 @@ It does not cover:
 
   One undo step brings it back.
 - **Its menu** (a secondary click on the chip, or the menu key) lists each hidden thing by its label as an item that
-  shows that one (`track.show` with its address), then "Show all". Why click-all with a menu for one: the rows' chip and
+  shows that one (`layer.show` with its address), then "Show all". Why click-all with a menu for one: the rows' chip and
   the filter chip already undo all at a click; one rule for every chip. `menu` makes the click open the list instead.
 - **`track.show` and `layer.show` take several addresses**, one patch, as `layer.channel` takes several layers. A track
   hidden by a host's patch is counted like any other.
@@ -286,7 +286,9 @@ It does not cover:
   3. the section's.
 
   Each item carries its label, its key when the command has one, enabled or why not, checked for the layers' items, and
-  a submenu for a select param. The port shows it at a point, `show(menu, place)`, then `hide()`. A choice runs the
+  a submenu for a select param. The port shows it at a point, `show(menu, place)`, then `hide()`. A submenu is a
+  flyout beside its row, never in the menu's place, opened by a click, →, Enter or the pointer resting on the row
+  (`headers.submenuRestMs`); the menu's pointer events are its own, never the view's (FX6, HT). A choice runs the
   command through `viewer.execute` with the entry's args; a hovered scheme previews it and Esc cancels.
 - **Opened by**:
   - a click on "⋯" (drawn, or the DOM parts' button);
@@ -395,6 +397,7 @@ Items are `ViewerConfig` unless the table says otherwise.
 | `header.slotPx` | 20 (an icon of 14) | a target of 20 px on a 24 px row | any |
 | `header.minHeightPx` | 16 | below it an icon overlaps the next track | any |
 | `header.menu.longPressMs` | 500 (the platform's when it says) | touch's context menu | any |
+| `headers.submenuRestMs` (behavior param) | 300 ms | a pointer passing over a row on its way to a flyout opens nothing; resting opens it (FX6) | any |
 | `header.hiddenChip.click` | `all` (one patch) | one rule with the rows' and the filter chip (a track's chips) | `menu` (the list) |
 | where hidden tracks are shown again | the host (`mountHiddenTracks` in the default viewer's toolbar; the menu's "Show hidden ▸") | the view never moves on a hide (the author, 2026-11-21) | a host's own list from the hidden tracks and their event |
 | `header.states.export` | `include` | as the filter chip is exported today | `none` |
@@ -531,8 +534,8 @@ The fourth slice builds it, beside the structure lanes. ST3's "color by this tra
 - **`seqx-examples`**: the p53 views with a hidden track and a hidden layer, and a filtered track (fixtures for the
   stories and the records).
 - **Storybook**:
-  - `Features/Track headers`: the built-ins on p53, drawn and as DOM parts (a story arg), a host's entry added and a built-in removed, the hidden-tracks chip
-    with every track of a section hidden, short tracks, a ring through its menu, and a host's DOM widget placed from
+  - `Features/Track headers`: the built-ins on p53, drawn and as DOM parts (a story arg), a host's entry added and a built-in removed, the hidden tracks'
+    list (`mountHiddenTracks`) with every track of a section hidden, short tracks, a ring through its menu, and a host's DOM widget placed from
     `viewer.headers`;
   - "Color by this track" with the fake structure viewer (shared with structure-syncing's ST3).
 

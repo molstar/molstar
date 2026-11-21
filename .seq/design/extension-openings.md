@@ -44,7 +44,7 @@ maxItems })`, the export's `legend` band.
 **Interactions in the precedents**: a user of JBrowse or HiGlass sees a missing plugin's track as an error box (here:
 the fallback drawn, the reason said once); a user drags an overview's window (built, any picture); hides a legend
 (Vega-Lite by spec, built here as a layer param, below); collapses a legend panel (the host's chrome, refused as a
-library gesture: the part is the host's); a JBrowse user adds a plugin's track from a menu (planned: a host's header
+library gesture: the part is the host's); a JBrowse user adds a plugin's track from a menu (built: a host's `header-action`
 entry, track header parts).
 
 ## Part 1: the extension descriptor and `ext:` kinds (lane EX)

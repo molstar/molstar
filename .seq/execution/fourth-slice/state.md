@@ -92,6 +92,9 @@ The third slice is closed (2026-11-20; its record in `.seq/records/third-slice/`
   930 kB), the use gates, `gaps.md`, the fifth slice's drafts; then FINALIZE.
 - 2026-11-21 (morning): the author took the gaps as recommended and allowed the fetches. Next: FX5 (the author's look,
   F1/F22, T-DM1) and SV, two lanes; then stage 3's gate and M4; the fifth slice's drafts wait for the author.
+- 2026-11-21: FX5, SV, PC, FX6, HT and FX7 merged; stage 3's gate passed (quick, medium, heavy, both tiers, build,
+  workspace, sizes). FINALIZE's reconcile done and `foldback.md` written: waiting for the author's review. M4's browser
+  measurements next.
 
 ## Next
 
@@ -148,6 +151,7 @@ One row a merged lane (loop, step 5, record): review findings and look findings 
 | PC | 2026-11-21 | 5 (review: the codon card on any path; a lifted item lighting a column across every track; the selection missing the connector; a colour passed into a non-inlined call; my look: letters hidden at half width) | 2 (the padded break and the hover lift: axis.md, decided) | 1 (the story side by side, letters as cells: stacked) | the old Case 14 in the new styling; the connector configurable (`layer.connector`, `ranges.connector`); `exampleStory`'s `stacked` |
 | FX6 | 2026-11-21 | 9 (the author's four: the menu's items not applied, its click and hover reaching the view, `Color ▸` closed by its own preview; review: the submenu timer, the keys panel's hover, every resolve closing a menu (the author's `⋯` opening nothing), a slot unhit without a hover, a ranges layer's default colour moved by another's scheme) | 1 (the submenu's delay: `submenuRestMs`) | 0 | the cause: the menu mounted in the view's container, a press starting a pan's pointer capture; `isViewEvent`; a services test failed once under load, five runs green alone |
 | HT | 2026-11-21 | 12 (the author: a submenu replacing its menu; my look: a ramp from the menu at 0–1, the eye without a count, resting not opening; review: Tab out of a flyout, a pending rest after leaving, a long flyout off the window, the click lost under a parts redraw, `track.show {all}` with nothing hidden, two walkers, a fully hidden section keeping its gap, an item key on a hidden track jumping) | 1 (ARIA between a row and its flyout) | 0 | `@molstar/ui` flyouts; the view draws nothing for a hidden track; the merge-time look by the orchestrator, every time |
+| FX7 | 2026-11-21 | 1 (the header actions' two numbers boxed each frame: 32 B a step since F13's ellipsis, `ad790f341`) | 0 | 0 | the allocation tiers green: core 146, Storybook 9 |
 
 ## How to verify
 

@@ -329,7 +329,7 @@ disagrees with its code writes a drift note and stops.
 - [x] NG (merged 2026-11-20) (fast, any time after stage 0) the resolved view's second consumer (the author, 2026-11-19: Nightingale
       dropped, "our own test consumer only"): a test-only plain-SVG consumer of letters, ranges, values and variants
       from the resolved view and the store alone; the field test (EC-183) (`briefs/ng-test-consumer.md`).
-- [ ] GATE: merged, reviewed, checks green, `pnpm build` and `check:workspace` (core changed), sizes, gaps.
+- [x] GATE (2026-11-21): SV merged and reviewed; quick, medium (241), heavy (123 at load 3.9), both allocation tiers (after FX7), `pnpm build`, `check:workspace`; sizes 223.4 / 810.3 / 1304.2 / 936.3 kB; gaps in `gaps.md`.
 
 ### Stage 4: extension openings (after stage 0; after HP2's registry kind)
 

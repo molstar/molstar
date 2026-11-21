@@ -7,30 +7,23 @@ queue. Each line: what is seen, where (the story), where it came from, its kind 
 
 ## Open
 
-- **Prism's `commands.test.ts` and `collapse.test.tsx` failed once each in a combined run** (HT's runs; alone green):
-  watch.
+None at finalize (2026-11-21): each open item below was placed in `packages/seq/TODO.md`.
 
-- **A services story test failed once under load** (FX6's run; five runs green alone): watch at the gate's runs.
+## Placed at finalize
 
-- **FX3's first item: the quick-lane folders over 2 s** (stage 1's gate, the author, 2026-11-20: "Pass, FX3 fixes
-  times"): core 2.8 s, viewer 2.7 s, storybook 2.3 s on a quiet machine (examples 1.6 s; all 8.2 s). The items below
-  for each folder (core, viewer, storybook) are its notes: waste fixed, nature moved with a quick representative.
-- **Alignment Rows And Columns collapses when the frame's size changes** (bug; look if the cause is only the story's
-  sizing): Features › Query › Alignment Rows And Columns. When the Storybook zoom slider changes the frame's size, the
-  plot collapses: at a small zoom the rows shrink into the top of a much larger, empty canvas; at a middle zoom the rows
-  end two thirds down with an empty well below; at 100% the last column's letters are cut at the right edge under the
-  end numbers (N, (, A half drawn). The status line under it says "The alignment's rows have not arrived" while the
-  rows are drawn. The author, 2026-11-20. Check: the plot box against the host's size on resize (grids-and-rows.md: the
-  plot box is fixed); the canvas's backing size against its CSS size at a changed devicePixelRatio or zoom; the right
-  edge's clip against the end-numbers column; the status text's settle. **FX1** (`51682eebc`) fixed the collapse and the status line. **Still open (FX2 did not touch it; FX4: not reproduced headlessly, a browser look at a fractional dpr):** the last column's letters cut under the end numbers at 100%, not reproduced headlessly; needs a look in the browser.
-- **A disabled toolbar button's dimming not looked at** (look): `@molstar/ui`'s Storybook and Prism, light and dark
-  (computed at 1.7-1.9:1, not seen). Third slice's SF leftover. Open: a look, not a fix lane's work.
-- **Not looked at past the lanes' own screenshots** (look, for the use gate's look): the Antibody's insertions at the
-  closest zoom and the rail's row (CF), the rows layer (RX). Open: for the use gate's look.
-
-- **Antibody: the against view's gaps faint at the fit** (look; needs a rows param): FX4 found the rows layer skips
-  gap cells (`colorOf` gives `NoColor`) and the letters layer's `gapMarks` marks unmapped positions, not gap cells; a
-  visible gap needs `gap_marks` on the rows layer (a gap list in `RowsLay`, canvas and SVG, the image-tile step).
+- **Prism's `commands.test.ts` and `collapse.test.tsx` failed once each in a combined run** (HT's runs; alone green);
+  **a services story test failed once under load** (FX6's run): TODO, `@molstar/seqx-examples, storybook`, "Watched at
+  the gates' runs" (a second failure is a fix lane's).
+- **FX3's first item: the quick-lane folders over 2 s**: core 2.14 s and storybook 2.24 s after FX3 (`c65c9c4db`), the
+  viewer's waste looked for by FX4 (`14b9025ba`); the viewer folder's budget unchanged, fewer jsdom files next (the
+  author, 2026-11-21, gaps.md): TODO, "The quick lane's folders".
+- **Alignment Rows And Columns' last column cut at 100%** (the collapse and status fixed by FX1 `51682eebc`; the cut not
+  reproduced headlessly): TODO, "Looks not taken in a browser".
+- **A disabled toolbar button's dimming not looked at** (`@molstar/ui`): TODO, "Looks not taken in a browser".
+- **Not looked at past the lanes' own screenshots** (the Antibody's insertions and the rail's row, the rows layer): the
+  use gates passed (the author, 2026-11-21) without naming them; TODO, "Looks not taken in a browser".
+- **Antibody: the against view's gaps faint at the fit**: TODO, Deferred, "A gap mark on the rows
+  layer".
 
 ## Fixed
 

@@ -84,7 +84,7 @@ of data".
 | hover a base, its partner lights (forna, VARNA) | built |
 | crossing pairs drawn below (R-chie) | built, a config item |
 | 2D secondary-structure drawing (R2DT, forna, VARNA) | refused: not an axis; a host links its own drawing through addresses |
-| crosshair hover, rectangle selection lighting both ranges (PAE viewers) | built; in 3D with the structure port (fourth slice) |
+| crosshair hover, rectangle selection lighting both ranges (PAE viewers) | built; in 3D through the structure link (the fourth slice, a library: [structure-syncing.md](structure-syncing.md)) |
 | upper and lower triangles of different data, mirroring (RNAfold's dot plot) | built |
 | a zoom box (HiGlass) | refused as a drag (a drag selects, as everywhere); a selected rectangle is focused by Enter or double-click |
 | a color-scale slider (PAE viewers) | the theme's domain and legend ([themes.md](themes.md)) |

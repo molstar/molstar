@@ -80,7 +80,7 @@ sequence's table of its non-standard positions; `residues` is a molecule's list 
 
 | In the precedents | Here |
 |---|---|
-| Mol\*'s sequence panel: hover or click a ligand or glycan residue, the 3D view lights or selects it | planned: the structure port (the fourth slice's structure lane), reading units' `chain` and `operator` |
+| Mol\*'s sequence panel: hover or click a ligand or glycan residue, the 3D view lights or selects it | built: the structure link (a library, [structure-syncing.md](structure-syncing.md); ST1–ST3), reading units' `chain` and `operator`, shown on a fake structure viewer |
 | RCSB, PDBe-KB: hover a binding site, the ligand's contacting residues light; pick a ligand from a list | built here as data: contacts a `pairs` layer the builder adds (decided optional), a ligand's contacts a ref; the Complex view |
 | UniProt: hover a disulfide, both ends light | built: links are pairs, hovered end to end |
 | Mol\*: show or hide water and ions in the sequence panel | built: the section's `classes` by patch |
