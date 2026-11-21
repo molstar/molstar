@@ -345,7 +345,7 @@ disagrees with its code writes a drift note and stops.
 
 ### Stage 5: use, measure, finalize
 
-- [ ] NOVICE PASS (fast; `briefs/novice-pass.md`, the third slice's shape) a task script per new story (structure
+- [x] NOVICE PASS (2026-11-21: 29 findings, 5 bugs, 11 missing design, 13 look; novice-findings.md) (fast; `briefs/novice-pass.md`, the third slice's shape) a task script per new story (structure
       syncing both ways, headers, host data, services, archives).
 - [ ] USE GATE (not blocking; at finalize a look at what changed): findings fixed or placed, counted by kind.
 - [ ] M4 the heavy lane and the opt-in tiers; the browser at dpr 2 (a 2OCJ hover round trip, a complex of 200 copies,

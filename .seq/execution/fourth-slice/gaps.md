@@ -77,3 +77,8 @@ under the author's standing permission (`state.md`, Decided). Each a yes or no q
 - **The chromosome view's pan frame near its ratio bound** (stage 4's gate): 1.97× against 1.9× once at load 4.9,
   passing alone and in the full heavy run at load 2.6. Watch at M4 on a quiet machine; if it repeats, find whether EX's
   kinds lookup or CN's pictures added work per frame. Recommended: re-measure at M4, no change now.
+- **The novice pass's design questions** (novice-findings.md): the hover card absent where a first user looked for
+  names — residues in the structure link, compact legend swatches, marks (F1, F22, F14); the fake's "Within 5 Å" on a
+  selection (F3); a marked state for the track the structure is colored by (F9); an empty section saying its issue on
+  the view (F11; HD's drift); a navigator window at fit drawn as one (F25). Recommended: the hover card on these
+  stories' viewers and compact legends first (F1, F22), the rest at the fifth slice's gate.

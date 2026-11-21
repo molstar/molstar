@@ -326,3 +326,8 @@ base-library change, below), archives. The Genomes milestone is the fifth.
 - **A gap mark on the rows layer** (FX4): the rows layer skips an alignment's gap cells, so the Antibody's against view
   shows its gaps faintly at the fit; a `gap_marks` param (a gap list in `RowsLay`, canvas and SVG, the image-tile step
   below 3 px a cell).
+- **The fourth slice's novice pass, small items** (novice-findings.md): the fake's log time-stamped (F2); a selection
+  tint hiding a ruler tick label (F4); a tick at the focus at high zoom (F6); one of the two Color by this track stories
+  goes (F10); short tracks keep the layer's colors and a mark's hit target grows (F16); the host entry's copy slot shows
+  it ran (F19); a chip's count by width, a swatch outline on a light ground (F24); the keys panel scrolls or opens
+  upward (F26).

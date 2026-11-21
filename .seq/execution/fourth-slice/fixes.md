@@ -30,6 +30,10 @@ queue. Each line: what is seen, where (the story), where it came from, its kind 
   gap cells (`colorOf` gives `NoColor`) and the letters layer's `gapMarks` marks unmapped positions, not gap cells; a
   visible gap needs `gap_marks` on the rows layer (a gap list in `RowsLay`, canvas and SVG, the image-tile step).
 
+- **The novice pass's five bugs** (novice-findings.md, F5, F7, F13, F15, F23): Back after a focus not reaching the
+  structure; the fake's rows painted empty in Chain maps; the hide slot cutting "Domains"; Cmd/Ctrl+Z dead after a
+  header click; the size legend's key. To NP (FX5's place, before M4).
+
 ## Fixed
 
 - **SZ's viewer split, four small findings**: FX4 `8d824562c` (viewports in `viewer-viewports.ts`, the frame's backend
