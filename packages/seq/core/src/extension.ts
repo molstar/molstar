@@ -47,11 +47,4 @@ export {
 } from '@molstar/seqx-core/render';
 export type { Legend, SchemeEntry, SchemeSubject } from '@molstar/seqx-core/theme';
 export type { NavigatorWindow } from '@molstar/seqx-core/render/navigator';
-export type {
-  LayerKinds,
-  LayerShape,
-  ResolvedLayer,
-  ResolvedNavigator,
-  ResolvedSection,
-  ResolvedView,
-} from '@molstar/seqx-core/view';
+export type { LayerShape, ResolvedLayer, ResolvedSection } from '@molstar/seqx-core/view';

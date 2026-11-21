@@ -15,7 +15,6 @@ import { TracksLayout } from './layout/tracks.js';
 import type { SectionLayoutType } from './layout/types.js';
 import { LettersType } from './letters.js';
 import { LogoType } from './logo.js';
-import { AxisPicture, BandsPicture, type NavigatorPicture, RowsPicture, TracksPicture } from './navigator-picture.js';
 import { PairsType } from './pairs.js';
 import { RangesType } from './ranges.js';
 import { RowsType } from './rows.js';
@@ -24,7 +23,7 @@ import { SecondaryType } from './secondary.js';
 import { ValuesType } from './values.js';
 import { VariantsType } from './variants.js';
 
-// The core's layer types, section layouts and navigator pictures (_spec/README.md "Context", Registry entries): the default lists a
+// The core's layer types and section layouts (_spec/README.md "Context", Registry entries): the default lists a
 // composition registers, never a table a renderer falls back to. A composition that lists fewer ships fewer: nothing
 // imports this module but the default compositions (`createSeqContext`, `renderSvg`, the viewer's default spec).
 
@@ -50,12 +49,4 @@ export const BuiltInLayouts: Readonly<Record<string, SectionLayoutType<any>>> = 
   text: TextLayout,
   rings: RingsLayout,
   grid: GridLayout,
-};
-
-/** The navigator pictures the core ships, by name (_spec/README.md "Render", Navigators, Pictures). */
-export const BuiltInNavigatorPictures: Readonly<Record<string, NavigatorPicture>> = {
-  axis: AxisPicture,
-  tracks: TracksPicture,
-  bands: BandsPicture,
-  rows: RowsPicture,
 };

@@ -4,9 +4,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { BuiltInLayerTypes, BuiltInLayouts, BuiltInNavigatorPictures } from '@molstar/seqx-core/render/built-ins';
+import { BuiltInLayerTypes, BuiltInLayouts } from '@molstar/seqx-core/render/built-ins';
 import { MoleculeLettersType } from '@molstar/seqx-core/render/letters-molecule';
 import { NavigatorSvgExport } from '@molstar/seqx-core/render/navigator-export';
+import { BuiltInNavigatorPictures } from '@molstar/seqx-core/render/navigator-picture';
 import { composeSeqContext, type SeqContext, type SeqContextSpec, type SeqRegistryEntry } from './context.js';
 
 // The default headless composition (_spec/README.md "Context"): the core's layer types and layouts listed before the

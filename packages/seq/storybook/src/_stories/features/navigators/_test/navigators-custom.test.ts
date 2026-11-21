@@ -9,7 +9,6 @@
 // the host-drawn navigator (the viewer's `navigator(def)` model, the host's picture of its domains and windows, a drag
 // through the model moving the view).
 
-import type { NavigatorRenderer } from '@molstar/seqx-core/render/navigator';
 import { DefaultSeqViewerSpec } from '@molstar/seqx-viewer/default-spec';
 import { createSeqViewer, type SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -36,8 +35,10 @@ describe('the custom navigators’ stories, headless', () => {
     v.draw();
     const f = nav.draw()!;
     expect(nav.height).toBe(32);
-    const pic = (nav as unknown as { renderer: NavigatorRenderer }).renderer.pictureSection!;
-    expect(pic.tracks.map((t) => t.layers[0].type.name)).toEqual(['values']);
+    // the window is the view's range, placed through the model as a host would place its marks
+    const [x0, x1] = nav.xRange(100, 150)!;
+    expect(x0).toBeCloseTo(f.windows[0].x0, 6);
+    expect(x1).toBeCloseTo(f.windows[0].x1, 6);
     // the picture's readout outside the window: the residue and its conservation
     nav.move(f.windows[0].dx1 + 200, 16);
     expect(nav.readout.value).toMatch(/^residue \d+ · conservation \d\.\d\d$/);

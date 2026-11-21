@@ -26,6 +26,11 @@ export const ViewIssues = defineIssues('seq.view', {
     description: 'What an extension this reader lacks (or has too old) draws is drawn as its fallback',
     hint: Compose,
   },
+  'seq.view.navigator.picture': {
+    severity: 'warning',
+    description: 'A navigator’s picture is not registered: drawn as the axis',
+    hint: Compose,
+  },
   'seq.view.extension.version': {
     severity: 'info',
     description: 'The spec names a newer minor of an extension',

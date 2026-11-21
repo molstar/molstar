@@ -17,7 +17,7 @@ import { createSeqSpec, stripNavigator } from '@molstar/seqx-core/lang';
 import { resolveSpec } from '@molstar/seqx-core/resolve';
 import { describe, expect, it } from 'vitest';
 import { navigatorBox } from '../navigator.js';
-import { BuiltInNavigatorPictures } from '../built-ins.js';
+import { BuiltInNavigatorPictures } from '../navigator-picture.js';
 import type { Settled } from './helpers.js';
 import { P53 } from './fixtures.js';
 import { settleNavigator } from './navigator-fixtures.js';
@@ -66,14 +66,14 @@ const Demo = defineExtension({
 });
 
 /** p53 with its domains (as `demo:dots` where asked) and a conservation profile, and a navigator of `params`. */
-function spec(nav: Record<string, unknown>, dots = false): Node {
+function spec(nav: Record<string, unknown>, dots = false, reversed = false): Node {
   const b = createSeqSpec({ title: 'pictures' });
   const p53 = b.data.sequence('p53', { alphabet: 'protein', letters: P53 });
   const d = b.data.ranges('domains', { target: p53, rows: { start: [0, 100, 300], end: [60, 290, 393] } });
   const values = Array.from({ length: P53.length }, (_, i) => (i % 50) / 50);
   const c = b.data.values('conservation', { target: p53, values });
   b.views.view('v', (v) => {
-    const s = v.section('protein', { of: p53 });
+    const s = v.section('protein', { of: p53, ...(reversed ? { direction: 'reversed' as const } : {}) });
     s.track('letters').layer('letters', { type: 'letters' });
     s.track('domains').layer('ranges', {
       type: dots ? 'demo:dots' : 'ranges',
@@ -132,6 +132,36 @@ describe('a host’s picture', () => {
     // its readout, and its box
     expect(s.nav.readout(9)).toBe('coverage at 10');
     expect(navigatorBox(s.nav.navigator, 800, 300, ctx.pictures)).toEqual({ width: 800, height: 30 });
+    // a host's own marks placed through the picture: a range's x, a position at x
+    const [x0, x1] = s.nav.xRangeOf(100, 200)!;
+    expect(x0).toBeCloseTo(axis.xOfUnit(100), 9);
+    expect(x1).toBeCloseTo(axis.xOfUnit(200), 9);
+    expect(s.nav.positionAtX((x0 + x1) / 2)).toBe(150);
+  });
+
+  it('on a reversed section a range’s x runs reversed, still x0 ≤ x1', async () => {
+    const s = await settleNavigator(spec({ content: 'tracks' }, false, true));
+    await s.frames({ size: Size }, { size: NavSize });
+    const axis = s.nav.pictureSection!.axis!;
+    const [x0, x1] = s.nav.xRangeOf(0, 10)!;
+    // positions 0–9 at the right end
+    expect(x1).toBeCloseTo(axis.x0 + axis.width, 6);
+    expect(x0).toBeLessThan(x1);
+    expect(s.nav.positionAtX(x1 - 0.5)).toBe(0);
+  });
+
+  it('a miniature’s box is its picture’s `[width, height]`; a thickness over both axes the default box', () => {
+    const box = { ...Coverage, name: 'host:box', size: [120, 80] as const };
+    const pictures = { ...BuiltInNavigatorPictures, 'host:box': box, 'host:coverage': Coverage };
+    const ctx = createSeqContext({
+      registry: [
+        { kind: 'navigator-picture', picture: box },
+        { kind: 'navigator-picture', picture: Coverage },
+      ],
+    });
+    const nav = (content: string) => ctx.view(ctx.resolve(spec({ content, axes: 'both' })))!.navigators[0];
+    expect(navigatorBox(nav('host:box'), 800, 300, pictures)).toEqual({ width: 120, height: 80 });
+    expect(navigatorBox(nav('host:coverage'), 800, 300, pictures)).toEqual({ width: 160, height: 96 });
   });
 
   it('a built-in has no readout of its own: the label is the caller’s', async () => {
@@ -147,7 +177,7 @@ describe('a host’s picture', () => {
     const v = bare.view(bare.resolve(written))!;
     expect([v.navigators[0].content, v.navigators[0].params.data]).toEqual(['axis', '/data/conservation']);
     expect(v.issues.map((i) => [i.code, i.message])).toEqual([
-      ['seq.view.layer.extension', 'No picture `host:coverage` here: drawn as the axis'],
+      ['seq.view.navigator.picture', 'No picture `host:coverage` here: drawn as the axis'],
     ]);
     const s = await settleNavigator(written, 0, [], {}, composed(bare));
     await s.frames({ size: Size }, { size: NavSize });
@@ -162,6 +192,21 @@ describe('a host’s picture', () => {
     // the axis needs no entry
     const axis = none.view(none.resolve(spec({ content: 'axis' })))!;
     expect(axis.issues).toEqual([]);
+  });
+
+  it('an export resolves its view with the pictures it draws: none given, a `tracks` navigator is the axis, said', async () => {
+    const written = { ...spec({ content: 'tracks' }) };
+    const ctx = createSeqContext();
+    const r = await ctx.renderSvg(written, {
+      size: { width: 400, height: 'auto' },
+      navigators: 'include',
+      pictures: {},
+    });
+    expect(r.issues.filter((i) => i.code === 'seq.view.navigator.picture').map((i) => i.message)).toEqual([
+      'No picture `tracks` here: drawn as the axis',
+    ]);
+    const full = await ctx.renderSvg(written, { size: { width: 400, height: 'auto' }, navigators: 'include' });
+    expect(full.issues.filter((i) => i.code.startsWith('seq.view.navigator'))).toEqual([]);
   });
 
   it('two pictures under one name are refused, every one listed', () => {

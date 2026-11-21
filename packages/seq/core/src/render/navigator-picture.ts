@@ -159,6 +159,17 @@ export const RowsPicture: NavigatorPicture = {
 };
 
 /**
+ * The navigator pictures the core ships, by name: what the default compositions list (here, not in `built-ins`: a
+ * composition draws them only with its navigators, which `renderSvg` loads when an export includes them).
+ */
+export const BuiltInNavigatorPictures: Readonly<Record<string, NavigatorPicture>> = {
+  axis: AxisPicture,
+  tracks: TracksPicture,
+  bands: BandsPicture,
+  rows: RowsPicture,
+};
+
+/**
  * The picture a navigator draws: the one its `content` names, or the `rows` picture where it covers `rows` and its
  * picture cannot; the axis where the table lacks it (the fixed fallback: every system has an axis).
  */

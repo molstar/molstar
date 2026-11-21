@@ -16,6 +16,7 @@ import {
   type StaticModel,
 } from '@molstar/seqx-core/resolve';
 import {
+  cellOffset,
   type LayerKinds,
   nearestOffsetOf,
   offsetOf,
@@ -76,23 +77,17 @@ const ZoomHysteresisPx = 8;
 const ZoomId = 'zoom';
 
 /**
- * A navigator's box for a view of `width` × `height` (its `size`, else its picture's in `pictures`, else its built-in
- * form's, along or across the view; a miniature's box over both axes).
+ * A navigator's box for a view of `width` × `height`: its `size`, else its picture's (a thickness along or across the
+ * view, or a miniature's box); over both axes a picture's thickness gives way to the miniature's default box.
  */
 export function navigatorBox(
   nav: ResolvedNavigator,
   width: number,
   height: number,
-  pictures?: Readonly<Record<string, NavigatorPicture>>,
+  pictures: Readonly<Record<string, NavigatorPicture>>,
 ): { readonly width: number; readonly height: number } {
-  const form = nav.axes === 'rows' ? 'rows' : nav.content;
-  const size =
-    nav.size ??
-    (nav.axes === 'both'
-      ? NavigatorSizes.both
-      : pictures
-        ? navigatorPicture(nav, pictures).size
-        : (NavigatorSizes[form as keyof typeof NavigatorSizes] ?? NavigatorSizes.axis));
+  const own = navigatorPicture(nav, pictures).size;
+  const size = nav.size ?? (nav.axes === 'both' && !Array.isArray(own) ? NavigatorSizes.both : own);
   if (Array.isArray(size)) return { width: size[0], height: size[1] };
   const t = size as number;
   return nav.place === 'left' || nav.place === 'right' ? { width: t, height } : { width, height: t };
@@ -576,6 +571,31 @@ export class NavigatorRenderer {
     // over a cyclic origin the arc, from its start on past the origin to its end
     if (this.wraps) return arcText(this.options.model, this.navigator, this.reach[2], this.reach[3]);
     return spanText(this.options.model, this.navigator, this.reach[2], this.reach[3]);
+  }
+
+  /**
+   * x on the picture (the context, with a zoom strip) of positions `[start, end)` of the navigator's system, in its
+   * display order (a reversed axis's, collapsed introns' nearest): `[x0, x1]`, x0 ≤ x1; undefined before the picture is
+   * laid out, or where none of it is shown. What a host drawing its own navigator places its marks with.
+   */
+  xRangeOf(start: number, end: number): readonly [number, number] | undefined {
+    const axis = this.pictureSection?.axis;
+    if (!axis || !(end > start)) return undefined;
+    // each end's cell, its left edge in display order (a collapsed intron's: the nearest shown)
+    const a = cellOffset(axis, start) ?? nearestOffsetOf(axis, start);
+    const b = cellOffset(axis, end - 1) ?? nearestOffsetOf(axis, end - 1);
+    if (a === undefined || b === undefined) return undefined;
+    const x0 = axis.xOfUnit(Math.min(a, b));
+    const x1 = axis.xOfUnit(Math.max(a, b) + 1);
+    return [Math.min(x0, x1), Math.max(x0, x1)];
+  }
+
+  /** The position of the navigator's system at x on the picture (the context), clamped to it; undefined before a layout. */
+  positionAtX(x: number): number | undefined {
+    const axis = this.pictureSection?.axis;
+    if (!axis) return undefined;
+    const p = axis.positionAt(Math.max(axis.x0, Math.min(axis.x0 + axis.width - 1e-9, x)));
+    return p >= 0 ? p : undefined;
   }
 
   /** What the picture says at a position of the navigator's system (its entry's `readout`); undefined: the label's. */

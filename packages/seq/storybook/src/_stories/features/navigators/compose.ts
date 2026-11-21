@@ -100,22 +100,31 @@ export const HostSection = '/views/main/protein';
 /** What a host draws of its navigator: its domains as blocks and the windows, x in the navigator's px. */
 export interface HostPicture {
   readonly blocks: readonly { readonly x: number; readonly width: number; readonly label: string }[];
-  readonly windows: readonly { readonly x: number; readonly width: number; readonly idle: boolean }[];
+  readonly windows: readonly {
+    readonly section: string;
+    readonly x: number;
+    readonly width: number;
+    readonly idle: boolean;
+  }[];
 }
 
 /**
- * The host's own picture of the navigator: p53's domains placed by the host (the navigator's fit: the whole protein
- * across its width) and each window as the model's last frame placed it (its drawn ends: the floor applied).
+ * The host's own picture of the navigator after a `draw`: p53's domains placed through the model (`xRange`: the
+ * navigator's display order, whatever the direction or the pieces) and each window as the model's last frame placed it
+ * (its drawn ends: the floor applied), idle as its slider says.
  */
 export function hostPicture(model: NavigatorModel): HostPicture {
-  const px = model.width / P53.length;
-  const blocks = Domains.id.map((label, i) => ({
-    x: Domains.start[i] * px,
-    width: (Domains.end[i] - Domains.start[i]) * px,
-    label,
-  }));
+  const blocks = Domains.id.flatMap((label, i) => {
+    const r = model.xRange(Domains.start[i], Domains.end[i]);
+    return r ? [{ x: r[0], width: r[1] - r[0], label }] : [];
+  });
   const windows = (model.frame?.windows ?? [])
     .filter((w) => w.shown)
-    .map((w, i) => ({ x: w.dx0, width: w.dx1 - w.dx0, idle: model.values.value[i]?.disabled ?? false }));
+    .map((w) => ({
+      section: w.section,
+      x: w.dx0,
+      width: w.dx1 - w.dx0,
+      idle: model.values.value.find((v) => v.section === w.section)?.disabled ?? false,
+    }));
   return { blocks, windows };
 }

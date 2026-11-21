@@ -5,7 +5,7 @@
  */
 
 import { ReactiveModel, type ReadonlyState, State } from '@molstar/core/reactive';
-import type { Node, Value } from '@molstar/core/repr/tree';
+import { type Issue, issueOf, type Node, type Value } from '@molstar/core/repr/tree';
 import type { Want } from '@molstar/seqx-core/data';
 import { NavWindowFlags, overviewWidth, type WindowPart } from '@molstar/seqx-core/render';
 import {
@@ -15,7 +15,13 @@ import {
   navigatorBox,
   windowText,
 } from '@molstar/seqx-core/render/navigator';
-import { axisTotal, type ResolvedNavigator, type ResolvedView, resolveNavigatorNode } from '@molstar/seqx-core/view';
+import {
+  axisTotal,
+  type ResolvedNavigator,
+  type ResolvedView,
+  resolveNavigatorNode,
+  ViewIssues,
+} from '@molstar/seqx-core/view';
 import type {
   NavigateBehavior,
   NavigatorBehavior,
@@ -143,6 +149,8 @@ export class NavigatorModel extends ReactiveModel {
   }
 
   private hosted: [ResolvedView, ResolvedNavigator] | undefined;
+  /** A host's picture the composition lacks, said as a declared navigator's is (the view's code). */
+  private pictureIssue: Issue | undefined;
 
   private hostNavigator(view: ResolvedView): ResolvedNavigator {
     if (this.hosted?.[0] === view) return this.hosted[1];
@@ -156,6 +164,14 @@ export class NavigatorModel extends ReactiveModel {
       this.viewer.context.kinds,
     );
     this.hosted = [view, n];
+    const content = this.def!.content;
+    this.pictureIssue =
+      content !== undefined && content !== n.content
+        ? issueOf(ViewIssues, 'seq.view.navigator.picture', `No picture \`${content}\` here: drawn as the axis`, {
+            address: n.address,
+            hint: ViewIssues.codes['seq.view.navigator.picture'].hint,
+          })
+        : undefined;
     return n;
   }
 
@@ -329,8 +345,23 @@ export class NavigatorModel extends ReactiveModel {
   }
 
   /** The issues the navigator met (its bindings, what it left out, its picture's). */
-  get issues() {
-    return this.renderer?.allIssues ?? [];
+  get issues(): readonly Issue[] {
+    const own = this.renderer?.allIssues ?? [];
+    return this.pictureIssue ? [this.pictureIssue, ...own] : own;
+  }
+
+  /**
+   * x on the navigator of positions `[start, end)` of its system, `[x0, x1]` in its display order (a reversed axis's,
+   * collapsed introns' nearest), after a `draw`; undefined before, or where none is shown. What a host drawing its own
+   * navigator places its marks with.
+   */
+  xRange(start: number, end: number): readonly [number, number] | undefined {
+    return this.renderer?.xRangeOf(start, end);
+  }
+
+  /** The position of the navigator's system at x (its own px), clamped to its picture; undefined before a `draw`. */
+  positionAt(x: number): number | undefined {
+    return this.renderer?.positionAtX(x);
   }
 
   /** The part took or lost the keyboard focus (its host's element): losing it, its sliders say where the view is. */

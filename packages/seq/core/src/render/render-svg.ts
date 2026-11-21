@@ -5,12 +5,12 @@
  */
 
 import type { Node } from '@molstar/core/repr/tree';
-import { BuiltInLayerTypes, BuiltInLayouts, BuiltInNavigatorPictures } from './built-ins.js';
+import { BuiltInLayerTypes, BuiltInLayouts } from './built-ins.js';
 import { exportSvg, type RenderSvgOptions, type RenderSvgResult } from './export.js';
-import { NavigatorSvgExport } from './navigator-export.js';
 
 // The headless default (_spec/README.md "Render", Export): `exportSvg` with everything the core ships, the built-in
-// layer types, layouts and navigators, unless the options name their own. A composition that lists fewer calls
+// layer types, layouts and navigators (their drawing and pictures a lazy chunk, loaded for an export that includes
+// them), unless the options name their own. A composition that lists fewer calls
 // `exportSvg` (a viewer, `createSeqContext`'s base) and bundles fewer.
 
 /**
@@ -26,15 +26,28 @@ function molecular(spec: Node): boolean {
 }
 
 /** A spec drawn to an SVG string once the data its view needs has settled (or the timeout passed): the built-ins. */
+/** Whether an export may include navigators: asked to, or a view's `export.navigators` is `include` and not refused. */
+function navigators(spec: Node, options: RenderSvgOptions): boolean {
+  if (options.navigators) return options.navigators === 'include';
+  for (const c of spec.children ?? [])
+    if (c.kind === 'views')
+      for (const v of c.children ?? [])
+        if ((v.params?.export as { navigators?: string } | undefined)?.navigators === 'include') return true;
+  return false;
+}
+
 export async function renderSvg(spec: Node, options: RenderSvgOptions): Promise<RenderSvgResult> {
   const types = molecular(spec)
     ? { ...BuiltInLayerTypes, letters: (await import('./letters-molecule.js')).MoleculeLettersType }
     : BuiltInLayerTypes;
+  // the navigators' drawing and pictures, loaded only for an export that includes them
+  const navs = navigators(spec, options)
+    ? await Promise.all([import('./navigator-export.js'), import('./navigator-picture.js')])
+    : undefined;
   return exportSvg(spec, {
     types,
     layouts: BuiltInLayouts,
-    pictures: BuiltInNavigatorPictures,
-    navigatorExport: NavigatorSvgExport,
+    ...(navs ? { pictures: navs[1].BuiltInNavigatorPictures, navigatorExport: navs[0].NavigatorSvgExport } : {}),
     ...options,
   });
 }

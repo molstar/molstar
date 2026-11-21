@@ -10,7 +10,8 @@
 // against the data at the fit, across tile edges, at TP53 and at its letters, every drawn gene hit, and shows its
 // window on the ideogram. The frame at 83 Mb against the gene view's (the Performance page's flat frame time) is heavy.
 
-import { BuiltInLayerTypes, BuiltInLayouts, BuiltInNavigatorPictures } from '@molstar/seqx-core/render/built-ins';
+import { BuiltInLayerTypes, BuiltInLayouts } from '@molstar/seqx-core/render/built-ins';
+import { BuiltInNavigatorPictures } from '@molstar/seqx-core/render/navigator-picture';
 import { readFileSync } from 'node:fs';
 import {
   DataStore,

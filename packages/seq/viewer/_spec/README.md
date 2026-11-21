@@ -229,38 +229,42 @@ nothing and tells nothing. Beside `models/view.ts` (the moves and the publish): 
 declared node by its id or address, or a host's definition of the same shape, never saved; its picture's own params in
 `def.params`). **The contract of a navigator a host draws itself** (DOM, WebGL; public, so a rename is a recorded
 break): `frame.windows` (each window's true and drawn ends, axes, positions and rows, after `draw`), `values`,
-`readout`, `focused`, `cursor`, `version`, and the input methods `resize`, `hit`, `move`, `down`, `up`, `click`,
-`doubleClick`, `wheel`, `key`, `cancel`, `leave`, `setFocus`, `focusNext`: the host maps its events to them and draws
-what the frame says; every rule (geometry, floor, gestures, keys, idle, announcements) stays the model's. Why: the model
-already holds every rule, tested headless; a host replacing the canvas keeps them by calling it. Its picture is the
-composition's (`context.pictures`, resolved with `context.kinds`: core's "Render", Navigators, Pictures); the readout at
-a position is the picture's `readout` when it gives one. It holds its picture (a core `NavigatorRenderer` over the
-viewer's store, theme, image cache and held domains: the view renderer's, `viewer.renderer`), draws it over the viewer's
-last frame (`draw`, after each frame the viewer draws: `viewer.drawn`), wants what it reads through a want set of its
-own, and holds the lit part, idle per window and axis (`windowIdle`: the whole axis at the zoom limit, or the section
-cannot move; rows: every row shown), the gesture in progress, the focused slider (`focused`) and the readout (`readout`:
-the position, the row, a band's name; never the viewer's hover). Its size is the host's (`resize`), each side the form's
-box for the view where the host gives none. Its pointer (`move`, `down`, `up`, `click` with the platform's count,
-`doubleClick`, `wheel`, `cancel`) and keys (`key`) are in its own px, carried to the bound section's display units
-through the picture and run through the `navigator` behavior. A press on a window focuses its slider; a press that never
-moves acts at its click (outside the window it centres there, a miniature's both axes); a miniature's body drags both
-axes; a rows drag is clamped to the rows less those in view, and pushes the rows at its press when it went farther than
-the rows in view (`navigator.dragStep`). Its sliders' values (`values`, `aria-valuetext` as positions on the navigator's
-system and rows, `disabled` when idle) are set when the view rests (`viewer.rested`) after this part's own gesture or
-key, or while the part has no focus (`setFocus`, the host's): a move made elsewhere announces nothing (the design:
-noise), its value said when the focus leaves; never during a drag, never a frame. Keys while focused (one tab stop, the
-windows a roving slider: PageDown and PageUp move the focus to the next and the previous window; why those: arrows, Home
-and End are the slider's own, Tab the page's): arrows pan (Up and Down on rows, clamped), Shift+arrows resize about the
-centre, Home and End go to the ends (jumps), Enter centres on the readout's position, `=`, `-`, `0` act on the focused
-window's section; Alt+Left and Alt+Right walk the history even while the window is idle; Esc cancels a gesture. The
-wheel acts as over the bound section, zooming about the window's centre, never the pointer. A navigator with a zoom
-strip (core's "Render", Navigators, The zoom strip: `navigator.zoomStrip`) is one model: its height the box's and the
-strip's (`zoomStrip.heightPx` more, set by the frame that brings or drops it), or a height the host fixes holding both
-(the strip out of it, the context the rest: drawn again in the same call, nothing overflows); a side part (`left`,
-`right`) has none; `viewer.renderSvg` passes `navigator.zoomStrip` and `navigator.direction` to the export (its
-`navigator` option), so the SVG is what the parts show; its windows, grips and gestures are the zoom strip's; its
-context is no target (a hit's `context`: nothing lit, the default cursor, a press no gesture, a double-click nothing),
-its readout the band and position there, over the mark the region (a press there says it too, a tap's hover).
+`readout`, `focused`, `cursor`, `version`, `issues`, the picture's geometry for the host's own marks
+(`xRange(start, end)`, a range's x in display order whatever the direction, pieces or collapsed introns;
+`positionAt(x)`), and the input methods `resize`, `hit`, `move`, `down`, `up`, `click`, `doubleClick`, `wheel`, `key`,
+`cancel`, `leave`, `setFocus`, `focusNext`: the host maps its events to them and draws what the frame says; every rule
+(geometry, floor, gestures, keys, idle, announcements) stays the model's. Why: the model already holds every rule,
+tested headless; a host replacing the canvas keeps them by calling it. Its picture is the composition's
+(`context.pictures`, resolved with `context.kinds`: core's "Render", Navigators, Pictures); a host's `content` the
+composition lacks is the axis, said in `issues` (`seq.view.navigator.picture`, as a declared one's is in the view's);
+the readout at a position is the picture's `readout` when it gives one. It holds its picture (a core `NavigatorRenderer`
+over the viewer's store, theme, image cache and held domains: the view renderer's, `viewer.renderer`), draws it over the
+viewer's last frame (`draw`, after each frame the viewer draws: `viewer.drawn`), wants what it reads through a want set
+of its own, and holds the lit part, idle per window and axis (`windowIdle`: the whole axis at the zoom limit, or the
+section cannot move; rows: every row shown), the gesture in progress, the focused slider (`focused`) and the readout
+(`readout`: the position, the row, a band's name; never the viewer's hover). Its size is the host's (`resize`), each
+side the form's box for the view where the host gives none. Its pointer (`move`, `down`, `up`, `click` with the
+platform's count, `doubleClick`, `wheel`, `cancel`) and keys (`key`) are in its own px, carried to the bound section's
+display units through the picture and run through the `navigator` behavior. A press on a window focuses its slider; a
+press that never moves acts at its click (outside the window it centres there, a miniature's both axes); a miniature's
+body drags both axes; a rows drag is clamped to the rows less those in view, and pushes the rows at its press when it
+went farther than the rows in view (`navigator.dragStep`). Its sliders' values (`values`, `aria-valuetext` as positions
+on the navigator's system and rows, `disabled` when idle) are set when the view rests (`viewer.rested`) after this
+part's own gesture or key, or while the part has no focus (`setFocus`, the host's): a move made elsewhere announces
+nothing (the design: noise), its value said when the focus leaves; never during a drag, never a frame. Keys while
+focused (one tab stop, the windows a roving slider: PageDown and PageUp move the focus to the next and the previous
+window; why those: arrows, Home and End are the slider's own, Tab the page's): arrows pan (Up and Down on rows,
+clamped), Shift+arrows resize about the centre, Home and End go to the ends (jumps), Enter centres on the readout's
+position, `=`, `-`, `0` act on the focused window's section; Alt+Left and Alt+Right walk the history even while the
+window is idle; Esc cancels a gesture. The wheel acts as over the bound section, zooming about the window's centre,
+never the pointer. A navigator with a zoom strip (core's "Render", Navigators, The zoom strip: `navigator.zoomStrip`) is
+one model: its height the box's and the strip's (`zoomStrip.heightPx` more, set by the frame that brings or drops it),
+or a height the host fixes holding both (the strip out of it, the context the rest: drawn again in the same call,
+nothing overflows); a side part (`left`, `right`) has none; `viewer.renderSvg` passes `navigator.zoomStrip` and
+`navigator.direction` to the export (its `navigator` option), so the SVG is what the parts show; its windows, grips and
+gestures are the zoom strip's; its context is no target (a hit's `context`: nothing lit, the default cursor, a press no
+gesture, a double-click nothing), its readout the band and position there, over the mark the region (a press there says
+it too, a tap's hover).
 
 ### HoverModel
 

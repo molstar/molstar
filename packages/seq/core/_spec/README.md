@@ -1807,10 +1807,11 @@ no target.
   against the reader's: an extension at an older major (0.x: minor) has its types left out of the chain (drawn as their
   fallbacks, said as above); at an older minor of the same major they are drawn and `seq.view.extension.version` (info)
   says so. A section's `params` carry the extensions' namespaced keys; a navigator's `content` this reader lacks is
-  `axis`, said (`seq.view.layer.extension` at the navigator): the reader's pictures are `LayerKinds.pictures` (a
-  composition's: its `navigator-picture` entries' names; the core's four when absent; the axis always drawn). Versions
-  compare by major, a 0.x by its minor, ranked below every 1.x (`5` and `0.5` never match). Why in the resolved view:
-  the same for every renderer, and the issue names the package a spec needs.
+  `axis`, said (`seq.view.navigator.picture`, warning, at the navigator: a picture is not always an extension's): the
+  reader's pictures are `LayerKinds.pictures` (a composition's: its `navigator-picture` entries' names; the built-in
+  kinds': the core's three past the axis; none when absent; the axis always drawn). Versions compare by major, a 0.x by
+  its minor, ranked below every 1.x (`5` and `0.5` never match). Why in the resolved view: the same for every renderer,
+  and the issue names the package a spec needs.
 - **Templates** (`templates.ts`): a template is `{ source, kind, depth, order, filter }` (`depth` 0, `order` `key` when
   absent); its layers without data are not placed (no issue). `templateNeeds(view)` is the depth each template source
   needs. `templateNodes` selects the overlay's nodes of the kind at the depth under the source whose params equal the
@@ -2443,17 +2444,19 @@ numbers): a window move allocates nothing once warm.
   params as written, its first bound section and that section's node, the height its tracks may fill, `zoom`, the
   config, the tracks left out; back its tracks and `rows`, the id of the track copying the bound section's rows track);
   `axes` what it can cover (a navigator over `rows` whose picture cannot draws the `rows` picture), `size` its default
-  thickness or a miniature's box (`navigatorBox`; `both` without `size` 160 × 96), `fills` (made again for another
-  height), `readout(position)` the hover's (the position's label when absent). The built-ins (`axis`, `tracks`, `bands`,
-  `rows`, `BuiltInNavigatorPictures`) are entries to the same contract, listed by the default compositions; a host's or
-  an extension's is `<id>:<name>`, its params plain on the navigator (`navigator`'s `extensionParam` is `content`).
-  `NavigatorRenderer` draws from `pictures` (the composition's; the four when absent) and resolves its picture with
-  `kinds` (the composition's: a picture's track of an extension's layer type is drawn as that type, never as its
-  fallback). A picture the table lacks is the axis (the fixed fallback: every system has an axis; the resolved view says
-  it); a picture that draws nothing here (`undefined`) the axis, its zoom strip's `undefined` the axis there. Refused: a
-  navigator over several systems (a window per system pair is new geometry). Why tracks, not a draw function: as tracks
-  a picture reads at `view` priority, colors by the view's held domains, draws any registered layer type and exports
-  with no draw code of its own; a miniature drawn by other code drifts from the view it summarizes.
+  thickness or a miniature's box (`navigatorBox`; over `both` without `size` a picture's box, a thickness giving way to
+  160 × 96), `fills` (made again for another height), `readout(position)` the hover's (the position's label when
+  absent). The built-ins (`axis`, `tracks`, `bands`, `rows`, `BuiltInNavigatorPictures` of `render/navigator-picture`)
+  are entries to the same contract, listed by the default compositions; a host's or an extension's is `<id>:<name>`, its
+  params plain on the navigator (`navigator`'s `extensionParam` is `content`). `NavigatorRenderer` draws from `pictures`
+  (the composition's, required) and resolves its picture with `kinds` (the composition's: a picture's track of an
+  extension's layer type is drawn as that type, never as its fallback). A picture the table lacks is the axis (the fixed
+  fallback: every system has an axis; the resolved view says it); a picture that draws nothing here (`undefined`) the
+  axis, its zoom strip's `undefined` the axis there. Refused: a navigator over several systems (a window per system pair
+  is new geometry). Why tracks, not a draw function: as tracks a picture reads at `view` priority, colors by the view's
+  held domains, draws any registered layer type and exports with no draw code of its own; a miniature drawn by other
+  code drifts from the view it summarizes. A host drawing its own marks places them through the picture:
+  `xRangeOf(start, end)` (a range's x, in display order, x0 ≤ x1) and `positionAtX(x)`.
 - **The window stays the navigator's**, whatever the picture: its geometry, floor, parts, gestures, keys, idle rule,
   zoom strip and announcements. A host that draws its own navigator keeps them through the viewer's `NavigatorModel`.
 - **The picture**: a navigator lays its system whole out (the fit window, in the bound section's display order;
@@ -3298,9 +3301,13 @@ under the point as the hit's `state`. It reads every row (a logo of the rows sho
   `export.window` when absent, false: an exported map is a figure).
 - `exportSvg(spec, { size, types, layouts, navigatorExport?, … })` draws with what it is given (none of a kind when
   absent: each layer said); `renderSvg(spec, options)` is `exportSvg` with the built-ins (`BuiltInLayerTypes`,
-  `BuiltInLayouts`, `NavigatorSvgExport`) unless the options name their own. Included navigators are drawn by the
+  `BuiltInLayouts`; `NavigatorSvgExport` and `BuiltInNavigatorPictures` a lazy chunk, loaded when the export may include
+  navigators: `navigators: include`, or a view's `export.navigators: include` and no `omit`; why: a figure with none
+  bundles none of their drawing) unless the options name their own. Included navigators are drawn by the
   `navigatorExport` part (`render/navigator-export`); without one an export asked to include them leaves them out,
-  `seq.render.navigator.export`.
+  `seq.render.navigator.export`. `pictures` is the one source of what a `content` may name: given, or with
+  `navigatorExport` (none: `{}`), the view is resolved with `kinds.pictures` its names, so a picture drawn as the axis
+  is always said.
 - **Call options** (`RenderSvgOptions`; options of a call, none a viewer setting or a spec param):
 
   | Option                                                                      | Default                                                         | Why the default; the alternatives                                                                           |
@@ -3458,18 +3465,18 @@ same pieces. Nothing registers on import and there is no global registry.
   extension imports is one entry**, `@molstar/seqx-core/extension` (the descriptor, `defineExtension`, `LayerType` and
   what it is given, `SectionLayoutType`, `Placement` and the warps, `NavigatorPicture` and what it is given, the
   window's `floorExtent`, `navigatorPart`, `drawNavigatorWindow`, `NavWindowFlags` and `NavigatorWindow`,
-  `FormatRuntime`, `SchemeEntry`, `Legend`, the resolved layer, section, navigator and view, `LayerKinds`); the rest may
-  change in a 0.x minor. Why a descriptor: the namespace check, the version check and the undo need the extension as one
-  thing.
+  `FormatRuntime`, `SchemeEntry`, `Legend`, the resolved layer and section); the rest may change in a 0.x minor. Why a
+  descriptor: the namespace check, the version check and the undo need the extension as one thing.
 - **The tracks layout is the one fixed fallback**: a section whose layout is not listed (or every section, with no
   layouts given) is laid out as tracks, and the viewer's navigation reads tracks likewise; tracks needs no entry. Why:
   the tracks layout is the frame's own (the label column, the rails, the bands), a section must be placed somehow, and
   the issue says it was not the one asked for.
 - **No built-in table a renderer falls back to**: `Renderer` and `NavigatorRenderer` take `types` and `layouts`
   (`NavigatorRenderer` its `pictures` too: one it lacks is the axis, the fixed fallback); `layoutView` and `exportSvg`
-  given none draw none. `BuiltInLayerTypes`, `BuiltInLayouts`, `BuiltInNavigatorPictures`
-  (`@molstar/seqx-core/render/built-ins`, and `BuiltInRender` to spread into a renderer's options) are the default
-  compositions' lists, imported by them alone: `createSeqContext`, `renderSvg` and the viewer's default spec.
+  given none draw none. `BuiltInLayerTypes`, `BuiltInLayouts` (`@molstar/seqx-core/render/built-ins`; the pictures'
+  `BuiltInNavigatorPictures` in `render/navigator-picture`), and `BuiltInRender` to spread into a renderer's options)
+  are the default compositions' lists, imported by them alone: `createSeqContext`, `renderSvg` and the viewer's default
+  spec.
 - **Configuration** is `[item, value]` pairs (`SeqConfigItem`, `configItem(key)`); the core's items are `SeqCoreConfig`
   (`theme`, `render`, `resolve`). Items of other keys are another package's (the viewer's `group.item` keys).
 - **Ports** are factories with ownership, each called once; unset, the default: no reads (`NoAssets`) and the bundled

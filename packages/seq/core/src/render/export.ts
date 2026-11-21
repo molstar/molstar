@@ -33,6 +33,7 @@ import {
   sourceLengths,
 } from '@molstar/seqx-core/resolve';
 import {
+  BuiltInLayerKinds,
   type LayerKinds,
   nearestOffsetOf,
   projectOntoView,
@@ -347,11 +348,15 @@ export interface RenderSvgOptions {
   readonly sizings?: RendererOptions['sizings'];
   readonly trackSizing?: RendererOptions['trackSizing'];
   /**
+   * The navigators' pictures (the composition's `navigator-picture` entries): what a navigator's `content` may name,
+   * the one source of the view's pictures (`kinds.pictures`) and of their drawing. Given, or with `navigatorExport`
+   * (none: each navigator the axis, said), the view is resolved with these; else with `kinds` as given.
+   */
+  readonly pictures?: NavigatorRendererOptions['pictures'];
+  /**
    * How included navigators are drawn (`NavigatorSvgExport` of `render/navigator-export`): `renderSvg`'s default; none
    * in `exportSvg` when absent (an export asked to include navigators then says it left them out).
    */
-  /** The navigators' pictures (the composition's `navigator-picture` entries): the axis alone when absent. */
-  readonly pictures?: NavigatorRendererOptions['pictures'];
   readonly navigatorExport?: NavigatorExport;
 }
 
@@ -396,7 +401,12 @@ function wantsKey(wants: readonly Want[]): string {
  * A spec drawn to an SVG string once the data its view needs has settled (or the timeout passed), with what the options
  * give and nothing else: the layer types, layouts and navigators of its composition (`renderSvg` gives the built-ins).
  */
-export async function exportSvg(spec: Node, options: RenderSvgOptions): Promise<RenderSvgResult> {
+export async function exportSvg(spec: Node, given: RenderSvgOptions): Promise<RenderSvgResult> {
+  // one source of the pictures: the view resolved with those the navigators are drawn from
+  const pictures = given.pictures ?? (given.navigatorExport ? {} : undefined);
+  const options = pictures
+    ? { ...given, pictures, kinds: { ...(given.kinds ?? BuiltInLayerKinds), pictures: Object.keys(pictures) } }
+    : given;
   const issues: Issue[] = [...checkSeqSpec(spec, options.bounds)];
   const blank = (settled: boolean): RenderSvgResult => {
     const lists = new DrawLists();
@@ -495,23 +505,14 @@ export async function exportSvg(spec: Node, options: RenderSvgOptions): Promise<
     const navs =
       included && options.navigatorExport
         ? options.navigatorExport({
-            model,
-            view,
-            data: store,
-            tokens,
-            text: options.text ?? bundledTextMetrics(),
-            config,
-            types: renderer.options.types,
-            layouts: renderer.options.layouts,
-            // none of a picture not given (each navigator the axis)
-            pictures: options.pictures ?? {},
+            // the view's renderer's: its model, view, store, tokens, text, config, types, layouts, sizings, theme
+            ...renderer.options,
+            pictures: options.pictures!,
             ...(options.kinds ? { kinds: options.kinds } : {}),
-            ...(options.registry ? { theme: options.registry } : {}),
             images: renderer.images,
             domains: renderer.layoutState,
             storeSettings: store.settings,
-            ...(options.navigator?.zoomStrip ? { zoomStrip: options.navigator.zoomStrip } : {}),
-            ...(options.navigator?.direction ? { direction: options.navigator.direction } : {}),
+            ...options.navigator,
             dpr: options.dpr ?? 1,
             cvdSafe: options.cvdSafe ?? false,
             overlay: () => overlays.of(model, store),

@@ -184,11 +184,6 @@ function sizingsOf(registry: readonly SeqRegistryEntry[]): Readonly<Record<strin
   return Object.fromEntries(byName(registry, 'track-sizing', 'track sizings', (e) => e.sizing));
 }
 
-/** The registered navigator pictures by name, as `runtimesOf`. */
-function picturesOf(registry: readonly SeqRegistryEntry[]): Readonly<Record<string, NavigatorPicture>> {
-  return Object.fromEntries(byName(registry, 'navigator-picture', 'navigator pictures', (e) => e.picture));
-}
-
 /** The registered section layouts by name, as `runtimesOf`. */
 function layoutsOf(registry: readonly SeqRegistryEntry[]): Readonly<Record<string, SectionLayoutType<any>>> {
   return Object.fromEntries(byName(registry, 'layout', 'layouts', (e) => e.layout));
@@ -238,7 +233,8 @@ function tablesOf(registry: readonly SeqRegistryEntry[], extensions: readonly Se
   const all = [...registry, ...extensions.flatMap((e) => e.registry)];
   let added: ExtensionTables = { kinds: BuiltInLayerKinds };
   for (const e of extensions) added = e.defined!.compose(added);
-  const pictures = picturesOf(all);
+  // the registered navigator pictures by name, as `runtimesOf`
+  const pictures = Object.fromEntries(byName(all, 'navigator-picture', 'navigator pictures', (e) => e.picture));
   return {
     runtimes: runtimesOf(all),
     types: layerTypesOf(all),

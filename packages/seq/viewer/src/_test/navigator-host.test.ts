@@ -12,7 +12,6 @@
 import type { Node } from '@molstar/core/repr/tree';
 import { defineExtension, type LayerType, type NavigatorPicture } from '@molstar/seqx-core/extension';
 import { createSeqSpec, stripNavigator } from '@molstar/seqx-core/lang';
-import type { NavigatorRenderer } from '@molstar/seqx-core/render/navigator';
 import { afterEach, describe, expect, it } from 'vitest';
 import { viewerItem } from '../config.js';
 import { DefaultSeqViewerSpec } from '../default-spec.js';
@@ -53,12 +52,15 @@ const Coverage: NavigatorPicture = {
   readout: (p) => `coverage ${p + 1}`,
 };
 
+/** The keys `demo:dots` laid out. */
+const Laid: string[] = [];
+
 /** An extension's layer type that draws nothing (its fallback `none`): placed only where the extension is composed. */
 const Dots: LayerType<object, { key: string }> = {
   name: 'demo:dots',
   shape: 'ranges',
   prepare: () => ({}),
-  layout: (_p, ctx) => ({ key: ctx.key }),
+  layout: (_p, ctx) => (Laid.push(ctx.key), { key: ctx.key }),
   draw: () => {},
   hit: () => undefined,
 };
@@ -124,10 +126,12 @@ describe('a host-drawn navigator through NavigatorModel', () => {
     const f = await drawn(v, m);
     // the picture's size (no `size`: its entry's), its tracks, the window over the view's range
     expect([m.width, m.height]).toEqual([400, 24]);
-    const pic = (m as unknown as { renderer: NavigatorRenderer }).renderer.pictureSection!;
-    expect(pic.tracks.map((t) => t.layers[0].type.name)).toEqual(['values']);
     const w = f.windows[0];
     expect(w.shown).toBe(true);
+    // a host's marks placed through the model: the view's range is the window
+    const [x0, x1] = m.xRange(100, 140)!;
+    expect([x0, x1]).toEqual([expect.closeTo(w.x0, 6), expect.closeTo(w.x1, 6)]);
+    expect(m.positionAt((x0 + x1) / 2)).toBe(120);
     const px = (w.x1 - w.x0) / 40;
     // a hover: the picture's readout outside the window, the window's text over it; the cursor by the part
     m.move(w.dx1 + 100 * px, 12);
@@ -178,26 +182,31 @@ describe('a host-drawn navigator through NavigatorModel', () => {
     const v = await make(spec('host:other'), { registry: base.registry });
     const m = v.navigatorModel('strip')!;
     await drawn(v, m);
-    const pic = (m as unknown as { renderer: NavigatorRenderer }).renderer.pictureSection!;
-    expect(pic.tracks.map((t) => t.layers[0].type.name)).toEqual(['ruler']);
-    expect(v.view.resolved.value!.issues.map((i) => i.message)).toEqual([
-      'No picture `host:other` here: drawn as the axis',
+    expect(v.view.resolved.value!.issues.map((i) => [i.code, i.message])).toEqual([
+      ['seq.view.navigator.picture', 'No picture `host:other` here: drawn as the axis'],
+    ]);
+    // drawn as the axis: the strip's thickness, not the picture's
+    expect(m.height).toBe(20);
+  });
+
+  it('a host’s navigator naming a picture the viewer lacks draws the axis, and says so as a declared one', async () => {
+    const v = await make(spec());
+    const m = v.navigator({ id: 'host', of: P, content: 'host:missing' });
+    await drawn(v, m);
+    expect(m.navigator!.content).toBe('axis');
+    expect(m.issues.map((i) => [i.code, i.address, i.message])).toEqual([
+      ['seq.view.navigator.picture', '/views/v/navigators/host', 'No picture `host:missing` here: drawn as the axis'],
     ]);
   });
 
   it('a strip of a track of an extension’s type draws it as that type where the extension is composed', async () => {
-    const types = async (v: SeqViewer) => {
-      const m = v.navigatorModel('strip')!;
-      await drawn(v, m);
-      const pic = (m as unknown as { renderer: NavigatorRenderer }).renderer.pictureSection!;
-      return pic.tracks.map((t) =>
-        t.layers
-          .filter((l) => l.layer.placed)
-          .map((l) => l.type.name)
-          .join(),
-      );
+    // the extension's type lays out the picture's copy of the track (its key under the navigator's picture)
+    const laid = async (v: SeqViewer) => {
+      Laid.length = 0;
+      await drawn(v, v.navigatorModel('strip')!);
+      return Laid.some((k) => k.startsWith('/views/v/navigators/strip/picture/domains'));
     };
-    expect(await types(await make(spec('tracks', true), { extensions: [Demo] }))).toEqual(['letters', 'demo:dots']);
-    expect(await types(await make(spec('tracks', true)))).toEqual(['letters', '']);
+    expect(await laid(await make(spec('tracks', true), { extensions: [Demo] }))).toBe(true);
+    expect(await laid(await make(spec('tracks', true)))).toBe(false);
   });
 });

@@ -85,20 +85,17 @@ export interface LayerKinds {
   /** Each extension composed, by id: how it reads a spec's `extensions` version for it (`old`, `newer`). */
   readonly extensions?: Readonly<Record<string, (want: string) => 'old' | 'newer' | undefined>>;
   /**
-   * The navigator pictures it draws, by name (its `navigator-picture` entries): a `content` it lacks is the axis, said;
-   * the core's four when absent. The axis is always drawn (the fixed fallback).
+   * The navigator pictures it draws, by name (its `navigator-picture` entries): a `content` it lacks is the axis, said
+   * (none when absent). The axis is always drawn (the fixed fallback).
    */
   readonly pictures?: readonly string[];
 }
-
-/** The core's navigator pictures (the default compositions' entries). */
-const BuiltInPictures = ['axis', 'tracks', 'bands', 'rows'];
 
 /**
  * The built-in layer kinds: what a view resolved without a composition reads.
  * @internal
  */
-export const BuiltInLayerKinds: LayerKinds = { types: LayerTypes };
+export const BuiltInLayerKinds: LayerKinds = { types: LayerTypes, pictures: ['tracks', 'bands', 'rows'] };
 
 /**
  * An axis: a system, its direction and the positions shown, `[start, end, …]` pieces (start below end) in display
@@ -777,7 +774,7 @@ function navigatorsOf(
         // a picture this reader lacks (an extension's) is drawn as the axis, and said
         const content = param(n, 'content');
         if (content !== undefined && content !== nav.content)
-          report('seq.view.layer.extension', `No picture \`${content}\` here: drawn as the axis`, nav.address);
+          report('seq.view.navigator.picture', `No picture \`${content}\` here: drawn as the axis`, nav.address);
       }
   }
   return out;
@@ -819,7 +816,7 @@ export function resolveNavigatorNode(
     missing: named.filter((a) => !of.includes(a)),
     axes,
     // a picture this reader lacks (an extension's `<id>:<name>`, one its composition does not list) draws the axis
-    content: typeof content === 'string' && (kinds.pictures ?? BuiltInPictures).includes(content) ? content : 'axis',
+    content: kinds.pictures?.includes(content as string) ? (content as string) : 'axis',
     params: n.params ?? {},
     ...(Array.isArray(tracks)
       ? { tracks: tracks.map((t) => exactAddress(t)).filter((t): t is string => t !== undefined) }
