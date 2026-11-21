@@ -72,15 +72,28 @@ export function partsDomPort(): HeaderPartsPortFactory {
           group.dataset.section = h.geometry.target.section;
           if (h.geometry.target.track) group.dataset.track = h.geometry.target.track;
           const buttons: HTMLElement[] = [];
-          // the slots' backdrop in the page's color over the label's tail, as the canvas draws it (no overprinting)
+          // the slots' backdrop in the page's color over the label's tail, with the ellipsis the canvas draws when it cuts
+          // the label (the text's end under the slots): no overprinting
           if (h.actions && h.geometry.slots.length) {
-            const x = Math.min(...h.geometry.slots.map((s) => s.box.x)) - 2;
+            const box = h.geometry.slots[0].box;
+            const x0 = Math.min(...h.geometry.slots.map((s) => s.box.x)) - 2;
             const end = Math.max(...h.geometry.slots.map((s) => s.box.x + s.box.width));
+            const cut = h.geometry.labelEnd !== undefined && h.geometry.labelEnd > x0;
+            const grow = cut ? (h.geometry.ellipsis ?? 0) : 0;
             const back = doc.createElement('div');
             back.setAttribute('aria-hidden', 'true');
-            at(back, { x, y: h.geometry.slots[0].box.y, width: end - x, height: h.geometry.slots[0].box.height });
-            back.style.background = 'var(--msui-bg)';
-            back.style.pointerEvents = 'none';
+            back.dataset.backdrop = '';
+            at(back, { x: x0 - grow, y: box.y, width: end - x0 + grow, height: box.height });
+            Object.assign(back.style, {
+              background: 'var(--msui-bg)',
+              pointerEvents: 'none',
+              color: 'var(--msui-text-muted)',
+              font: 'inherit',
+              fontSize: '12px',
+              lineHeight: `${box.height}px`,
+              overflow: 'hidden',
+            });
+            if (cut) back.textContent = '…';
             group.append(back);
           }
           if (h.actions)

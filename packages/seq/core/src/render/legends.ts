@@ -5,7 +5,15 @@
  */
 
 import { type Issue, issueOf } from '@molstar/core/repr/tree';
-import { continuousLut, formatValue, type Legend, LutSize, mergeLegends } from '@molstar/seqx-core/theme/index';
+import {
+  continuousLut,
+  formatValue,
+  type Legend,
+  legendTitle,
+  LutSize,
+  mergeLegends,
+  qualifyLegends,
+} from '@molstar/seqx-core/theme/index';
 import { Anchor, type PassWriter } from './draw-lists.js';
 import { RenderIssues } from './issues.js';
 import type { Box } from './layer-type.js';
@@ -24,21 +32,15 @@ export function viewLegends(layout: ViewLayout, maxItems = 12): { legends: Legen
     // the figure's own say: a layer's `legend: none` keys nothing (_spec/README.md "Themes", Legends)
     if (l.layer.params.legend === 'none') return;
     const ls = l.type.legend?.(l.lay, { title });
-    if (!ls) return;
-    // a layer's legends of several channels that share its title say their channel (`Variants: size`), else the band
-    // reads the one title twice
-    const alike = ls.length > 1 && new Set(ls.map((x) => x.title)).size < ls.length;
-    for (const x of ls) {
-      const named = alike ? { ...x, title: `${x.title}: ${x.channel}` } : x;
-      all.push(maxItems < 12 ? trim(named, maxItems) : named);
-    }
+    if (ls) for (const x of ls) all.push(maxItems < 12 ? trim(x, maxItems) : x);
   };
   for (const s of layout.sections) {
     for (const t of s.tracks) for (const l of t.layers) add(l, t.track.label);
     // a section's own layers (pairs' arcs and dots), titled by the track that holds them
     for (const l of s.sectionLays) add(l, s.section.tracks.find((t) => t.layers.includes(l.layer))?.label ?? '');
   }
-  const legends = mergeLegends(all);
+  // after the merge: legends of one title but of different channels say their channel (`Variants (size)`)
+  const legends = qualifyLegends(mergeLegends(all));
   const issues: Issue[] = [];
   for (const l of legends)
     if (l.notes.includes('unlisted'))
@@ -95,7 +97,7 @@ export function layoutLegends(
         x = box.x + B.gap * 2;
       }
     };
-    label(`${l.title}${l.open ? ' (in view)' : ''}`, muted);
+    label(`${legendTitle(l)}${l.open ? ' (in view)' : ''}`, muted);
     const e = l.entries;
     const top = y + (B.row - B.swatch) / 2;
     if (e.kind === 'swatches') {

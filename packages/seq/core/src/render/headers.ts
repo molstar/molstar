@@ -156,6 +156,8 @@ export interface HeaderLine {
   readonly menu?: HeaderSlotBox;
   readonly states: readonly HeaderStateBox[];
   readonly actions?: Box;
+  /** The width of an ellipsis in the label font: what the actions' backdrop makes room for when it cuts a label. */
+  readonly ellipsis?: number;
   /** Shorter than `header.minHeightPx`: no slots, its states as marks. */
   readonly short: boolean;
   /** A host's DOM parts draw its slots, its "⋯" and its states over their boxes: the chrome draws none of them. */
@@ -365,7 +367,10 @@ function layoutLine(
     short: at.short,
   };
   if (menu) out.menu = menu;
-  if (actions) out.actions = actions;
+  if (actions) {
+    out.actions = actions;
+    out.ellipsis = text.measure(config.labelFont, '…');
+  }
   if (parts?.hosted && !at.figure) out.hosted = true;
   if (at.labelHit) out.hit = { layer: at.layer, section: at.section, system: '', target: 'header-label' };
   return out;

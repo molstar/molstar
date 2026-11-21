@@ -7,7 +7,7 @@
 import { ReactiveModel, type ReadonlyState, State } from '@molstar/core/reactive';
 import { type RangesLay, resolveColor, type SeqTokens, type ViewLayout, viewLegends } from '@molstar/seqx-core/render';
 import type { ViewerConfig } from './config.js';
-import { formatValue, type Legend, legendsEqual } from '@molstar/seqx-core/theme/index';
+import { formatValue, type Legend, legendsEqual, legendTitle } from '@molstar/seqx-core/theme/index';
 
 // The viewer's legends (_spec/README.md "Legends"): derived from the layout's channels when the view settles, a theme,
 // scale or token table changes, or the hover moves onto another entry; never per frame, compared structurally. The
@@ -88,7 +88,7 @@ export interface LegendEntryRow {
   readonly ramp?: readonly number[];
   /** A ramp's domain ends as written (the compact form shows them beside its bar). */
   readonly ends?: readonly [string, string];
-  /** A size key's mark: the radius (px) the channel gives the value, drawn as a circle. */
+  /** A size key's mark: what the channel gives the value, in the layer's own units; drawn as a circle by ratio. */
   readonly size?: number;
   /** A step: its cells join in the compact form. */
   readonly step?: true;
@@ -142,7 +142,7 @@ export function legendRows(viewer: { readonly legends: LegendModel }, options: L
     if (e.kind === 'swatches') {
       entries = e.items.map((i) => ({
         label: i.label,
-        name: `${l.title}: ${i.label}`,
+        name: `${legendTitle(l)}: ${i.label}`,
         color: i.color,
         ...(i.value !== undefined ? { value: i.value } : {}),
         hovered: hover?.key === l.key && hover.value === (i.value ?? i.label),
@@ -157,7 +157,7 @@ export function legendRows(viewer: { readonly legends: LegendModel }, options: L
       entries = [
         {
           label: range,
-          name: `${l.title}: ${range}${l.open ? ', in view' : ''}`,
+          name: `${legendTitle(l)}: ${range}${l.open ? ', in view' : ''}`,
           ramp: e.stops.map((s) => s.color),
           ends: [formatValue(lo), formatValue(hi)],
           hovered: hover?.key === l.key,
@@ -166,12 +166,12 @@ export function legendRows(viewer: { readonly legends: LegendModel }, options: L
     } else if (e.kind === 'steps') {
       entries = e.colors.map((c, i) => {
         const label = `${formatValue(e.edges[i])}–${formatValue(e.edges[i + 1])}`;
-        return { label, name: `${l.title}: ${label}`, color: c, step: true, hovered: false };
+        return { label, name: `${legendTitle(l)}: ${label}`, color: c, step: true, hovered: false };
       });
     } else {
       entries = e.items.map((i) => ({
         label: formatValue(i.value),
-        name: `${l.title}: ${formatValue(i.value)}`,
+        name: `${legendTitle(l)}: ${formatValue(i.value)}`,
         size: i.size,
         hovered: false,
       }));
@@ -182,7 +182,7 @@ export function legendRows(viewer: { readonly legends: LegendModel }, options: L
     ];
     out.push({
       key: l.key,
-      title: l.title,
+      title: legendTitle(l),
       layer: l.layers[0],
       entries,
       more,

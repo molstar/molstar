@@ -16,6 +16,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import type { ThemingBehavior } from '../behaviors/theming.js';
 import { viewerItem } from '../config.js';
 import { DefaultSeqViewerSpec } from '../default-spec.js';
+import { toMolLegend } from '@molstar/seqx-core/theme';
 import { legendRows } from '../legends.js';
 import { createSeqViewer, type SeqViewer } from '../viewer.js';
 import { type Frames, installFrames } from './frames.js';
@@ -106,7 +107,7 @@ describe('legends', () => {
 });
 
 describe('a layer with a color and a size channel (F23)', () => {
-  it('its two legends are titled apart, and the size key has a mark of the channel’s size on each entry', async () => {
+  it('two tracks’ legends merged, the one title of two channels says its channel; its two legends are titled apart, and the size key has a mark of the channel’s size on each entry', async () => {
     frames = installFrames();
     const b = createSeqSpec();
     const p = b.data.sequence('p', { alphabet: 'protein', letters: 'MEEPQSDPSVEPPLSQETFSDLWKLL' });
@@ -121,9 +122,9 @@ describe('a layer with a color and a size channel (F23)', () => {
       },
     });
     b.views.view('main', (v) => {
-      v.section('p', { of: p })
-        .track('variants', { label: 'Variants', height: 40 })
-        .layer('variants', {
+      const section = v.section('p', { of: p });
+      for (const label of ['gnomAD exomes', 'gnomAD genomes'])
+        section.track(label.split(' ')[1], { label, height: 40 }).layer('variants', {
           type: 'variants',
           data: vars,
           color: theme.field('consequence'),
@@ -137,7 +138,14 @@ describe('a layer with a color and a size channel (F23)', () => {
     await viewer.settle();
     frames.flush();
     const rows = legendRows(viewer);
-    expect(rows.map((r) => r.title)).toEqual(['Variants: color', 'Variants: size']);
+    // the two tracks' legends merge (same keys: title by the words they share), and the one title of two channels says
+    // its channel after the merge
+    expect(rows.map((r) => r.title)).toEqual(['gnomAD (color)', 'gnomAD (size)']);
+    expect(rows[1].entries[0].name).toBe('gnomAD (size): 0.000001');
+    // the Mol* converter keeps the track's title (it has none): sizes drop, the colors convert
+    const legends = viewer.legends.legends.value;
+    expect(legends.map((l) => l.title)).toEqual(['gnomAD', 'gnomAD']);
+    expect(legends.map((l) => toMolLegend(l)?.kind)).toEqual(['table-legend', undefined]);
     const sizes = rows[1].entries.map((e) => e.size!);
     expect(sizes).toHaveLength(3);
     expect(sizes[0]).toBeCloseTo(0.3);

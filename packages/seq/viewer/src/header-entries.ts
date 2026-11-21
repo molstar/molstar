@@ -172,6 +172,9 @@ export interface HeaderGeometry {
   readonly slots: readonly HeaderPartBox[];
   readonly states: readonly (HeaderPartBox & { readonly text: string; readonly mark: boolean })[];
   readonly well?: Box;
+  /** Where the track's label text ends (its x), and the width of an ellipsis in its font: for the actions' backdrop. */
+  readonly labelEnd?: number;
+  readonly ellipsis?: number;
   readonly shown: boolean;
 }
 

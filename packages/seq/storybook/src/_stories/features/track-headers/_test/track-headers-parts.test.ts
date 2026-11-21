@@ -63,4 +63,34 @@ describe('the story’s DOM parts', () => {
     expect(v.view.resolved.value!.sections[0].tracks).toHaveLength(5);
     port.dispose?.();
   });
+
+  it('the actions of a header have a backdrop over the label, with the ellipsis the canvas draws where the label is cut', async () => {
+    const view = ExampleViews.find((v) => v.id === 'headers')!;
+    const v = (viewer = createSeqViewer({ ...headersSpec({ parts: 'dom' }), ui: undefined, history: uiHistory() }));
+    v.resize(1440);
+    await v.load(view.build());
+    await v.settle();
+    const container = document.createElement('div');
+    document.body.append(container);
+    const port = partsDomPort()(container, headersOf(v));
+    const state = headersOf(v).partsState();
+    port.update({ headers: state.headers.map((h) => ({ ...h, actions: true })) });
+    const tracks = state.headers.filter((h) => h.geometry.target.track && h.geometry.slots.length);
+    expect(tracks.length).toBeGreaterThan(0);
+    let cuts = 0;
+    for (const h of tracks) {
+      const g = h.geometry;
+      const group = container.querySelector<HTMLElement>(`[role="group"][data-track="${g.target.track}"]`)!;
+      const back = group.querySelector<HTMLElement>('[data-backdrop]')!;
+      const x0 = Math.min(...g.slots.map((s) => s.box.x)) - 2;
+      const cut = g.labelEnd! > x0;
+      expect(back.textContent).toBe(cut ? '…' : '');
+      // the backdrop reaches the slots' left edge (and the ellipsis's room further left when it cuts)
+      expect(parseFloat(back.style.left)).toBeCloseTo(x0 - (cut ? g.ellipsis! : 0), 5);
+      if (cut) cuts++;
+    }
+    // the story's 80 px column cuts at least one label
+    expect(cuts).toBeGreaterThan(0);
+    port.dispose?.();
+  });
 });

@@ -131,10 +131,8 @@ export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: Le
         // the swatches match the canvas: never forced (forced colors keep data colors)
         // a size key's mark is a circle, its size relative to the row's largest (14 px across, in a 14 px cell): the
         // channel's range is in the layer's own units (a factor, a radius), so the key shows the ratio
-        const dot = e.size !== undefined ? Math.max(3, Math.round((14 * e.size) / largest)) : 0;
-        swatch.style.cssText = dot
-          ? `forced-color-adjust: none; display: inline-block; width: ${dot}px; height: ${dot}px; margin: ${(14 - dot) / 2}px 2px; border-radius: 50%; background: var(--msui-text-muted, gray);`
-          : `forced-color-adjust: none; display: inline-block; width: ${e.ramp ? (compact ? 40 : 64) : 10}px; height: 10px; background: ${e.ramp ? `linear-gradient(to right, ${e.ramp.map((c) => colorHex(c)).join(', ')})` : e.color !== undefined ? colorHex(e.color) : 'transparent'};`;
+        const dot = e.size === undefined ? 0 : Math.max(3, Math.round((14 * e.size) / largest));
+        swatch.style.cssText = `forced-color-adjust: none; display: inline-block; width: ${dot || (e.ramp ? (compact ? 40 : 64) : 10)}px; height: ${dot || 10}px; ${dot ? `margin: ${(14 - dot) / 2}px 2px; border-radius: 50%; background: var(--msui-text-muted, gray)` : `background: ${e.ramp ? `linear-gradient(to right, ${e.ramp.map((c) => colorHex(c)).join(', ')})` : e.color !== undefined ? colorHex(e.color) : 'transparent'}`};`;
         if (!compact) item.append(swatch, doc.createTextNode(e.label));
         else if (e.ends) item.append(doc.createTextNode(e.ends[0]), swatch, doc.createTextNode(e.ends[1]));
         else item.append(swatch);

@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { fontSize, type RenderConfig } from './config.js';
+import type { RenderConfig } from './config.js';
 import { Anchor, grown, NoColor, Op, type PassWriter, PathCommandPoints } from './draw-lists.js';
 import {
   type HeaderIcon,
@@ -25,9 +25,6 @@ import type { SectionLayout, TrackLayout } from './tracks-types.js';
 // the anchor a number read once: a draw reads no property of an imported object (_spec/README.md "Render", Draw lists)
 const AnchorStart: number = Anchor.start;
 const AnchorMiddle: number = Anchor.middle;
-
-/** The room an ellipsis takes on the backdrop of a label the actions cut. */
-const EllipsisPx = 9;
 
 /** A header's icon, 14 px in a 20 px slot: its 24-unit box scaled. */
 const IconPx = 14;
@@ -106,13 +103,14 @@ export function drawActions(
   tokens: SeqTokens,
   config: RenderConfig,
   labelEnd = Number.NEGATIVE_INFINITY,
+  labelY = 0,
 ) {
   const a = line.actions;
   if (!a) return;
   const g = out.args;
   // a label the backdrop cuts ends in an ellipsis on it (the label stays where it is)
   const cut = labelEnd > a.x - 2;
-  const grow = cut ? EllipsisPx : 0;
+  const grow = cut ? (line.ellipsis ?? 0) : 0;
   g[0] = a.x - 2 - grow;
   g[1] = a.y;
   g[2] = a.width + 2 + grow;
@@ -124,8 +122,7 @@ export function drawActions(
   g[8] = 0;
   out.rectArgs();
   if (cut) {
-    g[0] = a.x - 2 - grow;
-    g[1] = line.label.y + line.label.height / 2 + fontSize(config.labelFont) * 0.35;
+    g[1] = labelY;
     g[2] = grow;
     g[3] = grow;
     g[4] = tokens.colors['msui-text-muted'];
@@ -224,7 +221,7 @@ export function drawTrackHeader(
   if (pass === 'labels') {
     if (dy === 0) drawStates(out, line, s.tokens, s.config, 0);
   } else if (pass === 'tip' && dy === 0 && line.actions && actionsShown(t.track.address, s.id, emphasis, s.config))
-    drawActions(out, line, emphasis?.hover, s.tokens, s.config, s.config.inset + t.labelWidth);
+    drawActions(out, line, emphasis?.hover, s.tokens, s.config, s.config.inset + t.labelWidth, t.labelY);
 }
 
 /** A section's header line: its states (labels pass) and its actions when they show (tip pass). */

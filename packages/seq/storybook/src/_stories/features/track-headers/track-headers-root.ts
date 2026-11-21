@@ -65,13 +65,21 @@ class TrackHeadersRoot extends UiElement<TrackHeadersStory> {
     });
     const viewer = createSeqViewer({ ...spec, ui: { ...spec.ui, toolbar: mountToolbar } }, canvasHost);
     let off: (() => void) | undefined;
-    // the host's Undo and Redo keys, on the page: a click on a header's part leaves the focus off the canvas
+    // the host's Undo and Redo keys, on this story's own root (a click anywhere in it leaves the focus in it: the root
+    // takes the focus a part does not); never in a field, and never another story's on a page of several
+    root.tabIndex = -1;
+    root.style.outline = 'none';
     const onKey = (e: KeyboardEvent) => {
-      if (!(e.target instanceof HTMLInputElement) && undoKey(viewer, e)) e.preventDefault();
+      const t = e.target;
+      const field =
+        t instanceof HTMLInputElement ||
+        t instanceof HTMLTextAreaElement ||
+        (t instanceof HTMLElement && t.isContentEditable);
+      if (!field && undoKey(viewer, e)) e.preventDefault();
     };
-    document.addEventListener('keydown', onKey);
+    root.addEventListener('keydown', onKey);
     onCleanup(() => {
-      document.removeEventListener('keydown', onKey);
+      root.removeEventListener('keydown', onKey);
       off?.();
       viewer.retire();
     });

@@ -384,15 +384,20 @@ export function headerExtras(inner: HeaderShared): HeaderExtras {
     const out: HeaderGeometry[] = [];
     const h = viewer.height || Number.POSITIVE_INFINITY;
     for (const s of layout.sections) {
-      const lines: [HeaderLine, HeaderTarget, Box | undefined][] = [];
-      if (s.header) lines.push([s.header, { section: s.section.address }, undefined]);
+      const lines: [HeaderLine, HeaderTarget, Box | undefined, number | undefined][] = [];
+      if (s.header) lines.push([s.header, { section: s.section.address }, undefined, undefined]);
       const seen = new Set<string>();
       for (const t of s.tracks) {
         if (!t.header || seen.has(t.track.address)) continue;
         seen.add(t.track.address);
-        lines.push([t.header, { section: s.section.address, track: t.track.address }, t.well]);
+        lines.push([
+          t.header,
+          { section: s.section.address, track: t.track.address },
+          t.well,
+          s.config.inset + t.labelWidth,
+        ]);
       }
-      for (const [line, target, well] of lines) {
+      for (const [line, target, well, labelEnd] of lines) {
         const b = line.line;
         out.push({
           target,
@@ -401,6 +406,8 @@ export function headerExtras(inner: HeaderShared): HeaderExtras {
           slots: slotBoxes(line),
           states: line.states.map((st) => ({ name: st.name, box: st.box, text: st.text, mark: st.mark })),
           ...(well ? { well } : {}),
+          ...(labelEnd !== undefined ? { labelEnd } : {}),
+          ...(line.ellipsis !== undefined ? { ellipsis: line.ellipsis } : {}),
           shown: b.y + b.height > 0 && b.y < h && b.y >= s.y - 1 && b.y + b.height <= s.y + s.height + 1,
         });
       }
