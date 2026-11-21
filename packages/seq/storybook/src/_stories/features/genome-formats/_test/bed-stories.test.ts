@@ -254,4 +254,16 @@ describe('Features/Genome formats/BED, headless', () => {
       new Set(['seq.source.bed.line', 'seq.source.bed.cells', 'seq.source.bed.whitespace']),
     );
   });
+
+  it('a double-click on the ruler of a long chromosome zooms one step about the pointer, never to bases', async () => {
+    const v = await open('bed-cytobands');
+    const t = v.frame!.layout.sections[0].tracks[0];
+    const before = v.view.get(CytobandsSection)!;
+    v.input.doubleClick(t.box.x + t.box.width * 0.4, t.box.y + t.box.height / 2);
+    await vi.advanceTimersByTimeAsync(2000);
+    const after = v.view.get(CytobandsSection)!;
+    const factor = (before.end - before.start) / (after.end - after.start);
+    expect(factor).toBeGreaterThan(1.5);
+    expect(factor).toBeLessThan(3);
+  });
 });

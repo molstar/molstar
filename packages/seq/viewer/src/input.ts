@@ -955,6 +955,18 @@ export class ViewerInput {
       this.viewer.runCommand('view.focus', { section, focus: block });
       return true;
     }
+    // a position alone (a ruler's) where a unit is under a pixel: one zoom step about the pointer, never the closest
+    // zoom to a base (chr17 at the fit to 20 bases); a unit that is drawn (a letter) still focuses
+    const shown = this.viewer.frame?.layout.sections.find((x) => x.section.address === section);
+    const scale = shown?.layout.name === 'tracks' ? Math.abs(shown.axis?.scale ?? 1) : 1;
+    if (positional && !cell && !block && at >= 0 && scale < 1 && action === 'view.focus') {
+      this.viewer.runCommand('view.zoom-in', {
+        section,
+        at,
+        step: this.viewer.config.navigate.doubleClickZoomStep,
+      });
+      return true;
+    }
     const focus = hull ?? (cell ? { start: Math.floor(at), end: Math.floor(at) + 1 } : undefined);
     const location = hull && hit ? this._locationOf(hit) : undefined;
     this.viewer.runCommand(action, {
