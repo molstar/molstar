@@ -36,4 +36,4 @@ the morning").
 | genome-formats | GF | 2026-11-21 | 2026-11-21 (3 blocking, 8 to fix) | 2026-11-21 | yes |
 | across-sections | LX | 2026-11-21 | 2026-11-21 (2 blocking, 8 to fix) | 2026-11-21 | yes |
 | ring-extension | RN | 2026-11-21 | 2026-11-21 (2 blocking, 7 to fix) | 2026-11-21 | yes |
-| genomes-dataset | GD | | | n/a | |
+| genomes-dataset | GD | 2026-11-21 | | n/a | yes |
