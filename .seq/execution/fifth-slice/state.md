@@ -39,6 +39,11 @@
   took the minimal viewer to 944.6 and reading to 228.7 kB. Decided as recommended with it: the include floor named
   `min_length` (snake_case like every spec param); a sequence under an assembly inherits the assembly's alphabet.
 
+- **Genome resolve loads lazily** (the author, 2026-11-21: "Lazy genome resolve"): assembly resolve, the names rule and
+  the locus and block forms are a chunk loaded only when a spec holds an assembly (as navigators in `renderSvg`), so a
+  viewer that never opens a genome pays nothing; the bounds stay (reading 240, headless 830, default 1,330, minimal 960
+  kB). GC1's resolve stopped at headless 831.1 and minimal 960.1 kB before it.
+
 ## Overnight: stage 0 (run by the fourth slice's loop)
 
 The fourth slice's loop runs this while the author sleeps (its `state.md`, Next, points here). The lane limit is the

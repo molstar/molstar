@@ -157,6 +157,14 @@ coverage, which exists.
   rule (EC-23, EC-24) read it as one map. A liftover (EC-212) is projection through it (GF's `map.source`, LX's
   figure).
 
+### Loaded when used (the author, 2026-11-21: "Lazy genome resolve")
+
+Assembly resolve, the names rule, derived sequences and the `(locus …)` and `(block :name …)` forms are one chunk,
+loaded the first time a spec holds an `assembly` (or a query names a locus or block), as navigators load in
+`renderSvg`. The language's kinds and checks stay in the reading path (a reader checks every spec); what reads an
+assembly does not. Until the chunk arrives the spec is pending (EC-169's state), never wrong. Why: a viewer that never
+opens a genome pays nothing for it, and the minimal and headless entries keep their bounds.
+
 ### A section of an assembly: chromosomes as blocks
 
 - **`section.of` takes an assembly**: a block a sequence (the layouts design's blocks, as a complex gives a block a
