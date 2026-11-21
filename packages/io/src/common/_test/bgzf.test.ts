@@ -115,6 +115,21 @@ describe('BGZF read by virtual offset', () => {
     expect(await reader.read(file.voffset(0), file.voffset(data.length))).toEqual(data);
   });
 
+  it('gives the caller its own bytes, and reads nothing for a range whose blocks are cached', async () => {
+    const ranges = memoryRanges(file.bytes);
+    const reader = bgzfReader(ranges, { cacheBlocks: 8 });
+    const a = file.voffset(100);
+    const b = file.voffset(900); // inside block 0
+    const first = await reader.read(a, b);
+    first.fill(0);
+    expect(await reader.read(a, b)).toEqual(data.subarray(100, 900));
+    const reads = ranges.reads;
+    expect(await reader.read(file.voffset(10), file.voffset(7000))).toEqual(data.subarray(10, 7000));
+    expect(ranges.reads).toBe(reads + 1); // blocks 1 and 2 were not cached
+    expect(await reader.read(file.voffset(20), file.voffset(6000))).toEqual(data.subarray(20, 6000));
+    expect(ranges.reads).toBe(reads + 1);
+  });
+
   it('tells the EOF block, and its absence', async () => {
     expect(await bgzfReader(memoryRanges(file.bytes)).hasEof()).toBe(true);
     expect(await bgzfReader(memoryRanges(bgzip(data, 3000, false).bytes)).hasEof()).toBe(false);

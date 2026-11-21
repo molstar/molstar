@@ -25,8 +25,9 @@ is in `src/common/internal/` (not published): `bgzf-blocks.ts` (the block walk, 
   (plus a block) before it is read, so an index's offsets never size a read: a block that does not shrink is stored, so
   compressed bytes are at most about the inflated ones. Then the blocks' headers are walked, the exact length summed
   against the bound, and the blocks inflated; a virtual offset off the blocks or past its block's ISIZE is `malformed`.
-  It keeps `cacheBlocks` inflated blocks (16) for a pan back; `dispose` lets them go, and the range reader stays its
-  owner's.
+  It keeps `cacheBlocks` inflated blocks (16) for a pan back: a read whose blocks are all cached makes no range read,
+  and every read gives the caller its own bytes (a copy), never a cached block; `dispose` lets them go, and the range
+  reader stays its owner's.
 - **The EOF block** (28 bytes) is checked by `hasEof` with one read of the file's tail; a missing one is the caller's
   warning (the file may be cut short), the file still read (htslib's rule).
 

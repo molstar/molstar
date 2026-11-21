@@ -244,10 +244,21 @@ export class BgzfRangeReader {
     if (last - first > bound + MaxBlockBytes) {
       throw new BgzfError('too-large', `a read of ${last - first} compressed bytes, over the bound of ${bound}`);
     }
-    const [bytes] = await this.ranges.read(
-      [{ offset: first, length: Math.min(last + MaxBlockBytes, this.size) - first }],
-      signal,
-    );
+    // every block cached (a pan back): nothing read
+    let cachedAll = true;
+    for (let a = first; a <= stop; ) {
+      const c = LRUCache.get(this.cache, `${a}`);
+      if (!c) {
+        cachedAll = false;
+        break;
+      }
+      a = c.next;
+    }
+    const bytes = cachedAll
+      ? new Uint8Array(0)
+      : (
+          await this.ranges.read([{ offset: first, length: Math.min(last + MaxBlockBytes, this.size) - first }], signal)
+        )[0];
     // the blocks' headers first (cached blocks as they are), the exact length bounded, then inflated
     const blocks: { at: number; isize: number; header?: BlockHeader; cached?: Block }[] = [];
     let at = first;
@@ -290,7 +301,8 @@ export class BgzfRangeReader {
       LRUCache.set(this.cache, `${b.at}`, { bytes: got, next: b.at + b.header!.size });
       inflated.push(got);
     }
-    if (inflated.length === 1) return inflated[0].subarray(startWithin, startWithin + length);
+    // a copy: a caller's write never reaches the cached blocks
+    if (inflated.length === 1) return inflated[0].slice(startWithin, startWithin + length);
     const out = new Uint8Array(length);
     for (let i = 0, o = 0; i < inflated.length; i++) {
       const from = i === 0 ? startWithin : 0;

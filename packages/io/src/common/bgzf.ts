@@ -20,7 +20,10 @@ export {
 } from './internal/bgzf-blocks.js';
 
 export interface BgzfReader {
-  /** Inflated bytes from `begin` to `end` (the end block read for its first `within(end)` bytes). */
+  /**
+   * Inflated bytes from `begin` to `end` (the end block read for its first `within(end)` bytes): the caller's own
+   * copy, never the cached blocks. Blocks all cached are read without a range read.
+   */
   read(begin: VirtualOffset, end: VirtualOffset, signal?: AbortSignal): Promise<Uint8Array>;
   /** Whether the file ends with the 28-byte EOF block (one read of its last bytes; false: perhaps cut short). */
   hasEof(signal?: AbortSignal): Promise<boolean>;
