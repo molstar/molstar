@@ -326,9 +326,9 @@ function openMenu(
   const y = at.y + h > window.innerHeight - 4 ? Math.max(4, (at.bottom ?? at.y) - h) : at.y;
   menu.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
   // The chosen one of a choice first, else the first usable.
-  (
-    menu.querySelector<HTMLElement>('[aria-checked="true"]:not([aria-disabled="true"])') ?? firstRow(menu)
-  )?.focus({ preventScroll: true });
+  (menu.querySelector<HTMLElement>('[aria-checked="true"]:not([aria-disabled="true"])') ?? firstRow(menu))?.focus({
+    preventScroll: true,
+  });
   return close;
 }
 

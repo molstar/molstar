@@ -1890,7 +1890,7 @@ the UX foundations' numbers, CSS px, settled by the foundation stories; where no
 | `header.slots`, `.slotPx`, `.minHeightPx`, `.sectionPx`        | 2, 20 px (an icon of 14), 16 px, 20 px                                                                                 | at most two; the measured column usually leaves one (the eye), the menu holds every entry; a target of 20 px on a 24 px row; below 16 px an icon overlaps the next track (its states then marks); a section's line a line of the label font (Track headers)                                                                                                                                            |
 | `header.actions.show`                                          | `hover`                                                                                                                | the track hovered (its header or its data), the cursor on its header, the header the viewer names: a figure at rest shows names and states, not buttons; `always`, `never` (the menu only)                                                                                                                                                                                                             |
 | `header.states.export`                                         | `include`                                                                                                              | the states are facts about the picture, exported as drawn; `none` leaves them out of a figure (the slots and the "⋯" never are)                                                                                                                                                                                                                                                                        |
-| `section.header`                                               | `auto`                                                                                                                 | a section's header line when it has a state or a slot: no line that says nothing, records without hidden tracks unchanged; `always`, `none`                                                                                                                                                                                                                                                            |
+| `section.header`                                               | `auto`                                                                                                                 | a section's header line when a section entry gives it a slot: no line that says nothing, and a hidden track adds none (the application lists it); `always`, `none`                                                                                                                                                                                                                                     |
 | `margin`                                                       | 0.5                                                                                                                    | what a want adds on each side, a fraction of the view (the store's `margin` priority)                                                                                                                                                                                                                                                                                                                  |
 | `followArc`                                                    | `shortest`                                                                                                             | a cyclic follower takes the shortest arc holding the image (EC-12); `hull`                                                                                                                                                                                                                                                                                                                             |
 | `maxTemplateTracks`                                            | 200                                                                                                                    | the tracks one template makes; past it `seq.render.template.limit`: a source's nodes are untrusted                                                                                                                                                                                                                                                                                                     |
@@ -2773,29 +2773,31 @@ numbers): a window move allocates nothing once warm.
   viewer's own facts are its entries') are DOM-free: the layers a filter thinned with their counts, the hidden layers,
   the section's hidden tracks read from the spec (each once, in spec order). Absent, `builtInHeaderStates`: a track's
   `seq:filtered` ("n filtered", every thinned layer's rows) and `seq:hidden-layers` ("1 layer hidden", "n layers
-  hidden"), a section's `seq:hidden-tracks` ("n hidden"); no slots, no menu. Why given: which entries apply and whether
-  they run is the viewer's (its registry and commands); where they go is the layout's, so a canvas and a host's DOM
-  parts agree. A navigator's picture lays out no header.
+  hidden"); a section has none (hidden tracks are the application's: the view draws no chip, no line and no stub for
+  one, so a hide moves only what lies below it, by the track's height); no slots, no menu. Why given: which entries
+  apply and whether they run is the viewer's (its registry and commands); where they go is the layout's, so a canvas and
+  a host's DOM parts agree. A navigator's picture lays out no header.
 - **Where** (`header.*`): `actionColumns`: the "⋯" at the label column's right end, `header.slots` columns of
   `header.slotPx` left of it, as many slots as leave three columns of label (an 80 px column holds one), none under
   `header.actions.show: never`; one set a view, counted from the "⋯" leftwards (the first slot next to it), so a slot's
   x is never the label's and every track's eye is in one column whatever its line's count. Why the "⋯" last: a kebab
   menu is looked for at the row's end (Mol\*'s order; the author's). The slots are the first given
   (`HeaderSlotBox.part`); the "⋯" when `menu`. A line reserves only the slots it has (`HeaderLine.actions`: its slots
-  and the "⋯"): a line with none (a section's, whose built-ins are menu only) has its chips up to the "⋯". Why: at the
-  default 112 px a reservation of every column left "1 hidden" a mark. A track under `header.minHeightPx` (`short`)
-  takes no slots and its states are marks (6 px accent squircles, their words the card's). States beside the label end
-  before the line's own actions when it has any, else at the column's end, the last nearest; a state with no room left
-  is a mark, so a slot never overlaps a state: **a narrow column draws its states as marks** (decided: an 80 px column
-  with actions holds one slot, its chips marks), and a mark with no room left in the column is left out (never left of
-  it; its words the card's). On a track two lines high the states take a line of their own under the label (the label
-  whole, the two lines centred together; lower by the slot's half when the header has actions, so the line clears them).
-  The label fades before what is beside it (`HeaderLine.label`). **A rows track** draws no states and no slots and gives
-  no label hit: its label column is its tree and row labels, hit as before; its header is its title row's (not built,
-  the TODO).
-- **The section's line** (`section.header`: `auto` when its parts have a state or a slot, `always`, `none`):
-  `header.sectionPx` high above its first track, the tracks moved down by it (`SectionLayout.header`); kept when every
-  track of the section is hidden. Why `auto`: no line that says nothing, records without hidden tracks unchanged.
+  and the "⋯"): a line with none has its chips up to the "⋯". Why: at the default 112 px a reservation of every column
+  left "1 filtered" a mark. A track under `header.minHeightPx` (`short`) takes no slots and its states are marks (6 px
+  accent squircles, their words the card's). States beside the label end before the line's own actions when it has any,
+  else at the column's end, the last nearest; a state with no room left is a mark, so a slot never overlaps a state: **a
+  narrow column draws its states as marks** (decided: an 80 px column with actions holds one slot, its chips marks), and
+  a mark with no room left in the column is left out (never left of it; its words the card's). On a track two lines high
+  the states take a line of their own under the label (the label whole, the two lines centred together; lower by the
+  slot's half when the header has actions, so the line clears them). The label fades before what is beside it
+  (`HeaderLine.label`). **A rows track** draws no states and no slots and gives no label hit: its label column is its
+  tree and row labels, hit as before; its header is its title row's (not built, the TODO).
+- **The section's line** (`section.header`: `auto` when a section entry gives it a slot (a state or a menu-only entry
+  never draws one), `always`, `none`): `header.sectionPx` high above its first track, the tracks moved down by it
+  (`SectionLayout.header`). Why `auto`: no line that says nothing, and a hidden track never adds one (the author,
+  2026-11-21: hiding must not move the UI; the application lists and restores hidden tracks, viewer _spec "Hidden
+  tracks").
 - **Drawn**: the states in the labels pass (always: facts about the picture; a stack of blocks draws them once, on a
   track's first row, where they are hit), the actions in the tip pass over a backdrop of the label column's background
   (`msui-bg`: the column has no well) covering the label's tail (the label never moves; where the backdrop cuts the

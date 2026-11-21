@@ -223,7 +223,7 @@ export const FeatureViews: readonly ExampleView[] = [
     id: 'headers',
     title: 'Track headers',
     summary:
-      'p53 with something to say in its headers: the domains track has a filter (an "n filtered" chip) and a hidden layer ("1 layer hidden"), and two tracks are hidden (the section’s "2 hidden" chip). Point at a track’s label for its actions.',
+      'p53 with something to say in its headers: the domains track has a filter (an "n filtered" chip) and a hidden layer ("1 layer hidden"), and two tracks are hidden (nothing in the view says so: the toolbar’s list does). Point at a track’s label for its actions.',
     build: p53Headers.build,
   },
   {
@@ -231,7 +231,7 @@ export const FeatureViews: readonly ExampleView[] = [
     id: 'headers-hidden',
     title: 'Track headers, a section with every track hidden',
     summary:
-      'Two sections of p53: the first has every track hidden, so only its header remains, with "2 hidden"; its click shows them again.',
+      'Two sections of p53: the first has every track hidden and shows nothing for them; the toolbar’s hidden tracks list brings them back.',
     build: p53Headers.allHidden,
   },
   {

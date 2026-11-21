@@ -111,6 +111,21 @@ describe('viewer.hiddenTracks', () => {
   });
 });
 
+describe('a jump into a hidden track', () => {
+  it('says "on a hidden track" and moves nothing; a shown track is focused as before', async () => {
+    const v = await make();
+    for (const a of [C, '/views/main/two/d']) await v.execute('track.hide', { address: a });
+    await v.settle();
+    const out = v.addresses.focus(C);
+    expect(out).toMatchObject({ done: false, message: 'On a hidden track: show it to see it' });
+    expect(v.addresses.reveal('/views/main/two/d/l').message).toBe('On a hidden track: show it to see it');
+    expect(v.addresses.focus(A).message).not.toBe('On a hidden track: show it to see it');
+    await v.execute('track.show', { all: true });
+    await v.settle();
+    expect(v.addresses.focus(C).message).not.toBe('On a hidden track: show it to see it');
+  });
+});
+
 describe('track.show', () => {
   it('takes one, several or all, in one patch and one undo step', async () => {
     const v = await make();

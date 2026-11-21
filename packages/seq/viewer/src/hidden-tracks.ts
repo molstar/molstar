@@ -25,38 +25,36 @@ function sameEntries(a: readonly HiddenTrackEntry[], b: readonly HiddenTrackEntr
   );
 }
 
+/** Every hidden track (`hidden: true`) of every section of a spec, in its order. */
+export function hiddenTracksOf(root: Node): readonly HiddenTrackEntry[] {
+  let out: HiddenTrackEntry[] | undefined;
+  const walk = (node: Node, path: readonly string[]) => {
+    for (const c of node.children ?? []) {
+      if (c.id === undefined) continue;
+      const at = [...path, c.id];
+      if (c.kind === 'section') {
+        const section = `/${at.join('/')}`;
+        for (const t of c.children ?? []) {
+          if (t.kind !== 'track' || t.id === undefined || t.params?.hidden !== true) continue;
+          const label = t.params?.label;
+          (out ??= []).push({
+            address: `${section}/${t.id}`,
+            label: typeof label === 'string' ? label : t.id,
+            section,
+          });
+        }
+      }
+      if (c.kind !== 'track') walk(c, at);
+    }
+  };
+  walk(root, []);
+  return out ?? None;
+}
+
 /**
- * Every hidden track (`hidden: true`) of every section, read from the spec in its order (_spec/README.md "Hidden
- * tracks"): the application's to list and restore, never drawn by the view. It reads the spec, not the layout: a
- * section whose tracks are all hidden has none to read there.
+ * The hidden tracks of the spec shown (_spec/README.md "Hidden tracks"): the application's to list and restore, never
+ * drawn by the view. It reads the spec, not the layout: a section whose tracks are all hidden has none to read there.
  */
 export function hiddenTracksState(viewer: SeqViewer): ReadonlyState<readonly HiddenTrackEntry[]> {
-  return derive(
-    [viewer.spec.model],
-    (model) => {
-      let out: HiddenTrackEntry[] | undefined;
-      const walk = (node: Node, path: readonly string[]) => {
-        for (const c of node.children ?? []) {
-          if (c.id === undefined) continue;
-          const at = [...path, c.id];
-          if (c.kind === 'section') {
-            const section = `/${at.join('/')}`;
-            for (const t of c.children ?? []) {
-              if (t.kind !== 'track' || t.id === undefined || t.params?.hidden !== true) continue;
-              const label = t.params?.label;
-              (out ??= []).push({
-                address: `${section}/${t.id}`,
-                label: typeof label === 'string' ? label : t.id,
-                section,
-              });
-            }
-          }
-          if (c.kind !== 'track') walk(c, at);
-        }
-      };
-      walk(model.spec, []);
-      return out ?? None;
-    },
-    sameEntries,
-  );
+  return derive([viewer.spec.model], (model) => hiddenTracksOf(model.spec), sameEntries);
 }

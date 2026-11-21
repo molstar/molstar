@@ -54,7 +54,7 @@ defineStyles('components/context-menu/context-menu.module.css', `@layer msui.com
     grid-template-columns: var(--msui-icon-slot) 1fr auto;
   }
 
-  &:hover:not([aria-disabled="true"]), &:focus-visible {
+  &:hover:not([aria-disabled="true"]), &[aria-expanded="true"], &:focus-visible {
     background: var(--msui-control-hover);
     color: var(--msui-text);
   }
