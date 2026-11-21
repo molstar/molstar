@@ -288,6 +288,11 @@ export interface Emphasis {
     readonly part?: 'cell' | 'header';
     readonly track?: string;
   };
+  /**
+   * The address of the header (a track's, a section's) whose menu is open: its actions stay shown while the menu or its
+   * submenu is open, wherever the pointer is (_spec/README.md "Behaviors", Headers).
+   */
+  readonly menu?: string;
   /** The highlight channels in the order they were set: each a tint of its color (the `highlight` pass). */
   readonly highlights?: readonly EmphasisHighlight[];
   /** The window being dragged (its hit): a rail is drawn grown while its drag runs, wherever the pointer goes. */

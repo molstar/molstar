@@ -82,6 +82,13 @@ export class ViewerEmphasis {
       k.track = c.track;
       e.cursor = k;
     } else e.cursor = undefined;
+    // the header whose menu is open keeps its actions shown (the pointer leaves the line on its way to the menu)
+    const menu = (
+      viewer.behaviors.get('headers') as
+        | { menu?: { value: { menu: { target: { section: string; track?: string } } } | undefined } }
+        | undefined
+    )?.menu?.value?.menu.target;
+    e.menu = menu ? (menu.track ?? menu.section) : undefined;
     this.updateHighlights();
     e.projected = p;
     p.hover = viewer.hover.projectedAll();
