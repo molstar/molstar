@@ -13,6 +13,9 @@ import { PCG } from '@molstar/core/data/util/hash-functions';
 /** UCSC hg38's `cytoBandIdeo.txt.gz`, read from its recording (`cytoBandIdeo.txt.gz.pages.json`). */
 export const CytobandsFile = 'fixtures/genomes/cytoBandIdeo.txt.gz';
 
+/** The examples' files read from recordings (`<uri>.pages.json`): only these are asked for one. */
+export const RecordedFiles: readonly string[] = [CytobandsFile];
+
 /** chr17's length in GRCh38 (the cytobands' last band ends there). */
 export const Chr17Length = 83_257_441;
 

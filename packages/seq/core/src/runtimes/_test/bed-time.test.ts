@@ -8,13 +8,15 @@
 
 import { itWithin } from '@molstar/test-harness/timing';
 import { expect } from 'vitest';
+import { DefaultOpenLimits } from '../../data/protocol.js';
+import { BedRuntime } from '../bed.js';
 import { indexPairs, PairsBuilder, pairsIn, pairsSchema } from '../bed-pairs.js';
 import { BedCauses } from '../bed-issues.js';
-import { generateBedpe } from './bed-fixtures.js';
+import { generateBedpe, memoryAssets } from './bed-fixtures.js';
 
-// The BEDPE index's time (_spec/README.md "Data", BED family; performance.md's row): 600,000 rows, the most
-// `maxPairsBytes` holds of a six-column BEDPE, indexed by both ends under 300 ms. The quick representative (12,000
-// links, the milestone) is in `bed.test.ts`.
+// The BED runtime's times (_spec/README.md "Data", BED family; performance.md's rows): 600,000 BEDPE rows, the most
+// `maxPairsBytes` holds of a six-column BEDPE, indexed by both ends under 300 ms; a chrom.sizes of a million lines read
+// in one pass. Their quick representatives (12,000 links, 20,000 lines) are in `bed.test.ts`.
 
 const names = Array.from({ length: 24 }, (_, i) => `chr${i + 1}`);
 
@@ -32,4 +34,19 @@ itWithin(
     expect(pairsIn(rows, index, 0, 0, 1_000_000).length).toBeGreaterThan(0);
   },
   60_000,
+);
+
+itWithin(
+  'a chrom.sizes of 1,000,000 lines read under 1.5 s (a name seen kept in a set: linear)',
+  async (within) => {
+    const text = Array.from({ length: 1_000_000 }, (_, i) => `contig${i}\t${1000 + (i % 5000)}`).join('\n');
+    const s = await within(1500, () =>
+      BedRuntime.open(
+        { address: '/data/sizes', format: 'chrom-sizes', value: text },
+        { assets: memoryAssets({}), signal: new AbortController().signal, limits: DefaultOpenLimits },
+      ),
+    );
+    expect(s.coverage.systems.length).toBe(1_000_000);
+  },
+  120_000,
 );

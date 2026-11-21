@@ -26,6 +26,8 @@ import { fileBytes, filesOf, fileHead, printSources } from '../features/files/fi
 type ExampleModel = ExampleView & {
   readonly navigators?: 'omit' | 'include';
   readonly files?: boolean;
+  /** The status line says what the view's sources said when they opened (a misread file's lines left out). */
+  readonly sourceIssues?: boolean;
   /** The canvas above the SVG, each at the full width (a figure whose letters need it), not side by side. */
   readonly stacked?: boolean;
   /** What the story does once the view is placed (a move to the region it opens on). */
@@ -102,12 +104,15 @@ class ExampleRoot extends UiElement<ExampleModel> {
     // share a clip or a mask
     const svg = followSvg(viewer, svgHost, {
       prefix: 'ex',
-      also: [viewer.layoutIssues, viewer.modelIssues, viewer.store.issues],
+      also: [viewer.layoutIssues, viewer.modelIssues, ...(view.sourceIssues ? [viewer.store.issues] : [])],
       ...(view.navigators ? { svg: { navigators: view.navigators } } : {}),
       onDraw: (r) => {
-        // the export's issues, the viewer's model's as it says them (one of a source still opening held back) and what
-        // its sources said when they opened (a file's lines left out)
-        const issues = statusIssues(r.issues, [...viewer.modelIssues.value, ...viewer.store.issues.value]);
+        // the export's issues and the viewer's model's as it says them (one of a source still opening held back); with
+        // `sourceIssues`, what its sources said when they opened too (a file's lines left out)
+        const issues = statusIssues(
+          r.issues,
+          view.sourceIssues ? [...viewer.modelIssues.value, ...viewer.store.issues.value] : viewer.modelIssues.value,
+        );
         status.textContent = `${r.settled ? 'Settled' : 'Not settled'}; ${issues.length} issue${issues.length === 1 ? '' : 's'}${
           issues.length ? `: ${issues.map((i) => i.message).join('; ')}` : ''
         }`;
@@ -168,6 +173,7 @@ export function exampleStory(
   options: {
     readonly navigators?: 'omit' | 'include';
     readonly files?: boolean;
+    readonly sourceIssues?: boolean;
     readonly stacked?: boolean;
     readonly opening?: (viewer: SeqViewer) => unknown;
     readonly config?: SeqViewerSpec['config'];
@@ -176,7 +182,13 @@ export function exampleStory(
 ): HTMLElement {
   const el = document.createElement(ExampleRoot.tag) as ExampleRoot;
   el.model =
-    options.navigators || options.files || options.stacked || options.opening || options.config || options.behaviors
+    options.navigators ||
+    options.files ||
+    options.sourceIssues ||
+    options.stacked ||
+    options.opening ||
+    options.config ||
+    options.behaviors
       ? { ...view, ...options }
       : view;
   return el;

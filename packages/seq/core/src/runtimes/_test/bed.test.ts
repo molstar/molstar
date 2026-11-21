@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 import { PCG } from '@molstar/core/data/util/hash-functions';
 import { columnValues } from '@molstar/core/repr/tree';
 import { bgzip } from '@molstar/test-harness/genome/bgzf-writer';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { sourceSuite } from '../../data/_test/source-suite.js';
 import { delayedRuntime } from '../../data/async-source.js';
 import { DefaultOpenLimits, type OpenContext, type OpenedSource, type SourceEntry } from '../../data/protocol.js';
@@ -19,7 +19,15 @@ import { checkAnswer } from '../../data/tables.js';
 import { type BedpeSource, BedRuntime, bedRuntime } from '../bed.js';
 import { indexPairs, PairsBuilder, pairsIn, pairsSchema } from '../bed-pairs.js';
 import { BedCauses } from '../bed-issues.js';
-import { generateBed12, generateBedGraph, generateBedpe, indexed, memoryAssets, plainRows } from './bed-fixtures.js';
+import {
+  generateBed6,
+  generateBed12,
+  generateBedGraph,
+  generateBedpe,
+  indexed,
+  memoryAssets,
+  plainRows,
+} from './bed-fixtures.js';
 
 // The BED family's runtime (_spec/README.md "Data", BED family): the source suite on generated files and on the
 // recorded real slice (UCSC hg38 cytobands), whole and by region; a region read equals the whole read clipped (a
@@ -97,7 +105,7 @@ describe('the source suite', () => {
     const s = await BedRuntime.open(source, context({ f: bytes }));
     expect(s.issues).toEqual([]);
     expect(s.coverage.systems.length).toBeGreaterThan(24);
-    expect(s.coverage.shapes[0].fields?.map((f) => f.name)).toEqual(['stain', 'name']);
+    expect(s.coverage.shapes[0].fields?.map((f) => f.name)).toEqual(['stain', 'label']);
     // one tile holds a whole chromosome: the level a navigator's ideogram reads
     const level = s.coverage.levels.at(-1)!;
     const a = await s.read({ system: 'chr17', start: 0, end: 1024 * level, level, shapes: ['ranges'] }, signal);
@@ -113,11 +121,13 @@ describe('the source suite', () => {
 });
 
 describe('a region read equals the whole read clipped', () => {
-  for (const [format, gen] of [
-    ['bed', (seed: number) => generateBed12(400 + seed * 37, names, seed)],
-    ['bedgraph', (seed: number) => generateBedGraph(300 + seed * 41, names, seed)],
+  // positions to 400 kb (BED) and 200 kb (bedGraph): the regions are drawn inside the data
+  for (const [format, kind, gen, span] of [
+    ['bed', 'BED12', (seed: number) => generateBed12(400 + seed * 37, names, seed), 420_000],
+    ['bed', 'BED6 with items of no length', (seed: number) => generateBed6(400 + seed * 37, names, seed), 420_000],
+    ['bedgraph', 'bedGraph', (seed: number) => generateBedGraph(300 + seed * 41, names, seed), 200_000],
   ] as const) {
-    it(`${format}: generated files, random regions, every answer equal row for row`, async () => {
+    it(`${kind}: generated files, random regions, every answer equal row for row`, async () => {
       const rng = new PCG(11);
       for (let seed = 1; seed <= 6; seed++) {
         const g = gen(seed);
@@ -126,9 +136,12 @@ describe('a region read equals the whole read clipped', () => {
         const region = await BedRuntime.open(entry(format, { index: 'i' }), context({ f: file, i: index }));
         if (format === 'bed') expect(region.coverage.shapes[0].fields).toEqual(whole.coverage.shapes[0].fields);
         for (let k = 0; k < 25; k++) {
-          const system = names[Math.floor(rng.float() * names.length)];
-          const start = Math.floor(rng.float() * 420_000);
+          const pick = names[Math.floor(rng.float() * names.length)];
+          // every fifth region starts at a line's own start (an item of no length there included)
+          const at = g.lines[Math.floor(rng.float() * g.lines.length)];
+          const start = k % 5 === 1 ? at.begin : Math.floor(rng.float() * span);
           const end = start + Math.floor(rng.float() * (k % 5 === 0 ? 2 : 30_000));
+          const system = k % 5 === 1 ? names[at.seq] : pick;
           const request = { system, start, end, level: 1, shapes: [format === 'bed' ? 'ranges' : 'values'] as const };
           const w = await whole.read({ ...request, shapes: [...request.shapes] }, signal);
           const r = await region.read({ ...request, shapes: [...request.shapes] }, signal);
@@ -140,6 +153,22 @@ describe('a region read equals the whole read clipped', () => {
       }
     });
   }
+
+  it('the first data line read past `track`, `browser` and `#` lines where the index’s first chunk starts on them', async () => {
+    const g = generateBed12(120, names, 31);
+    const head = 'track name=t\nbrowser position chr1\n# c\n';
+    const n = new TextEncoder().encode(head).length;
+    // the header lines indexed as the data's first chunk's start (an index whose first line is a `track` line)
+    const lines = [
+      { seq: 0, begin: 0, end: 1, start: 0, stop: n },
+      ...g.lines.map((l) => ({ ...l, start: l.start + n, stop: l.stop + n })),
+    ];
+    const { file, index } = indexed({ text: head + g.text, lines, names: g.names });
+    const region = await BedRuntime.open(entry('bed', { index: 'i' }), context({ f: file, i: index }));
+    const whole = await BedRuntime.open(entry('bed'), context({ f: g.text }));
+    expect(region.coverage.shapes[0].fields).toEqual(whole.coverage.shapes[0].fields);
+    expect(region.coverage.shapes[0].fields?.length).toBe(6);
+  });
 });
 
 describe('fuzzed and truncated files read without a throw (EC-40, EC-92)', () => {
@@ -205,12 +234,14 @@ describe('BED', () => {
   it('BED12’s blocks are pieces of one item, each with its extent; identity name@start-end (EC-196)', async () => {
     const line = 'chr1\t100\t1000\ttx1\t500\t-\t200\t900\t255,0,0\t3\t100,200,100,\t0,400,800,';
     const { t, s } = await read(`${line}\n`);
+    // BED's name is the label (the items' label field), its strand a field too (a layer's filter reads it)
     expect(s.coverage.shapes[0].fields?.map((f) => `${f.name}:${f.type}`)).toEqual([
-      'name:category',
+      'label:category',
       'score:float32',
       'thick_start:int32',
       'thick_end:int32',
       'item_rgb:category',
+      'strand:int8',
     ]);
     expect(Array.from(t!.start)).toEqual([100, 500, 900]);
     expect(Array.from(t!.end)).toEqual([200, 700, 1000]);
@@ -230,11 +261,21 @@ describe('BED', () => {
       'chr1\t0\t100\tb\t0\t+\t0\t100\t0\t2\t10,10,\t50,0,',
       'chr1\t0\t100\tc\t0\t+\t0\t100\t0\t1\t200,\t0,',
       'chr1\t0\t100\td\t0\t+\t0\t100\t0\t1\t100,\t0,',
+      // UCSC's rule: a block of no length, one not from the item's start, one short of its end, two overlapping
+      'chr1\t0\t100\te\t0\t+\t0\t100\t0\t2\t0,100,\t0,0,',
+      'chr1\t0\t100\tf\t0\t+\t0\t100\t0\t1\t90,\t10,',
+      'chr1\t0\t100\tg\t0\t+\t0\t100\t0\t2\t10,10,\t0,50,',
+      'chr1\t0\t100\th\t0\t+\t0\t100\t0\t2\t60,50,\t0,50,',
     ];
     const { t, s } = await read(`${bad.join('\n')}\n`);
     expect(columnValues(t!.id!)).toEqual(['d@0-100']);
     const lines = s.issues?.filter((i) => i.code === 'seq.source.bed.line');
-    expect(lines?.map((i) => i.message.replace(/^.*: /, ''))).toEqual(['1 (line 1)', '2 (line 2, line 3)']);
+    expect(lines?.map((i) => i.message)).toEqual([
+      'Blocks whose counts are not `block_count`: 1 (line 1)',
+      'Blocks out of order, overlapping or outside the item: 4 (line 2, line 3, line 6, line 8)',
+      'A block of no length: 1 (line 5)',
+      'Blocks that do not reach the item’s end: 1 (line 7)',
+    ]);
     expect(lines?.[0].severity).toBe('warning');
   });
 
@@ -245,18 +286,20 @@ describe('BED', () => {
     expect(plain.s.issues?.map((i) => i.code)).toEqual(['seq.source.bed.cells']);
     const { t, s } = await read(text, { fields: { stain: '4' } }, 'chr1', 0, 6_000_000);
     expect(s.issues).toEqual([]);
-    expect(t!.fields!.map((f) => f.name)).toEqual(['stain', 'name']);
+    expect(t!.fields!.map((f) => f.name)).toEqual(['stain', 'label']);
     expect(columnValues(t!.fields![0].column)).toEqual(['gneg', 'gpos25']);
-    // narrowPeak: signal and p by number, typed by `types`; a column past the first line's is refused
+    // narrowPeak (`bed 6+4`): signal and p by number, typed by `types`; BED's names stop at the first mapped column, so
+    // columns 8 and 9 are `col8` and `col9`, never `item_rgb` and `block_count`; a column past the first line's refused
     const peak = 'chr1\t10\t20\tp1\t0\t.\t5.5\t3.2\t-1\t4\n';
     const n = await read(peak, { fields: { signal: '6', p: '7' }, types: { signal: 'float32', p: 'float32' } });
     expect(n.t!.fields!.map((f) => `${f.name}:${columnValues(f.column)[0]}`)).toEqual([
       'signal:5.5',
       'p:3.200000047683716',
-      'name:p1',
+      'label:p1',
       'score:0',
-      'item_rgb:-1',
-      'block_count:4',
+      'col8:-1',
+      'col9:4',
+      'strand:0',
     ]);
     expect(await opened(BedRuntime.open(entry('bed', { fields: { x: '12' } }), context({ f: peak })))).toEqual([
       'seq.source.bed.field',
@@ -266,16 +309,54 @@ describe('BED', () => {
     ]);
   });
 
-  it('a format’s base is fixed: `base` and `ends` not read, said once (EC-195)', async () => {
+  it('a format’s base is fixed: `base` and `ends` not read, said once, whole and by region (EC-195)', async () => {
     const { t, s } = await read('chr1\t0\t10\n', { base: 1, ends: 'inclusive' });
     expect([t!.start[0], t!.end[0]]).toEqual([0, 10]);
     expect(s.issues?.map((i) => i.code)).toEqual(['seq.source.bed.transform']);
+    const g = generateBed6(50, names, 3);
+    const { file, index } = indexed(g);
+    const r = await BedRuntime.open(
+      entry('bed', { index: 'i', base: 1, ends: 'inclusive' }),
+      context({ f: file, i: index }),
+    );
+    expect(r.issues?.map((i) => i.code)).toEqual(['seq.source.bed.transform']);
+    const first = g.lines.find((l) => l.end > l.begin)!;
+    const request = {
+      system: names[first.seq],
+      start: first.begin,
+      end: first.end,
+      level: 1,
+      shapes: ['ranges' as const],
+    };
+    const a = await r.read(request, signal);
+    const rows = plainRows(a) as { start: number; end: number }[];
+    expect(rows.some((x) => x.start === first.begin && x.end === first.end)).toBe(true);
   });
 
   it('identical lines keep apart by `#2` in file order, the same whole and by region; unnamed ids @start-end', async () => {
-    const text = 'chr1\t5\t9\ta\nchr1\t5\t9\ta\nchr1\t5\t9\nchr1\t5\t9\t.\n';
+    const text = 'chr1\t5\t9\ta\nchr1\t5\t9\ta\nchr1\t5\t9\t.\nchr1\t5\t9\t.\n';
     const { t } = await read(text);
     expect(columnValues(t!.id!)).toEqual(['a@5-9', 'a@5-9#2', '@5-9', '@5-9#2']);
+    // by region, the same ids: identical lines meet the same regions, so the suffix is the file's order there too
+    const lines = text
+      .trim()
+      .split('\n')
+      .reduce<{ seq: number; begin: number; end: number; start: number; stop: number }[]>((out, l) => {
+        const start = out.length ? out[out.length - 1].stop : 0;
+        out.push({ seq: 0, begin: 5, end: 9, start, stop: start + l.length + 1 });
+        return out;
+      }, []);
+    const { file, index } = indexed({ text, lines, names: ['chr1'] });
+    const r = await BedRuntime.open(entry('bed', { index: 'i' }), context({ f: file, i: index }));
+    for (const [start, end] of [
+      [0, 10],
+      [6, 7],
+    ]) {
+      const a = await r.read({ system: 'chr1', start, end, level: 1, shapes: ['ranges'] }, signal);
+      expect(a.ok && a.tables.ranges?.form === 'list' && columnValues(a.tables.ranges.id!)).toEqual(
+        columnValues(t!.id!),
+      );
+    }
   });
 
   it('track, browser and # lines read past; lines without a tab split on spaces, said once; CRLF', async () => {
@@ -287,6 +368,22 @@ describe('BED', () => {
   it('bounds before allocation: bytes and lines of a whole read, pieces over maxRows', async () => {
     const big = generateBed12(300, names, 3).text;
     const small = { maxRows: 100, maxBytes: 1 << 20 };
+    // past `maxBytes` refused before a byte is decoded to text
+    const decode = vi.spyOn(TextDecoder.prototype, 'decode');
+    expect(
+      await opened(BedRuntime.open(entry('bed'), context({ f: big }, true, { maxRows: 1e6, maxBytes: 100 }))),
+    ).toEqual(['seq.source.too_large']);
+    expect(decode).not.toHaveBeenCalled();
+    decode.mockRestore();
+    // a line of four million blocks past the rows left: refused from its count, its lists never split (they are not
+    // even well formed: a parse would have said `.line`)
+    const split = vi.spyOn(String.prototype, 'split');
+    const huge = `chr1\t0\t100\tx\t0\t+\t0\t100\t0\t4000000\t${'1,'.repeat(1000)}\tnot,a,list`;
+    expect(await opened(BedRuntime.open(entry('bed'), context({ f: `${huge}\n` }, true, small)))).toEqual([
+      'seq.source.too_large',
+    ]);
+    expect(split.mock.calls.filter((c) => (c[0] as unknown) === ',').length).toBe(0);
+    split.mockRestore();
     expect(await opened(BedRuntime.open(entry('bed'), context({ f: big }, true, small)))).toEqual([
       'seq.source.too_large',
     ]);
@@ -296,7 +393,7 @@ describe('BED', () => {
     // 60 lines of 5 blocks: 300 pieces past 100 rows
     const blocks = Array.from(
       { length: 60 },
-      (_, i) => `chr1\t${i * 100}\t${i * 100 + 50}\tx\t0\t+\t0\t0\t0\t5\t1,1,1,1,1,\t0,10,20,30,40,`,
+      (_, i) => `chr1\t${i * 100}\t${i * 100 + 50}\tx\t0\t+\t0\t0\t0\t5\t10,10,10,10,10,\t0,10,20,30,40,`,
     );
     expect(await opened(BedRuntime.open(entry('bed'), context({ f: blocks.join('\n') }, true, small)))).toEqual([
       'seq.source.too_large',
@@ -355,6 +452,18 @@ describe('chrom.sizes (EC-188)', () => {
       'seq.source.too_large',
     ]);
     expect(s.issues?.find((i) => i.code === 'seq.source.too_large')?.message).toContain('axolotl1');
+  });
+});
+
+describe('chrom.sizes at scale', () => {
+  it('20,000 lines read in one pass (a name seen kept in a set, not searched for: 1M in the heavy lane)', async () => {
+    const text = Array.from({ length: 20_000 }, (_, i) => `ctg${i}\t${1000 + i}`).join('\n');
+    const t0 = performance.now();
+    const s = await BedRuntime.open(entry('chrom-sizes'), context({ f: `${text}\nctg5\t9\n` }));
+    // generous: quadratic took seconds here (80,000 lines 16.9 s); linear a few tens of ms
+    expect(performance.now() - t0).toBeLessThan(1500);
+    expect(s.coverage.systems.length).toBe(20_000);
+    expect(s.issues?.map((i) => i.message)).toEqual(['A name again (the first kept): 1 (line 20001)']);
   });
 });
 

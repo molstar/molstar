@@ -14,8 +14,8 @@ import type { AssetReader, FormatRuntime } from '@molstar/seqx-core/data';
 //
 //   recordingRanges(bytes)        a range reader over a downloaded file that notes the pages read (to record them)
 //   encodePages(file, bytes, pages)   the recording of those pages (or 'all')
-//   recordedAssets(inner)         an asset port reading `<uri>` from `<uri>.pages.json` through `inner`
-//   withRecordedPages(runtime)    a runtime whose sources read their files so (a view's registry entry)
+//   recordedAssets(inner, uris)   an asset port reading those `uris` from `<uri>.pages.json` through `inner`
+//   withRecordedPages(runtime, uris)  a runtime whose sources read those files so (a view's registry entry)
 
 /** Core's page size (`openRanges`' default): the unit a recording keeps. */
 export const PageSize = 64 * 1024;
@@ -84,16 +84,33 @@ export function encodePages(file: string, bytes: Uint8Array, pages: Iterable<num
   return { format: 'seqx-pages/1', file, size: bytes.length, pageSize: PageSize, pages: out };
 }
 
-/** A recording checked: its format, page size and pages' lengths. */
+/** The bytes a base64 text decodes to, told from its length and padding. */
+const base64Bytes = (t: string) => (t.length / 4) * 3 - (t.endsWith('==') ? 2 : t.endsWith('=') ? 1 : 0);
+
+/**
+ * A recording checked: its format and page size, and each page's length (a page a full 64 KiB, the file's last its
+ * rest), so a page cut short is refused here, never read as zeros; the message names the page and the file.
+ */
 export function readRecording(text: string): RecordedPages {
   const r = JSON.parse(text) as RecordedPages;
   if (
     r?.format !== 'seqx-pages/1' ||
     r.pageSize !== PageSize ||
-    typeof r.size !== 'number' ||
-    typeof r.pages !== 'object'
+    !Number.isInteger(r.size) ||
+    r.size < 0 ||
+    typeof r.pages !== 'object' ||
+    r.pages === null
   )
     throw new Error('Not a recording of pages (seqx-pages/1)');
+  const count = Math.ceil(r.size / PageSize);
+  for (const [k, b64] of Object.entries(r.pages)) {
+    const p = Number(k);
+    if (!Number.isInteger(p) || p < 0 || p >= count)
+      throw new Error(`Page ${k} of ${r.file} is past its ${count} pages`);
+    const want = Math.min(PageSize, r.size - p * PageSize);
+    if (typeof b64 !== 'string' || b64.length % 4 !== 0 || base64Bytes(b64) !== want)
+      throw new Error(`Page ${p} of ${r.file} is not its ${want} bytes: record the file again`);
+  }
   return r;
 }
 
@@ -145,42 +162,51 @@ export function recordingRanges(bytes: Uint8Array): AssetRangeReader & { readonl
 }
 
 /**
- * An asset port reading each file from its recording (`<uri>.pages.json`, through `inner`): whole (every page
- * recorded) by `readBytes`, by range by `openRange`. A location without a recording is `inner`'s own.
+ * An asset port reading the files `recorded` lists from their recordings (`<uri>.pages.json`, through `inner`): whole
+ * (every page recorded) by `readBytes`, by range by `openRange`; any other location is `inner`'s own, never asked for a
+ * recording. A recording that cannot be read (missing, malformed, a page cut short) or an abort fails the read, naming
+ * the cause: never a fallback to the file.
  */
-export function recordedAssets(inner: AssetReader): AssetReader {
-  const recordings = new Map<string, Promise<RecordedPages | undefined>>();
-  const recording = (uri: string, signal: AbortSignal) => {
+export function recordedAssets(inner: AssetReader, recorded: readonly string[]): AssetReader {
+  const recordings = new Map<string, Promise<RecordedPages>>();
+  const recording = (uri: string, signal: AbortSignal): Promise<RecordedPages> | undefined => {
+    if (!recorded.includes(uri)) return undefined;
     let p = recordings.get(uri);
     if (!p) {
-      p = inner.readText(`${uri}${PagesSuffix}`, signal).then(readRecording, () => undefined);
+      p = inner.readText(`${uri}${PagesSuffix}`, signal).then(readRecording);
+      // a failure is not kept: an aborted read is asked again by the next
+      p.catch(() => recordings.delete(uri));
       recordings.set(uri, p);
     }
     return p;
   };
   return {
     readText: async (uri, signal) => {
-      const r = await recording(uri, signal);
-      return r ? new TextDecoder().decode(recordedRead(r, new Map(), 0, r.size)) : inner.readText(uri, signal);
+      const p = recording(uri, signal);
+      if (!p) return inner.readText(uri, signal);
+      const r = await p;
+      return new TextDecoder().decode(recordedRead(r, new Map(), 0, r.size));
     },
     readBytes: async (uri, signal) => {
-      const r = await recording(uri, signal);
-      return r ? recordedRead(r, new Map(), 0, r.size) : inner.readBytes(uri, signal);
+      const p = recording(uri, signal);
+      if (!p) return inner.readBytes(uri, signal);
+      const r = await p;
+      return recordedRead(r, new Map(), 0, r.size);
     },
     openRange: async (uri, signal) => {
-      const r = await recording(uri, signal);
-      if (r) return recordedRanges(r);
+      const p = recording(uri, signal);
+      if (p) return recordedRanges(await p);
       if (!inner.openRange) throw new Error(`No range reads of ${uri}`);
       return inner.openRange(uri, signal);
     },
   };
 }
 
-/** A runtime whose sources read their files from recordings (`recordedAssets` over the context's port). */
-export function withRecordedPages(runtime: FormatRuntime): FormatRuntime {
+/** A runtime whose sources read the files `recorded` lists from their recordings (`recordedAssets`). */
+export function withRecordedPages(runtime: FormatRuntime, recorded: readonly string[]): FormatRuntime {
   return {
     name: `${runtime.name}-recorded`,
     formats: runtime.formats,
-    open: (source, ctx) => runtime.open(source, { ...ctx, assets: recordedAssets(ctx.assets) }),
+    open: (source, ctx) => runtime.open(source, { ...ctx, assets: recordedAssets(ctx.assets, recorded) }),
   };
 }

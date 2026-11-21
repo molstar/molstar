@@ -17,6 +17,7 @@ import {
   GeneratedLength,
   GeneratedSystem,
   MisreadBedFile,
+  RecordedFiles,
 } from './files.js';
 
 // The BED family's views (Features/Genome formats/BED): each a file read by the opt-in `bed` runtime, its system's
@@ -28,14 +29,14 @@ export const CytobandsSection = '/views/main/chr17';
 export const GenesSection = '/views/main/genes';
 export const MisreadSection = '/views/main/misread';
 
-/** chr17's bands from UCSC's cytobands: `stain` and `label` by their column numbers (`bed 4+1`). */
+/** chr17's bands from UCSC's cytobands: `stain` by its column number (`bed 4+1`), BED's name the label. */
 export function cytobands(): Node {
   const b = createSeqSpec({ title: 'hg38 cytobands from BED' });
   const sizes = b.data.source('sizes', { format: 'chrom-sizes', value: `chr17\t${Chr17Length}\n` as never });
   const bed = b.data.source('cytobands', {
     format: 'bed',
     uri: CytobandsFile,
-    fields: { stain: '4', label: '3' },
+    fields: { stain: '4' },
     attribution: 'UCSC Genome Browser, hg38 cytoBandIdeo',
     licence: 'LicenseRef-UCSC-freely-usable',
   });
@@ -58,13 +59,23 @@ export function genes(): Node {
     format: 'chrom-sizes',
     value: `${GeneratedSystem}\t${GeneratedLength}\n` as never,
   });
-  const bed = b.data.source('genes-bed', { format: 'bed', uri: GeneratedBedFile, fields: { label: '3' } });
+  const bed = b.data.source('genes-bed', { format: 'bed', uri: GeneratedBedFile });
   const chr = b.data.sequence('chrG', { alphabet: 'dna', source: sizes, name: GeneratedSystem });
   const genes = b.data.ranges('genes', { target: chr, source: bed });
   b.views.view('main', (v) => {
     const s = v.section('genes', { of: chr });
     s.track('ruler', { label: '' }).layer('ruler', { type: 'ruler', units: 'bases' });
-    s.track('genes', { label: 'Genes' }).layer('ranges', { type: 'ranges', data: genes });
+    // a track a strand, each gene an arrow where it is read to (the plasmid's form): its strand a field of the file
+    s.track('plus', { label: 'Genes +' }).layer('ranges', {
+      type: 'ranges',
+      data: `${genes}/(item :strand 1)`,
+      arrow: 'end',
+    });
+    s.track('minus', { label: 'Genes −' }).layer('ranges', {
+      type: 'ranges',
+      data: `${genes}/(item :strand -1)`,
+      arrow: 'start',
+    });
   });
   return b.build();
 }
@@ -73,7 +84,7 @@ export function genes(): Node {
 export function misread(): Node {
   const b = createSeqSpec({ title: 'A misread BED' });
   const sizes = b.data.source('sizes', { format: 'chrom-sizes', value: `${GeneratedSystem}\t7000\n` as never });
-  const bed = b.data.source('misread-bed', { format: 'bed', uri: MisreadBedFile, fields: { label: '3' } });
+  const bed = b.data.source('misread-bed', { format: 'bed', uri: MisreadBedFile });
   const chr = b.data.sequence('chrG', { alphabet: 'dna', source: sizes, name: GeneratedSystem });
   const rows = b.data.ranges('rows', { target: chr, source: bed });
   b.views.view('main', (v) => {
@@ -89,7 +100,7 @@ export function misread(): Node {
  * have one, each answer after `delayMs` (150) on `clock` (the synthetic twin the stories and tests share).
  */
 export function registry(options: { readonly delayMs?: number; readonly clock?: StoreClock } = {}): SeqRegistryEntry[] {
-  const runtime = delayedRuntime(withRecordedPages(BedRuntime), {
+  const runtime = delayedRuntime(withRecordedPages(BedRuntime, RecordedFiles), {
     name: 'bed-async',
     formats: BedFormats,
     delayMs: options.delayMs ?? 150,

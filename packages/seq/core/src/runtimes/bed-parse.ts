@@ -125,22 +125,27 @@ export function bedSchema(
     mapped.set(c, field);
     if (field === 'strand') strand = c;
     else {
+      // a mapping's `name` is the identity's column and the label
       if (field === 'name') name = c;
-      fields.push({ name: field, column: c, type: typeOf(types[field], 'category') });
+      const label = field === 'name' ? 'label' : field;
+      fields.push({ name: label, column: c, type: typeOf(types[label], 'category') });
     }
   }
-  const blocks = columns >= 12 && !mapped.has(9) && !mapped.has(10) && !mapped.has(11);
-  // a field a mapping names under BED's name (`name`, `score`): the mapping's column holds it, BED's is not read
+  // a `bed N+M` file: BED's names stop at the first column a mapping reads; the unmapped ones past it are `col<k>`
+  const plus = mapped.size ? Math.min(...mapped.keys()) : columns;
+  const blocks = columns >= 12 && plus > 11;
+  // a field a mapping names under BED's name (`label`, `score`): the mapping's column holds it, BED's is not read
   const own = new Set([...fields.map((f) => f.name), ...(strand !== undefined ? ['strand'] : [])]);
   for (let c = 3; c < columns; c++) {
     if (mapped.has(c) || (blocks && c >= 9 && c <= 11)) continue;
-    const bed = c < 12 ? BedColumns[c] : `col${c}`;
+    // BED's name is the label (the items' label field), its identity too (below)
+    const bed = c >= 12 || c >= plus ? `col${c}` : c === 3 ? 'label' : BedColumns[c];
     if (own.has(bed)) continue;
     if (bed === 'strand') {
       strand = c;
       continue;
     }
-    if (bed === 'name') name = c;
+    if (c === 3) name = c;
     fields.push({ name: bed, column: c, type: typeOf(types[bed], BedTypes[bed] ?? 'category') });
   }
   // identity is BED's name column (EC-196) when a mapping reads it under another field (`label`) too
@@ -150,7 +155,9 @@ export function bedSchema(
 
 /** The coverage's fields of a schema's tables. */
 export function fieldInfos(schema: BedSchema): FieldInfo[] {
-  return schema.fields.map((f) => ({ name: f.name, type: f.type }));
+  const out: FieldInfo[] = schema.fields.map((f) => ({ name: f.name, type: f.type }));
+  if (schema.strand !== undefined) out.push({ name: 'strand', type: 'int8' });
+  return out;
 }
 
 // ---- BED: a system's items and their pieces ----
@@ -179,7 +186,12 @@ export class ItemsBuilder {
    * Reads one data line's cells (its chrom already told); false when it is left out (said). Identity (EC-196):
    * `name@start-end`, `#2`, `#3` on a later identical key in read order (identical items are read together).
    */
-  add(cells: readonly string[], place: string, causes: BedCauses): boolean {
+  add(
+    cells: readonly string[],
+    place: string,
+    causes: BedCauses,
+    room = Number.POSITIVE_INFINITY,
+  ): boolean | 'too-large' {
     const s = this.schema;
     const start = positionOf(cells[1]);
     const end = positionOf(cells[2]);
@@ -194,7 +206,8 @@ export class ItemsBuilder {
     let blockStarts: number[] | undefined;
     let blockSizes: number[] | undefined;
     if (s.blocks) {
-      const got = blocksOf(cells, end - start);
+      const got = blocksOf(cells, end - start, room);
+      if (got === TooMany) return 'too-large';
       if (typeof got === 'string') {
         causes.add('seq.source.bed.line', got, place);
         return false;
@@ -296,8 +309,17 @@ function sortedOrder(starts: readonly number[]): Int32Array | undefined {
 }
 
 /** BED12's blocks: counts equal to `block_count`, each inside the item, sorted and apart; else why not. */
-function blocksOf(cells: readonly string[], length: number): [number[], number[]] | string {
+/** A line's blocks past the rows left: refused before its lists are split. */
+const TooMany = 'too-many';
+
+/**
+ * BED12's blocks by UCSC's rule: counts equal to `block_count`, each at least a position long, the first from the item's
+ * start, the last to its end, sorted and apart; else why not. More blocks than `room` (the rows left) is `TooMany`, told
+ * from the count before the lists are split.
+ */
+function blocksOf(cells: readonly string[], length: number, room: number): [number[], number[]] | string {
   const count = positionOf(cells[9]);
+  if (count !== undefined && count > room) return TooMany;
   const list = (cell: string | undefined) => {
     const parts = (cell ?? '').split(',');
     if (parts[parts.length - 1] === '') parts.pop();
@@ -312,9 +334,12 @@ function blocksOf(cells: readonly string[], length: number): [number[], number[]
     const s = starts[b];
     const z = sizes[b];
     if (s === undefined || z === undefined) return 'A block position that is not a whole number';
-    if (s < last || s + z > length) return 'Blocks out of order, overlapping or outside the item';
+    if (z < 1) return 'A block of no length';
+    if ((b === 0 && s !== 0) || s < last || s + z > length)
+      return 'Blocks out of order, overlapping or outside the item';
     last = s + z;
   }
+  if (last !== length) return 'Blocks that do not reach the item’s end';
   return [starts as number[], sizes as number[]];
 }
 
@@ -376,17 +401,19 @@ export function rangesList(items: Items, rows: readonly number[]): RangesList {
     name: f.name,
     column: columnOf2(items.values[k], f.type, item),
   }));
+  const strand = items.strand && Int8Array.from(item, (i) => items.strand![i]);
+  // the strand a field too, so a layer's data filter and a theme read it (`(item :strand -1)`)
+  if (strand) fields.push({ name: 'strand', column: strand });
   return {
     form: 'list',
     start: Int32Array.from(rows, (r) => items.pStart[r]),
     end: Int32Array.from(rows, (r) => items.pEnd[r]),
-    ...(items.strand && { strand: Int8Array.from(item, (i) => items.strand![i]) }),
+    ...(strand && { strand }),
     id: categoryColumn(Array.from(item, (i) => items.key[i])),
     ...(fields.length && { fields }),
-    ...(s.blocks && {
-      itemStart: Int32Array.from(item, (i) => items.iStart[i]),
-      itemEnd: Int32Array.from(item, (i) => items.iEnd[i]),
-    }),
+    // every row its item's extent (a BED12 block's, its line's): a reader marks an item's ends from any tile
+    itemStart: Int32Array.from(item, (i) => items.iStart[i]),
+    itemEnd: Int32Array.from(item, (i) => items.iEnd[i]),
   };
 }
 

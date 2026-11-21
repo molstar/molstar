@@ -14,7 +14,9 @@ import {
   encodePages,
   PageNotRecorded,
   PageSize,
+  PagesSuffix,
   pagesOf,
+  readRecording,
   recordedAssets,
   recordedRanges,
   recordingRanges,
@@ -30,7 +32,7 @@ const Cytobands = 'fixtures/genomes/cytoBandIdeo.txt.gz';
 
 describe('recorded pages', () => {
   it('the cytobands read back as downloaded: the checksum sources.json gives', async () => {
-    const assets = recordedAssets(nodeFixtureAssets().reader);
+    const assets = recordedAssets(nodeFixtureAssets().reader, [Cytobands]);
     const bytes = await assets.readBytes(Cytobands, signal);
     const rows = JSON.parse(readFileSync(join(PackageFolder, 'fixtures/genomes/sources.json'), 'utf8'));
     expect(createHash('sha256').update(bytes).digest('hex')).toBe(rows[0].sha256Download);
@@ -66,12 +68,54 @@ describe('recorded pages', () => {
   });
 
   it('a runtime reads its file from the recording: hg38’s cytobands as BED', async () => {
-    const runtime = withRecordedPages(BedRuntime);
+    const runtime = withRecordedPages(BedRuntime, [Cytobands]);
     const s = await runtime.open(
       { address: '/data/bands', format: 'bed', uri: Cytobands, fields: { stain: '4' } },
       { assets: nodeFixtureAssets().reader, signal, limits: { maxRows: 1e6, maxBytes: 64 << 20 } },
     );
     expect(s.issues).toEqual([]);
     expect(s.coverage.systems.map((x) => x.name)).toContain('chr17');
+  });
+
+  it('a page cut short is refused naming it and the file, never read as zeros', () => {
+    const file = new Uint8Array(PageSize + 100).fill(7);
+    const r = encodePages('f.bin', file, 'all');
+    const cut = { ...r, pages: { ...r.pages, 1: r.pages[1].slice(0, 100) } };
+    expect(() => readRecording(JSON.stringify(cut))).toThrow(/Page 1 of f\.bin is not its 100 bytes/);
+    const short = { ...r, pages: { ...r.pages, 0: r.pages[1] } };
+    expect(() => readRecording(JSON.stringify(short))).toThrow(/Page 0 of f\.bin/);
+    expect(() => readRecording(JSON.stringify({ ...r, pages: { 5: r.pages[1] } }))).toThrow(/Page 5 of f\.bin/);
+    expect(readRecording(JSON.stringify(r)).size).toBe(PageSize + 100);
+  });
+
+  it('only declared files are asked for a recording; a bad recording or an abort fails, never falls back', async () => {
+    const asked: string[] = [];
+    const files: Record<string, string> = {
+      'plain.txt': 'plain',
+      'f.bin': 'the file itself, never read',
+      [`f.bin${PagesSuffix}`]: '{"format":"seqx-pages/1","file":"f.bin","size":3,"pageSize":65536,"pages":{"0":"AA"}}',
+    };
+    const inner = {
+      readText: async (uri: string, s: AbortSignal) => {
+        asked.push(uri);
+        s.throwIfAborted();
+        if (!(uri in files)) throw new Error(`no ${uri}`);
+        return files[uri];
+      },
+      readBytes: async (uri: string) => {
+        asked.push(uri);
+        return new TextEncoder().encode(files[uri]);
+      },
+    };
+    const assets = recordedAssets(inner, ['f.bin', 'missing.bin']);
+    expect(await assets.readText('plain.txt', signal)).toBe('plain');
+    expect(asked).toEqual(['plain.txt']);
+    await expect(assets.readBytes('f.bin', signal)).rejects.toThrow(/Page 0 of f\.bin/);
+    await expect(assets.readBytes('missing.bin', signal)).rejects.toThrow(/no missing\.bin\.pages\.json/);
+    const stop = new AbortController();
+    stop.abort();
+    await expect(assets.readBytes('missing.bin', stop.signal)).rejects.toMatchObject({ name: 'AbortError' });
+    expect(asked).not.toContain('f.bin');
+    expect(asked).not.toContain('missing.bin');
   });
 });

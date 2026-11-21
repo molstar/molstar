@@ -51,7 +51,8 @@ export interface IndexedLines {
   /** Lines meeting `[start, end)` (0-based, half-open) of the sequence `name`, each with its extent by the index. */
   region(name: string, start: number, end: number, signal: AbortSignal): Promise<RegionLines>;
   /**
-   * The file's first data line (its bytes, without the newline), or undefined when the index lists none: what a format
+   * The file's first data line (its bytes, without the newline; `#`, `track` and `browser` lines read past), or undefined
+   * when the index lists none: what a format
    * whose columns are told by its first line (BED's `N`) reads at open. Within `maxLineBytes`.
    */
   head(
@@ -106,15 +107,27 @@ function openError(
   return new SourceOpenError([issueOf(SourceIssues, code, message, { address })]);
 }
 
+/** Whether a line is read past before the data: the index's meta lines (`#`), and `track` and `browser` lines. */
+function isHeadLine(bytes: Uint8Array, meta: number): boolean {
+  if (bytes[0] === meta) return true;
+  const word = (w: string) =>
+    bytes.length >= w.length &&
+    [...w].every((c, i) => bytes[i] === c.charCodeAt(0)) &&
+    (bytes.length === w.length || bytes[w.length] === 9 || bytes[w.length] === 32);
+  return word('track') || word('browser');
+}
+
 /**
- * The first data line: from the least chunk start the index lists (htslib's first line), block by block (each block's
- * end told by its `BSIZE`, read from the file's bytes) until a newline, within `maxLine` bytes.
+ * The first data line: from the least chunk start the index lists (htslib's first line), block by block (a block's end
+ * told by its `BSIZE`, read from the file's bytes), the meta, `track` and `browser` lines read past, each line within
+ * `maxLine` bytes and the lines read past within `maxHead` together.
  */
 async function firstLine(
   reader: BgzfReader,
   ranges: AssetRangeReader,
   index: TabixIndex,
   maxLine: number,
+  maxHead: number,
   signal: AbortSignal,
 ): Promise<Uint8Array | undefined> {
   let first = Number.POSITIVE_INFINITY;
@@ -125,29 +138,45 @@ async function firstLine(
     if (c && c.begin < first) first = c.begin;
   }
   if (!Number.isFinite(first)) return undefined;
-  const parts: Uint8Array[] = [];
-  let total = 0;
-  for (let at = first; total <= maxLine; ) {
+  const meta = index.meta ? index.meta.charCodeAt(0) : -1;
+  const malformed = (why: string) => Object.assign(new Error(why), { name: 'TabixError', kind: 'malformed' });
+  /** The line being read, its parts across blocks. */
+  let parts: Uint8Array[] = [];
+  let length = 0;
+  let passed = 0;
+  const line = () => {
+    const out = new Uint8Array(length);
+    for (let i = 0, o = 0; i < parts.length; o += parts[i].length, i++) out.set(parts[i], o);
+    return out.length && out[out.length - 1] === 13 ? out.subarray(0, out.length - 1) : out;
+  };
+  for (let at = first; ; ) {
     const block = VirtualOffset.block(at);
     if (block + 18 > ranges.size) break;
     const [h] = await ranges.read([{ offset: block, length: 18 }], signal);
     if (h.length < 18) break;
     const next = block + (h[16] | (h[17] << 8)) + 1;
     const bytes = await reader.read(at, VirtualOffset.of(next, 0), signal);
-    const nl = bytes.indexOf(10);
-    parts.push(nl < 0 ? bytes : bytes.subarray(0, nl));
-    total += nl < 0 ? bytes.length : nl;
-    if (nl >= 0 || next >= ranges.size || bytes.length === 0) break;
+    if (bytes.length === 0) break;
+    for (let s = 0; s < bytes.length; ) {
+      const nl = bytes.indexOf(10, s);
+      const e = nl < 0 ? bytes.length : nl;
+      parts.push(bytes.subarray(s, e));
+      length += e - s;
+      if (length > maxLine) throw malformed(`A line is over ${maxLine} bytes`);
+      if (nl < 0) break;
+      const l = line();
+      if (l.length && !isHeadLine(l, meta)) return l;
+      passed += length + 1;
+      if (passed > maxHead) throw malformed(`No data line in the first ${maxHead} bytes`);
+      parts = [];
+      length = 0;
+      s = nl + 1;
+    }
+    if (next >= ranges.size) break;
     at = VirtualOffset.of(next, 0);
   }
-  if (total > maxLine)
-    throw Object.assign(new Error(`The first line is over ${maxLine} bytes`), {
-      name: 'TabixError',
-      kind: 'malformed',
-    });
-  const out = new Uint8Array(total);
-  for (let i = 0, o = 0; i < parts.length; o += parts[i].length, i++) out.set(parts[i], o);
-  return out.length && out[out.length - 1] === 13 ? out.subarray(0, out.length - 1) : out;
+  const l = line();
+  return l.length && !isHeadLine(l, meta) ? l : undefined;
 }
 
 export interface IndexedLinesContext {
@@ -227,7 +256,7 @@ export async function openIndexedLines(uri: string, indexUri: string, ctx: Index
       region: async (name, start, end, s) =>
         answer(await guarded(s, () => readRegion(r, index, name, start, end, tabix, s))),
       head: async (s) => {
-        const got = await guarded(s, () => firstLine(r, ranges, index, tabix.maxLineBytes, s));
+        const got = await guarded(s, () => firstLine(r, ranges, index, tabix.maxLineBytes, tabix.maxHeaderBytes, s));
         return got instanceof Uint8Array || got === undefined
           ? { ok: true, ...(got && { line: got }) }
           : { ok: false, ...got.failure };

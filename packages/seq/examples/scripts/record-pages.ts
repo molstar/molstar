@@ -47,8 +47,17 @@ export interface RecordJob {
   readonly name?: string;
 }
 
+/** A dataset's or file's name that stays in its folder: one path segment, no `..`, no separator, nothing hidden. */
+export function isPlainName(name: string): boolean {
+  return /^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(name) && !name.includes('..');
+}
+
 /** Records one file: the recording written, the dataset's `sources.json` row in place of the file's earlier one. */
 export async function recordPages(job: RecordJob, fixtures: string): Promise<string> {
+  // refused before anything is fetched or written: a dataset or name never leaves the fixtures folder
+  if (!isPlainName(job.dataset)) throw new Error(`The dataset “${job.dataset}” is not a plain folder name`);
+  if (job.name !== undefined && !isPlainName(job.name))
+    throw new Error(`The name “${job.name}” is not a plain file name`);
   let bytes: Uint8Array;
   if (job.from) bytes = new Uint8Array(readFileSync(job.from));
   else {
@@ -57,6 +66,7 @@ export async function recordPages(job: RecordJob, fixtures: string): Promise<str
     bytes = new Uint8Array(await res.arrayBuffer());
   }
   const name = job.name ?? basename(new URL(job.url).pathname);
+  if (!isPlainName(name)) throw new Error(`The name “${name}” is not a plain file name: give one with --name`);
   const recording = encodePages(name, bytes, job.pages);
   const text = `${JSON.stringify(recording)}\n`;
   const folder = join(fixtures, job.dataset);

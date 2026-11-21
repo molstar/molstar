@@ -8,11 +8,15 @@ import { readFileSync } from 'node:fs';
 import { GenomeFormatsViews } from '@molstar/seqx-examples';
 import { CytobandsSection, MisreadSection } from '@molstar/seqx-examples/genomes/bed';
 import { PackageFolder } from '@molstar/seqx-examples/node-assets';
+import type { SeqRegistryEntry } from '@molstar/seqx-core/context';
+import type { FormatRuntime } from '@molstar/seqx-core/data';
 import { DefaultSeqViewerSpec } from '@molstar/seqx-viewer/default-spec';
 import { createSeqViewer, type SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { DomHost } from '@molstar/ui/dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { recordDrawLists } from '@molstar/seqx-core/render';
 import { statusIssues } from '../../../examples/status-issues.js';
+import { clickAt } from '../../selection/compose.js';
 import { fileBytes, fileHead, filesOf, printSources } from '../../files/file-head.js';
 
 // Features/Genome formats/BED, headless on a fake clock, composed as the story composes it (`example-root.ts`): the
@@ -54,22 +58,47 @@ const reader = { readText: async (uri: string) => decoder.decode(await bytesOf(u
 
 const view = (id: string) => GenomeFormatsViews.find((v) => v.id === id)!;
 
+/** The view's registry with each runtime's opens kept: a test waits on them, not on a count of turns. */
+function watched(entries: readonly SeqRegistryEntry[], opens: Promise<unknown>[]): SeqRegistryEntry[] {
+  return entries.map((e) =>
+    e.kind === 'format-runtime'
+      ? {
+          ...e,
+          runtime: {
+            ...e.runtime,
+            open: (source, ctx) => {
+              const p = e.runtime.open(source, ctx);
+              opens.push(p);
+              return p;
+            },
+          } satisfies FormatRuntime,
+        }
+      : e,
+  );
+}
+
 async function open(id: string) {
   const base = DefaultSeqViewerSpec();
+  const opens: Promise<unknown>[] = [];
   const v = createSeqViewer({
     ...base,
     ui: undefined,
-    registry: [...(base.registry ?? []), ...(view(id).registry?.({ delayMs: DelayMs }) ?? [])],
+    registry: [...(base.registry ?? []), ...watched(view(id).registry?.({ delayMs: DelayMs }) ?? [], opens)],
     ports: { assets: () => ({ reader }) },
   });
   viewers.push(v);
   v.resize(720);
   void v.load(view(id).build()).then(() => v.settle());
-  // the fake clock's time, and between its steps a real turn: a gzip file inflates on the platform's thread pool
-  for (let k = 0; k < 50; k++) {
-    await vi.advanceTimersByTimeAsync(100);
-    await new Promise((resolve) => setImmediate(resolve));
+  // the frames that start the opens, then the opens themselves (a gzip file inflates on the platform's thread pool, by
+  // no clock: awaited, never counted in turns), then the twin's delays and the rest on the fake clock
+  await vi.advanceTimersByTimeAsync(200);
+  expect(opens.length).toBeGreaterThan(0);
+  for (let seen = -1; seen !== opens.length; ) {
+    seen = opens.length;
+    await Promise.allSettled(opens);
+    await vi.advanceTimersByTimeAsync(200);
   }
+  await vi.advanceTimersByTimeAsync(5000);
   v.draw();
   return v;
 }
@@ -100,6 +129,9 @@ describe('Features/Genome formats/BED, headless', () => {
     expect(svg.issues).toEqual([]);
     expect(svg.settled).toBe(true);
     expect(svg.svg).toContain('p13.3');
+    // the bands' names drawn at the fit where they fit (a band about 60 px wide), BED's name the label
+    const labels = recordDrawLists(v.frame!.lists, ['data', 'labels']);
+    for (const name of ['p13.1', 'q12', 'q25.3']) expect(labels).toContain(`text "${name}"`);
   });
 
   it('prints the cytobands’ head (the gzip file inflated from its recording) and its source node', async () => {
@@ -117,13 +149,62 @@ describe('Features/Genome formats/BED, headless', () => {
   it('the BED12 genes: a gene’s blocks one item each, drawn and named; no issue', async () => {
     const v = await open('bed-genes');
     expect(v.layoutIssues.value).toEqual([]);
-    const genes = layOf(v, 'Genes')!;
-    expect(genes.pending).toEqual([]);
-    expect(genes.rows.n).toBeGreaterThan(24);
+    const plus = layOf(v, 'Genes +')!;
+    const minus = layOf(v, 'Genes −')!;
+    expect(plus.pending).toEqual([]);
+    expect(plus.rows.n + minus.rows.n).toBeGreaterThan(24);
+    // the strand drawn: an arrowhead on each strand's track, + pointing right, − left (the tip past its base)
+    const st = v.frame!.layout.sections[0].tracks;
+    const band = (label: string) => st.find((k) => k.track.label === label)!.box;
+    const tips = (label: string) =>
+      recordDrawLists(v.frame!.lists, ['data'])
+        .split('\n')
+        .filter((l) => l.startsWith('path '))
+        .map((l) =>
+          l
+            .split(' ')
+            .slice(1)
+            .filter((x) => /^-?[\d.]+$/.test(x))
+            .map(Number),
+        )
+        .filter((p) => p[1] >= band(label).y && p[1] < band(label).y + band(label).height)
+        // the tip is the path's fourth point (M, L, L, tip): its x against the first's
+        .map((p) => Math.sign(p[6] - p[0]));
+    expect(tips('Genes +').length).toBeGreaterThan(3);
+    expect(tips('Genes +').every((d) => d > 0)).toBe(true);
+    expect(tips('Genes −').length).toBeGreaterThan(2);
+    expect(tips('Genes −').every((d) => d < 0)).toBe(true);
     const svg = await v.renderSvg({ idPrefix: 'bed-' });
     expect(svg.issues).toEqual([]);
     expect(svg.settled).toBe(true);
     expect(svg.svg).toContain('gene1');
+  });
+
+  it('a BED12 gene is one item: hovered, every block lights; clicked, the gene is selected whole', async () => {
+    const v = await open('bed-genes');
+    const s = v.frame!.layout.sections[0];
+    const t = s.tracks.find((k) => k.track.label === 'Genes +')!;
+    // gene2's first block, 2957 to 3166 (its others 3404 to 3692, 3851 to 4299)
+    const x = s.axis!.x(3060);
+    const ys = Array.from({ length: Math.floor(t.box.height) }, (_, k) => t.box.y + k + 0.5);
+    const y = ys.find((yy) => v.hit(x, yy)?.element?.key === 'gene2@2957-4299');
+    expect(y, 'a point of gene2’s first block hits the gene').toBeDefined();
+    v.input.move(x, y!);
+    v.draw();
+    // every block of the gene drawn hovered: a mark over each of its three blocks
+    const hovered = recordDrawLists(v.frame!.lists, ['hover'])
+      .split('\n')
+      .filter((l) => l.startsWith('rect '))
+      .map((l) => l.split(' ').slice(1, 3).map(Number));
+    for (const at of [3060, 3500, 4000]) {
+      const px = s.axis!.x(at);
+      expect(
+        hovered.some(([x0]) => Math.abs(x0 - px) < 12),
+        `a hovered mark near ${at}`,
+      ).toBe(true);
+    }
+    clickAt(v, [x, y!]);
+    expect(v.selection.value.value.elements.keys.map((k) => k.key)).toEqual(['gene2@2957-4299']);
   });
 
   it('the misread file: its good rows drawn, every fault said once with its line numbers', async () => {

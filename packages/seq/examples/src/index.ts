@@ -26,3 +26,4 @@ export {
   TrnaScaleView,
   TrnaViews,
 } from './views.js';
+export { RecordedFiles } from './genomes/files.js';

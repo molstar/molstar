@@ -9,7 +9,9 @@ import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { exampleStory } from '../../examples/example-root.js';
 
 const view = (id: string) => GenomeFormatsViews.find((v) => v.id === id)!;
-const story = (id: string): StoryObj => ({ render: () => exampleStory(view(id), { files: true }) });
+const story = (id: string, sourceIssues = false): StoryObj => ({
+  render: () => exampleStory(view(id), { files: true, sourceIssues }),
+});
 
 const meta: Meta = { title: 'Features/Genome formats/BED' };
 export default meta;
@@ -30,4 +32,4 @@ export const Bed12Genes: StoryObj = story('bed-genes');
  * a strand and a score that are not ones read as missing, spaces and an extra column said, each once with its line
  * number (the status line under the view).
  */
-export const MisreadFile: StoryObj = story('bed-misread');
+export const MisreadFile: StoryObj = story('bed-misread', true);

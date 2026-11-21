@@ -7,7 +7,18 @@
 import { issueOf } from '@molstar/core/repr/tree';
 import type { TabixLimits } from '@molstar/io/common/tabix';
 import { SourceIssues } from '../data/issues.js';
-import type { FailureKind, OpenContext, RegionAnswer, RegionRequest, SourceEntry } from '../data/protocol.js';
+import type { Issue } from '@molstar/core/repr/tree';
+import {
+  abortError,
+  type Coverage,
+  type FailureKind,
+  type OpenContext,
+  type OpenedSource,
+  type PairsList,
+  type RegionAnswer,
+  type RegionRequest,
+  type SourceEntry,
+} from '../data/protocol.js';
 import { SourceOpenError } from '../data/seq-runtime.js';
 import { BedCauses, BedIssues } from './bed-issues.js';
 import {
@@ -34,8 +45,14 @@ export const BedFormats = ['bed', 'bedgraph', 'bedpe', 'chrom-sizes'] as const;
 export type BedFormat = (typeof BedFormats)[number];
 
 /** What the runtime may hold and read, whatever a file says (security.md: a file is untrusted input). */
+/**
+ * Region-reads' `summaries.maxBytes`: what a source holds besides the store's entries (a pairs pyramid, a BEDPE's rows
+ * and orders), 16 MiB. The store's setting when it has one (RG); until then the BED runtime's `maxPairsBytes` default.
+ */
+export const SummariesMaxBytes = 16 * 1024 * 1024;
+
 export interface BedOptions {
-  /** A BEDPE's rows with both orders, in bytes (region-reads' `summaries.maxBytes`: 16 MiB, about 600,000 pairs). */
+  /** A BEDPE's rows with both orders, in bytes: region-reads' `summaries.maxBytes` (16 MiB, 600,000 six-column rows). */
   readonly maxPairsBytes: number;
   /** io's tabix bounds for a source read by region (`DefaultTabixLimits` for those not given). */
   readonly tabix?: Partial<TabixLimits>;
@@ -143,10 +160,11 @@ export function bedItems(
     }
     let b = systems.get(cells[0]);
     if (!b) systems.set(cells[0], (b = new ItemsBuilder(schema)));
-    pieces -= b.pieces;
-    b.add(cells, place, causes);
-    pieces += b.pieces;
-    if (pieces > maxRows) return `More than ${maxRows} rows (BED12’s blocks counted each)`;
+    const before = b.pieces;
+    // the rows left bound a line's blocks before they are read (a line of a million `0,` blocks is refused unsplit)
+    const got = b.add(cells, place, causes, maxRows - pieces);
+    pieces += b.pieces - before;
+    if (got === 'too-large' || pieces > maxRows) return `More than ${maxRows} rows (BED12’s blocks counted each)`;
   }
   const out = new Map<string, Items>();
   for (const [name, b] of systems) out.set(name, b.finish());
@@ -194,4 +212,53 @@ export function answerOf(
       values: data ? valuesIn(data as Intervals, start, end) : { form: 'positions', start, value: new Float32Array(0) },
     },
   };
+}
+
+/** A pairs read's answer: the pairs list, or why there is none (the protocol's failure kinds). */
+export type PairsAnswer =
+  | { readonly ok: true; readonly pairs: PairsList }
+  | { readonly ok: false; readonly kind: FailureKind; readonly issue: Issue };
+
+/**
+ * An opened BEDPE: its systems (no shape yet: the protocol's `pairs` shape is to come), every pair with an end in a
+ * region by `pairs`, and what it holds (`summaryBytes`, counted by the store as a pyramid's).
+ */
+export interface BedpeSource extends OpenedSource {
+  readonly summaryBytes: number;
+  /** Rows with an end meeting `[start, end)` of `system`, each once, in file order (EC-208). */
+  pairs(system: string, start: number, end: number, signal: AbortSignal): Promise<PairsAnswer>;
+}
+
+/** A source over what a whole read holds: a request answered from it, by system and level. */
+export function wholeSource(
+  coverage: Coverage,
+  issues: Issue[],
+  answer: (r: RegionRequest) => RegionAnswer,
+): OpenedSource {
+  return {
+    coverage,
+    issues,
+    read(request, signal) {
+      if (signal.aborted) return Promise.reject(abortError());
+      return Promise.resolve(
+        !coverage.systems.some((s) => s.name === request.system)
+          ? failure('not-served', `No sequence ${request.system}`)
+          : !coverage.levels.includes(request.level)
+            ? failure('not-served', `No level ${request.level}`)
+            : answer(request),
+      );
+    },
+    dispose() {},
+  };
+}
+
+/** The data lines' count and the first one's columns. */
+export function dataLines(text: BedLine[]) {
+  let columns = 0;
+  let count = 0;
+  for (const r of dataCells(text, new BedCauses())) {
+    if (!count) columns = r.cells.length;
+    count++;
+  }
+  return { columns, count };
 }

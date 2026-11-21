@@ -77,7 +77,9 @@ export async function openIndexed(o: Opened, uri: string, indexUri: string): Pro
         if (!names.includes(system)) return failure('not-served', `No sequence ${system}`);
         if (request.level !== 1) return failure('not-served', `By region, level 1 only`);
         if (!request.shapes.includes(shape)) return answerOf(format, undefined, request, maxRows);
-        const got = await lines.region(system, start, end, signal);
+        // from a position before: io meets a line where it overlaps (an item of no length at `start` would be missed), the
+        // parser's rule then keeps exactly what the whole read does (a zero-length item at its start)
+        const got = await lines.region(system, Math.max(0, start - 1), end, signal);
         if (!got.ok) return failure(got.kind, `${uri}, ${system}:${start}-${end}: ${got.message}`);
         const l = got.lines;
         if (l.lineStart.length > maxRows) return failure('too-large', `${l.lineStart.length} lines in one region`);

@@ -946,11 +946,12 @@ over 20 runs; the heavy lane bounds one sample at 40 ms (`resolve/_test/addressi
   (`bin` int32, `count` float32, `category`); `values` as `positions` at level 1 (`value` float32 from `start`) or
   `bins` above it (`min`, `max`, `mean`, `count` float32 from `start`, aligned to the level). Why a `form`: one shape
   has two encodings by level. Why fields as a list: any name, `kind` and `$x` too, in memory and in a file.
-- **An item's extent on its pieces** (`RangesList.itemStart`, `itemEnd`, int32, optional): when rows are pieces of one
-  item (BED12's blocks), each row carries its item's whole extent, so a reader of region data knows an item's ends from
-  any tile. Served by the BED runtime; `sliceTable`, `joinTables` and the store do not carry them yet (region-reads,
-  RG's). **`PairsList`** (both ends' systems, positions and strands, `id`, `row`, `fields`) is a type only: no `Shape`
-  serves pairs yet, and the BEDPE source answers it by its own `pairs` read (BED family).
+- **An item's extent on its pieces** (`RangesList.itemStart`, `itemEnd`, int32, optional): each row carries its item's
+  whole extent (BED12's blocks, a BED line's own), so a reader of region data knows an item's ends from any tile: the
+  ranges layer marks an item's arrowheads by it. Served by the BED runtime; `sliceTable`, `joinTables` and the store do
+  not carry them yet (region-reads, RG's). **`PairsList`** (both ends' systems, positions and strands, `id`, `row`,
+  `fields`) is a type only: no `Shape` serves pairs yet, and the BEDPE source answers it by its own `pairs` read (BED
+  family).
 - **A row's identity** is its `id`, else its `row`: a range over a tile's edge is in each tile it touches, with its own
   start, and readers dedupe by identity and start; rows of one id with other starts are pieces of one item (the exons of
   a transcript, read in different tiles).
@@ -1235,6 +1236,8 @@ runtimes only).
   end by its `BSIZE`) to its newline, within `maxLineBytes`; what a format whose columns are told by its first line
   (BED's `N`) reads at open.
 - **Shared codes** (`issues.ts`): `seq.source.bgzf.eof` (warning: a BGZF file without its EOF block, read as it is).
+- **The first data line** reads past `track` and `browser` lines too, not only the index's meta lines: a file whose
+  index's first chunk starts on one is told its columns by its first data line.
 - **Tests**: on files from the shared test-only writer (`@molstar/test-harness/genome/bgzf-writer`: BGZF blocks, TBI and
   CSI as htslib builds them, BED and VCF generated from a seed), the one io's tests use.
 
@@ -1243,8 +1246,9 @@ runtimes only).
 `runtimes/bed.ts` (`@molstar/seqx-core/runtimes/bed`, opt in: `BedRuntime`, `bedRuntime(over)`, `BedOptions`,
 `DefaultBedOptions`, `BedpeSource`, `PairsAnswer`, `BedIssues`, `BedFormats`): a format runtime of `bed`, `bedgraph`,
 `bedpe` and `chrom-sizes` over the internals above; `bed-parse.ts` (the one line parser), `bed-pairs.ts` (BEDPE's
-index), `bed-read.ts` (what whole and region reads share), `bed-indexed.ts` (by region, loaded when the first indexed
-source opens).
+index), `bed-read.ts` (what whole and region reads share), and two chunks loaded on first use: `bed-indexed.ts` (by
+region, the first indexed source) and `bed-bedpe.ts` (the first BEDPE). Why lazy: a host reading BED files whole loads
+neither io's tabix nor the pairs index.
 
 - **Conventions fixed** (EC-195): base 0, ends exclusive; a source's `base` or `ends` is not read, said once
   (`seq.source.bed.transform`, info). `track`, `browser` and `#` lines are read past; a line without a tab is split on
@@ -1254,18 +1258,25 @@ source opens).
   parser either way, so a region read equals the whole read clipped (the property test). Read whole, a BED's items are
   served at level 1 and at the level whose one tile holds its longest system (`wholeLevel`, the inline rule), so a
   navigator reads a chromosome's bands in one tile. A region's line issues are not said (no place in an answer); the
-  whole read says them.
+  whole read says them. io meets a line where it overlaps, so a region is asked of io from the position before its
+  start: an item of no length at the region's start (which the parser keeps, at its start) is read by region as whole.
 - **BED** (BED3 to BED12): the first data line's column count is the file's `N` (by region: `IndexedLines.head`).
-  Columns past the third by BED's names (`name`, `score` float32, `strand` the role, `thick_start`, `thick_end` int32,
-  `item_rgb`, then `col<k>` categories past twelve); a source's `fields` names a column by its 0-based number or BED
-  name (`{ stain: '4' }`, EC-190), `name` and `strand` the roles, `types` its type; a column a mapping reads is not read
-  under BED's name; a mapping naming no column, a position or one past the first line's is refused
-  (`seq.source.bed.field`, error). **BED12's blocks are pieces** (a row a block, the item's extent in `itemStart`,
-  `itemEnd`), counts equal to `block_count`, sorted, apart and inside the item, else the line left out. **Identity**
-  (EC-196): `id` is `name@start-end` (the name BED's fourth column, empty when absent or `.`), `#2`, `#3` on a later
-  identical key in read order (identical lines meet the same regions, so the suffix is stable by region). A line whose
-  positions are not whole numbers to 2^31 − 1, or whose end is before its start, is left out (`.line`, warning); a cell
-  its field cannot hold is missing (`.cells`, info); every cause one issue with its count and first ten places (EC-86).
+  Columns past the third by BED's names: the fourth, BED's name, is the items' `label` (what a ranges layer labels by,
+  so a spec maps nothing) and their identity; `score` float32, `strand` the role (and a field `strand`, int8, so a
+  layer's data filter and a theme read it: `(item :strand -1)`), `thick_start`, `thick_end` int32, `item_rgb`, then
+  `col<k>` categories past twelve. A source's `fields` names a column by its 0-based number or BED name
+  (`{ stain: '4' }`, EC-190), `name` and `strand` the roles, `types` its type; a column a mapping reads is not read
+  under BED's name, and **BED's names stop at the first mapped column** (a `bed N+M` file): the unmapped columns past it
+  are `col<k>`, so narrowPeak's (`bed 6+4`) columns 8 and 9 are never `item_rgb` and `block_count`; a mapping naming no
+  column, a position or one past the first line's is refused (`seq.source.bed.field`, error). **BED12's blocks are
+  pieces** (a row a block, the item's extent in `itemStart`, `itemEnd`), by UCSC's rule: counts equal to `block_count`,
+  each a position long at least, the first from the item's start, the last to its end, sorted and apart, else the line
+  left out. A line's blocks past the rows left are refused from its `block_count` before its lists are split (a 16 MiB
+  line of `0,` blocks makes no row). **Identity** (EC-196): `id` is `name@start-end` (the name BED's fourth column,
+  empty when absent or `.`), `#2`, `#3` on a later identical key in read order (identical lines meet the same regions,
+  so the suffix is stable by region). A line whose positions are not whole numbers to 2^31 − 1, or whose end is before
+  its start, is left out (`.line`, warning); a cell its field cannot hold is missing (`.cells`, info); every cause one
+  issue with its count and first ten places (EC-86).
 - **bedGraph**: `chrom start end value` as `values` a position from the region's start to the last position an interval
   there covers (NaN between, a later interval over an earlier); coarse levels the store's summaries.
 - **BEDPE** (EC-206, EC-208): read whole (an `index` said, `.index`, and not read), its rows (each end's system as
@@ -1274,19 +1285,22 @@ source opens).
   natively; a comparison sort past 2^21 rows). `pairs(system, start, end)` gives every row with an end meeting the
   region once (a row found from its second end is skipped when its first end met it too), in file order, as a
   `PairsList` (`id` the name, `.` none; `row`). Coverage: the systems, no shape. Held bytes (`summaryBytes`, counted by
-  the store) against `maxPairsBytes` (16 MiB: 600,000 six-column rows), checked from the line count before a row is
-  parsed and exactly after; past it `seq.source.too_large`, hinting pairix or a levelled pairs format.
+  the store) against `maxPairsBytes`, which is region-reads' `summaries.maxBytes` (`SummariesMaxBytes`, 16 MiB: 600,000
+  six-column rows; the bound the pairs summaries share, the store's setting once RG lands it, the runtime's option until
+  then), checked from the line count before a row is parsed and exactly after; past it `seq.source.too_large`, hinting
+  pairix or a levelled pairs format.
 - **chrom.sizes** (EC-188): `name length` lines, a coverage of systems and lengths, no shapes; a length past 2^31 − 1
-  refused by name (`seq.source.too_large`), a name again left out.
+  refused by name (`seq.source.too_large`), a name again left out (the names seen a set: one pass, a million lines under
+  1.5 s).
 - **Bounds**: a whole read's bytes after inflating (`limits.maxBytes`) and lines (`limits.maxRows`) before the lines are
   spanned; a BED's pieces (BED12's blocks counted each) and a region's lines and rows within `limits.maxRows`; a
   bedGraph answer's positions too; io's tabix bounds by region (`BedOptions.tabix`).
 - **Configuration**:
 
-  | Item            | Default              | Why the default; the alternatives                                          |
-  | --------------- | -------------------- | -------------------------------------------------------------------------- |
-  | `maxPairsBytes` | 16 MiB               | region-reads' `summaries.maxBytes`: a BEDPE's held rows and orders; any    |
-  | `tabix`         | `DefaultTabixLimits` | io's bounds of a read by region (`maxRegionBytes`, `maxLineBytes`, …); any |
+  | Item            | Default              | Why the default; the alternatives                                             |
+  | --------------- | -------------------- | ----------------------------------------------------------------------------- |
+  | `maxPairsBytes` | 16 MiB               | region-reads' `summaries.maxBytes` (`SummariesMaxBytes`): a BEDPE's held rows |
+  | `tabix`         | `DefaultTabixLimits` | io's bounds of a read by region (`maxRegionBytes`, `maxLineBytes`, …); any    |
 
 - **Tests**: the source suite on generated files (plain, gzip, BGZF; whole and by region, with and without range reads)
   and on the recorded real slice (UCSC hg38 `cytoBandIdeo.txt.gz`, examples' `fixtures/genomes/`); a region read equal
@@ -1294,8 +1308,9 @@ source opens).
   without a throw; BED12 pieces, `fields` by number, identities, chrom.sizes, BEDPE from either end once and its byte
   bound; its synthetic twin is `delayedRuntime(BedRuntime)`.
 - **Performance**: 600,000 BEDPE rows indexed by both ends under 300 ms (heavy, `itWithin`; about 100 ms measured),
-  12,000 in the quick lane. Size: its own row under 30 kB (28.6 kB minified, io's BGZF reader in it), its by-region
-  chunk (io's tabix, the region lines: 14.1 kB) loaded on the first indexed open; in no viewer bundle.
+  12,000 in the quick lane; a chrom.sizes of 1,000,000 lines under 1.5 s (heavy), 20,000 quick. Size: its own row under
+  30 kB (23.2 kB minified, io's BGZF reader in it), its lazy chunks (by region with io's tabix, and BEDPE: 20.5 kB
+  together) loaded on first use; in no viewer bundle.
 
 ### mmCIF
 
@@ -2452,18 +2467,19 @@ in page coordinates: what crosses strips), `axes` (2: a second axis of its own, 
   exon); labels inside marks 24 px or wider (faded past the mark), or inside a narrower one when they fit whole with 3
   px a side (a modified residue's code over its one position; none below 8 px), drawn in the `labels` pass. At `bars` a
   lane's marks touching within a device pixel merge into a run; at `density`, or a density table, one heat strip, a
-  device column a pixel. Items past the lanes collapse into a density row in the last lane, the rest drawn as items
-  (`ranges.overflow: 'extra-lanes'`), or the whole layer becomes the strip (`'layer'`). In a band under a lane's height
-  (a text line's underline) the strip uses only the light `ThinStripShare` (0.3) of the density ramp, so it reads as a
-  band, not as a dark rule. **The connector** (`connector`, `line` when absent, or `none`): an item the path splits into
-  pieces with shown positions between them that it does not reach (a domain over a gene whose intron is shown) is joined
-  by a hairline at its lane's mid-height from one piece's end to the next's start, in the item's colour at
-  `ranges.connector.alpha` (0.6), `ranges.connector.width` thick (1 CSS px; `ink: 'muted'` the muted ink instead), in
-  the data pass, so the canvas and the SVG draw it alike; the pieces' ends there stay square. Across a collapsed break
-  (zero units wide) nothing is drawn; with `pad`, a gap with shown positions on both sides of a break is one, the line
-  through it (the break's hairline over it); only at `items` (not `bars`, `density`). A hit on it is the item's; the
-  hover draws it in the hover ink as thick as the outline, a selected item's in the accent. Why: a gene model's
-  convention, the pieces read as one item.
+  device column a pixel, except a list of few rows (at most one a CSS pixel of the band): those stay items, each its own
+  mark, so a chromosome's bands at its fit keep their labels, hits and arrows. Items past the lanes collapse into a
+  density row in the last lane, the rest drawn as items (`ranges.overflow: 'extra-lanes'`), or the whole layer becomes
+  the strip (`'layer'`). In a band under a lane's height (a text line's underline) the strip uses only the light
+  `ThinStripShare` (0.3) of the density ramp, so it reads as a band, not as a dark rule. **The connector** (`connector`,
+  `line` when absent, or `none`): an item the path splits into pieces with shown positions between them that it does not
+  reach (a domain over a gene whose intron is shown) is joined by a hairline at its lane's mid-height from one piece's
+  end to the next's start, in the item's colour at `ranges.connector.alpha` (0.6), `ranges.connector.width` thick (1 CSS
+  px; `ink: 'muted'` the muted ink instead), in the data pass, so the canvas and the SVG draw it alike; the pieces' ends
+  there stay square. Across a collapsed break (zero units wide) nothing is drawn; with `pad`, a gap with shown positions
+  on both sides of a break is one, the line through it (the break's hairline over it); only at `items` (not `bars`,
+  `density`). A hit on it is the item's; the hover draws it in the hover ink as thick as the outline, a selected item's
+  in the accent. Why: a gene model's convention, the pieces read as one item.
 - `values`: a bar a position, or at `bars` and `density` a bar a device column over the column's extent from the
   baseline (`values.aggregate: 'minmax'`, so negative extremes show; `'max'` the maximum alone), from positions or bins.
   Missing (NaN) is a 2 px neutral mark at the baseline. The domain is the layer's `domain` param where given, else open:
@@ -2537,10 +2553,11 @@ in page coordinates: what crosses strips), `axes` (2: a second axis of its own, 
   each piece), so a pan moves them with the data; below a position a pixel a run is a plain line. A value that is none
   of the styles is drawn solid and said once a layout (`seq.render.line-style`). With `arrow`, a block is an arrow, a
   line gets a triangle, at the end (the start) of the item on the piece that holds it, by the rule of the strand's
-  arrowhead, never on a cut end (nor where the item's rows are not all known); a line's label has the page's color under
-  it, so the line stops at it; the hit boxes are the marks' lanes all the same. Whether an item has its arrowhead is its
-  own mark's width, at the items and the bars steps alike: 4 px or wider, fixed (narrower, the head would be all of the
-  mark); an arrow is never merged into a run of bars, and the density step has none.
+  arrowhead, never on a cut end (nor where the item's rows are not all known: a source's rows give their item's extent
+  by `itemStart`, `itemEnd`, and the row ending at the item's end holds its end); a line's label has the page's color
+  under it, so the line stops at it; the hit boxes are the marks' lanes all the same. Whether an item has its arrowhead
+  is its own mark's width, at the items and the bars steps alike: 4 px or wider, fixed (narrower, the head would be all
+  of the mark); an arrow is never merged into a run of bars, and the density step has none.
 
 - **`bands`** (`render/bands.ts`, fallback `ranges`): a chromosome's stained bands in one band, an ideogram: each item a
   block colored by its `stain` through the `giemsa` scheme (grays from the text ink; `acen` in `seq-centromere`), the

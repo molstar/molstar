@@ -44,7 +44,8 @@ function textOf(
   for (const r of rows) {
     const t = `${r.text}\n`;
     const n = enc.encode(t).length;
-    lines.push({ seq: r.seq, begin: r.begin, end: Math.max(r.end, r.begin + 1), start: at, stop: at + n });
+    // the index's extent as the line writes it (an item of no length too: the writer bins it as htslib does)
+    lines.push({ seq: r.seq, begin: r.begin, end: r.end, start: at, stop: at + n });
     parts.push(t);
     at += n;
   }
@@ -100,6 +101,29 @@ export function generateBed12(n: number, names: readonly string[], seed = 1, spa
     if (rng.float() < 0.02) rows.push({ seq, begin, end, text });
   }
   return textOf(rows, names, ['track name=generated', '# a comment']);
+}
+
+/** `n` BED6 lines over `names`: a fifth of no length (an insertion point), some written twice, strands and scores. */
+export function generateBed6(n: number, names: readonly string[], seed = 5, span = 400_000): Generated {
+  const rng = new PCG(seed);
+  const rows: { seq: number; begin: number; end: number; text: string }[] = [];
+  for (let i = 0; i < n; i++) {
+    const seq = Math.floor(rng.float() * names.length);
+    const begin = Math.floor(rng.float() * span);
+    const end = rng.float() < 0.2 ? begin : begin + 1 + Math.floor(rng.float() ** 3 * 20_000);
+    const strand = ['+', '-', '.'][Math.floor(rng.float() * 3)];
+    const text = [
+      names[seq],
+      begin,
+      end,
+      `p${Math.floor(rng.float() * 30)}`,
+      Math.floor(rng.float() * 1000),
+      strand,
+    ].join('\t');
+    rows.push({ seq, begin, end, text });
+    if (rng.float() < 0.03) rows.push({ seq, begin, end, text });
+  }
+  return textOf(rows, names);
 }
 
 /** `n` bedGraph intervals over `names`, some overlapping. */
