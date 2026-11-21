@@ -368,6 +368,35 @@ function letterPoint(v: SeqViewer, position: number): [number, number] {
 const overlaps = (a: CardBox, b: CardBox) =>
   a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
 
+describe('the hover card of a protein’s letters over its gene', () => {
+  it('names the residue, its letter and its codon’s positions, a codon split by an intron in each part', async () => {
+    const b = createSeqSpec({ title: 'codon card' });
+    const p = b.data.sequence('p', { alphabet: 'protein', letters: 'MEEP' });
+    const g = b.data.sequence('g', { alphabet: 'dna', letters: 'ACGT'.repeat(6) });
+    b.data.map('m', { from: p, to: g, method: 'codon', exons: { start: [2, 12], end: [7, 19] }, strand: '+' });
+    b.views.view('main', (view) => {
+      const gene = view.section('gene', { of: g, direction: 'genomic', pieces: 'whole' });
+      gene.track('dna').layer('l', { type: 'letters' });
+      gene.track('protein').layer('l', { type: 'letters', data: p });
+    });
+    const v = await make(b.build() as never);
+    const s = v.frame!.layout.sections[0];
+    const key = s.tracks[1].layers[0].key;
+    // nucleotide 7 (index 6): the second part of the second residue's codon (5–6 and 12), the E
+    const { card, said } = cardOf(v, { layer: key, section: s.section.address, system: '/data/g', position: 6 });
+    expect(card).toEqual({
+      title: 'p 2',
+      rows: [
+        { label: 'index', value: '1' },
+        { label: 'Letter', value: 'E' },
+        { label: 'Codon', value: 'g 6–7, 13' },
+      ],
+      text: 'gene, p 2, letter E, codon on g 6–7, 13',
+    });
+    expect(said).toContain('codon on g 6–7, 13');
+  });
+});
+
 describe('the hover card’s place and its life', () => {
   it('shows on rest beside the pointer, never over the hovered cell, inside the view', async () => {
     const r = recorder();
