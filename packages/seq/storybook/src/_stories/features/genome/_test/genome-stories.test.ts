@@ -309,7 +309,7 @@ describe('Genome coordinates stories, headless', () => {
       for (let y = s.y; y < s.y + s.height; y += 3)
         for (let x = 0; x < 720; x += 3) {
           const h = v.hit(x, y);
-          if (h?.section === s.section.address.split('/').pop() && h.position != null) return [x, y];
+          if (h?.section === s.section.address.split('/').pop() && h?.position != null) return [x, y];
         }
       return undefined;
     };
