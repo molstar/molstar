@@ -10,6 +10,7 @@ import { keySet, location } from '@molstar/seqx-core/query';
 import { type Frame, recordDrawLists } from '@molstar/seqx-core/render';
 import { PackageFolder } from '@molstar/seqx-examples/node-assets';
 import type { SeqViewerRegistryEntry } from '@molstar/seqx-viewer/header-entries';
+import { HoverCardProvider } from '@molstar/seqx-viewer/behaviors';
 import { DefaultSeqViewerSpec } from '@molstar/seqx-viewer/default-spec';
 import { createSeqViewer, type SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { DomHost } from '@molstar/ui/dom';
@@ -278,5 +279,68 @@ describe('Host data: the host’s complex as a section (a section of a source’
     expect(reads).toEqual([]);
     for (const off of offs) off();
     expect(ComplexSection).toBe(v.view.resolved.value?.sections[0].address);
+  });
+});
+
+describe('Host data: a held unit’s letters, names and copy (the opened model read everywhere the view is)', () => {
+  /** The letters drawn on the residues track (its glyph runs). */
+  const glyphs = (v: SeqViewer) =>
+    (drawn(v).match(/^glyphs .*$/gm) ?? []).join(' ').match(/ [A-Z] [\d.]+ #/g)?.length ?? 0;
+  /** The residues track's fills (cells, ticks, bars) by colour. */
+  const fills = (v: SeqViewer) =>
+    new Set((drawn(v).match(/^rect [\d.]+ 6[2-9] .* (#[0-9a-f]{8})/gm) ?? []).map((l) => l.split(' ')[5]));
+  /** A block's bar under a pixel a residue, and a cell whose letter is not held (`seq-missing`). */
+  const Bars = '#c4c9cfff';
+  const Missing = '#dedad3ff';
+
+  it('the residues track draws the chain’s letters zoomed in, the same before a drop and after; zoomed out its colours, never the missing fill', async () => {
+    const { v, fake } = await open('fake', hostComplexSpec());
+    const zoomed = async () => {
+      v.view.setRange(ComplexSection, 84, 104);
+      await follow(v);
+      v.draw();
+      return glyphs(v);
+    };
+    const out = async () => {
+      v.view.fit(ComplexSection);
+      await follow(v);
+      v.draw();
+      return [...fills(v)];
+    };
+    const before = await zoomed();
+    expect(before).toBeGreaterThan(10);
+    // eight blocks at the fit: under a pixel a residue, a bar a block (presence, no data read: the density step)
+    expect(await out()).toEqual([Bars]);
+    fake.dropChain('D');
+    await follow(v);
+    // six blocks: over a pixel a residue, the residues' colours, never the missing fill (letters not held)
+    const after = await out();
+    expect(after).not.toContain(Missing);
+    expect(after.filter((c) => c !== Bars).length).toBeGreaterThan(2);
+    expect(await zoomed()).toBe(before);
+  });
+
+  it('the hover card names a held unit’s residue as its chain (A 109), never its address', async () => {
+    const { v } = await open('fake', hostComplexSpec());
+    v.view.setRange(ComplexSection, 100, 120);
+    await follow(v);
+    v.draw();
+    const s = v.frame!.layout.sections[0];
+    const t = s.tracks[1];
+    v.input.move((s.axis!.x(108) + s.axis!.x(109)) / 2, t.box.y + t.box.height / 2);
+    await vi.advanceTimersByTimeAsync(600);
+    const card = v.behavior(HoverCardProvider)!.shown.value!.card;
+    expect(card.title).not.toContain('(node');
+    expect(card.title).toMatch(/^A\b/);
+  });
+
+  it('copies a held unit’s letters (selection.copyLetters over the opened model)', async () => {
+    const copied: string[] = [];
+    vi.stubGlobal('navigator', { clipboard: { writeText: async (t: string) => void copied.push(t) } });
+    const { v } = await open('fake', hostComplexSpec());
+    const letters = String(nodesOf(v).find((n) => n.key === '1')!.node.params!.letters);
+    await v.execute('selection.add', { range: { system: unitAddress('A'), start: 10, end: 25 } });
+    expect(await v.execute('selection.copy-letters', {})).toBe('Copied 15 letters');
+    expect(copied.at(-1)).toBe(letters.slice(10, 25));
   });
 });

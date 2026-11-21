@@ -462,7 +462,9 @@ export class SeqViewer extends ReactiveModel {
     if (this._retired) return this._syncing;
     this._applyWidths();
     this._syncing = this._syncing.then(() =>
-      this._retired ? undefined : this.store.sync(this.spec.model.value, this.context.assets),
+      // the view's model: a held unit's letters (a section of a source's complex) are an inline plan of the opened
+      // model's, attached as the spec's are
+      this._retired ? undefined : this.store.sync(this.view.model.value, this.context.assets),
     );
     // an attach moves no entry: the lengths the opened sources give are read once they are in
     this._syncing = this._syncing.then(() => this._readLengths());
