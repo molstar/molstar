@@ -14,6 +14,7 @@ import * as antibodySchemes from './antibody/schemes.js';
 import * as codingDna from './coordinates/coding-dna.js';
 import * as complexBlocks from './complex/blocks.js';
 import * as navigators from './navigators.js';
+import * as genomeBed from './genomes/bed.js';
 import * as complexConfidence from './complex/confidence.js';
 import * as complexGrid from './complex/complex-grid.js';
 import * as complexLigands from './complex/ligands.js';
@@ -865,6 +866,37 @@ export const MoleculeViews: readonly ExampleView[] = [
   },
 ];
 
+/** Views made for the genome formats' stories (`Features/Genome formats`): files read by the opt-in genome runtimes. */
+export const GenomeFormatsViews: readonly ExampleView[] = [
+  {
+    dataset: 'genomes',
+    id: 'bed-cytobands',
+    title: 'hg38 cytobands from BED',
+    summary:
+      'chr17’s stained bands from UCSC’s cytoBandIdeo (hg38, the recorded file, gzip): a `bed 4+1` file whose fifth column is named by its number (`stain: 4`), drawn as bands and as named ranges, and as the ideogram above showing the window. Zoom in to a band; hover one for its name and stain.',
+    build: genomeBed.cytobands,
+    registry: genomeBed.registry,
+  },
+  {
+    dataset: 'genomes',
+    id: 'bed-genes',
+    title: 'BED12 genes',
+    summary:
+      'Generated genes as BED12 on a 60 kb chromosome: a block an exon, each block a piece of its gene (one item, hovered and selected whole), the strand on each.',
+    build: genomeBed.genes,
+    registry: genomeBed.registry,
+  },
+  {
+    dataset: 'genomes',
+    id: 'bed-misread',
+    title: 'A misread BED',
+    summary:
+      'A BED6 with faults: an end before its start, a position that is no number (both left out), a strand and a score that are not ones (read as missing), a line split on spaces and one with an extra column; each said once with its line number, the rest drawn.',
+    build: genomeBed.misread,
+    registry: genomeBed.registry,
+  },
+];
+
 export const ExampleViews: readonly ExampleView[] = [
   ...P53Views,
   ...FilesViews,
@@ -877,4 +909,5 @@ export const ExampleViews: readonly ExampleView[] = [
   ...GlobinsViews,
   ...TrnaViews,
   ...MoleculeViews,
+  ...GenomeFormatsViews,
 ];

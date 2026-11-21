@@ -9,6 +9,7 @@ import type { AssetsPort } from '@molstar/seqx-core/context';
 import { createSeqContext } from '@molstar/seqx-core/context/default';
 import { archiveReader, readArchive, SeqRuntime, writeArchive } from '@molstar/seqx-core/data';
 import { describe, expect, it } from 'vitest';
+import { recordedAssets } from '../recorded-pages.js';
 import { nodeFixtureAssets } from '../node-assets.js';
 import { type ExampleView, ExampleViews } from '../views.js';
 
@@ -32,7 +33,8 @@ const urisOf = (node: Node): string[] => [
 
 async function saved(view: ExampleView) {
   const spec = view.build();
-  const assets = nodeFixtureAssets().reader;
+  // a recorded file (`<uri>.pages.json`) is saved as the file it records
+  const assets = recordedAssets(nodeFixtureAssets().reader);
   const w = await writeArchive(spec, { assets, keep: generated });
   expect(w.issues.map((i) => i.message)).toEqual([]);
   const r = await readArchive(w.bytes!);

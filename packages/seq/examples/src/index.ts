@@ -16,6 +16,7 @@ export {
   type ExampleView,
   FeatureViews,
   FilesViews,
+  GenomeFormatsViews,
   TableFiles,
   GlobinsViews,
   LayerViews,

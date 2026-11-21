@@ -15,7 +15,7 @@ import { defineElements, onCleanup } from '@molstar/ui/dom';
 import { UiElement } from '@molstar/ui/elements/ui-element';
 import { followSvg } from '../follow-svg.js';
 import { statusIssues } from './status-issues.js';
-import { filesOf, fileHead, printSources } from '../features/files/file-head.js';
+import { fileBytes, filesOf, fileHead, printSources } from '../features/files/file-head.js';
 
 // A story of an example view (examples-and-stories.md): the view's `build()` shown by a viewer composed from the default
 // spec, the canvas and the SVG of the same view side by side, and the spec as it prints, beside them (the SVG with the
@@ -102,11 +102,12 @@ class ExampleRoot extends UiElement<ExampleModel> {
     // share a clip or a mask
     const svg = followSvg(viewer, svgHost, {
       prefix: 'ex',
-      also: [viewer.layoutIssues, viewer.modelIssues],
+      also: [viewer.layoutIssues, viewer.modelIssues, viewer.store.issues],
       ...(view.navigators ? { svg: { navigators: view.navigators } } : {}),
       onDraw: (r) => {
-        // the export's issues and the viewer's model's as it says them (one of a source still opening held back)
-        const issues = statusIssues(r.issues, viewer.modelIssues.value);
+        // the export's issues, the viewer's model's as it says them (one of a source still opening held back) and what
+        // its sources said when they opened (a file's lines left out)
+        const issues = statusIssues(r.issues, [...viewer.modelIssues.value, ...viewer.store.issues.value]);
         status.textContent = `${r.settled ? 'Settled' : 'Not settled'}; ${issues.length} issue${issues.length === 1 ? '' : 's'}${
           issues.length ? `: ${issues.map((i) => i.message).join('; ')}` : ''
         }`;
@@ -122,6 +123,14 @@ class ExampleRoot extends UiElement<ExampleModel> {
   }
 }
 
+/** The page's own files by `fetch`: what the Files stories print a head of. */
+const fetched = (uri: string) =>
+  fetch(uri).then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(`${r.status}`))));
+const pageReader = {
+  readText: (uri: string) => fetched(uri).then((b) => new TextDecoder().decode(b)),
+  readBytes: (uri: string) => fetched(uri).then((b) => new Uint8Array(b)),
+};
+
 /** What a Files story prints beside the view: the source nodes (the transform) and the head of each file they name. */
 function fileSections(spec: Parameters<typeof printSources>[0]): HTMLElement[] {
   const pre = (text: string) => {
@@ -135,11 +144,11 @@ function fileSections(spec: Parameters<typeof printSources>[0]): HTMLElement[] {
   for (const file of filesOf(spec)) {
     const head = pre('Reading…');
     out.push(section(`File: ${file.uri}`, head));
-    // read the way the viewer reads it: relative to the page, which serves the examples' fixtures
-    void fetch(file.uri)
-      .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(`${r.status}`))))
+    // read the way the viewer reads it: relative to the page, which serves the examples' fixtures (a recorded file from
+    // its pages, a gzip file inflated)
+    void fileBytes(pageReader, file.uri, new AbortController().signal)
       .then((b) => {
-        head.textContent = fileHead(new Uint8Array(b), file.format);
+        head.textContent = fileHead(b, file.format);
       })
       .catch((e) => {
         head.textContent = `The file could not be read: ${e instanceof Error ? e.message : e}`;

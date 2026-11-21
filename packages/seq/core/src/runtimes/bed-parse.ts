@@ -86,7 +86,7 @@ export interface FieldSpec {
 export interface BedSchema {
   readonly columns: number;
   readonly fields: readonly FieldSpec[];
-  /** The column of the item's name (identity and label); none when mapped away or absent. */
+  /** The column of the item's name (its identity): a mapping's `name`, else BED's fourth column when there is one. */
   readonly name?: number;
   readonly strand?: number;
   /** BED12: blocks as pieces (columns 9 to 11, none of them mapped). */
@@ -143,6 +143,8 @@ export function bedSchema(
     if (bed === 'name') name = c;
     fields.push({ name: bed, column: c, type: typeOf(types[bed], BedTypes[bed] ?? 'category') });
   }
+  // identity is BED's name column (EC-196) when a mapping reads it under another field (`label`) too
+  name ??= columns > 3 ? 3 : undefined;
   return { columns, fields, ...(name !== undefined && { name }), ...(strand !== undefined && { strand }), blocks };
 }
 
