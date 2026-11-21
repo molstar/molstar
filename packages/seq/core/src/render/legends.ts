@@ -20,7 +20,9 @@ import type { LayerLayout, ViewLayout } from './tracks.js';
 /** The legends of a layout: each layer's, titled by its track's label, merged; with the notes they say once. */
 export function viewLegends(layout: ViewLayout, maxItems = 12): { legends: Legend[]; issues: Issue[] } {
   const all: Legend[] = [];
-  const add = (l: { type: LayerLayout['type']; lay: unknown }, title: string) => {
+  const add = (l: { type: LayerLayout['type']; lay: unknown; layer: LayerLayout['layer'] }, title: string) => {
+    // the figure's own say: a layer's `legend: none` keys nothing (_spec/README.md "Themes", Legends)
+    if (l.layer.params.legend === 'none') return;
     const ls = l.type.legend?.(l.lay, { title });
     if (ls) for (const x of ls) all.push(maxItems < 12 ? trim(x, maxItems) : x);
   };
