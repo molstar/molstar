@@ -146,7 +146,9 @@ fix point with nothing open is skipped. A finding that needs a design is a drift
   - **a story that reads a bigWig** (M4's gap: no story reads one), so M5 can measure a bigWig pan;
   - `fixes.md`'s open items at its start.
 - [ ] **FX2** after stage 1's gate; **FX3** after stage 2's; **FX4** after stage 3's; **FX5** after stage 4's;
-      **FX6** before M5 (the novice pass's and the use gates' findings that need no design).
+      **FX6** before M5 (the novice pass's and the use gates' findings that need no design). Taken early on the
+      author's findings (2026-11-21): FX2 (`e678d2dbc`), FX3 (`ded361691`), FX4 (`5bfebf366`); the next fix lanes are
+      numbered on from FX5.
 
 ### Stage 1: coordinates (strong, in order; the language one lane at a time)
 

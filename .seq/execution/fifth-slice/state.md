@@ -109,13 +109,26 @@ the morning").
 
 ## Next
 
-Start the loop: `/loop run .seq/execution/fifth-slice/loop.md`. Its first step writes `briefs/fx-fix-lane.md` (from the
-fourth slice's) and `briefs/gc1-genome-language.md`, and starts FX1 beside BZ or GC1 (two lanes at once).
+Resume with `/loop run .seq/execution/fifth-slice/loop.md` (a new session; the 2026-11-21 one hit its usage limit). In
+order:
+
+1. **VC** (stage 2's last lane): write `briefs/vc-vcf.md` from genome-formats.md ("VCF", Bounds, Consequences) on BE's
+   and GG's shape (`be-bed.md`, `gg-gff.md`); strong model (untrusted input), its strong review, one fix round.
+   ClinVar's recording (#2: the `.tbi` whole and TP53's pages) is approved (the author: "Fetch all four").
+2. **Stage 2's GATE** (plan): `pnpm build`, `pnpm check:workspace`, each runtime's size row.
+3. **Stage 1's GATE, the author's**: the novice questions F3, F9, F11, F14, F25 (`fourth-slice/novice-findings.md`),
+   each a yes or no with a recommendation.
+4. **RG** (stage 3, strong, alone in the store), then FR, LA; GX and RX in stage 4.
+5. **Fix lanes** on Sonnet (Decided) as `fixes.md` gathers items; open now: the tree's leftmost line, the Transcripts
+   track's spacing (a design question: a source-backed track's fixed height), the 3,000-contig speed (M5).
+
+Agents: one at a time while usage is tight (Decided); the orchestrator's look and checks gate every merge.
+`foldback.md` collects the slice's lessons for the close.
 
 ## In progress
 
 - 2026-11-21: the loop started (`/loop run .seq/execution/fifth-slice/loop.md`). Running (B3): FX1 (fast; started
-  with this commit) and BZ (strong; same). Both merged (BZ `167d24491`, FX1 `2afb32e91`). GC1 merged (`e3b3a98d0`). SC merged (`2fdc44e76`), GC2 merged (`db2364d09`). BE merged (`98028d3f6`), GC3 merged (`61e71891b`). GG merged (`9b8cf675b`). FX2 merged (`e678d2dbc`), NS merged (`190dfc135`), FX3 merged (`ded361691`). FX4 merged. No lane running; next VC, then stage 1's gate (the author's), RG; open fixes in fixes.md. Downloads stay asked before they are made (plan, How this slice runs).
+  with this commit) and BZ (strong; same). Both merged (BZ `167d24491`, FX1 `2afb32e91`). GC1 merged (`e3b3a98d0`). SC merged (`2fdc44e76`), GC2 merged (`db2364d09`). BE merged (`98028d3f6`), GC3 merged (`61e71891b`). GG merged (`9b8cf675b`). FX2 merged (`e678d2dbc`), NS merged (`190dfc135`), FX3 merged (`ded361691`), FX4 merged (`5bfebf366`). No lane running (2026-11-21, the session ended at its usage limit); next VC, then stage 1's gate (the author's), RG; open fixes in fixes.md. Downloads stay asked before they are made (plan, How this slice runs).
 
 ## Findings by lane
 
