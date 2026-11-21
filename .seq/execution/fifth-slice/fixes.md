@@ -6,13 +6,18 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
 
 ## Open
 
+- **The SVG not repainted when the selection is cleared** (the author, 2026-11-21, gff3--tp-53): the SVG twin keeps
+  the cleared selection's line drawn while the canvas drops it. Every story's SVG redraws on every change the canvas
+  does (selection set, cleared, hover where shown); test it in a twin: clear, then the SVG holds no selection mark.
+
 - **The "…" actions button with no actions** (the author, 2026-11-21, on GG's GFF3 story: "could we stop showing the
   ... actions button if there are no actions registered?"): a track header shows "…" (tooltip "Actions") when its menu
   would be empty. The button is drawn only when at least one entry applies to that track (built-ins that apply, the
   host's, an extension's), decided per track and per state; the fourth slice fixed one case of this (the author: "some
   views show the 3 dot menu icon, but no menu is there"), so find why it is back and test every header kind.
 - **The Transcripts track's spacing** (my look at GG's fix round; the author, 2026-11-21: "the spacing around the
-  transcripts is weird"): about 100 px of blank lanes above the first transcript in gff3--tp-53, the first row
+  transcripts is weird"): about 100 px of blank lanes above the first transcript in gff3--tp-53 and as many below the last (the track
+  taller than its lanes, the lanes centred in it), the first row
   unlabelled, and lanes packed unevenly around the labels; a tall track's lanes start at its top, evenly spaced.
 - **The hover card far from the pointer** (the author, 2026-11-21, gff3--tp-53: "the hover card appears at a weird
   place"): hovering TP53-227 deep in the tall Transcripts track puts the card at the track's top, over the Genes track.
