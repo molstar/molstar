@@ -44,8 +44,8 @@ import {
   rangesLocation,
   unionLocations,
 } from '@molstar/seqx-core/query';
-import { hashString } from '@molstar/core/data/util/hash-functions';
-import { type AssemblyEntry, genomeLoaded, genomeLoadFailure, loadGenome, pendingAssembly } from './genome.js';
+import { type AssemblyEntry, genomeLoaded } from './genome.js';
+import { assemblyLengths, lengthKey, resolveAssemblies } from './model-assemblies.js';
 import type { GeneticCode } from './codon.js';
 import { type GridData, type PairsData } from './held.js';
 import {
@@ -360,9 +360,6 @@ export interface ResolveOptions {
  */
 export type Lengths = ReadonlyMap<string, number>;
 
-/** A length's key: the system and the source node it was read from. */
-const lengthKey = (system: string, sourceHash: string) => `${system}|${sourceHash}`;
-
 /** Each model's source nodes' hashes, by the source's address: what `sourceLengths` keys a length by. */
 const SourceHashes = new WeakMap<StaticModel, ReadonlyMap<string, string>>();
 
@@ -380,18 +377,8 @@ export interface Resolver {
 export function sourceLengths(model: StaticModel, coverage: (source: string) => Coverage | undefined): Lengths {
   const out = new Map<string, number>();
   const hashes = SourceHashes.get(model);
-  // an assembly's source and alias source: their systems ride along, the key's value their content's hash
-  const listed = new Map<string, readonly SystemInfo[]>();
-  for (const a of model.assemblies.values())
-    for (const src of [a.source, a.aliasSource]) {
-      const hash = src && hashes?.get(src);
-      const systems = hash ? coverage(src!)?.systems : undefined;
-      if (!systems) continue;
-      const k = lengthKey(`${a.address}#${src}`, hash!);
-      out.set(k, contentHash(systems));
-      listed.set(k, systems);
-    }
-  if (listed.size) Coverages.set(out, listed);
+  // an assembly's source and alias source: their systems ride along (`model-assemblies.ts`)
+  assemblyLengths(model.assemblies.values(), hashes, coverage, out);
   for (const s of model.systems.values()) {
     const hash = s.source && hashes?.get(s.source);
     if (!hash) continue;
@@ -402,21 +389,6 @@ export function sourceLengths(model: StaticModel, coverage: (source: string) => 
       out.set(lengthKey(s.address, hash), Unnamed);
   }
   return out;
-}
-
-/** The systems an assembly's sources listed, by their key in a `Lengths` (opaque: they ride along with it). */
-const Coverages = new WeakMap<Lengths, ReadonlyMap<string, readonly SystemInfo[]>>();
-/** A coverage's systems hashed once, when the source opens (its names, lengths and aliases). */
-const ContentHashes = new WeakMap<readonly SystemInfo[], number>();
-
-function contentHash(systems: readonly SystemInfo[]): number {
-  let h = ContentHashes.get(systems);
-  if (h === undefined) {
-    h = systems.length;
-    for (const s of systems) h = (h * 31 + hashString(`${s.name}\t${s.length}\t${s.aliases?.join(',') ?? ''}`)) | 0;
-    ContentHashes.set(systems, h);
-  }
-  return h;
 }
 
 /** Whether a coverage's system is `system`: by its name, or an alias of either (`SystemEntry.aliases`). */
@@ -572,44 +544,8 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
     }
   }
 
-  // assemblies: their sequences derived, a system each, from inline `sequences` and their source's coverage
-  const assemblies = new Map<string, AssemblyEntry>();
-  let loading: Promise<unknown> | undefined;
-  let loadSaid = false;
-  const listed = Coverages.get(given);
-  for (const at of data) {
-    if (at.node.kind !== 'assembly') continue;
-    const src = p(at.node, 'source') === undefined ? undefined : ref(at, 'source', ['source'])?.address;
-    const alias = p(at.node, 'alias_source') === undefined ? undefined : ref(at, 'alias_source', ['source'])?.address;
-    const coverageOf = (s: string | undefined) => {
-      const k = s && sourceHashes.get(s) ? lengthKey(`${at.address}#${s}`, sourceHashes.get(s)!) : undefined;
-      return k ? { systems: listed?.get(k), hash: given.get(k) } : undefined;
-    };
-    const c = coverageOf(src);
-    const t = coverageOf(alias);
-    // the genome chunk loads the first time a spec holds an assembly: until then the assembly is pending
-    const genome = genomeLoaded();
-    // a failed load is said, never retried by a resolve (a resolve after it would load again, and again)
-    const failure = genome ? undefined : genomeLoadFailure();
-    if (!genome && failure === undefined) loading ??= loadGenome();
-    if (failure !== undefined && !loadSaid) {
-      loadSaid = true;
-      issues.push(
-        issueOf(ResolveIssues, 'seq.resolve.genome.load', `The genome chunk did not load: ${String(failure)}`, {
-          address: at.address,
-          hint: ResolveIssues.codes['seq.resolve.genome.load'].hint,
-        }),
-      );
-    }
-    const e = genome
-      ? cached(`${at.address}|${key(at)}|${c?.hash ?? ''}|${t?.hash ?? ''}`, () =>
-          genome.assemblyEntry(at, src, alias, c?.systems, t?.systems),
-        )
-      : pendingAssembly(at, src, alias);
-    assemblies.set(at.address, e.entry);
-    for (const s of e.systems) systems.set(s.address, s);
-    issues.push(...e.issues);
-  }
+  // assemblies: their sequences derived, a system each (`model-assemblies.ts`)
+  const { assemblies, loading } = resolveAssemblies({ data, ref, sourceHashes, given, cached, key, systems, issues });
 
   const molecular = buildMolecular(data, inner, systems, issues, config, cached, key, ref, lengths);
 

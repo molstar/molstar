@@ -269,13 +269,17 @@ export function checkPlaced(at: Placed, look: SeqLookup, report: Report): void {
       const of = target(n, 'of')?.node;
       checkBlockForm(n, of?.kind === 'unit' ? target(of, 'of')?.node : of, say);
       const scale = p(n, 'scale');
-      if (typeof scale === 'number' && !(scale > 0)) say('seq.lang.block.scale', 'The scale is not positive', 'scale');
+      // a negative scale is the description's (`min`): one issue, never two
+      if (scale === 0) say('seq.lang.block.scale', 'The scale is not positive', 'scale');
       break;
     }
-    case 'bridge':
-      if (p(n, 'a') !== undefined && p(n, 'a') === p(n, 'b'))
+    case 'bridge': {
+      // the sections named, however written (an address, a ref standing for it)
+      const a = target(n, 'a');
+      if (a !== undefined && a === target(n, 'b'))
         say('seq.lang.bridge.sides', 'The bridge joins a section to itself', 'b');
       break;
+    }
     case 'source':
     case 'sequence':
     case 'molecule':
