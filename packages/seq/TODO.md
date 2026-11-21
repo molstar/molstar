@@ -16,11 +16,6 @@ kinds.
 - **A component query on a source-backed sequence** (`(elements :component X)`) is pending until the source's letters
   are read (EC-169); a format with a component index could answer it without the letters.
 
-- **Sections over a source's complex** (HD's drift, decided 2026-11-21): a section `of` a dynamic complex, resolved when
-  the source opens and reflowed on its `changes`, so a host's own complex shows in a view (seq-data-ports' matrix row "a
-  section of a complex after an update: reflows"); the static-model rule gets an exception for opened sources. The fifth
-  slice's view-model work; until then a dropped unit leaves an empty section and its issue.
-
 ## Base library (`@molstar/core`, `@molstar/io`)
 
 - **`repr`**: `checkRefs` (the resolve pass), `composeLanguage`, `descriptors`, issue dedupe, the catalog docs
