@@ -14,5 +14,37 @@
     "bytesFixture": 16266,
     "sha256Download": "c092fd7f0c1d0a3a543d1d826b3ae07a55bc9c8a9818580232ff9c8f13c60865",
     "sha256Fixture": "007def41bcf2a3b213bad86c46c96e504b2e02e9ecc065349b61acdb568b02dc"
+  },
+  {
+    "file": "genomes/Homo_sapiens.GRCh38.116.chr.TP53.gff3.gz.pages.json",
+    "entry": "Ensembl GRCh38 release 116 GFF3: TP53's region on chromosome 17 (genes, transcripts, exons, CDS, UTRs)",
+    "url": "https://ftp.ensembl.org/pub/release-116/gff3/homo_sapiens/Homo_sapiens.GRCh38.116.chr.gff3.gz",
+    "recorded": "2026-11-21",
+    "licence": [
+      "LicenseRef-EMBL-EBI-terms"
+    ],
+    "attribution": "Ensembl release 116 (GRCh38), Homo_sapiens.GRCh38.116.chr.gff3.gz; Ensembl's disclaimer: no restrictions on access to, or use of, the data (EMBL-EBI terms of use)",
+    "trimmed": "none: every page (1 of 65536 bytes), byte for byte, as recorded pages",
+    "derived": "the lines over 17:7668402-7687550 (1-based, inclusive) and the header lines (a ##sequence-region of 17 only), gzipped (scripts/record-pages.ts --cut)",
+    "bytesDownloaded": 108211474,
+    "bytesFixture": 11242,
+    "sha256Download": "0857407b4a8be8792089a69fd961737256fb7129b6b799f8a8920ebea4fb134f",
+    "sha256Fixture": "13aa487b15641a1bf5566fca8c6b463980d49d2735efeedb27683067dcbc4ab6"
+  },
+  {
+    "file": "genomes/gencode.v50.annotation.TP53.gtf.gz.pages.json",
+    "entry": "GENCODE v50 GTF: TP53's region on chr17 (genes, transcripts, exons, CDS, UTRs, codons)",
+    "url": "https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_50/gencode.v50.annotation.gtf.gz",
+    "recorded": "2026-11-21",
+    "licence": [
+      "LicenseRef-EMBL-EBI-terms"
+    ],
+    "attribution": "GENCODE release 50 (GRCh38, Ensembl 116), gencode.v50.annotation.gtf.gz; GENCODE: all project data open access (EMBL-EBI terms of use)",
+    "trimmed": "none: every page (1 of 65536 bytes), byte for byte, as recorded pages",
+    "derived": "the lines over chr17:7668402-7687550 (1-based, inclusive) and the header lines (a ##sequence-region of chr17 only), gzipped (scripts/record-pages.ts --cut)",
+    "bytesDownloaded": 124527720,
+    "bytesFixture": 15409,
+    "sha256Download": "83fba3e9b03f0b8c958f3595c6c350adc55f468abf8b0e47b6d5284cfe13a453",
+    "sha256Fixture": "50ccc1ff398cf5d593ad5e8f0b7a4eaad7e3b8546a77b4377ae1f2b62e6d2abf"
   }
 ]
