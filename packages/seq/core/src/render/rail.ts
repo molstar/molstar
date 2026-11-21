@@ -6,6 +6,7 @@
 
 import {
   axisBreaks,
+  blockElementAt,
   nearestOffsetOf,
   piecesTotal,
   positionAt,
@@ -91,6 +92,8 @@ export class Rail {
   figure = false;
   /** Each collapsed break's display unit. */
   breaks: number[] = [];
+  /** A section of blocks' blocks: a unit's place is a block's system and position (never the section's units). */
+  blocks: ResolvedSection['blocks'] = undefined;
   /** The section's own pieces and direction: a unit's position. */
   readonly shape: { ranges: readonly number[]; dir: 1 | -1; cyclic: boolean } = { ranges: [], dir: 1, cyclic: false };
   /** The hit it gives, written in place. */
@@ -146,6 +149,7 @@ export function placeRail(
   rail.figure = figure;
   rail.id = sectionId;
   rail.system = section.axis.system;
+  rail.blocks = section.blocks;
   rail.x = axis.x0;
   rail.width = axis.width;
   rail.slim = !ruler;
@@ -357,11 +361,25 @@ export function hitRail(rail: Rail, px: number, py: number, config: RenderConfig
     }
   }
   if (!part) return undefined;
+  // a window over the whole axis (the fit) has no body to drag: the ruler under it takes the pointer (its hover names
+  // the place, a double-click zooms there); its grips still resize it
+  if (part === 'body' && rail.start <= 0 && rail.end >= rail.total) return undefined;
   const h = rail.hit;
   h.section = rail.id;
   h.system = rail.system;
   h.part = part;
+  h.block = undefined;
   const u = Math.max(0, Math.min(rail.total - 1e-9, railUnitAt(rail, x)));
+  const blocks = rail.blocks;
+  if (blocks?.length && blocks[0].offset !== undefined) {
+    // a section of blocks: the block under the unit, its system and its position there (its direction and scale)
+    let b = 0;
+    while (b + 1 < blocks.length && (blocks[b + 1].offset ?? Infinity) <= u) b++;
+    h.block = b;
+    h.system = blocks[b].axis.system;
+    h.position = blockElementAt(blocks[b], u) ?? 0;
+    return h;
+  }
   h.position = Math.floor(positionAt(rail.shape, u, 'start') ?? u);
   return h;
 }

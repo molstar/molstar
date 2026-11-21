@@ -6,6 +6,7 @@
 
 import type { Node as SpecNode } from '@molstar/core/repr/tree';
 import {
+  BlockPlacement,
   floorExtent,
   type GridPlacement,
   type Placement,
@@ -22,7 +23,7 @@ import { type PartCursor, partCursor } from './part-cursor.js';
 import { cancelFrameCallback, requestFrameCallback } from '@molstar/ui/dom/frame';
 import { DomHost } from '@molstar/ui/dom/host';
 import { type Location, rangesLocation } from '@molstar/seqx-core/query';
-import type { Axis } from '@molstar/seqx-core/view';
+import { type Axis, blockSpan } from '@molstar/seqx-core/view';
 import {
   CladeActions,
   type KeyChord,
@@ -888,6 +889,13 @@ export class ViewerInput {
     const cell = inPlot && at >= 0;
     const atY = cell ? this.offsetYAt(section, x, y) : undefined;
     const hull = hit ? this._focusOf(section, hit) : undefined;
+    // on a block with nothing under the point (its label, its band's ground): fit it, and from that fit the whole
+    // (genome coordinates: "double-click on a block's label: fit to it, again: the whole")
+    const block = !hull && !cell && action === 'view.fit' ? this._blockFit(section, p, x, y) : undefined;
+    if (block) {
+      this.viewer.runCommand('view.focus', { section, focus: block });
+      return true;
+    }
     const focus = hull ?? (cell ? { start: Math.floor(at), end: Math.floor(at) + 1 } : undefined);
     const location = hull && hit ? this._locationOf(hit) : undefined;
     this.viewer.runCommand(action, {
@@ -943,6 +951,31 @@ export class ViewerInput {
     const at = block ? (block.offset ?? 0) : 0;
     const r = this._focusOn(block ? block.axis : s.axis, hit, !block && this.viewer.view.arcs(section));
     return r && at ? { start: r.start + at, end: r.end + at } : r;
+  }
+
+  /**
+   * The units of the block under a point of a row of blocks (its strip, or a run's block), unless the window shows it
+   * already (then a fit of the whole); undefined elsewhere.
+   */
+  private _blockFit(
+    section: string,
+    p: Placement | undefined,
+    x: number,
+    y: number,
+  ): { start: number; end: number } | undefined {
+    const s = this.viewer.view.resolved.value?.sections.find((v) => v.address === section);
+    if (!s?.blocks || !(p instanceof BlockPlacement) || p.stacked) return undefined;
+    const pt = this._point;
+    if (!p.at(this._pageAt(x, y), pt)) return undefined;
+    const b = pt.strip >= 0 ? p.strips.block[pt.strip] : p.row.blockAt(x);
+    const block = b >= 0 ? s.blocks[b] : undefined;
+    if (!block || block.offset === undefined) return undefined;
+    const start = block.offset;
+    const end = start + blockSpan(block);
+    const r = p.row;
+    // already this block (within a unit either side): the whole, as a fit
+    if (Math.abs(r.u0 - start) <= 1 && Math.abs(r.u1 - end) <= 1) return undefined;
+    return { start, end };
   }
 
   /** What a focused hit names: the element's whole extent, else its position (the view's last jump says it). */

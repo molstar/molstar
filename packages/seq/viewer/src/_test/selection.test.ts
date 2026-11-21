@@ -203,7 +203,8 @@ describe('clicks (the interaction grammar)', () => {
     it('a double-click on the ruler rail after a click elsewhere gives nothing back', async () => {
       const { v } = await cleared();
       const r = v.frame!.layout.sections[0].rail!;
-      const x = r.x + r.width / 2;
+      // at the fit the rail's body is no target (the ruler takes it): its start grip is
+      const x = r.x + 1;
       const y = r.bottom - 2;
       expect(v.hit(x, y)?.navigator).toBe('rail');
       v.input.down(x, y);

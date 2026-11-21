@@ -816,6 +816,9 @@ binding table; per move one hit record and one modifiers record are reused.
   body nothing; a double-click on the rail is the navigator's (`toggle-fit`, `navigator.zoomPx` at the rail's scale). An
   idle rail is no target: the press falls through to the ruler (on an alignment's columns, a column pick above the grab
   zone).
+- **A double-click on a block** of a row with nothing under the point (its label, its band's ground; where the binding
+  is a fit) fits that block (`view.focus` with its units), and from that fit the whole (genome coordinates' "fit to it,
+  again: the whole").
 - **The rows rail** (`RowsRailGesture`, `behaviors/rows-rail.ts`): a press on its grab zone, in display rows at the
   rail's scale (`railUnitAt` of the page's y): its body scrolls the rows (`bandTop`, clamped to the last rows), a grip
   zooms them about the other end, which stays (`rowScale` within the rows' bounds, core's `MinRowScale` to

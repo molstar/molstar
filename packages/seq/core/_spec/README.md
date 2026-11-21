@@ -2754,10 +2754,13 @@ numbers): a window move allocates nothing once warm.
   columns), the slim row whole; grown (`grownPx`) while hovered or dragged (`Emphasis.drag`); idle (not active) a quiet
   hairline with no grips and no target (at the fit it reads as the line); in a figure (an export) a plain segment, no
   grips, no idle state. Its hit is the `window` target with `navigator: 'rail'` (touch the wider hit: `hitView`'s
-  `touch`), its unit `railUnitAt`. Rails are part of a section's key by identity (a slim row takes room); which can move
-  is not: the renderer sets it on the rails each frame, an emphasis redraw too (an idle flip redraws the window pass
-  alone). `railSections(view, hosted)`: every tracks section no shown navigator binds along its positions: a declared
-  navigator and a host's replace its rail, a hidden one brings it back.
+  `touch`), its unit `railUnitAt`; a window over the whole axis (the fit) has no body to drag, so there only its grips
+  are targets and the ruler under it takes the pointer (its hover names the place, a double-click zooms there). On a
+  section of blocks its hit names the block under the unit, its system and its position (`block`), never the section's
+  units. Rails are part of a section's key by identity (a slim row takes room); which can move is not: the renderer sets
+  it on the rails each frame, an emphasis redraw too (an idle flip redraws the window pass alone).
+  `railSections(view, hosted)`: every tracks section no shown navigator binds along its positions: a declared navigator
+  and a host's replace its rail, a hidden one brings it back.
 - **The rows rail** (`placeRowsRail`, `SectionLayout.rowsRails`; `FrameInput.rails` by the rows track's address): the
   same `Rail` upright (`vertical`: along the page's y, its line and grab zone across on x; one geometry, drawn and hit
   by the same code, the coordinates turned at the rect and at the hit), `SlimRailPx` wide at the right edge (right of

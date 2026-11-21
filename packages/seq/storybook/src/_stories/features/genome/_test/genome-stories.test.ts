@@ -61,6 +61,51 @@ describe('Genome coordinates stories, headless', () => {
     expect(dark.svg).not.toBe(light.svg);
   });
 
+  it('One assembly in a row: a hover over the ruler names the block and its position, at the fit and zoomed', async () => {
+    const v = await open('row');
+    const s = v.frame!.layout.sections[0];
+    const r = s.rail!;
+    const p = s.placement as BlockPlacement;
+    // chr3's middle, over the ruler where the rail's grab zone is
+    const a = p.strips.axes[2];
+    const x = a.x0 + a.width / 2;
+    // the ruler band's foot: inside the rail's grab zone too
+    const y = Math.min(p.strips.bandY[2 * p.strips.bands] + p.strips.bandH[2 * p.strips.bands] - 2, r.bottom - 2);
+    expect(y).toBeGreaterThanOrEqual(r.top);
+    const fit = v.hit(x, y)!;
+    expect([fit.target, fit.system, fit.block]).toEqual([undefined, '/data/toy/(sequence :name chr3)', 2]);
+    expect(fit.position! > 0 && fit.position! < 230e6).toBe(true);
+    // zoomed in: the rail is a target, and it names the block's system and position too, never the section's units
+    v.view.setRange('/views/main/genome', 4e8, 9e8);
+    await vi.advanceTimersByTimeAsync(50);
+    v.draw();
+    const r2 = v.frame!.layout.sections[0].rail!;
+    const h = v.hit(r2.x + r2.width / 2, r2.bottom - 2)!;
+    expect(h.navigator).toBe('rail');
+    expect(h.system).toMatch(/^\/data\/toy\/\(sequence :name chr\d+\)$/);
+    expect(h.position!).toBeLessThan(260e6);
+  });
+
+  it('One assembly in a row: a double-click on a block’s label fits it, again the whole', async () => {
+    const v = await open('row');
+    const s = v.frame!.layout.sections[0];
+    const p = s.placement as BlockPlacement;
+    const a = p.strips.axes[2];
+    const x = a.x0 + a.width / 2;
+    const y = p.strips.top[2] + 4;
+    const total = s.axis!.u1;
+    const chr3 = s.section.blocks![2];
+    v.input.doubleClick(x, y);
+    await vi.advanceTimersByTimeAsync(1000);
+    v.draw();
+    const fitted = v.frame!.layout.sections[0].axis!;
+    expect([fitted.u0, fitted.u1]).toEqual([chr3.offset, chr3.offset! + chr3.axis.ranges![1]]);
+    v.input.doubleClick(v.frame!.layout.sections[0].axis!.x0 + 20, y);
+    await vi.advanceTimersByTimeAsync(1000);
+    v.draw();
+    expect(v.frame!.layout.sections[0].axis!.u1 - v.frame!.layout.sections[0].axis!.u0).toBe(total);
+  });
+
   it('One assembly on a ring: its title, and the detail following its window with no issue', async () => {
     const v = await open('ring');
     const [ring, detail] = v.frame!.layout.sections;
