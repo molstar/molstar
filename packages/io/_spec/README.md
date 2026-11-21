@@ -6,9 +6,10 @@ record of tables and columns), never a model. Building models, volumes and shape
 things are, the contracts a reader keeps, and the decisions (the rule, then why). Code comments cite sections
 (`cif.md §3`). The code is the truth for how.
 
-| File             | What it covers                                                                             |
-| ---------------- | ------------------------------------------------------------------------------------------ |
-| [cif.md](cif.md) | CIF: the data model, `CIF.parse`, the text tokenizer, BinaryCIF decoding, schemas, writing |
+| File               | What it covers                                                                                         |
+| ------------------ | ------------------------------------------------------------------------------------------------------ |
+| [cif.md](cif.md)   | CIF: the data model, `CIF.parse`, the text tokenizer, BinaryCIF decoding, schemas, writing             |
+| [bgzf.md](bgzf.md) | BGZF read whole and by virtual offset; TBI and CSI indexes, a region's lines and extents; their bounds |
 
 MessagePack (the encoder and decoder, and the repr tree's codec on them) is `@molstar/core`'s (`data/msgpack`,
 `repr/codecs/msgpack`; core's repr spec, "Codecs"); io re-exports both at their old paths (`common/msgpack/decode`,
@@ -30,6 +31,7 @@ MessagePack (the encoder and decoder, and the repr tree's codec on them) is `@mo
 | `src/common/msgpack/`                           | MessagePack decode and encode: re-exports of `@molstar/core/data/msgpack`                                          |
 | `src/repr/msgpack.ts`                           | `MsgPackCodec`: a re-export of `@molstar/core/repr/codecs/msgpack`                                                 |
 | `src/common/netcdf/`                            | NetCDF reader (NCTRAJ)                                                                                             |
+| `src/common/bgzf.ts`, `src/common/tabix.ts`     | BGZF and tabix (bgzf.md); their implementation in `src/common/internal/` (not published)                           |
 | `src/common/` (rest)                            | `FileHandle` (random-access reads), `SimpleBuffer` and `IOBuffer` (endian-aware), typed-array reads, ASCII helpers |
 | `src/writer/cif.ts`, `src/writer/cif/`          | `CifWriter`: categories and fields to text or BinaryCIF (cif.md §6)                                                |
 | `src/utils/short-string-pool.ts`                | string interning for short strings                                                                                 |

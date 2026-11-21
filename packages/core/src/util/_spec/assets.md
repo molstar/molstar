@@ -55,8 +55,8 @@ The code is the truth for how; this file records the rules the code relies on, e
 - `ungzip` reads every member of a multi-member stream (BGZF's blocks, concatenated `.gz` files), joined. Members are
   split, never one buffer grown: each found by BGZF's `BC` field (BSIZE) when present, else where the JS inflater's
   deflate stream ends, and inflated as one member with its own ISIZE, within the caller's buffer (a whole BGZF file's
-  size is the sum of its blocks' ISIZEs, known before inflating). A member cut short, a damaged member among several,
-  or bytes after a member that are not one throw; a lone member's wrong CRC-32 is logged, as before. Why: the platform
+  size is the sum of its blocks' ISIZEs, known before inflating). A member cut short, a damaged member among several, or
+  bytes after a member that are not one throw; a lone member's wrong CRC-32 is logged, as before. Why: the platform
   decoders refuse concatenated members, and the last member's ISIZE (BGZF's EOF block: 0) is not the whole size.
 - The inflate of held bytes runs in the first reader's task; when that task is aborted, another reader takes over, as a
   waiter of an aborted download does (§2).
