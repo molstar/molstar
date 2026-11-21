@@ -852,6 +852,19 @@ over 20 runs; the heavy lane bounds one sample at 40 ms (`resolve/_test/addressi
   language takes; each listed shape read whole at level 1 an answer in the protocol's shape, with a channel asked or
   not; an aborted read an `AbortError`; `changes` stopping once unsubscribed. Why: a host is code Seq\* does not own.
 
+### Names
+
+- **A capability, not a shape** (EC-228): `OpenedSource.findNames?(text, { max, prefix }, signal)` gives `NameHit`s
+  (`system`, `start`, `end`: the item's whole extent; `id` when it has one; `label`; the `field` matched), the exact
+  ones first, then by prefix when asked, case-insensitive, at most `max` (20). `Coverage.names` lists the fields
+  searched (strings, checked with the coverage). Why optional: a source that holds no names (a tabix source, a BED)
+  serves none, and no store or language change follows.
+- **Who calls it**: `findNames(sources, text, options, signal)` (`data/names.ts`), over the opened sources a viewer's
+  source sync holds (`{ address, source }`), asks those that serve it in parallel and merges their hits in source order,
+  each with its source's address, at most `max` together. A source that fails is left out, never failing the find; an
+  abort rejects with an `AbortError`; blank text finds nothing. Why not in the store: no tile, key or cache is involved,
+  and the store's lane stays untouched.
+
 ### Tables
 
 - Typed columns, each table with a `form`: `letters` (`start`, a string or uint8 codes with an alphabet); `ranges` as a
@@ -1114,6 +1127,31 @@ by fuzz tests (mutated text read without a throw).
   `delayedRuntime(BigWigRuntime)` on a fake clock.
 - **Performance**: a region at the zoom level that fits, from a local file, decoded under 50 ms (heavy, `itWithin`).
   Size: its own row, under 30 kB, in no bundle that does not list it.
+
+### Genome runtimes' internals
+
+`runtimes/internal/` (not published: `"./runtimes/internal/*": null`): what the BED, GFF and VCF runtimes share, over
+`@molstar/io`'s BGZF and tabix (io's `_spec/bgzf.md`; the allowlist names `common/bgzf` and `common/tabix` for these
+runtimes only).
+
+- **Bytes to text** (`text.ts`, `textBytes`): plain, gzip or BGZF told by the magic, never the extension; bounded by
+  `maxBytes` before and after inflating (BGZF's ISIZEs summed, gzip's declared size, both before the buffer is
+  allocated). Gzip is one member through the platform's decoder (a damaged file `malformed`, not logged), core's
+  `ungzip` where it has none; several plain members are `malformed` (bgzip the file). `decodeText`: UTF-8, and whether
+  U+FFFD is in it (said once a file). A result, never a throw for a file's content.
+- **Lines read whole** (`lines.ts`, `wholeLines`): lines as byte spans (`\n`, a `\r` before it dropped, blank lines left
+  out) with 1-based numbers; the header lines at the top (`meta`, the first `skip`) apart. Counted before the spans are
+  allocated: a line over `maxLineBytes` is `malformed`, more than `maxLines` (`limits.maxRows`) `too-large`.
+- **Lines by region** (`openIndexedLines(uri, indexUri, ctx)`): the file by range (`openRange`; a host without it reads
+  it whole within `limits.maxBytes`), the index through `readBytes`, the EOF block checked once (`eof`: false, the
+  runtime says the file may be cut short and reads it). `region(name, start, end)` gives io's lines with their extents,
+  or a failure kind: io's `malformed` and `too-large`, a range read's `failed`; an abort rejects with an `AbortError`.
+  `cost` is io's `regionBytes` (a tile's read cost, nothing read). Opening fails with `SourceOpenError`:
+  `seq.source.unreadable` (a file or index not read), `seq.source.malformed` (an index that is not one),
+  `seq.source.too_large` (past a bound). Why one line source: a format has one line parser for both reads, so "a region
+  read equals the whole read clipped" is a property of the lines.
+- **Tests**: on files from the shared test-only writer (`@molstar/test-harness/genome/bgzf-writer`: BGZF blocks, TBI and
+  CSI as htslib builds them, BED and VCF generated from a seed), the one io's tests use.
 
 ### mmCIF
 

@@ -58,6 +58,31 @@ export interface Coverage {
   readonly levels: readonly number[];
   /** Nodes known up front. */
   readonly nodes?: readonly DynamicNode[];
+  /**
+   * The fields `findNames` searches (GFF3's `Name`, `ID`, `Alias`), when the source serves it (_spec/README.md "Data",
+   * Names).
+   */
+  readonly names?: readonly string[];
+}
+
+/** An item a source found by name (EC-228): where it is, its id when it has one, what to show, the field matched. */
+export interface NameHit {
+  readonly system: string;
+  /** Positions of the system, 0-based, end exclusive: the item's whole extent. */
+  readonly start: number;
+  readonly end: number;
+  /** The item's id, which `(item :id …)` addresses on its source. */
+  readonly id?: string;
+  readonly label: string;
+  /** The field that matched (one of `Coverage.names`). */
+  readonly field: string;
+}
+
+export interface FindNamesOptions {
+  /** At most this many hits (default 20). */
+  readonly max?: number;
+  /** Names starting with the text too, after the exact ones (default false). */
+  readonly prefix?: boolean;
 }
 
 export interface RegionRequest {
@@ -255,6 +280,12 @@ export interface OpenedSource {
    * _spec/README.md "Data", Protocol). A source read once (a file) has none.
    */
   changes?(fn: () => void): () => void;
+  /**
+   * Optional: items whose names (the fields `coverage.names` lists) match `text`, case-insensitive, the exact ones first,
+   * then by prefix when asked, at most `max`; rejects with an `AbortError` when `signal` aborts (_spec/README.md "Data",
+   * Names).
+   */
+  findNames?(text: string, options: FindNamesOptions, signal: AbortSignal): Promise<readonly NameHit[]>;
   dispose(): void;
 }
 

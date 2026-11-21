@@ -23,6 +23,7 @@ export {
 export { asyncSeqSource, type DelayOptions, delayedRuntime, delayedSource } from './async-source.js';
 export { checkFai, FastaRuntime, type FaiRecord, faidx, openFasta, parseFai } from './fasta.js';
 export { ArchiveIssues, SourceIssues, StoreIssues } from './issues.js';
+export { DefaultMaxNameHits, findNames, type NamedSource, type SourceNameHit } from './names.js';
 export { DefaultTileBins, dataKey, fitLevel, nodeKey, tileRegion, tileSpan, tileWidth } from './keys.js';
 export {
   type AssetReader,
@@ -35,9 +36,11 @@ export {
   type FailureKind,
   FailureKinds,
   type FieldInfo,
+  type FindNamesOptions,
   type FormatRuntime,
   isAbortError,
   type LettersTable,
+  type NameHit,
   DefaultOpenLimits,
   type OpenContext,
   type OpenLimits,
