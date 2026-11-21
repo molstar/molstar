@@ -200,21 +200,27 @@ export class StoreModel extends ReactiveModel {
    */
   overlay(model: StaticModel, view: ResolvedView, ctx: { runtimes: readonly FormatRuntime[]; assets: AssetReader }) {
     const overlay = this.overlayOf(model, ctx.runtimes);
-    if (this._synced?.overlay !== overlay || this._synced.view !== view) {
-      this._synced = { overlay, view };
-      this._overlaySources ??= new OverlaySources(this.store, ctx.assets);
-      void this._overlaySources.sync(overlay, view).then((issues) => {
-        if (this.isRetired) return;
-        const now = new Set<string>();
-        for (const i of issues) {
-          now.add(i.address ?? '');
-          this._report(i.address ?? '', i);
-        }
-        for (const a of this._overlayFailed) if (!now.has(a)) this._report(a, undefined);
-        this._overlayFailed = now;
-      });
-    }
+    if (this._synced?.overlay !== overlay || this._synced.view !== view) this._syncOverlay(overlay, view, ctx.assets);
     return overlay;
+  }
+
+  /**
+   * Opens the overlay's sources for a view. Apart from `overlay`, which a frame calls: its closure would make a context
+   * on every call once the optimizer gave up on it (a host's reopen did: 40 bytes a warm frame).
+   */
+  private _syncOverlay(overlay: Overlay, view: ResolvedView, assets: AssetReader): void {
+    this._synced = { overlay, view };
+    this._overlaySources ??= new OverlaySources(this.store, assets);
+    void this._overlaySources.sync(overlay, view).then((issues) => {
+      if (this.isRetired) return;
+      const now = new Set<string>();
+      for (const i of issues) {
+        now.add(i.address ?? '');
+        this._report(i.address ?? '', i);
+      }
+      for (const a of this._overlayFailed) if (!now.has(a)) this._report(a, undefined);
+      this._overlayFailed = now;
+    });
   }
 
   /**
