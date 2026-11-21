@@ -64,6 +64,11 @@ is in `src/common/internal/` (not published): `bgzf-blocks.ts` (the block walk, 
   when INFO starts with `END=` or holds `;END=` and the value is past `POS − 1` (whatever the alleles), else
   `POS − 1 + len(REF)`. So `readRegion` answers exactly what the index would; a line outside the region from a chunk's
   edge is dropped there, and a region read equals the whole read clipped.
+- **Two divergences from `tbx_parse1`, on purpose**: a generic index without an end column (end 0) gives a line
+  `begin + 1`, the rule the line was indexed by (`hts_idx_push` files it at its position), where `tbx_parse1` leaves
+  `end = 1` (an extent that would drop the line from every region but the first base). Numbers are read as decimal:
+  htslib's `strtoll(…, 0)` reads `010` as octal 8 and `0x10` as hex; here `010` is 10 and `0x10` is 0. Positions are
+  written in decimal by every tool, so only a hand-made file differs.
 - **A line naming another sequence** (an index for another file), without a position, or past 2^31 − 1 is `malformed`
   for that region, never a row in the wrong place; a line over `maxLineBytes` is `malformed`.
 - **Header lines** (`readHeaderLines`): the bytes before the first indexed line (or, with none, blocks from the start
@@ -71,7 +76,13 @@ is in `src/common/internal/` (not published): `bgzf-blocks.ts` (the block walk, 
   Their extents are −1.
 - **Positions stay int32** (the protocol's): a sequence longer than 2^31 − 1 is the caller's to refuse at open.
 
-## 4. Bounds
+## 4. Fixtures
+
+The tests' files come from a test-only writer (`@molstar/test-harness/genome/bgzf-writer`: bgzip's blocks, TBI and CSI
+as htslib builds them), so the reader and the writer agree by construction, and htslib's own output is not yet read in a
+test. A real `.tbi` and `.csi` come with the formats' recorded slices (ClinVar's index, genome-formats design).
+
+## 5. Bounds
 
 | Bound                                                             | Default | Over it                   |
 | ----------------------------------------------------------------- | ------- | ------------------------- |
