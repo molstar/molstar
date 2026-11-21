@@ -23,6 +23,10 @@ under the author's standing permission (`state.md`, Decided). Each a yes or no q
   for `layout`, `heights`, `content`. Drifts: `extend` async with no public `context.extend`; params checked by the
   descriptor's `check`; no type-table version in the draw-list key (a new resolved view is a new renderer); late
   header entries and settings refused. Keep? Recommended yes.
+- **LE**: language 0.5.0's layer `legend` (`auto`, `none`); viewer `LegendSelection` (`of` an address or a list, `omit`,
+  `maxItems`), `selectLegends`, `legendRows` taking it, `LegendEntryRow.ends`/`step`; `LegendPartOptions.form`
+  (`full`, `compact`) and `orient` (`vertical`, `horizontal`), an unknown value thrown as `channels` is. Keep?
+  Recommended yes.
 
 ## Decisions as recommended
 
