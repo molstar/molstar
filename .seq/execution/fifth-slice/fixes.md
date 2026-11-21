@@ -10,7 +10,9 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   UniProt entry: "hovering the bottom 'regions' … is missing a highlight", "the hover placement is quite
   inconsistent"):
   - the Regions track's bottom row (its density row of overlapping regions) shows a card but draws no hover mark: the
-    density row lights the hovered stretch (or the items under it);
+    density row lights the hovered stretch (or the items under it), as a lane's item does (the top row's
+    "Oligomerization" gets its box and a short card: Track, Extent); the density row's card lists the items under the
+    pointer in that same short form;
   - the card jumps between below and above the pointer and covers the rows being read: one placement rule (beside
     the pointer on the side with room, never over the hovered row, the same side while the pointer stays in a track);
   - the card's width changes from one hover to the next and wraps values ("P04637 100–" / "370"): a value never
