@@ -44,6 +44,7 @@ import {
   blockAxes,
   blockNodes,
   openedComplex,
+  unknownOverrides,
   sectionAssemblies,
   sectionComplex,
   systemRef,
@@ -549,6 +550,8 @@ function build(model: StaticModel, view: Node, address: string, layerKinds: Laye
       );
     if (derived) nodesOf.set(at, derived.nodes);
     const first = blocksAt(at)[0];
+    for (const id of unknownOverrides(model, s))
+      report('seq.view.block.unit', 'The block overrides no unit the source’s complex has held', `${at}/${id}`);
     // an assembly not yet open has no blocks: pending, never a missing system
     if (assemblies && !first && assemblies.some((a) => a.pending)) {
       systemOf.set(at, '');

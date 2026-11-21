@@ -27,8 +27,7 @@ export const DefaultSectionClasses: readonly string[] = ['polymer', 'branched', 
 
 /** A section's `of` as an address: an exact one, or a node a spec source holds (`<source>/(node :key <key>)`). */
 function sectionOf(model: StaticModel, section: Node): string | undefined {
-  const of = param(section, 'of');
-  return exactAddress(of) ?? describedAddress(of, (a) => model.sources.has(a));
+  return refOf(model, param(section, 'of'));
 }
 
 /** The complex a section is `of`, when it is one (a source's while held: an opened model's). */
@@ -78,8 +77,36 @@ export function sectionAssemblies(model: StaticModel, section: Node): AssemblyEn
  * form no exact address reads).
  */
 export function systemRef(model: StaticModel, of: Value | undefined): string | undefined {
-  return typeof of === 'string' && model.systems.has(of) ? of : exactAddress(of);
+  return typeof of === 'string' && model.systems.has(of) ? of : refOf(model, of);
 }
+
+/** An address as written: an exact one, or a node a spec source holds (`<source>/(node :key <key>)…`), canonical. */
+function refOf(model: StaticModel, v: Value | undefined): string | undefined {
+  return exactAddress(v) ?? describedAddress(v, (a) => model.sources.has(a));
+}
+
+/**
+ * The overrides of a section of a source's complex that name no unit an opened model over this spec has held (a
+ * mistyped id): their ids, to be said; an override of a unit an update dropped is not one.
+ */
+export function unknownOverrides(model: StaticModel, section: Node): string[] {
+  const complex = sectionComplex(model, section);
+  if (complex === undefined || openedComplex(model, section) === undefined) return [];
+  const held = model.heldUnits;
+  const out: string[] = [];
+  for (const c of section.children ?? []) {
+    if (c.kind !== 'block' || c.id === undefined || !isOverride(model, c, complex)) continue;
+    const address = `${complex}/${c.id}`;
+    if (!model.molecular.units.has(address) && !held?.has(address)) out.push(c.id);
+  }
+  return out;
+}
+
+/** A `block` with no `of`, or one naming its id's unit of the complex: an override. */
+const isOverride = (model: StaticModel, n: Node, complex: string | undefined) => {
+  const of = param(n, 'of');
+  return of === undefined || refOf(model, of) === `${complex}/${n.id}`;
+};
 
 /** A derived block's address: the keyed form under its section, never an id step (it has no id). */
 const DerivedAddress = new WeakMap<Node, string>();
@@ -152,11 +179,7 @@ export function blockNodes(model: StaticModel, section: Node, at = ''): Node[] {
   const byId = new Map(units.map((u) => [u.id, u]));
   // over a source's complex a block naming no other system overrides its unit, held or not: a unit an update drops
   // takes its override with it, never turning the rest into a list
-  const override = (n: Node) => {
-    const u = byId.get(n.id!);
-    const of = param(n, 'of');
-    return (u !== undefined || opened) && (of === undefined || exactAddress(of) === `${complex}/${n.id}`);
-  };
+  const override = (n: Node) => (byId.has(n.id!) || opened) && isOverride(model, n, complex);
   if (own.length && !own.every(override)) return own;
   // each override's params by the units it reaches: its unit, or with merged copies its unit's copy group
   const merge = param(section, 'copies') !== 'each';

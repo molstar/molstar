@@ -113,11 +113,38 @@ describe('a section of a source’s complex', () => {
 
   it('an override of a unit an update drops goes with it: the rest stay derived', () => {
     const model = resolveSpec(spec((s) => s.block('B-1_555', { form: 'residues', label: 'B' })));
+    // held once (its override applied to its copy group), then dropped: silent
+    expect(blocks(viewOf(model, All, 1))).toEqual([
+      ['B ×2', ['A-1_555', 'B-1_555']],
+      ['ZINC ION', ['C-1_555']],
+    ]);
     const v = viewOf(model, withoutB(), 2);
     expect(codes(v)).toEqual([]);
     expect(blocks(v)).toEqual([
       ['A-1_555', ['A-1_555']],
       ['ZINC ION', ['C-1_555']],
+    ]);
+  });
+
+  it('an override naming a unit the complex never held is said, at the block; the rest stay derived', () => {
+    const model = resolveSpec(spec((s) => s.block('Q-1_555', { label: 'Q' })));
+    const v = viewOf(model, All, 1);
+    expect(codes(v)).toEqual([['seq.view.block.unit', `${Section}/Q-1_555`]]);
+    expect(blocks(v)).toEqual([
+      ['A-1_555 ×2', ['A-1_555', 'B-1_555']],
+      ['ZINC ION', ['C-1_555']],
+    ]);
+  });
+
+  it('an override written as the source’s address of its unit is one: applied, the rest derived', () => {
+    const model = resolveSpec(
+      spec((s) => s.block('C-1_555', { of: `${Source}/(node :key "complex")/C-1_555`, label: 'Zn' })),
+    );
+    const v = viewOf(model, All, 1);
+    expect(codes(v)).toEqual([]);
+    expect(blocks(v)).toEqual([
+      ['A-1_555 ×2', ['A-1_555', 'B-1_555']],
+      ['Zn', ['C-1_555']],
     ]);
   });
 

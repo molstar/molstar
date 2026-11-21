@@ -55,6 +55,8 @@ const chain = <K, V>(a: ReadonlyMap<K, V>, b: ReadonlyMap<K, V> | undefined): Re
   b?.size ? (a.size ? new Chained(a, b) : b) : a;
 
 const Kept = new WeakMap<StaticModel, WeakMap<Overlay, StaticModel>>();
+/** The units every opened model over a static model held: grows, one set a static model. */
+const Held = new WeakMap<StaticModel, Set<string>>();
 
 /**
  * The static model with the molecules, complexes, units and their systems the overlay's sources hold as its own
@@ -83,6 +85,9 @@ function makeOpened(model: StaticModel, overlay: Overlay): StaticModel {
     ...(dyn.numberings ? { numberings: dyn.numberings } : {}),
     ...(dyn.compounds ? { compounds: dyn.compounds } : {}),
   };
+  let held = Held.get(model);
+  if (!held) Held.set(model, (held = new Set()));
+  for (const a of dyn.units.keys()) held.add(a);
   const both = (from: string, to: string) => model.systems.has(from) && model.systems.has(to);
   return {
     ...overlayQueryModel(model, overlay),
@@ -101,6 +106,7 @@ function makeOpened(model: StaticModel, overlay: Overlay): StaticModel {
     compounds: model.compounds,
     ...(model.describedMaps ? { describedMaps: model.describedMaps } : {}),
     opened: new Set(overlay.nodes.map((n) => n.source)),
+    heldUnits: held,
     modified: (s) => model.modified(s) ?? modifiedOf(dyn, s),
     compound: (code) => model.compound(code) ?? dyn.compounds?.get(code),
     issues: model.issues,

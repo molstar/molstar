@@ -21,6 +21,12 @@ export const ViewIssues = defineIssues('seq.view', {
     description: 'A section is `of` a complex its opened source does not hold (an update dropped it); it shows nothing',
     hint: 'Name a complex the source holds',
   },
+  'seq.view.block.unit': {
+    severity: 'warning',
+    description:
+      'A `block` over a source’s complex overrides a unit id the complex never held (a mistyped id); it is left out',
+    hint: 'Name a unit of the complex by its id',
+  },
   'seq.view.section.blocks': {
     severity: 'warning',
     description: 'A section of assemblies has more blocks than `maxAssemblyBlocks`',

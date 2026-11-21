@@ -300,6 +300,11 @@ export interface StaticModel extends QueryModel {
    * hold is said, one whose source holds nothing yet is pending (_spec/README.md "Overlay", Opened sources).
    */
   readonly opened?: ReadonlySet<string>;
+  /**
+   * Every unit an opened model over the same static model has held, by address (`openedModel`): an override of one an
+   * update dropped is silent, one naming a unit never held is said.
+   */
+  readonly heldUnits?: ReadonlySet<string>;
   /** The declared numberings, by the numbering node's address. */
   readonly numberings: ReadonlyMap<string, NumberingEntry>;
   /** Whether a declared numbering's labels are a source's (read by tier 2): what wraps a query model checks first. */
