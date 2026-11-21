@@ -19,6 +19,9 @@ under the author's standing permission (`state.md`, Decided). Each a yes or no q
 - **ST2**: the link sends every jump that names a Location (`focus`, `reveal`, and back/forward over them); `fit`,
   `zoom`, `move` never go out. Keep `reveal` going out? Recommended yes (a reveal is a navigation to a place the
   structure can show).
+- **FX4**: every item's hover card and announcement now name its track (a Track row: "Domain A, p 3–8, Domains"), so
+  two tracks' items of one label are told apart (Kabat's and IMGT's CDR-H1); ux-foundations amended. Keep it for every
+  card, or only where two tracks share a label? Recommended: every card (one rule, and a row under the cap).
 
 ## For the author (no default taken)
 

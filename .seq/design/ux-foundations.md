@@ -266,7 +266,9 @@ to its summary row), never silently dropped.
   viewer computes the card as data (title, rows, the announcer's text) and its place (`placeCard`), headless and
   tested without a DOM; the hover card port draws it, `@molstar/ui`'s card by default, a host's own components and
   styles in its place. **Compact** (the author, 2026-11-20: "the hover cards should be more compact in general"): the
-  title one line and said once, each row one text line, the value beside its label. **Capped**: past `hover.cardItems`
+  title one line and said once, each row one text line, the value beside its label; an item's card names its track
+  (a Track row, and the announcement), so two tracks' items of one label are told apart (FX4: Kabat's and IMGT's
+  CDR-H1). **Capped**: past `hover.cardItems`
   (8) item rows the card shows the first and a "+k more" row; `HoverCard.more` keeps the rest, the live region says
   every item; a host's card through the port draws what it likes (the author: "app level overridable").
   styles in its place. A host turns it off (config) or adds rows behind its internal interface (extensibility.md);

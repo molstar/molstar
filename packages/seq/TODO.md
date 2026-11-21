@@ -323,3 +323,6 @@ base-library change, below), archives. The Genomes milestone is the fifth.
   `pairs-grids.quick.ts` bounds it at 128 B): find the boxed value; the tracks' stripes allocate nothing.
 - **Host commands cannot declare their change kind** (structure-syncing: a host's color command changes no Seq\* state):
   `CommandChangeKinds` has no hook for a host's ids.
+- **A gap mark on the rows layer** (FX4): the rows layer skips an alignment's gap cells, so the Antibody's against view
+  shows its gaps faintly at the fit; a `gap_marks` param (a gap list in `RowsLay`, canvas and SVG, the image-tile step
+  below 3 px a cell).
