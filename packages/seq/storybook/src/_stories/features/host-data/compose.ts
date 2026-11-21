@@ -30,8 +30,8 @@ export const HostComplex = nodeAddress(HostSource, 'complex');
 export const HostChains = ['A', 'D'] as const;
 /** The B-factors' bar scale, Å² (the chains' range is 10–75): full height at its top. */
 export const BFactorDomain: readonly [number, number] = [0, 80];
-/** The story's legend of the B-factor tracks: what a bar's height is, and why they end short of the sequence. */
-export const BFactorLegend = `B-factor (Å²): a bar's height, from ${BFactorDomain[0]} (nothing) to ${BFactorDomain[1]} (full). The tracks stop short at each end: the crystal has no atoms for residues 1–2 and 197–219, and a residue without atoms has no B-factor.`;
+/** The story's legend of the B-factor tracks: what a bar’s height is, and why they end short of the sequence. */
+export const BFactorLegend = `B-factor (Å²): a bar’s height, from ${BFactorDomain[0]} (nothing) to ${BFactorDomain[1]} (full). The tracks stop short at each end: the crystal has no atoms for residues 1–2 and 197–219, and a residue without atoms has no B-factor.`;
 /** A unit of the complex: its address. */
 export const unitAddress = (chain: string) => `${HostComplex}/${chain}`;
 

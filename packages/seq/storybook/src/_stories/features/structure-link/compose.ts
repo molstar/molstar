@@ -41,6 +41,18 @@ export function describeSelectors(selectors: Selectors | null): string {
     .join(', ');
 }
 
+/** What Seq* lit in the fake, as residue numbers by chain (`A 161, B 161`): the readout where a one-cell shift is read. */
+export function litLine(fake: FakeStructureViewer): string {
+  const spans = fake.highlight.value;
+  if (!spans.length) return 'Lit in the fake: nothing';
+  const cells = spans.map((s) => {
+    const row = fake.rows[s.row];
+    const first = row.residues[s.start]?.auth ?? '?';
+    return s.end - s.start > 1 ? `${row.asym} ${first}–${row.residues[s.end - 1]?.auth ?? '?'}` : `${row.asym} ${first}`;
+  });
+  return `Lit in the fake: ${cells.join(', ')}`;
+}
+
 export interface FakeLinkOptions {
   /** Milliseconds the fake delays its messages (0). */
   readonly latency?: number;

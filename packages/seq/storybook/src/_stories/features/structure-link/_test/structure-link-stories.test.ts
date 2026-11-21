@@ -16,7 +16,7 @@ import type { Cell, ChainTable, Span } from '../../../support/fake-structure/cha
 import { type HeadersBehavior, HeadersProvider } from '@molstar/seqx-viewer/behaviors/headers';
 import { BaseColor } from '../../../support/fake-structure/mvs-state.js';
 import { ColorByEntry, colorByBehavior, viewerModel } from '../../../support/host-adapter.js';
-import { colorRunner, type FakeLink, linkFake } from '../compose.js';
+import { colorRunner, type FakeLink, linkFake, litLine } from '../compose.js';
 import { fakeClock, openView, tableOf } from './open.js';
 
 // The structure link's stories, headless on a fake clock, composed as the stories compose them (compose.ts): p53 and
@@ -269,6 +269,8 @@ describe('Chain maps', () => {
       link = linkFake(compare, table, Complex, via ? { link: { complexes: [{ complex: Complex, via }] } } : {});
       compare.hover.set({ section: Section, system: Protein, position: p }, pointer);
       const out = cellsOf(link.fake, link.fake.highlight.value).map((c) => `${c.asym}${c.res.auth}`);
+      // the story's readout names the same residues (F8: a one-cell shift read as numbers)
+      expect(litLine(link.fake)).toBe(`Lit in the fake: ${out.map((o) => `${o[0]} ${o.slice(1)}`).join(', ')}`);
       link.dispose();
       link = undefined;
       compare.hover.clear(pointer);

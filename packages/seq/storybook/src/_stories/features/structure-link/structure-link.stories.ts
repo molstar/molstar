@@ -87,7 +87,7 @@ export const ChainMaps: StoryObj = {
       view: p53('structure-compare'),
       dataset: 'p53',
       chooseMap: true,
-      hint: 'Hover a residue of P04637: the two sections of the complex light neighbors (one follows SIFTS, the other the alignment, shifted by one). The fake lights what the link’s map says; the toggle changes the map the link goes through.',
+      hint: 'Hover a residue of P04637: the two sections of the complex light neighbors (one follows SIFTS, the other the alignment, shifted by one). The fake lights what the link’s map says, and the line above it names the residues lit (a cell there is 4 px: read the numbers; the alignment’s map puts each one number lower); the toggle changes the map the link goes through.',
     }),
 };
 
