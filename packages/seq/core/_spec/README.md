@@ -392,8 +392,10 @@ layout per token table, held domains and the reader's substitution (`LayerChanne
   clauses: a kind is a word in the description.
 - **A layer with no color takes the next categorical color** (a ranges layer whose spec gives no `color`): the theme's
   `seq-cat-<n>` by its order in the view (`LayoutContext.colorIndex`), counted by what it shows: one data node shown in
-  two sections (a ring and its detail) one color, a template's instances one; a spec's color always wins, and a layer's
-  items stay one color. Why: one steel blue for every colourless layer reads as a placeholder (the defaults audit).
+  two sections (a ring and its detail) one color, a template's instances one, and over every ranges layer, coloured or
+  not (a coloured one keeps its place unused); a spec's color always wins, and a layer's items stay one color. Why: one
+  steel blue for every colourless layer reads as a placeholder (the defaults audit); counted over the coloured too, a
+  layer's default never moves when another is coloured (or previewed).
 - **Scales**: `linear`, `log`, `sqrt`; a `domain` with an open end follows the data in view, computed when the view
   settles and held while it does not; `non_positive` on `log`: `missing` (before any bin or end color) or `clamp` (the
   domain's low end) (`seq.render.scale.log`). A center (`mid`) makes a number's default palette the diverging one. A
