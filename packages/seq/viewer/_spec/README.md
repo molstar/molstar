@@ -777,7 +777,8 @@ the passes.
   SVG shows the theme the canvas shows.
 - `Context2D` and `CanvasLike` are what the backend calls of a 2D context and a canvas: the tests record the calls with
   a fake context.
-- `canvasTextMetrics(ctx)`: the text metrics port over a context's `measureText`, the font set only when it changes.
+- `canvasTextMetrics(ctx)`: the text metrics port over a context's `measureText`, the font set only when it changes; its
+  `capHeight` the `actualBoundingBoxAscent` of `H` (a letter's size follows from it).
 
 ## Input
 

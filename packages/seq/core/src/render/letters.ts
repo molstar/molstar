@@ -421,7 +421,7 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
     if (step === 'letters') {
       const cell = axis.scale * width;
       // (never past the cap, `letters.maxPx`; the smallest where none fits: a short row still shows its letters)
-      lay.fontSize = letterSize(config, cell, box.height * 0.75);
+      lay.fontSize = letterSize(config, cell, box.height * 0.75, ctx.section.layout !== 'text');
       lay.font = `${lay.fontSize}px mono`;
       lay.glyphY = box.y + box.height / 2 + lay.fontSize * 0.35;
       // each part names its residue where it has room (EC-117); three-letter codes where the narrowest part in view

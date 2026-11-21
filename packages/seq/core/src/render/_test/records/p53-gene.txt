@@ -17,7 +17,7 @@ rect 432 8 50 20 #cfe0f5ff
 rect 482 8 50 20 #f5cfcfff
 rect 532 8 50 20 #cfe0f5ff
 rect 582 8 50 20 #cfe0f5ff
-glyphs "10px mono" 21.5 per P 156 #2d271eff, P 206 #2d271eff, P 256 #2d271eff, G 306 #2d271eff, T 356.5 #2d271eff, R 407 #2d271eff, V 457 #2d271eff, R 507 #2d271eff, A 557 #2d271eff, M 607 #2d271eff
+glyphs "12px mono" 22.2 per P 156 #2d271eff, P 206 #2d271eff, P 256 #2d271eff, G 306 #2d271eff, T 356.5 #2d271eff, R 407 #2d271eff, V 457 #2d271eff, R 507 #2d271eff, A 557 #2d271eff, M 607 #2d271eff
 unclip
 clip 131 32 501 50 squircle 8
 rect 131 65 501 12 #18a67fff

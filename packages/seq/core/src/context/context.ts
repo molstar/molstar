@@ -127,6 +127,11 @@ export type AssetsPort = ManagedAssetsPort | ReaderAssetsPort;
 export interface TextMetricsPort extends PortResult {
   /** The width of `text` set in `font`, CSS px. */
   measure(font: string, text: string): number;
+  /**
+   * The cap height of `font`, CSS px (a canvas's `actualBoundingBoxAscent` of `H`): what makes a letter's size match a
+   * label's (`letters.capRatio`). Absent: the faces are taken to have the same cap height per em.
+   */
+  capHeight?(font: string): number;
   dispose?(): void;
 }
 
@@ -300,6 +305,18 @@ export interface SeqContext {
 }
 
 /**
+ * The config with `letters.capRatio` measured: the label face's cap height over the mono face's per em, so a letter
+ * matches a label's cap height (the host's own `capRatio` is kept). Unchanged where the port measures no cap heights.
+ */
+function withCapRatio(config: RenderConfig, port: TextMetricsPort): RenderConfig {
+  if (!port.capHeight || config.letters.capRatio !== 1) return config;
+  const label = port.capHeight('100px sans');
+  const mono = port.capHeight('100px mono');
+  if (!(label > 0) || !(mono > 0)) return config;
+  return { ...config, letters: { ...config.letters, capRatio: label / mono } };
+}
+
+/**
  * The headless context of a composition as listed (_spec/README.md "Context"): the registry, the configuration and the
  * ports a render needs, and the resolve passes and `renderSvg` through them, with nothing the registry does not list (no
  * layer type, no layout, no navigators: `createSeqContext` lists the built-ins). Ports unset take their defaults (no
@@ -309,7 +326,7 @@ export function composeSeqContext(spec: SeqContextSpec = {}): SeqContext {
   const registry = spec.registry ?? [];
   let t = tablesOf(registry, checkExtensions(spec.extensions ?? []));
   const theme = configValue(spec.config, SeqCoreConfig.theme) ?? 'light';
-  const renderCfg = renderConfig(configValue(spec.config, SeqCoreConfig.render));
+  let renderCfg = renderConfig(configValue(spec.config, SeqCoreConfig.render));
   const resolveCfg = configValue(spec.config, SeqCoreConfig.resolve) ?? {};
   const bounds = specBounds(configValue(spec.config, SeqCoreConfig.bounds));
   const disposers: (() => void)[] = [];
@@ -333,6 +350,7 @@ export function composeSeqContext(spec: SeqContextSpec = {}): SeqContext {
     if (spec.ports?.textMetrics) {
       const port = spec.ports.textMetrics();
       text = createTextMetrics((font) => (s) => port.measure(font, s));
+      renderCfg = withCapRatio(renderCfg, port);
       if (port.disposeWithViewer !== false && port.dispose) disposers.push(() => port.dispose!());
     } else text = bundledTextMetrics();
 

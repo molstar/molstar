@@ -105,10 +105,12 @@ export interface RenderConfig {
     readonly modifiedMark: { readonly shape: 'dot' | 'underline'; readonly size: number };
     /**
      * The largest letter size, CSS px of the mono face: a letter is never larger than the chrome's label (cap heights
-     * equal: 0, the default, is `LabelCapRatio` of the label font's size, so it follows `labelFont`). A host that
-     * wants letters to follow the cell (teaching, slides) sets it past the scale's largest size.
+     * equal: 0, the default, is the label font's size times `capRatio`, so it follows `labelFont`). A host that wants
+     * letters to follow the cell (teaching, slides) sets it past the scale's largest size.
      */
     readonly maxPx: number;
+    /** The label face's cap height over the mono face's, per em: measured by the host (the canvas); 1 when it has none. */
+    readonly capRatio: number;
   };
   /** How far past its max width a text fades out, CSS px. */
   readonly fade: number;
@@ -353,7 +355,7 @@ export const DefaultRenderConfig: RenderConfig = {
   labelFont: '12px sans',
   itemFont: '10px sans',
   labels: { minChars: 4 },
-  letters: { modifiedMark: { shape: 'dot', size: 3 }, maxPx: 0 },
+  letters: { modifiedMark: { shape: 'dot', size: 3 }, maxPx: 0, capRatio: 1 },
   fade: 12,
   squircleRatio: 1 / 3,
   squircleMax: 8,
@@ -485,6 +487,7 @@ export function renderConfig(over: RenderConfigOverrides = {}): RenderConfig {
     letters: {
       modifiedMark: { ...DefaultRenderConfig.letters.modifiedMark, ...over.letters?.modifiedMark },
       maxPx: over.letters?.maxPx ?? DefaultRenderConfig.letters.maxPx,
+      capRatio: over.letters?.capRatio ?? DefaultRenderConfig.letters.capRatio,
     },
     values: { ...DefaultRenderConfig.values, ...over.values },
     ruler: { ...DefaultRenderConfig.ruler, ...over.ruler },
@@ -526,23 +529,34 @@ export function densityStep(cssPx: number, dpr: number, config: RenderConfig): D
   return 'density';
 }
 
-/** A letter's size against the label's, for the same cap height: the mono face's capitals are a little taller per em. */
-export const LabelCapRatio = 0.9;
+const Caps = new WeakMap<RenderConfig, number>();
 
-/** The largest letter size: `letters.maxPx`, else (0) the label font's size less the mono face's optical difference. */
+/**
+ * The largest letter size: `letters.maxPx`, else the label font's size times `letters.capRatio` (the label face's cap
+ * height over the mono face's, per em: 1 where the host measured none), so a letter's cap height equals a label's.
+ * Computed once per config.
+ */
 export function letterCap(config: RenderConfig): number {
-  return config.letters.maxPx > 0 ? config.letters.maxPx : fontSize(config.labelFont) * LabelCapRatio;
+  let cap = Caps.get(config);
+  if (cap === undefined) {
+    cap = config.letters.maxPx > 0 ? config.letters.maxPx : fontSize(config.labelFont) * config.letters.capRatio;
+    Caps.set(config, cap);
+  }
+  return cap;
 }
 
 /**
- * One size for a row of letters: the largest of the scale that is within the cap, whose advance fits `cell` (px) and
- * that fits `room` (px, the height it may take). The smallest size when none does (the step starts where it fits a
- * cell, so a short row still shows its letters), never past the cap.
+ * One size for a row of letters: the cap itself where the cell (px) and `room` (px, the height it may take) allow it,
+ * else the largest of the scale that fits, never past the cap. The smallest size when none does (the step starts
+ * where it fits a cell, so a short row still shows its letters). `capped: false` is a text figure's, read as text: the
+ * scale alone.
  */
-export function letterSize(config: RenderConfig, cell: number, room: number): number {
-  const cap = letterCap(config);
+export function letterSize(config: RenderConfig, cell: number, room: number, capped = true): number {
+  const cap = capped ? letterCap(config) : Infinity;
+  const limit = Math.min((cell - 2) / config.monoAdvance, room);
+  if (cap <= limit) return cap;
   let size = 0;
-  for (const s of config.letterSizes) if (s <= cap && s * config.monoAdvance <= cell - 2 && s <= room) size = s;
+  for (const s of config.letterSizes) if (s <= cap && s <= limit) size = s;
   return size || Math.min(config.letterSizes[0] ?? 9, cap);
 }
 

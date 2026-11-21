@@ -14,7 +14,7 @@ import { FontCache } from './font.js';
 /** What the adapter reads of a 2D context. */
 export interface MeasuringContext {
   font: string;
-  measureText(text: string): { readonly width: number };
+  measureText(text: string): { readonly width: number; readonly actualBoundingBoxAscent?: number };
 }
 
 /** A metrics port over a context (a canvas the adapter keeps off screen); the font set once per change. */
@@ -29,6 +29,11 @@ export function canvasTextMetrics(ctx: MeasuringContext, stacks: FontStacks = De
         current = css;
       }
       return ctx.measureText(text).width;
+    },
+    capHeight(font) {
+      ctx.font = fonts.css(font);
+      current = '';
+      return ctx.measureText('H').actualBoundingBoxAscent ?? 0;
     },
   };
 }

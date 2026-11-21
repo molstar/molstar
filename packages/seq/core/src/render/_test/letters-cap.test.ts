@@ -8,17 +8,18 @@ import type { Node } from '@molstar/core/repr/tree';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { describe, expect, it } from 'vitest';
 import { letterCap, letterSize } from '../config.js';
+import { createSeqContext } from '../../context/default.js';
 import { DefaultRenderConfig, fontSize, type Frame, recordDrawLists } from '../index.js';
 import { p53TracksSpec } from './fixtures.js';
 import { settle } from './helpers.js';
 
-// A letter is never larger than the chrome's label (the foundations' type: optically matched, capped by
-// `letters.maxPx`, 0.9 of the label's size for the mono face when absent): at the closest zoom, where the cell would
-// take any size, every path that draws letters (a track, a ring, an alignment's rows, a text figure) stays at the cap,
-// in the canvas's lists and so in the SVG's; a host's `maxPx` lifts it.
+// A letter's cap height equals a label's (the foundations' type): its size is capped by `letters.maxPx`, else by the
+// label's size times `letters.capRatio`, the label face's cap height over the mono face's, measured by the host's text
+// metrics port (1 where it measures none). At the closest zoom, where the cell would take any size, every path that
+// draws letters (a track, a ring, an alignment's rows) stays at the cap itself, in the canvas's lists and so in the
+// SVG's; a host's `maxPx` lifts it. A text figure keeps the scale: it is read as text.
 
 const Label = fontSize(DefaultRenderConfig.labelFont);
-const Cap = letterSize(DefaultRenderConfig, 1000, 1000);
 const Size = { width: 640, height: 700 };
 
 /** The sizes of the glyph runs a frame's data pass draws. */
@@ -60,25 +61,43 @@ function rows(): Node {
   return b.build();
 }
 
+/** Faces with cap heights per em: the label face's 0.72, the mono face's 0.70 (what a canvas measures of `H`). */
+const Faces = { sans: 0.72, mono: 0.7 };
+const measured = (font: string) => (/mono/.test(font) ? Faces.mono : Faces.sans) * 100;
+
 describe('letters are capped at the label size', () => {
-  it('the cap is 0.9 of the label’s size by default, and the scale’s largest size within it', () => {
-    expect(letterCap(DefaultRenderConfig)).toBeCloseTo(Label * 0.9, 6);
-    expect(Cap).toBeLessThanOrEqual(Label);
-    expect(Cap).toBe(10);
+  it('without measured faces the cap is the label’s size, the cap itself a size (not the scale’s)', () => {
+    expect(letterCap(DefaultRenderConfig)).toBe(Label);
+    expect(letterSize(DefaultRenderConfig, 1000, 1000)).toBe(Label);
+    // a text figure keeps the scale
+    expect(letterSize(DefaultRenderConfig, 1000, 1000, false)).toBe(14);
     expect(letterCap({ ...DefaultRenderConfig, letters: { ...DefaultRenderConfig.letters, maxPx: 13 } })).toBe(13);
+    // a narrow cell takes the scale's largest that fits, never past the cap
+    expect(letterSize(DefaultRenderConfig, 8, 1000)).toBe(10);
+  });
+
+  it('with measured faces the cap heights are equal: the letter’s within half a pixel of the label’s', () => {
+    const context = createSeqContext({ ports: { textMetrics: () => ({ measure: () => 0, capHeight: measured }) } });
+    const config = context.renderConfig;
+    expect(config.letters.capRatio).toBeCloseTo(Faces.sans / Faces.mono, 6);
+    const letterCapHeight = letterCap(config) * Faces.mono;
+    const labelCapHeight = Label * Faces.sans;
+    expect(Math.abs(letterCapHeight - labelCapHeight)).toBeLessThan(0.5);
+    // computed once a config
+    expect(letterCap(config)).toBe(letterCap(config));
   });
 
   const paths: [string, () => Node, { start: number; end: number } | undefined][] = [
     ['a track', () => p53TracksSpec(), { start: 100, end: 108 }],
     ['a ring', () => section('rings'), undefined],
-    ['a text figure', () => section('text'), undefined],
     ['an alignment’s rows', rows, undefined],
   ];
   for (const [name, spec, viewport] of paths) {
-    it(`${name}: no letter exceeds the label size at the closest zoom`, async () => {
+    it(`${name}: at the closest zoom a letter is the cap, no larger, in the lists`, async () => {
       const sizes = await closest(spec(), {}, viewport);
       expect(sizes.length).toBeGreaterThan(0);
       for (const size of sizes) expect(size).toBeLessThanOrEqual(Label);
+      expect(Math.max(...sizes)).toBe(Label);
     });
     it(`${name}: a host’s maxPx lifts the cap`, async () => {
       const sizes = await closest(spec(), { letters: { maxPx: 14 } }, viewport);
