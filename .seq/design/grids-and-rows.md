@@ -159,8 +159,8 @@ vertical scale. This design builds on them and adds only:
 - **Data**: a `pairs` annotation, inline (a tRNA's pairs, Stockholm's `SS_cons`, a complex's contacts: read whole), each
   item two ends, each a range on its own system (one or two systems), an open `type` (the column's name: `kind` is reserved in the language; canonical, wobble, non-canonical,
   contact), a `strand` per end (a reversed side is valid, EC-206), `id` or `row`, fields. Self-pairs allowed; an end
-  never wraps (EC-10); found from either end through an index on both (EC-62). Pairs read by region (EC-208) wait for
-  the Genomes milestone.
+  never wraps (EC-10); found from either end through an index on both (EC-62). Pairs read by region (EC-208):
+  [region-reads](region-reads.md) (the fifth slice).
 - **Scope**: `scope: 'section'` (an arc may join two blocks, two lines of text, or cross a ring's hole). Each end is
   placed with `ctx.place`, and the apex the same way as a point in its band's frame (the mid offset at the arc's height)
   mapped through the strip's warp: one curve is an arc over a block, an arc between two lines, a chord through a ring's
@@ -242,7 +242,7 @@ vertical scale. This design builds on them and adds only:
 - **Grid data** (EC-58): an inline annotation, a-major `float32` (typed arrays by reference), `null` or NaN missing, a
   wrong length dropped with the count it expected; at most `maxBlockValues` (`DefaultMaxBlockValues`, 2^24) values a
   pair of systems, the bound the store already checks. The tRNA's 76² and a complex's PAE (a few hundred thousand to a
-  few million values) fit. Grids read by region (Hi-C) wait for the Genomes milestone.
+  few million values) fit. Grids read by region (Hi-C): [region-reads](region-reads.md) (2D tiles).
 - **Drawn**: at `grid.rectMinPx` (12) a cell and above, rects with outlines; below, `image` primitives a tile (256 ×
   256 samples), never smoothed, from **the shared 2D reduction** (`render/pyramid.ts`, below: square levels, factor 2,
   a reducer by the layer's `aggregate`: `mean`, `max` or `min`; a third more than the grid), built once from the loaded entry
@@ -619,8 +619,9 @@ registry entry, an option of a call, or fixed with its reason).
   encoder in core. Rects in this slice; measured with the PNG export, which decides.
 - **Lazy order**: tree order only when a source serves leaf order; a field order on a lazy alignment is refused.
 - **No navigator for a grid's own y window**: a grid whose y has its own window (not following a section) has no
-  navigator over y; open until a Hi-C view (the Genomes milestone) needs one.
-- **Arcs between sections** (ribbons, EC-209) stay deferred: `follow_y` covers a y following a section of the same view.
+  navigator over y; answered by [genome-coordinates](genome-coordinates.md)'s square (two axes over blocks × blocks).
+- **Arcs between sections** (ribbons, EC-209): closed by [across-sections](across-sections.md) (a `bridge`, the `pairs`
+  layer drawing ribbons in it; a grid's `follow_y` a second section of blocks).
 - **Emphasis along y** is the two-axis layers' own, through the layouts design's y path (answered there: `axes: 2`).
 
 ## Self-check
@@ -655,7 +656,7 @@ The claim: **this design covers what a user does with pairs, grids and rows.**
      story step's folds; a history step restored by row key across a fold, a filter or a reorder, never dropped; folds kept but not applied off tree order; in text every row unfolded on every line and
      `acrossLines` off by default; arcs and chords by `ctx.place`, so the strip world needs no layout-specific
      layer code.
-   - *Standing*: rows always run down; ribbons and categorical grid axes wait for the Genomes milestone (EC-209,
+   - *Standing*: rows always run down; ribbons and categorical grid axes closed by [across-sections](across-sections.md) (EC-209,
      EC-223); a lazy alignment in data order has no clades to fold; a fold is session state while hiding a track is
      an edit; two alignments share no row window (a scroll group over rows axes waits for a dataset that needs it).
 

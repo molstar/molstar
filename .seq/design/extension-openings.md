@@ -148,10 +148,17 @@ entry, track header parts).
   under `./*` would freeze the renderer; one entry is what a review reads before a break.
 - **Hits are closed**: an extension's `hit` gives an element, a position or both; it adds no `HitTarget`. Why: the
   viewer's behaviors switch on the targets; an extension's gestures are its own behaviors over its own commands.
-- **Enough for the genome ring?** Its package ships `rondo:ribbons` (a `scope: 'section'` layer over `pairs` on the
-  `rings` layout, through the warp), a bin-pair format runtime (`rondo:binpairs`, or the core's pairs level, fifth
-  slice), a theme measure per block, a story channel only if the core opens one (not here). What it cannot be: the
-  square navigator over several systems (part 2) and a ring zoom channel; both are the fifth slice's core work.
+- **Enough for the genome ring** (the fifth slice's `rondo`, [ring-extension](ring-extension.md)): `rondo:ribbons` (a
+  `scope: 'section'` layer over core's pairs level, Gate 0, 4, on `rings` through the warp), `rondo:cells` and the
+  `rondo:square` picture on core's square, `rondo:hues`, two commands and a binding; the ring zoom is core's
+  `section.include` (a cut), the square's switch core's ([genome-coordinates](genome-coordinates.md)). The entry exports
+  `PairsReader`, the pairs bins' types, `pairsLevels`, `coarsenBins` and `placesOf` beside the warp. A `LayerType` may
+  give `describe(hit, lay)` (the hover card's lines), `summary(lay)` (its group's ARIA description) and
+  `announce(lay, system, position)` (what the keyboard cursor adds there); the viewer calls them, its own text after.
+  An extension binding may be scoped to its own layer type's hits, and then wins over the grammar's default there. One
+  `seq.view.layer.extension` a namespace and view says every part drawn as its fallback (layers, pictures, schemes).
+  A layer between two sections (`scope: 'bridge'`, `BridgeContext`, [across-sections](across-sections.md)) stays
+  internal, out of the entry, until an extension draws in a bridge.
 
 ### Interaction matrix
 
@@ -245,9 +252,9 @@ Claim: "this part covers what an outside package needs to add a way to draw, and
     WebGL): `frame.windows`, `values`, `readout`, `cursor`, and the input methods (`resize`, `hit`, `move`, `down`,
     `up`, `click`, `doubleClick`, `wheel`, `key`, `cancel`, `leave`, `setFocus`, `focusNext`). Why: the model already
     holds every rule; a host replacing the canvas keeps them by calling it.
-- **Refused: a navigator over several systems** (Rondo's square, a genome's chromosome grid): navigators.md refuses
-  switching systems; a picture draws the navigator's one system. A navigator kind over systems is new geometry (a
-  window per system pair), the fifth slice's to design.
+- **A navigator over several systems** (Rondo's square, a genome's chromosome grid): refused here, answered by
+  [genome-coordinates](genome-coordinates.md) (the fifth slice, core's): `navigator.system` an assembly, windows over
+  blocks, two axes over blocks × blocks, `navigator.switch`; a picture draws over that geometry (the `rondo:square`).
 
 ### Interaction matrix
 
@@ -276,7 +283,7 @@ Claim: "this part covers what an outside package needs to add a way to draw, and
 Claim: "a host can make any navigator it needs." Rests on: one system, one window per bound section, a picture
 expressible as tracks. Negated: several systems; a picture no layer draws; a host that will not use the canvas. The
 negation surfaced the host-drawn level (integrated: `NavigatorModel` public) and the layer type an extension ships
-(integrated); several systems stays refused, a standing tension handed to the fifth slice.
+(integrated); several systems, handed to the fifth slice, is answered by [genome-coordinates](genome-coordinates.md).
 
 ### Consequences
 

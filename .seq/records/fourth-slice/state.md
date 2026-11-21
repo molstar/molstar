@@ -155,7 +155,10 @@ One row a merged lane (loop, step 5, record): review findings and look findings 
 | FX6 | 2026-11-21 | 9 (the author's four: the menu's items not applied, its click and hover reaching the view, `Color ▸` closed by its own preview; review: the submenu timer, the keys panel's hover, every resolve closing a menu (the author's `⋯` opening nothing), a slot unhit without a hover, a ranges layer's default colour moved by another's scheme) | 1 (the submenu's delay: `submenuRestMs`) | 0 | the cause: the menu mounted in the view's container, a press starting a pan's pointer capture; `isViewEvent`; a services test failed once under load, five runs green alone |
 | HT | 2026-11-21 | 12 (the author: a submenu replacing its menu; my look: a ramp from the menu at 0–1, the eye without a count, resting not opening; review: Tab out of a flyout, a pending rest after leaving, a long flyout off the window, the click lost under a parts redraw, `track.show {all}` with nothing hidden, two walkers, a fully hidden section keeping its gap, an item key on a hidden track jumping) | 1 (ARIA between a row and its flyout) | 0 | `@molstar/ui` flyouts; the view draws nothing for a hidden track; the merge-time look by the orchestrator, every time |
 | FX7 | 2026-11-21 | 1 (the header actions' two numbers boxed each frame: 32 B a step since F13's ellipsis, `ad790f341`) | 0 | 0 | the allocation tiers green: core 146, Storybook 9 |
+| FX8 | 2026-11-21 | 1 (services-app's wait a fixed count of turns while the mmCIF gzip stream ran in real time: flaky under load) | 0 | 0 | `ManualClock.whenPending`; 9 of 9 full runs green, 3 of 3 after the merge |
 
 ## How to verify
 
 The loop's Checks on `packages-seq`; the plan's ticks against `git log --merges`.
+
+Closed 2026-11-21: `.seq/records/fourth-slice/2026-11-21-fourth-slice.md`

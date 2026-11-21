@@ -350,7 +350,7 @@ disagrees with its code writes a drift note and stops.
 - [x] USE GATE (2026-11-21, the author: passed; follow-ups as they appear) (not blocking; at finalize a look at what changed): findings fixed or placed, counted by kind.
 - [x] M4 (2026-11-21; `measurements.md`: the 2OCJ hover and 200 copies pass at dpr 2 on main-thread frames; the bigWig pan, real-vsync frames and the split patch carried to the fifth slice) the heavy lane and the opt-in tiers; the browser at dpr 2 (a 2OCJ hover round trip, a complex of 200 copies,
       a bigWig pan); the bundles; the targets confirmed or moved by the author (below: the minimal viewer's size).
-- [ ] FINALIZE: reconcile (designs, `_spec`s, status, features, edge cases' outcomes, `TODO.md`, drift emptied); the
+- [x] FINALIZE (2026-11-21; the record in `.seq/records/fourth-slice/`): reconcile (designs, `_spec`s, status, features, edge cases' outcomes, `TODO.md`, drift emptied); the
       fold-back; the record; the fifth slice's plan (Genomes, on extension kinds).
 
 ### The third slice's carried items, placed

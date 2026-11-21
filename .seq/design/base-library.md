@@ -44,7 +44,7 @@ a guide and writing the generic piece in core with its test; `packages/seq` neve
 | text layout | `@molstar/core/util/text-measure` | pretext's prepare and layout split, lines for the text view, inline boxes (chips); measure function as the port's adapter ([rendering.md](rendering.md)) |
 | byte-bounded caches | `@molstar/core/util/lru-cache` | O(1) lookup, a bound in bytes beside the count (the source cache, the glyph atlas) |
 | fetching by range | `@molstar/core/util/assets` (`AssetManager`; its `ResolveOptions` carry credentials, redirects, the signal and a streamed byte limit, and `checkAssetManager` is the conformance suite every implementation passes: security.md) | range reads of an asset: a page cache by asset and page, ref-counted like its entries, shared across readers, aborted by the task; `Blob.slice` for files (the asset port's default adapter, [ports.md](ports.md)) |
-| BGZF | `@molstar/core/util/zip` | a block index and virtual offsets (for tabix-indexed formats, when one is built) |
+| BGZF and tabix | `@molstar/io/common/bgzf`, `common/tabix` (the fifth slice, [genome-formats](genome-formats.md), beside io's readers; no `.gzi`); core's `ungzip` over a multi-member stream | blocks and virtual offsets, TBI and CSI indexes, a region's lines and `regionBytes`; every bound refused before it allocates |
 | one luminance | `@molstar/ui/stage/canvas-ink` | use `Color.luminance` instead of its own |
 
 ## Promote: generic pieces the previous implementation kept private

@@ -59,3 +59,27 @@ the morning").
 | across-sections | LX | 2026-11-21 | 2026-11-21 (2 blocking, 8 to fix) | 2026-11-21 | yes |
 | ring-extension | RN | 2026-11-21 | 2026-11-21 (2 blocking, 7 to fix) | 2026-11-21 | yes |
 | genomes-dataset | GD | 2026-11-21 | | n/a | yes |
+
+## Ready to start (2026-11-21, the fourth slice's finalize, step 5)
+
+- **Promoted** (uncommitted at writing): `design/genome-coordinates.md` (GA), `region-reads.md` (RR),
+  `genome-formats.md` (GF), `across-sections.md` (LX), `ring-extension.md` (RN), each with "Decided by the author"
+  in place of its gaps and its references moved; the Genomes dataset (GD) as `examples.md`'s Genomes section, as the
+  other datasets. Edited from their Consequences: axis (the tension narrowed), extension-openings, files, sources,
+  examples, layouts, navigators, grids-and-rows, protocol, base-library; the README's table. The other designs the
+  Consequences name are amended by the lanes that build them (plan, The designs). `drafts/README.md` marks the drafts
+  promoted; the folder is kept as the record.
+- **The plan written** ([plan.md](plan.md)): FX1 first (B6 and B7's checks, the services' structure section, the flake
+  watch list, a bigWig story, `fixes.md`); stage 1 GC1 → SC, GC2 → GC3 (gate with F3, F9, F11, F14, F25); stage 2 BZ
+  → BE, GG, VC; stage 3 RG → FR → LA; stage 4 GX, RX; the novice pass, M5 (with M4's carried measurements),
+  finalize; FX2 to FX6 at the fix points.
+- **`loop.md` in place** (the fourth slice's with its fold-back applied, two lanes at once); `fixes.md` the fix phase's
+  queue.
+- **Open before GC1** (a yes or no, recommended yes): GC1 also declares RR's language part (`pairs.source`,
+  `grid.source`, `pairs.field`, `grid.field`, the `matrix` kind and layer type), so the language changes once as GF's
+  and LX's do (their Decided 9 and 12); region-reads' Consequences put it in RG.
+
+## Next
+
+Start the loop: `/loop run .seq/execution/fifth-slice/loop.md`. Its first step writes `briefs/fx-fix-lane.md` (from the
+fourth slice's) and `briefs/gc1-genome-language.md`, and starts FX1 beside BZ or GC1 (two lanes at once).

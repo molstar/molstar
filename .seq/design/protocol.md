@@ -69,7 +69,7 @@ type RegionAnswer =
     `{ name, column }`; as `density` at a coarse level: `bin` (int32), `count` (float32), by `category`;
   - `values`: at level 1, `value` (float32) per position from `start`; at a coarser level, per bin: `min`, `max`,
     `mean`, `count` (float32) from `start` with the level's bin width.
-  - `pairs`, `matrix`, `grid`, `rows`: with the Genomes milestone.
+  - `pairs`, `matrix`, `grid`, `rows`: [region-reads](region-reads.md) (the fifth slice).
 - **Nodes** in an answer refer to each other by `(node :key K)`, resolved against the answering source, and to spec
   nodes by absolute address ([dynamic-nodes.md](dynamic-nodes.md)); the language's `ref` has no relative form, so a
   runtime resolves `(node :key K)` against the answering source and writes the absolute address.

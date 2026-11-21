@@ -25,8 +25,9 @@ What is taken and what is not:
   (EC-31, EC-32); complementing is a separate `letter_map`, and reversing never complements by itself (EC-233); exons
   only as a position filter over an exon annotation (`exonsOnly`), the intron a break and a codon across it one residue;
   the protein's residues drawn over their codons, a split one in both parts, three-letter codes only with room in the
-  narrowest part (EC-117). Taken: direction as a layout map, pieces over one system, the split codon. Not taken: a
-  per-block direction (one per axis here, per piece inside: Tensions), complement off by default (the author's call).
+  narrowest part (EC-117). Taken: direction as a layout map, pieces over one system, the split codon, and (the fifth
+  slice, [genome-coordinates](genome-coordinates.md)) a per-block direction. Not taken: a direction per piece inside a
+  block (Tensions), complement off by default (the author's call).
 - **IGV**: the sequence track's strand arrow shows the complement without reversing the axis; three-frame translation.
   Taken: complement as its own setting. Not taken: translation frames (a layer type, not the axis).
 - **UCSC**: the "reverse" button lays the window out from the highest coordinate down, the ruler counting down;
@@ -117,7 +118,8 @@ nothing without a use; the fixed behaviors below are fixed partly so.
   (today's `pathDir`, the first run's, is replaced).
 - **One direction per axis.** `Axis` gains `dir`. Pieces stay `[start, end, …]`, start below end, in display order (on a
   reversed axis the last piece first); a reversed piece shows position `end − 1 − k` at its offset `k` (EC-32). A
-  direction per piece serves only Genomes (an inversion between two genomes on one axis): a tension, not built.
+  direction per block (`block.direction`, an inversion drawn as its own block) is
+  [genome-coordinates](genome-coordinates.md)'s; a direction per piece inside a block stays a tension, not built.
 - **A reversed axis says so**: the ruler counts down (the ruler layer draws it from the axis, [themes.md](themes.md)), and the section's first label carries a
   direction mark (an arrow and "reversed"; with `along`, "along p53") drawn in the `labels` pass, so the export says it
   too. `axis.directionMark` (`RenderConfig`: `label`, or `none` for a host whose own chrome says it, as a Mol\* plugin's
@@ -307,8 +309,9 @@ position.
 - **Complement by default against EC-233** ("reversing never complements by itself", the JBrowse reply's "one strand of
   letters"). Complement is on by default (decided); the rule is explicit and visible (`complement: auto`, read against the
   strand on screen), and the stored letter is named wherever the letter is. EC-233 is recorded as changed.
-- **One direction per axis**: an inversion between genomes on one axis needs a direction per piece, in the language and
-  the transform. Not built; the pieces' shape (display order, start below end) does not rule it out. Open until Genomes.
+- **One direction per axis**, narrowed (the fifth slice, [genome-coordinates](genome-coordinates.md), Decided 1): a
+  direction per block is built (`block.direction`: an inversion between genomes drawn as its own block, with a gap); a
+  direction per piece inside a block stays open, the pieces' shape (display order, start below end) not ruling it out.
 - **Hidden is not gone**: a collapsed intron hides a splice-site variant. Ticks on the break, `pad`, focus naming the
   reason and the toggle answer it; expanding one break is refused for now (decided): a per-break session override
   would make the export differ from the screen; a per-break patch is a `pieces` ref edit, possible by hand. Standing.

@@ -408,7 +408,7 @@ interface Placement {
   says nothing; one rule for text, tracks and rings. **Where a ligand binds is the host's**: its contacts are an
   optional `pairs` layer a builder or an application adds (the Complex and Globins examples add it), never drawn by
   default (the author: "contacts should be optional and configurable by the app ... we are building a library, not a
-  one-off viewer"). Two genomes on one ring wait for the Genomes milestone (EC-210).
+  one-off viewer"). Two genomes on one ring: [genome-coordinates](genome-coordinates.md) (EC-210, the fifth slice).
 - **Copies** (EC-65): `copies: 'merge'` (the default) draws one block for a copy group, labeled `×N`, hovered for
   every member; `'each'` a block a unit. Why `merge`: copies hold one molecule's sequence, so one block says it once and
   its room and drawing do not grow with the copy count (EC-67); `each` is the writer's when copies differ in what is
@@ -473,7 +473,8 @@ interface Placement {
 - **The polar warp** (`WarpWriter`, allocation-free, buffers reused): a rect becomes an annular sector path (a
   squircle's corners warped with it), a path's lines are cut every few device px so they bend, a glyph run gets its
   per-letter places and angles (`rings.letters`: `upright`, or `tangent`), an image is refused on a ring
-  (`seq.render.ring.image`: dense matrices on rings wait for the Genomes milestone), a clip rect is applied in the
+  (`seq.render.ring.image`: dense matrices on rings drawn as sector runs, the refusal kept for grids only:
+  [region-reads](region-reads.md)), a clip rect is applied in the
   strip's frame before warping. Why clip before: a clip by path would change the draw lists' form for one case.
 - **Labels inside if they fit, else beside** (EC-108; decided by the author, 2026-11-19, the plasmid's ring and linear
   views reading differently): one rule for rings and linear tracks. A labeled item's text is drawn inside its mark
@@ -597,7 +598,9 @@ registry entry, an option of a call, or fixed with its reason).
   Open until a view needs it: the Complex's PAE is a grid section of its own whose x follows CDK2's section and y
   cyclin A's (one section a chain), so it needs no follow across blocks.
 - **Scaled segments** (Circos): one scale a ring, so a region cannot take more of the circle than its length. A zoomed
-  ring would put the viewport back into the ring's key. Open: the Genomes milestone decides.
+  ring would put the viewport back into the ring's key. Decided ([genome-coordinates](genome-coordinates.md), the fifth
+  slice): `block.scale` built (labelled `×N`); the zoomed ring a cut only, a section's `include` or a second section;
+  gaps at scale by a share on rows and rings.
 - **The window is shared with navigators**: built in `render/window.ts` here, extended by the navigators; its look and gestures
   are this design's, [navigators.md](navigators.md) follows them.
 - **Touch scroll of a text has no gesture**: a touch drag on data selects (the grammar), so a text on a phone scrolls
@@ -637,7 +640,7 @@ The claim: "this design covers what a user does with layouts: text, blocks and r
    passes; from (c)'s inverse, a history step over a changed layout restored by position, never dropped. Planned in [grids-and-rows.md](grids-and-rows.md): section-
    scope pairs and chords, the row by its gutter label. Standing tensions: a text line's height decided by
    data while lines are lazy (the text `end` an estimate); follow across blocks of several systems refused this slice;
-   scaled segments and a zoomed ring refused, the Genomes milestone to decide.
+   scaled segments and a zoomed ring decided in [genome-coordinates](genome-coordinates.md).
 
 ## Consequences
 

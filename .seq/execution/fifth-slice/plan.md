@@ -1,203 +1,281 @@
 # Plan: the fifth slice
 
-**Initial draft, 2026-11-20, written while the fourth slice runs** (its stage 2 and later remain). Not agreed: Gate 0
-(below) asks the author; "What the fourth slice changes in how this one runs" is provisional until the fourth slice's
-`foldback.md` is decided, and is rewritten from it then. The fourth slice's finalize reconciles this file (its loop,
-Finalize, step 5).
+**Reconciled 2026-11-21** with the promoted designs (the fourth slice's finalize, step 5): Gate 0 decided
+(2026-11-20), stage 0's six drafts agreed and promoted (2026-11-21), the whole-designs review's twelve recommendations
+and the fold-in's three taken (`state.md`, Decided). The loop is [loop.md](loop.md) (the fourth slice's with its
+fold-back, B1–B11, applied). The first draft of this plan (2026-11-20) is in the git log.
 
 Work id `fifth-slice`. Version 1's fourth milestone, **Genomes** ([version-1](../../design/version-1.md), Milestones
-and Deferred): the deferred list (layers across sections, synteny, contact maps, MAF over a genome, the Genomes
-dataset), the genome formats beyond bigWig (2bit, BigBed, VCF, PAF, GFF, chain files; BED and region reads with them),
-two assemblies on one axis, and its showcase, **a genome ring like Rondo's, bundled and count-weighted, as an extension
-package** (the author, 2026-11-19: "Rondo-like, extension"), on the `ext:` kinds the fourth slice builds (EX).
+and Deferred): assemblies and chromosomes on one axis, two assemblies on one axis or ring, pairs and grids read by
+region, layers across sections (synteny, dot plots, contact maps, a liftover), three genome format families with BGZF
+and tabix, the Genomes dataset and its views, and the showcase, **a genome ring like Rondo's, bundled and
+count-weighted, as an extension package** (the author, 2026-11-19: "Rondo-like, extension"), on the `<id>:<name>` kinds
+the fourth slice built (EX, CN).
 
 ## Where this is heading
 
 | Slice | Milestone | In one line |
 |---|---|---|
 | first to third (closed) | the slice, 1, 2 | the tree core to figures |
-| fourth (running) | 3, integration | molecules and units, structure syncing, track headers, seq data ports, services, bigWig, archives, extension kinds |
-| **fifth (this plan)** | 4, Genomes | assemblies and chromosomes on one axis, the genome formats, pairs and grids read by region, layers across sections (synteny, contact maps), the Genomes dataset and its views, the Rondo-like ring as an extension package |
-| after | version 1's close-out | the planned rows no milestone took (Gate 0, question 9) |
+| fourth (closed) | 3, integration | molecules and units, structure syncing, track headers, seq data ports, services, bigWig, archives, extension kinds |
+| **fifth (this plan)** | 4, Genomes | the designs below, built |
+| after | version 1's close-out | the planned rows no milestone took (Gate 0, 9), and what this slice deferred: the Manhattan family (EC-214, 216, 217, 219), `split`, EC-224's join, the designed-only formats when a use asks |
 
-## What the fourth slice changes in how this one runs (provisional)
+## The designs (promoted 2026-11-21)
 
-From the fourth slice's state and loop, to be checked against its fold-back:
-- **Lanes**: the author's current limit, one line in `loop.md` (the fourth slice ran one, then two). What runs together
-  is limited by files: never two lanes on the language, on core's store or resolve, or in one file; the heavy lane
-  alone, on a quiet machine (the fourth slice's first stage-1 heavy run at load 22 failed ten time bounds that pass at
-  load 3).
-- **Sizes are bounds, moved by the author only**: the fourth slice moved them four times, each with the feature behind
-  it; the default viewer ended a few hundred bytes under its bound. Lazy chunks are allowed for parts used rarely or
-  late (viewer-composition.md); this slice's formats and the ring extension load as runtimes or entries, never in the
-  minimal viewer.
-- **The quick lane's folder budget**: the fourth slice's gate passed with three folders over 2 s and handed them to a
-  fix lane; here a lane over the budget moves its own tests before its review (the third slice's fold-back, held).
-- **A lane's report is checked, not trusted**: the fourth slice's checks found failures lanes reported green (a race,
-  a story's twin passing on the parent, an example that drew as before); the look and the "fails on its parent" check
-  stay steps of every lane.
-- **Downloads asked before they are made**: real genome data (cytobands, gene models, a VCF slice) is fetched once with
-  the author's yes, its licence recorded in `sources.json`; tests never fetch.
+| Design | Lanes |
+|---|---|
+| [genome-coordinates](../../design/genome-coordinates.md) (GA) | GC1, GC2, GC3 |
+| [region-reads](../../design/region-reads.md) (RR) | RG |
+| [genome-formats](../../design/genome-formats.md) (GF) | BZ; BE, GG, VC; FR (its Consequences, Lanes) |
+| [across-sections](../../design/across-sections.md) (LX) | LA |
+| [ring-extension](../../design/ring-extension.md) (RN) | RX |
+| [examples](../../design/examples.md), Genomes (GD) | GX |
+
+Each lane amends the existing designs its design's Consequences name and that promotion did not (addressing,
+locations-and-queries, maps, building-blocks, molecules, data-store, seq-data-ports, performance, security,
+viewer-models, ux-foundations, themes, features' rows, edge-cases' outcomes), with their Design pages (loop, step 9).
+Promotion already edited axis, extension-openings, files, sources, examples, layouts, navigators, grids-and-rows,
+protocol and base-library.
+
+## How this slice runs (from the fourth slice's fold-back)
+
+- **Two lanes at once** ([loop.md](loop.md), Lanes at once). Every agent counts (reviewers, measurements), listed with
+  start times in `state.md`'s In progress before it starts (B3).
+- **Files limit what runs together**: never two lanes on the language, on core's store or resolve, or in one file;
+  the heavy lane alone, on a quiet machine (`uptime` under 3, B5).
+- **The orchestrator looks itself**, in a visible pane, with real pointer events for every gesture of a part's matrix
+  row (B1, B2, B4); a reviewer checks each `EC-<n>` its brief names in a test title (B8).
+- **Sizes are bounds, moved by the author only**; every runtime, the across-sections chunk and the extension load as
+  entries or lazily, never in the minimal viewer.
+- **Downloads asked before they are made**: the four real slices (genome-formats, Real slices to record: cytobands,
+  ClinVar, Ensembl GFF3, GENCODE GTF), each with its licence checked at the ask; tests never fetch.
+- **The quick lane's folder budget**: a lane over 2 s a folder moves its own slow tests before its review.
 
 ## Done when
 
-- **Genome coordinates** ([axis](../../design/axis.md), [navigators](../../design/navigators.md)): an assembly's
-  chromosomes as pieces of one axis with a direction per piece (an inversion between genomes drawn, axis.md's tension
-  closed); two assemblies on one axis or ring (EC-210); switching chromosomes and a navigator over several systems
-  (EC-184; extension-openings.md, Decided 7); scaled segments and a zoomed ring decided (layouts.md, Open).
-- **Pairs and grids by region** ([grids-and-rows](../../design/grids-and-rows.md), Data;
-  [protocol](../../design/protocol.md)): the `pairs`, `matrix`, `grid` and `rows` answer shapes; `RegionRequest.y`;
-  2D tiles and the store's grid summaries; a pairs level (bin-pair counts) read by region (EC-208, EC-223); dense
-  matrices on a ring decided (`seq.render.ring.image`).
-- **The genome formats**, each a runtime an application adds (sources.md), opt-in entries like `runtimes/mmcif`, each
-  with a conformance suite on recorded or generated fixtures: BED (`base: 0`, BED12 blocks as pieces), bigBed, 2bit,
-  FASTA with its index by region, GFF3 and GTF (the `Parent` hierarchy into transcripts, files.md's tension closed), VCF
-  with tabix, PAF, chain files; BGZF and tabix in the base library if Gate 0 says so (base-library.md).
-- **Layers across sections** ([grids-and-rows](../../design/grids-and-rows.md), [layouts](../../design/layouts.md)):
-  a layer drawn between two sections (synteny ribbons between two assemblies; a liftover by chain file); contact maps
-  as grids across sections (EC-209); ribbons and categorical grid axes.
-- **The Genomes dataset and its views** ([examples](../../design/examples.md), Genomes): two toy assemblies generated
-  (an inversion, a translocation, a gap, aliases, an HLA contig name), three-level transcripts, a name index,
-  multi-sample signal, GWAS points and LD, a variant matrix by sample, methylation, keyed results, FASTA by region; the
-  views: synteny ribbons, a dot plot, Manhattan, a liftover, the genotype matrix; MAF if Gate 0 keeps it.
-- **The ring extension** (a package of its own, on `SeqExtension`): `rondo:ribbons` (wide by count, trumpets as
-  cluster stems) and the bin-pair level (core's pairs level or `rondo:binpairs`, Gate 0), cytobands, a hue per block,
-  outward links to other chromosomes as stubs, the square navigator; 23 chromosomes and 12,000+ links at frame time.
-- **Measured**: a whole human genome by region (performance.md's fixture; heavy, by chromosome), a region of a VCF and
-  of a bigBed decoded within bounds, a ring frame of 12,000 links, the bundles (each runtime its own row, the extension
-  package its own, the minimal viewer not grown).
+- **Genome coordinates**: an assembly's chromosomes as blocks with a direction and a scale each (axis.md's tension
+  narrowed); two assemblies on one section, axis or ring (EC-210); small blocks as runs; switching chromosomes and
+  core's navigator over several systems with the square (EC-184); the locus and block address forms; sections over a
+  source's complex reflowing on its changes (HD's drift).
+- **Pairs and grids by region**: the `pairs`, `matrix`, `grid` and `rows` shapes; `RegionRequest.y`; 2D tiles; the
+  pairs level and grid summaries with the whole-assembly level; bounds in bytes; images on rings as runs (EC-208,
+  EC-223).
+- **The genome formats**: BGZF and tabix in `@molstar/io`; `runtimes/bed` (BED, bedGraph, BEDPE, chrom.sizes),
+  `runtimes/gff` (GFF3 and GTF as transcripts, both names indexed), `runtimes/vcf`, each with its conformance suite on
+  generated and recorded files; the `seq` runtime's sided pairs and a map's runs. bigBed, 2bit, FASTA by region, PAF,
+  PIF and chain designed only (no lane).
+- **Layers across sections**: the `bridge` (synteny ribbons, the lock, align, select across), contact maps and dot
+  plots over two sections, categorical grid axes (EC-209); the liftover (cut last).
+- **The Genomes dataset and its views** (examples.md, Genomes): generated byte-identically, the four real slices
+  recorded as pages; the ring, synteny, both genomes on one ring, the dot plot, the contact map, signal by region,
+  variants and the genotype matrix, methylation, transcripts, open by name, names aliased, the liftover.
+- **The ring extension** `packages/seq/ext-rondo`: stems, ribbons wide by count, stubs, hues, cytobands, the ring zoom
+  by `section.include`, the square picture, its fallback; 23 chromosomes and 12,000 links at frame time.
+- **The fourth slice's carried items** placed: FX1's checks and items, M4's measurements in M5, the novice design
+  questions answered at stage 1's gate.
+- **Measured** (M5).
 
-## Gate 0 (the author, before any build lane)
+## Gate 0 (decided)
 
-**Decided (the author, 2026-11-20: "the recommendation make sense")**: every question as recommended. Stage 0's
-drafts run overnight with their reviews, before the fourth slice's close; their agreement comes after (the author:
-"we can do the design drafts and their reviews before we close slice 4 in the morning").
-1. **Cut order** if the slice runs long: MAF first, then contact maps, then the liftover. Recommended: as listed; the
-   ring, synteny and the formats are the milestone.
-2. **BGZF and tabix**: in the base library (`@molstar/io`, a public API addition, its surface agreed in stage 0) or
-   private to Seq\*'s runtimes. Recommended: `@molstar/io`, beside its readers, since Mol\* reads BGZF too.
-3. **The ring extension's package**: a new package (`packages/seq/ext-rondo`, in the inventory) or an entry of the
-   examples. Recommended: a package, so an extension is shown as an outside author would ship one.
-4. **Bundling** (research-genome-ring.md, Q2): a `pairs` level read by region (core) or a layer param over a derived
-   table (the extension). Recommended: the core's pairs level, since pairs by region is owed anyway (EC-208).
-5. **Ring zoom** (Q5): an animated story channel or a cut to a second section. Recommended: a cut to a second section
-   first, the channel only if the use gate asks for it.
-6. **Cytobands** (Q6): UCSC's (licence to check, fetched once) or synthetic. Recommended: synthetic in tests, UCSC's
-   in the showcase if its licence allows, asked before the fetch.
-7. **Real data**: which small real slices to record (a gene region's GFF3, a VCF slice, a bigBed track), each asked
-   before its fetch; the toy assemblies generated (examples.md). Recommended: generated first, one real slice a format
-   for its conformance suite.
-8. **A navigator over several systems** (extension-openings.md, Decided 7: designed here): in core's navigators or the
-   extension's square navigator only. Recommended: core's, since switching chromosomes needs it in every genome view.
-9. **Version 1's other planned rows** (the fourth slice's Gate 0, question 11: track groups, search, patches on
-   streamed things, keep this region, the remaining query forms): here or a version-1 close-out slice. Recommended: a
-   close-out slice after this one.
+**Decided (the author, 2026-11-20: "the recommendation make sense")**: every question as recommended.
+1. **Cut order** if the slice runs long: MAF (cut 2026-11-21), then contact maps, then the matrix layer, then the
+   liftover. The ring, synteny and the formats are the milestone.
+2. **BGZF and tabix** in `@molstar/io`, beside its readers (genome-formats: the surface agreed; no `.gzi`).
+3. **The ring extension's package**: `packages/seq/ext-rondo`, in the inventory.
+4. **Bundling**: core's pairs level, which the extension reads (region-reads).
+5. **Ring zoom**: a cut (`section.include` in place; a second section as the builder's option).
+6. **Cytobands**: synthetic in tests (`syntheticBands`), UCSC's in the showcase if its licence allows, asked first.
+7. **Real data**: generated first, one real slice a built format, each fetch asked (four fetches).
+8. **A navigator over several systems**: core's (genome-coordinates).
+9. **Version 1's other planned rows**: the close-out slice after this one.
 
-**Public API** (the author, 2026-11-20: "you can change public api of packages/seq, core/repr, packages/ui if needed.
-this has no other consumers beyond the work here yet"): a lane changes those packages' surfaces where its design needs
-it, recorded in its changelog entry; a change elsewhere in `@molstar/core` or in `@molstar/io` (BGZF and tabix, Gate 0,
-2) is agreed in stage 0 first.
+**Public API** (the author, 2026-11-20): a lane changes `packages/seq`, `core/repr` and `packages/ui` where its design
+needs it, recorded in its changelog entry; `@molstar/io`'s BGZF and tabix and core's `ungzip` fix stop at the surface
+genome-formats agreed.
+
+**Taken since (2026-11-21)**: three format families built, the rest designed only; the twelve recommendations
+(`reviews/whole-designs.md`: no `gzi`; BEDPE indexed by both ends after a whole read in a byte budget; no doubled
+BEDPE; a per-view byte bound for tabix levels; a host's bigWig the whole-genome remedy; the Manhattan family, `split`
+and EC-224 to the close-out; MAF cut, EC-221 to the matrix, EC-226 to themes; fetch 3 cut; RN's gene detail on GFF and
+`coarsenBins`); fetches 4, 5, 6, 9 and 10 dropped; GTF names indexed beside GFF3's.
 
 ## Testing strategy
 
-- **Every lane**: as the fourth slice (quick-lane tests beside the code; a story with a headless twin on a fake clock;
-  drawing checked against the data at the fit view and across a tile edge; a fix's test fails on its parent; edge cases
-  named by id).
-- **Formats, offline**: a conformance suite per runtime on a generated fixture and one recorded real slice (counts and
-  fields recorded from the file); malformed and truncated files fuzzed against the security bounds; BGZF block
-  boundaries; tabix and bigBed region reads equal to a full read clipped. No test reaches the network.
-- **Coordinates**: property tests (a direction per piece reversed twice is the identity; a location carried across two
-  assemblies by a chain file and back covers what it started from; switching chromosomes keeps the selection's
-  addresses).
-- **By region**: pairs and grids read by region equal to the whole read clipped, at every level; the bin-pair pyramid's
-  counts summing to the pairs'.
-- **Performance representatives**: a whole genome by region (heavy, by chromosome); a ring of 23 blocks and 12,000
-  links (quick at a small scale, heavy at full); a VCF region of 10,000 records decoded (heavy, `itWithin`); the
-  allocation tier for a ribbon frame.
+- **Every lane**: quick-lane tests beside the code; a story with a headless twin on a fake clock; drawing checked
+  against the data at the fit and across a tile edge (and, here, across a block gap, inside a run, on reversed blocks);
+  a fix's test fails on its parent; edge cases named by id in test titles.
+- **Formats, offline**: a conformance suite per runtime on a generated file and its recorded real slice (pages);
+  fuzzed and truncated files without a throw, every bound refused before it allocates; BGZF block boundaries; a
+  region read equal to the whole read clipped at every level.
+- **Coordinates**: property tests (a block's direction reversed twice the identity; hit-testing the inverse of
+  placement over mixed directions and scales; switching blocks keeps the selection's addresses; the names rule never
+  maps an alias twice).
+- **By region and across sections**: every shape read by region equal to the whole read clipped; the pairs pyramid's
+  counts summing to the items'; each pair drawn once across a bridge's two sides; the twist by geometry equal to GA's
+  rule.
+- **Performance representatives**: each design's Consequences list them with their paths (quick representative,
+  heavy under `itWithin`, the allocation tier for a frame's path: a ribbon frame, a bridge frame, a ring frame).
 
 ## Stages and lanes
 
-Each lane: a brief in `briefs/`, its `_spec` and Configuration table kept, a changelog entry in its report, an
-independent review and one fix round, the look in a visible pane in light and dark before the merge.
+Each lane: its brief in `briefs/` (written by the orchestrator before it starts, loop step 3), its `_spec` and
+Configuration table kept, a changelog entry in its report, an independent review and one fix round, the orchestrator's
+look in a visible pane in light and dark before the merge.
 
-### Stage 0: designs (drafts, decided at Gate 0)
+### Stage 0: designs (done)
 
-- [ ] GA (strong) genome coordinates: assemblies and chromosomes as pieces, a direction per piece, two assemblies on
-      one axis, switching chromosomes, a navigator over several systems, scaled segments and the zoomed ring (axis.md,
-      navigators.md, layouts.md amended).
-- [ ] RR (strong) pairs and grids by region: the answer shapes, `RegionRequest.y`, 2D tiles, grid summaries, the pairs
-      level and its pyramid (protocol.md, grids-and-rows.md amended).
-- [ ] GF (strong) the genome formats: one runtime each, their entries and bounds, BGZF and tabix's surface if Gate 0
-      puts them in `@molstar/io` (files.md, sources.md, base-library.md amended).
-- [ ] LX (strong) layers across sections: what a layer between two sections is in the language, its layout and hit
-      testing; synteny, liftover, contact maps (grids-and-rows.md, layouts.md amended).
-- [ ] RN (strong) the ring extension: its package, kinds, params, the square navigator, Gate 0's answers 3 to 6
-      (research-genome-ring.md as input; extension-openings.md amended).
-- [ ] GD (fast, read-only) the Genomes dataset's generator and views: what each view needs from the designs above, the
-      fixtures to record, the licences.
-- [ ] GATE 0: the drafts agreed and promoted; the questions decided.
+- [x] GA, RR, GF, LX, RN drafted, reviewed and revised overnight; GD drafted and reviewed (2026-11-20 to 21).
+- [x] GATE (2026-11-21): the drafts agreed ("generally reasonable and we can fold in the reviews"), the twelve
+      recommendations and the fold-in's three taken, promoted to `.seq/design/` (uncommitted at writing).
 
-### Fix points (fast; `fixes.md`)
+### Fix points (fast; [fixes.md](fixes.md); `briefs/fx-fix-lane.md`, copied from the fourth slice's)
 
-- [ ] FX1 before stage 1 (what the fourth slice's close leaves open); FX2 to FX4 after stages 1 to 3's gates.
+The fix phase (the author, 2026-11-21: "lets have a 'fix phase' for slice 5 too where we accumulate these smaller
+things?"): small findings that need no design collect in `fixes.md`; an FX lane takes its open items at each point. A
+fix point with nothing open is skipped. A finding that needs a design is a drift note, never an FX item.
 
-### Stage 1: coordinates (strong, in order)
+- [ ] **FX1** (first, before stage 1's lanes; beside BZ when their files differ):
+  - the fourth slice's fold-back checks: **B6** a design promoted from now on whose Consequences name a layer, a layout
+    or a part has a `Defaults` heading (§defaults-designed; the five designs above are the first it reads); **B7** a
+    `features.md` row still "planned" for a lane `plan.md` marks merged fails; both in `.seq/_checks/`, added to the
+    loop's Checks;
+  - `packages/seq/TODO.md`'s carried items: the services' structure section at the fit (its ruler by author numbering
+    at least, or the follower taking the leader's mapped window); the flake watch list (the services story test,
+    Prism's `commands.test.ts` and `collapse.test.tsx`: run again alone, a second failure fixed);
+  - **a story that reads a bigWig** (M4's gap: no story reads one), so M5 can measure a bigWig pan;
+  - `fixes.md`'s open items at its start.
+- [ ] **FX2** after stage 1's gate; **FX3** after stage 2's; **FX4** after stage 3's; **FX5** after stage 4's;
+      **FX6** before M5 (the novice pass's and the use gates' findings that need no design).
 
-- [ ] GC1 the language and resolve: assemblies, pieces' direction, two assemblies on one axis (a language bump).
-- [ ] GC2 the axis and layouts: reversed pieces drawn, scaled segments, the zoomed ring.
-- [ ] GC3 navigators: switching chromosomes, a navigator over several systems (EC-184, EC-210).
-- [ ] GATE.
+### Stage 1: coordinates (strong, in order; the language one lane at a time)
 
-### Stage 2: formats (beside stage 1; a formats track, fast or strong by format)
+- [ ] **GC1** (`briefs/gc1-genome-language.md`) the language and resolve, the slice's one minor bump: the `assembly`
+      kind, `section.of` an assembly or a list, `section.include`, `block.direction`, `block.scale`,
+      `navigator.switch`, the locus and block forms, the builder's `genome()`, `assembly()`, `colinearBlocks()`; the
+      names rule; derived sequences from the coverage; a map between assemblies as one map. It **declares the other
+      designs' params** with their docs and checks, no reader: GF's (`source.features`, `samples`, `map.source`,
+      `line: 'gene'`), LX's (`bridge`, `pairs.shape`, a map as pairs data, `follow_y` a second section, a rows system
+      on a grid axis, `member_order`, `member_order_y`) and RR's (`pairs.source`, `grid.source`, the `matrix` kind and
+      layer type, by the question in `state.md`).
+- [ ] **SC** (`briefs/sc-complex-sections.md`; strong, after GC1: resolve) **sections over a source's complex** (HD's
+      drift, decided 2026-11-21, `packages/seq/TODO.md`): a section `of` a dynamic complex, resolved when the source
+      opens and reflowed on its `changes`; the static-model rule's exception for opened sources (seq-data-ports' matrix
+      row "a section of a complex after an update: reflows"); its `_spec` and the TODO line closed.
+- [ ] **GC2** (`briefs/gc2-genome-axis.md`; after GC1, beside SC: render only) the axis and layouts: blocks with their
+      own direction and scale (rulers, the direction mark, `×N`), the gap share on rows and rings, runs of small blocks,
+      group gaps and labels, `section.center`, the `block` and `system` fields' domain, export attributes.
+- [ ] **GC3** (`briefs/gc3-genome-navigators.md`; after GC2 and SC) navigators and the viewer: windows over blocks, the
+      square over blocks × blocks, `navigator.switch`; `navigate.acrossBlocks`, the cursor across blocks (EC-154
+      amended), `block.next`, `.previous`, `.reverse`, `section.include` commands, the label menu's entries; history
+      by `{ system, position }`; the locus box's fallback to `findNames` (after BZ's types).
+- [ ] **GATE**, with the **novice design questions** from the fourth slice's pass (`packages/seq/TODO.md`), each a yes
+      or no with a recommendation: F3 (the fake's "Within 5 Å" on a selection already the chain), F9 (a marked state
+      for the track the structure is coloured by), F11 (an empty section saying its issue on the view, beside SC), F14
+      (the "n filtered" card naming the filter, its click saying it clears), F25 (a navigator window at the fit drawn
+      as one).
 
-- [ ] BZ (strong) BGZF and tabix (in `@molstar/io` or Seq\*'s runtimes, by Gate 0).
-- [ ] BD BED and bigBed; [ ] SQ 2bit and FASTA with its index; [ ] GG GFF3 and GTF (transcripts); [ ] VC VCF by
-      region; [ ] PF PAF and chain files.
-- [ ] GATE (with `pnpm build` and `check:workspace` if `@molstar/io` changed).
+### Stage 2: formats (runtimes, not the language; beside stage 1)
 
-### Stage 3: by region and across sections (after stage 1)
+- [ ] **BZ** (`briefs/bz-bgzf-tabix.md`; strong, first) BGZF and tabix in `@molstar/io` (`common/bgzf`,
+      `common/tabix`, `_spec/bgzf.md`), core's `ungzip` over multi-member streams, `seqx-core`'s io allowlist (hot:
+      `biome.json`), `runtimes/internal/` (text, lines), `findNames`' types and `data/names.ts`. Stops at the surface
+      genome-formats agreed.
+- [ ] Then beside each other, after BZ (and after GC1 for a new param):
+  - [ ] **BE** (`briefs/be-bed.md`) the BED family: BED, bedGraph, BEDPE (read whole, indexed by both ends, held rows
+        in a byte budget), chrom.sizes; whole and by region at level 1.
+  - [ ] **GG** (`briefs/gg-gff.md`) GFF3 and GTF read whole: `assembleTranscripts`, `source.features`, `findNames`
+        over both (GFF3's `Name`, `ID`, `Alias`; GTF's `gene_name`, `gene_id`, `transcript_name`, `transcript_id`);
+        the ranges layer's `line: 'gene'`.
+  - [ ] **VC** (`briefs/vc-vcf.md`) VCF sites at level 1, extents by the index's rule, the anchor base kept.
+- [ ] **GATE**, with `pnpm build` and `pnpm check:workspace` (`@molstar/io` changed); each runtime its own size row.
 
-- [ ] RG (strong) pairs and grids by region: the shapes, 2D tiles, summaries, the pairs level (EC-208, EC-223).
-- [ ] LA (strong, after RG) layers across sections: synteny ribbons, the liftover, contact maps (EC-209).
-- [ ] GATE.
+### Stage 3: by region and across sections (after GC1; RG alone in the store)
 
-### Stage 4: the dataset and the ring (after stages 2 and 3)
+- [ ] **RG** (`briefs/rg-region-reads.md`; strong) the shapes, `RegionRequest.y`, 2D keys and tiles, `side`, items at
+      a tile size, `readCost` and `maxBytesPerLayer`, the pairs level and `binPairs`, `coarsenBins`, grid summaries and
+      the whole-assembly level, the `matrix` layer, images on rings as runs (EC-208, EC-223).
+- [ ] **FR** (`briefs/fr-format-regions.md`; strong, after RG and stage 2's lanes) the formats' by-region rest: tabix
+      levels from the index's bytes with exact counts and `readCost` (BED, GFF, VCF), GFF's span rows by region, VCF's
+      matrix and genotype classes; the `seq` runtime's sided pairs from either end, `map.source` by either side.
+- [ ] **LA** (`briefs/la-across-sections.md`; strong, after RG and FR) the `bridge`: placement, ribbons drawn once by
+      ownership, the closed-form hit, the lock, align, select across, the cursor across; contact maps and dot plots
+      over two sections; categorical axes; the liftover last (EC-209, EC-212).
+- [ ] **GATE**.
 
-- [ ] GX (strong) the Genomes dataset generated and its views (examples.md, Genomes), the stories and twins.
-- [ ] RX (strong) the ring extension package: `rondo:ribbons`, the bin-pair level, cytobands, outward stubs, the square
-      navigator, its stories.
-- [ ] USE GATE (not blocking): the author tries the genome views and the ring.
-- [ ] GATE.
+### Stage 4: the dataset and the ring (beside each other)
+
+- [ ] **GX** (`briefs/gx-genomes-dataset.md`; strong, after stages 2 and 3) the Genomes dataset generated
+      (`generateGenomes`, byte-identical, under the dataset bound) and its views (examples.md, Genomes), the four real
+      slices recorded as pages (each fetch asked), stories and twins; the views' matrix cells.
+- [ ] **RX** (`briefs/rx-ring-extension.md`; strong, after RG and GC3; on EX and CN) `packages/seq/ext-rondo`: the
+      descriptor, `rondo:ribbons`, `rondo:cells`, the `rondo:square` picture, `rondo:hues`, commands and the binding,
+      `rondoRing`; the entry's exports and the `LayerType` hooks in core; the fallback; its stories (hot: the new
+      package's files, inventory row, root reference).
+- [ ] **USE GATE** (not blocking): the author tries the genome views and the ring; findings fixed or placed.
+- [ ] **GATE**.
 
 ### Stage 5: use, measure, finalize
 
-- [ ] NOVICE PASS: a task script per new view (find a gene, compare two assemblies, follow a contact on the ring).
-- [ ] M5: the heavy lane and the opt-in tiers, a whole genome by region, the ring at full scale in the browser at dpr 2.
-- [ ] FINALIZE: reconcile, fold back, the record, the next plan (version 1's close-out), worktrees cleaned.
+- [ ] **NOVICE PASS** (`briefs/novice-pass.md`, the fourth slice's shape) after the last lane that draws (RX or GX,
+      whichever merges last; B10): a task script per new view (find a gene by name, compare two assemblies across a
+      bridge, follow a contact on the ring, switch chromosomes on the square), with a pointer path onto each menu and
+      submenu; findings counted by kind and placed (`fixes.md` for FX6, a drift note, `TODO.md`).
+- [ ] **M5** (alone, quiet machine; `measurements.md`): the heavy lane and the opt-in tiers; a whole human genome by
+      region (by chromosome); a VCF region of 10,000 records decoded; the ring of 12,000 links at full scale in the
+      browser at dpr 2; a bridge frame; the bundles (each runtime its own row, the extension its own, the minimal
+      viewer not grown). **M4's carried measurements**: a bigWig pan (FX1's story), real-vsync frames with the pane in
+      view, the 200-copy split patch re-measured.
+- [ ] **FINALIZE** (loop, Finalize): reconcile, fold back, the record, the next plan (version 1's close-out),
+      worktrees cleaned.
 
 ## Order and parallelism
 
-Three tracks: **coordinates** (GC1 → GC2 → GC3; the language one at a time), **formats** (BZ first, then the others
-beside each other and beside the coordinates track: they touch runtimes, not the language), **views** (RG after GC1,
-LA after RG, then GX and RX beside each other). The lane limit is `loop.md`'s.
+Two lanes at once (loop.md). Three tracks:
+
+- **Coordinates** (the language, resolve, render, the viewer): FX1 → GC1 → SC and GC2 beside each other → GC3.
+- **Formats** (`@molstar/io` and runtimes): BZ beside FX1 or GC1 → BE, GG, VC (after GC1 for their params), two at a
+  time beside whatever runs in other files.
+- **Views** (the store, render, examples, the extension): RG after GC1 (alone in the store; never beside SC, which
+  touches resolve) → FR → LA; then GX and RX beside each other.
+
+Never two lanes on the language (GC1 alone owns the bump; a later param goes through it), on core's store or resolve
+(GC1, SC, RG one at a time), or in one file. Fix points run beside whatever runs in other files.
 
 ## Hot files (the orchestrator's only)
 
-As the fourth slice's, plus the new package's (`packages/seq/ext-rondo/package.json`, its tsconfig, its inventory row
-and root reference) and `@molstar/io`'s `package.json` if BGZF and tabix land there.
+- `pnpm-lock.yaml`, `scripts/workspace/inventory.json`, the root `tsconfig.json`, `biome.json` (seqx-core's io
+  allowlist gaining `common/bgzf`, `common/tabix`; ext-rondo's restricted imports), `vitest.config.ts`;
+- `storybook/packages.ts`, `.v6/changelogs/`;
+- `packages/seq/*/package.json` and `tsconfig*.json` (seqx-core's `./runtimes/bed`, `./runtimes/gff`,
+  `./runtimes/vcf` entries and `"./runtimes/internal/*": null`), `packages/seq/ext-rondo/package.json` and its
+  tsconfig, `packages/io/package.json`, `packages/core/package.json`;
+- `packages/seq/*/_spec/README.md` sections shared by lanes: each lane edits its own; GC1 merges the Language section;
+- `.seq/`.
 
 ## Known risks
 
-- **A direction per piece changes what a position is** for paths, hover, selection and export: GC1 lands it with a
-  twin per consumer, as ML2 did for units.
-- **Region reads in two dimensions** may move the store's tile keys: RG runs alone in the store.
-- **Format licences and sizes**: real slices kept small, each asked before it is fetched; generated fixtures first.
-- **The default viewer is at its bound**: every runtime, the extension and the across-sections layout load lazily or
-  as entries; a growth past a bound comes to the author with its feature.
-- **Length**: about 25 lanes; Gate 0's cut order decides what goes first.
+- **A direction per block changes what a position is** for paths, hover, selection, follow and export: GC1 and GC2
+  land it with a twin per consumer.
+- **Region reads in two dimensions move the store's keys**: RG runs alone in the store.
+- **The language changes once**: GC1 declares every design's params; a param found late goes through the bump's
+  owner, not a second bump.
+- **Format licences and sizes**: real slices recorded as pages, small, each asked before it is fetched.
+- **The default viewer is at its bound**: runtimes, the bridge chunk and the extension are entries or lazy.
+- **Length**: about 20 lanes and six fix points; Gate 0's cut order decides what goes first.
 
 ## Out of scope
 
-Mol\* adapters and a live 3D view (the new mol viewer); BAM and CRAM (reads; a later milestone if a host asks);
-GenBank; settings layers; agent tools; a React adapter; writers beyond SVG, PNG and archives; the compute port, unless a
-profile of the whole genome shows the main thread is the limit (version-1.md, Deferred).
+Mol\* adapters and a live 3D view (the new mol viewer); BAM and CRAM; `.hic` and `.mcool` (the Hi-C example generated
+in the `seq` format); the designed-only runtimes (bigBed, 2bit, FASTA by region, PAF, PIF, chain); MAF; the Manhattan
+family, `split`, the keyed join (the close-out slice); GenBank; settings layers; agent tools; a React adapter; writers
+beyond SVG, PNG and archives; the compute port, unless M5's profile of the whole genome shows the main thread is the
+limit.
+
+## Briefs to write (the orchestrator, before each lane starts)
+
+`fx-fix-lane.md` (copied from the fourth slice's, its items replaced), `gc1-genome-language.md`,
+`sc-complex-sections.md`, `gc2-genome-axis.md`, `gc3-genome-navigators.md`, `bz-bgzf-tabix.md`, `be-bed.md`,
+`gg-gff.md`, `vc-vcf.md`, `rg-region-reads.md`, `fr-format-regions.md`, `la-across-sections.md`,
+`gx-genomes-dataset.md`, `rx-ring-extension.md`, `novice-pass.md` (the fourth slice's shape). Stage 0's six design
+briefs stay as the record.

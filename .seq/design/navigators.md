@@ -43,7 +43,7 @@ does not fit: a chromosome region, a 10,000-row alignment, a long protein's trac
 | several regions, several boxes (IGV multi-locus, JBrowse) | built: a window per bound section, leaders and followers alike |
 | hidden rows and columns marked (Jalview) | built as the view shows them: a collapsed clade is its summary row (from the rows design) |
 | the slider shown on hover only (VS Code) | refused: a window shown only on hover cannot be read at a glance, and the idle rule already quiets it when it means nothing |
-| switching chromosomes on a genome-wide ideogram (UCSC, JBrowse) | refused for now: one section's axis is one system; several systems on one axis is the Genomes milestone (EC-184, EC-210) |
+| switching chromosomes on a genome-wide ideogram (UCSC, JBrowse) | built by [genome-coordinates](genome-coordinates.md) (the fifth slice): `navigator.system` an assembly, windows over blocks, `navigator.switch` (EC-184, EC-210) |
 | keyboard: arrows move the box (Jalview's arrow keys, scrollbars) | built: the part is focusable, its windows are sliders |
 
 ## Decision
