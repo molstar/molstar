@@ -204,7 +204,8 @@ It does not cover:
   accent squircle per state, its words in its card). Its entries are reached by the menu: a secondary click on it, or
   the menu key on its header. Why: an 8 px feature row cannot hold a 14 px icon, and a slot overlapping the next
   track's label is worse. **A narrow column** (one where the slots leave the chips no room, an 80 px column with actions
-  holding one slot) draws its states as marks too (the author, 2026-11-20: "Marks when narrow").
+  holding one slot) draws its states as marks too (the author, 2026-11-20: "Marks when narrow"): all chips when every
+  one fits, else all marks, never a chip beside a mark (a mix reads as two kinds of state).
 - **Layouts**:
   - **tracks, text** (the first line's bands) **and grid** (its track's label) have a label column and take the slots;
   - **blocks** take them once a row, as their labels;

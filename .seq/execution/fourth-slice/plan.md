@@ -312,7 +312,7 @@ disagrees with its code writes a drift note and stops.
 - [x] HD (fast, after ST3 and DP) the fake host's data adapter beside the fake viewer (it serves 2OCJ and a pLDDT track
       from its chain table through `withAdapter`) and the `Host data` story with its twin (no asset read; equal nodes
       to the default adapter); the Extensibility page's adapter list (`briefs/hd-host-data.md`).
-- [ ] HP3 (fast, after ST3) `Features/Track headers` and its twins, the Design page (`briefs/hp3-header-stories.md`).
+- [x] HP3 (fast, after ST3) `Features/Track headers` and its twins, the Design page (`briefs/hp3-header-stories.md`).
 - [ ] USE GATE (short, not blocking): the author tries the structure and header stories; findings counted by kind.
 - [ ] GATE: merged, reviewed, checks green, sizes (the minimal viewer), gaps, matrix cells (both designs').
 

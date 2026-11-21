@@ -14,10 +14,6 @@ under the author's standing permission (`state.md`, Decided). Each a yes or no q
 
 - **HD**: `withAdapter` is generic over the registry's entry type (a viewer's registry passes through); the examples'
   chain tables gain `ChainResidue.b`, `ChainTable.model`, `HostModel`. Keep? Recommended yes.
-- **HD's drift**: no section can show a source's complex (`drift/host-complex-sections.md`): keep static sections with
-  an issue, sections over a source's complex, or the source bringing `values` nodes? Recommended: sections over a
-  source's complex in the next slice's view-model work, the issue until then.
-
 ## Decisions as recommended
 
 - **ST2**: the link sends every jump that names a Location (`focus`, `reveal`, and back/forward over them); `fit`,
@@ -37,3 +33,14 @@ under the author's standing permission (`state.md`, Decided). Each a yes or no q
   lit unit; was 31.8 kB), against performance.md's 0 B for warm hover loops; the target and the hover's Location are
   new each hover. Set a target for the link's path (performance.md names none), or ask for pooled results? Recommended:
   a bound per lit unit (2 kB) in performance.md, pooling later if a large assembly shows it.
+
+- **HD's drift**: no section can show a source's complex (`drift/host-complex-sections.md`): keep static sections with
+  an issue, sections over a source's complex, or the source bringing `values` nodes? Recommended: sections over a
+  source's complex in the next slice's view-model work, the issue until then.
+
+- **HP3: one slot in the measured label column.** `actionColumns` gives `floor(labelWidth/20) − 3` slots, and the
+  measured 80–160 px column usually leaves one (Hide; Color only in the menu), while track-header-parts' default says
+  "the eye and the color fit beside a label in 112 px". Keep one slot and amend the rationale, or reserve two slots
+  (the column wider, or the slot rule changed)? Recommended: amend the rationale (the menu holds every entry; a wider
+  column costs every view).
+
