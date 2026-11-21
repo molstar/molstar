@@ -7,6 +7,15 @@
   morning (the author, 2026-11-20: "Let's schedule the designs steps for an overnight run (we can do the design drafts
   and their reviews before we close slice 4 in the morning after i wake it)").
 
+- The drafts (the author, 2026-11-21): "generally reasonable and we can fold in the reviews": each draft's "Review,
+  unresolved" and the text it asks of another draft folded in before promotion.
+- **Three genome formats built, the rest designed only** (the author, 2026-11-21: "Yes, those three"): `runtimes/bed`
+  (BED, bedGraph, BEDPE), `runtimes/gff` (GFF3, GTF as transcripts) and `runtimes/vcf` with BGZF and tabix in
+  `@molstar/io`; bigBed, 2bit, bgzipped FASTA (`.gzi`), PAF, PIF and chain stay designed, no runtime. Why: a runtime is
+  maintenance and fixtures, a host brings its own through `withAdapter`. The dataset's synteny, dot plot and liftover
+  views read the alignment from the `seq` format (written from the alignment truth in code); "open by name" reads GFF3
+  names only; fetches 4, 5, 6, 9 and 10 dropped.
+
 ## Overnight: stage 0 (run by the fourth slice's loop)
 
 The fourth slice's loop runs this while the author sleeps (its `state.md`, Next, points here). The lane limit is the

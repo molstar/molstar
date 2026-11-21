@@ -70,6 +70,9 @@ is a registry entry of the existing kind ([sources](../../../design/sources.md),
 
 ### One runtime a format family, each an opt-in entry
 
+**Built in the fifth slice: `runtimes/bed`, `runtimes/gff`, `runtimes/vcf`** (with BGZF and tabix in `@molstar/io`);
+the other entries below are designed only, no runtime until a use asks (the author, 2026-11-21: "Yes, those three").
+
 | Entry (`@molstar/seqx-core/…`) | Exports | Formats | Shapes | Read |
 |---|---|---|---|---|
 | `runtimes/bed` | `BedRuntime`, `bedRuntime` | `bed`, `bedgraph`, `bedpe`, `chrom-sizes` | ranges; values; pairs; coverage only | whole, or by region with a tabix `index` (not `bedpe`, not `chrom-sizes`) |
