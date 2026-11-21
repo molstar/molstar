@@ -6,6 +6,11 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
 
 ## Open
 
+- **The tree's leftmost vertical line is thinner** (the author, 2026-11-21, Globins rows family): the root's vertical
+  stroke at the tree column's left edge looks about half the width of the others, likely half of it clipped at the
+  column's edge (a stroke centred on x = 0). Inset the tree by half a stroke (or snap strokes inside the column); a twin
+  test that every vertical's stroke lies inside the tree column's box.
+
 - **The rail's place as a list, and a pinned place** (the author, 2026-11-21; designed in navigators.md, "A list, and
   a pinned place"): `railPlace` takes one place or a list; `pinned` keeps a rail at the bottom edge of the visible
   frame at any scroll. For FX4, on FX3's `railRows`.
