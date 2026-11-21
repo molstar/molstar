@@ -16,6 +16,7 @@ import {
   navigatorBox,
   windowText,
 } from './navigator.js';
+import { isSquareNavigator, SquareNavigator } from './navigator-square.js';
 import { drawListsToSvg, escapeXml, type SvgOptions } from './svg.js';
 import type { ViewLayout } from './tracks.js';
 
@@ -55,9 +56,20 @@ export type NavigatorExport = (input: NavigatorExportInput) => ExportedNavigator
 /** The core's navigators of an export: outlines and wash, the windows' text as titles. */
 export const NavigatorSvgExport: NavigatorExport = (input) => {
   const { dpr, cvdSafe, overlay, ...options } = input;
+  // a square (two axes over blocks × blocks) draws its lattice; the rest their pictures
   const navs = input.view.navigators
     .filter((n) => !n.hidden)
-    .map((navigator) => new NavigatorRenderer({ ...options, navigator }));
+    .map((navigator) =>
+      isSquareNavigator(navigator, input.view)
+        ? new SquareNavigator({
+            model: options.model,
+            view: input.view,
+            navigator,
+            tokens: options.tokens,
+            ...(options.config ? { config: options.config } : {}),
+          })
+        : new NavigatorRenderer({ ...options, navigator }),
+    );
   return {
     count: navs.length,
     frames(layout, settled) {
@@ -74,7 +86,7 @@ export const NavigatorSvgExport: NavigatorExport = (input) => {
       return { frames, wants: frames.flatMap((f) => f.wants) };
     },
     issues: () => navs.flatMap((n) => n.allIssues),
-    wrap: (view, lists, model, frames, svg) => withNavigators(view, lists, model, navs, frames, svg),
+    wrap: (view, lists, model, frames, svg) => withNavigators(options.pictures, view, lists, model, navs, frames, svg),
   };
 };
 
@@ -84,10 +96,11 @@ export const NavigatorSvgExport: NavigatorExport = (input) => {
  * id; the view's metadata on the outer root.
  */
 function withNavigators(
+  pictures: NavigatorRendererOptions['pictures'],
   view: string,
   lists: DrawLists,
   model: StaticModel,
-  navs: readonly NavigatorRenderer[],
+  navs: readonly (NavigatorRenderer | SquareNavigator)[],
   frames: readonly NavigatorFrame[],
   svg: Pick<SvgOptions, 'fonts' | 'fade' | 'idPrefix'>,
 ): string {
@@ -95,7 +108,7 @@ function withNavigators(
   const vh = lists.height;
   // each navigator's box, a zoom strip's height below it
   const boxes = navs.map((n) => {
-    const b = navigatorBox(n.navigator, vw, vh, n.options.pictures);
+    const b = navigatorBox(n.navigator, vw, vh, pictures);
     return { width: b.width, height: b.height + n.zoomHeight };
   });
   const sum = (p: string, k: 'width' | 'height') =>

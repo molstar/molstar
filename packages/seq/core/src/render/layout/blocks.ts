@@ -386,6 +386,30 @@ export class BlockRow {
     return this.x0 + this.width;
   }
 
+  /**
+   * `xOf(u)` written into `out[k]` (a hot loop's: a number returned from a call not inlined is boxed, a typed array's
+   * slot never is).
+   */
+  xInto(u: number, out: Float64Array, k: number): void {
+    // `xOf`'s arithmetic inline (a call returning a number would box it where the compiler does not inline it)
+    if (u < this.u0) {
+      out[k] = this.x0 - (this.u0 - u) * this.scale;
+      return;
+    }
+    if (u > this.u1) {
+      out[k] = this.x0 + this.width + (u - this.u1) * this.scale;
+      return;
+    }
+    for (let b = 0; b < this.n; b++) {
+      const vs = this.vs[b];
+      const ve = this.ve[b];
+      if (ve <= vs || u < vs || (u >= ve && ve < this.u1)) continue;
+      out[k] = this.x[b] + ((u - vs) * this.w[b]) / (ve - vs);
+      return;
+    }
+    out[k] = this.x0 + this.width;
+  }
+
   /** The section unit at x as last laid (in a gap: the next block's first). */
   unitAt(x: number): number {
     for (let b = 0; b < this.n; b++) {

@@ -2739,8 +2739,19 @@ numbers): a window move allocates nothing once warm.
   where the lists are equal (a binary search over the blocks' offsets). Not built: `system` as a list of assemblies; an
   ideogram's bands over every chromosome (data over an assembly is read by sequence later: a `bands` picture over blocks
   draws what its one annotation reaches).
-- **The square** (two axes over blocks × blocks: `axes: both` with `of: [x, y]` of sections of blocks, or one section on
-  both axes): see its own bullet below.
+- **The square** (`render/navigator-square.ts`, `SquareNavigator`, `isSquareNavigator`: a navigator over blocks with
+  `axes: both` bound to two sections of blocks, or one section on both axes, `of: [s, s]`): its lattice the assembly's
+  blocks on both axes (after the assembly's `include`, never a section's; no `system`: the first bound section's `of`),
+  proportional to their display units, a line at each block's edge (none past `navigator.square.maxCells` block pairs,
+  4,096, said once: `seq.render.navigator.layer`); the cells a bound section does not show washed (`seq-wash`), the rest
+  plain; the window the first section's range along x and the second's along y as one rectangle (one section on both
+  axes: on the diagonal). A hit names the cell's two blocks and systems (`block`, `yBlock`, `system`, `ySystem`);
+  `pairAt` gives the hull of the cell's two blocks on a bound section (what a double-click fits), `cellAt` the cell.
+  **What region reads add** (RG, stage 3): the cells' content: for pairs, the pairs level's coarsest tiles read by block
+  (one want a block), summed into one image of block × block cells and reduced to its pixels by the shared reduction;
+  for a grid source, its coarsest 2D tiles by block pair (the upper triangle when symmetric), at most `maxCells` wants,
+  past it the whole-assembly level; until then the square is the lattice and what static data gives. Not built: its
+  grips and drags per axis (a click centres x, a double-click fits a pair).
 - **The window stays the navigator's**, whatever the picture: its geometry, floor, parts, gestures, keys, idle rule,
   zoom strip and announcements. A host that draws its own navigator keeps them through the viewer's `NavigatorModel`.
 - **The picture**: a navigator lays its system whole out (the fit window, in the bound section's display order;

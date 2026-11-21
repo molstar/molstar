@@ -610,6 +610,13 @@ export class NavigatorRenderer {
     return p instanceof BlockPlacement && !p.stacked ? p.row.xOf(u) : s.axis!.xOfUnit(u);
   }
 
+  /** `xOn` into `out[k]` (a window move's: nothing boxed). */
+  private xInto(s: SectionLayout, u: number, out: Float64Array, k: number): void {
+    const p = s.placement;
+    if (p instanceof BlockPlacement && !p.stacked) p.row.xInto(u, out, k);
+    else out[k] = s.axis!.xOfUnit(u);
+  }
+
   /** The unit at x on a section of the picture (a row of blocks: in a gap the next block's first). */
   private unitOn(s: SectionLayout, x: number): number {
     const p = s.placement;
@@ -1166,19 +1173,23 @@ export class NavigatorRenderer {
     w.p0 = blockPositionAt(blocks[i], a, 'start') ?? 0;
     w.s1 = blocks[j].axis.system;
     w.p1 = blockPositionAt(blocks[j], b, 'end') ?? 0;
-    const xa = this.xOn(work, a);
-    const xb = this.xOn(work, b);
-    w.x0 = Math.min(xa, xb);
-    w.x1 = Math.max(xa, xb);
-    this.windowPx = Math.abs(this.xOn(ctx, b) - this.xOn(ctx, a));
+    // through a typed array: an x returned from the row's arithmetic would be boxed on each window move
+    const X = BlockXs;
+    this.xInto(work, a, X, 0);
+    this.xInto(work, b, X, 1);
+    this.xInto(ctx, a, X, 2);
+    this.xInto(ctx, b, X, 3);
+    w.x0 = X[0] < X[1] ? X[0] : X[1];
+    w.x1 = X[0] < X[1] ? X[1] : X[0];
+    this.windowPx = X[3] > X[2] ? X[3] - X[2] : X[2] - X[3];
     // what the section reaches: a section of other blocks (one chromosome) only its own, the rest washed
     if (!this.same(bound)) {
       const r = this.reachOf(bound);
       if (r) {
-        const lo = this.xOn(work, r[0]);
-        const hi = this.xOn(work, r[1]);
-        w.lo = Math.max(w.lo, Math.min(lo, hi));
-        w.hi = Math.min(w.hi, Math.max(lo, hi));
+        this.xInto(work, r[0], X, 0);
+        this.xInto(work, r[1], X, 1);
+        w.lo = Math.max(w.lo, Math.min(X[0], X[1]));
+        w.hi = Math.min(w.hi, Math.max(X[0], X[1]));
       }
     }
     const first = Math.min(i, j);
@@ -1312,7 +1323,9 @@ export class NavigatorRenderer {
     for (let k = 0; k < (wraps ? 2 : 1); k++) {
       const u0 = k === 0 ? this.reach[0] : 0;
       const u1 = wraps ? (k === 0 ? t : this.reach[1] - t) : this.reach[1];
-      this.drawMark(out, this.xOn(ctx, u0), this.xOn(ctx, u1), ctx, k, dpr, c, tokens);
+      this.xInto(ctx, u0, BlockXs, 0);
+      this.xInto(ctx, u1, BlockXs, 1);
+      this.drawMark(out, BlockXs[0], BlockXs[1], ctx, k, dpr, c, tokens);
     }
     // the connectors: from the mark's foot to the zoom strip's top, its start to the strip's start, its end to its end
     // (over the origin the first piece's start, the second's end)
@@ -1712,6 +1725,9 @@ function partOf(
 }
 
 type Block = NonNullable<ResolvedSection['blocks']>[number];
+
+/** A window's x over blocks, on the work section and the context (scratch). */
+const BlockXs = new Float64Array(4);
 
 /** Scratch for the places of a position (the cursor over blocks): allocation-free. */
 const PlaceBlocks = new Int32Array(64);

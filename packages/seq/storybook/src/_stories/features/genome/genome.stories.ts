@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { viewerItem } from '@molstar/seqx-viewer/config';
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { exampleStory } from '../../examples/example-root.js';
 import { GenomeViews } from './views.js';
@@ -51,4 +52,39 @@ export const BInAsOrder: StoryObj = {
 export const ThreeThousandContigs: StoryObj = {
   name: '3,000 Contigs',
   render: () => exampleStory(view('contigs'), { stacked: true }),
+};
+
+/** One chromosome at a time: a pan, a zoom and a fit kept in the chromosome the window is in (IGV's, UCSC's). */
+const OneAtATime = [[viewerItem('navigate.acrossBlocks'), 'stop']] as const;
+
+/**
+ * A chromosome at a time: a navigator over the genome's blocks above the view. Click a chromosome to jump there (Alt+Left
+ * goes back), double-click one to fit it (again: the whole genome); zoomed in, the zoom strip under the genome shows the
+ * chromosome holding the window. The readout names the chromosome and the position; PageDown on the slider (or
+ * Alt+PageDown on the view) goes to the next chromosome. A pan stops at the chromosome's end
+ * (`navigate.acrossBlocks: stop`); right-click a chromosome for Reverse.
+ */
+export const AChromosomeAtATime: StoryObj = {
+  name: 'A Chromosome At A Time',
+  render: () =>
+    exampleStory(view('chromosome-at-a-time'), { stacked: true, navigators: 'include', config: OneAtATime }),
+};
+
+/**
+ * The square over blocks × blocks: one section on both axes, its navigator the twelve chromosomes' pairs as a lattice,
+ * the window on the diagonal. Double-click a cell to fit its two chromosomes, again the whole; what the cells hold
+ * (pairs by block, a contact map's tiles by block pair) comes with region reads.
+ */
+export const TheSquare: StoryObj = {
+  name: 'The Square Over Blocks × Blocks',
+  render: () => exampleStory(view('square'), { stacked: true, navigators: 'include' }),
+};
+
+/**
+ * A ring that switches (`navigator.switch: include`): click a chromosome on the navigator and the ring shows it alone
+ * (one undo step); Home on the navigator (or right-click › Show all on the ring) shows every one again.
+ */
+export const ARingThatSwitches: StoryObj = {
+  name: 'A Ring That Switches',
+  render: () => exampleStory(view('ring-switch'), { stacked: true, navigators: 'include' }),
 };

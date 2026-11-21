@@ -141,14 +141,25 @@ describe('A navigator over blocks (EC-184)', () => {
     void chr1;
   });
 
-  it('exports with its navigator, light and dark, with no issue', async () => {
-    const v = await open('chromosome-at-a-time');
-    for (const tokens of [LightTokens, DarkTokens]) {
-      const r = v.renderSvg({ idPrefix: 'n-', tokens, navigators: 'include' } as never);
-      await vi.advanceTimersByTimeAsync(400);
-      const done = await r;
-      expect([done.settled, done.issues]).toEqual([true, []]);
-      expect(done.svg).toContain('data-navigator="genome-nav"');
+  it('each navigator story exports with its navigator, light and dark, with no issue (the stories’ SVG twins)', async () => {
+    for (const [id, nav] of [
+      ['chromosome-at-a-time', 'genome-nav'],
+      ['ring-switch', 'chromosomes'],
+      ['square', 'square'],
+    ] as const) {
+      const v = await open(id);
+      const svgs: string[] = [];
+      for (const tokens of [LightTokens, DarkTokens]) {
+        const r = v.renderSvg({ idPrefix: 'n-', tokens, navigators: 'include' } as never);
+        await vi.advanceTimersByTimeAsync(400);
+        const done = await r;
+        expect([id, done.settled, done.issues]).toEqual([id, true, []]);
+        expect(done.svg).toContain(`data-navigator="${nav}"`);
+        svgs.push(done.svg);
+      }
+      expect(svgs[1]).not.toBe(svgs[0]);
+      v.retire();
+      viewer = undefined;
     }
   });
 });

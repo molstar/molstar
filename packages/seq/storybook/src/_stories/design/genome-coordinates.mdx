@@ -54,6 +54,26 @@ Toy assemblies generated in the story, each the canvas and the SVG of one view, 
 - [3,000 contigs](?path=/story/seq-next-features-genome-coordinates--three-thousand-contigs) in runs, on a ring and in a
   row
 
-Not yet built: the navigator over an assembly and its zoom strip, `navigate.acrossBlocks: stop`, the cursor crossing
-blocks, `block.reverse` and `section.include` as commands, and a run's hover card (the viewer's part); data over an
-assembly read by sequence.
+## Navigators and the viewer
+
+- **A navigator over blocks**: with no `system` over a section of blocks, or `system` an assembly, it draws the genome's
+  blocks; its window is the section's, carried by `{ system, position }` (one window over a gap). A click on a
+  chromosome is a jump there, a double-click fits it (again: the whole); zoomed in, the zoom strip shows the chromosome
+  holding the window. The readout and the slider name the block and the assembly
+  (`chr17: 7,668,402–7,687,550 of GRCh38`).
+- **`navigator.switch: include`**: a click on a chromosome shows it alone on the bound section (a ring of one chromosome
+  is the genome's ring with `include` patched: one undo step); Home shows every one again.
+- **The square**: a navigator on both axes over blocks × blocks, the chromosome pairs a lattice, the window one
+  rectangle. What its cells hold (pairs by block, a contact map's tiles by block pair) is region reads'.
+- **The viewer**: `navigate.acrossBlocks` (`cross`, or `stop`: one chromosome at a time); `block.next`, `block.previous`
+  (Alt+PageDown, Alt+PageUp); `block.reverse` and `section.include` from a block's menu ("Reverse", "Show only", "Show
+  all"); the keyboard cursor crosses into the next block (EC-154, amended); a drag across blocks selects each block's
+  shown positions; the view's history keeps `{ system, position }`; a run's hover names its block ("one of 2,841"); the
+  locus box falls back to a source's gene names.
+
+- [A chromosome at a time](?path=/story/seq-next-features-genome-coordinates--a-chromosome-at-a-time)
+- [The square over blocks × blocks](?path=/story/seq-next-features-genome-coordinates--the-square)
+- [A ring that switches](?path=/story/seq-next-features-genome-coordinates--a-ring-that-switches)
+
+Not yet built: an ideogram's bands over every chromosome and data over an assembly read by sequence; the square's cells
+(region reads) and its grips; a navigator over a list of assemblies.
