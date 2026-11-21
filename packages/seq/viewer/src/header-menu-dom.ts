@@ -11,12 +11,9 @@ import type { HeaderMenu, HeaderMenuItem, HeaderMenuPlace, HeaderMenuPortFactory
 // The header menu's default adapter (_spec/README.md "Ports", Header menu): `@molstar/ui`'s context menu in the canvas's
 // element, at the place in the canvas. Its keyboard is the menu's (the first item focused, the arrows, Enter, Esc, a
 // press outside), and closed it gives the focus back to the canvas. An item with a submenu opens it in its place (the
-// context menu has no nested menus) by a click, by → and by the pointer resting on it; ← in a submenu so opened goes
-// back to its menu. A scheme previews while its row is focused or hovered, and a menu closed without a choice ends the
-// preview in nothing. Its events are its own: the view under it never gets them (`overlay-events.ts`).
-
-/** How long the pointer rests on an item with a submenu before it opens, ms. */
-const SubmenuRestMs = 300;
+// context menu has no nested menus) by a click, by → and by the pointer resting on it (`submenuRestMs`); ← in a
+// submenu so opened goes back to its menu, onto its row. A scheme previews while its row is focused or hovered, and a
+// menu closed without a choice ends the preview in nothing. Its events are its own: the view under it never gets them (`overlay-events.ts`).
 
 /** @internal `@molstar/ui`'s context menu over the canvas: one at a time (the lazy chunk `headerMenuOverlay()` loads). */
 export function contextMenuPort(): HeaderMenuPortFactory {
@@ -91,7 +88,7 @@ export function contextMenuPort(): HeaderMenuPortFactory {
             rest = DomHost.setTimeout(() => {
               rest = restRow = undefined;
               sub(it);
-            }, SubmenuRestMs);
+            }, behavior.submenuRestMs);
           });
           el.addEventListener('pointerleave', stopRest);
           // → on a submenu's row opens it, ← in a submenu goes back to its menu

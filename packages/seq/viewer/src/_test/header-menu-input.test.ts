@@ -19,6 +19,7 @@ import { type HeadersBehavior, HeadersProvider } from '../behaviors/headers.js';
 import type { HoverCardBehavior } from '../behaviors/hover-card.js';
 import { RecordingContext } from '../canvas/_test/recording.js';
 import { DefaultSeqViewerSpec } from '../default-spec.js';
+import type { HeadersParams } from '../header-entries.js';
 import { headerMenuOverlay } from '../mount-header-menu.js';
 import { uiHistory } from '../ui-history.js';
 import { createSeqViewer, type SeqViewer } from '../viewer.js';
@@ -81,7 +82,7 @@ const runTimers = () => {
   for (const fn of due) fn();
 };
 
-async function mount() {
+async function mount(params: HeadersParams = {}) {
   const target = document.createElement('div');
   document.body.appendChild(target);
   const base = DefaultSeqViewerSpec();
@@ -91,7 +92,9 @@ async function mount() {
       ui: { canvas: true, history: uiHistory },
       config: [[SeqCoreConfig.render, { labelWidth: 140 }]],
       behaviors: base.behaviors.map((b) =>
-        b.provider === HeadersProvider ? { provider: HeadersProvider, params: { menu: headerMenuOverlay() } } : b,
+        b.provider === HeadersProvider
+          ? { provider: HeadersProvider, params: { menu: headerMenuOverlay(), ...params } }
+          : b,
       ),
     },
     target,
@@ -365,6 +368,15 @@ describe('Color ▸', () => {
       vi.mocked(DomHost.setTimeout).mockRestore();
       vi.mocked(DomHost.clearTimeout).mockRestore();
     }
+  });
+
+  it('waits the `submenuRestMs` param', async () => {
+    const { v, container, headers, pointer } = await mount({ submenuRestMs: 120 });
+    expect(headers.submenuRestMs).toBe(120);
+    const color = row(await openMenu(v, headers, container, Letters), /^Color/);
+    fakeTimers();
+    pointer('pointerover', color);
+    expect(vi.mocked(DomHost.setTimeout)).toHaveBeenLastCalledWith(expect.any(Function), 120);
   });
 
   it('a move within a submenu’s row keeps its rest: it opens at the first rest, not later', async () => {
