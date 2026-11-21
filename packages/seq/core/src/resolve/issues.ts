@@ -110,6 +110,26 @@ export const ResolveIssues = defineIssues('seq.resolve', {
     description: 'A complex has more units than the configuration allows (`maxUnits`); it is left out',
     hint: 'Read a subset of the assembly (fewer operators or chains), or raise `maxUnits` at its memory',
   },
+  'seq.resolve.assembly.lengths': {
+    severity: 'error',
+    description: 'An assembly’s sequence has no length; the assembly is unavailable',
+    hint: 'Give lengths inline or a `chrom-sizes` source',
+  },
+  'seq.resolve.assembly.alias': {
+    severity: 'warning',
+    description: 'An alias names two sequences, or two of different lengths; it is dropped',
+    hint: 'Give each alias to one sequence',
+  },
+  'seq.resolve.assembly.mismatch': {
+    severity: 'warning',
+    description: 'A source over an assembly says another (`source.assembly`); still drawn',
+    hint: 'Give the assembly that alias',
+  },
+  'seq.resolve.assembly.name': {
+    severity: 'info',
+    description: 'Rows name sequences the assembly lacks; they are left out',
+    hint: 'Add aliases',
+  },
   'seq.resolve.node.depth': {
     severity: 'warning',
     description: 'A nested source is deeper than the nesting the configuration allows (EC-179); it is not requested',

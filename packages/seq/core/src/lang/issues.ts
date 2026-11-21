@@ -317,44 +317,44 @@ export const LangIssues = defineIssues('seq.lang', {
   },
   'seq.lang.assembly.content': {
     severity: 'error',
-    description: 'An assembly has neither `sequences` nor a `source`, or `names` without an `alias_source`',
-    hint: 'Give its sequences inline or a source listing them with their lengths; `names` is a column of `alias_source`',
+    description: 'An assembly lists no sequences, or gives `names` with no `alias_source`',
+    hint: 'Give `sequences` or a `source`',
   },
   'seq.lang.sequence.alphabet': {
     severity: 'error',
-    description: 'A sequence under `data` has no `alphabet` (one under an assembly takes the assembly’s)',
+    description: 'A sequence under `data` has no `alphabet`',
     hint: 'Give `protein`, `dna` or `rna`',
   },
   'seq.lang.block.scale': {
     severity: 'error',
     description: 'A block’s `scale` is not positive',
-    hint: 'A scale multiplies its length on screen: any number above 0',
+    hint: 'Give a number above 0',
   },
   'seq.lang.bridge.sides': {
     severity: 'error',
-    description: 'A bridge’s `a` and `b` name one section',
-    hint: 'A bridge joins two sections, its neighbours in the view',
+    description: 'A bridge’s `a` and `b` are one section',
+    hint: 'Join two neighbouring sections',
   },
   'seq.lang.section.include': {
     severity: 'warning',
-    description: 'A section’s `include` is read only on a section of assemblies; here it is ignored',
-    hint: 'Drop it, or give the section `of` an assembly',
+    description: 'A section’s `include` is ignored: it is of no assembly',
+    hint: 'Drop it',
   },
   'seq.lang.pairs.content': {
     severity: 'error',
-    description: 'A pairs node has both `rows` and a `source`, or neither, or a `field` without a `source`',
-    hint: 'Give one of `rows` and `source`; `field` names the source’s column read',
+    description: 'A pairs node has not one of `rows` and `source`, or `field` with no `source`',
+    hint: 'Give one of them',
   },
   'seq.lang.grid.content': {
     severity: 'error',
-    description: 'A grid has both `values` and a `source`, or neither, or a `field` without a `source`',
-    hint: 'Give one of `values` and `source`; `field` names the source’s channel read',
+    description: 'A grid has not one of `values` and `source`, or `field` with no `source`',
+    hint: 'Give one of them',
   },
   'seq.lang.matrix.content': {
     severity: 'error',
     description:
-      'A matrix has not one of `values`, `codes` and `source`, inline cells without `states`, or a `field` without a `source`',
-    hint: 'Give its cells inline with their `states`, or a source',
+      'A matrix has not one of `values`, `codes` and `source`, inline cells no `states`, or `field` no `source`',
+    hint: 'Give its cells and states, or a source',
   },
   'seq.lang.link.occupancy': {
     severity: 'error',

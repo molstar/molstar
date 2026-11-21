@@ -22,6 +22,23 @@ export {
   residuesOf,
   translateCodon,
 } from './codon.js';
+export {
+  type AssemblyEntry,
+  type AssemblySequence,
+  assemblySequenceAddress,
+  assemblySystem,
+} from './assemblies.js';
+export {
+  type AssemblyNames,
+  assemblyNames,
+  type IncludeValue,
+  includeFilter,
+  lookupName,
+  MaxIncludePattern,
+  type NamedSequence,
+  type NameMatch,
+  naturalOrder,
+} from './assembly-names.js';
 export { type GridData, type PairsData } from './held.js';
 export { ResolveIssues } from './issues.js';
 export {

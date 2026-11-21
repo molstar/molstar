@@ -38,7 +38,7 @@ import {
 import { viaUnusedIssue } from '@molstar/seqx-core/resolve/maps-via';
 import { followRef } from '@molstar/seqx-core/lang';
 import { type AxisShape, axisTotal, nearestOffsetOf, positionAt, wholePieces } from './axis.js';
-import { type BlockAxes, blockAxes, blockNodes, sectionComplex } from './blocks.js';
+import { assemblyBlocks, type BlockAxes, blockAxes, blockNodes, sectionAssemblies, sectionComplex } from './blocks.js';
 import { ViewIssues } from './issues.js';
 
 /** The six shapes a layer reads (an extension's type reads one of them: _spec/README.md "Context", Extensions). */
@@ -523,8 +523,21 @@ function build(model: StaticModel, view: Node, address: string, layerKinds: Laye
   for (const s of sectionNodes) {
     const at = `${address}/${s.id}`;
     // a section of blocks with no `of` (or `of` a complex) is on its first block's system
-    const first = blockNodes(model, s)[0];
-    const own = sectionComplex(model, s) === undefined ? param(s, 'of') : undefined;
+    const assemblies = sectionAssemblies(model, s);
+    const derived = assemblies && assemblyBlocks(model, s, assemblies, at);
+    if (derived && derived.total > derived.nodes.length)
+      report(
+        'seq.view.section.blocks',
+        `${derived.total - derived.nodes.length} of ${derived.total} blocks are past \`maxAssemblyBlocks\``,
+        at,
+      );
+    const first = derived ? derived.nodes[0] : blockNodes(model, s)[0];
+    // an assembly not yet open has no blocks: pending, never a missing system
+    if (assemblies && !first && assemblies.some((a) => a.pending)) {
+      systemOf.set(at, '');
+      continue;
+    }
+    const own = sectionComplex(model, s) === undefined && !assemblies ? param(s, 'of') : undefined;
     const system = exactAddress(own ?? (first ? param(first, 'of') : undefined));
     const leader = exactAddress(param(s, 'follow'));
     const lead = leader === undefined ? undefined : byAddress.get(leader);
@@ -586,7 +599,7 @@ function build(model: StaticModel, view: Node, address: string, layerKinds: Laye
   for (const [at, s] of byAddress) {
     if (overBlocks.has(at)) continue;
     const dir = dirOf(at);
-    const bs = blockNodes(model, s);
+    const bs = blockNodes(model, s, at);
     if (bs.length) {
       const b = blockAxes(
         model,

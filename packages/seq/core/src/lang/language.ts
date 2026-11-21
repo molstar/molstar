@@ -593,6 +593,8 @@ export const SeqLanguage = defineLanguage({
               of: 'category',
               doc: 'Which way the run reads on `to`: `+` (when absent: `from + i` is `to + i`) or `-` (`to - i`).',
             },
+            from_name: { type: 'column', of: 'category', doc: 'Between assemblies: each run’s sequence on `from`.' },
+            to_name: { type: 'column', of: 'category', doc: 'Its sequence on `to`.' },
             provenance: {
               type: 'column',
               of: 'category',

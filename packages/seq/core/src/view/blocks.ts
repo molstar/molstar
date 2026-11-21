@@ -9,8 +9,15 @@
 // (`whole`, `residues`, `atoms`), its label (a chip's: its molecule's name, else its one component, else its id), its
 // copies merged (EC-65); the section's axis over them.
 
-import { exactAddress, type Node, type Value } from '@molstar/core/repr/tree';
-import { atomsSystemOf, type StaticModel, type UnitEntry } from '@molstar/seqx-core/resolve';
+import { exactAddress, type Node, printAddress, type Value } from '@molstar/core/repr/tree';
+import {
+  type AssemblyEntry,
+  atomsSystemOf,
+  type IncludeValue,
+  includeFilter,
+  type StaticModel,
+  type UnitEntry,
+} from '@molstar/seqx-core/resolve';
 import { axisTotal } from './axis.js';
 import type { Axis, BlockForm, ResolvedBlock } from './view.js';
 
@@ -25,6 +32,65 @@ export function sectionComplex(model: StaticModel, section: Node): string | unde
   return of !== undefined && model.molecular.complexes.has(of) ? of : undefined;
 }
 
+/** The assemblies a section is `of` (one, or a list: a group each), when it is of assemblies. */
+export function sectionAssemblies(model: StaticModel, section: Node): AssemblyEntry[] | undefined {
+  const of = param(section, 'of');
+  const list = (Array.isArray(of) ? of : [of]).map((v) => model.assemblies.get(exactAddress(v) ?? ''));
+  return list.length && list.every((a) => a !== undefined) ? (list as AssemblyEntry[]) : undefined;
+}
+
+/** A derived block's address: the keyed form under its section, never an id step (it has no id). */
+const DerivedAddress = new WeakMap<Node, string>();
+
+/**
+ * A section of assemblies' blocks (_spec/README.md "Resolved view", Blocks): a block a derived system, each assembly's
+ * in its order and after its `include`, then the section's `include`; a `block` child whose `of` is a derived system
+ * (or whose id is its name) overrides that block only (`direction`, `scale`, `label`, `range`). At most `max` blocks;
+ * `total` is how many there were.
+ */
+export function assemblyBlocks(
+  model: StaticModel,
+  section: Node,
+  assemblies: readonly AssemblyEntry[],
+  at: string,
+): { nodes: Node[]; total: number } {
+  const over = new Map<string, Record<string, Value>>();
+  for (const c of section.children ?? []) {
+    if (c.kind !== 'block') continue;
+    const params: Record<string, Value> = {};
+    for (const k of ['direction', 'scale', 'label', 'range', 'form'] as const)
+      if (param(c, k) !== undefined) params[k] = param(c, k)!;
+    const of = exactAddress(param(c, 'of'));
+    if (of !== undefined) over.set(of, params);
+    else if (c.id !== undefined)
+      for (const a of assemblies) {
+        const s = a.systemAt[a.lookup.index.get(c.id) ?? -1];
+        if (s) over.set(s, params);
+      }
+  }
+  const nodes: Node[] = [];
+  let total = 0;
+  const max = model.config.maxAssemblyBlocks;
+  for (const a of assemblies) {
+    const keep = includeFilter(param(section, 'include') as IncludeValue | undefined, a.lookup);
+    for (const i of a.order) {
+      const system = a.systemAt[i];
+      const s = a.sequences[i];
+      if (!system || (keep && !keep(i, s))) continue;
+      total++;
+      if (nodes.length >= max) continue;
+      const label = model.systems.get(system)?.label ?? s.name;
+      const n: Node = { kind: 'block', params: { of: system, label, ...over.get(system) } };
+      DerivedAddress.set(
+        n,
+        printAddress([...at.split('/').filter(Boolean), { kind: 'block', params: { name: s.name } }]),
+      );
+      nodes.push(n);
+    }
+  }
+  return { nodes, total };
+}
+
 /**
  * A section's block nodes: its `block` children (explicit blocks win), else a block a unit of the complex it is `of`,
  * by `classes` (a class not listed left out), polymers in the complex's order, then each class in order. A `block`
@@ -32,7 +98,9 @@ export function sectionComplex(model: StaticModel, section: Node): string | unde
  * merged copies block by its first unit's id: every copy); a section whose children are all overrides lists every
  * derived unit, as units are added too.
  */
-export function blockNodes(model: StaticModel, section: Node): Node[] {
+export function blockNodes(model: StaticModel, section: Node, at = ''): Node[] {
+  const assemblies = sectionAssemblies(model, section);
+  if (assemblies) return assemblyBlocks(model, section, assemblies, at).nodes;
   const own = (section.children ?? []).filter((c) => c.kind === 'block' && c.id !== undefined);
   const complex = sectionComplex(model, section);
   const units = complex === undefined ? undefined : model.molecular.complexes.get(complex)?.units;
@@ -140,7 +208,7 @@ export function blockAxes(
   report: Report,
 ): BlockAxes {
   const merge = param(section, 'copies') !== 'each';
-  const groups: {
+  type Group = {
     node: Node;
     address: string;
     axis: Axis;
@@ -149,9 +217,12 @@ export function blockAxes(
     systems: string[];
     form: BlockForm;
     label: string;
-  }[] = [];
+  };
+  const groups: Group[] = [];
+  // copy groups by key: linear in the blocks (an assembly's thousands of contigs)
+  const byKey = new Map<string, Group>();
   for (const n of nodes) {
-    const address = `${at}/${n.id}`;
+    const address = DerivedAddress.get(n) ?? `${at}/${n.id}`;
     const of = exactAddress(param(n, 'of'));
     if (of === undefined || !model.systems.has(of)) {
       report('The block shows no system of the spec', address);
@@ -162,7 +233,7 @@ export function blockAxes(
     const range = param(node, 'range');
     // units of one copy group are copies whatever their systems (EC-65): equal `of` and range
     const key = `${unit ? unit.copy : system}|${form}|${Array.isArray(range) ? range.join(',') : 'all'}`;
-    const copy = merge ? groups.find((g) => g.key === key) : undefined;
+    const copy = merge ? byKey.get(key) : undefined;
     if (copy) {
       copy.members.push(address);
       copy.systems.push(system);
@@ -170,7 +241,9 @@ export function blockAxes(
     }
     const axis = axisOf(node, address, system);
     const label = labelOf(model, n, of, unit);
-    groups.push({ node, address, axis, key, members: [address], systems: [system], form, label });
+    const g = { node, address, axis, key, members: [address], systems: [system], form, label };
+    groups.push(g);
+    if (!byKey.has(key)) byKey.set(key, g);
   }
   const stack = !ring && param(section, 'arrange') === 'stack';
   let offset: number | undefined = 0;

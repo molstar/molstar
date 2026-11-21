@@ -16,6 +16,11 @@ export const ViewIssues = defineIssues('seq.view', {
     description: 'A section’s `of` names no system of the spec; its layers are not placed',
     hint: 'Name a sequence of the spec',
   },
+  'seq.view.section.blocks': {
+    severity: 'warning',
+    description: 'A section of assemblies has more blocks than `maxAssemblyBlocks`',
+    hint: 'Keep fewer by `include`',
+  },
   'seq.view.layer.type': {
     severity: 'warning',
     description: 'A layer’s type is not one this version draws, and it has no fallback that is',
