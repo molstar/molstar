@@ -14,6 +14,7 @@ import {
   type RangesLay,
   type RowsLay,
   recordDrawLists,
+  SlimRailPx,
 } from '@molstar/seqx-core/render';
 import { FeatureViews, GlobinsViews } from '@molstar/seqx-examples';
 import { readFileSync } from 'node:fs';
@@ -22,6 +23,7 @@ import { ColumnsFile, ReferenceRow, SeedFile } from '@molstar/seqx-examples/glob
 import { HemeHistidines, HemeUnitContacts } from '@molstar/seqx-examples/globins/hemes';
 import { PackageFolder } from '@molstar/seqx-examples/node-assets';
 import { LinksHoverChannel, LinksHoverProvider } from '@molstar/seqx-viewer/behaviors';
+import { viewerItem } from '@molstar/seqx-viewer/config';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { openExample } from './draw-checks.js';
@@ -41,6 +43,18 @@ function rowsLay(v: SeqViewer): RowsLay | undefined {
 }
 
 describe('Globins stories, headless', () => {
+  it('the family: the positions rail beside the vertical overview, under the ruler, and under the last track in the bottom story', async () => {
+    const family = GlobinsViews.find((v) => v.id === 'family')!;
+    viewer = await openExample(family, {});
+    const at = (v: SeqViewer) => v.frame!.layout.sections[0].rail!;
+    const ruler = viewer.frame!.layout.sections[0].tracks[0].box;
+    expect(at(viewer).bottom).toBe(ruler.y + ruler.height + SlimRailPx);
+    viewer.retire();
+    viewer = await openExample(family, { config: [[viewerItem('navigator.railPlace'), 'bottom']] as never });
+    const last = viewer.frame!.layout.sections[0].tracks.at(-1)!.box;
+    expect(at(viewer).top).toBeGreaterThanOrEqual(last.y + last.height);
+  });
+
   it('hemoglobin with `links.hover` on, as its story: a heme’s chip lights the residues it contacts, its proximal histidine lights the heme', async () => {
     viewer = await openExample(GlobinsViews.find((v) => v.id === 'hemoglobin')!, {
       fixtures: true,

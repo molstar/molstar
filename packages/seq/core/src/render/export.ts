@@ -55,7 +55,7 @@ import { LegendBand, layoutLegends, legendsHeight, viewLegends } from './legends
 import { OverlaySources } from './overlay-sources.js';
 import type { NavigatorRendererOptions } from './navigator.js';
 import type { NavigatorExport } from './navigator-export.js';
-import { railSections } from './rail.js';
+import { type PositionsRailMode, railSections } from './rail.js';
 import { Renderer, type RendererOptions } from './renderer.js';
 import type { ViewLayout } from './tracks.js';
 import type { HeaderPartsOf } from './headers.js';
@@ -350,7 +350,10 @@ export interface RenderSvgOptions {
    * How the included navigators draw (a viewer passes its own `navigator.zoomStrip` and `navigator.direction`, so its
    * export is what its parts show): `DefaultZoomStrip` and the display order when absent.
    */
-  readonly navigator?: Pick<NavigatorRendererOptions, 'zoomStrip' | 'direction'>;
+  readonly navigator?: Pick<NavigatorRendererOptions, 'zoomStrip' | 'direction'> & {
+    /** Whether the included rails keep beside a navigator (`always`, the default), `unlessNavigator` or `none`. */
+    readonly positionsRail?: PositionsRailMode;
+  };
   /**
    * The layer types drawn (_spec/README.md "Context", Registry entries): the composition's registry. `exportSvg` draws
    * none when absent (each layer said); `renderSvg` draws the built-ins.
@@ -548,7 +551,9 @@ export async function exportSvg(spec: Node, given: RenderSvgOptions): Promise<Re
       );
     // the rails plain; a navigator this export cannot draw replaces none (its section keeps its rail)
     const railed = navs ? view : { ...view, navigators: [] };
-    const rails = included ? Object.fromEntries(railSections(railed).map((a) => [a, true])) : undefined;
+    const rails = included
+      ? Object.fromEntries(railSections(railed, [], options.navigator?.positionsRail).map((a) => [a, true]))
+      : undefined;
     const frameInput = {
       // a height `auto` is measured from a first layout (`fitHeight`)
       size: { width: options.size.width, height: auto ? AutoHeight : (options.size.height as number) },

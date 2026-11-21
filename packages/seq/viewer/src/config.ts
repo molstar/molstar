@@ -10,7 +10,7 @@
 import { configItem, type SeqConfigItem } from '@molstar/seqx-core/context';
 import { DefaultMaxBlockValues } from '@molstar/seqx-core/data';
 import { DefaultSpecBounds, type SpecBounds } from '@molstar/seqx-core/lang';
-import { DefaultZoomStrip, type RowsRailMode } from '@molstar/seqx-core/render';
+import { DefaultZoomStrip, type PositionsRailMode, type RailPlace, type RowsRailMode } from '@molstar/seqx-core/render';
 import { DefaultStoryConfig, type StoryConfig } from '@molstar/seqx-core/story';
 
 /** What the models and behaviors read; read-only after composition. */
@@ -119,11 +119,16 @@ export interface ViewerConfig {
    * which way a navigator runs (`display`: the bound section's display order, a drag right moves the view right;
    * `genomic`), and when a navigator gets a zoom strip (`zoomStrip`: its reachable span narrower than `minPx`, 48; the
    * strip `heightPx` more, 16), and when a rows band draws its rows rail (`rowsRail`: `always`, beside a declared
-   * overview too; `unlessOverview`, replaced by a navigator over its rows; `none`).
+   * overview too; `unlessOverview`, replaced by a navigator over its rows; `none`), when a linear section draws its
+   * positions rail (`positionsRail`: `always`, beside a declared navigator too; `unlessNavigator`, replaced by one;
+   * `none`) and where (`railPlace`: `ruler` below the ruler, `bottom` under the last track, `navigator` by a declared
+   * horizontal navigator, else `ruler`).
    */
   readonly navigator: {
     readonly form: 'rail' | 'none';
     readonly rowsRail: RowsRailMode;
+    readonly positionsRail: PositionsRailMode;
+    readonly railPlace: RailPlace;
     readonly dragOutside: 'sweep' | 'pan';
     readonly dragStep: 'far' | 'never' | 'always';
     readonly doubleClick: 'toggle-fit' | 'fit' | 'none';
@@ -290,6 +295,8 @@ export const DefaultViewerConfig: ViewerConfig = {
   navigator: {
     form: 'rail',
     rowsRail: 'always',
+    positionsRail: 'always',
+    railPlace: 'ruler',
     dragOutside: 'sweep',
     dragStep: 'far',
     doubleClick: 'toggle-fit',

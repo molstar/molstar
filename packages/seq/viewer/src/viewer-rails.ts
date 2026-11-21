@@ -6,7 +6,7 @@
 
 import { type ReadonlyState, State } from '@molstar/core/reactive';
 import { type Issue, issueOf } from '@molstar/core/repr/tree';
-import { railSections } from '@molstar/seqx-core/render';
+import { type RailRow, railRows, railSections } from '@molstar/seqx-core/render';
 import type { ResolvedNavigator, ResolvedView } from '@molstar/seqx-core/view';
 import { windowIdle } from '@molstar/seqx-viewer/behaviors/window';
 import { ViewerIssues } from './issues.js';
@@ -27,7 +27,7 @@ export class ViewerRails {
   private readonly _shown = new State(true);
   readonly shown: ReadonlyState<boolean> = this._shown.asReadonly;
   /** The sections that draw a rail and which can move: kept while they hold (the frame's key reads them by identity). */
-  rails: Record<string, true> | undefined;
+  rails: Record<string, true | RailRow> | undefined;
   active: Record<string, boolean> = {};
   /**
    * The rails' addresses and whether each can move, compared a frame: an array and a `Map`, never a keyed read of the
@@ -77,8 +77,12 @@ export class ViewerRails {
       // and every rows layer's rows rail, by its track (`navigator.rowsRail`; a navigator a narrow frame hides, hidden)
       const rows = on ? rowsRailsOf(viewer, shown, hosted, viewer.config) : [];
       this._rowsRails = new Set(rows);
-      const keys = on ? [...new Set([...railSections(shown, hosted), ...rows])] : [];
-      this.rails = on ? Object.fromEntries(keys.map((a) => [a, true as const])) : undefined;
+      // and every linear section's positions rail (`navigator.positionsRail`), in its row (`navigator.railPlace`)
+      const nav = viewer.config.navigator;
+      const sections = on ? railSections(shown, hosted, nav.positionsRail) : [];
+      const placed = railRows(shown, sections, hosted, nav.railPlace);
+      const keys = on ? [...new Set([...sections, ...rows])] : [];
+      this.rails = on ? Object.fromEntries(keys.map((a) => [a, placed[a] ?? (true as const)])) : undefined;
       this._railKeys = keys;
       this._activeOf.clear();
       this.active = {};

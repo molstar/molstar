@@ -401,18 +401,58 @@ export function hitRail(rail: Rail, px: number, py: number, config: RenderConfig
 // Which sections and tracks draw a rail (here, not with the navigators: a viewer that lists no navigator draws rails)
 // (a section's layout by name: `sectionLayoutName` of the tracks layout, which imports this module).
 
+/** When a linear section draws its positions rail: beside a declared navigator too, replaced by one, or never. */
+export type PositionsRailMode = 'always' | 'unlessNavigator' | 'none';
+
+/** Where the positions rail sits (`navigator.railPlace`): below the ruler, under the last track, by a navigator. */
+export type RailPlace = 'ruler' | 'bottom' | 'navigator';
+
+/** The row a section's rail is drawn in: below its ruler, under its last track, or above its first track. */
+export type RailRow = 'ruler' | 'bottom' | 'top';
+
 /**
  * The sections that draw a ruler rail by default (_spec/README.md "Render", Navigators): every linear section (tracks)
- * that no shown navigator binds along its positions: the view's declared ones and a host's (`hosted`) replace it; a
- * hidden one brings it back.
+ * with `always` (the default: a declared navigator is the picture, the rail the precise control); with
+ * `unlessNavigator` those no shown navigator binds along its positions (the view's declared ones and a host's
+ * (`hosted`) replace it; a hidden one brings it back); with `none` no section.
  */
-export function railSections(view: ResolvedView, hosted: readonly ResolvedNavigator[] = []): string[] {
+export function railSections(
+  view: ResolvedView,
+  hosted: readonly ResolvedNavigator[] = [],
+  mode: PositionsRailMode = 'always',
+): string[] {
+  if (mode === 'none') return [];
   const bound = new Set<string>();
-  for (const list of [view.navigators, hosted])
-    for (const n of list) if (!n.hidden && n.axes !== 'rows') for (const a of n.of) bound.add(a);
+  if (mode === 'unlessNavigator')
+    for (const list of [view.navigators, hosted])
+      for (const n of list) if (!n.hidden && n.axes !== 'rows') for (const a of n.of) bound.add(a);
   return view.sections
     .filter((s) => (s.layout ?? view.layout) === 'tracks' && !bound.has(s.address) && !collapsedSection(s))
     .map((s) => s.address);
+}
+
+/**
+ * The row each rail section's positions rail is drawn in (`place`, `navigator.railPlace`): `ruler` below its ruler's
+ * border (a section with no ruler shown takes the `bottom` row, decided where it is laid out), `bottom` under its last
+ * track, `navigator` next to a shown horizontal navigator (`top` or `bottom`) over its positions: under a top one
+ * (above the section's first track, directly below it on the page), at a bottom one's side (under the last track),
+ * else `ruler`.
+ */
+export function railRows(
+  view: ResolvedView,
+  sections: readonly string[],
+  hosted: readonly ResolvedNavigator[] = [],
+  place: RailPlace = 'ruler',
+): Record<string, RailRow> {
+  const out: Record<string, RailRow> = {};
+  for (const a of sections) out[a] = place === 'bottom' ? 'bottom' : 'ruler';
+  if (place !== 'navigator') return out;
+  for (const list of [view.navigators, hosted])
+    for (const n of list) {
+      if (n.hidden || n.axes === 'rows' || (n.place !== 'top' && n.place !== 'bottom')) continue;
+      for (const a of n.of) if (a in out) out[a] = n.place;
+    }
+  return out;
 }
 
 /**

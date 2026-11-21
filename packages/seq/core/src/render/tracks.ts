@@ -363,13 +363,23 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     // a ruler rail on a linear section (tracks, not a stack of blocks); a slim row of its own when no ruler is shown
     const railable = layout === TracksLayout && !(section.blocks && section.params.arrange === 'stack');
     const railOn = input.rails?.[section.address] !== undefined && railable && !collapsed;
+    // the rail's row (`navigator.railPlace`): `top` above the first track, `bottom` under the last, else below the ruler
+    // (a section with none shown takes `bottom`)
+    const railRow =
+      input.rails?.[section.address] === 'top'
+        ? 'top'
+        : input.rails?.[section.address] === 'bottom'
+          ? 'bottom'
+          : 'ruler';
+    const topRail = railOn && railRow === 'top' && input.figure !== true;
     // its header line above its first track, in a layout that draws track headers (_spec/README.md "Render", Track
     // headers)
     const sectionHeader =
       layout === TracksLayout && !collapsed
         ? sectionHeaderOf(input, section, sectionId(section), y, config)
         : undefined;
-    const top = sectionHeader ? y + config.header.sectionPx : y;
+    const headed = sectionHeader ? y + config.header.sectionPx : y;
+    const top = topRail ? headed + SlimRailPx : headed;
     // a template is expanded here, over the overlay, into a track per node it selects; its source's region in view is
     // wanted, so the nodes it brings arrive
     const shown: ResolvedTrack[] = [];
@@ -421,7 +431,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       pads.push(p.top, p.bottom);
       if (p.top > 0 || p.bottom > 0) padded = true;
     }
-    const ruler = railOn ? rulerTrack(shown, heights) : -1;
+    const ruler = railOn && railRow === 'ruler' ? rulerTrack(shown, heights) : -1;
     // the rail draws just below the ruler's bottom border: the ruler's well grows by the rail's row, so it never covers
     // the ticks or labels; only where a rail is drawn live (the canvas with rails on): an export has no row, a figure's
     // rails (navigators included) lie on the border (_spec/README.md "Render", Navigators)
@@ -702,8 +712,8 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     }
     y = top + placement.box.height;
     // the slim rail's row, under the tracks
-    const slimTop = y;
-    if (railOn && ruler < 0) y += SlimRailPx;
+    const slimTop = topRail ? headed : y;
+    if (railOn && ruler < 0 && !topRail) y += SlimRailPx;
     // the column the emphasis spans with `emphasis.selectionShape: 'column'`: the tracks laid out on the page and the
     // gaps between them
     let bandEnd = -1;

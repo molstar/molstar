@@ -8,6 +8,7 @@ import { type RangesLay, recordDrawLists } from '@molstar/seqx-core/render';
 import { P53Views } from '@molstar/seqx-examples';
 import { DefaultChromosome, Tp53 } from '@molstar/seqx-examples/p53/chromosome-data';
 import { HoverCardProvider } from '@molstar/seqx-viewer/behaviors';
+import { viewerItem } from '@molstar/seqx-viewer/config';
 import { DefaultSeqViewerSpec } from '@molstar/seqx-viewer/default-spec';
 import { createSeqViewer, type SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { DomHost } from '@molstar/ui/dom';
@@ -50,6 +51,8 @@ async function open() {
   const v = (viewer = createSeqViewer({
     ...base,
     ui: undefined,
+    // the export has no rail row, so the twin compares with none drawn beside the ideogram (the old replacement rule)
+    config: [[viewerItem('navigator.positionsRail'), 'unlessNavigator']] as never,
     registry: [...(base.registry ?? []), ...(view.registry?.({ delayMs: DelayMs }) ?? [])],
   }));
   v.resize(720);

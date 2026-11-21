@@ -128,8 +128,9 @@ describe('a viewer composed from a smaller registry', () => {
     const v = await make({ ...base, behaviors: base.behaviors.filter((b) => b.provider.name !== 'navigator') });
     const m = v.navigatorModel('nav')!;
     expect(m).toBeDefined();
-    // the navigator replaces the rail; it is drawn, its window shown and not movable
-    expect(v.frame!.layout.sections[0].rail).toBeUndefined();
+    // the navigator is drawn, its window shown and not movable; the rail beside it (`positionsRail: always`) is the
+    // behavior's too: idle with no target
+    expect(v.frame!.layout.sections[0].rail?.active).toBe(false);
     const f = m.draw()!;
     expect(f.windows[0].shown).toBe(true);
     expect(m.values.value.map((x) => x.disabled)).toEqual([true]);

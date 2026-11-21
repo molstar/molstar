@@ -3020,8 +3020,16 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
   section of blocks its hit names the block under the unit, its system and its position (`block`), never the section's
   units. Rails are part of a section's key by identity (a slim row takes room); which can move is not: the renderer sets
   it on the rails each frame, an emphasis redraw too (an idle flip redraws the window pass alone).
-  `railSections(view, hosted)`: every tracks section no shown navigator binds along its positions: a declared navigator
-  and a host's replace its rail, a hidden one brings it back.
+  `railSections(view, hosted, mode)`: every tracks section (`always`, the default: a declared navigator is the picture,
+  the rail the precise control, both drawn against one window); `unlessNavigator`: those no shown navigator binds along
+  its positions (a declared navigator and a host's replace its rail, a hidden one brings it back); `none`: no section
+  (the viewer's `navigator.positionsRail`). **Where**: `FrameInput.rails`'s value for a section is its row
+  (`railRows(view, sections, hosted, place)`, the viewer's `navigator.railPlace`): `ruler` (below the ruler's border; a
+  section with no ruler shown takes `bottom`), `bottom` (the slim row under the last track), `top` (a slim row above the
+  section's first track, below its header: what `navigator` gives a section a declared `top` navigator binds along its
+  positions, `bottom` for a `bottom` one, else `ruler`; a vertical overview is no horizontal navigator); in a figure the
+  border whatever the row. Why `top`: the navigator is a part the host places, outside the canvas; the canvas's first
+  row is the one directly under a top navigator, so the rail beside it reads as its precise control.
 - **The rows rail** (`placeRowsRail`, `SectionLayout.rowsRails`; `FrameInput.rails` by the rows track's address): the
   same `Rail` upright (`vertical`: along the page's y, its line and grab zone across on x; one geometry, drawn and hit
   by the same code, the coordinates turned at the rect and at the hit), `SlimRailPx` wide at the right edge (right of
@@ -3036,8 +3044,8 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
   `navigator.rowsRail`) drawn beside a shown navigator over the section's rows too (`always`, the default), replaced by
   one (`unlessOverview`: a hidden one brings it back), or never (`none`). Why: the design's "simple slider navigator for
   vertical scrolling", the rail a linear section has, so a tall alignment can be scrolled and zoomed with no declared
-  part; kept beside an overview because the overview is a picture and the rail the precise control (the replace rule
-  holds on the positions axis alone, where the rail and a strip are two pictures of one axis in one place).
+  part; kept beside an overview because the overview is a picture and the rail the precise control (the positions rail
+  keeps that default too, `positionsRail: always`; its old replace rule is `unlessNavigator`).
 - **A narrow frame** (`render/narrow.ts`: `narrowColumns`, `overviewWidth`; `ViewLayout.narrow`): what gives way when
   the plot (the data's width) runs short, keyed on the plot's width, never the frame's, each rule with a floor (the
   ruler's: never a column squeezed to nothing), cheapest first: (1) a vertical overview at its form's size beside the
