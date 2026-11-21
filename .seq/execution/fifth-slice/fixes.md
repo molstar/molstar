@@ -40,6 +40,26 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   track, the stacked block, the plasmid's strip) are its instances, closed with it; their story fixes (re-record the
   plasmid's GFF3 with promoters or a Sites track, place the strip by the detail) go in the same lane. A strong-model
   lane, like the hover contract.
+  Also an instance (the author, 2026-11-21, the genome ring with its contigs: "feels weird it's empty"): the ring's
+  block "2,976 contigs" is labelled with a leader line but draws no arc (its share of the genome a sliver at that
+  size), so a named block shows nothing; the rule's form for a block too small to draw: drawn at a least arc
+  (`blocks.minPx`) with a break mark on each side, its items as a density if any, never a label pointing at nothing.
+
+- **A drag's work is bounded by the screen, not by the selection** (the author, 2026-11-21, tRNA › Views › Dot plot
+  scale: "selecting a rect on the dotplot here is really laggy. both as a rect on the plot, and a range on the nav.
+  are we doing too much work here? maybe related to the other perf issue? and similar lag to selecting on the genome
+  ring with the contigs"). One class with the PAE drag and the 3,000-contig drag-select below. What I read (not yet
+  profiled): every pointer move during a drag-select runs a full hit test (`viewer.hit`, all layers) and writes a new
+  selection value (`selection.rectDragTo`, `viewer/src/models/selection.ts:586`; `select.ts:316` for a range), and
+  each new value re-runs everything derived from the selection: its emphasis in every view and linked section (the
+  grid's rect and its mirrored bands on both rulers, the ring's arcs), the hover card's lookup, the SVG twin. The
+  fix lane profiles first (a perf-tier scenario a drag kind: a grid rect on the 4,000 × 4,000 dot plot, a range on its
+  ruler, a sweep across 12 chromosomes on the contigs ring, a box on the PAE grid), then makes the rule hold: a drag
+  move does work in proportion to what is on screen: the selection written at most once a frame (coalesced to the
+  frame, not the event), its emphasis derived for the visible part only and incrementally (a rect's growth, not the
+  whole rect again), no hover lookup or card while dragging, the SVG twin and linked panels updated on the frame, the
+  full selection resolved once on release. Bound each drag kind's frame to the budget at 0 bytes warm in the perf
+  tier. A strong-model lane; it closes the PAE drag item and the 3,000-contig drag-select part below.
 
 - **"Try pUC19.gb" looks like it does nothing** (the author, 2026-11-21, Examples › Services › Your own file:
   "pUC19.gb doesn't load anything"). By design today: GenBank is out of the slice's scope (plan, Out of scope), and
@@ -129,7 +149,7 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   line from the ring's centre through the follower's window wedge, and the wedge wider than the detail's span; check
   with the fix.
 
-- **The hover card follows a drag on the grid and makes it laggy** (the author, 2026-11-21, Examples › Complex › PAE
+- **The hover card follows a drag on the grid and makes it laggy** (the drag part an instance of the drag rule above; the author, 2026-11-21, Examples › Complex › PAE
   and contacts › CDK2 monomer: "showing the hover when dragging on the PAE plot makes the view feel really laggy"):
   while a drag sweeps a box on the PAE grid, the hover card (x, y, value) and the crosshair are re-resolved and redrawn
   on every move, on top of the selection box and its mirror on the section above. During any drag (a grid's box, a
@@ -233,7 +253,7 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   showcase of a type with many short items); re-record the fixture, and a story test that every declared track of the
   story has at least one item.
 
-- **The 3,000-contig story could be faster** (the author, 2026-11-21, on packages-seq's build: "better perf ... although
+- **The 3,000-contig story could be faster** (the drag part an instance of the drag rule above; the author, 2026-11-21, on packages-seq's build: "better perf ... although
   still could be faster"): my measure, 40 hover steps along the row each drawn within two frames (about 33 ms, no
   drops). Take it at M5: profile hover and pan on three-thousand-contigs (ring and row), find the per-frame cost, and
   set a bound in the perf tier. **A drag-select across many chromosomes is slow** (the author, 2026-11-21: chr11 to
