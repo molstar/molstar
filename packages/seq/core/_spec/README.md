@@ -2701,7 +2701,8 @@ numbers): a window move allocates nothing once warm.
 
 ### Navigators
 
-`render/navigator.ts` (`NavigatorRenderer`, `navigatorBox`, `railSections`, `rowsRailTracks`, `windowText`),
+`render/navigator.ts` (`NavigatorRenderer`, `railSections`, `rowsRailTracks`), `render/navigator-parts.ts` (its picture
+made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what changes together),
 `render/navigator-picture.ts` (`NavigatorPicture`, the built-in pictures) and `render/rail.ts`:
 
 - **Pictures** (`NavigatorPicture`, a `navigator-picture` registry entry; `navigator.content` names one): a picture says
