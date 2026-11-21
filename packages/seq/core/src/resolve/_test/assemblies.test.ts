@@ -6,6 +6,7 @@
 
 import { PCG } from '@molstar/core/data/util/hash-functions';
 import type { Node } from '@molstar/core/repr/tree';
+import { itWithin } from '@molstar/test-harness/timing';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { assembly, colinearBlocks, createSeqSpec, genome } from '@molstar/seqx-core/lang';
 import { locationOfResult, resolveAddressIn } from '@molstar/seqx-core/query';
@@ -210,6 +211,26 @@ describe('an assembly’s derived sequences', () => {
     });
     const said = codes(resolveSpec(root).issues).filter((c) => c.startsWith('seq.resolve.assembly'));
     expect(said).toEqual(['seq.resolve.assembly.mismatch', 'seq.resolve.assembly.name']);
+  });
+});
+
+describe('resolve at genome scale', () => {
+  itWithin('an assembly of 100,000 sequences kept to 25 by `include`, linear', (within) => {
+    const names = Array.from({ length: 100_000 }, (_, i) => (i < 25 ? `chr${i + 1}` : `scaffold_${i}`));
+    const b = createSeqSpec();
+    b.data.assembly(
+      'big',
+      assembly(
+        'big',
+        names.map((name, i) => ({ name, length: 1000 + i })),
+        { include: ['^chr[0-9]+$'] },
+      ),
+    );
+    const root = b.build();
+    resolveSpec(root); // warm
+    // one sample bounded at 50 ms (the design's representative)
+    const m = within(50, () => resolveSpec(root));
+    expect(m.assemblies.get('/data/big')!.systems.length).toBe(25);
   });
 });
 
