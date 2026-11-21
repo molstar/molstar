@@ -580,7 +580,8 @@ The claim: **this design covers what a user does with pairs and grids read by re
     (`checkTables`, `checkAnswer`, `sliceTable` with span rows, `joinTables` for each new form; bins and cells within
     the region and the level), `seq-format.ts` (the new shapes round trip, sided pairs), the conformance suite (a
     region read equal to the whole read clipped, at every level, for each shape; either end found).
-  - language (a minor version): `pairs.source`, `pairs.field`, `grid.source`, `grid.field`, `rows` and `values` then
+  - language, **declared by GC1** in the slice's one minor bump (the author, 2026-11-21: "Yes, in GC1"), RG building
+    what reads it: `pairs.source`, `pairs.field`, `grid.source`, `grid.field`, `rows` and `values` then
     optional; the `matrix` kind (`target`, `source`, inline `values` or `codes` with `states`, `field`); the `matrix`
     layer type; `target`s an assembly (GA). Issues `seq.store.pairs.levels`, `seq.store.grid.levels`,
     `seq.render.matrix.states`, `seq.render.pairs.filter`; `seq.render.ring.image` moved to info for rows.

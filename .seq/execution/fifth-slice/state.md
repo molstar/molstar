@@ -75,9 +75,9 @@ the morning").
   finalize; FX2 to FX6 at the fix points.
 - **`loop.md` in place** (the fourth slice's with its fold-back applied, two lanes at once); `fixes.md` the fix phase's
   queue.
-- **Open before GC1** (a yes or no, recommended yes): GC1 also declares RR's language part (`pairs.source`,
-  `grid.source`, `pairs.field`, `grid.field`, the `matrix` kind and layer type), so the language changes once as GF's
-  and LX's do (their Decided 9 and 12); region-reads' Consequences put it in RG.
+- **RR's language part declared by GC1** (the author, 2026-11-21: "Yes, in GC1"): `pairs.source`, `grid.source`,
+  `pairs.field`, `grid.field`, the `matrix` kind and layer type join GC1's one minor bump, as GF's and LX's params do;
+  RG builds what reads them.
 
 ## Next
 

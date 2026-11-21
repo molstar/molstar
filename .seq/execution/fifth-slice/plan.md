@@ -157,7 +157,7 @@ fix point with nothing open is skipped. A finding that needs a design is a drift
       designs' params** with their docs and checks, no reader: GF's (`source.features`, `samples`, `map.source`,
       `line: 'gene'`), LX's (`bridge`, `pairs.shape`, a map as pairs data, `follow_y` a second section, a rows system
       on a grid axis, `member_order`, `member_order_y`) and RR's (`pairs.source`, `grid.source`, the `matrix` kind and
-      layer type, by the question in `state.md`).
+      layer type: the author, 2026-11-21, "Yes, in GC1").
 - [ ] **SC** (`briefs/sc-complex-sections.md`; strong, after GC1: resolve) **sections over a source's complex** (HD's
       drift, decided 2026-11-21, `packages/seq/TODO.md`): a section `of` a dynamic complex, resolved when the source
       opens and reflowed on its `changes`; the static-model rule's exception for opened sources (seq-data-ports' matrix
@@ -194,7 +194,7 @@ fix point with nothing open is skipped. A finding that needs a design is a drift
 
 - [ ] **RG** (`briefs/rg-region-reads.md`; strong) the shapes, `RegionRequest.y`, 2D keys and tiles, `side`, items at
       a tile size, `readCost` and `maxBytesPerLayer`, the pairs level and `binPairs`, `coarsenBins`, grid summaries and
-      the whole-assembly level, the `matrix` layer, images on rings as runs (EC-208, EC-223).
+      the whole-assembly level, the `matrix` layer's drawing (its params declared by GC1), images on rings as runs (EC-208, EC-223).
 - [ ] **FR** (`briefs/fr-format-regions.md`; strong, after RG and stage 2's lanes) the formats' by-region rest: tabix
       levels from the index's bytes with exact counts and `readCost` (BED, GFF, VCF), GFF's span rows by region, VCF's
       matrix and genotype classes; the `seq` runtime's sided pairs from either end, `map.source` by either side.
