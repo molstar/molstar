@@ -114,6 +114,20 @@ function anchorOf(layout: ViewLayout, place: Place, pointer: { readonly x: numbe
     x0 = Math.min(a, b);
     x1 = Math.max(a, b);
   }
+  // a tall band of lanes (gene models): the lane under the pointer, not the band (the card stays by the hovered row)
+  const lanes = layer.lay as { laneY?: number; laneHeight?: number };
+  if (
+    item &&
+    (item.y === undefined || item.height === undefined) &&
+    typeof lanes.laneY === 'number' &&
+    typeof lanes.laneHeight === 'number' &&
+    lanes.laneHeight > 0 &&
+    track.box.height > 2 * lanes.laneHeight
+  ) {
+    const k = Math.max(0, Math.floor((py - lanes.laneY) / lanes.laneHeight));
+    y = Math.max(track.box.y, lanes.laneY + k * lanes.laneHeight);
+    height = Math.min(track.box.y + track.box.height, lanes.laneY + (k + 1) * lanes.laneHeight) - y;
+  }
   // a rows band is tall: the row under the pointer, not the band
   if (layer.type.name === 'rows' && !item) {
     const r = Math.max(1, (layer.lay as RowsLay).rowScale);

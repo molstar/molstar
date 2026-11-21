@@ -13,6 +13,7 @@ import type { FormatRuntime } from '@molstar/seqx-core/data';
 import type { RangesLay } from '@molstar/seqx-core/render';
 import { recordDrawLists } from '@molstar/seqx-core/render';
 import { DefaultSeqViewerSpec } from '@molstar/seqx-viewer/default-spec';
+import type { HoverCardBehavior } from '@molstar/seqx-viewer/behaviors/hover-card';
 import { createSeqViewer, type SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { DomHost } from '@molstar/ui/dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -191,6 +192,25 @@ describe('Features/Genome formats/GFF3 and GTF, headless', () => {
       .split('\n')
       .filter((l) => l.startsWith('rect ')).length;
     expect(hovered).toBeGreaterThanOrEqual(marks);
+  });
+
+  it('the hover card of a transcript deep in the tall track is anchored by its lane, not the track’s top', async () => {
+    const v = await open('gff-tp53');
+    const tx = layOf(v, 'Transcripts')!;
+    let j = 0;
+    for (let i = 0; i < tx.m; i++) if (tx.mlane[i] > tx.mlane[j]) j = i;
+    const x = (tx.mx0[j] + tx.mx1[j]) / 2;
+    const y = tx.laneY + tx.mlane[j] * tx.laneHeight + tx.laneHeight / 2;
+    expect(tx.mlane[j]).toBeGreaterThan(10);
+    v.input.move(x, y);
+    v.draw();
+    await vi.advanceTimersByTimeAsync(2000);
+    const card = (v.behaviors.get('hoverCard') as HoverCardBehavior).shown.value;
+    expect(card).toBeDefined();
+    const a = card!.place.anchor;
+    expect(a.y).toBeLessThanOrEqual(y);
+    expect(a.y + a.height).toBeGreaterThanOrEqual(y);
+    expect(a.height).toBeLessThanOrEqual(2 * tx.laneHeight);
   });
 
   it('a name found by the file’s index and focused, as FindByName does (EC-228)', async () => {
