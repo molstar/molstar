@@ -6,6 +6,16 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
 
 ## Open
 
+- **The palette control** (the author, 2026-11-21, Structure link › Hover both ways, the 2OCJ track):
+  - picking a palette does not always change the track (the residue letters keep their colours): the palette entry
+    shows only on a track whose layer reads a categorical palette (a ranges or category theme), never on one that
+    ignores it (a letters track coloured by chemistry);
+  - it shows twice, as the header's palette icon and as "Color ▸" in the "…" menu: one place, the menu (the icon goes,
+    or stays only where a host asks for it as a header part);
+  - a submenu's "▸" sits right after its label: right-align it at the menu's edge, as menus do.
+  Tests: a letters track's menu has no Color entry; a ranges track's Color change redraws with the new palette; one
+  palette control a track; the arrow at the row's right edge (a jsdom layout check of the entry's parts).
+
 - **The vertical overview cut at the right on a wide page** (the author, 2026-11-21, Globins rows family-rail-pinned):
   at full width the story's canvas runs past the page's right edge, so the vertical overview is clipped (a narrow
   page, where canvas and SVG stack differently, shows it whole). The story's layout gives the canvas its measured width
