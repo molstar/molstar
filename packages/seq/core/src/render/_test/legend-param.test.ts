@@ -13,7 +13,7 @@ import { settle } from './helpers.js';
 // A layer's `legend` param (_spec/README.md "Themes", Legends): `none` keys nothing in the legends and the export's band,
 // `auto` (and absent) as before; a legend two layers share stays while one of them keys it.
 
-function spec(legend: Record<string, string | undefined>) {
+function spec(legend: Record<string, string | undefined>, second: Record<string, string | undefined> = legend) {
   const b = createSeqSpec();
   const p = b.data.sequence('p', { alphabet: 'protein', letters: 'MEEPQSDPSVEPPLSQ' });
   const d = b.data.ranges('d', {
@@ -24,13 +24,13 @@ function spec(legend: Record<string, string | undefined>) {
     const s = v.section('p', { of: p });
     s.track('letters').layer('l', { type: 'letters' });
     s.track('domains', { label: 'Domains' }).layer('d', { type: 'ranges', data: d, ...legend });
-    s.track('again', { label: 'Domains' }).layer('e', { type: 'ranges', data: d, ...legend });
+    s.track('again', { label: 'Domains' }).layer('e', { type: 'ranges', data: d, ...second });
   });
   return b.build();
 }
 
-async function legends(params: Record<string, string | undefined>) {
-  const st = await settle(spec(params));
+async function legends(params: Record<string, string | undefined>, second = params) {
+  const st = await settle(spec(params, second));
   const f = await st.frame({ size: { width: 640, height: 200 }, dpr: 1, settled: true });
   return viewLegends(f.layout).legends;
 }
@@ -42,6 +42,13 @@ describe('the layer’s legend param', () => {
     expect(absent.some((l) => l.layers.some((k) => k.endsWith('/d')))).toBe(true);
     const none = await legends({ legend: 'none' });
     expect(none.some((l) => l.layers.some((k) => k.endsWith('/d') || k.endsWith('/e')))).toBe(false);
+  });
+
+  it('a legend two layers share stays while one of them keys it, keyed by that layer alone', async () => {
+    const shared = await legends({ legend: 'none' }, { legend: 'auto' });
+    const l = shared.find((x) => x.layers.some((k) => k.endsWith('/e')));
+    expect(l).toBeDefined();
+    expect(l!.layers.some((k) => k.endsWith('/d'))).toBe(false);
   });
 
   it('the export’s band omits what the layer says none of', async () => {

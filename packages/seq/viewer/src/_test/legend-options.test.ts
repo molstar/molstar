@@ -159,3 +159,29 @@ describe('the compact form', () => {
     expect(() => mountLegend(bad, viewer!, { orient: 'diagonal' as never })).toThrow(RangeError);
   });
 });
+
+describe('the part’s focus', () => {
+  it('items have ids and aria-activedescendant follows the arrows; compact shows the focused name while focused', async () => {
+    const { el } = await mounted({ form: 'compact', of: Domains });
+    const box = el.querySelector<HTMLElement>('[role="listbox"]')!;
+    const options = [...el.querySelectorAll<HTMLElement>('[role="option"]')];
+    expect(new Set(options.map((o) => o.id)).size).toBe(2);
+    expect(options.every((o) => o.id !== '')).toBe(true);
+    expect(box.getAttribute('aria-activedescendant')).toBe(options[0].id);
+    const shown = () => el.querySelector('[data-focus-name]')!.textContent;
+    expect(shown()).toBe('');
+    box.focus();
+    expect(shown()).toBe('Domains: kinase');
+    box.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }));
+    expect(box.getAttribute('aria-activedescendant')).toBe(options[1].id);
+    expect(shown()).toBe('Domains: linker');
+    box.blur();
+    expect(shown()).toBe('');
+  });
+
+  it('past maxItems the compact group says +n; an `of` naming no layer is an empty part', async () => {
+    const { el } = await mounted({ form: 'compact', of: Domains, maxItems: 1 });
+    expect([...el.querySelectorAll('[role="group"] > span')].map((s) => s.textContent)).toContain('+1');
+    expect(legendRows(viewer!, { of: '/views/main/nowhere' })).toEqual([]);
+  });
+});

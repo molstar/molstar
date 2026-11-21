@@ -63,7 +63,7 @@ export class LegendPlacementsRoot extends UiElement<ExampleView> {
     svg.append(svgHost);
     root.append(note, header, main, svg);
 
-    const s = composeEditing(model, { target: canvasHost });
+    const s = composeEditing(model, { target: canvasHost, legends: false });
     this.session = s;
     this.hosts = { header, panel, band, svg: svgHost };
     const follow = followSvg(s.viewer, svgHost, { prefix: 'lg', svg: { legend: 'below' } });

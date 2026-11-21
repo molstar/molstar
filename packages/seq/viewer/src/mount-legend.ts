@@ -43,6 +43,8 @@ export interface LegendPartOptions extends LegendSelection {
   readonly channels?: LegendChannels;
 }
 
+let mounts = 0;
+
 /** Mounts the legends of a viewer into `element` (`ToolbarMount`'s shape with options). */
 export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: LegendPartOptions = {}): () => void {
   const channels = options.channels ?? 'reserve';
@@ -73,6 +75,20 @@ export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: Le
   root.append(host);
   element.append(root);
   let focus = 0;
+  // the focused entry's name, said to a screen reader through `aria-activedescendant` and, in the compact form (where
+  // the labels are not text), shown beside the groups while the part has the focus
+  const idBase = `seqx-legend-${++mounts}`;
+  const nameEl = doc.createElement('div');
+  nameEl.setAttribute('aria-hidden', 'true');
+  nameEl.dataset.focusName = '';
+  nameEl.style.cssText = 'font-size: 11px; min-height: 1.4em; color: var(--msui-text-muted, gray);';
+  if (compact) root.append(nameEl);
+  const syncFocus = () => {
+    const it = items[focus];
+    if (it) host.setAttribute('aria-activedescendant', it.id);
+    else host.removeAttribute('aria-activedescendant');
+    nameEl.textContent = compact && it && doc.activeElement === host ? (it.getAttribute('aria-label') ?? '') : '';
+  };
   let items: HTMLElement[] = [];
 
   /** What the highlight rows show: the channels, their styles and colors (a channel's place changes none of it). */
@@ -94,7 +110,7 @@ export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: Le
       const group = doc.createElement('div');
       group.setAttribute('role', 'group');
       group.setAttribute('aria-label', row.title);
-      group.style.cssText = `display: flex; flex-wrap: ${compact ? 'nowrap' : 'wrap'}; align-items: center; gap: ${compact ? '0 2px' : '4px 8px'};`;
+      group.style.cssText = `display: flex; flex-wrap: ${compact && !horizontal ? 'nowrap' : 'wrap'}; max-width: 100%;${compact && !horizontal ? ' overflow: hidden;' : ''} align-items: center; gap: ${compact ? '0 2px' : '4px 8px'};`;
       const title = doc.createElement('span');
       title.textContent = row.title + (row.note ? ` (${row.note})` : '');
       // a group's title: muted, 600, 11 px (_spec/README.md "Legends")
@@ -103,6 +119,7 @@ export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: Le
       for (const e of row.entries) {
         const item = doc.createElement('span');
         item.setAttribute('role', 'option');
+        item.id = `${idBase}-${items.length}`;
         item.setAttribute('aria-label', e.name);
         item.dataset.legend = row.key;
         if (e.value !== undefined) item.dataset.value = e.value;
@@ -139,7 +156,8 @@ export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: Le
       }
       if (row.more) {
         const more = doc.createElement('span');
-        more.textContent = `+${row.more} more`;
+        more.textContent = `+${row.more}`;
+        more.title = `${row.more} more`;
         group.append(more);
       }
       host.append(group);
@@ -207,7 +225,7 @@ export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: Le
     }
     focus = Math.min(focus, Math.max(0, items.length - 1));
     items.forEach((it, i) => it.setAttribute('aria-selected', String(i === focus)));
-    if (items[focus]) host.setAttribute('aria-activedescendant', '');
+    syncFocus();
   };
 
   const entryAt = (i: number) => items[i];
@@ -226,6 +244,7 @@ export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: Le
     } else return;
     ev.preventDefault();
     items.forEach((x, i) => x.setAttribute('aria-selected', String(i === focus)));
+    syncFocus();
     // focus on an entry hovers its items, as the pointer does
     const f = entryAt(focus);
     const row = f && legendRows(viewer, options).find((r) => r.key === f.dataset.legend);
@@ -233,7 +252,11 @@ export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: Le
       void viewer.execute('legend.hover', { address: row.layer, entry: f.dataset.value });
   };
   host.addEventListener('keydown', onKey);
-  host.addEventListener('blur', () => void viewer.execute('legend.hover', {}));
+  host.addEventListener('focus', syncFocus);
+  host.addEventListener('blur', () => {
+    nameEl.textContent = '';
+    void viewer.execute('legend.hover', {});
+  });
   const unlisten = [
     viewer.legends.legends.listen(draw),
     viewer.legends.hover.listen(draw),

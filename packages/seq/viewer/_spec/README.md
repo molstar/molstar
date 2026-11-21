@@ -1316,11 +1316,14 @@ changes during a pan reads as noise, and its cost stays off the frame.
   (`full`, the default; `compact`), `orient` (`vertical`, the default: legends stacked; `horizontal`: in a row,
   wrapping) and `channels`; an unknown `form`, `orient` or `channels` throws. **The compact form** is one line a legend
   (`nowrap`): its title, then its swatches unlabelled (each entry's `title` and accessible name carry the label), a ramp
-  a 40 px bar with its domain's ends as text, steps joined cells, `+n more` past `maxItems`; the same entries, roving
-  focus, gestures and hover outline, only the drawing differs. **Hiding has two owners**: the figure's, the layer's
-  `legend: none` (core, Themes), and the host's, `of` and `omit`; no session command hides a legend, and editing stays
-  the application's. Why: a legend derives from the spec, so a third owner would make "why is there no key"
-  unanswerable.
+  a 40 px bar with its domain's ends as text, steps joined cells, `+n` past `maxItems` (its title "n more"; the full
+  form writes "+n more"); the same entries, roving focus, gestures and hover outline, only the drawing differs.
+  **Focus**: items have ids and the listbox's `aria-activedescendant` follows the roving focus, so a screen reader says
+  the entry's name; in the compact form it is also shown beside the groups while the part has focus. An `of` naming no
+  layer gives an empty part, nothing said; rows come in the view's order, never `of`'s. A compact group wraps in a
+  horizontal band and is clipped in a vertical one. **Hiding has two owners**: the figure's, the layer's `legend: none`
+  (core, Themes), and the host's, `of` and `omit`; no session command hides a legend, and editing stays the
+  application's. Why: a legend derives from the spec, so a third owner would make "why is there no key" unanswerable.
 - **The Legend part lists the active highlight channels** after the legends: a row a channel (`data-highlight`) with a
   swatch in the channel's color (`highlightColorOf`, beside the legend rows) shaped by its style, and a Clear, which
   runs `highlight.clear` with the channel's name. The rows are redrawn only when the channel names, a channel's style or
