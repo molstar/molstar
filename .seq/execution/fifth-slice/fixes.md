@@ -104,6 +104,22 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   drawn once; a twin test (canvas and SVG) that every selection piece's box lies inside its cell's box, at both a block
   boundary and the grid's outer edge. Not measured in the browser yet: the fix lane measures first.
 
+- **Zooming a lazy alignment out past a pixel a row leaves a blank plot** (the author, 2026-11-21, Examples › Globins ›
+  Rows › Lazy, the rows rail's grip dragged to widen the window: "trying to resize the vertical bar breaks the lazy
+  views. does our streaming protocol correctly ask for a window to fill?"). The window is asked correctly while rows
+  are a pixel or more: `readLazy` (`core/src/render/rows-read.ts:196`) reads the tiles of rows `[first, last]` at level
+  1 only, the rest pending. Below a device pixel a row it asks nothing: it reports `seq.render.rows.reduced` and draws
+  the neutral fill (core `_spec` Rows, Data), whether or not the source has coarse levels; the code's own comment says
+  "a source's coarse row levels, later", and the message "serves no row bins" is said without asking. So the rail can
+  widen the window into a state nothing can draw (a grey plot, the labels gone, a bare card "rows 2,752,442 / index
+  2752441"). Two parts: (1) **now**: while a lazy source serves no row levels, the rows' zoom-out stops at a device
+  pixel a row (the rail's grip, `[`, the wheel), so the window can't reach the blank state; (2) **a design** (with
+  region-reads.md and protocol.md): ask the source for the row level that fits (`readTiles` at level `2^k`, k from rows
+  per device pixel) and draw its bins by class like the held pyramid; the generated source serves them (cheap: sampled
+  from its profile); the neutral fill and the issue only when the source declares no row levels. Tests: the rail can't
+  pass the floor on a source without levels; with levels, a window of the whole 10 M rows reads tiles of one level
+  only, bounded by the screen.
+
 - **A tree opened from its toggle has no way back on screen** (the author, 2026-11-21, Examples › Globins › Rows ›
   Scale: "when i expand the tree, there doesn't seem to be a way to collapse it back. another port for app level
   control?"). The narrow-frame rule (grids-and-rows.md, "A narrow frame gives way in one order", step 3; core `_spec`
