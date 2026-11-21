@@ -84,10 +84,26 @@ export function drawConnectors(lay: RangesLay, out: PassWriter): void {
   }
 }
 
-/** The hover pass: the hovered item's connectors in the hover ink, as thick as its outline. */
-export function hoverConnectors(lay: RangesLay, out: PassWriter, key: string | number, color: number): void {
+/** The hover pass: the hovered item's connectors in the hover ink (read here), as thick as its outline. */
+export function hoverConnectors(lay: RangesLay, out: PassWriter, key: string | number): void {
+  inkConnectors(lay, out, key, lay.hoverWidth, 0);
+}
+
+/** The selection pass: the connectors of the items whose keys `keys` holds for this layer's owner, in the accent. */
+export function selectConnectors(
+  lay: RangesLay,
+  out: PassWriter,
+  keys: readonly { readonly owner: string; readonly key: string | number }[],
+): void {
+  for (let k = 0; k < keys.length; k++)
+    if (keys[k].owner === lay.owner) inkConnectors(lay, out, keys[k].key, lay.cwidth, 1);
+}
+
+/** The connectors of one item in the hover ink (`which` 0) or the accent (1), `width` thick, on the device grid. */
+function inkConnectors(lay: RangesLay, out: PassWriter, key: string | number, width: number, which: number): void {
   const dpr = lay.axis.dpr;
-  const w = Math.max(lay.hoverWidth, 1 / dpr);
+  const w = Math.max(width, 1 / dpr);
+  const color = which === 0 ? lay.tokens.colors['seq-hover'] : lay.tokens.colors['msui-accent'];
   for (let j = 0; j < lay.cn; j++) {
     if (lay.keys[lay.citem[j]] !== key) continue;
     const y = Math.round((lay.laneY + lay.clane[j] * lay.laneHeight + (lay.laneHeight - w) / 2) * dpr) / dpr;

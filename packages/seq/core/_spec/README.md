@@ -2062,15 +2062,16 @@ strip's.
   marks), an outline `emphasis.hoverOffset` (1 px) outside the mark, concentric, so it never touches the selection's
   outline under it, in the hover ink (`seq-hover`: dark on light, light on dark); `projected.hover` is drawn the same
   way at `emphasis.projected` on every section but `projected.hoverSection` (the hover's own section's address), so a
-  hover from elsewhere (a structure, no layer) is drawn on every section (the `hover` pass); a hover lifted through a
-  path (its element's extent on another system than its section's: a residue's codon) is drawn on its own section too,
-  over the column across its tracks (`selectionShape: column`) or over each track but the hovered layer's, so a residue
-  and its codon light together. Every hover a squircle (Shapes): a cell's (letters, logo, values) by the cell's size,
-  square on a side the view cuts and below the minimum, its radius the cell's plus the offset; a letter's codon parts
-  round on the element's outer sides alone; a chip's concentric with its pill; the projected hover round where its range
-  really ends; a secondary structure's mark (its radius plus the offset, its round ends: a helix round, a strand or a
-  turn square), a band's (square at the view's edge), a rows cell's (square where the view or its band cuts it); a
-  grid's hovered or selected cell by its size, its crosshair's column and row square (they end at the plot: a cut).
+  hover from elsewhere (a structure, no layer) is drawn on every section (the `hover` pass); a letters hit lifted
+  through a codon map (a residue over its codon) is drawn on its own section too, over each of its own-system letters
+  tracks (the DNA), never as a column, so a residue and its codon light together; an item through a path lights its
+  outline and its connector, nothing else. Every hover a squircle (Shapes): a cell's (letters, logo, values) by the
+  cell's size, square on a side the view cuts and below the minimum, its radius the cell's plus the offset; a letter's
+  codon parts round on the element's outer sides alone; a chip's concentric with its pill; the projected hover round
+  where its range really ends; a secondary structure's mark (its radius plus the offset, its round ends: a helix round,
+  a strand or a turn square), a band's (square at the view's edge), a rows cell's (square where the view or its band
+  cuts it); a grid's hovered or selected cell by its size, its crosshair's column and row square (they end at the plot:
+  a cut).
 - `cursor`: a 1 px outline of its cell (`outline.cursor`) over the band, in a neutral ink (`emphasis.cursorInk`,
   `msui-text`), never the accent (the `cursor` pass); a squircle by the cell over the band, inside it by half its width
   (concentric), square on a side the view cuts. Whether it is shown is the caller's (a viewer shows it once the keyboard
@@ -2183,7 +2184,15 @@ in page coordinates: what crosses strips), `axes` (2: a second axis of its own, 
   device column a pixel. Items past the lanes collapse into a density row in the last lane, the rest drawn as items
   (`ranges.overflow: 'extra-lanes'`), or the whole layer becomes the strip (`'layer'`). In a band under a lane's height
   (a text line's underline) the strip uses only the light `ThinStripShare` (0.3) of the density ramp, so it reads as a
-  band, not as a dark rule.
+  band, not as a dark rule. **The connector** (`connector`, `line` when absent, or `none`): an item the path splits into
+  pieces with shown positions between them that it does not reach (a domain over a gene whose intron is shown) is joined
+  by a hairline at its lane's mid-height from one piece's end to the next's start, in the item's colour at
+  `ranges.connector.alpha` (0.6), `ranges.connector.width` thick (1 CSS px; `ink: 'muted'` the muted ink instead), in
+  the data pass, so the canvas and the SVG draw it alike; the pieces' ends there stay square. Across a collapsed break
+  (zero units wide) nothing is drawn; with `pad`, a gap with shown positions on both sides of a break is one, the line
+  through it (the break's hairline over it); only at `items` (not `bars`, `density`). A hit on it is the item's; the
+  hover draws it in the hover ink as thick as the outline, a selected item's in the accent. Why: a gene model's
+  convention, the pieces read as one item.
 - `values`: a bar a position, or at `bars` and `density` a bar a device column over the column's extent from the
   baseline (`values.aggregate: 'minmax'`, so negative extremes show; `'max'` the maximum alone), from positions or bins.
   Missing (NaN) is a 2 px neutral mark at the baseline. The domain is the layer's `domain` param where given, else open:

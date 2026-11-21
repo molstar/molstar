@@ -21,7 +21,13 @@ const SIZE = { width: 800, height: 60 } as const;
 /** A 120 nt gene with exons 12–46 and 76–105 coding a 20-residue protein; one domain item on the protein. */
 function spec(
   rows: { start: number[]; end: number[]; id: string[] },
-  options: { pieces?: 'whole' | 'coding'; connector?: 'line' | 'none' } = {},
+  options: {
+    pieces?: 'whole' | 'coding';
+    connector?: 'line' | 'none';
+    direction?: string;
+    strand?: '+' | '-';
+    pad?: number;
+  } = {},
 ): Node {
   const b = createSeqSpec({ title: 'connector' });
   const gene = b.data.sequence('gene', { alphabet: 'dna', letters: 'ACGT'.repeat(30) });
@@ -35,7 +41,12 @@ function spec(
   });
   const domain = b.data.ranges('domain', { target: protein, rows });
   b.views.view('main', (v) => {
-    v.section('gene', { of: gene, direction: 'genomic', pieces: options.pieces ?? 'whole' })
+    v.section('gene', {
+      of: gene,
+      direction: (options.direction ?? 'genomic') as never,
+      pieces: options.pieces ?? 'whole',
+      ...(options.pad ? { pad: options.pad } : {}),
+    })
       .track('domain')
       .layer('domain', {
         type: 'ranges',
@@ -129,5 +140,49 @@ describe('the ranges connector', () => {
     // alpha 0 draws none
     const none = await frameOf(spec(SPLIT), { ranges: { connector: { alpha: 0 } } });
     expect(readRects(none.f.lists).filter((r) => r.h === 1 && r.w > 10)).toEqual([]);
+  });
+
+  it('on a reversed axis and over a minus-strand map the connector still joins the gap between the pieces', async () => {
+    for (const options of [
+      { direction: 'reversed' },
+      { strand: '-' as const },
+      { direction: 'reversed', strand: '-' as const },
+    ]) {
+      const { lay } = await frameOf(spec(SPLIT, options));
+      const marks = marksOf(lay);
+      expect(marks.length, JSON.stringify(options)).toBe(2);
+      expect(lay.cn, JSON.stringify(options)).toBe(1);
+      expect(lay.cx0[0]).toBeCloseTo(marks[0].x1, 0);
+      expect(lay.cx1[0]).toBeCloseTo(marks[1].x0, 0);
+    }
+  });
+
+  it('with `pad` the connector runs through the padded gap across the collapsed break', async () => {
+    const { lay } = await frameOf(spec(SPLIT, { pieces: 'coding', pad: 4 }));
+    const marks = marksOf(lay);
+    expect(marks.length).toBe(2);
+    expect(lay.cn).toBe(1);
+    // from the first piece's end through its padding, the break and the next piece's padding to its start
+    expect(lay.cx0[0]).toBeCloseTo(marks[0].x1, 0);
+    expect(lay.cx1[0]).toBeCloseTo(marks[1].x0, 0);
+    expect(lay.cx1[0] - lay.cx0[0]).toBeGreaterThan(8 * lay.axis.scale - 1);
+  });
+
+  it('a selected item’s connector is drawn in the accent, an unselected one’s is not', async () => {
+    const { s, lay } = await frameOf(spec(SPLIT));
+    const selected = s.renderer.frame({
+      size: SIZE,
+      emphasis: { elements: { keys: [{ owner: lay.owner, key: 'D' }] } },
+    });
+    const accent = lay.tokens.colors['msui-accent'];
+    const line = (f: typeof selected) => readRects(f.lists, 'selection').filter((r) => r.h <= 2 && r.w > 10);
+    expect(line(selected).length).toBe(1);
+    expect(line(selected)[0].fill).toBe(accent);
+    expect(line(selected)[0].x).toBeCloseTo(lay.cx0[0], 3);
+    const other = s.renderer.frame({
+      size: SIZE,
+      emphasis: { elements: { keys: [{ owner: lay.owner, key: 'other' }] } },
+    });
+    expect(line(other)).toEqual([]);
   });
 });

@@ -7,7 +7,7 @@
 import { Anchor, grown, NoColor, passDraws, type PassWriter } from './draw-lists.js';
 import { drawTicks } from './items.js';
 import type { Emphasis } from './layer-type.js';
-import { drawConnectors, hoverConnectors } from './ranges-connector.js';
+import { drawConnectors, hoverConnectors, selectConnectors } from './ranges-connector.js';
 import { arrowArgs, drawFailed, drawSpans } from './marks.js';
 import { labelText, labelX } from './range-labels.js';
 import { type RangesLay, Solid } from './ranges-lay.js';
@@ -296,7 +296,7 @@ function drawHover(lay: RangesLay, out: PassWriter, emphasis: Emphasis | undefin
   // outside the mark by the offset, concentric: it never touches an outline drawn on the mark
   const half = lay.hoverWidth / 2 + lay.hoverOffset;
   const a = out.args;
-  if (lay.cn) hoverConnectors(lay, out, h.element.key, tokens.colors['seq-hover']);
+  if (lay.cn) hoverConnectors(lay, out, h.element.key);
   for (let j = 0; j < lay.hn; j++) {
     const item = lay.hitem[j];
     if (item < 0 || lay.keys[item] !== h.element.key) continue;
@@ -325,6 +325,7 @@ function drawSelected(lay: RangesLay, out: PassWriter, emphasis: Emphasis | unde
   const { tokens } = lay;
   const dpr = lay.axis.dpr;
   const a = out.args;
+  if (lay.cn) selectConnectors(lay, out, els.keys);
   for (let j = 0; j < lay.m; j++) {
     const item = lay.mitem[j];
     if (item < 0 || lay.starts[item] !== lay.ends[item]) continue;
