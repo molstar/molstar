@@ -100,6 +100,11 @@ export const CommandChangeKinds: Readonly<Record<string, ChangeKind>> = {
   // a section's direction and pieces are spec params: one patch, one undo step each
   'section.reverse': 'patch',
   'section.collapse': 'patch',
+  // a block of a row: the next or the previous one a jump; its direction and the section's `include` a patch each
+  'block.next': 'navigate',
+  'block.previous': 'navigate',
+  'block.reverse': 'patch',
+  'section.include': 'patch',
   'block.form': 'patch',
   'layer.hide': 'patch',
   'layer.show': 'patch',

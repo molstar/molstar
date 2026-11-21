@@ -192,14 +192,17 @@ nothing and tells nothing. Beside `models/view.ts` (the moves and the publish): 
   changed axis or layout (a reverse, a collapse, a layout patch since) a step is restored by position, the centre and
   the zoom (a window's middle; a text's lines in view, so its anchor lands on the window's first position and a window
   on the text's lines), the letter size within one layout, the centre clamped to what is drawn (one now hidden goes to
-  its break), never dropped. `back` returns to the last viewports left, every leading section's range together
-  (followers follow; one detached since is attached again, one attached since is detached again at its range then; a
-  section gone since is left out), `forward` goes again; a step to where the view is now is skipped. A new document
-  (`load`) clears the history; an edit of the same spec keeps it. Bounded (`view.historyLimit`, 50; the oldest goes).
-  Session state: never the spec's history (view state is not history), so undo leaves it. `jumps` moves on each jump,
-  back and forward. `snapshot()` gives every group's range and band now, as a jump keeps them, and `record(snapshot)`
-  pushes one taken earlier as a step (unless the view is there now): a gesture's one step, pushed when it ends (a
-  navigator's far drag, of its window or its rows); `jump` pushes through it.
+  its break), never dropped. On a section of blocks a step keeps its ends as `{ system, position }` (core's
+  `placeOfUnit`) and its signature gains the blocks' systems, directions, scales and offsets: a step over a changed
+  block list (an `include`, an order, a scale) is restored by those ends (`unitOfPlace`), an end on a block no longer
+  shown at the nearest shown edge; never in units. `back` returns to the last viewports left, every leading section's
+  range together (followers follow; one detached since is attached again, one attached since is detached again at its
+  range then; a section gone since is left out), `forward` goes again; a step to where the view is now is skipped. A new
+  document (`load`) clears the history; an edit of the same spec keeps it. Bounded (`view.historyLimit`, 50; the oldest
+  goes). Session state: never the spec's history (view state is not history), so undo leaves it. `jumps` moves on each
+  jump, back and forward. `snapshot()` gives every group's range and band now, as a jump keeps them, and
+  `record(snapshot)` pushes one taken earlier as a step (unless the view is there now): a gesture's one step, pushed
+  when it ends (a navigator's far drag, of its window or its rows); `jump` pushes through it.
 - **The last jump** (`lastJump`, set before `jumps` moves, so a listener of `jumps` reads it):
   `{ n, kind, location?, durationMs }`, `n` the count `jumps` moves to, `kind` `focus` (an address's or a Location's,
   the cursor's Enter, a double-click on an element or a cell), `reveal`, `fit`, `zoom` (a step zoom, a grid cell's
@@ -270,7 +273,17 @@ nothing overflows); a side part (`left`, `right`) has none; `viewer.renderSvg` p
 `navigator.direction` to the export (its `navigator` option), so the SVG is what the parts show; its windows, grips and
 gestures are the zoom strip's; its context is no target (a hit's `context`: nothing lit, the default cursor, a press no
 gesture, a double-click nothing), its readout the band and position there, over the mark the region (a press there says
-it too, a tap's hover).
+it too, a tap's hover). **Over blocks** (core's navigator over blocks: a genome's chromosomes): the readout names the
+block and the position there (`chr17: 7,668,402`), the slider the block and the assembly
+(`chr17: 7,668,402–7,687,550 of GRCh38`, across blocks both ends); the context above a zoom strip is the genome and a
+target: a click there centres the view in that block (a jump); a double-click fits the block under the pointer, from
+that fit the whole (`navigator.doubleClick: toggle-fit`, at the fit too, its window idle); PageDown and PageUp on its
+slider are `block.next` and `block.previous` (ARIA's large step). **`navigator.switch: include`**: a click that never
+moved runs `section.include` with the block under it on the bound section (on the window too; a drag keeps its gestures;
+on what the section already shows alone, nothing), Home (and `showAll()`, a host's title) removes it. **The square**
+(core's `SquareNavigator`: two axes over blocks × blocks): the same model draws it; a double-click fits a cell's pair
+(one section on both axes: the hull of its two blocks), again the whole; a click with a switch shows the cell's two
+blocks. Not built on the square: its grips and drags per axis.
 
 ### HoverModel
 
@@ -955,9 +968,16 @@ rows' commands) reads the last frame's rows layers through the behavior context'
 
 - **A section of blocks on several systems** (its axis on no system): a hit names its `block`, and its positions are
   read on that block's axis from its `offset`: a drag-select stays in the block it began on (clamped at its ends), a
-  double-click and a focus move to the block's offsets, the keyboard cursor does not step along the section's units, a
-  bookmark of the view names none. Why: a position on the section's units is no system's (core `_spec` "Resolved view",
-  Blocks).
+  double-click and a focus move to the block's offsets, a bookmark of the view names none. **The keyboard cursor crosses
+  blocks** (EC-154, amended): a step goes along its block in display order, past the block's last position onto the next
+  block's first (before its first, the previous block's last; a block with no positions skipped), at the section's ends
+  it stays; the step's message names the block and the position (`Moved, chr18, 1`); revealed at its block's place. A
+  run of small blocks hits as `run` (its band with no strip: the block under the point, the run's count), its card
+  "chrUn_KI270302v1 · Run: one of 2,841 · not read at this zoom".
+- **`navigate.acrossBlocks`** (`ViewModel`, a row of blocks): `cross` (the default) one viewport over the blocks end to
+  end; `stop` keeps the window in one block: after each move it is clamped to the block it was kept in (its width at
+  most the block's), a range set (a jump, a story step) wholly inside another block moves there, a fit is the block's.
+  Why: a position on the section's units is no system's (core `_spec` "Resolved view", Blocks).
 
 - `hover`: a move over a hit whose hover gesture is bound to `hover` sets the hover for its owner token; a move over
   nothing or a leave clears what that owner holds only. A host's other hover sources use their own tokens.
@@ -1306,6 +1326,23 @@ selection's gestures and the cursor's moves are session state; the cursor's focu
   absent), with no memory of an earlier form. On the section named (`address`), else the keyboard cursor's, else the
   first leading one; their keys are `view.keys`' (Shift+R, Shift+C). Why patches: direction and pieces are what the
   figure is, so undo (not back) returns them and the export says the same.
+- **A block's commands** (genome coordinates): `block.next` and `block.previous` (the `navigate` behavior's, jumps: a
+  step of the view's history) fit the next or the previous block of a row in display order from the block holding the
+  window's centre (one with no positions skipped; at the ends they say so), keys `Alt+PageDown`, `Alt+PageUp` in
+  `view.keys` (no Shift: Alt+Shift types a character on macOS, EC-155); `block.reverse` (the `editing` behavior's, a
+  patch, one undo step; `address` the block, a node's or a derived block's keyed form) turns a block over: its node's
+  `direction` set to `reversed` or unset, a derived block's override (a `block` child whose `of` is its sequence)
+  likewise or one inserted (its id from the sequence's name), the rest still derived; `section.include` (a patch) sets a
+  section's `include` (`include`: names, patterns, `{ min_length }`), or removes it (`include` absent or null: every
+  block). Reached from a block's menu (a secondary click on a block's label or band, Shift+F10 at the cursor: "Reverse
+  chr2", "Show only chr2" on a section of assemblies, "Show all" where an `include` is set: built-in header entries
+  `on: 'section'` reading `HeaderFacts.block`, `assemblies`, `included`).
+- **A locus** (`goToLocus(viewer, text, { section })`, `locus.ts`: what a host's locus box calls): the text as a locus
+  first (`(locus :text …)` under the section, the first section of assemblies when none is named:
+  `chr17:7,668,402- 7,687,550`, `17:7668402`, a name or an alias), its Location focused (a jump); a text no sequence is
+  named (`seq.query.locus.name`) falls back to the sources' names (core's `findNames` over `store.named()`: a GFF3's
+  `Name`, `ID`, `Alias`, EC-228), its first hit's extent focused, its system read through the assemblies' names rule;
+  else `none` with why.
 - **`block.form`** (the `editing` behavior's, a patch, one undo step; a command only, in no built-in menu: a host's
   `on: 'element'` header entry may name it; no default key): sets a block's `form` (`whole`, `residues`, `atoms`;
   `address` the block, `form`). A block a section of a complex derives from its units has no node: the patch inserts one
@@ -1525,6 +1562,7 @@ settings form.
 | `navigate.doubleClickZoomStep`                                   | 2                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | Shift+double-click's zoom out about the pointer                                                                                                                                                                                                                                                    |
 | `navigate.keyPanFraction`                                        | 0.1                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | the part of the viewport a key pans (no reason recorded)                                                                                                                                                                                                                                           |
 | `navigate.coalesceWheel`                                         | true                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | wheel deltas within a frame applied once, at the frame; false: at each event                                                                                                                                                                                                                       |
+| `navigate.acrossBlocks`                                          | `cross`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | on a row of blocks (a genome's chromosomes) a pan carries across a gap into the next block (JBrowse's); `stop`: a pan, a zoom and a fit kept in the block the window is in, a jump moving to another (IGV's and UCSC's one chromosome at a time)                                                   |
 | `theme.source`                                                   | `root`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | a mounted viewer reads its root's CSS (`--msui-*`, `--seq-*`), redrawn when `data-msui-theme` changes; `config`: the core's `theme` item (a headless viewer always)                                                                                                                                |
 | `theme.cvdSafe`                                                  | false                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | the reader's color-blind substitution: a scheme not safe under the three deficiencies is drawn as its safe substitute (`theme.cvd-safe` toggles it; a reader's setting, never the spec's)                                                                                                          |
 | `canvas.height`                                                  | `content`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | the layout's content, tracks below the page not laid out; a number of CSS px                                                                                                                                                                                                                       |

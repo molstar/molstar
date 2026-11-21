@@ -55,6 +55,19 @@ export interface HeaderFacts {
   readonly hiddenTracks: readonly HiddenTrack[];
   /** The element a menu was opened on (`on: 'element'`): its layer and key. */
   readonly element?: { readonly layer: string; readonly key: string | number };
+  /**
+   * The block a section's menu was opened on (its label, its band: genome coordinates): its address, label, its
+   * system's name and whether it reads against the section.
+   */
+  readonly block?: {
+    readonly address: string;
+    readonly label: string;
+    readonly name: string;
+    readonly reversed: boolean;
+  };
+  /** A section of assemblies (its `include` can be set), and whether it has one. */
+  readonly assemblies?: boolean;
+  readonly included?: boolean;
 }
 
 /** An item of an entry's submenu: a label and the command it runs with its args (a layer's checkbox, a scheme). */
@@ -120,6 +133,8 @@ export interface HeaderTarget {
   readonly section: string;
   readonly track?: string;
   readonly element?: { readonly layer: string; readonly key: string | number };
+  /** The block under the point (its index in the section's blocks), on a section of blocks. */
+  readonly block?: number;
 }
 
 /**
@@ -215,6 +230,9 @@ export const HeaderEntryNames = {
   hiddenTracks: 'seq:hidden-tracks',
   reverse: 'seq:reverse',
   collapse: 'seq:collapse',
+  reverseBlock: 'seq:reverse-block',
+  onlyBlock: 'seq:only-block',
+  allBlocks: 'seq:all-blocks',
 } as const;
 
 /**
@@ -323,6 +341,37 @@ export const BuiltInHeaderEntries: readonly HeaderActionEntry[] = /* @__PURE__ *
       command: 'section.collapse',
       slot: false,
       when: (f) => f.linear,
+    },
+    // a block's (genome coordinates: its label's menu, Shift+F10 on it): turned over, shown alone, every block again
+    {
+      name: HeaderEntryNames.reverseBlock,
+      on: 'section',
+      order: 8,
+      label: (f) => (f.block!.reversed ? `Turn ${f.block!.label} back` : `Reverse ${f.block!.label}`),
+      command: 'block.reverse',
+      slot: false,
+      when: (f) => f.block !== undefined,
+      args: (f) => ({ address: f.block!.address }),
+    },
+    {
+      name: HeaderEntryNames.onlyBlock,
+      on: 'section',
+      order: 9,
+      label: (f) => `Show only ${f.block!.name}`,
+      command: 'section.include',
+      slot: false,
+      when: (f) => f.block !== undefined && !!f.assemblies,
+      args: (f) => ({ address: f.section, include: [f.block!.name] }),
+    },
+    {
+      name: HeaderEntryNames.allBlocks,
+      on: 'section',
+      order: 10,
+      label: 'Show all',
+      command: 'section.include',
+      slot: false,
+      when: (f) => !!f.included,
+      args: (f) => ({ address: f.section, include: null }),
     },
   ] satisfies HeaderEntry[]
 ).map((entry) => ({ kind: 'header-action', entry }));

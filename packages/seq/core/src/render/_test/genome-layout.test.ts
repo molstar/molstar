@@ -352,6 +352,22 @@ describe('two assemblies on one section (EC-210)', () => {
     for (let b = 0; b < 40; b++) expect(r.w[b]).toBeGreaterThan(5);
   });
 
+  it('a row’s x of the window’s end is the row’s end, whatever block is before it (a navigator’s window at the fit)', () => {
+    const r = new BlockRow();
+    r.reset(3);
+    for (let b = 0; b < 3; b++) {
+      r.offset[b] = b * 1e6;
+      r.len[b] = 1e6;
+    }
+    r.x0 = 10;
+    r.width = 400;
+    r.lay(0, 3e6);
+    // it read the first block's px per unit past its end (a window at the fit ended three quarters along)
+    expect(r.xOf(3e6)).toBeCloseTo(410, 6);
+    expect(r.xOf(0)).toBeCloseTo(10, 6);
+    expect(r.xOf(1.5e6)).toBeGreaterThan(r.x[1]);
+  });
+
   it('a ring: a 4° group gap each side, the groups’ names placed outside', async () => {
     const s = await settle(twoGenomesSpec('rings'));
     const f = await s.frame({ size: { width: 800, height: 800 } });

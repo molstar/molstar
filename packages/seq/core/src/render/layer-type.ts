@@ -184,7 +184,8 @@ export interface Hit {
   /**
    * `break`: a collapsed break (within 3 CSS px of its notch, or on a tick of the items it hides): `position` the
    * section's position at its edge (the last shown before it in display order), `extent` the hidden stretch on the
-   * section's system, `layer` the section's address, `count` the hidden items a tick stands for.
+   * section's system, `layer` the section's address, `count` the hidden items a tick stands for. `run`: a run of small
+   * blocks over its band (no strip there): `block` the block under the point, `system` its, `count` the run's blocks.
    */
   readonly target?: HitTarget;
   readonly count?: number;
@@ -234,7 +235,8 @@ export type HitTarget =
   | 'column-title'
   | 'columns-hidden'
   | 'tree-toggle'
-  | 'group';
+  | 'group'
+  | 'run';
 
 /** A section's id: the last step of its address. */
 export function sectionId(section: { readonly address: string }): string {

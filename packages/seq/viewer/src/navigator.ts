@@ -15,6 +15,7 @@ import {
   navigatorBox,
   windowText,
 } from '@molstar/seqx-core/render/navigator';
+import { isSquareNavigator, SquareNavigator } from '@molstar/seqx-core/render/navigator-square';
 import {
   axisTotal,
   type ResolvedNavigator,
@@ -32,6 +33,7 @@ import type {
 import { windowIdle } from '@molstar/seqx-viewer/behaviors/window';
 import type { ModifierState } from '@molstar/seqx-viewer/bindings';
 import type { ViewSnapshot } from '@molstar/seqx-viewer/models';
+import type { StaticModel } from '@molstar/seqx-core/resolve';
 import { DragSlop } from './input.js';
 import { setNarrowed } from './narrowed.js';
 import { type PartCursor, partCursor } from './part-cursor.js';
@@ -117,7 +119,8 @@ export class NavigatorModel extends ReactiveModel {
   private hostHeight = 0;
   /** The width it shares with the canvas beside it (`setRoom`), 0 unknown. */
   private room = 0;
-  private renderer: NavigatorRenderer | undefined;
+  /** Its renderer: a picture's, or the square's (two axes over blocks × blocks). */
+  private renderer: NavigatorRenderer | SquareNavigator | undefined;
   private rendererFor: unknown[] = [];
   private readonly wanter;
   private lastFrame: NavigatorFrame | undefined;
@@ -238,36 +241,50 @@ export class NavigatorModel extends ReactiveModel {
     this._version.set(this._version.value + 1);
   }
 
-  private rendererOf(nav: ResolvedNavigator): NavigatorRenderer {
+  private rendererOf(nav: ResolvedNavigator): NavigatorRenderer | SquareNavigator {
     const model = this.viewer.spec.model.value;
     const view = this.viewer.view.resolved.value!;
     const viewRenderer = this.viewer.renderer;
     const f = this.rendererFor;
     if (!this.renderer || f[0] !== model || f[1] !== view || f[2] !== nav || f[3] !== viewRenderer) {
-      this.renderer = new NavigatorRenderer({
-        model,
-        view,
-        navigator: nav,
-        data: this.viewer.store.store,
-        tokens: this.viewer.tokens,
-        text: this.viewer.context.text,
-        config: this.viewer.context.renderConfig,
-        types: this.viewer.context.types,
-        layouts: this.viewer.context.layouts,
-        // the composition's pictures and layer kinds: a picture's track of an extension's type drawn as that type
-        pictures: this.viewer.context.pictures,
-        kinds: this.viewer.context.kinds,
-        sizings: this.viewer.context.sizings,
-        ...(this.viewer.context.trackSizing ? { trackSizing: this.viewer.context.trackSizing } : {}),
-        direction: this.viewer.config.navigator.direction,
-        zoomStrip: this.viewer.config.navigator.zoomStrip,
-        storeSettings: this.viewer.store.store.settings,
-        // the view's image budget and held domains: a value has one color in both
-        ...(viewRenderer ? { images: viewRenderer.images, domains: viewRenderer.layoutState } : {}),
-      });
+      this.renderer = isSquareNavigator(nav, view)
+        ? new SquareNavigator({
+            model,
+            view,
+            navigator: nav,
+            tokens: this.viewer.tokens,
+            config: this.viewer.context.renderConfig,
+          })
+        : this.pictureRenderer(nav, model, view);
       this.rendererFor = [model, view, nav, viewRenderer];
     }
     return this.renderer;
+  }
+
+  /** A picture's renderer over the viewer's store, theme, image cache and held domains. */
+  private pictureRenderer(nav: ResolvedNavigator, model: StaticModel, view: ResolvedView): NavigatorRenderer {
+    const viewRenderer = this.viewer.renderer;
+    return new NavigatorRenderer({
+      model,
+      view,
+      navigator: nav,
+      data: this.viewer.store.store,
+      tokens: this.viewer.tokens,
+      text: this.viewer.context.text,
+      config: this.viewer.context.renderConfig,
+      types: this.viewer.context.types,
+      layouts: this.viewer.context.layouts,
+      // the composition's pictures and layer kinds: a picture's track of an extension's type drawn as that type
+      pictures: this.viewer.context.pictures,
+      kinds: this.viewer.context.kinds,
+      sizings: this.viewer.context.sizings,
+      ...(this.viewer.context.trackSizing ? { trackSizing: this.viewer.context.trackSizing } : {}),
+      direction: this.viewer.config.navigator.direction,
+      zoomStrip: this.viewer.config.navigator.zoomStrip,
+      storeSettings: this.viewer.store.store.settings,
+      // the view's image budget and held domains: a value has one color in both
+      ...(viewRenderer ? { images: viewRenderer.images, domains: viewRenderer.layoutState } : {}),
+    });
   }
 
   /** What a gesture can move: each bound window's axes (`NavWindowFlags`), 0 idle. */
@@ -325,7 +342,7 @@ export class NavigatorModel extends ReactiveModel {
   }
 
   /** A frame of the picture at the box's size, over the viewer's last frame. */
-  private drawFrame(r: NavigatorRenderer): NavigatorFrame {
+  private drawFrame(r: NavigatorRenderer | SquareNavigator): NavigatorFrame {
     const layout = this.viewer.frame!.layout;
     const sweep = this.behavior?.sweep.value;
     return r.frame({
@@ -459,11 +476,16 @@ export class NavigatorModel extends ReactiveModel {
     const nav = this.navigator;
     const w = h.part !== 'outside' ? this.windowOf(h.section) : undefined;
     if (nav && w?.shown) return { name: '', value: windowText(this.viewer.spec.model.value, nav, w), rest: '' };
-    const name = (nav?.system && this.viewer.spec.model.value.systems.get(nav.system)?.name) ?? '';
+    const systems = this.viewer.spec.model.value.systems;
+    const name = (nav?.system && systems.get(nav.system)?.name) ?? '';
     const rest: string[] = [];
     let value = '';
     let named = '';
-    if (h.position !== undefined) {
+    if (h.position !== undefined && h.system !== undefined) {
+      // over blocks: the block's system and its position there (`chr17: 7,668,402`)
+      value = (Math.floor(h.position) + 1).toLocaleString('en-US');
+      named = systems.get(h.system)?.name ?? '';
+    } else if (h.position !== undefined) {
       const own = this.renderer?.readout(h.position);
       value = own ?? (h.position + 1).toLocaleString('en-US');
       if (own === undefined) named = name;
@@ -514,11 +536,21 @@ export class NavigatorModel extends ReactiveModel {
     const b = this.behavior;
     const nav = this.navigator;
     const h = this.hit(x, y, p.touch);
+    // over blocks the context is the genome: a press there is a click's (a jump to the block, a switch)
+    if (h?.context && nav?.blocks && b) {
+      this.press = { x0: x, y0: y, hit: h, moved: false, positions: false };
+      return true;
+    }
     // a press on a zoom strip's context is no gesture: it names what is under it, as a hover (a tap's readout)
     if (h?.context) {
       this.say(this.readoutOf(h));
       this.changed();
       return false;
+    }
+    // a switch takes a click on any block outside the window, idle or not (a ring's window is idle unless followed)
+    if (b && nav && h && nav.switch === 'include' && nav.blocks && (h.part === 'outside' || !this.moves[h.section])) {
+      this.press = { x0: x, y0: y, hit: { ...h, part: 'outside' }, moved: false, positions: false };
+      return true;
     }
     if (!b || !nav || !h || !(this.moves[h.section] ?? 0)) return false;
     this.top = h.section;
@@ -638,6 +670,20 @@ export class NavigatorModel extends ReactiveModel {
     const b = this.behavior;
     const nav = this.navigator;
     if (!d || d.moved || !b || !nav || detail > 1) return false;
+    // `navigator.switch: include`: a click on a block shows it alone on the bound section (on what it already shows
+    // alone: no change); the window, where it has one, keeps its gestures
+    const ctx = !!d.hit.context;
+    // the square: a click on a cell shows its two blocks with a switch, else centres the section on the x block
+    const square = this.renderer instanceof SquareNavigator ? this.renderer : undefined;
+    if (square && nav.switch === 'include') return this.switchToPair(square, d.hit.section, x, y);
+    // a click that never moved switches, on the window too (a drag of it keeps its gestures)
+    if (nav.switch === 'include' && nav.blocks) return this.switchTo(d.hit.section, x, ctx);
+    // over blocks, a click on the context (the genome above a zoom strip) centres there: a jump to that block
+    if (ctx) {
+      const at = this.renderer?.sectionUnitAt(d.hit.section, x, true);
+      this.ownMove = true;
+      return at !== undefined && b.click(d.hit.section, at, detail);
+    }
     if (d.hit.part !== 'outside') {
       b.click(d.hit.section, undefined);
       return false;
@@ -673,7 +719,9 @@ export class NavigatorModel extends ReactiveModel {
     const b = this.behavior;
     const nav = this.navigator;
     const h = this.hit(x, y);
-    if (!nav || !h || h.context || !(this.moves[h.section] ?? 0)) return false;
+    // over blocks a double-click opens a chromosome from the fit too (its window idle there), on the context too
+    const blocks = !!nav?.blocks && !!h && this.viewer.view.canMove(h.section);
+    if (!nav || !h || (!blocks && (h.context || !(this.moves[h.section] ?? 0)))) return false;
     const track = nav.axes !== 'positions' && h.part !== 'outside' ? this.rowsTrack(h.section) : undefined;
     if (track && this.viewer.view.band(track)?.rowScale !== undefined) {
       const reset = !!this.viewer.behavior<RowsBehavior>('rows')?.railGesture().resetZoom(track);
@@ -682,6 +730,31 @@ export class NavigatorModel extends ReactiveModel {
     }
     if (!b || nav.axes === 'rows') return false;
     const r = this.renderer!;
+    // over blocks (`navigator.doubleClick: toggle-fit`, one level deeper): the block under the pointer fitted, and
+    // from that fit the whole
+    // the square: the cell's two blocks fitted (one section on both axes: their hull), again the whole
+    if (r instanceof SquareNavigator) {
+      const pair = r.pairAt(h.section, x, y);
+      const v = this.viewer.view.get(h.section);
+      if (!pair || !v) return false;
+      this.ownMove = true;
+      const view = this.viewer.view;
+      const shown = Math.abs(v.start - pair.start) <= 1 && Math.abs(v.end - pair.end) <= 1;
+      return shown
+        ? view.jump(() => view.fit(h.section), true, 'fit') === 'moved'
+        : b.zoomTo(h.section, pair.start, pair.end);
+    }
+    if (nav.blocks) {
+      const block = r.blockAt(h.section, x, !!h.context);
+      const v = this.viewer.view.get(h.section);
+      if (!block || !v || !Number.isFinite(block.start)) return false;
+      this.ownMove = true;
+      const shown = Math.abs(v.start - block.start) <= 1 && Math.abs(v.end - block.end) <= 1;
+      const view = this.viewer.view;
+      return shown
+        ? view.jump(() => view.fit(h.section), true, 'fit') === 'moved'
+        : b.zoomTo(h.section, block.start, block.end);
+    }
     const at = r.sectionUnitAt(h.section, x);
     const half = this.viewer.config.navigator.zoomPx / 2;
     const a = r.sectionUnitAt(h.section, x - half);
@@ -730,6 +803,10 @@ export class NavigatorModel extends ReactiveModel {
     const section = nav?.of[this._focused.value] ?? nav?.of[0];
     if (!nav || !section) return false;
     if (key === 'Escape') return this.cancel();
+    // over blocks the slider's large step is a block (`block.next`, `block.previous`); Home with a switch shows all
+    if (nav.blocks && (key === 'PageDown' || key === 'PageUp'))
+      return this.runIf(key === 'PageDown' ? 'block.next' : 'block.previous', { section });
+    if (nav.switch === 'include' && key === 'Home') return this.showAll();
     if (key === 'PageDown' || key === 'PageUp') return this.focusNext(key === 'PageDown' ? 1 : -1);
     const view = this.viewer.view;
     if (modifiers.altKey && (key === 'ArrowLeft' || key === 'ArrowRight'))
@@ -783,6 +860,50 @@ export class NavigatorModel extends ReactiveModel {
       default:
         return false;
     }
+  }
+
+  /**
+   * `navigator.switch: include`: the bound section shows the block under x alone (`section.include` with its name, one
+   * undo step); on what it already shows alone, nothing. True when the command ran.
+   */
+  private switchTo(section: string, x: number, context = false): boolean {
+    const block = this.renderer?.blockAt(section, x, context);
+    if (!block) return false;
+    const name = this.viewer.spec.model.value.systems.get(block.system)?.name;
+    if (!name) return false;
+    const node = this.viewer.view.resolved.value?.sections.find((s) => s.address === section);
+    const shown = node?.blocks;
+    if (shown?.length === 1 && shown[0].axis.system === block.system) return false;
+    return this.runIf('section.include', { address: section, include: [name] });
+  }
+
+  /** The square with a switch: the bound section shows the cell's two blocks (one when on the diagonal). */
+  private switchToPair(square: SquareNavigator, section: string, x: number, y: number): boolean {
+    const cell = square.cellAt(x, y);
+    if (!cell) return false;
+    const systems = this.viewer.spec.model.value.systems;
+    const names = [...new Set([cell.xSystem, cell.ySystem])].map((s) => systems.get(s)?.name ?? '').filter(Boolean);
+    return names.length > 0 && this.runIf('section.include', { address: section, include: names });
+  }
+
+  /**
+   * `navigator.switch: include`: every block shown again on the bound section (its `include` removed; a click on the
+   * navigator's title, Home on its focus). True when the command ran.
+   */
+  showAll(): boolean {
+    const nav = this.navigator;
+    const section = nav?.of[0];
+    if (!nav || nav.switch !== 'include' || !section) return false;
+    return this.runIf('section.include', { address: section });
+  }
+
+  /** Runs a command when it can run now; true when it ran. */
+  private runIf(id: string, context: unknown): boolean {
+    const c = this.viewer.commands.find((x) => x.id === id);
+    const can = c?.when?.(context as never);
+    if (!c || (can !== undefined && can !== true)) return false;
+    void this.viewer.execute(id, context);
+    return true;
   }
 
   /** Moves the slider focus to the next or previous window (roving: one tab stop for the part); true when it moved. */

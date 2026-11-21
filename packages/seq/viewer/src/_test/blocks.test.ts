@@ -5,9 +5,9 @@
  */
 
 // A section of blocks on several systems in the viewer (_spec/README.md "ViewModel", Blocks): its axis is the
-// section's own units on no system, so a drag-select begun on one block never selects another system's positions as
-// its own, a double-click focuses the block under it (its offset in the section), and the cursor does not step
-// another system's positions along the section's units.
+// section's own units on no system, so a drag-select across blocks selects each block's shown positions on its own
+// system (never the section's units as a system's), a double-click focuses the block under it (its offset in the
+// section), and the cursor crosses into the next block's first position (EC-154, amended).
 
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { rangesLocation } from '@molstar/seqx-core/query';
@@ -68,7 +68,7 @@ describe('a section of blocks on several systems in the viewer', () => {
     expect(axis.ranges).toEqual([0, 200]);
   });
 
-  it('a drag-select begun on one block never selects another system’s positions as its own', async () => {
+  it('a drag-select across blocks selects each block’s shown positions on its own system, never the section’s units', async () => {
     const { viewer, at } = await make();
     viewer.input.mac = false;
     const from = at(0, 100);
@@ -78,12 +78,11 @@ describe('a section of blocks on several systems in the viewer', () => {
     viewer.input.move(to.x, to.y);
     viewer.input.up();
     const parts = viewer.selection.value.value.shown.parts;
-    expect(parts.length).toBeGreaterThan(0);
-    for (const part of parts) {
-      expect(part.system).toBe('/data/cdk2');
-      // CDK2's own positions only: none of the section's units past its block read as CDK2's
-      for (let i = 0; i < part.ranges.length; i++) expect(part.ranges[i]).toBeLessThanOrEqual(120);
-    }
+    // CDK2 from the anchor to its end, cyclin from its start to the pointer: each on its own system
+    expect(parts.map((p) => [p.system, Array.from(p.ranges)])).toEqual([
+      ['/data/cdk2', [100, 120]],
+      ['/data/cyclin', [0, 31]],
+    ]);
   });
 
   it('a double-click focuses the block under it, at its offset in the section', async () => {
@@ -107,8 +106,13 @@ describe('a section of blocks on several systems in the viewer', () => {
     expect(viewer.addresses.shownAddress()).toBeUndefined();
   });
 
-  it('the cursor does not step another system’s positions along the section’s units', async () => {
+  it('EC-154 (amended): the cursor crosses into the next block’s first position, and stays at the section’s end', async () => {
     const { viewer, at } = await make();
+    const q = at(0, 119);
+    viewer.input.click(q.x, q.y);
+    expect(viewer.selection.cursor.value).toMatchObject({ system: '/data/cdk2', position: 119 });
+    viewer.input.key({ key: 'ArrowRight' });
+    expect(viewer.selection.cursor.value).toMatchObject({ system: '/data/cyclin', position: 0 });
     const p = at(1, 79);
     viewer.input.click(p.x, p.y);
     expect(viewer.selection.cursor.value).toMatchObject({ system: '/data/cyclin', position: 79 });

@@ -159,6 +159,12 @@ export interface ViewerConfig {
     readonly keyPanFraction: number;
     /** Wheel deltas within one frame are applied once, at the frame (true); false: at each event. */
     readonly coalesceWheel: boolean;
+    /**
+     * On a row of blocks (a genome's chromosomes): one viewport over the blocks end to end, a pan carrying across a gap
+     * into the next (`cross`, the default), or a pan, a zoom and a fit kept in the block the window is in (`stop`: one
+     * chromosome at a time; a jump to another block moves there).
+     */
+    readonly acrossBlocks: 'cross' | 'stop';
   };
   readonly theme: {
     /**
@@ -309,6 +315,9 @@ export const DefaultViewerConfig: ViewerConfig = {
       'selection.copy-letters': ['Mod+c'],
       'selection.bookmark': ['Mod+d'],
       'section.reverse': ['Shift+R'],
+      // the next and the previous block of a row (a chromosome): Alt+Shift would type a character on macOS (EC-155)
+      'block.next': ['Alt+PageDown'],
+      'block.previous': ['Alt+PageUp'],
       'section.collapse': ['Shift+C'],
       // each matches only its own `e.key`: typed alone on the common layouts, never a browser's zoom key (EC-155)
       'rows.zoom-in': [']'],
@@ -330,7 +339,13 @@ export const DefaultViewerConfig: ViewerConfig = {
       'headers.menu': ['ContextMenu', 'Shift+F10'],
     },
   },
-  navigate: { wheelZoomStep: 1.25, doubleClickZoomStep: 2, keyPanFraction: 0.1, coalesceWheel: true },
+  navigate: {
+    wheelZoomStep: 1.25,
+    doubleClickZoomStep: 2,
+    keyPanFraction: 0.1,
+    coalesceWheel: true,
+    acrossBlocks: 'cross',
+  },
   theme: { source: 'root', cvdSafe: false },
   canvas: { height: 'content', maxHeight: 2048, dpr: 'device', settleMs: 150 },
   pointer: { rehit: true, pinchFromCtrlWheel: true, pinchSpeed: 0.01, pinchMaxDelta: 50, lineHeight: 16 },

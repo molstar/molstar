@@ -378,7 +378,8 @@ export class BlockRow {
     for (let b = 0; b < this.n; b++) {
       const vs = this.vs[b];
       const ve = this.ve[b];
-      if (ve <= vs || u < vs || (u >= ve && u < this.u1)) continue;
+      // the window's end is the last block's in view (a block before it read past its own end: x past the row)
+      if (ve <= vs || u < vs || (u >= ve && ve < this.u1)) continue;
       // the block's own px per unit as laid: its edges snapped to the device grid move them off the row's scale
       return this.x[b] + ((u - vs) * this.w[b]) / (ve - vs);
     }

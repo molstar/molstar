@@ -416,11 +416,14 @@ export class ViewerInput {
       t === 'column-title' ||
       t === 'columns-hidden' ||
       t === 'group' ||
+      t === 'run' ||
       t === 'header-slot' ||
       t === 'header-state'
         ? h.state
         : undefined;
     out.members = h.members;
+    // a run's count (its blocks: "one of 2,841")
+    out.count = t === 'run' ? h.count : undefined;
     return this._hit;
   }
 

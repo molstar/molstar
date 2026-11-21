@@ -406,6 +406,17 @@ export interface ResolvedNavigator {
   readonly hidden: boolean;
   /** The path from each bound section's system to `system`, by section; absent where none joins them. */
   readonly paths: Readonly<Record<string, Path>>;
+  /**
+   * A navigator over blocks (_spec/README.md "Resolved view", Navigators): its picture a section of blocks, the bound
+   * section's own (no `system`: its `of`, `include` and block children) or of the assemblies `system` names (one or a
+   * list: `assemblies`). Its windows are carried by `{ system, position }` through the places of each block (identity
+   * in units where the block lists are equal), never along `paths` (each such section's path is its own identity).
+   */
+  readonly blocks?: true;
+  /** The assemblies `system` names (one or a list), the picture `of` them; absent: the bound section's blocks. */
+  readonly assemblies?: readonly string[];
+  /** `navigator.switch` (`none`, the default; `include`: a click on a block runs `section.include` on the bound section). */
+  readonly switch: 'none' | 'include';
 }
 
 export interface ResolvedView {
@@ -880,10 +891,20 @@ export function resolveNavigatorNode(
     .filter((v): v is string => v !== undefined);
   const of = named.filter((a) => sections.some((s) => s.address === a));
   const first = sections.find((s) => s.address === of[0]);
-  const system = exactAddress(param(n, 'system')) ?? first?.axis.system;
+  // a navigator over blocks: `system` an assembly or a list of them, or no `system` over a section of blocks
+  const sys = param(n, 'system');
+  const listed = (Array.isArray(sys) ? sys : [sys]).map((v) => exactAddress(v)).filter((v) => v !== undefined);
+  const assemblies = listed.length && listed.every((a) => model.assemblies.has(a)) ? listed : undefined;
+  const blocks = !!assemblies || (sys === undefined && !!first?.blocks);
+  const system = assemblies ? assemblies[0] : (exactAddress(sys) ?? first?.axis.system);
   const paths: Record<string, Path> = {};
   for (const a of of) {
     const s = sections.find((x) => x.address === a)!;
+    // over blocks each bound section's window is carried by its places: its own identity marks it joined
+    if (blocks) {
+      if (!assemblies || overAssemblies(model, s, assemblies)) paths[a] = identityPath(s.axis.system);
+      continue;
+    }
     if (system === undefined || !model.systems.has(system) || !model.systems.has(s.axis.system)) continue;
     const path = s.axis.system === system ? identityPath(system) : model.path(s.axis.system, system, s.via).path;
     if (path) paths[a] = path;
@@ -911,7 +932,24 @@ export function resolveNavigatorNode(
     ...(typeof size === 'number' || Array.isArray(size) ? { size: size as ResolvedNavigator['size'] } : {}),
     hidden: param(n, 'hidden') === true,
     paths,
+    ...(blocks ? { blocks: true as const } : {}),
+    ...(assemblies ? { assemblies } : {}),
+    switch: param(n, 'switch') === 'include' ? 'include' : 'none',
   };
+}
+
+/** Whether a section shows sequences of the assemblies (its blocks', else its axis's system): a navigator over them reaches it. */
+function overAssemblies(model: StaticModel, s: ResolvedSection, assemblies: readonly string[]): boolean {
+  const of = (system: string) => {
+    const at = system.lastIndexOf('/(sequence ');
+    return at > 0 && assemblies.includes(system.slice(0, at));
+  };
+  if (s.blocks) return s.blocks.length > 0 && s.blocks.every((b) => of(b.axis.system));
+  // a section of an assembly still pending has no blocks yet: reached once they come
+  const o = s.params.of;
+  if (typeof o === 'string' && assemblies.includes(o)) return true;
+  if (Array.isArray(o) && o.length && o.every((x) => typeof x === 'string' && assemblies.includes(x))) return true;
+  return of(s.axis.system);
 }
 
 /**

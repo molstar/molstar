@@ -60,7 +60,10 @@ function spec(): Node {
         columns: [{ field: 'label', side: 'right' }],
       } as never);
     // a block, so its form is switched
-    v.section('blocks', {}, (s) => s.block('b', { of: p }));
+    v.section('blocks', {}, (s) => {
+      s.block('b', { of: p });
+      s.block('b2', { of: p, range: [0, 10] } as never);
+    });
   });
   b.snapshots.snapshot('first', {
     label: 'Domains taller',
@@ -116,7 +119,7 @@ function look(v: SeqViewer) {
       // a narrow frame's tree opened by the reader (session state)
       v.view.band(RowsTrack)?.tree,
     ],
-    navigate: `${vp?.start} ${vp?.end} ${text?.start} ${v.spec.step.value?.id} ${v.view.band(RowsTrack)?.rowScale}`,
+    navigate: `${vp?.start} ${vp?.end} ${text?.start} ${v.spec.step.value?.id} ${v.view.band(RowsTrack)?.rowScale} ${v.view.get('/views/main/blocks')?.start}`,
     // the rows' scroll: a fold keeps the row at the top, so it moves with a session change; alone it is a navigation
     scroll: v.view.band(RowsTrack)?.bandTop,
   };
@@ -204,6 +207,13 @@ const Cases: Record<string, { ctx: unknown; before?: (v: SeqViewer) => unknown }
   'section.reverse': { ctx: { address: Protein } },
   'section.collapse': { ctx: { address: Protein } },
   'block.form': { ctx: { address: '/views/main/blocks/b', form: 'whole' } },
+  'block.reverse': { ctx: { address: '/views/main/blocks/b' } },
+  'block.next': { ctx: { section: '/views/main/blocks' }, before: (v) => v.view.setRange('/views/main/blocks', 0, 5) },
+  'block.previous': {
+    ctx: { section: '/views/main/blocks' },
+    before: (v) => v.view.setRange('/views/main/blocks', 32, 38),
+  },
+  'section.include': { ctx: { address: '/views/main/blocks', include: ['p'] } },
   'layer.hide': { ctx: { address: LettersLayer } },
   'layer.show': { ctx: { address: LettersLayer }, before: (v) => run(v, 'layer.hide', { address: LettersLayer }) },
   'layer.color': { ctx: { address: `${DomainsTrack}/d`, color: '#d62728' } },

@@ -53,6 +53,11 @@ export class StoreSources {
     return this._all.get(address);
   }
 
+  /** Every attached source by its own address (no channel). */
+  all(): IterableIterator<[string, AttachedSource]> {
+    return this._all.entries();
+  }
+
   set(address: string, source: AttachedSource): void {
     this._all.set(address, source);
   }

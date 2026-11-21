@@ -4,9 +4,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { resolveAddress } from '@molstar/core/repr/tree';
+import { type Node as SpecNode, resolveAddress } from '@molstar/core/repr/tree';
 import {
   actionColumns,
+  BlockPlacement,
   type Box,
   type HeaderIcon,
   type HeaderInputFacts,
@@ -21,6 +22,7 @@ import {
 } from '@molstar/seqx-core/render';
 import { hiddenTracksOf } from '@molstar/seqx-core/render/headers';
 import { actionsShown } from '@molstar/seqx-core/render/headers-draw';
+import type { StaticModel } from '@molstar/seqx-core/resolve';
 import type { ResolvedSection, ResolvedTrack } from '@molstar/seqx-core/view';
 import { formatChord, isMac } from '@molstar/ui/commands/keys';
 import type { CommandResult } from '@molstar/ui/commands/types';
@@ -101,6 +103,36 @@ export function headerTarget(hit: RenderHit, layout: ViewLayout | undefined): He
   return undefined;
 }
 
+/**
+ * A section's block facts for its menu (genome coordinates): the block a menu was opened on, whether the section is of
+ * assemblies (its `include` can be set) and has an `include`.
+ */
+function blockFacts(
+  model: StaticModel,
+  section: ResolvedSection,
+  node: SpecNode | undefined,
+  index: number | undefined,
+): Pick<HeaderFacts, 'block' | 'assemblies' | 'included'> {
+  const of = node?.params?.of;
+  const list = (Array.isArray(of) ? of : [of]).filter((x): x is string => typeof x === 'string');
+  const assemblies = list.length > 0 && list.every((a) => model.assemblies.has(a));
+  const b = index === undefined ? undefined : section.blocks?.[index];
+  return {
+    ...(b
+      ? {
+          block: {
+            address: b.address,
+            label: b.label,
+            name: model.systems.get(b.axis.system)?.name ?? b.label,
+            reversed: b.axis.dir !== section.axis.dir,
+          },
+        }
+      : {}),
+    ...(assemblies ? { assemblies: true } : {}),
+    ...(node?.params?.include !== undefined ? { included: true } : {}),
+  };
+}
+
 /** @internal */
 export function headerExtras(inner: HeaderShared): HeaderExtras {
   const { viewer } = inner;
@@ -167,6 +199,7 @@ export function headerExtras(inner: HeaderShared): HeaderExtras {
       layers,
       hiddenTracks: at?.hiddenTracks ?? hiddenTracksOf(model, section),
       ...(target.element ? { element: target.element } : {}),
+      ...blockFacts(model, section, specNode, target.block),
     };
   };
 
@@ -448,10 +481,13 @@ export function headerExtras(inner: HeaderShared): HeaderExtras {
               track: t.track.address,
               ...(hit.element ? { element: { layer: hit.layer, key: hit.element.key } } : {}),
             };
-    // a track's band under the point, else its section
+    // a track's band under the point, else its section; on a row of blocks the block under it (its label's menu)
     const section = viewer.input.sectionAt(y);
     const s = section === undefined ? undefined : sectionLayout(layout, section);
     if (!s) return undefined;
+    const p = s.placement;
+    const b = hit?.block ?? (p instanceof BlockPlacement && !p.stacked && s.section.blocks ? p.row.blockAt(x) : -1);
+    if (b >= 0 && s.section.blocks) return { section: s.section.address, block: b };
     const t = s.tracks.find((t) => y >= t.box.y && y < t.box.y + t.box.height);
     return t ? { section: s.section.address, track: t.track.address } : { section: s.section.address };
   };

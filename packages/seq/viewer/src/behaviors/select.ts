@@ -13,8 +13,8 @@
 // alignment's rows) the same gestures select rects: a click a one-cell rect, Shift+click the rect from the anchor
 // cell, Cmd/Ctrl+click toggles the cell, a drag a rect, Cmd/Ctrl+drag adds one, Alt+drag subtracts one.
 
-import { EmptyKeys, type Location, rangesLocation } from '@molstar/seqx-core/query';
-import type { Axis } from '@molstar/seqx-core/view';
+import { EmptyKeys, type Location, location, rangesLocation } from '@molstar/seqx-core/query';
+import { type Axis, blockPositionAt, blockSpan, blockUnitOf, type ResolvedSection } from '@molstar/seqx-core/view';
 import type { CommandDefinition, CommandResult } from '@molstar/ui/commands/types';
 import type { BindingTable, ModifierState } from '@molstar/seqx-viewer/bindings';
 import {
@@ -103,6 +103,8 @@ export function selectBehavior(
    * display order: a range over a cyclic origin is two), or on a section of blocks on several systems (its axis its own
    * units, on no system) the hit block's own.
    */
+  const sectionOf = (section: string | undefined) =>
+    section === undefined ? undefined : view.resolved.value?.sections.find((x) => x.address === section);
   const placeOf = (
     section: string | undefined,
     hit?: Hit,
@@ -235,8 +237,20 @@ export function selectBehavior(
     },
   ];
 
-  /** The drag: its section and system, and the axis its positions are read on (a block's: its offset in the section). */
-  let drag: { section: string; system: string; axis: Axis; offset: number; block: boolean } | undefined;
+  /**
+   * The drag: its section and system, and the axis its positions are read on (a block's: its offset in the section);
+   * on a section of blocks its block, the anchor's unit, the mode and the selection as it began (a drag across blocks).
+   */
+  let drag:
+    | {
+        section: string;
+        system: string;
+        axis: Axis;
+        offset: number;
+        block: boolean;
+        across?: { index: number; unit: number; mode: DragMode; before: Emphasized };
+      }
+    | undefined;
   /** A rect drag on a grid: its section and its cell's two systems. */
   let rect: { section: string; system: string; ySystem: string } | undefined;
   /**
@@ -286,8 +300,17 @@ export function selectBehavior(
         return true;
       }
       const at = placeOf(section, hit);
+      const before = selection.value.value;
       if (!at || !selection.beginDrag(hit, at.axis, DragSelectModes[action])) return false;
       drag = { section, system: hit.system, axis: at.axis, offset: at.offset, block: at.block };
+      // on a section of blocks the anchor's place: a drag past its block selects the shown positions between
+      const blocks = at.block ? sectionOf(section)?.blocks : undefined;
+      const unit =
+        blocks && hit.block !== undefined && hit.position !== undefined
+          ? blockUnitOf(blocks[hit.block], Math.floor(hit.position))
+          : undefined;
+      if (blocks && unit !== undefined)
+        drag.across = { index: hit.block!, unit, mode: DragSelectModes[action], before };
       return true;
     },
     dragTo(section, x, hit, at) {
@@ -317,10 +340,24 @@ export function selectBehavior(
       const axis = d.axis;
       const total = axisTotal(axis);
       if (!v || v.pending || total === undefined || v.width <= 0) return false;
+      const unit = at ?? v.start + (Math.min(Math.max(x, 0), v.width - 1e-6) * (v.end - v.start)) / v.width;
+      // past the anchor's block: the shown positions of each block between, a part a system (genome coordinates)
+      const s = d.across ? sectionOf(section) : undefined;
+      if (d.across && s?.blocks) {
+        const loc = acrossBlocks(s, d.across.index, d.across.unit, unit);
+        if (loc) {
+          const was = selection.value.value;
+          if (d.across.mode === 'add' || d.across.mode === 'subtract') {
+            selection.set(d.across.before);
+            if (d.across.mode === 'add') selection.add(loc);
+            else selection.subtract(loc);
+          } else selection.set({ elements: EmptyKeys, location: loc, shown: loc });
+          return selection.value.value !== was;
+        }
+      }
       // the placement's offset (a ring's by its angle), else the x's; a block's offsets from its first (past its ends:
       // its end cells, never another block's positions)
-      const offset =
-        (at ?? v.start + (Math.min(Math.max(x, 0), v.width - 1e-6) * (v.end - v.start)) / v.width) - d.offset;
+      const offset = unit - d.offset;
       let cell = d.block ? Math.min(Math.max(Math.floor(offset), 0), total - 1) : Math.floor(offset);
       // a window over a cyclic origin: its units past the total are the next turn's
       if (cell >= total && view.wraps(section)) cell -= total;
@@ -349,3 +386,56 @@ export function selectBehavior(
 }
 
 const NeverAborted = new AbortController().signal;
+
+/** The block holding a section unit (the last starting at or before it). */
+function blockIndexOf(blocks: NonNullable<ResolvedSection['blocks']>, u: number): number {
+  let k = 0;
+  while (k + 1 < blocks.length && (blocks[k + 1].offset ?? 0) <= u) k++;
+  return k;
+}
+
+/**
+ * A drag across blocks (genome coordinates, "Selection in display order"): from the anchor's cell (block `from`, its
+ * unit) to the cell at `unit`, the shown positions of each block between in display order: the anchor's block from its
+ * cell to its edge, the blocks between whole, the last from its edge to the pointer's cell, a part a system (ranges
+ * ascending on it). Undefined while the pointer is in the anchor's block (the block's own drag).
+ */
+export function acrossBlocks(
+  section: ResolvedSection,
+  from: number,
+  anchor: number,
+  unit: number,
+): Location | undefined {
+  const blocks = section.blocks;
+  if (!blocks?.length) return undefined;
+  const to = blockIndexOf(blocks, unit);
+  if (to === from) return undefined;
+  // the two cells' units: each end's whole cell (a scaled block's cell is its scale wide)
+  const cellOf = (k: number, u: number) => {
+    const b = blocks[k];
+    const p = blockPositionAt(b, Math.min(Math.max(u, b.offset ?? 0), (b.offset ?? 0) + blockSpan(b) - 1e-9), 'start');
+    return p === undefined ? undefined : blockUnitOf(b, Math.floor(p));
+  };
+  const a = cellOf(from, anchor);
+  const c = cellOf(to, unit);
+  if (a === undefined || c === undefined) return undefined;
+  const scaleOf = (k: number) => blocks[k].scale ?? 1;
+  const lo = Math.min(a, c);
+  const hi = to > from ? c + scaleOf(to) : a + scaleOf(from);
+  const byStart = to > from ? a : c;
+  const parts = new Map<string, number[]>();
+  for (let k = Math.min(from, to); k <= Math.max(from, to); k++) {
+    const b = blocks[k];
+    const o = b.offset ?? 0;
+    const s0 = Math.max(k === Math.min(from, to) ? byStart : o, o, lo);
+    const s1 = Math.min(o + blockSpan(b), hi);
+    if (!(s1 > s0)) continue;
+    const p0 = blockPositionAt(b, s0, 'start');
+    const p1 = blockPositionAt(b, s1, 'end');
+    if (p0 === undefined || p1 === undefined) continue;
+    const r = parts.get(b.axis.system) ?? [];
+    r.push(Math.floor(Math.min(p0, p1) + 1e-6), Math.ceil(Math.max(p0, p1) - 1e-6));
+    parts.set(b.axis.system, r);
+  }
+  return location({ parts: [...parts].map(([system, ranges]) => ({ system, ranges })) });
+}

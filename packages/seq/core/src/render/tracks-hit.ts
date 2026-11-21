@@ -6,6 +6,7 @@
 
 import type { Box, Hit } from './layer-type.js';
 import { breakHit } from './marks.js';
+import { BlockPlacement } from './layout/blocks.js';
 import { PlacePoint, WarpKind } from './layout/strips.js';
 import { hitRail } from './rail.js';
 import type { SectionLayout, ViewLayout } from './tracks-types.js';
@@ -35,7 +36,43 @@ function pointAt(): Float64Array {
   return HitAt;
 }
 
+/** A run's block and count (`runAt`), reused. */
+const RunAt = new Int32Array(2);
+
 export function hitView(layout: ViewLayout, x: number, y: number, touch = false, hover?: Hit): Hit | undefined {
+  const h = hitLayout(layout, x, y, touch, hover);
+  // a run of small blocks (_spec/README.md "Render", Blocks): over its band, what names no item (a ruler's place, its
+  // band's ground) is the run's: the block under the point and the run's count, its hover "one of 2,841"; a block too
+  // narrow to be read says so
+  if (h?.element || (h?.target !== undefined && h.target !== 'run')) return h;
+  const r = runHit(layout, x, y);
+  if (!r) return h;
+  // a read block's position stays the hit's (its data drawn at its place)
+  return h?.position !== undefined && h.block === r.block ? { ...r, position: h.position } : r;
+}
+
+/** A run's hit at a point: the block under it and the run's count (`state` when the block is not read at this zoom). */
+function runHit(layout: ViewLayout, x: number, y: number): Hit | undefined {
+  for (const s of layout.sections) {
+    const p = s.placement;
+    if (!(p instanceof BlockPlacement) || !p.runN || y < p.tracksTop || y >= p.tracksBottom || !p.runAt(x, RunAt))
+      continue;
+    const block = s.section.blocks?.[RunAt[0]];
+    if (!block) continue;
+    return {
+      layer: s.section.address,
+      section: s.id,
+      system: block.axis.system,
+      block: RunAt[0],
+      target: 'run',
+      count: RunAt[1],
+      ...(p.strips.atX(x) < 0 ? { state: 'not read at this zoom' } : {}),
+    };
+  }
+  return undefined;
+}
+
+function hitLayout(layout: ViewLayout, x: number, y: number, touch: boolean, hover: Hit | undefined): Hit | undefined {
   for (const s of layout.sections) {
     const strips = s.placement.strips;
     for (let i = 0; i < strips.n; i++) {

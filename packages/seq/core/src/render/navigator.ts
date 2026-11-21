@@ -16,15 +16,21 @@ import {
   type StaticModel,
 } from '@molstar/seqx-core/resolve';
 import {
+  blockPositionAt,
+  blockSpan,
   cellOffset,
   type LayerKinds,
   nearestOffsetOf,
   offsetOf,
+  placeOfUnit,
+  placesInto,
   positionAt,
   type ResolvedNavigator,
   type ResolvedSection,
   type ResolvedView,
   resolveViewNode,
+  sameBlocks,
+  unitOfPlace,
 } from '@molstar/seqx-core/view';
 import type { AxisTransform, Viewport } from './axis.js';
 import type { ThemeContext } from './channels.js';
@@ -35,6 +41,7 @@ import { RenderIssues } from './issues.js';
 import { layerSource } from './layer-data.js';
 import { partOn } from './marks.js';
 import type { Emphasis, Overlay, StoreReader } from './layer-type.js';
+import { BlockPlacement } from './layout/blocks.js';
 import type { WindowPart } from './layout/types.js';
 import {
   AxisPicture,
@@ -129,10 +136,23 @@ function pictureOf(
   const bound = view.sections.find((s) => s.address === nav.of[0]);
   if (!bound || nav.system === undefined) return undefined;
   const node = nodeAt(model.spec, bound.address);
-  const same = nav.sectionAxis && nav.system === bound.axis.system;
+  const same = !nav.blocks && nav.sectionAxis && nav.system === bound.axis.system;
   const dir = direction === 'genomic' ? 1 : bound.axis.dir;
   const params: Record<string, Value> = { of: nav.system, direction: dir === -1 ? 'reversed' : 'genomic' };
-  const blocks = same ? (node?.children ?? []).filter((c) => c.kind === 'block') : [];
+  let blocks = same ? (node?.children ?? []).filter((c) => c.kind === 'block') : [];
+  if (nav.blocks) {
+    // a navigator over blocks (_spec/README.md "Render", Navigators): a section of the bound section's own blocks (its
+    // `of`, `classes`, `include` and block children: the same block list, identity in units), or of the assemblies
+    // `system` names, their lattice whole (a bound section of them lends its blocks' directions and scales, never its
+    // `include`)
+    const of = nav.assemblies ? (nav.assemblies.length === 1 ? nav.assemblies[0] : nav.assemblies) : node?.params?.of;
+    const own = !nav.assemblies || JSON.stringify(node?.params?.of) === JSON.stringify(of);
+    if (of !== undefined) params.of = of as Value;
+    else delete params.of;
+    for (const k of nav.assemblies ? ['classes'] : ['classes', 'include', 'copies'])
+      if (own && node?.params?.[k] !== undefined) params[k] = node.params[k] as Value;
+    blocks = own ? (node?.children ?? []).filter((c) => c.kind === 'block') : [];
+  }
   const ctx = { model, view, navigator: nav, bound, boundNode: node, height, zoom: false, config, left };
   // a picture that draws nothing here is the axis (the fixed fallback)
   const drawn = entry.picture(ctx) ?? AxisPicture.picture(ctx)!;
@@ -230,6 +250,9 @@ export class NavigatorWindow {
   /** Its ends as positions of the navigator's system, and as display rows (what its title and slider say). */
   p0 = 0;
   p1 = 0;
+  /** Over blocks: the systems its ends are on (`p0` and `p1` positions on them). */
+  s0 = '';
+  s1 = '';
   r0 = 0;
   r1 = 0;
   rows = 0;
@@ -237,6 +260,7 @@ export class NavigatorWindow {
 
 /** What a window says (an export's title, a slider's value): its positions on the navigator's system, its rows. */
 export function windowText(model: StaticModel, nav: ResolvedNavigator, w: NavigatorWindow): string {
+  if (nav.blocks) return blocksText(model, w);
   const name = (nav.system && model.systems.get(nav.system)?.name) ?? '';
   const parts: string[] = [];
   if (w.axes & NavWindowFlags.x) parts.push(`${spanText(model, nav, w.p0, w.p1)} of ${name}`);
@@ -245,6 +269,29 @@ export function windowText(model: StaticModel, nav: ResolvedNavigator, w: Naviga
 }
 
 const countText = (n: number) => Math.round(n).toLocaleString('en-US');
+
+/**
+ * A window over blocks as text (_spec/README.md "Render", Navigators): on one block its name and positions and the
+ * assembly (`chr17: 7,668,402–7,687,550 of GRCh38`), across blocks both ends (`chr16:90,100,000 – chr17:1,200,000`).
+ */
+function blocksText(model: StaticModel, w: NavigatorWindow): string {
+  const a = model.systems.get(w.s0)?.name ?? '';
+  const b = model.systems.get(w.s1)?.name ?? '';
+  if (w.s0 !== w.s1) return `${a}:${countText(w.p0 + 1)} – ${b}:${countText(w.p1)}`;
+  const of = assemblyName(model, w.s0);
+  return `${a}: ${countText(Math.min(w.p0, w.p1) + 1)}–${countText(Math.max(w.p0, w.p1))}${of ? ` of ${of}` : ''}`;
+}
+
+/** The name of the assembly a derived sequence is of (its first name), or undefined. */
+function assemblyName(model: StaticModel, system: string): string | undefined {
+  const at = system.lastIndexOf('/(sequence ');
+  return at > 0 ? model.assemblies.get(system.slice(0, at))?.names[0] : undefined;
+}
+
+/** A position over blocks as a readout says it (`chr17: 7,668,402`): the block's system's name, 1-based. */
+export function blockPlaceText(model: StaticModel, system: string, position: number): string {
+  return `${model.systems.get(system)?.name ?? ''}: ${countText(Math.floor(position) + 1)}`;
+}
 
 /** Positions `[p0, p1)` on the navigator's system as text, 1-based (`chr17:7,666,403–7,688,402`). */
 function spanText(model: StaticModel, nav: ResolvedNavigator, p0: number, p1: number): string {
@@ -268,6 +315,12 @@ export interface NavigatorHit {
   readonly position?: number;
   readonly row?: number;
   readonly band?: string;
+  /** Over blocks: the system `position` is on, and the picture's block there (its index). */
+  readonly system?: string;
+  readonly block?: number;
+  /** The square: the cell's y block (its index in the lattice) and its system. */
+  readonly ySystem?: string;
+  readonly yBlock?: number;
   /**
    * On the context of a navigator with a zoom strip (no target: no gesture), over the reachable span's mark (`mark`) or
    * elsewhere (`outside`); its part is `outside`.
@@ -435,9 +488,19 @@ export class NavigatorRenderer {
   /** Each bound section's path to the navigator's system and back (undefined: identity). */
   private readonly paths = new Map<string, { to?: Path; back?: Path }>();
   private readonly scratch: number[] = [];
+  /** A navigator over blocks (its picture a section of blocks: windows by places, never along paths). */
+  private readonly overBlocks: boolean;
+  /** Over blocks, per bound section (made again with the picture): equal block lists (identity in units), its reach. */
+  private readonly identical = new Map<string, boolean>();
+  private readonly reaches = new Map<string, readonly [number, number] | undefined>();
+  /** Over blocks: the window's width on the context this frame (what turns the zoom strip on), the span's blocks. */
+  private windowPx = Number.POSITIVE_INFINITY;
+  private spanFirst = -1;
+  private spanLast = -1;
 
   constructor(readonly options: NavigatorRendererOptions) {
     this.navigator = options.navigator;
+    this.overBlocks = !!options.navigator.blocks;
     this.entry = navigatorPicture(options.navigator, options.pictures);
     this.config = options.config ?? DefaultRenderConfig;
     this.pictureConfig = pictureConfig(this.config);
@@ -537,6 +600,73 @@ export class NavigatorRenderer {
       : undefined;
     this.layout = undefined;
     this.rowScale = 0;
+    this.identical.clear();
+    this.reaches.clear();
+  }
+
+  /** x of a unit on a section of the picture: a row of blocks by its row's arithmetic (gaps, chips), else its axis. */
+  private xOn(s: SectionLayout, u: number): number {
+    const p = s.placement;
+    return p instanceof BlockPlacement && !p.stacked ? p.row.xOf(u) : s.axis!.xOfUnit(u);
+  }
+
+  /** The unit at x on a section of the picture (a row of blocks: in a gap the next block's first). */
+  private unitOn(s: SectionLayout, x: number): number {
+    const p = s.placement;
+    if (p instanceof BlockPlacement && !p.stacked) return p.row.unitAt(x);
+    const a = s.axis!;
+    return a.u0 + (x - a.x0) / a.scale;
+  }
+
+  /** Over blocks: whether a bound section shows the picture's block list (identity in units). */
+  private same(bound: ResolvedSection): boolean {
+    let v = this.identical.get(bound.address);
+    if (v === undefined) {
+      const pic = this.picture?.section;
+      v = !!pic && sameBlocks(bound, pic);
+      this.identical.set(bound.address, v);
+    }
+    return v;
+  }
+
+  /** Over blocks: a bound section's unit on the picture, through its place (`{ system, position }`). */
+  private toPicture(bound: ResolvedSection, u: number, side: 'start' | 'end'): number | undefined {
+    if (this.same(bound)) return u;
+    const pic = this.picture?.section;
+    const at = pic && placeOfUnit(bound, u, side);
+    return pic && at ? unitOfPlace(pic, at) : undefined;
+  }
+
+  /** Over blocks: a picture's unit in a bound section's units; undefined where the section shows no block of it. */
+  private fromPicture(bound: ResolvedSection, u: number, side: 'start' | 'end'): number | undefined {
+    if (this.same(bound)) return u;
+    const pic = this.picture?.section;
+    const at = pic && placeOfUnit(pic, u, side);
+    if (!at) return undefined;
+    if (bound.blocks) return unitOfPlace(bound, at);
+    if (at.system !== bound.axis.system) return undefined;
+    return offsetOf(bound.axis, at.position) ?? nearestOffsetOf(bound.axis, at.position);
+  }
+
+  /** Over blocks: what a bound section reaches on the picture (its blocks' or its axis's places, their hull). */
+  private reachOf(bound: ResolvedSection): readonly [number, number] | undefined {
+    if (this.reaches.has(bound.address)) return this.reaches.get(bound.address);
+    const pic = this.picture?.section;
+    let lo = Number.POSITIVE_INFINITY;
+    let hi = Number.NEGATIVE_INFINITY;
+    const take = (system: string, r: ArrayLike<number> | undefined) => {
+      for (let k = 0; pic && r && k < r.length; k++) {
+        const u = unitOfPlace(pic, { system, position: r[k] });
+        if (u === undefined) continue;
+        lo = Math.min(lo, u);
+        hi = Math.max(hi, u);
+      }
+    };
+    if (bound.blocks) for (const b of bound.blocks) take(b.axis.system, b.axis.ranges);
+    else take(bound.axis.system, bound.axis.ranges);
+    const r = lo < hi ? ([lo, hi] as const) : undefined;
+    this.reaches.set(bound.address, r);
+    return r;
   }
 
   /** Sets the token table (a theme change): the picture draws again with it. */
@@ -568,6 +698,15 @@ export class NavigatorRenderer {
   /** What the mark says (a hover over it): the reachable span on the navigator's system; undefined without a zoom strip. */
   markText(): string | undefined {
     if (!this.zoomed || !(this.reach[1] > this.reach[0])) return undefined;
+    // over blocks the span is blocks: their names
+    if (this.overBlocks) {
+      const blocks = this.picture?.section.blocks;
+      const name = (b: number) => (blocks?.[b] ? blocks[b].label : '');
+      if (this.spanFirst < 0) return undefined;
+      return this.spanFirst === this.spanLast
+        ? name(this.spanFirst)
+        : `${name(this.spanFirst)} – ${name(this.spanLast)}`;
+    }
     // over a cyclic origin the arc, from its start on past the origin to its end
     if (this.wraps) return arcText(this.options.model, this.navigator, this.reach[2], this.reach[3]);
     return spanText(this.options.model, this.navigator, this.reach[2], this.reach[3]);
@@ -724,7 +863,8 @@ export class NavigatorRenderer {
     if (!ctx || !(u1 > u0)) return false;
     // a strip along the view only (a side part's length is the view's height, not its axis), a height to draw in
     const can = nav.axes === 'positions' && nav.place !== 'left' && nav.place !== 'right' && this.zoomTrack > 0;
-    const px = (u1 - u0) * ctx.scale;
+    // over blocks: the window's own width (its block the strip), else the reachable span's
+    const px = this.overBlocks ? this.windowPx : (u1 - u0) * ctx.scale;
     // on under `minPx`, off past it and the hysteresis: a width jittering about the threshold keeps what is drawn
     const want = can && min > 0 && (px < min || (this.zoomed && px <= min + ZoomHysteresisPx));
     if (want === this.zoomed) return false;
@@ -941,6 +1081,7 @@ export class NavigatorRenderer {
 
   /** The window along x: the section's view as positions, carried along the path, as x on the picture. */
   private placeX(w: NavigatorWindow, s: SectionLayout, axis: AxisTransform): boolean {
+    if (this.overBlocks) return this.placeBlocksX(w, s);
     const va = s.axis!;
     const path = this.paths.get(w.section);
     if (!path) return false;
@@ -1001,6 +1142,88 @@ export class NavigatorRenderer {
       if (t > 0) this.addPiece(0, t, 0, t);
     }
     return true;
+  }
+
+  /**
+   * Over blocks (_spec/README.md "Render", Navigators): the bound section's window in the picture's units (identity
+   * where the block lists are equal, else by its ends' places), its ends' systems and positions (what its text says),
+   * the wash outside what the section reaches, and the zoom strip's span: the blocks the window touches, their hull.
+   */
+  private placeBlocksX(w: NavigatorWindow, s: SectionLayout): boolean {
+    const work = this.work;
+    const ctx = this.layout?.sections[0];
+    const pic = this.picture?.section;
+    const blocks = pic?.blocks;
+    const va = s.axis;
+    if (!work || !ctx || !pic || !blocks?.length || !va) return false;
+    const bound = s.section;
+    const a = this.toPicture(bound, va.u0, 'start');
+    const b = this.toPicture(bound, va.u1, 'end');
+    if (a === undefined || b === undefined) return false;
+    const i = blockIndexAt(blocks, a, 'start');
+    const j = blockIndexAt(blocks, b, 'end');
+    w.s0 = blocks[i].axis.system;
+    w.p0 = blockPositionAt(blocks[i], a, 'start') ?? 0;
+    w.s1 = blocks[j].axis.system;
+    w.p1 = blockPositionAt(blocks[j], b, 'end') ?? 0;
+    const xa = this.xOn(work, a);
+    const xb = this.xOn(work, b);
+    w.x0 = Math.min(xa, xb);
+    w.x1 = Math.max(xa, xb);
+    this.windowPx = Math.abs(this.xOn(ctx, b) - this.xOn(ctx, a));
+    // what the section reaches: a section of other blocks (one chromosome) only its own, the rest washed
+    if (!this.same(bound)) {
+      const r = this.reachOf(bound);
+      if (r) {
+        const lo = this.xOn(work, r[0]);
+        const hi = this.xOn(work, r[1]);
+        w.lo = Math.max(w.lo, Math.min(lo, hi));
+        w.hi = Math.min(w.hi, Math.max(lo, hi));
+      }
+    }
+    const first = Math.min(i, j);
+    const last = Math.max(i, j);
+    this.spanFirst = first;
+    this.spanLast = last;
+    this.addPiece(blocks[first].offset ?? 0, (blocks[last].offset ?? 0) + blockSpan(blocks[last]), 0, 0);
+    return true;
+  }
+
+  /** Over blocks: the picture's block under x, its system and the position there; undefined off the picture. */
+  private blockHit(x: number): { block: number; system: string; position: number } | undefined {
+    const work = this.work;
+    const blocks = this.picture?.section.blocks;
+    if (!work || !blocks?.length) return undefined;
+    const p = work.placement;
+    const u = this.unitOn(work, x);
+    const k = p instanceof BlockPlacement && !p.stacked ? p.row.blockAt(x) : -1;
+    const b = k >= 0 ? k : blockIndexAt(blocks, u, 'start');
+    const position = blockPositionAt(blocks[b], u, 'start');
+    return position === undefined ? undefined : { block: b, system: blocks[b].axis.system, position };
+  }
+
+  /**
+   * Over blocks: the bound section's units of the picture's block under x (what a double-click fits, a switch shows
+   * alone), its system and index; `start` and `end` NaN where the section shows none of it; undefined off a block.
+   */
+  blockAt(
+    section: string,
+    x: number,
+    context = false,
+  ): { start: number; end: number; system: string; block: number } | undefined {
+    const blocks = this.picture?.section.blocks;
+    const s = this.options.view.sections.find((v) => v.address === section);
+    const work = context ? this.layout?.sections[0] : this.work;
+    if (!this.overBlocks || !blocks || !s || !work) return undefined;
+    const p = work.placement;
+    const k = p instanceof BlockPlacement && !p.stacked ? p.row.blockAt(x) : -1;
+    if (k < 0) return undefined;
+    const block = blocks[k];
+    const o = block.offset ?? 0;
+    const a = this.fromPicture(s, o, 'start');
+    const b = this.fromPicture(s, o + blockSpan(block), 'end');
+    const shown = a !== undefined && b !== undefined && b > a;
+    return { start: shown ? a : Number.NaN, end: shown ? b : Number.NaN, system: block.axis.system, block: k };
   }
 
   /** The windows (the top one last), then the marks, in the navigator's own passes. */
@@ -1089,7 +1312,7 @@ export class NavigatorRenderer {
     for (let k = 0; k < (wraps ? 2 : 1); k++) {
       const u0 = k === 0 ? this.reach[0] : 0;
       const u1 = wraps ? (k === 0 ? t : this.reach[1] - t) : this.reach[1];
-      this.drawMark(out, axis.xOfUnit(u0), axis.xOfUnit(u1), ctx, k, dpr, c, tokens);
+      this.drawMark(out, this.xOn(ctx, u0), this.xOn(ctx, u1), ctx, k, dpr, c, tokens);
     }
     // the connectors: from the mark's foot to the zoom strip's top, its start to the strip's start, its end to its end
     // (over the origin the first piece's start, the second's end)
@@ -1200,18 +1423,19 @@ export class NavigatorRenderer {
     const h = Math.min(4, box.height);
     const y = box.y + box.height - h;
     const px = 1 / dpr;
-    if (e && marks.includes('selection')) {
+    if (this.overBlocks) this.drawBlockMarks(lists, pic, e, marks, y, h, box, tokens, px);
+    else if (e && marks.includes('selection')) {
       const part = partOn(e.selection, system) ?? partOn(e.projected?.selection, system);
       if (part) ticks(lists.writer('selection'), axis, part.ranges, y, h, px, tokens.colors['msui-accent']);
     }
-    if (e?.highlights && marks.includes('highlights')) {
+    if (!this.overBlocks && e?.highlights && marks.includes('highlights')) {
       const out = lists.writer('highlight');
       for (let k = 0; k < e.highlights.length; k++) {
         const part = partOn(e.highlights[k].location, system);
         if (part) ticks(out, axis, part.ranges, y, h, px, e.highlights[k].color);
       }
     }
-    if (e?.cursor && e.cursor.system === system && marks.includes('cursor')) {
+    if (!this.overBlocks && e?.cursor && e.cursor.system === system && marks.includes('cursor')) {
       const x = axis.x(e.cursor.position);
       if (Number.isFinite(x)) {
         const g = lists.writer('cursor').args;
@@ -1249,6 +1473,55 @@ export class NavigatorRenderer {
       g[7] = 0;
       g[8] = 0;
       lists.writer('hover').rectArgs();
+    }
+  }
+
+  /**
+   * Over blocks: the selection's and the highlights' ticks on each block showing them, the keyboard cursor's hairline at
+   * every place of its position (overlapping blocks: each).
+   */
+  private drawBlockMarks(
+    lists: DrawLists,
+    pic: SectionLayout,
+    e: Emphasis | undefined,
+    marks: RenderConfig['navigator']['marks'],
+    y: number,
+    h: number,
+    box: { readonly y: number; readonly height: number },
+    tokens: SeqTokens,
+    px: number,
+  ): void {
+    const blocks = this.picture?.section.blocks;
+    if (!e || !blocks) return;
+    const tick = (out: PassWriter, loc: Emphasis['selection'], color: number) => {
+      for (let b = 0; b < blocks.length; b++) {
+        const part = partOn(loc, blocks[b].axis.system);
+        if (!part) continue;
+        const o = blocks[b].offset ?? 0;
+        for (let k = 0; k + 1 < part.ranges.length; k += 2) {
+          const ua = blockUnitAtPosition(blocks[b], part.ranges[k], o);
+          const ub = blockUnitAtPosition(blocks[b], part.ranges[k + 1], o);
+          if (ua === undefined || ub === undefined) continue;
+          const xa = this.xOn(pic, ua);
+          const xb = this.xOn(pic, ub);
+          out.fill(Math.min(xa, xb), y, Math.max(px, Math.abs(xb - xa)), h, color);
+        }
+      }
+    };
+    if (marks.includes('selection')) {
+      const sel = e.selection ?? e.projected?.selection;
+      if (sel) tick(lists.writer('selection'), sel, tokens.colors['msui-accent']);
+    }
+    if (e.highlights && marks.includes('highlights'))
+      for (let k = 0; k < e.highlights.length; k++)
+        tick(lists.writer('highlight'), e.highlights[k].location, e.highlights[k].color);
+    if (e.cursor && marks.includes('cursor')) {
+      const n = placesInto(this.picture!.section, e.cursor.system, e.cursor.position, PlaceBlocks, PlaceUnits);
+      for (let k = 0; k < n; k++) {
+        const x = this.xOn(pic, PlaceUnits[k]);
+        if (Number.isFinite(x))
+          lists.writer('cursor').fill(x - px / 2, box.y, px, box.height, tokens.colors['msui-text']);
+      }
     }
   }
 
@@ -1294,7 +1567,13 @@ export class NavigatorRenderer {
     if (section === undefined) return undefined;
     const h = this.layout ? hitView(this.layout, x, y) : undefined;
     const axis = pic.axis;
-    const p = axis ? axis.positionAt(Math.max(axis.x0, Math.min(axis.x0 + axis.width - 1e-9, x))) : -1;
+    // over blocks: the block under the point, its system and the position there
+    const bh = this.overBlocks ? this.blockHit(x) : undefined;
+    const p = bh
+      ? bh.position
+      : axis && !this.overBlocks
+        ? axis.positionAt(Math.max(axis.x0, Math.min(axis.x0 + axis.width - 1e-9, x)))
+        : -1;
     const position = p >= 0 ? p : undefined;
     const row = this.rowAt(y);
     return {
@@ -1302,6 +1581,7 @@ export class NavigatorRenderer {
       part: best?.part ?? 'outside',
       axis: best?.axis ?? (nav.axes === 'rows' ? 'rows' : 'positions'),
       ...(position !== undefined && nav.axes !== 'rows' ? { position } : {}),
+      ...(bh ? { system: bh.system, block: bh.block } : {}),
       ...(row !== undefined ? { row } : {}),
       ...(h?.state !== undefined ? { band: h.state } : {}),
     };
@@ -1314,13 +1594,22 @@ export class NavigatorRenderer {
     if (section === undefined || !ctx) return undefined;
     const h = hitView(this.layout!, x, y);
     const axis = ctx.axis;
-    const p = axis ? axis.positionAt(Math.max(axis.x0, Math.min(axis.x0 + axis.width - 1e-9, x))) : -1;
+    const blocks = this.overBlocks ? this.picture?.section.blocks : undefined;
+    let p = axis && !blocks ? axis.positionAt(Math.max(axis.x0, Math.min(axis.x0 + axis.width - 1e-9, x))) : -1;
+    let at: { system: string; block: number } | undefined;
+    if (blocks?.length) {
+      const u = this.unitOn(ctx, x);
+      const b = blockIndexAt(blocks, u, 'start');
+      p = blockPositionAt(blocks[b], u, 'start') ?? -1;
+      at = { system: blocks[b].axis.system, block: b };
+    }
     return {
       section,
       part: 'outside',
       axis: 'positions',
       context: this.onMark(x) ? 'mark' : 'outside',
       ...(p >= 0 ? { position: p } : {}),
+      ...(at ?? {}),
       ...(h?.state !== undefined ? { band: h.state } : {}),
     };
   }
@@ -1346,9 +1635,15 @@ export class NavigatorRenderer {
    * path carries the edge (a codon a protein position). Undefined while the picture is not placed or the place maps
    * nowhere.
    */
-  sectionUnitAt(section: string, x: number): number | undefined {
+  sectionUnitAt(section: string, x: number, context = false): number | undefined {
     const axis = this.work?.axis;
     if (!axis) return undefined;
+    if (this.overBlocks) {
+      // over blocks the context is the genome: a click there is a jump (`context`: read on it, not the strip)
+      const on = context ? this.layout!.sections[0] : this.work!;
+      const s = this.options.view.sections.find((v) => v.address === section);
+      return s ? this.fromPicture(s, this.unitOn(on, x), 'start') : undefined;
+    }
     const u = axis.u0 + (x - axis.x0) / axis.scale;
     const inside = Math.max(0, Math.min(axis.total, u));
     const o = this.unitOfPicture(section, axis, inside);
@@ -1380,6 +1675,10 @@ export class NavigatorRenderer {
     const s = this.options.view.sections.find((v) => v.address === section);
     const path = this.paths.get(section);
     if (!axis || !s || !path) return Number.NaN;
+    if (this.overBlocks) {
+      const pu = this.toPicture(s, u, 'start');
+      return pu === undefined ? Number.NaN : this.xOn(this.work!, pu);
+    }
     let p = positionAt(s.axis, u);
     if (p === undefined) return Number.NaN;
     if (path.to) p = projectPoint(path.to, p);
@@ -1410,6 +1709,35 @@ function partOf(
   if (a !== 'outside') return a;
   const b = navigatorPart(x, w.w0, w.w1, w.lo, w.hi, c, touch);
   return b === 'start' ? 'body' : b;
+}
+
+type Block = NonNullable<ResolvedSection['blocks']>[number];
+
+/** Scratch for the places of a position (the cursor over blocks): allocation-free. */
+const PlaceBlocks = new Int32Array(64);
+const PlaceUnits = new Float64Array(64);
+
+/**
+ * The block holding a section unit (the last starting at or before it); on a block's edge as a `start` the next one, as
+ * an `end` the one before (a window's ends), by a binary search over the offsets: nothing made.
+ */
+function blockIndexAt(blocks: readonly Block[], u: number, side: 'start' | 'end'): number {
+  let lo = 0;
+  let hi = blocks.length - 1;
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1;
+    if ((blocks[mid].offset ?? 0) <= u) lo = mid;
+    else hi = mid - 1;
+  }
+  if (side === 'start' && lo + 1 < blocks.length && u >= (blocks[lo].offset ?? 0) + blockSpan(blocks[lo])) lo++;
+  if (side === 'end' && lo > 0 && u <= (blocks[lo].offset ?? 0)) lo--;
+  return lo;
+}
+
+/** A position's section unit on a block (its direction and scale), its nearest edge where the block does not show it. */
+function blockUnitAtPosition(block: Block, position: number, offset: number): number | undefined {
+  const o = offsetOf(block.axis, position) ?? nearestOffsetOf(block.axis, position);
+  return o === undefined ? undefined : offset + o * (block.form === 'whole' ? 1 : (block.scale ?? 1));
 }
 
 function trackHasRows(t: ResolvedSection['tracks'][number]): boolean {

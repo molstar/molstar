@@ -77,6 +77,8 @@ export interface Place {
   readonly state?: string | undefined;
   /** A ring's grouped label: the hits of the items it stands for (`target` `group`). */
   readonly members?: readonly { readonly element?: Key | undefined }[] | undefined;
+  /** A run's blocks (`target` `run`). */
+  readonly count?: number | undefined;
 }
 
 /** The parts a description collects. */
@@ -132,6 +134,18 @@ const BlockSection: CardSection = {
     const blocks = at.section.section.blocks;
     const k = at.place.block;
     if (!blocks || k === undefined || !blocks[k]) return;
+    // a run of small blocks: the block under the point, which of the run, not read at this zoom (genome coordinates)
+    if (at.place.target === 'run') {
+      const block = blocks[k];
+      const of = `one of ${(at.place.count ?? 0).toLocaleString('en-US')}`;
+      out.title = block.label;
+      out.row(blockKindName(at.model, block.axis.system), block.label);
+      out.row('Run', of);
+      if (at.place.state) out.row('Data', at.place.state);
+      out.words.push(`${block.label}, ${of}${at.place.state ? `, ${at.place.state}` : ''}`);
+      out.whole = true;
+      return;
+    }
     const say = (b: number, which: string) => {
       const block = blocks[b];
       if (!block) return;
@@ -496,7 +510,8 @@ class Words {
       yPosition:
         place.yPosition === undefined || Number.isNaN(place.yPosition) ? Number.NaN : Math.floor(place.yPosition),
     };
-    for (const s of Sections) s.describe(at, out);
+    // a run of small blocks says its block and the run alone
+    for (const s of Sections) if (t !== 'run' || s === BlockSection) s.describe(at, out);
     if (!out.words.length) return undefined;
     return { title: out.title || out.words[0], rows: out.rows, text: out.words.join(', ') };
   }
