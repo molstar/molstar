@@ -941,6 +941,11 @@ export const SeqLanguage = defineLanguage({
           pattern: '^[a-z][a-z0-9_-]*$',
           doc: 'The built-in type a reader without `type` draws instead, or `none`.',
         },
+        legend: {
+          type: 'string',
+          enum: ['auto', 'none'],
+          doc: 'Whether a legend keys its channels: `auto` (when absent) or `none`.',
+        },
         data: {
           type: 'ref',
           kinds: ['sequence', 'ranges', 'values', 'alignment', 'pairs', 'grid'],

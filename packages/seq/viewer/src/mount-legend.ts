@@ -5,7 +5,14 @@
  */
 
 import { colorHex } from '@molstar/seqx-core/theme/index';
-import { type LegendChannels, LegendChannelsModes, channelsRow, highlightColorOf, legendRows } from './legends.js';
+import {
+  type LegendChannels,
+  LegendChannelsModes,
+  type LegendSelection,
+  channelsRow,
+  highlightColorOf,
+  legendRows,
+} from './legends.js';
 
 export type { LegendChannels };
 
@@ -19,11 +26,15 @@ import type { SeqViewer } from './viewer.js';
 // hovered item's entry is outlined; the active highlight channels are rows with a clear. Thin over the DOM-free rows
 // (`legendRows`), which the headless twin reads. Everything it adds is taken away by the function it returns.
 
-export interface LegendPartOptions {
-  /** A track's or a scale's address: only that one's legend (every legend when absent). */
-  readonly of?: string;
-  /** Entries a legend lists before "+n more" (12). */
-  readonly maxItems?: number;
+export interface LegendPartOptions extends LegendSelection {
+  /**
+   * `full` (the default): a group a legend, its entries labelled. `compact`: one line a legend, its title then its
+   * swatches unlabelled (each named for the accessible name and on hover), a ramp a short bar with its domain's ends,
+   * steps joined cells, "+n" past `maxItems`; the same entries, focus and gestures.
+   */
+  readonly form?: 'full' | 'compact';
+  /** `vertical` (the default): the legends stacked. `horizontal`: in a row, wrapping (a band under the canvas). */
+  readonly orient?: 'vertical' | 'horizontal';
   /**
    * The highlight channels' row (_spec/README.md "Legends"): `reserve` (the default) holds its height whenever the part
    * is mounted, empty with no channel, so a highlight moves nothing below; `collapse` has the row only while a channel
@@ -37,6 +48,12 @@ export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: Le
   const channels = options.channels ?? 'reserve';
   if (!LegendChannelsModes.includes(channels))
     throw new RangeError(`legend part: channels must be one of ${LegendChannelsModes.join(', ')}, not "${channels}"`);
+  const compact = options.form === 'compact';
+  const horizontal = options.orient === 'horizontal';
+  if (options.form !== undefined && !['full', 'compact'].includes(options.form))
+    throw new RangeError(`legend part: form must be full or compact, not "${options.form}"`);
+  if (options.orient !== undefined && !['vertical', 'horizontal'].includes(options.orient))
+    throw new RangeError(`legend part: orient must be vertical or horizontal, not "${options.orient}"`);
   const doc = element.ownerDocument;
   // the part's root holds the legends' listbox and, outside it (a listbox holds options, not buttons), the channels row
   const root = doc.createElement('div');
@@ -47,7 +64,11 @@ export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: Le
   host.tabIndex = 0;
   host.setAttribute('role', 'listbox');
   host.setAttribute('aria-label', 'Legend');
-  host.style.cssText = 'display: flex; flex-direction: column; align-items: flex-start; gap: 12px;';
+  host.style.cssText = horizontal
+    ? 'display: flex; flex-flow: row wrap; align-items: flex-start; gap: 8px 24px;'
+    : 'display: flex; flex-direction: column; align-items: flex-start; gap: 12px;';
+  host.dataset.form = compact ? 'compact' : 'full';
+  host.dataset.orient = horizontal ? 'horizontal' : 'vertical';
   const channelsEl = doc.createElement('div');
   root.append(host);
   element.append(root);
@@ -73,11 +94,11 @@ export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: Le
       const group = doc.createElement('div');
       group.setAttribute('role', 'group');
       group.setAttribute('aria-label', row.title);
-      group.style.cssText = 'display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px;';
+      group.style.cssText = `display: flex; flex-wrap: ${compact ? 'nowrap' : 'wrap'}; align-items: center; gap: ${compact ? '0 2px' : '4px 8px'};`;
       const title = doc.createElement('span');
       title.textContent = row.title + (row.note ? ` (${row.note})` : '');
       // a group's title: muted, 600, 11 px (_spec/README.md "Legends")
-      title.style.cssText = 'color: var(--msui-text-muted, gray); font-weight: 600; font-size: 11px;';
+      title.style.cssText = `color: var(--msui-text-muted, gray); font-weight: 600; font-size: 11px;${compact ? ' margin-right: 6px;' : ''}`;
       group.append(title);
       for (const e of row.entries) {
         const item = doc.createElement('span');
@@ -85,11 +106,15 @@ export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: Le
         item.setAttribute('aria-label', e.name);
         item.dataset.legend = row.key;
         if (e.value !== undefined) item.dataset.value = e.value;
+        // the compact form: the label on hover and in the name, never as text (a ramp's ends aside)
+        if (compact) item.title = e.name;
         item.style.cssText = `display: inline-flex; align-items: center; gap: 4px; cursor: ${e.value !== undefined ? 'pointer' : 'default'}; border-radius: 3px; padding: 0 2px;${e.hovered ? ' outline: 2px solid var(--msui-accent, currentColor);' : ''}`;
         const swatch = doc.createElement('span');
         // the swatches match the canvas: never forced (forced colors keep data colors)
-        swatch.style.cssText = `forced-color-adjust: none; display: inline-block; width: ${e.ramp ? 64 : 10}px; height: 10px; background: ${e.ramp ? `linear-gradient(to right, ${e.ramp.map((c) => colorHex(c)).join(', ')})` : e.color !== undefined ? colorHex(e.color) : 'transparent'};`;
-        item.append(swatch, doc.createTextNode(e.label));
+        swatch.style.cssText = `forced-color-adjust: none; display: inline-block; width: ${e.ramp ? (compact ? 40 : 64) : 10}px; height: 10px; background: ${e.ramp ? `linear-gradient(to right, ${e.ramp.map((c) => colorHex(c)).join(', ')})` : e.color !== undefined ? colorHex(e.color) : 'transparent'};`;
+        if (!compact) item.append(swatch, doc.createTextNode(e.label));
+        else if (e.ends) item.append(doc.createTextNode(e.ends[0]), swatch, doc.createTextNode(e.ends[1]));
+        else item.append(swatch);
         if (e.value !== undefined) {
           const value = e.value;
           item.addEventListener(
@@ -107,6 +132,8 @@ export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: Le
           );
           item.addEventListener('pointerleave', () => void viewer.execute('legend.hover', {}));
         }
+        // a step's cells join: the group's gap taken back
+        if (compact && e.step) item.style.cssText += 'padding: 0; margin-right: -2px;';
         items.push(item);
         group.append(item);
       }
