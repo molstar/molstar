@@ -5,7 +5,7 @@
  */
 
 import { PCG } from '@molstar/core/data/util/hash-functions';
-import type { Node } from '@molstar/core/repr/tree';
+import type { Node, Value } from '@molstar/core/repr/tree';
 import { itWithin } from '@molstar/test-harness/timing';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { assembly, colinearBlocks, createSeqSpec, genome } from '@molstar/seqx-core/lang';
@@ -466,7 +466,9 @@ describe('a block’s direction', () => {
     const section = (children: Node[]): Node => ({ kind: 'section', id: 'g', params: { of: A }, children });
     // a block's direction read as the model reads it: none is the section's
     const derived = (children: Node[]) =>
-      blockNodes(model, section(children), '/views/v/g').map((n) => ({ direction: 'section', ...n.params }));
+      blockNodes(model, section(children), '/views/v/g').map(
+        (n): Record<string, Value> => ({ direction: 'section', ...n.params }),
+      );
     const shown = derived([]).map((p) => p.of as string);
     for (let round = 0; round < 20; round++) {
       const overrides: Node[] = [];
@@ -485,7 +487,7 @@ describe('a block’s direction', () => {
       const once = derived(overrides.map((c, i) => (i === k ? flip(c) : c)));
       const target = overrides[k].params!.of;
       // the last override of a sequence wins: flipping an earlier one of the same sequence changes nothing
-      const wins = overrides.findLastIndex((c) => c.params!.of === target) === k;
+      const wins = overrides.map((c) => c.params!.of).lastIndexOf(target) === k;
       const changed = once.flatMap((params, i) => (JSON.stringify(params) === JSON.stringify(base[i]) ? [] : [i]));
       expect(changed.length).toBe(wins ? 1 : 0);
       for (const i of changed) expect({ ...once[i], direction: 0 }).toEqual({ ...base[i], direction: 0 });
