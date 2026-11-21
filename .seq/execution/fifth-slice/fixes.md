@@ -17,30 +17,22 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   chr22 selected on the row, mirrored on the ring): profile the drag's frames (the selection's blocks and their
   emphasis on both views), bound a drag across 12 blocks to the frame budget at 0 bytes warm.
 
-- **A ring's own hover draws no mark** (the author, 2026-11-21, three-thousand-contigs): hovering the ring shows the
-  card but no position box on the ring, while hovering the row draws it there; sent to FX2 as its item 9; not started.
-
-- **Block rulers unnumbered at the fit** (the author, 2026-11-21, the-hosts-complex): chain blocks about 180 px wide
-  show tick marks and no numbers at the fit (numbered before GC2 and GC3); sent to FX2 as its item 8; not reproduced headless (it draws "100"/"200"), likely the
-  browser's text metrics: needs a look in the browser.
-- **The rows layout has no horizontal rail** (the author, 2026-11-21, Globins rows, family: "it's weird this view is
-  lacking the 'horizontal rail'. probably should be at the 'navigator' or at the bottom. in general, configurable"):
-  the tracks layout has its default rail under the ruler; the rows layout has the vertical overview and no horizontal
-  rail. Designed 2026-11-21 (navigators.md, "The positions rail beside a declared navigator, and its place":
-  `navigator.positionsRail` `always`, `navigator.railPlace` `ruler` | `bottom` | `navigator`); for FX3.
-
 - **The Transcripts track's spacing** (FX2 `e678d2dbc`: lanes start at a tall band's top; left open: the
   first row unlabelled and the blank below the lanes, a source-backed track's fixed height) (my look at GG's fix round; the author, 2026-11-21: "the spacing around the
   transcripts is weird"): about 100 px of blank lanes above the first transcript in gff3--tp-53 and as many below the last (the track
   taller than its lanes, the lanes centred in it), the first row
   unlabelled, and lanes packed unevenly around the labels; a tall track's lanes start at its top, evenly spaced.
-- **An assembly `sequence` override naming no sequence is dropped without a word** (GC1, found in its fix round): it
-  should say `seq.resolve.assembly.*` like an alias that names nothing does.
 - **A bare number as a block name** (`:name 01`): GC1 refuses it with "quote it" (`seq.query.form.param`), since core's
   address reader turns `01` into 1 before Seq* sees it. Keeping the text would need a raw-token surface in core repr
   (allowed: repr's public API is open to this work); take it only if a real name set needs it.
 
 ## Fixed
+
+- **The rows layout's horizontal rail**: FX3 (`ded361691`), `navigator.positionsRail` (`always`) and `navigator.railPlace`.
+- **A ring's own hover draws no mark**: FX3 (`ded361691`), the hovered view draws its own position box.
+- **An assembly override naming no sequence**: FX3 (`ded361691`), `seq.resolve.assembly.override`.
+- **Block rulers unnumbered at the fit**: not reproduced in a real browser (FX3: numbered from about 150 px a block;
+  unnumbered only at about 65 px, by the label rule).
 
 - **GC2's leftovers from my second look** (2026-11-21, after its fix round; fixed by GC3, `61e71891b`):
   - a double-click on the 25-block row zooms to bases (161,976,790) instead of fitting the block;
