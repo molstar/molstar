@@ -190,6 +190,20 @@ fix point with nothing open is skipped. A finding that needs a design is a drift
         over both (GFF3's `Name`, `ID`, `Alias`; GTF's `gene_name`, `gene_id`, `transcript_name`, `transcript_id`);
         the ranges layer's `line: 'gene'`.
   - [ ] **VC** (`briefs/vc-vcf.md`) VCF sites at level 1, extents by the index's rule, the anchor base kept.
+  - [ ] **GB** (added 2026-11-21, the author: "Add a GenBank lane"; `briefs/gb-genbank.md`; strong, untrusted input;
+        after VC, alone in the formats track) **GenBank read whole**: a short design section first (genome-formats.md,
+        "GenBank", agreed in the brief: what the runtime answers and what it refuses), then `format: 'genbank'`: a
+        file of one or more records, each a sequence (LOCUS's name, length and topology: `circular` a cyclic system;
+        ORIGIN's letters, the molecule type its alphabet) and its features as ranges (the key the category, the
+        qualifiers fields: `/label`, `/gene`, `/product`, `/note`); the location grammar: `complement`, `join` and
+        `order` (pieces of one feature, as GFF3's parts), `<` and `>` partial ends (kept as flags), a `join` over a
+        circular record's origin as one item across it, remote references (`J00194.1:100..202`) and `^` sites refused
+        per feature with an issue, never the file; `findNames` over `/label`, `/gene`, `/locus_tag`. Fixtures: the
+        plasmid's derived features written as GenBank by `record.ts` (as its GFF3 is: a record NCBI-shaped, bla's
+        `join` across the origin, lacZα `complement`), and the real L09137.2 flat file (its only feature `source`; a
+        download asked in the brief); fuzz and malformed-input tests as BE's and GG's. Its own size row (under 30 kB
+        like the other runtimes). The story side: "Try pUC19.gb" loads it (fixes.md), and a plasmid story reads the
+        GenBank file beside the GFF3 one, the two views equal.
 - [ ] **GATE**, with `pnpm build` and `pnpm check:workspace` (`@molstar/io` changed); each runtime its own size row.
 
 ### Stage 3: by region and across sections (after GC1; RG alone in the store)
@@ -242,7 +256,7 @@ Two lanes at once (loop.md). Three tracks:
 
 - **Coordinates** (the language, resolve, render, the viewer): FX1 → GC1 → SC and GC2 beside each other → GC3.
 - **Formats** (`@molstar/io` and runtimes): BZ beside FX1 or GC1 → BE, GG, VC (after GC1 for their params), two at a
-  time beside whatever runs in other files.
+  time beside whatever runs in other files; GB after VC.
 - **Views** (the store, render, examples, the extension): RG after GC1 (alone in the store; never beside SC, which
   touches resolve) → FR → LA; then GX and RX beside each other.
 
@@ -275,7 +289,7 @@ Never two lanes on the language (GC1 alone owns the bump; a later param goes thr
 
 Mol\* adapters and a live 3D view (the new mol viewer); BAM and CRAM; `.hic` and `.mcool` (the Hi-C example generated
 in the `seq` format); the designed-only runtimes (bigBed, 2bit, FASTA by region, PAF, PIF, chain); MAF; the Manhattan
-family, `split`, the keyed join (the close-out slice); GenBank; settings layers; agent tools; a React adapter; writers
+family, `split`, the keyed join (the close-out slice); settings layers; agent tools; a React adapter; writers
 beyond SVG, PNG and archives; the compute port, unless M5's profile of the whole genome shows the main thread is the
 limit.
 
@@ -283,6 +297,6 @@ limit.
 
 `fx-fix-lane.md` (copied from the fourth slice's, its items replaced), `gc1-genome-language.md`,
 `sc-complex-sections.md`, `gc2-genome-axis.md`, `gc3-genome-navigators.md`, `bz-bgzf-tabix.md`, `be-bed.md`,
-`gg-gff.md`, `vc-vcf.md`, `rg-region-reads.md`, `fr-format-regions.md`, `la-across-sections.md`,
+`gg-gff.md`, `vc-vcf.md`, `gb-genbank.md`, `rg-region-reads.md`, `fr-format-regions.md`, `la-across-sections.md`,
 `gx-genomes-dataset.md`, `rx-ring-extension.md`, `novice-pass.md` (the fourth slice's shape). Stage 0's six design
 briefs stay as the record.

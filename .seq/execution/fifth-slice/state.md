@@ -50,6 +50,9 @@
 - **One lane at a time** (the author, 2026-11-21: "slow down to just 1 active lane after current batch finishes, we
   are nearing usage limit"): after GC3 and GG finish, one agent at a time (a lane, then its reviewer, then its fix
   round), never two; VC waits for both.
+- **A GenBank lane in stage 2** (the author, 2026-11-21: "Add a GenBank lane", after "Try pUC19.gb" in Services ›
+  Your own file showed only a refusal): GB after VC, strong, a short design section first (plan, Stage 2); GenBank
+  leaves Out of scope.
 - **A Nightingale showcase as a storybook dev dependency** (the author, 2026-11-21: "yes, we can do a dev dependency
   version. maybe add a phase for this to slice 5?"): lane NS in stage 4; the npm install is approved with it; the
   fourth slice's "Nightingale dropped" stands for the packages (no dependency, no lane there).
@@ -115,11 +118,13 @@ order:
 1. **VC** (stage 2's last lane): write `briefs/vc-vcf.md` from genome-formats.md ("VCF", Bounds, Consequences) on BE's
    and GG's shape (`be-bed.md`, `gg-gff.md`); strong model (untrusted input), its strong review, one fix round.
    ClinVar's recording (#2: the `.tbi` whole and TP53's pages) is approved (the author: "Fetch all four").
-2. **Stage 2's GATE** (plan): `pnpm build`, `pnpm check:workspace`, each runtime's size row.
-3. **Stage 1's GATE, the author's**: the novice questions F3, F9, F11, F14, F25 (`fourth-slice/novice-findings.md`),
+2. **GB** (stage 2, after VC): write `briefs/gb-genbank.md` from the plan's GB entry; the genome-formats.md
+   "GenBank" section agreed in the brief first; ask before downloading L09137.2's flat file. Strong model.
+3. **Stage 2's GATE** (plan): `pnpm build`, `pnpm check:workspace`, each runtime's size row.
+4. **Stage 1's GATE, the author's**: the novice questions F3, F9, F11, F14, F25 (`fourth-slice/novice-findings.md`),
    each a yes or no with a recommendation.
-4. **RG** (stage 3, strong, alone in the store), then FR, LA; GX and RX in stage 4.
-5. **Fix lanes** on Sonnet (Decided) as `fixes.md` gathers items; open now: the hover card (placement, wrapping, the density row's highlight, bare row labels), the navigator's readout covering the control, track sizing with a cap and its own scroll (a design first), the navigator's window and zoom strip (a look design first), the square's sweep without feedback, the palette control (shown where it does nothing, twice, its arrow), the overview cut at the right on a wide page, the tree's leftmost line the 3,000-contig speed (M5).
+5. **RG** (stage 3, strong, alone in the store), then FR, LA; GX and RX in stage 4.
+6. **Fix lanes** on Sonnet (Decided; the two class items in `fixes.md`, the hover contract and the empty well, on the strong model) as `fixes.md` gathers items; open now: the hover card (placement, wrapping, the density row's highlight, bare row labels), the navigator's readout covering the control, track sizing with a cap and its own scroll (a design first), the navigator's window and zoom strip (a look design first), the square's sweep without feedback, the palette control (shown where it does nothing, twice, its arrow), the overview cut at the right on a wide page, the tree's leftmost line the 3,000-contig speed (M5).
 
 Agents: one at a time while usage is tight (Decided); the orchestrator's look and checks gate every merge.
 `foldback.md` collects the slice's lessons for the close.
