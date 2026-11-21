@@ -69,6 +69,7 @@ import { behaviorOf, createBehaviors, listedActions } from './viewer-behaviors.j
 import { FrameClock } from './viewer-clock.js';
 import { ViewerEmphasis } from './viewer-emphasis.js';
 import { ViewerFrame } from './viewer-frame.js';
+import { ViewerViewports } from './viewer-viewports.js';
 import { ViewerMotion } from './viewer-motion.js';
 import { ViewerRails } from './viewer-rails.js';
 import { holdSelection, revealLinked } from './viewer-selection.js';
@@ -183,6 +184,7 @@ export class SeqViewer extends ReactiveModel {
   private readonly _rails: ViewerRails;
   private readonly _emphasis: ViewerEmphasis;
   private readonly _frame: ViewerFrame;
+  private readonly _viewports: ViewerViewports;
   private _retired = false;
   /**
    * What `extend` (its chunk) reads: the extensions it registered with their counts, the bindings made with them, the
@@ -352,6 +354,7 @@ export class SeqViewer extends ReactiveModel {
       viewerSpec.story,
       viewerSpec.animation ?? frameAnimation(),
     ));
+    const viewports = (this._viewports = new ViewerViewports(view, motion));
     this.animation = motion.participant;
     onRetire(() => motion.dispose());
     const frame = (this._frame = new ViewerFrame(
@@ -359,7 +362,7 @@ export class SeqViewer extends ReactiveModel {
       fixedDpr,
       clock,
       motion,
-      (resolved) => this._viewport(resolved),
+      viewports,
       rails,
       emphasis,
       this._issues,
@@ -512,8 +515,7 @@ export class SeqViewer extends ReactiveModel {
 
   /** Attaches the Canvas2D backend (mounted UI), or none: the viewer then lays out and hit-tests without drawing. */
   useBackend(backend: CanvasBackend | undefined): void {
-    this._frame.backend = backend;
-    this._frame.baseDirty = true;
+    this._frame.useBackend(backend);
     this.schedule();
   }
 
@@ -624,11 +626,11 @@ export class SeqViewer extends ReactiveModel {
   }
 
   /**
-   * The window the renderer draws (`ViewerMotion.window`): the first leading section's, as the frame slot shows it
+   * The window the renderer draws (`ViewerViewports.window`): the first leading section's, as the frame slot shows it
    * during a motion; a frame reads it once.
    */
   private _viewport(resolved: ResolvedView, eye = true): RenderViewport | undefined {
-    return this._motion.window(resolved, eye);
+    return this._viewports.window(resolved, eye);
   }
 
   /** The viewport the last frame was drawn with, a copy (for the SVG and tests). */
@@ -749,7 +751,7 @@ export class SeqViewer extends ReactiveModel {
    */
   renderSvg(options: Partial<RenderSvgOptions> = {}): Promise<RenderSvgResult> {
     const resolved = this.view.resolved.value;
-    const viewports = resolved ? this._motion.all(resolved, false) : undefined;
+    const viewports = resolved ? this._viewports.all(resolved, false) : undefined;
     // a section that scrolls inside its box (a text's, as its layout placed it) exports every line (the figure): the
     // picture is as tall as it, not the canvas's scrolled box; a text laid out as tracks (no text layout listed) is not
     const figure = resolved?.sections.some((s) => this.placementOf(s.address)?.clip === true) ?? false;

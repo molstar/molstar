@@ -275,6 +275,12 @@ describe('Antibody: the editing views', () => {
     expect(resolveAddress(s.viewer.spec.root.value, ['views', 'main', 'heavy', 'ruler'])?.params?.label).toBe(
       'Heavy (B), IMGT',
     );
+    // the second ruler takes the other scheme: the two never read the same
+    const second = resolveAddress(s.viewer.spec.root.value, ['views', 'main', 'heavy', 'imgt']);
+    expect(second?.params?.label).toBe('Heavy (B), Kabat');
+    expect(
+      resolveAddress(s.viewer.spec.root.value, ['views', 'main', 'heavy', 'imgt', 'ruler'])?.params?.numbering,
+    ).toBe('kabat');
     await s.stack.undo();
     await settle(s);
     expect(hash(s)).toBe(start);
@@ -387,5 +393,55 @@ describe('Antibody: the rulers’ tick labels never overlap', () => {
       }
     expect(pairs).toBeGreaterThan(50);
     expect(overlaps).toEqual([]);
+  });
+});
+
+describe('Antibody: the CDR labels at the fit', () => {
+  // each CDR a short label (the track says the scheme): the three of a chain drawn at every fit width, none dropped
+  // for crowding its neighbour (CDR-H1 by Kabat, CDR-L1 and CDR-L2 by IMGT went at narrower frames)
+  it('every CDR of both chains is labelled in both schemes at a narrow and a wide frame', async () => {
+    for (const width of [700, 800, 1000, 1200]) {
+      const s = await open('schemes', width);
+      const f = s.viewer.draw() ?? s.viewer.frame!;
+      const texts = recordDrawLists(f.lists, ['data', 'labels'])
+        .split('\n')
+        .filter((l) => l.startsWith('text'));
+      for (const chain of ['L', 'H'])
+        for (const n of [1, 2, 3]) {
+          const drawn = texts.filter((t) => t.startsWith(`text "CDR-${chain}${n}`)).length;
+          expect(drawn, `${width}: CDR-${chain}${n} (one a scheme)`).toBe(2);
+        }
+      session?.dispose();
+      session = undefined;
+    }
+  });
+});
+
+describe('Antibody: the short CDR labels keep their scheme in the card', () => {
+  it('hovering CDR-H1 in the Kabat track and in the IMGT track: the cards name the track, so they differ', async () => {
+    const s = await open('schemes');
+    const i = wildType().heavy.kabat.indexOf('33');
+    const section = s.viewer.frame!.layout.sections[1];
+    const x = (section.axis!.x(i) + section.axis!.x(i + 1)) / 2;
+    const describer = () =>
+      new Describer({
+        spec: s.viewer.spec,
+        store: s.viewer.store,
+        addresses: s.viewer.addresses,
+        view: s.viewer.view,
+        layout: () => s.viewer.frame?.layout,
+      });
+    const cards: { title?: string; rows: readonly { label: string; value: string }[]; text: string }[] = [];
+    for (const track of ['cdrs-kabat', 'cdrs-imgt']) {
+      const t = s.viewer.frame!.layout.sections[1].tracks.find((k) => k.track.address.endsWith(`/${track}`))!;
+      s.viewer.input.move(x, t.box.y + t.box.height / 2);
+      await settle(s);
+      const card = describer().describe(s.viewer.hover.current)!;
+      expect(card.title).toBe('CDR-H1');
+      cards.push(card);
+    }
+    expect(cards[0].rows).toContainEqual({ label: 'Track', value: 'CDRs (Kabat)' });
+    expect(cards[1].rows).toContainEqual({ label: 'Track', value: 'CDRs (IMGT)' });
+    expect(cards[0].text).not.toBe(cards[1].text);
   });
 });

@@ -12,6 +12,8 @@ import { DesignEdits, design } from '../antibody/design.js';
 import { type Chain, ImgtCdrs, imgtCdrLabels, imgtOrder, kabatFromImgt } from '../antibody/numbering.js';
 import { fabFasta, numberingSeq, segmentLabels } from '../antibody/record-trim.js';
 import { PackageFolder } from '../node-assets.js';
+import { build as buildSchemes, rulerLabel } from '../antibody/schemes.js';
+import { resolveAddress } from '@molstar/core/repr/tree';
 
 // The Antibody's fixtures and rules against the data (examples.md, Antibody): the files are what the derived data and
 // the generators say; the anchors of both schemes; IMGT's rule gives SAbDab's published labels on the wild type; the
@@ -253,5 +255,16 @@ describe('the design', () => {
     expect(cdrAddress('heavy', 1, 'kabat', wildType().heavy.kabat)).toBe(
       '/data/heavy/(range :from 31 :to 35 :numbering kabat)',
     );
+  });
+});
+
+describe('the rulers’ labels', () => {
+  it('each ruler track names its chain and scheme: a bare scheme under the first label read as its second line', () => {
+    const root = buildSchemes();
+    for (const c of Chains) {
+      const label = (track: string) => resolveAddress(root, ['views', 'main', c, track])?.params?.label;
+      expect(label('ruler')).toBe(rulerLabel(c, 'Kabat'));
+      expect(label('imgt')).toBe(rulerLabel(c, 'IMGT'));
+    }
   });
 });

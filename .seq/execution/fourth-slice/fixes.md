@@ -13,14 +13,6 @@ queue. Each line: what is seen, where (the story), where it came from, its kind 
 - **T-DM1's CCD ids** (examples): DM1 and the SMCC/MCC linker are `UNL` placeholders (`examples/.../antibody/adc.ts`).
   Look them up in the repo's CCD data first; a fetch of the PDB's chemical component pages is asked before it is made.
   The author, 2026-11-20: "Both to FX3".
-- **The viewer's quick-lane folder over 2 s** (waste): `packages/seq/viewer` at 2.62-2.68 s on a quiet machine
-  (load 2.3) before and after HP1, about a third imports and a fifth jsdom's environment. Measured at HP1's merge. Check
-  which files set up jsdom or import the full viewer per file; share a fixture per file, or move a slow-by-nature test
-  with a quick representative kept.
-
-- **SZ's viewer split, four small findings** (low): `viewer.test.ts:116` checks the `_viewport`/`_renderer` shims, not the frame's own calls; `viewer-motion.ts`'s viewport assembly (`window`, `all`, `_bandsFor`) belongs in `viewer-viewports.ts`; `ViewerFrame`'s mutable public fields written by `useBackend`; `view-follow.ts`'s shared out-records. SZ part two's review.
-
-- **The Antibody's IMGT label reads as a second line** (look): Antibody, the ruler's numbering label. Third slice's look. Open: not part of FX2; whether the ruler's name or the `labels` lane makes the second line is not yet read.
 - **Alignment Rows And Columns collapses when the frame's size changes** (bug; look if the cause is only the story's
   sizing): Features › Query › Alignment Rows And Columns. When the Storybook zoom slider changes the frame's size, the
   plot collapses: at a small zoom the rows shrink into the top of a much larger, empty canvas; at a middle zoom the rows
@@ -28,14 +20,26 @@ queue. Each line: what is seen, where (the story), where it came from, its kind 
   end numbers (N, (, A half drawn). The status line under it says "The alignment's rows have not arrived" while the
   rows are drawn. The author, 2026-11-20. Check: the plot box against the host's size on resize (grids-and-rows.md: the
   plot box is fixed); the canvas's backing size against its CSS size at a changed devicePixelRatio or zoom; the right
-  edge's clip against the end-numbers column; the status text's settle. **FX1** (`51682eebc`) fixed the collapse and the status line. **Still open (FX2 did not touch it):** the last column's letters cut under the end numbers at 100%, not reproduced headlessly; needs a look in the browser.
+  edge's clip against the end-numbers column; the status text's settle. **FX1** (`51682eebc`) fixed the collapse and the status line. **Still open (FX2 did not touch it; FX4: not reproduced headlessly, a browser look at a fractional dpr):** the last column's letters cut under the end numbers at 100%, not reproduced headlessly; needs a look in the browser.
 - **A disabled toolbar button's dimming not looked at** (look): `@molstar/ui`'s Storybook and Prism, light and dark
   (computed at 1.7-1.9:1, not seen). Third slice's SF leftover. Open: a look, not a fix lane's work.
-- **Antibody: the against view's gaps faint at the fit; short CDR labels at the fit view** (look; H1 by Kabat, L1 and L2 by IMGT). Third slice's DA leftovers. FX2 fixed 112.1 (`ed8050a46`); these two were not part of FX2 and wait for the use gate's look.
 - **Not looked at past the lanes' own screenshots** (look, for the use gate's look): the Antibody's insertions at the
   closest zoom and the rail's row (CF), the rows layer (RX). Open: for the use gate's look.
 
+- **Antibody: the against view's gaps faint at the fit** (look; needs a rows param): FX4 found the rows layer skips
+  gap cells (`colorOf` gives `NoColor`) and the letters layer's `gapMarks` marks unmapped positions, not gap cells; a
+  visible gap needs `gap_marks` on the rows layer (a gap list in `RowsLay`, canvas and SVG, the image-tile step).
+
 ## Fixed
+
+- **SZ's viewer split, four small findings**: FX4 `8d824562c` (viewports in `viewer-viewports.ts`, the frame's backend
+  behind methods, the follow out-records owned by the view model, the frame's window call tested).
+- **The Antibody's IMGT label reads as a second line**: FX4 `dc646be7a` (both rulers name chain and scheme); the ruler
+  switch keeps one ruler per scheme `a43051b2c`.
+- **The Antibody's short CDR labels at the fit**: FX4 `04d3ad9ea` (`CDR-H1`), the scheme in the card's Track row
+  `a43051b2c`.
+- **The viewer's quick-lane folder over 2 s**: FX4 `14b9025ba` stubbed jsdom's canvas (24 errors gone; time within
+  noise, no folder-wide waste found across 67 files); the folder's budget stays the author's question (gaps.md).
 
 - **Submenus from a command's select param** (missing build, the design holds it: track-header-parts.md, "A command
   whose one param is a select is a submenu"): HP2 builds them from an entry's `items` because `layer.channel` has no

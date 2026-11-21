@@ -12,6 +12,7 @@ import { CanvasBackend } from '../canvas/backend.js';
 import { FakeCanvas } from '../canvas/_test/recording.js';
 import { DefaultSeqViewerSpec } from '../default-spec.js';
 import { HoverProvider } from '../behaviors/providers.js';
+import { ViewerViewports } from '../viewer-viewports.js';
 import { createSeqViewer, type SeqViewer } from '../viewer.js';
 import { viewerItem } from '../config.js';
 import { Gene, Protein, proteinOnGene } from './fixture.js';
@@ -110,14 +111,14 @@ describe('createSeqViewer', () => {
   it('a frame reads its window once, and draws with the layouts its moves navigate by', async () => {
     const { viewer } = await make();
     const internal = viewer as unknown as {
-      _viewport(...args: unknown[]): unknown;
-      _renderer: { options: { layouts?: unknown } };
       view: { _layouts: { layouts?: unknown } };
     };
-    const spy = vi.spyOn(internal, '_viewport');
+    // the frame's own call, on the viewports it was composed with
+    const spy = vi.spyOn(ViewerViewports.prototype, 'window');
     viewer.draw();
     expect(spy).toHaveBeenCalledTimes(1);
-    expect(internal._renderer.options.layouts).toBe(viewer.layouts);
+    spy.mockRestore();
+    expect((viewer.renderer as unknown as { options: { layouts?: unknown } }).options.layouts).toBe(viewer.layouts);
     expect(internal.view._layouts.layouts).toBe(viewer.layouts);
   });
 

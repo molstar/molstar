@@ -12,12 +12,13 @@
 import type { Node } from '@molstar/core/repr/tree';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { DarkTokens, recordDrawLists } from '@molstar/seqx-core/render';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { viewerItem } from '../config.js';
 import { DefaultSeqViewerSpec } from '../default-spec.js';
 import { highlightColorOf } from '../legends.js';
 import { mountLegend } from '../mount-legend.js';
 import { createSeqViewer, type SeqViewer } from '../viewer.js';
+import { stubCanvasContext } from './canvas-stub.js';
 import { type Frames, installFrames } from './frames.js';
 
 /** 10 residues on a 40-nucleotide gene (one exon, 5 to 35). */
@@ -36,6 +37,7 @@ function spec(): Node {
 
 let frames: Frames | undefined;
 let viewer: SeqViewer | undefined;
+beforeEach(stubCanvasContext);
 afterEach(() => {
   viewer?.retire();
   frames?.restore();

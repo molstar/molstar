@@ -8,6 +8,7 @@ import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { describe, expect, it } from 'vitest';
 import { viewerConfig } from '../config.js';
 import { SpecModel } from '../models/spec.js';
+import { followerRange, leaderRange } from '../models/view-follow.js';
 import { ViewModel } from '../models/view.js';
 import {
   type FixtureOptions,
@@ -99,6 +100,26 @@ describe('ViewModel: following both ways and over a cyclic origin', () => {
     view.setRange(ProteinSection, 1, 3);
     expect(seen).toEqual([[5, 16]]);
     off();
+  });
+});
+
+describe('the follow functions write into the caller’s record', () => {
+  it('a range is the record asked for, so two views never share one', () => {
+    const { view } = setup();
+    view.setWidth(GeneSection, 20);
+    view.setWidth(ProteinSection, 20);
+    const section = view.resolved.value!.sections.find((s) => s.follow)!;
+    const gene = view.get(section.follow!.leader)!;
+    const a = { start: 0, end: 0 };
+    const b = { start: 0, end: 0 };
+    expect(leaderRange(section, gene, 5, 13, 1, 1, undefined, 'shortest', a)).toBe(a);
+    expect(leaderRange(section, gene, 8, 14, 1, 1, undefined, 'shortest', b)).toBe(b);
+    expect(a).not.toEqual(b);
+    const p = { start: 0, end: 0, pieces: undefined };
+    const q = { start: 0, end: 0, pieces: undefined };
+    expect(followerRange(section, gene, undefined, 20, 'shortest', 40, p)).toBe(p);
+    expect(followerRange(section, { start: 1, end: 2 }, undefined, 20, 'shortest', 40, q)).toBe(q);
+    expect(p).not.toEqual(q);
   });
 });
 

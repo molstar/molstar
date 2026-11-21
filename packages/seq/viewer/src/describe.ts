@@ -220,10 +220,15 @@ const ItemSection: CardSection = {
     const category = at.words.categoryOf(l, el.key);
     const strand = at.words.strandOf(l, el.key, it.start);
     out.title = it.label;
+    // the track's name: a short drawn label (`CDR-H1`) is told apart by it (`CDRs (Kabat)`)
+    const track = at.section.tracks.find((t) => t.layers.includes(l))?.track.label;
+    if (track) out.row('Track', track);
     out.row('Extent', `${system} ${extentText(it)}`);
     if (category) out.row('Category', category);
     if (strand) out.row('Strand', strand);
-    out.words.push(`${itemText(system, it)}${category ? `, ${category}` : ''}${strand ? `, strand ${strand}` : ''}`);
+    out.words.push(
+      `${itemText(system, it)}${track ? `, ${track}` : ''}${category ? `, ${category}` : ''}${strand ? `, strand ${strand}` : ''}`,
+    );
     out.whole = true;
   },
 };

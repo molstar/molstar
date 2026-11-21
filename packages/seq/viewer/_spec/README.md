@@ -452,9 +452,9 @@ forgotten so the next sync tries again. Retired with its owner, the store with i
 
 `viewer-spec.ts`, `viewer.ts`, `default-spec.ts`: a viewer is composed from an explicit spec, as a Mol* plugin is.
 `viewer.ts` composes and wires; each concern is a module beside it: the behaviors (`viewer-behaviors.ts`), the frame
-clock (`viewer-clock.ts`), motion, the frame slot and the viewports a frame reads as it shows them (`viewer-motion.ts`),
-the rails and navigators (`viewer-rails.ts`), the emphasis (`viewer-emphasis.ts`), what a selection moves
-(`viewer-selection.ts`) and the frame (`viewer-frame.ts`).
+clock (`viewer-clock.ts`), motion and the frame slot (`viewer-motion.ts`), the viewports a frame reads as the slot shows
+them (`viewer-viewports.ts`), the rails and navigators (`viewer-rails.ts`), the emphasis (`viewer-emphasis.ts`), what a
+selection moves (`viewer-selection.ts`) and the frame (`viewer-frame.ts`).
 
 - **Extensions** (`SeqViewerSpec.extensions`, `SeqViewerExtension`: the core's descriptor, core's "Context",
   Extensions, and the viewer's kinds as the built-ins': `behaviors`, `commands`, `bindings`, `headerActions`):

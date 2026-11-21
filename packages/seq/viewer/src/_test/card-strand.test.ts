@@ -158,7 +158,7 @@ describe.each(['source', 'inline'] as const)('a range’s strand in the card and
     const v = await make(from);
     const minus = cardOf(v, 'minus');
     expect(minus.card!.rows).toContainEqual({ label: 'Strand', value: '−' });
-    expect(minus.card!.text).toBe('minus, chr 21–80, strand −');
+    expect(minus.card!.text).toBe('minus, chr 21–80, genes, strand −');
     expect(minus.said).toBe(minus.card!.text);
     expect(cardOf(v, 'plus').card!.rows).toContainEqual({ label: 'Strand', value: '+' });
     const none = cardOf(v, 'none');

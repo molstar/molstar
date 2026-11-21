@@ -37,7 +37,14 @@ import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/con
 import { axisTotal } from './axis.js';
 import type { SpecModel } from './spec.js';
 import { type BandRows, type Bands, ViewBands } from './view-bands.js';
-import { followerRange, followOrder, leaderRange, MaxFollowDepth } from './view-follow.js';
+import {
+  type FollowerRangeOut,
+  followerRange,
+  followOrder,
+  type LeaderRangeOut,
+  leaderRange,
+  MaxFollowDepth,
+} from './view-follow.js';
 import { DetachedPrefix, type Group, groupSections, rangeOf, type SectionState } from './view-groups.js';
 import {
   type JumpKind,
@@ -99,6 +106,9 @@ export class ViewModel extends ReactiveModel {
   private _groups = new Map<string, Group>();
   /** Sections in an order where each leader comes before its followers. */
   private _order: string[] = [];
+  /** The records the follow functions write into: this model's own, so a move and a publish make none. */
+  private readonly _leaderOut: LeaderRangeOut = { start: 0, end: 0 };
+  private readonly _followerOut: FollowerRangeOut = { start: 0, end: 0, pieces: undefined };
   private readonly _spec: SpecModel;
   readonly config: ViewerConfig;
   /** The address of the view shown; undefined: the spec's first view. */
@@ -671,7 +681,7 @@ export class ViewModel extends ReactiveModel {
     const follow = s.section.follow!;
     const lead = this.get(follow.leader);
     if (!lead || !this.get(s.section.address)) return false;
-    const r = leaderRange(s.section, lead, start, end, ms, me, delta, this._arc());
+    const r = leaderRange(s.section, lead, start, end, ms, me, delta, this._arc(), this._leaderOut);
     return !!r && this.setRange(follow.leader, r.start, r.end);
   }
 
@@ -904,7 +914,15 @@ export class ViewModel extends ReactiveModel {
       return;
     }
     const pending = lead.pending || axisTotal(s.section.axis) === undefined || s.width <= 0;
-    const r = followerRange(s.section, lead, prev, s.width, this._arc(), this.config.viewport.maxPxPerPosition);
+    const r = followerRange(
+      s.section,
+      lead,
+      prev,
+      s.width,
+      this._arc(),
+      this.config.viewport.maxPxPerPosition,
+      this._followerOut,
+    );
     this._set(address, r.start, r.end, s, pending, follow.leader, r.pieces);
   }
 }

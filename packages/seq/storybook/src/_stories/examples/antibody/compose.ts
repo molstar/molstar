@@ -64,12 +64,17 @@ export function setRuler(
   numbering: string,
   chains: readonly Chain[] = ['light', 'heavy'],
 ): Promise<string> {
-  // the track's label says the scheme its ruler shows
+  // the track's label says the scheme its ruler shows; the second ruler takes the other scheme, so the two never
+  // read the same
   const scheme = SchemeNames[numbering] ?? numbering;
+  const other = numbering === 'imgt' ? 'kabat' : 'imgt';
+  const second = (c: Chain) => ['views', 'main', c, 'imgt'];
   return step(s, `Ruler in ${numbering}`, {
     ops: chains.flatMap((c) => [
       { op: 'set' as const, at: RulerLayer(c), key: 'numbering', value: numbering },
       { op: 'set' as const, at: RulerLayer(c).slice(0, -1), key: 'label', value: rulerLabel(c, scheme) },
+      { op: 'set' as const, at: [...second(c), 'ruler'], key: 'numbering', value: other },
+      { op: 'set' as const, at: second(c), key: 'label', value: rulerLabel(c, SchemeNames[other]) },
     ]),
   });
 }

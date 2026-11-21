@@ -6,14 +6,7 @@
 
 import { type ReadonlyState, State } from '@molstar/core/reactive';
 import type { Issue } from '@molstar/core/repr/tree';
-import {
-  type Frame,
-  type FrameInput,
-  type Placement,
-  Renderer,
-  type Viewport as RenderViewport,
-} from '@molstar/seqx-core/render';
-import type { ResolvedView } from '@molstar/seqx-core/view';
+import { type Frame, type FrameInput, type Placement, Renderer } from '@molstar/seqx-core/render';
 import type { SeqTokens } from '@molstar/seqx-core/render';
 import type { HoverCardBehavior } from '@molstar/seqx-viewer/behaviors';
 import type { CanvasBackend } from '@molstar/seqx-viewer/canvas';
@@ -22,6 +15,7 @@ import type { FrameClock } from './viewer-clock.js';
 import type { ViewerEmphasis } from './viewer-emphasis.js';
 import type { ViewerMotion } from './viewer-motion.js';
 import type { ViewerRails } from './viewer-rails.js';
+import type { ViewerViewports } from './viewer-viewports.js';
 
 // The viewer's frame (_spec/README.md "Composition"): the renderer, made again when the model or the view changes; a
 // frame lays the view out when anything it reads changed (else only the emphasis passes are redrawn, a hover), asks
@@ -31,11 +25,11 @@ import type { ViewerRails } from './viewer-rails.js';
 type Mutable<T> = { -readonly [K in keyof T]: T[K] };
 
 export class ViewerFrame {
-  backend: CanvasBackend | undefined;
-  renderer: Renderer | undefined;
-  frame: Frame | undefined;
+  private _backend: CanvasBackend | undefined;
+  private _renderer: Renderer | undefined;
+  private _frame: Frame | undefined;
   /** The backend draws the base passes again on the next frame (a new backend, a token table). */
-  baseDirty = true;
+  private _baseDirty = true;
   private readonly _rendererFor: unknown[] = [];
   private _wanter: { want(w: readonly any[]): void; dispose(): void } | undefined;
   private _contentHeight = 0;
@@ -50,23 +44,39 @@ export class ViewerFrame {
     private readonly fixedDpr: number | undefined,
     private readonly clock: FrameClock,
     private readonly motion: ViewerMotion,
-    /** The window the renderer draws, read once a frame (the viewer's, over `ViewerMotion.window`). */
-    private readonly window: (resolved: ResolvedView) => RenderViewport | undefined,
+    /** The window and the viewports a frame reads, as the frame slot shows them. */
+    private readonly viewports: ViewerViewports,
     private readonly rails: ViewerRails,
     private readonly emphasis: ViewerEmphasis,
     /** The layout's issues of the last frame, set when it lays out (`SeqViewer.layoutIssues`). */
     private readonly issues: State<readonly Issue[]>,
   ) {}
 
+  /** The renderer of the last frame (made again when the model or the view changes). */
+  get renderer(): Renderer | undefined {
+    return this._renderer;
+  }
+
+  /** The last frame drawn. */
+  get frame(): Frame | undefined {
+    return this._frame;
+  }
+
+  /** Attaches the backend that draws the lists (none: the frame lays out and hit-tests only); it draws everything next. */
+  useBackend(backend: CanvasBackend | undefined): void {
+    this._backend = backend;
+    this._baseDirty = true;
+  }
+
   /** The token table changed: the renderer keeps its layout key's token version, the backend redraws. */
   setTokens(tokens: SeqTokens): void {
-    if (this.renderer) this.renderer.tokens = tokens;
-    this.baseDirty = true;
+    if (this._renderer) this._renderer.tokens = tokens;
+    this._baseDirty = true;
   }
 
   /** A section's placement in the last frame (its strips, what its layout's arithmetic reads), by address. */
   placementOf(section: string): Placement | undefined {
-    const sections = this.frame?.layout.sections;
+    const sections = this._frame?.layout.sections;
     if (!sections) return undefined;
     for (let i = 0; i < sections.length; i++) if (sections[i].section.address === section) return sections[i].placement;
     return undefined;
@@ -88,8 +98,8 @@ export class ViewerFrame {
     const store = viewer.store;
     const context = viewer.context;
     const rr = this._rendererFor;
-    if (!this.renderer || rr[0] !== model || rr[1] !== resolved) {
-      this.renderer = new Renderer({
+    if (!this._renderer || rr[0] !== model || rr[1] !== resolved) {
+      this._renderer = new Renderer({
         model,
         view: resolved,
         data: store.store,
@@ -108,7 +118,7 @@ export class ViewerFrame {
       this._wanter?.dispose();
       this._wanter = store.store.wanter();
     }
-    const renderer = this.renderer;
+    const renderer = this._renderer;
     const dpr =
       this.fixedDpr ?? (config.canvas.dpr === 'device' ? (globalThis.devicePixelRatio ?? 1) : config.canvas.dpr);
     viewer.dpr = dpr;
@@ -121,8 +131,8 @@ export class ViewerFrame {
     this.emphasis.update();
     const input = this._input;
     // every leading section its own viewport, read by its layout (_spec/README.md "Composition"); the first's once
-    const vp = this.window(resolved);
-    const viewports = this.motion.all(resolved);
+    const vp = this.viewports.window(resolved);
+    const viewports = this.viewports.all(resolved);
     if (viewports) input.viewports = viewports;
     else delete input.viewports;
     const rails = this.rails;
@@ -171,7 +181,7 @@ export class ViewerFrame {
       if (input.settled) viewer.legends.update(frame.layout);
       store.holdShown(frame.layout.shown);
     }
-    this.frame = frame;
+    this._frame = frame;
     // the layout placed the view (its width): a rail that went idle or live with it is drawn so now (the window pass
     // alone: which rails can move is outside the key)
     const wasActive = rails.active;
@@ -179,7 +189,7 @@ export class ViewerFrame {
     if (rails.rails && rails.active !== wasActive) {
       input.railsActive = rails.active;
       frame = renderer.frame(input);
-      this.frame = frame;
+      this._frame = frame;
     }
 
     // a resting pointer is hit again once a frame the view moves under it (EC-143)
@@ -191,16 +201,16 @@ export class ViewerFrame {
       if (changed) {
         this.emphasis.update();
         frame = renderer.frame(input);
-        this.frame = frame;
+        this._frame = frame;
       }
     }
 
-    const backend = this.backend;
+    const backend = this._backend;
     if (backend) {
       backend.fonts.setStacks(renderer.tokens.fonts);
-      this.baseDirty = backend.resize(size.width, size.height, dpr) || this.baseDirty;
-      backend.draw(frame.lists, rebuilt || frame.base || this.baseDirty);
-      this.baseDirty = false;
+      this._baseDirty = backend.resize(size.width, size.height, dpr) || this._baseDirty;
+      backend.draw(frame.lists, rebuilt || frame.base || this._baseDirty);
+      this._baseDirty = false;
     }
     viewer.counts.frames++;
     this._drawn.set(this._drawn.value + 1);
