@@ -237,11 +237,14 @@ export function hovers(
   for (let x = 130; x < 1430; x += 5)
     for (const sec of layout.sections)
       for (const t of sec.placement.strips.n < 2 ? sec.tracks : []) {
-        const y = t.box.y + t.box.height / 2;
-        const h = hitView(layout, x, y);
-        if (h) {
-          hits.push(h);
-          points.push({ x, y });
+        // near the track's top, else its middle: a tall band of lanes starts them at its top (core _spec, Ranges)
+        for (const y of [t.box.y + Math.min(t.box.height / 2, 8), t.box.y + t.box.height / 2]) {
+          const h = hitView(layout, x, y);
+          if (h) {
+            hits.push(h);
+            points.push({ x, y });
+            break;
+          }
         }
       }
   const emphasis: Emphasis[] = [];

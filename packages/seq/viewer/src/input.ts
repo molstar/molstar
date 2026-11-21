@@ -713,11 +713,15 @@ export class ViewerInput {
       let n: SpecNode | undefined = this.viewer.spec.root.value;
       for (const id of title.layer.split('/').filter(Boolean)) n = n?.children?.find((c) => c.id === id);
       const now = n?.params?.order as { field?: unknown; direction?: unknown } | undefined;
-      const flip = typeof now === 'object' && now?.field === title.state && now.direction !== 'descending';
-      void this.viewer.execute('rows.order', {
-        track: trackOfLayer(title.layer),
-        order: { field: title.state, direction: flip ? 'descending' : 'ascending' },
-      });
+      const here = typeof now === 'object' && now?.field === title.state;
+      // ascending, descending, then none: the third click clears this column's sort
+      if (here && now!.direction === 'descending')
+        void this.viewer.execute('rows.unsort', { track: trackOfLayer(title.layer) });
+      else
+        void this.viewer.execute('rows.order', {
+          track: trackOfLayer(title.layer),
+          order: { field: title.state, direction: here ? 'descending' : 'ascending' },
+        });
       this._suppressClick = false;
       return true;
     }
@@ -949,6 +953,18 @@ export class ViewerInput {
     }
     if (block && block !== 'whole') {
       this.viewer.runCommand('view.focus', { section, focus: block });
+      return true;
+    }
+    // a position alone (a ruler's) where a unit is under a pixel: one zoom step about the pointer, never the closest
+    // zoom to a base (chr17 at the fit to 20 bases); a unit that is drawn (a letter) still focuses
+    const shown = this.viewer.frame?.layout.sections.find((x) => x.section.address === section);
+    const scale = shown?.layout.name === 'tracks' ? Math.abs(shown.axis?.scale ?? 1) : 1;
+    if (positional && !cell && !block && at >= 0 && scale < 1 && action === 'view.focus') {
+      this.viewer.runCommand('view.zoom-in', {
+        section,
+        at,
+        step: this.viewer.config.navigate.doubleClickZoomStep,
+      });
       return true;
     }
     const focus = hull ?? (cell ? { start: Math.floor(at), end: Math.floor(at) + 1 } : undefined);

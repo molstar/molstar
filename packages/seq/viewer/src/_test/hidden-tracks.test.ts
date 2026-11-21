@@ -8,6 +8,7 @@
 import { SeqCoreConfig } from '@molstar/seqx-core/context';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { railSections } from '@molstar/seqx-core/render';
+import { hiddenTracksOf } from '@molstar/seqx-core/render/headers';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { RecordingContext } from '../canvas/_test/recording.js';
 import { DefaultSeqViewerSpec } from '../default-spec.js';
@@ -109,6 +110,34 @@ describe('viewer.hiddenTracks', () => {
     await v.settle();
     expect(v.view.resolved.value!.sections[1].tracks).toEqual([]);
     expect(v.hiddenTracks.value.map((t) => t.section)).toEqual(['/views/main/two', '/views/main/two']);
+  });
+});
+
+describe('every hidden track is listed by a name', () => {
+  it('an empty label (a ruler’s, the rows’) falls back to the layer’s type, in the list, the menu and the button', async () => {
+    const b = createSeqSpec({ title: 'unlabelled' });
+    const p = b.data.sequence('p', { alphabet: 'protein', letters: 'MEEPQSDPSVEPPLSQETFSDLWKLLPENN' });
+    b.views.view('main', (v) => {
+      const s = v.section('one', { of: p });
+      s.track('ruler', { label: '' }).layer('ruler', { type: 'ruler' });
+      s.track('blank', { label: '  ' }).layer('l', { type: 'letters' });
+      s.track('named', { label: 'Named' }).layer('l', { type: 'letters' });
+    });
+    const v = (viewer = createSeqViewer({
+      ...DefaultSeqViewerSpec(),
+      ui: undefined,
+      history: uiHistory(),
+      config: [[SeqCoreConfig.render, { labelWidth: 140 }]],
+    }));
+    await v.load(b.build());
+    v.resize(600);
+    await v.settle();
+    for (const id of ['ruler', 'blank', 'named']) await v.execute('track.hide', { address: `/views/main/one/${id}` });
+    const names = v.hiddenTracks.value.map((t) => t.label);
+    expect(names).toEqual(['Ruler', 'Letters', 'Named']);
+    const section = v.view.resolved.value!.sections[0];
+    // the header menu's "Show hidden" entry reads the same names (core's list, by the resolved section)
+    expect(hiddenTracksOf(v.spec.model.value, section).map((t) => t.label)).toEqual(names);
   });
 });
 

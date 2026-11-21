@@ -1387,11 +1387,16 @@ selection's gestures and the cursor's moves are session state; the cursor's focu
   layer's `row` hit it pans as any. Clades fold only in tree order (`when` says). `rows.filter` waits for a `filter`
   param of the rows layer. **A row column's title** (a `column-title` hit, its `state` the field): a click runs
   `rows.order { field, ascending }` (one patch), a click on the title of the field the rows are ordered by ascending
-  runs it `descending` (the order read from the spec as it is now); before the double-click's drop, so a fast second
-  click flips again. Its cells hit as their row's header (select and hover as the label does), naming the value in the
-  hit's `state` (the hover keeps it for the targets that read it, `row`, `column-title` and `columns-hidden`, never
-  another's, a logo's letter, so a move within a position stays one hover: a cut value reads whole in the tip pass under
-  the pointer alone, and the card names it). **The hidden-columns chip** (a `columns-hidden` hit): its card lists each
+  runs it `descending`, a third click on it **`rows.unsort`** (the order before the first sort by a column, remembered
+  by the behavior: `tree`, `data`, or none; the author, 2026-11-21: "it doesn't seem to be possible to unsort"), each a
+  patch (one undo step, so undo restores the sort); the order read from the spec as it is now, before the double-click's
+  drop, so a fast second click steps again. **`viewer.rowSort`** (`ReadonlyState<RowSortEntry[]>`: layer, track, field,
+  direction, read from the spec; its `listen` the change event) is for the host, which draws the control (the stories'
+  toolbar has a "Clear sort", enabled while sorted): the view draws no clear-sort chip of its own, as with hidden
+  tracks. Its cells hit as their row's header (select and hover as the label does), naming the value in the hit's
+  `state` (the hover keeps it for the targets that read it, `row`, `column-title` and `columns-hidden`, never another's,
+  a logo's letter, so a move within a position stays one hover: a cut value reads whole in the tip pass under the
+  pointer alone, and the card names it). **The hidden-columns chip** (a `columns-hidden` hit): its card lists each
   hidden column and why ("no room at this width"), announced the same; a click does nothing.
 
 ## Legends
@@ -1456,7 +1461,10 @@ derived on settle: a legend that changes during a pan reads as noise, and its co
   taken away by what it returns. The host places it outside the view (a toolbar, a panel): the default viewer's
   Storybook composition mounts it in its toolbar (`toolbarWithHiddenTracks`), the minimal viewer none. Why: a library's
   view never decides where a host's controls go, and chrome that appears on a hide moves what the user was looking at; a
-  host that mounts no list leaves its hidden tracks reachable only by the menu, the palette and the spec.
+  host that mounts no list leaves its hidden tracks reachable only by the menu, the palette and the spec. Every entry is
+  listed by a name (`hiddenTrackName`): its label, its id without one, and for an empty label (a ruler's, the rows': the
+  author's) its layer's `label` or `title`, else its type as a word ("Ruler", "Rows"); the list and the menu share it.
+  Why: the list has no header to read a label from.
 - **The Legend part lists the active highlight channels** after the legends: a row a channel (`data-highlight`) with a
   swatch in the channel's color (`highlightColorOf`, beside the legend rows) shaped by its style, and a Clear, which
   runs `highlight.clear` with the channel's name. The rows are redrawn only when the channel names, a channel's style or

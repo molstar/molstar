@@ -238,6 +238,7 @@ export {
   HeaderStateNames,
   type HeaderStatePart,
   type HiddenTrack,
+  hiddenTrackName,
   type SectionHeaderLine,
 } from './headers.js';
 export { type ValuesLay, type ValuesPrep, ValuesType } from './values.js';

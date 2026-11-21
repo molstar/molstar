@@ -21,6 +21,7 @@ import { keyConflicts } from '../bindings.js';
 import { viewerItem } from '../config.js';
 import { DefaultSeqViewerSpec } from '../default-spec.js';
 import { Describer } from '../describe.js';
+import { type UiHistory, uiHistory } from '../ui-history.js';
 import { createSeqViewer, type SeqViewer } from '../viewer.js';
 import { type Frames, installFrames } from './frames.js';
 
@@ -485,12 +486,72 @@ describe('the rows’ columns in the viewer', () => {
     await click();
     expect(rows().params?.order).toEqual({ field: 'label', direction: 'descending' });
     expect(shown(lay(v))).toEqual(['NGB', 'MYG', 'HBB', 'HBA', 'GLB', 'CYG']);
-    // a fast second click (the platform's `detail` 2) flips again, read from the spec as it is now (no frame between)
+    // a fast second click (the platform's `detail` 2) steps again, read from the spec as it is now (no frame between):
+    // the third click cleared the sort, the fourth sorts again
     const l = lay(v);
     expect(v.input.click(l.cols.titleX[0] + 2, l.cols.titleY - 3, { detail: 1 })).toBe(true);
     expect(v.input.click(l.cols.titleX[0] + 2, l.cols.titleY - 3, { detail: 2 })).toBe(true);
     await v.settle();
-    expect(rows().params?.order).toEqual({ field: 'label', direction: 'descending' });
+    expect(rows().params?.order).toEqual({ field: 'label', direction: 'ascending' });
+  });
+
+  it('a third click clears the sort (the rows as before any sort); rows.unsort does too; viewer.rowSort tells each change; undo restores the sort', async () => {
+    vi.useFakeTimers({ toFake: ['Date', 'performance'] });
+    frames = installFrames();
+    const b = createSeqSpec({ title: 'unsort' });
+    const aln = b.data.alignment('aln', { alphabet: 'protein', rows: { label: Labels, letters: Letters } });
+    b.views.view('v', (vw) =>
+      vw.section('s', { of: aln }, (s) => {
+        s.track('ruler', { label: '' }, (t) => t.layer('ruler', { type: 'ruler' }));
+        s.track('rows', { label: '', height: 140 }, (t) =>
+          t.layer('r', { type: 'rows', data: aln, columns: [{ field: 'label', side: 'right' }] } as never),
+        );
+      }),
+    );
+    const v = createSeqViewer({
+      ...DefaultSeqViewerSpec(),
+      ui: undefined,
+      history: uiHistory(),
+      config: [[viewerItem('view.jumpMs'), 0]],
+    });
+    viewer = v;
+    await v.load(b.build());
+    v.resize(900);
+    await v.settle();
+    frames.flush();
+    const shown = (l: RowsLay) => Array.from({ length: l.display.count }, (_, i) => l.label(l.display.rowAt(i)));
+    const first = shown(lay(v));
+    const told: string[] = [];
+    v.rowSort.listen((l) => told.push(l.map((e) => `${e.field} ${e.direction}`).join()));
+    expect(v.rowSort.value).toEqual([]);
+    const click = async () => {
+      const l = lay(v);
+      expect(v.input.click(l.cols.titleX[0] + 2, l.cols.titleY - 3)).toBe(true);
+      await v.settle();
+      frames!.flush();
+    };
+    await click();
+    await click();
+    expect(v.rowSort.value.map((e) => e.direction)).toEqual(['descending']);
+    await click();
+    expect(shown(lay(v))).toEqual(first);
+    expect(v.rowSort.value).toEqual([]);
+    expect(told).toEqual(['label ascending', 'label descending', '']);
+    // the command: sorted again, then cleared; with nothing sorted it says so
+    expect(v.commands.find((c) => c.id === 'rows.unsort')?.when?.({} as never)).toBe('The rows are not sorted');
+    await v.execute('rows.order', { track: Track, order: { field: 'label', direction: 'ascending' } });
+    await v.settle();
+    frames.flush();
+    expect(shown(lay(v))).not.toEqual(first);
+    await v.execute('rows.unsort', { track: Track });
+    await v.settle();
+    frames.flush();
+    expect(shown(lay(v))).toEqual(first);
+    expect(told.slice(-2)).toEqual(['label ascending', '']);
+    // a sort is a patch: one undo step each, so undo restores the sort
+    await (v.spec.history as UiHistory).stack.undo();
+    await v.settle();
+    expect(v.rowSort.value.map((e) => e.field)).toEqual(['label']);
   });
 
   it('the joined fields follow an alignment read again (its rows in another order), never the old rows', async () => {

@@ -140,6 +140,7 @@ export const CommandChangeKinds: Readonly<Record<string, ChangeKind>> = {
   'rows.show': 'patch',
   'rows.order': 'patch',
   'rows.order-next': 'patch',
+  'rows.unsort': 'patch',
   'rows.zoom-in': 'navigate',
   'rows.zoom-out': 'navigate',
   'rows.page-down': 'navigate',

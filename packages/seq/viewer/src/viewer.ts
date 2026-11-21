@@ -54,6 +54,7 @@ import { frameAnimation } from './animation.js';
 import { ViewerInput } from './input.js';
 import { LegendModel } from './legends.js';
 import { type HiddenTrackEntry, hiddenTracksState } from './models/hidden-tracks.js';
+import { type RowSortEntry, rowSortState } from './models/row-sort.js';
 import { modelIssuesState } from './model-issues.js';
 import type {
   BehaviorContext,
@@ -127,6 +128,11 @@ export class SeqViewer extends ReactiveModel {
    * view draws nothing for them: the application lists and restores them (`mountHiddenTracks`, `track.show`).
    */
   readonly hiddenTracks: ReadonlyState<readonly HiddenTrackEntry[]>;
+  /**
+   * Each rows layer the spec orders by a column (layer, track, field, direction); its `listen` is the change event.
+   * The view draws no control for it: the host lists it and clears it (`rows.unsort`).
+   */
+  readonly rowSort: ReadonlyState<readonly RowSortEntry[]>;
   /** The viewer's own: a gesture that needs a behavior the spec does not list, once each. */
   readonly behaviorIssues: ReadonlyState<readonly Issue[]>;
   /**
@@ -267,6 +273,7 @@ export class SeqViewer extends ReactiveModel {
     const hover = (this.hover = new HoverModel(view, config));
     this.modelIssues = modelIssuesState(this);
     this.hiddenTracks = hiddenTracksState(spec.model);
+    this.rowSort = rowSortState(spec.model);
     // an element selected by an address and then toggled is drawn by its extent, resolved over what is shown
     const selection = (this.selection = new SelectionModel(
       (els) => locationOfResult(spec.shown.value, this.addresses.queryModel(), { type: 'keys', keys: els }).location,

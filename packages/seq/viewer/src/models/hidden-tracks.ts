@@ -6,7 +6,7 @@
 
 import { derive, type ReadonlyState } from '@molstar/core/reactive';
 import type { Node } from '@molstar/core/repr/tree';
-import type { HiddenTrack } from '@molstar/seqx-core/render';
+import { type HiddenTrack, hiddenTrackName } from '@molstar/seqx-core/render';
 import { idRunOf } from '@molstar/seqx-core/lang/check';
 import type { StaticModel } from '@molstar/seqx-core/resolve';
 
@@ -37,10 +37,9 @@ export function hiddenTracksOf(root: Node): readonly HiddenTrackEntry[] {
         const section = `/${at.join('/')}`;
         for (const t of c.children ?? []) {
           if (t.kind !== 'track' || t.id === undefined || t.params?.hidden !== true) continue;
-          const label = t.params?.label;
           (out ??= []).push({
             address: `${section}/${t.id}`,
-            label: typeof label === 'string' ? label : t.id,
+            label: hiddenTrackName(t),
             section,
           });
         }

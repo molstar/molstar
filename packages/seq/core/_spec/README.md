@@ -3364,11 +3364,12 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
   port), so a pan runs neither the sizing nor the port; a layer's content is kept by its prep (its label check by the
   fit, the font and the metrics' version).
 - **Marks centred, never below the band**: the band's lanes below its padding, the label lane above them, the block
-  centred in the band by the whole data's lanes (`RangesLay.laneY`, `labelY`), the marks in those lanes only (a band
-  taller than its content, by `uniform`, kind or its own height, draws none below them). A sticky lane that would leave
-  an item out of lanes enough for the whole data is packed fresh before any item goes to the density row. A band too
-  short for its lanes (a track's own height, a text line's underline, a navigator's miniature) drops the label lane,
-  then compacts its lanes over the whole band.
+  centred in the band by the whole data's lanes (`RangesLay.laneY`, `labelY`; a band with more than two lanes to spare
+  starts them at its top by the padding, evenly: the author, 2026-11-21, "the spacing around the transcripts is weird"),
+  the marks in those lanes only (a band taller than its content, by `uniform`, kind or its own height, draws none below
+  them). A sticky lane that would leave an item out of lanes enough for the whole data is packed fresh before any item
+  goes to the density row. A band too short for its lanes (a track's own height, a text line's underline, a navigator's
+  miniature) drops the label lane, then compacts its lanes over the whole band.
 
 ### Labels inside if they fit, else beside
 
