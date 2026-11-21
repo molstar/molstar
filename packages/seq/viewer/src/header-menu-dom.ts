@@ -84,13 +84,14 @@ export function contextMenuPort(): HeaderMenuPortFactory {
           });
           el.addEventListener('pointerleave', stopRest);
           // → on a submenu's row opens it, ← in a submenu goes back to its menu
-          el.addEventListener('keydown', (e) => {
+          el.addEventListener('keydown', (e: Event) => {
+            const key = (e as KeyboardEvent).key;
             if (e.defaultPrevented) return;
             const it = rowOf(e);
-            if (e.key === 'ArrowRight' && it?.items && it.enabled) {
+            if (key === 'ArrowRight' && it?.items && it.enabled) {
               e.preventDefault();
               sub(it);
-            } else if (e.key === 'ArrowLeft' && from) {
+            } else if (key === 'ArrowLeft' && from) {
               e.preventDefault();
               close?.();
               behavior.openMenu(from.menu.target, from.place);
