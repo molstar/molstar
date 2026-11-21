@@ -6,7 +6,25 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
 
 ## Open
 
-- **The hover card: placement, wrapping, and the density row's missing highlight** (the author, 2026-11-21, Files ›
+- **One hover contract for every mark, and a sweep that holds it** (the author, 2026-11-21, Examples › Plasmid › Ring
+  at scale: the strands' density bands on the ring and in the detail show no hover box or card; "we should not be
+  fixing this one-by-one btw. since we already fixed a similar issue, we need a general rule for this and global
+  fix."). The same miss has come back layer by layer: a ring's own hover (fixed alone in FX3), the Regions density row
+  (below), a ligand's score box (below), now density bands on a ring and a strip. **The rule** (to write into
+  ux-foundations.md and the core `_spec`'s Emphasis): every drawn mark of every layer type, in every layout (row,
+  ring, blocks, rows, grid) and at every level of detail (an item, a lane, a density bin or band, a summary, a chip,
+  a reduced tile), answers a hover with the same three things: (1) a hit naming what is under the pointer (the item,
+  else the bin's items or stretch, else the position), (2) an emphasis mark drawn in the hovered view and in every
+  view linked to it, reaching every layer the covered positions reach (arcs, columns, the ring's position box), and
+  (3) a card with that hit's fields; a layer type that can't is refused at registration, not left silent. A drag
+  suspends (2)'s card (the drag item below). **The sweep**: one test (medium lane, canvas and SVG) over every story's
+  spec and every layer instance, probing points on its drawn marks (taken from the draw list, not guessed), asserting
+  the hit, at least one emphasis primitive in the hovered view and each linked view, and a non-empty card; a new
+  layer type or layout is covered by adding nothing. The per-story items below that it covers (the density row, the
+  score box, these bands) are checked by it and closed with it. A strong-model lane (it is a rule across layer types,
+  not a closed list), its brief naming the items it closes.
+
+- **The hover card: placement, wrapping, and the density row's missing highlight** (the highlight part closed by the hover contract above; the author, 2026-11-21, Files ›
   UniProt entry: "hovering the bottom 'regions' … is missing a highlight", "the hover placement is quite
   inconsistent"):
   - the Regions track's bottom row (its density row of overlapping regions) shows a card but draws no hover mark: the
@@ -150,7 +168,7 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   `rows.tree` in the viewer's commands for a host's button. A twin test: open from the glyph, fold from the glyph, the
   layout back to its narrow form.
 
-- **Hovering a ligand's score box lights its residues but not its arcs** (the author, 2026-11-21, Examples › Complex ›
+- **Hovering a ligand's score box lights its residues but not its arcs** (closed by the hover contract above; the author, 2026-11-21, Examples › Complex ›
   Views › As a complex: "mouse on empty patch highlights arcs, but on box only the columns"). Over the score track's
   empty band at PYZ's position, the hover resolves to the position (card "PYZ 1"), its contact arcs light dark and the
   linked CDK2 columns light. Over PYZ's score box itself (a ranges row over the molecule), the box gets its outline and

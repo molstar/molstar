@@ -20,6 +20,18 @@ the next loop file.
      the usage limit; it saves tokens and shows how a weaker model handles the library.
    - Where: L (the loop's Lanes section, with B3's agent count), P (the instance's adaptations: who runs a lane).
 
+2. **A finding that repeats a fixed one is a class: fix it by a rule and a sweep, not by the instance.**
+   - Proposed: when a finding matches one already fixed (the same miss on another layer, layout or story), the
+     orchestrator doesn't log another per-story item: it writes the rule the instances break (into the design or
+     `_spec` it belongs to) and a sweep test over every story and layer that holds it, folds the open instances into
+     that one item, and briefs it to a strong-model lane; FX briefs list which items are instances of a class.
+   - Why: the author, 2026-11-21, after the hover box missed on a ring's own hover (FX3), the Regions density row, a
+     ligand's score box and the ring-at-scale density bands: "we should not be fixing this one-by-one btw. since we
+     already fixed a similar issue, we need a general rule for this and global fix." Fixed one at a time, each layer
+     type passed its own story's test and the next one missed again.
+   - Where: L (the loop's fix-point step: classify before logging), C (a sweep per contract: hover, empty tracks,
+     cyclic intervals), P (the instance's adaptations).
+
 ## Decided by the author
 
 Not yet.
