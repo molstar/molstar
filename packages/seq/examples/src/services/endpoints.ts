@@ -57,8 +57,6 @@ export const serviceUrl = {
   entry: (entry: string) => `https://www.ebi.ac.uk/pdbe/entry-files/download/${entry.toLowerCase()}.cif`,
   /** AlphaFold DB's per-residue confidence (model version 6). */
   confidence: (accession: string) => `https://alphafold.ebi.ac.uk/files/AF-${accession}-F1-confidence_v6.json`,
-  /** AlphaFold DB's prediction record of an accession. */
-  prediction: (accession: string) => `https://alphafold.ebi.ac.uk/api/prediction/${accession}`,
 } as const;
 
 /**
@@ -75,7 +73,6 @@ export const Recorded: ReadonlyMap<string, string> = new Map<string, string>([
   [serviceUrl.confidence('P04637'), 'fixtures/services/AF-P04637-F1-confidence_v6.json'],
   [serviceUrl.confidence('P24941'), 'fixtures/complex/AF-P24941-F1-confidence_v6.json'],
   [serviceUrl.confidence('P20248'), 'fixtures/complex/AF-P20248-F1-confidence_v6.json'],
-  [serviceUrl.prediction('P04637'), 'fixtures/services/AF-P04637-prediction.json'],
 ]);
 
 /** The service a location belongs to, by its host. */

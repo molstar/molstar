@@ -46,21 +46,5 @@
     "bytesFixture": 5417,
     "sha256Download": "a63a6e43b6fed127c2f3839e45cdb9ad9b3fc6f3135febccf0e95f207c9fdb93",
     "sha256Fixture": "a63a6e43b6fed127c2f3839e45cdb9ad9b3fc6f3135febccf0e95f207c9fdb93"
-  },
-  {
-    "file": "services/AF-P04637-prediction.json",
-    "entry": "AlphaFold DB prediction record of P04637 (api/prediction/P04637)",
-    "url": "https://alphafold.ebi.ac.uk/api/prediction/P04637",
-    "recorded": "2026-11-21",
-    "licence": [
-      "CC-BY-4.0"
-    ],
-    "attribution": "AlphaFold DB (Jumper et al. 2021; Varadi et al. 2024), CC BY 4.0",
-    "trimmed": "members kept: modelEntityId, latestVersion, uniprotAccession, uniprotId, gene, globalMetricValue, fractionPlddtVeryLow, fractionPlddtLow, fractionPlddtConfident, fractionPlddtVeryHigh, sequenceStart, sequenceEnd, sequenceChecksum, organismScientificName, plddtDocUrl, paeDocUrl, cifUrl; the sequences and the other file locations dropped",
-    "derived": "none",
-    "bytesDownloaded": 18911,
-    "bytesFixture": 5783,
-    "sha256Download": "1ef436288de2bfd9dbc9a24147b758fbe09bd4a1e27db56d0ced3e5bac215589",
-    "sha256Fixture": "be5463cc3cc1edbfef231d0fa40dadd85b162b950ed8649dbd3d58eceef6d52e"
   }
 ]

@@ -5,8 +5,7 @@
  */
 
 // Records the services showcase's fixtures (`fixtures/services/`), by hand, never in tests: PDBe's SIFTS mappings of
-// PDB 2OCJ and 1FIN (as published), AlphaFold DB's per-residue confidence of P04637 (as published) and its prediction
-// record of P04637 (members kept, the sequences dropped). UniProt's entries of P04637, P24941 and P20248 are the
+// PDB 2OCJ and 1FIN (as published), AlphaFold DB's per-residue confidence of P04637 (as published). UniProt's entries of P04637, P24941 and P20248 are the
 // examples' own (`fixtures/p53/`, `fixtures/complex/`, recorded once). Each file's URL, date and licence go to
 // `fixtures/services/sources.json`. Run from the package folder:
 //
@@ -29,26 +28,6 @@ const Sifts = {
 };
 const Afdb = { licence: 'CC-BY-4.0', attribution: 'AlphaFold DB (Jumper et al. 2021; Varadi et al. 2024), CC BY 4.0' };
 
-const PredictionMembers = [
-  'modelEntityId',
-  'latestVersion',
-  'uniprotAccession',
-  'uniprotId',
-  'gene',
-  'globalMetricValue',
-  'fractionPlddtVeryLow',
-  'fractionPlddtLow',
-  'fractionPlddtConfident',
-  'fractionPlddtVeryHigh',
-  'sequenceStart',
-  'sequenceEnd',
-  'sequenceChecksum',
-  'organismScientificName',
-  'plddtDocUrl',
-  'paeDocUrl',
-  'cifUrl',
-];
-
 interface Job {
   readonly file: string;
   readonly entry: string;
@@ -56,7 +35,6 @@ interface Job {
   readonly licence: string;
   readonly attribution: string;
   readonly trimmed: string;
-  readonly trim?: (json: any) => unknown;
 }
 
 const jobs: Job[] = [
@@ -74,15 +52,6 @@ const jobs: Job[] = [
     ...Afdb,
     trimmed: 'none: as published, byte for byte',
   },
-  {
-    file: 'AF-P04637-prediction.json',
-    entry: 'AlphaFold DB prediction record of P04637 (api/prediction/P04637)',
-    url: 'https://alphafold.ebi.ac.uk/api/prediction/P04637',
-    ...Afdb,
-    trimmed: `members kept: ${PredictionMembers.join(', ')}; the sequences and the other file locations dropped`,
-    trim: (all) =>
-      all.map((r: any) => Object.fromEntries(PredictionMembers.filter((k) => k in r).map((k) => [k, r[k]]))),
-  },
 ];
 
 mkdirSync(Folder, { recursive: true });
@@ -92,7 +61,7 @@ for (const j of jobs) {
   if (!res.ok) throw new Error(`${j.url}: ${res.status}`);
   const downloaded = new Uint8Array(await res.arrayBuffer());
   const raw = new TextDecoder().decode(downloaded);
-  const text = j.trim ? JSON.stringify(j.trim(JSON.parse(raw))) : raw;
+  const text = raw;
   writeFileSync(join(Folder, j.file), text);
   const fixture = new TextEncoder().encode(text);
   rows.push({

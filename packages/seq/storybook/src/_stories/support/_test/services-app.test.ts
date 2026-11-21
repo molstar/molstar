@@ -158,27 +158,31 @@ describe('the services application, on recorded answers', () => {
       ['D', '175'],
     ]);
     viewer.hover.clear(owner);
-    // the unobserved end (94, the first residue of the entity) lights nothing
+    // the unobserved end (94, the first residue of the entity) lights nothing (EC-118)
     viewer.hover.setLocation(location({ parts: [{ system: ServiceAddresses.protein, ranges: [93, 94] }] }), owner);
     expect(fake.highlight.value).toEqual([]);
   });
 
-  it('a hover or a click on the structure arrives on its unit: the view draws what the spec’s sections show (a gap: units a source describes are no sections’ systems)', async () => {
+  it('a hover or a click on the structure lights the view: its unit’s own sequence and, through SIFTS’s map, P04637 (EC-141: hover owners)', async () => {
     const app = await open(Scenarios.composed);
     await started(app);
     const { fake } = app.link!;
+    const viewer = app.viewer!;
+    const ranges = (loc: ReturnType<typeof viewer.hover.projected>, system: string) =>
+      loc?.parts.filter((p) => p.system === system).map((p) => [...p.ranges]);
+    // residue 175 of chain B (entity position 82, 0-based 81) is residue 175 of P04637 (0-based 174)
     fake.pointerOver({ row: 1, index: 81 });
     await vi.advanceTimersByTimeAsync(50);
-    // the hovered cell is residue 175 of chain B, as a Location on its unit; the hover model projects through the static
-    // model's paths, which do not hold a described unit's map, so no section draws it (TODO: overlay-aware projection)
-    const own = app.viewer!.hover.location();
-    expect(own?.parts.map((p) => [p.system, ...p.ranges])).toEqual([[ServiceAddresses.complex + '/B', 81, 82]]);
-    expect(app.viewer!.hover.projected('/views/main/protein')?.parts ?? []).toEqual([]);
+    expect(ranges(viewer.hover.projected('/views/main/protein'), ServiceAddresses.protein)).toEqual([[174, 175]]);
+    // and on the structure's own section (chain A's: B's residue is projected across the copies by the one entity)
+    expect(viewer.hover.projectedAll()?.parts.some((p) => p.system === ServiceAddresses.protein)).toBe(true);
+    fake.pointerOver(null);
+    await vi.advanceTimersByTimeAsync(50);
+    expect(viewer.hover.location()).toBeUndefined();
     fake.click({ row: 1, index: 81 });
     await vi.advanceTimersByTimeAsync(50);
-    expect(app.viewer!.selection.value.value.shown.parts.map((p) => [p.system, ...p.ranges])).toEqual([
-      [ServiceAddresses.complex + '/B', 81, 82],
-    ]);
+    const shown = viewer.selection.value.value.shown;
+    expect(shown.parts.map((p) => [p.system, ...p.ranges])).toEqual([['/data/2ocj-B', 81, 82]]);
   });
 
   it('the predictions chain two maps: a lab position lights its residue in the fake; “color by this track” colors the chains', async () => {
@@ -260,7 +264,7 @@ describe('the switch to the live services', () => {
     expect(stub.asked.sort()).toEqual(app.reads.value.map((r) => r.uri).sort());
   });
 
-  it('a service that fails leaves the data drawn and says which: the application is failed, not blank', async () => {
+  it('a service that fails leaves the data drawn and says which: the application is failed, not blank (EC-174: a failure is reported, not hidden)', async () => {
     const stub = liveStub([serviceUrl.sifts('2OCJ')]);
     const app = await open(Scenarios.composed, { live: stub.reader, mode: 'live' });
     await started(app);
@@ -276,13 +280,13 @@ describe('the services port', () => {
     servicesPort({ mode: () => mode, fixture: disk, ...(clock ? { clock } : {}) }).reader;
   const never = new AbortController().signal;
 
-  it('a service location with no recorded answer is NotRecorded, said so; a recorded one is read', async () => {
+  it('a service location with no recorded answer is NotRecorded, said so, never retried (EC-174); a recorded one is read', async () => {
     await expect(reader('fixtures').readText(serviceUrl.uniprot('P99999'), never)).rejects.toBeInstanceOf(NotRecorded);
     const text = await reader('fixtures').readText(serviceUrl.sifts('2OCJ'), never);
     expect(JSON.parse(text)['2ocj'].UniProt.P04637.mappings).toHaveLength(4);
   });
 
-  it('the live mode is the asset policy’s: a host no service has is refused before any request, whatever the spec says', async () => {
+  it('the live mode is the asset policy’s: a host no service has is refused before any request, whatever the spec says (no EC: the policy is security.md’s)', async () => {
     const live = reader('live');
     await expect(live.readText('https://example.org/uniprotkb/P04637.json', never)).rejects.toBeInstanceOf(
       AssetRefused,
@@ -293,7 +297,7 @@ describe('the services port', () => {
     await expect(live.readText('fixtures/p53/P04637.json', never)).rejects.toBeInstanceOf(AssetRefused);
   });
 
-  it('a recorded answer waits its delay on the port’s clock and stops when aborted', async () => {
+  it('a recorded answer waits its delay on the port’s clock and stops when aborted (no EC: the abort is the protocol’s)', async () => {
     restore = fakeClock();
     const fired: number[] = [];
     const clock: PortClock = {

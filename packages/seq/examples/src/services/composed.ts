@@ -8,9 +8,10 @@ import type { Node } from '@molstar/core/repr/tree';
 import { createSeqSpec, type SeqSpecBuilder, type ViewBuilder } from '@molstar/seqx-core/lang';
 import { nodeAddress } from '@molstar/seqx-core/resolve';
 import { plddtColor } from '../complex/confidence.js';
+import { afdbConfidence } from '../complex/data.js';
 import { uniprotEntry } from '../files/uniprot.js';
-import { AlphaFoldDb, Pdbe, serviceUrl } from './endpoints.js';
-import { addSiftsMaps, chainsOf, type SiftsMapping } from './sifts.js';
+import { Pdbe, serviceUrl } from './endpoints.js';
+import { addSiftsMaps, chainsOf, isOneToOne, type SiftsMapping, siftsSegments } from './sifts.js';
 
 // An application composing services (examples.md, Showcases): p53 (P04637) from UniProt, its per-residue confidence from
 // AlphaFold DB, PDB 2OCJ from PDBe, and PDBe's SIFTS mappings between them, each by the location its service answers at
@@ -61,20 +62,21 @@ export interface Composed {
   readonly structure: boolean;
   /** The B-factors of chain A (PDBe's mmCIF), when the structure is written. */
   readonly bfactor?: string;
+  /** The unit the structure section shows (`struct_asym_id`), and the static map the section follows through. */
+  readonly asym?: string;
+  readonly via?: string;
 }
 
 /** The nodes every scenario shares: the three services' data and, when SIFTS has answered, its maps. */
 export function compose(b: SeqSpecBuilder, options: ComposedOptions = {}): Composed {
   const uniprot = uniprotEntry(b, serviceUrl.uniprot(Accession), { accession: Accession });
-  const confidence = b.data.source('plddt', {
-    format: 'json',
+  const plddt = afdbConfidence(b, {
+    source: 'plddt',
+    values: 'confidence',
+    accession: Accession,
     uri: serviceUrl.confidence(Accession),
-    fields: { position: 'residueNumber', value: 'confidenceScore' },
-    system: Accession,
-    attribution: `${AlphaFoldDb.attribution} AF-${Accession}-F1 v6`,
-    licence: AlphaFoldDb.licence,
+    target: uniprot.protein,
   });
-  const plddt = b.data.values('confidence', { target: uniprot.protein, source: confidence });
   const pdb = b.data.source('2ocj', {
     format: 'mmcif',
     uri: serviceUrl.entry(Entry),
@@ -94,19 +96,25 @@ export function compose(b: SeqSpecBuilder, options: ComposedOptions = {}): Compo
         },
       })
     : undefined;
-  for (const chain of new Set(rows.map((m) => m.chain)))
-    b.data.sequence(`2ocj-${chain}`, { alphabet: 'protein', source: pdb, name: chain });
+  // the units are `struct_asym_id`'s (what the mmCIF source calls them), never the author's `chain_id`
+  const asyms = [...new Set(siftsSegments(rows).map((s) => s.asym))];
+  for (const asym of asyms) b.data.sequence(`2ocj-${asym}`, { alphabet: 'protein', source: pdb, name: asym });
+  // two sets of maps, one a chain: onto the units the structure link translates to (a described end, pending until the
+  // structure has arrived), and onto the spec's own sequences of the units, which the sections show and the hover and the
+  // selection coming back from the structure are projected through (the static model holds those, not the units)
   addSiftsMaps(b, Entry, rows, { [Accession]: uniprot.protein }, unitAddress);
-  const bfactor = rows.length
-    ? b.data.values('bfactor-a', { target: chainAddress('A') as never, source: pdb, field: 'b_factor' })
+  const onSequences = addSiftsMaps(b, Entry, rows, { [Accession]: uniprot.protein }, chainAddress, '-seq');
+  const asym = asyms[0];
+  const bfactor = asym
+    ? b.data.values('bfactor', { target: chainAddress(asym) as never, source: pdb, field: 'b_factor' })
     : undefined;
   return {
     protein: uniprot.protein,
     plddt,
     ...(coverage ? { coverage } : {}),
     features: uniprot.data,
-    structure: rows.length > 0,
-    ...(bfactor ? { bfactor } : {}),
+    structure: rows.some(isOneToOne),
+    ...(bfactor && asym ? { bfactor, asym, via: [...onSequences.values()][0] } : {}),
   };
 }
 
@@ -114,16 +122,26 @@ export function compose(b: SeqSpecBuilder, options: ComposedOptions = {}): Compo
  * The section of chain A of the structure, once SIFTS has answered: PDBe's mmCIF serves a unit's B-factors (a residue
  * without atoms has none: the gaps at the ends are the crystal's), never its letters.
  */
-export function structureSection(v: ViewBuilder, c: Composed) {
-  if (!c.structure || !c.bfactor) return;
-  v.section('structure', { of: chainAddress('A') as never }, (s) => {
-    s.track('ruler', { label: `${Entry} chain A (PDBe)` }).layer('ruler', { type: 'ruler' });
-    s.track('bfactor', { label: 'B-factor (Å²)' }).layer('bfactor', {
-      type: 'values',
-      data: c.bfactor!,
-      domain: [0, 80],
-    });
-  });
+export function structureSection(v: ViewBuilder, c: Composed, follow: string) {
+  if (!c.structure || !c.bfactor || !c.asym) return;
+  // the section follows `follow` (the protein's, or the lab's) through SIFTS's map: the B-factors read under the residues
+  // of P04637 they are paired with, the ruler counting the unit's own positions
+  v.section(
+    'structure',
+    {
+      of: chainAddress(c.asym) as never,
+      follow: follow as never,
+      ...(c.via ? { via: c.via as never } : {}),
+    },
+    (s) => {
+      s.track('ruler', { label: `${Entry} chain ${c.asym} (PDBe)` }).layer('ruler', { type: 'ruler' });
+      s.track('bfactor', { label: 'B-factor (Å²)' }).layer('bfactor', {
+        type: 'values',
+        data: c.bfactor!,
+        domain: [0, 80],
+      });
+    },
+  );
 }
 
 /** The spec: three services' data, SIFTS's maps when its answer is here. */
@@ -149,7 +167,7 @@ export function build(options: ComposedOptions = {}): Node {
           data: c.coverage,
         });
     });
-    structureSection(v, c);
+    structureSection(v, c, '/views/main/protein');
   });
   return b.build();
 }

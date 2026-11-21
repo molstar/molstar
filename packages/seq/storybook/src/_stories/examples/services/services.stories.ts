@@ -21,9 +21,8 @@ export default meta;
  * application into one `structure` map a chain, and the fake structure viewer is linked once they are all here. "Switch to
  * the live services" starts again with the same spec, the answers now from the services themselves through the asset
  * policy's hosts (`rest.uniprot.org`, `www.ebi.ac.uk`, `alphafold.ebi.ac.uk`, `https:` only): a service that does not
- * answer leaves what arrived drawn and says which failed. Hover R175: it lights on the four chains of 2OCJ. What the
- * structure tells back (hover, click) arrives on its unit, which the view does not draw: units a source describes are no
- * section's systems yet (see the Structure link stories for a complex the spec holds, which draws both ways).
+ * answer leaves what arrived drawn and says which failed. Hover R175: it lights on the four chains of 2OCJ. Hover a cell of a chain in the fake: it lights on P04637
+ * and on the structure's B-factor track, which follows P04637 through SIFTS's map, so it reads under residues 94 to 312.
  */
 export const ComposingServices: StoryObj = {
   render: () =>
@@ -36,7 +35,7 @@ export const ComposingServices: StoryObj = {
 /**
  * A lab's scores on a sequence it indexes from 1 (made up: synthetic), mapped by an offset of 0 onto UniProt's P04637 and
  * by SIFTS's maps onto 2OCJ's chains: two maps in a chain. Hover a position of the lab's sequence: the residue lights on
- * every chain in the fake (the unmodeled ends light nothing). The box icon in the "Predictions" track's header colors the
+ * every chain in the fake (the unmodeled ends light nothing). The cube icon in the "Predictions" track's header ("Color the structure by this track") colors the
  * fake's chains by the scores (a snapshot of the track; again restores).
  */
 export const PredictionsOntoAStructure: StoryObj = {
@@ -44,7 +43,7 @@ export const PredictionsOntoAStructure: StoryObj = {
     servicesStory({
       scenario: 'predictions',
       delayMs: 300,
-      hint: 'The scores are SYNTHETIC (generated from a seed, high at R175, R248 and R273 and over the DNA-binding domain). Hover a position of the lab’s sequence: it lights on the four chains in the fake. Click the box icon in the "Predictions" track’s header: the fake’s chains are colored by the track.',
+      hint: 'The scores are SYNTHETIC (generated from a seed, high at R175, R248 and R273 and over the DNA-binding domain). Hover a position of the lab’s sequence: it lights on the four chains in the fake. Click the cube icon (Color the structure by this track; the palette icon is the track’s own colors) in the "Predictions" track’s header: the fake’s chains are colored by the track.',
     }),
 };
 

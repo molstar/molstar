@@ -11,7 +11,8 @@ import * as addressing from '@molstar/seqx-examples/services/addressing';
 import * as composed from '@molstar/seqx-examples/services/composed';
 import { serviceUrl } from '@molstar/seqx-examples/services/endpoints';
 import * as predictions from '@molstar/seqx-examples/services/predictions';
-import { parseSifts, type SiftsMapping } from '@molstar/seqx-examples/services/sifts';
+import { parseSifts, type SiftsMapping, siftsIssues, siftsSegments } from '@molstar/seqx-examples/services/sifts';
+import { EmptyKeys, location } from '@molstar/seqx-core/query';
 import { DefaultSeqViewerSpec } from '@molstar/seqx-viewer/default-spec';
 import { mountToolbar } from '@molstar/seqx-viewer/mount-toolbar';
 import { createSeqViewer, type SeqViewer } from '@molstar/seqx-viewer/viewer';
@@ -170,10 +171,17 @@ export class ServicesApp {
       await viewer.settle();
       if (stale()) return;
       try {
-        this.link = linkFake(viewer, o.table, composed.ServiceAddresses.complex);
+        // the side's hover and selection come back through the bridge below (the link sends only): the structure's units are
+        // no systems of the static model, so the bridge names the spec's own sequences of them, which are
+        const link = linkFake(viewer, o.table, composed.ServiceAddresses.complex, {
+          link: { hover: 'out', select: 'out' },
+        });
+        this.link = link;
+        this._bridge(viewer, link, new Set(siftsSegments(sifts).map((s) => s.asym)));
         this.objects.set(this.objects.value + 1);
         this.phase.set('ready');
-        this.message.set('');
+        // what SIFTS said that is not mapped (an insertion or a deletion inside a segment), said and not hidden
+        this.message.set(siftsIssues(sifts).join('; '));
       } catch (e) {
         // the structure did not arrive (its file failed): the data is drawn, the structure is not linked
         this.phase.set('failed');
@@ -193,7 +201,41 @@ export class ServicesApp {
     await this.start();
   }
 
+  /**
+   * The structure's hover and selection onto the view: a location on a unit of the complex the source describes is the same
+   * location on the spec's sequence of that unit (both are the source's unit, its positions the same), which the static
+   * maps carry to P04637 and every section; so the fake's hover and selection light the view as the view's light the fake.
+   */
+  private _bridge(viewer: SeqViewer, link: FakeLink, asyms: ReadonlySet<string>) {
+    const owner = { bridge: 'services' };
+    const prefix = `${composed.ServiceAddresses.complex}/`;
+    const onSequences = (selectors: Parameters<typeof link.adapter.targetOfSelectors>[0]) => {
+      const target = link.adapter.targetOfSelectors(selectors);
+      const parts = (target?.parts ?? []).flatMap((p) =>
+        p.system.startsWith(prefix) && asyms.has(p.system.slice(prefix.length))
+          ? [{ system: composed.chainAddress(p.system.slice(prefix.length)), ranges: p.ranges }]
+          : [],
+      );
+      return parts.length ? location({ parts }) : undefined;
+    };
+    this._bridged.push(
+      link.fake.onHover((s) => {
+        const loc = onSequences(s);
+        if (loc) viewer.hover.setLocation(loc, owner);
+        else viewer.hover.clear(owner);
+      }),
+      link.fake.onSelect((s) => {
+        const loc = onSequences(s);
+        if (loc) viewer.selection.set({ elements: EmptyKeys, location: loc, shown: loc });
+        else viewer.selection.clear();
+      }),
+    );
+  }
+
+  private _bridged: (() => void)[] = [];
+
   private _teardown() {
+    for (const off of this._bridged.splice(0)) off();
     this.link?.dispose();
     this.link = undefined;
     this.viewer?.retire();

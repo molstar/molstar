@@ -13,7 +13,7 @@ import { build as composed } from '../services/composed.js';
 import { Recorded, ServiceHosts, Services, serviceOf, serviceUrl } from '../services/endpoints.js';
 import { build as predictions, labScores } from '../services/predictions.js';
 import { build as addressing } from '../services/addressing.js';
-import { chainsOf, parseSifts, siftsSegments } from '../services/sifts.js';
+import { chainsOf, isOneToOne, parseSifts, siftsIssues, siftsSegments } from '../services/sifts.js';
 
 // The services' fixtures and the SIFTS reading (examples.md, Showcases): what is recorded is where the locations say, the
 // answers parse into the maps the examples' own hand-written p53 structure view holds, and the specs resolve.
@@ -83,5 +83,65 @@ describe('the specs', () => {
     expect(Math.max(...v)).toBe(1);
     for (const label of [175, 248, 273]) expect(v[label - 1]).toBe(1);
     expect(labScores()).toEqual(v);
+  });
+});
+
+describe('SIFTS in the spec', () => {
+  /** A response whose author chain (`chain_id`) is not the unit's id (`struct_asym_id`), and one whose runs differ in length. */
+  const response = (chain: string, asym: string, entityEnd: number) =>
+    JSON.stringify({
+      '9xyz': {
+        UniProt: {
+          P04637: {
+            name: 'P53_HUMAN',
+            mappings: [
+              {
+                entity_id: 1,
+                chain_id: chain,
+                struct_asym_id: asym,
+                unp_start: 94,
+                unp_end: 312,
+                start: { author_residue_number: 94, author_insertion_code: '', residue_number: 1 },
+                end: { author_residue_number: 312, author_insertion_code: '', residue_number: entityEnd },
+                identity: 1,
+                coverage: 0.5,
+              },
+            ],
+          },
+        },
+      },
+    });
+
+  it('the units are struct_asym_id’s and the labels the author’s chains: where they differ, the map ends on the unit', () => {
+    const m = parseSifts(response('H', 'B', 219));
+    expect([m[0].chain, m[0].asym]).toEqual(['H', 'B']);
+    const model = resolveSpec(composed({ sifts: m }));
+    expect([...model.describedMaps!.values()].map((d) => d.to)).toEqual(['/data/2ocj/(node :key complex)/B']);
+    // the spec's sequence of the unit is named by the asym, the coverage row by the author's chain
+    expect(model.systems.has('/data/2ocj-B')).toBe(true);
+    expect(model.systems.has('/data/2ocj-H')).toBe(false);
+    const text = JSON.stringify(composed({ sifts: m }));
+    expect(text).toContain('9XYZ H');
+  });
+
+  it('a segment whose runs differ in length is not mapped, and said', () => {
+    const m = parseSifts(response('A', 'A', 220));
+    expect(isOneToOne(m[0])).toBe(false);
+    expect(siftsSegments(m)).toEqual([]);
+    expect(siftsIssues(m)[0]).toContain('differ in length');
+    expect(resolveSpec(composed({ sifts: m })).describedMaps?.size ?? 0).toBe(0);
+    for (const real of ['2OCJ', '1FIN']) expect(siftsIssues(sifts(real))).toEqual([]);
+  });
+
+  it('the spec names the services and never a fixture, and the structure section follows the protein through SIFTS’s map (EC-185: a spec opens with no host code)', () => {
+    const spec = composed({ sifts: sifts('2OCJ') });
+    const text = JSON.stringify(spec);
+    expect(text).not.toContain('fixtures/');
+    expect(text).toContain(serviceUrl.uniprot('P04637'));
+    const section = (n: any): any =>
+      n.id === 'structure' && n.kind === 'section' ? n : (n.children ?? []).map(section).find(Boolean);
+    const s = section(spec);
+    expect(s.params.follow).toBe('/views/main/protein');
+    expect(s.params.via).toBe('/data/sifts-2ocj-p04637-a-seq');
   });
 });

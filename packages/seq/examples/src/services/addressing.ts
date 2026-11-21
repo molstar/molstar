@@ -81,7 +81,7 @@ export function build(options: ComposedOptions = {}): Node {
           data: c.coverage,
         });
     });
-    structureSection(v, c);
+    structureSection(v, c, '/views/main/protein');
   });
   return b.build();
 }

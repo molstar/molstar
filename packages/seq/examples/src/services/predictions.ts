@@ -58,7 +58,7 @@ export function build(options: ComposedOptions = {}): Node {
         color: scoreColor(),
       });
     });
-    structureSection(v, c);
+    structureSection(v, c, '/views/main/lab');
   });
   return b.build();
 }
