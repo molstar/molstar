@@ -12,7 +12,7 @@ import { WarpKind } from './layout/strips.js';
 import { TranslateWarp } from './layout/warp.js';
 import { drawRail } from './rail.js';
 import { wellClipArgs, wellCorners } from './wells.js';
-import type { SectionLayout, ViewLayout } from './tracks-types.js';
+import type { LayerLayout, SectionLayout, ViewLayout } from './tracks-types.js';
 import { drawSectionEmphasis, drawTints, emphasisPart, Part } from './tracks-emphasis.js';
 import { hasHeaderActions } from './headers-draw.js';
 
@@ -202,22 +202,31 @@ function hasRows(s: SectionLayout): boolean {
 }
 
 /**
- * Whether the hover is lifted through a path (its element's extent on another system than the section's: a residue
- * over its codon): its image then lights the hover's own section too, not only the linked ones.
+ * Whether the hover is a letters layer's lifted through a codon map on this section (a residue over its codon): only
+ * that lights the hover's own section, on its own-system letters tracks (axis.md, An item split by a path). An item
+ * through a path lights its own outline and connector, nothing else.
  */
-function liftedHover(emphasis: Emphasis): boolean {
+function liftedLetters(s: SectionLayout, emphasis: Emphasis): boolean {
   const h = emphasis.hover;
-  return !!h && !!h.extent && h.extent.parts.length > 0 && h.extent.parts[0].system !== h.system;
+  if (!h || !h.extent || !h.extent.parts.length || h.extent.parts[0].system === h.system) return false;
+  for (const band of s.lays)
+    if (band)
+      for (let i = 0; i < band.length; i++)
+        if (band[i].key === h.layer)
+          return band[i].type.name === 'letters' && (band[i].lay as { through?: string }).through === 'codon';
+  return false;
 }
 
-/**
- * Whether the projected hover stays off a track's box on the hover's own section: the box holds the hovered layer
- * (which outlines it), or the hover is no lift through a path.
- */
-function hoveredIn(lays: readonly { readonly lay: unknown }[] | undefined, emphasis: Emphasis): boolean {
-  if (!liftedHover(emphasis)) return true;
-  const layer = emphasis.hover!.layer;
-  if (lays) for (let i = 0; i < lays.length; i++) if ((lays[i].lay as { key?: string }).key === layer) return true;
+/** Whether a track's box holds a letters layer on the section's own system (not the hovered one): the DNA track. */
+function ownLettersIn(lays: readonly LayerLayout[] | undefined, emphasis: Emphasis): boolean {
+  if (lays)
+    for (let i = 0; i < lays.length; i++)
+      if (
+        lays[i].type.name === 'letters' &&
+        lays[i].key !== emphasis.hover?.layer &&
+        (lays[i].lay as { through?: string }).through === 'own'
+      )
+        return true;
   return false;
 }
 
@@ -231,6 +240,7 @@ function drawStrips(
   column: boolean,
 ) {
   const { tokens } = layout;
+  const lift = pass === 'hover' && emphasis !== undefined && liftedLetters(s, emphasis);
   const strips = s.placement.strips;
   const nb = strips.bands;
   // a section that scrolls inside its box: each strip clipped to it, in the strip's frame (its warp moves the clip)
@@ -250,7 +260,14 @@ function drawStrips(
         g[3] = pb.height;
         w.clipArgs();
       }
-      if (column && emphasis && col) drawSectionEmphasis(w, s, a, col, emphasis, layout, !liftedHover(emphasis));
+      if (column && emphasis && col) drawSectionEmphasis(w, s, a, col, emphasis, layout, true);
+      // the lifted hover is no column: its codon over each own-system letters track alone
+      if (column && lift && emphasis)
+        for (let j = 0; j < nb; j++) {
+          const k = i * nb + j;
+          if (s.boxes[k].height > 0 && ownLettersIn(s.lays[k], emphasis))
+            drawSectionEmphasis(w, s, a, s.boxes[k], emphasis, layout, false);
+        }
       for (let j = 0; j < nb; j++) {
         const k = i * nb + j;
         const box = s.boxes[k];
@@ -269,12 +286,12 @@ function drawStrips(
             wellClipArgs(w.args, s, i, j, box);
             w.clipSquircleArgs();
             emphasisPart(Part.tints);
-            drawSectionEmphasis(w, s, a, box, emphasis, layout, hoveredIn(s.lays[k], emphasis));
+            drawSectionEmphasis(w, s, a, box, emphasis, layout, !(lift && ownLettersIn(s.lays[k], emphasis)));
             w.unclip();
             emphasisPart(Part.outlines);
-            drawSectionEmphasis(w, s, a, box, emphasis, layout, hoveredIn(s.lays[k], emphasis));
+            drawSectionEmphasis(w, s, a, box, emphasis, layout, !(lift && ownLettersIn(s.lays[k], emphasis)));
             emphasisPart(Part.all);
-          } else drawSectionEmphasis(w, s, a, box, emphasis, layout, hoveredIn(s.lays[k], emphasis));
+          } else drawSectionEmphasis(w, s, a, box, emphasis, layout, !(lift && ownLettersIn(s.lays[k], emphasis)));
         }
         const lays = s.lays[k];
         // the window pass is the layouts' own (their chrome): no layer draws there, so a hover's redraw walks none

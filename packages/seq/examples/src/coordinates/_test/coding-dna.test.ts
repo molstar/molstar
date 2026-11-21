@@ -42,7 +42,10 @@ function genomic(a: number, b: number): [number, number][] {
   return out;
 }
 
-async function frameOf(emphasis?: (f: Frame, r: Renderer, model: ReturnType<typeof resolveSpec>) => object) {
+async function frameOf(
+  emphasis?: (f: Frame, r: Renderer, model: ReturnType<typeof resolveSpec>) => object,
+  config = {},
+) {
   const model = resolveSpec(build(), {});
   const view = resolveViews(model)[0];
   const store = new DataStore();
@@ -54,7 +57,7 @@ async function frameOf(emphasis?: (f: Frame, r: Renderer, model: ReturnType<type
     data: store,
     tokens: LightTokens,
     text: bundledTextMetrics(),
-    config: renderConfig(),
+    config: renderConfig(config),
   });
   renderer.frame({ size: Size, settled: false });
   await attachSources(model, store);
@@ -138,41 +141,46 @@ describe('A protein over its coding DNA, drawn against the map', () => {
     expect(marks[0].fill).not.toBe(marks[1].fill);
   });
 
-  it('hovering a residue lights it and its codon, on both tracks (the split one in both parts)', async () => {
-    const { f } = await frameOf((first, _r, model) => {
-      const cell = (a: number, b: number) => (xOf(first, a) + xOf(first, b)) / 2;
-      const track = first.layout.sections[0].tracks[Tracks.protein].layers[0].lay as {
-        box: { y: number; height: number };
+  /** A frame with the pointer on the middle of a track at a gene position, the hover lifted as the viewer lifts it. */
+  const hovered = (track: number, position: number, config = {}) =>
+    frameOf((first, _r, model) => {
+      const lay = first.layout.sections[0].tracks[track].layers[0].lay as { box: { y: number; height: number } };
+      const x = (xOf(first, position) + xOf(first, position + 1)) / 2;
+      const hit = hitView(first.layout, x, lay.box.y + lay.box.height / 2)!;
+      const projected = hit.extent
+        ? projectOntoView(model, resolveViews(model)[0], hit.extent, { own: true, close: true })
+        : undefined;
+      return {
+        hover: hit,
+        ...(projected ? { projected: { hover: projected, hoverSection: '/views/main/gene' } } : {}),
       };
-      // the first nucleotide's part of residue 11, before the intron
-      const hit = hitView(first.layout, cell(45, 46), track.box.y + track.box.height / 2)!;
-      // the hit is on the gene's axis, its extent the residue on the protein (what the viewer lifts a hover by)
-      expect(hit.position).toBe(45);
-      expect(hit.extent?.parts[0].system).toBe('/data/protein');
-      const projected = projectOntoView(model, resolveViews(model)[0], hit.extent!, {
-        own: true,
-        close: true,
-      });
-      return { hover: hit, projected: { hover: projected, hoverSection: '/views/main/gene' } };
-    });
-    // the section's emphasis is a column across its tracks (`emphasis.selectionShape`): the codon's two parts, each a
-    // rect from the ruler's top down through the DNA's and the protein's bands
-    const all = rectsIn(f, 'hover', Tracks.dna).concat(rectsIn(f, 'hover', Tracks.protein), rectsIn(f, 'hover', 0));
-    const lay = (t: number) => f.layout.sections[0].tracks[t].layers[0].lay as { box: { y: number; height: number } };
-    const dna = lay(Tracks.dna).box;
-    const prot = lay(Tracks.protein).box;
-    const over = (a: number, b: number, box: { y: number; height: number }) =>
-      all.some(
-        (m) =>
-          Math.abs(m.x0 - xOf(f, a)) <= 4 &&
-          Math.abs(m.x1 - xOf(f, b)) <= 4 &&
-          m.y <= box.y &&
-          m.y + m.h >= box.y + box.height,
-      );
-    for (const [a, b] of [
-      [45, 46],
-      [76, 78],
-    ])
-      expect(over(a, b, dna) && over(a, b, prot), `codon part ${a}-${b} lit over both tracks`).toBe(true);
+    }, config);
+
+  /** Whether the hover pass has a rect over a codon part `[a, b)` inside a track's band (an outline's top is outside). */
+  const litOn = (f: Frame, track: number, a: number, b: number) =>
+    rectsIn(f, 'hover', track).some((m) => Math.abs(m.x0 - xOf(f, a)) <= 4 && Math.abs(m.x1 - xOf(f, b)) <= 4);
+
+  it.each([
+    ['column (the default)', {}],
+    ['tracks', { emphasis: { selectionShape: 'tracks' as const } }],
+  ])('hovering a residue lights its codon on the DNA track only, both parts of a split one (%s)', async (_, config) => {
+    // the first nucleotide of residue 11's codon, before the intron
+    const { f } = await hovered(Tracks.protein, 45, config);
+    expect(litOn(f, Tracks.protein, 45, 46)).toBe(true);
+    expect(litOn(f, Tracks.dna, 45, 46)).toBe(true);
+    expect(litOn(f, Tracks.dna, 76, 78)).toBe(true);
+    // never a column: the ruler, the exons, the domain and the site stay as they were
+    for (const t of [Tracks.ruler, Tracks.exons, Tracks.domain, Tracks.site])
+      expect(rectsIn(f, 'hover', t).filter((m) => m.h > 0 && m.x0 < xOf(f, 80) && m.x1 > xOf(f, 40))).toEqual([]);
+  });
+
+  it('hovering an item through the path (the domain) lights its outline and its connector, nothing else', async () => {
+    const { f } = await hovered(Tracks.domain, 60);
+    const lit = [Tracks.ruler, Tracks.dna, Tracks.protein, Tracks.exons, Tracks.site].filter(
+      (t) => rectsIn(f, 'hover', t).length > 0,
+    );
+    expect(lit).toEqual([]);
+    // its two pieces outlined and the connector between them in the hover ink
+    expect(rectsIn(f, 'hover', Tracks.domain).length).toBe(3);
   });
 });

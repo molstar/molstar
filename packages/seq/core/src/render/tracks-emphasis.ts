@@ -54,7 +54,8 @@ function projectedSides(s: SectionLayout, axis: AxisTransform, emphasis: Emphasi
 /**
  * A section's emphasis marks of the writer's pass over `box` (a strip's band column, or one band's box) on the strip's
  * axis: the highlights' tints (over the data), the selection's tint and outline, the hover carried here from a linked
- * section (never on the hover's own section: its layer outlines it), the keyboard cursor.
+ * section (on the hover's own section only over its own-system letters tracks, and only for a letters hit lifted
+ * through a codon map: a residue's codon on the DNA track beside it), the keyboard cursor.
  */
 export function drawSectionEmphasis(
   out: PassWriter,
