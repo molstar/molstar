@@ -145,7 +145,10 @@ function laneGeometry(lay: RangesLay, ctx: LayoutContext): number {
     const lanes = content ? Math.min(need, room - label) : room;
     const block = (content ? lanes : Math.max(1, Math.min(lay.seen, lanes))) + label;
     lay.laneHeight = lh;
-    const top = box.y + (box.height - block * lh) / 2;
+    // centred in a band with a little to spare (one lane's marks in a thin band); a tall band's lanes start at its top,
+    // evenly (not a blank stretch above and below them: a transcripts track of 47 lanes)
+    const slack = box.height - block * lh;
+    const top = box.y + (slack > 2 * lh ? pad : slack / 2);
     if (label) lay.labelY = top;
     lay.laneY = top + label * lh;
     return lanes;

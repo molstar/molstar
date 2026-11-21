@@ -194,6 +194,15 @@ describe('Features/Genome formats/GFF3 and GTF, headless', () => {
     expect(hovered).toBeGreaterThanOrEqual(marks);
   });
 
+  it('the Transcripts track’s lanes start at its top, not centred in a taller band', async () => {
+    const v = await open('gff-tp53');
+    const tx = layOf(v, 'Transcripts')!;
+    const lanes = Math.max(...Array.from({ length: tx.m }, (_, i) => tx.mlane[i])) + 1;
+    expect(tx.box.height).toBeGreaterThan(lanes * tx.laneHeight + 2 * tx.laneHeight);
+    // from the top by the band's padding at most, so the blank is below the last lane alone
+    expect(tx.laneY - tx.box.y).toBeLessThanOrEqual(v.context.renderConfig.lanePadding + tx.laneHeight);
+  });
+
   it('the hover card of a transcript deep in the tall track is anchored by its lane, not the track’s top', async () => {
     const v = await open('gff-tp53');
     const tx = layOf(v, 'Transcripts')!;
