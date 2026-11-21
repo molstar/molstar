@@ -72,6 +72,17 @@ export function partsDomPort(): HeaderPartsPortFactory {
           group.dataset.section = h.geometry.target.section;
           if (h.geometry.target.track) group.dataset.track = h.geometry.target.track;
           const buttons: HTMLElement[] = [];
+          // the slots' backdrop in the page's color over the label's tail, as the canvas draws it (no overprinting)
+          if (h.actions && h.geometry.slots.length) {
+            const x = Math.min(...h.geometry.slots.map((s) => s.box.x)) - 2;
+            const end = Math.max(...h.geometry.slots.map((s) => s.box.x + s.box.width));
+            const back = doc.createElement('div');
+            back.setAttribute('aria-hidden', 'true');
+            at(back, { x, y: h.geometry.slots[0].box.y, width: end - x, height: h.geometry.slots[0].box.height });
+            back.style.background = 'var(--msui-bg)';
+            back.style.pointerEvents = 'none';
+            group.append(back);
+          }
           if (h.actions)
             for (const s of h.geometry.slots) {
               const it = h.items.find((i) => i.name === s.name);
