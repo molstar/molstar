@@ -24,7 +24,14 @@ export function viewLegends(layout: ViewLayout, maxItems = 12): { legends: Legen
     // the figure's own say: a layer's `legend: none` keys nothing (_spec/README.md "Themes", Legends)
     if (l.layer.params.legend === 'none') return;
     const ls = l.type.legend?.(l.lay, { title });
-    if (ls) for (const x of ls) all.push(maxItems < 12 ? trim(x, maxItems) : x);
+    if (!ls) return;
+    // a layer's legends of several channels that share its title say their channel (`Variants: size`), else the band
+    // reads the one title twice
+    const alike = ls.length > 1 && new Set(ls.map((x) => x.title)).size < ls.length;
+    for (const x of ls) {
+      const named = alike ? { ...x, title: `${x.title}: ${x.channel}` } : x;
+      all.push(maxItems < 12 ? trim(named, maxItems) : named);
+    }
   };
   for (const s of layout.sections) {
     for (const t of s.tracks) for (const l of t.layers) add(l, t.track.label);

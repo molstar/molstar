@@ -88,6 +88,8 @@ export interface LegendEntryRow {
   readonly ramp?: readonly number[];
   /** A ramp's domain ends as written (the compact form shows them beside its bar). */
   readonly ends?: readonly [string, string];
+  /** A size key's mark: the radius (px) the channel gives the value, drawn as a circle. */
+  readonly size?: number;
   /** A step: its cells join in the compact form. */
   readonly step?: true;
   /** The value a click or Enter selects (swatches). */
@@ -170,6 +172,7 @@ export function legendRows(viewer: { readonly legends: LegendModel }, options: L
       entries = e.items.map((i) => ({
         label: formatValue(i.value),
         name: `${l.title}: ${formatValue(i.value)}`,
+        size: i.size,
         hovered: false,
       }));
     }

@@ -105,6 +105,47 @@ describe('legends', () => {
   });
 });
 
+describe('a layer with a color and a size channel (F23)', () => {
+  it('its two legends are titled apart, and the size key has a mark of the channel’s size on each entry', async () => {
+    frames = installFrames();
+    const b = createSeqSpec();
+    const p = b.data.sequence('p', { alphabet: 'protein', letters: 'MEEPQSDPSVEPPLSQETFSDLWKLL' });
+    const vars = b.data.ranges('vars', {
+      target: p,
+      rows: {
+        start: new Int32Array([2, 8, 14]),
+        end: new Int32Array([3, 9, 15]),
+        id: ['a', 'b', 'c'],
+        consequence: ['missense', 'nonsense', 'missense'],
+        frequency: Float32Array.from([1e-6, 0.001, 0.1]),
+      },
+    });
+    b.views.view('main', (v) => {
+      v.section('p', { of: p })
+        .track('variants', { label: 'Variants', height: 40 })
+        .layer('variants', {
+          type: 'variants',
+          data: vars,
+          color: theme.field('consequence'),
+          size: theme.field('frequency', { type: 'log', domain: [1e-6, 0.1], range: [0.3, 1] }),
+        });
+    });
+    const viewer = createSeqViewer({ ...DefaultSeqViewerSpec(), ui: undefined });
+    viewers.push(viewer);
+    await viewer.load(b.build());
+    viewer.resize(600);
+    await viewer.settle();
+    frames.flush();
+    const rows = legendRows(viewer);
+    expect(rows.map((r) => r.title)).toEqual(['Variants: color', 'Variants: size']);
+    const sizes = rows[1].entries.map((e) => e.size!);
+    expect(sizes).toHaveLength(3);
+    expect(sizes[0]).toBeCloseTo(0.3);
+    expect(sizes[2]).toBeCloseTo(1);
+    expect(rows[0].entries.every((e) => e.size === undefined)).toBe(true);
+  });
+});
+
 describe('theme commands', () => {
   it('a channel set and unset, several layers at once: one patch each, undone in one step', async () => {
     const v = await make();
