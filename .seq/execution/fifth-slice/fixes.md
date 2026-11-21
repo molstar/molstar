@@ -84,6 +84,17 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   line from the ring's centre through the follower's window wedge, and the wedge wider than the detail's span; check
   with the fix.
 
+- **A stacked block repeats tracks that hold nothing for it** (the author, 2026-11-21, Examples › Complex › Blocks ›
+  Stacked: "another view with empty tracks"): with `arrange: 'stack'` each block is a row of every track, so the ATP
+  block (`complex/blocks.ts:69`, a one-position block drawn as a chip) gets empty Features, Interface and Secondary
+  bands, three tall blank wells above one chip; its row also has no heading where the polymers have "CDK2 (A) ×2".
+  In a `row` arrange the tracks are shared by all blocks, so nothing is empty there. Needs a short design before a fix
+  lane (composition.md's blocks, molecules.md's ligands, the library rule that such a choice is the host's): a stacked
+  block's track with no items for that block collapses to nothing by default (the letters track kept), configurable
+  (`blocks.emptyTracks: 'collapse' | 'keep'`), and the block gets its heading like the others ("ATP ×2"). Together
+  with the Promoters item just below: the same family (a declared track drawn empty), here a library rule, there a
+  fixture.
+
 - **The Promoters track is empty** (the author, 2026-11-21, Files › Plasmid GFF3: "feels weird the promoters track is
   empty"): `files/plasmid-gff.ts`'s `GffTracks` declares a `promoter` track (on the ring and the detail), but the
   fixture `plasmid/pUC19c-rotated-features.gff3` has no promoter row: it is generated (`record.ts`, `gff3Text`) from
