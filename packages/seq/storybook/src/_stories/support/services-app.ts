@@ -41,7 +41,12 @@ export interface Scenario {
 }
 
 export const Scenarios: Readonly<Record<Scenario['id'], Scenario>> = {
-  composed: { id: 'composed', build: composed.build, entry: composed.Entry, tableFile: 'fixtures/p53/2OCJ-chains.json' },
+  composed: {
+    id: 'composed',
+    build: composed.build,
+    entry: composed.Entry,
+    tableFile: 'fixtures/p53/2OCJ-chains.json',
+  },
   predictions: {
     id: 'predictions',
     build: predictions.build,

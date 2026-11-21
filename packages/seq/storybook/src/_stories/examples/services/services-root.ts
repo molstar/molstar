@@ -118,7 +118,9 @@ class ServicesRoot extends UiElement<ServicesStory> {
       readsEl.textContent =
         app.reads.value
           .map((r) =>
-            r.mode === 'fixtures' ? `${r.service ?? 'file'}: ${r.uri}\n   recorded: ${r.file ?? '—'}` : `${r.service ?? '?'}: ${r.uri}\n   live`,
+            r.mode === 'fixtures'
+              ? `${r.service ?? 'file'}: ${r.uri}\n   recorded: ${r.file ?? '—'}`
+              : `${r.service ?? '?'}: ${r.uri}\n   live`,
           )
           .join('\n') || 'nothing asked yet';
     };

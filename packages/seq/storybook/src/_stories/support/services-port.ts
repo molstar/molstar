@@ -78,7 +78,9 @@ const realClock: PortClock = {
 };
 
 /** The port: a reader answering by the mode, and the reads it has made (newest last). */
-export function servicesPort(options: ServicesPortOptions): ReaderAssetsPort & { readonly reads: readonly ServiceRead[] } {
+export function servicesPort(
+  options: ServicesPortOptions,
+): ReaderAssetsPort & { readonly reads: readonly ServiceRead[] } {
   const reads: ServiceRead[] = [];
   const clock = options.clock ?? realClock;
   let live = options.live;

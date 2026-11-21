@@ -18,13 +18,17 @@ const bytes = (file: string) => new Uint8Array(readFileSync(`${PackageFolder}${f
 
 async function show(name: string, data: Uint8Array) {
   const dropped = await specOfDropped(name, data);
-  if ('refused' in dropped) return { dropped, reads: [] as string[], issues: [] as string[], sections: [] as string[], svg: '' };
+  if ('refused' in dropped)
+    return { dropped, reads: [] as string[], issues: [] as string[], sections: [] as string[], svg: '' };
   const base = DefaultSeqViewerSpec();
   const reads: string[] = [];
   const viewer = createSeqViewer({
     ...base,
     ui: undefined,
-    registry: [...(base.registry ?? []), ...DropRuntimes.map((runtime) => ({ kind: 'format-runtime' as const, runtime }))],
+    registry: [
+      ...(base.registry ?? []),
+      ...DropRuntimes.map((runtime) => ({ kind: 'format-runtime' as const, runtime })),
+    ],
     ports: {
       assets: () => ({
         reader: {
@@ -73,7 +77,9 @@ describe('a dropped file', () => {
 
   it('GenBank is refused, saying so; an unknown extension names what is read; a file that does not parse is refused with the reason', async () => {
     expect(formatOfName('pUC19.gb')).toEqual({ refused: 'GenBank files are not read yet' });
-    expect('refused' in formatOfName('notes.txt') && (formatOfName('notes.txt') as { refused: string }).refused).toContain('.seq');
+    expect(
+      'refused' in formatOfName('notes.txt') && (formatOfName('notes.txt') as { refused: string }).refused,
+    ).toContain('.seq');
     const bad = await specOfDropped('broken.seq', new TextEncoder().encode('this is not a seq file\n\u0000'));
     expect('refused' in bad && bad.refused).toContain('broken.seq');
     const empty = await specOfDropped('empty.tsv', new TextEncoder().encode('a\tb\n'));

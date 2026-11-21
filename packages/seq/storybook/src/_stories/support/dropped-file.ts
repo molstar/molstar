@@ -76,7 +76,11 @@ const readerOf = (bytes: Uint8Array): AssetReader => ({
 });
 
 /** The opened source of the dropped bytes, or the refusal (a file that does not parse says why). */
-async function openDropped(name: string, format: string, bytes: Uint8Array): Promise<OpenedSource | { refused: string }> {
+async function openDropped(
+  name: string,
+  format: string,
+  bytes: Uint8Array,
+): Promise<OpenedSource | { refused: string }> {
   const runtime = DropRuntimes.find((r) => r.formats.includes(format));
   if (!runtime) return { refused: `No runtime reads ${format}` };
   try {
@@ -86,7 +90,9 @@ async function openDropped(name: string, format: string, bytes: Uint8Array): Pro
     );
   } catch (e) {
     const issues = (e as { issues?: readonly { message: string }[] }).issues;
-    return { refused: `${name} is not read as ${format}: ${issues?.[0]?.message ?? (e instanceof Error ? e.message : e)}` };
+    return {
+      refused: `${name} is not read as ${format}: ${issues?.[0]?.message ?? (e instanceof Error ? e.message : e)}`,
+    };
   }
 }
 

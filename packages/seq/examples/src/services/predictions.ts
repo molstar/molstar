@@ -65,4 +65,3 @@ export function build(options: ComposedOptions = {}): Node {
   });
   return b.build();
 }
-

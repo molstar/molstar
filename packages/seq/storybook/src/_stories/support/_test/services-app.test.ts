@@ -131,7 +131,12 @@ describe('the services application, on recorded answers', () => {
     await done;
     expect(phases.filter((p, i) => p !== phases[i - 1])).toEqual(['loading', 'sifts', 'ready']);
     expect(app.reads.value.map((r) => r.uri).sort()).toEqual(
-      [serviceUrl.uniprot('P04637'), serviceUrl.confidence('P04637'), serviceUrl.entry('2OCJ'), serviceUrl.sifts('2OCJ')].sort(),
+      [
+        serviceUrl.uniprot('P04637'),
+        serviceUrl.confidence('P04637'),
+        serviceUrl.entry('2OCJ'),
+        serviceUrl.sifts('2OCJ'),
+      ].sort(),
     );
     expect(app.reads.value.every((r) => r.mode === 'fixtures' && r.file && r.service)).toBe(true);
     expect(app.viewer!.modelIssues.value.map((i) => i.code)).toEqual([]);
@@ -181,8 +186,15 @@ describe('the services application, on recorded answers', () => {
     await started(app);
     const { fake } = app.link!;
     app.viewer!.hover.setLocation(location({ parts: [{ system: '/data/lab', ranges: [247, 248] }] }), {});
-    expect(fake.highlight.value.map((s) => fake.rows[s.row].residues[s.start].auth)).toEqual(['248', '248', '248', '248']);
-    const layer = app.viewer!.view.resolved.value!.sections.flatMap((s) => s.tracks.flatMap((t) => t.layers)).find((l) => l.type === 'values')!;
+    expect(fake.highlight.value.map((s) => fake.rows[s.row].residues[s.start].auth)).toEqual([
+      '248',
+      '248',
+      '248',
+      '248',
+    ]);
+    const layer = app
+      .viewer!.view.resolved.value!.sections.flatMap((s) => s.tracks.flatMap((t) => t.layers))
+      .find((l) => l.type === 'values')!;
     const said = app.viewer!.runCommand('fake-host.color-by', { layer: layer.address });
     expect(said).toMatch(/Colored \d+ runs/);
   });
@@ -192,12 +204,20 @@ describe('the services application, on recorded answers', () => {
     const app = await open(Scenarios.addressing);
     await started(app);
     const viewer = app.viewer!;
-    const hrefs = Passages.flat().filter((r) => typeof r !== 'string').map((r) => (r as { href: string }).href);
+    const hrefs = Passages.flat()
+      .filter((r) => typeof r !== 'string')
+      .map((r) => (r as { href: string }).href);
     expect(hrefs.length).toBeGreaterThan(5);
     for (const href of hrefs) {
       const run = viewer.runLink(href);
-      expect(run?.outcomes.map((o) => o.status), href).not.toContain('failed');
-      expect(run?.issues.map((i) => i.message), href).toEqual([]);
+      expect(
+        run?.outcomes.map((o) => o.status),
+        href,
+      ).not.toContain('failed');
+      expect(
+        run?.issues.map((i) => i.message),
+        href,
+      ).toEqual([]);
     }
     // R175, entity position 82 and the author number 175 of chain A: one residue, three addresses
     const lits: string[] = [];
@@ -211,18 +231,21 @@ describe('the services application, on recorded answers', () => {
 });
 
 describe('every scenario', () => {
-  it.each(Object.values(Scenarios))('$id: laid out with no issue, rendered to SVG, SIFTS’s maps and the structure in it', async (scenario) => {
-    const app = await open(scenario);
-    await started(app);
-    expect(app.phase.value).toBe('ready');
-    const viewer = app.viewer!;
-    expect([...viewer.modelIssues.value, ...viewer.layoutIssues.value].map((i) => i.code)).toEqual([]);
-    const sections = viewer.view.resolved.value!.sections.map((s) => s.address);
-    expect(sections).toContain('/views/main/structure');
-    const svg = await viewer.renderSvg({});
-    expect(svg.svg.startsWith('<svg')).toBe(true);
-    expect(svg.issues ?? []).toEqual([]);
-  });
+  it.each(Object.values(Scenarios))(
+    '$id: laid out with no issue, rendered to SVG, SIFTS’s maps and the structure in it',
+    async (scenario) => {
+      const app = await open(scenario);
+      await started(app);
+      expect(app.phase.value).toBe('ready');
+      const viewer = app.viewer!;
+      expect([...viewer.modelIssues.value, ...viewer.layoutIssues.value].map((i) => i.code)).toEqual([]);
+      const sections = viewer.view.resolved.value!.sections.map((s) => s.address);
+      expect(sections).toContain('/views/main/structure');
+      const svg = await viewer.renderSvg({});
+      expect(svg.svg.startsWith('<svg')).toBe(true);
+      expect(svg.issues ?? []).toEqual([]);
+    },
+  );
 });
 
 describe('the switch to the live services', () => {
@@ -261,8 +284,12 @@ describe('the services port', () => {
 
   it('the live mode is the asset policy’s: a host no service has is refused before any request, whatever the spec says', async () => {
     const live = reader('live');
-    await expect(live.readText('https://example.org/uniprotkb/P04637.json', never)).rejects.toBeInstanceOf(AssetRefused);
-    await expect(live.readText('http://rest.uniprot.org/uniprotkb/P04637.json', never)).rejects.toBeInstanceOf(AssetRefused);
+    await expect(live.readText('https://example.org/uniprotkb/P04637.json', never)).rejects.toBeInstanceOf(
+      AssetRefused,
+    );
+    await expect(live.readText('http://rest.uniprot.org/uniprotkb/P04637.json', never)).rejects.toBeInstanceOf(
+      AssetRefused,
+    );
     await expect(live.readText('fixtures/p53/P04637.json', never)).rejects.toBeInstanceOf(AssetRefused);
   });
 
