@@ -98,22 +98,26 @@ async function openDropped(
 
 const isRefusal = (r: OpenedSource | { refused: string }): r is { refused: string } => 'refused' in r;
 
-/** One section a system: its ruler, its letters and, where the source has them, its ranges. */
+/** One section a system: its ruler, its letters and, where the source has them, its values and ranges. */
 function sequenceSections(b: SeqSpecBuilder, opened: OpenedSource, format: string, name: string) {
   const source = '/data/file' as never;
   const systems = opened.coverage.systems.slice(0, MaxSections);
   const withRanges = new Set(opened.coverage.shapes.filter((s) => s.shape === 'ranges').map((s) => s.system));
+  const withValues = new Set(opened.coverage.shapes.filter((s) => s.shape === 'values').map((s) => s.system));
   const parts = systems.map((s, i) => {
     const id = `s${i + 1}`;
     const sequence = b.data.sequence(id, { alphabet: alphabetOf(s.alphabet), source, name: s.name });
     const ranges = withRanges.has(s.name) ? b.data.ranges(`${id}-ranges`, { target: sequence, source }) : undefined;
-    return { id, label: s.name, sequence, ranges };
+    const values = withValues.has(s.name) ? b.data.values(`${id}-values`, { target: sequence, source }) : undefined;
+    return { id, label: s.name, sequence, ranges, values };
   });
   b.views.view('main', (v) => {
     for (const p of parts)
       v.section(p.id, { of: p.sequence }, (s) => {
         s.track('ruler', { label: p.label }).layer('ruler', { type: 'ruler' });
-        s.track('letters', { label: 'Sequence' }).layer('letters', { type: 'letters' });
+        // a structure's units carry values (its B-factors, a prediction's pLDDT), never letters
+        if (format !== 'mmcif') s.track('letters', { label: 'Sequence' }).layer('letters', { type: 'letters' });
+        if (p.values) s.track('values', { label: 'Values' }).layer('values', { type: 'values', data: p.values });
         if (p.ranges) s.track('ranges', { label: 'Ranges' }).layer('ranges', { type: 'ranges', data: p.ranges });
       });
   });

@@ -7,7 +7,7 @@
 import type { Node } from '@molstar/core/repr/tree';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { printLink } from '@molstar/seqx-core/query';
-import { chainAddress, compose, type ComposedOptions, Entry, unitAddress } from './composed.js';
+import { compose, type ComposedOptions, Entry, structureSection, unitAddress } from './composed.js';
 
 // Addressing, with a structure beside the view (examples.md, Showcases; addressing.md): a short text whose links act on
 // addresses in Mol*'s link grammar (`!seq-focus=/refs/dbd`) and reach the view and, through the structure link, the fake
@@ -71,9 +71,9 @@ export function build(options: ComposedOptions = {}): Node {
     v.section('protein', { of: c.protein }, (s) => {
       s.track('ruler', { label: 'P04637' }).layer('ruler', { type: 'ruler' });
       s.track('letters', { label: 'Sequence (UniProt)' }).layer('letters', { type: 'letters' });
-      s.track('domains', { label: 'Domains (UniProt)' }).layer('domains', {
+      s.track('dna', { label: 'DNA binding (UniProt)' }).layer('dna', {
         type: 'ranges',
-        data: c.features('Domain'),
+        data: c.features('DNA binding'),
       });
       if (c.coverage)
         s.track('coverage', { label: `${Entry} chains (SIFTS)` }).layer('coverage', {
@@ -81,10 +81,7 @@ export function build(options: ComposedOptions = {}): Node {
           data: c.coverage,
         });
     });
-    if (c.structure)
-      v.section('structure', { of: chainAddress('A') as never }, (s) => {
-        s.track('letters', { label: `${Entry} chain A (PDBe)` }).layer('letters', { type: 'letters' });
-      });
+    structureSection(v, c);
   });
   return b.build();
 }

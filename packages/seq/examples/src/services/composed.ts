@@ -5,7 +5,7 @@
  */
 
 import type { Node } from '@molstar/core/repr/tree';
-import { createSeqSpec, type SeqSpecBuilder } from '@molstar/seqx-core/lang';
+import { createSeqSpec, type SeqSpecBuilder, type ViewBuilder } from '@molstar/seqx-core/lang';
 import { nodeAddress } from '@molstar/seqx-core/resolve';
 import { plddtColor } from '../complex/confidence.js';
 import { uniprotEntry } from '../files/uniprot.js';
@@ -59,6 +59,8 @@ export interface Composed {
   readonly features: (type: string) => string;
   /** Whether SIFTS has answered: its maps and the structure's sequences are written. */
   readonly structure: boolean;
+  /** The B-factors of chain A (PDBe's mmCIF), when the structure is written. */
+  readonly bfactor?: string;
 }
 
 /** The nodes every scenario shares: the three services' data and, when SIFTS has answered, its maps. */
@@ -95,13 +97,33 @@ export function compose(b: SeqSpecBuilder, options: ComposedOptions = {}): Compo
   for (const chain of new Set(rows.map((m) => m.chain)))
     b.data.sequence(`2ocj-${chain}`, { alphabet: 'protein', source: pdb, name: chain });
   addSiftsMaps(b, Entry, rows, { [Accession]: uniprot.protein }, unitAddress);
+  const bfactor = rows.length
+    ? b.data.values('bfactor-a', { target: chainAddress('A') as never, source: pdb, field: 'b_factor' })
+    : undefined;
   return {
     protein: uniprot.protein,
     plddt,
     ...(coverage ? { coverage } : {}),
     features: uniprot.data,
     structure: rows.length > 0,
+    ...(bfactor ? { bfactor } : {}),
   };
+}
+
+/**
+ * The section of chain A of the structure, once SIFTS has answered: PDBe's mmCIF serves a unit's B-factors (a residue
+ * without atoms has none: the gaps at the ends are the crystal's), never its letters.
+ */
+export function structureSection(v: ViewBuilder, c: Composed) {
+  if (!c.structure || !c.bfactor) return;
+  v.section('structure', { of: chainAddress('A') as never }, (s) => {
+    s.track('ruler', { label: `${Entry} chain A (PDBe)` }).layer('ruler', { type: 'ruler' });
+    s.track('bfactor', { label: 'B-factor (Å²)' }).layer('bfactor', {
+      type: 'values',
+      data: c.bfactor!,
+      domain: [0, 80],
+    });
+  });
 }
 
 /** The spec: three services' data, SIFTS's maps when its answer is here. */
@@ -112,9 +134,9 @@ export function build(options: ComposedOptions = {}): Node {
     v.section('protein', { of: c.protein }, (s) => {
       s.track('ruler', { label: 'P04637' }).layer('ruler', { type: 'ruler' });
       s.track('letters', { label: 'Sequence (UniProt)' }).layer('letters', { type: 'letters' });
-      s.track('domains', { label: 'Domains (UniProt)' }).layer('domains', {
+      s.track('dna', { label: 'DNA binding (UniProt)' }).layer('dna', {
         type: 'ranges',
-        data: c.features('Domain'),
+        data: c.features('DNA binding'),
       });
       s.track('plddt', { label: 'pLDDT (AlphaFold DB)' }).layer('plddt', {
         type: 'values',
@@ -127,10 +149,7 @@ export function build(options: ComposedOptions = {}): Node {
           data: c.coverage,
         });
     });
-    if (c.structure)
-      v.section('structure', { of: chainAddress('A') as never }, (s) => {
-        s.track('letters', { label: `${Entry} chain A (PDBe)` }).layer('letters', { type: 'letters' });
-      });
+    structureSection(v, c);
   });
   return b.build();
 }

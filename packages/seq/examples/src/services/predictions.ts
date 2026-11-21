@@ -7,7 +7,7 @@
 import type { Node } from '@molstar/core/repr/tree';
 import { createSeqSpec, theme } from '@molstar/seqx-core/lang';
 import { P53, seeded } from '../p53/data.js';
-import { chainAddress, compose, type ComposedOptions, Entry } from './composed.js';
+import { compose, type ComposedOptions, structureSection } from './composed.js';
 
 // A lab's predictions onto a structure (examples.md, Showcases): a score per position of a sequence the lab indexes from 1
 // and gives no numbering of (a made-up "tolerance" score, SYNTHETIC: generated from a seed, high at the hotspots R175,
@@ -58,10 +58,7 @@ export function build(options: ComposedOptions = {}): Node {
         color: scoreColor(),
       });
     });
-    if (c.structure)
-      v.section('structure', { of: chainAddress('A') as never }, (s) => {
-        s.track('letters', { label: `${Entry} chain A (PDBe)` }).layer('letters', { type: 'letters' });
-      });
+    structureSection(v, c);
   });
   return b.build();
 }
