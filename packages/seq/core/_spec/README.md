@@ -2935,9 +2935,10 @@ numbers): a window move allocates nothing once warm.
   under a device pixel a block's data is more requests than pixels; pairs survive through their other end (RR).
 - **Groups** (a section of several assemblies, EC-210): a row draws a bracket a group under its tracks (a hairline, a
   tick at each end, the assembly's name below, `msui-text` on `msui-text-muted`); a ring an arc just outside its outer
-  ring and the name among its outside labels; the ring's hole the assemblies' names and their total length in bases
-  (`3.1 Gb`). **The closing run** past `maxAssemblyBlocks` is said at the row's end under its tracks ("+96,312 sequences
-  not shown") and in a ring's subtitle.
+  ring and the name upright in a band of its own there (`RingMetrics.groupBand`, 16 px, the label font in `msui-text`),
+  the block labels and their leaders starting past it, so the two never collide; the ring's hole the assemblies' names
+  and their total length in bases (`3.1 Gb`). **The closing run** past `maxAssemblyBlocks` is said at the row's end
+  under its tracks ("+96,312 sequences not shown") and in a ring's subtitle.
 - **Follow**: sections whose block lists are equal (`sameBlocks`: systems, ranges, directions, scales in order) follow
   by identity in units: the follower's window is the leader's (a ring of the genome and its linear detail, two sections
   of one assembly). A section of blocks on more than one system with an unequal list neither follows nor is followed

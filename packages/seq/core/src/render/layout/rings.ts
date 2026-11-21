@@ -44,7 +44,7 @@ const TwoPi = 2 * Math.PI;
  * window's rim outside the outer ring (its body and grips are hit there, so the data under the window stays hit), the
  * margin a ring keeps when it has no labels.
  */
-export const RingMetrics = { labelRoom: 96, rim: 12, margin: 4 } as const;
+export const RingMetrics = { labelRoom: 96, rim: 12, margin: 4, groupBand: 16 } as const;
 
 /** A rings section's params as the spec writes them (_spec/README.md "Resolved view"), with their defaults. */
 export interface RingParams {
@@ -184,6 +184,10 @@ export class RingPlacement implements Placement {
   groupN = 0;
   groupX = new Float64Array(4);
   groupW = new Float64Array(4);
+  /** The groups' names, drawn in their band outside the outer ring (never among the block labels). */
+  groupText: string[] = [];
+  /** The band outside the outer ring the groups' arcs and names take (0 without groups): the labels start past it. */
+  groupBand = 0;
 
   warpOf(): PolarWarp {
     return this.warp;
@@ -486,7 +490,7 @@ function layGroupArcs(
     p.groupX[k] = x0;
     p.groupW[k] = x1 - x0;
     // its name outside, at its middle angle: placed with the blocks' labels, before them
-    p.labels.add(g.label, angleOf(p, (x0 + x1) / 2), Infinity, -2, undefined);
+    p.groupText[k] = g.label;
   }
 }
 
@@ -507,16 +511,19 @@ export const RingsLayout: SectionLayoutType<RingPlacement> = {
     strips.reset(nb);
     p.labels.reset();
     p.labelFont = config.itemFont;
+    p.groupBand = section.groups && section.groups.length > 1 && outside ? RingMetrics.groupBand : 0;
     const size = fontSize(config.itemFont);
     p.labelSize = size;
     p.titleSize = fontSize(config.labelFont);
     // the diameter fits the box's width (its labels' room aside), capped
-    const side = outside ? rc.labelGap + rc.leaderBend + RingMetrics.labelRoom : RingMetrics.margin + RingMetrics.rim;
+    const side = outside
+      ? rc.labelGap + p.groupBand + rc.leaderBend + RingMetrics.labelRoom
+      : RingMetrics.margin + RingMetrics.rim;
     const written = section.params.height;
     const avail = Math.max(48, ctx.width - 2 * config.inset - 2 * side);
     const d = Math.min(rc.maxDiameter, typeof written === 'number' && written > 0 ? written : avail, avail);
     const r = d / 2;
-    const margin = outside ? rc.labelGap + rc.leaderBend + size : RingMetrics.margin + RingMetrics.rim;
+    const margin = outside ? rc.labelGap + p.groupBand + rc.leaderBend + size : RingMetrics.margin + RingMetrics.rim;
     const top = ctx.box.y;
     p.box = { x: config.inset, y: top, width: ctx.width - 2 * config.inset, height: d + 2 * margin };
     p.contentHeight = p.box.height;
@@ -775,7 +782,7 @@ function drawRingRuns(p: RingPlacement, page: PassWriter, tokens: SeqTokens): vo
   }
   for (let k = 0; k < p.groupN; k++) {
     g[0] = p.groupX[k];
-    g[1] = -4;
+    g[1] = -3;
     g[2] = p.groupW[k];
     g[3] = 1.5;
     g[4] = tokens.colors['msui-text-muted'];
@@ -941,7 +948,7 @@ function layoutLabels(p: RingPlacement, config: RenderConfig, size: number, text
   // their leaders from their own angles: placed with the rest, then their own angles back
   const from = (p.fanFrom = grown(p.fanFrom, full.n));
   from.set(full.angle.subarray(0, full.n));
-  pivotFans(p, full, labelLine(size) / (p.r + rc.labelGap));
+  pivotFans(p, full, labelLine(size) / (p.r + rc.labelGap + p.groupBand));
   placeLabels(p, full, config, size, text, from);
   full.angle.set(from.subarray(0, full.n));
   full.slot = grown(full.slot, full.n);
@@ -1024,9 +1031,10 @@ function placeLabels(
 ) {
   const rc = config.rings;
   const line = labelLine(size);
-  const r1 = p.r + 2;
-  const rb = p.r + rc.labelGap;
-  const rl = p.r + rc.labelGap + rc.leaderBend;
+  // past the groups' band: a leader never crosses a group's name
+  const r1 = p.r + 2 + p.groupBand;
+  const rb = p.r + rc.labelGap + p.groupBand;
+  const rl = p.r + rc.labelGap + p.groupBand + rc.leaderBend;
   const lo = p.box.y + size;
   const hi = p.box.y + p.box.height - 2;
   const hold = Math.max(0, Math.floor((hi - lo) / line) + 1);
@@ -1178,6 +1186,17 @@ function drawRingLabels(p: RingPlacement, out: PassWriter, tokens: SeqTokens, co
     g[3] = RingMetrics.labelRoom;
     g[4] = ink;
     out.textArgs(l.text[l.placed[k]], l.right[k] ? AnchorStart : AnchorEnd, config.itemFont);
+  }
+  // each group's name in its band outside the outer ring, at its arc's middle, upright, in the label font and ink
+  // (the block labels are the item font, muted, past the band)
+  for (let k = 0; k < p.groupN; k++) {
+    p.warp.map(p.groupX[k] + p.groupW[k] / 2, -3 - p.groupBand / 2);
+    g[0] = p.warp.px;
+    g[1] = p.warp.py + p.titleSize * 0.35;
+    g[2] = 0;
+    g[3] = Math.max(0, p.groupW[k]);
+    g[4] = ink;
+    out.textArgs(p.groupText[k], AnchorMiddle, config.labelFont);
   }
   if (!p.title) return;
   const size = p.titleSize;

@@ -321,6 +321,13 @@ describe('two assemblies on one section (EC-210)', () => {
     expect((gap * 180) / Math.PI).toBeCloseTo(4, 1);
     expect(p.groupN).toBe(2);
     expect(p.title).toBe('peach · grape');
+    // the groups' names in their band, never among the block labels; every block label past the band
+    expect(p.groupText.slice(0, 2)).toEqual(['peach', 'grape']);
+    const placed = Array.from({ length: p.labels.m }, (_, k) => p.labels.text[p.labels.placed[k]]);
+    expect(placed).not.toContain('peach');
+    expect(placed).not.toContain('grape');
+    for (let k = 0; k < p.labels.m; k++)
+      expect(Math.hypot(p.labels.x[k] - p.cx, p.labels.y[k] - p.cy)).toBeGreaterThan(p.r + p.groupBand);
   });
 });
 
