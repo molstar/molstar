@@ -74,7 +74,9 @@ export interface HeadersBehavior {
   openMenu(target: HeaderTarget, place: HeaderMenuPlace, only?: string): boolean;
   /** Closes the menu; a preview it made ends in nothing. */
   closeMenu(): void;
-  /** How long the pointer rests on a submenu's row before a menu port opens it, ms (`submenuRestMs`, 300). */
+  /** @internal Ends a preview in nothing, the menu staying open (a flyout closed without a choice). */
+  cancelPreview(): void;
+  /** How long the pointer rests on a submenu's row before a menu port opens its flyout, ms (`submenuRestMs`, 300; 0: never). */
   readonly submenuRestMs: number;
   /** @internal A click on a header's part at a canvas point (the input's, taken). */
   click(x: number, y: number, touch: boolean): void;
@@ -180,11 +182,13 @@ function headersBehavior(context: BehaviorContext, params: HeadersParams = {}): 
     if (!menuPort && params.menu && !menuPortMounted) menuPort = params.menu(undefined);
     return menuPort;
   };
+  const cancelPreview = () => {
+    if (!shared.previewed) return;
+    shared.previewed = false;
+    (shared.viewer?.behaviors.get('legend') as ThemingBehavior | undefined)?.cancelPreview();
+  };
   const closeMenu = () => {
-    if (shared.previewed) {
-      shared.previewed = false;
-      (shared.viewer?.behaviors.get('legend') as ThemingBehavior | undefined)?.cancelPreview();
-    }
+    cancelPreview();
     if (!shownMenu.value) return;
     shownMenu.set(undefined);
     menuPort?.hide();
@@ -275,6 +279,7 @@ function headersBehavior(context: BehaviorContext, params: HeadersParams = {}): 
     preview: (item) => !!extras?.preview(item),
     openMenu: (target, place, only) => !!extras?.openMenu(target, place, only),
     closeMenu,
+    cancelPreview,
     submenuRestMs: params.submenuRestMs ?? 300,
     framed() {
       extras?.keepCursor();

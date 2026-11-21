@@ -191,3 +191,91 @@ describe('openMenuBeside', () => {
     }
   });
 });
+
+describe('a submenu (a flyout)', () => {
+  const setup = () => {
+    const root = document.createElement('div');
+    document.body.append(root);
+    const pick = vi.fn();
+    const closed = vi.fn();
+    const subClosed = vi.fn();
+    const close = openContextMenu(
+      root,
+      { x: 10, y: 20 },
+      [
+        { id: 'hide', label: 'Hide', run: vi.fn() },
+        {
+          id: 'color',
+          label: 'Color',
+          run: vi.fn(),
+          items: [
+            { id: 'a', label: 'By pLDDT', run: pick },
+            { id: 'b', label: 'By chain', run: vi.fn() },
+          ],
+        },
+      ],
+      closed,
+      { onSubmenuClose: subClosed },
+    );
+    const menus = () => [...root.querySelectorAll<HTMLElement>('[role="menu"]')];
+    const color = root.querySelector<HTMLElement>('[aria-haspopup="menu"]')!;
+    return { root, pick, closed, subClosed, close, menus, color };
+  };
+  const key = (el: Element, k: string) =>
+    el.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true }));
+
+  it('opens beside its row on a click, the menu staying, the row marked; a choice runs it and closes both', () => {
+    const { pick, closed, menus, color } = setup();
+    expect(color.getAttribute('aria-expanded')).toBe('false');
+    color.click();
+    expect(menus()).toHaveLength(2);
+    expect(menus()[0].textContent).toContain('Hide');
+    expect(color.getAttribute('aria-expanded')).toBe('true');
+    (menus()[1].querySelector('[role="menuitem"]') as HTMLElement).click();
+    expect(pick).toHaveBeenCalledTimes(1);
+    expect(menus()).toHaveLength(0);
+    expect(closed).toHaveBeenCalledTimes(1);
+  });
+
+  it('→ opens it with the focus in; ← and Escape close it alone, the focus back on the row', () => {
+    const { menus, color, subClosed, closed } = setup();
+    color.focus();
+    key(color, 'ArrowRight');
+    expect(menus()[1].contains(document.activeElement)).toBe(true);
+    key(document.activeElement!, 'ArrowLeft');
+    expect(menus()).toHaveLength(1);
+    expect(document.activeElement).toBe(color);
+    key(color, 'ArrowRight');
+    key(document.activeElement!, 'Escape');
+    expect(menus()).toHaveLength(1);
+    expect(document.activeElement).toBe(color);
+    expect(subClosed).toHaveBeenCalledTimes(2);
+    expect(closed).not.toHaveBeenCalled();
+    key(color, 'Escape');
+    expect(menus()).toHaveLength(0);
+    expect(closed).toHaveBeenCalledTimes(1);
+  });
+
+  it('a press in the flyout is not outside; a press outside closes all', () => {
+    const { menus, color, closed } = setup();
+    color.click();
+    menus()[1].dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    expect(menus()).toHaveLength(2);
+    document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    expect(menus()).toHaveLength(0);
+    expect(closed).toHaveBeenCalledTimes(1);
+  });
+
+  it('opens when the pointer rests on the row', () => {
+    vi.useFakeTimers();
+    try {
+      const { menus, color } = setup();
+      color.dispatchEvent(new PointerEvent('pointerover', { bubbles: true }));
+      expect(menus()).toHaveLength(1);
+      vi.advanceTimersByTime(300);
+      expect(menus()).toHaveLength(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});

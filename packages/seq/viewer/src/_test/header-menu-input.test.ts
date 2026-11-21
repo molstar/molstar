@@ -21,7 +21,7 @@ import { RecordingContext } from '../canvas/_test/recording.js';
 import { DefaultSeqViewerSpec } from '../default-spec.js';
 import type { HeadersParams } from '../header-entries.js';
 import { headerMenuOverlay } from '../mount-header-menu.js';
-import { uiHistory } from '../ui-history.js';
+import { type UiHistory, uiHistory } from '../ui-history.js';
 import { createSeqViewer, type SeqViewer } from '../viewer.js';
 import { type Frames, installFrames } from './frames.js';
 
@@ -287,67 +287,142 @@ describe('an open menu and the view resolving again', () => {
   });
 });
 
-describe('Color ▸', () => {
-  const labels = (container: HTMLElement) =>
-    [...container.querySelectorAll('[role="menu"] [role^="menuitem"]')].map((b) => b.textContent);
+/** The open menu levels (the menu, then its flyouts), their rows' texts. */
+const levels = (container: HTMLElement) =>
+  [...container.querySelectorAll('[role="menu"]')].map((m) =>
+    [...m.querySelectorAll('[role^="menuitem"]')].map((b) => b.textContent),
+  );
+const menusOf = (container: HTMLElement) => [...container.querySelectorAll<HTMLElement>('[role="menu"]')];
+const key = (el: Element, k: string) =>
+  el.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true }));
 
-  it('opens its submenu by a click; a hovered scheme previews and keeps it open; a choice applies the scheme', async () => {
-    const { v, container, headers, pointer, press } = await mount();
-    const g = geo(v, Domains);
-    press(over(row(await openMenu(v, headers, container, Letters), /^Color/), v.dataX + 12, g.line.y + 2));
+describe('Color ▸ (a flyout beside its row: the menu stays)', () => {
+  it('a click opens it beside the row, the parent still open and its row marked; a hovered scheme previews, a choice applies and closes both', async () => {
+    const { v, container, headers, pointer } = await mount();
+    const menu = await openMenu(v, headers, container, Letters);
+    const color = row(menu, /^Color/);
+    expect(color.getAttribute('aria-expanded')).toBe('false');
+    color.click();
     await v.settle();
     frames.flush();
-    expect(labels(container)).not.toContain('Hide track');
-    const choices = [...container.querySelectorAll<HTMLElement>('[role="menu"] [role="menuitemradio"]')];
-    expect(choices.length).toBeGreaterThan(1);
+    expect(menusOf(container)).toHaveLength(2);
+    // the parent is still there, whole, its Color row marked open
+    expect(menu.isConnected).toBe(true);
+    expect(levels(container)[0]).toContain('Hide track');
+    expect(color.getAttribute('aria-expanded')).toBe('true');
+    const flyout = menusOf(container)[1];
+    expect(flyout.querySelectorAll('[role="menuitemradio"]').length).toBeGreaterThan(1);
+    expect(headers.menu.value).toBeDefined();
+    const choices = [...flyout.querySelectorAll<HTMLElement>('[role="menuitemradio"]')];
     const other = choices.find((c) => c.getAttribute('aria-checked') !== 'true')!;
     const name = other.textContent;
-    // the pointer onto another scheme: previewed, drawn, and the submenu stays open for the choice
     pointer('pointerover', other);
     frames.flush();
     await v.settle();
-    frames.flush();
     expect(v.spec.preview.value).toBeDefined();
-    expect(container.querySelector('[role="menu"]')?.contains(other)).toBe(true);
-    expect(headers.menu.value).toBeDefined();
-    press(over(other, v.dataX + 12, g.line.y + 2));
+    expect(menusOf(container)).toHaveLength(2);
+    other.click();
     await v.settle();
-    expect(container.querySelector('[role="menu"]')).toBeNull();
-    press(row(await openMenu(v, headers, container, Letters), /^Color/));
+    expect(menusOf(container)).toHaveLength(0);
+    expect(headers.menu.value).toBeUndefined();
+    const again = row(await openMenu(v, headers, container, Letters), /^Color/);
+    again.click();
     await v.settle();
-    expect(container.querySelector('[role="menu"] [aria-checked="true"]')?.textContent).toBe(name);
+    expect(menusOf(container)[1].querySelector('[aria-checked="true"]')?.textContent).toBe(name);
   });
 
-  it('opens its submenu by ArrowRight; ArrowLeft goes back to the menu', async () => {
+  it('is placed right of its row, left of the menu where there is no room, inside the window', async () => {
+    const { v, container, headers } = await mount();
+    const width = vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(160);
+    const height = vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(100);
+    try {
+      const at = async (left: number, top: number) => {
+        const menu = await openMenu(v, headers, container, Letters);
+        const color = row(menu, /^Color/);
+        vi.spyOn(menu, 'getBoundingClientRect').mockReturnValue(new DOMRect(left, top, 180, 300));
+        vi.spyOn(color, 'getBoundingClientRect').mockReturnValue(new DOMRect(left, top + 30, 180, 24));
+        color.click();
+        await v.settle();
+        const t = menusOf(container)[1].style.transform;
+        headers.closeMenu();
+        return t;
+      };
+      // innerWidth 1024, innerHeight 768 in jsdom: beside the row, its top a padding above it
+      expect(await at(100, 50)).toBe('translate(282px, 74px)');
+      // no room on the right: left of the menu
+      expect(await at(900, 50)).toBe(`translate(${900 - 2 - 160}px, 74px)`);
+      // low on the window: kept inside it
+      const low = await at(100, 700);
+      expect(low).toMatch(/^translate\(282px, \d+px\)$/);
+      expect(Number(/, (\d+)px/.exec(low)![1]) + 100).toBeLessThanOrEqual(768 - 4);
+    } finally {
+      width.mockRestore();
+      height.mockRestore();
+    }
+  });
+
+  it('opens by ArrowRight; ← closes the flyout alone and focuses Color; Esc then closes the menu', async () => {
+    const { v, container, headers } = await mount();
+    const menu = await openMenu(v, headers, container, Letters);
+    const color = row(menu, /^Color/);
+    color.focus();
+    key(color, 'ArrowRight');
+    await v.settle();
+    expect(menusOf(container)).toHaveLength(2);
+    expect(levels(container)[0]).toContain('Hide track');
+    expect(menusOf(container)[1].contains(document.activeElement)).toBe(true);
+    key(document.activeElement!, 'ArrowLeft');
+    expect(menusOf(container)).toHaveLength(1);
+    expect(menu.isConnected).toBe(true);
+    expect(document.activeElement).toBe(color);
+    expect(color.getAttribute('aria-expanded')).toBe('false');
+    expect(headers.menu.value).toBeDefined();
+    // Esc in the flyout closes it alone, the focus on Color; Esc again closes the menu
+    key(color, 'ArrowRight');
+    await v.settle();
+    key(document.activeElement!, 'Escape');
+    expect(menusOf(container)).toHaveLength(1);
+    expect(document.activeElement).toBe(color);
+    key(color, 'Escape');
+    await v.settle();
+    expect(menusOf(container)).toHaveLength(0);
+    expect(headers.menu.value).toBeUndefined();
+  });
+
+  it('opens by Enter and Space (the row’s own click) with the focus in the flyout', async () => {
     const { v, container, headers } = await mount();
     const color = row(await openMenu(v, headers, container, Letters), /^Color/);
     color.focus();
-    color.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
+    // a keyboard click has detail 0: the focus goes into the flyout
+    color.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, detail: 0 }));
     await v.settle();
-    expect(labels(container)).not.toContain('Hide track');
-    expect(container.querySelectorAll('[role="menuitemradio"]').length).toBeGreaterThan(1);
-    expect(container.querySelector('[role="menu"]')!.contains(document.activeElement)).toBe(true);
-    expect(headers.menu.value).toBeDefined();
-    document.activeElement!.dispatchEvent(
-      new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true, cancelable: true }),
-    );
-    expect(labels(container)).toContain('Hide track');
-    expect(headers.menu.value).toBeDefined();
-    // the focus back on the submenu's own row
-    expect(document.activeElement?.textContent).toMatch(/^Color/);
+    expect(menusOf(container)).toHaveLength(2);
+    expect(menusOf(container)[1].contains(document.activeElement)).toBe(true);
   });
 
-  it('opens its submenu by hover, once the pointer rests on it', async () => {
+  it('opens when the pointer rests on its row, the parent staying; another row’s rest closes it, arriving in it does not', async () => {
     const { v, container, headers, pointer } = await mount();
-    const color = row(await openMenu(v, headers, container, Letters), /^Color/);
+    const menu = await openMenu(v, headers, container, Letters);
+    const color = row(menu, /^Color/);
     fakeTimers();
     pointer('pointerover', color);
-    pointer('pointermove', color);
-    expect(labels(container)).toContain('Hide track');
+    expect(menusOf(container)).toHaveLength(1);
     runTimers();
     await v.settle();
-    expect(labels(container)).not.toContain('Hide track');
-    expect(container.querySelectorAll('[role="menuitemradio"]').length).toBeGreaterThan(1);
+    expect(menusOf(container)).toHaveLength(2);
+    expect(levels(container)[0]).toContain('Hide track');
+    // onto another row of the menu: a rest, then the flyout closes
+    pointer('pointerover', row(menu, /^Reverse/));
+    expect(menusOf(container)).toHaveLength(2);
+    // the pointer arrives in the flyout first (a diagonal move): nothing closes it
+    menusOf(container)[1].dispatchEvent(new PointerEvent('pointerenter', { bubbles: false }));
+    runTimers();
+    expect(menusOf(container)).toHaveLength(2);
+    pointer('pointerover', row(menu, /^Reverse/));
+    runTimers();
+    expect(menusOf(container)).toHaveLength(1);
+    expect(color.getAttribute('aria-expanded')).toBe('false');
+    expect(headers.menu.value).toBeDefined();
   });
 
   it('a menu dismissed while the pointer rests on it opens nothing after', async () => {
@@ -357,8 +432,7 @@ describe('Color ▸', () => {
       const color = row(menu, /^Color/);
       fakeTimers();
       pointer('pointerover', color);
-      if (dismiss === 'Escape')
-        color.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+      if (dismiss === 'Escape') key(color, 'Escape');
       else if (dismiss === 'outside') pointer('pointerdown', document.body);
       else row(menu, /^Reverse/).click();
       await v.settle();
@@ -372,13 +446,33 @@ describe('Color ▸', () => {
     }
   });
 
-  it('waits the `submenuRestMs` param', async () => {
+  it('a press outside closes the flyout and the menu; a press in the flyout closes nothing', async () => {
+    const { v, container, headers, pointer } = await mount();
+    const color = row(await openMenu(v, headers, container, Letters), /^Color/);
+    color.click();
+    await v.settle();
+    pointer('pointerdown', menusOf(container)[1]);
+    expect(menusOf(container)).toHaveLength(2);
+    pointer('pointerdown', document.body);
+    await v.settle();
+    expect(menusOf(container)).toHaveLength(0);
+    expect(headers.menu.value).toBeUndefined();
+  });
+
+  it('waits the `submenuRestMs` param; 0 turns resting off', async () => {
     const { v, container, headers, pointer } = await mount({ submenuRestMs: 120 });
     expect(headers.submenuRestMs).toBe(120);
     const color = row(await openMenu(v, headers, container, Letters), /^Color/);
     fakeTimers();
     pointer('pointerover', color);
     expect(vi.mocked(DomHost.setTimeout)).toHaveBeenLastCalledWith(expect.any(Function), 120);
+    headers.closeMenu();
+    vi.mocked(DomHost.setTimeout).mockClear();
+    const off = await mount({ submenuRestMs: 0 });
+    const c0 = row(await openMenu(off.v, off.headers, off.container, Letters), /^Color/);
+    vi.mocked(DomHost.setTimeout).mockClear();
+    off.pointer('pointerover', c0);
+    expect(vi.mocked(DomHost.setTimeout)).not.toHaveBeenCalled();
   });
 
   it('a move within a submenu’s row keeps its rest: it opens at the first rest, not later', async () => {
@@ -390,5 +484,57 @@ describe('Color ▸', () => {
     // onto the row's label (a child of the same row)
     pointer('pointerover', color.querySelector('span:not(:empty)') ?? color.lastElementChild!);
     expect([...timers.keys()]).toEqual(n);
+  });
+});
+
+describe('Show hidden ▸ (the application’s way back to a hidden track), the same flyout', () => {
+  it('is in the section’s menu only while a track is hidden; → lists each hidden track beside it, Enter shows one', async () => {
+    const { v, container, headers } = await mount();
+    const menu0 = await openMenu(v, headers, container, Letters);
+    expect(menu0.textContent).not.toContain('Show hidden');
+    headers.closeMenu();
+    await v.execute('track.hide', { address: Domains });
+    await v.settle();
+    frames.flush();
+    // a section with a hidden track: still no line, no chip; the menu has it
+    expect(v.frame!.layout.sections[0].header).toBeUndefined();
+    const menu = await openMenu(v, headers, container, Letters);
+    const hidden = row(menu, /^Show hidden/);
+    expect(hidden).toBeDefined();
+    hidden.focus();
+    key(hidden, 'ArrowRight');
+    await v.settle();
+    // the menu stays; one hidden track: no "Show all" beside it
+    expect(menu.isConnected).toBe(true);
+    expect(levels(container)[1]).toEqual(['Domains']);
+    // Enter on a row is its click
+    (document.activeElement as HTMLElement).click();
+    await v.settle();
+    expect(tracks(v)).toEqual([Letters, Domains]);
+    expect(v.hiddenTracks.value).toEqual([]);
+    expect(menusOf(container)).toHaveLength(0);
+  });
+
+  it('with several hidden: each in spec order, then Show all (one patch, one undo step)', async () => {
+    const { v, container, headers } = await mount();
+    await v.execute('track.hide', { address: Domains });
+    await v.execute('track.hide', { address: Letters });
+    await v.settle();
+    frames.flush();
+    expect(tracks(v)).toEqual([]);
+    expect(v.hiddenTracks.value.map((t) => t.address)).toEqual([Letters, Domains]);
+    expect(headers.openMenu({ section: Section }, { x: 0, y: 0 })).toBe(true);
+    await v.settle();
+    frames.flush();
+    const hidden = row(menusOf(container)[0], /^Show hidden/);
+    hidden.focus();
+    key(hidden, 'ArrowRight');
+    await v.settle();
+    expect(levels(container)[1]).toEqual(['Letters', 'Domains', 'Show all']);
+    const steps = (v.spec.history as UiHistory).stack.steps.value.length;
+    row(menusOf(container)[1], /^Show all/).click();
+    await v.settle();
+    expect(tracks(v)).toEqual([Letters, Domains]);
+    expect((v.spec.history as UiHistory).stack.steps.value.length).toBe(steps + 1);
   });
 });
