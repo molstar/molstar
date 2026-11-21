@@ -13,7 +13,17 @@ under the author's standing permission (`state.md`, Decided). Each a yes or no q
   yes (EC-141 covered for hovers, not only leaves).
 
 - **HD**: `withAdapter` is generic over the registry's entry type (a viewer's registry passes through); the examples'
-  chain tables gain `ChainResidue.b`, `ChainTable.model`, `HostModel`. Keep? Recommended yes.
+  chain tables gain `ChainResidue.b`, `ChainTable.model`, `HostModel`. Keep? Recommended yes.- **EX**: the extension surface. core's repr: `KindSpec.extensionParam`, `KindSpec.fallbackParam` (any `x:y` key kept
+  in every repr language). Seq* core: `SeqExtension`, `defineExtension` (it checks and composes), `SeqContextSpec.extensions`,
+  `SeqContext.kinds`/`schemes`/`extensions`, a `scheme` registry entry, `LayerType.shape`, `LayerKinds`, `LayerShape`,
+  a `kinds` argument on `resolveView(s)`, `ResolvedLayer.shape`, `SeqSpecOptions.extensions`, issues
+  `seq.lang.layer.fallback`, `seq.view.layer.extension`, `seq.view.extension.version`. Viewer: `SeqViewerExtension`,
+  `defineViewerExtension`, `SeqViewerSpec.extensions`, `extend()` (async, a lazy chunk, resolves to its undo),
+  `BehaviorHandle.commands`. Language 0.5.0: `spec.extensions`, `layer.fallback`, `layer.type` a word, `<id>:<name>`
+  for `layout`, `heights`, `content`. Drifts: `extend` async with no public `context.extend`; params checked by the
+  descriptor's `check`; no type-table version in the draw-list key (a new resolved view is a new renderer); late
+  header entries and settings refused. Keep? Recommended yes.
+
 ## Decisions as recommended
 
 - **ST2**: the link sends every jump that names a Location (`focus`, `reveal`, and back/forward over them); `fit`,
@@ -46,4 +56,9 @@ under the author's standing permission (`state.md`, Decided). Each a yes or no q
   "the eye and the color fit beside a label in 112 px". Keep one slot and amend the rationale, or reserve two slots
   (the column wider, or the slot rule changed)? Recommended: amend the rationale (the menu holds every entry; a wider
   column costs every view).
-
+- **EX: the minimal viewer grew 3.7 kB** (925.6 → 929.3 of 930; the brief: "the minimal viewer is not grown"): 2.4 kB
+  are the reader's fallback parts (the fallback chain, the issue once per extension, version reading, the navigator
+  issue, language and catalogs), 1.2 kB composition entry points; `checkExtensions` and the tables moved behind
+  `defineExtension`, late `extend` lazy. 0.7 kB is left under the bound, and CN and LE come next. Accept and move the
+  minimal bound (e.g. 940 kB), or trim design items (the info-level version notice, the navigator issue, the builder's
+  `extensions`)? Recommended: accept, move the bound to 940 kB (a reader without the extension must say what it lacks).

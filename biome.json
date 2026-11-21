@@ -1033,6 +1033,26 @@
           }
         }
       }
+    },
+    {
+      "includes": ["packages/seq/storybook/src/_stories/features/extensibility/demo-extension.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["@molstar/seqx-core", "@molstar/seqx-core/**", "!@molstar/seqx-core/extension"],
+                    "message": "An extension imports the core through @molstar/seqx-core/extension only."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
     }
   ],
   "javascript": {

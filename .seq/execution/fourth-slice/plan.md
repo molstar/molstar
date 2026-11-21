@@ -333,7 +333,7 @@ disagrees with its code writes a drift note and stops.
 
 ### Stage 4: extension openings (after stage 0; after HP2's registry kind)
 
-- [ ] EX (strong) part 1: `SeqExtension` and namespaced layer types (`<id>:<name>`, plain params, namespaced keys on
+- [x] EX (strong) part 1: `SeqExtension` and namespaced layer types (`<id>:<name>`, plain params, namespaced keys on
       others' nodes), registered atomically with undo, the fallback drawn and said when absent (EC-235), the
       `@molstar/seqx-core/extension` entry; `Features/Extensibility` with an example extension (`briefs/ex-ext-kinds.md`).
 - [ ] CN (strong, after EX; cut first) part 2: a navigator's picture as a `navigator-picture` entry; `NavigatorModel`

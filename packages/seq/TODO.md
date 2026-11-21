@@ -326,3 +326,5 @@ base-library change, below), archives. The Genomes milestone is the fifth.
 - **A gap mark on the rows layer** (FX4): the rows layer skips an alignment's gap cells, so the Antibody's against view
   shows its gaps faintly at the fit; a `gap_marks` param (a gap list in `RowsLay`, canvas and SVG, the image-tile step
   below 3 px a cell).
+- **Navigator pictures resolve with the built-in kinds** (EX): `resolveViewNode` in `navigator.ts` ignores composed
+  extensions, so a navigator draws an extension layer as its fallback even when it is composed (CN's part).
