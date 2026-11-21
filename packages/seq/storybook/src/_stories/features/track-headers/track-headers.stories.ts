@@ -19,28 +19,30 @@ const view = (id: string) => ExampleViews.find((v) => v.id === id)!;
 const headers = view('headers');
 
 /**
- * The built-ins on p53, drawn on the canvas: point at a track's label for its slots (hide, color) and the "⋯", which
- * opens the menu with the rest (layers, move). The domains track says "1 filtered" and "1 layer hidden", and the
- * section's header "2 hidden"; a click on a chip undoes its state in one step (Cmd/Ctrl+Z puts it back).
+ * The built-ins on p53, drawn on the canvas: point at a track's label for its hide slot and the "⋯", which opens
+ * the menu with the rest (color, layers, move). The column holds one slot, so the domains track's two states ("1
+ * filtered", "1 layer hidden") are marks, their words in the card; the section's header says "2 hidden". A click on a
+ * state undoes it in one step (Cmd/Ctrl+Z puts it back).
  */
 export const BuiltIns: StoryObj = {
   render: () =>
     trackHeadersStory({
       view: headers,
-      hint: 'Point at a track’s label: its actions appear (hide, color, the “⋯” menu). Click “1 filtered”, “1 layer hidden” or “2 hidden”: the state is undone, and Cmd/Ctrl+Z brings it back. A secondary click on a chip lists what it hides.',
+      hint: 'Point at a track’s label: its hide slot and the “⋯” menu appear (Color and the rest are in the menu). The marks on Domains are “1 filtered” and “1 layer hidden” (hover one for its words); click a mark or “2 hidden”: the state is undone, and Cmd/Ctrl+Z brings it back. A secondary click on “2 hidden” lists what it hides.',
     }),
 };
 
 /**
  * The same entries as `@molstar/ui` buttons over the headers' boxes (`headerPartsDom()`): the canvas draws nothing
- * in them, Tab reaches one tab stop per header, the arrows move between parts, Esc goes back to the canvas.
+ * in them. The keyboard cursor (← at a track's first position, ↑ ↓ between headers) moves the focus onto the header's
+ * parts; ← and → move between them, Enter runs one, Esc goes back to the canvas; Tab is never captured.
  */
 export const BuiltInsAsDomParts: StoryObj = {
   render: () =>
     trackHeadersStory({
       view: headers,
       parts: 'dom',
-      hint: 'The same headers with their slots and chips as DOM buttons over the same boxes: Tab enters a header, ← and → move between its parts, Enter runs one, Esc returns to the canvas. The figure exported from either is the same.',
+      hint: 'The same headers with their slots and chips as DOM buttons over the same boxes. Click in the canvas, then press ← at the first position of a track (or ↑ ↓ between headers): the focus goes onto that header’s parts; ← and → move between them, Enter runs one, Esc returns to the canvas. The figure exported from either is the same.',
     }),
 };
 
@@ -71,12 +73,15 @@ export const HiddenTracksChip: StoryObj = {
     }),
 };
 
-/** Tracks of 14 px have no room for a chip's words: the state is a small mark, and the words are in the card. */
+/**
+ * Tracks of 14 px have no slots and no room for a chip's words: each state is a small mark (its words in the chip's
+ * card), and the track's actions are in its menu (secondary click, or the menu key).
+ */
 export const ShortTracks: StoryObj = {
   render: () =>
     trackHeadersStory({
       view: view('headers-short'),
-      hint: 'The 14 px tracks show their states as marks (“1 filtered”, “1 layer hidden”), their slots wait for a pointer; the tall track below has the full header. Hover a mark: the track’s card says it in words.',
+      hint: 'The 14 px tracks show their states as marks (“1 filtered”, “1 layer hidden”) and have no slots: secondary-click one for its menu. The tall track below has the full header. Hover a mark: its card says the state in words.',
     }),
 };
 

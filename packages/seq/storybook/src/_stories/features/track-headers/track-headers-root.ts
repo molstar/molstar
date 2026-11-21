@@ -46,7 +46,7 @@ class TrackHeadersRoot extends UiElement<TrackHeadersStory> {
     const canvasHost = document.createElement('div');
     canvasHost.style.cssText = 'min-width: 0; position: relative;';
     const widgetLayer = document.createElement('div');
-    widgetLayer.style.cssText = 'position: absolute; inset: 0 auto auto 28px; pointer-events: none;';
+    widgetLayer.style.cssText = 'position: absolute; left: 28px; top: 0; width: 0; height: 0; pointer-events: none;';
     stage.append(canvasHost, ...(story.widgets ? [widgetLayer] : []));
     const log = document.createElement('pre');
     log.style.cssText =
@@ -78,15 +78,23 @@ class TrackHeadersRoot extends UiElement<TrackHeadersStory> {
         }) as HTMLElement,
       );
     }
-    if (story.widgets) off = placeWidgets(viewer, widgetLayer);
+    if (story.widgets) off = placeWidgets(viewer, stage, widgetLayer);
     void viewer.load(story.view.build()).then(() => viewer.settle());
     return root;
   }
 }
 
-/** A host's own widgets over the headers' geometry: a numbered badge left of each shown track's line. */
-function placeWidgets(viewer: SeqViewer, layer: HTMLElement): () => void {
+/** A host's own widgets over the headers' geometry: a numbered badge left of each shown track's label. */
+function placeWidgets(viewer: SeqViewer, stage: HTMLElement, layer: HTMLElement): () => void {
   const show = () => {
+    // the geometry is in the canvas's own frame: the layer sits at the canvas's corner, whatever is above it (the toolbar)
+    const canvas = stage.querySelector('canvas');
+    if (canvas) {
+      const at = canvas.getBoundingClientRect();
+      const from = stage.getBoundingClientRect();
+      layer.style.left = `${at.left - from.left}px`;
+      layer.style.top = `${at.top - from.top}px`;
+    }
     const places = widgetPlaces(viewer.headers?.value ?? []);
     layer.replaceChildren(
       ...places.map((p, i) => {

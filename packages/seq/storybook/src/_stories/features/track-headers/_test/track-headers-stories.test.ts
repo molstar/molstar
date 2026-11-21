@@ -18,6 +18,7 @@ import {
 import { type UiHistory, uiHistory } from '@molstar/seqx-viewer/ui-history';
 import { createSeqViewer, type SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { ColorByEntry, colorByBehavior } from '../../../support/host-adapter.js';
 import { fakeClock } from '../../structure-link/_test/open.js';
 import { headersOf, headersSpec, type HeadersComposition, menuLine, widgetPlaces } from '../compose.js';
 
@@ -40,7 +41,10 @@ afterEach(() => {
 /** A settled headless viewer of a story's composition, on the fake clock. */
 async function open(id: string, options: HeadersComposition = {}): Promise<SeqViewer> {
   const v = view(id);
-  const spec = headersSpec({ ...options, registry: v.registry?.({ delayMs: 0 }) });
+  const spec = headersSpec({
+    ...options,
+    registry: [...(v.registry?.({ delayMs: 0 }) ?? []), ...(options.registry ?? [])],
+  });
   const read = (uri: string) => readFileSync(`${PackageFolder}${uri}`);
   const opened = createSeqViewer({
     ...spec,
@@ -94,6 +98,8 @@ describe('the built-ins on p53', () => {
     expect(chips(sectionOf(v, 'protein'))).toEqual(['2 hidden']);
     expect(chips(trackOf(v, 'domains'))).toEqual(['1 filtered', '1 layer hidden']);
     expect(chips(trackOf(v, 'letters'))).toEqual([]);
+    // the column holds one slot, so the two states are both marks, never a chip beside a mark
+    expect(trackOf(v, 'domains').states.map((x) => x.mark)).toEqual([true, true]);
     // the hidden tracks are not in the resolved view, the count says how many are left out
     expect(visible(v)[0].map((a) => a.split('/').pop())).toEqual(['letters', 'domains', 'conservation']);
     // every shown track has its slots, hide and the menu's "⋯", and no box of a header overlaps another of it
@@ -112,10 +118,15 @@ describe('the built-ins on p53', () => {
 
   it('a chip’s click undoes its state in one step, and one undo brings it back', async () => {
     const v = await open('headers');
+    const itemCount = () => headersOf(v).menuOf(trackOf(v, 'domains').target)!.groups[0].length;
+    expect(itemCount()).toBe(7);
     await clickChip(v, trackOf(v, 'domains'), HeaderEntryNames.filtered);
     expect(chips(trackOf(v, 'domains'))).toEqual(['1 layer hidden']);
+    // "Clear the filter" is gone from its menu
+    expect(itemCount()).toBe(6);
     await undo(v);
     expect(chips(trackOf(v, 'domains'))).toEqual(['1 filtered', '1 layer hidden']);
+    expect(itemCount()).toBe(7);
     await clickChip(v, sectionOf(v, 'protein')!, HeaderEntryNames.hiddenTracks);
     expect(visible(v)[0].map((a) => a.split('/').pop())).toEqual([
       'letters',
@@ -129,23 +140,12 @@ describe('the built-ins on p53', () => {
     expect(chips(sectionOf(v, 'protein'))).toEqual(['2 hidden']);
   });
 
-  it('as DOM parts: the same items from the same behavior, the canvas composed with a parts port', async () => {
-    const drawn = await open('headers');
-    const items = (v: SeqViewer, track: string) =>
-      headersOf(v)
-        .partsState()
-        .headers.find((h) => h.geometry.target.track?.endsWith(`/${track}`))!
-        .items.map((i) => `${i.name} ${i.label}`);
-    const canvas = items(drawn, 'domains');
-    expect(canvas).toContain(`${HeaderEntryNames.hide} Hide track`);
-    viewer?.retire();
-    restore?.();
-    const dom = await open('headers', { parts: 'dom' });
-    expect(items(dom, 'domains')).toEqual(canvas);
+  it('the DOM parts are a composition of the same behavior: the parts port is the story arg, nothing else differs', async () => {
     const params = (o: HeadersComposition) =>
       headersSpec(o).behaviors.find((b) => b.provider === HeadersProvider)!.params as HeadersParams;
     expect(params({}).parts).toBeUndefined();
     expect(typeof params({ parts: 'dom' }).parts).toBe('function');
+    // the DOM they draw is checked in jsdom (track-headers-parts.test.ts)
   });
 });
 
@@ -173,6 +173,21 @@ describe('a host’s entry and a built-in left out', () => {
     expect(lines).toEqual(['Copied /views/main/protein/domains']);
   });
 
+  it('ST3’s "Color by this track" entry takes a slot (the box icon) on a track with a color scheme', async () => {
+    const v = await open('headers', {
+      registry: [ColorByEntry],
+      behaviors: [colorByBehavior(() => 'colored')],
+      labelWidth: 170,
+    });
+    expect(trackOf(v, 'letters').slots.map((x) => x.name)).toContain('fake-host:color-by');
+    // the entry applies where a layer has schemes: not on a track of ranges without a color channel's choice
+    const labels = headersOf(v)
+      .menuOf(trackOf(v, 'letters').target)!
+      .groups.flat()
+      .map((i) => i.label);
+    expect(labels).toContain('Color the structure by this track');
+  });
+
   it('without the host’s composition nothing of it is there', async () => {
     const v = await open('headers');
     expect(trackOf(v, 'letters').slots.map((s) => s.name)).toEqual([HeaderEntryNames.hide, 'seq:menu']);
@@ -194,16 +209,24 @@ describe('the hidden-tracks chip', () => {
     expect(chips(sectionOf(v, 'hidden'))).toEqual(['2 hidden']);
   });
 
-  it('its menu lists each hidden track by its label, then "Show all"', async () => {
+  it('a secondary click on the chip lists each hidden track in order, then "Show all"; an item shows that one', async () => {
     const v = await open('headers-hidden');
-    const menu = headersOf(v).menuOf(sectionOf(v, 'hidden')!.target)!;
-    const labels = menu.groups.flat().flatMap((i) => [i.label, ...(i.items?.map((s) => s.label) ?? [])]);
-    expect(labels).toEqual(expect.arrayContaining(['Show all', 'Show Domains', 'Show Conservation']));
+    const [x, y] = mid(sectionOf(v, 'hidden')!.states[0].box);
+    expect(headersOf(v).context(x, y)).toBe(true);
+    const shown = headersOf(v).menu.value!;
+    expect(shown.menu.target).toEqual(sectionOf(v, 'hidden')!.target);
+    const items = shown.menu.groups.flat();
+    expect(items.map((i) => i.label)).toEqual(['Show Domains', 'Show Conservation', 'Show all']);
+    await headersOf(v).runItem(items[1]);
+    await vi.advanceTimersByTimeAsync(20);
+    await v.settle();
+    expect(visible(v)[0].map((a) => a.split('/').pop())).toEqual(['conservation']);
+    expect(chips(sectionOf(v, 'hidden'))).toEqual(['1 hidden']);
   });
 });
 
 describe('short tracks', () => {
-  it('their states are marks and their slots wait for the pointer; the tall track’s header is whole', async () => {
+  it('their states are marks and they have no slots, the tall track’s header is whole', async () => {
     const v = await open('headers-short');
     const short = trackOf(v, 'domains');
     expect(short.line.height).toBe(14);
@@ -233,21 +256,28 @@ describe('a ring through its menu', () => {
     expect(headersOf(v).menu.value?.menu.target).toEqual(target);
     headersOf(v).closeMenu();
     expect(headersOf(v).menu.value).toBeUndefined();
+    // a secondary click on the ring's band opens the menu of its section or track, never the browser's
+    const ring = v.frame!.layout.sections.find((l) => l.section.address === '/views/main/ring')!;
+    const track = ring.tracks[0];
+    const at = [track.box.x + track.box.width / 2, track.box.y + track.box.height / 2] as const;
+    expect(headersOf(v).context(...at)).toBe(true);
+    expect(headersOf(v).menu.value?.menu.target.section).toBe('/views/main/ring');
+    headersOf(v).closeMenu();
     // the detail below it has its headers as any linear section's
     expect(geometry(v).filter((g) => g.target.section.endsWith('/detail')).length).toBe(4);
   });
 });
 
 describe('a host’s widget from the geometry', () => {
-  it('one per shown track, left of its line, never over it; hiding a track takes its widget', async () => {
+  it('one per shown track, left of its label box, centered on it; hiding a track takes its widget', async () => {
     const v = await open('headers');
     const places = widgetPlaces(geometry(v));
     expect(places.map((p) => p.target.track?.split('/').pop())).toEqual(['letters', 'domains', 'conservation']);
     for (const p of places) {
-      const line = geometry(v).find((g) => g.target.track === p.target.track)!.line;
-      expect(p.x + p.size).toBeLessThanOrEqual(line.x);
-      expect(p.y).toBeGreaterThanOrEqual(line.y);
-      expect(p.y + p.size).toBeLessThanOrEqual(line.y + line.height);
+      const label = geometry(v).find((g) => g.target.track === p.target.track)!.label;
+      // the badge is the label box's neighbor on its left, centered on it
+      expect(p.x + p.size + 2).toBe(label.x);
+      expect(p.y + p.size / 2).toBeCloseTo(label.y + label.height / 2, 9);
     }
     await v.execute('track.hide', { address: '/views/main/protein/domains' });
     await vi.advanceTimersByTimeAsync(20);

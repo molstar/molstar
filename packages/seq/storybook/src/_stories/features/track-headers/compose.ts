@@ -66,6 +66,8 @@ export interface HeadersComposition {
   readonly without?: readonly string[];
   /** The label column's width in px: room for the slots a host adds (the default's takes two and the "⋯"). */
   readonly labelWidth?: number;
+  /** Behaviors of the host's own besides the default spec's (a command its entry runs). */
+  readonly behaviors?: SeqViewerSpec['behaviors'];
   /** Told the host command's runs. */
   readonly say?: (line: string) => void;
   /** What the view's own registry adds (a runtime of a format its sources name). */
@@ -104,6 +106,7 @@ export function headersSpec(options: HeadersComposition = {}): SeqViewerSpec {
           : b,
       ),
       ...(options.host ? [copyBehavior(options.say)] : []),
+      ...(options.behaviors ?? []),
     ],
   };
 }
@@ -111,7 +114,7 @@ export function headersSpec(options: HeadersComposition = {}): SeqViewerSpec {
 /** The headers behavior of a viewer (it is in the default spec). */
 export const headersOf = (viewer: SeqViewer): HeadersBehavior => viewer.behaviors.get('headers') as HeadersBehavior;
 
-/** A host widget's place: its track, and the box (CSS px of the canvas) it sits in, the label line's left end. */
+/** A host widget's place: its track, and the box (CSS px of the canvas's own frame) it sits in, left of the label. */
 export interface WidgetPlace {
   readonly target: HeaderTarget;
   readonly x: number;
@@ -120,16 +123,17 @@ export interface WidgetPlace {
 }
 
 /**
- * Where a host's own widget goes: a square at the left of each shown track's header line, centered on it, from the
- * geometry the viewer publishes (`viewer.headers`). The widget never reads the layout's internals.
+ * Where a host's own widget goes: a square just left of each shown track's label box (2 px apart), centered on it,
+ * from the geometry the viewer publishes (`viewer.headers`, in the canvas's frame: a host adds the canvas's own offset
+ * in its page). The widget never reads the layout's internals.
  */
 export function widgetPlaces(geometry: readonly HeaderGeometry[], size = 18): WidgetPlace[] {
   return geometry
     .filter((g) => g.shown && g.target.track !== undefined)
     .map((g) => ({
       target: g.target,
-      x: g.line.x - size - 2,
-      y: g.line.y + (g.line.height - size) / 2,
+      x: g.label.x - size - 2,
+      y: g.label.y + (g.label.height - size) / 2,
       size,
     }));
 }
