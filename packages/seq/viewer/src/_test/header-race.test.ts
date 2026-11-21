@@ -92,12 +92,17 @@ function clickPart(v: SeqViewer, track: string | undefined, name: string) {
 }
 
 describe('a click before the late parts land', () => {
-  it('runs once they land: the section’s "1 hidden" chip (core’s built-in states meanwhile) shows its track', async () => {
+  it('a hidden track draws no section line or chip before the late parts land, or after: the application lists it', async () => {
     const v = await make();
-    clickPart(v, undefined, 'seq:hidden-tracks');
-    // not landed: nothing ran yet
-    expect(v.view.resolved.value!.sections[0].tracks.map((t) => t.address)).not.toContain(Gone);
+    frames.flush();
+    expect(v.frame!.layout.sections[0].header).toBeUndefined();
+    expect(v.hiddenTracks.value.map((t) => t.address)).toEqual([Gone]);
     gate.open();
+    await v.settle();
+    frames.flush();
+    expect(v.frame!.layout.sections[0].header).toBeUndefined();
+    expect(v.view.resolved.value!.sections[0].tracks.map((t) => t.address)).not.toContain(Gone);
+    await v.execute('track.show', { address: Gone });
     await v.settle();
     expect(v.view.resolved.value!.sections[0].tracks.map((t) => t.address)).toContain(Gone);
   });

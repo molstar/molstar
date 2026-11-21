@@ -117,7 +117,7 @@ describe('clicks (the interaction grammar)', () => {
     expect(ranges(v)).toEqual([]);
   });
 
-  it('a header’s parts are never a selection’s: a click on a hidden-tracks chip shows the track, a section’s line changes nothing', async () => {
+  it('a hidden track leaves no part to click: no section line, the selection stays; `track.show` brings it back', async () => {
     const root = spec();
     const protein = root.children!.find((c) => c.kind === 'views')!.children![0].children![0];
     const domains = protein.children!.find((c) => c.id === 'domains')!;
@@ -126,14 +126,10 @@ describe('clicks (the interaction grammar)', () => {
     click(v, at(v, 0, 0, 4));
     expect(ranges(v)).toEqual([4, 5]);
     const revision = v.spec.revision.value;
-    const line = v.frame!.layout.sections[0].header!;
-    const chip = line.states[0];
-    expect(chip.name).toBe('seq:hidden-tracks');
-    expect(click(v, [line.line.x + line.line.width - 4, line.line.y + line.line.height / 2])).toBe(true);
-    expect(v.spec.revision.value).toBe(revision);
-    // the chip is the `headers` behavior's `seq:hidden-tracks` entry (the default spec lists it): its click shows the
-    // hidden track, one patch; the selection stays
-    expect(click(v, [chip.box.x + 2, chip.box.y + chip.box.height / 2])).toBe(true);
+    expect(v.frame!.layout.sections[0].header).toBeUndefined();
+    expect(v.hiddenTracks.value.map((t) => t.address)).toEqual([`${ProteinSection}/domains`]);
+    await v.execute('track.show', { all: true });
+    await v.settle();
     expect(ranges(v)).toEqual([4, 5]);
     expect(v.spec.revision.value).not.toBe(revision);
     expect(v.view.resolved.value!.sections[0].tracks.map((t) => t.address)).toContain(`${ProteinSection}/domains`);

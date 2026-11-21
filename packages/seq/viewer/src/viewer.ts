@@ -53,6 +53,7 @@ import type { SeqAnimationParticipant } from '@molstar/seqx-viewer/ports';
 import { frameAnimation } from './animation.js';
 import { ViewerInput } from './input.js';
 import { LegendModel } from './legends.js';
+import { type HiddenTrackEntry, hiddenTracksState } from './hidden-tracks.js';
 import { modelIssuesState } from './model-issues.js';
 import type {
   BehaviorContext,
@@ -121,6 +122,11 @@ export class SeqViewer extends ReactiveModel {
   readonly layoutIssues: ReadonlyState<readonly Issue[]>;
   /** The model's issues as the viewer says them: one of an address still pending held back (`model-issues.ts`). */
   readonly modelIssues: ReadonlyState<readonly Issue[]>;
+  /**
+   * Each section's hidden tracks from the spec, in its order (address, label, section); its change is the event. The
+   * view draws nothing for them: the application lists and restores them (`mountHiddenTracks`, `track.show`).
+   */
+  readonly hiddenTracks: ReadonlyState<readonly HiddenTrackEntry[]>;
   /** The viewer's own: a gesture that needs a behavior the spec does not list, once each. */
   readonly behaviorIssues: ReadonlyState<readonly Issue[]>;
   /**
@@ -253,6 +259,7 @@ export class SeqViewer extends ReactiveModel {
     const hover = (this.hover = new HoverModel(spec, view, config));
     const store = (this.store = new StoreModel(config, { removed: (gone) => this.selection.dropGone(gone) }));
     this.modelIssues = modelIssuesState(this);
+    this.hiddenTracks = hiddenTracksState(this);
     // an element selected by an address and then toggled is drawn by its extent, resolved over what is shown
     const selection = (this.selection = new SelectionModel(
       (els) => locationOfResult(spec.shown.value, this.addresses.queryModel(), { type: 'keys', keys: els }).location,

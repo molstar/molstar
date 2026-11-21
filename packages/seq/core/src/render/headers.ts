@@ -67,7 +67,7 @@ export interface HeaderInputFacts {
   readonly hiddenTracks: readonly HiddenTrack[];
 }
 
-/** A track the spec hides (`hidden: true`): left out of the view, counted in its section's header. */
+/** A track the spec hides (`hidden: true`): left out of the view; the application lists it (`viewer.hiddenTracks`). */
 export interface HiddenTrack {
   readonly address: string;
   readonly label: string;
@@ -80,7 +80,6 @@ export type HeaderPartsOf = (facts: HeaderInputFacts) => HeaderParts | undefined
 export const HeaderStateNames = {
   filtered: 'seq:filtered',
   hiddenLayers: 'seq:hidden-layers',
-  hiddenTracks: 'seq:hidden-tracks',
 } as const;
 
 /** The "⋯"'s name in its hit (`header-slot`). */
@@ -88,8 +87,8 @@ export const HeaderMenuName = 'seq:menu';
 
 /**
  * The built-in states (`LayoutInput.headers` absent): a track's "n filtered" (the rows its layers' filters left out, every
- * thinned layer's) and "n layers hidden", a section's "n hidden" (its hidden tracks). No slots and no menu: those are a
- * host's entries.
+ * thinned layer's) and "n layers hidden". A section has none: its hidden tracks are the application's, never drawn by the
+ * view (_spec/README.md, Headers). No slots and no menu: those are a host's entries.
  */
 export const builtInHeaderStates: HeaderPartsOf = (f) => {
   let states: HeaderStatePart[] | undefined;
@@ -110,9 +109,6 @@ export const builtInHeaderStates: HeaderPartsOf = (f) => {
         text: n === 1 ? '1 layer hidden' : `${n} layers hidden`,
         count: n,
       });
-  } else if (f.hiddenTracks.length) {
-    const n = f.hiddenTracks.length;
-    states = [{ name: HeaderStateNames.hiddenTracks, text: `${n} hidden`, count: n }];
   }
   return states ? { states } : undefined;
 };
@@ -458,13 +454,14 @@ export function trackHeaderLine(
 const TrackLine: { header: HeaderLine; labelY: number } = { header: undefined as never, labelY: 0 };
 
 /**
- * Whether a section draws its header line (`section.header`): `auto` when it has a state or a slot, `always`, `none`.
+ * Whether a section draws its header line (`section.header`): `auto` when a section entry gives it a slot (a state or a
+ * menu-only entry never draws one), `always`, `none`.
  */
 export function drawsSectionHeader(parts: HeaderParts | undefined, config: RenderConfig): boolean {
   const mode = config.section.header;
   if (mode === 'none') return false;
   if (mode === 'always') return true;
-  return !!(parts?.states?.length || parts?.slots?.length);
+  return !!parts?.slots?.length;
 }
 
 /** A section's header line, `header.sectionPx` high from `top`: its states and its slots. */

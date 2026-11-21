@@ -25,6 +25,8 @@ export interface EditingContext {
   readonly address?: string;
   /** `track.show`, `layer.show`: several at once, one patch (a header's chip shows every hidden one). */
   readonly addresses?: readonly string[];
+  /** `track.show`: every hidden track (of the section `address` names, else of the spec), one patch, one undo step. */
+  readonly all?: boolean;
   /** `track.move`, `track.add`: the sibling it goes after; null: first (`track.add`: last when absent). */
   readonly after?: string | null;
   /** `track.add`: the track to insert (its id is its place among the section's tracks). */
@@ -121,6 +123,24 @@ export function editingBehavior(spec: SpecModel, axis?: AxisReaders): EditingBeh
   /** The nodes a show acts on (`addresses`, else `address`): each of the kind, else why not. */
   const shownOf = (ctx: EditingContext): readonly string[] =>
     ctx.addresses ?? (ctx.address !== undefined ? [ctx.address] : []);
+  /** Every track the spec hides, in order (under the section `within`, else everywhere). */
+  const hiddenTrackAddresses = (within?: string): string[] => {
+    const out: string[] = [];
+    const walk = (node: Node, path: readonly string[]) => {
+      for (const c of node.children ?? []) {
+        if (c.id === undefined) continue;
+        const at = [...path, c.id];
+        if (c.kind === 'track') {
+          if (c.params?.hidden === true) out.push(`/${at.join('/')}`);
+        } else walk(c, at);
+      }
+    };
+    const start = within === undefined ? spec.root.value : nodeOf(spec.root.value, within, 'section');
+    if (start) walk(start, within === undefined ? [] : ids(within));
+    return out;
+  };
+  const showTracks = (ctx: EditingContext): EditingContext =>
+    ctx.all ? { ...ctx, addresses: hiddenTrackAddresses(ctx.address) } : ctx;
   const allNeed =
     (kind: string, what: string) =>
     (ctx: EditingContext): true | string => {
@@ -257,8 +277,8 @@ export function editingBehavior(spec: SpecModel, axis?: AxisReaders): EditingBeh
       id: EditingCommandIds.showTrack,
       title: 'Show a track',
       category: 'Edit',
-      when: allNeed('track', 'track'),
-      run: (_, ctx) => edit('Show a track', unhide(ctx), ctx, 'Shown'),
+      when: (ctx) => (ctx.all ? (disposed ? 'The viewer is retired' : true) : allNeed('track', 'track')(ctx)),
+      run: (_, ctx) => edit('Show a track', unhide(showTracks(ctx)), ctx, 'Shown'),
     },
     {
       id: EditingCommandIds.moveTrack,
