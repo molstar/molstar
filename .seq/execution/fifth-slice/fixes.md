@@ -104,6 +104,16 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   drawn once; a twin test (canvas and SVG) that every selection piece's box lies inside its cell's box, at both a block
   boundary and the grid's outer edge. Not measured in the browser yet: the fix lane measures first.
 
+- **A tree opened from its toggle has no way back on screen** (the author, 2026-11-21, Examples › Globins › Rows ›
+  Scale: "when i expand the tree, there doesn't seem to be a way to collapse it back. another port for app level
+  control?"). The narrow-frame rule (grids-and-rows.md, "A narrow frame gives way in one order", step 3; core `_spec`
+  Rows, `RowsLay.toggleX`) collapses the tree to its glyph; a click or Shift+T (`rows.tree`) opens it whole "and folds
+  it back", but once open the glyph is gone, so only the key folds it. Keep the toggle at the band's top while the
+  tree is kept open (the same glyph, pressed, `tree-toggle` hit, its tooltip naming Shift+T), and give the command an
+  app-owned control the same way as the sort's clear: an entry "Show tree" / "Fold tree" in the band's menu, and
+  `rows.tree` in the viewer's commands for a host's button. A twin test: open from the glyph, fold from the glyph, the
+  layout back to its narrow form.
+
 - **Hovering a ligand's score box lights its residues but not its arcs** (the author, 2026-11-21, Examples › Complex ›
   Views › As a complex: "mouse on empty patch highlights arcs, but on box only the columns"). Over the score track's
   empty band at PYZ's position, the hover resolves to the position (card "PYZ 1"), its contact arcs light dark and the
