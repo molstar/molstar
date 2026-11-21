@@ -233,9 +233,11 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
         assign(maxLanes - 1, ctx.settled);
         row = true;
       }
-      // the whole data's lanes not known (a tiled source's): centred by the most lanes the layer has shown
-      if (!ctx.content && lay.laneHeight === config.laneHeight && !row && lay.laneCount > lay.seen) {
-        lay.seen = lay.laneCount;
+      // the whole data's lanes not known (a tiled source's): centred by the most lanes the layer has shown, every lane
+      // when the last is the density row (else the lanes stay centred by the first frame's and run past the band)
+      const shown = row ? maxLanes : lay.laneCount;
+      if (!ctx.content && lay.laneHeight === config.laneHeight && shown > lay.seen) {
+        lay.seen = shown;
         lay.laneY = box.y + (box.height - Math.min(lay.seen, maxLanes) * lay.laneHeight) / 2;
       }
     }
