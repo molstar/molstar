@@ -187,7 +187,6 @@ interface InflatedCache {
   inflated?: Promise<Uint8Array<ArrayBuffer>>;
 }
 
-
 function inflateGzip(ctx: RuntimeContext, data: Uint8Array<ArrayBuffer>) {
   const size = gzipDeclaredSize(data);
   if (size > data.length * MaxDeflateRatio + 1024) {
