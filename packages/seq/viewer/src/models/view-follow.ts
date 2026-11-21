@@ -16,8 +16,18 @@ import { axisTotal, nearestOffsetOf, positionAt } from './axis.js';
 /** How many follows a move asked of a follower goes up at most (a chain of follows; a cycle is cut). */
 export const MaxFollowDepth = 16;
 
-/** The leader's range `leaderRange` gives (reused: a move makes no record for it). */
-const LeaderOut = { start: 0, end: 0 };
+/** A record `leaderRange` writes its result into: the caller's own (a view model's), reused so a move makes none. */
+export interface LeaderRangeOut {
+  start: number;
+  end: number;
+}
+
+/** A record `followerRange` writes its result into: the caller's own (a view model's), reused so a publish makes none. */
+export interface FollowerRangeOut {
+  start: number;
+  end: number;
+  pieces: readonly number[] | undefined;
+}
 
 /**
  * The leader's range (offsets, lowest first) a move asked of a follower carries back to (_spec/README.md "ViewModel",
@@ -29,7 +39,7 @@ const LeaderOut = { start: 0, end: 0 };
  * `maxPxPerPosition` widened (which would zoom the leader out), and when one end maps nowhere the leader moves by the
  * other's step: the leader keeps its width. A zoom or a range whose end lies past every image outward reaches the
  * leader's axis edge there (a zoom out never stalls); inward, it keeps the leader's end. `lead`: the leader's viewport
- * now. Undefined when the leader cannot move so; the record returned is reused.
+ * now. Undefined when the leader cannot move so; the result is `out`, the caller's own record (never shared).
  */
 export function leaderRange(
   section: ResolvedSection,
@@ -40,7 +50,8 @@ export function leaderRange(
   me: number,
   delta: number | undefined,
   arc: 'shortest' | 'hull',
-): { readonly start: number; readonly end: number } | undefined {
+  out: LeaderRangeOut,
+): LeaderRangeOut | undefined {
   const follow = section.follow!;
   const axis = section.axis;
   const total = axisTotal(axis);
@@ -93,9 +104,9 @@ export function leaderRange(
   const oa = nearestOffsetOf(la, a);
   const ob = nearestOffsetOf(la, b);
   if (oa === undefined || ob === undefined || oa === ob) return undefined;
-  LeaderOut.start = Math.min(oa, ob);
-  LeaderOut.end = Math.max(oa, ob);
-  return LeaderOut;
+  out.start = Math.min(oa, ob);
+  out.end = Math.max(oa, ob);
+  return out;
 }
 
 /** A follow's path read back, made once per path. */
@@ -184,20 +195,13 @@ function nearestMapped(inv: Path, axis: Axis, y: number, m: number): number | un
   return last ? projectEnd(inv, Math.floor((last.from + last.length - 1) / scale) + 1) : undefined;
 }
 
-/** The follower's range `followerRange` gives (reused: a publish makes no record for it). */
-const FollowerOut: { start: number; end: number; pieces: readonly number[] | undefined } = {
-  start: 0,
-  end: 0,
-  pieces: undefined,
-};
-
 /**
  * A follower's range: its leader's (`lead`) carried along the follow path at its scale (1, 3 or 1/3). Each end is the
  * continuous image of the leader's (`point` at the start, the far edge of the last element at a whole end), so it
  * moves smoothly within a run; where an end maps nowhere (an intron, a UTR), the hull of the whole positions' image
  * (`followRange`). Over a cyclic follower's origin the range wraps (`pieces`), or with `follow.cyclicArc: 'hull'` is
  * the hull. Clamped by `maxPx` (px a position) like a leader once it has a `width`. Its range before (`prev`) while it
- * cannot be placed. The record returned is reused.
+ * cannot be placed. The result is `out`, the caller's own record.
  */
 export function followerRange(
   section: ResolvedSection,
@@ -206,7 +210,8 @@ export function followerRange(
   width: number,
   arc: 'shortest' | 'hull',
   maxPx: number,
-): { readonly start: number; readonly end: number; readonly pieces: readonly number[] | undefined } {
+  out: FollowerRangeOut,
+): FollowerRangeOut {
   const follow = section.follow!;
   const axis = section.axis;
   const total = axisTotal(axis);
@@ -227,10 +232,10 @@ export function followerRange(
       if (width > 0) [start, end] = clampRange(start, end, total, width, maxPx);
     }
   }
-  FollowerOut.start = start;
-  FollowerOut.end = end;
-  FollowerOut.pieces = pieces;
-  return FollowerOut;
+  out.start = start;
+  out.end = end;
+  out.pieces = pieces;
+  return out;
 }
 
 /** At least `width / maxPx` wide (within the total), centered, within the axis. */
