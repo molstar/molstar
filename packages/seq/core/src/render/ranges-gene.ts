@@ -17,13 +17,27 @@ import { mappedPieces, type RangesLay } from './ranges-lay.js';
 // (the CDS) and thin outside (the UTRs), all full when the item has no thick part (NaN) and all thin when it is empty
 // (`thick_start = thick_end`: a non-coding BED12); a hairline across the item's extent under the boxes, with chevrons
 // by its strand (`cdir`: 1 pointing right, 2 left; the connectors' arrays: a hit on it is the item's, the hover outlines it). A span row (no piece in its
-// tile) is no box, only the item. Below a position a pixel too (the boxes are never merged into runs).
+// tile) is no box, only the item. Below a position a pixel too (the boxes are never merged into runs). Its label is
+// plain text to the left of its extent, in its lane, whole: the lanes are packed with room for it (`LabelGap` and its
+// width before each item), and a label whose room runs past the band's left edge is not drawn.
+
+/** The gap between a gene model's label and its extent, CSS px. */
+export const LabelGap = 4;
 
 /** Where an item's lane is laid: the first row of its key (`repOf`) holds the item's extent (`gStart`, `gEnd`). */
 export interface GeneScratch {
   repOf: Int32Array;
   gStart: Float64Array;
   gEnd: Float64Array;
+  /** Where an item's lane begins, its label's room before its extent (positions), and its label's width (px). */
+  packStart: Float64Array;
+  labelW: Float64Array;
+  /** The labels placed (`ln`): their left x, baseline, width and item. */
+  ln: number;
+  lx: Float64Array;
+  ly: Float64Array;
+  lw: Float64Array;
+  litem: Int32Array;
   /** The rows by key, cleared each layout. */
   readonly groups: Map<string | number, number>;
   /** The last table's columns (rows of one table share its fields). */
@@ -38,6 +52,13 @@ export function newGeneScratch(): GeneScratch {
     repOf: new Int32Array(64),
     gStart: new Float64Array(64),
     gEnd: new Float64Array(64),
+    packStart: new Float64Array(64),
+    labelW: new Float64Array(64),
+    ln: 0,
+    lx: new Float64Array(16),
+    ly: new Float64Array(16),
+    lw: new Float64Array(16),
+    litem: new Int32Array(16),
     groups: new Map(),
     fields: undefined,
     ts: undefined,
@@ -48,14 +69,24 @@ export function newGeneScratch(): GeneScratch {
 
 /**
  * Groups the `n` rows in view by item: each row's first row of its key (`repOf`), the item's extent on that row, and
- * the first rows into `order` (returned: their count), so the lanes are packed an item at a time.
+ * the first rows into `order` (returned: their count), so the lanes are packed an item at a time; each item's lane
+ * begins its label's width (`measure`, px) and `LabelGap` before its extent (`perPx` positions a CSS px), so a label
+ * has its room (none when `measure` is undefined: lanes too short for text).
  */
-export function geneGroups(lay: RangesLay, n: number, order: Int32Array): number {
+export function geneGroups(
+  lay: RangesLay,
+  n: number,
+  order: Int32Array,
+  perPx: number,
+  measure: ((label: string) => number) | undefined,
+): number {
   const g = lay.gene;
   if (g.repOf.length < n) {
     g.repOf = grown(g.repOf, n);
     g.gStart = grown(g.gStart, n);
     g.gEnd = grown(g.gEnd, n);
+    g.packStart = grown(g.packStart, n);
+    g.labelW = grown(g.labelW, n);
   }
   g.groups.clear();
   const { keys, itemStarts, itemEnds } = lay.rows;
@@ -77,7 +108,63 @@ export function geneGroups(lay: RangesLay, n: number, order: Int32Array): number
       g.gEnd[rep] = Math.max(g.gEnd[rep], lay.ends[j]);
     }
   }
+  for (let k = 0; k < count; k++) {
+    const j = order[k];
+    const label = lay.rows.labels[j];
+    const w = measure && label ? measure(label) : 0;
+    g.labelW[j] = w;
+    g.packStart[j] = w > 0 ? g.gStart[j] - (w + LabelGap) * perPx : g.gStart[j];
+  }
   return count;
+}
+
+/**
+ * The labels of the items laid in lanes: each its item's label as plain text right of `left`, ending `LabelGap` before
+ * the item's extent on the screen (`x0`, from its hairline's or its first box's left), vertically in its lane; one that
+ * would start left of the band's edge is not placed (never over the model's pieces, never cut).
+ */
+export function placeGeneLabels(lay: RangesLay, n: number, left: number, fontSize: number): void {
+  const g = lay.gene;
+  g.ln = 0;
+  if (lay.laneHeight < 10) return;
+  for (let i = 0; i < n; i++) {
+    if (g.repOf[i] !== i || lay.lanes[i] < 0 || !(g.labelW[i] > 0)) continue;
+    const x0 = itemLeft(lay, i);
+    if (!Number.isFinite(x0)) continue;
+    const x = x0 - LabelGap - g.labelW[i];
+    if (x < left) continue;
+    const k = g.ln++;
+    if (k >= g.lx.length) {
+      g.lx = grown(g.lx, k + 1);
+      g.ly = grown(g.ly, k + 1);
+      g.lw = grown(g.lw, k + 1);
+      g.litem = grown(g.litem, k + 1);
+    }
+    g.lx[k] = x;
+    g.ly[k] = lay.laneY + lay.lanes[i] * lay.laneHeight + lay.laneHeight / 2 + fontSize * 0.35;
+    g.lw[k] = g.labelW[i];
+    g.litem[k] = i;
+  }
+}
+
+/** Where item `i` (a first row) starts on the screen: its hairline's unclipped start, else its leftmost box. */
+function itemLeft(lay: RangesLay, i: number): number {
+  for (let c = 0; c < lay.cn; c++) if (lay.citem[c] === i) return lay.canchor[c];
+  let x = Number.POSITIVE_INFINITY;
+  const key = lay.keys[i];
+  for (let j = 0; j < lay.m; j++) if (lay.keys[lay.mitem[j]] === key) x = Math.min(x, lay.mx0[j]);
+  return x;
+}
+
+/** The gene label under `(x, y)`: its item, or −1. */
+export function geneLabelAt(lay: RangesLay, x: number, y: number): number {
+  const g = lay.gene;
+  for (let k = 0; k < g.ln; k++) {
+    const i = g.litem[k];
+    const top = lay.laneY + lay.lanes[i] * lay.laneHeight;
+    if (x >= g.lx[k] && x < g.lx[k] + g.lw[k] && y >= top && y < top + lay.laneHeight) return i;
+  }
+  return -1;
 }
 
 function numberAt(c: Column | undefined, i: number): number {

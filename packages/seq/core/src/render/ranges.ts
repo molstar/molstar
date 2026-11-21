@@ -28,7 +28,7 @@ import { channelForms, channelLegends } from './channels.js';
 import { layerSource, toSection } from './layer-data.js';
 import type { Emphasis, Hit, LayerType, LayoutContext, Overlay, StoreReader } from './layer-type.js';
 import { squircleRadius } from './squircle.js';
-import { geneGroups, geneMarks } from './ranges-gene.js';
+import { geneGroups, geneLabelAt, geneMarks, placeGeneLabels } from './ranges-gene.js';
 import {
   Gene,
   itemPiece,
@@ -221,10 +221,23 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
     if (!dense && !densities.length) {
       lay.order = grown(lay.order, n);
       let count = n;
-      if (gene) count = geneGroups(lay, n, lay.order);
-      else for (let i = 0; i < n; i++) lay.order[i] = i;
+      if (gene) {
+        // a label's room before each item: positions a CSS px on the data's system (the path's step, `ratio`)
+        const perPx = ((axis.u1 - axis.u0) * src.ratio) / Math.max(1, box.width);
+        const text = ctx.text;
+        const font = config.itemFont;
+        count = geneGroups(
+          lay,
+          n,
+          lay.order,
+          perPx,
+          lay.laneHeight >= 10 && (ctx.labels === undefined || ctx.labels === 'inside')
+            ? (l) => text.measure(font, l)
+            : undefined,
+        );
+      } else for (let i = 0; i < n; i++) lay.order[i] = i;
       const order = lay.order.subarray(0, count);
-      const starts: ArrayLike<number> = gene ? lay.gene.gStart : lay.starts;
+      const starts: ArrayLike<number> = gene ? lay.gene.packStart : lay.starts;
       const ends: ArrayLike<number> = gene ? lay.gene.gEnd : lay.ends;
       sortArrayRange(order, 0, count, (o, a, b) => starts[o[a]] - starts[o[b]] || o[a] - o[b]);
       lay.lanes = grown(lay.lanes, n);
@@ -377,7 +390,11 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
     }
     lay.index.build(lay.hn, lay.hlane, lay.hx0, lay.hx1, lay.laneCount);
     // below a position a pixel too: a run's items keep their labels beside (their own marks are the hit marks)
-    if (!sink && lay.laneHeight >= 10) placeLabels(lay, ctx);
+    // the gene line's labels are text beside its models (`ranges-gene.ts`), never inside a box
+    if (gene) {
+      lay.gene.ln = 0;
+      if (!sink) placeGeneLabels(lay, n, box.x, lay.fontSize);
+    } else if (!sink && lay.laneHeight >= 10) placeLabels(lay, ctx);
     return lay;
   },
 
@@ -402,6 +419,11 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
           return itemHit(base, lay, lay.keys[i], lay.starts[i], lay.ends[i]);
         }
       return base;
+    }
+    // a gene model's label is its item's
+    if (lay.gene.ln) {
+      const i = geneLabelAt(lay, x, y);
+      if (i >= 0) return itemHit(base, lay, lay.keys[i], lay.starts[i], lay.ends[i]);
     }
     const lane = Math.floor((y - lay.laneY) / lay.laneHeight);
     // a hidden items' tick is hit as its break (within the break's slop), the count of what it hides with it

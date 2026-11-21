@@ -242,6 +242,20 @@ function drawStyled(lay: RangesLay, out: PassWriter) {
 function drawLabels(lay: RangesLay, out: PassWriter, _emphasis: Emphasis | undefined) {
   const gap = lay.gap;
   const g = out.args;
+  if (lay.style === Gene) {
+    // a gene model's label: plain text in the text ink, left of its model (placed whole, `ranges-gene.ts`)
+    const gl = lay.gene;
+    const ink = lay.tokens.colors['msui-text'];
+    for (let k = 0; k < gl.ln; k++) {
+      g[0] = gl.lx[k];
+      g[1] = gl.ly[k];
+      g[2] = gl.lw[k];
+      g[3] = gl.lw[k];
+      g[4] = ink;
+      out.textArgs(lay.labels[gl.litem[k]] as string, AnchorStart, lay.font);
+    }
+    return;
+  }
   for (let j = 0; j < lay.m; j++) {
     if (!(lay.mlabel[j] > 0)) continue;
     const y = lay.laneY + lay.mlane[j] * lay.laneHeight + gap / 2;

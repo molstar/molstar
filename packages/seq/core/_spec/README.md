@@ -2601,10 +2601,15 @@ in page coordinates: what crosses strips), `axes` (2: a second axis of its own, 
   hovered and selected with it; `connector: none` draws none) with **chevrons** every 12 CSS px pointing along the
   item's `strand` field on the screen (a reversed axis turns them), anchored to the hairline's unclipped start so a pan
   moves them with the data, `min(3, laneHeight / 4)` px tall and none in a lane under 6 px. No arrowheads (the chevrons
-  say the strand). The boxes are never merged into runs (`bars` keeps them; `density` is the strip). Why: igv's and
-  UCSC's gene model; a GFF's transcripts are items with pieces, and a line style is how they are joined. A warm draw and
-  hover allocate nothing (the gene models scenario). A source's lanes (its whole data's not known) are centred by the
-  most the layer has shown, every lane when the last is the density row, so no lane runs past the band.
+  say the strand). **Its label** (the item's `label`) is plain text in the text ink, in its lane, ending `LabelGap` (4
+  CSS px) before the model's start on the screen: the lanes are packed with that room before each item (its width and
+  the gap, in positions at the view's scale), so each model whose room lies inside the band has its label whole; one
+  whose room runs past the band's left edge has none. Never a box, never over the pieces; a hit on it is the item's; no
+  label lane (a lane under 10 px draws none). The boxes are never merged into runs (`bars` keeps them; `density` is the
+  strip). Why: igv's and UCSC's gene model; a GFF's transcripts are items with pieces, and a line style is how they are
+  joined. A warm draw and hover allocate nothing (the gene models scenario). A source's lanes (its whole data's not
+  known) are centred by the most the layer has shown, every lane when the last is the density row, so no lane runs past
+  the band.
 
 - `values`: a bar a position, or at `bars` and `density` a bar a device column over the column's extent from the
   baseline (`values.aggregate: 'minmax'`, so negative extremes show; `'max'` the maximum alone), from positions or bins.

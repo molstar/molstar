@@ -135,7 +135,8 @@ export function rangesContent(prep: RangesPrep, ctx: ContentContext): LayerConte
     lanes = packedLanes(prep.line === 'gene' ? itemHulls(rows) : rows);
     Lanes.set(prep, lanes);
   }
-  if (!ctx.labelLane || !(ctx.fit > 0)) return lanesOnly(prep, lanes);
+  // a gene model's label is beside it in its own lane (`ranges-gene.ts`): no label lane
+  if (!ctx.labelLane || !(ctx.fit > 0) || prep.line === 'gene') return lanesOnly(prep, lanes);
   const font = ctx.config.itemFont;
   const kept = Beside.get(prep);
   // kept while the fit, the font and the metrics are (a web font arriving measures again)

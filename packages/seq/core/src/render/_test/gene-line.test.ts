@@ -12,7 +12,7 @@
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { describe, expect, it } from 'vitest';
 import { GffRuntime } from '../../runtimes/gff.js';
-import { hitView, type RangesLay } from '../index.js';
+import { hitView, type RangesLay, recordDrawLists } from '../index.js';
 import { renderSvg } from '../render-svg.js';
 import { settle } from './helpers.js';
 import { layerLay, readPaths, readRects } from './small-helpers.js';
@@ -56,9 +56,13 @@ function spec(options: { line?: string; reversed?: boolean } = {}) {
   return b.build();
 }
 
-async function frameOf(options: Parameters<typeof spec>[0] = {}, viewport?: { start: number; end: number }) {
+async function frameOf(
+  options: Parameters<typeof spec>[0] = {},
+  viewport?: { start: number; end: number },
+  size: { width: number; height: number } = SIZE,
+) {
   const s = await settle(spec(options), [GffRuntime]);
-  const f = await s.frame({ size: SIZE, ...(viewport ? { viewport } : {}) });
+  const f = await s.frame({ size, ...(viewport ? { viewport } : {}) });
   return { s, f, lay: layerLay<RangesLay>(f, 0) };
 }
 
@@ -175,5 +179,32 @@ describe('the gene line', () => {
       lanes.push(layerLay<RangesLay>(await s.frame({ size: SIZE }), 0).laneCount);
     }
     expect(lanes).toEqual([1, 2]);
+  });
+
+  it('a label is plain text left of its model, whole, never a box over its pieces: each transcript with room has one', async () => {
+    // wide enough that the first model's 100 positions before it hold its label
+    const { f, lay } = await frameOf({}, undefined, { width: 2400, height: 120 });
+    const texts = recordDrawLists(f.lists, ['labels'])
+      .split('\n')
+      .filter((l) => l.startsWith('text ') && !l.startsWith('text "tx"'))
+      .map((l) => {
+        const m = /^text "([^"]*)" ([\d.-]+) ([\d.-]+) (\w+) .* width ([\d.]+)/.exec(l)!;
+        return { text: m[1], x: Number(m[2]), anchor: m[4], width: Number(m[5]) };
+      });
+    expect(texts.map((t) => t.text).sort()).toEqual(['ALPHA-201', 'ALPHA-202', 'BETA-201']);
+    for (const t of texts) {
+      expect(t.anchor).toBe('start');
+      expect(t.text.includes('…')).toBe(false);
+      // it ends before its model starts on the screen
+      const start = lay.axis.x(t.text.startsWith('BETA') ? 1200 : 100);
+      expect(t.x + t.width).toBeLessThanOrEqual(start + 0.5);
+      expect(t.x).toBeGreaterThanOrEqual(lay.box.x);
+    }
+    // no filled box in the labels pass (a label is text alone)
+    expect(readRects(f.lists, 'labels')).toEqual([]);
+    // a label is its item's
+    const g = lay.gene;
+    const k = Array.from({ length: g.ln }, (_, i) => i).find((i) => lay.keys[g.litem[i]] === 't3')!;
+    expect(hitView(f.layout, g.lx[k] + 2, g.ly[k] - 3)?.element?.key).toBe('t3');
   });
 });
