@@ -75,6 +75,28 @@ describe('the Legend part', () => {
     expect(el.children.length).toBe(0);
   });
 
+  it('a hover survives no redraw it should not: the entry under the pointer is replaced by the highlight it brings, and leaving the part still clears it', async () => {
+    const { el } = await mounted({ of: '/views/main/p/domains' });
+    const box = el.querySelector<HTMLElement>('[role="listbox"]')!;
+    const entry = el.querySelector<HTMLElement>('[role="option"][data-value="linker"]')!;
+    // as a browser sends them: pointerenter on the entry (no bubbling) and pointerover (bubbling)
+    entry.dispatchEvent(new PointerEvent('pointerenter'));
+    entry.dispatchEvent(new PointerEvent('pointerover', { bubbles: true }));
+    expect(viewer!.highlight.names.value).toContain('legend');
+    // the highlight's row redrew the legend: the entry under the pointer is a new element, the old one detached
+    expect(entry.isConnected).toBe(false);
+    const again = el.querySelector<HTMLElement>('[role="option"][data-value="linker"]')!;
+    expect(again).not.toBe(entry);
+    // the pointer moves to another entry: that one is hovered
+    el.querySelector<HTMLElement>('[role="option"][data-value="kinase"]')!.dispatchEvent(
+      new PointerEvent('pointerover', { bubbles: true }),
+    );
+    expect(viewer!.highlight.names.value).toContain('legend');
+    // and out of the part: always cleared, whatever was replaced in between (the removed node fires nothing)
+    box.dispatchEvent(new PointerEvent('pointerleave'));
+    expect(viewer!.highlight.names.value).not.toContain('legend');
+  });
+
   async function mounted(options: Parameters<typeof mountLegend>[2]) {
     frames = installFrames();
     viewer = createSeqViewer({
