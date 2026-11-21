@@ -13,7 +13,12 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   - it shows twice, as the header's palette icon and as "Color ▸" in the "…" menu: one place, the menu (the icon goes,
     or stays only where a host asks for it as a header part);
   - a submenu's "▸" sits right after its label: right-align it at the menu's edge, as menus do.
-  Tests: a letters track's menu has no Color entry; a ranges track's Color change redraws with the new palette; one
+  - **a palette choice can break a track's colouring for good** (the author, Themes › Themes, the Variants track):
+    picking a palette turns every lollipop grey, and picking "Categories" again does not bring the colours back. A
+    palette change is a patch: undo restores it, and choosing the original entry restores the original colours exactly
+    (the theme's own domain and mapping, not a palette applied over a field it cannot read). Test: change and change
+    back, the draw list equal to the first; undo equal too.
+  Tests: a letters track's menu has no Color entry; the Variants round trip above; a ranges track's Color change redraws with the new palette; one
   palette control a track; the arrow at the row's right edge (a jsdom layout check of the entry's parts).
 
 - **The vertical overview cut at the right on a wide page** (the author, 2026-11-21, Globins rows family-rail-pinned):
