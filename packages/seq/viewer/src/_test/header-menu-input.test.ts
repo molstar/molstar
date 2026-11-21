@@ -333,6 +333,8 @@ describe('Color ▸', () => {
     );
     expect(labels(container)).toContain('Hide track');
     expect(headers.menu.value).toBeDefined();
+    // the focus back on the submenu's own row
+    expect(document.activeElement?.textContent).toMatch(/^Color/);
   });
 
   it('opens its submenu by hover, once the pointer rests on it', async () => {

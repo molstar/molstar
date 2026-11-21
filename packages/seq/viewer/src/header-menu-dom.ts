@@ -21,7 +21,9 @@ export function contextMenuPort(): HeaderMenuPortFactory {
     if (!container) return { show() {}, hide() {} };
     let close: (() => void) | undefined;
     // the menu a submenu opened from its row came from (← goes back to it); the pointer's rest on a submenu's row
-    let parent: { menu: HeaderMenu; place: HeaderMenuPlace } | undefined;
+    let parent: { menu: HeaderMenu; place: HeaderMenuPlace; row: string } | undefined;
+    // the row the next menu focuses (← back onto the submenu's own row)
+    let focusRow: string | undefined;
     let rest: unknown;
     let restRow: HeaderMenuItem | undefined;
     const stopRest = () => {
@@ -49,7 +51,7 @@ export function contextMenuPort(): HeaderMenuPortFactory {
         // in this menu's place, as a click on its row: this menu closed first (the headers' state then follows the new one)
         const sub = (it: HeaderMenuItem) => {
           close?.();
-          parent = { menu, place };
+          parent = { menu, place, row: it.name };
           if (!behavior.openMenu(menu.target, place, it.name)) parent = undefined;
         };
         const before = container.lastElementChild;
@@ -67,6 +69,8 @@ export function contextMenuPort(): HeaderMenuPortFactory {
         const el = container.lastElementChild;
         if (el && el !== before) {
           const rows = [...el.querySelectorAll<HTMLElement>('[role^="menuitem"]')];
+          if (focusRow !== undefined)
+            rows[flat.findIndex((it) => it.name === focusRow)]?.focus({ preventScroll: true });
           const rowOf = (e: Event) => {
             const i = rows.indexOf((e.target as HTMLElement).closest('[role^="menuitem"]') as HTMLElement);
             return i < 0 ? undefined : flat[i];
@@ -102,7 +106,9 @@ export function contextMenuPort(): HeaderMenuPortFactory {
             } else if (key === 'ArrowLeft' && from) {
               e.preventDefault();
               close?.();
+              focusRow = from.row;
               behavior.openMenu(from.menu.target, from.place);
+              focusRow = undefined;
             }
           });
         }
