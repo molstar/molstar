@@ -12,7 +12,8 @@ open. The designs in `.seq/design/` say **what is true now**; a record never rep
     <yyyy-mm-dd>-<short-name>.md   # one file per execution session, named by the day it ended
 ```
 
-The work id is the one used in `.seq/execution/<work-id>/`.
+The work id is the one used in `.seq/execution/<work-id>/`. A record folder holds the record file only; the work folder
+stays in `.seq/execution/` after the close, never moved or deleted unless the author says so.
 
 ## Rules
 

@@ -178,6 +178,10 @@ fails (B7).
 
 ## Finalize
 
+**The work folder stays** in `.seq/execution/fifth-slice/`, closed and kept: never moved or deleted unless the author
+says so (the author, 2026-11-21: "the execution folder stays unless i say otherwise"); `.seq/records/fifth-slice/`
+holds only the record file.
+
 Starts with the unticked plan items listed in `state.md`, each run, cut by the author's word, or carried to the next
 plan (B11: the fourth slice reached it with two unticked). Then, when every item is ticked or placed:
 
@@ -188,7 +192,8 @@ plan (B11: the fourth slice reached it with two unticked). Then, when every item
    rules held, amended or dropped; the count of what each gate, lane and use found, by kind; the self-check). The
    author decides on its own line; what was decided is applied and committed before the record.
 3. Run the gate once more.
-4. Write the record in `.seq/records/fifth-slice/`, end `state.md` with "Closed <date>: <record file>", and edit
+4. Write the record in `.seq/records/fifth-slice/` (the record file only), end `state.md` with "Closed <date>: <record
+   file>", and edit
    nothing in this folder after that.
 5. Write the next plan (version 1's close-out) with what this slice taught.
 6. **Clean up the worktrees**: every merged lane's worktree and branch removed (`git worktree remove`, then the branch

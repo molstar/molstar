@@ -27,7 +27,7 @@ same thing (package rules, tests, headers, changelog) the root wins.
 | [sources/](sources/README.md) | what Seq\* is drawn from, each reconciled against the principles |
 | [design/](design/README.md) | agreed designs, one file per topic; if it is here it is agreed |
 | [records/](records/README.md) | one permanent record per execution session |
-| `execution/<work-id>/` | plan, loop, state and drafts of work in flight; committed and kept, never cited from outside |
+| `execution/<work-id>/` | plan, loop, state and drafts of work in flight; committed and kept, never cited from outside; stays after the close, never moved or deleted unless the author says so (the record alone goes to `records/`) |
 | `_skills/seq/` | the instance skill |
 | `_checks/` | this scaffold's own checks, beside the package's (Checks, below) |
 
