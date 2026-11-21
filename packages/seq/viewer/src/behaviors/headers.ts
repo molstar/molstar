@@ -315,8 +315,16 @@ function headersBehavior(context: BehaviorContext, params: HeadersParams = {}): 
           }
         }),
       );
-      // a new layout, an undo or a load: the menu was of the old picture
-      stops.push(context.view.resolved.listen(() => closeMenu()));
+      // a new layout, an undo or a load: the menu was of the old picture; a preview's own (a scheme hovered in the
+      // menu) is the menu's, and keeps it
+      let preview = context.spec.preview.value;
+      stops.push(
+        context.view.resolved.listen(() => {
+          const p = context.spec.preview.value;
+          if (p !== preview) preview = p;
+          else closeMenu();
+        }),
+      );
     },
     attach(container) {
       // the menu's port over the canvas (a headless one given up first)

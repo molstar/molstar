@@ -237,8 +237,8 @@ describe('Color ▸', () => {
   const labels = (container: HTMLElement) =>
     [...container.querySelectorAll('[role="menu"] [role^="menuitem"]')].map((b) => b.textContent);
 
-  it('opens its submenu by a click, and a choice applies the scheme', async () => {
-    const { v, container, headers, press } = await mount();
+  it('opens its submenu by a click; a hovered scheme previews and keeps it open; a choice applies the scheme', async () => {
+    const { v, container, headers, pointer, press } = await mount();
     const g = geo(v, Domains);
     press(over(row(await openMenu(v, headers, container, Letters), /^Color/), v.dataX + 12, g.line.y + 2));
     await v.settle();
@@ -248,6 +248,14 @@ describe('Color ▸', () => {
     expect(choices.length).toBeGreaterThan(1);
     const other = choices.find((c) => c.getAttribute('aria-checked') !== 'true')!;
     const name = other.textContent;
+    // the pointer onto another scheme: previewed, drawn, and the submenu stays open for the choice
+    pointer('pointerover', other);
+    frames.flush();
+    await v.settle();
+    frames.flush();
+    expect(v.spec.preview.value).toBeDefined();
+    expect(container.querySelector('[role="menu"]')?.contains(other)).toBe(true);
+    expect(headers.menu.value).toBeDefined();
     press(over(other, v.dataX + 12, g.line.y + 2));
     await v.settle();
     expect(container.querySelector('[role="menu"]')).toBeNull();
