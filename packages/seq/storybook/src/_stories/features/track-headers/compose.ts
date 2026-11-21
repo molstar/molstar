@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { resolveAddress } from '@molstar/core/repr/tree';
 import { SeqCoreConfig } from '@molstar/seqx-core/context';
 import { HeadersProvider, type HeadersBehavior } from '@molstar/seqx-viewer/behaviors/headers';
 import { DefaultSeqViewerSpec } from '@molstar/seqx-viewer/default-spec';
@@ -137,6 +138,13 @@ export function widgetPlaces(geometry: readonly HeaderGeometry[], size = 18): Wi
       y: g.label.y + (g.label.height - size) / 2,
       size,
     }));
+}
+
+/** The label of a header's track (its section's id for a section's own header), read from the spec the viewer shows. */
+export function headerLabel(viewer: SeqViewer, target: HeaderTarget): string {
+  const node = resolveAddress(viewer.spec.root.value, (target.track ?? target.section).split('/').filter(Boolean));
+  const label = node?.params?.label;
+  return typeof label === 'string' && label ? label : (node?.id ?? target.track ?? target.section);
 }
 
 /** A line of text about the menu's entries for a track, as the story prints it: the items of its groups by label. */

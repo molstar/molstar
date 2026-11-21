@@ -114,7 +114,7 @@ export const HostWidgetFromTheGeometry: StoryObj = {
     trackHeadersStory({
       view: headers,
       widgets: true,
-      hint: 'The numbered badges are the host’s own buttons, placed from the geometry `viewer.headers` publishes. Hide a track, or move one down: the badges follow. A click on a badge opens that track’s menu.',
+      hint: 'The numbered buttons at the left of each track are the page’s own, not Seq*’s: the page places each from the box the viewer publishes for that track’s header, so they stay with their tracks. Click one to open that track’s menu (Hide, Color, Move up or down: choose “Move down” or “Hide track” and the buttons follow). The menu opens over the data to the right of the button.',
     }),
 };
 
