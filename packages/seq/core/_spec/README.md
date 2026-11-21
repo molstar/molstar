@@ -2916,7 +2916,9 @@ numbers): a window move allocates nothing once warm.
   per strip, and on a ring it runs counterclockwise within its arc. Its label says it (`blockLabel`): the direction mark
   `←` where it reads right to left (`axis.directionMark`), `×N` where its scale is not 1 (`chr4 ←`, `chr17 ×10`). In a
   row a label is whole, else its name cut keeping at least six letters with the mark and scale whole after it, else
-  hidden (`fitBlockLabel`: "c…" says nothing); its strings made once per resolved block.
+  hidden (`fitBlockLabel`: "c…" says nothing); its strings made once per resolved block. A block's ruler takes ticks as
+  close as half its width (at least 24 px, at most `ruler.labelGap`), so a block a few labels wide still counts its own
+  positions.
 - **Gaps at scale, one rule for rows and rings** (EC-102): the gaps in view share at most `blocks.gapShare` of the row
   (`rings.gapShare` of the circle), each at most the layout's gap (12 px; `rings.blockGap`, 1°), so
   `gap = min(max, share × length / gaps in view)` with no floor: at 3,000 blocks a ring's gaps are 0.03° each and three

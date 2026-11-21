@@ -96,6 +96,21 @@ describe('a block’s own direction and scale (EC-206)', () => {
     expect(p.labels).toEqual(['b0', 'b1 ←', 'b2 ×3', 'b3 ← ×0.5']);
   });
 
+  it('a row of 25 chromosomes: the larger blocks each draw their own ruler’s labels (Default 1)', async () => {
+    const s = await settle(genomeSpec(toyGenome(25, 0)));
+    const f = await s.frame({ size: { width: 1200, height: 300 } });
+    const sec = f.layout.sections[0];
+    const p = sec.placement as BlockPlacement;
+    let labelled = 0;
+    for (let i = 0; i < p.strips.n; i++) {
+      const lay = sec.lays[i * p.strips.bands]?.[0]?.lay as { n: number; shown: Uint8Array } | undefined;
+      let shown = 0;
+      for (let j = 0; lay && j < lay.n; j++) shown += lay.shown[j];
+      if (shown) labelled++;
+    }
+    expect(labelled).toBeGreaterThanOrEqual(6);
+  });
+
   it('a label that cannot show its name hides; a cut name keeps its direction mark', async () => {
     const s = await settle(genomeSpec(toyGenome(25, 0), { reversed: ['chr2'] }));
     const f = await s.frame({ size: { width: 720, height: 300 } });
