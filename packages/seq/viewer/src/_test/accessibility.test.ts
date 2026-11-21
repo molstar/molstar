@@ -132,7 +132,7 @@ describe('the announcer', () => {
     // moving says nothing; the rest does
     expect(a.message.value.text).toBe('');
     frames.timers.fire();
-    expect(a.message.value.text).toBe('Domain A, p 3–8');
+    expect(a.message.value.text).toBe('Domain A, p 3–8, Domains');
     a.dispose();
   });
 

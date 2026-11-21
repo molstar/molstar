@@ -9,7 +9,7 @@ import { ExampleViews } from '@molstar/seqx-examples';
 import { partsDomPort } from '@molstar/seqx-viewer/header-parts-dom';
 import { uiHistory } from '@molstar/seqx-viewer/ui-history';
 import { createSeqViewer, type SeqViewer } from '@molstar/seqx-viewer/viewer';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { headersOf, headersSpec } from '../compose.js';
 
 // The DOM parts of the Track headers story, in jsdom: the reference port (`partsDomPort`, what `headerPartsDom()`
@@ -18,6 +18,11 @@ import { headersOf, headersSpec } from '../compose.js';
 // (viewer's header-overlay.test.ts).
 
 let viewer: SeqViewer | undefined;
+// jsdom has no canvas context: its `getContext` logs "Not implemented" on every call, so a mounted viewer gets none
+beforeEach(() => {
+  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
+});
+
 afterEach(() => {
   viewer?.retire();
   viewer = undefined;
