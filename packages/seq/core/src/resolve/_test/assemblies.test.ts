@@ -12,6 +12,7 @@ import { assembly, colinearBlocks, createSeqSpec, genome } from '@molstar/seqx-c
 import { includePattern } from '@molstar/seqx-core/lang/include-pattern';
 import { locationOfResult, resolveAddressIn } from '@molstar/seqx-core/query';
 import { resolveView } from '@molstar/seqx-core/view';
+import { blockNodes } from '../../view/blocks.js';
 import { assemblyNames, includeFilter, lookupName, naturalOrder } from '../assembly-names.js';
 import { loadGenome } from '../genome.js';
 import { resolveSpec, sourceLengths } from '../model.js';
@@ -415,32 +416,37 @@ describe('a block’s direction', () => {
     params: { ...n.params, direction: n.params?.direction === 'reversed' ? 'section' : 'reversed' },
   });
 
-  it('reversed twice is the identity at the model level, over random blocks (property)', () => {
+  // What the model reads of an override is the derived block's params (`blockNodes`); drawing a reversed block is
+  // GC2's (`blockAxes` does not read `direction` yet: seq.view.param.unread), so the property is on the params.
+  it('an override flipped twice derives the same blocks, flipped once only its own block changes (property)', () => {
     const rng = new PCG(3);
+    const model = resolveSpec(spec());
+    const section = (children: Node[]): Node => ({ kind: 'section', id: 'g', params: { of: A }, children });
+    // a block's direction read as the model reads it: none is the section's
+    const derived = (children: Node[]) =>
+      blockNodes(model, section(children), '/views/v/g').map((n) => ({ direction: 'section', ...n.params }));
+    const shown = derived([]).map((p) => p.of as string);
     for (let round = 0; round < 20; round++) {
-      const b = createSeqSpec();
-      const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT'.repeat(10) });
-      b.views.view('v', (v) =>
-        v.section('sec', {}, (sec) => {
-          for (let i = 0; i < 1 + (rng.int() % 4); i++) {
-            const start = rng.int() % 20;
-            sec.block(`b${i}`, {
-              of: s,
-              range: [start, start + 1 + (rng.int() % 20)],
-              ...(rng.int() % 2 ? { direction: 'reversed' as const } : {}),
-            });
-          }
-        }),
-      );
-      const root = b.build();
-      const k = rng.int() % 4;
-      const [data, views] = root.children!;
-      const view = views.children![0];
-      const section = view.children![0];
-      const flipped = { ...section, children: section.children!.map((c, i) => (i === k ? flip(flip(c)) : c)) };
-      const twice: Node = { ...root, children: [data, { ...views, children: [{ ...view, children: [flipped] }] }] };
-      const blocks = (r: Node) => JSON.stringify(resolveView(resolveSpec(r), '/views/v')!.sections[0].blocks);
-      expect(blocks(twice)).toBe(blocks(root));
+      const overrides: Node[] = [];
+      for (let i = 0; i < 1 + (rng.int() % 4); i++)
+        overrides.push({
+          kind: 'block',
+          id: `o${i}`,
+          params: {
+            of: shown[rng.int() % shown.length],
+            ...(rng.int() % 2 ? { direction: 'reversed' } : {}),
+          },
+        });
+      const k = rng.int() % overrides.length;
+      const base = derived(overrides);
+      expect(derived(overrides.map((c, i) => (i === k ? flip(flip(c)) : c)))).toEqual(base);
+      const once = derived(overrides.map((c, i) => (i === k ? flip(c) : c)));
+      const target = overrides[k].params!.of;
+      // the last override of a sequence wins: flipping an earlier one of the same sequence changes nothing
+      const wins = overrides.findLastIndex((c) => c.params!.of === target) === k;
+      const changed = once.flatMap((params, i) => (JSON.stringify(params) === JSON.stringify(base[i]) ? [] : [i]));
+      expect(changed.length).toBe(wins ? 1 : 0);
+      for (const i of changed) expect({ ...once[i], direction: 0 }).toEqual({ ...base[i], direction: 0 });
     }
   });
 });
