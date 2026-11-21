@@ -44,16 +44,37 @@ export interface AssemblyEntry {
 }
 
 let chunk: typeof Genome | undefined;
-let loading: Promise<typeof Genome> | undefined;
+let loading: Promise<void> | undefined;
+let failed: unknown;
 
 /** The genome chunk when it has landed, else undefined (`loadGenome` asks for it). */
 export function genomeLoaded(): typeof Genome | undefined {
   return chunk;
 }
 
-/** Loads the genome chunk and the genome query forms, once; resolves with the chunk. */
-export function loadGenome(): Promise<typeof Genome> {
-  loading ??= Promise.all([import('./genome-chunk.js'), loadGenomeForms()]).then(([m]) => (chunk = m.Genome));
+/** Why the last load of the genome chunk failed, or undefined: resolve says it (`seq.resolve.genome.load`). */
+export function genomeLoadFailure(): unknown {
+  return failed;
+}
+
+/**
+ * Loads the genome chunk and the genome query forms, once while it is in flight. The promise never rejects: a failed
+ * import is kept (`genomeLoadFailure`) and the next call tries again, so a model never waits on a rejected load, and no
+ * resolve retries by itself (a reader asks again: `loadGenome`).
+ */
+export function loadGenome(): Promise<void> {
+  if (chunk) return Promise.resolve();
+  failed = undefined;
+  loading ??= Promise.all([import('./genome-chunk.js'), loadGenomeForms()]).then(
+    ([m]) => {
+      chunk = m.Genome;
+      loading = undefined;
+    },
+    (e: unknown) => {
+      failed = e ?? new Error('the genome chunk did not load');
+      loading = undefined;
+    },
+  );
   return loading;
 }
 

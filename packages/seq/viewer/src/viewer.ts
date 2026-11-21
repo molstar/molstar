@@ -486,8 +486,15 @@ export class SeqViewer extends ReactiveModel {
    */
   async settle(timeoutMs = 10_000): Promise<boolean> {
     // a lazy part the spec needs (the genome chunk): its model resolves again when it lands, then syncs
-    for (let m = this.spec.model.value; m.loading && !this._retired; m = this.spec.model.value) {
-      await m.loading;
+    for (
+      let seen = new Set<Promise<unknown>>(), m = this.spec.model.value;
+      m.loading && !this._retired;
+      m = this.spec.model.value
+    ) {
+      // each load once (a failed one is the model's issue: its next model holds no load)
+      if (seen.has(m.loading)) break;
+      seen.add(m.loading);
+      await m.loading.catch(() => undefined);
       await this._syncing;
     }
     await this._syncing;

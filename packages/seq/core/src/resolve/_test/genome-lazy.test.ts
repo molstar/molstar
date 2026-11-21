@@ -94,6 +94,28 @@ describe('the genome chunk', () => {
     expect(after.status).toBe('resolved');
   });
 
+  it('a failed load is said, never kept: the next load tries again', async () => {
+    vi.resetModules();
+    vi.doMock('../genome-chunk.js', () => {
+      throw new Error('offline');
+    });
+    const lang = await import('@molstar/seqx-core/lang');
+    const r = await import('@molstar/seqx-core/resolve');
+    const b = lang.createSeqSpec();
+    b.data.assembly('g', lang.assembly('toy', [{ name: 'chr1', length: 10 }]));
+    const root = b.build();
+    const first = r.resolveSpec(root);
+    await first.loading; // never rejects
+    const failed = r.resolveSpec(root);
+    expect(failed.loading).toBeUndefined();
+    expect(failed.issues.map((i) => i.code)).toEqual(['seq.resolve.genome.load']);
+    expect(failed.assemblies.get('/data/g')?.pending).toBe(true);
+    vi.doUnmock('../genome-chunk.js');
+    await r.loadGenome();
+    expect(r.genomeLoadFailure()).toBeUndefined();
+    expect(r.resolveSpec(root).assemblies.get('/data/g')?.systems).toEqual(['/data/g/(sequence :name chr1)']);
+  });
+
   it('is reached by no static import of the eager entries', () => {
     const seen = new Set<string>();
     const visit = (file: string) => {

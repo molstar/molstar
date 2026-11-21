@@ -8,16 +8,32 @@
 // a query names one (or a spec holds an assembly: resolve's genome chunk loads them with it). Until they land the form
 // waits (incomplete, so its address is `waiting`), never unknown.
 
-import type { Resolve } from './form-kit.js';
+import { fail, type Resolve } from './form-kit.js';
 import type { GenomeForms as Loaded } from './genome-forms.js';
 import { EmptyLocation } from './location.js';
 
 let forms: typeof Loaded | undefined;
-let loading: Promise<typeof Loaded> | undefined;
+let loading: Promise<unknown> | undefined;
+let failed = false;
 
-/** Loads the genome forms, once. */
+/**
+ * Loads the genome forms, once while in flight; a failed import rejects (resolve's loader says it) and the next call
+ * tries again, so the door never keeps a rejected load.
+ */
 export function loadGenomeForms(): Promise<unknown> {
-  loading ??= import('./genome-forms.js').then((m) => (forms = m.GenomeForms));
+  if (forms) return Promise.resolve();
+  loading ??= import('./genome-forms.js').then(
+    (m) => {
+      forms = m.GenomeForms;
+      failed = false;
+      loading = undefined;
+    },
+    (e: unknown) => {
+      failed = true;
+      loading = undefined;
+      throw e;
+    },
+  );
   return loading;
 }
 
@@ -25,7 +41,12 @@ const door =
   (kind: keyof typeof Loaded): Resolve =>
   (ctx, form, prefix) => {
     if (forms) return forms[kind](ctx, form, prefix);
-    void loadGenomeForms();
+    // a failed load is the form's error (asked again by the next form); else it waits for the forms
+    if (failed) {
+      failed = false;
+      return fail('seq.query.form.unsupported', 'The genome forms did not load');
+    }
+    loadGenomeForms().catch(() => undefined);
     ctx.complete = false;
     return kind === 'sequence' ? { type: 'nodes', nodes: [] } : { type: 'location', location: EmptyLocation };
   };

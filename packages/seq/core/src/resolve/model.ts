@@ -45,7 +45,7 @@ import {
   unionLocations,
 } from '@molstar/seqx-core/query';
 import { hashString } from '@molstar/core/data/util/hash-functions';
-import { type AssemblyEntry, genomeLoaded, loadGenome, pendingAssembly } from './genome.js';
+import { type AssemblyEntry, genomeLoaded, genomeLoadFailure, loadGenome, pendingAssembly } from './genome.js';
 import type { GeneticCode } from './codon.js';
 import { type GridData, type PairsData } from './held.js';
 import {
@@ -575,6 +575,7 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
   // assemblies: their sequences derived, a system each, from inline `sequences` and their source's coverage
   const assemblies = new Map<string, AssemblyEntry>();
   let loading: Promise<unknown> | undefined;
+  let loadSaid = false;
   const listed = Coverages.get(given);
   for (const at of data) {
     if (at.node.kind !== 'assembly') continue;
@@ -588,7 +589,18 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
     const t = coverageOf(alias);
     // the genome chunk loads the first time a spec holds an assembly: until then the assembly is pending
     const genome = genomeLoaded();
-    if (!genome) loading ??= loadGenome();
+    // a failed load is said, never retried by a resolve (a resolve after it would load again, and again)
+    const failure = genome ? undefined : genomeLoadFailure();
+    if (!genome && failure === undefined) loading ??= loadGenome();
+    if (failure !== undefined && !loadSaid) {
+      loadSaid = true;
+      issues.push(
+        issueOf(ResolveIssues, 'seq.resolve.genome.load', `The genome chunk did not load: ${String(failure)}`, {
+          address: at.address,
+          hint: ResolveIssues.codes['seq.resolve.genome.load'].hint,
+        }),
+      );
+    }
     const e = genome
       ? cached(`${at.address}|${key(at)}|${c?.hash ?? ''}|${t?.hash ?? ''}`, () =>
           genome.assemblyEntry(at, src, alias, c?.systems, t?.systems),

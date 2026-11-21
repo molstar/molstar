@@ -226,7 +226,8 @@ export async function openModel(spec: Node, store: DataStore, options: OpenModel
   let model = options.model ?? resolveSpec(spec, resolveOptions);
   // a lazy part the spec needs (the genome chunk): resolved again once it lands, never drawn without it
   if (model.loading) {
-    await model.loading;
+    // never rejects (a failed load is the next model's `seq.resolve.genome.load`); caught all the same
+    await model.loading.catch(() => undefined);
     model = resolveSpec(spec, resolveOptions);
   }
   let view = viewOf(model);

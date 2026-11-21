@@ -110,6 +110,11 @@ export const ResolveIssues = defineIssues('seq.resolve', {
     description: 'A complex has more units than the configuration allows (`maxUnits`); it is left out',
     hint: 'Read a subset of the assembly (fewer operators or chains), or raise `maxUnits` at its memory',
   },
+  'seq.resolve.genome.load': {
+    severity: 'error',
+    description: 'The genome chunk (assembly resolve) did not load; the assemblies stay pending',
+    hint: 'Check the network and reload, or ask again (`loadGenome`)',
+  },
   'seq.resolve.assembly.lengths': {
     severity: 'error',
     description: 'An assembly’s sequence has no length; the assembly is unavailable',
