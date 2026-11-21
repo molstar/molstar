@@ -37,6 +37,7 @@ export {
   blockSpan,
   blockUnitOf,
   placeOfUnit,
+  placesInto,
   placesOf,
   sameBlocks,
   type SystemPosition,

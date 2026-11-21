@@ -1917,8 +1917,10 @@ no target.
   them reads (EC-218, EC-191; Render, Layer colors); each block carries its system's `name`.
 - **Places** (`places.ts`, exported): `placesOf(section, system, position)` gives every block showing a position and the
   section unit there (overlapping blocks: each, the merged-copies rule; none where no block shows it), by an index by
-  system of the blocks sorted by their first position, built once per resolved section (what LX's ribbon ends, RR's pair
-  ends and RN's chords read). `blockUnitOf`, `blockPositionAt`, `blockElementAt` map a block's positions and units (its
+  system of the blocks sorted by their first position with a running greatest end (a query is a binary search and a walk
+  back while that end reaches the position: log n plus the answers), built once per resolved section (what LX's ribbon
+  ends, RR's pair ends and RN's chords read per end). `placesInto(section, system, position, blocks, units)` writes the
+  answers into the caller's arrays and allocates nothing (`places.quick.ts`: 0 bytes a query); `placesOf` wraps it. `blockUnitOf`, `blockPositionAt`, `blockElementAt` map a block's positions and units (its
   direction and scale); `placeOfUnit` a section unit to `{ system, position }` (on a block's edge: the next block's
   first as a start, the one before's last as an end) and `unitOfPlace` back (a position no block shows: the nearest
   shown edge on its system), so a viewport, a history step and a saved view carry positions, never units.

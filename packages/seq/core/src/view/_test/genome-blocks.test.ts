@@ -13,11 +13,13 @@ import type { Node } from '@molstar/core/repr/tree';
 import { assembly, createSeqSpec, genome } from '@molstar/seqx-core/lang';
 import { loadGenome } from '@molstar/seqx-core/resolve';
 import { resolveSpec } from '@molstar/seqx-core/resolve';
+import { itWithin } from '@molstar/test-harness/timing';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import {
   blockPositionAt,
   blockUnitOf,
   placeOfUnit,
+  placesInto,
   placesOf,
   type ResolvedSection,
   resolveView,
@@ -267,5 +269,56 @@ describe('links between sections of a genome', () => {
     // each sequence's identity both ways (500 × 2), and no path asked for (250,000 pairs each way before)
     expect(view.links.length).toBe(1000);
     expect(path.mock.calls.length).toBeLessThan(10);
+  });
+});
+
+/** `count` blocks of 1,000 positions on one system, each a third over the next (overlapping), mixed directions and scales. */
+function manyBlocks(count: number): ResolvedSection {
+  const b = createSeqSpec();
+  const s = b.data.sequence('s', { alphabet: 'dna', letters: 'A'.repeat(count * 700 + 1000) });
+  b.views.view('v', (v) =>
+    v.section('a', {}, (sec) => {
+      for (let i = 0; i < count; i++)
+        sec.block(`b${i}`, {
+          of: s,
+          range: [i * 700, i * 700 + 1000],
+          direction: i % 3 ? 'section' : 'reversed',
+          scale: 1 + (i % 2),
+        } as never);
+    }),
+  );
+  return sectionOf(b.build());
+}
+
+describe('the places index', () => {
+  it('answers as asking every block would, over overlapping blocks (property)', () => {
+    const s = manyBlocks(60);
+    const rng = new PCG(11);
+    for (let i = 0; i < 500; i++) {
+      const p = rng.int() % (60 * 700 + 1000);
+      const brute = s.blocks!.flatMap((b, k) => {
+        const u = blockUnitOf(b, p);
+        return u === undefined ? [] : [{ block: k, unit: u }];
+      });
+      expect(placesOf(s, '/data/s', p)).toEqual(brute);
+    }
+  });
+
+  itWithin('100,000 queries over 3,000 blocks of one system: an index, not a scan', (within) => {
+    const s = manyBlocks(3000);
+    const blocks = new Int32Array(8);
+    const units = new Float64Array(8);
+    const run = () => {
+      let n = 0;
+      for (let i = 0; i < 100_000; i++) n += placesInto(s, '/data/s', (i * 21.37) % (3000 * 700), blocks, units);
+      return n;
+    };
+    expect(run()).toBeGreaterThan(100_000);
+    const t = within(40, () => {
+      const t0 = performance.now();
+      run();
+      return performance.now() - t0;
+    });
+    console.info(`places: 100,000 queries over 3,000 blocks in ${t.toFixed(2)} ms`);
   });
 });

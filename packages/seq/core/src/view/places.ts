@@ -9,7 +9,7 @@
 // direction; an index by system of the blocks showing it, sorted by their first shown position, built once per resolved
 // section, so `placesOf` is a binary search and a scan of the blocks over the position (overlapping blocks: every one).
 
-import { axisTotal, elementAt, offsetOf, pieceOffsets, positionAt } from './axis.js';
+import { axisTotal, elementAt, offsetOf, pieceOfPosition, pieceOffsets, positionAt } from './axis.js';
 import { blockUnits } from './blocks.js';
 import type { ResolvedSection } from './view.js';
 
@@ -56,44 +56,126 @@ export function blockSpan(block: Block): number {
   return u === undefined ? 0 : block.form === 'whole' ? u : u * (block.scale ?? 1);
 }
 
-/** The index of a section's blocks by system: each system's blocks sorted by their least shown position. */
-interface PlacesIndex {
-  readonly bySystem: ReadonlyMap<string, { readonly blocks: Int32Array; readonly lo: Float64Array }>;
+/**
+ * The index of a section's blocks by system: each system's blocks sorted by their least shown position, with their
+ * greatest and the running greatest over the sorted prefix (a max-end bound: a query stops where no earlier block
+ * reaches its position).
+ */
+interface SystemPlaces {
+  readonly blocks: Int32Array;
+  readonly lo: Float64Array;
+  readonly hi: Float64Array;
+  readonly reach: Float64Array;
 }
 
-const Indexes = new WeakMap<ResolvedSection, PlacesIndex>();
+const Indexes = new WeakMap<ResolvedSection, ReadonlyMap<string, SystemPlaces>>();
 
-function indexOf(section: ResolvedSection): PlacesIndex {
+/** Entries of one system while the index is built, ordered by their least position, then their block. */
+type Entry = { b: number; lo: number; hi: number };
+const byLo = (x: Entry, y: Entry) => x.lo - y.lo || x.b - y.b;
+
+function indexOf(section: ResolvedSection): ReadonlyMap<string, SystemPlaces> {
   let ix = Indexes.get(section);
   if (ix) return ix;
-  const lists = new Map<string, { b: number; lo: number }[]>();
+  const lists = new Map<string, Entry[]>();
   const blocks = section.blocks ?? [];
   for (let b = 0; b < blocks.length; b++) {
     const r = blocks[b].axis.ranges;
     if (!r || blocks[b].offset === undefined) continue;
     let lo = Infinity;
-    for (let k = 0; k < r.length; k += 2) lo = Math.min(lo, r[k]);
+    let hi = -Infinity;
+    for (let k = 0; k < r.length; k += 2) {
+      lo = Math.min(lo, r[k]);
+      hi = Math.max(hi, r[k + 1]);
+    }
     for (const system of new Set(blocks[b].systems.length ? blocks[b].systems : [blocks[b].axis.system])) {
       let l = lists.get(system);
       if (!l) lists.set(system, (l = []));
-      l.push({ b, lo });
+      l.push({ b, lo, hi });
     }
   }
-  const bySystem = new Map<string, { blocks: Int32Array; lo: Float64Array }>();
+  const out = new Map<string, SystemPlaces>();
   for (const [system, l] of lists) {
-    l.sort((x, y) => x.lo - y.lo || x.b - y.b);
-    bySystem.set(system, { blocks: Int32Array.from(l, (e) => e.b), lo: Float64Array.from(l, (e) => e.lo) });
+    l.sort(byLo);
+    const reach = new Float64Array(l.length);
+    for (let k = 0; k < l.length; k++) reach[k] = Math.max(k ? reach[k - 1] : -Infinity, l[k].hi);
+    out.set(system, {
+      blocks: Int32Array.from(l, (e) => e.b),
+      lo: Float64Array.from(l, (e) => e.lo),
+      hi: Float64Array.from(l, (e) => e.hi),
+      reach,
+    });
   }
-  ix = { bySystem };
+  ix = out;
   Indexes.set(section, ix);
   return ix;
 }
 
 /**
+ * The places of `position` on `system` into `blocks` and `units` (in block order; at most their length), their count:
+ * `placesOf` with nothing allocated, what a layer reads per arc or ribbon end. A binary search for the blocks starting
+ * at or before the position, then back over them while the running greatest end still reaches it: the blocks that
+ * show the position and few others. A section without blocks: its own axis, block −1.
+ */
+export function placesInto(
+  section: ResolvedSection,
+  system: string,
+  position: number,
+  blocks: Int32Array,
+  units: Float64Array,
+): number {
+  if (!section.blocks) {
+    if (section.axis.system !== system || !blocks.length) return 0;
+    const o = offsetOf(section.axis, position);
+    if (o === undefined) return 0;
+    blocks[0] = -1;
+    units[0] = o;
+    return 1;
+  }
+  const list = indexOf(section).get(system);
+  if (!list) return 0;
+  let lo = 0;
+  let hi = list.lo.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (list.lo[mid] <= position) lo = mid + 1;
+    else hi = mid;
+  }
+  let n = 0;
+  for (let k = lo - 1; k >= 0 && list.reach[k] >= position; k--) {
+    if (list.hi[k] < position) continue;
+    const b = list.blocks[k];
+    // `blockUnitOf` inline: a fractional number returned from a call is boxed, and a layer asks per arc end
+    const blk = section.blocks[b];
+    const r = blk.axis.ranges;
+    if (!r || n >= blocks.length) continue;
+    const piece = pieceOfPosition(r, blk.axis.dir, position, true);
+    if (piece < 0) continue;
+    const offsets = pieceOffsets(r);
+    const o = offsets[piece] + (blk.axis.dir === -1 ? r[2 * piece + 1] - position : position - r[2 * piece]);
+    const k1 = blk.form === 'whole' ? 1 / Math.max(1, offsets[r.length >> 1]) : (blk.scale ?? 1);
+    const unit = (blk.offset ?? 0) + o * k1;
+    // in block order: an insertion (the places of one position are few)
+    let j = n++;
+    while (j > 0 && blocks[j - 1] > b) {
+      blocks[j] = blocks[j - 1];
+      units[j] = units[j - 1];
+      j--;
+    }
+    blocks[j] = b;
+    units[j] = unit;
+  }
+  return n;
+}
+
+const PlaceBlocks = new Int32Array(256);
+const PlaceUnits = new Float64Array(256);
+
+/**
  * Every place showing `position` on `system` in a section of blocks (_spec/README.md "Resolved view", Places): each
- * block that shows it (overlapping blocks: every one, the merged-copies rule) and the section unit there, in block
- * order; none when no block shows it. Into `out` when given (cleared first). A section without blocks has its own axis:
- * one place on block −1 when the axis is on the system and shows the position.
+ * block that shows it (overlapping blocks: every one, the merged-copies rule; at most 256) and the section unit there,
+ * in block order; none when no block shows it. Into `out` when given (cleared first). A section without blocks has its
+ * own axis: one place on block −1 when the axis is on the system and shows the position.
  */
 export function placesOf(
   section: ResolvedSection,
@@ -102,28 +184,8 @@ export function placesOf(
   out: BlockPlace[] = [],
 ): BlockPlace[] {
   out.length = 0;
-  if (!section.blocks) {
-    if (section.axis.system !== system) return out;
-    const o = offsetOf(section.axis, position);
-    if (o !== undefined) out.push({ block: -1, unit: o });
-    return out;
-  }
-  const list = indexOf(section).bySystem.get(system);
-  if (!list) return out;
-  // the blocks whose least position is at most `position`: a binary search, then each of them asked
-  let lo = 0;
-  let hi = list.lo.length;
-  while (lo < hi) {
-    const mid = (lo + hi) >> 1;
-    if (list.lo[mid] <= position) lo = mid + 1;
-    else hi = mid;
-  }
-  for (let k = 0; k < lo; k++) {
-    const b = list.blocks[k];
-    const unit = blockUnitOf(section.blocks[b], position);
-    if (unit !== undefined) out.push({ block: b, unit });
-  }
-  out.sort((x, y) => x.block - y.block);
+  const n = placesInto(section, system, position, PlaceBlocks, PlaceUnits);
+  for (let k = 0; k < n; k++) out.push({ block: PlaceBlocks[k], unit: PlaceUnits[k] });
   return out;
 }
 
