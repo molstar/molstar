@@ -7,9 +7,8 @@ queue. Each line: what is seen, where (the story), where it came from, its kind 
 
 ## Open
 
-- **A submenu replaces its menu on hover** (bug; the author, 2026-11-21, after FX6): `Color ▸` must open beside its
-  parent (a flyout), by click, →, or resting; the parent stays. HT, first item. The orchestrator merged FX6 on the
-  lane's own browser check without looking at the submenu: a look is the orchestrator's, every time.
+- **Prism's `commands.test.ts` and `collapse.test.tsx` failed once each in a combined run** (HT's runs; alone green):
+  watch.
 
 - **A services story test failed once under load** (FX6's run; five runs green alone): watch at the gate's runs.
 
@@ -34,6 +33,9 @@ queue. Each line: what is seen, where (the story), where it came from, its kind 
   visible gap needs `gap_marks` on the rows layer (a gap list in `RowsLay`, canvas and SVG, the image-tile step).
 
 ## Fixed
+
+- **A submenu replacing its menu; hiding a track moving the view** (the author): HT (`5bf619ac6`): flyouts beside
+  their row; hidden tracks listed and restored by the host.
 
 - **The header menus** (the author's five: items not applied, clicks and hover reaching the view, `Color ▸`, `⋯`
   opening nothing): FX6 (`c1fc7530a`); a track's default colour no longer moved by another's scheme.

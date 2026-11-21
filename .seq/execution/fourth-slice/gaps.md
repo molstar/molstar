@@ -49,6 +49,11 @@ under the author's standing permission (`state.md`, Decided). Each a yes or no q
 - **FX6**: `HeadersParams.submenuRestMs` and `HeadersBehavior.submenuRestMs` (300 ms); core `hitChrome`'s optional
   `touch`. Keep? Recommended yes.
 
+- **HT**: viewer `SeqViewer.hiddenTracks`, `HiddenTrackEntry`, `mountHiddenTracks`, `HiddenTracksPartOptions`,
+  `track.show`'s `all`, `HeadersBehavior.cancelPreview`, `HiddenTrackMessage`; core `collapsedSection`,
+  `onlyOnHiddenTracks`; removed `HeaderStateNames.hiddenTracks` and the section's "n hidden" state; `@molstar/ui`
+  `ContextMenuItem.items`, `.onActive`, `ContextMenuOptions`, `openContextMenu`'s options. Keep? Recommended yes.
+
 ## Decisions as recommended
 
 - **ST2**: the link sends every jump that names a Location (`focus`, `reveal`, and back/forward over them); `fit`,
