@@ -44,6 +44,9 @@
   viewer that never opens a genome pays nothing; the bounds stay (reading 240, headless 830, default 1,330, minimal 960
   kB). GC1's resolve stopped at headless 831.1 and minimal 960.1 kB before it.
 
+- **Sizes for GC2's genome axis** (the author, 2026-11-21: "raise the bound, even 10% is still fine"): headless
+  870 kB (was 830), the default viewer 1,400 (was 1,330), the minimal viewer 1,000 (was 960), about 5 % each, room for
+  the slice; reading stays at 240. GC2 measured 833.6, 1,332.3 and 964.4 kB.
 ## Overnight: stage 0 (run by the fourth slice's loop)
 
 The fourth slice's loop runs this while the author sleeps (its `state.md`, Next, points here). The lane limit is the
