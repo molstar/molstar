@@ -83,3 +83,8 @@ the morning").
 
 Start the loop: `/loop run .seq/execution/fifth-slice/loop.md`. Its first step writes `briefs/fx-fix-lane.md` (from the
 fourth slice's) and `briefs/gc1-genome-language.md`, and starts FX1 beside BZ or GC1 (two lanes at once).
+
+## In progress
+
+- 2026-11-21: the loop started (`/loop run .seq/execution/fifth-slice/loop.md`). Running (B3): FX1 (fast; started
+  with this commit) and BZ (strong; same). Downloads stay asked before they are made (plan, How this slice runs).
