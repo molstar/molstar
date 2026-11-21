@@ -71,7 +71,7 @@ under the author's standing permission (`state.md`, Decided). Each a yes or no q
 - **EX: the minimal viewer grew 3.7 kB** (925.6 → 929.3 of 930; the brief: "the minimal viewer is not grown"): 2.4 kB
   are the reader's fallback parts (the fallback chain, the issue once per extension, version reading, the navigator
   issue, language and catalogs), 1.2 kB composition entry points; `checkExtensions` and the tables moved behind
-  `defineExtension`, late `extend` lazy. 0.7 kB is left under the bound, and CN and LE come next. Accept and move the
+  `defineExtension`, late `extend` lazy. After LE, CN and NP the minimal viewer is at 929.9 of 930 kB. Accept and move the
   minimal bound (e.g. 940 kB), or trim design items (the info-level version notice, the navigator issue, the builder's
   `extensions`)? Recommended: accept, move the bound to 940 kB (a reader without the extension must say what it lacks).
 - **The chromosome view's pan frame near its ratio bound** (stage 4's gate): 1.97× against 1.9× once at load 4.9,
@@ -82,3 +82,6 @@ under the author's standing permission (`state.md`, Decided). Each a yes or no q
   selection (F3); a marked state for the track the structure is colored by (F9); an empty section saying its issue on
   the view (F11; HD's drift); a navigator window at fit drawn as one (F25). Recommended: the hover card on these
   stories' viewers and compact legends first (F1, F22), the rest at the fifth slice's gate.
+- **NP: Back past the first focus leaves the structure's camera** (F5): by structure-syncing only steps naming a Location
+  go out, so a structure keeps the last focus when Seq* goes back past it. Add a reset to `StructureSide` (a host's
+  "camera home"), or keep it? Recommended: keep it (the host owns its camera) and say so in the story, as done.

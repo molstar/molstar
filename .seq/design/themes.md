@@ -307,6 +307,8 @@ and another viewer); a host recolors through `--seq-*` tokens.
   today's `LegendSpec` from `legend?(lay)`.
 - **Merged**: legends with the same key (the theme's hash, the scale, the domain, the entries) are one, titled by what
   their layers' labels share, else by the scale's label (EC-132).
+  Legends of one title but different channels carry a qualifier (the channel: "Variants (size)") after the merge; the
+  title stays the track's (the Mol\* converter's too). Size legends draw circles by ratio (the novice pass, F23).
 - **Published on change only**: the viewer's `legends` state is derived when the view settles, a theme, scale or token
   table changes, or the hover moves onto another entry; never per frame, compared structurally.
 - **A part a host places** ([ux-foundations](ux-foundations.md) section 9: "Legends sit with their track or in one legend

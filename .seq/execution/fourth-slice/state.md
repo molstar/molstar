@@ -63,6 +63,9 @@ The third slice is closed (2026-11-20; its record in `.seq/records/third-slice/`
   load 2.6; the chromosome view's pan-frame ratio missed its 1.9× once at load 4.9, 1.97×, and passed alone and in the
   full run after), both perf tiers; sizes 223.1 / 806.0 / 1296.4 / 929.5 kB. Next: the novice pass and M4's
   measurements without the browser's fetches; SV and stage 3's gate wait for the author; stop before FINALIZE.
+- 2026-11-21: the novice pass (29 findings) and NP merged (`34a944a17`). The overnight work is done: what is left
+  waits for the author — SV's first service fetch and stage 3's gate, M4's targets (the minimal viewer at 929.9 of
+  930 kB), the use gates, `gaps.md`, the fifth slice's drafts; then FINALIZE.
 
 ## Next
 
@@ -113,6 +116,7 @@ One row a merged lane (loop, step 5, record): review findings and look findings 
 | EX | 2026-11-21 | 7 (review: the minimal viewer grown 4.6 kB; versions mixing 0.x and 1.x; a failed extend unmapping the viewer's behaviors; a newer type's params refused; late parts dropped silently; the navigator picture unsaid; a property test that could not fail) | 0 | 1 (the demo scheme colouring by index: TAD2 in proline-rich's colour) | the minimal viewer +3.7 kB to 929.3 of 930 (gaps.md); public surface for acceptance (gaps.md); the size script measures the `_measure` entry once a lazy chunk exists |
 | LE | 2026-11-21 | 3 (review: the compact form's names unread by keyboard, pre-existing; the 0.5.0 history missing `legend`; the shared-legend rule untested) | 0 | 1 (the story's keys shown twice) | compact steps untested (the binned params unconfirmed); the minimal 929.5, headless 829.1 |
 | CN | 2026-11-21 | 4 (review: the minimal viewer at its bound with LE; no public position↔x for a host navigator; exportSvg's two sources of pictures; a host navigator's missing picture unsaid) | 0 | 1 (the host bar's drag: not reproduced in jsdom, pans after the fix round) | headless 829.8 → 806.0 (navigators lazy in renderSvg); the minimal 929.5 (docs trimmed from language.ts) |
+| NP | 2026-11-21 | 4 (review: the channel suffix before the merge; the Mol* converter's title; the DOM backdrop untested and without the ellipsis; the specs) | 0 | 0 | 5 bugs and 9 stories from the novice pass; F5 as designed, F7 not reproduced; the minimal viewer 929.9 of 930 |
 
 ## How to verify
 

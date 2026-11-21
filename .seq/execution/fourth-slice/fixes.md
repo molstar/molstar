@@ -30,11 +30,12 @@ queue. Each line: what is seen, where (the story), where it came from, its kind 
   gap cells (`colorOf` gives `NoColor`) and the letters layer's `gapMarks` marks unmapped positions, not gap cells; a
   visible gap needs `gap_marks` on the rows layer (a gap list in `RowsLay`, canvas and SVG, the image-tile step).
 
-- **The novice pass's five bugs** (novice-findings.md, F5, F7, F13, F15, F23): Back after a focus not reaching the
-  structure; the fake's rows painted empty in Chain maps; the hide slot cutting "Domains"; Cmd/Ctrl+Z dead after a
-  header click; the size legend's key. To NP (FX5's place, before M4).
-
 ## Fixed
+
+- **The novice pass's five bugs** (novice-findings.md): F13 a cut header label ends in an ellipsis, F15 the story binds
+  its own Undo (Seq* binds none: the host's stack), F23 legends qualified by channel after the merge and size legends
+  as circles — NP (`34a944a17`); F5 read as designed (Back past the first focus names no Location: the story says so),
+  F7 not reproduced.
 
 - **SZ's viewer split, four small findings**: FX4 `8d824562c` (viewports in `viewer-viewports.ts`, the frame's backend
   behind methods, the follow out-records owned by the view model, the frame's window call tested).

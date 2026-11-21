@@ -189,7 +189,8 @@ It does not cover:
 - **Actions show on hover** (`header.actions.show: hover`): while the pointer is over the track (its header or its
   data), or the keyboard cursor is on its header, its slots are drawn over a backdrop in the label column's
   background (the column has no well). The backdrop
-  covers the label's tail and does not move it. Why:
+  covers the label's tail and does not move it; where it cuts the label it makes room for an ellipsis and draws one,
+  on the canvas and in the DOM parts (the novice pass, F13). Why:
   - a figure at rest shows names and states, not buttons;
   - drawing them is an emphasis pass over the label column, with no layout.
 
