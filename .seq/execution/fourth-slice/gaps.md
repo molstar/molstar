@@ -40,6 +40,12 @@ under the author's standing permission (`state.md`, Decided). Each a yes or no q
   in the picture contract; a host's picture listed in the registry counts as known without an extension. Keep?
   Recommended yes.
 
+- **FX5**: `LayerType.mark?(lay, key, out: HitMark)`, `LayerType.ownHover?: true`, `HitMark`, `Emphasis.menu`,
+  `isExtensionName` (lang), the named lists `greens` and `greens-r`. Keep? Recommended yes (the view outlines any
+  extension's hovered mark without allocating; a type drawing its own hover opts out).
+- **PC** (to merge): the `ranges` layer's `connector` param (`line`, `none`; language 0.5.0) and the `ranges.connector`
+  render preset (axis.md, the author's).
+
 ## Decisions as recommended
 
 - **ST2**: the link sends every jump that names a Location (`focus`, `reveal`, and back/forward over them); `fit`,

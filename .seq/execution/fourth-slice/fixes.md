@@ -7,9 +7,10 @@ queue. Each line: what is seen, where (the story), where it came from, its kind 
 
 ## Open
 
-- **A header's submenu closes before the pointer reaches it** (bug; the author, 2026-11-21): hover a header, click the
-  palette; moving down into the submenu un-reveals the slots and the menu goes with them (seen on SV's services story;
-  the cause in the viewer's header parts and menu). FX5, item 10.
+- **The `⋯` menu's Color submenu does nothing** (bug; the author, 2026-11-21, on Examples/Services): `Color ▸`
+  highlights but no submenu opens or applies. FX6.
+- **The pointer over a menu still hovers the view under it** (bug; the author, 2026-11-21): the hover card and the
+  hover emphasis follow the canvas beneath an open header menu. FX6.
 
 - **FX3's first item: the quick-lane folders over 2 s** (stage 1's gate, the author, 2026-11-20: "Pass, FX3 fixes
   times"): core 2.8 s, viewer 2.7 s, storybook 2.3 s on a quiet machine (examples 1.6 s; all 8.2 s). The items below
@@ -32,6 +33,10 @@ queue. Each line: what is seen, where (the story), where it came from, its kind 
   visible gap needs `gap_marks` on the rows layer (a gap list in `RowsLay`, canvas and SVG, the image-tile step).
 
 ## Fixed
+
+- **A header's submenu closing on the way to it**: an open menu keeps its header's actions shown, FX5 (`fd3b13b01`).
+- **The extension's sites without hover emphasis; at the wrong residues**: FX5 (`fd3b13b01`).
+- **The PAE in AlphaFold DB's colours, on real data**: FX5 (`greens-r`; CDK2's real PAE beside the synthetic complex).
 
 - **T-DM1's CCD ids**: none exists for DM1 or the MCC linker (FX5's lookup, `c918b6655`); `UNL` kept, the author,
   2026-11-21: "keep UNL placeholders".
