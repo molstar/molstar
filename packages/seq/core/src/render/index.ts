@@ -165,6 +165,7 @@ export {
   type PositionsRailMode,
   type RailPlace,
   type RailRow,
+  railRowList,
   railRows,
   railSections,
   railUnitAt,

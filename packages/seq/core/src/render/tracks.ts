@@ -27,7 +27,7 @@ import { TracksLayout } from './layout/tracks.js';
 import type { GridPlacement } from './layout/grid.js';
 import type { PlaceContext, Placement, SectionLayoutType } from './layout/types.js';
 import { narrowColumns, treeKept } from './narrow.js';
-import { placeRail, placeRowsRail, Rail, SlimRailPx } from './rail.js';
+import { placeRail, placeRowsRail, Rail, type RailRow, railRowList, SlimRailPx } from './rail.js';
 import type { RowsLay } from './rows.js';
 import { rowsCount, rowsFillHeight, rowsShown } from './rows-fill.js';
 import {
@@ -325,6 +325,17 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
   let y = config.inset;
   // a section whose every track is hidden collapses fully (the application lists them): no gap, no line, no rail
   let anyShown = false;
+  // the pinned rails (`pinned`): a slim row each at the visible frame's foot, the first section's lowest, outside every
+  // section's rows (a live canvas only: an export has none); their rows are kept free of the fill band
+  const pinnedAt = new Map<string, number>();
+  if (input.rails && input.figure !== true)
+    for (const s of input.view.sections) {
+      const entry = input.rails[s.address];
+      if (entry === undefined || collapsedSection(s) || layoutOf(s) !== TracksLayout) continue;
+      if (s.blocks && s.params.arrange === 'stack') continue;
+      if (railRowList(entry, false).includes('pinned')) pinnedAt.set(s.address, pinnedAt.size);
+    }
+  const pinnedPx = pinnedAt.size * SlimRailPx;
   for (const section of input.view.sections) {
     const collapsed = collapsedSection(section);
     if (anyShown && !collapsed) y += config.sectionGap;
@@ -365,13 +376,8 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     const railOn = input.rails?.[section.address] !== undefined && railable && !collapsed;
     // the rail's row (`navigator.railPlace`): `top` above the first track, `bottom` under the last, else below the ruler
     // (a section with none shown takes `bottom`)
-    const railRow =
-      input.rails?.[section.address] === 'top'
-        ? 'top'
-        : input.rails?.[section.address] === 'bottom'
-          ? 'bottom'
-          : 'ruler';
-    const topRail = railOn && railRow === 'top' && input.figure !== true;
+    const wanted = railOn ? railRowList(input.rails?.[section.address], input.figure === true) : NoRows;
+    const topRail = wanted.includes('top');
     // its header line above its first track, in a layout that draws track headers (_spec/README.md "Render", Track
     // headers)
     const sectionHeader =
@@ -431,7 +437,14 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       pads.push(p.top, p.bottom);
       if (p.top > 0 || p.bottom > 0) padded = true;
     }
-    const ruler = railOn && railRow === 'ruler' ? rulerTrack(shown, heights) : -1;
+    const ruler = wanted.includes('ruler') ? rulerTrack(shown, heights) : -1;
+    // the rows drawn: a `ruler` rail with no ruler shown takes the `bottom` row, then duplicates dropped
+    const rows: RailRow[] = [];
+    for (const r of wanted) {
+      const row = r === 'ruler' && ruler < 0 ? 'bottom' : r;
+      if (!rows.includes(row)) rows.push(row);
+    }
+    const bottomRail = rows.includes('bottom');
     // the rail draws just below the ruler's bottom border: the ruler's well grows by the rail's row, so it never covers
     // the ticks or labels; only where a rail is drawn live (the canvas with rails on): an export has no row, a figure's
     // rails (navigators included) lie on the border (_spec/README.md "Render", Navigators)
@@ -459,7 +472,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       const n = rowsShown(shown[fill], input.model, config.rows.pinInPlace);
       heights[fill] = rowsFillHeight(
         heights[fill],
-        height - top - used - config.inset,
+        height - top - used - config.inset - pinnedPx,
         n,
         titleRowOf(shown[fill], config),
       );
@@ -712,8 +725,8 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     }
     y = top + placement.box.height;
     // the slim rail's row, under the tracks
-    const slimTop = topRail ? headed : y;
-    if (railOn && ruler < 0 && !topRail) y += SlimRailPx;
+    const bottomTop = y;
+    if (bottomRail) y += SlimRailPx;
     // the column the emphasis spans with `emphasis.selectionShape: 'column'`: the tracks laid out on the page and the
     // gaps between them
     let bandEnd = -1;
@@ -746,23 +759,33 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
           width: input.text.measure(config.labelFont, text),
         }
       : undefined;
-    let rail: Rail | undefined;
+    // the section's rails, one a row, each on the one window
+    let rails: Rail[] | undefined;
     if (railOn && axis) {
-      rail = kept?.layout?.rail ?? new Rail();
       const own = ownPieces(section, input.model, input.data) ?? axis.pieces;
-      placeRail(
-        rail,
-        section,
-        sectionId(section),
-        axis,
-        own,
-        ruler >= 0 ? tracks[ruler].box : undefined,
-        slimTop,
-        viewport,
-        config,
-        input.figure === true,
-      );
+      for (const row of rows) {
+        const rail = kept?.layout?.rails?.[rails?.length ?? 0] ?? new Rail();
+        placeRail(
+          rail,
+          section,
+          sectionId(section),
+          axis,
+          own,
+          row === 'ruler' && ruler >= 0 ? tracks[ruler].box : undefined,
+          row === 'top'
+            ? headed
+            : row === 'pinned'
+              ? height - SlimRailPx * ((pinnedAt.get(section.address) ?? 0) + 1)
+              : bottomTop,
+          viewport,
+          config,
+          input.figure === true,
+          row === 'pinned',
+        );
+        (rails ??= []).push(rail);
+      }
     }
+    const rail = rails?.[0];
     // each rows layer's rail, upright at the right edge (beside its last numbers), along its band's scrolled rows
     let rowsRails: Rail[] | undefined;
     if (input.rails && layout === TracksLayout)
@@ -790,7 +813,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       placement,
       ...(axis ? { axis } : {}),
       ...(band ? { band } : {}),
-      ...(rail ? { rail } : {}),
+      ...(rail ? { rail, rails } : {}),
       ...(rowsRails ? { rowsRails } : {}),
       y: sectionTop,
       height: y - sectionTop,
@@ -859,10 +882,12 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     issues,
     shown: shownNodes,
     ...(narrow ? { narrow } : {}),
+    ...(pinnedPx > 0 ? { pinnedPx } : {}),
   };
 }
 
 const NoBreaks: readonly number[] = [];
+const NoRows: readonly RailRow[] = [];
 
 /**
  * A placement's window (a ring's), out of its key: set on a kept placement too. Active while something follows the

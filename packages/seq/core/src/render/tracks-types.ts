@@ -73,8 +73,10 @@ export interface SectionLayout {
   readonly header?: SectionHeaderLine;
   /** The breaks in view, `[x, hiddenStart, hiddenEnd, …]` (x unsnapped): a hairline each across the band. */
   readonly breaks: readonly number[];
-  /** Its ruler rail, when it draws one (_spec/README.md "Render", Navigators). */
+  /** Its ruler rail, when it draws one (_spec/README.md "Render", Navigators): the first of `rails`. */
   readonly rail?: Rail;
+  /** Its positions rails, one a place of `navigator.railPlace` (each on the section's one window). */
+  readonly rails?: readonly Rail[];
   /** Its rows layers' rails (upright, at the right edge of each band), when they draw them. */
   readonly rowsRails?: readonly Rail[];
   /** The direction mark in the first track's label row (`axis.directionMark`): its text, x and measured width. */
@@ -109,6 +111,8 @@ export interface ViewLayout {
   readonly shown: readonly OverlayNode[];
   /** The columns a narrow frame laid out with, the plot's width and the frame's least (a view with a tracks section). */
   readonly narrow?: NarrowColumns;
+  /** The frame's foot the pinned rails take, px (`pinned`): past the last section, kept free of the fill band. */
+  readonly pinnedPx?: number;
 }
 
 export interface LayoutInput {

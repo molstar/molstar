@@ -82,6 +82,8 @@ export class Rail {
   bottom = 0;
   /** A slim row of its own (no ruler shown). */
   slim = false;
+  /** Pinned to the bottom edge of the view's visible frame (`pinned`), outside the section's rows. */
+  pinned = false;
   /** The section's display units and its window over them (end past total over a cyclic origin). */
   total = 0;
   start = 0;
@@ -141,7 +143,9 @@ export function placeRail(
   viewport: Viewport | undefined,
   config: RenderConfig,
   figure = false,
+  pinned = false,
 ): void {
+  rail.pinned = pinned;
   rail.section = section.address;
   rail.key = section.address;
   rail.vertical = false;
@@ -207,6 +211,7 @@ export function placeRowsRail(rail: Rail, lay: RowsLay, track: string, sectionId
   rail.section = lay.section;
   rail.key = track;
   rail.vertical = true;
+  rail.pinned = false;
   rail.hit.layer = track;
   rail.hit.navigator = RowsRail;
   rail.figure = figure;
@@ -282,6 +287,15 @@ export function drawRail(
 ) {
   const g = out.args;
   const line = tokens.colors['msui-line'];
+  if (rail.pinned) {
+    // pinned over the frame's foot: its own ground, so what the frame clips never shows through it
+    g[0] = rail.x;
+    g[1] = rail.top;
+    g[2] = rail.width;
+    g[3] = rail.bottom - rail.top;
+    g[4] = tokens.colors['msui-bg'];
+    emit(out, false);
+  }
   g[0] = rail.x;
   g[1] = rail.y - Line / 2;
   g[2] = rail.width;
@@ -405,10 +419,13 @@ export function hitRail(rail: Rail, px: number, py: number, config: RenderConfig
 export type PositionsRailMode = 'always' | 'unlessNavigator' | 'none';
 
 /** Where the positions rail sits (`navigator.railPlace`): below the ruler, under the last track, by a navigator. */
-export type RailPlace = 'ruler' | 'bottom' | 'navigator';
+export type RailPlace = 'ruler' | 'bottom' | 'navigator' | 'pinned';
 
-/** The row a section's rail is drawn in: below its ruler, under its last track, or above its first track. */
-export type RailRow = 'ruler' | 'bottom' | 'top';
+/**
+ * The row a section's rail is drawn in: below its ruler, under its last track, above its first track, or pinned to the
+ * bottom edge of the view's visible frame.
+ */
+export type RailRow = 'ruler' | 'bottom' | 'top' | 'pinned';
 
 /**
  * The sections that draw a ruler rail by default (_spec/README.md "Render", Navigators): every linear section (tracks)
@@ -442,16 +459,41 @@ export function railRows(
   view: ResolvedView,
   sections: readonly string[],
   hosted: readonly ResolvedNavigator[] = [],
-  place: RailPlace = 'ruler',
-): Record<string, RailRow> {
-  const out: Record<string, RailRow> = {};
-  for (const a of sections) out[a] = place === 'bottom' ? 'bottom' : 'ruler';
-  if (place !== 'navigator') return out;
-  for (const list of [view.navigators, hosted])
-    for (const n of list) {
-      if (n.hidden || n.axes === 'rows' || (n.place !== 'top' && n.place !== 'bottom')) continue;
-      for (const a of n.of) if (a in out) out[a] = n.place;
+  place: RailPlace | readonly RailPlace[] = 'ruler',
+): Record<string, readonly RailRow[]> {
+  const places: readonly RailPlace[] = typeof place === 'string' ? [place] : place.length ? place : ['ruler'];
+  const beside: Record<string, RailRow> = {};
+  if (places.includes('navigator'))
+    for (const list of [view.navigators, hosted])
+      for (const n of list) {
+        if (n.hidden || n.axes === 'rows' || (n.place !== 'top' && n.place !== 'bottom')) continue;
+        for (const a of n.of) beside[a] = n.place;
+      }
+  const out: Record<string, readonly RailRow[]> = {};
+  for (const a of sections) {
+    const rows: RailRow[] = [];
+    for (const p of places) {
+      const row: RailRow = p === 'navigator' ? (beside[a] ?? 'ruler') : p;
+      if (!rows.includes(row)) rows.push(row);
     }
+    out[a] = rows;
+  }
+  return out;
+}
+
+/**
+ * The rows a section's rail entry names (`FrameInput.rails`: `true`, one row, or a list), figure-safe: a figure has no
+ * row above its tracks (its `top` is the `bottom`) and no pinned one; duplicates dropped.
+ */
+export function railRowList(entry: unknown, figure: boolean): readonly RailRow[] {
+  const raw: readonly unknown[] = Array.isArray(entry) ? entry : [entry];
+  const out: RailRow[] = [];
+  for (const r of raw) {
+    let row: RailRow = r === 'top' || r === 'bottom' || r === 'pinned' ? r : 'ruler';
+    if (figure && row === 'top') row = 'bottom';
+    if (figure && row === 'pinned') continue;
+    if (!out.includes(row)) out.push(row);
+  }
   return out;
 }
 

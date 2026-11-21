@@ -230,8 +230,8 @@ class KeyParts {
 function railsActive(layout: ViewLayout, active: FrameInput['railsActive']): void {
   const s = layout.sections;
   for (let i = 0; i < s.length; i++) {
-    const r = s[i].rail;
-    if (r) r.active = active?.[r.key] === true;
+    const rs = s[i].rails;
+    for (let j = 0; rs && j < rs.length; j++) rs[j].active = active?.[rs[j].key] === true;
     // a rows rail is idle while every row is shown, whatever the view can do
     const rows = s[i].rowsRails;
     for (let j = 0; rows && j < rows.length; j++) rows[j].active = active?.[rows[j].key] === true && !rows[j].whole;

@@ -3025,13 +3025,20 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
   `railSections(view, hosted, mode)`: every tracks section (`always`, the default: a declared navigator is the picture,
   the rail the precise control, both drawn against one window); `unlessNavigator`: those no shown navigator binds along
   its positions (a declared navigator and a host's replace its rail, a hidden one brings it back); `none`: no section
-  (the viewer's `navigator.positionsRail`). **Where**: `FrameInput.rails`'s value for a section is its row
-  (`railRows(view, sections, hosted, place)`, the viewer's `navigator.railPlace`): `ruler` (below the ruler's border; a
-  section with no ruler shown takes `bottom`), `bottom` (the slim row under the last track), `top` (a slim row above the
-  section's first track, below its header: what `navigator` gives a section a declared `top` navigator binds along its
-  positions, `bottom` for a `bottom` one, else `ruler`; a vertical overview is no horizontal navigator); in a figure the
-  border whatever the row. Why `top`: the navigator is a part the host places, outside the canvas; the canvas's first
-  row is the one directly under a top navigator, so the rail beside it reads as its precise control.
+  (the viewer's `navigator.positionsRail`). **Where**: `FrameInput.rails`'s value for a section is its row, or a list of
+  rows (`railRows(view, sections, hosted, place)`, the viewer's `navigator.railPlace`, one place or a list: a rail each,
+  `SectionLayout.rails`, `rail` the first; all on the one window, so a drag on any moves the others in the same frame;
+  the fallbacks first, then duplicates dropped: `[ruler, ruler]`, or `ruler` with no ruler beside `bottom`, is one
+  rail): `ruler` (below the ruler's border; a section with no ruler shown takes `bottom`), `bottom` (the slim row under
+  the last track), `top` (a slim row above the section's first track, below its header: what `navigator` gives a section
+  a declared `top` navigator binds along its positions, `bottom` for a `bottom` one, else `ruler`; a vertical overview
+  is no horizontal navigator), `pinned` (`Rail.pinned`: a slim row at the bottom edge of the frame (`size.height`),
+  outside the scrolled rows; the frame's foot is kept free of it (`ViewLayout.pinnedPx`: the fill band stops above it, a
+  content-sized canvas grows by it; sections with one stack up from the foot, the first lowest), drawn on its own
+  ground, and its press and hit are the section's wherever the page point is); in a figure the border whatever the row,
+  and no pinned row. Why `top`: the navigator is a part the host places, outside the canvas; the canvas's first row is
+  the one directly under a top navigator, so the rail beside it reads as its precise control. Why `pinned`: a tall view
+  keeps its horizontal control in reach at any scroll, as the ruler is kept at the top.
 - **The rows rail** (`placeRowsRail`, `SectionLayout.rowsRails`; `FrameInput.rails` by the rows track's address): the
   same `Rail` upright (`vertical`: along the page's y, its line and grab zone across on x; one geometry, drawn and hit
   by the same code, the coordinates turned at the rect and at the hit), `SlimRailPx` wide at the right edge (right of

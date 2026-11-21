@@ -162,7 +162,9 @@ export class ViewerFrame {
     let rebuilt = frame.rebuilt;
     if (!fixed) {
       const last = frame.layout.sections.at(-1);
-      const content = last ? Math.ceil(last.y + last.height + context.renderConfig.inset) : 32;
+      const content = last
+        ? Math.ceil(last.y + last.height + context.renderConfig.inset + (frame.layout.pinnedPx ?? 0))
+        : 32;
       if (content !== this._contentHeight) {
         this._contentHeight = content;
         size.height = Math.min(config.canvas.maxHeight, Math.max(content, 32));
