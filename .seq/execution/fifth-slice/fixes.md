@@ -14,39 +14,22 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   emphasis on both views), bound a drag across 12 blocks to the frame budget at 0 bytes warm.
 
 - **A ring's own hover draws no mark** (the author, 2026-11-21, three-thousand-contigs): hovering the ring shows the
-  card but no position box on the ring, while hovering the row draws it there; sent to FX2 as its item 9.
+  card but no position box on the ring, while hovering the row draws it there; sent to FX2 as its item 9; not started.
 
 - **Block rulers unnumbered at the fit** (the author, 2026-11-21, the-hosts-complex): chain blocks about 180 px wide
-  show tick marks and no numbers at the fit (numbered before GC2 and GC3); sent to FX2 as its item 8.
-- **Clearing a rows sort** (the author, 2026-11-21, Globins rows, family): a third click clears the column's sort; the
-  sort is viewer state with an event and a clear command, its clear control the host's; sent to FX2 as its item 7.
-
-- **A hidden navigator track has no name in the hidden-tracks menu** (the author, 2026-11-21, Globins rows, family):
-  the entry is an eye with an empty label; every hidden track is listed by a name (its label, its layer's or
-  navigator's title, else its kind). Sent to FX2 as its item 6.
-
+  show tick marks and no numbers at the fit (numbered before GC2 and GC3); sent to FX2 as its item 8; not reproduced headless (it draws "100"/"200"), likely the
+  browser's text metrics: needs a look in the browser.
 - **The rows layout has no horizontal rail** (the author, 2026-11-21, Globins rows, family: "it's weird this view is
   lacking the 'horizontal rail'. probably should be at the 'navigator' or at the bottom. in general, configurable"):
   the tracks layout has its default rail under the ruler; the rows layout has the vertical overview and no horizontal
   rail. Needs a short design before a fix lane: the rail's place as a setting (`rail.place`: under the ruler, with the
   navigator, at the bottom, none), the same for every layout that has a horizontal axis, its default per layout.
 
-- **The SVG not repainted when the selection is cleared** (the author, 2026-11-21, gff3--tp-53): the SVG twin keeps
-  the cleared selection's line drawn while the canvas drops it. Every story's SVG redraws on every change the canvas
-  does (selection set, cleared, hover where shown); test it in a twin: clear, then the SVG holds no selection mark.
-
-- **The Transcripts track's spacing** (my look at GG's fix round; the author, 2026-11-21: "the spacing around the
+- **The Transcripts track's spacing** (FX2 `e678d2dbc`: lanes start at a tall band's top; left open: the
+  first row unlabelled and the blank below the lanes, a source-backed track's fixed height) (my look at GG's fix round; the author, 2026-11-21: "the spacing around the
   transcripts is weird"): about 100 px of blank lanes above the first transcript in gff3--tp-53 and as many below the last (the track
   taller than its lanes, the lanes centred in it), the first row
   unlabelled, and lanes packed unevenly around the labels; a tall track's lanes start at its top, evenly spaced.
-- **The hover card far from the pointer** (the author, 2026-11-21, gff3--tp-53: "the hover card appears at a weird
-  place"): hovering TP53-227 deep in the tall Transcripts track puts the card at the track's top, over the Genes track.
-  The card anchors by the hovered item's row (or the pointer), not the track's top, in every tall track.
-
-- **A double-click on a long sequence jumps to bases** (my look at BE's cytobands, 2026-11-21): chr17 at the fit (83
-  Mb) to about 20 bases in one double-click; GC2's row did the same. A double-click should zoom one step (or fit the
-  item under the pointer), not to the closest zoom. GC3 takes it on blocks; the plain section's case is the fix lane's.
-
 - **GC2's leftovers from my second look** (2026-11-21, after its fix round; fixed by GC3, `61e71891b`):
   - a double-click on the 25-block row zooms to bases (161,976,790) instead of fitting the block;
   - B in A's order: the reversed middle block of chr2 shows no label at all, though "chr2 ←" fits;
@@ -60,6 +43,16 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   (allowed: repr's public API is open to this work); take it only if a real name set needs it.
 
 ## Fixed
+
+- **A double-click on a long sequence jumping to bases**: FX2 (`e678d2dbc`), one zoom step about the pointer.
+
+- **The hover card far from the pointer in a tall track**: FX2 (`e678d2dbc`), anchored by the pointer's lane.
+
+- **The SVG not repainted on a cleared selection**: FX2 (`e678d2dbc`), the SVG twin follows the selection.
+
+- **Clearing a rows sort**: FX2 (`e678d2dbc`), a third click runs `rows.unsort`; `viewer.rowSort` and a host "Clear sort".
+
+- **A hidden track unnamed in the menu**: FX2 (`e678d2dbc`), listed by its layer's name.
 
 - **The "…" actions button with no actions**: not reproduced on packages-seq (FX2, the orchestrator's look: the Genes
   menu holds its built-ins); the author, 2026-11-21: "might have been on older version and it got fixed already".
