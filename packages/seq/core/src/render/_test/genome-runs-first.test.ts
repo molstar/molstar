@@ -18,7 +18,7 @@ describe('runs whatever loaded first', () => {
     const tiny = Array.from({ length: 40 }, (_, k) => ({ seq: 1, range: [k * 5, k * 5 + 5] as const }));
     const s = await settle(mixedSpec([{ seq: 0, range: [0, 400], scale: 10 }, ...tiny]));
     const f = await s.frame({ size: { width: 900, height: 400 }, dpr: 2 });
-    const p = f.layout.sections[0].placement as { runN: number; row: { run: Int32Array } };
+    const p = f.layout.sections[0].placement as unknown as { runN: number; row: { run: Int32Array } };
     expect(p.runN).toBe(1);
     expect(p.row.run[1]).toBe(1);
   });
