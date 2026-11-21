@@ -389,3 +389,24 @@ describe('Antibody: the rulers’ tick labels never overlap', () => {
     expect(overlaps).toEqual([]);
   });
 });
+
+describe('Antibody: the CDR labels at the fit', () => {
+  // each CDR a short label (the track says the scheme): the three of a chain drawn at every fit width, none dropped
+  // for crowding its neighbour (CDR-H1 by Kabat, CDR-L1 and CDR-L2 by IMGT went at narrower frames)
+  it('every CDR of both chains is labelled in both schemes at a narrow and a wide frame', async () => {
+    for (const width of [700, 800, 1000, 1200]) {
+      const s = await open('schemes', width);
+      const f = s.viewer.draw() ?? s.viewer.frame!;
+      const texts = recordDrawLists(f.lists, ['data', 'labels'])
+        .split('\n')
+        .filter((l) => l.startsWith('text'));
+      for (const chain of ['L', 'H'])
+        for (const n of [1, 2, 3]) {
+          const drawn = texts.filter((t) => t.startsWith(`text "CDR-${chain}${n}`)).length;
+          expect(drawn, `${width}: CDR-${chain}${n} (one a scheme)`).toBe(2);
+        }
+      session?.dispose();
+      session = undefined;
+    }
+  });
+});

@@ -59,7 +59,7 @@ export const registry = (): SeqRegistryEntry[] => [{ kind: 'format-runtime', run
 
 const ChainLetter: Readonly<Record<Chain, string>> = { light: 'L', heavy: 'H' };
 
-/** A chain's CDRs by a scheme's definition, as ranges rows (`H3`, `CDR-H3 (Kabat)`). */
+/** A chain's CDRs by a scheme's definition, as ranges rows (`H3`, `CDR-H3`). */
 export function cdrRows(chain: Chain, scheme: 'kabat' | 'imgt', labels: Labels) {
   const spans = ([1, 2, 3] as const).map((c) => {
     const [first, last] = scheme === 'kabat' ? KabatCdrs[chain][c] : ImgtCdrs[c];
@@ -70,7 +70,8 @@ export function cdrRows(chain: Chain, scheme: 'kabat' | 'imgt', labels: Labels) 
     start: spans.map((s) => s[0]),
     end: spans.map((s) => s[1]),
     id: spans.map((_, k) => name(k + 1)),
-    label: spans.map((_, k) => `CDR-${name(k + 1)} (${scheme === 'kabat' ? 'Kabat' : 'IMGT'})`),
+    // the track says the scheme (`CDRs (Kabat)`): a short label fits a mark and its neighbour's lane at the fit
+    label: spans.map((_, k) => `CDR-${name(k + 1)}`),
     category: spans.map((_, k) => `CDR${k + 1}`),
   };
 }
