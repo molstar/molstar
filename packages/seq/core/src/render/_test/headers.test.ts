@@ -222,6 +222,34 @@ describe('a line reserves only the slots it has (the default 112 px column)', ()
   });
 });
 
+describe('the states of a two-line header', () => {
+  it('all chips when every one fits the column, else all marks: never a chip beside a mark', () => {
+    const states = [
+      { name: 'seq:filtered', text: '1 filtered', count: 1 },
+      { name: 'seq:hidden-layers', text: '1 layer hidden', count: 1 },
+    ];
+    const well = { x: 200, y: 40, width: 400, height: 36 };
+    const seen = new Set<boolean>();
+    for (let labelWidth = 60; labelWidth <= 260; labelWidth += 10) {
+      const config = renderConfig({ labelWidth });
+      const { header } = trackHeaderLine(
+        { slots: [{ name: 'seq:hide', label: 'Hide track', enabled: true }], states, menu: true },
+        '/v/s/t',
+        's',
+        well,
+        config,
+        Text,
+        false,
+      );
+      const marks = header.states.map((x) => x.mark);
+      expect(new Set(marks).size).toBeLessThanOrEqual(1);
+      for (const m of marks) seen.add(m);
+    }
+    // the sweep crosses from marks to chips
+    expect([...seen].sort()).toEqual([false, true]);
+  });
+});
+
 describe('the states', () => {
   it('beside the label on a track of one line, on a line of their own on a track of two, marks on a short one', async () => {
     const { f } = await frame([], Host);

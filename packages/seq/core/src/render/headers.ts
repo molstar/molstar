@@ -324,17 +324,19 @@ function layoutLine(
     if (at.short) labelEnd = marks(0, given.length, chipsEnd, at.cy) - ChipGap;
     else if (!Number.isNaN(at.ownLine)) {
       // a line of their own under the label, from the column's start, under the action columns when clear of them;
-      // what does not fit a mark (the first always a chip)
+      // all chips when every one fits, else all marks (a mix reads as two kinds of state: "a narrow column draws its
+      // states as marks too", track-header-parts.md)
       const own = actions && at.ownLine - size + 1 < actions.y + actions.height ? chipsEnd : end;
-      let x = inset;
-      let i = 0;
-      for (; i < given.length; i++) {
-        const w = text.measure(config.labelFont, given[i].text);
-        if ((i > 0 || own !== end) && x + w > own) break;
-        out.push(stateBox(given[i], i, at, false, x, at.ownLine, w, size));
-        x += w + ChipGap;
-      }
-      if (i < given.length) marks(i, given.length, own, at.ownLine - size * 0.35);
+      const widths = given.map((g) => text.measure(config.labelFont, g.text));
+      let total = 0;
+      for (const w of widths) total += w + ChipGap;
+      if (inset + total - ChipGap <= own) {
+        let x = inset;
+        for (let i = 0; i < given.length; i++) {
+          out.push(stateBox(given[i], i, at, false, x, at.ownLine, widths[i], size));
+          x += widths[i] + ChipGap;
+        }
+      } else marks(0, given.length, own, at.ownLine - size * 0.35);
     } else {
       // beside the label, the last state nearest the columns; the leading ones with no room left marks before them
       let x = chipsEnd;

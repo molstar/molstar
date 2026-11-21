@@ -206,11 +206,19 @@ function headersBehavior(context: BehaviorContext, params: HeadersParams = {}): 
     // the parts follow the hover only when the header whose actions show changed (a key of its address)
     const c = viewer.selection.cursor.value;
     const key = `${viewer.hover.current.layer ?? ''}|${c?.track ?? ''}`;
-    if (!relaid && key === showingKey) return;
+    if (!relaid && key === showingKey) return focusPending();
     showingKey = key;
     const next = extras.partsState();
     parts.set(next);
     partsPort.update(next);
+    focusPending();
+  };
+  /** The header the keyboard cursor came onto: its parts take the focus once they are drawn for it. */
+  let pendingFocus: HeaderTarget | undefined;
+  const focusPending = () => {
+    const t = pendingFocus;
+    pendingFocus = undefined;
+    if (t) partsPort?.focus?.(t);
   };
 
   // ---- a click ----
@@ -296,10 +304,14 @@ function headersBehavior(context: BehaviorContext, params: HeadersParams = {}): 
         if (q) x.click(...q);
       });
       // a host's DOM parts take the focus when the cursor comes onto a header
+      // (redrawn for that header first: a redraw replaces the buttons, and with them the focus)
       stops.push(
         context.selection.cursor.listen((c) => {
-          if (c?.keyboard && c.track !== undefined && partsPort?.focus)
-            partsPort.focus(c.track === c.section ? { section: c.section } : { section: c.section, track: c.track });
+          if (c?.keyboard && c.track !== undefined && partsPort?.focus) {
+            // the next frame draws the header's actions (the emphasis follows the cursor there), `published` then
+            // redraws the parts and the focus goes in
+            pendingFocus = c.track === c.section ? { section: c.section } : { section: c.section, track: c.track };
+          }
         }),
       );
       // a new layout, an undo or a load: the menu was of the old picture

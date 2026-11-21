@@ -162,6 +162,25 @@ describe('headerPartsDom()', () => {
     expect((v.spec.history as UiHistory).stack.steps.value.length).toBe(steps + 1);
   });
 
+  it('the keyboard cursor onto a header (← at the first position, ↓ across) puts the focus on its parts, after their redraw', async () => {
+    const { v, container } = await mount(true);
+    const layer = container.querySelector<HTMLElement>('.seqx-header-parts')!;
+    container.focus();
+    const key = (k: string) => v.input.key({ key: k });
+    key('ArrowRight');
+    key('ArrowLeft');
+    frames.flush();
+    expect(v.selection.cursor.value).toMatchObject({ part: 'header', track: `${Section}/letters` });
+    const inGroup = (track: string) => layer.querySelector(`[role="group"][data-track="${track}"]`)!;
+    expect(inGroup(`${Section}/letters`).contains(document.activeElement)).toBe(true);
+    expect((document.activeElement as HTMLElement).dataset.part).toBe('seq:hide');
+    // ↓ across: the next header's parts, redrawn for it, take the focus
+    key('ArrowDown');
+    frames.flush();
+    expect(v.selection.cursor.value?.track).toBe(Domains);
+    expect(inGroup(Domains).contains(document.activeElement)).toBe(true);
+  });
+
   it('once its DOM is in place the canvas draws no part in their boxes: the chip is the DOM’s, words and all', async () => {
     const { v, container } = await mount(true);
     await v.execute('track.hide', { address: Domains });
