@@ -13,6 +13,9 @@ reads of assets, archives, a test consumer of the resolved view). Next, the Geno
 built so far: BGZF and tabix in io, language 0.6.0 with assemblies and genome resolve loaded when used, sections over a
 source's complex, the genome axis and layouts), on extension kinds.
 
+- **BED's follow-ups** (BE, 2026-11-21): BEDPE onto the protocol's pairs shape (RG, FR); `itemStart`/`itemEnd` kept
+  through `sliceTable` and the store (RG); BED12 span rows by region; region line issues not yet said; the renderer's
+  `label` against the design's `name` for a BED name (split convention: decide once in files.md).
 - **A component query on a source-backed sequence** (`(elements :component X)`) is pending until the source's letters
   are read (EC-169); a format with a component index could answer it without the letters.
 

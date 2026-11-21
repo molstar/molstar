@@ -130,7 +130,8 @@ what the file's columns mean (the transform), where that runs, and how the examp
   INSDC record's features as GFF3, so a plasmid's are read as published (Gaps). The genome runtimes (the fifth slice,
   [genome-formats](genome-formats.md)) add **GFF3 and GTF as transcripts** (`runtimes/gff`: the `Parent` chain
   assembled by `source.features`, `transcripts` by default) and **BED** (`runtimes/bed`: `base: 0`, `ends: exclusive`,
-  BED12's blocks as pieces, extra columns named by `fields` with a column number, `{ stain: '4' }`); `gff3` here stays
+  BED12's blocks as pieces, extra columns named by `fields` with a column number, `{ stain: '4' }`; built by BE: BED's
+  `name` read as the `label` field, `strand` as an int8 field and the role); `gff3` here stays
   the default records preset, the runtime taken by `withAdapter`.
 - **A feature across the origin of a cyclic system** (pUC19c's, DP): GFF3 writes it with an end past the length, or as
   pieces sharing an `ID`. The runtime keeps the row as written; the row reader, which knows the target's length and

@@ -38,7 +38,7 @@ standardized, and we convert other formats onto it".
   (FASTA, alignments, tables, Newick; the tables, JSON, MessagePack and GFF3 through one records runtime whose
   transform is params of the `source` node, [files.md](files.md)); binary and indexed genome formats are runtimes an
   application adds. The genome runtimes ([genome-formats](genome-formats.md), the fifth slice), each an opt-in entry
-  of `seqx-core` like `runtimes/mmcif` and `runtimes/bigwig`: `runtimes/bed` (BED, bedGraph, BEDPE, chrom.sizes),
+  of `seqx-core` like `runtimes/mmcif` and `runtimes/bigwig`: `runtimes/bed` (BED, bedGraph, BEDPE, chrom.sizes; built, BE),
   `runtimes/gff` (GFF3 and GTF as transcripts) and `runtimes/vcf`, reading BGZF and tabix from `@molstar/io`; the `seq`
   runtime serves sided pairs from either end and a map's runs. Designed only, no runtime (a host brings its own through
   `withAdapter`): bigBed, 2bit, FASTA by region with `.fai` or `.gzi`, PAF and PIF, chain files (genome-formats,
