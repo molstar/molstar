@@ -79,16 +79,17 @@ checks it cannot express.
   `ordinal`) and `units` (`none`, `bases`; absent: `none`), `unnumbered` (`mark`, `fallback`; absent: `mark`) and
   `fallbackNumbering` (a numbering id; absent: `ordinal`), read by `ruler`, `encoding` (`bars`, `line`, `area`; absent:
   `bars`) by `values`, `style` (`blocks`) by `secondary`, `line` (`solid`, `dashed`, `dotted`, `wavy`, `double`, `box`,
-  `highlight`; absent: blocks) and `arrow` (`none`, `end`, `start`, `both`; absent: `none`) by `ranges`; a grid
-  section's `of_y` (absent: `of`), `follow_y` (`x`, `none` or a section; absent: `x`) and `aspect` (a number or `none`;
-  absent: 1); by `pairs` its `side` (`above`, `below`; absent: `above`), `reach` (absent: 0.25), `height` (`span`;
-  absent: `span`), `crossing` (`same`, `split`; absent: `same`), `across_lines` (absent: false) and `mirror` (absent:
-  false: a pair drawn where its data puts it, never read off whether the two axes are one system; the tRNA's builder
-  sets it); by `grid` its `aggregate` (`mean`, `max`, `min`; absent: `mean`); by both in a grid `triangle` (`both`,
-  `upper`, `lower`; absent: `both`). Why: the figure's form is the writer's, never the host's or the data's: one spec
-  draws the same in the canvas, the SVG and another viewer. The refs inside `direction` and `pieces` are checked by kind
-  as top-level refs are, and a change's check reaches them (its reverse index walks a union's record member). Why: the
-  composition is the application's.
+  `highlight`; absent: blocks) and `arrow` (`none`, `end`, `start`, `both`; absent: `none`) by `ranges`; a `ranges`
+  layer's `connector` (`line`, the default, or `none`: the hairline joining an item's pieces across shown positions); a
+  grid section's `of_y` (absent: `of`), `follow_y` (`x`, `none` or a section; absent: `x`) and `aspect` (a number or
+  `none`; absent: 1); by `pairs` its `side` (`above`, `below`; absent: `above`), `reach` (absent: 0.25), `height`
+  (`span`; absent: `span`), `crossing` (`same`, `split`; absent: `same`), `across_lines` (absent: false) and `mirror`
+  (absent: false: a pair drawn where its data puts it, never read off whether the two axes are one system; the tRNA's
+  builder sets it); by `grid` its `aggregate` (`mean`, `max`, `min`; absent: `mean`); by both in a grid `triangle`
+  (`both`, `upper`, `lower`; absent: `both`). Why: the figure's form is the writer's, never the host's or the data's:
+  one spec draws the same in the canvas, the SVG and another viewer. The refs inside `direction` and `pieces` are
+  checked by kind as top-level refs are, and a change's check reaches them (its reverse index walks a union's record
+  member). Why: the composition is the application's.
 - **Numberings** (`<sequence>/<id>`, a `numbering` child of a sequence): a label a position of its sequence, its id the
   name the forms read (`:numbering kabat`, Queries, Numberings and labels). `method` is `labels`, `offset` (a position
   plus `by`: UniProt's from 1, an author numbering from 94) or `segments` (runs `start`, `end`, `first`: a position in
@@ -1894,6 +1895,7 @@ the UX foundations' numbers, CSS px, settled by the foundation stories; where no
 | `maxNumberingPositions`                                        | 2^18                                                                                                                   | the positions a numbering from a source covers at most; past it `seq.render.numbering.limit` and nothing asked for: its labels are held whole                                                                                                                                                                                                                                                          |
 | `nodes.holdShown`                                              | true                                                                                                                   | a layout lists the nodes it shows, for its owner to hold in the store; false: nothing held by showing                                                                                                                                                                                                                                                                                                  |
 | `ranges.overflow`                                              | `extra-lanes`                                                                                                          | only the items past the lanes collapse into a density row; `layer`, the whole layer                                                                                                                                                                                                                                                                                                                    |
+| `ranges.connector.width`, `.ink`, `.alpha`                     | 1, `item`, 0.6                                                                                                         | the hairline joining an item's pieces across shown positions (axis.md): its width in CSS px, its ink (`item`: the item's colour; `muted`) and its alpha                                                                                                                                                                                                                                                |
 | `values.aggregate`                                             | `minmax`                                                                                                               | below a device pixel a position, each column's extent, so negative extremes show; `max`                                                                                                                                                                                                                                                                                                                |
 | `values.coarser`                                               | 1                                                                                                                      | the coarsest level whose bin is no wider than k device pixels' positions (below)                                                                                                                                                                                                                                                                                                                       |
 | `values.direct`                                                | true                                                                                                                   | data on the section's own system placed with no mapping (below); false: the general mapping, the same lists                                                                                                                                                                                                                                                                                            |
@@ -2060,13 +2062,16 @@ strip's.
   marks), an outline `emphasis.hoverOffset` (1 px) outside the mark, concentric, so it never touches the selection's
   outline under it, in the hover ink (`seq-hover`: dark on light, light on dark); `projected.hover` is drawn the same
   way at `emphasis.projected` on every section but `projected.hoverSection` (the hover's own section's address), so a
-  hover from elsewhere (a structure, no layer) is drawn on every section (the `hover` pass). Every hover a squircle
-  (Shapes): a cell's (letters, logo, values) by the cell's size, square on a side the view cuts and below the minimum,
-  its radius the cell's plus the offset; a letter's codon parts round on the element's outer sides alone; a chip's
-  concentric with its pill; the projected hover round where its range really ends; a secondary structure's mark (its
-  radius plus the offset, its round ends: a helix round, a strand or a turn square), a band's (square at the view's
-  edge), a rows cell's (square where the view or its band cuts it); a grid's hovered or selected cell by its size, its
-  crosshair's column and row square (they end at the plot: a cut).
+  hover from elsewhere (a structure, no layer) is drawn on every section (the `hover` pass); a letters hit lifted
+  through a codon map (a residue over its codon) is drawn on its own section too, over each of its own-system letters
+  tracks (the DNA), never as a column, so a residue and its codon light together; an item through a path lights its
+  outline and its connector, nothing else. Every hover a squircle (Shapes): a cell's (letters, logo, values) by the
+  cell's size, square on a side the view cuts and below the minimum, its radius the cell's plus the offset; a letter's
+  codon parts round on the element's outer sides alone; a chip's concentric with its pill; the projected hover round
+  where its range really ends; a secondary structure's mark (its radius plus the offset, its round ends: a helix round,
+  a strand or a turn square), a band's (square at the view's edge), a rows cell's (square where the view or its band
+  cuts it); a grid's hovered or selected cell by its size, its crosshair's column and row square (they end at the plot:
+  a cut).
 - **An extension's layer type** (`isExtensionName`: `<id>:<name>`) is given the hover's look by the view, not by a hook
   of its own: after its `draw`, the hovered item's mark (`LayerType.mark(lay, key, out)`: its bounds in the strip's
   frame, written into the view's one reused box, and the radius of its corners) is outlined `emphasis.hoverOffset`
@@ -2187,7 +2192,15 @@ in page coordinates: what crosses strips), `axes` (2: a second axis of its own, 
   device column a pixel. Items past the lanes collapse into a density row in the last lane, the rest drawn as items
   (`ranges.overflow: 'extra-lanes'`), or the whole layer becomes the strip (`'layer'`). In a band under a lane's height
   (a text line's underline) the strip uses only the light `ThinStripShare` (0.3) of the density ramp, so it reads as a
-  band, not as a dark rule.
+  band, not as a dark rule. **The connector** (`connector`, `line` when absent, or `none`): an item the path splits into
+  pieces with shown positions between them that it does not reach (a domain over a gene whose intron is shown) is joined
+  by a hairline at its lane's mid-height from one piece's end to the next's start, in the item's colour at
+  `ranges.connector.alpha` (0.6), `ranges.connector.width` thick (1 CSS px; `ink: 'muted'` the muted ink instead), in
+  the data pass, so the canvas and the SVG draw it alike; the pieces' ends there stay square. Across a collapsed break
+  (zero units wide) nothing is drawn; with `pad`, a gap with shown positions on both sides of a break is one, the line
+  through it (the break's hairline over it); only at `items` (not `bars`, `density`). A hit on it is the item's; the
+  hover draws it in the hover ink as thick as the outline, a selected item's in the accent. Why: a gene model's
+  convention, the pieces read as one item.
 - `values`: a bar a position, or at `bars` and `density` a bar a device column over the column's extent from the
   baseline (`values.aggregate: 'minmax'`, so negative extremes show; `'max'` the maximum alone), from positions or bins.
   Missing (NaN) is a 2 px neutral mark at the baseline. The domain is the layer's `domain` param where given, else open:

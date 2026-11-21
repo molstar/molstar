@@ -41,6 +41,7 @@ import {
 } from './ranges-lay.js';
 import { placeLabels, sinkLabels } from './ranges-beside.js';
 import { rangesContent } from './ranges-content.js';
+import { connect, connectorAt, startConnectors } from './ranges-connector.js';
 import { RangesDraws, growWave, WaveStep } from './ranges-draw.js';
 import { densityStrip } from './ranges-density.js';
 import { themeItems } from './ranges-theme.js';
@@ -162,6 +163,7 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
     return {
       ...(typeof line === 'string' ? { line } : {}),
       arrow: arrow === 'end' ? 1 : arrow === 'start' ? 2 : arrow === 'both' ? 3 : 0,
+      connector: layer.params.connector !== 'none',
       cyclic: model.systems.get(layer.data?.system ?? '')?.cyclic ?? false,
       ...(itemExtents(model, layer) ? { extents: itemExtents(model, layer) } : {}),
       ...(src ? { src } : {}),
@@ -183,6 +185,7 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
     lay.hn = 0;
     lay.overflow = 0;
     lay.laneCount = 0;
+    startConnectors(lay, ctx, prep.connector);
     const src = prep.src;
     if (!src) return lay;
 
@@ -309,6 +312,7 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
           }
         }
       }
+      if (lay.mode === 'items' && pieces.length > 2) connect(lay, axis, pieces, lane, i, box.x, box.x + box.width);
       // an item wholly in a hidden stretch: its break's tick in its lane
       if (lay.m === marks && pieces.length >= 2) tickOn(lay, axis, pieces[0], lane);
     }
@@ -383,7 +387,13 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
     if (tick) return tick;
     if (lay.mode === 'density' || !lay.hn) return base;
     const j = lay.index.near(lane, x, lay.hslack);
-    if (j < 0) return base;
+    if (j < 0) {
+      // between an item's pieces: its connector is the item's
+      const c = connectorAt(lay, lane, x);
+      if (c < 0) return base;
+      const i = lay.citem[c];
+      return itemHit(base, lay, lay.keys[i], lay.starts[i], lay.ends[i]);
+    }
     const item = lay.hitem[j];
     if (item < 0) return base;
     return itemHit(base, lay, lay.keys[item], lay.starts[item], lay.ends[item]);

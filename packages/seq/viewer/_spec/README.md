@@ -665,6 +665,11 @@ param (`port`, a `HoverCardPortFactory` given the canvas's element, none headles
   then a row `+k more`, the rest in `more`; the behavior's `shown` keeps the whole card and the live region says every
   item. Why: a ring's position under 20 features filled the page; a host that wants the list whole draws its own card
   from `more` (the port).
+- **A residue over its codon**: a hit on a letters layer whose data is on another system than its section's through a
+  codon step (a protein's letters over its gene; an alignment row, an offset or a pairwise map keeps the place's card)
+  is titled by the residue (`p 12`), with its `Index`, its letter and the codon's positions on the section's system, a
+  codon split by an intron naming each part (`Codon: g 6–7, 13`). Why: the place's own rows named the nucleotide under
+  the pointer and the first letters layer's letter, not what the pointer is on.
 - **The place** (`HoverCardPlace`): the `anchor` (the hovered cell or item, the cursor's cell: never covered), the
   `pointer`, the `view` (the canvas) and the side and position `placeCard` gives a card of `CardEstimate`'s size; an
   adapter places its own card by its measured size with `placeCard(anchor, pointer, view, size)`: beside the pointer,

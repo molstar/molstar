@@ -5,7 +5,7 @@
  */
 
 import type { Key, Location } from '@molstar/seqx-core/query';
-import { DefaultNumbering, findNumbering, numberingIds } from '@molstar/seqx-core/query';
+import { DefaultNumbering, findNumbering, numberingIds, rangesLocation } from '@molstar/seqx-core/query';
 import { extentText } from '@molstar/seqx-core/render/accessibility';
 import {
   type GridLay,
@@ -315,6 +315,54 @@ const GridSection: CardSection = {
   },
 };
 
+/**
+ * A letters layer on another system than its section's through a codon step (a protein's letters over its gene, a residue a codon wide): the
+ * residue under the pointer, its letter, and the codon's positions on the section's system (a codon split by an intron
+ * names each part). The place's own rows would say the nucleotide and the first letters layer's letter.
+ */
+const ResidueSection: CardSection = {
+  name: 'residue',
+  describe(at, out) {
+    const l = at.layer;
+    const data = l?.layer.data?.system;
+    const system = at.place.system;
+    if (out.whole || !l || l.type.name !== 'letters' || !data || !system || data === system) return;
+    if (Number.isNaN(at.position)) return;
+    // only a codon step reads a residue a codon wide: an alignment row, an offset or a pairwise map keeps the place's card
+    const step = at.model.path(data, system).path?.step;
+    if (!step) return;
+    const residue = runsOf(
+      at.model.project(rangesLocation(system, [at.position, at.position + 1]), data).location,
+      data,
+    );
+    if (residue.length !== 2) return;
+    const r = residue[0];
+    const codon = runsOf(at.model.project(rangesLocation(data, [r, r + 1]), system).location, system);
+    const name = at.words.systemName(data);
+    const where = at.words.systemName(system);
+    const letter = at.words.letterOn(data, r);
+    const parts = Array.from({ length: codon.length / 2 }, (_, k) => spanText(codon[2 * k], codon[2 * k + 1])).join(
+      ', ',
+    );
+    out.title = `${name} ${spanText(r, r + 1)}`;
+    out.row('Index', String(r));
+    if (letter) out.row('Letter', letter);
+    if (parts) out.row('Codon', `${where} ${parts}`);
+    out.words.push(
+      `${at.section.id}, ${name} ${spanText(r, r + 1)}${letter ? `, letter ${letter}` : ''}${parts ? `, codon on ${where} ${parts}` : ''}`,
+    );
+    const items = at.words.itemsAt(at.section, at.position);
+    for (const it of items) out.row(it.label, it.extent, true);
+    if (items.length) out.words.push(`items: ${items.map((i) => `${i.label}, ${i.extent}`).join('; ')}`);
+    out.whole = true;
+  },
+};
+
+/** The ranges a location holds on a system, `[start, end, …]` (empty when none). */
+function runsOf(loc: Location, system: string): ArrayLike<number> {
+  return loc.parts.find((p) => p.system === system)?.ranges ?? [];
+}
+
 /** The row's value for a position a numbering has no label for (the ruler's note, `unnumbered`). */
 const NotNumbered = 'not numbered';
 
@@ -374,6 +422,7 @@ const Sections: readonly CardSection[] = [
   ColumnsHiddenSection,
   RowSection,
   GridSection,
+  ResidueSection,
   PlaceSection,
   BlockSection,
 ];
