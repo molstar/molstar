@@ -19,7 +19,7 @@ import {
 import { Task, type RuntimeContext } from '@molstar/core/task';
 import { File_ as File } from './nodejs-shims.js';
 import { iterableToArray } from '@molstar/core/data/util/array';
-import { gzipDeclaredSize, isGzip, ungzip } from './zip/zip.js';
+import { gzipDeclaredSize, isGzip, MaxDeflateRatio, ungzip } from './zip/zip.js';
 import type { AssetRangeReader, RangeReadOptions } from './assets-range.js';
 import { defaultRanges } from './internal/range-pages.js';
 
@@ -187,11 +187,6 @@ interface InflatedCache {
   inflated?: Promise<Uint8Array<ArrayBuffer>>;
 }
 
-/**
- * Deflate shrinks data at most about 1032 times: a gzip that declares (ISIZE) more than that of its size is corrupt or
- * crafted, and refused before its buffer is allocated (`util/_spec/assets.md` §5).
- */
-const MaxDeflateRatio = 1032;
 
 function inflateGzip(ctx: RuntimeContext, data: Uint8Array<ArrayBuffer>) {
   const size = gzipDeclaredSize(data);

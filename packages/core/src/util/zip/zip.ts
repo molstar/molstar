@@ -230,10 +230,11 @@ export async function ungzip(runtime: RuntimeContext, file: Uint8Array<ArrayBuff
 }
 
 /**
- * Deflate shrinks data at most about 1032 times: a member declaring more is corrupt or crafted, refused before its
- * buffer is allocated (as `util/_spec/assets.md` §5 does for a whole stream).
+ * Deflate shrinks data at most about 1032 times: a gzip stream or member that declares (ISIZE) more than that of its
+ * size is corrupt or crafted, refused before its buffer is allocated (`util/_spec/assets.md` §5; the assets' inflate
+ * and `ungzip`'s members).
  */
-const MaxDeflateRatio = 1032;
+export const MaxDeflateRatio = 1032;
 
 interface GzipMemberHeader {
   /** Where the deflate stream starts. */
