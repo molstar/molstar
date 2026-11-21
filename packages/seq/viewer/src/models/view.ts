@@ -29,10 +29,12 @@ import {
   BuiltInLayerKinds,
   followWindow,
   type LayerKinds,
+  opensComplexes,
   type ResolvedView,
   resolveView,
   resolveViews,
 } from '@molstar/seqx-core/view';
+import { openedModel, type Overlay, type StaticModel } from '@molstar/seqx-core/resolve';
 import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
 import { axisTotal } from './axis.js';
 import type { SpecModel } from './spec.js';
@@ -113,6 +115,11 @@ export class ViewModel extends ReactiveModel {
   readonly config: ViewerConfig;
   /** The address of the view shown; undefined: the spec's first view. */
   readonly view: ReadonlyState<string | undefined> = this._view.asReadonly;
+  /**
+   * The model the view is resolved over: the spec's, or with a section of a source's complex the opened model over the
+   * store's overlay (core's _spec "Overlay", Opened sources), one a node version.
+   */
+  readonly model: ReadonlyState<StaticModel>;
   /** The resolved view shown, undefined when the spec has none. */
   readonly resolved: ReadonlyState<ResolvedView | undefined>;
 
@@ -136,13 +143,26 @@ export class ViewModel extends ReactiveModel {
   /** The layer kinds the view is resolved with (the composition's: `setKinds` when an extension comes or goes). */
   private readonly _kinds: State<LayerKinds>;
 
-  constructor(spec: SpecModel, config: ViewerConfig = DefaultViewerConfig, kinds: LayerKinds = BuiltInLayerKinds) {
+  /**
+   * `overlay`: the store's overlay over the spec's model (the viewer's, one a node version); a section of a source's
+   * complex resolves over it, and reflows when it moves. None: the spec's model alone.
+   */
+  constructor(
+    spec: SpecModel,
+    config: ViewerConfig = DefaultViewerConfig,
+    kinds: LayerKinds = BuiltInLayerKinds,
+    overlay?: ReadonlyState<Overlay>,
+  ) {
     super();
     this._spec = spec;
     this.config = config;
     this._kinds = new State(kinds);
+    // a spec with no section of a source's complex never reads the overlay: no view resolved again a node version
+    this.model = overlay
+      ? derive([spec.model, overlay], (m, o) => (opensComplexes(m) ? openedModel(m, o) : m))
+      : spec.model;
     // a source-backed system's length is the model's once its source opened (`SpecModel.setLengths`)
-    this.resolved = derive([spec.model, this._view, this._kinds], (model, address, k) =>
+    this.resolved = derive([this.model, this._view, this._kinds], (model, address, k) =>
       address === undefined ? resolveViews(model, k)[0] : resolveView(model, address, k),
     );
     this._update(this.resolved.value);

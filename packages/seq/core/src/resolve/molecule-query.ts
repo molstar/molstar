@@ -38,6 +38,8 @@ export interface Molecular {
   readonly numberings?: ReadonlyMap<string, ReadonlyMap<string, Numbering>>;
   /** Dynamic compounds (a source's `compounds` node), by code: the overlay's. */
   readonly compounds?: ReadonlyMap<string, CompoundEntry>;
+  /** The systems of its sequences, molecules, atoms and units, by address: the overlay's (what an opened model adds). */
+  readonly systems?: ReadonlyMap<string, SystemEntry>;
 }
 
 export const EmptyMolecular: Molecular = {

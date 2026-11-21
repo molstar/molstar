@@ -14,6 +14,9 @@ import { UiElement } from '@molstar/ui/elements/ui-element';
 import { fakeStructureElement } from '../../support/fake-structure/fake-view.js';
 import { FakeStructureViewer } from '../../support/fake-structure/fake-viewer.js';
 import {
+  blockLines,
+  ComplexLegend,
+  hostComplexSpec,
   heldLines,
   BFactorLegend,
   issueLines,
@@ -34,6 +37,11 @@ import {
 
 export interface HostDataStory {
   readonly hint: string;
+  /**
+   * What the view shows: two chains' B-factors (`hostDataSpec`, the default) or the host's complex as a section
+   * (`hostComplexSpec`: a block a unit, reflowed by the host's edits, with a button that restores the dropped chains).
+   */
+  readonly spec?: 'chains' | 'complex';
 }
 
 const Box = 'display: grid; gap: var(--msui-space-2); min-width: 0; align-content: start;';
@@ -64,7 +72,8 @@ class HostDataRoot extends UiElement<HostDataStory> {
     canvasHost.style.cssText = 'min-width: 0;';
     const legend = document.createElement('p');
     legend.style.cssText = 'margin: 0; color: var(--msui-text-muted); font-size: var(--msui-text-xs); max-width: 72ch;';
-    legend.textContent = BFactorLegend;
+    const complex = story.spec === 'complex';
+    legend.textContent = complex ? ComplexLegend : BFactorLegend;
     const fakeHost = document.createElement('div');
     const held = document.createElement('pre');
     held.style.cssText =
@@ -100,6 +109,7 @@ class HostDataRoot extends UiElement<HostDataStory> {
         '',
         ...heldLines(viewer),
         '',
+        ...(complex ? ['The section’s blocks:', ...blockLines(viewer), ''] : []),
         ...issueLines(viewer),
       ].join('\n');
     };
@@ -148,9 +158,14 @@ class HostDataRoot extends UiElement<HostDataStory> {
         },
         canvasHost,
       ));
-      offs.push(v.store.store.nodeVersion.listen(show), v.modelIssues.listen(show), v.layoutIssues.listen(show));
+      offs.push(
+        v.store.store.nodeVersion.listen(show),
+        v.view.resolved.listen(show),
+        v.modelIssues.listen(show),
+        v.layoutIssues.listen(show),
+      );
       show();
-      await v.load(hostDataSpec());
+      await v.load(complex ? hostComplexSpec() : hostDataSpec());
       show();
     };
 
@@ -173,6 +188,14 @@ class HostDataRoot extends UiElement<HostDataStory> {
       },
     }) as HTMLElement;
     tools.append(toggle);
+    // the host's edit that gains a chain: the fake's table as given, the dropped chains back
+    if (complex)
+      tools.append(
+        Button({
+          children: 'Restore the chains (the host’s edit)',
+          onClick: () => void fake?.restore(),
+        }) as HTMLElement,
+      );
 
     void (async () => {
       const text = await fetch(HostTableFile).then((r) => (r.ok ? r.text() : Promise.reject(new Error(`${r.status}`))));

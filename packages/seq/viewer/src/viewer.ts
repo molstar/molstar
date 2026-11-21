@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { type Listenable, ReactiveModel, type ReadonlyState, State } from '@molstar/core/reactive';
+import { derive, type Listenable, ReactiveModel, type ReadonlyState, State } from '@molstar/core/reactive';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import type { Issue, Node } from '@molstar/core/repr/tree';
 import {
@@ -28,11 +28,11 @@ import {
 } from '@molstar/seqx-core/render';
 import { labelColumnWidth } from '@molstar/seqx-core/render/tracks';
 import { locationOfResult } from '@molstar/seqx-core/query';
-import { type Lengths, sourceLengths } from '@molstar/seqx-core/resolve';
+import { EmptyOverlay, type Lengths, sourceLengths } from '@molstar/seqx-core/resolve';
 import { mapsEqual } from '@molstar/core/util/map';
 import type { SeqTokens } from '@molstar/seqx-core/render';
 import type { StepViewport, TransitionPlan } from '@molstar/seqx-core/story';
-import type { ResolvedView } from '@molstar/seqx-core/view';
+import { opensComplexes, type ResolvedView } from '@molstar/seqx-core/view';
 import type { CommandDefinition, CommandResult } from '@molstar/ui/commands/types';
 import { DomHost } from '@molstar/ui/dom/host';
 import { bindingTable, DefaultActions, type BindingTable, BindingPresets } from '@molstar/seqx-viewer/bindings';
@@ -246,7 +246,15 @@ export class SeqViewer extends ReactiveModel {
       this._lengths.asReadonly,
       viewerSpec.story ? { story: viewerSpec.story } : {},
     ));
-    const view = (this.view = new ViewModel(spec, config, context.kinds));
+    const store = (this.store = new StoreModel(config, { removed: (gone) => this.selection.dropGone(gone) }));
+    // a section of a source's complex is resolved over the store's overlay, one a node version (core's _spec
+    // "Overlay", Opened sources); a spec without one reads none
+    // keyed as the frame's overlay: the node version and the runtimes (a late extension's)
+    store.setRuntimes(context.runtimes);
+    const overlay = derive([spec.model, store.store.nodeVersion, store.runtimes], (m) =>
+      opensComplexes(m) ? store.overlayOf(m) : EmptyOverlay,
+    );
+    const view = (this.view = new ViewModel(spec, config, context.kinds, overlay));
     // a section's moves are its layout's arithmetic over its placement in the last frame (_spec/README.md "ViewModel")
     view.setLayoutSource({
       placement: (section) => this.placementOf(section),
@@ -256,8 +264,7 @@ export class SeqViewer extends ReactiveModel {
       },
       minScale: textMinScale(context.renderConfig),
     });
-    const hover = (this.hover = new HoverModel(spec, view, config));
-    const store = (this.store = new StoreModel(config, { removed: (gone) => this.selection.dropGone(gone) }));
+    const hover = (this.hover = new HoverModel(view, config));
     this.modelIssues = modelIssuesState(this);
     this.hiddenTracks = hiddenTracksState(spec.model);
     // an element selected by an address and then toggled is drawn by its extent, resolved over what is shown
@@ -457,7 +464,9 @@ export class SeqViewer extends ReactiveModel {
     if (this._retired) return this._syncing;
     this._applyWidths();
     this._syncing = this._syncing.then(() =>
-      this._retired ? undefined : this.store.sync(this.spec.model.value, this.context.assets),
+      // the view's model: a held unit's letters (a section of a source's complex) are an inline plan of the opened
+      // model's, attached as the spec's are
+      this._retired ? undefined : this.store.sync(this.view.model.value, this.context.assets),
     );
     // an attach moves no entry: the lengths the opened sources give are read once they are in
     this._syncing = this._syncing.then(() => this._readLengths());

@@ -137,7 +137,7 @@ export class ViewerEmphasis {
     const k = this._highlightsFor;
     const version = viewer.highlight.version.value;
     const view = viewer.view.resolved.value;
-    const model = viewer.spec.model.value;
+    const model = viewer.view.model.value;
     if (k[0] === version && k[1] === viewer.tokens.version && k[2] === view && k[3] === model) {
       this.emphasis.highlights = this._highlights.length ? this._highlights : undefined;
       return;

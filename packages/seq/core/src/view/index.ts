@@ -27,7 +27,7 @@ export {
   positionAt,
   wholePieces,
 } from './axis.js';
-export { blockUnits } from './blocks.js';
+export { blockUnits, opensComplexes } from './blocks.js';
 export { ViewIssues } from './issues.js';
 export {
   type Axis,

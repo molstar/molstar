@@ -17,7 +17,6 @@ import { projectRanges, type Path } from '@molstar/seqx-core/resolve';
 import { projectOntoView } from '@molstar/seqx-core/view';
 import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
 import { moleculeOfSystem, type PlaceMolecule } from '@molstar/seqx-viewer/describe-molecules';
-import type { SpecModel } from './spec.js';
 import type { ViewModel } from './view.js';
 
 /** What a hit's target is, for the gesture bindings (_spec/README.md "Bindings"): the granularity comes from the hit. */
@@ -119,16 +118,15 @@ export class HoverModel extends ReactiveModel {
   private readonly _projected = new Map<string, Location>();
   private readonly _buffer: number[] = [];
   private readonly _view: ViewModel;
-  private readonly _spec: SpecModel;
   readonly config: ViewerConfig;
   /** Moves on every change of the hover: what draws it listens to this. */
   readonly version: ReadonlyState<number> = this._version.asReadonly;
   /** The current hover, one reused record. */
   readonly current: HoverRecord = this._record;
 
-  constructor(spec: SpecModel, view: ViewModel, config: ViewerConfig = DefaultViewerConfig) {
+  /** The spec's model is read through the view's (`ViewModel.model`: a source's complexes in it once held). */
+  constructor(view: ViewModel, config: ViewerConfig = DefaultViewerConfig) {
     super();
-    this._spec = spec;
     this._view = view;
     this.config = config;
   }
@@ -242,7 +240,7 @@ export class HoverModel extends ReactiveModel {
     const system = this._record.system;
     if (this._molecule === null) return undefined;
     if (this._molecule === undefined) {
-      const m = system === undefined ? undefined : moleculeOfSystem(this._spec.model.value, system);
+      const m = system === undefined ? undefined : moleculeOfSystem(this._view.model.value, system);
       this._molecule = m ?? null;
     }
     return this._molecule ?? undefined;
@@ -287,7 +285,7 @@ export class HoverModel extends ReactiveModel {
     if (this._all) return this._all;
     const view = this._view.resolved.value;
     if (!view) return undefined;
-    this._all = projectOntoView(this._spec.model.value, view, own, {
+    this._all = projectOntoView(this._view.model.value, view, own, {
       own: true,
       close: this.config.hover.closeCodons,
       linked: this.config.hover.projectLinked,
@@ -302,7 +300,7 @@ export class HoverModel extends ReactiveModel {
     const k = this._cacheKey;
     const v = this._version.value;
     const view = this._view.resolved.value;
-    const model = this._spec.model.value;
+    const model = this._view.model.value;
     if (k[0] === v && k[1] === view && k[2] === model) return;
     k[0] = v;
     k[1] = view;
@@ -318,7 +316,7 @@ export class HoverModel extends ReactiveModel {
   private _closedOf(own: Location): Location {
     if (this._closed) return this._closed;
     const systems = this._view.resolved.value?.sections.map((s) => s.axis.system) ?? [];
-    this._closed = this.config.hover.closeCodons ? this._spec.model.value.close(own, systems) : own;
+    this._closed = this.config.hover.closeCodons ? this._view.model.value.close(own, systems) : own;
     return this._closed;
   }
 
@@ -334,7 +332,7 @@ export class HoverModel extends ReactiveModel {
     const to = view?.sections.find((s) => s.address === section);
     if (!to || view?.sections.some((s) => s.axis.system === system)) return undefined;
     // what is projected onto a section takes its `via`
-    return this._spec.model.value.path(system, to.axis.system, to.via).path;
+    return this._view.model.value.path(system, to.axis.system, to.via).path;
   }
 
   /** The section a layer is in: the view's section whose address starts its address. */

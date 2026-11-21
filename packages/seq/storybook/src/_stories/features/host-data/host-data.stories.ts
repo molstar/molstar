@@ -27,3 +27,17 @@ export const ServedByTheFake: StoryObj = {
       hint: 'Seq* shows the B-factors of chains A and D of PDB 2OCJ, read from the fake structure viewer’s memory: no file is read. The legend under the view says the bars’ scale (Å²) and why the tracks end short of the sequence (the data). Click "Drop chain" in the fake: the source reopens a frame later; the listing under it follows, and chain D’s track empties with an issue that says its unit is gone. "Read the file instead" composes the same spec with the default adapter and starts the fake again.',
     }),
 };
+
+/**
+ * The host's own complex as a section: the spec names the complex the source holds (its dynamic node), and the section
+ * shows a block a unit, chains A to D and their zinc ions, once the source opens (pending before, never an error).
+ * "Drop chain" in the fake removes a chain and its zinc; the section reflows a frame later, the other blocks taking the
+ * room; "Restore the chains" brings them back the same way. The listing under the view prints the section's blocks.
+ */
+export const TheHostsComplex: StoryObj = {
+  render: () =>
+    hostDataStory({
+      spec: 'complex',
+      hint: 'Seq* shows the complex the fake structure viewer holds (PDB 2OCJ) as one section: a block a unit, the four chains and their zinc ions. Click "Drop chain" in the fake: a frame later the chain’s blocks leave and the others take the room. "Restore the chains" brings them back. No file is read.',
+    }),
+};

@@ -89,6 +89,7 @@ export class StoreModel extends ReactiveModel {
   readonly store: DataStore;
   private readonly _open = new Map<string, Opening>();
   private _overlays: OverlayBuilder | undefined;
+  private readonly _runtimes = new State<readonly FormatRuntime[]>([]);
   private _overlaySources: OverlaySources | undefined;
   private _synced: { overlay: Overlay; view: ResolvedView } | undefined;
   /** The addresses of the overlay's sources reported as unopened: cleared when they open or their node goes. */
@@ -199,25 +200,52 @@ export class StoreModel extends ReactiveModel {
    * with their nodes. What cannot be opened is an issue here, as a source of the model's.
    */
   overlay(model: StaticModel, view: ResolvedView, ctx: { runtimes: readonly FormatRuntime[]; assets: AssetReader }) {
-    // the model's configuration is read through the model; other runtimes make another builder
-    if (this._overlays?.options.runtimes !== ctx.runtimes)
-      this._overlays = new OverlayBuilder({ runtimes: ctx.runtimes });
-    const overlay = this._overlays.of(model, this.store);
-    if (this._synced?.overlay !== overlay || this._synced.view !== view) {
-      this._synced = { overlay, view };
-      this._overlaySources ??= new OverlaySources(this.store, ctx.assets);
-      void this._overlaySources.sync(overlay, view).then((issues) => {
-        if (this.isRetired) return;
-        const now = new Set<string>();
-        for (const i of issues) {
-          now.add(i.address ?? '');
-          this._report(i.address ?? '', i);
-        }
-        for (const a of this._overlayFailed) if (!now.has(a)) this._report(a, undefined);
-        this._overlayFailed = now;
-      });
-    }
+    // the frame's runtimes are the overlay's (`runtimes`): a change re-keys what reads it before the next frame
+    this.setRuntimes(ctx.runtimes);
+    const overlay = this.overlayOf(model);
+    if (this._synced?.overlay !== overlay || this._synced.view !== view) this._syncOverlay(overlay, view, ctx.assets);
     return overlay;
+  }
+
+  /**
+   * Opens the overlay's sources for a view. Apart from `overlay`, which a frame calls: its closure would make a context
+   * on every call once the optimizer gave up on it (a host's reopen did: 40 bytes a warm frame).
+   */
+  private _syncOverlay(overlay: Overlay, view: ResolvedView, assets: AssetReader): void {
+    this._synced = { overlay, view };
+    this._overlaySources ??= new OverlaySources(this.store, assets);
+    void this._overlaySources.sync(overlay, view).then((issues) => {
+      if (this.isRetired) return;
+      const now = new Set<string>();
+      for (const i of issues) {
+        now.add(i.address ?? '');
+        this._report(i.address ?? '', i);
+      }
+      for (const a of this._overlayFailed) if (!now.has(a)) this._report(a, undefined);
+      this._overlayFailed = now;
+    });
+  }
+
+  /**
+   * The overlay of the nodes the store holds now over `model` (one a node version), without syncing its sources: the
+   * frame's, so a view resolved over it (a section of a source's complex) and the frame read one overlay.
+   */
+  overlayOf(model: StaticModel): Overlay {
+    // the model's configuration is read through the model; other runtimes make another builder
+    const runtimes = this._runtimes.value;
+    if (this._overlays?.options.runtimes !== runtimes) this._overlays = new OverlayBuilder({ runtimes });
+    return this._overlays.of(model, this.store);
+  }
+
+  /**
+   * The format runtimes the overlay's nested sources are bound to (the context's): what a view resolved over the
+   * overlay keys on beside the node version, as the frame's overlay does (`overlay` sets them).
+   */
+  readonly runtimes: ReadonlyState<readonly FormatRuntime[]> = this._runtimes.asReadonly;
+
+  /** The overlay's runtimes (the context's): another set re-keys the overlay and what reads it. */
+  setRuntimes(runtimes: readonly FormatRuntime[]): void {
+    this._runtimes.set(runtimes);
   }
 
   /**

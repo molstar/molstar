@@ -29,6 +29,12 @@ export class ViewerRails {
   /** The sections that draw a rail and which can move: kept while they hold (the frame's key reads them by identity). */
   rails: Record<string, true> | undefined;
   active: Record<string, boolean> = {};
+  /**
+   * The rails' addresses and whether each can move, compared a frame: an array and a `Map`, never a keyed read of the
+   * records (a record per view has a map of its own: the frame's loop deoptimized on each new one).
+   */
+  private _railKeys: readonly string[] = [];
+  private readonly _activeOf = new Map<string, boolean>();
   private readonly _railsFor: [unknown, boolean, number, number] = [undefined, false, 0, 0];
   /** Bumped when a host's navigator comes or goes: the rails it replaces are found again. */
   private _hostedVersion = 0;
@@ -71,21 +77,29 @@ export class ViewerRails {
       // and every rows layer's rows rail, by its track (`navigator.rowsRail`; a navigator a narrow frame hides, hidden)
       const rows = on ? rowsRailsOf(viewer, shown, hosted, viewer.config) : [];
       this._rowsRails = new Set(rows);
-      this.rails = on
-        ? Object.fromEntries([...railSections(shown, hosted), ...rows].map((a) => [a, true as const]))
-        : undefined;
+      const keys = on ? [...new Set([...railSections(shown, hosted), ...rows])] : [];
+      this.rails = on ? Object.fromEntries(keys.map((a) => [a, true as const])) : undefined;
+      this._railKeys = keys;
+      this._activeOf.clear();
       this.active = {};
     }
-    const rails = this.rails;
-    if (!rails) return;
+    if (!this.rails) return;
     const behavior = viewer.behaviors.has('navigator');
+    const keys = this._railKeys;
+    const known = this._activeOf;
     let changed = false;
     // a rows rail can move while the behavior is there (idle while every row shows: the layout knows, `whole`)
     // (no closure: a frame makes none)
-    for (const a in rails) if (this.active[a] !== this._can(behavior, a)) changed = true;
+    for (let i = 0; i < keys.length; i++) {
+      const can = this._can(behavior, keys[i]);
+      if (known.get(keys[i]) !== can) {
+        known.set(keys[i], can);
+        changed = true;
+      }
+    }
     if (!changed) return;
     const next: Record<string, boolean> = {};
-    for (const a in rails) next[a] = this._can(behavior, a);
+    for (let i = 0; i < keys.length; i++) next[keys[i]] = known.get(keys[i])!;
     this.active = next;
   }
 

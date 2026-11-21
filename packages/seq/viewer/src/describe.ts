@@ -479,7 +479,7 @@ class Words {
     const out = new Parts();
     const at: PlaceContext = {
       words: this,
-      model: this._src.spec.model.value,
+      model: this._src.view.model.value,
       section,
       layer,
       place,
@@ -520,7 +520,7 @@ class Words {
   rect(loc: Location): HoverCard | undefined {
     const view = this._src.view.resolved.value;
     if (!loc.rects.length || !view) return undefined;
-    const s = gridSummary({ model: this._src.spec.model.value, view }, loc);
+    const s = gridSummary({ model: this._src.view.model.value, view }, loc);
     if (!s.count) return undefined;
     const rows = [
       { label: 'Mean', value: numberText(s.mean) },
@@ -535,7 +535,7 @@ class Words {
   // ---- what the sections read ----
 
   systemName(system: string): string {
-    return this._src.spec.model.value.systems.get(system)?.name ?? system;
+    return this._src.view.model.value.systems.get(system)?.name ?? system;
   }
 
   itemsOf(l: LayerLayout): readonly ItemDescription[] {
@@ -555,7 +555,7 @@ class Words {
    * tile is not loaded.
    */
   strandOf(l: LayerLayout, key: string | number, start: number): string {
-    const model = this._src.spec.model.value;
+    const model = this._src.view.model.value;
     const owner = l.layer.data?.address;
     const a = owner ? model.annotations.get(owner) : undefined;
     const f = a?.items?.find((i) => i.key === key)?.fields?.strand;
@@ -581,7 +581,7 @@ class Words {
   /** An item's category: the `category` field of an inline annotation's item (a source's items are not held here). */
   categoryOf(l: LayerLayout, key: string | number): string {
     const owner = l.layer.data?.address;
-    const a = owner ? this._src.spec.model.value.annotations.get(owner) : undefined;
+    const a = owner ? this._src.view.model.value.annotations.get(owner) : undefined;
     const f = a?.items?.find((i) => i.key === key)?.fields?.category;
     return typeof f === 'string' ? f : '';
   }
@@ -616,7 +616,7 @@ class Words {
 
   /** The letter a letters layer of the section shows at a position (none while it is not loaded). */
   letterAt(section: SectionLayout, position: number): string {
-    const model = this._src.spec.model.value;
+    const model = this._src.view.model.value;
     for (const t of section.tracks)
       for (const l of t.layers) {
         if (l.type.name !== 'letters') continue;
@@ -630,7 +630,7 @@ class Words {
 
   /** A system's letter at a position: inline, else in a loaded tile of its source ('' while none holds it). */
   letterOn(system: string, position: number): string {
-    const s = this._src.spec.model.value.systems.get(system);
+    const s = this._src.view.model.value.systems.get(system);
     if (s?.letters !== undefined) return s.letters[position] ?? '';
     if (!s?.source) return '';
     const store = this._src.store.store;
@@ -675,7 +675,7 @@ class Words {
   /** A grid's value at a cell (the hovered layer's grid, on its two systems), NaN when none. */
   gridValue(l: LayerLayout, system: string, i: number, ySystem: string, j: number): number {
     const owner = l.layer.data?.address;
-    const a = owner ? this._src.spec.model.value.annotations.get(owner) : undefined;
+    const a = owner ? this._src.view.model.value.annotations.get(owner) : undefined;
     const g = a?.grid;
     if (!a || !g || a.target !== system || (a.ySystem ?? a.target) !== ySystem) return Number.NaN;
     if (i < 0 || j < 0 || i >= g.nx || j >= g.ny) return Number.NaN;
