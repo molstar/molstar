@@ -104,6 +104,16 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   drawn once; a twin test (canvas and SVG) that every selection piece's box lies inside its cell's box, at both a block
   boundary and the grid's outer edge. Not measured in the browser yet: the fix lane measures first.
 
+- **The plasmid's strip is an empty bar at the top** (the author, 2026-11-21, Examples › Plasmid › Ring › Detail with
+  a strip: "feels quite weird to have the empty strip on the top"). `plasmidStrip` (`examples/src/navigators.ts:218`)
+  declares `stripNavigator('/views/main/detail', { system })` with no `content`, so the strip draws only its window
+  (here nearly the whole construct) over a blank well, no ticks or features; and it sits at the frame's top, above the
+  ring, far from the detail it navigates. `tracksStrip` (`content: 'tracks'`) shows what it should look like. Fix: the
+  story's strip gets content (the detail's feature tracks small, or the ruler's ticks at least) and sits next to the
+  detail (between the ring and the detail, or the place navigators.md gives a strip over a section); and a library
+  question for the design: a strip with no `content` draws the system's ticks by default rather than an empty well. A
+  story test that the strip has marks besides its window.
+
 - **Zooming a lazy alignment out past a pixel a row leaves a blank plot** (the author, 2026-11-21, Examples › Globins ›
   Rows › Lazy, the rows rail's grip dragged to widen the window: "trying to resize the vertical bar breaks the lazy
   views. does our streaming protocol correctly ask for a window to fill?"). The window is asked correctly while rows
