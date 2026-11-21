@@ -90,6 +90,8 @@ export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: Le
     nameEl.textContent = compact && it && doc.activeElement === host ? (it.getAttribute('aria-label') ?? '') : '';
   };
   let items: HTMLElement[] = [];
+  /** What each entry's element hovers (its layer and value); the elements are made again on every draw. */
+  const targets = new WeakMap<HTMLElement, { address: string; entry: string }>();
 
   /** What the highlight rows show: the channels, their styles and colors (a channel's place changes none of it). */
   const highlightKey = () =>
@@ -147,11 +149,9 @@ export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: Le
                 toggle: ev.metaKey || ev.ctrlKey,
               }),
           );
-          item.addEventListener(
-            'pointerenter',
-            () => void viewer.execute('legend.hover', { address: row.layer, entry: value }),
-          );
-          item.addEventListener('pointerleave', () => void viewer.execute('legend.hover', {}));
+          // hovered by the part's own listeners (below): an entry is replaced when the rows redraw under the pointer, and a
+          // removed node never fires its `pointerleave`
+          targets.set(item, { address: row.layer, entry: value });
         }
         // a step's cells join: the group's gap taken back
         if (compact && e.step) item.style.cssText += 'padding: 0; margin-right: -2px;';
@@ -255,6 +255,14 @@ export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: Le
     if (f?.dataset.value !== undefined && row)
       void viewer.execute('legend.hover', { address: row.layer, entry: f.dataset.value });
   };
+  // the pointer: one pair of listeners on the part, so a redraw under the pointer cannot lose a leave. Over an entry it
+  // hovers the entry's items, over anything else in the part (a title, a gap) or out of the part it clears the hover.
+  host.addEventListener('pointerover', (ev) => {
+    const el = ev.target instanceof Element ? ev.target.closest<HTMLElement>('[role="option"]') : null;
+    const t = el && targets.get(el);
+    void viewer.execute('legend.hover', t ? { address: t.address, entry: t.entry } : {});
+  });
+  host.addEventListener('pointerleave', () => void viewer.execute('legend.hover', {}));
   host.addEventListener('keydown', onKey);
   host.addEventListener('focus', syncFocus);
   host.addEventListener('blur', () => {

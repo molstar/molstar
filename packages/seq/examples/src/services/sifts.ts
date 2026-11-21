@@ -30,6 +30,9 @@ export interface SiftsMapping {
   /** The author's numbers of the segment's ends (null: SIFTS names none). */
   readonly authStart: number | null;
   readonly authEnd: number | null;
+  /** Their insertion codes ('' where none): a run with one at an end is not a plain count of author numbers. */
+  readonly authInsStart: string;
+  readonly authInsEnd: string;
   readonly identity: number;
   readonly coverage: number;
 }
@@ -58,6 +61,8 @@ export function parseSifts(text: string): SiftsMapping[] {
           end: m.end.residue_number,
           authStart: m.start.author_residue_number ?? null,
           authEnd: m.end.author_residue_number ?? null,
+          authInsStart: String(m.start.author_insertion_code ?? '').trim(),
+          authInsEnd: String(m.end.author_insertion_code ?? '').trim(),
           identity: m.identity,
           coverage: m.coverage,
         });
@@ -78,6 +83,17 @@ export function chainsOf(mappings: readonly SiftsMapping[], accession: string): 
  * say those, so they are left out of the maps and said (`siftsIssues`), never mapped wrong.
  */
 export const isOneToOne = (m: SiftsMapping) => m.end - m.start === m.unpEnd - m.unpStart && m.end >= m.start;
+
+/**
+ * Whether a mapping's author numbers are a plain count over its run: both ends named, as many numbers between them as
+ * residues, no insertion code at either end (an author gap or an insertion inside would put a label wrong).
+ */
+export const hasAuthorRun = (m: SiftsMapping) =>
+  m.authStart !== null &&
+  m.authEnd !== null &&
+  m.authEnd - m.authStart === m.end - m.start &&
+  m.authInsStart === '' &&
+  m.authInsEnd === '';
 
 /** What the mappings left out, one sentence each: the application shows them. */
 export function siftsIssues(mappings: readonly SiftsMapping[]): string[] {

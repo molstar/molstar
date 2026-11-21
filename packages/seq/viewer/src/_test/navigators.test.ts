@@ -270,7 +270,7 @@ describe('a strip and the view it moves', () => {
     expect(nav.key('End')).toBe(true);
     expect(range(v)[1]).toBe(393);
     nav.move((200 / 393) * nav.width, 10);
-    expect(nav.readout.value).toBe('p:201');
+    expect(nav.readout.value).toBe('p: 201');
     expect(nav.key('Enter')).toBe(true);
     expect((range(v)[0] + range(v)[1]) / 2).toBeCloseTo(200, 0);
     // the slider's value said on settle

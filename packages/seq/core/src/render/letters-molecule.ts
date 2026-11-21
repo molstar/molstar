@@ -14,7 +14,7 @@
 import { projectRanges, type ModifiedIndex, type StaticModel } from '@molstar/seqx-core/resolve';
 import type { ResolvedLayer } from '@molstar/seqx-core/view';
 import type { AxisTransform } from './axis.js';
-import type { RenderConfig } from './config.js';
+import { letterSize, type RenderConfig } from './config.js';
 import { Anchor, grown, NoColor, type PassName, type PassWriter } from './draw-lists.js';
 import type { LayerSource } from './layer-data.js';
 import type { Emphasis, LayerType } from './layer-type.js';
@@ -237,9 +237,7 @@ export function layMoleculeCells(
     }
   lay.fontSize = 0;
   if (!letters || !lay.n) return;
-  for (const s of config.letterSizes)
-    if (s * config.monoAdvance <= narrowest - 2 && s <= box.height * 0.75) lay.fontSize = s;
-  if (!lay.fontSize) lay.fontSize = config.letterSizes[0] ?? 9;
+  lay.fontSize = letterSize(config, narrowest, box.height * 0.75);
   lay.font = `${lay.fontSize}px mono`;
   lay.glyphY = box.y + box.height / 2 + lay.fontSize * 0.35;
   const advance = lay.fontSize * config.monoAdvance;

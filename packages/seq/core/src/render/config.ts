@@ -101,7 +101,17 @@ export interface RenderConfig {
    * `size` px at the cell's top right (`shape: 'dot'`) or a bar along its bottom (`underline`), in the letter's ink; a
    * bar over a component of several positions, a tick at a strip's top below the cells.
    */
-  readonly letters: { readonly modifiedMark: { readonly shape: 'dot' | 'underline'; readonly size: number } };
+  readonly letters: {
+    readonly modifiedMark: { readonly shape: 'dot' | 'underline'; readonly size: number };
+    /**
+     * The largest letter size, CSS px of the mono face: a letter is never larger than the chrome's label (cap heights
+     * equal: 0, the default, is the label font's size times `capRatio`, so it follows `labelFont`). A host that wants
+     * letters to follow the cell (teaching, slides) sets it past the scale's largest size.
+     */
+    readonly maxPx: number;
+    /** The label face's cap height over the mono face's, per em: measured by the host (the canvas); 1 when it has none. */
+    readonly capRatio: number;
+  };
   /** How far past its max width a text fades out, CSS px. */
   readonly fade: number;
   /** Squircle corners: radius a third of the height, capped; none below `squircleMin` in either dimension. */
@@ -345,7 +355,7 @@ export const DefaultRenderConfig: RenderConfig = {
   labelFont: '12px sans',
   itemFont: '10px sans',
   labels: { minChars: 4 },
-  letters: { modifiedMark: { shape: 'dot', size: 3 } },
+  letters: { modifiedMark: { shape: 'dot', size: 3 }, maxPx: 0, capRatio: 1 },
   fade: 12,
   squircleRatio: 1 / 3,
   squircleMax: 8,
@@ -474,7 +484,11 @@ export function renderConfig(over: RenderConfigOverrides = {}): RenderConfig {
       ...over.ranges,
       connector: { ...DefaultRenderConfig.ranges.connector, ...over.ranges?.connector },
     },
-    letters: { modifiedMark: { ...DefaultRenderConfig.letters.modifiedMark, ...over.letters?.modifiedMark } },
+    letters: {
+      modifiedMark: { ...DefaultRenderConfig.letters.modifiedMark, ...over.letters?.modifiedMark },
+      maxPx: over.letters?.maxPx ?? DefaultRenderConfig.letters.maxPx,
+      capRatio: over.letters?.capRatio ?? DefaultRenderConfig.letters.capRatio,
+    },
     values: { ...DefaultRenderConfig.values, ...over.values },
     ruler: { ...DefaultRenderConfig.ruler, ...over.ruler },
     rings: { ...DefaultRenderConfig.rings, ...over.rings },
@@ -513,6 +527,37 @@ export function densityStep(cssPx: number, dpr: number, config: RenderConfig): D
   if (at('dots') >= t.dots) return 'dots';
   if (at('bars') >= t.bars) return 'bars';
   return 'density';
+}
+
+const Caps = new WeakMap<RenderConfig, number>();
+
+/**
+ * The largest letter size: `letters.maxPx`, else the label font's size times `letters.capRatio` (the label face's cap
+ * height over the mono face's, per em: 1 where the host measured none), so a letter's cap height equals a label's.
+ * Computed once per config.
+ */
+export function letterCap(config: RenderConfig): number {
+  let cap = Caps.get(config);
+  if (cap === undefined) {
+    cap = config.letters.maxPx > 0 ? config.letters.maxPx : fontSize(config.labelFont) * config.letters.capRatio;
+    Caps.set(config, cap);
+  }
+  return cap;
+}
+
+/**
+ * One size for a row of letters: the cap itself where the cell (px) and `room` (px, the height it may take) allow it,
+ * else the largest of the scale that fits, never past the cap. The smallest size when none does (the step starts
+ * where it fits a cell, so a short row still shows its letters). `capped: false` is a text figure's, read as text: the
+ * scale alone.
+ */
+export function letterSize(config: RenderConfig, cell: number, room: number, capped = true): number {
+  const cap = capped ? letterCap(config) : Infinity;
+  const limit = Math.min((cell - 2) / config.monoAdvance, room);
+  if (cap <= limit) return cap;
+  let size = 0;
+  for (const s of config.letterSizes) if (s <= cap && s <= limit) size = s;
+  return size || Math.min(config.letterSizes[0] ?? 9, cap);
 }
 
 /** The size of a font's shorthand in px (12 when it names none). */

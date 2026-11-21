@@ -7,6 +7,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { resolveSpec } from '@molstar/seqx-core/resolve';
 import { describe, expect, it } from 'vitest';
+import { Unobserved } from '../complex/confidence.js';
 import { PackageFolder } from '../node-assets.js';
 import { AlignedSegments, EntityLength, EntityStart } from '../p53/structure.js';
 import { build as composed } from '../services/composed.js';
@@ -143,5 +144,54 @@ describe('SIFTS in the spec', () => {
     const s = section(spec);
     expect(s.params.follow).toBe('/views/main/protein');
     expect(s.params.via).toBe('/data/sifts-2ocj-p04637-a-seq');
+  });
+
+  it('the structure section’s ruler counts P04637’s numbers (94–312), not the unit’s own 1–219, and says which', () => {
+    const spec = composed({ sifts: sifts('2OCJ') });
+    const nodes = (n: any, pred: (n: any) => boolean): any[] => [
+      ...(pred(n) ? [n] : []),
+      ...(n.children ?? []).flatMap((c: any) => nodes(c, pred)),
+    ];
+    const numbering = nodes(spec, (n) => n.kind === 'numbering')[0];
+    // the recorded SIFTS answer names no author numbers: UniProt's, the run's own
+    expect([numbering.id, numbering.params.method, numbering.params.scheme]).toEqual([
+      'uniprot',
+      'segments',
+      'uniprot',
+    ]);
+    const { start, end, first } = numbering.params.segments;
+    expect([Array.from(start), Array.from(end), Array.from(first)]).toEqual([[0], [219], [94]]);
+    const section = nodes(spec, (n) => n.kind === 'section' && n.id === 'structure')[0];
+    const ruler = nodes(section, (n) => n.kind === 'layer' && n.params.type === 'ruler')[0];
+    expect(ruler.params.numbering).toBe('uniprot');
+    expect(JSON.stringify(section)).toContain('2OCJ A, UniProt numbers');
+    expect(resolveSpec(spec).issues.filter((i) => i.severity === 'error')).toEqual([]);
+  });
+
+  it('author numbers only where SIFTS gives a plain count: a gap or an insertion code falls back to UniProt’s, said', () => {
+    const numberingOf = (text: string) => {
+      const spec = composed({ sifts: parseSifts(text) });
+      const find = (n: any): any => (n.kind === 'numbering' ? n : (n.children ?? []).map(find).find(Boolean));
+      return { id: find(spec).id, label: JSON.stringify(spec).includes('author numbers') };
+    };
+    const plain = response('A', 'A', 219);
+    expect(numberingOf(plain)).toEqual({ id: 'auth', label: true });
+    // an author gap inside the run (the end number past the count)
+    expect(numberingOf(plain.replace('"author_residue_number":312', '"author_residue_number":313')).id).toBe('uniprot');
+    // an insertion code at the start
+    expect(numberingOf(plain.replace('"author_insertion_code":""', '"author_insertion_code":"A"')).id).toBe('uniprot');
+  });
+
+  it('the ends chain A does not hold are drawn gray, not left as gaps: the entity’s positions before and after its run', () => {
+    const spec = composed({ sifts: sifts('2OCJ') });
+    const find = (n: any, id: string): any =>
+      n.id === id ? n : (n.children ?? []).map((c: any) => find(c, id)).find(Boolean);
+    const rows = find(spec, 'unobserved').params.rows;
+    expect([Array.from(rows.start), Array.from(rows.end)]).toEqual([
+      [0, 196],
+      [2, 219],
+    ]);
+    const layer = find(find(spec, 'structure'), 'unobserved');
+    expect(layer.params.color).toBe(Unobserved);
   });
 });

@@ -37,6 +37,7 @@ import * as geneByRegion from './p53/gene-by-region.js';
 import * as layers from './p53/layers.js';
 import * as proteinOnGene from './p53/protein-on-gene.js';
 import * as query from './p53/query.js';
+import * as signal from './p53/signal.js';
 import * as story from './p53/story.js';
 import * as p53Structure from './p53/structure.js';
 import * as p53Headers from './p53/headers.js';
@@ -139,6 +140,15 @@ export const P53Views: readonly ExampleView[] = [
       'The gene’s region read region by region: transcripts arrive as dynamic nodes, a track each, and TP53’s bring their domains, shown through each transcript’s codon map.',
     build: geneByRegion.build,
     registry: geneByRegion.registry,
+  },
+  {
+    dataset: 'p53',
+    id: 'signal-from-a-bigwig',
+    title: 'Signal from a bigWig',
+    summary:
+      'p53’s conservation over the gene’s region read from a bigWig, by region and zoom level as the view pans and zooms: coarse bins first, a value a base at the closest zoom, each answer delayed as a remote file’s; the last 200 bases lie past the file’s data.',
+    build: signal.build,
+    registry: signal.registry,
   },
   {
     dataset: 'p53',

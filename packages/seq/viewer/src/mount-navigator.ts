@@ -40,16 +40,30 @@ function mountModel(element: HTMLElement, viewer: SeqViewer, model: NavigatorMod
   Object.assign(base.style, { display: 'block' });
   for (const c of [overlay, labels])
     Object.assign(c.style, { position: 'absolute', left: '0', top: '0', pointerEvents: 'none' });
+  // the readout is the chrome's surface (the hover card's inset and backdrop, so it reads over data), one line, shown only
+  // while it says something. The number is the information: the system's name gives way first (it shrinks to an
+  // ellipsis, then to nothing), the value and what follows it never do
   const readout = doc.createElement('div');
+  readout.className = 'msui-surface seqx-navigator-readout';
   readout.setAttribute('aria-live', 'off');
   Object.assign(readout.style, {
     position: 'absolute',
-    right: '2px',
-    top: '0',
-    font: '10px var(--msui-font-sans, sans-serif)',
+    right: 'var(--msui-space-1, 4px)',
+    top: 'var(--msui-space-1, 4px)',
+    display: 'none',
+    maxWidth: 'calc(100% - 2 * var(--msui-space-1, 4px))',
+    boxSizing: 'border-box',
+    overflow: 'hidden',
+    whiteSpace: 'nowrap',
+    font: 'var(--msui-text-xs, 11px) / var(--msui-leading-xs, 16px) var(--msui-font-sans, sans-serif)',
     color: 'var(--msui-text-muted, gray)',
     pointerEvents: 'none',
   });
+  const readName = doc.createElement('span');
+  Object.assign(readName.style, { flex: '0 1 auto', minWidth: '0', overflow: 'hidden', textOverflow: 'ellipsis' });
+  const readValue = doc.createElement('span');
+  Object.assign(readValue.style, { flex: 'none' });
+  readout.append(readName, readValue);
   container.append(base, overlay, labels, readout);
   element.append(container);
   const backend = new CanvasBackend(
@@ -67,7 +81,10 @@ function mountModel(element: HTMLElement, viewer: SeqViewer, model: NavigatorMod
     if (!f) return;
     const dirty = backend.resize(model.width, model.height, viewer.dpr);
     backend.draw(f.lists, f.rebuilt || f.base || dirty);
-    readout.textContent = model.readout.value ?? '';
+    const parts = model.readoutParts.value;
+    readName.textContent = parts?.name ? `${parts.name}: ` : '';
+    readValue.textContent = parts ? `${parts.value}${parts.rest}` : '';
+    readout.style.display = parts && (parts.name || parts.value) ? 'flex' : 'none';
     container.style.cursor = model.cursor;
   };
   const schedule = () => {

@@ -20,6 +20,7 @@ export const Figures: Readonly<Record<string, Where>> = {
   tracks: { title: 'Examples/p53/Tracks', export: 'Tracks' },
   'protein-on-gene': { title: 'Examples/p53/Protein on its gene', export: 'ProteinOnItsGene' },
   'gene-by-region': { title: 'Examples/p53/Gene by region', export: 'GeneByRegion' },
+  'signal-from-a-bigwig': { title: 'Examples/p53/Signal from a bigWig', export: 'SignalFromABigWig' },
   chromosome: { title: 'Examples/p53/Chromosome', export: 'Chromosome' },
 };
 

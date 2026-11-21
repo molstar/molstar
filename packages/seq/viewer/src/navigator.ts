@@ -61,6 +61,13 @@ export interface NavigatorDef {
   readonly params?: Readonly<Record<string, Value>>;
 }
 
+/** A readout in parts: the name (a system's, absent when the picture says it), the value, the rest (` · row 47`). */
+export interface ReadoutParts {
+  readonly name: string;
+  readonly value: string;
+  readonly rest: string;
+}
+
 /** A window as its slider says it (its `aria-valuetext`): set when the view settles, never a frame. */
 export interface NavigatorValue {
   readonly section: string;
@@ -94,6 +101,9 @@ export class NavigatorModel extends ReactiveModel {
   /** The readout under the pointer (a position, a row, a band's name), or none. */
   private readonly _readout = new State<string | undefined>(undefined);
   readonly readout: ReadonlyState<string | undefined> = this._readout.asReadonly;
+  private readonly _readoutParts = new State<ReadoutParts | undefined>(undefined);
+  /** The readout in parts, for a host that has little room: the name gives way, the value never. */
+  readonly readoutParts: ReadonlyState<ReadoutParts | undefined> = this._readoutParts.asReadonly;
   /** Each window's slider value, set when the view settles. */
   private readonly _values = new State<readonly NavigatorValue[]>([]);
   readonly values: ReadonlyState<readonly NavigatorValue[]> = this._values.asReadonly;
@@ -436,7 +446,7 @@ export class NavigatorModel extends ReactiveModel {
     // the context of a zoom strip is no target: nothing lit, the default cursor
     this.lit =
       h && !h.context && (this.moves[h.section] ?? 0) ? { section: h.section, part: h.part, axis: h.axis } : undefined;
-    this._readout.set(h ? this.readoutOf(h) : undefined);
+    this.say(h ? this.readoutOf(h) : undefined);
     this.changed();
   }
 
@@ -444,25 +454,37 @@ export class NavigatorModel extends ReactiveModel {
    * Over a window, what it shows (its positions, its rows); over a zoom strip's mark, the region it marks; elsewhere
    * the position, row and band under the pointer.
    */
-  private readoutOf(h: NavigatorHit): string {
-    if (h.context === 'mark') return this.renderer?.markText() ?? '';
+  private readoutOf(h: NavigatorHit): ReadoutParts {
+    if (h.context === 'mark') return { name: '', value: this.renderer?.markText() ?? '', rest: '' };
     const nav = this.navigator;
     const w = h.part !== 'outside' ? this.windowOf(h.section) : undefined;
-    if (nav && w?.shown) return windowText(this.viewer.spec.model.value, nav, w);
+    if (nav && w?.shown) return { name: '', value: windowText(this.viewer.spec.model.value, nav, w), rest: '' };
     const name = (nav?.system && this.viewer.spec.model.value.systems.get(nav.system)?.name) ?? '';
-    const parts: string[] = [];
-    if (h.position !== undefined)
-      parts.push(this.renderer?.readout(h.position) ?? `${name}:${(h.position + 1).toLocaleString('en-US')}`);
-    if (h.row !== undefined) parts.push(`row ${(Math.floor(h.row) + 1).toLocaleString('en-US')}`);
-    if (h.band !== undefined) parts.push(h.band);
-    return parts.join(' · ');
+    const rest: string[] = [];
+    let value = '';
+    let named = '';
+    if (h.position !== undefined) {
+      const own = this.renderer?.readout(h.position);
+      value = own ?? (h.position + 1).toLocaleString('en-US');
+      if (own === undefined) named = name;
+    }
+    if (h.row !== undefined) rest.push(`row ${(Math.floor(h.row) + 1).toLocaleString('en-US')}`);
+    if (h.band !== undefined) rest.push(h.band);
+    // no position: the first of the rest is the value
+    if (h.position === undefined && rest.length) value = rest.shift() as string;
+    return { name: named, value, rest: rest.map((r) => ` \u00b7 ${r}`).join('') };
+  }
+
+  private say(parts: ReadoutParts | undefined): void {
+    this._readoutParts.set(parts);
+    this._readout.set(parts && `${parts.name ? `${parts.name}: ` : ''}${parts.value}${parts.rest}`);
   }
 
   /** The pointer left: no lit part, no readout, no hairline. */
   leave(): void {
     this.pointerX = this.pointerY = Number.NaN;
     this.lit = undefined;
-    this._readout.set(undefined);
+    this.say(undefined);
     this.changed();
   }
 
@@ -494,7 +516,7 @@ export class NavigatorModel extends ReactiveModel {
     const h = this.hit(x, y, p.touch);
     // a press on a zoom strip's context is no gesture: it names what is under it, as a hover (a tap's readout)
     if (h?.context) {
-      this._readout.set(this.readoutOf(h));
+      this.say(this.readoutOf(h));
       this.changed();
       return false;
     }
