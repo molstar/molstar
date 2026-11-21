@@ -34,6 +34,11 @@
   instead of returning partial bytes (Mol*'s plugin fetch, core's assets and data source see it; Prism is left as it is,
   to be rewritten), recorded in `.v6/plans/breaking-v6-changes.md`.
 
+- **The size bounds raised for language 0.6.0** (the author, 2026-11-21: "Raise the bounds"): reading a spec 240 kB
+  (was 230), the minimal viewer 960 kB (was 940); headless 830 and default 1,330 unchanged. GC1's declarations alone
+  took the minimal viewer to 944.6 and reading to 228.7 kB. Decided as recommended with it: the include floor named
+  `min_length` (snake_case like every spec param); a sequence under an assembly inherits the assembly's alphabet.
+
 ## Overnight: stage 0 (run by the fourth slice's loop)
 
 The fourth slice's loop runs this while the author sleeps (its `state.md`, Next, points here). The lane limit is the
