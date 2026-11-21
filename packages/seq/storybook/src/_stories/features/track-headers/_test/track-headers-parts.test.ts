@@ -30,7 +30,7 @@ afterEach(() => {
 });
 
 describe('the story’s DOM parts', () => {
-  it('a button a chip with its words (a mark none), a press shows the hidden tracks in one patch', async () => {
+  it('a button a chip with its words (a mark none); the section has no part: its hidden tracks are the application’s', async () => {
     const view = ExampleViews.find((v) => v.id === 'headers')!;
     const v = (viewer = createSeqViewer({
       ...headersSpec({ parts: 'dom' }),
@@ -44,12 +44,12 @@ describe('the story’s DOM parts', () => {
     document.body.append(container);
     const port = partsDomPort()(container, headersOf(v));
     port.update(headersOf(v).partsState());
-    const group = (track?: string) =>
-      container.querySelector<HTMLElement>(
-        track ? `[role="group"][data-track="/views/main/protein/${track}"]` : '[role="group"]:not([data-track])',
-      )!;
-    // the section's "2 hidden" is a chip in words; Domains' two states are marks (the column holds one slot)
-    expect(group()!.textContent).toBe('2 hidden');
+    const group = (track: string) =>
+      container.querySelector<HTMLElement>(`[role="group"][data-track="/views/main/protein/${track}"]`)!;
+    // no group for the section (nothing in the view for a hidden track); Domains' two states are marks (the column
+    // holds one slot)
+    expect(container.querySelector('[role="group"]:not([data-track])')).toBeNull();
+    expect(container.querySelector('[data-part="seq:hidden-tracks"]')).toBeNull();
     const marks = [...group('domains').querySelectorAll('button')];
     expect(marks.map((b) => b.dataset.part)).toEqual(['seq:filtered', 'seq:hidden-layers']);
     expect(marks.map((b) => b.textContent)).toEqual(['', '']);
@@ -57,10 +57,6 @@ describe('the story’s DOM parts', () => {
       '1 filtered: Clear the filter',
       '1 layer hidden: Show every layer',
     ]);
-    // one patch: the press runs the chip's entry
-    group()!.querySelector<HTMLElement>('button')!.click();
-    await v.settle();
-    expect(v.view.resolved.value!.sections[0].tracks).toHaveLength(5);
     port.dispose?.();
   });
 

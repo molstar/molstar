@@ -27,8 +27,8 @@ function sameEntries(a: readonly HiddenTrackEntry[], b: readonly HiddenTrackEntr
 
 /**
  * Every hidden track (`hidden: true`) of every section, read from the spec in its order (_spec/README.md "Hidden
- * tracks"): the application's to list and restore, never drawn by the view. A section whose tracks are all hidden is
- * not in the resolved view, so this reads the spec, not the layout.
+ * tracks"): the application's to list and restore, never drawn by the view. It reads the spec, not the layout: a
+ * section whose tracks are all hidden has none to read there.
  */
 export function hiddenTracksState(viewer: SeqViewer): ReadonlyState<readonly HiddenTrackEntry[]> {
   return derive(

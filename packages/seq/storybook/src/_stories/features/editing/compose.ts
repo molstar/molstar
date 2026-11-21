@@ -14,7 +14,7 @@ import type { EditingBehavior } from '@molstar/seqx-viewer/behaviors';
 import { DefaultSeqViewerSpec } from '@molstar/seqx-viewer/default-spec';
 import type { SeqViewerSpec } from '@molstar/seqx-viewer/viewer-spec';
 import { HistoryParticipants, hostHistory } from '@molstar/seqx-viewer/ui-history';
-import { mountToolbar } from '@molstar/seqx-viewer/mount-toolbar';
+import { toolbarWithHiddenTracks } from '../../support/toolbar.js';
 import { createSeqViewer, type SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { HistoryModel } from '@molstar/ui/history/history-model';
 
@@ -62,7 +62,7 @@ export function composeEditing(view: ExampleView, options: ComposeOptions = {}):
     {
       ...base,
       ui: options.target
-        ? { ...base.ui, toolbar: mountToolbar, ...(options.legends === false ? { legends: undefined } : {}) }
+        ? { ...base.ui, toolbar: toolbarWithHiddenTracks, ...(options.legends === false ? { legends: undefined } : {}) }
         : undefined,
       registry: [
         ...(base.registry ?? []),
