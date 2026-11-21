@@ -37,6 +37,9 @@ export const DropRuntimes: readonly FormatRuntime[] = [
 /** The most sequences or units a dropped file's view shows: one section each. */
 export const MaxSections = 8;
 
+/** The alphabet a source names, narrowed to the ones a node takes (protein when none). */
+const alphabetOf = (a: string | undefined): 'dna' | 'rna' | 'protein' => (a === 'dna' || a === 'rna' ? a : 'protein');
+
 /** The location the assets port answers a dropped file at. */
 export const droppedUri = (name: string) => `dropped/${encodeURIComponent(name)}`;
 
@@ -96,7 +99,7 @@ function sequenceSections(b: SeqSpecBuilder, opened: OpenedSource, format: strin
   const withRanges = new Set(opened.coverage.shapes.filter((s) => s.shape === 'ranges').map((s) => s.system));
   const parts = systems.map((s, i) => {
     const id = `s${i + 1}`;
-    const sequence = b.data.sequence(id, { alphabet: s.alphabet ?? 'protein', source, name: s.name });
+    const sequence = b.data.sequence(id, { alphabet: alphabetOf(s.alphabet), source, name: s.name });
     const ranges = withRanges.has(s.name) ? b.data.ranges(`${id}-ranges`, { target: sequence, source }) : undefined;
     return { id, label: s.name, sequence, ranges };
   });
@@ -126,7 +129,7 @@ export async function specOfDropped(name: string, bytes: Uint8Array): Promise<Dr
   const common = { format, uri: droppedUri(name) } as const;
   if (format === 'stockholm' || format === 'aligned-fasta') {
     const file = b.data.source('file', common);
-    const alphabet = opened.coverage.systems.find((s) => s.alphabet)?.alphabet ?? 'protein';
+    const alphabet = alphabetOf(opened.coverage.systems.find((s) => s.alphabet)?.alphabet);
     const aln = b.data.alignment('aln', { alphabet, source: file });
     b.views.view('main', (v) =>
       v.section('alignment', { of: aln }, (s) => {

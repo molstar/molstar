@@ -89,6 +89,8 @@ export class ServicesApp {
   /** What went wrong or what is awaited, a sentence. */
   readonly message = new State<string>('');
   readonly sifts = new State<readonly SiftsMapping[]>([]);
+  /** Moves whenever the viewer or the link is another one: what a view of the application binds again. */
+  readonly objects = new State(0);
   viewer: SeqViewer | undefined;
   link: FakeLink | undefined;
   private _port: ReturnType<typeof servicesPort> | undefined;
@@ -146,6 +148,7 @@ export class ServicesApp {
       },
       o.target,
     ));
+    this.objects.set(this.objects.value + 1);
     if (!o.target) viewer.resize(1200);
     const stale = () => this._gone || run !== this._run;
     try {
@@ -163,6 +166,7 @@ export class ServicesApp {
       if (stale()) return;
       try {
         this.link = linkFake(viewer, o.table, composed.ServiceAddresses.complex);
+        this.objects.set(this.objects.value + 1);
         this.phase.set('ready');
         this.message.set('');
       } catch (e) {

@@ -18,7 +18,7 @@ const bytes = (file: string) => new Uint8Array(readFileSync(`${PackageFolder}${f
 
 async function show(name: string, data: Uint8Array) {
   const dropped = await specOfDropped(name, data);
-  if ('refused' in dropped) return { dropped };
+  if ('refused' in dropped) return { dropped, reads: [] as string[], issues: [] as string[], sections: [] as string[], svg: '' };
   const base = DefaultSeqViewerSpec();
   const reads: string[] = [];
   const viewer = createSeqViewer({
