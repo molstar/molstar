@@ -74,6 +74,8 @@ export interface HeadersBehavior {
   openMenu(target: HeaderTarget, place: HeaderMenuPlace, only?: string): boolean;
   /** Closes the menu; a preview it made ends in nothing. */
   closeMenu(): void;
+  /** How long the pointer rests on a submenu's row before a menu port opens it, ms (`submenuRestMs`, 300). */
+  readonly submenuRestMs: number;
   /** @internal A click on a header's part at a canvas point (the input's, taken). */
   click(x: number, y: number, touch: boolean): void;
   /** @internal A secondary click at a canvas point: true when the menu took it (the browser's menu then prevented). */
@@ -273,6 +275,7 @@ function headersBehavior(context: BehaviorContext, params: HeadersParams = {}): 
     preview: (item) => !!extras?.preview(item),
     openMenu: (target, place, only) => !!extras?.openMenu(target, place, only),
     closeMenu,
+    submenuRestMs: params.submenuRestMs ?? 300,
     framed() {
       extras?.keepCursor();
       published();
@@ -315,8 +318,17 @@ function headersBehavior(context: BehaviorContext, params: HeadersParams = {}): 
           }
         }),
       );
-      // a new layout, an undo or a load: the menu was of the old picture
-      stops.push(context.view.resolved.listen(() => closeMenu()));
+      // the view resolved again (a source's answer, an edit, a preview, an undo): the menu stays while its header is
+      // still shown, and closes when its section or track is gone or hidden (it was of a picture that is no more)
+      stops.push(
+        context.view.resolved.listen((view) => {
+          const t = shownMenu.value?.menu.target;
+          if (!t) return;
+          const section = view?.sections.find((s) => s.address === t.section);
+          const there = !!section && (t.track === undefined || section.tracks.some((x) => x.address === t.track));
+          if (!there) closeMenu();
+        }),
+      );
     },
     attach(container) {
       // the menu's port over the canvas (a headless one given up first)

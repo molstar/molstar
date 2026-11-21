@@ -392,8 +392,10 @@ layout per token table, held domains and the reader's substitution (`LayerChanne
   clauses: a kind is a word in the description.
 - **A layer with no color takes the next categorical color** (a ranges layer whose spec gives no `color`): the theme's
   `seq-cat-<n>` by its order in the view (`LayoutContext.colorIndex`), counted by what it shows: one data node shown in
-  two sections (a ring and its detail) one color, a template's instances one; a spec's color always wins, and a layer's
-  items stay one color. Why: one steel blue for every colourless layer reads as a placeholder (the defaults audit).
+  two sections (a ring and its detail) one color, a template's instances one, and over every ranges layer, coloured or
+  not (a coloured one keeps its place unused); a spec's color always wins, and a layer's items stay one color. Why: one
+  steel blue for every colourless layer reads as a placeholder (the defaults audit); counted over the coloured too, a
+  layer's default never moves when another is coloured (or previewed).
 - **Scales**: `linear`, `log`, `sqrt`; a `domain` with an open end follows the data in view, computed when the view
   settles and held while it does not; `non_positive` on `log`: `missing` (before any bin or end color) or `clamp` (the
   domain's low end) (`seq.render.scale.log`). A center (`mid`) makes a number's default palette the diverging one. A
@@ -2806,12 +2808,14 @@ numbers): a window move allocates nothing once warm.
   A header's hover lights none of its track's items (EC-146: refused by default). A figure (`figure`) lays out no slots
   and no "⋯"; its states as drawn, none with `header.states.export: none`. A `hosted` line (a host's DOM parts) draws
   nothing in its slot, "⋯" and chip boxes (the parts are the DOM's); a figure of it draws its states.
-- **Hit** (`hitChrome(section, x, y, hover)`, before the bands): a slot or the "⋯" `header-slot` **only while its
-  track's actions show** (by the hover `hitView` is given: the label line hovered first, then the slot), a state
-  `header-state` (`count` its count), elsewhere on a track's line `header-label` (no `state`), on a section's line
-  `section-header`; `state` the entry's name (`HeaderMenuName` the "⋯"), `layer` the track's address (a section's for
-  its line), `section` its section. Each hit is laid out with its part (`hit`, a line's `HeaderLine.hit`): a hover makes
-  no object.
+- **Hit** (`hitChrome(section, x, y, hover, touch)`, before the bands): a slot or the "⋯" `header-slot` wherever a mouse
+  is (its point is on its own line, whatever the last hover was), a finger's only while its track's actions show (by the
+  hover `hitView` is given: a tap on the label reveals them, the next tap runs one); none under
+  `header.actions.show: never`. Why: a press that came before the hover's frame (no move first, or the slots shown by
+  the cursor or an open menu) hit the label and did nothing, though the "⋯" was drawn there. A state `header-state`
+  (`count` its count), elsewhere on a track's line `header-label` (no `state`), on a section's line `section-header`;
+  `state` the entry's name (`HeaderMenuName` the "⋯"), `layer` the track's address (a section's for its line), `section`
+  its section. Each hit is laid out with its part (`hit`, a line's `HeaderLine.hit`): a hover makes no object.
 
 ### Track heights
 

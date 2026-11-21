@@ -68,7 +68,7 @@ export function hitView(layout: ViewLayout, x: number, y: number, touch = false,
         if (h) return h;
       }
     }
-    const own = s.layout.hitChrome?.(s, x, y, hover);
+    const own = s.layout.hitChrome?.(s, x, y, hover, touch);
     if (own) return own;
     // a `section` layer's marks, on the page, over the strips'
     for (let i = s.sectionLays.length - 1; i >= 0; i--) {

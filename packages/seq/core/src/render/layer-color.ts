@@ -58,13 +58,20 @@ export function rangesColorFallback(colorIndex: number | undefined): ThemeBody {
  * one color); undefined for a layer the spec colors or a type that has its own default.
  */
 export function colorKey(track: ResolvedTrack, layer: ResolvedLayer): string | undefined {
-  if (layer.type !== 'ranges' || layer.theme.color !== undefined) return undefined;
+  if (layer.theme.color !== undefined) return undefined;
+  return placeKey(track, layer);
+}
+
+/** A ranges layer's key in the palette's places, coloured or not (its data, or a template's instances). */
+function placeKey(track: ResolvedTrack, layer: ResolvedLayer): string | undefined {
+  if (layer.type !== 'ranges') return undefined;
   return track.template ? `${track.address}:${layer.index}` : layer.data?.address;
 }
 
 /**
  * The colourless layers' places in the categorical palette, by their keys' first appearance in the view (a layer's
- * order): made once a view.
+ * order), counted over every ranges layer, coloured or not: a layer's default never depends on another's scheme
+ * (coloring one moved the next one's color, and its preview too). Made once a view.
  */
 const DefaultColors = new WeakMap<ResolvedView, Map<string, number>>();
 export function defaultColors(view: ResolvedView): Map<string, number> {
@@ -74,7 +81,7 @@ export function defaultColors(view: ResolvedView): Map<string, number> {
   for (const s of view.sections)
     for (const t of s.tracks)
       for (const l of t.layers) {
-        const k = colorKey(t, l);
+        const k = placeKey(t, l);
         if (k !== undefined && !m.has(k)) m.set(k, m.size % CategoryCount);
       }
   DefaultColors.set(view, m);

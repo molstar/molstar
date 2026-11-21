@@ -5,6 +5,7 @@
  */
 
 import { DomHost } from '@molstar/ui/dom/host';
+import { isViewEvent } from './overlay-events.js';
 
 // The headers' DOM gestures on the mounted canvas (_spec/README.md "Behaviors", Headers: Gestures): the secondary click
 // (`contextmenu`, prevented when the menu took it: Shift's is the browser's, the behavior says) and the long press of a
@@ -27,7 +28,9 @@ export function headerGestures(
     const r = container.getBoundingClientRect();
     return [e.clientX - r.left, e.clientY - r.top] as const;
   };
+  // an overlay's events are its own (the menu's secondary click opens no menu for the header under it)
   const onContext = (e: MouseEvent) => {
+    if (!isViewEvent(container, e)) return;
     const [x, y] = local(e);
     if (context(x, y, e)) e.preventDefault();
   };
@@ -38,7 +41,7 @@ export function headerGestures(
   };
   const onDown = (e: PointerEvent) => {
     endPress();
-    if (e.pointerType !== 'touch') return;
+    if (e.pointerType !== 'touch' || !isViewEvent(container, e)) return;
     const [x, y] = local(e);
     press = {
       x,

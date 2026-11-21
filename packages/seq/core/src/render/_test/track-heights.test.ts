@@ -284,6 +284,17 @@ describe('a layer with no color takes the next categorical color', () => {
   });
 });
 
+describe('a colourless layer’s place', () => {
+  it('counts every ranges layer, coloured or not: coloring one leaves the others’ colors', async () => {
+    const plain = await frameOf(spec([{ rows: stacked(1) }, { rows: stacked(1) }]));
+    const colored = await frameOf(spec([{ rows: stacked(1), color: '#ff0000' }, { rows: stacked(1) }]));
+    const fill = (r: typeof plain, k: number) => (r.layout.sections[0].tracks[k].layers[0].lay as RangesLay).fills[0];
+    expect(fill(colored, 0)).toBe(0xff0000ff);
+    // the second keeps its place: the first's scheme moves no other layer's default
+    expect(fill(colored, 1)).toBe(fill(plain, 1));
+  });
+});
+
 describe('an item across a cyclic origin', () => {
   it('says its two runs from its start, not the circle’s hull', async () => {
     const gff = ['##gff-version 3', 'ring\tt\tCDS\t91\t110\t.\t+\t.\tID=across'].join('\n');

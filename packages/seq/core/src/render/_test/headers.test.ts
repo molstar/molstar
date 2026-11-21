@@ -345,11 +345,11 @@ describe('drawn alike, hit as laid out', () => {
     expect(rest).toContain('"1 hidden"');
     expect(rest).toContain('"2 filtered"');
     expect(rest).not.toMatch(/^pass tip[\s\S]*path/m);
-    // a hover on the slot (the track's label line hovered first: its actions show): the actions drawn over the label
-    // column in the tip pass, the hovered slot in the accent
-    const label = hitView(f.layout, slot.x + slot.width / 2, slot.y + slot.height / 2)!;
+    // a hover on the slot (a finger's: the track's label line tapped first, its actions show): the actions drawn over
+    // the label column in the tip pass, the hovered slot in the accent
+    const label = hitView(f.layout, slot.x + slot.width / 2, slot.y + slot.height / 2, true)!;
     expect(label).toBe(dom.header!.hit);
-    const hit = hitView(f.layout, slot.x + slot.width / 2, slot.y + slot.height / 2, false, label)!;
+    const hit = hitView(f.layout, slot.x + slot.width / 2, slot.y + slot.height / 2, true, label)!;
     expect(hit).toMatchObject({ target: 'header-slot', state: 'seq:hide', layer: dom.track.address, section: 'p' });
     expect(hit).toBe(slot.hit);
     const hovered = s.renderer.frame({ ...input, emphasis: { hover: hit } });
@@ -408,24 +408,30 @@ describe('drawn alike, hit as laid out', () => {
     });
     const line = sec.header!.line;
     expect(hitView(f.layout, line.x + 2, line.y + line.height / 2)).toBe(sec.header!.hit);
-    // the "⋯" names the menu, hit while its track's actions show
+    // the "⋯" names the menu: a mouse's hit at once, a finger's while its track's actions show
     const t0 = sec.tracks[0];
     const menu = t0.header!.menu!;
     const mx = menu.x + 2;
     const my = menu.y + menu.height / 2;
-    expect(hitView(f.layout, mx, my)).toBe(t0.header!.hit);
-    expect(hitView(f.layout, mx, my, false, t0.header!.hit)).toMatchObject({ state: HeaderMenuName });
+    expect(hitView(f.layout, mx, my)).toMatchObject({ state: HeaderMenuName });
+    expect(hitView(f.layout, mx, my, true)).toBe(t0.header!.hit);
+    expect(hitView(f.layout, mx, my, true, t0.header!.hit)).toMatchObject({ state: HeaderMenuName });
   });
 
-  it('a slot is hit only while its actions show: at rest the label line, under `always` the slot', async () => {
+  it('a mouse hits a slot with no hover before it (or another line’s); a finger only while its actions show; `always`', async () => {
     const { f } = await frame([], Host);
     const t = f.layout.sections[0].tracks[0];
     const slot = t.header!.slots[0];
     const x = slot.x + slot.width / 2;
     const y = slot.y + slot.height / 2;
-    // nothing hovered, or another track's line: no slot
-    expect(hitView(f.layout, x, y)).toMatchObject({ target: 'header-label' });
+    // a mouse: nothing hovered, or another track's line hovered (a press before the hover's frame): the slot
+    expect(hitView(f.layout, x, y)).toMatchObject({ target: 'header-slot', state: 'seq:hide' });
     expect(hitView(f.layout, x, y, false, f.layout.sections[0].tracks[1].header!.hit)).toMatchObject({
+      target: 'header-slot',
+    });
+    // a finger: nothing hovered, or another track's line: no slot (a tap on the label reveals them)
+    expect(hitView(f.layout, x, y, true)).toMatchObject({ target: 'header-label' });
+    expect(hitView(f.layout, x, y, true, f.layout.sections[0].tracks[1].header!.hit)).toMatchObject({
       target: 'header-label',
     });
     const s = await settle(spec(), [], { labelColumn: { min: 140 }, header: { actions: { show: 'always' } } });

@@ -252,21 +252,30 @@ const HoverOnly: { hover?: Hit } = {};
 
 /**
  * What a header part is under a point (_spec/README.md "Render", Track headers: Hit): a slot or the "⋯"
- * (`header-slot`) while its actions show under `hover` (the last hover's), a state (`header-state`), elsewhere on a
- * track's line `header-label`, on a section's line `section-header`. The hit is the one laid out (none made).
+ * (`header-slot`), a state (`header-state`), elsewhere on a track's line `header-label`, on a section's line
+ * `section-header`. A mouse's point is on its own line, so its slots hit whatever the last hover was; a finger's only
+ * while its line's actions show under `hover` (a tap on the label reveals them, the next tap runs one). The hit is the
+ * one laid out (none made).
  */
-export function hitHeaders(s: SectionLayout, x: number, y: number, hover: Hit | undefined): Hit | undefined {
+export function hitHeaders(
+  s: SectionLayout,
+  x: number,
+  y: number,
+  hover: Hit | undefined,
+  touch = false,
+): Hit | undefined {
   const config = s.config;
   if (x < config.inset || x >= config.inset + config.labelWidth) return undefined;
   HoverOnly.hover = hover;
+  const mouse = !touch && config.header.actions.show !== 'never';
   const sh = s.header;
   if (sh && y >= sh.line.y && y < sh.line.y + sh.line.height)
-    return hitLine(sh, x, y, actionsShown(s.section.address, s.id, HoverOnly, config, false)) ?? sh.hit;
+    return hitLine(sh, x, y, mouse || actionsShown(s.section.address, s.id, HoverOnly, config, false)) ?? sh.hit;
   for (let i = 0; i < s.tracks.length; i++) {
     const t = s.tracks[i];
     const line = t.header;
     if (!line || y < line.line.y || y >= line.line.y + line.line.height) continue;
-    const h = hitLine(line, x, y, actionsShown(t.track.address, s.id, HoverOnly, config));
+    const h = hitLine(line, x, y, mouse || actionsShown(t.track.address, s.id, HoverOnly, config));
     if (h) return h;
     if (line.hit) return line.hit;
   }

@@ -373,6 +373,11 @@ export interface HeadersParams {
   readonly contextClick?: 'everywhere' | 'header' | 'none';
   /** A long press opens the menu after this many ms (500: touch's context menu). */
   readonly longPressMs?: number;
+  /**
+   * A submenu opens after the pointer rests on its row this many ms (300: long enough that a pointer passing over the
+   * row on its way down the menu opens nothing, short enough to feel like hover; a click and → open it at once).
+   */
+  readonly submenuRestMs?: number;
   /** A count chip's click: `all` (default) shows every hidden thing in one patch; `menu` lists them. */
   readonly hiddenChip?: 'all' | 'menu';
 }
