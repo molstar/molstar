@@ -10,16 +10,18 @@
 // and nothing left behind when it is taken away.
 
 import { createSeqSpec } from '@molstar/seqx-core/lang';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { viewerItem } from '../config.js';
 import { DefaultSeqViewerSpec } from '../default-spec.js';
 import { channelsRow } from '../legends.js';
 import { mountLegend } from '../mount-legend.js';
 import { createSeqViewer, type SeqViewer } from '../viewer.js';
+import { stubCanvasContext } from './canvas-stub.js';
 import { type Frames, installFrames } from './frames.js';
 
 let frames: Frames | undefined;
 let viewer: SeqViewer | undefined;
+beforeEach(stubCanvasContext);
 afterEach(() => {
   viewer?.retire();
   frames?.restore();

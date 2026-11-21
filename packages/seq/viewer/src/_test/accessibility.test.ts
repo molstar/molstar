@@ -21,6 +21,7 @@ import { forcedColorTokens, readCssTokens } from '../canvas/index.js';
 import { viewerItem } from '../config.js';
 import { DefaultSeqViewerSpec } from '../default-spec.js';
 import { createSeqViewer, type SeqViewer } from '../viewer.js';
+import { stubCanvasContext } from './canvas-stub.js';
 import { installFrames, type Frames } from './frames.js';
 
 let frames: Frames;
@@ -31,6 +32,7 @@ beforeEach(() => {
   frames = installFrames();
   clock = 1000;
   vi.spyOn(DomHost, 'now').mockImplementation(() => clock);
+  stubCanvasContext();
 });
 
 afterEach(() => {
@@ -130,7 +132,7 @@ describe('the announcer', () => {
     // moving says nothing; the rest does
     expect(a.message.value.text).toBe('');
     frames.timers.fire();
-    expect(a.message.value.text).toBe('Domain A, p 3–8');
+    expect(a.message.value.text).toBe('Domain A, p 3–8, Domains');
     a.dispose();
   });
 

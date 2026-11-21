@@ -29,7 +29,7 @@ export interface SchemesOptions {
 /** A chain's name as its sections say it. */
 export const ChainNames: Readonly<Record<Chain, string>> = { light: 'Light (A)', heavy: 'Heavy (B)' };
 
-/** The label of a chain's first ruler track: the chain and the scheme it shows (`Heavy chain (B), IMGT`). */
+/** The label of a chain's ruler track: the chain and the scheme it shows (`Heavy (B), IMGT`). */
 export const rulerLabel = (chain: Chain, scheme: string) => `${ChainNames[chain]}, ${scheme}`;
 
 /** The ruler track's layer of a section, in the scheme a patch switches (`/views/main/<chain>/ruler/ruler`). */
@@ -51,8 +51,8 @@ export function build(options: SchemesOptions = {}, d: Derived = Data): Node {
     for (const c of Chains) {
       const s = v.section(c, { of: seqs[c] });
       s.track('ruler', { label: rulerLabel(c, 'Kabat') }).layer('ruler', { type: 'ruler', numbering: 'kabat' });
-      s.track('imgt', { label: 'IMGT' }).layer('ruler', { type: 'ruler', numbering: 'imgt' });
-      // the letters' track titles their legend, one for both chains: the chain is named by its first ruler
+      s.track('imgt', { label: rulerLabel(c, 'IMGT') }).layer('ruler', { type: 'ruler', numbering: 'imgt' });
+      // each ruler names its chain and scheme: a bare `IMGT` under `Heavy (B), Kabat` read as that label's second line
       s.track('letters', { label: 'Sequence' }).layer('letters', { type: 'letters' });
       s.track('cdrs-kabat', { label: 'CDRs (Kabat)' }).layer('cdrs', { type: 'ranges', data: cdrs[`${c}-kabat`] });
       s.track('cdrs-imgt', { label: 'CDRs (IMGT)' }).layer('cdrs', { type: 'ranges', data: cdrs[`${c}-imgt`] });

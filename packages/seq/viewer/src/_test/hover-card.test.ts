@@ -268,10 +268,11 @@ describe('the hover card’s content, headless on the HoverModel', () => {
     expect(a.card).toEqual({
       title: 'CDR1',
       rows: [
+        { label: 'Track', value: 'Domains' },
         { label: 'Extent', value: 'h 3–8' },
         { label: 'Category', value: 'loop' },
       ],
-      text: 'CDR1, h 3–8, loop',
+      text: 'CDR1, h 3–8, Domains, loop',
     });
     expect(a.said).toBe(a.card!.text);
     // inside the item, the value track names its value at the position
