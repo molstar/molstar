@@ -37,16 +37,35 @@ class ManualClock implements PortClock {
   private _now = 0;
   private _seq = 0;
   private readonly _timers = new Map<number, { at: number; fn: () => void }>();
+  private _waiting: { n: number; resolve: () => void }[] = [];
   get pending() {
     return this._timers.size;
+  }
+  /**
+   * Resolves when `n` timers wait: woken by the timers themselves, not by a count of event loop turns (the parse of the
+   * mmCIF's gzip is a stream on the thread pool: how many turns it takes depends on the load, how long it takes is the
+   * test's own timeout).
+   */
+  whenPending(n: number) {
+    if (this._timers.size === n) return Promise.resolve();
+    return new Promise<void>((resolve) => this._waiting.push({ n, resolve }));
+  }
+  private _wake() {
+    this._waiting = this._waiting.filter((w) => {
+      if (w.n !== this._timers.size) return true;
+      w.resolve();
+      return false;
+    });
   }
   setTimeout(fn: () => void, ms: number) {
     const id = ++this._seq;
     this._timers.set(id, { at: this._now + ms, fn });
+    this._wake();
     return id;
   }
   clearTimeout(h: unknown) {
     this._timers.delete(h as number);
+    this._wake();
   }
   async advance(ms: number) {
     this._now += ms;
@@ -57,12 +76,6 @@ class ManualClock implements PortClock {
     }
     await new Promise<void>((r) => setImmediate(r));
   }
-}
-
-/** Lets the event loop turn until `cond` holds (real turns: the parse streams). */
-async function until(cond: () => boolean, turns = 2000) {
-  for (let i = 0; i < turns && !cond(); i++) await new Promise<void>((r) => setImmediate(r));
-  expect(cond()).toBe(true);
 }
 
 /** A live stub: serves each service location from its recorded file and counts what it was asked. */
@@ -101,7 +114,8 @@ async function started(app: ServicesApp, start: () => Promise<void> = () => app.
   );
   // the delays are timers made as the application goes: the clock moves a step at a time until it is done
   // and a real turn of the event loop between steps: the parse of the mmCIF's gzip is a stream, not a timer
-  for (let i = 0; i < 400 && !finished; i++) {
+  // (no cap on the steps: a cap of turns is a bound on the load; the test's own timeout is the bound)
+  while (!finished) {
     await vi.advanceTimersByTimeAsync(50);
     await new Promise<void>((r) => setImmediate(r));
   }
@@ -118,13 +132,13 @@ describe('the services application, on recorded answers', () => {
     const phases: string[] = ['loading'];
     app.phase.listen(() => phases.push(app.phase.value));
     const done = app.start();
-    await until(() => clock.pending === 3);
+    await clock.whenPending(3);
     // three answers wait their delay: nothing is drawn, the application is loading
     expect(app.phase.value).toBe('loading');
     expect(app.viewer!.store.store.coverage('/data/2ocj')).toBeUndefined();
     await clock.advance(300);
     // the spec's data is here; SIFTS is asked for now and waits its delay too
-    await until(() => clock.pending === 1);
+    await clock.whenPending(1);
     expect(app.phase.value).toBe('sifts');
     expect(app.reads.value).toHaveLength(4);
     await clock.advance(300);
