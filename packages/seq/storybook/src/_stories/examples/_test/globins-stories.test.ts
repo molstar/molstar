@@ -53,6 +53,12 @@ describe('Globins stories, headless', () => {
     viewer = await openExample(family, { config: [[viewerItem('navigator.railPlace'), 'bottom']] as never });
     const last = viewer.frame!.layout.sections[0].tracks.at(-1)!.box;
     expect(at(viewer).top).toBeGreaterThanOrEqual(last.y + last.height);
+    viewer.retire();
+    viewer = await openExample(family, { config: [[viewerItem('navigator.railPlace'), ['ruler', 'pinned']]] as never });
+    const rails = viewer.frame!.layout.sections[0].rails!;
+    expect(rails.length).toBe(2);
+    expect(rails[1].pinned).toBe(true);
+    expect(rails[1].bottom).toBe(viewer.height);
   });
 
   it('hemoglobin with `links.hover` on, as its story: a heme’s chip lights the residues it contacts, its proximal histidine lights the heme', async () => {

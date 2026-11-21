@@ -325,6 +325,17 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
   let y = config.inset;
   // a section whose every track is hidden collapses fully (the application lists them): no gap, no line, no rail
   let anyShown = false;
+  // the pinned rails (`pinned`): a slim row each at the visible frame's foot, the first section's lowest, outside every
+  // section's rows (a live canvas only: an export has none); their rows are kept free of the fill band
+  const pinnedAt = new Map<string, number>();
+  if (input.rails && input.figure !== true)
+    for (const s of input.view.sections) {
+      const entry = input.rails[s.address];
+      if (entry === undefined || collapsedSection(s) || layoutOf(s) !== TracksLayout) continue;
+      if (s.blocks && s.params.arrange === 'stack') continue;
+      if (railRowList(entry, false).includes('pinned')) pinnedAt.set(s.address, pinnedAt.size);
+    }
+  const pinnedPx = pinnedAt.size * SlimRailPx;
   for (const section of input.view.sections) {
     const collapsed = collapsedSection(section);
     if (anyShown && !collapsed) y += config.sectionGap;
@@ -461,7 +472,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       const n = rowsShown(shown[fill], input.model, config.rows.pinInPlace);
       heights[fill] = rowsFillHeight(
         heights[fill],
-        height - top - used - config.inset,
+        height - top - used - config.inset - pinnedPx,
         n,
         titleRowOf(shown[fill], config),
       );
@@ -761,10 +772,15 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
           axis,
           own,
           row === 'ruler' && ruler >= 0 ? tracks[ruler].box : undefined,
-          row === 'top' ? headed : bottomTop,
+          row === 'top'
+            ? headed
+            : row === 'pinned'
+              ? height - SlimRailPx * ((pinnedAt.get(section.address) ?? 0) + 1)
+              : bottomTop,
           viewport,
           config,
           input.figure === true,
+          row === 'pinned',
         );
         (rails ??= []).push(rail);
       }
@@ -866,6 +882,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     issues,
     shown: shownNodes,
     ...(narrow ? { narrow } : {}),
+    ...(pinnedPx > 0 ? { pinnedPx } : {}),
   };
 }
 

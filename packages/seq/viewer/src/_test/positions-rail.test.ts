@@ -30,9 +30,9 @@ afterEach(() => {
 const Letters = 'MEEPQSDPSVEPPLSQETFSDLWKLLPENNVLSPLPSQAMDDLMLSPDDIEQWFTEDPGPDEAPRMPEAAPPVAPAPAA';
 
 /** A 300-column alignment's rows with a ruler over them; a declared overview (`navigator`: its side) when asked. */
-function spec(options: { navigator?: 'top' | 'bottom' | 'right'; ruler?: boolean } = {}): Node {
+function spec(options: { navigator?: 'top' | 'bottom' | 'right'; ruler?: boolean; fill?: boolean } = {}): Node {
   const b = createSeqSpec({ title: 'positions rail' });
-  const rows = Array.from({ length: 6 }, (_, i) => Letters.repeat(5).slice(i, i + 300));
+  const rows = Array.from({ length: options.fill ? 80 : 6 }, (_, i) => Letters.repeat(5).slice(i % 10, (i % 10) + 300));
   const aln = b.data.alignment('aln', {
     alphabet: 'protein',
     rows: { label: rows.map((_, i) => `r${i}`), letters: rows },
@@ -40,7 +40,7 @@ function spec(options: { navigator?: 'top' | 'bottom' | 'right'; ruler?: boolean
   b.views.view('v', (v) => {
     const s = v.section('s', { of: aln });
     if (options.ruler !== false) s.track('ruler').layer('ruler', { type: 'ruler' });
-    s.track('rows', { label: '', height: 60 }).layer('r', { type: 'rows', data: aln });
+    s.track('rows', options.fill ? { label: '' } : { label: '', height: 60 }).layer('r', { type: 'rows', data: aln });
     if (options.navigator) v.navigator('nav', { ...overviewNavigator(s), axes: 'both', place: options.navigator });
   });
   return b.build();
@@ -164,6 +164,53 @@ describe('a list of places (`navigator.railPlace` as an array)', () => {
     expect(after[0].start).toBeGreaterThan(start0);
     expect(after[1].start).toBe(after[0].start);
     expect(after[1].end).toBe(after[0].end);
+  });
+
+  it('`pinned` is a 12 px row at the frame’s foot at any scroll of the rows, drags the window, and is no row of an export', async () => {
+    const tall = [
+      [viewerItem('canvas.height'), 300],
+      [viewerItem('navigator.railPlace'), ['ruler', 'pinned']],
+    ] as const;
+    const v = await make(spec({ fill: true }), tall);
+    const track = '/views/v/s/rows';
+    const pinned = () => section(v).rails!.find((r) => r.pinned)!;
+    v.view.setRange(section(v).rail!.system, 1, 100);
+    v.view.setBand(track, { bandTop: 0 });
+    v.draw();
+    expect(section(v).rails!.length).toBe(2);
+    expect(pinned().bottom).toBe(300);
+    expect(pinned().bottom - pinned().top).toBe(SlimRailPx);
+    // the rows keep clear of it
+    const rows = section(v).tracks.at(-1)!.box;
+    expect(rows.y + rows.height).toBeLessThanOrEqual(pinned().top);
+    v.view.setBand(track, { bandTop: 500 });
+    v.draw();
+    expect(pinned().bottom).toBe(300);
+    // a drag on it pans the window, the rail below the ruler follows
+    const [ruler] = section(v).rails!;
+    const start0 = ruler.start;
+    const p = pinned();
+    const k = p.width / p.total;
+    const x = p.x + 50 * k;
+    const y = p.bottom - 2;
+    expect(v.input.down(x, y)).toBe(true);
+    v.input.move(x + 40 * k, y);
+    v.input.up();
+    v.draw();
+    expect(section(v).rails![0].start).toBeGreaterThan(start0);
+  });
+
+  it('an export has no row for a pinned rail', async () => {
+    const config = (place: readonly string[]) =>
+      [
+        [viewerItem('canvas.height'), 300],
+        [viewerItem('navigator.railPlace'), place],
+      ] as const;
+    const pinned = await make(spec({ fill: true }), config(['ruler', 'pinned']));
+    const plain = await make(spec({ fill: true }), config(['ruler']));
+    expect((await pinned.renderSvg({ navigators: 'include' })).svg.replace(/s[0-9a-z]+-/g, '')).toBe(
+      (await plain.renderSvg({ navigators: 'include' })).svg.replace(/s[0-9a-z]+-/g, ''),
+    );
   });
 
   it('`[ruler, ruler]`, and a fallback onto a listed place, give one rail', async () => {

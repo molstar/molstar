@@ -122,7 +122,8 @@ export interface ViewerConfig {
    * overview too; `unlessOverview`, replaced by a navigator over its rows; `none`), when a linear section draws its
    * positions rail (`positionsRail`: `always`, beside a declared navigator too; `unlessNavigator`, replaced by one;
    * `none`) and where (`railPlace`: `ruler` below the ruler, `bottom` under the last track, `navigator` by a declared
-   * horizontal navigator, else `ruler`; one place or a list, a rail each on the one window).
+   * horizontal navigator, else `ruler`; `pinned` at the frame's foot, in reach at any scroll; one place or a list, a
+   * rail each on the one window).
    */
   readonly navigator: {
     readonly form: 'rail' | 'none';

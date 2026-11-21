@@ -3032,9 +3032,13 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
   rail): `ruler` (below the ruler's border; a section with no ruler shown takes `bottom`), `bottom` (the slim row under
   the last track), `top` (a slim row above the section's first track, below its header: what `navigator` gives a section
   a declared `top` navigator binds along its positions, `bottom` for a `bottom` one, else `ruler`; a vertical overview
-  is no horizontal navigator); in a figure the border whatever the row. Why `top`: the navigator is a part the host
-  places, outside the canvas; the canvas's first row is the one directly under a top navigator, so the rail beside it
-  reads as its precise control.
+  is no horizontal navigator), `pinned` (`Rail.pinned`: a slim row at the bottom edge of the frame (`size.height`),
+  outside the scrolled rows; the frame's foot is kept free of it (`ViewLayout.pinnedPx`: the fill band stops above it, a
+  content-sized canvas grows by it; sections with one stack up from the foot, the first lowest), drawn on its own
+  ground, and its press and hit are the section's wherever the page point is); in a figure the border whatever the row,
+  and no pinned row. Why `top`: the navigator is a part the host places, outside the canvas; the canvas's first row is
+  the one directly under a top navigator, so the rail beside it reads as its precise control. Why `pinned`: a tall view
+  keeps its horizontal control in reach at any scroll, as the ruler is kept at the top.
 - **The rows rail** (`placeRowsRail`, `SectionLayout.rowsRails`; `FrameInput.rails` by the rows track's address): the
   same `Rail` upright (`vertical`: along the page's y, its line and grab zone across on x; one geometry, drawn and hit
   by the same code, the coordinates turned at the rect and at the hit), `SlimRailPx` wide at the right edge (right of

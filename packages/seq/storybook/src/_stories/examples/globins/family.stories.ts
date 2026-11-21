@@ -31,6 +31,15 @@ export const FamilyRailAtBottom: StoryObj = {
   render: () => exampleStory(view('family'), { config: [[viewerItem('navigator.railPlace'), 'bottom']] as never }),
 };
 
+/**
+ * The family with two rails on its one window (`navigator.railPlace: ['ruler', 'pinned']`): the one under the ruler, and
+ * a second pinned to the foot of the frame, in reach at any scroll of the rows; drag either, the other follows.
+ */
+export const FamilyRailPinned: StoryObj = {
+  render: () =>
+    exampleStory(view('family'), { config: [[viewerItem('navigator.railPlace'), ['ruler', 'pinned']]] as never }),
+};
+
 /** Two clades folded from the spec (`collapsed`): a summary row each, its consensus opaque by its share, a tree wedge. */
 export const Folded: StoryObj = { render: () => exampleStory(view('folded')) };
 

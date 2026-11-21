@@ -111,6 +111,8 @@ export interface ViewLayout {
   readonly shown: readonly OverlayNode[];
   /** The columns a narrow frame laid out with, the plot's width and the frame's least (a view with a tracks section). */
   readonly narrow?: NarrowColumns;
+  /** The frame's foot the pinned rails take, px (`pinned`): past the last section, kept free of the fill band. */
+  readonly pinnedPx?: number;
 }
 
 export interface LayoutInput {

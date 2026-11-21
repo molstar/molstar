@@ -321,6 +321,12 @@ export class ViewerInput {
   sectionAt(y: number): string | undefined {
     const layout = this.viewer.frame?.layout;
     if (!layout) return undefined;
+    // a pinned rail is the frame's foot's, past the sections (or over the foot of a section the frame clips)
+    for (const s of layout.sections) {
+      const rs = s.rails;
+      for (let i = 0; rs && i < rs.length; i++)
+        if (rs[i].pinned && y >= rs[i].top && y < rs[i].bottom) return s.section.address;
+    }
     for (const s of layout.sections) if (y >= s.y && y < s.y + s.height) return s.section.address;
     return undefined;
   }
