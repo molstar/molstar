@@ -184,6 +184,36 @@ describe('repr/schema: validation', () => {
     expect(n.children![0].children![0].children![1].params!.values).toBeInstanceOf(Float32Array);
   });
 
+  it("carries an extension's params: a key in a foreign namespace, and every undeclared one on an extension's node", () => {
+    const Open: Language = {
+      ...Mini,
+      kinds: { ...Mini.kinds, ranges: { ...Mini.kinds.ranges, extensionParam: 'style' } },
+    };
+    const r = (extra: Record<string, unknown>) => domains({ start: [0], end: [1] }, extra);
+    expect(codes(spec(p53, r({ 'rondo:bundle': true })), Open)).toEqual([]);
+    // the language's own namespace is not foreign
+    expect(codes(spec(p53, r({ 'mini:bundle': true })), Open)).toEqual(['repr.schema.param.unknown']);
+    expect(codes(spec(p53, r({ bundle: 1 })), Open)).toEqual(['repr.schema.param.unknown']);
+    // a namespaced `extensionParam`: its node's undeclared params are the extension's (the declared ones still checked)
+    const ext = { ...r({}), params: { ...r({}).params, style: 'rondo:ribbons', bundle: 0.8 } } as Node;
+    expect(codes(spec(p53, ext), Open).filter((c) => c === 'repr.schema.param.unknown')).toEqual([]);
+    const tree = spec(p53, ext);
+    const none = { made: [], children: [], removed: [], moved: [] };
+    expect(
+      validateChanges(Open, tree, {
+        ...none,
+        params: [{ at: ['data', 'domains'], keys: ['bundle'], where: 'params' }],
+      }),
+    ).toEqual([]);
+    const plain = spec(p53, r({ bundle: 1, 'rondo:x': 1 }));
+    expect(
+      validateChanges(Open, plain, {
+        ...none,
+        params: [{ at: ['data', 'domains'], keys: ['bundle', 'rondo:x'], where: 'params' }],
+      }).map((i) => i.code),
+    ).toEqual(['repr.schema.param.unknown']);
+  });
+
   it('reads a float column with null and NaN as missing', () => {
     const v: Node = { kind: 'values', id: 'v', params: { target: '/data/p53', values: [0.5, null, Number.NaN] } };
     expect(codes(spec(p53, v))).toEqual([]);

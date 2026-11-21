@@ -196,6 +196,7 @@ export function validateChanges(
           if (v === undefined) {
             if (p?.required) c.report('repr.schema.param.missing', `The param "${k}" is required`, p.doc, k);
           } else if (!p) {
+            if (foreignKey(language.id, k) || extensionNode(language.id, spec, at.node)) continue;
             const names = Object.keys(spec.params ?? {});
             c.report('repr.schema.param.unknown', 'Not a param it has', names.slice(0, 20).join(', ') || 'none', k);
           } else {
@@ -231,6 +232,14 @@ export function validateChanges(
   });
   return c.issues;
 }
+
+/** A param key in a namespace other than the language's (`rondo:bundle`): an extension's, carried unchecked. */
+const foreignKey = (lang: string, key: unknown): boolean =>
+  typeof key === 'string' && !!kindNamespace(key) && kindNamespace(key) !== lang;
+
+/** Whether a node is an extension's by its kind's `extensionParam` (its value in a foreign namespace). */
+const extensionNode = (lang: string, spec: KindSpec, n: Node): boolean =>
+  !!spec.extensionParam && foreignKey(lang, n.params?.[spec.extensionParam]);
 
 const infinite = (x: number) => x === Number.POSITIVE_INFINITY || x === Number.NEGATIVE_INFINITY;
 
@@ -301,7 +310,7 @@ function checker(language: Language | undefined, options: ValidateOptions) {
     if (n.args && !spec.data)
       report('repr.schema.args.shape', `${n.kind} takes no positional values`, undefined, 'args');
     path.push('params');
-    fields(spec.params ?? {}, n.params ?? {}, 'param');
+    fields(spec.params ?? {}, n.params ?? {}, 'param', lang.id, extensionNode(lang.id, spec, n));
     path.pop();
     if (spec.data) args(spec.data, n.args ?? []);
     children(lang, n, n.kind);
@@ -365,10 +374,21 @@ function checker(language: Language | undefined, options: ValidateOptions) {
     path.pop();
   }
 
-  function fields(specs: Fields, values: Readonly<Record<string, Value>>, what: 'param' | 'field' | 'column') {
+  /**
+   * `lang`: a node's params, where a key in a foreign namespace is an extension's, carried unchecked; `open`: the node is
+   * an extension's (`KindSpec.extensionParam`), so every undeclared param is.
+   */
+  function fields(
+    specs: Fields,
+    values: Readonly<Record<string, Value>>,
+    what: 'param' | 'field' | 'column',
+    lang?: string,
+    open = false,
+  ) {
     for (const key of Object.keys(values)) {
       if (values[key] === undefined) continue;
       if (!own(specs, key)) {
+        if (lang !== undefined && (open || foreignKey(lang, key))) continue;
         // a table's extra columns are its custom fields, checked by `table`
         if (what !== 'column')
           report('repr.schema.param.unknown', `Not a ${what} it has`, list(Object.keys(specs)) || 'none', key);

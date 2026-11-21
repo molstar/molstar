@@ -152,6 +152,11 @@ quantities need no quotes, and no units table is needed to read them (locations-
   (format.md "Unknown kinds"). An unknown kind without one is an error. Either way its children are checked with the
   language's kinds, with no parent rule for them (what sits under it is the extension's); normalization goes on below it
   too. Why: a spec with one extension node keeps every check of what the language does know.
+- **Extension params**: a param key in a namespace other than the language's (`rondo:bundle`) is an extension's: kept,
+  carried and not checked, on any kind. A kind's `extensionParam` names the param whose value, when namespaced
+  (`type: 'rondo:ribbons'`), makes the node an extension's: its undeclared params are then kept unchecked too (the
+  declared ones are checked as ever). Why: an extension's params ride on the language's nodes, checked by the extension
+  that owns the namespace; a reader without it keeps them, so a spec prints and patches the same with and without it.
 - **A union** reads a node by the member that takes its kind, anything else by the first member it fits quietly.
 - **Refs**: their spelling only (an address that parses, or an id). What they name is a resolve pass's, not built.
 
