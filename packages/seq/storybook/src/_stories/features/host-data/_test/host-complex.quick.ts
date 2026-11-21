@@ -6,7 +6,8 @@
 
 // A section of a source's complex costs a warm frame nothing: the view is resolved over the opened model once a node
 // version, so with a hover on a chain's block a frame drawn again resolves nothing and makes no object; after the host
-// drops a chain (one new opened model, one new view) the frame is warm again at the same 0 bytes. By hand, never in
+// drops a chain (one new opened model, one new view) the frame is warm again at the same 0 bytes, quiet within the
+// harness's warm-up. The hover is a residue's of the opened model's unit (its system asserted). By hand, never in
 // CI: `npx vitest run -c packages/seq/storybook/vitest.perf.config.ts`.
 
 import { readFileSync } from 'node:fs';
@@ -16,14 +17,18 @@ import { createSeqViewer, type SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { quickCase } from '@molstar/test-harness/quick';
 import { describe, expect, inject, it } from 'vitest';
 import { FakeStructureViewer } from '../../../support/fake-structure/fake-viewer.js';
-import { HostTableFile, hostComplexSpec, hostTableOf, withFakeHost } from '../compose.js';
+import { HostTableFile, hostComplexSpec, hostTableOf, unitAddress, withFakeHost } from '../compose.js';
 
-/** The pointer over the first block's residues (its track, 30 px in). */
-function hoverFirstBlock(v: SeqViewer): void {
+/**
+ * The pointer over a residue of the first block (chain A) on the residues track; the hover's target (none: an element,
+ * not a header part), its system and position.
+ */
+function hoverFirstBlock(v: SeqViewer): [string | undefined, string | undefined, number] {
   const s = v.frame!.layout.sections[0];
   const t = s.tracks[1];
-  v.input.move(s.axis!.sx0 + 30, t.box.y + Math.min(6, t.box.height / 2));
+  v.input.move(s.axis!.x(50), t.box.y + t.box.height / 2);
   v.draw();
+  return [v.hover.current.target, v.hover.current.system, v.hover.current.position];
 }
 
 describe('a section of a source’s complex on the frame’s path', () => {
@@ -38,7 +43,7 @@ describe('a section of a source’s complex on the frame’s path', () => {
     await v.settle();
     v.draw();
     expect(v.view.resolved.value?.sections[0].blocks).toHaveLength(8);
-    hoverFirstBlock(v);
+    expect(hoverFirstBlock(v)).toEqual([undefined, unitAddress('A'), expect.any(Number)]);
     const before = quickCase(task, 'viewer frame over a host’s complex', () => void v.draw(), {}).r;
     fake.dropChain('D');
     // the reopen is asked for the next frame: drawn, then settled
@@ -49,10 +54,7 @@ describe('a section of a source’s complex on the frame’s path', () => {
     }
     v.draw();
     expect(v.view.resolved.value?.sections[0].blocks).toHaveLength(6);
-    hoverFirstBlock(v);
-    // the drop's new view and renderer send the frame's path through the compiler again (JIT code, not objects): warmed
-    // past the harness's own cap before it is read
-    for (let i = 0; i < 100_000; i++) v.draw();
+    expect(hoverFirstBlock(v)).toEqual([undefined, unitAddress('A'), expect.any(Number)]);
     const after = quickCase(task, 'viewer frame over a host’s complex, a chain dropped', () => void v.draw(), {}).r;
     console.info(
       `frame over a host's complex: ${before.bytesPerStep.toFixed(0)} bytes (${before.note}); after a drop ${after.bytesPerStep.toFixed(0)} (${after.note})`,
@@ -61,5 +63,8 @@ describe('a section of a source’s complex on the frame’s path', () => {
     fake.dispose();
     expect(before.bytesPerStep, before.note).toBeLessThanOrEqual(inject('perfThreshold'));
     expect(after.bytesPerStep, after.note).toBeLessThanOrEqual(inject('perfThreshold'));
+    // warm in the harness's own warm-up: no function the frame calls compiled again a step (a record keyed by the
+    // rails' addresses deoptimized on each new view: 3.5 B and 35 B of code a step, never quiet)
+    expect([after.settled, after.codePerStep], after.note).toEqual(['quiet', 0]);
   });
 });
