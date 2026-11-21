@@ -315,14 +315,15 @@ function headersBehavior(context: BehaviorContext, params: HeadersParams = {}): 
           }
         }),
       );
-      // a new layout, an undo or a load: the menu was of the old picture; a preview's own (a scheme hovered in the
-      // menu) is the menu's, and keeps it
-      let preview = context.spec.preview.value;
+      // the view resolved again (a source's answer, an edit, a preview, an undo): the menu stays while its header is
+      // still shown, and closes when its section or track is gone or hidden (it was of a picture that is no more)
       stops.push(
-        context.view.resolved.listen(() => {
-          const p = context.spec.preview.value;
-          if (p !== preview) preview = p;
-          else closeMenu();
+        context.view.resolved.listen((view) => {
+          const t = shownMenu.value?.menu.target;
+          if (!t) return;
+          const section = view?.sections.find((s) => s.address === t.section);
+          const there = !!section && (t.track === undefined || section.tracks.some((x) => x.address === t.track));
+          if (!there) closeMenu();
         }),
       );
     },

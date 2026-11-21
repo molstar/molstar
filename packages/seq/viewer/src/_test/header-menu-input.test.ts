@@ -239,6 +239,30 @@ describe('the header menu over the view', () => {
   });
 });
 
+describe('an open menu and the view resolving again', () => {
+  it('a load, or an edit elsewhere, keeps it; its track gone closes it', async () => {
+    const { v, container, headers } = await mount();
+    await openMenu(v, headers, container, Domains);
+    // the same view loaded again (a source's answer, a reload): the menu's track is still there
+    await v.load(spec());
+    await v.settle();
+    frames.flush();
+    expect(headers.menu.value?.menu.target.track).toBe(Domains);
+    expect(container.querySelector('[role="menu"]')).not.toBeNull();
+    // another track hidden: still there
+    await v.execute('track.hide', { address: Letters });
+    await v.settle();
+    frames.flush();
+    expect(container.querySelector('[role="menu"]')).not.toBeNull();
+    // its own track hidden: closed
+    await v.execute('track.hide', { address: Domains });
+    await v.settle();
+    frames.flush();
+    expect(headers.menu.value).toBeUndefined();
+    expect(container.querySelector('[role="menu"]')).toBeNull();
+  });
+});
+
 describe('Color ▸', () => {
   const labels = (container: HTMLElement) =>
     [...container.querySelectorAll('[role="menu"] [role^="menuitem"]')].map((b) => b.textContent);
