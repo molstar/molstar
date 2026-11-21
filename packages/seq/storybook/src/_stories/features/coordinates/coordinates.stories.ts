@@ -44,5 +44,5 @@ export const ReversedGene: StoryObj = { render: () => exampleStory(view('reverse
  */
 export const ProteinOverItsCodingDna: StoryObj = {
   name: 'Protein Over Its Coding DNA',
-  render: () => exampleStory(CoordinatesViews.find((v) => v.id === 'coding-dna')!),
+  render: () => exampleStory(CoordinatesViews.find((v) => v.id === 'coding-dna')!, { stacked: true }),
 };
