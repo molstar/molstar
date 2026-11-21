@@ -9,7 +9,7 @@ import { createDragSession } from '@molstar/seqx-viewer/drag-session';
 import type { NavigatorModel } from '@molstar/seqx-viewer/navigator';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { cancelFrameCallback, requestFrameCallback } from '@molstar/ui/dom/frame';
-import { hostPicture } from './compose.js';
+import { blockAt, blockReadout, hostPicture } from './compose.js';
 
 // The host-drawn navigator's DOM (the viewer's _spec "Models", NavigatorModel, the contract): the host's element drawn
 // from the model's last frame (its domains and windows as elements, placed by `xRange`) and each of its events one of
@@ -29,17 +29,33 @@ export function wireHostNavigator(
   nav.setAttribute('aria-label', 'Host-drawn navigator');
   Object.assign(nav.style, { position: 'relative', touchAction: 'none', userSelect: 'none' });
   let frame: number | undefined;
+  /** The block the pointer is on (its label), outlined; none when it left. */
+  let hovered: string | undefined;
+  /** The hovered block changed: the elements are made again though the model drew nothing new. */
+  let dirty = false;
+  const say = () => {
+    if (!readout) return;
+    const pic = hostPicture(model);
+    readout.textContent = blockReadout(
+      pic.blocks.find((b) => b.label === hovered),
+      model.readout.value,
+    );
+  };
   const paint = () => {
     frame = undefined;
     model.resize(nav.clientWidth, height);
-    if (!model.draw()) return;
+    if (!model.draw() && !dirty) return;
+    dirty = false;
     const pic = hostPicture(model);
     const els: HTMLElement[] = [];
+    // the blocks in lanes: the room the host's height gives (8 px above and below), shared by the lanes in use
+    const lane = (height - 16) / pic.lanes;
     for (const b of pic.blocks) {
       const el = doc.createElement('div');
       el.textContent = b.label;
       el.dataset.block = b.label;
-      el.style.cssText = `position: absolute; left: ${b.x}px; width: ${b.width}px; top: 8px; bottom: 8px; border-radius: 3px; background: color-mix(in srgb, var(--msui-accent) 25%, transparent); color: var(--msui-text); font-size: 10px; line-height: ${height - 16}px; text-align: center; overflow: hidden; pointer-events: none;`;
+      if (b.label === hovered) el.dataset.hovered = '';
+      el.style.cssText = `position: absolute; left: ${b.x}px; width: ${b.width}px; top: ${8 + b.lane * lane}px; height: ${lane - 1}px; box-sizing: border-box; border-radius: 3px; background: color-mix(in srgb, var(--msui-accent) ${b.label === hovered ? 45 : 25}%, transparent); color: var(--msui-text); font-size: ${Math.min(10, lane - 2)}px; line-height: ${lane - 1}px; text-align: center; overflow: hidden; white-space: nowrap; pointer-events: none;`;
       els.push(el);
     }
     for (const w of pic.windows) {
@@ -50,13 +66,13 @@ export function wireHostNavigator(
     }
     nav.replaceChildren(...els);
     nav.style.cursor = model.cursor;
-    if (readout) readout.textContent = model.readout.value ?? 'Hover the navigator';
+    say();
   };
   const schedule = () => {
     if (frame === undefined) frame = requestFrameCallback(paint);
   };
-  const say = () => nav.setAttribute('aria-valuetext', model.values.value[model.focused.value]?.text ?? '');
-  const offs = [model.version.listen(schedule), viewer.drawn.listen(schedule), model.values.listen(say)];
+  const speak = () => nav.setAttribute('aria-valuetext', model.values.value[model.focused.value]?.text ?? '');
+  const offs = [model.version.listen(schedule), viewer.drawn.listen(schedule), model.values.listen(speak), model.readout.listen(say)];
 
   const at = (e: MouseEvent) => {
     const r = nav.getBoundingClientRect();
@@ -65,8 +81,28 @@ export function wireHostNavigator(
   const touch = (e: PointerEvent) => ({ touch: e.pointerType === 'touch' });
   const drag = createDragSession(nav, () => model.up());
   const listeners: [string, (e: any) => void, AddEventListenerOptions?][] = [
-    ['pointermove', (e: PointerEvent) => model.move(...at(e), touch(e))],
-    ['pointerleave', () => model.leave()],
+    [
+      'pointermove',
+      (e: PointerEvent) => {
+        const [x, y] = at(e);
+        const over = blockAt(hostPicture(model), x, y, height)?.label;
+        if (over !== hovered) {
+          hovered = over;
+          dirty = true;
+          schedule();
+        }
+        model.move(x, y, touch(e));
+      },
+    ],
+    [
+      'pointerleave',
+      () => {
+        hovered = undefined;
+        dirty = true;
+        schedule();
+        model.leave();
+      },
+    ],
     [
       'pointerdown',
       (e: PointerEvent) => {

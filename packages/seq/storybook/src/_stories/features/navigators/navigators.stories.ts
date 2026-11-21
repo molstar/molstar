@@ -117,6 +117,6 @@ export const CoverageStrip: StoryObj = {
 export const HostDrawn: StoryObj = {
   render: () =>
     hostNavigatorStory({
-      hint: 'A navigator the host draws in DOM elements: its gestures, keys, readout and slider value are the viewer’s NavigatorModel’s.',
+      hint: 'A navigator the host draws in DOM elements: its gestures, keys and slider value are the viewer’s NavigatorModel’s. Domains that overlap (the nuclear localization signal and the tetramerization domain) take lanes of their own; hover a domain and the line under the navigator names it and its residues, then what the model says of the pointer’s place.',
     }),
 };
