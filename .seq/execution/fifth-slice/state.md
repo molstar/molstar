@@ -50,6 +50,11 @@
 - **One lane at a time** (the author, 2026-11-21: "slow down to just 1 active lane after current batch finishes, we
   are nearing usage limit"): after GC3 and GG finish, one agent at a time (a lane, then its reviewer, then its fix
   round), never two; VC waits for both.
+- **Stage 1's gate passed** (the author, 2026-11-21: every story walked, the findings in `fixes.md`; the novice
+  questions "Yes, all five"): F3 "Within 5 Å" on a whole chain selects the other chains' residues within 5 Å, its card
+  naming it; F9 the colouring track's icon pressed, one at a time, its tooltip naming it; F11 an empty section names
+  its issue in its own row (the empty-well rule); F14 the "n filtered" card names the filter and says a click clears;
+  F25 a navigator window at the fit drawn as one quiet frame (no grips, no target), the story opening zoomed.
 - **A GenBank lane in stage 2** (the author, 2026-11-21: "Add a GenBank lane", after "Try pUC19.gb" in Services ›
   Your own file showed only a refusal): GB after VC, strong, a short design section first (plan, Stage 2); GenBank
   leaves Out of scope.
@@ -121,8 +126,7 @@ order:
 2. **GB** (stage 2, after VC): write `briefs/gb-genbank.md` from the plan's GB entry; the genome-formats.md
    "GenBank" section agreed in the brief first; ask before downloading L09137.2's flat file. Strong model.
 3. **Stage 2's GATE** (plan): `pnpm build`, `pnpm check:workspace`, each runtime's size row.
-4. **Stage 1's GATE, the author's**: the look is done (2026-11-21, every story; findings in `fixes.md`); left: the novice questions F3, F9, F11, F14, F25 (`fourth-slice/novice-findings.md`),
-   each a yes or no with a recommendation.
+4. ~~Stage 1's GATE~~: passed 2026-11-21 (Decided).
 5. **RG** (stage 3, strong, alone in the store), then FR, LA; GX and RX in stage 4.
 6. **Fix lanes** on Sonnet (Decided; the two class items in `fixes.md`, the hover contract and the empty well, on the strong model) as `fixes.md` gathers items; open now: the hover card (placement, wrapping, the density row's highlight, bare row labels), the navigator's readout covering the control, track sizing with a cap and its own scroll (a design first), the navigator's window and zoom strip (a look design first), the square's sweep without feedback, the palette control (shown where it does nothing, twice, its arrow), the overview cut at the right on a wide page, the tree's leftmost line the 3,000-contig speed (M5).
 

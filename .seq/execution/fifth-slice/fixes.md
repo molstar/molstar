@@ -71,6 +71,14 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   itself comes into the slice (the author, 2026-11-21: "Add a GenBank lane"; plan, GB): after GB, "Try pUC19.gb"
   loads the recorded GenBank file and `.gb` leaves the refused list; until then the button goes.
 
+- **The novice decisions, to build** (stage 1's gate, the author, 2026-11-21: "Yes, all five"; novice-findings.md):
+  F3 the fake's "Within 5 Å" on a selection that is already the chain selects the residues of the other chains within
+  5 Å (never the selection again), its card "n residues within 5 Å of chain A"; F9 the track the structure is coloured
+  by shows its icon pressed (one at a time, the icon fixed in place, its tooltip naming it); F11 an empty section says
+  its issue in its own row (with the empty-well rule above); F14 the "n filtered" card names the filter ("1 filtered:
+  Species = Human") and says "click to clear"; F25 a navigator window at the fit is drawn as one quiet frame, no grips
+  and no drag target (with the strip item), the Coverage strip story opening zoomed. Tests one a decision.
+
 - **The canvas and the SVG of one spec lay out differently** (the author, 2026-11-21, tRNA › Views › Seed and chain:
   "seems like a layout issue. the canvas is big, svg small"). Same spec, two sizes: on the canvas the seed's rows band
   grows to every row (the page scrolls, the 1EHZ chain track pushed out of sight below it); on the SVG the band stops
