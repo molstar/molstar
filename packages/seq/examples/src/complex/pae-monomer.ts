@@ -11,9 +11,9 @@ import { prediction } from './data.js';
 import { PaeColor } from './pae.js';
 
 // CDK2's own PAE as AlphaFold DB publishes it (AF-P24941-F1, model version 6): real values, the whole chain, in the
-// colors of AlphaFold DB's plot, so it compares with https://alphafold.ebi.ac.uk/entry/P24941 side by side. The cross-chain
-// PAE of the complex is not in AlphaFold DB (no permissive prediction of the complex, none in ModelArchive was found
-// 2026-11-21): the complex's grids stay synthetic and say so; nothing here mixes the two.
+// colors of AlphaFold DB's plot, so it compares with https://alphafold.ebi.ac.uk/entry/P24941 side by side. The
+// cross-chain PAE of the complex is not in AlphaFold DB (no permissive prediction of the complex, none in ModelArchive
+// was found 2026-11-21): the complex's grids stay synthetic and say so; nothing here mixes the two.
 
 export const title = 'CDK2: AlphaFold DB’s PAE';
 

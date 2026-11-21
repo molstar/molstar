@@ -4,9 +4,12 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// AlphaFold DB's predicted aligned error of CDK2 (AF-P24941-F1, model version 6, CC BY 4.0), as the fixture
-// `fixtures/complex/AF-P24941-F1-predicted_aligned_error_v6.json` holds it: 298 rows of 298 whole numbers (Å, 0 to 31),
-// row-major, one base-32 digit a value. Written from the fixture (the fixtures test compares them). Do not edit.
+// AlphaFold DB's predicted aligned error of CDK2 (AF-P24941-F1, model version 6; CC BY 4.0), fetched 2026-11-21 from
+// https://alphafold.ebi.ac.uk/files/AF-P24941-F1-predicted_aligned_error_v6.json (197,533 bytes, sha256
+// 96814697396b172ef731244708659a0eb844547f360bde9414f40ad99b1690bf): 298 rows of 298 whole numbers (Å, 0 to 30),
+// row-major, one base-32 digit a value, the file's `max_predicted_aligned_error` 31.75. The file is not kept: the
+// examples' test rebuilds it as `JSON.stringify([{ predicted_aligned_error, max_predicted_aligned_error }])`, which is
+// byte for byte the download, and checks its sha256. Do not edit.
 
 export const Cdk2PaeSize = 298;
 

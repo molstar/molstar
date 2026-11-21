@@ -5,6 +5,7 @@
  */
 
 import { BuiltInLayerTypes, BuiltInLayouts } from '@molstar/seqx-core/render/built-ins';
+import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Node } from '@molstar/core/repr/tree';
@@ -41,7 +42,6 @@ import {
   prediction,
 } from '../complex/data.js';
 import { cdk2Pae } from '../complex/pae-monomer.js';
-import { AlphaFoldPae } from '../complex/pae.js';
 import { cellReadout, readoutWants, rectReadout } from '../complex/readout.js';
 import { nodeFixtureAssets, PackageFolder } from '../node-assets.js';
 import { ComplexViews } from '../views.js';
@@ -55,6 +55,8 @@ const Folder = join(PackageFolder, 'fixtures', 'complex');
 
 interface SourceRow {
   readonly file: string;
+  readonly sha256Download: string;
+  readonly bytesDownloaded: number;
 }
 
 const sources = JSON.parse(readFileSync(join(Folder, 'sources.json'), 'utf8')) as SourceRow[];
@@ -448,16 +450,14 @@ describe('the Complex views over the grid builder', () => {
 });
 
 describe('CDK2’s PAE from AlphaFold DB (real)', () => {
-  it('is the fixture’s matrix, whole, in AlphaFold DB’s colors over its maximum', () => {
-    const doc = JSON.parse(
-      readFileSync(join(PackageFolder, 'fixtures/complex/AF-P24941-F1-predicted_aligned_error_v6.json'), 'utf8'),
-    );
-    const rows = doc[0].predicted_aligned_error as number[][];
-    expect(rows.length).toBe(Lengths.cdk2);
-    expect(Array.from(cdk2Pae())).toEqual(rows.flat());
-    // the plot's palette: Greens reversed, dark green at 0 to near white; domain AlphaFold DB's max
-    expect([AlphaFoldPae[0], AlphaFoldPae[8]]).toEqual(['#00441b', '#f7fcf5']);
-    expect(doc[0].max_predicted_aligned_error).toBe(31.75);
+  it('is AlphaFold DB’s download, rebuilt byte for byte from the digits (its sha256 as recorded)', () => {
+    const n = Lengths.cdk2;
+    const values = Array.from(cdk2Pae());
+    const rows = Array.from({ length: n }, (_, i) => values.slice(i * n, (i + 1) * n));
+    const text = JSON.stringify([{ predicted_aligned_error: rows, max_predicted_aligned_error: 31.75 }]);
+    const row = sources.find((r) => r.file.endsWith('cdk2-pae-data.ts'))!;
+    expect(createHash('sha256').update(text).digest('hex')).toBe(row.sha256Download);
+    expect(text.length).toBe(row.bytesDownloaded);
   });
 
   it('is a view of its own, labeled as AlphaFold DB’s (no synthetic value in its plot)', () => {

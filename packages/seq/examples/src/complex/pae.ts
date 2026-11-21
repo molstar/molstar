@@ -11,32 +11,20 @@ import { complexPae, constructOffset, contactRows, Data, prediction } from './da
 
 // The Complex's prediction: CDK2 and cyclin A2 as UniProt has them (P24941, P20248), a section a chain, and the
 // synthetic predicted aligned error between them (`complexPae`'s CDK2 × cyclin A block: low across 1FIN's interface,
-// high where cyclin A2 is disordered) in AlphaFold DB's PAE colors, as a grid section whose x follows CDK2's section and y cyclin A's; 1FIN's contacts
-// (both copies, shifted onto P20248 by the construct's offset) as dots on it.
+// high where cyclin A2 is disordered) in AlphaFold DB's PAE colors, as a grid section whose x follows CDK2's section and
+// y cyclin A's; 1FIN's contacts (both copies, shifted onto P20248 by the construct's offset) as dots on it.
 
 export const title = 'Complex: PAE across the chains (synthetic)';
 
 /**
  * AlphaFold DB's PAE colors: ColorBrewer Greens (Brewer) reversed, confident dark green at 0 Å to near white, over 0 to
  * 31.75 Å (the files' `max_predicted_aligned_error`). Read from AlphaFold DB's own PAE image of AF-P24941-F1 (v6:
- * https://alphafold.ebi.ac.uk/files/AF-P24941-F1-predicted_aligned_error_v6.png, 2026-11-21): the image's palette, matched
- * to the file's values, is these nine stops (the registry's lists have no Greens).
+ * https://alphafold.ebi.ac.uk/files/AF-P24941-F1-predicted_aligned_error_v6.png, 2026-11-21): the image's palette,
+ * matched to the file's values, is these stops (`greens-r`). Seq* interpolates in Oklab, AlphaFold DB's matplotlib image
+ * in sRGB, so the midtones differ slightly.
  */
-export const AlphaFoldPae = [
-  '#00441b',
-  '#006d2c',
-  '#238b45',
-  '#41ab5d',
-  '#74c476',
-  '#a1d99b',
-  '#c7e9c0',
-  '#e5f5e0',
-  '#f7fcf5',
-] as const;
-
-/** The PAE's color: AlphaFold DB's, so a plot compares with its page side by side. */
 export const PaeColor = () =>
-  theme.field('value', { domain: [0, 31.75], unit: 'Å', palette: theme.continuous({ colors: [...AlphaFoldPae] }) });
+  theme.field('value', { domain: [0, 31.75], unit: 'Å', palette: theme.continuous({ colors: 'greens-r' }) });
 
 /** The contacts' color on the PAE: orange, which reads on the dark green of the interface and the near white of the rest. */
 export const ContactColor = '#e8590c';

@@ -122,8 +122,21 @@ describe('legends on the channel’s scale', () => {
 
 describe('named lists', () => {
   it('only the lists the schemes name, by this language’s names', () => {
-    for (const n of ['viridis', 'cividis', 'magma', 'blues', 'rd-bu', 'okabe-ito', 'tableau10', 'category10'])
+    for (const n of [
+      'viridis',
+      'cividis',
+      'magma',
+      'blues',
+      'greens',
+      'greens-r',
+      'rd-bu',
+      'okabe-ito',
+      'tableau10',
+      'category10',
+    ])
       expect(namedList(n, LightTokens), n).toBeDefined();
+    // greens-r is greens, dark to light
+    expect(namedList('greens-r', LightTokens)).toEqual([...namedList('greens', LightTokens)!].reverse());
     expect(namedList('plasma', LightTokens)).toBeUndefined();
     expect(namedList('red-blue', LightTokens)).toBeUndefined();
   });
