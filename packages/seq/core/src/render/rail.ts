@@ -442,16 +442,40 @@ export function railRows(
   view: ResolvedView,
   sections: readonly string[],
   hosted: readonly ResolvedNavigator[] = [],
-  place: RailPlace = 'ruler',
-): Record<string, RailRow> {
-  const out: Record<string, RailRow> = {};
-  for (const a of sections) out[a] = place === 'bottom' ? 'bottom' : 'ruler';
-  if (place !== 'navigator') return out;
-  for (const list of [view.navigators, hosted])
-    for (const n of list) {
-      if (n.hidden || n.axes === 'rows' || (n.place !== 'top' && n.place !== 'bottom')) continue;
-      for (const a of n.of) if (a in out) out[a] = n.place;
+  place: RailPlace | readonly RailPlace[] = 'ruler',
+): Record<string, readonly RailRow[]> {
+  const places: readonly RailPlace[] = typeof place === 'string' ? [place] : place.length ? place : ['ruler'];
+  const beside: Record<string, RailRow> = {};
+  if (places.includes('navigator'))
+    for (const list of [view.navigators, hosted])
+      for (const n of list) {
+        if (n.hidden || n.axes === 'rows' || (n.place !== 'top' && n.place !== 'bottom')) continue;
+        for (const a of n.of) beside[a] = n.place;
+      }
+  const out: Record<string, readonly RailRow[]> = {};
+  for (const a of sections) {
+    const rows: RailRow[] = [];
+    for (const p of places) {
+      const row: RailRow = p === 'navigator' ? (beside[a] ?? 'ruler') : p;
+      if (!rows.includes(row)) rows.push(row);
     }
+    out[a] = rows;
+  }
+  return out;
+}
+
+/**
+ * The rows a section's rail entry names (`FrameInput.rails`: `true`, one row, or a list), figure-safe: a figure has no
+ * row above its tracks (its `top` is the `bottom`); duplicates dropped.
+ */
+export function railRowList(entry: unknown, figure: boolean): readonly RailRow[] {
+  const raw: readonly unknown[] = Array.isArray(entry) ? entry : [entry];
+  const out: RailRow[] = [];
+  for (const r of raw) {
+    let row: RailRow = r === 'top' || r === 'bottom' ? r : 'ruler';
+    if (figure && row === 'top') row = 'bottom';
+    if (!out.includes(row)) out.push(row);
+  }
   return out;
 }
 

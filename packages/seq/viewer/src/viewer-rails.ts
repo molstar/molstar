@@ -27,7 +27,7 @@ export class ViewerRails {
   private readonly _shown = new State(true);
   readonly shown: ReadonlyState<boolean> = this._shown.asReadonly;
   /** The sections that draw a rail and which can move: kept while they hold (the frame's key reads them by identity). */
-  rails: Record<string, true | RailRow> | undefined;
+  rails: Record<string, true | readonly RailRow[]> | undefined;
   active: Record<string, boolean> = {};
   /**
    * The rails' addresses and whether each can move, compared a frame: an array and a `Map`, never a keyed read of the

@@ -73,8 +73,10 @@ export interface SectionLayout {
   readonly header?: SectionHeaderLine;
   /** The breaks in view, `[x, hiddenStart, hiddenEnd, …]` (x unsnapped): a hairline each across the band. */
   readonly breaks: readonly number[];
-  /** Its ruler rail, when it draws one (_spec/README.md "Render", Navigators). */
+  /** Its ruler rail, when it draws one (_spec/README.md "Render", Navigators): the first of `rails`. */
   readonly rail?: Rail;
+  /** Its positions rails, one a place of `navigator.railPlace` (each on the section's one window). */
+  readonly rails?: readonly Rail[];
   /** Its rows layers' rails (upright, at the right edge of each band), when they draw them. */
   readonly rowsRails?: readonly Rail[];
   /** The direction mark in the first track's label row (`axis.directionMark`): its text, x and measured width. */

@@ -91,8 +91,14 @@ function hitLayout(layout: ViewLayout, x: number, y: number, touch: boolean, hov
       if (notch) return notch;
     }
     // the ruler rail's grab zone, over the ruler (an idle rail is no target: a press falls through)
-    const rail = s.rail ? hitRail(s.rail, x, y, s.config, touch) : undefined;
-    if (rail) return rail;
+    if (s.rails)
+      for (let i = 0; i < s.rails.length; i++) {
+        const h = hitRail(s.rails[i], x, y, s.config, touch);
+        if (!h) continue;
+        // the section's other rails show the same place marked
+        for (let k = 0; k < s.rails.length; k++) s.rails[k].markAt = s.rails[i].markAt;
+        return h;
+      }
     if (s.rowsRails)
       for (let i = 0; i < s.rowsRails.length; i++) {
         const h = hitRail(s.rowsRails[i], x, y, s.config, touch);

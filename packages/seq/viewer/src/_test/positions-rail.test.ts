@@ -137,3 +137,40 @@ describe('where the rail sits (`navigator.railPlace`)', () => {
     expect(s.rail!.top).toBeGreaterThanOrEqual(last.y + last.height);
   });
 });
+
+describe('a list of places (`navigator.railPlace` as an array)', () => {
+  const place = (value: readonly string[]) => [[viewerItem('navigator.railPlace'), value]] as const;
+
+  it('`[ruler, bottom]` draws two rails on the one window; a drag on the bottom one moves the top one in the same frame', async () => {
+    const v = await make(spec(), place(['ruler', 'bottom']));
+    v.view.setRange(section(v).rail!.system, 1, 100);
+    v.draw();
+    const rails = section(v).rails!;
+    expect(rails.length).toBe(2);
+    const [ruler, bottom] = rails;
+    expect(ruler.slim).toBe(false);
+    expect(bottom.slim).toBe(true);
+    expect(bottom.top).toBeGreaterThan(ruler.bottom);
+    expect(bottom.active).toBe(true);
+    const start0 = ruler.start;
+    const k = bottom.width / bottom.total;
+    const x = bottom.x + 50 * k;
+    const y = bottom.bottom - 2;
+    expect(v.input.down(x, y)).toBe(true);
+    v.input.move(x + 40 * k, y);
+    v.input.up();
+    v.draw();
+    const after = section(v).rails!;
+    expect(after[0].start).toBeGreaterThan(start0);
+    expect(after[1].start).toBe(after[0].start);
+    expect(after[1].end).toBe(after[0].end);
+  });
+
+  it('`[ruler, ruler]`, and a fallback onto a listed place, give one rail', async () => {
+    expect(section(await make(spec(), place(['ruler', 'ruler']))).rails!.length).toBe(1);
+    // no ruler: `ruler` takes the bottom row, which `bottom` then repeats
+    expect(section(await make(spec({ ruler: false }), place(['ruler', 'bottom']))).rails!.length).toBe(1);
+    // no navigator declared: `navigator` is the ruler's place
+    expect(section(await make(spec(), place(['navigator', 'ruler']))).rails!.length).toBe(1);
+  });
+});
