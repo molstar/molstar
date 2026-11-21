@@ -146,6 +146,27 @@ describe('Features/Genome formats/BED, headless', () => {
     for (const word of ['chrom-sizes', 'stain', 'cytoBandIdeo']) expect(printed).toContain(word);
   });
 
+  it('a file with no recording declared is read as it is: never asked for its pages first (no 404 a Files story)', async () => {
+    vi.useRealTimers();
+    const asked: string[] = [];
+    const counting = {
+      readText: async (uri: string) => {
+        asked.push(uri);
+        return reader.readText(uri);
+      },
+      readBytes: async (uri: string) => {
+        asked.push(uri);
+        return bytesOf(uri);
+      },
+    };
+    const head = fileHead(
+      await fileBytes(counting, 'fixtures/genomes/misread.bed', new AbortController().signal),
+      'bed',
+    );
+    expect(head.split('\n')[1]).toBe('chrG\t100\t900\tgood1\t500\t+');
+    expect(asked).toEqual(['fixtures/genomes/misread.bed']);
+  });
+
   it('the BED12 genes: a gene’s blocks one item each, drawn and named; no issue', async () => {
     const v = await open('bed-genes');
     expect(v.layoutIssues.value).toEqual([]);
