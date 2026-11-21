@@ -2068,11 +2068,11 @@ strip's.
   edge), a rows cell's (square where the view or its band cuts it); a grid's hovered or selected cell by its size, its
   crosshair's column and row square (they end at the plot: a cut).
 - **An extension's layer type** (a name past the built-ins') is given the hover's look by the view, not by a hook: after
-  its `draw`, the hovered item (the hit's element, found in `items`) is outlined over its extent across the band (its own
-  `y` and `height` when it has them), `emphasis.hoverOffset` outside it, in the hover ink, at least 8 px wide centred (a
-  head narrower than its extent is still ringed). Why: every layer type has the hover, as ux-foundations asks; a type
-  that draws its own hover too is outlined twice (open: an opt-out). The selection is the view's already (a Location's
-  band column).
+  its `draw`, the hovered item (the hit's element, found in `items`) is outlined over its extent across the band (its
+  own `y` and `height` when it has them), `emphasis.hoverOffset` outside it, in the hover ink, at least 8 px wide
+  centred (a head narrower than its extent is still ringed). Why: every layer type has the hover, as ux-foundations
+  asks; a type that draws its own hover too is outlined twice (open: an opt-out). The selection is the view's already (a
+  Location's band column).
 - `cursor`: a 1 px outline of its cell (`outline.cursor`) over the band, in a neutral ink (`emphasis.cursorInk`,
   `msui-text`), never the accent (the `cursor` pass); a squircle by the cell over the band, inside it by half its width
   (concentric), square on a side the view cuts. Whether it is shown is the caller's (a viewer shows it once the keyboard
