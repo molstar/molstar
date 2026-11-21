@@ -316,7 +316,7 @@ const GridSection: CardSection = {
 };
 
 /**
- * A letters layer on another system than its section's (a protein's letters over its gene, a residue a codon wide): the
+ * A letters layer on another system than its section's through a codon step (a protein's letters over its gene, a residue a codon wide): the
  * residue under the pointer, its letter, and the codon's positions on the section's system (a codon split by an intron
  * names each part). The place's own rows would say the nucleotide and the first letters layer's letter.
  */
@@ -328,6 +328,9 @@ const ResidueSection: CardSection = {
     const system = at.place.system;
     if (out.whole || !l || l.type.name !== 'letters' || !data || !system || data === system) return;
     if (Number.isNaN(at.position)) return;
+    // only a codon step reads a residue a codon wide: an alignment row, an offset or a pairwise map keeps the place's card
+    const step = at.model.path(data, system).path?.step;
+    if (!step) return;
     const residue = runsOf(
       at.model.project(rangesLocation(system, [at.position, at.position + 1]), data).location,
       data,
@@ -342,7 +345,7 @@ const ResidueSection: CardSection = {
       ', ',
     );
     out.title = `${name} ${spanText(r, r + 1)}`;
-    out.row('index', String(r));
+    out.row('Index', String(r));
     if (letter) out.row('Letter', letter);
     if (parts) out.row('Codon', `${where} ${parts}`);
     out.words.push(

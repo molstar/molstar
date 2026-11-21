@@ -387,13 +387,54 @@ describe('the hover card of a protein’s letters over its gene', () => {
     expect(card).toEqual({
       title: 'p 2',
       rows: [
-        { label: 'index', value: '1' },
+        { label: 'Index', value: '1' },
         { label: 'Letter', value: 'E' },
         { label: 'Codon', value: 'g 6–7, 13' },
       ],
       text: 'gene, p 2, letter E, codon on g 6–7, 13',
     });
     expect(said).toContain('codon on g 6–7, 13');
+  });
+});
+
+describe('the hover card of letters through other paths and strands', () => {
+  it('a minus-strand codon map on a reversed axis names the residue and its codon, read from the other end', async () => {
+    const b = createSeqSpec({ title: 'minus card' });
+    const p = b.data.sequence('p', { alphabet: 'protein', letters: 'MEEP' });
+    const g = b.data.sequence('g', { alphabet: 'dna', letters: 'ACGT'.repeat(6) });
+    b.data.map('m', { from: p, to: g, method: 'codon', exons: { start: [2, 12], end: [7, 19] }, strand: '-' });
+    b.views.view('main', (view) => {
+      const gene = view.section('gene', { of: g, direction: 'reversed', pieces: 'whole' });
+      gene.track('protein').layer('l', { type: 'letters', data: p });
+    });
+    const v = await make(b.build() as never);
+    const s = v.frame!.layout.sections[0];
+    const key = s.tracks[0].layers[0].key;
+    // the first residue is the last codon of the last exon: 16–18
+    const { card } = cardOf(v, { layer: key, section: s.section.address, system: '/data/g', position: 18 });
+    expect(card?.title).toBe('p 1');
+    expect(card?.rows).toEqual([
+      { label: 'Index', value: '0' },
+      { label: 'Letter', value: 'M' },
+      { label: 'Codon', value: 'g 17–19' },
+    ]);
+  });
+
+  it('an offset map keeps the place’s card: no codon, the layer’s own system', async () => {
+    const b = createSeqSpec({ title: 'offset card' });
+    const p = b.data.sequence('p', { alphabet: 'protein', letters: 'MEEP' });
+    const q = b.data.sequence('q', { alphabet: 'protein', letters: 'MEEP' });
+    b.data.map('m', { from: p, to: q, method: 'offset', by: 0 } as never);
+    b.views.view('main', (view) => {
+      view.section('q', { of: q }).track('t').layer('l', { type: 'letters', data: p });
+    });
+    const v = await make(b.build() as never);
+    const s = v.frame!.layout.sections[0];
+    const key = s.tracks[0].layers[0].key;
+    const { card } = cardOf(v, { layer: key, section: s.section.address, system: '/data/q', position: 2 });
+    expect(card?.title).toBe('q 3');
+    expect(card?.rows.map((r) => r.label)).not.toContain('Codon');
+    expect(card?.rows.map((r) => r.label)).toContain('index');
   });
 });
 
