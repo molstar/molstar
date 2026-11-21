@@ -149,6 +149,25 @@ const over = (el: HTMLElement, x: number, y: number) => {
 };
 
 describe('the header menu over the view', () => {
+  it('the pointer onto a header, then a click on its "⋯" as a browser clicks: the menu opens', async () => {
+    const { v, container, headers, pointer, press } = await mount();
+    const r = container.getBoundingClientRect();
+    const g = geo(v, Domains);
+    pointer('pointermove', container, {
+      clientX: r.left + g.label.x + 2,
+      clientY: r.top + g.line.y + g.line.height / 2,
+    });
+    frames.flush();
+    const dots = geo(v, Domains).slots.find((s) => s.name === 'seq:menu')!.box;
+    press(container.querySelector('canvas')!, {
+      clientX: r.left + dots.x + dots.width / 2,
+      clientY: r.top + dots.y + dots.height / 2,
+    });
+    await v.settle();
+    expect(headers.menu.value?.menu.target.track).toBe(Domains);
+    expect(container.querySelector('[role="menu"]')).not.toBeNull();
+  });
+
   it('each item applies its command when clicked as a browser clicks, over the data: Move up, Reverse, Hide', async () => {
     const { v, container, headers, press } = await mount();
     // the menu's rows over the data, where a press would begin the view's drag (and capture the pointer)
