@@ -50,6 +50,7 @@ describe('resolved view: the p53 example', () => {
         address: '/views/main/protein/letters/letters',
         type: 'letters',
         fallbacks: ['letters'],
+        shape: 'letters',
         params: {},
         theme: {},
         data: { kind: 'address', address: '/data/p53', system: '/data/p53', shape: 'letters' },

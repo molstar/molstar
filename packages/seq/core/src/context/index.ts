@@ -39,3 +39,4 @@ export {
   type TextMetricsPort,
   type TrackSizingPort,
 } from './context.js';
+export { checkExtensions, requiresCovers, type SeqExtension } from './extension.js';

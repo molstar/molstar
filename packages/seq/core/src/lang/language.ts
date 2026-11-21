@@ -34,6 +34,23 @@ export const SeqLanguageVersion = '0.5.0';
 const ColumnsTargetKinds = [...SystemKinds, 'alignment'] as const;
 
 /**
+ * An extension's name, `<id>:<name>` (_spec/README.md, Language, Extensions): its id the namespace, never `seq`
+ * (reserved: the check says so), so two extensions cannot collide and no built-in is shadowed.
+ */
+export const ExtensionNamePattern = '^[a-z][a-z0-9_-]*:[a-z][a-z0-9_-]*$';
+
+/** A built-in name or an extension's (`layout`, `heights`, `content`): the built-ins' enum or a namespaced name. */
+const builtInOr = (names: readonly string[], doc: string) =>
+  ({
+    type: 'union',
+    of: [
+      { type: 'string', enum: names },
+      { type: 'string', pattern: ExtensionNamePattern },
+    ],
+    doc,
+  }) as const satisfies ParamType & { doc: string };
+
+/**
  * A channel slot (_spec/README.md "Themes", Forms): a string (the `uniform` form: a color, a token, a word), a number
  * (a uniform size or opacity), or a node of `seq.theme`, read and printed in place.
  */
@@ -61,6 +78,11 @@ export const SeqLanguage = defineLanguage({
           doc: 'The language version the spec is written in, `major.minor.patch`.',
         },
         title: { type: 'string', doc: 'A title for people.' },
+        extensions: {
+          type: 'map',
+          of: { type: 'string', pattern: '^\\d+\\.\\d+(\\.\\d+)?$' },
+          doc: "The extensions it names, by id, each the least version written for (`{ rondo: '1.2' }`).",
+        },
       },
     },
     data: {
@@ -559,10 +581,11 @@ export const SeqLanguage = defineLanguage({
       ids: 'required',
       params: {
         layout: {
-          type: 'string',
-          enum: ['tracks', 'text', 'rings', 'grid'],
+          ...builtInOr(
+            ['tracks', 'text', 'rings', 'grid'],
+            'How the sections are laid out (a section’s own `layout` before it): `tracks` (rows along one axis), `text` (lines of letters), `rings` (concentric rings, the first track outermost), `grid` (a plot of two axes).',
+          ),
           default: 'tracks',
-          doc: 'How the sections are laid out (a section’s own `layout` before it): `tracks` (rows along one axis), `text` (lines of letters), `rings` (concentric rings, the first track outermost) or `grid` (a plot of two axes).',
         },
         export: {
           type: 'record',
@@ -610,11 +633,10 @@ export const SeqLanguage = defineLanguage({
           enum: ['positions', 'rows', 'both'],
           doc: 'The axes it covers: `positions` (when absent), an alignment’s `rows` (the window full width), or `both`.',
         },
-        content: {
-          type: 'string',
-          enum: ['axis', 'tracks', 'bands', 'rows'],
-          doc: 'What it draws of the whole: the `axis` as a hairline (when absent), the section’s `tracks` small, the `bands` of a chromosome (an ideogram), or the section’s `rows` (summarized).',
-        },
+        content: builtInOr(
+          ['axis', 'tracks', 'bands', 'rows'],
+          'What it draws of the whole: the `axis` as a hairline (when absent), the section’s `tracks` small, the `bands` of a chromosome (an ideogram), the section’s `rows` (summarized),.',
+        ),
         tracks: {
           type: 'list',
           of: { type: 'ref', kinds: ['track'], doc: 'A track of a bound section.' },
@@ -734,11 +756,10 @@ export const SeqLanguage = defineLanguage({
           min: 0,
           doc: 'Positions kept each side of every piece (splice sites); overlapping pads merge. 0 when absent.',
         },
-        layout: {
-          type: 'string',
-          enum: ['tracks', 'text', 'rings', 'grid'],
-          doc: 'How the section is laid out: `tracks`, `text` (lines of letters, wrapped to the width), `rings` (its tracks as concentric rings round its whole axis) or `grid` (a plot: `of` across, `of_y` down, its tracks’ layers over it); the view’s `layout` when absent.',
-        },
+        layout: builtInOr(
+          ['tracks', 'text', 'rings', 'grid'],
+          'How the section is laid out: `tracks`, `text` (lines of letters, wrapped to the width), `rings` (its tracks as concentric rings round its whole axis), `grid` (a plot: `of` across, `of_y` down, its tracks’ layers over it); the view’s `layout` when absent.',
+        ),
         of_y: {
           type: 'ref',
           kinds: ['sequence'],
@@ -790,9 +811,9 @@ export const SeqLanguage = defineLanguage({
           type: 'union',
           of: [
             { type: 'string', enum: ['content', 'uniform', 'fixed'] },
-            { type: 'string', pattern: '^ext:[a-z][a-z0-9_-]*$' },
+            { type: 'string', pattern: ExtensionNamePattern },
           ],
-          doc: 'How the tracks with no `height` are sized: `content` (when absent: each as tall as its lanes over the whole data, in steps of a lane, tracks of one kind the tallest of them), `uniform` (every such track the tallest content height in the section), `fixed` (each its layer type’s fixed height), or an `ext:` sizing a composition registers. A track’s `height` overrides it.',
+          doc: 'How the tracks with no `height` are sized: `content` (when absent: each as tall as its lanes over the whole data, in steps of a lane, tracks of one kind the tallest of them), `uniform` (every such track the tallest content height in the section), `fixed` (each its layer type’s fixed height), or an extension’s `<id>:<name>`. A track’s `height` overrides it.',
         },
         rotation: {
           type: 'number',
@@ -902,25 +923,21 @@ export const SeqLanguage = defineLanguage({
       doc: 'A layer of a track: data drawn as one type of mark.',
       parents: ['track'],
       ids: 'required',
+      // an extension's type (`rondo:ribbons`) reads plain params beside these: kept, checked by the extension
+      extensionParam: 'type',
       params: {
         type: {
+          // a word, not an enum: a type this reader lacks (an extension's, a newer built-in) is drawn as its fallback and
+          // said by the resolved view (`seq.view.layer.type`, `seq.view.layer.extension`), never refused
           type: 'string',
-          enum: [
-            'letters',
-            'ranges',
-            'values',
-            'ruler',
-            'secondary',
-            'variants',
-            'frame',
-            'rows',
-            'logo',
-            'pairs',
-            'grid',
-            'bands',
-          ],
+          pattern: '^([a-z][a-z0-9_-]*:)?[a-z][a-z0-9_-]*$',
           required: true,
-          doc: 'What it draws: the letters of the system, ranges, values, the ruler of the section’s axis, secondary structure (ranges whose `kind` field says helix, strand or turn), variants (ranges of one position each), frames (ranges outlined across the tracks `across` names, titled by their labels), an alignment’s rows (`rows`) or its conservation logo (`logo`), pairs (`pairs`: arcs over a track, chords on a ring, dots on a grid), a grid of values (`grid`, in a grid section) or a chromosome’s stained bands (`bands`, an ideogram: ranges with a `stain` field, colored by the `giemsa` scheme, the centromere’s two `acen` bands as triangles); `secondary`, `variants` and `bands` draw `ranges` where a reader lacks them, `pairs` draws its ends as `ranges`.',
+          doc: 'What it draws (an extension’s `<id>:<name>` too): the letters of the system, ranges, values, the ruler of the section’s axis, secondary structure (ranges whose `kind` field says helix, strand or turn), variants (ranges of one position each), frames (ranges outlined across the tracks `across` names, titled by their labels), an alignment’s rows (`rows`) or its conservation logo (`logo`), pairs (`pairs`: arcs over a track, chords on a ring, dots on a grid), a grid of values (`grid`, in a grid section) or a chromosome’s stained bands (`bands`, an ideogram: ranges with a `stain` field, colored by the `giemsa` scheme, the centromere’s two `acen` bands as triangles); `secondary`, `variants` and `bands` draw `ranges` where a reader lacks them, `pairs` draws its ends as `ranges`.',
+        },
+        fallback: {
+          type: 'string',
+          pattern: '^[a-z][a-z0-9_-]*$',
+          doc: 'The built-in type a reader without `type` draws instead, or `none`.',
         },
         data: {
           type: 'ref',

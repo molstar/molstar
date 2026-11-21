@@ -9,7 +9,7 @@ import type { Coverage, DataEntry, Want } from '@molstar/seqx-core/data';
 import type { Key, Keys, Location } from '@molstar/seqx-core/query';
 import type { Overlay, StaticModel } from '@molstar/seqx-core/resolve';
 import type { Legend } from '@molstar/seqx-core/theme/index';
-import type { ResolvedLayer, ResolvedSection } from '@molstar/seqx-core/view';
+import type { LayerShape, ResolvedLayer, ResolvedSection } from '@molstar/seqx-core/view';
 import type { AxisTransform } from './axis.js';
 import type { ImageCache } from './images.js';
 import type { ThemeContext } from './channels.js';
@@ -325,6 +325,12 @@ export interface LayerType<Prep = unknown, Lay = unknown> {
   readonly name: string;
   /** The layer type a target without this one draws. */
   readonly fallback?: string;
+  /**
+   * The shape of data it reads (one of the six): what the resolved view places its layers by. Required of a type past
+   * the built-ins (an extension's, `<id>:<name>`): one without it is unknown to the resolved view, its layers drawn as
+   * their fallbacks; a built-in's is the language's (`LayerTypes`).
+   */
+  readonly shape?: LayerShape;
   prepare(layer: ResolvedLayer, model: StaticModel): Prep;
   /**
    * What its items need over the whole data, never the view (_spec/README.md "Render", Track heights): their lanes and

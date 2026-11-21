@@ -30,8 +30,9 @@ export const BuiltInRenderRegistry: readonly SeqRegistryEntry[] = [
  */
 export function createSeqContext(spec: SeqContextSpec = {}): SeqContext {
   const context = composeSeqContext({ ...spec, registry: [...BuiltInRenderRegistry, ...(spec.registry ?? [])] });
-  return {
-    ...context,
-    renderSvg: (s, options) => context.renderSvg(s, { navigatorExport: NavigatorSvgExport, ...options }),
-  };
+  // in place: the context's tables are getters (`extend` swaps them), which a spread would freeze
+  const render = context.renderSvg;
+  return Object.assign(context, {
+    renderSvg: (s, options) => render(s, { navigatorExport: NavigatorSvgExport, ...options }),
+  } satisfies Pick<SeqContext, 'renderSvg'>);
 }
