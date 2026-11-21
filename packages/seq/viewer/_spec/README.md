@@ -486,7 +486,9 @@ selection moves (`viewer-selection.ts`) and the frame (`viewer-frame.ts`).
   draws one navigator (a declared node's id, or a host's `viewer.navigator(def)`) into an element the host owns: its own
   canvases sized by the element (its form's thickness where the element has no height), its listeners on it alone, one
   tab stop (`role="slider"`, its focused window's `aria-valuetext` and `aria-disabled` as the model says them, never a
-  frame; its focus told to the model), its readout, its clicks with their count; its disposer takes it away.
+  frame; its focus told to the model), its readout (a chrome surface at the part's top right, the hover card's inset and backdrop so it reads over data, one
+  line cut by an ellipsis, absent while it says nothing; a position as `name: 1,234`), its clicks with their count; its
+  disposer takes it away.
   `ui.navigators` (`navigatorsMount`, on in the default spec) places the view's shown navigators by `place` around the
   canvas (top before it, bottom after it, left and right beside it in a row) through the same call, again when they
   change; each side part's room is the row less the other side parts (`NavigatorModel.setRoom`: a vertical overview of

@@ -53,7 +53,7 @@ describe('the navigators’ examples, headless', () => {
     expect(nav.height).toBe(24 + 16);
     expect(w.ly).toBeGreaterThanOrEqual(24);
     nav.move(nav.width * 0.6, 12);
-    expect(nav.readout.value).toMatch(/^chr17:[\d,]+ · q\d/);
+    expect(nav.readout.value).toMatch(/^chr17: [\d,]+ · q\d/);
     // over the window: what it shows
     nav.move((w.dx0 + w.dx1) / 2, (w.ly + w.hy) / 2);
     expect(nav.readout.value).toBe('chr17:7,666,403–7,672,402 of chr17');
@@ -257,7 +257,7 @@ describe('the zoom strip of chr17’s ideogram over the gene’s region, headles
     expect(v.view.get(Region)).toEqual(before);
     // elsewhere on the ideogram: a band's name, no centring
     nav.move(nav.width * 0.6, 12);
-    expect(nav.readout.value).toMatch(/^chr17:[\d,]+ · q\d/);
+    expect(nav.readout.value).toMatch(/^chr17: [\d,]+ · q\d/);
     expect(nav.down(nav.width * 0.6, 12)).toBe(false);
     expect(nav.doubleClick(nav.width * 0.6, 12)).toBe(false);
     expect(v.view.get(Region)).toEqual(before);

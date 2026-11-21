@@ -111,6 +111,40 @@ describe('the navigator part', () => {
     expect(el.children.length).toBe(0);
   });
 
+  it('its position readout is the chrome’s surface on one line with a space after the colon: shown over a hover, hidden after it', async () => {
+    viewer = createSeqViewer({ ...DefaultSeqViewerSpec(), ui: undefined });
+    await viewer.load(spec());
+    viewer.resize(600);
+    await viewer.settle();
+    frames.flush();
+    viewer.view.setRange('/views/v/protein', 0, 30);
+    viewer.draw();
+    const el = document.createElement('div');
+    document.body.append(el);
+    mountNavigator(el, viewer, 'strip');
+    frames.flush();
+    const part = el.querySelector<HTMLElement>('[data-navigator="strip"]')!;
+    vi.spyOn(part, 'getBoundingClientRect').mockReturnValue({ left: 0, top: 0 } as DOMRect);
+    const readout = part.querySelector<HTMLElement>('.seqx-navigator-readout')!;
+    // nothing said: no backdrop drawn
+    expect(readout.style.display).toBe('none');
+    part.dispatchEvent(
+      new MouseEvent('pointermove', { clientX: 450, clientY: 2, bubbles: true }) as unknown as PointerEvent,
+    );
+    viewer.draw();
+    frames.flush();
+    expect(readout.textContent).toMatch(/^p: [\d,]+$/);
+    expect(readout.style.display).toBe('block');
+    // the surface's inset and backdrop (`msui-surface`), one line cut by an ellipsis, inside the part's box
+    expect(readout.classList.contains('msui-surface')).toBe(true);
+    expect(readout.style).toMatchObject({ whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' });
+    expect(readout.style.maxWidth).toContain('100%');
+    part.dispatchEvent(new MouseEvent('pointerleave', { bubbles: true }) as unknown as PointerEvent);
+    viewer.draw();
+    frames.flush();
+    expect(readout.style.display).toBe('none');
+  });
+
   it('its slider’s value is set on settle after its own gesture or key, never for a move made elsewhere', async () => {
     // jumps with no motion: the view rests once its frame is drawn
     viewer = createSeqViewer({ ...DefaultSeqViewerSpec(), ui: undefined, config: [[viewerItem('view.jumpMs'), 0]] });

@@ -40,13 +40,22 @@ function mountModel(element: HTMLElement, viewer: SeqViewer, model: NavigatorMod
   Object.assign(base.style, { display: 'block' });
   for (const c of [overlay, labels])
     Object.assign(c.style, { position: 'absolute', left: '0', top: '0', pointerEvents: 'none' });
+  // the readout is the chrome's surface (the hover card's inset and backdrop, so it reads over data), one line cut with an
+  // ellipsis before it would wrap, and shown only while it says something
   const readout = doc.createElement('div');
+  readout.className = 'msui-surface seqx-navigator-readout';
   readout.setAttribute('aria-live', 'off');
   Object.assign(readout.style, {
     position: 'absolute',
-    right: '2px',
-    top: '0',
-    font: '10px var(--msui-font-sans, sans-serif)',
+    right: 'var(--msui-space-1, 4px)',
+    top: 'var(--msui-space-1, 4px)',
+    display: 'none',
+    maxWidth: 'calc(100% - 2 * var(--msui-space-1, 4px))',
+    boxSizing: 'border-box',
+    overflow: 'hidden',
+    whiteSpace: 'nowrap',
+    textOverflow: 'ellipsis',
+    font: 'var(--msui-text-xs, 10px) / var(--msui-leading-xs, 14px) var(--msui-font-sans, sans-serif)',
     color: 'var(--msui-text-muted, gray)',
     pointerEvents: 'none',
   });
@@ -67,7 +76,9 @@ function mountModel(element: HTMLElement, viewer: SeqViewer, model: NavigatorMod
     if (!f) return;
     const dirty = backend.resize(model.width, model.height, viewer.dpr);
     backend.draw(f.lists, f.rebuilt || f.base || dirty);
-    readout.textContent = model.readout.value ?? '';
+    const said = model.readout.value ?? '';
+    readout.textContent = said;
+    readout.style.display = said ? 'block' : 'none';
     container.style.cursor = model.cursor;
   };
   const schedule = () => {

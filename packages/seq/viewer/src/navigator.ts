@@ -452,7 +452,7 @@ export class NavigatorModel extends ReactiveModel {
     const name = (nav?.system && this.viewer.spec.model.value.systems.get(nav.system)?.name) ?? '';
     const parts: string[] = [];
     if (h.position !== undefined)
-      parts.push(this.renderer?.readout(h.position) ?? `${name}:${(h.position + 1).toLocaleString('en-US')}`);
+      parts.push(this.renderer?.readout(h.position) ?? `${name}: ${(h.position + 1).toLocaleString('en-US')}`);
     if (h.row !== undefined) parts.push(`row ${(Math.floor(h.row) + 1).toLocaleString('en-US')}`);
     if (h.band !== undefined) parts.push(h.band);
     return parts.join(' · ');
