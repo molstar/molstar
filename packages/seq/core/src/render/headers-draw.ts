@@ -104,14 +104,14 @@ export function drawActions(
   hover: Hit | undefined,
   tokens: SeqTokens,
   config: RenderConfig,
-  labelEnd = Number.NEGATIVE_INFINITY,
-  labelY = 0,
+  track?: TrackLayout,
 ) {
   const a = line.actions;
   if (!a) return;
   const g = out.args;
   // a label the backdrop cuts ends in an ellipsis on it (the label stays where it is)
-  const cut = labelEnd > a.x - 2;
+  // the track's label read here: a number passed in (a field's, or a sum) is boxed on each call
+  const cut = track !== undefined && config.inset + track.labelWidth > a.x - 2;
   const grow = cut ? (line.ellipsis ?? 0) : 0;
   g[0] = a.x - 2 - grow;
   g[1] = a.y;
@@ -124,7 +124,7 @@ export function drawActions(
   g[8] = 0;
   out.rectArgs();
   if (cut) {
-    g[1] = labelY;
+    g[1] = track!.labelY;
     g[2] = grow;
     g[3] = grow;
     g[4] = tokens.colors['msui-text-muted'];
@@ -223,7 +223,7 @@ export function drawTrackHeader(
   if (pass === 'labels') {
     if (dy === 0) drawStates(out, line, s.tokens, s.config, 0);
   } else if (pass === 'tip' && dy === 0 && line.actions && actionsShown(t.track.address, s.id, emphasis, s.config))
-    drawActions(out, line, emphasis?.hover, s.tokens, s.config, s.config.inset + t.labelWidth, t.labelY);
+    drawActions(out, line, emphasis?.hover, s.tokens, s.config, t);
 }
 
 /** A section's header line: its states (labels pass) and its actions when they show (tip pass). */
