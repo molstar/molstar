@@ -106,6 +106,15 @@ async function open(id: string) {
 const layOf = (v: SeqViewer, label: string) =>
   v.frame!.layout.sections[0].tracks.find((t) => t.track.label === label)?.layers[0].lay as RangesLay | undefined;
 
+/** Where item `i`'s label would start: its model's start on the screen (its hairline's, else its first box's) less
+ * the gap and the label's width. */
+function labelRoom(lay: RangesLay, i: number): number {
+  for (let c = 0; c < lay.cn; c++) if (lay.citem[c] === i) return lay.canchor[c] - 4 - lay.gene.labelW[i];
+  let x = Number.POSITIVE_INFINITY;
+  for (let j = 0; j < lay.m; j++) if (lay.keys[lay.mitem[j]] === lay.keys[i]) x = Math.min(x, lay.mx0[j]);
+  return x - 4 - lay.gene.labelW[i];
+}
+
 /** The item keys a gene-line layer drew, with their lanes (one each). */
 function drawn(lay: RangesLay) {
   const lanes = new Map<string, Set<number>>();
@@ -138,8 +147,26 @@ describe('Features/Genome formats/GFF3 and GTF, headless', () => {
       // TP53 on the minus strand: its hairline's chevrons point left
       const k = Array.from({ length: tx.cn }, (_, j) => j).find((j) => String(tx.keys[tx.citem[j]]) === canonical)!;
       expect(tx.cdir[k]).toBe(2);
-      const genes = drawn(layOf(v, 'Genes')!);
-      expect(genes.size).toBe(2);
+      // one model a gene, each in a lane of its own and no density row (no stray feature, no overflow)
+      const gl = layOf(v, 'Genes')!;
+      expect([...drawn(gl).keys()].sort()).toEqual(
+        id === 'gff-tp53'
+          ? ['gene:ENSG00000141499', 'gene:ENSG00000141510']
+          : ['ENSG00000141499.20', 'ENSG00000141510.21'],
+      );
+      expect(gl.overflow).toBe(0);
+      expect(tx.overflow).toBe(0);
+      // each transcript whose label's room lies inside the band has its label, whole, as text left of its model
+      const labels = recordDrawLists(v.frame!.lists, ['labels'])
+        .split('\n')
+        .filter((l) => l.startsWith('text '));
+      expect(labels.some((l) => l.includes('…'))).toBe(false);
+      const g = tx.gene;
+      const room = Array.from({ length: tx.items }, (_, i) => i).filter(
+        (i) => g.repOf[i] === i && tx.lanes[i] >= 0 && g.labelW[i] > 0 && labelRoom(tx, i) >= tx.box.x,
+      );
+      expect(room.length).toBeGreaterThan(10);
+      expect(g.ln).toBe(room.length);
       const svg = await v.renderSvg({ idPrefix: `${id}-` });
       expect(svg.issues).toEqual([]);
       expect(svg.settled).toBe(true);
@@ -172,7 +199,12 @@ describe('Features/Genome formats/GFF3 and GTF, headless', () => {
     const text = findAndFocus(v, 'gff3', 'TP53-201', reader);
     await vi.advanceTimersByTimeAsync(2000);
     const said = await text;
-    expect(said.split('\n')[1]).toMatch(/^TP53-201 {2}\(Name\) {2}17:/);
+    const lines = said.split('\n');
+    expect(lines[0]).toBe(
+      'Searched “TP53-201” in Name, ID, Alias (exact names first, then names starting with it): 1 hit',
+    );
+    expect(lines[1]).toBe('Found: TP53-201 at 17:7,668,421-7,687,490 (its Name)');
+    expect(lines[2]).toMatch(/^The view went to 17:7,66\d,\d{3}-7,68\d,\d{3}: TP53-201’s extent$/);
     await vi.advanceTimersByTimeAsync(2000);
     const after = v.view.get(Tp53Section)!;
     expect([after.start, after.end]).not.toEqual([before.start, before.end]);
@@ -181,7 +213,6 @@ describe('Features/Genome formats/GFF3 and GTF, headless', () => {
     expect(after.start).toBeGreaterThan(7000);
     expect(after.end).toBeGreaterThanOrEqual(27_490);
     expect(after.end).toBeLessThan(29_000);
-    expect(said).toMatch(/The first focused: /);
   });
 
   it('the misread GFF3: its good transcript drawn, every fault said once with its line numbers', async () => {

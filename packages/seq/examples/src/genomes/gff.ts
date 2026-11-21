@@ -55,13 +55,14 @@ function tp53(format: 'gff3' | 'gtf'): Node {
   b.views.view('main', (v) => {
     const s = v.section('chr17', { of: chr, range: [...Tp53Region] });
     s.track('ruler', { label: '' }).layer('ruler', { type: 'ruler', units: 'bases' });
-    // a lane a transcript: TP53's thirty-odd overlap one another (a tiled source's lanes are not known before it is read)
-    s.track('genes', { label: 'Genes', height: 48 }).layer('genes', {
+    // a lane a model, its label's room before it: TP53's 47 transcripts and WRAP53's overlap one another (a source's
+    // lanes are not known before it is read, so the tracks are as tall as the region's models need: no density row)
+    s.track('genes', { label: 'Genes', height: 56 }).layer('genes', {
       type: 'ranges',
       data: genes,
       line: 'gene',
     } as never);
-    s.track('transcripts', { label: 'Transcripts', height: 480 }).layer('transcripts', {
+    s.track('transcripts', { label: 'Transcripts', height: 760 }).layer('transcripts', {
       type: 'ranges',
       data: transcripts,
       line: 'gene',

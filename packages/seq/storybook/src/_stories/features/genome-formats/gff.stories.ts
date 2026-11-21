@@ -29,7 +29,9 @@ export const Tp53: StoryObj = { render: () => exampleStory(view('gff-tp53'), { f
 export const FindByName: StoryObj = {
   render: () =>
     exampleStory(view('gff-tp53'), {
-      aside: { title: 'Found by name', text: (v) => findAndFocus(v, 'gff3', 'TP53-2') },
+      summary:
+        'A name typed in the find box above the view is looked up in the file’s name index (the GFF runtime’s `findNames` over GFF3’s `Name`, `ID` and `Alias`: exact names first, then names starting with it): the first hit’s extent is focused, and what was searched, what was found and where the view went are printed under the box. Type another name (TP53-201, WRAP53, gene:ENSG00000141510) and press Find.',
+      find: { title: 'Find a name', initial: 'TP53-2', run: (v, text) => findAndFocus(v, 'gff3', text) },
     }),
 };
 
