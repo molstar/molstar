@@ -150,7 +150,7 @@ fix point with nothing open is skipped. A finding that needs a design is a drift
 
 ### Stage 1: coordinates (strong, in order; the language one lane at a time)
 
-- [ ] **GC1** (`briefs/gc1-genome-language.md`) the language and resolve, the slice's one minor bump: the `assembly`
+- [x] **GC1** (merged 2026-11-21, `e3b3a98d0`) (`briefs/gc1-genome-language.md`) the language and resolve, the slice's one minor bump: the `assembly`
       kind, `section.of` an assembly or a list, `section.include`, `block.direction`, `block.scale`,
       `navigator.switch`, the locus and block forms, the builder's `genome()`, `assembly()`, `colinearBlocks()`; the
       names rule; derived sequences from the coverage; a map between assemblies as one map. It **declares the other
