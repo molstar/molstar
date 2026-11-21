@@ -45,6 +45,8 @@ export interface ComposeOptions {
   readonly delayMs?: number;
   /** Behaviors besides the default spec's (a host's choice the story shows on: `links.hover`). */
   readonly behaviors?: SeqViewerSpec['behaviors'];
+  /** `false`: the viewer's own legend is not mounted (the host places the part itself). */
+  readonly legends?: boolean;
 }
 
 export function composeEditing(view: ExampleView, options: ComposeOptions = {}): EditingSession {
@@ -59,7 +61,9 @@ export function composeEditing(view: ExampleView, options: ComposeOptions = {}):
   const viewer = createSeqViewer(
     {
       ...base,
-      ui: options.target ? { ...base.ui, toolbar: mountToolbar } : undefined,
+      ui: options.target
+        ? { ...base.ui, toolbar: mountToolbar, ...(options.legends === false ? { legends: undefined } : {}) }
+        : undefined,
       registry: [
         ...(base.registry ?? []),
         ...(view.registry?.(options.delayMs !== undefined ? { delayMs: options.delayMs } : {}) ?? []),

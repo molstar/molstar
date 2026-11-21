@@ -39,9 +39,9 @@ is added in the change that builds what it describes.
   and a numbering's methods `offset` and `segments` with `by` and `segments`; `pairs.a`/`b`, `ranges.target` and
   `map.to` naming an alignment, its columns; extensions (Language, Extensions): the spec's `extensions`, a layer's
   `fallback`, `layer.type` a word (a built-in's or `<id>:<name>`), `layout`, `heights` and `content` a built-in's or
-  `<id>:<name>`, and keys in an extension's namespace carried on any node). A spec in an earlier `0.x` reads as one in
-  this one, and is reported where it no longer fits: a `0.4.0` spec reads unchanged (every addition is optional, and
-  every kind a reference took it still takes).
+  `<id>:<name>`, and keys in an extension's namespace carried on any node; a layer's `legend`, `auto` or `none`). A spec
+  in an earlier `0.x` reads as one in this one, and is reported where it no longer fits: a `0.4.0` spec reads unchanged
+  (every addition is optional, and every kind a reference took it still takes).
 
 ## Language
 
@@ -424,6 +424,11 @@ layout per token table, held domains and the reader's substitution (`LayerChanne
   passes the letters it laid out (`painted`), so its key lists only those (an RNA's U, never its T; no gap swatch where
   there is no gap), then a color once; before any is drawn, every letter. A view's legends (`viewLegends`) are its
   tracks' layers' and its sections' own layers' (a pairs layer's arcs and dots), titled by the track holding the layer.
+  **A layer's `legend` param** (`auto`, the default; `none`) is the figure's say on its key: `viewLegends` skips a layer
+  that says `none` (a constant color that says nothing), so the viewer's legends, the export's band and the Mol* legends
+  follow; a legend two layers share stays while one of them keys it (the items of the `none` layer then no longer
+  outline that entry on hover: the entry is the keyed layers'). Why the layer's: what a figure keys is the figure's (a
+  spec's), where a key sits is the host's, and no session command hides one (language 0.5.0).
 - **Builder**: `theme.uniform|field|rules|scheme|letters|categorical|…` and `measure.*`; a layer's `field` form over an
   inline table's text column gets the column's values listed (the legend is the vocabulary); a `ranges` layer over a
   `category` column, a `variants` one over a `consequence` column and a `pairs` one over a `type` column default to a

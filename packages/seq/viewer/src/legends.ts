@@ -86,6 +86,10 @@ export interface LegendEntryRow {
   readonly name: string;
   readonly color?: number;
   readonly ramp?: readonly number[];
+  /** A ramp's domain ends as written (the compact form shows them beside its bar). */
+  readonly ends?: readonly [string, string];
+  /** A step: its cells join in the compact form. */
+  readonly step?: true;
   /** The value a click or Enter selects (swatches). */
   readonly value?: string;
   readonly hovered: boolean;
@@ -102,20 +106,34 @@ export interface LegendRow {
   readonly note?: string;
 }
 
+/** Which legends a part shows (_spec/README.md "Legends"): `of` and `omit` name addresses (a track's, a layer's, a scale's). */
+export interface LegendSelection {
+  /** An address or a list of them: only their legends (every legend when absent). */
+  readonly of?: string | readonly string[];
+  /** Addresses whose legends are left out (the host shows them elsewhere); applied after `of`. */
+  readonly omit?: readonly string[];
+  /** Entries a legend lists before "+n more" (12). */
+  readonly maxItems?: number;
+}
+
+/** Whether a legend is keyed by an address: its scale, or a layer at or below it. */
+const keyedBy = (l: Legend, a: string) => l.scale === a || l.layers.some((x) => x === a || x.startsWith(`${a}/`));
+
+/** The legends a selection shows. */
+export function selectLegends(all: readonly Legend[], { of, omit }: LegendSelection): Legend[] {
+  const some = typeof of === 'string' ? [of] : of;
+  return all.filter((l) => (!some || some.some((a) => keyedBy(l, a))) && !omit?.some((a) => keyedBy(l, a)));
+}
+
 /**
- * The rows the `Legend` part shows (DOM-free, the headless twin's): the legends of `of` (a track's or a scale's address)
- * or all, each entry with its accessible name, the hovered one marked.
+ * The rows the `Legend` part shows (DOM-free, the headless twin's): the legends of `of` (an address or a list) minus
+ * `omit`, else all, each entry with its accessible name, the hovered one marked.
  */
-export function legendRows(
-  viewer: { readonly legends: LegendModel },
-  options: { readonly of?: string; readonly maxItems?: number } = {},
-): LegendRow[] {
+export function legendRows(viewer: { readonly legends: LegendModel }, options: LegendSelection = {}): LegendRow[] {
   const hover = viewer.legends.hover.value;
   const max = options.maxItems ?? 12;
   const out: LegendRow[] = [];
-  for (const l of viewer.legends.legends.value) {
-    const of = options.of;
-    if (of !== undefined && l.scale !== of && !l.layers.some((a) => a === of || a.startsWith(`${of}/`))) continue;
+  for (const l of selectLegends(viewer.legends.legends.value, options)) {
     const e = l.entries;
     let entries: LegendEntryRow[] = [];
     let more = l.more;
@@ -139,13 +157,14 @@ export function legendRows(
           label: range,
           name: `${l.title}: ${range}${l.open ? ', in view' : ''}`,
           ramp: e.stops.map((s) => s.color),
+          ends: [formatValue(lo), formatValue(hi)],
           hovered: hover?.key === l.key,
         },
       ];
     } else if (e.kind === 'steps') {
       entries = e.colors.map((c, i) => {
         const label = `${formatValue(e.edges[i])}–${formatValue(e.edges[i + 1])}`;
-        return { label, name: `${l.title}: ${label}`, color: c, hovered: false };
+        return { label, name: `${l.title}: ${label}`, color: c, step: true, hovered: false };
       });
     } else {
       entries = e.items.map((i) => ({

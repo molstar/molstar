@@ -60,8 +60,10 @@ since its dark fill sits close to the page.
 
 - A legend is derived from a channel, never written: a ramp, steps, swatches or sizes, merged when two say the same, and
   honest about values it could not list.
-- It is a part a host places: beside a track header, in a panel, or in a Mol\* plugin's own legend control. Seq\* never
-  draws one over the data.
+- It is a part a host places: beside a track header (a compact one-line form), in a panel, in a band under the canvas
+  (legends stacked or in a row), or in a Mol\* plugin's own legend control. Seq\* never draws one over the data. The
+  host chooses which legends (`of`, `omit`); a figure marks a layer's key as not worth showing with `legend: none`,
+  which the part and the export both read. No command hides a legend.
 - A legend is acted on: click an entry to select its items, Cmd/Ctrl+click to toggle them, hover to highlight them.
   Hovering an item outlines its entry. Every entry is reached from the keyboard. Changing a value's color, a ramp's
   domain or the scheme is the application's to offer, through the library's commands (one edit each, previewed).
