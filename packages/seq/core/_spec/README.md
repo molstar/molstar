@@ -87,16 +87,16 @@ checks it cannot express.
   `ordinal`) and `units` (`none`, `bases`; absent: `none`), `unnumbered` (`mark`, `fallback`; absent: `mark`) and
   `fallbackNumbering` (a numbering id; absent: `ordinal`), read by `ruler`, `encoding` (`bars`, `line`, `area`; absent:
   `bars`) by `values`, `style` (`blocks`) by `secondary`, `line` (`solid`, `dashed`, `dotted`, `wavy`, `double`, `box`,
-  `highlight`; absent: blocks) and `arrow` (`none`, `end`, `start`, `both`; absent: `none`) by `ranges`; a `ranges`
-  layer's `connector` (`line`, the default, or `none`: the hairline joining an item's pieces across shown positions); a
-  grid section's `of_y` (absent: `of`), `follow_y` (`x`, `none` or a section; absent: `x`) and `aspect` (a number or
-  `none`; absent: 1); by `pairs` its `side` (`above`, `below`; absent: `above`), `reach` (absent: 0.25), `height`
-  (`span`; absent: `span`), `crossing` (`same`, `split`; absent: `same`), `across_lines` (absent: false) and `mirror`
-  (absent: false: a pair drawn where its data puts it, never read off whether the two axes are one system; the tRNA's
-  builder sets it); by `grid` its `aggregate` (`mean`, `max`, `min`; absent: `mean`); by both in a grid `triangle`
-  (`both`, `upper`, `lower`; absent: `both`). Why: the figure's form is the writer's, never the host's or the data's:
-  one spec draws the same in the canvas, the SVG and another viewer. The refs inside `direction` and `pieces` are
-  checked by kind as top-level refs are, and a change's check reaches them (its reverse index walks a union's record
+  `highlight`, `gene`; absent: blocks) and `arrow` (`none`, `end`, `start`, `both`; absent: `none`) by `ranges`; a
+  `ranges` layer's `connector` (`line`, the default, or `none`: the hairline joining an item's pieces across shown
+  positions); a grid section's `of_y` (absent: `of`), `follow_y` (`x`, `none` or a section; absent: `x`) and `aspect` (a
+  number or `none`; absent: 1); by `pairs` its `side` (`above`, `below`; absent: `above`), `reach` (absent: 0.25),
+  `height` (`span`; absent: `span`), `crossing` (`same`, `split`; absent: `same`), `across_lines` (absent: false) and
+  `mirror` (absent: false: a pair drawn where its data puts it, never read off whether the two axes are one system; the
+  tRNA's builder sets it); by `grid` its `aggregate` (`mean`, `max`, `min`; absent: `mean`); by both in a grid
+  `triangle` (`both`, `upper`, `lower`; absent: `both`). Why: the figure's form is the writer's, never the host's or the
+  data's: one spec draws the same in the canvas, the SVG and another viewer. The refs inside `direction` and `pieces`
+  are checked by kind as top-level refs are, and a change's check reaches them (its reverse index walks a union's record
   member). Why: the composition is the application's.
 - **Numberings** (`<sequence>/<id>`, a `numbering` child of a sequence): a label a position of its sequence, its id the
   name the forms read (`:numbering kabat`, Queries, Numberings and labels). `method` is `labels`, `offset` (a position
@@ -1312,6 +1312,70 @@ neither io's tabix nor the pairs index.
   30 kB (23.2 kB minified, io's BGZF reader in it), its lazy chunks (by region with io's tabix, and BEDPE: 20.5 kB
   together) loaded on first use; in no viewer bundle.
 
+### GFF3 and GTF
+
+`runtimes/gff.ts` (`@molstar/seqx-core/runtimes/gff`, opt in: `GffRuntime`, `gffRuntime(over)`, `GffOptions`,
+`DefaultGffOptions`, `GffFeatures`, `GffFormats`, `assembleTranscripts`, `Assembly`, `GffItem`, `AssembleOptions`,
+`DefaultTranscriptTypes`, `PieceTypes`, `parseGff`, `GffRow`, `GffFormat`, `GffIssues`, `GtfIssues`): `gff3` and `gtf`
+read whole; `gff-parse.ts` (the one line parser), `gff-assemble.ts` (the hierarchy), `gff-read.ts` (items by sequence,
+answers, the name index). `gff3` stays the records preset's (flat) unless a host composes this runtime with
+`withAdapter` (one adapter a format). Why opt in: the default viewer is at its size bound.
+
+- **Conventions fixed** (EC-195): base 1, ends inclusive, converted at the edge; `base` or `ends` not read, said once
+  (`seq.source.gff.transform`). Bytes to text by magic (plain, gzip, BGZF) within `limits.maxBytes`; `#` lines read
+  past; `##sequence-region` a system's length (EC-188); everything after `##FASTA` ignored, its characters counted
+  (`.fasta`, info). An `index` is said (`.index`) and the file read whole: by region is to come.
+- **Lines**: nine tab-separated columns, else left out (`.line`, warning, with its number; GTF's `seq.source.gtf.line`),
+  as are positions not whole numbers from 1 to 2^31 − 1 and an end before its start. GFF3's attributes `key=value;`,
+  percent-decoded (`Parent` and `Alias` lists by `,`); GTF's `key "value";` (unquoted numbers too, a `;` inside quotes
+  kept, a key repeated joined by `,`: GENCODE's `tag`). At most 256 attributes a row (`MaxAttributes`), the rest dropped
+  (`.attributes`). Identity and parents by the format: GFF3's `ID`, `Parent`; GTF's `gene_id` (a gene line's id, a
+  transcript line's parent), `transcript_id` (a transcript line's id, the other lines' parent).
+- **The hierarchy** (`assembleTranscripts(rows, { transcriptTypes })`, pure, tested alone; EC-227): rows sharing an `ID`
+  are one feature. A feature is a **transcript** when its type is one of `transcriptTypes` (`DefaultTranscriptTypes`:
+  the SO types Ensembl, GENCODE, NCBI and Prokka write; any `*_transcript` too), a row a **piece** when its type is one
+  of `PieceTypes` (`exon`, `CDS`, the UTRs, GTF's codons), a **gene** when a transcript names it as parent. A piece
+  whose parent is of another type (a prokaryote's gene → CDS) makes the parent a transcript, counted by type (`.type`,
+  info: add it to `transcriptTypes`). A piece naming several parents is a piece of each. A `Parent` cycle or a chain
+  deeper than 16 (`MaxDepth`) leaves those rows items of their own (`.parent`, warning), as does a parent no line has in
+  GFF3; in GTF a transcript or gene with no line is made from its rows (its extent their hull: exact read whole; with an
+  `index`, `seq.source.gtf.extent` warns that by region it would be partial). A child outside its parent's extent is
+  said (`.extent`). A transcript's pieces are its exons, else its CDS and UTRs merged; `thick_start`, `thick_end` the
+  hull of its CDS and codons (GTF writes the stop codon after the CDS); `cds_phase` its first CDS's phase in its
+  direction; its extent its own line's. A gene's item merges its transcripts' pieces and thick parts. Every other
+  feature an item by `ID` (its rows its pieces), else the line alone (`type:start-end`, `#2` on a repeat).
+- **`features`** (a source param): `transcripts` (absent: the transcripts and the other features), `genes` (a gene's
+  item, transcripts without a gene, the others) or `rows` (the file's lines, rows sharing an `ID` one item). A `region`,
+  `chromosome` or `supercontig` feature from a sequence's first position to its length describes the sequence (its
+  length when no directive says it), never an item (`.region`, info): Ensembl writes one a chromosome.
+- **Tables**: `ranges` lists at level 1 and at the level whose one tile holds the longest system (`wholeLevel`). Each
+  row a piece with its item's `id`, `strand` (and a field `strand`), `itemStart`, `itemEnd`, and fields `label` (`Name`,
+  GTF's `transcript_name` or `gene_name`, else the id), `type`, `gene`, `gene_name`, `thick_start`, `thick_end`
+  (float64, NaN none), `cds_phase` (int8, −1 none), then the attributes as categories in order of first use, at most 256
+  names (`ID` and `Parent` not fields); `rows` has `source`, `score` (float32) and `phase` (int8) instead of the gene's.
+  A region meeting an item with no piece in it (inside an intron) gives one **span row** (`start = end` at the region's
+  clipped start of the item, with its extent: EC-229).
+- **Names** (EC-228): a map from each lowercased value of GFF3's `Name`, `ID`, `Alias` or GTF's `gene_name`, `gene_id`,
+  `transcript_name`, `transcript_id` to its items (genes, transcripts and features, whatever `features` serves), built
+  once at open; `findNames` gives the exact names, then by prefix from the sorted names, each item once a field; a hit's
+  `id` is the item's only when `features` serves it (else its range addresses it); `Coverage.names` the fields.
+- **Bounds**: bytes after inflating (`limits.maxBytes`), data lines (`limits.maxRows`, counted as they are read,
+  `seq.source.too_large`), attributes a row and attribute names (256), the chain's depth (16), a region's rows.
+- **Configuration**:
+
+  | Item              | Default                  | Why the default; the alternatives                                      |
+  | ----------------- | ------------------------ | ---------------------------------------------------------------------- |
+  | `transcriptTypes` | `DefaultTranscriptTypes` | a line's role by its type, so a tile reads as the whole file; any list |
+  | `features`        | `transcripts`            | a source param: a gene model (EC-227); `genes`, `rows`                 |
+
+- **Tests**: the source suite on generated GFF3 and GTF (plain, gzip, BGZF; every `features`) and on the recorded real
+  slices (TP53's region of Ensembl GRCh38 release 116's GFF3 and GENCODE v50's GTF, examples' `fixtures/genomes/`);
+  `assembleTranscripts` alone (three levels, a shared exon, CDS only, GTF with and without transcript lines, a cycle, a
+  chain past 16, a prokaryote's gene, a type outside the list, attributes past 256); span rows; lengths; the name index;
+  fuzzed and truncated files without a throw. Its synthetic twin is `delayedRuntime(GffRuntime)`.
+- **Performance**: 100,000 GFF3 lines assembled under 500 ms (heavy, `itWithin`), 10,000 in the quick lane. Size: its
+  own row under 30 kB (24.3 kB minified, io's BGZF reader in it); in no viewer bundle.
+
 ### mmCIF
 
 `runtimes/mmcif.ts` (`@molstar/seqx-core/runtimes/mmcif`, opt in: `MmcifRuntime`, `mmcifRuntime`, `openMmcif`,
@@ -2513,7 +2577,24 @@ in page coordinates: what crosses strips), `axes` (2: a second axis of its own, 
   there stay square. Across a collapsed break (zero units wide) nothing is drawn; with `pad`, a gap with shown positions
   on both sides of a break is one, the line through it (the break's hairline over it); only at `items` (not `bars`,
   `density`). A hit on it is the item's; the hover draws it in the hover ink as thick as the outline, a selected item's
-  in the accent. Why: a gene model's convention, the pieces read as one item.
+  in the accent. Why: a gene model's convention, the pieces read as one item. A **span row** (`start = end` with an item
+  extent wider than it: the item, no piece in its tile) is no mark; its item is drawn by its other rows.
+
+  **The gene line** (`line: 'gene'`, `render/ranges-gene.ts`): rows sharing a key are one item's pieces (a transcript's
+  exons, a BED12's blocks) **in one lane**, the lanes packed an item at a time by its whole extent (`itemStart`,
+  `itemEnd` on its rows, else the hull of its rows in view; inline data's content counts an item a lane by its hull).
+  Each piece a square box, full height between the item's `thick_start` and `thick_end` (a numeric field: the CDS) and
+  `ThinShare` (0.5) of it outside (the UTRs), about the lane's middle; all full when the item has no thick part (NaN, a
+  non-coding GFF transcript), all thin when it is empty (`thick_start = thick_end`, UCSC's non-coding BED12). A hairline
+  across the item's extent (the connector's arrays, width, ink and alpha: drawn under the boxes, hit as the item,
+  hovered and selected with it; `connector: none` draws none) with **chevrons** every 12 CSS px pointing along the
+  item's `strand` field on the screen (a reversed axis turns them), anchored to the hairline's unclipped start so a pan
+  moves them with the data, `min(3, laneHeight / 4)` px tall and none in a lane under 6 px. No arrowheads (the chevrons
+  say the strand). The boxes are never merged into runs (`bars` keeps them; `density` is the strip). Why: igv's and
+  UCSC's gene model; a GFF's transcripts are items with pieces, and a line style is how they are joined. A warm draw and
+  hover allocate nothing (the gene models scenario). A source's lanes (its whole data's not known) are centred by the
+  most the layer has shown, every lane when the last is the density row, so no lane runs past the band.
+
 - `values`: a bar a position, or at `bars` and `density` a bar a device column over the column's extent from the
   baseline (`values.aggregate: 'minmax'`, so negative extremes show; `'max'` the maximum alone), from positions or bins.
   Missing (NaN) is a 2 px neutral mark at the baseline. The domain is the layer's `domain` param where given, else open:
