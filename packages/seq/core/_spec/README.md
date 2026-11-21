@@ -1959,8 +1959,9 @@ Seq\* holds pointers and labels: codes and identifiers are strings.
 `path.none`, `path.ambiguous`, `path.limit`, `complex.units`, `ref.system` (a reference to a sequence, molecule or unit
 that made no system: a unit of a refused complex or of nothing held; what reads it is left out), `assembly.lengths`,
 `assembly.duplicate` (a name twice: the later dropped), `genome.load`, `assembly.alias`, `assembly.mismatch`,
-`assembly.name` (Assemblies), `param.unread` (Unread params), and the overlay's `node.invalid`, `node.ref`,
-`node.depth`. A test checks the catalog against the sources.
+`assembly.name`, `assembly.override` (a `sequence` override naming no sequence: dropped) (Assemblies), `param.unread`
+(Unread params), and the overlay's `node.invalid`, `node.ref`, `node.depth`. A test checks the catalog against the
+sources.
 
 ## Overlay
 

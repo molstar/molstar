@@ -174,10 +174,11 @@ describe('an assembly’s derived sequences', () => {
       '/data/hg38/(sequence :name chrUn_KI270302v1)',
       '/data/hg38/(sequence :name HLA-A*01:01:01:01)',
     ]);
-    // `MT` reaches chrM through the prefix rule? never: `M` only. The override names `MT`, which this assembly lacks
+    // `MT` reaches chrM through the prefix rule? never: `M` only. The override names `MT`, which this assembly lacks:
+    // dropped, and said
     const chrM = m.systems.get('/data/hg38/(sequence :name chrM)')!;
     expect([chrM.length, chrM.cyclic, chrM.alphabet]).toEqual([16, false, 'dna']);
-    expect(codes(m.issues)).toEqual([]);
+    expect(codes(m.issues)).toEqual(['seq.resolve.assembly.override']);
   });
 
   it('drops a sequence named twice and says so, the first kept', () => {
@@ -193,6 +194,21 @@ describe('an assembly’s derived sequences', () => {
     expect(m.assemblies.get('/data/g')!.systems).toEqual(['/data/g/(sequence :name chr1)']);
     expect(m.systems.get('/data/g/(sequence :name chr1)')!.length).toBe(10);
     expect(codes(m.issues)).toEqual(['seq.resolve.assembly.duplicate']);
+  });
+
+  it('says an override naming no sequence of the assembly, dropped (`seq.resolve.assembly.override`)', () => {
+    const b = createSeqSpec();
+    b.data.assembly('hg38', assembly('GRCh38', hg38), (a) => {
+      a.sequence('mito', { name: 'M', cyclic: true });
+      a.sequence('typo', { name: 'chrQ', label: 'nothing' });
+    });
+    const m = resolveSpec(b.build());
+    expect(codes(m.issues)).toEqual(['seq.resolve.assembly.override']);
+    expect(m.issues[0].message).toContain('chrQ');
+    expect(m.issues[0].address).toBe('/data/hg38');
+    // the others apply, the system list is the derived sequences'
+    expect(m.systems.get('/data/hg38/(sequence :name chrM)')!.cyclic).toBe(true);
+    expect(m.assemblies.get('/data/hg38')!.systems).toHaveLength(hg38.length);
   });
 
   it('applies an override found through the names rule', () => {
@@ -274,7 +290,12 @@ describe('an assembly’s derived sequences', () => {
       });
     });
     const said = codes(resolveSpec(root).issues).filter((c) => c.startsWith('seq.resolve.assembly'));
-    expect(said).toEqual(['seq.resolve.assembly.mismatch', 'seq.resolve.assembly.name']);
+    // (the fixture's `MT` override names no sequence of it: its own code, first)
+    expect(said).toEqual([
+      'seq.resolve.assembly.override',
+      'seq.resolve.assembly.mismatch',
+      'seq.resolve.assembly.name',
+    ]);
   });
 });
 

@@ -25,6 +25,11 @@ export const GenomeIssues = defineIssues('seq.resolve.assembly', {
     description: 'An alias names two sequences: dropped',
     hint: 'Give it to one',
   },
+  'seq.resolve.assembly.override': {
+    severity: 'warning',
+    description: 'A sequence override names no sequence of the assembly: dropped',
+    hint: 'Name a derived sequence, or an alias of one',
+  },
   'seq.resolve.assembly.mismatch': {
     severity: 'warning',
     description: 'A source says another assembly',

@@ -131,12 +131,20 @@ export function assemblyEntry(
   const keep = includeFilter(p(n, 'include') as IncludeValue | undefined, lookup);
   // the overrides: a `sequence` child by its `name` (its id when absent)
   const overrides = new Map<number, Node>();
+  const unnamed: string[] = [];
   for (const c of n.children ?? []) {
     if (c.kind !== 'sequence') continue;
     const name = p(c, 'name') ?? c.id;
     const i = typeof name === 'string' ? lookupName(lookup, name) : undefined;
     if (i !== undefined) overrides.set(i, c);
+    else unnamed.push(String(name));
   }
+  if (unnamed.length)
+    say(
+      'seq.resolve.assembly.override',
+      `Sequence overrides name no sequence of the assembly: ${unnamed.slice(0, 3).join(', ')}${unnamed.length > 3 ? ', …' : ''}`,
+      'sequences',
+    );
   const alphabet = (p(n, 'alphabet') ?? 'dna') as SystemEntry['alphabet'];
   const systems: SystemEntry[] = [];
   const systemAt: (string | undefined)[] = new Array(sequences.length);
