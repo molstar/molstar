@@ -421,6 +421,9 @@ export interface ResolvedView {
   readonly issues: readonly Issue[];
 }
 
+/** No systems: what an unmapped system links to besides itself. */
+const NoSystems: readonly string[] = [];
+
 const caches = new WeakMap<LayerKinds, WeakMap<StaticModel, Map<string, ResolvedView>>>();
 
 /** The resolved views of a model's spec, in spec order; kept per layer kinds, model and view. */
@@ -766,11 +769,19 @@ function build(model: StaticModel, view: Node, address: string, layerKinds: Laye
   // blocks' systems (its own axis is their units, on no system), each one linked
   const links: ViewLink[] = [];
   const shown = (s: ResolvedSection) => [...new Set(s.blocks ? s.blocks.map((b) => b.axis.system) : [s.axis.system])];
+  // linear in the blocks: a system with no map joins only itself (a genome's thousands of contigs on two sections
+  // are their identities, never every pair asked for a path)
+  const shownOf = new Map(sections.map((s) => [s, shown(s)]));
+  const shownSet = new Map(sections.map((s) => [s, new Set(shownOf.get(s))]));
   for (const a of sections)
     for (const b of sections) {
       if (a === b) continue;
-      for (const from of shown(a))
-        for (const to of shown(b)) {
+      for (const from of shownOf.get(a)!)
+        for (const to of model.systems.has(from) && model.edgesFrom(from).length > 0
+          ? shownOf.get(b)!
+          : shownSet.get(b)!.has(from)
+            ? [from]
+            : NoSystems) {
           if (!model.systems.has(from) || !model.systems.has(to)) continue;
           // what is projected onto a section or from it takes its `via` (both ends' named maps)
           const via = a.via && b.via ? [...new Set([...a.via, ...b.via])] : (b.via ?? a.via);

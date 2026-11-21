@@ -13,7 +13,7 @@ import type { Node } from '@molstar/core/repr/tree';
 import { assembly, createSeqSpec, genome } from '@molstar/seqx-core/lang';
 import { loadGenome } from '@molstar/seqx-core/resolve';
 import { resolveSpec } from '@molstar/seqx-core/resolve';
-import { beforeAll, describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 import {
   blockPositionAt,
   blockUnitOf,
@@ -239,5 +239,23 @@ describe('equal block lists', () => {
     const [a, r, c] = resolveView(resolveSpec(b.build()), '/views/v')!.sections;
     expect(sameBlocks(a, c)).toBe(true);
     expect(sameBlocks(a, r)).toBe(false);
+  });
+});
+
+describe('links between sections of a genome', () => {
+  it('are linear in the blocks: an unmapped sequence links to itself alone, never every pair asked for a path', () => {
+    const b = createSeqSpec();
+    const seqs = Array.from({ length: 500 }, (_, i) => ({ name: `ctg${i}`, length: 1000 + i }));
+    b.data.assembly('g', assembly('g', seqs));
+    b.views.view('v', (v) => {
+      genome(v, 'ring', '/data/g', { layout: 'rings' });
+      genome(v, 'row', '/data/g');
+    });
+    const model = resolveSpec(b.build());
+    const path = vi.spyOn(model, 'path');
+    const view = resolveView(model, '/views/v')!;
+    // each sequence's identity both ways (500 × 2), and no path asked for (250,000 pairs each way before)
+    expect(view.links.length).toBe(1000);
+    expect(path.mock.calls.length).toBeLessThan(10);
   });
 });

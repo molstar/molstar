@@ -1970,8 +1970,10 @@ no target.
   axis's shape.
 - **Links**: every ordered pair of the view's sections a static path joins, with the path (`fromSystem`, `toSystem`: the
   systems it joins), composed when the view is resolved so hover and selection never compose; the same system is the
-  identity. A section of blocks links through each block's system (its own axis is on no system), so what is on a
-  sequence lights the units of a complex's section (EC-25) and back.
+  identity. Linear in the blocks: a system no map joins (`edgesFrom` empty) links to itself alone, so two sections of a
+  genome's 3,000 contigs are 6,000 identities, never 9 million pairs asked for a path. A section of blocks links through
+  each block's system (its own axis is on no system), so what is on a sequence lights the units of a complex's section
+  (EC-25) and back.
 - **Projection** (`projectOntoView(model, view, loc, { close?, own?, linked? })`, `project.ts`): a Location on the
   view's sections' systems (a section of blocks: its blocks' systems), one Location keyed by system (two sections on one
   system show the same): each part carried along the view's link from its system to each shown system, else, for a
