@@ -10,8 +10,8 @@ block and ring layouts, navigators, pairs, grids, the logo, the rows layer, the 
 PNG and the render CLI); the fourth, integration (molecules and units in language 0.5.0, structure maps and the
 structure link on a fake 3D viewer, seq data ports, extension openings, track header parts, services, bigWig with range
 reads of assets, archives, a test consumer of the resolved view). Next, the Genomes milestone (the fifth slice's plan;
-built so far: BGZF and tabix in io, language 0.6.0 with assemblies and genome resolve loaded when used), on extension
-kinds.
+built so far: BGZF and tabix in io, language 0.6.0 with assemblies and genome resolve loaded when used, sections over a
+source's complex, the genome axis and layouts), on extension kinds.
 
 - **A component query on a source-backed sequence** (`(elements :component X)`) is pending until the source's letters
   are read (EC-169); a format with a component index could answer it without the letters.

@@ -162,7 +162,7 @@ fix point with nothing open is skipped. A finding that needs a design is a drift
       drift, decided 2026-11-21, `packages/seq/TODO.md`): a section `of` a dynamic complex, resolved when the source
       opens and reflowed on its `changes`; the static-model rule's exception for opened sources (seq-data-ports' matrix
       row "a section of a complex after an update: reflows"); its `_spec` and the TODO line closed.
-- [ ] **GC2** (`briefs/gc2-genome-axis.md`; after GC1, beside SC: render only) the axis and layouts: blocks with their
+- [x] **GC2** (merged 2026-11-21, `db2364d09`) (`briefs/gc2-genome-axis.md`; after GC1, beside SC: render only) the axis and layouts: blocks with their
       own direction and scale (rulers, the direction mark, `×N`), the gap share on rows and rings, runs of small blocks,
       group gaps and labels, `section.center`, the `block` and `system` fields' domain, export attributes.
 - [ ] **GC3** (`briefs/gc3-genome-navigators.md`; after GC2 and SC) navigators and the viewer: windows over blocks, the

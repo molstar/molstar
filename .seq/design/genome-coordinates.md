@@ -496,7 +496,7 @@ Cells this design fills or changes; the others stand as the axis, layouts and na
 | a block's ruler at its own density; overlapping blocks lit together; a ribbon's twist by the three directions | fixed | — | the reasons in the Decision |
 | the hue per block's domain (the blocks in order) | fixed | — | known up front, never by region (EC-191) |
 
-Not built: every row above but `axis.directionMark` and the tracks' gap share (GC1 to GC3).
+Not built: the navigator rows, `navigate.acrossBlocks`, the keys, `navigator.switch` (GC3); data over an assembly read by sequence (its unread info stays).
 
 ## Tensions
 
