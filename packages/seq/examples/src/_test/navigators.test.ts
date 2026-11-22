@@ -19,6 +19,7 @@ import {
   type BandsLay,
   bundledTextMetrics,
   DarkTokens,
+  DefaultRenderConfig,
   LightTokens,
   Renderer,
   type RangesLay,
@@ -167,7 +168,12 @@ describe('the examples’ navigators', () => {
       r.renderer.setTokens(tokens);
       const g = r.renderer.frame({ size: { width: 800, height: 24 }, view: r.view.layout });
       const ink = g.lists.passes.window.paths;
-      for (let i = 0; i < 2; i++) expect(ink.stroke[i]).toBe(tokens.colors['seq-window']);
+      // the connectors at the quiet alpha of the window's ink, one weight with every line of the part
+      const quiet =
+        ((tokens.colors['seq-window'] & 0xffffff00) |
+          Math.round(DefaultRenderConfig.navigator.window.idleAlpha * 255)) >>>
+        0;
+      for (let i = 0; i < 2; i++) expect(ink.stroke[i]).toBe(quiet);
       const view = ExampleViews.find((v) => v.id === 'gene-region-ideogram')!;
       const c = createSeqContext({
         registry: [{ kind: 'format-runtime', runtime: SeqRuntime }, ...(view.registry?.({ delayMs: 0 }) ?? [])],

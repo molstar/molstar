@@ -240,6 +240,15 @@ describe('A ring with navigator.switch: include', () => {
     const n = v.navigatorModel('chromosomes')!;
     n.draw();
     expect(n.issues).toEqual([]);
+    // a navigator part bound to a ring section reads as any horizontal one: the window's region at rest, the mark's region
+    // while it hovers the mark, the window's again when it leaves
+    const rest = n.values.value[0].text;
+    expect(rest).toMatch(/^chr1:1 – chr\w+:[\d,]+$/);
+    expect(n.readout.value).toBe(rest);
+    n.move(60, 5);
+    expect(n.readout.value).toBe('chr1 – chrM');
+    n.leave();
+    expect(n.readout.value).toBe(rest);
     const ringNode = () =>
       v.spec.root.value.children!.find((c) => c.kind === 'views')!.children![0].children!.find((c) => c.id === 'ring')!;
     // chr2's place on the navigator
@@ -405,6 +414,9 @@ describe('The square as composed (it opens on chr3)', () => {
     n.setFocus(true);
     n.setFocus(false);
     expect(n.values.value[0].text).toBe(`chr3: 1–${chr3.axis.ranges![1].toLocaleString('en-US')} of Toy38`);
+    // its readout is short for its narrow part: the block and its range, no assembly; fixed at rest
+    expect(n.readout.value).toBe(`chr3: 1–${chr3.axis.ranges![1].toLocaleString('en-US')}`);
+    expect(n.readout.value!.length).toBeLessThan(28);
     // cells by length: chr1's column wider than chr12's
     const col = (k: number) => {
       const xs: number[] = [];

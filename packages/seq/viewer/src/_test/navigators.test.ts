@@ -144,6 +144,66 @@ describe('a strip and the view it moves', () => {
     expect(range(v)).toEqual([0, 40]);
   });
 
+  it('the readout says the window as drawn, each frame: after a drag, a click-to-jump and a wheel, with the pointer elsewhere', async () => {
+    const v = await make(spec());
+    v.view.setRange(P, 100, 150);
+    v.draw();
+    const { nav, f } = await drawNav(v);
+    const say = () => {
+      const g = nav.draw()!.windows[0];
+      return `p:${(Math.round(g.p0) + 1).toLocaleString('en-US')}–${Math.round(g.p1).toLocaleString('en-US')} of p`;
+    };
+    // at rest: the window's region
+    {
+      const text = say();
+      expect(nav.readout.value).toBe(text);
+    }
+    const w = f.windows[0];
+    const mid = (w.dx0 + w.dx1) / 2;
+    const px = nav.width / 393;
+    expect(nav.down(mid, 10)).toBe(true);
+    // mid-drag, every frame: the text equals the window drawn in that frame (it did lag: set on a hover's hit only)
+    for (const dx of [10, 25, 40, 70]) {
+      nav.move(mid + dx * px, 10);
+      v.draw();
+      frames!.flush();
+      {
+        const text = say();
+        expect(nav.readout.value).toBe(text);
+      }
+    }
+    nav.up();
+    v.draw();
+    frames!.flush();
+    {
+      const text = say();
+      expect(nav.readout.value).toBe(text);
+    }
+    expect(nav.readout.value).not.toBe('p:101–150 of p');
+    // a click-to-jump with the pointer over the picture: the text is the window's
+    const x = (20 / 393) * nav.width;
+    nav.move(x, 10);
+    expect(nav.down(x, 10)).toBe(true);
+    nav.up();
+    expect(nav.click(x, 10, 1)).toBe(true);
+    for (let i = 0; i < 20; i++) {
+      v.draw();
+      frames!.flush();
+      {
+        const text = say();
+        expect(nav.readout.value).toBe(text);
+      }
+    }
+    // a wheel zoom
+    expect(nav.wheel(10, 12, 0, -100, { mod: true })).toBe(true);
+    v.draw();
+    frames!.flush();
+    {
+      const text = say();
+      expect(nav.readout.value).toBe(text);
+    }
+  });
+
   it('a double-click: fit, then fitted a window zoomPx wide; one step with its first click', async () => {
     const v = await make(spec());
     v.view.setRange(P, 0, 40);
@@ -193,6 +253,37 @@ describe('a strip and the view it moves', () => {
     expect(nav.cancel()).toBe(true);
     nav.up();
     expect(range(v)[0]).toBeCloseTo(200, 0);
+  });
+
+  it('at the fit the window is no target: a drag anywhere sweeps (`zoom-to`), a double-click zooms there', async () => {
+    const v = await make(spec(), [[viewerItem('view.jumpMs'), 0]]);
+    v.view.setRange(P, 0, 393);
+    v.draw();
+    const { nav, f } = await drawNav(v);
+    const at = (u: number) => (u / 393) * nav.width;
+    // the window covers the whole axis: even its middle and its edges are `outside` (no grips, no pan)
+    expect(f.windows[0].dx1 - f.windows[0].dx0).toBeCloseTo(nav.width, 0);
+    for (const u of [1, 200, 392]) expect(nav.hit(at(u), 10)?.part).toBe('outside');
+    // a real press, move, release: the swept region is the view
+    expect(nav.down(at(100), 10)).toBe(true);
+    nav.move(at(160), 10);
+    nav.up();
+    expect(range(v)[0]).toBeCloseTo(100, 0);
+    expect(range(v)[1]).toBeCloseTo(160, 0);
+    // back at the fit: a double-click zooms to `zoomPx` navigator px about the point
+    v.view.setRange(P, 0, 393);
+    v.draw();
+    nav.draw();
+    const x = at(300);
+    for (const detail of [1, 2]) {
+      nav.down(x, 10);
+      nav.up();
+      nav.click(x, 10, detail);
+    }
+    nav.doubleClick(x, 10);
+    const [s0, e0] = range(v);
+    expect(e0 - s0).toBeCloseTo((48 / nav.width) * 393, 0);
+    expect((s0 + e0) / 2).toBeCloseTo(300, 0);
   });
 
   it('a far drag pushes the viewports at its press as one step', async () => {
@@ -488,6 +579,28 @@ function rowsSpec(n: number, form: 'overview' | 'miniature') {
 const S = '/views/v/s';
 const RowsTrack = '/views/v/s/rows';
 const top = (v: SeqViewer) => v.view.band(RowsTrack)?.bandTop ?? 0;
+
+describe('the readout of a narrow part is short', () => {
+  it('a vertical overview: the rows alone, `401–440 / 10,000`', async () => {
+    const v = await make(rowsSpec(10_000, 'overview'), [[viewerItem('view.jumpMs'), 0]]);
+    v.view.setBand(RowsTrack, { bandTop: 400 });
+    v.draw();
+    const { nav, f } = await drawNav(v, 'nav');
+    const w = f.windows[0];
+    const n = (x: number) => Math.round(x).toLocaleString('en-US');
+    expect(nav.readout.value).toBe(`${n(w.r0 + 1)}–${n(w.r1)} / 10,000`);
+    expect(nav.readout.value).toMatch(/^401–\d+ \/ 10,000$/);
+  });
+
+  it('the miniature (two axes): the positions then the rows, `1–40 · 401–440 / 10,000`', async () => {
+    const v = await make(rowsSpec(10_000, 'miniature'), [[viewerItem('view.jumpMs'), 0]]);
+    v.view.setBand(RowsTrack, { bandTop: 400 });
+    v.draw();
+    const { nav } = await drawNav(v, 'nav');
+    expect(nav.readout.value).toMatch(/^[\d,]+–[\d,]+ · 401–[\d,]+ \/ 10,000$/);
+    expect(nav.readout.value!.length).toBeLessThan(32);
+  });
+});
 
 describe('an overview and a miniature over an alignment’s rows', () => {
   it('the overview: a drag moves the rows, clamped at the last; a far drag is one step; keys; a click centres', async () => {

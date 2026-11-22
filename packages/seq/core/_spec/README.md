@@ -2556,6 +2556,8 @@ the UX foundations' numbers, CSS px, settled by the foundation stories; where no
 | `pairs.binStroke`                                              | 1 to 6 CSS px                                                                                                          | a bin pair's arc stroked by the square root of its count over the counts in view: thick reads as many without hiding the rest                                                                                                                                                                                                                                                                                             |
 | `grid.buildBudget`                                             | 65,536 samples a frame                                                                                                 | a frame while moving under 8 ms; a tile past it draws a coarser level meanwhile, never empty                                                                                                                                                                                                                                                                                                                              |
 | `navigator.window.minPx`, `.hitPx`, `.touchHitPx`, `.handlePx` | 16, 12, 24, 5 px                                                                                                       | a window under a few px cannot be seen or grabbed; a press in the middle still pans; a finger is wider                                                                                                                                                                                                                                                                                                                    |
+| `navigator.window.strokePx`, `.idleAlpha`                      | 1 px, 0.4                                                                                                              | one weight for every line of the part (lit is said by the fill and grips); every "where" mark and an idle frame at the quiet alpha                                                                                                                                                                                                                                                                                        |
+| `navigator.zoomStrip.funnel`                                   | `muted`                                                                                                                | the two lines tying the context's mark to the control row, quiet (`none` for a host)                                                                                                                                                                                                                                                                                                                                      |
 | `navigator.window.floor`                                       | `centred`                                                                                                              | the drawn window says where; `thumb` (a scrollbar's mapping)                                                                                                                                                                                                                                                                                                                                                              |
 | `navigator.trackScale`, `navigator.trackMinPx`                 | 0.25, 2 px                                                                                                             | a miniature reads as the view; a thinner track is not seen at dpr 1                                                                                                                                                                                                                                                                                                                                                       |
 | `navigator.marks`                                              | selection, highlights, cursor                                                                                          | where is what I picked; any subset                                                                                                                                                                                                                                                                                                                                                                                        |
@@ -3184,14 +3186,15 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
   showing one by `include`). Its ends' systems and positions are the window's (`NavigatorWindow.s0`, `.s1`, `p0`, `p1`):
   its text names the block and the assembly, `chr17: 7,668,402–7,687,550 of GRCh38`, across blocks both ends
   `chr16:90,100,000 – chr17:1,200,000`. A hit names the block under the point, its system and the position there
-  (`NavigatorHit.system`, `.block`; on the context too). The zoom strip comes when the window, not the reachable span,
-  is narrower than `minPx` on the context, and shows the blocks the window touches (their hull: the block holding it,
-  IGV's chromosome ideogram under the genome's); `markText` names them. `blockAt(section, x, context?)` gives the bound
-  section's units of the block under x (a double-click fits it, a switch shows it alone). The marks (the selection's and
-  highlights' ticks, the cursor) are drawn at every block showing their positions. Allocation-free on a window move
-  where the lists are equal (a binary search over the blocks' offsets). Not built: `system` as a list of assemblies; an
-  ideogram's bands over every chromosome (data over an assembly is read by sequence later: a `bands` picture over blocks
-  draws what its one annotation reaches).
+  (`NavigatorHit.system`, `.block`; on the context too). The zoom strip is always there over blocks
+  (`zoomStrip.overBlocks: 'always'`; `narrow`: when the window is narrower than `minPx` on the context, with a
+  hysteresis; `never`) and shows the blocks the window touches (their hull: the block holding it, IGV's chromosome
+  ideogram under the genome's); `markText` names them. `blockAt(section, x, context?)` gives the bound section's units
+  of the block under x (a double-click fits it, a switch shows it alone). The marks (the selection's and highlights'
+  ticks, the cursor) are drawn at every block showing their positions. Allocation-free on a window move where the lists
+  are equal (a binary search over the blocks' offsets). Not built: `system` as a list of assemblies; an ideogram's bands
+  over every chromosome (data over an assembly is read by sequence later: a `bands` picture over blocks draws what its
+  one annotation reaches).
 - **The square** (`render/navigator-square.ts`, `SquareNavigator`, `isSquareNavigator`: a navigator over blocks with
   `axes: both` bound to two sections of blocks, or one section on both axes, `of: [s, s]`): its lattice the assembly's
   blocks on both axes (after the assembly's `include`, never a section's; no `system`: the first bound section's `of`),
@@ -3241,28 +3244,36 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
   quiet); absent, an export's outlines.
 - **The zoom strip** (`zoomStrip`, `DefaultZoomStrip`: `minPx` 48, `heightPx` 16; the viewer's `navigator.zoomStrip`, an
   export's `navigator` option): a positions navigator along the view (`top`, `bottom`: a side part's length is the
-  view's height, not its axis; none there) whose reachable span is narrower than `minPx` on the picture is context and a
-  zoom strip, one navigator (one renderer, hit, frame and draw list set). The span: the hull of its bound sections'
-  pieces, on a cyclic axis the shorter arc covering them (over the origin its end past the total); a bound section on
-  the navigator's own axis is the whole axis; known limit: two far-apart regions make a wide hull, so no strip. The
-  picture's view gets a second section, the same form over the same system (an ideogram's bands; else the axis, a
-  ruler), its viewport the span's units (over a cyclic origin past the total: its pieces twice, the strip runs on over
-  the origin), laid out below the box at the box's bottom whatever the context's content (`zoomHeight`, exactly
-  `heightPx`: a gap of at most `ZoomGapPx`, 6, and at most half, then the strip's track; over blocks the track at least
-  a ruler's height, `heights.ruler`, and the strip's section `labels: none`: its ruler in bases, ticks and labels inside
-  it, the context naming the blocks; the author, 2026-11-21: nothing clipped; `heightPx: 0` is off; the frame's `size`
-  is the box, the lists the box and the strip; an export stacks both). The windows, their wash, floor, grips, marks,
-  hits and `sectionUnitAt` are the zoom strip's (a drag moves the view at its scale); the context draws the span as a
-  mark in the `window` pass (an outline at least `window.minPx` wide, always centred on the truth whatever
-  `window.floor`, so the truth is inside it, its hairline at the truth; over a cyclic origin two pieces; no grips, no
-  wash) and two connector hairlines (`seq-window`) from its ends to the strip's; a hit on the context is `context`
-  (`mark` over it, else `outside`), part `outside`, no target; the gap below the context is the strip's (a finger a few
-  px above it lands on it); `markText` names the span (over the origin the arc, `chr:59,001–1,000`). On under `minPx`,
-  off past `minPx + ZoomHysteresisPx` (8: a width about the threshold flickers not); made again when it comes or goes;
-  the span read each frame (none, a bound section pending: the last kept, mark and connectors with it); the span moving
-  resets the strip's viewport. The tokens last set are the renderer's own, so a picture made again keeps them. Why: a
-  region on its chromosome is a few kb of tens of Mb, a window there can neither show a move nor take a drag; the
-  chromosome's context and a working window are two scales.
+  view's height, not its axis; none there) whose reachable span is narrower than `minPx` on the picture (a fixed
+  property of the section: no hysteresis) or that is over blocks (above) is context and a zoom strip, one navigator (one
+  renderer, hit, frame and draw list set). The span: the hull of its bound sections' pieces, on a cyclic axis the
+  shorter arc covering them (over the origin its end past the total); a bound section on the navigator's own axis is the
+  whole axis; known limit: two far-apart regions make a wide hull, so no strip. The picture's view gets a second
+  section, the same form over the same system (an ideogram's bands; else the axis, a ruler), its viewport the span's
+  units (over a cyclic origin past the total: its pieces twice, the strip runs on over the origin), laid out below the
+  box at the box's bottom whatever the context's content (`zoomHeight`, exactly `heightPx`: a gap of at most
+  `ZoomGapPx`, 6, and at most half, then the strip's track; over blocks the track at least a ruler's height,
+  `heights.ruler`, and the strip's section `labels: none`: its ruler in bases, ticks and labels inside it, the context
+  naming the blocks; the author, 2026-11-21: nothing clipped; `heightPx: 0` is off; the frame's `size` is the box, the
+  lists the box and the strip; an export stacks both). The windows, their wash, floor, grips, marks, hits and
+  `sectionUnitAt` are the zoom strip's (a drag moves the view at its scale); the context draws the span as a mark in the
+  `window` pass (an outline at least `window.minPx` wide, always centred on the truth whatever `window.floor`, so the
+  truth is inside it, its hairline at the truth; over a cyclic origin two pieces; no grips, no wash) and two connector
+  hairlines (`seq-window` at the quiet alpha, `IdleAlpha` 0.4) from its ends to the strip's; a hit on the context is
+  `context` (`mark` over it, else `outside`), part `outside`, no target; the gap below the context is the strip's (a
+  finger a few px above it lands on it); `markText` names the span (over the origin the arc, `chr:59,001–1,000`). Made
+  again when it comes or goes (`ZoomHysteresisPx` (8) only under `overBlocks: 'narrow'`); the span read each frame
+  (none, a bound section pending: the last kept, mark and connectors with it); the span moving resets the strip's
+  viewport. The tokens last set are the renderer's own, so a picture made again keeps them. Why: a region on its
+  chromosome is a few kb of tens of Mb, a window there can neither show a move nor take a drag; the chromosome's context
+  and a working window are two scales.
+- **The look** (navigators.md, "The window's look"; `navigator.window.strokePx`, `.idleAlpha`,
+  `navigator.zoomStrip.funnel`, `NavWindowFlags.quiet`): one stroke weight (1 CSS px) for every line of the part (the
+  window, the mark, the connectors, an idle frame, a sweep), a lit window said by its fill and grips only; two inks from
+  `seq-window`: the control at full strength, every "where" mark (the context's mark, the connectors, an idle frame) at
+  the quiet alpha. A window at the fit (`atFit`: it moves along x alone and covers all it can reach) is drawn as the
+  idle frame, no grips, and is no target: its whole row is `outside`, so a drag sweeps (`navigator.zoom-to`) and a
+  double-click zooms there.
 - **Draw lists**: the base (`background`, `data`) is the picture's, keyed as any frame; the `window` pass draws the
   washes, the windows (the one the pointer last acted on on top) and a sweep's outline; then the marks: the selection's
   and the highlights' ticks at the picture's foot (`navigator.marks`), the keyboard cursor's hairline, the pointer's

@@ -8,7 +8,7 @@ import { cancelFrameCallback, requestFrameCallback } from '@molstar/ui/dom/frame
 import { modifiersOf } from '@molstar/seqx-viewer/bindings';
 import { CanvasBackend, type CanvasLike, FontCache } from '@molstar/seqx-viewer/canvas';
 import { createDragSession } from './drag-session.js';
-import type { NavigatorModel } from './navigator.js';
+import { type NavigatorModel, ReadoutLinePx } from './navigator.js';
 import type { SeqViewer } from './viewer.js';
 
 // The navigator part (_spec/README.md "Composition", Navigators): a part the host places, like a legend. `mountNavigator`
@@ -33,31 +33,41 @@ function mountModel(element: HTMLElement, viewer: SeqViewer, model: NavigatorMod
   container.tabIndex = 0;
   container.setAttribute('role', 'slider');
   container.dataset.navigator = model.id;
-  // (no `overflow: hidden`: the readout may sit above or below the part, clear of the control in use)
-  Object.assign(container.style, { position: 'relative', outline: 'none', touchAction: 'none' });
+  // the part's box is the readout's line above the canvases: padding, so a point's y is the picture's less the line
+  Object.assign(container.style, {
+    position: 'relative',
+    outline: 'none',
+    touchAction: 'none',
+    boxSizing: 'content-box',
+    paddingTop: `${ReadoutLinePx}px`,
+  });
   const base = doc.createElement('canvas');
   const overlay = doc.createElement('canvas');
   const labels = doc.createElement('canvas');
   Object.assign(base.style, { display: 'block' });
   for (const c of [overlay, labels])
-    Object.assign(c.style, { position: 'absolute', left: '0', top: '0', pointerEvents: 'none' });
-  // the readout is the chrome's surface (the hover card's inset and backdrop, so it reads over data), one line, shown only
-  // while it says something. The number is the information: the system's name gives way first (it shrinks to an
-  // ellipsis, then to nothing), the value and what follows it never do
+    Object.assign(c.style, { position: 'absolute', left: '0', top: `${ReadoutLinePx}px`, pointerEvents: 'none' });
+  // the readout is the part's first line, one place: its top right corner, never moving with the window or the pointer
+  // (navigators.md, "The window's look", 4). One line; the number is the information: the system's name shrinks to an
+  // ellipsis, then to nothing, the value and what follows never do; a value wider than the part runs left (flex-end)
+  const nav = model.navigator;
+  const side = nav?.place === 'left' || nav?.place === 'right' || nav?.axes === 'rows';
   const readout = doc.createElement('div');
-  readout.className = 'msui-surface seqx-navigator-readout';
+  readout.className = 'seqx-navigator-readout';
   readout.setAttribute('aria-live', 'off');
   Object.assign(readout.style, {
     position: 'absolute',
-    left: '0',
+    right: '0',
     top: '0',
-    zIndex: '2',
+    height: `${ReadoutLinePx}px`,
     display: 'none',
-    maxWidth: 'calc(100% - 2 * var(--msui-space-1, 4px))',
+    justifyContent: 'flex-end',
+    // within the part's width (a miniature's text is clipped at its start); a narrow rows overview's short form runs left
+    maxWidth: side ? 'none' : '100%',
+    overflow: side ? 'visible' : 'hidden',
     boxSizing: 'border-box',
-    overflow: 'hidden',
     whiteSpace: 'nowrap',
-    font: 'var(--msui-text-xs, 11px) / var(--msui-leading-xs, 16px) var(--msui-font-sans, sans-serif)',
+    font: `var(--msui-text-xs, 11px) / ${ReadoutLinePx}px var(--msui-font-sans, sans-serif)`,
     color: 'var(--msui-text-muted, gray)',
     pointerEvents: 'none',
   });
@@ -87,12 +97,6 @@ function mountModel(element: HTMLElement, viewer: SeqViewer, model: NavigatorMod
     readName.textContent = parts?.name ? `${parts.name}: ` : '';
     readValue.textContent = parts ? `${parts.value}${parts.rest}` : '';
     readout.style.display = parts && (parts.name || parts.value) ? 'flex' : 'none';
-    // never over the control in use: beside the window, else above or below the part (the model's rule)
-    if (readout.style.display !== 'none') {
-      const [left, top] = model.readoutAt(readout.offsetWidth, readout.offsetHeight);
-      readout.style.left = `${left}px`;
-      readout.style.top = `${top}px`;
-    }
     container.style.cursor = model.cursor;
   };
   const schedule = () => {
@@ -116,7 +120,7 @@ function mountModel(element: HTMLElement, viewer: SeqViewer, model: NavigatorMod
 
   const local = (e: MouseEvent) => {
     const r = container.getBoundingClientRect();
-    return [e.clientX - r.left, e.clientY - r.top] as const;
+    return [e.clientX - r.left, e.clientY - r.top - ReadoutLinePx] as const;
   };
   // a drag ends wherever the button is released: the window's own listeners while it runs (drag-session.ts)
   const drag = createDragSession(container, () => model.up());
@@ -182,12 +186,16 @@ function mountModel(element: HTMLElement, viewer: SeqViewer, model: NavigatorMod
   };
   const box = () => {
     container.style.width = across() ? '' : `${model.width}px`;
+    // the picture's height; the readout's line is the container's padding above it
     container.style.height = `${model.height || 0}px`;
   };
   let observer: ResizeObserver | undefined;
   const measure = () => {
     if (!model.navigator) return;
-    model.resize(across() ? element.clientWidth : 0, element.style.height ? element.clientHeight : 0);
+    model.resize(
+      across() ? element.clientWidth : 0,
+      element.style.height ? Math.max(1, element.clientHeight - ReadoutLinePx) : 0,
+    );
     box();
     schedule();
   };
