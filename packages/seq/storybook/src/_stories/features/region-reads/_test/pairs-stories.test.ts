@@ -6,7 +6,8 @@
 
 import { hitView, pairsBinHover } from '@molstar/seqx-core/render';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { loadGenome } from '@molstar/seqx-core/resolve';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { advance, drawn, exported, openRegion } from './region-twin.js';
 
 // Features/Region reads/Pairs, headless on a fake clock (the story's composition): pairs by region zoomed in (items as
@@ -14,6 +15,10 @@ import { advance, drawn, exported, openRegion } from './region-twin.js';
 // (bin-pair chords). Each in the canvas and in the SVG, light and dark.
 
 let viewer: SeqViewer | undefined;
+// the genome chunk landed first: its import is real I/O, never on the fake clock
+beforeAll(async () => {
+  await loadGenome();
+});
 afterEach(() => {
   viewer?.retire();
   viewer = undefined;
@@ -33,7 +38,7 @@ interface PairsLay {
 const lays = (v: SeqViewer) => v.frame!.layout.sections[0].sectionLays.map((l) => l.lay as unknown as PairsLay);
 
 describe('Features/Region reads/Pairs, headless', () => {
-  it('zoomed in (EC-208): the items as arcs, each alignment block one, read from either end; waiting first, then drawn', async () => {
+  it('zoomed in (EC-208, EC-210): the items as arcs between two assemblies’ chromosomes, each alignment block one, read from either end; waiting first, then drawn', async () => {
     const v = (viewer = await openRegion('pairs-zoomed-in'));
     // before the source answers: no arc, no issue
     await advance(v, 100);
@@ -45,6 +50,15 @@ describe('Features/Region reads/Pairs, headless', () => {
     expect(lay.prep?.weight).toBeUndefined();
     expect(lay.n).toBeGreaterThan(30);
     expect(lay.n).toBeLessThan(4096);
+    // each pair's ends on the two genomes' blocks (A's chrA2, B's chrB2), found once from either
+    const prep = (
+      lay as unknown as { prep: { endUnits: string[]; data: { aUnit: Int32Array; bUnit: Int32Array; n: number } } }
+    ).prep;
+    const ends = new Set<string>();
+    for (let k = 0; k < prep.data.n; k++)
+      ends.add(`${prep.endUnits[prep.data.aUnit[k]]} ${prep.endUnits[prep.data.bUnit[k]]}`);
+    expect([...ends]).toEqual(['/data/a/(sequence :name chrA2) /data/b/(sequence :name chrB2)']);
+    expect(lay.carets.length).toBe(0);
     // a block the alignment holds with its B end reversed is twisted: arcs of two kinds
     expect(drawn(v, 'path')).toBeGreaterThan(30);
     for (const dark of [false, true]) {
@@ -104,13 +118,21 @@ describe('Features/Region reads/Pairs, headless', () => {
     expect(bedpe.n).toBeLessThan(4096);
   });
 
-  it('on a ring at the fit: bin-pair chords, none dangling, in both themes', async () => {
+  it('on a genome ring at the fit: chords between the chromosomes and within each, none dangling, in both themes', async () => {
     const v = (viewer = await openRegion('pairs-ring'));
     await advance(v, 8000);
     const [lay] = lays(v);
-    expect(lay.prep?.weight).toBeDefined();
+    // the toy assembly's 1,376 positions at about a position a pixel: the links themselves, past 4,096 binned by column
     expect(lay.n).toBeGreaterThan(100);
     expect(lay.carets.length).toBe(0);
+    const prep = (
+      lay as unknown as { prep: { endUnits: string[]; data: { aUnit: Int32Array; bUnit: Int32Array; n: number } } }
+    ).prep;
+    expect(prep.data.n).toBe(12_000);
+    let across = 0;
+    for (let k = 0; k < prep.data.n; k++) if (prep.data.aUnit[k] !== prep.data.bUnit[k]) across++;
+    expect(across).toBeGreaterThan(100);
+    expect(new Set(Array.from(prep.data.aUnit)).size).toBe(6);
     expect(drawn(v, 'path')).toBeGreaterThan(100);
     for (const dark of [false, true]) {
       const svg = await exported(v, dark);

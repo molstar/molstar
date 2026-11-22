@@ -54,12 +54,28 @@ export function wantTiles(w: Want, sources: StoreSources, settings: StoreSetting
   const ySystem = sourceNameOf(s.names, w.y.system);
   if (ySystem === undefined) return undefined;
   const grids = own.filter((x) => x.shape === 'grid' && (x.y === '*' || (x.y ?? [system]).includes(ySystem)));
-  if (!grids.length) return undefined;
+  // a symmetric grid's block pair below the diagonal: the pair above it is served (two sequences of an assembly)
+  const mirror =
+    !grids.length &&
+    cov.shapes.some(
+      (x) =>
+        x.shape === 'grid' &&
+        x.symmetric &&
+        x.system === ySystem &&
+        (x.y === '*' || (x.y ?? [ySystem]).includes(system)),
+    );
+  if (!grids.length && !mirror) return undefined;
   const yLength = cov.systems.find((x) => x.name === ySystem)?.length;
   const yEnd = yLength === undefined ? w.y.end : Math.min(w.y.end, yLength);
   const [yFirst, yLast] = tileSpan(w.y.start, yEnd, level, bins);
   const order = (name: string) => cov.systems.findIndex((x) => x.name === name);
-  const y = { system: ySystem, length: yLength, first: yFirst, last: yLast, symmetric: grids.some((g) => g.symmetric) };
+  const y = {
+    system: ySystem,
+    length: yLength,
+    first: yFirst,
+    last: yLast,
+    symmetric: mirror || grids.some((g) => g.symmetric),
+  };
   const count = Math.max(0, last - first + 1) * Math.max(0, yLast - yFirst + 1);
   return { system, level, length, first, last, shapes: ['grid'] as Shape[], bins, count, y, order };
 }

@@ -44,17 +44,32 @@ export function assemblyLengths(
   data: Iterable<{ readonly address: string; readonly source: string }> = [],
 ): void {
   const listed = new Map<string, readonly SystemInfo[]>();
-  const add = (owner: string, src: string | undefined) => {
+  const add = (owner: string, src: string | undefined, data = false) => {
     const hash = src && hashes?.get(src);
-    const systems = hash ? coverage(src!)?.systems : undefined;
+    const c = hash ? coverage(src!) : undefined;
+    // data's source: its sequences, never a whole-assembly system it lists for its coarse levels
+    const systems = c && (data ? sequencesOf(c) : c.systems);
     if (!systems) return;
     const k = lengthKey(`${owner}#${src}`, hash!);
     out.set(k, contentHash(systems));
     listed.set(k, systems);
   };
   for (const a of assemblies) for (const src of [a.source, a.aliasSource]) add(a.address, src);
-  for (const d of data) add(d.address, d.source);
+  for (const d of data) add(d.address, d.source, true);
   if (listed.size) Coverages.set(out, listed);
+}
+
+const Sequences = new WeakMap<Coverage, readonly SystemInfo[]>();
+
+/** A coverage's systems less the whole-assembly systems its shapes list (`ShapeInfo.whole`), kept by the coverage. */
+function sequencesOf(c: Coverage): readonly SystemInfo[] {
+  let out = Sequences.get(c);
+  if (!out) {
+    const whole = new Set(c.shapes.flatMap((s) => (s.whole ? [s.whole.system] : [])));
+    out = whole.size ? c.systems.filter((s) => !whole.has(s.name)) : c.systems;
+    Sequences.set(c, out);
+  }
+  return out;
 }
 
 /**

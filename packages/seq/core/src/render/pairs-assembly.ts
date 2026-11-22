@@ -101,18 +101,19 @@ function fitBlocks(
   const bins = data.settings?.tileBins ?? 1024;
   const sig = st.fitSig;
   let k = 0;
+  let changed = false;
   const put = (v: number) => {
-    if (sig[k] !== v) sig.length = k;
+    if (sig[k] !== v) changed = true;
     sig[k++] = v;
   };
-  const was = sig.length;
   put(level);
   for (let b = 0; b < n; b++) {
     put(st.blocks[b].unit);
     for (const r of st.blocks[b].regions) put(Math.floor(r / (bins * level)));
   }
-  if (k === was && sig.length === k && st.fitted) return st.fitted;
+  if (sig.length !== k) changed = true;
   sig.length = k;
+  if (!changed && st.fitted) return st.fitted;
   let fitted = level;
   for (let i = Math.max(0, levels.indexOf(level)); i < levels.length; i++) {
     const l = levels[i];
@@ -278,7 +279,9 @@ export function assemblyPairs(
   for (let i = 0; i < strips.n; i++) {
     const axis = strips.axes[i];
     if (!over.sources.has(axis.system)) continue;
-    ppp = Math.min(ppp, 1 / axis.devicePx);
+    // a block's positions a device pixel: the section's units a pixel over its scale (a ring's strip is polar: its own
+    // transform's pixels are not the page's)
+    ppp = Math.min(ppp, 1 / (ctx.axis.devicePx * strips.scale[i]));
     span = Math.max(span, axis.u1 - axis.u0);
   }
   if (!n || !Number.isFinite(ppp)) return state.prep;

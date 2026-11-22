@@ -6,7 +6,8 @@
 
 import { gridCellHover } from '@molstar/seqx-core/render';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { loadGenome } from '@molstar/seqx-core/resolve';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { openHic } from '../openings.js';
 import { advance, drawn, exported, imageColours, openRegion } from './region-twin.js';
 
@@ -15,6 +16,10 @@ import { advance, drawn, exported, imageColours, openRegion } from './region-twi
 // whole-assembly level (EC-169, EC-223).
 
 let viewer: SeqViewer | undefined;
+// the genome chunk landed first: its import is real I/O, never on the fake clock
+beforeAll(async () => {
+  await loadGenome();
+});
 afterEach(() => {
   viewer?.retire();
   viewer = undefined;
@@ -93,27 +98,24 @@ describe('Features/Region reads/Hi-C, headless', () => {
     expect(above.rows.find((r) => r[0] === 'y')![1]).toMatch(/^\/data\/chr1:\d+/);
   });
 
-  it('over the genome at the fit (EC-223): one read of the whole-assembly level, the whole map drawn, in both themes', async () => {
+  it('over the genome at the fit (EC-223, EC-191): a block pair a cell of chromosomes, each read by block pair, the lower ones mirrored; in both themes', async () => {
     const v = (viewer = await openRegion('hic-genome'));
     await advance(v, 20_000);
-    const lay = plot(v);
-    // the toy genome’s 1,376 bins in a plot a few hundred px wide: a level the store’s summaries make, not the source’s
-    expect(lay.binLevel).toBeGreaterThan(1);
-    expect(lay.images.length).toBeGreaterThan(0);
-    expect(lay.pend.length).toBe(0);
-    expect(drawn(v, 'image')).toBeGreaterThan(0);
+    // six chromosomes: 36 block pairs, each a strip with its tiles drawn (the 15 below the diagonal mirrored)
+    const lays = v.frame!.layout.sections[1].lays.map((l) => l[0].lay as unknown as GridLay);
+    expect(lays.length).toBe(36);
+    for (const lay of lays) {
+      expect(lay.images.length, `${lay.system} × ${lay.ySystem}`).toBeGreaterThan(0);
+      expect(lay.pend.length).toBe(0);
+    }
+    expect(new Set(lays.map((l) => `${l.system}|${l.ySystem}`)).size).toBe(36);
+    expect(drawn(v, 'image')).toBeGreaterThanOrEqual(36);
     expect(v.store.issues.value).toEqual([]);
     for (const dark of [false, true]) {
       const svg = await exported(v, dark);
       expect(svg.settled).toBe(true);
       expect(svg.issues).toEqual([]);
     }
-    // zoomed in, the finer levels are read by tiles
-    const before = lay.binLevel;
-    v.runCommand('address.focus', { address: '/data/all/(range :from 100 :to 400)' });
-    await advance(v, 20_000);
-    expect(plot(v).binLevel).toBeLessThan(before);
-    expect(plot(v).images.length).toBeGreaterThan(0);
-    expect(v.store.issues.value).toEqual([]);
+    expect((await exported(v, true)).svg).not.toBe((await exported(v, false)).svg);
   });
 });
