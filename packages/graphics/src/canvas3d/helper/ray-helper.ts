@@ -17,6 +17,7 @@ import { Camera } from '../camera.js';
 import { cameraUnproject } from '../camera/util.js';
 import { Viewport } from '../camera/util.js';
 import type { Helper } from './helper.js';
+import { prepareLayerCulls } from '../passes/overlay.js';
 import {
   type AsyncPickData,
   createAsyncPickData,
@@ -76,6 +77,8 @@ export class RayHelper {
     if (this.renderBuilder.drawing) {
       renderer.update(camera, scene, frame);
       renderer.prepareCullView(scene.primitives);
+      // and the overlay's and the screen layer's for their cameras of it
+      prepareLayerCulls(renderer, camera, helper, frame);
     }
     this.pickPass.render(this.renderBuilder, renderer, camera, scene, helper, frame, false);
     // a page store's picks resolved before they are read (`PickPass.resolvePaged`); its kernel compiling, none picked

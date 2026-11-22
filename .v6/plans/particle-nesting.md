@@ -668,3 +668,9 @@ where it is needed most: the JS heap, [mesoscale-scale.md](mesoscale-scale.md)'s
   view needs 1.3% of its 4,391 pages whole (its copies on coarse levels), 46-71% near after the Hi-Z pyramid (a page a
   target's particles spread over the cell), 13-55% were its leaves by space. Taken up there: the coarse levels
   resident, the leaf pages by what the cull draws, a template tile-ordered measured.
+- **Copies past 2^16 - 2 picked** (parked: 65k copies enough for now). A frame record's words are full (the pose's
+  translation and scale; the rotation's two words, the store index, the member and the copy's 16 bits). The option:
+  the rotation in its smallest three components (16 bits each, the largest's index in 2 bits, rebuilt from them: it is
+  at least a half), 14 bits freed for the copy's high bits (2^30 copies); by its quantization (estimated, not
+  measured) a rotation about 1e-4 rad off at worst (0.2 Å at 2,000 Å from the center; about twice the four components'
+  now). Not its w rebuilt from x, y, z: near w = 0 off by up to 0.015 rad (29 Å at 2,000 Å).

@@ -2,8 +2,9 @@
 
 ## Status
 
-- **Done** (steps 1-4): every merged object culled on the GPU culls a view of its own there too (illumination's
-  thickness pass, a ray's pick, a frame's second camera), as a page store's object does since
+- **Done** (steps 1-5): every merged object culled on the GPU culls a view of its own there too (illumination's
+  thickness pass, a ray's pick, a frame's second camera, the overlay's and the screen layer's cameras), as a page
+  store's object does since
   [particle-slots.md](../particle-slots.md) step 7, and draws by the GPU culling alone: no CPU lists or grids, the
   kernels waited for (but for the sphere raster alone, `rasterOnly`). WebGL culls on the CPU as before.
 
@@ -87,3 +88,8 @@ culled on the GPU waits for them, as a page store's does, and draws no CPU fallb
    removed after): 100 units of 1,000 copies merged and culled on the GPU 27 ms and 7.7 MB (of 145 ms building the
    representations), of 300 copies 12 ms and 2.2 MB, 60 copies of 7qpd merged 1.8 ms, the mesoscale models under
    1 ms (particle targets: pending). Kept: not worth a pending grid for matrices.
+5. **The overlay and the screen layer** (done; `overlay.ts` `prepareLayerCulls`): their scenes' objects culled on the
+   GPU for their cameras before the overlay pass opens (the overlay's camera of the drawn one, each screen scene's
+   own), and a ray's pick for its camera; a pick of the drawn camera draws the draw's (the same planes). Without it an
+   object of many instances culled on the GPU moved to the overlay drew none (no GPU view for it, no CPU lists). Test:
+   `webgpu-gpu-culling.test.ts` (an object of 40 instances culled on the GPU in the overlay drawn and picked).

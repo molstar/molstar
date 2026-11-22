@@ -672,6 +672,44 @@ describe.skipIf(!WebGPU.module)('GPU culling of merged render objects', () => {
     }
   }, 60_000);
 
+  // an object culled on the GPU draws no CPU lists: the overlay culls its camera's view there for it
+  it('draws and picks an object culled on the GPU in the overlay layer', async () => {
+    const plugin = await createPlugin();
+    try {
+      const structure = await copiesStructure(plugin);
+      const repr = await plugin.builders.structure.representation.addRepresentation(structure, {
+        type: 'spacefill',
+        typeParams: { gpuCulling: true },
+      });
+      const canvas = plugin.canvas3d!;
+      const r = repr.data!.repr;
+      r.setState({ layer: 'overlay' });
+      canvas.update(r);
+      canvas.commit(true);
+      expect(r.renderObjects.some((o) => isMergedRenderObject(o))).toBe(true);
+      const pixelRatio = canvas.graphics.pixelRatio;
+      let time = now();
+      let picked: number | undefined;
+      // its culling's kernels may compile after the frame's
+      for (let i = 0; i < 20 && picked === undefined; ++i) {
+        canvas.commit(true);
+        canvas.requestDraw();
+        canvas.tick((time += 1000) as now.Timestamp, { isSynchronous: true });
+        await canvas.graphics.resources.pending.whenReady();
+        const pick = await canvas.asyncIdentify(Vec2.create(Size / 2 / pixelRatio, Size / 2 / pixelRatio))?.wait();
+        picked = pick?.id.objectId;
+      }
+      expect(picked).toBeGreaterThanOrEqual(0);
+      plugin.renderer.imagePass.setProps({ overlay: true });
+      const { data } = await plugin.getImageRaw({ width: Size, height: Size });
+      const background = [data[0], data[1], data[2]];
+      const center = ((Size / 2) * Size + Size / 2) * 4;
+      expect([data[center], data[center + 1], data[center + 2]]).not.toEqual(background);
+    } finally {
+      plugin.dispose();
+    }
+  }, 60_000);
+
   it('prepares the culling kernels by a precompile list naming a GPU-culled object, in a context without one', async () => {
     const a = await createPlugin();
     const b = await createPlugin();
