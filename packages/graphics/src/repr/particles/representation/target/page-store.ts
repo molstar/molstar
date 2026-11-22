@@ -289,6 +289,24 @@ export class ParticlePageStore {
     box?: Box3D,
     template = false,
   ): StoreBlock {
+    try {
+      return this.addBlock(key, list, start, placement, box, template);
+    } catch (e) {
+      // the members' counts of an add that failed cleared: the scratch is every store's, a count left in it a member
+      // the next add (of any store) counts on without taking it (its instances not in the pool's counts)
+      MemberCountScratch.fill(0);
+      throw e;
+    }
+  }
+
+  private addBlock(
+    key: number,
+    list: ParticleList,
+    start: number,
+    placement: StorePlacement,
+    box: Box3D | undefined,
+    template: boolean,
+  ): StoreBlock {
     if (this.blocks.has(key)) throw new Error(`particle page store: a block of ${key} already`);
     const format = (this.format ??= getFormat(list));
     const n = list.count;

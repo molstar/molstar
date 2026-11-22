@@ -445,6 +445,12 @@ describe('particle page store of a nested list', () => {
     const first = new ParticlePageStore();
     first.add(0, top, 0, { centerOf: () => Vec3() });
     expect(() => first.add(-1, grid, 0, { centerOf: () => Vec3() }, undefined, true)).toThrow(/rotations/);
+    // the failed add's counts (its member 1's) not left for the next store's: its two members' instances all counted
+    const two = createList(40, (i) => (i < 20 ? 3 : 4));
+    const next = new ParticlePageStore();
+    next.add(0, two, 0, { centerOf: () => Vec3() });
+    expect(next.pool.count).toBe(2);
+    expect([next.pool.counts[0], next.pool.counts[1]]).toEqual([20, 20]);
   });
 
   it('refuses copies of a block not a template, a pose missing', () => {
