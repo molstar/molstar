@@ -4303,6 +4303,11 @@ pairs layer's prepared form and its region reader through the composition (`type
   once warm: positions and colors go through typed scratch; a hit reads its point from `at`
   (`AxisTransform.positionOf`). Over blocks the hover's column is painted on every strip of its x system, its row on
   every strip of its y system, the cell outlined on the one strip of both.
+- **The selection's boxes** (rows and rects): each piece is a range's extent per axis piece, cut to its cell (the axes'
+  data boxes: where a block's gap ends it), its outline a stroke inset by half its width (a stroke centred on the edge
+  overhangs the gap), a row's fill left out where the strip's column band tints (a cell is tinted once, both outlines
+  kept). Why: a box that meets the cells' edges reads as the cells' selection, not a bar across the gaps. Test:
+  `grid-selection-boxes.test.ts`.
 - **A summary over a rect** (`gridSummary(view, rect)`, `view` a model and a resolved view): the mean, least and
   greatest value and the count of the cells inside the Location's rects of every grid a grid layer of the view draws
   (each grid once, on a rect of its two systems), each cell once however many rects hold it (an added drag's overlap),
