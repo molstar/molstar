@@ -30,9 +30,11 @@ describe('a section past its cap: the wheel and a warm frame', () => {
   it('a wheel step down and up over a gene (no frame): 0 bytes', async ({ task }) => {
     const v = await open();
     const s = v.frame!.layout.sections.find((x) => x.section.address === Genes)!;
-    const g = s.tracks[s.tracks.length - 1].box;
-    const x = g.x + 20;
     const y = s.placement.box.y + s.placement.box.height - 10;
+    // a gene track in view at the section's bottom (they are one lane each: the point is over empty lane room)
+    const g =
+      s.tracks.find((t) => t.box.y <= y && y < t.box.y + t.box.height)?.box ?? s.tracks[s.tracks.length - 1].box;
+    const x = g.x + g.width - 5;
     // the section a little scrolled, so each step moves it (down, then back up)
     v.view.setTop(Genes, 100);
     v.draw();
