@@ -9,7 +9,7 @@ import { channelOf, channelSource, fieldChannel } from './channels.js';
 import type { OpenedSource } from './protocol.js';
 import { checkCoverage } from './seq-format.js';
 import { sidedName } from './store-wants.js';
-import { type SummarySettings, summaryBytes, withSummaries } from './summaries.js';
+import { type SummarySettings, summariesBuilding, summaryBytes, withSummaries } from './summaries.js';
 
 // The data store's sources (_spec/README.md "Data", Store): each attached source checked and summarized, its systems'
 // names, the nodes its coverage brought; a source's values channels made when a tile of one is read (Channels); and
@@ -107,6 +107,15 @@ export class StoreSources {
     let n = 0;
     for (const s of this._all.values()) n += summaryBytes(s.opened);
     return n;
+  }
+
+  /** A source's summaries' build in flight (any one), else undefined. */
+  get building(): Promise<unknown> | undefined {
+    for (const s of this._all.values()) {
+      const b = summariesBuilding(s.opened);
+      if (b) return b;
+    }
+    return undefined;
   }
 
   /** Marks a key an old reading's tile brought (`tile`), not in the new reading's coverage: replaced when served. */

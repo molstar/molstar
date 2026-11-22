@@ -1756,8 +1756,10 @@ over the assets port, with `@molstar/core/util/zip` (never a private zip). Not a
   still over, the wanted prefetch then margin tiles become `evicted` and are not asked again until they leave the set
   and come back, so a planner that wants again on every change does not loop. Never the view, never a request on its
   way. Still over: `overBudget`, reported once each time (`seq.store.over_budget`); a coarser level is the planner's.
-- **Settle**: no wanted entry pending (a failed one waiting to be asked again is settled), kept on every transition;
-  `whenSettled(timeout?)` resolves `false` on a timeout.
+- **Settle**: no wanted entry pending (a failed one waiting to be asked again is settled) and no source's summaries
+  building (`summariesBuilding`: a pyramid's build goes on after the read that started it is let go), kept on every
+  transition and again when a build ends; `whenSettled(timeout?)` resolves `false` on a timeout. Why: what a build makes
+  is drawn after, and an export must not stop before it (EC-125).
 - **Nodes** are held, not cached: by each data entry that carried them, by their source's coverage while attached, and
   by `hold`; with no holder they go quietly. A re-answer takes in its nodes before releasing the old ones. The same key
   with other content keeps the held node (`seq.store.node_conflict`). `nodes` lists the entries held now and

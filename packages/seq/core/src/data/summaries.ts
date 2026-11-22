@@ -154,11 +154,18 @@ function summaryLevels(coverage: Coverage, settings: SummarySettings) {
 /** A source with summaries: what its pyramids hold, which the store counts against its byte bound. */
 export interface SummarizedSource extends OpenedSource {
   readonly summaryBytes: number;
+  /** A pyramid build in flight (one of them), else undefined: the store is not settled while it runs (EC-125). */
+  readonly summariesBuilding: Promise<unknown> | undefined;
 }
 
 /** What a source holds besides the store's entries: its pyramids' bytes (0 for one without). */
 export function summaryBytes(source: OpenedSource): number {
   return (source as Partial<SummarizedSource>).summaryBytes ?? 0;
+}
+
+/** A pyramid build of a source in flight (`SummarizedSource.summariesBuilding`), else undefined. */
+export function summariesBuilding(source: OpenedSource): Promise<unknown> | undefined {
+  return (source as Partial<SummarizedSource>).summariesBuilding;
 }
 
 type Pyramid = Map<number, ValuesBins>;
@@ -310,6 +317,9 @@ export function withSummaries(
     },
     get summaryBytes() {
       return bytes + (pairs?.bytes ?? 0) + (grid?.bytes ?? 0);
+    },
+    get summariesBuilding() {
+      return pairs?.building ?? grid?.building ?? building.values().next().value;
     },
     ...(inner.readCost && { readCost: (r: RegionRequest) => inner.readCost!(r) }),
     read(request, signal) {

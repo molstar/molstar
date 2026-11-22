@@ -5,13 +5,13 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import type { Coverage, GridDense, RegionAnswer, RegionRequest } from '../protocol.js';
+import type { Coverage, GridDense, OpenedSource, RegionAnswer, RegionRequest } from '../protocol.js';
 import { openSeq } from '../seq-runtime.js';
 import { DataStore, type StoreSettings, type Want } from '../store.js';
 import { withSummaries } from '../summaries.js';
 import type { SliceClock } from '../summaries-region.js';
 import { FakeClock, SyntheticSource } from './synthetic.js';
-import { contactCells } from './region-fixtures.js';
+import { Chr1, contactCells, pairsSource } from './region-fixtures.js';
 
 // The store's 2D wants and its bounds on a layer's wants together (_spec/README.md "Data", Store): x tiles × y tiles,
 // a symmetric grid's folded, the product bounded; a layer's tiles and read cost bounded; an answer's bytes bounded;
@@ -312,5 +312,46 @@ describe('the whole-assembly level (Juicebox’s “All”)', () => {
       total(contactCells(n1, n1, true)) + 2 * total(contactCells(n1, n2, false)) + total(contactCells(n2, n2, true));
     expect(total(g!.value)).toBe(sum);
     expect(g!.nx).toBe(Math.ceil((n1 + n2) / 8));
+  });
+});
+
+describe('the summaries building (EC-125)', () => {
+  it('keep the store unsettled until built, a read let go or not; wanted after, their bins come', async () => {
+    // a one-level pairs source whose whole reads (the pyramid's) answer when the test says
+    const data = pairsSource(400, true);
+    let answer: (() => void) | undefined;
+    const held = new Promise<void>((r) => {
+      answer = r;
+    });
+    const src: OpenedSource = {
+      coverage: data.coverage,
+      async read(r) {
+        await held;
+        return data.pairs.find((p) => p.request.system === r.system)!.answer;
+      },
+      dispose() {},
+    };
+    const clock = new FakeClock();
+    const store = new DataStore({ clock });
+    store.attach(S, src);
+    const levels = store.coverage(S)!.levels;
+    const w: Want = { source: S, system: 'chr1', start: 0, end: Chr1, level: levels[levels.length - 1] };
+    store.want([w]);
+    await clock.advance(10);
+    expect(store.settled.value).toBe(false);
+    // the view moves away: the coarse read let go after its grace, its pyramid still building
+    store.want([]);
+    await clock.advance(1000);
+    expect(store.get(store.keysOf(w)[0])).toBeUndefined();
+    expect(store.settled.value).toBe(false);
+    // built (in its slices): settled
+    answer!();
+    expect(await store.whenSettled()).toBe(true);
+    expect(store.summaryBytes).toBeGreaterThan(0);
+    // wanted again: from the built pyramid, settled with the bins
+    store.want([w]);
+    await store.whenSettled();
+    const e = store.get(store.keysOf(w)[0]);
+    expect(e?.status === 'loaded' && e.tables.pairs?.form).toBe('bins');
   });
 });

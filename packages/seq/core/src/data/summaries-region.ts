@@ -46,6 +46,33 @@ export const FrameSlices: SliceClock = {
   yield: () => new Promise((r) => setTimeout(r, 0)),
 };
 
+/**
+ * A build started once and shared: `start` makes it the first time, `building` is it until it settles (the store is not
+ * settled while a source's summaries build, EC-125: a row drawn from them never comes after "settled").
+ */
+export function sharedBuild<T>(make: () => Promise<T>) {
+  let built: Promise<T> | undefined;
+  let running: Promise<T> | undefined;
+  return {
+    start(): Promise<T> {
+      if (built) return built;
+      const p = (built = running = make());
+      const end = () => {
+        if (running === p) running = undefined;
+      };
+      p.then(end, end);
+      return p;
+    },
+    /** Forgets a failed build: the store's retry asks again. */
+    forget(p: Promise<T>) {
+      if (built === p) built = undefined;
+    },
+    get building(): Promise<T> | undefined {
+      return running;
+    },
+  };
+}
+
 /** A failure answer of a summaries' code. */
 function refused(code: 'seq.store.pairs.levels' | 'seq.store.grid.levels', message: string): RegionAnswer {
   return { ok: false, kind: 'too-large', issue: issueOf(StoreIssues, code, message) };
@@ -231,7 +258,6 @@ export function pairsPyramid(
   /** The levels built and kept (those that halve the rows below), once the pyramid is built. */
   let kept: ReadonlySet<number> | undefined;
   let bytes = 0;
-  let built: Promise<Map<number, PairsBins> | RegionAnswer> | undefined;
   const reading = new AbortController();
 
   const tooMany = () =>
@@ -342,20 +368,24 @@ export function pairsPyramid(
     );
   };
 
+  const shared = sharedBuild(build);
   return {
     get bytes() {
       return bytes;
+    },
+    /** The build while it runs (`sharedBuild`). */
+    get building() {
+      return shared.building;
     },
     /** The pairs levels the pyramid dropped (they did not halve the rows below), once built: left out of the coverage. */
     get dropped(): readonly number[] {
       return kept ? levels.filter((l) => !kept!.has(l)) : [];
     },
     async read(request: RegionRequest, signal: AbortSignal): Promise<Built<PairsBins | PairsList>> {
-      built ??= build();
-      const p = built;
+      const p = shared.start();
       // a failure is not kept: the store's retry asks again
       p.then((m) => {
-        if (!(m instanceof Map) && built === p) built = undefined;
+        if (!(m instanceof Map)) shared.forget(p);
       });
       const made = await untilAborted(p, signal);
       if (!(made instanceof Map)) {
@@ -419,7 +449,6 @@ export function gridPyramid(
   const grids = coverage.shapes.filter((s) => s.shape === 'grid');
   const lengthOf = (name: string) => coverage.systems.find((s) => s.name === name)?.length;
   let bytes = 0;
-  let built: Promise<Map<string, Planes> | RegionAnswer> | undefined;
   const wholes = new Map<string, GridPlane>();
   const reading = new AbortController();
   const order = (name: string) => coverage.systems.findIndex((s) => s.name === name);
@@ -504,15 +533,19 @@ export function gridPyramid(
     return plane;
   };
 
+  const shared = sharedBuild(build);
   return {
     get bytes() {
       return bytes;
     },
+    /** The build while it runs (`sharedBuild`). */
+    get building() {
+      return shared.building;
+    },
     async read(request: RegionRequest, signal: AbortSignal): Promise<Built<GridDense>> {
-      built ??= build();
-      const p = built;
+      const p = shared.start();
       p.then((m) => {
-        if (!(m instanceof Map) && built === p) built = undefined;
+        if (!(m instanceof Map)) shared.forget(p);
       });
       const made = await untilAborted(p, signal);
       if (!(made instanceof Map)) return made;

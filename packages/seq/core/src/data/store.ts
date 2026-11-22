@@ -122,6 +122,8 @@ export class DataStore extends ReactiveModel {
   private readonly _version = new State(0);
   private readonly _nodeVersion = new State(0);
   private readonly _settled = new State(true);
+  /** The summaries' builds the settled state waits on. */
+  private readonly _awaited = new WeakSet<Promise<unknown>>();
   private readonly _overBudget = new State(false);
   private readonly _issues = new State<readonly Issue[]>([]);
   private readonly _reports: StoreReports;
@@ -478,12 +480,17 @@ export class DataStore extends ReactiveModel {
     if (check()) return Promise.resolve(true);
     return new Promise((resolve) => {
       let timer: unknown;
-      const stop = this._version.listen(() => {
+      const onChange = () => {
         if (!check()) return;
         stop();
         if (timer !== undefined) this._clock.clearTimeout(timer);
         resolve(true);
-      });
+      };
+      // the settled state moves alone too (a source's summaries built: no entry changes)
+      const stops = [this._version.listen(onChange), this._settled.listen(onChange)];
+      const stop = () => {
+        for (const s of stops) s();
+      };
       if (timeoutMs !== undefined)
         timer = this._clock.setTimeout(() => {
           stop();
@@ -799,6 +806,17 @@ export class DataStore extends ReactiveModel {
       if (slot.rank !== Unwanted && this._entries.get(slot.key)?.status === 'pending') {
         settled = false;
         break;
+      }
+    }
+    // a source's summaries building (a read let go may have started them) keep it unsettled: what they make is drawn
+    // after, and an export waits for it (EC-125); their end runs the checks again (and the bound, their bytes in)
+    const building = settled ? this._sources.building : undefined;
+    if (building) {
+      settled = false;
+      if (!this._awaited.has(building)) {
+        this._awaited.add(building);
+        const again = () => this._run(() => {});
+        building.then(again, again);
       }
     }
     this._settled.set(settled);
