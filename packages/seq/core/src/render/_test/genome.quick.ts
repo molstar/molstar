@@ -13,6 +13,8 @@ import { quickCase } from '@molstar/test-harness/quick';
 import { beforeAll, describe, expect, inject, it } from 'vitest';
 import { loadGenome } from '@molstar/seqx-core/resolve';
 import { type BlockPlacement, drawView, type FrameInput, type Hit, hitView } from '../index.js';
+import { categoryColumn } from '@molstar/core/repr/tree';
+import { type Coverage, type PairsList, type SeqData, SeqRuntime, seqToValue } from '@molstar/seqx-core/data';
 import { assembly, createSeqSpec, genome } from '@molstar/seqx-core/lang';
 import { genomeSpec, toyGenome } from './genome-fixtures.js';
 import { settle } from './helpers.js';
@@ -120,20 +122,59 @@ async function genomeData() {
     }
   });
   const features = b.data.ranges('features', { target: g, rows: { start, end, target } } as never);
+  // 2,000 links between the chromosomes, each listed on both its ends' chromosomes, as a `seq` source over them
+  const n = 2000;
+  const ends = Array.from({ length: n }, (_, i) => {
+    const a = i % chromosomes.length;
+    const b2 = (i * 7) % chromosomes.length;
+    return {
+      a,
+      b: b2,
+      as: (i * 7919) % (chromosomes[a].length - 100),
+      bs: (i * 104729) % (chromosomes[b2].length - 100),
+    };
+  });
+  const pairs: SeqData['pairs'] = chromosomes.map((c, k) => {
+    const mine = ends.filter((e) => e.a === k || e.b === k);
+    const list: PairsList = {
+      form: 'list',
+      aSystem: categoryColumn(mine.map((e) => chromosomes[e.a].name)),
+      bSystem: categoryColumn(mine.map((e) => chromosomes[e.b].name)),
+      aStart: Int32Array.from(mine, (e) => e.as),
+      aEnd: Int32Array.from(mine, (e) => e.as + 50),
+      bStart: Int32Array.from(mine, (e) => e.bs),
+      bEnd: Int32Array.from(mine, (e) => e.bs + 50),
+    };
+    return {
+      request: { system: c.name, start: 0, end: c.length, level: 1, shapes: ['pairs'] },
+      answer: { ok: true, tables: { pairs: list } },
+    };
+  });
+  const coverage: Coverage = {
+    systems: chromosomes.map((c) => ({ name: c.name, length: c.length })),
+    shapes: chromosomes.map((c) => ({ system: c.name, shape: 'pairs' as const })),
+    levels: [1],
+  };
+  const src = b.data.source('links-src', { format: 'seq', value: seqToValue({ coverage, pairs }) as never });
+  const links = b.data.pairs('links', { a: g, source: src } as never);
   b.views.view('v', (v) =>
-    genome(v, 'genome', g, {}, (sec) => sec.track('features').layer('features', { type: 'ranges', data: features })),
+    genome(v, 'genome', g, {}, (sec) => {
+      sec.track('features').layer('features', { type: 'ranges', data: features });
+      sec.track('links').layer('links', { type: 'pairs', data: links });
+    }),
   );
-  const s = await settle(b.build());
+  const s = await settle(b.build(), [SeqRuntime]);
   const input: FrameInput = { size: Size, dpr: 2 };
   for (let i = 0; i < 4; i++) await s.frame(input);
   return { s, input };
 }
 
 describe('data over an assembly: 25 blocks', () => {
-  it('a warm frame of a features layer over 25 blocks (read by sequence): 0 bytes', async ({ task }) => {
+  it('a warm frame of a features and a pairs layer over 25 blocks (read by sequence): 0 bytes', async ({ task }) => {
     const { s, input } = await genomeData();
     const f = s.renderer.frame(input);
     expect((f.layout.sections[0].placement as BlockPlacement).strips.n).toBe(25);
+    expect((f.layout.sections[0].sectionLays[0].lay as unknown as { n: number }).n).toBeGreaterThan(100);
     const { r } = quickCase(task, 'genome data warm frame', () => void s.renderer.frame(input));
     console.info(`genome data warm frame: ${r.bytesPerStep.toFixed(0)} bytes a frame (${r.note})`);
     expect(r.bytesPerStep, r.note).toBeLessThanOrEqual(inject('perfThreshold'));

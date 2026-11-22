@@ -43,13 +43,61 @@ interface AssemblyState {
   /** The level last fitted to the store's bounds and the view's tiles it was fitted for. */
   fitSig: number[];
   fitted: number;
+  /** The gate's counts of the bins and of the items read, kept by what they were counted from (`countOf`). */
+  bins: Counted;
+  items: Counted;
+}
+
+/** A count of the rows with an end in view, and the read and view it was counted from. */
+interface Counted {
+  readonly sig: number[];
+  count: number;
+}
+
+const Sig: number[] = [];
+
+/**
+ * The rows with an end in view of a read (`gather`'s count), counted again only when the entries read (block, tile,
+ * version) or the positions in view move: a warm frame counts nothing.
+ */
+function countOf(
+  c: Counted,
+  over: AssemblyRegion,
+  st: AssemblyState,
+  entries: readonly Loaded[],
+  units: readonly number[],
+  level: number,
+  bins: boolean,
+): number {
+  Sig.length = 0;
+  Sig.push(level, bins ? 1 : 0, entries.length);
+  for (let k = 0; k < entries.length; k++) Sig.push(units[k], entries[k].region.tile, entries[k].version);
+  for (const r of st.inView) Sig.push(-1, ...r);
+  let same = c.sig.length === Sig.length;
+  for (let i = 0; same && i < Sig.length; i++) same = c.sig[i] === Sig[i];
+  if (same) return c.count;
+  c.sig.length = 0;
+  c.sig.push(...Sig);
+  c.count = gather(over, st, entries, units, level, bins, false).count;
+  return c.count;
 }
 
 const States = new WeakMap<PairsLay, AssemblyState>();
 
 function stateOf(lay: PairsLay): AssemblyState {
   let s = States.get(lay);
-  if (!s) States.set(lay, (s = { blocks: [], inView: [], fitSig: [], fitted: 0 }));
+  if (!s)
+    States.set(
+      lay,
+      (s = {
+        blocks: [],
+        inView: [],
+        fitSig: [],
+        fitted: 0,
+        bins: { sig: [], count: 0 },
+        items: { sig: [], count: 0 },
+      }),
+    );
   return s;
 }
 
@@ -290,7 +338,7 @@ export function assemblyPairs(
   const bins = fitBlocks(ctx, data, st, n, levels, fit.bins);
   const binRead = readBlocks(ctx, data, st, n, bins, false, Units);
   const binned = binRead.entries.some((e) => e.tables.pairs?.form === 'bins');
-  state.binPairs = gather(over, st, binRead.entries, Units, bins, binned, false).count;
+  state.binPairs = countOf(st.bins, over, st, binRead.entries, Units, bins, binned);
   let mode = binned ? 0 : 1;
   let read = binRead.entries;
   let units = Units;
@@ -306,7 +354,7 @@ export function assemblyPairs(
     if (ask) {
       const itemRead = readBlocks(ctx, data, st, n, fit.items, true, ItemUnits);
       if (!itemRead.pending) {
-        state.itemCount = gather(over, st, itemRead.entries, ItemUnits, fit.items, false, false).count;
+        state.itemCount = countOf(st.items, over, st, itemRead.entries, ItemUnits, fit.items, false);
         state.items = state.itemCount <= cfg.maxArcs * Math.max(1, cfg.itemsHysteresis);
         if (state.items) {
           mode = 1;

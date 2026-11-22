@@ -302,12 +302,20 @@ export function withSummaries(
   // takes the next kept level); the coverage given is kept until it changes
   let shown = coverage;
   let seen = 0;
-  const coverageNow = (): Coverage => {
-    const dropped = pairs?.dropped ?? [];
-    if (dropped.length === seen) return shown;
-    seen = dropped.length;
+  // read every frame (the store's `coverage`): nothing allocated
+  let final = !pairs;
+  // the change made apart: a closure over `gone` would allocate a context on every call
+  const update = (dropped: readonly number[]) => {
     const gone = dropped.filter((l) => !own.values.includes(l) && !own.grid.includes(l));
     shown = gone.length ? { ...coverage, levels: levels.filter((l) => !gone.includes(l)) } : coverage;
+  };
+  const coverageNow = (): Coverage => {
+    if (final) return shown;
+    final = pairs!.built;
+    const dropped = pairs!.dropped;
+    if (dropped.length === seen) return shown;
+    seen = dropped.length;
+    update(dropped);
     return shown;
   };
 
