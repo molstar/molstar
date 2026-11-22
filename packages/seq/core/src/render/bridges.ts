@@ -197,7 +197,8 @@ function layBridgeLayer(
       x.report(i);
     },
     bridge: { placement, index, id },
-  } satisfies LayoutContext & { bridge: unknown };
+    wants,
+  } satisfies LayoutContext & { bridge: unknown; wants: Want[] };
   // a source read by region: what it reads of the store recorded (its keep's check)
   const data: StoreReader = prep.region
     ? Object.assign(Object.create(input.data) as StoreReader, {

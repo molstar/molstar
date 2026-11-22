@@ -49,12 +49,15 @@ export function sideBlocks(count: number, seed: number): SideBlock[] {
   return out;
 }
 
-function listOf(blocks: readonly SideBlock[]): PairsList {
+/** The name side `b` lists a chromosome by (`aliased`: `chr1` as `1`). */
+const bName = (name: string, aliased: boolean) => (aliased ? name.replace('chr', '') : name);
+
+function listOf(blocks: readonly SideBlock[], aliased = false): PairsList {
   const n = blocks.length;
   return {
     form: 'list',
     aSystem: categoryColumn(blocks.map((x) => x.a)),
-    bSystem: categoryColumn(blocks.map((x) => x.b)),
+    bSystem: categoryColumn(blocks.map((x) => bName(x.b, aliased))),
     aStart: Int32Array.from(blocks, (x) => x.as),
     aEnd: Int32Array.from(blocks, (x) => x.as + x.length),
     bStart: Int32Array.from(blocks, (x) => x.bs),
@@ -66,22 +69,38 @@ function listOf(blocks: readonly SideBlock[]): PairsList {
 
 /**
  * The blocks served by region on each side (a name listed once a side), the whole list a request, bins above 1; `served`
- * the sides answered (another listed but not served: its reads fail).
+ * the sides answered (another listed but not served: its reads fail); `aliased`, side `b` names `chr1` as `1`.
  */
-export function sidedSource(blocks: readonly SideBlock[], served: readonly ('a' | 'b')[] = ['a', 'b']): SeqData {
-  const list = listOf(blocks);
+export function sidedSource(
+  blocks: readonly SideBlock[],
+  served: readonly ('a' | 'b')[] = ['a', 'b'],
+  aliased = false,
+): SeqData {
+  const list = listOf(blocks, aliased);
   const pairs: SeqPair[] = [];
   for (const side of served)
-    for (const system of Chromosomes)
+    for (const chr of Chromosomes)
       for (const level of Levels)
         pairs.push({
-          request: { system, start: 0, end: ChrLength, level, shapes: ['pairs'], side },
+          request: {
+            system: side === 'b' ? bName(chr, aliased) : chr,
+            start: 0,
+            end: ChrLength,
+            level,
+            shapes: ['pairs'],
+            side,
+          },
           answer: { ok: true, tables: { pairs: level === 1 ? list : binPairs(list, level) } },
         });
   return {
     coverage: {
-      systems: (['a', 'b'] as const).flatMap((side) => Chromosomes.map((name) => ({ name, length: ChrLength, side }))),
-      shapes: Chromosomes.map((system) => ({ system, shape: 'pairs' as const })),
+      systems: (['a', 'b'] as const).flatMap((side) =>
+        Chromosomes.map((name) => ({ name: side === 'b' ? bName(name, aliased) : name, length: ChrLength, side })),
+      ),
+      shapes: [...new Set([...Chromosomes, ...Chromosomes.map((c) => bName(c, aliased))])].map((system) => ({
+        system,
+        shape: 'pairs' as const,
+      })),
       levels: Levels,
     },
     pairs,
@@ -124,7 +143,7 @@ export function manualClock(): StoreClock & { flush(): void } {
  */
 export function sidesBridgeSpec(
   blocks: readonly SideBlock[],
-  options: { served?: readonly ('a' | 'b')[]; slow?: boolean } = {},
+  options: { served?: readonly ('a' | 'b')[]; slow?: boolean; self?: boolean; aliased?: boolean } = {},
 ) {
   const b = createSeqSpec({ title: 'two genomes, sided' });
   const seqs = Chromosomes.map((name) => ({ name, length: ChrLength }));
@@ -132,14 +151,18 @@ export function sidesBridgeSpec(
   const G = b.data.assembly('G', assembly('G', seqs, { order: 'source' } as never));
   const src = options.slow
     ? b.data.source('src', { format: SlowFormat, uri: 'slow' } as never)
-    : b.data.source('src', { format: 'seq', value: seqToValue(sidedSource(blocks, options.served)) as never });
-  const aln = b.data.pairs('aln', { a: P, b: G, source: src } as never);
+    : b.data.source('src', {
+        format: 'seq',
+        value: seqToValue(sidedSource(blocks, options.served, options.aliased)) as never,
+      });
+  // `self`: one genome against itself (`P` on both ends and both sides)
+  const aln = b.data.pairs('aln', { a: P, b: options.self ? P : G, source: src } as never);
   b.views.view('v', (v) => {
     genome(v, 'top', P);
     v.bridge('br', { a: TopSection, b: BottomSection } as never, (br) =>
       br.layer('aln', { type: 'pairs', data: aln } as never),
     );
-    genome(v, 'bottom', G);
+    genome(v, 'bottom', options.self ? P : G);
   });
   return b.build();
 }

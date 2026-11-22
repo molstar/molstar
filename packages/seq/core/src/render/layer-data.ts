@@ -112,13 +112,15 @@ export function dataRegions(src: LayerSource, axis: AxisTransform, hidden = fals
 }
 
 /**
- * Sorted, disjoint `[start, end, …]` widened outward to multiples of `step` and merged, pushed onto `out` (a bridge's
- * `R`: a window widened to the far level's grid, _spec/README.md "Render", Bridges).
+ * Sorted, disjoint `[start, end, …]` widened outward to multiples of `step` and merged (`inward`: shrunk to them, the
+ * empty dropped), pushed onto `out` (a bridge's `R`: a window on the far level's grid, _spec/README.md "Render",
+ * Bridges).
  */
-export function widenedToGrid(ranges: readonly number[], step: number, out: number[]): number[] {
+export function widenedToGrid(ranges: readonly number[], step: number, out: number[], inward = false): number[] {
   for (let j = 0; j + 1 < ranges.length; j += 2) {
-    const s = Math.floor(ranges[j] / step) * step;
-    const e = Math.ceil(ranges[j + 1] / step) * step;
+    const s = (inward ? Math.ceil(ranges[j] / step) : Math.floor(ranges[j] / step)) * step;
+    const e = (inward ? Math.floor(ranges[j + 1] / step) : Math.ceil(ranges[j + 1] / step)) * step;
+    if (e <= s) continue;
     if (out.length && s <= out[out.length - 1]) out[out.length - 1] = Math.max(e, out[out.length - 1]);
     else out.push(s, e);
   }

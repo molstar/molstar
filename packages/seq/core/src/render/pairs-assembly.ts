@@ -5,7 +5,7 @@
  */
 
 import { categoryColumn } from '@molstar/core/repr/tree';
-import type { PairsBins, Want } from '@molstar/seqx-core/data';
+import { type PairsBins, sidedName, type Want } from '@molstar/seqx-core/data';
 import type { AxisTransform } from './axis.js';
 import { dataRegions, itemsGate, type LayerSource, pairsLevels, readTiles } from './layer-data.js';
 import type { LayoutContext, StoreReader } from './layer-type.js';
@@ -19,9 +19,10 @@ import {
   type PairsRegion,
   type RegionOver,
   type RegionState,
+  dryOf,
+  overFits,
   regionState,
   sourceOn,
-  unitKey,
   withData,
 } from './pairs-region.js';
 
@@ -115,9 +116,21 @@ function meets(regions: readonly number[] | undefined, s: number, e: number): bo
   return false;
 }
 
+/** `blocksInView`'s walk of the regions given (a `forEach`: no iterator). */
+const Over = {
+  over: undefined as unknown as AssemblyRegion,
+  st: undefined as unknown as AssemblyState,
+  side: undefined as 'a' | 'b' | undefined,
+  n: 0,
+};
+function addOver(regions: readonly number[], system: string) {
+  const src = sourceOn(Over.over, system, Over.side);
+  if (src) Over.n = addBlock(Over.over, Over.st, src, regions, Over.n);
+}
+
 /** A block's read: its source on the side read, its unit, the units' positions in view (reused) as `n` grows. */
 function addBlock(over: AssemblyRegion, st: AssemblyState, src: LayerSource, regions: readonly number[], n: number) {
-  const unit = over.unitOf.get(unitKey(src.side, src.system));
+  const unit = over.unitOf.get(sidedName(src.side, src.system));
   if (unit === undefined || !regions.length) return n;
   const seen = st.inView[unit];
   if (!seen.length) {
@@ -151,11 +164,13 @@ function blocksInView(
   clearInView(over, st);
   let n = 0;
   if (at) {
-    for (const [system, regions] of at.regions) {
-      const src = sourceOn(over, system, side);
-      if (src) n = addBlock(over, st, src, regions, n);
-    }
-    return n;
+    // the module's state, no iterator made a layout
+    Over.over = over;
+    Over.st = st;
+    Over.side = side;
+    Over.n = 0;
+    at.regions.forEach(addOver);
+    return Over.n;
   }
   const strips = ctx.place!.strips;
   for (let i = 0; i < strips.n; i++) {
@@ -273,7 +288,7 @@ function readBlocks(
 
 /** The unit of a row's end: its listed name's (on its side over a sided source), else (no name) the block's read. */
 function unitOfEnd(over: AssemblyRegion, name: string | undefined, block: number, end: 'a' | 'b'): number {
-  return name === undefined ? block : (over.unitOf.get(over.sided ? unitKey(end, name) : name) ?? -1);
+  return name === undefined ? block : (over.unitOf.get(over.sided ? sidedName(end, name) : name) ?? -1);
 }
 
 /** What a read gives: rows once each (by key), their ends' units; counts of those with an end in view. */
@@ -394,15 +409,18 @@ export function assemblyPairs(
     ppp = Math.min(ppp, 1 / (ctx.axis.devicePx * strips.scale[i]));
     span = Math.max(span, axis.u1 - axis.u0);
   }
-  if (!n || !Number.isFinite(ppp)) return state.prep;
+  // no block in view: nothing read (a read kept from before is stale)
+  if (!n || !Number.isFinite(ppp)) return undefined;
   const cfg = ctx.config.pairs;
   const fit = pairsLevels(levels, ppp, span, data, cfg.binPx);
   if (at) {
     // a bridge's `R`: at the near side's level, no gate; items pending, nothing
     const items = at.level === undefined;
     const level = items ? fit.items : at.level!;
-    const r = readBlocks(ctx, data, st, n, level, items, Units);
-    return items && r.pending ? undefined : built(prep, state, over, st, items ? 1 : 0, level, r.entries, Units);
+    const r = readBlocks(dryOf(ctx), data, st, n, level, items, Units);
+    return !overFits(ctx, data, at.wants) || r.pending
+      ? undefined
+      : built(prep, state, over, st, items ? 1 : 0, level, r.entries, Units);
   }
   const bins = fitBlocks(ctx, data, st, n, levels, fit.bins);
   const binRead = readBlocks(ctx, data, st, n, bins, false, Units);

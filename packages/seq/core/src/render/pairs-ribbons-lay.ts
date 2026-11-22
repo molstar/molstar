@@ -7,6 +7,7 @@
 // The ribbons' laid-out form (_spec/README.md "Render", Bridges): a bridge's context, the lay a layer keeps, and what
 // the layout, the draw and the hit share. Part of the bridge chunk.
 
+import type { Want } from '@molstar/seqx-core/data';
 import type { Location } from '@molstar/seqx-core/query';
 import type { PairsData } from '@molstar/seqx-core/resolve';
 import type { Channel } from '@molstar/seqx-core/theme/index';
@@ -14,7 +15,7 @@ import type { RenderConfig } from './config.js';
 import type { Box, LayoutContext } from './layer-type.js';
 import type { BridgePlacement } from './layout/bridge.js';
 import type { PairsLay, PairsPrep, ScratchHit } from './pairs-lay.js';
-import type { PairsRegion } from './pairs-region.js';
+import type { PairsRegion, RegionOver } from './pairs-region.js';
 import type { SeqTokens } from './tokens.js';
 
 /** What a layer laid out in a bridge reads besides a layout's context: its bridge (_spec/README.md "Render", Bridges). */
@@ -27,7 +28,11 @@ export interface BridgeContext {
 }
 
 /** A layout's context in a bridge: `box` the band, `section` and `axis` its `a` side's, `bridge` the rest. */
-export type BridgeLayoutContext = LayoutContext & { readonly bridge: BridgeContext };
+export type BridgeLayoutContext = LayoutContext & {
+  readonly bridge: BridgeContext;
+  /** The layer's wants this frame (an `R` read is asked only when it fits beside them). */
+  readonly wants?: readonly Want[];
+};
 
 /** A pair's end's system: its row's unit under a complex, else the layer's (the pairs layer's `aOf`, `bOf`). */
 export function aOf(prep: PairsPrep, k: number): string {
@@ -55,8 +60,9 @@ export class RibbonsLay {
   config: RenderConfig | undefined;
   /** The frame's reads: the layer's prep, or a source's read on each side (`reads[src[i]]` ribbon `i`'s). */
   readonly reads: PairsPrep[] = [];
-  /** Each read's side (0: the bridge's `a`). */
+  /** Each read's side (0: the bridge's `a`); the ribbons it draws (1 its data's `a` end on its side, −1 turned, 0 any). */
   readonly readSide: number[] = [];
+  readonly readOrient: number[] = [];
   /** The first read (the layer's prep with held pairs). */
   prep: PairsPrep | undefined;
   dpr = 1;
@@ -89,14 +95,15 @@ export class RibbonsLay {
   unplaced = 0;
   /** The stretches of an edge whose tiles are pending (EC-169): `x0, x1, y, down` each, clipped to the band. */
   readonly hatch: number[] = [];
-  /** Each side's region read's state is kept by its object (the pairs layer's reader's key), its region by its system. */
-  readonly sides = [{} as PairsLay, {} as PairsLay];
-  readonly regions: [string, PairsRegion | undefined][] = [
-    ['', undefined],
-    ['', undefined],
-  ];
-  /** The near side's read of `R` (its state beside its window's). */
-  readonly rSide = {} as PairsLay;
+  /**
+   * Each read's state is kept by its object (the pairs layer's reader's key), its region by its system: a read a side,
+   * or (`mirror` over a sided source) a read an end a side, `2 · end + side`; the near side's reads of `R` beside them.
+   */
+  readonly sides = [0, 1, 2, 3].map(() => ({}) as PairsLay);
+  readonly rSides = [0, 1, 2, 3].map(() => ({}) as PairsLay);
+  readonly regions = [0, 1, 2, 3].map((): [string, PairsRegion | undefined] => ['', undefined]);
+  /** The `R` read's request (reused). */
+  readonly over: RegionOver = { regions: new Map(), level: undefined, wants: [] };
   /** The drawn-once rule's ranges by data system: the near side's `R`, the far side's window. */
   readonly ownR = new Map<string, number[]>();
   readonly ownFar = new Map<string, number[]>();

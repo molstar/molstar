@@ -5,7 +5,7 @@
  */
 
 import type { CategoryColumn } from '@molstar/core/repr/tree';
-import type { PairsList } from '@molstar/seqx-core/data';
+import type { PairsList, Want } from '@molstar/seqx-core/data';
 import type { AccessPlan, PairsData } from '@molstar/seqx-core/resolve';
 import {
   dataRegions,
@@ -18,6 +18,7 @@ import {
 } from './layer-data.js';
 import type { LayoutContext, StoreReader } from './layer-type.js';
 import { withGenome } from '@molstar/seqx-core/resolve';
+import { sidedName } from '@molstar/seqx-core/data';
 import { PairDatum, type PairsLay, type PairsPrep } from './pairs-lay.js';
 
 // Pairs read by region (_spec/README.md "Render", The pairs layer: by region): the layer's one reader over a source's
@@ -93,47 +94,42 @@ export interface AssemblyRegion {
   readonly sided: boolean;
 }
 
-/** A listed name's key in `AssemblyRegion.unitOf`: its side's over a sided source. */
-export function unitKey(side: 'a' | 'b' | undefined, name: string): string {
-  return side ? `${side}\u0001${name}` : name;
-}
-
 /**
- * The region of pairs over an assembly: its sequences' plans by system as each block's reads; `self`, one assembly on
- * both ends (a sided source's names then on both sides).
+ * The region of pairs over an assembly: its sequences' plans by system as each block's reads; `plansB`, one genome
+ * against itself over a sided source: each sequence's plan on side `b` (its name there).
  */
 export function assemblyRegion(
   plans: ReadonlyMap<string, AccessPlan>,
   lengthOf: (system: string) => number | undefined,
-  self = false,
+  plansB?: ReadonlyMap<string, AccessPlan>,
 ): AssemblyRegion {
   const sources = new Map<string, LayerSource>();
   const turned = new Map<string, LayerSource>();
   const units: string[] = [];
   const unitOf = new Map<string, number>();
   let sided = false;
-  for (const [system, plan] of plans) {
-    if (plan.kind !== 'source') continue;
+  const sourceOf = (system: string, plan: AccessPlan): LayerSource | undefined => {
+    if (plan.kind !== 'source') return undefined;
     const length = lengthOf(system);
-    const side = plan.side;
-    unitOf.set(unitKey(side, plan.system), units.length);
-    units.push(system);
-    const src: LayerSource = {
+    unitOf.set(sidedName(plan.side, plan.system), units.length - 1);
+    if (plan.side) sided = true;
+    return {
       source: plan.source,
       system: plan.system,
       dataSystem: system,
       shape: 'pairs',
-      ...(side ? { side } : {}),
+      ...(plan.side ? { side: plan.side } : {}),
       ...(length !== undefined ? { length, wraps: true } : {}),
       ratio: 1,
     };
-    sources.set(system, src);
-    if (!side) continue;
-    sided = true;
-    if (!self) continue;
-    const other = side === 'a' ? 'b' : 'a';
-    unitOf.set(unitKey(other, plan.system), units.length - 1);
-    turned.set(system, { ...src, side: other });
+  };
+  for (const [system, plan] of plans) {
+    if (plan.kind !== 'source') continue;
+    units.push(system);
+    sources.set(system, sourceOf(system, plan)!);
+    const b = plansB?.get(system);
+    const src = b && sourceOf(system, b);
+    if (src) turned.set(system, src);
   }
   return { sources, ...(turned.size ? { turned } : {}), units, unitOf, sided };
 }
@@ -146,11 +142,45 @@ export function sourceOn(over: AssemblyRegion, system: string, side: 'a' | 'b' |
 
 /**
  * A bridge's read of a side's `R` (_spec/README.md "Render", Bridges: drawn once): the regions by data system, at the
- * near side's own level (`undefined`: items), never coarser than the far level, no gate.
+ * near side's own level (`undefined`: items), never coarser than the far level, no gate; `wants`, the layer's others
+ * this frame (`R`'s are asked only when they fit beside them).
  */
 export interface RegionOver {
-  readonly regions: ReadonlyMap<string, readonly number[]>;
-  readonly level: number | undefined;
+  regions: ReadonlyMap<string, readonly number[]>;
+  level: number | undefined;
+  wants: readonly Want[];
+}
+
+/** A dry read's wants, and those with the layer's others (`overFits`): kept, reused. */
+const Asked: Want[] = [];
+const Load: Want[] = [];
+const Dry = {
+  want: (w: Want) => {
+    Asked.push(w);
+  },
+  config: undefined as unknown as LayoutContext['config'],
+  key: undefined as string | undefined,
+};
+
+/** A layout context whose reads only collect their wants (`Asked`): an `R` read is asked once it is known to fit. */
+export function dryOf(ctx: LayoutContext): LayoutContext {
+  Asked.length = 0;
+  Dry.config = ctx.config;
+  Dry.key = ctx.key;
+  return Dry as unknown as LayoutContext;
+}
+
+/**
+ * Whether a dry read's wants fit the store's bounds beside the layer's others (`maxTilesPerWant` already said by the
+ * read's `tooMany`; the layer's tiles and bytes here): then asked, else never (a layer refused for them would flicker).
+ */
+export function overFits(ctx: LayoutContext, data: StoreReader, others: readonly Want[]): boolean {
+  Load.length = 0;
+  for (let i = 0; i < others.length; i++) Load.push(others[i]);
+  for (let i = 0; i < Asked.length; i++) Load.push(Asked[i]);
+  if (data.layerLoad && !data.layerLoad(Load).fits) return false;
+  for (let i = 0; i < Asked.length; i++) ctx.want(Asked[i]);
+  return true;
 }
 
 /** Whether `[s, e)` meets any of `regions` (`[start, end, …]`). */
@@ -184,14 +214,15 @@ export function regionPairs(
     ? ((over.regions.get(src.dataSystem) as number[] | undefined) ?? [])
     : dataRegions(src, ctx.axis);
   if (!over) {
-    state.windows.clear();
+    // one system: its entry replaced, no entry made a layout
+    if (state.windows.size !== 1 || !state.windows.has(src.dataSystem)) state.windows.clear();
     state.windows.set(src.dataSystem, regions);
   }
   const span = (ctx.axis.u1 - ctx.axis.u0) * src.ratio;
   const cfg = ctx.config.pairs;
   const fit = pairsLevels(levels, src.ratio / ctx.axis.devicePx, span, data, cfg.binPx);
   const items = fit.items;
-  if (over) return overRead(prep, region, ctx, data, state, regions, over.level, items);
+  if (over) return overRead(prep, region, ctx, data, state, regions, over, items);
   // past the store's bounds on the layer's wants together: coarser bins, then zoom in
   const bins = fittedLevel(ctx, data, src, regions, fit.bins);
   const binRead = readTiles(ctx, data, src, regions, bins);
@@ -232,7 +263,10 @@ export function regionPairs(
   return state.prep;
 }
 
-/** A read of `R` at the near side's level (bins, or items: `undefined`), no gate; items pending, nothing. */
+/**
+ * A read of `R` at the near side's level (bins, or items: `undefined`), no gate; its wants asked only when they fit
+ * beside the layer's; not whole (pending, failed, past a bound), nothing.
+ */
 function overRead(
   prep: PairsPrep,
   region: PairsRegion,
@@ -240,13 +274,13 @@ function overRead(
   data: StoreReader,
   state: RegionState,
   regions: readonly number[],
-  level: number | undefined,
+  over: RegionOver,
   items: number,
 ): PairsPrep | undefined {
-  const mode = level === undefined ? 1 : 0;
-  const at = level ?? items;
-  const r = readTiles(ctx, data, region.src, regions, at, mode ? { items: true } : undefined);
-  if (mode && (r.pending.length || r.failed.length)) return undefined;
+  const mode = over.level === undefined ? 1 : 0;
+  const at = over.level ?? items;
+  const r = readTiles(dryOf(ctx), data, region.src, regions, at, mode ? { items: true } : undefined);
+  if (!overFits(ctx, data, over.wants) || r.pending.length || r.failed.length) return undefined;
   if (sameRead(state.read, mode, at, r.entries) && state.prep) return state.prep;
   const built = mode ? fromItems(r.entries, region) : fromBins(r.entries, at, region);
   keepRead(state.read, mode, at, r.entries);

@@ -9,12 +9,12 @@
 // the sides' systems, the near side's `R` read at its own level (EC-209).
 
 import { SeqRuntime, seqToValue } from '@molstar/seqx-core/data';
-import { createSeqSpec } from '@molstar/seqx-core/lang';
+import { assembly, createSeqSpec, genome } from '@molstar/seqx-core/lang';
 import { Chr1, sidedPairsSource } from '../../data/_test/region-fixtures.js';
 import { loadGenome } from '@molstar/seqx-core/resolve';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { loadBridges } from '../bridge-load.js';
-import { regionState } from '../pairs-region.js';
+import { regionPairs, regionState } from '../pairs-region.js';
 import type { RibbonsLay } from '../pairs-ribbons.js';
 import type { BridgeRibbon } from '../tracks-types.js';
 import {
@@ -23,6 +23,7 @@ import {
   manualClock,
   type SideBlock,
   sideBlocks,
+  sidedSource,
   sidesBridgeSpec,
   slowSide,
   TopSection,
@@ -188,7 +189,12 @@ describe('a bridge between two genomes, each side reading its own blocks', () =>
       await new Promise((r) => setTimeout(r, 0));
     }
     expect((lay().lays[0].lay as RibbonsLay).readSide).toEqual([0]);
+    // both windows: the top's drawn once; the bottom's alone not yet (its reads pending), none twice
     expectDrawnOnce(lay().ribbons(), blocks, top, [0, 0]);
+    const c = coverage(lay().ribbons(), blocks);
+    for (let j = 0; j < blocks.length; j++)
+      if (!inWindow(top, blocks[j].a, blocks[j].as) && inWindow(bottom, blocks[j].b, blocks[j].bs))
+        expect(c[j]).toBe(0);
     clock.flush();
     const { ribbons, lay: settled } = await frameOf(s, top, bottom);
     expect(settled.readSide).toEqual([0, 1]);
@@ -233,5 +239,56 @@ describe('a bridge between two sequences of a sided source', () => {
       if (shown) expect(drawn.get(`${list.aStart[i]}|${list.bStart[i]}`)).toBe(1);
     }
     expect(Math.max(...drawn.values())).toBe(1);
+  });
+});
+
+describe('one genome against itself over a sided source', () => {
+  it('its sides’ names planned apart: `chr1` on side a, `1` on side b, every block drawn once', async () => {
+    const self = sideBlocks(60, 8);
+    const s = await settle(sidesBridgeSpec(self, { self: true, aliased: true }), [SeqRuntime], {
+      pairs: { maxArcs: 4096 },
+    });
+    const { ribbons, lay } = await frameOf(s, Fit, Fit);
+    expect(lay.readSide).toEqual([0, 1]);
+    expect(ribbons.length).toBe(self.length);
+    expectDrawnOnce(ribbons, self, Fit, Fit);
+  });
+
+  it('`mirror`: each pair drawn both ways, each way once, a turned ribbon by whichever side holds its end', async () => {
+    const one: SideBlock[] = [
+      { a: 'chr1', as: 100, b: 'chr1', bs: 5000, length: 10, strand: 1 },
+      { a: 'chr1', as: 8000, b: 'chr1', bs: 300, length: 10, strand: 1 },
+    ];
+    const b = createSeqSpec({ title: 'mirror, sided' });
+    const seqs = [{ name: 'chr1', length: ChrLength }];
+    const P = b.data.assembly('P', assembly('P', seqs, { order: 'source' } as never));
+    const src = b.data.source('src', { format: 'seq', value: seqToValue(sidedSource(one)) as never });
+    const aln = b.data.pairs('aln', { a: P, b: P, source: src } as never);
+    b.views.view('v', (v) => {
+      genome(v, 'top', P);
+      v.bridge('br', { a: TopSection, b: BottomSection } as never, (br) =>
+        br.layer('aln', { type: 'pairs', data: aln, mirror: true } as never),
+      );
+      genome(v, 'bottom', P);
+    });
+    const s = await settle(b.build(), [SeqRuntime]);
+    const { lay } = await frameOf(s, [0, 1000], [0, 1000]);
+    // each pair both ways, an end in view each: the first forward (100 on top), turned (100 below); the second forward
+    // (300 below), turned (300 on top)
+    const drawn = Array.from(
+      { length: lay.n },
+      (_, i) => `${lay.reads[lay.src[i]].data!.aStart[lay.pair[i]]}:${lay.orient[i]}`,
+    );
+    expect(drawn.sort()).toEqual(['100:-1', '100:1', '8000:-1', '8000:1']);
+  });
+});
+
+describe('a stale read', () => {
+  it('a side with no block in view reads nothing, never its last read', async () => {
+    const s = await settle(sidesBridgeSpec(sideBlocks(50, 3)), [SeqRuntime]);
+    const { lay } = await frameOf(s, Fit, Fit);
+    const prep = lay.reads[1];
+    const none = { place: { strips: { n: 0, axes: [], scale: [] } } } as never;
+    expect(regionPairs(prep, prep.region!, none, s.store, lay.sides[1])).toBeUndefined();
   });
 });

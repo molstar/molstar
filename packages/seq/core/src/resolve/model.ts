@@ -269,6 +269,8 @@ export interface AnnotationEntry {
    * sequence `include` leaves out, or one no inline row names, has none: a layer on its block reads nothing.
    */
   readonly bySystem?: ReadonlyMap<string, AccessPlan>;
+  /** One genome against itself over a sided pairs source: each sequence's plan on side `b` (`bySystem`'s on `a`). */
+  readonly bySystemB?: ReadonlyMap<string, AccessPlan>;
 }
 
 /**
