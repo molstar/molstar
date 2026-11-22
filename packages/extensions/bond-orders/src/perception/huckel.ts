@@ -79,7 +79,7 @@ const AromaticAtomConfigs: AromaticAtomConfig[] = [
 /**
  * Type a ring atom against `AromaticAtomConfigs` and return its π-electron contribution (Sayle 2001, step 8).
  * There are 2 ambiguous cases:
- * - C with exo-cyclic O. The ketone (C=O) contributes 0, the enol (C-OH) contributes 1.
+ * - C with an exo-cyclic terminal O. The ketone (C=O) contributes 0, the enol (C-OH) contributes 1.
  * - N with no exo-cyclic heavy atom. With no H, it contributes 2 (lone pair), with H it contributes 1 (pyrrole-like).
  * Returns null when no configuration matches.
  */
@@ -94,6 +94,7 @@ function typeRingAtom(state: State, ringSet: Set<number>, i: number): RingAtomTy
   // exocyclic bond (at most one for an sp2 ring atom); prefer a double if present
   let exoOrder = 0;
   let exoPartner: ElementSymbol | undefined;
+  let exoTerminal = false;
   const u = state.unitIndices[i];
 
   for (const j of state.allNeighbours[i]) {
@@ -106,6 +107,7 @@ function typeRingAtom(state: State, ringSet: Set<number>, i: number): RingAtomTy
     // exo-cyclic bond
     exoOrder = bo;
     exoPartner = state.el[j];
+    exoTerminal = state.degree[j] - state.hCount[j] === 1;
   }
   // or an exo-cyclic bond leaving the residue: its order is fixed (_spec §1.11); a ring atom has at most one
   // exo-cyclic bond, so more than one bond leaving the residue matches no configuration
@@ -119,8 +121,11 @@ function typeRingAtom(state: State, ringSet: Set<number>, i: number): RingAtomTy
   if (outside !== -1) {
     exoOrder = state.outsideValence[i];
     exoPartner = state.neighbourEl[i][outside];
+    // a partner outside the residue has another heavy neighbour there
+    exoTerminal = false;
   }
-  const partnerIsO = exoPartner === Elements.O;
+  // the O-specific configurations (keto/enol) need a terminal O: an ether O (aryl methyl ether) has no room for C=O
+  const partnerIsO = exoPartner === Elements.O && exoTerminal;
 
   for (const cfg of AromaticAtomConfigs) {
     if (cfg.el !== el || cfg.ringDoubles !== ringDoubles || cfg.exo.order !== exoOrder) continue;
