@@ -173,6 +173,9 @@ describe('the layout’s edges', () => {
         .split('\n')
         .filter((l) => l.startsWith('rect ')).length;
     expect(recordDrawLists(minmax.lists, ['data'])).toContain('\npath ');
+    // the domain's 3 units over 90% of the 32 px: the baseline (zero) at 40 - 9.6; a column's block from there (the
+    // profile's area covers the baseline to the maximum) down to the track's floor (-1), one column wide
+    expect(recordDrawLists(minmax.lists, ['data'])).toContain('\nrect 96 30.4 1 9.6 #5b7c9959\n');
     // the maximum alone hides it: the domain starts at 0
     const max = await renderSvg(spec, { size: Size, config: { values: { aggregate: 'max' } } });
     expect(max.svg).toContain('data-seq-domains="/views/main/s/v/values=0,2"');

@@ -48,7 +48,7 @@ import { channelForms, channelLegends, Extents, type LayerChannels, PlainDatum }
 //
 // `encoding` `line` and `area` (EC-57) draw the same bars as a line through the cells' centers: held flat over the half
 // cells at its ends and at gaps (a hole in the data, a break of the axis), broken by a missing value (which keeps its
-// mark at the baseline), its color changing halfway between two positions; `area` fills under it at `AreaAlpha`. At
+// mark at the baseline), its color changing halfway between two positions; `area` fills under it at `FillAlpha`. At
 // the bars and density steps the line follows each device column's maximum, the column's extent still drawn.
 
 /** How a values layer draws: bars (default), a line, or a line over the area under it. */
@@ -56,8 +56,6 @@ export type ValuesEncoding = 'bars' | 'line' | 'area';
 
 /** The line's thickness, CSS px, and the area's opacity (the channels' defaults). */
 const LineWidth = 1.5;
-/** The area's alpha: 0.35 of 255. */
-const AreaAlpha = 89;
 
 export interface ValuesPrep {
   readonly encoding: ValuesEncoding;
@@ -295,6 +293,8 @@ function drawData(lay: ValuesLay, out: PassWriter) {
 /**
  * The look of the bars (_spec/README.md "Render", Layer types, `values`): a stepped profile below `BarMinPx` CSS px a
  * value (an area at `FillAlpha` under a top line of `ProfileLine`), bars from it (a gap, rounded tops, at `BarAlpha`).
+ * An alpha multiplies the series color's own (`(c & 0xffffff00) | (c & 255) * alpha / 255`, written out where a color
+ * is stored: a color past a small integer is boxed in a local or an argument, an allocation a frame).
  */
 const FillAlpha = 89;
 const BarAlpha = 153;
@@ -302,16 +302,40 @@ const BarAlpha = 153;
 const ProfileLine = 0.75;
 const BarGap = 1;
 const BarRound = 2;
+/** A profile's run goes on while its colors differ by at most this (the sum over red, green and blue). */
+const RunColorStep = 48;
 
 /** A value takes bars from this many CSS px; below, the profile. */
 const BarMinPx = 4;
 /** The share of the height the domain's top takes: the rest is headroom (10%). */
 const Fill = 0.9;
 
+/** The hairline at the baseline (zero, else the domain's low), a device pixel thick. No number is passed to a call. */
+function drawBaseline(lay: ValuesLay, out: PassWriter) {
+  const { box } = lay;
+  const lo = lay.domain ? lay.domain[0] : 0;
+  const hi = lay.domain ? lay.domain[1] : 1;
+  const base = lo <= 0 && hi >= 0 ? 0 : lo;
+  const span = (hi - lo || 1) / Fill;
+  const yBase = box.y + box.height - ((Math.max(lo, Math.min(hi, base)) - lo) / span) * box.height;
+  const px = 1 / lay.axis.dpr;
+  const a = out.args;
+  a[0] = box.x;
+  a[1] = yBase - px;
+  a[2] = box.width;
+  a[3] = px;
+  a[4] = lay.tokens.colors['seq-sequence'];
+  a[5] = NoColor;
+  a[6] = 0;
+  a[7] = 0;
+  a[8] = 0;
+  out.rectArgs();
+}
+
 /**
- * The data pass of bars: placeholders, a hairline at the baseline, then a profile (runs of consecutive values, one
- * color a run: the area under the steps at the look's alpha, the top line over it) or bars. A missing value is a gap.
- * Nothing allocated once warm: the numbers go through `out.args`, the points through `linePoints`.
+ * The data pass of bars: placeholders, a hairline at the baseline, then a profile (runs of consecutive values: the area
+ * under the steps, the top line over it; a run goes on across small steps of a per-value color) or bars. A missing
+ * value is a gap. Nothing allocated once warm: the numbers go through `out.args`, the points through `linePoints`.
  */
 function drawBars(lay: ValuesLay, out: PassWriter) {
   const { box, tokens } = lay;
@@ -324,54 +348,51 @@ function drawBars(lay: ValuesLay, out: PassWriter) {
   const y1 = box.y + box.height;
   const bh = box.height;
   const yBase = y1 - ((Math.max(lo, Math.min(hi, base)) - lo) / span) * bh;
-  const dpr = lay.axis.dpr;
-  const px = 1 / dpr;
-  // through `args`: a call with fractional numbers boxes them where it is not inlined (an allocation a frame)
+  const px = 1 / lay.axis.dpr;
+  drawBaseline(lay, out);
   const a = out.args;
-  a[0] = box.x;
-  a[1] = yBase - px;
-  a[2] = box.width;
-  a[3] = px;
-  a[4] = tokens.colors['seq-sequence'];
-  a[5] = NoColor;
-  a[6] = 0;
-  a[7] = 0;
-  a[8] = 0;
-  out.rectArgs();
   const n = lay.n;
   const bars = perPosition(lay.step) && lay.axis.scale >= BarMinPx;
   if (bars) {
     for (let j = 0; j < n; j++) {
       const v = lay.v[j];
       if (Number.isNaN(v)) continue;
-      const top = y1 - ((Math.max(lo, Math.min(hi, Math.max(v, base))) - lo) / span) * bh;
-      const h = y1 - ((Math.max(lo, Math.min(hi, Math.min(lay.lo[j], base))) - lo) / span) * bh - top;
-      a[0] = lay.x0[j] + BarGap / 2;
+      // from the baseline to the value (a column's extent past it too): the free end is the round one
+      const yv = y1 - ((Math.max(lo, Math.min(hi, v)) - lo) / span) * bh;
+      const yl = y1 - ((Math.max(lo, Math.min(hi, Math.min(lay.lo[j], base))) - lo) / span) * bh;
+      const top = Math.min(yv, yBase);
+      const w = lay.x1[j] - lay.x0[j];
+      // a bar narrower than the gap and a device pixel (a cut at the window's edge) takes no gap
+      const gap = w > BarGap + px ? BarGap : 0;
+      a[0] = lay.x0[j] + gap / 2;
       a[1] = top;
-      a[2] = lay.x1[j] - lay.x0[j] - BarGap;
-      a[3] = h;
-      if (lay.perBar) a[4] = ((lay.col[j] & 0xffffff00) | BarAlpha) >>> 0;
-      else a[4] = ((lay.fill & 0xffffff00) | BarAlpha) >>> 0;
+      a[2] = w - gap;
+      a[3] = Math.max(yv, yl, yBase) - top;
+      if (lay.perBar) a[4] = ((lay.col[j] & 0xffffff00) | ((((lay.col[j] & 255) * BarAlpha + 127) / 255) | 0)) >>> 0;
+      else a[4] = ((lay.fill & 0xffffff00) | ((((lay.fill & 255) * BarAlpha + 127) / 255) | 0)) >>> 0;
       a[5] = NoColor;
       a[6] = 0;
-      a[7] = Math.min(BarRound, a[2] / 2, h / 2);
-      a[8] = Round.both | Round.cutBottom;
+      a[7] = Math.max(0, Math.min(BarRound, a[2] / 2, a[3] / 2));
+      a[8] = Round.both | (v < base ? Round.cutTop : Round.cutBottom);
       out.rectArgs();
     }
     return;
   }
-  // a column's extent below the baseline (negative extremes, `minmax`): a block under the profile's area
+  // a column's extent past the baseline on the other side of its value (`minmax`: a negative extreme under a positive
+  // maximum, the maximum of a column below zero up to it): a block of the area's alpha, from the value's end
   if (!perPosition(lay.step)) {
     for (let j = 0; j < n; j++) {
       if (Number.isNaN(lay.v[j]) || !(lay.lo[j] < base)) continue;
+      const yv = y1 - ((Math.max(lo, Math.min(hi, lay.v[j])) - lo) / span) * bh;
       const yl = y1 - ((Math.max(lo, Math.min(hi, lay.lo[j])) - lo) / span) * bh;
+      // the profile's area covers the baseline to the maximum: this block is what lies beyond it
+      const from = Math.max(yv, yBase);
       a[0] = lay.x0[j];
-      a[1] = yBase;
+      a[1] = from;
       a[2] = lay.x1[j] - lay.x0[j];
-      a[3] = yl - yBase;
-      // no local holding the color: a number past a small integer is boxed where it lives in a variable (an allocation)
-      if (lay.perBar) a[4] = ((lay.col[j] & 0xffffff00) | FillAlpha) >>> 0;
-      else a[4] = ((lay.fill & 0xffffff00) | FillAlpha) >>> 0;
+      a[3] = yl - from;
+      if (lay.perBar) a[4] = ((lay.col[j] & 0xffffff00) | ((((lay.col[j] & 255) * FillAlpha + 127) / 255) | 0)) >>> 0;
+      else a[4] = ((lay.fill & 0xffffff00) | ((((lay.fill & 255) * FillAlpha + 127) / 255) | 0)) >>> 0;
       a[5] = NoColor;
       a[6] = 0;
       a[7] = 0;
@@ -386,21 +407,27 @@ function drawBars(lay: ValuesLay, out: PassWriter) {
   for (let k = 0; k <= n; k++) {
     const j = k < n ? ord[k] : -1;
     const valid = j >= 0 && !Number.isNaN(lay.v[j]);
-    const joins =
+    const next =
       valid &&
       count > 0 &&
       prev >= 0 &&
       !lay.cut[prev] &&
-      lay.col[j] === a[0] &&
       lay.x0[j] - lay.x1[prev] <= px * 1.01 &&
       lay.x0[j] >= lay.x1[prev] - px * 1.01;
-    if (count > 0 && !joins) {
+    // a per-value color: a new run (the area and line in the new color) where it has moved by more than a step
+    const recolor =
+      next &&
+      Math.abs((lay.col[j] >>> 24) - (a[0] >>> 24)) +
+        Math.abs(((lay.col[j] >>> 16) & 255) - ((a[0] >>> 16) & 255)) +
+        Math.abs(((lay.col[j] >>> 8) & 255) - ((a[0] >>> 8) & 255)) >
+        RunColorStep;
+    if (count > 0 && (!next || recolor)) {
       // the area under the steps down to the baseline, then the line over it
       pts[2 * count] = pts[2 * count - 2];
       pts[2 * count + 1] = yBase;
       pts[2 * count + 2] = pts[0];
       pts[2 * count + 3] = yBase;
-      a[4] = ((a[0] & 0xffffff00) | FillAlpha) >>> 0;
+      a[4] = ((a[0] & 0xffffff00) | ((((a[0] & 255) * FillAlpha + 127) / 255) | 0)) >>> 0;
       a[5] = NoColor;
       a[6] = 0;
       a[7] = 0;
@@ -411,13 +438,19 @@ function drawBars(lay: ValuesLay, out: PassWriter) {
       a[7] = 0;
       out.pathArgs(pts, count, false);
       count = 0;
+      if (recolor) {
+        // the next run's line starts where this one ended: the top line stays one line
+        pts[0] = lay.x1[prev];
+        pts[1] = y1 - ((Math.max(lo, Math.min(hi, lay.v[prev])) - lo) / span) * bh;
+        count = 1;
+      }
     }
     if (!valid) {
       prev = -1;
       continue;
     }
     const y = y1 - ((Math.max(lo, Math.min(hi, lay.v[j])) - lo) / span) * bh;
-    if (count === 0) a[0] = lay.col[j];
+    if (count < 2) a[0] = lay.col[j];
     pts[2 * count] = lay.x0[j];
     pts[2 * count + 1] = y;
     pts[2 * count + 2] = lay.x1[j];
@@ -427,7 +460,60 @@ function drawBars(lay: ValuesLay, out: PassWriter) {
   }
 }
 
-const ValuesDraws = passDraws<ValuesLay, Emphasis | undefined>({ data: drawData, hover: hoverCell });
+/**
+ * The hover's outline on the value hovered: its bar's or its step's own extent, from the baseline to the value's end
+ * (a position that has no value in view, the cell's column as every layer's).
+ */
+function hoverValue(lay: ValuesLay, out: PassWriter, emphasis: Emphasis | undefined) {
+  const h = emphasis?.hover;
+  if (!h || h.layer !== lay.key || h.position === undefined) return;
+  const axis = lay.axis;
+  if (h.system !== axis.system || !axis.cell(h.position)) return;
+  const cx = (axis.sx0 + axis.sx1) / 2;
+  let j = -1;
+  for (let i = 0; i < lay.n; i++)
+    if (lay.x0[i] <= cx && cx < lay.x1[i] && !Number.isNaN(lay.v[i])) {
+      j = i;
+      break;
+    }
+  if (j < 0) {
+    hoverCell(lay, out, emphasis);
+    return;
+  }
+  const { box } = lay;
+  const lo = lay.domain ? lay.domain[0] : 0;
+  const hi = lay.domain ? lay.domain[1] : 1;
+  const base = lo <= 0 && hi >= 0 ? 0 : lo;
+  const span = (hi - lo || 1) / Fill;
+  const y1 = box.y + box.height;
+  const bh = box.height;
+  const yBase = y1 - ((Math.max(lo, Math.min(hi, base)) - lo) / span) * bh;
+  const yv = y1 - ((Math.max(lo, Math.min(hi, lay.v[j])) - lo) / span) * bh;
+  const yl = y1 - ((Math.max(lo, Math.min(hi, Math.min(lay.lo[j], base))) - lo) / span) * bh;
+  const top = Math.min(yv, yBase);
+  const bottom = Math.max(yv, yl, yBase);
+  // outside the extent by the offset, as every hover outline; a sliver of a bar still gets a visible frame
+  const d = lay.hoverWidth / 2 + lay.hoverOffset;
+  const c = lay.config;
+  const cw = lay.x1[j] - lay.x0[j];
+  const eh = Math.max(bottom - top, 1 / lay.axis.dpr);
+  // the extent's squircle by the frame rule (as `hoverCell`), the outline's its plus `d`
+  const r =
+    cw < c.squircleMin || eh < c.squircleMin ? 0 : Math.min(eh * c.squircleRatio, c.squircleMax, cw / 2, eh / 2);
+  const g = out.args;
+  g[0] = lay.x0[j] - d;
+  g[1] = top - d;
+  g[2] = cw + 2 * d;
+  g[3] = eh + 2 * d;
+  g[4] = NoColor;
+  g[5] = lay.tokens.colors['seq-hover'];
+  g[6] = lay.hoverWidth;
+  g[7] = r > 0 ? r + d : 0;
+  g[8] = Round.both;
+  out.rectArgs();
+}
+
+const ValuesDraws = passDraws<ValuesLay, Emphasis | undefined>({ data: drawData, hover: hoverValue });
 
 /** A layout's placement state: one, reused (a layout runs to its end), so placing a value allocates nothing. */
 interface Placer {
@@ -594,12 +680,13 @@ function drawLine(lay: ValuesLay, out: PassWriter) {
   const lo = lay.domain ? lay.domain[0] : 0;
   const hi = lay.domain ? lay.domain[1] : 1;
   const base = lo <= 0 && hi >= 0 ? 0 : lo;
-  const span = hi - lo || 1;
+  const span = (hi - lo || 1) / Fill;
   const y1 = box.y + box.height;
   const bh = box.height;
   const yBase = y1 - ((Math.max(lo, Math.min(hi, base)) - lo) / span) * bh;
   const each = perPosition(lay.step);
   const px = 1 / lay.axis.dpr;
+  drawBaseline(lay, out);
   const a = out.args;
   const pts = linePoints;
   const area = lay.encoding === 'area';
@@ -610,11 +697,8 @@ function drawLine(lay: ValuesLay, out: PassWriter) {
   for (let k = 0; k < n; k++) {
     const j = ord[k];
     const v = lay.v[j];
-    if (Number.isNaN(v)) {
-      // a missing value breaks the line and keeps its mark at the baseline (a column with nothing breaks it, unmarked)
-      if (each) out.fill(lay.x0[j], yBase - 2, lay.x1[j] - lay.x0[j], 2, tokens.colors['seq-missing']);
-      continue;
-    }
+    // a missing value is a gap: it breaks the line, nothing is drawn
+    if (Number.isNaN(v)) continue;
     // the extent a column holds below its maximum, as a bar over it
     if (!each && lay.lo[j] < v) {
       const top = y1 - ((Math.max(lo, Math.min(hi, Math.max(v, base))) - lo) / span) * bh;
@@ -694,7 +778,7 @@ function flush(
     pts[2 * count + 1] = yBase;
     pts[2 * count + 2] = pts[0];
     pts[2 * count + 3] = yBase;
-    a[4] = ((color & 0xffffff00) | AreaAlpha) >>> 0;
+    a[4] = ((color & 0xffffff00) | ((((color & 255) * FillAlpha + 127) / 255) | 0)) >>> 0;
     a[5] = NoColor;
     a[6] = 0;
     a[7] = 0;

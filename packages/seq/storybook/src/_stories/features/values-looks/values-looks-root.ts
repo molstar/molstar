@@ -50,8 +50,7 @@ function theme(name: 'light' | 'dark', cells: readonly CellEntry[]): HTMLElement
     host.style.cssText = 'min-width: 0; max-height: 300px; overflow: hidden;';
     host.setAttribute('data-cell', cell.id);
     box.append(text('h6', cell.title, `${Muted} font-size: var(--msui-text-xs);`), host);
-    // mounted once attached and sized (a viewer made on a detached element has no width to lay out for)
-    requestAnimationFrame(() => mount(cell, host));
+    mount(cell, host);
   }
   return box;
 }

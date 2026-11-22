@@ -69,6 +69,14 @@ function valuePaths(record: string): number {
   return lines.slice(clip + 1).filter((l) => l.startsWith('path ')).length;
 }
 
+/** The values track's rects: the baseline's hairline (a profile has no bar). */
+function valueRects(record: string): number {
+  const lines = record.trimEnd().split('\n');
+  let clip = lines.length - 1;
+  while (clip >= 0 && !lines[clip].startsWith('clip ')) clip--;
+  return lines.slice(clip + 1).filter((l) => l.startsWith('rect ')).length;
+}
+
 describe('p53 tracks: the canvas path and the export path', () => {
   it.each([1, 2])('draw the same data pass at dpr %i, the conservation a profile', async (dpr) => {
     const canvas = await canvasPath(dpr);
@@ -76,6 +84,9 @@ describe('p53 tracks: the canvas path and the export path', () => {
     // 393 residues in a few hundred px: a profile, two paths a run of values (the two missing residues are adjacent: two runs)
     expect(valuePaths(svg)).toBe(4);
     expect(valuePaths(canvas)).toBe(4);
+    // and the hairline at the baseline, one rect
+    expect(valueRects(svg)).toBe(1);
+    expect(valueRects(canvas)).toBe(1);
     expect(canvas).toBe(svg);
   });
 });

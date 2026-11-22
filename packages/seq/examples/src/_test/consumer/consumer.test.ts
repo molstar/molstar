@@ -147,7 +147,9 @@ describe('EC-183 the second consumer draws what core draws', () => {
       const m = bars.find((x) => x.position === Math.floor(b.at((c.x0 + c.x1) / 2)))!;
       expect(c.fill).toBe(m.fill);
       // the same share of the track less the headroom (a tenth): core snaps heights to the pixel grid
-      expect(c.h / t.height / 0.9, `bar of ${m.position}`).toBeCloseTo(m.share!, 1);
+      expect(c.h / t.height / 0.9, `bar of ${m.position}`).toBeCloseTo(m.share!, 2);
+      // core's bars are the series color at 60% (the SVG's `fill-opacity`)
+      expect(c.alpha, `bar of ${m.position}`).toBeCloseTo(0.6, 2);
     }
     // the two missing values (100, 101) draw no bar
     const missing = await both(p53('tracks'), [95, 105]);
@@ -228,7 +230,8 @@ describe('EC-183 across a tile edge and on a reversed axis', () => {
       for (const c of coreBars) {
         const m = bars.find((x) => x.position === Math.floor(b.at((c.x0 + c.x1) / 2)))!;
         expect(c.fill).toBe(m.fill);
-        expect(c.h / t.height / 0.9, `bar of ${m.position}`).toBeCloseTo(m.share!, 1);
+        expect(c.h / t.height / 0.9, `bar of ${m.position}`).toBeCloseTo(m.share!, 2);
+        expect(c.alpha, `bar of ${m.position}`).toBeCloseTo(0.6, 2);
       }
       const ranges = of(b, 'range');
       expect(ranges.map((m) => m.text)).toEqual(['one', 'two', 'three']);

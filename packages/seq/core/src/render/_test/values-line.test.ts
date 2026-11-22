@@ -28,11 +28,11 @@ function p53Values(encoding: 'bars' | 'line' | 'area') {
   return b.build();
 }
 
-/** A value's y in the layer's box, through its domain. */
+/** A value's y in the layer's box, through its domain and the top tenth's headroom. */
 function yOf(lay: ValuesLay, v: number): number {
   const [lo, hi] = lay.domain!;
   const y1 = lay.box.y + lay.box.height;
-  return y1 - ((Math.max(lo, Math.min(hi, v)) - lo) / (hi - lo)) * lay.box.height;
+  return y1 - ((Math.max(lo, Math.min(hi, v)) - lo) / ((hi - lo) / 0.9)) * lay.box.height;
 }
 
 describe('values as a line', () => {
@@ -41,7 +41,7 @@ describe('values as a line', () => {
     const f = await s.frame({ size: { width: 800, height: 60 } });
     const lay = layerLay<ValuesLay>(f, 0);
     const paths = readPaths(f.lists).filter((p) => !p.closed);
-    // two missing positions (100 and 101) split the line in two; their marks stay at the baseline
+    // two missing positions (100 and 101) split the line in two
     expect(paths.length).toBe(2);
     const v = conservation();
     const axis = lay.axis;
@@ -71,10 +71,8 @@ describe('values as a line', () => {
         if (i) expect(p.xy[2 * (i + 1)]).toBeGreaterThan(p.xy[2 * i]);
       }
     });
-    // a neutral mark at the baseline for each missing position: never a zero
-    const marks = readRects(f.lists).filter((r) => r.fill === MISSING);
-    expect(marks.length).toBe(2);
-    for (const m of marks) expect(m.y + m.h).toBeCloseTo(lay.box.y + lay.box.height, 4);
+    // a missing position is a gap, as in the bars: no mark at the baseline, never a zero
+    expect(readRects(f.lists).filter((r) => r.fill === MISSING)).toEqual([]);
   });
 
   it('a color that changes does so halfway between two positions, the line going on to the boundary', async () => {

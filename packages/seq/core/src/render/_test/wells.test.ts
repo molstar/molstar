@@ -367,7 +367,10 @@ describe('every emphasis a squircle', () => {
     const f = await frameOf(p53TracksSpec(), {
       hover: { layer: '/views/main/protein/conservation/values', section: 'protein', system: Protein, position: 4 },
     });
-    expect(lines(f, 'hover').filter((l) => l.startsWith('rect '))[0]).toMatch(/ squircle 9\.75$/);
+    // the value's own extent, from the baseline to its end (the 32 px track's column is 96 px with the other tracks)
+    const hv = lines(f, 'hover').filter((l) => l.startsWith('rect '))[0];
+    expect(hv).toMatch(/ squircle \d/);
+    expect(Number(hv.split(' ')[4])).toBeLessThan(32);
     const b = createSeqSpec();
     const aln = b.data.alignment('aln', {
       alphabet: 'protein',

@@ -79,9 +79,8 @@ describe('draw lists: bounded by the screen', () => {
         // a cell a position: one rect each, and a letter each when letters show
         expect(letters.rects).toBe(Math.ceil(n));
         expect(letters.letters).toBe(step === 'letters' ? Math.ceil(n) : 0);
-        // a bar a position from 4 px a position (a profile below), and the baseline's hairline
-        expect(signal.rects).toBeLessThanOrEqual(Math.ceil(n) + 1);
-        expect(signal.rects).toBeGreaterThanOrEqual(1);
+        // a bar a position from 4 px a position, and the baseline's hairline; below, a profile: the hairline alone
+        expect(signal.rects).toBe(px >= 4 ? Math.ceil(n) + 1 : 1);
       } else {
         // one bar for the letters, a bar a device column for the values
         expect(letters.rects).toBe(1);
@@ -94,7 +93,8 @@ describe('draw lists: bounded by the screen', () => {
       const p = await renderSvg(p53, { size: Size, viewport: { start: 100, end: 100 + n } });
       const [pl, pr, pv] = blocks(p.lists);
       expect(pl).toEqual(letters);
-      expect(pv.rects).toBeLessThanOrEqual(signal.rects);
+      // p53's two missing residues (100 and 101, the window's first) are gaps, not bars
+      expect(pv.rects).toBe(px >= 4 ? signal.rects - Math.min(2, Math.ceil(n)) : signal.rects);
       // ranges: the same bound, and a mark (with at most its label) a domain in view
       const inView = Domains.filter(([a, b]) => a < 100 + n && b > 100).length;
       expect(pr.rects).toBe(inView);
