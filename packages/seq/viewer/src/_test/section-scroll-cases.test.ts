@@ -42,7 +42,15 @@ function spec(o: { follow?: boolean; rows?: boolean } = {}): Node {
     });
     genes.track('tall', { label: 'Tall', height: 120 } as never).layer('l', { type: 'ranges', data: tall });
     for (let i = 0; i < 30; i++) {
-      const d = b.data.ranges(`g${i}`, { target: s, rows: { start: [1 + i], end: [400], id: [`gene ${i}`] } });
+      // five overlapping transcripts: five lanes each, so the track is tall under sizing that fits its own lanes
+      const d = b.data.ranges(`g${i}`, {
+        target: s,
+        rows: {
+          start: [0, 1, 2, 3, 4].map((k) => k + i),
+          end: [400, 400, 400, 400, 400],
+          id: [0, 1, 2, 3, 4].map((k) => `gene ${i}.${k}`),
+        },
+      });
       genes.track(`t${i}`, { label: `Gene ${i}` }).layer('l', { type: 'ranges', data: d });
     }
     v.section('below', { of: s }).track('letters', { label: 'Below' }).layer('l', { type: 'letters' });
