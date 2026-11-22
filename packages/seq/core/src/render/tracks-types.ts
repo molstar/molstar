@@ -85,6 +85,8 @@ export interface SectionLayout {
   readonly rails?: readonly Rail[];
   /** Its rows layers' rails (upright, at the right edge of each band), when they draw them. */
   readonly rowsRails?: readonly Rail[];
+  /** The rails of its tracks whose lanes scroll inside their band (upright, plain: the wheel moves them). */
+  readonly lanesRails?: readonly Rail[];
   /** The direction mark in the first track's label row (`axis.directionMark`): its text, x and measured width. */
   readonly mark?: { readonly text: string; readonly x: number; readonly width: number };
   /** The layers' lays a strip and band (`strip * bands + band`), in the strip's frame. */
@@ -248,6 +250,8 @@ export interface SizedHeights {
   readonly version: number;
   readonly sizings: LayoutInput['sizings'];
   readonly hook: LayoutInput['trackSizing'];
+  /** The count of source lanes grown it was sized at (`knownLanesVersion`). */
+  readonly known: number;
   readonly heights: readonly number[];
   /** Each track's content (one lane block a track), undefined for a track not sized by its content. */
   readonly contents: readonly (LayerContent | undefined)[];

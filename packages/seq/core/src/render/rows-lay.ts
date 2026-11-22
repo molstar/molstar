@@ -225,6 +225,8 @@ export class RowsLay {
   chipX = 0;
   /** The tree's toggle in a narrow frame (its glyph's left and top; -1: none): its hit reopens the tree. */
   toggleX = -1;
+  /** The toggle is drawn pressed: the reader opened the tree, and the toggle folds it back. */
+  toggleOpen = false;
   toggleY = 0;
   chipY = 0;
   chipW = 0;

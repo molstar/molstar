@@ -172,6 +172,7 @@ export const RowsType: LayerType<RowsPrep, RowsLay> = {
     lay.viewC1 = 0;
     lay.tree.length = 0;
     lay.toggleX = -1;
+    lay.toggleOpen = false;
     lay.treeNode.length = 0;
     lay.treeClade.length = 0;
     lay.wedges.length = 0;

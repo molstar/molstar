@@ -77,7 +77,7 @@ describe('items from an earlier tile', () => {
   it('a ring wholly past a tile edge inside a long item draws it, once', async () => {
     // `r1000` runs 1000 to 1070 over the edge at 1024; the ring shows 1030 to 1060 (and `r1050` starts in it)
     const s = await settle(spec(undefined, [1030, 1060]), [BigRuntime]);
-    const f = await s.frame({ size: Size });
+    const f = await s.frame({ size: Size, settled: true });
     const sec = f.layout.sections[0];
     const keys = keysOf(sec.tracks[1].layers[0].lay as RangesLay);
     expect(new Set(keys).size).toBe(keys.length);

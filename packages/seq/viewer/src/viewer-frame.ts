@@ -8,7 +8,7 @@ import { type ReadonlyState, State } from '@molstar/core/reactive';
 import type { Issue } from '@molstar/core/repr/tree';
 import { type Frame, type FrameInput, type Placement, Renderer } from '@molstar/seqx-core/render';
 import type { SeqTokens } from '@molstar/seqx-core/render';
-import type { HoverCardBehavior } from '@molstar/seqx-viewer/behaviors';
+import type { HoverCardBehavior, RowsBehavior } from '@molstar/seqx-viewer/behaviors';
 import type { CanvasBackend } from '@molstar/seqx-viewer/canvas';
 import type { SeqViewer } from './viewer.js';
 import type { FrameClock } from './viewer-clock.js';
@@ -177,6 +177,8 @@ export class ViewerFrame {
       viewer.counts.layouts++;
       // what the models read of the placement (a text's lines in view) follows the frame
       viewer.view.placed();
+      // a scrolled band's stored top kept inside its lanes (by name: a viewer without the rows behavior bundles none)
+      (viewer.behaviors.get('rows') as RowsBehavior | undefined)?.framed(frame.layout);
       if (!this.clock.restDue) this.clock.changed();
       this._wanter?.want(frame.wants);
       this.issues.set(frame.layout.issues);

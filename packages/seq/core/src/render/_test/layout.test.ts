@@ -135,18 +135,19 @@ describe('the layout’s edges', () => {
   });
 
   it('items past the lanes collapse into a density row at the bottom; or the whole layer, as configured', async () => {
-    // seven over one another: past the five lanes a track's content height holds (78 px)
+    // seven over one another: past the five lanes a track capped at 78 px holds
     const rows = {
       start: [0, 1, 2, 3, 4, 5, 6],
       end: [30, 30, 30, 30, 30, 30, 30],
       id: ['a', 'b', 'c', 'd', 'e', 'f', 'g'],
     };
-    const extra = await renderSvg(rangesSpec(rows), { size: Size });
+    const cap = { track: { maxPx: 78, overflow: 'density' as const }, export: { lanes: 'view' as const } };
+    const extra = await renderSvg(rangesSpec(rows), { size: Size, config: cap });
     const [e] = blocks(extra.lists);
     expect(e).toMatchObject({ rects: 4, images: 1 });
     // the density row is the fifth lane, below the padding (4 px): 8 + 4 + 4 × 14
     expect(recordDrawLists(extra.lists, ['data'])).toMatch(/\nimage 96 68 624 14 624x1 /);
-    const layer = await renderSvg(rangesSpec(rows), { size: Size, config: { ranges: { overflow: 'layer' } } });
+    const layer = await renderSvg(rangesSpec(rows), { size: Size, config: { ...cap, ranges: { overflow: 'layer' } } });
     expect(blocks(layer.lists)[0]).toMatchObject({ rects: 0, images: 1 });
     expect(recordDrawLists(layer.lists, ['data'])).toMatch(/\nimage 96 8 624 78 624x1 /);
   });

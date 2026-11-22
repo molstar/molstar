@@ -38,6 +38,8 @@ export interface GeneScratch {
   ly: Float64Array;
   lw: Float64Array;
   litem: Int32Array;
+  /** The label floats at the left edge (it had no room before its model): drawn over a backdrop. */
+  lfloat: Uint8Array;
   /** The rows by key, cleared each layout. */
   readonly groups: Map<string | number, number>;
   /** The last table's columns (rows of one table share its fields). */
@@ -59,6 +61,7 @@ export function newGeneScratch(): GeneScratch {
     ly: new Float64Array(16),
     lw: new Float64Array(16),
     litem: new Int32Array(16),
+    lfloat: new Uint8Array(16),
     groups: new Map(),
     fields: undefined,
     ts: undefined,
@@ -131,15 +134,19 @@ export function placeGeneLabels(lay: RangesLay, n: number, left: number, fontSiz
     if (g.repOf[i] !== i || lay.lanes[i] < 0 || !(g.labelW[i] > 0)) continue;
     const x0 = itemLeft(lay, i);
     if (!Number.isFinite(x0)) continue;
-    const x = x0 - LabelGap - g.labelW[i];
-    if (x < left) continue;
+    // a label with no room before its model floats at the data's left edge, over the model's hairline (a backdrop under
+    // it), never dropped while its lane is shown
+    const room = x0 - LabelGap - g.labelW[i];
+    const x = Math.max(left, room);
     const k = g.ln++;
     if (k >= g.lx.length) {
       g.lx = grown(g.lx, k + 1);
       g.ly = grown(g.ly, k + 1);
       g.lw = grown(g.lw, k + 1);
       g.litem = grown(g.litem, k + 1);
+      g.lfloat = grown(g.lfloat, k + 1);
     }
+    g.lfloat[k] = room < left ? 1 : 0;
     g.lx[k] = x;
     g.ly[k] = lay.laneY + lay.lanes[i] * lay.laneHeight + lay.laneHeight / 2 + fontSize * 0.35;
     g.lw[k] = g.labelW[i];

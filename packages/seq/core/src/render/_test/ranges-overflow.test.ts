@@ -38,8 +38,10 @@ describe('a source’s items past the lanes', () => {
           .track('tx', { height: 60 } as never)
           .layer('tx', { type: 'ranges', data: tx, ...(line === 'gene' ? { line } : {}) } as never);
       });
-      const s = await settle(b.build(), [GffRuntime]);
-      const f = await s.frame({ size: SIZE });
+      // lanes past the band collapse into a density row when the track asks for it (`track.overflow: 'density'`)
+      const s = await settle(b.build(), [GffRuntime], { track: { maxPx: 240, overflow: 'density' } });
+      // the settled view grows the lanes known past the band (the track's own height 60 holds three)
+      const f = await s.frame({ size: SIZE, settled: true });
       const lay = layerLay<RangesLay>(f, 0);
       expect(lay.overflow).toBeGreaterThan(0);
       expect(lay.m).toBeGreaterThan(0);

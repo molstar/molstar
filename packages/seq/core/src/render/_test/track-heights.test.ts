@@ -60,14 +60,15 @@ async function heightsOf(node: Node, options: Parameters<typeof settle>[3] = {})
 }
 
 describe('a track’s height fits its content, in steps', () => {
-  it('one lane 22 px, two 36, five 78, then the lanes compact; an empty track one lane', async () => {
-    expect([1, 2, 3, 4, 5, 6].map((n) => lanesHeight(n, DefaultRenderConfig))).toEqual([22, 36, 50, 64, 78, 78]);
+  it('one lane 22 px, two 36, five 78, six 92 (no lane cap), to `track.maxPx`; an empty track one lane', async () => {
+    expect([1, 2, 3, 4, 5, 6].map((n) => lanesHeight(n, DefaultRenderConfig))).toEqual([22, 36, 50, 64, 78, 92]);
     const { heights } = await heightsOf(spec([{ rows: stacked(1) }], 'uniform'));
     expect(heights).toEqual([22]);
     for (const [n, h] of [
       [2, 36],
       [5, 78],
-      [7, 78],
+      [7, 106],
+      [20, 240],
     ]) {
       const one = await heightsOf(spec([{ rows: stacked(n) }]));
       expect(one.heights, `${n} lanes`).toEqual([h]);

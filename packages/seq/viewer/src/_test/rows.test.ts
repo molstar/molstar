@@ -20,6 +20,7 @@ import { headlessAnimation } from '../animation.js';
 import { keyConflicts } from '../bindings.js';
 import { viewerItem } from '../config.js';
 import { DefaultSeqViewerSpec } from '../default-spec.js';
+import { headerMenu } from '../header-entries.js';
 import { Describer } from '../describe.js';
 import { type UiHistory, uiHistory } from '../ui-history.js';
 import { createSeqViewer, type SeqViewer } from '../viewer.js';
@@ -738,6 +739,14 @@ describe('the rows’ columns in the viewer', () => {
 describe('a narrow frame’s tree toggle', () => {
   it('a collapsed tree is a toggle: its click opens the tree (session state), Shift+T folds it back', async () => {
     const v = await make();
+    // a wide frame (the label column may shrink, the tree is whole): no tree entry in the menu, nothing to show or fold
+    const entry = () =>
+      headerMenu(v, { section: '/views/v/s', track: Track })!
+        .groups.flat()
+        .find((i) => i.name === 'seq:tree')!;
+    expect(v.frame!.layout.narrow!.lacks).toBe(false);
+    expect(lay(v).toggleX).toBe(-1);
+    expect(entry()).toBeUndefined();
     // narrow enough that the label column at its floor still leaves the plot short: the tree collapses
     v.resize(260);
     frames!.flush();
@@ -752,9 +761,25 @@ describe('a narrow frame’s tree toggle', () => {
     frames!.flush();
     v.draw();
     expect(lay(v).treeX1 - lay(v).treeX0).toBeGreaterThan(0);
-    expect(lay(v).toggleX).toBe(-1);
+    // the toggle stays, pressed: the way back on screen
+    expect(lay(v).toggleOpen).toBe(true);
+    expect(lay(v).toggleX).toBeGreaterThanOrEqual(0);
     // the least width holds the tree: the frame scrolls
     expect(v.frame!.layout.narrow!.minWidth).toBeGreaterThan(least);
+    // the glyph folds it back
+    expect(v.input.click(lay(v).toggleX + 6, lay(v).toggleY + 6)).toBe(true);
+    expect(v.view.band(Track)?.tree).toBeUndefined();
+    frames!.flush();
+    v.draw();
+    expect(lay(v).toggleOpen).toBe(false);
+    expect(lay(v).treeX1 - lay(v).treeX0).toBe(0);
+    // the band's menu says it: "Show tree" once folded; its entry runs `rows.tree` for the track
+    expect(entry().label).toBe('Show tree');
+    expect(entry().command).toBe('rows.tree');
+    expect(entry().args).toEqual({ track: Track });
+    // the key too
+    expect(v.input.key({ key: 'T', shiftKey: true })).toBe(true);
+    expect(v.view.band(Track)?.tree).toBe(true);
     expect(v.input.key({ key: 'T', shiftKey: true })).toBe(true);
     expect(v.view.band(Track)?.tree).toBeUndefined();
     frames!.flush();

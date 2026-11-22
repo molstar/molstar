@@ -13,6 +13,7 @@ import {
   BuiltInSizings,
   ContentSizing,
   heightsFit,
+  knownVersion,
   lanesHeight,
   type LayerContent,
   type SizedTrack,
@@ -70,6 +71,7 @@ export function bandHeights(
     kept.version === input.text.version &&
     kept.sizings === input.sizings &&
     kept.hook === input.trackSizing &&
+    kept.known === knownVersion(types) &&
     sameTracks(kept.tracks, tracks)
   ) {
     if (kept.issue) say(kept.issue);
@@ -102,8 +104,10 @@ function sizeTracks(
     version: input.text.version,
     sizings: input.sizings,
     hook: input.trackSizing,
+    known: knownVersion(types),
   };
   if (layout.heights || !tracks.length) return { ...base, heights: fixed, contents: [] };
+  const cap = layout.name === 'rings' ? config.rings.trackMaxPx : config.track.maxPx;
   const cctx = { config, text: input.text, fit, labelLane: layout === TracksLayout && !input.picture };
   const sized: SizedTrack[] = [];
   const contents: (LayerContent | undefined)[] = [];
@@ -111,6 +115,7 @@ function sizeTracks(
     const t = tracks[j];
     let lanes: number | undefined;
     let labels = false;
+    let partial = false;
     let other = 0;
     let kind = '';
     for (const l of t.layers) {
@@ -127,22 +132,23 @@ function sizeTracks(
       if (c) {
         lanes = Math.max(lanes ?? 0, c.lanes);
         labels ||= c.labels;
+        partial ||= c.partial === true;
       } else other = Math.max(other, byType[l.type as keyof RenderConfig['heights']] ?? 0);
     }
     // one lane block a track: the most lanes its layers need, one label lane for all of them
-    contents.push(lanes === undefined ? undefined : { lanes, labels });
+    contents.push(lanes === undefined ? undefined : partial ? { lanes, labels, partial } : { lanes, labels });
+    // its lanes' px to the cap (`track.maxPx`; a ring's radial width `rings.trackMaxPx`), past which they scroll inside
+    // the track (or compact, on a ring) with the label lane above them kept
+    const lanesPx =
+      lanes !== undefined ? Math.min(Math.max(other, lanesHeight(lanes, config)), Math.max(cap, other)) : 0;
     const content =
-      lanes !== undefined && rowsFill(t) === undefined
-        ? Math.max(other, lanesHeight(lanes + (labels ? 1 : 0), config))
-        : undefined;
+      lanes !== undefined && rowsFill(t) === undefined ? lanesPx + (labels ? config.laneHeight : 0) : undefined;
     sized.push({
       track: t,
       kind,
       fixed: fixed[j],
       // its label lane its own: what it adds over its lanes (a kind shares lanes, never a label lane)
-      ...(content !== undefined
-        ? { content, label: labels ? content - Math.max(other, lanesHeight(lanes!, config)) : 0 }
-        : {}),
+      ...(content !== undefined ? { content, label: labels ? content - lanesPx : 0 } : {}),
       ...(t.height !== undefined ? { height: t.height } : {}),
     });
   }

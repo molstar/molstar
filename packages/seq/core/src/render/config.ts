@@ -73,14 +73,23 @@ export interface RenderConfig {
     readonly grid: number;
   };
   /**
-   * A lane of ranges (14 px: a 12 px mark and its 2 px gap), the padding above and below a band's lanes (4 px), and the
-   * most lanes a track's content height takes (5; past them lanes compact as before): a track with no height is as tall
-   * as its lanes (_spec/README.md "Render", Track heights).
+   * A lane of ranges (14 px: a 12 px mark and its 2 px gap) and the padding above and below a band's lanes (4 px): a
+   * track with no height is as tall as its lanes, up to `track.maxPx` (_spec/README.md "Render", Track heights).
    */
   readonly laneHeight: number;
   readonly laneGap: number;
   readonly lanePadding: number;
-  readonly maxLanes: number;
+  /**
+   * A track of lanes past its content height (_spec/README.md "Render", Track sizing): `maxPx`, the cap (240 px: 16
+   * lanes and padding, a px number: no view height to take a share of), and `overflow` past it: its lanes `scroll`
+   * inside the track (the default), `compact` (squeezed to the band) or the rest in a `density` row.
+   */
+  readonly track: { readonly maxPx: number; readonly overflow: 'scroll' | 'compact' | 'density' };
+  /**
+   * An export's lanes (`all`: every lane of a capped track at its content height; `view`: the band as on screen with
+   * its cut edges), and the most a track's px an export draws (4,000), the rest said in its header.
+   */
+  readonly export: { readonly lanes: 'all' | 'view'; readonly maxTrackPx: number };
   readonly density: DensityThresholds;
   readonly densityUnits: DensityUnits;
   /** Letter sizes, a short scale (CSS px); the largest that fits the cell is used. */
@@ -194,6 +203,8 @@ export interface RenderConfig {
    */
   readonly ranges: {
     readonly overflow: 'extra-lanes' | 'layer';
+    /** The most lanes a layer packs (1,000): past them the last lane is the density row (layout work is bounded). */
+    readonly maxLanes: number;
     readonly connector: { readonly width: number; readonly ink: 'item' | 'muted'; readonly alpha: number };
   };
   /**
@@ -231,6 +242,8 @@ export interface RenderConfig {
    */
   readonly rings: {
     readonly hole: number;
+    /** A lanes track's radial width past which it compacts (48 px): an annulus cannot scroll. */
+    readonly trackMaxPx: number;
     readonly maxDiameter: number;
     readonly blockGap: number;
     /**
@@ -278,6 +291,8 @@ export interface RenderConfig {
   readonly rows: {
     readonly labelMinPx: number;
     readonly pinInPlace: boolean;
+    /** A rows band with no `height` is as tall as its rows up to this many px (480: an alignment wants more than features). */
+    readonly maxPx: number;
     readonly buildBudget: number;
     readonly columns: {
       readonly floorPx: number;
@@ -412,7 +427,8 @@ export const DefaultRenderConfig: RenderConfig = {
   laneHeight: 14,
   laneGap: 2,
   lanePadding: 4,
-  maxLanes: 5,
+  track: { maxPx: 240, overflow: 'scroll' },
+  export: { lanes: 'all', maxTrackPx: 4000 },
   density: { letters: 10, cells: 3, dots: 1, bars: 1 / 64 },
   densityUnits: { letters: 'css', cells: 'device', dots: 'device', bars: 'device' },
   letterSizes: [9, 10, 11, 12, 13, 14],
@@ -453,12 +469,13 @@ export const DefaultRenderConfig: RenderConfig = {
   maxTemplateTracks: 200,
   maxNumberingPositions: 1 << 18,
   nodes: { holdShown: true },
-  ranges: { overflow: 'extra-lanes', connector: { width: 1, ink: 'item', alpha: 0.6 } },
+  ranges: { overflow: 'extra-lanes', maxLanes: 1000, connector: { width: 1, ink: 'item', alpha: 0.6 } },
   values: { aggregate: 'minmax', coarser: 1, direct: true },
   ruler: { labelGap: 48 },
   blocks: { gapShare: 0.25, runPx: 2, readPx: 1, groupGap: 3 },
   rings: {
     hole: 0.35,
+    trackMaxPx: 48,
     maxDiameter: 720,
     blockGap: 1,
     gapShare: 0.25,
@@ -476,6 +493,7 @@ export const DefaultRenderConfig: RenderConfig = {
   rows: {
     labelMinPx: 8,
     pinInPlace: true,
+    maxPx: 480,
     buildBudget: 1 << 18,
     columns: { floorPx: 32, gapPx: 6, dataMinPx: 200, titlePx: 16 },
   },
@@ -568,6 +586,8 @@ export function renderConfig(over: RenderConfigOverrides = {}): RenderConfig {
     bridges: { ...DefaultRenderConfig.bridges, ...over.bridges },
     ribbons: { ...DefaultRenderConfig.ribbons, ...over.ribbons },
     rings: { ...DefaultRenderConfig.rings, ...over.rings },
+    track: { ...DefaultRenderConfig.track, ...over.track },
+    export: { ...DefaultRenderConfig.export, ...over.export },
     outline: { ...DefaultRenderConfig.outline, ...over.outline },
     emphasis: { ...DefaultRenderConfig.emphasis, ...over.emphasis },
     text: { ...DefaultRenderConfig.text, ...over.text },

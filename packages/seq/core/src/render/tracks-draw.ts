@@ -191,6 +191,8 @@ function drawTracks(layout: ViewLayout, out: PassWriter, emphasis: Emphasis | un
       for (let i = 0; i < s.rails.length; i++) drawRail(s.rails[i], out, emphasis, s.tokens, s.config);
     if (pass === 'window' && s.rowsRails)
       for (let i = 0; i < s.rowsRails.length; i++) drawRail(s.rowsRails[i], out, emphasis, s.tokens, s.config);
+    if (pass === 'window' && s.lanesRails)
+      for (let i = 0; i < s.lanesRails.length; i++) drawRail(s.lanesRails[i], out, emphasis, s.tokens, s.config);
     const strips = s.placement.strips;
     if (!strips.n) {
       // pending: its tracks' chrome alone

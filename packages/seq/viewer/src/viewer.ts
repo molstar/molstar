@@ -781,9 +781,13 @@ export class SeqViewer extends ReactiveModel {
     // a section that scrolls inside its box (a text's, as its layout placed it) exports every line (the figure): the
     // picture is as tall as it, not the canvas's scrolled box; a text laid out as tracks (no text layout listed) is not
     const figure = resolved?.sections.some((s) => this.placementOf(s.address)?.clip === true) ?? false;
+    // a track whose lanes scroll on the canvas exports every lane (`export.lanes`): the picture grows to hold them
+    const lanes =
+      this.context.renderConfig.export.lanes === 'all' &&
+      (this.frame?.layout.sections.some((s) => s.lanesRails !== undefined) ?? false);
     const navigators = this._rails.part;
     return this.context.renderSvg(this.spec.shown.value, {
-      size: { width: this.width, height: figure ? 'auto' : this.height },
+      size: { width: this.width, height: figure || lanes ? 'auto' : this.height },
       ...(resolved ? { view: resolved.address } : {}),
       ...(viewports ? { viewports } : {}),
       store: this.store.store,
