@@ -70,7 +70,9 @@ limit of two without anyone deciding it).
      "no behaviour change" check (B9).
    - **fix round**: the lane fixes the findings in one round (SendMessage, §reuse-agents), or the orchestrator does. A
      finding that is a design question becomes a drift note.
-   - **merge** with `--no-ff`; the merge commit names the lane and the review's refuted or unfixed findings. Then:
+   - **merge** with `--no-ff`, only after `pnpm -s -C packages/seq/core size` shows no `FAIL` row on the merged tree
+     (the script exits 0 on a failing row: read its rows, never its exit code; LA merged at 930.5 of 930 kB so, 2026-11-22);
+     the merge commit names the lane and the review's refuted or unfixed findings. Then:
      apply the hot-file changes the lane asked for (dependencies, inventory, tsconfig references, exports' `_test`
      nulls, Storybook registration, its `.v6/changelogs/` entry); lower the file-size baseline when a listed file
      shrank (`node .seq/_checks/file-size.ts --update`); install; run the checks on the merged tree; remove the lane's

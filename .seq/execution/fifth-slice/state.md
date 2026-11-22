@@ -2,6 +2,8 @@
 
 ## Decided
 
+- Headless raised to 940 kB (the author, 2026-11-22: "Raise to 940"), RL and LA together at 930.5 (merged at 930.5 by my
+  mistake: the size script exits 0 on a failing row; the orchestrator now reads its FAIL lines).
 - The values layer's look: variants first (the author, 2026-11-22: "is there a way to make the barcharts look nicer
   too?", then "Yes, variants first"); VL (`briefs/vl-values-look.md`) after RL merges.
 - The rail look picked (the author, 2026-11-22): "let's go with D1 by default, but customizable to D2 as well"; "the
