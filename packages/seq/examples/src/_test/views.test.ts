@@ -78,6 +78,8 @@ const SlowToRender = new Set([
   'p53/tracks',
   'complex/pae',
   'complex/complex-grid',
+  // ClinVar's TP53 by region: 30 tiles, each a BGZF read of the recorded pages (about 230 ms)
+  'genomes/vcf-clinvar',
 ]);
 
 describe.each(ExampleViews.map((v) => [`${v.dataset}/${v.id}`, v] as const))('%s', (_, view) => {
