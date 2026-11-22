@@ -15,15 +15,6 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   `7674964:469:edaeae47>G` shows a long REF as a length and hash; a reader wants `7674964 del 469 bp>G` or the REF's
   first letters with its length. To TT (it rebuilds the card as providers), else the next lane that touches the card.
 
-- **A sample selected on the kinship grid does not light its row in the genotype matrix** (the orchestrator,
-  2026-11-22, LA3's look, Features › Across sections › Kinship beside the genotypes; kind: bug): a click on the
-  "F2-b" label selects the member (the grid's row and column light), but the matrix on the same rows system shows
-  nothing, though across-sections.md says a member selected on the grid lights its row in a matrix layer of the same
-  system with no map. The matrix also draws no member labels. The story's twin asserts the selection as state only.
-  Also from the look: the dot plot's block-pair cells are not visible as cells (its ground is one tone, the gaps the
-  same tone); a hairline in the gap is ruled out (the author, 2026-11-19: "the gap and an off-centre hairline together
-  read as very weird"; FX17 drew one by the orchestrator's brief, reverted). A question for the author. To the next fix lane (after HC, which sets the linked views' emphasis rule).
-
 - **A drag's work is bounded by the screen, not by the selection** (FX8, 2026-11-22: a drag across 3,000 contigs relays out the navigator's strip, about 110 kB a frame, bounded at 256 kB in `navigator-blocks.quick.ts`; its 2 ms bound fails under load: move it to the heavy lane under `itWithin`) (moved by FX12) (the author, 2026-11-21, tRNA › Views › Dot plot
   scale: "selecting a rect on the dotplot here is really laggy. both as a rect on the plot, and a range on the nav.
   are we doing too much work here? maybe related to the other perf issue? and similar lag to selecting on the genome
@@ -128,6 +119,15 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   (allowed: repr's public API is open to this work); take it only if a real name set needs it.
 
 ## Fixed
+
+- **A sample selected on the kinship grid does not light its row in the genotype matrix** (the orchestrator,
+  2026-11-22, LA3's look, Features › Across sections › Kinship beside the genotypes; kind: bug): a click on the
+  "F2-b" label selects the member (the grid's row and column light), but the matrix on the same rows system shows
+  nothing, though across-sections.md says a member selected on the grid lights its row in a matrix layer of the same
+  system with no map. The matrix also draws no member labels. The story's twin asserts the selection as state only.
+  Also from the look: the dot plot's block-pair cells are not visible as cells (its ground is one tone, the gaps the
+  same tone); a hairline in the gap is ruled out (the author, 2026-11-19: "the gap and an off-centre hairline together
+  read as very weird"; FX17 drew one by the orchestrator's brief, reverted). A question for the author. To the next fix lane (after HC, which sets the linked views' emphasis rule). Fixed by FX17 (`1857af215`): a member selected or hovered lights its row in every matrix of its rows system (own, else projected at half strength; a rect on the matrix's own cells guarded); the dot plot's gaps tinted (the author's: "Tint the gaps"). The matrix's member labels stay the tooltips design's separate change.
 
 - **A selection's boxes on the grid don't meet the cells' edges** (the author, 2026-11-21, Examples › Complex › PAE and
   contacts › Over the complex, a range selected on cyclin A2's pLDDT: "mis-alignments on the boxes on the PAE plot (see
