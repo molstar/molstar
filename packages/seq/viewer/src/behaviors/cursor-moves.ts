@@ -49,7 +49,16 @@ import {
   type ViewModel,
 } from '@molstar/seqx-viewer/models';
 import type { CursorBehavior, CursorContext } from './cursor.js';
-import { bandFolds, pagedTop, pageRows, revealedTop, setBandFolds } from './rows-band.js';
+import {
+  bandFolds,
+  lanesBand,
+  lanesTop,
+  pagedTop,
+  pageLanes,
+  pageRows,
+  revealedTop,
+  setBandFolds,
+} from './rows-band.js';
 import { type RowsOf, rowsOf as rowsIn, twoAxesLayer } from './two-axes.js';
 
 /** The cursor less its row: a cell on the section's axis. */
@@ -547,6 +556,12 @@ export function createCursor(
     }
     return undefined;
   };
+  /** The overflowing lanes band under the pointer, with its track and stored top (lanes). */
+  const lanesIn = (ctx: CursorContext) => {
+    const b = ctx.layer === undefined ? undefined : lanesBand(layout(), ctx.layer);
+    if (!b || !(b.lay.scrollMax > 0)) return undefined;
+    return { lay: b.lay, track: b.track, top: view.band(b.track)?.bandTop ?? b.lay.top };
+  };
   /** A shown cursor's rows, else undefined. */
   const shownOnRows = () => {
     const c = selection.cursor.value;
@@ -555,8 +570,8 @@ export function createCursor(
 
   /**
    * Page Down and Page Up: a shown cursor on rows moves a page of rows and the band a page with it (`pagedTop`), the
-   * row then shown; with none, the band scrolls a page (the rows' `rows.page-*`); at the band's end the key is the
-   * page's.
+   * row then shown; with none, the lanes band under the pointer that overflows scrolls a page, else the rows' band (the
+   * rows' `rows.page-*`); at the band's end the key is the page's.
    */
   const page = (id: string, title: string, dir: 1 | -1): CommandDefinition<CursorContext> => ({
     id,
@@ -566,12 +581,19 @@ export function createCursor(
     when: (ctx) => {
       const c = shownOnRows();
       if (c) return rowsOf(c.section) ? true : 'No rows to page';
+      const l = lanesIn(ctx);
+      if (l) return lanesTop(l.lay, l.top, dir * pageLanes(l.lay)) !== l.top ? true : 'The lanes are at their end';
       const r = pageRowsOf(ctx);
       if (!r) return 'No rows to page';
       return pagedTop(r.lay, topOf(r), dir) !== topOf(r) ? true : 'The rows are at their end';
     },
     run: (_, ctx): CommandResult => {
       const c = shownOnRows();
+      const l = c ? undefined : lanesIn(ctx);
+      if (l) {
+        view.setBand(l.track, { bandTop: lanesTop(l.lay, l.top, dir * pageLanes(l.lay)) });
+        return { message: dir > 0 ? 'Lanes a page down' : 'Lanes a page up' };
+      }
       const r = c ? rowsOf(c.section) : pageRowsOf(ctx);
       if (!r) return { message: '' };
       const top = pagedTop(r.lay, topOf(r), dir);

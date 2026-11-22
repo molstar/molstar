@@ -55,6 +55,16 @@ export class ViewBands {
     this._bands.set(map.size ? map : NoBands);
   }
 
+  /** Puts a band back as it was (a gesture cancelled): the viewport it held, or none at all when it had none. */
+  restore(track: string, band: BandViewport | undefined): void {
+    const prev = this._bands.value.get(track);
+    if (prev === band || (prev && band && JSON.stringify(prev) === JSON.stringify(band))) return;
+    const map = new Map(this._bands.value);
+    if (band) map.set(track, band);
+    else map.delete(track);
+    this.replace(map);
+  }
+
   /** Sets a band's own viewport, merged over what it holds (`ViewModel.setBand`). */
   set(track: string, band: Partial<BandViewport>): void {
     const prev = this._bands.value.get(track);

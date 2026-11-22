@@ -117,6 +117,12 @@ function hitLayout(layout: ViewLayout, x: number, y: number, touch: boolean, hov
         const h = hitRail(s.rowsRails[i], x, y, s.config, touch);
         if (h) return h;
       }
+    // a scrolled lanes band's rail (pan only: `hitRail` gives its grips as body)
+    if (s.lanesRails)
+      for (let i = 0; i < s.lanesRails.length; i++) {
+        const h = hitRail(s.lanesRails[i], x, y, s.config, touch);
+        if (h) return h;
+      }
     // what a layer draws outside its band (a rows layer's column titles, above the rows), on its first strip
     for (let j = 0; j < s.tracks.length; j++) {
       const lays = s.tracks[j].layers;

@@ -63,6 +63,8 @@ const LayoutBound: Record<string, number> = {
   // scrolled band: the lanes in view only
   'gene models, scrolled (60 kb)': 190_000,
   'gene models, scrolled far (60 kb)': 190_000,
+  // the lanes rail dragged: as the scrolled band, the rail's window elsewhere
+  'gene models, rail dragged (60 kb)': 190_000,
   // 27.9 KB
   '3M letters (120 positions)': 48_000,
   // 37.3 KB

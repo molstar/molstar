@@ -6,27 +6,18 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
 
 ## Open
 
+- **The rail's contrast and its square ticks break the rounded UI** (the author, 2026-11-22: "should we iterate on the
+  look of the rail? i think the contrast breaks the view quite a bit + the ticks breaks the 'rounded look' of the rest
+  of the ui"; the grips overhang the well's rounded corners): variants first, then the pick built. To RL.
 - **A track jumps while loading, its labels drawn below it; a section of many tracks does not scroll** (the author,
   2026-11-22, Features › Genome formats › GFF3 › TP53 while loading: "the size when loading. could be handled better";
   "not just text sections. imagine having multiple tracks with standard features, these should be scrollable too. and
   600px should definitely be configurable"): FX9 did not build growth batched to the settle nor the reachable region
   (layouts.md, Track sizing); the placeholder lane draws labels outside its band; a tracks section has no scroll and
   no cap (layouts.md, A section scrolls past its cap). To FX11 (loading) and FX10 (the section's scroll and its rail).
-- **Dragging a rail's window past the axis end shrinks it** (the author, 2026-11-22, 2OCJ A over UniProt, the ruler
-  rail: "by dragging a rail, it's possible to make it really small and zoom all the way to a position spanning the
-  entire width of the view. should there be a limit? when resizing the rail, the minimum width is about 20-30
-  positions (which is good)"): a body drag is a pan (`behaviors/window.ts` `dragTo`, both ends by one offset), but
-  `ViewModel.setRange` clips the end past the axis, so the window narrows below the resize floor. A pan keeps its
-  width and stops at the end (the offset clamped, not the end); the floor holds on every path. To FX10.
 - **A scrolled band's labels drawn outside it** (the author, 2026-11-22, GFF3 TP53 scrolled: "clip bounds are not
   respected. See the TP53-233"): marks clipped at the band's edges, labels not (TP53-233 above, TP53-221 below). To
   FX11.
-- **A lanes rail scrolls by the wheel only, not by a gesture on it** (the author, 2026-11-22, Features › Genome
-  formats › GTF › TP53: "the scrollbar is nice, but it can't be scrubbed by a gesture on the control itself, only by
-  wheel"; layouts.md:650 asks "drag the slim rail; Page keys with the cursor in it", FX9's Not built): the rows rail's
-  gesture (`rowsRailGesture`) has it, the lanes rail does not. Widened by the author (2026-11-22: "any section should be
-  scrollable already, so we should use the same rail everywhere"): one rail for rows, lanes and text sections
-  (layouts.md, A slim rail). To FX10.
 - **One hover contract for every mark, and a sweep that holds it** (the author, 2026-11-21, Examples › Plasmid › Ring
   at scale: the strands' density bands on the ring and in the detail show no hover box or card; "we should not be
   fixing this one-by-one btw. since we already fixed a similar issue, we need a general rule for this and global
@@ -242,6 +233,19 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   above the ring at the top left (find what draws them).
 
 ## Fixed
+
+- **Dragging a rail's window past the axis end shrinks it** (the author, 2026-11-22, 2OCJ A over UniProt, the ruler
+  rail: "by dragging a rail, it's possible to make it really small and zoom all the way to a position spanning the
+  entire width of the view. should there be a limit? when resizing the rail, the minimum width is about 20-30
+  positions (which is good)"): a body drag is a pan (`behaviors/window.ts` `dragTo`, both ends by one offset), but
+  `ViewModel.setRange` clips the end past the axis, so the window narrows below the resize floor. A pan keeps its
+  width and stops at the end (the offset clamped, not the end); the floor holds on every path. To FX10. Fixed by FX10 (`38f147b49`): a body drag's offset clamped (by the drawn width), the follower's too; its test on the predictions composition fails on the parent.
+- **A lanes rail scrolls by the wheel only, not by a gesture on it** (the author, 2026-11-22, Features › Genome
+  formats › GTF › TP53: "the scrollbar is nice, but it can't be scrubbed by a gesture on the control itself, only by
+  wheel"; layouts.md:650 asks "drag the slim rail; Page keys with the cursor in it", FX9's Not built): the rows rail's
+  gesture (`rowsRailGesture`) has it, the lanes rail does not. Widened by the author (2026-11-22: "any section should be
+  scrollable already, so we should use the same rail everywhere"): one rail for rows, lanes and text sections
+  (layouts.md, A slim rail). To FX10. The lanes part fixed by FX10 (`38f147b49`): the lanes rail is the rows rail (its hit, drawing and gesture: drag, a press beside it, Escape, Page keys over the band or the rail). The text rail and a tracks section's scroll to SX.
 
 - **A tree opened from its toggle has no way back on screen** (FX7 stopped it, 2026-11-22: it needs a `LayoutContext` field in `layer-type.ts` and a line in `tracks.ts`, RG's then; open for the next fix lane) (the author, 2026-11-21, Examples › Globins › Rows ›
   Scale: "when i expand the tree, there doesn't seem to be a way to collapse it back. another port for app level

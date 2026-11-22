@@ -12,6 +12,7 @@ import {
   type Placement,
   PlacePoint,
   type Rail,
+  LanesRail,
   RowsRail,
   railUnitAt,
   type Hit as RenderHit,
@@ -278,8 +279,9 @@ export class ViewerInput {
   get cursor(): PartCursor | undefined {
     const h = this._dragHit ?? this._windowHit;
     if (!h?.part) return undefined;
-    if (h.navigator !== 'rail' && h.navigator !== RowsRail) return h === this._dragHit ? 'grabbing' : 'grab';
-    return partCursor(h.part, h.navigator === RowsRail ? 'rows' : 'positions', h === this._dragHit);
+    if (h.navigator !== 'rail' && h.navigator !== RowsRail && h.navigator !== LanesRail)
+      return h === this._dragHit ? 'grabbing' : 'grab';
+    return partCursor(h.part, h.navigator === 'rail' ? 'positions' : 'rows', h === this._dragHit);
   }
 
   /** The window under the pointer as lit: copied when it changes (its section, part, navigator or layer), a frame asked. */
@@ -295,8 +297,10 @@ export class ViewerInput {
   /** A section's rail in the last frame. */
   /** A rows rail of the last frame, by its track's address. */
   private _rowsRailOf(track: string): Rail | undefined {
-    for (const s of this.viewer.frame?.layout.sections ?? [])
+    for (const s of this.viewer.frame?.layout.sections ?? []) {
       for (const r of s.rowsRails ?? []) if (r.key === track) return r;
+      for (const r of s.lanesRails ?? []) if (r.key === track) return r;
+    }
     return undefined;
   }
 
@@ -572,7 +576,7 @@ export class ViewerInput {
     const target = hitTarget(hit);
     // a rows rail's part (_spec/README.md "Input", Navigators, The rows rail): its window scrolls, a grip zooms the rows
     const rowsRail =
-      target === 'window' && hit?.navigator === RowsRail && hit.layer && !this._space
+      target === 'window' && (hit?.navigator === RowsRail || hit?.navigator === LanesRail) && hit.layer && !this._space
         ? this._rowsRailOf(hit.layer)
         : undefined;
     if (rowsRail && hit?.part) {
@@ -662,7 +666,7 @@ export class ViewerInput {
           track: r.key,
           at: railUnitAt(r, d.y0),
           part: d.part ?? 'body',
-          window: { start: r.start, end: r.end, total: r.total, width: r.width },
+          window: { start: r.start, end: r.end, total: r.total, width: r.width, lanes: r.hit.navigator === LanesRail },
         };
       } else g?.release();
       this._suppressClick = true;
@@ -924,8 +928,9 @@ export class ViewerInput {
     const mods = this._modifiers(e);
     const hit = this._hitAt(x, y);
     // on a rows rail: its window resets the rows' zoom; outside it nothing (its first click centred, or not)
-    if (hit?.target === 'window' && hit.navigator === RowsRail) {
-      if (hit.part !== 'outside' && hit.layer !== undefined) this.rowsRailGesture?.resetZoom(hit.layer);
+    if (hit?.target === 'window' && (hit.navigator === RowsRail || hit.navigator === LanesRail)) {
+      if (hit.navigator === RowsRail && hit.part !== 'outside' && hit.layer !== undefined)
+        this.rowsRailGesture?.resetZoom(hit.layer);
       return true;
     }
     // on a ruler rail: the navigator's double-click (fit, or fitted a window `navigator.zoomPx` px wide there)
@@ -1151,7 +1156,8 @@ export class ViewerInput {
     if (e.key === 'Escape' && this.keysPanel?.close()) return true;
     const section =
       (this.resting ? this.sectionAt(this._y) : undefined) ?? this.viewer.view.resolved.value?.sections[0]?.address;
-    const ctx = { section };
+    // the layer under the pointer: the lanes band a page key scrolls
+    const ctx = { section, layer: this.resting ? this._hitAt(this._x, this._y)?.layer : undefined };
     let matched = false;
     // a gesture in progress first (a preview's command), then the rest in the spec's order
     for (const previews of [true, false])
