@@ -12,6 +12,7 @@ import {
   NoColor,
   passDraws,
   Passes,
+  type PassList,
   type PassName,
   type PassWriter,
 } from './draw-lists.js';
@@ -24,7 +25,14 @@ import { drawRail } from './rail.js';
 import { wellClipArgs, wellCorners } from './wells.js';
 import type { LayerLayout, SectionLayout, ViewLayout } from './tracks-types.js';
 import { isExtensionName } from '@molstar/seqx-core/lang';
-import { drawExtensionHover, drawSectionEmphasis, drawTints, emphasisPart, Part } from './tracks-emphasis.js';
+import {
+  drawExtensionHover,
+  drawOwnHover,
+  drawSectionEmphasis,
+  drawTints,
+  emphasisPart,
+  Part,
+} from './tracks-emphasis.js';
 import { hasHeaderActions } from './headers-draw.js';
 
 // The view's draw (_spec/README.md "Render", Tracks layout): its passes, the background (the page and the wells), each
@@ -231,14 +239,23 @@ function drawTracks(layout: ViewLayout, out: PassWriter, emphasis: Emphasis | un
         if (s.tracks[ti].box.y < layout.height) s.layout.chrome(s, pass, out, emphasis, 0, ti);
       continue;
     }
+    // the hover's own section: whether its layer drew a mark of its own (the hover contract: else the view's)
+    const own = pass === 'hover' && hoverOwnedBy(s, emphasis);
+    HoverDrew = own ? 0 : 1;
     drawStrips(layout, s, out, emphasis, pass, column);
     // what crosses strips, on the page; a section that scrolls inside its box is clipped to it
     const sl = s.sectionLays;
-    if (!sl.length) continue;
-    const clipped = s.placement.clip === true;
-    if (clipped) clipTo(out, s.placement.box);
-    for (let li = 0; li < sl.length; li++) sl[li].type.draw(sl[li].lay, pass, out, emphasis);
-    if (clipped) out.unclip();
+    if (sl.length) {
+      const clipped = s.placement.clip === true;
+      if (clipped) clipTo(out, s.placement.box);
+      for (let li = 0; li < sl.length; li++) {
+        const at = marksIn(out.pass);
+        sl[li].type.draw(sl[li].lay, pass, out, emphasis);
+        if (own && sl[li].key === emphasis!.hover!.layer && marksIn(out.pass) > at) HoverDrew = 1;
+      }
+      if (clipped) out.unclip();
+    }
+    if (own && HoverDrew === 0) drawOwnHovers(layout, s, out, emphasis!, column);
   }
   // the bridges' ribbons, on the page between their sides (_spec/README.md "Render", Bridges)
   layout.bridges?.draw(pass, out, emphasis);
@@ -367,10 +384,14 @@ function drawStrips(
             drawZoomIn(w, box, tokens, layout.config);
             continue;
           }
+          const at = marksIn(w.pass);
           l.type.draw(l.lay, pass, w, emphasis);
           // an extension's layer type is given the hover's look by the view (Emphasis), unless it draws its own
-          if (pass === 'hover' && emphasis?.hover?.layer === l.key && !l.type.ownHover && extensionType(l.type.name))
-            drawExtensionHover(w, l.type, l.lay, emphasis.hover, a, layout.tokens, layout.config);
+          if (pass === 'hover' && emphasis?.hover?.layer === l.key) {
+            if (!l.type.ownHover && extensionType(l.type.name))
+              drawExtensionHover(w, l.type, l.lay, emphasis.hover, a, layout.tokens, layout.config);
+            if (marksIn(w.pass) > at) HoverDrew = 1;
+          }
         }
         if (clip) w.unclip();
       }
@@ -381,6 +402,45 @@ function drawStrips(
       closeStrip(s, i, out);
     }
   }
+}
+
+/** The marks a pass holds (its clips not counted: a scrolled band clips its hover pass whether it draws or not). */
+function marksIn(p: PassList): number {
+  return p.rects.n + p.paths.n + p.glyphs.n + p.texts.n + p.images.n;
+}
+
+/** Whether the hovered layer drew a mark on its own section this pass (`drawTracks`; drawing is not reentrant). */
+let HoverDrew = 1;
+
+/**
+ * Whether the hover is a mark's on this section (a data hit: no chrome's target), so it answers with a mark here
+ * (_spec/README.md "Render", Emphasis, The hover contract).
+ */
+function hoverOwnedBy(s: SectionLayout, emphasis: Emphasis | undefined): boolean {
+  const h = emphasis?.hover;
+  if (!h || emphasis!.projected?.hoverSection !== s.section.address) return false;
+  return h.target === undefined || h.target === 'cell';
+}
+
+/** The hover's position box over each strip's band column (or each band's box) of its own section, through its warp. */
+function drawOwnHovers(layout: ViewLayout, s: SectionLayout, out: PassWriter, emphasis: Emphasis, column: boolean) {
+  const strips = s.placement.strips;
+  const nb = strips.bands;
+  const clipped = s.placement.clip === true;
+  if (clipped) clipTo(out, s.placement.box);
+  for (let i = 0; i < strips.n; i++) {
+    const w = openStrip(s, i, out);
+    const a = strips.axes[i];
+    const col = s.columns[i];
+    if (column && col) drawOwnHover(w, a, col, emphasis, layout.tokens, layout.config);
+    else if (!column)
+      for (let j = 0; j < nb; j++) {
+        const box = s.boxes[i * nb + j];
+        if (box.height > 0) drawOwnHover(w, a, box, emphasis, layout.tokens, layout.config);
+      }
+    closeStrip(s, i, out);
+  }
+  if (clipped) out.unclip();
 }
 
 /**

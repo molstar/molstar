@@ -149,6 +149,15 @@ smallest letter size needs, so cells never show without letters.
 - **Boundaries** (an insertion point, an indel, a zero-length item) draw as a hairline with a pinned caret, never as a
   cell (EC-127).
 
+- **One hover contract for every mark** (the author, 2026-11-21: "we should not be fixing this one-by-one ... we need a
+  general rule for this and global fix"; built by HC): every drawn mark of every layer type, in every layout and at
+  every level of detail, answers a hover with (1) a hit naming what is under the pointer (the item, else the bin's items
+  or stretch, else the position), (2) an emphasis in the hovered view and every linked view, reaching every layer the
+  covered positions reach (the view draws a position box where a layer draws none), and (3) a card with the hit's
+  fields. A layer type without a hit is refused at registration (`seq.render.layer.hover`). A drag suspends the card. A
+  rail's hover is its own (no card). A medium-lane sweep over every story holds it. Legends work both ways: an entry
+  that names items lights them in view; an entry with no action shows the default cursor.
+
 ## 7. Motion
 
 - **Navigation that jumps animates**: focus, reveal, a snapshot's view, zoom by a step (base duration, eased in and

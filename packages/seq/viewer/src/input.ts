@@ -440,6 +440,8 @@ export class ViewerInput {
     if (!h) return undefined;
     const out = this._hit as Record<string, unknown>;
     out.layer = h.layer;
+    // a bridge's ribbon is in no section (its `section` the bridge's id): named, or its card finds no bridge
+    out.section = h.bridge === undefined ? undefined : h.section;
     out.system = h.system;
     out.position = h.position;
     out.element = h.element;

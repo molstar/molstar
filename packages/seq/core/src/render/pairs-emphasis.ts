@@ -7,7 +7,7 @@
 import { type Location } from '@molstar/seqx-core/query';
 import type { PairsData } from '@molstar/seqx-core/resolve';
 import { NoColor, type PassName, type PassWriter } from './draw-lists.js';
-import { aOf, bOf, clipTo, LitOf, type PairsLay, type PairsPrep } from './pairs-lay.js';
+import { aOf, bOf, Caret, clipTo, LitOf, type PairsLay, type PairsPrep } from './pairs-lay.js';
 import { type Emphasis, type EmphasisHighlight, type ItemDescription } from './layer-type.js';
 
 // The pairs layer's emphasis (_spec/README.md "Render", The pairs layer): hover, selection and the highlight channels
@@ -64,7 +64,13 @@ function lit(lay: PairsLay, pass: PassName, e: Emphasis, k: number, hovered: num
   if (pass !== 'hover') return selected(prep, e, k);
   if (k === hovered) return true;
   const h = e.hover;
-  if (h?.element) return false;
+  // a pair hovered lights itself alone; another layer's item (a score box) lights the pairs with an end in what it
+  // covers, as hovering those positions does (_spec/README.md "Render", Emphasis, The hover contract)
+  if (h?.element) {
+    if (h.element.owner === prep.owner) return false;
+    const p = e.projected?.hover;
+    return p !== undefined && endIn(prep, k, p);
+  }
   const x = h?.position === undefined ? -1 : Math.floor(h.position);
   const y = h?.yPosition === undefined ? -1 : Math.floor(h.yPosition);
   if (lay.mode === 'dots') {
@@ -91,11 +97,10 @@ export function drawEmphasis(lay: PairsLay, pass: PassName, out: PassWriter, e: 
   let hovered = -1;
   if (pass === 'hover') {
     if (!h && !e.projected?.hover) return;
-    if (h?.element) {
-      if (h.element.owner !== prep.owner) return;
+    if (h?.element?.owner === prep.owner) {
       hovered = prep.index.get(h.element.key) ?? -1;
       if (hovered < 0) return;
-    }
+    } else if (h?.element && !e.projected?.hover) return;
   } else if (!e.elements?.keys.length) return;
   const ink = pass === 'hover' ? tokens.colors['seq-hover'] : tokens.colors['msui-accent'];
   const width = pass === 'hover' ? lay.config!.outline.hover + 1 : lay.config!.outline.selection + 1;
@@ -109,6 +114,21 @@ export function drawEmphasis(lay: PairsLay, pass: PassName, out: PassWriter, e: 
       g[6] = width;
       g[7] = 0;
       out.curveArgs(lay.curve, 8 * i);
+    }
+    // a caret (an end whose partner is not drawn) is its pair's mark too: outlined with it (the hover contract)
+    const cs = lay.carets;
+    for (let i = 0; i + 3 < cs.length; i += 4) {
+      if (!lit(lay, pass, e, cs[i + 3], hovered)) continue;
+      g[0] = cs[i] - Caret / 2 - 1;
+      g[1] = (cs[i + 2] > 0 ? cs[i + 1] - 2 * Caret : cs[i + 1]) - 1;
+      g[2] = Caret + 2;
+      g[3] = 2 * Caret + 2;
+      g[4] = NoColor;
+      g[5] = ink;
+      g[6] = width - 1;
+      g[7] = 0;
+      g[8] = 0;
+      out.rectArgs();
     }
     if (lay.clip) out.unclip();
     return;
@@ -190,6 +210,22 @@ export function drawHighlights(lay: PairsLay, out: PassWriter, highlights: reado
       g[6] = width;
       g[7] = 0;
       out.curveArgs(lay.curve, 8 * i);
+    }
+    // a caret (an end whose partner is not drawn) is its pair's mark too: outlined in its channel's color
+    const cs = lay.carets;
+    for (let i = 0; i + 3 < cs.length; i += 4) {
+      const c = lit[cs[i + 3]];
+      if (!c) continue;
+      g[0] = cs[i] - Caret / 2 - 1;
+      g[1] = (cs[i + 2] > 0 ? cs[i + 1] - 2 * Caret : cs[i + 1]) - 1;
+      g[2] = Caret + 2;
+      g[3] = 2 * Caret + 2;
+      g[4] = NoColor;
+      g[5] = highlights[c - 1].color;
+      g[6] = width - 1;
+      g[7] = 0;
+      g[8] = 0;
+      out.rectArgs();
     }
     if (lay.clip) out.unclip();
     return;

@@ -446,3 +446,17 @@ export interface LayerType<Prep = unknown, Lay = unknown> {
    */
   readonly axes?: 1 | 2;
 }
+
+/**
+ * The hover contract's registration check (_spec/README.md "Render", Emphasis, The hover contract): a layer type that
+ * cannot name what is under a point (no `hit`) is refused, every offender in one error (`seq.render.layer.hover`), so a
+ * registry that holds one registers nothing.
+ */
+export function refuseMuteTypes(types: Iterable<LayerType<any, any>>): void {
+  const mute: string[] = [];
+  for (const t of types) if (typeof t.hit !== 'function') mute.push(t.name);
+  if (mute.length)
+    throw Object.assign(new Error(`seq.render.layer.hover: no hit: ${mute.join(', ')}`), {
+      code: 'seq.render.layer.hover',
+    });
+}

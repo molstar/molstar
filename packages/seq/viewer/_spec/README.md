@@ -1160,9 +1160,14 @@ rows' commands) reads the last frame's rows layers through the behavior context'
   cursor's card again at its cell and sends a hover's away until the hover rests again. A rectangle dragged on a grid
   shows its summary while it is dragged (`gridSummary`: the cells counted, their mean, least and greatest value), at
   most once a 50 ms. `hover.card` is read at composition (the configuration is read-only after it): off, no card is
-  shown and no port made. A behavior's part over the canvas is `BehaviorHandle.attach(container, viewer)`
-  (`viewer-spec.ts`): `mountCanvas` calls it for every behavior that has one, and the function it returns takes the part
-  away.
+  shown and no port made. **A variant allele's card** (the genome formats' matrix row "a variant allele"): an item whose
+  source row holds `ref` and `alt` (a VCF's, core's Data, VCF) is titled by its id `pos:ref>alt`, never its record's ID,
+  with its Category, its record's `ID`, `QUAL` and `FILTER`, and its INFO fields with a value (every field not in core's
+  VCF `FixedFields`, the source's order, the first 8, then `INFO: +k more`; a value past 40 characters cut with an
+  ellipsis; an integer written as it is: an id is never grouped). Its words are read once a hover (`alleleOf` keeps a
+  list's last, a weak map: 0 B a held hover, the storybook's `allele-card.quick.ts`). A behavior's part over the canvas
+  is `BehaviorHandle.attach(container, viewer)` (`viewer-spec.ts`): `mountCanvas` calls it for every behavior that has
+  one, and the function it returns takes the part away.
 - `keysPanel` (`KeysPanelProvider`, in the default spec): `help.keys` (`?` in `view.keys`; the toolbar's button) opens a
   `@molstar/ui` surface over the canvas's corner listing what the view answers to, `describeKeys(viewer)` (`keys.ts`,
   DOM-free, so a host draws its own): generated from the viewer's commands with their keys (`view.keys`, else the
@@ -1456,9 +1461,19 @@ derived on settle: a legend that changes during a pan reads as noise, and its co
   filtered (core's Render, Filters: `splitDataForms` is the one parser). A legend entry's items are the base's forms and
   `(item :<field> v)` in one query (`itemsAddress`: one item form holding every param, or an `and` when the base has
   `and` or `or`), `legend.select` (session: the items whose field has the value; Cmd/Ctrl toggles), `legend.hover`
-  (session: a highlight named `legend`), `theme.cvd-safe` (session). `fittingSchemes(layer)` is what a menu offers (the
-  schemes whose subject and measures fit the layer); `preview(layer, channel, value)` shows one hovered (a preview,
-  ended by `layer.channel` or Esc).
+  (session: a highlight named `legend`), `theme.cvd-safe` (session). **Both ways** (core's Emphasis, the hover
+  contract): an item hovered outlines the entry it reads as (`updateHover`: its painted value), and the entry hovered
+  lights its items in view; where its address names none the store holds (a source's rows: a VCF's alleles; a derived
+  table), the items the layout drew in its value (`LegendModel.entryItems`: their hit marks, never items read and out of
+  view) are lit and selected instead. A legend over several layers (one entry for a light and a heavy chain's CDRs)
+  lights and selects the entry's items on every layer it lists. An entry **has an action** (`LegendEntryRow.action`,
+  `LegendModel.names`) when an address names its items (`addressable`, the behavior's) or items in its value are drawn
+  at the last settled frame (`LegendModel.drawn`: the part redraws when it moves, a pan or a tile): only then is it a
+  pointer target with a click, a hover and Enter; a swatch alone keeps the default cursor. `names` is a lookup and
+  `entryItems` is read once a settled frame (a hover again makes nothing). Swept by the hover sweep: every entry a
+  hovered item reads as has its action and lights every item it names in view, over its positions; an entry without one
+  lights nothing. `fittingSchemes(layer)` is what a menu offers (the schemes whose subject and measures fit the layer);
+  `preview(layer, channel, value)` shows one hovered (a preview, ended by `layer.channel` or Esc).
 - **The Legend part's groups run one a line** (a column, 12 px apart; each title muted, 600, 11 px: grouping is seen
   without reading) and **its channels row keeps its place**: the row is outside the listbox (a listbox holds options),
   one line (`nowrap`, the first two channels named, the rest a `+n` chip), and `channels: reserve` (the default) holds

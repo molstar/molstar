@@ -37,6 +37,7 @@ import {
   bundledTextMetrics,
   createTextMetrics,
   NoAssets,
+  refuseMuteTypes,
 } from '@molstar/seqx-core/render';
 import { type ResolveConfig, resolveSpec, type StaticModel } from '@molstar/seqx-core/resolve';
 import type { SchemeEntry, SchemeRegistry } from '@molstar/seqx-core/theme';
@@ -181,7 +182,9 @@ export function runtimesOf(registry: readonly SeqRegistryEntry[]): FormatRuntime
 
 /** The registered layer types by name, as `runtimesOf`: the same object again is no change, another an error. */
 function layerTypesOf(registry: readonly SeqRegistryEntry[]): Readonly<Record<string, LayerType<any, any>>> {
-  return Object.fromEntries(byName(registry, 'layer-type', 'layer types', (e) => e.type));
+  const types = byName(registry, 'layer-type', 'layer types', (e) => e.type);
+  refuseMuteTypes(types.values());
+  return Object.fromEntries(types);
 }
 
 /** The registered track sizings by name, as `runtimesOf` (the built-ins need no entry). */

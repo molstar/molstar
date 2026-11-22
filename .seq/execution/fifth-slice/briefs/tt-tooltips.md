@@ -29,6 +29,10 @@ Consequences, Answered.
    from a source), over an assembly by name, Markdown with an in-view link, the SVG titles option; light and dark,
    canvas and SVG, headless twins on a fake clock; the builder showcase gains `.tooltip()`.
 
+6. **The card's overflow** (`fixes.md`, "A hover card's long values overflow its box", the author's): values wrap within
+   a capped card width, then an ellipsis; a long VCF REF titled by its length, not a hash. A test per case (canvas-free:
+   the card's measured box).
+
 **Tests**: the design's Tests section, each EC in a title; the provider order; MVS parity cases (the same annotation
 file gives the same texts as MVS's runtime would, by reading); a cold and a warm card show measured and cited.
 **Performance**: a warm hover 0 B with tooltips over a million ranges read by region (an allocation case), the
