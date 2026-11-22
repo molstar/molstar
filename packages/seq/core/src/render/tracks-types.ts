@@ -53,7 +53,7 @@ export interface TrackLayout {
   readonly labelY: number;
   readonly layers: readonly LayerLayout[];
   /** Set when it has no items (`track.empty`): its one-line row, with a note (`note`) or without (`collapse`). */
-  readonly empty?: 'note' | 'collapse';
+  readonly empty?: 'note' | 'collapse' | undefined;
   /**
    * Its header's line in the label column (_spec/README.md "Render", Track headers): its slots, its states (the "n
    * filtered" chip among them, `seq:filtered`), the "⋯"; in a layout that draws a label column of track headers.

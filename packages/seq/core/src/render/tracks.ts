@@ -671,23 +671,26 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         }
       return out;
     };
-    // a block's band with no item (a stack's rows: `blocks.emptyTracks`)
-    const emptyCtx = { config, text: input.text, fit: 0, labelLane: false };
-    const bandEmpty = (b: number, j: number): boolean => {
-      const block = section.blocks?.[b];
-      if (!block || trackOf[j] < 0) return false;
-      for (const l of block.layers[trackOf[j]] ?? []) {
-        if (!l.placed || l.params.hidden === true) continue;
-        const type = firstType(l, types);
-        if (!type?.content) return false;
-        let prep = state.preps.get(l);
-        if (prep === undefined) state.preps.set(l, (prep = type.prepare(l, input.model)));
-        const c = type.content(prep, emptyCtx);
-        if (!c || c.partial || c.lanes > 0) return false;
-      }
-      // every layer placed here is empty, or none is placed (a layer of another block's system)
-      return true;
-    };
+    // a block's band with no item (a stack's rows: `blocks.emptyTracks`): asked of a stack only
+    const stacked = section.blocks !== undefined && section.params.arrange === 'stack';
+    const emptyCtx = stacked ? { config, text: input.text, fit: 0, labelLane: false } : undefined;
+    const bandEmpty = stacked
+      ? (b: number, j: number): boolean => {
+          const block = section.blocks?.[b];
+          if (!block || trackOf[j] < 0) return false;
+          for (const l of block.layers[trackOf[j]] ?? []) {
+            if (!l.placed || l.params.hidden === true) continue;
+            const type = firstType(l, types);
+            if (!type?.content) return false;
+            let prep = state.preps.get(l);
+            if (prep === undefined) state.preps.set(l, (prep = type.prepare(l, input.model)));
+            const c = type.content(prep, emptyCtx!);
+            if (!c || c.partial || c.lanes > 0) return false;
+          }
+          // every layer placed here is empty, or none is placed (a layer of another block's system)
+          return true;
+        }
+      : undefined;
     const sectionBox: Box = {
       x: dataX,
       y: top,
@@ -761,7 +764,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         // centred on its well (its padding with it), not on its data
         labelY: head ? head.labelY : well.y + well.height / 2 + labelSize * 0.35,
         layers,
-        ...(trackEmpties[j] && layout === TracksLayout ? { empty: trackEmpties[j] } : {}),
+        empty: trackEmpties[j],
         ...(head ? { header: head.header } : {}),
       });
     }
