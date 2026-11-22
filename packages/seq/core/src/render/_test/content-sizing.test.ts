@@ -37,11 +37,37 @@ describe('tracks of one kind share their lanes only when close', () => {
   it('two close tracks share the taller (within 2 lanes, or 2x)', () => {
     expect(sized([track(3), track(5)])).toEqual([lanesHeight(5, C), lanesHeight(5, C)]);
     expect(sized([track(10), track(20)])).toEqual([lanesHeight(20, C), lanesHeight(20, C)]);
+  });
+
+  it('far tracks fit their own (1 and 4 lanes: 3 lanes and 4x apart)', () => {
     expect(sized([track(1), track(4)])).toEqual([lanesHeight(1, C), lanesHeight(4, C)]);
   });
 
-  it('a chain of 1, 2 and 4 lanes is two clusters: 1 and 2 share, 4 (3 lanes and 4x above 1) fits its own', () => {
+  it('tracks join a cluster within 2 lanes or 2x of its smallest: 1, 2 and 4 lanes are {1, 2} and {4}', () => {
     expect(sized([track(1), track(2), track(4)])).toEqual([lanesHeight(2, C), lanesHeight(2, C), lanesHeight(4, C)]);
+  });
+
+  it('1, 3 and 5 lanes are {1, 3} and {5}: 5 is not close to the cluster’s smallest, though close to 3', () => {
+    expect(sized([track(1), track(3), track(5)])).toEqual([lanesHeight(3, C), lanesHeight(3, C), lanesHeight(5, C)]);
+  });
+
+  it('a fractional lane height does not flip a boundary: 2 and 4 lanes of 4.2 px share', () => {
+    const cfg = { ...C, laneHeight: 4.2 };
+    const t = (n: number): SizedTrack => ({ ...track(1), content: lanesHeight(n, cfg) });
+    expect(ContentSizing.heights([t(2), t(4)], cfg)).toEqual([lanesHeight(4, cfg), lanesHeight(4, cfg)]);
+  });
+
+  it('a throwing sort does not keep the tracks alive: the next sizing is right', () => {
+    const bad = {
+      get kind(): string {
+        throw new Error('x');
+      },
+      content: 30,
+      fixed: 22,
+      track: {} as never,
+    } as SizedTrack;
+    expect(() => sized([bad, track(2)])).toThrow();
+    expect(sized([track(2), track(3)])).toEqual([lanesHeight(3, C), lanesHeight(3, C)]);
   });
 
   it('the result does not depend on the tracks’ order', () => {
