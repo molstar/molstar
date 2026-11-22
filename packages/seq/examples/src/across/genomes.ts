@@ -13,8 +13,8 @@ import type { Coverage, PairsList, SeqData, SeqPair, SystemInfo } from '@molstar
 // is its blocks (gapless runs of a few kb, a block a pair: its extent on each genome, the strand of its `b` end), served
 // as pairs in the `seq` format over both genomes' chromosomes (their names distinct, as their assemblies name them:
 // peach's `Pp01`, grape's `chr1`, plum's `Pd1`), each found from either end. Small (megabases, hundreds of blocks) and
-// deterministic on core's `PCG`. Why not sided: a bridge reads a source's pairs a chromosome at a time without a side
-// yet (the lane's next step), so the names must not collide.
+// deterministic on core's `PCG`. Unsided, the names distinct (a sided source, `chr1` on both genomes, is read too: each
+// bridge side on the end it shows).
 
 export interface Chromosome {
   readonly name: string;

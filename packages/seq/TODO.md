@@ -24,16 +24,20 @@ loaded when used, sections over a source's complex, the genome axis and layouts)
 - **A component query on a source-backed sequence** (`(elements :component X)`) is pending until the source's letters
   are read (EC-169); a format with a component index could answer it without the letters.
 
-- **Bridges' follow-ups** (LA, 2026-11-22; across-sections.md): over assemblies a bridge reads once, on side `a` (LA2);
-  grids over two sections, categorical axes, the liftover (LA3); the resize grip, bridge menus, a ribbon's double-click,
-  `bridge.pointer`; sections have no label, so a card names a side by its section id; Shift+A is the command's own
-  shortcut, not in `view.keys`; the bridge chunk is 23.5 of its 24 kB row (the design estimated 6).
+- **Bridges' follow-ups** (LA, LA2, 2026-11-22; across-sections.md): grids over two sections, categorical axes, the
+  liftover (LA3); the resize grip, bridge menus, a ribbon's double-click, `bridge.pointer`; sections have no label, so a
+  card names a side by its section id; Shift+A is the command's own shortcut, not in `view.keys`; the bridge chunk is
+  23.9 of its 24 kB row (the design estimated 6). Left by LA2: the ribbons inside the SVG bridge group (the export still
+  draws them in the passes; no room in the chunk); the gate per side after ownership (a side's bins counted before
+  ownership, so a side at the fit can keep the other off items and the cull trims); an assembly side's pending hatch
+  (its pending tiles are not kept by system); a sided source on one sequence a side is read only in a bridge (a pairs
+  layer on a sequence reads unsided).
 
-- **Region reads' follow-ups** (RG, 2026-11-22): sided pairs read on side `a` only (side `b` for a track on genome b,
-  LA's); matrix state labels in the header, `order` and `hidden`; a pairs bin card's per-category breakdown;
-  `MatrixItems` as a ranges list plus a cells column; `store.ts` (854 lines) and `viewer.ts` (818) past 800 with no
-  natural split found; held pairs over blocks still binned by device column (Decided 7, partial); the whole-assembly
-  level not cut into block pairs (Default 5).
+- **Region reads' follow-ups** (RG, 2026-11-22): sided pairs over an assembly read on its end's side (LA2), on a
+  sequence still unsided outside a bridge; matrix state labels in the header, `order` and `hidden`; a pairs bin card's
+  per-category breakdown; `MatrixItems` as a ranges list plus a cells column; `store.ts` (854 lines) and `viewer.ts`
+  (818) past 800 with no natural split found; held pairs over blocks still binned by device column (Decided 7, partial);
+  the whole-assembly level not cut into block pairs (Default 5).
 
 - **Inline data over an assembly's follow-ups** (GA3, 2026-11-22), the author's: a level-1 source's sparse links over a
   genome give "zoom in" at the fit (the store's halving rule; `it.fails` in `render/_test/assembly-inline.test.ts`); a
