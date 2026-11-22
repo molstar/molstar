@@ -19,8 +19,8 @@ export default meta;
 /**
  * TP53’s variants in NCBI ClinVar (GRCh38, the recorded slice: BGZF read by region at level 1 through the tabix index
  * the source names) by the opt-in `vcf` runtime: a row an ALT allele, a mark at its REF extent coloured by its
- * category. Hover an allele for its id (`pos:ref>alt`) and fields; click selects its REF extent, a double-click focuses
- * it. The file’s header summary and the source nodes are printed under the view.
+ * category (a run of marks merged under a pixel keeps its category’s colour, a mixed run is neutral). Hover an allele:
+ * the card names it by ClinVar’s id, with its track and extent; click selects its REF extent, a double-click focuses it. The file’s header summary and the source nodes are printed under the view.
  */
 export const Tp53ClinVar: StoryObj = story('vcf-clinvar');
 
@@ -31,8 +31,8 @@ export const Tp53ClinVar: StoryObj = story('vcf-clinvar');
 export const LongDeletion: StoryObj = story('vcf-long-deletion');
 
 /**
- * ClinVar’s chr17 at the fit: more level-1 tiles than a view reads, so the track is the hatched “zoom in” band and
- * nothing is read (no estimate drawn). Only TP53’s pages are recorded: zoom into 7.67–7.69 Mb to read them.
+ * ClinVar’s chr17 at the fit: more level-1 tiles than a view reads, so none is asked: the track stays the band drawn
+ * while data is waiting (no text, no issue in the status line) and nothing is read (no estimate drawn). Only TP53’s pages are recorded: zoom into 7.67–7.69 Mb to read them.
  */
 export const ZoomIn: StoryObj = story('vcf-zoom-in');
 

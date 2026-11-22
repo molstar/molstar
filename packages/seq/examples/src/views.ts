@@ -929,7 +929,7 @@ export const GenomeFormatsViews: readonly ExampleView[] = [
     id: 'vcf-clinvar',
     title: 'TP53’s variants from ClinVar',
     summary:
-      'TP53’s region of NCBI ClinVar’s GRCh38 sites (the recorded slice: BGZF, read by region at level 1 through the tabix index the source names) by the opt-in `vcf` runtime: a row an ALT allele, a mark at its REF extent coloured by its category (SNV, deletion, insertion, indel, MNV). ClinVar names chr17 `17`; its length from an inline chrom.sizes. Hover an allele for its id (`pos:ref>alt`), ClinVar’s id and INFO; click selects its REF extent, a double-click focuses it.',
+      'TP53’s region of NCBI ClinVar’s GRCh38 sites (the recorded slice: BGZF, read by region at level 1 through the tabix index the source names) by the opt-in `vcf` runtime: a row an ALT allele, a mark at its REF extent coloured by its category (SNV, deletion, insertion, indel, MNV). ClinVar names chr17 `17`; its length from an inline chrom.sizes. Hover an allele: the card names it by ClinVar’s id with its track and extent; click selects its REF extent, a double-click focuses it.',
     build: genomeVcf.tp53Clinvar,
     registry: genomeVcf.registry,
   },
@@ -938,7 +938,7 @@ export const GenomeFormatsViews: readonly ExampleView[] = [
     id: 'vcf-zoom-in',
     title: 'ClinVar’s chr17 at the fit',
     summary:
-      'The same ClinVar file over the whole of chr17 (83 Mb): more level-1 tiles than a view reads, so the track is the hatched “zoom in” band and nothing is read (no estimate drawn). Only TP53’s pages are recorded: zoom into TP53 (7.67–7.69 Mb) to read its variants.',
+      'The same ClinVar file over the whole of chr17 (83 Mb): more level-1 tiles than a view reads, so none is asked and the track stays the band drawn while data is waiting (no text, no issue in the status line; no estimate drawn). Only TP53’s pages are recorded: zoom into TP53 (7.67–7.69 Mb) to read its variants.',
     build: genomeVcf.clinvarZoomIn,
     registry: genomeVcf.registry,
   },

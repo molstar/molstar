@@ -25,7 +25,7 @@ import {
 // VCF's views (Features/Genome formats/VCF): sites read by the opt-in `vcf` runtime, a row an ALT allele drawn by the
 // ranges layer as built, a mark at its REF extent (a long deletion a bar to its END) coloured by `category`. TP53's
 // variants from NCBI ClinVar (the recorded slice, read by region through its named index), the same file's chr17 at
-// the fit (past the view's tiles: "zoom in", nothing read), a generated file with long deletions over SNVs, and a
+// the fit (past the view's tiles: the band waiting, nothing read), a generated file with long deletions over SNVs, and a
 // misread file and its issues. ClinVar names GRCh38's chr17 `17`: the sequence here is named as the file names it (an
 // assembly would map `17` onto `chr17` by the names rule's `chr` prefix), its length from an inline chrom.sizes (ClinVar
 // writes no `##contig`).
@@ -73,7 +73,7 @@ export function tp53Clinvar(): Node {
   return clinvarView('TP53’s variants from ClinVar', Tp53Region);
 }
 
-/** ClinVar's chr17 at the fit: more tiles than a view reads, so the track says "zoom in" and nothing is read. */
+/** ClinVar's chr17 at the fit: more tiles than a view reads, so the track stays the waiting band and nothing is read. */
 export function clinvarZoomIn(): Node {
   return clinvarView('ClinVar’s chr17 at the fit');
 }

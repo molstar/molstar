@@ -55,7 +55,7 @@
     "licence": [
       "LicenseRef-NCBI-public-data"
     ],
-    "attribution": "NCBI ClinVar, GRCh38 VCF archive of 2024-01-07 (Landrum et al. 2018), its tabix index; NCBI's policy: public-domain data, no restrictions on use or distribution",
+    "attribution": "NCBI ClinVar, GRCh38 VCF archive of 2024-01-07 (Landrum et al. 2018), its tabix index. NCBI's terms page was not fetched when recorded (only the two approved files were downloaded); NCBI's policy as recalled: public data, no NCBI restriction on use or distribution, though submitters may hold rights in what they submitted. To be confirmed by the orchestrator.",
     "trimmed": "none: every page (8 of 65536 bytes), byte for byte, as recorded pages",
     "derived": "none",
     "bytesDownloaded": 520374,
@@ -71,7 +71,7 @@
     "licence": [
       "LicenseRef-NCBI-public-data"
     ],
-    "attribution": "NCBI ClinVar, GRCh38 VCF archive of 2024-01-07 (Landrum et al. 2018); NCBI's policy: public-domain data, no restrictions on use or distribution",
+    "attribution": "NCBI ClinVar, GRCh38 VCF archive of 2024-01-07 (Landrum et al. 2018). NCBI's terms page was not fetched when recorded (only the two approved files were downloaded); NCBI's policy as recalled: public data, no NCBI restriction on use or distribution, though submitters may hold rights in what they submitted. To be confirmed by the orchestrator.",
     "trimmed": "pages 0, 1089, 1090, 1091, 1092, 1093, 1094, 1393 of 1394 (65536 bytes each), byte for byte; a read of another page fails naming it",
     "derived": "none",
     "bytesDownloaded": 91330038,
