@@ -9,15 +9,15 @@
 // one system again on each copy) placed with the placement's `place`, its arc's control the mid offset at the arc's
 // height in its strip's frame through the strip's warp, so one curve is an arc over a track or a block, an arc between
 // two lines, a chord through a ring's hole, with no layout named here. An end not placed leaves a caret at the placed
-// end, never a dangling arc; on one straight strip an end past the window is taken `reach` (a share of the window,
-// 0.25) past its edge, so an arc moves continuously on pan. An arc's height is by its span against the widest drawn
-// (nested arcs nest, the widest fills the band); `side` above or below (a ring's below reaches the hole: chords).
-// Crossing pairs are drawn crossing (`same`), or `split`: the largest nested set on `side`, the rest on the other side
-// (exact to 2,000 pairs, greedy past it). At most `pairs.maxArcs` arcs: past it one a bin of the ends' device columns
-// (widest first), the rest a density strip of ends. A hit is the arc or caret within `pairs.hitPx` of the point: the
-// pair's element, its extent both ends. In a grid (a strip with `ctx.axisY`) the layer is laid out a strip at a time
-// instead: a dot a pair of single positions, a diagonal for a stretch, at (a, b) and with `mirror` at (b, a) too; kinds
-// at one cell side by side.
+// end, never a dangling arc; on one line of straight strips (a track, a row of blocks) an end past the window is taken
+// at most `reach` (a share of the window, 0.25) past the edge it lies beyond, so an arc moves continuously on pan. An
+// arc's height is by its span against the widest within reach (nested arcs nest, the widest fills the band); `side`
+// above or below (a ring's below reaches the hole: chords). Crossing pairs are drawn crossing (`same`), or `split`: the
+// largest nested set on `side`, the rest on the other side (exact to 2,000 pairs, greedy past it). At most
+// `pairs.maxArcs` arcs: past it one a bin of the ends' device columns (widest first), the rest a density strip of ends.
+// A hit is the arc or caret within `pairs.hitPx` of the point: the pair's element, its extent both ends. In a grid (a
+// strip with `ctx.axisY`) the layer is laid out a strip at a time instead: a dot a pair of single positions, a diagonal
+// for a stretch, at (a, b) and with `mirror` at (b, a) too; kinds at one cell side by side.
 
 import { issueOf } from '@molstar/core/repr/tree';
 import type { ChannelName } from '@molstar/seqx-core/theme/index';
@@ -26,7 +26,9 @@ import { grown, NoColor, type PassName, type PassWriter } from './draw-lists.js'
 import { RenderIssues } from './issues.js';
 import { type PairEnds } from './pairs-ends.js';
 import { type Emphasis, type Hit, type LayerType, type LayoutContext, sectionId } from './layer-type.js';
-import { WarpKind } from './layout/strips.js';
+import type { AxisTransform } from './axis.js';
+import { BlockPlacement } from './layout/blocks.js';
+import { type Strips, WarpKind } from './layout/strips.js';
 import {
   Caret,
   clipTo,
@@ -175,6 +177,38 @@ let Spans = new Float64Array(64);
 let StripOf = new Int32Array(128);
 let Raw = new Float64Array(256);
 
+/** `virtualX`'s result (no number returned: a double returned from a call not inlined is boxed). */
+const VX = new Float64Array(1);
+/**
+ * Whether the strips are one line whose arcs take an end past the window (`virtualX`): a track, or a row of blocks
+ * (each strip translated, at one top and `dy`, the pairs' band at one place and height in each, so an arc's feet and
+ * apex are where they would be on any of them: which strip an end is on changes nothing).
+ */
+function lineOf(s: Strips, place: Placement, ax: AxisTransform, band: number): boolean {
+  const blocks = place instanceof BlockPlacement;
+  const nb = s.bands;
+  for (let i = 0; i < s.n; i++) {
+    if (s.warp[i] !== WarpKind.translate || s.top[i] !== s.top[0] || s.dy[i] !== s.dy[0]) return false;
+    if (s.bandY[i * nb + band] !== s.bandY[band] || s.bandH[i * nb + band] !== s.bandH[band]) return false;
+    if (!blocks && s.axes[i] !== ax) return false;
+  }
+  return true;
+}
+
+/**
+ * The page x of an end past the window on one line (section unit `u` outside `[u0, u1]`) into `VX[0]`: past the data
+ * box's edge it lies beyond by its distance in units at the section's px a unit (`scale`: a group's gaps aside), at
+ * most `reach` of the box's width. The end is drawn at that edge as it crosses it (the strip holding the window's edge
+ * unit reaches the box's edge), so a pan moves it continuously. Why not through the frame of the strip it lies on: a
+ * block entering the view is a sliver snapped to the device grid, its transform's px a unit far from the row's (an 11
+ * px jump measured on the Complex's joint), and a block wholly out of view has no strip.
+ */
+function virtualX(ax: AxisTransform, u: number, reach: number) {
+  const m = reach * ax.width;
+  VX[0] =
+    u < ax.u0 ? ax.x0 - Math.min(m, (ax.u0 - u) * ax.scale) : ax.x0 + ax.width + Math.min(m, (u - ax.u1) * ax.scale);
+}
+
 function layoutArcs(lay: PairsLay, prep: PairsPrep, ctx: LayoutContext, place: Placement) {
   const s = place.strips;
   if (!s.n) return;
@@ -183,11 +217,10 @@ function layoutArcs(lay: PairsLay, prep: PairsPrep, ctx: LayoutContext, place: P
   const ends = endsIn(prep, ctx.section, ctx.axis);
   const units = ends.u;
   const nb = s.bands;
-  const one = s.n === 1 && s.warp[0] === WarpKind.translate;
-  const a0 = s.axes[0];
-  const w = a0.u1 - a0.u0;
-  const reachLo = a0.u0 - prep.reach * w;
-  const reachHi = a0.u1 + prep.reach * w;
+  // one line (a track, a row of blocks): an end past the window is taken at most `reach` of the window past the edge
+  // its unit lies beyond (`virtualX`)
+  const ax = ctx.axis;
+  const line = lineOf(s, place, ax, band);
   if (Spans.length < ends.n) {
     Spans = new Float64Array(2 * ends.n);
     StripOf = new Int32Array(4 * ends.n);
@@ -201,8 +234,8 @@ function layoutArcs(lay: PairsLay, prep: PairsPrep, ctx: LayoutContext, place: P
   for (let e = 0; e < ends.n; e++) {
     const k = ends.pair[e];
     if (!prep.shown[k]) continue;
-    let oa = units[2 * e];
-    let ob = units[2 * e + 1];
+    const oa = units[2 * e];
+    const ob = units[2 * e + 1];
     const unnamed = ends.unnamed[e];
     if (unnamed) {
       // an end on split copies the data names no unit of: on no copy (`pairEnds`)
@@ -218,21 +251,33 @@ function layoutArcs(lay: PairsLay, prep: PairsPrep, ctx: LayoutContext, place: P
     let xb = !Number.isNaN(ob) ? frameX(place, ob, PB) : Number.NaN;
     let sa = PA.strip;
     let sb = PB.strip;
-    if (one) {
-      // one straight strip: an end past the window taken `reach` past its edge
-      const outA = !Number.isNaN(oa) && Number.isNaN(xa);
-      const outB = !Number.isNaN(ob) && Number.isNaN(xb);
-      if (outA && outB && oa < a0.u0 === ob < a0.u0) continue;
+    if (line) {
+      // past the window: its unit outside it (an end inside it on no strip, a block too narrow to read, stays a caret)
+      const outA = !Number.isNaN(oa) && Number.isNaN(xa) && (oa < ax.u0 || oa > ax.u1);
+      const outB = !Number.isNaN(ob) && Number.isNaN(xb) && (ob < ax.u0 || ob > ax.u1);
+      if (outA && outB && oa < ax.u0 === ob < ax.u0) {
+        // both past one edge: not drawn, but its span counts in the scale while within reach, so a pair entering the
+        // view brings no snap
+        virtualX(ax, oa, prep.reach);
+        const va = VX[0];
+        virtualX(ax, ob, prep.reach);
+        const span = Math.abs(VX[0] - va);
+        if (span > widest) widest = span;
+        continue;
+      }
+      // the ends on one strip's frame (`lineOf`: the strips' frames differ by `dx` alone, their bands alike), the arc
+      // symmetric between them
+      const home = !outA && !Number.isNaN(xa) ? sa : !outB && !Number.isNaN(xb) ? sb : 0;
       if (outA) {
-        oa = Math.max(reachLo, Math.min(reachHi, oa));
-        xa = a0.xOfUnit(oa);
-        sa = 0;
-      }
+        virtualX(ax, oa, prep.reach);
+        xa = VX[0] - s.dx[home];
+      } else if (!Number.isNaN(xa)) xa += s.dx[sa] - s.dx[home];
       if (outB) {
-        ob = Math.max(reachLo, Math.min(reachHi, ob));
-        xb = a0.xOfUnit(ob);
-        sb = 0;
-      }
+        virtualX(ax, ob, prep.reach);
+        xb = VX[0] - s.dx[home];
+      } else if (!Number.isNaN(xb)) xb += s.dx[sb] - s.dx[home];
+      if (!Number.isNaN(xa)) sa = home;
+      if (!Number.isNaN(xb)) sb = home;
     }
     if (Number.isNaN(xa) && Number.isNaN(xb)) continue;
     // an end not placed (a chain not shown, another line without `across_lines`): a caret at the placed one
