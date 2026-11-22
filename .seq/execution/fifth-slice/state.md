@@ -2,6 +2,8 @@
 
 ## Decided
 
+- The default viewer raised to 1,495 kB by the orchestrator (the soft-size rule): VL at 1,481.3 after a trim pass found
+  nothing to cut; SX's section scroll next (+~5.6 before its trim).
 - Size bounds are soft (the author, 2026-11-22): trim and lazy-load first, then the orchestrator raises them without
   asking; performance and allocations are the gates (loop.md, merge).
 - The bridge chunk's row raised to 28 kB (the author, 2026-11-22: "Raise to 28"), LA2 at 25.2.
