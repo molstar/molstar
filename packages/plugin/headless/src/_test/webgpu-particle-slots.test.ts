@@ -158,6 +158,16 @@ describe.skipIf(!WebGPU.module)('a slot view of particle tiles on WebGPU', () =>
         return image;
       };
 
+      /**
+       * the values of `a` more than 2 off `b`'s: the store's draw and the flat one alike but for rounding (a software
+       * Vulkan's blending one off here and there)
+       */
+      const differing = (a: number[], b: number[]) => {
+        if (a.length !== b.length) return Math.max(a.length, b.length);
+        let n = 0;
+        for (let i = 0; i < a.length; ++i) if (Math.abs(a[i] - b[i]) > 2) n += 1;
+        return n;
+      };
       const allFlat = await flatImage('0-7');
       const someFlat = await flatImage('0, 2, 5');
       expect(new Set(allFlat).size).toBeGreaterThan(3);
@@ -169,7 +179,7 @@ describe.skipIf(!WebGPU.module)('a slot view of particle tiles on WebGPU', () =>
       expect(r.renderObjects).toHaveLength(1);
       const object = r.renderObjects[0] as MergedGraphicsRenderObject;
       expect(object.merged.source).toBeDefined();
-      expect(allSlots).toEqual(allFlat);
+      expect(differing(allSlots, allFlat)).toBe(0);
 
       const setIds = async (ids: string) => {
         await plugin
@@ -183,7 +193,7 @@ describe.skipIf(!WebGPU.module)('a slot view of particle tiles on WebGPU', () =>
       expect(await setIds('0, 2, 5')).toEqual(someFlat);
       expect(r.renderObjects[0]).toBe(object);
       // added again: in the gaps' place or after them
-      expect(await setIds('0-7')).toEqual(allFlat);
+      expect(differing(await setIds('0-7'), allFlat)).toBe(0);
       expect(r.renderObjects[0]).toBe(object);
 
       // a pick: an instance's particle its slot
@@ -213,7 +223,7 @@ describe.skipIf(!WebGPU.module)('a slot view of particle tiles on WebGPU', () =>
       expect((object.values as any).markerAverage.ref.value).toBeGreaterThan(0);
       await recolor({ name: 'particle-index', params: {} });
       expect(r.mark(loci, MarkerAction.RemoveHighlight)).toBe(true);
-      expect(await image()).toEqual(allFlat);
+      expect(differing(await image(), allFlat)).toBe(0);
 
       // a layer by slot: the store's texels (its define on), the object kept; none again, as before
       // as the plugin applies a state: the canvas told
@@ -235,7 +245,7 @@ describe.skipIf(!WebGPU.module)('a slot view of particle tiles on WebGPU', () =>
       expect(r.renderObjects[0]).toBe(object);
       overpaint([]);
       expect((object.values as any).dOverpaint.ref.value).toBe(false);
-      expect(await image()).toEqual(allFlat);
+      expect(differing(await image(), allFlat)).toBe(0);
 
       // picks through the canvas, its frames multi-sampled over time: the canvas' frame the culled one. The first an
       // async one drawn incomplete (a draw skipped, as while a program compiles), then again as work settles: of the
