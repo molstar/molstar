@@ -15,7 +15,7 @@ import {
   type SourceEntry,
 } from '../../data/protocol.js';
 import { checkAnswer } from '../../data/tables.js';
-import { GffRuntime } from '../gff.js';
+import { GffRuntime, gffRuntime } from '../gff.js';
 import { densityOf } from '../internal/levels.js';
 import { memoryAssets, plainRows } from './bed-fixtures.js';
 import { generateGff3, generateGtf, indexedGff } from './gff-fixtures.js';
@@ -170,10 +170,50 @@ describe('GFF3 and GTF by region', () => {
         gene: 'g1',
       },
     ]);
-    // the hull read: the tile read the transcript's lines (its CDS hull) though none of them is in it
+    // the flanks read: the tile read the transcript's lines (its CDS hull) though none of them is in it, and its read
+    // cost, once the read found them, is the tile's and the flanks' (never the hull again)
     const ix = await readTabixIndex(b.index);
     expect(s.readCost!({ system: 'chr1', start: 20_480, end: 21_504, level: 1, shapes: ['ranges'] })).toBe(
-      regionBytes(ix, 'chr1', 20_480, 21_504),
+      regionBytes(ix, 'chr1', 20_480, 21_504) +
+        regionBytes(ix, 'chr1', 1000, 20_480) +
+        regionBytes(ix, 'chr1', 21_504, 40_000),
     );
+  });
+
+  it('a tile in a long gene whose flanks pass `maxRegionBytes`: never too large, the transcript’s span row from its own line (EC-229)', async () => {
+    // a gene of 400 kb, its exons at its ends, and 4,000 small features between them in their own blocks
+    const head = [
+      '##gff-version 3',
+      '##sequence-region chr1 1 500000',
+      'chr1\tt\tgene\t1001\t400000\t.\t+\t.\tID=g1;Name=G1',
+      'chr1\tt\tmRNA\t1001\t400000\t.\t+\t.\tID=t1;Parent=g1;Name=T1',
+      'chr1\tt\texon\t1001\t1200\t.\t+\t.\tParent=t1',
+      'chr1\tt\tCDS\t1101\t1200\t.\t+\t0\tParent=t1',
+    ];
+    const between = Array.from({ length: 4000 }, (_, k) => {
+      const at = 2000 + k * 99;
+      return `chr1\tt\tbiological_region\t${at}\t${at + 10}\t.\t+\t.\tID=r${k};note=${'x'.repeat(40)}`;
+    }).filter((_, k) => 2000 + k * 99 < 200_000 || 2000 + k * 99 > 202_000);
+    const tail = [
+      'chr1\tt\texon\t399001\t400000\t.\t+\t.\tParent=t1',
+      'chr1\tt\tCDS\t399001\t399500\t.\t+\t2\tParent=t1',
+    ];
+    const b = indexedGff(`${[...head, ...between, ...tail].join('\n')}\n`, ['chr1'], 2000);
+    const ix = await readTabixIndex(b.index);
+    const t = { system: 'chr1', start: 200_704, end: 201_728, level: 1, shapes: ['ranges' as const] };
+    const tile = regionBytes(ix, 'chr1', t.start, t.end);
+    const flanks = regionBytes(ix, 'chr1', 1000, t.start) + regionBytes(ix, 'chr1', t.end, 400_000);
+    expect(flanks).toBeGreaterThan(tile);
+    // a bound between the tile's cost and the tile's with its flanks
+    const s = await gffRuntime({ tabix: { maxRegionBytes: tile + Math.floor(flanks / 2) } }).open(
+      entry('gff3', { index: 'i' }),
+      context({ f: b.file, i: b.index }),
+    );
+    const a = await s.read(t, signal);
+    expect(a.ok).toBe(true);
+    const rows = rowsOf(a);
+    expect(rows).toMatchObject([{ id: 't1', start: t.start, end: t.start, itemStart: 1000, itemEnd: 400_000 }]);
+    // its read cost the tile's alone: the flanks are not read
+    expect(s.readCost!(t)).toBe(tile);
   });
 });

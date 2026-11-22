@@ -13,7 +13,7 @@ import {
   type RegionAnswer,
   type SourceEntry,
 } from '../data/protocol.js';
-import { assembleTranscripts, transcriptTest } from './gff-assemble.js';
+import { assembleTranscripts, type GffItem, PieceTypes, transcriptTest } from './gff-assemble.js';
 import { GffCauses } from './gff-issues.js';
 import { type GffFormat, type GffRow, parseGff } from './gff-parse.js';
 import {
@@ -30,6 +30,7 @@ import type { GffOptions } from './gff.js';
 import { failure, refuse } from './internal/answers.js';
 import { BgzfIssues } from './internal/issues.js';
 import { densityOf } from './internal/levels.js';
+import { eachMeeting, intervalIndex } from './internal/intervals.js';
 import { indexedLevels, openIndexedLines, type TabixLines } from './internal/lines.js';
 import { decodeText } from './internal/text.js';
 
@@ -37,8 +38,8 @@ import { decodeText } from './internal/text.js';
 // assembled alone, by type (`assembleTranscripts`), so a tile sees what the whole file does: a transcript's line spans
 // its children, so every tile meeting a transcript holds it (and its gene's); a tile inside an intron gives the
 // transcript's span row (EC-229). What an item is besides its pieces (its CDS hull, its first CDS's phase, a gene's
-// merged transcripts) needs all its children, so a tile is assembled from the hull of the lines meeting it (one more
-// read when they reach past it). Levels from the index's bytes, a density above level 1. Loaded when the first indexed
+// merged transcripts) needs all its children, so a tile is assembled with the lines of the flanks its items reach past
+// it (read when the index says they fit with it, and counted in its read cost once a read has found them). Levels from the index's bytes, a density above level 1. Loaded when the first indexed
 // source opens, so a host reading GFF files whole never loads io's tabix.
 
 /** An open in progress (`gff.ts`'s). */
@@ -56,6 +57,53 @@ function textOf(l: TabixLines): string {
   const parts: string[] = [];
   for (let i = 0; i < l.lineStart.length; i++) parts.push(decodeText(l.bytes, l.lineStart[i], l.lineEnd[i]).text);
   return parts.join('\n');
+}
+
+/** A flank's lines that do not meet `[start, end)` (those that do were read with the tile), by io's extents. */
+function outside(l: TabixLines, start: number, end: number): TabixLines {
+  const keep: number[] = [];
+  for (let i = 0; i < l.lineStart.length; i++)
+    if (!(l.begin[i] < end && Math.max(l.end[i], l.begin[i] + 1) > start)) keep.push(i);
+  if (keep.length === l.lineStart.length) return l;
+  return {
+    bytes: l.bytes,
+    lineStart: Uint32Array.from(keep, (i) => l.lineStart[i]),
+    lineEnd: Uint32Array.from(keep, (i) => l.lineEnd[i]),
+    begin: Int32Array.from(keep, (i) => l.begin[i]),
+    end: Int32Array.from(keep, (i) => l.end[i]),
+  };
+}
+
+const isPiece = new Set(PieceTypes);
+
+/** The piece lines read, found by a region (`intervalIndex`): what an item cut short keeps. */
+function pieceLines(rows: readonly GffRow[]) {
+  const s: number[] = [];
+  const e: number[] = [];
+  for (const r of rows)
+    if (isPiece.has(r.type)) {
+      s.push(r.start);
+      e.push(r.end);
+    }
+  const starts = Int32Array.from(s);
+  const ends = Int32Array.from(e);
+  const index = intervalIndex(starts, ends);
+  return (a: number, b: number) => {
+    let met = false;
+    eachMeeting(index, starts, ends, a, b, () => {
+      met = true;
+    });
+    return met;
+  };
+}
+
+/** An item reaching past `[start, end)` with its pieces cut to those meeting a piece line read (none: a span row). */
+function piecesRead(it: GffItem, read: (a: number, b: number) => boolean, start: number, end: number): GffItem {
+  if (it.role === 'feature' || (it.start >= start && it.end <= end)) return it;
+  const kept: number[] = [];
+  for (let k = 0; k + 1 < it.pieces.length; k += 2)
+    if (read(it.pieces[k], it.pieces[k + 1])) kept.push(it.pieces[k], it.pieces[k + 1]);
+  return kept.length === it.pieces.length ? it : { ...it, pieces: kept };
 }
 
 export async function openIndexed(o: GffOpened, uri: string, indexUri: string): Promise<OpenedSource> {
@@ -97,22 +145,38 @@ export async function openIndexed(o: GffOpened, uri: string, indexUri: string): 
     };
     const served = new Set(names);
     const maxRows = ctx.limits.maxRows;
-    const quietRows = (l: TabixLines, quiet: GffCauses): GffRow[] | string => {
-      const file = parseGff(textOf(l), format, isTranscript, quiet, maxRows);
+    const quietRows = (l: readonly TabixLines[], quiet: GffCauses): GffRow[] | string => {
+      const file = parseGff(l.map(textOf).join('\n'), format, isTranscript, quiet, maxRows);
       if (typeof file === 'string') return file;
       // a whole-sequence feature describes its sequence, never an item (the whole read's rule, its lengths a copy)
       const known = new Map(lengths);
       return file.rows.filter((r) => !describes(r, known));
     };
+    /**
+     * The flanks a tile's items reach past it (`[lo, start)`, `[end, hi)`), learned by its last read (a tile's hull is
+     * known only once its lines are read): its read cost adds theirs. 512 tiles remembered, the oldest let go.
+     */
+    const flanks = new Map<string, readonly [number, number]>();
+    const remember = (key: string, lo: number, hi: number) => {
+      flanks.delete(key);
+      flanks.set(key, [lo, hi]);
+      if (flanks.size > 512) flanks.delete(flanks.keys().next().value!);
+    };
+    const flankCost = (system: string, start: number, end: number, lo: number, hi: number) =>
+      (lo < start ? lines.cost(system, lo, start) : 0) + (hi > end ? lines.cost(system, end, hi) : 0);
     return {
       coverage,
       issues,
-      readCost: (r) =>
-        served.has(r.system) && levels.includes(r.level)
-          ? r.shapes.includes('ranges') && indexed.has(r.system) && r.end > r.start
-            ? lines.cost(r.system, r.start, r.end)
-            : 0
-          : undefined,
+      // the tile's chunks, and those of the flanks its items reach (once a read has found them), from the index
+      readCost: (r) => {
+        if (!served.has(r.system) || !levels.includes(r.level)) return undefined;
+        if (!r.shapes.includes('ranges') || !indexed.has(r.system) || r.end <= r.start) return 0;
+        const tile = lines.cost(r.system, r.start, r.end);
+        const f = flanks.get(`${r.system}|${r.start}|${r.end}`);
+        if (!f) return tile;
+        const more = flankCost(r.system, r.start, r.end, f[0], f[1]);
+        return tile + more <= lines.maxRegionBytes ? tile + more : tile;
+      },
       async read(request, signal): Promise<RegionAnswer> {
         if (signal.aborted) throw abortError();
         const { system, start, end } = request;
@@ -125,31 +189,52 @@ export async function openIndexed(o: GffOpened, uri: string, indexUri: string): 
           return { ok: true, tables: { ranges: coarse ? densityOf(empty, request) : empty } };
         }
         const place = `${uri}, ${system}:${start + 1}-${end}`;
-        let got = await lines.region(system, start, end, signal);
+        const got = await lines.region(system, start, end, signal);
         if (!got.ok) return failure(got.kind, `${place}: ${got.message}`);
         // the hull of the lines meeting the tile (but those describing a sequence): their children are inside it
         let lo = start;
         let hi = end;
         const quiet = new GffCauses();
-        let rows = quietRows(got.lines, quiet);
+        let rows = quietRows([got.lines], quiet);
         if (typeof rows === 'string') return failure('too-large', `${place}: ${rows}`);
         for (const r of rows) {
           if (r.seqid !== system) continue;
           if (r.start < lo) lo = r.start;
           if (r.end > hi) hi = r.end;
         }
+        // only the flanks are read, when the index says they fit with the tile (`maxRegionBytes`); past it the tile's
+        // own lines are assembled (a transcript's line gives its span row, EC-229; its CDS hull, phase and a gene's
+        // merged pieces are then the tile's only), so a listed level is never too large
+        let partial = false;
         if (lo < start || hi > end) {
-          got = await lines.region(system, lo, hi, signal);
-          if (!got.ok) return failure(got.kind, `${place} (its items to ${lo + 1}-${hi}): ${got.message}`);
-          rows = quietRows(got.lines, quiet);
-          if (typeof rows === 'string') return failure('too-large', `${place}: ${rows}`);
+          partial = true;
+          remember(`${system}|${start}|${end}`, lo, hi);
+          if (lines.cost(system, start, end) + flankCost(system, start, end, lo, hi) <= lines.maxRegionBytes) {
+            const parts = [got.lines];
+            for (const [a, b] of [
+              [lo, start],
+              [end, hi],
+            ] as const) {
+              if (a >= b) continue;
+              const f = await lines.region(system, a, b, signal);
+              if (!f.ok) return failure(f.kind, `${place} (its items to ${a + 1}-${b}): ${f.message}`);
+              parts.push(outside(f.lines, start, end));
+            }
+            rows = quietRows(parts, quiet);
+            if (typeof rows === 'string') return failure('too-large', `${place}: ${rows}`);
+            partial = false;
+          }
         }
         if (rows.length > maxRows) return failure('too-large', `${place}: ${rows.length} lines`);
         const assembly = assembleTranscripts(
           rows.filter((r) => r.seqid === system),
           { transcriptTypes: options.transcriptTypes },
         );
-        const items = itemsOf(features, assembly, rows);
+        const all = itemsOf(features, assembly, rows);
+        // the flanks not read: an item reaching past the tile keeps only the pieces its read lines give (a transcript of
+        // none its span row, never its whole extent as one piece)
+        const read = partial ? pieceLines(rows) : undefined;
+        const items = read ? all.map((it) => piecesRead(it, read, start, end)) : all;
         const fields = itemFields(features, items, quiet);
         const sys = systemItems(items);
         const triples = rowsIn(sys, start, end);
