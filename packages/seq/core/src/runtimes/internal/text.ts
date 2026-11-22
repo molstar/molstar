@@ -8,11 +8,11 @@ import { SyncRuntimeContext } from '@molstar/core/task/execution/synchronous';
 import { inflateStream } from '@molstar/core/util/zip/inflate';
 import { checkCompressionStreamSupport } from '@molstar/core/util/zip/util';
 import { gzipDeclaredSize, isGzip, ungzip } from '@molstar/core/util/zip/zip';
-import { BgzfError, inflateBgzf, isBgzf } from '@molstar/io/common/bgzf';
+import type { BgzfError } from '@molstar/io/common/bgzf';
 
 // Bytes to text for the genome runtimes (_spec/README.md "Data", Genome runtimes' internals): a file is plain, gzip or
 // BGZF, told by its magic, never its extension; bounded by `maxBytes` before and after inflating. Shared by the BED,
-// GFF and VCF runtimes, not published (`./runtimes/internal/*`).
+// GFF and VCF runtimes, not published (`./runtimes/internal/*`). io's BGZF reader is loaded on a gzip file's magic.
 
 export type Compression = 'none' | 'gzip' | 'bgzf';
 
@@ -28,11 +28,17 @@ export type TextBytes =
  */
 export async function textBytes(bytes: Uint8Array, maxBytes: number, signal?: AbortSignal): Promise<TextBytes> {
   if (bytes.length > maxBytes) return tooLarge(`The file is ${bytes.length} bytes, over the bound of ${maxBytes}`);
-  if (isBgzf(bytes)) {
+  // io's BGZF reader loaded only for a gzip file (BGZF is one): a plain file's read never loads it
+  const bgzf = isGzip(bytes) ? await import('@molstar/io/common/bgzf') : undefined;
+  if (bgzf?.isBgzf(bytes)) {
     try {
-      return { ok: true, bytes: await inflateBgzf(bytes, { maxInflatedBytes: maxBytes }, signal), compression: 'bgzf' };
+      return {
+        ok: true,
+        bytes: await bgzf.inflateBgzf(bytes, { maxInflatedBytes: maxBytes }, signal),
+        compression: 'bgzf',
+      };
     } catch (e) {
-      if (e instanceof BgzfError || (e as Error)?.name === 'BgzfError') {
+      if ((e as Error)?.name === 'BgzfError') {
         const b = e as BgzfError;
         return b.kind === 'too-large' ? tooLarge(b.message) : malformed(b.message);
       }

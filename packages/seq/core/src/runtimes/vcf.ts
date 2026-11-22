@@ -6,15 +6,17 @@
 
 import { abortError, type FormatRuntime, type OpenContext, type SourceEntry } from '../data/protocol.js';
 import { wholeLevel } from '../data/seq-format.js';
-import { IndexHint, refuse, wholeSource } from './internal/answers.js';
+import { failure, IndexHint, refuse } from './internal/answers.js';
 import { textBytes } from './internal/text.js';
 import { wholeLines } from './internal/whole-lines.js';
 import { readVcfHeader } from './vcf-header.js';
 import { VcfCauses } from './vcf-issues.js';
-import { parseLine, type VcfRows, VcfRowsBuilder, vcfAnswer } from './vcf-parse.js';
+import { vcfAnswer } from './vcf-answer.js';
+import { parseLine, type VcfRows, VcfRowsBuilder } from './vcf-parse.js';
 import {
   coverageOf,
   DefaultVcfOptions,
+  genotypesOf,
   headerSchema,
   refusedIssues,
   type VcfOpened,
@@ -25,9 +27,10 @@ import {
 // VCF sites (_spec/README.md "Data", VCF), the opt-in runtime `@molstar/seqx-core/runtimes/vcf`: a row an ALT allele
 // (EC-196), every allele of a line with the line's extent by the index's rule, the anchor base kept; the fixed fields
 // and the header's INFO keys typed by it. Read whole (plain, gzip or BGZF by its magic, within `limits`), or by region
-// at level 1 through a tabix `index` (`vcf-indexed.ts`, loaded then; EC-186), by one line parser either way. Positions
+// at the levels its index's bytes allow through a tabix `index` (`vcf-indexed.ts`, loaded then; EC-186), by one line
+// parser either way. Positions
 // as the format writes them (base 1, converted at the edge): the source's `base` and `ends` are not read (EC-195).
-// Genotypes are not read yet: `samples` is said and kept.
+// Genotypes are read only for a `matrix` request, for the samples held (`vcf-genotypes.ts`).
 
 export type { VcfContig, VcfDeclaration, VcfHeader, VcfHeaderLimits, VcfHeaderResult, VcfType } from './vcf-header.js';
 export { DefaultVcfHeaderLimits, readVcfHeader } from './vcf-header.js';
@@ -36,6 +39,9 @@ export { MissingInt, VcfCategories } from './vcf-parse.js';
 export { DefaultVcfOptions, type VcfOptions, type VcfSource } from './vcf-read.js';
 
 export const VcfFormats = ['vcf'] as const;
+
+/** What a whole read keeps of the file when it holds no samples: nothing (the rows have their fields). */
+const NoBytes = new Uint8Array(0);
 
 /** The bytes a whole read parses: inline `value` or the file at `uri`, inflated by its magic within `maxBytes`. */
 async function wholeBytes(o: VcfOpened): Promise<Uint8Array> {
@@ -70,6 +76,8 @@ async function openWhole(o: VcfOpened): Promise<VcfSource> {
   const read = readVcfHeader(bytes.subarray(0, headerEnd), options);
   if (!read.ok) refuse(at, 'seq.source.malformed', read.message);
   const { schema, lengths, refused } = headerSchema(o, read.header);
+  // the samples held, before the rows: the file's bytes are kept for the matrix only when there are some
+  const genotypes = genotypesOf(o, read.header);
   const refusedSet = new Set(refused);
 
   const builders = new Map<string, VcfRowsBuilder>();
@@ -90,20 +98,31 @@ async function openWhole(o: VcfOpened): Promise<VcfSource> {
     made += got;
   }
   const rows = new Map<string, VcfRows>();
-  for (const [name, b] of builders) rows.set(name, b.finish());
+  const kept = genotypes ? bytes : NoBytes;
+  for (const [name, b] of builders) rows.set(name, b.finish(kept));
   const names = [...lengths.keys()];
   for (const name of rows.keys()) if (!lengths.has(name)) names.push(name);
   let extent = 1;
   for (const name of names) extent = Math.max(extent, lengths.get(name) ?? 0, rows.get(name)?.maxEnd ?? 0);
   // read whole, sites are served at level 1 and at the level whose one tile holds the longest system (the inline rule)
   const whole = wholeLevel(extent);
-  const coverage = coverageOf(names, lengths, schema, whole > 1 ? [1, whole] : [1]);
   const header = read.header;
+  const coverage = coverageOf(names, lengths, schema, whole > 1 ? [1, whole] : [1], genotypes);
+  const answer = { maxRows, genotypes, matrix: { maxBytes: options.maxMatrixBytes }, density: false };
+  const served = new Set(names);
   return {
-    ...wholeSource(coverage, [...causes.issues(at), ...refusedIssues(at, refused)], (r) =>
-      vcfAnswer(rows.get(r.system), schema, r, maxRows),
-    ),
+    coverage,
+    issues: [...causes.issues(at), ...refusedIssues(at, refused)],
     header,
+    async read(r, signal) {
+      if (signal.aborted) throw abortError();
+      if (!served.has(r.system)) return failure('not-served', `No sequence ${r.system}`);
+      if (!coverage.levels.includes(r.level)) return failure('not-served', `No level ${r.level}`);
+      const a = await vcfAnswer(rows.get(r.system), schema, r, answer);
+      if (signal.aborted) throw abortError();
+      return a;
+    },
+    dispose() {},
   };
 }
 
@@ -112,9 +131,6 @@ async function open(source: SourceEntry, ctx: OpenContext, options: VcfOptions):
   const causes = new VcfCauses();
   if (source.base !== undefined || source.ends !== undefined)
     causes.add('seq.source.vcf.transform', 'VCF fixes base 1 and the index’s extents');
-  const samples = (source as { readonly samples?: readonly string[] }).samples;
-  if (samples !== undefined)
-    causes.add('seq.source.vcf.samples', `${samples.length} samples named: genotypes are not read yet`);
   const o: VcfOpened = { source, ctx, options, causes };
   if (source.index !== undefined && source.uri !== undefined)
     return (await import('./vcf-indexed.js')).openIndexed(o, source.uri, source.index);

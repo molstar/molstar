@@ -31,6 +31,15 @@ export const Tp53ClinVar: StoryObj = story('vcf-clinvar');
 export const LongDeletion: StoryObj = story('vcf-long-deletion');
 
 /**
+ * Genotypes of 40 generated samples (read whole) by the `vcf` runtime’s matrix: a row a sample in the header’s order, a
+ * column an ALT allele at its extent coloured by its genotype class (no copy, some, every copy, partly called; uncalled
+ * in the missing colour); the last eight samples haploid; one long deletion one item across the SNVs it covers, solid
+ * in its carriers’ rows (EC-220, EC-222). The sites are drawn above from the same rows; genotypes are read for the
+ * matrix alone.
+ */
+export const Genotypes: StoryObj = story('vcf-genotypes');
+
+/**
  * ClinVar’s chr17 at the fit: more level-1 tiles than a view reads, so none is asked: the track stays the band drawn
  * while data is waiting (no text, no issue in the status line) and nothing is read (no estimate drawn). Only TP53’s pages are recorded: zoom into 7.67–7.69 Mb to read them.
  */

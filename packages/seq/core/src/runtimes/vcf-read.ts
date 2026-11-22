@@ -7,7 +7,8 @@
 import { type Issue, issueOf } from '@molstar/core/repr/tree';
 import type { TabixLimits } from '@molstar/io/common/tabix';
 import { SourceIssues } from '../data/issues.js';
-import type { Coverage, OpenContext, OpenedSource, SourceEntry, SystemInfo } from '../data/protocol.js';
+import type { Coverage, OpenContext, OpenedSource, ShapeInfo, SourceEntry, SystemInfo } from '../data/protocol.js';
+import { type GenotypeSchema, genotypeSchema } from './vcf-samples.js';
 import type { VcfHeader } from './vcf-header.js';
 import type { VcfCauses } from './vcf-issues.js';
 import { fieldInfos, MaxPosition, type VcfSchema, vcfSchema } from './vcf-parse.js';
@@ -27,6 +28,12 @@ export interface VcfOptions {
   readonly maxSamples: number;
   /** ALT alleles a record (256): past it the record is left out. */
   readonly maxAlleles: number;
+  /** The coarsest level listed by region (4,096: 4 Mb tiles); a level is listed when each of its tiles fits. */
+  readonly maxLevel: number;
+  /** Bins a tile (the store's `tileBins`, 1,024): a level's tiles are `level × tileBins` positions. */
+  readonly tileBins: number;
+  /** A matrix answer's bytes, counted before it is allocated (region-reads' `maxTileBytes`, 16 MiB). */
+  readonly maxMatrixBytes: number;
   /** io's other tabix bounds of a read by region (`DefaultTabixLimits` for those not given). */
   readonly tabix?: Partial<TabixLimits>;
 }
@@ -37,6 +44,9 @@ export const DefaultVcfOptions: VcfOptions = {
   maxInfoFields: 256,
   maxSamples: 100_000,
   maxAlleles: 256,
+  maxLevel: 4096,
+  tileBins: 1024,
+  maxMatrixBytes: 16 * 1024 * 1024,
 };
 
 /** An opened VCF: a source, and its header (what a host shows of the file: its keys, contigs and samples). */
@@ -84,17 +94,33 @@ export function refusedIssues(address: string, refused: readonly string[]): Issu
   return [issueOf(SourceIssues, 'seq.source.too_large', message, { address })];
 }
 
-/** A coverage of `names` (their lengths when known), each serving `ranges` with the schema's fields. */
+/**
+ * A coverage of `names` (their lengths when known), each serving `ranges` with the schema's fields, and a `matrix` of
+ * the samples held (its states) when there are any.
+ */
 export function coverageOf(
   names: readonly string[],
   lengths: ReadonlyMap<string, number | undefined>,
   schema: VcfSchema,
   levels: readonly number[],
+  genotypes?: GenotypeSchema,
 ): Coverage {
   const fields = fieldInfos(schema);
   const systems: SystemInfo[] = names.map((name) => {
     const length = lengths.get(name);
     return length !== undefined ? { name, length } : { name };
   });
-  return { systems, shapes: names.map((system) => ({ system, shape: 'ranges' as const, fields })), levels };
+  const shapes: ShapeInfo[] = [];
+  for (const system of names) {
+    shapes.push({ system, shape: 'ranges', fields });
+    if (genotypes) shapes.push({ system, shape: 'matrix', states: genotypes.states, fields: genotypes.fields });
+  }
+  return { systems, shapes, levels };
+}
+
+/** The samples a source holds (none: no matrix), said at open: names the file lacks. */
+export function genotypesOf(o: VcfOpened, header: VcfHeader): GenotypeSchema | undefined {
+  const samples = (o.source as { readonly samples?: readonly string[] }).samples;
+  const g = genotypeSchema(header, samples, o.causes);
+  return g.states.length ? g : undefined;
 }

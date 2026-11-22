@@ -45,7 +45,7 @@ export const GffIssues = defineIssues('seq.source.gff', {
   },
   'seq.source.gff.index': {
     severity: 'info',
-    description: 'GFF3 and GTF are read whole here: `index` not read',
+    description: 'An `index` without a `uri` (inline text): read whole, the `index` not read',
   },
   'seq.source.gff.extent': {
     severity: 'info',

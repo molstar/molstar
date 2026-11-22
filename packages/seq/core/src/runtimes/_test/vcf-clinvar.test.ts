@@ -11,6 +11,10 @@ import type { AssetRangeReader } from '@molstar/core/util/assets';
 import { describe, expect, it } from 'vitest';
 import { sourceSuite } from '../../data/_test/source-suite.js';
 import { type AssetReader, DefaultOpenLimits, type OpenContext } from '../../data/protocol.js';
+import { readTabixIndex, regionBytes } from '@molstar/io/common/tabix';
+import { FakeClock } from '../../data/_test/synthetic.js';
+import { indexedExtent } from '../internal/levels.js';
+import { DataStore, DefaultStoreSettings, type Want } from '../../data/store.js';
 import { VcfRuntime, type VcfSource } from '../vcf.js';
 
 // The recorded real slice (_spec/README.md "Data", VCF): NCBI ClinVar's GRCh38 `clinvar_20240107.vcf.gz` (BGZF, its
@@ -63,6 +67,8 @@ function wholeBytes(r: Recording): Uint8Array {
 
 const file = recording(File);
 const index = wholeBytes(recording(`${File}.tbi`));
+/** The range reads made of the file (each a list of ranges), counted. */
+let rangeReads = 0;
 const assets: AssetReader = {
   readText: async () => {
     throw new Error('not read as text');
@@ -71,7 +77,10 @@ const assets: AssetReader = {
     if (uri === 'clinvar.tbi') return index;
     throw new Error(`${uri} is not read whole`);
   },
-  openRange: async () => recordedRanges(file),
+  openRange: async () => {
+    const r = recordedRanges(file);
+    return { ...r, read: (ranges, s) => (rangeReads++, r.read(ranges, s)) };
+  },
 };
 const context: OpenContext = { assets, signal, limits: DefaultOpenLimits };
 const entry = { address: '/data/clinvar', format: 'vcf', uri: 'clinvar.vcf.gz', index: 'clinvar.tbi' };
@@ -87,7 +96,8 @@ describe('the recorded ClinVar slice (TP53, by region)', () => {
   it('its header: no contig lines (the names the index’s: `17`, read onto chr17 by the names rule), ClinVar’s INFO keys typed', async () => {
     const s = await VcfRuntime.open(entry, context);
     expect(s.issues).toEqual([]);
-    expect(s.coverage.levels).toEqual([1]);
+    // ClinVar is sparse (about 30 bytes a kb): every candidate level's tiles fit io's `maxRegionBytes`
+    expect(s.coverage.levels).toEqual([1, 16, 256, 4096]);
     expect(s.coverage.systems.map((x) => x.name)).toContain('17');
     expect(s.coverage.systems.every((x) => x.length === undefined)).toBe(true);
     const fields = Object.fromEntries((s.coverage.shapes[0].fields ?? []).map((f) => [f.name, f.type]));
@@ -124,6 +134,38 @@ describe('the recorded ClinVar slice (TP53, by region)', () => {
       expect(r.start[i] < Tp53.end && r.end[i] > Tp53.start).toBe(true);
       if (i) expect(r.start[i]).toBeGreaterThanOrEqual(r.start[i - 1]);
     }
+    s.dispose();
+  });
+
+  it('at the fit, a view’s read cost is past `maxBytesPerLayer`: the layer is refused ("zoom in"), no data read (EC-171)', async () => {
+    const s = await VcfRuntime.open(entry, context);
+    const clock = new FakeClock();
+    const store = new DataStore({ clock });
+    store.attach('/data/clinvar', s);
+    // the whole genome at ClinVar's coarsest level: a want a chromosome to its indexed extent, one layer
+    const level = s.coverage.levels[s.coverage.levels.length - 1];
+    const ix = await readTabixIndex(index);
+    const cost = (n: string, a: number, b: number) => regionBytes(ix, n, a, b);
+    const wants: Want[] = s.coverage.systems.map((x) => ({
+      source: '/data/clinvar',
+      system: x.name,
+      start: 0,
+      end: Math.max(1, indexedExtent(cost, x.name, level * 1024, 2 ** 29)),
+      level,
+      layer: 'clinvar',
+    }));
+    expect(store.layerLoad(wants).tiles).toBeLessThanOrEqual(DefaultStoreSettings.maxTilesPerLayer);
+    const load = store.layerLoad(wants);
+    expect(load.fits).toBe(false);
+    expect(load.cost).toBeGreaterThan(DefaultStoreSettings.maxBytesPerLayer);
+    const before = rangeReads;
+    store.want(wants);
+    await clock.advance(100);
+    expect(store.layerRefused('clinvar')).toBe('cost');
+    expect(rangeReads).toBe(before);
+    // TP53's tile at level 1 fits: read
+    const tp53: Want = { source: '/data/clinvar', ...Tp53, level: 1, layer: 'tp53' };
+    expect(store.layerLoad([tp53]).fits).toBe(true);
     s.dispose();
   });
 });

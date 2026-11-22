@@ -24,8 +24,9 @@ export const ZoomedIn: StoryObj = { render: () => exampleStory(view('pairs-zoome
 
 /**
  * 12,000 generated links on a 2 Mb chromosome, twice: held in the spec (the first track) and read from a BEDPE file’s
- * text (the second, by a host adapter serving the file’s pairs by region). Past the 4,096 arcs a view draws, the BEDPE
- * track reads bin pairs and strokes each arc by its count (the pairs level, made by the store’s summaries); the held
+ * text (the second, by the `bed` runtime: read whole, indexed by both ends, served by region). Past the 4,096 arcs a
+ * view draws, the BEDPE track reads bin pairs and strokes each arc by its count (the pairs level, binned per tile by the
+ * runtime from the rows it holds); the held
  * track, not read through the store, bins arcs by their ends’ device columns, a density strip under. Hover a bin pair:
  * its card names both bins, the count and the bins’ width, never a pair; zoom in until fewer than 4,096 remain and the
  * items themselves are drawn (EC-171, EC-208).

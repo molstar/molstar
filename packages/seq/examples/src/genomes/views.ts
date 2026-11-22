@@ -80,7 +80,7 @@ export const GenomeFormatsViews: readonly ExampleView[] = [
     id: 'vcf-zoom-in',
     title: 'ClinVar’s chr17 at the fit',
     summary:
-      'The same ClinVar file over the whole of chr17 (83 Mb): more level-1 tiles than a view reads, so none is asked and the track’s band is hatched with “zoom in to read this track” (an info issue; no estimate drawn, never an endless wait). Only TP53’s pages are recorded: zoom into TP53 (7.67–7.69 Mb) to read its variants.',
+      'The same ClinVar file over the whole of chr17 (83 Mb), read at level 1 alone (the host’s `maxLevel: 1`: only TP53’s pages are recorded, where ClinVar’s index would list levels to 4 Mb tiles): more level-1 tiles than a view reads, so none is asked and the track’s band is hatched with “zoom in to read this track” (an info issue; no estimate drawn, never an endless wait). Zoom into TP53 (7.67–7.69 Mb) to read its variants.',
     build: genomeVcf.clinvarZoomIn,
     registry: genomeVcf.registry,
   },
@@ -91,6 +91,15 @@ export const GenomeFormatsViews: readonly ExampleView[] = [
     summary:
       'A generated VCF on a 20 kb chromosome (read whole; its length from its `##contig`): SNVs, multi-allelic sites (a row an allele), insertions, deletions and MNVs, and two long deletions, a symbolic `<DEL>` to its `END` and a 600-base sequence-resolved one, each one item drawn as a bar across the SNVs it covers.',
     build: genomeVcf.longDeletion,
+    registry: genomeVcf.registry,
+  },
+  {
+    dataset: 'genomes',
+    id: 'vcf-genotypes',
+    title: 'Genotypes of 40 samples',
+    summary:
+      'A generated VCF of 40 samples (read whole, `GT` and `DS`) by the `vcf` runtime’s matrix: a row a sample in the header’s order, a column an ALT allele at its extent coloured by its genotype class (no copy, some, every copy, partly called; uncalled in the missing colour). The last eight samples are haploid (a call of every copy or none); one long deletion is one item across the SNVs it covers, solid in its six carriers’ rows. Genotypes are read only for the matrix; the sites above are the same rows.',
+    build: genomeVcf.genotypes,
     registry: genomeVcf.registry,
   },
   {

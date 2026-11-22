@@ -19,6 +19,7 @@ import {
   type TabixLines,
 } from '@molstar/io/common/tabix';
 import { SourceIssues } from '../../data/issues.js';
+import { indexedExtent, indexSpan, LevelCandidates, tabixLevels } from './levels.js';
 import { type AssetReader, abortError, type FailureKind, isAbortError, type OpenLimits } from '../../data/protocol.js';
 import { SourceOpenError } from '../../data/seq-runtime.js';
 
@@ -60,7 +61,29 @@ export interface IndexedLines {
   ): Promise<{ readonly ok: true; readonly line?: Uint8Array } | Exclude<RegionLines, { ok: true }>>;
   /** A region's compressed bytes from the index, nothing read (`regionBytes`): a tile's read cost. */
   cost(name: string, start: number, end: number): number;
+  /** io's bound on a region's compressed bytes (`maxRegionBytes`): a level's every tile within it. */
+  readonly maxRegionBytes: number;
   dispose(): void;
+}
+
+/**
+ * The levels a source by region lists (`tabixLevels`): each indexed sequence to its length when the file says one, else
+ * to the end of its last 4 Mb tile with a cost in the index.
+ */
+export function indexedLevels(
+  lines: Pick<IndexedLines, 'index' | 'cost' | 'maxRegionBytes'>,
+  lengths: ReadonlyMap<string, number | undefined>,
+  options: { readonly maxLevel: number; readonly tileBins: number },
+): number[] {
+  const { index } = lines;
+  const span = indexSpan(index.minShift, index.depth);
+  const cost = (name: string, start: number, end: number) => lines.cost(name, start, end);
+  const coarsest = LevelCandidates[LevelCandidates.length - 1] * options.tileBins;
+  const systems = index.names.map((name) => ({
+    name,
+    extent: Math.min(span, lengths.get(name) ?? indexedExtent(cost, name, coarsest, span)),
+  }));
+  return tabixLevels(cost, systems, { ...options, maxRegionBytes: lines.maxRegionBytes });
 }
 
 /** A range reader over bytes in memory (a host without range reads: the file read whole, bounded). */
@@ -132,7 +155,7 @@ async function firstLine(
 ): Promise<Uint8Array | undefined> {
   let first = Number.POSITIVE_INFINITY;
   // the index's whole span (a .tbi's 2^29), never past int32
-  const span = Math.min(2 ** (index.minShift + 3 * index.depth), 0x7fffffff);
+  const span = indexSpan(index.minShift, index.depth);
   for (const name of index.names) {
     const c = regionChunks(index, name, 0, span)[0];
     if (c && c.begin < first) first = c.begin;
@@ -262,6 +285,7 @@ export async function openIndexedLines(uri: string, indexUri: string, ctx: Index
           : { ok: false, ...got.failure };
       },
       cost: (name, start, end) => regionBytes(index, name, start, end),
+      maxRegionBytes: tabix.maxRegionBytes,
       dispose() {
         r.dispose();
         ranges.dispose();
