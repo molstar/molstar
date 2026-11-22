@@ -115,7 +115,7 @@ export function genotypes(): Node {
   const file = b.data.source('genotypes', { format: 'vcf', uri: GeneratedGenotypesFile });
   const chr = b.data.sequence('chrG', { alphabet: 'dna', source: file, name: GeneratedSystem });
   const sites = b.data.ranges('variants', { target: chr, source: file });
-  const gt = b.data.matrix('gt', { target: chr, source: file } as never);
+  const gt = b.data.matrix('gt', { target: chr, source: file });
   b.views.view('main', (v) => {
     const s = v.section('genotypes', { of: chr });
     s.track('ruler', { label: '' }).layer('ruler', { type: 'ruler', units: 'bases' });
