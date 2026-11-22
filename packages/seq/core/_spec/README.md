@@ -1545,7 +1545,8 @@ share), and two chunks loaded on first use: `vcf-indexed.ts` (the first indexed 
 - **Fields**: `label` and `name` the VCF `ID` (`.` none; `label` is what a ranges layer labels by), `ref`, `alt`, `qual`
   (float32, `.` NaN; a decimal float as VCF writes one, `Inf` and `NaN` too: never `` as 0 or `0x10` as 16, as every
   `Float` cell), `filter` (category), `category` (`SNV`, `MNV`, `insertion`, `deletion`, `indel`, `structural` for
-  `<…>`, `breakend` for `]`, `[` and single breakends); then **INFO keys typed by the header**: `Integer` int32 and
+  `<…>`, `breakend` for `]`, `[` and single breakends): the fixed fields, `VcfFixedFieldNames` in the protocol (a
+  describer tells INFO from them without the reader); then **INFO keys typed by the header**: `Integer` int32 and
   `Float` float32 when one value an allele (`Number=1`, or `A` split by allele), `Flag` a category (`true`), every other
   a category (`Number=R` the reference's and the allele's values, `r,a`; other numbers their text). A missing int32 is
   `MissingInt` (−2^31, BCF's missing integer: int32 has no NaN). The keys the source's `fields` (a field's name to its

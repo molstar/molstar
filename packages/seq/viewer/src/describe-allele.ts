@@ -5,8 +5,7 @@
  */
 
 import { CategoryColumn, type Column } from '@molstar/core/repr/tree';
-import type { RangesList } from '@molstar/seqx-core/data';
-import { FixedFields as VcfFixedFields } from '@molstar/seqx-core/runtimes/vcf-parse';
+import { type RangesList, VcfFixedFieldNames } from '@molstar/seqx-core/data';
 
 // A variant allele as its card says it (_spec/README.md "Behaviors", hoverCard, A variant allele's card): the item
 // card's words for a source row holding `ref` and `alt` (a VCF's).
@@ -17,8 +16,8 @@ export const AlleleInfoRows = 8;
 /** The longest INFO value a card row shows (a long list of ids, a description): the rest as an ellipsis. */
 export const AlleleInfoChars = 40;
 
-/** A source's fixed fields (core's VCF reader's: core _spec "Data", VCF, Fields): what is not an INFO key. */
-const FixedFields = new Set(VcfFixedFields.map((f) => f.name));
+/** A source's fixed fields (core's `VcfFixedFieldNames`: core _spec "Data", VCF, Fields): what is not an INFO key. */
+const FixedFields = new Set<string>(VcfFixedFieldNames);
 
 /** A variant allele's card words: its record's ID, category, QUAL and FILTER, and its INFO fields. */
 export interface Allele {

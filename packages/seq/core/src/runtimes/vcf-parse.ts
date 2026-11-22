@@ -6,7 +6,7 @@
 
 import { hashFnv32a } from '@molstar/core/data/util/hash-functions';
 import { type Column, type ColumnType, categoryColumn } from '@molstar/core/repr/tree';
-import type { FieldInfo } from '../data/protocol.js';
+import { type FieldInfo, VcfFixedFieldNames } from '../data/protocol.js';
 import { eachMeeting, type IntervalIndex, intervalIndex } from './internal/intervals.js';
 import { decodeText } from './internal/text.js';
 import type { VcfHeader } from './vcf-header.js';
@@ -26,16 +26,21 @@ export const MissingInt = -0x80000000;
 /** A field's declared type (the source's `types`); `string` is held as a category. */
 type DeclaredType = 'int32' | 'float32' | 'float64' | 'category' | 'string';
 
+/** The fixed fields' types (`VcfFixedFieldNames`, the protocol's: every row has them, in that order). */
+const FixedTypes: Record<(typeof VcfFixedFieldNames)[number], ColumnType> = {
+  label: 'category',
+  name: 'category',
+  ref: 'category',
+  alt: 'category',
+  qual: 'float32',
+  filter: 'category',
+  category: 'category',
+};
+
 /** The fixed fields every row has, in order: the label and `name` the VCF `ID`, then the alleles and the record's. */
-export const FixedFields: readonly { readonly name: string; readonly type: ColumnType }[] = [
-  { name: 'label', type: 'category' },
-  { name: 'name', type: 'category' },
-  { name: 'ref', type: 'category' },
-  { name: 'alt', type: 'category' },
-  { name: 'qual', type: 'float32' },
-  { name: 'filter', type: 'category' },
-  { name: 'category', type: 'category' },
-];
+export const FixedFields: readonly { readonly name: string; readonly type: ColumnType }[] = VcfFixedFieldNames.map(
+  (name) => ({ name, type: FixedTypes[name] }),
+);
 
 /** An INFO key read as a field: under `name` (the key, or a `fields` mapping's), by its `Number` and type. */
 export interface InfoField {

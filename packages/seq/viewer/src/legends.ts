@@ -21,6 +21,22 @@ export interface LegendHover {
   readonly number?: number;
 }
 
+/**
+ * Each item drawn by a legend's ranges layers (their hit marks: inside a merged run too, never items read and out of
+ * view), over every strip's lays (a section of blocks has one a block) and its tracks' (the first strip's): an item
+ * twice is one key and one range once the set and the Location are made.
+ */
+function drawnOf(layout: ViewLayout, layers: readonly string[], f: (lay: RangesLay, item: number) => void): void {
+  for (const s of layout.sections)
+    for (const band of [...s.tracks.map((t) => t.layers), ...s.lays])
+      for (const l of band ?? []) {
+        if (l.type.name !== 'ranges' || !layers.includes(l.key)) continue;
+        const lay = l.lay as RangesLay;
+        for (let k = 0; k < lay.hn; k++)
+          if (lay.hitem[k] >= 0 && lay.painted[lay.hitem[k]] !== undefined) f(lay, lay.hitem[k]);
+      }
+}
+
 /** The items an entry names in view (`LegendModel.entryItems`). */
 export type EntryItems = { readonly elements: Key[]; readonly location: Location };
 
@@ -62,17 +78,7 @@ export class LegendModel extends ReactiveModel {
     // the entries with items drawn, read once a settled frame (never a frame, never a redraw of the part)
     const drawn = new Set<string>();
     for (const legend of this._legends.value)
-      for (const s of layout.sections)
-        for (const band of [...s.tracks.map((t) => t.layers), ...s.lays])
-          for (const l of band ?? []) {
-            if (l.type.name !== 'ranges' || !legend.layers.includes(l.key)) continue;
-            const lay = l.lay as RangesLay;
-            for (let k = 0; k < lay.hn; k++) {
-              const j = lay.hitem[k];
-              const v = j < 0 ? undefined : lay.painted[j];
-              if (v !== undefined) drawn.add(`${legend.key}\u0000${v}`);
-            }
-          }
+      drawnOf(layout, legend.layers, (lay, j) => drawn.add(`${legend.key}\u0000${lay.painted[j]}`));
     this._drawnSet = drawn;
     this._drawn.set([...drawn].sort().join('\n'));
   }
@@ -106,21 +112,11 @@ export class LegendModel extends ReactiveModel {
   private readItems(layout: ViewLayout, layers: readonly string[], value: string): EntryItems | undefined {
     const elements: Key[] = [];
     const parts: { system: string; ranges: number[] }[] = [];
-    // every strip's lays (a section of blocks has one a block) and its tracks' (the first strip's): an item twice is
-    // one key and one range once the set and the Location are made
-    for (const s of layout.sections)
-      for (const band of [...s.tracks.map((t) => t.layers), ...s.lays])
-        for (const l of band ?? []) {
-          if (l.type.name !== 'ranges' || !layers.includes(l.key)) continue;
-          const lay = l.lay as RangesLay;
-          // the items with a mark drawn (their hit marks: inside a merged run too), never those read and out of view
-          for (let k = 0; k < lay.hn; k++) {
-            const j = lay.hitem[k];
-            if (j < 0 || lay.painted[j] !== value) continue;
-            elements.push({ owner: lay.owner, key: lay.keys[j] });
-            parts.push({ system: lay.dataSystem, ranges: [lay.starts[j], Math.max(lay.ends[j], lay.starts[j] + 1)] });
-          }
-        }
+    drawnOf(layout, layers, (lay, j) => {
+      if (lay.painted[j] !== value) return;
+      elements.push({ owner: lay.owner, key: lay.keys[j] });
+      parts.push({ system: lay.dataSystem, ranges: [lay.starts[j], Math.max(lay.ends[j], lay.starts[j] + 1)] });
+    });
     if (!elements.length) return undefined;
     return { elements, location: location({ parts }) };
   }
