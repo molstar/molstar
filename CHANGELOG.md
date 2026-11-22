@@ -11,8 +11,9 @@ here.
 ## [Unreleased]
 
 - Fix atom-set `count-query` counting matches in the entire input instead of the current atom set
-- Fix the transparency, clipping, emissive and wiggle layers of an object of one instance (instance granularity) being
-  written into the array every object's empty layer shares: one such object's layer set or cleared another's
+- Fix the transparency, clipping, emissive and wiggle layers of an object of one instance (instance granularity), and
+  the sizes of an object of one instance, group or size type, being written into the array every object's empty one
+  shares: one such object's layer or sizes set or cleared another's
 - Fix per-vertex colors and sizes of instanced geometry (e.g. a volume color theme on an assembly's surface), and the
   instance colors and sizes of geometry exports, being placed by another instance's transform where the instance grid
   reorders the instances

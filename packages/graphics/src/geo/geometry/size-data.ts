@@ -116,6 +116,13 @@ export function getMaxSize(sizeData: SizeData): number {
 }
 
 const emptySizeTexture = { array: new Uint8Array(4), count: 1 };
+
+/** the array of `sizeData`'s table to write again: not the empty one, which every uniform size shares */
+function reusedArray(sizeData: SizeData | undefined) {
+  const table = sizeData?.tSize.ref.value;
+  return table && table !== emptySizeTexture ? table.array : undefined;
+}
+
 function createEmptySizeTexture() {
   return { tSize: ValueCell.create(emptySizeTexture) };
 }
@@ -160,7 +167,7 @@ export function createTextureSize(sizes: DataArray<Uint8Array>, type: SizeDataTy
  * particle pack's radii by type, times the theme's scale)
  */
 export function createSiteTypeSize(sizes: ArrayLike<number>, sizeData?: SizeData): SizeData {
-  const table = createDataArray(Math.max(1, sizes.length), 4, Uint8Array, sizeData && sizeData.tSize.ref.value.array);
+  const table = createDataArray(Math.max(1, sizes.length), 4, Uint8Array, reusedArray(sizeData));
   for (let i = 0; i < sizes.length; ++i) packIntToRGBArray(sizes[i] * sizeDataFactor, table.array, i * 4);
   return createTextureSize(table, 'siteType', sizeData);
 }
@@ -168,7 +175,7 @@ export function createSiteTypeSize(sizes: ArrayLike<number>, sizeData?: SizeData
 /** Creates size texture with size for each instance/unit */
 export function createInstanceSize(locationIt: LocationIterator, sizeFn: LocationSize, sizeData?: SizeData): SizeData {
   const { instanceCount } = locationIt;
-  const sizes = createDataArray(Math.max(1, instanceCount), 4, Uint8Array, sizeData && sizeData.tSize.ref.value.array);
+  const sizes = createDataArray(Math.max(1, instanceCount), 4, Uint8Array, reusedArray(sizeData));
   locationIt.reset();
   while (locationIt.hasNext && !locationIt.isNextNewInstance) {
     const v = locationIt.move();
@@ -181,7 +188,7 @@ export function createInstanceSize(locationIt: LocationIterator, sizeFn: Locatio
 /** Creates size texture with size for each group (i.e. shared across instances/units) */
 export function createGroupSize(locationIt: LocationIterator, sizeFn: LocationSize, sizeData?: SizeData): SizeData {
   const { groupCount } = locationIt;
-  const sizes = createDataArray(Math.max(1, groupCount), 4, Uint8Array, sizeData && sizeData.tSize.ref.value.array);
+  const sizes = createDataArray(Math.max(1, groupCount), 4, Uint8Array, reusedArray(sizeData));
   locationIt.reset();
   while (locationIt.hasNext && !locationIt.isNextNewInstance) {
     const v = locationIt.move();
@@ -198,7 +205,7 @@ export function createGroupInstanceSize(
 ): SizeData {
   const { groupCount, instanceCount } = locationIt;
   const count = instanceCount * groupCount;
-  const sizes = createDataArray(Math.max(1, count), 4, Uint8Array, sizeData && sizeData.tSize.ref.value.array);
+  const sizes = createDataArray(Math.max(1, count), 4, Uint8Array, reusedArray(sizeData));
   locationIt.reset();
   while (locationIt.hasNext) {
     const v = locationIt.move();
@@ -210,7 +217,7 @@ export function createGroupInstanceSize(
 /** Creates size texture with size for each vertex */
 export function createVertexSize(locationIt: LocationIterator, sizeFn: LocationSize, sizeData?: SizeData): SizeData {
   const { groupCount } = locationIt;
-  const sizes = createDataArray(Math.max(1, groupCount), 4, Uint8Array, sizeData && sizeData.tSize.ref.value.array);
+  const sizes = createDataArray(Math.max(1, groupCount), 4, Uint8Array, reusedArray(sizeData));
   locationIt.reset();
   while (locationIt.hasNext) {
     const v = locationIt.move();
@@ -227,7 +234,7 @@ export function createVertexInstanceSize(
 ): SizeData {
   const { groupCount, instanceCount } = locationIt;
   const count = instanceCount * groupCount;
-  const sizes = createDataArray(Math.max(1, count), 4, Uint8Array, sizeData && sizeData.tSize.ref.value.array);
+  const sizes = createDataArray(Math.max(1, count), 4, Uint8Array, reusedArray(sizeData));
   locationIt.reset();
   while (locationIt.hasNext) {
     const v = locationIt.move();
