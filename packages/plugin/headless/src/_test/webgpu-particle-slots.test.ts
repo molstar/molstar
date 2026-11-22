@@ -13,6 +13,7 @@ import { CustomProperties } from '@molstar/model/model/custom-property';
 import { Particle, type ParticleList, type ParticleTarget } from '@molstar/model/model/particles/particle-list';
 import { MarkerAction } from '@molstar/core/util/marker-action';
 import type { MergedGraphicsRenderObject } from '@molstar/graphics/gl/render-object';
+import { getPagedCuller } from '@molstar/graphics/gl/renderable/merged-paged-culler';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
 import { ParticlesRegistry } from '@molstar/plugin/particles-registry';
@@ -205,7 +206,8 @@ describe.skipIf(!WebGPU.module)('a slot view of particle tiles on WebGPU', () =>
           recovery.push(differing(await image(), allFlat));
         }
         const maxStorage = plugin.canvas3d!.graphics.compute?.maxStorageBufferSize;
-        const report = JSON.stringify({ pixels: pixels(allSlots, allFlat), recovery, labels, maxStorage });
+        const readBack = getPagedCuller(object.merged.source!)?.readBack;
+        const report = JSON.stringify({ pixels: pixels(allSlots, allFlat), recovery, labels, maxStorage, readBack });
         expect(allDiffering, `slot view not drawn as the flat one: ${report}`).toBe(0);
       }
 

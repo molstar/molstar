@@ -20,6 +20,7 @@ import {
   PagedCullArgsKernel,
   PagedCullArgsSchema,
   type PagedCullChanges,
+  type PagedCuller,
   PagedCullKernels,
   PagedPerParticleMembers,
   PagedRecordWords,
@@ -62,6 +63,14 @@ const dispatchItems = (kernel: ComputeKernel, n: number) => {
   kernel.dispatch(Math.max(1, Math.ceil(n / 64)));
 };
 
+/** The paged cull of each merged object's instance source (`createPagedMergedCuller`), for diagnostics */
+const pagedCullers = new WeakMap<object, PagedCuller>();
+
+/** The paged cull of the merged object whose instances `source` keeps (`Merged.source`): for diagnostics, e.g. tests */
+export function getPagedCuller(source: object): PagedCuller | undefined {
+  return pagedCullers.get(source);
+}
+
 export function createPagedMergedCuller(
   compute: ComputeContext,
   resources: GraphicsResources,
@@ -73,6 +82,7 @@ export function createPagedMergedCuller(
   const { values, segments, source } = merged;
   const paged = source!.paged!;
   const culler = createPagedCuller(compute, resources);
+  pagedCullers.set(source!, culler);
   const stride = indexed ? IndirectRecordBytes.indexed : IndirectRecordBytes.vertex;
   const words = stride / 4;
   // a storage buffer's size a multiple of 4: of 16 (a vec4's) where that is within the device's binding limit, else of

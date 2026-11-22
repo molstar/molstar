@@ -25,6 +25,8 @@ import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
 import { ParticlesRegistry } from '@molstar/plugin/particles-registry';
 import { PluginStateTransform, PluginStateObject as SO } from '@molstar/plugin/state/objects';
 import { ParticlesRepresentation3D } from '@molstar/plugin/state/transforms/particles/representation';
+import type { MergedGraphicsRenderObject } from '@molstar/graphics/gl/render-object';
+import { getPagedCuller } from '@molstar/graphics/gl/renderable/merged-paged-culler';
 import { WebGPU } from './webgpu-module.js';
 
 // A list with templates' far copies (`ParticleNesting.getTemplateLevels`): a copy whose template's particles are a few
@@ -216,7 +218,10 @@ describe.skipIf(!WebGPU.module)("a list with templates' far copies on WebGPU", (
           recovery.push(differing(await frame(...near), flatNear));
         }
         const maxStorage = graphics.compute?.maxStorageBufferSize;
-        const report = JSON.stringify({ nearDiffering, recovery, labels, maxStorage });
+        // the store's cull: what its read-backs last found (the frame's slots needed, its room and cap)
+        const source = r.renderObjects.map((o) => (o as MergedGraphicsRenderObject).merged?.source).find((s) => s);
+        const readBack = source && getPagedCuller(source)?.readBack;
+        const report = JSON.stringify({ nearDiffering, recovery, labels, maxStorage, readBack });
         expect(nearDiffering, `near copy not drawn whole: ${report}`).toBeLessThanOrEqual(8);
       }
       // far: a sample drawn larger, not the flattened list's image, but about its color and its cover
